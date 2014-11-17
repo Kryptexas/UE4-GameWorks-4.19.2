@@ -23,7 +23,7 @@ protected:
 private:
 
 	/* Called to open the blueprint defaults view, this opens whatever text dif tool the user has */
-	void OpenInDefaults(class UBlueprint* OldBlueprint, class UBlueprint* NewBlueprint ) const;
+	void OpenInDefaults(const class UBlueprint* OldBlueprint, const class UBlueprint* NewBlueprint ) const;
 
 	/** Handler for when EditDefaults is selected */
 	void ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlueprintGeneratedClass>> Objects);
@@ -33,4 +33,10 @@ private:
 
 	/** Returns true if the blueprint is data only */
 	bool ShouldUseDataOnlyEditor( const UBlueprint* Blueprint ) const;
+
+	/** Returns the tooltip to display when attempting to derive a Blueprint */
+	FText GetNewDerivedBlueprintTooltip(TWeakObjectPtr<UBlueprintGeneratedClass> InObject);
+
+	/** Returns TRUE if you can derive a Blueprint */
+	bool CanExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlueprintGeneratedClass> InObject);
 };

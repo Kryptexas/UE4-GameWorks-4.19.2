@@ -119,7 +119,10 @@ public class Core : ModuleRules
 				"SDL2"
                 );
 
-            if (UEBuildConfiguration.bCompileAgainstEngine == true && Target.Type != TargetRules.TargetType.Server && UEBuildConfiguration.bCompileSteamOSS)
+            // add steam controller dependency for game and client only
+            if (UEBuildConfiguration.bCompileAgainstEngine == true && 
+                (Target.Type == TargetRules.TargetType.Game || Target.Type == TargetRules.TargetType.Client) &&
+                UEBuildConfiguration.bCompileSteamOSS)
             {
                 AddThirdPartyPrivateStaticDependencies(Target, "SteamController");
             }

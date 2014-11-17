@@ -12,7 +12,8 @@ public class PaperJsonImporter : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Paper2D",
-				"UnrealEd"
+				"UnrealEd",
+				"Paper2DEditor"
 			});
 
 		PrivateIncludePathModuleNames.AddRange(

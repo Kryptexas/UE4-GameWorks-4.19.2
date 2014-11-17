@@ -1,12 +1,14 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "GameFramework/Actor.h"
 #include "CameraTypes.h"
 #include "Engine/Scene.h"
 #include "Engine/EngineBaseTypes.h"
 
 #include "PlayerCameraManager.generated.h"
+
+class APawn;
 
 UENUM()
 enum EViewTargetBlendFunction

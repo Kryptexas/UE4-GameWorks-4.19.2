@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using System.Security.AccessControl;
+using System.Text;
 
 namespace UnrealBuildTool
 {
@@ -221,12 +222,14 @@ namespace UnrealBuildTool
 
 		public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
-			string Arguments = GetCompileArguments_Global(CompileEnvironment);
-			string PCHArguments = "";
+			var Arguments = new StringBuilder();
+			var PCHArguments = new StringBuilder();
+
+			Arguments.Append(GetCompileArguments_Global(CompileEnvironment));
 
 			if (CompileEnvironment.Config.PrecompiledHeaderAction != PrecompiledHeaderAction.Create)
 			{
-				Arguments += " -Werror";
+				Arguments.Append(" -Werror");
 			}
 
 			if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
@@ -234,7 +237,9 @@ namespace UnrealBuildTool
 				// Add the precompiled header file's path to the include path so GCC can find it.
 				// This needs to be before the other include paths to ensure GCC uses it instead of the source header file.
 				var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Mac].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
-				PCHArguments += string.Format(" -include \"{0}\"", CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(PrecompiledFileExtension, ""));
+				PCHArguments.Append(" -include \"");
+				PCHArguments.Append(CompileEnvironment.PrecompiledHeaderFile.AbsolutePath.Replace(PrecompiledFileExtension, ""));
+				PCHArguments.Append("\"");
 			}
 
 			// Add include paths to the argument list.
@@ -242,10 +247,12 @@ namespace UnrealBuildTool
 			AllIncludes.AddRange(CompileEnvironment.Config.SystemIncludePaths);
 			foreach (string IncludePath in AllIncludes)
 			{
-				Arguments += string.Format(" -I\"{0}\"", ConvertPath(Path.GetFullPath(IncludePath)));
+				Arguments.Append(" -I\"");
 
 				if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
 				{
+					Arguments.Append(ConvertPath(Path.GetFullPath(IncludePath)));
+
 					// sync any third party headers we may need
 					if (IncludePath.Contains("ThirdParty"))
 					{
@@ -264,11 +271,19 @@ namespace UnrealBuildTool
 						}
 					}
 				}
+				else
+				{
+					Arguments.Append(IncludePath);
+				}
+
+				Arguments.Append("\"");
 			}
 
 			foreach (string Definition in CompileEnvironment.Config.Definitions)
 			{
-				Arguments += string.Format(" -D\"{0}\"", Definition);
+				Arguments.Append(" -D\"");
+				Arguments.Append(Definition);
+				Arguments.Append("\"");
 			}
 
 			CPPOutput Result = new CPPOutput();
@@ -310,7 +325,7 @@ namespace UnrealBuildTool
 					FileArguments += GetCompileArguments_CPP();
 
 					// only use PCH for .cpp files
-					FileArguments += PCHArguments;
+					FileArguments += PCHArguments.ToString();
 				}
 
 				// Add the C++ source file and its included files to the prerequisite item list.
@@ -543,6 +558,29 @@ namespace UnrealBuildTool
 			return String.Format("{0}.{1}.{2}", CL / (100 * 100), (CL / 100) % 100, CL % 100);
 		}
 
+		private void AddLibraryPathToRPaths(string Library, string ExeAbsolutePath, ref List<string> RPaths, ref string LinkCommand, bool bIsBuildingAppBundle)
+		{
+			string LibraryDir = Path.GetDirectoryName(Library);
+			string ExeDir = Path.GetDirectoryName(ExeAbsolutePath);
+			if ((Library.Contains("/Plugins/") || Library.Contains("/Binaries/ThirdParty/")) && Library.EndsWith("dylib") && LibraryDir != ExeDir)
+			{
+				string RelativePath = Utils.MakePathRelativeTo(LibraryDir, ExeDir);
+				if (!RelativePath.Contains(LibraryDir) && !RPaths.Contains(RelativePath))
+				{
+					RPaths.Add(RelativePath);
+					LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
+
+					if (bIsBuildingAppBundle)
+					{
+						string PathInBundle = Path.Combine(Path.GetDirectoryName(ExeDir), "UE4/Engine/Binaries/Mac", RelativePath.Substring(9));
+						Utils.CollapseRelativeDirectories(ref PathInBundle);
+						string RelativePathInBundle = Utils.MakePathRelativeTo(PathInBundle, ExeDir);
+						LinkCommand += " -rpath \"@loader_path/" + RelativePathInBundle + "\"";
+					}
+				}
+			}
+		}
+
 		public override FileItem LinkFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly)
 		{
 			bool bIsBuildingLibrary = LinkEnvironment.Config.bIsBuildingLibrary || bBuildImportLibraryOnly;
@@ -568,7 +606,7 @@ namespace UnrealBuildTool
 
 			// Tell the action that we're building an import library here and it should conditionally be
 			// ignored as a prerequisite for other actions
-			LinkAction.bProducesImportLibrary = !Utils.IsRunningOnMono && (bIsBuildingLibrary || LinkEnvironment.Config.bIsBuildingDLL);
+			LinkAction.bProducesImportLibrary = !Utils.IsRunningOnMono && (bBuildImportLibraryOnly || LinkEnvironment.Config.bIsBuildingDLL);
 
 			// Add the output file as a production of the link action.
 			FileItem OutputFile = FileItem.GetItemByPath(Path.GetFullPath(LinkEnvironment.Config.OutputFilePath));
@@ -612,6 +650,8 @@ namespace UnrealBuildTool
 					}
 				}
 			}
+
+			bool bIsBuildingAppBundle = !LinkEnvironment.Config.bIsBuildingDLL && !LinkEnvironment.Config.bIsBuildingLibrary && !LinkEnvironment.Config.bIsBuildingConsoleApplication;
 
 			if (!bIsBuildingLibrary || LinkEnvironment.Config.bIncludeDependentLibrariesInLibrary)
 			{
@@ -675,15 +715,7 @@ namespace UnrealBuildTool
 						LinkCommand += string.Format(" -l{0}", AdditionalLibrary);
 					}
 
-					if ((AdditionalLibrary.Contains("/Plugins/") || AdditionalLibrary.Contains("/Binaries/ThirdParty/")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(AbsolutePath))
-					{
-						string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(AbsolutePath));
-						if (!RelativePath.Contains(Path.GetDirectoryName(AdditionalLibrary)) && !RPaths.Contains(RelativePath))
-						{
-							RPaths.Add(RelativePath);
-							LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
-						}
-					}
+					AddLibraryPathToRPaths(AdditionalLibrary, AbsolutePath, ref RPaths, ref LinkCommand, bIsBuildingAppBundle);
 				}
 
 				foreach (string AdditionalLibrary in LinkEnvironment.Config.DelayLoadDLLs)
@@ -696,15 +728,7 @@ namespace UnrealBuildTool
 
 					LinkCommand += string.Format(" -weak_library \"{0}\"", ConvertPath(Path.GetFullPath(AdditionalLibrary)));
 
-					if ((AdditionalLibrary.Contains("/Plugins/") || AdditionalLibrary.Contains("/Binaries/ThirdParty/")) && Path.GetDirectoryName(AdditionalLibrary) != Path.GetDirectoryName(AbsolutePath))
-					{
-						string RelativePath = Utils.MakePathRelativeTo(Path.GetDirectoryName(AdditionalLibrary), Path.GetDirectoryName(AbsolutePath));
-						if (!RelativePath.Contains(Path.GetDirectoryName(AdditionalLibrary)) && !RPaths.Contains(RelativePath))
-						{
-							RPaths.Add(RelativePath);
-							LinkCommand += " -rpath \"@loader_path/" + RelativePath + "\"";
-						}
-					}
+					AddLibraryPathToRPaths(AdditionalLibrary, AbsolutePath, ref RPaths, ref LinkCommand, bIsBuildingAppBundle);
 				}
 			}
 
@@ -882,7 +906,7 @@ namespace UnrealBuildTool
 				DylibCopyScript.Close();
 
 				// For non-console application, prepare a script that will create the app bundle. It'll be run by CreateAppBundle action
-				if (!LinkEnvironment.Config.bIsBuildingDLL && !LinkEnvironment.Config.bIsBuildingLibrary && !LinkEnvironment.Config.bIsBuildingConsoleApplication)
+				if (bIsBuildingAppBundle)
 				{
 					string CreateAppBundleScriptPath = Path.Combine(LinkEnvironment.Config.IntermediateDirectory, "CreateAppBundle.sh");
 					StreamWriter CreateAppBundleScript = File.CreateText(CreateAppBundleScriptPath);
@@ -1149,7 +1173,7 @@ namespace UnrealBuildTool
 
 		static private string BundleContentsDirectory = "";
 
-		static public void AddAppBundleContentsToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
 		{
 			if (Binary.Target.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{

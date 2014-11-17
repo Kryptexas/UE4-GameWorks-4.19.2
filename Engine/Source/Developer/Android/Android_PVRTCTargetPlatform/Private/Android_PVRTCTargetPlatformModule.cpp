@@ -12,7 +12,7 @@
  * Android cooking platform which cooks only PVRTC based textures.
  */
 class FAndroid_PVRTCTargetPlatform
-	: public FAndroidTargetPlatform
+	: public FAndroidTargetPlatform<FAndroid_PVRTCPlatformProperties>
 {
 	virtual FString GetAndroidVariantName( ) override
 	{

@@ -67,6 +67,24 @@ public:
 
 	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const override;
 
+	/** Elements for which we might want to reserve space. */
+	enum class EChromeElement
+	{
+		Icon,
+		Controls
+	};
+
+	/**
+	 * Remove all the space that might have been reserved for
+	 * various window chrome elements (app icons, minimize, close, etc.)
+	 */
+	void ClearReservedSpace();
+	/**
+	 * Add some extra padding so that the corresponding window chrome element
+	 * does not overlap our tabs.
+	 */
+	void ReserveSpaceForWindowChrome(EChromeElement);
+
 public:
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
@@ -215,9 +233,10 @@ private:
 
 struct FTabMatcher
 {
-	FTabMatcher( const FTabId& InTabId, ETabState::Type InTabState = static_cast<ETabState::Type>(ETabState::ClosedTab | ETabState::OpenedTab) )
+	FTabMatcher( const FTabId& InTabId, ETabState::Type InTabState = static_cast<ETabState::Type>(ETabState::ClosedTab | ETabState::OpenedTab), const bool InTreatIndexNoneAsWildcard = true )
 		: TabIdToMatch( InTabId )
 		, RequiredTabState( InTabState )
+		, TreatIndexNoneAsWildcard( InTreatIndexNoneAsWildcard )
 	{
 	}
 
@@ -226,10 +245,11 @@ struct FTabMatcher
 		return
 			( (Candidate.TabState & RequiredTabState) != 0 ) &&
 			( Candidate.TabId.TabType == TabIdToMatch.TabType ) &&
-			// NAME_None is treated as a wildcard
-			( TabIdToMatch.InstanceId == INDEX_NONE || TabIdToMatch.InstanceId == Candidate.TabId.InstanceId );;
+			// INDEX_NONE is treated as a wildcard
+			( (TreatIndexNoneAsWildcard && TabIdToMatch.InstanceId == INDEX_NONE) || TabIdToMatch.InstanceId == Candidate.TabId.InstanceId );;
 	}
 
 	FTabId TabIdToMatch;
 	ETabState::Type RequiredTabState;
+	bool TreatIndexNoneAsWildcard;
 };

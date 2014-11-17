@@ -27,7 +27,6 @@
 #include "LightingTools.h"
 #include "MRUFavoritesList.h"
 #include "Editor/SceneOutliner/Private/SSocketChooser.h"
-#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SnappingUtils.h"
 #include "Layers/ILayers.h"
 #include "IPlacementModeModule.h"
@@ -43,6 +42,8 @@
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
 #include "ReferenceViewer.h"
+#include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "EditorClassUtils.h"
 
 #include "EditorActorFolders.h"
 #include "ActorPickerMode.h"
@@ -181,91 +182,6 @@ void FLevelEditorActionCallbacks::OpenLevel()
 bool FLevelEditorActionCallbacks::OpenLevel_CanExecute()
 {
 	return FSlateApplication::Get().IsNormalExecution() && !GLevelEditorModeTools().IsTracking();
-}
-
-FAssetPickerConfig FLevelEditorActionCallbacks::CreateLevelAssetPickerConfig()
-{
-	FAssetPickerConfig AssetPickerConfig;
-	AssetPickerConfig.Filter.ClassNames.Add(UWorld::StaticClass()->GetFName());
-	AssetPickerConfig.bAllowDragging = false;
-	AssetPickerConfig.SelectionMode = ESelectionMode::Single;
-	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-	UWorld* CurrentWorld = GEditor->GetEditorWorldContext().World();
-	if (CurrentWorld)
-	{
-		AssetPickerConfig.InitialAssetSelection = FAssetData(CurrentWorld);
-	}
-
-	return AssetPickerConfig;
-}
-
-void FLevelEditorActionCallbacks::OpenLevelPickingDialog()
-{
-	const FVector2D AssetPickerSize(600.0f, 586.0f);
-
-	FMenuBuilder MenuBuilder(false, NULL);
-
-	// Create the contents of the popup
-	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-	FAssetPickerConfig AssetPickerConfig = CreateLevelAssetPickerConfig();
-	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateStatic(&FLevelEditorActionCallbacks::OpenLevelFromAssetPicker);
-	TSharedRef<SWidget> ActualWidget = 
-		SNew(SBox)
-		.HeightOverride(AssetPickerSize.X)
-		.WidthOverride(AssetPickerSize.Y)
-		[
-			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-		];
-
-	// Wrap the picker widget in a multibox-style menu body
-	MenuBuilder.BeginSection("AssetPickerOpenLevel", NSLOCTEXT("OpenLevelDialog", "WindowTitle", "Open Level"));
-	{
-		const bool bNoIndent = true;
-		MenuBuilder.AddWidget(ActualWidget, FText::GetEmpty(), bNoIndent);
-	}
-	MenuBuilder.EndSection();
-
-	TSharedRef<SWidget> WindowContents = MenuBuilder.MakeWidget();
-
-	// Determine where the pop-up should open
-	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
-	FVector2D WindowPosition = FSlateApplication::Get().GetCursorPos();
-	if (ParentWindow.IsValid())
-	{
-		FSlateRect ParentMonitorRect = ParentWindow->GetFullScreenInfo();
-		const FVector2D MonitorCenter((ParentMonitorRect.Right + ParentMonitorRect.Left) * 0.5f, (ParentMonitorRect.Top + ParentMonitorRect.Bottom) * 0.5f);
-		WindowPosition = MonitorCenter - AssetPickerSize * 0.5f;
-
-		// Open the pop-up
-		FPopupTransitionEffect TransitionEffect(FPopupTransitionEffect::None);
-		TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu(ParentWindow.ToSharedRef(), WindowContents, WindowPosition, TransitionEffect);
-	}
-}
-
-void FLevelEditorActionCallbacks::OpenLevelFromAssetPicker(const TArray<class FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType)
-{
-	const bool bCorrectActivationMethod = (ActivationType == EAssetTypeActivationMethod::DoubleClicked || ActivationType == EAssetTypeActivationMethod::Opened);
-	if (SelectedAssets.Num() > 0 && bCorrectActivationMethod)
-	{
-		const FAssetData& AssetData = SelectedAssets[0];
-		if (AssetData.AssetClass == UWorld::StaticClass()->GetFName())
-		{
-			// Close the menu that we were picking from
-			FSlateApplication::Get().DismissAllMenus();
-
-			// If there are any unsaved changes to the current level, see if the user wants to save those first.
-			bool bPromptUserToSave = true;
-			bool bSaveMapPackages = true;
-			bool bSaveContentPackages = true;
-			if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
-			{
-				const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
-				const bool bLoadAsTemplate = false;
-				const bool bShowProgress = true;
-				FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
-			}
-		}
-	}
 }
 
 void FLevelEditorActionCallbacks::DeltaTransform()
@@ -535,20 +451,13 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
-	// try iterating over all worlds here
-	for (TObjectIterator<UWorld> It; It; ++It)
-	{
-		UWorld* World = *It;
-		World->ChangeFeatureLevel(InPreviewFeatureLevel);
-	}
-	
-	UWorld::ForceFeatureLevelUpdate(InPreviewFeatureLevel);
+	UWorld::ChangeAllWorldFeatureLevels(InPreviewFeatureLevel);
+//	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel); // The ultimate goal, but needs removal of the global feature level first!
 }
 
 bool FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
-	// For now, we just stay stuck on the system max feature level
-	return InPreviewFeatureLevel == GRHIFeatureLevel;
+	return InPreviewFeatureLevel == GetWorld()->FeatureLevel;
 }
 
 void FLevelEditorActionCallbacks::ConfigureLightingBuildOptions( const FLightingBuildOptions& Options )
@@ -1067,6 +976,19 @@ void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
 	}
 }
 
+void FLevelEditorActionCallbacks::GoToDocsForActor_Clicked()
+{
+	const auto& SelectedActorInfo = AssetSelectionUtils::GetSelectedActorInfo();
+	if( SelectedActorInfo.SelectionClass != nullptr )
+	{
+		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedActorInfo.SelectionClass);
+		if (!DocumentationLink.IsEmpty())
+		{
+			IDocumentation::Get()->Open( DocumentationLink );
+		}
+	}
+}
+
 void FLevelEditorActionCallbacks::FindInContentBrowser_Clicked()
 {
 	GEditor->SyncToContentBrowser();
@@ -1229,9 +1151,9 @@ void FLevelEditorActionCallbacks::AddActor_Clicked( UActorFactory* ActorFactory,
 	}
 }
 
-AActor* FLevelEditorActionCallbacks::AddActor( UActorFactory* ActorFactory, const FAssetData& AssetData, const FVector* ActorLocation )
+AActor* FLevelEditorActionCallbacks::AddActor( UActorFactory* ActorFactory, const FAssetData& AssetData, const FTransform* ActorTransform )
 {
-	AActor* NewActor = GEditor->UseActorFactory( ActorFactory, AssetData, ActorLocation, ActorFactory->bUseSurfaceOrientation );
+	AActor* NewActor = GEditor->UseActorFactory( ActorFactory, AssetData, ActorTransform );
 
 	if ( NewActor != NULL && IPlacementModeModule::IsAvailable() )
 	{
@@ -1243,10 +1165,10 @@ AActor* FLevelEditorActionCallbacks::AddActor( UActorFactory* ActorFactory, cons
 
 void FLevelEditorActionCallbacks::AddActorFromClass_Clicked( UClass* ActorClass )
 {
-	FLevelEditorActionCallbacks::AddActorFromClass(ActorClass, NULL);
+	FLevelEditorActionCallbacks::AddActorFromClass(ActorClass);
 }
 
-AActor* FLevelEditorActionCallbacks::AddActorFromClass( UClass* ActorClass, const FVector* ActorLocation )
+AActor* FLevelEditorActionCallbacks::AddActorFromClass( UClass* ActorClass )
 {
 	AActor* NewActor = NULL;
 
@@ -1256,7 +1178,7 @@ AActor* FLevelEditorActionCallbacks::AddActorFromClass( UClass* ActorClass, cons
 		UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass( ActorClass );
 		if( ActorFactory )
 		{
-			NewActor = GEditor->UseActorFactoryOnCurrentSelection( ActorFactory, ActorLocation, ActorFactory->bUseSurfaceOrientation );
+			NewActor = GEditor->UseActorFactoryOnCurrentSelection( ActorFactory, nullptr );
 
 			if ( NewActor != NULL && IPlacementModeModule::IsAvailable() )
 			{
@@ -1512,15 +1434,19 @@ void FLevelEditorActionCallbacks::OnApplyMaterialToSurface()
 
 void FLevelEditorActionCallbacks::OnSelectAllLights()
 {
+	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 	// Select all light actors.
 	for( FActorIterator It(GetWorld()); It; ++It )
 	{
 		ALight* Light = Cast<ALight>(*It);
 		if( Light )
 		{
-			GUnrealEd->SelectActor( Light, true, true, false );
+			GUnrealEd->SelectActor( Light, true, false, false );
 		}
 	}
+
+	GEditor->GetSelectedActors()->EndBatchSelectOperation();
+
 }
 
 void FLevelEditorActionCallbacks::OnSelectStationaryLightsExceedingOverlap()
@@ -1595,8 +1521,15 @@ void FLevelEditorActionCallbacks::MergeActors_Clicked()
 
 bool FLevelEditorActionCallbacks::CanExecuteMergeActors()
 {
-	FSelectedActorInfo Info = AssetSelectionUtils::GetSelectedActorInfo();
-	return (Info.bHaveStaticMeshComponent || Info.bHaveLandscape);
+	IMeshUtilities* MeshUtilities = FModuleManager::Get().LoadModulePtr<IMeshUtilities>("MeshUtilities");
+	
+	if (MeshUtilities && MeshUtilities->GetMeshMergingInterface() != nullptr)
+	{
+		FSelectedActorInfo Info = AssetSelectionUtils::GetSelectedActorInfo();
+		return (Info.bHaveStaticMeshComponent || Info.bHaveLandscape);
+	}
+	
+	return false;
 }
 
 void FLevelEditorActionCallbacks::MergeActorsByMaterials_Clicked()
@@ -2274,7 +2207,7 @@ void FLevelEditorActionCallbacks::OnAddMatinee()
 		// Spawn a matinee actor at the origin, and either move infront of the camera or focus camera on it (depending on the viewport) and open for edit
 		UActorFactory* ActorFactory = GEditor->FindActorFactoryForActorClass( AMatineeActor::StaticClass() );
 		check( ActorFactory );
-		AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( FLevelEditorActionCallbacks::AddActor( ActorFactory, FAssetData(), &FVector::ZeroVector ) );
+		AMatineeActor* MatineeActor = CastChecked<AMatineeActor>( FLevelEditorActionCallbacks::AddActor( ActorFactory, FAssetData(), &FTransform::Identity ) );
 		if( GCurrentLevelEditingViewportClient->IsPerspective() )
 		{
 			GEditor->MoveActorInFrontOfCamera( *MatineeActor, GCurrentLevelEditingViewportClient->GetViewLocation(), GCurrentLevelEditingViewportClient->GetViewRotation().Vector() );
@@ -2620,15 +2553,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( BrowseAPIReference, "API Reference...", "Opens the API reference documentation", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( BrowseViewportControls, "Viewport Controls...", "Opens the viewport controls cheat sheet", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( NewLevel, "New Level...", "Create a new level, or choose a level template to start from.", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::N ) );
-	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
-	{
-		UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
-		UI_COMMAND( LegacyOpenLevel, "Open Other Level...", "Loads an existing level using the file explorer", EUserInterfaceActionType::Button, FInputGesture() );
-	}
-	else
-	{
-		UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
-	}
+	UI_COMMAND( OpenLevel, "Open Level...", "Loads an existing level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::O ) );
 	UI_COMMAND( Save, "Save", "Saves the current level to disk", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SaveAs, "Save As...", "Save the current level as...", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift|EModifierKey::Control, EKeys::S ) );
 	UI_COMMAND( SaveAllLevels, "Save All Levels", "Saves all unsaved levels to disk", EUserInterfaceActionType::Button, FInputGesture() );
@@ -2726,6 +2651,7 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( SnapCameraToActor, "Snap View to Actor", "Snaps the view to the selected actors", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( GoToCodeForActor, "Go to C++ Code for Actor", "Opens a code editing IDE and navigates to the source file associated with the seleced actor", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( GoToDocsForActor, "Go to Documentation for Actor", "Opens documentation for the Actor in the default web browser", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( PasteHere, "Paste Here", "Pastes the actor at the click location", EUserInterfaceActionType::Button, FInputGesture() );
 
@@ -2789,7 +2715,11 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( MergeActors, "Create Mesh Proxy...", "Harvest geometry from selected actors and merge them into single mesh", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( MergeActorsByMaterials, "Merge Actors...", "Harvest geometry from selected actors and merge grouping them by materials", EUserInterfaceActionType::Button, FInputGesture() );
 
+#if PLATFORM_MAC
+	UI_COMMAND( ShowAll, "Show All Actors", "Shows all actors", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Command, EKeys::H ) );
+#else
 	UI_COMMAND( ShowAll, "Show All Actors", "Shows all actors", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::H ) );
+#endif
 	UI_COMMAND( ShowSelectedOnly, "Show Only Selected", "Shows only the selected actors", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( ShowSelected, "Show Selected", "Shows the selected actors", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift, EKeys::H ) );
 	UI_COMMAND( HideSelected, "Hide Selected", "Hides the selected actors", EUserInterfaceActionType::Button, FInputGesture( EKeys::H ) );
@@ -2852,7 +2782,11 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( KeepSimulationChanges, "Keep Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputGesture( EKeys::K ) );
 
 	UI_COMMAND( MakeActorLevelCurrent, "Make Selected Actor's Level Current", "Makes the selected actors level the current level", EUserInterfaceActionType::Button, FInputGesture( EKeys::M ) );
+#if PLATFORM_MAC
+	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Command, EKeys::M ) );
+#else
 	UI_COMMAND( MoveSelectedToCurrentLevel, "Move Selection to Current Level", "Moves the selected actors to the current level", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::M ) );
+#endif
 	UI_COMMAND( FindLevelsInLevelBrowser, "Find Levels in Level Browser", "Finds the selected actors level in the level browser", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AddLevelsToSelection, "Add Levels to Selection", "Adds the selected actors levels  to the current level browser selection", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( RemoveLevelsFromSelection, "Remove Levels from Selection", "Removes the selected actors levels from the current level browser selection", EUserInterfaceActionType::Button, FInputGesture() );
@@ -2921,10 +2855,9 @@ void FLevelEditorCommands::RegisterCommands()
 			FUICommandInfoDecl(
 			this->AsShared(),
 			Name,
-			//FText::Format(NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreview", "Preview scenes using feature level {0}"), TEXT("Thing")),
 			FText::FromName(Name),
 			FText::Format(NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip", "Preview scenes using feature level {0}"), FText::FromName(Name)))
-			.UserInterfaceType(EUserInterfaceActionType::Button)
+			.UserInterfaceType(EUserInterfaceActionType::RadioButton)
 			.DefaultGesture(FInputGesture());
 	}
 }

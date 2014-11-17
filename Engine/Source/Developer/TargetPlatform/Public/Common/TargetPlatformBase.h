@@ -40,7 +40,7 @@ public:
 	}
 
 
-#ifdef TEXTURE_H_INCLUDED // defined in Texture.h, this way we know if UTexture is available, needed for Clang
+#ifdef TEXTURERESOURCE_H_INCLUDED // defined in TextureResource.h, this way we know if UTexture is available, needed for Clang
 	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const
 	{
 		FName TextureFormatName = NAME_None;
@@ -122,9 +122,13 @@ public:
 		{
 			TextureFormatName = NameG8;
 		}
-		else if( Texture->CompressionSettings == TC_Alpha)
+		else if ( Texture->CompressionSettings == TC_Alpha)
 		{
 			TextureFormatName = NameBC4;
+		}
+		else if (Texture->CompressionSettings == TC_DistanceFieldFont)
+		{
+			TextureFormatName = NameG8;
 		}
 		else if (Texture->CompressionNoAlpha)
 		{
@@ -149,11 +153,11 @@ public:
 
 		return TextureFormatName;
 	}
-#else //TEXTURE_H_INCLUDED
+#else //TEXTURERESOURCE_H_INCLUDED
 
 	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const;
 
-#endif //TEXTURE_H_INCLUDED
+#endif //TEXTURERESOURCE_H_INCLUDED
 #endif //WITH_ENGINE
 
 	virtual bool PackageBuild( const FString& InPackgeDirectory ) override
@@ -164,6 +168,16 @@ public:
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const override
 	{
 		return true;
+	}
+
+	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const override
+	{
+		int bReadyToBuild = ETargetPlatformReadyStatus::Ready; // @todo How do we check that the iOS SDK is installed when building from Windows? Is that even possible?
+		if (!IsSdkInstalled(bProjectHasCode, OutDocumentationPath))
+		{
+			bReadyToBuild |= ETargetPlatformReadyStatus::SDKNotFound;
+		}
+		return bReadyToBuild;
 	}
 
 	// End ITargetPlatform interface
@@ -250,10 +264,18 @@ public:
 		return TPlatformProperties::SupportsBuildTarget(BuildTarget);
 	}
 
+	virtual bool SupportsAutoSDK() const override
+	{
+		return TPlatformProperties::SupportsAutoSDK();
+	}
+
 	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const override
 	{
 		switch (Feature)
 		{
+		case ETargetPlatformFeatures::AudioStreaming:
+			return TPlatformProperties::SupportsAudioStreaming();
+
 		case ETargetPlatformFeatures::DistanceFieldShadows:
 			return TPlatformProperties::SupportsDistanceFieldShadows();
 

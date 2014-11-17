@@ -183,9 +183,8 @@ void UTimelineTemplate::RemoveMetaData(const FName& Key)
 FString UTimelineTemplate::MakeUniqueCurveName(UObject* Obj, UObject* InOuter)
 {
 	FString OriginalName = Obj->GetName();
-	UClass* Class = Obj->GetClass();
 	FName TestName(*OriginalName);
-	while(StaticFindObjectFast(Class, InOuter, TestName))
+	while(StaticFindObjectFast(NULL, InOuter, TestName))
 	{
 		TestName = FName(*OriginalName, TestName.GetNumber()+1);
 	}
@@ -240,7 +239,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s in %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString(), *GetPathNameSafe(GetOuter()));
 		}
 	}
 
@@ -257,7 +256,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s in %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString(), *GetPathNameSafe(GetOuter()));
 		}
 	}
 
@@ -274,7 +273,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s in %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString(), *GetPathNameSafe(GetOuter()));
 		}
 	}
 
@@ -291,7 +290,7 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		}
 		else
 		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString());
+			UE_LOG(LogBlueprint, Warning, TEXT("Timeline %s Track %s in %s has an invalid curve.  Please fix!"), *TimelineTemplateNameToVariableName(GetFName()), *Track.TrackName.ToString(), *GetPathNameSafe(GetOuter()));
 		}
 	}
 

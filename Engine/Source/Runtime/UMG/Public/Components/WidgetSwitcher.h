@@ -29,7 +29,15 @@ class UMG_API UWidgetSwitcher : public UPanelWidget
 	UFUNCTION(BlueprintCallable, Category="Switcher")
 	void SetActiveWidgetIndex( int32 Index );
 	
-	void SyncronizeProperties();
+	virtual void SyncronizeProperties() override;
+
+	virtual void ReleaseNativeWidget() override;
+
+#if WITH_EDITOR
+	virtual const FSlateBrush* GetEditorIcon() override;
+	virtual void OnDescendantSelected(UWidget* DescendantWidget) override;
+	virtual void OnDescendantDeselected(UWidget* DescendantWidget) override;
+#endif
 
 protected:
 

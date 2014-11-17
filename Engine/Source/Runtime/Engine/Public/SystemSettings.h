@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "Texture.h"
+#include "TextureLODSettings.h"
 #include "ShowFlags.h"
 
 /*-----------------------------------------------------------------------------

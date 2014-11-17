@@ -85,7 +85,7 @@ public:
 	// End of SNodePanel::SNode
 
 	virtual FVector2D ComputeDesiredSize() const  override;
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	/** Helpers to draw scrub handles and snap offsets */
 	void DrawHandleOffset( const float& Offset, const float& HandleCentre, FSlateWindowElementList& OutDrawElements, int32 MarkerLayer, const FGeometry &AllottedGeometry, const FSlateRect& MyClippingRect ) const;
@@ -200,6 +200,7 @@ public:
 		, _OnDeselectAllNotifies()
 		, _OnCopyNotifies()
 		, _OnPasteNotifies()
+		, _OnSetInputViewRange()
 		{}
 
 		SLATE_ARGUMENT( TSharedPtr<FPersona>,	Persona )
@@ -221,6 +222,7 @@ public:
 		SLATE_EVENT( FDeselectAllNotifies, OnDeselectAllNotifies)
 		SLATE_EVENT( FCopyNotifies, OnCopyNotifies )
 		SLATE_EVENT( FPasteNotifies, OnPasteNotifies )
+		SLATE_EVENT(FOnSetInputViewRange, OnSetInputViewRange)
 		SLATE_END_ARGS()
 public:
 
@@ -229,7 +231,8 @@ public:
 
 	// SWidget interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) {UpdateCachedGeometry(AllottedGeometry);}
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	// End of SWidget interface
 
 	/** Returns the cached rendering geometry of this track */
@@ -393,6 +396,7 @@ protected:
 	FDeselectAllNotifies					OnDeselectAllNotifies;
 	FCopyNotifies							OnCopyNotifies;
 	FPasteNotifies							OnPasteNotifies;
+	FOnSetInputViewRange					OnSetInputViewRange;
 
 	/** Delegate to call when offsets should be refreshed in a montage */
 	FRefreshOffsetsRequest					OnRequestRefreshOffsets;
@@ -444,6 +448,7 @@ public:
 		, _OnDeleteNotify()
 		, _OnDeselectAllNotifies()
 		, _OnCopyNotifies()
+		, _OnSetInputViewRange()
 	{}
 	SLATE_ARGUMENT( int32, TrackIndex )
 	SLATE_ARGUMENT( TSharedPtr<SAnimNotifyPanel>, AnimNotifyPanel)
@@ -462,6 +467,7 @@ public:
 	SLATE_EVENT( FDeselectAllNotifies, OnDeselectAllNotifies)
 	SLATE_EVENT( FCopyNotifies, OnCopyNotifies )
 	SLATE_EVENT( FPasteNotifies, OnPasteNotifies )
+	SLATE_EVENT(FOnSetInputViewRange, OnSetInputViewRange)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
@@ -810,6 +816,16 @@ void SAnimNotifyNode::Construct(const FArguments& InArgs)
 	bDrawTooltipToRight = true;
 	bSelected = false;
 
+	// Cache notify name for blueprint / Native notifies.
+	if(NotifyEvent->Notify)
+	{
+		NotifyEvent->NotifyName = FName(*NotifyEvent->Notify->GetNotifyName());
+	}
+	else if(NotifyEvent->NotifyStateClass)
+	{
+		NotifyEvent->NotifyName = FName(*NotifyEvent->NotifyStateClass->GetNotifyName());
+	}
+
 	OnNodeDragStarted = InArgs._OnNodeDragStarted;
 	PanTrackRequest = InArgs._PanTrackRequest;
 
@@ -1013,7 +1029,7 @@ FVector2D SAnimNotifyNode::GetSize() const
 	return WidgetSize;
 }
 
-int32 SAnimNotifyNode::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	int32 MarkerLayer = LayerId + 1;
 	int32 ScrubHandleID = MarkerLayer + 1;
@@ -1393,6 +1409,7 @@ void SAnimNotifyTrack::Construct(const FArguments& InArgs)
 	OnDeselectAllNotifies = InArgs._OnDeselectAllNotifies;
 	OnCopyNotifies = InArgs._OnCopyNotifies;
 	OnPasteNotifies = InArgs._OnPasteNotifies;
+	OnSetInputViewRange = InArgs._OnSetInputViewRange;
 
 	this->ChildSlot
 	[
@@ -1412,7 +1429,7 @@ FVector2D SAnimNotifyTrack::ComputeDesiredSize() const
 	return Size;
 }
 
-int32 SAnimNotifyTrack::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SAnimNotifyTrack::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush( TEXT( "Persona.NotifyEditor.NotifyTrackBackground" ) );
 	FLinearColor Color = TrackColor.Get();
@@ -1548,7 +1565,27 @@ int32 SAnimNotifyTrack::OnPaint(const FGeometry& AllottedGeometry, const FSlateR
 			);
 	}
 
-	return SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, CustomLayerId, InWidgetStyle, bParentEnabled);
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, CustomLayerId, InWidgetStyle, bParentEnabled);
+}
+
+FReply SAnimNotifyTrack::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
+
+	const FVector2D WidgetSpace = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
+	const float ZoomRatio = FMath::Clamp( (WidgetSpace.X / MyGeometry.Size.X), 0.f, 1.f);
+
+	{
+		const float InputViewSize = ViewInputMax.Get() - ViewInputMin.Get();
+		const float InputChange = InputViewSize * ZoomDelta;
+
+		float ViewMinInput = ViewInputMin.Get() - (InputChange * ZoomRatio);
+		float ViewMaxInput = ViewInputMax.Get() + (InputChange * (1.f - ZoomRatio));
+
+		OnSetInputViewRange.ExecuteIfBound(ViewMinInput, ViewMaxInput);
+	}
+
+	return FReply::Handled();
 }
 
 void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder)
@@ -1741,6 +1778,11 @@ void SAnimNotifyTrack::CreateNewNotifyAtCursor(FString NewNotifyName, UClass* No
 		if( NewEvent.NotifyStateClass )
 		{
 			NewEvent.Duration = 1 / 30.f;
+			NewEvent.NotifyName = FName(*NewEvent.NotifyStateClass->GetNotifyName());
+		}
+		else
+		{
+			NewEvent.NotifyName = FName(*NewEvent.Notify->GetNotifyName());
 		}
 	}
 	else
@@ -2663,6 +2705,7 @@ void SNotifyEdTrack::Construct(const FArguments& InArgs)
 				.OnDeselectAllNotifies(InArgs._OnDeselectAllNotifies)
 				.OnCopyNotifies(InArgs._OnCopyNotifies)
 				.OnPasteNotifies(InArgs._OnPasteNotifies)
+				.OnSetInputViewRange(InArgs._OnSetInputViewRange)
 			]
 
 			+SHorizontalBox::Slot()
@@ -2714,6 +2757,14 @@ bool SNotifyEdTrack::CanDeleteTrack()
 }
 
 //////////////////////////////////////////////////////////////////////////
+// FAnimNotifyPanelCommands
+
+void FAnimNotifyPanelCommands::RegisterCommands()
+{
+	UI_COMMAND(DeleteNotify, "Delete", "Deletes the selected notifies.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
+}
+
+//////////////////////////////////////////////////////////////////////////
 // SAnimNotifyPanel
 
 void SAnimNotifyPanel::Construct(const FArguments& InArgs)
@@ -2730,13 +2781,16 @@ void SAnimNotifyPanel::Construct(const FArguments& InArgs)
 	Sequence = InArgs._Sequence;
 	MarkerBars = InArgs._MarkerBars;
 
+	FAnimNotifyPanelCommands::Register();
+	BindCommands();
+
 	// @todo anim : this is kinda hack to make sure it has 1 track is alive
 	// we can do this whenever import or asset is created, but it's more places to handle than here
 	// the function name in that case will need to change
 	Sequence->InitializeNotifyTrack();
 	Sequence->RegisterOnNotifyChanged(UAnimSequenceBase::FOnNotifyChanged::CreateSP( this, &SAnimNotifyPanel::RefreshNotifyTracks )  );
 	PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SAnimNotifyPanel::PostUndo ) );
-	PersonaPtr.Pin()->RegisterOnGenericDelete(FPersona::FOnDeleteGeneric::CreateSP(this, &SAnimNotifyPanel::OnGenericDelete));
+	PersonaPtr.Pin()->RegisterOnGenericDelete(FPersona::FOnDeleteGeneric::CreateSP(this, &SAnimNotifyPanel::OnDeletePressed));
 
 	CurrentPosition = InArgs._CurrentPosition;
 	OnSelectionChanged = InArgs._OnSelectionChanged;
@@ -2762,6 +2816,9 @@ void SAnimNotifyPanel::Construct(const FArguments& InArgs)
 		]
 	];
 
+	OnPropertyChangedHandle = FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP(this, &SAnimNotifyPanel::OnPropertyChanged);
+	FCoreDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+
 	Update();
 }
 
@@ -2773,6 +2830,8 @@ SAnimNotifyPanel::~SAnimNotifyPanel()
 		PersonaPtr.Pin()->UnregisterOnPostUndo(this);
 		PersonaPtr.Pin()->UnregisterOnGenericDelete(this);
 	}
+
+	FCoreDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
 }
 
 FReply SAnimNotifyPanel::InsertTrack(int32 TrackIndexToInsert)
@@ -2928,10 +2987,11 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 			.OnNodeDragStarted(this, &SAnimNotifyPanel::OnNotifyNodeDragStarted)
 			.MarkerBars(MarkerBars)
 			.OnRequestRefreshOffsets(OnRequestRefreshOffsets)
-			.OnDeleteNotify(this, &SAnimNotifyPanel::OnGenericDelete)
+			.OnDeleteNotify(this, &SAnimNotifyPanel::OnDeletePressed)
 			.OnDeselectAllNotifies(this, &SAnimNotifyPanel::DeselectAllNotifies)
 			.OnCopyNotifies(this, &SAnimNotifyPanel::CopySelectedNotifiesToClipboard)
 			.OnPasteNotifies(this, &SAnimNotifyPanel::OnPasteNotifies)
+			.OnSetInputViewRange(OnSetInputViewRange)
 		];
 
 		NotifyAnimTracks.Add(EdTrack->NotifyTrack);
@@ -3004,7 +3064,7 @@ void SAnimNotifyPanel::PostUndo()
 	}
 }
 
-void SAnimNotifyPanel::OnGenericDelete()
+void SAnimNotifyPanel::OnDeletePressed()
 {
 	// If there's no focus on the panel it's likely the user is not editing notifies
 	// so don't delete anything when the key is pressed.
@@ -3207,6 +3267,43 @@ void SAnimNotifyPanel::OnPasteNotifies(SAnimNotifyTrack* RequestTrack, float Cli
 			}
 		}
 	}
+}
+
+void SAnimNotifyPanel::OnPropertyChanged(UObject* ChangedObject, FPropertyChangedEvent& PropertyEvent)
+{
+	// Don't process if it's an interactive change; wait till we receive the final event.
+	if(PropertyEvent.ChangeType != EPropertyChangeType::Interactive)
+	{
+		for(FAnimNotifyEvent& Event : Sequence->Notifies)
+		{
+			if(Event.Notify == ChangedObject || Event.NotifyStateClass == ChangedObject)
+			{
+				// If we've changed a notify present in the sequence, refresh our tracks.
+				RefreshNotifyTracks();
+			}
+		}
+	}
+}
+
+void SAnimNotifyPanel::BindCommands()
+{
+	check(!UICommandList.IsValid());
+
+	UICommandList = MakeShareable(new FUICommandList);
+	const FAnimNotifyPanelCommands& Commands = FAnimNotifyPanelCommands::Get();
+
+	UICommandList->MapAction(
+		Commands.DeleteNotify,
+		FExecuteAction::CreateSP(this, &SAnimNotifyPanel::OnDeletePressed));
+}
+
+FReply SAnimNotifyPanel::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
+{
+	if(UICommandList->ProcessCommandBindings(InKeyboardEvent))
+	{
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 #undef LOCTEXT_NAMESPACE

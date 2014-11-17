@@ -5,6 +5,7 @@
 #include "DiffResults.h"
 #include "GraphDiffControl.h"
 #include "ISourceControlModule.h"
+#include "BlueprintEditor.h"
 
 #define LOCTEXT_NAMESPACE "SBlueprintMerge"
 
@@ -14,16 +15,6 @@ static UPackage* CreateTempPackage(FString Name)
 	static uint32 TempUid = 0;
 	FString TempPackageName = FString::Printf(TEXT("/Temp/BpMerge-%u-%s"), TempUid++, *Name);
 	return CreatePackage(NULL, *TempPackageName);
-}
-
-static UBlueprint* DuplicateBlueprint( const UBlueprint* const BlueprintToClone)
-{
-	UPackage* TempPackage = CreateTempPackage(BlueprintToClone->GetName());
-	TArray<UObject*> Subobjects;
-	GetObjectsWithOuter(TempPackage, Subobjects, true);
-	check(Subobjects.Num() == 0);
-	EObjectFlags FlagMask = RF_AllFlags & ~RF_Transient & ~RF_PendingKill;
-	return Cast<UBlueprint>(StaticDuplicateObject(BlueprintToClone, TempPackage, *BlueprintToClone->GetName(), FlagMask));
 }
 
 template< class Predicate >
@@ -120,15 +111,20 @@ public:
 	}
 };
 
+SBlueprintMerge::SBlueprintMerge()
+	: SBlueprintDiff()
+	, OwningEditor()
+{
+}
+
 void SBlueprintMerge::Construct(const FArguments& InArgs)
 {
 	FMergeDifferencesListCommands::Register();
 
 	PanelLocal.Blueprint = InArgs._BlueprintLocal;
-	BlueprintResult = DuplicateBlueprint(InArgs._BlueprintLocal);
-	(void)PackagesAppearEquivalent( BlueprintResult->GetOutermost(), PanelLocal.Blueprint->GetOutermost() );
-	//check( PackagesAppearEquivalent( BlueprintResult->GetOutermost(), PanelLocal.Blueprint->GetOutermost() ) );
-	OwningWindow = InArgs._OwningWindow;
+
+	OwningEditor = InArgs._OwningEditor;
+	check( OwningEditor.Pin().IsValid() );
 
 	return SBlueprintDiff::Construct( InArgs._BaseArgs );
 }
@@ -275,11 +271,6 @@ TSharedRef<SWidget> SBlueprintMerge::GenerateDiffWindow()
 					]
 				]
 			]
-			+ SSplitter::Slot()
-			.Value(.3f)
-			[
-				SAssignNew(EditorBorder, SBorder)
-			]
 		]
 	;
 }
@@ -313,49 +304,6 @@ TSharedRef<SWidget> SBlueprintMerge::GenerateToolbar()
 					.ToolTipText(LOCTEXT("CancelMergeToolTip", "Discards the changes made in the merge tool. Local file will remain unresolved so the merge tool can be run again if desired."))
 				]
 			]
-			+ SVerticalBox::Slot()
-			[
-				SNew(SButton)
-				.OnClicked(this, &SBlueprintMerge::OnTakeLocalClicked)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("LocalChanges", "Take Local Changes Only"))
-					.ToolTipText(LOCTEXT("LocalChangesToolTip", "Resolve the conflict by discarding the changes made remotely. Conflict not fully resolved until the result is accepted."))
-				]
-			]
-			+ SVerticalBox::Slot()
-			[
-				SNew(SButton)
-				.OnClicked(this, &SBlueprintMerge::OnTakeRemoteClicked)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("RemoteChanges", "Take Remote Changes Only"))
-					.ToolTipText(LOCTEXT("RemoteChangesToolTip", "Resolve the conflict by discarding the changes made locally. Conflict not fully resolved until the result is accepted."))
-				]
-			]
-			+ SVerticalBox::Slot()
-			[
-				SNew(SButton)
-				.OnClicked(this, &SBlueprintMerge::OnTakeBaseClicked)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("BaseChanges", "Take Base Only (Revert All)"))
-					.ToolTipText(LOCTEXT("BaseChangesToolTip", "Resolve the conflict by discarding the both local and remote changes. Conflict not fully resolved until the result is accepted."))
-				]
-			]
-			+ SVerticalBox::Slot()
-			[
-				SNew(SButton)
-				.Content()
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("AutoMerge", "Automatically Merge"))
-					.ToolTipText(LOCTEXT("AutoMergeChangesToolTip", "Resolve the conflict by attempting to automatically apply both local and remote changes. Conflict not fully resolved until the result is accepted."))
-				]
-			]
 		]
 		+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -364,7 +312,6 @@ TSharedRef<SWidget> SBlueprintMerge::GenerateToolbar()
 		];
 }
 
-// @cr doc const shallowness
 static UEdGraph* FindGraphByName(UBlueprint const& FromBlueprint, const FString& GraphName)
 {
 	TArray<UEdGraph*> Graphs;
@@ -383,45 +330,10 @@ void SBlueprintMerge::HandleGraphChanged(const FString& GraphName)
 	UEdGraph* GraphOld = FindGraphByName(*PanelOld.Blueprint, GraphName);
 	UEdGraph* GraphNew = FindGraphByName(*PanelNew.Blueprint, GraphName);
 	UEdGraph* GraphLocal = FindGraphByName(*PanelLocal.Blueprint, GraphName);
-	UEdGraph* GraphResult = FindGraphByName(*BlueprintResult, GraphName);
 
 	PanelOld.GeneratePanel(GraphOld, NULL);
 	PanelNew.GeneratePanel(GraphNew, GraphOld);
 	PanelLocal.GeneratePanel(GraphLocal, GraphOld);
-
-	{
-		// Set up a normal editor window so that the user can tweak the result of the merge:
-		// @todo doc: need to copy the target blueprint and destructively edit that one, not 
-		// the base blueprint..
-		if (GraphResult)
-		{
-			SGraphEditor::FGraphEditorEvents InEvents;
-
-			//FGraphAppearanceInfo AppearanceInfo;
-			//AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_BlueprintDif", "DIFF").ToString();
-
-			/*if (!GraphEditorCommands.IsValid())
-			{
-				GraphEditorCommands = MakeShareable(new FUICommandList());
-
-				GraphEditorCommands->MapAction(FGenericCommands::Get().Copy,
-					FExecuteAction::CreateRaw(this, &FDiffPanel::CopySelectedNodes),
-					FCanExecuteAction::CreateRaw(this, &FDiffPanel::CanCopyNodes)
-					);
-			}*/
-
-			auto Editor = SNew(SGraphEditor)
-				.GraphToEdit(GraphResult)
-				.TitleBarEnabledOnly(false)
-				//.Appearance(AppearanceInfo)
-				.GraphEvents(InEvents);
-			EditorBorder->SetContent(Editor);
-		}
-		else
-		{
-			EditorBorder->ClearContent();
-		}
-	}
 }
 
 template< typename T >
@@ -455,7 +367,7 @@ void SBlueprintMerge::OnSelectionChanged(SBlueprintDiff::FGraphToDiff Item, ESel
 	}
 
 	FString GraphName = Item->GetGraphOld()->GetName();
-	DisablePinDiffFocus(); // @todo doc: Not sure what this does..
+	DisablePinDiffFocus();
 	HandleGraphChanged(GraphName);
 
 	// Ensure that regenerated graphs are properly locked/unlocked:
@@ -560,6 +472,12 @@ TSharedRef< SWidget > SBlueprintMerge::GenerateDiffView(TArray<FDiffSingleResult
 	return Result;
 }
 
+UBlueprint* SBlueprintMerge::GetTargetBlueprint()
+{
+	// @todo doc, do we need to cache this on merge construction?
+	return OwningEditor.Pin()->GetBlueprintObj();
+}
+
 FReply SBlueprintMerge::OnAcceptResultClicked()
 {
 	// Because merge operations are so destructive and can be confusing, lets write backups of the files involved:
@@ -568,22 +486,12 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 	WriteBackup(*PanelOld.Blueprint->GetOutermost(), BackupSubDir, TEXT("CommonBaseAsset") + FPackageName::GetAssetPackageExtension() );
 	WriteBackup(*PanelLocal.Blueprint->GetOutermost(), BackupSubDir, TEXT("LocalAsset") + FPackageName::GetAssetPackageExtension());
 
-	UPackage* Package = PanelLocal.Blueprint->GetOutermost();
+	UPackage* Package = GetTargetBlueprint()->GetOutermost();
 	TArray<UPackage*> PackagesToSave;
 	PackagesToSave.Add(Package);
 
 	// Perform the resolve with the SCC plugin, we do this first so that the editor doesn't warn about writing to a file that is unresolved:
 	ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FResolve>(), SourceControlHelpers::PackageFilenames(PackagesToSave), EConcurrency::Synchronous);
-
-	// cr doc: this is too simple to be correct..
-	PanelLocal.Blueprint->RemoveGeneratedClasses();
-	StaticDuplicateObject( BlueprintResult, Package, *PanelLocal.Blueprint->GetName() );
-
-	auto OwningWindowPinned = OwningWindow.Pin();
-	if (OwningWindowPinned.IsValid())
-	{
-		OwningWindowPinned->RequestDestroyWindow();
-	}
 
 	const auto Result = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false);
 	if (Result != FEditorFileUtils::PR_Success)
@@ -595,75 +503,15 @@ FReply SBlueprintMerge::OnAcceptResultClicked()
 		FSlateNotificationManager::Get().AddNotification( ErrorNotification );
 	}
 
+	OwningEditor.Pin()->CloseMergeTool();
+
 	return FReply::Handled();
 }
 
 FReply SBlueprintMerge::OnCancelClicked()
 {
-	auto OwningWindowPinned = OwningWindow.Pin();
-	if( OwningWindowPinned.IsValid() )
-	{
-		OwningWindowPinned->RequestDestroyWindow();
-	}
+	OwningEditor.Pin()->CloseMergeTool();
 	return FReply::Handled();
-}
-
-FReply SBlueprintMerge::OnTakeLocalClicked()
-{
-	StageBlueprint(PanelLocal.Blueprint);
-	return FReply::Handled();
-}
-
-FReply SBlueprintMerge::OnTakeRemoteClicked()
-{
-	StageBlueprint(PanelNew.Blueprint);
-	return FReply::Handled();
-}
-
-FReply SBlueprintMerge::OnTakeBaseClicked()
-{
-	StageBlueprint(PanelOld.Blueprint);
-	return FReply::Handled();
-}
-
-void SBlueprintMerge::StageBlueprint(UBlueprint const* DesiredBP)
-{
-	// User has decided to discard the remote changes, update the result window
-	// with this result:
-	if (BlueprintResult)
-	{
-		//delete BlueprintResult;... yeah.. i have no idea what's keeping this stuff alive, best not to delete it
-	}
-
-	BlueprintResult = DuplicateBlueprint(DesiredBP);
-
-	(void)PackagesAppearEquivalent(BlueprintResult->GetOutermost(), DesiredBP->GetOutermost());
-	//check( PackagesAppearEquivalent( BlueprintResult->GetOutermost(), DesiredBP->GetOutermost() ) );
-
-	SGraphEditor::FGraphEditorEvents InEvents;
-	TArray< FGraphToDiff>  Selected = GraphsToDiff->GetSelectedItems();
-	check(Selected.Num() <= 1); // We set this control up to not support multiselect
-
-	UEdGraph* GraphResult = NULL;
-
-	if (Selected.Num() == 1)
-	{
-		GraphResult = FindGraphByName(*BlueprintResult, Selected[0]->GetGraphNew()->GetName());
-	}
-
-	if( GraphResult )
-	{
-		auto Editor = SNew(SGraphEditor)
-			.GraphToEdit(GraphResult)
-			.TitleBarEnabledOnly(false)
-			//.Appearance(AppearanceInfo)
-			.GraphEvents(InEvents);
-		EditorBorder->SetContent(Editor);
-	}
-	else
-	{
-		EditorBorder->ClearContent();
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

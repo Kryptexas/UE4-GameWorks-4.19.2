@@ -10,6 +10,18 @@
 DECLARE_DELEGATE_RetVal( bool, FRequestAssetEditorClose );
 
 /**
+ * The location of the asset editor toolkit tab
+ * Note: These values are serialized into an ini file as an int32
+ */
+enum class EAssetEditorToolkitTabLocation : int32
+{
+	/** The tab is within the "DockedToolkit" tab stack */
+	Docked,
+	/** The tab is within the "StandaloneToolkit" tab stack */
+	Standalone,
+};
+
+/**
  * Base class for toolkits that are used for asset editing (abstract)
  */
 class UNREALED_API FAssetEditorToolkit : public IAssetEditorInstance, public FBaseToolkit, public TSharedFromThis< FAssetEditorToolkit >

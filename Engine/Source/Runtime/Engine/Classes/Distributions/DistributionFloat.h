@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Distributions.h"
+#include "Distributions/Distribution.h"
 #include "DistributionFloat.generated.h"
 
 /** Type-safe floating point distribution. */

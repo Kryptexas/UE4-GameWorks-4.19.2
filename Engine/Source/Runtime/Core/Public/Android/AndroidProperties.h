@@ -58,6 +58,11 @@ struct FAndroidPlatformProperties
 		return (BuildTarget == EBuildTargets::Game);
 	}
 
+	static FORCEINLINE bool SupportsAutoSDK()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool SupportsHighQualityLightmaps()
 	{
 		return false;
@@ -83,6 +88,11 @@ struct FAndroidPlatformProperties
 		return false;
 	}
 
+	static FORCEINLINE bool SupportsQuit() 
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool HasFixedResolution()
 	{
 		return true;
@@ -102,7 +112,7 @@ struct FAndroid_PVRTCPlatformProperties : public FAndroidPlatformProperties
 	}
 };
 
-struct FAndroid_ATCCPlatformProperties : public FAndroidPlatformProperties
+struct FAndroid_ATCPlatformProperties : public FAndroidPlatformProperties
 {
 	static FORCEINLINE const char* PlatformName()
 	{

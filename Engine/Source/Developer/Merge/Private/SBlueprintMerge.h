@@ -3,13 +3,17 @@
 
 #include "SBlueprintDiff.h"
 
+class FBlueprintEditor;
+
 class MERGE_API SBlueprintMerge : public SBlueprintDiff
 {
 public:
+	SBlueprintMerge();
+
 	SLATE_BEGIN_ARGS(SBlueprintMerge){}
-	SLATE_ARGUMENT(class UBlueprint*, BlueprintLocal)
+	SLATE_ARGUMENT( const class UBlueprint*, BlueprintLocal)
 	SLATE_ARGUMENT( SBlueprintDiff::FArguments, BaseArgs )
-	SLATE_ARGUMENT( TWeakPtr<SWindow>, OwningWindow )
+	SLATE_ARGUMENT( TSharedPtr<FBlueprintEditor>, OwningEditor )
 	SLATE_END_ARGS()
 	
 	void Construct(const FArguments& InArgs);
@@ -17,7 +21,7 @@ public:
 	void OnDiffListSelectionChanged(TSharedPtr<struct FDiffSingleResult> Item, ESelectInfo::Type SelectionType);
 
 protected:
-	/** Overrides, see base class for documentation */
+	/** SBlueprintDiff overrides, see base class for documentation */
 	virtual void ResetGraphEditors() override;
 	virtual TSharedRef<SWidget> GenerateDiffWindow() override;
 	virtual TSharedRef<SWidget> GenerateToolbar() override;
@@ -27,19 +31,17 @@ protected:
 	
 	/** Helper functions */
 	TSharedRef< SWidget > GenerateDiffView(TArray<FDiffSingleResult>& Diffs, TSharedPtr< const FUICommandInfo > CommandNext, TSharedPtr< const FUICommandInfo > CommandPrev, TArray< TSharedPtr<FDiffSingleResult> >& SharedResults);
+	UBlueprint* GetTargetBlueprint();
 
 	/** Event handlers */
 	FReply OnAcceptResultClicked();
 	FReply OnCancelClicked();
-	FReply OnTakeLocalClicked();
-	FReply OnTakeRemoteClicked();
-	FReply OnTakeBaseClicked();
-	void StageBlueprint(UBlueprint const* DesiredBP);
 
-	// Raw pointer?!
-	UBlueprint* BlueprintResult;
+	// We can't maintain a SharedPtr to OwningEditor because we don't logically own it,
+	// if you make this a SharedPtr closing the blueprint editor while the merge tool
+	// is open will prevent the blueprint editor destructor from running:
+	TWeakPtr<FBlueprintEditor> OwningEditor;
 	FDiffPanel PanelLocal;
-	TSharedPtr<SBorder>		 EditorBorder;
 	TWeakPtr<SWindow>		OwningWindow;
 
 	// This has to be allocated here because SListView cannot own the list

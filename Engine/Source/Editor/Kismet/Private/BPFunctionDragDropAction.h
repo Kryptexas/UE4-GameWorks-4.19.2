@@ -9,7 +9,7 @@
 * FKismetDragDropAction
 *******************************************************************************/
 
-class FKismetDragDropAction : public FGraphSchemaActionDragDropAction
+class KISMET_API FKismetDragDropAction : public FGraphSchemaActionDragDropAction
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FKismetDragDropAction, FGraphSchemaActionDragDropAction)
@@ -45,7 +45,7 @@ protected:
 * FKismetFunctionDragDropAction
 *******************************************************************************/
 
-class FKismetFunctionDragDropAction : public FKismetDragDropAction
+class KISMET_API FKismetFunctionDragDropAction : public FKismetDragDropAction
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FKismetFunctionDragDropAction, FKismetDragDropAction)
@@ -78,7 +78,7 @@ protected:
 * FKismetMacroDragDropAction
 *******************************************************************************/
 
-class FKismetMacroDragDropAction : public FKismetDragDropAction
+class KISMET_API FKismetMacroDragDropAction : public FKismetDragDropAction
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FKismetMacroDragDropAction, FKismetDragDropAction)

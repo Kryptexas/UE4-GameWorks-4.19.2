@@ -1,4 +1,4 @@
-#include "CorePrivate.h"
+#include "Core.h"
 #include "EngineBuildSettings.h"
 
 bool FEngineBuildSettings::IsInternalBuild()

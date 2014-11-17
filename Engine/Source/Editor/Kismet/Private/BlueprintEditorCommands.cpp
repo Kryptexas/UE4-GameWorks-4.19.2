@@ -61,6 +61,9 @@ void FBlueprintEditorCommands::RegisterCommands()
 	UI_COMMAND( RecompileKismetCompiler, "Recompile Blueprint Compiler", "Recompiles and reloads C++ code for the blueprint compiler", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( RecompileBlueprintEditor, "Recompile Blueprint Editor", "Recompiles and reloads C++ code for the blueprint editor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( RecompilePersona, "Recompile Persona", "Recompiles and reloads C++ code for Persona", EUserInterfaceActionType::Button, FInputGesture() );
+
+	// SCC commands
+	UI_COMMAND( BeginBlueprintMerge, "Merge", "Shows the Blueprint merge panel and toolbar, allowing the user to resolve conflicted blueprints", EUserInterfaceActionType::Button, FInputGesture() );
 }
 
 PRAGMA_ENABLE_OPTIMIZATION
@@ -341,6 +344,7 @@ void FBlueprintSpawnNodeCommands::RegisterCommands()
 			bool bShift = false;
 			bool bCtrl = false;
 			bool bAlt = false;
+			bool bCmd = false;
 			
 			// Parse the keybinding information
 			FString KeyString;
@@ -354,12 +358,14 @@ void FBlueprintSpawnNodeCommands::RegisterCommands()
 				FParse::Bool(*NodeSpawns[x], TEXT("Shift="), bShift);
 				FParse::Bool(*NodeSpawns[x], TEXT("Alt="), bAlt);
 				FParse::Bool(*NodeSpawns[x], TEXT("Ctrl="), bCtrl);
+				FParse::Bool(*NodeSpawns[x], TEXT("Cmd="), bCmd);
 			}
 
 			FInputGesture Gesture(Key);
 			Gesture.bAlt = bAlt;
 			Gesture.bCtrl = bCtrl;
 			Gesture.bShift = bShift;
+			Gesture.bCmd = bCmd;
 
 			FText CommandLabelText = FText::FromString( CommandLabel );
 			FText Description = FText::Format( NSLOCTEXT("BlueprintEditor", "NodeSpawnDescription", "Hold down the bound keys and left click in the graph panel to spawn a {0} node."), CommandLabelText );

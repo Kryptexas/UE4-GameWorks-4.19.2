@@ -24,7 +24,10 @@ struct FBTNodeExecutionInfo
 	/** if set, tree will try to execute next child of composite instead of forcing branch containing SearchStart */
 	uint8 bTryNextChild : 1;
 
-	FBTNodeExecutionInfo() : ExecuteNode(NULL) { }
+	/** if set, request was not instigated by finishing task/initialization but is a restart (e.g. decorator) */
+	uint8 bIsRestart : 1;
+
+	FBTNodeExecutionInfo() : ExecuteNode(NULL), bTryNextChild(false), bIsRestart(false) { }
 };
 
 UCLASS()
@@ -274,5 +277,5 @@ FORCEINLINE uint16 UBehaviorTreeComponent::GetActiveInstanceIdx() const
 
 FORCEINLINE bool UBehaviorTreeComponent::IsRestartPending() const
 {
-	return ExecutionRequest.ExecuteNode && !ExecutionRequest.bTryNextChild;
+	return ExecutionRequest.ExecuteNode && ExecutionRequest.bIsRestart;
 }

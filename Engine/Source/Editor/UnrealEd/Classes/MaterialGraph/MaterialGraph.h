@@ -2,6 +2,7 @@
 
 #pragma once
 #include "EdGraph/EdGraph.h"
+#include "Materials/Material.h"
 #include "MaterialGraph.generated.h"
 
 DECLARE_DELEGATE_RetVal( bool, FRealtimeStateGetter );
@@ -15,8 +16,6 @@ struct FMaterialInputInfo
 {
 	/** Name of the input shown to user */
 	FText Name;
-	/** The actual input */
-	FExpressionInput* Input;
 	/** Type of the input */
 	EMaterialProperty Property;
 
@@ -26,12 +25,23 @@ struct FMaterialInputInfo
 	}
 
 	/** Constructor */
-	FMaterialInputInfo(const FText& InName, FExpressionInput* InInput, EMaterialProperty InProperty)
+	FMaterialInputInfo(const FText& InName, EMaterialProperty InProperty)
 		:	Name( InName )
-		,	Input( InInput )
 		,	Property( InProperty )
 	{
 	}
+
+	FExpressionInput* GetInput(UMaterial* Material) const
+	{
+		check(Material);
+
+		auto Ret = Material->GetExpressionInputForProperty(Property);
+
+		check(Ret);
+
+		return Ret;
+	}
+
 };
 
 UCLASS(MinimalAPI)

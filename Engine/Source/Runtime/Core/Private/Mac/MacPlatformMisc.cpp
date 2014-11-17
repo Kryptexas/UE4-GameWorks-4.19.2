@@ -4,7 +4,7 @@
 	MacPlatformMisc.mm: Mac implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "VarargsHelper.h"
@@ -19,9 +19,11 @@
 #include <IOKit/network/IOEthernetController.h>
 #include <IOKit/ps/IOPowerSources.h>
 #include <IOKit/ps/IOPSKeys.h>
+#include <IOKit/pwr_mgt/IOPMLib.h>
 #include <mach-o/dyld.h>
 #include <libproc.h>
 #include <notify.h>
+#include <uuid/uuid.h>
 
 
 /**
@@ -315,22 +317,55 @@ void FMacPlatformMisc::UpdateWindowMenu()
 
 	NSMenuItem* MinimizeItem = [[[NSMenuItem alloc] initWithTitle:@"Minimize" action:@selector(miniaturize:) keyEquivalent:@"m"] autorelease];
 	NSMenuItem* ZoomItem = [[[NSMenuItem alloc] initWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""] autorelease];
+	NSMenuItem* CloseItem = [[[NSMenuItem alloc] initWithTitle:@"Close" action:@selector(performClose:) keyEquivalent:@"w"] autorelease];
 	NSMenuItem* BringAllToFrontItem = [[[NSMenuItem alloc] initWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""] autorelease];
 
 	[WindowMenu addItem:MinimizeItem];
 	[WindowMenu addItem:ZoomItem];
+	[WindowMenu addItem:CloseItem];
 	[WindowMenu addItem:[NSMenuItem separatorItem]];
 	[WindowMenu addItem:BringAllToFrontItem];
 }
 
-void FMacPlatformMisc::PreventScreenSaver()
+bool FMacPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 {
-	CGEventRef LocationEvent = CGEventCreate(NULL);
-	CGPoint MouseLocation = CGEventGetLocation(LocationEvent);
-	CFRelease(LocationEvent);
-	CGEventRef MouseMoveCommand = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, MouseLocation, 0);
-	CGEventPost(kCGHIDEventTap, MouseMoveCommand);
-	CFRelease(MouseMoveCommand);
+	static uint32 IOPMNoSleepAssertion = 0;
+	static bool bDisplaySleepEnabled = true;
+	
+	switch(Action)
+	{
+		case EScreenSaverAction::Disable:
+		{
+			// Prevent display sleep.
+			if(bDisplaySleepEnabled)
+			{
+				SCOPED_AUTORELEASE_POOL;
+				
+				//  NOTE: IOPMAssertionCreateWithName limits the string to 128 characters.
+				FString ReasonForActivity = FString::Printf(TEXT("Running %s"), FApp::GetGameName());
+				
+				CFStringRef ReasonForActivityCF = (CFStringRef)ReasonForActivity.GetNSString();
+				
+				IOReturn Success = IOPMAssertionCreateWithName(kIOPMAssertionTypeNoDisplaySleep, kIOPMAssertionLevelOn, ReasonForActivityCF, &IOPMNoSleepAssertion);
+				bDisplaySleepEnabled = !(Success == kIOReturnSuccess);
+				ensure(!bDisplaySleepEnabled);
+			}
+			break;
+		}
+		case EScreenSaverAction::Enable:
+		{
+			// Stop preventing display sleep now that we are done.
+			if(!bDisplaySleepEnabled)
+			{
+				IOReturn Success = IOPMAssertionRelease(IOPMNoSleepAssertion);
+				bDisplaySleepEnabled = (Success == kIOReturnSuccess);
+				ensure(bDisplaySleepEnabled);
+			}
+			break;
+		}
+    }
+	
+	return true;
 }
 
 GenericApplication* FMacPlatformMisc::CreateApplication()
@@ -412,182 +447,19 @@ TArray<uint8> FMacPlatformMisc::GetMacAddress()
 	return Result;
 }
 
-
-void FMacPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode )
+void FMacPlatformMisc::SubmitErrorReport(const TCHAR* InErrorHist, EErrorReportMode::Type InMode)
 {
-	if ( !FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash )
+	if (GUseCrashReportClient && (!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash))
 	{
-		if (GUseCrashReportClient)
+		int32 FromCommandLine = 0;
+		FParse::Value( FCommandLine::Get(), TEXT("AutomatedPerfTesting="), FromCommandLine );
+		if (FApp::IsUnattended() && FromCommandLine != 0 && FParse::Param(FCommandLine::Get(), TEXT("KillAllPopUpBlockingWindows")))
 		{
-			int32 FromCommandLine = 0;
-			FParse::Value( FCommandLine::Get(), TEXT("AutomatedPerfTesting="), FromCommandLine );
-			if(( FApp::IsUnattended() == true ) && ( FromCommandLine != 0 ) && ( FParse::Param(FCommandLine::Get(), TEXT("KillAllPopUpBlockingWindows")) == true ))
-			{
-				abort();
-			}
-			return;
-		}
-		
-		TCHAR ReportDumpVersion[] = TEXT("3");
-        
-		FString ReportDumpPath;
-		{
-			const TCHAR ReportDumpFilename[] = TEXT("UnrealAutoReportDump");
-			ReportDumpPath = FPaths::CreateTempFilename( *FPaths::GameLogDir(), ReportDumpFilename, TEXT( ".txt" ) );
-		}
-        
-		FString IniDumpPath;
-		if (GGameName[0])
-		{
-			const TCHAR IniDumpFilename[] = TEXT("UnrealAutoReportIniDump");
-			IniDumpPath = FPaths::CreateTempFilename( *FPaths::GameLogDir(), IniDumpFilename, TEXT( ".txt" ) );
-			//build the ini dump
-			FOutputDeviceFile AutoReportIniFile(*IniDumpPath);
-			GConfig->Dump(AutoReportIniFile);
-			AutoReportIniFile.Flush();
-			AutoReportIniFile.TearDown();
-		}
-        
-		TCHAR AutoReportExe[] = TEXT("../DotNET/AutoReporter.exe");
-        
-		FArchive * AutoReportFile = IFileManager::Get().CreateFileWriter(*ReportDumpPath, FILEWRITE_EvenIfReadOnly);
-		if (AutoReportFile != NULL)
-		{
-			TCHAR CompName[256];
-			FCString::Strcpy(CompName, FPlatformProcess::ComputerName());
-			TCHAR UserName[256];
-			FCString::Strcpy(UserName, FPlatformProcess::UserName());
-			TCHAR GameName[256];
-			FCString::Strcpy(GameName, *FString::Printf(TEXT("%s %s"), TEXT(BRANCH_NAME), FApp::GetGameName()));
-			TCHAR PlatformName[32];
-#if PLATFORM_64BITS
-			FCString::Strcpy(PlatformName, TEXT("Mac 64-bit"));
-#else	//PLATFORM_64BITS
-			FCString::Strcpy(PlatformName, TEXT("Mac 32-bit"));
-#endif	//PLATFORM_64BITS
-			TCHAR CultureName[10];
-			FCString::Strcpy(CultureName, *FInternationalization::Get().GetCurrentCulture()->GetName());
-			TCHAR SystemTime[256];
-			FCString::Strcpy(SystemTime, *FDateTime::Now().ToString());
-			TCHAR EngineVersionStr[32];
-			FCString::Strcpy(EngineVersionStr, *FString::FromInt(GEngineVersion.GetChangelist()));
-            
-			TCHAR ChangelistVersionStr[32];
-			int32 ChangelistFromCommandLine = 0;
-			const bool bFoundAutomatedBenchMarkingChangelist = FParse::Value( FCommandLine::Get(), TEXT("-gABC="), ChangelistFromCommandLine );
-			if( bFoundAutomatedBenchMarkingChangelist == true )
-			{
-				FCString::Strcpy(ChangelistVersionStr, *FString::FromInt(ChangelistFromCommandLine));
-			}
-			// we are not passing in the changelist to use so use the one that was stored in the ObjectVersion
-			else
-			{
-				FCString::Strcpy(ChangelistVersionStr, *FString::FromInt(GEngineVersion.GetChangelist()));
-			}
-            
-			TCHAR CmdLine[2048];
-			FCString::Strcpy(CmdLine, FCommandLine::Get());
-			TCHAR BaseDir[260];
-			FCString::Strcpy(BaseDir, FPlatformProcess::BaseDir());
-			TCHAR separator = 0;
-            
-			TCHAR EngineMode[64];
-			if( IsRunningCommandlet() )
-			{
-				FCString::Strcpy(EngineMode, TEXT("Commandlet"));
-			}
-			else if( GIsEditor )
-			{
-				FCString::Strcpy(EngineMode, TEXT("Editor"));
-			}
-			else if( GIsServer && !GIsClient )
-			{
-				FCString::Strcpy(EngineMode, TEXT("Server"));
-			}
-			else
-			{
-				FCString::Strcpy(EngineMode, TEXT("Game"));
-			}
-            
-			//build the report dump file
-			AutoReportFile->Serialize(ReportDumpVersion, FCString::Strlen(ReportDumpVersion) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(CompName, FCString::Strlen(CompName) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(UserName, FCString::Strlen(UserName) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(GameName, FCString::Strlen(GameName) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(PlatformName, FCString::Strlen(PlatformName) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(CultureName, FCString::Strlen(CultureName) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(SystemTime, FCString::Strlen(SystemTime) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(EngineVersionStr, FCString::Strlen(EngineVersionStr) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(ChangelistVersionStr, FCString::Strlen(ChangelistVersionStr) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(CmdLine, FCString::Strlen(CmdLine) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(BaseDir, FCString::Strlen(BaseDir) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-            
-			TCHAR* NonConstErrorHist = const_cast< TCHAR* >( InErrorHist );
-			AutoReportFile->Serialize(NonConstErrorHist, FCString::Strlen(NonConstErrorHist) * sizeof(TCHAR));
-            
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Serialize(EngineMode, FCString::Strlen(EngineMode) * sizeof(TCHAR));
-			AutoReportFile->Serialize(&separator, sizeof(TCHAR));
-			AutoReportFile->Close();
-			
-			FString CrashVideoPath = FPaths::GameLogDir() + TEXT("CrashVideo.avi");
-            
-			// Get the paths that the files will actually have been saved to
-			FString UserIniDumpPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*IniDumpPath);
-			FString LogDirectory = FPaths::GameLogDir();
-			TCHAR CommandlineLogFile[MAX_SPRINTF]=TEXT("");
-            
-			// Use the log file specified on the commandline if there is one
-			if (FParse::Value(FCommandLine::Get(), TEXT("LOG="), CommandlineLogFile, ARRAY_COUNT(CommandlineLogFile)))
-			{
-				LogDirectory += CommandlineLogFile;
-			}
-			else if (FCString::Strlen(GGameName) != 0)
-			{
-				// If the app name is defined, use it as the log filename
-				LogDirectory += FString::Printf(TEXT("%s.Log"), GGameName);
-			}
-			else
-			{
-				// Revert to hardcoded UE4.log
-				LogDirectory += TEXT("UE4.Log");
-			}
-            
-			FString UserLogFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*LogDirectory);
-			FString UserReportDumpPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*ReportDumpPath);
-			
-            FString UserCrashVideoPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashVideoPath);
-            
-			// Start up the auto reporting app, passing the report dump file path, the games' log file,
-			// the ini dump path, the minidump path, and the crashvideo path
-			// protect against spaces in paths breaking them up on the commandline
-            // On Mac, AutoReporter.exe is a command line argument (for Mono)
-			FString CallingCommandLine = FString::Printf(TEXT("\"%s\" %d \"%s\" \"%s\" \"%s\" \"%s\" \"%s\""),
-														 AutoReportExe, (uint32)(getpid()), *UserReportDumpPath, *UserLogFile, *UserIniDumpPath,
-														 MiniDumpFilenameW, *UserCrashVideoPath);
-            
-			// Only unattended mode is supported on Mac/Mono
-			CallingCommandLine += TEXT( " -unattended" );
-
-            // Start Mono
-			if (!FPlatformProcess::CreateProc(TEXT("/usr/bin/mono"), *CallingCommandLine, true, false, false, NULL, 0, NULL, NULL).IsValid())
-			{
-				UE_LOG(LogWindows, Warning, TEXT("Couldn't start up the Auto Reporting process!"));
-				FMessageDialog::Open( EAppMsgType::Ok, FText::FromString( InErrorHist ) );
-			}
+			abort();
 		}
 	}
+
+	// @todo Mac
 }
 
 void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
@@ -598,13 +470,14 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 
 		while( NSEvent *Event = [NSApp nextEventMatchingMask: NSAnyEventMask untilDate: nil inMode: NSDefaultRunLoopMode dequeue: true] )
 		{
-			const bool bIsMouseClickEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
+			const bool bIsMouseClickOrKeyEvent = [Event type] == NSLeftMouseDown || [Event type] == NSLeftMouseUp
 										 || [Event type] == NSRightMouseDown || [Event type] == NSRightMouseUp
-										 || [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp;
+										 || [Event type] == NSOtherMouseDown || [Event type] == NSOtherMouseUp
+										 || [Event type] == NSKeyDown || ([Event type] == NSKeyUp && !([Event modifierFlags] & NSCommandKeyMask));
 
 			if( MacApplication )
 			{
-				if( !bIsMouseClickEvent || [Event window] == NULL )
+				if( !bIsMouseClickOrKeyEvent || [Event window] == NULL )
 				{
 					MacApplication->ProcessEvent( Event );
 				}
@@ -617,39 +490,6 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 
 			[NSApp sendEvent: Event];
 		}
-
-		const bool HasFocus = [NSApp isActive];
-
-		// If editor thread doesn't have the focus, don't suck up too much CPU time.
-		if( GIsEditor )
-		{
-			static bool HadFocus=1;
-			if( HadFocus && !HasFocus )
-			{
-				// Drop our priority to speed up whatever is in the foreground.
-				struct sched_param Sched;
-				FMemory::Memzero(&Sched, sizeof(struct sched_param));
-				Sched.sched_priority = 5;
-				pthread_setschedparam(pthread_self(), SCHED_RR, &Sched);
-			}
-			else if( HasFocus && !HadFocus )
-			{
-				// Boost our priority back to normal.
-				struct sched_param Sched;
-				FMemory::Memzero(&Sched, sizeof(struct sched_param));
-				Sched.sched_priority = 15;
-				pthread_setschedparam(pthread_self(), SCHED_RR, &Sched);
-			}
-			if( !HasFocus )
-			{
-				// Sleep for a bit to not eat up all CPU time.
-				FPlatformProcess::Sleep(0.005f);
-			}
-			HadFocus = HasFocus;
-		}
-
-		// if app is active, allow sound, otherwise silence it
-		GVolumeMultiplier = HasFocus ? 1.0f : 0.0f;
 	}
 }
 
@@ -716,16 +556,16 @@ uint32 FMacPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 
 		ADDKEYMAP( kVK_F11, TEXT("F11") );
 		ADDKEYMAP( kVK_F12, TEXT("F12") );
 
-        //Mac pretends the Command key is Ctrl
-        ADDKEYMAP( MMK_RightCommand, TEXT("RightControl") );
-        ADDKEYMAP( MMK_LeftCommand, TEXT("LeftControl") );
-        ADDKEYMAP( MMK_LeftShift, TEXT("LeftShift") );
-        ADDKEYMAP( MMK_CapsLock, TEXT("CapsLock") );
-        ADDKEYMAP( MMK_LeftAlt, TEXT("LeftAlt") );
-        ADDKEYMAP( MMK_LeftControl, TEXT("LeftControl") );
-        ADDKEYMAP( MMK_RightShift, TEXT("RightShift") );
-        ADDKEYMAP( MMK_RightAlt, TEXT("RightAlt") );
-        ADDKEYMAP( MMK_RightControl, TEXT("RightControl") );
+		// Mac pretends the Command key is Ctrl and Ctrl is Command key
+		ADDKEYMAP( MMK_RightCommand, TEXT("RightControl") );
+		ADDKEYMAP( MMK_LeftCommand, TEXT("LeftControl") );
+		ADDKEYMAP( MMK_LeftShift, TEXT("LeftShift") );
+		ADDKEYMAP( MMK_CapsLock, TEXT("CapsLock") );
+		ADDKEYMAP( MMK_LeftAlt, TEXT("LeftAlt") );
+		ADDKEYMAP( MMK_LeftControl, TEXT("LeftCommand") );
+		ADDKEYMAP( MMK_RightShift, TEXT("RightShift") );
+		ADDKEYMAP( MMK_RightAlt, TEXT("RightAlt") );
+		ADDKEYMAP( MMK_RightControl, TEXT("RightCommand") );
 	}
 
 	check(NumMappings < MaxMappings);
@@ -793,16 +633,14 @@ void FMacPlatformMisc::ClipboardPaste(class FString& Result)
 
 void FMacPlatformMisc::CreateGuid(FGuid& Result)
 {
-	int32 Year = 0, Month = 0, DayOfWeek = 0, Day = 0, Hour = 0, Min = 0, Sec = 0, MSec = 0;
-	FPlatformTime::SystemTime(Year, Month, DayOfWeek, Day, Hour, Min, Sec, MSec);
-
-	FGuid   GUID;
-	GUID.A = Day | (Hour << 16);
-	GUID.B = Month | (Sec << 16);
-	GUID.C = MSec | (Min << 16);
-	GUID.D = Year ^ FPlatformTime::Cycles();
-
-	Result = GUID;
+    uuid_t UUID;
+	uuid_generate(UUID);
+    
+    uint32* Values = (uint32*)(&UUID[0]);
+    Result[0] = Values[0];
+    Result[1] = Values[1];
+    Result[2] = Values[2];
+    Result[3] = Values[3];
 }
 
 EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)

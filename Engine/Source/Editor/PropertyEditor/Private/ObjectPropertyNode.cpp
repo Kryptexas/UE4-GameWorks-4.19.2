@@ -7,6 +7,7 @@
 #include "CategoryPropertyNode.h"
 #include "ItemPropertyNode.h"
 #include "ObjectEditorUtils.h"
+#include "EditorCategoryUtils.h"
 
 FObjectPropertyNode::FObjectPropertyNode(void)
 	: FComplexPropertyNode()
@@ -324,7 +325,7 @@ void FObjectPropertyNode::InternalInitChildNodes( FName SinglePropertyName )
 		{
 			UClass* Class = ClassesToConsider[ ClassIndex ];
 		
-			if( Class->IsCategoryHidden( CategoryName.ToString() ) )
+			if( FEditorCategoryUtils::IsCategoryHiddenFromClass(Class, CategoryName.ToString()) )
 			{
 				HiddenCategories.Add( CategoryName );
 
@@ -454,7 +455,7 @@ void FObjectPropertyNode::InternalInitChildNodes( FName SinglePropertyName )
 		for( TFieldIterator<UProperty> It(BaseClass.Get()); It; ++It )
 		{
 			if( bShouldShowHiddenProperties ||
-				( ( It->PropertyFlags&CPF_Edit ) && ( BaseClass->IsCategoryHidden(FObjectEditorUtils::GetCategory(*It)) == false ) ) )
+				( ( It->PropertyFlags&CPF_Edit ) && ( FEditorCategoryUtils::IsCategoryHiddenFromClass(BaseClass.Get(), FObjectEditorUtils::GetCategory(*It)) == false ) ) )
 			{
 				UProperty* CurProp = *It;
 				if( SinglePropertyName == NAME_None || CurProp->GetFName() == SinglePropertyName )
@@ -510,14 +511,22 @@ TSharedPtr<FPropertyNode> FObjectPropertyNode::GenerateSingleChild( FName ChildP
 /**
  * Appends my path, including an array index (where appropriate)
  */
-void FObjectPropertyNode::GetQualifiedName(FString& PathPlusIndex, const bool bWithArrayIndex) const
+bool FObjectPropertyNode::GetQualifiedName(FString& PathPlusIndex, bool bWithArrayIndex, const FPropertyNode* StopParent, bool bIgnoreCategories ) const
 {
-	if( ParentNode )
+	bool bAddedAnything = false;
+	if( ParentNode && ParentNode != StopParent )
 	{
-		ParentNode->GetQualifiedName(PathPlusIndex, bWithArrayIndex);
-		PathPlusIndex += TEXT(".");
+		bAddedAnything = ParentNode->GetQualifiedName(PathPlusIndex, bWithArrayIndex, StopParent, bIgnoreCategories);
+		if( bAddedAnything )
+		{
+			PathPlusIndex += TEXT(".");
+		}
 	}
+
+	bAddedAnything = true;
 	PathPlusIndex += TEXT("Object");
+
+	return bAddedAnything;
 }
 
 // Looks at the Objects array and returns the best base class.  Called by

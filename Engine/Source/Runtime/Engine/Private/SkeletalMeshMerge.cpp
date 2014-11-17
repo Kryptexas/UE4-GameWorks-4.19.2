@@ -392,7 +392,7 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 	MergeLODModel.Size = 0;
 	// add the new LOD info entry
 	FSkeletalMeshLODInfo& MergeLODInfo = *new(MergeMesh->LODInfo) FSkeletalMeshLODInfo;
-	MergeLODInfo.DisplayFactor = MergeLODInfo.LODHysteresis = MAX_FLT;
+	MergeLODInfo.ScreenSize = MergeLODInfo.LODHysteresis = MAX_FLT;
 
 	// generate an array with info about new sections that need to be created
 	TArray<FNewSectionInfo> NewSectionArray;
@@ -479,7 +479,7 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 			const FSkeletalMeshLODInfo& SrcLODInfo = MergeSectionInfo.SkelMesh->LODInfo[SourceLODIdx];
 
 			// keep track of the lowest LOD displayfactor and hysterisis
-			MergeLODInfo.DisplayFactor = FMath::Min<float>(MergeLODInfo.DisplayFactor,SrcLODInfo.DisplayFactor);
+			MergeLODInfo.ScreenSize = FMath::Min<float>(MergeLODInfo.ScreenSize, SrcLODInfo.ScreenSize);
 			MergeLODInfo.LODHysteresis = FMath::Min<float>(MergeLODInfo.LODHysteresis,SrcLODInfo.LODHysteresis);
 
 			// get the source skel LOD model from this merge entry

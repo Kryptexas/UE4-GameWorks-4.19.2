@@ -6,6 +6,9 @@
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h" // for FClassViewerFilterFuncs
 #include "K2ActionMenuBuilder.h"
 #include "BlueprintPaletteFavorites.h"
+#include "BlueprintActionFilter.h"
+#include "BlueprintActionMenuBuilder.h"
+#include "BlueprintActionMenuUtils.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintLibraryPalette"
 
@@ -205,11 +208,20 @@ void SBlueprintLibraryPalette::CollectAllActions(FGraphActionListBuilderBase& Ou
 	{
 		RootCategory = TEXT("");
 	}
-
-	UBlueprint const* const Blueprint = GetBlueprint();
-	FBlueprintPaletteListBuilder PaletteBuilder(Blueprint, RootCategory);
-
-	UEdGraphSchema_K2::GetPaletteActions(PaletteBuilder, FilterClass);
+	
+	FBlueprintActionContext FilterContext;
+	FilterContext.Blueprints.Add(GetBlueprint());
+	
+	UClass* ClassFilter = nullptr;
+	if (FilterClass.IsValid())
+	{
+		ClassFilter = FilterClass.Get();
+	}
+	
+	FBlueprintActionMenuBuilder PaletteBuilder;
+	FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, ClassFilter, PaletteBuilder);
+	
+	PaletteBuilder.RebuildActionList();
 	OutAllActions.Append(PaletteBuilder);
 }
 

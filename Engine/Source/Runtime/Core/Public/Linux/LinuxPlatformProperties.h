@@ -74,6 +74,16 @@ struct FLinuxPlatformProperties
 		return true;
 	}
 
+	static FORCEINLINE bool SupportsAutoSDK()
+	{
+// linux cross-compiling / cross-building from windows supports AutoSDK.  But hosted linux doesn't yet.
+#if PLATFORM_WINDOWS
+		return true;
+#else
+		return false;
+#endif
+	}
+
 	static FORCEINLINE bool SupportsMultipleGameInstances( )
 	{
 		return true;

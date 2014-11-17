@@ -81,17 +81,17 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	// ES2 feature level emulation in D3D11
 	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")))
 	{
-		SetMaxRHIFeatureLevel(ERHIFeatureLevel::ES2);
+		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::ES2;
 		GRHIShaderPlatform = SP_PCD3D_ES2;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_11_0)
 	{
-		SetMaxRHIFeatureLevel(ERHIFeatureLevel::SM5);
+		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM5;
 		GRHIShaderPlatform = SP_PCD3D_SM5;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_10_0)
 	{
-		SetMaxRHIFeatureLevel(ERHIFeatureLevel::SM4);
+		GMaxRHIFeatureLevel = GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM4;
 		GRHIShaderPlatform = SP_PCD3D_SM4;
 	}
 
@@ -309,7 +309,7 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 void FD3D11DynamicRHI::GetBestSupportedMSAASetting( DXGI_FORMAT PlatformFormat, uint32 MSAACount, uint32& OutBestMSAACount, uint32& OutMSAAQualityLevels )
 {
 	//  We disable MSAA for Feature level 10
-	if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+	if (GMaxRHIFeatureLevel == ERHIFeatureLevel::SM4)
 	{
 		OutBestMSAACount = 1;
 		OutMSAAQualityLevels = 0;
@@ -424,6 +424,14 @@ void FD3D11DynamicRHI::CleanupD3DDevice()
 
 		// Release the device and its IC
 		StateCache.SetContext(nullptr);
+
+		// When running with D3D debug, clear state and flush the device to get rid of spurious live objects in D3D11's report.
+		if (D3D11RHI_ShouldCreateWithD3DDebug())
+		{
+			Direct3DDeviceIMContext->ClearState();
+			Direct3DDeviceIMContext->Flush();
+		}
+
 		Direct3DDeviceIMContext = NULL;
 
 		Direct3DDevice = NULL;

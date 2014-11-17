@@ -17,6 +17,7 @@
 #include "Developer/TargetPlatform/Public/TargetPlatform.h"
 #include "ComponentReregisterContext.h"
 #include "EngineModule.h"
+#include "LocalVertexFactory.h"
 
 DEFINE_LOG_CATEGORY(LogMaterial);
 
@@ -91,126 +92,79 @@ void FExpressionInput::Connect( int32 InOutputIndex, class UMaterialExpression* 
 	MaskA = Output->MaskA;
 }
 
-//
-//	FColorMaterialInput::Compile
-//
-
-int32 FColorMaterialInput::Compile(class FMaterialCompiler* Compiler,const FColor& Default)
+int32 FColorMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
-	if(UseConstant)
+	if (UseConstant)
 	{
-		FLinearColor	LinearColor(Constant);
-		return Compiler->Constant3(LinearColor.R,LinearColor.G,LinearColor.B);
+		FLinearColor LinearColor(Constant);
+		return Compiler->Constant3(LinearColor.R, LinearColor.G, LinearColor.B);
 	}
-	else if(Expression)
+	else if (Expression)
 	{
 		int32 ResultIndex = FExpressionInput::Compile(Compiler);
-		if (ResultIndex == INDEX_NONE)
-		{
-			FLinearColor	LinearColor(Default);
-			return Compiler->Constant3(LinearColor.R,LinearColor.G,LinearColor.B);
-		}
-		else
+		if (ResultIndex != INDEX_NONE)
 		{
 			return ResultIndex;
 		}
 	}
-	else
-	{
-		FLinearColor	LinearColor(Default);
-		return Compiler->Constant3(LinearColor.R,LinearColor.G,LinearColor.B);
-	}
+
+	return GetDefaultExpressionForMaterialProperty(Compiler, Property);
 }
 
-//
-//	FScalarMaterialInput::Compile
-//
-
-int32 FScalarMaterialInput::Compile(class FMaterialCompiler* Compiler,float Default)
+int32 FScalarMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
-	if(UseConstant)
+	if (UseConstant)
 	{
 		return Compiler->Constant(Constant);
 	}
-	else if(Expression)
+	else if (Expression)
 	{
 		int32 ResultIndex = FExpressionInput::Compile(Compiler);
-		if (ResultIndex == INDEX_NONE)
-		{
-			return Compiler->Constant(Default);
-		}
-		else
+		if (ResultIndex != INDEX_NONE)
 		{
 			return ResultIndex;
 		}
 	}
-	else
-	{
-		return Compiler->Constant(Default);
-	}
+
+	return GetDefaultExpressionForMaterialProperty(Compiler, Property);
 }
 
-//
-//	FVectorMaterialInput::Compile
-//
-
-int32 FVectorMaterialInput::Compile(class FMaterialCompiler* Compiler,const FVector& Default)
+int32 FVectorMaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
-	if(UseConstant)
+	if (UseConstant)
 	{
-		return Compiler->Constant3(Constant.X,Constant.Y,Constant.Z);
+		return Compiler->Constant3(Constant.X, Constant.Y, Constant.Z);
 	}
 	else if(Expression)
 	{
 		int32 ResultIndex = FExpressionInput::Compile(Compiler);
-		if (ResultIndex == INDEX_NONE)
-		{
-			return Compiler->Constant3(Default.X,Default.Y,Default.Z);
-		}
-		else
+		if (ResultIndex != INDEX_NONE)
 		{
 			return ResultIndex;
 		}
 	}
-	else
-	{
-		return Compiler->Constant3(Default.X,Default.Y,Default.Z);
-	}
+	return GetDefaultExpressionForMaterialProperty(Compiler, Property);
 }
 
-//
-//	FVector2MaterialInput::Compile
-//
-
-int32 FVector2MaterialInput::Compile(class FMaterialCompiler* Compiler,const FVector2D& Default)
+int32 FVector2MaterialInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
-	if(UseConstant)
+	if (UseConstant)
 	{
-		return Compiler->Constant2(Constant.X,Constant.Y);
+		return Compiler->Constant2(Constant.X, Constant.Y);
 	}
-	else if(Expression)
+	else if (Expression)
 	{
 		int32 ResultIndex = FExpressionInput::Compile(Compiler);
-		if (ResultIndex == INDEX_NONE)
-		{
-			return Compiler->Constant2(Default.X,Default.Y);
-		}
-		else
+		if (ResultIndex != INDEX_NONE)
 		{
 			return ResultIndex;
 		}
 	}
-	else
-	{
-		return Compiler->Constant2(Default.X,Default.Y);
-	}
+
+	return GetDefaultExpressionForMaterialProperty(Compiler, Property);
 }
 
-//
-//	FMaterialAttributesInput::Compile
-//
-
-int32 FMaterialAttributesInput::Compile(class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, const FColor& DefaultColor, const FVector& DefaultVector)
+int32 FMaterialAttributesInput::CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
 	int32 Ret = INDEX_NONE;
 	if(Expression)
@@ -230,33 +184,7 @@ int32 FMaterialAttributesInput::Compile(class FMaterialCompiler* Compiler, EMate
 
 	if( Ret == INDEX_NONE )
 	{
-		//Fallback to defaults
-		switch(Property)
-		{
-		case MP_EmissiveColor: Ret = Compiler->Constant3(DefaultColor.R,DefaultColor.G,DefaultColor.B); break;
-		case MP_Opacity: Ret = Compiler->Constant(DefaultFloat); break;
-		case MP_OpacityMask: Ret = Compiler->Constant(DefaultFloat); break;
-		case MP_DiffuseColor: Ret = Compiler->Constant3(DefaultColor.R,DefaultColor.G,DefaultColor.B); break;
-		case MP_SpecularColor: Ret = Compiler->Constant3(DefaultColor.R,DefaultColor.G,DefaultColor.B); break;
-		case MP_BaseColor: Ret = Compiler->Constant3(DefaultColor.R,DefaultColor.G,DefaultColor.B); break;
-		case MP_Metallic: Ret = Compiler->Constant(DefaultFloat); break;
-		case MP_Specular: Ret = Compiler->Constant(DefaultFloat); break;
-		case MP_Roughness: Ret = Compiler->Constant(DefaultFloat); break;
-		case MP_Normal: Ret = Compiler->Constant3(DefaultVector.X,DefaultVector.Y,DefaultVector.Z); break;
-		case MP_WorldPositionOffset: Ret = Compiler->Constant3(DefaultVector.X,DefaultVector.Y,DefaultVector.Z); break;
-		case MP_WorldDisplacement : Ret = Compiler->Constant3(DefaultVector.X,DefaultVector.Y,DefaultVector.Z); break;
-		case MP_TessellationMultiplier: Ret = Compiler->Constant(DefaultFloat); break;
-		case MP_SubsurfaceColor: Ret = Compiler->Constant3(DefaultColor.R,DefaultColor.G,DefaultColor.B); break;
-		case MP_AmbientOcclusion: Ret = Compiler->Constant(DefaultFloat); break;
-		case MP_Refraction: Ret = Compiler->Constant2(DefaultVector.X,DefaultVector.Y); break;
-		};
-
-		if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
-		{
-			const int32 TextureCoordinateIndex = Property - MP_CustomizedUVs0;
-			// The user did not customize this UV, pass through the vertex texture coordinates
-			Ret = Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
-		}
+		Ret = GetDefaultExpressionForMaterialProperty(Compiler, Property);
 	}
 
 	return Ret;
@@ -280,6 +208,8 @@ EMaterialValueType GetMaterialPropertyType(EMaterialProperty Property)
 	case MP_WorldDisplacement : return MCT_Float3;
 	case MP_TessellationMultiplier: return MCT_Float;
 	case MP_SubsurfaceColor: return MCT_Float3;
+	case MP_ClearCoat: return MCT_Float;
+	case MP_ClearCoatRoughness: return MCT_Float;
 	case MP_AmbientOcclusion: return MCT_Float;
 	case MP_Refraction: return MCT_Float;
 	case MP_MaterialAttributes: return MCT_MaterialAttributes;
@@ -507,7 +437,7 @@ bool FMaterial::MaterialMayModifyMeshPosition() const
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 
 { 
-	checkSlow(IsInRenderingThread());
+	checkSlow(IsInParallelRenderingThread());
 	return RenderingThreadShaderMap; 
 }
 
@@ -859,6 +789,16 @@ bool FMaterialResource::IsTwoSided() const
 	return Ret;
 }
 
+bool FMaterialResource::IsMasked() const 
+{ 
+	bool Ret;
+	if (!(MaterialInstance && MaterialInstance->IsMaskedOverride(Ret)))
+	{
+		Ret = Material->bIsMasked != 0;
+	}
+	return Ret;
+}
+
 bool FMaterialResource::IsDistorted() const { return Material->bUsesDistortion; }
 float FMaterialResource::GetTranslucencyDirectionalLightingIntensity() const { return Material->TranslucencyDirectionalLightingIntensity; }
 float FMaterialResource::GetTranslucentShadowDensityScale() const { return Material->TranslucentShadowDensityScale; }
@@ -870,12 +810,6 @@ FLinearColor FMaterialResource::GetTranslucentMultipleScatteringExtinction() con
 float FMaterialResource::GetTranslucentShadowStartOffset() const { return Material->TranslucentShadowStartOffset; }
 float FMaterialResource::GetRefractionDepthBiasValue() const { return Material->RefractionDepthBias; }
 bool FMaterialResource::UseTranslucencyVertexFog() const {return Material->bUseTranslucencyVertexFog;}
-/**
- * Check if the material is masked and uses an expression or a constant that's not 1.0f for opacity.
- * @return true if the material uses opacity
- */
-bool FMaterialResource::IsMasked() const { return Material->bIsMasked; }
-
 FString FMaterialResource::GetFriendlyName() const { return *GetNameSafe(Material); }
 
 uint32 FMaterialResource::GetDecalBlendMode() const
@@ -1504,9 +1438,9 @@ FMaterialRenderContext::FMaterialRenderContext(
 	FMaterialRenderProxy
 -----------------------------------------------------------------------------*/
 
-void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context) const
+void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context, FRHICommandList* CommandListIfLocalMode) const
 {
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	SCOPE_CYCLE_COUNTER(STAT_CacheUniformExpressions);
 	
@@ -1516,7 +1450,7 @@ void FMaterialRenderProxy::EvaluateUniformExpressions(FUniformExpressionCache& O
 	OutUniformExpressionCache.CachedUniformExpressionShaderMap = Context.Material.GetRenderingThreadShaderMap();
 
 	// Create and cache the material's uniform buffer.
-	OutUniformExpressionCache.UniformBuffer = UniformExpressionSet.CreateUniformBuffer(Context);
+	OutUniformExpressionCache.UniformBuffer = UniformExpressionSet.CreateUniformBuffer(Context, CommandListIfLocalMode, &OutUniformExpressionCache.LocalUniformBuffer);
 
 	// Cache 2D texture uniform expressions.
 	OutUniformExpressionCache.Textures.Empty(UniformExpressionSet.Uniform2DTextureExpressions.Num());
@@ -2145,11 +2079,13 @@ EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 	case 9: return MP_WorldDisplacement;
 	case 10: return MP_TessellationMultiplier;
 	case 11: return MP_SubsurfaceColor;
-	case 12: return MP_AmbientOcclusion;
-	case 13: return MP_Refraction;
+	case 12: return MP_ClearCoat;
+	case 13: return MP_ClearCoatRoughness;
+	case 14: return MP_AmbientOcclusion;
+	case 15: return MP_Refraction;
 	};
 
-	const int32 UVStart = 14;
+	const int32 UVStart = 16;
 	const int32 UVEnd = UVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0;
 
 	if (Index >= UVStart && Index <= UVEnd)
@@ -2181,44 +2117,63 @@ int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property)
 	case MP_WorldDisplacement: return 9;
 	case MP_TessellationMultiplier: return 10;
 	case MP_SubsurfaceColor: return 11;
-	case MP_AmbientOcclusion: return 12;
-	case MP_Refraction: return 13;
+	case MP_ClearCoat: return 12;
+	case MP_ClearCoatRoughness: return 13;
+	case MP_AmbientOcclusion: return 14;
+	case MP_Refraction: return 15;
 	case MP_MaterialAttributes: UE_LOG(LogMaterial, Fatal, TEXT("We should never need the IO index of the MaterialAttriubtes property."));
 	};
 
 	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 	{
-		return 14 + Property - MP_CustomizedUVs0;
+		return 16 + Property - MP_CustomizedUVs0;
 	}
 
 	return -1;
 }
 
-void GetDefaultForMaterialProperty(EMaterialProperty Property, float& OutDefaultFloat, FColor& OutDefaultColor, FVector& OutDefaultVector )
+int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
-	OutDefaultFloat = 0;
-	OutDefaultColor = FColor::Black;
-	OutDefaultVector = FVector::ZeroVector;
-
-	switch(Property)
+	switch (Property)
 	{
-	case MP_Opacity:				OutDefaultFloat = 1.0f; break;
-	case MP_OpacityMask:			OutDefaultFloat = 1.0f; break;
-	case MP_Metallic:				OutDefaultFloat = 0.0f; break;
-	case MP_Specular:				OutDefaultFloat = 0.5f; break;
-	case MP_Roughness:				OutDefaultFloat = 0.5f; break;
-	case MP_TessellationMultiplier: OutDefaultFloat = 1.0f; break;
-	case MP_AmbientOcclusion:		OutDefaultFloat = 1.0f; break;
-	case MP_EmissiveColor:			OutDefaultColor = FColor(0,0,0); break;
-	case MP_DiffuseColor:			OutDefaultColor = FColor(0,0,0); break;
-	case MP_SpecularColor:			OutDefaultColor = FColor(0,0,0); break;
-	case MP_BaseColor:				OutDefaultColor = FColor(0,0,0); break;
-	case MP_SubsurfaceColor:		OutDefaultColor = FColor(1,1,1); break;
-	case MP_Normal:					OutDefaultVector = FVector(0,0,1); break;
-	case MP_WorldPositionOffset:	OutDefaultVector = FVector::ZeroVector; break;
-	case MP_WorldDisplacement:		OutDefaultVector = FVector::ZeroVector; break;
-	case MP_Refraction:				OutDefaultVector = FVector(1,0,0); break;
-	};
+		case MP_Opacity:				return Compiler->Constant(1.0f);
+		case MP_OpacityMask:			return Compiler->Constant(1.0f);
+		case MP_Metallic:				return Compiler->Constant(0.0f);
+		case MP_Specular:				return Compiler->Constant(0.5f);
+		case MP_Roughness:				return Compiler->Constant(0.5f);
+		case MP_TessellationMultiplier:	return Compiler->Constant(1.0f);
+		case MP_ClearCoat:				return Compiler->Constant(1.0f);
+		case MP_ClearCoatRoughness:		return Compiler->Constant(0.1f);
+		case MP_AmbientOcclusion:		return Compiler->Constant(1.0f);
+
+		case MP_EmissiveColor:			return Compiler->Constant3(0, 0, 0);
+		case MP_DiffuseColor:			return Compiler->Constant3(0, 0, 0);
+		case MP_SpecularColor:			return Compiler->Constant3(0, 0, 0);
+		case MP_BaseColor:				return Compiler->Constant3(0, 0, 0);
+		case MP_SubsurfaceColor:		return Compiler->Constant3(1, 1, 1);
+		case MP_Normal:					return Compiler->Constant3(0, 0, 1);
+		case MP_WorldPositionOffset:	return Compiler->Constant3(0, 0, 0);
+		case MP_WorldDisplacement:		return Compiler->Constant3(0, 0, 0);
+		case MP_Refraction:				return Compiler->Constant3(1, 0, 0);
+
+		case MP_CustomizedUVs0:
+		case MP_CustomizedUVs1:
+		case MP_CustomizedUVs2:
+		case MP_CustomizedUVs3:
+		case MP_CustomizedUVs4:
+		case MP_CustomizedUVs5:
+		case MP_CustomizedUVs6:
+		case MP_CustomizedUVs7:
+			{
+//				return Compiler->Constant2(0.0f, 0.0f);				
+				const int32 TextureCoordinateIndex = Property - MP_CustomizedUVs0;
+				// The user did not customize this UV, pass through the vertex texture coordinates
+				return Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
+			}
+	}
+
+	check(0);
+	return INDEX_NONE;
 }
 
 FString GetNameOfMaterialProperty(EMaterialProperty Property)
@@ -2237,6 +2192,8 @@ FString GetNameOfMaterialProperty(EMaterialProperty Property)
 	case MP_WorldDisplacement:		return TEXT("WorldDisplacement");
 	case MP_TessellationMultiplier: return TEXT("TessellationMultiplier");
 	case MP_SubsurfaceColor:		return TEXT("SubsurfaceColor");
+	case MP_ClearCoat:				return TEXT("ClearCoat");
+	case MP_ClearCoatRoughness:		return TEXT("ClearCoatRoughness");
 	case MP_AmbientOcclusion:		return TEXT("AmbientOcclusion");
 	case MP_Refraction:				return TEXT("Refraction");
 	};
@@ -2258,72 +2215,21 @@ bool UMaterialInterface::IsPropertyActive(EMaterialProperty InProperty)const
 	return false;
 }
 
-int32 UMaterialInterface::CompileProperty( class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector )
+int32 UMaterialInterface::CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property )
 {
 	return INDEX_NONE;
 }
 
-int32 UMaterialInterface::CompileProperty( FMaterialCompiler* Compiler, EMaterialProperty Property )
+int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterialProperty Property)
 {
-	int32 Ret = INDEX_NONE;
-
-	float DefaultFloat;
-	FColor DefaultColor;
-	FVector DefaultVector;
-	GetDefaultForMaterialProperty(Property, DefaultFloat, DefaultColor, DefaultVector);
-
 	if (IsPropertyActive(Property))
 	{
-		return CompileProperty(Compiler, Property, DefaultFloat, DefaultColor, DefaultVector);
+		return CompilePropertyEx(Compiler, Property);
 	}
 	else
 	{
-		FLinearColor DefaultLinearColor(DefaultColor.ReinterpretAsLinear());
-
-		switch(Property)
-		{
-		case MP_Opacity:
-		case MP_OpacityMask:
-		case MP_Metallic:
-		case MP_Specular:
-		case MP_Roughness:
-		case MP_TessellationMultiplier:
-		case MP_AmbientOcclusion:
-			{
-				return Compiler->Constant(DefaultFloat);
-			}
-		case MP_EmissiveColor:
-		case MP_DiffuseColor:
-		case MP_SpecularColor:
-		case MP_BaseColor:
-		case MP_SubsurfaceColor:
-			{
-				return Compiler->Constant3(DefaultLinearColor.R, DefaultLinearColor.G, DefaultLinearColor.B);
-			}
-
-		case MP_Normal:
-		case MP_WorldPositionOffset:
-		case MP_WorldDisplacement:
-		case MP_Refraction:
-			{
-				return Compiler->Constant3(DefaultVector.X, DefaultVector.Y, DefaultVector.Z);
-			}
-
-		default:
-			{
-				if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
-				{
-					return Compiler->Constant2(DefaultVector.X, DefaultVector.Y);
-				}
-				else
-				{
-					check(false);
-					break;
-				}
-			}
-		};
+		return GetDefaultExpressionForMaterialProperty(Compiler, Property);
 	}
-	return Ret;
 }
 
 /** TODO - This can be removed whenever VER_UE4_MATERIAL_ATTRIBUTES_REORDERING is no longer relevant. */

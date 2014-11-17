@@ -382,6 +382,7 @@ DEFINE_STAT(STAT_D3D11UpdateUniformBufferTime);
 DEFINE_STAT(STAT_D3D11TexturePoolMemory);
 DEFINE_STAT(STAT_D3D11FreeUniformBufferMemory);
 DEFINE_STAT(STAT_D3D11NumFreeUniformBuffers);
+DEFINE_STAT(STAT_D3D11NumBoundShaderState);
 
 DEFINE_STAT(STAT_D3D11CommitResourceTables);
 DEFINE_STAT(STAT_D3D11CacheResourceTables);

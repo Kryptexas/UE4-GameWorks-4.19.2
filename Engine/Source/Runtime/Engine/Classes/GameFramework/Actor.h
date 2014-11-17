@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "EngineDefines.h"
+
 #include "Engine/EngineBaseTypes.h"
 #include "Components/ActorComponent.h"
 #include "Engine/EngineTypes.h"
@@ -55,86 +57,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorEndPlaySignature, EEndPlayReas
 DECLARE_DELEGATE_FourParams(FMakeNoiseDelegate, class AActor*, float, class APawn*, const FVector&);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("GetComponentsTime"),STAT_GetComponentsTime,STATGROUP_Engine,ENGINE_API);
-
-/** Container for Animation Update Rate parameters.
- * They are shared for all components of an Actor, so they can be updated in sync. */
-USTRUCT()
-struct FAnimUpdateRateParameters
-{
-	GENERATED_USTRUCT_BODY()
-
-private:
-	/** How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc. */
-	UPROPERTY()
-	int32 UpdateRate;
-
-	/** How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
-	 *  has to be a multiple of UpdateRate. */
-	UPROPERTY()
-	int32 EvaluationRate;
-
-	/** When skipping a frame, should it be interpolated or frozen? */
-	UPROPERTY()
-	bool bInterpolateSkippedFrames;
-
-	/** (This frame) animation update should be skipped. */
-	UPROPERTY()
-	bool bSkipUpdate;
-
-	/** (This frame) animation evaluation should be skipped. */
-	UPROPERTY()
-	bool bSkipEvaluation;
-
-public:
-	/** Default constructor */
-	FAnimUpdateRateParameters()
-		: UpdateRate(1)
-		, EvaluationRate(1)
-		, bInterpolateSkippedFrames(false)
-		, bSkipUpdate(false)
-		, bSkipEvaluation(false)
-	{
-	}
-
-	/** Set parameters and verify inputs.
-	 * @param : Owner Actor owner calling this.
-	 * @param : NewUpdateRate. How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc.
-	 * @param : NewEvaluationRate. How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
-	 * @param : bNewInterpSkippedFrames. When skipping a frame, should it be interpolated or frozen?
-	 */
-	void Set(const class AActor & Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames);
-
-	/* Getter for UpdateRate */
-	int32 GetUpdateRate() const
-	{
-		return UpdateRate;
-	}
-
-	/* Getter for EvaluationRate */
-	int32 GetEvaluationRate() const
-	{
-		return EvaluationRate;
-	}
-
-	/* Getter for bSkipUpdate */
-	bool ShouldSkipUpdate() const
-	{
-		return bSkipUpdate;
-	}
-
-	/* Getter for bSkipEvaluation */
-	bool ShouldSkipEvaluation() const
-	{
-		return bSkipEvaluation;
-	}
-
-	/* Getter for bInterpolateSkippedFrames */
-	bool ShouldInterpolateSkippedFrames() const
-	{
-		return bInterpolateSkippedFrames;
-	}
-};
-
 
 /**
  * Base class for an object that can be placed or spawned in a level. Actors may contain a collection of Components, and support network replication.
@@ -360,7 +282,7 @@ public:
 	uint32 bFindCameraComponentWhenViewTarget:1;
 
 	/** Pawn responsible for damage caused by this actor. */
-	UPROPERTY(replicatedUsing=OnRep_Instigator)
+	UPROPERTY(BlueprintReadWrite, replicatedUsing=OnRep_Instigator, meta=(ExposeOnSpawn=true), Category=Actor)
 	class APawn* Instigator;      
 
 	/** The time this actor was created, relative to World->GetTimeSeconds() */
@@ -598,13 +520,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DisableInput(class APlayerController* PlayerController);
 
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisName", ToolTip="Gets the value of the input axis if input is enabled for this actor"))
+	/** Gets the value of the input axis if input is enabled for this actor */
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisName"))
 	float GetInputAxisValue(const FName InputAxisName) const;
 
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey", ToolTip="Gets the value of the input axis key if input is enabled for this actor"))
+	/** Gets the value of the input axis key if input is enabled for this actor */
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey"))
 	float GetInputAxisKeyValue(const FKey InputAxisKey) const;
 
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey", ToolTip="Gets the value of the input axis key if input is enabled for this actor"))
+	/** Gets the value of the input axis key if input is enabled for this actor */
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey"))
 	FVector GetInputVectorAxisValue(const FKey InputAxisKey) const;
 
 	/** Returns the instigator for this actor, or NULL if there is none. */
@@ -897,11 +822,11 @@ public:
 	// Sound functions.
 	
 	/* DEPRECATED - Use UGameplayStatics::PlaySoundAttached */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction, VolumeMultiplier="1.0", PitchMultiplier="1.0"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
 	void PlaySoundOnActor(class USoundCue* InSoundCue, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
 
 	/* DEPRECATED - Use UGameplayStatics::PlaySoundAtLocation */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction, VolumeMultiplier="1.0", PitchMultiplier="1.0"))
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
 	void PlaySoundAtLocation(class USoundCue* InSoundCue, FVector SoundLocation, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
 
 	//=============================================================================
@@ -1061,6 +986,7 @@ public:
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -1480,7 +1406,11 @@ public:
 	virtual void OnRep_ReplicatedMovement();
 
 	/** Update and smooth location, not called for simulated physics! */
-	virtual void PostNetReceiveLocation();
+	DEPRECATED(4.4, "PostNetReceiveLocation() has been replaced by PostNetReceiveLocationAndRotation().")
+	virtual void PostNetReceiveLocation() {}
+
+	/** Update location and rotation from ReplicatedMovement. Not called for simulated physics! */
+	virtual void PostNetReceiveLocationAndRotation();
 
 	/** Update velocity - typically from ReplicatedMovement, not called for simulated physics! */
 	virtual void PostNetReceiveVelocity(const FVector& NewVelocity);
@@ -1629,6 +1559,14 @@ public:
 
 	/** Will reregister all components on this actor. Does a lot of work - should only really be used in editor, generally use UpdateComponentTransforms or MarkComponentsRenderStateDirty. */
 	virtual void ReregisterAllComponents();
+
+	/**
+	 * Incrementally registers components associated with this actor
+	 *
+	 * @param NumComponentsToRegister  Number of components to register in this run, 0 for all
+	 * @return true when all components were registered for this actor
+	 */
+	bool IncrementalRegisterComponents(int32 NumComponentsToRegister);
 
 	/** Flags all component's render state as dirty	 */
 	void MarkComponentsRenderStateDirty();
@@ -1923,11 +1861,19 @@ protected:
 	virtual float InternalTakePointDamage(float Damage, struct FPointDamageEvent const& RadialDamageEvent, class AController* EventInstigator, class AActor* DamageCauser);
 public:
 
-	/* Called by Camera when this actor becomes its ViewTarget */
+	/* Called when this actor becomes the given PlayerController's ViewTarget. Triggers the Blueprint event K2_OnBecomeViewTarget. */
 	virtual void BecomeViewTarget( class APlayerController* PC );
 
-	/* Called by Camera when this actor is no longer its ViewTarget */
+	/* Called when this actor is no longer the given PlayerController's ViewTarget. Also triggers the Blueprint event K2_OnEndViewTarget. */
 	virtual void EndViewTarget( class APlayerController* PC );
+
+	/** Event called when this Actor becomes the view target for the given PlayerController. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName="OnBecomeViewTarget", Keywords="Activate Camera"), Category=Actor)
+	virtual void K2_OnBecomeViewTarget( class APlayerController* PC );
+
+	/** Event called when this Actor is no longer the view target for the given PlayerController. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName="OnEndViewTarget", Keywords="Deactivate Camera"), Category=Actor)
+	virtual void K2_OnEndViewTarget( class APlayerController* PC );
 
 	/**
 	 *	Calculate camera view point, when viewing this actor.
@@ -2000,6 +1946,9 @@ public:
 	/** Get the timer instance from the actors world */
 	class FTimerManager& GetWorldTimerManager() const;
 
+	/** Gets the GameInstance that ultimately contains this actor. */
+	class UGameInstance* GetGameInstance() const;
+
 	/** Returns true if this is a replicated actor that was placed in the map */
 	bool IsNetStartupActor() const;
 
@@ -2067,7 +2016,6 @@ public:
 	void ResetOwnedComponents();
 
 private:
-	UPROPERTY(transient, duplicatetransient)
 	TArray<UActorComponent*> OwnedComponents;
 	
 public:

@@ -61,61 +61,6 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayA
 
 // -------------------------------------------------------------------------------------
 
-UAbilityTask_PlayMontageAndWait* UAbilitySystemBlueprintLibrary::CreatePlayMontageAndWaitProxy(class UObject* WorldContextObject, UAnimMontage *MontageToPlay)
-{
-	check(WorldContextObject);
-	UGameplayAbility* Ability = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (Ability)
-	{
-		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
-
-		UAbilityTask_PlayMontageAndWait * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_PlayMontageAndWait>();
-
-		FOnMontageEnded EndDelegate;
-		EndDelegate.BindUObject(MyObj, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);
-
-		FGameplayAbilityActorInfo	ActorInfo;
-		ActorInfo.InitFromActor(ActorOwner);
-
-		ActorInfo.AnimInstance->Montage_Play(MontageToPlay, 1.f);
-		ActorInfo.AnimInstance->Montage_SetEndDelegate(EndDelegate);
-
-		return MyObj;
-	}
-
-	return NULL;	
-}
-
-
-UAbilityTask_WaitMovementModeChange* UAbilitySystemBlueprintLibrary::CreateWaitMovementModeChange(class UObject* WorldContextObject, EMovementMode NewMode)
-{
-	check(WorldContextObject);
-	UGameplayAbility* Ability = CastChecked<UGameplayAbility>(WorldContextObject);
-	if (Ability)
-	{
-		AActor * ActorOwner = Cast<AActor>(Ability->GetOuter());
-
-		UAbilityTask_WaitMovementModeChange * MyObj = NULL;
-		MyObj = NewObject<UAbilityTask_WaitMovementModeChange>();
-		MyObj->RequiredMode = NewMode;
-
-		FGameplayAbilityActorInfo	ActorInfo;
-		ActorInfo.InitFromActor(ActorOwner);
-
-		ACharacter * Character = Cast<ACharacter>(ActorInfo.Actor.Get());
-		if (Character)
-		{
-			Character->MovementModeChangedDelegate.AddDynamic(MyObj, &UAbilityTask_WaitMovementModeChange::OnMovementModeChange);
-		}
-		return MyObj;
-	}
-
-	return NULL;
-}
-
-// -------------------------------------------------------------------------------------
-
 
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueParameters Parameters)
 {

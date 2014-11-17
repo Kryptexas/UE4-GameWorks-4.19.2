@@ -4,7 +4,7 @@
 	WildcardString.cpp: Implements the FWildcardString class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 /* FWildcardString static functions

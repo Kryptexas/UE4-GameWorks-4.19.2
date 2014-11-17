@@ -994,6 +994,9 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::SerializePackageFileSummary()
 			
 			// Propagate package file size
 			LinkerRootPackage->FileSize = TotalSize();
+
+			// Propagate package Guid
+			LinkerRootPackage->SetGuid( Summary.Guid );
 		}
 		
 		// Propagate fact that package cannot use lazy loading to archive (aka this).
@@ -2953,6 +2956,24 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 					return NULL;
 				}
 			}
+			else
+			{
+				// SuperStruct needs to be fully linked so that UStruct::Link will have access to UObject::SuperStruct->PropertySize. 
+				// There are other attempts to force our super struct to load, and I have not verified that they can all be removed
+				// in favor of this one:
+				if (!SuperStruct->HasAnyFlags(RF_LoadCompleted)
+					&& !SuperStruct->HasAnyFlags(RF_Native)
+					&& SuperStruct->GetLinker()
+					&& Export.SuperIndex.IsImport())
+				{
+					const UClass* AsClass = Cast<UClass>(SuperStruct);
+					if (AsClass && !AsClass->ClassDefaultObject)
+					{
+						SuperStruct->SetFlags(RF_NeedLoad);
+						Preload(SuperStruct);
+					}
+				}
+			}
 		}
 
 		// Only UClass objects and UProperty objects of intrinsic classes can have RF_Native set. Those property objects are never
@@ -3066,8 +3087,9 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		// case of async loading as we cannot in-place replace objects.
 
 		UObject* ActualObjectWithTheName = StaticFindObjectFastInternal(NULL, ThisParent, Export.ObjectName, true);
-
-		if(	(FApp::IsGame() && !GIsEditor && !IsRunningCommandlet()) 
+		
+		// if we require cooked data, attempt to find exports in memory first
+		if(	FPlatformProperties::RequiresCookedData() 
 		||	GIsAsyncLoading 
 		||	Export.bForcedExport 
 		||	LinkerRoot->ShouldFindExportsInMemoryFirst()
@@ -3343,7 +3365,11 @@ UObject* ULinkerLoad::CreateImport( int32 Index )
 			if(Import.SourceIndex != INDEX_NONE)
 			{
 				check(Import.SourceLinker);
-				Import.XObject = Import.SourceLinker->CreateExport( Import.SourceIndex );
+				// VerifyImport may have already created the import and SourceIndex has changed to point to the actual redirected object
+				if (!Import.XObject)
+				{
+					Import.XObject = Import.SourceLinker->CreateExport(Import.SourceIndex);
+				}
 				// If an object has been replaced (consolidated) in the editor and its package hasn't been saved yet
 				// it's possible to get UbjectRedirector here as the original export is dynamically replaced
 				// with the redirector (the original object has been deleted but the data on disk hasn't been updated)
@@ -3568,7 +3594,7 @@ FArchive& ULinkerLoad::operator<<( FAssetPtr& AssetPtr)
 {
 	FArchive& Ar = *this;
 	FStringAssetReference ID;
-	Ar << ID;
+	ID.Serialize(Ar);
 	AssetPtr = ID;
 	return Ar;
 }

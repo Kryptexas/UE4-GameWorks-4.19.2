@@ -187,7 +187,7 @@ void FLevelModel::SetVisible(bool bVisible)
 	const FScopedTransaction Transaction(LOCTEXT("ToggleVisibility", "Toggle Level Visibility"));
 
 	//this call hides all owned actors, etc
-	EditorLevelUtils::SetLevelVisibility(GetLevelObject(), bVisible, true );
+	EditorLevelUtils::SetLevelVisibility( GetLevelObject(), bVisible, false );
 
 	if (!oldIsDirty)
 	{
@@ -331,6 +331,25 @@ void FLevelModel::SetLevelTranslationDelta(FVector2D InAbsoluteDelta)
 	{
 		(*It)->SetLevelTranslationDelta(InAbsoluteDelta);
 	}
+}
+
+bool FLevelModel::SupportsLevelColor() const
+{
+	// By default Levels don't support a level color
+	return false;
+}
+
+FColor FLevelModel::GetLevelColor() const
+{
+	// Returns Constant color, base classes will override this
+	// Currently not all base classes have the requisite support, so I've not made it pure virtual.
+	return FColor::White;
+}
+
+void FLevelModel::SetLevelColor(FColor InColor)
+{
+	// Does nothing, base classes will override this
+	// Currently not all base classes have the requisite support, so I've not made it pure virtual.
 }
 
 bool FLevelModel::HasKismet() const

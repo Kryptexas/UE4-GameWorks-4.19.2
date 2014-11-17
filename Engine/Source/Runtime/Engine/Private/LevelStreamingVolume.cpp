@@ -20,3 +20,35 @@ ALevelStreamingVolume::ALevelStreamingVolume(const class FPostConstructInitializ
 	StreamingUsage = SVB_LoadingAndVisibility;
 }
 
+void ALevelStreamingVolume::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		UpdateStreamingLevelsRefs();
+	}
+#endif//WITH_EDITOR
+}
+
+#if WITH_EDITOR
+
+void ALevelStreamingVolume::UpdateStreamingLevelsRefs()
+{
+	StreamingLevelNames.Reset();
+	
+	UWorld* OwningWorld = GetWorld();
+	if (OwningWorld)
+	{
+		for (ULevelStreaming* LevelStreaming : OwningWorld->StreamingLevels)
+		{
+			if (LevelStreaming && LevelStreaming->EditorStreamingVolumes.Find(this) != INDEX_NONE)
+			{
+				StreamingLevelNames.Add(LevelStreaming->PackageName);
+			}
+		}
+	}
+}
+
+#endif// WITH_EDITOR

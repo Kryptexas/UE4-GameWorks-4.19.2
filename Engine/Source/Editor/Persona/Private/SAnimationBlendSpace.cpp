@@ -846,9 +846,9 @@ FText SBlendSpaceGridWidget::GetInputText(const FVector & GridPos) const
 	return FText::Format( LOCTEXT("BlendSpaceParamGridMessage", "{BlendParam01DisplayName} [{XGridPos}]\n{BlendParam02DisplayName} [{YGridPos}]\n"), Args );
 }
 
-int32 SBlendSpaceGridWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+	SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 
 	FDrawLines LineBatcher;
 

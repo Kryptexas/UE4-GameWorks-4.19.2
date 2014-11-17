@@ -69,6 +69,11 @@ struct FWindowsPlatformProperties
 		return !HAS_EDITOR_DATA;
 	}
 
+	static FORCEINLINE bool SupportsAudioStreaming()
+	{
+		return true;
+	}
+
 	static FORCEINLINE bool SupportsGrayscaleSRGB()
 	{
 		return false; // Requires expand from G8 to RGBA

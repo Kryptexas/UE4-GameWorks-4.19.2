@@ -156,6 +156,7 @@ public:
 	virtual TSharedPtr<class FSCSEditorTreeNode> FindAndSelectSCSEditorTreeNode(const UActorComponent* InComponent, bool IsCntrlDown) override;
 	virtual int32 GetNumberOfSelectedNodes() const override;
 	virtual void AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete = false ) const override;
+	void AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 NumErrors, int32 NumWarnings ) const;
 	// End of IBlueprintEditor interface
 
 	// FTickableEditorObject interface
@@ -296,7 +297,7 @@ public:
 	 * @param IconColorOut		The resulting color for the glyph
 	 * @return					The resulting glyph brush
 	 */
-	static FSlateBrush const* GetVarIconAndColor(UStruct* VarScope, FName VarName, FSlateColor& IconColorOut);
+	static FSlateBrush const* GetVarIconAndColor(const UStruct* VarScope, FName VarName, FSlateColor& IconColorOut);
 
 	/** Overridable function for determining if the current mode can script */
 	virtual bool IsInAScriptingMode() const;
@@ -448,6 +449,12 @@ public:
 	 */
 	void UnregisterSCSEditorCustomization(const FName& InComponentName);
 
+	/** Forces the merge tool to be shown */
+	void CreateMergeToolTab();
+	
+	/** Closes the merge tool, rather than simply hiding it */
+	void CloseMergeTool();
+
 	/** 
 	 * Check to see if we can customize the SCS editor for the passed-in scene component 
 	 * @param	InComponentToCustomize	The component to check to see if a customization exists
@@ -473,6 +480,8 @@ public:
 	bool IsGraphInCurrentBlueprint(UEdGraph* InGraph) const;
 
 protected:
+	/** Called during initialization of the blueprint editor to register any application modes. */
+	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 	
 	// Zooming to fit the entire graph
 	void ZoomToWindow_Clicked();
@@ -579,6 +588,15 @@ protected:
 
 	void OnRemoveExecutionPin();
 	bool CanRemoveExecutionPin() const;
+
+	void OnRemoveThisStructVarPin();
+	bool CanRemoveThisStructVarPin() const;
+
+	void OnRemoveOtherStructVarPins();
+	bool CanRemoveOtherStructVarPins() const;
+
+	void OnRestoreAllStructVarPins();
+	bool CanRestoreAllStructVarPins() const;
 
 	void OnAddOptionPin();
 	bool CanAddOptionPin() const;
@@ -900,6 +918,9 @@ protected:
 	
 	/** Find results log as well as the search filter */
 	TSharedPtr<class SFindInBlueprints> FindResults;
+
+	/** Merge tool - WeakPtr because it's owned by the GlobalTabManager */
+	TWeakPtr<class SDockTab> MergeTool;
 
 	/** Reference to owner of the current popup */
 	TWeakPtr<class SWindow> NameEntryPopupWindow;

@@ -498,10 +498,44 @@ static struct FQueueTests
 		{
 			GLog->Logf(ELogVerbosity::Log, TEXT("...Automation Test Queue Empty %d tests performed."), NumTestsRun);
 			NumTestsRun = 0;
+
+			//Quit when we are done if we have the command line option
+			const FString CommandLine(FCommandLine::Get());
+			if (CommandLine.Contains(TEXT("-AutomationTests=")))
+			{
+				//Let the current callstack complete then quit
+				GEngine->DeferredCommands.Add(TEXT("QUIT"));
+			}
 		}
 	}
 
 } QueueTests;
+
+bool GenerateTestNamesFromCommandLine(const TCHAR* InTestCommands, TArray<FString>& OutTestNames)
+{
+	//Split the test names up
+	TArray<FString> TestList;
+	const FString StringCommand = InTestCommands;
+	StringCommand.ParseIntoArray(&TestList, TEXT(","), true);
+
+	//Get the list of valid names
+	TArray<FAutomationTestInfo> TestInfo;
+	FAutomationTestFramework::GetInstance().GetValidTestNames(TestInfo);
+
+	for (int32 TestListIndex = 0; TestListIndex < TestList.Num(); ++TestListIndex)
+	{
+		const FString CleanTestName = TestList[TestListIndex].Trim();
+		for (int TestIndex = 0; TestIndex < TestInfo.Num(); ++TestIndex)
+		{
+			if (TestInfo[TestIndex].GetDisplayName().StartsWith(CleanTestName))
+			{
+				OutTestNames.Add(TestInfo[TestIndex].GetTestName());
+			}
+		}
+	}
+
+	return OutTestNames.Num() > 0;
+}
 
 
 bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
@@ -526,6 +560,24 @@ bool DirectAutomationCommand(const TCHAR* Cmd, FOutputDevice* Ar = GLog)
 			FString Test(TempCmd);
 			Test = Test.Trim();
 			QueueTests.NewTest(Test);
+		}
+		else if (FParse::Command(&TempCmd, TEXT("CommandLineTests")))
+		{
+			TArray<FString> TestNames;
+			if (GenerateTestNamesFromCommandLine(TempCmd, TestNames))
+			{
+				//Get the number of times to loop
+				int32 NumTestLoops = 1;
+				FParse::Value(FCommandLine::Get(), TEXT("TestLoops="), NumTestLoops);
+
+				for (int32 LoopIndex = 0; LoopIndex < NumTestLoops; ++LoopIndex)
+				{
+					for (int32 TestIndex = 0; TestIndex < TestNames.Num(); ++TestIndex)
+					{
+						QueueTests.NewTest(TestNames[TestIndex]);
+					}
+				}
+			}
 		}
 		else if( FParse::Command(&TempCmd,TEXT("runall")) )
 		{

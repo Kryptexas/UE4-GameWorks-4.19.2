@@ -316,34 +316,37 @@ void FPackageAutoSaver::UpdateDirtyListsForPackage(UPackage* Pkg)
 {
 	const UPackage* TransientPackage = GetTransientPackage();
 
-	if(Pkg != TransientPackage)
+	// Don't auto-save the transient package or packages with the transient flag.
+	if ( Pkg == TransientPackage || Pkg->HasAnyFlags(RF_Transient) )
 	{
-		if(Pkg->IsDirty())
-		{
-			// Always add the package to the user list
-			DirtyPackagesForUserSave.FindOrAdd(Pkg);
+		return;
+	}
 
-			// Only add the package to the auto-save list if we're not auto-saving
-			// Note: Packages get dirtied again after they're auto-saved, so this would add them back again, which we don't want
-			if(!IsAutoSaving())
-			{
-				DirtyPackagesForAutoSave.Add(Pkg);
-			}
+	if ( Pkg->IsDirty() )
+	{
+		// Always add the package to the user list
+		DirtyPackagesForUserSave.FindOrAdd(Pkg);
+
+		// Only add the package to the auto-save list if we're not auto-saving
+		// Note: Packages get dirtied again after they're auto-saved, so this would add them back again, which we don't want
+		if ( !IsAutoSaving() )
+		{
+			DirtyPackagesForAutoSave.Add(Pkg);
 		}
-		else
-		{
-			// Always remove the package from the auto-save list
-			DirtyPackagesForAutoSave.Remove(Pkg);
+	}
+	else
+	{
+		// Always remove the package from the auto-save list
+		DirtyPackagesForAutoSave.Remove(Pkg);
 
-			// Only remove the package from the user list if we're not auto-saving
-			// Note: Packages call this even when auto-saving, so this would remove them from the user list, which we don't want as they're still dirty
-			if(!IsAutoSaving())
+		// Only remove the package from the user list if we're not auto-saving
+		// Note: Packages call this even when auto-saving, so this would remove them from the user list, which we don't want as they're still dirty
+		if ( !IsAutoSaving() )
+		{
+			if ( DirtyPackagesForUserSave.Remove(Pkg) )
 			{
-				if(DirtyPackagesForUserSave.Remove(Pkg))
-				{
-					// Update the restore information too
-					UpdateRestoreFile(PackageAutoSaverJson::IsRestoreEnabled());
-				}
+				// Update the restore information too
+				UpdateRestoreFile(PackageAutoSaverJson::IsRestoreEnabled());
 			}
 		}
 	}

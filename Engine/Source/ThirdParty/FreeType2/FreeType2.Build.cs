@@ -73,8 +73,15 @@ public class FreeType2 : ModuleRules
                 throw new BuildException(Err);
             }
 
-            PublicLibraryPaths.Add(FreeType2LibPath + "Linux/" + Target.Architecture);
-            PublicAdditionalLibraries.Add("freetype2412");
+            if (Target.IsMonolithic)
+            {
+                PublicAdditionalLibraries.Add(FreeType2LibPath + "Linux/" + Target.Architecture + "/libfreetype2412.a");
+            }
+            else
+            {
+                PublicLibraryPaths.Add(FreeType2LibPath + "Linux/" + Target.Architecture);
+                PublicAdditionalLibraries.Add("freetype");
+            }
         }
        else if (Target.Platform == UnrealTargetPlatform.HTML5)
         {

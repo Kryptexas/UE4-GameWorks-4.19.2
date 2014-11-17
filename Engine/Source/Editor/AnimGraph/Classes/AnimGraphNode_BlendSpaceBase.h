@@ -16,6 +16,7 @@ class UAnimGraphNode_BlendSpaceBase : public UAnimGraphNode_Base
 	// UAnimGraphNode_Base interface
 	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex) const override;
 	virtual void PreloadRequiredAssets() override;
+	virtual void PostProcessPinName(const UEdGraphPin* Pin, FString& DisplayName) const override;
 	// End of UAnimGraphNode_Base interface
 
 protected:

@@ -8,7 +8,7 @@ public:
 	virtual TSharedRef< class IRun > GetRun() const = 0;
 	virtual FTextRange GetTextRange() const = 0;
 	virtual FVector2D GetSize() const = 0;
-	virtual TSharedPtr< class IRunHighlighter > GetHighlighter() const = 0;
+	virtual TSharedPtr< class IRunRenderer > GetRenderer() const = 0;
 
 	virtual void SetLocationOffset( const FVector2D& InLocationOffset ) = 0;
 	virtual FVector2D GetLocationOffset() const = 0;

@@ -15,9 +15,9 @@ UENUM(BlueprintType)
 namespace EGameplayAbilityInstancingPolicy
 {
 	/**
-	*	How the ability is instanced when executed. This limits what an ability can do in its implementation. For example, a NonInstanced
-	*	Ability cannot have state. It is probably unsafe for an InstancedPerActor ability to have latent actions, etc.
-	*/
+	 *	How the ability is instanced when executed. This limits what an ability can do in its implementation. For example, a NonInstanced
+	 *	Ability cannot have state. It is probably unsafe for an InstancedPerActor ability to have latent actions, etc.
+	 */
 
 	enum Type
 	{
@@ -275,6 +275,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 		return TArray<AActor*>();
 	}
 
+	// -------------------------------------
+
 	virtual bool HasHitResult() const
 	{
 		return false;
@@ -284,6 +286,20 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 	{
 		return NULL;
 	}
+
+	// -------------------------------------
+
+	virtual bool HasOrigin() const
+	{
+		return false;
+	}
+
+	virtual FTransform* GetOrigin() const
+	{
+		return nullptr;
+	}
+
+	// -------------------------------------
 
 	virtual UScriptStruct * GetScriptStruct()
 	{
@@ -305,6 +321,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 	: HitResult(InHitResult)
 	{ }
 
+	// -------------------------------------
+
 	virtual TArray<AActor*>	GetActors() const
 	{
 		TArray<AActor*>	Actors;
@@ -314,6 +332,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 		}
 		return Actors;
 	}
+	
+	// -------------------------------------
 
 	virtual bool HasHitResult() const
 	{
@@ -324,6 +344,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_SingleTargetHit : public
 	{
 		return &HitResult;
 	}
+
+	// -------------------------------------
 
 	UPROPERTY()
 	FHitResult	HitResult;

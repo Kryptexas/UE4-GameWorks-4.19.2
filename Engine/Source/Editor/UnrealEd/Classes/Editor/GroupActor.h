@@ -5,6 +5,7 @@
 //=============================================================================
 
 #pragma once
+#include "GameFramework/Actor.h"
 #include "GroupActor.generated.h"
 
 UCLASS(hidedropdown,MinimalAPI, notplaceable, NotBlueprintable)

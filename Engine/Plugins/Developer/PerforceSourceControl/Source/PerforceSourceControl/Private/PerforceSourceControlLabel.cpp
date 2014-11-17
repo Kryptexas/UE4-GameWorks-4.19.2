@@ -74,7 +74,7 @@ bool FPerforceSourceControlLabel::GetFileRevisions( const TArray<FString>& InFil
 	return bCommandOK;
 }
 
-bool FPerforceSourceControlLabel::Sync( const FString& InFilename ) const
+bool FPerforceSourceControlLabel::Sync( const TArray<FString>& InFilenames ) const
 {
 	bool bCommandOK = false;
 
@@ -84,9 +84,12 @@ bool FPerforceSourceControlLabel::Sync( const FString& InFilename ) const
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		FP4RecordSet Records;
-		TArray<FString> Parameters;
 		TArray<FText> ErrorMessages;
-		Parameters.Add(InFilename + TEXT("@") + Name);
+		TArray<FString> Parameters;
+		for(const auto& Filename : InFilenames)
+		{
+			Parameters.Add(Filename + TEXT("@") + Name);
+		}
 		bool bConnectionDropped = false;
 		bCommandOK = Connection.RunCommand(TEXT("sync"), Parameters, Records, ErrorMessages, FOnIsCancelled(), bConnectionDropped);
 		if(!bCommandOK)

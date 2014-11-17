@@ -186,17 +186,15 @@ void PadMemoryReader(FMemoryReader* MemoryReader, uint8*& TrackData, const int32
  * @param	Seq				An Animation Sequence to extract the BoneAtom from.
  * @param	TrackIndex		The index of the track desired in the Animation Sequence.
  * @param	Time			The time (in seconds) to calculate the BoneAtom for.
- * @param	bLooping		true if the animation should be played in a cyclic manner.
  */
 void AnimationFormat_GetBoneAtom(	
 	FTransform& OutAtom,
 	const UAnimSequence& Seq,
 	int32 TrackIndex,
-	float Time,
-	bool bLooping)
+	float Time)
 {
 	checkSlow(Seq.RotationCodec != NULL);
-	((AnimEncoding*)Seq.RotationCodec)->GetBoneAtom(OutAtom, Seq, TrackIndex, Time, bLooping);
+	((AnimEncoding*)Seq.RotationCodec)->GetBoneAtom(OutAtom, Seq, TrackIndex, Time);
 }
 
 #if USE_ANIMATION_CODEC_BATCH_SOLVER
@@ -209,7 +207,6 @@ void AnimationFormat_GetBoneAtom(
  * @param	TranslationTracks	A BoneTrackArray element for each bone requesting translation data. 
  * @param	Seq					An Animation Sequence to extract the BoneAtom from.
  * @param	Time				The time (in seconds) to calculate the BoneAtom for.
- * @param	bLooping			true if the animation should be played in a cyclic manner.
  */
 void AnimationFormat_GetAnimationPose(	
 	FTransformArray& Atoms, 
@@ -217,22 +214,21 @@ void AnimationFormat_GetAnimationPose(
 	const BoneTrackArray& TranslationPairs,
 	const BoneTrackArray& ScalePairs,
 	const UAnimSequence& Seq,
-	float Time,
-	bool bLooping)
+	float Time)
 {
 	// decompress the translation component using the proper method
 	checkSlow(Seq.TranslationCodec != NULL);
-	((AnimEncoding*)Seq.TranslationCodec)->GetPoseTranslations(Atoms, TranslationPairs, Seq, Time, bLooping);
+	((AnimEncoding*)Seq.TranslationCodec)->GetPoseTranslations(Atoms, TranslationPairs, Seq, Time);
 
 	// decompress the rotation component using the proper method
 	checkSlow(Seq.RotationCodec != NULL);
-	((AnimEncoding*)Seq.RotationCodec)->GetPoseRotations(Atoms, RotationPairs, Seq, Time, bLooping);
+	((AnimEncoding*)Seq.RotationCodec)->GetPoseRotations(Atoms, RotationPairs, Seq, Time);
 
 	checkSlow(Seq.ScaleCodec != NULL);
 	// we allow scale key to be empty
 	if (Seq.CompressedScaleOffsets.IsValid())
 	{
-		((AnimEncoding*)Seq.ScaleCodec)->GetPoseScales(Atoms, ScalePairs, Seq, Time, bLooping);
+		((AnimEncoding*)Seq.ScaleCodec)->GetPoseScales(Atoms, ScalePairs, Seq, Time);
 	}
 }
 #endif
@@ -244,14 +240,12 @@ void AnimationFormat_GetAnimationPose(
  * @param	Seq				An Animation Sequence to extract the BoneAtom from.
  * @param	TrackIndex		The index of the track desired in the Animation Sequence.
  * @param	Time			The time (in seconds) to calculate the BoneAtom for.
- * @param	bLooping		true if the animation should be played in a cyclic manner.
  */
 void AnimEncodingLegacyBase::GetBoneAtom(
 	FTransform& OutAtom,
 	const UAnimSequence& Seq,
 	int32 TrackIndex,
-	float Time,
-	bool bLooping)
+	float Time)
 {
 	// Initialize to identity to set the scale and in case of a missing rotation or translation codec
 	OutAtom.SetIdentity();
@@ -269,11 +263,11 @@ void AnimEncodingLegacyBase::GetBoneAtom(
 
 	// decompress the translation component using the proper method
 	checkSlow(Seq.TranslationCodec != NULL);
-	((AnimEncodingLegacyBase*)Seq.TranslationCodec)->GetBoneAtomTranslation(OutAtom, Seq, TransStream, NumTransKeys, Time, RelativePos, bLooping);
+	((AnimEncodingLegacyBase*)Seq.TranslationCodec)->GetBoneAtomTranslation(OutAtom, Seq, TransStream, NumTransKeys, Time, RelativePos);
 
 	// decompress the rotation component using the proper method
 	checkSlow(Seq.RotationCodec != NULL);
-	((AnimEncodingLegacyBase*)Seq.RotationCodec)->GetBoneAtomRotation(OutAtom, Seq, RotStream, NumRotKeys, Time, RelativePos, bLooping);
+	((AnimEncodingLegacyBase*)Seq.RotationCodec)->GetBoneAtomRotation(OutAtom, Seq, RotStream, NumRotKeys, Time, RelativePos);
 
 	// we assume scale keys can be empty, so only extrace if we have valid keys
 	bool bHasValidScale = Seq.CompressedScaleOffsets.IsValid();
@@ -284,7 +278,7 @@ void AnimEncodingLegacyBase::GetBoneAtom(
 		const uint8* RESTRICT ScaleStream		= Seq.CompressedByteStream.GetTypedData()+ScaleKeyOffset;
 		// decompress the rotation component using the proper method
 		checkSlow(Seq.ScaleCodec != NULL);
-		((AnimEncodingLegacyBase*)Seq.ScaleCodec)->GetBoneAtomScale(OutAtom, Seq, ScaleStream, NumScaleKeys, Time, RelativePos, bLooping);
+		((AnimEncodingLegacyBase*)Seq.ScaleCodec)->GetBoneAtomScale(OutAtom, Seq, ScaleStream, NumScaleKeys, Time, RelativePos);
 	}
 }
 

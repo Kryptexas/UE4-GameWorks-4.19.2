@@ -33,7 +33,7 @@ public:
 	{
 		if (AndroidTargetSingleton == NULL)
 		{
-			AndroidTargetSingleton = new FAndroidTargetPlatform();	
+			AndroidTargetSingleton = new FAndroidTargetPlatform<FAndroidPlatformProperties>();	
 		}
 		
 		return AndroidTargetSingleton;

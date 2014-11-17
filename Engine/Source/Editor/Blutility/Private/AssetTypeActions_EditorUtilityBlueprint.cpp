@@ -82,13 +82,17 @@ void FAssetTypeActions_EditorUtilityBlueprint::GetActions(const TArray<UObject*>
 
 	if (Blueprints.Num() == 1)
 	{
+		TAttribute<FText>::FGetter DynamicTooltipGetter;
+		DynamicTooltipGetter.BindSP(this, &FAssetTypeActions_EditorUtilityBlueprint::GetNewDerivedBlueprintTooltip, Blueprints[0]);
+		TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("Blutility_NewDerivedBlueprint", "Create Blueprint based on this"),
-			LOCTEXT("Blutility_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint."),
+			DynamicTooltipAttribute,
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetTypeActions_EditorUtilityBlueprint::ExecuteNewDerivedBlueprint, Blueprints[0] ),
-				FCanExecuteAction()
+				FCanExecuteAction::CreateSP( this, &FAssetTypeActions_EditorUtilityBlueprint::CanExecuteNewDerivedBlueprint, Blueprints[0] )
 				)
 			);
 	}
@@ -191,6 +195,23 @@ void FAssetTypeActions_EditorUtilityBlueprint::ExecuteNewDerivedBlueprint(TWeakO
 			}
 		}
 	}
+}
+
+FText FAssetTypeActions_EditorUtilityBlueprint::GetNewDerivedBlueprintTooltip(TWeakObjectPtr<class UEditorUtilityBlueprint> InObject)
+{
+	if(InObject->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated))
+	{
+		return LOCTEXT("Blutility_NewDerivedBlueprintIsDeprecatedTooltip", "Blueprint class is deprecated, cannot derive a child Blueprint!");
+	}
+	else
+	{
+		return LOCTEXT("Blutility_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint.");
+	}
+}
+
+bool FAssetTypeActions_EditorUtilityBlueprint::CanExecuteNewDerivedBlueprint(TWeakObjectPtr<class UEditorUtilityBlueprint> InObject)
+{
+	return !InObject->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated);
 }
 
 void FAssetTypeActions_EditorUtilityBlueprint::ExecuteGlobalBlutility(TWeakObjectPtr<UEditorUtilityBlueprint> InObject)

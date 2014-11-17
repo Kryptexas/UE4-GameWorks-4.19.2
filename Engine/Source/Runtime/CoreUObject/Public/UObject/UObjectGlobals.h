@@ -240,7 +240,7 @@ COREUOBJECT_API void PreInitUObject();
  */
 COREUOBJECT_API void MarkObjectsToDisregardForGC();
 COREUOBJECT_API bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog );
-COREUOBJECT_API void StaticTick( float DeltaTime, float AsyncLoadingTime = 0.005f );
+COREUOBJECT_API void StaticTick( float DeltaTime, bool bUseFullTimeLimit = true, float AsyncLoadingTime = 0.005f );
 
 /**
  * Loads a package and all contained objects that match context flags.
@@ -801,6 +801,7 @@ public:
 	template<class T>
 	FPostConstructInitializeProperties const& SetDefaultSubobjectClass(FName SubobjectName) const
 	{
+		AssertIfSubobjectSetupIsNotAllowed(*SubobjectName.GetPlainNameString());
 		ComponentOverrides.Add(SubobjectName, T::StaticClass(), *this);
 		return *this;
 	}
@@ -811,6 +812,7 @@ public:
 	template<class T>
 	FORCEINLINE FPostConstructInitializeProperties const& SetDefaultSubobjectClass(TCHAR const*SubobjectName) const
 	{
+		AssertIfSubobjectSetupIsNotAllowed(SubobjectName);
 		ComponentOverrides.Add(SubobjectName, T::StaticClass(), *this);
 		return *this;
 	}
@@ -821,6 +823,7 @@ public:
 	 */
 	FPostConstructInitializeProperties const& DoNotCreateDefaultSubobject(FName SubobjectName) const
 	{
+		AssertIfSubobjectSetupIsNotAllowed(*SubobjectName.GetPlainNameString());
 		ComponentOverrides.Add(SubobjectName, NULL, *this);
 		return *this;
 	}
@@ -831,6 +834,7 @@ public:
 	 */
 	FORCEINLINE FPostConstructInitializeProperties const& DoNotCreateDefaultSubobject(TCHAR const*SubobjectName) const
 	{
+		AssertIfSubobjectSetupIsNotAllowed(SubobjectName);
 		ComponentOverrides.Add(SubobjectName, NULL, *this);
 		return *this;
 	}
@@ -844,6 +848,11 @@ public:
 	 * Asserts with the specified message if code is executed inside UObject constructor
 	 **/
 	static void AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage);
+
+	FORCEINLINE void FinalizeSubobjectClassInitialization()
+	{
+		bSubobjectClassInitializationAllowed = false;
+	}
 
 private:
 
@@ -962,6 +971,8 @@ private:
 		TArray<FSubobjectInit, TInlineAllocator<8> > SubobjectInits;
 	};
 
+	/** Asserts if SetDefaultSubobjectClass or DoNotCreateOptionalDefaultSuobject are called inside of the constructor body */
+	void AssertIfSubobjectSetupIsNotAllowed(const TCHAR* SubobjectName) const;
 
 	/**  object to initialize, from static allocate object, after construction **/
 	UObject* Obj;
@@ -971,6 +982,8 @@ private:
 	bool bCopyTransientsFromClassDefaults;
 	/**  If true, intialize the properties **/
 	bool bShouldIntializePropsFromArchetype;
+	/**  Only true until PCIP has not reached the base UObject class */
+	bool bSubobjectClassInitializationAllowed;
 	/**  Instance graph **/
 	struct FObjectInstancingGraph* InstanceGraph;
 	/**  List of component classes to override from derived classes **/
@@ -1350,6 +1363,92 @@ public:
 	void AddReferencedObject(UObjectType*& Object, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
 	{
 		HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
+	}
+
+	/**
+	* Adds references to an array of objects.
+	*
+	* @param ObjectArray Referenced objects array.
+	* @param ReferencingObject Referencing object (if available).
+	* @param ReferencingProperty Referencing property (if available).
+	*/
+	template<class UObjectType>
+	void AddReferencedObjects(TArray<UObjectType>& ObjectArray, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
+	{
+		for (auto& Object : ObjectArray)
+		{
+			HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
+		}
+	}
+
+	/**
+	* Adds references to a set of objects.
+	*
+	* @param ObjectSet Referenced objects set.
+	* @param ReferencingObject Referencing object (if available).
+	* @param ReferencingProperty Referencing property (if available).
+	*/
+	template<class UObjectType>
+	void AddReferencedObjects(TSet<UObjectType>& ObjectSet, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
+	{
+		for (auto& Object : ObjectSet)
+		{
+			HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
+		}
+	}
+
+private:
+
+	/** Compile time check if a type can be automatically converted to another one */
+	template<class From, class To>
+	class CanConverFromTo
+	{
+		static uint8 Test(...);
+		static uint16 Test(To);
+	public:
+		enum Type
+		{
+			Result = sizeof(Test(From())) - 1
+		};
+	};
+
+	/**
+	* Functions used by AddReferencedObject (TMap version). Adds references to UObjects, ignores value types
+	*/
+	template<class UObjectType>
+	void AddReferencedObjectOrIgnoreValue(UObjectType& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty)
+	{
+	}
+	template<class UObjectType>
+	void AddReferencedObjectOrIgnoreValue(UObjectType*& Object, const UObject* ReferencingObject, const UObject* ReferencingProperty)
+	{
+		HandleObjectReference(*(UObject**)&Object, ReferencingObject, ReferencingProperty);
+	}
+
+public:
+
+	/**
+	* Adds references to a map of objects.
+	*
+	* @param ObjectArray Referenced objects map.
+	* @param ReferencingObject Referencing object (if available).
+	* @param ReferencingProperty Referencing property (if available).
+	*/
+	template <typename TKeyType, typename TValueType>
+	void AddReferencedObjects(TMap<TKeyType, TValueType>& Map, const UObject* ReferencingObject = NULL, const UObject* ReferencingProperty = NULL)
+	{
+		static_assert(CanConverFromTo<TKeyType, UObjectBase*>::Result || CanConverFromTo<TValueType, UObjectBase*>::Result, "At least one of TMap template types must be derived from UObject");
+		for (auto& It : Map)
+		{
+			if (CanConverFromTo<TKeyType, UObjectBase*>::Result)
+			{
+				AddReferencedObjectOrIgnoreValue(It.Key, ReferencingObject, ReferencingProperty);
+			}
+			if (CanConverFromTo<TValueType, UObjectBase*>::Result)
+			{
+				AddReferencedObjectOrIgnoreValue(It.Value, ReferencingObject, ReferencingProperty);
+			}
+		}
 	}
 
 	/**

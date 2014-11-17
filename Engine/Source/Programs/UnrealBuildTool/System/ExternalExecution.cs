@@ -23,7 +23,7 @@ namespace UnrealBuildTool
 	}
 
 	/** Information about a module that needs to be passed to UnrealHeaderTool for code generation */
-	public struct UHTModuleInfo
+	public class UHTModuleInfo
 	{
 		/** Module name */
 		public string ModuleName;
@@ -206,6 +206,7 @@ namespace UnrealBuildTool
 			return LatestWriteTime > DateTime.MinValue ? LatestWriteTime : DateTime.MaxValue;
 		}
 
+		private static bool bIsMac = File.Exists("/System/Library/CoreServices/SystemVersion.plist");
 
 		/** Returns the name of platform UBT is running on */
 		public static UnrealTargetPlatform GetRuntimePlatform()
@@ -215,17 +216,8 @@ namespace UnrealBuildTool
 			{
 			case PlatformID.Win32NT:
 				return UnrealTargetPlatform.Win64;
-            case PlatformID.Unix:
-                // Mono returns Unix when running on Mac OSX, so we need some kind of addtional
-                // check check to detect when we are running on Linux vs MacOSX.
-                // TODO(sbc): Find a better way to do this.  Shelling out to uname would seem
-                // to make the most sense but I'm not sure there is an elegant way to do that from
-                // C#.
-                if (File.Exists("/etc/lsb-release") || File.Exists("/etc/debian_version") || (Directory.Exists("/etc/portage") && Directory.Exists("/usr/portage")))
-                {
-                    return UnrealTargetPlatform.Linux;
-                }
-                return UnrealTargetPlatform.Mac;
+			case PlatformID.Unix:
+				return bIsMac ? UnrealTargetPlatform.Mac : UnrealTargetPlatform.Linux;
 			default:
 				throw new BuildException("Unhandled runtime platform " + Platform);
 			}
@@ -428,6 +420,7 @@ namespace UnrealBuildTool
 		public static int RunExternalExecutable(string ExePath, string Commandline)
 		{
 			var ExeInfo = new ProcessStartInfo(ExePath, Commandline);
+			Log.TraceVerbose( "RunExternalExecutable {0} {1}", ExePath, Commandline );
 			ExeInfo.UseShellExecute = false;
 			ExeInfo.RedirectStandardOutput = true;
 			using (var GameProcess = Process.Start(ExeInfo))
@@ -457,21 +450,43 @@ namespace UnrealBuildTool
 		 * Builds and runs the header tool and touches the header directories.
 		 * Performs any early outs if headers need no changes, given the UObject modules, tool path, game name, and configuration
 		 */
-		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName, ref ECompilationResult UHTResult )
+		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName, ref ECompilationResult UHTResult )
 		{
-			// We never want to try to execute the header tool when we're already trying to build it!
-			var bIsBuildingUHT = Target.GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase );
-			var BuildPlatform  = UEBuildPlatform.GetBuildPlatform(Target.Platform);
-			var CppPlatform    = BuildPlatform.GetCPPTargetPlatform(Target.Platform);
-			var ToolChain      = UEToolChain.GetPlatformToolChain(CppPlatform);
-			var RootLocalPath  = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
-			var Manifest       = new UHTManifest(Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
-
 			using (ProgressWriter Progress = new ProgressWriter("Generating headers...", false))
 			{
+				// We never want to try to execute the header tool when we're already trying to build it!
+				var bIsBuildingUHT = Target.GetTargetName().Equals( "UnrealHeaderTool", StringComparison.InvariantCultureIgnoreCase );
+
+				var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
+				var CppPlatform = BuildPlatform.GetCPPTargetPlatform(Target.Platform);
+				var ToolChain = UEToolChain.GetPlatformToolChain(CppPlatform);
+				var RootLocalPath  = Path.GetFullPath(ProjectFileGenerator.RootRelativePath);
+
+
 				// ensure the headers are up to date
-				if (!bIsBuildingUHT && 
-					(UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(Target, UObjectModules)))
+				bool bUHTNeedsToRun = (UEBuildConfiguration.bForceHeaderGeneration == true || AreGeneratedCodeFilesOutOfDate(Target, UObjectModules));
+				if( bUHTNeedsToRun )
+				{
+					// Since code files are definitely out of date, we'll now finish computing information about the UObject modules for UHT.  We
+					// want to save this work until we know that UHT actually needs to be run to speed up best-case iteration times.
+					foreach( var UHTModuleInfo in UObjectModules )
+					{
+						UHTModuleInfo.PCH = "";
+
+						// We need to figure out which PCH header this module is including, so that UHT can inject an include statement for it into any .cpp files it is synthesizing
+						var DependencyModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName( UHTModuleInfo.ModuleName );
+						var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
+						DependencyModuleCPP.ProcessAllCppDependencies(ModuleCompileEnvironment);
+						if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
+						{
+							UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
+						}
+					}
+				}
+
+				UHTManifest Manifest = new UHTManifest(Target, RootLocalPath, ToolChain.ConvertPath(RootLocalPath + '\\'), UObjectModules);
+
+				if( !bIsBuildingUHT && bUHTNeedsToRun )
 				{
 					// Always build UnrealHeaderTool if header regeneration is required, unless we're running within a Rocket ecosystem
 					if (UnrealBuildTool.RunningRocket() == false && UEBuildConfiguration.bDoNotBuildUHT == false)
@@ -498,7 +513,9 @@ namespace UnrealBuildTool
 						}
 
 						if ( RunExternalExecutable( UnrealBuildTool.GetUBTPath(), UBTArguments.ToString() ) != 0 )
+						{ 
 							return false;
+						}
 					}
 
 					Progress.Write(1, 3);

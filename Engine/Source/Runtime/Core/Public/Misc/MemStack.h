@@ -5,40 +5,85 @@
 =============================================================================*/
 
 #pragma once
+#include "LockFreeFixedSizeAllocator.h"
 
-/*-----------------------------------------------------------------------------
-	Globals.
------------------------------------------------------------------------------*/
 
 // Enums for specifying memory allocation type.
 enum EMemZeroed {MEM_Zeroed=1};
 enum EMemOned   {MEM_Oned  =1};
+
+class CORE_API FPageAllocator
+{
+public:
+	enum
+	{
+		PageSize = 64 * 1024
+	};
+	FORCEINLINE static void *Alloc()
+	{
+		void *Result = TheAllocator.Allocate();
+		STAT(UpdateStats());
+		return Result;
+	}
+	FORCEINLINE static void Free(void *Mem)
+	{
+		TheAllocator.Free(Mem);
+		STAT(UpdateStats());
+	}
+	static uint64 BytesUsed()
+	{
+		return uint64(TheAllocator.GetNumUsed().GetValue()) * PageSize;
+	}
+	static uint64 BytesFree()
+	{
+		return uint64(TheAllocator.GetNumFree().GetValue()) * PageSize;
+	}
+private:
+
+#if STATS
+	static void UpdateStats();
+#endif
+	static TLockFreeFixedSizeAllocator<PageSize, FThreadSafeCounter> TheAllocator;
+};
 
 /**
  * Simple linear-allocation memory stack.
  * Items are allocated via PushBytes() or the specialized operator new()s.
  * Items are freed en masse by using FMemMark to Pop() them.
  **/
-class CORE_API FMemStack : public TThreadSingleton<FMemStack>
+class CORE_API FMemStackBase
 {
 public:
 
-	/** Initialization constructor. */
-	FMemStack(int32 DefaultChunkSize = DEFAULT_CHUNK_SIZE);
-
-	/** Destructor. */
-	~FMemStack();
-
-	// Get bytes.
-	FORCEINLINE uint8* PushBytes( int32 AllocSize, int32 Alignment )
+	FMemStackBase(int32 InMinMarksToAlloc = 1)
+		: Top(nullptr)
+		, End(nullptr)
+		, TopChunk(nullptr)
+		, TopMark(nullptr)
+		, NumMarks(0)
+		, MinMarksToAlloc(InMinMarksToAlloc)
 	{
-		Alignment = FMath::Max(AllocSize >= 16 ? (int32)16 : (int32)8, Alignment);
+	}
 
+	~FMemStackBase()
+	{
+		check((GIsCriticalError || !NumMarks));
+		FreeChunks(nullptr);
+	}
+
+	FORCEINLINE uint8* PushBytes(int32 AllocSize, int32 Alignment)
+	{
+		return (uint8*)Alloc(AllocSize, FMath::Max(AllocSize >= 16 ? (int32)16 : (int32)8, Alignment));
+	}
+
+	FORCEINLINE void* Alloc(int32 AllocSize, int32 Alignment)
+	{
 		// Debug checks.
 		checkSlow(AllocSize>=0);
 		checkSlow((Alignment&(Alignment-1))==0);
 		checkSlow(Top<=End);
-		checkSlow(NumMarks > 0);
+		checkSlow(NumMarks >= MinMarksToAlloc);
+
 
 		// Try to get memory from the current chunk.
 		uint8* Result = Align( Top, Alignment );
@@ -60,26 +105,31 @@ public:
 		return Result;
 	}
 
-	/** Timer tick. Makes sure the memory stack is empty. */
-	void Tick() const;
+	/** return true if this stack is empty. */
+	FORCEINLINE bool IsEmpty() const
+	{
+		return TopChunk == nullptr;
+	}
 
+	FORCEINLINE void Flush()
+	{
+		check(!NumMarks && !MinMarksToAlloc);
+		FreeChunks(nullptr);
+	}
 	/** @return the number of bytes allocated for this FMemStack that are currently in use. */
 	int32 GetByteCount() const;
-
-	/** @return the number of bytes allocated for this FMemStack that are currently unused and available. */
-	int32 GetUnusedByteCount() const;
 
 	// Returns true if the pointer was allocated using this allocator
 	bool ContainsPointer(const void* Pointer) const;
 
 	// Friends.
 	friend class FMemMark;
-	friend void* operator new( size_t Size, FMemStack& Mem, int32 Count, int32 Align );
-	friend void* operator new( size_t Size, FMemStack& Mem, EMemZeroed Tag, int32 Count, int32 Align );
-	friend void* operator new( size_t Size, FMemStack& Mem, EMemOned Tag, int32 Count, int32 Align );
-	friend void* operator new[]( size_t Size, FMemStack& Mem, int32 Count, int32 Align );
-	friend void* operator new[]( size_t Size, FMemStack& Mem, EMemZeroed Tag, int32 Count, int32 Align );
-	friend void* operator new[]( size_t Size, FMemStack& Mem, EMemOned Tag, int32 Count, int32 Align );
+	friend void* operator new(size_t Size, FMemStackBase& Mem, int32 Count, int32 Align);
+	friend void* operator new(size_t Size, FMemStackBase& Mem, EMemZeroed Tag, int32 Count, int32 Align);
+	friend void* operator new(size_t Size, FMemStackBase& Mem, EMemOned Tag, int32 Count, int32 Align);
+	friend void* operator new[](size_t Size, FMemStackBase& Mem, int32 Count, int32 Align);
+	friend void* operator new[](size_t Size, FMemStackBase& Mem, EMemZeroed Tag, int32 Count, int32 Align);
+	friend void* operator new[](size_t Size, FMemStackBase& Mem, EMemOned Tag, int32 Count, int32 Align);
 
 	// Types.
 	struct FTaggedMemory
@@ -90,27 +140,6 @@ public:
 	};
 
 private:
-	// Constants.
-	enum 
-	{
-		MAX_CHUNKS=1024,
-		DEFAULT_CHUNK_SIZE=65536,
-	};
-
-	// Variables.
-	uint8*			Top;				// Top of current chunk (Top<=End).
-	uint8*			End;				// End of current chunk.
-	int32			DefaultChunkSize;	// Maximum chunk size to allocate.
-	FTaggedMemory*	TopChunk;			// Only chunks 0..ActiveChunks-1 are valid.
-
-	/** The top mark on the stack. */
-	class FMemMark*	TopMark;
-
-	/** The memory chunks that have been allocated but are currently unused. */
-	FTaggedMemory*	UnusedChunks;
-
-	/** The number of marks on this stack. */
-	int32 NumMarks;
 
 	/**
 	 * Allocate a new chunk of memory of at least MinSize size,
@@ -120,6 +149,24 @@ private:
 
 	/** Frees the chunks above the specified chunk on the stack. */
 	void FreeChunks( FTaggedMemory* NewTopChunk );
+
+	// Variables.
+	uint8*			Top;				// Top of current chunk (Top<=End).
+	uint8*			End;				// End of current chunk.
+	FTaggedMemory*	TopChunk;			// Only chunks 0..ActiveChunks-1 are valid.
+
+	/** The top mark on the stack. */
+	class FMemMark*	TopMark;
+
+	/** The number of marks on this stack. */
+	int32 NumMarks;
+
+	/** Used for a checkSlow. Most stacks require a mark to allocate. Command lists don't because they never mark, only flush*/
+	int32 MinMarksToAlloc;
+};
+
+class CORE_API FMemStack : public TThreadSingleton<FMemStack>, public FMemStackBase
+{
 };
 
 /*-----------------------------------------------------------------------------
@@ -127,17 +174,17 @@ private:
 -----------------------------------------------------------------------------*/
 
 // Operator new for typesafe memory stack allocation.
-template <class T> inline T* New( FMemStack& Mem, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+template <class T> inline T* New(FMemStackBase& Mem, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	return (T*)Mem.PushBytes( Count*sizeof(T), Align );
 }
-template <class T> inline T* NewZeroed( FMemStack& Mem, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+template <class T> inline T* NewZeroed(FMemStackBase& Mem, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	uint8* Result = Mem.PushBytes( Count*sizeof(T), Align );
 	FMemory::Memzero( Result, Count*sizeof(T) );
 	return (T*)Result;
 }
-template <class T> inline T* NewOned( FMemStack& Mem, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+template <class T> inline T* NewOned(FMemStackBase& Mem, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	uint8* Result = Mem.PushBytes( Count*sizeof(T), Align );
 	FMemory::Memset( Result, 0xff, Count*sizeof(T) );
@@ -149,38 +196,38 @@ template <class T> inline T* NewOned( FMemStack& Mem, int32 Count=1, int32 Align
 -----------------------------------------------------------------------------*/
 
 // Operator new for typesafe memory stack allocation.
-inline void* operator new( size_t Size, FMemStack& Mem, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+inline void* operator new(size_t Size, FMemStackBase& Mem, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	// Get uninitialized memory.
 	return Mem.PushBytes( Size*Count, Align );
 }
-inline void* operator new( size_t Size, FMemStack& Mem, EMemZeroed Tag, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+inline void* operator new(size_t Size, FMemStackBase& Mem, EMemZeroed Tag, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	// Get zero-filled memory.
 	uint8* Result = Mem.PushBytes( Size*Count, Align );
 	FMemory::Memzero( Result, Size*Count );
 	return Result;
 }
-inline void* operator new( size_t Size, FMemStack& Mem, EMemOned Tag, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+inline void* operator new(size_t Size, FMemStackBase& Mem, EMemOned Tag, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	// Get one-filled memory.
 	uint8* Result = Mem.PushBytes( Size*Count, Align );
 	FMemory::Memset( Result, 0xff, Size*Count );
 	return Result;
 }
-inline void* operator new[]( size_t Size, FMemStack& Mem, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+inline void* operator new[](size_t Size, FMemStackBase& Mem, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	// Get uninitialized memory.
 	return Mem.PushBytes( Size*Count, Align );
 }
-inline void* operator new[]( size_t Size, FMemStack& Mem, EMemZeroed Tag, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+inline void* operator new[](size_t Size, FMemStackBase& Mem, EMemZeroed Tag, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	// Get zero-filled memory.
 	uint8* Result = Mem.PushBytes( Size*Count, Align );
 	FMemory::Memzero( Result, Size*Count );
 	return Result;
 }
-inline void* operator new[]( size_t Size, FMemStack& Mem, EMemOned Tag, int32 Count=1, int32 Align=DEFAULT_ALIGNMENT )
+inline void* operator new[](size_t Size, FMemStackBase& Mem, EMemOned Tag, int32 Count = 1, int32 Align = DEFAULT_ALIGNMENT)
 {
 	// Get one-filled memory.
 	uint8* Result = Mem.PushBytes( Size*Count, Align );
@@ -204,7 +251,7 @@ public:
 
 		/** Default constructor. */
 		ForElementType():
-			Data(NULL)
+			Data(nullptr)
 		{}
 
 		// FContainerAllocatorInterface
@@ -260,7 +307,7 @@ class FMemMark
 {
 public:
 	// Constructors.
-	FMemMark( FMemStack& InMem )
+	FMemMark(FMemStackBase& InMem)
 	:	Mem(InMem)
 	,	Top(InMem.Top)
 	,	SavedChunk(InMem.TopChunk)
@@ -301,15 +348,15 @@ public:
 			Mem.TopMark = NextTopmostMark;
 
 			// Ensure that the mark is only popped once by clearing the top pointer.
-			Top = NULL;
+			Top = nullptr;
 		}
 	}
 
 private:
 	// Implementation variables.
-	FMemStack& Mem;
+	FMemStackBase& Mem;
 	uint8* Top;
-	FMemStack::FTaggedMemory* SavedChunk;
+	FMemStackBase::FTaggedMemory* SavedChunk;
 	bool bPopped;
 	FMemMark* NextTopmostMark;
 };

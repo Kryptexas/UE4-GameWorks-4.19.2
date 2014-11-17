@@ -34,4 +34,9 @@ public:
 	
 	FAbilityTargetData	TargetDataReadyDelegate;
 	FAbilityTargetData	CanceledDelegate;
+
+	virtual bool IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation);
+
+	UPROPERTY(BlueprintReadOnly, Category = Ability)
+	TWeakObjectPtr<APlayerController> MasterPC;
 };

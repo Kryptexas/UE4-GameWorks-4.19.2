@@ -5,7 +5,7 @@
 
 /* Deals with auto reimporting of objects when the objects file on disk is modified*/
 UCLASS(config=Editor, transient)
-class UAutoReimportManager : public UObject, public FTickableEditorObject
+class UNREALED_API UAutoReimportManager : public UObject, public FTickableEditorObject
 {
 	GENERATED_UCLASS_BODY()
 

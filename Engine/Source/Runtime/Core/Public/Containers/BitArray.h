@@ -345,7 +345,7 @@ public:
 			// Copy bits from the end to the region we are removing
 			for( int32 Index=0;Index<NumBitsToRemove;Index++ )
 			{
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_LINUX
 				// Clang compiler doesn't understand the short syntax, so let's be explicit
 				int32 FromIndex = NumBits - NumBitsToRemove + Index;
 				FConstBitReference From(GetData()[FromIndex / NumBitsPerDWORD],1 << (FromIndex & (NumBitsPerDWORD - 1)));

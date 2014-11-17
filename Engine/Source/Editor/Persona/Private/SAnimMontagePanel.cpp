@@ -68,7 +68,7 @@ public:
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	virtual FVector2D GetDragDropScreenSpacePosition(const FGeometry& ParentAllottedGeometry, const FDragDropEvent& DragDropEvent) const override;
 
@@ -184,7 +184,7 @@ void SMontageBranchingPointNode::OnSnapNodeDataPosition(float OriginalX, float S
 	BranchingPoint->TriggerTimeOffset = GetTriggerTimeOffsetForType(Offset);
 }
 
-int32 SMontageBranchingPointNode::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SMontageBranchingPointNode::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	int32 TextLayerID = LayerId+1;
 
@@ -387,7 +387,11 @@ void SAnimMontagePanel::Update()
 		// Anim Segment Tracks
 		// ===================================
 		{
-			for (int32 SlotAnimIdx=0; SlotAnimIdx < Montage->SlotAnimTracks.Num(); SlotAnimIdx++)
+			int32 NumAnimTracks = Montage->SlotAnimTracks.Num();
+			SlotNameTextBoxes.Empty(NumAnimTracks);
+			SlotNameTextBoxes.AddZeroed(NumAnimTracks);
+
+			for (int32 SlotAnimIdx = 0; SlotAnimIdx < NumAnimTracks; SlotAnimIdx++)
 			{
 				TSharedRef<S2ColumnWidget> SectionTrack = Create2ColumnWidget(MontageSlots.ToSharedRef());
 
@@ -402,15 +406,16 @@ void SAnimMontagePanel::Update()
 					.AutoWidth()
 					.Padding( FMargin(5.0f, 0.5f) )
 					[
-						SNew(SEditableTextBox)
+						SAssignNew(SlotNameTextBoxes[SlotAnimIdx], SEditableTextBox)
 						.Style( FEditorStyle::Get(), "SpecialEditableTextBox" )
 						.HintText( LOCTEXT("SlotName", "Slot Name") )
-						.Text( Editor, &SMontageEditor::GetMontageSlotName, SlotAnimIdx )
+						.Text(this, &SAnimMontagePanel::GetMontageSlotName, SlotAnimIdx)
 						.Font( FEditorStyle::GetFontStyle("Editor.SearchBoxFont") )
 						.SelectAllTextWhenFocused( true )
 						.RevertTextOnEscape( true )
 						.ClearKeyboardFocusOnCommit( false )
 						.OnTextCommitted( this, &SAnimMontagePanel::OnSlotNodeNameChangeCommit, SlotAnimIdx )
+						.OnTextChanged(this, &SAnimMontagePanel::OnSlotNameChanged, SlotAnimIdx)
 					]
 				];
 
@@ -718,9 +723,51 @@ void SAnimMontagePanel::ClearSelected()
 	MontageEditor.Pin()->ClearDetailsView();
 }
 
-void SAnimMontagePanel::OnSlotNodeNameChangeCommit( const FText& NewText, ETextCommit::Type CommitInfo, int32 SlodeNodeIndex )
+void SAnimMontagePanel::OnSlotNodeNameChangeCommit(const FText& NewText, ETextCommit::Type CommitInfo, int32 SlotNodeIndex)
 {
-	MontageEditor.Pin()->RenameSlotNode(SlodeNodeIndex, NewText.ToString());
+	MontageEditor.Pin()->RenameSlotNode(SlotNodeIndex, NewText.ToString());
+}
+
+void SAnimMontagePanel::CheckSlotName(const FText& SlotName, int32 SlotNodeIndex, bool bShouldCheckCollapsed) const
+{
+	if (!SlotNameTextBoxes.IsValidIndex(SlotNodeIndex))
+	{
+		return;
+	}
+
+	bool bCanSetError = true;
+	if (bShouldCheckCollapsed)
+	{
+		// Check whether the text box is collapsed or not. If collapsed, hide the error message
+		FWidgetPath WidgetPath;
+		FSlateApplication::Get().FindPathToWidget(SlotNameTextBoxes[SlotNodeIndex].ToSharedRef(), WidgetPath);
+
+		bCanSetError = WidgetPath.IsValid();
+	}
+
+	if (bCanSetError && SlotName.IsEmpty())
+	{
+		FText Error = LOCTEXT("Error_SlotNameIsEmpty", "Please provide a slot name for this asset.");
+		SlotNameTextBoxes[SlotNodeIndex]->SetError(Error);
+	}
+	else
+	{
+		SlotNameTextBoxes[SlotNodeIndex]->SetError(FText::GetEmpty());
+	}
+}
+
+FText SAnimMontagePanel::GetMontageSlotName(int32 SlotIndex) const
+{
+	FText SlotName = MontageEditor.Pin()->GetMontageSlotName(SlotIndex);
+
+	CheckSlotName(SlotName, SlotIndex, true);
+
+	return SlotName;
+}
+
+void SAnimMontagePanel::OnSlotNameChanged(const FText& NewText, int32 SlotNodeIndex)
+{
+	CheckSlotName(NewText, SlotNodeIndex);
 }
 
 #undef LOCTEXT_NAMESPACE

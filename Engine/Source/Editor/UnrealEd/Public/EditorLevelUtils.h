@@ -24,6 +24,17 @@ namespace EditorLevelUtils
 	 */
 	void MovesActorsToLevel( TArray< AActor* >& ActorsToMove, ULevelStreaming* DestLevelStreaming, int32& OutNumMovedActors );
 
+	/**
+	 * Adds the named level packages to the world.  Does nothing if all the levels already exist in the world.
+	 *
+	 * @param	InWorld				World in which to add the level
+	 * @param	LevelPackageName	The base filename of the level package to add.
+	 * @param	LevelStreamingClass	The streaming class type instead to use for the level.
+	 *
+	 * @return								The new level, or NULL if the level couldn't added.
+	 */
+	UNREALED_API ULevel* AddLevelsToWorld(UWorld* InWorld, const TArray<FString>& LevelPackageNames, UClass* LevelStreamingClass);
+
 
 	/**
 	 * Adds the named level package to the world.  Does nothing if the level already exists in the world.

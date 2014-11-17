@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "WinRTInputInterface.h"
 
 #include "AllowWinRTPlatformTypes.h"
@@ -141,6 +141,8 @@ void FWinRTInputInterface::ConditionalScanForKeyboardChanges( float DeltaTime )
 		(WinRTKeyState[VK_RSHIFT] == true) ? true : false,
 		(WinRTKeyState[VK_LCONTROL] == true) ? true : false,
 		(WinRTKeyState[VK_RCONTROL] == true) ? true : false,
+		false,
+		false,
 		false,
 		false
 		);

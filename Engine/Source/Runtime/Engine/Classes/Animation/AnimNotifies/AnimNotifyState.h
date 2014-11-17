@@ -4,6 +4,9 @@
 #pragma once
 #include "AnimNotifyState.generated.h"
 
+class USkeletalMeshComponent;
+class UAnimSequence;
+class UAnimSequenceBase;
 struct FAnimNotifyEvent;
 
 UCLASS(abstract, editinlinenew, Blueprintable, const, hidecategories=Object, collapsecategories, meta=(ShowHiddenSelfPins))
@@ -11,14 +14,20 @@ class ENGINE_API UAnimNotifyState : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UFUNCTION(BlueprintImplementableEvent)
-	virtual bool Received_NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq) const;
-	
-	UFUNCTION(BlueprintImplementableEvent)
-	virtual bool Received_NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime) const;
+	/** 
+	 * Implementable event to get a custom name for the notify
+	 */
+	UFUNCTION(BlueprintNativeEvent)
+	FString GetNotifyName() const;
 
 	UFUNCTION(BlueprintImplementableEvent)
-	virtual bool Received_NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq) const;
+	virtual bool Received_NotifyBegin(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation) const;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	virtual bool Received_NotifyTick(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation, float FrameDeltaTime) const;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	virtual bool Received_NotifyEnd(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation) const;
 
 #if WITH_EDITORONLY_DATA
 	/** Color of Notify in editor */
@@ -27,9 +36,9 @@ class ENGINE_API UAnimNotifyState : public UObject
 
 #endif // WITH_EDITORONLY_DATA
 
-	virtual void NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq);
-	virtual void NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime);
-	virtual void NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq);
+	virtual void NotifyBegin(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation);
+	virtual void NotifyTick(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation, float FrameDeltaTime);
+	virtual void NotifyEnd(USkeletalMeshComponent * MeshComp, UAnimSequenceBase * Animation);
 
 	// @todo document 
 	virtual FString GetEditorComment() 
@@ -53,7 +62,7 @@ class ENGINE_API UAnimNotifyState : public UObject
 	 *	@param	AnimSeq			The animation sequence this notify is associated with.
 	 *	@param	OwnerEvent		The event that 'owns' this AnimNotify.
 	 */
-	virtual void AnimNotifyEventChanged(class USkeletalMeshComponent* MeshComp, class UAnimSequence* AnimSeq, FAnimNotifyEvent * OwnerEvent) {}
+	virtual void AnimNotifyEventChanged(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, FAnimNotifyEvent * OwnerEvent) {}
 };
 
 

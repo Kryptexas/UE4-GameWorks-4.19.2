@@ -6,7 +6,7 @@
 
 
 FToolBarButtonBlock::FToolBarButtonBlock( const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, const TAttribute<FText>& InLabelOverride, const TAttribute<FText>& InToolTipOverride, const TAttribute<FSlateIcon>& InIconOverride )
-	: FMultiBlock( InCommand, InCommandList )
+	: FMultiBlock( InCommand, InCommandList, NAME_None, EMultiBlockType::ToolBarButton )
 	, LabelOverride( InLabelOverride )
 	, ToolTipOverride( InToolTipOverride )
 	, IconOverride( InIconOverride )

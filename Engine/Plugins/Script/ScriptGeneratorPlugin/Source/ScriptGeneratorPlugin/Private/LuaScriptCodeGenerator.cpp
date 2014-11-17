@@ -3,15 +3,17 @@
 #include "LuaScriptCodeGenerator.h"
 
 // Supported structs
+static FName Name_Vector2D("Vector2D");
 static FName Name_Vector("Vector");
 static FName Name_Vector4("Vector4");
 static FName Name_Quat("Quat");
 static FName Name_Transform("Transform");
+static FName Name_LinearColor("LinearColor");
+static FName Name_Color("Color");
 
 FLuaScriptCodeGenerator::FLuaScriptCodeGenerator(const FString& RootLocalPath, const FString& RootBuildPath, const FString& OutputDirectory, const FString& InIncludeBase)
 : FScriptCodeGeneratorBase(RootLocalPath, RootBuildPath, OutputDirectory, InIncludeBase)
 {
-
 }
 
 FString FLuaScriptCodeGenerator::GenerateWrapperFunctionDeclaration(const FString& ClassNameCPP, UClass* Class, UFunction* Function)
@@ -55,7 +57,11 @@ FString FLuaScriptCodeGenerator::InitializeFunctionDispatchParam(UFunction* Func
 		else if (Param->IsA(UStructProperty::StaticClass()))
 		{
 			UStructProperty* StructProp = CastChecked<UStructProperty>(Param);
-			if (StructProp->Struct->GetFName() == Name_Vector)
+			if (StructProp->Struct->GetFName() == Name_Vector2D)
+			{
+				Initializer = TEXT("(FLuaVector2D::Get");
+			}
+			else if (StructProp->Struct->GetFName() == Name_Vector)
 			{
 				Initializer = TEXT("(FLuaVector::Get");
 			}
@@ -66,6 +72,14 @@ FString FLuaScriptCodeGenerator::InitializeFunctionDispatchParam(UFunction* Func
 			else if (StructProp->Struct->GetFName() == Name_Quat)
 			{
 				Initializer = TEXT("(FLuaQuat::Get");
+			}
+			else if (StructProp->Struct->GetFName() == Name_LinearColor)
+			{
+				Initializer = TEXT("(FLuaLinearColor::Get");
+			}
+			else if (StructProp->Struct->GetFName() == Name_Color)
+			{
+				Initializer = TEXT("FColor(FLuaLinearColor::Get");
 			}
 			else if (StructProp->Struct->GetFName() == Name_Transform)
 			{
@@ -130,7 +144,11 @@ FString FLuaScriptCodeGenerator::GenerateReturnValueHandler(const FString& Class
 		else if (ReturnValue->IsA(UStructProperty::StaticClass()))
 		{
 			UStructProperty* StructProp = CastChecked<UStructProperty>(ReturnValue);
-			if (StructProp->Struct->GetFName() == Name_Vector)
+			if (StructProp->Struct->GetFName() == Name_Vector2D)
+			{
+				Initializer = FString::Printf(TEXT("FLuaVector2D::Return(InScriptContext, %s);"), *ReturnValueName);
+			}
+			else if (StructProp->Struct->GetFName() == Name_Vector)
 			{
 				Initializer = FString::Printf(TEXT("FLuaVector::Return(InScriptContext, %s);"), *ReturnValueName);
 			}
@@ -141,6 +159,14 @@ FString FLuaScriptCodeGenerator::GenerateReturnValueHandler(const FString& Class
 			else if (StructProp->Struct->GetFName() == Name_Quat)
 			{
 				Initializer = FString::Printf(TEXT("FLuaQuat::Return(InScriptContext, %s);"), *ReturnValueName);
+			}
+			else if (StructProp->Struct->GetFName() == Name_LinearColor)
+			{
+				Initializer = FString::Printf(TEXT("FLuaLinearColor::Return(InScriptContext, %s);"), *ReturnValueName);
+			}
+			else if (StructProp->Struct->GetFName() == Name_Color)
+			{
+				Initializer = FString::Printf(TEXT("FLuaLinearColor::Return(InScriptContext, FLinearColor(%s));"), *ReturnValueName);
 			}
 			else if (StructProp->Struct->GetFName() == Name_Transform)
 			{
@@ -278,9 +304,12 @@ bool FLuaScriptCodeGenerator::IsPropertyTypeSupported(UProperty* Property) const
 	if (Property->IsA(UStructProperty::StaticClass()))
 	{
 		UStructProperty* StructProp = CastChecked<UStructProperty>(Property);
-		if (StructProp->Struct->GetFName() != Name_Vector &&
+		if (StructProp->Struct->GetFName() != Name_Vector2D &&
+			StructProp->Struct->GetFName() != Name_Vector &&
 			StructProp->Struct->GetFName() != Name_Vector4 &&
 			StructProp->Struct->GetFName() != Name_Quat &&
+			StructProp->Struct->GetFName() != Name_LinearColor &&
+			StructProp->Struct->GetFName() != Name_Color &&
 			StructProp->Struct->GetFName() != Name_Transform)
 		{
 			bSupported = false;

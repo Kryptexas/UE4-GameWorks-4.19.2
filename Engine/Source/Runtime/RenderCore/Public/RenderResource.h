@@ -22,7 +22,14 @@ public:
 
 	/** Default constructor. */
 	FRenderResource()
-	: bInitialized(false)
+		: FeatureLevel(ERHIFeatureLevel::Num)
+		, bInitialized(false)
+	{}
+
+	/** Constructor when we know what feature level this resource should support */
+	FRenderResource(ERHIFeatureLevel::Type InFeatureLevel)
+		: FeatureLevel(InFeatureLevel)
+		, bInitialized(false)
 	{}
 
 	/** Destructor used to catch unreleased resources. */
@@ -76,13 +83,23 @@ public:
 	 */
 	void UpdateRHI();
 
+	// Probably temporary code that sends a task back to renderthread_local and blocks waiting for it to call InitResource
+	void InitResourceFromPossiblyParallelRendering();
+
 	/** @return The resource's friendly name.  Typically a UObject name. */
 	virtual FString GetFriendlyName() const { return TEXT("undefined"); }
 
 	// Accessors.
 	FORCEINLINE bool IsInitialized() const { return bInitialized; }
 
+protected:
+	// This is used during mobile editor preview refactor, this will eventually be replaced with a parameter to InitRHI() etc..
+	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel == ERHIFeatureLevel::Num ? GMaxRHIFeatureLevel : FeatureLevel; }
+	FORCEINLINE bool HasValidFeatureLevel() const { return FeatureLevel < ERHIFeatureLevel::Num; }
+
 private:
+
+	ERHIFeatureLevel::Type FeatureLevel;
 
 	/** This resource's link in the global resource list. */
 	TLinkedList<FRenderResource*> ResourceLink;
@@ -274,6 +291,7 @@ struct FMipBiasFade
 class FTexture : public FRenderResource
 {
 public:
+
 	/** The texture's RHI resource. */
 	FTextureRHIRef		TextureRHI;
 

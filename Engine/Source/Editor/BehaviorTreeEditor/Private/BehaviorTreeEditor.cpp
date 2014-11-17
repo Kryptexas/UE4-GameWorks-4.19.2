@@ -1943,6 +1943,8 @@ void FBehaviorTreeEditor::FocusWindow(UObject* ObjectToFocusOn)
 	{
 		SetCurrentMode(BlackboardMode);
 	}
+
+	FWorkflowCentricApplication::FocusWindow(ObjectToFocusOn);
 }
 
 void FBehaviorTreeEditor::InitializeDebuggerState(class FBehaviorTreeDebugger* ParentDebugger) const

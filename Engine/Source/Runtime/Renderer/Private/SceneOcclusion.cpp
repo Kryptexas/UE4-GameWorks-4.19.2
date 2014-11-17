@@ -274,32 +274,6 @@ SIZE_T FSceneViewState::GetSizeBytes() const
 		+ PrimitiveOcclusionHistorySet.GetAllocatedSize();
 }
 
-void FSceneViewState::ApplyWorldOffset(FVector InOffset)
-{
-	// shift PrevView matrices
-	PrevViewMatrices.ViewMatrix.SetOrigin(
-		PrevViewMatrices.ViewMatrix.GetOrigin() - 
-		PrevViewMatrices.ViewMatrix.TransformVector(InOffset)
-		);
-	PrevViewMatrices.PreViewTranslation-= InOffset;
-	PrevViewMatrices.ViewOrigin+= InOffset;
-
-	// shift PendingPrevView matrices
-	PendingPrevViewMatrices.ViewMatrix.SetOrigin(
-		PendingPrevViewMatrices.ViewMatrix.GetOrigin() - 
-		PendingPrevViewMatrices.ViewMatrix.TransformVector(InOffset)
-		);
-	PendingPrevViewMatrices.PreViewTranslation-= InOffset;
-	PendingPrevViewMatrices.ViewOrigin+= InOffset;
-	
-	// shift PrevViewOclussionQuery matrix
-	PrevViewMatrixForOcclusionQuery.SetOrigin(
-		PrevViewMatrixForOcclusionQuery.GetOrigin() - 
-		PrevViewMatrixForOcclusionQuery.TransformVector(InOffset)
-		);
-	PrevViewOriginForOcclusionQuery+= InOffset;
-}
-
 class FOcclusionQueryIndexBuffer : public FIndexBuffer
 {
 public:
@@ -519,7 +493,7 @@ void FHZBOcclusionTester::SetInvalidFrameNumber()
 
 void FHZBOcclusionTester::InitDynamicRHI()
 {
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (GetFeatureLevel() >= ERHIFeatureLevel::SM3)
 	{
 #if PLATFORM_MAC // Workaround radr://16096028 Texture Readback via glReadPixels + PBOs stalls on Nvidia GPUs
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
@@ -532,7 +506,7 @@ void FHZBOcclusionTester::InitDynamicRHI()
 
 void FHZBOcclusionTester::ReleaseDynamicRHI()
 {
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+	if (GetFeatureLevel() >= ERHIFeatureLevel::SM3)
 	{
 		GRenderTargetPool.FreeUnusedResource( ResultsTextureCPU );
 	}

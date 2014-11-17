@@ -44,7 +44,7 @@ public:
 		// Determine if we should force PAK for the current configuration+platform+cook mode
 		if (ChainState.Profile->GetCookMode() == ELauncherProfileCookModes::ByTheBook)
 		{
-			if (ChainState.Profile->IsPackingWithUnrealPak() || (TargetPlatform.PlatformName() == TEXT("PS4")) || TargetPlatform.PlatformName().StartsWith(TEXT("Android")))
+			if (ChainState.Profile->IsPackingWithUnrealPak() || (TargetPlatform.PlatformName() == TEXT("LinuxServer")) || (TargetPlatform.PlatformName() == TEXT("PS4")) || TargetPlatform.PlatformName().StartsWith(TEXT("Android")))
 			{
 				CommandLine += TEXT(" -pak");
 			}
@@ -115,7 +115,7 @@ public:
 		}
 
 		FString Platform = TEXT("Win64");
-		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor"))
+		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor") || TargetPlatform.PlatformName() == TEXT("Linux"))
 		{
 			Platform = TEXT("Linux");
 		}
@@ -295,7 +295,7 @@ public:
 		}
 
 		FString Platform = TEXT("Win64");
-		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor"))
+		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor") || TargetPlatform.PlatformName() == TEXT("Linux"))
 		{
 			Platform = TEXT("Linux");
 		}

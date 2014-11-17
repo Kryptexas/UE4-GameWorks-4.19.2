@@ -53,9 +53,6 @@ private:
 	/** Summons a new content browser */
 	void SummonNewBrowser(bool bAllowLockedBrowsers = false);
 
-	/** Handler for when a property changes on any object */
-	void OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent);
-
 	/** Handler for a request to spawn a new content browser tab */
 	TSharedRef<SDockTab> SpawnContentBrowserTab( const FSpawnTabArgs& SpawnTabArgs, int32 BrowserIdx );
 

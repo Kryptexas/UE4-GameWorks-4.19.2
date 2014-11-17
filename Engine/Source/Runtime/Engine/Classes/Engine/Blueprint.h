@@ -299,6 +299,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=BlueprintOption)
 	FString BlueprintCategory;
 
+	/** Additional HideCategories. The are added to HideCategories from parent. */
+	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	TArray<FString> HideCategories;
+
 	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
 	UPROPERTY(transient)
 	bool bDisplayCompilePIEWarning;
@@ -307,6 +311,9 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY()
 	FGuid  SearchGuid;
 
+	/** Deprecates the Blueprint, marking the generated class with the CLASS_Deprecated flag */
+	UPROPERTY(EditAnywhere, Category=BlueprintOption)
+	bool bDeprecate;
 #endif //WITH_EDITORONLY_DATA
 
 	/** 'Simple' construction script - graph of components to instance */
@@ -468,6 +475,8 @@ public:
 
 	virtual void SetWorldBeingDebugged(UWorld* NewWorld);
 
+	virtual void GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const;
+
 protected:
 	/** Gets asset registry tags */
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
@@ -483,6 +492,8 @@ public:
 
 	virtual class UWorld* GetWorldBeingDebugged();
 
+	/** Renames only the generated classes. Should only be used internally or when testing for rename. */
+	virtual bool RenameGeneratedClasses(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None);
 
 	// Begin UObject interface (WITH_EDITOR)
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -497,6 +508,9 @@ public:
 
 	/** @return the user-friendly name of the blueprint */
 	virtual FString GetFriendlyName() const;
+
+	/** @return true if the blueprint supports event binding for multicast delegates */
+	virtual bool AllowsDynamicBinding() const;
 
 	bool ChangeOwnerOfTemplates();
 

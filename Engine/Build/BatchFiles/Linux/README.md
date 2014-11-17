@@ -6,7 +6,7 @@ So far this has only been tested on Debian/Sid and Ubuntu/Precise.
 
 A wiki page page regarding building on linux is also maintained at
 https://wiki.unrealengine.com/Building_On_Linux, and public IRC discussion
-happens on #UE4Linux on freenode.
+happens on #UE4Linux on FreeNode.
 
 Prerequisites
 -------------
@@ -23,9 +23,10 @@ EU4. The command to install these on Ubundu 12.04 (Precise) is:
 Building
 --------
 
-1. Download the additional .zip archive from the github releases page.
+1. Download the additional .zip archives for the master branch from Epic's GitHub
+   Releases page at https://github.com/EpicGames/UnrealEngine/releases
 
-2. Download v129 of the Steamworks SDK.
+2. Download v129a of the Steamworks SDK.
 
 3. Install the downloaded dependencies with:
 

@@ -218,12 +218,16 @@ FText UField::GetDisplayNameText() const
 FText UField::GetToolTipText() const
 {
 	FText LocalizedToolTip;
-	const FString NativeToolTip = GetMetaData( TEXT("Tooltip") );
+	FString NativeToolTip = GetMetaData( TEXT("Tooltip") );
 
 	static const FString Namespace = TEXT("UObjectToolTips");
 	const FString Key = GetFullGroupName(true) + TEXT(".") + GetName();
 	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip )) || *FTextInspector::GetSourceString(LocalizedToolTip) != NativeToolTip)
 	{
+		if (NativeToolTip.IsEmpty())
+		{
+			NativeToolTip = GetName();
+		}
 		LocalizedToolTip = FText::FromString(NativeToolTip);
 	}
 
@@ -718,13 +722,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			}
 			PropertyName = Tag.Name;
 
-			static FName DEBUG_Name(TEXT("NewVar"));
-			if (Tag.Name == DEBUG_Name)
-			{
-				static volatile int32 xx = 0;
-				xx++;
-			}
-
 			// Move to the next property to be serialized
 			if( AdvanceProperty && --RemainingArrayDim <= 0 )
 			{
@@ -813,7 +810,12 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 
 				RemainingArrayDim = Property ? Property->ArrayDim : 0;
 			}
-
+#if WITH_EDITOR
+			if (!Property)
+			{
+				Property = CustomFindProperty(Tag.Name);
+			}
+#endif // WITH_EDITOR
 			// Check if this is a struct property and we have a redirector
 			if (Tag.Type==NAME_StructProperty && Property != NULL && Tag.Type == Property->GetID())
 			{
@@ -1033,8 +1035,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				}
 				else
 				{
-					UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
-				}
+				UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
+			}
 			}
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
 				&& CastChecked<UStructProperty>(Property)->UseBinaryOrNativeSerialization(Ar) )
@@ -1090,14 +1092,14 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			}
 			else
 			{
-				uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
+					uint8* DestAddress = Property->ContainerPtrToValuePtr<uint8>(Data, Tag.ArrayIndex);  
 
-				// This property is ok.			
-				Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
+					// This property is ok.			
+					Tag.SerializeTaggedProperty( Ar, Property, DestAddress, Tag.Size, NULL );
 
-				AdvanceProperty = true;
-				continue;
-			}
+					AdvanceProperty = true;
+					continue;
+				}
 
 			AdvanceProperty = false;
 
@@ -1246,16 +1248,8 @@ void UStruct::Serialize( FArchive& Ar )
 
 				bool bSkipByteCodeSerialization = false;
 #if WITH_EDITOR
-				struct FSkipByteCodeSerializationHelper
-				{
-					bool bValue;
-					FSkipByteCodeSerializationHelper() : bValue(false)
-					{
-						GConfig->GetBool(TEXT("StructSerialization"), TEXT("SkipByteCodeSerialization"), bValue, GEditorIni);
-					}
-				};
-				static FSkipByteCodeSerializationHelper SkipByteCodeHelper;
-				bSkipByteCodeSerialization = SkipByteCodeHelper.bValue;
+				static const FBoolConfigValueHelper SkipByteCodeHelper(TEXT("StructSerialization"), TEXT("SkipByteCodeSerialization"));
+				bSkipByteCodeSerialization = SkipByteCodeHelper;
 #endif // WITH_EDITOR
 				if (bSkipByteCodeSerialization || (Ar.UE4Ver() < VER_MIN_SCRIPTVM_UE4) || (Ar.LicenseeUE4Ver() < VER_MIN_SCRIPTVM_LICENSEEUE4))
 				{
@@ -3349,11 +3343,6 @@ bool UClass::HotReloadPrivateStaticClass(
 }
 #endif
 
-/**
-* Add a native function to the internal native function table
-* @param	InName							name of the function
-* @param	InPointer						pointer to the function
-**/
 void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 {
 	FName InFName(InName);
@@ -3434,77 +3423,6 @@ const FString UClass::GetConfigName() const
 }
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR
-void UClass::GetHideCategories(TArray<FString>& OutHideCategories) const
-{
-	static const FName NAME_HideCategories(TEXT("HideCategories"));
-	if (HasMetaData(NAME_HideCategories))
-	{
-		const FString& HideCategories = GetMetaData(NAME_HideCategories);
-		HideCategories.ParseIntoArray(&OutHideCategories, TEXT(" "), true);
-	}
-}
-
-void UClass::GetShowCategories(TArray<FString>& OutShowCategories) const
-{
-	static const FName NAME_ShowCategories(TEXT("ShowCategories"));
-	if (HasMetaData(NAME_ShowCategories))
-	{
-		const FString& ShowCategories = GetMetaData(NAME_ShowCategories);
-		ShowCategories.ParseIntoArray(&OutShowCategories, TEXT(" "), true);
-	}
-}
-
-bool UClass::IsCategoryHidden(const FString& InCategory) const
-{
-	bool bHidden = false;
-	static FName const NAME_HideCategories(TEXT("HideCategories"));
-	static FName const NAME_ShowCategories(TEXT("ShowCategories"));
-	if (HasMetaData(NAME_HideCategories))
-	{
-		FString ShowCategories;
-		if (HasMetaData(NAME_ShowCategories))
-		{
-			ShowCategories = GetMetaData(NAME_ShowCategories);
-		}
-
-		FString const& HideCategories = GetMetaData(NAME_HideCategories);
-		bHidden = !!FCString::StrfindDelim(*HideCategories, *InCategory, TEXT(" "));
-		if (!bHidden)
-		{
-			TArray<FString> SubCategoryList;
-			InCategory.ParseIntoArray(&SubCategoryList, TEXT("|"), true);
-
-			FString SubCategoryPath;
-			for (int32 SubCatIndex = 0; SubCatIndex < SubCategoryList.Num(); ++SubCatIndex)
-			{
-				FString SubCategory = SubCategoryList[SubCatIndex];
-				SubCategory = SubCategory.Replace(TEXT(" "), TEXT(""));
-				SubCategoryPath += SubCategory;
-
-				if (!!FCString::StrfindDelim(*HideCategories, *SubCategory, TEXT(" ")))
-				{
-					bHidden = true;
-				}
-				else if (!!FCString::StrfindDelim(*HideCategories, *SubCategoryPath, TEXT(" ")))
-				{
-					bHidden = true;
-				}
-
-				if (bHidden && !ShowCategories.IsEmpty() && !!FCString::StrfindDelim(*ShowCategories, *SubCategoryPath, TEXT(" ")))
-				{
-					bHidden = false;
-				}
-				SubCategoryPath += "|";
-			}	
-		}
-		else if (!ShowCategories.IsEmpty() && !!FCString::StrfindDelim(*ShowCategories, *InCategory, TEXT(" ")))
-		{
-			bHidden = false;
-		}
-	}
-	return bHidden;
-}
-
 void UClass::GetHideFunctions(TArray<FString>& OutHideFunctions) const
 {
 	static const FName NAME_HideFunctions(TEXT("HideFunctions"));
@@ -3668,6 +3586,7 @@ void UFunction::Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL)
 		Obj = (UObject*)Obj->GetInterfaceAddress(OuterClass);
 	}
 
+	TGuardValue<UFunction*> NativeFuncGuard(Stack.CurrentNativeFunction, this);
 	return (Obj->*Func)(Stack, Result);
 }
 
@@ -3702,7 +3621,7 @@ void UFunction::Serialize( FArchive& Ar )
 	}
 }
 
-UProperty* UFunction::GetReturnProperty()
+UProperty* UFunction::GetReturnProperty() const
 {
 	for( TFieldIterator<UProperty> It(this); It && (It->PropertyFlags & CPF_Parm); ++It )
 	{

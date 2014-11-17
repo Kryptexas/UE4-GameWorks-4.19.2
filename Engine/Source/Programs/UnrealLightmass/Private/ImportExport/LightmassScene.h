@@ -178,7 +178,7 @@ public:
 	virtual void ValidateSurfaceSample(const FVector4& Point, FLightSurfaceSample& Sample) const {}
 
 	/** Gets a single position which represents the center of the area light source from the ReceivingPosition's point of view. */
-	virtual FVector4 LightCenterPosition(const FVector4& ReceivingPosition) const { return Position; }
+	virtual FVector4 LightCenterPosition(const FVector4& ReceivingPosition, const FVector4& ReceivingNormal) const { return Position; }
 
 	/** Returns true if all parts of the light are behind the surface being tested. */
 	virtual bool BehindSurface(const FVector4& TrianglePoint, const FVector4& TriangleNormal) const = 0;
@@ -265,7 +265,7 @@ public:
 	virtual void ValidateSurfaceSample(const FVector4& Point, FLightSurfaceSample& Sample) const;
 
 	/** Gets a single position which represents the center of the area light source from the ReceivingPosition's point of view. */
-	virtual FVector4 LightCenterPosition(const FVector4& ReceivingPosition) const;
+	virtual FVector4 LightCenterPosition(const FVector4& ReceivingPosition, const FVector4& ReceivingNormal) const;
 
 	/** Returns true if all parts of the light are behind the surface being tested. */
 	virtual bool BehindSurface(const FVector4& TrianglePoint, const FVector4& TriangleNormal) const;
@@ -372,6 +372,8 @@ public:
 
 	/** Returns the light's radiant power. */
 	virtual float Power() const;
+
+	virtual FVector4 LightCenterPosition(const FVector4& ReceivingPosition, const FVector4& ReceivingNormal) const;
 
 	/** Returns true if all parts of the light are behind the surface being tested. */
 	virtual bool BehindSurface(const FVector4& TrianglePoint, const FVector4& TriangleNormal) const;

@@ -66,33 +66,29 @@ namespace NavigationHelper
 		const FTransform LocalToWorld = Actor->ActorToWorld();
 		FSimpleLinkNavModifier SimpleLink(NavLinks, LocalToWorld);
 
-		if (SimpleLink.HasFallDownLinks())
+		// adjust links
+		for (int32 LinkIndex = 0; LinkIndex < SimpleLink.Links.Num(); ++LinkIndex)
 		{
-			// adjust links
-			for (int32 LinkIndex = 0; LinkIndex < SimpleLink.Links.Num(); ++LinkIndex)
+			FNavigationLink& Link = SimpleLink.Links[LinkIndex];
+
+			// this one needs adjusting
+			if (Link.Direction == ENavLinkDirection::RightToLeft)
 			{
-				FNavigationLink& Link = SimpleLink.Links[LinkIndex];
-				if (Link.MaxFallDownLength > 0)
+				Swap(Link.Left, Link.Right);
+			}
+
+			if (Link.MaxFallDownLength > 0)
+			{
+				const FVector WorldRight = LocalToWorld.TransformPosition(Link.Right);
+				const float FallDownHeight = RawGeometryFall(Actor, WorldRight, Link.MaxFallDownLength);
+
+				if (FallDownHeight > 0.f)
 				{
-					// this one needs adjusting
-					if (Link.Direction == ENavLinkDirection::RightToLeft)
-					{
-						Swap(Link.Left, Link.Right);
-					}
+					// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
+					UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRight, WorldRight + FVector(0, 0, -FallDownHeight)
+						, FColor::Green, TEXT("FallDownHeight %d"), LinkIndex);
 
-					const FVector WorldRight = LocalToWorld.TransformPosition(Link.Right);
-					//const FVector WorldLeft = LocalToWorld.TransformPosition(ModifiedLink.Left);
-
-					const float FallDownHeight = RawGeometryFall(Actor, WorldRight, Link.MaxFallDownLength);
-
-					if (FallDownHeight > 0.f)
-					{
-						// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-						UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRight, WorldRight + FVector(0, 0, -FallDownHeight)
-							, FColor::Green, TEXT("FallDownHeight %d"), LinkIndex);
-
-						Link.Right.Z -= FallDownHeight;
-					}
+					Link.Right.Z -= FallDownHeight;
 				}
 			}
 		}
@@ -105,43 +101,41 @@ namespace NavigationHelper
 		const FTransform LocalToWorld = Actor->ActorToWorld();
 		FSimpleLinkNavModifier SimpleLink(NavLinks, LocalToWorld);
 
-		if (SimpleLink.HasFallDownLinks())
+			// adjust links if needed
+		for (int32 LinkIndex = 0; LinkIndex < SimpleLink.SegmentLinks.Num(); ++LinkIndex)
 		{
-			// adjust links
-			for (int32 LinkIndex = 0; LinkIndex < SimpleLink.SegmentLinks.Num(); ++LinkIndex)
+			FNavigationSegmentLink& Link = SimpleLink.SegmentLinks[LinkIndex];
+
+			// this one needs adjusting
+			if (Link.Direction == ENavLinkDirection::RightToLeft)
 			{
-				FNavigationSegmentLink& Link = SimpleLink.SegmentLinks[LinkIndex];
-				if (Link.MaxFallDownLength > 0)
+				Swap(Link.LeftStart, Link.RightStart);
+				Swap(Link.LeftEnd, Link.RightEnd);
+			}
+
+			if (Link.MaxFallDownLength > 0)
+			{
+				const FVector WorldRightStart = LocalToWorld.TransformPosition(Link.RightStart);
+				const FVector WorldRightEnd = LocalToWorld.TransformPosition(Link.RightEnd);
+
+				const float FallDownHeightStart = RawGeometryFall(Actor, WorldRightStart, Link.MaxFallDownLength);
+				const float FallDownHeightEnd = RawGeometryFall(Actor, WorldRightEnd, Link.MaxFallDownLength);
+
+				if (FallDownHeightStart > 0.f)
 				{
-					// this one needs adjusting
-					if (Link.Direction == ENavLinkDirection::RightToLeft)
-					{
-						Swap(Link.LeftStart, Link.RightStart);
-						Swap(Link.LeftEnd, Link.RightEnd);
-					}
+					// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
+					UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRightStart, WorldRightStart + FVector(0, 0, -FallDownHeightStart)
+						, FColor::Green, TEXT("FallDownHeightStart %d"), LinkIndex);
 
-					const FVector WorldRightStart = LocalToWorld.TransformPosition(Link.RightStart);
-					const FVector WorldRightEnd = LocalToWorld.TransformPosition(Link.RightEnd);
+					Link.RightStart.Z -= FallDownHeightStart;
+				}
+				if (FallDownHeightEnd > 0.f)
+				{
+					// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
+					UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRightEnd, WorldRightEnd + FVector(0, 0, -FallDownHeightEnd)
+						, FColor::Green, TEXT("FallDownHeightEnd %d"), LinkIndex);
 
-					const float FallDownHeightStart = RawGeometryFall(Actor, WorldRightStart, Link.MaxFallDownLength);
-					const float FallDownHeightEnd = RawGeometryFall(Actor, WorldRightEnd, Link.MaxFallDownLength);
-
-					if (FallDownHeightStart > 0.f)
-					{
-						// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-						UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRightStart, WorldRightStart + FVector(0, 0, -FallDownHeightStart)
-							, FColor::Green, TEXT("FallDownHeightStart %d"), LinkIndex);
-
-						Link.RightStart.Z -= FallDownHeightStart;
-					}
-					if (FallDownHeightEnd > 0.f)
-					{
-						// @todo maybe it's a good idea to clear ModifiedLink.MaxFallDownLength here
-						UE_VLOG_SEGMENT(Actor, LogNavigation, Log, WorldRightEnd, WorldRightEnd + FVector(0, 0, -FallDownHeightEnd)
-							, FColor::Green, TEXT("FallDownHeightEnd %d"), LinkIndex);
-
-						Link.RightEnd.Z -= FallDownHeightEnd;
-					}
+					Link.RightEnd.Z -= FallDownHeightEnd;
 				}
 			}
 		}

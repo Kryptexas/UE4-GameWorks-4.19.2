@@ -31,6 +31,8 @@ protected:
 	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget
 
+	virtual void ReleaseNativeWidget() override;
+
 protected:
 
 	TSharedPtr<class SVerticalBox> MyVerticalBox;

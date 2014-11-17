@@ -24,4 +24,10 @@ protected:
 	void ExecuteEditDefaults(FWeakBlueprintPointerArray Objects);
 	void ExecuteNewDerivedBlueprint(TWeakObjectPtr<class UEditorUtilityBlueprint> InObject);
 	void ExecuteGlobalBlutility(TWeakObjectPtr<class UEditorUtilityBlueprint> InObject);
+
+	/** Returns the tooltip to display when attempting to derive a Blueprint */
+	FText GetNewDerivedBlueprintTooltip(TWeakObjectPtr<class UEditorUtilityBlueprint> InObject);
+
+	/** Returns TRUE if you can derive a Blueprint */
+	bool CanExecuteNewDerivedBlueprint(TWeakObjectPtr<class UEditorUtilityBlueprint> InObject);
 };

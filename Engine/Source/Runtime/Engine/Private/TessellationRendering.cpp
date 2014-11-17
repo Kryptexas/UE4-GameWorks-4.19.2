@@ -4,7 +4,7 @@
 #include "EnginePrivate.h"
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information. */
-bool RequiresAdjacencyInformation( UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType )
+bool RequiresAdjacencyInformation( UMaterialInterface* Material, const FVertexFactoryType* VertexFactoryType, ERHIFeatureLevel::Type InFeatureLevel )
 {
 	EMaterialTessellationMode TessellationMode = MTM_NoTessellation;
 	bool bEnableCrackFreeDisplacement = false;
@@ -14,7 +14,7 @@ bool RequiresAdjacencyInformation( UMaterialInterface* Material, const FVertexFa
 		{
 			FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy( false, false );
 			check( MaterialRenderProxy );
-			const FMaterial* MaterialResource = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+			const FMaterial* MaterialResource = MaterialRenderProxy->GetMaterial(InFeatureLevel);
 			check( MaterialResource );
 			TessellationMode = MaterialResource->GetTessellationMode();
 			bEnableCrackFreeDisplacement = MaterialResource->IsCrackFreeDisplacementEnabled();

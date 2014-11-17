@@ -84,6 +84,23 @@ TSharedRef<SWidget> SLogsTableRow::GenerateWidgetForColumn(const FName& ColumnNa
 	return SNullWidget::NullWidget;
 }
 
+void SLogsTableRow::UpdateEntries()
+{
+	if (!OwnerVisualizerWidgetPtr.IsValid())
+	{
+		return;
+	}
+
+	TSharedPtr<SLogVisualizer> OwnerVisualizerWidget = OwnerVisualizerWidgetPtr.Pin();
+	if (OwnerVisualizerWidget.IsValid())
+	{
+		TSharedPtr<FActorsVisLog>& Log = OwnerVisualizerWidget->LogVisualizer->Logs[Item->LogIndex];
+		OwnerVisualizerWidget->GetVisibleEntries(Log, VisibleEntries);
+		const float TotalSize = OwnerVisualizerWidget->LogsEndTime - OwnerVisualizerWidget->LogsStartTime;
+		LogBar->SetEntries(VisibleEntries, OwnerVisualizerWidget->LogsStartTime, TotalSize);
+	}
+}
+
 int32 SLogsTableRow::GetCurrentLogEntryIndex() const
 {
 	TSharedPtr<SLogVisualizer> OwnerVisualizerWidget = OwnerVisualizerWidgetPtr.Pin();

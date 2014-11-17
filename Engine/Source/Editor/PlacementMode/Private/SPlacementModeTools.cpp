@@ -8,6 +8,7 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "IBspModeModule.h"
 #include "KismetEditorUtilities.h"
+#include "EditorClassUtils.h"
 
 #include "STutorialWrapper.h"
 
@@ -94,35 +95,50 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 	TSharedPtr< SHorizontalBox > ActorType = SNew( SHorizontalBox );
 
 	const bool IsClass = AssetData.GetClass() == UClass::StaticClass();
-	const bool IsVolume = IsClass ? Cast<UClass>( AssetData.GetAsset() )->IsChildOf( AVolume::StaticClass() ) : false;
+	const bool IsVolume = IsClass ? CastChecked<UClass>( AssetData.GetAsset() )->IsChildOf( AVolume::StaticClass() ) : false;
 
-	AssetDisplayName = FText::FromName( AssetData.AssetName );
 	if ( IsClass )
 	{
 		AssetDisplayName = FText::FromString( FName::NameToDisplayString( AssetData.AssetName.ToString(), false ) );
 	}
-
-	FText ActorTypeDisplayName;
-	AActor* DefaultActor = nullptr;
-	if ( IsClass && Cast<UClass>( AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
+	else
 	{
-		DefaultActor = Cast<AActor>( Cast<UClass>( AssetData.GetAsset() )->ClassDefaultObject );
-		ActorTypeDisplayName = FText::FromString( FName::NameToDisplayString( DefaultActor->GetClass()->GetName(), false ) );
+		AssetDisplayName = FText::FromName( AssetData.AssetName );
 	}
 
+	TSharedPtr<IToolTip> ToolTip;
+	FText ActorTypeDisplayName;
+	AActor* DefaultActor = nullptr;
 	if ( FactoryToUse != nullptr )
 	{
 		DefaultActor = FactoryToUse->GetDefaultActor( AssetData );
 		ActorTypeDisplayName = FactoryToUse->GetDisplayName();
+		ToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
 	}
-
-	AssetDisplayName = ( IsClass && !IsVolume && !ActorTypeDisplayName.IsEmpty() ) ? ActorTypeDisplayName : AssetDisplayName;
-
-	if ( !InArgs._LabelOverride.IsEmpty() )
+	else if ( IsClass && CastChecked<UClass>( AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
+	{
+		DefaultActor = CastChecked<AActor>( CastChecked<UClass>( AssetData.GetAsset() )->ClassDefaultObject );
+		ActorTypeDisplayName = FText::FromString( FName::NameToDisplayString( DefaultActor->GetClass()->GetName(), false ) );
+		ToolTip = FEditorClassUtils::GetTooltip(DefaultActor->GetClass());
+	}
+	
+	if ( InArgs._LabelOverride.IsEmpty() )
+	{
+		if (IsClass && !IsVolume && !ActorTypeDisplayName.IsEmpty())
+		{
+			AssetDisplayName = ActorTypeDisplayName;
+		}
+	}
+	else
 	{
 		AssetDisplayName = InArgs._LabelOverride;
 	}
 
+	if (!ToolTip.IsValid())
+	{
+		ToolTip = FSlateApplicationBase::Get().MakeToolTip(AssetDisplayName);
+	}
+	
 	const FButtonStyle& ButtonStyle = FEditorStyle::GetWidgetStyle<FButtonStyle>( "PlacementBrowser.Asset" );
 
 	NormalImage = &ButtonStyle.Normal;
@@ -134,6 +150,7 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 		SNew( SBorder )
 		.BorderImage( this, &SPlacementAssetEntry::GetBorder )
 		.Cursor( EMouseCursor::GrabHand )
+		.ToolTip( ToolTip )
 		[
 			SNew( SHorizontalBox )
 
@@ -145,7 +162,6 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 				SNew( SBorder )
 				.Padding( 5 )
 				.BorderImage( FEditorStyle::GetBrush( "ContentBrowser.ThumbnailShadow" ) )
-				.ToolTipText( ActorTypeDisplayName )
 				[
 					SNew( SBox )
 					.WidthOverride( 35 )

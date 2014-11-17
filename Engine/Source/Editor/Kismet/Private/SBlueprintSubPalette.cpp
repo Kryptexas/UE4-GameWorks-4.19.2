@@ -12,6 +12,7 @@
 #include "BlueprintPaletteFavorites.h"
 #include "BlueprintEditorUtils.h"
 #include "SBlueprintActionMenu.h" // for SBlueprintActionMenuExpander
+#include "BlueprintActionMenuItem.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintSubPalette"
 
@@ -319,7 +320,21 @@ FReply SBlueprintSubPalette::OnActionDragged( const TArray< TSharedPtr<FEdGraphS
 			check(VarClass);
 			if(VarClass != NULL)
 			{
-				return FReply::Handled().BeginDragDrop(FKismetDelegateDragDropAction::New( SharedThis( this ), DelegateAction->GetDelegateName(), VarClass, AnalyticsDelegate));
+				return FReply::Handled().BeginDragDrop(FKismetDelegateDragDropAction::New(DelegateAction->GetDelegateName(), VarClass, AnalyticsDelegate));
+			}
+		}
+		else if (InAction->GetTypeId() == FBlueprintActionMenuItem::StaticGetTypeId())
+		{
+			FBlueprintActionMenuItem* BlueprintAction = (FBlueprintActionMenuItem*)InAction.Get();
+
+			TSharedPtr<FDragDropOperation> DragDropOp = BlueprintAction->OnDragged(AnalyticsDelegate);
+			if (DragDropOp.IsValid())
+			{
+				return FReply::Handled().BeginDragDrop(DragDropOp.ToSharedRef());
+			}
+			else
+			{
+				return FReply::Handled().BeginDragDrop(FKismetDragDropAction::New(InAction, AnalyticsDelegate, CanNodeBePlacedDelegate));
 			}
 		}
 		else

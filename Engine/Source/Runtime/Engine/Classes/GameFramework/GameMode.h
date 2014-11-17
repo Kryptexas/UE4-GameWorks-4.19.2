@@ -4,6 +4,8 @@
 #include "GameFramework/Info.h"
 #include "GameMode.generated.h"
 
+class FDebugDisplayInfo;
+
 //=============================================================================
 //  GameMode defines the rules and mechanics of the game.  It is only 
 //  instanced on the server and will never exist on the client.
@@ -437,9 +439,6 @@ public:
 
 	/** start match, or let player enter, immediately */
 	virtual void StartNewPlayer(APlayerController* NewPlayer);
-
-	/** Engine is shutting down. */
-	virtual void PreExit();
 
 	/** Called when a Controller with a PlayerState leaves the match. */
 	virtual void Logout( AController* Exiting );

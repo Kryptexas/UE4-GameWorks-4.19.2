@@ -15,6 +15,13 @@
 
 DEFINE_LOG_CATEGORY_STATIC(LogSceneComponent, Log, All);
 
+FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
+	: bFromSweep(false)
+{
+	OverlapInfo.Component = InComponent;
+	OverlapInfo.Item = InBodyIndex;
+}
+
 USceneComponent::USceneComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -98,6 +105,16 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent * Parent,
 	}
 }
 
+void USceneComponent::OnRegister()
+{
+	// If we need to perform a call to AttachTo, do that now
+	// At this point scene component still has no any state (rendering, physics),
+	// so this call will just add this component to an AttachChildren array of a the Parent component
+	AttachTo(AttachParent, AttachSocketName);
+	
+	Super::OnRegister();
+}
+
 void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
 {
 	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove);
@@ -125,6 +142,9 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		
 		// Now go and update children
 		UpdateChildTransforms();
+
+		// Refresh navigation
+		UpdateNavigationData();
 	}
 	else
 	{
@@ -300,7 +320,7 @@ void USceneComponent::SetRelativeRotation(FRotator NewRotation, bool bSweep)
 
 void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep)
 {
-	if( NewLocation != RelativeLocation || NewRotation != RelativeRotation )
+	if(!NewLocation.Equals(RelativeLocation) || !NewRotation.Equals(RelativeRotation))
 	{
 		if (!bWorldToComponentUpdated)
 		{
@@ -700,6 +720,10 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 			return;
 		}
 
+		// Make sure we are detached
+		bool bMaintainWorldPosition = AttachType == EAttachLocation::KeepWorldPosition;
+		DetachFromParent(bMaintainWorldPosition);
+
 		{
 			//This code requires some explaining. Inside the editor we allow user to attach physically simulated objects to other objects. This is done for convenience so that users can group things together in hierarchy.
 			//At runtime we must not attach physically simulated objects as it will cause double transform updates, and you should just use a physical constraint if attachment is the desired behavior.
@@ -717,11 +741,6 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 				return;
 			}
 		}
-		
-
-		// Make sure we are detached
-		bool bMaintainWorldPosition = AttachType == EAttachLocation::KeepWorldPosition;
-		DetachFromParent(bMaintainWorldPosition);
 
 		// Detach removes all Prerequisite, so will need to add after Detach happens
 		PrimaryComponentTick.AddPrerequisite(Parent, Parent->PrimaryComponentTick); // force us to tick after the parent does
@@ -1177,7 +1196,7 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, F
 	}
 
 	bool bUpdated = false;
-	if ( (RelativeLocation != NewLocation) || (RelativeRotation != NewRotation) )
+	if (!NewLocation.Equals(RelativeLocation) || !NewRotation.Equals(RelativeRotation))
 	{
 		RelativeLocation = NewLocation;
 		RelativeRotation = NewRotation;
@@ -1216,7 +1235,10 @@ bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRo
 	// make sure mobility is movable, otherwise you shouldn't try to move
 	if ( UWorld * World = GetWorld() )
 	{
-		if (World->HasBegunPlay() && IsRegistered() && Mobility != EComponentMobility::Movable )
+		ULevel* Level = GetComponentLevel();
+
+		// It's only a problem if we're in gameplay, and the owning level is visible
+		if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible && Mobility != EComponentMobility::Movable)
 		{
 			FMessageLog("Performance").Warning( FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "), 
 				FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName())));
@@ -1686,5 +1708,45 @@ const int32 USceneComponent::GetNumUncachedStaticLightingInteractions() const
 	return NumUncachedStaticLighting;
 }
 #endif
+
+void USceneComponent::UpdateNavigationData()
+{
+	AActor* MyActor = GetOwner();
+
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
+		IsRegistered() && MyActor && MyActor->IsNavigationRelevant() &&
+		World && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	{
+		const bool bShouldUpdate = CheckNavigationRelevancy(this);
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+		
+		if (bShouldUpdate && NavSys)
+		{
+			NavSys->UpdateNavOctree(MyActor);
+		}
+	}
+}
+
+bool USceneComponent::CheckNavigationRelevancy(USceneComponent* TestComponent)
+{
+	check(TestComponent);
+
+	bool bResult = TestComponent->IsNavigationRelevant();
+	for (int32 Idx = 0; Idx < TestComponent->AttachChildren.Num() && !bResult; Idx++)
+	{
+		USceneComponent* Child = TestComponent->AttachChildren[Idx];
+		if (Child)
+		{
+			bResult = CheckNavigationRelevancy(Child);
+		}
+	}
+
+	return bResult;
+}
+
+bool USceneComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) const
+{
+	return false;
+}
 
 #undef LOCTEXT_NAMESPACE

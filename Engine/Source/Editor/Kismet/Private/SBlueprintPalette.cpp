@@ -27,6 +27,8 @@
 #include "AnimationStateGraph.h"
 #include "AnimStateConduitNode.h"
 #include "AnimationTransitionGraph.h"
+#include "BlueprintActionMenuItem.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 
@@ -117,7 +119,7 @@ static FString GetVarTooltip(UBlueprint* InBlueprint, UClass* VarClass, FName Va
 			}
 			else
 			{
-				FBlueprintEditorUtils::GetBlueprintVariableMetaData(InBlueprint, VarName, TEXT("tooltip"), ResultTooltip);
+				FBlueprintEditorUtils::GetBlueprintVariableMetaData(InBlueprint, VarName, NULL, TEXT("tooltip"), ResultTooltip);
 			}
 		}
 	}
@@ -354,6 +356,11 @@ static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBluep
 	{
 		ToolTipOut = LOCTEXT("Comment_Tooltip", "Create a resizable comment box.").ToString();
 		BrushOut = FEditorStyle::GetBrush(TEXT("GraphEditor.Comment_16x"));
+	}
+	else if (ActionIn->GetTypeId() == FBlueprintActionMenuItem::StaticGetTypeId())
+	{
+		FBlueprintActionMenuItem* NodeSpawnerAction = (FBlueprintActionMenuItem*)ActionIn.Get();
+		BrushOut = NodeSpawnerAction->GetMenuIcon(ColorOut);
 	}
 }
 
@@ -784,7 +791,7 @@ private:
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 			FString Result;
-			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), TEXT("tooltip"), Result);
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
 
 			if(!Result.IsEmpty())
 			{
@@ -816,7 +823,7 @@ private:
 			TSharedPtr<FEdGraphSchemaAction_K2Var> VarAction = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(ActionPtr.Pin());
 
 			FString Result;
-			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), TEXT("tooltip"), Result);
+			FBlueprintEditorUtils::GetBlueprintVariableMetaData( BlueprintEditorPtr.Pin()->GetBlueprintObj(), VarAction->GetVariableName(), NULL, TEXT("tooltip"), Result);
 			if(!Result.IsEmpty())
 			{
 				ToolTip = LOCTEXT("VariablePrivacy_is_public_Tooltip", "Variable is public and is editable on each instance of this Blueprint.").ToString();
@@ -1017,6 +1024,8 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 
 	FName OriginalName;
 
+	UStruct* ValidationScope = NULL;
+
 	// Check if certain action names are unchanged.
 	if (ActionPtr.Pin()->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
 	{
@@ -1027,6 +1036,8 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 	{
 		FEdGraphSchemaAction_K2LocalVar* LocalVarAction = (FEdGraphSchemaAction_K2LocalVar*)ActionPtr.Pin().Get();
 		OriginalName = (LocalVarAction->GetVariableName());
+		
+		ValidationScope = LocalVarAction->GetVariableScope();
 	}
 	else
 	{
@@ -1066,7 +1077,7 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 		}
 	}
 
-	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint, OriginalName));
+	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint, OriginalName, ValidationScope));
 
 	EValidatorResult ValidatorResult = NameValidator->IsValid(TextAsString);
 	if(ValidatorResult == EValidatorResult::AlreadyInUse)
@@ -1080,6 +1091,10 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 	else if(ValidatorResult == EValidatorResult::TooLong)
 	{
 		OutErrorMessage = LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than 100 characters!");
+	}
+	else if(ValidatorResult == EValidatorResult::LocallyInUse)
+	{
+		OutErrorMessage = LOCTEXT("ConflictsWithProperty", "Conflicts with another another local variable or function parameter!");
 	}
 
 	if(OutErrorMessage.IsEmpty())
@@ -1237,7 +1252,7 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 		BlueprintEditorPtr.Pin()->GetBlueprintObj()->Modify();
 
 		FName NewVarName = FName(*NewText.ToString());
-		FBlueprintEditorUtils::RenameLocalVariable(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableName(), NewVarName);
+		FBlueprintEditorUtils::RenameLocalVariable(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName(), NewVarName);
 	}
 	BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->SelectItemByName(FName(*NewText.ToString()), ESelectInfo::OnMouseClick);
 }
@@ -1328,7 +1343,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			else
 			{
 				FString Result;
-				FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableName(), TEXT("tooltip"), Result);
+				FBlueprintEditorUtils::GetBlueprintVariableMetaData(BlueprintEditorPtr.Pin()->GetBlueprintObj(), LocalVarAction->GetVariableName(), LocalVarAction->GetVariableScope(), TEXT("tooltip"), Result);
 				// Only use the variable tooltip if it has been filled out.
 				ToolTipText = !Result.IsEmpty() ? Result : GetVarType(LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName(), true, true);
 			}

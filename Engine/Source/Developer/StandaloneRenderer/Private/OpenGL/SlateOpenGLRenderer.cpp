@@ -132,13 +132,6 @@ void FSlateOpenGLRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 
 			Viewport->SwapBuffers();
 
-			// Mark this window as 'drawn'
-			if( !WindowToDraw->HasEverBeenDrawn() )
-			{
-				WindowToDraw->MarkAsDrawn();
-			}
-
-
 			// Reset all batch data for this window
 			ElementBatcher->ResetBatches();
 		}

@@ -22,9 +22,9 @@ struct FProgramCounterSymbolInfo
 	/** Filename.						*/
 	ANSICHAR	Filename[1024];
 	/** Line number in file.			*/
-	int32			LineNumber;
+	int32		LineNumber;
 	/** Symbol displacement of address.	*/
-	int32			SymbolDisplacement;
+	int32		SymbolDisplacement;
 };
 
 

@@ -26,6 +26,7 @@ public class Kismet : ModuleRules
 				"SlateCore",
                 "EditorStyle",
 				"Engine",
+				"Merge",
 				"MessageLog",
 				"UnrealEd",
 				"GraphEditor",

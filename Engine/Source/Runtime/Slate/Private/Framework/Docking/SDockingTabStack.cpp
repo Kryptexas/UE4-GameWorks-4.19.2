@@ -254,9 +254,9 @@ void SDockingTabStack::Tick( const FGeometry& AllottedGeometry, const double InC
 void SDockingTabStack::OpenTab( const TSharedRef<SDockTab>& InTab, int32 InsertLocationAmongActiveTabs )
 {
 	const int32 TabIndex = OpenPersistentTab( InTab->GetLayoutIdentifier(), InsertLocationAmongActiveTabs );
-	AddTabWidget( InTab, TabIndex );
 	// The tab may be a nomad tab, in which case it should inherit whichever tab manager it is being put into!
 	InTab->SetTabManager( GetDockArea()->GetTabManager() );
+	AddTabWidget( InTab, TabIndex );
 	OnLiveTabAdded();
 	TabWell->RefreshParentContent();
 }
@@ -388,6 +388,7 @@ void SDockingTabStack::OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousF
 		{
 			// If a widget inside this tab stack got focused, activate this tab.
 			FGlobalTabmanager::Get()->SetActiveTab( ForegroundTab );
+			ForegroundTab->ActivateInParent(ETabActivationCause::SetDirectly);
 		}
 	}
 }
@@ -697,6 +698,43 @@ TSharedPtr<FTabManager::FLayoutNode> SDockingTabStack::GatherPersistentLayout() 
 }
 
 
+void SDockingTabStack::ClearReservedSpace()
+{
+	(*TitleBarSlot).Padding(0);
+}
+
+
+void SDockingTabStack::ReserveSpaceForWindowChrome(EChromeElement Element)
+{
+	// @todo: It would be nice to read these from the desired size of the title bar
+	//        instead of hard-coding, but at least the long-standing TTP is fixed!
+	#if PLATFORM_MAC
+		static const FMargin ControlsPadding = FMargin(64, 0, 0, 0);
+		static const FMargin IconPadding = FMargin(0);
+	#else
+		static const FMargin ControlsPadding = FMargin(0, 0, 96, 0);
+		static const FMargin IconPadding = FMargin(32, 0, 0, 0);
+	#endif
+
+	const FMargin CurrentPadding = TitleBarSlot->SlotPadding.Get();
+	switch (Element)
+	{
+	case EChromeElement::Controls:
+		(*TitleBarSlot).Padding(CurrentPadding + ControlsPadding);
+		break;
+
+	case EChromeElement::Icon:
+		(*TitleBarSlot).Padding(CurrentPadding + IconPadding);
+		break;
+
+	default:
+		ensure(false);
+		break;
+	}
+}
+
+
+
 TSharedRef< SDockingTabStack > SDockingTabStack::CreateNewTabStackBySplitting( const SDockingNode::RelativeDirection Direction )
 {
 	TSharedPtr<SDockingSplitter> ParentNode = ParentNodePtr.Pin();
@@ -720,23 +758,7 @@ void SDockingTabStack::SetParentNode( TSharedRef<class SDockingSplitter> InParen
 	// place the title bar widgets into our content instead!
 	const TSharedPtr<SDockingArea>& DockArea = GetDockArea();
 
-	if (DockArea.IsValid() && DockArea->GetParentWindow().IsValid())
-	{
-		// @todo mainframe: Really we only want these to show up for tab stacks that are along the top of the window,
-		//                  and only the first one!  Currently, all SDockingAreas with a parent window set will get
-		//                  title area widgets added!
-		const TSharedRef<SWindow>& ParentWindow = DockArea->GetParentWindow().ToSharedRef();
-
-		TSharedPtr<IWindowTitleBar> TitleBar;
-		TSharedRef<SWidget> TitleBarWidget = FSlateApplication::Get().MakeWindowTitleBar(ParentWindow, TitleBarContent, HAlign_Fill, TitleBar);
-
-		(*TitleBarSlot)[TitleBarWidget];
-		ParentWindow->SetTitleBar(TitleBar);
-	}
-	else
-	{
-		(*TitleBarSlot)[TitleBarContent.ToSharedRef()];
-	}
+	(*TitleBarSlot)[TitleBarContent.ToSharedRef()];
 }
 
 

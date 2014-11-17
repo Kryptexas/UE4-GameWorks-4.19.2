@@ -6,10 +6,27 @@
 
 void FPersonaCommands::RegisterCommands()
 {
-	// this is going to show twice if we have blueprint
-	UI_COMMAND( RecordAnimation, "Export to Animation", "Export current graph to animation", EUserInterfaceActionType::Button, FInputGesture() );
+	// save menu
+	UI_COMMAND(SaveAnimationAssets, "Save Animation Assets", "Only save all animation assets including skeletons, skeletal meshes and animation blueprints.", EUserInterfaceActionType::Button, FInputGesture());
 
+	// skeleton menu
 	UI_COMMAND( ChangeSkeletonPreviewMesh, "Set Preview Mesh as Default", "Changes the skeletons default preview mesh to the current open preview mesh. The skeleton will require saving after this action.", EUserInterfaceActionType::Button, FInputGesture() );
-
 	UI_COMMAND( RemoveUnusedBones, "Remove Unused Bones from Skeleton", "Removes any bones from the skeleton that are not used by any of its meshes. The skeleton and associated animations will require saving after this action.", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( AnimNotifyWindow, "Anim Notifies", "You can manage animation notifies that belong to the skeleton.", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( RetargetSourceMgr, "Retarget Source Manager", "Create, delete, or edit retarget sources for this skeleton. ", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( ImportMesh, "Import Mesh", "Import new mesh for this skeleton. ", EUserInterfaceActionType::Button, FInputGesture() );
+
+	// mesh menu
+	UI_COMMAND( ReimportMesh, "Reimport Mesh", "Reimport the current mesh.", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( ImportLODs, "Import LODs", "Import LODs of the current mesh.", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( AddBodyPart, "Add Body Part", "Add extra body parts for the current mesh", EUserInterfaceActionType::Button, FInputGesture());
+
+	// animation menu
+	// import animation
+	UI_COMMAND( ImportAnimation, "Import Animation", "Import new animation for the skeleton.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( ReimportAnimation, "Reimport Animation", "Reimport current animation.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( ApplyCompression, "Apply Compression", "Apply cvompression to current animation", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( RecordAnimation, "Record to new Animation", "Create new animation from currently playing", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( ExportToFBX, "Export to FBX", "Export current animation to FBX", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( AddLoopingInterpolation, "Add Looping Interpolation", "Add an extra first frame at the end of the animation to create interpolation when looping", EUserInterfaceActionType::Button, FInputGesture() );
 }

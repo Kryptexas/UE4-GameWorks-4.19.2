@@ -13,7 +13,6 @@ FStreamingLevelModel::FStreamingLevelModel(const TWeakObjectPtr<UEditorEngine>& 
 
 	: FLevelModel(InWorldData, InEditor)
 	, LevelStreaming(InLevelStreaming)
-	, StreamingLevelIndex(INDEX_NONE)
 	, bHasValidPackageName(false)
 {
 	Editor->RegisterForUndo( this );
@@ -65,33 +64,86 @@ FName FStreamingLevelModel::GetLongPackageName() const
 	}
 }
 
+bool FStreamingLevelModel::SupportsLevelColor() const
+{
+	return LevelStreaming.IsValid();
+}
+
+FColor FStreamingLevelModel::GetLevelColor() const
+{
+	if (LevelStreaming.IsValid())
+	{
+		return LevelStreaming.Get()->DrawColor;
+	}
+	return FLevelModel::GetLevelColor();
+}
+
+void FStreamingLevelModel::SetLevelColor(FColor InColor)
+{
+	if (LevelStreaming.IsValid())
+	{
+		UProperty* DrawColorProperty = FindField<UProperty>(LevelStreaming->GetClass(), "DrawColor");
+		LevelStreaming->PreEditChange(DrawColorProperty);
+
+		LevelStreaming.Get()->DrawColor = InColor;
+
+		FPropertyChangedEvent PropertyChangedEvent(DrawColorProperty, false, EPropertyChangeType::ValueSet);
+		LevelStreaming->PostEditChangeProperty(PropertyChangedEvent);
+	}
+}
+
 void FStreamingLevelModel::Update()
 {
 	UpdatePackageFileAvailability();
 	FLevelModel::Update();
 }
 
-void FStreamingLevelModel::RefreshStreamingLevelIndex()
-{
-	ULevelStreaming* StreamingLevel = LevelStreaming.Get();
-	
-	if ( StreamingLevel )
-	{
-		int32 Idx = CurrentWorld->StreamingLevels.Find(StreamingLevel);
-		if (Idx != INDEX_NONE)
-		{
-			StreamingLevelIndex = Idx;
-		}
-	}
-}
-
 void FStreamingLevelModel::OnDrop(const TSharedPtr<FLevelDragDropOp>& Op)
 {
+	TArray<ULevelStreaming*> DropStreamingLevels;
+	
+	for (auto It = Op->StreamingLevelsToDrop.CreateConstIterator(); It; ++It)
+	{
+		if ((*It).IsValid())
+		{
+			DropStreamingLevels.AddUnique((*It).Get());
+		}
+	}	
+	
+	// Prevent dropping items on itself
+	if (DropStreamingLevels.Num() && DropStreamingLevels.Find(LevelStreaming.Get()) == INDEX_NONE)
+	{
+		UWorld* CurrentWorld = LevelCollectionModel.GetWorld();
+		auto& WorldStreamingLevels = CurrentWorld->StreamingLevels;
+		// Remove streaming level objects from a world streaming levels list
+		for (auto It : DropStreamingLevels)
+		{
+			WorldStreamingLevels.Remove(It);
+		}
+		
+		// Find a new place where to insert the in a world streaming levels list
+		// Right after the current level, or at start of the list in case if this is persistent level
+		int32 InsertIndex = WorldStreamingLevels.Find(LevelStreaming.Get());
+		if (InsertIndex == INDEX_NONE)
+		{
+			InsertIndex = 0;
+		}
+		else
+		{
+			InsertIndex++;
+		}
+
+		WorldStreamingLevels.Insert(DropStreamingLevels, InsertIndex);
+		CurrentWorld->MarkPackageDirty();
+			
+		// Force levels list refresh
+		LevelCollectionModel.PopulateLevelsList();
+	}
 }
 
 bool FStreamingLevelModel::IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const
 {
-	return false;
+	return true;
 }
 
 //bool FStreamingLevelModel::IsReadOnly() const

@@ -137,6 +137,8 @@ FD3D11Texture2D* GetSwapChainSurface(FD3D11DynamicRHI* D3DRHI,IDXGISwapChain* Sw
 
 	D3D11TextureAllocated2D(*NewTexture);
 
+	NewTexture->DoNoDeferDelete();
+
 	return NewTexture;
 }
 

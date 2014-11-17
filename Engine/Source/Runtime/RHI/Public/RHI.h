@@ -11,6 +11,9 @@
 #include "RHIDefinitions.h"
 #include "StaticArray.h"
 
+/** Uniform buffer structs must be aligned to 16-byte boundaries. */
+#define UNIFORM_BUFFER_STRUCT_ALIGNMENT 16
+
 // Forward declarations.
 class FSceneView;
 struct FMeshBatch;
@@ -232,15 +235,19 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
 extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
+extern RHI_API ERHIFeatureLevel::Type GCurrentRHIFeatureLevel;
 
-/** The current feature level supported by the RHI. */
-extern RHI_API ERHIFeatureLevel::Type GetRHIFeatureLevel();
+/** Function for retrieving the current feature level. Only exists to provide a convient way of tracking access to this global during mobile preview work */
+extern RHI_API ERHIFeatureLevel::Type GetCurrentRHIFeatureLevel();
 
-//#define GRHIFeatureLevel GetRHIFeatureLevel()
-#define GRHIFeatureLevel GMaxRHIFeatureLevel
+/** treating GRHIFeatureLevel as a function allows for better usage tracking at small cost to performance. */
+#define RHI_FEATURE_LEVEL_AS_FUNCTION 0
 
-/** Set the current feature level supported by the RHI. */
-extern RHI_API void SetMaxRHIFeatureLevel(ERHIFeatureLevel::Type InType);
+#if RHI_FEATURE_LEVEL_AS_FUNCTION
+	#define GRHIFeatureLevel GetCurrentRHIFeatureLevel()
+#else
+	#define GRHIFeatureLevel GCurrentRHIFeatureLevel
+#endif
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];
@@ -749,11 +756,18 @@ struct FResolveRect
 	int32 Y2;
 	// e.g. for a a full 256 x 256 area starting at (0, 0) it would be 
 	// the values would be 0, 0, 256, 256
-	FResolveRect(int32 InX1=-1, int32 InY1=-1, int32 InX2=-1, int32 InY2=-1)
+	FORCEINLINE FResolveRect(int32 InX1=-1, int32 InY1=-1, int32 InX2=-1, int32 InY2=-1)
 	:	X1(InX1)
 	,	Y1(InY1)
 	,	X2(InX2)
 	,	Y2(InY2)
+	{}
+
+	FORCEINLINE FResolveRect(const FResolveRect& Other)
+		: X1(Other.X1)
+		, Y1(Other.Y1)
+		, X2(Other.X2)
+		, Y2(Other.Y2)
 	{}
 
 	bool IsValid() const
@@ -796,6 +810,14 @@ struct FResolveParams
 		,	MipIndex(InMipIndex)
 		,	SourceArrayIndex(InSourceArrayIndex)
 		,	DestArrayIndex(InDestArrayIndex)
+	{}
+
+	FORCEINLINE FResolveParams(const FResolveParams& Other)
+		: CubeFace(Other.CubeFace)
+		, Rect(Other.Rect)
+		, MipIndex(Other.MipIndex)
+		, SourceArrayIndex(Other.SourceArrayIndex)
+		, DestArrayIndex(Other.DestArrayIndex)
 	{}
 
 	friend FArchive& operator<<(FArchive& Ar,FResolveParams& ResolveParams)

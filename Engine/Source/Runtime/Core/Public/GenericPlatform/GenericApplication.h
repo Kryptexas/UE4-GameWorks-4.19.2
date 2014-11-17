@@ -41,13 +41,17 @@ public:
 					    const bool bInIsLeftControlDown,
 					    const bool bInIsRightControlDown,
 					    const bool bInIsLeftAltDown,
-					    const bool bInIsRightAltDown )
+						const bool bInIsRightAltDown,
+						const bool bInIsLeftCommandDown,
+						const bool bInIsRightCommandDown )
 		: bIsLeftShiftDown( bInIsLeftShiftDown ),
 		  bIsRightShiftDown( bInIsRightShiftDown ),
 		  bIsLeftControlDown( bInIsLeftControlDown ),
 		  bIsRightControlDown( bInIsRightControlDown ),
 		  bIsLeftAltDown( bInIsLeftAltDown ),
-		  bIsRightAltDown( bInIsRightAltDown )
+		  bIsRightAltDown( bInIsRightAltDown ),
+		  bIsLeftCommandDown( bInIsLeftCommandDown ),
+		  bIsRightCommandDown( bInIsRightCommandDown )
 	{
 	}
 
@@ -141,6 +145,36 @@ public:
 	{
 		return bIsRightAltDown;
 	}
+	
+	/**
+	 * Returns true if either command key was down when this event occurred
+	 *
+	 * @return  True if command is pressed
+	 */
+	bool IsCommandDown() const
+	{
+		return bIsLeftCommandDown || bIsRightCommandDown;
+	}
+	
+	/**
+	 * Returns true if left command key was down when this event occurred
+	 *
+	 * @return  True if left command is pressed
+	 */
+	bool IsLeftCommandDown() const
+	{
+		return bIsLeftCommandDown;
+	}
+	
+	/**
+	 * Returns true if right command key was down when this event occurred
+	 *
+	 * @return  True if right command is pressed
+	 */
+	bool IsRightCommandDown() const
+	{
+		return bIsRightCommandDown;
+	}
 
 
 private:
@@ -162,6 +196,12 @@ private:
 
 	/** True if the right alt key was down when this event occurred. */
 	bool bIsRightAltDown;
+	
+	/** True if the left command key was down when this event occurred. */
+	bool bIsLeftCommandDown;
+	
+	/** True if the right command key was down when this event occurred. */
+	bool bIsRightCommandDown;
 };
 
 struct FPlatformRect
@@ -230,13 +270,12 @@ namespace EWindowTitleAlignment
 	};
 }
 
-
 /**
  * Generic platform application interface
  */
 class GenericApplication 
 {
-public:	
+public:
 
 	GenericApplication( const TSharedPtr< ICursor >& InCursor )
 		: Cursor( InCursor )
@@ -267,13 +306,15 @@ public:
 
 	virtual void* GetCapture( void ) const { return NULL; }
 
-	virtual FModifierKeysState GetModifierKeys() const  { return FModifierKeysState( false, false, false, false, false, false ); }
+	virtual FModifierKeysState GetModifierKeys() const  { return FModifierKeysState( false, false, false, false, false, false, false, false ); }
 
 	virtual void SetHighPrecisionMouseMode( const bool Enable, const TSharedPtr< FGenericWindow >& InWindow ) { };
 
 	virtual bool IsUsingHighPrecisionMouseMode() const { return false; }
 	
 	virtual bool IsUsingTrackpad() const { return false; }
+
+	virtual bool IsMouseAttached() const { return true; }
 
 	virtual FPlatformRect GetWorkArea( const FPlatformRect& CurrentWindow ) const
 	{
@@ -288,6 +329,11 @@ public:
 
 	virtual bool TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const { return false; }
 
+	DECLARE_EVENT_OneParam(GenericApplication, FOnDisplayMetricsChanged, const FDisplayMetrics&);
+	
+	/** Notifies subscribers when any of the display metrics change: e.g. resolution changes or monitor sare re-arranged. */
+	FOnDisplayMetricsChanged& OnDisplayMetricsChanged(){ return OnDisplayMetricsChangedEvent; }
+	
 	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { }
 
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const { GetDisplayMetrics(OutDisplayMetrics); }
@@ -320,4 +366,10 @@ public:
 protected:
 
 	TSharedRef< class FGenericApplicationMessageHandler > MessageHandler;
+	
+	/** Trigger the OnDisplayMetricsChanged event with the argument 'InMetrics' */
+	void BroadcastDisplayMetricsChanged( const FDisplayMetrics& InMetrics ){ OnDisplayMetricsChangedEvent.Broadcast( InMetrics ); }
+	
+	// Notifies subscribers when any of the display metrics change: e.g. resolution changes or monitor sare re-arranged.
+	FOnDisplayMetricsChanged OnDisplayMetricsChangedEvent;
 };

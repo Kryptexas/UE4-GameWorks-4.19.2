@@ -900,13 +900,10 @@ IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Challenge);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Netspeed);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Login);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Failure);
-IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Uses);
-IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Have);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Join);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(JoinSplit);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Skip);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Abort);
-IMPLEMENT_CONTROL_CHANNEL_MESSAGE(Unload);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(PCSwap);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(ActorChannelFailure);
 IMPLEMENT_CONTROL_CHANNEL_MESSAGE(DebugText);
@@ -1062,12 +1059,6 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 				case NMT_Failure:
 					FNetControlMessage<NMT_Failure>::Discard(Bunch);
 					break;
-				case NMT_Uses:
-					FNetControlMessage<NMT_Uses>::Discard(Bunch);
-					break;
-				case NMT_Have:
-					FNetControlMessage<NMT_Have>::Discard(Bunch);
-					break;
 				case NMT_Join:
 					//FNetControlMessage<NMT_Join>::Discard(Bunch);
 					break;
@@ -1079,9 +1070,6 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 					break;
 				case NMT_Abort:
 					FNetControlMessage<NMT_Abort>::Discard(Bunch);
-					break;
-				case NMT_Unload:
-					FNetControlMessage<NMT_Unload>::Discard(Bunch);
 					break;
 				case NMT_PCSwap:
 					FNetControlMessage<NMT_PCSwap>::Discard(Bunch);
@@ -1247,10 +1235,10 @@ void UActorChannel::Init( UNetConnection* InConnection, int32 InChannelIndex, bo
 {
 	Super::Init( InConnection, InChannelIndex, InOpenedLocally );
 
-	RelevantTime	= Connection->Driver->Time;
-	LastUpdateTime	= Connection->Driver->Time - Connection->Driver->SpawnPrioritySeconds;
-	bActorMustStayDirty = false;
-	bActorStillInitial = false;
+	RelevantTime			= Connection->Driver->Time;
+	LastUpdateTime			= Connection->Driver->Time - Connection->Driver->SpawnPrioritySeconds;
+	bActorMustStayDirty		= false;
+	bActorStillInitial		= false;
 }
 
 void UActorChannel::SetClosingFlag()
@@ -1483,21 +1471,42 @@ void UActorChannel::Tick()
 		{
 			// This guid is now resolved, we can remove it from the pending guid list
 			It.RemoveCurrent();
+			continue;
+		}
+
+		if ( Connection->Driver->GuidCache->IsGUIDBroken( *It, true ) )
+		{
+			// This guid is broken, remove it, and warn
+			UE_LOG( LogNet, Warning, TEXT( "UActorChannel::Tick: Guid is broken. NetGUID: %s, ChIndex: %i, Actor: %s" ), *It->ToString(), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ) );
+			It.RemoveCurrent();
+			continue;
 		}
 	}
 
 	// If we don't have any pending guids to resolve, process any queued bunches now
 	if ( PendingGuidResolves.Num() == 0 && QueuedBunches.Num() > 0 )
 	{
-		UE_LOG( LogNet, Log, TEXT( "UActorChannel::Tick: Flushing queued bunches: ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
-
 		for ( int32 i = 0; i < QueuedBunches.Num(); i++ )
 		{
 			ProcessBunch( *QueuedBunches[i] );
 			delete QueuedBunches[i];
 		}
 
+		UE_LOG( LogNet, Log, TEXT( "UActorChannel::Tick: Flushing queued bunches. ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
+
 		QueuedBunches.Empty();
+	}
+
+	// Warn when we have queued bunches for a very long time
+	if ( QueuedBunches.Num() > 0 )
+	{
+		const double QUEUED_BUNCH_TIMEOUT_IN_SECONDS = 30;
+
+		if ( FPlatformTime::Seconds() - QueuedBunchStartTime > QUEUED_BUNCH_TIMEOUT_IN_SECONDS )
+		{
+			UE_LOG( LogNet, Warning, TEXT( "UActorChannel::Tick: Queued bunches for longer than normal. ChIndex: %i, Actor: %s, Queued: %i" ), ChIndex, Actor != NULL ? *Actor->GetPathName() : TEXT( "NULL" ), QueuedBunches.Num() );
+			QueuedBunchStartTime = FPlatformTime::Seconds();
+		}
 	}
 }
 
@@ -1512,6 +1521,13 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 
 	if ( Bunch.bHasMustBeMappedGUIDs )
 	{
+		if ( Connection->Driver->IsServer() )
+		{
+			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReceivedBunch: Client attempted to set bHasMustBeMappedGUIDs. Actor: %s" ), Actor != NULL ? *Actor->GetName() : TEXT( "NULL" ) );
+			Bunch.SetError();
+			return;
+		}
+
 		// If this bunch has any guids that must be mapped, we need to wait until they resolve before we can 
 		// process the rest of the stream on this channel
 		uint16 NumMustBeMappedGUIDs = 0;
@@ -1539,6 +1555,12 @@ void UActorChannel::ReceivedBunch( FInBunch & Bunch )
 	// If we have guids that need to be resolved, or we have existing pending bunches, we must process this bunch later
 	if ( PendingGuidResolves.Num() > 0 || QueuedBunches.Num() > 0 )
 	{
+		if ( QueuedBunches.Num() == 0 )
+		{
+			// Remember when we first started queuing
+			QueuedBunchStartTime = FPlatformTime::Seconds();
+		}
+
 		QueuedBunches.Add( new FInBunch( Bunch ) );
 		return;
 	}

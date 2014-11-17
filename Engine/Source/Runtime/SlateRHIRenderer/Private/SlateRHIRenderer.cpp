@@ -191,7 +191,7 @@ void FSlateRHIRenderer::Destroy()
 		BeginReleaseResource( It.Value() );
 	}
 	
-#if PLATFORM_WINDOWS || PLATFORM_MAC
+#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
 	if (CrashTrackerResource != nullptr)
 	{
 		BeginReleaseResource(CrashTrackerResource);
@@ -639,12 +639,6 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 						Params.Renderer->DrawWindow_RenderThread(RHICmdList, *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync);
 					});
 
-					// Mark this window as 'drawn'
-					if (!Window->HasEverBeenDrawn())
-					{
-						Window->MarkAsDrawn();
-					}
-
 					SlateWindowRendered.Broadcast( *Params.SlateWindow, &ViewInfo->ViewportRHI );
 
 					if ( bTakingAScreenShot )
@@ -692,7 +686,7 @@ FIntRect FSlateRHIRenderer::SetupVirtualScreenBuffer(const bool bPrimaryWorkArea
 	FDisplayMetrics DisplayMetrics;
 	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
 
-#if !PLATFORM_WINDOWS && !PLATFORM_MAC
+#if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
 	ensureMsg(0, TEXT("This functionality is not valid for this platform"));	
 	return FIntRect(FIntPoint(0, 0), FIntPoint(DisplayMetrics.PrimaryDisplayWidth, DisplayMetrics.PrimaryDisplayHeight));
 #endif	
@@ -764,7 +758,7 @@ FIntRect FSlateRHIRenderer::SetupVirtualScreenBuffer(const bool bPrimaryWorkArea
 
 void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer)
 {
-#if !PLATFORM_WINDOWS && !PLATFORM_MAC
+#if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
 	ensureMsg(0, TEXT("This functionality is not valid for this platform"));
 	return;
 #endif

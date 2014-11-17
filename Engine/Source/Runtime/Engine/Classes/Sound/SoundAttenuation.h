@@ -137,7 +137,7 @@ struct ENGINE_API FAttenuationSettings
 		float ConeOffset;
 	};
 
-	void CollectAttenuationShapesForVisualization(TMap<EAttenuationShape::Type, AttenuationShapeDetails>& ShapeDetailsMap) const;
+	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, AttenuationShapeDetails>& ShapeDetailsMap) const;
 	float GetMaxDimension() const;
 
 private:

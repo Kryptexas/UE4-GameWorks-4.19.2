@@ -4,7 +4,7 @@
 	WinRTMisc.cpp: WinRT implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include <time.h>

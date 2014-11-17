@@ -87,11 +87,20 @@ public:
 		OutputDesc += TEXT("\n\n");
 		OutputDesc += TEXT("User:\t");
 		OutputDesc += TO_TCHAR(P4Client.GetUser().Text(), bIsUnicodeServer);
-		OutputDesc += "\n\n";
-		OutputDesc += "Status:\tnew\n\n";
-		OutputDesc += "Description:\n\t";
-		OutputDesc += Description.ToString();
 		OutputDesc += TEXT("\n\n");
+		OutputDesc += TEXT("Status:\tnew\n\n");
+		OutputDesc += TEXT("Description:\n");
+		{
+			TArray<FString> DescLines;
+			Description.ToString().ParseIntoArray(&DescLines, TEXT("\n"), false);
+			for (const FString& DescLine : DescLines)
+			{
+				OutputDesc += TEXT("\t");
+				OutputDesc += DescLine;
+				OutputDesc += TEXT("\n");
+			}
+		}
+		OutputDesc += TEXT("\n");
 		OutputDesc += TEXT("Files:\n\n");
 
 		OutBuffer->Append(FROM_TCHAR(*OutputDesc, bIsUnicodeServer));

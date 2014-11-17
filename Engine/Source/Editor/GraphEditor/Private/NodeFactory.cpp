@@ -284,8 +284,13 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		{
 			return SNew(SGraphPinNum, InPin);
 		}
+		else if (InPin->PinType.PinCategory == K2Schema->PC_String || InPin->PinType.PinCategory == K2Schema->PC_Name)
+		{
+			return SNew(SGraphPinString, InPin);
+		}
 		else if (InPin->PinType.PinCategory == K2Schema->PC_Struct)
 		{
+			// If you update this logic you'll probably need to update UEdGraphSchema_K2::ShouldHidePinDefaultValue!
 			UScriptStruct* ColorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("LinearColor"));
 			UScriptStruct* VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
 			UScriptStruct* Vector2DStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector2D"));
@@ -319,6 +324,10 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 			{
 				return SNew(SGraphPinEnum, InPin);
 			}
+			else
+			{
+				return SNew(SGraphPinNum, InPin);
+			}
 		}
 		else if ((InPin->PinType.PinCategory == K2Schema->PC_Wildcard) && (InPin->PinType.PinSubCategory == K2Schema->PSC_Index))
 		{
@@ -351,6 +360,6 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 		}
 	}
 
-	// If we didn't pick a custom pin widget, use the base (string) one.
-	return SNew(SGraphPinString, InPin);
+	// If we didn't pick a custom pin widget, use an uncustomized basic pin
+	return SNew(SGraphPin, InPin);
 }

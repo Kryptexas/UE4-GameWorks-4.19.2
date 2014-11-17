@@ -8,7 +8,7 @@ FMovieSceneFloatTrackInstance::FMovieSceneFloatTrackInstance( UMovieSceneFloatTr
 {
 	FloatTrack = &InFloatTrack;
 
-	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( FloatTrack->GetPropertyName() ) );
+	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( FloatTrack->GetPropertyName(), FloatTrack->GetPropertyPath() ) );
 }
 
 void FMovieSceneFloatTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
@@ -16,7 +16,10 @@ void FMovieSceneFloatTrackInstance::Update( float Position, float LastPosition, 
 	float FloatValue = 0.0f;
 	if( FloatTrack->Eval( Position, LastPosition, FloatValue ) )
 	{
-		PropertyBindings->CallFunction( RuntimeObjects, &FloatValue );
+		for(UObject* Object : RuntimeObjects)
+		{
+			PropertyBindings->CallFunction( Object, &FloatValue );
+		}
 	}
 }
 

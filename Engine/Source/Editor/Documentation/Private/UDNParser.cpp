@@ -5,6 +5,10 @@
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "MessageLog.h"
 #include "DocumentationLink.h"
+#include "ISourceCodeAccessModule.h"
+#include "ContentBrowserModule.h"
+#include "AssetEditorManager.h"
+#include "SourceCodeNavigation.h"
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
 
@@ -1139,6 +1143,9 @@ void FUDNParser::NavigateToLink( FString AdditionalContent )
 	static const FString HttpLinkSPecifier( TEXT( "http://" ) );
 	static const FString HttpsLinkSPecifier( TEXT( "https://" ) );
 
+	static const FString CodeLinkSpecifier(TEXT("CODELINK:"));
+	static const FString AssetLinkSpecifier(TEXT("ASSETLINK:"));
+
 	if (AdditionalContent.StartsWith(DocLinkSpecifier))
 	{
 		// external link to documentation
@@ -1156,6 +1163,16 @@ void FUDNParser::NavigateToLink( FString AdditionalContent )
 		// external link
 		FPlatformProcess::LaunchURL( *AdditionalContent, nullptr, nullptr);
 	}
+	else if (AdditionalContent.StartsWith(CodeLinkSpecifier))
+	{		
+		FString InternalLink = AdditionalContent.RightChop(CodeLinkSpecifier.Len()); 		
+		ParseCodeLink(InternalLink);
+	}	
+	else if (AdditionalContent.StartsWith(AssetLinkSpecifier))
+	{
+		FString InternalLink = AdditionalContent.RightChop(AssetLinkSpecifier.Len());
+		ParseAssetLink(InternalLink);
+	}
 	else
 	{
 		// internal link
@@ -1163,5 +1180,99 @@ void FUDNParser::NavigateToLink( FString AdditionalContent )
 	}
 }
 
+bool FUDNParser::ParseCodeLink(FString &InternalLink)
+{
+	// Tokens used by the code parsing. Details in the parse section	
+	static const FString ProjectSpecifier(TEXT("[PROJECT]"));
+	static const FString ProjectRoot(TEXT("[PROJECT]/Source/[PROJECT]/"));
+	static const FString ProjectSuffix(TEXT(".uproject"));
+
+	bool bLinkParsedOK = false;	
+	FString Path;
+	int32 Line = 0;
+	int32 Col = 0;
+
+	TArray<FString> Tokens;
+	InternalLink.ParseIntoArray(&Tokens, TEXT(","), 0);
+	int32 TokenStringsCount = Tokens.Num();
+	if (TokenStringsCount > 0)
+	{
+		Path = Tokens[0];
+	}
+	if (TokenStringsCount > 1)
+	{
+		TTypeFromString<int32>::FromString(Line, *Tokens[1]);
+	}
+	if (TokenStringsCount > 2)
+	{
+		TTypeFromString<int32>::FromString(Col, *Tokens[2]);
+	}
+
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	ISourceCodeAccessor& SourceCodeAccessor = SourceCodeAccessModule.GetAccessor();
+	FString SolutionPath;
+
+	// If we specified generic project specified as the project name try to replace the name with the name of this project
+	if (InternalLink.Contains(ProjectSpecifier) == true)
+	{
+		FString ProjectName = TEXT("Marble");
+		// Try to extract the name of the project
+		FString ProjectPath = FPaths::GetProjectFilePath();
+		if (ProjectPath.EndsWith(ProjectSuffix))
+		{
+			int32 ProjectPathEndIndex;
+			if (ProjectPath.FindLastChar(TEXT('/'), ProjectPathEndIndex) == true)
+			{
+				ProjectName = ProjectPath.RightChop(ProjectPathEndIndex + 1);
+				ProjectName.RemoveFromEnd(*ProjectSuffix);
+			}
+		}
+		// Replace the root path with the name of this project
+		FString RebuiltPath = ProjectRoot + Path;
+		RebuiltPath.ReplaceInline(*ProjectSpecifier, *ProjectName);
+		Path = RebuiltPath;
+	}
+
+	// Finally create the complete path - project name and all
+	int32 PathEndIndex;
+	SolutionPath = FModuleManager::Get().GetSolutionFilepath();
+	if (SolutionPath.FindLastChar(TEXT('/'), PathEndIndex) == true)
+	{
+		SolutionPath = SolutionPath.LeftChop(SolutionPath.Len() - PathEndIndex - 1);
+		SolutionPath += Path;
+		bLinkParsedOK = SourceCodeAccessor.OpenFileAtLine(SolutionPath, Line, Col);
+	}
+	return bLinkParsedOK;
+}
+
+bool FUDNParser::ParseAssetLink(FString &InternalLink)
+{
+	TArray<FString> Token;
+	InternalLink.ParseIntoArray(&Token, TEXT(","), 0);
+	
+	if (Token.Num() >= 2)
+	{
+		FString Action = Token[0];
+		FString AssetName = Token[1];
+
+		UObject* RequiredObject = FindObject<UObject>(ANY_PACKAGE, *AssetName);
+		if (RequiredObject != nullptr)
+		{
+			if (Action == TEXT("EDIT"))
+			{
+				FAssetEditorManager::Get().OpenEditorForAsset(RequiredObject);
+			}
+			else
+			{
+				FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+				TArray<UObject*> AssetToBrowse;
+				AssetToBrowse.Add(RequiredObject);
+				ContentBrowserModule.Get().SyncBrowserToAssets(AssetToBrowse);
+			}
+		}
+	}
+	
+	return false;
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -69,13 +69,21 @@ public class UElibPNG : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Linux)
         {
-            PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
-
             if (Target.Type == TargetRules.TargetType.Server)
             {
                 string Err = string.Format("{0} dedicated server is made to depend on {1}. We want to avoid this, please correct module dependencies.", Target.Platform.ToString(), this.ToString());
                 System.Console.WriteLine(Err);
                 throw new BuildException(Err);
+            }
+
+            if (Target.IsMonolithic)
+            {
+                PublicAdditionalLibraries.Add(libPNGPath + "/lib/Linux/" + Target.Architecture + "/libpng.a");
+            }
+            else
+            {
+                PublicLibraryPaths.Add(libPNGPath + "/lib/Linux/" + Target.Architecture);
+                PublicAdditionalLibraries.Add("png15");
             }
         }
         else if (Target.Platform == UnrealTargetPlatform.HTML5)

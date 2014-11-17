@@ -17,18 +17,6 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=Style, meta=( DisplayThumbnail = "true" ))
 	USlateWidgetStyleAsset* Style;
 
-	/** Horizontal positioning of the content within the button */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
-	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
-
-	/** Vertical positioning of the content within the button */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
-	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
-
-	/** The padding to add around the button content. */
-	UPROPERTY(EditDefaultsOnly, Category="Content Layout")
-	FMargin ContentPadding;
-
 	/** The scaling factor for the button border */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance, AdvancedDisplay)
 	FVector2D DesiredSizeScale;
@@ -58,6 +46,8 @@ public:
 	/** Called when the button is clicked */
 	UPROPERTY(EditDefaultsOnly, Category=Events)
 	FOnReply OnClickedEvent;
+
+	virtual void ReleaseNativeWidget() override;
 	
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
@@ -70,10 +60,6 @@ public:
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetForegroundColor(FLinearColor InForegroundColor);
-
-	/**  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetContentPadding(FMargin InContentPadding);
 	
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -83,6 +69,10 @@ public:
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
 
+	// Begin UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
+
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
 #endif
@@ -90,6 +80,7 @@ public:
 protected:
 
 	// UPanelWidget
+	virtual UClass* GetSlotClass() const override;
 	virtual void OnSlotAdded(UPanelSlot* Slot) override;
 	virtual void OnSlotRemoved(UPanelSlot* Slot) override;
 	// End UPanelWidget

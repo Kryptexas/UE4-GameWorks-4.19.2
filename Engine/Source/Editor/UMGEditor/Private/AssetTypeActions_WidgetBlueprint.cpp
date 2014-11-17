@@ -10,7 +10,7 @@
 #include "SBlueprintDiff.h"
 #include "ISourceControlModule.h"
 #include "MessageLog.h"
-
+#include "WidgetBlueprint.h"
 #include "AssetTypeActions_WidgetBlueprint.h"
 #include "WidgetBlueprintEditor.h"
 
@@ -39,6 +39,11 @@ void FAssetTypeActions_WidgetBlueprint::OpenAssetEditor( const TArray<UObject*>&
 			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("FailedToLoadBlueprint", "Widget Blueprint could not be loaded because it derives from an invalid class.  Check to make sure the parent class for this blueprint hasn't been removed!"));
 		}
 	}
+}
+
+UClass* FAssetTypeActions_WidgetBlueprint::GetSupportedClass() const
+{
+	return UWidgetBlueprint::StaticClass();
 }
 
 bool FAssetTypeActions_WidgetBlueprint::ShouldUseDataOnlyEditor(const UBlueprint* Blueprint) const

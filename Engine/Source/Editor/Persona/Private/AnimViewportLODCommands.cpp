@@ -10,7 +10,5 @@ void FAnimViewportLODCommands::RegisterCommands()
 	UI_COMMAND( LOD1, "LOD 1", "Force select LOD 1", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( LOD2, "LOD 2", "Force select LOD 2", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( LOD3, "LOD 3", "Force select LOD 3", EUserInterfaceActionType::RadioButton, FInputGesture() );
-
-	UI_COMMAND( ShowLevelOfDetailSettings, "Level of Detail Settings", "Show the Level of Detail Settings Dialog", EUserInterfaceActionType::Button, FInputGesture() );
 }
 

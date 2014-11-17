@@ -9,9 +9,9 @@ class FVerticalSlotExtension : public FDesignerExtension
 public:
 	FVerticalSlotExtension();
 
-	bool IsActive(const TArray< FWidgetReference >& Selection);
+	virtual bool CanExtendSelection(const TArray< FWidgetReference >& Selection) const override;
 	
-	virtual void BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets) override;
+	virtual void ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements) override;
 
 private:
 

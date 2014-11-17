@@ -15,6 +15,8 @@ class UK2Node_CallFunctionOnMember : public UK2Node_CallFunction
 	UPROPERTY()
 	FMemberReference				MemberVariableToCallOn;
 
+	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const override;
+
 	// Begin UK2Node_CallFunction interface
 	virtual UEdGraphPin* CreateSelfPin(const UFunction* Function) override;
 	virtual FString GetFunctionContextString() const override;

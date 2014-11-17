@@ -2,7 +2,6 @@
 
 
 #pragma once
-#include "ActiveSound.h"
 #include "SoundNode.generated.h"
 
 /*-----------------------------------------------------------------------------

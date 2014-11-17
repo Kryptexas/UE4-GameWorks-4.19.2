@@ -39,7 +39,12 @@ DEFINE_LOG_CATEGORY(LogSequencer);
 
 bool FSequencer::IsSequencerEnabled()
 {
-	return FParse::Param( FCommandLine::Get(), TEXT( "Sequencer" ) ) || FParse::Param( FCommandLine::Get(), TEXT( "umg" ) );
+	if ( GetDefault<UEditorExperimentalSettings>()->bUnrealMotionGraphics )
+	{
+		return true;
+	}
+
+	return FParse::Param(FCommandLine::Get(), TEXT("Sequencer"));
 }
 
 
@@ -50,6 +55,9 @@ void FSequencer::InitSequencer( const FSequencerInitParams& InitParams, const TA
 		bIsEditingWithinLevelEditor = InitParams.bEditWithinLevelEditor;
 
 		ToolkitHost = InitParams.ToolkitHost;
+
+		LastViewRange = InitParams.ViewParams.InitalViewRange;
+		ScrubPosition = InitParams.ViewParams.InitialScrubPosition;
 
 		ObjectChangeListener = InitParams.ObjectChangeListener;
 		ObjectBindingManager = InitParams.ObjectBindingManager;
@@ -533,7 +541,7 @@ void FSequencer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneIn
 	}*/
 }
 
-void FSequencer::UpdateViewports(AActor* ActorToViewThrough) const
+void FSequencer::UpdatePreviewViewports(UObject* ObjectToViewThrough) const
 {
 	if(!IsPerspectiveViewportPosessionEnabled())
 	{
@@ -544,7 +552,7 @@ void FSequencer::UpdateViewports(AActor* ActorToViewThrough) const
 	{
 		if(LevelVC && LevelVC->IsPerspective() && LevelVC->AllowMatineePreview())
 		{
-			LevelVC->SetMatineeActorLock(ActorToViewThrough);
+			LevelVC->SetMatineeActorLock(Cast<AActor>(ObjectToViewThrough));
 		}
 	}
 }
@@ -1243,6 +1251,16 @@ void FSequencer::FilterToSelectedShotSections(bool bZoomToShotBounds)
 		}
 	}
 	FilterToShotSections(SelectedShotSections, bZoomToShotBounds);
+}
+
+bool FSequencer::CanKeyProperty(const UClass& ObjectClass, const IPropertyHandle& PropertyHandle) const
+{
+	return ObjectChangeListener->IsTypeKeyable( ObjectClass, PropertyHandle );
+} 
+
+void FSequencer::KeyProperty(const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle) 
+{
+	ObjectChangeListener->KeyProperty( ObjectsToKey, PropertyHandle );
 }
 
 TArray< TWeakObjectPtr<UMovieSceneSection> > FSequencer::GetFilteringShotSections() const

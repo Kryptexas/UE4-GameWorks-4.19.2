@@ -6840,6 +6840,8 @@ void UInterpTrackInstDirector::TermTrackInst(UInterpTrack* Track)
 	}
 	
 	OldViewTarget = NULL;
+
+	Super::TermTrackInst(Track);
 }
 
 
@@ -6930,6 +6932,8 @@ void UInterpTrackInstFade::TermTrackInst(UInterpTrack* Track)
 			}
 		}
 	}
+
+	Super::TermTrackInst(Track);
 }
 
 /*-----------------------------------------------------------------------------
@@ -7051,6 +7055,8 @@ void UInterpTrackInstSlomo::TermTrackInst(UInterpTrack* Track)
 		WorldSettings->MatineeTimeDilation = OldTimeDilation;
 		WorldSettings->ForceNetUpdate();
 	}
+
+	Super::TermTrackInst(Track);
 }
 
 /*-----------------------------------------------------------------------------
@@ -8102,6 +8108,8 @@ void UInterpTrackInstSound::TermTrackInst(UInterpTrack* Track)
 		}
 		PlayAudioComp = NULL;
 	}
+
+	Super::TermTrackInst(Track);
 }
 
 /*-----------------------------------------------------------------------------
@@ -8565,6 +8573,8 @@ void UInterpTrackInstFloatMaterialParam::TermTrackInst(UInterpTrack* Track)
 	MaterialInstances.Empty();
 	ResetFloats.Empty();
 	PrimitiveMaterialRefs.Empty();
+
+	Super::TermTrackInst(Track);
 }
 
 void UInterpTrackInstFloatMaterialParam::SaveActorState(UInterpTrack* Track)
@@ -8695,6 +8705,8 @@ void UInterpTrackInstVectorMaterialParam::TermTrackInst(UInterpTrack* Track)
 	MaterialInstances.Empty();
 	ResetVectors.Empty();
 	PrimitiveMaterialRefs.Empty();
+
+	Super::TermTrackInst(Track);
 }
 
 void UInterpTrackInstVectorMaterialParam::SaveActorState(UInterpTrack* Track)
@@ -8961,6 +8973,8 @@ void UInterpTrackInstColorScale::TermTrackInst(UInterpTrack* Track)
 		PC->PlayerCameraManager->bEnableColorScaling = false;
 		PC->PlayerCameraManager->ColorScale = FVector(1.f,1.f,1.f);
 	}
+
+	Super::TermTrackInst(Track);
 }
 
 /*-----------------------------------------------------------------------------
@@ -9050,6 +9064,7 @@ void UInterpTrackInstAudioMaster::InitTrackInst(UInterpTrack* Track)
 
 void UInterpTrackInstAudioMaster::TermTrackInst(UInterpTrack* Track)
 {
+	Super::TermTrackInst(Track);
 }
 
 

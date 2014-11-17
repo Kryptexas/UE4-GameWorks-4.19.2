@@ -125,6 +125,7 @@ struct FBXImportOptions
 	bool bPreserveSmoothingGroups;
 	bool bKeepOverlappingVertices;
 	bool bImportMeshesInBoneHierarchy;
+	bool bImportGroupNodeAsRoot;
 	bool bCreatePhysicsAsset;
 	UPhysicsAsset *PhysicsAsset;
 	// Animation option
@@ -899,8 +900,10 @@ public:
 	
 	/**
 	 * Modifies the Matinee actor with the animations found in the FBX document.
+	 * 
+	 * @return	true, if sucessful
 	 */
-	UNREALED_API void ImportMatineeSequence(AMatineeActor* InMatineeActor);
+	UNREALED_API bool ImportMatineeSequence(AMatineeActor* InMatineeActor);
 
 
 	/** Create a new asset from the package and objectname and class */
@@ -980,8 +983,7 @@ public:
 	void SetupAnimationDataFromMesh(USkeletalMesh * SkeletalMesh, UObject * InParent, TArray<FbxNode*>& NodeArray, UFbxAnimSequenceImportData* ImportData, const FString & Filename);
 
 	/** error message handler */
-	void AddTokenizedErrorMessage(TSharedRef<FTokenizedMessage> Error);
-	void AddErrorMessage(const FText & Error);
+	void AddTokenizedErrorMessage(TSharedRef<FTokenizedMessage> Error, FName FbxErrorName );
 	void ClearTokenizedErrorMessages();
 	void FlushToTokenizedErrorMessage(enum EMessageSeverity::Type Severity);
 

@@ -12,6 +12,12 @@ UPaperTileLayer::UPaperTileLayer(const FPostConstructInitializeProperties& PCIP)
 	LayerWidth = 4;
 	LayerHeight = 4;
 
+#if WITH_EDITORONLY_DATA
+	LayerOpacity = 1.0f;
+
+	bHiddenInEditor = false;
+#endif
+
 	DestructiveAllocateMap(LayerWidth, LayerHeight);
 }
 
@@ -153,8 +159,8 @@ void UPaperTileLayer::ConvertToTileSetPerCell()
 	const int32 NumCells = AllocatedWidth * AllocatedHeight;
 	for (int32 Index = 0; Index < NumCells; ++Index)
 	{
-		FPaperTileInfo* Info = new (AllocatedCells)FPaperTileInfo();
-		Info->TileSet = TileSet;
+		FPaperTileInfo* Info = new (AllocatedCells) FPaperTileInfo();
+		Info->TileSet = TileSet_DEPRECATED;
 		Info->PackedTileIndex = AllocatedGrid_DEPRECATED[Index];
 	}
 }

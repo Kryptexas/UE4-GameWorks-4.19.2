@@ -2,6 +2,8 @@
 
 #pragma once
 
+class UMovieSceneTrack;
+
 typedef TMap< TWeakObjectPtr<UMovieSceneTrack>, TSharedPtr<class IMovieSceneTrackInstance> > FMovieSceneInstanceMap;
 class FMovieSceneInstance : public TSharedFromThis<FMovieSceneInstance>
 {

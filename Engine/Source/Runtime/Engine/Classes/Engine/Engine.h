@@ -162,8 +162,8 @@ struct FNamedNetDriver
 	FNetDriverDefinition* NetDriverDef;
 
 	FNamedNetDriver() :
-		NetDriver(NULL),
-		NetDriverDef(NULL)
+		NetDriver(nullptr),
+		NetDriverDef(nullptr)
 	{}
 
 	FNamedNetDriver(class UNetDriver* InNetDriver, FNetDriverDefinition* InNetDriverDef) :
@@ -181,10 +181,10 @@ struct FNamedNetDriver
  *	WorldContexts can be thought of as a track. By default we have 1 track that we load and unload levels on. Adding a second context is adding
  *	a second track; another track of progression for worlds to live on. 
  *
- *	For the GameEngine, there will be one WorldContext until we decide to support multiple simultaneos worlds.
+ *	For the GameEngine, there will be one WorldContext until we decide to support multiple simultaneous worlds.
  *	For the EditorEngine, there may be one WorldContext for the EditorWorld and one for the PIE World.
  *
- *	FWorldContext provdes both a way to manage 'the current PIE UWorld*' as well as state that goes along with connecting/travelling to 
+ *	FWorldContext provides both a way to manage 'the current PIE UWorld*' as well as state that goes along with connecting/travelling to 
  *  new worlds.
  *
  *	FWorldContext should remain internal to the UEngine classes. Outside code should not keep pointers or try to manage FWorldContexts directly.
@@ -207,15 +207,12 @@ struct FWorldContext
 
 	FSeamlessTravelHandler SeamlessTravelHandler;
 
-	UPROPERTY()
 	FName ContextHandle;
 
 	/** URL to travel to for pending client connect */
-	UPROPERTY()
 	FString TravelURL;
 
 	/** TravelType for pending client connects */
-	UPROPERTY()
 	uint8 TravelType;
 
 	/** URL the last time we traveled */
@@ -237,7 +234,6 @@ struct FWorldContext
 	 * Array of package/ level names that need to be loaded for the pending map change. First level in that array is
 	 * going to be made a fake persistent one by using ULevelStreamingPersistent.
 	 */
-	UPROPERTY()
 	TArray<FName> LevelsToLoadForPendingMapChange;
 
 	/** Array of already loaded levels. The ordering is arbitrary and depends on what is already loaded and such.	*/
@@ -245,11 +241,9 @@ struct FWorldContext
 	TArray<class ULevel*> LoadedLevelsForPendingMapChange;
 
 	/** Human readable error string for any failure during a map change request. Empty if there were no failures.	*/
-	UPROPERTY()
 	FString PendingMapChangeFailureDescription;
 
 	/** If true, commit map change the next frame.																	*/
-	UPROPERTY()
 	uint32 bShouldCommitPendingMapChange:1;
 
 	/** Handles to object references; used by the engine to e.g. the prevent objects from being garbage collected.	*/
@@ -263,26 +257,21 @@ struct FWorldContext
 	class UGameViewportClient* GameViewport;
 
 	UPROPERTY()
-	TArray<ULocalPlayer*> GamePlayers;
+	class UGameInstance* OwningGameInstance;
 
 	/** A list of active net drivers */
 	UPROPERTY(transient)
 	TArray<FNamedNetDriver> ActiveNetDrivers;
 
-	UPROPERTY()
 	int32	PIEInstance;
 
-	UPROPERTY()
 	FString	PIEPrefix;
 
-	UPROPERTY()
 	FString PIERemapPrefix;
 
-	UPROPERTY()
 	bool	RunAsDedicated;
 
 	/** Is this world context waiting for an online login to complete (for PIE) */
-	UPROPERTY()
 	bool	bWaitingOnOnlineSubsystem;
 
 	/**************************************************************/
@@ -301,7 +290,7 @@ struct FWorldContext
 	void RemoveRef(UWorld*& WorldPtr)
 	{
 		ExternalReferences.Remove(&WorldPtr);
-		WorldPtr = NULL;
+		WorldPtr = nullptr;
 	}
 
 	/** Set CurrentWorld and update external reference pointers to reflect this*/
@@ -318,6 +307,9 @@ struct FWorldContext
 		ThisCurrentWorld = World;
 	}
 
+	/** Collect FWorldContext references for garbage collection */
+	void AddReferencedObjects(FReferenceCollector& Collector, const UObject* ReferencingObject);
+
 	FORCEINLINE UWorld* World() const
 	{
 		return ThisCurrentWorld;
@@ -328,20 +320,20 @@ struct FWorldContext
 		, ContextHandle(NAME_None)
 		, TravelURL()
 		, TravelType(0)
-		, PendingNetGame(NULL)
+		, PendingNetGame(nullptr)
 		, bShouldCommitPendingMapChange(0)
-		, GameViewport(NULL)
+		, GameViewport(nullptr)
+		, OwningGameInstance(nullptr)
 		, PIEInstance(INDEX_NONE)
 		, RunAsDedicated(false)
 		, bWaitingOnOnlineSubsystem(false)
-		, ThisCurrentWorld(NULL)
+		, ThisCurrentWorld(nullptr)
 	{
 	}
 
 private:
 
-	UPROPERTY()
-	UWorld *	ThisCurrentWorld;
+	UWorld*	ThisCurrentWorld;
 };
 
 
@@ -886,6 +878,15 @@ public:
 	UPROPERTY()
 	class UMaterial* ConstraintLimitMaterial;
 
+	UPROPERTY()
+	class UMaterialInstanceDynamic * ConstraintLimitMaterialX;
+
+	UPROPERTY()
+	class UMaterialInstanceDynamic * ConstraintLimitMaterialY;
+
+	UPROPERTY()
+	class UMaterialInstanceDynamic * ConstraintLimitMaterialZ;
+
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FStringAssetReference ConstraintLimitMaterialName;
@@ -1088,6 +1089,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
 	float AsyncLoadingTimeLimit;
 
+	/** Whether to use the entire time limit even if blocked on I/O */
+	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
+	uint32 bAsyncLoadingUseFullTimeLimit:1;
+	
 	/** Additional time to spend asynchronous loading during a "high priority" load */
 	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
 	float PriorityAsyncLoadingExtraTime;
@@ -1096,9 +1101,9 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
 	float LevelStreamingActorsUpdateTimeLimit;
 	
-	/** Batching granularity used to register actors during level streaming */
+	/** Batching granularity used to register actor components during level streaming */
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
-	int32 LevelStreamingNumActorsToUpdate;
+	int32 LevelStreamingComponentsRegistrationGranularity;
 	
 	/** @todo document */
 	UPROPERTY(config)
@@ -1274,10 +1279,6 @@ public:
 	float MinDesiredFrameRate;
 
 private:
-	/** Viewports for all players in all game instances (all PIE windows, for example) */
-	//UPROPERTY()
-	//TArray<class ULocalPlayer*> GamePlayers;
-
 	/** Default color of selected objects in the level viewport (additive) */
 	UPROPERTY(globalconfig)
 	FLinearColor DefaultSelectedMaterialColor;
@@ -1505,10 +1506,11 @@ public:
 
 	virtual bool IsInitialized() const { return bIsInitialized; }
 
+#if WITH_EDITOR
+
 	/** Editor-only event triggered when the actor list of the world has changed */
 	DECLARE_EVENT( UEngine, FLevelActorListChangedEvent );
 	FLevelActorListChangedEvent& OnLevelActorListChanged() { return LevelActorListChangedEvent; }
-
 
 	/** Called by internal engine systems after a world's actor list changes in a way not specifiable through other LevelActor__Events to notify other subsystems */
 	void BroadcastLevelActorListChanged() { LevelActorListChangedEvent.Broadcast(); }
@@ -1561,6 +1563,8 @@ public:
 
 	/** Called by internal engine systems after a level actor has been requested to be renamed */
 	void BroadcastLevelActorRequestRename(const AActor* InActor) { LevelActorRequestRenameEvent.Broadcast(InActor); }
+
+#endif // #if WITH_EDITOR
 
 	/** Event triggered after a server travel failure of any kind has occurred */
 	FOnTravelFailure& OnTravelFailure() { return TravelFailureEvent; }
@@ -1758,10 +1762,10 @@ public:
 	const TArray<class ULocalPlayer*>& GetGamePlayers(const UGameViewportClient *Viewport);
 
 	/**
-	 *	returns ULocalPlayer from a given Voice chat index. This should only be used by the online subsystems module
-	 *  and never by game code to get quick access to a local player - please use FLocalPlayerIterator instead!
+	 *	Returns the first ULocalPlayer that matches the given ControllerId. 
+	 *  This will search across all world contexts.
 	 */
-	class ULocalPlayer* LocalPlayerFromVoiceIndex(int32 index) const;
+	class ULocalPlayer* FindFirstLocalPlayerFromControllerId(int32 ControllerId) const;
 
 	/**
 	 * return the number of entries in the GamePlayers array
@@ -1782,7 +1786,7 @@ public:
 	/**
 	 * return the first ULocalPlayer in the GamePlayers array.
 	 *
-	 * @returns	first ULocalPlayer or NULL if the array is empty
+	 * @returns	first ULocalPlayer or nullptr if the array is empty
 	 */
 	ULocalPlayer* GetFirstGamePlayer( UWorld *InWorld );
 	ULocalPlayer* GetFirstGamePlayer(const UGameViewportClient *InViewport );
@@ -1797,22 +1801,6 @@ public:
 	 * @returns the first ULocalPlayer
 	 */
 	ULocalPlayer* GetDebugLocalPlayer();
-
-	/**
-	 * Add a ULocalPlayer to the GamePlayers array
-	 *
-	 * @param	InPlayer		Player pointer to store at the given index	 
-	 */
-	void AddGamePlayer( UWorld *InWorld, ULocalPlayer* InPlayer );
-	void AddGamePlayer( const UGameViewportClient *InViewport, ULocalPlayer* InPlayer );
-
-	/**
-	 * Remove the player with the given index from the player array if valid
-	 *
-	 * @param	InPlayerIndex		Index of the player to remove.
-	 */
-	bool RemoveGamePlayer( UWorld *InWorld, int32 InPlayerIndex );
-	bool RemoveGamePlayer( const UGameViewportClient *InViewport, int32 InPlayerIndex );
 
 	/** Clean up the GameViewport */
 	void CleanupGameViewport();
@@ -2014,7 +2002,7 @@ public:
 	 * This should be be overridden to cater for game specific object types that do not derive from the Actor class.
 	 *
 	 * @param Object		Object whose owning world we require.
-	 * @param bChecked      Allows calling function to specify not to do ensure check and that a NULL return value is acceptable
+	 * @param bChecked      Allows calling function to specify not to do ensure check and that a nullptr return value is acceptable
 	 * returns				The world to which the object belongs.
 	 */
 	UWorld* GetWorldFromContextObject(const UObject* Object, bool bChecked = true) const;
@@ -2030,7 +2018,7 @@ public:
 	 * Retrieves the LocalPlayer for the player which has the ControllerId specified
 	 *
 	 * @param	ControllerId	the game pad index of the player to search for
-	 * @return	The player that has the ControllerId specified, or NULL if no players have that ControllerId
+	 * @return	The player that has the ControllerId specified, or nullptr if no players have that ControllerId
 	 */
 	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient * InViewport, int32 ControllerId );
 	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, int32 ControllerId );
@@ -2052,7 +2040,7 @@ public:
 	/** Returns the GameViewport widget */
 	virtual TSharedPtr<class SViewport> GetGameViewportWidget() const
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	/** Returns the current display gamma value */
@@ -2060,7 +2048,7 @@ public:
 
 	virtual void FocusNextPIEWorld(UWorld *CurrentPieWorld, bool previous=false) { }
 
-	virtual class UGameViewportClient *	GetNextPIEViewport(UGameViewportClient * CurrentViewport) { return NULL; }
+	virtual class UGameViewportClient* GetNextPIEViewport(UGameViewportClient * CurrentViewport) { return nullptr; }
 
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* InGameViewport, int32 &ControllerId) { }
 
@@ -2127,7 +2115,7 @@ public:
 	virtual bool UseSound() const;
 
 	// This should only ever be called for a EditorEngine
-	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &Context, UWorld* InWorld, FString &PlayWorldMapName) { check(false); return NULL; }
+	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &Context, UWorld* InWorld, FString &PlayWorldMapName) { check(false); return nullptr; }
 
 
 protected:
@@ -2163,6 +2151,8 @@ protected:
 	FWorldDestroyedEvent		WorldDestroyedEvent;
 private:
 
+#if WITH_EDITOR
+
 	/** Broadcasts whenever a world's actor list changes in a way not specifiable through other LevelActor__Events */
 	FLevelActorListChangedEvent LevelActorListChangedEvent;
 
@@ -2186,6 +2176,8 @@ private:
 
 	/** Broadcasts after an actor has been moved, rotated or scaled */
 	FOnActorMovedEvent		OnActorMovedEvent;
+
+#endif // #if WITH_EDITOR
 
 	/** Thread preventing screen saver from kicking. Suspend most of the time. */
 	FRunnableThread*		ScreenSaverInhibitor;
@@ -2240,7 +2232,7 @@ public:
 	 *
 	 * @param NetDriverName The name associated with the driver to find.
 	 *
-	 * @return A pointer to the UNetDriver that was found, or NULL if it wasn't found.
+	 * @return A pointer to the UNetDriver that was found, or nullptr if it wasn't found.
 	 */
 	UNetDriver* FindNamedNetDriver(UWorld* InWorld, FName NetDriverName);
 	UNetDriver* FindNamedNetDriver(const UPendingNetGame* InPendingNetGame, FName NetDriverName);
@@ -2297,7 +2289,7 @@ public:
 	/**
 	 * The proper way to disconnect a given World and NetDriver. Travels world if necessary, cleans up pending connects if necessary.
 	 *	
-	 * @param InWorld	The world being disconnected (might be NULL in case of pending net dupl)
+	 * @param InWorld	The world being disconnected (might be nullptr in case of pending net dupl)
 	 * @param NetDriver The net driver being disconnect (will be InWorld's net driver if there is a world)
 	 *	
 	 */
@@ -2369,7 +2361,7 @@ public:
 	/** Cancel pending level. */
 	virtual void CancelAllPending();
 
-	virtual void CancelPending(UWorld *InWorld, UPendingNetGame *NewPendingNetGame=NULL );
+	virtual void CancelPending(UWorld *InWorld, UPendingNetGame *NewPendingNetGame=nullptr );
 
 	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld);
 
@@ -2385,7 +2377,7 @@ public:
 	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle);
 
-	const TArray<FWorldContext>& GetWorldContexts() { return WorldList; }
+	const TIndirectArray<FWorldContext>& GetWorldContexts() { return WorldList;	}
 
 
 	/** Verify any remaining World(s) are valid after ::LoadMap destroys a world */
@@ -2401,8 +2393,7 @@ public:
 
 protected:
 
-	UPROPERTY()
-	TArray<FWorldContext>	WorldList;
+	TIndirectArray<FWorldContext>	WorldList;
 
 	UPROPERTY()
 	int32	NextWorldContextHandle;
@@ -2615,7 +2606,7 @@ private:
 		bool bIsRHS;
 
 		/** Constructor */
-		FEngineStatFuncs(const FName& InCommandName, const FName& InCategoryName, const FText& InDescriptionString, EngineStatRender InRenderFunc = NULL, EngineStatToggle InToggleFunc = NULL, const bool bInIsRHS = false)
+		FEngineStatFuncs(const FName& InCommandName, const FName& InCategoryName, const FText& InDescriptionString, EngineStatRender InRenderFunc = nullptr, EngineStatToggle InToggleFunc = nullptr, const bool bInIsRHS = false)
 			: CommandName(InCommandName)
 			, CategoryName(InCategoryName)
 			, DescriptionString(InDescriptionString)
@@ -2637,18 +2628,18 @@ private:
 	 * @param ViewportClient - The viewport being drawn to
 	 * @param Stream - The remaining characters from the Exec call (optional)
 	 */
-	bool ToggleStatFPS(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
-	bool ToggleStatDetailed(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
-	bool ToggleStatHitches(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
-	bool ToggleStatNamedEvents(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
-	bool ToggleStatUnit(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatFPS(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatDetailed(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatHitches(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatNamedEvents(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatUnit(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 #if !UE_BUILD_SHIPPING
-	bool ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
-	bool ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
-	bool ToggleStatUnitTime(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
-	bool ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatUnitTime(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
+	bool ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 #endif
-	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = nullptr);
 
 	/**
 	 * Functions for rendering the various simple stats, should only be used when registering with EngineStats
@@ -2662,25 +2653,25 @@ private:
 	 * @param ViewRotation - The world space view rotation
 	 */
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	int32 RenderStatVersion(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatVersion(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 #endif
-	int32 RenderStatFPS(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatHitches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatSummary(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatNamedEvents(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatColorList(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatUnit(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatFPS(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatHitches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatSummary(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatNamedEvents(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatColorList(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatUnit(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	int32 RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 #endif
-	int32 RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
-	int32 RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
+	int32 RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 #if STATS
-	int32 RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 #endif
 };

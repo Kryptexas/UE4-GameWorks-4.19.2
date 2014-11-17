@@ -667,54 +667,9 @@ FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexAPEXClothBuffer& VertexBu
 	return Ar;
 }
 
-FArchive &operator<<( FArchive& Ar, FMeshBoneInfo& F)
-{
-	Ar << F.Name << F.ParentIndex;
 
-	if( Ar.IsLoading() && (Ar.UE4Ver() < VER_UE4_REFERENCE_SKELETON_REFACTOR) )
-	{
-		FColor DummyColor = FColor::White;
-		Ar << DummyColor;
-	}
 
-#if WITH_EDITORONLY_DATA
-	if (Ar.UE4Ver() >= VER_UE4_STORE_BONE_EXPORT_NAMES)
-	{
-		if(!Ar.IsCooking())
-		{
-			Ar << F.ExportName;
-		}
-	}
-	else
-	{
-		F.ExportName = F.Name.ToString();
-	}
-#endif
 
-	return Ar;
-}
-
-FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
-{
-	Ar << F.RefBoneInfo;
-	Ar << F.RefBonePose;
-
-	if( Ar.UE4Ver() >= VER_UE4_REFERENCE_SKELETON_REFACTOR )
-	{
-		Ar << F.NameToIndexMap;
-	}
-
-	// Fix up any assets that don't have an INDEX_NONE parent for Bone[0]
-	if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_FIXUP_ROOTBONE_PARENT )
-	{
-		if( (F.RefBoneInfo.Num() > 0) && (F.RefBoneInfo[0].ParentIndex != INDEX_NONE) )
-		{
-			F.RefBoneInfo[0].ParentIndex = INDEX_NONE;
-		}
-	}
-
-	return Ar;
-}
 
 
 /**
@@ -1753,13 +1708,12 @@ FreeSkeletalMeshBuffersSinkCallback
 
 void FreeSkeletalMeshBuffersSinkCallback()
 {
-	FlushRenderingCommands();
-
 	// If r.FreeSkeletalMeshBuffers==1 then CPU buffer copies are to be released.
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FreeSkeletalMeshBuffers"));
 	bool bFreeSkeletalMeshBuffers = CVar->GetValueOnGameThread() == 1;
 	if(bFreeSkeletalMeshBuffers)
 	{
+		FlushRenderingCommands();
 		for (TObjectIterator<USkeletalMesh> It;It;++It)
 		{
 			It->ReleaseCPUResources();
@@ -2755,10 +2709,10 @@ void USkeletalMesh::DebugVerifySkeletalMeshLOD()
 	{
 		for(int32 i=1; i<LODInfo.Num(); i++)
 		{
-			if (LODInfo[i].DisplayFactor <= 0.1f)
+			if (LODInfo[i].ScreenSize <= 0.1f)
 			{
 				// too small
-				UE_LOG(LogSkeletalMesh, Warning, TEXT("SkelMeshLOD (%s) : DisplayFactor for LOD %d may be too small (%0.5f)"), *GetPathName(), i, LODInfo[i].DisplayFactor);
+				UE_LOG(LogSkeletalMesh, Warning, TEXT("SkelMeshLOD (%s) : ScreenSize for LOD %d may be too small (%0.5f)"), *GetPathName(), i, LODInfo[i].ScreenSize);
 			}
 		}
 	}
@@ -3905,7 +3859,7 @@ FSkeletalMeshSceneProxy::FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Co
 				MaterialRelevance |= Material->GetRelevance();
 			}
 
-			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType );
+			const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, &TGPUSkinVertexFactory<false>::StaticType, GetScene()->GetFeatureLevel() );
 			if ( bRequiresAdjacencyInformation && LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() == false )
 			{
 				UE_LOG(LogSkeletalMesh, Warning, 
@@ -4253,7 +4207,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 
 	BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
 
-	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionElementInfo.Material, Mesh.VertexFactory->GetType() );
+	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation(SectionElementInfo.Material, Mesh.VertexFactory->GetType(), View->GetFeatureLevel());
 	if ( bRequiresAdjacencyInformation )
 	{
 		check( LODModel.AdjacencyMultiSizeIndexContainer.IsIndexBufferValid() );
@@ -4627,7 +4581,7 @@ SIZE_T USkinnedMeshComponent::GetResourceSize(EResourceSizeMode::Type Mode)
 
 FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 {
-	ERHIFeatureLevel::Type SceneFeatureLevel = GRHIFeatureLevel;
+	ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
 	FSkeletalMeshSceneProxy* Result = NULL;
 	FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
 
@@ -4639,7 +4593,7 @@ FPrimitiveSceneProxy* USkinnedMeshComponent::CreateSceneProxy()
 	{
 		// Only create a scene proxy if the bone count being used is supported, or if we don't have a skeleton (this is the case with destructibles)
 		int32 MaxBonesPerChunk = SkelMeshResource->GetMaxBonesPerChunk();
-		if (MaxBonesPerChunk <= GetFeatureLevelMaxNumberOfBones(GRHIFeatureLevel))
+		if (MaxBonesPerChunk <= GetFeatureLevelMaxNumberOfBones(SceneFeatureLevel))
 		{
 			Result = ::new FSkeletalMeshSceneProxy(this,SkelMeshResource);
 		}

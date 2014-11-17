@@ -409,7 +409,6 @@ struct FExportFlags
 		{
 			uint8 bHasPath		: 1;
 			uint8 bNoLoad		: 1;
-			uint8 bIsPackage	: 1;
 		};
 
 		uint8	Value;
@@ -472,7 +471,7 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 		// Only the client sends default guids
 		check( !IsNetGUIDAuthority() );
 		ExportFlags.bHasPath = 1;
-	}		
+	}
 	else if ( GuidCache->IsExportingNetGUIDBunch )
 	{
 		// Only the server should be exporting guids
@@ -487,8 +486,7 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 			ExportFlags.bHasPath = ObjectPathName.IsEmpty() ? 0 : 1;
 		}
 
-		ExportFlags.bNoLoad		= bNoLoad ? 1 : 0;
-		ExportFlags.bIsPackage	= ( Cast< const UPackage >( Object ) != NULL ) ? 1 : 0;
+		ExportFlags.bNoLoad	= bNoLoad ? 1 : 0;
 
 		Ar << ExportFlags.Value;
 	}
@@ -510,6 +508,10 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 			check( !ObjectPathName.IsEmpty() );
 		}
 
+		const bool bIsPackage = ( NetGUID.IsStatic() && Object != NULL && Object->GetOuter() == NULL );
+
+		check( bIsPackage == ( Cast< UPackage >( Object ) != NULL ) );		// Make sure it really is a package
+
 		// Serialize reference to outer. This is basically a form of compression.
 		FNetworkGUID OuterNetGUID = GuidCache->GetOrAssignNetGUID( ObjectOuter );
 
@@ -519,6 +521,12 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 
 		// Serialize Name of object
 		Ar << ObjectPathName;
+
+		if ( bIsPackage )
+		{
+			FGuid PackageGuid = CastChecked< const UPackage >( Object )->GetGuid();
+			Ar << PackageGuid;
+		}
 
 		if ( GuidCache->IsExportingNetGUIDBunch )
 		{
@@ -536,8 +544,39 @@ void UPackageMapClient::InternalWriteObject( FArchive & Ar, FNetworkGUID NetGUID
 //
 //--------------------------------------------------------------------
 
-static void SanityCheckExport( const UObject * Object, const FNetworkGUID & NetGUID, const FString & ExpectedPathName, const UObject * ExpectedOuter, const FExportFlags & ExportFlags )
+static void SanityCheckExport( 
+	const FNetGUIDCache *	GuidCache,
+	const UObject *			Object, 
+	const FNetworkGUID &	NetGUID, 
+	const FString &			ExpectedPathName, 
+	const FGuid &			ExpectedPackageGuid, 
+	const UObject *			ExpectedOuter, 
+	const FNetworkGUID &	ExpectedOuterGUID,
+	const FExportFlags &	ExportFlags )
 {
+	
+	check( GuidCache != NULL );
+	check( Object != NULL );
+
+	const FNetGuidCacheObject * CacheObject = GuidCache->ObjectLookup.Find( NetGUID );
+
+	if ( CacheObject != NULL )
+	{
+		if ( CacheObject->OuterGUID != ExpectedOuterGUID )
+		{
+			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: CacheObject->OuterGUID != ExpectedOuterGUID. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
+		}
+
+		if ( CacheObject->PackageGuid != ExpectedPackageGuid )
+		{
+			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: CacheObject->PackageGuid != ExpectedPackageGuid. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
+		}
+	}
+	else
+	{
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: CacheObject == NULL. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
+	}
+
 	if ( Object->GetName() != ExpectedPathName )
 	{
 		UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: Name mismatch. NetGUID: %s, Object: %s, Expected: %s" ), *NetGUID.ToString(), *Object->GetPathName(), *ExpectedPathName );
@@ -550,14 +589,12 @@ static void SanityCheckExport( const UObject * Object, const FNetworkGUID & NetG
 		UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: Outer mismatch. Object: %s, NetGUID: %s, Current: %s, Expected: %s" ), *Object->GetPathName(), *NetGUID.ToString(), *CurrentOuterName, *ExpectedOuterName );
 	}
 
-	if ( ExportFlags.bIsPackage )
-	{
-		const UPackage * Package = Cast< const UPackage >( Object );
+	const bool bIsPackage = ( NetGUID.IsStatic() && Object != NULL && Object->GetOuter() == NULL );
+	const UPackage * Package = Cast< const UPackage >( Object );
 
-		if ( Package == NULL )
-		{
-			UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: Expected package. Object:%s, NetGUID: %s" ), *Object->GetPathName(), *NetGUID.ToString() );
-		}
+	if ( bIsPackage != ( Package != NULL ) )
+	{
+		UE_LOG( LogNetPackageMap, Warning, TEXT( "SanityCheckExport: Package type mismatch. Object:%s, NetGUID: %s" ), *Object->GetPathName(), *NetGUID.ToString() );
 	}
 }
 
@@ -628,7 +665,16 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		FNetworkGUID OuterGUID = InternalLoadObject( Ar, ObjOuter, InternalLoadObjectRecursionCount + 1 );
 
 		FString PathName;
+		FGuid	PackageGuid;
+
 		Ar << PathName;
+
+		const bool bIsPackage = NetGUID.IsStatic() && !OuterGUID.IsValid();
+
+		if ( bIsPackage )
+		{
+			Ar << PackageGuid;
+		}
 
 		if ( Ar.IsError() )
 		{
@@ -643,7 +689,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		if ( Object != NULL )
 		{
 			// If we already have the object, just do some sanity checking and return
-			SanityCheckExport( Object, NetGUID, PathName, ObjOuter, ExportFlags );
+			SanityCheckExport( GuidCache.Get(), Object, NetGUID, PathName, PackageGuid, ObjOuter, OuterGUID, ExportFlags );
 			return NetGUID;
 		}
 
@@ -660,6 +706,32 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 			{
 				UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::InternalLoadObject: Unable to resolve default guid from client: PathName: %s, ObjOuter: %s " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ) );
 				return NetGUID;
+			}
+
+			if (Object->IsPendingKill())
+			{
+				UE_LOG( LogNetPackageMap, Warning, TEXT( "UPackageMapClient::InternalLoadObject: Received reference to pending kill object from client: PathName: %s, ObjOuter: %s "), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ) );
+				Object = NULL;
+				return NetGUID;
+			}
+
+			if ( bIsPackage )
+			{
+				UPackage * Package = Cast< UPackage >( Object );
+
+				if ( Package == NULL )
+				{
+					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object not a package from client: PathName: %s, ObjOuter: %s " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ) );
+					Object = NULL;
+					return NetGUID;
+				}
+
+				if ( Package->GetGuid() != PackageGuid )
+				{
+					UE_LOG( LogNetPackageMap, Error, TEXT( "UPackageMapClient::InternalLoadObject: Default object package guid mismatch! PathName: %s, ObjOuter: %s " ), *PathName, ObjOuter != NULL ? *ObjOuter->GetPathName() : TEXT( "NULL" ) );
+					Object = NULL;
+					return NetGUID;
+				}
 			}
 
 			// Assign the guid to the object
@@ -685,7 +757,7 @@ FNetworkGUID UPackageMapClient::InternalLoadObject( FArchive & Ar, UObject *& Ob
 		const bool bIgnoreWhenMissing = ExportFlags.bNoLoad;
 
 		// Register this path and outer guid combo with the net guid
-		GuidCache->RegisterNetGUIDFromPath_Client( NetGUID, PathName, OuterGUID, ExportFlags.bNoLoad, bIgnoreWhenMissing );
+		GuidCache->RegisterNetGUIDFromPath_Client( NetGUID, PathName, OuterGUID, PackageGuid, ExportFlags.bNoLoad, bIgnoreWhenMissing );
 
 		// Try again now that we've registered the path
 		Object = GuidCache->GetObjectFromNetGUID( NetGUID, GuidCache->IsExportingNetGUIDBunch );
@@ -1208,7 +1280,7 @@ bool UPackageMapClient::ObjectLevelHasFinishedLoading(UObject* Object)
  *  This is ugly but probably better than adding a shadow variable that has to be
  *  set/cleared at the net driver level.
  */
-bool UPackageMapClient::IsNetGUIDAuthority()
+bool UPackageMapClient::IsNetGUIDAuthority() const
 {
 	return GuidCache->IsNetGUIDAuthority();
 }
@@ -1437,7 +1509,7 @@ bool FNetGUIDCache::IsDynamicObject( const UObject * Object )
 	return !Object->IsFullNameStableForNetworking();
 }
 
-bool FNetGUIDCache::IsNetGUIDAuthority()
+bool FNetGUIDCache::IsNetGUIDAuthority() const
 {
 	return Driver == NULL || Driver->IsServer();
 }
@@ -1700,7 +1772,7 @@ void FNetGUIDCache::RegisterNetGUID_Client( const FNetworkGUID & NetGUID, const 
  *	Associates a net guid with a path, that can be loaded or found later
  *  This function is only called on the client
  */
-void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const bool bNoLoad, const bool bIgnoreWhenMissing )
+void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID, const FString & PathName, const FNetworkGUID & OuterGUID, const FGuid & PackageGuid, const bool bNoLoad, const bool bIgnoreWhenMissing )
 {
 	check( !IsNetGUIDAuthority() );		// Server never calls this locally
 	check( !NetGUID.IsDefault() );
@@ -1741,6 +1813,7 @@ void FNetGUIDCache::RegisterNetGUIDFromPath_Client( const FNetworkGUID & NetGUID
 
 	CacheObject.PathName			= FName( *PathName );
 	CacheObject.OuterGUID			= OuterGUID;
+	CacheObject.PackageGuid			= PackageGuid;
 	CacheObject.bNoLoad				= bNoLoad;
 	CacheObject.bIgnoreWhenMissing	= bIgnoreWhenMissing;
 	CacheObject.GuidSequence		= GuidSequence;
@@ -1760,7 +1833,7 @@ void FNetGUIDCache::AsyncPackageCallback( const FString & PackageName, UPackage 
 
 	if ( !NetGUID.IsValid() )
 	{
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "AsyncPackageCallback: Could not find package. Path: %s" ), *PackageName );
+		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Could not find package. Path: %s" ), *PackageName );
 		return;
 	}
 
@@ -1768,13 +1841,13 @@ void FNetGUIDCache::AsyncPackageCallback( const FString & PackageName, UPackage 
 
 	if ( CacheObject == NULL )
 	{
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "AsyncPackageCallback: Could not find net guid. Path: %s, NetGUID: %s" ), *PackageName, *NetGUID.ToString() );
+		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Could not find net guid. Path: %s, NetGUID: %s" ), *PackageName, *NetGUID.ToString() );
 		return;
 	}
 
 	if ( !CacheObject->bIsPending )
 	{
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "AsyncPackageCallback: Package wasn't pending. Path: %s, NetGUID: %s" ), *PackageName, *NetGUID.ToString() );
+		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package wasn't pending. Path: %s, NetGUID: %s" ), *PackageName, *NetGUID.ToString() );
 	}
 
 	CacheObject->bIsPending = false;
@@ -1782,7 +1855,12 @@ void FNetGUIDCache::AsyncPackageCallback( const FString & PackageName, UPackage 
 	if ( Package == NULL )
 	{
 		CacheObject->bIsBroken = true;
-		UE_LOG( LogNetPackageMap, Warning, TEXT( "AsyncPackageCallback: Package FAILED to load. Path: %s, NetGUID: %s" ), *PackageName, *NetGUID.ToString() );
+		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package FAILED to load. Path: %s, NetGUID: %s" ), *PackageName, *NetGUID.ToString() );
+	}
+	else if ( Package->GetGuid() != CacheObject->PackageGuid )
+	{
+		CacheObject->bIsBroken = true;
+		UE_LOG( LogNetPackageMap, Error, TEXT( "AsyncPackageCallback: Package GUID mismatch! Path: %s, NetGUID: %s" ), *PackageName, *NetGUID.ToString() );
 	}
 }
 
@@ -1882,24 +1960,9 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, con
 		// Try to resolve the outer
 		ObjOuter = GetObjectFromNetGUID( CacheObjectPtr->OuterGUID, bIgnoreMustBeMapped );
 
-		// If we can't resolve the outer (or the outer package is not fully loaded, and we are async loading), we need to bail
-		if ( ObjOuter == NULL || ( CVarAllowAsyncLoading.GetValueOnGameThread() > 0 && !ObjOuter->GetOutermost()->IsFullyLoaded() ) )
+		// If we can't resolve the outer
+		if ( ObjOuter == NULL )
 		{
-			if ( !CacheObjectPtr->bNoLoad && CVarAllowAsyncLoading.GetValueOnGameThread() > 0 )
-			{
-				if ( !bIgnoreMustBeMapped )
-				{
-					// If we get here, we are trying to process a "must be mapped" guid when we shouldn't be (the asset hasn't loaded yet)
-					UE_LOG( LogNetPackageMap, Error, TEXT( "GetObjectFromNetGUID: Missing \"must be mapped\" asset. Path: %s, OuterPath: %s, NetGUID: %s" ), *CacheObjectPtr->PathName.ToString(), *OuterCacheObject->PathName.ToString(), *NetGUID.ToString() );
-				}
-
-				if ( ObjOuter != NULL && !ObjOuter->GetOutermost()->IsFullyLoaded() )
-				{
-					// Not done loading outer
-					return NULL;
-				}
-			}
-
 			// If the outer is missing, warn unless told to ignore
 			if ( !ShouldIgnoreWhenMissing( CacheObjectPtr->OuterGUID ) )
 			{
@@ -1929,6 +1992,7 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, con
 		}
 	}
 
+	// At this point, we either have an outer, or we are a package
 	check( !CacheObjectPtr->bIsPending );
 	check( ObjOuter == NULL || ObjOuter->GetOutermost()->IsFullyLoaded() );
 
@@ -1991,7 +2055,34 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, con
 
 		return NULL;
 	}
-	
+
+	if ( bIsPackage )
+	{
+		UPackage * Package = Cast< UPackage >( Object );
+
+		if ( Package == NULL )
+		{
+			// This isn't really a package but it should be
+			CacheObjectPtr->bIsBroken = true;
+			UE_LOG( LogNetPackageMap, Error, TEXT( "GetObjectFromNetGUID: Object is not a package but shoule be! Path: %s, NetGUID: %s" ), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString() );
+			return NULL;
+		}
+
+		if ( !Package->IsFullyLoaded() )
+		{
+			// If this package isn't fully loaded, don't complain, assume it will fully load at some point
+			return NULL;
+		}
+
+		if ( Package->GetGuid() != CacheObjectPtr->PackageGuid )
+		{
+			// If the package guid doesn't match, don't allow it to load
+			CacheObjectPtr->bIsBroken = true;
+			UE_LOG( LogNetPackageMap, Error, TEXT( "GetObjectFromNetGUID: Package GUID mismatch! Path: %s, NetGUID: %s" ), *CacheObjectPtr->PathName.ToString(), *NetGUID.ToString() );
+			return NULL;
+		}
+	}
+
 	// Assign the resolved object to this guid
 	CacheObjectPtr->Object = Object;		
 
@@ -2017,7 +2108,7 @@ UObject * FNetGUIDCache::GetObjectFromNetGUID( const FNetworkGUID & NetGUID, con
 	return Object;
 }
 
-bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID )
+bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID ) const
 {
 	if ( IsNetGUIDAuthority() )
 	{
@@ -2043,11 +2134,26 @@ bool FNetGUIDCache::ShouldIgnoreWhenMissing( const FNetworkGUID & NetGUID )
 		OutermostCacheObject = ObjectLookup.Find( OutermostCacheObject->OuterGUID );
 	}
 
-	// Ignore warnings when we explicitly are told to, or if the outer most package is pending
-	return CacheObject->bIgnoreWhenMissing || OutermostCacheObject->bIsPending;
+	if ( OutermostCacheObject != NULL )
+	{
+		// If our outer package is not fully loaded, then don't warn, assume it will eventually come in
+		if ( OutermostCacheObject->bIsPending )
+		{
+			// Outer is pending, don't warn
+			return true;
+		}
+		// Sometimes, other systems async load packages, which we don't track, but still must be aware of
+		if ( OutermostCacheObject->Object != NULL && !OutermostCacheObject->Object->GetOutermost()->IsFullyLoaded() )
+		{
+			return true;
+		}
+	}
+
+	// Ignore warnings when we explicitly are told to
+	return CacheObject->bIgnoreWhenMissing;
 }
 
-bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID & NetGUID )
+bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID & NetGUID ) const
 {
 	if ( !NetGUID.IsValid() )
 	{
@@ -2062,7 +2168,7 @@ bool FNetGUIDCache::IsGUIDRegistered( const FNetworkGUID & NetGUID )
 	return ObjectLookup.Contains( NetGUID );
 }
 
-bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID )
+bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID ) const
 {
 	if ( !NetGUID.IsValid() )
 	{
@@ -2074,7 +2180,7 @@ bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID )
 		return false;
 	}
 
-	FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
+	const FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
 
 	if ( CacheObjectPtr == NULL )
 	{
@@ -2082,6 +2188,28 @@ bool FNetGUIDCache::IsGUIDLoaded( const FNetworkGUID & NetGUID )
 	}
 
 	return CacheObjectPtr->Object != NULL;
+}
+
+bool FNetGUIDCache::IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const
+{
+	if ( !NetGUID.IsValid() )
+	{
+		return false;
+	}
+
+	if ( NetGUID.IsDefault() )
+	{
+		return false;
+	}
+
+	const FNetGuidCacheObject * CacheObjectPtr = ObjectLookup.Find( NetGUID );
+
+	if ( CacheObjectPtr == NULL )
+	{
+		return bMustBeRegistered;
+	}
+
+	return CacheObjectPtr->bIsBroken;
 }
 
 //------------------------------------------------------

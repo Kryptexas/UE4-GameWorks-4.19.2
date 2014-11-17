@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GameFramework/Actor.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/NavDataGenerator.h"
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
@@ -23,6 +24,18 @@ struct FSupportedAreaData
 	const UClass* AreaClass;
 
 	FSupportedAreaData(TSubclassOf<UNavArea> NavAreaClass = NULL, int32 InAreaID = INDEX_NONE);
+};
+
+struct FNavPathRecalculationRequest
+{
+	FNavPathSharedRef Path;
+	ENavPathUpdateType::Type Reason;
+
+	FNavPathRecalculationRequest(const FNavPathSharedPtr& InPath, ENavPathUpdateType::Type InReason)
+		: Path(InPath.ToSharedRef()), Reason(InReason)
+	{}
+
+	bool operator==(const FNavPathRecalculationRequest& Other) const { return Path == Other.Path;  }
 };
 
 /** 
@@ -51,6 +64,10 @@ class ENGINE_API ANavigationData : public AActor
 	/** If true, the NavMesh can be dynamically rebuilt at runtime. */
 	UPROPERTY(EditAnywhere, Category=Runtime, config)
 	uint32 bRebuildAtRuntime:1;
+
+	/** all observed paths will be processed every ObservedPathsTickInterval seconds */
+	UPROPERTY(EditAnywhere, Category = Runtime, config)
+	float ObservedPathsTickInterval;
 
 	//----------------------------------------------------------------------//
 	// Life cycle                                                                
@@ -81,7 +98,8 @@ class ENGINE_API ANavigationData : public AActor
 
 	virtual void RerunConstructionScripts() override;
 
-	virtual bool NeedsRebuild() { return false; }
+	virtual bool NeedsRebuild() const { return false; }
+	virtual bool CanRebuild() const;
 
 	//----------------------------------------------------------------------//
 	// Generation & data access                                                      
@@ -118,10 +136,11 @@ public:
 	 *	PathType needs to derive from FNavigationPath 
 	 */
 	template<typename PathType> 
-	FNavPathSharedPtr CreatePathInstance() const
+	FNavPathSharedPtr CreatePathInstance(const UObject* Querier = NULL) const
 	{
 		FNavPathSharedPtr SharedPath = MakeShareable(new PathType());
-		SharedPath->SetOwner(this);
+		SharedPath->SetNavigationDataUsed(this);
+		SharedPath->SetQuerier(Querier);
 
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &ANavigationData::RegisterActivePath, SharedPath)
@@ -132,11 +151,23 @@ public:
 
 		return SharedPath;
 	}
+	
+	void RegisterObservedPath(FNavPathSharedPtr SharedPath)
+	{
+		check(IsInGameThread());
+		if (ObservedPaths.Num() == 0)
+		{
+			NextObservedPathsTickInSeconds = ObservedPathsTickInterval;
+		}
+		ObservedPaths.Add(SharedPath);
+	}
 
+	void RequestRePath(FNavPathSharedPtr Path, ENavPathUpdateType::Type Reason) { RepathRequests.AddUnique(FNavPathRecalculationRequest(Path, Reason)); }
+
+protected:
 	/** removes from ActivePaths all paths that no longer have shared references (and are invalid in fact) */
 	void PurgeUnusedPaths();
 
-protected:
 	void RegisterActivePath(FNavPathSharedPtr SharedPath)
 	{
 		check(IsInGameThread());
@@ -209,11 +240,11 @@ public:
 	 *
 	 *	@note don't make this function virtual! Look at implementation details and its comments for more info.
 	 */
-	FORCEINLINE bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query) const
+	FORCEINLINE bool TestPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes) const
 	{
 		check(TestPathImplementation);
 		// this awkward implementation avoids virtual call overhead - it's possible this function will be called a lot
-		return (*TestPathImplementation)(AgentProperties, Query);
+		return (*TestPathImplementation)(AgentProperties, Query, NumVisitedNodes);
 	}
 
 	/** 
@@ -223,11 +254,11 @@ public:
 	 *
 	 *	@note don't make this function virtual! Look at implementation details and its comments for more info.
 	 */
-	FORCEINLINE bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query) const
+	FORCEINLINE bool TestHierarchicalPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes) const
 	{
 		check(TestHierarchicalPathImplementation);
 		// this awkward implementation avoids virtual call overhead - it's possible this function will be called a lot
-		return (*TestHierarchicalPathImplementation)(AgentProperties, Query);
+		return (*TestHierarchicalPathImplementation)(AgentProperties, Query, NumVisitedNodes);
 	}
 
 	/** 
@@ -341,7 +372,7 @@ protected:
 	FFindPathPtr FindPathImplementation;
 	FFindPathPtr FindHierarchicalPathImplementation; 
 	
-	typedef bool (*FTestPathPtr)(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query);
+	typedef bool (*FTestPathPtr)(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query, int32* NumVisitedNodes);
 	FTestPathPtr TestPathImplementation;
 	FTestPathPtr TestHierarchicalPathImplementation; 
 
@@ -366,6 +397,17 @@ protected:
 	 *	add items to it manually, @see CreatePathInstance
 	 */
 	TArray<FNavPathWeakPtr> ActivePaths;
+
+	/**
+	 *	Contains paths that requested observing its goal's location. These paths will be 
+	 *	processed on a regular basis (@see ObservedPathsTickInterval) */
+	TArray<FNavPathWeakPtr> ObservedPaths;
+
+	/** paths that requested re-calculation */
+	TArray<FNavPathRecalculationRequest> RepathRequests;
+
+	/** contains how much time left to the next ObservedPaths processing */
+	float NextObservedPathsTickInSeconds;
 
 	/** Query filter used when no other has been passed to relevant functions */
 	TSharedPtr<FNavigationQueryFilter> DefaultQueryFilter;

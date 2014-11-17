@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "ActiveSound.h"
 #include "Sound/SoundNodeWaveParam.h"
 #include "Sound/SoundWave.h"
 

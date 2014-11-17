@@ -241,9 +241,6 @@ void FMetalDepthStencilState::Set()
 {
 	//activate the state
 	[FMetalManager::GetContext() setDepthStencilState:State];
-	
-	// update the pipeline state object
-	FMetalManager::Get()->SetDepthStencilWriteEnabled(bIsDepthWriteEnabled, bIsStencilWriteEnabled);
 }
 
 FMetalBlendState::FMetalBlendState(const FBlendStateInitializerRHI& Initializer)

@@ -16,6 +16,11 @@ class UK2Node_GetEnumeratorNameAsString : public UK2Node_GetEnumeratorName
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Enum_16x"); }
 	// End UEdGraphNode interface
 
+	// UK2Node interface
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual FText GetMenuCategory() const override;
+	// End UK2Node interface
+
 	virtual FName GetFunctionName() const override;
 };
 

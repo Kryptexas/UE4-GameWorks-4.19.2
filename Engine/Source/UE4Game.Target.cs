@@ -33,6 +33,7 @@ public class UE4GameTarget : TargetRules
 
 		if (UnrealBuildTool.UnrealBuildTool.BuildingRocket())
 		{
+			OutExtraModuleNames.Add("GameMenuBuilder");
 			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 			{
 				OutExtraModuleNames.Add("OnlineSubsystemNull");
@@ -93,17 +94,17 @@ public class UE4GameTarget : TargetRules
 			// Tag it as a UE4Game build
 			OutCPPEnvironmentConfiguration.Definitions.Add("UE4GAME=1");
 		}
-		if (Target.Platform == UnrealTargetPlatform.HTML5)
+        if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
-			// to make Tappy Chicken as small as possible we excluded some items from the engine.
-			// uncomment below to make a smaller HTML5 build
-/*			UEBuildConfiguration.bCompileRecast = false;
+			// to make World Explorers as small as possible we excluded some items from the engine.
+			// uncomment below to make a smaller iOS build
+			/*UEBuildConfiguration.bCompileRecast = false;
 			UEBuildConfiguration.bCompileSpeedTree = false;
 			UEBuildConfiguration.bCompileAPEX = false;
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 			UEBuildConfiguration.bCompilePhysXVehicle = false;
-			UEBuildConfiguration.bCompileFreeType = false;*/
-			UEBuildConfiguration.bCompileForSize = true;
+			UEBuildConfiguration.bCompileFreeType = false;
+			UEBuildConfiguration.bCompileForSize = true;*/
 		}
 	}
 	public override List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
@@ -112,7 +113,7 @@ public class UE4GameTarget : TargetRules
         {
             return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.IOS };
         }
-        return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Win32, UnrealTargetPlatform.IOS, UnrealTargetPlatform.XboxOne, UnrealTargetPlatform.PS4, UnrealTargetPlatform.Android, UnrealTargetPlatform.Linux, UnrealTargetPlatform.HTML5 };
+        return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Win32, UnrealTargetPlatform.IOS, UnrealTargetPlatform.XboxOne, UnrealTargetPlatform.PS4, UnrealTargetPlatform.Android, UnrealTargetPlatform.Linux };
     }
     public override List<UnrealTargetConfiguration> GUBP_GetConfigs_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
     {

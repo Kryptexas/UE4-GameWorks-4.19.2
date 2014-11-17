@@ -24,12 +24,16 @@ public:
 	virtual void StartBroadcastingGame( const FGameBroadcastConfig& GameBroadcastConfig ) override;
 	virtual void StopBroadcastingGame() override;
 	virtual void DrawSimpleWebCamVideo( UCanvas* Canvas ) override;
-	virtual class UTexture2D* GetWebCamTexture() override;
+	virtual class UTexture2D* GetWebCamTexture( bool& bIsImageFlippedHorizontally, bool& bIsImageFlippedVertically ) override;
+	virtual class ILiveStreamingService* GetLiveStreamingService() override;
 
 protected:
 
 	/** Called by the live streaming service when streaming status has changed or an error has occurred */
 	void BroadcastStatusCallback( const struct FLiveStreamingStatus& Status );
+
+	/** Called by the live streaming service when a chat message is received */
+	void OnChatMessage( const FText& UserName, const FText& Text );
 
 	/**
 	 * Called by the Slate rendered on the game thread right after a window has been rendered, to allow us to
@@ -49,6 +53,8 @@ protected:
 
 
 private:
+	/** Whether we're currently trying to broadcast */
+	bool bIsBroadcasting;
 
 	/** The live streaming service we're using.  Only valid while broadcasting. */
 	class ILiveStreamingService* LiveStreamer;
@@ -65,7 +71,15 @@ private:
 	/** The current buffer index.  We bounce between them to avoid stalls. */
 	int32 ReadbackBufferIndex;
 
+	/** True if the user prefers to flip the web camera image horizontally */
+	bool bMirrorWebCamImage;
+
 	/** True if we should draw a simple web cam video on top of the viewport while broadcasting */
 	bool bDrawSimpleWebCamVideo;
 
+	/** Console command for starting broadcast */
+	FAutoConsoleCommand BroadcastStartCommand;
+
+	/** Console command for stopping broadcast */
+	FAutoConsoleCommand BroadcastStopCommand;
 };

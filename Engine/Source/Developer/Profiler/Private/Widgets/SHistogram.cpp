@@ -34,15 +34,7 @@ void SHistogram::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	SCompoundWidget::Tick(AllottedGeometry,InCurrentTime,InDeltaTime);
 }
 
-int32 SHistogram::OnPaint
-( 
-	const FGeometry& AllottedGeometry, 
-	const FSlateRect& MyClippingRect, 
-	FSlateWindowElementList& OutDrawElements, 
-	int32 LayerId, 
-	const FWidgetStyle& InWidgetStyle, 
-	bool bParentEnabled 
-) const
+int32 SHistogram::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	static double TotalTime = 0.0f;
 	static uint32 NumCalls = 0;
@@ -188,7 +180,7 @@ int32 SHistogram::OnPaint
 			FLinearColor::Green
 			);
 	}
-	return SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 }
 
 void SHistogram::RestoreDefaultState()

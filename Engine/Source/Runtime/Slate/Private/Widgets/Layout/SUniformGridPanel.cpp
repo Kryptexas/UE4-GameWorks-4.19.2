@@ -17,38 +17,36 @@ void SUniformGridPanel::Construct( const FArguments& InArgs )
 	{
 		FSlot* ChildSlot = InArgs.Slots[ChildIndex];
 		Children.Add( ChildSlot );
-		// A single cell at (N,M) means our grid size is (N+1, M+1)
-		NumColumns = FMath::Max( ChildSlot->Column+1, NumColumns );
-		NumRows = FMath::Max( ChildSlot->Row+1, NumRows );
 	}
 }
-
 
 void SUniformGridPanel::OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const
 {
-	const FVector2D CellSize(AllottedGeometry.Size.X / NumColumns, AllottedGeometry.Size.Y / NumRows);
-	const FMargin& CurrentSlotPadding(SlotPadding.Get());
-	for (int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex)
+	if ( Children.Num() > 0 )
 	{
-		const FSlot& Child = Children[ChildIndex];
-		const EVisibility ChildVisibility = Child.Widget->GetVisibility();
-		if ( ArrangedChildren.Accepts(ChildVisibility) )
+		const FVector2D CellSize(AllottedGeometry.Size.X / NumColumns, AllottedGeometry.Size.Y / NumRows);
+		const FMargin& CurrentSlotPadding(SlotPadding.Get());
+		for ( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
 		{
-			// Do the standard arrangement of elements within a slot
-			// Takes care of alignment and padding.
-			AlignmentArrangeResult XAxisResult = AlignChild<Orient_Horizontal>( CellSize.X, Child, CurrentSlotPadding );
-			AlignmentArrangeResult YAxisResult = AlignChild<Orient_Vertical>( CellSize.Y, Child, CurrentSlotPadding );
+			const FSlot& Child = Children[ChildIndex];
+			const EVisibility ChildVisibility = Child.Widget->GetVisibility();
+			if ( ArrangedChildren.Accepts(ChildVisibility) )
+			{
+				// Do the standard arrangement of elements within a slot
+				// Takes care of alignment and padding.
+				AlignmentArrangeResult XAxisResult = AlignChild<Orient_Horizontal>(CellSize.X, Child, CurrentSlotPadding);
+				AlignmentArrangeResult YAxisResult = AlignChild<Orient_Vertical>(CellSize.Y, Child, CurrentSlotPadding);
 
-			ArrangedChildren.AddWidget( ChildVisibility,
-				AllottedGeometry.MakeChild(Child.Widget,
-				FVector2D(CellSize.X*Child.Column + XAxisResult.Offset, CellSize.Y*Child.Row + YAxisResult.Offset),
-				FVector2D(XAxisResult.Size, YAxisResult.Size)
-			));
+				ArrangedChildren.AddWidget(ChildVisibility,
+					AllottedGeometry.MakeChild(Child.Widget,
+					FVector2D(CellSize.X*Child.Column + XAxisResult.Offset, CellSize.Y*Child.Row + YAxisResult.Offset),
+					FVector2D(XAxisResult.Size, YAxisResult.Size)
+					));
+			}
+
 		}
-		
 	}
 }
-
 
 FVector2D SUniformGridPanel::ComputeDesiredSize() const
 {
@@ -58,9 +56,17 @@ FVector2D SUniformGridPanel::ComputeDesiredSize() const
 	const float CachedMinDesiredSlotWidth = MinDesiredSlotWidth.Get();
 	const float CachedMinDesiredSlotHeight = MinDesiredSlotHeight.Get();
 	
+	NumColumns = 0;
+	NumRows = 0;
+
 	for ( int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex )
 	{
 		const FSlot& Child = Children[ ChildIndex ];
+
+		// A single cell at (N,M) means our grid size is (N+1, M+1)
+		NumColumns = FMath::Max(Child.Column + 1, NumColumns);
+		NumRows = FMath::Max(Child.Row + 1, NumRows);
+
 		if (Child.Widget->GetVisibility() != EVisibility::Collapsed)
 		{
 			FVector2D ChildDesiredSize = Child.Widget->GetDesiredSize() + SlotPaddingDesiredSize;
@@ -76,20 +82,19 @@ FVector2D SUniformGridPanel::ComputeDesiredSize() const
 	return FVector2D( NumColumns*MaxChildDesiredSize.X, NumRows*MaxChildDesiredSize.Y );
 }
 
-
 FChildren* SUniformGridPanel::GetChildren()
 {
 	return &Children;
 }
 
+void SUniformGridPanel::SetSlotPadding(TAttribute<FMargin> InSlotPadding)
+{
+	SlotPadding = InSlotPadding;
+}
 
 SUniformGridPanel::FSlot& SUniformGridPanel::AddSlot( int32 Column, int32 Row )
 {
 	FSlot& NewSlot = SUniformGridPanel::Slot(Column, Row);
-
-	// A single cell at (N,M) means our grid size is (N+1, M+1)
-	NumColumns = FMath::Max( Column+1, NumColumns );
-	NumRows = FMath::Max( Row+1, NumRows );
 
 	Children.Add( &NewSlot );
 

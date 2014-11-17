@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "MacWindow.h"
 #include "MacApplication.h"
 
-@interface NSWindow (UE4Extensions)
-- (bool)shouldAddChildWindow:(NSWindow*)Window;
-@end
+TArray< FSlateCocoaWindow* > GRunningModalWindows;
 
 /**
  * Custom window class used for input handling
@@ -20,9 +18,7 @@
 	id NewSelf = [super initWithContentRect:ContentRect styleMask:Style backing:BufferingType defer:Flag];
 	if(NewSelf)
 	{
-		Parent = NULL;
 		WindowMode = EWindowMode::Windowed;
-		ChildWindows = nil;;
 		bAcceptsInput = false;
 		bRoundedCorners = false;
 		bDisplayReconfiguring = false;
@@ -122,11 +118,15 @@
 
 - (void)orderWindow:(NSWindowOrderingMode)OrderingMode relativeTo:(NSInteger)OtherWindowNumber
 {
-	if([self alphaValue] > 0.0f)
+	bool bModal = GRunningModalWindows.Num() == 0 || GRunningModalWindows.Last() == self || [self styleMask] == NSBorderlessWindowMask;
+	if(OrderingMode == NSWindowOut || bModal)
 	{
-		[self performDeferredSetFrame];
+		if([self alphaValue] > 0.0f)
+		{
+			[self performDeferredSetFrame];
+		}
+		[super orderWindow:OrderingMode relativeTo:OtherWindowNumber];
 	}
-	[super orderWindow:OrderingMode relativeTo:OtherWindowNumber];
 }
 
 - (bool)roundedCorners
@@ -146,10 +146,11 @@
 
 - (void)redrawContents
 {
-	if(self.bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
+	if(bNeedsRedraw && bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
 	{
 		MacApplication->OnWindowRedrawContents( self );
 	}
+	bNeedsRedraw = false;
 }
 
 - (void)setWindowMode:(EWindowMode::Type)NewWindowMode
@@ -167,35 +168,12 @@
 	bDisplayReconfiguring = bIsDisplayReconfiguring;
 }
 
-- (void)setParent:(NSWindow*)InParent
-{
-	Parent = InParent;
-}
-
-- (bool)shouldAddChildWindow:(NSWindow*)Window
-{
-	bool bShouldAddChildWindow = false;
-	if(Window && ![self isMiniaturized] && NSContainsRect([[self screen] frame], [Window frame]))
-	{
-		bool bSelfOnScreen = [Window isOnActiveSpace];
-		bool bParentOnScreen = [self isOnActiveSpace];
-		bShouldAddChildWindow = bSelfOnScreen && bParentOnScreen;
-	}
-	return bShouldAddChildWindow;
-}
-
-- (void)orderFrontEvenIfChildAndMakeMain:(bool)bMain andKey:(bool)bKey
+- (void)orderFrontAndMakeMain:(bool)bMain andKey:(bool)bKey
 {
 	if ([NSApp isHidden] == NO)
 	{
-		NSWindow* ParentWindow = [self getParent];
-		if( ParentWindow && [ParentWindow shouldAddChildWindow:self] )
-		{
-			[ParentWindow removeChildWindow: self];
-			[ParentWindow addChildWindow: self ordered: NSWindowAbove];
-		}
-
-		if (![self isVisible])
+		bool bBringToFront = GRunningModalWindows.Num() == 0 || GRunningModalWindows.Last() == self || [self styleMask] == NSBorderlessWindowMask;
+		if (bBringToFront)
 		{
 			[self orderFront:nil];
 		}
@@ -211,67 +189,11 @@
 	}
 }
 
-- (void)disconnectChildWindows
-{
-	ChildWindows = [[NSMutableArray alloc] initWithArray: [self childWindows]];
-	for( int32 Index = 0; Index < [ChildWindows count]; Index++ )
-	{
-		NSWindow* Window = (NSWindow*)[ChildWindows objectAtIndex: Index];
-		[self removeChildWindow: Window];
-		[Window setLevel: NSFloatingWindowLevel];
-	}
-	if(Parent && [self parentWindow])
-	{
-		[Parent removeChildWindow:self];
-		[self setLevel: NSFloatingWindowLevel];
-	}
-}
-
-- (void)reconnectChildWindows
-{
-	if( ChildWindows )
-	{
-		for( int32 Index = 0; Index < [ChildWindows count]; Index++ )
-		{
-			NSWindow* Window = (NSWindow*)[ChildWindows objectAtIndex: Index];
-			if([self shouldAddChildWindow:Window])
-			{
-				[self addChildWindow: Window ordered: NSWindowAbove];
-				[Window setLevel: ([Window styleMask] & NSClosableWindowMask) ? NSNormalWindowLevel : NSFloatingWindowLevel];
-			}
-		}
-		[ChildWindows release];
-		ChildWindows = NULL;
-	}
-	if(Parent && [self parentWindow] == nil && [Parent shouldAddChildWindow:self])
-	{
-		[Parent addChildWindow: self ordered: NSWindowAbove];
-		[self setLevel: ([self styleMask] & NSClosableWindowMask) ? NSNormalWindowLevel : NSFloatingWindowLevel];
-	}
-}
-
-- (bool)shouldAddChildWindows
-{
-	return (ChildWindows == NULL) && ![self isMiniaturized];
-}
-
-- (NSWindow*)getParent
-{
-	return Parent;
-}
-
-- (void)removeCachedChild:(NSWindow*)InChild
-{
-	if(ChildWindows && InChild)
-	{
-		[ChildWindows removeObject:InChild];
-	}
-}
-
 // Following few methods overload NSWindow's methods from Cocoa API, so have to use Cocoa's BOOL (signed char), not bool (unsigned int)
 - (BOOL)canBecomeMainWindow
 {
-	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask);
+	bool bNoModalOrCurrent = GRunningModalWindows.Num() == 0 || GRunningModalWindows.Last() == self;
+	return bAcceptsInput && ([self styleMask] != NSBorderlessWindowMask) && bNoModalOrCurrent;
 }
 
 - (BOOL)canBecomeKeyWindow
@@ -329,9 +251,12 @@
 
 - (void)setFrame:(NSRect)FrameRect display:(BOOL)Flag
 {
-	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f))
+	NSSize Size = [self frame].size;
+	NSSize NewSize = FrameRect.size;
+	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1 || NewSize.width > 1 || NewSize.height > 1)))
 	{
 		[super setFrame:FrameRect display:Flag];
+		bDeferSetFrame = false;
 	}
 	else
 	{
@@ -346,9 +271,11 @@
 
 - (void)setFrameOrigin:(NSPoint)Point
 {
-	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f))
+	NSSize Size = [self frame].size;
+	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f && (Size.width > 1 || Size.height > 1)))
 	{
 		[super setFrameOrigin:Point];
+		bDeferSetOrigin = false;
 	}
 	else
 	{
@@ -357,36 +284,19 @@
 	}
 }
 
-// keyDown and keyUp are empty, but having them lets Cocoa know we handle the keys ourselves
 - (void)keyDown:(NSEvent *)Event
 {
+	if(self.bForwardEvents)
+	{
+		MacApplication->ProcessEvent( Event );
+	}
 }
 
 - (void)keyUp:(NSEvent *)Event
 {
-}
-
-- (void)miniaturize:(id)sender
-{
-	// If parented detach or the whole app will hide, though the mouse handling will still be directed through our app.
-	// There's a reason why Inspector windows in Cocoa apps don't have a minimise button...
-	if(Parent)
+	if(self.bForwardEvents)
 	{
-		[Parent removeChildWindow:self];
-	}
-	[super miniaturize:sender];
-}
-
-- (void)windowDidDeminiaturize:(NSNotification*)Notification
-{
-	// If parented ensure that the parent is visible and then reattach, to match Windows behaviour.
-	if(Parent)
-	{
-		if([Parent isMiniaturized] == YES)
-		{
-			[Parent deminiaturize:self];
-		}
-		[Parent addChildWindow:self ordered: NSWindowAbove];
+		MacApplication->ProcessEvent( Event );
 	}
 }
 
@@ -412,9 +322,14 @@
 {
 	if([NSApp isHidden] == NO)
 	{
-		// First, make sure we're in front - on our child window level.
-		// That's what happens on PC, and engine doesn't give us any BringToFront() calls.
-		[self orderFrontEvenIfChildAndMakeMain:false andKey:false];
+		if(GRunningModalWindows.Num() == 0 || GRunningModalWindows.Last() == self || [self styleMask] == NSBorderlessWindowMask)
+		{
+			[self orderFrontAndMakeMain:false andKey:false];
+		}
+		else
+		{
+			[GRunningModalWindows.Last() orderFrontAndMakeMain:true andKey:true];
+		}
 	}
 
 	if(self.bForwardEvents)
@@ -463,15 +378,6 @@
 	// It does however, work fine for handling display arrangement changes that cause a window to go offscreen.
 	if(bDisplayReconfiguring)
 	{
-		if(Parent && [self parentWindow] == nil && [Parent shouldAddChildWindow:self])
-		{
-			[Parent addChildWindow: self ordered: NSWindowAbove];
-		}
-		else if(Parent && [self parentWindow])
-		{
-			[Parent removeChildWindow:self];
-		}
-		
 		NSScreen* Screen = [self screen];
 		NSRect Frame = [self frame];
 		NSRect VisibleFrame = [Screen visibleFrame];
@@ -534,11 +440,12 @@
 	{
 		MacApplication->OnWindowDidResize( self );
 	}
+	bNeedsRedraw = true;
 }
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-	if(self.bForwardEvents)
+	if(self.bForwardEvents && MacApplication)
 	{
 		MacApplication->OnWindowDidClose( self );
 	}
@@ -709,7 +616,6 @@
 
 @end
 
-
 FMacWindow::~FMacWindow()
 {
 	// While on Windows invalid HWNDs fail silently, accessing an invalid NSWindow is fatal.
@@ -796,7 +702,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		check(0);
 		return;
 	}
-	
+
 	// Disable automatic release on close - explicit retain/release makes the Destroy() logic much easier to follow
 	[WindowHandle setReleasedWhenClosed: NO];
 	
@@ -805,7 +711,17 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	[WindowHandle setDisplayReconfiguring: false];
 	[WindowHandle setAcceptsMouseMovedEvents: YES];
 	[WindowHandle setDelegate: WindowHandle];
-	[WindowHandle setLevel: Definition->IsRegularWindow ? NSNormalWindowLevel : NSFloatingWindowLevel];
+
+	// @todo: We really need a window type in tab manager to know what window level to use and whether or not a window should hide on deactivate
+	if(Definition->IsRegularWindow && (!InParent.IsValid() || Definition->IsModalWindow || (!Definition->SupportsMaximize && !Definition->SupportsMinimize)))
+	{
+		[WindowHandle setLevel: NSNormalWindowLevel];
+	}
+	else
+	{
+		[WindowHandle setLevel: NSFloatingWindowLevel];
+		[WindowHandle setHidesOnDeactivate: YES];
+	}
 	
 	// Use of rounded corners will always render with system values for rounding
 	[WindowHandle setRoundedCorners: (Definition->CornerRadius != 0)];
@@ -848,20 +764,6 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	else
 	{
 		[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorTransient|NSWindowCollectionBehaviorIgnoresCycle];
-	}
-
-	if( InParent.IsValid() )
-	{
-		FSlateCocoaWindow* ParentWindowHandle = static_cast<FSlateCocoaWindow*>(InParent->WindowHandle);
-		[WindowHandle setParent:ParentWindowHandle];
-		if(![ParentWindowHandle shouldAddChildWindows] || ![ParentWindowHandle shouldAddChildWindow:WindowHandle])
-		{
-			[WindowHandle setLevel: ([WindowHandle styleMask] & NSClosableWindowMask) ? NSNormalWindowLevel : NSFloatingWindowLevel];
-		}
-	}
-	else
-	{
-		[WindowHandle setParent:nil];
 	}
 
 	if( Definition->SupportsTransparency )
@@ -944,7 +846,7 @@ void FMacWindow::BringToFront( bool bForce )
 	if (bIsVisible)
 	{
 		SCOPED_AUTORELEASE_POOL;
-		[WindowHandle orderFrontEvenIfChildAndMakeMain:false andKey:false];
+		[WindowHandle orderFrontAndMakeMain:IsRegularWindow() andKey:IsRegularWindow()];
 	}
 }
 
@@ -957,18 +859,14 @@ void FMacWindow::Destroy()
 		// This makes it possible to correctly handle any NSEvent's sent to the window during destruction
 		// as the WindowHandle is still a valid NSWindow. Unlike HWNDs accessing a destructed NSWindow* is fatal.
 		FSlateCocoaWindow* Window = [WindowHandle retain];
+		if(Definition->IsModalWindow)
+		{
+			GRunningModalWindows.Remove(WindowHandle);
+		}
 		Window.bForwardEvents = false;
 		if( MacApplication->OnWindowDestroyed( Window ) )
 		{
 			// This FMacWindow may have been destructed by now & so the WindowHandle will probably be invalid memory.
-			
-			// Remove from parent
-			FSlateCocoaWindow* ParentWindow = (FSlateCocoaWindow*)[Window getParent];
-			if( ParentWindow )
-			{
-				[ParentWindow removeCachedChild: Window];
-				[ParentWindow removeChildWindow: Window];
-			}
 			
 			// Then change the focus to something useful, either the previous in the stack
 			TSharedPtr<FMacWindow> KeyWindow = MacApplication->GetKeyWindow();
@@ -977,14 +875,7 @@ void FMacWindow::Destroy()
 				// Activate specified previous window if still present, provided it isn't minimized
 				KeyWindow->SetWindowFocus();
 			}
-			// Or, activate parent to make sure that some other window won't steal focus, provided it isn't minimized. Important for menu stack.
-			else if( ParentWindow && [Window isKeyWindow] && ![ParentWindow isMiniaturized] )
-			{
-				// If miniaturized dispatch the message to prevent PrivateDrawWindows from exploding because the
-				// window we are currently closing hasn't been removed from the window list.
-				[ParentWindow orderFrontEvenIfChildAndMakeMain:true andKey:true];
-			}
-			
+
 			// Close the window, but don't destruct it...
 			[Window performClose:nil];
 			
@@ -1034,8 +925,12 @@ void FMacWindow::Show()
 	SCOPED_AUTORELEASE_POOL;
 	if (!bIsVisible)
 	{
+		if(Definition->IsModalWindow && !GRunningModalWindows.Contains(WindowHandle))
+		{
+			GRunningModalWindows.Add(WindowHandle);
+		}
 		bool bMakeMainAndKey = ([WindowHandle canBecomeKeyWindow] && Definition->ActivateWhenFirstShown);
-		[WindowHandle orderFrontEvenIfChildAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
+		[WindowHandle orderFrontAndMakeMain:bMakeMainAndKey andKey:bMakeMainAndKey];
 		
 		bIsVisible = [WindowHandle isVisible];
 		static bool bCannotRecurse = false;
@@ -1062,6 +957,10 @@ void FMacWindow::Hide()
 	{
 		SCOPED_AUTORELEASE_POOL;
 		bIsVisible = false;
+		if(Definition->IsModalWindow)
+		{
+			GRunningModalWindows.Remove(WindowHandle);
+		}
 		[WindowHandle orderOut:nil];
 	}
 }
@@ -1140,7 +1039,7 @@ bool FMacWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32& 
 void FMacWindow::SetWindowFocus()
 {
 	SCOPED_AUTORELEASE_POOL;
-	[WindowHandle orderFrontEvenIfChildAndMakeMain:true andKey:true];
+	[WindowHandle orderFrontAndMakeMain:true andKey:true];
 }
 
 void FMacWindow::SetOpacity( const float InOpacity )

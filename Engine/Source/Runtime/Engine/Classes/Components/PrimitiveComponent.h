@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "StaticArray.h"
+#include "Runtime/Core/Public/Containers/StaticArray.h"
+#include "Runtime/InputCore/Classes/InputCoreTypes.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
 #include "Components/LightComponent.h"
@@ -15,6 +16,7 @@
 #include "PrimitiveComponent.generated.h"
 
 class FPrimitiveSceneProxy;
+class AController; 
 
 /** Information about a vertex of a primitive's triangle. */
 struct FPrimitiveTriangleVertex
@@ -42,16 +44,7 @@ struct FStreamingTexturePrimitiveInfo
 	float TexelFactor;
 };
 
-/** Enum for controlling the falloff of strength of a radial impulse as a function of distance from Origin. */
-UENUM()
-enum ERadialImpulseFalloff
-{
-	/** Impulse is a constant strength, up to the limit of its range. */
-	RIF_Constant,
-	/** Impulse should get linearly weaker the further from origin. */
-	RIF_Linear,
-	RIF_MAX,
-};
+
 
 UENUM()
 enum ECanBeCharacterBase
@@ -655,6 +648,11 @@ public:
 	virtual void SetSimulatePhysics(bool bSimulate);
 
 	/**
+	 * Determines whether or not the simulate physics setting can be edited interactively on this component
+	 */
+	virtual bool CanEditSimulatePhysics();
+
+	/**
 	 *	Add an impulse to a single rigid body. Good for one time instant burst.
 	 *
 	 *	@param	Impulse		Magnitude and direction of impulse to apply.
@@ -956,7 +954,7 @@ public:
 	 *
 	 * @param OutTextures	[out] The list of used textures.
 	 */
-	void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel);
+	virtual void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel);
 
 	/** Controls if we get a post physics tick or not. If set during ticking, will take effect next frame **/
 	void SetPostPhysicsComponentTickEnabled(bool bEnable);
@@ -1114,7 +1112,6 @@ public:
 	// End UObject interface.
 
 	//Begin USceneComponent Interface
-	virtual void SetRelativeScale3D(FVector NewScale3D) override final;
 	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) override;
 	virtual bool IsWorldGeometry() const override;
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
@@ -1122,6 +1119,7 @@ public:
 	virtual ECollisionChannel GetCollisionObjectType() const override;
 	virtual const FCollisionResponseContainer & GetCollisionResponseToChannels() const override;
 	virtual FVector GetComponentVelocity() const override;
+	virtual bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const override;
 	//End USceneComponent Interface
 
 	/**
@@ -1418,16 +1416,8 @@ public:
 	 */
 	virtual bool CanCharacterStepUp(class APawn* Pawn) const;
 
-	/** 
-	 *	Indicates whether this actor is to be considered by navigation system a valid actor
-	 *	@param bDoChannelCheckOnly allow caller to check whether this component affects/would affect
-	 *	navigation, regardless of its current BodyInstance collision value
-	 *	@note this function will return "true" also if HasCustomNavigableGeometry == EHasCustomNavigableGeometry::EvenIfNonCollidable
-	 */
-	bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const;
-
 	/** Can this component potentially influence navigation */
-	bool CanEverAffectNavigation() const 
+	bool CanEverAffectNavigation() const
 	{
 		return bCanEverAffectNavigation;
 	}

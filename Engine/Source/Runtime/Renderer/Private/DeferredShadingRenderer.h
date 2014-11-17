@@ -42,7 +42,7 @@ public:
 	void ClearView(FRHICommandListImmediate& RHICmdList);
 
 	/** Clears gbuffer where Z is still at the maximum value (ie no geometry rendered) */
-	void ClearGBufferAtMaxZ(FRHICommandListImmediate& RHICmdList);
+	void ClearGBufferAtMaxZ(FRHICommandList& RHICmdList);
 
 	/** Clears LPVs for all views */
 	void ClearLPVs(FRHICommandListImmediate& RHICmdList);
@@ -50,19 +50,48 @@ public:
 	/** Propagates LPVs for all views */
 	void PropagateLPVs(FRHICommandListImmediate& RHICmdList);
 
+	/**
+	 * Renders the dynamic scene's prepass for a particular view
+	 * @return true if anything was rendered
+	 */
+	bool RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View);
+
+	/**
+	 * Renders the scene's prepass for a particular view
+	 * @return true if anything was rendered
+	 */
+	bool RenderPrePassView(FRHICommandList& RHICmdList, const FViewInfo& View);
+
+	/**
+	 * Renders the scene's prepass for a particular view in parallel
+	 * @return the submit chain
+	 */
+	FGraphEventRef RenderPrePassViewParallel(FRHICommandList& RHICmdList, const FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+
     /** Renders the basepass for the static data of a given View. */
     bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
 	bool RenderBasePassStaticDataMasked(FRHICommandList& RHICmdList, FViewInfo& View);
 	bool RenderBasePassStaticDataDefault(FRHICommandList& RHICmdList, FViewInfo& View);
 
+	/** Renders the basepass for the static data of a given View. Parallel versions.*/
+	FGraphEventRef RenderBasePassStaticDataParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	FGraphEventRef RenderBasePassStaticDataMaskedParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+	FGraphEventRef RenderBasePassStaticDataDefaultParallel(FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+
 	/** Sorts base pass draw lists front to back for improved GPU culling. */
 	void SortBasePassStaticData(FVector ViewPosition);
 
     /** Renders the basepass for the dynamic data of a given View. */
-	bool RenderBasePassDynamicData(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+	void RenderBasePassDynamicData(FRHICommandList& RHICmdList, const FViewInfo& View, bool& bOutDirty);
 
-    /** Renders the basepass for a given View. */
-	bool RenderBasePass(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
+	/** Renders the basepass for the dynamic data of a given View, in parallel. */
+	FGraphEventRef RenderBasePassDynamicDataParallel(FViewInfo& View, FGraphEventRef SubmitChain, bool& bOutDirty);
+
+    /** Renders the basepass for a given View, in parallel */
+	FGraphEventRef RenderBasePassViewParallel(FRHICommandListImmediate& RHICmdList, FViewInfo& View, int32 Width, FGraphEventRef SubmitChain, bool& OutDirty);
+
+	/** Renders the basepass for a given View. */
+	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
 	
 	/** 
 	* Renders the scene's base pass 
@@ -222,7 +251,7 @@ private:
 	bool RenderLightMapDensities(FRHICommandListImmediate& RHICmdList);
 
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
-	void UpdateDownsampledDepthSurface(FRHICommandListImmediate& RHICmdList);
+	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 
 	/**
 	 * Finish rendering a view, writing the contents to ViewFamily.RenderTarget.
@@ -294,7 +323,7 @@ private:
 	  * @param LightIndex The light's index into FScene::Lights
 	  * @return true if anything got rendered
 	  */
-	void RenderLight(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent);
+	void RenderLight(FRHICommandList& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderOverlap, bool bIssueDrawEvent);
 
 	/** Renders an array of simple lights using standard deferred shading. */
 	void RenderSimpleLightsStandardDeferred(FRHICommandListImmediate& RHICmdList, const FSimpleLightArray& SimpleLights);
@@ -303,16 +332,16 @@ private:
 	void ClearTranslucentVolumeLighting(FRHICommandListImmediate& RHICmdList);
 
 	/** Add AmbientCubemap to the lighting volumes. */
-	void InjectAmbientCubemapTranslucentVolumeLighting(FRHICommandListImmediate& RHICmdList);
+	void InjectAmbientCubemapTranslucentVolumeLighting(FRHICommandList& RHICmdList);
 
 	/** Renders indirect lighting into the translucent lighting volumes. */
-	void CompositeIndirectTranslucentVolumeLighting(FRHICommandListImmediate& RHICmdList);
+	void CompositeIndirectTranslucentVolumeLighting(FRHICommandList& RHICmdList);
 
 	/** Clears the volume texture used to accumulate per object shadows for translucency. */
-	void ClearTranslucentVolumePerObjectShadowing(FRHICommandListImmediate& RHICmdList);
+	void ClearTranslucentVolumePerObjectShadowing(FRHICommandList& RHICmdList);
 
 	/** Accumulates the per object shadow's contribution for translucency. */
-	void AccumulateTranslucentVolumeObjectShadowing(FRHICommandListImmediate& RHICmdList, const FProjectedShadowInfo* InProjectedShadowInfo, bool bClearVolume);
+	void AccumulateTranslucentVolumeObjectShadowing(FRHICommandList& RHICmdList, const FProjectedShadowInfo* InProjectedShadowInfo, bool bClearVolume);
 
 	/** Accumulates direct lighting for the given light.  InProjectedShadowInfo can be NULL in which case the light will be unshadowed. */
 	void InjectTranslucentVolumeLighting(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo& LightSceneInfo, const FProjectedShadowInfo* InProjectedShadowInfo);

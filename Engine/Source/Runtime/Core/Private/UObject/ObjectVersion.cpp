@@ -4,7 +4,7 @@
 	UnObjVer.cpp: Unreal version definitions.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 // Defined separately so the build script can get to it easily (DO NOT CHANGE THIS MANUALLY)
 // caution when merging, we want the UE3 version in ENGINE_VERSION_UE3

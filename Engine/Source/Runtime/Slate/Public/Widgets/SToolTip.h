@@ -76,6 +76,8 @@ public:
 
 	// End IToolTip interface
 
+	static float GetToolTipWrapWidth();
+
 private:
 
 	// Text block widget.

@@ -13,7 +13,7 @@
  * Android cooking platform which cooks only DXT based textures.
  */
 class FAndroid_DXTTargetPlatform
-	: public FAndroidTargetPlatform
+	: public FAndroidTargetPlatform<FAndroid_DXTPlatformProperties>
 {
 	virtual FString GetAndroidVariantName( ) override
 	{

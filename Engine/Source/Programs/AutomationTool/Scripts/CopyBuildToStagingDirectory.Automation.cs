@@ -27,18 +27,18 @@ public partial class Project : CommandUtils
 	/// <param name="ResponseFile"></param>
 	private static void WritePakResponseFile(string Filename, Dictionary<string, string> ResponseFile, bool Compressed)
 	{
-        using (var Writer = new StreamWriter(Filename, false, new System.Text.UTF8Encoding(true)))
-        {
-            foreach (var Entry in ResponseFile)
-            {
-                string Line = String.Format("\"{0}\" \"{1}\"", Entry.Key, Entry.Value);
-                if (Compressed)
-                {
-                    Line += " -compress";
-                }
-                Writer.WriteLine(Line);
-            }
-        }
+		using (var Writer = new StreamWriter(Filename, false, new System.Text.UTF8Encoding(true)))
+		{
+			foreach (var Entry in ResponseFile)
+			{
+				string Line = String.Format("\"{0}\" \"{1}\"", Entry.Key, Entry.Value);
+				if (Compressed)
+				{
+					Line += " -compress";
+				}
+				Writer.WriteLine(Line);
+			}
+		}
 	}
 
 	/// <summary>
@@ -49,19 +49,19 @@ public partial class Project : CommandUtils
 	private static HashSet<string> ReadPakChunkManifest(string Filename)
 	{		
 		var ResponseFile = ReadAllLines(Filename);
-		var Result = new HashSet<string>(ResponseFile);
+		var Result = new HashSet<string>(ResponseFile, StringComparer.InvariantCultureIgnoreCase);
 		return Result;
 	}
 
-	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, bool Compressed)
+	static public void RunUnrealPak(Dictionary<string, string> UnrealPakResponseFile, string OutputLocation, string EncryptionKeys, string PakOrderFileLocation, string PlatformOptions, bool Compressed)
 	{
 		if (UnrealPakResponseFile.Count < 1)
 		{
-			throw new AutomationException("items to pak");
+			return;
 		}
 		string PakName = Path.GetFileNameWithoutExtension(OutputLocation);
 		string UnrealPakResponseFileName = CombinePaths(CmdEnv.LogFolder, "PakList_" + PakName + ".txt");
-        WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed);
+		WritePakResponseFile(UnrealPakResponseFileName, UnrealPakResponseFile, Compressed);
 
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/unrealpak.exe");
 
@@ -80,6 +80,7 @@ public partial class Project : CommandUtils
 		{
 			CmdLine += " -UTF8Output";
 		}
+		CmdLine += PlatformOptions;
 		RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
 		Log("UnrealPak Done *******");
 	}
@@ -185,7 +186,7 @@ public partial class Project : CommandUtils
 				SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.ProjectRoot, "Content/Slate"), "*", true, null, CombinePaths(SC.RelativeProjectRootForStage, "Content/Slate"), true, !Params.Pak);
 
 			}
-            SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), "*.locres", true, null, null, false, !Params.Pak);
+			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization/Engine"), "*.locres", true, null, null, false, !Params.Pak);
 			SC.StageFiles(StagedFileType.UFS, CombinePaths(SC.LocalRoot, "Engine/Plugins"), "*.uplugin", true, null, null, true, !Params.Pak);
 
 			// Game ufs (content)
@@ -250,11 +251,15 @@ public partial class Project : CommandUtils
 
 			// CrashReportClient is a standalone slate app that does not look in the generated pak file, so it needs the Content/Slate and Shaders/StandaloneRenderer folders Non-UFS
 			// @todo Make CrashReportClient more portable so we don't have to do this
-			if (SC.bStageCrashReporter && !SC.DedicatedServer)
+			if (SC.bStageCrashReporter && UnrealBuildTool.UnrealBuildTool.PlatformSupportsCrashReporter(SC.StageTargetPlatform.PlatformType) && !SC.DedicatedServer)
 			{
-                //If the .dat file needs to be staged as NonUFS for non-Windows/Linux hosts we need to change the casing as we do with the build properties file above.
+				//If the .dat file needs to be staged as NonUFS for non-Windows/Linux hosts we need to change the casing as we do with the build properties file above.
 				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Slate"));
 				SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Shaders/StandaloneRenderer"));
+
+				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Content/Localization/ICU" ) );
+				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Binaries/ThirdParty/ICU" ) );
+				SC.StageFiles( StagedFileType.NonUFS, CombinePaths( SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenSSL" ) );
 			}
 		}
 	}
@@ -407,7 +412,7 @@ public partial class Project : CommandUtils
 			PakOrderFileLocation = CombinePaths(PakOrderFileLocationBase, "EditorOpenOrder.log");
 		}
 
-		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, Params.Compressed);
+		RunUnrealPak(UnrealPakResponseFile, OutputLocation, Params.SignPak, PakOrderFileLocation, SC.StageTargetPlatform.GetPlatformPakCommandLine(), Params.Compressed);
 
 		// add the pak file as needing deployment and convert to lower case again if needed
 		SC.UFSStagingFiles.Add(OutputLocation, OutputRealtiveLocation);		
@@ -464,6 +469,11 @@ public partial class Project : CommandUtils
 			var ChunkName = Path.GetFileNameWithoutExtension(ChunkList[ChunkIndex]);
 			CreatePak(Params, SC, PakResponseFiles[ChunkIndex], ChunkName);
 		}
+				
+		String ChunkLayerFilename = CombinePaths(GetTmpPackagingPath(Params, SC), GetChunkPakLayerListName());        
+		String OutputChunkLayerFilename = Path.Combine(SC.ProjectRoot, "Build", SC.CookPlatform, "ChunkLayerInfo", GetChunkPakLayerListName());
+		Directory.CreateDirectory(Path.GetDirectoryName(OutputChunkLayerFilename));
+		File.Copy(ChunkLayerFilename, OutputChunkLayerFilename, true);
 	}
 
 	private static bool DoesChunkPakManifestExist(ProjectParams Params, DeploymentContext SC)
@@ -474,6 +484,11 @@ public partial class Project : CommandUtils
 	private static string GetChunkPakManifestListFilename(ProjectParams Params, DeploymentContext SC)
 	{
 		return CombinePaths(GetTmpPackagingPath(Params, SC), "pakchunklist.txt");
+	}
+
+	private static string GetChunkPakLayerListName()
+	{
+		return "pakchunklayers.txt";
 	}
 
 	private static string GetTmpPackagingPath(ProjectParams Params, DeploymentContext SC)
@@ -544,7 +559,7 @@ public partial class Project : CommandUtils
 			if (Params.CookOnTheFly || Params.FileServer)
 			{
 				FileHostParams += "-filehostip=";
-
+				bool FirstParam = true;
 				if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
 				{
 					NetworkInterface[] Interfaces = NetworkInterface.GetAllNetworkInterfaces();
@@ -557,13 +572,30 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible && IP.UnicastAddresses[Index].Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
 								{
-									FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
-									if (String.IsNullOrEmpty(Params.Port) == false)
+									if (Params.Port != null)
 									{
-										FileHostParams += ":";
-										FileHostParams += Params.Port;
+										foreach (var Port in Params.Port)
+										{
+											if (!FirstParam)
+											{
+												FileHostParams += "+";
+											}
+											FirstParam = false;
+											string[] PortProtocol = Port.Split(new char[] { ':' });
+											if (PortProtocol.Length > 1)
+											{
+												FileHostParams += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
+											}
+											else
+											{
+												FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
+												FileHostParams += ":";
+												FileHostParams += Params.Port;
+											}
+											
+										}
 									}
-									FileHostParams += "+";
+									
 								}
 							}
 						}
@@ -581,23 +613,57 @@ public partial class Project : CommandUtils
 							{
 								if (IP.UnicastAddresses[Index].IsDnsEligible)
 								{
-									FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
-									if (String.IsNullOrEmpty(Params.Port) == false)
+									if (Params.Port != null)
 									{
-										FileHostParams += ":";
-										FileHostParams += Params.Port;
+										foreach (var Port in Params.Port)
+										{
+											if (!FirstParam)
+											{
+												FileHostParams += "+";
+											}
+											FirstParam = false;
+											string[] PortProtocol = Port.Split(new char[] { ':' });
+											if (PortProtocol.Length > 1)
+											{
+												FileHostParams += String.Format("{0}://{1}:{2}", PortProtocol[0], IP.UnicastAddresses[Index].Address.ToString(), PortProtocol[1]);
+											}
+											else
+											{
+												FileHostParams += IP.UnicastAddresses[Index].Address.ToString();
+												FileHostParams += ":";
+												FileHostParams += Params.Port;
+											}
+										}
 									}
-									FileHostParams += "+";
+									
 								}
 							}
 						}
 					}
 				}
-				FileHostParams += "127.0.0.1";
-				if (String.IsNullOrEmpty(Params.Port) == false)
+				const string LocalHost = "127.0.0.1";
+				if (Params.Port != null)
 				{
-					FileHostParams += ":";
-					FileHostParams += Params.Port;
+					foreach (var Port in Params.Port)
+					{
+						if (!FirstParam)
+						{
+							FileHostParams += "+";
+						}
+						FirstParam = false;
+						string[] PortProtocol = Port.Split(new char[] { ':' });
+						if (PortProtocol.Length > 1)
+						{
+							FileHostParams += String.Format("{0}://{1}:{2}", PortProtocol[0], LocalHost, PortProtocol[1]);
+						}
+						else
+						{
+							FileHostParams += LocalHost;
+							FileHostParams += ":";
+							FileHostParams += Params.Port;
+						}
+
+					}
 				}
 				FileHostParams += " ";
 			}
@@ -629,8 +695,8 @@ public partial class Project : CommandUtils
 	//@todo move this
 	public static List<DeploymentContext> CreateDeploymentContext(ProjectParams Params, bool InDedicatedServer, bool DoCleanStage = false)
 	{
-        ParamList<string> ListToProcess = InDedicatedServer && (Params.Cook || Params.CookOnTheFly) ? Params.ServerCookedTargets : Params.ClientCookedTargets;
-        var ConfigsToProcess = InDedicatedServer && (Params.Cook || Params.CookOnTheFly) ? Params.ServerConfigsToBuild : Params.ClientConfigsToBuild;
+		ParamList<string> ListToProcess = InDedicatedServer && (Params.Cook || Params.CookOnTheFly) ? Params.ServerCookedTargets : Params.ClientCookedTargets;
+		var ConfigsToProcess = InDedicatedServer && (Params.Cook || Params.CookOnTheFly) ? Params.ServerConfigsToBuild : Params.ClientConfigsToBuild;
 		
 		List<UnrealTargetPlatform> PlatformsToStage = Params.ClientTargetPlatforms;
 		if ( InDedicatedServer && (Params.Cook || Params.CookOnTheFly) )
@@ -684,32 +750,32 @@ public partial class Project : CommandUtils
 
 	public static void CopyBuildToStagingDirectory(ProjectParams Params)
 	{
-        if (ShouldCreatePak(Params) || (Params.Stage && !Params.SkipStage))
-        {
-            Params.ValidateAndLog();
+		if (ShouldCreatePak(Params) || (Params.Stage && !Params.SkipStage))
+		{
+			Params.ValidateAndLog();
 
-            if (!Params.NoClient)
-            {
-                var DeployContextList = CreateDeploymentContext(Params, false, true);
-                foreach (var SC in DeployContextList)
-                {
-                    // write out the commandline file now so it can go into the manifest
-                    WriteStageCommandline(Params, SC);
-                    CreateStagingManifest(Params, SC);
-                    ApplyStagingManifest(Params, SC);
-                }
-            }
+			if (!Params.NoClient)
+			{
+				var DeployContextList = CreateDeploymentContext(Params, false, true);
+				foreach (var SC in DeployContextList)
+				{
+					// write out the commandline file now so it can go into the manifest
+					WriteStageCommandline(Params, SC);
+					CreateStagingManifest(Params, SC);
+					ApplyStagingManifest(Params, SC);
+				}
+			}
 
-            if (Params.DedicatedServer)
-            {
-                var DeployContextList = CreateDeploymentContext(Params, true, true);
-                foreach (var SC in DeployContextList)
-                {
-                    CreateStagingManifest(Params, SC);
-                    ApplyStagingManifest(Params, SC);
-                }
-            }
-        }
+			if (Params.DedicatedServer)
+			{
+				var DeployContextList = CreateDeploymentContext(Params, true, true);
+				foreach (var SC in DeployContextList)
+				{
+					CreateStagingManifest(Params, SC);
+					ApplyStagingManifest(Params, SC);
+				}
+			}
+		}
 	}
 
 	#endregion

@@ -9,12 +9,6 @@ class UMG_API UContentWidget : public UPanelWidget
 {
 	GENERATED_UCLASS_BODY()
 
-	//UFUNCTION()
-	//virtual UWidget* GetContent();
-	//
-	//UFUNCTION()
-	//virtual void SetContent(UWidget* InContent);
-
 protected:
 
 	// UPanelWidget

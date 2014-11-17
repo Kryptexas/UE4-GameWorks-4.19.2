@@ -350,7 +350,7 @@ IMPLEMENT_SHADER_TYPE(,FStencilDecalMaskPS,TEXT("DeferredDecal"),TEXT("StencilDe
 FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
 
 /** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
-void StencilDecalMask(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
+void StencilDecalMask(FRHICommandList& RHICmdList, const FSceneView& View)
 {
 	SCOPED_DRAW_EVENT(StencilDecalMask, DEC_SCENE_ITEMS);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -609,18 +609,7 @@ void SetShader(const FRenderingCompositePassContext& Context, const FTransientDe
 	const FMaterialShaderMap* MaterialShaderMap = DecalData.MaterialResource->GetRenderingThreadShaderMap();
 	FDeferredDecalPS* PixelShader = MaterialShaderMap->GetShader<FDeferredDecalPS>();
 
-	// This was cached but when changing the material (e.g. editor) it wasn't updated.
-	// This will change with upcoming multi threaded rendering changes.
-	FBoundShaderStateRHIRef BoundShaderState;
-	{
-		uint32 Strides[MaxVertexElementCount];
-		FMemory::Memzero(Strides, sizeof(Strides));
-		Strides[0] = sizeof(FVector);
-
-		BoundShaderState = Context.RHICmdList.CreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef());
-	}
-
-	Context.RHICmdList.SetBoundShaderState(BoundShaderState);
+	Context.RHICmdList.SetLocalBoundShaderState(Context.RHICmdList.BuildLocalBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), FGeometryShaderRHIRef()));
 
 	PixelShader->SetParameters(Context.RHICmdList, View, DecalData.MaterialProxy, *DecalData.DecalProxy);
 }
@@ -650,14 +639,7 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMaterialSh
 
 	FDeferredDecalVS* VertexShader = MaterialShaderMap->GetShader<FDeferredDecalVS>();
 	
-	// This was cached but when changing the material (e.g. editor) it wasn't updated.
-	// This will change with upcoming multi threaded rendering changes.
-	FBoundShaderStateRHIRef BoundShaderState;
-	{
-		BoundShaderState = Context.RHICmdList.CreateBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), NULL, FGeometryShaderRHIRef());
-	}
-
-	Context.RHICmdList.SetBoundShaderState(BoundShaderState);
+	Context.RHICmdList.SetLocalBoundShaderState(Context.RHICmdList.BuildLocalBoundShaderState(GetVertexDeclarationFVector3(), VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), NULL, FGeometryShaderRHIRef()));
 
 	VertexShader->SetParameters(Context.RHICmdList, View, FrustumComponentToClip);
 

@@ -67,8 +67,6 @@ private:
 	UAnimSequenceBase *AnimRef;
 
 	FPreviewScene PreviewScene;
-	class FFXSystemInterface* FXSystem;
-
 	class UDebugSkelMeshComponent* PreviewComponent;
 
 	TSharedPtr<STextBlock> Description;
@@ -152,7 +150,7 @@ protected:
 class FAnimationSegmentViewportClient : public FEditorViewportClient
 {
 public:
-	FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene, FFXSystemInterface * FXSystem);
+	FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene);
 
 	// FlEditorViewportClient interface
 	virtual FSceneInterface* GetScene() const override;

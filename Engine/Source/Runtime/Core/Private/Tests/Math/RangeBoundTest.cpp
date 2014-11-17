@@ -4,7 +4,7 @@
 	RangeBoundTest.cpp: Unit test for the TRangeBound template.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AutomationTest.h"
 
 

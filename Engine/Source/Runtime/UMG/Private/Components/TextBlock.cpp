@@ -73,7 +73,12 @@ void UTextBlock::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
 
-	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
+
+	if ( !FPaths::FileExists(FontPath) )
+	{
+		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	}
 
 	const FTextBlockStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FTextBlockStyle>() : NULL;
 	if ( StylePtr == NULL )
@@ -92,6 +97,8 @@ void UTextBlock::SyncronizeProperties()
 	MyTextBlock->SetTextStyle(StylePtr);
 	MyTextBlock->SetShadowOffset(ShadowOffset);
 	MyTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
+	MyTextBlock->SetAutoWrapText(AutoWrapText);
+	MyTextBlock->SetWrapTextAt(WrapTextAt != 0 ? WrapTextAt : TAttribute<float>());
 
 #if WITH_EDITOR
 	MyEditorTextBlock->SetText(TextBinding);
@@ -101,6 +108,15 @@ void UTextBlock::SyncronizeProperties()
 	//MyEditorTextBlock->SetShadowOffset(ShadowOffset);
 	//MyEditorTextBlock->SetShadowColorAndOpacity(ShadowColorAndOpacityBinding);
 #endif
+}
+
+void UTextBlock::SetText(FText InText)
+{
+	Text = InText;
+	if ( MyTextBlock.IsValid() )
+	{
+		MyTextBlock->SetText(Text);
+	}
 }
 
 #if WITH_EDITOR
@@ -121,7 +137,7 @@ void UTextBlock::HandleTextCommitted(const FText& InText, ETextCommit::Type Comm
 	//     Need a way to recognize one particular widget and forward things to them!
 }
 
-void UTextBlock::OnDesignerDoubleClicked()
+void UTextBlock::OnBeginEdit()
 {
 	MyEditorTextBlock->EnterEditingMode();
 }

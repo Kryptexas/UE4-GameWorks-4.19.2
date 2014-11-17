@@ -4,6 +4,8 @@
 
 #include "BlendableInterface.generated.h"
 
+class UMaterialInstanceDynamic;
+
 /** Where to place a material node in the post processing graph */
 UENUM()
 enum EBlendableLocation

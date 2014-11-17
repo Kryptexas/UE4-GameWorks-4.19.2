@@ -74,6 +74,24 @@ struct FLODSoloTrack
 
 };
 
+USTRUCT()
+struct FNamedEmitterMaterial
+{
+	GENERATED_USTRUCT_BODY()
+
+	FNamedEmitterMaterial()
+	: Name(NAME_None)
+	, Material(nullptr)
+	{
+	}
+
+	UPROPERTY(EditAnywhere, Category = NamedMaterial)
+		FName Name;
+
+	UPROPERTY(EditAnywhere, Category = NamedMaterial)
+	class UMaterialInterface* Material;
+};
+
 /**
  * A ParticleSystem is a complete particle effect that contains any number of ParticleEmitters. By allowing multiple emitters
  * in a system, the designer can create elaborate particle effects that are held in a single system. Once created using
@@ -297,6 +315,13 @@ public:
 	UPROPERTY(transient)
 	TArray<struct FLODSoloTrack> SoloTracking;
 
+	/** 
+	*	Array of named material slots for use by emitters of this system. 
+	*	Emitters can use these instead of their own materials by providing the name to the NamedMaterialOverrides property of their required module.
+	*	These materials can be overriden using CreateNamedDynamicMaterialInstance() on a ParticleSystemComponent.
+	*/
+	UPROPERTY(EditAnywhere, Category = Materials)
+	TArray<FNamedEmitterMaterial> NamedMaterialSlots;
 
 	// Begin UObject interface.
 #if WITH_EDITOR

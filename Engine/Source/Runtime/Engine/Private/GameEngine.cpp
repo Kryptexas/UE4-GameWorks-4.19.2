@@ -14,6 +14,7 @@
 #include "Net/NetworkProfiler.h"
 #include "ConfigCacheIni.h"
 #include "EngineModule.h"
+#include "Engine/GameInstance.h"
 
 #include "AVIWriter.h"
 
@@ -92,7 +93,7 @@ EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 		{
 			return EWindowMode::Fullscreen;
 		}
-
+		
 		// Figure out which full screen mode we should be
 		EWindowMode::Type DesiredFullScreenWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
 		return DesiredFullScreenWindowMode;
@@ -370,6 +371,7 @@ UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	AsyncLoadingTimeLimit = 5.0f;
+	bAsyncLoadingUseFullTimeLimit = true;
 	PriorityAsyncLoadingExtraTime = 20.0f;
 
 	C_WorldBox = FColor(0, 0, 40, 255);
@@ -415,29 +417,34 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 	}
 #endif
 
-	// Load game modules
-	{
-		if( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
-		{
-			FModuleManager::Get().LoadModule( TEXT("GameLiveStreaming") );
-		}
-	}
+	// Load all of the engine modules that we need at startup that are not editor-related
+	UGameEngine::LoadRuntimeEngineStartupModules();
 
 	// Load and apply user game settings
 	GetGameUserSettings()->LoadSettings();
-	GetGameUserSettings()->ApplySettings();
+	GetGameUserSettings()->ApplySettings(true);
 
-	// Creates the initial world context. For GameEngine, this should be the only WorldContext that ever gets created.
-	FWorldContext &InitialWorldContext = CreateNewWorldContext(EWorldType::Game);
+	// Create game instance.  For GameEngine, this should be the only GameInstance that ever gets created.
+	{
+		FStringClassReference GameInstanceClassName = GetDefault<UGameMapsSettings>()->GameInstanceClass;
+		UClass* GameInstanceClass = (GameInstanceClassName.IsValid() ? LoadObject<UClass>(NULL, *GameInstanceClassName.ToString()) : UGameInstance::StaticClass());
+		
+		GameInstance = ConstructObject<UGameInstance>(GameInstanceClass, this);
+
+		GameInstance->Init();
+	}
+ 
+//  	// Creates the initial world context. For GameEngine, this should be the only WorldContext that ever gets created.
+//  	FWorldContext& InitialWorldContext = CreateNewWorldContext(EWorldType::Game);
 
 	// Initialize the viewport client.
 	UGameViewportClient* ViewportClient = NULL;
 	if(GIsClient)
 	{
 		ViewportClient = ConstructObject<UGameViewportClient>(GameViewportClientClass,this);
-		ViewportClient->SetReferenceToWorldContext(InitialWorldContext);
+		ViewportClient->Init(*GameInstance->GetWorldContext(), GameInstance);
 		GameViewport = ViewportClient;
-		InitialWorldContext.GameViewport = ViewportClient;
+ 		GameInstance->GetWorldContext()->GameViewport = ViewportClient;
 	}
 
 	bCheckForMovieCapture = true;
@@ -459,64 +466,15 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 			SwitchGameWindowToUseGameViewport();
 		}
 		FString Error;
-		if(!ViewportClient->Init(Error))
+		if(ViewportClient->SetupInitialLocalPlayer(Error) == NULL)
 		{
 			UE_LOG(LogEngine, Fatal,TEXT("%s"),*Error);
 		}
 	}
 
-	// Create default URL.
-	// @note:  if we change how we determine the valid start up map update LaunchEngineLoop's GetStartupMap()
-	FURL DefaultURL;
-	DefaultURL.LoadURLConfig( TEXT("DefaultPlayer"), GGameIni );
+	GameInstance->StartGameInstance();
 
-	// Enter initial world.
-	EBrowseReturnVal::Type BrowseRet = EBrowseReturnVal::Failure;
-	FString Error;
-	TCHAR Parm[4096]=TEXT("");
-	const TCHAR* Tmp = FCommandLine::Get();
 
-#if UE_BUILD_SHIPPING
-	// In shipping don't allow an override
-	Tmp = TEXT("");
-#endif // UE_BUILD_SHIPPING
-
-	const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
-	const FString& DefaultMap = GameMapsSettings->GetGameDefaultMap();
-	if (!FParse::Token(Tmp, Parm, ARRAY_COUNT(Parm), 0) || Parm[0] == '-')
-	{
-		FCString::Strcpy(Parm, *(DefaultMap + GameMapsSettings->LocalMapOptions));
-	}
-	FURL URL( &DefaultURL, Parm, TRAVEL_Partial );
-	if( URL.Valid )
-	{
-		BrowseRet = Browse(InitialWorldContext, URL, Error );
-	}
-
-	// If waiting for a network connection, go into the starting level.
-	if (BrowseRet != EBrowseReturnVal::Success && FCString::Stricmp(Parm, *DefaultMap) != 0)
-	{
-		const FText Message = FText::Format( NSLOCTEXT("Engine", "MapNotFound", "The map specified on the commandline '{0}' could not be found. Would you like to load the default map instead?"), FText::FromString( URL.Map ) );
-
-		// the map specified on the command-line couldn't be loaded.  ask the user if we should load the default map instead
-		if ( FCString::Stricmp(*URL.Map, *DefaultMap) != 0 &&
-			FMessageDialog::Open( EAppMsgType::OkCancel, Message ) != EAppReturnType::Ok)
-		{
-			// user canceled (maybe a typo while attempting to run a commandlet)
-			FPlatformMisc::RequestExit( false );
-			return;
-		}
-		else
-		{
-			BrowseRet = Browse(InitialWorldContext, FURL(&DefaultURL, *(DefaultMap + GameMapsSettings->LocalMapOptions), TRAVEL_Partial), Error);
-		}
-	}
-
-	// Handle failure.
-	if( BrowseRet != EBrowseReturnVal::Success )
-	{
-		UE_LOG(LogLoad, Fatal, TEXT("%s"), *FString::Printf( TEXT("Failed to enter %s: %s. Please check the log for errors."), Parm, *Error) );
-	}
 	UE_LOG(LogInit, Display, TEXT("Game Engine Initialized.") );
 
 	// for IsInitialized()
@@ -539,18 +497,12 @@ void UGameEngine::PreExit()
 
 	CancelAllPending();
 
-	// Clean up world.
+	// Clean up all worlds
 	for (int32 WorldIndex = 0; WorldIndex < WorldList.Num(); ++WorldIndex)
 	{
 		UWorld* const World = WorldList[WorldIndex].World();
 		if ( World != NULL )
 		{
-			// notify the GameMode
-			AGameMode* const GameMode = World->GetAuthGameMode();
-			if (GameMode != NULL)
-			{
-				GameMode->PreExit();
-			}
 			World->FlushLevelStreaming( NULL, true );
 			World->CleanupWorld();
 		}
@@ -567,6 +519,21 @@ void UGameEngine::FinishDestroy()
 
 	Super::FinishDestroy();
 }
+
+
+void UGameEngine::LoadRuntimeEngineStartupModules()
+{
+	// NOTE: These modules will be loaded when the game starts up, and also when the editor starts up.
+
+	// We only want live streaming support if we're actually in a game
+	if( !IsRunningDedicatedServer() && !IsRunningCommandlet() )
+	{
+		FModuleManager::Get().LoadModule( TEXT("GameLiveStreaming") );
+	}
+
+	// ... load other required engine runtime modules here (but NOT editor modules) ...
+}
+
 
 /*-----------------------------------------------------------------------------
 	Command line executor.
@@ -700,12 +667,6 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	for (int32 WorldIndex = 0; WorldIndex < WorldList.Num(); ++WorldIndex)
 	{
 		UWorld* const World = WorldList[WorldIndex].World();
-		AGameMode* const GameMode = World->GetAuthGameMode();
-
-		if (GameMode)
-		{
-			GameMode->StartToLeaveMap();
-		}
 
 		// Cancel any pending connection to a server
 		CancelPending(WorldList[WorldIndex]);
@@ -734,7 +695,7 @@ bool UGameEngine::HandleCancelCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWor
 #if !UE_BUILD_SHIPPING
 bool UGameEngine::HandleApplyUserSettingsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	GetGameUserSettings()->ApplySettings();
+	GetGameUserSettings()->ApplySettings(false);
 	return true;
 }
 #endif // !UE_BUILD_SHIPPING
@@ -853,7 +814,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.
-		StaticTick(DeltaSeconds, AsyncLoadingTimeLimit / 1000.f);
+		StaticTick(DeltaSeconds, bAsyncLoadingUseFullTimeLimit, AsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// -----------------------------------------------------
@@ -914,7 +875,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			Context.World()->bWorldWasLoadedThisTick = false;
 			
 			const TCHAR* InitialExec = Context.LastURL.GetOption(TEXT("causeevent="),NULL);
-			ULocalPlayer* GamePlayer = Context.GamePlayers.Num() > 0 ? Context.GamePlayers[0] : NULL;
+			ULocalPlayer* GamePlayer = Context.OwningGameInstance ? Context.OwningGameInstance->GetFirstGamePlayer() : NULL;
 			if( InitialExec && GamePlayer )
 			{
 				UE_LOG(LogEngine, Log, TEXT("Issuing initial cause event passed from URL: %s"), InitialExec);

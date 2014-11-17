@@ -83,3 +83,23 @@ TArray<FClass*> FClass::GetInterfaceTypes() const
 	}
 	return Result;
 }
+
+void FClass::GetHideCategories(TArray<FString>& OutHideCategories) const
+{
+	static const FName NAME_HideCategories(TEXT("HideCategories"));
+	if (HasMetaData(NAME_HideCategories))
+	{
+		const FString& HideCategories = GetMetaData(NAME_HideCategories);
+		HideCategories.ParseIntoArray(&OutHideCategories, TEXT(" "), true);
+	}
+}
+
+void FClass::GetShowCategories(TArray<FString>& OutShowCategories) const
+{
+	static const FName NAME_ShowCategories(TEXT("ShowCategories"));
+	if (HasMetaData(NAME_ShowCategories))
+	{
+		const FString& ShowCategories = GetMetaData(NAME_ShowCategories);
+		ShowCategories.ParseIntoArray(&OutShowCategories, TEXT(" "), true);
+	}
+}

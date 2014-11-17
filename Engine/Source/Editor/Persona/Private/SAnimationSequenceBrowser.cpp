@@ -7,15 +7,14 @@
 #include "SAnimationSequenceBrowser.h"
 #include "Persona.h"
 #include "AssetRegistryModule.h"
-#include "AnimationCompressionPanel.h"
 #include "SSkeletonWidget.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
-#include "MainFrame.h"
-#include "DesktopPlatformModule.h"
 #include "FeedbackContextEditor.h"
-#include "FbxAnimUtils.h"
 #include "EditorAnimUtils.h"
 #include "Editor/ContentBrowser/Public/FrontendFilterBase.h"
+#include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "SceneViewport.h"
+#include "AnimPreviewInstance.h"
 
 #define LOCTEXT_NAMESPACE "SequenceBrowser"
 
@@ -42,23 +41,29 @@ public:
 
 const int32 SAnimationSequenceBrowser::MaxAssetsHistory = 10;
 
-void SAnimationSequenceBrowser::OnAnimSelected(const FAssetData& AssetData)
+SAnimationSequenceBrowser::~SAnimationSequenceBrowser()
 {
-	CacheOriginalAnimAssetHistory();
-	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
-	if (Persona.IsValid())
+	if(PreviewComponent)
 	{
-		if (UObject* RawAsset = AssetData.GetAsset())
+		for(int32 ComponentIdx = PreviewComponent->AttachChildren.Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
 		{
-			if (UAnimationAsset* Asset = Cast<UAnimationAsset>(RawAsset))
+			USceneComponent* Component = PreviewComponent->AttachChildren[ComponentIdx];
+			if(Component)
 			{
-				Persona->SetPreviewAnimationAsset(Asset);
-			}
-			else if(UVertexAnimation* VertexAnim = Cast<UVertexAnimation>(RawAsset))
-			{
-				Persona->SetPreviewVertexAnim(VertexAnim);
+				CleanupPreviewSceneComponent(Component);
 			}
 		}
+		PreviewComponent->AttachChildren.Empty();
+	}
+
+	if(ViewportClient.IsValid())
+	{
+		ViewportClient->Viewport = NULL;
+	}
+
+	if (PersonaPtr.IsValid())
+	{
+		PersonaPtr.Pin()->SetSequenceBrowser(NULL);
 	}
 }
 
@@ -108,6 +113,43 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 		}
 	}
 
+	if(bHasSelectedAnimSequence)
+	{
+		MenuBuilder.BeginSection("AnimationSequenceOptions", NSLOCTEXT("Docking", "TabAnimationHeading", "Animation"));
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("RunCompressionOnAnimations", "Apply Compression"),
+				LOCTEXT("RunCompressionOnAnimations_ToolTip", "Apply a compression scheme from the options given to the selected animations"),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnApplyCompression, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ExportAnimationsToFBX", "Export to FBX"),
+				LOCTEXT("ExportAnimationsToFBX_ToolTip", "Export Animation(s) To FBX"),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnExportToFBX, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("AddLoopingInterpolation", "Add Looping Interpolation"),
+				LOCTEXT("AddLoopingInterpolation_ToolTip", "Add an extra frame at the end of the animation to create better looping"),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP(this, &SAnimationSequenceBrowser::OnAddLoopingInterpolation, SelectedAssets),
+				FCanExecuteAction()
+				)
+				);
+		}
+		MenuBuilder.EndSection();
+	}
+
 	MenuBuilder.BeginSection("AnimationSequenceOptions", NSLOCTEXT("Docking", "TabOptionsHeading", "Options") );
 	{
 		MenuBuilder.AddMenuEntry(
@@ -129,29 +171,6 @@ TSharedPtr<SWidget> SAnimationSequenceBrowser::OnGetAssetContextMenu(const TArra
 				FCanExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::CanSaveSelectedAssets, SelectedAssets)
 				)
 			);
-
-		if(bHasSelectedAnimSequence)
-		{
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("RunCompressionOnAnimations", "Apply Compression"),
-				LOCTEXT("RunCompressionOnAnimations_ToolTip", "Apply a compression scheme from the options given to the selected animations"),
-				FSlateIcon(),
-				FUIAction(
-				FExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::OnApplyCompression, SelectedAssets ),
-				FCanExecuteAction()
-				)
-				);
-
-			MenuBuilder.AddMenuEntry(
-				LOCTEXT("ExportAnimationsToFBX", "Export to FBX"),
-				LOCTEXT("ExportAnimationsToFBX_ToolTip", "Export Animation(s) To FBX"),
-				FSlateIcon(),
-				FUIAction(
-				FExecuteAction::CreateSP( this, &SAnimationSequenceBrowser::OnExportToFBX, SelectedAssets ),
-				FCanExecuteAction()
-				)
-				);
-		}
 	}
 	MenuBuilder.EndSection();
 
@@ -224,8 +243,7 @@ void SAnimationSequenceBrowser::OnApplyCompression(TArray<FAssetData> SelectedAs
 			}
 		}
 
-		FDlgAnimCompression AnimCompressionDialog( AnimSequences );
-		AnimCompressionDialog.ShowModal();
+		PersonaPtr.Pin()->ApplyCompression(AnimSequences);
 	}
 }
 
@@ -233,146 +251,35 @@ void SAnimationSequenceBrowser::OnExportToFBX(TArray<FAssetData> SelectedAssets)
 {
 	if (SelectedAssets.Num() > 0)
 	{
-		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-
-		if(DesktopPlatform && PersonaPtr.IsValid())
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
 		{
-			USkeletalMesh * PreviewMesh = PersonaPtr.Pin()->GetPreviewMeshComponent()->SkeletalMesh;
-			if (PreviewMesh == NULL)
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ExportToFBXExportMissingPreviewMesh", "ERROR: Missing preview mesh") );
-				return;
-			}
-
-			TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
-			for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
-			{
-				if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()) )
-				{
-					// we only shows anim sequence that belong to this skeleton
-					AnimSequences.Add( TWeakObjectPtr<UAnimSequence>(AnimSequence) );
-				}
-			}
-
-			if(AnimSequences.Num() > 0)
-			{
-				//Get parent window for dialogs
-				IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-				const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-
-				void* ParentWindowWindowHandle = NULL;
-
-				if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
-				{
-					ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
-				}
-
-				//Cache anim file names
-				TArray<FString> AnimFileNames;
-				for(auto Iter = AnimSequences.CreateIterator(); Iter; ++Iter)
-				{
-					AnimFileNames.Add( Iter->Get()->GetName() + TEXT(".fbx") );
-				}
-
-				IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
-				FString DestinationFolder;
-
-				const FString Title = LOCTEXT("ExportFBXsToFolderTitle", "Choose a destination folder for the FBX file(s)").ToString();
-
-				if(SelectedAssets.Num() > 1)
-				{
-					bool bFolderValid = false;
-					// More than one file, just ask for directory
-					while(!bFolderValid)
-					{
-						const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
-							ParentWindowWindowHandle,
-							Title,
-							FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT),
-							DestinationFolder
-							);
-
-						if ( !bFolderSelected )
-						{
-							// User canceled, return
-							return;
-						}
-
-						FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, DestinationFolder);
-						FPaths::NormalizeFilename(DestinationFolder);
-
-						//Check whether there are any fbx filename conflicts in this folder
-						for(auto Iter = AnimFileNames.CreateIterator(); Iter; ++Iter)
-						{
-							FString& AnimFileName = *Iter;
-							FString FullPath = DestinationFolder + "/" + AnimFileName;
-
-							bFolderValid = true;
-							if(PlatformFile.FileExists(*FullPath))
-							{
-								FFormatNamedArguments Args;
-								Args.Add( TEXT("DestinationFolder"), FText::FromString( DestinationFolder ) );
-								const FText DialogMessage = FText::Format( LOCTEXT("ExportToFBXFileOverwriteMessage", "Exporting to '{DestinationFolder}' will cause one or more existing FBX files to be overwritten. Would you like to continue?"), Args );
-								EAppReturnType::Type DialogReturn = FMessageDialog::Open(EAppMsgType::YesNo, DialogMessage);
-								bFolderValid = (EAppReturnType::Yes == DialogReturn);
-								break;
-							}
-						}
-					}
-				}
-				else
-				{
-					// One file only, ask for full filename.
-					// Can set bFolderValid from the SaveFileDialog call as the window will handle 
-					// duplicate files for us.
-					TArray<FString> TempDestinationNames;
-					bool bSave = DesktopPlatform->SaveFileDialog(
-						ParentWindowWindowHandle,
-						Title,
-						FEditorDirectories::Get().GetLastDirectory(ELastDirectory::GENERIC_EXPORT),
-						SelectedAssets[0].AssetName.ToString(),
-						"FBX  |*.fbx",
-						EFileDialogFlags::None,
-						TempDestinationNames
-						);
-
-					if(!bSave)
-					{
-						// Canceled
-						return;
-					}
-					check(TempDestinationNames.Num() == 1);
-					check(AnimFileNames.Num() == 1);
-
-					DestinationFolder = FPaths::GetPath(TempDestinationNames[0]);
-					AnimFileNames[0] = FPaths::GetCleanFilename(TempDestinationNames[0]);
-
-					FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_EXPORT, DestinationFolder);
-				}
-
-				EAppReturnType::Type DialogReturn = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("ExportToFBXExportPreviewMeshToo", "Would you like to export the current skeletal mesh with the animation(s)?") );
-				bool bSaveSkeletalMesh = EAppReturnType::Yes == DialogReturn;
-
-				const bool bShowCancel = false;
-				const bool bShowProgressDialog = true;
-				GWarn->BeginSlowTask( LOCTEXT("ExportToFBXProgress", "Exporting Animation(s) to FBX"), bShowProgressDialog, bShowCancel);
-
-				// make sure to use PreviewMesh, when export inside of Persona
-				const int32 NumberOfAnimations = AnimSequences.Num();
-				for(int32 i = 0; i < NumberOfAnimations; ++i)
-				{
-					GWarn->UpdateProgress(i,NumberOfAnimations);
-
-					UAnimSequence* AnimSequence = AnimSequences[i].Get();
-
-					FString FileName = FString::Printf(TEXT("%s/%s"), *DestinationFolder, *AnimFileNames[i]);
-
-					FbxAnimUtils::ExportAnimFbx( *FileName, AnimSequence, PreviewMesh, bSaveSkeletalMesh );
-				}
-
-				GWarn->EndSlowTask( );
+				// we only shows anim sequence that belong to this skeleton
+				AnimSequences.Add(TWeakObjectPtr<UAnimSequence>(AnimSequence));
 			}
 		}
+
+		PersonaPtr.Pin()->ExportToFBX(AnimSequences);
+	}
+}
+
+void SAnimationSequenceBrowser::OnAddLoopingInterpolation(TArray<FAssetData> SelectedAssets)
+{
+	if(SelectedAssets.Num() > 0)
+	{
+		TArray<TWeakObjectPtr<UAnimSequence>> AnimSequences;
+		for(auto Iter = SelectedAssets.CreateIterator(); Iter; ++Iter)
+		{
+			if(UAnimSequence* AnimSequence = Cast<UAnimSequence>(Iter->GetAsset()))
+			{
+				// we only shows anim sequence that belong to this skeleton
+				AnimSequences.Add(TWeakObjectPtr<UAnimSequence>(AnimSequence));
+			}
+		}
+
+		PersonaPtr.Pin()->AddLoopingInterpolation(AnimSequences);
 	}
 }
 
@@ -395,6 +302,7 @@ void SAnimationSequenceBrowser::OnCreateCopy(TArray<FAssetData> Selected)
 
 			if(UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(AssetToOpen))
 			{
+				FAssetRegistryModule::AssetCreated(AssetToOpen);
 				// once all success, attempt to open new persona module with new skeleton
 				EToolkitMode::Type Mode = EToolkitMode::Standalone;
 				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
@@ -412,10 +320,18 @@ bool SAnimationSequenceBrowser::CanShowColumnForAssetRegistryTag(FName AssetType
 void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 {
 	PersonaPtr = InArgs._Persona;
+
+	if (PersonaPtr.IsValid())
+	{
+		PersonaPtr.Pin()->SetSequenceBrowser(this);
+	}
+
 	CurrentAssetHistoryIndex = INDEX_NONE;
 	bTriedToCacheOrginalAsset = false;
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
+
+	CreateAssetTooltipResources();
 
 	// Configure filter for asset picker
 	FAssetPickerConfig Config;
@@ -437,16 +353,20 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	}
 
 	// Configure response to click and double-click
-	Config.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SAnimationSequenceBrowser::OnAnimSelected);
 	Config.OnAssetDoubleClicked = FOnAssetDoubleClicked::CreateSP(this, &SAnimationSequenceBrowser::OnRequestOpenAsset, false);
 	Config.OnGetAssetContextMenu = FOnGetAssetContextMenu::CreateSP(this, &SAnimationSequenceBrowser::OnGetAssetContextMenu);
 	Config.OnAssetTagWantsToBeDisplayed = FOnShouldDisplayAssetTag::CreateSP(this, &SAnimationSequenceBrowser::CanShowColumnForAssetRegistryTag);
+	Config.SyncToAssetsDelegates.Add(&SyncToAssetsDelegate);
+	Config.GetCurrentSelectionDelegates.Add(&GetCurrentSelectionDelegate);
 	Config.bFocusSearchBoxWhenOpened = false;
 	Config.DefaultFilterMenuExpansion = EAssetTypeCategories::Animation;
 
 	TSharedPtr<FFrontendFilterCategory> AnimCategory = MakeShareable( new FFrontendFilterCategory(LOCTEXT("ExtraAnimationFilters", "Anim Filters"), LOCTEXT("ExtraAnimationFiltersTooltip", "Filter assets by all filters in this category.")) );
 	Config.ExtraFrontendFilters.Add( MakeShareable(new FFrontendFilter_AdditiveAnimAssets(AnimCategory)) );
 	
+	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
+	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
+
 	TWeakPtr< SMenuAnchor > MenuAnchorPtr;
 	
 	this->ChildSlot
@@ -701,5 +621,268 @@ void SAnimationSequenceBrowser::CacheOriginalAnimAssetHistory()
 		}
 	}
 }
+
+void SAnimationSequenceBrowser::SelectAsset(UAnimationAsset * AnimAsset)
+{
+	FAssetData AssetData(AnimAsset);
+
+	if (AssetData.IsValid())
+	{
+		TArray<FAssetData> CurrentSelection = GetCurrentSelectionDelegate.Execute();
+
+		if ( !CurrentSelection.Contains(AssetData) )
+		{
+			TArray<FAssetData> AssetsToSelect;
+			AssetsToSelect.Add(AssetData);
+
+			SyncToAssetsDelegate.Execute(AssetsToSelect);
+		}
+	}
+}
+
+TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetData& AssetData)
+{
+	// Make a list of tags to show
+	TArray<UObject::FAssetRegistryTag> Tags;
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	check(AssetClass);
+	AssetClass->GetDefaultObject()->GetAssetRegistryTags(Tags);
+
+	TArray<FName> TagsToShow;
+	for(UObject::FAssetRegistryTag& TagEntry : Tags)
+	{
+		if(TagEntry.Name != FName(TEXT("Skeleton")) && TagEntry.Type != UObject::FAssetRegistryTag::TT_Hidden)
+		{
+			TagsToShow.Add(TagEntry.Name);
+		}
+	}
+
+	// Add asset registry tags to a text list; except skeleton as that is implied in Persona
+	TSharedRef<SVerticalBox> DescriptionBox = SNew(SVerticalBox);
+	bool bDescriptionCreated = false;
+	for(TPair<FName, FString> TagPair : AssetData.TagsAndValues)
+	{
+		if(TagsToShow.Contains(TagPair.Key))
+		{
+			if(!bDescriptionCreated)
+			{
+				bDescriptionCreated = true;
+			}
+
+			DescriptionBox->AddSlot()
+			.AutoHeight()
+			.Padding(0,0,5,0)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(FText::Format(LOCTEXT("AssetTagKey", "{0} :"), FText::FromName(TagPair.Key)))
+					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+				]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(TagPair.Value)
+					.ColorAndOpacity(FSlateColor::UseForeground())
+				]
+			];
+		}
+	}
+
+	TSharedPtr<SHorizontalBox> ContentBox = nullptr;
+	TSharedRef<SToolTip> ToolTip = SNew(SToolTip)
+	.TextMargin(1)
+	.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ToolTipBorder"))
+	[
+		SNew(SBorder)
+		.Padding(6)
+		.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.NonContentBorder"))
+		[
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0,0,0,4)
+			[
+				SNew(SBorder)
+				.Padding(6)
+				.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
+				[
+					SNew(SBox)
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromName(AssetData.AssetName))
+						.Font(FEditorStyle::GetFontStyle("ContentBrowser.TileViewTooltip.NameFont"))
+					]
+				]
+			]
+		
+			+ SVerticalBox::Slot()
+			[
+				SAssignNew(ContentBox, SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SBorder)
+					.Padding(6)
+					.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
+					[
+						ViewportWidget.ToSharedRef()
+					]
+				]
+			]
+		]
+	];
+
+	// If we have a description, add an extra section to the tooltip for it.
+	if(bDescriptionCreated)
+	{
+		ContentBox->AddSlot()
+		.Padding(4, 0, 0, 0)
+		[
+			SNew(SBorder)
+			.Padding(6)
+			.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
+			[
+				DescriptionBox
+			]
+		];
+	}
+
+	return ToolTip;
+}
+
+void SAnimationSequenceBrowser::CreateAssetTooltipResources()
+{
+	SAssignNew(ViewportWidget, SViewport)
+		.EnableGammaCorrection(false)
+		.ViewportSize(FVector2D(128, 128));
+
+	ViewportClient = MakeShareable(new FAnimationAssetViewportClient(PreviewScene));
+	SceneViewport = MakeShareable(new FSceneViewport(ViewportClient.Get(), ViewportWidget));
+	PreviewComponent = ConstructObject<UDebugSkelMeshComponent>(UDebugSkelMeshComponent::StaticClass());
+
+	// Client options
+	ViewportClient->ViewportType = LVT_Perspective;
+	ViewportClient->bSetListenerPosition = false;
+	// Default view until we need to show the viewport
+	ViewportClient->SetViewLocation(EditorViewportDefs::DefaultPerspectiveViewLocation);
+	ViewportClient->SetViewRotation(EditorViewportDefs::DefaultPerspectiveViewRotation);
+
+	ViewportClient->Viewport = SceneViewport.Get();
+	ViewportClient->SetRealtime(true);
+	ViewportClient->SetViewMode(VMI_Lit);
+	ViewportClient->ToggleOrbitCamera(true);
+
+	// Add the scene viewport
+	ViewportWidget->SetViewportInterface(SceneViewport.ToSharedRef());
+
+	// Setup the preview component to ensure an animation will update when requested
+	PreviewComponent->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	PreviewScene.AddComponent(PreviewComponent, FTransform::Identity);
+
+	const UDestructableMeshEditorSettings* Options = GetDefault<UDestructableMeshEditorSettings>();
+
+	PreviewScene.SetLightDirection(Options->AnimPreviewLightingDirection);
+	PreviewScene.GetScene()->UpdateDynamicSkyLight(Options->AnimPreviewSkyBrightness * FLinearColor(Options->AnimPreviewSkyColor), Options->AnimPreviewSkyBrightness * FLinearColor(Options->AnimPreviewFloorColor));
+	PreviewScene.SetLightColor(Options->AnimPreviewDirectionalColor);
+	PreviewScene.SetLightBrightness(Options->AnimPreviewLightBrightness);
+}
+
+bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget>& TooltipContent, FAssetData& AssetData)
+{
+	// Resolve the asset
+	USkeletalMesh* MeshToUse = nullptr;
+	UClass* AssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
+	if(AssetClass->IsChildOf(UAnimationAsset::StaticClass()))
+	{
+		// Set up the viewport to show the asset. Catching the visualize allows us to use
+		// one viewport between all of the assets in the sequence browser.
+		UAnimationAsset* Asset = StaticCast<UAnimationAsset*>(AssetData.GetAsset());
+		check(Asset);
+
+		USkeleton* Skeleton = Asset->GetSkeleton();
+		
+		MeshToUse = Skeleton->GetPreviewMesh(true);
+		check(MeshToUse);
+		if(PreviewComponent->SkeletalMesh != MeshToUse)
+		{
+			PreviewComponent->SetSkeletalMesh(MeshToUse);
+		}
+
+		PreviewComponent->EnablePreview(true, Asset, NULL);
+		PreviewComponent->PreviewInstance->PlayAnim(true);
+
+		float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
+		float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
+
+		ViewportClient->SetViewRotation(FRotator(0.0f, 135.0f, 0.0f));
+		ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
+	}
+
+	// We return false here as we aren't visualizing the tooltip - just detecting when it is about to be shown.
+	// We still want slate to draw it.
+	return false;
+}
+
+void SAnimationSequenceBrowser::CleanupPreviewSceneComponent(USceneComponent* Component)
+{
+	if(Component)
+	{
+		for(int32 ComponentIdx = Component->AttachChildren.Num() - 1 ; ComponentIdx >= 0 ; --ComponentIdx)
+		{
+			USceneComponent* ChildComponent = Component->AttachChildren[ComponentIdx];
+			CleanupPreviewSceneComponent(ChildComponent);
+		}
+		Component->AttachChildren.Empty();
+		Component->DestroyComponent();
+	}
+}
+
+void SAnimationSequenceBrowser::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if(PreviewComponent && ViewportWidget->GetVisibility() == EVisibility::Visible)
+	{
+		// Tick the world to update preview viewport for tooltips
+		PreviewComponent->GetScene()->GetWorld()->Tick(LEVELTICK_All, InDeltaTime);
+	}
+}
+
+FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene) : FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
+{
+	SetViewMode(VMI_Lit);
+
+	// Always composite editor objects after post processing in the editor
+	EngineShowFlags.CompositeEditorPrimitives = true;
+	EngineShowFlags.DisableAdvancedFeatures();
+
+	// Setup defaults for the common draw helper.
+	DrawHelper.bDrawPivot = false;
+	DrawHelper.bDrawWorldBox = false;
+	DrawHelper.bDrawKillZ = false;
+	DrawHelper.bDrawGrid = true;
+	DrawHelper.GridColorAxis = FColor(70, 70, 70);
+	DrawHelper.GridColorMajor = FColor(40, 40, 40);
+	DrawHelper.GridColorMinor = FColor(20, 20, 20);
+	DrawHelper.PerspectiveGridSize = HALF_WORLD_MAX1;
+	bDrawAxes = false;
+}
+
+FSceneInterface* FAnimationAssetViewportClient::GetScene() const
+{
+	return PreviewScene->GetScene();
+}
+
+FLinearColor FAnimationAssetViewportClient::GetBackgroundColor() const
+{
+	return FLinearColor(0.8f, 0.85f, 0.85f);
+}
+
 
 #undef LOCTEXT_NAMESPACE

@@ -79,6 +79,8 @@
 #include "ComponentReregisterContext.h"
 #include "ContentStreaming.h"
 
+#include "Engine/GameInstance.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
 IMPLEMENT_MODULE( FEngineModule, Engine );
@@ -533,6 +535,40 @@ class FScreenSaverInhibitor : public FRunnable
 };
 
 /*-----------------------------------------------------------------------------
+	FWorldContext
+-----------------------------------------------------------------------------*/
+
+void FWorldContext::AddReferencedObjects(FReferenceCollector& Collector, const UObject* ReferencingObject)
+{
+	// TODO: This is awfully unsafe as anything in a WorldContext that changes may not be referenced
+	//	 hopefully a utility to push the WorldContext back in to the collector with property collection
+	//       will happen in the future
+	Collector.AddReferencedObject(PendingNetGame, ReferencingObject);
+	for (const FFullyLoadedPackagesInfo& PackageInfo : PackagesToFullyLoad)
+	{
+		for (UObject* LoadedObject : PackageInfo.LoadedObjects)
+		{
+			Collector.AddReferencedObject(LoadedObject, ReferencingObject);
+		}
+	}
+	for (ULevel* LoadedLevel : LoadedLevelsForPendingMapChange)
+	{
+		Collector.AddReferencedObject(LoadedLevel, ReferencingObject);
+	}
+	for (UObjectReferencer* ObjectReferencer : ObjectReferencers)
+	{
+		Collector.AddReferencedObject(ObjectReferencer, ReferencingObject);
+	}
+	Collector.AddReferencedObject(GameViewport, ReferencingObject);
+	Collector.AddReferencedObject(OwningGameInstance, ReferencingObject);
+	for (FNamedNetDriver& ActiveNetDriver : ActiveNetDrivers)
+	{
+		Collector.AddReferencedObject(ActiveNetDriver.NetDriver, ReferencingObject);
+	}
+	Collector.AddReferencedObject(ThisCurrentWorld, ReferencingObject);
+}
+
+/*-----------------------------------------------------------------------------
 	World/ Level/ Actor GC verification.
 -----------------------------------------------------------------------------*/
 
@@ -720,6 +756,13 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 				new(GEngine->DeferredCommands) FString(*Command+Index);
 			}
 		}
+	}
+
+	// Optionally queue automation tests
+	FString AutomationCmds;
+	if (FParse::Value(FCommandLine::Get(), TEXT("AutomationTests="), AutomationCmds, false))
+	{
+		new(GEngine->DeferredCommands) FString(FString(TEXT("Automation CommandLineTests ")) + AutomationCmds);
 	}
 
 	// optionally set the vsync console variable
@@ -929,8 +972,12 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 		// Negative delta time means something is wrong with the system. Error out so user can address issue.
 		if( DeltaTime < 0 )
 		{
+#if PLATFORM_ANDROID
+			UE_LOG(LogEngine, Warning, TEXT("Detected negative delta time - ignoring"));
+#else
 			// AMD dual-core systems are a known issue that require AMD CPU drivers to be installed. Installer will take care of this for shipping.
 			UE_LOG(LogEngine, Fatal,TEXT("Detected negative delta time - on AMD systems please install http://files.aoaforums.com/I3199-setup.zip.html"));
+#endif
 			DeltaTime = 0.01;
 		}
 
@@ -1000,10 +1047,10 @@ void UEngine::UpdateTimeAndHandleMaxTickRate()
 			int32 NumGamePlayers = 0;
 			for (int32 WorldIndex = 0; WorldIndex < WorldList.Num(); ++WorldIndex)
 			{
-				if (WorldList[WorldIndex].WorldType == EWorldType::Game)
+				if (WorldList[WorldIndex].WorldType == EWorldType::Game && WorldList[WorldIndex].OwningGameInstance != NULL)
 				{
 					World = WorldList[WorldIndex].World();
-					NumGamePlayers = WorldList[WorldIndex].GamePlayers.Num();
+					NumGamePlayers = WorldList[WorldIndex].OwningGameInstance->GetNumLocalPlayers();
 					break;
 				}
 			}
@@ -1167,162 +1214,169 @@ void UEngine::InitializeObjectReferences()
 	if (AllowDebugViewmodes())
 	{
 		// Materials that are needed in-game if debug viewmodes are allowed
-		LoadSpecialMaterial(WireframeMaterialName.AssetLongPathname, WireframeMaterial, true);
-		LoadSpecialMaterial(LevelColorationLitMaterialName.AssetLongPathname, LevelColorationLitMaterial, true);
-		LoadSpecialMaterial(LevelColorationUnlitMaterialName.AssetLongPathname, LevelColorationUnlitMaterial, true);
-		LoadSpecialMaterial(LightingTexelDensityName.AssetLongPathname, LightingTexelDensityMaterial, false);
-		LoadSpecialMaterial(ShadedLevelColorationLitMaterialName.AssetLongPathname, ShadedLevelColorationLitMaterial, true);
-		LoadSpecialMaterial(ShadedLevelColorationUnlitMaterialName.AssetLongPathname, ShadedLevelColorationUnlitMaterial, true);
-		LoadSpecialMaterial(VertexColorMaterialName.AssetLongPathname, VertexColorMaterial, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_ColorOnly.AssetLongPathname, VertexColorViewModeMaterial_ColorOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_AlphaAsColor.AssetLongPathname, VertexColorViewModeMaterial_AlphaAsColor, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_RedOnly.AssetLongPathname, VertexColorViewModeMaterial_RedOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_GreenOnly.AssetLongPathname, VertexColorViewModeMaterial_GreenOnly, false);
-		LoadSpecialMaterial(VertexColorViewModeMaterialName_BlueOnly.AssetLongPathname, VertexColorViewModeMaterial_BlueOnly, false);
+		LoadSpecialMaterial(WireframeMaterialName.ToString(), WireframeMaterial, true);
+		LoadSpecialMaterial(LevelColorationLitMaterialName.ToString(), LevelColorationLitMaterial, true);
+		LoadSpecialMaterial(LevelColorationUnlitMaterialName.ToString(), LevelColorationUnlitMaterial, true);
+		LoadSpecialMaterial(LightingTexelDensityName.ToString(), LightingTexelDensityMaterial, false);
+		LoadSpecialMaterial(ShadedLevelColorationLitMaterialName.ToString(), ShadedLevelColorationLitMaterial, true);
+		LoadSpecialMaterial(ShadedLevelColorationUnlitMaterialName.ToString(), ShadedLevelColorationUnlitMaterial, true);
+		LoadSpecialMaterial(VertexColorMaterialName.ToString(), VertexColorMaterial, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_ColorOnly.ToString(), VertexColorViewModeMaterial_ColorOnly, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_AlphaAsColor.ToString(), VertexColorViewModeMaterial_AlphaAsColor, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_RedOnly.ToString(), VertexColorViewModeMaterial_RedOnly, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_GreenOnly.ToString(), VertexColorViewModeMaterial_GreenOnly, false);
+		LoadSpecialMaterial(VertexColorViewModeMaterialName_BlueOnly.ToString(), VertexColorViewModeMaterial_BlueOnly, false);
 	}
 
 	// Materials that may or may not be needed when debug viewmodes are disabled but haven't been fixed up yet
-	LoadSpecialMaterial(RemoveSurfaceMaterialName.AssetLongPathname, RemoveSurfaceMaterial, false);	
+	LoadSpecialMaterial(RemoveSurfaceMaterialName.ToString(), RemoveSurfaceMaterial, false);
 
 	// these one's are needed both editor and standalone 
-	LoadSpecialMaterial(DebugMeshMaterialName.AssetLongPathname, DebugMeshMaterial, false);
-	LoadSpecialMaterial(InvalidLightmapSettingsMaterialName.AssetLongPathname, InvalidLightmapSettingsMaterial, false);
-	LoadSpecialMaterial(ArrowMaterialName.AssetLongPathname, ArrowMaterial, false);
+	LoadSpecialMaterial(DebugMeshMaterialName.ToString(), DebugMeshMaterial, false);
+	LoadSpecialMaterial(InvalidLightmapSettingsMaterialName.ToString(), InvalidLightmapSettingsMaterial, false);
+	LoadSpecialMaterial(ArrowMaterialName.ToString(), ArrowMaterial, false);
 
 
 	if (GIsEditor && !IsRunningCommandlet())
 	{
 		// Materials that are only needed in the interactive editor
 #if WITH_EDITORONLY_DATA
-		LoadSpecialMaterial(GeomMaterialName.AssetLongPathname, GeomMaterial, false);
-		LoadSpecialMaterial(EditorBrushMaterialName.AssetLongPathname, EditorBrushMaterial, false);
-		LoadSpecialMaterial(BoneWeightMaterialName.AssetLongPathname, BoneWeightMaterial, false);
+		LoadSpecialMaterial(GeomMaterialName.ToString(), GeomMaterial, false);
+		LoadSpecialMaterial(EditorBrushMaterialName.ToString(), EditorBrushMaterial, false);
+		LoadSpecialMaterial(BoneWeightMaterialName.ToString(), BoneWeightMaterial, false);
 #endif
 
-		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.AssetLongPathname, PreviewShadowsIndicatorMaterial, false);
-		LoadSpecialMaterial(ConstraintLimitMaterialName.AssetLongPathname, ConstraintLimitMaterial, false);
+		LoadSpecialMaterial(PreviewShadowsIndicatorMaterialName.ToString(), PreviewShadowsIndicatorMaterial, false);
+		LoadSpecialMaterial(ConstraintLimitMaterialName.ToString(), ConstraintLimitMaterial, false);
+
+		ConstraintLimitMaterialX = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
+		ConstraintLimitMaterialX->SetVectorParameterValue(FName("Color"), FLinearColor::Red);
+		ConstraintLimitMaterialY = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
+		ConstraintLimitMaterialY->SetVectorParameterValue(FName("Color"), FLinearColor::Green);
+		ConstraintLimitMaterialZ = UMaterialInstanceDynamic::Create(ConstraintLimitMaterial, NULL);
+		ConstraintLimitMaterialZ->SetVectorParameterValue(FName("Color"), FLinearColor::Blue);
 
 		//@TODO: This should move into the editor (used in editor modes exclusively)
 		if (DefaultBSPVertexTexture == NULL)
 		{
-			DefaultBSPVertexTexture = LoadObject<UTexture2D>(NULL, *DefaultBSPVertexTextureName.AssetLongPathname, NULL, LOAD_None, NULL);
+			DefaultBSPVertexTexture = LoadObject<UTexture2D>(NULL, *DefaultBSPVertexTextureName.ToString(), NULL, LOAD_None, NULL);
 		}
 	}
 
 	if( DefaultTexture == NULL )
 	{
-		DefaultTexture = LoadObject<UTexture2D>(NULL, *DefaultTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		DefaultTexture = LoadObject<UTexture2D>(NULL, *DefaultTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( DefaultDiffuseTexture == NULL )
 	{
-		DefaultDiffuseTexture = LoadObject<UTexture2D>(NULL, *DefaultDiffuseTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		DefaultDiffuseTexture = LoadObject<UTexture2D>(NULL, *DefaultDiffuseTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( HighFrequencyNoiseTexture == NULL )
 	{
-		HighFrequencyNoiseTexture = LoadObject<UTexture2D>(NULL, *HighFrequencyNoiseTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		HighFrequencyNoiseTexture = LoadObject<UTexture2D>(NULL, *HighFrequencyNoiseTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( DefaultBokehTexture == NULL )
 	{
-		DefaultBokehTexture = LoadObject<UTexture2D>(NULL, *DefaultBokehTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		DefaultBokehTexture = LoadObject<UTexture2D>(NULL, *DefaultBokehTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( PreIntegratedSkinBRDFTexture == NULL )
 	{
-		PreIntegratedSkinBRDFTexture = LoadObject<UTexture2D>(NULL, *PreIntegratedSkinBRDFTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		PreIntegratedSkinBRDFTexture = LoadObject<UTexture2D>(NULL, *PreIntegratedSkinBRDFTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( MiniFontTexture == NULL )
 	{
-		MiniFontTexture = LoadObject<UTexture2D>(NULL, *MiniFontTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		MiniFontTexture = LoadObject<UTexture2D>(NULL, *MiniFontTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if( WeightMapPlaceholderTexture == NULL )
 	{
-		WeightMapPlaceholderTexture = LoadObject<UTexture2D>(NULL, *WeightMapPlaceholderTextureName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		WeightMapPlaceholderTexture = LoadObject<UTexture2D>(NULL, *WeightMapPlaceholderTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if (LightMapDensityTexture == NULL)
 	{
-		LightMapDensityTexture = LoadObject<UTexture2D>(NULL, *LightMapDensityTextureName.AssetLongPathname, NULL, LOAD_None, NULL);
+		LightMapDensityTexture = LoadObject<UTexture2D>(NULL, *LightMapDensityTextureName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( DefaultPhysMaterial == NULL )
 	{
-		DefaultPhysMaterial = LoadObject<UPhysicalMaterial>(NULL, *DefaultPhysMaterialName.AssetLongPathname, NULL, LOAD_None, NULL);	
+		DefaultPhysMaterial = LoadObject<UPhysicalMaterial>(NULL, *DefaultPhysMaterialName.ToString(), NULL, LOAD_None, NULL);
 
-		checkf(DefaultPhysMaterial != NULL, TEXT("The default material (%s) is not found. Please make sure you have default material set up correctly."), *DefaultPhysMaterialName.AssetLongPathname);
+		checkf(DefaultPhysMaterial != NULL, TEXT("The default material (%s) is not found. Please make sure you have default material set up correctly."), *DefaultPhysMaterialName.ToString());
 	}
 
 	if ( ConsoleClass == NULL )
 	{
-		ConsoleClass = LoadClass<UConsole>(NULL, *ConsoleClassName.ClassName, NULL, LOAD_None, NULL);
+		ConsoleClass = LoadClass<UConsole>(NULL, *ConsoleClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( GameViewportClientClass == NULL )
 	{
-		GameViewportClientClass = LoadClass<UGameViewportClient>(NULL, *GameViewportClientClassName.ClassName, NULL, LOAD_None, NULL);
+		GameViewportClientClass = LoadClass<UGameViewportClient>(NULL, *GameViewportClientClassName.ToString(), NULL, LOAD_None, NULL);
 
 		checkf(GameViewportClientClass != NULL, TEXT("Engine config value GameViewportClientClassName is not a valid class name."));
 	}
 
 	if ( LocalPlayerClass == NULL )
 	{
-		LocalPlayerClass = LoadClass<ULocalPlayer>(NULL, *LocalPlayerClassName.ClassName, NULL, LOAD_None, NULL);
+		LocalPlayerClass = LoadClass<ULocalPlayer>(NULL, *LocalPlayerClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( WorldSettingsClass == NULL )
 	{
-		WorldSettingsClass = LoadClass<AWorldSettings>(NULL, *WorldSettingsClassName.ClassName, NULL, LOAD_None, NULL);
+		WorldSettingsClass = LoadClass<AWorldSettings>(NULL, *WorldSettingsClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( NavigationSystemClass == NULL )
 	{
-		NavigationSystemClass = LoadClass<UNavigationSystem>(NULL, *NavigationSystemClassName.ClassName, NULL, LOAD_None, NULL);
+		NavigationSystemClass = LoadClass<UNavigationSystem>(NULL, *NavigationSystemClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( AvoidanceManagerClass == NULL )
 	{
-		AvoidanceManagerClass = LoadClass<UAvoidanceManager>(NULL, *AvoidanceManagerClassName.ClassName, NULL, LOAD_None, NULL);
+		AvoidanceManagerClass = LoadClass<UAvoidanceManager>(NULL, *AvoidanceManagerClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( PhysicsCollisionHandlerClass == NULL )
 	{
-		PhysicsCollisionHandlerClass = LoadClass<UPhysicsCollisionHandler>(NULL, *PhysicsCollisionHandlerClassName.ClassName, NULL, LOAD_None, NULL);
+		PhysicsCollisionHandlerClass = LoadClass<UPhysicsCollisionHandler>(NULL, *PhysicsCollisionHandlerClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( GameUserSettingsClass == NULL )
 	{
-		GameUserSettingsClass = LoadClass<UGameUserSettings>(NULL, *GameUserSettingsClassName.ClassName, NULL, LOAD_None, NULL);
+		GameUserSettingsClass = LoadClass<UGameUserSettings>(NULL, *GameUserSettingsClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	if ( LevelScriptActorClass == NULL )
 	{
-		LevelScriptActorClass = LoadClass<ALevelScriptActor>(NULL, *LevelScriptActorClassName.ClassName, NULL, LOAD_None, NULL);
+		LevelScriptActorClass = LoadClass<ALevelScriptActor>(NULL, *LevelScriptActorClassName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	// set the font object pointers
-	if( TinyFont == NULL && TinyFontName.AssetLongPathname.Len() )
+	if (TinyFont == NULL && TinyFontName.ToString().Len())
 	{
-		TinyFont = LoadObject<UFont>(NULL,*TinyFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		TinyFont = LoadObject<UFont>(NULL, *TinyFontName.ToString(), NULL, LOAD_None, NULL);
 	}
-	if( SmallFont == NULL && SmallFontName.AssetLongPathname.Len() )
+	if (SmallFont == NULL && SmallFontName.ToString().Len())
 	{
-		SmallFont = LoadObject<UFont>(NULL,*SmallFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		SmallFont = LoadObject<UFont>(NULL, *SmallFontName.ToString(), NULL, LOAD_None, NULL);
 	}
-	if( MediumFont == NULL && MediumFontName.AssetLongPathname.Len() )
+	if (MediumFont == NULL && MediumFontName.ToString().Len())
 	{
-		MediumFont = LoadObject<UFont>(NULL,*MediumFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		MediumFont = LoadObject<UFont>(NULL, *MediumFontName.ToString(), NULL, LOAD_None, NULL);
 	}
-	if( LargeFont == NULL && LargeFontName.AssetLongPathname.Len() )
+	if (LargeFont == NULL && LargeFontName.ToString().Len())
 	{
-		LargeFont = LoadObject<UFont>(NULL,*LargeFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		LargeFont = LoadObject<UFont>(NULL, *LargeFontName.ToString(), NULL, LOAD_None, NULL);
 	}
-	if( SubtitleFont == NULL && SubtitleFontName.AssetLongPathname.Len() )
+	if (SubtitleFont == NULL && SubtitleFontName.ToString().Len())
 	{
-		SubtitleFont = LoadObject<UFont>(NULL,*SubtitleFontName.AssetLongPathname,NULL,LOAD_None,NULL);
+		SubtitleFont = LoadObject<UFont>(NULL, *SubtitleFontName.ToString(), NULL, LOAD_None, NULL);
 	}
 
 	// Additional fonts.
@@ -1338,23 +1392,23 @@ void UEngine::InitializeObjectReferences()
 		AdditionalFonts.Add( NewFont );
 	}
 
-	if ( GameSingleton == NULL && GameSingletonClassName.ClassName.Len() > 0)
+	if (GameSingleton == NULL && GameSingletonClassName.ToString().Len() > 0)
 	{
-		UClass *SingletonClass = LoadClass<UObject>(NULL, *GameSingletonClassName.ClassName, NULL, LOAD_None, NULL);
+		UClass *SingletonClass = LoadClass<UObject>(NULL, *GameSingletonClassName.ToString(), NULL, LOAD_None, NULL);
 
 		checkf(SingletonClass != NULL, TEXT("Engine config value GameSingletonClassName is not a valid class name."));
 
 		GameSingleton = ConstructObject<UObject>(SingletonClass, this);
 	}
 
-	if ( DefaultTireType == NULL && DefaultTireTypeName.AssetLongPathname.Len() )
+	if (DefaultTireType == NULL && DefaultTireTypeName.ToString().Len())
 	{
-		DefaultTireType = LoadObject<UTireType>(NULL,*DefaultTireTypeName.AssetLongPathname,NULL,LOAD_None,NULL);
+		DefaultTireType = LoadObject<UTireType>(NULL, *DefaultTireTypeName.ToString(), NULL, LOAD_None, NULL);
 	}
 
-	if( DefaultPreviewPawnClass == NULL && DefaultPreviewPawnClassName.ClassName.Len() )
+	if (DefaultPreviewPawnClass == NULL && DefaultPreviewPawnClassName.ToString().Len())
 	{
-		DefaultPreviewPawnClass = LoadClass<APawn>(NULL, *DefaultPreviewPawnClassName.ClassName, NULL, LOAD_None, NULL);
+		DefaultPreviewPawnClass = LoadClass<APawn>(NULL, *DefaultPreviewPawnClassName.ToString(), NULL, LOAD_None, NULL);
 
 		checkf(DefaultPreviewPawnClass != NULL, TEXT("Engine config value DefaultPreviewPawnClass is not a valid class name."));
 	}
@@ -1406,6 +1460,15 @@ void UEngine::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 	{
 		This->AudioDevice->AddReferencedObjects(Collector);
 	}
+
+	// TODO: This is quite dangerous as FWorldContext::AddReferencedObjects could fail to be updated when something it
+	//       references changes.  Hopefully something will come along that will allow the ustruct to be provided to the
+	//       collector in a property handling method
+	for (FWorldContext& Context : This->WorldList)
+	{
+		Context.AddReferencedObjects(Collector, This);
+	}
+
 	Super::AddReferencedObjects(This, Collector);
 }
 
@@ -1414,21 +1477,10 @@ void UEngine::CleanupGameViewport()
 	for (auto WorldIt = WorldList.CreateIterator(); WorldIt; ++WorldIt)
 	{
 		FWorldContext &Context = *WorldIt;
-		// Clean up the viewports that have been closed.
-		for(int32 idx = Context.GamePlayers.Num()-1; idx >= 0; --idx)
-		{
-			ULocalPlayer *Player = Context.GamePlayers[idx];
 
-			if(Player && Player->ViewportClient && !Player->ViewportClient->Viewport)
-			{
-				if (Player->PlayerController)
-				{
-					Player->PlayerController->CleanupGameViewport();
-				}
-				Player->ViewportClient = NULL;
-				Player->PlayerRemoved();
-				Context.GamePlayers.RemoveAt(idx);
-			}
+		if ( Context.OwningGameInstance != NULL )
+		{
+			Context.OwningGameInstance->CleanupGameViewport();
 		}
 
 		if ( Context.GameViewport != NULL && Context.GameViewport->Viewport == NULL )
@@ -1688,7 +1740,7 @@ bool UEngine::IsSplitScreen(UWorld *InWorld)
 		// If no specified world, return true if any world context has multiple local players
 		for (auto It = WorldList.CreateIterator(); It; ++It)
 		{
-			if (It->GamePlayers.Num() > 1)
+			if (It->OwningGameInstance != NULL && It->OwningGameInstance->GetNumLocalPlayers() > 1)
 			{
 				return true;
 			}
@@ -1739,15 +1791,22 @@ ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( UWorld * InWorld, int32 C
 void UEngine::SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID)
 {
 	for (auto It = WorldList.CreateIterator(); It; ++It)
-{
-		if (It->GamePlayers.Contains(NewPlayer))
+	{
+		if (It->OwningGameInstance == NULL)
+		{
+			continue;
+		}
+
+		const TArray<class ULocalPlayer*> & LocalPlayers = It->OwningGameInstance->GetLocalPlayers();
+
+		if (LocalPlayers.Contains(NewPlayer))
 		{
 			// This is the world context that NewPlayer belongs to, see if anyone is using his CurrentControllerId
-			for (int32 i=0; i < It->GamePlayers.Num(); ++i)
+			for (int32 i=0; i < LocalPlayers.Num(); ++i)
 			{
-				if(It->GamePlayers[i] && It->GamePlayers[i]->ControllerId == NewControllerID)
+				if(LocalPlayers[i] && LocalPlayers[i]->ControllerId == NewControllerID)
 				{
-					It->GamePlayers[i]->ControllerId = CurrentControllerId;
+					LocalPlayers[i]->ControllerId = CurrentControllerId;
 					return;
 				}
 			}
@@ -1757,24 +1816,20 @@ void UEngine::SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerI
 
 APlayerController* UEngine::GetFirstLocalPlayerController(UWorld *InWorld)
 {
-	const TArray<class ULocalPlayer*>& GamePlayers = GetGamePlayers(InWorld);
-
-	for( int32 iPlayers=0; iPlayers < GamePlayers.Num(); iPlayers++ )
-	{
-		if( GamePlayers[iPlayers] && GamePlayers[iPlayers]->PlayerController )
-		{
-			return GamePlayers[iPlayers]->PlayerController;
-		}
-	}
-
-	return NULL;
+	const FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
+	
+	return ( Context.OwningGameInstance != NULL ) ? Context.OwningGameInstance->GetFirstLocalPlayerController() : NULL;
 }
 
 void UEngine::GetAllLocalPlayerControllers(TArray<APlayerController*> & PlayerList)
 {
 	for (auto It = WorldList.CreateIterator(); It; ++It)
 	{
-		for (auto PlayerIt = It->GamePlayers.CreateIterator(); PlayerIt; ++PlayerIt)
+		if ( It->OwningGameInstance == NULL )
+		{
+			continue;
+		}
+		for (auto PlayerIt = It->OwningGameInstance->GetLocalPlayerIterator(); PlayerIt; ++PlayerIt)
 		{
 			ULocalPlayer *Player = *PlayerIt;
 			PlayerList.Add( Player->PlayerController );
@@ -3003,7 +3058,7 @@ bool UEngine::HandleKismetEventCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		for (TObjectIterator<UObject> It; It; ++It)
 		{
 			UObject* Obj = *It;
-			Obj->CallFunctionByNameWithArguments(Cmd, Ar, NULL);
+			Obj->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
 		}
 	}
 	else
@@ -3016,7 +3071,7 @@ bool UEngine::HandleKismetEventCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		}
 		else
 		{
-			ObjectToMatch->CallFunctionByNameWithArguments(Cmd, Ar, NULL);
+			ObjectToMatch->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
 		}
 	}
 
@@ -3871,8 +3926,9 @@ bool UEngine::HandleMemCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 	if( bDetailed || bReport)
 	{
 		Ar.CategorizedLogf( CategoryName, ELogVerbosity::Log, TEXT("Memory Stats:") );
-		Ar.CategorizedLogf( CategoryName, ELogVerbosity::Log, TEXT("FMemStack (gamethread) allocation size [used/ unused] = [%.2f / %.2f] MB"), FMemStack::Get().GetByteCount() / (1024.0f * 1024.0f), FMemStack::Get().GetUnusedByteCount() / (1024.0f * 1024.0f)  );
-		Ar.CategorizedLogf( CategoryName, ELogVerbosity::Log, TEXT("Nametable memory usage = %.2f MB"), FName::GetNameTableMemorySize() / (1024.0f * 1024.0f) );
+		Ar.CategorizedLogf( CategoryName, ELogVerbosity::Log, TEXT("FMemStack (gamethread) current size = %.2f MB"), FMemStack::Get().GetByteCount() / (1024.0f * 1024.0f));
+		Ar.CategorizedLogf(CategoryName, ELogVerbosity::Log, TEXT("FPageAllocator (all threads) allocation size [used/ unused] = [%.2f / %.2f] MB"), (FPageAllocator::BytesUsed()) / (1024.0f * 1024.0f), (FPageAllocator::BytesFree()) / (1024.0f * 1024.0f));
+		Ar.CategorizedLogf(CategoryName, ELogVerbosity::Log, TEXT("Nametable memory usage = %.2f MB"), FName::GetNameTableMemorySize() / (1024.0f * 1024.0f));
 
 #if STATS
 		TArray<FStatMessage> Stats;
@@ -4962,7 +5018,7 @@ bool UEngine::HandleCeCommand( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice&
 				ErrorMessage = 0;
 
 				// return true if at least one level handles the command
-				bResult |= CurrentLevel->GetLevelScriptActor()->CallFunctionByNameWithArguments(Cmd, Ar, NULL);
+				bResult |= CurrentLevel->GetLevelScriptActor()->CallFunctionByNameWithArguments(Cmd, Ar, NULL, true);
 			}
 		}
 	}
@@ -5000,7 +5056,7 @@ bool UEngine::HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportC
 		{
 			if (EngineStat.ToggleFunc)
 			{
-				return (this->*(EngineStat.ToggleFunc))(World, ViewportClient, Temp);
+				return ViewportClient ? ( this->*(EngineStat.ToggleFunc) )(World, ViewportClient, Temp) : false;
 			}
 			return true;
 		}
@@ -5195,18 +5251,25 @@ void UEngine::OnLostFocusPause(bool EnablePause)
 		{
 			FWorldContext &Context = *It;
 
-		// Iterate over all players and pause / unpause them
-		// Note: pausing / unpausing the player is done via their HUD pausing / unpausing
-			for (int32 PlayerIndex = 0; PlayerIndex < Context.GamePlayers.Num(); ++PlayerIndex)
-		{
-				APlayerController* PlayerController = Context.GamePlayers[PlayerIndex]->PlayerController;
-			if(PlayerController && PlayerController->MyHUD)
+			if ( Context.OwningGameInstance == NULL )
 			{
-				PlayerController->MyHUD->OnLostFocusPause(EnablePause);
+				continue;
+			}
+
+			const TArray<class ULocalPlayer*> & LocalPlayers = Context.OwningGameInstance->GetLocalPlayers();
+
+			// Iterate over all players and pause / unpause them
+			// Note: pausing / unpausing the player is done via their HUD pausing / unpausing
+			for (int32 PlayerIndex = 0; PlayerIndex < LocalPlayers.Num(); ++PlayerIndex)
+			{
+				APlayerController* PlayerController = LocalPlayers[PlayerIndex]->PlayerController;
+				if(PlayerController && PlayerController->MyHUD)
+				{
+					PlayerController->MyHUD->OnLostFocusPause(EnablePause);
+				}
 			}
 		}
 	}
-}
 }
 
 void UEngine::InitHardwareSurvey()
@@ -5258,12 +5321,30 @@ void UEngine::TickHardwareSurvey()
 
 bool UEngine::IsHardwareSurveyRequired()
 {
-#if PLATFORM_DESKTOP
 	// Analytics must have been initialized FIRST.
 	if (!FEngineAnalytics::IsAvailable())
 	{
 		return false;
 	}
+
+#if PLATFORM_IOS
+	// look up to see if how long ago the last survey was, if ever
+	NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+	NSDate* SurveyDateTime = [UserSettings objectForKey:@"HardwareSurveyDateTime"];
+
+	// if we never did one, do it now
+	if (SurveyDateTime == nil)
+	{
+		return true;
+	}
+
+	// how long has it been (negate since the past is negative)
+	NSTimeInterval SecondsBeforeNow = -[SurveyDateTime timeIntervalSinceNow];
+	
+	// survey again after a 30 days (TimeDiff is in seconds)
+	return SecondsBeforeNow > (30.0 * 24.0 * 60.0 * 60.0);
+
+#elif PLATFORM_DESKTOP
 
 	bool bSurveyDone = false;
 	GConfig->GetBool(TEXT("Engine.HardwareSurvey"), TEXT("bHardwareSurveyDone"), bSurveyDone, GEditorGameAgnosticIni);
@@ -5404,7 +5485,30 @@ FString UEngine::HardwareSurveyGetResolutionClass(uint32 LargestDisplayHeight)
 
 void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResults)
 {
-#if PLATFORM_DESKTOP
+#if PLATFORM_IOS
+	if (FEngineAnalytics::IsAvailable())
+	{
+		// mark now as last survey time
+		NSUserDefaults* UserSettings = [NSUserDefaults standardUserDefaults];
+		[UserSettings setObject:[NSDate date] forKey:@"HardwareSurveyDateTime"];
+
+		TArray<FAnalyticsEventAttribute> HardwareStatsAttribs;
+		// copy from what IOSPlatformSurvey has filled out
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("Model"), SurveyResults.Platform));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Version"), SurveyResults.OSVersion));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Bits"), FString::Printf(TEXT("%d-bit"), SurveyResults.OSBits)));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("OS.Language"), SurveyResults.OSLanguage));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("RenderingAPI"), SurveyResults.MultimediaAPI));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("CPU.Count"), FString::Printf(TEXT("%d"), SurveyResults.CPUCount)));
+		FString DisplayResolution = FString::Printf(TEXT("%dx%d"), SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
+		FString ViewResolution = FString::Printf(TEXT("%dx%d"), SurveyResults.Displays[0].CurrentModeWidth, SurveyResults.Displays[0].CurrentModeHeight);
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("DisplayResolution"), DisplayResolution));
+		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT("ViewResolution"), ViewResolution));
+	
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("IOSHardwareStats"), HardwareStatsAttribs);
+	}
+
+#elif PLATFORM_DESKTOP
 	if (GConfig)
 	{
 		GConfig->SetBool(TEXT("Engine.HardwareSurvey"), TEXT("bHardwareSurveyDone"), true, GEditorGameAgnosticIni);
@@ -5421,7 +5525,6 @@ void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResul
 		HardwareWEIAttribs.Add(FAnalyticsEventAttribute(TEXT( "Memory.WEI" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.RAMPerformanceIndex )));
 
 		Analytics.RecordEvent(TEXT( "Hardware.WEI.1" ), HardwareWEIAttribs);
-		Analytics.RecordUserAttribute(HardwareWEIAttribs);
 
 		FString MainGPUName(TEXT("Unknown"));
 		float MainGPUVRAMMB = 0.0f;
@@ -5506,7 +5609,6 @@ void UEngine::OnHardwareSurveyComplete(const FHardwareSurveyResults& SurveyResul
 		HardwareStatsAttribs.Add(FAnalyticsEventAttribute(TEXT( "SynthIdx.GPU4" ), FString::Printf( TEXT( "%.1f" ), SurveyResults.SynthBenchmark.GPUStats[4].ComputePerfIndex() )));
 
 		Analytics.RecordEvent(TEXT( "HardwareStats.1" ), HardwareStatsAttribs);
-		Analytics.RecordUserAttribute(TEXT( "ResolutionClass" ), ResolutionClass);
 
 		TArray<FAnalyticsEventAttribute> HardwareStatErrorsAttribs;
 		HardwareStatErrorsAttribs.Add(FAnalyticsEventAttribute(TEXT( "ErrorCount" ), FString::Printf( TEXT( "%d" ), SurveyResults.ErrorCount )));
@@ -6327,15 +6429,16 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 				Canvas->DrawItem( SmallTextItem, FVector2D( MessageX, MessageY ) );
 				MessageY += 20;
 			}
-
+			
 			// check navmesh
 #if WITH_EDITOR
 			const bool bIsNavigationAutoUpdateEnabled = UNavigationSystem::GetIsNavigationAutoUpdateEnabled();
 #else
 			const bool bIsNavigationAutoUpdateEnabled = true;
 #endif
-			if (World->GetNavigationSystem() != NULL && World->GetNavigationSystem()->IsNavigationDirty() && 
-				(!World->GetNavigationSystem()->bBuildNavigationAtRuntime || !bIsNavigationAutoUpdateEnabled))
+			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
+			if (NavSys && NavSys->IsNavigationDirty() &&
+				(!bIsNavigationAutoUpdateEnabled || !NavSys->bBuildNavigationAtRuntime || !NavSys->CanRebuildDirtyNavigation()))
 			{
 				SmallTextItem.SetColor( FLinearColor::White );
 				SmallTextItem.Text =  LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");				
@@ -6361,8 +6464,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			}
 
 #if ENABLE_VISUAL_LOG
-			FVisualLog* VisLog = FVisualLog::Get();
-			if (VisLog && (VisLog->IsRecording() || VisLog->IsRecordingOnServer()))
+			if (FVisualLog::Get().IsRecording() || FVisualLog::Get().IsRecordingOnServer())
 			{
 				int32 XSize;
 				int32 YSize;
@@ -6874,32 +6976,56 @@ TArray<class ULocalPlayer*>::TConstIterator UEngine::GetLocalPlayerIterator(cons
 	return GetGamePlayers(Viewport).CreateConstIterator();
 }
 
+static TArray<ULocalPlayer*> FakeEmptyLocalPlayers;
+
+const TArray<class ULocalPlayer*>& HandleFakeLocalPlayersList()
+{
+#if 0
+	if (!IsRunningCommandlet())
+	{
+		UE_LOG(LogLoad, Error, TEXT("WorldContext requested with NULL game instance object.") );
+		check(false);
+	}
+#endif
+	check(FakeEmptyLocalPlayers.Num() == 0);
+	return FakeEmptyLocalPlayers;
+}
+
 const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(UWorld *World)
 {
 	const FWorldContext &Context = GetWorldContextFromWorldChecked(World);
-	return Context.GamePlayers;
+	if ( Context.OwningGameInstance == NULL )
+	{
+		return HandleFakeLocalPlayersList();
+	}
+	return Context.OwningGameInstance->GetLocalPlayers();
 }
 	
 const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(const UGameViewportClient *Viewport)
 {
-	return GetWorldContextFromGameViewportChecked(Viewport).GamePlayers;
+	const FWorldContext &Context = GetWorldContextFromGameViewportChecked(Viewport);
+	if ( Context.OwningGameInstance == NULL )
+	{
+		return HandleFakeLocalPlayersList();
+	}
+	return Context.OwningGameInstance->GetLocalPlayers();
 }
 
-ULocalPlayer* UEngine::LocalPlayerFromVoiceIndex(int32 VoiceId) const
+ULocalPlayer* UEngine::FindFirstLocalPlayerFromControllerId(int32 ControllerId) const
 {
-	// Search for the first Game or PIE instance. This is imperfect and means we cannot support voice chat properly for
-	// multiple UWorlds (but thats ok for the time being).
 	for (auto It=WorldList.CreateConstIterator(); It; ++It)
 	{
 		const FWorldContext &Context = *It;
-		if (Context.World() && (Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE))
+		if (Context.World() && Context.OwningGameInstance && (Context.WorldType == EWorldType::Game || Context.WorldType == EWorldType::PIE))
 		{
+			const TArray<class ULocalPlayer*> & LocalPlayers = Context.OwningGameInstance->GetLocalPlayers();
+
 			// Use this world context, look for the ULocalPlayer with this ControllerId
-			for (int32 i=0; i < Context.GamePlayers.Num(); ++i)
+			for (int32 i=0; i < LocalPlayers.Num(); ++i)
 			{
-				if (Context.GamePlayers[i] && Context.GamePlayers[i]->ControllerId == VoiceId)
+				if (LocalPlayers[i] && LocalPlayers[i]->ControllerId == ControllerId)
 				{
-					return Context.GamePlayers[i];
+					return LocalPlayers[i];
 				}
 			}
 		}
@@ -6944,7 +7070,7 @@ ULocalPlayer* UEngine::GetFirstGamePlayer( UPendingNetGame *PendingNetGame )
 	{
 		if (It->PendingNetGame == PendingNetGame)
 		{
-			return It->GamePlayers.Num() > 0 ? It->GamePlayers[0] : NULL;
+			return ( It->OwningGameInstance != NULL ) ? It->OwningGameInstance->GetFirstGamePlayer() : NULL;
 		}
 	}
 	return NULL;
@@ -6956,7 +7082,7 @@ ULocalPlayer* UEngine::GetFirstGamePlayer(const UGameViewportClient *InViewport 
 	{
 		if (It->GameViewport == InViewport)
 		{
-			return It->GamePlayers.Num() > 0 ? It->GamePlayers[0] : NULL;
+			return ( It->OwningGameInstance != NULL ) ? It->OwningGameInstance->GetFirstGamePlayer() : NULL;
 		}
 	}
 	return NULL;
@@ -6966,48 +7092,12 @@ ULocalPlayer* UEngine::GetDebugLocalPlayer()
 {
 	for (auto It = WorldList.CreateConstIterator(); It; ++It)
 	{
-		if (It->World() && It->GamePlayers.Num() > 0 )
+		if (It->OwningGameInstance != NULL && It->OwningGameInstance->GetFirstGamePlayer() != NULL )
 		{
-			return It->GamePlayers[0];
+			return It->OwningGameInstance->GetFirstGamePlayer();
 		}
 	}
 	return NULL;
-}
-
-void UEngine::AddGamePlayer( UWorld *InWorld, ULocalPlayer* InPlayer )
-{
-	GetWorldContextFromWorldChecked(InWorld).GamePlayers.AddUnique(InPlayer);
-}
-
-void UEngine::AddGamePlayer( const UGameViewportClient *InViewport, ULocalPlayer* InPlayer )
-{
-	GetWorldContextFromGameViewportChecked(InViewport).GamePlayers.AddUnique(InPlayer);
-}
-
-bool RemoveGamePlayer_Local(TArray<class ULocalPlayer*>& PlayerList, int32 InPlayerIndex)
-{
-	bool bResult = true;
-	if( PlayerList.IsValidIndex( InPlayerIndex ) )
-	{
-		PlayerList.RemoveAt(InPlayerIndex);		
-	}
-	else
-	{
-		bResult = false;
-	}
-	return bResult;
-}
-
-bool UEngine::RemoveGamePlayer( UWorld *InWorld, int32 InPlayerIndex )
-{
-	TArray<class ULocalPlayer*>& PlayerList = const_cast<TArray<class ULocalPlayer*> & >(GetGamePlayers(InWorld));
-	return RemoveGamePlayer_Local(PlayerList, InPlayerIndex);
-}
-
-bool UEngine::RemoveGamePlayer( const UGameViewportClient *InViewport, int32 InPlayerIndex )
-{
-	TArray<class ULocalPlayer*>& PlayerList = const_cast<TArray<class ULocalPlayer*> & >(GetGamePlayers(InViewport));
-	return RemoveGamePlayer_Local(PlayerList, InPlayerIndex);
 }
 
 #if !UE_BUILD_SHIPPING
@@ -7246,9 +7336,9 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 	{
 		// The only disconnect case without a valid InWorld, should be in a travel case where there is a pending game net driver.
 		FWorldContext &Context = GEngine->GetWorldContextFromPendingNetGameNetDriverChecked(NetDriver);
-		check(Context.GamePlayers.Num() > 0);
+		check(Context.OwningGameInstance != NULL && Context.OwningGameInstance->GetFirstGamePlayer() != NULL);
 
-		ULocalPlayer* const LP = Context.GamePlayers[0];
+		ULocalPlayer* const LP = Context.OwningGameInstance->GetFirstGamePlayer();
 		check(LP);
 		LP->HandleDisconnect(InWorld, NetDriver);
 	}
@@ -7374,7 +7464,7 @@ void UEngine::SpawnServerActors(UWorld *World)
 	}
 }
 
-bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *InWorld  )
+bool UEngine::HandleOpenCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld *InWorld )
 {
 	FWorldContext &WorldContext = GetWorldContextFromWorldChecked(InWorld);
 	FURL TestURL(&WorldContext.LastURL, Cmd, TRAVEL_Absolute);
@@ -8170,20 +8260,23 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		FWorldDelegates::LevelRemovedFromWorld.Broadcast(NULL, WorldContext.World());
 
 		// Disassociate the players from their PlayerControllers.
-		for(auto It = WorldContext.GamePlayers.CreateIterator(); It; ++It)
+		if (WorldContext.OwningGameInstance != NULL)
 		{
-			ULocalPlayer *Player = *It;
-			if(Player->PlayerController)
+			for(auto It = WorldContext.OwningGameInstance->GetLocalPlayerIterator(); It; ++It)
 			{
-				if(Player->PlayerController->GetPawn())
+				ULocalPlayer *Player = *It;
+				if(Player->PlayerController)
 				{
-					WorldContext.World()->DestroyActor(Player->PlayerController->GetPawn(), true);
+					if(Player->PlayerController->GetPawn())
+					{
+						WorldContext.World()->DestroyActor(Player->PlayerController->GetPawn(), true);
+					}
+					WorldContext.World()->DestroyActor(Player->PlayerController, true);
+					Player->PlayerController = NULL;
 				}
-				WorldContext.World()->DestroyActor(Player->PlayerController, true);
-				Player->PlayerController = NULL;
+				// reset split join info so we'll send one after loading the new map if necessary
+				Player->bSentSplitJoin = false;
 			}
-			// reset split join info so we'll send one after loading the new map if necessary
-			Player->bSentSplitJoin = false;
 		}
 
 		for (FActorIterator ActorIt(WorldContext.World()); ActorIt; ++ActorIt)
@@ -8234,7 +8327,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// may be unavailable to load the next one.
 	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand, 
 		{
+			FlushPendingDeleteRHIResources_RenderThread();
 			RHIFlushResources();
+			FlushPendingDeleteRHIResources_RenderThread();
 		}
 	);
 	FlushRenderingCommands();	  
@@ -8324,9 +8419,14 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 				const FString PIEPackageName = *UWorld::ConvertToPIEPackageName(SourceWorldPackage, WorldContext.PIEInstance);
 
 				// Set the world type in the static map, so that UWorld::PostLoad can set the world type
-				UWorld::WorldTypePreLoadMap.FindOrAdd( FName(*PIEPackageName) ) = WorldContext.WorldType;
+				const FName PIEPackageFName = FName(*PIEPackageName);
+				UWorld::WorldTypePreLoadMap.FindOrAdd( PIEPackageFName ) = WorldContext.WorldType;
 
 				WorldPackage = LoadPackage(CreatePackage(NULL, *PIEPackageName), *SourceWorldPackage, LOAD_None);
+
+				// Clean up the world type list now that PostLoad has occurred
+				UWorld::WorldTypePreLoadMap.Remove( PIEPackageFName );
+
 				if (WorldPackage == nullptr)
 				{
 					Error = FString::Printf(TEXT("Failed to load package '%s' while in PIE"), *SourceWorldPackage);
@@ -8371,7 +8471,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	if (NewWorld == NULL)
 	{
 		// Set the world type in the static map, so that UWorld::PostLoad can set the world type
-		UWorld::WorldTypePreLoadMap.FindOrAdd( FName(*URL.Map) ) = WorldContext.WorldType;
+		const FName URLMapFName = FName(*URL.Map);
+		UWorld::WorldTypePreLoadMap.FindOrAdd( URLMapFName ) = WorldContext.WorldType;
 
 		// See if the level is already in memory
 		WorldPackage = FindPackage(MapOuter, *URL.Map);
@@ -8381,6 +8482,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		{
 			WorldPackage = LoadPackage(MapOuter, *URL.Map, (WorldContext.WorldType == EWorldType::PIE ? LOAD_PackageForPIE : LOAD_None));
 		}
+
+		// Clean up the world type list now that PostLoad has occurred
+		UWorld::WorldTypePreLoadMap.Remove( URLMapFName );
 
 		if( WorldPackage == NULL )
 		{
@@ -8438,6 +8542,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			}
 		}
 	}
+	NewWorld->SetGameInstance(WorldContext.OwningGameInstance);
 
 	GWorld = NewWorld;
 
@@ -8505,10 +8610,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	check(WorldContext.World()->PersistentLevel);
 	LoadPackagesFully(WorldContext.World(), FULLYLOAD_Map, WorldContext.World()->PersistentLevel->GetOutermost()->GetName());
 
-	// Set initial world origin and stream in levels
+	// Make sure all relevant streaming levels are fully loaded
 	if (WorldContext.World()->WorldComposition)
 	{
+		// Set initial world origin and stream in levels
 		WorldContext.World()->NavigateTo(FIntPoint::ZeroValue);
+	}
+	else
+	{
+		WorldContext.World()->FlushLevelStreaming();
 	}
 	
 	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);
@@ -8530,13 +8640,16 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		WorldContext.LastRemoteURL = URL;
 	}
 
-	// Client init.
-	for(auto It = WorldContext.GamePlayers.CreateIterator(); It; ++It)
+	// Spawn play actors for all active local players
+	if (WorldContext.OwningGameInstance != NULL)
 	{
-		FString Error2;
-		if(!(*It)->SpawnPlayActor(URL.ToString(1),Error2,WorldContext.World()))
+		for(auto It = WorldContext.OwningGameInstance->GetLocalPlayerIterator(); It; ++It)
 		{
-			UE_LOG(LogEngine, Fatal, TEXT("Couldn't spawn player: %s"), *Error2);
+			FString Error2;
+			if(!(*It)->SpawnPlayActor(URL.ToString(1),Error2,WorldContext.World()))
+			{
+				UE_LOG(LogEngine, Fatal, TEXT("Couldn't spawn player: %s"), *Error2);
+			}
 		}
 	}
 
@@ -8743,13 +8856,16 @@ void UEngine::UpdateTransitionType(UWorld *CurrentWorld)
 		TransitionType = TT_None;
 
 		FWorldContext &Context = GetWorldContextFromWorldChecked(CurrentWorld);
-		for (auto It = Context.GamePlayers.CreateIterator(); It; ++It)
+		if (Context.OwningGameInstance != NULL)
 		{
-			if(!(*It)->PlayerController)
+			for(auto It = Context.OwningGameInstance->GetLocalPlayerIterator(); It; ++It)
 			{
-				// This player has not received a PlayerController from the server yet, so leave the connecting screen up.
-				TransitionType = TT_Connecting;
-				break;
+				if(!(*It)->PlayerController)
+				{
+					// This player has not received a PlayerController from the server yet, so leave the connecting screen up.
+					TransitionType = TT_Connecting;
+					break;
+				}
 			}
 		}
 	}
@@ -9447,9 +9563,14 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 
 	// If the new object is an Actor, save the root component reference, to be restored later
 	USceneComponent* SavedRootComponent = NULL;
+	UObjectProperty* RootComponentProperty = NULL;
 	if(NewActor != NULL)
 	{
-		SavedRootComponent = NewActor->GetRootComponent();
+		RootComponentProperty = FindField<UObjectProperty>(NewActor->GetClass(), "RootComponent");
+		if(RootComponentProperty != NULL)
+		{
+			SavedRootComponent = Cast<USceneComponent>(RootComponentProperty->GetObjectPropertyValue_InContainer(NewActor));
+		}
 	}
 
 	// Serialize out the modified properties on the old default object
@@ -9583,7 +9704,11 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	// Restore the root component reference
 	if(NewActor != NULL)
 	{
-		NewActor->SetRootComponent(SavedRootComponent);
+		if(RootComponentProperty != NULL)
+		{
+			RootComponentProperty->SetObjectPropertyValue_InContainer(NewActor, SavedRootComponent);
+		}
+
 		NewActor->ResetOwnedComponents();
 	}
 
@@ -9687,10 +9812,23 @@ static void SetNearClipPlane(const TArray<FString>& Args)
 }
 FAutoConsoleCommand GSetNearClipPlaneCmd(TEXT("r.SetNearClipPlane"),TEXT("Set the near clipping plane (in cm)"),FConsoleCommandWithArgsDelegate::CreateStatic(SetNearClipPlane));
 
+static TAutoConsoleVariable<int32> CVarAllowHighQualityLightMaps(
+	TEXT("r.HighQualityLightMaps"),
+	1,
+	TEXT("If set to 1, allow high quality lightmaps which don't bake in direct lighting of stationary lights"),
+	ECVF_RenderThreadSafe | ECVF_ReadOnly);
+
+
+bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel)
+{
+	return FPlatformProperties::SupportsHighQualityLightmaps()
+		&& (FeatureLevel > ERHIFeatureLevel::ES2)
+		&& (CVarAllowHighQualityLightMaps.GetValueOnAnyThread() != 0);
+}
+
 bool AllowHighQualityLightmaps()
 {
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.HighQualityLightMaps"));
-	return CVar->GetValueOnAnyThread() != 0;
+	return AllowHighQualityLightmaps(GRHIFeatureLevel);
 }
 
 // Helper function for changing system resolution via the r.setres console command
@@ -9861,8 +9999,7 @@ bool UEngine::IsEngineStat(const FString& InName)
 
 void UEngine::SetEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const FString& InName, const bool bShow)
 {
-	check(ViewportClient);
-	if (IsEngineStat(InName) && ViewportClient->IsStatEnabled(*InName) != bShow)
+	if (ViewportClient && IsEngineStat(InName) && ViewportClient->IsStatEnabled(*InName) != bShow)
 	{
 		ExecEngineStat(World, ViewportClient, *InName);
 	}
@@ -9915,7 +10052,11 @@ int32 UEngine::RenderStatVersion(UWorld* World, FViewport* Viewport, FCanvas* Ca
 // DETAILED
 bool UEngine::ToggleStatDetailed(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	check(ViewportClient);
+	if( ViewportClient == nullptr )
+	{
+		// Ignore if all Viewports are closed.
+		return false;
+	}
 
 	// Each of these stats should call "Detailed -Skip" when they themselves are disabled
 	static bool bSetup = false;
@@ -10036,8 +10177,13 @@ int32 UEngine::RenderStatSummary(UWorld* World, FViewport* Viewport, FCanvas* Ca
 // NAMEDEVENTS
 bool UEngine::ToggleStatNamedEvents(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
+	if( ViewportClient == nullptr )
+	{
+		// Ignore if all Viewports are closed.
+		return false;
+	}
+
 	// Enable emission of named events and force enable cycle stats.
-	check(ViewportClient);
 	if (ViewportClient->IsStatEnabled(TEXT("NamedEvents")))
 	{
 		if (GCycleStatsShouldEmitNamedEvents == 0)
@@ -10152,7 +10298,7 @@ int32 UEngine::RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Can
 		{
 			MaxY = FMath::Max(MaxY, Y);
 			Y = BaseY;
-			X += 250;
+			X += 350;
 		}
 
 		FColor	Color = GetColorForLevelStatus(LevelStatus.StreamingStatus);
@@ -10171,10 +10317,14 @@ int32 UEngine::RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Can
 		{
 			DisplayName += FString::Printf(TEXT(" - %4.1f sec"), LevelPackage->GetLoadTime());
 		}
-		else if (GetAsyncLoadPercentage(*LevelStatus.PackageName.ToString()) >= 0)
+		else
 		{
-			const int32 Percentage = FMath::TruncToInt(GetAsyncLoadPercentage(*LevelStatus.PackageName.ToString()));
-			DisplayName += FString::Printf(TEXT(" - %3i %%"), Percentage);
+			float AsyncLoadPercentage = GetAsyncLoadPercentage(*LevelStatus.PackageName.ToString());
+			if (AsyncLoadPercentage >= 0)
+			{
+				const int32 Percentage = FMath::TruncToInt(AsyncLoadPercentage);
+				DisplayName += FString::Printf(TEXT(" - %3i %%"), Percentage);
+			}
 		}
 
 		if (LevelStatus.bPlayerInside)
@@ -10278,7 +10428,12 @@ int32 UEngine::RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* C
 // UNIT
 bool UEngine::ToggleStatUnit(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	check(ViewportClient);
+	if( ViewportClient == nullptr )
+	{
+		// Ignore if all Viewports are closed.
+		return false;
+	}
+
 	const bool bShowUnitMaxTimes = ViewportClient->IsStatEnabled(TEXT("UnitMax"));
 	if (bShowUnitMaxTimes != false)
 	{
@@ -10315,7 +10470,11 @@ int32 UEngine::RenderStatUnit(UWorld* World, FViewport* Viewport, FCanvas* Canva
 #if !UE_BUILD_SHIPPING
 bool UEngine::ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	check(ViewportClient);
+	if( ViewportClient == nullptr )
+	{
+		// Ignore if all Viewports are closed.
+		return false;
+	}
 	const bool bShowUnitMaxTimes = ViewportClient->IsStatEnabled(TEXT("UnitMax"));
 	if (bShowUnitMaxTimes)
 	{
@@ -10340,7 +10499,11 @@ bool UEngine::ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportCl
 // UNITGRAPH
 bool UEngine::ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	check(ViewportClient);
+	if( ViewportClient == nullptr )
+	{
+		// Ignore if all Viewports are closed.
+		return false;
+	}
 	const bool bShowUnitGraph = ViewportClient->IsStatEnabled(TEXT("UnitGraph"));
 	if (bShowUnitGraph)
 	{
@@ -10365,7 +10528,11 @@ bool UEngine::ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* Viewport
 // UNITTIME
 bool UEngine::ToggleStatUnitTime(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	check(ViewportClient);
+	if( ViewportClient == nullptr )
+	{
+		// Ignore if all Viewports are closed.
+		return false;
+	}
 	const bool bShowUnitTime = ViewportClient->IsStatEnabled(TEXT("UnitTime"));
 	if (bShowUnitTime)
 	{
@@ -10598,7 +10765,11 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 // SOUNDS
 bool UEngine::ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream)
 {
-	check(ViewportClient);
+	if( ViewportClient == nullptr )
+	{
+		// Ignore if all Viewports are closed.
+		return false;
+	}
 	const bool bHelp = Stream ? FCString::Stristr(Stream, TEXT("?")) != NULL : false;
 	if (bHelp)
 	{
@@ -10811,7 +10982,7 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 					float SphereRadius = 0.f;
 					float SphereInnerRadius = 0.f;
 
-					TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
+					TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
 					ActiveSound.CollectAttenuationShapesForVisualization(ShapeDetailsMap);
 
 					if (ShapeDetailsMap.Num() > 0)

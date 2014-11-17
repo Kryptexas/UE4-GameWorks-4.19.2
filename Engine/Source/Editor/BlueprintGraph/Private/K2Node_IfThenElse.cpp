@@ -3,6 +3,8 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
@@ -141,6 +143,19 @@ UEdGraphPin* UK2Node_IfThenElse::GetConditionPin() const
 FNodeHandlingFunctor* UK2Node_IfThenElse::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_Branch(CompilerContext);
+}
+
+void UK2Node_IfThenElse::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_IfThenElse::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::FlowControl);
 }
 
 #undef LOCTEXT_NAMESPACE

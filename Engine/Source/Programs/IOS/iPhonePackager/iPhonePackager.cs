@@ -14,9 +14,51 @@ using System.Threading;
 using System.Windows.Forms;
 using Ionic.Zlib;
 using System.ComponentModel;
+using System.Security.Cryptography.X509Certificates;
 
 namespace iPhonePackager
 {
+	// NOTE: this needs to be kept in sync with EditorAnalytics.h and AutomationTool/Program.cs
+	public enum ErrorCodes
+	{
+		Error_UATNotFound = -1,
+		Error_Success = 0,
+		Error_Unknown = 1,
+		Error_Arguments = 2,
+		Error_UnknownCommand = 3,
+		Error_SDKNotFound = 10,
+		Error_ProvisionNotFound = 11,
+		Error_CertificateNotFound = 12,
+		Error_ProvisionAndCertificateNotFound = 13,
+		Error_InfoPListNotFound = 14,
+		Error_KeyNotFoundInPList = 15,
+		Error_ProvisionExpired = 16,
+		Error_CertificateExpired = 17,
+		Error_CertificateProvisionMismatch = 18,
+		Error_CodeUnsupported = 19,
+		Error_PluginsUnsupported = 20,
+		Error_UnknownCookFailure = 25,
+		Error_UnknownDeployFailure = 26,
+		Error_UnknownBuildFailure = 27,
+		Error_UnknownPackageFailure = 28,
+		Error_UnknownLaunchFailure = 29,
+		Error_StageMissingFile = 30,
+		Error_FailedToCreateIPA = 31,
+		Error_FailedToCodeSign = 32,
+		Error_DeviceBackupFailed = 33,
+		Error_IPAUninstallFailed = 34,
+		Error_IPAInstallFailed = 35,
+		Error_IPANotFound = 36,
+		Error_StubNotSignedCorrectly = 37,
+		Error_IPAMissingInfoPList = 38,
+		Error_DeleteFile = 39,
+		Error_DeleteDirectory = 40,
+		Error_CreateDirectory = 41,
+		Error_CopyFile = 42,
+		Error_LauncherFailed = 100,
+		Error_UATLaunchFailure = 101,
+	};
+
 	public partial class Program
 	{
 		static public int ReturnCode = 0;
@@ -51,11 +93,11 @@ namespace iPhonePackager
 			Log(String.Format(Line, Args));
 		}
 
-		static public void Error( string Line )
+		static public void Error( string Line, int Code = 1 )
 		{
 			if (Program.ReturnCode == 0)
 			{
-				Program.ReturnCode = 1;
+				Program.ReturnCode = Code;
 			}
 			
 			Console.ForegroundColor = ConsoleColor.Red;
@@ -85,13 +127,34 @@ namespace iPhonePackager
 		{
 			if (Arguments.Length == 0)
 			{
-				Program.Warning("No arguments specified, assuming GUI mode");
-				Arguments = new string[] { "gui" };
+				StartVisuals();
+
+				// we NEED a project, so show a uproject picker
+				string UProjectFile;
+				string StartingDir = "";
+				if (ToolsHub.ShowOpenFileDialog("Unreal Project Files (*.uproject)|*.uproject;", "IPhonePackager now requires a .uproject file for certificate/provisioning setup", "mobileprovision", "", ref StartingDir, out UProjectFile))
+				{
+					Arguments = new string[] { UProjectFile };
+				}
+				else
+				{
+					Arguments = new string[] { "gui" };
+				}
 			}
 
 			if (Arguments.Length == 1)
 			{
-				MainCommand = Arguments[0];
+				// if the only argument is a uproject, then assume gui mode, with the uproject as the project
+				if (Arguments[0].EndsWith(".uproject"))
+				{
+					Config.ProjectFile = GamePath = Arguments[0];
+
+					MainCommand = "gui";
+				}
+				else
+				{
+					MainCommand = Arguments[0];
+				}
 			}
 			else if (Arguments.Length == 2)
 			{
@@ -251,12 +314,14 @@ namespace iPhonePackager
 			if (GameName.Length == 0)
 			{
 				Error( "Invalid number of arguments" );
+				Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
 				return false;
 			}
 
 			if (Config.bCreateStubSet && Config.bForDistribution)
 			{
 				Error("-createstub and -distribution are mutually exclusive");
+				Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
 				return false;
 			}
 
@@ -320,6 +385,7 @@ namespace iPhonePackager
 							if (Config.bForDistribution)
 							{
 								Error("configure cannot be used with -distribution");
+								Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
 							}
 							else
 							{
@@ -336,13 +402,16 @@ namespace iPhonePackager
 				if (!bHandledCommand)
 				{
 					Error("Unknown command");
-					ReturnCode = 2;
+					Program.ReturnCode = (int)ErrorCodes.Error_UnknownCommand;
 				}
 			}
 			catch (Exception Ex)
 			{
 				Error( "Error while executing command: " + Ex.ToString() );
-				ReturnCode = 200;
+				if (Program.ReturnCode == 0)
+				{
+					Program.ReturnCode = (int)ErrorCodes.Error_Unknown;
+				}
 			}
 
 			Console.WriteLine();
@@ -411,8 +480,15 @@ namespace iPhonePackager
 
 		delegate Form CreateFormDelegate();
 
+		static bool bVisualsStarted = false;
 		static void StartVisuals()
 		{
+			if (bVisualsStarted)
+			{
+				return;
+			}
+			bVisualsStarted = true;
+
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
 
@@ -471,6 +547,7 @@ namespace iPhonePackager
 					Log(" ... Deploy PathToIPA");
 					Log(" ... RepackageFromStage GameName");
 					Log(" ... Devices");
+					Log(" ... Validate");
 					Log("");
 					Log("Configuration switches:");
 					Log("	 -stagedir <path>		  sets the directory to copy staged files from (defaults to none)");
@@ -492,11 +569,13 @@ namespace iPhonePackager
 					Log("Sample commandlines:");
 					Log(" ... iPhonePackager Deploy UDKGame Release");
 					Log(" ... iPhonePackager RPC SwordGame Shipping MakeApp");
-					return 1;
+					return (int)ErrorCodes.Error_Arguments;
 				}
 
 				Log("Executing iPhonePackager " + String.Join(" ", args));
 				Log("CWD: " + Directory.GetCurrentDirectory());
+				Log("Initial Dir: " + InitialCurrentDirectory);
+				Log("Env CWD: " + Environment.CurrentDirectory);
 
 				// Ensure shipping configuration for final distributions
 				if (Config.bForDistribution && (GameConfiguration != "Shipping"))
@@ -514,17 +593,51 @@ namespace iPhonePackager
 				// setup configuration
 				if (!Config.Initialize(InitialCurrentDirectory, GamePath))
 				{
-					return 1;
+					return (int)ErrorCodes.Error_Arguments;
 				}
 
 				switch (MainCommand.ToLowerInvariant())
 				{
+					case "validate":
+						// check to see if iTunes is installed
+						string dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string; 
+						if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+						{
+							Error("iTunes Not Found!!", (int)ErrorCodes.Error_SDKNotFound);
+						}
+						else
+						{
+							// validate there is a useable provision and cert
+							MobileProvision Provision;
+							X509Certificate2 Cert;
+							bool bHasOverrides;
+							bool foundPlist = CodeSignatureBuilder.FindRequiredFiles(out Provision, out Cert, out bHasOverrides);
+							if (!foundPlist)
+							{
+								Error("Could not find a valid plist file!!", (int)ErrorCodes.Error_InfoPListNotFound);
+							}
+							else if (Provision == null && Cert == null)
+							{
+								Error("No Provision or cert found!!", (int)ErrorCodes.Error_ProvisionAndCertificateNotFound);
+							}
+							else if (Provision == null)
+							{
+								Error("No Provision found!!", (int)ErrorCodes.Error_ProvisionNotFound);
+							}
+							else if (Cert == null)
+							{
+								Error("No Signing Certificate found!!", (int)ErrorCodes.Error_CertificateNotFound);
+							}
+						}
+						break;
+
 					case "packageapp":
 						if (CheckArguments())
 						{
 							if (Config.bCreateStubSet)
 							{
 								Error("packageapp cannot be used with the -createstub switch");
+								Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
 							}
 							else
 							{
@@ -540,6 +653,7 @@ namespace iPhonePackager
 							if (Config.bCreateStubSet)
 							{
 								Error("repackagefromstage cannot be used with the -createstub switches");
+								Program.ReturnCode = (int)ErrorCodes.Error_Arguments;
 							}
 							else
 							{
@@ -597,7 +711,10 @@ namespace iPhonePackager
 			catch (Exception Ex)
 			{
 				Error("Application exception: " + Ex.ToString());
-				ReturnCode = 1;
+				if (ReturnCode == 0)
+				{
+					Program.ReturnCode = (int)ErrorCodes.Error_Unknown;
+				}
 			}
 			finally
 			{
@@ -607,7 +724,8 @@ namespace iPhonePackager
 				}
 			}
 
-			return ( ReturnCode );
+			Environment.ExitCode = ReturnCode;
+			return (ReturnCode);
 		}
 	}
 }

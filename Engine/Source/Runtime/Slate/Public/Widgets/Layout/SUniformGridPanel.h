@@ -58,6 +58,9 @@ public:
 	virtual FChildren* GetChildren() override;
 	// END SPanel INTERFACE
 
+	/** See SlotPadding attribute */
+	void SetSlotPadding(TAttribute<FMargin> InSlotPadding);
+
 	/**
 	 * Dynamically add a new slot to the UI at specified Column and Row.
 	 *
@@ -79,8 +82,11 @@ public:
 private:
 	TPanelChildren<FSlot> Children;
 	TAttribute<FMargin> SlotPadding;
-	int32 NumColumns;
-	int32 NumRows;
+	
+	/** These values are recomputed and cached during compute desired size, as they may have changed since the previous frame. */
+	mutable int32 NumColumns;
+	mutable int32 NumRows;
+
 	TAttribute<float> MinDesiredSlotWidth;
 	TAttribute<float> MinDesiredSlotHeight;
 };

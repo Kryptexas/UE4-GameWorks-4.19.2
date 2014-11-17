@@ -59,8 +59,9 @@ public:
 	 * Adds history data to immediately after the current location in the history list, wiping out any history after in the process
 	 *
 	 * @param InHistoryNode		The history node to add
+	 * @param bInSaveHistory	TRUE if history should be saved
 	 */
-	void AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode);
+	void AddTabHistory(TSharedPtr< struct FGenericTabHistory > InHistoryNode, bool bInSaveHistory = true);
 
 	/** Single step forward in history */
 	FReply OnGoForwardInHistory();
@@ -227,6 +228,7 @@ public:
 		ForceOpenNewDocument,
 		RestorePreviousDocument,
 		NavigatingCurrentDocument,
+		QuickNavigateCurrentDocument,
 		NavigateBackwards,
 		NavigateForwards,
 		CreateHistoryEvent

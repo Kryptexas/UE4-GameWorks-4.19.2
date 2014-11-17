@@ -301,6 +301,11 @@ public:
 
 	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
 
+#if WITH_EDITOR
+private:
+	virtual UProperty* CustomFindProperty(const FName Name) const { return NULL; };
+#endif // WITH_EDITOR
+public:
 	virtual EExprToken SerializeExpr(int32& iCode, FArchive& Ar);
 	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 
@@ -1131,9 +1136,9 @@ public:
 //
 // Reflection data for a replicated or Kismet callable function.
 //
-class UFunction : public UStruct
+class COREUOBJECT_API UFunction : public UStruct
 {
-	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API(UFunction,UStruct,0,CoreUObject,CASTCLASS_UFunction,COREUOBJECT_API)
+	DECLARE_CASTED_CLASS_INTRINSIC(UFunction, UStruct, 0, CoreUObject, CASTCLASS_UFunction)
 	DECLARE_WITHIN(UClass)
 public:
 	// Persistent variables.
@@ -1186,7 +1191,7 @@ public:
 	void Invoke(UObject* Obj, FFrame& Stack, RESULT_DECL);
 
 	// Constructors.
-	COREUOBJECT_API explicit UFunction(const class FPostConstructInitializeProperties& PCIP, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
+	explicit UFunction(const class FPostConstructInitializeProperties& PCIP, UFunction* InSuperFunction, uint32 InFunctionFlags = 0, uint16 InRepOffset = 0, SIZE_T ParamsSize = 0 );
 
 	void InitializeDerivedMembers();
 
@@ -1206,7 +1211,8 @@ public:
 		checkSlow(!SuperStruct||SuperStruct->IsA<UFunction>());
 		return (UFunction*)SuperStruct;
 	}
-	COREUOBJECT_API UProperty* GetReturnProperty();
+
+	UProperty* GetReturnProperty() const;
 
 	/**
 	 * Used to safely check whether the passed in flag is set.
@@ -1251,7 +1257,7 @@ public:
 	 *
 	 * @return	true if function signatures are compatible.
 	 */
-	COREUOBJECT_API bool IsSignatureCompatibleWith(const UFunction* OtherFunction) const;
+	bool IsSignatureCompatibleWith(const UFunction* OtherFunction) const;
 
 	/**
 	 * Determines if two functions have an identical signature (note: currently doesn't allow
@@ -1263,7 +1269,7 @@ public:
 	 *
 	 * @return	true if function signatures are compatible.
 	 */
-	COREUOBJECT_API bool IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const;
+	bool IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1732,9 +1738,6 @@ public:
 
 #if WITH_EDITOR || HACK_HEADER_GENERATOR 
 	// Editor only properties
-	void GetHideCategories(TArray<FString>& OutHideCategories) const;
-	void GetShowCategories(TArray<FString>& OutShowCategories) const;
-	bool IsCategoryHidden(const FString& InCategory) const;
 	void GetHideFunctions(TArray<FString>& OutHideFunctions) const;
 	bool IsFunctionHidden(const TCHAR* InFunction) const;
 	void GetAutoExpandCategories(TArray<FString>& OutAutoExpandCategories) const;

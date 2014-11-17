@@ -15,6 +15,10 @@ namespace EPathExistanceQueryType
 	};
 }
 
+/**
+ * Cooldown decorator node.
+ * A decorator node that bases its condition on whether a path exists between two points from the Blackboard.
+ */
 UCLASS()
 class AIMODULE_API UBTDecorator_DoesPathExist : public UBTDecorator
 {

@@ -188,7 +188,7 @@ void FTransformTrackEditor::OnTransformChanged( UObject& InObject )
 
 	}
 
-	if( SceneComponentThatChanged && ensure( ObjectHandle.IsValid() ) )
+	if( SceneComponentThatChanged && ObjectHandle.IsValid() )
 	{
 		// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
 		FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );
@@ -256,7 +256,8 @@ void FTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* 
 	{
 		UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieSceneTransformTrack::StaticClass(), Transform );
 		UMovieSceneTransformTrack* TransformTrack = CastChecked<UMovieSceneTransformTrack>( Track );
-		TransformTrack->SetPropertyName( Transform );
+		// Transform name and path are the same
+		TransformTrack->SetPropertyNameAndPath( Transform, Transform.ToString() );
 	
 		if (!TransformPair.LastTransformData.IsValid())
 		{

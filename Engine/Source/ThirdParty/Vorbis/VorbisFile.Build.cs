@@ -33,7 +33,7 @@ public class VorbisFile : ModuleRules
         {
             string VorbisLibPath = VorbisPath + "Lib/HTML5";
             PublicLibraryPaths.Add(VorbisLibPath);
-            PublicAdditionalLibraries.Add("libvorbisfile.bc");
+            PublicAdditionalLibraries.Add(VorbisLibPath + "/libvorbisfile.bc");
         }
 		else if (Target.Platform == UnrealTargetPlatform.Android)
 		{
@@ -57,8 +57,15 @@ public class VorbisFile : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-			PublicLibraryPaths.Add(VorbisPath + "lib/Linux/" + Target.Architecture);
-			PublicAdditionalLibraries.Add("vorbisfile");
+            if (Target.IsMonolithic)
+            {
+                PublicAdditionalLibraries.Add(VorbisPath + "lib/Linux/" + Target.Architecture + "/libvorbisfile.a");
+            }
+            else
+            {
+                PublicLibraryPaths.Add(VorbisPath + "lib/Linux/" + Target.Architecture);
+                PublicAdditionalLibraries.Add("vorbisfile");
+            }
 		}
     }
 }

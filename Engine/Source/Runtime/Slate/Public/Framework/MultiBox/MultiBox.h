@@ -44,10 +44,11 @@ public:
 	 * @param InCommand		The command info that describes what action to take when this block is activated
 	 * @param InCommandList	The list of mappings from command info to delegates so we can find the delegates to process for the provided action
 	 */
-	FMultiBlock( const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, FName InExtensionHook = NAME_None )
+	FMultiBlock( const TSharedPtr< const FUICommandInfo > InCommand, TSharedPtr< const FUICommandList > InCommandList, FName InExtensionHook = NAME_None, EMultiBlockType::Type InType = EMultiBlockType::None )
 		: Action( InCommand )
 		, ActionList( InCommandList )
 		, ExtensionHook( InExtensionHook )
+		, Type( InType )
 		, TutorialHighlightName( NAME_None )
 	{
 	}
@@ -57,9 +58,10 @@ public:
 	 *
 	 * @InAction UI action delegates that should be used in place of UI commands (dynamic menu items)
 	 */
-	FMultiBlock( const FUIAction& InAction,  FName InExtensionHook = NAME_None )
+	FMultiBlock( const FUIAction& InAction,  FName InExtensionHook = NAME_None, EMultiBlockType::Type InType = EMultiBlockType::None )
 		: DirectActions( InAction )
 		, ExtensionHook( InExtensionHook )
+		, Type( InType )
 		, TutorialHighlightName( NAME_None )
 	{
 	}
@@ -118,6 +120,16 @@ public:
 	 */
 	TSharedRef< class IMultiBlockBaseWidget > MakeWidget( TSharedRef< class SMultiBoxWidget > InOwnerMultiBoxWidget, EMultiBlockLocation::Type InLocation ) const;
 
+	/**
+	 * Gets the type of this MultiBox
+	 *
+	 * @return	The MultiBlock's type
+	 */
+	const EMultiBlockType::Type GetType() const
+	{
+		return Type;
+	}
+
 private:
 	/**
 	 * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
@@ -145,6 +157,9 @@ private:
 
 	/** Optional extension hook which is used for debug display purposes, so users can see what hooks are where */
 	FName ExtensionHook;
+
+	/** Type of MultiBlock */
+	EMultiBlockType::Type Type;
 
 	/** Name to identify a widget for tutorials */
 	FName TutorialHighlightName;

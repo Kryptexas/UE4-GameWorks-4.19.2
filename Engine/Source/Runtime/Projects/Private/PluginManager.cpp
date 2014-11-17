@@ -34,7 +34,8 @@ FPluginInstance::FPluginInstance(const FString& InFileName, const FPluginDescrip
 
 
 FPluginManager::FPluginManager()
-	: bEarliestPhaseProcessed(false)
+	: bHaveConfiguredEnabledPlugins(false)
+	, bHaveAllRequiredPlugins(false)
 {
 	DiscoverAllPlugins();
 }
@@ -246,73 +247,103 @@ void FPluginManager::DiscoverAllPlugins()
 			// Add the plugin binaries directory
 			const FString PluginBinariesPath = FPaths::Combine(*FPaths::GetPath(Plugin->FileName), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory());
 			FModuleManager::Get().AddBinariesDirectory(*PluginBinariesPath, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject);
+		}
+	}
+}
 
-			// Make sure to tell the module manager about any of our plugin's modules, so it will know where on disk to find them.
-			for( auto ModuleInfoIt( Plugin->Descriptor.Modules.CreateConstIterator() ); ModuleInfoIt; ++ModuleInfoIt )
+bool FPluginManager::ConfigureEnabledPlugins()
+{
+	if(!bHaveConfiguredEnabledPlugins)
+	{
+		// Don't need to run this again
+		bHaveConfiguredEnabledPlugins = true;
+
+		// If a current project is set, check that we know about any plugin that's explicitly enabled
+		const FProjectDescriptor *Project = IProjectManager::Get().GetCurrentProject();
+		if(Project != nullptr)
+		{
+			for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
 			{
-				const FModuleDescriptor& ModuleInfo = *ModuleInfoIt;
+				if(Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid())
+				{
+					FText Caption(LOCTEXT("PluginMissingCaption", "Plugin missing"));
+					FString Description = (Plugin.Description.Len() > 0)? FString::Printf(TEXT("\n\n%s"), *Plugin.Description) : FString();
+					FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("PluginMissingError", "This project requires the {0} plugin. {1}"), FText::FromString(Plugin.Name), FText::FromString(Description)), &Caption);
+					return false;
+				}
+			}
+		}
 
-				// @todo plugin: We're adding all modules always here, even editor modules which might not exist at runtime. Hope that's OK.
-				FModuleManager::Get().AddModule(ModuleInfo.Name);
+		// If we made it here, we have all the required plugins
+		bHaveAllRequiredPlugins = true;
 
-				// Add to the module->plugin map
-				ModulePluginMap.Add( ModuleInfo.Name, Plugin );
+		// Get all the enabled plugin names
+		TArray< FString > EnabledPluginNames;
+		#if IS_PROGRAM
+			GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
+		#else
+			FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
+		#endif
+
+		// Build a set from the array
+		TSet< FString > AllEnabledPlugins;
+		AllEnabledPlugins.Append( MoveTemp(EnabledPluginNames) );
+
+		// Enable all the plugins by name
+		for( const TSharedRef< FPluginInstance > Plugin : AllPlugins )
+		{
+			if ( AllEnabledPlugins.Contains(Plugin->Name) )
+			{
+				Plugin->bEnabled = true;
+			}
+		}
+
+		// Build the list of content folders
+		ContentFolders.Empty();
+		for(const TSharedRef<FPluginInstance>& Plugin: AllPlugins)
+		{
+			if(Plugin->bEnabled && Plugin->Descriptor.bCanContainContent)
+			{
+				FPluginContentFolder ContentFolder;
+				ContentFolder.Name = Plugin->Name;
+				ContentFolder.RootPath = FString::Printf(TEXT("/%s/"), *Plugin->Name);
+				ContentFolder.ContentPath = FPaths::GetPath(Plugin->FileName) / TEXT("Content");
+				ContentFolders.Emplace(ContentFolder);
+			}
+		}
+
+		// Mount all the plugin content folders
+		if( ContentFolders.Num() > 0 && ensure( RegisterMountPointDelegate.IsBound() ) )
+		{
+			for(const FPluginContentFolder& ContentFolder: ContentFolders)
+			{
+				RegisterMountPointDelegate.Execute(ContentFolder.RootPath, ContentFolder.ContentPath);
 			}
 		}
 	}
+	return bHaveAllRequiredPlugins;
 }
 
-void FPluginManager::EnablePluginsThatAreConfiguredToBeEnabled()
+TSharedPtr<FPluginInstance> FPluginManager::FindPluginInstance(const FString& Name)
 {
-	TArray< FString > EnabledPluginNames;
-#if IS_PROGRAM
-	GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), EnabledPluginNames, GEngineIni);
-#else
-	FProjectManager::Get().GetEnabledPlugins(EnabledPluginNames);
-#endif
-
-	TSet< FString > AllEnabledPlugins;
-	AllEnabledPlugins.Append( MoveTemp(EnabledPluginNames) );
-
-	// Enable all the plugins by name
-	for( const TSharedRef< FPluginInstance > Plugin : AllPlugins )
+	TSharedPtr<FPluginInstance> Result;
+	for(const TSharedRef<FPluginInstance>& Instance : AllPlugins)
 	{
-		if ( AllEnabledPlugins.Contains(Plugin->Name) )
+		if(Instance->Name == Name)
 		{
-			Plugin->bEnabled = true;
+			Result = Instance;
+			break;
 		}
 	}
-
-	// Build the list of content folders
-	ContentFolders.Empty();
-	for(const TSharedRef<FPluginInstance>& Plugin: AllPlugins)
-	{
-		if(Plugin->bEnabled && Plugin->Descriptor.bCanContainContent)
-		{
-			FPluginContentFolder ContentFolder;
-			ContentFolder.Name = Plugin->Name;
-			ContentFolder.RootPath = FString::Printf(TEXT("/%s/"), *Plugin->Name);
-			ContentFolder.ContentPath = FPaths::GetPath(Plugin->FileName) / TEXT("Content");
-			ContentFolders.Emplace(ContentFolder);
-		}
-	}
-
-	// Mount all the plugin content folders
-	if( ContentFolders.Num() > 0 && ensure( RegisterMountPointDelegate.IsBound() ) )
-	{
-		for(const FPluginContentFolder& ContentFolder: ContentFolders)
-		{
-			RegisterMountPointDelegate.Execute(ContentFolder.RootPath, ContentFolder.ContentPath);
-		}
-	}
+	return Result;
 }
 
-void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
+bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase )
 {
-	if ( !bEarliestPhaseProcessed )
+	// Figure out which plugins are enabled
+	if(!ConfigureEnabledPlugins())
 	{
-		EnablePluginsThatAreConfiguredToBeEnabled();
-		bEarliestPhaseProcessed = true;
+		return false;
 	}
 
 	// Load plugins!
@@ -336,19 +367,19 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 
 					if ( FailureReason == EModuleLoadResult::FileNotFound )
 					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  This plugin's functionality will not be available.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleNotFound", "Plugin '{0}' failed to load because module '{1}' could not be found.  Please ensure the plugin is properly installed, otherwise consider disabling the plugin for this project."), PluginNameText, TextModuleName );
 					}
 					else if ( FailureReason == EModuleLoadResult::FileIncompatible )
 					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  This plugin's functionality will not be available.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleIncompatible", "Plugin '{0}' failed to load because module '{1}' does not appear to be compatible with the current version of the engine.  The plugin may need to be recompiled."), PluginNameText, TextModuleName );
 					}
 					else if ( FailureReason == EModuleLoadResult::CouldNotBeLoadedByOS )
 					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  This plugin's functionality will not be available.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleCouldntBeLoaded", "Plugin '{0}' failed to load because module '{1}' could not be loaded.  There may be an operating system error or the module may not be properly set up."), PluginNameText, TextModuleName );
 					}
 					else if ( FailureReason == EModuleLoadResult::FailedToInitialize )
 					{
-						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could be initialized successfully after it was loaded.  This plugin's functionality will not be available."), PluginNameText, TextModuleName );
+						FailureMessage = FText::Format( LOCTEXT("PluginModuleFailedToInitialize", "Plugin '{0}' failed to load because module '{1}' could be initialized successfully after it was loaded."), PluginNameText, TextModuleName );
 					}
 					else 
 					{
@@ -364,9 +395,11 @@ void FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 			if( !FailureMessage.IsEmpty() )
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
+				return false;
 			}
 		}
 	}
+	return true;
 }
 
 void FPluginManager::SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate )
@@ -374,17 +407,16 @@ void FPluginManager::SetRegisterMountPointDelegate( const FRegisterMountPointDel
 	RegisterMountPointDelegate = Delegate;
 }
 
-bool FPluginManager::IsPluginModule( const FName ModuleName ) const
+bool FPluginManager::AreRequiredPluginsAvailable()
 {
-	return ( ModulePluginMap.Find( ModuleName ) != NULL );
+	return ConfigureEnabledPlugins();
 }
 
 bool FPluginManager::AreEnabledPluginModulesUpToDate()
 {
-	if (!bEarliestPhaseProcessed)
+	if(!ConfigureEnabledPlugins())
 	{
-		EnablePluginsThatAreConfiguredToBeEnabled();
-		bEarliestPhaseProcessed = true;
+		return false;
 	}
 
 	for (TArray< TSharedRef< FPluginInstance > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
@@ -428,6 +460,7 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 		PluginStatus.CreatedBy = PluginInfo.CreatedBy;
 		PluginStatus.CreatedByURL = PluginInfo.CreatedByURL;
 		PluginStatus.CategoryPath = PluginInfo.Category;
+		PluginStatus.PluginDirectory = FPaths::GetPath(Plugin->FileName);
 		PluginStatus.bIsEnabled = Plugin->bEnabled;
 		PluginStatus.bIsBuiltIn = ( Plugin->LoadedFrom == EPluginLoadedFrom::Engine );
 		PluginStatus.bIsEnabledByDefault = PluginInfo.bEnabledByDefault;

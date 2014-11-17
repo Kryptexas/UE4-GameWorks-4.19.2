@@ -45,6 +45,7 @@
 	#include "Commandlets/Commandlet.h"
 	#include "EngineService.h"
 	#include "ContentStreaming.h"
+	#include "HeadMountedDisplay.h"
 
 #if !UE_SERVER
 	#include "ISlateRHIRendererModule.h"
@@ -589,8 +590,17 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 	}
 	else
 	{
-		UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
-		World = GameEngine->GetGameWorld();
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+
+		if (GameEngine)
+		{
+			World = GameEngine->GetGameWorld();
+		}
+		else
+		{
+			UE_LOG(LogInit, Error, TEXT("Failed to determine if OSS is server in PIE, OSS requests will fail"));
+			return false;
+		}
 	}
 
 	ENetMode NetMode = World ? World->GetNetMode() : NM_Standalone;
@@ -1002,7 +1012,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// after SystemSettings.ini file loading so we get the right state,
 	// before ConsoleVariables.ini so the local developer can always override.
 	// before InitializeCVarsForActiveDeviceProfile() so the platform can override user settings
-	Scalability::LoadState(bHasEditorToken ? GEditorUserSettingsIni : GGameUserSettingsIni);
+	Scalability::LoadState((bHasEditorToken && !GEditorGameAgnosticIni.IsEmpty()) ? GEditorGameAgnosticIni : GGameUserSettingsIni);
 
 	// Set all CVars which have been setup in the device profiles.
 	UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile();
@@ -1278,14 +1288,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #endif
 
 	// Load up all modules that need to hook into the loading screen
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreLoadingScreen))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreLoadingScreen) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreLoadingScreen))
 	{
 		return 1;
 	}
 
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreLoadingScreen);
-	
-	
 #if !UE_SERVER
 	if ( !IsRunningDedicatedServer() )
 	{
@@ -1693,6 +1700,8 @@ bool FEngineLoop::LoadStartupCoreModules()
 	if (!IsRunningDedicatedServer())
 	{
 		FModuleManager::Get().LoadModule("Slate");
+		// UMG must be loaded for runtime and cooking.
+		FModuleManager::Get().LoadModule("UMG");
 
 #if WITH_UNREAL_DEVELOPER_TOOLS
 		FModuleManager::Get().LoadModule("MessageLog");
@@ -1754,28 +1763,22 @@ bool FEngineLoop::LoadStartupCoreModules()
 bool FEngineLoop::LoadStartupModules()
 {
 	// Load any modules that want to be loaded before default modules are loaded up.
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreDefault))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault))
 	{
 		return false;
 	}
-
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault);
 
 	// Load modules that are configured to load in the default phase
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::Default))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::Default) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::Default))
 	{
 		return false;
 	}
-
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::Default);
 
 	// Load any modules that want to be loaded after default modules are loaded up.
-	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostDefault))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostDefault))
 	{
 		return false;
 	}
-
-	IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostDefault);
 
 	return true;
 }
@@ -1828,6 +1831,7 @@ void FEngineLoop::InitTime()
 //called via FCoreDelegates::StarvedGameLoop
 void GameLoopIsStarved()
 {
+	FlushPendingDeleteRHIResources_GameThread();
 	FStats::AdvanceFrame( true, FStats::FOnAdvanceRenderingThreadStats::CreateStatic( &AdvanceRenderingThreadStatsGT ) );
 }
 
@@ -1862,6 +1866,13 @@ int32 FEngineLoop::Init()
 	InitTime();
 
 	GEngine->Init(this);
+
+	// Load all the post-engine init modules
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostEngineInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostEngineInit))
+	{
+		GIsRequestingExit = true;
+		return 1;
+	}
 
 	GetMoviePlayer()->WaitForMovieToFinish();
 
@@ -2011,6 +2022,8 @@ void FEngineLoop::Tick()
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 				BeginFrame,
 			{
+				GRHICommandList.GetImmediateCommandList().Flush();
+				GRHICommandList.LatchBypass();
 				GFrameNumberRenderThread++;
 				GDynamicRHI->PushEvent(*FString::Printf(TEXT("Frame%d"),GFrameNumberRenderThread));
 				RHICmdList.BeginFrame();
@@ -2056,6 +2069,7 @@ void FEngineLoop::Tick()
 			ResetDeferredUpdates,
 			{
 				FDeferredUpdateResource::ResetNeedsUpdate();
+				FlushPendingDeleteRHIResources_RenderThread();
 			});
 		
 		{
@@ -2311,7 +2325,7 @@ bool FEngineLoop::AppInit( )
 
 	// Check whether the project or any of its plugins are missing or are out of date
 #if UE_EDITOR
-	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet())
+	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet() && IPluginManager::Get().AreRequiredPluginsAvailable())
 	{
 		if(!IProjectManager::Get().AreProjectModulesUpToDate() || !IPluginManager::Get().AreEnabledPluginModulesUpToDate())
 		{
@@ -2343,10 +2357,12 @@ bool FEngineLoop::AppInit( )
 #endif
 
 	// Load "pre-init" plugin modules
-	if (IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit))
+	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit))
 	{
-		IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostConfigInit);
+		return false;
 	}
+
+	PreInitHMDDevice();
 
 	// Put the command line and config info into the suppression system
 	FLogSuppressionInterface::Get().ProcessConfigAndCommandLine();
@@ -2557,6 +2573,26 @@ void FEngineLoop::AppExit( )
 	}
 
 	FInternationalization::TearDown();
+}
+
+void FEngineLoop::PreInitHMDDevice()
+{
+#if WITH_ENGINE
+	if (!GIsEditor)
+	{
+#if 0	//@todo vr: only preinit first valid hmd
+		if (!FParse::Param(FCommandLine::Get(), TEXT("nohmd")) && !FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
+		{
+			// Get a list of plugins that implement this feature
+			TArray<IHeadMountedDisplayModule*> HMDImplementations = IModularFeatures::Get().GetModularFeatureImplementations<IHeadMountedDisplayModule>(IHeadMountedDisplayModule::GetModularFeatureName());
+			for (auto HMDModuleIt = HMDImplementations.CreateIterator(); HMDModuleIt; ++HMDModuleIt)
+			{
+				(*HMDModuleIt)->PreInit();
+			}
+		}
+#endif
+	}
+#endif // #if WITH_ENGINE
 }
 
 #undef LOCTEXT_NAMESPACE

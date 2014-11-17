@@ -440,7 +440,7 @@ void FParticleEmitterInstance::Init()
 	// Resize to sensible default.
 	if (Component->GetWorld()->IsGameWorld() == true &&
 		// Only presize if any particles will be spawned 
-		(Component->GetCurrentDetailMode() == DM_High || SpriteTemplate->MediumDetailSpawnRateScale > 0))
+		SpriteTemplate->QualityLevelSpawnRateScale > 0)
 	{
 		if ((LODLevel->PeakActiveParticles > 0) || (SpriteTemplate->InitialAllocationCount > 0))
 		{
@@ -1720,7 +1720,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 	bool bProcessBurstList = true;
 	int32 DetailMode = Component->GetCurrentDetailMode();
 
-	if ((DetailMode == DM_High) || (SpriteTemplate->MediumDetailSpawnRateScale > 0.0f))
+	if (SpriteTemplate->QualityLevelSpawnRateScale > 0.0f)
 	{
 		// Process all Spawning modules that are present in the emitter.
 		for (int32 SpawnModIndex = 0; SpawnModIndex < LODLevel->SpawningModules.Num(); SpawnModIndex++)
@@ -1771,11 +1771,9 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 			BurstCount += Burst;
 		}
 
-		if (DetailMode != DM_High)
-		{
-			SpawnRate = FMath::Max<float>(0.0f, SpawnRate * SpriteTemplate->MediumDetailSpawnRateScale);
-			BurstCount = FMath::CeilToInt(BurstCount * SpriteTemplate->MediumDetailSpawnRateScale);
-		}
+		float QualityMult = SpriteTemplate->GetQualityLevelSpawnRateMult();
+		SpawnRate = FMath::Max<float>(0.0f, SpawnRate * QualityMult);
+		BurstCount = FMath::CeilToInt(BurstCount * QualityMult);
 	}
 	else
 	{
@@ -2539,6 +2537,39 @@ void FParticleEmitterInstance::ApplyWorldOffset(FVector InOffset, bool bWorldShi
 	}
 }
 
+bool FParticleEmitterInstance::Tick_MaterialOverrides()
+{
+	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
+	bool bOverridden = false;
+	if( LODLevel && LODLevel->RequiredModule && Component && Component->Template )
+	{
+	        TArray<FName>& NamedOverrides = LODLevel->RequiredModule->NamedMaterialOverrides;
+	        TArray<FNamedEmitterMaterial>& Slots = Component->Template->NamedMaterialSlots;
+	        TArray<UMaterialInterface*>& EmitterMaterials = Component->EmitterMaterials;
+	        if (NamedOverrides.Num() > 0)
+	        {
+		        //If we have named material overrides then get it's index into the emitter materials array.
+		        //Only check for [0] in in the named overrides as most emitter types only need one material. Mesh emitters might use more but they override this function.		
+		        for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+		        {
+			        if (NamedOverrides[0] == Slots[CheckIdx].Name)
+			        {
+				        //Default to the default material for that slot.
+				        CurrentMaterial = Slots[CheckIdx].Material;
+				        if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx])
+				        {
+					        //This material has been overridden externally, e.g. from a BP so use that one.
+					        CurrentMaterial = EmitterMaterials[CheckIdx];
+				        }
+        
+				        bOverridden = true;
+				        break;
+			        }
+		        }
+	        }
+	}
+	return bOverridden;
+}
 
 /*-----------------------------------------------------------------------------
 	ParticleSpriteEmitterInstance
@@ -2901,33 +2932,65 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 
 				FQuat Rotation	= FQuat::FindBetween(OldDirection, NewDirection);
 				FVector Euler	= Rotation.Euler();
-				PayloadData->Rotation.X	= PayloadData->InitialOrientation.X + Euler.X;
-				PayloadData->Rotation.Y = PayloadData->InitialOrientation.Y + Euler.Y;
-				PayloadData->Rotation.Z = PayloadData->InitialOrientation.Z + Euler.Z;
+				PayloadData->Rotation = PayloadData->InitialOrientation + PayloadData->InitRotation + Euler;
+				PayloadData->Rotation += PayloadData->CurContinuousRotation;
 			}
-	    }
+			else // not PSA_Velocity or PSA_AwayfromCenter, so rotation is not reset every tick
+			{
+				if ((Particle.Flags & STATE_Particle_FreezeRotation) == 0)
+				{
+					PayloadData->Rotation = PayloadData->InitialOrientation + PayloadData->InitRotation + PayloadData->CurContinuousRotation;
+				}
+			}
+
+			PayloadData->CurContinuousRotation += DeltaTime * PayloadData->RotationRate;
+		}
 	}
+
 
 	// Call the standard tick
 	FParticleEmitterInstance::Tick(DeltaTime, bSuppressSpawning);
 
-	// Apply rotation if it is active
-	if (MeshRotationActive)
-	{
-		for (int32 i = 0; i < ActiveParticles; i++)
-		{
-			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
-			if ((Particle.Flags & STATE_Particle_FreezeRotation) == 0)
-			{
-				FMeshRotationPayloadData* PayloadData	 = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
-				PayloadData->Rotation					+= Particle.RelativeTime * PayloadData->RotationRate;
-			}
-		}
-	}
-
 	// Remove from the Sprite count... happens because we use the Super::Tick
 	DEC_DWORD_STAT_BY(STAT_SpriteParticles, ActiveParticles);
 	INC_DWORD_STAT_BY(STAT_MeshParticles, ActiveParticles);
+}
+
+bool FParticleMeshEmitterInstance::Tick_MaterialOverrides()
+{
+	UParticleLODLevel* LODLevel = SpriteTemplate->GetCurrentLODLevel(this);
+	bool bOverridden = false;
+	if( LODLevel && LODLevel->RequiredModule && Component && Component->Template )
+	{
+	        TArray<FName>& NamedOverrides = LODLevel->RequiredModule->NamedMaterialOverrides;
+	        TArray<FNamedEmitterMaterial>& Slots = Component->Template->NamedMaterialSlots;
+	        TArray<UMaterialInterface*>& EmitterMaterials = Component->EmitterMaterials;
+	        if (NamedOverrides.Num() > 0)
+	        {
+		        CurrentMaterials.SetNumZeroed(NamedOverrides.Num());
+		        for (int32 MaterialIdx = 0; MaterialIdx < NamedOverrides.Num(); ++MaterialIdx)
+		        {		
+			        //If we have named material overrides then get it's index into the emitter materials array.	
+			        for (int32 CheckIdx = 0; CheckIdx < Slots.Num(); ++CheckIdx)
+			        {
+				        if (NamedOverrides[MaterialIdx] == Slots[CheckIdx].Name)
+				        {
+					        //Default to the default material for that slot.
+					        CurrentMaterials[MaterialIdx] = Slots[CheckIdx].Material;
+					        if (EmitterMaterials.IsValidIndex(CheckIdx) && nullptr != EmitterMaterials[CheckIdx] )
+					        {
+						        //This material has been overridden externally, e.g. from a BP so use that one.
+						        CurrentMaterials[MaterialIdx] = EmitterMaterials[CheckIdx];
+					        }
+        
+					        bOverridden = true;
+					        break;
+				        }
+			        }
+		        }
+	        }
+        }
+	return bOverridden;
 }
 
 /**

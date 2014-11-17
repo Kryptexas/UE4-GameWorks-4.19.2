@@ -1,5 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-// 
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
+//
+
 #include "ShaderFormatOpenGL.h"
 #include "Core.h"
 
@@ -25,7 +26,7 @@
 #include "HideWindowsPlatformTypes.h"
 #elif PLATFORM_LINUX
 	#define GL_GLEXT_PROTOTYPES
-	#include <GL/gl.h>
+	#include <GL/glcorearb.h>
 	#include <GL/glext.h>
 #elif PLATFORM_MAC
 	#include <OpenGL/OpenGL.h>
@@ -41,7 +42,7 @@
 	#define GL_TESS_CONTROL_SHADER 0x8E88
 	#endif
 #endif
-#include "OpenGLUtil.h"
+	#include "OpenGLUtil.h"
 #include "OpenGLShaderResources.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All); 
@@ -772,7 +773,7 @@ static void BuildShaderOutput(
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestUBTypeName = *ShaderSource++;
-			CopyInfo.DestUBTypeIndex = GLPackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
+			CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestOffsetInFloats = ParseNumber(ShaderSource);
@@ -814,7 +815,7 @@ static void BuildShaderOutput(
 			CopyInfo.DestUBIndex = 0;
 
 			CopyInfo.DestUBTypeName = *ShaderSource++;
-			CopyInfo.DestUBTypeIndex = GLPackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
+			CopyInfo.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(CopyInfo.DestUBTypeName);
 			verify(Match(ShaderSource, ':'));
 
 			CopyInfo.DestOffsetInFloats = ParseNumber(ShaderSource);
@@ -848,10 +849,10 @@ static void BuildShaderOutput(
 		ANSICHAR TypeName = Iterator.Key();
 		uint16 Size = Iterator.Value();
 		Size = (Size + 0xf) & (~0xf);
-		FOpenGLPackedArrayInfo Info;
+		CrossCompiler::FPackedArrayInfo Info;
 		Info.Size = Size;
 		Info.TypeName = TypeName;
-		Info.TypeIndex = GLPackedTypeNameToTypeIndex(TypeName);
+		Info.TypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(TypeName);
 		Header.Bindings.PackedGlobalArrays.Add(Info);
 	}
 
@@ -861,17 +862,17 @@ static void BuildShaderOutput(
 	{
 		int BufferIndex = Iterator.Key();
 		auto& ArraySizes = Iterator.Value();
-		TArray<FOpenGLPackedArrayInfo> InfoArray;
+		TArray<CrossCompiler::FPackedArrayInfo> InfoArray;
 		InfoArray.Reserve(ArraySizes.Num());
 		for (auto IterSizes = ArraySizes.CreateIterator(); IterSizes; ++IterSizes)
 		{
 			ANSICHAR TypeName = IterSizes.Key();
 			uint16 Size = IterSizes.Value();
 			Size = (Size + 0xf) & (~0xf);
-			FOpenGLPackedArrayInfo Info;
+			CrossCompiler::FPackedArrayInfo Info;
 			Info.Size = Size;
 			Info.TypeName = TypeName;
-			Info.TypeIndex = GLPackedTypeNameToTypeIndex(TypeName);
+			Info.TypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(TypeName);
 			InfoArray.Add(Info);
 		}
 
@@ -1323,7 +1324,7 @@ static void ParseHlslccError(TArray<FShaderCompilerError>& OutErrors, const FStr
 	External interface.
 ------------------------------------------------------------------------------*/
 
-static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags ) 
+static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FString& OutputFile, const FString& EntryPoint, EHlslShaderFrequency Frequency, GLSLVersion Version, uint32 CCFlags ) 
 {
 	const TCHAR* FrequencySwitch = TEXT("");
 	switch (Frequency)
@@ -1388,9 +1389,7 @@ static FString CreateCommandLineHLSLCC( const FString& ShaderFile, const FString
 	}
 
 	const TCHAR* ApplyCSE = (CCFlags & HLSLCC_ApplyCommonSubexpressionElimination) != 0 ? TEXT("-cse") : TEXT("");
-	FString CmdLine = FPaths::RootDir() / FString::Printf(TEXT("Engine\\Source\\ThirdParty\\hlslcc\\hlslcc\\bin\\Win64\\VS2013\\hlslcc_64.exe %s -o=%s %s -entry=%s %s %s"), *ShaderFile, *OutputFile, FrequencySwitch, *EntryPoint, VersionSwitch, ApplyCSE);
-	CmdLine += "\npause";
-	return CmdLine;
+	return CreateCrossCompilerBatchFileContents(ShaderFile, OutputFile, FrequencySwitch, EntryPoint, VersionSwitch, ApplyCSE);
 }
 
 /**
@@ -1524,7 +1523,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 		{
 			const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
 			const FString USFFile = (Input.DumpDebugInfoPath / Input.SourceFilename) + TEXT(".usf");
-			const FString CCBatchFileContents = CreateCommandLineHLSLCC(USFFile, GLSLFile, *Input.EntryPointName, Frequency, Version, CCFlags);
+			const FString CCBatchFileContents = CreateCrossCompilerBatchFile(USFFile, GLSLFile, *Input.EntryPointName, Frequency, Version, CCFlags);
 			if (!CCBatchFileContents.IsEmpty())
 			{
 				FFileHelper::SaveStringToFile(CCBatchFileContents, *(Input.DumpDebugInfoPath / TEXT("CrossCompile.bat")));
@@ -1552,6 +1551,7 @@ CCFlags &= ~HLSLCC_NoPreprocess;
 
 		if (Result != 0)
 		{
+			int32 GlslSourceLen = GlslShaderSource ? FCStringAnsi::Strlen(GlslShaderSource) : 0;
 			if (bDumpDebugInfo)
 			{
 				const FString GLSLFile = (Input.DumpDebugInfoPath / TEXT("Output.glsl"));
@@ -1567,7 +1567,6 @@ CCFlags &= ~HLSLCC_NoPreprocess;
 					FFileHelper::SaveStringToFile(NDABatchFileContents, *(Input.DumpDebugInfoPath / TEXT("NDAGLSLCompile.bat")));
 				}
 
-				int32 GlslSourceLen = FCStringAnsi::Strlen(GlslShaderSource);
 				if (GlslSourceLen > 0)
 				{
 					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".glsl")));

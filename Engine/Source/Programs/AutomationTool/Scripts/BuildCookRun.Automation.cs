@@ -323,7 +323,8 @@ public class BuildCookRun : BuildCommand
 				}
 				else
 				{
-                    var ProjectName = ParseParamValue("project", CombinePaths("Samples", "Sandbox", "BlankProject", "BlankProject.uproject"));
+                    var OriginalProjectName = ParseParamValue("project", CombinePaths("Samples", "Sandbox", "BlankProject", "BlankProject.uproject"));
+                    var ProjectName = OriginalProjectName;
 					ProjectName = ProjectName.Trim (new char[]{ '\"' });
                     if (ProjectName.IndexOfAny(new char[] { '\\', '/' }) < 0)
                     {
@@ -332,6 +333,15 @@ public class BuildCookRun : BuildCommand
                     else if (!FileExists_NoExceptions(ProjectName))
                     {
                         ProjectName = CombinePaths(CmdEnv.LocalRoot, ProjectName);
+                    }
+                    if (!FileExists_NoExceptions(ProjectName))
+                    {
+                        var Branch = new BranchInfo(new List<UnrealTargetPlatform> { UnrealBuildTool.Utils.IsRunningOnMono ? UnrealTargetPlatform.Mac : UnrealTargetPlatform.Win64 });
+                        var GameProj = Branch.FindGame(OriginalProjectName);
+                        if (GameProj != null)
+                        {
+                            ProjectName = GameProj.FilePath;
+                        }
                     }
                     if (!FileExists_NoExceptions(ProjectName))
                     {

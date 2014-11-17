@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "LogVisualizerPCH.h"
+#include "LogVisualizer.h"
 
 IMPLEMENT_MODULE(FLogVisualizerModule, LogVisualizer);
 DEFINE_LOG_CATEGORY(LogLogVisualizer);

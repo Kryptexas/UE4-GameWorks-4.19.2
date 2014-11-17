@@ -15,6 +15,8 @@
 #include "MaterialExportUtils.h"
 #include "Textures/TextureAtlas.h"
 
+#include "FbxErrors.h"
+
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
 #include "kDOP.h"
@@ -28,7 +30,7 @@
 // causes meshes to be rebuilt you MUST generate a new GUID and replace this
 // string with it.
 
-#define MESH_UTILITIES_VER TEXT("359a039847e84730ba516769d0f19427")
+#define MESH_UTILITIES_VER TEXT("0db5412b27ab480f844cc7f0be5abaff")
 
 DEFINE_LOG_CATEGORY_STATIC(LogMeshUtilities,Verbose,All);
 
@@ -482,7 +484,7 @@ private:
 		const FStaticMeshLODGroup& LODGroup
 		) override;
 
-	virtual bool BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices = false, bool bComputeNormals = true, bool bComputeTangents = true );
+	virtual bool BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices = false, bool bComputeNormals = true, bool bComputeTangents = true, TArray<FText> * OutWarningMessages = NULL, TArray<FName> * OutWarningNames = NULL);
 
 	virtual bool GenerateUVs(
 		FRawMesh& RawMesh,
@@ -2152,7 +2154,7 @@ static void BuildStaticMeshVertexAndIndexBuffers(
 		}
 
 		// Put the indices in the material index buffer.
-		int32 SectionIndex = FMath::Clamp(RawMesh.FaceMaterialIndices[FaceIndex], 0, OutPerSectionIndices.Num());
+		int32 SectionIndex = FMath::Clamp(RawMesh.FaceMaterialIndices[FaceIndex], 0, OutPerSectionIndices.Num()-1);
 		TArray<uint32>& SectionIndices = OutPerSectionIndices[SectionIndex];
 		for (int32 CornerIndex = 0; CornerIndex < 3; CornerIndex++)
 		{
@@ -2551,7 +2553,8 @@ bool FMeshUtilities::BuildStaticMesh(
 }
 
 
-bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices, bool bComputeNormals, bool bComputeTangents )
+//@TODO: The OutMessages has to be a struct that contains FText/FName, or make it Token and add that as error. Needs re-work. Temporary workaround for now. 
+bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, const TArray<FVertInfluence>& Influences, const TArray<FMeshWedge>& Wedges, const TArray<FMeshFace>& Faces, const TArray<FVector>& Points, const TArray<int32>& PointToOriginalMap, bool bKeepOverlappingVertices, bool bComputeNormals, bool bComputeTangents, TArray<FText> * OutWarningMessages, TArray<FName> * OutWarningNames)
 {
 #if WITH_EDITORONLY_DATA
 	bool bTooManyVerts = false;
@@ -2624,9 +2627,25 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 	{
 		uint32* InfluenceIndex = VertexIndexToInfluenceIndexMap.Find( Wedges[WedgeIndex].iVertex );
 
-		check( InfluenceIndex );
+		if ( InfluenceIndex )
+		{
+			WedgeInfluenceIndices.Add( *InfluenceIndex );
+		}
+		else
+		{
+			// we have missing influence vert,  we weight to root
+			WedgeInfluenceIndices.Add(0);
 
-		WedgeInfluenceIndices.Add( *InfluenceIndex );
+			// add warning message
+			if (OutWarningMessages)
+			{
+				OutWarningMessages->Add(FText::Format(FText::FromString("Missing influence on vert {0}. Weighting it to root."), FText::FromString(FString::FromInt(Wedges[WedgeIndex].iVertex))));
+				if (OutWarningNames)
+				{
+					OutWarningNames->Add(FFbxErrors::SkeletalMesh_VertMissingInfluences);
+				}
+			}
+		}
 	}
 
  	check(Wedges.Num() == WedgeInfluenceIndices.Num());
@@ -2970,19 +2989,51 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 		}
 		if( bHasBadSections )
 		{
-			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_SkeletalMeshHasBadSections", "Input mesh has a section with no triangles.  This mesh may not render properly.") );
+			FText BadSectionMessage(NSLOCTEXT("UnrealEd", "Error_SkeletalMeshHasBadSections", "Input mesh has a section with no triangles.  This mesh may not render properly."));
+			if(OutWarningMessages)
+			{
+				OutWarningMessages->Add(BadSectionMessage);
+				if(OutWarningNames)
+				{
+					OutWarningNames->Add(FFbxErrors::SkeletalMesh_SectionWithNoTriangle);
+				}
+			}
+			else
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, BadSectionMessage );
+			}
 		}
 
 		if (bTooManyVerts)
 		{
-			UE_LOG(LogSkeletalMesh, Log, TEXT("Input mesh has too many vertices.  The generated mesh will be corrupt!"));
-			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_SkeletalMeshTooManyVertices", "Input mesh has too many vertices.  The generated mesh will be corrupt!  Consider adding extra materials to split up the source mesh into smaller chunks."));
+			FText TooManyVertsMessage(NSLOCTEXT("UnrealEd", "Error_SkeletalMeshTooManyVertices", "Input mesh has too many vertices.  The generated mesh will be corrupt!  Consider adding extra materials to split up the source mesh into smaller chunks."));
+
+			if(OutWarningMessages)
+			{
+				OutWarningMessages->Add(TooManyVertsMessage);
+				if(OutWarningNames)
+				{
+					OutWarningNames->Add(FFbxErrors::SkeletalMesh_TooManyVertices);
+				}
+			}
+			else
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, TooManyVertsMessage);
+			}
 		}
 	}
 
 	return true;
 #else
-	UE_LOG(LogSkeletalMesh, Fatal,TEXT("Cannot call FSkeletalMeshTools::CreateSkinningStreams on a console!"));
+
+	if(OutWarningMessages)
+	{
+		OutWarningMessages->Add(FText::FromString(TEXT("Cannot call FSkeletalMeshTools::CreateSkinningStreams on a console!")));
+	}
+	else
+	{
+		UE_LOG(LogSkeletalMesh, Fatal,TEXT("Cannot call FSkeletalMeshTools::CreateSkinningStreams on a console!"));
+	}
 	return false;
 #endif
 }
@@ -3241,8 +3292,6 @@ bool FMeshUtilities::ConstructRawMesh(
 
 	//Transform the raw mesh to world space
 	FTransform CtoM = InMeshComponent->ComponentToWorld;
-	FMatrix InvTransCToM = CtoM.ToMatrixWithScale().Inverse().GetTransposed();
-
 	for (FVector& Vertex : OutRawMesh.VertexPositions)
 	{
 		Vertex = CtoM.TransformFVector4(Vertex);
@@ -3260,13 +3309,6 @@ bool FMeshUtilities::ConstructRawMesh(
 	TMultiMap<int32,int32> OverlappingCorners;
 	FindOverlappingCorners(OverlappingCorners, OutRawMesh, 0.1f);
 	ComputeTangents(OutRawMesh, OverlappingCorners, ETangentOptions::BlendOverlappingNormals);
-
-	for (int32 WedgeIndex = 0; WedgeIndex < NumWedges; ++WedgeIndex)
-	{
-		OutRawMesh.WedgeTangentX[WedgeIndex] = InvTransCToM.TransformVector(OutRawMesh.WedgeTangentX[WedgeIndex]).SafeNormal();
-		OutRawMesh.WedgeTangentY[WedgeIndex] = InvTransCToM.TransformVector(OutRawMesh.WedgeTangentY[WedgeIndex]).SafeNormal();
-		OutRawMesh.WedgeTangentZ[WedgeIndex] = InvTransCToM.TransformVector(OutRawMesh.WedgeTangentZ[WedgeIndex]).SafeNormal();
-	}
 
 	//Need to store the unique material indices in order to re-map the material indices in each rawmesh
 	//Only using the base mesh
@@ -3328,7 +3370,7 @@ public:
 	 */ 
 	bool Pack(const TArray<uint32>& LigthmapsList)
 	{
-		// Calculate total ligtmaps area and sort lightmaps list by resolution
+		// Calculate total lightmaps area and sort lightmaps list by resolution
 		TArray<TPair<int32, uint32>> SortedLightmaps;
 		float TotalArea = 0;
 
@@ -3392,6 +3434,55 @@ private:
 	TArray<const FAtlasedTextureSlot*>		PackedLigthmapSlots;
 };
 
+bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh)
+{
+	UStaticMesh* StaticMesh = StaticMeshComponent->StaticMesh;
+	
+	if (StaticMesh->SourceModels.IsValidIndex(LODIndex) &&
+		StaticMeshComponent->LODData.IsValidIndex(LODIndex) &&
+		StaticMeshComponent->LODData[LODIndex].OverrideVertexColors != nullptr)	
+	{
+		FColorVertexBuffer& ColorVertexBuffer = *StaticMeshComponent->LODData[LODIndex].OverrideVertexColors;
+		FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
+		FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;
+		FStaticMeshLODResources& RenderModel = RenderData.LODResources[LODIndex];
+
+		if (RenderData.WedgeMap.Num() > 0 && 
+			ColorVertexBuffer.GetNumVertices() == RenderModel.GetNumVertices())
+		{
+			int32 NumWedges = RawMesh.WedgeIndices.Num();
+			if (RenderData.WedgeMap.Num() == NumWedges)
+			{
+				int32 NumExistingColors = RawMesh.WedgeColors.Num();
+				if (NumExistingColors < NumWedges)
+				{
+					RawMesh.WedgeColors.AddUninitialized(NumWedges - NumExistingColors);
+				}
+			
+				for (int32 i = 0; i < NumWedges; ++i)
+				{
+					FColor WedgeColor = FColor::White;
+					int32 Index = RenderData.WedgeMap[i];
+					if (Index != INDEX_NONE)
+					{
+						WedgeColor = ColorVertexBuffer.VertexColor(Index);
+					}
+				
+					RawMesh.WedgeColors[i] = WedgeColor;
+				}
+			
+				return true;
+			}
+			else
+			{
+				UE_LOG(LogMeshUtilities, Warning, TEXT("{%s} Wedge map size %d is wrong. Expected %d."), *StaticMesh->GetName(), RenderData.WedgeMap.Num(), RawMesh.WedgeIndices.Num());
+			}
+		}
+	}
+	
+	return false;
+}
+
 void FMeshUtilities::MergeActors(
 	const TArray<AActor*>& SourceActors, 
 	const FMeshMergingSettings& InSettings, 
@@ -3412,7 +3503,7 @@ void FMeshUtilities::MergeActors(
 	struct FRawMeshExt
 	{
 		FRawMeshExt() 
-			: LightMapCoordinateIndex(1)
+			: LightMapCoordinateIndex(0)
 			, LightMapRes(32)
 		{}
 		
@@ -3427,6 +3518,7 @@ void FMeshUtilities::MergeActors(
 	TMap<int32, TArray<int32>>						MaterialMap;
 	TArray<FRawMeshExt>								SourceMeshes;
 	bool											bWithVertexColors = false;
+	bool											bOcuppiedUVChannels[MAX_MESH_TEXTURE_COORDS] = {};
 	
 	// Convert collected static mesh components into raw meshes
 	SourceMeshes.Empty(ComponentsToMerge.Num());
@@ -3452,7 +3544,20 @@ void FMeshUtilities::MergeActors(
 			// Source mesh asset package name
 			SourceMeshes[MeshId].AssetPackageName = MeshComponent->StaticMesh->GetOutermost()->GetName();
 
-			bWithVertexColors|= (SourceMeshes[MeshId].Mesh.WedgeColors.Num() != 0);
+			// Should we use vertex colors?
+			if (InSettings.bImportVertexColors)
+			{
+				// Propagate painted vertex colors into our raw mesh
+				PropagatePaintedColorsToRawMesh(MeshComponent, 0, SourceMeshes[MeshId].Mesh);
+				// Whether at least one of the meshes has vertex colors
+				bWithVertexColors|= (SourceMeshes[MeshId].Mesh.WedgeColors.Num() != 0);
+			}
+			
+			// Which UV channels has data at least in one mesh
+			for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
+			{
+				bOcuppiedUVChannels[ChannelIdx]|= (SourceMeshes[MeshId].Mesh.WedgeTexCoords[ChannelIdx].Num() != 0);
+			}
 		}
 		else
 		{
@@ -3463,12 +3568,6 @@ void FMeshUtilities::MergeActors(
 	if (SourceMeshes.Num() == 0)
 	{
 		return;	
-	}
-
-	// Should we use vertex colors?
-	if (!InSettings.bImportVertexColors)
-	{
-		bWithVertexColors = false;
 	}
 	
 	//For each raw mesh, re-map the material indices according to the MaterialMap
@@ -3485,36 +3584,36 @@ void FMeshUtilities::MergeActors(
 
 	FRawMeshExt MergedMesh;
 
-	// Set target channel for lightmap UV
-	MergedMesh.LightMapCoordinateIndex = InSettings.TargetLightmapUVChannel;
-
-	// Pack lightmaps
-	static const uint32 MaxLightmapRes = 2048;
-	float MergedLightmapScale = 1.f;
-	FLightmapPacker LightmapPacker;	
-	
-	TArray<uint32> LightmapResList;
-	for (const FRawMeshExt& SourceMesh : SourceMeshes)
+	// Attempt to pack lightmaps
+	float MergedLightMapScale = 1.f;
+	bool bCreateLightMapChannel = false;
+	FLightmapPacker LightMapPacker;	
+						
+	if (InSettings.bGenerateAtlasedLightMapUV)
 	{
-		LightmapResList.Add(SourceMesh.LightMapRes);
-	}
-							
-	if (InSettings.bGnerateAtlasedLightmapUV)
-	{
-		LightmapPacker.Pack(LightmapResList);
-		MergedMesh.LightMapRes = LightmapPacker.GetAtlasResolution();
-
-		if (MergedMesh.LightMapRes > MaxLightmapRes)
+		// Set target channel for lightmap UV
+		MergedMesh.LightMapCoordinateIndex = InSettings.TargetLightMapUVChannel;
+		
+		// Collect lightmap sizes from all meshes
+		TArray<uint32> LightMapResList;
+		for (const FRawMeshExt& SourceMesh : SourceMeshes)
 		{
-			MergedLightmapScale = MaxLightmapRes/(float)MergedMesh.LightMapRes;
-			MergedMesh.LightMapRes = MaxLightmapRes;
+			LightMapResList.Add(SourceMesh.LightMapRes);
 		}
-	}
-	else
-	{
-		// Find maximum lightmap resolution
-		LightmapResList.Sort();
-		MergedMesh.LightMapRes = LightmapResList.Last();
+		
+		// Pack them into one atlas
+		LightMapPacker.Pack(LightMapResList);
+		MergedMesh.LightMapRes = LightMapPacker.GetAtlasResolution();
+
+		// Whether we need to scale down lightUV coordiantes
+		if (MergedMesh.LightMapRes > InSettings.MaxAltlasedLightMapResolution)
+		{
+			MergedLightMapScale = InSettings.MaxAltlasedLightMapResolution/(float)MergedMesh.LightMapRes;
+			MergedMesh.LightMapRes = InSettings.MaxAltlasedLightMapResolution;
+		}
+
+		// Create lightmap channel in a merged mesh only if we succeed to generate atlas for it
+		bCreateLightMapChannel = (MergedMesh.LightMapRes > 0);
 	}
 
 	// Use first mesh for naming and pivot
@@ -3564,35 +3663,56 @@ void FMeshUtilities::MergeActors(
 				FMemory::Memset(&TargetRawMesh.WedgeColors[ColorsOffset], 0xFF, ColorsNum*TargetRawMesh.WedgeColors.GetTypeSize());
 			}
 		}
-
-		if (InSettings.bImportAllUVChannels)
-		{
-	/*		const int32 NumChannels = ARRAY_COUNT(TargetRawMesh.WedgeTexCoords);
-			for (int32 ChannelIdx = 0; ChannelIdx < NumChannels; ++ChannelIdx)
-			{
-				int32 TargetChannelIdx+= (ChannelIdx >= MergedMesh.LightMapCoordinateIndex ?)
-			}*/
-			TargetRawMesh.WedgeTexCoords[0].Append(SourceRawMesh.WedgeTexCoords[0]);
-		}
-		else // Only first UV channel will be used 
-		{
-			TargetRawMesh.WedgeTexCoords[0].Append(SourceRawMesh.WedgeTexCoords[0]);
-		}
-				
-		// Transform lightmap UVs
-		if (MergedMesh.LightMapRes)
+		
+		// Write atlased UVs into user specified TargetLightmapChannel 
+		if (bCreateLightMapChannel)
 		{
 			FVector2D	UVOffset = FVector2D::ZeroVector;
-			FIntRect	PackedLightmapRect = LightmapPacker.GetPackedLightmapRect(SourceMeshIdx);
-			if (PackedLightmapRect.Area() != 0)
+			FIntRect	PackedLightMapRect = LightMapPacker.GetPackedLightmapRect(SourceMeshIdx);
+			if (PackedLightMapRect.Area() != 0)
 			{
-				UVOffset = FVector2D(PackedLightmapRect.Min) * MergedLightmapScale / MergedMesh.LightMapRes;
+				UVOffset = FVector2D(PackedLightMapRect.Min) * MergedLightMapScale / MergedMesh.LightMapRes;
 			}
 			
-			for (FVector2D LightMapUV : SourceRawMesh.WedgeTexCoords[SourceMeshes[SourceMeshIdx].LightMapCoordinateIndex])
+			const TArray<FVector2D>& SourceWedgeTexCoords = SourceRawMesh.WedgeTexCoords[SourceMeshes[SourceMeshIdx].LightMapCoordinateIndex];
+			
+			for (FVector2D LightMapUV : SourceWedgeTexCoords)
 			{
-				float UVScale = SourceMeshes[SourceMeshIdx].LightMapRes*MergedLightmapScale/MergedMesh.LightMapRes;
+				const float SourceMeshLightMapRes = SourceMeshes[SourceMeshIdx].LightMapRes;
+				const float UVScale = (SourceMeshLightMapRes * MergedLightMapScale) / MergedMesh.LightMapRes;
 				TargetRawMesh.WedgeTexCoords[MergedMesh.LightMapCoordinateIndex].Add(LightMapUV * UVScale + UVOffset);
+			}
+		}
+		
+		// Merge all other UV channels 
+		for (int32 ChannelIdx = 0; ChannelIdx < MAX_MESH_TEXTURE_COORDS; ++ChannelIdx)
+		{
+			// Skip Lightmap channel if any
+			if (bCreateLightMapChannel && ChannelIdx == MergedMesh.LightMapCoordinateIndex)
+			{
+				continue;
+			}
+			
+			// Whether this channel has data
+			if (bOcuppiedUVChannels[ChannelIdx])
+			{
+				const TArray<FVector2D>& SourceChannel = SourceRawMesh.WedgeTexCoords[ChannelIdx];
+				TArray<FVector2D>& TargetChannel = TargetRawMesh.WedgeTexCoords[ChannelIdx];
+
+				// Whether source mesh has data in this channel
+				if (SourceChannel.Num())
+				{
+					TargetChannel.Append(SourceChannel);
+				}
+				else
+				{
+					// Fill with zero coordinates if source mesh has no data for this channel
+					const int32 TexCoordNum = SourceRawMesh.WedgeIndices.Num();
+					for (int32 CoordIdx = 0; CoordIdx < TexCoordNum; ++CoordIdx)
+					{
+						TargetChannel.Add(FVector2D::ZeroVector);
+					}
+				}
 			}
 		}
 	}
@@ -3628,8 +3748,11 @@ void FMeshUtilities::MergeActors(
 		StaticMesh->LightingGuid = FGuid::NewGuid();
 
 		// Set it to use textured lightmaps. Note that Build Lighting will do the error-checking (texcoordindex exists for all LODs, etc).
-		StaticMesh->LightMapResolution = MergedMesh.LightMapRes;
-		StaticMesh->LightMapCoordinateIndex = MergedMesh.LightMapCoordinateIndex;
+		if (bCreateLightMapChannel)
+		{
+			StaticMesh->LightMapResolution = MergedMesh.LightMapRes;
+			StaticMesh->LightMapCoordinateIndex = MergedMesh.LightMapCoordinateIndex;	
+		}
 
 		FStaticMeshSourceModel* SrcModel = new (StaticMesh->SourceModels) FStaticMeshSourceModel();
 		/*Don't allow the engine to recalculate normals*/

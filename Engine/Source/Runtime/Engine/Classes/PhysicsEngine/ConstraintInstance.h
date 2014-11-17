@@ -25,6 +25,7 @@ enum ELinearConstraintMotion
 };
 
 /** Enum to indicate which frame we want */
+UENUM()
 namespace EConstraintFrame
 {
 	enum Type
@@ -185,20 +186,21 @@ struct ENGINE_API FConstraintInstance
 	UPROPERTY()
 	uint32 bTwistLimited_DEPRECATED:1;
 
-	/** Indicates whether angular swing motion along the y axis is allowed, blocked or limited. If limited, the 
-		AngularLimit property will be used to determine if a motion is allowed. See EAngularConstraintMotion. */
+	/** Indicates whether rotation about the Z axis is allowed, blocked, or limited. If limited, the 
+		AngularLimit property will be used to determine the range of motion. See EAngularConstraintMotion. */
 	UPROPERTY(EditAnywhere, Category=Angular)
 	TEnumAsByte<enum EAngularConstraintMotion> AngularSwing1Motion;
-
-	/** Indicates whether angular swing motion along the z axis is allowed, blocked or limited. If limited, the 
-		AngularLimit property will be used to determine if a motion is allowed. See EAngularConstraintMotion. */
-	UPROPERTY(EditAnywhere, Category=Angular)
-	TEnumAsByte<enum EAngularConstraintMotion> AngularSwing2Motion;
-
-	/** Indicates whether angular twist motion along the x axis is allowed, blocked or limited. If limited, the 
-		AngularLimit property will be used to determine if a motion is allowed. See EAngularConstraintMotion. */
+		
+	/** Indicates whether rotation about the the X axis is allowed, blocked, or limited. If limited, the
+		AngularLimit property will be used to determine the range of motion. See EAngularConstraintMotion. */
 	UPROPERTY(EditAnywhere, Category=Angular)
 	TEnumAsByte<enum EAngularConstraintMotion> AngularTwistMotion;
+
+	/** Indicates whether rotation about the Y axis is allowed, blocked, or limited. If limited, the
+		AngularLimit property will be used to determine the range of motion. See EAngularConstraintMotion. */
+	UPROPERTY(EditAnywhere, Category = Angular)
+	TEnumAsByte<enum EAngularConstraintMotion> AngularSwing2Motion;
+
 
 	/** Whether we want to use soft limits for swing motions instead of hard limits. With enabled 
 		soft limit, a constraint is used instead of hard-capping the motion. */
@@ -214,16 +216,16 @@ struct ENGINE_API FConstraintInstance
 		between 0 and 180. */
 	UPROPERTY(EditAnywhere, Category=Angular, meta=(ClampMin = "0.0", ClampMax = "180.0"))
 	float Swing1LimitAngle;
-
-	/** Used if swing motion along the z axis is limited. The limit angle is specified in degrees and should be
-		between 0 and 180. */
-	UPROPERTY(EditAnywhere, Category=Angular, meta=(ClampMin = "0.0", ClampMax = "180.0"))
-	float Swing2LimitAngle;
-
+	
 	/** Used if twist motion along the x axis is limited. The limit angle is specified in degrees and should be
 		between 0 and 180. */
 	UPROPERTY(EditAnywhere, Category=Angular, meta=(ClampMin = "0.0", ClampMax = "180.0"))
 	float TwistLimitAngle;
+
+	/** Used if swing motion along the z axis is limited. The limit angle is specified in degrees and should be
+	between 0 and 180. */
+	UPROPERTY(EditAnywhere, Category = Angular, meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float Swing2LimitAngle;
 
 	/** Stiffness of the swing limit constraint if soft limit is used for swing motions. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular, meta=(editcondition = "bSwingLimitSoft", ClampMin = "0.0"))
@@ -240,6 +242,11 @@ struct ENGINE_API FConstraintInstance
 	/** Damping of the twist limit constraint if soft limit is used for twist motions. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular, meta=(editcondition = "bTwistLimitSoft", ClampMin = "0.0"))
 	float TwistLimitDamping;
+
+	/** Specifies the angular offset between the two frames of reference. By default limit goes from (-Angle, +Angle)
+	  * This allows you to bias the limit for swing1 swing2 and twist. */
+	UPROPERTY(EditAnywhere, Category = Angular)
+	FRotator AngularRotationOffset;
 	
 	/** Whether it is possible to break the joint with angular force. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Angular)
@@ -403,8 +410,15 @@ public:
 	/** See if this constraint is valid. */
 	bool IsValidConstraintInstance() const;
 
-	// Pass in reference frame in
+	// Pass in reference frame in. If the constraint is currently active, this will set its active local pose. Otherwise the change will take affect in InitConstraint. 
 	void SetRefFrame(EConstraintFrame::Type Frame, const FTransform& RefFrame);
+
+	// Pass in reference position in (maintains reference orientation). If the constraint is currently active, this will set its active local pose. Otherwise the change will take affect in InitConstraint.
+	void SetRefPosition(EConstraintFrame::Type Frame, const FVector& RefPosition);
+	
+	// Pass in reference orientation in (maintains reference position). If the constraint is currently active, this will set its active local pose. Otherwise the change will take affect in InitConstraint.
+	void SetRefOrientation(EConstraintFrame::Type Frame, const FVector& PriAxis, const FVector& SecAxis);
+	
 
 	// Get component ref frame
 	FTransform GetRefFrame(EConstraintFrame::Type Frame) const;
@@ -418,6 +432,9 @@ public:
 	/** Get the position of this constraint in world space. */
 	FVector GetConstraintLocation();
 
+	// Retrieve the constraint force most recently applied to maintain this constraint. Returns 0 forces if the constraint is not initialized or broken.
+	void GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce);
+
 	void SetLinearPositionDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
 	void SetLinearVelocityDrive(bool bEnableXDrive, bool bEnableYDrive, bool bEnableZDrive);
 	void SetAngularPositionDrive(bool bEnableSwingDrive, bool bEnableTwistDrive);
@@ -430,6 +447,8 @@ public:
 	void SetAngularOrientationTarget(const FQuat& InPosTarget);
 	void SetAngularVelocityTarget(const FVector& InVelTarget);
 	void SetAngularDriveParams(float InSpring, float InDamping, float InForceLimit);
+
+	void SetDisableCollision(bool InDisableCollision);
 
 	void UpdateLinearLimit();
 	void UpdateAngularLimit();
@@ -465,6 +484,10 @@ public:
 	void PostSerialize(const FArchive& Ar);
 
 	void OnConstraintBroken();
+
+	//Hacks to easily get zeroed memory for special case when we don't use GC
+	static void Free(FConstraintInstance * Ptr);
+	static FConstraintInstance * Alloc();
 };
 
 template<>

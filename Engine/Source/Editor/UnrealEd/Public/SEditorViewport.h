@@ -121,6 +121,17 @@ protected:
 	 */
 	virtual void OnFocusViewportToSelection(){}
 
+
+	/**
+	 * Called when surface snapping has been enabled/disabled
+	 */
+	static void OnToggleSurfaceSnap();
+
+	/**
+	 * Called to test whether surface snapping is enabled or not
+	 */
+	static bool OnIsSurfaceSnapEnabled();
+
 protected:
 	TSharedPtr<SOverlay> ViewportOverlay;
 	/** Viewport that renders the scene provided by the viewport client */

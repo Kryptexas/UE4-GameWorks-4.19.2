@@ -281,8 +281,10 @@ namespace UnrealBuildTool
 				// process needs to be disposed when done
 				using(var BatchFileProcess = new Process())
 				{
+					// Run the batch file using cmd.exe with the /U option, to force Unicode output. Many locales have non-ANSI characters in system paths.
 					var StartInfo = BatchFileProcess.StartInfo;
-					StartInfo.FileName = EnvReaderBatchFileName;
+					StartInfo.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+					StartInfo.Arguments = String.Format("/U /C \"{0}\"", EnvReaderBatchFileName);
 					StartInfo.CreateNoWindow = true;
 					StartInfo.UseShellExecute = false;
 					StartInfo.RedirectStandardOutput = true;
@@ -306,8 +308,8 @@ namespace UnrealBuildTool
 					Log.TraceVerbose( "Finished launching {0}.", StartInfo.FileName );
 				}
 
-				// Load environment variables
-				var EnvStringsFromFile = File.ReadAllLines( EnvOutputFileName );
+				// Load environment variables (the file will be encoded without a BOM, so we need to manually specify the encoding)
+				var EnvStringsFromFile = File.ReadAllLines( EnvOutputFileName, Encoding.Unicode );
 				foreach( var EnvString in EnvStringsFromFile )
 				{
 					// Parse the environment variable name and value from the string ("name=value")
@@ -352,8 +354,10 @@ namespace UnrealBuildTool
 		/**
 		/* Try to launch a local process, and produce a friendly error message if it fails.
 		/*/
-		public static void RunLocalProcess(Process LocalProcess)
+		public static int RunLocalProcess(Process LocalProcess)
 		{
+			int ExitCode = -1;
+
 			// release all process resources
 			using(LocalProcess)
 			{
@@ -368,12 +372,15 @@ namespace UnrealBuildTool
 					LocalProcess.BeginOutputReadLine();
 					LocalProcess.BeginErrorReadLine();
 					LocalProcess.WaitForExit();
+					ExitCode = LocalProcess.ExitCode;
 				}
 				catch(Exception ex)
 				{
 					throw new BuildException(ex, "Failed to start local process for action (\"{0}\"): {1} {2}", ex.Message, LocalProcess.StartInfo.FileName, LocalProcess.StartInfo.Arguments);
 				}
 			}
+
+			return ExitCode;
 		}
 
 

@@ -358,9 +358,7 @@ FVector2D SWorldTileItem::ComputeDesiredSize() const
 	return TileModel->GetLevelSize2D();
 }
 
-int32 SWorldTileItem::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, 
-								FSlateWindowElementList& OutDrawElements, int32 LayerId, 
-								const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SWorldTileItem::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& ClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	const bool bIsVisible = FSlateRect::DoRectanglesIntersect(AllottedGeometry.GetClippingRect(), ClippingRect);
 	
@@ -373,7 +371,7 @@ int32 SWorldTileItem::OnPaint(const FGeometry& AllottedGeometry, const FSlateRec
 			bNeedRefresh = false;
 		}
 		
-		LayerId = SNodePanel::SNode::OnPaint(AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		LayerId = SNodePanel::SNode::OnPaint(Args, AllottedGeometry, ClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 		
 		const bool bSelected = (IsItemSelected() || bAffectedByMarquee);
 

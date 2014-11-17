@@ -236,9 +236,15 @@ public:
 
 	/** Called to get the level text */
 	FText GetCurrentLevelText( bool bDrawOnlyLabel ) const;
+
+	/** Called to get the feature level preview text */
+	FText GetCurrentFeatureLevelPreviewText( bool bDrawOnlyLabel ) const;
 	
 	/** @return The visibility of the current level text display */
 	EVisibility GetCurrentLevelTextVisibility() const;
+
+	/** @return The visibility of the current feature level preview text display */
+	EVisibility GetCurrentFeatureLevelPreviewTextVisibility() const;
 
 	/**
 	 * Sets the current layout on the parent tab that this viewport belongs to.

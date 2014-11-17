@@ -389,8 +389,8 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 
 			if(SourceInstance->GetFontParameterValue(ParameterName, FontValue,FontPage))
 			{
-				ParameterValue.FontValue = FontValue;
-				ParameterValue.FontPage = FontPage;
+				ParameterValue.ParameterValue.FontValue = FontValue;
+				ParameterValue.ParameterValue.FontPage = FontPage;
 			}
 
 
@@ -402,8 +402,8 @@ void UMaterialEditorInstanceConstant::RegenerateArrays()
 				if(ParameterName==SourceParam.ParameterName)
 				{
 					ParameterValue.bOverride = true;
-					ParameterValue.FontValue = SourceParam.FontValue;
-					ParameterValue.FontPage = SourceParam.FontPage;
+					ParameterValue.ParameterValue.FontValue = SourceParam.FontValue;
+					ParameterValue.ParameterValue.FontPage = SourceParam.FontPage;
 				}
 			}
 			AssignParameterToGroup(ParentMaterial, Cast<UDEditorParameterValue>(&ParameterValue));
@@ -547,7 +547,7 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 				{
 					if(FontParameterValue->bOverride)
 					{
-						SourceInstance->SetFontParameterValueEditorOnly(FontParameterValue->ParameterName,FontParameterValue->FontValue,FontParameterValue->FontPage);
+						SourceInstance->SetFontParameterValueEditorOnly(FontParameterValue->ParameterName, FontParameterValue->ParameterValue.FontValue, FontParameterValue->ParameterValue.FontPage);
 						continue;
 					}
 				}

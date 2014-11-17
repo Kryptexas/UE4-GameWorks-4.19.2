@@ -4,7 +4,7 @@
 	ApplePlatformTime.mm: Apple implementations of time functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 double FApplePlatformTime::InitTiming(void)
 {

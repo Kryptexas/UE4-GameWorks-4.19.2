@@ -304,7 +304,9 @@ public:
 				TargetVertexIndex = (Vertices.Num() > 0) ? (TargetVertexIndex % Vertices.Num()) : 0;
 				if (Vertices.IsValidIndex(TargetVertexIndex))
 				{
-					Vertices[TargetVertexIndex] += Delta;//@TODO: Should apply the inverse transform (in case scale/rotation is supported later)
+					const FVector WorldSpaceDelta = PaperAxisX * Delta.X + PaperAxisY * Delta.Y;
+					const FVector2D TextureSpaceDelta = Sprite->ConvertWorldSpaceDeltaToTextureSpace(WorldSpaceDelta);
+					Vertices[TargetVertexIndex] += TextureSpaceDelta;
 
 					Geometry.GeometryType = ESpritePolygonMode::FullyCustom;
 				}
@@ -326,12 +328,7 @@ public:
 				TargetVertexIndex = (Vertices.Num() > 0) ? (TargetVertexIndex % Vertices.Num()) : 0;
 				if (Vertices.IsValidIndex(TargetVertexIndex))
 				{
-					UTexture2D* SourceTexture = Sprite->GetSourceTexture();
-					const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-
-					const FVector2D Result2D = Vertices[TargetVertexIndex];
-					const FVector PixelSpaceResult = (Result2D.X * PaperAxisX) + ((SourceDims.Y - Result2D.Y) * PaperAxisY);
-					Result = PixelSpaceResult * Sprite->GetUnrealUnitsPerPixel();
+					Result = Sprite->ConvertTextureSpaceToWorldSpace(Vertices[TargetVertexIndex]);
 				}
 			}
 		}

@@ -6,8 +6,12 @@
 //=============================================================================
 
 #pragma once
-#include "FloatingPawnMovement.h"
+#include "GameFramework/Pawn.h"
 #include "DefaultPawn.generated.h"
+
+class UFloatingPawnMovement;
+class USphereComponent;
+class UStaticMeshComponent;
 
 UCLASS(config=Game, Blueprintable, BlueprintType)
 class ENGINE_API ADefaultPawn : public APawn
@@ -15,8 +19,8 @@ class ENGINE_API ADefaultPawn : public APawn
 	GENERATED_UCLASS_BODY()
 
 	// Begin Pawn overrides
-	virtual class UPawnMovementComponent* GetMovementComponent() const override { return MovementComponent; }
-	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+	virtual UPawnMovementComponent* GetMovementComponent() const override;
+	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 	// End Pawn overrides
 
 	/** Input callback to move forward. */
@@ -68,21 +72,21 @@ public:
 
 	/** DefaultPawn movement component */
 	UPROPERTY(Category=Pawn, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UFloatingPawnMovement> MovementComponent;
+	TSubobjectPtr<UFloatingPawnMovement> MovementComponent;
 
 	/** Name of the CollisionComponent. */
 	static FName CollisionComponentName;
 
 	/** DefaultPawn collision component */
 	UPROPERTY(Category=Pawn, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class USphereComponent> CollisionComponent;
+	TSubobjectPtr<USphereComponent> CollisionComponent;
 
 	/** Name of the MeshComponent. Use this name if you want to prevent creation of the component (with PCIP.DoNotCreateDefaultSubobject). */
 	static FName MeshComponentName;
 
 	/** The mesh associated with this Pawn. */
 	UPROPERTY(Category=Pawn, VisibleAnywhere, BlueprintReadOnly)
-	TSubobjectPtr<class UStaticMeshComponent> MeshComponent;
+	TSubobjectPtr<UStaticMeshComponent> MeshComponent;
 
 	/** If true, adds default bindings for movement and camera look. */
 	UPROPERTY(Category=Pawn, EditAnywhere, BlueprintReadOnly)

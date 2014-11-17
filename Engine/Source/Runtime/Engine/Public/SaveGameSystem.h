@@ -26,6 +26,9 @@ public:
 
 	/** Loads the game, blocking until complete */
 	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, TArray<uint8>& Data) = 0;
+
+	/** Delete an existing save game, blocking until complete */
+	virtual bool DeleteGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex) = 0;
 };
 
 
@@ -67,7 +70,6 @@ public:
 #else
 		return FFileHelper::SaveArrayToFile(Data, *GetSaveGamePath(Name));
 #endif
-
 	}
 
 	virtual bool LoadGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex, TArray<uint8>& Data) override
@@ -93,7 +95,15 @@ public:
 #else
 		return FFileHelper::LoadFileToArray(Data, *GetSaveGamePath(Name));
 #endif
+	}
 
+	virtual bool DeleteGame(bool bAttemptToUseUI, const TCHAR* Name, const int32 UserIndex) override
+	{
+#if PLATFORM_HTML5_BROWSER
+		return false;
+#else
+		return IFileManager::Get().Delete(*GetSaveGamePath(Name), true, false, !bAttemptToUseUI);
+#endif
 	}
 
 protected:

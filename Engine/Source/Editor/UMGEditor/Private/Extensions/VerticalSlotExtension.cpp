@@ -10,7 +10,7 @@ FVerticalSlotExtension::FVerticalSlotExtension()
 	ExtensionId = FName(TEXT("VerticalSlot"));
 }
 
-bool FVerticalSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
+bool FVerticalSlotExtension::CanExtendSelection(const TArray< FWidgetReference >& Selection) const
 {
 	for ( const FWidgetReference& Widget : Selection )
 	{
@@ -23,30 +23,27 @@ bool FVerticalSlotExtension::IsActive(const TArray< FWidgetReference >& Selectio
 	return Selection.Num() == 1;
 }
 
-void FVerticalSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FVerticalSlotExtension::ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements)
 {
 	SelectionCache = Selection;
 
-	if ( !IsActive(Selection) )
-	{
-		return;
-	}
-
-	TSharedRef<SButton> UpButton =
-		SNew(SButton)
+	TSharedRef<SButton> UpArrow = SNew(SButton)
 		.Text(LOCTEXT("UpArrow", "↑"))
+		.ContentPadding(FMargin(6, 2))
+		.IsEnabled(this, &FVerticalSlotExtension::CanShift, -1)
 		.OnClicked(this, &FVerticalSlotExtension::HandleShiftVertical, -1);
 
-	TSharedRef<SButton> DownButton =
-		SNew(SButton)
+	TSharedRef<SButton> DownArrow = SNew(SButton)
 		.Text(LOCTEXT("DownArrow", "↓"))
+		.ContentPadding(FMargin(6, 2))
+		.IsEnabled(this, &FVerticalSlotExtension::CanShift, 1)
 		.OnClicked(this, &FVerticalSlotExtension::HandleShiftVertical, 1);
 
-	UpButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FVerticalSlotExtension::CanShift, -1)));
-	DownButton->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FVerticalSlotExtension::CanShift, 1)));
+	UpArrow->SlatePrepass();
+	DownArrow->SlatePrepass();
 
-	Widgets.Add(UpButton);
-	Widgets.Add(DownButton);
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(UpArrow, EExtensionLayoutLocation::TopCenter, FVector2D(UpArrow->GetDesiredSize().X * -0.5f, -UpArrow->GetDesiredSize().Y))));
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(DownArrow, EExtensionLayoutLocation::BottomCenter, FVector2D(DownArrow->GetDesiredSize().X * -0.5f, 0))));
 }
 
 bool FVerticalSlotExtension::CanShift(int32 ShiftAmount) const
@@ -64,6 +61,8 @@ FReply FVerticalSlotExtension::HandleShiftVertical(int32 ShiftAmount)
 		ShiftVertical(Selection.GetPreview(), ShiftAmount);
 		ShiftVertical(Selection.GetTemplate(), ShiftAmount);
 	}
+
+	EndTransaction();
 
 	//TODO UMG Reorder the live slot without rebuilding the structure
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);

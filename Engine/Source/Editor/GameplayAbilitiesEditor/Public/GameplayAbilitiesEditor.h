@@ -25,6 +25,15 @@ public:
 	 */ 
 
 	void InitGameplayAbilitiesEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
+
+private:
+	/**
+	 * Updates existing gameplay ability blueprints to make sure that they are up to date
+	 * 
+	 * @param	Blueprint	The blueprint to be updated
+	 */
+	void EnsureGameplayAbilityBlueprintIsUpToDate(UBlueprint* Blueprint);
+
 public:
 	FGameplayAbilitiesEditor();
 

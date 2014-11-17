@@ -187,6 +187,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, HiddenPrimitives(InitOptions.HiddenPrimitives)
 	, LODDistanceFactor(InitOptions.LODDistanceFactor)
 	, bCameraCut(InitOptions.bInCameraCut)
+	, bOriginOffsetThisFrame(InitOptions.bOriginOffsetThisFrame)
 	, CursorPos(InitOptions.CursorPos)
 	, bIsGameView(false)
 	, bForceShowMaterials(false)
@@ -911,6 +912,12 @@ void FSceneView::EndFinalPostprocessSettings()
 			{
 				FinalPostProcessSettings.ScreenPercentage = Value;
 			}
+		}
+
+		// Not supported in ES2.
+		if(Family->Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2)
+		{
+			FinalPostProcessSettings.ScreenPercentage = 100.0f;
 		}
 	}
 

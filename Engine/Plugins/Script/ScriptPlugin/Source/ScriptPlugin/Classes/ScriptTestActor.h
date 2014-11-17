@@ -2,8 +2,10 @@
 #pragma once
 #include "ScriptTestActor.generated.h"
 
-/** Definition of a specific ability that is applied to a character. Exists as part of a Trait. */
-UCLASS(BlueprintType, MinimalAPI)
+/**
+* Test Actor. To be removed at some point.
+*/
+UCLASS(BlueprintType, MinimalAPI, EarlyAccessPreview)
 class AScriptTestActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

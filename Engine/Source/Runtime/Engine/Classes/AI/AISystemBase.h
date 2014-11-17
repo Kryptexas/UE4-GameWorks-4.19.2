@@ -2,7 +2,6 @@
 
 #pragma once
 #include "Math/IntPoint.h"
-#include "ModuleManager.h"
 #include "AISystemBase.generated.h"
 
 class UWorld;

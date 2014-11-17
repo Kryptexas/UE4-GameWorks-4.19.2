@@ -364,3 +364,17 @@ struct FScriptTraceStackNode
 private:
 	FScriptTraceStackNode() {};
 };
+
+/** Helper structure for boolean values in config */
+struct CORE_API FBoolConfigValueHelper
+{
+private:
+	bool bValue;
+public:
+	FBoolConfigValueHelper(const TCHAR* Section, const TCHAR* Key, const FString& Filename = GEditorIni);
+
+	operator bool() const
+	{
+		return bValue;
+	}
+};

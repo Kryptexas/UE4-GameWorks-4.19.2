@@ -39,8 +39,6 @@ struct FPipelineShadow
 	 */
 	id<MTLRenderPipelineState> CreatePipelineStateForBoundShaderState(FMetalBoundShaderState* BSS) const;
 
-	bool bIsDepthWriteEnabled;
-	bool bIsStencilWriteEnabled;
 	MTLRenderPipelineColorAttachmentDescriptor* RenderTargets[MaxMetalRenderTargets];
 	MTLPixelFormat DepthTargetFormat;
     uint32 SampleCount;
@@ -99,7 +97,6 @@ public:
 	/**
 	 * Functions to update the pipeline descriptor and/or context
 	 */
-	void SetDepthStencilWriteEnabled(bool bIsDepthWriteEnabled, bool bIsStencilWriteEnabled);
 	void SetBlendState(FMetalBlendState* BlendState);
 	void SetBoundShaderState(FMetalBoundShaderState* BoundShaderState);
 	void SetCurrentRenderTarget(FMetalSurface* RenderSurface);

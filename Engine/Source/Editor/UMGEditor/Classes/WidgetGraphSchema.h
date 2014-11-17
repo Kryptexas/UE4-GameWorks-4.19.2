@@ -28,6 +28,5 @@ class UWidgetGraphSchema : public UEdGraphSchema_K2
 	UPROPERTY()
 	FName DefaultEvaluationHandlerName;
 	
-	
 	// TODO UMG - Add more things specific to the needs of the widget blueprint graph.
 };

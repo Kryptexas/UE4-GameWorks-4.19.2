@@ -422,6 +422,11 @@ void FFoliageMeshInfo::RemoveInstances(AInstancedFoliageActor* InIFA, const TArr
 		{
 			//!! need to update bounds for this cluster
 			ClusterComponent->RegisterComponent();
+
+			if (ClusterComponent->IsCollisionEnabled() && ClusterComponent->GetWorld()->GetNavigationSystem() != nullptr)
+			{
+				ClusterComponent->GetWorld()->GetNavigationSystem()->UpdateNavOctree(ClusterComponent);
+			}
 			bRemoved = true;
 		}
 	}
@@ -548,6 +553,7 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 		UInstancedStaticMeshComponent* Component = Cluster.ClusterComponent;
 		if (Component != nullptr)
 		{
+			Component->PerInstanceSMData.Empty();
 			Component->bAutoRegister = false;
 		}
 	}
@@ -1706,10 +1712,9 @@ void AInstancedFoliageActor::AddReferencedObjects(UObject* InThis, FReferenceCol
 #if WITH_EDITORONLY_DATA
 		for (FFoliageInstance& Instance : MeshInfo.Instances)
 		{
-			UActorComponent* Base = Instance.Base;
-			if (Base != nullptr)
+			if (Instance.Base != nullptr)
 			{
-				Collector.AddReferencedObject(Base, This);
+				Collector.AddReferencedObject(Instance.Base, This);
 			}
 		}
 #endif

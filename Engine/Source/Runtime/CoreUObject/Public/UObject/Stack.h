@@ -96,6 +96,9 @@ public:
 
 	/** If a class is compiled in then this is set to the property chain for compiled-in functions. In that case, we follow the links to setup the args instead of executing by code. */
 	UField* PropertyChainForCompiledIn;
+
+	/** Currently executed native function */
+	UFunction* CurrentNativeFunction;
 public:
 
 	// Constructors.
@@ -175,6 +178,7 @@ inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFr
 	, PreviousFrame(InPreviousFrame)
 	, OutParms(NULL)
 	, PropertyChainForCompiledIn(InPropertyChainForCompiledIn)
+	, CurrentNativeFunction(NULL)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FScriptTraceStackNode StackNode(InNode->GetOuter()->GetFName(), InNode->GetFName());

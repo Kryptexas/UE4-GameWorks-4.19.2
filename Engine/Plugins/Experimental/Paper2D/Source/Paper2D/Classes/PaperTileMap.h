@@ -6,6 +6,24 @@
 #include "PaperSprite.h"
 #include "PaperTileMap.generated.h"
 
+// The different kinds of projection modes supported
+UENUM()
+namespace ETileMapProjectionMode
+{
+	enum Type
+	{
+		// 
+		Orthogonal,
+
+		//
+		IsometricDiamond,
+
+		//
+		IsometricStaggered
+	};
+}
+
+
 UCLASS()
 class PAPER2D_API UPaperTileMap : public UDataAsset //@TODO: Just to make it easy to spawn for now
 {
@@ -28,28 +46,49 @@ class PAPER2D_API UPaperTileMap : public UDataAsset //@TODO: Just to make it eas
 	int32 TileHeight;
 
 	// Pixels per Unreal Unit (pixels per cm)
-	UPROPERTY(Category = Setup, EditAnywhere)
+	UPROPERTY(Category=Setup, EditAnywhere)
 	float PixelsPerUnit;
+
+	// 
+	UPROPERTY(Category = Setup, EditAnywhere)
+	float SeparationPerTileX;
+
+	UPROPERTY(Category = Setup, EditAnywhere)
+	float SeparationPerTileY;
+	
+	UPROPERTY(Category=Setup, EditAnywhere)
+	float SeparationPerLayer;
 
 	// Default tile set to use for new layers
 	UPROPERTY(Category=Setup, EditAnywhere)
-	UPaperTileSet* DefaultLayerTileSet;
+	class UPaperTileSet* DefaultLayerTileSet;
 
 	// Test material
 	UPROPERTY(Category=Setup, EditAnywhere)
 	UMaterialInterface* Material;
 
 	// The list of layers
-	UPROPERTY()
-	TArray<UPaperTileLayer*> TileLayers;
+	UPROPERTY(Category=Debug, VisibleAnywhere, EditInline) //@TODO: Remove this
+	TArray<class UPaperTileLayer*> TileLayers;
 
 	// Collision domain (no collision, 2D, or 3D)
-	UPROPERTY(Category = Collision, EditAnywhere)
+	UPROPERTY(Category=Collision, EditAnywhere)
 	TEnumAsByte<ESpriteCollisionMode::Type> SpriteCollisionDomain;
+
+	// Tile map type
+	UPROPERTY(Category = Setup, EditAnywhere)
+	TEnumAsByte<ETileMapProjectionMode::Type> ProjectionMode;
 
 	// Baked physics data.
 	UPROPERTY()
 	class UBodySetup* BodySetup;
+
+public:
+#if WITH_EDITORONLY_DATA
+	/** Importing data and options used for this tile map */
+	UPROPERTY(Category=ImportSettings, VisibleAnywhere, EditInline)
+	class UAssetImportData* AssetImportData;
+#endif
 
 public:
 	// UObject interface

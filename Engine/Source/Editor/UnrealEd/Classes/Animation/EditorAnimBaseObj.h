@@ -8,6 +8,8 @@
 #pragma once
 #include "EditorAnimBaseObj.generated.h"
 
+class UAnimSequenceBase;
+
 DECLARE_DELEGATE_TwoParams( FOnAnimObjectChange, class UObject*, bool)
 
 

@@ -1,4 +1,4 @@
-#include "CorePrivate.h"
+#include "Core.h"
 #include "TextStoreACP.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextStoreACP, Log, All);

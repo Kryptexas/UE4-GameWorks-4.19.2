@@ -152,6 +152,11 @@ UDecalComponent::UDecalComponent(const class FPostConstructInitializeProperties&
 {
 }
 
+void UDecalComponent::SetSortOrder(int32 Value)
+{
+	SortOrder = Value;
+	MarkRenderStateDirty();
+}
 
 void UDecalComponent::SetDecalMaterial(class UMaterialInterface* NewDecalMaterial)
 {

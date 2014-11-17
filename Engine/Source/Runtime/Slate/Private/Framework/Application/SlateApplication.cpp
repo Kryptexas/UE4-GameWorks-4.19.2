@@ -6,6 +6,7 @@
 
 #include "SlatePrivatePCH.h"
 #include "SWindowTitleBar.h"
+#include "HittestGrid.h"
 
 
 DECLARE_CYCLE_STAT( TEXT("Message Tick Time"), STAT_SlateMessageTick, STATGROUP_Slate );
@@ -306,7 +307,39 @@ void FSlateApplication::Create()
 
 	PlatformApplication = MakeShareable( FPlatformMisc::CreateApplication() );
 	PlatformApplication->SetMessageHandler( CurrentApplication.ToSharedRef() );
+
+	// The grid needs to know the size and coordinate system of the desktop.
+	// Some monitor setups have a primary monitor on the right and below the
+	// left one, so the leftmost upper right monitor can be something like (-1280, -200)
+	{
+		// Get an initial value for the VirtualDesktop geometry
+		CurrentApplication->VirtualDesktopRect = []()
+		{
+			FDisplayMetrics DisplayMetrics;
+			FSlateApplicationBase::Get().GetDisplayMetrics(DisplayMetrics);
+			const FPlatformRect& VirtualDisplayRect = DisplayMetrics.VirtualDisplayRect;
+			return FSlateRect(VirtualDisplayRect.Left, VirtualDisplayRect.Top, VirtualDisplayRect.Right, VirtualDisplayRect.Bottom);
+		}();
+
+		// Sign up for updates from the OS. Polling this every frame is too expensive on at least some OSs.
+		PlatformApplication->OnDisplayMetricsChanged().AddSP(CurrentApplication.ToSharedRef(), &FSlateApplication::OnVirtualDesktopSizeChanged);
+	}
 }
+
+void FSlateApplication::Shutdown()
+{
+	if (FSlateApplication::IsInitialized())
+	{
+		CurrentApplication->OnShutdown();
+		CurrentApplication->DestroyRenderer();
+		CurrentApplication->Renderer.Reset();
+		PlatformApplication->DestroyApplication();
+		PlatformApplication.Reset();
+		CurrentApplication.Reset();
+		CurrentBaseApplication.Reset();
+	}
+}
+
 
 TSharedPtr<FSlateApplication> FSlateApplication::CurrentApplication = NULL;
 
@@ -351,6 +384,8 @@ FSlateApplication::FSlateApplication()
 	, bTouchFallbackToMouse( true )
 	, bMenuAnimationsEnabled( true )
 	, AppIcon( FCoreStyle::Get().GetBrush("DefaultAppIcon") )
+	, VirtualDesktopRect( 0,0,0,0 )
+	, HittestGrid( MakeShareable( new FHittestGrid() ) )
 {
 #if WITH_UNREAL_DEVELOPER_TOOLS
 	FModuleManager::Get().LoadModule(TEXT("Settings"));
@@ -439,7 +474,6 @@ void FSlateApplication::SetCursorPos( const FVector2D& MouseCoordinate )
 	}
 }
 
-
 FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMouseCoordinate, const TArray< TSharedRef< SWindow > >& Windows, bool bIgnoreEnabledStatus )
 {
 	bool bPrevWindowWasModal = false;
@@ -459,21 +493,40 @@ FWidgetPath FSlateApplication::LocateWindowUnderMouse( FVector2D ScreenspaceMous
 		// If none of the children were hit, hittest the parent.
 
 		// Only accept input if the current window accepts input and the current window is not under a modal window or an interactive tooltip
-		const TSharedPtr<IToolTip> ActiveToolTipPtr = ActiveToolTip.Pin();
-		const TSharedPtr< SWindow > ToolTipWindowPtr = ToolTipWindow.Pin();
-		const bool AcceptsInput = Window->AcceptsInput() || ( Window == ToolTipWindowPtr && ActiveToolTipPtr.IsValid() && ActiveToolTipPtr->IsInteractive() );
+		
+		const bool AcceptsInput = Window->AcceptsInput() || IsWindowHousingInteractiveTooltip(Window);
 
 		if ( Window->IsVisible() && AcceptsInput && Window->IsScreenspaceMouseWithin(ScreenspaceMouseCoordinate) && !bPrevWindowWasModal )
 		{
-			FArrangedWidget WindowWidgetGeometry( Window, Window->GetWindowGeometryInScreen() );
-			if ( Window->IsEnabled() && LocateWidgetsUnderCursor_Helper(WindowWidgetGeometry, ScreenspaceMouseCoordinate, OutWidgetPath, bIgnoreEnabledStatus) )		
-			{			
-				return FWidgetPath( Windows[WindowIndex], OutWidgetPath );
+			if ( !SWidget::UseLegacyHittest() )
+			{
+				const TArray<FArrangedWidget> ArrangedWidgets = HittestGrid->GetBubblePath( ScreenspaceMouseCoordinate, bIgnoreEnabledStatus );
+				return FWidgetPath( ArrangedWidgets );
+			}
+			else
+			{
+				FArrangedWidget WindowWidgetGeometry( Window, Window->GetWindowGeometryInScreen() );
+				if ( Window->IsEnabled() && LocateWidgetsUnderCursor_Helper(WindowWidgetGeometry, ScreenspaceMouseCoordinate, OutWidgetPath, bIgnoreEnabledStatus) )		
+				{			
+					return FWidgetPath( Windows[WindowIndex], OutWidgetPath );
+				}
 			}
 		}
 	}
 
 	return FWidgetPath();
+}
+
+bool FSlateApplication::IsWindowHousingInteractiveTooltip(const TSharedRef<const SWindow>& WindowToTest) const
+{
+	const TSharedPtr<IToolTip> ActiveToolTipPtr = ActiveToolTip.Pin();
+	const TSharedPtr<SWindow> ToolTipWindowPtr = ToolTipWindow.Pin();
+	const bool bIsHousingInteractiveTooltip =
+		WindowToTest == ToolTipWindowPtr &&
+		ActiveToolTipPtr.IsValid() &&
+		ActiveToolTipPtr->IsInteractive();
+
+	return bIsHousingInteractiveTooltip;
 }
 
 /** 
@@ -536,6 +589,7 @@ struct FDrawWindowArgs
 	const FWidgetPath& WidgetsUnderCursor;
 };
 
+
 void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& WindowToDraw, FDrawWindowArgs& DrawWindowArgs )
 {
 	// Only draw visible windows
@@ -550,7 +604,13 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 		FGeometry WindowGeometry = WindowToDraw->GetWindowGeometryInWindow();
 		int32 MaxLayerId = 0;
 		{
-			MaxLayerId = WindowToDraw->OnPaint( WindowGeometry, WindowToDraw->GetClippingRectangleInWindow(), WindowElementList, 0, FWidgetStyle(), WindowToDraw->IsEnabled() );
+			MaxLayerId = WindowToDraw->Paint(
+				FPaintArgs(WindowToDraw, *HittestGrid, WindowToDraw->GetPositionInScreen()),
+				WindowGeometry, WindowToDraw->GetClippingRectangleInWindow(),
+				WindowElementList,
+				0,
+				FWidgetStyle(),
+				WindowToDraw->IsEnabled() );
 		}
 
 		if (DrawWindowArgs.FocusedPath.IsValid() && DrawWindowArgs.FocusedPath.GetWindow() == WindowToDraw)
@@ -648,11 +708,9 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 	// Is user expecting visual feedback from the Widget Reflector?
 	const bool bVisualizeLayoutUnderCursor = WidgetReflectorPtr.IsValid() && WidgetReflectorPtr.Pin()->IsVisualizingLayoutUnderCursor();
 
-	FWidgetPath WidgetsUnderCursor;
-	if (bVisualizeLayoutUnderCursor)
-	{
-		WidgetsUnderCursor = LocateWindowUnderMouse( GetCursorPos(), SlateWindows );
-	}
+	FWidgetPath WidgetsUnderCursor = bVisualizeLayoutUnderCursor
+		? WidgetsUnderCursorLastEvent.ToWidgetPath()
+		: FWidgetPath();
 
 	FWidgetPath FocusPath = FocusedWidgetPath.ToWidgetPath();
 
@@ -803,6 +861,11 @@ void FSlateApplication::Tick()
 
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateTickWindowAndChildren );
+
+		if ( !SWidget::UseLegacyHittest() )
+		{
+			HittestGrid->BeginFrame( VirtualDesktopRect );
+		}
 
 		if ( ActiveModalWindow.IsValid() )
 		{
@@ -985,6 +1048,7 @@ TSharedRef< FGenericWindow > FSlateApplication::MakeWindow( TSharedRef<SWindow> 
 	Definition->SupportsMinimize = InSlateWindow->HasMinimizeBox();
 	Definition->SupportsMaximize = InSlateWindow->HasMaximizeBox();
 
+    Definition->IsModalWindow = InSlateWindow->IsModalWindow();
 	Definition->IsRegularWindow = InSlateWindow->IsRegularWindow();
 	Definition->HasSizingFrame = InSlateWindow->HasSizingFrame();
 	Definition->SizeWillChangeOften = InSlateWindow->SizeWillChangeOften();
@@ -1345,7 +1409,7 @@ void FSlateApplication::SetJoystickCaptorToGameViewport()
 		FWidgetPath PathToWidget;
 		FSlateWindowHelper::FindPathToWidget(SlateWindows, CurrentGameViewportWidget.ToSharedRef(), /*OUT*/ PathToWidget);
 
-		FReply Temp = FReply::Handled().CaptureJoystick(CurrentGameViewportWidget.ToSharedRef());
+		FReply Temp = FReply::Handled().CaptureJoystick(CurrentGameViewportWidget.ToSharedRef(), true);
 
 		ProcessReply(PathToWidget, Temp, NULL, NULL);
 	}
@@ -2934,6 +2998,9 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyboardEvent& InKeyboardEvent )
 					if ( WidgetReflector.IsValid() )
 					{
 						WidgetReflector->OnWidgetPicked();
+						Reply = FReply::Handled();
+
+						return Reply.IsEventHandled();
 					}
 				}
 			}
@@ -3811,6 +3878,8 @@ FKey TranslateControllerButtonToKey( EControllerButtons::Type Button )
 	case EControllerButtons::GlobalPlay: Key = EKeys::Global_Play; break;
 	case EControllerButtons::GlobalBack: Key = EKeys::Global_Back; break;
 
+	case EControllerButtons::AndroidBack: Key = EKeys::Android_Back; break;
+
 	case EControllerButtons::Invalid: Key = EKeys::Invalid; break;
 	}
 
@@ -4466,6 +4535,16 @@ EDropEffect::Type FSlateApplication::OnDragDrop( const TSharedPtr< FGenericWindo
 bool FSlateApplication::OnWindowAction( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowAction::Type InActionType)
 {
 	return !IsExternalUIOpened();
+}
+
+void FSlateApplication::OnVirtualDesktopSizeChanged(const FDisplayMetrics& NewDisplayMetric)
+{
+	const FPlatformRect& VirtualDisplayRect = NewDisplayMetric.VirtualDisplayRect;
+	VirtualDesktopRect = FSlateRect(
+		VirtualDisplayRect.Left,
+		VirtualDisplayRect.Top,
+		VirtualDisplayRect.Right,
+		VirtualDisplayRect.Bottom);
 }
 
 

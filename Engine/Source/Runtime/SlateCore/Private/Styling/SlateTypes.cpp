@@ -223,6 +223,10 @@ FEditableTextBoxStyle::FEditableTextBoxStyle()
 {
 }
 
+FEditableTextBoxStyle::~FEditableTextBoxStyle()
+{
+}
+
 void FEditableTextBoxStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) const
 {
 	OutBrushes.Add( &BackgroundImageNormal );

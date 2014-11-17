@@ -109,6 +109,11 @@ struct FPipeHandle
 	FString Read();
 
 	/**
+	 * Reads until EOF.
+	 */
+	bool ReadToArray(TArray<uint8> & Output);
+
+	/**
 	 * Returns raw file handle.
 	 */
 	int GetHandle() const
@@ -141,6 +146,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static void ClosePipe( void* ReadPipe, void* WritePipe );
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
+	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
 	static class FRunnableThread* CreateRunnableThread();
 	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
 	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite);

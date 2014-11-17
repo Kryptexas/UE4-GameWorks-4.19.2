@@ -47,9 +47,16 @@ public class libOpus : ModuleRules
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{
-            LibraryPath += "Linux/" + Target.Architecture;
-            PublicLibraryPaths.Add(LibraryPath);
-            PublicAdditionalLibraries.Add("opus");
+            if (Target.IsMonolithic)
+            {
+                PublicAdditionalLibraries.Add(LibraryPath + "Linux/" + Target.Architecture + "/libopus.a");
+            }
+            else
+            {
+                LibraryPath += "Linux/" + Target.Architecture;
+                PublicLibraryPaths.Add(LibraryPath);
+                PublicAdditionalLibraries.Add("opus");
+            }
 		}
 	}
 }

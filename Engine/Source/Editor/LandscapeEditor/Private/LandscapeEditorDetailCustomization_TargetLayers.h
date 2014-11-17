@@ -50,7 +50,7 @@ protected:
 	static void OnImportLayer(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static void OnReimportLayer(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static bool ShouldFilterLayerInfo(const class FAssetData& AssetData, FName LayerName);
-	static void OnTargetLayerSetObject(const UObject* Object, const TSharedRef<FLandscapeTargetListInfo> Target);
+	static void OnTargetLayerSetObject(const FAssetData& AssetData, const TSharedRef<FLandscapeTargetListInfo> Target);
 	static EVisibility GetTargetLayerInfoSelectorVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static EVisibility GetTargetLayerCreateVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);
 	static EVisibility GetTargetLayerMakePublicVisibility(const TSharedRef<FLandscapeTargetListInfo> Target);

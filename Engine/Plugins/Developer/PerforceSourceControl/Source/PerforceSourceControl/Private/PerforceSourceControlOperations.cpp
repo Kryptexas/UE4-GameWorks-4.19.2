@@ -1055,14 +1055,16 @@ bool FPerforceCopyWorker::Execute(class FPerforceSourceControlCommand& InCommand
 		FP4RecordSet Records;
 		InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("integrate"), Parameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
 
-		// we now need to do a p4 edit as the editor will be assuming the file is writable, and p4 integrate does not do this
+		// We now need to do a p4 resolve.
+		// This is because when we copy a file in the Editor, we first make the copy on disk before attempting to branch. This causes a conflict in P4's eyes.
+		// We must do this to prevent the asset registry from picking up what it thinks is a newly-added file (which would be created by the p4 integrate command)
+		// and then the package system getting very confused about where to save the now-duplicated assets.
 		if(InCommand.bCommandSuccessful)
 		{
-			TArray<FString> EditParameters;
-			EditParameters.Add(DestinationPath);
-
-			InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("edit"), EditParameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
-			ParseRecordSetForState(Records, OutResults);
+			TArray<FString> ResolveParameters;
+			ResolveParameters.Add(TEXT("-ay"));	// 'accept yours'
+			ResolveParameters.Add(DestinationPath);
+			InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("resolve"), ResolveParameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
 		}
 	}
 	return InCommand.bCommandSuccessful;

@@ -87,6 +87,7 @@ void DumpParticleRenderingStats(FOutputDevice& Ar)
 #if STATS
 	if (GTrackParticleRenderingStats)
 	{
+#if ALLOW_DEBUG_FILES
 		{
 			// Have to keep this filename short enough to be valid for Xbox 360
 			const FString TemplateFileName = FString::Printf(TEXT("%sPT-%s.csv"), *FPaths::ProfilingDir(), *FDateTime::Now().ToString());
@@ -137,7 +138,7 @@ void DumpParticleRenderingStats(FOutputDevice& Ar)
 			}
 			Ar.Logf(TEXT("Component stats saved to %s"), *ComponentFileName);
 		}
-
+#endif
 		GTemplateRenderStats.Empty();
 		GComponentRenderStats.Empty();
 	}
@@ -190,6 +191,7 @@ void ENGINE_API FinishOneFrameParticleStats()
 
 		UE_LOG(LogParticles, Warning, TEXT("IFileManager::MakeDirectory %s %u"), *WritePath, bDirSuccess);
 
+#if ALLOW_DEBUG_FILES
 		// Have to keep this filename short enough to be valid for Xbox 360
 		const FString TemplateFileName = WritePath / TEXT("ParticleTemplates.csv");
 		FDiagnosticTableViewer ParticleTemplateViewer(*TemplateFileName);
@@ -240,6 +242,7 @@ void ENGINE_API FinishOneFrameParticleStats()
 		ParticleTemplateViewer.CycleRow();
 
 		UE_LOG(LogParticles, Warning, TEXT("One frame stats saved to %s"), *TemplateFileName);
+#endif
 
 		// Request a screenshot to be saved next frame
 		FScreenshotRequest::RequestScreenshot( PathFromScreenshots / TEXT("Shot.bmp"), false );
@@ -269,22 +272,24 @@ FParticleOrderPool GParticleOrderPool;
 // Particle vertex factory pool
 FParticleVertexFactoryPool GParticleVertexFactoryPool;
 
-FParticleVertexFactoryBase* FParticleVertexFactoryPool::GetParticleVertexFactory(EParticleVertexFactoryType InType)
+FParticleVertexFactoryBase* FParticleVertexFactoryPool::GetParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParticlePoolTime);
 	check(InType < PVFT_MAX);
 	FParticleVertexFactoryBase* VertexFactory = NULL;
-	if (VertexFactoriesAvailable[InType].Num() == 0)
+	auto& AvailableFactories = VertexFactoriesAvailable[InType][InFeatureLevel];
+
+	if (AvailableFactories.Num() == 0)
 	{
 		// If there are none in the pool, create a new one, add it to the in use list and return it
-		VertexFactory = CreateParticleVertexFactory(InType);
+		VertexFactory = CreateParticleVertexFactory(InType, InFeatureLevel);
 		VertexFactories.Add(VertexFactory);
 	}
 	else
 	{
 		// Otherwise, pull one out of the available array
-		VertexFactory = VertexFactoriesAvailable[InType][VertexFactoriesAvailable[InType].Num() - 1];
-		VertexFactoriesAvailable[InType].RemoveAt(VertexFactoriesAvailable[InType].Num() - 1);
+		VertexFactory = AvailableFactories[AvailableFactories.Num() - 1];
+		AvailableFactories.RemoveAt(AvailableFactories.Num() - 1);
 	}
 	check(VertexFactory);
 	// Set it to true to indicate it is in use
@@ -297,7 +302,7 @@ bool FParticleVertexFactoryPool::ReturnParticleVertexFactory(FParticleVertexFact
 	SCOPE_CYCLE_COUNTER(STAT_ParticlePoolTime);
 	// Set it to false to indicate it is not in use
 	InVertexFactory->SetInUse(false);
-	VertexFactoriesAvailable[InVertexFactory->GetParticleFactoryType()].Add(InVertexFactory);
+	VertexFactoriesAvailable[InVertexFactory->GetParticleFactoryType()][InVertexFactory->GetFeatureLevel()].Add(InVertexFactory);
 	return true;
 }
 
@@ -322,15 +327,18 @@ void FParticleVertexFactoryPool::ClearPoolInternal()
 	// We can't safely touched the 'in-use' ones... 
 	for (int32 PoolIdx = 0; PoolIdx < PVFT_MAX; PoolIdx++)
 	{
-		for (int32 RemoveIdx = VertexFactoriesAvailable[PoolIdx].Num() - 1; RemoveIdx >= 0; RemoveIdx--)
+		for (int32 FeatureLevelIdx = 0; FeatureLevelIdx < ERHIFeatureLevel::Num; FeatureLevelIdx++)
 		{
-			FParticleVertexFactoryBase* VertexFactory = VertexFactoriesAvailable[PoolIdx][RemoveIdx];
-			if(VertexFactory != NULL)
+			for (int32 RemoveIdx = VertexFactoriesAvailable[PoolIdx][FeatureLevelIdx].Num() - 1; RemoveIdx >= 0; RemoveIdx--)
 			{
-				VertexFactory->ReleaseResource();
-				delete VertexFactory;
+				FParticleVertexFactoryBase* VertexFactory = VertexFactoriesAvailable[PoolIdx][FeatureLevelIdx][RemoveIdx];
+				if (VertexFactory != NULL)
+				{
+					VertexFactory->ReleaseResource();
+					delete VertexFactory;
+				}
+				VertexFactoriesAvailable[PoolIdx][FeatureLevelIdx].RemoveAt(RemoveIdx);
 			}
-			VertexFactoriesAvailable[PoolIdx].RemoveAt(RemoveIdx);
 		}
 	}
 }
@@ -373,12 +381,15 @@ void FParticleVertexFactoryPool::DumpInfo(FOutputDevice& Ar)
 	int32 TotalMemory = 0;
 	for (int32 PoolIdx = 0; PoolIdx < PVFT_MAX; PoolIdx++)
 	{
-		int32 LocalMemory = GetTypeSize((EParticleVertexFactoryType)PoolIdx) * VertexFactoriesAvailable[PoolIdx].Num();
-		Ar.Logf(TEXT("%s,%d,%d"), 
-			GetTypeString((EParticleVertexFactoryType)PoolIdx), 
-			VertexFactoriesAvailable[PoolIdx].Num(),
-			LocalMemory);
-		TotalMemory += LocalMemory;
+		for (int32 FeatureLevelIdx = 0; FeatureLevelIdx < ERHIFeatureLevel::Num; FeatureLevelIdx++)
+		{
+			int32 LocalMemory = GetTypeSize((EParticleVertexFactoryType)PoolIdx) * VertexFactoriesAvailable[PoolIdx][FeatureLevelIdx].Num();
+			Ar.Logf(TEXT("%s,%d,%d"),
+				GetTypeString((EParticleVertexFactoryType)PoolIdx),
+				VertexFactoriesAvailable[PoolIdx][FeatureLevelIdx].Num(),
+				LocalMemory);
+			TotalMemory += LocalMemory;
+		}
 	}
 	Ar.Logf(TEXT("TotalMemory Taken in Pool: %d"), TotalMemory);
 	TotalMemory = 0;
@@ -416,19 +427,19 @@ void FParticleVertexFactoryPool::DumpInfo(FOutputDevice& Ar)
  *
  *	@return	FParticleVertexFactoryBase*	The created VF; NULL if invalid InType
  */
-FParticleVertexFactoryBase* FParticleVertexFactoryPool::CreateParticleVertexFactory(EParticleVertexFactoryType InType)
+FParticleVertexFactoryBase* FParticleVertexFactoryPool::CreateParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	FParticleVertexFactoryBase* NewVertexFactory = NULL;
 	switch (InType)
 	{
 	case PVFT_Sprite:
-		NewVertexFactory = new FParticleSpriteVertexFactory();
+		NewVertexFactory = new FParticleSpriteVertexFactory(PVFT_Sprite, InFeatureLevel);
 		break;
 	case PVFT_BeamTrail:
-		NewVertexFactory = new FParticleBeamTrailVertexFactory();
+		NewVertexFactory = new FParticleBeamTrailVertexFactory(PVFT_BeamTrail, InFeatureLevel);
 		break;
 	case PVFT_Mesh:
-		NewVertexFactory = new FMeshParticleVertexFactory();
+		NewVertexFactory = new FMeshParticleVertexFactory(PVFT_Mesh, InFeatureLevel);
 		break;
 	default:
 		break;
@@ -1122,7 +1133,8 @@ bool FDynamicSpriteEmitterData::GetVertexAndIndexDataNonInstanced(void* VertexDa
  */
 void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
 {
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	const auto FeatureLevel = ViewFamily->Scene->GetFeatureLevel();
+	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM3;
 
 	// Sort and generate particles for this view.
 	const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
@@ -1130,7 +1142,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 	{
 		// Determine how many vertices and indices are needed to render.
 		const int32 ParticleCount = SourceData->ActiveParticleCount;
-		const int32 VertexSize = GetDynamicVertexStride(ViewFamily->Scene->GetFeatureLevel());
+		const int32 VertexSize = GetDynamicVertexStride(FeatureLevel);
 		const int32 DynamicParameterVertexSize = sizeof(FParticleVertexDynamicParameter);
 		const int32 VertexPerParticle = bInstanced ? 1 : 4;
 		const int32 ViewCount = ViewFamily->Views.Num();
@@ -1170,7 +1182,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 					if (SourceData->SortMode != PSORTMODE_None)
 					{
 						// If material is using unlit translucency and the blend mode is translucent then we need to sort (back to front)
-						const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(GRHIFeatureLevel);
+						const FMaterial* Material = MaterialResource[bSelected]->GetMaterial(FeatureLevel);
 						if (Material && 
 							(Material->GetBlendMode() == BLEND_Translucent ||
 							((SourceData->SortMode == PSORTMODE_Age_OldestFirst) || (SourceData->SortMode == PSORTMODE_Age_NewestFirst)))
@@ -1451,7 +1463,7 @@ void FDynamicSpriteEmitterData::CreateRenderThreadResources(const FParticleSyste
 	// Create the vertex factory...
 	if (VertexFactory == NULL)
 	{
-		VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Sprite);
+		VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Sprite, InOwnerProxy->GetScene()->GetFeatureLevel());
 		check(VertexFactory);
 	}
 
@@ -1673,7 +1685,7 @@ void FDynamicMeshEmitterData::CreateRenderThreadResources(const FParticleSystemS
 	// Create the vertex factory
 	if (VertexFactory == NULL)
 	{
-		VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Mesh);
+		VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Mesh, InOwnerProxy->GetScene()->GetFeatureLevel());
 		check(VertexFactory);
 		SetupVertexFactory((FMeshParticleVertexFactory*)VertexFactory, StaticMesh->RenderData->LODResources[0]);
 	}
@@ -1718,7 +1730,7 @@ int32 FDynamicMeshEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimiti
 		return 0;
 	}
 
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	const bool bInstanced = View->GetFeatureLevel() >= ERHIFeatureLevel::SM3;
 
 	int32 NumDraws = 0;
 	if (Source.EmitterRenderMode == ERM_Normal)
@@ -1792,7 +1804,9 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 		return;
 	}
 
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	const auto FeatureLevel = ViewFamily->Scene->GetFeatureLevel();
+	const auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
+	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM3;
 
 	int32 ParticleCount = Source.ActiveParticleCount;
 	if ((Source.MaxDrawCount >= 0) && (ParticleCount > Source.MaxDrawCount))
@@ -1800,7 +1814,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 		ParticleCount = Source.MaxDrawCount;
 	}
 
-	const int32 InstanceVertexStride  = GetDynamicVertexStride(ViewFamily->Scene->GetFeatureLevel());
+	const int32 InstanceVertexStride = GetDynamicVertexStride(FeatureLevel);
 	const int32 DynamicParameterVertexStride  = GetDynamicParameterVertexStride();
 	const int32 ViewCount = ViewFamily->Views.Num();
 	if(bInstanced)
@@ -1912,7 +1926,7 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 					if (bIsWireframe)
 					{
 						if( LODModel.WireframeIndexBuffer.IsInitialized()
-							&& !(RHISupportsTessellation(GRHIShaderPlatform) && Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
+							&& !(RHISupportsTessellation(ShaderPlatform) && Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
 							)
 						{
 							Mesh.Type = PT_LineList;
@@ -2235,7 +2249,12 @@ void FDynamicMeshEmitterData::GetParticleTransform(FBaseParticle& InParticle, co
 		}
 		else
 		{
-			OutTransformMat = kScaleMat * kRotMat * kTransMat;
+			FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)&InParticle + Source.MeshRotationOffset);
+			FRotator MeshOrient = FRotator::MakeFromEuler(PayloadData->InitialOrientation);
+			FRotator OtherRot = FRotator::MakeFromEuler(PayloadData->InitRotation+PayloadData->CurContinuousRotation);
+			FRotationMatrix OrientMat(MeshOrient);
+			FRotationMatrix RotMat(OtherRot);
+			OutTransformMat = (OrientMat*kScaleMat) * RotMat * kTransMat;
 		}
 	}
 	else if ((bUseCameraFacing == true) || (bUseMeshLockedAxis == true))
@@ -2579,7 +2598,7 @@ void FDynamicBeam2EmitterData::CreateRenderThreadResources(const FParticleSystem
 	//@todo. Cache these??
 	if (VertexFactory == NULL)
 	{
-		VertexFactory = (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail));
+		VertexFactory = (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene()->GetFeatureLevel()));
 		check(VertexFactory);
 	}
 }
@@ -3473,6 +3492,11 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 				float	Distance	= Direction.Size();
 				Tiles				= Distance / Source.TextureTileDistance;
 			}
+			else
+			{
+				Tiles = FMath::Max((float)Source.TextureTile, 1.0f);
+			}
+
 			fUEnd		= Tiles;
 
 			if (BeamPayloadData->TravelRatio > KINDA_SMALL_NUMBER)
@@ -3513,6 +3537,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 				Vertex->Size		= Size;
 				Vertex->Tex_U		= 0.0f;
 				Vertex->Tex_V		= 0.0f;
+				Vertex->Tex_U2		= 0.0f;
+				Vertex->Tex_V2		= 0.0f;
 				Vertex->Rotation	= Particle->Rotation;
 				Vertex->Color		= Particle->Color;
 				Vertex++;
@@ -3524,6 +3550,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 				Vertex->Size		= Size;
 				Vertex->Tex_U		= 0.0f;
 				Vertex->Tex_V		= 1.0f;
+				Vertex->Tex_U2		= 0.0f;
+				Vertex->Tex_V2		= 1.0f;
 				Vertex->Rotation	= Particle->Rotation;
 				Vertex->Color		= Particle->Color;
 				Vertex++;
@@ -3547,6 +3575,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 				Vertex->Size		= Size;
 				Vertex->Tex_U		= fUEnd;
 				Vertex->Tex_V		= 0.0f;
+				Vertex->Tex_U2		= 1.0f;
+				Vertex->Tex_V2		= 0.0f;
 				Vertex->Rotation	= Particle->Rotation;
 				Vertex->Color		= Particle->Color;
 				Vertex++;
@@ -3558,6 +3588,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 				Vertex->Size		= Size;
 				Vertex->Tex_U		= fUEnd;
 				Vertex->Tex_V		= 1.0f;
+				Vertex->Tex_U2		= 1.0f;
+				Vertex->Tex_V2		= 1.0f;
 				Vertex->Rotation	= Particle->Rotation;
 				Vertex->Color		= Particle->Color;
 				Vertex++;
@@ -3632,6 +3664,9 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 			FVector WorkingUp;
 			float	fU;
 
+			float	Tex_U2 = 0.0f;
+			float	Tex_U2_Increment = 1.0f / BeamPayloadData->Steps;
+
 			check(InterpolatedPoints);	// TTP #33139
 			// For the direct case, this isn't a big deal, as it will not require much work per sheet.
 			for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
@@ -3682,6 +3717,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 				Vertex->Size		= Size;
 				Vertex->Tex_U		= fU;
 				Vertex->Tex_V		= 0.0f;
+				Vertex->Tex_U2		= 0.0f;
+				Vertex->Tex_V2		= 0.0f;
 				Vertex->Rotation	= Particle->Rotation;
 				Vertex->Color		= Particle->Color;
 				Vertex++;
@@ -3693,6 +3730,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 				Vertex->Size		= Size;
 				Vertex->Tex_U		= fU;
 				Vertex->Tex_V		= 1.0f;
+				Vertex->Tex_U2		= 0.0f;
+				Vertex->Tex_V2		= 1.0f;
 				Vertex->Rotation	= Particle->Rotation;
 				Vertex->Color		= Particle->Color;
 				Vertex++;
@@ -3700,6 +3739,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 
 				for (int32 StepIndex = 0; StepIndex < BeamPayloadData->Steps; StepIndex++)
 				{
+					Tex_U2 += Tex_U2_Increment;
+
 					EndPoint	= InterpolatedPoints[StepIndex];
 					if (Source.UpVectorStepSize == 0)
 					{
@@ -3738,6 +3779,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 					Vertex->Size		= Size;
 					Vertex->Tex_U		= fU + fTextureIncrement;
 					Vertex->Tex_V		= 0.0f;
+					Vertex->Tex_U2		= Tex_U2;
+					Vertex->Tex_V2		= 0.0f;
 					Vertex->Rotation	= Particle->Rotation;
 					Vertex->Color		= Particle->Color;
 					Vertex++;
@@ -3749,6 +3792,8 @@ int32 FDynamicBeam2EmitterData::FillVertexData_NoNoise(FAsyncBufferFillData& Me)
 					Vertex->Size		= Size;
 					Vertex->Tex_U		= fU + fTextureIncrement;
 					Vertex->Tex_V		= 1.0f;
+					Vertex->Tex_U2		= Tex_U2;
+					Vertex->Tex_V2		= 1.0f;
 					Vertex->Rotation	= Particle->Rotation;
 					Vertex->Color		= Particle->Color;
 					Vertex++;
@@ -5412,7 +5457,7 @@ void FDynamicTrailsEmitterData::CreateRenderThreadResources(const FParticleSyste
 	// Create the vertex factory...
 	if (VertexFactory == NULL)
 	{
-		VertexFactory = (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail));
+		VertexFactory = (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene()->GetFeatureLevel()));
 		check(VertexFactory);
 	}
 }
@@ -6033,9 +6078,10 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 						CurrTileU = Tex_U;
 					}
 
+					FVector FinalPos = InterpPos + InterpUp * InterpSize;
 					Vertex = (FParticleBeamTrailVertex*)(TempVertexData);
-					Vertex->Position = InterpPos + InterpUp * InterpSize;
-					Vertex->OldPosition = Vertex->Position;
+					Vertex->Position = FinalPos;
+					Vertex->OldPosition = FinalPos;
 					Vertex->ParticleId	= 0;
 					Vertex->Size.X = InterpSize;
 					Vertex->Size.Y = InterpSize;
@@ -6057,9 +6103,10 @@ int32 FDynamicRibbonEmitterData::FillVertexData(struct FAsyncBufferFillData& Dat
 					TempVertexData += VertexStride;
 					//PackedVertexCount++;
 
+					FinalPos = InterpPos - InterpUp * InterpSize;
 					Vertex = (FParticleBeamTrailVertex*)(TempVertexData);
-					Vertex->Position = InterpPos - InterpUp * InterpSize;
-					Vertex->OldPosition = Vertex->Position;
+					Vertex->Position = FinalPos;
+					Vertex->OldPosition = FinalPos;
 					Vertex->ParticleId	= 0;
 					Vertex->Size.X = InterpSize;
 					Vertex->Size.Y = InterpSize;

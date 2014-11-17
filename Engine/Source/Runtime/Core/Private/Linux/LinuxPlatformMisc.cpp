@@ -4,7 +4,7 @@
 	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "LinuxPlatformMisc.h"
 #include "LinuxApplication.h"
 
@@ -19,10 +19,13 @@
 #include <libdwarf.h>
 #include <dwarf.h>
 
+#include "ModuleManager.h"
+
 #include "../../Launch/Resources/Version.h"
 #include <sys/utsname.h>	// for uname()
-#include <sys/ptrace.h>		// for ptrace()
-#include <sys/wait.h>		// for waitpid()
+
+// define for glibc 2.12.2 and lower (which is shipped with CentOS 6.x and which we target by default)
+#define __secure_getenv getenv
 
 namespace PlatformMiscLimits
 {
@@ -58,7 +61,7 @@ namespace
 	}
 }
 
-bool FLinuxMisc::ControlScreensaver(EScreenSaverAction Action)
+bool FLinuxPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
 {
 	if (Action == FGenericPlatformMisc::EScreenSaverAction::Disable)
 	{
@@ -72,13 +75,13 @@ bool FLinuxMisc::ControlScreensaver(EScreenSaverAction Action)
 	return true;
 }
 
-const TCHAR* FLinuxMisc::RootDir()
+const TCHAR* FLinuxPlatformMisc::RootDir()
 {
 	const TCHAR * TrueRootDir = FGenericPlatformMisc::RootDir();
 	return TrueRootDir;
 }
 
-void FLinuxMisc::NormalizePath(FString& InPath)
+void FLinuxPlatformMisc::NormalizePath(FString& InPath)
 {
 	if (InPath.Contains(TEXT("~"), ESearchCase::CaseSensitive))	// case sensitive is quicker, and our substring doesn't care
 	{
@@ -119,7 +122,7 @@ void FLinuxMisc::NormalizePath(FString& InPath)
 	}
 }
 
-void FLinuxMisc::PlatformInit()
+void FLinuxPlatformMisc::PlatformInit()
 {
 	// install a platform-specific signal handler
 	InstallChildExitedSignalHanlder();
@@ -145,12 +148,12 @@ void FLinuxMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" -virtmemkb=NUMBER - sets process virtual memory (address space) limit (overrides VirtualMemoryLimitInKB value from .ini)"));
 }
 
-GenericApplication* FLinuxMisc::CreateApplication()
+GenericApplication* FLinuxPlatformMisc::CreateApplication()
 {
 	return FLinuxApplication::CreateLinuxApplication();
 }
 
-void FLinuxMisc::PumpMessages( bool bFromMainLoop )
+void FLinuxPlatformMisc::PumpMessages( bool bFromMainLoop )
 {
 	if( bFromMainLoop )
 	{
@@ -166,12 +169,12 @@ void FLinuxMisc::PumpMessages( bool bFromMainLoop )
 	}
 }
 
-uint32 FLinuxMisc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
+uint32 FLinuxPlatformMisc::GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
 {
 	return FGenericPlatformMisc::GetStandardPrintableKeyMap(KeyCodes, KeyNames, MaxMappings, false, true);
 }
 
-uint32 FLinuxMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
+uint32 FLinuxPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
 {
 #define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
 
@@ -227,7 +230,7 @@ uint32 FLinuxMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMap
 	return NumMappings;
 }
 
-int32 FLinuxMisc::NumberOfCores()
+int32 FLinuxPlatformMisc::NumberOfCores()
 {
 	cpu_set_t AvailableCpusMask;
 	CPU_ZERO(&AvailableCpusMask);
@@ -275,7 +278,7 @@ int32 FLinuxMisc::NumberOfCores()
 	return NumCoreIds;
 }
 
-int32 FLinuxMisc::NumberOfCoresIncludingHyperthreads()
+int32 FLinuxPlatformMisc::NumberOfCoresIncludingHyperthreads()
 {
 	cpu_set_t AvailableCpusMask;
 	CPU_ZERO(&AvailableCpusMask);
@@ -287,6 +290,66 @@ int32 FLinuxMisc::NumberOfCoresIncludingHyperthreads()
 
 	return CPU_COUNT(&AvailableCpusMask);
 }
+
+void FLinuxPlatformMisc::LoadPreInitModules()
+{
+#if WITH_EDITOR
+	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
+#endif // WITH_EDITOR
+}
+
+void FLinuxPlatformMisc::LoadStartupModules()
+{
+#if !IS_PROGRAM
+	FModuleManager::Get().LoadModule(TEXT("ALAudio"));
+	FModuleManager::Get().LoadModule(TEXT("SteamController"));
+	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
+#endif // !IS_PROGRAM
+
+#if WITH_EDITOR
+	FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
+#endif	//WITH_EDITOR
+}
+
+const TCHAR* FLinuxPlatformMisc::GetNullRHIShaderFormat()
+{
+	return TEXT("GLSL_150");
+}
+
+#if PLATFORM_HAS_CPUID
+FString FLinuxPlatformMisc::GetCPUVendor()
+{
+	union
+	{
+		char Buffer[12+1];
+		struct
+		{
+			int dw0;
+			int dw1;
+			int dw2;
+		} Dw;
+	} VendorResult;
+
+
+	int32 Args[4];
+	asm( "cpuid" : "=a" (Args[0]), "=b" (Args[1]), "=c" (Args[2]), "=d" (Args[3]) : "a" (0));
+
+	VendorResult.Dw.dw0 = Args[1];
+	VendorResult.Dw.dw1 = Args[3];
+	VendorResult.Dw.dw2 = Args[2];
+	VendorResult.Buffer[12] = 0;
+
+	return ANSI_TO_TCHAR(VendorResult.Buffer);
+}
+
+uint32 FLinuxPlatformMisc::GetCPUInfo()
+{
+	uint32 Args[4];
+	asm( "cpuid" : "=a" (Args[0]), "=b" (Args[1]), "=c" (Args[2]), "=d" (Args[3]) : "a" (1));
+
+	return Args[0];
+}
+#endif // PLATFORM_HAS_CPUID
 
 FString DescribeSignal(int32 Signal, siginfo_t* Info)
 {
@@ -839,6 +902,17 @@ void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
  */
 void GenerateWindowsErrorReport(const FString & WERPath)
 {
+	struct FLocalHelpers
+	{
+		static const TCHAR* GetEngineMode()
+		{
+			return	IsRunningCommandlet()?	 	TEXT("Commandlet") :
+					GIsEditor?				 	TEXT("Editor") :
+					IsRunningDedicatedServer()?	TEXT("Server") :
+												TEXT("Game");
+		}
+	};
+
 	FArchive* ReportFile = IFileManager::Get().CreateFileWriter(*WERPath);
 	if (ReportFile != NULL)
 	{
@@ -850,15 +924,15 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("<WERReportMetadata>"));
 		
 		WriteLine(ReportFile, TEXT("\t<OSVersionInformation>"));
-		WriteLine(ReportFile, TEXT("\t\t<WindowsNTVersion>6.1</WindowsNTVersion>"));
-		WriteLine(ReportFile, TEXT("\t\t<Build>7601 Service Pack 1</Build>"));
-		WriteLine(ReportFile, TEXT("\t\t<Product>(0x30): Windows 7 Professional</Product>"));
-		WriteLine(ReportFile, TEXT("\t\t<Edition>Professional</Edition>"));
-		WriteLine(ReportFile, TEXT("\t\t<BuildString>7601.18044.amd64fre.win7sp1_gdr.130104-1431</BuildString>"));
-		WriteLine(ReportFile, TEXT("\t\t<Revision>1130</Revision>"));
-		WriteLine(ReportFile, TEXT("\t\t<Flavor>Multiprocessor Free</Flavor>"));
-		WriteLine(ReportFile, TEXT("\t\t<Architecture>X64</Architecture>"));
-		WriteLine(ReportFile, TEXT("\t\t<LCID>1033</LCID>"));
+		WriteLine(ReportFile, TEXT("\t\t<WindowsNTVersion>0.0</WindowsNTVersion>"));
+		WriteLine(ReportFile, TEXT("\t\t<Build>No Build</Build>"));
+		WriteLine(ReportFile, TEXT("\t\t<Product>Linux</Product>"));
+		WriteLine(ReportFile, TEXT("\t\t<Edition>No Edition</Edition>"));
+		WriteLine(ReportFile, TEXT("\t\t<BuildString>No BuildString</BuildString>"));
+		WriteLine(ReportFile, TEXT("\t\t<Revision>0</Revision>"));
+		WriteLine(ReportFile, TEXT("\t\t<Flavor>No Flavor</Flavor>"));
+		WriteLine(ReportFile, TEXT("\t\t<Architecture>Unknown Architecture</Architecture>"));
+		WriteLine(ReportFile, TEXT("\t\t<LCID>0</LCID>"));
 		WriteLine(ReportFile, TEXT("\t</OSVersionInformation>"));
 		
 		WriteLine(ReportFile, TEXT("\t<ParentProcessInformation>"));
@@ -871,14 +945,14 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("\t\t<EventType>APPCRASH</EventType>"));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter0>UE4-%s</Parameter0>"), FApp::GetGameName()));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter1>1.0.%d.%d</Parameter1>"), ENGINE_VERSION_HIWORD, ENGINE_VERSION_LOWORD));
-		WriteLine(ReportFile, TEXT("\t\t<Parameter2>528f2d37</Parameter2>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter3>KERNELBASE.dll</Parameter3>"));												// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter4>6.1.7601.18015</Parameter4>"));												// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter5>50b8479b</Parameter5>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000001</Parameter6>"));													// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter7>0000000000009E5D</Parameter7>"));											// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter8>!!</Parameter8>"));															// FIXME: supply valid?
-		WriteLine(ReportFile, TEXT("\t\t<Parameter9>UE4!D:/ShadowArtSync/UE4/Engine/Binaries/Win64/!Editor!0</Parameter9>"));	// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter2>0</Parameter2>"));													// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter3>Unknown Fault Module</Parameter3>"));										// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter4>0.0.0.0</Parameter4>"));													// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter5>00000000</Parameter5>"));													// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000000</Parameter6>"));													// FIXME: supply valid?
+		WriteLine(ReportFile, TEXT("\t\t<Parameter7>0000000000000000</Parameter7>"));											// FIXME: supply valid?
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter8>!%s!</Parameter8>"), FCommandLine::Get()));				// FIXME: supply valid? Only partially valid
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter9>%s!%s!%s!%d</Parameter9>"), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FLocalHelpers::GetEngineMode(), BUILT_FROM_CHANGELIST));
 		WriteLine(ReportFile, TEXT("\t</ProblemSignatures>"));
 
 		WriteLine(ReportFile, TEXT("\t<DynamicSignatures>"));
@@ -1056,7 +1130,7 @@ void PlatformCrashHandler(int32 Signal, siginfo_t* Info, void* Context)
 	}
 }
 
-void FLinuxMisc::SetGracefulTerminationHandler()
+void FLinuxPlatformMisc::SetGracefulTerminationHandler()
 {
 	struct sigaction Action;
 	FMemory::Memzero(&Action, sizeof(struct sigaction));
@@ -1068,7 +1142,7 @@ void FLinuxMisc::SetGracefulTerminationHandler()
 	sigaction(SIGHUP, &Action, NULL);	//  this should actually cause the server to just re-read configs (restart?)
 }
 
-void FLinuxMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
+void FLinuxPlatformMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContext & Context))
 {
 	GCrashHandlerPointer = CrashHandler;
 
@@ -1086,75 +1160,40 @@ void FLinuxMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashContex
 }
 
 #if !UE_BUILD_SHIPPING
-
-/** Heavy! */
-bool FLinuxMisc::IsDebuggerPresent()
+bool FLinuxPlatformMisc::IsDebuggerPresent()
 {
-	// @TODO: Make this less heavy. It currently causes a crash loop when using "debug crash"
-	return false;
-	/*
-	int ChildPid = fork();
-	if (ChildPid == -1)
-	{
-		UE_LOG(LogInit, Fatal, TEXT("IsDebuggerPresent(): fork() failed with errno=%d (%s)."), errno, strerror(errno));
+	// If a process is tracing this one then TracerPid in /proc/self/status will
+	// be the id of the tracing process. Use SignalHandler safe functions 
 
-		// unreachable
+	int StatusFile = open("/proc/self/status", O_RDONLY);
+	if (StatusFile == -1) 
+	{
+		// Failed - unknown debugger status.
 		return false;
 	}
 
-	if (ChildPid == 0)
+	char Buffer[256];	
+	ssize_t Length = read(StatusFile, Buffer, sizeof(Buffer));
+	
+	bool bDebugging = false;
+	const char* TracerString = "TracerPid:\t";
+	const ssize_t LenTracerString = strlen(TracerString);
+	int i = 0;
+
+	while((Length - i) > LenTracerString)
 	{
-		// we are child, try attaching to parent
-		int Parent = getppid();
-		if (ptrace(PTRACE_ATTACH, Parent, NULL, NULL) != 0)
+		// TracerPid is found
+		if (strncmp(&Buffer[i], TracerString, LenTracerString) == 0)
 		{
-			// couldn't attach, assume gdb
-			exit(1);
-			
-			// unreachable
-			return 1;
-		}
-
-		// succeeded - no gdb
-
-		// traced process will be stopped at this point, wait for it, continue and detach
-		waitpid(Parent, NULL, 0);
-		ptrace(PTRACE_CONT, NULL, NULL);
-		ptrace(PTRACE_DETACH, Parent, NULL, NULL);
-		exit(0);
-		
-		// unreachable
-		return 0;
-	}
-
-	// parent
-	check(ChildPid != 0);
-
-	int Status = 0;
-	for(;;)
-	{
-		if (waitpid(ChildPid, &Status, 0) == -1)
-		{
-			// error waiting for child! EINTR is allowed though, will retry
-			if (errno == EINTR)
-			{
-				continue;
-			}
-
-			UE_LOG(LogInit, Fatal, TEXT("IsDebuggerPresent(): waitpid() failed with errno=%d (%s)."), errno, strerror(errno));
-
-			// unreachable
-			return false;
-		}
-		else
-		{
+			// 0 if no process is tracing.
+			bDebugging = Buffer[i + LenTracerString] != '0';
 			break;
 		}
+
+		++i;
 	}
 
-	int RetCode = WEXITSTATUS(Status);
-	return RetCode != 0;
-	*/
+	close(StatusFile);
+	return bDebugging;
 }
-
 #endif // !UE_BUILD_SHIPPING

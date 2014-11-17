@@ -235,7 +235,7 @@ bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 	return false;
 }
 
-void FWorldTileModel::SetVisible(bool bVisibile)
+void FWorldTileModel::SetVisible(bool bVisible)
 {
 	if (LevelCollectionModel.IsReadOnly())
 	{
@@ -250,13 +250,13 @@ void FWorldTileModel::SetVisible(bool bVisibile)
 	}
 	
 	// Don't create unnecessary transactions
-	if (IsVisible() == bVisibile)
+	if (IsVisible() == bVisible)
 	{
 		return;
 	}
 
 	// Can not show level outside of editable area
-	if (bVisibile && !ShouldBeVisible(LevelCollectionModel.EditableWorldArea()))
+	if (bVisible && !ShouldBeVisible(LevelCollectionModel.EditableWorldArea()))
 	{
 		return;
 	}
@@ -268,10 +268,10 @@ void FWorldTileModel::SetVisible(bool bVisibile)
 		FScopedTransaction Transaction( LOCTEXT("ToggleVisibility", "Toggle Level Visibility") );
 		
 		// This call hides/shows all owned actors, etc
-		EditorLevelUtils::SetLevelVisibility(Level, bVisibile, true);
+		EditorLevelUtils::SetLevelVisibility( Level, bVisible, true );	// we need to enable layers too here so the LODs export correctly
 			
 		// Ensure operation is completed succesfully
-		check(GetLevelObject()->bIsVisible == bVisibile);
+		check(GetLevelObject()->bIsVisible == bVisible);
 
 		// Now there is no way to correctly undo level visibility
 		// remove ability to undo this operation

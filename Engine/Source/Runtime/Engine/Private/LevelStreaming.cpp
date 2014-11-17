@@ -472,6 +472,8 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPackage* InLoadedPackage ) 
 {
 	bHasLoadRequestPending = false;
+
+	const FName PackageFName = FName(*InPackageName);
 	
 	if( InLoadedPackage )
 	{
@@ -533,7 +535,7 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 				//    If the package name to load was different...
 				//         ... it means the specified package name was explicit and we will just load from another file.
 
-				FName OldDesiredPackageName = FName(*InPackageName);
+				FName OldDesiredPackageName = PackageFName;
 				UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
 				UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
 				ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
@@ -598,6 +600,9 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 	{
 		UE_LOG(LogLevelStreaming, Warning, TEXT("Failed to load package '%s'"), *InPackageName );
 	}
+
+	// Clean up the world type list now that PostLoad has occurred
+	UWorld::WorldTypePreLoadMap.Remove(PackageFName);
 }
 
 bool ULevelStreaming::IsLevelVisible() const
@@ -749,40 +754,43 @@ FBox ULevelStreaming::GetStreamingVolumeBounds()
 }
 
 #if WITH_EDITOR
-void ULevelStreaming::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+void ULevelStreaming::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	if ( PropertyChangedEvent.PropertyChain.Num() > 0 )
+	UProperty* OutermostProperty = PropertyChangedEvent.Property;
+	if ( OutermostProperty != NULL )
 	{
-		UProperty* OutermostProperty = PropertyChangedEvent.PropertyChain.GetHead()->GetValue();
-		if ( OutermostProperty != NULL )
+		const FName PropertyName = OutermostProperty->GetFName();
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, LevelTransform))
 		{
-			const FName PropertyName = OutermostProperty->GetFName();
-			if ( PropertyName == TEXT("LevelTransform") )
-			{
-				GetWorld()->UpdateLevelStreaming();
-			}
+			GetWorld()->UpdateLevelStreaming();
+		}
 
-			if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, EditorStreamingVolumes))
-			{
-				RemoveStreamingVolumeDuplicates();
-			}
+		if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, EditorStreamingVolumes))
+		{
+			RemoveStreamingVolumeDuplicates();
 
-			else if( PropertyName == TEXT( "DrawColor" ) )
+			// Update levels references in each streaming volume 
+			for (TActorIterator<ALevelStreamingVolume> It(GetWorld()); It; ++It)
 			{
-				// Make sure the level's DrawColor change is applied immediately by reregistering the
-				// components of the actor's in the level
-				if( LoadedLevel != NULL )
+				(*It)->UpdateStreamingLevelsRefs();
+			}
+		}
+
+		else if (PropertyName == GET_MEMBER_NAME_CHECKED(ULevelStreaming, DrawColor))
+		{
+			// Make sure the level's DrawColor change is applied immediately by reregistering the
+			// components of the actor's in the level
+			if( LoadedLevel != NULL )
+			{
+				UPackage* Package = LoadedLevel->GetOutermost();
+				for( TObjectIterator<UActorComponent> It; It; ++It )
 				{
-					UPackage* Package = LoadedLevel->GetOutermost();
-					for( TObjectIterator<UActorComponent> It; It; ++It )
+					if( It->IsIn( Package ) )
 					{
-						if( It->IsIn( Package ) )
+						UActorComponent* ActorComponent = Cast<UActorComponent>( *It );
+						if( ActorComponent )
 						{
-							UActorComponent* ActorComponent = Cast<UActorComponent>( *It );
-							if( ActorComponent )
-							{
-								ActorComponent->RecreateRenderState_Concurrent();
-							}
+							ActorComponent->RecreateRenderState_Concurrent();
 						}
 					}
 				}
@@ -790,7 +798,7 @@ void ULevelStreaming::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 		}
 	}
 
-	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void ULevelStreaming::RemoveStreamingVolumeDuplicates()
@@ -798,12 +806,14 @@ void ULevelStreaming::RemoveStreamingVolumeDuplicates()
 	for (int32 VolumeIdx = EditorStreamingVolumes.Num()-1; VolumeIdx >= 0; VolumeIdx--)
 	{
 		ALevelStreamingVolume* Volume = EditorStreamingVolumes[VolumeIdx];
-		
-		int32 DuplicateIdx = EditorStreamingVolumes.Find(Volume);
-		check(DuplicateIdx != INDEX_NONE);
-		if (DuplicateIdx != VolumeIdx)
+		if (Volume) // Allow duplicate null entries, for array editor convenience
 		{
-			EditorStreamingVolumes.RemoveAt(VolumeIdx);
+			int32 DuplicateIdx = EditorStreamingVolumes.Find(Volume);
+			check(DuplicateIdx != INDEX_NONE);
+			if (DuplicateIdx != VolumeIdx)
+			{
+				EditorStreamingVolumes.RemoveAt(VolumeIdx);
+			}
 		}
 	}
 }

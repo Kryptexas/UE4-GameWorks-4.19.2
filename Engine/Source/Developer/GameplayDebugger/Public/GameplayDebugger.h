@@ -32,5 +32,11 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "GameplayDebugger" );
 	}
+
+	// Each player controller that wants to use gameplay debugging must call this function
+	// (generally OnPostInitProperties, but not on a client) in order to create the actor that handles the debugging
+	// functionality in a network-replicated (if necessary) fashion.  NOTE: creates an AGameplayDebuggingReplicator
+	// in the same World as PlayerController.
+	virtual bool CreateGameplayDebuggerForPlayerController(APlayerController* PlayerController) const = 0;
 };
 

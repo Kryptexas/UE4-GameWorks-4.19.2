@@ -504,10 +504,71 @@ void FAssetRenameManager::DetectReadOnlyPackages(TArray<FAssetRenameDataWithRefe
 	}
 }
 
+/**
+ * Function that renames all FStringAssetReference object with the old asset path to the new one.
+ *
+ * @param PackagesToCheck Packages to check for referencing FStringAssetReference.
+ * @param OldAssetPath Old path.
+ * @param NewAssetPath New path.
+ */
+void FAssetRenameManager::RenameReferencingStringAssetReferences(const TArray<UPackage *> PackagesToCheck, const FString& OldAssetPath, const FString& NewAssetPath)
+{
+	struct FStringAssetReferenceRenameSerializer : public FArchiveUObject
+	{
+		FStringAssetReferenceRenameSerializer(const FString& OldAssetPath, const FString& NewAssetPath)
+			: OldAssetPath(OldAssetPath), NewAssetPath(NewAssetPath)
+		{ }
+
+		FArchive& operator<<(FStringAssetReference& Reference) override
+		{
+			if (Reference.AssetLongPathname == OldAssetPath)
+			{
+				Reference.AssetLongPathname = NewAssetPath;
+			}
+
+			// Generated class path support.
+			if (Reference.AssetLongPathname == OldAssetPath + "_C")
+			{
+				Reference.AssetLongPathname = NewAssetPath + "_C";
+			}
+
+			return *this;
+		}
+
+	private:
+		const FString& OldAssetPath;
+		const FString& NewAssetPath;
+	};
+
+	FStringAssetReferenceRenameSerializer RenameSerializer(OldAssetPath, NewAssetPath);
+
+	for (auto* Package : PackagesToCheck)
+	{
+		TArray<UObject*> ObjectsInPackage;
+		GetObjectsWithOuter(Package, ObjectsInPackage);
+
+		for (auto* Object : ObjectsInPackage)
+		{
+			Object->Serialize(RenameSerializer);
+		}
+	}
+}
+
 void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferencers>& AssetsToRename) const
 {
 	const FText AssetRenameSlowTask = LOCTEXT("AssetRenameSlowTask", "Renaming Assets");
 	GWarn->BeginSlowTask( AssetRenameSlowTask, true );
+
+	/**
+	 * We need to collect and check those cause dependency graph is only
+	 * representing on-disk state and we want to support rename for in-memory
+	 * objects. It is only needed for string references as in memory references
+	 * for other objects are pointers, so renames doesn't apply to those.
+	 */
+	TArray<UPackage *> DirtyPackagesToCheckForStringReferences;
+	
+	FEditorFileUtils::GetDirtyWorldPackages(DirtyPackagesToCheckForStringReferences);
+	FEditorFileUtils::GetDirtyContentPackages(DirtyPackagesToCheckForStringReferences);
 
 	TArray<UPackage*> PackagesToSave;
 	TArray<UPackage*> PotentialPackagesToDelete;
@@ -524,6 +585,7 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 		}
 
 		UObject* Asset = RenameData.Asset.Get();
+		FString OldAssetPath = Asset->GetPathName();
 
 		if ( !Asset )
 		{
@@ -575,6 +637,15 @@ void FAssetRenameManager::PerformAssetRename(TArray<FAssetRenameDataWithReferenc
 			RenameData.bRenameFailed = true;
 			RenameData.FailureReason = ErrorMessage;
 		}
+
+		TArray<UPackage *> PackagesToCheck(DirtyPackagesToCheckForStringReferences);
+
+		for (auto PackageNameIt = RenameData.ReferencingPackageNames.CreateConstIterator(); PackageNameIt; ++PackageNameIt)
+		{
+			PackagesToCheck.Add(LoadPackage(NULL, *PackageNameIt->ToString(), LOAD_None));
+		}
+
+		RenameReferencingStringAssetReferences(PackagesToCheck, OldAssetPath, Asset->GetPathName());
 	}
 
 	GWarn->EndSlowTask();

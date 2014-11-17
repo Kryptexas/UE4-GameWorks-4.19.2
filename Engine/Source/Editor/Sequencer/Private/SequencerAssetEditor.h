@@ -17,12 +17,13 @@ public:
 	 * Edits the specified object
 	 *
 	 * @param	Mode							Asset editing mode for this editor (standalone or world-centric)
+	 * @param	InViewParams					Parameters for how to view sequencer UI
 	 * @param	InitToolkitHost					When Mode is WorldCentric, this is the level editor instance to spawn this editor within
 	 * @param	ObjectToEdit					The object to edit
 	 * @param	TrackEditorDelegates			Delegates to call to create auto-key handlers for this sequencer
 	 * @param	bEditWithinLevelEditor			Whether or not sequencer should be edited within the level editor
 	 */
-	void InitSequencerAssetEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor );
+	void InitSequencerAssetEditor( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor );
 
 	TSharedRef<ISequencer> GetSequencerInterface() const override { return Sequencer.ToSharedRef(); }
 

@@ -1,9 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+
+#if WITH_FANCY_TEXT
+
 #include "TextLayoutEngine.h"
 #include "SlateTextLayout.h"
-#include "SlateSimpleRunHighlighter.h"
+#include "SlateTextHighlightRunRenderer.h"
 #include "IRichTextMarkupParser.h"
 #include "RichTextMarkupProcessing.h"
 
@@ -26,7 +29,7 @@ void SRichTextBlock::Construct( const FArguments& InArgs )
 		Parser = FRichTextMarkupProcessing::Create();
 	}
 
-	TextHighlighter = FSlateSimpleRunHighlighter::Create();
+	TextHighlighter = FSlateTextHighlightRunRenderer::Create();
 
 	Decorators.Append( InArgs._Decorators );
 	Decorators.Append( InArgs.InlineDecorators );
@@ -47,7 +50,7 @@ void SRichTextBlock::Tick( const FGeometry& AllottedGeometry, const double InCur
 	TextLayout->SetScale( AllottedGeometry.Scale );
 }
 
-int32 SRichTextBlock::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SRichTextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateOnPaint_SRichTextBlock );
 
@@ -60,17 +63,17 @@ int32 SRichTextBlock::OnPaint( const FGeometry& AllottedGeometry, const FSlateRe
 	{
 		const FVector2D TextLayoutSize = TextLayout->GetSize();
 		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
-		LayerId = TextLayout->OnPaint( TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 	else if ( TextJustification == ETextJustify::Center )
 	{
 		const FVector2D TextLayoutSize = TextLayout->GetSize();
 		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ) / 2, 0 );
-		LayerId = TextLayout->OnPaint( TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 	else
 	{
-		LayerId = TextLayout->OnPaint( TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 
 	return LayerId;
@@ -217,7 +220,7 @@ void SRichTextBlock::SetHighlightText( const FText& InHighlightText )
 		return;
 	}
 
-	Highlights.Empty();
+	TextHighlights.Empty();
 	HighlightText = InHighlightText;
 
 	const FString HighlightTextString = HighlightText.ToString();
@@ -236,16 +239,19 @@ void SRichTextBlock::SetHighlightText( const FText& InHighlightText )
 		{
 			FindBegin = CurrentHighlightBegin + HighlightTextLength;
 
-			if ( Highlights.Num() > 0 && Highlights.Last().LineIndex == LineIndex && Highlights.Last().Range.EndIndex == CurrentHighlightBegin )
+			if ( TextHighlights.Num() > 0 && TextHighlights.Last().LineIndex == LineIndex && TextHighlights.Last().Range.EndIndex == CurrentHighlightBegin )
 			{
-				Highlights[ Highlights.Num() - 1 ] = FTextHighlight( LineIndex, FTextRange( Highlights.Last().Range.BeginIndex, FindBegin ), TextHighlighter.ToSharedRef() );
+				TextHighlights[ TextHighlights.Num() - 1 ] = FTextRunRenderer( LineIndex, FTextRange( TextHighlights.Last().Range.BeginIndex, FindBegin ), TextHighlighter.ToSharedRef() );
 			}
 			else
 			{
-				Highlights.Add( FTextHighlight( LineIndex, FTextRange( CurrentHighlightBegin, FindBegin ), TextHighlighter.ToSharedRef() ) );
+				TextHighlights.Add( FTextRunRenderer( LineIndex, FTextRange( CurrentHighlightBegin, FindBegin ), TextHighlighter.ToSharedRef() ) );
 			}
 		}
 	}
 
-	TextLayout->SetHighlights( Highlights );
+	TextLayout->SetRunRenderers( TextHighlights );
 }
+
+
+#endif //WITH_FANCY_TEXT

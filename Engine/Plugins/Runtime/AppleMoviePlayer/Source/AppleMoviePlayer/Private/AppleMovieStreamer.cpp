@@ -212,7 +212,10 @@ bool FAVPlayerMovieStreamer::StartNextMovie()
         NSURL* nsURL = nil;
 #if PLATFORM_MAC
 		FString MoviePath = FPaths::GameContentDir() + TEXT("Movies/") + MovieQueue[0] + TEXT(".") + FString(MOVIE_FILE_EXTENSION);
-		nsURL = [NSURL fileURLWithPath:MoviePath.GetNSString()];
+		if (FPaths::FileExists(MoviePath))
+		{
+			nsURL = [NSURL fileURLWithPath:MoviePath.GetNSString()];
+		}
 #else
         NSString* moviestring = MovieQueue[0].GetNSString();
 		nsURL = [[NSBundle mainBundle] URLForResource: moviestring withExtension: MOVIE_FILE_EXTENSION ];
@@ -228,7 +231,7 @@ bool FAVPlayerMovieStreamer::StartNextMovie()
         AudioPlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:nsURL error:&error];
         if ( AudioPlayer == nil )
         {
-            UE_LOG(LogMoviePlayer, Error, TEXT("couldn't initialize Movie player audio, bad file, or possibly just no Audio"));
+            UE_LOG(LogMoviePlayer, Warning, TEXT("couldn't initialize Movie player audio, bad file, or possibly just no Audio"));
         }
 		else
 		{

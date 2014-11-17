@@ -6,6 +6,7 @@
 
 #include "KismetCompilerPrivatePCH.h"
 #include "KismetCompilerMisc.h"
+#include "K2Node_EnumLiteral.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
@@ -500,6 +501,103 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 			}
 		}
 	}
+}
+
+UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UK2Node_CallFunction* CallBeginSpawnNode, UEdGraphNode* SpawnNode, UEdGraphPin* CallBeginResult, const UClass* ForClass )
+{
+	static FString ObjectParamName = FString(TEXT("Object"));
+	static FString ValueParamName = FString(TEXT("Value"));
+	static FString PropertyNameParamName = FString(TEXT("PropertyName"));
+
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	UEdGraphPin* LastThen = CallBeginSpawnNode->GetThenPin();
+
+	// Create 'set var by name' nodes and hook them up
+	for (int32 PinIdx = 0; PinIdx < SpawnNode->Pins.Num(); PinIdx++)
+	{
+		// Only create 'set param by name' node if this pin is linked to something
+		UEdGraphPin* OrgPin = SpawnNode->Pins[PinIdx];
+		if (NULL == CallBeginSpawnNode->FindPin(OrgPin->PinName) &&
+			(OrgPin->LinkedTo.Num() > 0 || OrgPin->DefaultValue != FString()))
+		{
+			if( OrgPin->LinkedTo.Num() == 0 )
+			{
+				UProperty* Property = FindField<UProperty>(ForClass, *OrgPin->PinName);
+				// NULL property indicates that this pin was part of the original node, not the 
+				// class we're assigning to:
+				if( !Property )
+				{
+					continue;
+				}
+
+				if( ForClass->ClassDefaultObject )
+				{
+					// We don't want to generate an assignment node unless the default value 
+					// differs from the value in the CDO:
+					FString DefaultValueAsString;
+					FBlueprintEditorUtils::PropertyValueToString(Property, (uint8*)ForClass->ClassDefaultObject, DefaultValueAsString);
+					if (DefaultValueAsString == OrgPin->DefaultValue)
+					{
+						continue;
+					}
+				}
+			}
+
+			UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(OrgPin->PinType);
+			if (SetByNameFunction)
+			{
+				UK2Node_CallFunction* SetVarNode = NULL;
+				if (OrgPin->PinType.bIsArray)
+				{
+					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(SpawnNode, SourceGraph);
+				}
+				else
+				{
+					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(SpawnNode, SourceGraph);
+				}
+				SetVarNode->SetFromFunction(SetByNameFunction);
+				SetVarNode->AllocateDefaultPins();
+
+				// Connect this node into the exec chain
+				Schema->TryCreateConnection(LastThen, SetVarNode->GetExecPin());
+				LastThen = SetVarNode->GetThenPin();
+
+				// Connect the new actor to the 'object' pin
+				UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
+				CallBeginResult->MakeLinkTo(ObjectPin);
+
+				// Fill in literal for 'property name' pin - name of pin is property name
+				UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
+				PropertyNamePin->DefaultValue = OrgPin->PinName;
+
+				UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
+				if (OrgPin->LinkedTo.Num() == 0 &&
+					OrgPin->DefaultValue != FString() &&
+					OrgPin->PinType.PinCategory == Schema->PC_Byte &&
+					OrgPin->PinType.PinSubCategoryObject.IsValid() &&
+					OrgPin->PinType.PinSubCategoryObject->IsA<UEnum>())
+				{
+					// Pin is an enum, we need to alias the enum value to an int:
+					UK2Node_EnumLiteral* EnumLiteralNode = CompilerContext.SpawnIntermediateNode<UK2Node_EnumLiteral>(SpawnNode, SourceGraph);
+					EnumLiteralNode->Enum = CastChecked<UEnum>(OrgPin->PinType.PinSubCategoryObject.Get());
+					EnumLiteralNode->AllocateDefaultPins();
+					EnumLiteralNode->FindPinChecked(Schema->PN_ReturnValue)->MakeLinkTo(ValuePin);
+
+					UEdGraphPin* InPin = EnumLiteralNode->FindPinChecked(UK2Node_EnumLiteral::GetEnumInputPinName());
+					check( InPin );
+					InPin->DefaultValue = OrgPin->DefaultValue;
+				}
+				else
+				{
+					// Move connection from the variable pin on the spawn node to the 'value' pin
+					CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
+					SetVarNode->PinConnectionListChanged(ValuePin);
+				}
+			}
+		}
+	}
+
+	return LastThen;
 }
 
 /** Creates a property named PropertyName of type PropertyType in the Scope or returns NULL if the type is unknown, but does *not* link that property in */

@@ -11,6 +11,9 @@
 #include <algorithm>
 #include <sstream>
 
+#include <vector>
+typedef TArray<ir_variable*> TIRVarVector;
+
 
 template <typename T>
 static inline T MIN2(T a, T b)
@@ -563,7 +566,7 @@ static void FindMainAndCalculateUniformArraySizes(exec_list* Instructions, _mesa
 					goto done;
 				}
 
-				OutUniformVariables.push_back(var);
+				OutUniformVariables.Add(var);
 				OutInfo.AddVar(var, ParseState);
 			}
 		}
@@ -590,7 +593,7 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 	// First organize all uniforms by location (CB or Global) and Precision
 	int UniformIndex = 0;
 	std::map<std::string, std::map<char, TIRVarVector> > OrganizedVars;
-	for (int NumUniforms = (int)UniformVariables.size(); UniformIndex < NumUniforms; ++UniformIndex)
+	for (int NumUniforms = UniformVariables.Num(); UniformIndex < NumUniforms; ++UniformIndex)
 	{
 		ir_variable* var = UniformVariables[UniformIndex];
 		const glsl_type* type = var->type->is_array() ? var->type->fields.array : var->type;
@@ -607,7 +610,7 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 			return -1;
 		}
 
-		OrganizedVars[var->semantic ? var->semantic : ""][ArrayType].push_back(var);
+		OrganizedVars[var->semantic ? var->semantic : ""][ArrayType].Add(var);
 	}
 
 	// Now create the list of used cb's to get their index
@@ -637,9 +640,8 @@ static int ProcessPackedUniformArrays(exec_list* Instructions, void* ctx, _mesa_
 			ir_variable* UniformArrayVar = NULL;
 			char ArrayType = IterVarSet->first;
 			auto& Vars = IterVarSet->second;
-			for (auto IterVar = Vars.begin(); IterVar != Vars.end(); ++IterVar)
+			for (auto* var : Vars)
 			{
-				ir_variable* var = *IterVar;
 				const glsl_type* type = var->type->is_array() ? var->type->fields.array : var->type;
 				const glsl_base_type array_base_type = (type->base_type == GLSL_TYPE_BOOL) ? GLSL_TYPE_UINT : type->base_type;
 				if (!UniformArrayVar)
@@ -752,7 +754,7 @@ static int ProcessPackedSamplers(int UniformIndex, void* ctx, _mesa_glsl_parse_s
 {
 	int NumElements = 0;
 	check(ParseState->GlobalPackedArraysMap[EArrayType_Sampler].empty());
-	for (int NumUniforms = (int)UniformVariables.size(); UniformIndex < NumUniforms; ++UniformIndex)
+	for (int NumUniforms = UniformVariables.Num(); UniformIndex < NumUniforms; ++UniformIndex)
 	{
 		ir_variable* var = UniformVariables[UniformIndex];
 		const glsl_type* type = var->type->is_array() ? var->type->fields.array : var->type;
@@ -790,7 +792,7 @@ static int ProcessPackedImages(int UniformIndex, void* ctx, _mesa_glsl_parse_sta
 {
 	int NumElements = 0;
 	check(ParseState->GlobalPackedArraysMap[EArrayType_Image].empty());
-	for (int NumUniforms = (int)UniformVariables.size(); UniformIndex < NumUniforms; ++UniformIndex)
+	for (int NumUniforms = UniformVariables.Num(); UniformIndex < NumUniforms; ++UniformIndex)
 	{
 		ir_variable* var = UniformVariables[UniformIndex];
 		const glsl_type* type = var->type->is_array() ? var->type->fields.array : var->type;
@@ -838,7 +840,7 @@ void PackUniforms(exec_list* Instructions, _mesa_glsl_parse_state* ParseState, b
 	SPackedUniformsInfo PUInfo;
 	FindMainAndCalculateUniformArraySizes(Instructions, ParseState, MainSig, UniformVariables, PUInfo);
 
-	if (MainSig && !UniformVariables.empty())
+	if (MainSig && UniformVariables.Num())
 	{
 		std::sort(UniformVariables.begin(), UniformVariables.end(), SSortUniformsPredicate(ParseState));
 		int UniformIndex = ProcessPackedUniformArrays(Instructions, ctx, ParseState, UniformVariables, PUInfo, bFlattenStructure, bGroupFlattenedUBs, OutUniformMap);

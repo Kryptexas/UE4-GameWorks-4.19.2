@@ -19,16 +19,17 @@ public:
 	 *
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	static TSharedRef<FStreamingLevelCollectionModel> Create(const TWeakObjectPtr<UEditorEngine>& InEditor)
+	static TSharedRef<FStreamingLevelCollectionModel> Create(UEditorEngine* InEditor, UWorld* InWorld)
 	{
 		TSharedRef<FStreamingLevelCollectionModel> LevelCollectionModel(new FStreamingLevelCollectionModel(InEditor));
-		LevelCollectionModel->Initialize();
+		LevelCollectionModel->Initialize(InWorld);
 		return LevelCollectionModel;
 	}
 
 public:
 	/** FLevelCollection interface */
 	virtual void UnloadLevels(const FLevelModelList& InLevelList) override;
+	virtual void AddExistingLevelsFromAssetData(const TArray<FAssetData>& WorldList) override;
 	virtual TSharedPtr<FLevelDragDropOp> CreateDragDropOp() const override;
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const override;
@@ -36,19 +37,13 @@ public:
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) override;
 
 private:
-	virtual void Initialize() override;
+	virtual void Initialize(UWorld* InWorld) override;
 	virtual void BindCommands() override;
 	virtual void OnLevelsCollectionChanged() override;
 	virtual void OnLevelsSelectionChanged() override;
 	/** FLevelCollection interface end */
 	
 public:
-	/** @return Whether the current selection can be shifted */
-	bool CanShiftSelection();
-
-	/** Moves the level selection up or down in the list; used for re-ordering */
-	void ShiftSelection( bool bUp );
-
 	/** @return Any selected ULevel objects in the LevelsView that are NULL */
 	const FLevelModelList& GetInvalidSelectedLevels() const;
 
@@ -59,14 +54,8 @@ private:
 	 *	@param	InWorldLevels	The Level management logic object
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	FStreamingLevelCollectionModel( const TWeakObjectPtr< UEditorEngine >& InEditor );
+	FStreamingLevelCollectionModel(UEditorEngine* InEditor);
 	
-	/** Refreshes the sort index on all viewmodels that contain ULevels */
-	void RefreshSortIndexes();
-	
-	/**	Sorts the filtered Levels list */
-	void SortFilteredLevels();
-
 	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override { UpdateAllLevels(); }
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
@@ -86,7 +75,10 @@ private:
 	void AddExistingLevel_Executed();
 	
 	/** Adds an existing level; prompts for path, Returns true if a level is selected */
-	bool AddExistingLevel();
+	void AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter = false);
+
+	/** Handler for when a level is selected after invoking AddExistingLevel */
+	void HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter);
 
 	/** Add Selected Actors to New Level; prompts for level save location */
 	void AddSelectedActorsToNewLevel_Executed();
@@ -110,10 +102,10 @@ private:
 	void SelectStreamingVolumes_Executed();
 
 	/**  */
-	void FillSetStreamingMethodMenu(class FMenuBuilder& MenuBuilder);
+	void FillSetStreamingMethodSubMenu(class FMenuBuilder& MenuBuilder);
 	
 	/**  */
-	void FillDefaultStreamingMethodMenu(class FMenuBuilder& MenuBuilder);
+	void FillDefaultStreamingMethodSubMenu(class FMenuBuilder& MenuBuilder);
 	
 private:
 	/** Currently selected NULL Levels */

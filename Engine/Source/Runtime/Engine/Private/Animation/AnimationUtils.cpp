@@ -259,8 +259,8 @@ void FAnimationUtils::ComputeCompressionError(const UAnimSequence* AnimSeq, cons
 				}
 				else
 				{
-					AnimSeq->GetBoneTransform(RawAtoms[BoneIndex], TrackIndex, Time, false, true);
-					AnimSeq->GetBoneTransform(NewAtoms[BoneIndex], TrackIndex, Time, false, false);
+					AnimSeq->GetBoneTransform(RawAtoms[BoneIndex], TrackIndex, Time, true);
+					AnimSeq->GetBoneTransform(NewAtoms[BoneIndex], TrackIndex, Time, false);
 
 
 					bool bSkipTranslationTrack = false;
@@ -1376,7 +1376,8 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 	}
 	else
 	{
-		UE_LOG(LogAnimation, Warning, TEXT("Compression Requested for Empty Animation %s"), *AnimSeq->GetName() );
+		// this can happen if the animation only contains curve - i.e. blendshape curves
+		UE_LOG(LogAnimation, Log, TEXT("Compression Requested for Empty Animation %s"), *AnimSeq->GetName() );
 	}
 #endif // WITH_EDITORONLY_DATA
 }
@@ -1652,7 +1653,7 @@ void FAnimationUtils::TallyErrorsFromPerturbation(
 				}
 				else
 				{
-					AnimSeq->GetBoneTransform(RawAtoms[BoneIndex], TrackIndex, Time, false, true);
+					AnimSeq->GetBoneTransform(RawAtoms[BoneIndex], TrackIndex, Time, true);
 
 					NewAtomsT[BoneIndex] = RawAtoms[BoneIndex];
 					NewAtomsR[BoneIndex] = RawAtoms[BoneIndex];

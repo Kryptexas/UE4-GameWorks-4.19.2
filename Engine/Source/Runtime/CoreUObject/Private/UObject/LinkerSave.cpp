@@ -165,7 +165,9 @@ FArchive& ULinkerSave::operator<<( FAssetPtr& AssetPtr)
 	{
 		ID = AssetPtr.GetUniqueID();
 	}
-	return *this << ID;
+
+	ID.Serialize(*this);
+	return *this;
 }
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(ULinkerSave, ULinker,

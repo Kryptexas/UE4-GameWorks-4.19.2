@@ -8,6 +8,43 @@
 
 #include "StaticArray.h"
 
+
+extern RHI_API FCriticalSection StaticStateRHICriticalSection;
+
+/**
+ * Helper task to initialize a static resource on the render thread.
+ */
+class FInitStaticResourceRenderThreadTask
+{
+	void (*DoConstruct)();
+	FScopedEvent& Event;
+public:
+
+	FInitStaticResourceRenderThreadTask(void (*InDoConstruct)(), FScopedEvent* InEvent)
+		: DoConstruct(InDoConstruct)
+		, Event(*InEvent)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FInitStaticResourceRenderThreadTask, STATGROUP_TaskGraphTasks);
+	}
+
+	ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::RenderThread_Local;
+	}
+
+	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::FireAndForget; }
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		DoConstruct();
+		Event.Trigger();
+	}
+};
+
 /**
  * The base class of the static RHI state classes.
  */
@@ -16,20 +53,31 @@ class TStaticStateRHI
 {
 public:
 
+	static void GetRHI_WithNoReturnValue()
+	{
+		GetRHI();
+	}
 	static RHIParamRefType GetRHI()
 	{
-		static FStaticStateResource Resource;
+		// This is super-duper nasty. We rely upon the fact that all compilers will assign uninitialized static, POD data (like StaticResource) to a zero seg and not do any construction on it whatsoever.
+		static FStaticStateResource* StaticResource; // Must be left uninitialized!
 
-		static bool bRecreate = false;
-
-		// Set bRecreate to 1 to debug the resource creation
-		if (bRecreate)
+		if (!StaticResource)
 		{
-			bRecreate = false;
-			Resource = FStaticStateResource();
+			if (!IsInRenderingThread())
+			{
+				check(IsInParallelRenderingThread());
+				{
+					FScopedEvent Event;
+					TGraphTask<FInitStaticResourceRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(&GetRHI_WithNoReturnValue, &Event);
+				}
+			}
+			else
+			{
+				StaticResource = new FStaticStateResource();
+			}
 		}
-
-		return Resource.StateRHI;
+		return StaticResource->StateRHI;
 	};
 
 private:
@@ -38,7 +86,6 @@ private:
 	class FStaticStateResource : public FRenderResource
 	{
 	public:
-
 		RHIRefType StateRHI;
 
 		FStaticStateResource()

@@ -13,7 +13,7 @@
  * Android cooking platform which cooks only ATC based textures.
  */
 class FAndroid_ATCTargetPlatform
-	: public FAndroidTargetPlatform
+	: public FAndroidTargetPlatform<FAndroid_ATCPlatformProperties>
 {
 	virtual FString GetAndroidVariantName( ) override
 	{
@@ -27,7 +27,7 @@ class FAndroid_ATCTargetPlatform
 
 	virtual FString PlatformName() const override
 	{
-		return FString(FAndroid_ATCCPlatformProperties::PlatformName());
+		return FString(FAndroid_ATCPlatformProperties::PlatformName());
 	}
 
 	virtual bool SupportsTextureFormat( FName Format ) const override

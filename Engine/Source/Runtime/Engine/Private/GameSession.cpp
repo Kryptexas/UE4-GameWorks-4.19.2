@@ -205,6 +205,14 @@ void AGameSession::NotifyLogout(APlayerController* PC)
 	UnregisterPlayer(PC);
 }
 
+void AGameSession::AddAdmin(APlayerController* AdminPlayer)
+{
+}
+
+void AGameSession::RemoveAdmin(APlayerController* AdminPlayer)
+{
+}
+
 bool AGameSession::KickPlayer(APlayerController* KickedPlayer, const FText& KickReason)
 {
 	// Do not kick logged admins

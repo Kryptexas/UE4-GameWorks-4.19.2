@@ -4,7 +4,7 @@
 
 #include "SpriteEditorOnlyTypes.h"
 #include "Engine/EngineTypes.h"
-
+#include "Interfaces/Interface_CollisionDataProvider.h"
 #include "PaperSprite.generated.h"
 
 UENUM()
@@ -58,6 +58,22 @@ protected:
 	// Position within BakedSourceTexture
 	UPROPERTY()
 	FVector2D BakedSourceUV;
+
+	// Origin within SourceImage, prior to atlasing
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay, meta=(EditCondition="bTrimmedInSourceImage"))
+	FVector2D OriginInSourceImageBeforeTrimming;
+
+	// Dimensions of SourceImage
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay, meta=(EditCondition="bTrimmedInSourceImage"))
+	FVector2D SourceImageDimensionBeforeTrimming;
+
+	// This texture is trimmed, consider the values above
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
+	bool bTrimmedInSourceImage;
+
+	// This texture is rotated in the atlas
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
+	bool bRotatedInSourceImage;
 #endif
 
 	// The source texture that the sprite comes from
@@ -67,9 +83,13 @@ protected:
 	UPROPERTY()
 	UTexture2D* BakedSourceTexture;
 
-	// The material to use on a sprite instance if not overridden
+	// The material to use on a sprite instance if not overridden (this is the default material when only one is being used, and is the translucent/masked material for Diced render geometry, slot 0)
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
 	UMaterialInterface* DefaultMaterial;
+
+	// The alternate material to use on a sprite instance if not overridden (this is only used for Diced render geometry, and will be the opaque material in that case, slot 1)
+	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
+	UMaterialInterface* AlternateMaterial;
 
 	// List of sockets on this sprite
 	UPROPERTY(Category=Sprite, EditAnywhere)
@@ -99,6 +119,10 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	FVector2D CustomPivotPoint;
 
+	// Should the pivot be snapped to a pixel boundary?
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
+	bool bSnapPivotToPixelGrid;
+
 	// Custom collision geometry polygons (in texture space)
 	UPROPERTY(Category=Collision, EditAnywhere)
 	FSpritePolygonCollection CollisionGeometry;
@@ -114,9 +138,14 @@ protected:
 	// Spritesheet group that this sprite belongs to
 	UPROPERTY(Category=Sprite, EditAnywhere, AssetRegistrySearchable)
 	class UPaperSpriteAtlas* AtlasGroup;
+
 #endif
 
 public:
+	// The point at which the alternate material takes over in the baked render data (or INDEX_NONE)
+	UPROPERTY()
+	int32 AlternateMaterialSplitIndex;
+
 	// Baked render data (triangle vertices, stored as XY UV tuples)
 	//   XY is the XZ position in world space, relative to the pivot
 	//   UV is normalized (0..1)
@@ -139,11 +168,15 @@ public:
 	FVector ConvertTextureSpaceToPivotSpace(FVector Input) const;
 	FVector ConvertPivotSpaceToTextureSpace(FVector Input) const;
 	FVector2D ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const;
+	FVector2D ConvertWorldSpaceDeltaToTextureSpace(const FVector& WorldDelta) const;
 
 	// World space WRT the sprite editor *only*
 	FVector ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;
 	//FVector ConvertTextureSpaceToWorldSpace(const FVector& SourcePoint) const;
 	FTransform GetPivotToWorld() const;
+
+	// Returns the raw pivot position (ignoring pixel snapping)
+	FVector2D GetRawPivotPosition() const;
 
 	// Returns the current pivot position in texture space
 	FVector2D GetPivotPosition() const;
@@ -171,25 +204,46 @@ public:
 	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension);
 	void InitializeSprite(UTexture2D* Texture, const FVector2D& Offset, const FVector2D& Dimension, float InPixelsPerUnit);
 
+	void SetTrim(bool bTrimmed, const FVector2D& OriginInSourceImage, const FVector2D& SourceImageDimension);
+	void SetRotated(bool bRotated);
+	void SetPivot(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot);
+
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
 #endif
 
+	// Return the scaling factor between pixels and Unreal units (cm)
 	float GetPixelsPerUnrealUnit() const { return PixelsPerUnrealUnit; }
+
+	// Return the scaling factor between Unreal units (cm) and pixels
 	float GetUnrealUnitsPerPixel() const { return 1.0f / PixelsPerUnrealUnit; }
 
 	// Returns the texture this should be rendered with
 	UTexture2D* GetBakedTexture() const;
 
+	// Return the default material for this sprite
 	UMaterialInterface* GetDefaultMaterial() const { return DefaultMaterial; }
+
+	// Return the alternate material for this sprite
+	UMaterialInterface* GetAlternateMaterial() const { return AlternateMaterial; }
+
+	// Returns either the default material (index 0) or alternate material (index 1)
+	UMaterialInterface* GetMaterial(int32 MaterialIndex) const;
+
+	// Returns the number of materials (1 or 2, depending on if there is alternate geometry)
+	int32 GetNumMaterials() const;
 
 	// Returns the render bounds of this sprite
 	FBoxSphereBounds GetRenderBounds() const;
 
 	// Search for a socket (note: do not cache this pointer; it's unsafe if the Socket array is edited)
 	FPaperSpriteSocket* FindSocket(FName SocketName);
+
+	// Returns true if the sprite has any sockets
 	bool HasAnySockets() const { return Sockets.Num() > 0; }
+	
+	// Returns a list of all of the sockets
 	void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const;
 
 	// IInterface_CollisionDataProvider interface

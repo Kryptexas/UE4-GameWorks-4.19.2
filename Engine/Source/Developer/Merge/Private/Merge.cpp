@@ -1,12 +1,23 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MergePrivatePCH.h"
+
+#include "BlueprintEditor.h"
+#include "ISourceControlModule.h"
 #include "SBlueprintMerge.h"
 #include "Toolkits/ToolkitManager.h"
 #include "Toolkits/IToolkit.h"
-#include "ISourceControlModule.h"
 
 #define LOCTEXT_NAMESPACE "Merge"
+
+const FName MergeToolTabId = FName(TEXT("MergeTool"));
+
+static void DisplayErrorMessage( const FText& ErrorMessage )
+{
+	FNotificationInfo Info(ErrorMessage);
+	Info.ExpireDuration = 5.0f;
+	FSlateNotificationManager::Get().AddNotification(Info);
+}
 
 static FSourceControlStatePtr GetSourceControlState(const FString& PackageName)
 {
@@ -47,17 +58,33 @@ static UObject* LoadRevision(const FString& AssetName, const ISourceControlRevis
 			}
 			else
 			{
-				// @todo DO: toast? i love toast..
+				DisplayErrorMessage( 
+					FText::Format(
+						LOCTEXT("MergedFailedToFindObject", "Aborted Load of {0} because we could not find an object named {1}" )
+						, FText::FromString(TempFileName)
+						, FText::FromString(AssetName) 
+					)
+				);
 			}
 		}
 		else
 		{
-			// @todo DO: toast? i love toast..
+			DisplayErrorMessage(
+				FText::Format(
+					LOCTEXT("MergedFailedToLoadPackage", "Aborted Load of {0} because we could not load the package")
+					, FText::FromString(TempFileName)
+				)
+			);
 		}
 	}
 	else
 	{
-		// @todo DO: toast? i love toast..
+		DisplayErrorMessage(
+			FText::Format(
+				LOCTEXT("MergedFailedToFindRevision", "Aborted Load of {0} because we could not get the requested revision")
+				, FText::FromString(TempFileName)
+			)
+		);
 	}
 	return NULL;
 }
@@ -68,40 +95,21 @@ static FRevisionInfo GetRevisionInfo(ISourceControlRevision const& FromRevision)
 	return Ret;
 }
 
-static UObject* LoadHeadRev(const FString& PackageName, const FString& AssetName, FRevisionInfo& OutRevInfo)
+static UObject* LoadHeadRev(const FString& PackageName, const FString& AssetName, const ISourceControlState& SourceControlState, FRevisionInfo& OutRevInfo)
 {
-	FSourceControlStatePtr SourceControlState = GetSourceControlState(PackageName);
-	if (SourceControlState.IsValid())
-	{
-		// HistoryItem(0) is apparently the head revision:
-		TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(0);
-		check(Revision.IsValid());
-		OutRevInfo = GetRevisionInfo(*Revision);
-		return LoadRevision(AssetName, *Revision);
-	}
-	else
-	{
-		// @todo DO: toast? i love toast..
-	}
-
-	return NULL;
+	// HistoryItem(0) is apparently the head revision:
+	TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState.GetHistoryItem(0);
+	check(Revision.IsValid());
+	OutRevInfo = GetRevisionInfo(*Revision);
+	return LoadRevision(AssetName, *Revision);
 }
 
-static UObject* LoadBaseRev(const FString& PackageName, const FString& AssetName, FRevisionInfo& OutRevInfo)
+static UObject* LoadBaseRev(const FString& PackageName, const FString& AssetName, const ISourceControlState& SourceControlState, FRevisionInfo& OutRevInfo)
 {
-	FSourceControlStatePtr SourceControlState = GetSourceControlState(PackageName);
-	if (SourceControlState.IsValid())
-	{
-		TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetBaseRevForMerge();
-		check(Revision.IsValid());
-		OutRevInfo = GetRevisionInfo(*Revision);
-		return LoadRevision(AssetName, *Revision);
-	}
-	else
-	{
-		// @todo DO: toast? i love toast..
-	}
-	return NULL;
+	TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState.GetBaseRevForMerge();
+	check(Revision.IsValid());
+	OutRevInfo = GetRevisionInfo(*Revision);
+	return LoadRevision(AssetName, *Revision);
 }
 
 class FMerge : public IMerge
@@ -109,68 +117,43 @@ class FMerge : public IMerge
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	virtual void Merge(const UBlueprint& Object) override;
+	virtual TSharedRef<SDockTab> GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor) override;
+	virtual bool PendingMerge(const UBlueprint& BlueprintObj) const override;
+
+	// Simplest to only allow one merge operation at a time, we could easily make this a map of Blueprint=>MergeTab
+	// but doing so will complicate the tab management
+	TWeakPtr<SDockTab> ActiveTab;
 };
 IMPLEMENT_MODULE( FMerge, Merge )
 
 void FMerge::StartupModule()
 {
 	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
+
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+		MergeToolTabId, 
+		FOnSpawnTab::CreateStatic( [](const FSpawnTabArgs&) { return SNew(SDockTab); } ) )
+		.SetDisplayName(NSLOCTEXT("MergeTool", "TabTitle", "Merge Tool"))
+		.SetTooltipText(NSLOCTEXT("MergeTool", "TooltipText", "Used to display several versions of a blueprint that need to be merged into a single version.")
+	);
 }
 
 void FMerge::ShutdownModule()
 {
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(MergeToolTabId);
 }
 
-void FMerge::Merge( const UBlueprint& Object )
+TSharedRef<SDockTab> FMerge::GenerateMergeWidget(const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor)
 {
-	// Verify that the object is not open in some other editor:
-	TSharedPtr< IToolkit > FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(&Object);
-	if (FoundAssetEditor.IsValid())
+	auto ActiveTabPtr = ActiveTab.Pin();
+	if( ActiveTabPtr.IsValid() )
 	{
-		FText ToolkitName = FoundAssetEditor->GetBaseToolkitName();
-		FText ErrorMessage = FText::Format(LOCTEXT("CloseOpenEditors", "{0} must be closed before merging {1}. Would you like to close {0} and continue?"), ToolkitName, FText::FromString(Object.GetName()));
-		EAppReturnType::Type Result = FMessageDialog::Open(EAppMsgType::OkCancel, ErrorMessage);
-		if (Result == EAppReturnType::Cancel)
-		{
-			return;
-		}
-		else
-		{
-			FToolkitManager::Get().CloseToolkit(FoundAssetEditor.ToSharedRef());
-			FoundAssetEditor = FToolkitManager::Get().FindEditorForAsset(&Object);
-			if (FoundAssetEditor.IsValid())
-			{
-				ErrorMessage = FText::Format(LOCTEXT("MergeAborted", "Aborted Merge of {0} because {1} failed to close"), FText::FromString(Object.GetName()), ToolkitName);
-				FNotificationInfo Info(ErrorMessage);
-				Info.ExpireDuration = 5.0f;
-				FSlateNotificationManager::Get().AddNotification(Info);
-				return;
-			}
-		}
-	}
-
-	// verify that the object is not dirty:
-	if (Object.GetOutermost()->IsDirty())
-	{
-		FText RequestSave = FText::Format(LOCTEXT("RequestSaveForMerge", "{0} must be saved before it can be merged. Would you like to save and continue?"), FText::FromString(Object.GetName()));
-		EAppReturnType::Type Result = FMessageDialog::Open(EAppMsgType::OkCancel, RequestSave);
-		if (Result == EAppReturnType::Cancel)
-		{
-			return;
-		}
-		else
-		{
-			TArray<UPackage*> PackagesToSave;
-			PackagesToSave.Add(Object.GetOutermost());
-			const auto Result = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, /*bCheckDirty=*/ false, /*bPromptToSave=*/ false);
-			if (Result != FEditorFileUtils::PR_Success)
-			{
-				return;
-			}
-		}
+		// just bring the tab to the foreground:
+		auto CurrentTab = FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
+		check( CurrentTab == ActiveTabPtr );
+		return ActiveTabPtr.ToSharedRef();
 	}
 
 	// merge the local asset with the depot, SCC provides us with the last common revision as
@@ -179,65 +162,94 @@ void FMerge::Merge( const UBlueprint& Object )
 	// @todo DO: this will probably need to be async.. pulling down some old versions of assets:
 	const FString& PackageName = Object.GetOutermost()->GetName();
 	const FString& AssetName = Object.GetName();
+	
+	TSharedPtr<SWidget> Contents;
 
-	FRevisionInfo CurrentRevInfo = FRevisionInfo::InvalidRevision();
-	UBlueprint* RemoteBlueprint = Cast< UBlueprint >( LoadHeadRev(PackageName, AssetName, CurrentRevInfo) );
-	FRevisionInfo BaseRevInfo = FRevisionInfo::InvalidRevision();
-	UBlueprint* BaseBlueprint = Cast< UBlueprint >( LoadBaseRev(PackageName, AssetName, BaseRevInfo) );
-
-	if (RemoteBlueprint && BaseBlueprint)
+	FSourceControlStatePtr SourceControlState = GetSourceControlState(PackageName);
+	if (!SourceControlState.IsValid())
 	{
-		FMergeDisplayArgs DisplayArgs = { CurrentRevInfo, BaseRevInfo };
+		DisplayErrorMessage(
+			FText::Format(
+				LOCTEXT("MergeFailedNoSourceControl", "Aborted Load of {0} from {1} because the source control state was invalidated")
+				, FText::FromString(AssetName)
+				, FText::FromString(PackageName)
+			)
+		);
 
-		FText WindowTitle = FText::Format(LOCTEXT("BlueprintMerge", "{0} - Blueprint Merge"), FText::FromString(AssetName));
-
-		const TSharedPtr<SWindow> Window = SNew(SWindow)
-			.Title(WindowTitle)
-			.ClientSize(FVector2D(1000, 800));
-
-		SBlueprintDiff::FArguments BaseArgs;
-		BaseArgs.BlueprintOld(BaseBlueprint)
-			.OldRevision(CurrentRevInfo)
-			.BlueprintNew(RemoteBlueprint)
-			.NewRevision(BaseRevInfo);
-
-		Window->SetContent(SNew(SBlueprintMerge)
-			.BlueprintLocal(const_cast<UBlueprint*>(&Object))
-			.OwningWindow(Window)
-			.BaseArgs(BaseArgs));
-
-		// Make this window a child of the modal window if we've been spawned while one is active.
-		TSharedPtr<SWindow> ActiveModal = FSlateApplication::Get().GetActiveModalWindow();
-		if (ActiveModal.IsValid())
-		{
-			FSlateApplication::Get().AddWindowAsNativeChild(Window.ToSharedRef(), ActiveModal.ToSharedRef());
-		}
-		else
-		{
-			FSlateApplication::Get().AddWindow(Window.ToSharedRef());
-		}
+		Contents = SNew(SHorizontalBox);
 	}
 	else
 	{
-		FText MissingFiles;
-		if (!RemoteBlueprint && !BaseBlueprint)
+		ISourceControlState const& SourceControlStateRef = *SourceControlState;
+
+		FRevisionInfo CurrentRevInfo = FRevisionInfo::InvalidRevision();
+		const UBlueprint* RemoteBlueprint = Cast< UBlueprint >(LoadHeadRev(PackageName, AssetName, SourceControlStateRef, CurrentRevInfo));
+		FRevisionInfo BaseRevInfo = FRevisionInfo::InvalidRevision();
+		const UBlueprint* BaseBlueprint = Cast< UBlueprint >(LoadBaseRev(PackageName, AssetName, SourceControlStateRef, BaseRevInfo));
+
+		if (RemoteBlueprint && BaseBlueprint)
 		{
-			MissingFiles = LOCTEXT("MergeBothRevisionsFailed", "common base, nor conflicting revision");
-		}
-		else if (!RemoteBlueprint)
-		{
-			MissingFiles = LOCTEXT("MergeConflictingRevisionsFailed", "conflicting revision");
+			FMergeDisplayArgs DisplayArgs = { CurrentRevInfo, BaseRevInfo };
+
+			SBlueprintDiff::FArguments BaseArgs;
+			BaseArgs.BlueprintOld(BaseBlueprint)
+				.OldRevision(CurrentRevInfo)
+				.BlueprintNew(RemoteBlueprint)
+				.NewRevision(BaseRevInfo);
+
+			Contents = SNew(SBlueprintMerge)
+				.BlueprintLocal(static_cast<const UBlueprint*> ( StaticDuplicateObject( &Object, GetTransientPackage(), TEXT("None") ) ) )
+				.OwningEditor(Editor)
+				.BaseArgs(BaseArgs);
 		}
 		else
 		{
-			MissingFiles = LOCTEXT("MergeBaseRevisionsFailed", "common base");
-		}
+			FText MissingFiles;
+			if (!RemoteBlueprint && !BaseBlueprint)
+			{
+				MissingFiles = LOCTEXT("MergeBothRevisionsFailed", "common base, nor conflicting revision");
+			}
+			else if (!RemoteBlueprint)
+			{
+				MissingFiles = LOCTEXT("MergeConflictingRevisionsFailed", "conflicting revision");
+			}
+			else
+			{
+				MissingFiles = LOCTEXT("MergeBaseRevisionsFailed", "common base");
+			}
 
-		FText ErrorMessage = FText::Format(LOCTEXT("MergeRevisionLoadFailed", "Aborted Merge of {0} because we could not load {1}"), FText::FromString(Object.GetName()), MissingFiles);
-		FNotificationInfo Info(ErrorMessage);
-		Info.ExpireDuration = 3.0f;
-		FSlateNotificationManager::Get().AddNotification(Info);
+			DisplayErrorMessage(
+				FText::Format(
+					LOCTEXT("MergeRevisionLoadFailed", "Aborted Merge of {0} because we could not load {1}")
+					, FText::FromString(Object.GetName())
+					, MissingFiles
+				)
+			);
+
+			Contents = SNew(SHorizontalBox);
+		}
 	}
+
+	TSharedRef<SDockTab> Tab =  FGlobalTabmanager::Get()->InvokeTab(MergeToolTabId);
+	Tab->SetContent(Contents.ToSharedRef());
+	ActiveTab = Tab;
+	return Tab;
+
+}
+
+bool FMerge::PendingMerge(const UBlueprint& BlueprintObj) const
+{
+	bool bIsMergeEnabled = false;
+	GConfig->GetBool(TEXT("AssetMerge"), TEXT("EnableAssetMerge"), bIsMergeEnabled, GEngineIni);
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+	bool bPendingMerge = false;
+	if( bIsMergeEnabled && SourceControlProvider.IsEnabled() )
+	{
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(BlueprintObj.GetOutermost(), EStateCacheUsage::Use);
+		bPendingMerge = SourceControlState.IsValid() && SourceControlState->IsConflicted();
+	}
+	return bPendingMerge;
 }
 
 #undef LOCTEXT_NAMESPACE

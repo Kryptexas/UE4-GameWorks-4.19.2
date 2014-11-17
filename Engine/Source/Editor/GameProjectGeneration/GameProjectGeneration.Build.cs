@@ -38,6 +38,7 @@ public class GameProjectGeneration : ModuleRules
             new string[] {
 				"ClassViewer",
                 "DesktopPlatform",
+                "Documentation",
                 "MainFrame",
             }
 		);

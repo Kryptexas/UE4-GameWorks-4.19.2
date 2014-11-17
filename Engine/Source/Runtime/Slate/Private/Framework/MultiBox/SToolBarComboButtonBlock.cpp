@@ -6,7 +6,7 @@
 
 
 FToolBarComboButtonBlock::FToolBarComboButtonBlock( const FUIAction& InAction, const FOnGetContent& InMenuContentGenerator, const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const TAttribute<FSlateIcon>& InIcon, bool bInSimpleComboBox )
-	: FMultiBlock( InAction )
+	: FMultiBlock( InAction, NAME_None, EMultiBlockType::ToolBarComboButton )
 	, MenuContentGenerator( InMenuContentGenerator )
 	, Label( InLabel )
 	, ToolTip( InToolTip )

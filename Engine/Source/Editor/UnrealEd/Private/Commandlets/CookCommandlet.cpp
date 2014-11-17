@@ -21,6 +21,8 @@
 #include "UnrealEdMessages.h"
 #include "GameDelegates.h"
 #include "ChunkManifestGenerator.h"
+#include "PhysicsPublic.h"
+#include "CookerSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
@@ -454,6 +456,16 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 				else
 				{
 					bSavedCorrectly &= GEditor->SavePackage( Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue() );
+				}
+
+				if (World && World->bIsWorldInitialized)
+				{
+					// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
+					World->SetPhysicsScene(nullptr);
+					if ( GPhysCommandHandler )
+					{
+						GPhysCommandHandler->Flush();
+					}
 				}
 
 				
@@ -894,19 +906,31 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 		FString Obj;
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GameDefaultMap"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			if (Obj != FName(NAME_None).ToString())
+			{
+				FilesInPath.AddUnique(Obj);
+			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			if (Obj != FName(NAME_None).ToString())
+			{
+				FilesInPath.AddUnique(Obj);
+			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultGameMode"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			if (Obj != FName(NAME_None).ToString())
+			{
+				FilesInPath.AddUnique(Obj);
+			}
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultServerGameMode"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			if (Obj != FName(NAME_None).ToString())
+			{
+				FilesInPath.AddUnique(Obj);
+			}
 		}
 	}
 

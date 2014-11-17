@@ -2373,6 +2373,16 @@ bool UMaterialInstance::IsTwoSided_Internal() const
 	return GetMaterial()->IsTwoSided();
 }
 
+bool UMaterialInstance::IsMasked_Internal() const
+{
+	checkSlow(IsInGameThread());
+	if (bOverrideBaseProperties && BasePropertyOverrides.bOverride_BlendMode)
+	{
+		return BasePropertyOverrides.BlendMode == EBlendMode::BLEND_Masked;
+	}
+	return GetMaterial()->IsMasked();
+}
+
 bool UMaterialInstance::GetOpacityMaskClipValueOverride(float& OutResult) const
 {
 	if( bOverrideBaseProperties && BasePropertyOverrides.bOverride_OpacityMaskClipValue )
@@ -2413,13 +2423,23 @@ bool UMaterialInstance::IsTwoSidedOverride(bool& OutResult) const
 	return false;
 }
 
+bool UMaterialInstance::IsMaskedOverride(bool& OutResult) const
+{
+	if (bOverrideBaseProperties && BasePropertyOverrides.BlendMode)
+	{
+		OutResult = BasePropertyOverrides.BlendMode == EBlendMode::BLEND_Masked;
+		return true;
+	}
+	return false;
+}
+
 /** Checks to see if an input property should be active, based on the state of the material */
 bool UMaterialInstance::IsPropertyActive(EMaterialProperty InProperty) const
 {
 	return true;
 }
 
-int32 UMaterialInstance::CompileProperty( class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector )
+int32 UMaterialInstance::CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property )
 {
-	return Parent ? Parent->CompileProperty(Compiler,Property,DefaultFloat,DefaultColor,DefaultVector) : INDEX_NONE;
+	return Parent ? Parent->CompilePropertyEx(Compiler, Property) : INDEX_NONE;
 }

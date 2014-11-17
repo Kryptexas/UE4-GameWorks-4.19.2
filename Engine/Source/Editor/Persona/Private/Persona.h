@@ -67,6 +67,8 @@ public:
 
 	/** Set the current preview viewport for Persona */
 	void SetViewport(TWeakPtr<class SAnimationEditorViewportTabBody> NewViewport);
+	/** Set Sequence browser */
+	void SetSequenceBrowser(class SAnimationSequenceBrowser * SequenceBrowser);
 
 	/** Refresh viewport */
 	void RefreshViewport();
@@ -200,6 +202,10 @@ public:
 	virtual void SaveAsset_Execute() override;
 	// End of IToolkit interface
 
+	/** Saves all animation assets related to a skeleton */
+	void SaveAnimationAssets_Execute();
+	bool CanSaveAnimationAssets() const;
+
 	/** @return the documentation location for this editor */
 	virtual FString GetDocumentationLink() const override
 	{
@@ -265,8 +271,8 @@ protected:
 	// 
 	TSharedPtr<SDockTab> OpenNewAnimationDocumentTab(UObject* InAnimAsset);
 
-	// Creates an editor widget for a specified animation document
-	TSharedPtr<SWidget> CreateEditorWidgetForAnimDocument(UObject* InAnimAsset);
+	// Creates an editor widget for a specified animation document and returns the document link 
+	TSharedPtr<SWidget> CreateEditorWidgetForAnimDocument(UObject* InAnimAsset, FString& OutDocumentLink);
 
 	/** Callback when an object has been reimported, and whether it worked */
 	void OnPostReimport(UObject* InObject, bool bSuccess);
@@ -482,6 +488,13 @@ public:
 		OnGenericDelete.RemoveAll(Widget);
 	}
 
+	/** Apply Compression to list of animations */
+	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+	/** Export to FBX files of the list of animations */
+	void ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+	/** Add looping interpolation to the list of animations */
+	void AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences);
+
 protected:
 	/** Undo Action**/
 	void UndoAction();
@@ -535,6 +548,13 @@ private:
 	bool IsRecordAvailable() const;
 	bool IsAnimationBeingRecorded() const;
 
+	/** Animation menu functions **/
+	void OnApplyCompression();
+	void OnExportToFBX();
+	void OnAddLoopingInterpolation();
+	bool HasValidAnimationSequencePlaying() const;
+	bool IsInPersonaMode(const FName InPersonaMode) const;
+
 	/** Change skeleton preview mesh functions */
 	void ChangeSkeletonPreviewMesh();
 	bool CanChangeSkeletonPreviewMesh() const;
@@ -543,11 +563,26 @@ private:
 	void RemoveUnusedBones();
 	bool CanRemoveBones() const;
 
+	// tool bar actions
+	void OnAnimNotifyWindow();
+	void OnRetargetSourceMgr();
+	void OnReimportMesh();
+	void OnImportAsset(enum EFBXImportType DefaultImportType);
+	void OnReimportAnimation();
+	void OnAssetCreated(const TArray<UObject*> NewAssets);
+	TSharedRef< SWidget > GenerateCreateAssetMenu( USkeleton* Skeleton ) const;
+
+	/** Extend menu and toolbar */
+	void ExtendMenu();
+
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;
 
 	/** The extender to pass to the level editor to extend it's window menu */
-	TSharedPtr<FExtender> PersonaMenuExtender;
+	TSharedPtr<FExtender> MenuExtender;
+
+	/** Toolbar extender */
+	TSharedPtr<FExtender> ToolbarExtender;
 
 	/** Preview scene for the editor */
 	FPreviewScene PreviewScene;
@@ -557,4 +592,7 @@ private:
 
 	/** Preview instance inspector widget */
 	TSharedPtr<class SKismetInspector> PreviewEditor;
+
+	/** Sequence Browser **/
+	TWeakPtr<class SAnimationSequenceBrowser> SequenceBrowser;
 };

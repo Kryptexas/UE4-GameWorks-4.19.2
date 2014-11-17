@@ -61,7 +61,7 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output) override;
 protected:
 	virtual void Montage_Advance(float DeltaTime) override;
-	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose, bool bIsLooping);
+	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose);
 	// End UAnimInstance interface
 public:
 
@@ -99,6 +99,12 @@ public:
 	/** custom evaluate pose **/
 	virtual void RestartMontage(UAnimMontage * Montage, FName FromSection = FName());
 	void SetMontageLoop(UAnimMontage* Montage, bool bIsLooping, FName StartingSection = FName());
+
+	/** Updates montage weights based on a jump in time (as this wont be handled by SetPosition) */
+	void UpdateMontageWeightForTimeSkip(float TimeDifference);
+
+	/** Updates the blendspace samples list in the case of our asset being a blendspace */
+	void UpdateBlendspaceSamples(FVector InBlendInput);
 
 #if WITH_EDITORONLY_DATA
 	float PreviewPoseCurrentTime;

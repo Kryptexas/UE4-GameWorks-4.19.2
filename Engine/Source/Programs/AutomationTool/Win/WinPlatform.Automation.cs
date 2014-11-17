@@ -30,20 +30,10 @@ public abstract class BaseWinPlatform : Platform
 	{
 		// Engine non-ufs (binaries)
 
-        if (SC.bStageCrashReporter) 
-        {
-            StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "AutoReporter.");
-            StageExecutable("config", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "AutoReporter.exe.");
-            StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "AutoReporter.XmlSerializers.");            
-            StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "CrashReportCommon.");
-            StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "CrashReportInput.");
-            StageExecutable("config", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "CrashReportInput.exe.");
-            StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "CrashReportUploader.");
-            StageExecutable("config", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "CrashReportUploader.exe.");
-            StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "DotNETUtilities.");
-            StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/DotNET"), "Ionic.Zip.Reduced.");
-            StageExecutable("exe", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries", SC.PlatformDir), "CrashReportClient.");
-        }
+		if( SC.bStageCrashReporter )
+		{
+			StageExecutable( "exe", SC, CommandUtils.CombinePaths( SC.LocalRoot, "Engine/Binaries", SC.PlatformDir ), "CrashReportClient." );
+		}
 
 		//todo we need to support shipping and test executables
 		//todo this should all be partially based on UBT manifests and not hard coded

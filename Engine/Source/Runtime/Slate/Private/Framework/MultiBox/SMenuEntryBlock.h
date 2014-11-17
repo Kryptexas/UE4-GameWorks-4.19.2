@@ -105,6 +105,7 @@ private:
 
 	// Friend our corresponding widget class
 	friend class SMenuEntryBlock;
+	friend class FSlateMacMenu;
 
 	/** Optional overridden text label for this menu entry.  If not set, then the action's label will be used instead. */
 	TAttribute<FText> LabelOverride;

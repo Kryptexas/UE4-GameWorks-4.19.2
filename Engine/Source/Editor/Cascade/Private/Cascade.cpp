@@ -32,6 +32,9 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");
 static const FName Cascade_PropertiesTab("Cascade_Properties");
@@ -74,7 +77,7 @@ void FCascade::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabMan
 
 FCascade::~FCascade()
 {
-	UE_LOG(LogCascade,Log,TEXT("Quitting Cascade. FXSystem=0x%p"),FXSystem);
+	UE_LOG(LogCascade,Log,TEXT("Quitting Cascade. FXSystem=0x%p"),GetFXSystem());
 
 	GEditor->UnregisterForUndo(this);
 	// If the user opened the geometry properties window, we request it be destroyed.
@@ -104,9 +107,6 @@ FCascade::~FCascade()
 	}
 
 	DestroyColorPicker();
-
-	FFXSystemInterface::Destroy(FXSystem);
-	FXSystem = NULL;
 
 	if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
 	{
@@ -169,34 +169,52 @@ void FCascade::InitCascade(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	EditorConfig = ConstructObject<UCascadeConfiguration>(UCascadeConfiguration::StaticClass());
 	check(EditorConfig);
 
+	FString Description;
 	for (int32 EmitterIdx = 0; EmitterIdx < ParticleSystem->Emitters.Num(); EmitterIdx++)
 	{
 		UParticleEmitter* Emitter = ParticleSystem->Emitters[EmitterIdx];
 		if (Emitter)
 		{
+			Description += FString::Printf(TEXT("Emitter%d["), EmitterIdx);
 			Emitter->SetFlags(RF_Transactional);
 			for (int32 LODIndex = 0; LODIndex < Emitter->LODLevels.Num(); LODIndex++)
 			{
 				UParticleLODLevel* LODLevel = Emitter->GetLODLevel(LODIndex);
 				if (LODLevel)
 				{
+					Description += FString::Printf(TEXT("LOD%d("), LODIndex);
 					LODLevel->SetFlags(RF_Transactional);
 					check(LODLevel->RequiredModule);
 					LODLevel->RequiredModule->SetTransactionFlag();
 					check(LODLevel->SpawnModule);
 					LODLevel->SpawnModule->SetTransactionFlag();
-					for (int32 ModuleIdx = 0; ModuleIdx < LODLevel->Modules.Num(); ModuleIdx++)
+					if (LODLevel->Modules.Num() > 0)
 					{
-						UParticleModule* pkModule = LODLevel->Modules[ModuleIdx];
-						pkModule->SetTransactionFlag();
+						Description += FString::Printf(TEXT("Modules%d"), LODLevel->Modules.Num());
+						for (int32 ModuleIdx = 0; ModuleIdx < LODLevel->Modules.Num(); ModuleIdx++)
+						{
+							UParticleModule* pkModule = LODLevel->Modules[ModuleIdx];
+							pkModule->SetTransactionFlag();
+						}
+					}
+					Description += TEXT(")");
+					if (Emitter->LODLevels.Num() > LODIndex + 1)
+					{
+						Description += TEXT(",");
 					}
 				}
 			}
+			Description += TEXT("]");
+			if (ParticleSystem->Emitters.Num() > EmitterIdx + 1)
+			{
+				Description += TEXT(",");
+			}
 		}
 	}
-
-	// Construct an FX system for this preview.
-	FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
+	if (Description.Len() > 0 && FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.Init"), TEXT("Overview"), Description);
+	}
 
 	ParticleSystemComponent = ConstructObject<UCascadeParticleSystemComponent>(UCascadeParticleSystemComponent::StaticClass());
 
@@ -326,7 +344,10 @@ UVectorFieldComponent* FCascade::GetLocalVectorFieldComponent() const
 
 FFXSystemInterface* FCascade::GetFXSystem() const
 {
-	return FXSystem;
+	check(PreviewViewport.IsValid());
+	auto World = PreviewViewport->GetViewportClient()->GetPreviewScene().GetWorld();
+	check(World);
+	return World->FXSystem;
 }
 
 UParticleEmitter* FCascade::GetSelectedEmitter() const
@@ -921,6 +942,11 @@ void FCascade::OnNewModule(int32 Idx)
 
 	EndTransaction( Transaction );
 
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.NewModule"), TEXT("Class"), NewModClass->GetName());
+	}
+
 	ParticleSystem->MarkPackageDirty();
 
 	// Refresh viewport
@@ -1082,6 +1108,11 @@ void FCascade::OnNewEmitter()
 	ParticleSystem->SetupSoloing();
 
 	EndTransaction( Transaction );
+
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.NewEmitter"));
+	}
 
 	// Refresh viewport
 	if (EmitterCanvas.IsValid())
@@ -1475,7 +1506,7 @@ void FCascade::Tick(float DeltaTime)
 
 		ParticleSystemComponent->CascadeTickComponent(CurrDeltaTime, LEVELTICK_All);
 		ParticleSystemComponent->DoDeferredRenderUpdates_Concurrent();
-		FXSystem->Tick(CurrDeltaTime);
+		GetFXSystem()->Tick(CurrDeltaTime);
 		TotalTime += CurrDeltaTime;
 		ParticleSystem->UpdateTime_Delta = fSaveUpdateDelta;
 
@@ -2489,6 +2520,18 @@ void FCascade::SetLODValue(int32 LODSetting)
 	}
 }
 
+void FCascade::ReassociateParticleSystem() const
+{
+	if (ParticleSystemComponent)
+	{
+		if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
+		{
+			PreviewViewport->GetViewportClient()->GetPreviewScene().RemoveComponent(ParticleSystemComponent);
+			PreviewViewport->GetViewportClient()->GetPreviewScene().AddComponent(ParticleSystemComponent, FTransform::Identity);
+		}
+	}
+}
+
 void FCascade::RestartParticleSystem()
 {
 	if (ParticleSystemComponent)
@@ -2502,11 +2545,8 @@ void FCascade::RestartParticleSystem()
 		ParticleSystemComponent->bIsViewRelevanceDirty = true;
 		ParticleSystemComponent->CachedViewRelevanceFlags.Empty();
 		ParticleSystemComponent->ConditionalCacheViewRelevanceFlags();
-		if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
-		{
-			PreviewViewport->GetViewportClient()->GetPreviewScene().RemoveComponent(ParticleSystemComponent);
-			PreviewViewport->GetViewportClient()->GetPreviewScene().AddComponent(ParticleSystemComponent, FTransform::Identity);
-		}
+
+		ReassociateParticleSystem();
 	}
 
 	if (ParticleSystem)
@@ -3295,6 +3335,11 @@ void FCascade::AddLOD(bool bBeforeCurrent)
 		check(bTransactionInProgress);
 		EndTransaction( Transaction );
 
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.NewLOD"), FAnalyticsEventAttribute(TEXT("Index"), CurrentLODIndex));
+		}
+
 		UpdateLODLevel();
 		SetSelectedModule(SelectedEmitter, SelectedModule);
 		ForceUpdate();
@@ -3645,6 +3690,9 @@ void FCascade::OnViewMode(EViewModeIndex ViewMode)
 	if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
 	{
 		PreviewViewport->GetViewportClient()->SetViewMode(ViewMode);
+
+		ReassociateParticleSystem();
+
 		PreviewViewport->RefreshViewport();
 	}
 }
@@ -3698,11 +3746,7 @@ void FCascade::OnToggleBoundsSetFixedBounds()
 		SetSelection(NewSelection);
 	}
 
-	if (PreviewViewport.IsValid() && PreviewViewport->GetViewportClient().IsValid())
-	{
-		PreviewViewport->GetViewportClient()->GetPreviewScene().RemoveComponent(ParticleSystemComponent);
-		PreviewViewport->GetViewportClient()->GetPreviewScene().AddComponent(ParticleSystemComponent, FTransform::Identity);
-	}
+	ReassociateParticleSystem();
 }
 
 void FCascade::OnTogglePostProcess()
@@ -4184,6 +4228,11 @@ void FCascade::OnDeleteLOD()
 	check(bTransactionInProgress);
 	EndTransaction( Transaction );
 
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.DeleteLOD"), FAnalyticsEventAttribute(TEXT("Index"), Selection));
+	}
+
 	ForceUpdate();
 
 	OnRestartInLevel();
@@ -4269,6 +4318,7 @@ void FCascade::OnDeleteModule(bool bConfirm)
 
 	// Find the module index...
 	int32	DeleteModuleIndex	= -1;
+	FString	ModuleName;
 
 	UParticleLODLevel* HighLODLevel	= SelectedEmitter->GetLODLevel(0);
 	check(HighLODLevel);
@@ -4278,6 +4328,7 @@ void FCascade::OnDeleteModule(bool bConfirm)
 		if (CheckModule == SelectedModule)
 		{
 			DeleteModuleIndex = ModuleIndex;
+			ModuleName = CheckModule->GetClass()->GetName();
 			break;
 		}
 	}
@@ -4367,6 +4418,11 @@ void FCascade::OnDeleteModule(bool bConfirm)
 	ParticleSystem->PostEditChange();
 
 	EndTransaction( Transaction );
+
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.DeleteModule"), TEXT("Class"), ModuleName);
+	}
 
 	SetSelectedEmitter(SelectedEmitter);
 
@@ -4879,6 +4935,11 @@ void FCascade::OnDeleteEmitter()
 	ParticleSystem->SetupSoloing();
 
 	EndTransaction( Transaction );
+
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Cascade.DeleteEmitter"));
+	}
 
 	ParticleSystem->MarkPackageDirty();
 

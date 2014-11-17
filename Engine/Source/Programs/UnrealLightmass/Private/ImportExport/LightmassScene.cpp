@@ -822,7 +822,7 @@ void FDirectionalLight::ValidateSurfaceSample(const FVector4& Point, FLightSurfa
 }
 
 /** Gets a single position which represents the center of the area light source from the ReceivingPosition's point of view. */
-FVector4 FDirectionalLight::LightCenterPosition(const FVector4& ReceivingPosition) const
+FVector4 FDirectionalLight::LightCenterPosition(const FVector4& ReceivingPosition, const FVector4& ReceivingNormal) const
 {
 	return ReceivingPosition - Direction * 2.0f * SceneBounds.SphereRadius;
 }
@@ -903,19 +903,41 @@ bool FPointLight::AffectsBounds(const FBoxSphereBounds& Bounds) const
  */
 FLinearColor FPointLight::GetDirectIntensity(const FVector4& Point, bool bCalculateForIndirectLighting) const
 {
-	if( LightFlags & GI_LIGHT_INVERSE_SQUARED )
+	if (LightFlags & GI_LIGHT_INVERSE_SQUARED)
 	{
-		float DistanceSqr = ( Position - Point ).SizeSquared3();
-		float DistanceAttenuation = 16.0f / ( DistanceSqr + 0.0001f );
+		FVector4 ToLight = Position - Point;
+		float DistanceSqr = ToLight.SizeSquared3();
 
-		float LightRadiusMask = FMath::Square( FMath::Max( 0.0f, 1.0f - FMath::Square( DistanceSqr / (Radius * Radius) ) ) );
+		float DistanceAttenuation = 0.0f;
+		if( LightSourceLength > 0.0f )
+		{
+			// Line segment irradiance
+			FVector4 L01 = Direction * LightSourceLength;
+			FVector4 L0 = ToLight - 0.5f * L01;
+			FVector4 L1 = ToLight + 0.5f * L01;
+			float LengthL0 = L0.Size3();
+			float LengthL1 = L1.Size3();
+
+			DistanceAttenuation = 1.0f / ( ( LengthL0 * LengthL1 + Dot3( L0, L1 ) ) * 0.5f + 1.0f );
+			DistanceAttenuation *= 0.5 * ( L0 / LengthL0 + L1 / LengthL1 ).Size3();
+		}
+		else
+		{
+			// Sphere irradiance (technically just 1/d^2 but this avoids inf)
+			DistanceAttenuation = 1.0f / ( DistanceSqr + 1.0f );
+		}
+
+		// lumens
+		DistanceAttenuation *= 16.0f;
+
+		float LightRadiusMask = FMath::Square(FMath::Max(0.0f, 1.0f - FMath::Square(DistanceSqr / (Radius * Radius))));
 		DistanceAttenuation *= LightRadiusMask;
 
 		return FLight::GetDirectIntensity(Point, bCalculateForIndirectLighting) * DistanceAttenuation;
 	}
 	else
 	{
-		float RadialAttenuation = FMath::Pow( FMath::Max(1.0f - ((Position - Point) / Radius).SizeSquared3(),0.0f), FalloffExponent );
+		float RadialAttenuation = FMath::Pow(FMath::Max(1.0f - ((Position - Point) / Radius).SizeSquared3(), 0.0f), FalloffExponent);
 
 		return FLight::GetDirectIntensity(Point, bCalculateForIndirectLighting) * RadialAttenuation;
 	}
@@ -1103,6 +1125,30 @@ float FPointLight::Power() const
 	return FLinearColorUtils::LinearRGBToXYZ(LightPower).G;
 }
 
+FVector4 FPointLight::LightCenterPosition(const FVector4& ReceivingPosition, const FVector4& ReceivingNormal) const
+{
+	if( LightSourceLength > 0 )
+	{
+		FVector4 ToLight = Position - ReceivingPosition;
+
+		FVector4 Dir = Direction;
+		if( Dot3( ReceivingNormal, Direction ) < 0.0f )
+		{
+			Dir = -Direction;
+		}
+
+		// Clip to hemisphere
+		float Proj = FMath::Min( Dot3( ToLight, Dir ), Dot3( ReceivingNormal, ToLight) / Dot3( ReceivingNormal, Dir ) );
+
+		// Point on line segment closest to Point
+		return Position - Dir * FMath::Clamp( Proj, -0.5f * LightSourceLength, 0.5f * LightSourceLength );
+	}
+	else
+	{
+		return Position;
+	}
+}
+
 /** Returns true if all parts of the light are behind the surface being tested. */
 bool FPointLight::BehindSurface(const FVector4& TrianglePoint, const FVector4& TriangleNormal) const
 {
@@ -1113,22 +1159,96 @@ bool FPointLight::BehindSurface(const FVector4& TrianglePoint, const FVector4& T
 /** Gets a single direction to use for direct lighting that is representative of the whole area light. */
 FVector4 FPointLight::GetDirectLightingDirection(const FVector4& Point, const FVector4& PointNormal) const
 {
-	// The position on the point light surface sphere that will first be visible to a triangle rotating toward the light
-	const FVector4 FirstVisibleLightPoint = Position + PointNormal * LightSourceRadius;
-	return FirstVisibleLightPoint - Point;
+	FVector4 LightPosition = Position;
+
+	if( LightSourceLength > 0 )
+	{
+		FVector4 ToLight = Position - Point;
+		FVector4 L01 = Direction * LightSourceLength;
+		FVector4 L0 = ToLight - 0.5 * L01;
+		FVector4 L1 = ToLight + 0.5 * L01;
+#if 0
+		// Point on line segment with smallest angle to normal
+		float A = LightSourceLength * LightSourceLength;
+		float B = 2.0f * Dot3( L0, L01 );
+		float C = Dot3( L0, L0 );
+		float D = Dot3( PointNormal, L0 );
+		float E = Dot3( PointNormal, L01 );
+		float t = FMath::Clamp( (B*D - 2.0f * C*E) / (B*E - 2.0f * A*D), 0.0f, 1.0f );
+		return L0 + t * L01;
+#else
+		// Line segment irradiance
+		float LengthL0 = L0.Size3();
+		float LengthL1 = L1.Size3();
+		return ( L0 * LengthL1 + L1 * LengthL0 ) / ( LengthL0 + LengthL1 );
+#endif
+	}
+	else
+	{
+		// The position on the point light surface sphere that will first be visible to a triangle rotating toward the light
+		const FVector4 FirstVisibleLightPoint = LightPosition + PointNormal * LightSourceRadius;
+		return FirstVisibleLightPoint - Point;
+	}
 }
 
 /** Generates a sample on the light's surface. */
 void FPointLight::SampleLightSurface(FLMRandomStream& RandomStream, FLightSurfaceSample& Sample) const
 {
-	Sample.DiskPosition = FVector2D(0,0);
-	// Generate a sample on the surface of the sphere with uniform density over the surface area of the sphere
-	//@todo - stratify
-	const FVector4 UnitSpherePosition = GetUnitVector(RandomStream);
-	Sample.Position = UnitSpherePosition * LightSourceRadius + Position;
-	Sample.Normal = UnitSpherePosition;
-	// Probability of generating this surface position is 1 / SurfaceArea
-	Sample.PDF = 1.0f / (4.0f * (float)PI * LightSourceRadius * LightSourceRadius);
+	Sample.DiskPosition = FVector2D(0, 0);
+
+	if (LightSourceLength <= 0)
+	{
+		// Generate a sample on the surface of the sphere with uniform density over the surface area of the sphere
+		//@todo - stratify
+		const FVector4 UnitSpherePosition = GetUnitVector(RandomStream);
+		Sample.Position = UnitSpherePosition * LightSourceRadius + Position;
+		Sample.Normal = UnitSpherePosition;
+		// Probability of generating this surface position is 1 / SurfaceArea
+		Sample.PDF = 1.0f / (4.0f * (float)PI * LightSourceRadius * LightSourceRadius);
+	}
+	else
+	{
+		float CylinderSurfaceArea = 2.0f * (float)PI * LightSourceRadius * LightSourceLength;
+		float SphereSurfaceArea = 4.0f * (float)PI * LightSourceRadius * LightSourceRadius;
+		float TotalSurfaceArea = CylinderSurfaceArea + SphereSurfaceArea;
+
+		// Cylinder End caps
+		// The chance of calculating a point on the end sphere is equal to it's percentage of total surface area
+		if (RandomStream.GetFraction() < SphereSurfaceArea / TotalSurfaceArea)
+		{
+			// Generate a sample on the surface of the sphere with uniform density over the surface area of the sphere
+			//@todo - stratify
+			const FVector4 UnitSpherePosition = GetUnitVector(RandomStream);
+			Sample.Position = UnitSpherePosition * LightSourceRadius + Position;
+
+			if (Dot3(UnitSpherePosition, Direction) > 0)
+			{
+				Sample.Position += Direction * (LightSourceLength * 0.5f);
+			}
+			else
+			{
+				Sample.Position += -Direction * (LightSourceLength * 0.5f);
+			}
+
+			Sample.Normal = UnitSpherePosition;
+		}
+		// Cylinder body
+		else
+		{
+			// Get point along center line
+			FVector4 CentreLinePosition = Position + Direction * LightSourceLength * (RandomStream.GetFraction() - 0.5f);
+			// Get point radius away from center line at random angle
+			float Theta = 2.0f * (float)PI * RandomStream.GetFraction();
+			FVector4 CylEdgePos = FVector4(0, FMath::Cos(Theta), FMath::Sin(Theta), 1);
+			CylEdgePos = FRotationMatrix::MakeFromZ( Direction ).TransformVector( CylEdgePos );
+
+			Sample.Position = CylEdgePos * LightSourceRadius + CentreLinePosition;
+			Sample.Normal = CylEdgePos;
+		}
+
+		// Probability of generating this surface position is 1 / SurfaceArea
+		Sample.PDF = 1.0f / TotalSurfaceArea;
+	}
 }
 
 //----------------------------------------------------------------------------
@@ -1199,8 +1319,29 @@ FLinearColor FSpotLight::GetDirectIntensity(const FVector4& Point, bool bCalcula
 
 	if( LightFlags & GI_LIGHT_INVERSE_SQUARED )
 	{
-		float DistanceSqr = ( Position - Point ).SizeSquared3();
-		float DistanceAttenuation = 16.0f / ( DistanceSqr + 0.0001f );
+		FVector4 ToLight = Position - Point;
+		float DistanceSqr = ToLight.SizeSquared3();
+
+		float DistanceAttenuation = 0.0f;
+		if( LightSourceLength > 0.0f )
+		{
+			// Line segment irradiance
+			FVector4 L01 = Direction * LightSourceLength;
+			FVector4 L0 = ToLight - 0.5 * L01;
+			FVector4 L1 = ToLight + 0.5 * L01;
+			float LengthL0 = L0.Size3();
+			float LengthL1 = L1.Size3();
+
+			DistanceAttenuation = 1.0f / ( ( LengthL0 * LengthL1 + Dot3( L0, L1 ) ) * 0.5f + 1.0f );
+		}
+		else
+		{
+			// Sphere irradiance (technically just 1/d^2 but this avoids inf)
+			DistanceAttenuation = 1.0f / ( DistanceSqr + 1.0f );
+		}
+
+		// lumens
+		DistanceAttenuation *= 16.0f;
 
 		float LightRadiusMask = FMath::Square( FMath::Max( 0.0f, 1.0f - FMath::Square( DistanceSqr / (Radius * Radius) ) ) );
 		DistanceAttenuation *= LightRadiusMask;

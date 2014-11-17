@@ -3,7 +3,7 @@
 #include "ProjectSettingsViewerPrivatePCH.h"
 #include "Engine/Console.h"
 #include "ProjectTargetPlatformEditor.h"
-#include "Settings/CookerSettings.h"
+#include "CookerSettings.h"
 
 
 #define LOCTEXT_NAMESPACE "FProjectSettingsViewerModule"

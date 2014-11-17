@@ -2,6 +2,8 @@
 
 #pragma once
 
+struct FCollectionNameType;
+
 /**
  * A widget to display and work with all game and engine content
  */
@@ -120,6 +122,9 @@ private:
 
 	/** Handler for when the path context menu requests a folder creation */
 	void NewFolderRequested(const FString& SelectedPath);
+
+	/** Called when the editable text needs to be set or cleared */
+	void SetSearchBoxText(const FText& InSearchText);
 
 	/** Called by the editable text control when the search text is changed by the user */
 	void OnSearchBoxChanged(const FText& InSearchText);
@@ -266,6 +271,15 @@ private:
 
 	/** Delegate called when an editor setting is changed */
 	void HandleSettingChanged(FName PropertyName);
+
+	/** Handles an on collection destroyed event */
+	void HandleCollectionRemoved(const FCollectionNameType& Collection);
+
+	/** Handles an on collection renamed event */
+	void HandleCollectionRenamed(const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection);
+
+	/** Handles a path removed event */
+	void HandlePathRemoved(const FString& Path);
 
 	/** Gets all suggestions for the asset search box */
 	TArray<FString> GetAssetSearchSuggestions() const;

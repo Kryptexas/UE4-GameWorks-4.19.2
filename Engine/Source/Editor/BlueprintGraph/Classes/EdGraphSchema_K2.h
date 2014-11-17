@@ -55,6 +55,9 @@ public:
 
 	/** If true, the class will be usable as a base for blueprints */
 	static const FName MD_IsBlueprintBase;
+	
+	/** A listing of classes that this class is accessible from (and only those classes, if present) */
+	static const FName MD_RestrictedToClasses;
 
 	//    function metadata
 	/** Specifies a UFUNCTION as Kismet protected, which can only be called from itself */
@@ -129,6 +132,10 @@ public:
 
 	/** Metadata string that sets the tooltip */
 	static const FName MD_Tooltip;
+
+	/** Metadata string that indicates the specified event can be triggered in editor */
+	static const FName MD_CallInEditor;
+
 private:
 	// This class should never be instantiated
 	FBlueprintMetadata() {}
@@ -348,9 +355,9 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	UPROPERTY()
 	int32 AG_LevelReference;
 
-	/** Whether or not the schema should allow the user to use blueprint communications */
-	UPROPERTY(globalconfig)
-	bool bAllowBlueprintComms;
+	/** Whether this schema should use the old (legacy) menu building, or the new (experimental) menu building */
+	UPROPERTY(GlobalConfig)
+	bool bUseLegacyActionMenus;
 
 	UPROPERTY(globalconfig)
 	TArray<FBlueprintCallableFunctionRedirect> EditoronlyBPFunctionRedirects;
@@ -498,8 +505,43 @@ public:
 	virtual void RecombinePin(UEdGraphPin* Pin) const override;
 	// End EdGraphSchema Interface
 
+	/**
+	* Configure the supplied variable node based on the supplied info
+	*
+	* @param	InVarNode			The variable node to be configured
+	* @param	InVariableName		The name of the current variable
+	* @param	InVaraiableSource	The source of the variable
+	* @param	InTargetBlueprint	The blueprint this node will be used on
+	*/
+	static void ConfigureVarNode(class UK2Node_Variable* InVarNode, FName InVariableName, UStruct* InVariableSource, UBlueprint* InTargetBlueprint);
+
+	/**
+	* Creates a new variable getter node and adds it to ParentGraph
+	*
+	* @param	GraphPosition		The location of the new node inside the graph
+	* @param	ParentGraph			The graph to spawn the new node in
+	* @param	VariableName		The name of the variable
+	* @param	Source				The source of the variable
+	* @return	A pointer to the newly spawned node
+	*/
+	virtual class UK2Node_VariableGet* SpawnVariableGetNode(const FVector2D GraphPosition, class UEdGraph* ParentGraph, FName VariableName, UStruct* Source) const;
+
+	/**
+	* Creates a new variable setter node and adds it to ParentGraph
+	*
+	* @param	GraphPosition		The location of the new node inside the graph
+	* @param	ParentGraph			The graph to spawn the new node in
+	* @param	VariableName		The name of the variable
+	* @param	Source				The source of the variable
+	* @return	A pointer to the newly spawned node
+	*/
+	virtual class UK2Node_VariableSet* SpawnVariableSetNode(const FVector2D GraphPosition, class UEdGraph* ParentGraph, FName VariableName, UStruct* Source) const;
+
 	// Returns whether the supplied Pin is a splittable struct
 	bool PinHasSplittableStructType(const UEdGraphPin* InGraphPin) const;
+
+	/** Returns true if the pin has a value field that can be edited inline */
+	bool PinDefaultValueIsEditable(const UEdGraphPin& InGraphPin) const;
 
 	/** Helper function to create the expansion node.  
 		If the CompilerContext is specified this will be created as an intermediate node */
@@ -984,5 +1026,11 @@ private:
 	 * @return true if there are out parameters, else false
 	 */
 	bool DoesFunctionHaveOutParameters( const UFunction* Function ) const;
+
+	const UScriptStruct* VectorStruct;
+	const UScriptStruct* RotatorStruct;
+	const UScriptStruct* TransformStruct;
+	const UScriptStruct* LinearColorStruct;
+	const UScriptStruct* ColorStruct;
 };
 

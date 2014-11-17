@@ -188,16 +188,6 @@ public:
 	static bool SearchForPackageOnDisk(const FString& PackageName, FString* OutLongPackageName = NULL, FString* OutFilename = NULL, bool bUseLocalizedNames = false);
 
 	/**
-	 * Add a mapping from a package's object name to a package file name, used for making aliases at runtime
-	 */
-	static void AddPackageNameMapping(FName PackageName, FName FileName);
-
-	/**
-	 * Returns a mapped package file name, returns the passed in name if not in map
-	 */
-	static FName GetMappedPackageName(FName PackageName);
-
-	/**
 	 * Strips all path and extension information from a relative or fully qualified file name.
 	 *
 	 * @param	InPathName	a relative or fully qualified file name

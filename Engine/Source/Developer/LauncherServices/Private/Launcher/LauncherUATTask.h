@@ -22,10 +22,11 @@ public:
 	 * @param InTargetPlatform - the target platform for the task
 	 * @param InName - The name of the task.
 	 */
-	FLauncherUATTask( const TSharedPtr<FLauncherUATCommand>& InCommand, const ITargetPlatform& InTargetPlatform, const FString& InName, void* InReadPipe, void* InWritePipe)
+	FLauncherUATTask( const TSharedPtr<FLauncherUATCommand>& InCommand, const ITargetPlatform& InTargetPlatform, const FString& InName, void* InReadPipe, void* InWritePipe, const FString& InEditorExe )
 		: FLauncherTask(InName, InCommand->GetDesc(), InReadPipe, InWritePipe)
 		, TaskCommand(InCommand)
 		, TargetPlatform(InTargetPlatform)
+		, EditorExe(InEditorExe)
 	{
 		NoCompile = TEXT(" -nocompile");
 	}
@@ -53,6 +54,8 @@ protected:
 		FString ExecutablePath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() + FString(TEXT("Build")) / TEXT("BatchFiles"));
 #if PLATFORM_MAC
 		FString Executable = TEXT("RunUAT.command");
+#elif PLATFORM_LINUX
+		FString Executable = TEXT("RunUAT.sh");
 #else
 		FString Executable = TEXT("RunUAT.bat");
 #endif
@@ -103,6 +106,12 @@ protected:
         CommandLine += Rocket;
 		CommandLine += OptionalParams;
 
+		// specify the path to the editor exe if necessary
+		if(EditorExe.Len() > 0)
+		{
+			CommandLine += FString::Printf(TEXT(" -ue4exe=\"%s\""), *EditorExe);
+		}
+
 		// specialized command arguments for this particular task
 		CommandLine += TaskCommand->GetArguments(ChainState);
 
@@ -126,8 +135,7 @@ protected:
 			FPlatformProcess::Sleep(0.25);
 		}
 
-		int32 ReturnCode;
-		if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode))
+		if (!FPlatformProcess::GetProcReturnCode(ProcessHandle, &Result))
 		{
 			return false;
 		}
@@ -137,7 +145,7 @@ protected:
 			return false;
 		}
 
-		return (ReturnCode == 0);
+		return (Result == 0);
 	}
 
 private:
@@ -150,4 +158,7 @@ private:
 
 	// Holds the no compile flag
 	FString NoCompile;
+
+	// The editor executable that UAT should use
+	FString EditorExe;
 };

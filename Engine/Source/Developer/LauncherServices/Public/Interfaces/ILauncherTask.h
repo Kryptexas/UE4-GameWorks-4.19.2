@@ -98,6 +98,14 @@ public:
 	virtual bool IsFinished( ) const = 0;
 
 	/**
+	 * retrieves the return code from the task
+	 *
+	 *
+	 * @return return code from the task
+	 */
+	virtual int32 ReturnCode() const = 0;
+
+	/**
 	 * Gets the stage completed delegate
 	 *
 	 * @return the delegate

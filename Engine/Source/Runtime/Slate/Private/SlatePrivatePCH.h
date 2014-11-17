@@ -28,3 +28,7 @@
 #include "ComboButtonWidgetStyle.h"
 #include "TextBlockWidgetStyle.h"
 #include "EditableTextWidgetStyle.h"
+#include "EditableTextBoxWidgetStyle.h"
+#include "ProgressWidgetStyle.h"
+#include "ScrollBoxWidgetStyle.h"
+#include "ScrollBarWidgetStyle.h"

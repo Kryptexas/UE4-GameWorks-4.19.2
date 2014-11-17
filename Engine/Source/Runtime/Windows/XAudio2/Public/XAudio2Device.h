@@ -63,7 +63,8 @@ enum ESoundFormat
 	SoundFormat_PCMPreview,
 	SoundFormat_PCMRT,
 	SoundFormat_XMA2,
-	SoundFormat_XWMA
+	SoundFormat_XWMA,
+	SoundFormat_Streaming
 };
 
 class FXAudio2SoundBuffer;

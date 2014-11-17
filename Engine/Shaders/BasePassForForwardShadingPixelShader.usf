@@ -84,7 +84,7 @@ void Main(
 	GetMaterialCoverageAndClipping(MaterialParameters);
 
 #if COMPILER_HLSL	// Not sure why this isn't needed everywhere
-	float2 PixelPos = SvPosition - View.ScreenTexelBias.xy;	
+	float2 PixelPos = SvPosition - View.ViewRectMin.xy;	
 	MaterialParameters.ScreenPosition.xy = ( PixelPos / View.ViewSizeAndSceneTexelSize.xy - 0.5 ) * float2(2,-2);
 	MaterialParameters.ScreenPosition.zw = SvPosition.zw;
 	

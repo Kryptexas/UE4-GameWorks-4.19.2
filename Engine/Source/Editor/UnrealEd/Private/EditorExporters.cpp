@@ -808,11 +808,21 @@ public:
 
 	// Material properties.
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
+	{
+		// needs to be called in this function!!
+		Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+
+		int32 Ret = CompilePropertyAndSetMaterialPropertyWithoutCast(Property, Compiler);
+
+		return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+	}
+
+	/** helper for CompilePropertyAndSetMaterialProperty() */
+	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
 		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
 				
-		Compiler->SetMaterialProperty(Property, InShaderFrequency);
 		// MAKE SURE THIS MATCHES THE CHART IN WillFillData
 		// 						  RETURNED VALUES (F16 'textures')
 		// 	BLEND MODE  | DIFFUSE     | SPECULAR     | EMISSIVE    | NORMAL    | TRANSMISSIVE              |
@@ -1310,15 +1320,15 @@ bool GenerateExportMaterialPropertyData(
 		}
 
 		// start drawing to the render target
-		Canvas->SetRenderTarget(RenderTarget->GetRenderTargetResource());
+		Canvas->SetRenderTarget_GameThread(RenderTarget->GetRenderTargetResource());
 		// Freeze time while capturing the material's inputs
 		Canvas->Clear(FLinearColor(0,0,0,0));
 		FCanvasTileItem TileItem( FVector2D( 0.0f, 0.0f ), MaterialProxy, FVector2D( InOutSizeX, InOutSizeY ) );
 		TileItem.bFreezeTime = true;
 		Canvas->DrawItem( TileItem );
-		Canvas->Flush();
+		Canvas->Flush_GameThread();
 		FlushRenderingCommands();
-		Canvas->SetRenderTarget(NULL);
+		Canvas->SetRenderTarget_GameThread(NULL);
 		FlushRenderingCommands();
 
 		// if PF_FloatRGB was used as render target format, the gamma conversion during rendering is deactivated
@@ -1445,7 +1455,7 @@ static void AddActorToOBJs(AActor* Actor, TArray<FOBJGeom*>& Objects, TSet<UMate
 			for( int32 AllocIdx=0;AllocIdx < Component->WeightmapLayerAllocations.Num(); AllocIdx++ )
 			{
 				FWeightmapLayerAllocationInfo& AllocInfo = Component->WeightmapLayerAllocations[AllocIdx];
-				if( AllocInfo.LayerInfo == ALandscapeProxy::DataLayer )
+				if( AllocInfo.LayerInfo == ALandscapeProxy::VisibilityLayer )
 				{
 					TexIndex = AllocInfo.WeightmapTextureIndex;
 					Component->WeightmapTextures[TexIndex]->Source.GetMipData(RawVisData, 0);
@@ -2602,9 +2612,9 @@ namespace MaterialExportUtils
 			FCanvasTileItem TileItem(FVector2D(0.0f, 0.0f), MaterialProxy, FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY));
 			TileItem.bFreezeTime = true;
 			Canvas.DrawItem( TileItem );
-			Canvas.Flush();
+			Canvas.Flush_GameThread();
 			FlushRenderingCommands();
-			Canvas.SetRenderTarget(NULL);
+			Canvas.SetRenderTarget_GameThread(NULL);
 			FlushRenderingCommands();
 		}
 				
@@ -2954,7 +2964,7 @@ namespace MaterialExportUtils
 			//Create BaseColor Expression of the diffuse texture
 			UMaterialExpressionTextureSample* BasecolorExpression = ConstructObject<UMaterialExpressionTextureSample>(UMaterialExpressionTextureSample::StaticClass(), Material);
 			BasecolorExpression->Texture = DiffuseTexture;
-			BasecolorExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_Color;
+			BasecolorExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
 			BasecolorExpression->MaterialExpressionEditorX = -400;
 			BasecolorExpression->MaterialExpressionEditorY = -150;
 			Material->Expressions.Add(BasecolorExpression);

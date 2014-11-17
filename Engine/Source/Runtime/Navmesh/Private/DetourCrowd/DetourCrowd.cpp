@@ -781,6 +781,23 @@ bool dtCrowd::setAgentWaiting(const int idx)
 	return true;
 }
 
+bool dtCrowd::setAgentBackOnLink(const int idx)
+{
+	if (idx < 0 || idx > m_maxAgents)
+		return false;
+
+	dtCrowdAgent* ag = &m_agents[idx];
+	dtCrowdAgentAnimation* anim = &m_agentAnims[idx];
+	
+	if (anim->active)
+	{
+		ag->state = DT_CROWDAGENT_STATE_OFFMESH;
+		return true;
+	}
+
+	return false;
+}
+
 bool dtCrowd::resetAgentVelocity(const int idx)
 {
 	if (idx < 0 || idx > m_maxAgents)

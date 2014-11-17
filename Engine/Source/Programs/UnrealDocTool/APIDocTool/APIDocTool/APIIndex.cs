@@ -61,6 +61,7 @@ namespace APIDocTool
 			RootCategory.Categories.Add(new APIModuleCategory("Runtime"));
 			RootCategory.Categories.Add(new APIModuleCategory("Editor"));
 			RootCategory.Categories.Add(new APIModuleCategory("Developer"));
+			RootCategory.Categories.Add(new APIModuleCategory("Plugins"));
 
 			// Add all of the modules to a category
 			Dictionary<DoxygenModule, APIModuleCategory> ModuleToCategory = new Dictionary<DoxygenModule, APIModuleCategory>();

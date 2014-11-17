@@ -24,25 +24,51 @@ FSequencerObjectChangeListener::~FSequencerObjectChangeListener()
 	GEditor->OnActorMoved().RemoveAll( this );
 }
 
-void FSequencerObjectChangeListener::OnPropertyChanged( const TArray<UObject*>& ChangedObjects,  TSharedRef< const IPropertyHandle> PropertyValue, bool bRequireAutoKey )
+void FSequencerObjectChangeListener::OnPropertyChanged( const TArray<UObject*>& ChangedObjects, const IPropertyHandle& PropertyHandle, bool bRequireAutoKey ) const
 {
-	TSharedPtr< const IPropertyHandle> HandleToUse = PropertyValue;
-
-	TSharedPtr<const IPropertyHandle> ParentHandle = PropertyValue->GetParentHandle();
-
-	if( ParentHandle.IsValid() && ParentHandle->GetProperty() && ParentHandle->GetProperty()->IsA<UStructProperty>() )
+	const UProperty* Property = PropertyHandle.GetProperty();
+	const UStructProperty* StructProperty = Cast<const UStructProperty>(Property);
+	const UStructProperty* ParentStructProperty = nullptr;
+	TSharedPtr<IPropertyHandle> ParentHandle;
+	if(!StructProperty)
 	{
-		// Handle the case where internal values of a struct are being set.  We want to key the whole struct in this case
-		// @todo Sequencer: Is this always the case?
-		HandleToUse = ParentHandle;
+		ParentHandle = PropertyHandle.GetParentHandle();
+		if(ParentHandle->IsValidHandle())
+		{
+			ParentStructProperty = Cast<const UStructProperty>(ParentHandle->GetProperty());
+		}
 	}
 
-	UProperty* Property = HandleToUse->GetProperty();
-	UStructProperty* StructProperty = Cast<UStructProperty>( Property );
+	FString PropertyVarName;
 
-	FName PropertyName = StructProperty ? StructProperty->Struct->GetFName() : Property->GetFName();
+	// If not in auto-key allow partial keying of specific inner struct property values;
+	FName InnerStructPropName = !bRequireAutoKey && ParentStructProperty ? Property->GetFName() : NAME_None;
 
-	ClassToPropertyChangedMap.FindRef( PropertyName ).Broadcast( ChangedObjects, *HandleToUse, bRequireAutoKey );
+	FKeyPropertyParams Params;
+	Params.InnerStructPropertyName = InnerStructPropName;
+	Params.bRequireAutoKey = bRequireAutoKey;
+	Params.ObjectsThatChanged = ChangedObjects;
+
+	if(StructProperty)
+	{
+		Params.PropertyHandle = &PropertyHandle;
+		Params.PropertyPath = PropertyHandle.GeneratePathToProperty();
+		ClassToPropertyChangedMap.FindRef(StructProperty->Struct->GetFName()).Broadcast( Params );
+	}
+	else if(ParentStructProperty)
+	{
+		Params.PropertyHandle = ParentHandle.Get();
+		Params.PropertyPath = ParentHandle->GeneratePathToProperty();
+		// If the property parent is a struct, see if this property parent can be keyed. (e.g R,G,B,A for a color)
+		ClassToPropertyChangedMap.FindRef(ParentStructProperty->Struct->GetFName()).Broadcast( Params );
+	}
+	else
+	{
+		Params.PropertyHandle = &PropertyHandle;
+		Params.PropertyPath = PropertyHandle.GeneratePathToProperty();
+		// the property in question is not a struct or an inner of the struct. See if it is directly keyable
+		ClassToPropertyChangedMap.FindRef(Property->GetClass()->GetFName()).Broadcast( Params );
+	}
 }
 
 bool FSequencerObjectChangeListener::IsObjectValidForListening( UObject* Object ) const
@@ -62,16 +88,72 @@ FOnPropagateObjectChanges& FSequencerObjectChangeListener::GetOnPropagateObjectC
 	return OnPropagateObjectChanges;
 }
 
+bool FSequencerObjectChangeListener::IsTypeKeyable(const UClass& ObjectClass, const IPropertyHandle& PropertyHandle) const
+{
+	const UProperty* Property = PropertyHandle.GetProperty();
+	const UStructProperty* StructProperty = Cast<const UStructProperty>(Property);
+	const UStructProperty* ParentStructProperty = nullptr;
+	if( !StructProperty )
+	{
+		const TSharedPtr<IPropertyHandle> ParentHandle = PropertyHandle.GetParentHandle();
+		if( ParentHandle->IsValidHandle() )
+		{
+			ParentStructProperty = Cast<const UStructProperty>( ParentHandle->GetProperty() );
+		}
+	}
 
-void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object )
+	FString PropertyVarName;
+
+	bool bFound = false;
+	if( StructProperty )
+	{
+		bFound = ClassToPropertyChangedMap.Contains(StructProperty->Struct->GetFName());
+		PropertyVarName = StructProperty->GetName();
+	}
+	else if( ParentStructProperty )
+	{
+		// If the property parent is a struct, see if this property parent can be keyed. (e.g R,G,B,A for a color)
+		bFound = ClassToPropertyChangedMap.Contains(ParentStructProperty->Struct->GetFName());
+		PropertyVarName = ParentStructProperty->GetName();
+	}
+
+	if( !bFound )
+	{
+		// the property in question is not a struct or an inner of the struct. See if it is directly keyable
+		bFound = ClassToPropertyChangedMap.Contains(Property->GetClass()->GetFName());
+		PropertyVarName = Property->GetName();
+	}
+
+	if( bFound )
+	{
+		static const FString Set(TEXT("Set"));
+
+		const FString FunctionString = Set + PropertyVarName;
+
+		FName FunctionName = FName(*FunctionString);
+
+		bFound = ObjectClass.FindFunctionByName( FunctionName ) != nullptr; 
+	}
+
+	return bFound;
+}
+
+void FSequencerObjectChangeListener::KeyProperty( const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle ) const
+{
+	const bool bRequireAutoKey = false;
+	OnPropertyChanged( ObjectsToKey, PropertyHandle, bRequireAutoKey );
+}
+
+void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object, const FEditPropertyChain& PropertyChain )
 {
 	// We only care if we are in auto-key mode and not attempting to change properties of a CDO (which cannot be animated)
-	if( Sequencer.IsValid() && Sequencer.Pin()->IsAutoKeyEnabled() && !Object->HasAnyFlags(RF_ClassDefaultObject) )
+	if( Sequencer.IsValid() && Sequencer.Pin()->IsAutoKeyEnabled() && !Object->HasAnyFlags(RF_ClassDefaultObject) && PropertyChain.GetActiveMemberNode() )
 	{
 		// Register with the property editor module that we'd like to know about animated float properties that change
 		FPropertyEditorModule& PropertyEditor = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 
-		if( IsObjectValidForListening(Object) )
+		// Sometimes due to edit inline new the object is not actually the object that contains the property
+		if( IsObjectValidForListening(Object) && PropertyChain.GetActiveMemberNode()->GetValue()->IsIn( Object->GetClass() ) )
 		{
 			TSharedPtr<IPropertyChangeListener> PropertyChangeListener = ActivePropertyChangeListeners.FindRef( Object );
 
@@ -174,7 +256,7 @@ void FSequencerObjectChangeListener::TriggerAllPropertiesChanged(UObject* Object
 				Settings.bIgnoreArrayProperties = true;
 				Settings.bIgnoreObjectProperties = true;
 				// Property flags which must be on the property
-				Settings.RequiredPropertyFlags = CPF_Interp;
+				Settings.RequiredPropertyFlags = 0;
 				// Property flags which cannot be on the property
 				Settings.DisallowedPropertyFlags = CPF_EditConst;
 

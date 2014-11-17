@@ -13,6 +13,9 @@ public:
 
 		/** Name of the module */
 		FString ModuleName;
+
+		/** Type of this module, eg, Runtime, Editor, etc */
+		EHostType::Type ModuleType;
 	};
 
 	/** Where is this class located within the Source folder? */
@@ -142,10 +145,10 @@ public:
 	static void CheckAndWarnProjectFilenameValid();
 
 	/** Checks out the current project file (or prompts to make writable) */
-	static void TryMakeProjectFileWriteable();
+	static void TryMakeProjectFileWriteable(const FString& ProjectFile);
 
-	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
-	static bool UpdateGameProject(const FString &EngineIdentifier);
+	/** Updates the given project file to an engine identifier. Returns true if the project was updated successfully or if no update was needed */
+	static bool UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason);
 
 	/** Opens a dialog to add code files to a project */
 	static void OpenAddCodeToProjectDialog();
@@ -154,7 +157,7 @@ public:
 	static bool IsValidClassNameForCreation(const FString& NewClassName, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
 
 	/** Adds new source code to the project. When returning true, OutSyncFileAndLineNumber will be the the preferred target file to sync in the users code editing IDE, formatted for use with GenericApplication::GotoLineInSource */
-	static bool AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+	static bool AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
 
 	/** Loads a template project definitions object from the TemplateDefs.ini file in the specified project */
 	static UTemplateProjectDefs* LoadTemplateDefs(const FString& ProjectDirectory);
@@ -175,58 +178,45 @@ public:
 	static bool IsStarterContentAvailableForNewProjects();
 
 	/**
-	 * Get the default module context information based on the current value of FApp
+	 * Get the information about any modules referenced in the .uproject file of the currently loaded project
 	 */
-	static FModuleContextInfo GetCurrentModuleContextInfo();
-
-	/** 
-	 * Get the absolute root path under which all project source code must exist
-	 *
-	 * @param	bIncludeModuleName	Whether to include the module name in the root path?
-	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
-	 * 
-	 * @return	The root path. Will always be an absolute path ending with a /
-	 */
-	static FString GetSourceRootPath(const bool bIncludeModuleName, const FModuleContextInfo& ModuleInfo);
+	static TArray<FModuleContextInfo> GetCurrentProjectModules();
 
 	/** 
 	 * Check to see if the given path is a valid place to put source code for this project (exists within the source root path) 
 	 *
 	 * @param	InPath				The path to check
-	 * @param	bIncludeModuleName	Whether to require the module name in the root path? (is really used as a prefix so will allow MyModule, MyModuleEditor, etc)
-	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
+	 * @param	ModuleInfo			Information about the module being validated
 	 * @param	OutFailReason		Optional parameter to fill with failure information
 	 * 
 	 * @return	true if the path is valid, false otherwise
 	 */
-	static bool IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
+	static bool IsValidSourcePath(const FString& InPath, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
 
 	/** 
 	 * Given the path provided, work out where generated .h and .cpp files would be placed
 	 *
 	 * @param	InPath				The path to use a base
-	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
+	 * @param	ModuleInfo			Information about the module being validated
 	 * @param	OutHeaderPath		The path where the .h file should be placed
 	 * @param	OutSourcePath		The path where the .cpp file should be placed
-	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * @param	OutFailReason		Optional parameter to fill with failure information
 	 * 
 	 * @return	false if the paths are invalid
 	 */
-	static bool CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
+	static bool CalculateSourcePaths(const FString& InPath, const FModuleContextInfo& ModuleInfo, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason = nullptr);
 
 	/** 
 	 * Given the path provided, work out where it's located within the Source folder
 	 *
 	 * @param	InPath				The path to use a base
-	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
+	 * @param	ModuleInfo			Information about the module being validated
 	 * @param	OutClassLocation	The location within the Source folder
-	 * @param	ModuleInfo			Information about the module being validated; use GetCurrentModuleContextInfo() if you want to validate the currently loaded project
 	 * @param	OutFailReason		Optional parameter to fill with failure information
 	 * 
 	 * @return	false if the paths are invalid
 	 */
-	static bool GetClassLocation(const FString& InPath, FString& OutModuleName, EClassLocation& OutClassLocation, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason = nullptr);
+	static bool GetClassLocation(const FString& InPath, const FModuleContextInfo& ModuleInfo, EClassLocation& OutClassLocation, FText* const OutFailReason = nullptr);
 
 	/** Creates a copy of a project directory in order to upgrade it. */
 	static bool DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile );
@@ -354,16 +344,16 @@ private:
 	static void OnUpdateProjectCancel();
 
 	/**
-	 * Updates the loaded game project file to the current version
+	 * Updates the loaded game project file to the current version and to use the given modules
 	 *
 	 * @param ProjectFilename		The name of the project (used to checkout from source control)
+	 * @param EngineIdentifier		The identifier for the engine to open the project with
 	 * @param StartupModuleNames	if specified, replaces the existing module names with this version
-	 * @param OutbWasCheckedOut		Out, whether or not the project was checked out from source control
 	 * @param OutFailReason			Out, if unsuccessful this is the reason why
 
 	 * @return true, if successful
 	 */
-	static bool UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason);
+	static bool UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, FText& OutFailReason);
 
 	/** Checks the specified game project file out from source control */
 	static bool CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason);
@@ -372,13 +362,13 @@ private:
 	static bool ProjectHasCodeFiles();
 
 	/** Internal handler for AddCodeToProject*/
-	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
 
 	/** Handler for the user confirming they've read the name legnth warning */
 	static void OnWarningReasonOk();
 
 	/** Given a source file name, find its location within the project */
-	static bool FindSourceFileInProject(const FString& InFilename, FString& OutPath, const FModuleContextInfo& ModuleInfo);
+	static bool FindSourceFileInProject(const FString& InFilename, const FString& InSearchPath, FString& OutPath);
 
 private:
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;

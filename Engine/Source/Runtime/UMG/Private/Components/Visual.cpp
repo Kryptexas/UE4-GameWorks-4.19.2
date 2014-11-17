@@ -9,3 +9,7 @@ UVisual::UVisual(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 }
+
+void UVisual::ReleaseNativeWidget()
+{
+}

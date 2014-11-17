@@ -9,6 +9,7 @@ namespace HierarchyColumns
 	static const FName ColumnID_Lock( "Lock" );
 	static const FName ColumnID_SCCStatus( "SCC_Status" );
 	static const FName ColumnID_Save( "Save" );
+	static const FName ColumnID_Color("Color");
 	static const FName ColumnID_Kismet( "Blueprint" );
 	static const FName ColumnID_ActorCount( "ActorCount" );
 	static const FName ColumnID_LightmassSize( "LightmassSize" );
@@ -55,6 +56,9 @@ private:
 	bool IsLockEnabled() const;
 	bool IsVisibilityEnabled() const;
 	bool IsKismetEnabled() const;
+
+	/** Get DrawColor for the level */
+	FSlateColor GetDrawColor() const;
 		
 	/**
 	 *	Called when the user clicks on the visibility icon for a Level's item widget
@@ -83,6 +87,19 @@ private:
 	 *	@return	A reply that indicated whether this event was handled.
 	 */
 	FReply OnOpenKismet();
+
+	/**
+	*	Called when the user clicks on the color icon for a Level's item widget
+	*
+	*	@return	A reply that indicated whether this event was handled.
+	*/
+	FReply OnChangeColor();
+
+	/** Callback invoked from the color picker */
+	void OnSetColorFromColorPicker(FLinearColor NewColor);
+	void OnColorPickerCancelled(FLinearColor OriginalColor);
+	void OnColorPickerInteractiveBegin();
+	void OnColorPickerInteractiveEnd();
 	
 	/**
 	 *  @return The text of level name while it is not being edited
@@ -131,6 +148,15 @@ private:
 	 *	@return	The SlateBrush representing the Level's kismet state
 	 */
 	const FSlateBrush* GetLevelKismetBrush() const;
+
+	/**
+	*	Called to get the Slate Image Brush representing the color of
+	*	the Level this row widget represents
+	*
+	*	@return	The SlateBrush representing the Level's color
+	*/
+	const FSlateBrush* GetLevelColorBrush() const;
+
 	
 	/** */
 	FString GetLevelLockToolTip() const;

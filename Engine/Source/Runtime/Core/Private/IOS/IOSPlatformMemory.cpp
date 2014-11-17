@@ -4,7 +4,7 @@
 	IOSPlatformMemory.cpp: IOS platform memory functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "MallocBinned.h"
 #include "MallocAnsi.h"
 

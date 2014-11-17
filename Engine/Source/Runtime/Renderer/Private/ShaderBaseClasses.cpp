@@ -81,7 +81,7 @@ void FMaterialShader::SetParameters(
 	if (!bAllowCachedUniformExpressions || !UniformExpressionCache->bUpToDate || bOverrideSelection)
 	{
 		FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, Material, &View);
-		MaterialRenderProxy->EvaluateUniformExpressions(TempUniformExpressionCache, MaterialRenderContext);
+		MaterialRenderProxy->EvaluateUniformExpressions(TempUniformExpressionCache, MaterialRenderContext, &RHICmdList);
 		UniformExpressionCache = &TempUniformExpressionCache;
 	}
 
@@ -124,8 +124,16 @@ void FMaterialShader::SetParameters(
 	}
 #endif
 
-	// Set the material uniform buffer.
-	SetUniformBufferParameter(RHICmdList, ShaderRHI,MaterialUniformBuffer,UniformExpressionCache->UniformBuffer);
+	if (UniformExpressionCache->LocalUniformBuffer.IsValid())
+	{
+		// Set the material uniform buffer.
+		SetLocalUniformBufferParameter(RHICmdList, ShaderRHI, MaterialUniformBuffer, UniformExpressionCache->LocalUniformBuffer);
+	}
+	else
+	{
+		// Set the material uniform buffer.
+		SetUniformBufferParameter(RHICmdList, ShaderRHI, MaterialUniformBuffer, UniformExpressionCache->UniformBuffer);
+	}
 
 	{
 		const TArray<FGuid>& ParameterCollections = UniformExpressionCache->ParameterCollections;

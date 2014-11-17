@@ -8,6 +8,7 @@
 class SToolTip;
 class SViewport;
 class SWindow;
+class FHittestGrid;
 
 
 /** A Delegate for querying whether source code access is possible */
@@ -32,7 +33,7 @@ namespace SlateApplicationDefs
 }
 
 /** Allow widgets to find out when someone clicked outside them. Currently needed by MenuAnchros. */
-class FPopupSupport
+class SLATE_API FPopupSupport
 {
 	public:
 
@@ -42,10 +43,23 @@ class FPopupSupport
 	 */
 	void SendNotifications( const FWidgetPath& WidgetsUnderCursor );
 
-	private:
+	/**
+	* Register for a notification when the user clicks outside a specific widget.
+	*
+	* @param NotifyWhenClickedOutsideMe    When the user clicks outside this widget, fire a notification.
+	* @param InNotification                The notification to invoke.
+	*/
+	void RegisterClickNotification(const TSharedRef<SWidget>& NotifyWhenClickedOutsideMe, const FOnClickedOutside& InNotification);
 
-	/** Only menu anchors currently need this service */
-	friend class SMenuAnchor;
+	/**
+	* NOTE: Only necessary if notification no longer desired.
+	*       Stale notifications are cleaned up automatically.
+	*
+	* Unregister the notification because it is no longer desired.
+	*/
+	void UnregisterClickNotification(const FOnClickedOutside& InNotification);
+
+	private:
 
 	/** A single subscription about clicks happening outside the widget. */
 	struct FClickSubscriber
@@ -65,22 +79,6 @@ class FPopupSupport
 		/** Notification to send */
 		FOnClickedOutside Notification;
 	};
-
-	/**
-	 * Register for a notification when the user clicks outside a specific widget.
-	 * 
-	 * @param NotifyWhenClickedOutsideMe    When the user clicks outside this widget, fire a notification.
-	 * @param InNotification                The notification to invoke.
-	 */
-	void RegisterClickNotification( const TSharedRef<SWidget>& NotifyWhenClickedOutsideMe, const FOnClickedOutside& InNotification );
-
-	/**
-	 * NOTE: Only necessary if notification no longer desired.
-	 *       Stale notifications are cleaned up automatically.
-	 *       
-	 * Unregister the notification because it is no longer desired.
-	 */
-	void UnregisterClickNotification( const FOnClickedOutside& InNotification );
 
 	/** List of subscriptions that want to be notified when the user clicks outside a certain widget. */
 	TArray<FClickSubscriber> ClickZoneNotifications;
@@ -161,18 +159,7 @@ public:
 		return *CurrentApplication;
 	}
 
-	static void Shutdown()
-	{
-		if ( FSlateApplication::IsInitialized() )
-		{
-			CurrentApplication->OnShutdown();
-			CurrentApplication->DestroyRenderer();
-			CurrentApplication->Renderer.Reset();
-			PlatformApplication.Reset();
-			CurrentApplication.Reset();
-			CurrentBaseApplication.Reset();
-		}
-	}
+	static void Shutdown();
 
 	/** @return the global tab manager */
 	static TSharedRef<class FGlobalTabmanager> GetGlobalTabManager();
@@ -967,6 +954,8 @@ public:
 
 	virtual FWidgetPath LocateWindowUnderMouse( FVector2D ScreenspaceMouseCoordinate, const TArray<TSharedRef<SWindow>>& Windows, bool bIgnoreEnabledStatus = false ) override;
 
+	virtual bool IsWindowHousingInteractiveTooltip(const TSharedRef<const SWindow>& WindowToTest) const override;
+
 	virtual TSharedRef<SWidget> MakeImage( const TAttribute<const FSlateBrush*>& Image, const TAttribute<FSlateColor>& Color, const TAttribute<EVisibility>& Visibility ) const override;
 
 	virtual TSharedRef<SWidget> MakeWindowTitleBar( const TSharedRef<SWindow>& Window, const TSharedPtr<SWidget>& CenterContent, EHorizontalAlignment CenterContentAlignment, TSharedPtr<IWindowTitleBar>& OutTitleBar ) const override;
@@ -1084,6 +1073,11 @@ private:
 	FSlateApplication();
 
 private:
+	/**
+	 * Will be invoked when the size of the geometry of the virtual
+	 * desktop changes (e.g. resolution change or monitors re-arranged)
+	 */
+	void OnVirtualDesktopSizeChanged(const FDisplayMetrics& NewDisplayMetric);
 
 	/** Application singleton */
 	static TSharedPtr< FSlateApplication > CurrentApplication;
@@ -1371,4 +1365,17 @@ private:
 
 	/** The icon to use on application windows */
 	const FSlateBrush *AppIcon;
+
+	//
+	// Hittest 2.0
+	//
+
+	// The rectangle that bounds all the physical monitors given their arrangement.
+	// Info comes from the native platform.
+	// e.g. On windows the origin (coordinates X=0, Y=0) is the upper left of the primary monitor,
+	// but there could be another monitor on any of the sides.
+	FSlateRect VirtualDesktopRect;
+
+	// Hittest acceleration structure. Filled out during Paint.
+	TSharedRef<FHittestGrid> HittestGrid;
 };

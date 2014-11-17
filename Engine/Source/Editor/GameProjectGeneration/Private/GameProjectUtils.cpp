@@ -691,25 +691,9 @@ void GameProjectUtils::OnWarningReasonOk()
 	}
 }
 
-bool GameProjectUtils::UpdateGameProject(const FString& EngineIdentifier)
+bool GameProjectUtils::UpdateGameProject(const FString& ProjectFile, const FString& EngineIdentifier, FText& OutFailReason)
 {
-	const FString& ProjectFilename = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
-	if ( !ProjectFilename.IsEmpty() )
-	{
-		FText FailReason;
-		bool bWasCheckedOut = false;
-		if ( !UpdateGameProjectFile(ProjectFilename, EngineIdentifier, NULL, bWasCheckedOut, FailReason) )
-		{
-			// The user chose to update, but the update failed. Notify the user.
-			UE_LOG(LogGameProjectGeneration, Error, TEXT("%s failed to update. %s"), *ProjectFilename, *FailReason.ToString() );
-			return false;
-		}
-
-		// The project was updated successfully.
-		UE_LOG(LogGameProjectGeneration, Log, TEXT("%s was successfully updated."), *ProjectFilename );
-	}
-
-	return true;
+	return UpdateGameProjectFile(ProjectFile, EngineIdentifier, NULL, OutFailReason);
 }
 
 void GameProjectUtils::OpenAddCodeToProjectDialog()
@@ -784,7 +768,7 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 	// Look for a duplicate class on disk in their project
 	{
 		FString UnusedFoundPath;
-		if ( FindSourceFileInProject(NewClassName + ".h", UnusedFoundPath, ModuleInfo) )
+		if ( FindSourceFileInProject(NewClassName + ".h", ModuleInfo.ModuleSourcePath, UnusedFoundPath) )
 		{
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("NewClassName"), FText::FromString( NewClassName ) );
@@ -796,9 +780,9 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 	return true;
 }
 
-bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
-	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, NewClassPath, ParentClassInfo, OutHeaderFilePath, OutCppFilePath, OutFailReason);
+	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, NewClassPath, ModuleInfo, ParentClassInfo, OutHeaderFilePath, OutCppFilePath, OutFailReason);
 
 	if( FEngineAnalytics::IsAvailable() )
 	{
@@ -1241,17 +1225,36 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 
 	// Generate the project file
 	{
-		FText LocalFailReason;
-		if (IProjectManager::Get().DuplicateProjectFile(TemplateFile, NewProjectFile, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
+		// Load the source project
+		FProjectDescriptor Project;
+		if(!Project.Load(TemplateFile, OutFailReason))
 		{
-			CreatedFiles.Add(NewProjectFile);
-		}
-		else
-		{
-			OutFailReason = LocalFailReason;
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
+
+		// Update it to current
+		Project.EngineAssociation = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+		Project.EpicSampleNameHash = 0;
+
+		// Fix up module names
+		const FString BaseSourceName = FPaths::GetBaseFilename(TemplateFile);
+		const FString BaseNewName = FPaths::GetBaseFilename(NewProjectFile);
+		for ( auto ModuleIt = Project.Modules.CreateIterator(); ModuleIt; ++ModuleIt )
+		{
+			FModuleDescriptor& ModuleInfo = *ModuleIt;
+			ModuleInfo.Name = FName(*ModuleInfo.Name.ToString().Replace(*BaseSourceName, *BaseNewName));
+		}
+
+		// Save it to disk
+		if(!Project.Save(NewProjectFile, OutFailReason))
+		{
+			DeleteCreatedFiles(DestFolder, CreatedFiles);
+			return false;
+		}
+
+		// Add it to the list of created files
+		CreatedFiles.Add(NewProjectFile);
 	}
 
 	if ( bShouldGenerateCode )
@@ -1478,6 +1481,26 @@ bool GameProjectUtils::GenerateConfigFiles(const FString& NewProjectPath, const 
 		}
 	}
 
+	// DefaultEditor.ini
+	{
+		const FString DefaultEditorIniFilename = ProjectConfigPath / TEXT("DefaultEditor.ini");
+		FString FileContents;
+		FileContents += TEXT("[EditoronlyBP]") LINE_TERMINATOR;
+		FileContents += TEXT("bAllowClassAndBlueprintPinMatching=true") LINE_TERMINATOR;
+		FileContents += TEXT("bReplaceBlueprintWithClass=true") LINE_TERMINATOR;
+		FileContents += TEXT("bDontLoadBlueprintOutsideEditor=true") LINE_TERMINATOR;
+		FileContents += TEXT("bBlueprintIsNotBlueprintType=true") LINE_TERMINATOR;
+
+		if (WriteOutputFile(DefaultEditorIniFilename, FileContents, OutFailReason))
+		{
+			OutCreatedFiles.Add(DefaultEditorIniFilename);
+		}
+		else
+		{
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -1580,8 +1603,9 @@ bool GameProjectUtils::GenerateGameFrameworkSourceCode(const FString& NewProject
 
 	// Used to override the code generation validation since the module we're creating isn't the same as the project we currently have loaded
 	FModuleContextInfo NewModuleInfo;
-	NewModuleInfo.ModuleSourcePath = NewProjectSourcePath;
 	NewModuleInfo.ModuleName = NewProjectName;
+	NewModuleInfo.ModuleType = EHostType::Runtime;
+	NewModuleInfo.ModuleSourcePath = FPaths::ConvertRelativePathToFull(GameModulePath / ""); // Ensure trailing /
 
 	// MyGamePlayerController.h
 	{
@@ -1681,45 +1705,50 @@ bool GameProjectUtils::IsStarterContentAvailableForNewProjects()
 	return (StarterContentFiles.Num() > 0);
 }
 
-GameProjectUtils::FModuleContextInfo GameProjectUtils::GetCurrentModuleContextInfo()
+TArray<GameProjectUtils::FModuleContextInfo> GameProjectUtils::GetCurrentProjectModules()
 {
-	FModuleContextInfo ModuleInfo;
+	const FProjectDescriptor* const CurrentProject = IProjectManager::Get().GetCurrentProject();
+	check(CurrentProject);
 
-	ModuleInfo.ModuleSourcePath = FPaths::GameSourceDir();
-	
-	// Assuming the game name is the same as the primary game module name
-	ModuleInfo.ModuleName = FApp::GetGameName();
+	TArray<FModuleContextInfo> RetModuleInfos;
 
-	return ModuleInfo;
-}
-
-FString GameProjectUtils::GetSourceRootPath(const bool bIncludeModuleName, const FModuleContextInfo& ModuleInfo)
-{
-	FString SourceDir = ModuleInfo.ModuleSourcePath;
-
-	if(bIncludeModuleName)
+	if (!GameProjectUtils::ProjectHasCodeFiles() || CurrentProject->Modules.Num() == 0)
 	{
-		SourceDir /= ModuleInfo.ModuleName;
+		// If this project doesn't currently have any code in it, we need to add a dummy entry for the game
+		// so that we can still use the class wizard (this module will be created once we add a class)
+		FModuleContextInfo ModuleInfo;
+		ModuleInfo.ModuleName = FApp::GetGameName();
+		ModuleInfo.ModuleType = EHostType::Runtime;
+		ModuleInfo.ModuleSourcePath = FPaths::ConvertRelativePathToFull(FPaths::GameSourceDir() / ModuleInfo.ModuleName / ""); // Ensure trailing /
+		RetModuleInfos.Emplace(ModuleInfo);
 	}
 
-	SourceDir /= "";
-
-	return FPaths::ConvertRelativePathToFull(SourceDir);
-}
-
-bool GameProjectUtils::IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason)
-{
-	FString RootPath = GetSourceRootPath(bIncludeModuleName, ModuleInfo);
-
-	// Only allow partial module name matches if we already have code; the first class added to a project *must* be for the game module
-	const bool bHasCodeFiles = GameProjectUtils::ProjectHasCodeFiles();
-	if(bIncludeModuleName && bHasCodeFiles)
+	// Resolve out the paths for each module and add the cut-down into to our output array
+	for (const FModuleDescriptor& ModuleDesc : CurrentProject->Modules)
 	{
-		// If we're including the module name, then we want to allow variations of it, eg) MyModule, MyModuleEditor, MyModuleClient
-		// Those variations are valid, so we trim the last / from the path so that the StartsWith check below allows these variations
-		RootPath = RootPath.LeftChop(1); // Trim trailing /
+		FModuleContextInfo ModuleInfo;
+		ModuleInfo.ModuleName = ModuleDesc.Name.ToString();
+		ModuleInfo.ModuleType = ModuleDesc.Type;
+
+		// Try and find the .Build.cs file for this module within our currently loaded project's Source directory
+		FString TmpPath;
+		if (!FindSourceFileInProject(ModuleInfo.ModuleName + ".Build.cs", FPaths::GameSourceDir(), TmpPath))
+		{
+			continue;
+		}
+
+		// Chop the .Build.cs file off the end of the path
+		ModuleInfo.ModuleSourcePath = FPaths::GetPath(TmpPath);
+		ModuleInfo.ModuleSourcePath = FPaths::ConvertRelativePathToFull(ModuleInfo.ModuleSourcePath / ""); // Ensure trailing /
+
+		RetModuleInfos.Emplace(ModuleInfo);
 	}
 
+	return RetModuleInfos;
+}
+
+bool GameProjectUtils::IsValidSourcePath(const FString& InPath, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason)
+{
 	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
 
 	// Validate the path contains no invalid characters
@@ -1728,16 +1757,14 @@ bool GameProjectUtils::IsValidSourcePath(const FString& InPath, const bool bIncl
 		return false;
 	}
 
-	if(!AbsoluteInPath.StartsWith(RootPath))
+	if(!AbsoluteInPath.StartsWith(ModuleInfo.ModuleSourcePath))
 	{
 		if(OutFailReason)
 		{
 			FFormatNamedArguments Args;
-			Args.Add(TEXT("RootSourcePath"), FText::FromString(GetSourceRootPath(bIncludeModuleName, ModuleInfo)));
-			const FText FormatString = (bIncludeModuleName)
-				? LOCTEXT("SourcePathInvalidModuleRoot", "All source code must exist within a valid module folder in the projects source path, e.g. {RootSourcePath}")
-				: LOCTEXT("SourcePathInvalidRoot", "All source code must exist within the projects source path: {RootSourcePath}");
-			*OutFailReason = FText::Format( FormatString, Args );
+			Args.Add(TEXT("ModuleName"), FText::FromString(ModuleInfo.ModuleName));
+			Args.Add(TEXT("RootSourcePath"), FText::FromString(ModuleInfo.ModuleSourcePath));
+			*OutFailReason = FText::Format( LOCTEXT("SourcePathInvalidForModule", "All source code for '{ModuleName}' must exist within '{RootSourcePath}'"), Args );
 		}
 		return false;
 	}
@@ -1745,20 +1772,19 @@ bool GameProjectUtils::IsValidSourcePath(const FString& InPath, const bool bIncl
 	return true;
 }
 
-bool GameProjectUtils::CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason)
+bool GameProjectUtils::CalculateSourcePaths(const FString& InPath, const FModuleContextInfo& ModuleInfo, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason)
 {
 	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
 	OutHeaderPath = AbsoluteInPath;
 	OutSourcePath = AbsoluteInPath;
 
 	EClassLocation ClassPathLocation = EClassLocation::UserDefined;
-	if(!GetClassLocation(InPath, OutModuleName, ClassPathLocation, ModuleInfo, OutFailReason))
+	if(!GetClassLocation(InPath, ModuleInfo, ClassPathLocation, OutFailReason))
 	{
 		return false;
 	}
 
-	const FString BaseRootPath = GetSourceRootPath(false/*bIncludeModuleName*/, ModuleInfo);
-	const FString RootPath = BaseRootPath / OutModuleName / ""; // Ensure trailing /
+	const FString RootPath = ModuleInfo.ModuleSourcePath;
 	const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
 	const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
 	const FString ClassesPath = RootPath / "Classes" / "";		// Ensure trailing /
@@ -1805,26 +1831,17 @@ bool GameProjectUtils::CalculateSourcePaths(const FString& InPath, FString& OutM
 	return !OutHeaderPath.IsEmpty() && !OutSourcePath.IsEmpty();
 }
 
-bool GameProjectUtils::GetClassLocation(const FString& InPath, FString& OutModuleName, EClassLocation& OutClassLocation, const FModuleContextInfo& ModuleInfo, FText* const OutFailReason)
+bool GameProjectUtils::GetClassLocation(const FString& InPath, const FModuleContextInfo& ModuleInfo, EClassLocation& OutClassLocation, FText* const OutFailReason)
 {
 	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
-	OutModuleName.Empty();
 	OutClassLocation = EClassLocation::UserDefined;
 
-	if(!IsValidSourcePath(InPath, true/*bIncludeModuleName*/, ModuleInfo, OutFailReason))
+	if(!IsValidSourcePath(InPath, ModuleInfo, OutFailReason))
 	{
 		return false;
 	}
 
-	// We've validated that this path includes a partial match for our module (eg, MyModule, MyModuleEditor, MyModuleClient)
-	// so extract the actual name of the module from the path so that we can generate the internal folder names correctly
-	const FString BaseRootPath = GetSourceRootPath(false/*bIncludeModuleName*/, ModuleInfo);
-	const int32 ModuleNameStartIndex = BaseRootPath.Len();
-	const int32 ModuleNameEndIndex = AbsoluteInPath.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, ModuleNameStartIndex);
-	check(ModuleNameEndIndex != INDEX_NONE); // this should never happen since AbsoluteInPath ends in a /, and we verified it started with BaseRootPath in IsValidSourcePath
-	OutModuleName = AbsoluteInPath.Mid(ModuleNameStartIndex, ModuleNameEndIndex - ModuleNameStartIndex);
-
-	const FString RootPath = BaseRootPath / OutModuleName / ""; // Ensure trailing /
+	const FString RootPath = ModuleInfo.ModuleSourcePath;
 	const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
 	const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
 	const FString ClassesPath = RootPath / "Classes" / "";		// Ensure trailing /
@@ -2102,14 +2119,13 @@ bool GameProjectUtils::GenerateClassHeaderFile(const FString& NewHeaderFileName,
 
 	FString ModuleAPIMacro;
 	{
-		FString ModuleName;
 		EClassLocation ClassPathLocation = EClassLocation::UserDefined;
-		if ( GetClassLocation(NewHeaderFileName, ModuleName, ClassPathLocation, ModuleInfo) )
+		if ( GetClassLocation(NewHeaderFileName, ModuleInfo, ClassPathLocation) )
 		{
 			// If this class isn't Private, make sure and include the API macro so it can be linked within other modules
 			if ( ClassPathLocation != EClassLocation::Private )
 			{
-				ModuleAPIMacro = ModuleName.ToUpper() + "_API "; // include a trailing space for the template formatting
+				ModuleAPIMacro = ModuleInfo.ModuleName.ToUpper() + "_API "; // include a trailing space for the template formatting
 			}
 		}
 	}
@@ -2164,9 +2180,8 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 	const FString PrefixedClassName = ClassPrefix + UnPrefixedClassName;
 	const FString PrefixedBaseClassName = ClassPrefix + ParentClassInfo.GetClassNameCPP();
 
-	FString ModuleName;
 	EClassLocation ClassPathLocation = EClassLocation::UserDefined;
-	if ( !GetClassLocation(NewCPPFileName, ModuleName, ClassPathLocation, ModuleInfo, &OutFailReason) )
+	if ( !GetClassLocation(NewCPPFileName, ModuleInfo, ClassPathLocation, &OutFailReason) )
 	{
 		return false;
 	}
@@ -2196,19 +2211,18 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 
 	// Calculate the correct include path for the module header
 	FString ModuleIncludePath;
-	if(FindSourceFileInProject(ModuleName + ".h", ModuleIncludePath, ModuleInfo))
+	if(FindSourceFileInProject(ModuleInfo.ModuleName + ".h", ModuleInfo.ModuleSourcePath, ModuleIncludePath))
 	{
 		// Work out where the module header is; 
 		// if it's Public then we can include it without any path since all Public and Classes folders are on the include path
 		// if it's located elsewhere, then we'll need to include it relative to the module source root as we can't guarantee 
 		// that other folders are on the include paths
-		FString UnusedModuleName;
 		EClassLocation ModuleLocation;
-		if(GetClassLocation(ModuleIncludePath, UnusedModuleName, ModuleLocation, ModuleInfo))
+		if(GetClassLocation(ModuleIncludePath, ModuleInfo, ModuleLocation))
 		{
 			if(ModuleLocation == EClassLocation::Public || ModuleLocation == EClassLocation::Classes)
 			{
-				ModuleIncludePath = ModuleName + ".h";
+				ModuleIncludePath = ModuleInfo.ModuleName + ".h";
 			}
 			else
 			{
@@ -2217,18 +2231,15 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 				const FString ClassPath = FPaths::ConvertRelativePathToFull(FPaths::GetPath(NewCPPFileName));
 				if(ModulePath == ClassPath)
 				{
-					ModuleIncludePath = ModuleName + ".h";
+					ModuleIncludePath = ModuleInfo.ModuleName + ".h";
 				}
 				else
 				{
-					// Make the include relative to the source root of the module
-					const FString ModuleSourceRoot = GetSourceRootPath(true/*bIncludeModuleName*/, ModuleInfo);
-					
 					// Updates ModuleIncludePath internally
-					if(!FPaths::MakePathRelativeTo(ModuleIncludePath, *ModuleSourceRoot))
+					if(!FPaths::MakePathRelativeTo(ModuleIncludePath, *ModuleInfo.ModuleSourcePath))
 					{
 						// Failed; just assume we can include it without any relative path
-						ModuleIncludePath = ModuleName + ".h";
+						ModuleIncludePath = ModuleInfo.ModuleName + ".h";
 					}
 				}
 			}
@@ -2236,19 +2247,19 @@ bool GameProjectUtils::GenerateClassCPPFile(const FString& NewCPPFileName, const
 		else
 		{
 			// Failed; just assume we can include it without any relative path
-			ModuleIncludePath = ModuleName + ".h";
+			ModuleIncludePath = ModuleInfo.ModuleName + ".h";
 		}
 	}
 	else
 	{
 		// This could potentially fail when generating new projects if the module file hasn't yet been created; just assume we can include it without any relative path
-		ModuleIncludePath = ModuleName + ".h";
+		ModuleIncludePath = ModuleInfo.ModuleName + ".h";
 	}
 
 	// Not all of these will exist in every class template
 	FString FinalOutput = Template.Replace(TEXT("%COPYRIGHT_LINE%"), *MakeCopyrightLine(), ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%UNPREFIXED_CLASS_NAME%"), *UnPrefixedClassName, ESearchCase::CaseSensitive);
-	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleName, ESearchCase::CaseSensitive);
+	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_NAME%"), *ModuleInfo.ModuleName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%MODULE_INCLUDE_PATH%"), *ModuleIncludePath, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PREFIXED_CLASS_NAME%"), *PrefixedClassName, ESearchCase::CaseSensitive);
 	FinalOutput = FinalOutput.Replace(TEXT("%PROPERTY_OVERRIDES%"), *PropertyOverridesStr, ESearchCase::CaseSensitive);
@@ -2422,17 +2433,12 @@ void GameProjectUtils::UpdateProject(const TArray<FString>* StartupModuleNames)
 	FText FailReason;
 	FText UpdateMessage;
 	SNotificationItem::ECompletionState NewCompletionState;
-	bool bWasCheckedOut = false;
-	if ( UpdateGameProjectFile(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), StartupModuleNames, bWasCheckedOut, FailReason) )
+	if ( UpdateGameProjectFile(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), StartupModuleNames, FailReason) )
 	{
 		// The project was updated successfully.
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("ShortFilename"), FText::FromString( ShortFilename ) );
 		UpdateMessage = FText::Format( LOCTEXT("ProjectFileUpdateComplete", "{ShortFilename} was successfully updated."), Args );
-		if ( bWasCheckedOut )
-		{
-			UpdateMessage = FText::Format( LOCTEXT("ProjectFileUpdateCheckin", "{ShortFilename} was successfully updated. Please check this file into source control."), Args );
-		}
 		NewCompletionState = SNotificationItem::CS_Success;
 	}
 	else
@@ -2464,44 +2470,56 @@ void GameProjectUtils::OnUpdateProjectCancel()
 	}
 }
 
-void GameProjectUtils::TryMakeProjectFileWriteable()
+void GameProjectUtils::TryMakeProjectFileWriteable(const FString& ProjectFile)
 {
-	FString ProjectFileName = FPaths::GetProjectFilePath();
-
 	// First attempt to check out the file if SCC is enabled
 	if ( ISourceControlModule::Get().IsEnabled() )
 	{
 		FText FailReason;
-		GameProjectUtils::CheckoutGameProjectFile(ProjectFileName, FailReason);
+		GameProjectUtils::CheckoutGameProjectFile(ProjectFile, FailReason);
 	}
 
-	// Check if it's writeable
-	if(FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*ProjectFileName))
+	// Check if it's writable
+	if(FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*ProjectFile))
 	{
-		FText ShouldMakeProjectWriteable = LOCTEXT("ShouldMakeProjectWriteable_Message", "'{ProjectFilename}' is read-only and cannot be updated, would you like to make it writeable?");
+		FText ShouldMakeProjectWriteable = LOCTEXT("ShouldMakeProjectWriteable_Message", "'{ProjectFilename}' is read-only and cannot be updated. Would you like to make it writeable?");
 
 		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("ProjectFilename"), FText::FromString(ProjectFileName));
+		Arguments.Add( TEXT("ProjectFilename"), FText::FromString(ProjectFile));
 
 		if(FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(ShouldMakeProjectWriteable, Arguments)) == EAppReturnType::Yes)
 		{
-			FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ProjectFileName, false);
+			FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ProjectFile, false);
 		}
 	}
 }
 
-bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason)
+bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFile, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, FText& OutFailReason)
 {
 	// Make sure we can write to the project file
-	TryMakeProjectFileWriteable();
+	TryMakeProjectFileWriteable(ProjectFile);
 
-	// Now tell the project manager to update the file
-	if (!IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, EngineIdentifier, OutFailReason))
+	// Load the descriptor
+	FProjectDescriptor Descriptor;
+	if(Descriptor.Load(ProjectFile, OutFailReason))
 	{
-		return false;
-	}
+		// Freshen version information
+		Descriptor.EngineAssociation = EngineIdentifier;
 
-	return true;
+		// Replace the modules names, if specified
+		if(StartupModuleNames != NULL)
+		{
+			Descriptor.Modules.Empty();
+			for(int32 Idx = 0; Idx < StartupModuleNames->Num(); Idx++)
+			{
+				Descriptor.Modules.Add(FModuleDescriptor(*(*StartupModuleNames)[Idx]));
+			}
+		}
+
+		// Update file on disk
+		return Descriptor.Save(ProjectFile, OutFailReason);
+	}
+	return false;
 }
 
 bool GameProjectUtils::CheckoutGameProjectFile(const FString& ProjectFilename, FText& OutFailReason)
@@ -2570,7 +2588,7 @@ bool GameProjectUtils::ProjectHasCodeFiles()
 	return GameProjectUtils::GetProjectCodeFileCount() > 0;
 }
 
-bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const FModuleContextInfo& ModuleInfo, const FNewClassInfo ParentClassInfo, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
 	if ( !ParentClassInfo.IsSet() )
 	{
@@ -2580,9 +2598,6 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 
 	const FString CleanClassName = ParentClassInfo.GetCleanClassName(NewClassName);
 	const FString FinalClassName = ParentClassInfo.GetFinalClassName(NewClassName);
-
-	// Get the context info for the current project
-	const FModuleContextInfo ModuleInfo = GetCurrentModuleContextInfo();
 
 	if ( !IsValidClassNameForCreation(FinalClassName, ModuleInfo, OutFailReason) )
 	{
@@ -2595,10 +2610,9 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		return false;
 	}
 
-	FString ModuleName;
 	FString NewHeaderPath;
 	FString NewCppPath;
-	if ( !CalculateSourcePaths(NewClassPath, ModuleName, NewHeaderPath, NewCppPath, ModuleInfo, &OutFailReason) )
+	if ( !CalculateSourcePaths(NewClassPath, ModuleInfo, NewHeaderPath, NewCppPath, &OutFailReason) )
 	{
 		return false;
 	}
@@ -2683,11 +2697,11 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	return true;
 }
 
-bool GameProjectUtils::FindSourceFileInProject(const FString& InFilename, FString& OutPath, const FModuleContextInfo& ModuleInfo)
+bool GameProjectUtils::FindSourceFileInProject(const FString& InFilename, const FString& InSearchPath, FString& OutPath)
 {
 	TArray<FString> Filenames;
 	const FString FilenameWidcard = TEXT("*") + InFilename;
-	IFileManager::Get().FindFilesRecursive(Filenames, *ModuleInfo.ModuleSourcePath, *FilenameWidcard, true, false, false);
+	IFileManager::Get().FindFilesRecursive(Filenames, *InSearchPath, *FilenameWidcard, true, false, false);
 	
 	if(Filenames.Num())
 	{

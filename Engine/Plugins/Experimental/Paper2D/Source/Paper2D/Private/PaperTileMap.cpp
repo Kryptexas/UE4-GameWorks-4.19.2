@@ -15,6 +15,9 @@ UPaperTileMap::UPaperTileMap(const FPostConstructInitializeProperties& PCIP)
 	TileWidth = 32;
 	TileHeight = 32;
 	PixelsPerUnit = 1.0f;
+	SeparationPerTileX = 0.0f;
+	SeparationPerTileY = 0.0f;
+	SeparationPerLayer = 64.0f;
 	SpriteCollisionDomain = ESpriteCollisionMode::None;
 
 	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/Paper2D/DefaultSpriteMaterial"));
@@ -22,9 +25,16 @@ UPaperTileMap::UPaperTileMap(const FPostConstructInitializeProperties& PCIP)
 }
 
 #if WITH_EDITOR
+
+#include "PaperTileMapRenderComponent.h"
+#include "ComponentReregisterContext.h"
+
 void UPaperTileMap::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	//@TODO: Determine when these are really needed, as they're seriously expensive!
+	TComponentReregisterContext<UPaperTileMapRenderComponent> ReregisterStaticComponents;
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapWidth)) || (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapHeight)))
 	{

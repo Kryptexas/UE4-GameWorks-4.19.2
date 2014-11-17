@@ -1090,17 +1090,20 @@ public:
 	 */
 	virtual bool ValidateHeap() override
 	{
-#ifdef USE_INTERNAL_LOCKS
+#ifdef USE_COARSE_GRAIN_LOCKS
 		FScopeLock ScopedLock(&AccessGuard);
 #endif
 		for( int32 i = 0; i < POOL_COUNT; i++ )
 		{
 			FPoolTable* Table = &PoolTable[i];
+#ifdef USE_FINE_GRAIN_LOCKS
+			FScopeLock TableLock(&Table->CriticalSection);
+#endif
 			for( FPoolInfo** PoolPtr = &Table->FirstPool; *PoolPtr; PoolPtr = &(*PoolPtr)->Next )
 			{
 				FPoolInfo* Pool = *PoolPtr;
 				check(Pool->PrevLink == PoolPtr);
-				check(Pool->FirstMem /*|| Pool->Taken == (Pool->AllocSize/Pool->TableIndex)*/);
+				check(Pool->FirstMem);
 				for( FFreeMem* Free = Pool->FirstMem; Free; Free = Free->Next )
 				{
 					check(Free->NumFreeBlocks > 0);
@@ -1174,13 +1177,13 @@ public:
 	{
 		FBufferedOutputDevice BufferedOutput;
 		{
-#ifdef USE_INTERNAL_LOCKS
+#ifdef USE_COARSE_GRAIN_LOCKS
 			FScopeLock ScopedLock( &AccessGuard );
 #endif
 			ValidateHeap();
 #if STATS
 			UpdateSlackStat();
-
+#if !NO_LOGGING
 			// This is all of the memory including stuff too big for the pools
 			BufferedOutput.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT( "Allocator Stats for %s:" ), GetDescriptiveName() );
 			// Waste is the total overhead of the memory system
@@ -1215,6 +1218,10 @@ public:
 					continue;
 
 				Table = MemSizeToPoolTable[i];
+
+#ifdef USE_FINE_GRAIN_LOCKS
+				FScopeLock TableLock(&Table->CriticalSection);
+#endif
 
 				uint32 TableAllocSize = (Table->BlockSize > BinnedSizeLimit ? (((3 * (i - BinnedSizeLimit)) + 3)*BINNED_ALLOC_POOL_SIZE) : BINNED_ALLOC_POOL_SIZE);
 				// The amount of memory allocated from the OS
@@ -1253,6 +1260,7 @@ public:
 			BufferedOutput.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT( "%iK allocated in pools (with %iK slack and %iK waste). Efficiency %.2f%%" ), TotalMemory, TotalSlack, TotalWaste, TotalMemory ? 100.0f * (TotalMemory - TotalWaste) / TotalMemory : 100.0f );
 			BufferedOutput.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT( "Allocations %i Current / %i Total (in %i pools)" ), TotalActiveRequests, TotalTotalRequests, TotalPools );
 			BufferedOutput.CategorizedLogf( LogMemory.GetCategoryName(), ELogVerbosity::Log, TEXT( "" ) );
+#endif
 #endif
 		}
 

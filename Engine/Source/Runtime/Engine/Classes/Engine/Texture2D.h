@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Texture.h"
+#include "Engine/Texture.h"
 #include "Texture2D.generated.h"
 
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)

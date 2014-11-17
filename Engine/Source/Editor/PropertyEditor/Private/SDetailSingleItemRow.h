@@ -29,6 +29,8 @@ private:
 	void OnPasteProperty();
 	bool CanPasteProperty() const;
 	const FSlateBrush* GetBorderImage() const;
+	TSharedRef<SWidget> CreateKeyframeButton( FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode );
+	FReply OnAddKeyframeClicked();
 private:
 	/** Customization for this widget */
 	FDetailLayoutCustomization* Customization;

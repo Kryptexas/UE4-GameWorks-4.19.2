@@ -37,9 +37,9 @@ public:
 	/**
 	 * Updates the perspective viewports with the actor to view through
 	 *
-	 * @param ActorToViewThrough The actor, probably a camera, that the viewports should lock to
+	 * @param ObjectToViewThrough The object, probably a camera, that the viewports should lock to
 	 */
-	virtual void UpdateViewports(AActor* ActorToViewThrough) const = 0;
+	virtual void UpdatePreviewViewports(UObject* ObjectToViewThrough) const = 0;
 
 	/**
 	 * Adds a MovieScene instance to the player.  MovieScene players need to know about each instance for actor spawning

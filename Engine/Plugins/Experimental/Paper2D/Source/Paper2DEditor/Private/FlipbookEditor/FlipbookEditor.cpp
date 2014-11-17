@@ -235,8 +235,7 @@ TSharedRef<SDockTab> FFlipbookEditor::SpawnTab_Viewport(const FSpawnTabArgs& Arg
 		.ViewInputMax(this, &FFlipbookEditor::GetViewRangeMax)
 		.OnSetInputViewRange(this, &FFlipbookEditor::SetViewRange)
 		.bAllowZoom(true)
-		.IsRealtimeStreamingMode(false)
-		.bLastFrameIsFirstFrame(false);
+		.IsRealtimeStreamingMode(false);
 
 	return SNew(SDockTab)
 		.Label(LOCTEXT("ViewportTab_Title", "Viewport"))

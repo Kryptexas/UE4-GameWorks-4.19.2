@@ -1,10 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+
+#if WITH_FANCY_TEXT
+
 #include "TextEditHelper.h"
 #include "SlateWordWrapper.h"
 
-void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition, const ECursorEOLMode CursorEOLMode)
+void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition)
 {
 	FTextLocation NewCursorPosition = InCursorPosition;
 	ECursorAlignment NewAlignment = ECursorAlignment::Left;
@@ -15,27 +18,9 @@ void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment
 	// A CursorOffset of zero could mark the end of an empty line, but we don't need to adjust the cursor for an empty line
 	if (TextLayout.IsValid() && CursorOffset > 0)
 	{
-		bool bHasFoundEOL = false;
-
-		if (CursorEOLMode == ECursorEOLMode::HardLines)
-		{
-			const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
-			const FTextLayout::FLineModel& Line = Lines[CursorLineIndex];
-			bHasFoundEOL = (Line.Text->Len() == CursorOffset);
-		}
-		else
-		{
-			const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
-			const int32 LineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, InCursorPosition);
-
-			if (LineViews.IsValidIndex(LineViewIndex))
-			{
-				const FTextLayout::FLineView& CurrentLineView = LineViews[LineViewIndex];
-				bHasFoundEOL = (CurrentLineView.Range.EndIndex == CursorOffset);
-			}
-		}
-
-		if (bHasFoundEOL)
+		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+		const FTextLayout::FLineModel& Line = Lines[CursorLineIndex];
+		if (Line.Text->Len() == CursorOffset)
 		{
 			// We need to move the cursor back one from where it currently is; this keeps the interaction point the same 
 			// (since the cursor is aligned to the right), but visually draws the cursor in the correct place
@@ -68,34 +53,16 @@ void SMultiLineEditableText::FCursorInfo::RestoreFromUndo(const FCursorInfo& Und
 	SetCursorLocationAndAlignment(UndoData.CursorPosition, UndoData.CursorAlignment);
 }
 
-SMultiLineEditableText::FSlateCursorRunHighlighter::FSlateCursorRunHighlighter(const FCursorInfo* InCursorInfo)
+SMultiLineEditableText::FCursorLineHighlighter::FCursorLineHighlighter(const FCursorInfo* InCursorInfo)
 	: CursorInfo(InCursorInfo)
 {
 	check(CursorInfo);
 }
 
-void SMultiLineEditableText::FSlateCursorRunHighlighter::OnArrangeChildren( const TSharedRef< ILayoutBlock >& Block, const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const 
+int32 SMultiLineEditableText::FCursorLineHighlighter::OnPaint(const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	//No Widgets
-}
-
-FChildren* SMultiLineEditableText::FSlateCursorRunHighlighter::GetChildren()
-{
-	static FNoChildren NoChildrenInstance;
-	return &NoChildrenInstance;
-}
-
-int32 SMultiLineEditableText::FSlateCursorRunHighlighter::OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
-{
-	LayerId = OnPaintCursor(Line, Run, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled, 0.0f, CursorInfo->GetCursorAlignment());
-
-	return Run->OnPaint( Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
-}
-
-int32 SMultiLineEditableText::FSlateCursorRunHighlighter::OnPaintCursor( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, const bool bParentEnabled, const float InCursorOffset, const ECursorAlignment InCursorAlignment ) const
-{
-	FVector2D Location( Block->GetLocationOffset() );
-	Location.Y = Line.Offset.Y;
+	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
+	const FVector2D Size(Width, Line.TextSize.Y);
 
 	FLinearColor CursorColorAndOpacity = InWidgetStyle.GetForegroundColor();
 
@@ -115,13 +82,12 @@ int32 SMultiLineEditableText::FSlateCursorRunHighlighter::OnPaintCursor( const F
 	// @todo: Slate Styles - make this brush part of the widget style
 	const FSlateBrush* CursorBrush = FCoreStyle::Get().GetBrush("EditableText.SelectionBackground");
 
-	FVector2D OptionalWidth = InCursorAlignment == ECursorAlignment::Right ? FVector2D(Block->GetSize().X, 0) : FVector2D::ZeroVector;
-	OptionalWidth += FVector2D(InCursorOffset, 0.0f);
+	const FVector2D OptionalWidth = CursorInfo->GetCursorAlignment() == ECursorAlignment::Right ? FVector2D(Size.X, 0) : FVector2D::ZeroVector;
 
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
 		LayerId,
-		FPaintGeometry(AllottedGeometry.AbsolutePosition + Location + OptionalWidth, FVector2D(CursorWidth * AllottedGeometry.Scale, Line.TextSize.Y), AllottedGeometry.Scale),
+		FPaintGeometry(AllottedGeometry.AbsolutePosition + Location + OptionalWidth, FVector2D(CursorWidth * AllottedGeometry.Scale, Size.Y), AllottedGeometry.Scale),
 		CursorBrush,
 		MyClippingRect,
 		bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
@@ -130,23 +96,59 @@ int32 SMultiLineEditableText::FSlateCursorRunHighlighter::OnPaintCursor( const F
 	return LayerId;
 }
 
-TSharedRef< SMultiLineEditableText::FSlateCursorRunHighlighter > SMultiLineEditableText::FSlateCursorRunHighlighter::Create(const FCursorInfo* InCursorInfo)
+TSharedRef< SMultiLineEditableText::FCursorLineHighlighter > SMultiLineEditableText::FCursorLineHighlighter::Create(const FCursorInfo* InCursorInfo)
 {
-	return MakeShareable( new SMultiLineEditableText::FSlateCursorRunHighlighter(InCursorInfo) );
+	return MakeShareable( new SMultiLineEditableText::FCursorLineHighlighter(InCursorInfo) );
 }
 
-SMultiLineEditableText::FSlateSelectionRunHighlighter::FSlateSelectionRunHighlighter(const FCursorInfo* InCursorInfo)
-	: SMultiLineEditableText::FSlateCursorRunHighlighter(InCursorInfo)
-	, CursorAlignment(ECursorAlignment::Left)
+SMultiLineEditableText::FTextCompositionHighlighter::FTextCompositionHighlighter()
 {
 }
 
-int32 SMultiLineEditableText::FSlateSelectionRunHighlighter::OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
+int32 SMultiLineEditableText::FTextCompositionHighlighter::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const float OffsetX, const float Width, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+{
+	const FVector2D Location(Line.Offset.X + OffsetX, Line.Offset.Y);
+	const FVector2D Size(Width, Line.TextSize.Y);
+
+	if (Size.X)
+	{
+		const FLinearColor LineColorAndOpacity = InWidgetStyle.GetForegroundColor();
+
+		// @todo: Slate Styles - make this brush part of the widget style
+		const FSlateBrush* CompositionBrush = FCoreStyle::Get().GetBrush("EditableText.CompositionBackground");
+
+		// Draw composition background
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			++LayerId,
+			FPaintGeometry(AllottedGeometry.AbsolutePosition + Location, Size, AllottedGeometry.Scale),
+			CompositionBrush,
+			MyClippingRect,
+			bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
+			LineColorAndOpacity * InWidgetStyle.GetColorAndOpacityTint()
+		);
+	}
+
+	return LayerId;
+}
+
+TSharedRef< SMultiLineEditableText::FTextCompositionHighlighter > SMultiLineEditableText::FTextCompositionHighlighter::Create()
+{
+	return MakeShareable( new SMultiLineEditableText::FTextCompositionHighlighter() );
+}
+
+SMultiLineEditableText::FTextSelectionRunRenderer::FTextSelectionRunRenderer()
+{
+}
+
+int32 SMultiLineEditableText::FTextSelectionRunRenderer::OnPaint( const FPaintArgs& Args, const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
 {
 	FVector2D Location( Block->GetLocationOffset() );
 	Location.Y = Line.Offset.Y;
 
-	const FColor SelectionBackgroundColorAndOpacity = ((FLinearColor::White - DefaultStyle.ColorAndOpacity.GetColor(InWidgetStyle))*0.5f + FLinearColor(-0.2f, -0.05f, 0.15f)) * InWidgetStyle.GetColorAndOpacityTint();
+	const FLinearColor FocusedSelectionColorAdjustment(-0.2f, -0.05f, 0.15f);
+	const FLinearColor UnfocusedSelectionColorAdjustment(-0.01f, -0.01f, 0.01f);
+	const FColor SelectionBackgroundColorAndOpacity = ((FLinearColor::White - DefaultStyle.ColorAndOpacity.GetColor(InWidgetStyle))*0.5f + (bHasKeyboardFocus ? FocusedSelectionColorAdjustment : UnfocusedSelectionColorAdjustment)) * InWidgetStyle.GetColorAndOpacityTint();
 
 	const float HighlightWidth = Block->GetSize().X;
 	if (HighlightWidth)
@@ -169,84 +171,12 @@ int32 SMultiLineEditableText::FSlateSelectionRunHighlighter::OnPaint( const FTex
 	//FWidgetStyle WidgetStyle( InWidgetStyle );
 	//WidgetStyle.SetForegroundColor( InvertedForeground );
 
-	// If the cursor is within the range of this block, we need to draw it
-	const FTextLocation CursorLocation = CursorInfo->GetCursorLocation();
-	if(Line.ModelIndex == CursorLocation.GetLineIndex() && Block->GetTextRange().InclusiveContains(CursorLocation.GetOffset()))
-	{
-		LayerId = OnPaintCursor(Line, Run, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled, 0.0f, CursorAlignment);
-	}
-
-	return Run->OnPaint( Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	return Run->OnPaint( Args, Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 }
 
-TSharedRef< SMultiLineEditableText::FSlateSelectionRunHighlighter > SMultiLineEditableText::FSlateSelectionRunHighlighter::Create(const FCursorInfo* InCursorInfo)
+TSharedRef< SMultiLineEditableText::FTextSelectionRunRenderer > SMultiLineEditableText::FTextSelectionRunRenderer::Create()
 {
-	return MakeShareable( new SMultiLineEditableText::FSlateSelectionRunHighlighter(InCursorInfo) );
-}
-
-SMultiLineEditableText::FSlateCompositionRunHighlighter::FSlateCompositionRunHighlighter(const FCursorInfo* InCursorInfo)
-	: SMultiLineEditableText::FSlateCursorRunHighlighter(InCursorInfo)
-{
-}
-
-int32 SMultiLineEditableText::FSlateCompositionRunHighlighter::OnPaint( const FTextLayout::FLineView& Line, const TSharedRef< ISlateRun >& Run, const TSharedRef< ILayoutBlock >& Block, const FTextBlockStyle& DefaultStyle, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const 
-{
-	FVector2D Location( Block->GetLocationOffset() );
-	Location.Y = Line.Offset.Y;
-
-	const float CompositionWidth = Block->GetSize().X;
-	if (CompositionWidth)
-	{
-		const FLinearColor LineColorAndOpacity = InWidgetStyle.GetForegroundColor();
-
-		// @todo: Slate Styles - make this brush part of the widget style
-		const FSlateBrush* CompositionBrush = FCoreStyle::Get().GetBrush("EditableText.CompositionBackground");
-
-		// Draw composition background
-		FSlateDrawElement::MakeBox(
-			OutDrawElements,
-			++LayerId,
-			FPaintGeometry(AllottedGeometry.AbsolutePosition + Location, FVector2D(CompositionWidth, Line.TextSize.Y), AllottedGeometry.Scale),
-			CompositionBrush,
-			MyClippingRect,
-			bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
-			LineColorAndOpacity * InWidgetStyle.GetColorAndOpacityTint()
-		);
-	}
-
-	// If the cursor is within the range of this block, we need to draw it
-	const FTextLocation CursorInteractionLocation = CursorInfo->GetCursorInteractionLocation();
-	if(Line.ModelIndex == CursorInteractionLocation.GetLineIndex() && Block->GetTextRange().InclusiveContains(CursorInteractionLocation.GetOffset()))
-	{
-		// Unlike selection where the cursor will always be at one end of the block, composition may place the cursor anywhere within the block,
-		// so we need to calculate the offset (in scaled screen space) required from the start of the block to the position of the cursor
-		// We always do this check using the interaction position of the cursor, as this ensures we draw the cursor at the correct place, 
-		// even when it's to the right of a character (which is why we also pass ECursorAlignment::Left into OnPaintCursor, otherwise we'd doubly compensate)
-
-		// Get the text for the current run
-		FString RunText;
-		Run->AppendText(RunText);
-
-		// Trim that text down to the text for this block
-		const FTextRange BlockTextRange = Block->GetTextRange();
-		const FString BlockText = RunText.Mid(BlockTextRange.BeginIndex, BlockTextRange.EndIndex - BlockTextRange.BeginIndex);
-
-		// Then trim that down so we have the text up-to the interaction point of the cursor
-		const FString TextUpToCursor = BlockText.Left(CursorInteractionLocation.GetOffset() - BlockTextRange.BeginIndex);
-
-		// Finally, measure that text so we can get an accurate offset for the cursor position within this block
-		const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-		const FVector2D CursorOffset = FontMeasureService->Measure(TextUpToCursor, DefaultStyle.Font, AllottedGeometry.Scale);
-
-		LayerId = OnPaintCursor(Line, Run, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled, CursorOffset.X, ECursorAlignment::Left);
-	}
-
-	return Run->OnPaint( Line, Block, DefaultStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
-}
-
-TSharedRef< SMultiLineEditableText::FSlateCompositionRunHighlighter > SMultiLineEditableText::FSlateCompositionRunHighlighter::Create(const FCursorInfo* InCursorInfo)
-{
-	return MakeShareable( new SMultiLineEditableText::FSlateCompositionRunHighlighter(InCursorInfo) );
+	return MakeShareable( new SMultiLineEditableText::FTextSelectionRunRenderer() );
 }
 
 SMultiLineEditableText::SMultiLineEditableText()
@@ -297,9 +227,9 @@ void SMultiLineEditableText::Construct( const FArguments& InArgs )
 	OnTextChanged = InArgs._OnTextChanged;
 	OnTextCommitted = InArgs._OnTextCommitted;
 
-	CursorRunHighlighter = FSlateCursorRunHighlighter::Create(&CursorInfo);
-	SelectionRunHighlighter = FSlateSelectionRunHighlighter::Create(&CursorInfo);
-	CompositionRunHighlighter = FSlateCompositionRunHighlighter::Create(&CursorInfo);
+	CursorLineHighlighter = FCursorLineHighlighter::Create(&CursorInfo);
+	TextCompositionHighlighter = FTextCompositionHighlighter::Create();
+	TextSelectionRunRenderer = FTextSelectionRunRenderer::Create();
 	TextLayout = FSlateTextLayout::Create();
 
 	BoundText = InArgs._Text;
@@ -395,6 +325,7 @@ bool SMultiLineEditableText::SetEditableText(const FText& TextToSet, const bool 
 		const FString& TextToSetString = TextToSet.ToString();
 		const int32 TextToSetLength = TextToSetString.Len();
 
+		ClearSelection();
 		TextLayout->ClearLines();
 
 		if(TextToSetLength)
@@ -574,6 +505,9 @@ void SMultiLineEditableText::FinishChangingText()
 
 		// Let outsiders know that the text content has been changed
 		OnTextChanged.ExecuteIfBound(EditedText);
+
+		// Update the desired cursor position, since typing will have moved it
+		UpdatePreferredCursorScreenOffsetInLine();
 	}
 }
 
@@ -910,29 +844,41 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 		}
 	}
 
-	ECursorEOLMode CursorEOLMode = ECursorEOLMode::HardLines;
+	TOptional<ECursorAlignment> NewCursorAlignment;
+	bool bUpdatePreferredCursorScreenOffsetInLine = false;
 	if (bAllowMoveCursor)
 	{
 		switch (Method)
 		{
 		case ECursorMoveMethod::CharacterHorizontal:
 			NewCursorPosition = TranslatedLocation( CursorPosition, Direction.X );
-			PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt( NewCursorPosition ).X;
+			bUpdatePreferredCursorScreenOffsetInLine = true;
 			break;
 
 		case ECursorMoveMethod::Word:
 			NewCursorPosition = ScanForWordBoundary( CursorPosition, Direction.X );
-			PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt( NewCursorPosition ).X;
+			bUpdatePreferredCursorScreenOffsetInLine = true;
 			break;
 	
 		case ECursorMoveMethod::CharacterVertical:
-			NewCursorPosition = TranslateLocationVertical( CursorPosition, Direction.Y );
+			TranslateLocationVertical( CursorPosition, Direction.Y, NewCursorPosition, NewCursorAlignment );
 			break;
 	
 		case ECursorMoveMethod::ScreenPosition:
-			NewCursorPosition = TextLayout->GetTextLocationAt( Direction * TextLayout->GetScale() );
-			CursorEOLMode = ECursorEOLMode::SoftLines;
-			PreferredCursorScreenOffsetInLine = Direction.X;
+			{
+				ETextHitPoint HitPoint = ETextHitPoint::WithinText;
+				NewCursorPosition = TextLayout->GetTextLocationAt( Direction * TextLayout->GetScale(), &HitPoint );
+				bUpdatePreferredCursorScreenOffsetInLine = true;
+
+				// Moving with the mouse behaves a bit differently to moving with the keyboard, as clicking at the end of a wrapped line needs to place the cursor there
+				// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
+				// We use the HitPoint to work this out and then adjust the cursor position accordingly
+				if (HitPoint == ETextHitPoint::RightGutter)
+				{
+					NewCursorPosition = FTextLocation(NewCursorPosition, -1);
+					NewCursorAlignment = ECursorAlignment::Right;
+				}
+			}
 			break;
 
 		default:
@@ -956,7 +902,20 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 		this->ClearSelection();
 	}
 
-	CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition, CursorEOLMode);
+	if (NewCursorAlignment.IsSet())
+	{
+		CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, NewCursorAlignment.GetValue());
+	}
+	else
+	{
+		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+	}
+
+	if (bUpdatePreferredCursorScreenOffsetInLine)
+	{
+		UpdatePreferredCursorScreenOffsetInLine();
+	}
+
 	UpdateCursorHighlight();
 
 	// If we've moved the cursor while composing, we need to end the current composition session
@@ -976,13 +935,15 @@ FReply SMultiLineEditableText::MoveCursor( ECursorMoveMethod::Type Method, const
 
 void SMultiLineEditableText::UpdateCursorHighlight()
 {
-	TextLayout->ClearHighlights();
+	RemoveCursorHighlight();
+
+	static const int32 CompositionRangeZOrder = 1; // draw above the text
+	static const int32 CursorZOrder = 2; // draw above the text and the composition
 
 	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 	const FTextLocation SelectionLocation = SelectionStart.Get( CursorInteractionPosition );
 
-	bool bDrawCursor = true;
-
+	const bool bHasKeyboardFocus = HasKeyboardFocus();
 	const bool bIsComposing = TextInputMethodContext->IsComposing;
 	const bool bHasSelection = SelectionLocation != CursorInteractionPosition;
 
@@ -1000,22 +961,15 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 			const FTextRange Range(CompositionBeginLocation.GetOffset(), CompositionEndLocation.GetOffset());
 
 			// We only draw the composition highlight if the cursor is within the composition range
-			bDrawCursor = !(CompositionBeginLocation.GetLineIndex() == CursorInteractionPosition.GetLineIndex() && Range.InclusiveContains(CursorInteractionPosition.GetOffset()));
-			if (!Range.IsEmpty() && !bDrawCursor)
+			const bool bCursorInRange = (CompositionBeginLocation.GetLineIndex() == CursorInteractionPosition.GetLineIndex() && Range.InclusiveContains(CursorInteractionPosition.GetOffset()));
+			if (!Range.IsEmpty() && bCursorInRange)
 			{
-				TextLayout->AddHighlight(FTextHighlight(CompositionBeginLocation.GetLineIndex(), Range, CompositionRunHighlighter.ToSharedRef()));
-			}
-			else
-			{
-				// We have no composition range for this line, but we're supposed to draw the cursor on this line - let the normal cursor handling take care of that
-				bDrawCursor = true;
+				TextLayout->AddLineHighlight(FTextLineHighlight(CompositionBeginLocation.GetLineIndex(), Range, CompositionRangeZOrder, TextCompositionHighlighter.ToSharedRef()));
 			}
 		}
 	}
 	else if ( bHasSelection )
 	{
-		bDrawCursor = false;
-
 		const FTextSelection Selection( SelectionLocation, CursorInteractionPosition );
 
 		const int32 SelectionBeginningLineIndex = Selection.GetBeginning().GetLineIndex();
@@ -1024,20 +978,14 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 		const int32 SelectionEndLineIndex = Selection.GetEnd().GetLineIndex();
 		const int32 SelectionEndLineOffset = Selection.GetEnd().GetOffset();
 
-		const bool bCursorIsBeforeSelection = CursorInteractionPosition < SelectionLocation;
-		SelectionRunHighlighter->SetCursorAlignment((bCursorIsBeforeSelection) ? ECursorAlignment::Left : ECursorAlignment::Right);
+		TextSelectionRunRenderer->SetHasKeyboardFocus(bHasKeyboardFocus);
 
 		if ( SelectionBeginningLineIndex == SelectionEndLineIndex )
 		{
 			const FTextRange Range(SelectionBeginningLineOffset, SelectionEndLineOffset);
 			if (!Range.IsEmpty())
 			{
-				TextLayout->AddHighlight(FTextHighlight(SelectionBeginningLineIndex, Range, SelectionRunHighlighter.ToSharedRef()));
-			}
-			else
-			{
-				// We have no selection range for this line, but we're supposed to draw the cursor on this line - let the normal cursor handling take care of that
-				bDrawCursor = true;
+				TextLayout->AddRunRenderer(FTextRunRenderer(SelectionBeginningLineIndex, Range, TextSelectionRunRenderer.ToSharedRef()));
 			}
 		}
 		else
@@ -1051,12 +999,7 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 					const FTextRange Range(SelectionBeginningLineOffset, Lines[LineIndex].Text->Len());
 					if (!Range.IsEmpty())
 					{
-						TextLayout->AddHighlight(FTextHighlight(LineIndex, Range, SelectionRunHighlighter.ToSharedRef()));
-					}
-					else if (bCursorIsBeforeSelection)
-					{
-						// We have no selection range for this line, but we're supposed to draw the cursor on this line - let the normal cursor handling take care of that
-						bDrawCursor = true;
+						TextLayout->AddRunRenderer(FTextRunRenderer(LineIndex, Range, TextSelectionRunRenderer.ToSharedRef()));
 					}
 				}
 				else if ( LineIndex == SelectionEndLineIndex )
@@ -1064,12 +1007,7 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 					const FTextRange Range(0, SelectionEndLineOffset);
 					if (!Range.IsEmpty())
 					{
-						TextLayout->AddHighlight(FTextHighlight(LineIndex, Range, SelectionRunHighlighter.ToSharedRef()));
-					}
-					else if (!bCursorIsBeforeSelection)
-					{
-						// We have no selection range for this line, but we're supposed to draw the cursor on this line - let the normal cursor handling take care of that
-						bDrawCursor = true;
+						TextLayout->AddRunRenderer(FTextRunRenderer(LineIndex, Range, TextSelectionRunRenderer.ToSharedRef()));
 					}
 				}
 				else
@@ -1077,14 +1015,13 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 					const FTextRange Range(0, Lines[LineIndex].Text->Len());
 					if (!Range.IsEmpty())
 					{
-						TextLayout->AddHighlight(FTextHighlight(LineIndex, Range, SelectionRunHighlighter.ToSharedRef()));
+						TextLayout->AddRunRenderer(FTextRunRenderer(LineIndex, Range, TextSelectionRunRenderer.ToSharedRef()));
 					}
 				}
 			}
 		}
 	}
 	
-	if ( bDrawCursor )
 	{
 		// The cursor mode uses the literal position rather than the interaction position
 		const FTextLocation CursorPosition = CursorInfo.GetCursorLocation();
@@ -1094,22 +1031,28 @@ void SMultiLineEditableText::UpdateCursorHighlight()
 
 		if (LineTextLength == 0)
 		{
-			TextLayout->AddHighlight(FTextHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorRunHighlighter.ToSharedRef()));
+			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(0, 0), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
 		else if (CursorPosition.GetOffset() == LineTextLength)
 		{
-			TextLayout->AddHighlight(FTextHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorRunHighlighter.ToSharedRef()));
+			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(LineTextLength - 1, LineTextLength), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
 		else
 		{
-			TextLayout->AddHighlight(FTextHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorRunHighlighter.ToSharedRef()));
+			TextLayout->AddLineHighlight(FTextLineHighlight(CursorPosition.GetLineIndex(), FTextRange(CursorPosition.GetOffset(), CursorPosition.GetOffset() + 1), CursorZOrder, CursorLineHighlighter.ToSharedRef()));
 		}
 	}
 }
 
 void SMultiLineEditableText::RemoveCursorHighlight()
 {
-	TextLayout->ClearHighlights();
+	TextLayout->ClearRunRenderers();
+	TextLayout->ClearLineHighlights();
+}
+
+void SMultiLineEditableText::UpdatePreferredCursorScreenOffsetInLine()
+{
+	PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment() == ECursorAlignment::Right).X;
 }
 
 void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAction::Type Action)
@@ -1120,7 +1063,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 		{
 			const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 			const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
-			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition );
+			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition, CursorInfo.GetCursorAlignment() == ECursorAlignment::Right );
 
 			if (LineViews.IsValidIndex(CurrentLineViewIndex))
 			{
@@ -1128,7 +1071,7 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 				
 				const FTextLocation OldCursorPosition = CursorInteractionPosition;
 				const FTextLocation NewCursorPosition = FTextLocation(OldCursorPosition.GetLineIndex(), CurrentLineView.Range.BeginIndex);
-				
+
 				if (Action == ECursorAction::SelectText)
 				{
 					this->SelectionStart = OldCursorPosition;
@@ -1138,9 +1081,8 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 					ClearSelection();
 				}
 
-				PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(NewCursorPosition).X;
-
 				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
 		}
@@ -1160,9 +1102,8 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 				ClearSelection();
 			}
 
-			PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(NewCursorPosition).X;
-
 			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+			UpdatePreferredCursorScreenOffsetInLine();
 			UpdateCursorHighlight();
 		}
 		break;
@@ -1171,14 +1112,14 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 		{
 			const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
 			const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
-			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition);
+			const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, CursorInteractionPosition, CursorInfo.GetCursorAlignment() == ECursorAlignment::Right);
 
 			if (LineViews.IsValidIndex(CurrentLineViewIndex))
 			{
 				const FTextLayout::FLineView& CurrentLineView = LineViews[CurrentLineViewIndex];
 
 				const FTextLocation OldCursorPosition = CursorInteractionPosition;
-				const FTextLocation NewCursorPosition = FTextLocation(OldCursorPosition.GetLineIndex(), CurrentLineView.Range.EndIndex);
+				const FTextLocation NewCursorPosition = FTextLocation(OldCursorPosition.GetLineIndex(), FMath::Max(0, CurrentLineView.Range.EndIndex - 1));
 
 				if (Action == ECursorAction::SelectText)
 				{
@@ -1189,9 +1130,8 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 					ClearSelection();
 				}
 
-				PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(NewCursorPosition).X;
-
-				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				CursorInfo.SetCursorLocationAndAlignment(NewCursorPosition, ECursorAlignment::Right);
+				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
 		}
@@ -1215,9 +1155,8 @@ void SMultiLineEditableText::JumpTo(ETextLocation::Type JumpLocation, ECursorAct
 					ClearSelection();
 				}
 
-				PreferredCursorScreenOffsetInLine = TextLayout->GetLocationAt(NewCursorPosition).X;
-
 				CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+				UpdatePreferredCursorScreenOffsetInLine();
 				UpdateCursorHighlight();
 			}
 		}
@@ -1772,7 +1711,7 @@ void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const doub
 	}
 }
 
-int32 SMultiLineEditableText::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SMultiLineEditableText::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Update the auto-wrap size now that we have computed paint geometry; won't take affect until text frame
 	// Note: This is done here rather than in Tick(), because Tick() doesn't get called while resizing windows, but OnPaint() does
@@ -1787,7 +1726,7 @@ int32 SMultiLineEditableText::OnPaint( const FGeometry& AllottedGeometry, const 
 	{
 		const FVector2D TextLayoutSize = TextLayout->GetSize();
 		const FVector2D Offset( ( AllottedGeometry.Size.X - TextLayoutSize.X ), 0 );
-		LayerId = TextLayout->OnPaint( TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 	else if ( TextJustification == ETextJustify::Center )
 	{
@@ -1800,11 +1739,11 @@ int32 SMultiLineEditableText::OnPaint( const FGeometry& AllottedGeometry, const 
 		}
 
 		const FVector2D Offset((AllottedGeometry.Size.X - TextLayoutSize.X) / 2, 0);
-		LayerId = TextLayout->OnPaint( TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry.MakeChild( Offset, TextLayoutSize ), MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 	else
 	{
-		LayerId = TextLayout->OnPaint( TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		LayerId = TextLayout->OnPaint( Args.WithNewParent(this), TextStyle, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 	}
 
 	return LayerId;
@@ -1975,12 +1914,12 @@ FTextLocation SMultiLineEditableText::TranslatedLocation( const FTextLocation& L
 	}
 }
 
-FTextLocation SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction ) const
+void SMultiLineEditableText::TranslateLocationVertical( const FTextLocation& Location, int8 Direction, FTextLocation& OutCursorPosition, TOptional<ECursorAlignment>& OutCursorAlignment ) const
 {
 	const TArray< FTextLayout::FLineView >& LineViews = TextLayout->GetLineViews();
 	const int32 NumberOfLineViews = LineViews.Num();
 
-	const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, Location);
+	const int32 CurrentLineViewIndex = TextLayout->GetLineViewIndexForTextLocation(LineViews, Location, CursorInfo.GetCursorAlignment() == ECursorAlignment::Right);
 	ensure(CurrentLineViewIndex != INDEX_NONE);
 	const FTextLayout::FLineView& CurrentLineView = LineViews[ CurrentLineViewIndex ];
 
@@ -1988,7 +1927,17 @@ FTextLocation SMultiLineEditableText::TranslateLocationVertical( const FTextLoca
 	const FTextLayout::FLineView& NewLineView = LineViews[ NewLineViewIndex ];
 	
 	// Our horizontal position is the clamped version of whatever the user explicitly set with horizontal movement.
-	return TextLayout->GetTextLocationAt( NewLineView, FVector2D( PreferredCursorScreenOffsetInLine, NewLineView.Offset.Y ) * TextLayout->GetScale() );
+	ETextHitPoint HitPoint = ETextHitPoint::WithinText;
+	OutCursorPosition = TextLayout->GetTextLocationAt( NewLineView, FVector2D( PreferredCursorScreenOffsetInLine, NewLineView.Offset.Y ) * TextLayout->GetScale(), &HitPoint );
+
+	// PreferredCursorScreenOffsetInLine can cause the cursor to move to the right hand gutter, and it needs to be placed there
+	// rather than at the start of the next line (which is tricky since they have the same index according to GetTextLocationAt!).
+	// We use the HitPoint to work this out and then adjust the cursor position accordingly
+	if(HitPoint == ETextHitPoint::RightGutter)
+	{
+		OutCursorPosition = FTextLocation(OutCursorPosition, -1);
+		OutCursorAlignment = ECursorAlignment::Right;
+	}
 }
 
 FTextLocation SMultiLineEditableText::ScanForWordBoundary( const FTextLocation& CurrentLocation, int8 Direction ) const
@@ -2214,8 +2163,8 @@ bool SMultiLineEditableText::FTextInputMethodContext::GetTextBounds(const uint32
 		const FTextLocation BeginLocation = OffsetLocations.OffsetToTextLocation(BeginIndex);
 		const FTextLocation EndLocation = OffsetLocations.OffsetToTextLocation(BeginIndex + Length);
 
-		const FVector2D BeginPosition = OwningWidgetPtr->TextLayout->GetLocationAt(BeginLocation);
-		const FVector2D EndPosition = OwningWidgetPtr->TextLayout->GetLocationAt(EndLocation);
+		const FVector2D BeginPosition = OwningWidgetPtr->TextLayout->GetLocationAt(BeginLocation, false);
+		const FVector2D EndPosition = OwningWidgetPtr->TextLayout->GetLocationAt(EndLocation, false);
 
 		if(BeginPosition.Y == EndPosition.Y)
 		{
@@ -2304,3 +2253,6 @@ void SMultiLineEditableText::FTextInputMethodContext::EndComposition()
 		IsComposing = false;
 	}
 }
+
+
+#endif //WITH_FANCY_TEXT

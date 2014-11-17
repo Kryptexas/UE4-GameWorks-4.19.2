@@ -148,6 +148,8 @@ public:
 		ID3D11Device* Direct3DDevice
 		);
 
+	~FD3D11BoundShaderState();
+
 	/**
 	 * Get the shader for the given frequency.
 	 */
@@ -373,15 +375,15 @@ public:
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{
-		return FRefCountedObject::AddRef();
+		return FRHIResource::AddRef();
 	}
 	virtual uint32 Release() const
 	{
-		return FRefCountedObject::Release();
+		return FRHIResource::Release();
 	}
 	virtual uint32 GetRefCount() const
 	{
-		return FRefCountedObject::GetRefCount();
+		return FRHIResource::GetRefCount();
 	}
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
 	void* GetRawTextureMemory() const
@@ -440,15 +442,15 @@ public:
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{
-		return FRefCountedObject::AddRef();
+		return FRHIResource::AddRef();
 	}
 	virtual uint32 Release() const
 	{
-		return FRefCountedObject::Release();
+		return FRHIResource::Release();
 	}
 	virtual uint32 GetRefCount() const
 	{
-		return FRefCountedObject::GetRefCount();
+		return FRHIResource::GetRefCount();
 	}
 };
 
@@ -506,15 +508,15 @@ public:
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{
-		return FRefCountedObject::AddRef();
+		return FRHIResource::AddRef();
 	}
 	virtual uint32 Release() const
 	{
-		return FRefCountedObject::Release();
+		return FRHIResource::Release();
 	}
 	virtual uint32 GetRefCount() const
 	{
-		return FRefCountedObject::GetRefCount();
+		return FRHIResource::GetRefCount();
 	}
 };
 
@@ -671,15 +673,15 @@ public:
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{
-		return FRefCountedObject::AddRef();
+		return FRHIResource::AddRef();
 	}
 	virtual uint32 Release() const
 	{
-		return FRefCountedObject::Release();
+		return FRHIResource::Release();
 	}
 	virtual uint32 GetRefCount() const
 	{
-		return FRefCountedObject::GetRefCount();
+		return FRHIResource::GetRefCount();
 	}
 };
 
@@ -703,15 +705,15 @@ public:
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{
-		return FRefCountedObject::AddRef();
+		return FRHIResource::AddRef();
 	}
 	virtual uint32 Release() const
 	{
-		return FRefCountedObject::Release();
+		return FRHIResource::Release();
 	}
 	virtual uint32 GetRefCount() const
 	{
-		return FRefCountedObject::GetRefCount();
+		return FRHIResource::GetRefCount();
 	}
 };
 
@@ -735,15 +737,15 @@ public:
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{
-		return FRefCountedObject::AddRef();
+		return FRHIResource::AddRef();
 	}
 	virtual uint32 Release() const
 	{
-		return FRefCountedObject::Release();
+		return FRHIResource::Release();
 	}
 	virtual uint32 GetRefCount() const
 	{
-		return FRefCountedObject::GetRefCount();
+		return FRHIResource::GetRefCount();
 	}
 };
 

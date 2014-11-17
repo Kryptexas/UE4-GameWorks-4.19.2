@@ -50,7 +50,6 @@
 #include "GameFramework/PlayerState.h"
 #include "Engine/SkyLight.h"
 #include "Engine/WindDirectionalSource.h"
-#include "GameFramework/MusicTrackDataStructures.h"
 #include "GameFramework/WorldSettings.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
@@ -313,9 +312,10 @@
 #include "ComponentReregisterContext.h"	
 #include "DrawDebugHelpers.h"
 #include "UnrealEngine.h"					// Unreal engine helpers.
-#include "Canvas.h"							// Canvas.
+#include "CanvasTypes.h"							// Canvas.
 #include "EngineUtils.h"
 #include "InstancedFoliage.h"				// Instanced foliage.
+#include "Foliage/InstancedFoliageActor.h"	// Instanced foliage.
 #include "UnrealExporter.h"					// Exporter definition.
 #include "TimerManager.h"					// Game play timers
 #include "EngineService.h"

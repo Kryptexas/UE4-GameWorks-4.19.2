@@ -122,9 +122,15 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		Ar << Sum.ExportCount   << Sum.ExportOffset;
 		Ar << Sum.ImportCount   << Sum.ImportOffset;
 		Ar << Sum.DependsOffset;
+
 		if (Ar.IsLoading() && (Sum.FileVersionUE3 < VER_MIN_ENGINE_UE3 || Sum.FileVersionUE4 < VER_UE4_OLDEST_LOADABLE_PACKAGE || Sum.FileVersionUE4 > GPackageFileUE4Version))
 		{
 			return Ar; // we can't safely load more than this because the below was different in older files.
+		}
+
+		if (Ar.IsSaving() || Sum.FileVersionUE4 >= VER_UE4_ADD_STRING_ASSET_REFERENCES_MAP)
+		{
+			Ar << Sum.StringAssetReferencesCount << Sum.StringAssetReferencesOffset;
 		}
 
 		Ar << Sum.ThumbnailTableOffset;

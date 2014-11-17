@@ -92,6 +92,25 @@ FAssetRegistry::FAssetRegistry()
 	// Listen for new content paths being added at runtime.  These are usually plugin-specific asset paths that
 	// will be loaded a bit later on.
 	FPackageName::OnContentPathMounted().AddRaw( this, &FAssetRegistry::OnContentPathMounted );
+
+	// Now collect all code generator classes (currently BlueprintCore-derived ones)
+	CollectCodeGeneratorClasses();
+}
+
+void FAssetRegistry::CollectCodeGeneratorClasses()
+{
+	// Work around the fact we don't reference Engine module directly
+	UClass* BlueprintCoreClass = Cast<UClass>(StaticFindObject(UClass::StaticClass(), ANY_PACKAGE, TEXT("BlueprintCore")));
+	if (BlueprintCoreClass)
+	{
+		for (TObjectIterator<UClass> It; It; ++It)
+		{
+			if (It->IsChildOf(BlueprintCoreClass))
+			{
+				ClassGeneratorNames.Add(It->GetFName());
+			}
+		}
+	}
 }
 
 FAssetRegistry::~FAssetRegistry()
@@ -307,7 +326,6 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			if ( ObjIt->IsAsset() )
 			{
 				UPackage* InMemoryPackage = ObjIt->GetOutermost();
-				const FName ObjectPath = FName(*ObjIt->GetPathName());
 
 				static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
 				// Skip assets in map packages... unless we are showing world assets
@@ -316,7 +334,14 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 					continue;
 				}
 
+				// Skip assets that were loaded for diffing
+				if ( InMemoryPackage->PackageFlags & PKG_ForDiffing )
+				{
+					continue;
+				}
+
 				// add it to in-memory object list for later merge
+				const FName ObjectPath = FName(*ObjIt->GetPathName());
 				InMemoryObjectPaths.Add(ObjectPath);
 			
 				// Package name
@@ -1023,7 +1048,7 @@ void FAssetRegistry::PrioritizeAssetInstall(const FAssetData& AssetData) const
 		return;
 	}
 
-	ChunkInstall->PrioritizeChunk(AssetData.ChunkIDs[0]);
+	ChunkInstall->PrioritizeChunk(AssetData.ChunkIDs[0], EChunkPriority::Immediate);
 }
 
 bool FAssetRegistry::AddPath(const FString& PathToAdd)
@@ -1127,6 +1152,12 @@ void FAssetRegistry::AssetDeleted(UObject* DeletedAsset)
 			if ( UPackage::IsEmptyPackage( DeletedObjectPackage, DeletedAsset ) )
 			{
 				AddEmptyPackage( DeletedObjectPackage->GetFName() );
+
+				// If there is a package metadata object, clear the standalone flag so the package can be truly emptied upon GC
+				if ( DeletedObjectPackage->MetaData != nullptr )
+				{
+					DeletedObjectPackage->MetaData->ClearFlags( RF_Standalone );
+				}
 			}
 		}
 
@@ -1387,6 +1418,13 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 		{
 			PackageDependencies.Add( Result.GetImportPackageName(ImportIdx) );
 		}
+		for (int32 StringAssetRefIdx = 0; StringAssetRefIdx < Result.StringAssetReferencesMap.Num(); ++StringAssetRefIdx)
+		{
+			FString PackageName, ObjName;
+			Result.StringAssetReferencesMap[StringAssetRefIdx].Split(".", &PackageName, &ObjName);
+			PackageDependencies.Add(*PackageName);
+		}
+
 
 		// Doubly-link all new dependencies for this package
 		for (auto NewDependsIt = PackageDependencies.CreateConstIterator(); NewDependsIt; ++NewDependsIt)
@@ -1542,7 +1580,7 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 	AssetAddedEvent.Broadcast(*AssetData);
 
 	// Populate the class map if adding blueprint
-	if ( AssetData->AssetClass == FName("Blueprint") )
+	if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 	{
 		FString* GeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
 		FString* ParentClassPtr = AssetData->TagsAndValues.Find("ParentClass");
@@ -1631,7 +1669,7 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	}
 
 	// Update the class map if updating a blueprint
-	if ( AssetData->AssetClass == FName("Blueprint") )
+	if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 	{
 		FString* OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
 
@@ -1665,7 +1703,7 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 		AssetRemovedEvent.Broadcast(*AssetData);
 
 		// Remove from the class map if removing a blueprint
-		if ( AssetData->AssetClass == FName("Blueprint") )
+		if (ClassGeneratorNames.Contains(AssetData->AssetClass))
 		{
 			FString* OldGeneratedClassPtr = AssetData->TagsAndValues.Find("GeneratedClass");
 

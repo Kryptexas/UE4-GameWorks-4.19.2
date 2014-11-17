@@ -16,6 +16,7 @@ public:
 	~FDocumentationPage();
 	virtual bool HasExcerpt( const FString& ExcerptName ) override;
 	virtual int32 GetNumExcerpts() const override;
+	virtual bool GetExcerpt( const FString& ExcerptName, FExcerpt& Excerpt) override;
 	virtual void GetExcerpts( /*OUT*/ TArray< FExcerpt >& Excerpts ) override;
 	virtual bool GetExcerptContent( FExcerpt& Excerpt ) override;
 

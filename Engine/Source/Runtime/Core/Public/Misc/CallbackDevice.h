@@ -51,7 +51,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnActorLabelChanged, AActor*);
 
 	// Callback for PreEditChange
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreObjectPropertyChanged, UObject*);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnPreObjectPropertyChanged, UObject*, const class FEditPropertyChain& );
 
 	#if WITH_EDITOR
 	// Callback for all object modifications
@@ -62,7 +62,7 @@ public:
 	#endif	//WITH_EDITOR
 
 	// delegate type for prompting the pak system to mount a new pak
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FOnMountPak, const FString& );
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnMountPak, const FString&, uint32);
 
 	// Callback for PER_MODULE_BOILERPLATE macro's GSerialNumberBlocksForDebugVisualizers
 	DECLARE_DELEGATE_RetVal(int32***, FGetSerialNumberBlocksForDebugVisualizersDelegate);
@@ -91,11 +91,19 @@ public:
 	// Callback for handling safe frame area size changes
 	DECLARE_MULTICAST_DELEGATE(FOnSafeFrameChangedEvent);
 
+	// Callback for handling the Controller connection / disconnection
+	// first param is true for a connection, false for a disconnection.
+	// second param is UserID, third is UserIndex / ControllerId.
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnUserControllerConnectionChange, bool, int32, int32);
+
 	// get a hotfix delegate
 	static FHotFixDelegate& GetHotfixDelegate(EHotfixDelegates::Type HotFix);
 
 	// Callback when a user logs in/out of the platform.
 	static FOnUserLoginChangedEvent OnUserLoginChangedEvent;
+	
+	// Callback when controllers disconnected / reconnected
+	static FOnUserControllerConnectionChange OnControllerConnectionChange;
 
 	// Callback when a user changes the safe frame size
 	static FOnSafeFrameChangedEvent OnSafeFrameChangedEvent;

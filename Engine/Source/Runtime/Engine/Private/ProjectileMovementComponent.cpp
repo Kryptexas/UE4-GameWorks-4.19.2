@@ -113,12 +113,27 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 		const FVector TmpVelocity = Velocity;
 		const FRotator NewRotation = bRotationFollowsVelocity ? Velocity.Rotation() : ActorOwner->GetActorRotation();
-		SafeMoveUpdatedComponent( MoveDelta, NewRotation, true, Hit );
+
+		// Move the component
+		if (bShouldBounce)
+		{
+			// If we can bounce, we are allowed to move out of penetrations, so use SafeMoveUpdatedComponent which does that automatically.
+			SafeMoveUpdatedComponent( MoveDelta, NewRotation, true, Hit );
+		}
+		else
+		{
+			// If we can't bounce, then we shouldn't adjust if initially penetrating, because that should be a blocking hit that causes a hit event and stop simulation.
+			TGuardValue<EMoveComponentFlags> ScopedFlagRestore(MoveComponentFlags, MoveComponentFlags | MOVECOMP_NeverIgnoreBlockingOverlaps);
+			MoveUpdatedComponent(MoveDelta, NewRotation, true, &Hit );
+		}
+		
+		// If we hit a trigger that destroyed us, abort.
 		if( ActorOwner->IsPendingKill() || !UpdatedComponent )
 		{
 			return;
 		}
 
+		// Handle hit result after movement
 		if (Hit.Time == 1.f)
 		{
 			bSliding = false;

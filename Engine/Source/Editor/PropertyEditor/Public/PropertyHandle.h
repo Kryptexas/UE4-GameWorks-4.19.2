@@ -4,6 +4,8 @@
 
 #include "PropertyEditorModule.h"
 
+class FAssetData;
+
 namespace EPropertyValueSetFlags
 {
 	typedef uint32 Type;
@@ -177,6 +179,7 @@ public:
 	virtual FPropertyAccess::Result GetValue( FQuat& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FRotator& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( UObject*& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( FAssetData& OutValue ) const = 0;
 
 	/**
 	 * Sets the typed value of a property.  
@@ -197,6 +200,7 @@ public:
 	virtual FPropertyAccess::Result SetValue( const FQuat& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FRotator& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const UObject*& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const FAssetData& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	
 	/**
 	 * Called to manually notify root objects that this property is about to change
@@ -270,7 +274,7 @@ public:
 	 *
 	 * @param OuterObjects	An array that will be populated with the outer objects 
 	 */
-	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) = 0;
+	virtual void GetOuterObjects( TArray<UObject*>& OuterObjects ) const = 0;
 
 	/**
 	 * Accesses the raw data of this property.  (Each pointer can be cast to the property data type)
@@ -321,6 +325,13 @@ public:
 	 * @return True if this property is customized                                                              
 	 */
 	virtual bool IsCustomized() const = 0;
+
+	/**
+	 * Generates a path from the parent UObject class to this property
+	 *
+	 * @return The path to this property
+	 */
+	virtual FString GeneratePathToProperty() const = 0;
 
 	/**
 	 * Creates a name widget for this property

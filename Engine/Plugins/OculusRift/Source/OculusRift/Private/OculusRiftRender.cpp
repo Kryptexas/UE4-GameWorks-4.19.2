@@ -633,7 +633,6 @@ void FOculusRiftHMD::D3D11Bridge::BeginRendering()
 			OVR::Lock::Locker lock(&ModifyLock);
 			check(Cfg.D3D11.pSwapChain); // make sure Config is initialized
 			(Plugin->bTimeWarp) ? Plugin->DistortionCaps |= ovrDistortionCap_TimeWarp : Plugin->DistortionCaps &= ~ovrDistortionCap_TimeWarp;
-			(Plugin->bVSync) ? Plugin->HmdCaps &= ~ovrHmdCap_NoVSync : Plugin->HmdCaps |= ovrHmdCap_NoVSync;
 			if (!ovrHmd_ConfigureRendering(Plugin->Hmd, &Cfg.Config, Plugin->DistortionCaps, 
 				Plugin->RenderParams_RenderThread.EyeFov, Plugin->RenderParams_RenderThread.EyeRenderDesc))
 			{
@@ -931,7 +930,6 @@ void FOculusRiftHMD::OGLBridge::BeginRendering()
 			Plugin->DistortionCaps &= ~ovrDistortionCap_SRGB;
 			Plugin->DistortionCaps |= ovrDistortionCap_FlipInput;
 			(Plugin->bTimeWarp) ? Plugin->DistortionCaps |= ovrDistortionCap_TimeWarp : Plugin->DistortionCaps &= ~ovrDistortionCap_TimeWarp;
-			(Plugin->bVSync) ? Plugin->HmdCaps &= ~ovrHmdCap_NoVSync : Plugin->HmdCaps |= ovrHmdCap_NoVSync;
 			if (!ovrHmd_ConfigureRendering(Plugin->Hmd, &Cfg.Config, Plugin->DistortionCaps, 
 				Plugin->RenderParams_RenderThread.EyeFov, Plugin->RenderParams_RenderThread.EyeRenderDesc))
 			{

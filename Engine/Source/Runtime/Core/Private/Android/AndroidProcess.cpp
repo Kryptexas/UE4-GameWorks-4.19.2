@@ -4,7 +4,7 @@
 	AndroidProcess.cpp: Android implementations of Process functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AndroidPlatformRunnableThread.h"
 
 #include <sys/syscall.h>

@@ -20,6 +20,13 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 		FProxyMaterialCompiler(InCompiler)
 	{}
 
+	// gets value stored by SetMaterialProperty()
+	virtual EShaderFrequency GetCurrentShaderFrequency() const
+	{
+		// not used by Lightmass
+		return SF_Pixel;
+	}
+
 	virtual int32 ParticleMacroUV()
 	{
 		return Compiler->ParticleMacroUV();
@@ -166,7 +173,7 @@ class FLightmassMaterialProxy : public FMaterial, public FMaterialRenderProxy
 public:
 	FLightmassMaterialProxy(): FMaterial()
 	{
-		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GMaxRHIFeatureLevel);
 	}
 
 	/** Initializes the material proxy and kicks off async shader compiling. */
@@ -194,7 +201,7 @@ public:
 		// Special path for a MI with static parameters
 		if (MaterialInstance && MaterialInstance->bHasStaticPermutationResource && MaterialInstance->Parent)
 		{
-			FMaterialResource* MIResource = MaterialInstance->GetMaterialResource(GRHIFeatureLevel);
+			FMaterialResource* MIResource = MaterialInstance->GetMaterialResource(GMaxRHIFeatureLevel);
 
 			// Use the shader map Id from the static permutation
 			// This allows us to create a deterministic yet unique Id for the shader map that will be compiled for this FLightmassMaterialProxy
@@ -209,7 +216,7 @@ public:
 		}
 		else
 		{
-			FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel);
+			FMaterialResource* MaterialResource = Material->GetMaterialResource(GMaxRHIFeatureLevel);
 
 			// Copy the material resource Id
 			// The FLightmassMaterialProxy's GetShaderMapUsage will set it apart from the MI's resource when it comes to finding a shader map
@@ -283,12 +290,23 @@ public:
 	}
 
 	// Material properties.
+
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
+	{
+		// needs to be called in this function!!
+		Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+
+		int32 Ret = CompilePropertyAndSetMaterialPropertyWithoutCast(Property, Compiler);
+
+		return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+	}
+
+	/** helper for CompilePropertyAndSetMaterialProperty() */
+	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
 		static const auto UseDiffuseSpecularMaterialInputs = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseDiffuseSpecularMaterialInputs"));
 
-		Compiler->SetMaterialProperty(Property, InShaderFrequency);
 		// MAKE SURE THIS MATCHES THE CHART IN WillFillData
 		// 						  RETURNED VALUES (F16 'textures')
 		// 	BLEND MODE  | DIFFUSE     | SPECULAR     | EMISSIVE    | NORMAL    | TRANSMISSIVE              |
@@ -930,7 +948,7 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 			else
 			{
 				// At this point, we can't just return false at failure since we have some clean-up to do...
-				Canvas->SetRenderTarget(RenderTarget->GameThread_GetRenderTargetResource());
+				Canvas->SetRenderTarget_GameThread(RenderTarget->GameThread_GetRenderTargetResource());
 
 				// Clear the render target to black
 				// This is necessary because the below DrawTile doesn't write to the first column and first row
@@ -939,9 +957,9 @@ bool FLightmassMaterialRenderer::GenerateMaterialPropertyData(
 				FCanvasTileItem TileItem( FVector2D( 0.0f, 0.0f ), &MaterialProxy, FVector2D( InOutSizeX, InOutSizeY ) );
 				TileItem.bFreezeTime = true;
 				Canvas->DrawItem( TileItem );
-				Canvas->Flush();
+				Canvas->Flush_GameThread();
 				FlushRenderingCommands();
-				Canvas->SetRenderTarget(NULL);
+				Canvas->SetRenderTarget_GameThread(NULL);
 				FlushRenderingCommands();
 
 				// Read in the data

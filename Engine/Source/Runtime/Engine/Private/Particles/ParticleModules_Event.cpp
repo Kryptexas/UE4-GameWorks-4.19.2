@@ -13,6 +13,7 @@
 #include "Particles/Event/ParticleModuleEventReceiverSpawn.h"
 #include "Particles/Event/ParticleModuleEventSendToGame.h"
 #include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleEmitter.h"
 
 /*-----------------------------------------------------------------------------
 	Abstract base modules used for categorization.

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "ActiveSound.h"
 #include "AudioDevice.h"
 #include "Sound/SoundCue.h"
 #include "Sound/SoundWave.h"
@@ -557,7 +558,7 @@ void FActiveSound::SetIntParameter( FName InName, const int32 InInt )
 	}
 }
 
-void FActiveSound::CollectAttenuationShapesForVisualization(TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
+void FActiveSound::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
 {
 	bool bFoundAttenuationSettings = false;
 

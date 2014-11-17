@@ -4,6 +4,7 @@ package com.epicgames.ue4;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 import android.app.NativeActivity;
 import android.os.Bundle;
@@ -12,6 +13,7 @@ import android.util.Log;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.widget.EditText;
+import android.text.InputType;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
@@ -25,12 +27,17 @@ import android.media.AudioManager;
 import android.util.DisplayMetrics;
 
 import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnTouchListener;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import com.google.android.gms.auth.GoogleAuthUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
@@ -43,6 +50,11 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdListener;
+
+import com.google.android.gms.plus.Plus;
+
+import java.net.URL;
+import java.net.HttpURLConnection;
 
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
@@ -62,8 +74,19 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 {
 	public static Logger Log = new Logger("UE4");
 	
-	GameActivity _activity;	
-	AlertDialog alert;
+	GameActivity _activity;
+
+	// Console
+	AlertDialog consoleAlert;
+	EditText consoleInputBox;
+	ArrayList<String> consoleHistoryList;
+	int consoleHistoryIndex;
+	float consoleDistance;
+	float consoleVelocity;
+
+	// Virtual keyboard
+	AlertDialog virtualKeyboardAlert;
+	EditText virtualKeyboardInputBox;
 
 	/** AssetManger reference - populated on start up and used when the OBB is packed into the APK */
 	private AssetManager			AssetManagerReference;
@@ -265,7 +288,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 
 
 		Log.debug( "Android version is " + android.os.Build.VERSION.RELEASE );
-		Log.debug( "Android manufactorer is " + android.os.Build.MANUFACTURER );
+		Log.debug( "Android manufacturer is " + android.os.Build.MANUFACTURER );
 		Log.debug( "Android model is " + android.os.Build.MODEL );
 
 		nativeSetAndroidVersionInformation( android.os.Build.VERSION.RELEASE, android.os.Build.MANUFACTURER, android.os.Build.MODEL );
@@ -285,46 +308,130 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// enable the physical volume controls to the game
 		this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
 
-		final AlertDialog.Builder alertBuilder = new AlertDialog.Builder(this);
-		final EditText consoleInputBox = new EditText(this);
-		
-		alertBuilder.setView(consoleInputBox);
-		alertBuilder.setPositiveButton("Ok", new DialogInterface.OnClickListener()
-		{
-			public void onClick(DialogInterface dialog, int whichButton) {
+		AlertDialog.Builder builder;
+
+		consoleInputBox = new EditText(this);
+		consoleInputBox.setInputType(0x00080001); // TYPE_CLASS_TEXT | TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+		consoleHistoryList = new ArrayList<String>();
+		consoleHistoryIndex = 0;
+
+		final ViewConfiguration vc = ViewConfiguration.get(this);
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        consoleDistance = vc.getScaledPagingTouchSlop() * dm.density;
+        consoleVelocity = vc.getScaledMinimumFlingVelocity() / 1000.0f;
+
+		consoleInputBox.setOnTouchListener(new OnTouchListener() {
+			private long downTime;
+			private float downX;
+
+			public void swipeLeft() {
+				if (!consoleHistoryList.isEmpty() && consoleHistoryIndex + 1 < consoleHistoryList.size()) {
+					consoleInputBox.setText(consoleHistoryList.get(++consoleHistoryIndex));
+				}
+			}
+
+			public void swipeRight() {
+				if (!consoleHistoryList.isEmpty() && consoleHistoryIndex > 0) {
+					consoleInputBox.setText(consoleHistoryList.get(--consoleHistoryIndex));
+				}
+			}
+
+			public boolean onTouch(View v, MotionEvent event) {
+				switch (event.getAction()) {
+					case MotionEvent.ACTION_DOWN: {
+						// remember down time and position
+						downTime = System.currentTimeMillis();
+						downX = event.getX();
+						return true;
+					}
+					case MotionEvent.ACTION_UP: {
+						long deltaTime = System.currentTimeMillis() - downTime;
+						float delta = event.getX() - downX;
+						float absDelta = Math.abs(delta);
+
+						if (absDelta > consoleDistance && absDelta > deltaTime * consoleVelocity)
+						{
+							if (delta < 0)
+								this.swipeLeft();
+							else
+								this.swipeRight();
+							return true;
+						}
+						return false;
+					}
+				}
+				return false;
+			}
+		});
+
+		builder = new AlertDialog.Builder(this);
+		builder.setTitle("Console Window - Enter Command")
+		.setMessage("")
+		.setView(consoleInputBox)
+		.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
 				String message = consoleInputBox.getText().toString().trim();
+
+				// remove it if already in history
+				int index = consoleHistoryList.indexOf(message);
+				if (index >= 0)
+					consoleHistoryList.remove(index);
+
+				// add it to the end
+				consoleHistoryList.add(message);
+
 				nativeConsoleCommand(message);
 				consoleInputBox.setText(" ");
 				dialog.dismiss();
 			}
-		});
-
-		alertBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener()
-		{
-			public void onClick(DialogInterface dialog, int whichButton)
-			{
+		})
+		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
 				consoleInputBox.setText(" ");
 				dialog.dismiss();
 			}
 		});
-		
-		alertBuilder.setTitle("Console Window - Enter Command");
-		
-		alert = alertBuilder.create();
+		consoleAlert = builder.create();
+
+		virtualKeyboardInputBox = new EditText(this);
+
+		builder = new AlertDialog.Builder(this);
+		builder.setTitle("")
+		.setView(virtualKeyboardInputBox)
+		.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+				String message = virtualKeyboardInputBox.getText().toString();
+				nativeVirtualKeyboardResult(true, message);
+				virtualKeyboardInputBox.setText(" ");
+				dialog.dismiss();
+			}
+		})
+		.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+				nativeVirtualKeyboardResult(false, " ");
+				virtualKeyboardInputBox.setText(" ");
+				dialog.dismiss();
+			}
+		});
+		virtualKeyboardAlert = builder.create();
 
 		// Connect to Google Play Services
 		googleClient = new GoogleApiClient.Builder(this)
-		 .addApi(Games.API)
-		 .addScope(Games.SCOPE_GAMES)
 		 .addConnectionCallbacks(this)
 		 .addOnConnectionFailedListener(this)
+		 .addApi(Games.API)
+		 .addScope(Games.SCOPE_GAMES)
+		 .addApi(Plus.API, null)
+		 .addScope(Plus.SCOPE_PLUS_PROFILE)
 		 .build();
 
 		// Now okay for event handler to be set up on native side
 		nativeResumeMainInit();
 		
 		// Try to establish a connection to Google Play
-		AndroidThunkJava_GooglePlayConnect();
+		// AndroidThunkJava_GooglePlayConnect();
+
+		Log.debug("==============> GameActive.onCreate complete!");
 	}
 
 	@Override
@@ -425,6 +532,8 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// Set the flag that we successfully connected. Checked in onStart to re-establish the connection.
 		bHaveConnectedToGooglePlay = true;
 
+		nativeCompletedConnection(0, RESULT_OK);
+
 		// Load achievements. Since games are expected to pass in achievement progress as a percentage,
 		// we need to know what the maximum steps are in order to convert the percentage to an integer
 		// number of steps.
@@ -449,6 +558,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		if (bResolvingGoogleServicesError)
 		{
 			// Already attempting to resolve an error.
+			Log.debug("... and already trying to resolve an error.");
 			return;
 		}
 		else if (result.hasResolution())
@@ -493,14 +603,22 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		if (requestCode == GOOGLE_SERVICES_REQUEST_RESOLVE_ERROR)
 		{
 			Log.debug("Google Play Services connection resolution finished with resultCode " + resultCode);
-			if (resultCode == RESULT_OK)
+			
+			bResolvingGoogleServicesError = false;
+
+			if (resultCode == RESULT_OK) // -1
 			{
-				bResolvingGoogleServicesError = false;
 				// Make sure the app is not already connected or attempting to connect
 				if (!googleClient.isConnecting() &&	!googleClient.isConnected())
 				{
 					googleClient.connect();
 				}
+			}
+			else
+			{
+				// translate result code? 
+				// 0 if we cancel out the attempt to error recover...
+				nativeCompletedConnection(0, resultCode);
 			}
 		}
 	}
@@ -547,21 +665,52 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	// Called from event thread in NativeActivity	
 	public void AndroidThunkJava_ShowConsoleWindow(String Formats)
 	{
-		if(alert.isShowing() == true)
+		if (consoleAlert.isShowing() == true)
 		{
 			Log.debug("Console already showing.");
 			return;
 		}
 
-		alert.setMessage("[Availble texture formats: " + Formats + "]");
+		// start at end of console history
+		consoleHistoryIndex = consoleHistoryList.size();
+
+		consoleAlert.setMessage("[Available texture formats: " + Formats + "]");
 		_activity.runOnUiThread(new Runnable()
 		{
 			public void run()
 			{
-				if(alert.isShowing() == false)
+				if (consoleAlert.isShowing() == false)
 				{
 					Log.debug("Console not showing yet");
-					alert.show(); 
+					consoleAlert.show(); 
+				}
+			}
+		});
+	}
+
+	public void AndroidThunkJava_ShowVirtualKeyboardInput(int InputType, String Label, String Contents)
+	{
+		if (virtualKeyboardAlert.isShowing() == true)
+		{
+			Log.debug("Virtual keyboard already showing.");
+			return;
+		}
+
+		// Set label and starting contents
+		virtualKeyboardAlert.setTitle(Label);
+		virtualKeyboardInputBox.setText(Contents);
+
+		// configure for type of input
+		virtualKeyboardInputBox.setInputType(InputType);
+
+		_activity.runOnUiThread(new Runnable()
+		{
+			public void run()
+			{
+				if (virtualKeyboardAlert.isShowing() == false)
+				{
+					Log.debug("Virtual keyboard not showing yet");
+					virtualKeyboardAlert.show(); 
 				}
 			}
 		});
@@ -592,6 +741,7 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		// check if google play services is available on this device, or is available with an update
 		if ((status != ConnectionResult.SUCCESS) && (status != ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED))
 		{
+			nativeCompletedConnection(0, status);
 			return;
 		}
 
@@ -695,6 +845,41 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 		{
 			nativeFailedUpdateAchievements();
 		}
+	}
+
+	public void AndroidThunkJava_ResetAchievements()
+	{
+		try
+        {
+			String email = Plus.AccountApi.getAccountName(googleClient);
+			Log.debug("AndroidThunkJava_ResetAchievements: using email " + email);
+
+            String accesstoken = GoogleAuthUtil.getToken(this, email, "oauth2:https://www.googleapis.com/auth/games");
+
+			String ResetURL = "https://www.googleapis.com/games/v1management/achievements/reset?access_token=" + accesstoken;
+			Log.debug("AndroidThunkJava_ResetAchievements: using URL " + ResetURL);
+
+			URL url = new URL(ResetURL);
+			HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
+
+			try
+			{
+				urlConnection.setRequestMethod("POST");
+				int status = urlConnection.getResponseCode();
+				Log.debug("AndroidThunkJava_ResetAchievements: HTTP response is " + status);
+			}
+			finally
+			{
+				urlConnection.disconnect();
+			}
+
+			// Kick off a update to the native side achievements
+			AndroidThunkJava_QueryAchievements();
+        }
+        catch(Exception e)
+        {
+            Log.debug("AndroidThunkJava_ResetAchievements failed: " + e.getMessage());
+        }
 	}
 
 	public void AndroidThunkJava_ShowAdBanner(String AdMobAdUnitID, boolean bShowOnBottonOfScreen)
@@ -860,11 +1045,14 @@ public class GameActivity extends NativeActivity implements GoogleApiClient.Conn
 	public native void nativeSetAndroidVersionInformation( String AndroidVersion, String PhoneMake, String PhoneModel );
 
 	public native void nativeConsoleCommand(String commandString);
+	public native void nativeVirtualKeyboardResult(boolean update, String contents);
 	
 	public native boolean nativeIsGooglePlayEnabled();
 
 	public native void nativeResumeMainInit();
 	
+	public native void nativeCompletedConnection(int playerID, int errorCode);
+
 	static
 	{
 		System.loadLibrary("UE4");

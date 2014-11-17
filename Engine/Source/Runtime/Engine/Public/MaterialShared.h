@@ -25,6 +25,7 @@ class UMaterial;
 class UMaterialInstance;
 class UMaterialExpression;
 class UMaterialInterface;
+class UTexture;
 struct FExpressionInput;
 
 #define ME_CAPTION_HEIGHT		18
@@ -214,7 +215,7 @@ public:
 	void SetParameterCollections(const TArray<class UMaterialParameterCollection*>& Collections);
 	void CreateBufferStruct();
 	const FUniformBufferStruct& GetUniformBufferStruct() const;
-	ENGINE_API FUniformBufferRHIRef CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext) const;
+	ENGINE_API FUniformBufferRHIRef CreateUniformBuffer(const FMaterialRenderContext& MaterialRenderContext, FRHICommandList* CommandListIfLocalMode, struct FLocalUniformBuffer* OutLocalUniformBuffer) const;
 
 	uint32 GetAllocatedSize() const
 	{
@@ -1065,8 +1066,12 @@ protected:
 	*/
 	void GetShaderMapIDsWithUnfinishedCompilation(TArray<int32>& ShaderMapIds);
 
-	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,class FMaterialCompiler* Compiler) const = 0;
+	/**
+	 * Entry point for compiling a specific material property.  This must call SetMaterialProperty. 
+	 * @param OverrideShaderFrequency SF_NumFrequencies to not override
+	 * @return cases to the proper type e.g. Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
+	 */
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies) const = 0;
 
 	/** Returns the index to the Expression in the Expressions array, or -1 if not found. */
 	int32 FindExpression(const TArray<TRefCountPtr<FMaterialUniformExpressionTexture> >&Expressions, const FMaterialUniformExpressionTexture &Expression);
@@ -1189,6 +1194,8 @@ struct FUniformExpressionCache
 {
 	/** Material uniform buffer. */
 	FUniformBufferRHIRef UniformBuffer;
+	/** Material uniform buffer. */
+	FLocalUniformBuffer LocalUniformBuffer;
 	/** Textures referenced by uniform expressions. */
 	TArray<const UTexture*> Textures;
 	/** Cube textures referenced by uniform expressions. */
@@ -1237,7 +1244,7 @@ public:
 	 * @param OutUniformExpressionCache - The uniform expression cache to build.
 	 * @param MaterialRenderContext - The context for which to cache expressions.
 	 */
-	void ENGINE_API EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context) const;
+	void ENGINE_API EvaluateUniformExpressions(FUniformExpressionCache& OutUniformExpressionCache, const FMaterialRenderContext& Context, class FRHICommandList* CommandListIfLocalMode = nullptr) const;
 
 	/**
 	 * Caches uniform expressions for efficient runtime evaluation.
@@ -1508,7 +1515,7 @@ protected:
 	UMaterialInstance* MaterialInstance;
 
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	ENGINE_API virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,class FMaterialCompiler* Compiler) const;
+	ENGINE_API virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, class FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const;
 	ENGINE_API virtual bool HasVertexPositionOffsetConnected() const;
 	ENGINE_API virtual bool HasMaterialAttributesConnected() const;
 	/** Useful for debugging. */
@@ -1583,9 +1590,9 @@ ENGINE_API EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index
 ENGINE_API int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property);
 
 /**
- * @return Gets the default value for a material property
+ * @return Gets the default (usually constant) for a material property
  */
-ENGINE_API void GetDefaultForMaterialProperty(EMaterialProperty Property, float& OutDefaultFloat, FColor& OutDefaultColor, FVector& OutDefaultVector);
+ENGINE_API int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMaterialProperty Property);
 
 /**
  * @return Gets the name of a property.

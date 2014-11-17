@@ -33,6 +33,9 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 
+	/** Creates the grid widget used to display the data */
+	TSharedRef<SUniformGridPanel> CreateGridPanel() const;
+
 	/**	Spawns the tab with the curve table inside */
 	TSharedRef<SDockTab> SpawnTab_CurveTable( const FSpawnTabArgs& Args );
 

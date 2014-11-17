@@ -9,6 +9,10 @@ struct FBTConeCheckDecoratorMemory
 	bool bLastRawResult;
 };
 
+/**
+ * Cone check decorator node.
+ * A decorator node that bases its condition on a cone check, using Blackboard entries to form the parameters of the check.
+ */
 UCLASS()
 class AIMODULE_API UBTDecorator_ConeCheck : public UBTDecorator
 {

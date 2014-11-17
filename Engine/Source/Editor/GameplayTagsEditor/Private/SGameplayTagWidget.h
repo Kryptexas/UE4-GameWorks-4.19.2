@@ -139,9 +139,16 @@ private:
 	 * Helper function called when the specified node is unchecked
 	 * 
 	 * @param NodeUnchecked	Node that was unchecked by the user
-	 * @param bTransact		Whether to start a new transaction or not
 	 */
-	void OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUnchecked, bool bTransact);
+	void OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUnchecked);
+
+	/**
+	 * Recursive function to uncheck all child tags
+	 * 
+	 * @param NodeUnchecked	Node that was unchecked by the user
+	 * @param EditableContainer The container we are removing the tags from
+	 */
+	void UncheckChildren(TSharedPtr<FGameplayTagNode> NodeUnchecked, FGameplayTagContainer& EditableContainer);
 
 	/** Called when the user clicks the "Clear All" button; Clears all tags */
 	FReply OnClearAllClicked();

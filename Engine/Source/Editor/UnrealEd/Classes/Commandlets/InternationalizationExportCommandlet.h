@@ -143,9 +143,16 @@ public:
 	}
 	
 	/**
+	 * Helper function that adds to the extracted comments.
+	 *
+	 * @param InReference	String representing extracted comment entries of the following form: "File/path/file.cpp:20 File/path/file.cpp:21 File/path/file2.cpp:5".
+	 */
+	void AddExtractedComment( const FString& InComment );
+
+	/**
 	 * Helper function that adds to the reference comments.
 	 *
-	 * @param InReference	String representing reference comment entries of the following form: "File/path/file.cpp:20 File/path/file.cpp:21 File/path/file2.cpp:5".
+	 * @param InReference	String representing reference comment entries.
 	 */
 	void AddReference( const FString& InReference );
 
@@ -153,6 +160,13 @@ public:
 	 * Helper function that adds to the reference comments.
 	 *
 	 * @param InReferences	String array representing reference comment entries of the following form: "File/path/file.cpp:20 File/path/file.cpp:21 File/path/file2.cpp:5".
+	 */
+	void AddExtractedComments( const TArray<FString>& InComments );
+
+	/**
+	 * Helper function that adds to the extracted comments.
+	 *
+	 * @param InReferences	String array representing extracted comment entries
 	 */
 	void AddReferences( const TArray<FString>& InReferences );
 

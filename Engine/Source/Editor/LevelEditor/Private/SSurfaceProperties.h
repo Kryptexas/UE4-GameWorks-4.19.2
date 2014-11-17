@@ -235,6 +235,10 @@ private:
 	 */
 	void OnToggleRotationDirection( ESlateCheckBoxState::Type NewState );
 
+	/**
+	 * Returns a short summary to display to the user about the currently selected surfaces.
+	**/
+	FText GetSelectedSurfacesDescription() const;
 
 
 	/** typedef to make it easier to handle the lightmass objects */

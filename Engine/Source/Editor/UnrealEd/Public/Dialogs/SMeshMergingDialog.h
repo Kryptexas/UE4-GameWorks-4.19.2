@@ -37,13 +37,14 @@ private:
 	ESlateCheckBoxState::Type GetAtlasLightmapUV() const;
 	void SetAtlasLightmapUV(ESlateCheckBoxState::Type NewValue);
 
+	/** Target lightmap channel */
+	bool IsLightmapChannelEnabled() const;
+	void SetTargetLightMapChannel(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+	void SetMaxLightMapResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+		
 	/**  */
 	ESlateCheckBoxState::Type GetImportVertexColors() const;
 	void SetImportVertexColors(ESlateCheckBoxState::Type NewValue);
-
-	/**  */
-	ESlateCheckBoxState::Type GetOneSectionPerMaterial() const;
-	void SetOneSectionPerMaterial(ESlateCheckBoxState::Type NewValue);
 
 	/**  */
 	ESlateCheckBoxState::Type GetPivotPointAtZero() const;
@@ -80,4 +81,8 @@ private:
 
 	/** Whether to spawn merged actor in the world */
 	bool bPlaceInWorld;
+
+	/**  */
+	TArray<TSharedPtr<FString>>	LightMapResolutionOptions;
+	TArray<TSharedPtr<FString>>	LightMapChannelOptions;
 };

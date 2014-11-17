@@ -126,6 +126,21 @@ FVector FSpriteEditorViewportClient::TextureSpaceToWorldSpace(const FVector2D& S
 	return Sprite->ConvertTextureSpaceToWorldSpace(SourcePoint);
 }
 
+FVector2D FSpriteEditorViewportClient::SourceTextureSpaceToScreenSpace(const FSceneView& View, const FVector2D& SourcePoint) const
+{
+	const FVector WorldSpacePoint = SourceTextureSpaceToWorldSpace(SourcePoint);
+
+	FVector2D PixelLocation;
+	View.WorldToPixel(WorldSpacePoint, /*out*/ PixelLocation);
+	return PixelLocation;
+}
+
+FVector FSpriteEditorViewportClient::SourceTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const
+{
+	UPaperSprite* Sprite = SourceTextureViewComponent->GetSprite();
+	return Sprite->ConvertTextureSpaceToWorldSpace(SourcePoint);
+}
+
 void FSpriteEditorViewportClient::DrawTriangleList(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const TArray<FVector2D>& Triangles)
 {
 	// Draw the collision data (non-interactive)
@@ -174,10 +189,10 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
     const bool bDrawCornerHitProxies = true;
 
 	FVector2D BoundsVertices[4];
-	BoundsVertices[0] = TextureSpaceToScreenSpace(View, Sprite->SourceUV);
-	BoundsVertices[1] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, 0));
-	BoundsVertices[2] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, Sprite->SourceDimension.Y));
-	BoundsVertices[3] = TextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(0, Sprite->SourceDimension.Y));
+	BoundsVertices[0] = SourceTextureSpaceToScreenSpace(View, Sprite->SourceUV);
+	BoundsVertices[1] = SourceTextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, 0));
+	BoundsVertices[2] = SourceTextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(Sprite->SourceDimension.X, Sprite->SourceDimension.Y));
+	BoundsVertices[3] = SourceTextureSpaceToScreenSpace(View, Sprite->SourceUV + FVector2D(0, Sprite->SourceDimension.Y));
 	for (int32 VertexIndex = 0; VertexIndex < 4; ++VertexIndex)
 	{
 		const int32 NextVertexIndex = (VertexIndex + 1) % 4;
@@ -319,7 +334,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 void FSpriteEditorViewportClient::DrawGeometryStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, const FSpritePolygonCollection& Geometry, bool bIsRenderGeometry, int32& YPos)
 {
 	// Draw the type of geometry we're displaying stats for
-	const FText GeometryName = bIsRenderGeometry ? LOCTEXT("RenderGeometry", "Render Geometry") : LOCTEXT("CollisionGeometry", "Collision Geometry");
+	const FText GeometryName = bIsRenderGeometry ? LOCTEXT("RenderGeometry", "Render Geometry (source)") : LOCTEXT("CollisionGeometry", "Collision Geometry (source)");
 
 	FCanvasTextItem TextItem(FVector2D(6, YPos), GeometryName, GEngine->GetSmallFont(), FLinearColor::White);
 	TextItem.EnableShadow(FLinearColor::Black);
@@ -343,8 +358,88 @@ void FSpriteEditorViewportClient::DrawGeometryStats(FViewport& InViewport, FScen
 	TextItem.Text = FText::Format(LOCTEXT("VerticesCount", "Verts: {0}"), FText::AsNumber(NumVerts));
 	TextItem.Draw(&Canvas);
 	TextItem.Position.Y += 18.0f;
-	
-	
+
+	YPos = (int32)TextItem.Position.Y;
+}
+
+void AttributeTrianglesByMaterialType(int32 NumTriangles, UMaterialInterface* Material, int32& NumOpaqueTriangles, int32& NumMaskedTriangles, int32& NumTranslucentTriangles)
+{
+	if (Material != nullptr)
+	{
+		switch (Material->GetBlendMode())
+		{
+		case EBlendMode::BLEND_Opaque:
+			NumOpaqueTriangles += NumTriangles;
+			break;
+		case EBlendMode::BLEND_Translucent:
+		case EBlendMode::BLEND_Additive:
+		case EBlendMode::BLEND_Modulate:
+			NumTranslucentTriangles += NumTriangles;
+			break;
+		case EBlendMode::BLEND_Masked:
+			NumMaskedTriangles += NumTriangles;
+			break;
+		}
+	}
+}
+
+void FSpriteEditorViewportClient::DrawRenderStats(FViewport& InViewport, FSceneView& View, FCanvas& Canvas, class UPaperSprite* Sprite, int32& YPos)
+{
+	FCanvasTextItem TextItem(FVector2D(6, YPos), LOCTEXT("RenderGeomBaked", "Render Geometry (baked)"), GEngine->GetSmallFont(), FLinearColor::White);
+	TextItem.EnableShadow(FLinearColor::Black);
+
+	TextItem.Draw(&Canvas);
+	TextItem.Position += FVector2D(6.0f, 18.0f);
+
+	int32 NumSections = (Sprite->AlternateMaterialSplitIndex != INDEX_NONE) ? 2 : 1;
+	if (NumSections > 1)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("SectionCount", "Sections: {0}"), FText::AsNumber(NumSections));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	int32 NumOpaqueTriangles = 0;
+	int32 NumMaskedTriangles = 0;
+	int32 NumTranslucentTriangles = 0;
+
+	int32 NumVerts = Sprite->BakedRenderData.Num();
+	int32 DefaultTriangles = 0;
+	int32 AlternateTriangles = 0;
+	if (Sprite->AlternateMaterialSplitIndex != INDEX_NONE)
+	{
+		DefaultTriangles = Sprite->AlternateMaterialSplitIndex / 3;
+		AlternateTriangles = (NumVerts - Sprite->AlternateMaterialSplitIndex) / 3;
+	}
+	else
+	{
+		DefaultTriangles = NumVerts / 3;
+	}
+
+	AttributeTrianglesByMaterialType(DefaultTriangles, Sprite->GetDefaultMaterial(), /*inout*/ NumOpaqueTriangles, /*inout*/ NumMaskedTriangles, /*inout*/ NumTranslucentTriangles);
+	AttributeTrianglesByMaterialType(AlternateTriangles, Sprite->GetAlternateMaterial(), /*inout*/ NumOpaqueTriangles, /*inout*/ NumMaskedTriangles, /*inout*/ NumTranslucentTriangles);
+
+	// Draw the number of polygons
+	if (NumOpaqueTriangles > 0)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("OpaqueTriangleCount", "Triangles: {0} (opaque)"), FText::AsNumber(NumOpaqueTriangles));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	if (NumMaskedTriangles > 0)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("MaskedTriangleCount", "Triangles: {0} (masked)"), FText::AsNumber(NumMaskedTriangles));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
+
+	if (NumTranslucentTriangles > 0)
+	{
+		TextItem.Text = FText::Format(LOCTEXT("TranslucentTriangleCount", "Triangles: {0} (translucent)"), FText::AsNumber(NumTranslucentTriangles));
+		TextItem.Draw(&Canvas);
+		TextItem.Position.Y += 18.0f;
+	}
 
 	YPos = (int32)TextItem.Position.Y;
 }
@@ -482,9 +577,14 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 			YPos += 18;
 		}
 
-		// As well as all of the geometry
-		DrawGeometryStats(Viewport, View, Canvas, Sprite->CollisionGeometry, false, /*inout*/ YPos);
-		DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
+		// Collision geometry (if present)
+		if (Sprite->BodySetup != nullptr)
+		{
+			DrawGeometryStats(Viewport, View, Canvas, Sprite->CollisionGeometry, false, /*inout*/ YPos);
+		}
+
+		// Baked render data
+		DrawRenderStats(Viewport, View, Canvas, Sprite, /*inout*/ YPos);
 
 		// And bounds
 		DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
@@ -503,7 +603,10 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 			// Draw the custom collision geometry
 			const FLinearColor CollisionColor(1.0f, 1.0f, 0.0f, 1.0f);
 			DrawGeometry(Viewport, View, Canvas, Sprite->CollisionGeometry, CollisionColor, false);
-			DrawGeometryStats(Viewport, View, Canvas, Sprite->CollisionGeometry, false, /*inout*/ YPos);
+			if (Sprite->BodySetup != nullptr)
+			{
+				DrawGeometryStats(Viewport, View, Canvas, Sprite->CollisionGeometry, false, /*inout*/ YPos);
+			}
 		}
 		break;
 	case ESpriteEditorMode::EditRenderingGeomMode:
@@ -520,6 +623,7 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 			const FLinearColor RenderGeomColor(1.0f, 0.2f, 0.0f, 1.0f);
 			DrawGeometry(Viewport, View, Canvas, Sprite->RenderGeometry, RenderGeomColor, true);
 			DrawGeometryStats(Viewport, View, Canvas, Sprite->RenderGeometry, true, /*inout*/ YPos);
+			DrawRenderStats(Viewport, View, Canvas, Sprite, /*inout*/ YPos);
 
 			// And bounds
 			DrawBoundsAsText(Viewport, View, Canvas, /*inout*/ YPos);
@@ -555,7 +659,9 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 {
 	FEditorViewportClient::Draw(View, PDI);
 
-	if (bShowPivot)
+	// We don't draw the pivot when showing the source region
+	// The pivot may be outside the actual texture bounds there
+	if (bShowPivot && !bShowSourceTexture && CurrentMode != ESpriteEditorMode::EditSourceRegionMode)
 	{
 		FUnrealEdUtils::DrawWidget(View, PDI, RenderSpriteComponent->ComponentToWorld.ToMatrixWithScale(), 0, 0, EAxisList::XZ, EWidgetMovementMode::WMM_Translate);
 	}
@@ -590,6 +696,13 @@ void FSpriteEditorViewportClient::Tick(float DeltaSeconds)
 		{
 			bDeferZoomToSprite = true;
 			SourceTextureViewComponent->SetVisibility(bSourceTextureViewComponentVisibility);
+		}
+
+		bool bRenderTextureViewComponentVisibility = !bSourceTextureViewComponentVisibility;
+		if (bRenderTextureViewComponentVisibility != RenderSpriteComponent->IsVisible())
+		{
+			bDeferZoomToSprite = true;
+			RenderSpriteComponent->SetVisibility(bRenderTextureViewComponentVisibility);
 		}
 
 		// Zoom in on the sprite
@@ -668,7 +781,7 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 		{
 			FVector4 WorldPoint = View.PixelToWorld(HitX, HitY, 0);
 			UPaperSprite* Sprite = GetSpriteBeingEdited();
-			FVector2D TexturePoint = Sprite->ConvertWorldSpaceToTextureSpace(WorldPoint);
+			FVector2D TexturePoint = SourceTextureViewComponent->GetSprite()->ConvertWorldSpaceToTextureSpace(WorldPoint);
 			Sprite->ExtractSourceRegionFromTexturePoint(TexturePoint);
 		}
 
@@ -709,13 +822,16 @@ bool FSpriteEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisLis
 
 		if (SelectionSet.Num() > 0)
 		{
-			UPaperSprite* Sprite = GetSpriteBeingEdited();
-			// Sprite->RebuildCollisionData();
-			// Sprite->RebuildRenderData();
-			Sprite->PostEditChange();
-			bManipulationDirtiedSomething = true;
+			if (!IsInSourceRegionEditMode())
+			{
+				UPaperSprite* Sprite = GetSpriteBeingEdited();
+				// Sprite->RebuildCollisionData();
+				// Sprite->RebuildRenderData();
+				Sprite->PostEditChange();
+				Invalidate();
+			}
 
-			Invalidate();
+			bManipulationDirtiedSomething = true;
 		}
 	}
 
@@ -779,7 +895,6 @@ void FSpriteEditorViewportClient::BeginTransaction(const FText& SessionName)
 {
 	if (ScopedTransaction == NULL)
 	{
-
 		ScopedTransaction = new FScopedTransaction(SessionName);
 
 		UPaperSprite* Sprite = GetSpriteBeingEdited();
@@ -791,7 +906,18 @@ void FSpriteEditorViewportClient::EndTransaction()
 {
 	if (bManipulationDirtiedSomething)
 	{
-		RenderSpriteComponent->GetSprite()->PostEditChange();
+		UPaperSprite* Sprite = RenderSpriteComponent->GetSprite();
+
+		if (IsInSourceRegionEditMode())
+		{
+			// Snap to pixel grid at the end of the drag
+			Sprite->SourceUV.X = FMath::Max(FMath::RoundToFloat(Sprite->SourceUV.X), 0.0f);
+			Sprite->SourceUV.Y = FMath::Max(FMath::RoundToFloat(Sprite->SourceUV.Y), 0.0f);
+			Sprite->SourceDimension.X = FMath::Max(FMath::RoundToFloat(Sprite->SourceDimension.X), 0.0f);
+			Sprite->SourceDimension.Y = FMath::Max(FMath::RoundToFloat(Sprite->SourceDimension.Y), 0.0f);
+		}
+
+		Sprite->PostEditChange();
 	}
 	
 	bManipulationDirtiedSomething = false;

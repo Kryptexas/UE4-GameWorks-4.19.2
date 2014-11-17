@@ -4,6 +4,7 @@
 #include "SDetailSingleItemRow.h"
 #include "DetailItemNode.h"
 #include "PropertyEditorHelpers.h"
+#include "IDetailKeyFrameHandler.h"
 
 namespace DetailWidgetConstants
 {
@@ -100,6 +101,8 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 			ValueWidget->SetEnabled( Row.IsEnabledAttr );
 		}
 
+		TSharedRef<SWidget> KeyFrameButton = CreateKeyframeButton( *Customization, InOwnerTreeNode );
+
 		if( bHasMultipleColumns )
 		{
 			Widget = 
@@ -126,6 +129,14 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 					.Padding( DetailWidgetConstants::LeftRowPadding )
 					[
 						NameWidget.ToSharedRef()
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(3.0f, 0.0f)
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						KeyFrameButton
 					]
 				]
 				+ SSplitter::Slot()
@@ -160,10 +171,17 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				.Padding( DetailWidgetConstants::LeftRowPadding )
 				[
 					Row.WholeRowWidget.Widget
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(3.0f, 0.0f)
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Center)
+				[
+					KeyFrameButton
 				];
 		}
-
 	}
+
 
 	this->ChildSlot
 	[	
@@ -276,4 +294,46 @@ const FSlateBrush* SDetailSingleItemRow::GetBorderImage() const
 	{
 		return FEditorStyle::GetBrush("DetailsView.CategoryMiddle");
 	}
+}
+
+TSharedRef<SWidget> SDetailSingleItemRow::CreateKeyframeButton( FDetailLayoutCustomization& InCustomization, TSharedRef<IDetailTreeNode> InTreeNode )
+{
+	IDetailsViewPrivate& DetailsView = InTreeNode->GetDetailsView();
+
+	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler = DetailsView.GetKeyframeHandler();
+
+	EVisibility SetKeyVisibility = EVisibility::Collapsed;
+
+	if (InCustomization.HasPropertyNode() && KeyframeHandler.IsValid() )
+	{
+		TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(InCustomization.GetPropertyNode().ToSharedRef(), nullptr, nullptr);
+
+		UClass* ObjectClass = InCustomization.GetPropertyNode()->FindObjectItemParent()->GetObjectBaseClass();
+		SetKeyVisibility = KeyframeHandler->IsPropertyKeyable(*ObjectClass, *Handle) ? EVisibility::Visible : EVisibility::Hidden;
+	}
+
+	return 
+		SNew(SButton)
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Center)
+		.ContentPadding(0.0f)
+		.ButtonStyle(FEditorStyle::Get(), "Sequencer.AddKey.Details")
+		.Visibility(SetKeyVisibility)
+		.ToolTipText( NSLOCTEXT("PropertyView", "AddKeyframeButton_ToolTip", "Adds a keyframe for this property to the current animation") )
+		.OnClicked( this, &SDetailSingleItemRow::OnAddKeyframeClicked );
+}
+
+FReply SDetailSingleItemRow::OnAddKeyframeClicked()
+{
+	IDetailsViewPrivate& DetailsView = OwnerTreeNode.Pin()->GetDetailsView();
+
+	TSharedPtr<IDetailKeyframeHandler> KeyframeHandler = DetailsView.GetKeyframeHandler();
+
+	check(KeyframeHandler.IsValid());
+
+	TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle(Customization->GetPropertyNode().ToSharedRef(), nullptr, nullptr);
+
+	KeyframeHandler->OnKeyPropertyClicked(*Handle);
+
+	return FReply::Handled();
 }

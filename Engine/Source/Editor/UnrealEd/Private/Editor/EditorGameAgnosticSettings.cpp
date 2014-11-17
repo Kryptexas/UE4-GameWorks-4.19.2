@@ -37,12 +37,9 @@ void UEditorGameAgnosticSettings::LoadScalabilityBenchmark()
 
 	const TCHAR* Section = TEXT("EngineBenchmarkResult");
 
-	bool bIsValid = false;
-	bIsValid = GConfig->GetBool(Section, TEXT("Valid"), bIsValid, GEditorGameAgnosticIni) && bIsValid;
-
 	Scalability::FQualityLevels Temporary;
 
-	if (bIsValid)
+	if (IsScalabilityBenchmarkValid())
 	{
 		GConfig->GetInt(Section, TEXT("ResolutionQuality"),		Temporary.ResolutionQuality,	GEditorGameAgnosticIni);
 		GConfig->GetInt(Section, TEXT("ViewDistanceQuality"),		Temporary.ViewDistanceQuality,	GEditorGameAgnosticIni);
@@ -53,25 +50,40 @@ void UEditorGameAgnosticSettings::LoadScalabilityBenchmark()
 		GConfig->GetInt(Section, TEXT("EffectsQuality"),			Temporary.EffectsQuality,		GEditorGameAgnosticIni);
 		EngineBenchmarkResult = Temporary;
 	}
-	else
-	{
-		GWarn->StatusUpdate(0, 1, NSLOCTEXT("UnrealEd", "RunningEngineBenchmark", "Running engine benchmark..."));
-		GWarn->PushStatus();
-		
-		Temporary = Scalability::BenchmarkQualityLevels();
+}
 
-		GConfig->SetBool(Section,TEXT("Valid"),					true,							GEditorGameAgnosticIni);
-		GConfig->SetInt(Section, TEXT("ResolutionQuality"),		Temporary.ResolutionQuality,	GEditorGameAgnosticIni);
-		GConfig->SetInt(Section, TEXT("ViewDistanceQuality"),		Temporary.ViewDistanceQuality,	GEditorGameAgnosticIni);
-		GConfig->SetInt(Section, TEXT("AntiAliasingQuality"),		Temporary.AntiAliasingQuality,	GEditorGameAgnosticIni);
-		GConfig->SetInt(Section, TEXT("ShadowQuality"),			Temporary.ShadowQuality,		GEditorGameAgnosticIni);
-		GConfig->SetInt(Section, TEXT("PostProcessQuality"),		Temporary.PostProcessQuality,	GEditorGameAgnosticIni);
-		GConfig->SetInt(Section, TEXT("TextureQuality"),			Temporary.TextureQuality,		GEditorGameAgnosticIni);
-		GConfig->SetInt(Section, TEXT("EffectsQuality"),			Temporary.EffectsQuality,		GEditorGameAgnosticIni);
+void UEditorGameAgnosticSettings::AutoApplyScalabilityBenchmark()
+{
+	const TCHAR* Section = TEXT("EngineBenchmarkResult");
 
-		Scalability::SetQualityLevels(Temporary);
-		Scalability::SaveState(GEditorGameAgnosticIni);
-		
-		GWarn->PopStatus();
-	}
+	GWarn->StatusUpdate(0, 1, NSLOCTEXT("UnrealEd", "RunningEngineBenchmark", "Running engine benchmark..."));
+	GWarn->PushStatus();
+
+	uint32 WorkScale = 5.0f;
+
+	Scalability::FQualityLevels Temporary = Scalability::BenchmarkQualityLevels(WorkScale);
+
+	GConfig->SetBool(Section, TEXT("Valid"), true, GEditorGameAgnosticIni);
+	GConfig->SetInt(Section, TEXT("ResolutionQuality"), Temporary.ResolutionQuality, GEditorGameAgnosticIni);
+	GConfig->SetInt(Section, TEXT("ViewDistanceQuality"), Temporary.ViewDistanceQuality, GEditorGameAgnosticIni);
+	GConfig->SetInt(Section, TEXT("AntiAliasingQuality"), Temporary.AntiAliasingQuality, GEditorGameAgnosticIni);
+	GConfig->SetInt(Section, TEXT("ShadowQuality"), Temporary.ShadowQuality, GEditorGameAgnosticIni);
+	GConfig->SetInt(Section, TEXT("PostProcessQuality"), Temporary.PostProcessQuality, GEditorGameAgnosticIni);
+	GConfig->SetInt(Section, TEXT("TextureQuality"), Temporary.TextureQuality, GEditorGameAgnosticIni);
+	GConfig->SetInt(Section, TEXT("EffectsQuality"), Temporary.EffectsQuality, GEditorGameAgnosticIni);
+
+	Scalability::SetQualityLevels(Temporary);
+	Scalability::SaveState(GEditorGameAgnosticIni);
+
+	GWarn->PopStatus();
+}
+
+bool UEditorGameAgnosticSettings::IsScalabilityBenchmarkValid() const
+{
+	const TCHAR* Section = TEXT("EngineBenchmarkResult");
+
+	bool bIsValid = false;
+	GConfig->GetBool(Section, TEXT("Valid"), bIsValid, GEditorGameAgnosticIni);
+
+	return bIsValid;
 }

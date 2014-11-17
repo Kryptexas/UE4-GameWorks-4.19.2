@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PaperStyle.h"
+
 class FSpriteEditorCommands : public TCommands<FSpriteEditorCommands>
 {
 public:
@@ -10,7 +12,7 @@ public:
 			TEXT("SpriteEditor"), // Context name for fast lookup
 			NSLOCTEXT("Contexts", "PaperEditor", "Sprite Editor"), // Localized context name for displaying
 			NAME_None, // Parent
-			FEditorStyle::GetStyleSetName() // Icon Style Set
+			FPaperStyle::Get()->GetStyleSetName() // Icon Style Set
 			)
 	{
 	}

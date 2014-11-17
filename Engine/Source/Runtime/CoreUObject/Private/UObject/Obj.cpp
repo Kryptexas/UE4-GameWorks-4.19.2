@@ -194,7 +194,6 @@ void UObject::PostLoad()
 void UObject::PreEditChange(UProperty* PropertyAboutToChange)
 {
 	Modify();
-	FCoreDelegates::OnPreObjectPropertyChanged.Broadcast(this);
 }
 
 
@@ -215,6 +214,8 @@ void UObject::PreEditChange( FEditPropertyChain& PropertyAboutToChange )
 {
 	// forward the notification to the UProperty* version of PreEditChange
 	PreEditChange(PropertyAboutToChange.GetActiveNode()->GetValue());
+
+	FCoreDelegates::OnPreObjectPropertyChanged.Broadcast(this, PropertyAboutToChange);
 
 	if ( HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) && PropertyAboutToChange.GetActiveMemberNode() == PropertyAboutToChange.GetHead() && !FApp::IsGame())
 	{
@@ -1182,7 +1183,19 @@ void UObject::TagSubobjects(EObjectFlags NewFlags)
 
 void UObject::ReloadConfig( UClass* ConfigClass/*=NULL*/, const TCHAR* InFilename/*=NULL*/, uint32 PropagationFlags/*=LCPF_None*/, UProperty* PropertyToLoad/*=NULL*/ )
 {
-	LoadConfig(ConfigClass, InFilename, PropagationFlags|UE4::LCPF_ReloadingConfigData|UE4::LCPF_ReadParentSections, PropertyToLoad);
+		if (!GIsEditor)
+		{
+			LoadConfig(ConfigClass, InFilename, PropagationFlags | UE4::LCPF_ReloadingConfigData | UE4::LCPF_ReadParentSections, PropertyToLoad);
+		}
+#if WITH_EDITOR
+		else
+		{
+			// When in the editor, raise change events so that the UI will update correctly when object configs are reloaded.
+			PreEditChange(NULL);
+			LoadConfig(ConfigClass, InFilename, PropagationFlags | UE4::LCPF_ReloadingConfigData | UE4::LCPF_ReadParentSections, PropertyToLoad);
+			PostEditChange();
+		}
+#endif // WITH_EDITOR
 }
 
 /** Checks if a section specified as a long package name can be found as short name in ini. */

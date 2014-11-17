@@ -9,7 +9,7 @@
  * Constructor
  */
 FMenuSeparatorBlock::FMenuSeparatorBlock(const FName& InExtensionHook)
-	: FMultiBlock( NULL, NULL, InExtensionHook )
+	: FMultiBlock( NULL, NULL, InExtensionHook, EMultiBlockType::MenuSeparator )
 {
 }
 

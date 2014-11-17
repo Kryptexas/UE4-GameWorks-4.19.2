@@ -1064,6 +1064,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 	if (GlobalOriginOffset != RequestedGlobalOriginOffset)
 	{
 		SetNewWorldOrigin(RequestedGlobalOriginOffset);
+		bOriginOffsetThisFrame = true;
+	}
+	else
+	{
+		bOriginOffsetThisFrame = false;
 	}
 	
 	// update world's subsystems (NavigationSystem for now)
@@ -1279,7 +1284,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		TimeSinceLastPendingKillPurge += DeltaSeconds;
 
 		const bool bAtLeastOnePlayerConnected = NetDriver && NetDriver->ClientConnections.Num() > 0;
-		const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && bAtLeastOnePlayerConnected;
+		const bool bShouldUseLowFrequencyGC = IsRunningDedicatedServer() && !bAtLeastOnePlayerConnected;
 		const float TimeBetweenPurgingPendingKillObjects = bShouldUseLowFrequencyGC ? GEngine->TimeBetweenPurgingPendingKillObjects * 10 : GEngine->TimeBetweenPurgingPendingKillObjects;
 
 		// See if we should delay garbage collect for this frame

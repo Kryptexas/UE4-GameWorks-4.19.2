@@ -106,11 +106,6 @@ void AWorldSettings::PostInitializeComponents()
 	}
 }
 
-void AWorldSettings::OnRep_ReplicatedMusicTrack()
-{
-	GetWorld()->UpdateMusicTrack(ReplicatedMusicTrack);
-}
-
 float AWorldSettings::GetGravityZ() const
 {
 	if (!bWorldGravitySet)
@@ -151,7 +146,6 @@ void AWorldSettings::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & O
 	DOREPLIFETIME( AWorldSettings, MatineeTimeDilation );
 	DOREPLIFETIME( AWorldSettings, WorldGravityZ );
 	DOREPLIFETIME( AWorldSettings, bHighPriorityLoading );
-	DOREPLIFETIME( AWorldSettings, ReplicatedMusicTrack );
 }
 
 void AWorldSettings::Serialize( FArchive& Ar )

@@ -4,6 +4,8 @@
 //#include "DumpHiddenCategoriesCommandlet.h"
 #include "ObjectEditorUtils.h"
 #include "KismetEditorUtilities.h"
+#include "EditorCategoryUtils.h"
+#include "ScopedTimers.h"
 
 /*******************************************************************************
  * Static Helpers
@@ -28,7 +30,7 @@ static int32 GetHideCategories(uint32 Indent, UClass* Class, FString& JsonOut)
 	JsonOut += IndentString + TEXT("\"HiddenCategories\" : [");
 
 	TArray<FString> HideCategories;
-	Class->GetHideCategories(HideCategories);
+	FEditorCategoryUtils::GetClassHideCategories(Class, HideCategories);
 
 	for (FString const& Category : HideCategories)
 	{
@@ -50,7 +52,7 @@ static int32 GetShowCategories(uint32 Indent, UClass* Class, FString& JsonOut)
 	JsonOut += IndentString + TEXT("\"ShownCategories\" : [");
 
 	TArray<FString> ShowCategories;
-	Class->GetShowCategories(ShowCategories);
+	FEditorCategoryUtils::GetClassShowCategories(Class, ShowCategories);
 
 	for (FString const& Category : ShowCategories)
 	{
@@ -188,6 +190,9 @@ int32 UDumpHiddenCategoriesCommandlet::Main(FString const& Params)
 	{
 		FileOut->Serialize(TCHAR_TO_ANSI(TEXT("{")), 1);
 
+		double Duration = 0.0;
+		FDurationTimer DurationTimer(Duration);
+
 		bool bFirstEntry = true;
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
@@ -234,7 +239,10 @@ int32 UDumpHiddenCategoriesCommandlet::Main(FString const& Params)
 			FileOut->Serialize(TCHAR_TO_ANSI(*ClassEntry), ClassEntry.Len());
 			bFirstEntry = false;
 		}
-		FileOut->Serialize(TCHAR_TO_ANSI(TEXT("\n}")), 2);
+		DurationTimer.Stop();
+
+		FString ClosingStatement = FString::Printf(TEXT(", \"Duration\" : %f\n}"), Duration);
+		FileOut->Serialize(TCHAR_TO_ANSI(*ClosingStatement), ClosingStatement.Len());
 
 		FileOut->Close();
 		delete FileOut;

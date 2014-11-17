@@ -64,6 +64,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeUpdateAchievements(JNI
 		}
 
 		PendingQuery.Delegate.ExecuteIfBound( PendingQuery.PlayerID, true );
+		PendingQuery.Delegate.Unbind();
 		PendingQuery.IsQueryPending = false;
 	});
 }
@@ -88,6 +89,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFailedUpdateAchievemen
 		auto& PendingQuery = FOnlineAchievementsGooglePlay::PendingAchievementQuery;
 
 		PendingQuery.Delegate.ExecuteIfBound( PendingQuery.PlayerID, false );
+		PendingQuery.Delegate.Unbind();
 		PendingQuery.IsQueryPending = false;
 	});
 }
@@ -198,7 +200,11 @@ EOnlineCachedResult::Type FOnlineAchievementsGooglePlay::GetCachedAchievementDes
 #if !UE_BUILD_SHIPPING
 bool FOnlineAchievementsGooglePlay::ResetAchievements( const FUniqueNetId& PlayerId )
 {
-	check(!TEXT("ResetAchievements has not been implemented"));
+	UE_LOG(LogOnline, Log, TEXT("Resetting Google Play achievements."));
+
+	extern void AndroidThunkCpp_ResetAchievements();
+	AndroidThunkCpp_ResetAchievements();
+
 	return false;
 };
 #endif // !UE_BUILD_SHIPPING

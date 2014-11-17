@@ -3,7 +3,7 @@
 /*=============================================================================
 	UnMathTest.cpp: Test harness for vector INTrinsics abstraction.
 =============================================================================*/
-#include "CorePrivate.h" 
+#include "Core.h" 
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealMathTest, Log, All);
 

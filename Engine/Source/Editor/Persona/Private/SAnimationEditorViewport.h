@@ -247,14 +247,11 @@ private:
 	/** Function to set LOD model selection*/
 	void OnSetLODModel( ELODViewSelection LODSelectionType );
 
-	/** Function to show Level of Detail Settings dialog */
-	void OnShowLevelOfDetailSettings( );
-
 	/** Function to show/hide mesh info*/
-	void OnShowDisplayInfo();
+	void OnShowDisplayInfo(int32 DisplayInfoMode);
 
 	/** Function to check whether mesh info is displayed or not */
-	bool IsShowingMeshInfo() const;
+	bool IsShowingMeshInfo(int32 DisplayInfoMode) const;
 
 	/** Function to show/hide grid in the viewport */
 	void OnShowGrid();
@@ -326,6 +323,12 @@ private:
 
 	/** Whether audio from the viewport is muted */
 	bool IsAudioMuted();
+
+	/** Function to set whether we are previewing root motion */
+	void OnTogglePreviewRootMotion();
+	
+	/** Whether or not we are previewing root motion */
+	bool IsPreviewingRootMotion() const;
 
 #if WITH_APEX_CLOTHING
 	/** 

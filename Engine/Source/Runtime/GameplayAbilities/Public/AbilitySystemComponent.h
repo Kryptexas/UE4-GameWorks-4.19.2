@@ -67,44 +67,44 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 	/** Finds existing AttributeSet */
 	template <class T >
-	T*	GetSet()
+	const T*	GetSet()
 	{
 		return (T*)GetAttributeSubobject(T::StaticClass());
 	}
 
 	template <class T >
-	T*	GetSetChecked()
+	const T*	GetSetChecked()
 	{
 		return (T*)GetAttributeSubobjectChecked(T::StaticClass());
 	}
 
 	/** Adds a new AttributeSet (initialized to default values) */
 	template <class T >
-	T*  AddSet()
+	const T*  AddSet()
 	{
 		return (T*)GetOrCreateAttributeSubobject(T::StaticClass());
 	}
 
 	/** Adds a new AttributeSet that is a DSO (created by called in their CStor) */
 	template <class T>
-	T*	AddDefaultSubobjectSet(TSubobjectPtr<T> Subobject)
+	const T*	AddDefaultSubobjectSet(TSubobjectPtr<T> Subobject)
 	{
-		T* Set = Subobject.Get();
+		const T* Set = Subobject.Get();
 		SpawnedAttributes.Add(Set);
 		return Set;
 	}
 
-	UFUNCTION(BlueprintCallable, Category="Skills")
-	UAttributeSet * InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
+	const UAttributeSet* InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
 
-	UFUNCTION(BlueprintCallable, Category="Skills")
-	void ModifyStats(TSubclassOf<class UAttributeSet> Attributes, FDataTableRowHandle ModifierHandle);
+	UFUNCTION(BlueprintCallable, Category="Skills", meta=(FriendlyName="InitStats"))
+	void K2_InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable);
+		
 
 	UPROPERTY(EditAnywhere, Category="AttributeTest")
 	TArray<FAttributeDefaults>	DefaultStartingData;
 
 	UPROPERTY(Replicated)
-	TArray<UAttributeSet*>	SpawnedAttributes;
+	TArray<const UAttributeSet*>	SpawnedAttributes;
 
 	void SetNumericAttribute(const FGameplayAttribute &Attribute, float NewFloatValue);
 	float GetNumericAttribute(const FGameplayAttribute &Attribute);
@@ -172,11 +172,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	// --------------------------------------------
 	// Primary outward facing API for other systems:
 	// --------------------------------------------
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &GameplayEffect, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec& GameplayEffect, UAbilitySystemComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec& GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
 	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
+
+	/** Get an outgoing GameplayEffectSpec that is ready to be applied to other things. */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect) const;
+
+	/** Create an InstigatorContext for the owner of this AbilitySystemComponent */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	FGameplayEffectInstigatorContext GetInstigatorContext() const;
 
 	/** This only exists so it can be hooked up to a multicast delegate */
 	void RemoveActiveGameplayEffect_NoReturn(FActiveGameplayEffectHandle Handle)
@@ -300,6 +308,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 	/** References to replicating abilities that we instanced. We need to keep these references to avoid GC */
 	UPROPERTY(Replicated)
 	TArray<UGameplayAbility*>	ReplicatedInstancedAbilities;
+
+	void NotifyAbilityEnded(UGameplayAbility* Ability);
 
 	/**
 	 *	The abilities we can activate. 
@@ -428,19 +438,11 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent
 
 private:
 
-	// --------------------------------------------
-	// Important internal functions
-	// --------------------------------------------
-
 	void ExecutePeriodicEffect(FActiveGameplayEffectHandle	Handle);
 
 	void ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 
 	void CheckDurationExpired(FActiveGameplayEffectHandle Handle);
-
-	// --------------------------------------------
-	// Internal Utility / helper functions
-	// --------------------------------------------
 
 	bool AreGameplayEffectApplicationRequirementsSatisfied(const class UGameplayEffect* EffectToAdd, FGameplayEffectInstigatorContext& Instigator) const;
 
@@ -480,9 +482,9 @@ protected:
 
 	virtual void OnRegister() override;
 
-	UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
-	UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
-	UAttributeSet*	GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass);
+	const UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
+	const UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;
+	const UAttributeSet*	GetOrCreateAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass);
 
 	friend struct FActiveGameplayEffectsContainer;
 	friend struct FActiveGameplayEffect;

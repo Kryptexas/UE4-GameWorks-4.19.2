@@ -92,7 +92,7 @@ void STrackNode::Construct(const FArguments& InArgs)
 	Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
 }
 
-int32 STrackNode::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 STrackNode::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	// We draw ourselves on all of the AllottedGeometry. The parent STrack should have arranged us
 	FPaintGeometry MyGeometry =	AllottedGeometry.ToPaintGeometry();
@@ -380,7 +380,7 @@ FChildren* STrack::GetChildren()
 	return &TrackNodes;
 }
 
-int32 STrack::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 STrack::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	int32 CustomLayerId = LayerId + 1;
 	FPaintGeometry MyGeometry = AllottedGeometry.ToPaintGeometry();
@@ -506,7 +506,7 @@ int32 STrack::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyCl
 	}
 
 	
-	return SPanel::OnPaint( AllottedGeometry, MyClippingRect, OutDrawElements, CustomLayerId, InWidgetStyle, bParentEnabled );
+	return SPanel::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, CustomLayerId, InWidgetStyle, bParentEnabled );
 }
 
 // drag drop relationship

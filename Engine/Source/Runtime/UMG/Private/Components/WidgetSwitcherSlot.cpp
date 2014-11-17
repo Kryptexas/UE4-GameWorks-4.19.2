@@ -13,6 +13,13 @@ UWidgetSwitcherSlot::UWidgetSwitcherSlot(const FPostConstructInitializePropertie
 	VerticalAlignment = VAlign_Fill;
 }
 
+void UWidgetSwitcherSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	Slot = NULL;
+}
+
 void UWidgetSwitcherSlot::BuildSlot(TSharedRef<SWidgetSwitcher> WidgetSwitcher)
 {
 	Slot = &WidgetSwitcher->AddSlot()
@@ -20,7 +27,7 @@ void UWidgetSwitcherSlot::BuildSlot(TSharedRef<SWidgetSwitcher> WidgetSwitcher)
 		.HAlign(HorizontalAlignment)
 		.VAlign(VerticalAlignment)
 		[
-			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
+			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
 		];
 }
 

@@ -7,7 +7,7 @@
 #include "HTML5TargetPlatformPrivatePCH.h"
 
 #if WITH_EDITOR
-#include "Texture.h"
+#include "TextureLODSettings.h"
 #endif 
 
  /* FHTML5TargetPlatform structors
@@ -171,6 +171,10 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 	else if( Texture->CompressionSettings == TC_Alpha)
 	{
 		TextureFormatName = NameDXT5;
+	}
+	else if (Texture->CompressionSettings == TC_DistanceFieldFont)
+	{
+		TextureFormatName = NameG8;
 	}
 	else if (Texture->CompressionNoAlpha)
 	{

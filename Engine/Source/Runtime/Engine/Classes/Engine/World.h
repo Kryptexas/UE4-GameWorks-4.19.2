@@ -6,13 +6,12 @@
 	World.h: UWorld definition.
 =============================================================================*/
 
-#include "CollisionQueryParams.h"
 #include "WorldCollision.h"
 #include "PendingNetGame.h"
-#include "GameFramework/MusicTrackDataStructures.h"
 #include "EngineDefines.h"
 #include "Engine/LatentActionManager.h"
 #include "Runtime/RHI/Public/RHIDefinitions.h"
+#include "GameFramework/Actor.h"
 #include "World.generated.h"
 
 class FPhysScene;
@@ -24,6 +23,10 @@ class ABrush;
 class UModel;
 class APhysicsVolume;
 class UTexture2D;
+class APlayerController;
+class AMatineeActor;
+class AWorldSettings;
+class ACameraActor;
 
 template<typename,typename> class TOctree;
 
@@ -34,6 +37,7 @@ template<typename,typename> class TOctree;
 typedef TArray<TAutoWeakObjectPtr<AController> >::TConstIterator FConstControllerIterator;
 typedef TArray<TAutoWeakObjectPtr<APlayerController> >::TConstIterator FConstPlayerControllerIterator;
 typedef TArray<TAutoWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
+typedef TArray<TAutoWeakObjectPtr<ACameraActor> >::TConstIterator FConstCameraActorIterator;
 typedef TArray<class ULevel*>::TConstIterator FConstLevelIterator;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSpawn, Warning, All);
@@ -477,6 +481,10 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	// Group actors currently "active"
 	UPROPERTY(transient)
 	TArray<class AActor*> ActiveGroupActors;
+
+	/** Information for thumbnail rendering */
+	UPROPERTY(VisibleAnywhere, EditInline, Category=Thumbnail)
+	class UThumbnailInfo* ThumbnailInfo;
 #endif // WITH_EDITORONLY_DATA
 
 	/** Persistent level containing the world info, default brush and actors spawned during gameplay among other things			*/
@@ -514,10 +522,6 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	/** Instance of UPhysicsCollisionHandler */
 	UPROPERTY(Transient)
 	class UPhysicsCollisionHandler*				PhysicsCollisionHandler;
-
-	/** Audio component used for playing music tracks via SeqAct_PlayMusicTrack */
-	UPROPERTY(Transient)
-	class UAudioComponent*						MusicComp;
 
 	/** Array of any additional objects that need to be referenced by this world, to make sure they aren't GC'd */
 	UPROPERTY(Transient)
@@ -580,13 +584,16 @@ private:
 
 public:
 	/** Array of actors that are candidates for sending over the network */
-	TArray< AActor * >							NetworkActors;
+	TArray<class AActor*>						NetworkActors;
 
 private:
 
 	/** Pointer to the current level being edited. Level has to be in the Levels array and == PersistentLevel in the game.		*/
 	UPROPERTY(Transient)
 	class ULevel*								CurrentLevel;
+
+	UPROPERTY(Transient)
+	class UGameInstance*						OwningGameInstance;
 
 	/** Parameter collection instances that hold parameter overrides for this world. */
 	UPROPERTY(Transient)
@@ -598,6 +605,9 @@ public:
 
 	/** The interface to the scene manager for this world. */
 	class FSceneInterface*						Scene;
+
+	/** The current renderer feature level of this world */
+	ERHIFeatureLevel::Type						FeatureLevel;
 
 	/** Saved editor viewport states - one for each view type. Indexed using ELevelViewportType above.							*/
 	FLevelViewportInfo							EditorViews[4];
@@ -620,12 +630,17 @@ public:
 	/** Return the array of objects currently bieng debugged. */
 	const FBlueprintToDebuggedObjectMap& GetBlueprintObjectsBeingDebugged() const{ return BlueprintObjectsBeingDebugged; };
 
+	/** Creates a new FX system for this world */
+	void CreateFXSystem();
+
 	/** Change the feature level that this world is current rendering with */
 	void ChangeFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
-
-	static void ForceFeatureLevelUpdate(ERHIFeatureLevel::Type InFeatureLevel);
+	static void ChangeAllWorldFeatureLevels(ERHIFeatureLevel::Type InFeatureLevel);
 
 private:
+	/** Change the feature level that this world is current rendering with */
+	void ChangeWorldFeatureLevel(ERHIFeatureLevel::Type InFeatureLevel);
+
 	/** List of all the controllers in the world. */
 	TArray<TAutoWeakObjectPtr<class AController> >	ControllerList;
 
@@ -634,6 +649,9 @@ private:
 
 	/** List of all the pawns in the world. */
 	TArray<TAutoWeakObjectPtr<class APawn> >			PawnList;	
+
+	/** List of all the cameras in the world that auto-activate for players. */
+	TArray<TAutoWeakObjectPtr<ACameraActor> > AutoCameraActorList;
 
 	/** Physics scene for this world. */
 	FPhysScene*									PhysicsScene;
@@ -853,7 +871,10 @@ public:
 
 	/** Requested new world origin offset */
 	FIntPoint RequestedGlobalOriginOffset;
-	
+
+	/** Whether world origin was rebased this frame */
+	bool bOriginOffsetThisFrame;
+		
 	/** All levels information from which our world is composed */
 	UPROPERTY()
 	class UWorldComposition* WorldComposition;
@@ -877,9 +898,6 @@ public:
 	/** @todo document */
 	FName CommittedPersistentLevelName;
 
-	/** Param information for the currently playing MusicComp */
-	struct FMusicTrackStruct CurrentMusicTrack;
-	
 #if WITH_EDITORONLY_DATA
 	/** Map of LandscapeInfos for all loaded levels, valid in the editor only */
 	TMap< FGuid, class ULandscapeInfo* > LandscapeInfoMap;
@@ -1418,6 +1436,12 @@ public:
 	 *  @return Pointer to the first valid ULocalPlayer, or NULL if there is not one.
 	 */	
 	ULocalPlayer* GetFirstLocalPlayerFromController() const;
+
+	/** Register a CameraActor that auto-activates for a PlayerController. */
+	void RegisterAutoActivateCamera(ACameraActor* CameraActor, int32 PlayerIndex);
+
+	/** Get an iterator for the list of CameraActors that auto-activate for PlayerControllers. */
+	FConstCameraActorIterator GetAutoActivateCameraIterator() const;
 	
 	UGameViewportClient* GetGameViewport() const;
 
@@ -1465,6 +1489,9 @@ public:
 	
 	/** Helper for getting the time since a certain time. */
 	float TimeSince( float Time ) const;
+
+	/** Creates a new physics scene for this world. */
+	void CreatePhysicsScene();
 
 	FPhysScene* GetPhysicsScene() const { return PhysicsScene; }
 
@@ -1767,6 +1794,7 @@ public:
 			, bShouldSimulatePhysics(true)
 			, bEnableTraceCollision(false)
 			, bTransactional(true)
+			, bCreateFXSystem(true)
 		{
 		}
 
@@ -1779,6 +1807,7 @@ public:
 		uint32 bShouldSimulatePhysics:1;
 		uint32 bEnableTraceCollision:1;
 		uint32 bTransactional:1;
+		uint32 bCreateFXSystem:1;
 
 
 		InitializationValues& InitializeScenes(const bool bInitialize) { bInitializeScenes = bInitialize; return *this; }
@@ -1790,6 +1819,7 @@ public:
 		InitializationValues& ShouldSimulatePhysics(const bool bInShouldSimulatePhysics) { bShouldSimulatePhysics = bInShouldSimulatePhysics; return *this; }
 		InitializationValues& EnableTraceCollision(const bool bInEnableTraceCollision) { bEnableTraceCollision = bInEnableTraceCollision; return *this; }
 		InitializationValues& SetTransactional(const bool bInTransactional) { bTransactional = bInTransactional; return *this; }
+		InitializationValues& CreateFXSystem(const bool bCreate) { bCreateFXSystem = bCreate; return *this; }
 	};
 
 	/**
@@ -2241,8 +2271,6 @@ public:
 	 */
 	class AReverbVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
 
-	void UpdateMusicTrack(FMusicTrackStruct NewMusicTrack);
-
 	/** Return the URL of this level on the local machine. */
 	virtual FString GetLocalURL() const;
 
@@ -2368,7 +2396,16 @@ public:
 	/** Returns LatentActionManager instance for this world. */
 	inline FLatentActionManager& GetLatentActionManager()
 	{
-		return 	LatentActionManager;
+		return LatentActionManager;
+	}
+
+	inline void SetGameInstance(UGameInstance* NewGI)
+	{
+		OwningGameInstance = NewGI;
+	}
+	inline UGameInstance* GetGameInstance() const
+	{
+		return OwningGameInstance;
 	}
 
 	/** Retrieves information whether all navigation with this world has been rebuilt */
@@ -2391,6 +2428,9 @@ public:
 
 	/** Gets all LightMaps and ShadowMaps associated with this world. Specify the level or leave null for persistent */
 	void GetLightMapsAndShadowMaps(ULevel* Level, TArray<UTexture2D*>& OutLightMapsAndShadowMaps);
+
+	/** Gets all textures and materials used by all landscape components in the specified level */
+	void GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& OutTexturesAndMaterials);
 
 public:
 	static FString ConvertToPIEPackageName(const FString& PackageName, int32 PIEInstanceID);

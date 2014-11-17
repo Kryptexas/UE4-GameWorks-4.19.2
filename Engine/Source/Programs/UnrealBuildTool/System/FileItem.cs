@@ -53,10 +53,6 @@ namespace UnrealBuildTool
 		/** Whether or not this is a remote file, in which case we can't access it directly */
 		public bool bIsRemoteFile = false;
 
-		/** True if this is a C++ file that was found to contains UObject class or struct declarations, and may need to be processed by UnrealHeaderTool to 
-		    generate code before compiling.  This is only valid after GetIncludeDependencies() has been called for this file */
-		public bool HasUObjects = false;
-
 		/** A list of remote file items that have been created but haven't needed the remote info yet, so we can gang up many into one request */
 		static List<FileItem> DelayedRemoteLookupFiles = new List<FileItem>();
 

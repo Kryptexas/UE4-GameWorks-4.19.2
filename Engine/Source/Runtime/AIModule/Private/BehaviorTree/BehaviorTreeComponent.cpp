@@ -95,12 +95,6 @@ bool UBehaviorTreeComponent::IsPaused() const
 
 bool UBehaviorTreeComponent::StartTree(class UBehaviorTree* TreeAsset, EBTExecutionMode::Type ExecuteMode)
 {
-	if (UBehaviorTreeManager::IsBehaviorTreeUsageEnabled() == false)
-	{
-		UE_VLOG(GetOwner(), LogBehaviorTree, Error, TEXT("Behavior tree usage is not enabled"));
-		return false;
-	}
-
 	// clear instance stack, start should always run new tree from root
 	class UBehaviorTree* CurrentRoot = GetRootTree();
 	
@@ -133,6 +127,17 @@ void UBehaviorTreeComponent::StopTree()
 	// clear current state, don't touch debugger data
 	for (int32 InstanceIndex = 0; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
 	{
+		FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIndex];
+
+		// notify active nodes
+		for (int32 AuxIndex = 0; AuxIndex < InstanceInfo.ActiveAuxNodes.Num(); AuxIndex++)
+		{
+			const UBTAuxiliaryNode* AuxNode = InstanceInfo.ActiveAuxNodes[AuxIndex];
+			uint8* NodeMemory = AuxNode->GetNodeMemory<uint8>(InstanceInfo);
+			AuxNode->WrappedOnCeaseRelevant(this, NodeMemory);
+		}
+
+		// clear instance
 		InstanceStack[InstanceIndex].Cleanup(this);
 	}
 
@@ -140,7 +145,12 @@ void UBehaviorTreeComponent::StopTree()
 	TaskMessageObservers.Reset();
 	ExecutionRequest = FBTNodeExecutionInfo();
 	ActiveInstanceIdx = 0;
-	GetOwner()->GetWorldTimerManager().ClearTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest);
+
+	if (IsRegistered())
+	{
+		GetOwner()->GetWorldTimerManager().ClearTimer(this, &UBehaviorTreeComponent::ProcessExecutionRequest);
+	}
+
 	// make sure to allow new execution requests since we just removed last request timer
 	bRequestedFlowUpdate = false;
 }
@@ -467,7 +477,7 @@ static void FindCommonParent(const TArray<FBehaviorTreeInstance>& Instances, con
 
 void UBehaviorTreeComponent::ScheduleExecutionUpdate()
 {
-	if (!bRequestedFlowUpdate)
+	if (!bRequestedFlowUpdate && IsRegistered())
 	{
 		bRequestedFlowUpdate = true;
 
@@ -590,6 +600,7 @@ void UBehaviorTreeComponent::RequestExecution(class UBTCompositeNode* RequestedO
 	ExecutionRequest.ContinueWithResult = ContinueWithResult;
 	ExecutionRequest.SearchStart = ExecutionIdx;
 	ExecutionRequest.bTryNextChild = !bSwitchToHigherPriority;
+	ExecutionRequest.bIsRestart = (RequestedBy != GetActiveNode());
 
 	ScheduleExecutionUpdate();
 }
@@ -752,6 +763,12 @@ void UBehaviorTreeComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 void UBehaviorTreeComponent::ProcessExecutionRequest()
 {
 	bRequestedFlowUpdate = false;
+	if (!IsRegistered())
+	{
+		// it shouldn't be called, component is no longer valid
+		return;
+	}
+
 	if (bIsPaused)
 	{
 		UE_VLOG(GetOwner(), LogBehaviorTree, Verbose, TEXT("Ignoring ProcessExecutionRequest call due to BTComponent still being paused"));

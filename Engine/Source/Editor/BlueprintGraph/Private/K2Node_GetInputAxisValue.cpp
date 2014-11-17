@@ -3,6 +3,10 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_GetInputAxisValue.h"
 #include "CompilerResultsLog.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
+
+#define LOCTEXT_NAMESPACE "K2Node_GetInputAxisValue"
 
 UK2Node_GetInputAxisValue::UK2Node_GetInputAxisValue(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -28,7 +32,14 @@ FText UK2Node_GetInputAxisValue::GetNodeTitle(ENodeTitleType::Type TitleType) co
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("InputAxisName"), FText::FromName(InputAxisName));
-	return FText::Format(NSLOCTEXT("K2Node", "GetInputAxis_Name", "Get {InputAxisName}"), Args);
+
+	FText LocFormat = NSLOCTEXT("K2Node", "GetInputAxis_Name", "Get {InputAxisName}");
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		LocFormat = NSLOCTEXT("K2Node", "GetInputAxis_ListTitle", "{InputAxisName}");
+	}
+
+	return FText::Format(LocFormat, Args);
 }
 
 FString UK2Node_GetInputAxisValue::GetTooltip() const
@@ -64,3 +75,31 @@ void UK2Node_GetInputAxisValue::RegisterDynamicBinding(UDynamicBlueprintBinding*
 
 	InputAxisBindingObject->InputAxisDelegateBindings.Add(Binding);
 }
+
+void UK2Node_GetInputAxisValue::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	TArray<FName> AxisNames;
+	GetDefault<UInputSettings>()->GetAxisNames(AxisNames);
+
+	for (FName const InputAxisName : AxisNames)
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName AxisName)
+		{
+			UK2Node_GetInputAxisValue* InputNode = CastChecked<UK2Node_GetInputAxisValue>(NewNode);
+			InputNode->Initialize(AxisName);
+		};
+
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, InputAxisName);
+		ActionListOut.Add(NodeSpawner);
+	}
+}
+
+FText UK2Node_GetInputAxisValue::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("ActionMenuCategory", "Axis Values"));
+}
+
+#undef LOCTEXT_NAMESPACE

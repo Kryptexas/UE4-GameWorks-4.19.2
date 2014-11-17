@@ -2,6 +2,9 @@
 
 #include "SlatePrivatePCH.h"
 #include "DockingPrivate.h"
+#if PLATFORM_MAC
+#include "../MultiBox/Mac/MacMenu.h"
+#endif
 
 
 const FVector2D FTabManager::FallbackWindowSize( 1000, 600 );
@@ -437,16 +440,56 @@ void FTabManager::FPrivateApi::HideWindows()
 	SetWindowVisibility(TabManager.DockAreas, false);
 }
 
-
-
-
-
-
-
-
 FTabManager::FPrivateApi& FTabManager::GetPrivateApi()
 {
 	return *PrivateApi;
+}
+
+
+
+
+
+
+
+
+
+
+void FTabManager::SetMenuMultiBox(const TSharedPtr< FMultiBox >& NewMenuMutliBox)
+{
+	// We only use the platform native global menu bar on Mac
+#if PLATFORM_MAC
+	MenuMultiBox = NewMenuMutliBox;
+	if(MenuMultiBox.IsValid())
+	{
+		UpdateMainMenu(false);
+	}
+#endif
+}
+
+void FTabManager::UpdateMainMenu(bool const bForce)
+{
+	// We only use the platform native global menu bar on Mac
+#if PLATFORM_MAC
+	if(MenuMultiBox.IsValid())
+	{
+		bool bUpdate = bForce;
+		// On OS X opening the tab will set the multi-box and take key focus, but not seemingly send a keyboard focus event into Slate.
+		// I'm still looking into this, so for now we just update the menu bar here if the new tab is foreground in the focused window.
+		TSharedPtr<SDockTab> Tab = OwnerTabPtr.Pin();
+		if(Tab.IsValid() && Tab->IsForeground())
+		{
+			TSharedPtr<SWindow> ParentWindow = Tab->GetParentWindow();
+			if(ParentWindow.IsValid())
+			{
+				bUpdate |= (ParentWindow->HasKeyboardFocus() || ParentWindow->HasFocusedDescendants());
+			}
+		}
+		if(bUpdate)
+		{
+			FSlateMacMenu::UpdateWithMultiBox(MenuMultiBox.ToSharedRef());
+		}
+	}
+#endif
 }
 
 TSharedPtr<FTabManager::FStack> FTabManager::FLayoutNode::AsStack()
@@ -1579,6 +1622,20 @@ TSharedRef<FTabManager> FGlobalTabmanager::NewTabManager( const TSharedRef<SDock
 	return NewTabManager;
 }
 
+void FGlobalTabmanager::UpdateMainMenu(const TSharedRef<SDockTab>& ForTab, bool const bForce)
+{
+	TSharedPtr<FTabManager> Tabmanager = ForTab->GetTabManager();
+	if(Tabmanager == AsShared())
+	{
+		const int32 TabIndex = SubTabManagers.FindMatch( FindByTab(ForTab) );
+		if (TabIndex != INDEX_NONE)
+		{
+			Tabmanager = SubTabManagers[TabIndex].TabManager.Pin();
+		}
+	}
+	Tabmanager->UpdateMainMenu(bForce);
+}
+
 void FGlobalTabmanager::SaveAllVisualState()
 {
 	this->SavePersistentLayout();
@@ -1668,7 +1725,7 @@ void FGlobalTabmanager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab
 				{
 					TSharedRef<SWindow> NewChildWindow = SNew(SWindow)
 					.AutoCenter(EAutoCenter::None)
-					.ScreenPosition(OldChildWindow->GetPositionInScreen() + FVector2D(50,50))
+					.ScreenPosition(OldChildWindow->GetPositionInScreen())
 					.ClientSize(OldChildWindow->GetSizeInScreen())
 					.SupportsMinimize(false) .SupportsMaximize(false)
 					.CreateTitleBar(false)

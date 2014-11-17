@@ -35,7 +35,7 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FOnStageStartedDelegate, const FString&);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnStageCompletedDelegate, const FString&, double);
 
 /** Delegate used to notify when the launch is complete */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLaunchCompletedDelegate, bool, double);
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnLaunchCompletedDelegate, bool, double, int32);
 
 /** Delegate used to notify when the launch was canceled */
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnLaunchCanceledDelegate, double);

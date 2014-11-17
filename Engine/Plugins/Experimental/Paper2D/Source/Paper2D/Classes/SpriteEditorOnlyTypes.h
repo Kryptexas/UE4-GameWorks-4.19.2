@@ -41,6 +41,32 @@ namespace ESpritePolygonMode
 
 		// Fully custom geometry; edited by hand
 		FullyCustom,
+
+		// Diced (split up into smaller squares, including only non-empty ones in the final geometry)
+		Diced
+	};
+}
+
+// Method of specifying polygons for a sprite's render or collision data
+UENUM()
+namespace ESpriteSubdivisionMode
+{
+	enum Type
+	{
+		// Don't subdivide this sprite
+		NotSubdivided,
+
+		// Subdivide the sprite, 
+		SubdivideAutomatic,
+
+		// Bounding box that can be edited explicitly
+		SubdivideManually,
+
+		// Shrink-wrapped geometry
+		ShrinkWrapped,
+
+		// Fully custom geometry; edited by hand
+		FullyCustom,
 	};
 }
 
@@ -49,12 +75,20 @@ struct FSpritePolygonCollection
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(Category=PolygonData, EditAnywhere)
+	UPROPERTY(Category=PolygonData, EditAnywhere, AdvancedDisplay)
 	TArray<FSpritePolygon> Polygons;
 
 	// The geometry type
 	UPROPERTY(Category=PolygonData, EditAnywhere)
 	TEnumAsByte<ESpritePolygonMode::Type> GeometryType;
+
+	// Size of a single subdivision (in pixels) in X (for Diced mode)
+	UPROPERTY(Category=PolygonData, EditAnywhere)
+	int32 PixelsPerSubdivisionX;
+
+	// Size of a single subdivision (in pixels) in Y (for Diced mode)
+	UPROPERTY(Category=PolygonData, EditAnywhere)
+	int32 PixelsPerSubdivisionY;
 
 	// Experimental: Hint to the triangulation routine that extra vertices should be preserved
 	UPROPERTY(Category=PolygonData, EditAnywhere, AdvancedDisplay)
@@ -70,10 +104,23 @@ struct FSpritePolygonCollection
 
 	FSpritePolygonCollection()
 		: GeometryType(ESpritePolygonMode::TightBoundingBox)
+		, PixelsPerSubdivisionX(32)
+		, PixelsPerSubdivisionY(32)
 		, bAvoidVertexMerging(false)
 		, AlphaThreshold(0.0f)
 		, SimplifyEpsilon(2.0f)
 	{
+	}
+
+	void AddRectanglePolygon(FVector2D Position, FVector2D Size)
+	{
+		FSpritePolygon& Poly = *new (Polygons) FSpritePolygon();
+		new (Poly.Vertices) FVector2D(Position.X, Position.Y);
+		new (Poly.Vertices) FVector2D(Position.X + Size.X, Position.Y);
+		new (Poly.Vertices) FVector2D(Position.X + Size.X, Position.Y + Size.Y);
+		new (Poly.Vertices) FVector2D(Position.X, Position.Y + Size.Y);
+		Poly.BoxSize = Size;
+		Poly.BoxPosition = Position;
 	}
 
 	void Reset()

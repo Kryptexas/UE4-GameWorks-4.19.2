@@ -164,6 +164,7 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 	const bool bCtrlDown = Viewport->KeyState(EKeys::LeftControl) || Viewport->KeyState(EKeys::RightControl);
 	const bool bShiftDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
 	const bool bAltDown = Viewport->KeyState(EKeys::LeftAlt) || Viewport->KeyState(EKeys::RightAlt);
+	const bool bCmdDown = Viewport->KeyState(EKeys::LeftCommand) || Viewport->KeyState(EKeys::RightCommand);
 
 	const int32 HitX = Viewport->GetMouseX();
 	const int32 HitY = Viewport->GetMouseY();
@@ -569,6 +570,7 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 							DragData.bCtrlDown = bCtrlDown;
 							DragData.bAltDown = bAltDown;
 							DragData.bShiftDown = bShiftDown;
+							DragData.bCmdDown = bCmdDown;
 							Proxy->ClickedObject->BeginDrag(DragData);
 						}
 					}
@@ -828,7 +830,7 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 			InterpEd->ZoomView( 1.0f / FMatinee::InterpEditor_ZoomIncrement, InterpEd->bZoomToScrubPos );
 		}
 
-		FModifierKeysState ModKeys( bShiftDown, bShiftDown, bCtrlDown, bCtrlDown, bAltDown, bAltDown);
+		FModifierKeysState ModKeys(bShiftDown, bShiftDown, bCtrlDown, bCtrlDown, bAltDown, bAltDown, bCmdDown, bCmdDown);
 		FKeyboardEvent KeyEvent(Key, ModKeys, false, 0);
 		InterpEd->ProcessCommandBindings(KeyEvent);
 	}

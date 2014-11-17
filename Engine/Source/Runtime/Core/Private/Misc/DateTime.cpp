@@ -4,7 +4,7 @@
 	DateTime.cpp: Implements the FDateTime class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 /* FDateTime constants

@@ -54,7 +54,8 @@ FArchive& FDuplicateDataWriter::operator<<(FLazyObjectPtr& LazyObjectPtr)
 FArchive& FDuplicateDataWriter::operator<<(FAssetPtr& AssetPtr)
 {
 	FStringAssetReference ID = AssetPtr.GetUniqueID();
-	return *this << ID;
+	ID.Serialize(*this);
+	return *this;
 }
 
 /**

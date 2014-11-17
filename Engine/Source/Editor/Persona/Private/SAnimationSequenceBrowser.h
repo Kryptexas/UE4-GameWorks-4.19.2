@@ -4,6 +4,21 @@
 #pragma once
 
 #include "AssetData.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "PreviewScene.h"
+
+//////////////////////////////////////////////////////////////////////////
+// FAnimationAssetViewportClient
+class FAnimationAssetViewportClient : public FEditorViewportClient
+{
+public:
+	FAnimationAssetViewportClient(FPreviewScene& InPreviewScene);
+
+	// FEditorViewportClient interface
+	virtual FSceneInterface* GetScene() const override;
+	virtual FLinearColor GetBackgroundColor() const override;
+	// End of FEditorViewportClient interface
+};
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationSequenceBrowser
@@ -20,8 +35,9 @@ public:
 public:
 	void Construct(const FArguments& InArgs);
 
-	void OnAnimSelected(const FAssetData& AssetData);
 	void OnRequestOpenAsset(const FAssetData& AssetData, bool bFromHistory);
+
+	virtual ~SAnimationSequenceBrowser();
 
 	/** Delegate that handles creation of context menu */
 	TSharedPtr<SWidget> OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets);
@@ -43,10 +59,21 @@ public:
 	/** Delegate to handle Export FBX context menu option */
 	void OnExportToFBX(TArray<FAssetData> SelectedAssets);
 
+	/** Delegate to handle Add looping interpolation context menu option */
+	void OnAddLoopingInterpolation(TArray<FAssetData> SelectedAssets);
+
 	/** This will allow duplicate the current object, and remap to new skeleton 
 	 *	Only allowed for AnimSequence 
 	 */
 	void OnCreateCopy(TArray<FAssetData> Selected);
+
+	/** Refresh list */
+	void SelectAsset(UAnimationAsset * AnimAsset);
+	
+	/**
+	 * Update the widget
+	 */
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 protected:
 	bool CanShowColumnForAssetRegistryTag(FName AssetType, FName TagName) const;
@@ -90,6 +117,51 @@ protected:
 	 */
 	TSharedRef<SWidget> CreateHistoryMenu(bool bInBackHistory) const;
 
+	/**
+	 * Create the viewport and required objects to control the viewport used in tooltips
+	 */
+	void CreateAssetTooltipResources();
+
+	/**
+	 * Create a custom asset view tooltip for the provided asset
+	 */
+	TSharedRef<SToolTip> CreateCustomAssetToolTip(FAssetData& AssetData);
+
+	/**
+	 * Called as a tooltip is about to show;
+	 */
+	bool OnVisualizeAssetToolTip(const TSharedPtr<SWidget>& TooltipContent, FAssetData& AssetData);
+
+	/**
+	 * Cleaup a component from the preview scene along with any attached children
+	 */
+	void CleanupPreviewSceneComponent(USceneComponent* Component);
+
+	/**
+	 * The actual viewport widget
+	 */	
+	TSharedPtr<SViewport> ViewportWidget;
+
+	/**
+	 * The scene viewport data
+	 */
+	TSharedPtr<FSceneViewport> SceneViewport;
+
+	/**
+	 * Custom viewport client used for tooltip previews
+	 */
+	TSharedPtr<FAnimationAssetViewportClient> ViewportClient;
+
+	/**
+	 * Skeletal component to preview the animation asset on
+	 */
+	UDebugSkelMeshComponent* PreviewComponent;
+
+	/**
+	 * The scene to show in the asset previews
+	 */
+	FPreviewScene PreviewScene;
+
 protected:
 
 	// Pointer back to persona tool that owns us
@@ -109,4 +181,8 @@ protected:
 
 	// Track if we have tried to cache the first asset we were playing
 	bool bTriedToCacheOrginalAsset;
+
+	// delegate to sync the asset picker to selected assets
+	FSyncToAssetsDelegate SyncToAssetsDelegate;
+	FGetCurrentSelectionDelegate GetCurrentSelectionDelegate;
 };

@@ -17,7 +17,7 @@ UCLASS()
 class AIMODULE_API UPawnAction_Move : public UPawnAction
 {
 	GENERATED_UCLASS_BODY()
-
+protected:
 	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadWrite)
 	class AActor* GoalActor;
 
@@ -45,6 +45,8 @@ class AIMODULE_API UPawnAction_Move : public UPawnAction
 
 	/** if set, other actions with the same priority will be aborted when path is changed */
 	uint32 bAbortChildActionOnPathChange : 1;
+public:
+	virtual void BeginDestroy() override;
 
 	static UPawnAction_Move* CreateAction(UWorld* World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode);
 	static UPawnAction_Move* CreateAction(UWorld* World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode);
@@ -54,19 +56,27 @@ class AIMODULE_API UPawnAction_Move : public UPawnAction
 
 	virtual void HandleAIMessage(UBrainComponent*, const struct FAIMessage&) override;
 
-	void SetPath(FNavPathSharedPtr InPath);
-	void OnPathUpdated(FNavigationPath* UpdatedPath);
+	void SetPath(FNavPathSharedRef InPath);
+	void OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent::Type Event);
+
+	void SetAcceptableRadius(float NewAcceptableRadius) { AcceptableRadius = NewAcceptableRadius; }
+	void EnableStrafing(bool bNewStrafing) { bAllowStrafe = bNewStrafing; }
+	void EnablePathUpdateOnMoveGoalLocationChange(bool bEnable) { bUpdatePathToGoal = bEnable; }
+	void EnableGoalLocationProjectionToNavigation(bool bEnable) { bProjectGoalToNavigation = bEnable; }
+	void EnableChildAbortionOnPathUpdate(bool bEnable) { bAbortChildActionOnPathChange = bEnable; }
+	void SetFilterClass(TSubclassOf<class UNavigationQueryFilter> NewFilterClass) { FilterClass = NewFilterClass; }
 
 protected:
 	/** currently followed path */
 	FNavPathSharedPtr Path;
 
-	/** original path observer */
-	FNavigationPath::FPathObserverDelegate PathObserver;
-
+	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
+	
+	void ClearPath();
 	virtual bool Start() override;
 	virtual bool Pause() override;
 	virtual bool Resume() override;
+	virtual void OnFinished(EPawnActionResult::Type WithResult) override;
 	virtual EPawnActionAbortState::Type PerformAbort(EAIForceParam::Type ShouldForce) override;
 
 	virtual EPathFollowingRequestResult::Type RequestMove(AAIController* Controller);

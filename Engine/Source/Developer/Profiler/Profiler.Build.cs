@@ -28,6 +28,15 @@ public class Profiler : ModuleRules
 			}
 		);
 
+        if (UEBuildConfiguration.bBuildEditor)
+        {
+            PrivateDependencyModuleNames.AddRange(
+                new string[] {
+					"Engine",
+				}
+            );
+        }
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"SlateCore",

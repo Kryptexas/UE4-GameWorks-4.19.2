@@ -4,7 +4,7 @@
 	WindowsPlatformStackWalk.cpp: Windows implementations of stack walk functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <DbgHelp.h>				

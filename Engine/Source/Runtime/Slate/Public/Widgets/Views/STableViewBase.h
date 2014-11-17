@@ -82,13 +82,7 @@ public:
 	virtual TSharedRef<class SWidget> GetScrollWidget() override;
 	// End of IScrollableWidget interface
 
-	virtual int32 OnPaint(
-		const FGeometry& AllottedGeometry,
-		const FSlateRect& MyClippingRect,
-		FSlateWindowElementList& OutDrawElements,
-		int32 LayerId,
-		const FWidgetStyle& InWidgetStyle,
-		bool bParentEnabled) const override;
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 	/** Is this list backing a tree or just a standalone list */
 	const ETableViewMode::Type TableViewMode;
@@ -253,7 +247,7 @@ protected:
 	{
 	public:
 
-		FOverscroll( const float InMaxOverscroll );
+		FOverscroll();
 
 		/** @return The Amount actually scrolled */
 		float ScrollBy( float Delta );
@@ -278,9 +272,6 @@ protected:
 	private:
 		/** How much we've over-scrolled above/below the beginning/end of the list. */
 		float OverscrollAmount;
-
-		/** The maximum amount that we can scroll past the edge. */
-		const float MaxOverscroll;
 	} Overscroll;
 
 private:

@@ -19,12 +19,7 @@ struct FOverlapInfo
 	{
 	}
 
-	FOverlapInfo(class UPrimitiveComponent* InComponent, int32 InBodyIndex = INDEX_NONE)
-		: bFromSweep(false)
-	{
-		OverlapInfo.Component = InComponent;
-		OverlapInfo.Item = InBodyIndex;
-	}
+	FOverlapInfo(class UPrimitiveComponent* InComponent, int32 InBodyIndex = INDEX_NONE);
 	
 	int32 GetBodyIndex() const { return OverlapInfo.Item;  }
 
@@ -64,6 +59,7 @@ enum EMoveComponentFlags
 	MOVECOMP_NoFlags					= 0x0000,	// no flags
 	MOVECOMP_IgnoreBases				= 0x0001,	// ignore collisions with things the Actor is based on
 	MOVECOMP_SkipPhysicsMove			= 0x0002,	// when moving this component, do not move the physics representation. Used internally to avoid looping updates when syncing with physics.
+	MOVECOMP_NeverIgnoreBlockingOverlaps= 0x0004,	// never ignore initial blocking overlaps during movement, which are usually ignored when moving out of an object. MOVECOMP_IgnoreBases is still respected.
 };
 
 FORCEINLINE EMoveComponentFlags operator|(EMoveComponentFlags Arg1,EMoveComponentFlags Arg2)	{ return EMoveComponentFlags(uint32(Arg1) | uint32(Arg2)); }
@@ -441,6 +437,7 @@ public:
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
 	// Begin ActorComponent interface
+	virtual void OnRegister() override;
 	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
 	virtual void DestroyComponent() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
@@ -708,6 +705,9 @@ public:
 	/** Get the extent used when placing this component in the editor, used for 'pulling back' hit. */
 	virtual FBoxSphereBounds GetPlacementExtent() const;
 
+	/** Is component (not including attachments) relevant for navigation updates? */
+	virtual bool IsNavigationRelevant(bool bSkipCollisionEnabledCheck = false) const;
+
 protected:
 	/**
 	 * Called after a child scene component is attached to this component.
@@ -720,6 +720,12 @@ protected:
 	 * Note: Do not change the attachment state of the child during this call.
 	 */
 	virtual void OnChildDetached(USceneComponent* ChildComponent) {}
+
+	/** Called after changing transform, tries to update navigation octree */
+	void UpdateNavigationData();
+
+	/** Check if given component or any of its attachments are relevant for navigation updates */
+	static bool CheckNavigationRelevancy(USceneComponent* TestComponent);
 };
 
 

@@ -51,7 +51,12 @@ struct FCompareNodePriority
 		const bool NodeAChangesStructure = A.NodeCausesStructuralBlueprintChange();
 		const bool NodeBChangesStructure = B.NodeCausesStructuralBlueprintChange();
 
-		return ((NodeAChangesStructure > NodeBChangesStructure) ? true : false);
+		if (NodeAChangesStructure != NodeBChangesStructure)
+		{
+			return NodeAChangesStructure;
+		}
+		
+		return A.GetNodeRefreshPriority() > B.GetNodeRefreshPriority();
 	}
 };
 
@@ -234,11 +239,7 @@ static void RenameVariableReferences(UBlueprint* Blueprint, UClass* VariableClas
 						VariableNode->VariableReference.SetExternalMember(NewVarName, NodeRefClass);
 					}
 
-					if(UEdGraphPin* const Pin = VariableNode->FindPin(OldVarName.ToString()))
-					{
-						Pin->Modify();
-						Pin->PinName = NewVarName.ToString();
-					}
+					VariableNode->RenameUserDefinedPin(OldVarName.ToString(), NewVarName.ToString());
 				}
 				continue;
 			}
@@ -553,7 +554,7 @@ private:
 
 struct FRegenerationHelper
 {
-	static bool FrocedLoad(UObject* Obj)
+	static bool ForcedLoad(UObject* Obj)
 	{
 		auto Linker = Obj->GetLinker();
 		if (Linker && !Obj->HasAnyFlags(RF_LoadCompleted))
@@ -565,7 +566,7 @@ struct FRegenerationHelper
 		return false;
 	}
 
-	static void FrocedLoadMembers(UObject* InObject)
+	static void ForcedLoadMembers(UObject* InObject)
 	{
 		// Collect a list of all things this element owns
 		TArray<UObject*> MemberReferences;
@@ -576,9 +577,9 @@ struct FRegenerationHelper
 		for (TArray<UObject*>::TIterator it(MemberReferences); it; ++it)
 		{
 			UObject* CurrentObject = *it;
-			if (FrocedLoad(CurrentObject))
+			if (ForcedLoad(CurrentObject))
 			{
-				FrocedLoadMembers(CurrentObject);
+				ForcedLoadMembers(CurrentObject);
 			}
 		}
 	}
@@ -600,13 +601,13 @@ struct FRegenerationHelper
 			check(Package);
 			UMetaData* MetaData = Package->GetMetaData();
 			check(MetaData);
-			FrocedLoad(MetaData);
+			ForcedLoad(MetaData);
 		}
 
 		const int32 OldPropertiesSize = Struct->GetPropertiesSize();
 		for (UField* Field = Struct->Children; Field; Field = Field->Next)
 		{
-			bChanged |= FrocedLoad(Field);
+			bChanged |= ForcedLoad(Field);
 		}
 
 		if (bChanged)
@@ -662,12 +663,40 @@ struct FRegenerationHelper
 						Linker->Preload(BP);
 					}
 				}
-				FrocedLoadMembers(BP);
+				ForcedLoadMembers(BP);
 			}
 		}
 	}
 
-	static void LinkExternalDependencies(UBlueprint* Blueprint)
+	/**
+	 * A helper function that loads (and regenerates) interface dependencies.
+	 * Accounts for circular dependencies by following how we handle parent 
+	 * classes in ULinkerLoad::RegenerateBlueprintClass() (that is, to complete 
+	 * the interface's compilation/regeneration before we utilize it for the
+	 * specified blueprint).
+	 * 
+	 * @param  Blueprint	The blueprint whose implemented interfaces you want loaded.
+	 */
+	static void PreloadInterfaces(UBlueprint* Blueprint, TArray<UObject*>& ObjLoaded)
+	{
+#if WITH_EDITORONLY_DATA // ImplementedInterfaces is wrapped WITH_EDITORONLY_DATA 
+		for (FBPInterfaceDescription const& InterfaceDesc : Blueprint->ImplementedInterfaces)
+		{
+			UClass* InterfaceClass = InterfaceDesc.Interface;
+			UBlueprint* InterfaceBlueprint = InterfaceClass ? Cast<UBlueprint>(InterfaceClass->ClassGeneratedBy) : NULL;
+			if (InterfaceBlueprint)
+			{
+				ForcedLoadMembers(InterfaceBlueprint);
+				if (InterfaceBlueprint->HasAnyFlags(RF_BeingRegenerated))
+				{
+					InterfaceBlueprint->RegenerateClass(InterfaceClass, nullptr, ObjLoaded);
+				}
+			}
+		}
+#endif // #if WITH_EDITORONLY_DATA
+	}
+
+	static void LinkExternalDependencies(UBlueprint* Blueprint, TArray<UObject*>& ObjLoaded)
 	{
 		check(Blueprint);
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
@@ -730,6 +759,8 @@ struct FRegenerationHelper
 			}
 		}
 		PreloadMacroSources(MacroSources);
+
+		PreloadInterfaces(Blueprint, ObjLoaded);
 	}
 };
 
@@ -949,6 +980,29 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 	bool bNeedsSkelRefRemoval = false;
 
+	// Preload the blueprint and all its parts before refreshing nodes. 
+	// Otherwise, the nodes might not maintain their proper linkages... 
+	//
+	// This all should also happen here, first thing, before 
+	// bIsRegeneratingOnLoad is set, so that we can re-enter this function for 
+	// the same class further down the callstack (presumably from 
+	// PreloadInterfaces() or some other dependency load). This is here to 
+	// handle circular dependencies, where pre-loading a member here sets off a  
+	// subsequent load that in turn, relies on this class and requires this  
+	// class to be fully generated... A second call to this function with the 
+	// same class will continue to preload all it's members (from where it left
+	// off, since they're gated by a RF_NeedLoad check) and then fall through to
+	// finish compiling the class (while it's still technically pre-loading a
+	// member further up the stack).
+	if (!Blueprint->bHasBeenRegenerated)
+	{
+		if (PreviousCDO)
+		{
+			FBlueprintEditorUtils::PreloadMembers(PreviousCDO);
+		}
+		FBlueprintEditorUtils::PreloadMembers(Blueprint);
+	}
+	
 	if( ShouldRegenerateBlueprint(Blueprint) && !Blueprint->bHasBeenRegenerated )
 	{
 		Blueprint->bIsRegeneratingOnLoad = true;
@@ -977,39 +1031,8 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 			}
 		}
 
-		// Ensure that the package metadata is preloaded and valid
-		if( Package )
-		{
-			UMetaData* MetaData = Package->GetMetaData();
-			if( MetaData->HasAnyFlags(RF_NeedLoad) )
-			{
-				MetaData->GetLinker()->Preload(MetaData);
-			}
-		}
-
-
 		// Make sure the simple construction script is loaded, since the outer hierarchy isn't compatible with PreloadMembers past the root node
 		FBlueprintEditorUtils::PreloadConstructionScript(Blueprint);
-
-#if WITH_EDITORONLY_DATA
-		// Make sure all interface dependencies are loaded at this point
-		for( TArray<FBPInterfaceDescription>::TIterator InterfaceIt(Blueprint->ImplementedInterfaces); InterfaceIt; ++InterfaceIt )
-		{
-			UClass* InterfaceClass = (*InterfaceIt).Interface;
-			if( InterfaceClass && InterfaceClass->HasAnyFlags(RF_NeedLoad) )
-			{
-				InterfaceClass->GetLinker()->Preload(InterfaceClass);
-			}
-		}
-#endif // WITH_EDITORONLY_DATA
-
-		// Preload the blueprint and all its parts before refreshing nodes. Otherwise, the nodes might not maintain their proper linkages
-		if( PreviousCDO )
-		{
-			FBlueprintEditorUtils::PreloadMembers(PreviousCDO);
-		}
-
-		FBlueprintEditorUtils::PreloadMembers(Blueprint);
 
 		// Purge any NULL graphs
 		FBlueprintEditorUtils::PurgeNullGraphs(Blueprint);
@@ -1019,23 +1042,12 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		const bool bHasCode = !FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) && !bIsMacro;
 
 		// Make sure all used external classes/functions/structures/macros/etc are loaded and linked
-		FRegenerationHelper::LinkExternalDependencies(Blueprint);
+		FRegenerationHelper::LinkExternalDependencies(Blueprint, ObjLoaded);
 
 		FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
 
-		struct FReplaceBlueprintWithClassHelper
-		{
-			bool bShouldReplace;
-
-			FReplaceBlueprintWithClassHelper() : bShouldReplace(false)
-			{
-				GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"), bShouldReplace, GEditorIni);
-			}
-		};
-		static FReplaceBlueprintWithClassHelper ReplaceBlueprintWithClassHelper;
-		const bool bReplaceBlueprintWithClass = ReplaceBlueprintWithClassHelper.bShouldReplace;
-
-		if (bReplaceBlueprintWithClass)
+		static FBoolConfigValueHelper ReplaceBlueprintWithClass(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"));
+		if (ReplaceBlueprintWithClass)
 		{
 			FEditoronlyBlueprintHelper::ChangeBlueprint(Blueprint);
 		}
@@ -1047,7 +1059,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 			// Make sure events are up to date
 			FBlueprintEditorUtils::ConformImplementedEvents(Blueprint);
-
+			
 			// Make sure interfaces are up to date
 			FBlueprintEditorUtils::ConformImplementedInterfaces(Blueprint);
 
@@ -1093,7 +1105,7 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 		}
 #endif
 
-		if (bReplaceBlueprintWithClass)
+		if (ReplaceBlueprintWithClass)
 		{
 			FEditoronlyBlueprintHelper::ShouldBeFixed(Blueprint, true);
 		}
@@ -1743,6 +1755,7 @@ void FBlueprintEditorUtils::RemoveGraph(UBlueprint* Blueprint, class UEdGraph* G
 			Blueprint->DelegateSignatureGraphs.Remove( GraphToRemove );
 			Blueprint->FunctionGraphs.Remove( GraphToRemove );
 			Blueprint->UbergraphPages.Remove( GraphToRemove );
+			Blueprint->LastEditedDocuments.Remove( GraphToRemove );
 			if(Blueprint->MacroGraphs.Remove( GraphToRemove ) > 0 ) 
 			{
 				//removes all macro nodes using this macro graph
@@ -2091,17 +2104,11 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 {
 	DependentBlueprints.Empty();
 
-	//@TODO PRETEST MERGE:  Swap this when main is merged to pretest!
-#if 0
 	TArray<UObject*> AllBlueprints;
 	bool const bIncludeDerivedClasses = true;
 	GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, bIncludeDerivedClasses );
 
 	for ( auto ObjIt = AllBlueprints.CreateConstIterator(); ObjIt; ++ObjIt )
-#else
-	// Use old school slower iterator until fast object collection makes it to pretest
-	for( TObjectIterator<UBlueprint> ObjIt; ObjIt; ++ObjIt )
-#endif
 	{
 		// we know the class is correct so a fast cast is ok here
 		UBlueprint* const TestBP = (UBlueprint*) *ObjIt;
@@ -2323,6 +2330,14 @@ bool FBlueprintEditorUtils::DoesSupportImplementingInterfaces(const UBlueprint* 
 		&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;
 }
 
+bool FBlueprintEditorUtils::DoesSupportComponents(UBlueprint const* Blueprint)
+{
+	return (Blueprint->SimpleConstructionScript != nullptr)      // An SCS must be present (otherwise there is nothing valid to edit)
+		&& FBlueprintEditorUtils::IsActorBased(Blueprint)        // Must be parented to an AActor-derived class (some older BPs may have an SCS but may not be Actor-based)
+		&& (Blueprint->BlueprintType != BPTYPE_MacroLibrary)     // Must not be a macro-type Blueprint
+		&& (Blueprint->BlueprintType != BPTYPE_FunctionLibrary); // Must not be a function library
+}
+
 // Returns a descriptive name of the type of blueprint passed in
 FString FBlueprintEditorUtils::GetBlueprintTypeDescription(const UBlueprint* Blueprint)
 {
@@ -2539,7 +2554,7 @@ void FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(UBlueprint* Blueprint, 
 
 	if (bNewBlueprintOnly)
 	{
-		FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(Blueprint, VarName, FEdMode::MD_MakeEditWidget);
+		FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(Blueprint, VarName, NULL, FEdMode::MD_MakeEditWidget);
 	}
 
 	if (VarIndex != INDEX_NONE)
@@ -2613,82 +2628,99 @@ void FBlueprintEditorUtils::SetVariableSaveGameFlag(UBlueprint* InBlueprint, con
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
 }
 
-void FBlueprintEditorUtils::SetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, const FString& MetaDataValue)
+void FBlueprintEditorUtils::SetBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& MetaDataKey, const FString& MetaDataValue)
 {
-	const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
-	if (VarIndex == INDEX_NONE)
+	// If there is a local var scope, we know we are looking at a local variable
+	if(InLocalVarScope)
 	{
-		//Not a NewVariable is the VarName from a Timeline?
-		const int32 TimelineIndex = FBlueprintEditorUtils::FindTimelineIndex(Blueprint,VarName);
-
-		if (TimelineIndex == INDEX_NONE)
+		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, InLocalVarScope, VarName))
 		{
-			//Not a Timeline is this a SCS Node?
-			const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint,VarName);
-
-			if (SCS_NodeIndex == INDEX_NONE)
-			{
-				// Check to see if it is a local variable
-				if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, VarName))
-				{
-					LocalVariable->SetMetaData(MetaDataKey, *MetaDataValue);
-				}
-			}
-			else
-			{
-				Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->SetMetaData(MetaDataKey, MetaDataValue);
-			}
-
-		}
-		else
-		{
-			Blueprint->Timelines[TimelineIndex]->SetMetaData(MetaDataKey, MetaDataValue);
+			LocalVariable->SetMetaData(MetaDataKey, *MetaDataValue);
 		}
 	}
 	else
 	{
-		Blueprint->NewVariables[VarIndex].SetMetaData(MetaDataKey, MetaDataValue);
-		UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, VarName);
-		Property->SetMetaData(MetaDataKey, *MetaDataValue);
-		
-		Property = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
-		if (Property)
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
+		if (VarIndex == INDEX_NONE)
 		{
+			//Not a NewVariable is the VarName from a Timeline?
+			const int32 TimelineIndex = FBlueprintEditorUtils::FindTimelineIndex(Blueprint,VarName);
+
+			if (TimelineIndex == INDEX_NONE)
+			{
+				//Not a Timeline is this a SCS Node?
+				const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint,VarName);
+
+				if (SCS_NodeIndex != INDEX_NONE)
+				{
+					Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->SetMetaData(MetaDataKey, MetaDataValue);
+				}
+
+			}
+			else
+			{
+				Blueprint->Timelines[TimelineIndex]->SetMetaData(MetaDataKey, MetaDataValue);
+			}
+		}
+		else
+		{
+			Blueprint->NewVariables[VarIndex].SetMetaData(MetaDataKey, MetaDataValue);
+			UProperty* Property = FindField<UProperty>(Blueprint->SkeletonGeneratedClass, VarName);
 			Property->SetMetaData(MetaDataKey, *MetaDataValue);
+
+			Property = FindField<UProperty>(Blueprint->GeneratedClass, VarName);
+			if (Property)
+			{
+				Property->SetMetaData(MetaDataKey, *MetaDataValue);
+			}
 		}
 	}
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
-bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(const UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey, FString& OutMetaDataValue)
+bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(const UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& MetaDataKey, FString& OutMetaDataValue)
 {
-	const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
-	if (VarIndex == INDEX_NONE)
+	// If there is a local var scope, we know we are looking at a local variable
+	if(InLocalVarScope)
 	{
-		//Not a NewVariable is the VarName from a Timeline?
-		const int32 TimelineIndex = FBlueprintEditorUtils::FindTimelineIndex(Blueprint,VarName);
-
-		if (TimelineIndex == INDEX_NONE)
+		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, InLocalVarScope, VarName))
 		{
-			//Not a Timeline is this a SCS Node?
-			const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint,VarName);
-
-			if (SCS_NodeIndex == INDEX_NONE)
+			int32 EntryIndex = LocalVariable->FindMetaDataEntryIndexForKey(MetaDataKey);
+			if (EntryIndex != INDEX_NONE)
 			{
-				// Check to see if it is a local variable
-				if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, VarName))
+				OutMetaDataValue = LocalVariable->GetMetaData(MetaDataKey);
+				return true;
+			}
+		}
+	}
+	else
+	{
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
+		if (VarIndex == INDEX_NONE)
+		{
+			//Not a NewVariable is the VarName from a Timeline?
+			const int32 TimelineIndex = FBlueprintEditorUtils::FindTimelineIndex(Blueprint,VarName);
+
+			if (TimelineIndex == INDEX_NONE)
+			{
+				//Not a Timeline is this a SCS Node?
+				const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint,VarName);
+
+				if (SCS_NodeIndex != INDEX_NONE)
 				{
-					int32 EntryIndex = LocalVariable->FindMetaDataEntryIndexForKey(MetaDataKey);
+					USCS_Node& Desc = *Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex];
+
+					int32 EntryIndex = Desc.FindMetaDataEntryIndexForKey(MetaDataKey);
 					if (EntryIndex != INDEX_NONE)
 					{
-						OutMetaDataValue = LocalVariable->GetMetaData(MetaDataKey);
+						OutMetaDataValue = Desc.GetMetaData(MetaDataKey);
 						return true;
 					}
 				}
 			}
 			else
 			{
-				USCS_Node& Desc = *Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex];
+				UTimelineTemplate& Desc = *Blueprint->Timelines[TimelineIndex];
 
 				int32 EntryIndex = Desc.FindMetaDataEntryIndexForKey(MetaDataKey);
 				if (EntryIndex != INDEX_NONE)
@@ -2700,7 +2732,7 @@ bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(const UBlueprint* Bluep
 		}
 		else
 		{
-			UTimelineTemplate& Desc = *Blueprint->Timelines[TimelineIndex];
+			const FBPVariableDescription& Desc = Blueprint->NewVariables[VarIndex];
 
 			int32 EntryIndex = Desc.FindMetaDataEntryIndexForKey(MetaDataKey);
 			if (EntryIndex != INDEX_NONE)
@@ -2710,55 +2742,55 @@ bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(const UBlueprint* Bluep
 			}
 		}
 	}
-	else
-	{
-		const FBPVariableDescription& Desc = Blueprint->NewVariables[VarIndex];
-
-		int32 EntryIndex = Desc.FindMetaDataEntryIndexForKey(MetaDataKey);
-		if (EntryIndex != INDEX_NONE)
-		{
-			OutMetaDataValue = Desc.GetMetaData(MetaDataKey);
-			return true;
-		}
-	}
 
 	OutMetaDataValue.Empty();
 	return false;
 }
 
-void FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const FName& MetaDataKey)
+void FBlueprintEditorUtils::RemoveBlueprintVariableMetaData(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& MetaDataKey)
 {
-	const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
-	if (VarIndex == INDEX_NONE)
+	// If there is a local var scope, we know we are looking at a local variable
+	if(InLocalVarScope)
 	{
-		//Not a NewVariable is the VarName from a Timeline?
-		const int32 TimelineIndex = FBlueprintEditorUtils::FindTimelineIndex(Blueprint,VarName);
-
-		if (TimelineIndex == INDEX_NONE)
+		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, InLocalVarScope, VarName))
 		{
-			//Not a Timeline is this a SCS Node?
-			const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint,VarName);
-
-			if (SCS_NodeIndex != INDEX_NONE)
-			{
-				Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->RemoveMetaData(MetaDataKey);
-			}
-
-		}
-		else
-		{
-			Blueprint->Timelines[TimelineIndex]->RemoveMetaData(MetaDataKey);
+			LocalVariable->RemoveMetaData(MetaDataKey);
 		}
 	}
 	else
 	{
-		Blueprint->NewVariables[VarIndex].RemoveMetaData(MetaDataKey);
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, VarName);
+		if (VarIndex == INDEX_NONE)
+		{
+			//Not a NewVariable is the VarName from a Timeline?
+			const int32 TimelineIndex = FBlueprintEditorUtils::FindTimelineIndex(Blueprint,VarName);
+
+			if (TimelineIndex == INDEX_NONE)
+			{
+				//Not a Timeline is this a SCS Node?
+				const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint,VarName);
+
+				if (SCS_NodeIndex != INDEX_NONE)
+				{
+					Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->RemoveMetaData(MetaDataKey);
+				}
+
+			}
+			else
+			{
+				Blueprint->Timelines[TimelineIndex]->RemoveMetaData(MetaDataKey);
+			}
+		}
+		else
+		{
+			Blueprint->NewVariables[VarIndex].RemoveMetaData(MetaDataKey);
+		}
 	}
 
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
-void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const FName& NewCategory, bool bDontRecompile)
+void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& NewCategory, bool bDontRecompile)
 {
 	// Ensure we always set a category
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -2797,10 +2829,9 @@ void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, 
 			}
 		}
 	}
-	else
+	else if(InLocalVarScope)
 	{
-		// Check to see if it is a local variable
-		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, VarName))
+		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, InLocalVarScope, VarName))
 		{
 			LocalVariable->SetMetaData(TEXT("Category"), *SetCategory.ToString());
 			LocalVariable->Category = SetCategory;
@@ -2813,7 +2844,7 @@ void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, 
 	}
 }
 
-FName FBlueprintEditorUtils::GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName)
+FName FBlueprintEditorUtils::GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope)
 {
 	FName CategoryName = NAME_None;
 	UClass* SkeletonGeneratedClass = Blueprint->SkeletonGeneratedClass;
@@ -2822,10 +2853,10 @@ FName FBlueprintEditorUtils::GetBlueprintVariableCategory(UBlueprint* Blueprint,
 	{
 		CategoryName = FObjectEditorUtils::GetCategoryFName(TargetProperty);
 	}
-	else
+	else if(InLocalVarScope)
 	{
 		// Check to see if it is a local variable
-		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, VarName))
+		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, InLocalVarScope, VarName))
 		{
 			return LocalVariable->Category;
 		}
@@ -2978,7 +3009,7 @@ bool FBlueprintEditorUtils::IsPinTypeValid(const FEdGraphPinType& Type)
 void FBlueprintEditorUtils::GetClassVariableList(const UBlueprint* Blueprint, TArray<FName>& VisibleVariables, bool bIncludePrivateVars) 
 {
 	// Existing variables in the parent class and above
-	check(Blueprint->bIsRegeneratingOnLoad || (Blueprint->SkeletonGeneratedClass != NULL));
+	check(!Blueprint->bHasBeenRegenerated || Blueprint->bIsRegeneratingOnLoad || (Blueprint->SkeletonGeneratedClass != NULL));
 	if (Blueprint->SkeletonGeneratedClass != NULL)
 	{
 		for (TFieldIterator<UProperty> PropertyIt(Blueprint->SkeletonGeneratedClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
@@ -3127,6 +3158,9 @@ void FBlueprintEditorUtils::RemoveMemberVariable(UBlueprint* Blueprint, const FN
 
 void FBlueprintEditorUtils::BulkRemoveMemberVariables(UBlueprint* Blueprint, const TArray<FName>& VarNames)
 {
+	const FScopedTransaction Transaction( LOCTEXT("DeleteUnusedVariables", "Delete Unused Variables") );
+	Blueprint->Modify();
+
 	bool bModified = false;
 	for (int32 i = 0; i < VarNames.Num(); ++i)
 	{
@@ -3240,7 +3274,7 @@ void FBlueprintEditorUtils::RenameMemberVariable(UBlueprint* Blueprint, const FN
 				{
 					// if there is a property for variable, it means the original default value was already copied, so it can be safely overridden
 					Variable.DefaultValue.Empty();
-					TargetProperty->ExportTextItem(Variable.DefaultValue, OldPropertyAddr, OldPropertyAddr, NULL, PPF_None);
+					PropertyValueToString(TargetProperty, reinterpret_cast<const uint8*>(GeneratedCDO), Variable.DefaultValue);
 				}
 			}
 
@@ -3339,24 +3373,38 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 	}
 }
 
-void FBlueprintEditorUtils::RemoveLocalVariable(UBlueprint* InBlueprint, const FName& InVarName)
+void FBlueprintEditorUtils::RemoveLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVarName)
 {
-	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
-	GetAllNodesOfClass<UK2Node_FunctionEntry>(InBlueprint, FunctionEntryNodes);
+	UEdGraph* ScopeGraph = FindScopeGraph(InBlueprint, InScope);
 
-	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	if(ScopeGraph)
 	{
-		for( int32 VarIdx = 0; VarIdx < FunctionEntry->LocalVariables.Num(); ++VarIdx )
+		TArray<UK2Node_FunctionEntry*> GraphNodes;
+		ScopeGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
+
+		bool bFoundLocalVariable = false;
+
+		// There is only ever 1 function entry
+		check(GraphNodes.Num() == 1)
+		for( int32 VarIdx = 0; VarIdx < GraphNodes[0]->LocalVariables.Num(); ++VarIdx )
 		{
-			if(FunctionEntry->LocalVariables[VarIdx].VarName == InVarName)
+			if(GraphNodes[0]->LocalVariables[VarIdx].VarName == InVarName)
 			{
-				FunctionEntry->LocalVariables.RemoveAt(VarIdx);
+				GraphNodes[0]->LocalVariables.RemoveAt(VarIdx);
 				FBlueprintEditorUtils::RemoveVariableNodes(InBlueprint, InVarName);
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
 
+				bFoundLocalVariable = true;
+
 				// No other local variables will match, we are done
-				return;
+				break;
 			}
+		}
+
+		// Check if we found the local variable, it is a problem if we do not.
+		if(!bFoundLocalVariable)
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("Could not find local variable '%s'!"), *InVarName.ToString());
 		}
 	}
 }
@@ -3387,14 +3435,34 @@ UFunction* FFunctionFromNodeHelper::FunctionFromNode(UK2Node* Node)
 	return Function;
 }
 
-void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const FName& InOldName, const FName& InNewName)
+UEdGraph* FBlueprintEditorUtils::FindScopeGraph(const UBlueprint* InBlueprint, const UStruct* InScope)
+{
+	UEdGraph* ScopeGraph = NULL;
+
+	TArray<UEdGraph*> AllGraphs;
+	InBlueprint->GetAllGraphs(AllGraphs);
+
+	for(const auto Graph : AllGraphs)
+	{
+		check(Graph != NULL);
+		if(Graph->GetName() == InScope->GetName())
+		{
+			// This graph should always be a function graph
+			check(Graph->GetSchema()->GetGraphType(Graph) == GT_Function);
+			
+			ScopeGraph = Graph;
+			break;
+		}
+	}
+	return ScopeGraph;
+}
+
+void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InOldName, const FName& InNewName)
 {
 	if ((InOldName != InNewName) && (InNewName != NAME_None))
 	{
-		UK2Node_FunctionEntry* FoundFunctionEntry = NULL;
-		FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InOldName, &FoundFunctionEntry);
-		const auto FoundFunction = FFunctionFromNodeHelper::FunctionFromNode(FoundFunctionEntry);
-		const auto ExistingProperty = FindField<const UProperty>(FoundFunction, InNewName);
+		FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InScope, InOldName);
+		const auto ExistingProperty = FindField<const UProperty>(InScope, InNewName);
 		if (ExistingProperty)
 		{
 			UE_LOG(LogBlueprint, Warning, TEXT("Cannot name local variable '%s'. The name is already used."), *InNewName.ToString());
@@ -3422,32 +3490,36 @@ void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const F
 	}
 }
 
-FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry)
+FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry)
 {
-	// Search through all function entry nodes for a local variable with the passed name
-	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
-	GetAllNodesOfClass<UK2Node_FunctionEntry>(InBlueprint, FunctionEntryNodes);
+	UEdGraph* ScopeGraph = FindScopeGraph(InBlueprint, InScope);
 
 	FBPVariableDescription* ReturnVariable = NULL;
-
-	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	if(ScopeGraph)
 	{
-		for( FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+		TArray<UK2Node_FunctionEntry*> GraphNodes;
+		ScopeGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
+
+		bool bFoundLocalVariable = false;
+
+		// There is only ever 1 function entry
+		check(GraphNodes.Num() == 1)
+		for( int32 VarIdx = 0; VarIdx < GraphNodes[0]->LocalVariables.Num(); ++VarIdx )
 		{
-			if(InVariableName == Variable.VarName)
+			if(GraphNodes[0]->LocalVariables[VarIdx].VarName == InVariableName)
 			{
 				if (OutFunctionEntry)
 				{
-					*OutFunctionEntry = FunctionEntry;
+					*OutFunctionEntry = GraphNodes[0];
 				}
-				ReturnVariable = &Variable;
+				ReturnVariable = &GraphNodes[0]->LocalVariables[VarIdx];
 				break;
 			}
 		}
 
-		if(ReturnVariable)
+		if(!ReturnVariable)
 		{
-			break;
+			UE_LOG(LogBlueprint, Warning, TEXT("Could not find local variable '%s'!"), *InVariableName.ToString());
 		}
 	}
 
@@ -3481,40 +3553,24 @@ FName FBlueprintEditorUtils::FindLocalVariableNameByGuid(UBlueprint* InBlueprint
 	return ReturnVariableName;
 }
 
-FGuid FBlueprintEditorUtils::FindLocalVariableGuidByName(UBlueprint* InBlueprint, const FName InVariableName)
+FGuid FBlueprintEditorUtils::FindLocalVariableGuidByName(UBlueprint* InBlueprint, const UStruct* InScope, const FName InVariableName)
 {
-	// Search through all function entry nodes for a local variable with the passed name
-	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
-	GetAllNodesOfClass<UK2Node_FunctionEntry>(InBlueprint, FunctionEntryNodes);
-
 	FGuid ReturnGuid;
-	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	if(FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InScope, InVariableName))
 	{
-		for( FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
-		{
-			if(Variable.VarName == InVariableName)
-			{
-				ReturnGuid = Variable.VarGuid;
-				break;
-			}
-		}
-
-		if(ReturnGuid.IsValid())
-		{
-			break;
-		}
+		ReturnGuid = LocalVariable->VarGuid;
 	}
 
 	return ReturnGuid;
 }
 
-void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, const FName& InVariableName, const FEdGraphPinType& NewPinType)
+void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, const UStruct* InScope, const FName& InVariableName, const FEdGraphPinType& NewPinType)
 {
 	if (InVariableName != NAME_None)
 	{
 		FString ActionCategory;
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		FBPVariableDescription* VariablePtr = FindLocalVariable(InBlueprint, InVariableName);
+		FBPVariableDescription* VariablePtr = FindLocalVariable(InBlueprint, InScope, InVariableName);
 
 		if(VariablePtr)
 		{
@@ -4690,13 +4746,13 @@ void FBlueprintEditorUtils::UpdateStalePinWatches( UBlueprint* Blueprint )
 	}
 }
 
-FName FBlueprintEditorUtils::FindUniqueKismetName(const UBlueprint* InBlueprint, const FString& InBaseName)
+FName FBlueprintEditorUtils::FindUniqueKismetName(const UBlueprint* InBlueprint, const FString& InBaseName, UStruct* InScope/* = NULL*/)
 {
 	int32 Count = 0;
 	FString KismetName;
 	FString BaseName = InBaseName;
 
-	TSharedPtr<FKismetNameValidator> NameValidator = MakeShareable(new FKismetNameValidator(InBlueprint));
+	TSharedPtr<FKismetNameValidator> NameValidator = MakeShareable(new FKismetNameValidator(InBlueprint, NAME_None, InScope));
 	while(NameValidator->IsValid(KismetName) != EValidatorResult::Ok)
 	{
 		// Calculate the number of digits in the number, adding 2 (1 extra to correctly count digits, another to account for the '_' that will be added to the name
@@ -5278,7 +5334,8 @@ public:
 		//		AND it is NOT on the disallowed classes list
 		return InFilterFuncs->IfInChildOfClassesSet( AllowedChildrenOfClasses, InClass) != EFilterReturn::Failed && 
 			InFilterFuncs->IfInChildOfClassesSet(DisallowedChildrenOfClasses, InClass) != EFilterReturn::Passed && 
-			InFilterFuncs->IfInClassesSet(DisallowedClasses, InClass) != EFilterReturn::Passed;
+			InFilterFuncs->IfInClassesSet(DisallowedClasses, InClass) != EFilterReturn::Passed &&
+			!InClass->HasAnyClassFlags(CLASS_Deprecated);
 	}
 
 	virtual bool IsUnloadedClassAllowed(const FClassViewerInitializationOptions& InInitOptions, const TSharedRef< const IUnloadedBlueprintData > InUnloadedClassData, TSharedRef< FClassViewerFilterFuncs > InFilterFuncs) override
@@ -5288,7 +5345,8 @@ public:
 		//		AND it is NOT on the disallowed classes list
 		return InFilterFuncs->IfInChildOfClassesSet( AllowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Failed && 
 			InFilterFuncs->IfInChildOfClassesSet(DisallowedChildrenOfClasses, InUnloadedClassData) != EFilterReturn::Passed && 
-			InFilterFuncs->IfInClassesSet(DisallowedClasses, InUnloadedClassData) != EFilterReturn::Passed;
+			InFilterFuncs->IfInClassesSet(DisallowedClasses, InUnloadedClassData) != EFilterReturn::Passed &&
+			!InUnloadedClassData->HasAnyClassFlags(CLASS_Deprecated);
 	}
 };
 
@@ -5325,6 +5383,11 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 	for( auto ClassIt = BlueprintClasses.CreateIterator(); ClassIt; ++ClassIt )
 	{
 		Filter->DisallowedChildrenOfClasses.Add(*ClassIt);
+	}
+
+	for ( UBlueprint* Blueprint : Blueprints )
+	{
+		Blueprint->GetReparentingRules(Filter->AllowedChildrenOfClasses, Filter->DisallowedChildrenOfClasses);
 	}
 
 	if(bIsActor)

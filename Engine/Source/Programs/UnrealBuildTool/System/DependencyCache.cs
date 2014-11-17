@@ -42,9 +42,6 @@ namespace UnrealBuildTool
 		/** List of files this file includes.  These are direct include paths and cannot be resolved to an actual file on 
 		    disk without using the proper list of include directories for this file's module */
 		public List<DependencyInclude> Includes;
-
-		/** True if this file contains UObjects */
-		public bool HasUObjects;
 	}
 
 
@@ -213,12 +210,10 @@ namespace UnrealBuildTool
 		 * 
 		 * @param	File				File to try to find dependencies in cache
 		 * @param	Result	[out]		List of dependencies if successful, null otherwise
-		 * @param	HasUObjects [out]	True if this file contains UObjects that may need to be passed along to UnrealHeaderTool to generate code for
 		 */
-		public bool GetDirectDependencies(FileItem File, out List<DependencyInclude> Result, out bool HasUObjects)
+		public bool GetDirectDependencies(FileItem File, out List<DependencyInclude> Result)
 		{
 			Result = null;
-			HasUObjects = false;
 
 			// Check whether File is in cache.
 			DependencyInfo DependencyInfo;
@@ -250,7 +245,6 @@ namespace UnrealBuildTool
 					}
 					// Cached version is up to date, return it.
 					Result = DependencyInfo.Includes;
-					HasUObjects = DependencyInfo.HasUObjects;
 					return true;
 				}
 				// File has been modified since the last time it was cached.
@@ -283,11 +277,10 @@ namespace UnrealBuildTool
 		 * 
 		 * @param	File			File to update dependencies for
 		 * @param	Dependencies	List of dependencies to cache for passed in file
-		 * @param	HasUObjects		True if this file contains UObjects
 		 */
-		public void SetDependencyInfo(FileItem File, List<DependencyInclude> DirectDependencies, bool HasUObjects)
+		public void SetDependencyInfo(FileItem File, List<DependencyInclude> DirectDependencies)
 		{
-			DependencyMap[File.AbsolutePath] = new DependencyInfo() { Includes = DirectDependencies, HasUObjects = HasUObjects };
+			DependencyMap[File.AbsolutePath] = new DependencyInfo() { Includes = DirectDependencies };
 			bIsDirty = true;
 		}
 

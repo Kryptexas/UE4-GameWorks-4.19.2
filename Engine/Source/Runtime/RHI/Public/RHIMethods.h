@@ -402,7 +402,7 @@ DEFINE_RHIMETHOD_GLOBAL_1(
  * @param GeometryShader - existing geometry shader
  * @param PixelShader - existing pixel shader
  */
-DEFINE_RHIMETHOD_GLOBAL_6(
+DEFINE_RHIMETHOD_CMDLIST_6(
 	FBoundShaderStateRHIRef,CreateBoundShaderState,
 	FVertexDeclarationRHIParamRef,VertexDeclaration,
 	FVertexShaderRHIParamRef,VertexShader,
@@ -417,13 +417,13 @@ DEFINE_RHIMETHOD_GLOBAL_6(
  *Sets the current compute shader.  Mostly for compliance with platforms
  *that require shader setting before resource binding.
  */
-DEFINE_RHIMETHOD_1(
+DEFINE_RHIMETHOD_CMDLIST_1(
 	void,SetComputeShader,
 	FComputeShaderRHIParamRef,ComputeShader,
 	,
 	);
 
-DEFINE_RHIMETHOD_3(
+DEFINE_RHIMETHOD_CMDLIST_3(
 	void,DispatchComputeShader,	
 	uint32,ThreadGroupCountX,
 	uint32,ThreadGroupCountY,
@@ -431,20 +431,20 @@ DEFINE_RHIMETHOD_3(
 	,
 	);
 
-DEFINE_RHIMETHOD_2(
+DEFINE_RHIMETHOD_CMDLIST_2(
 	void,DispatchIndirectComputeShader,	
 	FVertexBufferRHIParamRef,ArgumentBuffer,
 	uint32,ArgumentOffset,
 	,
 	);
 
-DEFINE_RHIMETHOD_1(
+DEFINE_RHIMETHOD_CMDLIST_1(
 	void,AutomaticCacheFlushAfterComputeShader,
 	bool,bEnable,
 	,
 	);
 
-DEFINE_RHIMETHOD_0(
+DEFINE_RHIMETHOD_CMDLIST_0(
 	void,FlushComputeShaderCache,
 	,
 	);
@@ -597,7 +597,7 @@ DEFINE_RHIMETHOD_GLOBAL_3(
 	);
 
 /** Clears a UAV to the multi-component value provided. */
-DEFINE_RHIMETHOD_2(
+	DEFINE_RHIMETHOD_CMDLIST_2(
 	void,ClearUAV,
 	FUnorderedAccessViewRHIParamRef,UnorderedAccessViewRHI,
 	const uint32*,Values,
@@ -1111,7 +1111,7 @@ DEFINE_RHIMETHOD_GLOBALFLUSH_5(
 * @param bKeepOriginalSurface - true if the original surface will still be used after this function so must remain valid
 * @param ResolveParams - optional resolve params
 */
-DEFINE_RHIMETHOD_4(
+DEFINE_RHIMETHOD_CMDLIST_4(
 	void,CopyToResolveTarget,
 	FTextureRHIParamRef,SourceTexture,
 	FTextureRHIParamRef,DestTexture,
@@ -1230,7 +1230,7 @@ DEFINE_RHIMETHOD_0(
 	bool,IsDrawingViewport,
 	return,return false;
 	);
-DEFINE_RHIMETHOD_1(
+DEFINE_RHIMETHOD_GLOBALFLUSH_1(
 	FTexture2DRHIRef,GetViewportBackBuffer,
 	FViewportRHIParamRef,Viewport,
 	return,return new FRHITexture2D(1,1,1,1,PF_B8G8R8A8,TexCreate_RenderTargetable);
@@ -1346,7 +1346,7 @@ DEFINE_RHIMETHOD_CMDLIST_1(
 // @param MinY including like Win32 RECT
 // @param MaxX excluding like Win32 RECT
 // @param MaxY excluding like Win32 RECT
-DEFINE_RHIMETHOD_6(
+DEFINE_RHIMETHOD_CMDLIST_6(
 	void,SetViewport,
 	uint32,MinX,
 	uint32,MinY,
@@ -1360,7 +1360,7 @@ DEFINE_RHIMETHOD_6(
 // @param MinY including like Win32 RECT
 // @param MaxX excluding like Win32 RECT
 // @param MaxY excluding like Win32 RECT
-DEFINE_RHIMETHOD_5(
+DEFINE_RHIMETHOD_CMDLIST_5(
 	void,SetScissorRect,
 	bool,bEnable,
 	uint32,MinX,
@@ -1710,7 +1710,7 @@ DEFINE_RHIMETHOD_CMDLIST_2(
 	const FLinearColor&,BlendFactor,
 	,
 	);
-DEFINE_RHIMETHOD_5(
+DEFINE_RHIMETHOD_CMDLIST_5(
 	void,SetRenderTargets,
 	uint32,NumSimultaneousRenderTargets,
 	const FRHIRenderTargetView*,NewRenderTargets,
@@ -1736,7 +1736,7 @@ DEFINE_RHIMETHOD_CMDLIST_4(
 	uint32,NumInstances,
 	,
 	);
-DEFINE_RHIMETHOD_3(
+DEFINE_RHIMETHOD_CMDLIST_3(
 	void,DrawPrimitiveIndirect,
 	uint32,PrimitiveType,
 	FVertexBufferRHIParamRef,ArgumentBuffer,
@@ -1744,7 +1744,7 @@ DEFINE_RHIMETHOD_3(
 	,
 	);
 
-DEFINE_RHIMETHOD_5(
+DEFINE_RHIMETHOD_CMDLIST_5(
 	void,DrawIndexedIndirect,
 	FIndexBufferRHIParamRef,IndexBufferRHI,
 	uint32,PrimitiveType,
@@ -1767,7 +1767,7 @@ DEFINE_RHIMETHOD_CMDLIST_8(
 	uint32,NumInstances,
 	,
 	);
-DEFINE_RHIMETHOD_4(
+DEFINE_RHIMETHOD_CMDLIST_4(
 	void,DrawIndexedPrimitiveIndirect,
 	uint32,PrimitiveType,
 	FIndexBufferRHIParamRef,IndexBuffer,
@@ -1785,7 +1785,7 @@ DEFINE_RHIMETHOD_4(
  * @param VertexDataStride Size of each vertex 
  * @param OutVertexData Reference to the allocated vertex memory
  */
-DEFINE_RHIMETHOD_5(
+DEFINE_RHIMETHOD_CMDLIST_5(
 	void,BeginDrawPrimitiveUP,
 	uint32,PrimitiveType,
 	uint32,NumPrimitives,
@@ -1798,7 +1798,7 @@ DEFINE_RHIMETHOD_5(
 /**
  * Draw a primitive using the vertex data populated since RHIBeginDrawPrimitiveUP and clean up any memory as needed
  */
-DEFINE_RHIMETHOD_0(
+DEFINE_RHIMETHOD_CMDLIST_0(
 	void,EndDrawPrimitiveUP,
 	,
 	);
@@ -1815,7 +1815,7 @@ DEFINE_RHIMETHOD_0(
  * @param IndexDataStride Size of each index (either 2 or 4 bytes)
  * @param OutIndexData Reference to the allocated index memory
  */
-DEFINE_RHIMETHOD_9(
+DEFINE_RHIMETHOD_CMDLIST_9(
 	void,BeginDrawIndexedPrimitiveUP,
 	uint32,PrimitiveType,
 	uint32,NumPrimitives,
@@ -1832,7 +1832,7 @@ DEFINE_RHIMETHOD_9(
 /**
  * Draw a primitive using the vertex and index data populated since RHIBeginDrawIndexedPrimitiveUP and clean up any memory as needed
  */
-DEFINE_RHIMETHOD_0(
+DEFINE_RHIMETHOD_CMDLIST_0(
 	void,EndDrawIndexedPrimitiveUP,
 	,
 	);
@@ -1842,7 +1842,7 @@ DEFINE_RHIMETHOD_0(
  * This method clears all MRT's, but to only one color value
  * @param ExcludeRect within the viewport in pixels, is only a hint to optimize - if a fast clear can be done this is preferred
  */
-DEFINE_RHIMETHOD_7(
+DEFINE_RHIMETHOD_CMDLIST_7(
 	void,Clear,
 	bool,bClearColor,
 	const FLinearColor&,Color,
@@ -1858,7 +1858,7 @@ DEFINE_RHIMETHOD_7(
  * This method clears all MRT's to potentially different color values
  * @param ExcludeRect within the viewport in pixels, is only a hint to optimize - if a fast clear can be done this is preferred
  */
-DEFINE_RHIMETHOD_8(
+DEFINE_RHIMETHOD_CMDLIST_8(
 	void,ClearMRT,
 	bool,bClearColor,
 	int32,NumClearColors,
@@ -1956,7 +1956,7 @@ DEFINE_RHIMETHOD_GLOBAL_1(
  * @param MaxDepth	The maximum depth for depth bounds test.
  *					The valid values for fMinDepth and fMaxDepth are such that 0 <= fMinDepth <= fMaxDepth <= 1
  */
-DEFINE_RHIMETHOD_3(
+DEFINE_RHIMETHOD_CMDLIST_3(
 	void,EnableDepthBoundsTest,
 	bool,bEnable,
 	float,MinDepth,

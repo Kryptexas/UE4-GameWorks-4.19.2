@@ -66,6 +66,9 @@ public:
 	TSharedPtr< FUICommandInfo > RecompileKismetCompiler;
 	TSharedPtr< FUICommandInfo > RecompileBlueprintEditor;
 	TSharedPtr< FUICommandInfo > RecompilePersona;
+
+	// SSC commands
+	TSharedPtr< FUICommandInfo > BeginBlueprintMerge;
 };
 
 //////////////////////////////////////////////////////////////////////////

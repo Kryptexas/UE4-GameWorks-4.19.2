@@ -35,6 +35,12 @@ struct FAssetPickerConfig
 	/** An array of pointers to existing delegates which the AssetView will register a function which returns the current selection */
 	TArray<FGetCurrentSelectionDelegate*> GetCurrentSelectionDelegates;
 
+	/** An array of pointers to existing delegates which the AssetView will register a function which sync the asset list*/
+	TArray<FSyncToAssetsDelegate*> SyncToAssetsDelegates;
+
+	/** A pointer to an existing delegate that, when executed, will set the filter an the asset picker after it is created. */
+	TArray<FSetARFilterDelegate*> SetFilterDelegates;
+
 	/** The asset registry filter to use to cull results */
 	FARFilter Filter;
 
@@ -67,6 +73,12 @@ struct FAssetPickerConfig
 
 	/** The delegate that fires when an asset is right clicked and a context menu is requested */
 	FOnGetAssetContextMenu OnGetAssetContextMenu;
+
+	/** Fired when an asset item is constructed and a tooltip is requested. If unbound the item will use the default widget */
+	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
+
+	/** Fired when an asset item is about to show it's tool tip */
+	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;
 
 	/** If more detailed filtering is required than simply Filter, this delegate will get fired for every asset to determine if it should be culled. */
 	FOnShouldFilterAsset OnShouldFilterAsset;

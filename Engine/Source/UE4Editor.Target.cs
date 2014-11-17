@@ -21,6 +21,7 @@ public class UE4EditorTarget : TargetRules
 		ref List<string> OutExtraModuleNames
 		)
 	{
+		OutExtraModuleNames.Add("GameMenuBuilder");
 		if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
 		{
 			OutExtraModuleNames.Add("OnlineSubsystemNull");

@@ -680,14 +680,14 @@ static float BezierInterp2(float P0, float Y1, float Y2, float P3, float mu)
 	return Result;
 }
 
-float FRichCurve::Eval( const float InTime ) const
+float FRichCurve::Eval( const float InTime, float DefaultValue ) const
 {
 	const int32 NumKeys = Keys.Num();
 
 	// If no keys in curve, return the Default value we passed in.
 	if( NumKeys == 0 )
 	{
-		return 0.f;
+		return DefaultValue;
 	}
 
 	// If only one point, or before the first point in the curve, return the first points value.

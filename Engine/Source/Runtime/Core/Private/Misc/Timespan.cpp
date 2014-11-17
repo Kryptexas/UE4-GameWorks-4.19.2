@@ -4,7 +4,7 @@
 	Timespan.cpp: Implements the FTimespan class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 /* FTimespan interface

@@ -96,24 +96,21 @@ template<class InputType> struct FMaterialInput : FExpressionInput
 
 struct FColorMaterialInput : FMaterialInput<FColor>
 {
-	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler, const FColor& Default);
+	ENGINE_API int32 CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property);
 };
 struct FScalarMaterialInput : FMaterialInput<float>
 {
-	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler, float Default);
+	ENGINE_API int32 CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property);
 };
-
 struct FVectorMaterialInput : FMaterialInput<FVector>
 {
-	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler, const FVector& Default);
+	ENGINE_API int32 CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property);
 };
-
 struct FVector2MaterialInput : FMaterialInput<FVector2D>
 {
-	int32 Compile(class FMaterialCompiler* Compiler, const FVector2D& Default);
+	ENGINE_API int32 CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property);
 };
-
 struct FMaterialAttributesInput : FMaterialInput<int32>
 {
-	ENGINE_API int32 Compile(class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, const FColor& DefaultColor, const FVector& DefaultVector);
+	ENGINE_API int32 CompileWithDefault(class FMaterialCompiler* Compiler, EMaterialProperty Property);
 };

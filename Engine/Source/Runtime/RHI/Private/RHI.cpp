@@ -60,6 +60,51 @@ static FAutoConsoleCommandWithOutputDevice GDumpRHIMemoryCmd(
 	);
 #endif
 
+TLockFreePointerList<FRHIResource> FRHIResource::PendingDeletes;
+FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
+
+#if !DISABLE_RHI_DEFFERED_DELETE
+bool FRHIResource::Bypass()
+{
+	return GRHICommandList.Bypass();
+}
+#endif
+
+void FRHIResource::FlushPendingDeletes()
+{
+	check(IsInRenderingThread());
+	FRHICommandListExecutor::GetImmediateCommandList().Flush();
+	FRHICommandListExecutor::CheckNoOutstandingCmdLists();
+
+	while (1)
+	{
+		TArray<FRHIResource*> ToDelete;
+		PendingDeletes.PopAll(ToDelete);
+		if (!ToDelete.Num())
+		{
+			break;
+		}
+		for (int32 Index = 0; Index < ToDelete.Num(); Index++)
+		{
+			FRHIResource* Ref = ToDelete[Index];
+			check(Ref->MarkedForDelete == 1);
+			if (Ref->GetRefCount() == 0) // caches can bring dead objects back to life
+			{
+				CurrentlyDeleting = Ref;
+				delete Ref;
+				CurrentlyDeleting = nullptr;
+			}
+			else
+			{
+				Ref->MarkedForDelete = 0;
+				FPlatformMisc::MemoryBarrier();
+			}
+		}
+	}
+}
+
+
+
 /**
  * RHI configuration settings.
  */
@@ -177,14 +222,12 @@ RHI_API EShaderPlatform GRHIShaderPlatform = SP_PCD3D_SM5;
 /** The maximum feature level supported on this machine */
 ERHIFeatureLevel::Type GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
 
-RHI_API ERHIFeatureLevel::Type GetRHIFeatureLevel()
-{
-	return GMaxRHIFeatureLevel;
-}
+/** The current feature level being used on this machine - This is only temporary and will go away when feature level becomes dynamic */
+ERHIFeatureLevel::Type GCurrentRHIFeatureLevel = ERHIFeatureLevel::SM5;
 
-RHI_API void SetMaxRHIFeatureLevel(ERHIFeatureLevel::Type InType)
+RHI_API ERHIFeatureLevel::Type GetCurrentRHIFeatureLevel()
 {
-	GMaxRHIFeatureLevel = InType;
+	return GCurrentRHIFeatureLevel;
 }
 
 FName FeatureLevelNames[] = 

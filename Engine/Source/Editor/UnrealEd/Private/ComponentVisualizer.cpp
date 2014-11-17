@@ -15,8 +15,8 @@ FName FComponentVisualizer::GetComponentPropertyName(const UActorComponent* Comp
 		if(CompOwner)
 		{
 			// Iterate over fields of this actor
-			UClass* SplineActorClass = CompOwner->GetClass();
-			for (TFieldIterator<UObjectProperty> It(SplineActorClass); It; ++It)
+			UClass* ActorClass = CompOwner->GetClass();
+			for (TFieldIterator<UObjectProperty> It(ActorClass); It; ++It)
 			{
 				// See if this property points to the component in question
 				UObjectProperty* ObjectProp = *It;

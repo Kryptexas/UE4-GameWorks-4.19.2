@@ -211,7 +211,14 @@ bool FOnlineVoiceSteam::UnregisterLocalTalker(uint32 LocalUserNum)
 			if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
 			{
 				TSharedPtr<FUniqueNetId> UniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
-				OnPlayerTalkingStateChangedDelegates.Broadcast(UniqueId.ToSharedRef(), Talker.bIsTalking);
+				if (UniqueId.IsValid())
+				{
+					OnPlayerTalkingStateChangedDelegates.Broadcast(UniqueId.ToSharedRef(), false);
+				}
+				else
+				{
+					UE_LOG(LogVoice, Warning, TEXT("Invalid UserId for local player %d in UnregisterLocalTalker"), LocalUserNum);
+				}
 			}
 
 			// Remove them from engine too
@@ -335,7 +342,7 @@ void FOnlineVoiceSteam::RemoveAllRemoteTalkers()
 		{
 			const FRemoteTalker& Talker = RemoteTalkers[Index];
 
-			if (OnPlayerTalkingStateChangedDelegates.IsBound() && Talker.bIsTalking)
+			if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
 			{
 				OnPlayerTalkingStateChangedDelegates.Broadcast(Talker.TalkerId.ToSharedRef(), false);
 			}
@@ -491,7 +498,10 @@ void FOnlineVoiceSteam::ProcessMuteChangeNotification()
 			// For each local user with voice
 			for (int32 Index = 0; Index < MaxLocalTalkers; Index++)
 			{
-				ULocalPlayer* LP = GEngine->LocalPlayerFromVoiceIndex(Index);
+				// Find the very first ULocalPlayer for this ControllerId. 
+				// This is imperfect and means we cannot support voice chat properly for
+				// multiple UWorlds (but thats ok for the time being).
+				ULocalPlayer* LP = GEngine->FindFirstLocalPlayerFromControllerId(Index);
 				if (LP && LP->PlayerController)
 				{
 					// If there is a player controller, we can mute/unmute people

@@ -70,27 +70,85 @@ namespace iPhonePackager
 		/// <summary>
 		/// Makes sure the required files for code signing exist and can be found
 		/// </summary>
-		public static void FindRequiredFiles(out MobileProvision Provision, out X509Certificate2 Cert, out bool bHasOverridesFile)
+		public static bool FindRequiredFiles(out MobileProvision Provision, out X509Certificate2 Cert, out bool bHasOverridesFile)
 		{
-			// Check for a mobile provision
 			Provision = null;
+			Cert = null;
+			bHasOverridesFile = File.Exists(Config.GetPlistOverrideFilename());
+
+			// Load Info.plist, which guides nearly everything else
+			string plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
+			if (!string.IsNullOrEmpty(Config.ProjectFile))
+			{
+				plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/Info.plist";
+				if (!File.Exists(plistFile))
+				{
+					plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/" + Path.GetFileNameWithoutExtension(Config.ProjectFile) + "-Info.plist";
+
+					if (!File.Exists(plistFile))
+					{
+						plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
+					}
+				}
+			}
+			Utilities.PListHelper Info = null;
 			try
 			{
-				string ExpectedProvisionFile = FileOperations.FindPrefixedFile(Config.ProvisionDirectory, Program.GameName + ".mobileprovision");
-				Provision = MobileProvisionParser.ParseFile(ExpectedProvisionFile);
+				string RawInfoPList = File.ReadAllText(plistFile, Encoding.UTF8);
+				Info = new Utilities.PListHelper(RawInfoPList);;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
+
+			if (Info == null)
+			{
+				return false;
+			}
+
+			// Get the name of the bundle
+			string CFBundleIdentifier = null;
+			Info.GetString("CFBundleIdentifier", out CFBundleIdentifier);
+			if (CFBundleIdentifier == null)
+			{
+				return false;
+			}
+			else
+			{
+				CFBundleIdentifier = CFBundleIdentifier.Replace("${BUNDLE_IDENTIFIER}", Path.GetFileNameWithoutExtension(Config.ProjectFile));
+			}
+
+			// Check for a mobile provision
+			try
+			{
+				string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier);
+				Provision = MobileProvisionParser.ParseFile(MobileProvisionFilename);
 			}
 			catch (Exception)
 			{
 			}
 
+			// if we have a null provision see if we can find a compatible provision without checking for a certificate
+			if (Provision == null)
+			{
+				try
+				{
+					string MobileProvisionFilename = MobileProvision.FindCompatibleProvision(CFBundleIdentifier, false);
+					Provision = MobileProvisionParser.ParseFile(MobileProvisionFilename);
+				}
+				catch (Exception)
+				{
+				}
+			}
+
 			// Check for a suitable signature to match the mobile provision
-			Cert = null;
 			if (Provision != null)
 			{
 				Cert = CodeSignatureBuilder.FindCertificate(Provision);
 			}
 
-			bHasOverridesFile = File.Exists(Config.GetPlistOverrideFilename());
+			return true;
 		}
 
 		public static bool DoRequiredFilesExist()
@@ -117,6 +175,8 @@ namespace iPhonePackager
 			{
 				Program.Error("Could not find {0}.mobileprovision in {1} (error: '{2}').  Please follow the setup instructions to get a mobile provision from the Apple Developer site.",
 					Program.GameName, Path.GetFullPath(Config.BuildDirectory), ex.Message);
+				Program.ReturnCode = (int)ErrorCodes.Error_ProvisionNotFound;
+				throw ex;
 			}
 
 			return Result;
@@ -316,6 +376,8 @@ namespace iPhonePackager
 			{
 				// Failed to find a cert already installed or to install, cannot proceed any futher
 				Program.Error("... Failed to find a certificate that matches the mobile provision to be used for code signing");
+				Program.ReturnCode = (int)ErrorCodes.Error_CertificateNotFound;
+				throw new InvalidDataException("Certificate not found!");
 			}
 			else
 			{
@@ -509,7 +571,6 @@ namespace iPhonePackager
 				// Adjust the header and load command to have the correct size for the code sign blob
 				WritingContext OutputExeContext = new WritingContext(new BinaryWriter(OutputExeStream));
 
-				long StartPosition = (CodeSigningBlobLC.BlobFileOffset - (long)LinkEditSegmentLC.FileOffset);
 				long BlobLength = DummyPayload.Length;
 
 				long NonCodeSigSize = (long)LinkEditSegmentLC.FileSize - CodeSigningBlobLC.BlobFileSize;

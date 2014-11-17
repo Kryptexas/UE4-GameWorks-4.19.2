@@ -10,7 +10,7 @@
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-FLevelCollectionModel::FLevelCollectionModel(const TWeakObjectPtr<UEditorEngine>& InEditor)
+FLevelCollectionModel::FLevelCollectionModel(UEditorEngine* InEditor)
 	: Editor(InEditor)
 	, bRequestedUpdateAllLevels(false)
 	, bRequestedRedrawAllLevels(false)
@@ -24,6 +24,7 @@ FLevelCollectionModel::FLevelCollectionModel(const TWeakObjectPtr<UEditorEngine>
 	, bCanExecuteSCCCheckIn(false)
 	, bCanExecuteSCC(false)
 	, bSelectionHasChanged(true)
+	, bUpdatingLevelsSelection(false)
 {
 }
 
@@ -37,13 +38,17 @@ FLevelCollectionModel::~FLevelCollectionModel()
 	FEditorSupportDelegates::RedrawAllViewports.RemoveAll(this);
 	Editor->OnLevelActorAdded().RemoveAll(this);
 	Editor->OnLevelActorDeleted().RemoveAll(this);
+	if (CurrentWorld.IsValid())
+	{
+		CurrentWorld->OnSelectedLevelsChanged().RemoveAll(this);
+	}
 }
 
-void FLevelCollectionModel::Initialize()
+void FLevelCollectionModel::Initialize(UWorld* InWorld)
 {
 	LoadSettings();
 	
-	CurrentWorld = Editor->GetEditorWorldContext().World();
+	CurrentWorld = InWorld;
 
 	Filters->OnChanged().AddSP(this, &FLevelCollectionModel::OnFilterChanged);
 	FWorldDelegates::LevelAddedToWorld.AddSP(this, &FLevelCollectionModel::OnLevelAddedToWorld);
@@ -53,6 +58,7 @@ void FLevelCollectionModel::Initialize()
 	Editor->OnLevelActorDeleted().AddSP( this, &FLevelCollectionModel::OnLevelActorDeleted);
 	USelection::SelectionChangedEvent.AddSP(this, &FLevelCollectionModel::OnActorSelectionChanged);
 	SelectionChanged.AddSP(this, &FLevelCollectionModel::OnActorOrLevelSelectionChanged);
+	CurrentWorld->OnSelectedLevelsChanged().AddSP(this, &FLevelCollectionModel::OnLevelsSelectionChangedOutside);
 
 	PopulateLevelsList();
 }
@@ -332,6 +338,22 @@ void FLevelCollectionModel::SetSelectedLevels(const FLevelModelList& InList)
 	}
 
 	OnLevelsSelectionChanged();
+}
+
+void FLevelCollectionModel::SetSelectedLevelsFromWorld()
+{
+	TArray<ULevel*>& SelectedLevelObjects = CurrentWorld->GetSelectedLevels();
+	FLevelModelList LevelsToSelect;
+	for (ULevel* LevelObject : SelectedLevelObjects)
+	{
+		TSharedPtr<FLevelModel> LevelModel = FindLevelModel(LevelObject);
+		if (LevelModel.IsValid())
+		{
+			LevelsToSelect.Add(LevelModel);
+		}
+	}
+
+	SetSelectedLevels(LevelsToSelect);
 }
 
 TSharedPtr<FLevelModel> FLevelCollectionModel::FindLevelModel(ULevel* InLevel) const
@@ -615,6 +637,11 @@ void FLevelCollectionModel::AssignParent(const FLevelModelList& InLevels, TShare
 	OnLevelsHierarchyChanged();
 }
 
+void FLevelCollectionModel::AddExistingLevelsFromAssetData(const TArray<FAssetData>& WorldList)
+{
+	
+}
+
 TSharedPtr<FLevelDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
 {
 	return TSharedPtr<FLevelDragDropOp>();
@@ -630,52 +657,8 @@ bool FLevelCollectionModel::PassesAllFilters(TSharedPtr<FLevelModel> Item) const
 	return false;
 }
 
-void FLevelCollectionModel::BuildGridMenu(FMenuBuilder& InMenuBuilder) const
-{
-	CacheCanExecuteSourceControlVars();
-}
-
 void FLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const
 {
-	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
-	
-	InMenuBuilder.BeginSection("Levels", LOCTEXT("LevelsHeader", "Levels") );
-	{
-		// Visibility commands
-		InMenuBuilder.AddSubMenu( 
-			LOCTEXT("VisibilityHeader", "Visibility"),
-			LOCTEXT("VisibilitySubMenu_ToolTip", "Selected Level(s) visibility commands"),
-			FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillVisibilityMenu ) );
-
-		// Lock commands
-		InMenuBuilder.AddSubMenu( 
-			LOCTEXT("LockHeader", "Lock"),
-			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
-			FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillLockMenu ) );
-	}
-	InMenuBuilder.EndSection();
-
-	// Level selection commands
-	InMenuBuilder.BeginSection("LevelsSelection", LOCTEXT("SelectionHeader", "Selection") );
-	{
-		InMenuBuilder.AddMenuEntry( Commands.SelectAllLevels );
-		InMenuBuilder.AddMenuEntry( Commands.DeselectAllLevels );
-		InMenuBuilder.AddMenuEntry( Commands.InvertLevelSelection );
-	}
-	InMenuBuilder.EndSection();
-	
-	// Level actors selection commands
-	InMenuBuilder.BeginSection("ActorsSelection", LOCTEXT("ActorsHeader", "Actors") );
-	{
-		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
-		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
-
-		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && SelectedLevelsList[0]->IsPersistent()))
-		{
-			InMenuBuilder.AddMenuEntry( Commands.SelectStreamingVolumes );
-		}
-	}
-	InMenuBuilder.EndSection();
 }
 
 void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const
@@ -688,7 +671,7 @@ void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) c
 	InMenuBuilder.AddSubMenu( 
 		LOCTEXT("SourceControl", "Source Control"),
 		LOCTEXT("SourceControl_ToolTip", "Source Control Options"),
-		FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillSourceControlMenu));
+		FNewMenuDelegate::CreateSP(this, &FLevelCollectionModel::FillSourceControlSubMenu));
 		
 	if (AreAnyLevelsSelected())
 	{
@@ -1476,6 +1459,36 @@ void FLevelCollectionModel::MakeLevelCurrent_Executed()
 
 void FLevelCollectionModel::MoveActorsToSelected_Executed()
 {
+	// If matinee is open, and if an actor being moved belongs to it, message the user
+	if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit))
+	{
+		const FEdModeInterpEdit* InterpEditMode = (const FEdModeInterpEdit*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_InterpEdit);
+		if (InterpEditMode && InterpEditMode->MatineeActor)
+		{
+			TArray<AActor*> ControlledActors;
+			InterpEditMode->MatineeActor->GetControlledActors(ControlledActors);
+			if (ControlledActors.Num() > 0)
+			{
+				// are any of the selected actors in the matinee
+				USelection* SelectedActors = GEditor->GetSelectedActors();
+				for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+				{
+					AActor* Actor = CastChecked<AActor>(*Iter);
+					if (Actor != nullptr && ControlledActors.Contains(Actor))
+					{
+						const bool ExitInterp = EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "MatineeUnableToMove", "You must close Matinee before moving actors.\nDo you wish to do this now and continue?"));
+						if (!ExitInterp)
+						{
+							return;
+						}
+						GLevelEditorModeTools().DeactivateMode(FBuiltinEditorModes::EM_InterpEdit);
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	MakeLevelCurrent_Executed();
 	const FScopedTransaction Transaction( LOCTEXT("MoveSelectedActorsToSelectedLevel", "Move Selected Actors to Level") );
 	Editor->MoveSelectedActorsToLevel(GetWorld()->GetCurrentLevel());
@@ -1522,7 +1535,7 @@ void FLevelCollectionModel::ExpandSelectedItems_Executed()
 }
 
 
-void FLevelCollectionModel::FillLockMenu(FMenuBuilder& InMenuBuilder)
+void FLevelCollectionModel::FillLockSubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
@@ -1541,7 +1554,7 @@ void FLevelCollectionModel::FillLockMenu(FMenuBuilder& InMenuBuilder)
 	}
 }
 
-void FLevelCollectionModel::FillVisibilityMenu(FMenuBuilder& InMenuBuilder)
+void FLevelCollectionModel::FillVisibilitySubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
@@ -1552,7 +1565,7 @@ void FLevelCollectionModel::FillVisibilityMenu(FMenuBuilder& InMenuBuilder)
 	InMenuBuilder.AddMenuEntry( Commands.World_HideAllLevels );
 }
 
-void FLevelCollectionModel::FillSourceControlMenu(FMenuBuilder& InMenuBuilder)
+void FLevelCollectionModel::FillSourceControlSubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	
@@ -1593,6 +1606,13 @@ void FLevelCollectionModel::OnLevelsCollectionChanged()
 
 void FLevelCollectionModel::OnLevelsSelectionChanged()
 {
+	if (bUpdatingLevelsSelection)
+	{
+		return;
+	}
+	
+	TGuardValue<bool> UpdateGuard(bUpdatingLevelsSelection, true);
+	
 	// Pass the list we just created to the world to set the selection
 	CurrentWorld->SetSelectedLevels(
 		GetLevelObjectList(SelectedLevelsList)
@@ -1615,6 +1635,14 @@ void FLevelCollectionModel::OnLevelsSelectionChanged()
 	}
 		
 	BroadcastSelectionChanged();
+}
+
+void FLevelCollectionModel::OnLevelsSelectionChangedOutside()
+{
+	if (!bUpdatingLevelsSelection)
+	{
+		SetSelectedLevelsFromWorld();
+	}
 }
 
 void FLevelCollectionModel::OnLevelsHierarchyChanged()

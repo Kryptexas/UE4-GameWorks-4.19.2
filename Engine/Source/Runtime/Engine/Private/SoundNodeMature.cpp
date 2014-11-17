@@ -2,6 +2,7 @@
 
 
 #include "EnginePrivate.h"
+#include "ActiveSound.h"
 #include "Sound/SoundNodeMature.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundWave.h"

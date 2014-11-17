@@ -37,19 +37,9 @@ public:
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Animation; }
 
-	/** Handler for the blend space sub menu */
-	void FillBlendSpaceMenu( FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons );
-
-	/** Handler for the blend space sub menu */
-	void FillAimOffsetBlendSpaceMenu( FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons );
-
 private:
 	/** Handler for when Edit is selected */
 	void ExecuteEdit(TArray<TWeakObjectPtr<USkeleton>> Objects);
-
-	/** Creates a new object of type T from factory TFactory */
-	template <typename TFactory, typename T>
-	void ExecuteNewAnimAsset(TArray<TWeakObjectPtr<USkeleton>> Objects, const FString InSuffix);
 
 	/** Handler for when NewAnimBlueprint is selected */
 	void ExecuteNewAnimBlueprint(TArray<TWeakObjectPtr<USkeleton>> Objects);
@@ -79,4 +69,5 @@ private: // Helper functions
 	void SavePackages(const TArray<UPackage*> PackagesToSave) const;
 	void DetectReadOnlyPackages(TArray<FAssetToRemapSkeleton>& AssetsToRemap, TArray<UPackage*>& InOutPackagesToSave) const;
 	void FillCreateMenu(FMenuBuilder& MenuBuilder, TArray<TWeakObjectPtr<USkeleton>> Skeletons) const;
+	void OnAssetCreated(TArray<UObject*> NewAssets) const;
 };

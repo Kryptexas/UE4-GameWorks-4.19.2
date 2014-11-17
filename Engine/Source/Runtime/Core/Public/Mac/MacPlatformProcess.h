@@ -61,7 +61,8 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	static void ClosePipe( void* ReadPipe, void* WritePipe );
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
-	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
+	static bool ExecProcess(const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr);
 
 	// Mac specific
 	static const TCHAR* UserPreferencesDir();

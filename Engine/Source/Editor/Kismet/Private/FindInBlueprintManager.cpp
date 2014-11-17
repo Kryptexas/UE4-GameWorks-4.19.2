@@ -290,7 +290,11 @@ namespace BlueprintSearchMetaDataHelpers
 
 		// Find the variable's tooltip
 		FString TooltipResult;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(InBlueprint, InVariableDescription.VarName, FBlueprintMetadata::MD_Tooltip, TooltipResult);
+		
+		if(InVariableDescription.HasMetaData(FBlueprintMetadata::MD_Tooltip))
+		{
+			TooltipResult = InVariableDescription.GetMetaData(FBlueprintMetadata::MD_Tooltip);
+		}
 		InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_Tooltip, TooltipResult);
 
 		// Save the variable's pin type
@@ -1021,13 +1025,7 @@ void FFindInBlueprintSearchManager::CleanCache()
 	for(auto& SearchValuePair : SearchMap)
 	{
 		// Here it builds the new map/array, clean of deleted content.
-		if( SearchArray[SearchValuePair.Value].bMarkedForDeletion || (SearchArray[SearchValuePair.Value].Blueprint && SearchArray[SearchValuePair.Value].Blueprint->HasAllFlags(RF_PendingKill)) )
-		{
-			// Item should not be kept, is is being destroyed and removed
-			int x = 5;
-			x = x;
-		}
-		else
+		if( !SearchArray[SearchValuePair.Value].bMarkedForDeletion && !(SearchArray[SearchValuePair.Value].Blueprint && SearchArray[SearchValuePair.Value].Blueprint->HasAllFlags(RF_PendingKill)) )
 		{
 			// Build the new map/array
 			NewSearchMap.Add(SearchValuePair.Key, NewSearchArray.Add(SearchArray[SearchValuePair.Value]) );

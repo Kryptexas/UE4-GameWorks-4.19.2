@@ -954,9 +954,9 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 /**
  * Exports the given Matinee sequence information into a FBX document.
  */
-void FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
+bool FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 {
-	if (InMatineeActor == NULL || Scene == NULL) return;
+	if (InMatineeActor == NULL || Scene == NULL) return false;
 
 	// If the Matinee editor is not open, we need to initialize the sequence.
 	//bool InitializeMatinee = InMatineeActor->MatineeData == NULL;
@@ -1008,6 +1008,7 @@ void FFbxExporter::ExportMatinee(AMatineeActor* InMatineeActor)
 	//}
 
 	DefaultCamera = NULL;
+	return true;
 }
 
 
@@ -2015,22 +2016,6 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(UStaticMesh* StaticMesh, FStaticMes
 	return FbxActor;
 }
 
-static float& GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis)
-{
-	switch (InAxis)
-	{
-	case ESplineMeshAxis::X:
-		return InVector.X;
-	case ESplineMeshAxis::Y:
-		return InVector.Y;
-	case ESplineMeshAxis::Z:
-		return InVector.Z;
-	default:
-		check(0);
-		return InVector.Z;
-	}
-}
-
 FbxNode* FFbxExporter::ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshComp, FStaticMeshLODResources& RenderMesh, const TCHAR* MeshName, FbxNode* FbxActor)
 {
 	const UStaticMesh* StaticMesh = SplineMeshComp->StaticMesh;
@@ -2082,8 +2067,8 @@ FbxNode* FFbxExporter::ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshCom
 		int32 UnrealPosIndex = UniqueVerts[PosIndex];
 		FVector Position = RenderMesh.PositionVertexBuffer.VertexPosition(UnrealPosIndex);
 
-		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(GetAxisValue(Position, SplineMeshComp->ForwardAxis));
-		GetAxisValue(Position, SplineMeshComp->ForwardAxis) = 0;
+		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis));
+		USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis) = 0;
 		Position = SliceTransform.TransformPosition(Position);
 
 		ControlPoints[PosIndex] = FbxVector4(Position.X, -Position.Y, Position.Z);
@@ -2129,7 +2114,7 @@ FbxNode* FFbxExporter::ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshCom
 	for (int32 VertIndex = 0; VertIndex < VertexCount; ++VertIndex)
 	{
 		FVector Position = RenderMesh.PositionVertexBuffer.VertexPosition(VertIndex);
-		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(GetAxisValue(Position, SplineMeshComp->ForwardAxis));
+		const FTransform SliceTransform = SplineMeshComp->CalcSliceTransform(USplineMeshComponent::GetAxisValue(Position, SplineMeshComp->ForwardAxis));
 		FVector Normal = FVector(RenderMesh.VertexBuffer.VertexTangentZ(VertIndex));
 		Normal = SliceTransform.TransformVector(Normal);
 		FbxVector4& FbxNormal = FbxNormals[VertIndex];
@@ -2373,6 +2358,10 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 	FbxLayerElementArrayTemplate<FbxVector2>& WeightmapUVs = LayerElementWeightmapUVs->GetDirectArray();
 	WeightmapUVs.Resize(VertexCount);
 
+	TArray<uint8> VisibiltyData;
+	VisibiltyData.Empty(VertexCount);
+	VisibiltyData.AddZeroed(VertexCount);
+
 	for (int32 ComponentIndex = 0, SelectedComponentIndex = 0; ComponentIndex < Landscape->LandscapeComponents.Num(); ComponentIndex++)
 	{
 		ULandscapeComponent* Component = Landscape->LandscapeComponents[ComponentIndex];
@@ -2385,6 +2374,21 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 		FLandscapeComponentDataInterface CDI(Component, Landscape->ExportLOD);
 		const int32 BaseVertIndex = SelectedComponentIndex++ * VertexCountPerComponent;
 
+		TArray<uint8> CompVisData;
+		for (int32 AllocIdx = 0; AllocIdx < Component->WeightmapLayerAllocations.Num(); AllocIdx++)
+		{
+			FWeightmapLayerAllocationInfo& AllocInfo = Component->WeightmapLayerAllocations[AllocIdx];
+			if (AllocInfo.LayerInfo == ALandscapeProxy::VisibilityLayer)
+			{
+				CDI.GetWeightmapTextureData(AllocInfo.LayerInfo, CompVisData);
+			}
+		}
+
+		for (int32 i = 0; i < CompVisData.Num(); ++i)
+		{
+			VisibiltyData[BaseVertIndex + i] = CompVisData[i];
+		}
+		
 		for (int32 VertIndex = 0; VertIndex < VertexCountPerComponent; VertIndex++)
 		{
 			int32 VertX, VertY;
@@ -2451,6 +2455,7 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 	const int32 MaterialIndex = FbxActor->AddMaterial(FbxMaterial);
 	LayerElementMaterials->GetIndexArray().Add(MaterialIndex);
 
+	const int32 VisThreshold = 170;
 	// Copy over the index buffer into the FBX polygons set.
 	for (int32 ComponentIndex = 0; ComponentIndex < NumComponents; ComponentIndex++)
 	{
@@ -2460,17 +2465,20 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 		{
 			for (int32 X = 0; X < ComponentSizeQuads; X++)
 			{
-				Mesh->BeginPolygon();
-				Mesh->AddPolygon(BaseVertIndex + (X+0) + (Y+0)*(ComponentSizeQuads+1));
-				Mesh->AddPolygon(BaseVertIndex + (X+1) + (Y+1)*(ComponentSizeQuads+1));
-				Mesh->AddPolygon(BaseVertIndex + (X+1) + (Y+0)*(ComponentSizeQuads+1));
-				Mesh->EndPolygon();
+				if (VisibiltyData[BaseVertIndex + Y * (ComponentSizeQuads + 1) + X] < VisThreshold)
+				{
+					Mesh->BeginPolygon();
+					Mesh->AddPolygon(BaseVertIndex + (X + 0) + (Y + 0)*(ComponentSizeQuads + 1));
+					Mesh->AddPolygon(BaseVertIndex + (X + 1) + (Y + 1)*(ComponentSizeQuads + 1));
+					Mesh->AddPolygon(BaseVertIndex + (X + 1) + (Y + 0)*(ComponentSizeQuads + 1));
+					Mesh->EndPolygon();
 
-				Mesh->BeginPolygon();
-				Mesh->AddPolygon(BaseVertIndex + (X+0) + (Y+0)*(ComponentSizeQuads+1));
-				Mesh->AddPolygon(BaseVertIndex + (X+0) + (Y+1)*(ComponentSizeQuads+1));
-				Mesh->AddPolygon(BaseVertIndex + (X+1) + (Y+1)*(ComponentSizeQuads+1));
-				Mesh->EndPolygon();
+					Mesh->BeginPolygon();
+					Mesh->AddPolygon(BaseVertIndex + (X + 0) + (Y + 0)*(ComponentSizeQuads + 1));
+					Mesh->AddPolygon(BaseVertIndex + (X + 0) + (Y + 1)*(ComponentSizeQuads + 1));
+					Mesh->AddPolygon(BaseVertIndex + (X + 1) + (Y + 1)*(ComponentSizeQuads + 1));
+					Mesh->EndPolygon();
+				}
 			}
 		}
 	}

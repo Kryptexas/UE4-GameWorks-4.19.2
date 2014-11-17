@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "DynamicMeshBuilder.h"
 #include "ResourcePool.h"
+#include "LocalVertexFactory.h"
 
 class FGlobalDynamicMeshPoolPolicy
 {

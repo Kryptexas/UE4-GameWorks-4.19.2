@@ -122,15 +122,7 @@ TSharedRef<SWidget> FAnimAssetPropertiesSummoner::CreateTabBody(const FWorkflowT
 {
 	TSharedPtr<FPersona> PersonaApp = StaticCastSharedPtr<FPersona>(HostingApp.Pin());
 
-	return SNew(SOverlay)
-		+SOverlay::Slot()
-		[
-			SNew(SAnimAssetPropertiesTabBody, PersonaApp)
-		]
-		+SOverlay::Slot()
-		[
-			SNew(SAnimDifferentAssetBeingPreviewedWarning, PersonaApp)
-		];
+	return SNew(SAnimAssetPropertiesTabBody, PersonaApp);
 }
 
 /////////////////////////////////////////////////////
@@ -142,7 +134,7 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InPersona)));
 	PersonaTabFactories.RegisterFactory(MakeShareable(new FAnimAssetPropertiesSummoner(InPersona)));
 
-	TabLayout = FTabManager::NewLayout("Persona_AnimEditMode_Layout_v6")
+	TabLayout = FTabManager::NewLayout("Persona_AnimEditMode_Layout_v7")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -164,6 +156,7 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Left 1/3rd - Skeleton and Anim properties
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
+					->SetSizeCoefficient(0.3f)
 					->Split
 					(
 						FTabManager::NewStack()
@@ -180,17 +173,16 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Middle 1/3rd - Viewport and anim document area
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
+					->SetSizeCoefficient(0.4f)
 					->Split
 					(
 						FTabManager::NewStack()
-						->SetSizeCoefficient(0.75f)
 						->SetHideTabWell(true)
 						->AddTab( FPersonaTabs::PreviewViewportID, ETabState::OpenedTab )
 					)
 					->Split
 					(
 						FTabManager::NewStack()
-						->SetSizeCoefficient(0.25f)
 						->AddTab( "Document", ETabState::ClosedTab )
 					)
 				)
@@ -199,6 +191,7 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 					// Right 1/3rd - Details panel and quick browser
 					FTabManager::NewSplitter()
 					->SetOrientation(Orient_Vertical)
+					->SetSizeCoefficient(0.3f)
 					->Split
 					(
 						FTabManager::NewStack()
@@ -213,51 +206,5 @@ FAnimEditAppMode::FAnimEditAppMode(TSharedPtr<FPersona> InPersona)
 			)
 		);
 }
-
-/////////////////////////////////////////////////////
-// SAnimDifferentAssetBeingPreviewedWarning
-
-void SAnimDifferentAssetBeingPreviewedWarning::Construct(const FArguments& InArgs, TSharedPtr<FPersona> InPersona)
-{
-	PersonaPtr = InPersona;
-
-	FSlateFontInfo BoldFont = FEditorStyle::GetFontStyle(TEXT("NotificationList.FontBold"));
-
-	Visibility = EVisibility::HitTestInvisible;
-
-	ChildSlot
-	[
-		SNew(SBorder)
-		.Padding(20.0f)
-		.Visibility(this, &SAnimDifferentAssetBeingPreviewedWarning::GetVisibility)
-		.BorderImage(FEditorStyle::GetBrush("NotificationList.ItemBackground"))
-		.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 0.62f))
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Center)
-		[
-			SNew(STextBlock)
-			.Font(BoldFont)
-			.Text(LOCTEXT("AssetPreviewMismatch", "Currently previewing\nanother asset"))
-		]
-	];
-}
-
-EVisibility SAnimDifferentAssetBeingPreviewedWarning::GetVisibility() const
-{
-	UObject* AssetBeingEdited = PersonaPtr.Pin()->GetAnimationAssetBeingEdited();
-	UObject* AssetBeingPreviewed = PersonaPtr.Pin()->GetPreviewAnimationAsset();
-
-	if (AssetBeingEdited != NULL)
-	{
-		if ((AssetBeingPreviewed != NULL) && (AssetBeingPreviewed != AssetBeingEdited))
-		{
-			return EVisibility::HitTestInvisible;
-		}
-	}
-	
-	return EVisibility::Collapsed;
-}
-
-/////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

@@ -21,6 +21,9 @@
 
 #include "UnloadedBlueprintData.h"
 
+#include "EditorClassUtils.h"
+#include "IDocumentation.h"
+
 #include "PropertyEditorModule.h"
 #include "PropertyHandle.h"
 
@@ -443,6 +446,28 @@ namespace ClassViewer
 		static UBlueprint* GetBlueprint( UClass* InClass );
 		static void UpdateClassInNode(const FString& InGeneratedClassPackageName, UClass* InNewClass, UBlueprint* InNewBluePrint );
 
+		/** Util class to checks if a particular class can be made into a Blueprint, ignores deprecation
+		 *
+		 * @param InClass					The class to verify can be made into a Blueprint
+		 * @return							TRUE if the class can be made into a Blueprint
+		 */
+		bool CanCreateBlueprintOfClass_IgnoreDeprecation(UClass* InClass)
+		{
+			// Temporarily remove the deprecated flag so we can check if it is valid for
+			bool bIsClassDeprecated = InClass->HasAnyClassFlags(CLASS_Deprecated);
+			InClass->ClassFlags &= ~CLASS_Deprecated;
+
+			bool bCanCreateBlueprintOfClass = FKismetEditorUtilities::CanCreateBlueprintOfClass( InClass );
+
+			// Reassign the deprecated flag if it was previously assigned
+			if(bIsClassDeprecated)
+			{
+				InClass->ClassFlags |= CLASS_Deprecated;
+			}
+
+			return bCanCreateBlueprintOfClass;
+		}
+
 		/** Checks if a particular class is a brush.
 		 *	@param InClass				The Class to check.
 		 *	@return Returns true if the class is a brush.
@@ -786,7 +811,7 @@ namespace ClassViewer
 		{
 			if (UClass* Class = InClass.Get())
 			{
-				bInOutIsBlueprintBase = FKismetEditorUtilities::CanCreateBlueprintOfClass( Class );
+				bInOutIsBlueprintBase = CanCreateBlueprintOfClass_IgnoreDeprecation( Class );
 				bInOutHasBlueprint = Class->ClassGeneratedBy != NULL;
 			}
 			else
@@ -806,7 +831,7 @@ namespace ClassViewer
 			// If there is no class, it may be an unloaded blueprint.
 			if(UClass* Class = InNode->Class.Get())
 			{
-				return FKismetEditorUtilities::CanCreateBlueprintOfClass( Class );
+				return CanCreateBlueprintOfClass_IgnoreDeprecation(Class);
 			}
 			else if(InNode->bIsBPNormalType)
 			{
@@ -1026,7 +1051,7 @@ namespace ClassViewer
 		 */
 		static void OpenCreateBlueprintMenu(FMenuBuilder& MenuBuilder, UClass* InCreationClass)
 		{
-			if(InCreationClass == NULL || !FKismetEditorUtilities::CanCreateBlueprintOfClass(InCreationClass))
+			if(InCreationClass == NULL || !CanCreateBlueprintOfClass_IgnoreDeprecation(InCreationClass))
 			{
 				MenuBuilder.AddWidget( BlueprintNameEntry::MakeErrorWarningWidget(), FText::GetEmpty() );
 			}
@@ -1062,6 +1087,25 @@ namespace ClassViewer
 				MenuBuilder.AddWidget( BlueprintNameEntry::MakeBlueprintPathWidget(), FText::GetEmpty() );
 				MenuBuilder.EndSection();
 			}
+		}
+
+		/** Returns the tooltip to display when attempting to derive a Blueprint */
+		FText GetCreateBlueprintTooltip(UClass* InCreationClass)
+		{
+			if(InCreationClass->HasAnyClassFlags(CLASS_Deprecated))
+			{
+				return LOCTEXT("ClassViewerMenuCreateDeprecatedBlueprint_Tooltip", "Blueprint class is deprecated!");
+			}
+			else
+			{
+				return LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint using this class as a base.");
+			}
+		}
+
+		/** Returns TRUE if you can derive a Blueprint */
+		bool CanOpenCreateBlueprintMenu(UClass* InCreationClass)
+		{
+			return !InCreationClass->HasAnyClassFlags(CLASS_Deprecated);
 		}
 
 		/**
@@ -1280,24 +1324,26 @@ public:
 		
 		struct Local
 		{
-			static FText GetToolTipText(TSharedPtr<FClassViewerNode> AssociatedNode)
+
+			static TSharedPtr<SToolTip> GetToolTip(TSharedPtr<FClassViewerNode> AssociatedNode)
 			{
-				FText ToolTipText;
+				TSharedPtr<SToolTip> ToolTip;
 				if( AssociatedNode->PropertyHandle.IsValid() && AssociatedNode->IsRestricted() )
 				{
 					FText RestrictionToolTip;
 					AssociatedNode->PropertyHandle->GenerateRestrictionToolTip(*AssociatedNode->GetClassName(),RestrictionToolTip);
-					ToolTipText = RestrictionToolTip;
+
+					ToolTip = IDocumentation::Get()->CreateToolTip(RestrictionToolTip, nullptr, "", "");
 				}
 				else if (UClass* Class = AssociatedNode->Class.Get())
 				{
 					UPackage*  Package  = Class->GetOutermost();
 					UMetaData* MetaData = Package->GetMetaData();
 
-					ToolTipText = Class->GetToolTipText();
+					ToolTip = FEditorClassUtils::GetTooltip(Class);
 				}
 
-				return ToolTipText;
+				return ToolTip;
 			}
 		};
 
@@ -1333,7 +1379,7 @@ public:
 						.Text( *ClassName.Get() )
 						.HighlightText(*InArgs._HighlightText)
 						.ColorAndOpacity( this, &SClassItem::GetTextColor)
-						.ToolTipText_Static(&Local::GetToolTipText, AssociatedNode)
+						.ToolTip(Local::GetToolTip(AssociatedNode))
 						.IsEnabled(!bIsRestricted)
 				]
 
@@ -1432,7 +1478,21 @@ private:
 				{
 					MenuBuilder.BeginSection("ClassViewerIsBlueprint");
 					{
-						MenuBuilder.AddSubMenu( LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint using this class as a base."), FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, Class ) );
+						TAttribute<FText>::FGetter DynamicTooltipGetter;
+						DynamicTooltipGetter.BindStatic(&ClassViewer::Helpers::GetCreateBlueprintTooltip, Class);
+						TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
+
+						MenuBuilder.AddSubMenu(
+							LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), 
+							DynamicTooltipAttribute, 
+							FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, Class ),
+							FUIAction(
+								FExecuteAction(),
+								FCanExecuteAction::CreateStatic( &ClassViewer::Helpers::CanOpenCreateBlueprintMenu, Class )
+								),
+							FName(),
+							EUserInterfaceActionType::Button
+							);
 					}
 					MenuBuilder.EndSection();
 				}
@@ -1969,6 +2029,7 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 	OnClassPicked = InArgs._OnClassPickedDelegate;
 
 	bSaveExpansionStates = true;
+	bPendingSetExpansionStates = false;
 
 	bEnableClassDynamicLoading = InInitOptions.bEnableClassDynamicLoading;
 
@@ -2094,6 +2155,9 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 
 					// Find out when the user selects something in the tree
 					.OnSelectionChanged( this, &SClassViewer::OnClassViewerSelectionChanged )
+
+					// Called when the expansion state of an item changes
+					.OnExpansionChanged( this, &SClassViewer::OnClassViewerExpansionChanged )
 
 					// Allow for some spacing between items with a larger item height.
 					.ItemHeight(20.0f)
@@ -2227,6 +2291,17 @@ void SClassViewer::OnClassViewerSelectionChanged( TSharedPtr<FClassViewerNode> I
 	}
 }
 
+void SClassViewer::OnClassViewerExpansionChanged(TSharedPtr<FClassViewerNode> Item, bool bExpanded)
+{
+	// Sometimes the item is not valid anymore due to filtering.
+	if (Item.IsValid() == false || Item->IsRestricted())
+	{
+		return;
+	}
+
+	ExpansionStateMap.Add(*(Item->GetClassName()), bExpanded);
+}
+
 TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
 {
 	// Empty list of commands.
@@ -2278,7 +2353,21 @@ TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
 	{ 
 		if (bIsBlueprint)
 		{
-			MenuBuilder.AddSubMenu( LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint using this class as a base."), FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, RightClickClass ) );
+			TAttribute<FText>::FGetter DynamicTooltipGetter;
+			DynamicTooltipGetter.BindStatic(&ClassViewer::Helpers::GetCreateBlueprintTooltip, RightClickClass);
+			TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
+
+			MenuBuilder.AddSubMenu(
+				LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), 
+				DynamicTooltipAttribute, 
+				FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, RightClickClass ),
+				FUIAction(
+					FExecuteAction(),
+					FCanExecuteAction::CreateStatic( &ClassViewer::Helpers::CanOpenCreateBlueprintMenu, RightClickClass )
+					),
+				FName(),
+				EUserInterfaceActionType::Button
+				);
 		}
 	
 		if(bHasBlueprint)
@@ -2334,10 +2423,13 @@ TSharedRef< ITableRow > SClassViewer::OnGenerateRowForClassViewer( TSharedPtr<FC
 	}
 
 	// Expand the item if needed.
-	bool* bIsExpanded = ExpansionStateMap.Find( Item->GetClassName() );
-	if( bIsExpanded && *bIsExpanded )
+	if (!bPendingSetExpansionStates)
 	{
-		ClassTree->SetItemExpansion( Item, *bIsExpanded );
+		bool* bIsExpanded = ExpansionStateMap.Find(*(Item->GetClassName()));
+		if (bIsExpanded && *bIsExpanded)
+		{
+			bPendingSetExpansionStates = true;
+		}
 	}
 
 	return ReturnRow;
@@ -2357,6 +2449,7 @@ void SClassViewer::ExpandRootNodes()
 {
 	for (int32 NodeIdx = 0; NodeIdx < RootTreeItems.Num(); ++NodeIdx)
 	{
+		ExpansionStateMap.Add(*(RootTreeItems[NodeIdx]->GetClassName()), true);
 		ClassTree->SetItemExpansion(RootTreeItems[NodeIdx], true);
 	}
 }
@@ -2623,7 +2716,7 @@ bool SClassViewer::ExpandFilteredInNodes(TSharedPtr<FClassViewerNode> InNode)
 
 void SClassViewer::MapExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem )
 {
-	ExpansionStateMap.Add( InItem->GetClassName(), ClassTree->IsItemExpanded( InItem ) );
+	ExpansionStateMap.Add( *(InItem->GetClassName()), ClassTree->IsItemExpanded( InItem ) );
 
 	// Map out all the children, this will be done recursively.
 	for( int32 ChildIdx(0); ChildIdx < InItem->GetChildrenList().Num(); ++ChildIdx )
@@ -2634,7 +2727,7 @@ void SClassViewer::MapExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem
 
 void SClassViewer::SetExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem )
 {
-	bool* bIsExpanded = ExpansionStateMap.Find( InItem->GetClassName() );
+	bool* bIsExpanded = ExpansionStateMap.Find( *(InItem->GetClassName()) );
 	if( bIsExpanded )
 	{
 		ClassTree->SetItemExpansion( InItem, *bIsExpanded );
@@ -2657,6 +2750,8 @@ void SClassViewer::SetExpansionStatesInTree( TSharedPtr<FClassViewerNode> InItem
 
 void SClassViewer::Populate()
 {
+	bPendingSetExpansionStates = false;
+
 	// If showing a class tree, we may need to save expansion states.
 	if( ClassTree->GetVisibility() == EVisibility::Visible )
 	{
@@ -2665,7 +2760,7 @@ void SClassViewer::Populate()
 			for( int32 ChildIdx(0); ChildIdx < RootTreeItems.Num(); ++ChildIdx )
 			{
 				// Check if the item is actually expanded or if it's only expanded because it is root level.
-				bool* bIsExpanded = ExpansionStateMap.Find( RootTreeItems[ChildIdx]->GetClassName() );
+				bool* bIsExpanded = ExpansionStateMap.Find( *(RootTreeItems[ChildIdx]->GetClassName()) );
 				if(bIsExpanded && !*bIsExpanded || !bIsExpanded)
 				{
 					ClassTree->SetItemExpansion( RootTreeItems[ChildIdx], false );
@@ -2839,6 +2934,13 @@ void SClassViewer::Tick( const FGeometry& AllottedGeometry, const double InCurre
 		{
 			ExpandRootNodes();
 		}
+	}
+
+	if (bPendingSetExpansionStates)
+	{
+		check(RootTreeItems.Num() > 0);
+		SetExpansionStatesInTree(RootTreeItems[0]);
+		bPendingSetExpansionStates = false;
 	}
 }
 

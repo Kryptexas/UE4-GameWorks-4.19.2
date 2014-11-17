@@ -18,6 +18,13 @@ class UThumbnailRenderer : public UObject
 
 public:
 	/**
+	 * Returns true if the renderer is capable of producing a thumbnail for the specified asset.
+	 *
+	 * @param Object the asset to attempt to render
+	 */
+	virtual bool CanVisualizeAsset(UObject* Object) { return true; }
+
+	/**
 	 * Calculates the size the thumbnail would be at the specified zoom level
 	 *
 	 * @param Object the object the thumbnail is of

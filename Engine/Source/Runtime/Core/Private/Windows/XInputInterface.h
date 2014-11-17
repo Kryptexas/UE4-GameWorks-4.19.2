@@ -27,6 +27,25 @@ public:
 
 	void SetNeedsControllerStateUpdate() { bNeedsControllerStateUpdate = true; }
 
+	/**
+	* Sets the strength/speed of the given channel for the given controller id.
+	* NOTE: If the channel is not supported, the call will silently fail
+	*
+	* @param ControllerId the id of the controller whose value is to be set
+	* @param ChannelType the type of channel whose value should be set
+	* @param Value strength or speed of feedback, 0.0f to 1.0f. 0.0f will disable
+	*/
+	void SetChannelValue( const int32 ControllerId, const FForceFeedbackChannelType ChannelType, const float Value );
+
+	/**
+	* Sets the strength/speed of all the channels for the given controller id.
+	* NOTE: Unsupported channels are silently ignored
+	*
+	* @param ControllerId the id of the controller whose value is to be set
+	* @param Values strength or speed of feedback for all channels
+	*/
+	void SetChannelValues( const int32 ControllerId, const FForceFeedbackValues& Values );
+
 private:
 
 	XInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& MessageHandler );
@@ -64,6 +83,8 @@ private:
 		/** If the controller is currently connected */
 		bool bIsConnected;
 		
+		/** Current force feedback values */
+		FForceFeedbackValues ForceFeedback;
 	};
 
 	/** If we've been notified by the system that the controller state may have changed */

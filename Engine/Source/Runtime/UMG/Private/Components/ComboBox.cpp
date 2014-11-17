@@ -12,6 +12,11 @@ UComboBox::UComboBox(const FPostConstructInitializeProperties& PCIP)
 {
 }
 
+void UComboBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+}
+
 TSharedRef<SWidget> UComboBox::RebuildWidget()
 {
 	TSharedRef< SComboBox<UObject*> > NewComboBox =
@@ -30,7 +35,7 @@ TSharedRef<SWidget> UComboBox::HandleGenerateWidget(UObject* Item) const
 		UWidget* Widget = OnGenerateWidget.Execute(Item);
 		if ( Widget != NULL )
 		{
-			return Widget->GetWidget();
+			return Widget->TakeWidget();
 		}
 	}
 

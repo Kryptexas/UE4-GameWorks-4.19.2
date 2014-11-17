@@ -4,7 +4,7 @@
 	ConfigCacheIni.cpp: Unreal config file reading/writing.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ConfigCacheIni.h"
 #include "RemoteConfigIni.h"
 #include "AES.h"
@@ -331,7 +331,7 @@ void FConfigFile::CombineFromBuffer(const FString& Filename,const FString& Buffe
 				else if( Cmd=='-' )	
 				{
 					// Remove if present.
-					CurrentSection->Remove( Start, *ProcessedValue );
+					CurrentSection->RemoveSingle( Start, *ProcessedValue );
 					CurrentSection->Compact();
 				}
 				else if ( Cmd=='.' )
@@ -555,6 +555,74 @@ bool FConfigFile::ShouldExportQuotedString(const FString& PropertyValue) const
 }
 
 
+#if !UE_BUILD_SHIPPING
+
+/** A collection of identifiers which will help us parse the commandline opions. */
+namespace CommandlineOverrideSpecifiers
+{
+	// -ini:IniName:[Section1]:Key1=Value1,[Section2]:Key2=Value2
+	FString	IniSwitchIdentifier		= TEXT("-ini:");
+	FString	IniNameEndIdentifier	= TEXT(":[");
+	TCHAR	SectionStartIdentifier	= TCHAR('[');
+	FString PropertyStartIdentifier	= TEXT("]:");
+	TCHAR	PropertySeperator		= TCHAR(',');
+}
+
+/**
+* Looks for any overrides on the commandline for this file
+*
+* @param File Config to possibly modify
+* @param Filename Name of the .ini file to look for overrides
+*/
+static void OverrideFromCommandline(FConfigFile* File, const FString& Filename)
+{
+	FString Settings;
+	// look for this filename on the commandline in the format:
+	//		-ini:IniName:Section1.Key1=Value1,Section2.Key2=Value2
+	// for example:
+	//		-ini:Engine:/Script/Engine.Engine:bSmoothFrameRate=False,TextureStreaming:PoolSize=100
+	//			(will update the cache after the final combined engine.ini)
+	if (FParse::Value(FCommandLine::Get(), *FString::Printf(TEXT("%s%s"), *CommandlineOverrideSpecifiers::IniSwitchIdentifier, *FPaths::GetBaseFilename(Filename)), Settings, false))
+	{
+		// break apart on the commas
+		TArray<FString> SettingPairs;
+		Settings.ParseIntoArray(&SettingPairs, &CommandlineOverrideSpecifiers::PropertySeperator, true);
+		for (int32 Index = 0; Index < SettingPairs.Num(); Index++)
+		{
+			// set each one, by splitting on the =
+			FString SectionAndKey, Value;
+			if (SettingPairs[Index].Split(TEXT("="), &SectionAndKey, &Value))
+			{
+				// now we need to split off the key from the rest of the section name
+				int32 SectionNameEndIndex = SectionAndKey.Find(CommandlineOverrideSpecifiers::PropertyStartIdentifier, ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+				// check for malformed string
+				if (SectionNameEndIndex == INDEX_NONE || SectionNameEndIndex == 0)
+				{
+					continue;
+				}
+
+				// Create the commandline override object
+				FConfigCommandlineOverride& CommandlineOption = File->CommandlineOptions[File->CommandlineOptions.Emplace()];
+				CommandlineOption.BaseFileName = *FPaths::GetBaseFilename(Filename);
+				CommandlineOption.Section = SectionAndKey.Left(SectionNameEndIndex);
+				
+				// Remove commandline syntax from the section name.
+				CommandlineOption.Section = CommandlineOption.Section.Replace(*CommandlineOverrideSpecifiers::IniNameEndIdentifier, TEXT(""));
+				CommandlineOption.Section = CommandlineOption.Section.Replace(*CommandlineOverrideSpecifiers::PropertyStartIdentifier, TEXT(""));
+				CommandlineOption.Section = CommandlineOption.Section.Replace(&CommandlineOverrideSpecifiers::SectionStartIdentifier, TEXT(""));
+
+				CommandlineOption.PropertyKey = SectionAndKey.Mid(SectionNameEndIndex + CommandlineOverrideSpecifiers::PropertyStartIdentifier.Len());
+				CommandlineOption.PropertyValue = Value;
+
+				// now put it into this into the cache
+				File->SetString(*CommandlineOption.Section, *CommandlineOption.PropertyKey, *CommandlineOption.PropertyValue);
+			}
+		}
+	}
+}
+#endif
+
+
 /**
  * This will completely load .ini file hierarchy into the passed in FConfigFile. The passed in FConfigFile will then
  * have the data after combining all of those .ini 
@@ -600,9 +668,10 @@ static bool LoadIniFileHierarchy(const TArray<FIniFilename>& HierarchyToLoad, FC
 	for( int32 IniIndex = 0; IniIndex < HierarchyToLoad.Num(); IniIndex++ )
 	{
 		const FIniFilename& IniToLoad = HierarchyToLoad[ IniIndex ];
+		const FString& IniFileName = IniToLoad.Filename;
 
 		// Spit out friendly error if there was a problem locating .inis (e.g. bad command line parameter or missing folder, ...).
-		if( IsUsingLocalIniFile(*IniToLoad.Filename, NULL) && (IFileManager::Get().FileSize( *IniToLoad.Filename ) < 0) )
+		if (IsUsingLocalIniFile(*IniFileName, NULL) && (IFileManager::Get().FileSize(*IniFileName) < 0))
 		{
 			if (IniToLoad.bRequired)
 			{
@@ -619,7 +688,7 @@ static bool LoadIniFileHierarchy(const TArray<FIniFilename>& HierarchyToLoad, FC
 		bool bDoCombine = (IniIndex != 0);
 		bool bDoWrite = false;
 		//UE_LOG(LogConfig, Log,  TEXT( "Combining configFile: %s" ), *IniList(IniIndex) );
-		ProcessIniContents(*HierarchyToLoad.Last().Filename, *IniToLoad.Filename, &ConfigFile, bDoEmptyConfig, bDoCombine, bDoWrite);
+		ProcessIniContents(*HierarchyToLoad.Last().Filename, *IniFileName, &ConfigFile, bDoEmptyConfig, bDoCombine, bDoWrite);
 	}
 
 	// Set this configs files source ini hierarchy to show where it was loaded from.
@@ -690,6 +759,37 @@ bool DoesConfigPropertyValueMatch( FConfigFile* InConfigFile, const FString& InS
 }
 
 
+/**
+ * Check if the provided property information was set as a commandline override
+ *
+ * @param InConfigFile		- The config file which we want to check had overridden values
+ * @param InSectionName		- The name of the section which we are checking for a match
+ * @param InPropertyName		- The name of the property which we are checking for a match
+ * @param InPropertyValue	- The value of the property which we are checking for a match
+ *
+ * @return True if a commandline option was set that matches the input parameters
+ */
+bool PropertySetFromCommandlineOption(const FConfigFile* InConfigFile, const FString& InSectionName, const FName& InPropertyName, const FString& InPropertyValue)
+{
+	bool bFromCommandline = false;
+
+#if !UE_BUILD_SHIPPING
+	for (const FConfigCommandlineOverride& CommandlineOverride : InConfigFile->CommandlineOptions)
+	{
+		if (CommandlineOverride.PropertyKey.Equals(InPropertyName.ToString(), ESearchCase::IgnoreCase) &&
+			CommandlineOverride.PropertyValue.Equals(InPropertyValue, ESearchCase::IgnoreCase) &&
+			CommandlineOverride.Section.Equals(InSectionName, ESearchCase::IgnoreCase) &&
+			CommandlineOverride.BaseFileName.Equals(FPaths::GetBaseFilename(InConfigFile->Name.ToString()), ESearchCase::IgnoreCase))
+		{
+			bFromCommandline = true;
+		}
+	}
+#endif // !UE_BUILD_SHIPPING
+
+	return bFromCommandline;
+}
+
+
 bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/, const FString& InitialText/*=FString()*/ )
 {
 	if( !Dirty || NoSave || FParse::Param( FCommandLine::Get(), TEXT("nowrite")) || 
@@ -735,8 +835,11 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 					}
 				}
 
+				// check whether the option we are attempting to write out, came from the commandline as a temporary override.
+				const bool bOptionIsFromCommandline = PropertySetFromCommandlineOption(this, SectionName, PropertyName, PropertyValue);
+
 				// Check if the property matches the source configs. We do not wanna write it out if so.
-				if( bDifferentNumberOfElements || !DoesConfigPropertyValueMatch( SourceConfigFile, SectionName, PropertyName, PropertyValue ) )
+				if( (bDifferentNumberOfElements || !DoesConfigPropertyValueMatch( SourceConfigFile, SectionName, PropertyName, PropertyValue )) && !bOptionIsFromCommandline )
 				{
 					// If this is the first property we are writing of this section, then print the section name
 					if( !bWroteASectionProperty )
@@ -1069,9 +1172,19 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FString >& I
 		FConfigSection* FoundSection = HierarchyFile.Find( SectionName );
 		if( FoundSection != NULL )
 		{
-			// As we are dealing with default configs, we must process array elements correct syntax syntax. I.e. + or -
+			// The non-default config hierarchy array property names are prefixed with a . and not a +, so change
+			// that before searching.
+			FString HierarchyPropertyName;
+			if (PropertyName.StartsWith(TEXT("+")))
+			{
+				HierarchyPropertyName = TEXT(".") + PropertyName.RightChop(1);
+			}
+			else
+			{
+				HierarchyPropertyName = PropertyName;
+			}
 			TArray< FString > HierearchysArrayContribution;
-			FoundSection->MultiFind( *PropertyName, HierearchysArrayContribution, true );
+			FoundSection->MultiFind( *HierarchyPropertyName, HierearchysArrayContribution, true );
 
 			// Find array elements which should be removed.
 			for( TArray<FString>::TIterator PropertyIt(HierearchysArrayContribution); PropertyIt; ++PropertyIt )
@@ -1101,7 +1214,7 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FString >& I
 				}
 
 				// We need to remove this element from unprocessed if it exists on the list.
-				UnprocessedPropertyValues.Remove( PropertyValue );
+				UnprocessedPropertyValues.RemoveSingle( PropertyValue );
 			}
 		}
 	}
@@ -2341,6 +2454,11 @@ static bool GenerateDestIniFile(FConfigFile& DestConfigFile, const FString& Dest
 		return false;
 	}
 	LoadAnIniFile(DestIniFilename, DestConfigFile);
+
+#if !UE_BUILD_SHIPPING
+	// process any commandline overrides
+	OverrideFromCommandline(&DestConfigFile, DestIniFilename);
+#endif
 
 	bool bForceRegenerate = false;
 	bool bShouldUpdate = FPlatformProperties::RequiresCookedData();

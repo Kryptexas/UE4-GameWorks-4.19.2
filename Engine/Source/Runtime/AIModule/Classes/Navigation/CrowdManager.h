@@ -156,6 +156,9 @@ class AIMODULE_API UCrowdManager : public UObject
 	/** refresh agent state */
 	void UpdateAgentState(const class ICrowdAgentInterface* Agent) const;
 
+	/** update agent after using custom link */
+	void OnAgentFinishedCustomLink(const class ICrowdAgentInterface* Agent) const;
+
 	/** sets move target for crowd agent (only for fully simulated) */
 	bool SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, TSharedPtr<const FNavigationQueryFilter> Filter) const;
 

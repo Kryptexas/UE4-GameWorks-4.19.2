@@ -6,6 +6,7 @@
 #include "AnimationRuntime.h"
 #include "AnimPreviewInstance.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
+#include "Animation/AnimInstance.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FDebugSkelMeshSceneProxy
@@ -146,11 +147,54 @@ bool UDebugSkelMeshComponent::CheckIfBoundsAreCorrrect()
 	return false;
 }
 
+float WrapInRange(float StartVal, float MinVal, float MaxVal)
+{
+	float Size = MaxVal - MinVal;
+	float EndVal = StartVal;
+	while (EndVal < MinVal)
+	{
+		EndVal += Size;
+	}
+
+	while (EndVal > MaxVal)
+	{
+		EndVal -= Size;
+	}
+	return EndVal;
+}
+
+void UDebugSkelMeshComponent::ConsumeRootMotion(const FVector& FloorMin, const FVector& FloorMax)
+{
+	if (bPreviewRootMotion)
+	{
+		if (UAnimInstance* AnimInst = GetAnimInstance())
+		{
+			FRootMotionMovementParams ExtractedRootMotion = AnimInst->ConsumeExtractedRootMotion();
+			if (ExtractedRootMotion.bHasRootMotion)
+			{
+				AddLocalTransform(ExtractedRootMotion.RootMotionTransform);
+
+				//Handle moving component so that it stays within the editor floor
+				FTransform CurrentTransform = GetRelativeTransform();
+				FVector Trans = CurrentTransform.GetTranslation();
+				Trans.X = WrapInRange(Trans.X, FloorMin.X, FloorMax.X);
+				Trans.Y = WrapInRange(Trans.Y, FloorMin.Y, FloorMax.Y);
+				CurrentTransform.SetTranslation(Trans);
+				SetRelativeTransform(CurrentTransform);
+			}
+		}
+	}
+	else
+	{
+		SetWorldTransform(FTransform());
+	}
+}
+
 FPrimitiveSceneProxy* UDebugSkelMeshComponent::CreateSceneProxy()
 {
 	FDebugSkelMeshSceneProxy* Result = NULL;
-	ERHIFeatureLevel::Type SceneFeatureLevel = GRHIFeatureLevel;
-	FSkeletalMeshResource* SkelMeshResource = SkeletalMesh ? SkeletalMesh->GetResourceForRendering(SceneFeatureLevel) : NULL;
+	ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
+	FSkeletalMeshResource* SkelMeshResource = SkeletalMesh ? SkeletalMesh->GetResourceForRendering() : NULL;
 
 	// only create a scene proxy for rendering if
 	// properly initialized
@@ -403,7 +447,7 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 			if (Sequence->IsValidAdditive()) 
 			{ 
 				AdditiveBasePoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
-				Sequence->GetAdditiveBasePose(AdditiveBasePoses, PreviewInstance->RequiredBones, FAnimExtractContext(PreviewInstance->CurrentTime, PreviewInstance->bLooping));
+				Sequence->GetAdditiveBasePose(AdditiveBasePoses, PreviewInstance->RequiredBones, FAnimExtractContext(PreviewInstance->CurrentTime));
 				
 				FA2CSPose CSPose;
 				CSPose.AllocateLocalPoses(AnimScriptInstance->RequiredBones, AdditiveBasePoses);

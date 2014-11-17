@@ -37,8 +37,7 @@ void RHIInit(bool bHasEditorToken)
 {
 	if(!GDynamicRHI)
 	{
-		const TCHAR* CmdLine = FCommandLine::Get();
-		FString Token = FParse::Token(CmdLine, false);		
+		GRHICommandList.LatchBypass(); // read commandline for bypass flag
 
 		if(USE_NULL_RHI || FParse::Param(FCommandLine::Get(),TEXT("nullrhi")) || IsRunningCommandlet() || IsRunningDedicatedServer())
 		{

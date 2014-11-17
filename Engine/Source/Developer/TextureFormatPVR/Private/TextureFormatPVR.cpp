@@ -449,8 +449,12 @@ class FTextureFormatPVR : public ITextureFormat
 			bIsPVRTC2 ? 2 : 4);
 #if PLATFORM_MAC
 		FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ImgTec/PVRTexToolCLI"));
-#else
+#elif PLATFORM_LINUX
+		FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ImgTec/PVRTexToolCLI.lnx"));
+#elif PLATFORM_WINDOWS
 		FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ImgTec/PVRTexToolCLI.exe"));
+#else
+#error Unsupported platform
 #endif
 		UE_LOG(LogTemp, Log, TEXT("Running texturetool with '%s'"), *Params);
 

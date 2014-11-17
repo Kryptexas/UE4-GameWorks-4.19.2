@@ -958,6 +958,9 @@ void UReflectionCaptureComponent::PostLoad()
 {
 	Super::PostLoad();
 
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FeatureLevelPreview"));
+	bool bRetainAllFeatureLevelData = CVar->GetValueOnGameThread() == 1 && GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
 	if (!FPlatformProperties::RequiresCookedData())
 	{
@@ -990,31 +993,36 @@ void UReflectionCaptureComponent::PostLoad()
 		// If we have full HDR data but not encoded HDR data, generate the encoded data now
 		if (FullHDRDerivedData 
 			&& !EncodedHDRDerivedData 
-			&& GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+			&& (GRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
 		{
 			EncodedHDRDerivedData = FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(*FullHDRDerivedData, StateId, Brightness);
 		}
 	}
 	
 	// Initialize rendering resources for the current feature level, and toss data only needed by other feature levels
-	if (FullHDRDerivedData && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (FullHDRDerivedData && (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData))
 	{
 		// Don't need encoded HDR data for rendering on this feature level
-		INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory,FullHDRDerivedData->CompressedCapturedData.GetAllocatedSize());
-		EncodedHDRDerivedData = NULL;
+		INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, FullHDRDerivedData->CompressedCapturedData.GetAllocatedSize());
 
-		if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+		if ((GRHIFeatureLevel == ERHIFeatureLevel::SM4 || bRetainAllFeatureLevelData))
 		{
 			SM4FullHDRCubemapTexture = new FReflectionTextureCubeResource();
 			SM4FullHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_FloatRGBA, &FullHDRDerivedData->GetCapturedDataForSM4Load());
 			BeginInitResource(SM4FullHDRCubemapTexture);
 		}
+
+		if (!bRetainAllFeatureLevelData)
+		{
+			EncodedHDRDerivedData = NULL;
+		}
 	}
-	else if (EncodedHDRDerivedData && GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+
+	if (EncodedHDRDerivedData && (GRHIFeatureLevel == ERHIFeatureLevel::ES2 || bRetainAllFeatureLevelData))
 	{
 		if (FPlatformProperties::RequiresCookedData())
 		{
-			INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory,EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
+			INC_MEMORY_STAT_BY(STAT_ReflectionCaptureMemory, EncodedHDRDerivedData->CapturedData.GetAllocatedSize());
 		}
 
 		// Create a cubemap texture out of the encoded HDR data
@@ -1022,9 +1030,12 @@ void UReflectionCaptureComponent::PostLoad()
 		EncodedHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
 		BeginInitResource(EncodedHDRCubemapTexture);
 
-		// Don't need the full HDR data for rendering on this feature level
-		delete FullHDRDerivedData;
-		FullHDRDerivedData = NULL;
+		if (!bRetainAllFeatureLevelData)
+		{
+			// Don't need the full HDR data for rendering on this feature level
+			delete FullHDRDerivedData;
+			FullHDRDerivedData = NULL;
+		}
 	}
 }
 
@@ -1284,7 +1295,9 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 			}
 		}
 
-		if (WorldToUpdate->Scene->GetFeatureLevel() == ERHIFeatureLevel::SM4)
+		const auto FeatureLevel = WorldToUpdate->Scene->GetFeatureLevel();
+
+		if (FeatureLevel == ERHIFeatureLevel::SM4)
 		{
 			for (int32 CaptureIndex = 0; CaptureIndex < WorldCombinedCaptures.Num(); CaptureIndex++)
 			{
@@ -1303,7 +1316,7 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 
 		WorldToUpdate->Scene->AllocateReflectionCaptures(WorldCombinedCaptures);
 
-		if (!FPlatformProperties::RequiresCookedData())
+		if (FeatureLevel >= ERHIFeatureLevel::SM4 && !FPlatformProperties::RequiresCookedData())
 		{
 			for (int32 CaptureIndex = 0; CaptureIndex < WorldCapturesToUpdateForLoad.Num(); CaptureIndex++)
 			{

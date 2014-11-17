@@ -31,30 +31,30 @@ void FLandscapeEditorDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuild
 
 	auto NameToCommandMap = FLandscapeEditorCommands::Get().NameToCommandMap;
 
-#define MAP_TOOL(ToolSetName) CommandList->MapAction(NameToCommandMap.FindChecked(ToolSetName), FUIAction(FExecuteAction::CreateSP(this, &FLandscapeEditorDetails::OnChangeTool, FName(ToolSetName)), FCanExecuteAction::CreateSP(this, &FLandscapeEditorDetails::IsToolEnabled, FName(ToolSetName)), FIsActionChecked::CreateStatic(&FLandscapeEditorDetails::IsToolActive, FName(ToolSetName))));
-	MAP_TOOL("ToolSet_NewLandscape");
-	MAP_TOOL("ToolSet_ResizeLandscape");
+#define MAP_TOOL(ToolName) CommandList->MapAction(NameToCommandMap.FindChecked("Tool_" ToolName), FUIAction(FExecuteAction::CreateSP(this, &FLandscapeEditorDetails::OnChangeTool, FName(ToolName)), FCanExecuteAction::CreateSP(this, &FLandscapeEditorDetails::IsToolEnabled, FName(ToolName)), FIsActionChecked::CreateStatic(&FLandscapeEditorDetails::IsToolActive, FName(ToolName))));
+	MAP_TOOL("NewLandscape");
+	MAP_TOOL("ResizeLandscape");
 
-	MAP_TOOL("ToolSet_Sculpt");
-	MAP_TOOL("ToolSet_Paint");
-	MAP_TOOL("ToolSet_Smooth");
-	MAP_TOOL("ToolSet_Flatten");
-	MAP_TOOL("ToolSet_Ramp");
-	MAP_TOOL("ToolSet_Erosion");
-	MAP_TOOL("ToolSet_HydraErosion");
-	MAP_TOOL("ToolSet_Noise");
-	MAP_TOOL("ToolSet_Retopologize");
-	MAP_TOOL("ToolSet_Visibility");
+	MAP_TOOL("Sculpt");
+	MAP_TOOL("Paint");
+	MAP_TOOL("Smooth");
+	MAP_TOOL("Flatten");
+	MAP_TOOL("Ramp");
+	MAP_TOOL("Erosion");
+	MAP_TOOL("HydraErosion");
+	MAP_TOOL("Noise");
+	MAP_TOOL("Retopologize");
+	MAP_TOOL("Visibility");
 
-	MAP_TOOL("ToolSet_Select");
-	MAP_TOOL("ToolSet_AddComponent");
-	MAP_TOOL("ToolSet_DeleteComponent");
-	MAP_TOOL("ToolSet_MoveToLevel");
+	MAP_TOOL("Select");
+	MAP_TOOL("AddComponent");
+	MAP_TOOL("DeleteComponent");
+	MAP_TOOL("MoveToLevel");
 
-	MAP_TOOL("ToolSet_Mask");
-	MAP_TOOL("ToolSet_CopyPaste");
+	MAP_TOOL("Mask");
+	MAP_TOOL("CopyPaste");
 
-	MAP_TOOL("ToolSet_Splines");
+	MAP_TOOL("Splines");
 #undef MAP_TOOL
 #define MAP_BRUSH_SET(BrushSetName) CommandList->MapAction(NameToCommandMap.FindChecked(BrushSetName), FUIAction(FExecuteAction::CreateSP(this, &FLandscapeEditorDetails::OnChangeBrushSet, FName(BrushSetName)), FCanExecuteAction::CreateSP(this, &FLandscapeEditorDetails::IsBrushSetEnabled, FName(BrushSetName)), FIsActionChecked::CreateStatic(&FLandscapeEditorDetails::IsBrushSetActive, FName(BrushSetName))));
 	MAP_BRUSH_SET("BrushSet_Circle");
@@ -71,7 +71,7 @@ void FLandscapeEditorDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuild
 #undef MAP_BRUSH
 
 	static const FLinearColor BorderColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.2f);
-	static const FSlateBrush* BorderStyle =  FEditorStyle::GetBrush("DetailsView.GroupSection");
+	static const FSlateBrush* BorderStyle = FEditorStyle::GetBrush("DetailsView.GroupSection");
 
 	IDetailCategoryBuilder& LandscapeEditorCategory = DetailBuilder.EditCategory("LandscapeEditor", TEXT(""), ECategoryPriority::TypeSpecific);
 
@@ -148,7 +148,7 @@ void FLandscapeEditorDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuild
 	Customization_TargetLayers->CustomizeDetails(DetailBuilder);
 }
 
-FText FLandscapeEditorDetails::GetLocalizedName(FName Name)
+FText FLandscapeEditorDetails::GetLocalizedName(FString Name)
 {
 	static bool bInitialized = false;
 	if (!bInitialized)
@@ -190,7 +190,7 @@ FText FLandscapeEditorDetails::GetLocalizedName(FName Name)
 	}
 
 	FText Result;
-	ensure(FText::FindText(LOCTEXT_NAMESPACE, Name.ToString(), Result));
+	ensure(FText::FindText(LOCTEXT_NAMESPACE, Name, Result));
 	return Result;
 }
 
@@ -227,7 +227,7 @@ TSharedRef<SWidget> FLandscapeEditorDetails::GetTargetLandscapeMenu()
 		for (auto It = LandscapeList.CreateConstIterator(); It; It++)
 		{
 			FUIAction Action = FUIAction(FExecuteAction::CreateStatic(&FLandscapeEditorDetails::OnChangeTargetLandscape, TWeakObjectPtr<ULandscapeInfo>(It->Info)));
-			MenuBuilder.AddMenuEntry( FText::FromString( It->Info->GetLandscapeProxy()->GetActorLabel() ), FText(), FSlateIcon(), Action);
+			MenuBuilder.AddMenuEntry(FText::FromString(It->Info->GetLandscapeProxy()->GetActorLabel()), FText(), FSlateIcon(), Action);
 		}
 
 		return MenuBuilder.MakeWidget();
@@ -253,10 +253,10 @@ void FLandscapeEditorDetails::OnChangeTargetLandscape(TWeakObjectPtr<ULandscapeI
 FText FLandscapeEditorDetails::GetCurrentToolName() const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolSet != NULL)
+	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentTool != NULL)
 	{
-		const FName CurrentToolSetName = LandscapeEdMode->CurrentToolSet->GetToolSetName();
-		return GetLocalizedName(CurrentToolSetName);
+		const TCHAR* CurrentToolName = LandscapeEdMode->CurrentTool->GetToolName();
+		return GetLocalizedName(FString("ToolSet_") + CurrentToolName);
 	}
 
 	return LOCTEXT("Unknown", "Unknown");
@@ -265,10 +265,10 @@ FText FLandscapeEditorDetails::GetCurrentToolName() const
 FSlateIcon FLandscapeEditorDetails::GetCurrentToolIcon() const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolSet != NULL)
+	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentTool != NULL)
 	{
-		const FName CurrentToolSetName = LandscapeEdMode->CurrentToolSet->GetToolSetName();
-		return FLandscapeEditorCommands::Get().NameToCommandMap.FindChecked(CurrentToolSetName)->GetIcon();
+		const TCHAR* CurrentToolName = LandscapeEdMode->CurrentTool->GetToolName();
+		return FLandscapeEditorCommands::Get().NameToCommandMap.FindChecked(*(FString("Tool_") + CurrentToolName))->GetIcon();
 	}
 
 	return FSlateIcon(FEditorStyle::GetStyleSetName(), "Default");
@@ -286,49 +286,49 @@ TSharedRef<SWidget> FLandscapeEditorDetails::GetToolSelector()
 		if (LandscapeEdMode->CurrentToolMode->ToolModeName == "ToolMode_Manage")
 		{
 			MenuBuilder.BeginSection(NAME_None, LOCTEXT("NewLandscapeToolsTitle", "New Landscape"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_NewLandscape"), NAME_None, LOCTEXT("Tool.NewLandscape", "New Landscape"), LOCTEXT("Tool.NewLandscape.Tooltip", "Create or import a new landscape"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_NewLandscape"), NAME_None, LOCTEXT("Tool.NewLandscape", "New Landscape"), LOCTEXT("Tool.NewLandscape.Tooltip", "Create or import a new landscape"));
 			MenuBuilder.EndSection();
 
 			MenuBuilder.BeginSection(NAME_None, LOCTEXT("ComponentToolsTitle", "Component Tools"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Select"), NAME_None, LOCTEXT("Tool.SelectComponent", "Selection"), LOCTEXT("Tool.SelectComponent.Tooltip", "Select components to use with other tools"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_AddComponent"), NAME_None, LOCTEXT("Tool.AddComponent", "Add"), LOCTEXT("Tool.AddComponent.Tooltip", "Add components to the landscape"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_DeleteComponent"), NAME_None, LOCTEXT("Tool.DeleteComponent", "Delete"), LOCTEXT("Tool.DeleteComponent.Tooltip", "Delete components from the landscape, leaving a hole"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_MoveToLevel"), NAME_None, LOCTEXT("Tool.MoveToLevel", "Move Level"), LOCTEXT("Tool.MoveToLevel.Tooltip", "Move landscape components to a landscape proxy in the currently active streaming level, so that they can be streamed in/out independently of the rest of the landscape"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_ResizeLandscape"), NAME_None, LOCTEXT("Tool.ResizeLandscape", "Change Component Size"), LOCTEXT("Tool.ResizeLandscape.Tooltip", "Change the size of the landscape components"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Select"), NAME_None, LOCTEXT("Tool.SelectComponent", "Selection"), LOCTEXT("Tool.SelectComponent.Tooltip", "Select components to use with other tools"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_AddComponent"), NAME_None, LOCTEXT("Tool.AddComponent", "Add"), LOCTEXT("Tool.AddComponent.Tooltip", "Add components to the landscape"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_DeleteComponent"), NAME_None, LOCTEXT("Tool.DeleteComponent", "Delete"), LOCTEXT("Tool.DeleteComponent.Tooltip", "Delete components from the landscape, leaving a hole"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_MoveToLevel"), NAME_None, LOCTEXT("Tool.MoveToLevel", "Move Level"), LOCTEXT("Tool.MoveToLevel.Tooltip", "Move landscape components to a landscape proxy in the currently active streaming level, so that they can be streamed in/out independently of the rest of the landscape"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_ResizeLandscape"), NAME_None, LOCTEXT("Tool.ResizeLandscape", "Change Component Size"), LOCTEXT("Tool.ResizeLandscape.Tooltip", "Change the size of the landscape components"));
 			MenuBuilder.EndSection();
 
 			MenuBuilder.BeginSection(NAME_None, LOCTEXT("SplineToolsTitle", "Spline Tools"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Splines"), NAME_None, LOCTEXT("Tool.Spline", "Edit Splines"), LOCTEXT("Tool.Spline.Tooltip", "Ctrl+click to add control points\nHaving a control point selected when you ctrl+click will connect to the new control point with a segment\nSpline mesh settings can be found on the details panel when you have segments selected"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Splines"), NAME_None, LOCTEXT("Tool.Spline", "Edit Splines"), LOCTEXT("Tool.Spline.Tooltip", "Ctrl+click to add control points\nHaving a control point selected when you ctrl+click will connect to the new control point with a segment\nSpline mesh settings can be found on the details panel when you have segments selected"));
 			MenuBuilder.EndSection();
 		}
 
 		if (LandscapeEdMode->CurrentToolMode->ToolModeName == "ToolMode_Sculpt")
 		{
 			MenuBuilder.BeginSection(NAME_None, LOCTEXT("SculptToolsTitle", "Sculpting Tools"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Sculpt"), NAME_None, LOCTEXT("Tool.Sculpt", "Sculpt"), LOCTEXT("Tool.Sculpt.Tooltip", "Sculpt height data.\nCtrl+Click to Raise, Ctrl+Shift+Click to lower"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Smooth"), NAME_None, LOCTEXT("Tool.Smooth", "Smooth"), LOCTEXT("Tool.Smooth.Tooltip", "Smooths heightmaps or blend layers"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Flatten"), NAME_None, LOCTEXT("Tool.Flatten", "Flatten"), LOCTEXT("Tool.Flatten.Tooltip", "Flattens an area of heightmap or blend layer"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Ramp"), NAME_None, LOCTEXT("Tool.Ramp", "Ramp"), LOCTEXT("Tool.Ramp.Tooltip", "Creates a ramp between two points"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Erosion"), NAME_None, LOCTEXT("Tool.Erosion", "Erosion"), LOCTEXT("Tool.Erosion.Tooltip", "Thermal Erosion - Simulates erosion caused by the movement of soil from higher areas to lower areas"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_HydraErosion"), NAME_None, LOCTEXT("Tool.HydroErosion", "Hydro Erosion"), LOCTEXT("Tool.HydroErosion.Tooltip", "Hydro Erosion - Simulates erosion caused by rainfall"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Noise"), NAME_None, LOCTEXT("Tool.Noise", "Noise"), LOCTEXT("Tool.Noise.Tooltip", "Adds noise to the heightmap or blend layer"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Retopologize"), NAME_None, LOCTEXT("Tool.Retopologize", "Retopologize"), LOCTEXT("Tool.Retopologize.Tooltip", "Automatically adjusts landscape vertices with an X/Y offset map to improve vertex density on cliffs, reducing texture stretching.\nNote: An X/Y offset map makes the landscape slower to render and paint on with other tools, so only use if needed"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Visibility"), NAME_None, LOCTEXT("Tool.Visibility", "Visibility"), LOCTEXT("Tool.Visibility.Tooltip", "Mask out individual quads in the landscape, leaving a hole."));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Sculpt"), NAME_None, LOCTEXT("Tool.Sculpt", "Sculpt"), LOCTEXT("Tool.Sculpt.Tooltip", "Sculpt height data.\nCtrl+Click to Raise, Ctrl+Shift+Click to lower"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Smooth"), NAME_None, LOCTEXT("Tool.Smooth", "Smooth"), LOCTEXT("Tool.Smooth.Tooltip", "Smooths heightmaps or blend layers"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Flatten"), NAME_None, LOCTEXT("Tool.Flatten", "Flatten"), LOCTEXT("Tool.Flatten.Tooltip", "Flattens an area of heightmap or blend layer"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Ramp"), NAME_None, LOCTEXT("Tool.Ramp", "Ramp"), LOCTEXT("Tool.Ramp.Tooltip", "Creates a ramp between two points"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Erosion"), NAME_None, LOCTEXT("Tool.Erosion", "Erosion"), LOCTEXT("Tool.Erosion.Tooltip", "Thermal Erosion - Simulates erosion caused by the movement of soil from higher areas to lower areas"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_HydraErosion"), NAME_None, LOCTEXT("Tool.HydroErosion", "Hydro Erosion"), LOCTEXT("Tool.HydroErosion.Tooltip", "Hydro Erosion - Simulates erosion caused by rainfall"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Noise"), NAME_None, LOCTEXT("Tool.Noise", "Noise"), LOCTEXT("Tool.Noise.Tooltip", "Adds noise to the heightmap or blend layer"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Retopologize"), NAME_None, LOCTEXT("Tool.Retopologize", "Retopologize"), LOCTEXT("Tool.Retopologize.Tooltip", "Automatically adjusts landscape vertices with an X/Y offset map to improve vertex density on cliffs, reducing texture stretching.\nNote: An X/Y offset map makes the landscape slower to render and paint on with other tools, so only use if needed"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Visibility"), NAME_None, LOCTEXT("Tool.Visibility", "Visibility"), LOCTEXT("Tool.Visibility.Tooltip", "Mask out individual quads in the landscape, leaving a hole."));
 			MenuBuilder.EndSection();
 
 			MenuBuilder.BeginSection(NAME_None, LOCTEXT("RegionToolsTitle", "Region Tools"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Mask"), NAME_None, LOCTEXT("Tool.RegionSelect", "Selection"), LOCTEXT("Tool.RegionSelect.Tooltip", "Select a region of landscape to use as a mask for other tools"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_CopyPaste"), NAME_None, LOCTEXT("Tool.RegionCopyPaste", "Copy/Paste"), LOCTEXT("Tool.RegionCopyPaste.Tooltip", "Copy/Paste areas of the landscape, or import/export a copied area of landscape from disk"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Mask"), NAME_None, LOCTEXT("Tool.RegionSelect", "Selection"), LOCTEXT("Tool.RegionSelect.Tooltip", "Select a region of landscape to use as a mask for other tools"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_CopyPaste"), NAME_None, LOCTEXT("Tool.RegionCopyPaste", "Copy/Paste"), LOCTEXT("Tool.RegionCopyPaste.Tooltip", "Copy/Paste areas of the landscape, or import/export a copied area of landscape from disk"));
 			MenuBuilder.EndSection();
 		}
 
 		if (LandscapeEdMode->CurrentToolMode->ToolModeName == "ToolMode_Paint")
 		{
 			MenuBuilder.BeginSection(NAME_None, LOCTEXT("PaintToolsTitle", "Paint Tools"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Paint"), NAME_None, LOCTEXT("Tool.Paint", "Paint"), LOCTEXT("Tool.Paint.Tooltip", "Paints weight data.\nCtrl+Click to paint, Ctrl+Shift+Click to erase"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Smooth"), NAME_None, LOCTEXT("Tool.Smooth", "Smooth"), LOCTEXT("Tool.Smooth.Tooltip", "Smooths heightmaps or blend layers"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Flatten"), NAME_None, LOCTEXT("Tool.Flatten", "Flatten"), LOCTEXT("Tool.Flatten.Tooltip", "Flattens an area of heightmap or blend layer"));
-			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("ToolSet_Noise"), NAME_None, LOCTEXT("Tool.Noise", "Noise"), LOCTEXT("Tool.Noise.Tooltip", "Adds noise to the heightmap or blend layer"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Paint"), NAME_None, LOCTEXT("Tool.Paint", "Paint"), LOCTEXT("Tool.Paint.Tooltip", "Paints weight data.\nCtrl+Click to paint, Ctrl+Shift+Click to erase"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Smooth"), NAME_None, LOCTEXT("Tool.Smooth", "Smooth"), LOCTEXT("Tool.Smooth.Tooltip", "Smooths heightmaps or blend layers"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Flatten"), NAME_None, LOCTEXT("Tool.Flatten", "Flatten"), LOCTEXT("Tool.Flatten.Tooltip", "Flattens an area of heightmap or blend layer"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Noise"), NAME_None, LOCTEXT("Tool.Noise", "Noise"), LOCTEXT("Tool.Noise.Tooltip", "Adds noise to the heightmap or blend layer"));
 			MenuBuilder.EndSection();
 		}
 
@@ -341,9 +341,9 @@ TSharedRef<SWidget> FLandscapeEditorDetails::GetToolSelector()
 bool FLandscapeEditorDetails::GetToolSelectorIsVisible() const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolSet)
+	if (LandscapeEdMode && LandscapeEdMode->CurrentTool)
 	{
-		if (!IsToolActive("ToolSet_NewLandscape") || LandscapeEdMode->GetLandscapeList().Num() > 0)
+		if (!IsToolActive("NewLandscape") || LandscapeEdMode->GetLandscapeList().Num() > 0)
 		{
 			return true;
 		}
@@ -361,21 +361,21 @@ EVisibility FLandscapeEditorDetails::GetToolSelectorVisibility() const
 	return EVisibility::Collapsed;
 }
 
-void FLandscapeEditorDetails::OnChangeTool(FName ToolSetName)
+void FLandscapeEditorDetails::OnChangeTool(FName ToolName)
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
-		LandscapeEdMode->SetCurrentTool(ToolSetName);
+		LandscapeEdMode->SetCurrentTool(ToolName);
 	}
 }
 
-bool FLandscapeEditorDetails::IsToolEnabled(FName ToolSetName) const
+bool FLandscapeEditorDetails::IsToolEnabled(FName ToolName) const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
-		if (ToolSetName == "ToolSet_NewLandscape" || LandscapeEdMode->GetLandscapeList().Num() > 0)
+		if (ToolName == "NewLandscape" || LandscapeEdMode->GetLandscapeList().Num() > 0)
 		{
 			return true;
 		}
@@ -390,7 +390,7 @@ FText FLandscapeEditorDetails::GetCurrentBrushName() const
 	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentBrush != NULL)
 	{
 		const FName CurrentBrushSetName = LandscapeEdMode->LandscapeBrushSets[LandscapeEdMode->CurrentBrushSetIndex].BrushSetName;
-		return GetLocalizedName(CurrentBrushSetName);
+		return GetLocalizedName(CurrentBrushSetName.ToString());
 	}
 
 	return LOCTEXT("Unknown", "Unknown");
@@ -415,34 +415,34 @@ FSlateIcon FLandscapeEditorDetails::GetCurrentBrushIcon() const
 TSharedRef<SWidget> FLandscapeEditorDetails::GetBrushSelector()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolSet)
+	if (LandscapeEdMode && LandscapeEdMode->CurrentTool)
 	{
 		auto NameToCommandMap = FLandscapeEditorCommands::Get().NameToCommandMap;
 
 		FToolMenuBuilder MenuBuilder(true, CommandList);
 		MenuBuilder.BeginSection(NAME_None, LOCTEXT("BrushesTitle", "Brushes"));
 
-		if (LandscapeEdMode->CurrentToolSet->ValidBrushes.Contains("BrushSet_Circle"))
+		if (LandscapeEdMode->CurrentTool->ValidBrushes.Contains("BrushSet_Circle"))
 		{
 			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("BrushSet_Circle"), NAME_None, LOCTEXT("Brush.Circle", "Circle"), LOCTEXT("Brush.Circle.Brushtip", "Simple circular brush"));
 		}
-		if (LandscapeEdMode->CurrentToolSet->ValidBrushes.Contains("BrushSet_Alpha"))
+		if (LandscapeEdMode->CurrentTool->ValidBrushes.Contains("BrushSet_Alpha"))
 		{
 			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("BrushSet_Alpha"), NAME_None, LOCTEXT("Brush.Alpha.Alpha", "Alpha"), LOCTEXT("Brush.Alpha.Alpha.Tooltip", "Alpha brush, orients a mask image with the brush stroke"));
 		}
-		if (LandscapeEdMode->CurrentToolSet->ValidBrushes.Contains("BrushSet_Pattern"))
+		if (LandscapeEdMode->CurrentTool->ValidBrushes.Contains("BrushSet_Pattern"))
 		{
 			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("BrushSet_Pattern"), NAME_None, LOCTEXT("Brush.Alpha.Pattern", "Pattern"), LOCTEXT("Brush.Alpha.Pattern.Tooltip", "Pattern brush, tiles a mask image across the landscape"));
 		}
-		if (LandscapeEdMode->CurrentToolSet->ValidBrushes.Contains("BrushSet_Component"))
+		if (LandscapeEdMode->CurrentTool->ValidBrushes.Contains("BrushSet_Component"))
 		{
 			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("BrushSet_Component"), NAME_None, LOCTEXT("Brush.Component", "Component"), LOCTEXT("Brush.Component.Brushtip", "Work with entire landscape components"));
 		}
-		if (LandscapeEdMode->CurrentToolSet->ValidBrushes.Contains("BrushSet_Gizmo"))
+		if (LandscapeEdMode->CurrentTool->ValidBrushes.Contains("BrushSet_Gizmo"))
 		{
 			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("BrushSet_Gizmo"), NAME_None, LOCTEXT("Brush.Gizmo", "Gizmo"), LOCTEXT("Brush.Gizmo.Brushtip", "Work with the landscape gizmo, used for copy/pasting landscape"));
 		}
-		//if (LandscapeEdMode->CurrentToolSet->ValidBrushes.Contains("BrushSet_Splines"))
+		//if (LandscapeEdMode->CurrentTool->ValidBrushes.Contains("BrushSet_Splines"))
 		//{
 		//	MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("BrushSet_Splines"), NAME_None, LOCTEXT("Brush.Splines", "Splines"), LOCTEXT("Brush.Splines.Brushtip", "Edit Splines"));
 		//}
@@ -457,9 +457,9 @@ TSharedRef<SWidget> FLandscapeEditorDetails::GetBrushSelector()
 bool FLandscapeEditorDetails::GetBrushSelectorIsVisible() const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolSet)
+	if (LandscapeEdMode && LandscapeEdMode->CurrentTool)
 	{
-		if (LandscapeEdMode->CurrentToolSet->ValidBrushes.Num() >= 2)
+		if (LandscapeEdMode->CurrentTool->ValidBrushes.Num() >= 2)
 		{
 			return true;
 		}
@@ -480,9 +480,9 @@ void FLandscapeEditorDetails::OnChangeBrushSet(FName BrushSetName)
 bool FLandscapeEditorDetails::IsBrushSetEnabled(FName BrushSetName) const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolSet)
+	if (LandscapeEdMode && LandscapeEdMode->CurrentTool)
 	{
-		return LandscapeEdMode->CurrentToolSet->ValidBrushes.Contains(BrushSetName);
+		return LandscapeEdMode->CurrentTool->ValidBrushes.Contains(BrushSetName);
 	}
 
 	return false;
@@ -493,7 +493,7 @@ FText FLandscapeEditorDetails::GetCurrentBrushFalloffName() const
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentBrush != NULL)
 	{
-		const FName CurrentBrushName = LandscapeEdMode->CurrentBrush->GetBrushName();
+		const TCHAR* CurrentBrushName = LandscapeEdMode->CurrentBrush->GetBrushName();
 		return GetLocalizedName(CurrentBrushName);
 	}
 
@@ -519,7 +519,7 @@ FSlateIcon FLandscapeEditorDetails::GetCurrentBrushFalloffIcon() const
 TSharedRef<SWidget> FLandscapeEditorDetails::GetBrushFalloffSelector()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolSet)
+	if (LandscapeEdMode && LandscapeEdMode->CurrentTool)
 	{
 		auto NameToCommandMap = FLandscapeEditorCommands::Get().NameToCommandMap;
 

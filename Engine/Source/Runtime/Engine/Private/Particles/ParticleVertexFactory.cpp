@@ -62,14 +62,18 @@ public:
 
 	FVertexDeclarationRHIRef VertexDeclarationRHI;
 
+	// Constructor.
+	FParticleSpriteVertexDeclaration(bool bInInstanced)
+		: bInstanced(bInInstanced)
+	{
+
+	}
+
 	// Destructor.
 	virtual ~FParticleSpriteVertexDeclaration() {}
 
 	virtual void FillDeclElements(FVertexDeclarationElementList& Elements, int32& Offset)
 	{
-		// Likely need to switch to two decls when enabling runtime ES2 preview.
-		const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
-
 		uint32 InitialStride = sizeof(float) * 2;
 		uint32 PerParticleStride = (sizeof(float) * 4) * 4;
 
@@ -124,10 +128,27 @@ public:
 	{
 		VertexDeclarationRHI.SafeRelease();
 	}
+
+private:
+
+	bool bInstanced;
 };
 
 /** The simple element vertex declaration. */
-static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclaration;
+static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclarationInstanced(true);
+static TGlobalResource<FParticleSpriteVertexDeclaration> GParticleSpriteVertexDeclarationNonInstanced(false);
+
+inline TGlobalResource<FParticleSpriteVertexDeclaration>& GetParticleSpriteVertexDeclaration(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	if (InFeatureLevel >= ERHIFeatureLevel::SM3)
+	{
+		return GParticleSpriteVertexDeclarationInstanced;
+	}
+	else
+	{
+		return GParticleSpriteVertexDeclarationNonInstanced;
+	}
+}
 
 bool FParticleSpriteVertexFactory::ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
 {
@@ -151,12 +172,12 @@ void FParticleSpriteVertexFactory::ModifyCompilationEnvironment(EShaderPlatform 
 void FParticleSpriteVertexFactory::InitRHI()
 {
 	InitStreams();
-	SetDeclaration(GParticleSpriteVertexDeclaration.VertexDeclarationRHI);
+	SetDeclaration(GetParticleSpriteVertexDeclaration(GetFeatureLevel()).VertexDeclarationRHI);
 }
 
 void FParticleSpriteVertexFactory::InitStreams()
 {
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	const bool bInstanced = GetFeatureLevel() >= ERHIFeatureLevel::SM3;
 
 	check(Streams.Num() == 0);
 	if(bInstanced) 

@@ -15,7 +15,7 @@
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeBlackboardEditor"
 
-void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedRef<FUICommandList> InToolkitCommands, UBlackboardData* InBlackboardData)
+void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedRef<FUICommandList> InCommandList, UBlackboardData* InBlackboardData)
 {
 	OnEntrySelected = InArgs._OnEntrySelected;
 	OnGetDebugKeyValue = InArgs._OnGetDebugKeyValue;
@@ -24,23 +24,21 @@ void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedR
 	OnGetDebugTimeStamp = InArgs._OnGetDebugTimeStamp;
 	OnGetDisplayCurrentState = InArgs._OnGetDisplayCurrentState;
 
-	if(!InToolkitCommands->IsCommandInfoMapped(FBTBlackboardCommands::Get().DeleteEntry))
-	{
-		InToolkitCommands->MapAction(
-			FBTBlackboardCommands::Get().DeleteEntry,
-			FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleDeleteEntry),
-			FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
-			);
-	}
+	TSharedRef<FUICommandList> CommandList = MakeShareable(new FUICommandList);
 
-	if(!InToolkitCommands->IsCommandInfoMapped(FGenericCommands::Get().Rename))
-	{
-		InToolkitCommands->MapAction(
-			FGenericCommands::Get().Rename,
-			FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleRenameEntry),
-			FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
-			);
-	}
+	CommandList->MapAction(
+		FBTBlackboardCommands::Get().DeleteEntry,
+		FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleDeleteEntry),
+		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
+		);
+
+	CommandList->MapAction(
+		FGenericCommands::Get().Rename,
+		FExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HandleRenameEntry),
+		FCanExecuteAction::CreateSP(this, &SBehaviorTreeBlackboardEditor::HasSelectedItems)
+		);
+
+	InCommandList->Append(CommandList);
 
 	SBehaviorTreeBlackboardView::Construct(
 		SBehaviorTreeBlackboardView::FArguments()
@@ -51,7 +49,7 @@ void SBehaviorTreeBlackboardEditor::Construct(const FArguments& InArgs, TSharedR
 		.OnIsDebuggerPaused(InArgs._OnIsDebuggerPaused)
 		.OnGetDebugTimeStamp(InArgs._OnGetDebugTimeStamp)
 		.IsReadOnly(false),
-		InToolkitCommands,
+		CommandList,
 		InBlackboardData
 	);
 }

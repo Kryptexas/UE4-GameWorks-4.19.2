@@ -2,6 +2,14 @@
 
 #include "FunctionalTestingPrivatePCH.h"
 #if WITH_EDITOR
+
+//----------------------------------------------------------------------//
+// 6/25 @todo these will be removed once marge from main comes
+#include "Editor/UnrealEdTypes.h"
+#include "Editor/EditorEngine.h"
+class UFactory;
+//----------------------------------------------------------------------//
+
 #include "Editor.h"
 #endif
 

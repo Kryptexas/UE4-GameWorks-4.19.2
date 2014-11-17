@@ -12,6 +12,7 @@ class UAbilityTask_WaitMovementModeChange;
 class UAbilityTask_WaitOverlap;
 class UAbilityTask_WaitConfirmCancel;
 
+// meta =(RestrictedToClasses="GameplayAbility")
 UCLASS(MinimalAPI)
 class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 {
@@ -47,16 +48,5 @@ class UAbilitySystemBlueprintLibrary : public UBlueprintFunctionLibrary
 	static bool HasHitResult(FGameplayCueParameters Parameters);
 
 	// -------------------------------------------------------------------------------
-
-	UFUNCTION(BlueprintCallable, meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_PlayMontageAndWait* CreatePlayMontageAndWaitProxy(UObject* WorldContextObject, UAnimMontage *MontageToPlay);
-
-	UFUNCTION(BlueprintCallable, meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_WaitMovementModeChange* CreateWaitMovementModeChange(UObject* WorldContextObject, EMovementMode NewMode);
-
-	// -------------------------------------------------------------------------------
-
-
-
 
 };

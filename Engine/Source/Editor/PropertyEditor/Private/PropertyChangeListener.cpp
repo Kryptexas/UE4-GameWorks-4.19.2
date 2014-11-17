@@ -212,7 +212,7 @@ bool FPropertyChangeListener::ScanForChanges( bool bRecacheNewValues )
 			{
 				bChangesFound = true;
 				TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle( PropertyNode.ToSharedRef(), NULL, NULL );
-				OnPropertyChangedDelegate.Broadcast( ObjectsThatChanged, Handle.ToSharedRef() );
+				OnPropertyChangedDelegate.Broadcast( ObjectsThatChanged, *Handle );
 			}
 		}
 		
@@ -246,7 +246,7 @@ void FPropertyChangeListener::TriggerAllPropertiesChangedDelegate()
 		if( ObjectsThatChanged.Num() > 0 )
 		{
 			TSharedPtr<IPropertyHandle> Handle = PropertyEditorHelpers::GetPropertyHandle( PropertyNode.ToSharedRef(), NULL, NULL );
-			OnPropertyChangedDelegate.Broadcast( ObjectsThatChanged, Handle.ToSharedRef() );
+			OnPropertyChangedDelegate.Broadcast( ObjectsThatChanged, *Handle );
 		}
 	}
 }

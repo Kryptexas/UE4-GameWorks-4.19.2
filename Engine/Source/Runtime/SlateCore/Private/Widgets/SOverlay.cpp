@@ -70,20 +70,7 @@ FChildren* SOverlay::GetChildren()
 	return &Children;
 }
 
-/**
- * The widget should respond by populating the OutDrawElements array with FDrawElements 
- * that represent it and any of its children.
- *
- * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
- * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
- * @param OutDrawElements   A list of FDrawElements to populate with the output.
- * @param LayerId           The Layer onto which this widget should be rendered.
- * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
- * @param bParentEnabled	True if the parent of this widget is enabled.
- *
- * @return The maximum layer ID attained by this widget or any of its children.
- */
-int32 SOverlay::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SOverlay::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	FArrangedChildren ArrangedChildren(EVisibility::Visible);
 	{
@@ -102,7 +89,7 @@ int32 SOverlay::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& My
 	{
 		FArrangedWidget& CurWidget = ArrangedChildren(ChildIndex);
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId + 1, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 
 		MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
 	}

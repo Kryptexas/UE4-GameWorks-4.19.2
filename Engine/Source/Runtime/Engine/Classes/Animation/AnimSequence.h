@@ -66,13 +66,13 @@ UENUM()
 enum EAdditiveBasePoseType
 {
 	// will be deprecated
-	ABPT_None,
+	ABPT_None UMETA(DisplayName="None"),
 	// use ref pose of Skeleton as base
-	ABPT_RefPose,
+	ABPT_RefPose UMETA(DisplayName="Reference Pose"),
 	// use whole animation as a base pose. Need BasePoseSeq.
-	ABPT_AnimScaled,
+	ABPT_AnimScaled UMETA(DisplayName="Selected animation scaled"),
 	// use animation as a base pose. Need BasePoseSeq and RefFrameIndex (will clamp if outside).
-	ABPT_AnimFrame,
+	ABPT_AnimFrame UMETA(DisplayName="Selected animation frame"),
 	ABPT_MAX,
 };
 
@@ -313,12 +313,6 @@ class UAnimSequence : public UAnimSequenceBase
 	int32 NumFrames;
 
 	/**
-	 * if true, enable interpolation between last and first frame when looping.
-	 */
-	UPROPERTY(EditAnywhere, Category=Animation)
-	uint32 bLoopingInterpolation:1;
-
-	/**
 	 * In the future, maybe keeping RawAnimSequenceTrack + TrackMap as one would be good idea to avoid inconsistent array size
 	 * TrackToSkeletonMapTable(i) should contains  track mapping data for RawAnimationData(i). 
 	 */
@@ -443,11 +437,11 @@ class UAnimSequence : public UAnimSequenceBase
 	TEnumAsByte<enum EAdditiveAnimationType> AdditiveAnimType;
 
 	/* Additive refrerence pose type. Refer above enum type */
-	UPROPERTY(EditAnywhere, Category=AdditiveSettings)
+	UPROPERTY(EditAnywhere, Category=AdditiveSettings, meta=(DisplayName = "Base Pose Type"))
 	TEnumAsByte<enum EAdditiveBasePoseType> RefPoseType;
 
 	/* Additive reference animation if it's relevant - i.e. AnimScaled or AnimFrame **/
-	UPROPERTY(EditAnywhere, Category=AdditiveSettings)
+	UPROPERTY(EditAnywhere, Category=AdditiveSettings, meta=(DisplayName = "Base Pose Animation"))
 	class UAnimSequence* RefPoseSeq;
 
 	/* Additve reference frame if RefPoseType == AnimFrame **/
@@ -459,6 +453,7 @@ class UAnimSequence : public UAnimSequenceBase
 	UPROPERTY()
 	int32 EncodingPkgVersion;
 
+	/** Base pose to use when retargeting */
 	UPROPERTY(EditAnywhere, AssetRegistrySearchable, Category=Animation)
 	FName RetargetSource;
 
@@ -585,10 +580,9 @@ public:
 	 * @param	OutAtom			[out] Output bone transform.
 	 * @param	TrackIndex		Index of track to interpolate.
 	 * @param	Time			Time on track to interpolate to.
-	 * @param	bLooping		true if the animation is looping.
 	 * @param	bUseRawData		If true, use raw animation data instead of compressed data.
 	 */
-	ENGINE_API void GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bLooping, bool bUseRawData) const;
+	ENGINE_API void GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bUseRawData) const;
 	
 	// End Transform related functions 
 
@@ -688,7 +682,17 @@ public:
 	 * After imported or any other change is made, call this to apply post process
 	 */
 	ENGINE_API void PostProcessSequence();
+	/** 
+	 * Insert extra frame of the first frame at the end of the frame so that it improves the interpolation when it loops
+	 * This increases framecount + time, so that it requires recompression
+	 */
+	ENGINE_API bool AddLoopingInterpolation();
 #endif
+
+	/** 
+	 * Add validation check to see if it's being ready to play or not
+	 */
+	virtual bool IsValidToPlay() const;
 
 private:
 	/** 

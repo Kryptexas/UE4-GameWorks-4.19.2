@@ -85,6 +85,10 @@ public:
 	///** Called when this text is double clicked */
 	//SLATE_EVENT(FOnClicked, OnDoubleClicked)
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetText(FText InText);
+
 	// UWidget interface
 	void SyncronizeProperties() override;
 	// End of UWidget interface
@@ -98,7 +102,7 @@ public:
 
 	void HandleTextCommitted(const FText& InText, ETextCommit::Type CommitteType);
 
-	virtual void OnDesignerDoubleClicked() override;
+	virtual void OnBeginEdit() override;
 #endif
 
 protected:

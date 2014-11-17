@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
-#include "CorePrivate.h"
+#include "Core.h"
 #include "Runtime/Launch/Resources/Version.h" 
 #include "EngineVersion.h"
 

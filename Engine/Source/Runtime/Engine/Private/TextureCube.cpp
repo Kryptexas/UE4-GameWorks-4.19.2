@@ -370,3 +370,10 @@ SIZE_T UTextureCube::GetResourceSize(EResourceSizeMode::Type Mode)
 {
 	return CalcTextureMemorySizeEnum(TMC_ResidentMips);
 }
+
+#if WITH_EDITORONLY_DATA
+uint32 UTextureCube::GetMaximumDimension() const
+{
+	return GetMaxCubeTextureDimension();
+}
+#endif // #if WITH_EDITORONLY_DATA

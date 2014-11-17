@@ -16,6 +16,8 @@ public:
 	virtual void BeginSlowTask( const FText& Task, bool ShowProgressDialog, bool bShowCancelButton=false )=0;
 	virtual void EndSlowTask()=0;
 	virtual bool ReceivedUserCancel() { return false; };
+	virtual void EnableUserCancel(bool bUserCancel){}
+
 
 	/** Slow task update status
 	 * @param Numerator		New progress numerator

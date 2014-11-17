@@ -16,5 +16,7 @@ class BLUEPRINTGRAPH_API UK2Node_AIMoveTo : public UK2Node_BaseAsyncTask
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End UEdGraphNode interface
 
-	virtual FString GetCategoryName();
+	// Begin UK2Node interface
+	virtual FText GetMenuCategory() const override;
+	// End UK2Node interface
 };

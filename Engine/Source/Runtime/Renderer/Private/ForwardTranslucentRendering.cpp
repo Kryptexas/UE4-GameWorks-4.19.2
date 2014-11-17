@@ -139,11 +139,8 @@ public:
 			View.Family->EngineShowFlags.ShaderComplexity
 			);
 
-		DrawingPolicy.DrawShared(
-			RHICmdList, 
-			&View,
-			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
-			);
+		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+		DrawingPolicy.SetSharedState(RHICmdList, &View);
 
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
 		{
@@ -187,6 +184,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 	if (IsTranslucentBlendMode(BlendMode))
 	{
 		ProcessBasePassMeshForForwardShading(
+			RHICmdList,
 			FProcessBasePassMeshParameters(
 				Mesh,
 				Material,
@@ -269,6 +267,7 @@ void FTranslucentPrimSet::RenderPrimitiveForForwardShading(
 		if( ViewRelevance.bDynamicRelevance )
 		{
 			TDynamicPrimitiveDrawer<FTranslucencyForwardShadingDrawingPolicyFactory> TranslucencyDrawer(
+				RHICmdList,
 				&View,
 				FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),
 				false
@@ -343,9 +342,9 @@ void FForwardShadingSceneRenderer::RenderTranslucency(FRHICommandListImmediate& 
 			// Draw only translucent prims that don't read from scene color
 			View.TranslucentPrimSet.DrawPrimitivesForForwardShading(RHICmdList, View, *this);
 			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(View,FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),SDPG_World,false);
+			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(RHICmdList, View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), SDPG_World, false);
 			// Draw the view's mesh elements with the translucent drawing policy.
-			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(View,FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(),SDPG_Foreground,false);
+			DrawViewElements<FTranslucencyForwardShadingDrawingPolicyFactory>(RHICmdList, View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), SDPG_Foreground, false);
 		}
 	}
 }

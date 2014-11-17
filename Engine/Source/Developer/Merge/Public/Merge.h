@@ -6,6 +6,7 @@
 #include "IAssetTypeActions.h"
 
 class UBlueprint;
+class FBlueprintEditor;
 
 struct FMergeDisplayArgs
 {
@@ -43,11 +44,16 @@ public:
 	}
 
 	/**
-	 * Performs a three way merge of AssetA and AssetB using CommonOrigin as a base. Takes a display args structure
-	 * to customize the view.
+	 * Generates a widget used to perform a three way merge operation.
 	 *
-	 * @return The resulting UBlueprint, NULL if merge was canceled or otherwise failed
+	 * @return The merge view widget
 	 */
-	virtual void Merge( const UBlueprint& Object ) = 0;
+	virtual TSharedRef<class SDockTab> GenerateMergeWidget( const UBlueprint& Object, TSharedRef<FBlueprintEditor> Editor ) = 0;
+
+	/** 
+	 * @return whether the blueprint is in a conflicted state, and can therefore be merged.
+	 */
+	virtual bool PendingMerge(const UBlueprint& BlueprintObj) const = 0;
+
 };
 

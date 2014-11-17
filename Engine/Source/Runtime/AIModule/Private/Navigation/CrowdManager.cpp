@@ -331,6 +331,7 @@ void UCrowdManager::UpdateAgentParams(const ICrowdAgentInterface* Agent) const
 	{
 		dtCrowdAgentParams Params;
 		GetAgentParams(Agent, &Params);
+		Params.linkFilter = AgentData->LinkFilter;
 
 		// store for updating with constant intervals
 		((FCrowdAgentData*)AgentData)->bWantsPathOptimization = (Params.updateFlags & DT_CROWD_OPTIMIZE_VIS) != 0;
@@ -349,6 +350,17 @@ void UCrowdManager::UpdateAgentState(const class ICrowdAgentInterface* Agent) co
 	if (DetourCrowd && AgentData && AgentData->IsValid())
 	{
 		DetourCrowd->updateAgentState(AgentData->AgentIndex, false);
+	}
+#endif
+}
+
+void UCrowdManager::OnAgentFinishedCustomLink(const class ICrowdAgentInterface* Agent) const
+{
+#if WITH_RECAST
+	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
+	if (DetourCrowd && AgentData && AgentData->IsValid())
+	{
+		DetourCrowd->setAgentBackOnLink(AgentData->AgentIndex);
 	}
 #endif
 }
@@ -410,10 +422,10 @@ bool UCrowdManager::SetAgentMovePath(const class UCrowdFollowingComponent* Agent
 	ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(MyNavData);
 	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && 
 		DetourCrowd && RecastNavData &&
-		Path && (Path->PathPoints.Num() > 1) &&
+		Path && (Path->GetPathPoints().Num() > 1) &&
 		Path->PathCorridor.IsValidIndex(PathSectionStart) && Path->PathCorridor.IsValidIndex(PathSectionEnd))
 	{
-		FVector TargetPos = Path->PathPoints.Last().Location;
+		FVector TargetPos = Path->GetPathPoints().Last().Location;
 		if (PathSectionEnd < (Path->PathCorridor.Num() - 1))
 		{
 			RecastNavData->GetPolyCenter(Path->PathCorridor[PathSectionEnd], TargetPos);
@@ -425,7 +437,7 @@ bool UCrowdManager::SetAgentMovePath(const class UCrowdFollowingComponent* Agent
 			PathRefs.Add(Path->PathCorridor[Idx]);
 		}
 
-		const INavigationQueryFilterInterface* NavFilter = Path->Filter.IsValid() ? Path->Filter->GetImplementation() : MyNavData->GetDefaultQueryFilterImpl();
+		const INavigationQueryFilterInterface* NavFilter = Path->GetFilter().IsValid() ? Path->GetFilter()->GetImplementation() : MyNavData->GetDefaultQueryFilterImpl();
 		const dtQueryFilter* DetourFilter = ((const FRecastQueryFilter*)NavFilter)->GetAsDetourQueryFilter();
 		DetourCrowd->updateAgentFilter(AgentData->AgentIndex, DetourFilter);
 		DetourCrowd->updateAgentState(AgentData->AgentIndex, false);

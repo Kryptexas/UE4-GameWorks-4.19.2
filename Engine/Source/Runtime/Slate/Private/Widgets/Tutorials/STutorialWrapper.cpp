@@ -51,7 +51,7 @@ void STutorialWrapper::Tick( const FGeometry& AllottedGeometry, const double InC
 	CachedGeometry = AllottedGeometry;
 }
 
-int32 STutorialWrapper::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 STutorialWrapper::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	bool IsVisible = !( CachedGeometry.Size.X == 0 || CachedGeometry.Size.Y == 0 );
 
@@ -92,7 +92,7 @@ int32 STutorialWrapper::OnPaint(const FGeometry& AllottedGeometry, const FSlateR
 		FSlateDrawElement::MakeBox(OutDrawElements, OverlayLayerId + 1, BorderGeometry, BorderBrush, WindowClippingRect, ESlateDrawEffect::None, BorderTint);
 	}
 
-	return SBorder::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	return SBorder::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 }
 
 void STutorialWrapper::GetAnimationValues(float& OutAlphaFactor, float& OutPulseFactor, FLinearColor& OutShadowTint, FLinearColor& OutBorderTint) const

@@ -489,7 +489,7 @@ int main(int argc, ANSICHAR* argv[])
 	}
 #endif
 
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_LINUX
  	if ( true )
 #else
 	if ( FPlatformMisc::IsDebuggerPresent() )

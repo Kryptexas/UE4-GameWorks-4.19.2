@@ -13,7 +13,7 @@ FVector2D STestFunctionWidget::GetWidgetPosition(float X, float Y, const FGeomet
 	return FVector2D((X*Geom.Size.X), (Geom.Size.Y - 1) - (Y*Geom.Size.Y));
 }
 
-int32 STestFunctionWidget::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 STestFunctionWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	// Rendering info
 	bool bEnabled = ShouldBeEnabled(bParentEnabled);

@@ -84,18 +84,64 @@ FLinearColor FCurveTableEditor::GetWorldCentricTabColorScale() const
 }
 
 
+TSharedRef<SUniformGridPanel> FCurveTableEditor::CreateGridPanel() const
+{
+	TSharedRef<SUniformGridPanel> GridPanel = SNew(SUniformGridPanel).SlotPadding(FMargin(2.0f));
+
+	UCurveTable* Table = Cast<UCurveTable>(GetEditingObject());
+	if (Table != NULL)
+	{
+		int32 RowIdx = 0;
+		for ( auto RowIt = Table->RowMap.CreateConstIterator(); RowIt; ++RowIt )
+		{
+			const FName RowName = RowIt.Key();
+			const FRichCurve* RowCurve = RowIt.Value();
+
+			// Make sure this row is valid
+			if ( RowCurve )
+			{
+				FLinearColor RowColor = (RowIdx % 2 == 0) ? FLinearColor::Gray : FLinearColor::Black;
+				int32 ColumnIdx = 0;
+
+				// Row name
+				GridPanel->AddSlot(ColumnIdx++, RowIdx)
+				[
+					SNew(SBorder)
+					.Padding(1)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.BorderBackgroundColor(RowColor)
+					[
+						SNew(STextBlock) .Text(FText::FromName(RowName))
+					]
+				];
+
+				// Row Values
+				for (auto ValueIt(RowCurve->GetKeyIterator()); ValueIt; ++ValueIt)
+				{
+					GridPanel->AddSlot(ColumnIdx++, RowIdx)
+					[
+						SNew(SBorder)
+						.Padding(1)
+						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+						.BorderBackgroundColor(RowColor)
+						[
+							SNew(STextBlock).Text(FText::AsNumber(ValueIt->Value))
+						]
+					];
+				}
+
+				RowIdx++;
+			}
+		}
+	}
+
+	return GridPanel;
+}
+
+
 TSharedRef<SDockTab> FCurveTableEditor::SpawnTab_CurveTable( const FSpawnTabArgs& Args )
 {
 	check( Args.GetTabId().TabType == CurveTableTabId );
-
-	FString TableString;
-
-	// Get table as string
-	UCurveTable* Table = Cast<UCurveTable>(GetEditingObject());
-	if(Table != NULL)
-	{
-		TableString = Table->GetTableAsString();
-	}
 
 	return SNew(SDockTab)
 		.Icon( FEditorStyle::GetBrush("CurveTableEditor.Tabs.Properties") )
@@ -103,11 +149,19 @@ TSharedRef<SDockTab> FCurveTableEditor::SpawnTab_CurveTable( const FSpawnTabArgs
 		.TabColorScale( GetTabColorScale() )
 		[
 			SNew(SBorder)
-			.Padding(4)
-			.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
+			.Padding(2)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			[
-				SNew(STextBlock)
-				.Text(TableString)
+				SNew(SScrollBox)
+				+ SScrollBox::Slot()
+				[
+					SNew(SBox)
+					.VAlign(VAlign_Top)
+					.HAlign(HAlign_Left)
+					[
+						CreateGridPanel()
+					]
+				]
 			]
 		];
 }

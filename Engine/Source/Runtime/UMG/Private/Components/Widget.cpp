@@ -86,7 +86,7 @@ UPanelWidget* UWidget::GetParent() const
 	return NULL;
 }
 
-TSharedRef<SWidget> UWidget::GetWidget() const
+TSharedRef<SWidget> UWidget::TakeWidget()
 {
 	TSharedPtr<SWidget> SafeWidget;
 
@@ -96,18 +96,48 @@ TSharedRef<SWidget> UWidget::GetWidget() const
 		// and we need to construct and cache the widget for the first run.  But instead of forcing everyone
 		// downstream to make RebuildWidget const and force every implementation to make things mutable, we
 		// just blow away the const here.
-		UWidget* MutableThis = const_cast<UWidget*>(this);
-		
-		SafeWidget = MutableThis->RebuildWidget();
+		SafeWidget = RebuildWidget();
 		MyWidget = SafeWidget;
-		MutableThis->SyncronizeProperties();
+		SyncronizeProperties();
 	}
 	else
 	{
 		SafeWidget = MyWidget.Pin();
 	}
 
-	return SafeWidget.ToSharedRef();
+	// If it is a user widget wrap it in a SObjectWidget to keep the instance from being GC'ed
+	if ( IsA(UUserWidget::StaticClass()) )
+	{
+		if ( MyGCWidget.IsValid() )
+		{
+			return MyGCWidget.Pin().ToSharedRef();
+		}
+		else
+		{
+			TSharedPtr<SWidget> SafeGCWidget = SNew(SObjectWidget, Cast<UUserWidget>(this))
+				[
+					SafeWidget.ToSharedRef()
+				];
+
+			MyGCWidget = SafeGCWidget;
+
+			return SafeGCWidget.ToSharedRef();
+		}
+	}
+	else
+	{
+		return SafeWidget.ToSharedRef();
+	}
+}
+
+TSharedPtr<SWidget> UWidget::GetCachedWidget() const
+{
+	if ( MyGCWidget.IsValid() )
+	{
+		return MyGCWidget.Pin();
+	}
+
+	return MyWidget.Pin();
 }
 
 TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget)
@@ -129,7 +159,7 @@ TSharedRef<SWidget> UWidget::BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidge
 		[
 			SNew(SBorder)
 			.Visibility( EVisibility::HitTestInvisible )
-			.BorderImage( FCoreStyle::Get().GetBrush("FocusRectangle") )
+			.BorderImage(FUMGStyle::Get().GetBrush("MarchingAnts"))
 		];
 	}
 	else
@@ -191,6 +221,30 @@ void UWidget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 	}
 }
 
+void UWidget::Select()
+{
+	OnSelected();
+
+	UWidget* Parent = GetParent();
+	while ( Parent != NULL )
+	{
+		Parent->OnDescendantSelected(this);
+		Parent = Parent->GetParent();
+	}
+}
+
+void UWidget::Deselect()
+{
+	OnDeselected();
+
+	UWidget* Parent = GetParent();
+	while ( Parent != NULL )
+	{
+		Parent->OnDescendantDeselected(this);
+		Parent = Parent->GetParent();
+	}
+}
+
 #endif
 
 bool UWidget::Modify(bool bAlwaysMarkDirty)
@@ -201,6 +255,21 @@ bool UWidget::Modify(bool bAlwaysMarkDirty)
 		Modified &= Slot->Modify(bAlwaysMarkDirty);
 
 	return Modified;
+}
+
+bool UWidget::IsChildOf(UWidget* PossibleParent)
+{
+	UPanelWidget* Parent = GetParent();
+	if ( Parent == NULL )
+	{
+		return false;
+	}
+	else if ( Parent == PossibleParent )
+	{
+		return true;
+	}
+	
+	return Parent->IsChildOf(PossibleParent);
 }
 
 TSharedRef<SWidget> UWidget::RebuildWidget()
@@ -318,4 +387,23 @@ void UWidget::GatherAllChildren(UWidget* Root, TSet<UWidget*>& Children)
 			GatherAllChildren(ChildWidget, Children);
 		}
 	}
+}
+
+UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descendant)
+{
+	UWidget* Parent = Descendant->GetParent();
+
+	while ( Parent != NULL )
+	{
+		// If the Descendant's parent is the root, then the child containing the descendant is the descendant.
+		if ( Parent == Root )
+		{
+			return Descendant;
+		}
+
+		Descendant = Parent;
+		Parent = Parent->GetParent();
+	}
+
+	return NULL;
 }

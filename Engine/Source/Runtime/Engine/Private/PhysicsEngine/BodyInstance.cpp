@@ -201,6 +201,9 @@ FBodyInstance::FBodyInstance()
 , bEnableGravity(true)
 , bUseAsyncScene(false)
 , bUpdateMassWhenScaleChanges(false)
+, LockedAxisMode(0)
+, CustomLockedAxis(FVector::ZeroVector)
+, DOFConstraint(NULL)
 , bOverrideWalkableSlopeOnInstance(false)
 , PhysMaterialOverride(NULL)
 , COMNudge(ForceInit)
@@ -505,6 +508,82 @@ void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bU
 	}
 }
 
+FVector FBodyInstance::GetLockedAxis() const
+{
+	ELockedAxis::Type MyLockedAxis = LockedAxisMode;
+	if (MyLockedAxis == ELockedAxis::Default)
+	{
+		ESettingsLockedAxis::Type SettingLockedAxis = UPhysicsSettings::Get()->LockedAxis;
+		if (SettingLockedAxis == ESettingsLockedAxis::X) MyLockedAxis = ELockedAxis::X;
+		if (SettingLockedAxis == ESettingsLockedAxis::Y) MyLockedAxis = ELockedAxis::Y;
+		if (SettingLockedAxis == ESettingsLockedAxis::Z) MyLockedAxis = ELockedAxis::Z;
+		if (SettingLockedAxis == ESettingsLockedAxis::None) MyLockedAxis = ELockedAxis::None;
+	}
+
+	switch (MyLockedAxis)
+	{
+	case ELockedAxis::None: return FVector::ZeroVector;
+	case ELockedAxis::X: return FVector(1, 0, 0);
+	case ELockedAxis::Y: return FVector(0, 1, 0);
+	case ELockedAxis::Z: return FVector(0, 0, 1);
+	case ELockedAxis::Custom: return CustomLockedAxis;
+	default:	check(0);	//unsupported locked axis type
+	}
+
+	return FVector::ZeroVector;
+}
+
+void FBodyInstance::CreateDOFLock()
+{
+	if (DOFConstraint)
+	{
+		DOFConstraint->TermConstraint();
+		FConstraintInstance::Free(DOFConstraint);
+		DOFConstraint = NULL;
+	}
+
+	//setup constraint based on DOF
+	FVector LockedAxis = GetLockedAxis();
+
+	if (IsDynamic() == false || LockedAxis.IsNearlyZero())
+	{
+		return;
+	}
+
+	DOFConstraint = FConstraintInstance::Alloc();
+	{
+		DOFConstraint->bSwingLimitSoft = false;
+		DOFConstraint->bTwistLimitSoft = false;
+		DOFConstraint->bLinearLimitSoft = false;
+		//set all rotation to free
+		DOFConstraint->AngularSwing1Motion = EAngularConstraintMotion::ACM_Locked;
+		DOFConstraint->AngularSwing2Motion = EAngularConstraintMotion::ACM_Locked;
+		DOFConstraint->AngularTwistMotion = EAngularConstraintMotion::ACM_Free;
+
+		DOFConstraint->LinearXMotion = ELinearConstraintMotion::LCM_Locked;
+		DOFConstraint->LinearYMotion = ELinearConstraintMotion::LCM_Free;
+		DOFConstraint->LinearZMotion = ELinearConstraintMotion::LCM_Free;
+
+		FVector Normal = LockedAxis.SafeNormal();
+		FVector Sec;
+		FVector Garbage;
+		Normal.FindBestAxisVectors(Garbage, Sec);
+
+
+		FTransform TM = GetUnrealWorldTransform();
+
+		DOFConstraint->PriAxis1 = TM.InverseTransformVectorNoScale(Normal);
+		DOFConstraint->SecAxis1 = TM.InverseTransformVectorNoScale(Sec);
+
+		DOFConstraint->PriAxis2 = Normal;
+		DOFConstraint->SecAxis2 = Sec;
+		DOFConstraint->Pos2 = TM.GetLocation();
+
+		// Create constraint instance based on DOF
+		DOFConstraint->InitConstraint(OwnerComponent.Get(), this, nullptr, 1.f);
+	}
+}
+
 ECollisionEnabled::Type FBodyInstance::GetCollisionEnabled() const
 {
 	// Check actor override
@@ -581,7 +660,6 @@ void FBodyInstance::UpdatePhysicsFilterData()
 			//UE_LOG(LogPhysics, Warning, TEXT("Enabling collision %s : %s"), *GetNameSafe(Owner), *GetNameSafe(OwnerComponent.Get()));
 			// clear all other channel just in case other people using those channels to do something
 			UseResponse.SetAllChannels(ECR_Ignore);
-			UseResponse.SetResponse(ECC_Visibility, ECR_Block);
 			UseCollisionEnabled = ECollisionEnabled::QueryOnly;
 		}
 	}
@@ -1010,6 +1088,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 
 			SetMaxAngularVelocity(MaxAngularVelocity, false);
 
+			SetMaxDepenetrationVelocity(UPhysicsSettings::Get()->MaxDepenetrationVelocity);
+
 			//@TODO: BOX2D: Determine if sleep threshold and solver settings can be configured per-body or not
 #if 0
 			// Set the parameters for determining when to put the object to sleep.
@@ -1096,7 +1176,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		}
 
 		// If we ever drive this body kinematically, we want to use its target for scene queries, so collision is updated right away, not on the next physics sim
-		PNewDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, true);
+		PNewDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eUSE_KINEMATIC_TARGET_FOR_SCENE_QUERIES, true);	
 	}
 
 	// Copy geom from template and scale
@@ -1205,6 +1285,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 
 		SetMaxAngularVelocity(MaxAngularVelocity, false);
 
+		SetMaxDepenetrationVelocity(UPhysicsSettings::Get()->MaxDepenetrationVelocity);
+
 		// Set initial velocity 
 		if(bUseSimulate)
 		{
@@ -1222,6 +1304,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		int32 PositionIterCount = FMath::Clamp(PositionSolverIterationCount, 1, 255);
 		int32 VelocityIterCount = FMath::Clamp(VelocitySolverIterationCount, 1, 255);
 		PNewDynamic->setSolverIterationCounts(PositionIterCount, VelocityIterCount);
+
+		CreateDOFLock();
 
 		// wakeUp and putToSleep will issue warnings on kinematic actors
 		if (IsRigidDynamicNonKinematic(PNewDynamic))
@@ -1333,6 +1417,16 @@ void FBodyInstance::TermBody()
 
 	BodySetup = NULL;
 	OwnerComponent = NULL;
+
+	if (DOFConstraint)
+	{
+		DOFConstraint->TermConstraint();
+		FConstraintInstance::Free(DOFConstraint);
+		DOFConstraint = NULL;
+	}
+	
+
+	
 }
 
 #if WITH_BODY_WELDING
@@ -1875,10 +1969,13 @@ bool FBodyInstance::IsInstanceSimulatingPhysics(bool bIgnoreOwner)
 
 bool FBodyInstance::ShouldInstanceSimulatingPhysics(bool bIgnoreOwner)
 {
-	//If type is set to default inherit whatever the parent does
+	// if I'm simulating or owner is simulating
 	if (OwnerComponent != NULL && BodySetup.IsValid() && BodySetup.Get()->PhysicsType == PhysType_Default && !bIgnoreOwner)
 	{
+		// if derive from owner, and owner is simulating, this should simulate
 		return OwnerComponent->BodyInstance.bSimulatePhysics;
+
+		// or else, it should look its own setting
 	}
 
 	return bSimulatePhysics;
@@ -2427,6 +2524,7 @@ void FBodyInstance::UpdateMassProperties()
 
 		float MassRatio = NewMass/OldMass;
 		PxVec3 InertiaTensor = PRigidDynamic->getMassSpaceInertiaTensor();
+
 		PRigidDynamic->setMassSpaceInertiaTensor(InertiaTensor * MassRatio);
 		PRigidDynamic->setMass(NewMass);
 
@@ -2638,6 +2736,18 @@ void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent
 #endif
 
 	//@TODO: BOX2D: Implement SetMaxAngularVelocity
+}
+
+void FBodyInstance::SetMaxDepenetrationVelocity(float MaxVelocity)
+{
+#if WITH_PHYSX
+	float UseMaxVelocity = MaxVelocity == 0.f ? PX_MAX_F32 : MaxVelocity;
+
+	if (PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic())
+	{
+		PRigidDynamic->setMaxDepenetrationVelocity(UseMaxVelocity);
+	}
+#endif
 }
 
 

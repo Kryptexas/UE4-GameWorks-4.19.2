@@ -27,6 +27,10 @@ class UFbxSkeletalMeshImportData : public UFbxMeshImportData
 	UPROPERTY(EditAnywhere, config, Category=ImportSettings)
 	uint32 bImportMeshesInBoneHierarchy:1;
 
+	/** If checked, we will import group node (null node) as root. */
+	UPROPERTY(EditAnywhere, config, Category=ImportSettings)
+	uint32 bImportGroupNodeAsRoot:1;
+
 	/** True to import morph target meshes from the FBX file */
 	UPROPERTY(EditAnywhere, config, Category=ImportSettings, meta=(ToolTip="If enabled, creates Unreal morph objects for the imported meshes"))
 	uint32 bImportMorphTargets:1;

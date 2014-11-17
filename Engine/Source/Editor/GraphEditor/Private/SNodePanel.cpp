@@ -200,6 +200,11 @@ namespace NodePanelDefs
 
 void SNodePanel::OnArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
 {
+	ArrangeChildNodes(AllottedGeometry, ArrangedChildren);
+}
+
+void SNodePanel::ArrangeChildNodes(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+{
 	const TSlotlessChildren<SNode>& ChildrenToArrange = ArrangedChildren.Accepts(EVisibility::Hidden) ? Children : VisibleChildren;
 	// First pass nodes
 	for (int32 ChildIndex = 0; ChildIndex < ChildrenToArrange.Num(); ++ChildIndex)
@@ -290,6 +295,7 @@ void SNodePanel::Construct()
 	DeferredMovementTargetObject = NULL;
 
 	bIsPanning = false;
+	bIsZoomingWithTrackpad = false;
 	IsEditable.Set(true);
 
 	ZoomLevelFade = FCurveSequence( 0.0f, 1.0f );
@@ -306,6 +312,7 @@ void SNodePanel::Construct()
 	OldViewOffset = ViewOffset;
 	OldZoomAmount = GetZoomAmount();
 	ZoomStartOffset = FVector2D::ZeroVector;
+	TotalGestureMagnify = 0.0f;
 
 	ScopedTransactionPtr.Reset();
 }
@@ -484,7 +491,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 	TotalMouseDelta = 0;
 
 	if ((bIsLeftMouseButtonEffecting && bIsRightMouseButtonDown)
-	||  (bIsRightMouseButtonEffecting && bIsLeftMouseButtonDown))
+	||  (bIsRightMouseButtonEffecting && (bIsLeftMouseButtonDown || FSlateApplication::Get().IsUsingTrackpad())))
 	{
 		// Starting zoom by holding LMB+RMB
 		FReply ReplyState = FReply::Handled();
@@ -493,7 +500,11 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 
 		DeferredMovementTargetObject = NULL; // clear any interpolation when you manually zoom
 		TotalMouseDeltaY = 0;
-		bShowSoftwareCursor = true;
+
+		if (!FSlateApplication::Get().IsUsingTrackpad()) // on trackpad we don't know yet if user wants to zoom or bring up the context menu
+		{
+			bShowSoftwareCursor = true;
+		}
 
 		if (bIsLeftMouseButtonEffecting)
 		{
@@ -549,7 +560,7 @@ FReply SNodePanel::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointe
 	{
 		// LEFT BUTTON is for selecting nodes and manipulating pins.
 		FArrangedChildren ArrangedChildren(EVisibility::Visible);
-		ArrangeChildren(MyGeometry, ArrangedChildren);
+		ArrangeChildNodes(MyGeometry, ArrangedChildren);
 
 		const int32 NodeUnderMouseIndex = SWidget::FindChildUnderMouse( ArrangedChildren, MouseEvent );
 		if ( NodeUnderMouseIndex != INDEX_NONE )
@@ -618,6 +629,12 @@ FReply SNodePanel::OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent&
 			ChangeZoomLevel(ZoomLevelDelta, ZoomStartOffset, MouseEvent.IsControlDown());
 
 			this->bIsPanning = false;
+
+			if (FSlateApplication::Get().IsUsingTrackpad() && ZoomLevelDelta != 0)
+			{
+				this->bIsZoomingWithTrackpad = true;
+				bShowSoftwareCursor = true;
+			}
 			return ReplyState;
 		}
 		else if (bIsRightMouseButtonDown)
@@ -749,15 +766,16 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 	bool bRemoveSoftwareCursor = false;
 
 	if ((bIsLeftMouseButtonEffecting && bIsRightMouseButtonDown)
-	||  (bIsRightMouseButtonEffecting && bIsLeftMouseButtonDown))
+	||  (bIsRightMouseButtonEffecting && (bIsLeftMouseButtonDown || (FSlateApplication::Get().IsUsingTrackpad() && bIsZoomingWithTrackpad))))
 	{
 		// Ending zoom by releasing LMB or RMB
 		ReplyState = FReply::Handled();
 
-		if (bIsLeftMouseButtonDown)
+		if (bIsLeftMouseButtonDown || FSlateApplication::Get().IsUsingTrackpad())
 		{
 			// If we released the right mouse button first, we need to cancel the software cursor display
 			bRemoveSoftwareCursor = true;
+			bIsZoomingWithTrackpad = false;
 			ReplyState.ReleaseMouseCapture();
 		}
 	}
@@ -820,6 +838,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 				LastKeyGestureDetected.bAlt = false;
 				LastKeyGestureDetected.bCtrl = false;
 				LastKeyGestureDetected.bShift = false;
+				LastKeyGestureDetected.bCmd = false;
 			}
 		}
 		else if ( Marquee.IsValid() )
@@ -888,6 +907,7 @@ FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent&
 		LastKeyGestureDetected.bAlt = InKeyboardEvent.IsAltDown();
 		LastKeyGestureDetected.bCtrl = InKeyboardEvent.IsControlDown();
 		LastKeyGestureDetected.bShift = InKeyboardEvent.IsShiftDown();
+		LastKeyGestureDetected.bCmd = InKeyboardEvent.IsCommandDown();
 	}
 
 	return FReply::Unhandled();
@@ -901,6 +921,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& I
 		LastKeyGestureDetected.bAlt = false;
 		LastKeyGestureDetected.bCtrl = false;
 		LastKeyGestureDetected.bShift = false;
+		LastKeyGestureDetected.bCmd = false;
 	}
 
 	return FReply::Unhandled();
@@ -912,6 +933,7 @@ void SNodePanel::OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocus
 	LastKeyGestureDetected.bAlt = false;
 	LastKeyGestureDetected.bCtrl = false;
 	LastKeyGestureDetected.bShift = false;
+	LastKeyGestureDetected.bCmd = false;
 }
 
 FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )
@@ -920,10 +942,15 @@ FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEv
 	const FVector2D& GestureDelta = GestureEvent.GetGestureDelta();
 	if (GestureType == EGestureEvent::Magnify)
 	{
-		// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
-		const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(GestureEvent.GetScreenSpacePosition());
-		const int32 ZoomLevelDelta = FMath::FloorToInt(GestureDelta.X * 10);
-		ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, GestureEvent.IsControlDown());
+		TotalGestureMagnify += GestureDelta.X;
+		if (FMath::Abs(TotalGestureMagnify) > 0.07f)
+		{
+			// We want to zoom into this point; i.e. keep it the same fraction offset into the panel
+			const FVector2D WidgetSpaceCursorPos = MyGeometry.AbsoluteToLocal(GestureEvent.GetScreenSpacePosition());
+			const int32 ZoomLevelDelta = TotalGestureMagnify > 0.0f ? 1 : -1;
+			ChangeZoomLevel(ZoomLevelDelta, WidgetSpaceCursorPos, GestureEvent.IsControlDown());
+			TotalGestureMagnify = 0.0f;
+		}
 		return FReply::Handled();
 	}
 	else if (GestureType == EGestureEvent::Scroll)
@@ -932,6 +959,12 @@ FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEv
 		ViewOffset -= GestureDelta / GetZoomAmount();
 		return FReply::Handled();
 	}
+	return FReply::Unhandled();
+}
+
+FReply SNodePanel::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent )
+{
+	TotalGestureMagnify = 0.0f;
 	return FReply::Unhandled();
 }
 
@@ -1490,18 +1523,7 @@ void SNodePanel::ChangeZoomLevel(int32 ZoomLevelDelta, const FVector2D& WidgetSp
 	ZoomLevelFade.Play();
 
 	// Re-center the screen so that it feels like zooming around the cursor.
-	{
-		FSlateRect GraphBounds = ComputeSensibleGraphBounds();
-
-		// Make sure we are not zooming into/out into emptiness; otherwise the user will get lost..
-		const FVector2D ClampedPointToMaintainGraphSpace(
-			FMath::Clamp(PointToMaintainGraphSpace.X, GraphBounds.Left, GraphBounds.Right),
-			FMath::Clamp(PointToMaintainGraphSpace.Y, GraphBounds.Top, GraphBounds.Bottom)
-			);
-
-		this->ViewOffset = ClampedPointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
-	}
-
+	this->ViewOffset = PointToMaintainGraphSpace - WidgetSpaceZoomOrigin / GetZoomAmount();
 }
 
 bool SNodePanel::GetBoundsForSelectedNodes( class FSlateRect& Rect, float Padding )

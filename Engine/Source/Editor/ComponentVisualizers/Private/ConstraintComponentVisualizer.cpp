@@ -33,6 +33,7 @@ void FConstraintComponentVisualizer::DrawVisualization( const UActorComponent* C
 			Con1Frame = ConstraintComp->ComponentToWorld;
 			Con1Frame.RemoveScaling();
 			Con2Frame = ConstraintComp->ComponentToWorld;
+			Con2Frame.SetRotation(ConstraintComp->ConstraintInstance.AngularRotationOffset.Quaternion() * Con2Frame.GetRotation());
 			Con1Frame.RemoveScaling();
 		}
 

@@ -249,7 +249,7 @@ bool FIOSHttpRequest::StartRequest()
 void FIOSHttpRequest::FinishedRequest()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::FinishedRequest()"));
-	if( Response.IsValid() && Response->GetResponseCode() == EHttpResponseCodes::Ok)
+	if( Response.IsValid() && !Response->HadError())
 	{
 		UE_LOG(LogHttp, Verbose, TEXT("Request succeeded"));
 		CompletionStatus = EHttpRequestStatus::Succeeded;
@@ -262,7 +262,7 @@ void FIOSHttpRequest::FinishedRequest()
 		CompletionStatus = EHttpRequestStatus::Failed;
 
 		Response = NULL;
-		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this), Response, true);
+		OnProcessRequestComplete().ExecuteIfBound(SharedThis(this), NULL, false);
 	}
 
 	// Clean up session/request handles that may have been created
@@ -519,8 +519,21 @@ bool FIOSHttpResponse::IsReady()
 
 	if( Ready )
 	{
-		UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpResponse::IsReady()"));
+		UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpResponse::IsReady() = true"));
 	}
 
 	return Ready;
+}
+
+
+bool FIOSHttpResponse::HadError()
+{
+	bool bHadError = [ResponseWrapper bHadError];
+	
+	if (bHadError)
+	{
+		UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpResponse::HadError() = true"));
+	}
+
+	return bHadError;
 }

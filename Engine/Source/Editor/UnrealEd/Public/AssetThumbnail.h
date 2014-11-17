@@ -158,6 +158,9 @@ public:
 	/** Returns true if the thumbnail for the specified asset in the specified size is in the stack of thumbnails to render */
 	bool IsInRenderStack( const TSharedPtr<FAssetThumbnail>& Thumbnail ) const;
 
+	/** Returns true if the thumbnail for the specified asset in the specified size has been rendered */
+	bool IsRendered( const TSharedPtr<FAssetThumbnail>& Thumbnail ) const;
+
 	/** Brings all items in ThumbnailsToPrioritize to the front of the render stack if they are actually in the stack */
 	UNREALED_API void PrioritizeThumbnails( const TArray< TSharedPtr<FAssetThumbnail> >& ThumbnailsToPrioritize, uint32 Width, uint32 Height );
 
@@ -188,8 +191,14 @@ private:
 	/** Handler for when an asset is loaded */
 	void OnAssetLoaded( UObject* Asset );
 
+	/** Handler for when an actor is moved in a level. Used to update world asset thumbnails. */
+	void OnActorPostEditMove( AActor* Actor );
+
 	/** Handler for when an asset is loaded */
 	void OnObjectPropertyChanged( UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent );
+
+	/** Handler to dirty cached thumbnails in packages to make sure they are re-rendered later */
+	void DirtyThumbnailForObject( UObject* ObjectBeingModified );
 
 private:
 	/** Information about a thumbnail */
@@ -203,6 +212,8 @@ private:
 		FSlateTextureRenderTarget2DResource* ThumbnailRenderTarget;
 		/** The time since last access */
 		float LastAccessTime;
+		/** The time since last update */
+		float LastUpdateTime;
 		/** Width of the thumbnail */
 		uint32 Width;
 		/** Height of the thumbnail */

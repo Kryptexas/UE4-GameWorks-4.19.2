@@ -77,6 +77,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 
 			+SHorizontalBox::Slot()
 			.FillWidth(1.f)
+			.Padding(0,2,0,2)
 			[
 				SNew(SNumericEntryBox<int32>)
 
@@ -108,6 +109,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 				.ToolTipText(LOCTEXT("EditLevelToolTip", "Edit level transform in viewport."))
 				.OnClicked(this, &FStreamingLevelCustomization::OnEditLevelClicked)
 				.IsEnabled(this, &FStreamingLevelCustomization::LevelViewportTransformAllowed)
+				.ContentPadding(1)
 			]
 		];
 }

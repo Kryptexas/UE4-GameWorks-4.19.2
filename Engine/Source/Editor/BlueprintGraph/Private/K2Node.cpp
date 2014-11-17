@@ -892,10 +892,28 @@ ERenamePinResult UK2Node::RenameUserDefinedPin(const FString& OldName, const FSt
 
 	if(!bTest)
 	{
+		Pin->Modify();
 		Pin->PinName = NewName;
 		if(!Pin->DefaultTextValue.IsEmpty())
 		{
 			Pin->GetSchema()->TrySetDefaultText(*Pin, Pin->DefaultTextValue);
+		}
+
+		if (Pin->SubPins.Num() > 0)
+		{
+			TArray<UEdGraphPin*> PinsToUpdate = Pin->SubPins;
+
+			while (PinsToUpdate.Num() > 0)
+			{
+				UEdGraphPin* PinToRename = PinsToUpdate.Pop();
+				if (PinToRename->SubPins.Num() > 0)
+				{
+					PinsToUpdate.Append(PinToRename->SubPins);
+				}
+				PinToRename->Modify();
+				PinToRename->PinName = NewName + PinToRename->PinName.RightChop(OldName.Len());
+				PinToRename->PinFriendlyName = FText::FromString(NewName + PinToRename->PinFriendlyName.ToString().RightChop(OldName.Len()));
+			}
 		}
 	}
 

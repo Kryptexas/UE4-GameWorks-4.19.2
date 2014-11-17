@@ -39,7 +39,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 		];
 	}
 
-	//if (IsToolActive("ToolSet_Mask"))
+	//if (IsToolActive("Mask"))
 	{
 		ToolsCategory.AddCustomRow("Clear Region Selection")
 		.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&FLandscapeEditorDetailCustomization_MiscTools::GetClearRegionSelectionVisibility)))
@@ -51,7 +51,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 		];
 	}
 
-	if (IsToolActive("ToolSet_Splines"))
+	if (IsToolActive("Splines"))
 	{
 		ToolsCategory.AddCustomRow("Apply Splines")
 		[
@@ -103,7 +103,7 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 	}
 
 
-	if (IsToolActive("ToolSet_Ramp"))
+	if (IsToolActive("Ramp"))
 	{
 		ToolsCategory.AddCustomRow("Ramp")
 		[
@@ -149,10 +149,10 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 EVisibility FLandscapeEditorDetailCustomization_MiscTools::GetClearComponentSelectionVisibility()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolSet)
+	if (LandscapeEdMode && LandscapeEdMode->CurrentTool)
 	{
-		const FName CurrentToolSetName = LandscapeEdMode->CurrentToolSet->GetToolSetName();
-		if (CurrentToolSetName == FName("ToolSet_Select"))
+		const FName CurrentToolName = LandscapeEdMode->CurrentTool->GetToolName();
+		if (CurrentToolName == FName("Select"))
 		{
 			return EVisibility::Visible;
 		}
@@ -185,14 +185,14 @@ FReply FLandscapeEditorDetailCustomization_MiscTools::OnClearComponentSelectionB
 EVisibility FLandscapeEditorDetailCustomization_MiscTools::GetClearRegionSelectionVisibility()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode && LandscapeEdMode->CurrentToolSet)
+	if (LandscapeEdMode && LandscapeEdMode->CurrentTool)
 	{
-		const FName CurrentToolSetName = LandscapeEdMode->CurrentToolSet->GetToolSetName();
-		if (CurrentToolSetName == FName("ToolSet_Mask"))
+		const FName CurrentToolName = LandscapeEdMode->CurrentTool->GetToolName();
+		if (CurrentToolName == FName("Mask"))
 		{
 			return EVisibility::Visible;
 		}
-		else if (LandscapeEdMode->CurrentToolSet->GetTool() && LandscapeEdMode->CurrentToolSet->GetTool()->SupportsMask() &&
+		else if (LandscapeEdMode->CurrentTool && LandscapeEdMode->CurrentTool->SupportsMask() &&
 			LandscapeEdMode->CurrentToolTarget.LandscapeInfo.IsValid() && LandscapeEdMode->CurrentToolTarget.LandscapeInfo->SelectedRegion.Num() > 0)
 		{
 			return EVisibility::Visible;
@@ -208,7 +208,7 @@ FReply FLandscapeEditorDetailCustomization_MiscTools::OnClearRegionSelectionButt
 	if (LandscapeEdMode)
 	{
 		ULandscapeInfo* LandscapeInfo = LandscapeEdMode->CurrentToolTarget.LandscapeInfo.Get();
-		if( LandscapeInfo )
+		if (LandscapeInfo)
 		{
 			LandscapeInfo->ClearSelectedRegion(false);
 		}
@@ -261,7 +261,7 @@ ESlateCheckBoxState::Type FLandscapeEditorDetailCustomization_MiscTools::GetbUse
 FReply FLandscapeEditorDetailCustomization_MiscTools::OnApplyRampButtonClicked()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && IsToolActive(FName("ToolSet_Ramp")))
+	if (LandscapeEdMode != NULL && IsToolActive(FName("Ramp")))
 	{
 		LandscapeEdMode->ApplyRampTool();
 	}
@@ -272,7 +272,7 @@ FReply FLandscapeEditorDetailCustomization_MiscTools::OnApplyRampButtonClicked()
 bool FLandscapeEditorDetailCustomization_MiscTools::GetApplyRampButtonIsEnabled()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && IsToolActive(FName("ToolSet_Ramp")))
+	if (LandscapeEdMode != NULL && IsToolActive(FName("Ramp")))
 	{
 		return LandscapeEdMode->CanApplyRampTool();
 	}
@@ -283,7 +283,7 @@ bool FLandscapeEditorDetailCustomization_MiscTools::GetApplyRampButtonIsEnabled(
 FReply FLandscapeEditorDetailCustomization_MiscTools::OnResetRampButtonClicked()
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && IsToolActive(FName("ToolSet_Ramp")))
+	if (LandscapeEdMode != NULL && IsToolActive(FName("Ramp")))
 	{
 		LandscapeEdMode->ResetRampTool();
 	}

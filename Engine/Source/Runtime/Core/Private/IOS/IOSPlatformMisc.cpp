@@ -4,11 +4,12 @@
 	IOSPlatformMisc.mm: iOS implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "IOSApplication.h"
 #include "IOSAppDelegate.h"
+#include "IOSView.h"
 
 /** Amount of free memory in MB reported by the system at starup */
 CORE_API int32 GStartupFreeMemoryMB;

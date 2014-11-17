@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Developer/AssetTools/Public/IAssetTypeActions.h"
+#include "Runtime/AssetRegistry/Public/ARFilter.h"
 
 /** Called when a collection is selected in the collections view */
 DECLARE_DELEGATE_OneParam( FOnCollectionSelected, const struct FCollectionNameType& /*SelectedCollection*/);
@@ -24,7 +25,13 @@ DECLARE_DELEGATE_OneParam( FOnThumbnailScaleChanged, const float /*NewScale*/);
 /** Called to retrieve an array of the currently selected asset data */
 DECLARE_DELEGATE_RetVal( TArray< FAssetData >, FGetCurrentSelectionDelegate );
 
-/** Called to adjust the selection from the current assetdata, should be +1 to increment or -1 to derement */
+/** Called to retrieve an array of the currently selected asset data */
+DECLARE_DELEGATE_OneParam(FSyncToAssetsDelegate, const TArray< FAssetData >& /*AssetData*/);
+
+/** Called to set a new filter for an existing asset picker */
+DECLARE_DELEGATE_OneParam(FSetARFilterDelegate, const FARFilter& /*NewFilter*/);
+
+/** Called to adjust the selection from the current assetdata, should be +1 to increment or -1 to decrement */
 DECLARE_DELEGATE_OneParam( FAdjustSelectionDelegate, const int32 /*direction*/ );
 
 /** Called when an asset is selected in the asset view */
@@ -64,3 +71,9 @@ DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<FExtender>, FContentBrowserMenuExten
 
 /** Called to request the menu when right clicking on an asset */
 DECLARE_DELEGATE_RetVal_ThreeParams(TSharedPtr<SWidget>, FOnGetFolderContextMenu, const TArray<FString>& /*SelectedPaths*/, FContentBrowserMenuExtender_SelectedPaths /*MenuExtender*/, FOnCreateNewFolder /*CreationDelegate*/);
+
+/** Called to request a custom asset item tooltip */
+DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SToolTip>, FOnGetCustomAssetToolTip, class FAssetData& /*AssetData*/);
+
+/** Called when an asset item visualizes its tooltip */
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnVisualizeAssetToolTip, const TSharedPtr<SWidget>& /*ToolTipContent*/, class FAssetData& /*AssetData*/);

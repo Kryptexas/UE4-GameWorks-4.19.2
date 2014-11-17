@@ -9,7 +9,7 @@ FUniformGridSlotExtension::FUniformGridSlotExtension()
 	ExtensionId = FName(TEXT("UniformGridSlot"));
 }
 
-bool FUniformGridSlotExtension::IsActive(const TArray< FWidgetReference >& Selection)
+bool FUniformGridSlotExtension::CanExtendSelection(const TArray< FWidgetReference >& Selection) const
 {
 	for ( const FWidgetReference& Widget : Selection )
 	{
@@ -22,39 +22,39 @@ bool FUniformGridSlotExtension::IsActive(const TArray< FWidgetReference >& Selec
 	return Selection.Num() == 1;
 }
 
-void FUniformGridSlotExtension::BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets)
+void FUniformGridSlotExtension::ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements)
 {
 	SelectionCache = Selection;
 
-	if ( !IsActive(Selection) )
-	{
-		return;
-	}
-
-	TSharedRef<SButton> UpButton =
-		SNew(SButton)
+	TSharedRef<SButton> UpArrow = SNew(SButton)
 		.Text(LOCTEXT("UpArrow", "↑"))
+		.ContentPadding(FMargin(6, 2))
 		.OnClicked(this, &FUniformGridSlotExtension::HandleShiftRow, -1);
 
-	TSharedRef<SButton> DownButton =
-		SNew(SButton)
+	TSharedRef<SButton> DownArrow = SNew(SButton)
 		.Text(LOCTEXT("DownArrow", "↓"))
+		.ContentPadding(FMargin(6, 2))
 		.OnClicked(this, &FUniformGridSlotExtension::HandleShiftRow, 1);
 
-	TSharedRef<SButton> LeftButton =
-		SNew(SButton)
+	TSharedRef<SButton> LeftArrow = SNew(SButton)
 		.Text(LOCTEXT("LeftArrow", "←"))
+		.ContentPadding(FMargin(2, 6))
 		.OnClicked(this, &FUniformGridSlotExtension::HandleShiftColumn, -1);
 
-	TSharedRef<SButton> RightButton =
-		SNew(SButton)
+	TSharedRef<SButton> RightArrow = SNew(SButton)
 		.Text(LOCTEXT("RightArrow", "→"))
+		.ContentPadding(FMargin(2, 6))
 		.OnClicked(this, &FUniformGridSlotExtension::HandleShiftColumn, 1);
 
-	Widgets.Add(UpButton);
-	Widgets.Add(DownButton);
-	Widgets.Add(LeftButton);
-	Widgets.Add(RightButton);
+	UpArrow->SlatePrepass();
+	DownArrow->SlatePrepass();
+	LeftArrow->SlatePrepass();
+	RightArrow->SlatePrepass();
+
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(LeftArrow, EExtensionLayoutLocation::CenterLeft, FVector2D(-LeftArrow->GetDesiredSize().X, LeftArrow->GetDesiredSize().Y * -0.5f))));
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(RightArrow, EExtensionLayoutLocation::CenterRight, FVector2D(0, RightArrow->GetDesiredSize().Y * -0.5f))));
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(UpArrow, EExtensionLayoutLocation::TopCenter, FVector2D(UpArrow->GetDesiredSize().X * -0.5f, -UpArrow->GetDesiredSize().Y))));
+	SurfaceElements.Add(MakeShareable(new FDesignerSurfaceElement(DownArrow, EExtensionLayoutLocation::BottomCenter, FVector2D(DownArrow->GetDesiredSize().X * -0.5f, 0))));
 }
 
 FReply FUniformGridSlotExtension::HandleShiftRow(int32 ShiftAmount)

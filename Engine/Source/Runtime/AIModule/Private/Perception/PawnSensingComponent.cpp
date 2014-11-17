@@ -142,7 +142,7 @@ AActor* UPawnSensingComponent::GetSensorActor() const
 	if (IsValid(Controller))
 	{
 		// In case the owner is a controller, use the controlled pawn as the sensing location.
-		SensorActor = Controller->GetControlledPawn();
+		SensorActor = Controller->GetPawn();
 	}
 
 	if (!IsValid(SensorActor))

@@ -281,7 +281,7 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 		TArray<const UClass*> AllowedClasses;
 		AllowedClasses.Add(ObjectClass);
 
-		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(Value.AssetData.GetAsset(), bAllowClear, &AllowedClasses, OnShouldFilterAsset, FOnAssetSelected::CreateSP( this, &SPropertyEditorAsset::OnAssetSelected), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ) );
+		return PropertyCustomizationHelpers::MakeAssetPickerWithMenu(Value.AssetData, bAllowClear, &AllowedClasses, OnShouldFilterAsset, FOnAssetSelected::CreateSP( this, &SPropertyEditorAsset::OnAssetSelected), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ) );
 	}
 }
 
@@ -371,15 +371,15 @@ FString SPropertyEditorAsset::OnGetToolTip() const
 	return ToolTip;
 }
 
-void SPropertyEditorAsset::SetValue( const UObject* InObject )
+void SPropertyEditorAsset::SetValue( const FAssetData& AssetData )
 {
 	AssetComboButton->SetIsOpen(false);
 	if(PropertyEditor.IsValid())
 	{
-		PropertyEditor->GetPropertyHandle()->SetValue(InObject);
+		PropertyEditor->GetPropertyHandle()->SetValue(AssetData);
 	}
 
-	OnSetObject.ExecuteIfBound(InObject);
+	OnSetObject.ExecuteIfBound(AssetData);
 }
 
 FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutValue ) const
@@ -480,7 +480,7 @@ UClass* SPropertyEditorAsset::GetDisplayedClass() const
 
 void SPropertyEditorAsset::OnAssetSelected( const class FAssetData& AssetData )
 {
-	SetValue(AssetData.GetAsset());
+	SetValue(AssetData);
 }
 
 void SPropertyEditorAsset::OnActorSelected( AActor* InActor )

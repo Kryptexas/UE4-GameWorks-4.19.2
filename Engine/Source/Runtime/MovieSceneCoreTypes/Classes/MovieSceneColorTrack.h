@@ -7,6 +7,13 @@
 #include "MovieScenePropertyTrack.h"
 #include "MovieSceneColorTrack.generated.h"
 
+struct FColorKey
+{
+	FLinearColor Value;
+	FName CurveName;
+	bool bAddKeyEvenIfUnchanged;
+};
+
 /**
  * Handles manipulation of float properties in a movie scene
  */
@@ -27,7 +34,7 @@ public:
 	 * @param Value				The value of the key
 	 * @return True if the key was successfully added.
 	 */
-	virtual bool AddKeyToSection( float Time, FLinearColor Value );
+	virtual bool AddKeyToSection( float Time, const FColorKey& Key );
 	
 	/**
 	 * Evaluates the track at the playback position

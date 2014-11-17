@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Editor/ContentBrowser/Public/ContentBrowserDelegates.h"
+#include "Editor/ContentBrowser/Public/IContentBrowserSingleton.h"
 
 // This widget is a content reference, which can optionally show buttons for interacting with the reference
 class KISMET_API SContentReference : public SCompoundWidget
@@ -21,6 +22,8 @@ public:
 		, _AllowClearingReference(false)
 		, _AllowedClass((UClass*)NULL)
 		, _WidthOverride(FOptionalSize())
+		, _AssetPickerSizeOverride(FVector2D(384, 768))
+		, _InitialAssetViewType(EAssetViewType::Tile)
 	{}
 		// The style of the content reference widget (optional)
 		SLATE_ARGUMENT(FName, Style)
@@ -55,6 +58,11 @@ public:
 		/** When specified, the path box will request this fixed size. */
 		SLATE_ATTRIBUTE(FOptionalSize, WidthOverride)
 
+		// when you'd like to modify size of the asset picker window
+		SLATE_ATTRIBUTE(FVector2D, AssetPickerSizeOverride)
+
+		// initial view type
+		SLATE_ARGUMENT(EAssetViewType::Type, InitialAssetViewType)
 		// The event to call when the user selects a new asset or clears the existing reference
 		//@TODO: Support that stuff!
 	SLATE_END_ARGS()
@@ -91,6 +99,10 @@ protected:
 	TAttribute<bool> AllowSelectingNewAsset;
 	TAttribute<bool> AllowClearingReference;
 	TAttribute<UClass*> AllowedClass;
+
+	// Asset picker configuration
+	TAttribute<FVector2D>	AssetPickerSizeOverride;
+	EAssetViewType::Type	InitialAssetViewType;
 
 	// Delegates
 	FOnShouldFilterAsset OnShouldFilterAsset;

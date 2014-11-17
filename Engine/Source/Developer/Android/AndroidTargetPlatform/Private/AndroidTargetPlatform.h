@@ -45,8 +45,9 @@ namespace AndroidTexFormat
 /**
  * FAndroidTargetPlatform, abstraction for cooking Android platforms
  */
+template<class TPlatformProperties>
 class FAndroidTargetPlatform
-	: public TTargetPlatformBase< FAndroidPlatformProperties >
+	: public TTargetPlatformBase< TPlatformProperties >
 {
 public:
 

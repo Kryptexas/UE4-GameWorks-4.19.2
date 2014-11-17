@@ -167,7 +167,7 @@ public:
 	static void PackageProject( const FName InPlatformInfoName );
 
 	/** Checks whether a menu action for packaging the project can execute. */
-	static bool PackageProjectCanExecute( const FName PlatformInfoName, bool IsImplemented );
+	static bool PackageProjectCanExecute( const FName PlatformInfoName );
 
 	/** Refresh the project in the current IDE */
 	static void RefreshCodeProject();
@@ -238,6 +238,15 @@ protected:
 	 * @param TaskIcon - The icon for the task (to show in the notification item).
 	 */
 	static void CreateUatTask( const FString& CommandLine, const FText& PlatformDisplayName, const FText& TaskName, const FText &TaskShortName, const FSlateBrush* TaskIcon );
+
+	/**
+	 * Translate the given error code to human readable text
+	 *
+	 * @param ErrorCode - the error code returned from UAT task
+	 *
+	 * @return the human readable error string
+	 */
+	static FString TranslateUATError(int32 ErrorCode);
 
 	/** Callback for ChoosePackagesToCheckIn(), continues to bring up UI once source control operations are complete */
 	static void ChoosePackagesToCheckInCallback(const FSourceControlOperationRef& InOperation, ECommandResult::Type InResult);

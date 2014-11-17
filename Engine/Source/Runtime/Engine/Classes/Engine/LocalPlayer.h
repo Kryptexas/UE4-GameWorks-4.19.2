@@ -97,6 +97,7 @@ private:
 public:
 	// UObject interface
 	virtual void PostInitProperties() override;
+	virtual void BeginDestroy() override;
 	virtual void FinishDestroy() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End of UObject interface
@@ -137,6 +138,14 @@ protected:
 	/** @todo document */
 	void ExecMacro( const TCHAR* Filename, FOutputDevice& Ar );
 
+	/**
+	 * Handle controller connection events from the platform
+	 * @param bConnected - determines connection or disconnection event
+	 * @param UserId - platform specfic UserId
+	 * @param UserIndex - Engine level UserIndex.
+	 */
+	void HandleControllerConnectionChange(bool bConnected, int32 InUserId, int32 InControllerId);
+
 public:
 
 	/**
@@ -145,6 +154,8 @@ public:
 	 * @return  Returns the world of the LocalPlayer's PlayerController. NULL if the LocalPlayer does not have a PlayerController
 	 */
 	UWorld* GetWorld() const;
+
+	UGameInstance* GetGameInstance() const;
 
 	/**
 	 * Calculate the view settings for drawing from this view actor
@@ -260,11 +271,10 @@ public:
 	bool GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData);
 
 	/**
-	 * Called on world origin changes
-	 *
-	 * @param InOffset		Offset applied to current world origin
+	 * Determines whether this player is the first and primary player on their machine.
+	 * @return	true if this player is not using splitscreen, or is the first player in the split-screen layout.
 	 */
-	void ApplyWorldOffset(FVector InOffset);
+	bool IsPrimaryPlayer() const;
 
 	/** Locked view state needs access to GetViewPoint. */
 	friend class FLockedViewState;

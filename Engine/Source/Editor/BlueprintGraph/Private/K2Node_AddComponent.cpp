@@ -84,8 +84,12 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	const UActorComponent* TemplateComponent = GetTemplateFromNode();
-	if(const UClass* ComponentClass = (TemplateComponent ? TemplateComponent->GetClass() : NULL))
+	const UClass* ComponentClass = TemplateComponent ? TemplateComponent->GetClass() : NULL;
+
+	if(ComponentClass)
 	{
+		const UObject* ClassDefaultObject = ComponentClass ? ComponentClass->ClassDefaultObject : NULL;
+
 		for (TFieldIterator<UProperty> PropertyIt(ComponentClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UProperty* Property = *PropertyIt;
@@ -103,10 +107,24 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 					UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 					Pin->PinType = PinType;
 					bHasExposedVariable = true;
+
+					if (ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
+					{
+						FString DefaultValueAsString;
+						const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, reinterpret_cast<const uint8*>(ClassDefaultObject), DefaultValueAsString);
+						check(bDefaultValueSet);
+						K2Schema->TrySetDefaultValue(*Pin, DefaultValueAsString);
+					}
 				}
 			}
 		}
 	}
+}
+
+const UClass* UK2Node_AddComponent::GetSpawnedType() const
+{
+	const UActorComponent* TemplateComponent = GetTemplateFromNode();
+	return TemplateComponent ? TemplateComponent->GetClass() : NULL;
 }
 
 void UK2Node_AddComponent::AllocateDefaultPinsWithoutExposedVariables()
@@ -175,6 +193,19 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("ChildActorClass"), FText::FromString(ChildActorClass->GetName()));
 					MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "AddSelfComponent_Error", "@@ cannot add a '{ChildActorClass}' component in the construction script (could cause infinite recursion)."), Args).ToString(), this);
+				}
+			}
+			else if (ChildActorClass != nullptr)
+			{
+				AActor const* ChildActor = Cast<AActor>(ChildActorClass->ClassDefaultObject);
+				check(ChildActor != nullptr);
+				USceneComponent* RootComponent = ChildActor->GetRootComponent();
+
+				if ((RootComponent != nullptr) && (RootComponent->Mobility == EComponentMobility::Static) && (ChildActorComponent->Mobility != EComponentMobility::Static))
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("ChildActorClass"), FText::FromString(ChildActorClass->GetName()));
+					MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "AddStaticChildActorComponent_Error", "@@ cannot add a '{ChildActorClass}' component as it has static mobility, and the ChildActorComponent does not."), Args).ToString(), this);
 				}
 			}
 		}
@@ -379,8 +410,6 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 		static FString ValueParamName = FString(TEXT("Value"));
 		static FString PropertyNameParamName = FString(TEXT("PropertyName"));
 
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
-
 		UK2Node_AddComponent* NewNode = CompilerContext.SpawnIntermediateNode<UK2Node_AddComponent>(this, SourceGraph); 
 		NewNode->SetFromFunction(GetTargetFunction());
 		NewNode->AllocateDefaultPinsWithoutExposedVariables();
@@ -398,46 +427,8 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 		// exec in
 		CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *NewNode->GetExecPin());
 
-		UEdGraphPin* LastThen = NewNode->GetThenPin();
-		for(int32 PinIndex = 0; PinIndex < Pins.Num(); PinIndex++)
-		{
-			UEdGraphPin* OrgPin = Pins[PinIndex];
-			UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(OrgPin->PinType);
-			if((NULL == NewNode->FindPin(OrgPin->PinName)) && SetByNameFunction)
-			{
-				UK2Node_CallFunction* SetVarNode = NULL;
-				if(OrgPin->PinType.bIsArray)
-				{
-					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(this, SourceGraph);
-				}
-				else
-				{
-					SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
-				}
-				SetVarNode->SetFromFunction(SetByNameFunction);
-				SetVarNode->AllocateDefaultPins();
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes( CompilerContext, SourceGraph, NewNode, this, ReturnPin, GetSpawnedType() );
 
-				// Connect this node into the exec chain
-				Schema->TryCreateConnection(LastThen, SetVarNode->GetExecPin());
-				LastThen = SetVarNode->GetThenPin();
-
-				// Connect the new actor to the 'object' pin
-				UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
-				Schema->TryCreateConnection(ReturnPin, ObjectPin);
-
-				// Fill in literal for 'property name' pin - name of pin is property name
-				UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
-				PropertyNamePin->DefaultValue = OrgPin->PinName;
-
-				// Move connection from the variable pin on the spawn node to the 'value' pin
-				UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-				CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
-				if(OrgPin->PinType.bIsArray)
-				{
-					SetVarNode->PinConnectionListChanged(ValuePin);
-				}
-			}
-		}
 		CompilerContext.MovePinLinksToIntermediate(*GetThenPin(), *LastThen);
 		BreakAllNodeLinks();
 	}

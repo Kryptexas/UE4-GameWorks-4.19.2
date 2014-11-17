@@ -23,5 +23,10 @@ public class ShaderFormatOpenGL : ModuleRules
 			"OpenGL",
 			"HLSLCC"
 			);
+
+        if (Target.Platform == UnrealTargetPlatform.Linux)
+        {
+            AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
+        }
 	}
 }

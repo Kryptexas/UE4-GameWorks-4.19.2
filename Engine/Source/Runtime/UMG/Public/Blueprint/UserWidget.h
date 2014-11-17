@@ -84,14 +84,17 @@ public:
 	int32 MaxLayer;
 };
 
+class UUMGSequencePlayer;
+
 //TODO UMG If you want to host a widget that's full screen there may need to be a SWindow equivalent that you spawn it into.
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVisibilityChangedEvent, ESlateVisibility::Type, Visibility);
 
 /**
  * The user widget is extensible by users through the WidgetBlueprint.
  */
-UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable)
+UCLASS(Abstract, editinlinenew, BlueprintType, Blueprintable, meta=( Category="User Controls" ))
 class UMG_API UUserWidget : public UWidget
 {
 	GENERATED_UCLASS_BODY()
@@ -99,21 +102,47 @@ public:
 	//UObject interface
 	virtual void PostInitProperties() override;
 	virtual class UWorld* GetWorld() const override;
+	virtual void PostEditImport() override;
+	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	// End of UObject interface
 
-	/*  */
-	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void Show();
+	void Initialize();
+
+	//UVisual interface
+	virtual void ReleaseNativeWidget() override;
+	// End of UVisual interface
 
 	/*  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void Hide();
+	void AddToViewport(bool bAbsoluteLayout = false, bool bModal = false, bool bShowCursor = false);
+
+	/*  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void RemoveFromViewport();
 
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	bool GetIsVisible();
 
 	UFUNCTION(BlueprintPure, Category="Appearance")
 	TEnumAsByte<ESlateVisibility::Type> GetVisiblity();
+
+	/** Sets the player context associated with this UI. */
+	void SetPlayerContext(FLocalPlayerContext InPlayerContext);
+
+	/** Gets the player context associated with this UI. */
+	const FLocalPlayerContext& GetPlayerContext() const;
+
+	/** Gets the local player associated with this UI. */
+	UFUNCTION(BlueprintCallable, Category="Player")
+	class ULocalPlayer* GetLocalPlayer() const;
+
+	/** Gets the player controller associated with this UI. */
+	UFUNCTION(BlueprintCallable, Category="Player")
+	class APlayerController* GetPlayerController() const;
+
+	/** Called when the widget is constructed */
+	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
+	void Construct();
 
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	void Tick(FGeometry MyGeometry, float InDeltaTime);
@@ -187,11 +216,32 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category="User Interface")
 	FSReply OnMotionDetected(FGeometry MyGeometry, FMotionEvent InMotionEvent);
 
+	//virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
+
+	/**
+	 * Plays an animation in this widget
+	 * 
+	 * @param The name of the animation to play
+	 */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
+	void PlayAnimation(FName AnimationName);
+
+	/**
+	 * Stops an already running animation in this widget
+	 * 
+	 * @param The name of the animation to stop
+	 */
+	UFUNCTION(BlueprintCallable, Category="User Interface|Animation")
+	void StopAnimation(FName AnimationName);
+
+	/** Called when a sequence player is finished playing an animation */
+	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
+
 	/** @returns The UObject wrapper for a given SWidget */
 	UWidget* GetWidgetHandle(TSharedRef<SWidget> InWidget);
 
 	/** Creates a fullscreen host widget, that wraps this widget. */
-	TSharedRef<SWidget> MakeFullScreenWidget();
+	TSharedRef<SWidget> MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor);
 
 	/** @returns The root UObject widget wrapper */
 	UWidget* GetRootWidgetComponent();
@@ -202,36 +252,42 @@ public:
 	/** @returns The uobject widget corresponding to a given name */
 	UWidget* GetHandleFromName(const FString& Name) const;
 
+	/** Ticks this widget and forwards to the underlying widget to tick */
+	void NativeTick(const FGeometry& MyGeometry, float InDeltaTime );
+
+#if WITH_EDITOR
+	// UWidget interface
+	virtual const FSlateBrush* GetEditorIcon() override;
+	// End UWidget interface
+#endif
+
 public:
 	/** Called when the visibility changes. */
 	UPROPERTY(BlueprintAssignable)
 	FOnVisibilityChangedEvent OnVisibilityChanged;
 
-	/** Controls whether the cursor is automatically visible when this widget is visible. */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
-	uint32 bShowCursorWhenVisible : 1;
-
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
-	uint32 bModal : 1;
-
-	/**  */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	bool bAbsoluteLayout;
-
-	UPROPERTY(EditAnywhere, Category=Appearance, meta=( EditCondition="!bAbsoluteLayout" ))
 	FMargin Padding;
 
 	/** How much space this slot should occupy in the direction of the panel. */
-	UPROPERTY(EditAnywhere, Category=Appearance, meta=( EditCondition="!bAbsoluteLayout" ))
+	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FSlateChildSize Size;
 
-	/** Position. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( EditCondition="bAbsoluteLayout" ))
-	FVector2D AbsolutePosition;
+	/** The position on the screen to place the UI. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	FVector2D FullScreenPosition;
 
-	/** Size. */
-	UPROPERTY(EditDefaultsOnly, Category=Appearance, meta=( EditCondition="bAbsoluteLayout" ))
-	FVector2D AbsoluteSize;
+	/** The size on the screen the UI should be. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	FVector2D FullScreenSize;
+
+	/** The normalized UI alignment on the screen, 0..1.  Think of this as the pivot point. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	FVector2D FullScreenAlignment;
+
+	/** The Z-Order when the UI is fullscreen. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
+	int32 FullScreenZOrder;
 
 	/**
 	* Horizontal pivot position
@@ -264,17 +320,66 @@ public:
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 
-	UPROPERTY()
+	/** The components contained in this user widget. */
+	UPROPERTY(Transient)
 	TArray<UWidget*> Components;
 
-	UPROPERTY()
+	/** The widget tree contained inside this user widget initialized by the blueprint */
+	UPROPERTY(Transient)
 	class UWidgetTree* WidgetTree;
+
+	/** All the sequence players currently playing */
+	UPROPERTY(Transient)
+	TArray<UUMGSequencePlayer*> ActiveSequencePlayers;
 
 protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 
-private:
-	TMap< TWeakPtr<SWidget>, TWeakObjectPtr<UWidget> > WidgetToComponent;
+	FMargin GetFullScreenOffset() const;
+	FVector2D GetFullScreenAlignment() const;
+	int32 GetFullScreenZOrder() const;
 
+private:
 	TWeakPtr<SWidget> FullScreenWidget;
+
+	FLocalPlayerContext PlayerContext;
+
+	bool bInitialized;
+
+	mutable UWorld* CachedWorld;
 };
+
+template< class T >
+T* CreateWidget(UWorld* World, UClass* UserWidgetClass)
+{
+	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	{
+		// TODO UMG Error?
+		return NULL;
+	}
+
+	ULocalPlayer* Player = World->GetFirstLocalPlayerFromController();
+
+	UObject* Outer = ( Player == NULL ) ? StaticCast<UObject*>(World) : StaticCast<UObject*>(Player);
+	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, Outer);
+	NewWidget->SetPlayerContext(FLocalPlayerContext(Player));
+	NewWidget->Initialize();
+
+	return Cast<T>(NewWidget);
+}
+
+template< class T >
+T* CreateWidget(APlayerController* OwningPlayer, UClass* UserWidgetClass)
+{
+	if ( !UserWidgetClass->IsChildOf(UUserWidget::StaticClass()) )
+	{
+		// TODO UMG Error?
+		return NULL;
+	}
+
+	UUserWidget* NewWidget = ConstructObject<UUserWidget>(UserWidgetClass, OwningPlayer);
+	NewWidget->SetPlayerContext(FLocalPlayerContext(OwningPlayer));
+	NewWidget->Initialize();
+
+	return Cast<T>(NewWidget);
+}

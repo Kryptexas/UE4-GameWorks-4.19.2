@@ -7,6 +7,8 @@
 #ifndef __DEFERRED_SHADING_COMMON__
 #define __DEFERRED_SHADING_COMMON__
 
+#include "LightAccumulator.usf"
+
 // TODO: for CustomGBufferResolvePS() MSAA_SAMPLE_COUNT is defined by C++ code as 2 or 4
 // bot not for any other shaders!
 #ifndef MSAA_SAMPLE_COUNT
@@ -679,4 +681,4 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 #endif
 
 
-#endif
+#endif // __DEFERRED_SHADING_COMMON__

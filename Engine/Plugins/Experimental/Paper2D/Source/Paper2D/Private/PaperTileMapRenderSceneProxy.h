@@ -16,6 +16,10 @@ public:
 	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
 	// End of FPrimitiveSceneProxy interface.
 
+	void SetBatchesHack(TArray<FSpriteDrawCallRecord>& InBatchedSprites)
+	{
+		BatchedSprites = InBatchedSprites;
+	}
 protected:
 	//@TODO: Not thread safe
 	const UPaperTileMap* TileMap;

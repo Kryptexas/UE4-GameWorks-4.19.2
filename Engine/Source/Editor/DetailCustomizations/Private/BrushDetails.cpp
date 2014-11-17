@@ -9,6 +9,7 @@
 #include "ClassViewerFilter.h"
 #include "AssetSelection.h"
 #include "ClassIconFinder.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "BrushDetails"
 
@@ -120,24 +121,28 @@ void FBrushDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 
 			TArray<FNewBrushBuilder> NewBuilders;
 			TArray<FString> NewObjectPaths;
-			for(UObject* OuterObject : OuterObjects)
+
 			{
-				UBrushBuilder* NewObject = ConstructObject<UBrushBuilder>(InChosenClass, OuterObject);
+				const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "BrushSet", "Brush Set"));
+				for (UObject* OuterObject : OuterObjects)
+				{
+					UBrushBuilder* NewObject = ConstructObject<UBrushBuilder>(InChosenClass, OuterObject, NAME_None, RF_Transactional);
 
-				FNewBrushBuilder NewBuilder;
-				NewBuilder.Builder = NewObject;
-				NewBuilder.Brush = CastChecked<ABrush>( OuterObject );
+					FNewBrushBuilder NewBuilder;
+					NewBuilder.Builder = NewObject;
+					NewBuilder.Brush = CastChecked<ABrush>(OuterObject);
 
-				NewBuilders.Add(NewBuilder);
-				NewObjectPaths.Add(NewObject->GetPathName());
-			}
-			
-			BrushBuilderHandle->SetPerObjectValues(NewObjectPaths);
+					NewBuilders.Add(NewBuilder);
+					NewObjectPaths.Add(NewObject->GetPathName());
+				}
 
-			// make sure the brushes are rebuilt
-			for(FNewBrushBuilder& NewObject : NewBuilders)
-			{
-				NewObject.Builder->Build(NewObject.Brush->GetWorld(), NewObject.Brush);
+				BrushBuilderHandle->SetPerObjectValues(NewObjectPaths);
+
+				// make sure the brushes are rebuilt
+				for (FNewBrushBuilder& NewObject : NewBuilders)
+				{
+					NewObject.Builder->Build(NewObject.Brush->GetWorld(), NewObject.Brush);
+				}
 			}
 
 			FSlateApplication::Get().DismissAllMenus();

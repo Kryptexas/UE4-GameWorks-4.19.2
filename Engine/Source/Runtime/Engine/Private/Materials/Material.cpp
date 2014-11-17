@@ -64,54 +64,54 @@ FMaterialResource::FMaterialResource()
 {
 }
 
-int32 FMaterialResource::CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const
+int32 FMaterialResource::CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
 {
-	Compiler->SetMaterialProperty(Property, InShaderFrequency);
+	// needs to be called in this function!!
+	// sets CurrentShaderFrequency
+	Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+
+	EShaderFrequency ShaderFrequency = Compiler->GetCurrentShaderFrequency();
+
 	int32 SelectionColorIndex = INDEX_NONE;
-	if (InShaderFrequency == SF_Pixel)
+
+	if (ShaderFrequency == SF_Pixel)
 	{
 		SelectionColorIndex = Compiler->ComponentMask(Compiler->VectorParameter(NAME_SelectionColor,FLinearColor::Black),1,1,1,0);
 	}
 	
 	//Compile the material instance if we have one.
 	UMaterialInterface* MaterialInterface = MaterialInstance ? Cast<UMaterialInterface>(MaterialInstance) : Cast<UMaterialInterface>(Material);
+
+	int32 Ret = INDEX_NONE;
+
 	switch(Property)
 	{
-	case MP_EmissiveColor:
-		if (SelectionColorIndex != INDEX_NONE)
-		{
-			return Compiler->Add(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3),SelectionColorIndex);
-		}
-		else
-		{
-			return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3);
-		}
-	case MP_Opacity: return MaterialInterface->CompileProperty(Compiler, MP_Opacity);
-	case MP_OpacityMask: return MaterialInterface->CompileProperty(Compiler, MP_OpacityMask);
-	case MP_DiffuseColor: 
-		return Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
-	case MP_SpecularColor: return MaterialInterface->CompileProperty(Compiler, MP_SpecularColor);
-	case MP_BaseColor: 
-		return Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_BaseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
-	case MP_Metallic: return MaterialInterface->CompileProperty(Compiler, MP_Metallic);
-	case MP_Specular: return MaterialInterface->CompileProperty(Compiler, MP_Specular);
-	case MP_Roughness: return MaterialInterface->CompileProperty(Compiler, MP_Roughness);
-	case MP_Normal: return MaterialInterface->CompileProperty(Compiler, MP_Normal);
-	case MP_WorldPositionOffset: return MaterialInterface->CompileProperty(Compiler, MP_WorldPositionOffset);
-	case MP_WorldDisplacement: return MaterialInterface->CompileProperty(Compiler, MP_WorldDisplacement);
-	case MP_TessellationMultiplier: return MaterialInterface->CompileProperty(Compiler, MP_TessellationMultiplier);
-	case MP_SubsurfaceColor: return MaterialInterface->CompileProperty(Compiler, MP_SubsurfaceColor);
-	case MP_AmbientOcclusion: return MaterialInterface->CompileProperty(Compiler, MP_AmbientOcclusion);
-	case MP_Refraction: return MaterialInterface->CompileProperty(Compiler, MP_Refraction);
-	default:
+		case MP_EmissiveColor:
+			if (SelectionColorIndex != INDEX_NONE)
+			{
+				Ret = Compiler->Add(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor), MCT_Float3), SelectionColorIndex);
+			}
+			else
+			{
+				Ret = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor), MCT_Float3);
+			}
+			break;
 
-		if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
-		{
-			return MaterialInterface->CompileProperty(Compiler, (EMaterialProperty)Property);
-		}
-
-		return INDEX_NONE;
+		case MP_DiffuseColor: 
+			Ret = Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor), MCT_Float3), Compiler->Sub(Compiler->Constant(1.0f), SelectionColorIndex));
+			break;
+		case MP_BaseColor: 
+			Ret = Compiler->Mul(Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_BaseColor),MCT_Float3),Compiler->Sub(Compiler->Constant(1.0f),SelectionColorIndex));
+			break;
+		case MP_MaterialAttributes:
+			Ret = INDEX_NONE;
+			break;
+		default:
+			Ret = MaterialInterface->CompileProperty(Compiler, Property);
 	};
+
+	// output should always be the right type for this property
+	return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
 }
 
 void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -1643,6 +1643,11 @@ void UMaterial::Serialize(FArchive& Ar)
 	{
 		GMaterialsThatNeedCommentFix.Set(this);
 	}
+
+	if (Ar.UE4Ver() < VER_UE4_ADD_LINEAR_COLOR_SAMPLER)
+	{
+		GMaterialsThatNeedSamplerFixup.Set(this);
+	}
 #endif // #if WITH_EDITOR
 
 	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_REORDERING )
@@ -1949,7 +1954,7 @@ void UMaterial::PostLoad()
 		const int32 ExpressionCount = Expressions.Num();
 		for ( int32 ExpressionIndex = 0; ExpressionIndex < ExpressionCount; ++ExpressionIndex )
 		{
-			UMaterialExpressionTextureSample* TextureExpression = Cast<UMaterialExpressionTextureSample>( Expressions[ ExpressionIndex ] );
+			UMaterialExpressionTextureBase* TextureExpression = Cast<UMaterialExpressionTextureBase>(Expressions[ExpressionIndex]);
 			if ( TextureExpression && TextureExpression->Texture )
 			{
 				switch( TextureExpression->Texture->CompressionSettings )
@@ -1959,7 +1964,7 @@ void UMaterial::PostLoad()
 					break;
 					
 				case TC_Grayscale:
-					TextureExpression->SamplerType = SAMPLERTYPE_Grayscale;
+					TextureExpression->SamplerType = TextureExpression->Texture->SRGB ? SAMPLERTYPE_Grayscale : SAMPLERTYPE_LinearGrayscale;
 					break;
 
 				case TC_Masks:
@@ -1970,7 +1975,7 @@ void UMaterial::PostLoad()
 					TextureExpression->SamplerType = SAMPLERTYPE_Alpha;
 					break;
 				default:
-					TextureExpression->SamplerType = SAMPLERTYPE_Color;
+					TextureExpression->SamplerType = TextureExpression->Texture->SRGB ? SAMPLERTYPE_Color : SAMPLERTYPE_LinearColor;
 					break;
 				}
 			}
@@ -2371,7 +2376,7 @@ bool UMaterial::IsParameter(const UMaterialExpression* Expression)
 }
 
 
-bool UMaterial::IsDynamicParameter(UMaterialExpression* Expression)
+bool UMaterial::IsDynamicParameter(const UMaterialExpression* Expression)
 {
 	if (Expression->IsA(UMaterialExpressionDynamicParameter::StaticClass()))
 	{
@@ -2394,7 +2399,7 @@ void UMaterial::BuildEditorParameterList()
 }
 
 
-bool UMaterial::HasDuplicateParameters(UMaterialExpression* Expression)
+bool UMaterial::HasDuplicateParameters(const UMaterialExpression* Expression)
 {
 	FName ExpressionName;
 
@@ -2419,9 +2424,9 @@ bool UMaterial::HasDuplicateParameters(UMaterialExpression* Expression)
 }
 
 
-bool UMaterial::HasDuplicateDynamicParameters(UMaterialExpression* Expression)
+bool UMaterial::HasDuplicateDynamicParameters(const UMaterialExpression* Expression)
 {
-	UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
+	const UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
 	if (DynParam)
 	{
 		for (int32 ExpIndex = 0; ExpIndex < Expressions.Num(); ExpIndex++)
@@ -2437,20 +2442,16 @@ bool UMaterial::HasDuplicateDynamicParameters(UMaterialExpression* Expression)
 }
 
 
-void UMaterial::UpdateExpressionDynamicParameterNames(UMaterialExpression* Expression)
+void UMaterial::UpdateExpressionDynamicParameterNames(const UMaterialExpression* Expression)
 {
-	UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
+	const UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Expression);
 	if (DynParam)
 	{
 		for (int32 ExpIndex = 0; ExpIndex < Expressions.Num(); ExpIndex++)
 		{
 			UMaterialExpressionDynamicParameter* CheckParam = Cast<UMaterialExpressionDynamicParameter>(Expressions[ExpIndex]);
-			if (CheckParam && (CheckParam != DynParam))
+			if (CheckParam->CopyDynamicParameterNames(DynParam))
 			{
-				for (int32 NameIndex = 0; NameIndex < 4; NameIndex++)
-				{
-					CheckParam->ParamNames[NameIndex] = DynParam->ParamNames[NameIndex];
-				}
 #if WITH_EDITORONLY_DATA
 				CheckParam->GraphNode->ReconstructNode();
 #endif // WITH_EDITORONLY_DATA
@@ -2504,7 +2505,7 @@ void UMaterial::UpdateExpressionParameterName(UMaterialExpression* Expression)
 }
 
 
-bool UMaterial::GetExpressionParameterName(UMaterialExpression* Expression, FName& OutName)
+bool UMaterial::GetExpressionParameterName(const UMaterialExpression* Expression, FName& OutName)
 {
 	bool bRet = false;
 
@@ -2979,40 +2980,25 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 {
 	switch (InProperty)
 	{
-	case MP_EmissiveColor:
-		return &EmissiveColor;
-	case MP_Opacity:
-		return &Opacity;
-	case MP_OpacityMask:
-		return &OpacityMask;
-	case MP_DiffuseColor:
-		return &DiffuseColor;
-	case MP_SpecularColor:
-		return &SpecularColor;
-	case MP_BaseColor:
-		return &BaseColor;
-	case MP_Metallic:
-		return &Metallic;
-	case MP_Specular:
-		return &Specular;
-	case MP_Roughness:
-		return &Roughness;
-	case MP_Normal:
-		return &Normal;
-	case MP_WorldPositionOffset:
-		return &WorldPositionOffset;
-	case MP_WorldDisplacement:
-		return &WorldDisplacement;
-	case MP_TessellationMultiplier:
-		return &TessellationMultiplier;
-	case MP_SubsurfaceColor:
-		return &SubsurfaceColor;
-	case MP_AmbientOcclusion:
-		return &AmbientOcclusion;
-	case MP_Refraction:
-		return &Refraction;
-	case MP_MaterialAttributes: 
-		return &MaterialAttributes;
+		case MP_EmissiveColor:			return &EmissiveColor;
+		case MP_Opacity:				return &Opacity;
+		case MP_OpacityMask:			return &OpacityMask;
+		case MP_DiffuseColor:			return &DiffuseColor;
+		case MP_SpecularColor:			return &SpecularColor;
+		case MP_BaseColor:				return &BaseColor;
+		case MP_Metallic:				return &Metallic;
+		case MP_Specular:				return &Specular;
+		case MP_Roughness:				return &Roughness;
+		case MP_Normal:					return &Normal;
+		case MP_WorldPositionOffset:	return &WorldPositionOffset;
+		case MP_WorldDisplacement:		return &WorldDisplacement;
+		case MP_TessellationMultiplier:	return &TessellationMultiplier;
+		case MP_SubsurfaceColor:		return &SubsurfaceColor;
+		case MP_ClearCoat:				return &ClearCoat;
+		case MP_ClearCoatRoughness:		return &ClearCoatRoughness;
+		case MP_AmbientOcclusion:		return &AmbientOcclusion;
+		case MP_Refraction:				return &Refraction;
+		case MP_MaterialAttributes:		return &MaterialAttributes;
 	}
 
 	if (InProperty >= MP_CustomizedUVs0 && InProperty <= MP_CustomizedUVs7)
@@ -3202,6 +3188,9 @@ void UMaterial::AppendReferencedTextures(TArray<UTexture*>& InOutTextures) const
 		}
 		else
 		{
+			// should never be 0 but there is a bug, see TTP 340934
+			check(Expression);
+
 			UTexture* ReferencedTexture = Expression->GetReferencedTexture();
 
 			if (ReferencedTexture)
@@ -3285,57 +3274,54 @@ void UMaterial::GetReferencedParameterCollectionIds(TArray<FGuid>& Ids) const
 	}
 }
 
-int32 UMaterial::CompileProperty( FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector )
+int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProperty Property )
 {
-	int32 Ret = INDEX_NONE;
-
 	if( bUseMaterialAttributes && MP_DiffuseColor != Property && MP_SpecularColor != Property )
 	{
-		Ret = MaterialAttributes.Compile(Compiler,Property, DefaultFloat, DefaultColor, DefaultVector);
+		return MaterialAttributes.CompileWithDefault(Compiler, Property);
 	}
-	else
-	{
-		switch(Property)
-		{
-		case MP_Opacity: Ret = Opacity.Compile(Compiler,DefaultFloat); break;
-		case MP_OpacityMask: Ret = OpacityMask.Compile(Compiler,DefaultFloat); break;
-		case MP_Metallic: Ret = Metallic.Compile(Compiler,DefaultFloat); break;
-		case MP_Specular: Ret = Specular.Compile(Compiler,DefaultFloat); break;
-		case MP_Roughness: Ret = Roughness.Compile(Compiler,DefaultFloat); break;
-		case MP_TessellationMultiplier: Ret = TessellationMultiplier.Compile(Compiler,DefaultFloat); break;
-		case MP_AmbientOcclusion: Ret = AmbientOcclusion.Compile(Compiler,DefaultFloat); break;
-		case MP_Refraction: 
-			Ret = Compiler->AppendVector( 
-					Compiler->ForceCast(Refraction.Compile(Compiler,DefaultFloat), MCT_Float1), 
-					Compiler->ForceCast(Compiler->ScalarParameter(FName(TEXT("RefractionDepthBias")), Compiler->GetRefractionDepthBiasValue()), MCT_Float1) 
-					);
-			break;
-		case MP_EmissiveColor: Ret = EmissiveColor.Compile(Compiler,DefaultColor); break;
-		case MP_DiffuseColor: Ret = DiffuseColor.Compile(Compiler,DefaultColor); break;
-		case MP_SpecularColor: Ret = SpecularColor.Compile(Compiler,DefaultColor); break;
-		case MP_BaseColor: Ret = BaseColor.Compile(Compiler,DefaultColor); break;
-		case MP_SubsurfaceColor: Ret = SubsurfaceColor.Compile(Compiler,DefaultColor); break;
-		case MP_Normal: Ret = Normal.Compile(Compiler,DefaultVector); break;
-		case MP_WorldPositionOffset: Ret = WorldPositionOffset.Compile(Compiler,DefaultVector); break;
-		case MP_WorldDisplacement: Ret = WorldDisplacement.Compile(Compiler,DefaultVector); break;
-		};
 
+	switch (Property)
+	{
+		case MP_Opacity:				return Opacity.CompileWithDefault(Compiler, Property);
+		case MP_OpacityMask:			return OpacityMask.CompileWithDefault(Compiler, Property);
+		case MP_Metallic:				return Metallic.CompileWithDefault(Compiler, Property);
+		case MP_Specular:				return Specular.CompileWithDefault(Compiler, Property);
+		case MP_Roughness:				return Roughness.CompileWithDefault(Compiler, Property);
+		case MP_TessellationMultiplier:	return TessellationMultiplier.CompileWithDefault(Compiler, Property);
+		case MP_ClearCoat:				return ClearCoat.CompileWithDefault(Compiler, Property);
+		case MP_ClearCoatRoughness:		return ClearCoatRoughness.CompileWithDefault(Compiler, Property);
+		case MP_AmbientOcclusion:		return AmbientOcclusion.CompileWithDefault(Compiler, Property);
+		case MP_Refraction:				return Refraction.CompileWithDefault(Compiler, Property);
+		case MP_EmissiveColor:			return EmissiveColor.CompileWithDefault(Compiler, Property);
+		case MP_DiffuseColor:			return DiffuseColor.CompileWithDefault(Compiler, Property);
+		case MP_SpecularColor:			return SpecularColor.CompileWithDefault(Compiler, Property);
+		case MP_BaseColor:				return BaseColor.CompileWithDefault(Compiler, Property);
+		case MP_SubsurfaceColor:		return SubsurfaceColor.CompileWithDefault(Compiler, Property);
+		case MP_Normal:					return Normal.CompileWithDefault(Compiler, Property);
+		case MP_WorldPositionOffset:	return WorldPositionOffset.CompileWithDefault(Compiler, Property);
+		case MP_WorldDisplacement:		return WorldDisplacement.CompileWithDefault(Compiler, Property);
+
+		default:
 			if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 			{
 				const int32 TextureCoordinateIndex = Property - MP_CustomizedUVs0;
 
 				if (CustomizedUVs[TextureCoordinateIndex].Expression && TextureCoordinateIndex < NumCustomizedUVs)
 				{
-					Ret = CustomizedUVs[TextureCoordinateIndex].Compile(Compiler,FVector2D(DefaultVector.X, DefaultVector.Y));
+					return CustomizedUVs[TextureCoordinateIndex].CompileWithDefault(Compiler, Property);
 				}
 				else
 				{
 					// The user did not customize this UV, pass through the vertex texture coordinates
-					Ret = Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
+					return Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
 				}
 			}
+		
 	}
-	return Ret;
+
+	check(0);
+	return INDEX_NONE;
 }
 
 void UMaterial::NotifyCompilationFinished(FMaterialResource* CompiledResource)
@@ -3426,6 +3412,11 @@ EMaterialShadingModel UMaterial::GetShadingModel_Internal() const
 bool UMaterial::IsTwoSided_Internal() const
 {
 	return TwoSided != 0;
+}
+
+bool UMaterial::IsMasked_Internal() const
+{
+	return bIsMasked != 0;
 }
 
 bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const 
@@ -3538,17 +3529,23 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 	case MP_DiffuseColor:
 	case MP_SpecularColor:
 	case MP_BaseColor:
-	case MP_Metallic:
 	case MP_Specular:
 	case MP_Roughness:
 	case MP_AmbientOcclusion:
 		Active = ShadingModel != MSM_Unlit;
+		break;
+	case MP_Metallic:
+		Active = ShadingModel != MSM_Unlit && ShadingModel != MSM_Subsurface && ShadingModel != MSM_PreintegratedSkin;
 		break;
 	case MP_Normal:
 		Active = ShadingModel != MSM_Unlit || Refraction.IsConnected();
 		break;
 	case MP_SubsurfaceColor:
 		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin;
+		break;
+	case MP_ClearCoat:
+	case MP_ClearCoatRoughness:
+		Active = ShadingModel == MSM_ClearCoat;
 		break;
 	case MP_TessellationMultiplier:
 	case MP_WorldDisplacement:

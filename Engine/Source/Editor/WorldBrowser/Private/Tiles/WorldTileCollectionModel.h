@@ -18,10 +18,10 @@ public:
 	 *
 	 *	@param	InEditor		The UEditorEngine to use
 	 */
-	static TSharedRef<FWorldTileCollectionModel> Create(const TWeakObjectPtr<UEditorEngine>& InEditor)
+	static TSharedRef<FWorldTileCollectionModel> Create(UEditorEngine* InEditor, UWorld* InWorld)
 	{
 		TSharedRef<FWorldTileCollectionModel> LevelCollectionModel(new FWorldTileCollectionModel(InEditor));
-		LevelCollectionModel->Initialize();
+		LevelCollectionModel->Initialize(InWorld);
 		return LevelCollectionModel;
 	}
 public:
@@ -31,7 +31,6 @@ public:
 	virtual FVector2D SnapTranslationDelta(const FLevelModelList& InList, FVector2D InTranslationDelta, bool bBoundsSnapping, float InSnappingValue) override;
 	virtual TSharedPtr<FLevelDragDropOp> CreateDragDropOp() const override;
 	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const override;
-	virtual void BuildGridMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual FMatrix GetObserverViewMatrix() const override;
@@ -47,7 +46,7 @@ private:
 	/** FTickableEditorObject interface end */
 
 	/** FLevelCollection interface */
-	virtual void Initialize() override;
+	virtual void Initialize(UWorld* InWorld) override;
 	virtual void BindCommands() override;
 	virtual void OnLevelsCollectionChanged() override;
 	virtual void OnLevelsSelectionChanged() override;
@@ -138,8 +137,13 @@ public:
 	 */
 	void Focus(FBox InArea, FocusStrategy InStaragegy);
 
+	/** 
+	 *  Builds context menu for a world composition
+	 */
+	void BuildWorldCompositionMenu(FMenuBuilder& InMenuBuilder) const;
+
 private:
-	FWorldTileCollectionModel( const TWeakObjectPtr< UEditorEngine >& InEditor );
+	FWorldTileCollectionModel(UEditorEngine* InEditor);
 	
 	/** Setups parent->child links between tiles */
 	void SetupParentChildLinks();
@@ -181,17 +185,17 @@ private:
 	 */
 	bool AddLevelToTheWorld(const TSharedPtr<FWorldTileModel>& InLevel);
 	
-	/** Builds Layers menu */
-	void BuildLayersMenu(FMenuBuilder& InMenuBuilder) const;
+	/** Fills Layers sub-menu */
+	void FillLayersSubMenu(FMenuBuilder& InMenuBuilder) const;
 	
-	/** Builds adjacent landscape menu */
-	void BuildAdjacentLandscapeMenu(FMenuBuilder& InMenuBuilder) const;
+	/** Fills adjacent landscape sub-menu */
+	void FillAdjacentLandscapeSubMenu(FMenuBuilder& InMenuBuilder) const;
 
-	/** Builds reimport tiled landscape menu */
-	void BuildReimportTiledLandscapeMenu(FMenuBuilder& InMenuBuilder) const;
+	/** Fills reimport tiled landscape sub-menu */
+	void FillReimportTiledLandscapeSubMenu(FMenuBuilder& InMenuBuilder) const;
 	
-	/** Builds reimport weightmaps menu */
-	void BuildWeightmapsMenu(FMenuBuilder& InMenuBuilder) const;
+	/** Fills reimport weightmaps sub_menu */
+	void FillWeightmapsSubMenu(FMenuBuilder& InMenuBuilder) const;
 	
 private:
 	/** Creates a new empty Level; prompts for level save location */

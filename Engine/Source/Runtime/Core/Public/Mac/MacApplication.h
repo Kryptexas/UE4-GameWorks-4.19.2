@@ -114,6 +114,7 @@ private:
 	TCHAR TranslateCharCode( TCHAR CharCode, uint32 KeyCode );
 
 	FSlateCocoaWindow* FindEventWindow( NSEvent* CocoaEvent );
+	TSharedPtr<FGenericWindow> LocateWindowUnderCursor( const FVector2D& CursorPos );
 
 	NSScreen* FindScreenByPoint( int32 X, int32 Y ) const;
 
@@ -158,6 +159,12 @@ private:
 	TArray< TSharedRef< FMacWindow > > KeyWindows;
 
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
+
+	/** Notification center observer for application activation events */
+	id AppActivationObserver;
+
+	/** Notification center observer for application deactivation events */
+	id AppDeactivationObserver;
 
 #if WITH_EDITOR
 	/** Holds the last gesture used to try and capture unique uses for gestures. */

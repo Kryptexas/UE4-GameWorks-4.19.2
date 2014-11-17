@@ -415,7 +415,7 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 		return;
 	}
 
-	UE_LOG(LogGameMode, Log, TEXT("RestartPlayer %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
+	UE_LOG(LogGameMode, Verbose, TEXT("RestartPlayer %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
 	AActor* StartSpot = FindPlayerStart(NewPlayer);
 
 	// if a start spot wasn't found,
@@ -468,7 +468,7 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 		SetPlayerDefaults(NewPlayer->GetPawn());
 	}
 
-#if !WITH_PHYSX
+#if !UE_WITH_PHYSICS
 	if (NewPlayer->GetPawn() != NULL)
 	{
 		UCharacterMovementComponent* CharacterMovement = Cast<UCharacterMovementComponent>(NewPlayer->GetPawn()->GetMovementComponent());
@@ -478,7 +478,7 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 			CharacterMovement->SetMovementMode(MOVE_Flying);
 		}
 	}
-#endif	//!WITH_PHYSX
+#endif	//!UE_WITH_PHYSICS
 }
 
 void AGameMode::InitStartSpot(AActor* StartSpot, AController* NewPlayer)
@@ -1359,8 +1359,6 @@ void AGameMode::StartNewPlayer(APlayerController* NewPlayer)
 		}
 	}
 }
-
-void AGameMode::PreExit() {}
 
 bool AGameMode::CanSpectate( APlayerController* Viewer, APlayerState* ViewTarget )
 {

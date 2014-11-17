@@ -843,7 +843,7 @@ struct COREUOBJECT_API FDefinedProperty
 
 
 template<typename InTCppType>
-class COREUOBJECT_API TPropertyTypeFundamentals
+class TPropertyTypeFundamentals
 {
 public:
 	/** Type of the CPP property **/
@@ -926,7 +926,7 @@ protected:
 
 
 template<typename InTCppType, class TInPropertyBaseClass>
-class COREUOBJECT_API TProperty : public TInPropertyBaseClass, public TPropertyTypeFundamentals<InTCppType>
+class TProperty : public TInPropertyBaseClass, public TPropertyTypeFundamentals<InTCppType>
 {
 public:
 

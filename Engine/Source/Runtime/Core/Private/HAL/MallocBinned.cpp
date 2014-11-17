@@ -4,7 +4,7 @@
 	MallocBinned.cpp: Binned memory allocator
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #include "MallocBinned.h"
 #include "MemoryMisc.h"

@@ -13,6 +13,7 @@
 #include "ReflectionEnvironmentShared.usf"
 #include "BRDF.usf"
 #include "Random.usf"
+#include "LightAccumulator.usf"
 
 #include "DeferredShadingCommon.usf"
 
@@ -136,7 +137,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 		TranslucentLighting.R.V.x = Vector0.r;
 		TranslucentLighting.G.V.x = Vector0.g;
 		TranslucentLighting.B.V.x = Vector0.b;
-		float3 NormalizedAmbientColor = Vector0.rgb / max(Vector0.r, max(Vector0.g, Vector0.b));
+		float3 NormalizedAmbientColor = Vector0.rgb / Luminance( Vector0.rgb );
 
 		// Scale the monocrome directional coefficients with the normalzed ambient color as an approximation to the uncompressed values
 		TranslucentLighting.R.V.yzw = Vector1.rgb * NormalizedAmbientColor.r;
@@ -145,8 +146,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 			
 		// Compute diffuse lighting which takes the normal into account
 		FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
-		//@todo - why is x2 needed to match opaque and non-directional?
-		float4 VolumeLighting = float4(max(half3(0,0,0), DotSH(TranslucentLighting, DiffuseTransferSH)) * 2, Vector0.a);
+		float4 VolumeLighting = float4(max(half3(0,0,0), DotSH(TranslucentLighting, DiffuseTransferSH)), Vector0.a);
 		InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
 
 	#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
@@ -157,10 +157,10 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 
 		// Lerp between cascades
 		// Normal is not taken into account with non directional lighting, and only the ambient term of the SH coefficients are needed
-		float4 VolumeLighting = lerp(OuterLighting, InnerLighting, FinalLerpFactor);
+		float4 TranslucentLighting = lerp(OuterLighting, InnerLighting, FinalLerpFactor);
 
-		// Undo the SH ambient coefficient scaling
-		VolumeLighting.rgb /= SHAmbientFunction();
+		float DiffuseTransfer = PI * 0.282095f;
+		float4 VolumeLighting = float4( TranslucentLighting.rgb * DiffuseTransfer, TranslucentLighting.a );
 
 		// Determine lighting if no self shadowing is applied
 		InterpolatedLighting = DiffuseColor * VolumeLighting.rgb;
@@ -240,8 +240,7 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 		#elif TRANSLUCENCY_LIGHTING_VOLUMETRIC_NONDIRECTIONAL
 
 			float3 PointIndirectLighting = float3(IndirectLightingSHCoefficients[0].x, IndirectLightingSHCoefficients[1].x, IndirectLightingSHCoefficients[2].x);
-			//@todo - why is /2 needed to match directional?
-			float3 DiffuseGI = PointIndirectLighting / (SHAmbientFunction() * 2);
+			float3 DiffuseGI = PointIndirectLighting * DiffuseTransfer;
 			IndirectIrradiance += Luminance(DiffuseGI);
 
 			InterpolatedLighting += DiffuseColor * DiffuseGI * MaterialAO;
@@ -431,7 +430,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 {
 	float Ret = 1;
 
-#if EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if EDITOR_PRIMITIVE_MATERIAL && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
 	// Depth test manually if compositing editor primitives since the depth buffer is different (MSAA only)
 	BRANCH
 	if (bEnableEditorPrimitiveDepthTest)
@@ -526,7 +525,7 @@ void Main(
 #endif
 
 
-#if EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if EDITOR_PRIMITIVE_MATERIAL && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
 	const bool bEditorWeightedZBuffering = true;
 #else
 	const bool bEditorWeightedZBuffering = false;
@@ -685,8 +684,13 @@ void Main(
 		half3 FoggedColor = lerp(float3(1, 1, 1), Color, VertexFog.aaa * VertexFog.aaa);
 		OutColor = half4(FoggedColor, Opacity);
 	#else
-		// Scene color alpha is used to specify how much specular is in the color, for efficiency we approximate with 0
-		OutColor = RETURN_COLOR(float4(Color, 0)); 
+		// Scene color alpha is used for ScreenSpaceSubsurfaceScattering (if that is not needed it can be disabled with SUBSURFACE_CHANNEL_MODE)
+		{
+			FLightAccumulator LightAccumulator = (FLightAccumulator)0;
+
+			LightAccumulator_Add(LightAccumulator, Color, 0, 1.0f);
+			OutColor = RETURN_COLOR(LightAccumulator_GetResult(LightAccumulator));
+		}
 	#endif
 
 	float4 PrecomputedShadowFactors = GetPrecomputedShadowMasks(Interpolants);
@@ -725,17 +729,16 @@ void Main(
 		#elif MATERIAL_SHADINGMODEL_CLEAR_COAT
 			GBuffer.ShadingModelID = SHADINGMODELID_CLEAR_COAT;
 
-			float ClearCoat = 1;
-			float ClearCoatRoughness = 0.1;
-			float Film = 1;
+			float ClearCoat				= GetMaterialClearCoat(MaterialParameters);
+			float ClearCoatRoughness	= GetMaterialClearCoatRoughness(MaterialParameters);
+			float Film = 1 * ClearCoat;
 			float MetalSpec = 0.9;
-
-			Film *= ClearCoat;
 
 			float NoV = saturate( dot( MaterialParameters.WorldNormal, MaterialParameters.CameraVector ) );
 
 			// Approximation of refraction's effect on EnvBRDF
-			float RefractionScale = saturate( (NoV - 1) * lerp( 1.3, 0.5, Roughness ) + 1 );
+			float RefractionScale = ( (NoV * 0.5 + 0.5) * NoV - 1 ) * saturate( 1.25 - 1.25 * Roughness ) + 1;
+			RefractionScale = lerp( 1, RefractionScale, ClearCoat );
 
 #if DIFFUSE_SPEC_INPUTS
 			// Absorption doesn't work correctly with nonmetals with diffuse/spec
@@ -748,6 +751,8 @@ void Main(
 
 			// Approximation of absorption integral, tuned for Roughness=0.4
 			float3 Absorption = AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + 1 );
+			//float Toe = 1 - exp2( -9 * NoV - 3.5 );
+			//float3 Absorption = Toe * AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + lerp( 0.93, 0.96, AbsorptionColor * 2 - 1 ) );
 
 #if DIFFUSE_SPEC_INPUTS
 			GBuffer.DiffuseColor *= Absorption;

@@ -28,12 +28,83 @@ public:
 class MOVIESCENECORE_API FTrackInstancePropertyBindings
 {
 public:
-	FTrackInstancePropertyBindings( FName PropertyName );
+	FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath );
 
-	void CallFunction( const TArray<UObject*>& InRuntimeObjects, void* FunctionParams );
+	/**
+	 * Calls the setter function for a specific runtime object
+	 *
+	 * @param InRuntimeObject	The runtime object whose function to call
+	 * @param FunctionParams	Parameters to pass to the function
+	 */
+	void CallFunction( UObject* InRuntimeObject, void* FunctionParams );
+
+	/**
+	 * Rebuilds the property and function mappings for a set of runtime objects
+	 *
+	 * @param InRuntimeObjects	The objects to rebuild mappings for
+	 */
 	void UpdateBindings( const TArray<UObject*>& InRuntimeObjects );
+
+	/**
+	 * Gets the current value of a property on an object
+	 *
+	 * @param Object	The object to get the property from
+	 * @return ValueType	The current value
+	 */
+	template <typename ValueType>
+	ValueType GetCurrentValue(const UObject* Object) const
+	{
+		FPropertyAndFunction PropAndFunction = RuntimeObjectToFunctionMap.FindRef(Object);
+
+		if(PropAndFunction.PropertyAddress.Address)
+		{
+			const ValueType* Val = PropAndFunction.PropertyAddress.Property->ContainerPtrToValuePtr<ValueType>(PropAndFunction.PropertyAddress.Address);
+			if(Val)
+			{
+				return *Val;
+			}
+		}
+
+		return ValueType();
+	}
+private:
+
+	struct FPropertyAddress
+	{
+		UProperty* Property;
+		void* Address;
+
+		FPropertyAddress()
+			: Property(nullptr)
+			, Address(nullptr)
+		{}
+	};
+
+	struct FPropertyAndFunction
+	{
+		FPropertyAddress PropertyAddress;
+		UFunction* Function;
+
+		FPropertyAndFunction()
+			: PropertyAddress()
+			, Function( nullptr )
+		{}
+	};
+
+	FPropertyAddress FindPropertyRecursive(UObject* Object, void* BasePointer, UStruct* InStruct, TArray<FString>& InPropertyNames, uint32 Index) const;
+	FPropertyAddress FindProperty(UObject* Object, const FString& InPropertyPath) const;
+
 private:
 	/** Mapping of objects to bound functions that will be called to update data on the track */
-	TMap< TWeakObjectPtr<UObject>, UFunction* > RuntimeObjectToFunctionMap;
+	TMap< TWeakObjectPtr<UObject>, FPropertyAndFunction > RuntimeObjectToFunctionMap;
+
+	/** Path to the property we are bound to */
+	FString PropertyPath;
+
+	/** Name of the function to call to set values */
 	FName FunctionName;
+
+	/** Actual name of the property we are bound to */
+	FName PropertyName;
+
 };

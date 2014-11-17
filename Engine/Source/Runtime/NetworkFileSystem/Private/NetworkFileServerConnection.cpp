@@ -115,8 +115,11 @@ void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(F
 
 static FCriticalSection SocketCriticalSection;
 
-void FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar,FArchive& Out)
+bool FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar)
 {
+	FBufferArchive Out;
+	bool Result = true;
+
 	// first part of the payload is always the command
 	uint32 Cmd;
 	Ar << Cmd;
@@ -210,7 +213,7 @@ void FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar,FArchive& O
 			break;
 
 		case NFS_Messages::GetFileList:
-			ProcessGetFileList(Ar, Out);
+			Result = ProcessGetFileList(Ar, Out);
 			break;
 
 		case NFS_Messages::Heartbeat:
@@ -232,20 +235,40 @@ void FNetworkFileServerClientConnection::ProcessPayload(FArchive& Ar,FArchive& O
 		}
 	}
 
+
 	// send back a reply if the command wrote anything back out
-	if (Out.TotalSize() && bSendUnsolicitedFiles)
+	if (Out.Num() && Result )
 	{
 		int32 NumUnsolictedFiles = UnsolictedFiles.Num();
-		Out << NumUnsolictedFiles;
-
-		for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
+		if (bSendUnsolicitedFiles)
 		{
-			PackageFile(UnsolictedFiles[Index], Out);
+			Out << NumUnsolictedFiles;
 		}
-		UnsolictedFiles.Empty();		
+
+		UE_LOG(LogFileServer, Verbose, TEXT("Returning payload with %d bytes"), Out.Num());
+
+		// send back a reply
+		Result &= SendPayload( Out );
+
+		if (bSendUnsolicitedFiles && Result )
+		{
+			for (int32 Index = 0; Index < NumUnsolictedFiles; Index++)
+			{
+				FBufferArchive OutUnsolicitedFile;
+				PackageFile(UnsolictedFiles[Index], OutUnsolicitedFile);
+
+				UE_LOG(LogFileServer, Display, TEXT("Returning unsolicited file %s with %d bytes"), *UnsolictedFiles[Index], OutUnsolicitedFile.Num());
+
+				Result &= SendPayload(OutUnsolicitedFile);
+			}
+
+			UnsolictedFiles.Empty();
+		}
 	}
 
 	UE_LOG(LogFileServer, Verbose, TEXT("Done Processing payload with Cmd %d Total Size sending %d "), Cmd,Out.TotalSize());
+
+	return Result;
 }
 
 
@@ -263,6 +286,10 @@ void FNetworkFileServerClientConnection::ProcessOpenFile( FArchive& In, FArchive
 		In << bAppend;
 		In << bAllowRead;
 	}
+
+	// todo: clients from the same ip address "could" be trying to write to the same file in the same sandbox (for example multiple windows clients)
+	//			should probably have the sandbox write to separate files for each client
+	//			not important for now
 
 	ConvertClientFilenameToServerFilename(Filename);
 
@@ -290,7 +317,7 @@ void FNetworkFileServerClientConnection::ProcessOpenFile( FArchive& In, FArchive
 
 	uint64 HandleId = ++LastHandleId;
 	OpenFiles.Add( HandleId, File );
-
+	
 	Out << HandleId;
 	Out << ServerTimeStamp;
 	Out << ServerFileSize;
@@ -598,7 +625,7 @@ void FNetworkFileServerClientConnection::ProcessToAbsolutePathForWrite( FArchive
 }
 
 
-void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArchive& Out )
+bool FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArchive& Out )
 {
 	// get the list of directories to process
 	TArray<FString> TargetPlatformNames;
@@ -632,13 +659,25 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 			}
 		}
 	}
-	// @todo: if there were some platforms in ActiveTPs, but none matched, we should reject this client
 
-	// if we didn't find one, then just use what was sent
+	// if we didn't find one, reject client and also print some warnings
 	if (ConnectedPlatformName == TEXT(""))
 	{
-		ConnectedPlatformName = TargetPlatformNames[0];
+		// ConnectedPlatformName = TargetPlatformNames[0];
+		// reject client we can't cook for you!
+		UE_LOG(LogFileServer, Warning, TEXT("Unable to find target platform for client, terminating client connection!") );
+
+		for (int32 TPIndex = 0; TPIndex < TargetPlatformNames.Num() && ConnectedPlatformName == TEXT(""); TPIndex++)
+		{
+			UE_LOG(LogFileServer, Warning, TEXT("    Target platforms from client: %s"), *TargetPlatformNames[TPIndex]);
+		}
+		for (int32 ActiveTPIndex = 0; ActiveTPIndex < ActiveTargetPlatforms.Num(); ActiveTPIndex++)
+		{
+			UE_LOG(LogFileServer, Warning, TEXT("    Active target platforms on server: %s"), *ActiveTargetPlatforms[ActiveTPIndex]->PlatformName());
+		}	
+		return false;
 	}
+
 	ConnectedEngineDir = EngineRelativePath;
 	ConnectedGameDir = GameRelativePath;
 
@@ -781,6 +820,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 		FixedTimes = FixupSandboxPathsForClient(Sandbox, VisitorForCacheDates.FileTimes, LocalEngineDir, LocalGameDir);
 		Out << FixedTimes;
 	}
+	return true;
 }
 
 
@@ -816,7 +856,7 @@ void FNetworkFileServerClientConnection::PackageFile( FString& Filename, FArchiv
 	{
 		ServerTimeStamp = FDateTime::MinValue(); // if this was a directory, this will make sure it is not confused with a zero byte file
 
-		UE_LOG(LogFileServer, Warning, TEXT("Request for missing file %s."), *Filename);
+		UE_LOG(LogFileServer, Warning, TEXT("Request for missing file %s."), *Filename );
 	}
 	else
 	{
@@ -873,9 +913,9 @@ void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive
 	// get filename
 	FString Filename;
 	In << Filename;
-
+	
 	ConvertClientFilenameToServerFilename(Filename);
-
+	
 	//FString AbsFile(FString(*Sandbox->ConvertToAbsolutePathForExternalApp(*Filename)).MakeStandardFilename());
 	// ^^ we probably in general want that filename, but for cook on the fly, we want the un-sandboxed name
 

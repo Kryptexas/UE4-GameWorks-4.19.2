@@ -9,6 +9,7 @@
 #include "Slate.h"
 #include "ScopedTransaction.h"
 #include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
+#include "Editor/UnrealEd/Public/EditorCategoryUtils.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "EdGraph"
@@ -63,13 +64,16 @@ FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<
 
 void FGraphActionListBuilderBase::ActionGroup::GetCategoryChain(TArray<FString>& HierarchyOut) const
 {
+#if WITH_EDITOR
 	static FString const CategoryDelim("|");
-	RootCategory.ParseIntoArray(&HierarchyOut, *CategoryDelim, true);
+	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(&HierarchyOut, *CategoryDelim, true);
 
 	if (Actions.Num() > 0)
 	{
 		TArray<FString> SubCategoryChain;
-		Actions[0]->Category.ParseIntoArray(&SubCategoryChain, *CategoryDelim, true);
+
+		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category);
+		SubCategory.ParseIntoArray(&SubCategoryChain, *CategoryDelim, true);
 
 		HierarchyOut.Append(SubCategoryChain);
 	}
@@ -78,6 +82,7 @@ void FGraphActionListBuilderBase::ActionGroup::GetCategoryChain(TArray<FString>&
 	{
 		Category.Trim();
 	}
+#endif
 }
 
 void FGraphActionListBuilderBase::ActionGroup::PerformAction( class UEdGraph* ParentGraph, TArray<UEdGraphPin*>& FromPins, const FVector2D Location )
@@ -331,7 +336,14 @@ void UEdGraphSchema::TrySetDefaultText(UEdGraphPin& InPin, const FText& InNewDef
 	else
 	{
 #if WITH_EDITOR
-		InPin.DefaultTextValue = FText::ChangeKey(TEXT(""), InPin.GetOwningNode()->NodeGuid.ToString() + TEXT("_") + InPin.PinName, InNewDefaultText);
+		if(InNewDefaultText.IsCultureInvariant())
+		{
+			InPin.DefaultTextValue = InNewDefaultText;
+		}
+		else
+		{
+			InPin.DefaultTextValue = FText::ChangeKey(TEXT(""), InPin.GetOwningNode()->NodeGuid.ToString() + TEXT("_") + InPin.PinName, InNewDefaultText);
+		}
 #endif
 	}
 

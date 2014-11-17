@@ -24,7 +24,7 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeUseSelectedButton( FSimpleDelegate OnUseSelectedClicked, TAttribute<FText> OptionalToolTipText = FText(), TAttribute<bool> IsEnabled = true );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeBrowseButton( FSimpleDelegate OnClearClicked, TAttribute<FText> OptionalToolTipText = FText(), TAttribute<bool> IsEnabled = true );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerAnchorButton( FOnGetAllowedClasses OnGetAllowedClasses, FOnAssetSelected OnAssetSelectedFromPicker );
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerWithMenu( UObject* const InitialObject, const bool AllowClear, const TArray<const UClass*>* const AllowedClasses, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose );
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>* const AllowedClasses, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerAnchorButton( FOnGetActorFilters OnGetActorFilters, FOnActorSelected OnActorSelectedFromPicker );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerWithMenu( AActor* const InitialActor, const bool AllowClear, const TSharedPtr< SceneOutliner::FOutlinerFilters >& ActorFilters, FOnActorSelected OnSet, FSimpleDelegate OnClose, FSimpleDelegate OnUseSelected );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker( FOnGetAllowedClasses OnGetAllowedClasses, FOnShouldFilterActor OnShouldFilterActor, FOnActorSelected OnActorSelectedFromPicker );
@@ -34,7 +34,7 @@ namespace PropertyCustomizationHelpers
 DECLARE_DELEGATE_RetVal( const UObject*, FOnGetObject );
 
 /** Delegate used to set a generic object */
-DECLARE_DELEGATE_OneParam( FOnSetObject, const UObject* );
+DECLARE_DELEGATE_OneParam( FOnSetObject, const FAssetData& );
 
 /**
  * Simulates an object property field 
@@ -69,7 +69,7 @@ private:
 	/**
 	 * Delegate function called when an object is changed
 	 */
-	void OnSetObject(const UObject* InObject);
+	void OnSetObject(const FAssetData& InObject);
 
 	/** @return the object path for the object we are viewing */
 	FString OnGetObjectPath() const;
@@ -183,10 +183,11 @@ class FDetailArrayBuilder : public IDetailCustomNodeBuilder
 {
 public:
 
-	FDetailArrayBuilder( TSharedRef<IPropertyHandle> InBaseProperty, bool InGenerateHeader = true )
+	FDetailArrayBuilder( TSharedRef<IPropertyHandle> InBaseProperty, bool InGenerateHeader = true, bool InDisplayResetToDefault = true)
 		: ArrayProperty( InBaseProperty->AsArray() )
 		, BaseProperty( InBaseProperty )
 		, bGenerateHeader( InGenerateHeader)
+		, bDisplayResetToDefault(InDisplayResetToDefault)
 	{
 		check( ArrayProperty.IsValid() );
 
@@ -228,30 +229,34 @@ public:
 	{
 		if (bGenerateHeader)
 		{
-			TSharedPtr<SResetToDefaultMenu> ResetToDefaultMenu;
-			bool bDisplayResetToDefault = false;
+			const bool bDisplayResetToDefaultInNameContent = false;
+			TSharedPtr<SHorizontalBox> ContentHorizontalBox;
 			NodeRow
-				.FilterString(DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName())
-				.NameContent()
-				[
-					BaseProperty->CreatePropertyNameWidget(DisplayName, bDisplayResetToDefault)
-				]
+			.FilterString(DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName())
+			.NameContent()
+			[
+				BaseProperty->CreatePropertyNameWidget(DisplayName, bDisplayResetToDefaultInNameContent)
+			]
 			.ValueContent()
+			[
+				SAssignNew(ContentHorizontalBox, SHorizontalBox)
+				+ SHorizontalBox::Slot()
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					[
-						BaseProperty->CreatePropertyValueWidget()
-					]
-					+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
-						[
-							SAssignNew(ResetToDefaultMenu, SResetToDefaultMenu)
-						]
-				];
+					BaseProperty->CreatePropertyValueWidget()
+				]
+			];
 
-			ResetToDefaultMenu->AddProperty(BaseProperty);
+			if (bDisplayResetToDefault)
+			{
+				TSharedPtr<SResetToDefaultMenu> ResetToDefaultMenu;
+				ContentHorizontalBox->AddSlot()
+				.AutoWidth()
+				.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
+				[
+					SAssignNew(ResetToDefaultMenu, SResetToDefaultMenu)
+				];
+				ResetToDefaultMenu->AddProperty(BaseProperty);
+			}
 		}
 	}
 
@@ -287,6 +292,7 @@ private:
 	TSharedRef<IPropertyHandle> BaseProperty;
 	FSimpleDelegate OnRebuildChildren;
 	bool bGenerateHeader;
+	bool bDisplayResetToDefault;
 };
 
 /**

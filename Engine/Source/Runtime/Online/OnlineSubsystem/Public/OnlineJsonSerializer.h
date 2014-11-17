@@ -40,7 +40,7 @@
 		{ \
 			if (Serializer.GetObject()->HasTypedField<EJson::Array>(JsonName)) \
 			{ \
-				for (TArray< TSharedPtr<FJsonValue> >::TConstIterator It(Serializer.GetObject()->GetArrayField(JsonName)); It; ++It) \
+				for (auto It = Serializer.GetObject()->GetArrayField(JsonName).CreateConstIterator(); It; ++It) \
 				{ \
 					ElementType* Obj = new(JsonArray) ElementType(); \
 					Obj->FromJson((*It)->AsObject()); \
@@ -55,6 +55,32 @@
 				It->Serialize(Serializer); \
 			} \
 			Serializer.EndArray(); \
+		}
+
+#define ONLINE_JSON_SERIALIZE_MAP_SERIALIZABLE(JsonName, JsonMap, ElementType) \
+		if (Serializer.IsLoading()) \
+		{ \
+			if (Serializer.GetObject()->HasTypedField<EJson::Object>(JsonName)) \
+			{ \
+				TSharedPtr<FJsonObject> JsonObj = Serializer.GetObject()->GetObjectField(JsonName); \
+				for (auto MapIt = JsonObj->Values.CreateConstIterator(); MapIt; ++MapIt) \
+				{ \
+					ElementType NewEntry; \
+					NewEntry.FromJson(MapIt.Value()->AsObject()); \
+					JsonMap.Add(MapIt.Key(), NewEntry); \
+				} \
+			} \
+		} \
+		else \
+		{ \
+			Serializer.StartObject(JsonName); \
+			for (auto It = JsonMap.CreateIterator(); It; ++It) \
+			{ \
+				Serializer.StartObject(It.Key()); \
+				It.Value().Serialize(Serializer); \
+				Serializer.EndObject(); \
+			} \
+			Serializer.EndObject(); \
 		}
 
 /** Array of string data */
@@ -81,6 +107,7 @@ struct FOnlineJsonSerializerBase
 	virtual void Serialize(const TCHAR* Name, uint32& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, bool& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, FString& Value) = 0;
+	virtual void Serialize(const TCHAR* Name, FText& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, float& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, double& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, FDateTime& Value) = 0;
@@ -195,6 +222,16 @@ public:
 	virtual void Serialize(const TCHAR* Name, FString& Value) override
 	{
 		JsonWriter->WriteValue(Name, Value);
+	}
+	/**
+	 * Writes the field name and the corresponding value to the JSON data
+	 *
+	 * @param Name the field name to write out
+	 * @param Value the value to write out
+	 */
+	virtual void Serialize(const TCHAR* Name, FText& Value) override
+	{
+		JsonWriter->WriteValue(Name, Value.ToString());
 	}
 	/**
 	 * Writes the field name and the corresponding value to the JSON data
@@ -402,6 +439,19 @@ public:
 		if (JsonObject->HasTypedField<EJson::String>(Name))
 		{
 			Value = JsonObject->GetStringField(Name);
+		}
+	}
+	/**
+	 * If the underlying json object has the field, it is read into the value
+	 *
+	 * @param Name the name of the field to read
+	 * @param Value the out value to read the data into
+	 */
+	virtual void Serialize(const TCHAR* Name, FText& Value) override
+	{
+		if (JsonObject->HasTypedField<EJson::String>(Name))
+		{
+			Value = FText::FromString(JsonObject->GetStringField(Name));
 		}
 	}
 	/**

@@ -588,7 +588,7 @@ public:
 	/**
 	 * Number of imports contained in this package
 	 */
-	int32     ImportCount;
+	int32		ImportCount;
 
 	/**
 	 * Location into the file on disk for the ImportMap data
@@ -599,6 +599,16 @@ public:
 	* Location into the file on disk for the DependsMap data
 	*/
 	int32		DependsOffset;
+
+	/**
+	 * Number of references contained in this package
+	 */
+	int32		StringAssetReferencesCount;
+
+	/**
+	 * Location into the file on disk for the string asset references map data
+	 */
+	int32		StringAssetReferencesOffset;
 
 	/**
 	 * Thumbnail table offset
@@ -723,6 +733,8 @@ public:
 	TArray<FObjectExport> ExportMap;
 	/** List of dependency lists for each export */
 	TArray<TArray<FPackageIndex> > DependsMap;
+	/** Map that holds info about string asset references from the package. */
+	TArray<FString> StringAssetReferencesMap;
 
 	/**
 	 * Check that this Index is non-null and return an import or export

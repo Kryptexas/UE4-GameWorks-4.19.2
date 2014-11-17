@@ -29,7 +29,13 @@ public:
 
 	// Common Bindings
 	DECLARE_DYNAMIC_DELEGATE_RetVal(bool, FGetBool);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(float, FGetFloat);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(int32, FGetInt32);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FText, FGetText);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector2D, FGetVector2D);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVector);
+	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector4, FGetVector4);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
@@ -48,7 +54,7 @@ public:
 	 * Allows controls to be exposed as variables in a blueprint.  Not all controls need to be exposed
 	 * as variables, so this allows only the most useful ones to end up being exposed.
 	 */
-	UPROPERTY(EditDefaultsOnly, Category=Variable)
+	UPROPERTY()
 	bool bIsVariable;
 
 	/** Flag if the Widget was created from a blueprint */
@@ -90,7 +96,7 @@ public:
 	//TODO UMG Cursor doesn't work yet, the underlying slate version needs it to be TOptional.
 
 	/** The cursor to show when the mouse is over the widget */
-	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	UPROPERTY(EditDefaultsOnly, Category=Behavior, AdvancedDisplay)
 	TEnumAsByte<EMouseCursor::Type> Cursor;
 
 	/** A bindable delegate for Cursor */
@@ -134,7 +140,10 @@ public:
 	 * virtual however, you should not inherit this function unless you're very aware of what you're
 	 * doing.  Normal derived versions should only ever override RebuildWidget.
 	 */
-	TSharedRef<SWidget> GetWidget() const;
+	TSharedRef<SWidget> TakeWidget();
+
+	/** Gets the last created widget does not recreate the gc container for the widget if one is needed. */
+	TSharedPtr<SWidget> GetCachedWidget() const;
 
 	/**
 	 * Applies all properties to the native widget if possible.  This is called after a widget is constructed.
@@ -151,6 +160,9 @@ public:
 
 	/** Mark this object as modified, also mark the slot as modified. */
 	virtual bool Modify(bool bAlwaysMarkDirty = true);
+
+	/** @return true if this widget is a child of the PossibleParent */
+	bool IsChildOf(UWidget* PossibleParent);
 	
 #if WITH_EDITOR
 	/** Is the label generated or provided by the user? */
@@ -165,12 +177,6 @@ public:
 	/** Gets the editor icon */
 	virtual const FSlateBrush* GetEditorIcon();
 
-	//TODO UMG These are not used yet, and may never be.
-	virtual void OnDesignerSelected() { }
-	virtual void OnDesignerDeselected() { }
-	virtual void OnDesignerClicked() { }
-	virtual void OnDesignerDoubleClicked() { }
-
 	/** Gets a widget representing the tiny preview of the toolbox */
 	virtual TSharedRef<SWidget> GetToolboxPreviewWidget() const;
 	
@@ -180,6 +186,20 @@ public:
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
+
+	// Begin Designer contextual events
+	void Select();
+	void Deselect();
+
+	virtual void OnSelected() { }
+	virtual void OnDeselected() { }
+
+	virtual void OnDescendantSelected(UWidget* DescendantWidget) { }
+	virtual void OnDescendantDeselected(UWidget* DescendantWidget) { }
+
+	virtual void OnBeginEdit() { }
+	virtual void OnEndEdit() { }
+	// End Designer contextual events
 #endif
 
 	// Utility methods
@@ -191,6 +211,7 @@ public:
 
 	static void GatherChildren(UWidget* Root, TSet<UWidget*>& Children);
 	static void GatherAllChildren(UWidget* Root, TSet<UWidget*>& Children);
+	static UWidget* FindChildContainingDescendant(UWidget* Root, UWidget* Descendant);
 
 protected:
 	/** Function implemented by all subclasses of UWidget is called when the underlying SWidget needs to be constructed. */
@@ -198,14 +219,25 @@ protected:
 	
 	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
 
+protected:
+	//TODO UMG Consider moving conversion functions into another class.
+	// Conversion functions
 	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
 	{
 		return ConvertSerializedVisibilityToRuntime(SerializedType.Get());
 	}
 
+	TOptional<float> ConvertFloatToOptionalFloat(TAttribute<float> InFloat) const
+	{
+		return InFloat.Get();
+	}
+
 protected:
 	/** The underlying SWidget. */
-	mutable TWeakPtr<SWidget> MyWidget;
+	TWeakPtr<SWidget> MyWidget;
+
+	/** The underlying SWidget contained in a SObjectWidget */
+	TWeakPtr<SWidget> MyGCWidget;
 	
 	/** Is this widget being displayed on a designer surface */
 	bool bDesignTime;

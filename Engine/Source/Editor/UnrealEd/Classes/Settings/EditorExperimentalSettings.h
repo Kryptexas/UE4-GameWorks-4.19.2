@@ -21,9 +21,8 @@ class UNREALED_API UEditorExperimentalSettings
 
 public:
 
-	/** Allows to open editor for Behavior Tree assets */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Behavior Tree Editor"))
-	bool bBehaviorTreeEditor;
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Unreal Motion Graphics (UMG)" ))
+	bool bUnrealMotionGraphics;
 
 	/** Allows usage of the Translation Editor */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor"))

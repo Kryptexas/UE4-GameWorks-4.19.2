@@ -116,7 +116,7 @@ public:
 	UNREALED_API static bool FindModulePath( const FString& ModuleName, FString &OutModulePath );
 
 	/** Finds the path to a given class. Does not rely on symbols; finds matching .build.cs files. */
-	UNREALED_API static bool FindClassHeaderPath( UField *Field, FString &OutClassHeaderPath );
+	UNREALED_API static bool FindClassHeaderPath( const UField *Field, FString &OutClassHeaderPath );
 
 	/** Opens a single source file */
 	UNREALED_API static bool OpenSourceFile( const FString& AbsoluteSourcePath, int32 LineNumber = 0, int32 ColumnNumber = 0 );

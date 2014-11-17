@@ -125,9 +125,9 @@ private:
 	/** 
 	 * Set the value of the asset referenced by this property editor.
 	 * Will set the underlying property handle if there is one.
-	 * @param	InObject	The object to set the reference to
+	 * @param	AssetData	The asset data for the object to set the reference to
 	 */
-	void SetValue( const UObject* InObject );
+	void SetValue( const FAssetData& AssetData );
 
 	/** 
 	 * Get the value referenced by this widget.

@@ -28,13 +28,13 @@ namespace iPhonePackager
 		public bool bDebug;
 		public Utilities.PListHelper Data;
 
-		public static string FindCompatibleProvision(string CFBundleIdentifier)
+		public static string FindCompatibleProvision(string CFBundleIdentifier, bool bCheckCert = true)
 		{
 			// remap the gamename if necessary
 			string GameName = Program.GameName;
 			if (GameName == "UE4Game")
 			{
-				if(Config.ProjectFile.Length > 0)
+				if (Config.ProjectFile.Length > 0)
 				{
 					GameName = Path.GetFileNameWithoutExtension(Config.ProjectFile);
 				}
@@ -48,29 +48,34 @@ namespace iPhonePackager
 
 			#region remove after we provide an install mechanism
 			// copy all of the provisions from the game directory to the library
-			if (Directory.Exists(Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/"))
 			{
-				foreach (string Provision in Directory.EnumerateFiles(Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/", "*.mobileprovision", SearchOption.AllDirectories))
+				var ProjectFileBuildIOSPath = Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/";
+				if (Directory.Exists(ProjectFileBuildIOSPath))
 				{
-					if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
+					foreach (string Provision in Directory.EnumerateFiles(ProjectFileBuildIOSPath, "*.mobileprovision", SearchOption.AllDirectories))
 					{
-						File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
-						FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
-						DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+						if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)) || File.GetLastWriteTime(Config.ProvisionDirectory + Path.GetFileName(Provision)) < File.GetLastWriteTime(Provision))
+						{
+							File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
+							FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
+							DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+						}
 					}
 				}
 			}
 
-			// copy all of the provisions from the egine directory to the library
-			if (Directory.Exists(Config.EngineBuildDirectory))
+			// copy all of the provisions from the engine directory to the library
 			{
-				foreach (string Provision in Directory.EnumerateFiles(Config.EngineBuildDirectory, "*.mobileprovision", SearchOption.AllDirectories))
+				if (Directory.Exists(Config.EngineBuildDirectory))
 				{
-					if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
+					foreach (string Provision in Directory.EnumerateFiles(Config.EngineBuildDirectory, "*.mobileprovision", SearchOption.AllDirectories))
 					{
-						File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
-						FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
-						DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+						if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)) || File.GetLastWriteTime(Config.ProvisionDirectory + Path.GetFileName(Provision)) < File.GetLastWriteTime(Provision))
+						{
+							File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
+							FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
+							DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+						}
 					}
 				}
 			}
@@ -90,7 +95,7 @@ namespace iPhonePackager
 				if (Pair.Value.ApplicationIdentifier.Contains(CFBundleIdentifier) && (!Config.bForDistribution || (Pair.Value.ProvisionedDeviceIDs.Count == 0 && !Pair.Value.bDebug)))
 				{
 					// check to see if we have a certificate for this provision
-					if (CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
+					if (!bCheckCert || CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
 					{
 						return Pair.Key;
 					}
@@ -103,7 +108,7 @@ namespace iPhonePackager
 				if ((Pair.Value.ProvisionName.Contains("Wildcard") || Pair.Value.ApplicationIdentifier.Contains("*")) && (!Config.bForDistribution || (Pair.Value.ProvisionedDeviceIDs.Count == 0 && !Pair.Value.bDebug)))
 				{
 					// check to see if we have a certificate for this provision
-					if (CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
+					if (!bCheckCert || CodeSignatureBuilder.FindCertificate(Pair.Value) != null)
 					{
 						return Pair.Key;
 					}

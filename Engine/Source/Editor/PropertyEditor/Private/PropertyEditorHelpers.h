@@ -14,6 +14,7 @@ namespace EPropertyButton
 		Add,
 		Empty,
 		Insert_Delete_Duplicate,
+		Insert_Delete,
 		Insert,
 		Delete,
 		Duplicate,

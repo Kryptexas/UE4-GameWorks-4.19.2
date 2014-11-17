@@ -41,8 +41,9 @@ COREUOBJECT_API int32 GCastDuplicate=0;
 #if DO_GUARD
 	static int32 Runaway=0;
 	static int32 Recurse=0;
+	static bool Ranaway = false;
 	#define CHECK_RUNAWAY {++Runaway;}
-	COREUOBJECT_API void GInitRunaway() {Recurse=Runaway=0;}
+	COREUOBJECT_API void GInitRunaway() {Recurse=Runaway=0; Ranaway = false;}
 #else
 	#define CHECK_RUNAWAY
 	COREUOBJECT_API void GInitRunaway() {}
@@ -541,7 +542,14 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 		MS_ALIGN(16) uint8 Buffer[MAX_SIMPLE_RETURN_VALUE_SIZE] GCC_ALIGN(16);
 
 #if DO_GUARD
-		if (++Recurse > RECURSE_LIMIT)
+		if(Ranaway)
+		{
+			// If we have a return property, return a zeroed value in it, to try and save execution as much as possible
+			UProperty* ReturnProp = ((UFunction*)Stack.Node)->GetReturnProperty();
+			ClearReturnValue(ReturnProp, Result);
+			return;
+		}
+		else if (++Recurse == RECURSE_LIMIT)
 		{
 			// We've hit the recursion limit, so print out the stack, warn, and then continue with a zeroed return value.
 			UE_LOG(LogScriptCore, Log, TEXT("%s"), *Stack.GetStackTrace());
@@ -554,6 +562,10 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 			const FString Desc = FString::Printf(TEXT("Infinite script recursion (%i calls) detected"), RECURSE_LIMIT);
 			FBlueprintExceptionInfo InfiniteRecursionExceptionInfo(EBlueprintExceptionType::InfiniteLoop, Desc);
 			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, InfiniteRecursionExceptionInfo);
+
+			// This flag prevents repeated warnings of ininite loop, script exception handler 
+			// is expected to have terminated execution appropriately:
+			Ranaway = true;
 
 			return;
 		}
@@ -608,7 +620,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	}
 }
 
-bool UObject::CallFunctionByNameWithArguments( const TCHAR* Str, FOutputDevice& Ar, UObject* Executor )
+bool UObject::CallFunctionByNameWithArguments(const TCHAR* Str, FOutputDevice& Ar, UObject* Executor, bool bForceCallWithNonExec/*=false*/)
 {
 	// Find an exec function.
 	FString MsgStr;
@@ -629,7 +641,7 @@ bool UObject::CallFunctionByNameWithArguments( const TCHAR* Str, FOutputDevice& 
 		UE_LOG(LogScriptCore, Verbose, TEXT("CallFunctionByNameWithArguments: Function not found '%s'"), Str);
 		return false;
 	}
-	if(0 == (Function->FunctionFlags & FUNC_Exec))
+	if(0 == (Function->FunctionFlags & FUNC_Exec) && !bForceCallWithNonExec)
 	{
 		UE_LOG(LogScriptCore, Verbose, TEXT("CallFunctionByNameWithArguments: Function not executable '%s'"), Str);
 		return false;

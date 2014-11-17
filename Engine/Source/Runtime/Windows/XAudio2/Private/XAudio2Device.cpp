@@ -13,7 +13,8 @@
 
 #include "XAudio2Device.h"
 #include "AudioEffect.h"
-#include "AudioDecompress.h"
+#include "OpusAudioInfo.h"
+#include "VorbisAudioInfo.h"
 #include "XAudio2Effects.h"
 #include "Engine.h"
 #include "AllowWindowsPlatformTypes.h"
@@ -92,8 +93,6 @@ bool FXAudio2Device::InitializeHardware()
 		return( false );
 	}
 
-	SpatializationHelper.Init();
-
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	UINT32 DeviceCount = 0;
 	ValidateAPICall(TEXT("GetDeviceCount"),
@@ -164,7 +163,7 @@ bool FXAudio2Device::InitializeHardware()
 	}
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
-
+	SpatializationHelper.Init();
 
 	// Initialize permanent memory stack for initial & always loaded sound allocations.
 	if( CommonAudioPoolSize )

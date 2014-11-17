@@ -3,6 +3,7 @@
 #include "LiveEditorListenServerPrivatePCH.h"
 #include "Networking.h"
 #include "DefaultValueHelper.h"
+#include "LiveEditorTransactionHistory.h"
 
 namespace nLiveEditorListenServer
 {
@@ -97,7 +98,86 @@ namespace nLiveEditorListenServer
 
 		return Prop;
 	}
+
+	static void SetPropertyValue( UObject *Target, const FString &PropertyName, const FString &PropertyValue )
+	{
+
+		if ( Target == NULL )
+			return;
+
+		void *ContainerPtr = Target;
+		int32 ArrayIndex;
+		UProperty *Prop = nLiveEditorListenServer::GetPropertyByName( Target, Target->GetClass(), PropertyName, &ContainerPtr, ArrayIndex );
+		if ( !Prop || !Prop->IsA( UNumericProperty::StaticClass() ) )
+		{
+			return;
+		}
+
+		check( ContainerPtr != NULL );
+
+		if ( Prop->IsA( UByteProperty::StaticClass() ) )
+		{
+			UByteProperty *NumericProp = CastChecked<UByteProperty>(Prop);
+			uint8 Value = FCString::Atoi( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UInt8Property::StaticClass() ) )
+		{
+			UInt8Property *NumericProp = CastChecked<UInt8Property>(Prop);
+			int32 Value = FCString::Atoi( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UInt16Property::StaticClass() ) )
+		{
+			UInt16Property *NumericProp = CastChecked<UInt16Property>(Prop);
+			int16 Value = FCString::Atoi( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UIntProperty::StaticClass() ) )
+		{
+			UIntProperty *NumericProp = CastChecked<UIntProperty>(Prop);
+			int32 Value = FCString::Atoi( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UInt64Property::StaticClass() ) )
+		{
+			UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
+			int64 Value = FCString::Atoi64( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UUInt16Property::StaticClass() ) )
+		{
+			UUInt16Property *NumericProp = CastChecked<UUInt16Property>(Prop);
+			uint16 Value = FCString::Atoi( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UUInt32Property::StaticClass() ) )
+		{
+			UUInt32Property *NumericProp = CastChecked<UUInt32Property>(Prop);
+			uint32 Value = FCString::Atoi( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UInt64Property::StaticClass() ) )
+		{
+			UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
+			uint64 Value = FCString::Atoi64( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UFloatProperty::StaticClass() ) )
+		{
+			UFloatProperty *NumericProp = CastChecked<UFloatProperty>(Prop);
+			float Value = FCString::Atof( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+		else if ( Prop->IsA( UDoubleProperty::StaticClass() ) )
+		{
+			UDoubleProperty *NumericProp = CastChecked<UDoubleProperty>(Prop);
+			double Value = FCString::Atod( *PropertyValue );
+			NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
+		}
+	}
 }
+
 
 DEFINE_LOG_CATEGORY_STATIC(LiveEditorListenServer, Log, All);
 #define DEFAULT_LISTEN_ENDPOINT FIPv4Endpoint(FIPv4Address(127, 0, 0, 1), LIVEEDITORLISTENSERVER_DEFAULT_PORT)
@@ -108,7 +188,8 @@ FLiveEditorListenServer::FLiveEditorListenServer()
 :	ObjectCreateListener(NULL),
 	ObjectDeleteListener(NULL),
 	TickObject(NULL),
-	Listener(NULL)
+	Listener(NULL),
+	TransactionHistory(NULL)
 {
 }
 
@@ -120,6 +201,8 @@ void FLiveEditorListenServer::StartupModule()
 	{
 		return;
 	}
+
+	TransactionHistory = new FLiveEditorTransactionHistory();
 
 	Listener = new FTcpListener( DEFAULT_LISTEN_ENDPOINT );
 	Listener->OnConnectionAccepted().BindRaw(this, &FLiveEditorListenServer::HandleListenerConnectionAccepted);
@@ -157,6 +240,12 @@ void FLiveEditorListenServer::RemoveHooks()
 		Listener->Stop();
 		delete Listener;
 		Listener = NULL;
+	}
+
+	if ( TransactionHistory )
+	{
+		delete TransactionHistory;
+		TransactionHistory = NULL;
 	}
 
 	if ( !PendingClients.IsEmpty() )
@@ -249,89 +338,31 @@ void FLiveEditorListenServer::Tick( float DeltaTime )
 				*Datagram << Message;
 
 				ReplicateChanges( Message );
+				TransactionHistory->AppendTransaction( Message.Payload.ClassName, Message.Payload.PropertyName, Message.Payload.PropertyValue );
 			}
 		}
 	}
 
-	ObjectCache.EvaluatePendingCreations();
+	//Check for any newly Tracked objects
+	TArray<UObject*> NewTrackedObjects;
+	ObjectCache.EvaluatePendingCreations( NewTrackedObjects );
+
+	//If there are any newly tracked objects, stuff them with the list of latest changes we've accumulated so far
+	for ( TArray<UObject*>::TIterator NewObjectIt(NewTrackedObjects); NewObjectIt; ++NewObjectIt )
+	{
+		UObject *NewObject = *NewObjectIt;
+		TMap<FString,FString> Transactions;
+		TransactionHistory->FindTransactionsForObject( NewObject, Transactions );
+
+		for ( TMap<FString,FString>::TConstIterator TransactionIt(Transactions); TransactionIt; ++TransactionIt )
+		{
+			const FString &PropertyName = (*TransactionIt).Key;
+			const FString &PropertyValue = (*TransactionIt).Value;
+			nLiveEditorListenServer::SetPropertyValue( NewObject, PropertyName, PropertyValue );
+		}
+	}
+	
 #endif
-}
-
-static void SetPropertyValue( UObject *Target, const FString &PropertyName, const FString &PropertyValue )
-{
-	if ( Target == NULL )
-		return;
-
-	void *ContainerPtr = Target;
-	int32 ArrayIndex;
-	UProperty *Prop = nLiveEditorListenServer::GetPropertyByName( Target, Target->GetClass(), PropertyName, &ContainerPtr, ArrayIndex );
-	if ( !Prop || !Prop->IsA( UNumericProperty::StaticClass() ) )
-	{
-		return;
-	}
-
-	check( ContainerPtr != NULL );
-
-	if ( Prop->IsA( UByteProperty::StaticClass() ) )
-	{
-		UByteProperty *NumericProp = CastChecked<UByteProperty>(Prop);
-		uint8 Value = FCString::Atoi( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UInt8Property::StaticClass() ) )
-	{
-		UInt8Property *NumericProp = CastChecked<UInt8Property>(Prop);
-		int32 Value = FCString::Atoi( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UInt16Property::StaticClass() ) )
-	{
-		UInt16Property *NumericProp = CastChecked<UInt16Property>(Prop);
-		int16 Value = FCString::Atoi( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UIntProperty::StaticClass() ) )
-	{
-		UIntProperty *NumericProp = CastChecked<UIntProperty>(Prop);
-		int32 Value = FCString::Atoi( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UInt64Property::StaticClass() ) )
-	{
-		UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
-		int64 Value = FCString::Atoi64( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UUInt16Property::StaticClass() ) )
-	{
-		UUInt16Property *NumericProp = CastChecked<UUInt16Property>(Prop);
-		uint16 Value = FCString::Atoi( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UUInt32Property::StaticClass() ) )
-	{
-		UUInt32Property *NumericProp = CastChecked<UUInt32Property>(Prop);
-		uint32 Value = FCString::Atoi( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UInt64Property::StaticClass() ) )
-	{
-		UInt64Property *NumericProp = CastChecked<UInt64Property>(Prop);
-		uint64 Value = FCString::Atoi64( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UFloatProperty::StaticClass() ) )
-	{
-		UFloatProperty *NumericProp = CastChecked<UFloatProperty>(Prop);
-		float Value = FCString::Atof( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
-	else if ( Prop->IsA( UDoubleProperty::StaticClass() ) )
-	{
-		UDoubleProperty *NumericProp = CastChecked<UDoubleProperty>(Prop);
-		double Value = FCString::Atod( *PropertyValue );
-		NumericProp->SetPropertyValue_InContainer(ContainerPtr, Value, ArrayIndex);
-	}
 }
 
 void FLiveEditorListenServer::ReplicateChanges( const nLiveEditorListenServer::FNetworkMessage &Message )
@@ -342,7 +373,7 @@ void FLiveEditorListenServer::ReplicateChanges( const nLiveEditorListenServer::F
 		UClass *BaseClass = FindObject<UClass>(ANY_PACKAGE, *Message.Payload.ClassName);
 		if ( BaseClass )
 		{
-			SetPropertyValue( BaseClass->ClassDefaultObject, Message.Payload.PropertyName, Message.Payload.PropertyValue );
+			nLiveEditorListenServer::SetPropertyValue( BaseClass->ClassDefaultObject, Message.Payload.PropertyName, Message.Payload.PropertyValue );
 
 			TArray< TWeakObjectPtr<UObject> > Replicants;
 			ObjectCache.FindObjectDependants( BaseClass->ClassDefaultObject, Replicants );
@@ -353,7 +384,7 @@ void FLiveEditorListenServer::ReplicateChanges( const nLiveEditorListenServer::F
 
 				UObject *Object = (*It).Get();
 				check( Object->IsA(BaseClass) );
-				SetPropertyValue( Object, Message.Payload.PropertyName, Message.Payload.PropertyValue );
+				nLiveEditorListenServer::SetPropertyValue( Object, Message.Payload.PropertyName, Message.Payload.PropertyValue );
 			}
 		}
 	}

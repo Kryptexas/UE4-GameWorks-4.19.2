@@ -5,9 +5,9 @@
 #include "DocumentationLink.h"
 #include "IDocumentation.h"
 
-void SDocumentationAnchor::Construct(const FArguments& InArgs, const FString& InLink )
+void SDocumentationAnchor::Construct(const FArguments& InArgs )
 {
-	Link = InLink;
+	Link = InArgs._Link;
 	
 	struct StringToText_Local
 	{
@@ -76,6 +76,6 @@ const FSlateBrush* SDocumentationAnchor::GetButtonImage() const
 
 FReply SDocumentationAnchor::OnClicked() const
 {
-	IDocumentation::Get()->Open( Link );
+	IDocumentation::Get()->Open( Link.Get() );
 	return FReply::Handled();
 }

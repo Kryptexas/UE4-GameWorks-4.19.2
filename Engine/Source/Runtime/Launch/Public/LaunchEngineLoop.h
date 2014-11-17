@@ -101,6 +101,9 @@ public:
 
 #endif // WITH_ENGINE
 
+	/** Pre-init HMD device (if necessary) */
+	static void PreInitHMDDevice();
+
 public:
 
 	/**

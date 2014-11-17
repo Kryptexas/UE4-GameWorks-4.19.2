@@ -581,6 +581,18 @@ UBodySetup* UStaticMeshComponent::GetBodySetup()
 	return NULL;
 }
 
+bool UStaticMeshComponent::CanEditSimulatePhysics()
+{
+	if (UBodySetup* BodySetup = GetBodySetup())
+	{
+		return (BodySetup->AggGeom.GetElementCount() > 0) || (BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
+	}
+	else
+	{
+		return false;
+	}
+}
+
 FColor UStaticMeshComponent::GetWireframeColor() const
 {
 	if(bOverrideWireframeColor)

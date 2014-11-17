@@ -121,7 +121,7 @@ void LoadOpenGLExtensions()
 		glGetAttribLocation			=(PFNGLGETATTRIBLOCATIONPROC)		wglGetProcAddress("glGetAttribLocation");
 	}
 #elif PLATFORM_LINUX
-#define GET_GL_ENTRYPOINTS(Type,Func) Func = (Type)SDL_GL_GetProcAddress(#Func);
+#define GET_GL_ENTRYPOINTS(Type,Func) { Func = reinterpret_cast<Type>(SDL_GL_GetProcAddress(#Func)); if (NULL == Func) { UE_LOG(LogInit, Fatal, TEXT("Failed to find entry point for %s"), TEXT(#Func)); }}
 	ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 #endif
 	// If extensions are needed for your platform add support for them here 

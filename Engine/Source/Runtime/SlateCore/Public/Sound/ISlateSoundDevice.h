@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+struct FSlateSound;
 
 /** Interface that Slate uses to play sounds. */
 class SLATECORE_API ISlateSoundDevice

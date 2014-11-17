@@ -4,7 +4,7 @@
 	MallocProfiler.cpp: Memory profiling support.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #if USE_MALLOC_PROFILER
 

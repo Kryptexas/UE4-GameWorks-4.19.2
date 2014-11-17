@@ -10,6 +10,7 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Navigation/NavigationComponent.h"
 #include "GameFramework/Pawn.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Engine/Canvas.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "AIController.h"

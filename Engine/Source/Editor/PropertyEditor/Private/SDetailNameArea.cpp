@@ -5,7 +5,7 @@
 #include "SDetailNameArea.h"
 #include "ClassIconFinder.h"
 #include "Editor/EditorWidgets/Public/EditorWidgets.h"
-#include "SourceCodeNavigation.h"
+#include "EditorClassUtils.h"
 
 #define LOCTEXT_NAMESPACE "SDetailsView"
 
@@ -91,7 +91,7 @@ TSharedRef< SWidget > SDetailNameArea::BuildObjectNameArea( const TArray< TWeakO
 		[
 			SNew(SImage)
 			.Image(ActorIcon)
-			.ToolTipText( FText::FromString( BaseClass->GetName() ) )
+			.ToolTip(FEditorClassUtils::GetTooltip(BaseClass))
 		];
 	}
 
@@ -124,8 +124,8 @@ TSharedRef< SWidget > SDetailNameArea::BuildObjectNameArea( const TArray< TWeakO
 		if( bShowLockButton )
 		{
 			ObjectNameArea->AddSlot()
-				.AutoWidth()
 				.HAlign(HAlign_Right)
+				.FillWidth(1.0f)
 				[
 					SNew( SButton )
 					.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
@@ -161,21 +161,6 @@ TSharedRef< SWidget > SDetailNameArea::BuildObjectNameArea( const TArray< TWeakO
 	return ObjectNameArea;
 }
 
-void SDetailNameArea::OnEditBlueprintClicked( TWeakObjectPtr<UBlueprint> InBlueprint, TWeakObjectPtr<UObject> InAsset )
-{
-	if (UBlueprint* Blueprint = InBlueprint.Get())
-	{
-		// Set the object being debugged if given an actor reference (if we don't do this before we edit the object the editor wont know we are debugging something)
-		if (UObject* Asset = InAsset.Get())
-		{
-			check(Asset->GetClass()->ClassGeneratedBy == Blueprint);
-			Blueprint->SetObjectBeingDebugged(Asset);
-		}
-		// Open the blueprint
-		GEditor->EditObject( Blueprint );
-	}
-}
-
 void SDetailNameArea::BuildObjectNameAreaSelectionLabel( TSharedRef< SHorizontalBox > SelectionLabelBox, const TWeakObjectPtr<UObject> ObjectWeakPtr, const int32 NumSelectedObjects ) 
 {
 	check( NumSelectedObjects > 1 || ObjectWeakPtr.IsValid() );
@@ -185,64 +170,23 @@ void SDetailNameArea::BuildObjectNameAreaSelectionLabel( TSharedRef< SHorizontal
 		UClass* ObjectClass = ObjectWeakPtr.Get()->GetClass();
 		if( ObjectClass != nullptr )
 		{
-			if (UBlueprint* Blueprint = Cast<UBlueprint>(ObjectClass->ClassGeneratedBy))
-			{
-				TWeakObjectPtr<UBlueprint> BlueprintPtr = Blueprint;
+			SelectionLabelBox->AddSlot()
+				.AutoWidth()
+				.VAlign( VAlign_Center )
+				.HAlign( HAlign_Left )
+				.Padding( 1.0f, 1.0f, 0.0f, 0.0f )
+				[
+					FEditorClassUtils::GetDocumentationLinkWidget(ObjectClass)
+				];
 
-				SelectionLabelBox->AddSlot()
-					.VAlign( VAlign_Center )
-					.HAlign( HAlign_Left )
-					.Padding( 6.0f, 1.0f, 0.0f, 0.0f )
-					.FillWidth( 1.0f )
-					[
-						SNew(SHyperlink)
-							.Style(FEditorStyle::Get(), "EditBPHyperlink")
-							.TextStyle(FEditorStyle::Get(), "DetailsView.EditBlueprintHyperlinkStyle")
-							.OnNavigate(this, &SDetailNameArea::OnEditBlueprintClicked, BlueprintPtr, ObjectWeakPtr)
-							.Text(FText::Format(LOCTEXT("EditBlueprint", "Edit {0}"), FText::FromString( Blueprint->GetName() ) ))
-							.ToolTipText(LOCTEXT("EditBlueprint_ToolTip", "Click to edit the blueprint"))
-					];
-			}		
-			else if( FSourceCodeNavigation::IsCompilerAvailable() )
-			{
-				FString ClassHeaderPath;
-				if( FSourceCodeNavigation::FindClassHeaderPath( ObjectClass, ClassHeaderPath ) && IFileManager::Get().FileSize( *ClassHeaderPath ) != INDEX_NONE )
-				{
-					struct Local
-					{
-						static void OnEditCodeClicked( FString InClassHeaderPath )
-						{
-							FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*InClassHeaderPath);
-							FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
-						}
-					};
-
-					SelectionLabelBox->AddSlot()
-						.VAlign( VAlign_Center )
-						.HAlign( HAlign_Left )
-						.Padding( 6.0f, 1.0f, 0.0f, 0.0f )
-						.FillWidth( 1.0f )
-						[
-							SNew(SHyperlink)
-								.Style(FCoreStyle::Get(), "Hyperlink")
-								.TextStyle(FEditorStyle::Get(), "DetailsView.GoToCodeHyperlinkStyle")
-								.OnNavigate_Static(&Local::OnEditCodeClicked, ClassHeaderPath)
-//								.Text(LOCTEXT("GoToCode", "(C++)" ))
-								.Text(FText::Format(LOCTEXT("GoToCode", "{0}" ), FText::FromString(FPaths::GetCleanFilename( *ClassHeaderPath ) ) ) )
-								.ToolTipText(LOCTEXT("GoToCode_ToolTip", "Click to open this source file in a text editor"))
-						];
-				}
-			}
-			else
-			{
-				// Fill the empty space
-				SelectionLabelBox->AddSlot();
-			}
-		}
-		else
-		{
-			// Fill the empty space
-			SelectionLabelBox->AddSlot();
+			SelectionLabelBox->AddSlot()
+				.AutoWidth()
+				.VAlign( VAlign_Center )
+				.HAlign( HAlign_Left )
+				.Padding( 6.0f, 1.0f, 0.0f, 0.0f )
+				[
+					FEditorClassUtils::GetSourceLink(ObjectClass, ObjectWeakPtr)
+				];
 		}
 	}
 	else

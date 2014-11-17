@@ -387,6 +387,8 @@ inline void FOpenGLDynamicRHI::UpdateScissorRectInOpenGLContext( FOpenGLContextS
 	if( PendingState.bScissorEnabled &&
 		ContextState.Scissor != PendingState.Scissor )
 	{
+		check(PendingState.Scissor.Min.X <= PendingState.Scissor.Max.X);
+		check(PendingState.Scissor.Min.Y <= PendingState.Scissor.Max.Y);
 		glScissor(PendingState.Scissor.Min.X, PendingState.Scissor.Min.Y, PendingState.Scissor.Max.X - PendingState.Scissor.Min.X, PendingState.Scissor.Max.Y - PendingState.Scissor.Min.Y);
 		ContextState.Scissor = PendingState.Scissor;
 	}
@@ -409,7 +411,7 @@ void FOpenGLDynamicRHI::RHISetBoundShaderState( FBoundShaderStateRHIParamRef Bou
 
 void FOpenGLDynamicRHI::RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 UAVIndex,FUnorderedAccessViewRHIParamRef UnorderedAccessViewRHI)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 
 	VERIFY_GL_SCOPE();
 	if(UnorderedAccessViewRHI)
@@ -717,7 +719,7 @@ void FOpenGLDynamicRHI::SetupUAVsForDraw( FOpenGLContextState& ContextState, con
 
 void FOpenGLDynamicRHI::CachedSetupUAVStage( FOpenGLContextState& ContextState, GLint UAVIndex, GLenum Format, GLuint Resource)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 
 	if( ContextState.UAVs[UAVIndex].Format == Format && ContextState.Textures[UAVIndex].Resource == Resource)
 	{
@@ -772,7 +774,7 @@ void FOpenGLDynamicRHI::RHISetShaderResourceViewParameter(FVertexShaderRHIParamR
 
 void FOpenGLDynamicRHI::RHISetShaderResourceViewParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 TextureIndex,FShaderResourceViewRHIParamRef SRVRHI)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	check(FOpenGL::SupportsResourceView());
 	DYNAMIC_CAST_OPENGLRESOURCE(ShaderResourceView,SRV);
@@ -793,7 +795,7 @@ void FOpenGLDynamicRHI::RHISetShaderResourceViewParameter(FHullShaderRHIParamRef
 {
 	VALIDATE_BOUND_SHADER(HullShaderRHI);
 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	check(FOpenGL::SupportsResourceView());
 	DYNAMIC_CAST_OPENGLRESOURCE(ShaderResourceView,SRV);
@@ -813,7 +815,7 @@ void FOpenGLDynamicRHI::RHISetShaderResourceViewParameter(FDomainShaderRHIParamR
 {
 	VALIDATE_BOUND_SHADER(DomainShaderRHI);
 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	check(FOpenGL::SupportsResourceView());
 	DYNAMIC_CAST_OPENGLRESOURCE(ShaderResourceView,SRV);
@@ -862,7 +864,7 @@ void FOpenGLDynamicRHI::RHISetShaderTexture(FHullShaderRHIParamRef HullShaderRHI
 {
 	VALIDATE_BOUND_SHADER(HullShaderRHI);
 	
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	FOpenGLTextureBase* NewTexture = GetOpenGLTextureFromRHITexture(NewTextureRHI);
 	InternalSetShaderTexture(NewTexture, FOpenGL::GetFirstHullTextureUnit() + TextureIndex, NewTexture->Target, NewTexture->Resource, NewTextureRHI->GetNumMips(), -1);
@@ -872,7 +874,7 @@ void FOpenGLDynamicRHI::RHISetShaderTexture(FDomainShaderRHIParamRef DomainShade
 {
 	VALIDATE_BOUND_SHADER(DomainShaderRHI);
 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	FOpenGLTextureBase* NewTexture = GetOpenGLTextureFromRHITexture(NewTextureRHI);
 	InternalSetShaderTexture(NewTexture, FOpenGL::GetFirstDomainTextureUnit() + TextureIndex, NewTexture->Target, NewTexture->Resource, NewTextureRHI->GetNumMips(), -1);
@@ -916,7 +918,7 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FHullShaderRHIParamRef HullShaderRHI
 {
 	VALIDATE_BOUND_SHADER(HullShaderRHI);
 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
 	if (FOpenGL::SupportsSamplerObjects())
@@ -932,7 +934,7 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FDomainShaderRHIParamRef DomainShade
 {
 	VALIDATE_BOUND_SHADER(DomainShaderRHI);
 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
 	if (FOpenGL::SupportsSamplerObjects())
@@ -963,7 +965,7 @@ void FOpenGLDynamicRHI::RHISetShaderSampler(FGeometryShaderRHIParamRef GeometryS
 
 void FOpenGLDynamicRHI::RHISetShaderTexture(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 TextureIndex,FTextureRHIParamRef NewTextureRHI)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	FOpenGLTextureBase* NewTexture = GetOpenGLTextureFromRHITexture(NewTextureRHI);
 	InternalSetShaderTexture(NewTexture, FOpenGL::GetFirstComputeTextureUnit() + TextureIndex, NewTexture->Target, NewTexture->Resource, NewTextureRHI->GetNumMips(), -1);
@@ -995,7 +997,7 @@ void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Verte
 void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullShaderRHI,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(HullShaderRHI);
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	PendingState.BoundUniformBuffers[SF_Hull][BufferIndex] = BufferRHI;
 	PendingState.DirtyUniformBuffers[SF_Hull] |= 1 << BufferIndex;
 }
@@ -1003,7 +1005,7 @@ void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullSha
 void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef DomainShaderRHI,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(DomainShaderRHI);
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	PendingState.BoundUniformBuffers[SF_Domain][BufferIndex] = BufferRHI;
 	PendingState.DirtyUniformBuffers[SF_Domain] |= 1 << BufferIndex;
 }
@@ -1017,7 +1019,7 @@ void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef Geo
 
 void FOpenGLDynamicRHI::RHISetShaderSampler(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 SamplerIndex,FSamplerStateRHIParamRef NewStateRHI)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
 	DYNAMIC_CAST_OPENGLRESOURCE(SamplerState,NewState);
 	FOpenGL::BindSampler(FOpenGL::GetFirstComputeTextureUnit() + SamplerIndex, NewState->Resource);
@@ -1032,7 +1034,7 @@ void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelS
 
 void FOpenGLDynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	PendingState.BoundUniformBuffers[SF_Compute][BufferIndex] = BufferRHI;
 	PendingState.DirtyUniformBuffers[SF_Compute] |= 1 << BufferIndex;
 }
@@ -1042,7 +1044,7 @@ void FOpenGLDynamicRHI::RHISetShaderParameter(FVertexShaderRHIParamRef VertexSha
 	VALIDATE_BOUND_SHADER(VertexShaderRHI);
 
 	VERIFY_GL_SCOPE();
-	PendingState.ShaderParameters[OGL_SHADER_STAGE_VERTEX].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
+	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
 }
 
 void FOpenGLDynamicRHI::RHISetShaderParameter(FPixelShaderRHIParamRef PixelShaderRHI,uint32 BufferIndex,uint32 BaseIndex,uint32 NumBytes,const void* NewValue)
@@ -1050,25 +1052,25 @@ void FOpenGLDynamicRHI::RHISetShaderParameter(FPixelShaderRHIParamRef PixelShade
 	VALIDATE_BOUND_SHADER(PixelShaderRHI);
 
 	VERIFY_GL_SCOPE();
-	PendingState.ShaderParameters[OGL_SHADER_STAGE_PIXEL].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
+	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
 }
 
 void FOpenGLDynamicRHI::RHISetShaderParameter(FHullShaderRHIParamRef HullShaderRHI,uint32 BufferIndex,uint32 BaseIndex,uint32 NumBytes,const void* NewValue)
 {
 	VALIDATE_BOUND_SHADER(HullShaderRHI);
 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
-	PendingState.ShaderParameters[OGL_SHADER_STAGE_HULL].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
+	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_HULL].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
 }
 
 void FOpenGLDynamicRHI::RHISetShaderParameter(FDomainShaderRHIParamRef DomainShaderRHI,uint32 BufferIndex,uint32 BaseIndex,uint32 NumBytes,const void* NewValue)
 {
 	VALIDATE_BOUND_SHADER(DomainShaderRHI);
 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 	VERIFY_GL_SCOPE();
-	PendingState.ShaderParameters[OGL_SHADER_STAGE_DOMAIN].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
+	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_DOMAIN].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
 }
 
 void FOpenGLDynamicRHI::RHISetShaderParameter(FGeometryShaderRHIParamRef GeometryShaderRHI,uint32 BufferIndex,uint32 BaseIndex,uint32 NumBytes,const void* NewValue)
@@ -1076,13 +1078,13 @@ void FOpenGLDynamicRHI::RHISetShaderParameter(FGeometryShaderRHIParamRef Geometr
 	VALIDATE_BOUND_SHADER(GeometryShaderRHI);
 
 	VERIFY_GL_SCOPE();
-	PendingState.ShaderParameters[OGL_SHADER_STAGE_GEOMETRY].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
+	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_GEOMETRY].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
 }
 
 void FOpenGLDynamicRHI::RHISetShaderParameter(FComputeShaderRHIParamRef ComputeShaderRHI,uint32 BufferIndex,uint32 BaseIndex,uint32 NumBytes,const void* NewValue)
 { 
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
-	PendingState.ShaderParameters[OGL_SHADER_STAGE_COMPUTE].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE].Set(BufferIndex, BaseIndex, NumBytes, NewValue);
 }
 
 void FOpenGLDynamicRHI::RHISetDepthStencilState(FDepthStencilStateRHIParamRef NewStateRHI,uint32 StencilRef)
@@ -1590,6 +1592,8 @@ void FOpenGLDynamicRHI::RHISetRenderTargets(
 	else if( NewDepthStencilTargetRHI )
 	{
 		// Set viewport size to new depth target size.
+		PendingState.Viewport.Min.X = 0;
+		PendingState.Viewport.Min.Y = 0;
 		PendingState.Viewport.Max.X = GetOpenGLTextureSizeXFromRHITexture(NewDepthStencilTargetRHI);
 		PendingState.Viewport.Max.Y = GetOpenGLTextureSizeYFromRHITexture(NewDepthStencilTargetRHI);
 	}
@@ -2057,7 +2061,7 @@ void FOpenGLDynamicRHI::OnUniformBufferDeletion( GLuint UniformBufferResource, u
 		RenderingContextState.UniformBufferBound = -1;	// will force refresh
 	}
 
-	for (GLuint UniformBufferIndex = 0; UniformBufferIndex < OGL_NUM_SHADER_STAGES*OGL_MAX_UNIFORM_BUFFER_BINDINGS; UniformBufferIndex++)
+	for (GLuint UniformBufferIndex = 0; UniformBufferIndex < CrossCompiler::NUM_SHADER_STAGES*OGL_MAX_UNIFORM_BUFFER_BINDINGS; UniformBufferIndex++)
 	{
 		if( SharedContextState.UniformBuffers[UniformBufferIndex] == UniformBufferResource )
 		{
@@ -2078,36 +2082,36 @@ void FOpenGLDynamicRHI::CommitNonComputeShaderConstants()
 	FOpenGLLinkedProgram* LinkedProgram = PendingState.BoundShaderState->LinkedProgram;
 	if (IsES2Platform(GRHIShaderPlatform))
 	{
-		PendingState.ShaderParameters[OGL_SHADER_STAGE_VERTEX].CommitPackedUniformBuffers(LinkedProgram, OGL_SHADER_STAGE_VERTEX, PendingState.BoundUniformBuffers[SF_Vertex], PendingState.BoundShaderState->VertexShader->UniformBuffersCopyInfo);
+		PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].CommitPackedUniformBuffers(LinkedProgram, CrossCompiler::SHADER_STAGE_VERTEX, PendingState.BoundUniformBuffers[SF_Vertex], PendingState.BoundShaderState->VertexShader->UniformBuffersCopyInfo);
 	}
-	PendingState.ShaderParameters[OGL_SHADER_STAGE_VERTEX].CommitPackedGlobals(LinkedProgram, OGL_SHADER_STAGE_VERTEX);
+	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].CommitPackedGlobals(LinkedProgram, CrossCompiler::SHADER_STAGE_VERTEX);
 
 	if (IsES2Platform(GRHIShaderPlatform))
 	{
-		PendingState.ShaderParameters[OGL_SHADER_STAGE_PIXEL].CommitPackedUniformBuffers(LinkedProgram, OGL_SHADER_STAGE_PIXEL, PendingState.BoundUniformBuffers[SF_Pixel], PendingState.BoundShaderState->PixelShader->UniformBuffersCopyInfo);
+		PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].CommitPackedUniformBuffers(LinkedProgram, CrossCompiler::SHADER_STAGE_PIXEL, PendingState.BoundUniformBuffers[SF_Pixel], PendingState.BoundShaderState->PixelShader->UniformBuffersCopyInfo);
 	}
-	PendingState.ShaderParameters[OGL_SHADER_STAGE_PIXEL].CommitPackedGlobals(LinkedProgram, OGL_SHADER_STAGE_PIXEL);
+	PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].CommitPackedGlobals(LinkedProgram, CrossCompiler::SHADER_STAGE_PIXEL);
 
 	if (PendingState.BoundShaderState->GeometryShader)
 	{
 		if (IsES2Platform(GRHIShaderPlatform))
 		{
-			PendingState.ShaderParameters[OGL_SHADER_STAGE_GEOMETRY].CommitPackedUniformBuffers(LinkedProgram, OGL_SHADER_STAGE_GEOMETRY, PendingState.BoundUniformBuffers[SF_Geometry], PendingState.BoundShaderState->GeometryShader->UniformBuffersCopyInfo);
+			PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_GEOMETRY].CommitPackedUniformBuffers(LinkedProgram, CrossCompiler::SHADER_STAGE_GEOMETRY, PendingState.BoundUniformBuffers[SF_Geometry], PendingState.BoundShaderState->GeometryShader->UniformBuffersCopyInfo);
 		}
-		PendingState.ShaderParameters[OGL_SHADER_STAGE_GEOMETRY].CommitPackedGlobals(LinkedProgram, OGL_SHADER_STAGE_GEOMETRY);
+		PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_GEOMETRY].CommitPackedGlobals(LinkedProgram, CrossCompiler::SHADER_STAGE_GEOMETRY);
 	}
 }
 
 void FOpenGLDynamicRHI::CommitComputeShaderConstants(FComputeShaderRHIParamRef ComputeShaderRHI)
 {
 	VERIFY_GL_SCOPE();
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+	check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 
 	DYNAMIC_CAST_OPENGLRESOURCE(ComputeShader,ComputeShader);
-	const int32 Stage = OGL_SHADER_STAGE_COMPUTE;
+	const int32 Stage = CrossCompiler::SHADER_STAGE_COMPUTE;
 
-	FOpenGLShaderParameterCache& StageShaderParameters = PendingState.ShaderParameters[OGL_SHADER_STAGE_COMPUTE];
-	StageShaderParameters.CommitPackedGlobals(ComputeShader->LinkedProgram, OGL_SHADER_STAGE_COMPUTE);
+	FOpenGLShaderParameterCache& StageShaderParameters = PendingState.ShaderParameters[CrossCompiler::SHADER_STAGE_COMPUTE];
+	StageShaderParameters.CommitPackedGlobals(ComputeShader->LinkedProgram, CrossCompiler::SHADER_STAGE_COMPUTE);
 }
 
 template <EShaderFrequency Frequency>
@@ -2888,7 +2892,7 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 {
 	VERIFY_GL_SCOPE();
 
-	check((GRHIFeatureLevel >= ERHIFeatureLevel::SM5 ) || !PendingState.bFramebufferSetupInvalid);
+	check((GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5) || !PendingState.bFramebufferSetupInvalid);
 
 	if (bClearColor)
 	{
@@ -3116,7 +3120,7 @@ void FOpenGLDynamicRHI::RHISetComputeShader(FComputeShaderRHIParamRef ComputeSha
 	if ( FOpenGL::SupportsComputeShaders() )
 	{
 		VERIFY_GL_SCOPE();
-		check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+		check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 
 		PendingState.CurrentComputeShader = ComputeShaderRHI;
 
@@ -3141,7 +3145,7 @@ void FOpenGLDynamicRHI::RHIDispatchComputeShader(uint32 ThreadGroupCountX, uint3
 	{
 		VERIFY_GL_SCOPE();
 
-		check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5);
+		check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5);
 
 		FComputeShaderRHIParamRef ComputeShaderRHI = PendingState.CurrentComputeShader;
 		check(ComputeShaderRHI);
@@ -3171,7 +3175,7 @@ void FOpenGLDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRe
 	if ( FOpenGL::SupportsComputeShaders() )
 	{
 		VERIFY_GL_SCOPE();
-		check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		check(GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 
 		FComputeShaderRHIParamRef ComputeShaderRHI = PendingState.CurrentComputeShader;
 		check(ComputeShaderRHI);

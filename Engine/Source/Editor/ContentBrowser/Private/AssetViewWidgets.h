@@ -82,6 +82,12 @@ public:
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
 
+		/** Delegate to call (if bound) to get a custom tooltip for this view item */
+		SLATE_EVENT( FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip )
+
+		/** Delegate for when an item is about to show a tool tip */
+		SLATE_EVENT( FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip)
+
 	SLATE_END_ARGS()
 
 	/** Virtual destructor */
@@ -108,6 +114,9 @@ public:
 
 	/** Delegate handling when an asset is loaded */
 	void HandleAssetLoaded(UObject* InAsset) const;
+
+	/* About to show a tool tip */
+	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent ) override;
 
 protected:
 	/** Handles starting a name change */
@@ -203,6 +212,12 @@ protected:
 
 	/** Called when any asset item is destroyed. Used in thumbnail management */
 	FOnItemDestroyed OnItemDestroyed;
+
+	/** Called if bound to get a custom asset item tooltip */
+	FOnGetCustomAssetToolTip OnGetCustomAssetToolTip;
+
+	/** Called if bound when about to show a tooltip */
+	FOnVisualizeAssetToolTip OnVisualizeAssetToolTip;
 
 	/** The geometry last frame. Used when telling popup messages where to appear. */
 	FGeometry LastGeometry;
@@ -320,6 +335,12 @@ public:
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
 
+		/** Delegate to request a custom tool tip if necessary */
+		SLATE_EVENT(FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip)
+
+		/* Delegate to signal when the item is about to show a tooltip */
+		SLATE_EVENT(FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip)
+
 	SLATE_END_ARGS()
 
 	/** Destructor */
@@ -417,6 +438,12 @@ public:
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
 
+		/** Delegate to request a custom tool tip if necessary */
+		SLATE_EVENT(FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip)
+
+		/* Delegate to signal when the item is about to show a tooltip */
+		SLATE_EVENT(FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip)
+
 	SLATE_END_ARGS()
 
 	/** Destructor */
@@ -481,6 +508,12 @@ public:
 
 		/** Delegate for when a list of files is dropped on this folder (if it is a folder) from an external source */
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
+
+		/** Delegate to request a custom tool tip if necessary */
+		SLATE_EVENT( FOnGetCustomAssetToolTip, OnGetCustomAssetToolTip)
+
+		/* Delegate to signal when the item is about to show a tooltip */
+		SLATE_EVENT( FOnVisualizeAssetToolTip, OnVisualizeAssetToolTip)
 
 	SLATE_END_ARGS()
 
@@ -553,6 +586,13 @@ public:
 		SMultiColumnTableRow< TSharedPtr<FAssetViewItem> >::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 		this->AssetColumnItem->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	}
+
+	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent)
+	{
+		// We take the content from the asset column item during construction,
+		// so let the item handle the tooltip callback
+		return AssetColumnItem->OnVisualizeTooltip(TooltipContent);
 	}
 
 	TSharedPtr<SAssetColumnItem> AssetColumnItem;

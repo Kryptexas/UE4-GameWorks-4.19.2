@@ -8,6 +8,8 @@
 #include "ContentBrowserModule.h"
 #include "STutorialWrapper.h"
 #include "ContentBrowserCommands.h"
+#include "CollectionManagerModule.h"
+#include "AssetRegistryModule.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -17,6 +19,20 @@ SContentBrowser::~SContentBrowser()
 {
 	// Remove the listener for when view settings are changed
 	UContentBrowserSettings::OnSettingChanged().RemoveAll( this );
+
+	// Remove listeners for when collections/paths are renamed/deleted
+	FCollectionManagerModule* CollectionManagerModule = FModuleManager::GetModulePtr<FCollectionManagerModule>(TEXT("CollectionManager"));
+	if (CollectionManagerModule != nullptr)
+	{
+		CollectionManagerModule->Get().OnCollectionRenamed().RemoveAll(this);
+		CollectionManagerModule->Get().OnCollectionDestroyed().RemoveAll(this);
+	}
+
+	FAssetRegistryModule* AssetRegistryModule = FModuleManager::GetModulePtr<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	if (AssetRegistryModule != nullptr)
+	{
+		AssetRegistryModule->Get().OnPathRemoved().RemoveAll(this);
+	}
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -573,6 +589,14 @@ void SContentBrowser::Construct( const FArguments& InArgs, const FName& InInstan
 	this->InstanceName = InInstanceName;
 	LoadSettings(InInstanceName);
 
+	// Bindings to manage history when items are deleted
+	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	CollectionManagerModule.Get().OnCollectionRenamed().AddSP(this, &SContentBrowser::HandleCollectionRenamed);
+	CollectionManagerModule.Get().OnCollectionDestroyed().AddSP(this, &SContentBrowser::HandleCollectionRemoved);
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	AssetRegistryModule.Get().OnPathRemoved().AddSP(this, &SContentBrowser::HandlePathRemoved);
+
 	// Update the breadcrumb trail path
 	UpdatePath();
 }
@@ -675,7 +699,13 @@ void SContentBrowser::SyncToAssets( const TArray<FAssetData>& AssetDataList, con
 		}
 	}
 
+	// Disable the filter categories
 	FilterListPtr->DisableFiltersThatHideAssets(AssetDataList);
+
+	// Disable the filter search (reset the filter, then clear the search text)
+	// Note: we have to remove the filter immediately, we can't wait for OnSearchBoxChanged to hit
+	SetSearchBoxText(FText::GetEmpty());
+	SearchBoxPtr->SetText(FText::GetEmpty());	
 
 	// Tell the sources view first so the asset view will be up to date by the time we request the sync
 	PathViewPtr->SyncToAssets(AssetDataList, bAllowImplicitSync);
@@ -914,8 +944,11 @@ void SContentBrowser::SourcesChanged(const TArray<FString>& SelectedPaths, const
 	
 	SourcesData.Collections = SelectedCollections;
 
-	// Update the current history data to preserve selection
-	HistoryManager.UpdateHistoryData();
+	if (!AssetViewPtr->GetSourcesData().IsEmpty())
+	{
+		// Update the current history data to preserve selection if there is a valid SourcesData
+		HistoryManager.UpdateHistoryData();
+	}
 
 	// Change the filter for the asset view
 	AssetViewPtr->SetSourcesData(SourcesData);
@@ -1060,7 +1093,7 @@ void SContentBrowser::NewFolderRequested(const FString& SelectedPath)
 	}
 }
 
-void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
+void SContentBrowser::SetSearchBoxText(const FText& InSearchText)
 {
 	TextFilter->SetRawFilterText( InSearchText );
 	if(InSearchText.IsEmpty())
@@ -1073,6 +1106,11 @@ void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
 		FrontendFilters->Add(TextFilter);
 		AssetViewPtr->SetUserSearching(true);
 	}
+}
+
+void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
+{
+	SetSearchBoxText(InSearchText);
 
 	// Broadcast 'search box changed' delegate
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::GetModuleChecked<FContentBrowserModule>( TEXT("ContentBrowser") );
@@ -1081,17 +1119,7 @@ void SContentBrowser::OnSearchBoxChanged(const FText& InSearchText)
 
 void SContentBrowser::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::Type CommitInfo)
 {
-	TextFilter->SetRawFilterText( InSearchText );
-	if(InSearchText.IsEmpty())
-	{
-		FrontendFilters->Remove(TextFilter);
-		AssetViewPtr->SetUserSearching(false);
-	}
-	else
-	{
-		FrontendFilters->Add(TextFilter);
-		AssetViewPtr->SetUserSearching(true);
-	}
+	SetSearchBoxText(InSearchText);
 }
 
 void SContentBrowser::OnPathClicked( const FString& CrumbData )
@@ -1773,6 +1801,41 @@ void SContentBrowser::HandleSettingChanged(FName PropertyName)
 			}
 		}
 	}
+}
+
+void SContentBrowser::HandleCollectionRemoved(const FCollectionNameType& Collection)
+{
+	AssetViewPtr->SetSourcesData(FSourcesData());
+
+	auto RemoveHistoryDelegate = [&](const FHistoryData& HistoryData)
+	{
+		return (HistoryData.SourcesData.Collections.Num() == 1 &&
+				HistoryData.SourcesData.PackagePaths.Num() == 0 &&
+				HistoryData.SourcesData.Collections.Contains(Collection));
+	};
+
+	HistoryManager.RemoveHistoryData(RemoveHistoryDelegate);
+}
+
+void SContentBrowser::HandleCollectionRenamed(const FCollectionNameType& OriginalCollection, const FCollectionNameType& NewCollection)
+{
+	return HandleCollectionRemoved(OriginalCollection);
+}
+
+void SContentBrowser::HandlePathRemoved(const FString& Path)
+{
+	const FName PathName(*Path);
+
+	AssetViewPtr->SetSourcesData(FSourcesData());
+
+	auto RemoveHistoryDelegate = [&](const FHistoryData& HistoryData)
+	{
+		return (HistoryData.SourcesData.PackagePaths.Num() == 1 &&
+				HistoryData.SourcesData.Collections.Num() == 0 &&
+				HistoryData.SourcesData.PackagePaths.Contains(PathName));
+	};
+
+	HistoryManager.RemoveHistoryData(RemoveHistoryDelegate);
 }
 
 FText SContentBrowser::GetSearchAssetsHintText() const

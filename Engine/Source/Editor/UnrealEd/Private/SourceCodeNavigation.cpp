@@ -1424,7 +1424,7 @@ bool FSourceCodeNavigation::FindModulePath( const FString& ModuleName, FString &
 	return false;
 }
 
-bool FSourceCodeNavigation::FindClassHeaderPath( UField *Field, FString &OutClassHeaderPath )
+bool FSourceCodeNavigation::FindClassHeaderPath( const UField *Field, FString &OutClassHeaderPath )
 {
 	// Get the class package, and skip past the "/Script/" portion to get the module name
 	UPackage *ModulePackage = Field->GetTypedOuter<UPackage>();

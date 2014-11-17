@@ -59,7 +59,25 @@ namespace UnrealBuildTool
 					 Type == TargetRules.TargetType.RocketGame;
 			}
 		}
-	}
+
+        /// <summary>
+        /// True if the target type is a monolithic binary
+        /// </summary>
+        public bool IsMonolithic
+        {
+            get
+            {
+                if (!Type.HasValue)
+                {
+                    throw new BuildException("Trying to access TargetInfo.IsMonolithic when TargetInfo.Type is not set. Make sure IsMonolithic is used only in ModuleRules.");
+                }
+                return Type == TargetRules.TargetType.Client ||
+                     Type == TargetRules.TargetType.Game ||
+                     Type == TargetRules.TargetType.Server ||
+                     Type == TargetRules.TargetType.RocketGame;
+            }
+        }
+    }
 
 
 	/// <summary>
@@ -282,6 +300,9 @@ namespace UnrealBuildTool
 			// Box2D included define (required because pointer types may be in public exported structures)
 			Definitions.Add(string.Format("WITH_BOX2D={0}", bSupported ? 1 : 0));
 		}
+
+		/** Redistribution override flag for this module. */
+		public bool? IsRedistributableOverride { get; set; }
 	}
 
 	/// <summary>
@@ -422,6 +443,11 @@ namespace UnrealBuildTool
 		/// If true, the built target goes into the Engine/Binaries/<PLATFORM> folder
 		/// </summary>
 		public bool bOutputToEngineBinaries = false;
+
+        /// <summary>
+        /// Sub folder where the built target goes: Engine/Binaries/<PLATFORM>/<SUBDIR>
+        /// </summary>
+        public string ExeBinariesSubFolder = String.Empty;
 
 		/// <summary>
 		/// Whether this target should be compiled in monolithic mode
@@ -579,7 +605,19 @@ namespace UnrealBuildTool
         /// <param name="SeparateNode">If this is set to true, the program will get its own node</param>
         /// </summary>
         /// <returns>true if this target should always be built with the base editor.</returns>
+        [Obsolete]
         public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode)
+        {
+            bInternalToolOnly = false;
+            SeparateNode = false;
+            return false;
+        }
+        /// <summary>
+        /// Return true if this target should always be built with the tools. Usually programs like unrealpak.
+        /// <param name="SeparateNode">If this is set to true, the program will get its own node</param>
+        /// </summary>
+        /// <returns>true if this target should always be built with the base editor.</returns>        
+        public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, bool bBuildingRocket, out bool bInternalToolOnly, out bool SeparateNode)
         {
             bInternalToolOnly = false;
             SeparateNode = false;

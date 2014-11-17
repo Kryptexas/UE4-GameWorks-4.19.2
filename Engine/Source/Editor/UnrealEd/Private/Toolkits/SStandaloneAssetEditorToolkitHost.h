@@ -76,6 +76,8 @@ public:
 	void SetMenuOverlay( TSharedRef<SWidget> NewOverlay );
 
 private:
+	void OnTabClosed(TSharedRef<SDockTab> TabClosed) const;
+
 	/** Manages internal tab layout */
 	TSharedPtr<FTabManager> MyTabManager;
 

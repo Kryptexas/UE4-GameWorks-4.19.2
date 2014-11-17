@@ -21,6 +21,13 @@ UCheckBox::UCheckBox(const FPostConstructInitializeProperties& PCIP)
 	BorderBackgroundColor = FLinearColor::White;
 }
 
+void UCheckBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyCheckbox.Reset();
+}
+
 TSharedRef<SWidget> UCheckBox::RebuildWidget()
 {
 	TOptional<FSlateSound> OptionalCheckedSound;
@@ -54,7 +61,7 @@ TSharedRef<SWidget> UCheckBox::RebuildWidget()
 
 	if ( GetChildrenCount() > 0 )
 	{
-		MyCheckbox->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->GetWidget() : SNullWidget::NullWidget);
+		MyCheckbox->SetContent(GetContentSlot()->Content ? GetContentSlot()->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 	
 	return MyCheckbox.ToSharedRef();
@@ -93,7 +100,7 @@ void UCheckBox::OnSlotAdded(UPanelSlot* Slot)
 	// Add the child to the live slot if it already exists
 	if ( MyCheckbox.IsValid() )
 	{
-		MyCheckbox->SetContent(Slot->Content ? Slot->Content->GetWidget() : SNullWidget::NullWidget);
+		MyCheckbox->SetContent(Slot->Content ? Slot->Content->TakeWidget() : SNullWidget::NullWidget);
 	}
 }
 

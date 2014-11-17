@@ -8,6 +8,8 @@
 #pragma once
 
 #include "Distributions.h"
+#include "Distributions/DistributionFloat.h"
+#include "Distributions/DistributionVector.h"
 #include "ParticleHelper.h"
 
 /*-----------------------------------------------------------------------------
@@ -665,6 +667,12 @@ public:
 	* @param	InWidth				The width of the trail.
 	*/
 	virtual void SetTrailSourceData(FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth){}
+
+	/** 
+	Ticks the emitter's material overrides.
+	@return True if there were material overrides. Otherwise revert to default behaviour.
+	*/
+	virtual bool Tick_MaterialOverrides();
 protected:
 
 	/**
@@ -778,6 +786,7 @@ struct ENGINE_API FParticleMeshEmitterInstance : public FParticleEmitterInstance
 	virtual FDynamicEmitterDataBase* GetDynamicData(bool bSelected);
 	virtual bool IsDynamicDataRequired(UParticleLODLevel* CurrentLODLevel) override;
 
+	virtual bool Tick_MaterialOverrides();
 	/**
 	 *	Updates the dynamic data for the instance
 	 *

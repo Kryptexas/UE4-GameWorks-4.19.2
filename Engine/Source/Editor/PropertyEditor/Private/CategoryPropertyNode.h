@@ -41,7 +41,7 @@ protected:
 	/**
 	 * Appends my path, including an array index (where appropriate)
 	 */
-	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const override;
+	virtual bool GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex, const FPropertyNode* StopParent = nullptr, bool bIgnoreCategories = false ) const override;
 
 	FString GetSubcategoryName() const;
 	/**

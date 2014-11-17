@@ -101,7 +101,7 @@ void CompositeGIMainPS(
 	float3 WorldPosition = float3(View.TranslucencyLightingVolumeMin[VolumeCascadeIndex].xy + Input.Vertex.UV / View.TranslucencyLightingVolumeInvSize[VolumeCascadeIndex].xy - .5f * View.TranslucencyLightingVolumeInvSize[VolumeCascadeIndex].w, ZPosition);
 	float3 CacheUV = WorldPosition * IndirectlightingCacheScale + IndirectlightingCacheAdd;
 
-	float4 Vector0 = Texture3DSample(IndirectLightingCacheTexture, IndirectLightingCacheTextureSampler, CacheUV) * SHAmbientFunction() / PI;
+	float4 Vector0 = Texture3DSample(IndirectLightingCacheTexture, IndirectLightingCacheTextureSampler, CacheUV);
 	float4 Vector1 = Texture3DSample(IndirectLightingCacheTexture1, IndirectLightingCacheTexture1Sampler, CacheUV);
 	float4 Vector2 = Texture3DSample(IndirectLightingCacheTexture2, IndirectLightingCacheTexture2Sampler, CacheUV);
 

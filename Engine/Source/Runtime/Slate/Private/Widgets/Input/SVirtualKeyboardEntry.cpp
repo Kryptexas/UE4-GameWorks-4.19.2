@@ -149,20 +149,7 @@ FVector2D SVirtualKeyboardEntry::ComputeDesiredSize() const
 	return FVector2D( FMath::Max(TextSize.X, MinDesiredWidth.Get()), FMath::Max(TextSize.Y, FontMaxCharHeight) );
 }
 
-/**
- * The widget should respond by populating the OutDrawElements array with FDrawElements 
- * that represent it and any of its children.
- *
- * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
- * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
- * @param OutDrawElements   A list of FDrawElements to populate with the output.
- * @param LayerId           The Layer onto which this widget should be rendered.
- * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
- * @param bParentEnabled	True if the parent of this widget is enabled.
- *
- * @return The maximum layer ID attained by this widget or any of its children.
- */
-int32 SVirtualKeyboardEntry::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SVirtualKeyboardEntry::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 
@@ -206,6 +193,10 @@ int32 SVirtualKeyboardEntry::OnPaint( const FGeometry& AllottedGeometry, const F
 	else
 	{
 		// Draw the text
+#if 0
+		// NOTE: this code is causing the text to not be visible at all once entered on device.
+		// I've replaced it with the (working) hint-text version for now (without scrolling support)
+		// until a real fix can be found. -dnikdel
 
 		// Only draw the text that's potentially visible
 		const float ScrollAreaLeft = ScrollHelper.ToScrollerSpace( FVector2D::ZeroVector ).X;
@@ -229,6 +220,19 @@ int32 SVirtualKeyboardEntry::OnPaint( const FGeometry& AllottedGeometry, const F
 			DrawEffects,                     // Effects to use
 			ColorAndOpacitySRGB              // Color
 		);
+#else
+		// Draw the whole text for now
+		FSlateDrawElement::MakeText(
+			OutDrawElements,
+			LayerId + TextLayer,
+			AllottedGeometry.ToPaintGeometry(FVector2D(0, DrawPositionY), AllottedGeometry.Size),
+			VisibleText,           // Text
+			FontInfo,              // Font information (font name, size)
+			MyClippingRect,        // Clipping rect
+			DrawEffects,           // Effects to use
+			ColorAndOpacitySRGB    // Color
+			);
+#endif
 	}
 	
 	return LayerId + TextLayer;

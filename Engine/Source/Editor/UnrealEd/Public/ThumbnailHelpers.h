@@ -107,6 +107,78 @@ private:
 	AStaticMeshActor* PreviewActor;
 };
 
+class UNREALED_API FAnimationSequenceThumbnailScene : public FThumbnailPreviewScene
+{
+public:
+	/** Constructor */
+	FAnimationSequenceThumbnailScene();
+
+	/** Sets the animation to use in the next GetView() */
+	bool SetAnimation(class UAnimSequenceBase* InAnimation);
+
+protected:
+	// FThumbnailPreviewScene implementation
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
+	
+	//Clean up the children of this component
+	void CleanupComponentChildren(USceneComponent* Component);
+
+private:
+	/** The skeletal mesh actor used to display all animation thumbnails */
+	class ASkeletalMeshActor* PreviewActor;
+
+	/** Animation we are generating the thumbnail for */
+	class UAnimSequenceBase* PreviewAnimation;
+};
+
+class UNREALED_API FBlendSpaceThumbnailScene : public FThumbnailPreviewScene
+{
+public:
+	/** Constructor */
+	FBlendSpaceThumbnailScene();
+
+	/** Sets the animation to use in the next GetView() */
+	bool SetBlendSpace(class UBlendSpaceBase* InBlendSpace);
+
+protected:
+	// FThumbnailPreviewScene implementation
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
+
+	//Clean up the children of this component
+	void CleanupComponentChildren(USceneComponent* Component);
+
+private:
+	/** The skeletal mesh actor used to display all animation thumbnails */
+	class ASkeletalMeshActor* PreviewActor;
+
+	/** Animation we are generating the thumbnail for */
+	class UBlendSpaceBase* PreviewAnimation;
+};
+
+class UNREALED_API FAnimBlueprintThumbnailScene : public FThumbnailPreviewScene
+{
+public:
+	/** Constructor */
+	FAnimBlueprintThumbnailScene();
+
+	/** Sets the animation blueprint to use in the next GetView() */
+	bool SetAnimBlueprint(class UAnimBlueprint* InBlueprint);
+
+protected:
+	// FThumbnailPreviewScene implementation
+	virtual void GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const override;
+
+	//Clean up the children of this component
+	void CleanupComponentChildren(USceneComponent* Component);
+
+private:
+	/** The skeletal mesh actor used to display all animation thumbnails */
+	class ASkeletalMeshActor* PreviewActor;
+
+	/** Animation Blueprint we are generating the thumbnail for */
+	class UAnimBlueprint* PreviewBlueprint;
+};
+
 class UActorComponent;
 
 class UNREALED_API FBlueprintThumbnailScene : public FThumbnailPreviewScene

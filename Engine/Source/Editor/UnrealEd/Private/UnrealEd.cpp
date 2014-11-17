@@ -90,13 +90,6 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	// Set up the actor folders singleton
 	FActorFolders::Init();
 
-	if ( !GEditorGameAgnosticIni.IsEmpty() )
-	{
-		// If we have a game agnostic ini config, ensure that the benchmark has been loaded for it
-		GEditor->AccessGameAgnosticSettings().LoadScalabilityBenchmark();
-		GEditor->SaveGameAgnosticSettings();
-	}
-
 	// =================== CORE EDITOR INIT FINISHED ===================
 
 	// Hide the splash screen now that everything is ready to go
@@ -165,11 +158,8 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 
 void EditorExit()
 {
-	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_MeshPaint) ||
-		GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
-	{
-		GLevelEditorModeTools().ActivateDefaultMode();
-	}
+	GLevelEditorModeTools().SetDefaultMode(FBuiltinEditorModes::EM_Default);
+	GLevelEditorModeTools().DeactivateAllModes(); // this also activates the default mode
 
 	// Save out any config settings for the editor so they don't get lost
 	GEditor->SaveConfig();

@@ -6,7 +6,7 @@ class UActorComponent;
 class AActor;
 
 /** Base class for component instance cached data of a particular type. */
-class FComponentInstanceDataBase
+class ENGINE_API FComponentInstanceDataBase
 {
 public:
 	FComponentInstanceDataBase()

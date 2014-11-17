@@ -489,14 +489,6 @@ public:
 	/** @return true if this netdriver is handling accepting connections */
 	ENGINE_API virtual bool IsServer() const;
 
-	/** verifies that the client has loaded or can load the package with the specified information
-	 * if found, sets the Info's Parent to the package and notifies the server of our generation of the package
-	 * if not, handles downloading the package, skipping it, or disconnecting, depending on the requirements of the package
-	 * @param Info the info on the package the client should have
-	 * @return true if we're done verifying this package, false if we're not done yet (because i.e. async loading is in progress)
-	 */
-	bool VerifyPackageInfo(FPackageInfo& Info);
-
 	ENGINE_API virtual void CleanPackageMaps();
 
 	ENGINE_API void PreSeamlessTravelGarbageCollect();

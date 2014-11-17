@@ -10,6 +10,10 @@ class UK2Node_CustomEvent : public UK2Node_Event
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Specifies that the event can be triggered in Editor */
+	UPROPERTY()
+	bool bCallInEditor;
+
 	virtual bool IsEditable() const override;
 
 	// Begin UEdGraphNode interface
@@ -20,11 +24,12 @@ class UK2Node_CustomEvent : public UK2Node_Event
 	virtual FString GetTooltip() const override;
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;
-	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.CustomEvent_16x"); }
+	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
 	BLUEPRINTGRAPH_API virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
 	// End UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface

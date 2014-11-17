@@ -176,7 +176,7 @@ public:
 	 */
 	int32 GetIntParameter(const FName InName, int32& OutInt) const;
 
-	void CollectAttenuationShapesForVisualization(TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
+	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
 
 	/**
 	 * Friend archive function used for serialization.

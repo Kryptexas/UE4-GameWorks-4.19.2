@@ -18,7 +18,7 @@ enum EStandbyType
 };
 
 UCLASS(config=Game, notplaceable)
-class AGameNetworkManager : public AInfo
+class ENGINE_API AGameNetworkManager : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 

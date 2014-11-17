@@ -52,8 +52,6 @@ public:
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-		const uint32 UseDataBuffers = GPUSKIN_USE_DATA_BUFFERS;
-		OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_DATA_BUFFERS"), UseDataBuffers);
 		const uint32 UseExtraBoneInfluences = bUseExtraBoneInfluencesT;
 		OutEnvironment.SetDefine(TEXT("GPUSKIN_USE_EXTRA_INFLUENCES"), UseExtraBoneInfluences);
 	}
@@ -95,9 +93,7 @@ public:
 		}
 		else
 		{
-#if GPUSKIN_USE_DATA_BUFFERS
 			RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, BoneMatrices.GetBaseIndex(), BoneBuffer.VertexBufferSRV);
-#endif
 		}
 
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, SkinInputStream.GetBaseIndex(), VertexBufferSRV);
@@ -113,9 +109,7 @@ public:
 	{
 		FComputeShaderRHIParamRef ComputeShaderRHI = GetComputeShader();
 		FShaderResourceViewRHIParamRef NullSRV = FShaderResourceViewRHIParamRef();
-#if GPUSKIN_USE_DATA_BUFFERS
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, BoneMatrices.GetBaseIndex(), NullSRV);
-#endif
 
 		RHICmdList.SetShaderResourceViewParameter(ComputeShaderRHI, SkinInputStream.GetBaseIndex(), NullSRV);
 

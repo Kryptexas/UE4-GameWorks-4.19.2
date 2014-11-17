@@ -84,6 +84,9 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	// Was there a camera cut this frame?
 	bool bInCameraCut;
 
+	// Whether world origin was rebased this frame?
+	bool bOriginOffsetThisFrame;
+
 #if WITH_EDITOR
 	// default to 0'th view index, which is a bitfield of 1
 	uint64 EditorViewBitflag;
@@ -109,6 +112,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, LODDistanceFactor(1.0f)
 		, OverrideFarClippingPlaneDistance(-1.0f)
 		, bInCameraCut(false)
+		, bOriginOffsetThisFrame(false)
 #if WITH_EDITOR
 		, EditorViewBitflag(1)
 		, OverrideLODViewOrigin(ForceInitToZero)
@@ -297,6 +301,9 @@ public:
 
 	/** Whether we did a camera cut for this view this frame. */
 	bool bCameraCut;
+	
+	/** Whether world origin was rebased this frame. */
+	bool bOriginOffsetThisFrame;
 
 	// -1,-1 if not setup
 	FIntPoint CursorPos;

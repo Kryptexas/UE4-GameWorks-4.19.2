@@ -444,7 +444,7 @@ public:
 #endif
 
 	/** Bind functions on supplied actor to delegates */
-	void BindDynamicDelegates(AActor* InInstance);
+	void BindDynamicDelegates(UObject* InInstance) const;
 
 	// Finds the desired dynamic binding object for this blueprint generated class
 	UDynamicBlueprintBinding* GetDynamicBindingObject(UClass* Class) const;

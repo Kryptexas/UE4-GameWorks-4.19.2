@@ -18,7 +18,7 @@ public:
 	typedef FVector2D InterpolantType;
 
 	/** Initialization constructor. */
-	FLandscapeRampToolHeightRasterPolicy(TArray<uint16>& InData, int32 InMinX, int32 InMinY, int32 InMaxX, int32 InMaxY, bool InbRaiseTerrain, bool InbLowerTerrain):
+	FLandscapeRampToolHeightRasterPolicy(TArray<uint16>& InData, int32 InMinX, int32 InMinY, int32 InMaxX, int32 InMaxY, bool InbRaiseTerrain, bool InbLowerTerrain) :
 		Data(InData),
 		MinX(InMinX),
 		MinY(InMinY),
@@ -40,13 +40,13 @@ protected:
 
 	void ProcessPixel(int32 X, int32 Y, const InterpolantType& Interpolant, bool BackFacing)
 	{
-		const float CosInterpX = (Interpolant.X >= 1 ? 1 : 0.5f - 0.5f * FMath::Cos(Interpolant.X * PI) );
+		const float CosInterpX = (Interpolant.X >= 1 ? 1 : 0.5f - 0.5f * FMath::Cos(Interpolant.X * PI));
 		const float Alpha = CosInterpX;
-		uint16& Dest = Data[(Y-MinY)*(1+MaxX-MinX) + X-MinX];
+		uint16& Dest = Data[(Y - MinY)*(1 + MaxX - MinX) + X - MinX];
 		float Value = FMath::Lerp((float)Dest, Interpolant.Y, Alpha);
 		uint16 DValue = (uint32)FMath::Clamp<float>(Value, 0, LandscapeDataAccess::MaxValue);
-		if ( (bRaiseTerrain && DValue > Dest) ||
-			(bLowerTerrain && DValue < Dest) )
+		if ((bRaiseTerrain && DValue > Dest) ||
+			(bLowerTerrain && DValue < Dest))
 		{
 			Dest = DValue;
 		}
@@ -55,12 +55,12 @@ protected:
 private:
 	TArray<uint16>& Data;
 	int32 MinX, MinY, MaxX, MaxY;
-	uint32 bRaiseTerrain:1, bLowerTerrain:1;
+	uint32 bRaiseTerrain : 1, bLowerTerrain : 1;
 };
 
 class HLandscapeRampToolPointHitProxy : public HHitProxy
 {
-	DECLARE_HIT_PROXY( );
+	DECLARE_HIT_PROXY();
 
 	int8 Point;
 
@@ -81,7 +81,7 @@ IMPLEMENT_HIT_PROXY(HLandscapeRampToolPointHitProxy, HHitProxy)
 class FLandscapeToolRamp : public FLandscapeTool
 {
 protected:
-	class FEdModeLandscape* EdMode;
+	FEdModeLandscape* EdMode;
 	UTexture2D* SpriteTexture;
 	FVector Points[2];
 	int8 NumPoints;
@@ -105,9 +105,9 @@ public:
 	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::None | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
 	virtual bool SupportsMask() override { return false; }
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override
+	virtual ELandscapeToolTargetTypeMask::Type GetSupportedTargetTypes() override
 	{
-		return Target.TargetType == ELandscapeToolTargetType::Heightmap;
+		return ELandscapeToolTargetTypeMask::Heightmap;
 	}
 
 	virtual void EnterTool() override
@@ -171,7 +171,7 @@ public:
 	{
 		if (HitProxy)
 		{
-			if (HitProxy->IsA(HLandscapeRampToolPointHitProxy::StaticGetType()) )
+			if (HitProxy->IsA(HLandscapeRampToolPointHitProxy::StaticGetType()))
 			{
 				HLandscapeRampToolPointHitProxy* PointHitProxy = (HLandscapeRampToolPointHitProxy*)HitProxy;
 				SelectedPoint = PointHitProxy->Point;
@@ -362,7 +362,7 @@ public:
 		return true;
 	}
 
-	virtual bool IsSelectionAllowed( AActor* InActor, bool bInSelection ) const override
+	virtual bool IsSelectionAllowed(AActor* InActor, bool bInSelection) const override
 	{
 		// Only filter selection not deselection
 		if (bInSelection)
@@ -428,7 +428,7 @@ public:
 
 	virtual void ApplyRamp()
 	{
-		FScopedTransaction Transaction(LOCTEXT("Ramp_Apply", "Landscape Editing: Add ramp") );
+		FScopedTransaction Transaction(LOCTEXT("Ramp_Apply", "Landscape Editing: Add ramp"));
 
 		const ALandscapeProxy* LandscapeProxy = EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy();
 		const FTransform LandscapeToWorld = LandscapeProxy->LandscapeActorToWorld();
@@ -453,10 +453,10 @@ public:
 		Heights[0] = Points[0].Z * LANDSCAPE_INV_ZSCALE + LandscapeDataAccess::MidValue;
 		Heights[1] = Points[1].Z * LANDSCAPE_INV_ZSCALE + LandscapeDataAccess::MidValue;
 
-		int32 MinX = FMath::CeilToInt( FMath::Min(FMath::Min(OuterVerts[0][0].X, OuterVerts[0][1].X),FMath::Min(OuterVerts[1][0].X, OuterVerts[1][1].X))) - 1; // +/- 1 to make sure we have enough data for calculating correct normals
-		int32 MinY = FMath::CeilToInt( FMath::Min(FMath::Min(OuterVerts[0][0].Y, OuterVerts[0][1].Y),FMath::Min(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) - 1;
-		int32 MaxX = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].X, OuterVerts[0][1].X),FMath::Max(OuterVerts[1][0].X, OuterVerts[1][1].X))) + 1;
-		int32 MaxY = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].Y, OuterVerts[0][1].Y),FMath::Max(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) + 1;
+		int32 MinX = FMath::CeilToInt(FMath::Min(FMath::Min(OuterVerts[0][0].X, OuterVerts[0][1].X), FMath::Min(OuterVerts[1][0].X, OuterVerts[1][1].X))) - 1; // +/- 1 to make sure we have enough data for calculating correct normals
+		int32 MinY = FMath::CeilToInt(FMath::Min(FMath::Min(OuterVerts[0][0].Y, OuterVerts[0][1].Y), FMath::Min(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) - 1;
+		int32 MaxX = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].X, OuterVerts[0][1].X), FMath::Max(OuterVerts[1][0].X, OuterVerts[1][1].X))) + 1;
+		int32 MaxY = FMath::FloorToInt(FMath::Max(FMath::Max(OuterVerts[0][0].Y, OuterVerts[0][1].Y), FMath::Max(OuterVerts[1][0].Y, OuterVerts[1][1].Y))) + 1;
 
 		FLandscapeEditDataInterface LandscapeEdit(EdMode->CurrentToolTarget.LandscapeInfo.Get());
 
@@ -466,7 +466,7 @@ public:
 		if (bRaiseTerrain || bLowerTerrain)
 		{
 			TArray<uint16> Data;
-			Data.AddZeroed( (1+MaxY-MinY) * (1+MaxX-MinX) );
+			Data.AddZeroed((1 + MaxY - MinY) * (1 + MaxX - MinX));
 
 			int32 ValidMinX = MinX;
 			int32 ValidMinY = MinY;
@@ -488,7 +488,7 @@ public:
 			MaxY = ValidMaxY;
 
 			FTriangleRasterizer<FLandscapeRampToolHeightRasterPolicy> Rasterizer(
-				FLandscapeRampToolHeightRasterPolicy(Data, MinX, MinY, MaxX, MaxY, bRaiseTerrain, bLowerTerrain) );
+				FLandscapeRampToolHeightRasterPolicy(Data, MinX, MinY, MaxX, MaxY, bRaiseTerrain, bLowerTerrain));
 
 			// Left
 			Rasterizer.DrawTriangle(FVector2D(0, Heights[0]), FVector2D(1, Heights[0]), FVector2D(0, Heights[1]), OuterVerts[0][0], InnerVerts[0][0], OuterVerts[1][0], false);
@@ -540,9 +540,9 @@ public:
 
 void FEdModeLandscape::ApplyRampTool()
 {
-	if (CurrentToolSet->GetToolSetName() == FName("ToolSet_Ramp"))
+	if (CurrentTool->GetToolName() == FName("Ramp"))
 	{
-		FLandscapeToolRamp* RampTool = (FLandscapeToolRamp*)CurrentToolSet->GetTool();
+		FLandscapeToolRamp* RampTool = (FLandscapeToolRamp*)CurrentTool;
 		RampTool->ApplyRamp();
 		GEditor->RedrawLevelEditingViewports();
 	}
@@ -550,9 +550,9 @@ void FEdModeLandscape::ApplyRampTool()
 
 bool FEdModeLandscape::CanApplyRampTool()
 {
-	if (CurrentToolSet->GetToolSetName() == FName("ToolSet_Ramp"))
+	if (CurrentTool->GetToolName() == FName("Ramp"))
 	{
-		FLandscapeToolRamp* RampTool = (FLandscapeToolRamp*)CurrentToolSet->GetTool();
+		FLandscapeToolRamp* RampTool = (FLandscapeToolRamp*)CurrentTool;
 
 		return RampTool->CanApplyRamp();
 	}
@@ -561,9 +561,9 @@ bool FEdModeLandscape::CanApplyRampTool()
 
 void FEdModeLandscape::ResetRampTool()
 {
-	if (CurrentToolSet->GetToolSetName() == FName("ToolSet_Ramp"))
+	if (CurrentTool->GetToolName() == FName("Ramp"))
 	{
-		FLandscapeToolRamp* RampTool = (FLandscapeToolRamp*)CurrentToolSet->GetTool();
+		FLandscapeToolRamp* RampTool = (FLandscapeToolRamp*)CurrentTool;
 		RampTool->ResetRamp();
 		GEditor->RedrawLevelEditingViewports();
 	}
@@ -572,11 +572,11 @@ void FEdModeLandscape::ResetRampTool()
 //
 // Toolset initialization
 //
-void FEdModeLandscape::InitializeToolSet_Ramp()
+void FEdModeLandscape::InitializeTool_Ramp()
 {
-	FLandscapeToolSet* ToolSet_Ramp = new(LandscapeToolSets) FLandscapeToolSet(TEXT("ToolSet_Ramp"));
-	ToolSet_Ramp->AddTool(new FLandscapeToolRamp(this));
-	ToolSet_Ramp->ValidBrushes.Add("BrushSet_Dummy");
+	auto Tool_Ramp = MakeUnique<FLandscapeToolRamp>(this);
+	Tool_Ramp->ValidBrushes.Add("BrushSet_Dummy");
+	LandscapeTools.Add(MoveTemp(Tool_Ramp));
 }
 
 #undef LOCTEXT_NAMESPACE

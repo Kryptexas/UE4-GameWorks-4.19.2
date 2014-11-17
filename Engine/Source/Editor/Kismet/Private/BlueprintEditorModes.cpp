@@ -52,6 +52,7 @@ FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<clas
 	BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FMyBlueprintSummoner(InBlueprintEditor)));
 	BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FCompilerResultsSummoner(InBlueprintEditor)));
 	BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FFindResultsSummoner(InBlueprintEditor)));
+	
 	if( bRegisterViewport )
 	{
 		BlueprintEditorTabFactories.RegisterFactory(MakeShareable(new FSCSViewportSummoner(InBlueprintEditor)));
@@ -120,6 +121,16 @@ FBlueprintEditorApplicationMode::FBlueprintEditorApplicationMode(TSharedPtr<clas
 					)
 				)
 			)
+			->Split
+			(
+				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
+				->SetSizeCoefficient(0.35f)
+				->Split
+				(
+					FTabManager::NewStack()
+					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
+				)
+			)
 		);
 	
 	// setup toolbar
@@ -173,7 +184,7 @@ FBlueprintDefaultsApplicationMode::FBlueprintDefaultsApplicationMode(TSharedPtr<
 	
 	BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FDefaultsEditorSummoner(InBlueprintEditor)));
 	BlueprintDefaultsTabFactories.RegisterFactory(MakeShareable(new FFindResultsSummoner(InBlueprintEditor)));
-	
+
 	TabLayout = FTabManager::NewLayout( "Standalone_BlueprintDefaults_Layout_v4" )
 		->AddArea
 		(
@@ -191,6 +202,16 @@ FBlueprintDefaultsApplicationMode::FBlueprintDefaultsApplicationMode(TSharedPtr<
 				FTabManager::NewStack()
 				->SetHideTabWell(true)
 				->AddTab( FBlueprintEditorTabs::DefaultEditorID, ETabState::OpenedTab )
+			)
+			->Split
+			(
+				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
+				->SetSizeCoefficient(0.35f)
+				->Split
+				(
+					FTabManager::NewStack()
+					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
+				)
 			)
 		);
 
@@ -231,7 +252,7 @@ FBlueprintComponentsApplicationMode::FBlueprintComponentsApplicationMode(TShared
 	BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FSelectionDetailsSummoner(InBlueprintEditor)));
 	BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FDefaultsEditorSummoner(InBlueprintEditor)));
 	BlueprintComponentsTabFactories.RegisterFactory(MakeShareable(new FFindResultsSummoner(InBlueprintEditor)));
-	
+
 	TabLayout = FTabManager::NewLayout( "Standalone_BlueprintComponents_Layout_v5" )
 		->AddArea
 		(
@@ -274,6 +295,16 @@ FBlueprintComponentsApplicationMode::FBlueprintComponentsApplicationMode(TShared
 					->AddTab( FBlueprintEditorTabs::SCSViewportID, ETabState::OpenedTab )
 				)
 			)
+			->Split
+			(
+				FTabManager::NewSplitter() ->SetOrientation( Orient_Horizontal )
+				->SetSizeCoefficient(0.35f)
+				->Split
+				(
+					FTabManager::NewStack()
+					->AddTab( FBlueprintEditorTabs::MergeToolID, ETabState::ClosedTab )
+				)
+			)
 		);
 
 	// setup toolbar
@@ -301,7 +332,6 @@ void FBlueprintComponentsApplicationMode::PreDeactivateMode()
 
 	TSharedPtr<FBlueprintEditor> BP = MyBlueprintEditor.Pin();
 	BP->GetSCSEditor()->SetEnabled(true);
-	BP->GetSCSEditor()->ClearSelection();
 	BP->GetSCSEditor()->UpdateTree();
 	BP->GetInspector()->SetEnabled(true);
 	BP->GetInspector()->EnableComponentDetailsCustomization(false);
@@ -311,7 +341,6 @@ void FBlueprintComponentsApplicationMode::PreDeactivateMode()
 void FBlueprintComponentsApplicationMode::PostActivateMode()
 {
 	TSharedPtr<FBlueprintEditor> BP = MyBlueprintEditor.Pin();
-	BP->GetSCSEditor()->ClearSelection();
 	BP->GetSCSEditor()->UpdateTree();
 	BP->EnableSCSPreview(true);
 	BP->UpdateSCSPreview();

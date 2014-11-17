@@ -747,6 +747,7 @@ public:
 	// Begin UPrimitiveComponent interface.
 	virtual void PostPhysicsTick(FPrimitiveComponentPostPhysicsTickFunction &ThisTickFunction) override;
 	virtual class UBodySetup* GetBodySetup() override;
+	virtual bool CanEditSimulatePhysics() override;
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None) const override;
 	virtual void UpdatePhysicsToRBChannels() override;
 	virtual void SetAllPhysicsAngularVelocity(FVector const& NewVel, bool bAddToCurrent = false) override;
@@ -1050,10 +1051,6 @@ private:
 	bool ShouldBlendPhysicsBones();	
 	void ClearAnimScriptInstance();
 
-	// Reference to our animation evaluation tick event
-	FGraphEventRef EvaluationTickEvent;
-	FGraphEventRef TickCompletionEvent;
-
 	//Handle parallel evaluation of animation
 	TArray<FTransform> PTSpaceBases;
 	TArray<FTransform> PTLocalAtoms;
@@ -1062,10 +1059,7 @@ private:
 	bool bPTDoInterpolation;
 	bool bPTDuplicateToCacheBones;
 
-	//Parallel Task Delegates
-	FSimpleDelegateGraphTask::FDelegate ParallelEvaluationDelegate;
-	FSimpleDelegateGraphTask::FDelegate ParallelCompletionDelegate;
-
+public:
 	// Parallel evaluation wrappers
 	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(PTSpaceBases, PTLocalAtoms, PTVertexAnims, PTRootBoneTranslation); }
 	void CompleteParallelAnimationEvaluation()

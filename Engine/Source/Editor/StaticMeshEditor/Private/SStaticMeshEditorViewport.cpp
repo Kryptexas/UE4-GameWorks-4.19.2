@@ -23,6 +23,9 @@
 #include "../Private/GeomFitUtils.h"
 #include "ComponentReregisterContext.h"
 
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
+
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
 #endif
@@ -44,6 +47,14 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 
 	SetPreviewMesh(StaticMesh);
 
+	ViewportOverlay->AddSlot()
+		.VAlign(VAlign_Top)
+		.HAlign(HAlign_Left)
+		.Padding(10)
+		[
+			SAssignNew(OverlayTextVerticalBox, SVerticalBox)
+		];
+
 	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
 
 }
@@ -54,6 +65,21 @@ SStaticMeshEditorViewport::~SStaticMeshEditorViewport()
 	if (EditorViewportClient.IsValid())
 	{
 		EditorViewportClient->Viewport = NULL;
+	}
+}
+
+void SStaticMeshEditorViewport::PopulateOverlayText(const TArray<FOverlayTextItem>& TextItems)
+{
+	OverlayTextVerticalBox->ClearChildren();
+
+	for (const auto& TextItem : TextItems)
+	{
+		OverlayTextVerticalBox->AddSlot()
+		[
+			SNew(STextBlock)
+			.Text(TextItem.Text)
+			.TextStyle(FEditorStyle::Get(), TextItem.Style)
+		];
 	}
 }
 
@@ -221,7 +247,10 @@ void SStaticMeshEditorViewport::SetViewModeWireframe()
 	{
 		CurrentViewMode = VMI_Lit;
 	}
-
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("CurrentViewMode"), FString::Printf(TEXT("%d"), static_cast<int32>(CurrentViewMode)));
+	}
 	EditorViewportClient->SetViewMode(CurrentViewMode);
 	SceneViewport->Invalidate();
 
@@ -244,7 +273,10 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 		EditorViewportClient->EngineShowFlags.VertexColors = false;
 		EditorViewportClient->EngineShowFlags.Lighting = true;
 	}
-
+	if (FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), FAnalyticsEventAttribute(TEXT("VertexColors"), EditorViewportClient->EngineShowFlags.VertexColors));
+	}
 	SceneViewport->Invalidate();
 }
 
@@ -273,7 +305,7 @@ FStaticMeshEditorViewportClient& SStaticMeshEditorViewport::GetViewportClient()
 
 TSharedRef<FEditorViewportClient> SStaticMeshEditorViewport::MakeEditorViewportClient()
 {
-	EditorViewportClient = MakeShareable( new FStaticMeshEditorViewportClient(StaticMeshEditorPtr, PreviewScene, StaticMesh, NULL) );
+	EditorViewportClient = MakeShareable( new FStaticMeshEditorViewportClient(StaticMeshEditorPtr, SharedThis(this), PreviewScene, StaticMesh, NULL) );
 
 	EditorViewportClient->bSetListenerPosition = false;
 

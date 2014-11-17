@@ -58,6 +58,9 @@ private:
 	/** Records the time taken for an import and reports it to engine analytics, if available */
 	static void OnNewImportRecord(UClass* AssetType, const FString& FileExtension, bool bSucceeded, bool bWasCancelled, const FDateTime& StartTime);
 
+	/** Records what assets users are creating */
+	static void OnNewCreateRecord(UClass* AssetType, bool bDuplicated);
+
 private:
 	/** The manager to handle renaming assets */
 	TSharedRef<FAssetRenameManager> AssetRenameManager;

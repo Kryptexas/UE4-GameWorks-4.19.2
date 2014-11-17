@@ -737,4 +737,13 @@ bool UMaterialGraphNode::UsesEventColour(UMaterialExpression* Expression)
 	return false;
 }
 
+FString UMaterialGraphNode::GetDocumentationExcerptName() const
+{
+	// Default the node to searching for an excerpt named for the C++ node class name, including the U prefix.
+	// This is done so that the excerpt name in the doc file can be found by find-in-files when searching for the full class name.
+	UClass* MyClass = (MaterialExpression != NULL) ? MaterialExpression->GetClass() : this->GetClass();
+	return FString::Printf(TEXT("%s%s"), MyClass->GetPrefixCPP(), *MyClass->GetName());
+}
+
+
 #undef LOCTEXT_NAMESPACE

@@ -84,6 +84,9 @@ void FAssetFixUpRedirectors::ExecuteFixUp(TArray<TWeakObjectPtr<UObjectRedirecto
 				// If any referencing packages are left read-only, the checkout failed or SCC was not enabled. Trim them from the save list and leave redirectors.
 				DetectReadOnlyPackages(RedirectorRefsList, ReferencingPackagesToSave);
 
+				// Fix up referencing FStringAssetReferences
+				FixUpStringAssetReferences(RedirectorRefsList, ReferencingPackagesToSave);
+
 				// Save all packages that were referencing any of the assets that were moved without redirectors
 				SaveReferencingPackages(ReferencingPackagesToSave);
 
@@ -378,6 +381,21 @@ void FAssetFixUpRedirectors::ReportFailures(const TArray<FRedirectorRefs>& Redir
 	}
 
 	EditorErrors.Open();
+}
+
+void FAssetFixUpRedirectors::FixUpStringAssetReferences(const TArray<FRedirectorRefs>& RedirectorsToFix, const TArray<UPackage*>& InReferencingPackagesToSave) const
+{
+	TArray<UPackage *> PackagesToCheck(InReferencingPackagesToSave);
+
+	FEditorFileUtils::GetDirtyWorldPackages(PackagesToCheck);
+	FEditorFileUtils::GetDirtyContentPackages(PackagesToCheck);
+
+	for (auto& RedirectorRef : RedirectorsToFix)
+	{
+		FAssetRenameManager::RenameReferencingStringAssetReferences(PackagesToCheck,
+			RedirectorRef.Redirector->GetPathName(),
+			RedirectorRef.Redirector->DestinationObject->GetPathName());
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

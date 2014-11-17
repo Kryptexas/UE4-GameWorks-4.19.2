@@ -20,10 +20,12 @@ public:
 
 	// Nonstatic methods
 	static jmethodID AndroidThunkJava_ShowConsoleWindow;
+	static jmethodID AndroidThunkJava_ShowVirtualKeyboardInput;
 	static jmethodID AndroidThunkJava_LaunchURL;
 	static jmethodID AndroidThunkJava_ShowLeaderboard;
 	static jmethodID AndroidThunkJava_ShowAchievements;
 	static jmethodID AndroidThunkJava_QueryAchievements;
+	static jmethodID AndroidThunkJava_ResetAchievements;
 	static jmethodID AndroidThunkJava_WriteLeaderboardValue;
 	static jmethodID AndroidThunkJava_GooglePlayConnect;
 	static jmethodID AndroidThunkJava_WriteAchievement;

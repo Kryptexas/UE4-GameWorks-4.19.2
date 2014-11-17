@@ -68,6 +68,7 @@ void FCanvasSlotCustomization::CustomizeAnchors(TSharedRef<IPropertyHandle> Prop
 		.NameContent()
 		[
 			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
 			.Text(LOCTEXT("Anchors", "Anchors"))
 		]
 		.ValueContent()

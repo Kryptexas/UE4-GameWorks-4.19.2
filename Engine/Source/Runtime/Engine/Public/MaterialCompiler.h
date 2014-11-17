@@ -18,8 +18,12 @@
 class FMaterialCompiler
 {
 public:
-
-	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency InShaderFrequency) = 0;
+	// sets internal state CurrentShaderFrequency 
+	// @param OverrideShaderFrequency SF_NumFrequencies to not override
+	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency = SF_NumFrequencies) = 0;
+	// gets value stored by SetMaterialProperty()
+	virtual EShaderFrequency GetCurrentShaderFrequency() const = 0;
+	//
 	virtual int32 Error(const TCHAR* Text) = 0;
 	ENGINE_API int32 Errorf(const TCHAR* Format,...);
 
@@ -188,7 +192,8 @@ public:
 
 	// Simple pass through all other material operations unmodified.
 
-	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency InShaderFrequency) override { Compiler->SetMaterialProperty(InProperty, InShaderFrequency); }
+	virtual void SetMaterialProperty(EMaterialProperty InProperty, EShaderFrequency OverrideShaderFrequency) override { Compiler->SetMaterialProperty(InProperty, OverrideShaderFrequency); }
+	virtual EShaderFrequency GetCurrentShaderFrequency() const	{ return Compiler->GetCurrentShaderFrequency(); }
 	virtual int32 Error(const TCHAR* Text) override { return Compiler->Error(Text); }
 
 	virtual int32 CallExpression(FMaterialExpressionKey ExpressionKey,FMaterialCompiler* InCompiler) override { return Compiler->CallExpression(ExpressionKey,InCompiler); }

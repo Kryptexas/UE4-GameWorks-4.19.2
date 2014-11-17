@@ -1119,20 +1119,18 @@ FORCEINLINE int32 ComputeAlignedTileCount(int32 TileCount)
  */
 static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const uint32* Tiles, int32 TileCount )
 {
-	int32 Index;
 	const int32 AlignedTileCount = ComputeAlignedTileCount(TileCount);
 	FVector2D* TileOffset = (FVector2D*)RHILockVertexBuffer( TileOffsetsRef, 0, AlignedTileCount * sizeof(FVector2D), RLM_WriteOnly );
-	for ( Index = 0; Index < TileCount; ++Index )
+	for ( int32 Index = 0; Index < TileCount; ++Index )
 	{
 		const uint32 TileIndex = Tiles[Index];
-		TileOffset[Index] = FVector2D(
-			FMath::Fractional( (float)TileIndex / (float)GParticleSimulationTileCountX ),
-			FMath::Fractional( FMath::TruncToFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
-									  );
+		TileOffset[Index].X = FMath::Fractional( (float)TileIndex / (float)GParticleSimulationTileCountX );
+		TileOffset[Index].Y = FMath::Fractional( FMath::TruncToFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY );
 	}
-	for ( ; Index < AlignedTileCount; ++Index )
+	for ( int32 Index = TileCount; Index < AlignedTileCount; ++Index )
 	{
-		TileOffset[Index] = FVector2D(100.0f, 100.0f);
+		TileOffset[Index].X = 100.0f;
+		TileOffset[Index].Y = 100.0f;
 	}
 	RHIUnlockVertexBuffer( TileOffsetsRef );
 }
@@ -1208,7 +1206,7 @@ struct FSimulationCommandGPU
  */
 template <bool bUseDepthBufferCollision>
 void ExecuteSimulationCommands(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	const TArray<FSimulationCommandGPU>& SimulationCommands,
 	const FParticleStateTextures& TextureResources,
 	const FParticleAttributesTexture& AttributeTexture,
@@ -1259,7 +1257,7 @@ void ExecuteSimulationCommands(
  * Invokes the clear simulation shader for each particle in each tile.
  * @param Tiles - The list of tiles to clear.
  */
-void ClearTiles(FRHICommandListImmediate& RHICmdList, const TArray<uint32>& Tiles)
+void ClearTiles(FRHICommandList& RHICmdList, const TArray<uint32>& Tiles)
 {
 	SCOPED_DRAW_EVENT(ClearTiles, DEC_PARTICLE);
 
@@ -1500,7 +1498,7 @@ TGlobalResource<FParticleInjectionVertexDeclaration> GParticleInjectionVertexDec
  * Injects new particles in to the GPU simulation.
  * @param NewParticles - A list of particles to inject in to the simulation.
  */
-void InjectNewParticles(FRHICommandListImmediate& RHICmdList, const TArray<FNewParticle>& NewParticles)
+void InjectNewParticles(FRHICommandList& RHICmdList, const TArray<FNewParticle>& NewParticles)
 {
 	const int32 MaxParticlesPerDrawCall = GParticleScratchVertexBufferSize / sizeof(FNewParticle);
 	FVertexBufferRHIParamRef ScratchVertexBufferRHI = GParticleScratchVertexBuffer.VertexBufferRHI;
@@ -1723,7 +1721,7 @@ TGlobalResource<FParticleSimVisualizeVertexDeclaration> GParticleSimVisualizeVer
  * @param RenderTarget - The render target on which to draw the visualization.
  */
 static void VisualizeGPUSimulation(
-	FRHICommandListImmediate& RHICmdList,
+	FRHICommandList& RHICmdList,
 	int32 VisualizationMode,
 	FRenderTarget* RenderTarget,
 	const FParticleStateTextures& StateTextures,
@@ -1827,8 +1825,9 @@ static void BuildParticleVertexBuffer( FVertexBufferRHIParamRef VertexBufferRHI,
 				// on some platforms, union and/or bitfield writes to Locked memory are really slow, so use a forced int write instead
 				// and in fact one 32-bit write is faster than two uint16 writes (i.e. using .Encoded)
 				FParticleIndex Temp;
-				Temp.X = IndexX;
-				Temp.Y = IndexY;
+				// We use the unsafe version of FP32 -> FP16 conversion because we know all values are in [0,1].
+				Temp.X.SetWithoutBoundsChecks(IndexX);
+				Temp.Y.SetWithoutBoundsChecks(IndexY);
 				*(uint32*)ParticleIndices = *(uint32*)&Temp;
 
 				// move to next particle
@@ -2210,7 +2209,7 @@ public:
 	/** Initialize RHI resources. */
 	virtual void InitRHI() override
 	{
-		if ( ParticleCount > 0 && CurrentRHISupportsGPUParticles() )
+		if ( ParticleCount > 0 && RHISupportsGPUParticles(GetFeatureLevel()) )
 		{
 			const int32 BufferStride = sizeof(FParticleIndex);
 			const int32 BufferSize = ParticleCount * BufferStride;
@@ -2517,42 +2516,7 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 	 * Called to create render thread resources.
 	 */
 	virtual void CreateRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
-	{
-		if (RHISupportsGPUParticles(InOwnerProxy->GetScene()->GetFeatureLevel()))
-		{
-			Simulation->PendingDeltaSeconds = PendingDeltaSeconds;
-
-			// Create the per-frame uniform buffer.
-			Simulation->PerFrameSimulationUniformBuffer =
-				FParticlePerFrameSimulationBufferRef::CreateUniformBufferImmediate(PerFrameSimulationParameters, UniformBuffer_SingleFrame);
-
-			// Create per-emitter uniform buffer for dynamic parameters
-			DynamicUniformBuffer = FGPUSpriteEmitterDynamicUniformBufferRef::CreateUniformBufferImmediate(EmitterDynamicParameters, UniformBuffer_SingleFrame);
-
-			// Local vector field parameters.
-			Simulation->LocalVectorField.Intensity = LocalVectorFieldIntensity;
-			Simulation->LocalVectorField.Tightness = LocalVectorFieldTightness;
-			Simulation->LocalVectorField.bTileX = bLocalVectorFieldTileX;
-			Simulation->LocalVectorField.bTileY = bLocalVectorFieldTileY;
-			Simulation->LocalVectorField.bTileZ = bLocalVectorFieldTileZ;
-			if (Simulation->LocalVectorField.Resource)
-			{
-				Simulation->LocalVectorField.UpdateTransforms(LocalVectorFieldToWorld);
-			}
-
-			// Update world bounds.
-			Simulation->Bounds = SimulationBounds;
-
-			// Transfer ownership of new data.
-			if (NewParticles.Num())
-			{
-				Exchange(Simulation->NewParticles, NewParticles);
-			}
-			if (TilesToClear.Num())
-			{
-				Exchange(Simulation->TilesToClear, TilesToClear);
-			}
-		}
+	{		
 	}
 
 	/**
@@ -2582,6 +2546,42 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 			if (Simulation->SimulationIndex != INDEX_NONE
 				&& Simulation->VertexBuffer.ParticleCount > 0)
 			{
+				// Create view agnostic render data.  Do here rather than in CreateRenderThreadResources because in some cases Render can be called before CreateRenderThreadResources
+				{
+					Simulation->PendingDeltaSeconds = PendingDeltaSeconds;
+
+					// Create the per-frame uniform buffer.
+					Simulation->PerFrameSimulationUniformBuffer =
+						FParticlePerFrameSimulationBufferRef::CreateUniformBufferImmediate(PerFrameSimulationParameters, UniformBuffer_SingleFrame);
+
+					// Create per-emitter uniform buffer for dynamic parameters
+					DynamicUniformBuffer = FGPUSpriteEmitterDynamicUniformBufferRef::CreateUniformBufferImmediate(EmitterDynamicParameters, UniformBuffer_SingleFrame);
+
+					// Local vector field parameters.
+					Simulation->LocalVectorField.Intensity = LocalVectorFieldIntensity;
+					Simulation->LocalVectorField.Tightness = LocalVectorFieldTightness;
+					Simulation->LocalVectorField.bTileX = bLocalVectorFieldTileX;
+					Simulation->LocalVectorField.bTileY = bLocalVectorFieldTileY;
+					Simulation->LocalVectorField.bTileZ = bLocalVectorFieldTileZ;
+					if (Simulation->LocalVectorField.Resource)
+					{
+						Simulation->LocalVectorField.UpdateTransforms(LocalVectorFieldToWorld);
+					}
+
+					// Update world bounds.
+					Simulation->Bounds = SimulationBounds;
+
+					// Transfer ownership of new data.
+					if (NewParticles.Num())
+					{
+						Exchange(Simulation->NewParticles, NewParticles);
+					}
+					if (TilesToClear.Num())
+					{
+						Exchange(Simulation->TilesToClear, TilesToClear);
+					}
+				}
+
 				EBlendMode BlendMode = Material->GetRenderProxy(false)->GetMaterial(FeatureLevel)->GetBlendMode();
 				const bool bOpaque = (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked);
 
@@ -3905,7 +3905,7 @@ void FFXSystem::RemoveGPUSimulation(FParticleSimulationGPU* Simulation)
 
 int32 FFXSystem::AddSortedGPUSimulation(FParticleSimulationGPU* Simulation, const FVector& ViewOrigin)
 {
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+	check(FeatureLevel == ERHIFeatureLevel::SM5);
 	const int32 BufferOffset = ParticleSimulationResources->SortedParticleCount;
 	ParticleSimulationResources->SortedParticleCount += Simulation->VertexBuffer.ParticleCount;
 	FParticleSimulationSortInfo* SortInfo = new(ParticleSimulationResources->SimulationsToSort) FParticleSimulationSortInfo();
@@ -4385,7 +4385,7 @@ static void ClearGPUSpriteResourceData( FGPUSpriteResources* Resources )
 FGPUSpriteResources* BeginCreateGPUSpriteResources( const FGPUSpriteResourceData& InResourceData )
 {
 	FGPUSpriteResources* Resources = NULL;
-	if (CurrentRHISupportsGPUParticles())
+	if (RHISupportsGPUParticles(GMaxRHIFeatureLevel))
 	{
 		Resources = new FGPUSpriteResources;
 		SetGPUSpriteResourceData( Resources, InResourceData );

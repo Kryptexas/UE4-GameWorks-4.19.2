@@ -4,6 +4,7 @@
 #pragma once
 #include "Engine/BlendableInterface.h"
 #include "Runtime/RHI/Public/RHIDefinitions.h"
+#include "Runtime/RenderCore/Public/RenderCommandFence.h"
 #include "SceneTypes.h"
 #include "MaterialInterface.generated.h"
 
@@ -11,6 +12,7 @@ class UMaterial;
 class FMaterialResource;
 class FMaterialCompiler;
 struct FPrimitiveViewRelevance;
+class UTexture;
 
 UENUM()
 enum EMaterialUsage
@@ -507,12 +509,14 @@ public:
 	ENGINE_API EBlendMode GetBlendMode() const;
 	ENGINE_API EMaterialShadingModel GetShadingModel() const;
 	ENGINE_API bool IsTwoSided() const;
+	ENGINE_API bool IsMasked() const;
 
 	/** Game thread versions of the accessors. On the render thread there are equivelant getters in FMaterial. */
 	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
+	ENGINE_API virtual bool IsMasked_Internal() const;
 	/**
 	 * Force the streaming system to disregard the normal logic for the specified duration and
 	 * instead always load all mip-levels for all textures used by this material.
@@ -556,10 +560,10 @@ public:
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
 
 	/** Compiles a material property. */
-	ENGINE_API int32 CompileProperty( FMaterialCompiler* Compiler, EMaterialProperty Property );
+	ENGINE_API int32 CompileProperty(FMaterialCompiler* Compiler, EMaterialProperty Property);
 
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
-	ENGINE_API virtual int32 CompileProperty( class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector );
+	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property );
 
 protected:
 	/** Returns a bitfield indicating which feature levels should be compiled for rendering. */

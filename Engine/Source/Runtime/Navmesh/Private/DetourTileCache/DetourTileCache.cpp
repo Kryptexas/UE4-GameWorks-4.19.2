@@ -702,6 +702,10 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	// Early out if the mesh tile is empty.
 	if (!bc.lmesh->npolys)
 		return DT_SUCCESS;
+
+	status = dtBuildTileCacheClusters(m_talloc, *bc.lclusters, *bc.lmesh);
+	if (dtStatusFailed(status))
+		return status;
 	
 	dtNavMeshCreateParams params;
 	memset(&params, 0, sizeof(params));
@@ -723,11 +727,8 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	params.buildBvTree = false;
 	dtVcopy(params.bmin, tile->header->bmin);
 	dtVcopy(params.bmax, tile->header->bmax);
-	params.polyClusters = bc.lmesh->regs;
+	params.polyClusters = bc.lclusters->polyMap;
 	params.clusterCount = (unsigned short)bc.lclusters->nclusters;
-	params.clusterCenters = bc.lclusters->center;
-	params.clusterLinkCount = bc.lclusters->nlinks;
-	params.clusterLinks = bc.lclusters->links;
 	
 	if (m_tmproc)
 	{

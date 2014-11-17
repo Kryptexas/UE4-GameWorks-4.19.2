@@ -34,6 +34,11 @@ public:
 	virtual void Tick( float DeltaTime ) override;
 	virtual void SetOnRebuildChildren( FSimpleDelegate OnRebuildChildren ) override{}
 
+	void HideTransformField(const ETransformField::Type InTransformField)
+	{
+		HiddenFieldMask |= (1 << InTransformField);
+	}
+
 private:
 	/** @return Whether the transform details panel should be enabled (editable) or not (read-only / greyed out) */
 	bool GetIsEnabled() const;
@@ -306,4 +311,6 @@ private:
 	TMap< UObject*, FRotator > ObjectToRelativeRotationMap;
 	/** Flag to indicate we are currently editing the rotation in the UI, so we should rely on the cached value in objectToRelativeRotationMap, not the value from the object */
 	bool bEditingRotationInUI;
+	/** Bitmask to indicate which fields should be hidden (if any) */
+	uint8 HiddenFieldMask;
 };

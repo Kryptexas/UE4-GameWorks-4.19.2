@@ -40,7 +40,6 @@ public:
 	/** Level file commands */
 	TSharedPtr< FUICommandInfo > NewLevel;
 	TSharedPtr< FUICommandInfo > OpenLevel;
-	TSharedPtr< FUICommandInfo > LegacyOpenLevel;
 	TSharedPtr< FUICommandInfo > Save;
 	TSharedPtr< FUICommandInfo > SaveAs;
 	TSharedPtr< FUICommandInfo > SaveAllLevels;
@@ -116,6 +115,9 @@ public:
 
 	/** Goes to the source code for the selected actor's class. */
 	TSharedPtr< FUICommandInfo > GoToCodeForActor;
+
+	/** Goes to the documentation for the selected actor's class. */
+	TSharedPtr< FUICommandInfo > GoToDocsForActor;
 
 	/** Paste actor at click location*/
 	TSharedPtr< FUICommandInfo > PasteHere;
@@ -591,10 +593,6 @@ public:
 	/** Opens an existing level */
 	static void OpenLevel();
 	static bool OpenLevel_CanExecute();
-	static struct FAssetPickerConfig CreateLevelAssetPickerConfig();
-	static void OpenLevelPickingDialog();
-	static void OpenLevelFromAssetPicker(const TArray<class FAssetData>& SelectedAssets, EAssetTypeActivationMethod::Type ActivationType);
-	
 
 	/** Opens delta transform */
 	static void DeltaTransform();
@@ -785,6 +783,8 @@ public:
 	/** Called when 'Go to Code for Actor' is clicked */
 	static void GoToCodeForActor_Clicked();
 
+	/** Called when 'Go to Documentation for Actor' is clicked */
+	static void GoToDocsForActor_Clicked();
 
 	/**
 	 * Called when the LockActorMovement command is executed
@@ -805,16 +805,15 @@ public:
 	 * @param ActorLocation		[opt] If NULL, positions the actor at the mouse location, otherwise the location specified. Default is true.
 	 */
 	static void AddActor_Clicked( UActorFactory* ActorFactory, FAssetData AssetData, bool bUsePlacement );
-	static AActor* AddActor( UActorFactory* ActorFactory, const FAssetData& AssetData, const FVector* ActorLocation );
+	static AActor* AddActor( UActorFactory* ActorFactory, const FAssetData& AssetData, const FTransform* ActorLocation );
 
 	/**
 	 * Called when the AddActor command is executed and a class is selected in the actor browser
 	 *
 	 * @param ActorClass		The class of the actor to add
-	 * @param ActorLocation		[opt] If NULL, positions the actor at the mouse location, otherwise the location specified. Default is true.
 	 */
 	static void AddActorFromClass_Clicked( UClass* ActorClass );
-	static AActor* AddActorFromClass( UClass* ActorClass, const FVector* ActorLocation );
+	static AActor* AddActorFromClass( UClass* ActorClass );
 
 	/**
 	 * Replaces currently selected actors with an actor from the given actor factory

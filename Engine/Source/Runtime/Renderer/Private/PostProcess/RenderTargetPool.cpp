@@ -305,7 +305,7 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 		if(Desc.TargetableFlags & TexCreate_UAV)
 		{
 			// The render target desc is invalid if a UAV is requested with an RHI that doesn't support the high-end feature level.
-			check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+			check(GMaxRHIFeatureLevel == ERHIFeatureLevel::SM5);
 			Found->RenderTargetItem.UAV = RHICreateUnorderedAccessView(Found->RenderTargetItem.TargetableTexture);
 		}
 
@@ -854,7 +854,7 @@ void FRenderTargetPool::PresentContent(FRHICommandListImmediate& RHICmdList, con
 				}
 			}
 
-			Canvas.Flush();
+			Canvas.Flush_RenderThread(RHICmdList);
 
 			CurrentEventRecordingTime = 0;
 			RenderTargetPoolEvents.Empty();

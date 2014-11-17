@@ -839,6 +839,12 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 		return false;
 	}
 
+	if (!InitialBlueprint->SkeletonGeneratedClass || !InitialBlueprint->GeneratedClass)
+	{
+		AddError(*FString::Printf(TEXT("Unable to load blueprint for: '%s'. Probably it derives from an invalid class."), *BlueprintAssetPath));
+		return false;
+	}
+
 #if WITH_EDITOR
 	TArray<UClass*> BlueprintDependencies = FScopedClassDependencyGather::GetCachedDependencies();
 #else 
@@ -1229,6 +1235,11 @@ bool FBlueprintRenameAndCloneTest::RunTest(const FString& BlueprintAssetPath)
 	{
 		bTestFailed = true;
 		AddError(FString::Printf(TEXT("Failed to load '%s' (has it been renamed?)."), *BlueprintAssetPath));
+	}
+	if (!OriginalBlueprint->SkeletonGeneratedClass || !OriginalBlueprint->GeneratedClass)
+	{
+		bTestFailed = true;
+		AddError(*FString::Printf(TEXT("Unable to load blueprint for: '%s'. Probably it derives from an invalid class."), *BlueprintAssetPath));
 	}
 	else if (!bTestFailed)
 	{

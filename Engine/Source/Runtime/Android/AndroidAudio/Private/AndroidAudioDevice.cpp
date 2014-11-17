@@ -6,7 +6,7 @@
 ------------------------------------------------------------------------------------*/
 
 #include "AndroidAudioDevice.h"
-#include "AudioDecompress.h"
+#include "VorbisAudioInfo.h"
 #include "AudioEffect.h"
 #include "Engine.h"
 

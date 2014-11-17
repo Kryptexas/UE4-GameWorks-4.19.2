@@ -1,7 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Factories/Factory.h"
 #include "DataAssetFactory.generated.h"
+
+class UDataAsset;
 
 UCLASS(hidecategories=Object, MinimalAPI)
 class UDataAssetFactory : public UFactory

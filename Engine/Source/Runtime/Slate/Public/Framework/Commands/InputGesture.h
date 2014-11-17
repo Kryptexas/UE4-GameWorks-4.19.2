@@ -17,7 +17,7 @@ namespace EModifierKey
 	/** No key. */
 	const Type None	= 0;
 
-	/** Ctrl key. */
+	/** Ctrl key (Command key on Mac, Control key on Windows). */
 	const Type Control = 1 << 0;
 
 	/** Alt key. */
@@ -25,6 +25,9 @@ namespace EModifierKey
 
 	/** Shift key. */
 	const Type Shift = 1 << 2;
+
+	/** Cmd key (Control key on Mac, Win key on Windows) */
+	const Type Command = 1 << 3;
 };
 
 
@@ -45,6 +48,9 @@ struct SLATE_API FInputGesture
 	/** True if shift must be pressed */
 	uint32 bShift:1;
 
+	/** True if command must be pressed */
+	uint32 bCmd:1;
+
 public:
 
 	/**
@@ -52,7 +58,7 @@ public:
 	 */
 	FInputGesture( )
 	{
-		bCtrl = bAlt = bShift = 0;
+		bCtrl = bAlt = bShift = bCmd = 0;
 	}
 
 	/**
@@ -67,6 +73,7 @@ public:
 		bCtrl = (InModifierKeys & EModifierKey::Control) != 0;
 		bAlt = (InModifierKeys & EModifierKey::Alt) != 0;
 		bShift = (InModifierKeys & EModifierKey::Shift) != 0;
+		bCmd = (InModifierKeys & EModifierKey::Command) != 0;
 	}
 
 	/**
@@ -77,7 +84,7 @@ public:
 	FInputGesture( const FKey InKey )
 		: Key(InKey)
 	{
-		bCtrl = bAlt = bShift = 0;
+		bCtrl = bAlt = bShift = bCmd = 0;
 	}
 
 	/**
@@ -92,6 +99,7 @@ public:
 		bCtrl = (InModifierKeys & EModifierKey::Control) != 0;
 		bAlt = (InModifierKeys & EModifierKey::Alt) != 0;
 		bShift = (InModifierKeys & EModifierKey::Shift) != 0;
+		bCmd = (InModifierKeys & EModifierKey::Command) != 0;
 	}
 
 	/**
@@ -104,6 +112,7 @@ public:
 		, bCtrl(Other.bCtrl)
 		, bAlt(Other.bAlt)
 		, bShift(Other.bShift)
+		, bCmd(Other.bCmd)
 	{ }
 
 public:
@@ -117,7 +126,7 @@ public:
 	 */
 	bool operator!=( const FInputGesture& Other ) const
 	{
-		return (Key != Other.Key) || (bCtrl != Other.bCtrl) || (bAlt != Other.bAlt) || (bShift != Other.bShift);
+		return (Key != Other.Key) || (bCtrl != Other.bCtrl) || (bAlt != Other.bAlt) || (bShift != Other.bShift) || (bCmd != Other.bCmd);
 	}
 
 	/**
@@ -129,7 +138,7 @@ public:
 	 */
 	bool operator==( const FInputGesture& Other ) const
 	{
-		return (Key == Other.Key) && (bCtrl == Other.bCtrl) && (bAlt == Other.bAlt) && (bShift == Other.bShift);
+		return (Key == Other.Key) && (bCtrl == Other.bCtrl) && (bAlt == Other.bAlt) && (bShift == Other.bShift) && (bCmd == Other.bCmd);
 	}
 
 public:
@@ -155,7 +164,7 @@ public:
 	 */
 	bool HasAnyModifierKeys( ) const
 	{
-		return bCtrl || bAlt || bShift;
+		return bCtrl || bAlt || bShift || bCmd;
 	}
 
 	/**
@@ -179,6 +188,7 @@ public:
 		bCtrl = InTemplate.bCtrl;
 		bAlt = InTemplate.bAlt;
 		bShift = InTemplate.bShift;
+		bCmd = InTemplate.bCmd;
 	}
 
 public:
@@ -192,6 +202,6 @@ public:
 	 */
 	friend uint32 GetTypeHash( const FInputGesture& Gesture )
 	{
-		return GetTypeHash(Gesture.Key) ^ ((Gesture.bCtrl << 2) | (Gesture.bShift << 1) | Gesture.bAlt);
+		return GetTypeHash(Gesture.Key) ^ ((Gesture.bCtrl << 3) | (Gesture.bShift << 2) | (Gesture.bAlt << 1) | Gesture.bCmd);
 	}
 };

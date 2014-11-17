@@ -9,6 +9,7 @@
 
 #include "RHICommandList.h"
 
+
 /**
  * A macro to compare members of two drawing policies(A and B), and return based on the result.
  * If the members are the same, the macro continues execution rather than returning to the caller.

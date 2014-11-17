@@ -5,6 +5,7 @@
  */
 
 #pragma once
+#include "GameFramework/PawnMovementComponent.h"
 #include "FloatingPawnMovement.generated.h"
 
 UCLASS()

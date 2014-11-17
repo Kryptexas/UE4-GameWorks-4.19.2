@@ -3,6 +3,10 @@
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_TimeLimit.generated.h"
 
+/**
+ * Time Limit decorator node.
+ * A decorator node that bases its condition on whether a timer has exceeded a specified value. The timer is reset each time the node becomes relevant.
+ */
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_TimeLimit : public UBTDecorator
 {

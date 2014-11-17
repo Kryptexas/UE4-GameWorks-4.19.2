@@ -37,8 +37,11 @@ void USelection::Select(UObject* InObject)
 	SelectedObjects.AddUnique( InObject );
 	SelectedClasses.AddUnique( InObject->GetClass() );
 
-	// Call this after the item has been added from the selection set.
-	USelection::SelectObjectEvent.Broadcast( InObject );
+	if( !IsBatchSelecting() )
+	{
+		// Call this after the item has been added from the selection set.
+		USelection::SelectObjectEvent.Broadcast( InObject );
+	}
 
 	if ( bSelectionChanged )
 	{
@@ -57,8 +60,11 @@ void USelection::Deselect(UObject* InObject)
 	// Remove from selected list.
 	SelectedObjects.Remove( InObject );
 
-	// Call this after the item has been removed from the selection set.
-	USelection::SelectObjectEvent.Broadcast( InObject );
+	if( !IsBatchSelecting() )
+	{
+		// Call this after the item has been removed from the selection set.
+		USelection::SelectObjectEvent.Broadcast( InObject );
+	}
 
 	if ( bSelectionChanged )
 	{

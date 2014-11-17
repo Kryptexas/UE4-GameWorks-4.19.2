@@ -4,7 +4,7 @@
 	CircularQueueTest.cpp: Unit test for the TCircularQueue template class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AutomationTest.h"
 
 

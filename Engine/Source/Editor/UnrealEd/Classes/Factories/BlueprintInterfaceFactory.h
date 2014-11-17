@@ -16,6 +16,7 @@ class UBlueprintInterfaceFactory : public UFactory
 	virtual FText GetDisplayName() const override;
 	virtual FName GetNewAssetThumbnailOverride() const override;
 	virtual uint32 GetMenuCategories() const override;
+	virtual FText GetToolTip() const override;
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext) override;
 	virtual UObject* FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn) override;
 	virtual FString GetDefaultNewAssetName() const override;

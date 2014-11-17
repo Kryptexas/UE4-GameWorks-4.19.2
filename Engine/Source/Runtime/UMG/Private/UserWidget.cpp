@@ -2,6 +2,7 @@
 
 #include "UMGPrivatePCH.h"
 
+#include "UMGSequencePlayer.h"
 #include "SceneViewport.h"
 
 TSharedRef<FUMGDragDropOp> FUMGDragDropOp::New()
@@ -27,11 +28,18 @@ TSharedPtr<SWidget> FUMGDragDropOp::GetDefaultDecorator() const
 	return DecoratorWidget;
 }
 
+/**
+ * This class holds onto the widget when it's placed into the viewport.
+ */
 class SViewportWidgetHost : public SCompoundWidget
 {
 	SLATE_BEGIN_ARGS(SViewportWidgetHost)
-	{ }
+	{
+		_Visibility = EVisibility::SelfHitTestInvisible;
+	}
+
 		SLATE_DEFAULT_SLOT(FArguments, Content)
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, bool bInModal)
@@ -39,27 +47,22 @@ class SViewportWidgetHost : public SCompoundWidget
 		bModal = bInModal;
 
 		ChildSlot
-			[
-				InArgs._Content.Widget
-			];
-	}
-
-	virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) override
-	{
-		return true;
+		[
+			InArgs._Content.Widget
+		];
 	}
 
 	virtual bool SupportsKeyboardFocus() const override
 	{
-		return true;
+		return bModal ? true : false;
 	}
 
-	FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent)
+	FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent) override
 	{
 		// if we support focus, release the focus captures and lock the focus to this widget 
 		if ( SupportsKeyboardFocus() )
 		{
-			return FReply::Handled().ReleaseMouseCapture().ReleaseJoystickCapture().LockMouseToWidget(SharedThis(this));
+			return FReply::Handled().ReleaseMouseCapture().ReleaseJoystickCapture();// .LockMouseToWidget(SharedThis(this));
 		}
 		else
 		{
@@ -67,7 +70,7 @@ class SViewportWidgetHost : public SCompoundWidget
 		}
 	}
 
-	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override
 	{
 		// If we support focus, show the default mouse cursor 
 		if ( SupportsKeyboardFocus() )
@@ -80,44 +83,44 @@ class SViewportWidgetHost : public SCompoundWidget
 		}
 	}
 
-	//FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
-	//{
-	//	return FReply::Handled();
-	//}
-
-	//FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent)
-	//{
-	//	return FReply::Handled();
-	//}
-
-	FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	virtual FReply OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent) override
 	{
-		if ( bModal )
-		{
-			return FReply::Handled();
-		}
-
-		return FReply::Unhandled();
+		return bModal ? FReply::Handled() : SCompoundWidget::OnKeyChar(MyGeometry, InCharacterEvent);
+	}
+			   
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
+	{
+		return bModal ? FReply::Handled() : SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+	}
+		   
+	virtual FReply OnKeyUp(const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent) override
+	{
+		return bModal ? FReply::Handled() : SCompoundWidget::OnKeyUp(MyGeometry, InKeyboardEvent);
+	}
+		   
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		return bModal ? FReply::Handled().CaptureMouse(AsShared()) : SCompoundWidget::OnMouseButtonDown(MyGeometry, MouseEvent);
+	}
+		   
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		return bModal ? FReply::Handled().ReleaseMouseCapture() : SCompoundWidget::OnMouseButtonUp(MyGeometry, MouseEvent);
 	}
 
-	FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		if ( bModal )
-		{
-			return FReply::Handled();
-		}
-
-		return FReply::Unhandled();
+		return bModal ? FReply::Handled() : SCompoundWidget::OnMouseButtonDoubleClick(MyGeometry, MouseEvent);
 	}
 
-	FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
 	{
-		if ( bModal )
-		{
-			return FReply::Handled();
-		}
+		return bModal ? FReply::Handled() : SCompoundWidget::OnMouseMove(MyGeometry, MouseEvent);
+	}
 
-		return FReply::Unhandled();
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		return bModal ? FReply::Handled() : SCompoundWidget::OnMouseWheel(MyGeometry, MouseEvent);
 	}
 
 protected:
@@ -131,14 +134,49 @@ protected:
 UUserWidget::UUserWidget(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	/*PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bTickEvenWhenPaused = true;*/
-	bShowCursorWhenVisible = false;
-	bAbsoluteLayout = false;
-	bModal = false;
-	AbsoluteSize = FVector2D(100, 100);
 	HorizontalAlignment = HAlign_Fill;
 	VerticalAlignment = VAlign_Fill;
+
+	Visiblity = ESlateVisibility::SelfHitTestInvisible;
+
+	bInitialized = false;
+	CachedWorld = NULL;
+}
+
+void UUserWidget::Initialize()
+{
+	if ( !bInitialized )
+	{
+		bInitialized = true;
+
+		// Only do this if this widget is of a blueprint class
+		UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+		if ( BGClass != NULL )
+		{
+			BGClass->InitializeWidget(this);
+		}
+	}
+}
+
+void UUserWidget::PostEditImport()
+{
+	Initialize();
+}
+
+void UUserWidget::PostDuplicate(bool bDuplicateForPIE)
+{
+	Initialize();
+}
+
+void UUserWidget::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	UWidget* RootWidget = GetRootWidgetComponent();
+	if ( RootWidget )
+	{
+		RootWidget->ReleaseNativeWidget();
+	}
 }
 
 void UUserWidget::PostInitProperties()
@@ -146,83 +184,123 @@ void UUserWidget::PostInitProperties()
 	Super::PostInitProperties();
 
 	Components.Reset();
-
-	// Only do this if this widget is of a blueprint class
-	UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-	if ( BGClass != NULL )
-	{
-		BGClass->InitializeWidget(this);
-	}
-
-	//RebuildWidget();
+	//TODO UMG For non-BP versions how do we generate the Components list?
 }
 
 UWorld* UUserWidget::GetWorld() const
 {
-	UObject* Outer = GetOuter();
-	if ( Outer == NULL )
+	if ( PlayerContext.IsValid() )
 	{
-		return NULL;
+		return PlayerContext.GetWorld();
 	}
 
-	// TODO UMG Global UI elements should go where?  who will be their outer.  Currently CreateWidget node makes the level their owner.
-	if ( ULevel* Level = Cast<ULevel>(Outer) )
+	if ( CachedWorld == NULL )
 	{
-		return Level->OwningWorld;
-	}
+		UObject* Outer = GetOuter();
+		while ( Outer != NULL )
+		{
+			CachedWorld = Outer->GetWorld();
+			if ( CachedWorld )
+			{
+				return CachedWorld;
+			}
 
-	return NULL;
+			Outer = Outer->GetOuter();
+		}
+	}
+	
+	return CachedWorld;
+}
+
+void UUserWidget::PlayAnimation(FName AnimationName)
+{
+	UWidgetBlueprintGeneratedClass* BPClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+	if (BPClass)
+	{
+		const FWidgetAnimation* Animation = BPClass->FindAnimation(AnimationName);
+		if( Animation )
+		{
+			// @todo UMG sequencer - Restart animations which have had Play called on them?
+			UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate( [&](const UUMGSequencePlayer* Player) { return Player->GetMovieScene() == Animation->MovieScene; } );
+
+			if( !FoundPlayer )
+			{
+				UUMGSequencePlayer* NewPlayer = ConstructObject<UUMGSequencePlayer>( UUMGSequencePlayer::StaticClass(), this );
+				ActiveSequencePlayers.Add( NewPlayer );
+
+				NewPlayer->OnSequenceFinishedPlaying().AddUObject( this, &UUserWidget::OnAnimationFinishedPlaying );
+
+				NewPlayer->InitSequencePlayer( *Animation, *this );
+
+				NewPlayer->Play();
+			}
+			else
+			{
+				(*FoundPlayer)->Play();
+			}
+		}
+	}
+}
+
+void UUserWidget::StopAnimation(FName AnimationName)
+{
+	UWidgetBlueprintGeneratedClass* BPClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
+	if(BPClass)
+	{
+		const FWidgetAnimation* Animation = BPClass->FindAnimation(AnimationName);
+		if(Animation)
+		{
+			// @todo UMG sequencer - Restart animations which have had Play called on them?
+			UUMGSequencePlayer** FoundPlayer = ActiveSequencePlayers.FindByPredicate([&](const UUMGSequencePlayer* Player) { return Player->GetMovieScene() == Animation->MovieScene; });
+			if(FoundPlayer)
+			{
+				(*FoundPlayer)->Stop();
+			}
+		}
+	}
+}
+
+void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
+{
+	ActiveSequencePlayers.Remove( &Player );
 }
 
 UWidget* UUserWidget::GetWidgetHandle(TSharedRef<SWidget> InWidget)
 {
-	GetWidget();
-	
-	TWeakObjectPtr<UWidget> VisualWidget = WidgetToComponent.FindRef(InWidget);
-	return VisualWidget.Get();
+	return WidgetTree->FindWidget(InWidget);
 }
 
 TSharedRef<SWidget> UUserWidget::RebuildWidget()
 {
-	WidgetToComponent.Reset();
-	
 	TSharedPtr<SWidget> UserRootWidget;
 
+	check(bInitialized);
+
 	// Add the first component to the root of the widget surface.
-	if ( Components.Num() > 0 )
+	if ( Components.Num() > 0 && Components[0] != NULL )
 	{
-		UserRootWidget = Components[0]->GetWidget();
+		UserRootWidget = Components[0]->TakeWidget();
 	}
 	else
 	{
 		UserRootWidget = SNew(SSpacer);
 	}
 
-	// Place all of our top-level children Slate wrapped components into the overlay
-	for ( int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex )
+	if ( !IsDesignTime() )
 	{
-		UWidget* Handle = Components[ComponentIndex];
-		TSharedRef<SWidget> Widget = Handle->GetWidget();
-
-		WidgetToComponent.Add(Widget, Handle);
+		// Notify the widget that it has been constructed.
+		Construct();
 	}
 
-	return SNew(SObjectWidget, this)
-		[
-			UserRootWidget.ToSharedRef()
-		];
+	return UserRootWidget.ToSharedRef();
 }
 
 TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 {
-	GetWidget();
-	
-	for ( auto& Entry : WidgetToComponent )
+	UWidget* WidgetObject = WidgetTree->FindWidget(Name);
+	if ( WidgetObject )
 	{
-		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
-		{
-			return Entry.Key.Pin();
-		}
+		return WidgetObject->GetCachedWidget();
 	}
 
 	return TSharedPtr<SWidget>();
@@ -230,33 +308,53 @@ TSharedPtr<SWidget> UUserWidget::GetWidgetFromName(const FString& Name) const
 
 UWidget* UUserWidget::GetHandleFromName(const FString& Name) const
 {
-	GetWidget();
-	
-	for ( auto& Entry : WidgetToComponent )
+	for ( UWidget* Widget : Components )
 	{
-		if ( Entry.Value->GetName().Equals(Name, ESearchCase::IgnoreCase) )
+		if ( Widget->GetName().Equals(Name, ESearchCase::IgnoreCase) )
 		{
-			TWeakObjectPtr<UWidget> VisualWidget = Entry.Value;
-			return VisualWidget.Get();
+			return Widget;
 		}
 	}
 
 	return NULL;
 }
 
-TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
+void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime )
+{
+	// Update active movie scenes
+	for( UUMGSequencePlayer* Player : ActiveSequencePlayers )
+	{
+		Player->Tick( InDeltaTime );
+	}
+
+	if ( !bDesignTime )
+	{
+		UWorld* World = GetWorld();
+		if ( World )
+		{
+			// Update any latent actions we have for this actor
+			FLatentActionManager& LatentActionManager = World->GetLatentActionManager();
+			LatentActionManager.ProcessLatentActions(this, InDeltaTime);
+		}
+	}
+
+	Tick( MyGeometry, InDeltaTime );
+}
+
+TSharedRef<SWidget> UUserWidget::MakeViewportWidget(bool bAbsoluteLayout, bool bModal, bool bShowCursor)
 {
 	if ( bAbsoluteLayout )
 	{
-		return SNew(SCanvas)
+		//BIND_UOBJECT_ATTRIBUTE
 
-			+ SCanvas::Slot()
-			.Position(AbsolutePosition)
-			.Size(AbsoluteSize)
-			.VAlign(VerticalAlignment)
-			.HAlign(HorizontalAlignment)
+		return SNew(SConstraintCanvas)
+
+			+ SConstraintCanvas::Slot()
+			.Offset(BIND_UOBJECT_ATTRIBUTE(FMargin, GetFullScreenOffset))
+			.Alignment(BIND_UOBJECT_ATTRIBUTE(FVector2D, GetFullScreenAlignment))
+			.ZOrder(BIND_UOBJECT_ATTRIBUTE(int32, GetFullScreenZOrder))
 			[
-				GetWidget()
+				TakeWidget()
 			];
 	}
 	else
@@ -268,7 +366,7 @@ TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 			.HAlign(HorizontalAlignment)
 			.VAlign(VerticalAlignment)
 			[
-				GetWidget()
+				TakeWidget()
 			];
 
 		NewSlot.SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);
@@ -279,8 +377,6 @@ TSharedRef<SWidget> UUserWidget::MakeFullScreenWidget()
 
 UWidget* UUserWidget::GetRootWidgetComponent()
 {
-	GetWidget();
-	
 	if ( Components.Num() > 0 )
 	{
 		return Components[0];
@@ -289,13 +385,11 @@ UWidget* UUserWidget::GetRootWidgetComponent()
 	return NULL;
 }
 
-void UUserWidget::Show()
+void UUserWidget::AddToViewport(bool bAbsoluteLayout, bool bModal, bool bShowCursor)
 {
-	GetWidget();
-	
 	if ( !FullScreenWidget.IsValid() )
 	{
-		TSharedRef<SWidget> RootWidget = MakeFullScreenWidget();
+		TSharedRef<SWidget> RootWidget = MakeViewportWidget(bAbsoluteLayout, bModal, bShowCursor);
 
 		TSharedRef<SViewportWidgetHost> WidgetHost = SNew(SViewportWidgetHost, (bool)bModal)
 			[
@@ -303,9 +397,6 @@ void UUserWidget::Show()
 			];
 
 		FullScreenWidget = WidgetHost;
-
-		//WidgetHost->SetVisibility(EVisibility::Visible);
-		//OnVisibilityChanged.Broadcast(ESlateVisibility::Visible);
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -324,16 +415,11 @@ void UUserWidget::Show()
 	}
 }
 
-void UUserWidget::Hide()
+void UUserWidget::RemoveFromViewport()
 {
-	GetWidget();
-	
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
-
-		//RootWidget->SetVisibility(EVisibility::Hidden);
-		//OnVisibilityChanged.Broadcast(ESlateVisibility::Hidden);
 
 		// If this is a game world add the widget to the current worlds viewport.
 		UWorld* World = GetWorld();
@@ -356,15 +442,11 @@ void UUserWidget::Hide()
 
 bool UUserWidget::GetIsVisible()
 {
-	GetWidget();
-	
 	return FullScreenWidget.IsValid();
 }
 
 TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
 {
-	GetWidget();
-	
 	if ( FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> RootWidget = FullScreenWidget.Pin();
@@ -374,3 +456,58 @@ TEnumAsByte<ESlateVisibility::Type> UUserWidget::GetVisiblity()
 
 	return ESlateVisibility::Collapsed;
 }
+
+void UUserWidget::SetPlayerContext(FLocalPlayerContext InPlayerContext)
+{
+	PlayerContext = InPlayerContext;
+}
+
+const FLocalPlayerContext& UUserWidget::GetPlayerContext() const
+{
+	return PlayerContext;
+}
+
+ULocalPlayer* UUserWidget::GetLocalPlayer() const
+{
+	APlayerController* PC = PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
+	return PC ? Cast<ULocalPlayer>(PC->Player) : NULL;
+}
+
+APlayerController* UUserWidget::GetPlayerController() const
+{
+	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : NULL;
+}
+
+FMargin UUserWidget::GetFullScreenOffset() const
+{
+	FVector2D FinalSize = FullScreenSize;
+	if ( FinalSize.IsZero() )
+	{
+		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
+		if ( CachedWidget.IsValid() )
+		{
+			FinalSize = CachedWidget->GetDesiredSize();
+		}
+	}
+
+	return FMargin(FullScreenPosition.X, FullScreenPosition.Y, FinalSize.X, FinalSize.Y);
+}
+
+FVector2D UUserWidget::GetFullScreenAlignment() const
+{
+	return FullScreenAlignment;
+}
+
+int32 UUserWidget::GetFullScreenZOrder() const
+{
+	return FullScreenZOrder;
+}
+
+#if WITH_EDITOR
+
+const FSlateBrush* UUserWidget::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.UserWidget");
+}
+
+#endif

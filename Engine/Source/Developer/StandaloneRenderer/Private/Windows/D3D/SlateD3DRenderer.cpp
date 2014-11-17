@@ -337,12 +337,6 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 			const bool bUseVSync = false;
 			Viewport->D3DSwapChain->Present( bUseVSync ? 1 : 0, 0);
 
-			// Mark this window as 'drawn'
-			if( !WindowToDraw->HasEverBeenDrawn() )
-			{
-				WindowToDraw->MarkAsDrawn();
-			}
-
 			// All elements have been drawn.  Reset all cached data
 			ElementBatcher->ResetBatches();
 		}

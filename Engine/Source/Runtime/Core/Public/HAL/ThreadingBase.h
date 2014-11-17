@@ -875,6 +875,9 @@ extern CORE_API bool IsInSlateThread();
 /** @return True if called from the rendering thread, or if called from ANY thread during single threaded rendering */
 extern CORE_API bool IsInRenderingThread();
 
+/** @return True if called from the rendering thread, or if called from ANY thread that isn't the game thread, except that during single threaded rendering the game thread is ok too.*/
+extern CORE_API bool IsInParallelRenderingThread();
+
 /** @return True if called from the rendering thread. */
 // Unlike IsInRenderingThread, this will always return false if we are running single threaded. It only returns true if this is actually a separate rendering thread. Mostly useful for checks
 extern CORE_API bool IsInActualRenderingThread();

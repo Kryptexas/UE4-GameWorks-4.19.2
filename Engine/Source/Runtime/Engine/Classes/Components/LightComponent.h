@@ -4,7 +4,7 @@
 
 #include "LightComponentBase.h"
 #include "SceneTypes.h"
-
+#include "EngineDefines.h"
 #include "LightComponent.generated.h"
 
 /** 
@@ -30,7 +30,11 @@ public:
 
 	virtual void InitRHI();
 
-	void Empty();
+	/** Frees the CPU backing of the shadowmap. */
+	ENGINE_API void Empty();
+
+	/** Called after being imported during a lighting build. */
+	ENGINE_API void InitializeAfterImport();
 
 	friend FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap);
 };
@@ -312,7 +316,7 @@ public:
 	 *
 	 * @param PropertyThatChanged	Property that changed
 	 */
-	virtual void PostInterpChange(UProperty* PropertyThatChanged);
+	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 
 	/** 
 	 * Iterates over ALL stationary light components in the target world and assigns their preview shadowmap channel, and updates light icons accordingly.

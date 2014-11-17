@@ -10,7 +10,7 @@ class UWidgetBlueprint;
  * The Widget reference is a useful way to hold onto the selection in a way that allows for up to date access to the current preview object.
  * Because the designer could end up rebuilding the preview, it's best to hold onto an FWidgetReference.
  */
-struct FWidgetReference
+struct UMGEDITOR_API FWidgetReference
 {
 public:
 	/**
@@ -25,6 +25,9 @@ public:
 
 	/** Constructor for the null widget reference.  Not intended for normal use. */
 	FWidgetReference();
+
+	/** Destructor */
+	~FWidgetReference();
 
 	/** @returns true if both the template and the preview pointers are valid. */
 	bool IsValid() const;
@@ -43,6 +46,8 @@ public:
 
 private:
 	FWidgetReference(TSharedPtr<class FWidgetBlueprintEditor> WidgetEditor, UWidget* TemplateWidget);
+
+	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
 
 private:
 

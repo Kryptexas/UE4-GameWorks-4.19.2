@@ -69,8 +69,6 @@ void FOpenGLDynamicRHI::RHITick( float DeltaTime )
 
 void FOpenGLDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTarget)
 {
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
-
 	VERIFY_GL_SCOPE();
 
 	DYNAMIC_CAST_OPENGLRESOURCE(Viewport,Viewport);
@@ -98,13 +96,14 @@ void FOpenGLDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI
 	// Set the render target and viewport.
 	if( RenderTarget )
 	{
-		SetRenderTarget(RHICmdList, RenderTarget, FTextureRHIRef());
+		FRHIRenderTargetView RTV(RenderTarget);
+		RHISetRenderTargets(1, &RTV, FTextureRHIRef(), 0, NULL);
 	}
 	else
 	{
-		SetRenderTarget(RHICmdList, DrawingViewport->GetBackBuffer(), FTextureRHIRef());
+		FRHIRenderTargetView RTV(DrawingViewport->GetBackBuffer());
+		RHISetRenderTargets(1, &RTV, FTextureRHIRef(), 0, NULL);
 	}
-	RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 }
 
 void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bool bPresent,bool bLockToVsync)

@@ -445,6 +445,12 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			}
 			ShowMenuBuilder.EndSection();
 
+			ShowMenuBuilder.BeginSection("AnimViewportRootMotion", LOCTEXT("Viewport_RootMotionLabel", "Root Motion"));
+			{
+				ShowMenuBuilder.AddMenuEntry(Actions.ProcessRootMotion);
+			}
+			ShowMenuBuilder.EndSection();
+
 			ShowMenuBuilder.BeginSection("AnimViewportMesh", LOCTEXT("ShowMenu_Actions_Mesh", "Mesh"));
 			{
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowReferencePose );
@@ -470,11 +476,11 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 			}
 			ShowMenuBuilder.EndSection();
 
-			ShowMenuBuilder.BeginSection("AnimviewportInfo", LOCTEXT("ShowInfo_Actions_Info", "Info") );
-			{
-				ShowMenuBuilder.AddMenuEntry( Actions.ShowDisplayInfo );
-			}
-			ShowMenuBuilder.EndSection();
+			ShowMenuBuilder.AddMenuSeparator();
+			ShowMenuBuilder.AddSubMenu(
+				LOCTEXT("AnimviewportInfo", "Display Info"),
+				LOCTEXT("AnimviewportInfoSubMenuToolTip", "Display Mesh Info in Viewport"),
+				FNewMenuDelegate::CreateRaw(this, &SAnimViewportToolBar::FillShowDisplayInfoMenu));
 
 #if WITH_APEX_CLOTHING
 			UDebugSkelMeshComponent* PreviewComp = Viewport.Pin()->GetPersona().Pin()->PreviewComponent;
@@ -623,7 +629,20 @@ void SAnimViewportToolBar::FillShowClothingMenu(FMenuBuilder& MenuBuilder) const
 		MenuBuilder.AddMenuEntry(Actions.ShowOnlyClothSections);
 		MenuBuilder.AddMenuEntry(Actions.HideOnlyClothSections);
 	}
+	MenuBuilder.EndSection();
 #endif // #if WITH_APEX_CLOTHING
+}
+
+void SAnimViewportToolBar::FillShowDisplayInfoMenu(FMenuBuilder& MenuBuilder) const
+{
+	const FAnimViewportShowCommands& Actions = FAnimViewportShowCommands::Get();
+
+	// display info levels
+	{
+		MenuBuilder.AddMenuEntry(Actions.ShowDisplayInfoBasic);
+		MenuBuilder.AddMenuEntry(Actions.ShowDisplayInfoDetailed);
+		MenuBuilder.AddMenuEntry(Actions.HideDisplayInfo);
+	}
 }
 
 FText SAnimViewportToolBar::GetLODMenuLabel() const
@@ -682,13 +701,6 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateLODMenu() const
 			{
 				ShowMenuBuilder.AddMenuEntry( Actions.LOD3 );
 			}
-		}
-		ShowMenuBuilder.EndSection();
-
-		// Commands
-		ShowMenuBuilder.BeginSection("AnimViewportLODSettings");
-		{
-			ShowMenuBuilder.AddMenuEntry( Actions.ShowLevelOfDetailSettings);
 		}
 		ShowMenuBuilder.EndSection();
 	}

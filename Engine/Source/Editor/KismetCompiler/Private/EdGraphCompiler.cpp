@@ -27,13 +27,13 @@ void FGraphCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGraph
 /** Validate that the wiring for a single pin is schema compatible */
 void FGraphCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 {
-	if (NULL == Pin->GetOwningNodeUnchecked())
+	if (!Pin || !Pin->GetOwningNodeUnchecked())
 	{
 		MessageLog.Error(
 			*FString::Printf(
 				*NSLOCTEXT("EdGraphCompiler", "PinWrongOuterError", "Blueprint is corrupted! Pin '%s' has wrong outer '%s'.").ToString(),
-				*Pin->GetName(),
-				Pin->GetOuter() ? *Pin->GetOuter()->GetName() : TEXT("NULL")),
+				Pin ? *Pin->GetName() : TEXT("UNKNOWN"),
+				(Pin && Pin->GetOuter()) ? *Pin->GetOuter()->GetName() : TEXT("NULL")),
 			Pin);
 		return;
 	}
@@ -66,7 +66,15 @@ void FGraphCompilerContext::ValidateNode(const UEdGraphNode* Node) const
 	{
 		if (const UEdGraphPin* Pin = Node->Pins[PinIndex])
 		{
-			ValidatePin(Pin);
+			auto OwningNode = Pin->GetOwningNodeUnchecked();
+			if (OwningNode != Node)
+			{
+				MessageLog.Error(*NSLOCTEXT("EdGraphCompiler", "WrongPinsOwner_Error", "The pin @@ has outer @@, but it's used in @@").ToString(), Pin, OwningNode, Node);
+			}
+			else
+			{
+				ValidatePin(Pin);
+			}
 		}
 	}
 

@@ -779,9 +779,9 @@ static FVector ComputeWSCubeDirectionAtTexelCenter(uint32 CubemapFace, uint32 x,
 	return DirectionWS;
 }
 
-static int32 ComputeLongLatCubemapExtents(const FImage& SrcImage)
+static int32 ComputeLongLatCubemapExtents(const FImage& SrcImage, const int32 MaxCubemapTextureResolution)
 {
-	return FMath::Clamp(1 << FMath::FloorLog2(SrcImage.SizeX / 2), 32, 512);
+	return FMath::Clamp(1 << FMath::FloorLog2(SrcImage.SizeX / 2), 32, MaxCubemapTextureResolution);
 }
 
 /**
@@ -789,14 +789,14 @@ static int32 ComputeLongLatCubemapExtents(const FImage& SrcImage)
  * @param OutMip - The output mip.
  * @param SrcImage - The source longlat image.
  */
-static void GenerateBaseCubeMipFromLongitudeLatitude2D(FImage* OutMip, const FImage& SrcImage)
+static void GenerateBaseCubeMipFromLongitudeLatitude2D(FImage* OutMip, const FImage& SrcImage, const int32 MaxCubemapTextureResolution)
 {
 	FImage LongLatImage;
 	SrcImage.CopyTo(LongLatImage, ERawImageFormat::RGBA32F, false);
 	FImageViewLongLat LongLatView(LongLatImage);
 
 	// TODO_TEXTURE: Expose target size to user.
-	int32 Extent = ComputeLongLatCubemapExtents(LongLatImage);
+	int32 Extent = ComputeLongLatCubemapExtents(LongLatImage, MaxCubemapTextureResolution);
 	float InvExtent = 1.0f / Extent;
 	OutMip->Init(Extent, Extent, 6, ERawImageFormat::RGBA32F, false);
 
@@ -1702,9 +1702,9 @@ private:
 
 		// Determine the maximum possible mip counts for source and dest.
 		const int32 MaxSourceMipCount = bLongLatCubemap ?
-			1 + FMath::CeilLogTwo(ComputeLongLatCubemapExtents(InSourceMips[0])) :
+			1 + FMath::CeilLogTwo(ComputeLongLatCubemapExtents(InSourceMips[0], BuildSettings.MaxTextureResolution)) :
 			1 + FMath::CeilLogTwo(FMath::Max(InSourceMips[0].SizeX, InSourceMips[0].SizeY));
-		const int32 MaxDestMipCount = 1 + FMath::CeilLogTwo(CompressorCaps.MaxTextureDimension);
+		const int32 MaxDestMipCount = 1 + FMath::CeilLogTwo(FMath::Min(CompressorCaps.MaxTextureDimension, BuildSettings.MaxTextureResolution));
 
 		// Determine the number of mips required by BuildSettings.
 		int32 NumOutputMips = (BuildSettings.MipGenSettings == TMGS_NoMipmaps) ? 1 : MaxSourceMipCount;
@@ -1782,7 +1782,7 @@ private:
 			if (bLongLatCubemap)
 			{
 				// Generate the base mip from the long-lat source image.
-				GenerateBaseCubeMipFromLongitudeLatitude2D(Mip, Image);
+				GenerateBaseCubeMipFromLongitudeLatitude2D(Mip, Image, BuildSettings.MaxTextureResolution);
 			}
 			else
 			{

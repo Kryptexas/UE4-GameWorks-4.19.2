@@ -446,7 +446,7 @@ public:
 		CookConfiguration = FApp::GetBuildConfiguration();
 		CookMode = ELauncherProfileCookModes::DoNotCook;
 		CookOptions = FString();
-		CookIncremental = true;
+		CookIncremental = false;
 		CookUnversioned = false;
 		CookedCultures.Reset();
 		CookedCultures.Add(I18N.GetCurrentCulture()->GetName());
@@ -480,6 +480,9 @@ public:
 
 		// default packaging settings
 		PackagingMode = ELauncherProfilePackagingModes::DoNotPackage;
+
+		// default UAT settings
+		EditorExe.Empty();
 
 		Validate();
 	}
@@ -681,6 +684,16 @@ public:
 	virtual FOnProfileProjectChanged& OnProjectChanged() override
 	{
 		return ProjectChangedDelegate;
+	}
+
+	virtual void SetEditorExe( const FString& InEditorExe ) override
+	{
+		EditorExe = InEditorExe;
+	}
+
+	virtual FString GetEditorExe( ) const override
+	{
+		return EditorExe;
 	}
 
 	// End ILauncherProfile interface
@@ -931,6 +944,9 @@ private:
 
     // Holds the close value for the cook on the fly server
     bool ForceClose;
+
+	// Path to the editor executable to pass to UAT, for cooking, etc... May be empty.
+	FString EditorExe;
         
 private:
 

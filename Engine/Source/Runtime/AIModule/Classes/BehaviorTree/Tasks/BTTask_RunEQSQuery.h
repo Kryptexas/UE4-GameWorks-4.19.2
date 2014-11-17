@@ -10,6 +10,10 @@ struct FBTEnvQueryTaskMemory
 	int32 RequestID;
 };
 
+/**
+ * Run Environment Query System Query task node.
+ * Runs the specified environment query when executed.
+ */
 UCLASS(MinimalAPI)
 class UBTTask_RunEQSQuery : public UBTTask_BlackboardBase
 {

@@ -3,8 +3,7 @@
 #pragma once
 
 #include "AnimNodeBase.h"
-#include "AnimData/BoneMaskFilter.h"
-
+#include "Animation/AnimData/BoneMaskFilter.h"
 #include "AnimNode_LayeredBoneBlend.generated.h"
 
 

@@ -61,6 +61,7 @@ FReply SGestureEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEv
 		EditingInputGesture.bCtrl = InKeyboardEvent.IsControlDown();
 		EditingInputGesture.bAlt = InKeyboardEvent.IsAltDown();
 		EditingInputGesture.bShift = InKeyboardEvent.IsShiftDown();
+		EditingInputGesture.bCmd = InKeyboardEvent.IsCommandDown();
 
 		LoadText();
 		//@todo checking the length of localized string is not valid, at the very least in this manner [10/11/2013 justin.sargent]

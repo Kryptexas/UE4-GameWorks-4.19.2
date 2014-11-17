@@ -74,7 +74,8 @@
 #include "ISCSEditorCustomization.h"
 #include "Editor/UnrealEd/Public/SourceCodeNavigation.h"
 
-
+// Blueprint merging
+#include "Merge.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -252,7 +253,7 @@ const FSlateBrush* FBlueprintEditor::GetGlyphForGraph(const UEdGraph* Graph, boo
 	return ReturnValue;
 }
 
-FSlateBrush const* FBlueprintEditor::GetVarIconAndColor(UStruct* VarScope, FName VarName, FSlateColor& IconColorOut)
+FSlateBrush const* FBlueprintEditor::GetVarIconAndColor(const UStruct* VarScope, FName VarName, FSlateColor& IconColorOut)
 {
 	FLinearColor ColorOut;
 	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(UK2Node_Variable::GetVariableIconAndColor(VarScope, VarName, ColorOut));
@@ -317,6 +318,9 @@ void FBlueprintEditor::AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphN
 {
 	if( Blueprint && GraphNode && FEngineAnalytics::IsAvailable() )
 	{
+		// we'd like to see if this was happening in normal blueprint editor or persona 
+		const FString EditorName = Cast<UAnimBlueprint>(Blueprint) != NULL ? TEXT("Persona") : TEXT("BlueprintEditor");
+
 		// Build Node Details
 		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
 		FString ProjectID = ProjectSettings.ProjectID.ToString();
@@ -342,11 +346,35 @@ void FBlueprintEditor::AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphN
 			{
 				NodeAttributes.Add( FAnalyticsEventAttribute( Iter->Key, Iter->Value ));
 			}
-			// Send Analytics event
-			FString EventType = bNodeDelete ?	TEXT( "Editor.Usage.BlueprintEditor.NodeDeleted" ) :
-												TEXT( "Editor.Usage.BlueprintEditor.NodeCreated" );
+			// Send Analytics event 
+			FString EventType = bNodeDelete ?	FString::Printf(TEXT( "Editor.Usage.%s.NodeDeleted" ), *EditorName) :
+												FString::Printf(TEXT( "Editor.Usage.%s.NodeCreated" ), *EditorName);
 			FEngineAnalytics::GetProvider().RecordEvent( EventType, NodeAttributes );
 		}
+	}
+}
+
+void FBlueprintEditor::AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 NumErrors, int32 NumWarnings ) const
+{
+	if(Blueprint && FEngineAnalytics::IsAvailable())
+	{
+		// we'd like to see if this was happening in normal blueprint editor or persona 
+		const FString EditorName = Cast<UAnimBlueprint>(Blueprint) != NULL ? TEXT("Persona") : TEXT("BlueprintEditor");
+
+		// Build Node Details
+		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
+		FString ProjectID = ProjectSettings.ProjectID.ToString();
+
+		const bool bSuccess = NumErrors == 0;
+		TArray< FAnalyticsEventAttribute > Attributes;
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("ProjectId"), ProjectID));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("BlueprintId"), Blueprint->GetBlueprintGuid().ToString()));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("Success"), bSuccess? TEXT("True") : TEXT("False") ));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("NumErrors"), FString::FromInt(NumErrors)));
+		Attributes.Add(FAnalyticsEventAttribute(TEXT("NumWarnings"), FString::FromInt(NumWarnings)));
+
+		// Send Analytics event 
+		FEngineAnalytics::GetProvider().RecordEvent(FString::Printf(TEXT("Editor.Usage.%s.Compile"), *EditorName), Attributes);
 	}
 }
 
@@ -461,6 +489,21 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().RemoveExecutionPin,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnRemoveExecutionPin ),
 				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanRemoveExecutionPin )
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().RemoveThisStructVarPin,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnRemoveThisStructVarPin),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanRemoveThisStructVarPin)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().RemoveOtherStructVarPins,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnRemoveOtherStructVarPins),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanRemoveOtherStructVarPins)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().RestoreAllStructVarPins,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnRestoreAllStructVarPins),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanRestoreAllStructVarPins)
 				);
 
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AddOptionPin,
@@ -1081,9 +1124,6 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 {
 	check(InBlueprints.Num() == 1 || bShouldOpenInDefaultsMode);
 
-	// Newly-created Blueprints will open in Components mode rather than Standard mode
-	bool bShouldOpenInComponentsMode = !bShouldOpenInDefaultsMode && InBlueprints.Num() == 1 && InBlueprints[0]->bIsNewlyCreated;
-
 	TArray< UObject* > Objects;
 	for( auto BlueprintIter = InBlueprints.CreateConstIterator(); BlueprintIter; ++BlueprintIter )
 	{
@@ -1119,66 +1159,7 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 	
 	RegenerateMenusAndToolbars();
 
-	// Create the modes and activate one (which will populate with a real layout)
-	if (UBlueprint* SingleBP = GetBlueprintObj())
-	{
-		if (!bShouldOpenInDefaultsMode && FBlueprintEditorUtils::IsInterfaceBlueprint(SingleBP))
-		{
-			// Interfaces are only valid in the Interface mode
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintInterfaceMode, 
-				MakeShareable(new FBlueprintInterfaceApplicationMode( SharedThis(this) )));
-			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintInterfaceMode);
-		}
-		else if (SingleBP->BlueprintType == BPTYPE_MacroLibrary)
-		{
-			// Macro libraries are only valid in the Macro mode
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintMacroMode, 
-				MakeShareable(new FBlueprintMacroApplicationMode( SharedThis(this) )));
-			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintMacroMode);
-		}
-		else if (SingleBP->BlueprintType == BPTYPE_FunctionLibrary)
-		{
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
-				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
-			SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
-		}
-		else
-		{
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode, 
-				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintDefaultsMode, 
-				MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
-			AddApplicationMode(
-				FBlueprintEditorApplicationModes::BlueprintComponentsMode, 
-				MakeShareable(new FBlueprintComponentsApplicationMode(SharedThis(this))));
-
-			if (bShouldOpenInDefaultsMode)
-			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
-			}
-			else if (bShouldOpenInComponentsMode && CanAccessComponentsMode())
-			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
-			}
-			else
-			{
-				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
-			}
-		}
-	}
-	else
-	{
-		// We either have no blueprints or many, open in the defaults mode for multi-editing
-		AddApplicationMode(
-			FBlueprintEditorApplicationModes::BlueprintDefaultsMode, 
-			MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
-		SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
-	}
+	RegisterApplicationModes(InBlueprints, bShouldOpenInDefaultsMode);
 
 	// Cache the project type ( Blueprint or Code Based )
 	if( FPaths::IsProjectFilePathSet() )
@@ -1195,6 +1176,73 @@ void FBlueprintEditor::InitBlueprintEditor(const EToolkitMode::Type Mode, const 
 
 	// Find and set any instances of this blueprint type if any exists and we are not already editing one
 	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();	
+}
+
+void FBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+{
+	// Newly-created Blueprints will open in Components mode rather than Standard mode
+	bool bShouldOpenInComponentsMode = !bShouldOpenInDefaultsMode && InBlueprints.Num() == 1 && InBlueprints[0]->bIsNewlyCreated;
+
+	// Create the modes and activate one (which will populate with a real layout)
+	if ( UBlueprint* SingleBP = GetBlueprintObj() )
+	{
+		if ( !bShouldOpenInDefaultsMode && FBlueprintEditorUtils::IsInterfaceBlueprint(SingleBP) )
+		{
+			// Interfaces are only valid in the Interface mode
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::BlueprintInterfaceMode,
+				MakeShareable(new FBlueprintInterfaceApplicationMode(SharedThis(this))));
+			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintInterfaceMode);
+		}
+		else if ( SingleBP->BlueprintType == BPTYPE_MacroLibrary )
+		{
+			// Macro libraries are only valid in the Macro mode
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::BlueprintMacroMode,
+				MakeShareable(new FBlueprintMacroApplicationMode(SharedThis(this))));
+			SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintMacroMode);
+		}
+		else if ( SingleBP->BlueprintType == BPTYPE_FunctionLibrary )
+		{
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
+			SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+		}
+		else
+		{
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::StandardBlueprintEditorMode,
+				MakeShareable(new FBlueprintEditorApplicationMode(SharedThis(this), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)));
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+				MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+			AddApplicationMode(
+				FBlueprintEditorApplicationModes::BlueprintComponentsMode,
+				MakeShareable(new FBlueprintComponentsApplicationMode(SharedThis(this))));
+
+			if ( bShouldOpenInDefaultsMode )
+			{
+				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+			}
+			else if ( bShouldOpenInComponentsMode && CanAccessComponentsMode() )
+			{
+				SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
+			}
+			else
+			{
+				SetCurrentMode(FBlueprintEditorApplicationModes::StandardBlueprintEditorMode);
+			}
+		}
+	}
+	else
+	{
+		// We either have no blueprints or many, open in the defaults mode for multi-editing
+		AddApplicationMode(
+			FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+			MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+		SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+	}
 }
 
 void FBlueprintEditor::PostRegenerateMenusAndToolbars()
@@ -1475,6 +1523,8 @@ FBlueprintEditor::~FBlueprintEditor()
 		Editor->UnregisterForUndo( this );
 	}
 
+	CloseMergeTool();
+
 	if (GetBlueprintObj())
 	{
 		GetBlueprintObj()->OnChanged().RemoveAll( this );
@@ -1500,7 +1550,7 @@ FBlueprintEditor::~FBlueprintEditor()
 		BPEditorAttribs.Add( FAnalyticsEventAttribute( FString( "PastedNodesCreated" ), AnalyticsStats.NodePasteCreateCount ));
 
 		BPEditorAttribs.Add( FAnalyticsEventAttribute( FString( "ProjectId" ), ProjectID ) );
-		FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.BlueprintEditor" ), BPEditorAttribs );
+		FEngineAnalytics::GetProvider().RecordEvent( FString( "Editor.Usage.BlueprintEditorSummary" ), BPEditorAttribs );
 
 		for (auto Iter = AnalyticsStats.GraphDisallowedPinConnections.CreateConstIterator(); Iter; ++Iter)
 		{
@@ -1571,7 +1621,7 @@ void FBlueprintEditor::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlu
 		];
 
 	FindResults = SNew(SFindInBlueprints, SharedThis(this));
-
+	
 	this->Inspector = 
 		SNew(SKismetInspector)
 		. HideNameArea(true)
@@ -1826,6 +1876,10 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FIsActionButtonVisible::CreateSP(this, &FBlueprintEditor::NewDocument_IsVisibleForType, CGT_NewAnimationGraph));
 	*/
 
+	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().SaveIntermediateBuildProducts,
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleSaveIntermediateBuildProducts),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FBlueprintEditor::GetSaveIntermediateBuildProducts));
 	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().RecompileGraphEditor,
 		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompileGraphEditor_OnClicked ),
 		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
@@ -1839,10 +1893,9 @@ void FBlueprintEditor::CreateDefaultCommands()
 		FExecuteAction::CreateStatic( &FLocalKismetCallbacks::RecompilePersona_OnClicked ),
 		FCanExecuteAction::CreateStatic( &FLocalKismetCallbacks::CanRecompileModules ));
 
-	ToolkitCommands->MapAction( FBlueprintEditorCommands::Get().SaveIntermediateBuildProducts,
-		FExecuteAction::CreateSP(this, &FBlueprintEditor::ToggleSaveIntermediateBuildProducts),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FBlueprintEditor::GetSaveIntermediateBuildProducts) );
+	ToolkitCommands->MapAction(FBlueprintEditorCommands::Get().BeginBlueprintMerge,
+		FExecuteAction::CreateSP(this, &FBlueprintEditor::CreateMergeToolTab),
+		FCanExecuteAction());
 }
 
 void FBlueprintEditor::FindInBlueprint_Clicked()
@@ -2277,6 +2330,10 @@ void FBlueprintEditor::Compile()
 
 		bool bForceMessageDisplay = ((LogResults.NumWarnings > 0) || (LogResults.NumErrors > 0)) && !GetBlueprintObj()->bIsRegeneratingOnLoad;
 		DumpMessagesToCompilerLog(LogResults.Messages, bForceMessageDisplay);
+
+		// send record when player clicks compile and send the result
+		// this will make sure how the users activity is
+		AnalyticsTrackCompileEvent(GetBlueprintObj(), LogResults.NumErrors, LogResults.NumWarnings);
 	}
 }
 
@@ -2472,10 +2529,8 @@ void FBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
 		UObject* EditingObject = GetEditingObjects()[i];
 		Collector.AddReferencedObject(EditingObject);
 	}
-	for (int32 Index = 0; Index < StandardLibraries.Num(); Index++)
-	{
-		Collector.AddReferencedObject(StandardLibraries[Index]);
-	}
+
+	Collector.AddReferencedObjects(StandardLibraries);
 
 	UserDefinedEnumerators.Remove(TWeakObjectPtr<UUserDefinedEnum>()); // Remove NULLs
 	for (auto ObjectPtr : UserDefinedEnumerators)
@@ -2593,10 +2648,7 @@ bool FBlueprintEditor::CanAccessComponentsMode() const
 	if(IsEditingSingleBlueprint())
 	{
 		UBlueprint* Blueprint = GetBlueprintObj();
-		bCanAccess = Blueprint->SimpleConstructionScript != NULL		// An SCS must be present (otherwise there is nothing valid to edit)
-			&& FBlueprintEditorUtils::IsActorBased(Blueprint)			// Must be parented to an AActor-derived class (some older BPs may have an SCS but may not be Actor-based)
-			&& Blueprint->BlueprintType != BPTYPE_MacroLibrary			// Must not be a macro-type Blueprint
-			&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;		// Must not be a function library
+		bCanAccess = FBlueprintEditorUtils::DoesSupportComponents(Blueprint);
 	}
 	
 	return bCanAccess;
@@ -2728,6 +2780,8 @@ void FBlueprintEditor::OnSplitStructPin()
 		check(GetBlueprintObj()->SkeletonGeneratedClass);
 		check(TargetPin);
 
+		const FScopedTransaction Transaction( LOCTEXT("SplitStructPin", "Split Struct Pin") );
+
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		K2Schema->SplitPin(TargetPin);
 	}
@@ -2760,6 +2814,8 @@ void FBlueprintEditor::OnRecombineStructPin()
 		check(IsEditingSingleBlueprint());
 		check(GetBlueprintObj()->SkeletonGeneratedClass);
 		check(TargetPin);
+
+		const FScopedTransaction Transaction( LOCTEXT("RecombineStructPin", "Recombine Struct Pin") );
 
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		K2Schema->RecombinePin(TargetPin);
@@ -2878,6 +2934,96 @@ bool FBlueprintEditor::CanRemoveExecutionPin() const
 	}
 
 	return bReturnValue;
+}
+
+void  FBlueprintEditor::OnRemoveThisStructVarPin()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	UEdGraphPin* SelectedPin = FocusedGraphEd.IsValid() ? FocusedGraphEd->GetGraphPinForMenu() : NULL;
+	UEdGraphNode* OwningNode = SelectedPin ? SelectedPin->GetOwningNodeUnchecked() : NULL;
+	if (auto SetFilestInStructNode = Cast<UK2Node_SetFieldsInStruct>(OwningNode))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("RemoveThisStructVarPin", "Remove Struct Var Pin"));
+		SetFilestInStructNode->Modify();
+		SelectedPin->Modify();
+		SetFilestInStructNode->RemoveFieldPins(SelectedPin, UK2Node_SetFieldsInStruct::EPinsToRemove::GivenPin);
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+
+		UEdGraph* CurrentGraph = FocusedGraphEd->GetCurrentGraph();
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CurrentGraph);
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+	}
+}
+
+bool FBlueprintEditor::CanRemoveThisStructVarPin() const
+{
+	auto FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	const auto SelectedPin = FocusedGraphEd.IsValid() ? FocusedGraphEd->GetGraphPinForMenu() : NULL;
+	return UK2Node_SetFieldsInStruct::ShowCustomPinActions(SelectedPin, false);
+}
+
+void  FBlueprintEditor::OnRemoveOtherStructVarPins()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	UEdGraphPin* SelectedPin = FocusedGraphEd.IsValid() ? FocusedGraphEd->GetGraphPinForMenu() : NULL;
+	UEdGraphNode* OwningNode = SelectedPin ? SelectedPin->GetOwningNodeUnchecked() : NULL;
+	if (auto SetFilestInStructNode = Cast<UK2Node_SetFieldsInStruct>(OwningNode))
+	{
+		const FScopedTransaction Transaction(LOCTEXT("RemoveOtherStructVarPins", "Remove Other Struct Var Pins"));
+		SetFilestInStructNode->Modify();
+		SelectedPin->Modify();
+		SetFilestInStructNode->RemoveFieldPins(SelectedPin, UK2Node_SetFieldsInStruct::EPinsToRemove::AllOtherPins);
+
+		// Update the graph so that the node will be refreshed
+		FocusedGraphEd->NotifyGraphChanged();
+
+		UEdGraph* CurrentGraph = FocusedGraphEd->GetCurrentGraph();
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CurrentGraph);
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+	}
+}
+
+bool FBlueprintEditor::CanRemoveOtherStructVarPins() const
+{
+	auto FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	const auto SelectedPin = FocusedGraphEd.IsValid() ? FocusedGraphEd->GetGraphPinForMenu() : NULL;
+	return UK2Node_SetFieldsInStruct::ShowCustomPinActions(SelectedPin, false);
+}
+
+void FBlueprintEditor::OnRestoreAllStructVarPins()
+{
+	const FGraphPanelSelectionSet& SelectedNodes = GetSelectedNodes();
+	FGraphPanelSelectionSet::TConstIterator It(SelectedNodes);
+	UK2Node_SetFieldsInStruct* Node = (!!It) ? Cast<UK2Node_SetFieldsInStruct>(*It) : NULL;
+	if (Node && !Node->AllPinsAreShown())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("RestoreAllStructVarPins", "Restore all struct var pins"));
+		Node->Modify();
+		Node->RestoreAllPins();
+
+		// Refresh the current graph, so the pins can be updated
+		TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+		if (FocusedGraphEd.IsValid())
+		{
+			UEdGraph* CurrentGraph = FocusedGraphEd->GetCurrentGraph();
+			UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraphChecked(CurrentGraph);
+			FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+
+			FocusedGraphEd->NotifyGraphChanged();
+		}
+	}
+
+	
+}
+
+bool FBlueprintEditor::CanRestoreAllStructVarPins() const
+{
+	const FGraphPanelSelectionSet& SelectedNodes = GetSelectedNodes();
+	FGraphPanelSelectionSet::TConstIterator It(SelectedNodes);
+	UK2Node_SetFieldsInStruct* Node = (!!It) ? Cast<UK2Node_SetFieldsInStruct>(*It) : NULL;
+	return Node && !Node->AllPinsAreShown();
 }
 
 void FBlueprintEditor::OnAddOptionPin()
@@ -4541,6 +4687,20 @@ void FBlueprintEditor::UnregisterSCSEditorCustomization(const FName& InComponent
 	SCSEditorCustomizations.Remove(InComponentName);
 }
 
+void FBlueprintEditor::CreateMergeToolTab()
+{
+	MergeTool = IMerge::Get().GenerateMergeWidget(*GetBlueprintObj(), SharedThis(this));
+}
+
+void FBlueprintEditor::CloseMergeTool()
+{
+	auto MergeToolPtr = MergeTool.Pin();
+	if( MergeToolPtr.IsValid() )
+	{
+		MergeToolPtr->RequestCloseTab();
+	}
+}
+
 TArray<FSCSEditorTreeNodePtrType>  FBlueprintEditor::GetSelectedSCSEditorTreeNodes() const
 {
 	TArray<FSCSEditorTreeNodePtrType>  Nodes;
@@ -4724,7 +4884,29 @@ void FBlueprintEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 	}
 	else if (UObject* HyperlinkTarget = Node->GetJumpTargetForDoubleClick())
 	{
-		FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+		// Check to see if our outer chain contains a blueprint. If we're inside a blueprint (a graph, pin, etc.) then
+		// focus on the target; otherwise open the editor for the target.
+		UBlueprint* TargetBP = Cast<UBlueprint>(const_cast<UObject*>(HyperlinkTarget));
+		if(TargetBP == NULL)
+		{
+			for(UObject* TestOuter = HyperlinkTarget->GetOuter(); TestOuter; TestOuter = TestOuter->GetOuter())
+			{
+				TargetBP = Cast<UBlueprint>(TestOuter);
+				if(TargetBP != NULL)
+				{
+					break;
+				}
+			}
+		}
+
+		if(TargetBP)
+		{
+			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(HyperlinkTarget);
+		}
+		else
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(HyperlinkTarget);
+		}
 	}
 }
 
@@ -5177,12 +5359,16 @@ void FBlueprintEditor::ExpandNode(UEdGraphNode* InNodeToExpand, UEdGraph* InSour
 	UEdGraphNode* Entry = NULL;
 	UEdGraphNode* Result = NULL;
 
+	const bool bIsCollapsedGraph = InNodeToExpand->IsA<UK2Node_Composite>();
+
 	// Move the nodes over, remembering any that are boundary nodes
 	while (SourceGraph->Nodes.Num())
 	{
 		UEdGraphNode* Node = SourceGraph->Nodes.Pop();
 
-		if(!Node->CanPasteHere(DestinationGraph, Node->GetSchema()))
+		// We do not check CanPasteHere when determining CanCollapseNodes, unlike CanCollapseSelectionToFunction/Macro,
+		// so when expanding a collapsed graph we don't want to check the CanPasteHere function:
+		if (!bIsCollapsedGraph && !Node->CanPasteHere(DestinationGraph, Node->GetSchema()))
 		{
 			continue;
 		}
@@ -5428,7 +5614,7 @@ void FBlueprintEditor::OnAddNewLocalVariable()
 		// Now create new variable
 		FBPVariableDescription NewVar;
 
-		NewVar.VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"));
+		NewVar.VarName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), TEXT("NewLocalVar"), FindField<UFunction>(GetBlueprintObj()->SkeletonGeneratedClass, TargetGraph->GetFName()));
 		NewVar.VarGuid = FGuid::NewGuid();
 		NewVar.VarType = GetMyBlueprintWidget()->GetLastPinTypeUsed();
 		NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), (NewVar.VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
@@ -5533,12 +5719,7 @@ void FBlueprintEditor::NewDocument_OnClicked(ECreatedDocumentType GraphType)
 	FName DocumentName = FName(*DocumentNameText.ToString());
 
 	// Make sure the new name is valid
-	int32 Index = 0;
-	while (!FBlueprintEditorUtils::IsGraphNameUnique(GetBlueprintObj(), DocumentName))
-	{
-		DocumentName = FName(*FString::Printf(TEXT("%s%i"), *DocumentNameText.ToString(), Index));
-		++Index;
-	}
+	DocumentName = FBlueprintEditorUtils::FindUniqueKismetName(GetBlueprintObj(), DocumentNameText.ToString());
 
 	check(IsEditingSingleBlueprint());
 
@@ -5603,7 +5784,10 @@ bool FBlueprintEditor::NewDocument_IsVisibleForType(ECreatedDocumentType GraphTy
 	case CGT_NewEventGraph:
 		return FBlueprintEditorUtils::DoesSupportEventGraphs(GetBlueprintObj());
 	case CGT_NewLocalVariable:
-		return (GetBlueprintObj()->BlueprintType != BPTYPE_Interface) && (GetFocusedGraph() && GetFocusedGraph()->GetSchema()->GetGraphType(GetFocusedGraph()) == EGraphType::GT_Function) && !GetFocusedGraph()->IsA(UAnimationTransitionGraph::StaticClass());
+		return (GetBlueprintObj()->BlueprintType != BPTYPE_Interface) 
+			&& (GetFocusedGraph() && GetFocusedGraph()->GetSchema()->GetGraphType(GetFocusedGraph()) == EGraphType::GT_Function)
+			&& !GetFocusedGraph()->IsA(UAnimationTransitionGraph::StaticClass()) 
+			&& IsFocusedGraphEditable();
 	}
 
 	return false;
@@ -5939,13 +6123,34 @@ void FBlueprintEditor::RestoreEditedObjectState()
 	{
 		if (UObject* Obj = GetBlueprintObj()->LastEditedDocuments[i].EditedObject)
 		{
-
 			if(UEdGraph* Graph = Cast<UEdGraph>(Obj))
 			{
-				UEdGraph* TopLevelGraph = FBlueprintEditorUtils::GetTopLevelGraph(Graph);
-				
-				FDocumentTracker::EOpenDocumentCause OpenCause = TopLevelGraph != Graph? FDocumentTracker::OpenNewDocument : FDocumentTracker::RestorePreviousDocument;
-				TSharedPtr<SDockTab> TabWithGraph = OpenDocument(TopLevelGraph, OpenCause);
+				struct LocalStruct
+				{
+					static TSharedPtr<SDockTab> OpenGraphTree(FBlueprintEditor* InBlueprintEditor, UEdGraph* InGraph)
+					{
+						FDocumentTracker::EOpenDocumentCause OpenCause = FDocumentTracker::QuickNavigateCurrentDocument;
+
+						for (UObject* OuterObject = InGraph->GetOuter(); OuterObject; OuterObject = OuterObject->GetOuter())
+						{
+							if (UBlueprint* Blueprint = Cast<UBlueprint>(OuterObject))
+							{
+								// reached up to the blueprint for the graph, we are done climbing the tree
+								OpenCause = FDocumentTracker::OpenNewDocument;
+								break;
+							}
+							else if(UEdGraph* OuterGraph = Cast<UEdGraph>(OuterObject))
+							{
+								// Found another graph, open it up
+								OpenGraphTree(InBlueprintEditor, OuterGraph);
+								break;
+							}
+						}
+
+						return InBlueprintEditor->OpenDocument(InGraph, OpenCause);
+					}
+				};
+				TSharedPtr<SDockTab> TabWithGraph = LocalStruct::OpenGraphTree(this, Graph);
 
 				TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(TabWithGraph->GetContent());
 				GraphEditor->SetViewLocation(GetBlueprintObj()->LastEditedDocuments[i].SavedViewOffset, GetBlueprintObj()->LastEditedDocuments[i].SavedZoomAmount);

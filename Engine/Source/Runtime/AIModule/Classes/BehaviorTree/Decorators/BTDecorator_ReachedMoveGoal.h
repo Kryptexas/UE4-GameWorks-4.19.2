@@ -4,6 +4,10 @@
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_ReachedMoveGoal.generated.h"
 
+/**
+ * Reached Move Goal decorator node.
+ * A decorator node that bases its condition on whether the AI controller's path following component returns that it has reached its goal.
+ */
 UCLASS()
 class AIMODULE_API UBTDecorator_ReachedMoveGoal : public UBTDecorator
 {

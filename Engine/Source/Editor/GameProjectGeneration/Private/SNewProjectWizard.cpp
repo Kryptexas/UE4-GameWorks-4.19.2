@@ -920,6 +920,21 @@ void SNewProjectWizard::FindTemplateProjects()
 	// @todo rocket make template folder locations extensible.
 	TemplateRootFolders.Add( FPaths::RootDir() + TEXT("Templates") );
 
+	// allow plugins to define templates
+	TArray<FPluginStatus> PluginStatuses = IPluginManager::Get().QueryStatusForAllPlugins();
+	for (const auto& PluginStatus : PluginStatuses)
+	{
+		if (PluginStatus.bIsEnabled && !PluginStatus.PluginDirectory.IsEmpty())
+		{
+			const FString PluginTemplatesDirectory = FPaths::Combine(*PluginStatus.PluginDirectory, TEXT("Templates"));
+
+			if (IFileManager::Get().DirectoryExists(*PluginTemplatesDirectory))
+			{
+				TemplateRootFolders.Add(PluginTemplatesDirectory);
+			}
+		}
+	}
+
 	// Form a list of all folders that could contain template projects
 	TArray<FString> AllTemplateFolders;
 	for ( auto TemplateRootFolderIt = TemplateRootFolders.CreateConstIterator(); TemplateRootFolderIt; ++TemplateRootFolderIt )
@@ -1093,20 +1108,7 @@ void SNewProjectWizard::UpdateProjectFileValidity( )
 
 	// Name and Location Validity
 	{
-		if ( CurrentProjectFileName.Contains(TEXT("/")) || CurrentProjectFileName.Contains(TEXT("\\")) )
-		{
-			bLastNameAndLocationValidityCheckSuccessful = false;
-			LastNameAndLocationValidityErrorText = LOCTEXT( "SlashOrBackslashInProjectName", "The project name may not contain a slash or backslash" );
-		}
-		else
-		{
-			FText FailReason;
-			bLastNameAndLocationValidityCheckSuccessful = GameProjectUtils::IsValidProjectFileForCreation( GetProjectFilenameWithPath(), FailReason );
-			if ( !bLastNameAndLocationValidityCheckSuccessful )
-			{
-				LastNameAndLocationValidityErrorText = FailReason;
-			}
-		}
+		bLastNameAndLocationValidityCheckSuccessful = true;
 
 		if ( !FPlatformMisc::IsValidAbsolutePathFormat(CurrentProjectFilePath) )
 		{
@@ -1116,9 +1118,24 @@ void SNewProjectWizard::UpdateProjectFileValidity( )
 		else
 		{
 			FText FailReason;
-			bLastNameAndLocationValidityCheckSuccessful = GameProjectUtils::IsValidProjectFileForCreation( GetProjectFilenameWithPath(), FailReason );
-			if ( !bLastNameAndLocationValidityCheckSuccessful )
+			if ( !GameProjectUtils::IsValidProjectFileForCreation(GetProjectFilenameWithPath(), FailReason) )
 			{
+				bLastNameAndLocationValidityCheckSuccessful = false;
+				LastNameAndLocationValidityErrorText = FailReason;
+			}
+		}
+
+		if ( CurrentProjectFileName.Contains(TEXT("/")) || CurrentProjectFileName.Contains(TEXT("\\")) )
+		{
+			bLastNameAndLocationValidityCheckSuccessful = false;
+			LastNameAndLocationValidityErrorText = LOCTEXT("SlashOrBackslashInProjectName", "The project name may not contain a slash or backslash");
+		}
+		else
+		{
+			FText FailReason;
+			if ( !GameProjectUtils::IsValidProjectFileForCreation(GetProjectFilenameWithPath(), FailReason) )
+			{
+				bLastNameAndLocationValidityCheckSuccessful = false;
 				LastNameAndLocationValidityErrorText = FailReason;
 			}
 		}

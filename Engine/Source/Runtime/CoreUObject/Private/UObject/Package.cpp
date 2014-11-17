@@ -119,6 +119,11 @@ UMetaData* UPackage::GetMetaData()
 
 	check(MetaData);
 
+	if (MetaData->HasAnyFlags(RF_NeedLoad))
+	{
+		MetaData->GetLinker()->Preload(MetaData);
+	}
+
 	return MetaData;
 }
 

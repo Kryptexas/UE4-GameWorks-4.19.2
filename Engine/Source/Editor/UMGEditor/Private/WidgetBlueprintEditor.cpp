@@ -6,14 +6,20 @@
 #include "WidgetBlueprintEditor.h"
 #include "MovieScene.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
-#include "UMGSequencerObjectBindingManager.h"
+#include "Animation/UMGSequencerObjectBindingManager.h"
+
+#include "WidgetBlueprintApplicationModes.h"
+//#include "WidgetDefafaultsApplicationMode.h"
+#include "WidgetDesignerApplicationMode.h"
+#include "WidgetGraphApplicationMode.h"
+
+#include "WidgetBlueprintEditorToolbar.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
 FWidgetBlueprintEditor::FWidgetBlueprintEditor()
 	: PreviewScene(FPreviewScene::ConstructionValues().AllowAudioPlayback(true).ShouldSimulatePhysics(true))
 	, PreviewBlueprint(NULL)
-	, DefaultMovieScene(NULL)
 {
 }
 
@@ -24,69 +30,33 @@ FWidgetBlueprintEditor::~FWidgetBlueprintEditor()
 	{
 		Blueprint->OnChanged().RemoveAll(this);
 	}
-}
 
-void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets)
-{
-	SelectedWidgets = Widgets;
-
-	RefreshDetails();
-
-	OnSelectedWidgetsChanged.Broadcast();
-}
-
-const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
-{
-	return SelectedWidgets;
-}
-
-void FWidgetBlueprintEditor::RefreshDetails()
-{
-	// Convert the selection set to an array of UObject* pointers
-	FString InspectorTitle = "Widget";// Widget->GetDisplayString();
-
-	TArray<UObject*> InspectorObjects;
-	for ( FWidgetReference& WidgetRef : SelectedWidgets )
-	{
-		UWidget* PreviewWidget = WidgetRef.GetPreview();
-		if ( PreviewWidget )
-		{
-			InspectorObjects.Add(PreviewWidget);
-		}
-	}
-
-	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
-
-	// Update the details panel
-	SKismetInspector::FShowDetailsOptions Options(InspectorTitle, true);
-	GetInspector()->ShowDetailsForObjects(InspectorObjects, Options);
-}
-
-void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
-{
-	if ( InBlueprint )
-	{
-		UpdatePreview(InBlueprint, true);
-
-		RefreshDetails();
-	}
+	GEditor->OnObjectsReplaced().RemoveAll(this);
 }
 
 void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
 {
+	TSharedPtr<FWidgetBlueprintEditor> ThisPtr(SharedThis(this));
+	WidgetToolbar = MakeShareable(new FWidgetBlueprintEditorToolbar(ThisPtr));
+
 	InitBlueprintEditor(Mode, InitToolkitHost, InBlueprints, bShouldOpenInDefaultsMode);
+
+	// register for any objects replaced
+	GEditor->OnObjectsReplaced().AddSP(this, &FWidgetBlueprintEditor::OnObjectsReplaced);
 
 	UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
 	// If this blueprint is empty, add a canvas panel as the root widget.
 	if ( Blueprint->WidgetTree->RootWidget == NULL )
 	{
-		 UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
-		 RootWidget->IsDesignTime(true);
-		 Blueprint->WidgetTree->RootWidget = RootWidget;
+		UWidget* RootWidget = Blueprint->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+		RootWidget->IsDesignTime(true);
+		Blueprint->WidgetTree->RootWidget = RootWidget;
 	}
 
 	UpdatePreview(GetWidgetBlueprintObj(), true);
+
+	SequencerObjectBindingManager->InitPreviewObjects();
 
 	WidgetCommandList = MakeShareable(new FUICommandList);
 
@@ -100,15 +70,143 @@ void FWidgetBlueprintEditor::InitWidgetBlueprintEditor(const EToolkitMode::Type 
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCopySelectedWidgets)
 		);
 
-	//WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
-	//	FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedNodes),
-	//	FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutNodes)
-	//	);
+	WidgetCommandList->MapAction(FGenericCommands::Get().Cut,
+		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CutSelectedWidgets),
+		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanCutSelectedWidgets)
+		);
 
 	WidgetCommandList->MapAction(FGenericCommands::Get().Paste,
 		FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::PasteWidgets),
 		FCanExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::CanPasteWidgets)
 		);
+}
+
+void FWidgetBlueprintEditor::RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode)
+{
+	//FBlueprintEditor::RegisterApplicationModes(InBlueprints, bShouldOpenInDefaultsMode);
+
+	if ( InBlueprints.Num() == 1 )
+	{
+		TSharedPtr<FWidgetBlueprintEditor> ThisPtr(SharedThis(this));
+
+		// Create the modes and activate one (which will populate with a real layout)
+		TArray< TSharedRef<FApplicationMode> > TempModeList;
+		TempModeList.Add(MakeShareable(new FWidgetDesignerApplicationMode(ThisPtr)));
+		TempModeList.Add(MakeShareable(new FWidgetGraphApplicationMode(ThisPtr)));
+
+		for ( TSharedRef<FApplicationMode>& AppMode : TempModeList )
+		{
+			AddApplicationMode(AppMode->GetModeName(), AppMode);
+		}
+
+		SetCurrentMode(FWidgetBlueprintApplicationModes::DesignerMode);
+	}
+	else
+	{
+		//// We either have no blueprints or many, open in the defaults mode for multi-editing
+		//AddApplicationMode(
+		//	FBlueprintEditorApplicationModes::BlueprintDefaultsMode,
+		//	MakeShareable(new FBlueprintDefaultsApplicationMode(SharedThis(this))));
+		//SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintDefaultsMode);
+	}
+}
+
+void FWidgetBlueprintEditor::SelectWidgets(const TSet<FWidgetReference>& Widgets)
+{
+	TSet<FWidgetReference> TempSelection;
+	for ( const FWidgetReference& Widget : Widgets )
+	{
+		if ( Widget.IsValid() )
+		{
+			TempSelection.Add(Widget);
+		}
+	}
+
+	OnSelectedWidgetsChanging.Broadcast();
+
+	// Finally change the selected widgets after we've updated the details panel 
+	// to ensure values that are pending are committed on focus loss, and migrated properly
+	// to the old selected widgets.
+	SelectedWidgets.Empty();
+	SelectedWidgets.Append(TempSelection);
+
+	OnSelectedWidgetsChanged.Broadcast();
+}
+
+void FWidgetBlueprintEditor::CleanSelection()
+{
+	TSet<FWidgetReference> TempSelection;
+
+	TArray<UWidget*> WidgetsInTree;
+	GetWidgetBlueprintObj()->WidgetTree->GetAllWidgets(WidgetsInTree);
+	TSet<UWidget*> TreeWidgetSet(WidgetsInTree);
+
+	for ( FWidgetReference& WidgetRef : SelectedWidgets )
+	{
+		if ( WidgetRef.IsValid() )
+		{
+			if ( TreeWidgetSet.Contains(WidgetRef.GetTemplate()) )
+			{
+				TempSelection.Add(WidgetRef);
+			}
+		}
+	}
+
+	if ( TempSelection.Num() != SelectedWidgets.Num() )
+	{
+		SelectWidgets(TempSelection);
+	}
+}
+
+const TSet<FWidgetReference>& FWidgetBlueprintEditor::GetSelectedWidgets() const
+{
+	return SelectedWidgets;
+}
+
+void FWidgetBlueprintEditor::OnBlueprintChanged(UBlueprint* InBlueprint)
+{
+	FBlueprintEditor::OnBlueprintChanged(InBlueprint);
+
+	if ( InBlueprint )
+	{
+		// Rebuilding the preview can force objects to be recreated, so the selection may need to be updated.
+		OnSelectedWidgetsChanging.Broadcast();
+
+		UpdatePreview(InBlueprint, true);
+
+		CleanSelection();
+
+		// Fire the selection updated event to ensure everyone is watching the same widgets.
+		OnSelectedWidgetsChanged.Broadcast();
+	}
+}
+
+void FWidgetBlueprintEditor::OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap)
+{
+	// Objects being replaced could force a selection change
+	OnSelectedWidgetsChanging.Broadcast();
+
+	TSet<FWidgetReference> TempSelection;
+	for ( const FWidgetReference& WidgetRef : SelectedWidgets )
+	{
+		UWidget* OldTemplate = WidgetRef.GetTemplate();
+
+		UObject* const* NewObject = ReplacementMap.Find(OldTemplate);
+		if ( NewObject )
+		{
+			UWidget* NewTemplate = Cast<UWidget>(*NewObject);
+			TempSelection.Add(FWidgetReference::FromTemplate(SharedThis(this), NewTemplate));
+		}
+		else
+		{
+			TempSelection.Add(WidgetRef);
+		}
+	}
+
+	SelectedWidgets = TempSelection;
+
+	// Fire the selection updated event to ensure everyone is watching the same widgets.
+	OnSelectedWidgetsChanged.Broadcast();
 }
 
 bool FWidgetBlueprintEditor::CanDeleteSelectedWidgets()
@@ -121,6 +219,10 @@ void FWidgetBlueprintEditor::DeleteSelectedWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
 	FWidgetBlueprintEditorUtils::DeleteWidgets(GetWidgetBlueprintObj(), Widgets);
+
+	// Clear the selection now that the widget has been deleted.
+	TSet<FWidgetReference> Empty;
+	SelectWidgets(Empty);
 }
 
 bool FWidgetBlueprintEditor::CanCopySelectedWidgets()
@@ -135,6 +237,18 @@ void FWidgetBlueprintEditor::CopySelectedWidgets()
 	FWidgetBlueprintEditorUtils::CopyWidgets(GetWidgetBlueprintObj(), Widgets);
 }
 
+bool FWidgetBlueprintEditor::CanCutSelectedWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	return Widgets.Num() > 0;
+}
+
+void FWidgetBlueprintEditor::CutSelectedWidgets()
+{
+	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
+	FWidgetBlueprintEditorUtils::CutWidgets(GetWidgetBlueprintObj(), Widgets);
+}
+
 bool FWidgetBlueprintEditor::CanPasteWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
@@ -144,6 +258,13 @@ bool FWidgetBlueprintEditor::CanPasteWidgets()
 		const bool bIsPanel = Cast<UPanelWidget>(Target.GetTemplate()) != NULL;
 		return bIsPanel;
 	}
+	else if ( Widgets.Num() == 0 )
+	{
+		if ( GetWidgetBlueprintObj()->WidgetTree->RootWidget == NULL )
+		{
+			return true;
+		}
+	}
 
 	return false;
 }
@@ -151,9 +272,11 @@ bool FWidgetBlueprintEditor::CanPasteWidgets()
 void FWidgetBlueprintEditor::PasteWidgets()
 {
 	TSet<FWidgetReference> Widgets = GetSelectedWidgets();
-	FWidgetReference Target = *Widgets.CreateIterator();
+	FWidgetReference Target = Widgets.Num() > 0 ? *Widgets.CreateIterator() : FWidgetReference();
 
 	FWidgetBlueprintEditorUtils::PasteWidgets(GetWidgetBlueprintObj(), Target, PasteDropLocation);
+
+	//TODO UMG - Select the newly selected pasted widgets.
 }
 
 void FWidgetBlueprintEditor::Tick(float DeltaTime)
@@ -175,6 +298,13 @@ void FWidgetBlueprintEditor::Tick(float DeltaTime)
 		{
 			PreviewScene.GetWorld()->Tick(bIsRealTime ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly, DeltaTime);
 		}
+	}
+
+	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we 
+	//       look to see if we can find the new instance in the preview world and then update the weak ptr.
+	if ( PreviewWidgetActorPtr.IsStale(true) )
+	{
+		UpdatePreview(GetWidgetBlueprintObj(), true);
 	}
 }
 
@@ -249,18 +379,9 @@ static bool MigratePropertyValue(UObject* SourceObject, UObject* DestinationObje
 void FWidgetBlueprintEditor::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	FBlueprintEditor::AddReferencedObjects( Collector );
-	if( DefaultMovieScene != nullptr )
-	{
-		Collector.AddReferencedObject( DefaultMovieScene );
-	}
 
 	UUserWidget* Preview = GetPreview();
 	Collector.AddReferencedObject( Preview );
-}
-
-void FWidgetBlueprintEditor::NotifyPreChange(FEditPropertyChain* PropertyAboutToChange)
-{
-	MigrateFromChain(PropertyAboutToChange, true);
 }
 
 void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify)
@@ -289,16 +410,6 @@ void FWidgetBlueprintEditor::MigrateFromChain(FEditPropertyChain* PropertyThatCh
 	}
 }
 
-void FWidgetBlueprintEditor::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, FEditPropertyChain* PropertyThatChanged)
-{
-	//Super::NotifyPostChange(PropertyChangedEvent, PropertyThatChanged);
-	
-	if ( PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
-	{
-		MigrateFromChain(PropertyThatChanged, false);
-	}
-}
-
 UWidgetBlueprint* FWidgetBlueprintEditor::GetWidgetBlueprintObj() const
 {
 	return Cast<UWidgetBlueprint>(GetBlueprintObj());
@@ -306,22 +417,6 @@ UWidgetBlueprint* FWidgetBlueprintEditor::GetWidgetBlueprintObj() const
 
 UUserWidget* FWidgetBlueprintEditor::GetPreview() const
 {
-	//// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we look to see if we can find the new instance in the preview world and then update the weak ptr.
-	//if ( PreviewWidgetActorPtr.IsStale(true) )
-	//{
-	//	UWorld* PreviewWorld = PreviewWidgetActorPtr->GetWorld();
-	//	for ( TActorIterator<AActor> It(PreviewWorld); It; ++It )
-	//	{
-	//		AActor* Actor = *It;
-	//		if ( !Actor->IsPendingKillPending()
-	//			&& Actor->GetClass()->ClassGeneratedBy == PreviewBlueprint )
-	//		{
-	//			PreviewActorPtr = Actor;
-	//			break;
-	//		}
-	//	}
-	//}
-
 	return PreviewWidgetActorPtr.Get();
 }
 
@@ -331,11 +426,32 @@ TSharedPtr<ISequencer>& FWidgetBlueprintEditor::GetSequencer()
 	{
 		UWidgetBlueprint* Blueprint = GetWidgetBlueprintObj();
 
-		UMovieScene* MovieScene = Blueprint->AnimationData.Num() ? Blueprint->AnimationData[0] : GetDefaultMovieScene();
-		
-		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable( new FUMGSequencerObjectBindingManager( *this ) );
-		
-		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer( MovieScene, ObjectBindingManager );
+		FWidgetAnimation* WidgetAnimation = nullptr;
+
+		if( Blueprint->AnimationData.Num() )
+		{
+			WidgetAnimation = &Blueprint->AnimationData[0];
+		}
+		else
+		{
+			UMovieScene* MovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), Blueprint, MakeUniqueObjectName( Blueprint, UMovieScene::StaticClass(), "DefaultAnimationData"), RF_Transactional );
+			FWidgetAnimation NewAnimation;
+			NewAnimation.MovieScene = MovieScene;
+			int32 Index = Blueprint->AnimationData.Add( NewAnimation );
+
+			WidgetAnimation = &Blueprint->AnimationData[Index];
+		}
+
+		TSharedRef<FUMGSequencerObjectBindingManager> ObjectBindingManager = MakeShareable(new FUMGSequencerObjectBindingManager(*this, *WidgetAnimation->MovieScene) );
+		check( !SequencerObjectBindingManager.IsValid() );
+
+		SequencerObjectBindingManager = ObjectBindingManager;
+
+		FSequencerViewParams ViewParams;
+		ViewParams.InitalViewRange = TRange<float>(-0.02f, 3.2f);
+		ViewParams.InitialScrubPosition = 0;
+
+		Sequencer = FModuleManager::LoadModuleChecked< ISequencerModule >("Sequencer").CreateSequencer( WidgetAnimation->MovieScene, ViewParams, ObjectBindingManager );
 	}
 
 	return Sequencer;
@@ -384,9 +500,13 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 		DestroyPreview();
 
 		// Save the Blueprint we're creating a preview for
-		PreviewBlueprint = InBlueprint;
+		PreviewBlueprint = Cast<UWidgetBlueprint>(InBlueprint);
 
-		PreviewActor = ConstructObject<UUserWidget>(PreviewBlueprint->GeneratedClass, PreviewScene.GetWorld()->GetCurrentLevel());
+		// Update the generated class'es widget tree to match the blueprint tree.  That way the preview can update
+		// without needing to do a full recompile.
+		Cast<UWidgetBlueprintGeneratedClass>(PreviewBlueprint->GeneratedClass)->WidgetTree = DuplicateObject<UWidgetTree>(PreviewBlueprint->WidgetTree, PreviewBlueprint->GeneratedClass);
+
+		PreviewActor = CreateWidget<UUserWidget>(PreviewScene.GetWorld(), PreviewBlueprint->GeneratedClass);
 		PreviewActor->SetFlags(RF_Transactional);
 		
 		// Configure all the widgets to be set to design time.
@@ -401,19 +521,8 @@ void FWidgetBlueprintEditor::UpdatePreview(UBlueprint* InBlueprint, bool bInForc
 	}
 
 	OnWidgetPreviewUpdated.Broadcast();
-
 }
 
-UMovieScene* FWidgetBlueprintEditor::GetDefaultMovieScene()
-{
-	if( !DefaultMovieScene )
-	{
-		FName ObjectName = MakeUniqueObjectName( GetTransientPackage(), UMovieScene::StaticClass(), "DefaultAnimationData" );
-		DefaultMovieScene = ConstructObject<UMovieScene>( UMovieScene::StaticClass(), GetTransientPackage(), ObjectName );
-	}
-
-	return DefaultMovieScene;
-}
 
 FGraphAppearanceInfo FWidgetBlueprintEditor::GetGraphAppearance() const
 {

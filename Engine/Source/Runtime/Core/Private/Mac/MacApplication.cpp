@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #include "MacApplication.h"
 #include "MacWindow.h"
@@ -15,16 +15,18 @@
 FMacApplication* MacApplication = NULL;
 
 #if WITH_EDITOR
-typedef int32 (*MTContactCallbackFunction)(int32, void*, int32, double, int32);
+typedef int32 (*MTContactCallbackFunction)(void*, void*, int32, double, int32);
 extern "C" CFMutableArrayRef MTDeviceCreateList(void);
 extern "C" void MTRegisterContactFrameCallback(void*, MTContactCallbackFunction);
 extern "C" void MTDeviceStart(void*, int);
+extern "C" bool MTDeviceIsBuiltIn(void*);
 
-static int MTContactCallback(int32 Device, void* Data, int32 NumFingers, double TimeStamp, int32 Frame)
+static int MTContactCallback(void* Device, void* Data, int32 NumFingers, double TimeStamp, int32 Frame)
 {
 	if (MacApplication)
 	{
-		MacApplication->SetIsUsingTrackpad(NumFingers > 0);
+		const bool bIsTrackpad = MTDeviceIsBuiltIn(Device);
+		MacApplication->SetIsUsingTrackpad(NumFingers > (bIsTrackpad ? 1 : 0));
 	}
 	return 1;
 }
@@ -39,6 +41,14 @@ FMacApplication* FMacApplication::CreateMacApplication()
 void FMacApplication::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo)
 {
 	FMacApplication* App = (FMacApplication*)UserInfo;
+	if(Flags & kCGDisplayDesktopShapeChangedFlag)
+	{
+		// Slate needs to know when desktop size changes.
+		FDisplayMetrics DisplayMetrics;
+		App->GetDisplayMetrics( DisplayMetrics );
+		App->BroadcastDisplayMetricsChanged(DisplayMetrics);
+	}
+	
 	for (int32 WindowIndex=0; WindowIndex < App->Windows.Num(); ++WindowIndex)
 	{
 		TSharedRef< FMacWindow > WindowRef = App->Windows[ WindowIndex ];
@@ -77,6 +87,39 @@ FMacApplication::FMacApplication()
 		TextInputMethodSystem.Reset();
 	}
 
+	AppActivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidBecomeActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
+								// If editor thread doesn't have the focus, don't suck up too much CPU time.
+								if( GIsEditor )
+								{
+									// Boost our priority back to normal.
+									struct sched_param Sched;
+									FMemory::Memzero(&Sched, sizeof(struct sched_param));
+									Sched.sched_priority = 15;
+									pthread_setschedparam(pthread_self(), SCHED_RR, &Sched);
+								}
+
+								// app is active, allow sound
+								GVolumeMultiplier = 1.0f;
+							}];
+
+	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationDidResignActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
+									// If editor thread doesn't have the focus, don't suck up too much CPU time.
+									if( GIsEditor )
+									{
+										// Drop our priority to speed up whatever is in the foreground.
+										struct sched_param Sched;
+										FMemory::Memzero(&Sched, sizeof(struct sched_param));
+										Sched.sched_priority = 5;
+										pthread_setschedparam(pthread_self(), SCHED_RR, &Sched);
+
+										// Sleep for a bit to not eat up all CPU time.
+										FPlatformProcess::Sleep(0.005f);
+									}
+
+									// app is inactive, silence it
+									GVolumeMultiplier = 0.0f;
+								}];
+	
 #if WITH_EDITOR
 	FMemory::MemZero(GestureUsage);
 	LastGestureUsed = EGestureEvent::None;
@@ -85,6 +128,18 @@ FMacApplication::FMacApplication()
 
 FMacApplication::~FMacApplication()
 {
+	if(AppActivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:AppActivationObserver];
+		AppActivationObserver = nil;
+	}
+	
+	if(AppDeactivationObserver)
+	{
+		[[NSNotificationCenter defaultCenter] removeObserver:AppDeactivationObserver];
+		AppDeactivationObserver = nil;
+	}
+	
 	CGDisplayRemoveReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 	if (MouseCaptureWindow)
 	{
@@ -141,7 +196,6 @@ void FMacApplication::OnWindowDraggingFinished()
 	if( DraggedWindow )
 	{
 		SCOPED_AUTORELEASE_POOL;
-		[DraggedWindow reconnectChildWindows];
 		DraggedWindow = NULL;
 	}
 }
@@ -600,76 +654,77 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 		{
 			EventWindow = DraggedWindow;
 		}
-		else if( MouseCaptureWindow && MouseCaptureWindow == [Event window] )
+		else if( MouseCaptureWindow && MouseCaptureWindow == [Event window] && [MouseCaptureWindow targetWindow] )
 		{
 			EventWindow = [MouseCaptureWindow targetWindow];
 		}
 		else
 		{
-			const NSPoint CursorPos = [NSEvent mouseLocation];
-
-			// Only the editor needs to handle the space-per-display logic introduced in Mavericks.
-#if WITH_EDITOR
-			NSScreen* MouseScreen = nil;
-			// Only fetch the spans-displays once - it requires a log-out to change.
-			static bool bScreensHaveSeparateSpaces = false;
-			static bool bSettingFetched = false;
-			if(!bSettingFetched)
+			const FVector2D CursorPos = bUsingHighPrecisionMouseInput ? HighPrecisionMousePos : FVector2D([NSEvent mouseLocation].x, FPlatformMisc::ConvertSlateYPositionToCocoa([NSEvent mouseLocation].y));
+			TSharedPtr<FMacWindow> WindowUnderCursor = StaticCastSharedPtr<FMacWindow>(LocateWindowUnderCursor(CursorPos));
+			if (WindowUnderCursor.IsValid())
 			{
-				bSettingFetched = true;
-				bScreensHaveSeparateSpaces = [NSScreen screensHaveSeparateSpaces];
-			}
-			if(bScreensHaveSeparateSpaces)
-			{
-				// New default mode which uses a separate Space per display
-				// Find the screen the cursor is currently on so we can ignore invisible window regions.
-				NSEnumerator* ScreenEnumerator = [[NSScreen screens] objectEnumerator];
-				while ((MouseScreen = [ScreenEnumerator nextObject]) && !NSMouseInRect(CursorPos, MouseScreen.frame, NO))
-					;
-			}
-#endif
-			
-			NSArray* AllWindows = [NSApp orderedWindows];
-			for( int32 Index = 0; Index < [AllWindows count]; Index++ )
-			{
-				NSWindow* Window = (NSWindow*)[AllWindows objectAtIndex: Index];
-				if( [Window isMiniaturized] || ![Window isVisible] || ![Window isOnActiveSpace] || ![Window isKindOfClass: [FSlateCocoaWindow class]] )
-				{
-					continue;
-				}
-
-				if( [Window canBecomeKeyWindow] == false )
-				{
-					NSWindow* ParentWindow = [Window parentWindow];
-					while( ParentWindow )
-					{
-						if( [ParentWindow canBecomeKeyWindow] )
-						{
-							Window = ParentWindow;
-							break;
-						}
-						ParentWindow = [ParentWindow parentWindow];
-					}
-				}
-				
-				NSRect VisibleFrame = [Window frame];
-#if WITH_EDITOR
-				if(MouseScreen != nil)
-				{
-					VisibleFrame = NSIntersectionRect([MouseScreen frame], VisibleFrame);
-				}
-#endif
-
-				if( NSPointInRect( CursorPos, VisibleFrame ) )
-				{
-					EventWindow = (FSlateCocoaWindow*)Window;
-					break;
-				}
+				EventWindow = WindowUnderCursor->GetWindowHandle();
 			}
 		}
 	}
 
 	return EventWindow;
+}
+
+TSharedPtr<FGenericWindow> FMacApplication::LocateWindowUnderCursor( const FVector2D& CursorPos )
+{
+	const NSPoint Position = NSMakePoint(CursorPos.X, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.Y));
+
+	NSScreen* MouseScreen = nil;
+	if ([NSScreen screensHaveSeparateSpaces])
+	{
+		// New default mode which uses a separate Space per display
+		// Find the screen the cursor is currently on so we can ignore invisible window regions.
+		NSEnumerator* ScreenEnumerator = [[NSScreen screens] objectEnumerator];
+		while ((MouseScreen = [ScreenEnumerator nextObject]) && !NSMouseInRect(Position, MouseScreen.frame, NO))
+			;
+	}
+
+	NSArray* AllWindows = [NSApp orderedWindows];
+	for (int32 Index = 0; Index < [AllWindows count]; Index++)
+	{
+		NSWindow* NativeWindow = (NSWindow*)[AllWindows objectAtIndex: Index];
+		if ([NativeWindow isMiniaturized] || ![NativeWindow isVisible] || ![NativeWindow isOnActiveSpace] || ![NativeWindow isKindOfClass: [FSlateCocoaWindow class]])
+		{
+			continue;
+		}
+
+        if( [NativeWindow canBecomeKeyWindow] == false )
+        {
+            NSWindow* ParentWindow = [NativeWindow parentWindow];
+            while( ParentWindow )
+            {
+                if( [ParentWindow canBecomeKeyWindow] )
+                {
+                    NativeWindow = ParentWindow;
+                    break;
+                }
+                ParentWindow = [ParentWindow parentWindow];
+            }
+        }
+        
+        NSRect VisibleFrame = [NativeWindow frame];
+#if WITH_EDITOR
+        if(MouseScreen != nil)
+        {
+            VisibleFrame = NSIntersectionRect([MouseScreen frame], VisibleFrame);
+        }
+#endif
+
+		if (NSPointInRect(Position, VisibleFrame))
+		{
+			TSharedPtr<FMacWindow> MacWindow = FindWindowByNSWindow(Windows, (FSlateCocoaWindow*)NativeWindow);
+			return MacWindow;
+		}
+	}
+
+	return NULL;
 }
 
 void FMacApplication::PollGameDeviceState( const float TimeDelta )
@@ -680,6 +735,7 @@ void FMacApplication::PollGameDeviceState( const float TimeDelta )
 
 void FMacApplication::SetCapture( const TSharedPtr< FGenericWindow >& InWindow )
 {
+	FPlatformMisc::PumpMessages(true);
 	bIsMouseCaptureEnabled = InWindow.IsValid();
 	UpdateMouseCaptureWindow( bIsMouseCaptureEnabled ? ((FMacWindow*)InWindow.Get())->GetWindowHandle() : NULL );
 }
@@ -767,14 +823,16 @@ FModifierKeysState FMacApplication::GetModifierKeys() const
 {
 	uint32 CurrentFlags = ModifierKeysFlags;
 
-	const bool bIsLeftShiftDown		= ( CurrentFlags & ( 1 << 0 ) ) != 0;
-	const bool bIsRightShiftDown	= ( CurrentFlags & ( 1 << 1 ) ) != 0;
-	const bool bIsLeftControlDown	= ( CurrentFlags & ( 1 << 6 ) ) != 0 || ( CurrentFlags & ( 1 << 2 ) ) != 0; // Mac pretends the Command key is Ctrl
-	const bool bIsRightControlDown	= ( CurrentFlags & ( 1 << 7 ) ) != 0 || ( CurrentFlags & ( 1 << 3 ) ) != 0; // Mac pretends the Command key is Ctrl
-	const bool bIsLeftAltDown		= ( CurrentFlags & ( 1 << 4 ) ) != 0;
-	const bool bIsRightAltDown		= ( CurrentFlags & ( 1 << 5 ) ) != 0;
+	const bool bIsLeftShiftDown			= ( CurrentFlags & ( 1 << 0 ) ) != 0;
+	const bool bIsRightShiftDown		= ( CurrentFlags & ( 1 << 1 ) ) != 0;
+	const bool bIsLeftControlDown		= ( CurrentFlags & ( 1 << 6 ) ) != 0; // Mac pretends the Command key is Control
+	const bool bIsRightControlDown		= ( CurrentFlags & ( 1 << 7 ) ) != 0; // Mac pretends the Command key is Control
+	const bool bIsLeftAltDown			= ( CurrentFlags & ( 1 << 4 ) ) != 0;
+	const bool bIsRightAltDown			= ( CurrentFlags & ( 1 << 5 ) ) != 0;
+	const bool bIsLeftCommandDown		= ( CurrentFlags & ( 1 << 2 ) ) != 0; // Mac pretends the Control key is Command
+	const bool bIsRightCommandDown		= ( CurrentFlags & ( 1 << 3 ) ) != 0; // Mac pretends the Control key is Command
 
-	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown );
+	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, bIsLeftCommandDown, bIsRightCommandDown );
 }
 
 FPlatformRect FMacApplication::GetWorkArea( const FPlatformRect& CurrentWindow ) const
@@ -948,7 +1006,6 @@ void FMacApplication::OnWindowWillMove( FSlateCocoaWindow* Window )
 	SCOPED_AUTORELEASE_POOL;
 
 	DraggedWindow = Window;
-	[DraggedWindow disconnectChildWindows];
 }
 
 void FMacApplication::OnWindowDidMove( FSlateCocoaWindow* Window )

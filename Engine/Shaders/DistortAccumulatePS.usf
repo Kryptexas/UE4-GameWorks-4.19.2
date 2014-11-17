@@ -32,7 +32,7 @@ void Main(
 #if MATERIAL_TANGENTSPACENORMAL
 	half3 ViewNormal = normalize(TransformTangentVectorToView(MaterialParameters, Normal));
 #else
-	half3 ViewNormal = normalize(TransformWorldVectorToLocal(MaterialParameters, Normal));
+	half3 ViewNormal = normalize(TransformWorldVectorToLocal(Normal));
 #endif
 
 	// X = IOR, Y = Refraction Bias

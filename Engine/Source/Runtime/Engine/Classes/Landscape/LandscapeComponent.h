@@ -306,6 +306,9 @@ public:
 	/** Get the level in which the owning actor resides */
 	class ULevel* GetLevel() const;
 
+	/** Returns all textures and materials used by this component. */
+	ENGINE_API void GetAllReferencedTexturesAndMaterials(TArray<UObject*>& OutTexturesAndMaterials) const;
+
 	/** @todo document */
 	ENGINE_API class ALandscapeProxy* GetLandscapeProxy() const;
 

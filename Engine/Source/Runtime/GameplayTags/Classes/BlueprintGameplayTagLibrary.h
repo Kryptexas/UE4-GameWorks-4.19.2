@@ -57,7 +57,7 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	 * @param OtherContainer		Container to check against
 	 * @param bCountEmptyAsMatch	If true, the other container will count as a match, even if it's empty
 	 * 
-	 * @param True if the container matches ANY of the tags in the other container
+	 * @return True if the container matches ANY of the tags in the other container
 	 */
 	UFUNCTION(BlueprintPure, Category="GameplayTags|Tag Container")
 	static bool DoesContainerMatchAnyTagsInContainer(const FGameplayTagContainer& TagContainer, const FGameplayTagContainer& OtherContainer, bool bCountEmptyAsMatch);
@@ -69,8 +69,18 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	 * @param OtherContainer		Container to check against
 	 * @param bCountEmptyAsMatch	If true, the other container will count as a match, even if it's empty
 	 * 
-	 * @param True if the container matches ALL of the tags in the other container
+	 * @return True if the container matches ALL of the tags in the other container
 	 */
 	UFUNCTION(BlueprintPure, Category="GameplayTags|Tag Container")
 	static bool DoesContainerMatchAllTagsInContainer(const FGameplayTagContainer& TagContainer, const FGameplayTagContainer& OtherContainer, bool bCountEmptyAsMatch);
+
+	/**
+	 * Creates a literal FGameplayTag
+	 *
+	 * @param	Value	value to set the FGameplayTag to
+	 *
+	 * @return	The literal FGameplayTag
+	 */
+	UFUNCTION(BlueprintPure, Category = "GameplayTags")
+	static FGameplayTag MakeLiteralGameplayTag(FGameplayTag Value);
 };

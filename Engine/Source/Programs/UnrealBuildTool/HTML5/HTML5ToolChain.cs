@@ -28,15 +28,21 @@ namespace UnrealBuildTool
 					EMCCPath = Path.Combine(BaseSDKPath, "emcc");
 					// also figure out where python lives (if no envvar, assume it's in the path)
 					PythonPath = Environment.GetEnvironmentVariable("PYTHON");
+
+                    string PythonExeName = Utils.IsRunningOnMono ? "python" : "python.exe";
+
 					if (PythonPath == null)
 					{
-						PythonPath = Utils.IsRunningOnMono ? "python" : "python.exe";
+                        PythonPath = PythonExeName;
 					}
-					else
-					{
-						PythonPath += Utils.IsRunningOnMono ? "/python" : "/python.exe";
-					}
-                    EMCCPath = "\"" + EMCCPath + "\""; 
+                    else
+                    {
+                        if (!PythonPath.EndsWith(PythonExeName))
+                        {
+                            PythonPath += "/" + PythonExeName;
+                        }
+                    }
+                    EMCCPath = "\"" + EMCCPath + "\"";
 					// set some environment variable we'll need
 					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
 					Environment.SetEnvironmentVariable("EMCC_CORES", "8");
@@ -91,7 +97,7 @@ namespace UnrealBuildTool
             // don't need UTF8 string support, and it slows string ops down
             Result += " -s UTF_STRING_SUPPORT=0";
             // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
-            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_execute_console_command']\" ";
+            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_resize_game']\" ";
 
             // NOTE: This may slow down the compiler's startup time!
             { 
@@ -179,12 +185,6 @@ namespace UnrealBuildTool
 				// enable verbose mode
 				Result += " -v";
 
-				if (LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
-				{
-					// enable caching of intermediate date
-					Result += " --jcache -g";
-				}
-
 				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
 				{
 					// check for alignment/etc checking
@@ -206,7 +206,7 @@ namespace UnrealBuildTool
 				}
 				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Development)
 				{
-					Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+					Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000   -g2 ";
 				}
 				if (LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping)
 				{
@@ -377,9 +377,9 @@ namespace UnrealBuildTool
 
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
 				CompileAction.CommandPath = PythonPath;
-                
+
 				CompileAction.CommandArguments = EMCCPath + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
-               
+
                 System.Console.WriteLine(CompileAction.CommandArguments); 
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				CompileAction.StatusDetailedDescription = SourceFile.Description;
@@ -497,7 +497,11 @@ namespace UnrealBuildTool
 			}
             foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
             {
-                FileItem Item = FileItem.GetExistingItemByPath(InputFile);
+                FileItem Item = FileItem.GetItemByPath(InputFile);
+
+                if (Item.AbsolutePath.Contains(".lib"))
+                    continue; 
+
                 if (Item != null)
                 {
                     if (Item.ToString().Contains(".js"))
@@ -526,5 +530,13 @@ namespace UnrealBuildTool
 		{
 			throw new BuildException("HTML5 cannot compile C# files");
 		}
+
+        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        {
+            // we need to include the generated .mem file.  
+            string MemFile = Binary.Config.OutputFilePath + ".mem";
+            // make sure we don't add mem files more than once. 
+            Manifest.AddBinaryNames(MemFile, null);
+        }
 	};
 }

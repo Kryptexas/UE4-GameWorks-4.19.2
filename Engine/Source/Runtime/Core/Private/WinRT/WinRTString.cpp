@@ -4,7 +4,7 @@
 	WinRTString.cpp: WinRT implementations of string functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 int32 FWinRTString::GetVarArgs( WIDECHAR* Dest, SIZE_T DestSize, int32 Count, const WIDECHAR*& Fmt, va_list ArgPtr )
 {

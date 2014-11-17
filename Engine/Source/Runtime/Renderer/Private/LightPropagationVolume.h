@@ -124,7 +124,7 @@ public:
 	FLightPropagationVolume();
 	virtual ~FLightPropagationVolume();
 
-	void InitSettings( const FSceneView& View );
+	void InitSettings(FRHICommandList& RHICmdList, const FSceneView& View);
 
 	void Clear(FRHICommandListImmediate& RHICmdList);
 
@@ -144,7 +144,7 @@ public:
 
 	void Propagate(FRHICommandListImmediate& RHICmdList);
 
-	void Visualise(FRHICommandListImmediate& RHICmdList, const FSceneView& View) const;
+	void Visualise(FRHICommandList& RHICmdList, const FSceneView& View) const;
 
 	const FIntVector& GetGridOffset() const { return mGridOffset; }
 

@@ -4,6 +4,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "VariableSetHandler.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_AssignmentStatement"
 
@@ -82,6 +84,19 @@ FText UK2Node_AssignmentStatement::GetNodeTitle(ENodeTitleType::Type TitleType) 
 	return LOCTEXT("Assign", "Assign");
 }
 
+bool UK2Node_AssignmentStatement::CanPasteHere(UEdGraph const* TargetGraph, UEdGraphSchema const* Schema) const
+{
+	bool bIsPastable = Super::CanPasteHere(TargetGraph, Schema);
+	if (bIsPastable)
+	{
+		EGraphType const GraphType = Schema->GetGraphType(TargetGraph);
+
+		bIsPastable = (GraphType != GT_Ubergraph) && (GraphType != GT_Animation);
+	}
+
+	return bIsPastable;
+}
+
 void UK2Node_AssignmentStatement::NotifyPinConnectionListChanged(UEdGraphPin* Pin)
 {
 	Super::NotifyPinConnectionListChanged(Pin);
@@ -158,6 +173,19 @@ UEdGraphPin* UK2Node_AssignmentStatement::GetValuePin() const
 FNodeHandlingFunctor* UK2Node_AssignmentStatement::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_AssignmentStatement(CompilerContext);
+}
+
+void UK2Node_AssignmentStatement::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_AssignmentStatement::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Macro);
 }
 
 #undef LOCTEXT_NAMESPACE

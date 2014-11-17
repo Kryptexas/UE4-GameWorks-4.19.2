@@ -17,4 +17,12 @@ public:
 
 	/** Constructs this widget with InArgs */
 	void Construct( const FArguments& InArgs );
+
+private:
+
+	/** Handler for the context menu for folder items */
+	TSharedPtr<SWidget> GetFolderContextMenu(const TArray<FString>& SelectedPaths, FContentBrowserMenuExtender_SelectedPaths InMenuExtender, FOnCreateNewFolder InOnCreateNewFolder);
+
+	/** Handler for creating a new folder in the path picker */
+	void CreateNewFolder(FString FolderPath, FOnCreateNewFolder InOnCreateNewFolder);
 };

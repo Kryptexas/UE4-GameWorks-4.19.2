@@ -9,6 +9,10 @@ struct FBTKeepInConeDecoratorMemory
 	FVector InitialDirection;
 };
 
+/**
+ * Cooldown decorator node.
+ * A decorator node that bases its condition on whether the observed position is still inside a cone. The cone's direction is calculated when the node first becomes relevant.
+ */
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_KeepInCone : public UBTDecorator
 {

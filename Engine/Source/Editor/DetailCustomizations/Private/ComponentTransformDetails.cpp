@@ -92,6 +92,7 @@ FComponentTransformDetails::FComponentTransformDetails( const TArray< TWeakObjec
 	, bPreserveScaleRatio( false )
 	, NotifyHook( DetailBuilder.GetPropertyUtilities()->GetNotifyHook() )
 	, bEditingRotationInUI( false )
+	, HiddenFieldMask( 0 )
 {
 	GConfig->GetBool(TEXT("SelectionDetails"), TEXT("PreserveScaleRatio"), bPreserveScaleRatio, GEditorUserSettingsIni);
 
@@ -302,13 +303,13 @@ void FComponentTransformDetails::OnCopy( ETransformField::Type TransformField )
 	switch (TransformField)
 	{
 	case ETransformField::Location:
-		CopyStr = FString::Printf(TEXT("X=%f Y=%f Z=%f"), CachedLocation.X.GetValue(), CachedLocation.Y.GetValue(), CachedLocation.Z.GetValue());
+		CopyStr = FString::Printf(TEXT("(X=%f,Y=%f,Z=%f)"), CachedLocation.X.GetValue(), CachedLocation.Y.GetValue(), CachedLocation.Z.GetValue());
 		break;
 	case ETransformField::Rotation:
-		CopyStr = FString::Printf(TEXT("P=%f Y=%f R=%f"), CachedRotation.Y.GetValue(), CachedRotation.Z.GetValue(), CachedRotation.X.GetValue());
+		CopyStr = FString::Printf(TEXT("(Pitch=%f,Yaw=%f,Roll=%f)"), CachedRotation.Y.GetValue(), CachedRotation.Z.GetValue(), CachedRotation.X.GetValue());
 		break;
 	case ETransformField::Scale:
-		CopyStr = FString::Printf(TEXT("X=%f Y=%f Z=%f"), CachedScale.X.GetValue(), CachedScale.Y.GetValue(), CachedScale.Z.GetValue());
+		CopyStr = FString::Printf(TEXT("(X=%f,Y=%f,Z=%f)"), CachedScale.X.GetValue(), CachedScale.Y.GetValue(), CachedScale.Z.GetValue());
 		break;
 	default:
 		break;
@@ -342,6 +343,9 @@ void FComponentTransformDetails::OnPaste( ETransformField::Type TransformField )
 	case ETransformField::Rotation:
 		{
 			FRotator Rotation;
+			PastedText.ReplaceInline(TEXT("Pitch="), TEXT("P="));
+			PastedText.ReplaceInline(TEXT("Yaw="), TEXT("Y="));
+			PastedText.ReplaceInline(TEXT("Roll="), TEXT("R="));
 			if (Rotation.InitFromString(PastedText))
 			{
 				FScopedTransaction Transaction(LOCTEXT("PasteRotation", "Paste Rotation"));
@@ -391,8 +395,14 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 		
 	FSlateFontInfo FontInfo = IDetailLayoutBuilder::GetDetailFont();
 
+	const bool bHideLocationField = ( HiddenFieldMask & ( 1 << ETransformField::Location ) ) != 0;
+	const bool bHideRotationField = ( HiddenFieldMask & ( 1 << ETransformField::Rotation ) ) != 0;
+	const bool bHideScaleField = ( HiddenFieldMask & ( 1 << ETransformField::Scale ) ) != 0;
+
 	// Location
-	ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location").ToString() )
+	if(!bHideLocationField)
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("LocationFilter", "Location").ToString() )
 		.CopyAction( CreateCopyAction( ETransformField::Location ) )
 		.PasteAction( CreatePasteAction( ETransformField::Location ) )
 		.NameContent()
@@ -406,7 +416,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 		.MaxDesiredWidth(125.0f * 3.0f)
 		[
 			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.FillWidth(1)
 			.VAlign( VAlign_Center )
 			[
@@ -421,14 +431,13 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.OnZCommitted( this, &FComponentTransformDetails::OnSetLocation, 2 )
 				.Font( FontInfo )
 			]
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				// Just take up space for alignment
 				SNew( SBox )
 				.WidthOverride( 18.0f )
 			]
-
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -446,10 +455,12 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				]
 			]
 		];
-
+	}
 	
 	// Rotation
-	ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation").ToString() )
+	if(!bHideRotationField)
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("RotationFilter", "Rotation").ToString() )
 		.CopyAction( CreateCopyAction(ETransformField::Rotation) )
 		.PasteAction( CreatePasteAction(ETransformField::Rotation) )
 		.NameContent()
@@ -463,7 +474,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 		.MaxDesiredWidth(125.0f * 3.0f)
 		[
 			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.FillWidth(1)
 			.VAlign( VAlign_Center )
 			[
@@ -484,14 +495,13 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.OnYawCommitted( this, &FComponentTransformDetails::OnRotationCommitted, 2 )
 				.Font( FontInfo )
 			]
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				// Just take up space for alignment
 				SNew( SBox )
 				.WidthOverride( 18.0f )
 			]
-
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -509,9 +519,12 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				]
 			]
 		];
-
-			
-	ChildrenBuilder.AddChildContent( LOCTEXT("ScaleFilter", "Scale").ToString() )
+	}
+	
+	// Scale
+	if(!bHideScaleField)
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("ScaleFilter", "Scale").ToString() )
 		.CopyAction( CreateCopyAction(ETransformField::Scale) )
 		.PasteAction( CreatePasteAction(ETransformField::Scale) )
 		.NameContent()
@@ -525,7 +538,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 		.MaxDesiredWidth(125.0f * 3.0f)
 		[
 			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.VAlign( VAlign_Center )
 			.FillWidth(1.0f)
 			[
@@ -543,7 +556,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				.ContextMenuExtenderZ( this, &FComponentTransformDetails::ExtendZScaleContextMenu )
 				.Font( FontInfo )
 			]
-			+ SHorizontalBox::Slot()
+			+SHorizontalBox::Slot()
 			.AutoWidth()
 			.MaxWidth( 18.0f )
 			[
@@ -560,7 +573,6 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 					.ColorAndOpacity( FSlateColor::UseForeground() )
 				]
 			]
-
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -578,6 +590,7 @@ void FComponentTransformDetails::GenerateChildContent( IDetailChildrenBuilder& C
 				]
 			]
 		];
+	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -586,7 +599,7 @@ void FComponentTransformDetails::Tick( float DeltaTime )
 	CacheTransform();
 }
 
-bool FComponentTransformDetails::GetIsEnabled( ) const
+bool FComponentTransformDetails::GetIsEnabled() const
 {
 	return !GEditor->HasLockedActors() || SelectedActorInfo.NumSelected == 0;
 }

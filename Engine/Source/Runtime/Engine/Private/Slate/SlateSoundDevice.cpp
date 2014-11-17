@@ -5,6 +5,7 @@
 #include "AudioDevice.h"
 #include "Slate/SlateSoundDevice.h"
 #include "Sound/SoundBase.h"
+#include "Sound/SlateSound.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSlateSoundDevice, Log, All);
 

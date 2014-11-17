@@ -7,6 +7,7 @@
 // Forward declarations.
 class FFileName;
 class FString;
+class FAssetData;
 
 enum EFileInteraction
 {
@@ -45,6 +46,15 @@ public:
 
 	////////////////////////////////////////////////////////////////////////////
 	// Loading
+
+	DECLARE_DELEGATE_OneParam(FOnLevelsChosen, const TArray<FAssetData>& /*SelectedLevels*/);
+	/**
+	 * Opens a non-modal dialog to allow the user to choose a level
+	 *
+	 * @param	OnLevelsChosen				Delegate executed when one more more levels have been selected
+	 * @param	bAllowMultipleSelection		If true, more than one level can be chosen
+	 */
+	static UNREALED_API void OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection);
 
 	/**
 	 * Returns true if the specified map filename is valid for loading or saving.
@@ -134,6 +144,31 @@ public:
 	 * @return								true on success, false on fail.
 	 */
 	UNREALED_API static bool SaveDirtyPackages(const bool bPromptUserToSave, const bool bSaveMapPackages, const bool bSaveContentPackages, const bool bFastSave = false, const bool bNotifyNoPackagesSaved = false, bool* bOutPackagesNeededSaving = NULL);
+
+	/**
+	* Looks at all currently loaded packages and saves them if their "bDirty" flag is set and they include specified clasees, optionally prompting the user to select which packages to save)
+	*
+	* @param	SaveContentClasses			save only specified classes or children classes
+	* @param	bPromptUserToSave			true if we should prompt the user to save dirty packages we found. false to assume all dirty packages should be saved.  Regardless of this setting the user will be prompted for checkout(if needed) unless bFastSave is set
+	* @param	bFastSave					true if we should do a fast save. (I.E dont prompt the user to save, dont prompt for checkout, and only save packages that are currently writable).  Note: Still prompts for SaveAs if a package needs a filename
+	* @param	bNotifyNoPackagesSaved		true if a notification should be displayed when no packages need to be saved.
+	* @return								true on success, false on fail.
+	*/
+	UNREALED_API static bool SaveDirtyContentPackages(TArray<UClass*>& SaveContentClasses, const bool bPromptUserToSave, const bool bFastSave = false, const bool bNotifyNoPackagesSaved = false);
+
+	/**
+	 * Appends array with all currently dirty world packages.
+	 *
+	 * @param OutDirtyPackages Array to append dirty packages to.
+	 */
+	UNREALED_API static void GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages);
+
+	/**
+	 * Appends array with all currently dirty content packages.
+	 *
+	 * @param OutDirtyPackages Array to append dirty packages to.
+	 */
+	UNREALED_API static void GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackages);
 
 	/**
 	 * Saves the active level, prompting the use for checkout if necessary.

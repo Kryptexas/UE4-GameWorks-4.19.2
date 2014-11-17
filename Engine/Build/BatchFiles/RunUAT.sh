@@ -107,5 +107,5 @@ UATReturn=$?
 
 if [ $UATReturn -ne 0 ]; then
 	echo RunUAT ERROR: AutomationTool was unable to run successfully.
-	exit 1
+	exit $UATReturn
 fi

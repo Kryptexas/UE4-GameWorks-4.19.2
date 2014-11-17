@@ -7,7 +7,7 @@
 
 #if WITH_EDITOR
 
-#include "Engine.h"
+#include "EngineDefines.h"
 
 #include "Slate.h"
 #include "EditorStyle.h"
@@ -55,6 +55,8 @@ UNREALED_API int32 EditorInit( class IEngineLoop& EngineLoop );
 UNREALED_API void EditorExit();
 
 #include "UnrealEdMessages.h"
+
+#include "EditorAnalytics.h"
 
 #endif // __cplusplus
 

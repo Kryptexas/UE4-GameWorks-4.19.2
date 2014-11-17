@@ -107,15 +107,26 @@ void FCategoryPropertyNode::InitChildNodes()
 /**
  * Appends my path, including an array index (where appropriate)
  */
-void FCategoryPropertyNode::GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const
+bool FCategoryPropertyNode::GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex, const FPropertyNode* StopParent, bool bIgnoreCategories ) const
 {
-	if( ParentNode )
+	bool bAddedAnything = false;
+
+	if( ParentNode && StopParent != ParentNode )
 	{
-		ParentNode->GetQualifiedName(PathPlusIndex, bWithArrayIndex);
-		PathPlusIndex += TEXT(".");
+		bAddedAnything = ParentNode->GetQualifiedName(PathPlusIndex, bWithArrayIndex, StopParent, bIgnoreCategories );
+		if( bAddedAnything )
+		{
+			PathPlusIndex += TEXT(".");
+		}
 	}
 	
-	GetCategoryName().AppendString(PathPlusIndex);
+	if( !bIgnoreCategories )
+	{
+		bAddedAnything = true;
+		GetCategoryName().AppendString(PathPlusIndex);
+	}
+
+	return bAddedAnything;
 }
 
 

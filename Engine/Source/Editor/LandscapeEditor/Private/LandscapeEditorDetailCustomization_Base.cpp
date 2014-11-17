@@ -10,18 +10,18 @@
 #include "PropertyHandle.h"
 
 
-class FEdModeLandscape* FLandscapeEditorDetailCustomization_Base::GetEditorMode()
+FEdModeLandscape* FLandscapeEditorDetailCustomization_Base::GetEditorMode()
 {
 	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }
 
-bool FLandscapeEditorDetailCustomization_Base::IsToolActive(FName ToolSetName)
+bool FLandscapeEditorDetailCustomization_Base::IsToolActive(FName ToolName)
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
-	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentToolSet != NULL)
+	if (LandscapeEdMode != NULL && LandscapeEdMode->CurrentTool != NULL)
 	{
-		const FName CurrentToolSetName = LandscapeEdMode->CurrentToolSet->GetToolSetName();
-		return CurrentToolSetName == ToolSetName;
+		const FName CurrentToolName = LandscapeEdMode->CurrentTool->GetToolName();
+		return CurrentToolName == ToolName;
 	}
 
 	return false;
@@ -78,7 +78,7 @@ void FLandscapeEditorDetailCustomization_Base::OnValueCommitted(int32 NewValue, 
 
 //////////////////////////////////////////////////////////////////////////
 
-class FEdModeLandscape* FLandscapeEditorStructCustomization_Base::GetEditorMode()
+FEdModeLandscape* FLandscapeEditorStructCustomization_Base::GetEditorMode()
 {
 	return (FEdModeLandscape*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Landscape);
 }

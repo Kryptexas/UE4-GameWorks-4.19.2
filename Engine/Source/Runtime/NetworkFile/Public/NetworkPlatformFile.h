@@ -110,6 +110,10 @@ public:
 
 
 
+	
+	virtual bool SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out);
+	virtual bool ReceiveResponse(TArray<uint8>& Out);
+
 	bool SendReadMessage(uint8* Destination, int64 BytesToRead);
 	bool SendWriteMessage(const uint8* Source, int64 BytesToWrite);
 
@@ -136,12 +140,6 @@ protected:
 	virtual void FillGetFileList(FNetworkFileArchive& Payload, bool bInStreamingFileRequest);
 
 	virtual void ProcessServerInitialResponse(FArrayReader& InResponse, int32 OutServerPackageVersion, int32 OutServerPackageLicenseeVersion);
-
-		/**
-	 *  Handle HttpRequests This function collates data  puts it in a binary archive. 
-	 * 
-	 */
-	 virtual bool SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint8>& Out);
 
 private:
 
@@ -198,8 +196,13 @@ protected:
 	FCriticalSection	LocalDirectoriesCriticalSection;
 	bool				bIsUsable;
 	int32				FileServerPort;
+
 private:
-	
+
+	/* Unsolicitied files events */
+	FScopedEvent *FinishedAsyncNetworkReadUnsolicitedFiles;
+	FScopedEvent *FinishedAsyncWriteUnsolicitedFiles;
+
     // Our network Transport. 
 	class ITransport* Transport; 
 };

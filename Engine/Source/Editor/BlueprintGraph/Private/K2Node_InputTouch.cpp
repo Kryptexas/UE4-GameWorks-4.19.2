@@ -4,6 +4,8 @@
 #include "K2Node_InputTouchEvent.h"
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 UK2Node_InputTouch::UK2Node_InputTouch(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -57,7 +59,25 @@ FLinearColor UK2Node_InputTouch::GetNodeTitleColor() const
 
 FText UK2Node_InputTouch::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "InputTouch_Name", "InputTouch");
+	FText Title = NSLOCTEXT("K2Node", "InputTouch_Name", "InputTouch");
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		Title = NSLOCTEXT("K2Node", "InputTouch_ListTitle", "Touch");
+	}
+	return Title;
+}
+
+void UK2Node_InputTouch::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_InputTouch::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Input);
 }
 
 UEdGraphPin* UK2Node_InputTouch::GetPressedPin() const

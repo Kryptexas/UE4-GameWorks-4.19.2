@@ -7,7 +7,6 @@
 
 // depending on your kit and SDK, you may want to use this.
 // new distortion handling still in development.
-#define NEW_MORPHEUS_DISTORTION 0
 
 /**
  * The family of HMD device.  Register a new class of device here if you need to branch code for PostProcessing until 
@@ -71,7 +70,7 @@ public:
     /**
 	 * Calculates the FOV, based on the screen dimensions of the device
 	 */
-	virtual void GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const = 0;
+	virtual void	GetFieldOfView(float& OutHFOVInDegrees, float& OutVFOVInDegrees) const = 0;
 
 	/**
 	 * Whether or not the HMD supports positional tracking (either via camera or other means)
@@ -149,6 +148,11 @@ public:
     virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) = 0;
 
 	/**
+	* Returns true, if HMD allows fullscreen mode.
+	*/
+	virtual bool IsFullScreenAllowed() const { return true; }
+
+	/**
 	 * Saves / loads pre-fullscreen rectangle. Could be used to store saved original window position 
 	 * before switching to fullscreen mode.
 	 */
@@ -209,22 +213,23 @@ public:
 	 */
 	virtual void DrawDebug(UCanvas* Canvas, EStereoscopicPass StereoPass) {}
 
+	/**
+	* Passing key events to HMD.
+	* If returns 'false' then key will be handled by PlayerController;
+	* otherwise, key won't be handled by the PlayerController.
+	*/
+	virtual bool HandleInputKey(class UPlayerInput*, const struct FKey& Key, enum EInputEvent EventType, float AmountDepressed, bool bGamepad) { return false; }
+
 	/** 
 	 * Additional optional distorion rendering parameters
 	 * @todo:  Once we can move shaders into plugins, remove these!
 	 */	
-#if NEW_MORPHEUS_DISTORTION
 	virtual FTexture* GetDistortionTextureLeft() const {return NULL;}
 	virtual FTexture* GetDistortionTextureRight() const {return NULL;}
 	virtual FVector2D GetTextureOffsetLeft() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureOffsetRight() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleLeft() const {return FVector2D::ZeroVector;}
 	virtual FVector2D GetTextureScaleRight() const {return FVector2D::ZeroVector;}
-#else
-	virtual void GetImageTranslation(float& x, float& y) const {}
-	virtual void GetDistortionCenterOffset(float& x, float& y) const {}
-	virtual const FTexture*  GetDistortionTexture() {return NULL;}	
-#endif
 
 	/**
 	 * Record analytics

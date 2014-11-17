@@ -508,8 +508,8 @@ namespace AutomationTool
 						}
 						catch (Exception Ex)
 						{
-							CommandUtils.Log(TraceEventType.Error, "Failed to kill descendant:");
-							CommandUtils.Log(TraceEventType.Error, Ex);
+							CommandUtils.Log(TraceEventType.Warning, "Failed to kill descendant:");
+							CommandUtils.Log(TraceEventType.Warning, Ex);
 						}
 						break;  // exit the loop as who knows what else died, so let's get processes anew
 					}
@@ -772,6 +772,8 @@ namespace AutomationTool
 
             if (Result > MaxSuccessCode || Result < 0)
             {
+				ErrorReporter.Error(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+												App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode), Result.ExitCode);
                 throw new AutomationException(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
                                                 App, CommandLine, Path.GetFileName(Logfile), Result.ExitCode));
             }

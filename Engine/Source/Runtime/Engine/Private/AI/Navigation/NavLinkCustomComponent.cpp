@@ -30,6 +30,22 @@ UNavLinkCustomComponent::UNavLinkCustomComponent(const class FPostConstructIniti
 	BroadcastInterval = 0.0f;
 }
 
+void UNavLinkCustomComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	INavLinkCustomInterface::UpdateUniqueId(NavLinkUserId);
+}
+
+#if WITH_EDITOR
+void UNavLinkCustomComponent::PostEditImport()
+{
+	Super::PostEditImport();
+
+	NavLinkUserId = INavLinkCustomInterface::GetUniqueId();
+}
+#endif
+
 void UNavLinkCustomComponent::GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const
 {
 	LeftPt = LinkRelativeStart;

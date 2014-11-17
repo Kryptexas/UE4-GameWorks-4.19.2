@@ -182,7 +182,7 @@ void UGameUserSettings::ValidateSettings()
 	UpdateVersion();
 }
 
-void UGameUserSettings::ApplySettings()
+void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
 {
 	ValidateSettings();
 
@@ -195,7 +195,7 @@ void UGameUserSettings::ApplySettings()
 	}
 
 	// Request a resolution change
-	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewWindowMode);
+	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewWindowMode, bCheckForCommandLineOverrides);
 
 	// Update vsync cvar
 	{
@@ -214,6 +214,13 @@ void UGameUserSettings::ApplySettings()
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
 	SaveSettings();
+}
+
+void UGameUserSettings::ApplySettings()
+{
+	// deprecated.  calling the new version with true to match 4.3 behavior
+	// should generally use false going forward except when you want command line options to override settings
+	ApplySettings(true);
 }
 
 void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
@@ -237,12 +244,16 @@ void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
 	}
 }
 
-void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode)
+void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InResolutionY, EWindowMode::Type InWindowMode, bool bConditionallyOverride)
 {
-	UGameEngine::ConditionallyOverrideSettings(InResolutionX, InResolutionY, InWindowMode);
+	if (bConditionallyOverride)
 	{
-		IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
-		CVar->Set(InWindowMode);
+		// check to see if the command line params should override the requested change
+		UGameEngine::ConditionallyOverrideSettings(InResolutionX, InResolutionY, InWindowMode);
+		{
+			IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
+			CVar->Set(InWindowMode);
+		}
 	}
 	FSystemResolution::RequestResolutionChange(InResolutionX, InResolutionY, InWindowMode);
 }
@@ -304,7 +315,7 @@ void UGameUserSettings::PreloadResolutionSettings()
 		CVar->Set((int32)WindowMode);
 	}
 
-	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);
+	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode, true);
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 }

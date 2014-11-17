@@ -46,12 +46,19 @@ namespace UnrealBuildTool
 				string[] Tokens = LocalLevel.Split("-".ToCharArray());
 				if (Tokens.Length >= 2)
 				{
-					int ParsedLevel = int.Parse(Tokens[1]);
-					// bigger? remember it
-					if (ParsedLevel > LargestLevel)
+					try
 					{
-						LargestLevel = ParsedLevel;
-						LargestString = LocalLevel;
+						int ParsedLevel = int.Parse(Tokens[1]);
+						// bigger? remember it
+						if (ParsedLevel > LargestLevel)
+						{
+							LargestLevel = ParsedLevel;
+							LargestString = LocalLevel;
+						}
+					}
+					catch (Exception)
+					{
+						// ignore poorly formed string
 					}
 				}
 			}
@@ -338,9 +345,7 @@ namespace UnrealBuildTool
 						string[] Tokens = Line.Data.Split("(".ToCharArray());
 						if (Tokens.Length > 1)
 						{
-							// make sure what follows the parens is what we expdect
-							string[] ErrorPos = Tokens[1].Split(")".ToCharArray());
-
+							// make sure what follows the parens is what we expect
 							string Filename = Path.GetFullPath(Tokens[0]);
 							// build up the final string
 							string Output = string.Format("{0}({1}", Filename, Tokens[1], Line.Data[0]);

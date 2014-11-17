@@ -14,25 +14,20 @@ UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FPostConstructInitializeP
 {
 }
 
-UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetType)
+UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetType, APlayerController* OwningPlayer)
 {
-	if ( WidgetType == NULL || WidgetType->HasAnyClassFlags(CLASS_Abstract) )
+	if ( OwningPlayer == NULL )
 	{
-		// TODO script Error?
-		return NULL;
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		return CreateWidget<UUserWidget>(World, WidgetType);
 	}
-
-	//TODO ConstructObject after UUserWidget is no longer an actor.
-
-	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	UUserWidget* NewWidget = ConstructObject<UUserWidget>(WidgetType, World->GetCurrentLevel());
-	NewWidget->SetFlags(RF_Transactional);
-	//UUserWidget* NewWidget = World->SpawnActor<UUserWidget>(WidgetType);
-		
-	return NewWidget;
+	else
+	{
+		return CreateWidget<UUserWidget>(OwningPlayer, WidgetType);
+	}
 }
 
-void UWidgetBlueprintLibrary::DrawBox(FPaintContext& Context, FVector2D Position, FVector2D Size, USlateBrushAsset* Brush, FLinearColor Tint)
+void UWidgetBlueprintLibrary::DrawBox(UPARAM(ref) FPaintContext& Context, FVector2D Position, FVector2D Size, USlateBrushAsset* Brush, FLinearColor Tint)
 {
 	Context.MaxLayer++;
 

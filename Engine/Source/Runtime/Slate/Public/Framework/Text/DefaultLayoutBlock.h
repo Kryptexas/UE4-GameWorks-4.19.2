@@ -5,9 +5,9 @@ class SLATE_API FDefaultLayoutBlock : public ILayoutBlock
 {
 public:
 
-	static TSharedRef< FDefaultLayoutBlock > Create( const TSharedRef< IRun >& InRun, const FTextRange& InRange, FVector2D InSize, const TSharedPtr< IRunHighlighter >& InHighlighter )
+	static TSharedRef< FDefaultLayoutBlock > Create( const TSharedRef< IRun >& InRun, const FTextRange& InRange, FVector2D InSize, const TSharedPtr< IRunRenderer >& InRenderer )
 	{
-		return MakeShareable( new FDefaultLayoutBlock( InRun, InRange, InSize, InHighlighter ) );
+		return MakeShareable( new FDefaultLayoutBlock( InRun, InRange, InSize, InRenderer ) );
 	}
 
 	virtual ~FDefaultLayoutBlock() {}
@@ -15,7 +15,7 @@ public:
 	virtual TSharedRef< IRun > GetRun() const override { return Run; }
 	virtual FTextRange GetTextRange() const override { return Range; }
 	virtual FVector2D GetSize() const override { return Size; }
-	virtual TSharedPtr< IRunHighlighter > GetHighlighter() const override { return Highlighter; }
+	virtual TSharedPtr< IRunRenderer > GetRenderer() const override { return Renderer; }
 
 	virtual void SetLocationOffset( const FVector2D& InLocationOffset ) override { LocationOffset = InLocationOffset; }
 	virtual FVector2D GetLocationOffset() const override { return LocationOffset; }
@@ -27,12 +27,12 @@ private:
 		return MakeShareable( new FDefaultLayoutBlock( Block ) );
 	}
 
-	FDefaultLayoutBlock( const TSharedRef< IRun >& InRun, const FTextRange& InRange, FVector2D InSize, const TSharedPtr< IRunHighlighter >& InHighlighter )
+	FDefaultLayoutBlock( const TSharedRef< IRun >& InRun, const FTextRange& InRange, FVector2D InSize, const TSharedPtr< IRunRenderer >& InRenderer )
 		: Run( InRun )
 		, Range( InRange )
 		, Size( InSize )
 		, LocationOffset( ForceInitToZero )
-		, Highlighter( InHighlighter )
+		, Renderer( InRenderer )
 	{
 
 	}
@@ -42,7 +42,7 @@ private:
 		, Range( Block.Range )
 		, Size( Block.Size )
 		, LocationOffset( ForceInitToZero )
-		, Highlighter( Block.Highlighter )
+		, Renderer( Block.Renderer )
 	{
 
 	}
@@ -54,5 +54,5 @@ private:
 	FTextRange Range;
 	FVector2D Size;
 	FVector2D LocationOffset;
-	TSharedPtr< IRunHighlighter > Highlighter;
+	TSharedPtr< IRunRenderer > Renderer;
 };

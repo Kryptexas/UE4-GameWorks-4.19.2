@@ -51,4 +51,7 @@ public:
 	TArray<FName> GetDependentNames() const;
 
 	TArray<FClass*> GetInterfaceTypes() const;
+
+	void GetHideCategories(TArray<FString>& OutHideCategories) const;
+	void GetShowCategories(TArray<FString>& OutShowCategories) const;
 };

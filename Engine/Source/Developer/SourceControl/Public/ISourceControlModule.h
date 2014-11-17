@@ -121,7 +121,7 @@ public:
 	 *
 	 * @return A reference to the source control module.
 	 */
-	SOURCECONTROL_API static ISourceControlModule& Get()
+	static inline ISourceControlModule& Get()
 	{
 		return FModuleManager::LoadModuleChecked<ISourceControlModule>("SourceControl");
 	}

@@ -4,7 +4,7 @@
 	AutomationTest.cpp
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationTest, Warning, All);

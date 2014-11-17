@@ -11,15 +11,22 @@ FTCPTransport::FTCPTransport()
 {
 }
 
-bool FTCPTransport::Initialize(const TCHAR* HostIp)
+bool FTCPTransport::Initialize(const TCHAR* InHostIp)
 {
 	ISocketSubsystem* SSS = ISocketSubsystem::Get();
 
+	FString HostIp = InHostIp;
+
+
+	// the protocol isn't required for tcp it's assumed by default
+	HostIp.RemoveFromStart(TEXT("tcp://"));
+
 	// convert the string to a ip addr structure
-	TSharedRef<FInternetAddr> Addr = SSS->CreateInternetAddr(0, DEFAULT_FILE_SERVING_PORT);
+	// DEFAULT_TCP_FILE_SERVING_PORT is overridden 
+	TSharedRef<FInternetAddr> Addr = SSS->CreateInternetAddr(0, DEFAULT_TCP_FILE_SERVING_PORT);
 	bool bIsValid;
 
-	Addr->SetIp(HostIp, bIsValid);
+	Addr->SetIp(*HostIp, bIsValid);
 
 	if (bIsValid)
 	{
@@ -32,7 +39,7 @@ bool FTCPTransport::Initialize(const TCHAR* HostIp)
 			// on failure, shut it all down
 			SSS->DestroySocket(FileSocket);
 			FileSocket = NULL;
-			UE_LOG(LogNetworkPlatformFile, Error, TEXT("Failed to connect to file server at %s:%d."), HostIp, (int32)DEFAULT_FILE_SERVING_PORT);
+			UE_LOG(LogNetworkPlatformFile, Error, TEXT("Failed to connect to file server at %s."), *Addr->ToString(true));
 		}
 	}
 
@@ -72,6 +79,26 @@ bool FTCPTransport::SendPayloadAndReceiveResponse(TArray<uint8>& In, TArray<uint
 	}
 
 	return false; 
+}
+
+
+bool FTCPTransport::ReceiveResponse( TArray<uint8> &Out )
+{
+	FArrayReader Response;
+	bool RetResult = true;
+#if USE_MCSOCKET_FOR_NFS
+	RetResult &= FNFSMessageHeader::ReceivePayload(Response, FSimpleAbstractSocket_FMultichannelTCPSocket(MCSocket, NFS_Channels::Main));
+#else
+	RetResult &= FNFSMessageHeader::ReceivePayload(Response, FSimpleAbstractSocket_FSocket(FileSocket));
+#endif
+
+	if (RetResult)
+	{
+		Out.Append( Response.GetData(), Response.Num()); 
+		return true;
+	}
+
+	return false;
 }
 
 FTCPTransport::~FTCPTransport()

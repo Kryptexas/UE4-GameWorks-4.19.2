@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "IPropertyUtilities.h"
 #include "MathStructCustomizations.h"
 
 /** 
@@ -205,6 +205,10 @@ private:
 	/** Called when a value stops being changed by a slider */
 	template<typename NumericType>
 	void OnEndSliderMovement( NumericType NewValue );
+
+protected:
+	/** Cached property utilities */
+	TSharedPtr<IPropertyUtilities> PropertyUtilities;
 };
 
 /** 
@@ -232,13 +236,29 @@ public:
 	{
 	}
 
-	/** FMathStructCustomization interface */
-	virtual void MakeHeaderRow( TSharedRef<class IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row ) override;
+	/** IPropertyTypeCustomization interface */
+	virtual void CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
 
 protected:
+	/** FMathStructCustomization interface */
+	virtual void MakeHeaderRow(TSharedRef<class IPropertyHandle>& InStructPropertyHandle, FDetailWidgetRow& Row) override;
+
 	/** FMathStructProxyCustomization interface */
-	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
-	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
+	virtual bool CacheValues(TWeakPtr<IPropertyHandle> PropertyHandlePtr) const override;
+	virtual bool FlushValues(TWeakPtr<IPropertyHandle> PropertyHandlePtr) const override;
+
+	struct FTransformField
+	{
+		enum Type
+		{
+			Location,
+			Rotation,
+			Scale
+		};
+	};
+
+	void OnCopy(FTransformField::Type Type, TWeakPtr<IPropertyHandle> PropertyHandlePtr);
+	void OnPaste(FTransformField::Type Type, TWeakPtr<IPropertyHandle> PropertyHandlePtr);
 
 protected:
 	/** Cached rotation values */
@@ -270,6 +290,6 @@ public:
 
 protected:
 	/** FMathStructProxyCustomization interface */
-	virtual bool CacheValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
-	virtual bool FlushValues( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const override;
+	virtual bool CacheValues(TWeakPtr<IPropertyHandle> PropertyHandlePtr) const override;
+	virtual bool FlushValues(TWeakPtr<IPropertyHandle> PropertyHandlePtr) const override;
 };

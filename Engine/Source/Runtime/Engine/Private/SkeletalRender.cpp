@@ -93,7 +93,7 @@ void FSkeletalMeshObject::UpdateMinDesiredLODLevel(const FSceneView* View, const
 		for(int32 LODLevel = SkeletalMeshResource->LODModels.Num()-1; LODLevel > 0; LODLevel--) 
 		{
 			// Get DistanceFactor for this LOD
-			float LODDistanceFactor = SkeletalMeshLODInfo[LODLevel].DisplayFactor;
+			float LODDistanceFactor = SkeletalMeshLODInfo[LODLevel].ScreenSize;
 
 			// If we are considering shifting to a better (lower) LOD, bias with hysteresis.
 			if(LODLevel  <= CurrentLODLevel)

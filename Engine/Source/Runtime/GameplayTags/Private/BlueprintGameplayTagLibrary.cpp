@@ -31,3 +31,8 @@ bool UBlueprintGameplayTagLibrary::DoesContainerMatchAllTagsInContainer(const FG
 {
 	return TagContainer.MatchesAll(OtherContainer, bCountEmptyAsMatch);
 }
+
+FGameplayTag UBlueprintGameplayTagLibrary::MakeLiteralGameplayTag(FGameplayTag Value)
+{
+	return Value;
+}

@@ -14,6 +14,7 @@ public:
 	virtual void OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>() ) override;
 	virtual bool CanFilter() override { return false; }
 	virtual uint32 GetCategories() override { return EAssetTypeCategories::Animation; }
+	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override;
 
 private:
 	/** Handler to fill the retarget submenu */

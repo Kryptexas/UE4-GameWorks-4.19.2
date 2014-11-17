@@ -290,3 +290,9 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 
 	}
 }
+
+TSharedRef<FSlateShaderResourceManager> FSlateD3D11RenderingPolicy::GetResourceManager()
+{
+	return TextureManager;
+}
+

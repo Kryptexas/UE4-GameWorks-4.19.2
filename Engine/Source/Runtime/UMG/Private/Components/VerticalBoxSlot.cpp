@@ -9,8 +9,16 @@ UVerticalBoxSlot::UVerticalBoxSlot(const FPostConstructInitializeProperties& PCI
 	: Super(PCIP)
 	, Slot(NULL)
 {
-	HorizontalAlignment = HAlign_Left;
-	VerticalAlignment = VAlign_Top;
+	HorizontalAlignment = HAlign_Fill;
+	VerticalAlignment = VAlign_Fill;
+	Size = FSlateChildSize(ESlateSizeRule::Automatic);
+}
+
+void UVerticalBoxSlot::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	Slot = NULL;
 }
 
 void UVerticalBoxSlot::BuildSlot(TSharedRef<SVerticalBox> VerticalBox)
@@ -20,7 +28,7 @@ void UVerticalBoxSlot::BuildSlot(TSharedRef<SVerticalBox> VerticalBox)
 		.HAlign(HorizontalAlignment)
 		.VAlign(VerticalAlignment)
 		[
-			Content == NULL ? SNullWidget::NullWidget : Content->GetWidget()
+			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
 		];
 
 	Slot->SizeParam = UWidget::ConvertSerializedSizeParamToRuntime(Size);

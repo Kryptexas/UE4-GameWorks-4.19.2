@@ -19,16 +19,11 @@ UClass* FAssetTypeActions_Blackboard::GetSupportedClass() const
 
 bool FAssetTypeActions_Blackboard::HasActions ( const TArray<UObject*>& InObjects ) const
 {
-	return FAssetTypeActions_BehaviorTree::BehaviorTreeEditorEnabled();
+	return true;
 }
 
 void FAssetTypeActions_Blackboard::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
-	if (!FAssetTypeActions_BehaviorTree::BehaviorTreeEditorEnabled())
-	{
-		return;
-	}
-
 	auto BlackboardData = GetTypedWeakObjectPtrs<UBlackboardData>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
@@ -44,11 +39,6 @@ void FAssetTypeActions_Blackboard::GetActions( const TArray<UObject*>& InObjects
 
 void FAssetTypeActions_Blackboard::OpenAssetEditor( const TArray<UObject*>& InObjects, TSharedPtr<class IToolkitHost> EditWithinLevelEditor )
 {
-	if (!FAssetTypeActions_BehaviorTree::BehaviorTreeEditorEnabled())
-	{
-		return;
-	}
-
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid() ? EToolkitMode::WorldCentric : EToolkitMode::Standalone;
 
 	for(auto Object : InObjects)

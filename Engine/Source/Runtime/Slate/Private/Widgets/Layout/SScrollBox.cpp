@@ -139,7 +139,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
-		// An external scroll bar was sepecified by the user
+		// An external scroll bar was specified by the user
 		ScrollBar = InArgs._ExternalScrollbar;
 		ScrollBar->SetOnUserScrolled(FOnUserScrolled::CreateSP(this, &SScrollBox::ScrollBar_OnUserScrolled));
 	}
@@ -149,6 +149,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 		ScrollBar = 
 			SNew( SScrollBar)
 			.Thickness(FVector2D(5.0f, 5.0f))
+			.Style( InArgs._ScrollBarStyle )
 			.OnUserScrolled(this, &SScrollBox::ScrollBar_OnUserScrolled);
 
 		PanelAndScrollbar->AddSlot()
@@ -395,9 +396,9 @@ FCursorReply SScrollBox::OnCursorQuery( const FGeometry& MyGeometry, const FPoin
 	}
 }
 
-int32 SScrollBox::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SScrollBox::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	int32 NewLayerId = SCompoundWidget::OnPaint( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	int32 NewLayerId = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
 	if( !bShowSoftwareCursor )
 	{

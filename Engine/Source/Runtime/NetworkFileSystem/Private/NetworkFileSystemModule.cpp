@@ -20,29 +20,37 @@ public:
 
 	// INetworkFileSystemModule interface
 
-	virtual INetworkFileServer* CreateNetworkFileServer( int32 Port, const FFileRequestDelegate* InFileRequestDelegate, const FRecompileShadersDelegate* InRecompileShadersDelegate ) const override
+	virtual INetworkFileServer* CreateNetworkFileServer( int32 Port, const FFileRequestDelegate* InFileRequestDelegate, const FRecompileShadersDelegate* InRecompileShadersDelegate, const ENetworkFileServerProtocol Protocol ) const override
 	{
-		if (Port < 0)
-		{
-			Port = DEFAULT_FILE_SERVING_PORT;
-		}
-
 		TArray<ITargetPlatform*> ActiveTargetPlatforms;
 
 		// only bother getting the target platforms if there was "-targetplatform" on the commandline, otherwise UnrealFileServer will 
 		// log out some scary sounding, but innocuous logs
 		FString Platforms;
+
+		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+
+		// if we didn't specify a target platform then use the entire target platform list (they could all be possible!)
 		if (FParse::Value(FCommandLine::Get(), TEXT("TARGETPLATFORM="), Platforms))
 		{
-			ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
 			ActiveTargetPlatforms =  TPM.GetActiveTargetPlatforms();
 		}
+		else
+		{
+			ActiveTargetPlatforms = TPM.GetTargetPlatforms();
+		}
 
-#if !USE_HTTP_FOR_NFS
-		return new FNetworkFileServer(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
-#else
-		return new FNetworkFileServerHttp(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
-#endif 
+		switch ( Protocol )
+		{
+#if ENABLE_HTTP_FOR_NFS
+		case NFSP_Http: 
+			return new FNetworkFileServerHttp(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
+#endif
+		case NFSP_Tcp:
+			return new FNetworkFileServer(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
+		}
+ 
+		return NULL;
 	}
 };
 

@@ -294,6 +294,12 @@ void AActor::PostEditUndo()
 		GetLevel()->LevelBoundsActor.Get()->OnLevelBoundsDirtied();
 	}
 
+	// Restore OwnedComponents array
+	if (!IsPendingKill())
+	{
+		ResetOwnedComponents();
+	}
+
 	Super::PostEditUndo();
 }
 

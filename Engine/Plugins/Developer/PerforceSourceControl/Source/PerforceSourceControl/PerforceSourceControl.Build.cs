@@ -20,7 +20,7 @@ public class PerforceSourceControl : ModuleRules
 
 		AddThirdPartyPrivateStaticDependencies(Target, "Perforce");
 
-		if (Target.Platform == UnrealTargetPlatform.Win64)
+		if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 		}

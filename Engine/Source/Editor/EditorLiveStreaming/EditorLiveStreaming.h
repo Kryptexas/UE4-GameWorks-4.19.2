@@ -35,6 +35,9 @@ protected:
 	/** Closes the window that shows the current status of the broadcast */
 	void CloseBroadcastStatusWindow();
 
+	/** Called by the live streaming service when we get a new chat message to display */
+	void OnChatMessage( const FText& UserName, const FText& ChatMessage );
+
 
 private:
 

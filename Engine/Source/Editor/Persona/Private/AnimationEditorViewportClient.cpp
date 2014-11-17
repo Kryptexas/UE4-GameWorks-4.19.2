@@ -75,6 +75,7 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 	, SelectedWindActor(NULL)
 	, PrevWindStrength(0.0f)
 	, GravityScaleSliderValue(0.25f)
+	, BodyTraceDistance(100000.0f)
 {
 	// load config
 	ConfigOption = UPersonaOptions::StaticClass()->GetDefaultObject<UPersonaOptions>();
@@ -378,6 +379,19 @@ void FAnimationViewportClient::SetPreviewMeshComponent(UDebugSkelMeshComponent* 
 	PreviewSkelMeshComp->BonesOfInterest.Empty();
 
 	UpdateCameraSetup();
+
+	// Setup physics data from physics assets if available, clearing any physics setup on the component
+	UPhysicsAsset* PhysAsset = PreviewSkelMeshComp->GetPhysicsAsset();
+	if(PhysAsset)
+	{
+		PhysAsset->InvalidateAllPhysicsMeshes();
+		PreviewSkelMeshComp->TermArticulated();
+		PreviewSkelMeshComp->InitArticulated(GetWorld()->GetPhysicsScene());
+
+		// Set to block all to enable tracing.
+		PreviewSkelMeshComp->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+		PreviewSkelMeshComp->RefreshBoneTransforms();
+	}
 }
 
 void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterface* PDI)
@@ -508,7 +522,10 @@ void FAnimationViewportClient::DrawCanvas( FViewport& InViewport, FSceneView& Vi
 		}
 
 		// Display info
-		DisplayInfo(&Canvas, &View, IsShowingMeshStats());
+		if (IsShowingMeshStats())
+		{
+			DisplayInfo(&Canvas, &View, IsDetailedMeshStats());
+		}
 
 		// Draw name of selected bone
 		if (PreviewSkelMeshComp->BonesOfInterest.Num() == 1)
@@ -591,6 +608,14 @@ void FAnimationViewportClient::Tick(float DeltaSeconds)
 	if (!GIntraFrameDebuggingGameThread)
 	{
 		PreviewScene->GetWorld()->Tick(LEVELTICK_All, DeltaSeconds*AnimationPlaybackScale);
+	}
+
+	UDebugSkelMeshComponent* PreviewComp = PreviewSkelMeshComp.Get();
+	if (PreviewComp)
+	{
+		// Handle updating the preview component to represent the effects of root motion	
+		FBoxSphereBounds Bounds = EditorFloorComp->CalcBounds(EditorFloorComp->GetRelativeTransform());
+		PreviewComp->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
 	}
 }
 
@@ -757,128 +782,187 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		}
 	}
 
-	if (bDisplayAllInfo && PreviewSkelMeshComp != NULL && PreviewSkelMeshComp->MeshObject != NULL)
+	if (PreviewSkelMeshComp != NULL && PreviewSkelMeshComp->MeshObject != NULL)
 	{
-		FSkeletalMeshResource* SkelMeshResource = PreviewSkelMeshComp->GetSkeletalMeshResource();
-		check(SkelMeshResource);
-
-		// Draw stats about the mesh
-		const FBoxSphereBounds& SkelBounds = PreviewSkelMeshComp->Bounds;
-		const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
-
-		const int32 HalfX = Viewport->GetSizeXY().X/2;
-		const int32 HalfY = Viewport->GetSizeXY().Y/2;
-
-		const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.ProjMatrix.M[0][0], (float)HalfY * View->ViewMatrices.ProjMatrix.M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W,1.0f);
-		const float LODFactor = ScreenRadius / 320.0f;
-
-		int32 NumBonesInUse;
-		int32 NumBonesMappedToVerts; 
-		int32 NumChunksInUse;
-		int32 NumSectionsInUse;
-		FString WeightUsage;
-
-		const int32 LODIndex = FMath::Clamp(PreviewSkelMeshComp->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num()-1);
-		FStaticLODModel& LODModel = SkelMeshResource->LODModels[ LODIndex ];
-
-		NumBonesInUse = LODModel.RequiredBones.Num();
-		NumBonesMappedToVerts = LODModel.ActiveBoneIndices.Num();
-		NumChunksInUse = LODModel.Chunks.Num();
-		NumSectionsInUse = LODModel.Sections.Num();
-
-		InfoString = FString::Printf( TEXT("LOD [%d] Bones:%d (Mapped to Vertices:%d) Polys:%d"), 
-			LODIndex, 
-			NumBonesInUse,	   
-			NumBonesMappedToVerts,
-			LODModel.GetTotalFaces());
-
-		Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
-
-		InfoString = FString::Printf( TEXT("(Display Factor:%3.2f, FOV:%3.0f)"), LODFactor, ViewFOV);
-		CurYOffset += YL + 2;
-		Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
-
-		CurYOffset += 1; // --
-
-		uint32 TotalRigidVertices = 0;
-		uint32 TotalSoftVertices = 0;
-		for(int32 ChunkIndex = 0;ChunkIndex < LODModel.Chunks.Num();ChunkIndex++)
+		if (bDisplayAllInfo)
 		{
-			int32 ChunkRigidVerts = LODModel.Chunks[ChunkIndex].GetNumRigidVertices();
-			int32 ChunkSoftVerts = LODModel.Chunks[ChunkIndex].GetNumSoftVertices();
+			FSkeletalMeshResource* SkelMeshResource = PreviewSkelMeshComp->GetSkeletalMeshResource();
+			check(SkelMeshResource);
 
-			InfoString = FString::Printf( TEXT(" [Chunk %d] Verts:%d (Rigid:%d Soft:%d) Bones:%d"), 
-				ChunkIndex,
-				ChunkRigidVerts + ChunkSoftVerts,
-				ChunkRigidVerts,
-				ChunkSoftVerts,
-				LODModel.Chunks[ChunkIndex].BoneMap.Num()
+			// Draw stats about the mesh
+			const FBoxSphereBounds& SkelBounds = PreviewSkelMeshComp->Bounds;
+			const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
+
+			const int32 HalfX = Viewport->GetSizeXY().X / 2;
+			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
+
+			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.ProjMatrix.M[0][0], (float)HalfY * View->ViewMatrices.ProjMatrix.M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
+			const float LODFactor = ScreenRadius / 320.0f;
+
+			int32 NumBonesInUse;
+			int32 NumBonesMappedToVerts;
+			int32 NumChunksInUse;
+			int32 NumSectionsInUse;
+			FString WeightUsage;
+
+			const int32 LODIndex = FMath::Clamp(PreviewSkelMeshComp->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num() - 1);
+			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+			NumBonesInUse = LODModel.RequiredBones.Num();
+			NumBonesMappedToVerts = LODModel.ActiveBoneIndices.Num();
+			NumChunksInUse = LODModel.Chunks.Num();
+			NumSectionsInUse = LODModel.Sections.Num();
+
+			InfoString = FString::Printf(TEXT("LOD: %d, Bones: %d (Mapped to Vertices: %d), Polys: %d"),
+				LODIndex,
+				NumBonesInUse,
+				NumBonesMappedToVerts,
+				LODModel.GetTotalFaces());
+
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f, FOV:%3.0f"), LODFactor, ViewFOV);
+			CurYOffset += YL + 2;
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+			CurYOffset += 1; // --
+
+			uint32 TotalRigidVertices = 0;
+			uint32 TotalSoftVertices = 0;
+			for (int32 ChunkIndex = 0; ChunkIndex < LODModel.Chunks.Num(); ChunkIndex++)
+			{
+				int32 ChunkRigidVerts = LODModel.Chunks[ChunkIndex].GetNumRigidVertices();
+				int32 ChunkSoftVerts = LODModel.Chunks[ChunkIndex].GetNumSoftVertices();
+
+				InfoString = FString::Printf(TEXT(" [Chunk %d] Verts:%d (Rigid:%d Soft:%d), Bones:%d"),
+					ChunkIndex,
+					ChunkRigidVerts + ChunkSoftVerts,
+					ChunkRigidVerts,
+					ChunkSoftVerts,
+					LODModel.Chunks[ChunkIndex].BoneMap.Num()
+					);
+
+				CurYOffset += YL + 2;
+				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor*0.8f);
+
+				TotalRigidVertices += ChunkRigidVerts;
+				TotalSoftVertices += ChunkSoftVerts;
+			}
+
+			InfoString = FString::Printf(TEXT("TOTAL Verts:%d (Rigid:%d Soft:%d)"),
+				LODModel.NumVertices,
+				TotalRigidVertices,
+				TotalSoftVertices);
+
+			CurYOffset += 1; // --
+
+
+			CurYOffset += YL + 2;
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+			InfoString = FString::Printf(TEXT("Chunks:%d, Sections:%d %s"),
+				NumChunksInUse,
+				NumSectionsInUse,
+				*WeightUsage
 				);
 
 			CurYOffset += YL + 2;
-			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor*0.8f );
-
-			TotalRigidVertices += ChunkRigidVerts;
-			TotalSoftVertices += ChunkSoftVerts;
-		}
-
-		InfoString = FString::Printf( TEXT("TOTAL Verts:%d (Rigid:%d Soft:%d)"), 
-			LODModel.NumVertices,
-			TotalRigidVertices,
-			TotalSoftVertices );
-
-		CurYOffset += 1; // --
-
-
-		CurYOffset += YL + 2;
-		Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
-
-		InfoString = FString::Printf( TEXT("Chunks:%d Sections:%d %s"), 
-			NumChunksInUse, 
-			NumSectionsInUse,
-			*WeightUsage
-			);
-
-		CurYOffset += YL + 2;
-		Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
-		
-		if (PreviewSkelMeshComp->BonesOfInterest.Num() > 0)
-		{
-			int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest[0];
-			const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
-			FTransform ReferenceTransform = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
-			FTransform LocalTransform = PreviewSkelMeshComp->LocalAtoms[BoneIndex];
-			FTransform ComponentTransform = PreviewSkelMeshComp->SpaceBases[BoneIndex];
-
-			CurYOffset += YL + 2;						
-			InfoString = FString::Printf(TEXT("Local :%s"), *LocalTransform.ToString());
-			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
-
-			CurYOffset += YL + 2;
-			InfoString = FString::Printf(TEXT("Component :%s"), *ComponentTransform.ToString());
-			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
-
-			CurYOffset += YL + 2;
-			InfoString = FString::Printf(TEXT("Reference :%s"), *ReferenceTransform.ToString());
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
-		}
 
-		CurYOffset += YL + 2;
-		InfoString = FString::Printf(TEXT("Approximate Size: %ix%ix%i"), 
-			FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.X * 2.0f),
-			FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.Y * 2.0f),
-			FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.Z * 2.0f));
-		Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
-
-		uint32 NumNotiesWithErrors = PreviewSkelMeshComp->AnimNotifyErrors.Num();
-		for (uint32 i = 0; i < NumNotiesWithErrors; ++i)
-		{
-			uint32 NumErrors = PreviewSkelMeshComp->AnimNotifyErrors[i].Errors.Num();
-			for (uint32 ErrorIdx = 0; ErrorIdx < NumErrors; ++ErrorIdx)
+			if (PreviewSkelMeshComp->BonesOfInterest.Num() > 0)
 			{
+				int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest[0];
+				const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
+				FTransform ReferenceTransform = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
+				FTransform LocalTransform = PreviewSkelMeshComp->LocalAtoms[BoneIndex];
+				FTransform ComponentTransform = PreviewSkelMeshComp->SpaceBases[BoneIndex];
+
 				CurYOffset += YL + 2;
-				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *PreviewSkelMeshComp->AnimNotifyErrors[i].Errors[ErrorIdx], GEngine->GetSmallFont(), FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
+				InfoString = FString::Printf(TEXT("Local :%s"), *LocalTransform.ToString());
+				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+				CurYOffset += YL + 2;
+				InfoString = FString::Printf(TEXT("Component :%s"), *ComponentTransform.ToString());
+				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+				CurYOffset += YL + 2;
+				InfoString = FString::Printf(TEXT("Reference :%s"), *ReferenceTransform.ToString());
+				Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 			}
+
+			CurYOffset += YL + 2;
+			InfoString = FString::Printf(TEXT("Approximate Size: %ix%ix%i"),
+				FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.X * 2.0f),
+				FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.Y * 2.0f),
+				FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.Z * 2.0f));
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+			uint32 NumNotiesWithErrors = PreviewSkelMeshComp->AnimNotifyErrors.Num();
+			for (uint32 i = 0; i < NumNotiesWithErrors; ++i)
+			{
+				uint32 NumErrors = PreviewSkelMeshComp->AnimNotifyErrors[i].Errors.Num();
+				for (uint32 ErrorIdx = 0; ErrorIdx < NumErrors; ++ErrorIdx)
+				{
+					CurYOffset += YL + 2;
+					Canvas->DrawShadowedString(CurXOffset, CurYOffset, *PreviewSkelMeshComp->AnimNotifyErrors[i].Errors[ErrorIdx], GEngine->GetSmallFont(), FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
+				}
+			}
+		}
+		else // simplified default display info to be same as static mesh editor
+		{
+			FSkeletalMeshResource* SkelMeshResource = PreviewSkelMeshComp->GetSkeletalMeshResource();
+			check(SkelMeshResource);
+
+			const int32 LODIndex = FMath::Clamp(PreviewSkelMeshComp->PredictedLODLevel, 0, SkelMeshResource->LODModels.Num() - 1);
+			FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+			// Current LOD 
+			InfoString = FString::Printf(TEXT("LOD: %d"), LODIndex);
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+			// current screen size
+			const FBoxSphereBounds& SkelBounds = PreviewSkelMeshComp->Bounds;
+			const FPlane ScreenPosition = View->Project(SkelBounds.Origin);
+
+			const int32 HalfX = Viewport->GetSizeXY().X / 2;
+			const int32 HalfY = Viewport->GetSizeXY().Y / 2;
+			const float ScreenRadius = FMath::Max((float)HalfX * View->ViewMatrices.ProjMatrix.M[0][0], (float)HalfY * View->ViewMatrices.ProjMatrix.M[1][1]) * SkelBounds.SphereRadius / FMath::Max(ScreenPosition.W, 1.0f);
+			const float LODFactor = ScreenRadius / 320.0f;
+
+			float ScreenSize = ComputeBoundsScreenSize(ScreenPosition, SkelBounds.SphereRadius, *View);
+
+			InfoString = FString::Printf(TEXT("Current Screen Size: %3.2f"), LODFactor);
+			CurYOffset += YL + 2;
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+			// Triangles
+			uint32 NumTotalTriangles = 0;
+			int32 NumSections = LODModel.NumNonClothingSections();
+			for (int32 SectionIndex = 0; SectionIndex < NumSections; SectionIndex++)
+			{
+				NumTotalTriangles += LODModel.Sections[SectionIndex].NumTriangles;
+			}
+			InfoString = FString::Printf(TEXT("Triangles: %d"), NumTotalTriangles);
+			CurYOffset += YL + 2;
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+			// Vertices
+			InfoString = FString::Printf(TEXT("Vertices: %d"), LODModel.NumVertices);
+			CurYOffset += YL + 2;
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+
+			// UV Channels
+			InfoString = FString::Printf(TEXT("UV Channels: %d"), LODModel.NumTexCoords);
+			CurYOffset += YL + 2;
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
+			
+			// Approx Size 
+			CurYOffset += YL + 2;
+			InfoString = FString::Printf(TEXT("Approx Size: %ix%ix%i"),
+				FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.X * 2.0f),
+				FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.Y * 2.0f),
+				FMath::RoundToInt(PreviewSkelMeshComp->Bounds.BoxExtent.Z * 2.0f));
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 		}
 	}
 }
@@ -912,6 +996,14 @@ TWeakObjectPtr<AWindDirectionalSource> FAnimationViewportClient::FindSelectedWin
 
 void FAnimationViewportClient::ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
 {
+	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+
+	if(!SharedPersona.IsValid())
+	{
+		// No reason to continue, cannot select elements
+		return;
+	}
+
 	if ( HitProxy )
 	{
 		if ( HitProxy->IsA( HPersonaSocketProxy::StaticGetType() ) )
@@ -919,20 +1011,13 @@ void FAnimationViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 			HPersonaSocketProxy* SocketProxy = ( HPersonaSocketProxy* )HitProxy;
 
 			// Tell Persona that the socket has been selected - this will sort out the skeleton tree, etc.
-			if ( PersonaPtr.IsValid() )
-			{
-				PersonaPtr.Pin()->SetSelectedSocket( SocketProxy->SocketInfo );
-			}
+			SharedPersona->SetSelectedSocket( SocketProxy->SocketInfo );
 		}
 		else if ( HitProxy->IsA( HPersonaBoneProxy::StaticGetType() ) )
 		{
 			HPersonaBoneProxy* BoneProxy = ( HPersonaBoneProxy* )HitProxy;
-
 			// Tell Persona that the bone has been selected - this will sort out the skeleton tree, etc.
-			if ( PersonaPtr.IsValid() )
-			{
-				PersonaPtr.Pin()->SetSelectedBone( PreviewSkelMeshComp.Get()->SkeletalMesh->Skeleton, BoneProxy->BoneName );
-			}
+			SharedPersona->SetSelectedBone( PreviewSkelMeshComp.Get()->SkeletalMesh->Skeleton, BoneProxy->BoneName );
 		}
 		else if ( HitProxy->IsA( HActor::StaticGetType() ) )
 		{
@@ -942,19 +1027,28 @@ void FAnimationViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 			if( WindActor )
 			{
 				//clear previously selected things
-				PersonaPtr.Pin()->DeselectAll();
+				SharedPersona->DeselectAll();
 				SelectedWindActor = WindActor;
 			}
 		}
 	}
 	else
 	{
-		// Clicking outside of a hit proxy should de-select things
-		if ( PersonaPtr.IsValid() )
+		// Cast for phys bodies if we didn't get any hit proxies
+		FHitResult Result(1.0f);
+		const FViewportClick Click(&View, this, EKeys::Invalid, IE_Released, Viewport->GetMouseX(), Viewport->GetMouseY());
+		bool bHit = PreviewSkelMeshComp.Get()->LineTraceComponent(Result, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * BodyTraceDistance, FCollisionQueryParams(true));
+		
+		if(bHit)
 		{
-			PersonaPtr.Pin()->DeselectAll();
+			SharedPersona->SetSelectedBone(PreviewSkelMeshComp->SkeletalMesh->Skeleton, Result.BoneName);
 		}
-	}
+		else
+		{
+			// We didn't hit a proxy or a physics object, so deselect all objects
+			SharedPersona->DeselectAll();
+		}
+}
 }
 
 bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale )
@@ -1896,17 +1990,27 @@ bool FAnimationViewportClient::IsSetDrawUVOverlayChecked() const
 	return bDrawUVs;
 }
 
-void FAnimationViewportClient::OnToggleShowMeshStats()
+void FAnimationViewportClient::OnSetShowMeshStats(int32 ShowMode)
 {
-	ConfigOption->SetShowMeshStats(!ConfigOption->bShowMeshStats);
+	ConfigOption->SetShowMeshStats(ShowMode);
 }
 
 bool FAnimationViewportClient::IsShowingMeshStats() const
 {
-	const bool bShouldBeEnabled = ConfigOption->bShowMeshStats;
+	const bool bShouldBeEnabled = ConfigOption->ShowMeshStats != EDisplayInfoMode::None;
 	const bool bCanBeEnabled = !PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode);
 
 	return bShouldBeEnabled && bCanBeEnabled;
+}
+
+bool FAnimationViewportClient::IsDetailedMeshStats() const
+{
+	return ConfigOption->ShowMeshStats == EDisplayInfoMode::Detailed;
+}
+
+int32 FAnimationViewportClient::GetShowMeshStats() const
+{
+	return ConfigOption->ShowMeshStats;
 }
 
 #undef LOCTEXT_NAMESPACE

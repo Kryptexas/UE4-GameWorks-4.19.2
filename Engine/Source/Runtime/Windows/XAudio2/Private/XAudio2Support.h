@@ -43,6 +43,8 @@
 #define SPEAKER_5POINT0          ( SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_SIDE_LEFT | SPEAKER_SIDE_RIGHT )
 #define SPEAKER_6POINT1          ( SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT | SPEAKER_FRONT_CENTER | SPEAKER_LOW_FREQUENCY | SPEAKER_SIDE_LEFT | SPEAKER_SIDE_RIGHT | SPEAKER_BACK_CENTER )
 
+#define UE4_XAUDIO3D_INPUTCHANNELS 1
+
 struct FPCMBufferInfo
 {
 	/** Format of the source PCM data */
@@ -170,6 +172,15 @@ public:
 	static FXAudio2SoundBuffer* CreateNativeBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave );
 
 	/**
+	 * Static function used to create an XAudio buffer and dynamically upload streaming data to.
+	 *
+	 * @param InWave		USoundWave to use as template and wave source
+	 * @param AudioDevice	audio device to attach created buffer to
+	 * @return FXAudio2SoundBuffer pointer if buffer creation succeeded, NULL otherwise
+	 */
+	static FXAudio2SoundBuffer* CreateStreamingBuffer( FXAudio2Device* XAudio2Device, USoundWave* Wave );
+
+	/**
 	 * Static function used to create a buffer.
 	 *
 	 * @param InWave USoundWave to use as template and wave source
@@ -184,6 +195,9 @@ public:
 	 * @return Size in bytes
 	 */
 	int32 GetSize( void );
+
+	virtual int32 GetCurrentChunkIndex() const override;
+	virtual int32 GetCurrentChunkOffset() const override;
 
 	/** Audio device this buffer is attached to	*/
 	FAudioDevice*				AudioDevice;
@@ -437,8 +451,13 @@ class FSpatializationHelper
 	X3DAUDIO_DISTANCE_CURVE_POINT ReverbVolumeCurvePoint[2];
 	X3DAUDIO_DISTANCE_CURVE       ReverbVolumeCurve;
 
-	float                         EmitterAzimuths;
-	float					      MatrixCoefficients[SPEAKER_COUNT];
+	float                         EmitterAzimuths[UE4_XAUDIO3D_INPUTCHANNELS];
+
+	// TODO: Hardcoding this to 8 because X3DAudioCalculate is ignoring the destination speaker count we put in and
+	//       using the number of speakers on the output device.  For 7.1 this means that it writes to 8 speakers,
+	//       overrunning the buffer and trashing other static variables
+	// 	float					      MatrixCoefficients[UE4_XAUDIO3D_INPUTCHANNELS * SPEAKER_COUNT];
+	float					      MatrixCoefficients[8]; 
 	
 public:
 	/**

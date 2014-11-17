@@ -142,6 +142,9 @@ enum EMaterialSamplerType
 	SAMPLERTYPE_Alpha UMETA(DisplayName="Alpha"),
 	SAMPLERTYPE_Normal UMETA(DisplayName="Normal"),
 	SAMPLERTYPE_Masks UMETA(DisplayName="Masks"),
+	SAMPLERTYPE_DistanceFieldFont UMETA(DisplayName="Distance Field Font"),
+	SAMPLERTYPE_LinearColor UMETA(DisplayName = "Linear Color"),
+	SAMPLERTYPE_LinearGrayscale UMETA(DisplayName = "Linear Grayscale"),
 	SAMPLERTYPE_MAX,
 };
 
@@ -183,6 +186,19 @@ enum ETriangleSortAxis
 	TSA_Y_Axis,
 	TSA_Z_Axis,
 	TSA_MAX,
+};
+
+/** Movement modes for Characters.  */
+UENUM(BlueprintType)
+enum EMovementMode
+{
+	MOVE_None		UMETA(DisplayName="None"),
+	MOVE_Walking	UMETA(DisplayName="Walking"),
+	MOVE_Falling	UMETA(DisplayName="Falling"),
+	MOVE_Swimming	UMETA(DisplayName="Swimming"),
+	MOVE_Flying		UMETA(DisplayName="Flying"),
+	MOVE_Custom		UMETA(DisplayName="Custom"),
+	MOVE_MAX		UMETA(Hidden),
 };
 
 
@@ -650,6 +666,16 @@ private:
 	friend class UCollisionProfile;
 };
 
+/** Enum for controlling the falloff of strength of a radial impulse as a function of distance from Origin. */
+UENUM()
+enum ERadialImpulseFalloff
+{
+	/** Impulse is a constant strength, up to the limit of its range. */
+	RIF_Constant,
+	/** Impulse should get linearly weaker the further from origin. */
+	RIF_Linear,
+	RIF_MAX,
+};
 
 /** Presets of values used in considering when put this body to sleep. */
 UENUM()
@@ -852,6 +878,7 @@ struct FCollisionImpactData
 	/** Iterate over ContactInfos array and swap order of information */
 	void SwapContactOrders();
 };
+
 
 /** Struct used to hold effects for destructible damage events */
 USTRUCT()
@@ -1369,16 +1396,7 @@ struct ENGINE_API FHitResult
 	}
 
 	/** Ctor for easily creating "fake" hits from limited data. */
-	FHitResult(class AActor* InActor, class UPrimitiveComponent* InComponent, FVector const& HitLoc, FVector const& HitNorm)
-	{
-		FMemory::Memzero(this, sizeof(FHitResult));
-		Location = HitLoc;
-		ImpactPoint = HitLoc;
-		Normal = HitNorm;
-		ImpactNormal = HitNorm;
-		Actor = InActor;
-		Component = InComponent;
-	}
+	FHitResult(class AActor* InActor, class UPrimitiveComponent* InComponent, FVector const& HitLoc, FVector const& HitNorm);
 
 	void Reset(float InTime = 1.f, bool bPreserveTraceData = true)
 	{
@@ -1395,6 +1413,9 @@ struct ENGINE_API FHitResult
 
 	/** Utility to return the Actor that owns the Component that was hit */
 	AActor* GetActor() const;
+
+	/** Utility to return the Component that was hit */
+	UPrimitiveComponent* GetComponent() const;
 
 	/** Return true if there was a blocking hit that was not caused by starting in penetration. */
 	FORCEINLINE bool IsValidBlockingHit() const
@@ -1457,6 +1478,9 @@ struct ENGINE_API FOverlapResult
 
 	/** Utility to return the Actor that owns the Component that was hit */
 	AActor* GetActor() const;
+
+	/** Utility to return the Component that was hit */
+	UPrimitiveComponent* GetComponent() const;
 
 	/** Indicates if this hit was requesting a block - if false, was requesting a touch instead */
 	UPROPERTY()
@@ -1523,6 +1547,85 @@ struct FAnimSlotDesc
 	{
 	}
 
+};
+
+/** Container for Animation Update Rate parameters.
+ * They are shared for all components of an Actor, so they can be updated in sync. */
+USTRUCT()
+struct FAnimUpdateRateParameters
+{
+	GENERATED_USTRUCT_BODY()
+
+private:
+	/** How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc. */
+	UPROPERTY()
+	int32 UpdateRate;
+
+	/** How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
+	 *  has to be a multiple of UpdateRate. */
+	UPROPERTY()
+	int32 EvaluationRate;
+
+	/** When skipping a frame, should it be interpolated or frozen? */
+	UPROPERTY()
+	bool bInterpolateSkippedFrames;
+
+	/** (This frame) animation update should be skipped. */
+	UPROPERTY()
+	bool bSkipUpdate;
+
+	/** (This frame) animation evaluation should be skipped. */
+	UPROPERTY()
+	bool bSkipEvaluation;
+
+public:
+	/** Default constructor */
+	FAnimUpdateRateParameters()
+		: UpdateRate(1)
+		, EvaluationRate(1)
+		, bInterpolateSkippedFrames(false)
+		, bSkipUpdate(false)
+		, bSkipEvaluation(false)
+	{
+	}
+
+	/** Set parameters and verify inputs.
+	 * @param : Owner Actor owner calling this.
+	 * @param : NewUpdateRate. How often animation will be updated/ticked. 1 = every frame, 2 = every 2 frames, etc.
+	 * @param : NewEvaluationRate. How often animation will be evaluated. 1 = every frame, 2 = every 2 frames, etc.
+	 * @param : bNewInterpSkippedFrames. When skipping a frame, should it be interpolated or frozen?
+	 */
+	void Set(const class AActor & Owner, const int32 & NewUpdateRate, const int32 & NewEvaluationRate, const bool & bNewInterpSkippedFrames);
+
+	/* Getter for UpdateRate */
+	int32 GetUpdateRate() const
+	{
+		return UpdateRate;
+	}
+
+	/* Getter for EvaluationRate */
+	int32 GetEvaluationRate() const
+	{
+		return EvaluationRate;
+	}
+
+	/* Getter for bSkipUpdate */
+	bool ShouldSkipUpdate() const
+	{
+		return bSkipUpdate;
+	}
+
+	/* Getter for bSkipEvaluation */
+	bool ShouldSkipEvaluation() const
+	{
+		return bSkipEvaluation;
+	}
+
+	/* Getter for bInterpolateSkippedFrames */
+	bool ShouldInterpolateSkippedFrames() const
+	{
+		return bInterpolateSkippedFrames;
+	}
 };
 
 /**
@@ -2602,3 +2705,142 @@ public:
 	}
 };
 
+/** info for glow when using depth field rendering */
+USTRUCT()
+struct FDepthFieldGlowInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** whether to turn on the outline glow (depth field fonts only) */
+	UPROPERTY()
+	uint32 bEnableGlow:1;
+
+	/** base color to use for the glow */
+	UPROPERTY()
+	FLinearColor GlowColor;
+
+	/** if bEnableGlow, outline glow outer radius (0 to 1, 0.5 is edge of character silhouette)
+	 * glow influence will be 0 at GlowOuterRadius.X and 1 at GlowOuterRadius.Y
+	*/
+	UPROPERTY()
+	FVector2D GlowOuterRadius;
+
+	/** if bEnableGlow, outline glow inner radius (0 to 1, 0.5 is edge of character silhouette)
+	 * glow influence will be 1 at GlowInnerRadius.X and 0 at GlowInnerRadius.Y
+	 */
+	UPROPERTY()
+	FVector2D GlowInnerRadius;
+
+
+	FDepthFieldGlowInfo()
+		: bEnableGlow(false)
+		, GlowColor(ForceInit)
+		, GlowOuterRadius(ForceInit)
+		, GlowInnerRadius(ForceInit)
+	{
+	}
+
+
+		bool operator==(const FDepthFieldGlowInfo& Other) const
+		{
+			if (Other.bEnableGlow != bEnableGlow)
+			{
+				return false;
+			}
+			else if (!bEnableGlow)
+			{
+				// if the glow is disabled on both, the other values don't matter
+				return true;
+			}
+			else
+			{
+				return (Other.GlowColor == GlowColor && Other.GlowOuterRadius == GlowOuterRadius && Other.GlowInnerRadius == GlowInnerRadius);
+			}
+		}
+		bool operator!=(const FDepthFieldGlowInfo& Other) const
+		{
+			return !(*this == Other);
+		}
+	
+};
+
+/** information used in font rendering */
+USTRUCT()
+struct FFontRenderInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** whether to clip text */
+	UPROPERTY()
+	uint32 bClipText:1;
+
+	/** whether to turn on shadowing */
+	UPROPERTY()
+	uint32 bEnableShadow:1;
+
+	/** depth field glow parameters (only usable if font was imported with a depth field) */
+	UPROPERTY()
+	struct FDepthFieldGlowInfo GlowInfo;
+
+	FFontRenderInfo()
+		: bClipText(false), bEnableShadow(false)
+	{}
+};
+
+/** Simple 2d triangle with UVs */
+USTRUCT()
+struct FCanvasUVTri
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Position of first vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+	FVector2D V0_Pos;
+
+	/** UV of first vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V0_UV;
+
+	/** Color of first vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FLinearColor V0_Color;
+
+	/** Position of second vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V1_Pos;
+
+	/** UV of second vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V1_UV;
+
+	/** Color of second vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FLinearColor V1_Color;
+
+	/** Position of third vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V2_Pos;
+
+	/** UV of third vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FVector2D V2_UV;
+
+	/** Color of third vertex */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CanvasUVTri)
+		FLinearColor V2_Color;
+
+	FCanvasUVTri()
+		: V0_Pos(ForceInit)
+		, V0_UV(ForceInit)
+		, V0_Color(ForceInit)
+		, V1_Pos(ForceInit)
+		, V1_UV(ForceInit)
+		, V1_Color(ForceInit)
+		, V2_Pos(ForceInit)
+		, V2_UV(ForceInit)
+		, V2_Color(ForceInit)
+	{
+	}
+};
+
+template <> struct TIsZeroConstructType<FCanvasUVTri> { enum { Value = true }; };

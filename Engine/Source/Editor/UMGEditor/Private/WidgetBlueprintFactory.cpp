@@ -24,7 +24,12 @@ bool UWidgetBlueprintFactory::ConfigureProperties()
 {
 	// TODO Make config dialog like the anim blueprints.
 	return true;
-};
+}
+
+bool UWidgetBlueprintFactory::ShouldShowInNewMenu() const
+{
+	return GetDefault<UEditorExperimentalSettings>()->bUnrealMotionGraphics;
+}
 
 UObject* UWidgetBlueprintFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
 {

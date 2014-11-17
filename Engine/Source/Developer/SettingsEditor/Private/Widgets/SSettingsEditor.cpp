@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SettingsEditorPrivatePCH.h"
-
+#include "EngineAnalytics.h"
+#include "AnalyticsEventAttribute.h"
+#include "IAnalyticsProvider.h"
 
 #define LOCTEXT_NAMESPACE "SSettingsEditor"
 
@@ -281,6 +283,8 @@ void SSettingsEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 
 	if (SelectedSection.IsValid() && (PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive))
 	{
+		RecordPreferenceChangedAnalytics( SelectedSection, PropertyChangedEvent );
+
 		SelectedSection->Save();
 	}
 }
@@ -558,6 +562,21 @@ bool SSettingsEditor::HandleConfigNoticeUnlocked( ) const
 bool SSettingsEditor::HandleLookingForSourceControlState() const
 {
 	return DefaultConfigQueryInProgress;
+}
+
+void SSettingsEditor::RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const
+{
+	UProperty* ChangedProperty = PropertyChangedEvent.MemberProperty;
+	// submit analytics data
+	if(FEngineAnalytics::IsAvailable() && ChangedProperty != nullptr)
+	{
+		TArray<FAnalyticsEventAttribute> EventAttributes;
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertySection"), SelectedSection->GetDisplayName().ToString()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertyClass"), ChangedProperty->GetOwnerClass()->GetName()));
+		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("PropertyName"), ChangedProperty->GetName()));
+
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.PreferencesChanged"), EventAttributes);
+	}
 }
 
 EVisibility SSettingsEditor::HandleDefaultConfigNoticeVisibility( ) const

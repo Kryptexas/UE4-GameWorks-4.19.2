@@ -127,8 +127,15 @@ int32 USoundCueGraphNode::EstimateNodeWidth() const
 
 bool USoundCueGraphNode::CanAddInputPin() const
 {
-	// Check if adding another input would exceed max child nodes.
-	return SoundNode->ChildNodes.Num() < SoundNode->GetMaxChildNodes();
+	if(SoundNode)
+	{
+		// Check if adding another input would exceed max child nodes.
+		return SoundNode->ChildNodes.Num() < SoundNode->GetMaxChildNodes();
+	}
+	else
+	{
+		return false;
+	}
 }
 
 FText USoundCueGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const

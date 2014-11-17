@@ -3,6 +3,10 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_InputAxisKeyEvent.h"
 #include "CompilerResultsLog.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
+
+#define LOCTEXT_NAMESPACE "UK2Node_InputAxisKeyEvent"
 
 UK2Node_InputAxisKeyEvent::UK2Node_InputAxisKeyEvent(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
@@ -114,3 +118,51 @@ bool UK2Node_InputAxisKeyEvent::CanPasteHere(const UEdGraph* TargetGraph, const 
 
 	return bAllowPaste;
 }
+
+void UK2Node_InputAxisKeyEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	TArray<FKey> AllKeys;
+	EKeys::GetAllKeys(AllKeys);
+
+	for (FKey const Key : AllKeys)
+	{
+		if (!Key.IsBindableInBlueprints() || !Key.IsFloatAxis())
+		{
+			continue;
+		}
+
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FKey Key)
+		{
+			UK2Node_InputAxisKeyEvent* InputNode = CastChecked<UK2Node_InputAxisKeyEvent>(NewNode);
+			InputNode->Initialize(Key);
+		};
+
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, Key);
+		ActionListOut.Add(NodeSpawner);
+	}
+}
+
+FText UK2Node_InputAxisKeyEvent::GetMenuCategory() const
+{
+	FText SubCategory;
+	if (AxisKey.IsGamepadKey())
+	{
+		SubCategory = LOCTEXT("GamepadCategory", "Gamepad Events");
+	}
+	else if (AxisKey.IsMouseButton())
+	{
+		SubCategory = LOCTEXT("MouseCategory", "Mouse Events");
+	}
+	else
+	{
+		SubCategory = LOCTEXT("KeyEventsCategory", "Key Events");
+	}
+
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, SubCategory);
+
+}
+
+#undef LOCTEXT_NAMESPACE

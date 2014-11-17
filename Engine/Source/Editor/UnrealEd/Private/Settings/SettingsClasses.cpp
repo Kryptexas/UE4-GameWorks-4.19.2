@@ -63,11 +63,7 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 
 	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-	if (Name == FName(TEXT("bBehaviorTreeEditor")) && bBehaviorTreeEditor && !FModuleManager::Get().IsModuleLoaded(TEXT("BehaviorTreeEditor")))
-	{
-		FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
-	}
-	else if (Name == FName(TEXT("ConsoleForGamepadLabels")))
+	if (Name == FName(TEXT("ConsoleForGamepadLabels")))
 	{
 		EKeys::SetConsoleForGamepadLabels(ConsoleForGamepadLabels);
 	}

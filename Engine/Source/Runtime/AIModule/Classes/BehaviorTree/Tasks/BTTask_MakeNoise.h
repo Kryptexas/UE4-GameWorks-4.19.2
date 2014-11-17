@@ -3,6 +3,10 @@
 #pragma once
 #include "BTTask_MakeNoise.generated.h"
 
+/**
+ * Make Noise task node.
+ * A task node that calls MakeNoise() on this Pawn when executed.
+ */
 UCLASS()
 class UBTTask_MakeNoise : public UBTTaskNode
 {

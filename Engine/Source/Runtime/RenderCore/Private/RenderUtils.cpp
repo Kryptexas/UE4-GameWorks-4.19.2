@@ -237,7 +237,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM4))
+		if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			// Create the texture.
 			FBlackVolumeTextureResourceBulkDataInterface BlackTextureBulkData;
@@ -277,7 +277,7 @@ public:
 	// FResource interface.
 	virtual void InitRHI() override
 	{
-		if (IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM4))
+		if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 		{
 			// Create the texture RHI.  		
 			FRHIResourceCreateInfo CreateInfo;
@@ -469,7 +469,7 @@ public:
 	// FResource interface.
 	virtual void InitRHI() override
 	{
-		if (IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5))
+		if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 		{
 			// Create the texture RHI.
 			FRHIResourceCreateInfo CreateInfo;

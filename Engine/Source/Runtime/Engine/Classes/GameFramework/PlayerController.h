@@ -9,12 +9,64 @@
 #include "GameFramework/ForceFeedbackEffect.h"
 #include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/Controller.h"
+#include "Engine/LatentActionManager.h"
 #include "PlayerController.generated.h"
 
 class FPrimitiveComponentId;
 
 /** delegate used to override default viewport audio listener position calculated from camera */
 DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVector& /*ProjFront*/, FVector& /*ProjRight*/);
+
+DECLARE_LOG_CATEGORY_EXTERN(LogPlayerController, Log, All);
+
+UENUM()
+namespace EDynamicForceFeedbackAction
+{
+	enum Type
+	{
+		Start,
+		Update,
+		Stop,
+	};
+}
+
+struct FDynamicForceFeedbackDetails
+{
+	uint32 bAffectsLeftLarge:1;
+	uint32 bAffectsLeftSmall:1;
+	uint32 bAffectsRightLarge:1;
+	uint32 bAffectsRightSmall:1;
+
+	float Intensity;
+
+	FDynamicForceFeedbackDetails()
+		: bAffectsLeftLarge(true)
+		, bAffectsLeftSmall(true)
+		, bAffectsRightLarge(true)
+		, bAffectsRightSmall(true)
+		, Intensity(0.f)
+	{}
+
+	void Update(FForceFeedbackValues& Values) const
+	{
+		if (bAffectsLeftLarge)
+		{
+			Values.LeftLarge = FMath::Clamp(Intensity, Values.LeftLarge, 1.f);
+		}
+		if (bAffectsLeftSmall)
+		{
+			Values.LeftSmall = FMath::Clamp(Intensity, Values.LeftSmall, 1.f);
+		}
+		if (bAffectsRightLarge)
+		{
+			Values.RightLarge = FMath::Clamp(Intensity, Values.RightLarge, 1.f);
+		}
+		if (bAffectsRightSmall)
+		{
+			Values.RightSmall = FMath::Clamp(Intensity, Values.RightSmall, 1.f);
+		}
+	}
+};
 
 //=============================================================================
 /**
@@ -111,6 +163,8 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(transient)
 	TArray<FActiveForceFeedbackEffect> ActiveForceFeedbackEffects;
 
+	TMap<int32, FDynamicForceFeedbackDetails> DynamicForceFeedbacks;
+
 	/** list of names of levels the server is in the middle of sending us for a PrepareMapChange() call */
 	TArray<FName> PendingMapChangeLevelNames;
 
@@ -130,7 +184,7 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(DuplicateTransient)
 	uint8 NetPlayerIndex;
 
-    /** List of muted players in various categories */
+	/** List of muted players in various categories */
 	FPlayerMuteList MuteList;
 
 	/** this is set on the OLD PlayerController when performing a swap over a network connection
@@ -141,7 +195,7 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(DuplicateTransient)
 	class UNetConnection* PendingSwapConnection;
 
-    /** The net connection this controller is communicating on, NULL for local players on server */
+	/** The net connection this controller is communicating on, NULL for local players on server */
 	UPROPERTY(DuplicateTransient)
 	class UNetConnection* NetConnection;
 
@@ -179,6 +233,9 @@ class ENGINE_API APlayerController : public AController
 	/** Whether actor/component touch over events should be generated. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface)
 	uint32 bEnableTouchOverEvents:1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Game|Feedback")
+	uint32 bForceFeedbackEnabled:1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MouseInterface)
 	TEnumAsByte<EMouseCursor::Type> DefaultMouseCursor;
@@ -325,6 +382,13 @@ public:
 	void DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
 
 	/**
+	 * Convert a World Space 3D position into a 2D Screen Space position.
+	 * @return true if the world coordinate was successfully projected to the screen.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = ( FriendlyName = "ConvertWorldLocationToScreenLocation" ))
+	bool ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const;
+	
+	/**
 	  * Updates the rotation of player, based on ControlRotation after RotationInput has been applied.
 	  * This may then be modified by the PlayerCamera, and is passed to Pawn->FaceRotation().
 	  */
@@ -375,22 +439,22 @@ public:
 	 */
 	virtual void SeamlessTravelFrom(class APlayerController* OldPC);
 
-   	/** 
+	/** 
 	 * Tell the client to enable or disable voice chat (not muting)
-     * @param bEnable enable or disable voice chat
+	 * @param bEnable enable or disable voice chat
 	 */
 	UFUNCTION(client, reliable)
 	virtual void ClientEnableNetworkVoice(bool bEnable);
 
-   	/** Enable voice chat transmission	 */
+	/** Enable voice chat transmission	 */
 	void StartTalking();
 
-   	/** Disable voice chat transmission	 */
+	/** Disable voice chat transmission	 */
 	void StopTalking();
 
-   	/** 
+	/** 
 	 * Toggle voice chat on and off
-     * @param bSpeaking enable or disable voice chat
+	 * @param bSpeaking enable or disable voice chat
 	 */
 	UFUNCTION(exec)
 	virtual void ToggleSpeaking(bool bSpeaking);
@@ -684,6 +748,21 @@ public:
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
 	void ClientStopForceFeedback(class UForceFeedbackEffect* ForceFeedbackEffect, FName Tag);
 
+	/** 
+	 * Latent action that controls the playing of force feedback 
+	 * Begins playing when Start is called.  Calling Update or Stop if the feedback is not active will have no effect.
+	 * Completed will execute when Stop is called or the duration ends.
+	 * When Update is called the Intensity, Duration, and affect values will be updated with the current inputs
+	 * @param	Intensity				How strong the feedback should be.  Valid values are between 0.0 and 1.0
+	 * @param	Duration				How long the feedback should play for.  If the value is negative it will play until stopped
+	 * @param   bAffectsLeftLarge		Whether the intensity should be applied to the large left servo
+	 * @param   bAffectsLeftSmall		Whether the intensity should be applied to the small left servo
+	 * @param   bAffectsRightLarge		Whether the intensity should be applied to the large right servo
+	 * @param   bAffectsRightSmall		Whether the intensity should be applied to the small right servo
+	 */
+	UFUNCTION(BlueprintCallable, meta=(Latent, LatentInfo="LatentInfo", ExpandEnumAsExecs="Action", Duration="-1", bAffectsLeftLarge="true", bAffectsLeftSmall="true", bAffectsRightLarge="true", bAffectsRightSmall="true", AdvancedDisplay="bAffectsLeftLarge,bAffectsLeftSmall,bAffectsRightLarge,bAffectsRightSmall"), Category="Game|Feedback")
+	void PlayDynamicForceFeedback(float Intensity, float Duration, bool bAffectsLeftLarge, bool bAffectsLeftSmall, bool bAffectsRightLarge, bool bAffectsRightSmall, TEnumAsByte<EDynamicForceFeedbackAction::Type> Action, FLatentActionInfo LatentInfo);
+
 	/**
 	 * Travel to a different map or IP address. Calls the PreClientTravel event before doing anything.
 	 * NOTE: This is implemented as a locally executed wrapper for ClientTravelInternal, to avoid API compatability breakage
@@ -860,9 +939,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
 	void GetInputMotionState(FVector& Tilt, FVector& RotationRate, FVector& Gravity, FVector& Acceleration) const;
 
-	/** Retrieves the X and Y screen coordinates of the mouse cursor. Returns false if the touch index is not down */
+	/** Retrieves the X and Y screen coordinates of the mouse cursor. Returns false if there is no associated mouse device */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
-	void GetMousePosition(float& LocationX, float& LocationY) const;
+	bool GetMousePosition(float& LocationX, float& LocationY) const;
 
 	/** Returns how long the given key/button has been down.  Returns 0 if it's up or it just went down this frame. */
 	UFUNCTION(BlueprintCallable, Category="Game|Player")
@@ -940,6 +1019,11 @@ protected:
 	/** The virtual touch interface */
 	TSharedPtr<class SVirtualJoystick> VirtualJoystick;
 
+	/** The currently set touch interface */
+	UPROPERTY()
+	class UTouchInterface* CurrentTouchInterface;
+
+
 public:
 	/** Adds an inputcomponent to the top of the input stack. */
 	void PushInputComponent(UInputComponent* Input);
@@ -981,6 +1065,7 @@ public:
 	virtual void Possess(APawn* aPawn) override;
 	virtual void UnPossess() override;
 	virtual void CleanupPlayerState() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Destroyed() override;
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
 	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) override;
@@ -1058,7 +1143,6 @@ protected:
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused);
 	virtual void BuildInputStack(TArray<UInputComponent*>& InputStack);
 	void ProcessForceFeedback(const float DeltaTime, const bool bGamePaused);
-
 
 	/** Allows the PlayerController to set up custom input bindings. */
 	virtual void SetupInputComponent();
@@ -1205,6 +1289,18 @@ public:
 	 * @param TransitionParams - parameters to use for controlling the transition
 	 */
 	virtual void SetViewTarget(class AActor* NewViewTarget, FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
+
+	/**
+	 * If bAutoManageActiveCameraTarget is true, then automatically manage the active camera target.
+	 * If there a CameraActor placed in the level with an auto-activate player assigned to it, that will be preferred, otherwise SuggestedTarget will be used.
+	 */
+	virtual void AutoManageActiveCameraTarget(AActor* SuggestedTarget);
+
+protected:
+
+	virtual ACameraActor* GetAutoActivateCameraForPlayer() const;
+
+public:
 
 	virtual bool ShouldShowMouseCursor() const;
 	virtual EMouseCursor::Type GetMouseCursor() const;

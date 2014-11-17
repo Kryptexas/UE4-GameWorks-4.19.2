@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#if WITH_FANCY_TEXT
+
 struct SLATE_API FTextRunParseResults
 {
 	FTextRunParseResults( FString InName, const FTextRange& InOriginalRange)
@@ -71,3 +73,5 @@ public:
 
 	virtual TSharedRef< ISlateRun > Create( const FTextRunParseResults& RunInfo, const FString& OriginalText, const TSharedRef< FString >& ModelText, const ISlateStyle* Style ) = 0;
 };
+
+#endif //WITH_FANCY_TEXT

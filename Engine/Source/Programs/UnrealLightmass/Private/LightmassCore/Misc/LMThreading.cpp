@@ -11,7 +11,7 @@
 #include "AllowWindowsPlatformTypes.h"
 #endif // PLATFORM_WINDOWS
 
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_LINUX
 #include <sys/time.h>	// for gettimeofday()
 #endif
 

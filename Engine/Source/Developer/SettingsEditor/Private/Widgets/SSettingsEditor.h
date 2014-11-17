@@ -167,6 +167,8 @@ private:
 	// Callback for determining whether we are currently looking for the source control state of the config file
 	bool HandleLookingForSourceControlState( ) const;
 
+	// Reports a preference changed event to the analytics system */
+	void RecordPreferenceChangedAnalytics( ISettingsSectionPtr SelectedSection, const FPropertyChangedEvent& PropertyChangedEvent ) const;
 private:
 
 	// Holds the vertical box for settings categories.

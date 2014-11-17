@@ -33,8 +33,6 @@ public:
 	virtual bool SetSessionID(const FString& InSessionID) override;
 
 	virtual void RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes) override;
-	virtual void RecordUserAttribute(const TArray<FAnalyticsEventAttribute>& Attributes) override;
-
 	virtual void RecordItemPurchase(const FString& ItemId, const FString& Currency, int PerItemCost, int ItemQuantity) override;
 	virtual void RecordCurrencyPurchase(const FString& GameCurrencyType, int GameCurrencyAmount, const FString& RealCurrencyType, float RealMoneyCost, const FString& PaymentProvider) override;
 	virtual void RecordCurrencyGiven(const FString& GameCurrencyType, int GameCurrencyAmount) override;
@@ -362,24 +360,6 @@ void FAnalyticsProviderSwrve::RecordEvent(const FString& EventName, const TArray
 	}
 	SendToSwrve(TEXT("1/event"), FString::Printf(TEXT("name=%s"), *EventName), EventParams);
 }
-
-void FAnalyticsProviderSwrve::RecordUserAttribute(const TArray<FAnalyticsEventAttribute>& Attributes)
-{
-	if (Attributes.Num() == 0)
-	{
-		UE_LOG(LogAnalytics, Warning, TEXT("SwrveLogUserAttributeUpdateArray called with no attributes to update."));
-		return;
-	}
-
-	FString EventParams = TEXT("");
-	for (int Ndx=0;Ndx<Attributes.Num();++Ndx)
-	{
-		EventParams += FString(TEXT("&")) + Attributes[Ndx].AttrName + FString(TEXT("=")) + Attributes[Ndx].AttrValue;
-	}
-
-	SendToSwrve(TEXT("1/user"), EventParams, FString());
-}
-
 
 void FAnalyticsProviderSwrve::RecordItemPurchase( const FString& ItemId, const FString& Currency, int PerItemCost, int ItemQuantity )
 {

@@ -1179,13 +1179,58 @@ public:
 	 * @param Item	The item to add
 	 * @return		Index to the new item
 	 */
-	template <typename ArgsType>
-	int32 Emplace( ArgsType&& Args )
-	{
-		const int32 Index = AddUninitialized(1);
-		new(GetTypedData() + Index) ElementType(Forward<ArgsType>(Args));
-		return Index;
-	}
+	#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+
+		template <typename... ArgsType>
+		int32 Emplace(ArgsType&&... Args)
+		{
+			const int32 Index = AddUninitialized(1);
+			new(GetTypedData() + Index) ElementType(Forward<ArgsType>(Args)...);
+			return Index;
+		}
+
+	#else
+
+		int32 Emplace()
+		{
+			const int32 Index = AddUninitialized(1);
+			new(GetTypedData() + Index) ElementType();
+			return Index;
+		}
+
+		template <typename Arg0Type>
+		int32 Emplace(Arg0Type&& Arg0)
+		{
+			const int32 Index = AddUninitialized(1);
+			new(GetTypedData() + Index) ElementType(Forward<Arg0Type>(Arg0));
+			return Index;
+		}
+
+		template <typename Arg0Type, typename Arg1Type>
+		int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1)
+		{
+			const int32 Index = AddUninitialized(1);
+			new(GetTypedData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1));
+			return Index;
+		}
+
+		template <typename Arg0Type, typename Arg1Type, typename Arg2Type>
+		int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2)
+		{
+			const int32 Index = AddUninitialized(1);
+			new(GetTypedData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2));
+			return Index;
+		}
+
+		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type>
+		int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3)
+		{
+			const int32 Index = AddUninitialized(1);
+			new(GetTypedData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3));
+			return Index;
+		}
+
+	#endif
 
 	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
@@ -1501,6 +1546,27 @@ public:
 	void Sort( const PREDICATE_CLASS& Predicate )
 	{
 		::Sort( GetTypedData(), Num(), Predicate );
+	}
+
+	/**
+	 * Stable sorts the array assuming < operator is defined for the item type.
+	 * Stable sort is slower than non-stable algorithm.
+	 */
+	void StableSort()
+	{
+		::StableSort(GetTypedData(), Num());
+	}
+
+	/**
+	 * Stable sorts the array using user defined predicate class. Stable sort
+	 * is slower than non-stable algorithm.
+	 *
+	 * @param Predicate Predicate class instance
+	 */
+	template <class PREDICATE_CLASS>
+	void StableSort(const PREDICATE_CLASS& Predicate)
+	{
+		::StableSort(GetTypedData(), Num(), Predicate);
 	}
 
 #if defined(_MSC_VER)

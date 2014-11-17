@@ -4,7 +4,7 @@
 	ExceptionHandling.cpp: Exception handling for functions that want to create crash dumps.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 
 /** Whether we should generate crash reports even if the debugger is attached. */

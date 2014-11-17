@@ -12,7 +12,7 @@ public:
 	void UpdateBuffers( const FSlateWindowElementList& InElementList );
 	void DrawElements( const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches );
 
-	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override { return TextureManager; }
+	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override;
 	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
 
 private:

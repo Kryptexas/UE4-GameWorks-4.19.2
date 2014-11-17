@@ -201,6 +201,8 @@ FD3D11BoundShaderState::FD3D11BoundShaderState(
 	):
 	CacheLink(InVertexDeclarationRHI,InVertexShaderRHI,InPixelShaderRHI,InHullShaderRHI,InDomainShaderRHI,InGeometryShaderRHI,this)
 {
+	INC_DWORD_STAT(STAT_D3D11NumBoundShaderState);
+
 	DYNAMIC_CAST_D3D11RESOURCE(VertexDeclaration,InVertexDeclaration);
 	DYNAMIC_CAST_D3D11RESOURCE(VertexShader,InVertexShader);
 	DYNAMIC_CAST_D3D11RESOURCE(PixelShader,InPixelShader);
@@ -236,6 +238,12 @@ FD3D11BoundShaderState::FD3D11BoundShaderState(
 
 	static_assert(ARRAY_COUNT(bShaderNeedsGlobalConstantBuffer) == SF_NumFrequencies, "EShaderFrequency size should match with array count of bShaderNeedsGlobalConstantBuffer.");
 }
+
+FD3D11BoundShaderState::~FD3D11BoundShaderState()
+{
+	DEC_DWORD_STAT(STAT_D3D11NumBoundShaderState);
+}
+
 
 /**
 * Creates a bound shader state instance which encapsulates a decl, vertex shader, and pixel shader

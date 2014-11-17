@@ -80,7 +80,7 @@ public:
 
 	static bool Is3dWidgetEnabled(const UUserDefinedStruct* Struct, FGuid VarGuid);
 
-	//MISC
+	//GUID AND VAR DESC
 	static TArray<FStructVariableDescription>& GetVarDesc(UUserDefinedStruct* Struct);
 
 	static const TArray<FStructVariableDescription>& GetVarDesc(const UUserDefinedStruct* Struct);
@@ -95,14 +95,20 @@ public:
 		return Struct ? GetVarDesc(Struct).FindByPredicate(FFindByGuidHelper<FStructVariableDescription>(VarGuid)) : NULL;
 	}
 
+	static FGuid GetGuidForProperty(const UProperty* Property);
+
+	static UProperty* GetPropertyByGuid(const UUserDefinedStruct* Struct, FGuid VarGuid);
+
+	static FGuid GetGuidFromPropertyName(FName Name);
+
+	//MISC
 	static void ModifyStructData(UUserDefinedStruct* Struct);
 
 	static bool UserDefinedStructEnabled();
 
 	static void RemoveInvalidStructureMemberVariableFromBlueprint(UBlueprint* Blueprint);
 
-	static FGuid GetGuidForProperty(const UProperty* Property);
-
+	//DEFAULT VALUE
 	/*
 	 Default values for member variables in User Defined Structure are stored in meta data "MakeStructureDefaultValue"
 	 The following functions are used to fill an instance of user defined struct with those default values.

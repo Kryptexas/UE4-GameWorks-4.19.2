@@ -11,6 +11,7 @@
 
 #if PLATFORM_HTML5_BROWSER
 #include "HTML5JavaScriptFx.h"
+#include <emscripten.h>
 #endif 
 
 
@@ -19,9 +20,24 @@ FHTTPTransport::FHTTPTransport()
 {
 }
 
-bool FHTTPTransport::Initialize(const TCHAR* HostIp)
+bool FHTTPTransport::Initialize(const TCHAR* InHostIp)
 {
-	FCString::Sprintf( Url, TEXT("http://%s:%d"), HostIp, (int)DEFAULT_FILE_SERVING_PORT); 
+	// parse out the format
+	FString HostIp = InHostIp;
+
+	// make sure that we have the correct protcol
+	ensure( HostIp.RemoveFromStart("http://") );
+
+	// check if we have specified the port also
+	if ( HostIp.Contains(":") == false)
+	{
+		// no port put the default one on
+		HostIp = FString::Printf(TEXT("%s:%d"), *HostIp, (int)(DEFAULT_HTTP_FILE_SERVING_PORT) );
+	}
+		// make sure that our string is again correctly formated
+	HostIp = FString::Printf(TEXT("http://%s"),*HostIp);
+
+	FCString::Sprintf(Url, *HostIp);
 
 #if !PLATFORM_HTML5
 	HttpRequest = FHttpModule::Get().CreateRequest(); 
@@ -30,6 +46,10 @@ bool FHTTPTransport::Initialize(const TCHAR* HostIp)
 
 #if PLATFORM_HTML5_WIN32
 	HTML5Win32::NFSHttp::Init(TCHAR_TO_ANSI(Url));
+#endif 
+
+#if PLATFORM_HTML5_BROWSER
+	emscripten_log(EM_LOG_CONSOLE , "Unreal File Server URL : %s ", TCHAR_TO_ANSI(Url)); 
 #endif 
 
 	TArray<uint8> In,Out; 

@@ -40,7 +40,8 @@ namespace UnrealBuildTool.Rules
                     "UnrealEd",
 					"Analytics",
 					"SourceCodeAccess",
-					"SourceControl"
+					"SourceControl",
+                    "ContentBrowser"
 				}
 			);
 

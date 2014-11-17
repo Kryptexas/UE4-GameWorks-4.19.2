@@ -71,14 +71,10 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 	{
 		check(Mesh.DynamicVertexData);
 
-		//hack here to get the code checked in, but this needs to be fixed. It was not sensible to wind this all the way out of the callstack
-		FRHICommandListImmediate& RHICmdListIm = FRHICommandListExecutor::GetImmediateCommandList();
-		check(&RHICmdList == &RHICmdListIm);
-
 		if (BatchElement.DynamicIndexData)
 		{
 			DrawIndexedPrimitiveUP(
-				RHICmdListIm,
+				RHICmdList,
 				Mesh.Type,
 				BatchElement.MinVertexIndex,
 				BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
@@ -92,7 +88,7 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 		else
 		{
 			DrawPrimitiveUP(
-				RHICmdListIm,
+				RHICmdList,
 				Mesh.Type,
 				BatchElement.NumPrimitives,
 				Mesh.DynamicVertexData,

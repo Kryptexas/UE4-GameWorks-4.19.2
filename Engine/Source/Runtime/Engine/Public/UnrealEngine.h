@@ -407,6 +407,7 @@ struct FCachedSystemScalabilityCVars
 };
 
 ENGINE_API bool AllowHighQualityLightmaps();
+ENGINE_API bool AllowHighQualityLightmaps(ERHIFeatureLevel::Type FeatureLevel);
 
 ENGINE_API const FCachedSystemScalabilityCVars& GetCachedScalabilityCVars();
 

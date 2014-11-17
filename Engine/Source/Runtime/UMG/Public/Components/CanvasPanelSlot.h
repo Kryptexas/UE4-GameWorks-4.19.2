@@ -34,6 +34,10 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
 	FAnchorData LayoutData;
 
+	/** The order priority this widget is rendered in.  Higher values are rendered last (and so they will appear to be on top). */
+	UPROPERTY(EditDefaultsOnly, Category=AnchorData)
+	int32 ZOrder;
+
 	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
 
 	virtual void SetDesiredPosition(FVector2D InPosition) override;
@@ -46,7 +50,7 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 
 	/** Sets the position of the slot */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
-	void SetOffset(FMargin InOffset);
+	void SetOffsets(FMargin InOffset);
 	
 	/** Sets the anchors on the slot */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
@@ -56,9 +60,15 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetAlignment(FVector2D InAlignment);
 
+	/** Sets the z-order on the slot */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetZOrder(int32 InZOrder);
+
 	// UPanelSlot interface
 	virtual void SyncronizeProperties() override;
 	// End of UPanelSlot interface
+
+	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR
 	// UObject interface

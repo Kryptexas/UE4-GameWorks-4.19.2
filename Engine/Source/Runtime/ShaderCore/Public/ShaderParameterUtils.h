@@ -40,8 +40,7 @@ void SetShaderValue(
 			Parameter.GetBufferIndex(),
 			Parameter.GetBaseIndex() + ElementIndex * AlignedTypeSize,
 			(uint32)NumBytesToSet,
-			&Value,
-			true
+			&Value
 			);
 	}
 }
@@ -89,8 +88,7 @@ void SetShaderValueArray(
 			Parameter.GetBufferIndex(),
 			Parameter.GetBaseIndex() + BaseElementIndex * AlignedTypeSize,
 			(uint32)NumBytesToSet,
-			Values,
-			true
+			Values
 			);
 	}
 }
@@ -131,8 +129,7 @@ inline void SetPixelShaderBool(
 			Parameter.GetBufferIndex(),
 			Parameter.GetBaseIndex(),
 			sizeof(BoolValue),
-			&BoolValue,
-			true
+			&BoolValue
 			);
 	}
 }
@@ -336,6 +333,23 @@ inline void FRWShaderParameter::UnsetUAV(FRHICommandList& RHICmdList, FComputeSh
 	SetUAVParameter(RHICmdList, ComputeShader,UAVParameter,FUnorderedAccessViewRHIRef());
 }
 
+
+/** Sets the value of a shader uniform buffer parameter to a uniform buffer containing the struct. */
+template<typename TShaderRHIRef>
+inline void SetLocalUniformBufferParameter(
+	FRHICommandList& RHICmdList,
+	TShaderRHIRef Shader,
+	const FShaderUniformBufferParameter& Parameter,
+	const FLocalUniformBuffer& LocalUniformBuffer
+	)
+{
+	// This will trigger if the parameter was not serialized
+	checkSlow(Parameter.IsInitialized());
+	if(Parameter.IsBound())
+	{
+		RHICmdList.SetLocalShaderUniformBuffer(Shader, Parameter.GetBaseIndex(), LocalUniformBuffer);
+	}
+}
 
 /** Sets the value of a shader uniform buffer parameter to a uniform buffer containing the struct. */
 template<typename TShaderRHIRef>

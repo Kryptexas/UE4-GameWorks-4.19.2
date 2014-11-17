@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UUniformGridPanel
 
@@ -9,6 +11,16 @@ UUniformGridPanel::UUniformGridPanel(const FPostConstructInitializeProperties& P
 	: Super(PCIP)
 {
 	bIsVariable = false;
+
+	SUniformGridPanel::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+}
+
+void UUniformGridPanel::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyUniformGridPanel.Reset();
 }
 
 UClass* UUniformGridPanel::GetSlotClass() const
@@ -30,7 +42,11 @@ void UUniformGridPanel::OnSlotRemoved(UPanelSlot* Slot)
 	// Remove the widget from the live slot if it exists.
 	if ( MyUniformGridPanel.IsValid() )
 	{
-		MyUniformGridPanel->RemoveSlot(Slot->Content->GetWidget());
+		TSharedPtr<SWidget> Widget = Slot->Content->GetCachedWidget();
+		if ( Widget.IsValid() )
+		{
+			MyUniformGridPanel->RemoveSlot(Widget.ToSharedRef());
+		}
 	}
 }
 
@@ -38,7 +54,6 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 {
 	MyUniformGridPanel =
 		SNew(SUniformGridPanel)
-		.SlotPadding(SlotPadding)
 		.MinDesiredSlotWidth(MinDesiredSlotWidth)
 		.MinDesiredSlotHeight(MinDesiredSlotHeight);
 
@@ -53,3 +68,23 @@ TSharedRef<SWidget> UUniformGridPanel::RebuildWidget()
 
 	return BuildDesignTimeWidget( MyUniformGridPanel.ToSharedRef() );
 }
+
+void UUniformGridPanel::SyncronizeProperties()
+{
+	Super::SyncronizeProperties();
+
+	MyUniformGridPanel->SetSlotPadding(SlotPadding);
+}
+
+#if WITH_EDITOR
+
+const FSlateBrush* UUniformGridPanel::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.UniformGrid");
+}
+
+#endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

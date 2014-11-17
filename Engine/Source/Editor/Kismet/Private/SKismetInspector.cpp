@@ -292,6 +292,19 @@ void SKismetInspector::ShowDetailsForSingleObject(UObject* Object, const FShowDe
 
 void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObjects, const FShowDetailsOptions& Options)
 {
+	static bool bIsReentrant = false;
+	if ( !bIsReentrant )
+	{
+		bIsReentrant = true;
+		// When the selection is changed, we may be potentially actively editing a property,
+		// if this occurs we need need to immediately clear keyboard focus
+		if ( FSlateApplication::Get().HasFocusedDescendants(AsShared()) )
+		{
+			FSlateApplication::Get().ClearKeyboardFocus(EKeyboardFocusCause::Mouse);
+		}
+		bIsReentrant = false;
+	}
+
 	FKismetSelectionInfo SelectionInfo;
 	UpdateFromObjects(PropertyObjects, SelectionInfo, Options);
 }

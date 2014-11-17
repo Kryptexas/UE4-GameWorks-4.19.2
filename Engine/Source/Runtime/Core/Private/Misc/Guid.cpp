@@ -4,7 +4,7 @@
 	Guid.cpp: Implements the FGuid class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 /* FGuid interface

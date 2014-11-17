@@ -1,8 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-
 #include "CompilerResultsLog.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
+
+#define LOCTEXT_NAMESPACE "K2Node_InputAxisEvent"
 
 UK2Node_InputAxisEvent::UK2Node_InputAxisEvent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -36,7 +39,14 @@ FText UK2Node_InputAxisEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("InputAxisName"), FText::FromName(InputAxisName));
-	return FText::Format(NSLOCTEXT("K2Node", "InputAxis_Name", "InputAxis {InputAxisName}"), Args);
+
+	FText LocFormat = NSLOCTEXT("K2Node", "InputAxis_Name", "InputAxis {InputAxisName}");
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		LocFormat = NSLOCTEXT("K2Node", "InputAxis_ListTitle", "{InputAxisName}");
+	}
+
+	return FText::Format(LocFormat, Args);
 }
 
 FString UK2Node_InputAxisEvent::GetTooltip() const
@@ -105,3 +115,31 @@ bool UK2Node_InputAxisEvent::CanPasteHere(const UEdGraph* TargetGraph, const UEd
 
 	return bAllowPaste;
 }
+
+void UK2Node_InputAxisEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	TArray<FName> AxisNames;
+	GetDefault<UInputSettings>()->GetAxisNames(AxisNames);
+
+	for (FName const InputAxisName : AxisNames)
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(NodeSpawner != nullptr);
+
+		auto CustomizeInputNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName AxisName)
+		{
+			UK2Node_InputAxisEvent* InputNode = CastChecked<UK2Node_InputAxisEvent>(NewNode);
+			InputNode->Initialize(AxisName);
+		};
+
+		NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, InputAxisName);
+		ActionListOut.Add(NodeSpawner);
+	}
+}
+
+FText UK2Node_InputAxisEvent::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Input, LOCTEXT("ActionMenuCategory", "Axis Events"));
+}
+
+#undef LOCTEXT_NAMESPACE

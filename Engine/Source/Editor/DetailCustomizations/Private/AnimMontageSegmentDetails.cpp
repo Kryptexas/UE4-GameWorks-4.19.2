@@ -5,11 +5,10 @@
 #include "AnimPreviewInstance.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
-#include "Runtime/Engine/Public/FXSystem.h"
 #define LOCTEXT_NAMESPACE "AnimMontageSegmentDetails"
 
 /////////////////////////////////////////////////////////////////////////
-FAnimationSegmentViewportClient::FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene, FFXSystemInterface * FXSystem)
+FAnimationSegmentViewportClient::FAnimationSegmentViewportClient(FPreviewScene& InPreviewScene)
 	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
 {
 	SetViewMode(VMI_Lit);
@@ -17,10 +16,7 @@ FAnimationSegmentViewportClient::FAnimationSegmentViewportClient(FPreviewScene& 
 	// Always composite editor objects after post processing in the editor
 	EngineShowFlags.CompositeEditorPrimitives = true;
 	EngineShowFlags.DisableAdvancedFeatures();
-
-
-	PreviewScene->GetScene()->SetFXSystem(FXSystem);
-
+	
 	UpdateLighting();
 
 	// Setup defaults for the common draw helper.
@@ -102,8 +98,6 @@ void FAnimMontageSegmentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 
 SAnimationSegmentViewport::~SAnimationSegmentViewport()
 {
-	FFXSystemInterface::Destroy(FXSystem);
-
 	// clean up components
 	if (PreviewComponent)
 	{
@@ -148,7 +142,6 @@ void SAnimationSegmentViewport::Construct(const FArguments& InArgs)
 {
 	TargetSkeleton = InArgs._Skeleton;
 	AnimRef = InArgs._AnimRef;
-	FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
 	
 	AnimRefPropertyHandle = InArgs._AnimRefPropertyHandle;
 	StartTimePropertyHandle = InArgs._StartTimePropertyHandle;
@@ -193,7 +186,7 @@ void SAnimationSegmentViewport::Construct(const FArguments& InArgs)
 	
 
 	// Create a viewport client
-	LevelViewportClient	= MakeShareable( new FAnimationSegmentViewportClient(PreviewScene, FXSystem) );
+	LevelViewportClient	= MakeShareable( new FAnimationSegmentViewportClient(PreviewScene) );
 
 	LevelViewportClient->ViewportType = LVT_Perspective;
 	LevelViewportClient->bSetListenerPosition = false;

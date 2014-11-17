@@ -2,6 +2,8 @@
 
 #include "SlatePrivatePCH.h"
 
+#if WITH_FANCY_TEXT
+
 
 /**
  * Construct this widget
@@ -148,3 +150,6 @@ FReply SMultiLineEditableTextBox::OnKeyboardFocusReceived( const FGeometry& MyGe
 
 	return Reply;
 }
+
+
+#endif //WITH_FANCY_TEXT

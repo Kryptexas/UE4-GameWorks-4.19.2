@@ -78,6 +78,15 @@ public:
 
 	virtual TSharedPtr<FTabManager::FLayoutNode> GatherPersistentLayout() const override;
 
+	/**
+	 * The tab stack which would be appropriate to use for showing the minimize/maximize/close buttons.
+	 * On Windows it is the upper right most. On Mac the upper left most.
+	 */
+	TSharedRef<SDockingTabStack> FindTabStackToHouseWindowControls() const;
+
+	/** Which tab stack is appropriate for showing the app icon. */
+	TSharedRef<SDockingTabStack> FindTabStackToHouseWindowIcon() const;
+
 protected:
 
 	/** Is the docking direction (left, right, above, below) match the orientation (horizontal vs. vertical) */
@@ -89,12 +98,14 @@ protected:
 
 	float ComputeChildCoefficientTotal() const;
 
-	/**
-	 * @param ParentNode    DockSplitter node whose children might be redundant
-	 *
-	 * @return true if we found some redundant splitters and need to do another pass on this list; false if we found no redundancies.
-	 */
-	static bool ClearRedundantNodes( const TSharedRef<SDockingSplitter>& ParentNode );
+	enum class ETabStackToFind
+	{
+		UpperLeft,
+		UpperRight
+	};
+
+	/** Helper: Finds the upper left or the upper right tab stack in the hierarchy */
+	TSharedRef<SDockingNode> FindTabStack(ETabStackToFind FindMe) const;
 
 	/** The SSplitter widget that SDockingSplitter wraps. */
 	TSharedPtr<SSplitter> Splitter;

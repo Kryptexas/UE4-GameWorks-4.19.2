@@ -31,15 +31,15 @@ public:
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{
-		return FRefCountedObject::AddRef();
+		return FRHIResource::AddRef();
 	}
 	virtual uint32 Release() const
 	{
-		return FRefCountedObject::Release();
+		return FRHIResource::Release();
 	}
 	virtual uint32 GetRefCount() const
 	{
-		return FRefCountedObject::GetRefCount();
+		return FRHIResource::GetRefCount();
 	}
 
 	void SetReferencedTexture(FRHITexture* InTexture)
@@ -235,7 +235,7 @@ void FMetalSurface::Unlock(uint32 MipIndex, uint32 ArrayIndex)
 	checkf(SizeZ <= 1 || SizeZ == 6, TEXT("3D textures are not supported yet (SizeZ = %d"), SizeZ);
 
 	// upload the texture to the texture slice
-	MTLTextureRegion Region = MTLTextureRegionMake2D(0, 0, FMath::Max<uint32>(SizeX>>MipIndex, 1), FMath::Max<uint32>(SizeY>>MipIndex, 1));
+	MTLRegion Region = MTLRegionMake2D(0, 0, FMath::Max<uint32>(SizeX>>MipIndex, 1), FMath::Max<uint32>(SizeY>>MipIndex, 1));
 	[Texture replaceRegion:Region mipmapLevel:MipIndex slice:ArrayIndex withBytes:LockedMemory bytesPerRow:Stride bytesPerImage:MipBytes];
 	
 	FMemory::Free(LockedMemory);

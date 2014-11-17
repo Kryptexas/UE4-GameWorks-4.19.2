@@ -68,9 +68,10 @@ class ENGINE_API UActorChannel : public UChannel
 
 	TMap< TWeakObjectPtr< UObject >, TSharedRef< FObjectReplicator > > ReplicationMap;
 
-	TArray< class FInBunch * > QueuedBunches;		// Queued bunches waiting on pending guids to resolve
-
-	TSet< FNetworkGUID > PendingGuidResolves;		// These guids are waiting for their resolves, we need to queue up bunches until these are resolved
+	// Async networking loading support state
+	TArray< class FInBunch * >	QueuedBunches;			// Queued bunches waiting on pending guids to resolve
+	double						QueuedBunchStartTime;	// Time when since queued bunches was last empty
+	TSet< FNetworkGUID >		PendingGuidResolves;	// These guids are waiting for their resolves, we need to queue up bunches until these are resolved
 
 	/**
 	 * Default constructor

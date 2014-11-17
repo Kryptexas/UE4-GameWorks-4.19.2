@@ -9,6 +9,20 @@
  *  Decorator for accessing blackboard values
  */
 
+UENUM()
+namespace EBTBlackboardRestart
+{
+	enum Type
+	{
+		ValueChange		UMETA(DisplayName="On Value Change", ToolTip="Restart on every change of observed blackboard value"),
+		ResultChange	UMETA(DisplayName="On Result Change", ToolTip="Restart only when result of evaluated condition is changed"),
+	};
+}
+
+/**
+ * Blackboard decorator node.
+ * A decorator node that bases its condition on a Blackboard key.
+ */
 UCLASS(HideCategories=(Condition))
 class AIMODULE_API UBTDecorator_Blackboard : public UBTDecorator_BlackboardBase
 {
@@ -40,6 +54,10 @@ protected:
 	/** operation type */
 	UPROPERTY()
 	uint8 OperationType;
+
+	/** when observer can try to request abort? */
+	UPROPERTY(Category=FlowControl, EditAnywhere)
+	TEnumAsByte<EBTBlackboardRestart::Type> NotifyObserver;
 
 #if WITH_EDITORONLY_DATA
 

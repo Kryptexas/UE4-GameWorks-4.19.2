@@ -9,8 +9,6 @@ const uint32 RingBufferSize = 8 * 1024 * 1024;
 TMap<id, int32> ClassCounts;
 #endif
 
-#define NUMBITS_DEPTH_WRITE_ENABLED				1
-#define NUMBITS_STENCIL_WRITE_ENABLED			1
 #define NUMBITS_SOURCE_RGB_BLEND_FACTOR			4
 #define NUMBITS_DEST_RGB_BLEND_FACTOR			4
 #define NUMBITS_RGB_BLEND_OPERATION				3
@@ -23,9 +21,7 @@ TMap<id, int32> ClassCounts;
 #define NUMBITS_SAMPLE_COUNT					3
 
 
-#define OFFSET_DEPTH_WRITE_ENABLED				(0)
-#define OFFSET_STENCIL_WRITE_ENABLED			(OFFSET_DEPTH_WRITE_ENABLED		+ NUMBITS_DEPTH_WRITE_ENABLED)
-#define OFFSET_SOURCE_RGB_BLEND_FACTOR			(OFFSET_STENCIL_WRITE_ENABLED	+ NUMBITS_STENCIL_WRITE_ENABLED)
+#define OFFSET_SOURCE_RGB_BLEND_FACTOR			(0)
 #define OFFSET_DEST_RGB_BLEND_FACTOR			(OFFSET_SOURCE_RGB_BLEND_FACTOR	+ NUMBITS_SOURCE_RGB_BLEND_FACTOR)
 #define OFFSET_RGB_BLEND_OPERATION				(OFFSET_DEST_RGB_BLEND_FACTOR	+ NUMBITS_DEST_RGB_BLEND_FACTOR)
 #define OFFSET_SOURCE_A_BLEND_FACTOR			(OFFSET_RGB_BLEND_OPERATION		+ NUMBITS_RGB_BLEND_OPERATION)
@@ -58,8 +54,6 @@ void FPipelineShadow::SetHash(uint64 InHash)
 {
 	Hash = InHash;
 
-	bIsDepthWriteEnabled = GET_HASH(OFFSET_DEPTH_WRITE_ENABLED, NUMBITS_DEPTH_WRITE_ENABLED);
-	bIsStencilWriteEnabled = GET_HASH(OFFSET_STENCIL_WRITE_ENABLED, NUMBITS_STENCIL_WRITE_ENABLED);
 	RenderTargets[0] = [[MTLRenderPipelineColorAttachmentDescriptor alloc] init];
 	FMetalManager::Get()->ReleaseObject(RenderTargets[0]);
 	RenderTargets[0].sourceRGBBlendFactor = (MTLBlendFactor)GET_HASH(OFFSET_SOURCE_RGB_BLEND_FACTOR, NUMBITS_SOURCE_RGB_BLEND_FACTOR);
@@ -106,10 +100,6 @@ id<MTLRenderPipelineState> FPipelineShadow::CreatePipelineStateForBoundShaderSta
 	SCOPE_CYCLE_COUNTER(STAT_MetalPipelineStateTime);
 	
 	MTLRenderPipelineDescriptor* Desc = [[MTLRenderPipelineDescriptor alloc] init];
-
-	// some basic settings
-	Desc.depthWriteEnabled = bIsDepthWriteEnabled;
-	Desc.stencilWriteEnabled = bIsStencilWriteEnabled;
 
 	// set per-MRT settings
 	for (uint32 RenderTargetIndex = 0; RenderTargetIndex < MaxMetalRenderTargets; ++RenderTargetIndex)
@@ -230,9 +220,9 @@ FMetalManager::FMetalManager()
 
 //@todo-rco: What Size???
 	// make a buffer for each shader type
-	ShaderParameters = new FMetalShaderParameterCache[METAL_NUM_SHADER_STAGES];
-	ShaderParameters[METAL_SHADER_STAGE_VERTEX].InitializeResources(1024*1024);
-	ShaderParameters[METAL_SHADER_STAGE_PIXEL].InitializeResources(1024*1024);
+	ShaderParameters = new FMetalShaderParameterCache[CrossCompiler::NUM_SHADER_STAGES];
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].InitializeResources(1024*1024);
+	ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].InitializeResources(1024*1024);
 
 	// create a semaphore for multi-buffering the command buffer
 	CommandBufferSemaphore = dispatch_semaphore_create(FParse::Param(FCommandLine::Get(),TEXT("gpulockstep")) ? 1 : 3);
@@ -408,15 +398,6 @@ void FMetalManager::PrepareToDraw(uint32 NumVertices)
 	
 	CommitGraphicsResourceTables();
 	CommitNonComputeShaderConstants();
-}
-
-void FMetalManager::SetDepthStencilWriteEnabled(bool bIsDepthWriteEnabled, bool bIsStencilWriteEnabled)
-{
-	Pipeline.bIsDepthWriteEnabled = bIsDepthWriteEnabled;
-	Pipeline.bIsStencilWriteEnabled = bIsStencilWriteEnabled;
-
-	SET_HASH(OFFSET_DEPTH_WRITE_ENABLED, NUMBITS_DEPTH_WRITE_ENABLED, bIsDepthWriteEnabled);
-	SET_HASH(OFFSET_STENCIL_WRITE_ENABLED, NUMBITS_STENCIL_WRITE_ENABLED, bIsStencilWriteEnabled);
 }
 
 void FMetalManager::SetBlendState(FMetalBlendState* BlendState)
@@ -676,7 +657,7 @@ uint32 FMetalManager::AllocateFromQueryBuffer()
 FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSurface* RESTRICT Surface)
 {
 	check(Surface->Texture != nil);
-	if (ShaderStage == METAL_SHADER_STAGE_PIXEL)
+	if (ShaderStage == CrossCompiler::SHADER_STAGE_PIXEL)
 	{
 		[FMetalManager::GetContext() setFragmentTexture:Surface->Texture atIndex:BindIndex];
 	}
@@ -689,13 +670,13 @@ FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSurface
 FORCEINLINE void SetResource(uint32 ShaderStage, uint32 BindIndex, FMetalSamplerState* RESTRICT SamplerState)
 {
 	check(SamplerState->State != nil);
-	if (ShaderStage == METAL_SHADER_STAGE_PIXEL)
+	if (ShaderStage == CrossCompiler::SHADER_STAGE_PIXEL)
 	{
 		[FMetalManager::GetContext() setFragmentSamplerState:SamplerState->State atIndex:BindIndex];
 	}
 	else
 	{
-		[FMetalManager::GetContext() setFragmentSamplerState:SamplerState->State atIndex:BindIndex];
+		[FMetalManager::GetContext() setVertexSamplerState:SamplerState->State atIndex:BindIndex];
 	}
 }
 
@@ -763,10 +744,10 @@ void FMetalManager::CommitGraphicsResourceTables()
 
 	check(CurrentBoundShaderState);
 
-	SetResourcesFromTables(CurrentBoundShaderState->VertexShader, METAL_SHADER_STAGE_VERTEX, ResourceTableFrameCounter);
+	SetResourcesFromTables(CurrentBoundShaderState->VertexShader, CrossCompiler::SHADER_STAGE_VERTEX, ResourceTableFrameCounter);
 	if (IsValidRef(CurrentBoundShaderState->PixelShader))
 	{
-		SetResourcesFromTables(CurrentBoundShaderState->PixelShader, METAL_SHADER_STAGE_PIXEL, ResourceTableFrameCounter);
+		SetResourcesFromTables(CurrentBoundShaderState->PixelShader, CrossCompiler::SHADER_STAGE_PIXEL, ResourceTableFrameCounter);
 	}
 
 //	CommitResourceTableCycles += (FPlatformTime::Cycles() - Start);
@@ -774,13 +755,13 @@ void FMetalManager::CommitGraphicsResourceTables()
 
 void FMetalManager::CommitNonComputeShaderConstants()
 {
-	ShaderParameters[METAL_SHADER_STAGE_VERTEX].CommitPackedUniformBuffers(CurrentBoundShaderState, METAL_SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->BoundUniformBuffers, CurrentBoundShaderState->VertexShader->UniformBuffersCopyInfo);
-	ShaderParameters[METAL_SHADER_STAGE_VERTEX].CommitPackedGlobals(METAL_SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->Bindings);
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].CommitPackedUniformBuffers(CurrentBoundShaderState, CrossCompiler::SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->BoundUniformBuffers, CurrentBoundShaderState->VertexShader->UniformBuffersCopyInfo);
+	ShaderParameters[CrossCompiler::SHADER_STAGE_VERTEX].CommitPackedGlobals(CrossCompiler::SHADER_STAGE_VERTEX, CurrentBoundShaderState->VertexShader->Bindings);
 	
 	if (IsValidRef(CurrentBoundShaderState->PixelShader))
 	{
-		ShaderParameters[METAL_SHADER_STAGE_PIXEL].CommitPackedUniformBuffers(CurrentBoundShaderState, METAL_SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->BoundUniformBuffers, CurrentBoundShaderState->PixelShader->UniformBuffersCopyInfo);
-		ShaderParameters[METAL_SHADER_STAGE_PIXEL].CommitPackedGlobals(METAL_SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->Bindings);
+		ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].CommitPackedUniformBuffers(CurrentBoundShaderState, CrossCompiler::SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->BoundUniformBuffers, CurrentBoundShaderState->PixelShader->UniformBuffersCopyInfo);
+		ShaderParameters[CrossCompiler::SHADER_STAGE_PIXEL].CommitPackedGlobals(CrossCompiler::SHADER_STAGE_PIXEL, CurrentBoundShaderState->PixelShader->Bindings);
 	}
 }
 

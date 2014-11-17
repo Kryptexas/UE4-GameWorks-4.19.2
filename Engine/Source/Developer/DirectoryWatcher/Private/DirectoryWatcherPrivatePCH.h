@@ -13,4 +13,9 @@ DECLARE_LOG_CATEGORY_EXTERN(LogDirectoryWatcher, Log, All);
 #elif PLATFORM_MAC
 #include "Mac/DirectoryWatchRequestMac.h"
 #include "Mac/DirectoryWatcherMac.h"
+#elif PLATFORM_LINUX
+#include "Linux/DirectoryWatchRequestLinux.h"
+#include "Linux/DirectoryWatcherLinux.h"
+#else
+#error "Unknown platform"
 #endif

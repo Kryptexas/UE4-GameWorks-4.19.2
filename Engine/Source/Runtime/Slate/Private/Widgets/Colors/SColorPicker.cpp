@@ -45,20 +45,7 @@ public:
 	}
 
 private:
-	/**
-	 * The widget should respond by populating the OutDrawElements array with FDrawElements 
-	 * that represent it and any of its children.
-	 *
-	 * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
-	 * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
-	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
-	 * @param LayerId           The Layer onto which this widget should be rendered.
-	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
- 	 * @param bParentEnabled	True if the parent of this widget is enabled.
-	 *
-	 * @return The maximum layer ID attained by this widget or any of its children.
-	 */
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 	{
 		const ESlateDrawEffect::Type DrawEffects = this->ShouldBeEnabled(bParentEnabled) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
@@ -145,20 +132,7 @@ public:
 	}
 
 private:
-	/**
-	 * The widget should respond by populating the OutDrawElements array with FDrawElements 
-	 * that represent it and any of its children.
-	 *
-	 * @param AllottedGeometry  The FGeometry that describes an area in which the widget should appear.
-	 * @param MyClippingRect    The clipping rectangle allocated for this widget and its children.
-	 * @param OutDrawElements   A list of FDrawElements to populate with the output.
-	 * @param LayerId           The Layer onto which this widget should be rendered.
-	 * @param InColorAndOpacity Color and Opacity to be applied to all the descendants of the widget being painted
- 	 * @param bParentEnabled	True if the parent of this widget is enabled.
-	 *
-	 * @return The maximum layer ID attained by this widget or any of its children.
-	 */
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 	{
 		ESlateDrawEffect::Type DrawEffects = (bParentEnabled && IsEnabled()) ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
 
@@ -245,7 +219,7 @@ public:
 		SelectedColor = InArgs._SelectedColor;
 	}
 
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 	{
 		const bool bIsEnabled = ShouldBeEnabled(bParentEnabled);
 		const uint32 DrawEffects = bIsEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
@@ -2139,100 +2113,100 @@ bool OpenColorPicker(const FColorPickerArgs& Args)
 	DestroyColorPicker();
 
 	bool Result = false;
-	
-	//guard to verify that we're not in game using edit actor
-	if (GIsEditor)
+
+	// Consoles do not support opening new windows
+#if PLATFORM_DESKTOP
+	FLinearColor OldColor = Args.InitialColorOverride;
+
+	if (Args.ColorArray && Args.ColorArray->Num() > 0)
 	{
-		FLinearColor OldColor = Args.InitialColorOverride;
-
-		if (Args.ColorArray && Args.ColorArray->Num() > 0)
-		{
-			OldColor = (*Args.ColorArray)[0]->ReinterpretAsLinear();
-		}
-		else if (Args.LinearColorArray && Args.LinearColorArray->Num() > 0)
-		{
-			OldColor = *(*Args.LinearColorArray)[0];
-		}
-		else if (Args.ColorChannelsArray && Args.ColorChannelsArray->Num() > 0)
-		{
-			OldColor.R = (*Args.ColorChannelsArray)[0].Red ? *(*Args.ColorChannelsArray)[0].Red : 0.0f;
-			OldColor.G = (*Args.ColorChannelsArray)[0].Green ? *(*Args.ColorChannelsArray)[0].Green : 0.0f;
-			OldColor.B = (*Args.ColorChannelsArray)[0].Blue ? *(*Args.ColorChannelsArray)[0].Blue : 0.0f;
-			OldColor.A = (*Args.ColorChannelsArray)[0].Alpha ? *(*Args.ColorChannelsArray)[0].Alpha : 0.0f;
-		}
-		else
-		{
-			check(Args.OnColorCommitted.IsBound());
-		}
-		
-		// Determine the position of the window so that it will spawn near the mouse, but not go off the screen.
-		const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
-		FSlateRect Anchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
-
-		FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
-
-		TSharedPtr<SWindow> Window = SNew(SWindow)
-			.AutoCenter(EAutoCenter::None)
-			.ScreenPosition(AdjustedSummonLocation)
-			.SupportsMaximize(false)
-			.SupportsMinimize(false)
-			.SizingRule(ESizingRule::Autosized)
-			.Title(LOCTEXT("WindowHeader", "Color Picker"));
-
-		TSharedRef<SColorPicker> ColorPicker = SNew(SColorPicker)
-			.TargetColorAttribute(OldColor)
-			.TargetFColors(Args.ColorArray ? *Args.ColorArray : TArray<FColor*>())
-			.TargetLinearColors(Args.LinearColorArray ? *Args.LinearColorArray : TArray<FLinearColor*>())
-			.TargetColorChannels(Args.ColorChannelsArray ? *Args.ColorChannelsArray : TArray<FColorChannels>())
-			.UseAlpha(Args.bUseAlpha)
-			.OnlyRefreshOnMouseUp(Args.bOnlyRefreshOnMouseUp && !Args.bIsModal)
-			.OnlyRefreshOnOk(Args.bOnlyRefreshOnOk || Args.bIsModal)
-			.OnColorCommitted(Args.OnColorCommitted)
-			.PreColorCommitted(Args.PreColorCommitted)
-			.OnColorPickerCancelled(Args.OnColorPickerCancelled)
-			.OnInteractivePickBegin(Args.OnInteractivePickBegin)
-			.OnInteractivePickEnd(Args.OnInteractivePickEnd)
-			.OnColorPickerWindowClosed(Args.OnColorPickerWindowClosed)
-			.ParentWindow(Window)
-			.DisplayGamma(Args.DisplayGamma);
-		
-		Window->SetContent(
-			SNew(SBox)
-				[
-					SNew(SBorder)
-						.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
-						.Padding(FMargin(8.0f, 8.0f))
-						[
-							ColorPicker
-						]
-				]
-		);
-
-		if (Args.bIsModal)
-		{
-			FSlateApplication::Get().AddModalWindow(Window.ToSharedRef(), Args.ParentWidget);
-		}
-		else
-		{
-			if ( Args.ParentWidget.IsValid() )
-			{
-				// Find the window of the parent widget
-				FWidgetPath WidgetPath;
-				FSlateApplication::Get().GeneratePathToWidgetChecked( Args.ParentWidget.ToSharedRef(), WidgetPath );
-				Window = FSlateApplication::Get().AddWindowAsNativeChild( Window.ToSharedRef(), WidgetPath.GetWindow() );
-			}
-			else
-			{
-				Window = FSlateApplication::Get().AddWindow(Window.ToSharedRef());
-			}
-			
-		}
-
-		Result = true;
-
-		//hold on to the window created for external use...
-		ColorPickerWindow = Window;
+		OldColor = (*Args.ColorArray)[0]->ReinterpretAsLinear();
 	}
+	else if (Args.LinearColorArray && Args.LinearColorArray->Num() > 0)
+	{
+		OldColor = *(*Args.LinearColorArray)[0];
+	}
+	else if (Args.ColorChannelsArray && Args.ColorChannelsArray->Num() > 0)
+	{
+		OldColor.R = (*Args.ColorChannelsArray)[0].Red ? *(*Args.ColorChannelsArray)[0].Red : 0.0f;
+		OldColor.G = (*Args.ColorChannelsArray)[0].Green ? *(*Args.ColorChannelsArray)[0].Green : 0.0f;
+		OldColor.B = (*Args.ColorChannelsArray)[0].Blue ? *(*Args.ColorChannelsArray)[0].Blue : 0.0f;
+		OldColor.A = (*Args.ColorChannelsArray)[0].Alpha ? *(*Args.ColorChannelsArray)[0].Alpha : 0.0f;
+	}
+	else
+	{
+		check(Args.OnColorCommitted.IsBound());
+	}
+		
+	// Determine the position of the window so that it will spawn near the mouse, but not go off the screen.
+	const FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+	FSlateRect Anchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
+
+	FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, SColorPicker::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
+
+	TSharedPtr<SWindow> Window = SNew(SWindow)
+		.AutoCenter(EAutoCenter::None)
+		.ScreenPosition(AdjustedSummonLocation)
+		.SupportsMaximize(false)
+		.SupportsMinimize(false)
+		.SizingRule(ESizingRule::Autosized)
+		.Title(LOCTEXT("WindowHeader", "Color Picker"));
+
+	TSharedRef<SColorPicker> ColorPicker = SNew(SColorPicker)
+		.TargetColorAttribute(OldColor)
+		.TargetFColors(Args.ColorArray ? *Args.ColorArray : TArray<FColor*>())
+		.TargetLinearColors(Args.LinearColorArray ? *Args.LinearColorArray : TArray<FLinearColor*>())
+		.TargetColorChannels(Args.ColorChannelsArray ? *Args.ColorChannelsArray : TArray<FColorChannels>())
+		.UseAlpha(Args.bUseAlpha)
+		.OnlyRefreshOnMouseUp(Args.bOnlyRefreshOnMouseUp && !Args.bIsModal)
+		.OnlyRefreshOnOk(Args.bOnlyRefreshOnOk || Args.bIsModal)
+		.OnColorCommitted(Args.OnColorCommitted)
+		.PreColorCommitted(Args.PreColorCommitted)
+		.OnColorPickerCancelled(Args.OnColorPickerCancelled)
+		.OnInteractivePickBegin(Args.OnInteractivePickBegin)
+		.OnInteractivePickEnd(Args.OnInteractivePickEnd)
+		.OnColorPickerWindowClosed(Args.OnColorPickerWindowClosed)
+		.ParentWindow(Window)
+		.DisplayGamma(Args.DisplayGamma);
+		
+	Window->SetContent(
+		SNew(SBox)
+			[
+				SNew(SBorder)
+					.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
+					.Padding(FMargin(8.0f, 8.0f))
+					[
+						ColorPicker
+					]
+			]
+	);
+
+	if (Args.bIsModal)
+	{
+		FSlateApplication::Get().AddModalWindow(Window.ToSharedRef(), Args.ParentWidget);
+	}
+	else
+	{
+		if ( Args.ParentWidget.IsValid() )
+		{
+			// Find the window of the parent widget
+			FWidgetPath WidgetPath;
+			FSlateApplication::Get().GeneratePathToWidgetChecked( Args.ParentWidget.ToSharedRef(), WidgetPath );
+			Window = FSlateApplication::Get().AddWindowAsNativeChild( Window.ToSharedRef(), WidgetPath.GetWindow() );
+		}
+		else
+		{
+			Window = FSlateApplication::Get().AddWindow(Window.ToSharedRef());
+		}
+			
+	}
+
+	Result = true;
+
+	//hold on to the window created for external use...
+	ColorPickerWindow = Window;
+	
+#endif
 
 	return Result;
 }

@@ -7,11 +7,10 @@
 #pragma once
 
 #include "AI/Navigation/NavigationSystem.h"
-#include "Components/PrimitiveComponent.h"
 #include "AI/Navigation/NavAgentInterface.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "GameFramework/MovementComponent.h"
-
+#include "Components/PrimitiveComponent.h"
 #include "NavMovementComponent.generated.h"
 
 UCLASS(abstract)
@@ -28,6 +27,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category=MovementComponent)
 	uint32 bUpdateNavAgentWithOwnersCollision:1;
 
+private:
+	/** If set, StopActiveMovement call will abort current path following request */
+	uint32 bStopMovementAbortPaths:1;
+
 public:
 	/** Expresses runtime state of character's movement. Put all temporal changes to movement properties here */
 	UPROPERTY()
@@ -35,6 +38,17 @@ public:
 
 	/** associated path following component */
 	TWeakObjectPtr<class UPathFollowingComponent> PathFollowingComp;
+
+	/** Stops applying further movement (usually zeros acceleration). */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|PawnMovement")
+	virtual void StopActiveMovement();
+
+	/** Stops movement immediately (reset velocity) but keeps following current path */
+	UFUNCTION(BlueprintCallable, Category="Components|Movement")
+	void StopMovementKeepPathing();
+
+	// Overridden to also call StopActiveMovement().
+	virtual void StopMovementImmediately() override;
 
 	FORCEINLINE bool ShouldUpdateNavAgentWithOwnersCollision() const { return bUpdateNavAgentWithOwnersCollision != 0; }
 	void UpdateNavAgent(class AActor* Owner);
@@ -134,3 +148,15 @@ inline bool UNavMovementComponent::IsFlying() const
 	return false;
 }
 
+inline void UNavMovementComponent::StopMovementKeepPathing()
+{
+	bStopMovementAbortPaths = false;
+	StopMovementImmediately();
+	bStopMovementAbortPaths = true;
+}
+
+inline void UNavMovementComponent::StopMovementImmediately()
+{
+	Super::StopMovementImmediately();
+	StopActiveMovement();
+}

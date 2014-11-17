@@ -4,7 +4,7 @@
 	MacPlatformOutputDevices.mm: Mac implementations of OutputDevices functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #include "FeedbackContextAnsi.h"
 #include "MacApplication.h"

@@ -13,6 +13,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Editor/UnrealEd/Public/Editor.h"
 #include "Crc.h"
+#include "MessageLog.h"
+#include "Editor/UnrealEd/Classes/Settings/EditorLoadingSavingSettings.h"
 #endif
 
 DEFINE_LOG_CATEGORY(LogBlueprint);
@@ -255,30 +257,40 @@ void UBlueprint::Serialize(FArchive& Ar)
 
 #if WITH_EDITOR
 
-bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
+bool UBlueprint::RenameGeneratedClasses( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
 {
-	// Move generated class to the new package, to create redirector
 	FName SkelClassName, GenClassName;
 	GetBlueprintClassNames(GenClassName, SkelClassName, FName(InName));
 
 	UPackage* NewTopLevelObjectOuter = NewOuter ? NewOuter->GetOutermost() : NULL;
-	if(GeneratedClass != NULL)
+	if (GeneratedClass != NULL)
 	{
 		bool bMovedOK = GeneratedClass->Rename(*GenClassName.ToString(), NewTopLevelObjectOuter, Flags);
-		if(!bMovedOK)
+		if (!bMovedOK)
 		{
 			return false;
 		}
 	}
 
 	// Also move skeleton class, if different from generated class, to new package (again, to create redirector)
-	if(SkeletonGeneratedClass != NULL && SkeletonGeneratedClass != GeneratedClass)
+	if (SkeletonGeneratedClass != NULL && SkeletonGeneratedClass != GeneratedClass)
 	{
 		bool bMovedOK = SkeletonGeneratedClass->Rename(*SkelClassName.ToString(), NewTopLevelObjectOuter, Flags);
-		if(!bMovedOK)
+		if (!bMovedOK)
 		{
 			return false;
 		}
+	}
+
+	return true;
+}
+
+bool UBlueprint::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
+{
+	// Move generated class to the new package, to create redirector
+	if ( !RenameGeneratedClasses(InName, NewOuter, Flags) )
+	{
+		return false;
 	}
 
 	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
@@ -485,6 +497,11 @@ void UBlueprint::SetWorldBeingDebugged(UWorld *NewWorld)
 	CurrentWorldBeingDebugged = NewWorld;
 }
 
+void UBlueprint::GetReparentingRules(TSet< const UClass* >& AllowedChildrenOfClasses, TSet< const UClass* >& DisallowedChildrenOfClasses) const
+{
+
+}
+
 UObject* UBlueprint::GetObjectBeingDebugged()
 {
 	UObject* DebugObj = CurrentObjectBeingDebugged.Get();
@@ -571,6 +588,11 @@ void UBlueprint::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 FString UBlueprint::GetFriendlyName() const
 {
 	return GetName();
+}
+
+bool UBlueprint::AllowsDynamicBinding() const
+{
+	return FBlueprintEditorUtils::IsActorBased(this);
 }
 
 struct FBlueprintInnerHelper
@@ -1012,6 +1034,19 @@ bool UBlueprint::ChangeOwnerOfTemplates()
 
 		if (bMigratedOwner)
 		{
+			// alert the user that blueprints gave been migrated and require re-saving to enable them to locate and fix them without nagging them.
+			FMessageLog("BlueprintLog").Warning( FText::Format( NSLOCTEXT( "Blueprint", "MigrationWarning", "Blueprint {0} has been migrated and requires re-saving to avoid import errors" ), FText::FromString( *GetName() )));
+
+			if( GetDefault<UEditorLoadingSavingSettings>()->bDirtyMigratedBlueprints )
+			{
+				UPackage* BPPackage = GetOutermost();
+
+				if( BPPackage )
+				{
+					BPPackage->SetDirtyFlag( true );
+				}
+			}
+
 			BPGClass->ComponentTemplates = ComponentTemplates;
 			BPGClass->Timelines = Timelines;
 			BPGClass->SimpleConstructionScript = SimpleConstructionScript;

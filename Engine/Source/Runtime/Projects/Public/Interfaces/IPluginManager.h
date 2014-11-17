@@ -38,6 +38,9 @@ public:
 	/** Category path (dot-separated list of categories) */
 	FString CategoryPath;
 
+	/** Path to plugin directory on disk */
+	FString PluginDirectory;
+
 	/** True if plugin is currently enabled */
 	bool bIsEnabled;
 
@@ -95,7 +98,7 @@ public:
 	 * @param	LoadingPhase	Which loading phase we're loading plugin modules from.  Only modules that are configured to be
 	 *							loaded at the specified loading phase will be loaded during this call.
 	 */
-	virtual void LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) = 0;
+	virtual bool LoadModulesForEnabledPlugins( const ELoadingPhase::Type LoadingPhase ) = 0;
 
 	/** Delegate type for mounting content paths.  Used internally by FPackageName code. */
 	DECLARE_DELEGATE_TwoParams( FRegisterMountPointDelegate, const FString& /* Root content path */, const FString& /* Directory name */ );
@@ -108,13 +111,12 @@ public:
 	 */
 	virtual void SetRegisterMountPointDelegate( const FRegisterMountPointDelegate& Delegate ) = 0;
 
-	/** 
-	 * Queries whether a module is provided by a plugin
+	/**
+	 * Checks if all the required plugins are available. If not, will present an error dialog the first time a plugin is loaded or this function is called.
 	 *
-	 * @param	ModuleName	The name of the module to check
-	 * @returns true if the module is supplied by a plugin
+	 * @returns true if all the required plugins are available.
 	 */
-	virtual bool IsPluginModule( const FName ModuleName ) const = 0;
+	virtual bool AreRequiredPluginsAvailable( ) = 0;
 
 	/** 
 	 * Checks whether modules for the enabled plugins are up to date

@@ -35,6 +35,12 @@ public:
 			return *this;
 		}
 
+		FSlot& ZOrder(const TAttribute<int32>& InZOrder)
+		{
+			ZOrderAttr = InZOrder;
+			return *this;
+		}
+
 		FSlot& operator[]( TSharedRef<SWidget> InWidget )
 		{
 			Widget = InWidget;
@@ -59,12 +65,16 @@ public:
 		/** Size */
 		TAttribute<FVector2D> AlignmentAttr;
 
+		/** Size */
+		TAttribute<int32> ZOrderAttr;
+
 		/** Default values for a slot. */
 		FSlot()
 			: Widget( SNullWidget::NullWidget )
 			, OffsetAttr( FMargin( 0, 0, 1, 1 ) )
-			, AnchorsAttr( FAnchors( 0.5f, 0.5f ) )
+			, AnchorsAttr( FAnchors( 0.0f, 0.0f ) )
 			, AlignmentAttr( FVector2D( 0.5f, 0.5f ) )
+			, ZOrderAttr( 0 )
 		{ }
 	};
 
@@ -122,7 +132,7 @@ public:
 
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 
 	virtual FVector2D ComputeDesiredSize() const override;
 

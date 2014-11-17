@@ -4,6 +4,10 @@
 #include "BehaviorTree/BTCompositeNode.h"
 #include "BTComposite_Sequence.generated.h"
 
+/** 
+ * Sequence composite node.
+ * A sequence node runs each child in turn until one fails, in which case the sequence succeeds.
+ */
 UCLASS()
 class UBTComposite_Sequence : public UBTCompositeNode
 {

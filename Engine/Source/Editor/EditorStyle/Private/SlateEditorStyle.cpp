@@ -181,6 +181,15 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "TextBlock.HighlightShape",  new BOX_BRUSH( "Common/TextBlockHighlightShape", FMargin(3.f/8.f) ));
 		Set( "TextBlock.HighlighColor", FLinearColor( 0.02f, 0.3f, 0.0f ) );
 
+		Set("TextBlock.ShadowedText", FTextBlockStyle(NormalText)
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f)));
+
+		Set("TextBlock.ShadowedTextWarning", FTextBlockStyle(NormalText)
+			.SetColorAndOpacity(FLinearColor(1.0f, 0.0f, 0.0f))
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f)));
+
 		Set("NormalText", NormalText);
 	}
 
@@ -1315,7 +1324,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		FLinearColor EditorOrange = FLinearColor(0.728f, 0.364f, 0.003f);
 
 		FTextBlockStyle CreditsNormal = FTextBlockStyle(NormalText)
-			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Normal", 16))
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 16))
 			.SetShadowOffset(FVector2D::UnitVector);
 
 		Set("Credits.Normal", CreditsNormal);
@@ -1394,6 +1403,16 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Sequencer.AnimationOutliner.BoldFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 11 ) );
 		Set( "Sequencer.AnimationOutliner.RegularFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 8 ) );
 		Set( "Sequencer.ShotFilter", new IMAGE_BRUSH( "Sequencer/FilteredArea", FVector2D(74,74), FLinearColor::White, ESlateBrushTileType::Both ) );
+		Set( "Sequencer.KeyMark", new IMAGE_BRUSH("Sequencer/KeyMark", FVector2D(3,21), FLinearColor::White, ESlateBrushTileType::NoTile ) );
+
+		const FButtonStyle DetailsKeyButton = FButtonStyle(NoBorder)
+			.SetNormal( IMAGE_BRUSH("Sequencer/AddKey_Details", FVector2D(11,11) )  )
+			.SetHovered( IMAGE_BRUSH("Sequencer/AddKey_Details", FVector2D(11,11), SelectionColor ) )
+			.SetPressed( IMAGE_BRUSH("Sequencer/AddKey_Details", FVector2D(11,11), SelectionColor_Pressed ) )
+			.SetNormalPadding(FMargin(0, 1))
+			.SetPressedPadding(FMargin(0, 2, 0, 0));
+
+		Set( "Sequencer.AddKey.Details", DetailsKeyButton );
 	}
 
 	// Foliage Edit Mode
@@ -2900,6 +2919,15 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 			Set( "BTEditor.Graph.BTNode.Task.RunEQSQuery.Icon", new IMAGE_BRUSH( "/BehaviorTree/Icons/EQS_24x", Icon24x24 ) );
 			Set( "BTEditor.Graph.BTNode.Task.Wait.Icon", new IMAGE_BRUSH( "/BehaviorTree/Icons/Wait_24x", Icon24x24 ) );
 			Set( "BTEditor.Graph.BTNode.Blueprint", new IMAGE_BRUSH( "/BehaviorTree/Icons/Blueprint_Referencer_16x", Icon16x16 ) );
+			Set( "BTEditor.Graph.BTNode.Index", new BOX_BRUSH( "/BehaviorTree/IndexCircle", Icon20x20, FMargin(9.0f/20.0f, 1.0f/20.0f, 9.0f/20.0f, 3.0f/20.0f) ) );
+
+			Set( "BTEditor.Graph.BTNode.Index.Color", FLinearColor(0.3f, 0.3f, 0.3f, 1.0f) );
+			Set( "BTEditor.Graph.BTNode.Index.HoveredColor", FLinearColor(1.0f, 0.0f, 0.0f, 1.0f) );
+			
+
+			FTextBlockStyle GraphNodeTitle = FTextBlockStyle(NormalText)
+				.SetFont( TTF_CORE_FONT( "Fonts/Roboto-Bold", 8 ) );
+			Set( "BTEditor.Graph.BTNode.IndexText", GraphNodeTitle );
 
 			Set( "BTEditor.Debugger.BackOver", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon40x40 ) );
 			Set( "BTEditor.Debugger.BackOver.Small", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon20x20 ) );
@@ -3187,7 +3215,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 
 		Set( "GraphEditor.Default_16x", new IMAGE_BRUSH("Icons/icon_Blueprint_Node_16x", Icon16x16));
 		Set( "GraphEditor.EventGraph_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_EventGraph_16x", Icon16x16 ) );
-		Set( "GraphEditor.InterfaceFunction_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_InterfaceFunction_16x", Icon16x16 ) );
+		Set( "GraphEditor.InterfaceFunction_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_Interfacefunction_16x", Icon16x16 ) );
 		Set( "GraphEditor.Macro_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_Macro_16x", Icon16x16 ) );
 		Set( "GraphEditor.Function_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_NewFunction_16x", Icon16x16 ) );
 		Set( "GraphEditor.PotentialOverrideFunction_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_OverrideableFunction_16x", Icon16x16 ) );
@@ -3200,6 +3228,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "GraphEditor.StateMachine_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_StateMachine_16x", Icon16x16 ) );
 		Set( "GraphEditor.Event_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_Event_16x", Icon16x16 ) );
 		Set( "GraphEditor.CustomEvent_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_CustomEvent_16x", Icon16x16 ) );
+		Set( "GraphEditor.CallInEditorEvent_16x", new IMAGE_BRUSH( "Icons/icon_Blueprint_CallInEditor_16x", Icon16x16 ) );
 		Set( "GraphEditor.Timeline_16x", new IMAGE_BRUSH("Icons/icon_Blueprint_Timeline_16x", Icon16x16));
 		Set( "GraphEditor.Comment_16x", new IMAGE_BRUSH("Icons/icon_Blueprint_Comment_16x", Icon16x16));
 		Set( "GraphEditor.Switch_16x", new IMAGE_BRUSH("Icons/icon_Blueprint_Switch_16x", Icon16x16));
@@ -3229,7 +3258,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "GraphEditor.Delegate_24x", new IMAGE_BRUSH( "Icons/icon_Blueprint_Delegate_24x", Icon24x24 ) );
 
 		Set( "GraphEditor.EventGraph_24x", new IMAGE_BRUSH( "Icons/icon_Blueprint_EventGraph_24x", Icon24x24 ) );
-		Set( "GraphEditor.InterfaceFunction_24x", new IMAGE_BRUSH( "Icons/icon_Blueprint_Interfacefunction_24x", Icon24x24 ) );
+		Set( "GraphEditor.InterfaceFunction_24x", new IMAGE_BRUSH( "Icons/icon_Blueprint_InterfaceFunction_24x", Icon24x24 ) );
 		Set( "GraphEditor.Macro_24x", new IMAGE_BRUSH( "Icons/icon_Blueprint_Macro_24x", Icon24x24 ) );
 		Set( "GraphEditor.Function_24x", new IMAGE_BRUSH( "Icons/icon_Blueprint_NewFunction_24x", Icon24x24 ) );
 		Set( "GraphEditor.PotentialOverrideFunction_24x", new IMAGE_BRUSH( "Icons/icon_Blueprint_OverrideableFunction_24x", Icon24x24 ) );
@@ -3384,6 +3413,7 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 		Set( "EditorViewport.LocationGridSnap", new IMAGE_BRUSH( "Old/LevelEditor/LocationGridSnap", Icon14x14, IconColor) );
 		Set( "EditorViewport.RotationGridSnap", new IMAGE_BRUSH( "Old/LevelEditor/RotationGridSnap", Icon14x14, IconColor ) );
 		Set( "EditorViewport.ScaleGridSnap", new IMAGE_BRUSH( "Old/LevelEditor/ScaleGridSnap", Icon14x14, IconColor ) );
+		Set( "EditorViewport.ToggleSurfaceSnapping", new IMAGE_BRUSH( "Icons/icon_surface_snapping_14px", Icon14x14 ) );
 		Set( "EditorViewport.RelativeCoordinateSystem_Local", new IMAGE_BRUSH( "Icons/icon_axis_local_16px", Icon16x16, IconColor ) );
 		Set( "EditorViewport.RelativeCoordinateSystem_Local.Small", new IMAGE_BRUSH( "Icons/icon_axis_local_16px", Icon16x16, IconColor ) );
 		Set( "EditorViewport.RelativeCoordinateSystem_World", new IMAGE_BRUSH( "Icons/icon_axis_world_16px", Icon16x16, IconColor ) );
@@ -3890,16 +3920,13 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 	// Persona
 #if WITH_EDITOR
 	{
-		Set( "Persona.ConvertAnimationGraph", new IMAGE_BRUSH( "Old/Graph/ConvertIcon", Icon40x40 ) );
+		// Persona viewport
 		Set( "AnimViewportMenu.TranslateMode", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon32x32) );
 		Set( "AnimViewportMenu.TranslateMode.Small", new IMAGE_BRUSH( "Icons/icon_translate_40x", Icon16x16 ) );
 		Set( "AnimViewportMenu.RotateMode", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon32x32) );
 		Set( "AnimViewportMenu.RotateMode.Small", new IMAGE_BRUSH( "Icons/icon_rotate_40x", Icon16x16 ) );
-		Set( "Persona.ReimportAsset", new IMAGE_BRUSH( "Icons/Reimport_12x", Icon12x12 ) );
 		Set( "AnimViewportMenu.CameraFollow", new IMAGE_BRUSH( "Persona/Viewport/Camera_FollowBounds_40px", Icon32x32) );
 		Set( "AnimViewportMenu.CameraFollow.Small", new IMAGE_BRUSH( "Persona/Viewport/Camera_FollowBounds_40px", Icon16x16 ) );
-		Set( "SkeletonTree.SkeletonSocket", new IMAGE_BRUSH( "Persona/SkeletonTree/icon_SocketG_16px", Icon16x16) );
-		Set( "SkeletonTree.MeshSocket", new IMAGE_BRUSH( "Persona/SkeletonTree/icon_SocketC_16px", Icon16x16) );
 		Set( "AnimViewport.LocalSpaceEditing", new IMAGE_BRUSH( "Icons/icon_axis_local_16px", FVector2D( 16, 16 ) ) );
 		Set( "AnimViewport.WorldSpaceEditing", new IMAGE_BRUSH( "Icons/icon_axis_world_16px", FVector2D( 16, 16 ) ) );
 		Set( "AnimViewportMenu.SetShowNormals", new IMAGE_BRUSH( TEXT("Icons/icon_StaticMeshEd_Normals_40x"), Icon40x40 ) );
@@ -3919,6 +3946,38 @@ void FSlateEditorStyle::FStyle::SetupPersonaStyle()
 			.SetShadowOffset( FVector2D( 1,1 ) )
 			.SetShadowColorAndOpacity( FLinearColor(0,0,0,0.9f) )
 			);
+
+		// persona commands
+		Set("Persona.ChangeSkeletonPreviewMesh", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_PreviewMesh_40x"), Icon40x40));
+		Set("Persona.ChangeSkeletonPreviewMesh.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_PreviewMesh_40x"), Icon20x20));
+		Set("Persona.AnimNotifyWindow", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_AnimNotift_40x"), Icon40x40));
+		Set("Persona.AnimNotifyWindow.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_AnimNotift_40x"), Icon20x20));
+		Set("Persona.RetargetSourceMgr", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Retarget_40x"), Icon40x40));
+		Set("Persona.RetargetSourceMgr.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Retarget_40x"), Icon20x20));
+		Set("Persona.ImportMesh", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ImportMesh_40x"), Icon40x40));
+		Set("Persona.ImportMesh.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ImportMesh_40x"), Icon20x20));
+		Set("Persona.ReimportMesh", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ReimportMesh_40x"), Icon40x40));
+		Set("Persona.ReimportMesh.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ReimportMesh_40x"), Icon20x20));
+		Set("Persona.ImportLODs", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ImportLODs_40x"), Icon40x40));
+		Set("Persona.ImportLODs.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ImportLODs_40x"), Icon20x20));
+//		Set("Persona.AddBodyPart", new IMAGE_BRUSH(TEXT("Icons/icon_Placement_AllContent_40x"), Icon40x40));
+//		Set("Persona.AddBodyPart.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Placement_AllContent_40x"), Icon20x20));
+		Set("Persona.ImportAnimation", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ImportAnim_40x"), Icon40x40));
+		Set("Persona.ImportAnimation.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ImportAnim_40x"), Icon20x20));
+		Set("Persona.ReimportAnimation", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ReimportAnim_40x"), Icon40x40));
+		Set("Persona.ReimportAnimation.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ReimportAnim_40x"), Icon20x20));
+		Set("Persona.ApplyCompression", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Compression_40x"), Icon40x40));
+		Set("Persona.ApplyCompression.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_Compression_40x"), Icon20x20));
+		Set("Persona.ExportToFBX", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ExportFBX_40x"), Icon40x40));
+		Set("Persona.ExportToFBX.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_ExportFBX_40x"), Icon20x20));
+		Set("Persona.CreateAsset", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_CreateAsset_40x"), Icon40x40));
+		Set("Persona.CreateAsset.Small", new IMAGE_BRUSH(TEXT("Icons/icon_Persona_CreateAsset_40x"), Icon20x20));
+
+		// persona extras
+		Set("Persona.ConvertAnimationGraph", new IMAGE_BRUSH("Old/Graph/ConvertIcon", Icon40x40));
+		Set("Persona.ReimportAsset", new IMAGE_BRUSH("Icons/Reimport_12x", Icon12x12));
+		Set("SkeletonTree.SkeletonSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketG_16px", Icon16x16));
+		Set("SkeletonTree.MeshSocket", new IMAGE_BRUSH("Persona/SkeletonTree/icon_SocketC_16px", Icon16x16));
 	}
 
 	// Kismet 2
@@ -4280,6 +4339,7 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 			TEXT("ForceFeedbackEffect"),
 			TEXT("InterpData"),
 			TEXT("KillZVolume"),
+			TEXT("Landscape"),
 			TEXT("LevelStreamingVolume"),
 			TEXT("LightmassCharacterIndirectDetailVolume"),
 			TEXT("LightmassImportanceVolume"),
@@ -4531,96 +4591,97 @@ void FSlateEditorStyle::FStyle::SetupLandscapeEditorStyle()
 	// Landscape Editor
 	{
 		// Modes
-		Set( "LandscapeEditor.ManageMode", new IMAGE_BRUSH( "Icons/icon_Landscape_Mode_Manage_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.SculptMode", new IMAGE_BRUSH( "Icons/icon_Landscape_Mode_Sculpt_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.PaintMode", new IMAGE_BRUSH( "Icons/icon_Landscape_Mode_Paint_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.ManageMode.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Mode_Manage_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.SculptMode.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Mode_Sculpt_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.PaintMode.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Mode_Paint_20x", Icon20x20 ) );
+		Set("LandscapeEditor.ManageMode", new IMAGE_BRUSH("Icons/icon_Landscape_Mode_Manage_40x", Icon40x40));
+		Set("LandscapeEditor.SculptMode", new IMAGE_BRUSH("Icons/icon_Landscape_Mode_Sculpt_40x", Icon40x40));
+		Set("LandscapeEditor.PaintMode",  new IMAGE_BRUSH("Icons/icon_Landscape_Mode_Paint_40x",  Icon40x40));
+		Set("LandscapeEditor.ManageMode.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Mode_Manage_20x", Icon20x20));
+		Set("LandscapeEditor.SculptMode.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Mode_Sculpt_20x", Icon20x20));
+		Set("LandscapeEditor.PaintMode.Small",  new IMAGE_BRUSH("Icons/icon_Landscape_Mode_Paint_20x",  Icon20x20));
 
 		// Tools
-		Set( "LandscapeEditor.NewLandscape", new IMAGE_BRUSH( "Icons/icon_Landscape_New_Landscape_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.NewLandscape.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_New_Landscape_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.ResizeLandscape", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Copy_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.ResizeLandscape.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Copy_20x", Icon20x20 ) );
+		Set("LandscapeEditor.NewLandscape",       new IMAGE_BRUSH("Icons/icon_Landscape_New_Landscape_40x", Icon40x40));
+		Set("LandscapeEditor.NewLandscape.Small", new IMAGE_BRUSH("Icons/icon_Landscape_New_Landscape_20x", Icon20x20));
+		Set("LandscapeEditor.ResizeLandscape",       new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Copy_40x", Icon40x40));
+		Set("LandscapeEditor.ResizeLandscape.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Copy_20x", Icon20x20));
 
-		Set( "LandscapeEditor.SculptTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Sculpt_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.PaintTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Paint_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.SmoothTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Smooth_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.FlattenTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Flatten_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.RampTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Ramp_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.ErosionTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Erosion_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.HydroErosionTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_HydraulicErosion_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.NoiseTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Noise_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.RetopologizeTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Retopologize_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.VisibilityTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Visibility_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.SculptTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Sculpt_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.PaintTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Paint_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.SmoothTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Smooth_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.FlattenTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Flatten_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.RampTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Ramp_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.ErosionTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Erosion_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.HydroErosionTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_HydraulicErosion_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.NoiseTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Noise_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.RetopologizeTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Retopologize_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.VisibilityTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Visibility_20x", Icon20x20 ) );
+		Set("LandscapeEditor.SculptTool",       new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Sculpt_40x",           Icon40x40));
+		Set("LandscapeEditor.PaintTool",        new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Paint_40x",            Icon40x40));
+		Set("LandscapeEditor.SmoothTool",       new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Smooth_40x",           Icon40x40));
+		Set("LandscapeEditor.FlattenTool",      new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Flatten_40x",          Icon40x40));
+		Set("LandscapeEditor.RampTool",         new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Ramp_40x",             Icon40x40));
+		Set("LandscapeEditor.ErosionTool",      new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Erosion_40x",          Icon40x40));
+		Set("LandscapeEditor.HydroErosionTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_HydraulicErosion_40x", Icon40x40));
+		Set("LandscapeEditor.NoiseTool",        new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Noise_40x",            Icon40x40));
+		Set("LandscapeEditor.RetopologizeTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Retopologize_40x",     Icon40x40));
+		Set("LandscapeEditor.VisibilityTool",   new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Visibility_40x",       Icon40x40));
+		Set("LandscapeEditor.SculptTool.Small",       new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Sculpt_20x",           Icon20x20));
+		Set("LandscapeEditor.PaintTool.Small",        new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Paint_20x",            Icon20x20));
+		Set("LandscapeEditor.SmoothTool.Small",       new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Smooth_20x",           Icon20x20));
+		Set("LandscapeEditor.FlattenTool.Small",      new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Flatten_20x",          Icon20x20));
+		Set("LandscapeEditor.RampTool.Small",         new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Ramp_20x",             Icon20x20));
+		Set("LandscapeEditor.ErosionTool.Small",      new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Erosion_20x",          Icon20x20));
+		Set("LandscapeEditor.HydroErosionTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_HydraulicErosion_20x", Icon20x20));
+		Set("LandscapeEditor.NoiseTool.Small",        new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Noise_20x",            Icon20x20));
+		Set("LandscapeEditor.RetopologizeTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Retopologize_20x",     Icon20x20));
+		Set("LandscapeEditor.VisibilityTool.Small",   new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Visibility_20x",       Icon20x20));
 
-		Set( "LandscapeEditor.SelectComponentTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Selection_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.AddComponentTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_AddComponent_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.DeleteComponentTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_DeleteComponent_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.MoveToLevelTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_MoveToLevel_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.SelectComponentTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Selection_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.AddComponentTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_AddComponent_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.DeleteComponentTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_DeleteComponent_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.MoveToLevelTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_MoveToLevel_20x", Icon20x20 ) );
+		Set("LandscapeEditor.SelectComponentTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Selection_40x",       Icon40x40));
+		Set("LandscapeEditor.AddComponentTool",    new IMAGE_BRUSH("Icons/icon_Landscape_Tool_AddComponent_40x",    Icon40x40));
+		Set("LandscapeEditor.DeleteComponentTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_DeleteComponent_40x", Icon40x40));
+		Set("LandscapeEditor.MoveToLevelTool",     new IMAGE_BRUSH("Icons/icon_Landscape_Tool_MoveToLevel_40x",     Icon40x40));
+		Set("LandscapeEditor.SelectComponentTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Selection_20x",       Icon20x20));
+		Set("LandscapeEditor.AddComponentTool.Small",    new IMAGE_BRUSH("Icons/icon_Landscape_Tool_AddComponent_20x",    Icon20x20));
+		Set("LandscapeEditor.DeleteComponentTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_DeleteComponent_20x", Icon20x20));
+		Set("LandscapeEditor.MoveToLevelTool.Small",     new IMAGE_BRUSH("Icons/icon_Landscape_Tool_MoveToLevel_20x",     Icon20x20));
 
-		Set( "LandscapeEditor.RegionSelectTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Mask_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.RegionCopyPasteTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Copy_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.RegionSelectTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Mask_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.RegionCopyPasteTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Copy_20x", Icon20x20 ) );
+		Set("LandscapeEditor.RegionSelectTool",    new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Mask_40x", Icon40x40));
+		Set("LandscapeEditor.RegionCopyPasteTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Copy_40x", Icon40x40));
+		Set("LandscapeEditor.RegionSelectTool.Small",    new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Mask_20x", Icon20x20));
+		Set("LandscapeEditor.RegionCopyPasteTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Copy_20x", Icon20x20));
 
-		Set( "LandscapeEditor.SplineTool", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Splines_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.SplineTool.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Tool_Splines_20x", Icon20x20 ) );
+		Set("LandscapeEditor.SplineTool", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Splines_40x", Icon40x40));
+		Set("LandscapeEditor.SplineTool.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Tool_Splines_20x", Icon20x20));
 
 		// Brush Sets
-		Set( "LandscapeEditor.CircleBrush", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_smooth_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.AlphaBrush", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Alpha_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.AlphaBrush_Pattern", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Pattern_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.ComponentBrush", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Component_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.GizmoBrush", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Gizmo_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.CircleBrush.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_smooth_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.AlphaBrush.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Alpha_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.AlphaBrush_Pattern.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Pattern_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.ComponentBrush.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Component_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.GizmoBrush.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Gizmo_20x", Icon20x20 ) );
+		Set("LandscapeEditor.CircleBrush",        new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_40x", Icon40x40));
+		Set("LandscapeEditor.AlphaBrush",         new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_40x",         Icon40x40));
+		Set("LandscapeEditor.AlphaBrush_Pattern", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Pattern_40x",       Icon40x40));
+		Set("LandscapeEditor.ComponentBrush",     new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Component_40x",     Icon40x40));
+		Set("LandscapeEditor.GizmoBrush",         new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Gizmo_40x",         Icon40x40));
+		Set("LandscapeEditor.CircleBrush.Small",        new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_20x", Icon20x20));
+		Set("LandscapeEditor.AlphaBrush.Small",         new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_20x",         Icon20x20));
+		Set("LandscapeEditor.AlphaBrush_Pattern.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Pattern_20x",       Icon20x20));
+		Set("LandscapeEditor.ComponentBrush.Small",     new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Component_20x",     Icon20x20));
+		Set("LandscapeEditor.GizmoBrush.Small",         new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Gizmo_20x",         Icon20x20));
 
 		// Brushes
-		Set( "LandscapeEditor.CircleBrush_Smooth", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_smooth_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.CircleBrush_Linear", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_linear_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.CircleBrush_Spherical", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_spherical_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.CircleBrush_Tip", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_tip_40x", Icon40x40 ) );
-		Set( "LandscapeEditor.CircleBrush_Smooth.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_smooth_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.CircleBrush_Linear.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_linear_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.CircleBrush_Spherical.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_spherical_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.CircleBrush_Tip.Small", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Circle_tip_20x", Icon20x20 ) );
+		Set("LandscapeEditor.CircleBrush_Smooth",    new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_40x",    Icon40x40));
+		Set("LandscapeEditor.CircleBrush_Linear",    new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_linear_40x",    Icon40x40));
+		Set("LandscapeEditor.CircleBrush_Spherical", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_spherical_40x", Icon40x40));
+		Set("LandscapeEditor.CircleBrush_Tip",       new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_tip_40x",       Icon40x40));
+		Set("LandscapeEditor.CircleBrush_Smooth.Small",    new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_smooth_20x",    Icon20x20));
+		Set("LandscapeEditor.CircleBrush_Linear.Small",    new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_linear_20x",    Icon20x20));
+		Set("LandscapeEditor.CircleBrush_Spherical.Small", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_spherical_20x", Icon20x20));
+		Set("LandscapeEditor.CircleBrush_Tip.Small",       new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Circle_tip_20x",       Icon20x20));
 
-		Set( "LandscapeEditor.Brushes.Alpha.UseRChannel", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Alpha_UseRChannel_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.Brushes.Alpha.UseGChannel", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Alpha_UseGChannel_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.Brushes.Alpha.UseBChannel", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Alpha_UseBChannel_20x", Icon20x20 ) );
-		Set( "LandscapeEditor.Brushes.Alpha.UseAChannel", new IMAGE_BRUSH( "Icons/icon_Landscape_Brush_Alpha_UseAChannel_20x", Icon20x20 ) );
+		Set("LandscapeEditor.Brushes.Alpha.UseRChannel", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_UseRChannel_20x", Icon20x20));
+		Set("LandscapeEditor.Brushes.Alpha.UseGChannel", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_UseGChannel_20x", Icon20x20));
+		Set("LandscapeEditor.Brushes.Alpha.UseBChannel", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_UseBChannel_20x", Icon20x20));
+		Set("LandscapeEditor.Brushes.Alpha.UseAChannel", new IMAGE_BRUSH("Icons/icon_Landscape_Brush_Alpha_UseAChannel_20x", Icon20x20));
 
 		// Target List
-		Set( "LandscapeEditor.TargetList.RowBackground",        new FSlateNoResource() );
-		Set( "LandscapeEditor.TargetList.RowBackgroundHovered", new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, FLinearColor(1.0f, 1.0f, 1.0f, 0.1f) ) );
-		Set( "LandscapeEditor.TargetList.RowSelected",          new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor_Pressed ) );
-		Set( "LandscapeEditor.TargetList.RowSelectedHovered",   new BOX_BRUSH( "Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor ) );
+		Set("LandscapeEditor.TargetList.RowBackground",        new FSlateNoResource());
+		Set("LandscapeEditor.TargetList.RowBackgroundHovered", new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, FLinearColor(1.0f, 1.0f, 1.0f, 0.1f)));
+		Set("LandscapeEditor.TargetList.RowSelected",          new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor_Pressed));
+		Set("LandscapeEditor.TargetList.RowSelectedHovered",   new BOX_BRUSH("Common/RoundedSelection_16x", 4.0f/16.0f, SelectionColor));
 		
-		Set( "LandscapeEditor.Target_Heightmap", new IMAGE_BRUSH( "Icons/icon_Landscape_Target_Heightmap_32x", Icon48x48 ) );
-		Set( "LandscapeEditor.Target_Invalid", new IMAGE_BRUSH( "Icons/icon_Landscape_Target_Invalid_32x", Icon48x48 ) );
+		Set("LandscapeEditor.Target_Heightmap",  new IMAGE_BRUSH("Icons/icon_Landscape_Target_Heightmap_48x",  Icon48x48));
+		Set("LandscapeEditor.Target_Visibility", new IMAGE_BRUSH("Icons/icon_Landscape_Target_Visibility_48x", Icon48x48));
+		Set("LandscapeEditor.Target_Invalid",    new IMAGE_BRUSH("Icons/icon_Landscape_Target_Invalid_48x",    Icon48x48));
 
-		Set( "LandscapeEditor.Target_Create", new IMAGE_BRUSH( "Icons/icon_Landscape_Target_Create_12x", Icon12x12 ) );
-		Set( "LandscapeEditor.Target_MakePublic", new IMAGE_BRUSH( "Icons/assign_right_12x", Icon12x12 ) );
-		Set( "LandscapeEditor.Target_Delete", new IMAGE_BRUSH( "Icons/Cross_12x", Icon12x12 ) );
+		Set("LandscapeEditor.Target_Create",     new IMAGE_BRUSH("Icons/icon_Landscape_Target_Create_12x", Icon12x12));
+		Set("LandscapeEditor.Target_MakePublic", new IMAGE_BRUSH("Icons/assign_right_12x",                 Icon12x12));
+		Set("LandscapeEditor.Target_Delete",     new IMAGE_BRUSH("Icons/Cross_12x",                        Icon12x12));
 	}
 #endif
 }
@@ -4734,6 +4795,8 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "MaterialEditor.ToggleRealtimeExpressions.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_LiveNodes_40x", Icon20x20 ) );
 		Set( "MaterialEditor.AlwaysRefreshAllPreviews", new IMAGE_BRUSH( "Icons/icon_MatEd_Refresh_40x", Icon40x40 ) );
 		Set( "MaterialEditor.AlwaysRefreshAllPreviews.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Refresh_40x", Icon20x20 ) );
+		Set( "MaterialEditor.ToggleLivePreview", new IMAGE_BRUSH("Icons/icon_MatEd_LivePreview_40x", Icon40x40) );
+		Set( "MaterialEditor.ToggleLivePreview.Small", new IMAGE_BRUSH("Icons/icon_MatEd_LivePreview_40x", Icon20x20) );
 		Set( "MaterialEditor.ShowHideConnectors", new IMAGE_BRUSH( "Icons/icon_MatEd_Connectors_40x", Icon40x40 ) );
 		Set( "MaterialEditor.ShowHideConnectors.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Connectors_40x", Icon20x20 ) );
 		Set( "MaterialEditor.CameraHome", new IMAGE_BRUSH( "Icons/icon_MatEd_Home_40x", Icon40x40 ) );
@@ -5390,6 +5453,16 @@ void FSlateEditorStyle::FStyle::SetupUMGEditorStyles()
 		.SetTextColor( DefaultForeground )
 		.SetSelectedTextColor( InvertedForeground )
 		);
+
+	Set("HorizontalAlignment_Left", new IMAGE_BRUSH("Icons/UMG/Alignment/Horizontal_Left", Icon20x20));
+	Set("HorizontalAlignment_Center", new IMAGE_BRUSH("Icons/UMG/Alignment/Horizontal_Center", Icon20x20));
+	Set("HorizontalAlignment_Right", new IMAGE_BRUSH("Icons/UMG/Alignment/Horizontal_Right", Icon20x20));
+	Set("HorizontalAlignment_Fill", new IMAGE_BRUSH("Icons/UMG/Alignment/Horizontal_Fill", Icon20x20));
+
+	Set("VerticalAlignment_Top", new IMAGE_BRUSH("Icons/UMG/Alignment/Vertical_Top", Icon20x20));
+	Set("VerticalAlignment_Center", new IMAGE_BRUSH("Icons/UMG/Alignment/Vertical_Center", Icon20x20));
+	Set("VerticalAlignment_Bottom", new IMAGE_BRUSH("Icons/UMG/Alignment/Vertical_Bottom", Icon20x20));
+	Set("VerticalAlignment_Fill", new IMAGE_BRUSH("Icons/UMG/Alignment/Vertical_Fill", Icon20x20));
 }
 
 void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()

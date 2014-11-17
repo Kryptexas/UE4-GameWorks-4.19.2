@@ -39,6 +39,13 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 	virtual void OnApplyModifiers(struct FCompositeNavModifier& Modifiers) override;
 	// END UNavRelevantComponent
 
+	// BEGIN UObject Interface
+	virtual void PostLoad() override;
+#if WITH_EDITOR
+	virtual void PostEditImport() override;
+#endif
+	// END UObject Interface
+
 	/** set basic link data: end points and direction */
 	void SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ENavLinkDirection::Type Direction);
 	virtual FNavigationLink GetLinkModifier() const;
@@ -111,7 +118,7 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 protected:
 
 	/** link Id assigned by navigation system */
-	UPROPERTY(DuplicateTransient)
+	UPROPERTY()
 	uint32 NavLinkUserId;
 
 	/** area class to use when link is enabled */

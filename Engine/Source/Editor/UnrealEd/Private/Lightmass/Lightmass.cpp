@@ -896,6 +896,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = 0;
+		LightData.LightSourceLength = 0;
 		DirectionalData.LightSourceAngle = Light->LightmassSettings.LightSourceAngle * (float)PI / 180.0f;
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
 		Swarm.WriteChannel( Channel, &DirectionalData, sizeof(DirectionalData) );
@@ -912,6 +913,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = Light->SourceRadius;
+		LightData.LightSourceLength = Light->SourceLength;
 		PointData.Radius = Light->AttenuationRadius;
 		PointData.FalloffExponent = Light->LightFalloffExponent;
 		Swarm.WriteChannel( Channel, &LightData, sizeof(LightData) );
@@ -930,6 +932,7 @@ void FLightmassExporter::WriteLights( int32 Channel )
 		LightData.IndirectLightingSaturation = Light->LightmassSettings.IndirectLightingSaturation;
 		LightData.ShadowExponent = Light->LightmassSettings.ShadowExponent;
 		LightData.LightSourceRadius = Light->SourceRadius;
+		LightData.LightSourceLength = Light->SourceLength;
 		PointData.Radius = Light->AttenuationRadius;
 		PointData.FalloffExponent = Light->LightFalloffExponent;
 		SpotData.InnerConeAngle = Light->InnerConeAngle; 
@@ -2461,15 +2464,26 @@ bool FLightmassProcessor::BeginRun()
 	};
 #endif
 #elif PLATFORM_LINUX
+#if UE_BUILD_DEBUG
 	const TCHAR* LightmassExecutable64 = TEXT("../Linux/UnrealLightmass-Linux-Debug");
 	const TCHAR* RequiredDependencyPaths64[] =
 	{
 		TEXT("../DotNET/Linux/AgentInterface.dll"),
-		TEXT("../Linux/UnrealLightmass-Core-Linux-Debug.so"),
-		TEXT("../Linux/UnrealLightmass-Projects-Linux-Debug.so"),
-		TEXT("../Linux/UnrealLightmass-SwarmInterface-Linux-Debug.so")
+		TEXT("../Linux/libUnrealLightmass-Core-Linux-Debug.so"),
+		TEXT("../Linux/libUnrealLightmass-Projects-Linux-Debug.so"),
+		TEXT("../Linux/libUnrealLightmass-SwarmInterface-Linux-Debug.so")
 	};
 #else
+	const TCHAR* LightmassExecutable64 = TEXT("../Linux/UnrealLightmass");
+	const TCHAR* RequiredDependencyPaths64[] =
+	{
+		TEXT("../DotNET/Linux/AgentInterface.dll"),
+		TEXT("../Linux/libUnrealLightmass-Core.so"),
+		TEXT("../Linux/libUnrealLightmass-Projects.so"),
+		TEXT("../Linux/libUnrealLightmass-SwarmInterface.so")
+	};
+#endif
+#else // platform
 #error "Unknown Lightmass platform"
 #endif
 	const int32 RequiredDependencyPaths64Count = ARRAY_COUNT(RequiredDependencyPaths64);
@@ -3561,6 +3575,9 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 		Lightmass::FStaticShadowDepthMapData ShadowMapData;
 		Swarm.ReadChannel(Channel, &ShadowMapData, sizeof(ShadowMapData));
 
+		BeginReleaseResource(&DepthMap);
+		DepthMap.Empty();
+
 		DepthMap.WorldToLight = ShadowMapData.WorldToLight;
 		DepthMap.ShadowMapSizeX = ShadowMapData.ShadowMapSizeX;
 		DepthMap.ShadowMapSizeY = ShadowMapData.ShadowMapSizeY;
@@ -3568,8 +3585,7 @@ void FLightmassProcessor::ImportStaticShadowDepthMap(ULightComponent* Light)
 		ReadArray(Channel, DepthMap.DepthSamples);
 		Swarm.CloseChannel(Channel);
 
-		BeginReleaseResource(&DepthMap);
-		BeginInitResource(&DepthMap);
+		DepthMap.InitializeAfterImport();
 	}
 	else
 	{

@@ -413,12 +413,11 @@ void FTextureMovieResource::ReleaseDynamicRHI()
 * Decodes the next frame of the movie stream and renders the result to this movie texture target
 * This is only called by the rendering thread.
 */
-void FTextureMovieResource::UpdateResource()
+void FTextureMovieResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
 {
 	if( Owner->Decoder )
 	{
 		SCOPED_DRAW_EVENTF(EventDecode, DEC_SCENE_ITEMS, TEXT("Movie[%s]"),*Owner->GetName());
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		Owner->Decoder->GetFrame(RHICmdList, this);
 	}
 }

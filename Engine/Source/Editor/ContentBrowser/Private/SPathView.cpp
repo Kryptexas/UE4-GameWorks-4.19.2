@@ -1200,19 +1200,7 @@ void SPathView::ExecuteTreeDropCopy(TArray<FAssetData> AssetList, TSharedPtr<FTr
 	TArray<UObject*> DroppedObjects;
 	ContentBrowserUtils::GetObjectsInAssetData(AssetList, DroppedObjects);
 
-	TArray<UObject*> NewObjects;
-	ObjectTools::DuplicateObjects(DroppedObjects, TEXT(""), TreeItem->FolderPath, /*bOpenDialog=*/false, &NewObjects);
-
-	// If any objects were duplicated, report the success
-	if ( NewObjects.Num() )
-	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("Number"), NewObjects.Num() );
-		const FText Message = FText::Format( LOCTEXT("AssetsDroppedCopy", "{Number} asset(s) copied"), Args );
-		const FVector2D& CursorPos = FSlateApplication::Get().GetCursorPos();
-		FSlateRect MessageAnchor(CursorPos.X, CursorPos.Y, CursorPos.X, CursorPos.Y);
-		ContentBrowserUtils::DisplayMessage(Message, MessageAnchor, SharedThis(this));
-	}
+	ContentBrowserUtils::CopyAssets(DroppedObjects, TreeItem->FolderPath);
 }
 
 void SPathView::ExecuteTreeDropMove(TArray<FAssetData> AssetList, TSharedPtr<FTreeItem> TreeItem)

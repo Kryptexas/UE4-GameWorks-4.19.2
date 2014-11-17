@@ -43,6 +43,12 @@ class UEditorGameAgnosticSettings : public UObject
 	/** Load the engine scalability benchmark results. Performs a benchmark if not yet valid. */
 	void LoadScalabilityBenchmark();
 
+	/** Auto detects and applies the scalability benchmark */
+	void AutoApplyScalabilityBenchmark();
+
+	/** @return true if the scalability benchmark is valid */
+	bool IsScalabilityBenchmarkValid() const;
+
 	// Begin UObject Interface
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject Interface

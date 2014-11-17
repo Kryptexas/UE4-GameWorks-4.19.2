@@ -84,7 +84,7 @@ struct TouchInput
 };
 
 #define MAX_NUM_CONTROLLERS					1  // Only one for now
-#define MAX_NUM_CONTROLLER_BUTTONS			16
+#define MAX_NUM_CONTROLLER_BUTTONS			17
 #define MAX_DEFERRED_MESSAGE_QUEUE_SIZE		128
 
 struct FAndroidControllerData

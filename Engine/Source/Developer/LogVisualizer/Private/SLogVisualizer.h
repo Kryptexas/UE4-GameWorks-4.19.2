@@ -12,10 +12,11 @@ struct FLogsListItem
 	FString Name;
 	float StartTimestamp;
 	float EndTimestamp;
+	float LastEndTimestamp;
 	int32 LogIndex;
 	
 	FLogsListItem(const FString& InName, float InStart, float InEnd, int32 InLogIndex = INDEX_NONE)
-		: Name(InName), StartTimestamp(InStart), EndTimestamp(InEnd), LogIndex(InLogIndex)
+		: Name(InName), StartTimestamp(InStart), EndTimestamp(InEnd), LastEndTimestamp(0), LogIndex(InLogIndex)
 	{
 	}
 
@@ -53,6 +54,9 @@ struct FLogStatusItem
 	FLogStatusItem(const FString& InItemText) : ItemText(InItemText) {}
 	FLogStatusItem(const FString& InItemText, const FString& InValueText) : ItemText(InItemText), ValueText(InValueText) {}
 };
+
+template <typename ItemType>
+class SLogListView;
 
 /** Main LogVisualizer UI widget */
 class SLogVisualizer : public SCompoundWidget
@@ -96,6 +100,7 @@ public:
 	FReply OnRemove();
 	void OnPauseChanged(ESlateCheckBoxState::Type NewState);
 	void FilterTextCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
+	void OnQuickFilterTextChanged(const FText& CommentText, ETextCommit::Type CommitInfo);
 	void OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode);
 	// Table delegates
 	TSharedRef<ITableRow> LogsListGenerateRow(TSharedPtr<FLogsListItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
@@ -108,6 +113,7 @@ public:
 
 	void OnListDoubleClick(TSharedPtr<FLogsListItem>);
 	void DoFullUpdate();
+	void DoTickUpdate();
 	void RequestFullUpdate() { TimeTillNextUpdate = 0; }
 
 	float GetZoom() const
@@ -122,6 +128,7 @@ public:
 
 	void RequestShowLogEntry(TSharedPtr<FLogsListItem> Item, TSharedPtr<FVisLogEntry> LogEntry);
 
+	void UpdateVisibleEntriesCache(const TSharedPtr<FActorsVisLog>& Log, int32 Index);
 	void GetVisibleEntries(const TSharedPtr<FActorsVisLog>& Log, TArray<TSharedPtr<FVisLogEntry> >& OutEntries);
 
 	int32 GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVisLogEntry> >& InVisibleEntries);
@@ -163,6 +170,7 @@ protected:
 	void SaveSelectedLogs(FString& Filename);
 
 private:
+	void InvalidateCanvas();
 	void UpdateStatusItems(const FVisLogEntry* LogEntry);
 	TSharedRef<ITableRow> HandleGenerateLogStatus(TSharedPtr<FLogStatusItem> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnLogStatusGetChildren(TSharedPtr<FLogStatusItem> InItem, TArray< TSharedPtr<FLogStatusItem> >& OutItems);
@@ -174,7 +182,7 @@ private:
 
 	FString GetLogEntryStatusText() const;
 
-	void AddLog(int32 Index, const FActorsVisLog* Log);
+	void AddOrUpdateLog(int32 Index, const FActorsVisLog* Log);
 
 	void SelectActor(class AActor* SelectedActor);
 	void CameraActorSelected(class AActor* SelectedActor);	
@@ -217,8 +225,14 @@ private:
 	/** retrieves whether ToggleCamera toggle button should appear pressed */
 	ESlateCheckBoxState::Type GetToggleCameraState() const;
 
+	void OnOffsetDataSets(ESlateCheckBoxState::Type NewState);
+	ESlateCheckBoxState::Type GetOffsetDataSets() const;
+
+	void OnHistogramGraphsFilter(ESlateCheckBoxState::Type NewState);
+	ESlateCheckBoxState::Type GetHistogramGraphsFilter() const;
+	
 	/** See if a particular log passes the current filter and other display flags */
-	bool ShouldListLog(const FActorsVisLog& Log);
+	bool ShouldListLog(const TSharedPtr<FActorsVisLog>& Log);
 
 	void ShowEntry(const FVisLogEntry* LogEntry);
 
@@ -239,6 +253,7 @@ private:
 	TArray<TSharedPtr<FLogEntryItem> > LogEntryLines;
 	
 	TArray<FString> UsedCategories;
+	TMap<FString, TArray<FString> > UsedGraphCategories;
 	/** Color palette for bars coloring */
 	static FColor ColorPalette[];
 
@@ -246,6 +261,8 @@ private:
 	FString LogNameFilterString;
 
 	FString LastBrowsePath;
+
+	FString QuickFilterText;
 
 	/** index of currently viewed log */
 	int32 LogEntryIndex;
@@ -274,17 +291,26 @@ private:
 	bool bIgnoreTrivialLogs;
 	bool bShowHistogramLabelsOutside;
 	bool bStickToLastData;
+	bool bOffsetDataSet;
+	bool bHistogramGraphsFilter;
 
 	TWeakObjectPtr<class ALogVisualizerCameraController> CameraController;
 	TArray< TSharedPtr<FLogStatusItem> > StatusItems;
 
-
+	struct FCachedEntries
+	{
+		TSharedPtr<FActorsVisLog> Log;
+		TArray<TSharedPtr<FVisLogEntry> > CachedEntries;
+	};
+	TArray<FCachedEntries> OutEntriesCached;
+		
 	// WIDGETS
 
 	/** Main log list widget */
-	TSharedPtr<SListView<TSharedPtr<FLogsListItem> > > LogsListWidget;
+	TSharedPtr<SLogListView<TSharedPtr<FLogsListItem> > > LogsListWidget;
 	TSharedPtr< STreeView< TSharedPtr<FLogStatusItem> > > StatusItemsView;
 	TSharedPtr<SEditableTextBox> LogNameFilterBox;
+	TSharedPtr<SEditableTextBox> QuickFilterBox;
 	TSharedPtr<STextBlock> StatusTextBlock;
 	TSharedPtr<SListView<TSharedPtr<FLogEntryItem> > > LogsLinesWidget;
 	TSharedPtr<STimeline> Timeline;

@@ -639,14 +639,13 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 		for (int32 ComponentIndex = 0; bShouldShowTransform && ComponentIndex < SceneComponentObjects.Num(); ++ComponentIndex)
 		{
 			USceneComponent* SceneComponent = Cast<USceneComponent>(SceneComponentObjects[ComponentIndex].Get());
-			UBlueprint* Blueprint = (SceneComponent ? Cast<UBlueprint>(SceneComponent->GetOuter()) : NULL);
 			if (SceneComponent->AttachParent == NULL && SceneComponent->GetOuter()->HasAnyFlags(RF_ClassDefaultObject))
 			{
 				bShouldShowTransform = false;
 			}
-			else if (Blueprint && Blueprint->SimpleConstructionScript)
+			else if (const USimpleConstructionScript* SCS = GetSimpleConstructionScript(SceneComponent))
 			{
-				const TArray<USCS_Node*>& RootNodes = Blueprint->SimpleConstructionScript->GetRootNodes();
+				const TArray<USCS_Node*>& RootNodes = SCS->GetRootNodes();
 				for(int32 RootNodeIndex = 0; bShouldShowTransform && RootNodeIndex < RootNodes.Num(); ++RootNodeIndex)
 				{
 					USCS_Node* RootNode = RootNodes[RootNodeIndex];
@@ -660,14 +659,17 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 			}
 		}
 
-		if( bShouldShowTransform )
+		TSharedRef<FComponentTransformDetails> TransformDetails = MakeShareable( new FComponentTransformDetails( bIsEditingBlueprintDefaults ? SceneComponentObjects : DetailBuilder.GetDetailsView().GetSelectedObjects(), SelectedActorInfo, DetailBuilder ) );
+
+		if(!bShouldShowTransform)
 		{
-			TSharedRef<FComponentTransformDetails> TransformDetails = MakeShareable( new FComponentTransformDetails( bIsEditingBlueprintDefaults ? SceneComponentObjects : DetailBuilder.GetDetailsView().GetSelectedObjects(), SelectedActorInfo, DetailBuilder ) );
-
-			IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
-
-			TransformCategory.AddCustomBuilder( TransformDetails );
+			TransformDetails->HideTransformField(ETransformField::Location);
+			TransformDetails->HideTransformField(ETransformField::Rotation);
 		}
+
+		IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
+
+		TransformCategory.AddCustomBuilder( TransformDetails );
 	}
 
 }

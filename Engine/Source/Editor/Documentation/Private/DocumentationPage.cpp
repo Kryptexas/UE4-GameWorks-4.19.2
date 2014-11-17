@@ -40,6 +40,20 @@ int32 FDocumentationPage::GetNumExcerpts() const
 	return StoredExcerpts.Num();
 }
 
+bool FDocumentationPage::GetExcerpt(const FString& ExcerptName, FExcerpt& Excerpt)
+{
+	for (const FExcerpt& StoredExcerpt : StoredExcerpts)
+	{
+		if (StoredExcerpt.Name == ExcerptName)
+		{
+			Excerpt = StoredExcerpt;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FDocumentationPage::GetExcerpts( /*OUT*/ TArray< FExcerpt >& Excerpts )
 {
 	Excerpts.Empty();

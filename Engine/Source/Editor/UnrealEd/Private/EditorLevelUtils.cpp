@@ -121,6 +121,56 @@ namespace EditorLevelUtils
 		}
 	}
 
+	ULevel* AddLevelsToWorld(UWorld* InWorld, const TArray<FString>& LevelPackageNames, UClass* LevelStreamingClass)
+	{
+		if ( !ensure(InWorld) )
+		{
+			return nullptr;
+		}
+
+		FScopedSlowTask SlowTask(LOCTEXT("AddLevelsToWorldTask", "Adding Levels to World"), true);
+
+		TArray<FString> PackageNames = LevelPackageNames;
+
+		// Sort the level packages alphabetically by name.
+		PackageNames.Sort();
+
+		// Fire ULevel::LevelDirtiedEvent when falling out of scope.
+		FScopedLevelDirtied LevelDirtyCallback;
+
+		// Try to add the levels that were specified in the dialog.
+		ULevel* NewLevel = nullptr;
+		for (const auto& PackageName : PackageNames)
+		{
+			NewLevel = AddLevelToWorld(InWorld, *PackageName, LevelStreamingClass);
+			if (NewLevel)
+			{
+				LevelDirtyCallback.Request();
+			}
+
+		} // for each file
+
+		// Set the last loaded level to be the current level
+		if (NewLevel)
+		{
+			InWorld->SetCurrentLevel(NewLevel);
+		}
+
+		// For safety
+		if (GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_Landscape))
+		{
+			GLevelEditorModeTools().ActivateDefaultMode();
+		}
+
+		// refresh editor windows
+		FEditorDelegates::RefreshAllBrowsers.Broadcast();
+
+		// Update volume actor visibility for each viewport since we loaded a level which could potentially contain volumes
+		GUnrealEd->UpdateVolumeActorVisibility(NULL);
+
+		return NewLevel;
+	}
+
 	ULevel* AddLevelToWorld( UWorld* InWorld, const TCHAR* LevelPackageName, UClass* LevelStreamingClass)
 	{
 		ULevel* NewLevel = NULL;
@@ -204,15 +254,19 @@ namespace EditorLevelUtils
 		UWorld* World = Level->OwningWorld;
 		
 		World->StreamingLevels.Remove(InLevel);
-
+		
 		// re-add the level with the desired streaming class
 		AddLevelToWorld(World, *(CachedPackageName.ToString()), LevelStreamingClass);
 
-		// Set original level transform
+		// Transfer level streaming settings
 		ULevelStreaming* NewStreamingLevel = FLevelUtils::FindStreamingLevel( Level );
 		if ( NewStreamingLevel )
 		{
 			NewStreamingLevel->LevelTransform = InLevel->LevelTransform;
+			NewStreamingLevel->EditorStreamingVolumes = InLevel->EditorStreamingVolumes;
+			NewStreamingLevel->MinTimeBetweenVolumeUnloadRequests = InLevel->MinTimeBetweenVolumeUnloadRequests;
+			NewStreamingLevel->DrawColor = InLevel->DrawColor;
+			NewStreamingLevel->Keywords = InLevel->Keywords;
 		}
 
 		return NewStreamingLevel;
@@ -250,7 +304,7 @@ namespace EditorLevelUtils
 			}
 
 			// Force the current level to be visible.
-			SetLevelVisibility(InLevel, true, true); //SetVisible( true );
+			SetLevelVisibility( InLevel, true, false );
 		}
 		else
 		{
@@ -280,7 +334,7 @@ namespace EditorLevelUtils
 				if ( LevelStreamingVolume )
 				{
 					LevelStreamingVolume->Modify();
-					LevelStreamingVolume->StreamingLevels.Remove( InLevelStreaming );
+					LevelStreamingVolume->StreamingLevelNames.Remove( InLevelStreaming->PackageName );
 				}
 			}
 
@@ -495,7 +549,7 @@ namespace EditorLevelUtils
 	ULevel* CreateNewLevel( UWorld* InWorld, bool bMoveSelectedActorsIntoNewLevel, UClass* LevelStreamingClass, const FString& DefaultFilename )
 	{
 		// Editor modes cannot be active when any level saving occurs.
-		GLevelEditorModeTools().ActivateDefaultMode();
+		GLevelEditorModeTools().DeactivateAllModes();
 
 		UWorld* NewWorld = nullptr;
 		if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))

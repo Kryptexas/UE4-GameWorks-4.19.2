@@ -279,14 +279,15 @@ void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, 
  * @todo: Move stats code into core?
  *
  * @param DeltaTime	Time in seconds since last call
+ * @param bUseFullTimeLimit	If true, use the entire time limit even if blocked on I/O
  * @param AsyncLoadingTime Time in seconds to use for async loading limit
  */
-void StaticTick( float DeltaTime, float AsyncLoadingTime )
+void StaticTick( float DeltaTime, bool bUseFullTimeLimit, float AsyncLoadingTime )
 {
 	check(!IsLoading());
 
 	// Spend a bit of time (pre)loading packages - currently 5 ms.
-	ProcessAsyncLoading(true, false, AsyncLoadingTime);
+	ProcessAsyncLoading(true, bUseFullTimeLimit, AsyncLoadingTime);
 
 	// Check natives.
 	extern int32 GNativeDuplicate;
@@ -1849,6 +1850,7 @@ UObject::UObject(const class FPostConstructInitializeProperties& PCIP)
 {
 	check(!PCIP.Obj || PCIP.Obj == this);
 	const_cast<FPostConstructInitializeProperties&>(PCIP).Obj = this;
+	const_cast<FPostConstructInitializeProperties&>(PCIP).FinalizeSubobjectClassInitialization();
 }
 
 /* Global flag so that FObjectFinders know if they are called from inside the UObject constructors or not. */
@@ -1861,6 +1863,7 @@ FPostConstructInitializeProperties::FPostConstructInitializeProperties() :
 	ObjectArchetype(NULL),
 	bCopyTransientsFromClassDefaults(false),
 	bShouldIntializePropsFromArchetype(true),
+	bSubobjectClassInitializationAllowed(true),
 	InstanceGraph(NULL),
 	LastConstructedObject(GConstructedObject)
 {
@@ -1875,6 +1878,7 @@ FPostConstructInitializeProperties::FPostConstructInitializeProperties(UObject* 
 	// if the SubobjectRoot NULL, then we want to copy the transients from the template, otherwise we are doing a duplicate and we want to copy the transients from the class defaults
 	bCopyTransientsFromClassDefaults(bInCopyTransientsFromClassDefaults),
 	bShouldIntializePropsFromArchetype(bInShouldIntializeProps),
+	bSubobjectClassInitializationAllowed(true),
 	InstanceGraph(InInstanceGraph),
 	LastConstructedObject(GConstructedObject)
 {
@@ -2129,6 +2133,12 @@ bool FPostConstructInitializeProperties::IslegalOverride(FName InComponentName, 
 		return false;
 	}
 	return true;
+}
+
+void FPostConstructInitializeProperties::AssertIfSubobjectSetupIsNotAllowed(const TCHAR* SubobjectName) const
+{
+	UE_CLOG(!bSubobjectClassInitializationAllowed, LogUObjectGlobals, Fatal,
+		TEXT("%s.%s: Subobject class setup is only allowed in base class constructor call (in the initialization list)"), Obj ? *Obj->GetFullName() : TEXT("NULL"), SubobjectName);
 }
 
 UObject* StaticConstructObject

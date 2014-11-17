@@ -118,6 +118,9 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	/** highlighting nodes during quick find */
 	uint32 bHighlightInSearchTree : 1;
 
+	/** highlight other child node indexes when hovering over a child */
+	uint32 bHighlightChildNodeIndices : 1;
+
 	/** debugger flag: breakpoint exists */
 	uint32 bHasBreakpoint : 1;
 

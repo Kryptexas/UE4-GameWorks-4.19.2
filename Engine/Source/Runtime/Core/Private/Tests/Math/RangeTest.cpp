@@ -4,7 +4,7 @@
 	RangeTest.cpp: Unit test for the TRange template.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AutomationTest.h"
 
 

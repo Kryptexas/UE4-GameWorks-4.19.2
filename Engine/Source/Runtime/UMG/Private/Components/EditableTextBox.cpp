@@ -30,9 +30,21 @@ UEditableTextBox::UEditableTextBox(const FPostConstructInitializeProperties& PCI
 	SelectAllTextOnCommit = Defaults._SelectAllTextOnCommit.Get();
 }
 
+void UEditableTextBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyEditableTextBlock.Reset();
+}
+
 TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 {
-	FString FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	FString FontPath = FPaths::GameContentDir() / Font.FontName.ToString();
+
+	if ( !FPaths::FileExists(FontPath) )
+	{
+		FontPath = FPaths::EngineContentDir() / Font.FontName.ToString();
+	}
 
 	MyEditableTextBlock = SNew(SEditableTextBox)
 		.Font(FSlateFontInfo(FontPath, Font.Size))
@@ -46,7 +58,8 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 		.RevertTextOnEscape(RevertTextOnEscape)
 		.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
 		.SelectAllTextOnCommit(SelectAllTextOnCommit)
-		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, SlateOnTextChanged))
+		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
+		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
 		;
 
 	return MyEditableTextBlock.ToSharedRef();
@@ -55,6 +68,12 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 void UEditableTextBox::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
+
+	const FEditableTextBoxStyle* StylePtr = ( Style != NULL ) ? Style->GetStyle<FEditableTextBoxStyle>() : NULL;
+	if ( StylePtr )
+	{
+		MyEditableTextBlock->SetStyle(StylePtr);
+	}
 
 	MyEditableTextBlock->SetText(Text);
 	MyEditableTextBlock->SetHintText(HintText);
@@ -84,16 +103,37 @@ void UEditableTextBox::SetText(FText InText)
 	}
 }
 
-void UEditableTextBox::SlateOnTextChanged(const FText& Text)
+void UEditableTextBox::SetError(FText InError)
+{
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		MyEditableTextBlock->SetError(InError);
+	}
+}
+
+void UEditableTextBox::ClearError()
+{
+	if ( MyEditableTextBlock.IsValid() )
+	{
+		MyEditableTextBlock->SetError(FText::GetEmpty());
+	}
+}
+
+void UEditableTextBox::HandleOnTextChanged(const FText& Text)
 {
 	OnTextChanged.Broadcast(Text);
+}
+
+void UEditableTextBox::HandleOnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	OnTextCommitted.Broadcast(Text, CommitMethod);
 }
 
 #if WITH_EDITOR
 
 const FSlateBrush* UEditableTextBox::GetEditorIcon()
 {
-	return FUMGStyle::Get().GetBrush("Widget.EditableTextBlock");
+	return FUMGStyle::Get().GetBrush("Widget.EditableTextBox");
 }
 
 #endif

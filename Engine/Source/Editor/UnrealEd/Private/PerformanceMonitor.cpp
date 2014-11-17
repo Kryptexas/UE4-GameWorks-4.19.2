@@ -157,10 +157,13 @@ Scalability::FQualityLevels FPerformanceMonitor::GetAutoScalabilityQualityLevels
 
 void FPerformanceMonitor::AutoApplyScalability()
 {
+	GEditor->AccessGameAgnosticSettings().AutoApplyScalabilityBenchmark();
+
 	Scalability::FQualityLevels NewLevels = FPerformanceMonitor::GetAutoScalabilityQualityLevels();
 
 	Scalability::SetQualityLevels(NewLevels);
 	Scalability::SaveState(GEditorGameAgnosticIni);
+	GEditor->RedrawAllViewports();
 
 	const bool bAutoApplied = true;
 	Scalability::RecordQualityLevelsAnalytics(bAutoApplied);
@@ -223,7 +226,7 @@ void FPerformanceMonitor::HidePerformanceWarning()
 
 void FPerformanceMonitor::Tick(float DeltaTime)
 {
-	if (GEngine->ShouldThrottleCPUUsage())
+	if (GEngine->ShouldThrottleCPUUsage() && (!GShaderCompilingManager || !GShaderCompilingManager->IsCompiling() ) )
 	{
 		return;
 	}
@@ -289,9 +292,7 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 	}
 	else
 	{
-		// Before we warn the user lets check if we already have auto-scalability enabled, no sense in warning them
-		// if we can't do anything about it.
-		if ( !WillAutoScalabilityHelp() )
+		if( GEditor->GetGameAgnosticSettings().IsScalabilityBenchmarkValid() )
 		{
 			return;
 		}
@@ -299,14 +300,14 @@ void FPerformanceMonitor::Tick(float DeltaTime)
 		// Choose an appropriate message
 		enum MessagesEnum { Seconds, SecondsPercent, Minute, MinutePercent, Minutes, MinutesPercent };
 		const FText Messages[] = {
-			LOCTEXT("PerformanceWarningInProgress_Seconds",			"Your framerate has been under {Framerate} FPS for the past {SampleTime} seconds.\n\nApplying optimum engine settings in {TimeRemaining}s."),
-			LOCTEXT("PerformanceWarningInProgress_Seconds_Percent", "Your framerate has been under {Framerate} FPS for {Percentage}% of the past {SampleTime} seconds.\n\nApplying optimum engine settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Seconds",			"Your framerate has been under {Framerate} FPS for the past {SampleTime} seconds.\n\nApplying reduced quality settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Seconds_Percent", "Your framerate has been under {Framerate} FPS for {Percentage}% of the past {SampleTime} seconds.\n\nApplying reduced quality settings in {TimeRemaining}s."),
 
-			LOCTEXT("PerformanceWarningInProgress_Minute",			"Your framerate has been under {Framerate} FPS for the past minute.\n\nApplying optimum engine settings in {TimeRemaining}s."),
-			LOCTEXT("PerformanceWarningInProgress_Minute_Percent",	"Your framerate has been under {Framerate} FPS for {Percentage}% of the last minute.\n\nApplying optimum engine settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Minute",			"Your framerate has been under {Framerate} FPS for the past minute.\n\nApplying reduced quality settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Minute_Percent",	"Your framerate has been under {Framerate} FPS for {Percentage}% of the last minute.\n\nApplying reduced quality settings in {TimeRemaining}s."),
 
-			LOCTEXT("PerformanceWarningInProgress_Minutes",			"Your framerate has been below {Framerate} FPS for the past {SampleTime} minutes.\n\nApplying optimum engine settings in {TimeRemaining}s."),
-			LOCTEXT("PerformanceWarningInProgress_Minutes_Percent", "Your framerate has been below {Framerate} FPS for {Percentage}% of the past {SampleTime} minutes.\n\nApplying optimum engine settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Minutes",			"Your framerate has been below {Framerate} FPS for the past {SampleTime} minutes.\n\nApplying reduced quality settings in {TimeRemaining}s."),
+			LOCTEXT("PerformanceWarningInProgress_Minutes_Percent", "Your framerate has been below {Framerate} FPS for {Percentage}% of the past {SampleTime} minutes.\n\nApplying reduced quality settings in {TimeRemaining}s."),
 		};
 
 		int32 Message;

@@ -21,9 +21,9 @@
 #include "Landscape/Landscape.h"
 
 #include "Particles/Emitter.h"
+#include "Editor/ActorPositioning.h"
 #include "Animation/SkeletalMeshActor.h"
 
-extern void OnPlaceStaticMeshActor( AActor* MeshActor, bool bUseSurfaceOrientation );
 
 namespace AssetSelectionUtils
 {
@@ -351,103 +351,65 @@ namespace AssetSelectionUtils
 *
 * Does nothing if ActorClass is NULL.
 */
-static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, const FVector* ActorLocation=NULL, bool bUseSurfaceOrientation=false, bool SelectActor = true, EObjectFlags ObjectFlags = RF_Transactional, const FName Name = NAME_None )
+static AActor* PrivateAddActor( UObject* Asset, UActorFactory* Factory, bool SelectActor = true, EObjectFlags ObjectFlags = RF_Transactional, const FName Name = NAME_None )
 {
-	AActor* Actor = NULL;
-	if ( Factory )
+	if (!Factory)
 	{
-		AActor* NewActorTemplate = Factory->GetDefaultActor( Asset );
-		if ( !NewActorTemplate )
+		return nullptr;
+	}
+
+	AActor* Actor = NULL;
+	AActor* NewActorTemplate = Factory->GetDefaultActor( Asset );
+	if ( !NewActorTemplate )
+	{
+		return NULL;
+	}
+
+	const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(GCurrentLevelEditingViewportClient, Factory, GEditor->ClickLocation, GEditor->ClickPlane, NewActorTemplate->GetPlacementExtent());
+
+	// Do not fade snapping indicators over time if the viewport is not realtime
+	bool bClearImmediately = !GCurrentLevelEditingViewportClient || !GCurrentLevelEditingViewportClient->IsRealtime();
+	FSnappingUtils::ClearSnappingHelpers( bClearImmediately );
+
+	ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+
+	// Don't spawn the actor if the current level is locked.
+	if ( FLevelUtils::IsLevelLocked(DesiredLevel) )
+	{
+		FNotificationInfo Info( NSLOCTEXT("UnrealEd", "Error_OperationDisallowedOnLockedLevel", "The requested operation could not be completed because the level is locked.") );
+		Info.ExpireDuration = 3.0f;
+		FSlateNotificationManager::Get().AddNotification(Info);
+		return NULL;
+	}
+
+	{
+		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor") );
+		if ( !(ObjectFlags & RF_Transactional) )
 		{
-			return NULL;
+			Transaction.Cancel();
 		}
 
-		// Position the actor relative to the mouse?
-		FVector Location = FVector::ZeroVector;
-		FVector SnapNormal = FVector::ZeroVector;
-		if ( ActorLocation )
+		// Create the actor.
+		Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, ObjectFlags, Name );
+		if(Actor)
 		{
-			Location = *ActorLocation;
-		}
-		else
-		{
-			FSnappingUtils::SnapPointToGrid( GEditor->ClickLocation, FVector(0, 0, 0) );
-
-			Location = GEditor->ClickLocation;
-			if( !GCurrentLevelEditingViewportClient || !FSnappingUtils::SnapLocationToNearestVertex( Location, GCurrentLevelEditingViewportClient->GetDropPreviewLocation(), GCurrentLevelEditingViewportClient, SnapNormal ) )
+			if ( SelectActor )
 			{
-				FVector Collision = NewActorTemplate->GetPlacementExtent();
-
-				Location += GEditor->ClickPlane * (FVector::BoxPushOut(GEditor->ClickPlane, Collision) + 0.1f);
+				GEditor->SelectNone( false, true );
+				GEditor->SelectActor( Actor, true, true );
 			}
 
-			// Do not fade snapping indicators over time if the viewport is not realtime
-			bool bClearImmediately = !GCurrentLevelEditingViewportClient || !GCurrentLevelEditingViewportClient->IsRealtime();
-			FSnappingUtils::ClearSnappingHelpers( bClearImmediately );
-
-			FSnappingUtils::SnapPointToGrid( Location, FVector(0, 0, 0) );
-		}		
-
-		const FRotator* Rotation = NULL;
-		if( bUseSurfaceOrientation )
-		{
-			FRotator SurfaceOrientation;
-			if( SnapNormal != FVector::ZeroVector )
-			{
-				// Orient the new actor with the snapped surface normal?
-				SurfaceOrientation = SnapNormal.Rotation();
-			}
-			else
-			{
-				SurfaceOrientation =  GEditor->ClickPlane.Rotation();
-			}
-
-			Rotation = &SurfaceOrientation;
+			Actor->InvalidateLightingCache();
+			Actor->PostEditChange();
 		}
+	}
 
-		ULevel* DesiredLevel = GWorld->GetCurrentLevel();
+	GEditor->RedrawLevelEditingViewports();
 
-		// Don't spawn the actor if the current level is locked.
-		if ( FLevelUtils::IsLevelLocked(DesiredLevel) )
-		{
-			FNotificationInfo Info( NSLOCTEXT("UnrealEd", "Error_OperationDisallowedOnLockedLevel", "The requested operation could not be completed because the level is locked.") );
-			Info.ExpireDuration = 3.0f;
-			FSlateNotificationManager::Get().AddNotification(Info);
-			return NULL;
-		}
-
-		{
-			FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor") );
-			if ( !(ObjectFlags & RF_Transactional) )
-			{
-				Transaction.Cancel();
-			}
-
-			// Create the actor.
-			Actor = Factory->CreateActor( Asset, DesiredLevel, Location, Rotation, ObjectFlags, Name ); 
-			if(Actor)
-			{
-				// Apply any static mesh tool settings if we placed a static mesh. 
-				OnPlaceStaticMeshActor( Actor, bUseSurfaceOrientation );
-
-				if ( SelectActor )
-				{
-					GEditor->SelectNone( false, true );
-					GEditor->SelectActor( Actor, true, true );
-				}
-
-				Actor->InvalidateLightingCache();
-				Actor->PostEditChange();
-			}
-		}
-
-		GEditor->RedrawLevelEditingViewports();
-
-		if ( Actor )
-		{
-			Actor->MarkPackageDirty();
-			ULevel::LevelDirtiedEvent.Broadcast();
-		}
+	if ( Actor )
+	{
+		Actor->MarkPackageDirty();
+		ULevel::LevelDirtiedEvent.Broadcast();
 	}
 
 	return Actor;
@@ -601,7 +563,7 @@ UActorFactory* FActorFactoryAssetProxy::GetFactoryForAssetObject( UObject* Asset
 	return Result;
 }
 
-AActor* FActorFactoryAssetProxy::AddActorForAsset( UObject* AssetObj, const FVector* ActorLocation, bool bUseSurfaceOrientation, bool SelectActor, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse /*= NULL*/, const FName Name )
+AActor* FActorFactoryAssetProxy::AddActorForAsset( UObject* AssetObj, bool SelectActor, EObjectFlags ObjectFlags, UActorFactory* FactoryToUse /*= NULL*/, const FName Name )
 {
 	AActor* Result = NULL;
 
@@ -614,7 +576,7 @@ AActor* FActorFactoryAssetProxy::AddActorForAsset( UObject* AssetObj, const FVec
 		{
 			if ( FactoryToUse->CanCreateActorFrom( AssetData, UnusedErrorMessage ) )
 			{
-				Result = PrivateAddActor( AssetObj, FactoryToUse, ActorLocation, bUseSurfaceOrientation, SelectActor, ObjectFlags, Name );
+				Result = PrivateAddActor( AssetObj, FactoryToUse, SelectActor, ObjectFlags, Name );
 			}
 		}
 		// If no specific factory has been provided, find the highest priority one that is valid for the asset and use
@@ -629,7 +591,7 @@ AActor* FActorFactoryAssetProxy::AddActorForAsset( UObject* AssetObj, const FVec
 				// Check if the actor can be created using this factory, making sure to check for an asset to be assigned from the selector
 				if ( ActorFactory->CanCreateActorFrom( AssetData, UnusedErrorMessage ) )
 				{
-					Result = PrivateAddActor(AssetObj, ActorFactory, ActorLocation, bUseSurfaceOrientation, SelectActor, ObjectFlags, Name);
+					Result = PrivateAddActor(AssetObj, ActorFactory, SelectActor, ObjectFlags, Name);
 					if ( Result != NULL )
 					{
 						break;
@@ -643,7 +605,7 @@ AActor* FActorFactoryAssetProxy::AddActorForAsset( UObject* AssetObj, const FVec
 	return Result;
 }
 
-AActor* FActorFactoryAssetProxy::AddActorFromSelection( UClass* ActorClass, const FVector* ActorLocation, bool bUseSurfaceOrientation, bool SelectActor, EObjectFlags ObjectFlags, UActorFactory* ActorFactory, const FName Name )
+AActor* FActorFactoryAssetProxy::AddActorFromSelection( UClass* ActorClass, const FVector* ActorLocation, bool SelectActor, EObjectFlags ObjectFlags, UActorFactory* ActorFactory, const FName Name )
 {
 	check( ActorClass != NULL );
 
@@ -663,7 +625,7 @@ AActor* FActorFactoryAssetProxy::AddActorFromSelection( UClass* ActorClass, cons
 		if( ActorFactory->CanCreateActorFrom( FAssetData(TargetObject), ErrorMessage ) )
 		{
 			// Attempt to add the actor
-			Result = PrivateAddActor( TargetObject, ActorFactory, ActorLocation, bUseSurfaceOrientation, SelectActor, ObjectFlags );
+			Result = PrivateAddActor( TargetObject, ActorFactory, SelectActor, ObjectFlags );
 		}
 	}
 

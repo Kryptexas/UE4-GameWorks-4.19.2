@@ -26,6 +26,11 @@ public:
 	TSharedPtr< FUICommandInfo > AddExecutionPin;
 	TSharedPtr< FUICommandInfo > RemoveExecutionPin;
 
+	// SetFieldsInStruct specific commands
+	TSharedPtr< FUICommandInfo > RemoveThisStructVarPin;
+	TSharedPtr< FUICommandInfo > RemoveOtherStructVarPins;
+	TSharedPtr< FUICommandInfo > RestoreAllStructVarPins;
+
 	// Select node specific commands
 	TSharedPtr< FUICommandInfo > AddOptionPin;
 	TSharedPtr< FUICommandInfo > RemoveOptionPin;

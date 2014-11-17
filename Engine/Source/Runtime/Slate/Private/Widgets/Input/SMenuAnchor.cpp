@@ -19,6 +19,7 @@ void SMenuAnchor::Construct( const FArguments& InArgs )
 	];
 	MenuContent = InArgs._MenuContent;
 	OnGetMenuContent = InArgs._OnGetMenuContent;
+	OnMenuOpenChanged = InArgs._OnMenuOpenChanged;
 	Placement = InArgs._Placement;
 	Method = InArgs._Method;
 }
@@ -46,6 +47,11 @@ void SMenuAnchor::RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindo
 	if (ensure(Method == CreateNewWindow))
 	{
 		FSlateApplication::Get().RequestDestroyWindow(PopupWindow);
+		
+		if (OnMenuOpenChanged.IsBound())
+		{
+			OnMenuOpenChanged.Execute(false);
+		}
 	}
 }
 
@@ -149,6 +155,10 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 		if (InIsOpen && MenuContentPtr.IsValid() )
 		{
 			// OPEN POPUP
+			if (OnMenuOpenChanged.IsBound())
+			{
+				OnMenuOpenChanged.Execute(true);
+			}
 			
 			// This can be called at any time so we use the push menu override that explicitly allows us to specify our parent
 
@@ -250,6 +260,11 @@ void SMenuAnchor::SetIsOpen( bool InIsOpen, const bool bFocusMenu )
 				// We no longer have a popup open, so reset all the tracking state associated.
 				PopupLayerSlot = NULL;
 				PopupWindowPtr.Reset();
+			}
+
+			if (OnMenuOpenChanged.IsBound())
+			{
+				OnMenuOpenChanged.Execute(false);
 			}
 		}
 	}

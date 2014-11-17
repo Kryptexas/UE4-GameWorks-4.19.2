@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AndroidApplication.h"
 #include <android/log.h>
 #include <cpu-features.h>
@@ -369,6 +369,9 @@ uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxM
 		ADDKEYMAP( AKEYCODE_ALT_RIGHT, TEXT("RightAlt") );
 		//ADDKEYMAP( VK_LWIN, TEXT("LeftCommand") );
 		//ADDKEYMAP( VK_RWIN, TEXT("RightCommand") );
+
+		ADDKEYMAP(AKEYCODE_BACK, TEXT("Android_Back"));
+
 	}
 
 	check(NumMappings < MaxMappings);

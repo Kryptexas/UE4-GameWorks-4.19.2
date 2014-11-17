@@ -133,7 +133,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if ( TextureData && IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM3))
+		if (TextureData && GetFeatureLevel() >= ERHIFeatureLevel::SM3)
 		{
 			switch(TexType)
 			{

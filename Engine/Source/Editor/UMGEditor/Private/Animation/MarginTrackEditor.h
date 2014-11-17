@@ -36,10 +36,10 @@ private:
 	 * @param InObjectsThatChanged	List of objects that changed
 	 * @param PropertyValue			Handle to the property value which changed
 	 */
-	void OnMarginChanged( const TArray<UObject*>& InObjectsThatChanged, const IPropertyHandle& PropertyValue, bool bRequireAutoKey );
+	void OnMarginChanged( const struct FKeyPropertyParams& PropertyKeyParams );
 
 	/** Called After OnMarginChanged if we actually can key the margin */
-	void OnKeyMargin( float KeyTime, const TArray<UObject*>* InObjectsThatChanged, const IPropertyHandle* PropertyValue, FName PropertyName );
+	void OnKeyMargin( float KeyTime, const struct FKeyPropertyParams* PropertyKeyParams );
 };
 
 

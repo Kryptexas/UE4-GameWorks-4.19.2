@@ -28,11 +28,13 @@ TSharedRef<SWidget> USlider::RebuildWidget()
 void USlider::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
+
+	TAttribute<float> ValueBinding = OPTIONAL_BINDING(float, Value);
 	
 	MySlider->SetOrientation(Orientation);
 	MySlider->SetSliderBarColor(SliderBarColor);
 	MySlider->SetSliderHandleColor(SliderHandleColor);
-	MySlider->SetValue(Value);
+	MySlider->SetValue(ValueBinding);
 }
 
 void USlider::HandleOnValueChanged(float InValue)

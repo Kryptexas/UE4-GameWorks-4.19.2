@@ -14,6 +14,7 @@ class ISequencer;
 class FWidgetBlueprintEditor : public FBlueprintEditor
 {
 public:
+	DECLARE_MULTICAST_DELEGATE(FOnSelectedWidgetsChanging)
 	DECLARE_MULTICAST_DELEGATE(FOnSelectedWidgetsChanged)
 
 	/** Called after the widget preview has been updated */
@@ -26,8 +27,6 @@ public:
 	void InitWidgetBlueprintEditor(const EToolkitMode::Type Mode, const TSharedPtr< IToolkitHost >& InitToolkitHost, const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode);
 
 	virtual void Tick(float DeltaTime) override;
-	virtual void NotifyPreChange(class FEditPropertyChain* PropertyAboutToChange) override;
-	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged) override;
 
 	/** FGCObjectInterface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -44,13 +43,24 @@ public:
 	/** Sets the currently selected set of widgets */
 	void SelectWidgets(const TSet<FWidgetReference>& Widgets);
 
+	/** Removes removed widgets from the selection set. */
+	void CleanSelection();
+
 	/** @return The selected set of widgets */
 	const TSet<FWidgetReference>& GetSelectedWidgets() const;
 
 	/** @return Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated& GetOnWidgetPreviewUpdated() { return OnWidgetPreviewUpdated; }
 
+	TSharedPtr<class FWidgetBlueprintEditorToolbar> GetWidgetToolbarBuilder() { return WidgetToolbar; }
+
+	/** Migrate a property change from the preview GUI to the template GUI. */
+	void MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify);
+
 public:
+	/** Fires whenever the selected set of widgets changing */
+	FOnSelectedWidgetsChanged OnSelectedWidgetsChanging;
+
 	/** Fires whenever the selected set of widgets changes */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanged;
 
@@ -61,7 +71,10 @@ public:
 	FVector2D PasteDropLocation;
 
 protected:
+	// Begin FBlueprintEditor
+	virtual void RegisterApplicationModes(const TArray<UBlueprint*>& InBlueprints, bool bShouldOpenInDefaultsMode) override;
 	virtual FGraphAppearanceInfo GetGraphAppearance() const override;
+	// End FBlueprintEditor
 
 private:
 	bool CanDeleteSelectedWidgets();
@@ -73,22 +86,22 @@ private:
 	bool CanPasteWidgets();
 	void PasteWidgets();
 
-private:
-	/** Updates the inspector to be viewing the currently selected set of widgets */
-	void RefreshDetails();
+	bool CanCutSelectedWidgets();
+	void CutSelectedWidgets();
 
+private:
 	/** Called whenever the blueprint is structurally changed. */
 	virtual void OnBlueprintChanged(UBlueprint* InBlueprint) override;
+
+	/** Called when objects need to be swapped out for new versions, like after a blueprint recompile. */
+	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
 
 	/** Destroy the current preview GUI object */
 	void DestroyPreview();
 
 	/** Tick the current preview GUI object */
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
-
-	/** Migrate a property change from the preview GUI to the template GUI. */
-	void MigrateFromChain(FEditPropertyChain* PropertyThatChanged, bool bIsModify);
-
+	
 	/**
 	 * Gets the default movie scene which is used when there is no 
 	 * animation data present on the widget blueprint
@@ -102,18 +115,21 @@ private:
 	/** Sequencer for creating and previewing widget animations */
 	TSharedPtr<ISequencer> Sequencer;
 
-	/** The Blueprint associated with the current preview */
-	UBlueprint* PreviewBlueprint;
+	/** Manager for handling bindings to sequence animations */
+	TSharedPtr<class FUMGSequencerObjectBindingManager> SequencerObjectBindingManager;
 
-	/** Default movie scene for new animations */
-	UMovieScene* DefaultMovieScene;
+	/** The Blueprint associated with the current preview */
+	UWidgetBlueprint* PreviewBlueprint;
 
 	/** The currently selected preview widgets in the preview GUI */
 	TSet<FWidgetReference> SelectedWidgets;
 
 	/** The preview GUI object */
 	mutable TWeakObjectPtr<UUserWidget> PreviewWidgetActorPtr;
-	
-	/** Notification for when the preview widget has been updated  */
+
+	/** Notification for when the preview widget has been updated */
 	FOnWidgetPreviewUpdated OnWidgetPreviewUpdated;
+
+	/** The toolbar builder associated with this editor */
+	TSharedPtr<class FWidgetBlueprintEditorToolbar> WidgetToolbar;
 };

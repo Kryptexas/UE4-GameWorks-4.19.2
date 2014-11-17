@@ -39,6 +39,8 @@
 #include "TargetPlatform.h"
 #include "IConsoleManager.h"
 
+#include "Editor/ActorPositioning.h"
+
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
 #include "ActorEditorUtils.h"
 #include "ContentBrowserModule.h"
@@ -1934,7 +1936,7 @@ bool UEditorEngine::PackageIsAMapFile( const TCHAR* PackageFilename, FText& OutN
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add(TEXT("File"), FText::FromString( FString( PackageFilename ) ));
-			OutNotMapReason = FText::Format( LOCTEXT( "FileIsAnAsset", "{File} appears to be an asset file!" ), 
+			OutNotMapReason = FText::Format( LOCTEXT( "FileIsAnAsset", "{File} appears to be an asset file." ), 
 				Arguments );
 			return false;
 		}
@@ -1949,7 +1951,7 @@ bool UEditorEngine::PackageIsAMapFile( const TCHAR* PackageFilename, FText& OutN
 			Arguments.Add(TEXT("File"), FText::FromString( FString( PackageFilename ) ));
 			Arguments.Add(TEXT("Version"), UE3Version);
 			Arguments.Add(TEXT("First"), VER_MIN_ENGINE_UE3);
-			OutNotMapReason = FText::Format( LOCTEXT( "UE3FileIsOlder", "{File} is an outdated UE3 map file [Cur:{Version}], from an engine release no longer supported [Min:{First}]!" ), 
+			OutNotMapReason = FText::Format( LOCTEXT( "UE3FileIsOlder", "{File} is an UE3 map [File:v{Version}], from an engine release no longer supported [Min:v{First}]." ), 
 				Arguments);
 			return false;
 		}
@@ -1960,7 +1962,7 @@ bool UEditorEngine::PackageIsAMapFile( const TCHAR* PackageFilename, FText& OutN
 			Arguments.Add(TEXT("File"), FText::FromString( FString( PackageFilename ) ));
 			Arguments.Add(TEXT("Version"), UE4Version);
 			Arguments.Add(TEXT("First"), VER_UE4_OLDEST_LOADABLE_PACKAGE);
-			OutNotMapReason = FText::Format( LOCTEXT( "UE4FileIsOlder", "{File} is an outdated UE4 map file [Cur:{Version}], from an engine release no longer supported [Min:{First}]!" ), 
+			OutNotMapReason = FText::Format( LOCTEXT( "UE4FileIsOlder", "{File} is an UE4 map [File:v{Version}], from an engine release no longer supported [Min:v{First}]." ), 
 				Arguments);
 			return false;
 		}
@@ -1974,7 +1976,7 @@ bool UEditorEngine::PackageIsAMapFile( const TCHAR* PackageFilename, FText& OutN
 			Arguments.Add(TEXT("File"), FText::FromString( FString( PackageFilename ) ));
 			Arguments.Add(TEXT("Version"), UE3Version);
 			Arguments.Add(TEXT("Last"), VER_LAST_ENGINE_UE3);
-			OutNotMapReason = FText::Format( LOCTEXT( "UE3FileIsNewer", "{File} is a future UE3 map file [Cur:{Version}], from an engine release newer than this [Max:{Last}]!" ), 
+			OutNotMapReason = FText::Format( LOCTEXT( "UE3FileIsNewer", "{File} is a UE3 map [File:v{Version}], from an engine release newer than this [Cur:v{Last}]." ), 
 				Arguments);
 			return false;
 		}
@@ -1984,7 +1986,7 @@ bool UEditorEngine::PackageIsAMapFile( const TCHAR* PackageFilename, FText& OutN
 			Arguments.Add(TEXT("File"), FText::FromString( FString( PackageFilename ) ));
 			Arguments.Add(TEXT("Version"), UE4Version);
 			Arguments.Add(TEXT("Last"), GPackageFileUE4Version);
-			OutNotMapReason = FText::Format( LOCTEXT( "UE4FileIsNewer", "{File} is a future UE4 map file [Cur:{Version}], from an engine release newer than this [Max:{Last}]!" ), 
+			OutNotMapReason = FText::Format( LOCTEXT( "UE4FileIsNewer", "{File} is a UE4 map [File:v{Version}], from an engine release newer than this [Cur:v{Last}]." ), 
 				Arguments);
 			return false;
 		}
@@ -1994,7 +1996,7 @@ bool UEditorEngine::PackageIsAMapFile( const TCHAR* PackageFilename, FText& OutN
 			Arguments.Add(TEXT("File"), FText::FromString( FString( PackageFilename ) ));
 			Arguments.Add(TEXT("Version"), UE4LicenseeVersion);
 			Arguments.Add(TEXT("Last"), GPackageFileLicenseeUE4Version);
-			OutNotMapReason = FText::Format( LOCTEXT( "UE4FileIsNewer", "{File} is a future UE4 map file [Cur:{Version}], from an engine release newer than this [Max:{Last}]!" ), 
+			OutNotMapReason = FText::Format( LOCTEXT( "UE4FileIsNewer", "{File} is a UE4 map [File:v{Version}], from an engine release newer than this [Cur:v{Last}]." ), 
 				Arguments);
 			return false;
 		}
@@ -2038,8 +2040,10 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				FText NotMapReason;
 				if( !ExistingWorld && !PackageIsAMapFile( TempFname, NotMapReason ) )
 				{
-					// Map load failed 
-					FMessageDialog::Open( EAppMsgType::Ok, NotMapReason );
+					// Map load failed
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("Reason"), NotMapReason);
+					FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("MapLoadFailed", "Failed to load map!\n{Reason}"), Arguments));
 					GIsEditorLoadingPackage = false;
 					return false;
 				}
@@ -2141,7 +2145,10 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					WorldPackage = CreatePackage(NULL, *(MakeUniqueObjectName(NULL, UPackage::StaticClass()).ToString()));
 
 					//now load the map into the package created above
+					const FName WorldPackageFName = WorldPackage->GetFName();
+					UWorld::WorldTypePreLoadMap.FindOrAdd(WorldPackageFName) = EWorldType::Editor;
 					WorldPackage = LoadPackage( WorldPackage, *LongTempFname, LoadFlags );
+					UWorld::WorldTypePreLoadMap.Remove(WorldPackageFName);
 				}
 				else
 				{
@@ -2152,7 +2159,10 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					else
 					{
 						//Load the map normally into a new package
+						const FName WorldPackageFName = FName(*LongTempFname);
+						UWorld::WorldTypePreLoadMap.FindOrAdd(WorldPackageFName) = EWorldType::Editor;
 						WorldPackage = LoadPackage( NULL, *LongTempFname, LoadFlags );
+						UWorld::WorldTypePreLoadMap.Remove(WorldPackageFName);
 					}
 				}
 
@@ -2182,14 +2192,27 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 				Context.SetCurrentWorld(World);
 				GWorld = World;
 
-				Context.World()->WorldType = EWorldType::Editor;
+				World->WorldType = EWorldType::Editor;
 
-				if ( !Context.World()->bIsWorldInitialized )
+				if (World->bIsWorldInitialized)
 				{
-					Context.World()->InitWorld(UWorld::InitializationValues()
-												.ShouldSimulatePhysics(false)
-												.EnableTraceCollision(true)
-												);
+					// If we are using a previously initialized world, make sure it has a physics scene and FXSystem.
+					// Inactive worlds are already initialized but lack these two objects for memory reasons.
+					World->ClearWorldComponents();
+
+					if ( World->GetPhysicsScene() == nullptr )
+					{
+						World->CreatePhysicsScene();
+					}
+
+					if ( World->FXSystem == nullptr )
+					{
+						World->CreateFXSystem();
+					}
+				}
+				else
+				{
+					World->InitWorld( GetEditorWorldInitializationValues() );
 				}
 
 				{
@@ -2998,19 +3021,8 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 		return;
 	}
 
-	FVector SaveClickLocation = GEditor->ClickLocation;
-	FSnappingUtils::SnapPointToGrid( SaveClickLocation, FVector(GEditor->GetGridSize(),GEditor->GetGridSize(),GEditor->GetGridSize()) );
-
-	FVector AnyActorLocation = FVector::ZeroVector;
-	for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
-	{
-		AActor* Actor = static_cast<AActor*>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-		AnyActorLocation = Actor->GetActorLocation();
-		break;
-	}
-
+	FVector SaveClickLocation = FActorPositioning::GetSnappedSurfaceAlignedTransform(GCurrentLevelEditingViewportClient, nullptr, GEditor->ClickLocation, GEditor->ClickPlane).GetLocation();
+	
 	ULevel* DesiredLevel = InWorld->GetCurrentLevel();
 
 	// Don't allow pasting to levels that are locked
@@ -3982,8 +3994,6 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 	else if( FParse::Command( &Str, TEXT( "SavePackage" ) ) )
 	{
 		UPackage* Pkg;
-		bool bSilent = false;
-		bool bAutosaving = false;
 		bool bWasSuccessful = true;
 
 		if( FParse::Value( Str, TEXT( "FILE=" ), TempFname, 256 ) && ParseObject<UPackage>( Str, TEXT( "Package=" ), Pkg, NULL ) )
@@ -3995,8 +4005,12 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 
 			const FScopedBusyCursor BusyCursor;
 
+			bool bSilent = false;
+			bool bAutosaving = false;
+			bool bKeepDirty = false;
 			FParse::Bool( Str, TEXT( "SILENT=" ), bSilent );
 			FParse::Bool( Str, TEXT( "AUTOSAVING=" ), bAutosaving );
+			FParse::Bool( Str, TEXT( "KEEPDIRTY=" ), bKeepDirty );
 
 			// Save the package.
 			if( !bSilent )
@@ -4013,8 +4027,13 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 			}
 
 			uint32 SaveFlags = bAutosaving ? SAVE_FromAutosave : SAVE_None;
+			if ( bKeepDirty )
+			{
+				SaveFlags |= SAVE_KeepDirty;
+			}
 
-			bWasSuccessful = this->SavePackage( Pkg, NULL, RF_Standalone, TempFname, &Ar, NULL, false, true, SaveFlags );
+			const bool bWarnOfLongFilename = !bAutosaving;
+			bWasSuccessful = this->SavePackage( Pkg, NULL, RF_Standalone, TempFname, &Ar, NULL, false, bWarnOfLongFilename, SaveFlags );
 			if( !bSilent )
 			{
 				GWarn->EndSlowTask();
@@ -4273,11 +4292,20 @@ bool UEditorEngine::SnapActorTo( AActor* InActor, const bool InAlign, const bool
 	bool UseLineTrace = Brush ? true: InUseLineTrace;
 	bool UseBounds = Brush ? true: InUseBounds;
 
-	if( UseLineTrace && UseBounds ) // Will do a line trace from the center bottom of the bounds through the world. Will begin at the bottom center of the component's bounds.
+	if( UseLineTrace && UseBounds )
 	{
 		check(InActor->GetRootComponent()->IsRegistered());
-		StartLocation = InActor->GetRootComponent()->Bounds.Origin;
-		StartLocation.Z -= InActor->GetRootComponent()->Bounds.BoxExtent.Z;
+		if (InUsePivot)
+		{
+			// Will do a line trace from the pivot location.
+			StartLocation = GetPivotLocation();
+		}
+		else
+		{
+			// Will do a line trace from the center bottom of the bounds through the world. Will begin at the bottom center of the component's bounds.
+			StartLocation = InActor->GetRootComponent()->Bounds.Origin;
+			StartLocation.Z -= InActor->GetRootComponent()->Bounds.BoxExtent.Z;
+		}
 
 		// Forces a line trace.
 		Extent = FVector::ZeroVector;
@@ -4391,24 +4419,7 @@ bool UEditorEngine::SnapActorTo( AActor* InActor, const bool InAlign, const bool
 
 void UEditorEngine::MoveActorInFrontOfCamera( AActor& InActor, const FVector& InCameraOrigin, const FVector& InCameraDirection )
 {
-	// Get the  radius of the actors bounding cylinder.  Height is not needed.
-	float CylRadius, CylHeight;
-	InActor.GetComponentsBoundingCylinder(CylRadius, CylHeight);
-
-	// a default cylinder radius if no bounding cylinder exists.  
-	const float	DefaultCylinderRadius = 50.0f;
-
-	if( CylRadius == 0.0f )
-	{
-		// If the actor does not have a bounding cylinder, use a default value.
-		CylRadius = DefaultCylinderRadius;
-	}
-
-	// The new location the cameras origin offset by the actors bounding cylinder radius down the direction of the cameras view. 
-	FVector NewLocation = InCameraOrigin + InCameraDirection * CylRadius + InCameraDirection * GetDefault<ULevelEditorViewportSettings>()->BackgroundDropDistance;
-
-	// Snap the new location if snapping is enabled
-	FSnappingUtils::SnapPointToGrid( NewLocation, FVector::ZeroVector );
+	const FVector NewLocation = FActorPositioning::GetActorPositionInFrontOfCamera(InActor, InCameraOrigin, InCameraDirection);
 
 	// Move the actor to its new location.  Not checking for collisions
 	InActor.TeleportTo( NewLocation, InActor.GetActorRotation(), false, true );

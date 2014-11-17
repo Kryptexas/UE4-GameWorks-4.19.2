@@ -80,14 +80,14 @@ void FEditorLiveStreaming::StartBroadcastingEditor()
 		// Select a live streaming service
 		{
 			static const FName LiveStreamingFeatureName( "LiveStreaming" );
-
-			// @todo livestream: Always using first live streaming plugin we find, but instead this should be a configurable option in the
-			// editor's preferences, based on the enumeration of available features from plugins
-			LiveStreamer = static_cast<ILiveStreamingService*>( IModularFeatures::Get().GetModularFeatureImplementation( LiveStreamingFeatureName, 0 ) );
+			LiveStreamer = &IModularFeatures::Get().GetModularFeature<ILiveStreamingService>( LiveStreamingFeatureName );
 		}
 
 		// Register to find out about status changes
 		LiveStreamer->OnStatusChanged().AddRaw( this, &FEditorLiveStreaming::BroadcastStatusCallback );
+
+		// @todo livestream: Allow connection to chat independently from broadcasting? (see removing delegate too)
+		LiveStreamer->OnChatMessage().AddRaw( this, &FEditorLiveStreaming::OnChatMessage );
 
 
 		// Tell our live streaming plugin to start broadcasting
@@ -196,6 +196,7 @@ void FEditorLiveStreaming::StopBroadcastingEditor()
 
 		// Unregister for status changes
 		LiveStreamer->OnStatusChanged().RemoveAll( this );
+		LiveStreamer->OnChatMessage().RemoveAll( this );
 
 		LiveStreamer = nullptr;
 
@@ -275,7 +276,9 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 			( Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamStarted &&
 			  Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamStopped &&
 			  Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamTextureNotReady &&
-			  Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamTextureReady ) )
+			  Status.StatusType != FLiveStreamingStatus::EStatusType::WebCamTextureReady &&
+			  Status.StatusType != FLiveStreamingStatus::EStatusType::ChatConnected &&
+			  Status.StatusType != FLiveStreamingStatus::EStatusType::ChatDisconnected ) )
 		{
 			Notification->SetText( Status.CustomStatusDescription );
 		}
@@ -308,7 +311,8 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 			State = SNotificationItem::CS_Fail;
 		}
 		else if( Status.StatusType == FLiveStreamingStatus::EStatusType::BroadcastStarted ||
-				 Status.StatusType == FLiveStreamingStatus::EStatusType::WebCamStarted )
+				 Status.StatusType == FLiveStreamingStatus::EStatusType::WebCamStarted ||
+				 Status.StatusType == FLiveStreamingStatus::EStatusType::ChatConnected )
 		{
 			State = SNotificationItem::CS_Success;
 		}
@@ -319,13 +323,22 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 	// If the web cam just turned on, then we'll go ahead and show it
 	if( Status.StatusType == FLiveStreamingStatus::EStatusType::WebCamTextureReady )
 	{	
-		UTexture2D* WebCamTexture = LiveStreamer->GetWebCamTexture();
+		bool bIsImageFlippedHorizontally = false;
+		bool bIsImageFlippedVertically = false;
+		UTexture2D* WebCamTexture = LiveStreamer->GetWebCamTexture( bIsImageFlippedHorizontally, bIsImageFlippedVertically );
 		if( ensure( WebCamTexture != nullptr ) )
 		{
 			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>( TEXT( "MainFrame" ) );
 			check( MainFrameModule.IsWindowInitialized() );
 			auto RootWindow = MainFrameModule.GetParentWindow();
 			check( RootWindow.IsValid() );
+
+			// Allow the user to customize the image mirroring, too!
+			const auto& Settings = *GetDefault< UEditorLiveStreamingSettings >();
+			if( Settings.bMirrorWebCamImage )
+			{
+				bIsImageFlippedHorizontally = !bIsImageFlippedHorizontally;
+			}
 
 			// How many pixels from the edge of the main frame window to where the broadcast status window appears
 			const int WindowBorderPadding = 50;
@@ -356,6 +369,20 @@ void FEditorLiveStreaming::BroadcastStatusCallback( const FLiveStreamingStatus& 
 				WebCamTexture,
 				FVector2D( WebCamTexture->GetSizeX(), WebCamTexture->GetSizeY() ),
 				WebCamTexture->GetFName() ) );
+
+			// If the web cam image is coming in flipped, we'll apply mirroring to the Slate brush
+			if( bIsImageFlippedHorizontally && bIsImageFlippedVertically )
+			{
+				WebCamDynamicImageBrush->Mirroring = ESlateBrushMirrorType::Both;
+			}
+			else if( bIsImageFlippedHorizontally )
+			{ 
+				WebCamDynamicImageBrush->Mirroring = ESlateBrushMirrorType::Horizontal;
+			}
+			else if( bIsImageFlippedVertically )
+			{ 
+				WebCamDynamicImageBrush->Mirroring = ESlateBrushMirrorType::Vertical;
+			}
 
 			// @todo livestream: Currently if the user closes the window, the camera is deactivated and it doesn't turn back on unless the broadcast is restarted.  We could allow the camera to be reactivated though.
 			BroadcastStatusWindow->SetOnWindowClosed( 
@@ -396,6 +423,11 @@ void FEditorLiveStreaming::CloseBroadcastStatusWindow()
 	}
 }
 
+
+void FEditorLiveStreaming::OnChatMessage( const FText& UserName, const FText& ChatMessage )
+{
+	// @todo livestream: Currently no chat UI is supported in the editor
+}
 
 
 #undef LOCTEXT_NAMESPACE

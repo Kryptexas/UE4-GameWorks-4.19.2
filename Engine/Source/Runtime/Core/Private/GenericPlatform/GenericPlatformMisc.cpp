@@ -1,6 +1,6 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "MallocAnsi.h"
 #include "GenericApplication.h"
 #include "GenericPlatformChunkInstall.h"
@@ -159,6 +159,16 @@ namespace EBuildTargets
 GenericApplication* FGenericPlatformMisc::CreateApplication()
 {
 	return new GenericApplication( nullptr );
+}
+
+void FGenericPlatformMisc::SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value)
+{
+	UE_LOG(LogGenericPlatformMisc, Error, TEXT("SetEnvironmentVar not implemented for this platform: %s = %s"), VariableName, Value);
+}
+
+const TCHAR* FGenericPlatformMisc::GetPathVarDelimiter()
+{
+	return TEXT(";");
 }
 
 TArray<uint8> FGenericPlatformMisc::GetMacAddress()
@@ -448,6 +458,8 @@ const TCHAR* FGenericPlatformMisc::EngineDir()
 		// See if we are a root-level project
 		FString DefaultEngineDir = TEXT("../../../Engine/");
 #if PLATFORM_DESKTOP
+		FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
+
 		//@todo. Need to have a define specific for this scenario??
 		if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(DefaultEngineDir / TEXT("Binaries"))))
 		{

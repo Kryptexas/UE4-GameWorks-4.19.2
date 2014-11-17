@@ -30,6 +30,25 @@ UWidget* UWidgetTree::FindWidget(const FString& Name) const
 	return NULL;
 }
 
+UWidget* UWidgetTree::FindWidget(TSharedRef<SWidget> InWidget) const
+{
+	FString ExistingName;
+
+	// TODO UMG Hacky, remove this find widget function, or make it faster.
+	TArray<UWidget*> Widgets;
+	GetAllWidgets(Widgets);
+
+	for ( UWidget* Widget : Widgets )
+	{
+		if ( Widget->GetCachedWidget() == InWidget )
+		{
+			return Widget;
+		}
+	}
+
+	return NULL;
+}
+
 UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildIndex)
 {
 	UPanelWidget* Parent = Widget->GetParent();
@@ -47,22 +66,18 @@ UPanelWidget* UWidgetTree::FindWidgetParent(UWidget* Widget, int32& OutChildInde
 
 bool UWidgetTree::RemoveWidget(UWidget* InRemovedWidget)
 {
-	InRemovedWidget->Modify();
-
 	bool bRemoved = false;
 
 	UPanelWidget* InRemovedWidgetParent = InRemovedWidget->GetParent();
 	if ( InRemovedWidgetParent )
 	{
-		InRemovedWidgetParent->Modify();
-
 		if ( InRemovedWidgetParent->RemoveChild(InRemovedWidget) )
 		{
 			bRemoved = true;
 		}
 	}
-
-	if ( InRemovedWidget == RootWidget )
+	// If the widget being removed is the root, null it out.
+	else if ( InRemovedWidget == RootWidget )
 	{
 		RootWidget = NULL;
 		bRemoved = true;

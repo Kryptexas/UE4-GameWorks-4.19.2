@@ -8,7 +8,7 @@ FMovieSceneBoolTrackInstance::FMovieSceneBoolTrackInstance( UMovieSceneBoolTrack
 {
 	BoolTrack = &InBoolTrack;
 	
-	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( BoolTrack->GetPropertyName() ) );
+	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( BoolTrack->GetPropertyName(), BoolTrack->GetPropertyPath() ) );
 }
 
 void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
@@ -16,7 +16,10 @@ void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, c
 	bool BoolValue = false;
 	if( BoolTrack->Eval( Position, LastPosition, BoolValue ) )
 	{
-		PropertyBindings->CallFunction( RuntimeObjects, &BoolValue );
+		for( UObject* Object : RuntimeObjects )
+		{
+			PropertyBindings->CallFunction( Object, &BoolValue );
+		}
 	}
 }
 

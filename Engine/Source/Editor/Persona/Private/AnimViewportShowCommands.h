@@ -36,6 +36,9 @@ public:
 	/** Option to mute audio in the viewport */
 	TSharedPtr< FUICommandInfo > MuteAudio;
 
+	/** Option to show root motion in viewport */
+	TSharedPtr< FUICommandInfo > ProcessRootMotion;
+
 	/** Show reference pose on preview mesh */
 	TSharedPtr< FUICommandInfo > ShowReferencePose;
 	
@@ -61,7 +64,9 @@ public:
 	TSharedPtr< FUICommandInfo > ShowBoneNames;
 
 	/** Show skeletal mesh info */
-	TSharedPtr< FUICommandInfo > ShowDisplayInfo;
+	TSharedPtr< FUICommandInfo > ShowDisplayInfoBasic;
+	TSharedPtr< FUICommandInfo > ShowDisplayInfoDetailed;
+	TSharedPtr< FUICommandInfo > HideDisplayInfo;
 
 	/** Show selected bone weight */
 	TSharedPtr< FUICommandInfo > ShowBoneWeight;

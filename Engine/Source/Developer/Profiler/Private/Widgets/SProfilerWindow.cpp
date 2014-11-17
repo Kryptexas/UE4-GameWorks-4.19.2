@@ -8,6 +8,11 @@
 #include "SProfilerSettings.h"
 #include "DesktopPlatformModule.h"
 
+#if WITH_EDITOR
+	#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+	#include "Runtime/Engine/Public/EngineAnalytics.h"
+#endif // WITH_EDITOR
+
 #define LOCTEXT_NAMESPACE "SProfilerWindow"
 
 static FText GetTextForNotification( const EProfilerNotificationTypes::Type NotificatonType, const ELoadingProgressStates::Type ProgressState, const FString& Filename, const float ProgressPercent = 0.0f )
@@ -75,6 +80,8 @@ static FText GetTextForNotification( const EProfilerNotificationTypes::Type Noti
 }
 
 SProfilerWindow::SProfilerWindow()
+	: DurationActive(0.0f)
+	, bIsActive(false)
 {}
 
 SProfilerWindow::~SProfilerWindow()
@@ -84,6 +91,13 @@ SProfilerWindow::~SProfilerWindow()
 	{
 		FProfilerManager::Get()->OnViewModeChanged().RemoveAll( this );
 	}
+
+#if WITH_EDITOR
+	if (DurationActive > 0.0f && FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Profiler"), FAnalyticsEventAttribute(TEXT("Duration"), DurationActive));
+	}
+#endif // WITH_EDITOR
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -474,6 +488,30 @@ void SProfilerWindow::SendingServiceSideCapture_Load( const FString Filename )
 		const FString StatFilepath = PathName + Filename;
 		FProfilerManager::Get()->LoadProfilerCapture( StatFilepath );
 	}
+}
+
+void SProfilerWindow::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	if (bIsActive)
+	{
+		DurationActive += InDeltaTime;
+	}
+}
+
+void SProfilerWindow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+{
+	SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
+
+	bIsActive = true;
+}
+
+void SProfilerWindow::OnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	SCompoundWidget::OnMouseLeave(MouseEvent);
+
+	bIsActive = false;
 }
 
 FReply SProfilerWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )

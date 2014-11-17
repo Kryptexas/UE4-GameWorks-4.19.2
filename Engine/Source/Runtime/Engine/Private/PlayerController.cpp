@@ -6,6 +6,8 @@
 #include "Engine/WorldComposition.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/NetworkPredictionInterface.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "ConfigCacheIni.h"
 #include "SoundDefinitions.h"
 #include "OnlineSubsystemUtils.h"
@@ -20,8 +22,9 @@
 #include "GameFramework/SpectatorPawn.h"
 #include "GameFramework/HUD.h"
 #include "ContentStreaming.h"
+#include "GameFramework/PawnMovementComponent.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
+DEFINE_LOG_CATEGORY(LogPlayerController);
 
 const float RetryClientRestartThrottleTime = 0.5f;
 const float RetryServerAcknowledgeThrottleTime = 0.25f;
@@ -49,6 +52,8 @@ APlayerController::APlayerController(const class FPostConstructInitializePropert
 	bCinemaDisableInputLook = false;
 
 	bInputEnabled = true;
+	bEnableTouchEvents = true;
+	bForceFeedbackEnabled = true;
 
 	bAutoManageActiveCameraTarget = true;
 
@@ -75,7 +80,7 @@ UPlayer* APlayerController::GetNetOwningPlayer()
 
 bool APlayerController::HasNetOwner() const
 {
-    // Player controllers are their own net owners
+	// Player controllers are their own net owners
 	return true;
 }
 
@@ -243,7 +248,7 @@ void APlayerController::ServerUpdateLevelVisibility_Implementation(FName Package
 			if ( Linker || FPackageName::DoesPackageExist(PackageName.ToString(), NULL, &Filename ) || Local::IsInLevelList(GetWorld(), PackageName ) )
 			{
 				Connection->ClientVisibleLevelNames.AddUnique(PackageName);
-				UE_LOG( LogPlayerController, Log, TEXT("ServerUpdateLevelVisibility() Added '%s'"), *PackageName.ToString() );
+				UE_LOG( LogPlayerController, Verbose, TEXT("ServerUpdateLevelVisibility() Added '%s'"), *PackageName.ToString() );
 			}
 			else
 			{
@@ -254,7 +259,7 @@ void APlayerController::ServerUpdateLevelVisibility_Implementation(FName Package
 		else
 		{
 			Connection->ClientVisibleLevelNames.Remove(PackageName);
-			UE_LOG( LogPlayerController, Log, TEXT("ServerUpdateLevelVisibility() Removed '%s'"), *PackageName.ToString() );
+			UE_LOG( LogPlayerController, Verbose, TEXT("ServerUpdateLevelVisibility() Removed '%s'"), *PackageName.ToString() );
 			
 			// Close any channels now that have actors that were apart of the level the client just unloaded
 			for ( auto It = Connection->ActorChannels.CreateIterator(); It; ++It )
@@ -388,6 +393,94 @@ void APlayerController::SetViewTarget(class AActor* NewViewTarget, struct FViewT
 }
 
 
+void APlayerController::AutoManageActiveCameraTarget(AActor* SuggestedTarget)
+{
+	if (bAutoManageActiveCameraTarget)
+	{
+		// See if there is a CameraActor with an auto-activate index that matches us.
+		if (GetNetMode() == NM_Client)
+		{
+			// Clients don't know their own index on the server, so they have to trust that if they use a camera with an auto-activate index, that's their own index.
+			ACameraActor* CurrentCameraActor = Cast<ACameraActor>(GetViewTarget());
+			if (CurrentCameraActor)
+			{
+				const int32 CameraAutoIndex = CurrentCameraActor->GetAutoActivatePlayerIndex();
+				if (CameraAutoIndex != INDEX_NONE)
+				{					
+					return;
+				}
+			}
+		}
+		else
+		{
+			// See if there is a CameraActor in the level that auto-activates for this PC.
+			ACameraActor* AutoCameraTarget = GetAutoActivateCameraForPlayer();
+			if (AutoCameraTarget)
+			{
+				SetViewTarget(AutoCameraTarget);
+				return;
+			}
+		}
+
+		// No auto-activate CameraActor, so use the suggested target.
+		SetViewTarget(SuggestedTarget);
+	}
+}
+
+
+
+ACameraActor* APlayerController::GetAutoActivateCameraForPlayer() const
+{
+	if (GetNetMode() == NM_Client)
+	{
+		// Clients get their view target replicated, they don't use placed cameras because they don't know their own index.
+		return NULL;
+	}
+
+	UWorld* CurWorld = GetWorld();
+	if (!CurWorld)
+	{
+		return NULL;
+	}
+
+	// Only bother if there are any registered cameras.
+	FConstCameraActorIterator CameraIterator = CurWorld->GetAutoActivateCameraIterator();
+	if (!CameraIterator)
+	{
+		return NULL;
+	}
+
+	// Find our player index
+	int32 IterIndex = 0;
+	int32 PlayerIndex = INDEX_NONE;
+	for( FConstPlayerControllerIterator Iterator = CurWorld->GetPlayerControllerIterator(); Iterator; ++Iterator, ++IterIndex )
+	{
+		const APlayerController* PlayerController = *Iterator;
+		if (PlayerController == this)
+		{
+			PlayerIndex = IterIndex;
+			break;
+		}
+	}
+
+	if (PlayerIndex != INDEX_NONE)
+	{
+		// Find the matching camera
+		for( /*CameraIterater initialized above*/; CameraIterator; ++CameraIterator)
+		{
+			ACameraActor* CameraActor = *CameraIterator;
+			if (CameraActor && CameraActor->GetAutoActivatePlayerIndex() == PlayerIndex)
+			{
+				return CameraActor;
+			}
+		}
+	}
+
+	return NULL;
+}
+
+
+
 void APlayerController::SetControllingDirector(UInterpTrackInstDirector* NewControllingDirector, bool bClientSimulatingViewTarget)
 {
 	ControllingDirTrackInst = NewControllingDirector;
@@ -412,7 +505,7 @@ bool APlayerController::ServerNotifyLoadedWorld_Validate(FName WorldPackageName)
 
 void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackageName)
 {
-	UE_LOG(LogPlayerController, Log, TEXT("APlayerController::ServerNotifyLoadedWorld_Implementation: Client loaded %s"), *WorldPackageName.ToString());
+	UE_LOG(LogPlayerController, Verbose, TEXT("APlayerController::ServerNotifyLoadedWorld_Implementation: Client loaded %s"), *WorldPackageName.ToString());
 
 	UWorld* CurWorld = GetWorld();
 
@@ -588,7 +681,7 @@ void APlayerController::ClientRetryClientRestart_Implementation(APawn* NewPawn)
 		return;
 	}
 
-	UE_LOG(LogPlayerController, Log, TEXT("ClientRetryClientRestart_Implementation %s, AcknowledgedPawn: %s"), *GetNameSafe(NewPawn), *GetNameSafe(AcknowledgedPawn));
+	UE_LOG(LogPlayerController, Verbose, TEXT("ClientRetryClientRestart_Implementation %s, AcknowledgedPawn: %s"), *GetNameSafe(NewPawn), *GetNameSafe(AcknowledgedPawn));
 
 	// Avoid calling ClientRestart if we have already accepted this pawn
 	if( (GetPawn() != NewPawn) || (NewPawn->Controller != this) || (NewPawn != AcknowledgedPawn) )
@@ -601,7 +694,7 @@ void APlayerController::ClientRetryClientRestart_Implementation(APawn* NewPawn)
 
 void APlayerController::ClientRestart_Implementation(APawn* NewPawn)
 {
-	UE_LOG(LogPlayerController, Log, TEXT("ClientRestart_Implementation %s"), *GetNameSafe(NewPawn));
+	UE_LOG(LogPlayerController, Verbose, TEXT("ClientRestart_Implementation %s"), *GetNameSafe(NewPawn));
 
 	ResetIgnoreInputFlags();
 	AcknowledgedPawn = NULL;
@@ -631,7 +724,7 @@ void APlayerController::ClientRestart_Implementation(APawn* NewPawn)
 	{
 		if (bAutoManageActiveCameraTarget)
 		{
-			SetViewTarget(GetPawn());
+			AutoManageActiveCameraTarget(GetPawn());
 			ResetCameraMode();
 		}
 		
@@ -663,7 +756,7 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		check(GetPawn() != NULL);
 
 		GetPawn()->SetActorTickEnabled(true);
-		GetControlledPawn()->Restart();
+		GetPawn()->Restart();
 
 		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
 		if (NetworkPredictionInterface)
@@ -674,9 +767,10 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		ChangeState( NAME_Playing );
 		AcknowledgedPawn = NULL;
 		ClientRestart(GetPawn());
+		
 		if (bAutoManageActiveCameraTarget)
 		{
-			SetViewTarget(GetPawn());
+			AutoManageActiveCameraTarget(GetPawn());
 			ResetCameraMode();
 		}
 		UpdateNavigationComponents();
@@ -907,7 +1001,7 @@ void APlayerController::SpawnDefaultHUD()
 		return;
 	}
 
-	UE_LOG(LogPlayerController, Log, TEXT("SpawnDefaultHUD"));
+	UE_LOG(LogPlayerController, Verbose, TEXT("SpawnDefaultHUD"));
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Owner = this;
 	SpawnInfo.Instigator = Instigator;
@@ -921,6 +1015,12 @@ void APlayerController::CreateTouchInterface()
 	// do we want to show virtual joysticks?
 	if (LocalPlayer && LocalPlayer->ViewportClient && SVirtualJoystick::ShouldDisplayTouchInterface())
 	{
+		// in case we already had one, remove it
+		if (VirtualJoystick.IsValid())
+		{
+			Cast<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+		}
+
 		// load what the game wants to show at startup
 		FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
 
@@ -936,7 +1036,7 @@ void APlayerController::CreateTouchInterface()
 			UTouchInterface* DefaultTouchInterface = LoadObject<UTouchInterface>(NULL, *DefaultTouchInterfaceName.ToString());
 			if (DefaultTouchInterface != NULL)
 			{
-				DefaultTouchInterface->Activate(VirtualJoystick);
+				ActivateTouchInterface(DefaultTouchInterface);
 			}
 		}
 	}
@@ -1014,7 +1114,7 @@ bool APlayerController::IsFrozen()
 
 void APlayerController::ServerAcknowledgePossession_Implementation(APawn* P)
 {
-	UE_LOG(LogPlayerController, Log, TEXT("ServerAcknowledgePossession_Implementation %s"), *GetNameSafe(P));
+	UE_LOG(LogPlayerController, Verbose, TEXT("ServerAcknowledgePossession_Implementation %s"), *GetNameSafe(P));
 	AcknowledgedPawn = P;
 }
 
@@ -1094,7 +1194,7 @@ void APlayerController::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Co
 				// create a split connection on the client
 				UChildConnection* Child = Connection->Driver->CreateChild(Connection); 
 				Child->HandleClientPlayer(this, Connection);
-				UE_LOG(LogNet, Log, TEXT("Client received PlayerController=%s. Num child connections=%i."), *GetName(), Connection->Children.Num());
+				UE_LOG(LogNet, Verbose, TEXT("Client received PlayerController=%s. Num child connections=%i."), *GetName(), Connection->Children.Num());
 			}
 		}
 	}
@@ -1208,6 +1308,26 @@ void APlayerController::PawnLeavingGame()
 	}
 }
 
+void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	if (LocalPlayer)
+	{
+		if (VirtualJoystick.IsValid())
+		{
+			LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+		}
+
+		// Stop any force feedback effects that may be active
+		IForceFeedbackSystem* ForceFeedbackSystem = FSlateApplication::Get().GetForceFeedbackSystem();
+		if (ForceFeedbackSystem)
+		{
+			ForceFeedbackSystem->SetChannelValues(LocalPlayer->ControllerId, FForceFeedbackValues());
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
 
 void APlayerController::Destroyed()
 {
@@ -1250,11 +1370,6 @@ void APlayerController::Destroyed()
 
 	PlayerInput = NULL;
 	CheatManager = NULL;
-
-	if (VirtualJoystick.IsValid())
-	{
-		Cast<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
-	}
 
 	Super::Destroyed();
 }
@@ -1333,11 +1448,11 @@ void APlayerController::ClientSetCameraFade_Implementation(bool bEnableFading, F
 			PlayerCameraManager->FadeTimeRemaining = FadeTime;
 			PlayerCameraManager->bFadeAudio = bFadeAudio;
 		}
- 		else
- 		{
- 			// Make sure FadeAmount finishes at the correct value
- 			PlayerCameraManager->FadeAmount = PlayerCameraManager->FadeAlpha.Y;
- 		}
+		else
+		{
+			// Make sure FadeAmount finishes at the correct value
+			PlayerCameraManager->FadeAmount = PlayerCameraManager->FadeAlpha.Y;
+		}
 	}
 }
 
@@ -1723,6 +1838,33 @@ void APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float Scre
 			SceneView->DeprojectFVector2D(ScreenPosition, WorldLocation, WorldDirection);
 		}
 	}
+}
+
+
+bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
+	{
+		// Create a view family for the game viewport
+		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
+			LocalPlayer->ViewportClient->Viewport,
+			GetWorld()->Scene,
+			LocalPlayer->ViewportClient->EngineShowFlags )
+			.SetRealtimeUpdate(true) );
+
+		// Calculate a view where the player is to update the streaming from the players start location
+		FVector ViewLocation;
+		FRotator ViewRotation;
+		FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
+
+		if (SceneView) 
+		{
+			return SceneView->WorldToPixel(WorldLocation, ScreenLocation);
+		}
+	}
+
+	return false;
 }
 
 
@@ -2259,9 +2401,6 @@ bool APlayerController::IsLookInputIgnored() const
 }
 
 
-/** returns whether this Controller is a locally controlled PlayerController
- * @note not valid until the Controller is completely spawned (i.e, unusable in Pre/PostInitializeComponents())
- */
 void APlayerController::SetViewTargetWithBlend(AActor* NewViewTarget, float BlendTime, EViewTargetBlendFunction BlendFunc, float BlendExp, bool bLockOutgoing)
 {
 	FViewTargetTransitionParams TransitionParams;
@@ -2551,7 +2690,7 @@ bool APlayerController::ServerRestartPlayer_Validate()
 
 void APlayerController::ServerRestartPlayer_Implementation()
 {
-	UE_LOG(LogPlayerController, Log, TEXT("SERVER RESTART PLAYER"));
+	UE_LOG(LogPlayerController, Verbose, TEXT("SERVER RESTART PLAYER"));
 	if ( GetNetMode() == NM_Client )
 	{
 		return;
@@ -2657,7 +2796,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayI
 	if ( DebugDisplay.IsDisplayOn("ForceFeedback"))
 	{
 		Canvas->SetDrawColor(255, 255, 255);
-		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Force Feedback - LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall), 4.0f, YPos);
+		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Force Feedback - Enabled: %s LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), (bForceFeedbackEnabled ? TEXT("true") : TEXT("false")), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall), 4.0f, YPos);
 		YPos += YL;
 	}
 }
@@ -2765,11 +2904,11 @@ void APlayerController::ClientCommitMapChange_Implementation()
 		{
 			if (GetPawnOrSpectator() != NULL)
 			{
-				SetViewTarget(GetPawnOrSpectator());
+				AutoManageActiveCameraTarget(GetPawnOrSpectator());
 			}
 			else
 			{
-				SetViewTarget(this);
+				AutoManageActiveCameraTarget(this);
 			}
 		}
 		GetWorld()->CommitMapChange();
@@ -2967,7 +3106,7 @@ bool APlayerController::IsPrimaryPlayer() const
 
 bool APlayerController::IsSplitscreenPlayer(int32* OutSplitscreenPlayerIndex) const
 {
-	bool bResult = 0;
+	bool bResult = false;
 
 	if (OutSplitscreenPlayerIndex)
 	{
@@ -3209,6 +3348,109 @@ void APlayerController::ClientStopForceFeedback_Implementation( UForceFeedbackEf
 	}
 }
 
+/** Action that interpolates a component over time to a desired position */
+class FDynamicForceFeedbackAction : public FPendingLatentAction
+{
+public:
+	/** Time over which interpolation should happen */
+	float TotalTime;
+	/** Time so far elapsed for the interpolation */
+	float TimeElapsed;
+	/** If we are currently running. If false, update will complete */
+	uint32 bRunning:1;
+	
+	TWeakObjectPtr<APlayerController> PlayerController;
+
+	FDynamicForceFeedbackDetails ForceFeedbackDetails;
+
+	FLatentActionInfo LatentInfo;
+	/** Function to execute on completion */
+	FName ExecutionFunction;
+	/** Link to fire on completion */
+	int32 OutputLink;
+	/** Latent action ID */
+	int32 LatentUUID;
+	/** Object to call callback on upon completion */
+	FWeakObjectPtr CallbackTarget;
+
+	FDynamicForceFeedbackAction(APlayerController* InPlayerController, const float InDuration, const FLatentActionInfo& LatentInfo)
+		: TotalTime(InDuration)
+		, TimeElapsed(0.f)
+		, bRunning(true)
+		, PlayerController(InPlayerController)
+		, ExecutionFunction(LatentInfo.ExecutionFunction)
+		, OutputLink(LatentInfo.Linkage)
+		, LatentUUID(LatentInfo.UUID)
+		, CallbackTarget(LatentInfo.CallbackTarget)
+	{
+	}
+
+	virtual void UpdateOperation(FLatentResponse& Response)
+	{
+		// Update elapsed time
+		TimeElapsed += Response.ElapsedTime();
+
+		const bool bComplete = (!bRunning || (TotalTime >= 0.f && TimeElapsed >= TotalTime) || !PlayerController.IsValid());
+
+		APlayerController* PC = PlayerController.Get();
+		if (PC)
+		{
+			if (bComplete)
+			{
+				PC->DynamicForceFeedbacks.Remove(LatentUUID);
+			}
+			else
+			{
+				PC->DynamicForceFeedbacks.Add(LatentUUID, ForceFeedbackDetails);
+			}
+		}
+
+
+		Response.FinishAndTriggerIf(bComplete, ExecutionFunction, OutputLink, CallbackTarget);
+	}
+};
+
+void APlayerController::PlayDynamicForceFeedback(float Intensity, float Duration, bool bAffectsLeftLarge, bool bAffectsLeftSmall, bool bAffectsRightLarge, bool bAffectsRightSmall, TEnumAsByte<EDynamicForceFeedbackAction::Type> Action, FLatentActionInfo LatentInfo)
+{
+	FLatentActionManager& LatentActionManager = GetWorld()->GetLatentActionManager();
+	FDynamicForceFeedbackAction* LatentAction = LatentActionManager.FindExistingAction<FDynamicForceFeedbackAction>(LatentInfo.CallbackTarget, LatentInfo.UUID);
+
+	if (LatentAction)
+	{
+		if (Action == EDynamicForceFeedbackAction::Stop)
+		{
+			LatentAction->bRunning = false;
+		}
+		else
+		{
+			if (Action == EDynamicForceFeedbackAction::Start)
+			{
+				LatentAction->TotalTime = Duration;
+				LatentAction->TimeElapsed = 0.f;
+				LatentAction->bRunning = true;
+			}
+
+			LatentAction->ForceFeedbackDetails.Intensity = Intensity;
+			LatentAction->ForceFeedbackDetails.bAffectsLeftLarge = bAffectsLeftLarge;
+			LatentAction->ForceFeedbackDetails.bAffectsLeftSmall = bAffectsLeftSmall;
+			LatentAction->ForceFeedbackDetails.bAffectsRightLarge = bAffectsRightLarge;
+			LatentAction->ForceFeedbackDetails.bAffectsRightSmall = bAffectsRightSmall;
+		}
+	}
+	else if (Action == EDynamicForceFeedbackAction::Start)
+	{
+		LatentAction = new FDynamicForceFeedbackAction(this, Duration, LatentInfo);
+
+		LatentAction->ForceFeedbackDetails.Intensity = Intensity;
+		LatentAction->ForceFeedbackDetails.bAffectsLeftLarge = bAffectsLeftLarge;
+		LatentAction->ForceFeedbackDetails.bAffectsLeftSmall = bAffectsLeftSmall;
+		LatentAction->ForceFeedbackDetails.bAffectsRightLarge = bAffectsRightLarge;
+		LatentAction->ForceFeedbackDetails.bAffectsRightSmall = bAffectsRightSmall;
+
+		LatentActionManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, LatentAction);
+	}
+}
+
 void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool bGamePaused)
 {
 	if (Player == NULL)
@@ -3227,13 +3469,16 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 				ActiveForceFeedbackEffects.RemoveAtSwap(Index);
 			}
 		}
+		for (const auto& DynamicEntry : DynamicForceFeedbacks)
+		{
+			DynamicEntry.Value.Update(ForceFeedbackValues);
+		}
 	}
 
-	// Get the IForceFeedbackSystem pointer from the global application, returning if NULL
 	IForceFeedbackSystem* ForceFeedbackSystem = FSlateApplication::Get().GetForceFeedbackSystem();
 	if (ForceFeedbackSystem)
 	{
-		ForceFeedbackSystem->SetChannelValues(CastChecked<ULocalPlayer>(Player)->ControllerId, ForceFeedbackValues);
+		ForceFeedbackSystem->SetChannelValues(CastChecked<ULocalPlayer>(Player)->ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
 	}
 }
 
@@ -3315,7 +3560,7 @@ void APlayerController::SetPawn(APawn* InPawn)
 
 		if (bAutoManageActiveCameraTarget)
 		{
-			SetViewTarget(this);
+			AutoManageActiveCameraTarget(this);
 		}
 	}
 
@@ -3593,7 +3838,7 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 				SpawnedSpectator->PawnClientRestart();
 				SpawnedSpectator->SetActorTickEnabled(true);
 
-				UE_LOG(LogPlayerController, Log, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
+				UE_LOG(LogPlayerController, Verbose, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
 			}
 			else
 			{
@@ -3603,7 +3848,7 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 		else
 		{
 			// This normally happens on clients if the Player is replicated but the GameState has not yet.
-			UE_LOG(LogPlayerController, Log, TEXT("NULL GameState when trying to spawn spectator!"));
+			UE_LOG(LogPlayerController, Verbose, TEXT("NULL GameState when trying to spawn spectator!"));
 		}
 	}
 
@@ -3707,7 +3952,7 @@ void APlayerController::EndSpectatingState()
 	{
 		if ( PlayerState->bOnlySpectator )
 		{
-			UE_LOG(LogPlayerController, Log, TEXT("WARNING - Spectator only UPlayer* leaving spectating state"));
+			UE_LOG(LogPlayerController, Warning, TEXT("Spectator only UPlayer* leaving spectating state"));
 		}
 		PlayerState->bIsSpectator = false;
 	}
@@ -3860,11 +4105,19 @@ float APlayerController::GetInputKeyTimeDown(const FKey Key) const
 	return (PlayerInput ? PlayerInput->GetTimeDown(Key) : 0.f);
 }
 
-void APlayerController::GetMousePosition(float& LocationX, float& LocationY) const
+bool APlayerController::GetMousePosition(float& LocationX, float& LocationY) const
 {
+	// TODO: Return false if there is no mouse attached
+	if (Player == nullptr)
+	{
+		return false;
+	}
+
 	const FVector2D MousePosition = CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition();
 	LocationX = MousePosition.X;
 	LocationY = MousePosition.Y;
+
+	return true;
 }
 
 void APlayerController::GetInputMouseDelta(float& DeltaX, float& DeltaY) const
@@ -3938,6 +4191,7 @@ void APlayerController::ActivateTouchInterface(UTouchInterface* NewTouchInterfac
 	{
 		NewTouchInterface->Activate(VirtualJoystick);
 	}
+	CurrentTouchInterface = NewTouchInterface;
 }
 
 void APlayerController::UpdateCameraManager(float DeltaSeconds)

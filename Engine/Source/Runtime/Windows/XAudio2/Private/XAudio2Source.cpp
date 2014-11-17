@@ -368,6 +368,7 @@ bool FXAudio2SoundSource::Init( FWaveInstance* InWaveInstance )
 				break;
 
 			case SoundFormat_PCMRT:
+			case SoundFormat_Streaming:
 				SubmitPCMRTBuffers();
 				break;
 
@@ -399,7 +400,7 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 {
 	if( GVolumeMultiplier == 0.0f )
 	{
-		for( int32 i = 0; i < SPEAKER_COUNT; i++ )
+		for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
 		{
 			ChannelVolumes[i] = 0;
 		}
@@ -569,8 +570,8 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 
 	for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
 	{
-#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 		// Detect and warn about NaN and INF volumes. XAudio does not do this internally and behavior is undefined.
+		// This is known to happen in X3DAudioCalculate in channel 0 and the cause is unknown.
 		if ( !FMath::IsFinite(ChannelVolumes[i]) )
 		{
 			const FString NaNorINF = FMath::IsNaN(ChannelVolumes[i]) ? TEXT("NaN") : TEXT("INF");
@@ -582,7 +583,6 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 		{
 			UE_LOG(LogXAudio2, Warning, TEXT("FXAudio2SoundSource contains unreasonble value %f in channel %d: %s"), ChannelVolumes[i], i, *Describe_Internal(true, false));
 		}
-#endif
 
 		ChannelVolumes[i] = FMath::Clamp<float>(ChannelVolumes[i] * GVolumeMultiplier, 0.0f, MAX_VOLUME);
 	}
@@ -653,7 +653,8 @@ void FXAudio2SoundSource::RouteDryToSpeakers( float ChannelVolumes[CHANNELOUT_CO
 
 	case 6:
 		{
-			if (XAudio2Buffer->DecompressionState || WaveInstance->WaveData->bDecompressedFromOgg)
+			if ((XAudio2Buffer->DecompressionState && XAudio2Buffer->DecompressionState->UsesVorbisChannelOrdering())
+			||	WaveInstance->WaveData->bDecompressedFromOgg)
 			{
 				// Ordering of channels is different for 6 channel OGG
 				float SpatialisationMatrix[SPEAKER_COUNT * 6] = 
@@ -1081,7 +1082,7 @@ bool FXAudio2SoundSource::IsFinished( void )
 		XAUDIO2_VOICE_STATE SourceState;
 		Source->GetState( &SourceState );
 
-		const bool bIsRealTimeSource = XAudio2Buffer->SoundFormat == SoundFormat_PCMRT;
+		const bool bIsRealTimeSource = XAudio2Buffer->SoundFormat == SoundFormat_PCMRT || XAudio2Buffer->SoundFormat == SoundFormat_Streaming;
 
 		// If we have no queued buffers, we're either at the end of a sound, or starved
 		if( SourceState.BuffersQueued == 0 )
@@ -1153,7 +1154,7 @@ void FSpatializationHelper::Init()
 	//
 	//  Speaker geometry configuration on the final mix, specifies assignment of channels
 	//  to speaker positions, defined as per WAVEFORMATEXTENSIBLE.dwChannelMask
-	X3DAudioInitialize( SPEAKER_5POINT1, X3DAUDIO_SPEED_OF_SOUND, X3DInstance );
+	X3DAudioInitialize( UE4_XAUDIO2_CHANNELMASK, X3DAUDIO_SPEED_OF_SOUND, X3DInstance );
 
 	// Initialize 3D audio parameters
 #if X3DAUDIO_VECTOR_IS_A_D3DVECTOR
@@ -1161,7 +1162,6 @@ void FSpatializationHelper::Init()
 #else	//X3DAUDIO_VECTOR_IS_A_D3DVECTOR
 	X3DAUDIO_VECTOR ZeroVector(0.0f, 0.0f, 0.0f);
 #endif	//X3DAUDIO_VECTOR_IS_A_D3DVECTOR
-	EmitterAzimuths = 0.0f;
 
 	// Set up listener parameters
 	Listener.OrientFront.x = 0.0f;
@@ -1194,9 +1194,9 @@ void FSpatializationHelper::Init()
 	Emitter.pCone->InnerReverb = 0.0f;
 	Emitter.pCone->OuterReverb = 1.0f;
 
-	Emitter.ChannelCount = 1;
+	Emitter.ChannelCount = UE4_XAUDIO3D_INPUTCHANNELS;
 	Emitter.ChannelRadius = 0.0f;
-	Emitter.pChannelAzimuths = &EmitterAzimuths;
+	Emitter.pChannelAzimuths = EmitterAzimuths;
 
 	// real volume -> 5.1-ch rate
 	VolumeCurvePoint[0].Distance = 0.0f;
@@ -1221,7 +1221,7 @@ void FSpatializationHelper::Init()
 	Emitter.CurveDistanceScaler = 1.0f;
 	Emitter.DopplerScaler = 1.0f;
 
-	DSPSettings.SrcChannelCount = 1;
+	DSPSettings.SrcChannelCount = UE4_XAUDIO3D_INPUTCHANNELS;
 	DSPSettings.DstChannelCount = SPEAKER_COUNT;
 	DSPSettings.pMatrixCoefficients = MatrixCoefficients;
 }
@@ -1230,6 +1230,29 @@ void FSpatializationHelper::DumpSpatializationState() const
 {
 	struct FLocal
 	{
+		static void DumpChannelArray(const FString& Indent, const FString& ArrayName, int32 NumChannels, const float* pChannelArray)
+		{
+			if (pChannelArray)
+			{
+				FString CommaSeparatedValueString;
+				for (int32 ChannelIdx = 0; ChannelIdx < NumChannels; ++ChannelIdx)
+				{
+					if ( ChannelIdx > 0 )
+					{
+						CommaSeparatedValueString += TEXT(",");
+					}
+
+					CommaSeparatedValueString += FString::Printf(TEXT("%f"), pChannelArray[ChannelIdx]);
+				}
+
+				UE_LOG(LogXAudio2, Log, TEXT("%s%s: {%s}"), *Indent, *ArrayName, *CommaSeparatedValueString);
+			}
+			else
+			{
+				UE_LOG(LogXAudio2, Log, TEXT("%s%s: NULL"), *Indent, *ArrayName);
+			}
+		}
+
 		static void DumpCone(const FString& Indent, const FString& ConeName, const X3DAUDIO_CONE* pCone)
 		{
 			if (pCone)
@@ -1282,25 +1305,8 @@ void FSpatializationHelper::DumpSpatializationState() const
 
 	// DSPSettings
 	UE_LOG(LogXAudio2, Log, TEXT("  DSPSettings"));
-	
-	if ( DSPSettings.pMatrixCoefficients )
-	{
-		UE_LOG(LogXAudio2, Log, TEXT("    pMatrixCoefficients: {%f,%f,%f,%f,%f,%f}"), DSPSettings.pMatrixCoefficients[0], DSPSettings.pMatrixCoefficients[1], DSPSettings.pMatrixCoefficients[2], DSPSettings.pMatrixCoefficients[3], DSPSettings.pMatrixCoefficients[4], DSPSettings.pMatrixCoefficients[5]);
-	}
-	else
-	{
-		UE_LOG(LogXAudio2, Log, TEXT("    pMatrixCoefficients: NULL"));
-	}
-
-	if (DSPSettings.pDelayTimes)
-	{
-		UE_LOG(LogXAudio2, Log, TEXT("    pDelayTimes: {%f,%f,%f,%f,%f,%f}"), DSPSettings.pDelayTimes[0], DSPSettings.pDelayTimes[1], DSPSettings.pDelayTimes[2], DSPSettings.pDelayTimes[3], DSPSettings.pDelayTimes[4], DSPSettings.pDelayTimes[5]);
-	}
-	else
-	{
-		UE_LOG(LogXAudio2, Log, TEXT("    pDelayTimes: NULL"));
-	}
-
+	FLocal::DumpChannelArray(TEXT("    "), TEXT("pMatrixCoefficients"), ARRAY_COUNT(MatrixCoefficients), DSPSettings.pMatrixCoefficients);
+	FLocal::DumpChannelArray(TEXT("    "), TEXT("pDelayTimes"), ARRAY_COUNT(MatrixCoefficients), DSPSettings.pDelayTimes);
 	UE_LOG(LogXAudio2, Log, TEXT("    SrcChannelCount: %u"), DSPSettings.SrcChannelCount);
 	UE_LOG(LogXAudio2, Log, TEXT("    DstChannelCount: %u"), DSPSettings.DstChannelCount);
 	UE_LOG(LogXAudio2, Log, TEXT("    LPFDirectCoefficient: %f"), DSPSettings.LPFDirectCoefficient);
@@ -1368,10 +1374,10 @@ void FSpatializationHelper::DumpSpatializationState() const
 	FLocal::DumpDistanceCurve(TEXT("  "), TEXT("ReverbVolumeCurve"), &ReverbVolumeCurve);
 	
 	// EmitterAzimuths
-	UE_LOG(LogXAudio2, Log, TEXT("  EmitterAzimuths: %f"), EmitterAzimuths);
+	FLocal::DumpChannelArray(TEXT("  "), TEXT("EmitterAzimuths"), UE4_XAUDIO3D_INPUTCHANNELS, EmitterAzimuths);
 	
 	// MatrixCoefficients
-	UE_LOG(LogXAudio2, Log, TEXT("  MatrixCoefficients: {%f,%f,%f,%f,%f,%f}"), MatrixCoefficients[0], MatrixCoefficients[1], MatrixCoefficients[2], MatrixCoefficients[3], MatrixCoefficients[4], MatrixCoefficients[5]);
+	FLocal::DumpChannelArray(TEXT("  "), TEXT("MatrixCoefficients"), ARRAY_COUNT(MatrixCoefficients), MatrixCoefficients);
 }
 
 /**
@@ -1412,7 +1418,7 @@ void FSpatializationHelper::CalculateDolbySurroundRate( const FVector& OrientFro
 			const FString NaNorINF = FMath::IsNaN(OutVolumes[SpeakerIndex]) ? TEXT("NaN") : TEXT("INF");
 			UE_LOG(LogXAudio2, Warning, TEXT("CalculateDolbySurroundRate generated a %s in channel %d. OmniRadius:%f MatrixCoefficient:%f"),
 				*NaNorINF, SpeakerIndex, OmniRadius, DSPSettings.pMatrixCoefficients[SpeakerIndex]);
-			DumpSpatializationState();
+			//DumpSpatializationState();
 		}
 #endif
 	}

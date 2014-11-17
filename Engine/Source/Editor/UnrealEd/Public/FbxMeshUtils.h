@@ -75,4 +75,11 @@ namespace FbxMeshUtils
 	 */
 	UNREALED_API void ImportMeshLODDialog( class UObject* Mesh, int32 LODLevel );
 
+	/**
+	 * Sets import option before importing
+	 *
+	 * @param ImportUI			The importUI you'd like to apply to
+	 */
+	UNREALED_API void SetImportOption(UFbxImportUI* ImportUI);
+
 }  //end namespace ExportMeshUtils

@@ -892,7 +892,7 @@ public:
 	 *
 	 * @param SourceAtom The other transform to accumulate into this one
 	 */
-	FORCEINLINE void AccumulateWithAdditiveScale(const FTransform& SourceAtom)
+	FORCEINLINE void AccumulateWithAdditiveScale3D(const FTransform& SourceAtom)
 	{
 		// Add ref pose relative animation to base animation, only if rotation is significant.
 		const VectorRegister RotationW = VectorReplicate(SourceAtom.Rotation, 3);

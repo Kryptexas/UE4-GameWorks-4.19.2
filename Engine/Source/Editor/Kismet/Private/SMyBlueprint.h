@@ -189,6 +189,14 @@ private:
 	/** Update Node Create Analytic */
 	void UpdateNodeCreation();
 
+	/** Returns the displayed category, if any, of a graph */
+	FString GetGraphCategory(UEdGraph* InGraph) const;
+
+	/** Helper function to delete a graph in the MyBlueprint window */
+	void OnDeleteGraph(UEdGraph* InGraph, EEdGraphSchemaAction_K2Graph::Type);
+
+	/** Helper function to delete a delegate in the MyBlueprint window */
+	void OnDeleteDelegate(FEdGraphSchemaAction_K2Delegate* InDelegateAction);
 private:
 	/** Pointer back to the blueprint editor that owns us */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;

@@ -81,6 +81,10 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Text)
 	float HorizSpacingAdjust;
 
+	/** Allows text to draw unmodified when using debug visualization modes. **/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering)
+	uint32 bAlwaysRenderAsText:1;
+
 	// -----------------------------
 	
 	/** Change the text value and signal the primitives to be rebuilt */

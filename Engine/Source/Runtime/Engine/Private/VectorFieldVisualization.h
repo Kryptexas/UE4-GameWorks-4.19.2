@@ -5,10 +5,8 @@
 ==============================================================================*/
 
 #pragma once
-
 #include "VertexFactory.h"
 #include "UniformBuffer.h"
-#include "ShaderParameters.h"
 
 /*------------------------------------------------------------------------------
 	Forward declarations.

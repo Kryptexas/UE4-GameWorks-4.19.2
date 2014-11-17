@@ -47,6 +47,9 @@ namespace ETargetPlatformFeatures
 	 */
 	enum Type
 	{
+		/** Audio Streaming */
+		AudioStreaming,
+
 		/** Distance field shadows. */
 		DistanceFieldShadows,
 
@@ -79,6 +82,37 @@ namespace ETargetPlatformFeatures
 
 		/** Vertex Shader Texture Sampling. */
 		VertexShaderTextureSampling,
+	};
+};
+
+
+namespace ETargetPlatformReadyStatus
+{
+	/**
+	 * Flags specifiying what is needed to be able to complete and deploy a build
+	 */
+	enum Type
+	{
+		/** Ready */
+		Ready = 0,
+
+		/** SDK Not Found*/
+		SDKNotFound = 1,
+
+		/** Code Build Not Supported */
+		CodeUnsupported = 2,
+
+		/** Plugins Not Supported */
+		PluginsUnsupported = 4,
+
+		/** Signing Key Not Found */
+		SigningKeyNotFound = 8,
+
+		/** Provision Not Found */
+		ProvisionNotFound = 16,
+
+		/** Manifest Not Found */
+		ManifestNotFound = 32,
 	};
 };
 
@@ -239,6 +273,11 @@ public:
 	virtual bool SupportsBuildTarget( EBuildTargets::Type BuildTarget ) const = 0;
 
 	/**
+	 * Returns true if the platform supports the AutoSDK system
+	 */
+	virtual bool SupportsAutoSDK() const = 0;
+
+	/**
 	 * Checks whether the target platform supports the specified feature.
 	 *
 	 * @param Feature - The feature to check.
@@ -256,6 +295,18 @@ public:
 	 * @return true if the platform is ready for use
 	 */
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
+
+
+	/**
+	 * Checks whether the platform's build requirements are met so that we can do things like
+	 * package for the platform
+	 *
+	 * @param ProjectPath Path to the project
+	 * @param bProjectHasCode true if the project has code, and therefore any compilation based SDK requirements should be checked
+	 * @param OutDocumentationPath Let's the platform tell the editor a path to show some information about how to fix any problem
+	 * @return Readiness status
+	 */
+	virtual int DoesntHaveRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 #if WITH_ENGINE
 	/**

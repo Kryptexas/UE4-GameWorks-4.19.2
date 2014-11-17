@@ -107,6 +107,9 @@ bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const FString& Pl
 		return false;
 	}
 
+	FString PakChunkLayerInfoFilename = FString::Printf(TEXT("%s/pakchunklayers.txt"), *TmpPackagingDir);
+	TAutoPtr<FArchive> ChunkLayerFile(IFileManager::Get().CreateFileWriter(*PakChunkLayerInfoFilename));
+
 	// generate per-chunk pak list files
 	for (int32 Index = 0; Index < ChunkManifests.Num(); ++Index)
 	{			
@@ -135,9 +138,17 @@ bool FChunkManifestGenerator::GenerateStreamingInstallManifest(const FString& Pl
 			// add this pakfilelist to our master list of pakfilelists
 			FString PakChunkListLine = FString::Printf(TEXT("pakchunk%d.txt\r\n"), Index);
 			PakChunkListFile->Serialize(TCHAR_TO_ANSI(*PakChunkListLine), PakChunkListLine.Len());
+
+			int32 TargetLayer = 0;
+			FGameDelegates::Get().GetAssignLayerChunkDelegate().ExecuteIfBound(&Manifest, Platform, Index, TargetLayer);
+
+			FString LayerString = FString::Printf(TEXT("%d\r\n"), TargetLayer);
+			
+			ChunkLayerFile->Serialize(TCHAR_TO_ANSI(*LayerString), LayerString.Len());
 		}
 	}
 
+	ChunkLayerFile->Close();
 	PakChunkListFile->Close();
 
 	return true;

@@ -9,6 +9,14 @@
 
 #include "MovieSceneVectorTrack.generated.h"
 
+template<typename VecType>
+struct FVectorKey
+{
+	VecType Value;
+	FName CurveName;
+	bool bAddKeyEvenIfUnchanged;
+};
+
 /**
  * Handles manipulation of component transforms in a movie scene
  */
@@ -31,10 +39,10 @@ public:
 	 * @param InChannelsUsed	The number of channels used, 2, 3, or 4, determining which type of vector this is
 	 * @return True if the key was successfully added.
 	 */
-	virtual bool AddKeyToSection( float Time, const FVector4& InKey, int32 InChannelsUsed );
-	virtual bool AddKeyToSection( float Time, const FVector4& InKey);
-	virtual bool AddKeyToSection( float Time, const FVector& InKey);
-	virtual bool AddKeyToSection( float Time, const FVector2D& InKey);
+
+	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector4>& Key );
+	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector>& Key );
+	virtual bool AddKeyToSection( float Time, const FVectorKey<FVector2D>& Key );
 	
 	/**
 	 * Evaluates the track at the playback position
@@ -44,10 +52,13 @@ public:
 	 * @param OutVector 	The value at the playback position
 	 * @return true if anything was evaluated. Note: if false is returned OutVector remains unchanged
 	 */
-	virtual bool Eval( float Position, float LastPostion, FVector4& OutVector ) const;
+	virtual bool Eval( float Position, float LastPostion, FVector4& InOutVector ) const;
 
 	/** @return Get the number of channels used by the vector */
 	int32 GetNumChannelsUsed() const { return NumChannelsUsed; }
+
+private:
+	virtual bool AddKeyToSection( float Time, const FVector4& InKey, int32 InChannelsUsed, FName CurveName, bool bAddKeyEvenIfUnchanged );
 private:
 	/** The number of channels used by the vector (2,3, or 4) */
 	UPROPERTY()

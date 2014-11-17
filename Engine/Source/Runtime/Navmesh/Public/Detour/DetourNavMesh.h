@@ -127,8 +127,6 @@ static const unsigned char DT_LINK_FLAG_SIDE_MASK = 7;
 /// flags used to annotate dtClusterLink::flags with additional data
 static const unsigned char DT_CLINK_VALID_FWD = 0x01;
 static const unsigned char DT_CLINK_VALID_BCK = 0x02;
-static const unsigned char DT_CLINK_HASCOST_FWD = 0x04;
-static const unsigned char DT_CLINK_HASCOST_BCK = 0x08;
 
 /// Index of first cluster link within tile
 static const unsigned int DT_CLINK_FIRST = 0x80000000;
@@ -305,8 +303,7 @@ struct dtOffMeshConnection
 /// Cluster of polys
 struct dtCluster
 {
-	float center[3];				///< Center point
-	dtPolyRef centerPoly;			///< Center poly
+	float center[3];				///< Center pos of cluster
 	unsigned int firstLink;			///< Link in dtMeshTile.links array
 	unsigned int numLinks;			///< Number of cluster links
 };
@@ -317,8 +314,6 @@ struct dtClusterLink
 	dtClusterRef ref;				///< Destination tile and cluster
 	unsigned int next;				///< Next link in dtMeshTile.links array
 	unsigned char flags;			///< Link traversing data
-	float costFwd;					///< Path cost: to destination
-	float costBck;					///< Path cost: backtracking from destination
 };
 
 /// Provides high level information related to a dtMeshTile object.
@@ -356,7 +351,6 @@ struct dtMeshHeader
 	float bvQuantFactor;
 
 	int clusterCount;			///< Number of clusters
-	int maxClusterCons;			///< Number of inner tile cluster connections
 };
 
 /// Defines a navigation mesh tile.
@@ -391,8 +385,7 @@ struct dtMeshTile
 	dtMeshTile* next;						///< The next free tile, or the next tile in the spatial grid.
 
 	dtCluster* clusters;					///< Cluster data
-	unsigned short* polyClusters;			///< Cluster Id for each ground type polygon [Size: dtMeshHeader::detailMeshCount]
-	unsigned short* clusterCons;			///< Inner tile cluster connections for serialization [Size: dtMeshHeader::maxClusterCons]
+	unsigned short* polyClusters;			///< Cluster Id for each ground type polygon [Size: dtMeshHeader::polyCount]
 
 	dtChunkArray<dtLink> dynamicLinksO;			///< Dynamic links array (indices starting from dtMeshHeader::maxLinkCount)
 	unsigned int dynamicFreeListO;				///< Index of the next free dynamic link
@@ -709,12 +702,6 @@ public:
 	/// Shift navigation mesh by provided offset
 	void applyWorldOffset(const float* offset);
 
-	/// updates cost of cluster link
-	void updateClusterLink(dtMeshTile* tile0, unsigned int cluster0, dtMeshTile* tile1, unsigned int cluster1, class dtQueryFilter* filter);
-
-	/// Calculate and set cluster link cost (not really a const function, but NavMeshQuery likes it better...)
-	void updateClusterLink(const dtMeshTile* tile, unsigned int clusterIdx, unsigned int linkIdx, const class dtQueryFilter* filter) const;
-
 	/// Helper for accessing links
 	inline dtLink& getLink(dtMeshTile* tile, unsigned int linkIdx)
 	{
@@ -777,14 +764,6 @@ private:
 	/// Removes external links at specified side.
 	void unconnectExtLinks(dtMeshTile* tile, dtMeshTile* target);
 	
-	/// Updates tile reference for internal cluster links
-	void connectIntClusterLinks(dtMeshTile* tile);
-
-	/// Calculates cost of cluster link
-	float getClusterLinkCost(const dtMeshTile* tile0, unsigned int cluster0,
-							 const dtMeshTile* tile1, unsigned int cluster1,
-							 const class dtQueryFilter* filter) const;
-
 	/// Try to connect clusters
 	void connectClusterLink(dtMeshTile* tile0, unsigned int cluster0,
 							dtMeshTile* tile1, unsigned int cluster1,
@@ -819,8 +798,6 @@ private:
 	unsigned int m_saltBits;			///< Number of salt bits in the tile ID.
 	unsigned int m_tileBits;			///< Number of tile bits in the tile ID.
 	unsigned int m_polyBits;			///< Number of poly bits in the tile ID.
-
-	class dtNavMeshQuery* m_clusterQuery;	///< Query used by cluster graph
 };
 
 /// Allocates a navigation mesh object using the Detour allocator.

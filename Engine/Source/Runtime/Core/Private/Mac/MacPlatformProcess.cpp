@@ -4,7 +4,7 @@
 	MacPlatformProcess.mm: Mac implementations of Process functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "../../Launch/Resources/Version.h"
 #include <mach-o/dyld.h>
 #include <libproc.h>
@@ -529,25 +529,35 @@ bool FMacPlatformProcess::GetProcReturnCode( FProcHandle & ProcessHandle, int32*
 
 bool FMacPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 {
-	SCOPED_AUTORELEASE_POOL;
+    CFStringRef ProcessName = FPlatformString::TCHARToCFString( ProcName );
+    check(ProcessName);
+	uint32 ThisProcessID = getpid();
+	bool bFound = false;
 	
-	NSArray* ActiveApps = [[NSWorkspace sharedWorkspace] runningApplications ];
-	
-	if( ActiveApps )
+	int32 Mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
+	size_t BufferSize = 0;
+	if (sysctl(Mib, 4, NULL, &BufferSize, NULL, 0) != -1 && BufferSize > 0)
 	{
-		for( NSRunningApplication* App in ActiveApps )
+		char Buffer[MAX_PATH];
+		struct kinfo_proc* Processes = (struct kinfo_proc*)FMemory::Malloc(BufferSize);
+		if (sysctl(Mib, 4, Processes, &BufferSize, NULL, 0) != -1)
 		{
-			if( App )
+			uint32 ProcCount = (uint32)(BufferSize / sizeof(struct kinfo_proc));
+			for (uint32 Index = 0; Index < ProcCount; Index++)
 			{
-				NSString* AppName = [App localizedName];
-				if( FString(AppName) == FString(ProcName) )
+				proc_pidpath(Processes[Index].kp_proc.p_pid, Buffer, sizeof(Buffer));
+				if (Processes[Index].kp_proc.p_pid != ThisProcessID && [(NSString*)ProcessName isEqualToString: [[NSString stringWithUTF8String: Buffer] lastPathComponent]])
 				{
-					return true;
+					bFound = true;
 				}
 			}
 		}
+		
+		FMemory::Free(Processes);
 	}
-	return false;
+    CFRelease(ProcessName);
+    
+	return bFound;
 }
 
 bool FMacPlatformProcess::IsApplicationRunning( uint32 ProcessId )
@@ -633,8 +643,8 @@ const TCHAR* FMacPlatformProcess::UserDir()
 	if (!Result[0])
 	{
 		SCOPED_AUTORELEASE_POOL;
-		NSString *ApplicationSupportFolder = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
-		FPlatformString::CFStringToTCHAR((CFStringRef)ApplicationSupportFolder, Result);
+		NSString *DocumentsFolder = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
+		FPlatformString::CFStringToTCHAR((CFStringRef)DocumentsFolder, Result);
 		FCString::Strcat(Result, TEXT("/"));
 	}
 	return Result;
@@ -879,6 +889,35 @@ FString FMacPlatformProcess::ReadPipe( void* ReadPipe )
 	}
 
 	return Output;
+}
+
+bool FMacPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output)
+{
+	SCOPED_AUTORELEASE_POOL;
+
+	const int32 READ_SIZE = 32768;
+
+	if (ReadPipe)
+	{
+		Output.Init(READ_SIZE);
+		int32 BytesRead = 0;
+		BytesRead = read([(NSFileHandle*)ReadPipe fileDescriptor], Output.GetData(), READ_SIZE);
+		if (BytesRead > 0)
+		{
+			if (BytesRead < READ_SIZE)
+			{
+				Output.SetNum(BytesRead);
+			}
+
+			return true;
+		}
+		else
+		{
+			Output.Empty();
+		}
+	}
+
+	return false;
 }
 
 #include "MacPlatformRunnableThread.h"

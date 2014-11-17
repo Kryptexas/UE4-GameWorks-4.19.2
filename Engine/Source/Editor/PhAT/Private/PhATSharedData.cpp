@@ -75,9 +75,9 @@ void FPhATSharedData::Initialize()
 	USkeletalMesh * PreviewMesh =  NULL; 
 	FStringAssetReference PreviewMeshStringRef = PhysicsAsset->PreviewSkeletalMesh.ToStringReference();
 	// load it since now is the time to load
-	if(!PreviewMeshStringRef.AssetLongPathname.IsEmpty())
+	if (!PreviewMeshStringRef.ToString().IsEmpty())
 	{
-		PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.AssetLongPathname, NULL, LOAD_None, NULL));
+		PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
 	}
 
 	if ( PreviewMesh == NULL)
@@ -868,7 +868,7 @@ void FPhATSharedData::MakeNewBody(int32 NewBoneIndex)
 				UPhysicsConstraintTemplate* ChildConstraintSetup = PhysicsAsset->ConstraintSetup[ ConstraintIndex ];
 				check(ChildConstraintSetup);
 
-				InitConstraintSetup(ChildConstraintSetup, NewBodyIndex, ChildBodyIndex);
+				InitConstraintSetup(ChildConstraintSetup, ChildBodyIndex, NewBodyIndex);
 			}
 		}
 	}
@@ -910,42 +910,6 @@ void FPhATSharedData::SetSelectedConstraintRelTM(const FTransform& RelTM)
 	}
 }
 
-FTransform FPhATSharedData::GetConstraintWorldTM(const FSelection * Constraint, EConstraintFrame::Type Frame) const
-{
-	int32 ConstraintIndex = Constraint ? Constraint->Index : INDEX_NONE;
-	if (ConstraintIndex == INDEX_NONE)
-	{
-		return FTransform::Identity;
-	}
-
-	UPhysicsConstraintTemplate* ConstraintSetup = PhysicsAsset->ConstraintSetup[ConstraintIndex];
-
-	FTransform FrameTM = ConstraintSetup->DefaultInstance.GetRefFrame(Frame);
-
-	int32 BoneIndex;
-	if (Frame == EConstraintFrame::Frame1)
-	{
-		BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone1);
-	}
-	else
-	{
-		BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone2);
-	}
-
-	//It's possible for BoneIndex to be INDEX_NONE, for example if the constraint name is invalid
-	if (BoneIndex != INDEX_NONE)
-	{
-		FTransform BoneTM = EditorSkelComp->GetBoneTransform(BoneIndex);
-		BoneTM.RemoveScaling();
-
-		return FrameTM * BoneTM;
-	}
-	else
-	{
-		return FTransform::Identity;
-	}	
-}
-
 void FPhATSharedData::CopyConstraint()
 {
 	check(SelectedConstraints.Num() == 1);
@@ -962,12 +926,35 @@ void FPhATSharedData::PasteConstraintProperties()
 
 	const FScopedTransaction Transaction( NSLOCTEXT("PhAT", "PasteConstraintProperties", "Paste Constraint Properties") );
 
+	UPhysicsConstraintTemplate* FromConstraintSetup = CopiedConstraintTemplate;
+
+	//We want to copy frame2 relative to frame1. To do this we need to go from body2 into body1, compute relative.
+	//Then apply relative inside body1 of the destination constraint, and finally move it into body2 of destination constraint
+	
+	//In total there are 4 bodies, body a and b are the frame1 frame2 bodies of the copied
+	// body c and d are frame 1 and frame 2 of the destination constraint
+	//we use the body letter to denote which space we're in, for example Frame1a would be frame1 inside BodyA
+	//Frame1b would be frame 1 inside body b. In this case BodyA * Frame1a == BodyB * Frame1b
+
+	FTransform Frame1A = FromConstraintSetup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
+	FTransform BodyA = GetConstraintBodyTM(FromConstraintSetup, EConstraintFrame::Frame1);
+	FTransform BodyB = GetConstraintBodyTM(FromConstraintSetup, EConstraintFrame::Frame2);
+	FTransform BodyAFrame1A = GetConstraintWorldTM(FromConstraintSetup, EConstraintFrame::Frame1);
+	FTransform BodyBFrame2B = GetConstraintWorldTM(FromConstraintSetup, EConstraintFrame::Frame2);
 
 	for(int32 i=0; i<SelectedConstraints.Num(); ++i)
 	{
 		// If we are showing instance properties - copy instance properties. If showing setup, just copy setup properties.
 		UPhysicsConstraintTemplate* ToConstraintSetup = PhysicsAsset->ConstraintSetup[SelectedConstraints[i].Index];
-		UPhysicsConstraintTemplate* FromConstraintSetup = CopiedConstraintTemplate;
+
+		FTransform Frame1C = ToConstraintSetup->DefaultInstance.GetRefFrame(EConstraintFrame::Frame1);
+		FTransform BodyC = GetConstraintBodyTM(ToConstraintSetup, EConstraintFrame::Frame1);
+		FTransform BodyD = GetConstraintBodyTM(ToConstraintSetup, EConstraintFrame::Frame2);
+
+		FTransform FromF1AToF2A = BodyBFrame2B * BodyA.InverseSafe() * Frame1A.InverseSafe();
+		FTransform Frame2C = FromF1AToF2A * Frame1C;
+		FTransform Frame2D = Frame2C* BodyC * BodyD.InverseSafe();
+
 
 		ToConstraintSetup->Modify();
 		FConstraintInstance OldInstance = ToConstraintSetup->DefaultInstance;
@@ -982,10 +969,14 @@ void FPhATSharedData::PasteConstraintProperties()
 		ToConstraintSetup->DefaultInstance.ConstraintBone2		= OldInstance.ConstraintBone2;
 		ToConstraintSetup->DefaultInstance.Pos1					= OldInstance.Pos1;
 		ToConstraintSetup->DefaultInstance.Pos2					= OldInstance.Pos2;
-		ToConstraintSetup->DefaultInstance.PriAxis1				= OldInstance.PriAxis1;
-		ToConstraintSetup->DefaultInstance.PriAxis2				= OldInstance.PriAxis2;
-		ToConstraintSetup->DefaultInstance.SecAxis1				= OldInstance.SecAxis1;
-		ToConstraintSetup->DefaultInstance.SecAxis2				= OldInstance.SecAxis2;
+
+		//frame1 stays the same
+		ToConstraintSetup->DefaultInstance.PriAxis1 = OldInstance.PriAxis1;
+		ToConstraintSetup->DefaultInstance.SecAxis1 = OldInstance.SecAxis1;
+
+		//frame2 is copied but relative to frame1
+		ToConstraintSetup->DefaultInstance.PriAxis2 = Frame2D.GetUnitAxis(EAxis::X);
+		ToConstraintSetup->DefaultInstance.SecAxis2 = Frame2D.GetUnitAxis(EAxis::Y);
 	}
 	
 }
@@ -1070,16 +1061,48 @@ void FPhATSharedData::DeleteBody(int32 DelBodyIndex, bool bRefreshComponent)
 	PhysicsAsset->Modify();
 
 	// .. the body..
-	PhysicsAsset->BodySetup[DelBodyIndex]->Modify();	
+	UBodySetup * BodySetup = PhysicsAsset->BodySetup[DelBodyIndex];
+	BodySetup->Modify();	
 
 	// .. and any constraints to the body.
 	TArray<int32>	Constraints;
 	PhysicsAsset->BodyFindConstraints(DelBodyIndex, Constraints);
 
-	for (int32 i = 0; i <Constraints.Num(); ++i)
+	//we want to fixup constraints so that nearest child bodies get constraint with parent body
+	TArray<int32> NearestBodiesBelow;
+	PhysicsAsset->GetNearestBodyIndicesBelow(NearestBodiesBelow, BodySetup->BoneName, EditorSkelMesh);
+	
+	int32 BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(BodySetup->BoneName);
+
+	if (BoneIndex != INDEX_NONE)	//it's possible to delete bodies that have no bones. In this case just ignore all of this fixup code
 	{
-		int32 ConstraintIndex = Constraints[i];
-		PhysicsAsset->ConstraintSetup[ConstraintIndex]->Modify();
+		int32 ParentBodyIndex = PhysicsAsset->FindParentBodyIndex(EditorSkelMesh, BoneIndex);
+
+		UBodySetup * ParentBody = ParentBodyIndex != INDEX_NONE ? PhysicsAsset->BodySetup[ParentBodyIndex] : NULL;
+
+		for (int32 i = 0; i < Constraints.Num(); ++i)
+		{
+			int32 ConstraintIndex = Constraints[i];
+			UPhysicsConstraintTemplate * Constraint = PhysicsAsset->ConstraintSetup[ConstraintIndex];
+			Constraint->Modify();
+
+			if (ParentBody)
+			{
+				//for all constraints that contain a nearest child of this body, create a copy of the constraint between the child and parent
+				for (int32 i = 0; i < NearestBodiesBelow.Num(); ++i)
+				{
+					int32 BodyBelowIndex = NearestBodiesBelow[i];
+					UBodySetup * BodyBelow = PhysicsAsset->BodySetup[BodyBelowIndex];
+
+					if (Constraint->DefaultInstance.ConstraintBone1 == BodyBelow->BoneName)
+					{
+						int32 NewConstraintIndex = FPhysicsAssetUtils::CreateNewConstraint(PhysicsAsset, BodyBelow->BoneName, Constraint);
+						UPhysicsConstraintTemplate * NewConstraint = PhysicsAsset->ConstraintSetup[NewConstraintIndex];
+						InitConstraintSetup(NewConstraint, BodyBelowIndex, ParentBodyIndex);
+					}
+				}
+			}
+		}
 	}
 
 	// Now actually destroy body. This will destroy any constraints associated with the body as well.
@@ -1180,10 +1203,44 @@ void FPhATSharedData::DeleteCurrentPrim()
 	SetSelectedBodyAnyPrim(INDEX_NONE); // Will call UpdateViewport
 	RefreshPhysicsAssetChange(PhysicsAsset);
 }
-
-FTransform FPhATSharedData::GetConstraintMatrix(int32 ConstraintIndex, EConstraintFrame::Type Frame, float Scale)
+FTransform FPhATSharedData::GetConstraintBodyTM(const UPhysicsConstraintTemplate * ConstraintSetup, EConstraintFrame::Type Frame) const
 {
-	UPhysicsConstraintTemplate* ConstraintSetup = PhysicsAsset->ConstraintSetup[ConstraintIndex];
+	if (ConstraintSetup == NULL)
+	{
+		return FTransform::Identity;
+	}
+
+	int32 BoneIndex;
+	if (Frame == EConstraintFrame::Frame1)
+	{
+		BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone1);
+	}
+	else
+	{
+		BoneIndex = EditorSkelMesh->RefSkeleton.FindBoneIndex(ConstraintSetup->DefaultInstance.ConstraintBone2);
+	}
+
+	// If we couldn't find the bone - fall back to identity.
+	if (BoneIndex == INDEX_NONE)
+	{
+		return FTransform::Identity;
+	}
+	else
+	{
+		FTransform BoneTM = EditorSkelComp->GetBoneTransform(BoneIndex);
+		BoneTM.RemoveScaling();
+
+		return BoneTM;
+	}
+}
+
+FTransform FPhATSharedData::GetConstraintWorldTM(const UPhysicsConstraintTemplate * ConstraintSetup, EConstraintFrame::Type Frame, float Scale) const
+{
+	if (ConstraintSetup == NULL)
+	{
+		return FTransform::Identity;
+	}
+
 	FVector Scale3D(Scale);
 
 	int32 BoneIndex;
@@ -1212,6 +1269,26 @@ FTransform FPhATSharedData::GetConstraintMatrix(int32 ConstraintIndex, EConstrai
 		return LFrame * BoneTM;
 	}
 }
+
+FTransform FPhATSharedData::GetConstraintMatrix(int32 ConstraintIndex, EConstraintFrame::Type Frame, float Scale) const
+{
+	UPhysicsConstraintTemplate* ConstraintSetup = PhysicsAsset->ConstraintSetup[ConstraintIndex];
+	return GetConstraintWorldTM(ConstraintSetup, Frame, Scale);
+}
+
+
+FTransform FPhATSharedData::GetConstraintWorldTM(const FSelection * Constraint, EConstraintFrame::Type Frame) const
+{
+	int32 ConstraintIndex = Constraint ? Constraint->Index : INDEX_NONE;
+	if (ConstraintIndex == INDEX_NONE)
+	{
+		return FTransform::Identity;
+	}
+
+	UPhysicsConstraintTemplate* ConstraintSetup = PhysicsAsset->ConstraintSetup[ConstraintIndex];
+	return GetConstraintWorldTM(ConstraintSetup, Frame, 1.f);
+}
+
 
 void FPhATSharedData::DeleteCurrentConstraint()
 {
@@ -1377,19 +1454,58 @@ void FPhATSharedData::OpenNewBodyDlg(FPhysAssetCreateParams* NewBodyData, EAppRe
 	GEditor->EditorAddModalWindow(ModalWindow);
 }
 
-void FPhATSharedData::Undo()
+void FPhATSharedData::PostUndo()
 {
 	if (bRunningSimulation)
 	{
 		return;
 	}
 
-	// Clear selection before we undo. We don't transact the editor itself - don't want to have something selected that is then removed.
-	SetSelectedBody(NULL);
-	SetSelectedConstraint(INDEX_NONE);
+	bool bInvalidSelection = false;
 
-	GEditor->UndoTransaction();
-	PhysicsAsset->UpdateBodySetupIndexMap();
+	for (int32 BodyIndex = 0; BodyIndex < SelectedBodies.Num() && bInvalidSelection == false; ++BodyIndex)
+	{
+		const FSelection & Selection = SelectedBodies[BodyIndex];
+		if (PhysicsAsset->BodySetup.Num() <= Selection.Index)
+		{
+			bInvalidSelection = true;
+		}
+		else
+		{
+			
+			if (UBodySetup * BodySetup = PhysicsAsset->BodySetup[Selection.Index])
+			{
+				switch (Selection.PrimitiveType)
+				{
+				case KPT_Box: bInvalidSelection = BodySetup->AggGeom.BoxElems.Num() <= Selection.PrimitiveIndex ? true : bInvalidSelection; break;
+				case KPT_Convex: bInvalidSelection = BodySetup->AggGeom.ConvexElems.Num() <= Selection.PrimitiveIndex ? true : bInvalidSelection; break;
+				case KPT_Sphere: bInvalidSelection = BodySetup->AggGeom.SphereElems.Num() <= Selection.PrimitiveIndex ? true : bInvalidSelection; break;
+				case KPT_Sphyl: bInvalidSelection = BodySetup->AggGeom.SphylElems.Num() <= Selection.PrimitiveIndex ? true : bInvalidSelection; break;
+				default: bInvalidSelection = true;
+				}
+			}
+			else
+			{
+				bInvalidSelection = true;
+			}
+		}
+	}
+
+	for (int32 ConstraintIndex = 0; ConstraintIndex < SelectedConstraints.Num() && bInvalidSelection == false; ++ConstraintIndex)
+	{
+		const FSelection & Selection = SelectedConstraints[ConstraintIndex];
+		if (PhysicsAsset->ConstraintSetup.Num() <= Selection.Index)
+		{
+			bInvalidSelection = true;
+		}
+	}
+
+	if (bInvalidSelection)
+	{
+		// Clear selection before we undo. We don't transact the editor itself - don't want to have something selected that is then removed.
+		SetSelectedBody(NULL);
+		SetSelectedConstraint(INDEX_NONE);
+	}
 
 	PreviewChangedEvent.Broadcast();
 	HierarchyChangedEvent.Broadcast();

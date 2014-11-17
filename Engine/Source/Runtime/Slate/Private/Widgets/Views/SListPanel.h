@@ -67,6 +67,9 @@ public:
 
 	/** Fraction of the first item that we should offset by to simulate smooth scrolling. */
 	void SmoothScrollOffset(float OffsetInItems);
+
+	/** Set how much we should appear to have scrolled past the beginning/end of the list. */
+	void SetOverscrollAmount( float InOverscrollAmount );
 	
 	/** Remove all the children from this panel */
 	void ClearItems();
@@ -116,6 +119,9 @@ protected:
 	 * Translate to physical units based on first item in list.
 	 */
 	float SmoothScrollOffsetInItems;
+
+	/** Amount scrolled past beginning/end of list in Slate Units. */
+	float OverscrollAmount;
 
 	/** The preferred number of rows that this widget should have */
 	int32 PreferredRowNum;

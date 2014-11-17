@@ -4,7 +4,7 @@
 	LinuxPlatformStackWalk.cpp: Linux implementations of stack walk functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include <execinfo.h>
 #include <dlfcn.h>
 #include <cxxabi.h>

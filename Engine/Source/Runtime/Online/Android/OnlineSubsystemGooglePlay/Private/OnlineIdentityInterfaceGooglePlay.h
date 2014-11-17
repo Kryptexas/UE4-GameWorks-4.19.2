@@ -5,6 +5,8 @@
 #include "OnlineIdentityInterface.h"
 #include "OnlineSubsystemGooglePlayPackage.h"
 
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeCompletedConnection(JNIEnv* LocalJNIEnv, jobject LocalThiz, jint userID, jint errorCode);
+
 class FOnlineIdentityGooglePlay :
 	public IOnlineIdentity
 {
@@ -18,6 +20,27 @@ private:
 
 	bool bLoggingInUser;
 	bool bRegisteringUser;
+
+	/** UID for this identity */
+	TSharedPtr< FUniqueNetIdString > UniqueNetId;
+
+	struct FPendingConnection
+	{
+		FOnlineIdentityGooglePlay * ConnectionInterface;
+		bool IsConnectionPending;
+	};
+
+	/** Instance of the connection context data */
+	static FPendingConnection PendingConnectRequest;
+
+	/**
+	* Native function called from Java when we get the connection result callback.
+	*
+	* @param LocalJNIEnv the current JNI environment
+	* @param LocalThiz instance of the Java GameActivity class
+	* @param errorCode The reported error code from the connection attempt
+	*/
+	friend void Java_com_epicgames_ue4_GameActivity_nativeCompletedConnection(JNIEnv* LocalJNIEnv, jobject LocalThiz, jint userID, jint errorCode);
 
 PACKAGE_SCOPE:
 
@@ -51,6 +74,8 @@ public:
 	//platform specific
 	void OnLogin(const bool InLoggedIn,  const FString& InPlayerId, const FString& InPlayerAlias);
 	void OnLogout(const bool InLoggedIn);
+
+	void OnLoginCompleted(const int playerID, const int errorCode);
 
 };
 

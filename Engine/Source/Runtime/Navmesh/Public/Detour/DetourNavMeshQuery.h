@@ -260,62 +260,11 @@ public:
 					  dtPolyRef* path, int* pathCount, const int maxPath,
 					  float* pathSegmentsCost, float* totalCost) const;
 	
-	/// Finds a path from the start polygon to the end polygon using cluster graph
-	///  @param[in]		startRef			The reference id of the start polygon.
-	///  @param[in]		endRef				The reference id of the end polygon.
-	///  @param[in]		startPos			A position within the start polygon. [(x, y, z)]
-	///  @param[in]		endPos				A position within the end polygon. [(x, y, z)]
-	///  @param[in]		filter				The polygon filter to use for updating cluster links
-	///  @param[out]	path				An ordered list of polygon references representing the path. (Start to end.) 
-	///  									[(polyRef) * @p pathCount]
-	///  @param[out]	pathCount			The number of polygons returned in the @p path array.
-	///  @param[in]		maxPath				The maximum number of polygons the @p path array can hold. [Limit: >= 1]
-	///	 @param[out]	pathSegmentsCost	If provided will get filled will cost for every piece of path corridor
-	///  @param[out]	totalCost			If provided will get filed with total cost of path
-	dtStatus findClusterPath(dtPolyRef startRef, dtPolyRef endRef,
-							 const float* startPos, const float* endPos,
-							 const dtQueryFilter* filter,
-							 dtPolyRef* path, int* pathCount, const int maxPath,
-							 float* pathSegmentsCost, float* totalCost) const; 
-
 	/// Check if there is a path from start polygon to the end polygon using cluster graph
 	/// (cheap, does not care about link costs)
 	///  @param[in]		startRef			The reference id of the start polygon.
 	///  @param[in]		endRef				The reference id of the end polygon.
 	dtStatus testClusterPath(dtPolyRef startRef, dtPolyRef endRef) const; 
-
-	/// Finds a path from the start polygon to the end polygon using provided cluster path
-	///  @param[in]		startRef			The reference id of the start polygon.
-	///  @param[in]		endRef				The reference id of the end polygon.
-	///  @param[in]		startPos			A position within the start polygon. [(x, y, z)]
-	///  @param[in]		endPos				A position within the end polygon. [(x, y, z)]
-	///  @param[in]		filter				The polygon filter to use for updating cluster links
-	///  @param[out]	clusterPath			An ordered list of cluster references representing the path. (Start to end.) 
-	///  @param[out]	clusterPathSize		The number of clusters in @clusterPath
-	///  @param[out]	path				An ordered list of polygon references representing the path. (Start to end.) 
-	///  									[(polyRef) * @p pathCount]
-	///  @param[out]	pathCount			The number of polygons returned in the @p path array.
-	///  @param[in]		maxPath				The maximum number of polygons the @p path array can hold. [Limit: >= 1]
-	///	 @param[out]	pathSegmentsCost	If provided will get filled will cost for every piece 
-	///										of path corridor (corresponding to "path" content)
-	dtStatus findPathThroughClusters(dtPolyRef startRef, dtPolyRef endRef,
-									 const float* startPos, const float* endPos,
-									 const dtQueryFilter* filter,
-									 const dtClusterRef* clusterPath, int clusterPathSize,
-									 dtPolyRef* path, int* pathCount, const int maxPath,
-									 float* pathSegmentsCost) const; 
-
-	/// Finds a cluster path from the start polygon to the end polygon, DOES NOT operate on polygon level
-	///  @param[in]		startRef		The reference id of the start polygon.
-	///  @param[in]		endRef			The reference id of the end polygon.
-	///  @param[in]		filter			The polygon filter to use for updating cluster links
-	///  @param[out]	clusterPath		An ordered list of cluster references representing the path. (Start to end.) 
-	///  @param[out]	clusterPathSize	The number of polygons returned in the @p clusterPath array.
-	///  @param[in]		maxPath			The maximum number of clusters the @p clusterPath array can hold. [Limit: >= 1]
-	///	 @param[out]	totalCost		(Optional) Total cost of path.
-	dtStatus findPathOnClusterGraph(dtPolyRef startRef, dtPolyRef endRef, const dtQueryFilter* filter,
-									dtClusterRef* clusterPath, int* clusterPathSize, int maxPath,
-									float* totalCost) const;
 
 	/// Finds the straight path from the start to the end position within the polygon corridor.
 	///  @param[in]		startPos			Path start position. [(x, y, z)]
@@ -431,19 +380,6 @@ public:
 	dtStatus findPolysInPathDistance(dtPolyRef startRef, const float* centerPos, const float pathDistance,
 									const dtQueryFilter* filter, dtPolyRef* resultRef,
 									int* resultCount, const int maxResult) const;
-
-	/// Finds the clusters along the navigation graph that are no more than given path length away from centerPos.
-	///  @param[in]		startRef		The reference id of the polygon where the search starts.
-	///  @param[in]		centerPos		The center of the search circle. [(x, y, z)]
-	///  @param[in]		pathDistance	The path distance limit of the search
-	///  @param[in]		filter			The polygon filter to use for updating cluster links
-	///  @param[out]	resultRef		The reference ids of the clusters touched by the circle. [opt]
-	///  @param[out]	resultCount		The number of clusters found. [opt]
-	///  @param[in]		maxResult		The maximum number of clusters the result arrays can hold.
-	/// @returns The status flags for the query.
-	dtStatus findClustersInPathDistance(dtPolyRef startRef, const float* centerPos,
-										const float pathDistance, const dtQueryFilter* filter,
-										dtClusterRef* resultRef, int* resultCount, const int maxResult) const;
 
 	//@UE4 END
 
@@ -647,8 +583,6 @@ public:
 	void getCurrentBestResult(struct dtNode*& bestNode, float& bestCost) const { bestNode = m_query.lastBestNode; bestCost = m_query.lastBestNodeCost; }
 
 	float getQueryTime() const { return m_queryTime; }
-	float getClusterTime() const { return m_clusterTime; }
-	float getExpandTime() const { return m_expandTime; }
 	int getQueryNodes() const { return m_queryNodes; }
 	/// @}
 	
@@ -735,8 +669,6 @@ private:
 	class dtNodeQueue* m_openList;		///< Pointer to open list queue.
 
 	mutable float m_queryTime;
-	mutable float m_clusterTime;
-	mutable float m_expandTime;
 	mutable int m_queryNodes;
 };
 

@@ -4,8 +4,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "Editor/GraphEditor/Public/DiffResults.h"
 #include "Kismet2NameValidators.h"
-
 #include "KismetCompiler.h"
+#include "BlueprintNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Timeline"
 
@@ -262,7 +262,20 @@ FLinearColor UK2Node_Timeline::GetNodeTitleColor() const
 
 FText UK2Node_Timeline::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FText::FromName(TimelineName);
+	FText Title = FText::FromName(TimelineName);
+	
+	UBlueprint* Blueprint = GetBlueprint();
+	check(Blueprint != nullptr);
+	
+	UTimelineTemplate* Timeline = Blueprint->FindTimelineTemplateByVariableName(TimelineName);
+	// if a node hasn't been spawned for this node yet, then lets title it
+	// after what it will do (the name would be invalid anyways)
+	if (Timeline == nullptr)
+	{
+		// if this node hasn't spawned a
+		Title = LOCTEXT("NoTimelineTitle", "Add Timeline...");
+	}
+	return Title;
 }
 
 UEdGraphPin* UK2Node_Timeline::GetDirectionPin() const
@@ -551,6 +564,32 @@ void UK2Node_Timeline::GetNodeAttributes( TArray<TKeyValuePair<FString, FString>
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Type" ), TEXT( "TimeLine" ) ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
+}
+
+void UK2Node_Timeline::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	auto CustomizeTimelineNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
+	{
+		UK2Node_Timeline* TimelineNode = CastChecked<UK2Node_Timeline>(NewNode);
+
+		UBlueprint* Blueprint = TimelineNode->GetBlueprint();
+		if (Blueprint != nullptr)
+		{
+			TimelineNode->TimelineName = FBlueprintEditorUtils::FindUniqueTimelineName(Blueprint);
+			if (!bIsTemplateNode && FBlueprintEditorUtils::AddNewTimeline(Blueprint, TimelineNode->TimelineName))
+			{
+				// clear off any existing error message now that the timeline has been added
+				TimelineNode->ErrorMsg.Empty();
+				TimelineNode->bHasCompilerMessage = false;
+			}
+		}
+	};
+
+	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeTimelineNodeLambda);
+	ActionListOut.Add(NodeSpawner);
 }
 
 #undef LOCTEXT_NAMESPACE

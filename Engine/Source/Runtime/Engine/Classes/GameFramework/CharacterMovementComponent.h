@@ -7,22 +7,17 @@
 
 #pragma once
 
-#include "AI/Navigation/NavigationAvoidanceTypes.h"
+#include "WorldCollision.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Interfaces/NetworkPredictionInterface.h"
+#include "Engine/EngineTypes.h"
+#include "AI/Navigation/NavigationAvoidanceTypes.h"
+#include "Animation/AnimationAsset.h"
 #include "CharacterMovementComponent.generated.h"
 
-/** Movement modes for Characters.  */
-UENUM(BlueprintType)
-enum EMovementMode
-{
-	MOVE_None		UMETA(DisplayName="None"),
-	MOVE_Walking	UMETA(DisplayName="Walking"),
-	MOVE_Falling	UMETA(DisplayName="Falling"),
-	MOVE_Swimming	UMETA(DisplayName="Swimming"),
-	MOVE_Flying		UMETA(DisplayName="Flying"),
-	MOVE_Custom		UMETA(DisplayName="Custom"),
-	MOVE_MAX		UMETA(Hidden),
-};
+struct FVector_NetQuantize100;
+struct FVector_NetQuantizeNormal;
+class FDebugDisplayInfo;
 
 // Data about the floor for walking movement.
 USTRUCT(BlueprintType)
@@ -86,57 +81,6 @@ public:
 	void SetFromLineTrace(const FHitResult& InHit, const float InSweepFloorDist, const float InLineDist, const bool bIsWalkableFloor);
 };
 
-
-/** Utility struct to accumulate root motion. */
-USTRUCT()
-struct FRootMotionMovementParams
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	bool bHasRootMotion;
-
-	UPROPERTY()
-	FTransform RootMotionTransform;
-
-	FRootMotionMovementParams()
-		: bHasRootMotion(false)
-		, RootMotionTransform(FTransform::Identity)
-	{
-	}
-
-	void Set(const FTransform & InTransform)
-	{
-		bHasRootMotion = true;
-		RootMotionTransform = InTransform;
-	}
-
-	void Accumulate(const FTransform & InTransform)
-	{
-		if( !bHasRootMotion )
-		{
-			Set(InTransform);
-		}
-		else
-		{
-			RootMotionTransform = InTransform * RootMotionTransform;
-		}
-	}
-
-	void Accumulate(const FRootMotionMovementParams & MovementParams)
-	{
-		if( MovementParams.bHasRootMotion )
-		{
-			Accumulate(MovementParams.RootMotionTransform);
-		}
-	}
-
-	void Clear()
-	{
-		bHasRootMotion = false;
-	}
-};
-
 /** 
  * Tick function that calls UCharacterMovementComponent::PreClothTick
  **/
@@ -179,15 +123,15 @@ protected:
 public:
 
 	/** Maximum height character can step up */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxStepHeight;
 
 	/** Initial velocity (instantaneous vertical acceleration) when jumping. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(DisplayName="Jump Z Velocity"))
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(DisplayName="Jump Z Velocity", ClampMin="0", UIMin="0"))
 	float JumpZVelocity;
 
 	/** Fraction of JumpZVelocity to use when automatically "jumping off" of a base actor that's not allowed to be a base for a character. (For example, if you're not allowed to stand on other players.) */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
 	float JumpOffJumpZFactor;
 
 private:
@@ -210,7 +154,7 @@ public:
 	 * Don't allow the character to perch on the edge of a surface if the contact is this close to the edge of the capsule.
 	 * Note that characters will not fall off if they are within MaxStepHeight of a walkable surface below.
 	 */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
 	float PerchRadiusThreshold;
 
 	/**
@@ -218,7 +162,7 @@ public:
 	 * Note that we still enforce MaxStepHeight to start the step up; this just allows the character to hang off the edge or step slightly higher off the floor.
 	 * (@see PerchRadiusThreshold)
 	 */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
 	float PerchAdditionalHeight;
 
 	/** Actor's current physics mode. This is automatically replicated through the CharacterOwner and for client-server movement functions. */
@@ -239,33 +183,68 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	float GravityScale;
 
-	/** Coefficient of friction. This property allows you to control how much friction pawns using CharacterMovement move across the ground. This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on). */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	/**
+	 * Coefficient of friction. This property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
+	 * See also: BrakingDecelerationWalking
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float GroundFriction;
 
 	/** The maximum ground speed when walking. Also determines maximum lateral speed when falling. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxWalkSpeed;
 
 	/** The maximum ground speed when walking and crouched. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxWalkSpeedCrouched;
 
 	/** The maximum speed when using Custom movement mode. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxCustomMovementSpeed;
 
-	/** Collision half-height when crouching (component scale is applied separately) */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadOnly)
-	float CrouchedHalfHeight;
-
 	/** The maximum swimming speed. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxSwimSpeed;
 
 	/** The maximum flying speed. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxFlySpeed;
+
+	/** Max Acceleration (rate of change of velocity) */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float MaxAcceleration;
+
+	/**
+	 * Deceleration when walking and not applying acceleration.
+	 * See also: GroundFriction
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationWalking;
+
+	/** Lateral deceleration when falling and not applying acceleration. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationFalling;
+
+	/** Deceleration when swimming and not applying acceleration. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationSwimming;
+
+	/** Deceleration when flying and not applying acceleration. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingDecelerationFlying;
+
+	/** Amount of lateral movement control available to the pawn when falling. 0 = no control, 1 = full control at max speed of MaxWalkSpeed. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float AirControl;
+
+	/** Friction to apply to lateral air movement when falling. */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float FallingLateralFriction;
+
+	/** Collision half-height when crouching (component scale is applied separately) */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadOnly, meta=(ClampMin="0", UIMin="0"))
+	float CrouchedHalfHeight;
 
 	/** Water buoyancy. A ratio (1.0 = neutral buoyancy, 0.0 = no buoyancy) */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
@@ -335,26 +314,18 @@ public:
 
 	/** What to update CharacterOwner and UpdatedComponent after movement ends */
 	UPROPERTY()
-	class UPrimitiveComponent* DeferredUpdatedMoveComponent;
+	UPrimitiveComponent* DeferredUpdatedMoveComponent;
 
 	/** Maximum step height for getting out of water */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="0", UIMin="0"))
 	float MaxOutOfWaterStepHeight;
 
 	/** Z velocity applied when pawn tries to get out of water */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	float OutofWaterZ;
 
-	/** Amount of lateral movement control available to the pawn when falling. 0 = no control, 1 = full control at max speed of MaxWalkSpeed. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float AirControl;
-
-	/** Friction to apply to lateral air movement when falling. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float FallingLateralFriction;
-
 	/** Mass of pawn (for when momentum is imparted to it). */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float Mass;
 	
 	/** If enabled, the player will interact with physics objects when walking into them. */
@@ -477,26 +448,6 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="1", ClampMax="20", UIMin="1", UIMax="20"))
 	int32 MaxSimulationIterations;
 
-	/** Max Acceleration (rate of change of velocity) */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float MaxAcceleration;
-
-	/** Deceleration when walking and not applying acceleration. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float BrakingDecelerationWalking;
-
-	/** Lateral deceleration when falling and not applying acceleration. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float BrakingDecelerationFalling;
-
-	/** Deceleration when swimming and not applying acceleration. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float BrakingDecelerationSwimming;
-
-	/** Deceleration when flying and not applying acceleration. */
-	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
-	float BrakingDecelerationFlying;
-
 	/** Used in determining if pawn is going off ledge.  If the ledge is "shorter" than this value then the pawn will be able to walk off it. **/
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	float LedgeCheckThreshold;
@@ -580,7 +531,7 @@ public:
 	uint32 bCrouchMovesCharacterDown:1;
 
 	/** If true, the pawn ignores the effects of changes in its base's rotation on its rotation. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment)
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bIgnoreBaseRotation:1;
 
 	/** 
@@ -778,10 +729,11 @@ public:
 	/** Update controller's view rotation as pawn's base rotates */
 	virtual void UpdateBasedRotation(FRotator &FinalRotation, const FRotator& ReducedRotation);
 
-	/** Update (or defer updating) OldBaseLocation and OldBaseRotation if there is a valid movement base. */
+	/** Update (or defer updating) OldBaseLocation and OldBaseQuat if there is a valid movement base. */
+	DEPRECATED(4.4, "CharacterMovementComponent::MaybeSaveBaseLocation() will be removed, call SaveBaseLocation().")
 	virtual void MaybeSaveBaseLocation();
 
-	/** Update OldBaseLocation and OldBaseRotation if there is a valid movement base. */
+	/** Update OldBaseLocation and OldBaseQuat if there is a valid movement base, and store the relative location/rotation if necessary. */
 	virtual void SaveBaseLocation();
 
 	/** changes physics based on MovementMode */
@@ -914,12 +866,12 @@ public:
 	virtual bool StepUp(const FVector& GravDir, const FVector& Delta, const FHitResult &Hit, struct UCharacterMovementComponent::FStepDownResult* OutStepDownResult = NULL);
 
 	/** Update the base of the actor */
-	virtual void SetBase(UPrimitiveComponent* NewBase, bool bNotifyActor=true);
+	virtual void SetBase(UPrimitiveComponent* NewBase, const FName BoneName = NAME_None, bool bNotifyActor=true);
 
 	/** Applies repulsion force to all touched components */
 	void ApplyRepulsionForce(float DeltaTime);
 	
-	/** Applies momentum accumulated through Addmomentum() */
+	/** Applies momentum accumulated through AddImpulse()/AddForce() */
 	void ApplyAccumulatedForces(float DeltaSeconds);	
 
 	/** 
@@ -1003,7 +955,7 @@ public:
 	virtual void MoveSmooth(const FVector& InVelocity, const float DeltaSeconds, FStepDownResult* OutStepDownResult = NULL );
 
 	
-	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent) override;
+	virtual void SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComponent) override;
 	
 	/** @Return MovementMode string */
 	virtual FString GetMovementName();
@@ -1145,8 +1097,14 @@ protected:
 	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const override;
 
 	/**
-	 * Calculate slide on a slope. Has special treatment when falling, to avoid boosting up slopes.
+	 * Calculate slide vector along a surface.
+	 * Has special treatment when falling, to avoid boosting up slopes (calling HandleSlopeBoosting in this case).
 	 * Calls AdjustUpperHemisphereImpact() for upward falling movement that hits the top of the capsule, because commonly we don't want this to behave like a smooth capsule.
+	 * @param Delta:	Attempted move.
+	 * @param Time:		Amount of move to apply (between 0 and 1).
+	 * @param Normal:	Normal opposed to movement. Not necessarily equal to Hit.Normal (but usually is).
+	 * @param Hit:		HitResult of the move that resulted in the slide.
+	 * @return			New deflected vector of movement.
 	 */
 	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const override;
 
@@ -1155,6 +1113,17 @@ protected:
 	 * Default implementation scales the Delta Z value by: 1 - (Abs(Normal.Z) * UpperImpactNormalScale), clamped to [0..1]
 	 */
 	virtual FVector AdjustUpperHemisphereImpact(const FVector& Delta, const FHitResult& Hit) const;
+
+	/** 
+	 * Limit the slide vector when falling if the resulting slide might boost the character faster upwards.
+	 * @param SlideResult:	Vector of movement for the slide (usually the result of ComputeSlideVector)
+	 * @param Delta:		Original attempted move
+	 * @param Time:			Amount of move to apply (between 0 and 1).
+	 * @param Normal:		Normal opposed to movement. Not necessarily equal to Hit.Normal (but usually is).
+	 * @param Hit:			HitResult of the move that resulted in the slide.
+	 * @return:				New slide result.
+	 */
+	virtual FVector HandleSlopeBoosting(const FVector& SlideResult, const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const;
 
 	/** Slows towards stop. */
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration);
@@ -1192,6 +1161,12 @@ protected:
 
 	/** Verify that the supplied hit result is a valid landing spot when falling. */
 	virtual bool IsValidLandingSpot(const FVector& CapsuleLocation, const FHitResult& Hit) const;
+
+	/**
+	 * Determine whether we should try to find a valid landing spot after an impact with an invalid one (based on the Hit result).
+	 * For example, landing on the lower portion of the capsule on the edge of geometry may be a walkable surface, but could have reported an unwalkable impact normal.
+	 */
+	virtual bool ShouldCheckForValidLandingSpot(const float DeltaTime, const FVector& Delta, const FHitResult& Hit) const;
 
 	/**
 	 * Check if the result of a sweep test (passed in InHit) might be a valid location to perch, in which case we should use ComputePerchResult to validate the location.
@@ -1353,10 +1328,16 @@ protected:
 	virtual void CallServerMove(const class FSavedMove_Character* NewMove, const class FSavedMove_Character* OldMove);
 	
 	/** Have the server check if the client is outside an error tolerance, and set a client adjustment if so. ClientLoc will be a relative location if MovementBaseUtility::UseRelativePosition(ClientMovementBase) is true. */
-	virtual void ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientLoc, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
+	virtual void ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientLoc, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 
 	/* Process a move at the given time stamp, given the compressed flags representing various events that occurred (ie jump). */
 	virtual void MoveAutonomous( float ClientTimeStamp, float DeltaTime, uint8 CompressedFlags, const FVector& NewAccel);
+
+	/** Unpack compressed flags from a saved move and set state accordingly. See FSavedMove_Character. */
+	virtual void UpdateFromCompressedFlags(uint8 Flags);
+
+	/** Ticks the characters pose and accumulates root motion */
+	void TickCharacterPose(float DeltaTime);
 
 public:
 
@@ -1377,14 +1358,38 @@ public:
 		@returns true if TimeStamp is valid, or false if it has expired. */
 	bool VerifyClientTimeStamp(float TimeStamp, FNetworkPredictionData_Server_Character & ServerData);
 
-	// Callbacks for RPCs on Character
-	virtual void ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
-	virtual void ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode);
-	virtual void ServerMoveOld_Implementation(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags);
-	virtual void ClientAckGoodMove_Implementation(float TimeStamp);
-	virtual void ClientAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, FVector NewVel, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-	virtual void ClientVeryShortAdjustPosition_Implementation(float TimeStamp, FVector NewLoc, class UPrimitiveComponent* NewBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
-	void ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent* ServerBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	////////////////////////////////////
+	// Network RPCs for movement
+	////////////////////////////////////
+
+	/** Replicated function sent by client to server - contains client movement and view info. */
+	UFUNCTION(unreliable, server, WithValidation)
+	virtual void ServerMove(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+
+	/** Replicated function sent by client to server - contains client movement and view info for two moves. */
+	UFUNCTION(unreliable, server, WithValidation)
+	virtual void ServerMoveDual(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	
+	/* Resending an (important) old move. Process it if not already processed. */
+	UFUNCTION(unreliable, server, WithValidation)
+	virtual void ServerMoveOld(float OldTimeStamp, FVector_NetQuantize100 OldAccel, uint8 OldMoveFlags);
+	
+	/** If no client adjustment is needed after processing received ServerMove(), ack the good move so client can remove it from SavedMoves */
+	UFUNCTION(unreliable, client)
+	virtual void ClientAckGoodMove(float TimeStamp);
+
+	/** Replicate position correction to client, associated with a timestamped servermove.  Client will replay subsequent moves after applying adjustment.  */
+	UFUNCTION(unreliable, client)
+	virtual void ClientAdjustPosition(float TimeStamp, FVector NewLoc, FVector NewVel, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+
+	/* Bandwidth saving version, when velocity is zeroed */
+	UFUNCTION(unreliable, client)
+	virtual void ClientVeryShortAdjustPosition(float TimeStamp, FVector NewLoc, UPrimitiveComponent* NewBase, FName NewBaseBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+	
+	/** Replicate position correction to client when using root motion for movement. */
+	UFUNCTION(unreliable, client)
+	void ClientAdjustRootMotionPosition(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, UPrimitiveComponent* ServerBase, FName ServerBoneName, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode);
+
 
 	// Root Motion
 public:
@@ -1473,8 +1478,11 @@ public:
 	FFindFloorResult StartFloor;
 	FRotator StartRotation;
 	FRotator StartControlRotation;
+	FQuat StartBaseRotation;	// rotation of the base component (or bone), only saved if it can move.
 	float StartCapsuleRadius;
 	float StartCapsuleHalfHeight;
+	TWeakObjectPtr<UPrimitiveComponent> StartBase;
+	FName StartBoneName;
 
 	// Information after the move has been performed
 	FVector SavedLocation;
@@ -1482,15 +1490,14 @@ public:
 	FVector SavedVelocity;
 	FVector SavedRelativeLocation;
 	FRotator SavedControlRotation;
+	TWeakObjectPtr<UPrimitiveComponent> EndBase;
+	FName EndBoneName;
 
 	FVector Acceleration;
 
 	// Cached to speed up iteration over IsImportantMove().
 	FVector AccelNormal;
 	float AccelMag;
-	
-	TWeakObjectPtr<UPrimitiveComponent> StartBase;
-	TWeakObjectPtr<UPrimitiveComponent> EndBase;
 
 	TWeakObjectPtr<class UAnimMontage> RootMotionMontage;
 	float RootMotionTrackPosition;
@@ -1513,8 +1520,8 @@ public:
 	/** @Return true if this move is an "important" move that should be sent again if not acked by the server */
 	virtual bool IsImportantMove(const FSavedMovePtr& LastAckedMove) const;
 	
-	/** Returns starting position of move, either absolute StartLocation, or StartRelativeLocation offset from MovementBase. */
-	virtual FVector GetStartLocation(const class UPrimitiveComponent* MovementBase) const;
+	/** Returns starting position if we were to revert the move, either absolute StartLocation, or StartRelativeLocation offset from MovementBase's current location (since we want to try to move forward at this time). */
+	virtual FVector GetRevertedLocation() const;
 
 	enum EPostUpdateMode
 	{
@@ -1561,6 +1568,7 @@ public:
 	, NewVel(ForceInitToZero)
 	, NewRot(ForceInitToZero)
 	, NewBase(NULL)
+	, NewBaseBoneName(NAME_None)
 	, bAckGoodMove(false)
 	, bBaseRelativePosition(false)
 	, MovementMode(0)
@@ -1572,7 +1580,8 @@ public:
 	FVector NewLoc;
 	FVector NewVel;
 	FRotator NewRot;
-	class UPrimitiveComponent* NewBase;
+	UPrimitiveComponent* NewBase;
+	FName NewBaseBoneName;
 	bool bAckGoodMove;
 	bool bBaseRelativePosition;
 	uint8 MovementMode;

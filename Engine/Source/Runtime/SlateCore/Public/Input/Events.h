@@ -98,7 +98,7 @@ public:
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
 	FInputEvent()
-		: ModifierKeys(FModifierKeysState(false, false, false, false, false, false))
+		: ModifierKeys(FModifierKeysState(false, false, false, false, false, false, false, false))
 		, bIsRepeat(false)
 		, EventPath(nullptr)
 	{ }
@@ -222,6 +222,36 @@ public:
 		return ModifierKeys.IsRightAltDown();
 	}
 
+	/**
+	 * Returns true if either command key was down when this event occurred
+	 *
+	 * @return  True if command is pressed
+	 */
+	bool IsCommandDown() const
+	{
+		return ModifierKeys.IsCommandDown();
+	}
+
+	/**
+	 * Returns true if left command key was down when this event occurred
+	 *
+	 * @return  True if left command is pressed
+	 */
+	bool IsLeftCommandDown() const
+	{
+		return ModifierKeys.IsLeftCommandDown();
+	}
+
+	/**
+	 * Returns true if right command key was down when this event occurred
+	 *
+	 * @return  True if right command is pressed
+	 */
+	bool IsRightCommandDown() const
+	{
+		return ModifierKeys.IsRightCommandDown();
+	}
+
 	/** The event path provides additional context for handling */
 	FGeometry FindGeometry( const TSharedRef<SWidget>& WidgetToFind ) const
 	{
@@ -267,7 +297,7 @@ public:
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
 	FKeyboardEvent()
-		: FInputEvent(FModifierKeysState(false, false, false, false, false, false), false)
+		: FInputEvent(FModifierKeysState(false, false, false, false, false, false, false, false), false)
 		, Key(EKeys::SpaceBar)
 		, CharacterCode(0)
 	{
@@ -334,7 +364,7 @@ public:
 	 * UStruct Constructor.  Not meant for normal usage.
 	 */
 	FCharacterEvent()
-		: FInputEvent(FModifierKeysState(false, false, false, false, false, false), false)
+		: FInputEvent(FModifierKeysState(false, false, false, false, false, false, false, false), false)
 		, Character(0)
 	{
 	}
@@ -468,7 +498,7 @@ public:
 		const FVector2D& InScreenSpacePosition,
 		const FVector2D& InLastScreenSpacePosition,
 		bool bPressLeftMouseButton,
-		const FModifierKeysState& InModifierKeys = FModifierKeysState(false, false, false, false, false, false),
+		const FModifierKeysState& InModifierKeys = FModifierKeysState(false, false, false, false, false, false, false, false),
 		uint32 InTouchpadIndex=0
 	)
 		: FInputEvent(InModifierKeys, false)
@@ -597,7 +627,7 @@ public:
 	{ }
 
 	FControllerEvent( FKey InEffectingButton, int32 InUserIndex, float InAnalogValue, bool bIsRepeat )
-		: FInputEvent(FModifierKeysState(false, false, false, false, false, false), bIsRepeat)
+		: FInputEvent(FModifierKeysState(false, false, false, false, false, false, false, false), bIsRepeat)
 		, EffectingButton(InEffectingButton)
 		, UserIndex(InUserIndex)
 		, AnalogValue(InAnalogValue)
@@ -656,7 +686,7 @@ public:
 		const FVector& InGravity, 
 		const FVector& InAcceleration
 	)
-		: FInputEvent(FModifierKeysState(false, false, false, false, false, false), false)
+		: FInputEvent(FModifierKeysState(false, false, false, false, false, false, false, false), false)
 		, UserIndex(InUserIndex)
 		, Tilt(InTilt)
 		, RotationRate(InRotationRate)

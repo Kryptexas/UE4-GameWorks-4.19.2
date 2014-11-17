@@ -77,17 +77,17 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	// Begin UTexture interface.
 	virtual float GetSurfaceWidth() const override { return SizeX; }
 	virtual float GetSurfaceHeight() const override { return SizeY; }
-	virtual FTextureResource* CreateResource() override;
-	virtual EMaterialValueType GetMaterialType() override;
+	ENGINE_API virtual FTextureResource* CreateResource() override;
+	ENGINE_API virtual EMaterialValueType GetMaterialType() override;
 	// End UTexture interface.
 
 	// Begin UObject interface
 #if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostLoad() override;
-	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	virtual FString GetDesc() override;
+	ENGINE_API virtual void PostLoad() override;
+	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	ENGINE_API virtual FString GetDesc() override;
 	// End UObject interface
 
 	FORCEINLINE int32 GetNumMips() const

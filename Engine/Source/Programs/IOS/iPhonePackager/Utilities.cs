@@ -540,6 +540,7 @@ namespace iPhonePackager
 			if (!Utilities.GetSourcePList(out PListAsString))
 			{
 				Program.Error("Failed to find source PList");
+				Program.ReturnCode = (int)ErrorCodes.Error_InfoPListNotFound;
 				return "(unknown)";
 			}
 
@@ -553,6 +554,7 @@ namespace iPhonePackager
 			else
 			{
 				Program.Error("Failed to find a value for {0} in PList", KeyName);
+				Program.ReturnCode = (int)ErrorCodes.Error_KeyNotFoundInPList;
 				return "(unknown)";
 			}
 		}
@@ -593,6 +595,7 @@ namespace iPhonePackager
 			else
 			{
 				Program.Error(" ... failed to locate the source .plist file");
+				Program.ReturnCode = (int)ErrorCodes.Error_KeyNotFoundInPList;
 				PListSource = "";
 				return false;
 			}

@@ -25,6 +25,8 @@ class UGameplayTagsK2Node_LiteralGameplayTag : public UK2Node
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual bool IsNodeSafeToIgnore() const override { return true; }
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
+	virtual void GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const override;
+	virtual FText GetMenuCategory() const override;
 	// End UK2Node interface
 #endif
 

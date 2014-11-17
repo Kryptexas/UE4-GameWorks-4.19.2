@@ -18,6 +18,7 @@
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
 
 /** Anim stats */
 
@@ -825,14 +826,13 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	}
 }
 
-void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose, bool bIsLooping)
+void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
 
 	FAnimationRuntime::GetPoseFromBlendSpace(
 		BlendSpace,
 		BlendSampleDataCache, 
-		bIsLooping,
 		RequiredBones,
 		/*out*/ Pose.Bones);
 }
@@ -1088,7 +1088,7 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 		if(AnimNotifyEvent->Notify != NULL)
 		{
 			// Implemented notify: just call Notify. UAnimNotify will forward this to the event which will do the work.
-			AnimNotifyEvent->Notify->Notify(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->Notify->GetOuter()));
+			AnimNotifyEvent->Notify->Notify(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent->Notify->GetOuter()));
 		}
 		else if( AnimNotifyEvent->NotifyName != NAME_None )
 		{
@@ -1129,14 +1129,14 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	for(int32 Index=0; Index<ActiveAnimNotifyState.Num(); Index++)
 	{
 		const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
-		AnimNotifyEvent.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent.NotifyStateClass->GetOuter()));
+		AnimNotifyEvent.NotifyStateClass->NotifyEnd(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent.NotifyStateClass->GetOuter()));
 	}
 
 	// Call 'NotifyBegin' event on freshly added AnimNotifyState.
 	for (int32 Index = 0; Index < NotifyStateBeginEvent.Num(); Index++)
 	{
 		const FAnimNotifyEvent * AnimNotifyEvent = NotifyStateBeginEvent[Index];
-		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
+		AnimNotifyEvent->NotifyStateClass->NotifyBegin(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent->NotifyStateClass->GetOuter()));
 	}
 
 	// Switch our arrays.
@@ -1146,7 +1146,7 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 	for(int32 Index=0; Index<ActiveAnimNotifyState.Num(); Index++)
 	{
 		const FAnimNotifyEvent& AnimNotifyEvent = ActiveAnimNotifyState[Index];
-		AnimNotifyEvent.NotifyStateClass->NotifyTick(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent.NotifyStateClass->GetOuter()), DeltaSeconds);
+		AnimNotifyEvent.NotifyStateClass->NotifyTick(SkelMeshComp, Cast<UAnimSequenceBase>(AnimNotifyEvent.NotifyStateClass->GetOuter()), DeltaSeconds);
 	}
 }
 
@@ -1252,7 +1252,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 
 			// Extract pose from Track
 			UAnimMontage const * const MontageAsset = MontageInstance->Montage;
-			FAnimExtractContext ExtractionContext(MontageInstance->Position, false, MontageAsset->bEnableRootMotionTranslation, MontageAsset->bEnableRootMotionRotation, MontageAsset->RootMotionRootLock);
+			FAnimExtractContext ExtractionContext(MontageInstance->Position, MontageAsset->bEnableRootMotionTranslation, MontageAsset->bEnableRootMotionRotation, MontageAsset->RootMotionRootLock);
 			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, RequiredBones, NewPose.Pose.Bones, ExtractionContext);
 
 			TotalWeight += MontageInstance->Weight;
@@ -1535,7 +1535,7 @@ void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 void UAnimInstance::Montage_Advance(float DeltaSeconds)
 {
 	bool bUpdateRootMotionMontageInstance = false;
-	FRootMotionMovementParams ExtractedRootMotion;
+	FRootMotionMovementParams LocalExtractedRootMotion;
 
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
@@ -1545,7 +1545,7 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 		ensure(MontageInstances[I]);
 		if( MontageInstances[I] )
 		{
-			MontageInstances[I]->Advance(DeltaSeconds, ExtractedRootMotion);
+			MontageInstances[I]->Advance(DeltaSeconds, LocalExtractedRootMotion);
 
 			if( !MontageInstances[I]->IsValid() )
 			{
@@ -1572,14 +1572,10 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 		UpdateRootMotionMontageInstance();
 	}
 
-	// If Root Motion has been extracted, forward it to character physics.
-	if( ExtractedRootMotion.bHasRootMotion )
+	// If Root Motion has been extracted, store it.
+	if ((GetRootMotionMontageInstance() != NULL) && LocalExtractedRootMotion.bHasRootMotion)
 	{
-		ACharacter * CharacterOwner = Cast<ACharacter>(GetOwningActor());
-		if( CharacterOwner && CharacterOwner->CharacterMovement )
-		{
-			CharacterOwner->CharacterMovement->RootMotionParams.Accumulate(ExtractedRootMotion);
-		}
+		ExtractedRootMotion.Accumulate(LocalExtractedRootMotion);
 	}
 }
 
@@ -1782,10 +1778,6 @@ float UAnimInstance::Montage_Play(UAnimMontage * MontageToPlay, float InPlayRate
 				*GetNameSafe(MontageToPlay), *GetNameSafe(MontageToPlay->GetSkeleton()), *GetNameSafe(CurrentSkeleton));
 		}
 	}
-	else
-	{
-		UE_LOG(LogAnimation, Warning, TEXT("Trying to play invalid Montage (%s)"), *GetNameSafe(MontageToPlay));
-	}
 
 	return 0.f;
 }
@@ -1803,6 +1795,13 @@ void UAnimInstance::UpdateRootMotionMontageInstance()
 FAnimMontageInstance * UAnimInstance::GetRootMotionMontageInstance() const
 {
 	return RootMotionMontageInstance;
+}
+
+FRootMotionMovementParams UAnimInstance::ConsumeExtractedRootMotion()
+{
+	FRootMotionMovementParams RootMotion = ExtractedRootMotion;
+	ExtractedRootMotion.Clear();
+	return RootMotion;
 }
 
 void UAnimInstance::Montage_Stop(float InBlendOutTime)

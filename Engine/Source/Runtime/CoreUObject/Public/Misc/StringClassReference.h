@@ -2,86 +2,50 @@
 
 #pragma once
 
+#include "StringAssetReference.h"
+
 /**
  * A struct that contains a string reference to a class, can be used to make soft references to classes
  */
-struct COREUOBJECT_API FStringClassReference
+struct COREUOBJECT_API FStringClassReference : public FStringAssetReference
 {
-	// Caution, this is mirrored in Object.h as a non export struct.
-	FString ClassName;
-
 	FStringClassReference()
-	{
-	}
+	{ }
 
 	FStringClassReference(FStringClassReference const& Other)
-		: ClassName(Other.ClassName)
-	{
-	}
+		: FStringAssetReference(Other)
+	{ }
 
 	/**
 	 * Construct from a path string
 	 */
-	FStringClassReference(const FString& PathString);
+	FStringClassReference(const FString& PathString)
+		: FStringAssetReference(PathString)
+	{ }
 
 	/**
 	 * Construct from an existing class, will do some string processing
 	 */
-	FStringClassReference(const class UClass* InClass);
-
-	/**
-	 * Converts in to a string
-	 */
-	const FString& ToString() const 
-	{
-		return ClassName;
-	}
+	FStringClassReference(const UClass* InClass)
+		: FStringAssetReference(InClass)
+	{ }
 
 	/**
 	 * Attempts to find a currently loaded object that matches this object ID
 	 * @return Found UClass, or NULL if not currently loaded
 	 */
-	class UClass *ResolveClass() const;
+	UClass *ResolveClass() const;
 
-	/**
-	 * Resets reference to point to NULL
-	 */
-	void Reset()
-	{		
-		ClassName = TEXT("");
-	}
-	
-	/**
-	 * Check if this could possibly refer to a real class, or was initialized to NULL
-	 */
-	bool IsValid() const
-	{
-		return ClassName.Len() > 0;
-	}
+	bool SerializeFromMismatchedTag(const FPropertyTag& Tag, FArchive& Ar);
 
-	bool Serialize(FArchive& Ar);
-	bool operator==(FStringClassReference const& Other) const;
-	bool operator!=(FStringClassReference const& Other) const
-	{
-		return !(*this == Other);
-	}
-	void operator=(FStringClassReference const& Other);
-	bool ExportTextItem(FString& ValueStr, FStringClassReference const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
-	bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText );
-	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
+	static FStringClassReference GetOrCreateIDForClass(const UClass *InClass);
 
-	friend uint32 GetTypeHash(FStringClassReference const& This)
-	{
-		return GetTypeHash(This.ClassName);
-	}
+private:
+	/* Forbid creation for UObject. This class is for UClass only. Use FStringAssetReference instead. */
+	FStringClassReference(const UObject* InObject) { }
 
-	friend FArchive& operator<<(FArchive& Ar,FStringClassReference& P)
-	{
-		P.Serialize(Ar);
-		return Ar;
-	}
-
-	static FStringClassReference GetOrCreateIDForClass(const class UClass *InClass);
+	/* Forbidden. This class is for UClass only. Use FStringAssetReference instead. */
+	static FStringAssetReference GetOrCreateIDForObject(const UObject *Object);
 };
 
 template<>

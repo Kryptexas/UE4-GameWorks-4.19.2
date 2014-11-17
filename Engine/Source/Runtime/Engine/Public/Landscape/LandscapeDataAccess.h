@@ -295,11 +295,11 @@ struct FLandscapeComponentDataInterface
 			return false;
 		}
 
-		int32 WeightmapSize = (Component->SubsectionSizeQuads+1) * Component->NumSubsections;
+		int32 WeightmapSize = ((Component->SubsectionSizeQuads + 1) * Component->NumSubsections) >> MipLevel;
 		OutData.Empty(FMath::Square(WeightmapSize));
 		OutData.AddUninitialized(FMath::Square(WeightmapSize));
 
-		FColor* WeightMipData = (FColor*)DataInterface->LockMip(Component->WeightmapTextures[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex], 0);
+		FColor* WeightMipData = (FColor*)DataInterface->LockMip(Component->WeightmapTextures[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex], MipLevel);
 
 		// Channel remapping
 		int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R),(int32)STRUCT_OFFSET(FColor,G),(int32)STRUCT_OFFSET(FColor,B),(int32)STRUCT_OFFSET(FColor,A)};
@@ -311,7 +311,7 @@ struct FLandscapeComponentDataInterface
 			OutData[i] = SrcTextureData[i*4];
 		}
 
-		DataInterface->UnlockMip(Component->WeightmapTextures[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex], 0);
+		DataInterface->UnlockMip(Component->WeightmapTextures[Component->WeightmapLayerAllocations[LayerIdx].WeightmapTextureIndex], MipLevel);
 		return true;
 	}
 

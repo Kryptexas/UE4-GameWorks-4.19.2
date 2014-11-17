@@ -3,7 +3,7 @@
 /*=============================================================================
 	UnArchive.cpp: Core archive classes.
 =============================================================================*/
-#include "CorePrivate.h"
+#include "Core.h"
 #include "Archive.h"
 
 /*-----------------------------------------------------------------------------
@@ -148,6 +148,13 @@ FArchive& FArchive::operator<<( class FLazyObjectPtr& LazyObjectPtr )
 }
 
 FArchive& FArchive::operator<<( class FAssetPtr& AssetPtr )
+{
+	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
+	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FAssetPtr serialization. Use FArchiveUObject instead."));
+	return *this;
+}
+
+FArchive& FArchive::operator<<(struct FStringAssetReference& Value)
 {
 	// The base FArchive does not implement this method. Use FArchiveUOBject instead.
 	UE_LOG(LogSerialization, Fatal, TEXT("FArchive does not support FAssetPtr serialization. Use FArchiveUObject instead."));

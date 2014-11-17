@@ -89,8 +89,11 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 
 		const bool bShowRootWindowImmediately = false;
 		FSlateApplication::Get().AddWindow( RootWindow, bShowRootWindowImmediately );
+		
+#if !PLATFORM_MAC // On OS X we don't want Top-Level windows to have a parent, as we don't really support the notion of child windows on that OS
 		FGlobalTabmanager::Get()->SetRootWindow(RootWindow);
 		FSlateNotificationManager::Get().SetRootWindow(RootWindow);
+#endif
 
 		TSharedPtr<SWidget> MainFrameContent;
 		bool bLevelEditorIsMainTab = false;
@@ -114,7 +117,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 			TSharedRef<FTabManager::FLayout> LoadedLayout = FLayoutSaveRestore::LoadFromConfig(GEditorLayoutIni,
 				// We persist the positioning of the level editor and the content browser.
 				// The asset editors currently do not get saved.
-				FTabManager::NewLayout( "UnrealEd_Layout_v1.1" )
+				FTabManager::NewLayout( "UnrealEd_Layout_v1.3" )
 				->AddArea
 				(
 					FTabManager::NewPrimaryArea()
@@ -123,6 +126,7 @@ void FMainFrameModule::CreateDefaultMainFrame( const bool bStartImmersivePIE )
 						FTabManager::NewStack()
 						->SetSizeCoefficient(2.0f)
 						->AddTab("LevelEditor", ETabState::OpenedTab)
+						->AddTab("DockedToolkit", ETabState::ClosedTab)
 					)
 				)
 				->AddArea
@@ -312,8 +316,11 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 	};
 
 
+	
+	const FSuperSearchModule& SuperSearchModule = FModuleManager::LoadModuleChecked< FSuperSearchModule >(TEXT("SuperSearch"));
+	
 	// We need the output log module in order to instantiate SConsoleInputBox widgets
-	const FOutputLogModule& OutputLogModule = FModuleManager::LoadModuleChecked< FOutputLogModule >( TEXT( "OutputLog" ) );
+	const FOutputLogModule& OutputLogModule = FModuleManager::LoadModuleChecked< FOutputLogModule >(TEXT("OutputLog"));
 
 	const FSlateFontInfo& SmallFixedFont = FEditorStyle::GetFontStyle(TEXT("MainFrame.DebugTools.SmallFont") );
 	const FSlateFontInfo& NormalFixedFont = FEditorStyle::GetFontStyle(TEXT("MainFrame.DebugTools.NormalFont") );
@@ -435,6 +442,8 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 		]
 	;
 
+	bool bUseSuperSearch = FParse::Param(FCommandLine::Get(), TEXT("SuperSearch"));;
+
 	// Invisible border, so that we can animate our box panel size
 	return SNew( SBorder )
 		.Visibility( EVisibility::SelfHitTestInvisible )
@@ -461,7 +470,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 					.Padding( FMargin( 4.0f, 0.0f, 0.0f, 0.0f ) )
 					.WidthOverride( 180.0f )
 					[
-						OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
+						bUseSuperSearch ? SuperSearchModule.MakeSearchBox( ExposedEditableTextBox ) : OutputLogModule.MakeConsoleInputBox( ExposedEditableTextBox )
 					]
 				]
 /*
@@ -710,10 +719,10 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& Log
 
 		if( FEngineAnalytics::IsAvailable() )
 		{
-			FEngineAnalytics::GetProvider().RecordEvent( 
-				TEXT("Editor.Modules.Recompile"),
-				TEXT("Duration"), FString::Printf(TEXT("%.3f"), ModuleCompileDuration),
-				TEXT("Result"), CompilationResult == ECompilationResult::Succeeded ? TEXT("Succeeded") : TEXT("Failed"));
+			TArray< FAnalyticsEventAttribute > CompileAttribs;
+			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Duration"), FString::Printf(TEXT("%.3f"), ModuleCompileDuration)));
+			CompileAttribs.Add(FAnalyticsEventAttribute(TEXT("Result"), CompilationResult == ECompilationResult::Succeeded ? TEXT("Succeeded") : TEXT("Failed")));
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Modules.Recompile"), CompileAttribs);
 		}
 	}
 

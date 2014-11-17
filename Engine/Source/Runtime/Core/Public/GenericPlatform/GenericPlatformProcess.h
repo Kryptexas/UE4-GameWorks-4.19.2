@@ -421,6 +421,19 @@ struct CORE_API FGenericPlatformProcess
 	static FString ReadPipe( void* ReadPipe );
 
 	/**
+	 * Reads all pending data from an anonymous pipe, such as STDOUT or STDERROR of a process.
+	 *
+	 * @param Pipe - The handle to the pipe to read from.
+	 * @param Output - The data read.
+	 *
+	 * @return true if successful (i.e. any data was read)
+	 *
+	 * @see ClosePipe
+	 * @see CreatePipe
+	 */
+	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
+
+	/**
 	 * Gets whether this platform can use multiple threads.
 	 *
 	 * @return true if the platform can use multiple threads, false otherwise.

@@ -1,6 +1,6 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #if UE_ENABLE_ICU
 #include "ICUText.h"
@@ -21,6 +21,11 @@ FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value )
 	Ar << Value.ArgumentName;
 	Ar << Value.ArgumentValue;
 	return Ar;
+}
+
+bool FTextInspector::ShouldGatherForLocalization(const FText& Text)
+{
+	return Text.ShouldGatherForLocalization();
 }
 
 const FString* FTextInspector::GetNamespace(const FText& Text)
@@ -507,7 +512,10 @@ bool FText::FindText( const FString& Namespace, const FString& Key, FText& OutTe
 
 CORE_API FArchive& operator<<( FArchive& Ar, FText& Value )
 {
-	Ar.ThisRequiresLocalizationGather();
+	if( Value.ShouldGatherForLocalization() )
+	{
+		Ar.ThisRequiresLocalizationGather();
+	}
 
 	//When duplicating, the CDO is used as the template, then values for the instance are assigned.
 	//If we don't duplicate the string, the CDO and the instance are both pointing at the same thing.
@@ -697,6 +705,21 @@ FText FText::FromString( FString String )
 	return NewText;
 }
 
+FText FText::AsCultureInvariant( FString String )
+{
+	FText NewText = FText( String );
+	NewText.Flags |= ETextFlag::CultureInvariant;
+
+	return NewText;
+}
+
+FText FText::AsCultureInvariant( FText Text )
+{
+	FText NewText = FText( Text );
+	NewText.Flags |= ETextFlag::CultureInvariant;
+
+	return NewText;
+}
 
 const FString& FText::ToString() const
 {
@@ -722,6 +745,25 @@ void FText::Rebuild() const
 		
 		DisplayString.Get() = History->ToText(false).DisplayString.Get();
 	}
+}
+
+bool FText::ShouldGatherForLocalization() const
+{
+	auto SourceString = GetSourceString();
+
+	auto IsAllWhitespace = [](FString& String) -> bool
+	{
+		for(int32 i = 0; i < String.Len(); ++i)
+		{
+			if( !FText::IsWhitespace( String[i] ) )
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+
+	return !((Flags & ETextFlag::CultureInvariant) || (Flags & ETextFlag::Transient)) && SourceString.IsValid() && !SourceString->IsEmpty() && !IsAllWhitespace(*SourceString);
 }
 
 TSharedPtr< FString, ESPMode::ThreadSafe > FText::GetSourceString() const

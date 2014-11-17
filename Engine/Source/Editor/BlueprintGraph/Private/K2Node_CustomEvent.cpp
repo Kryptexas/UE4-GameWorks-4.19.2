@@ -5,6 +5,7 @@
 
 #include "Kismet2NameValidators.h"
 #include "CompilerResultsLog.h"
+#include "BlueprintEventNodeSpawner.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"
 
@@ -99,11 +100,16 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const class FPostConstructInitializePro
 	bOverrideFunction = false;
 	bIsEditable = true;
 	bCanRenameNode = true;
+	bCallInEditor = false;
 }
 
 FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	if (TitleType == ENodeTitleType::EditableTitle || TitleType == ENodeTitleType::ListView)
+	if (CustomFunctionName.IsNone() && (TitleType == ENodeTitleType::ListView))
+	{
+		return LOCTEXT("ActionMenuTitle", "Custom Event...");
+	}
+	else if ((TitleType == ENodeTitleType::EditableTitle) || (TitleType == ENodeTitleType::ListView))
 	{
 		return FText::FromName(CustomFunctionName);
 	}
@@ -223,6 +229,28 @@ void UK2Node_CustomEvent::ValidateNodeDuringCompilation(class FCompilerResultsLo
 	}
 }
 
+void UK2Node_CustomEvent::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintEventNodeSpawner::Create(GetClass(), FName());
+	check(NodeSpawner != nullptr);
+
+	auto SetupCustomEventNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode)
+	{
+		UK2Node_CustomEvent* EventNode = CastChecked<UK2Node_CustomEvent>(NewNode);
+		UBlueprint* Blueprint = EventNode->GetBlueprint();
+
+		// in GetNodeTitle(), we use an empty CustomFunctionName to identify a menu entry
+		if (!bIsTemplateNode)
+		{
+			EventNode->CustomFunctionName = FBlueprintEditorUtils::FindUniqueCustomEventName(Blueprint);
+		}
+		EventNode->bIsEditable = true;
+	};
+
+	NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(SetupCustomEventNodeLambda);
+	ActionListOut.Add(NodeSpawner);
+}
+
 void UK2Node_CustomEvent::ReconstructNode()
 {
 	const UEdGraphPin* DelegateOutPin = FindPin(DelegateOutputName);
@@ -337,6 +365,11 @@ FString UK2Node_CustomEvent::GetDocumentationLink() const
 FString UK2Node_CustomEvent::GetDocumentationExcerptName() const
 {
 	return TEXT("UK2Node_CustomEvent");
+}
+
+FName UK2Node_CustomEvent::GetPaletteIcon(FLinearColor& OutColor) const
+{
+	return bCallInEditor ? TEXT("GraphEditor.CallInEditorEvent_16x") : TEXT("GraphEditor.CustomEvent_16x");
 }
 
 #undef LOCTEXT_NAMESPACE

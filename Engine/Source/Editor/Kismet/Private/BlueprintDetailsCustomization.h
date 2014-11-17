@@ -48,6 +48,7 @@ private:
 	bool IsAComponentVariable(UProperty* VariableProperty) const;
 	bool IsABlueprintVariable(UProperty* VariableProperty) const;
 	bool IsALocalVariable(UProperty* VariableProperty) const;
+	UStruct* GetLocalVariableScope(UProperty* VariableProperty) const;
 
 	// Callbacks for uproperty details customization
 	bool GetVariableNameChangeEnabled() const;
@@ -165,6 +166,9 @@ public:
 	/** Refreshes the graph and ensures the target node is up to date */
 	void OnParamsChanged(UK2Node_EditablePinBase* TargetNode, bool bForceRefresh = false);
 
+	/** Checks if the pin rename can occur */
+	bool OnVerifyPinRename(UK2Node_EditablePinBase* InTargetNode, const FString& InOldName, const FString& InNewName, FText& OutErrorMessage);
+
 	/** Refreshes the graph and ensures the target node is up to date */
 	bool OnPinRenamed(UK2Node_EditablePinBase* TargetNode, const FString& OldName, const FString& NewName);
 
@@ -192,6 +196,9 @@ public:
 protected:
 	/** Tries to create the result node (if there are output args) */
 	bool AttemptToCreateResultNode();
+
+	/** Toggles the ability to be called in editor */
+	void OnToggleEditorCallableEvent( const ESlateCheckBoxState::Type NewCheckedState, TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode ) const;
 
 protected:
 	/** Pointer to the parent */
@@ -320,6 +327,7 @@ private:
 	FReply OnArgMoveDown();
 
 	FText OnGetArgNameText() const;
+	void OnArgNameChange(const FText& InNewText);
 	void OnArgNameTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
 	
 	FEdGraphPinType OnGetPinInfo() const;
@@ -350,6 +358,9 @@ private:
 
 	/** The name of this argument for remembering expansion state */
 	FName ArgumentName;
+
+	/** Holds a weak pointer to the argument name widget, used for error notifications */
+	TWeakPtr<SEditableTextBox> ArgumentNameWidget;
 };
 
 /** Details customization for functions and graphs selected in the MyBlueprint panel */
@@ -434,11 +445,24 @@ private:
 	bool IsPureFunctionVisible() const;
 	void OnIsPureFunctionModified(const ESlateCheckBoxState::Type NewCheckedState);
 	ESlateCheckBoxState::Type GetIsPureFunction() const;
+
+	/** Determines if the selected event is identified as editor callable */
+	ESlateCheckBoxState::Type GetIsEditorCallableEvent() const;
+
+	/** Enables/Disables selected event as editor callable  */
+	void OnEditorCallableEventModified( const ESlateCheckBoxState::Type NewCheckedState ) const;
+
 	
 	FReply OnAddNewOutputClicked();
 
 	/** Called to set the replication type from the details view combo */
 	static void SetNetFlags( TWeakObjectPtr<UK2Node_EditablePinBase> FunctionEntryNode, uint32 NetFlags);
+
+	/** Callback when a graph category is changed */
+	void OnCategorySelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
+
+	/** Callback to make category widgets */
+	TSharedRef< ITableRow > MakeCategoryViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
 
 private:
 
@@ -450,6 +474,13 @@ private:
 
 	/** Color block for parenting the color picker */
 	TSharedPtr<class SColorBlock> ColorBlock;
+
+	/** A list of all category names to choose from */
+	TArray<TSharedPtr<FString>> CategorySource;
+
+	/** Widgets for the categories */
+	TWeakPtr<SComboButton> CategoryComboButton;
+	TWeakPtr<SListView<TSharedPtr<FString>>> CategoryListView;
 };
 
 /** Blueprint Interface List Details */
@@ -534,6 +565,18 @@ protected:
 
 	/** Delegate called when a class is selected from the class picker */
 	void OnClassPicked(UClass* SelectedClass);
+
+	/** Returns TRUE if the Blueprint can be deprecated */
+	bool CanDeprecateBlueprint() const;
+
+	/** Callback when toggling the Deprecate checkbox, handles marking a Blueprint as deprecated */
+	void OnDeprecateBlueprint(ESlateCheckBoxState::Type InCheckState);
+
+	/** Callback for Deprecate checkbox, returns checked if the Blueprint is deprecated */
+	ESlateCheckBoxState::Type IsDeprecatedBlueprint() const;
+
+	/** Returns the tooltip explaining deprecation */
+	FText GetDeprecatedTooltip() const;
 
 private:
 	/** Weak reference to the Blueprint editor */
@@ -640,7 +683,12 @@ public:
 
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
-	
+
+protected:
+
+	/** Returns the currently edited blueprint */
+	UBlueprint* GetBlueprintObj() const;
+
 private:
 
 	// Callbacks for uproperty details customization

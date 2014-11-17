@@ -2,17 +2,19 @@
 
 #pragma once
 
+#include "Engine/Brush.h"
+#include "Engine/Engine.h"
 #include "EditorUserSettings.h"
 #include "Transactor.h"
 #include "../Settings/LevelEditorPlaySettings.h"
 #include "../Settings/LevelEditorViewportSettings.h"
 #include "EditorEngine.generated.h"
 
+class APlayerStart;
 class FAssetData;
+class FPoly;
 class UAnimSequence;
 class USkeleton;
-class FPoly;
-
 //
 // Things to set in mapSetBrush.
 //
@@ -956,12 +958,12 @@ public:
 	 *
 	 * @param	InLevel			Level in which to add the actor
 	 * @param	Class			A non-abstract, non-transient, placeable class.  Must be non-NULL.
-	 * @param	Location		The world-space location to spawn the actor.
+	 * @param	Transform		The world-space transform to spawn the actor with.
 	 * @param	bSilent			If true, suppress logging (optional, defaults to false).
 	 * @param	ObjectFlags		The object flags to place on the spawned actor.
 	 * @result					A pointer to the newly added actor, or NULL if add failed.
 	 */
-	virtual AActor* AddActor(ULevel* InLevel, UClass* Class, const FVector& Location, bool bSilent = false, EObjectFlags ObjectFlags = RF_Transactional);
+	virtual AActor* AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent = false, EObjectFlags ObjectFlags = RF_Transactional);
 
 	/**
 	 * Adds actors to the world at the specified location using export text.
@@ -1055,12 +1057,10 @@ public:
 	 * Uses the supplied factory to create an actor at the clicked location and adds to level.
 	 *
 	 * @param	Factory					The factory to create the actor from.  Must be non-NULL.
-	 * @param	ActorLocation			[opt] If null, positions the actor at the mouse location, otherwise specified. Default is null.
-	 * @param	bUseSurfaceOrientation	[opt] If true, align new actor's orientation to the underlying surface normal.  Default is false.
 	 * @param	ObjectFlags				[opt] The flags to apply to the actor when it is created
 	 * @return							A pointer to the new actor, or NULL on fail.
 	 */
-	AActor* UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FVector* ActorLocation=NULL, bool bUseSurfaceOrientation=false, EObjectFlags ObjectFlags = RF_Transactional );
+	AActor* UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags ObjectFlags = RF_Transactional );
 
 	/**
 	 * Uses the supplied factory to create an actor at the clicked location and adds to level.
@@ -1072,7 +1072,7 @@ public:
 	 * @param	ObjectFlags				[opt] The flags to apply to the actor when it is created
 	 * @return							A pointer to the new actor, or NULL on fail.
 	 */
-	AActor* UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FVector* ActorLocation=NULL, bool bUseSurfaceOrientation=false, EObjectFlags ObjectFlags = RF_Transactional );
+	AActor* UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* ActorLocation, EObjectFlags ObjectFlags = RF_Transactional );
 
 	/**
 	 * Replaces the selected Actors with the same number of a different kind of Actor
@@ -1548,8 +1548,8 @@ public:
 	 */
 	virtual void PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor );
 
-	virtual UWorld* CreatePlayInEditorWorld(FWorldContext &PieWorldContext, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, float PIEStartTime);
-	
+	virtual UGameInstance* CreatePIEGameInstance(int32 PIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
+
 	/**
 	 * Launches the game in movie capture mode
 	 */
@@ -2294,19 +2294,21 @@ private:
 	 * @param	InLevel		Destination level.
 	 */
 	void DoMoveSelectedActorsToLevel( ULevel* InLevel );
-	
+public:
 	/**
 	 * Creates a PIE world by duplicating the editor world	 
 	 */
 	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName) override;
-
+private:
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* GameViewport, int32 &ControllerId) override;
 
+public:
 	/** Creates a PIE world by saving to a temp file and then reloading it */
 	UWorld* CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
 
 	UWorld* CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
 
+private:
 	/**
 	 * Login PIE instances with the online platform before actually creating any PIE worlds
 	 *
@@ -2327,6 +2329,7 @@ private:
 	 */
 	virtual void OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct);
 
+public:
 	/**
 	 * Continue the creation of a single PIE world after a login was successful
 	 *
@@ -2336,6 +2339,7 @@ private:
 	 */
 	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
+private:
 	/**
 	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required
 	 *
@@ -2365,6 +2369,7 @@ private:
 	 */
 	void OnSwitchWorldsForPIE( bool bSwitchToPieWorld );
 
+public:
 	/**
 	 * Spawns a PlayFromHere playerstart in the given world
 	 * @param	World		The World to spawn in (for PIE this may not be GWorld)
@@ -2374,6 +2379,8 @@ private:
 	 */
 	bool SpawnPlayFromHereStart(UWorld* World, AActor*& PlayerStartPIE, const FVector& StartLocation, const FRotator& StartRotation );
 
+
+private:
 	/**
 	 * Utility method to try and snap a child actor to a named socket in the parent
 	 *
@@ -2587,7 +2594,14 @@ protected:
 	void HandleStageStarted(const FString& InStage, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleStageCompleted(const FString& InStage, double StageTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
 	void HandleLaunchCanceled(double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
-	void HandleLaunchCompleted(bool Succeeded, double TotalTime, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
+	void HandleLaunchCompleted(bool Succeeded, double TotalTime, int32 ErrorCode, bool bHasCode, TWeakPtr<SNotificationItem> NotificationItemPtr);
+
+private:
+	/** Handler for when any asset is loaded in the editor */
+	void OnAssetLoaded( UObject* Asset );
+
+	/** Gets the init values for worlds opened via Map_Load in the editor */
+	UWorld::InitializationValues GetEditorWorldInitializationValues() const;
 };
 
 

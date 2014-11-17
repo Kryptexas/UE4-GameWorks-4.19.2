@@ -4,7 +4,7 @@
 	QueueTest.cpp: Unit test for the TQueue template class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AutomationTest.h"
 
 

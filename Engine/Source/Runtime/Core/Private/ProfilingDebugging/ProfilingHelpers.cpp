@@ -7,7 +7,7 @@
  */
 
 // Core includes.
-#include "CorePrivate.h"
+#include "Core.h"
 #include "EngineVersion.h"
 
 

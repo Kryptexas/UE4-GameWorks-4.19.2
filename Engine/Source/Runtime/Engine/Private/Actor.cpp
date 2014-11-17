@@ -307,6 +307,13 @@ void AActor::PostInitProperties()
 	}
 }
 
+void AActor::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	AActor* This = CastChecked<AActor>(InThis);
+	Collector.AddReferencedObjects(This->OwnedComponents);
+	Super::AddReferencedObjects(InThis, Collector);
+}
+
 UWorld* AActor::GetWorld() const
 {
 	// CDO objects do not belong to a world
@@ -314,9 +321,14 @@ UWorld* AActor::GetWorld() const
 	return (!HasAnyFlags(RF_ClassDefaultObject) && !GetOuter()->HasAnyFlags(RF_BeginDestroyed|RF_Unreachable) ? GetLevel()->OwningWorld : NULL);
 }
 
-class FTimerManager& AActor::GetWorldTimerManager() const
+FTimerManager& AActor::GetWorldTimerManager() const
 {
 	return GetWorld()->GetTimerManager();
+}
+
+UGameInstance* AActor::GetGameInstance() const
+{
+	return GetWorld()->GetGameInstance();
 }
 
 bool AActor::IsNetStartupActor() const
@@ -403,13 +415,6 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 		GetRootComponent()->SetWorldLocationAndRotation(NewLocation, DestRotation);
 	}
 
-	if ( !bIsATest && bTeleportSucceeded )
-	{
-		if (IsNavigationRelevant() && GetWorld() && GetWorld()->GetNavigationSystem())
-		{
-			GetWorld()->GetNavigationSystem()->UpdateNavOctree(this);
-		}
-	}
 	return bTeleportSucceeded; 
 }
 
@@ -604,7 +609,12 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 {
-	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || GAllowActorScriptExecutionInEditor)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
+	#if WITH_EDITOR
+	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor || Function->GetBoolMetaData( "CallInEditor" );
+	#else
+	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor;
+	#endif
+	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || bAllowScriptExecution)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
 	{
 		Super::ProcessEvent(Function, Parameters);
 	}
@@ -1925,9 +1935,15 @@ bool AActor::CanBeBaseForCharacter(APawn* APawn) const
 	return true;
 }
 
-void AActor::BecomeViewTarget( APlayerController* PC ) {}
+void AActor::BecomeViewTarget( APlayerController* PC )
+{
+	K2_OnBecomeViewTarget(PC);
+}
 
-void AActor::EndViewTarget( APlayerController* PC ) {}
+void AActor::EndViewTarget( APlayerController* PC )
+{
+	K2_OnEndViewTarget(PC);
+}
 
 APawn* AActor::GetInstigator() const
 {
@@ -2093,8 +2109,7 @@ void AActor::DisableComponentsSimulatePhysics()
 
 void AActor::PostRegisterAllComponents() 
 {
-	if (bNavigationRelevant == true && GetWorld() != NULL 
-		&& GetWorld()->GetNavigationSystem() != NULL)
+	if (bNavigationRelevant == true && GetWorld()->GetNavigationSystem() != NULL)
 	{
 		// force re-adding to navoctree if already added, in case it has already 
 		// been added (possibly with not all components that could affect navigation
@@ -2113,10 +2128,10 @@ bool AActor::UpdateNavigationRelevancy()
 
 	for (int32 CompIdx = 0; CompIdx < Components.Num() && bNewRelevancy == false; ++CompIdx)
 	{
-		UPrimitiveComponent* Comp = Cast<UPrimitiveComponent>(Components[CompIdx]);
+		USceneComponent* Comp = Cast<USceneComponent>(Components[CompIdx]);
 		if (Comp)
 		{
-			bNewRelevancy = Comp->CanEverAffectNavigation() && Comp->IsRegistered() && Comp->IsNavigationRelevant();
+			bNewRelevancy = Comp->IsRegistered() && Comp->IsNavigationRelevant();
 		}
 		else
 		{
@@ -2239,7 +2254,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	if (!bDeferConstruction)
 	{
 		// Preserve original root component scale
-		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector(1.0f, 1.0f, 1.0f);
+		const FVector SpawnScale = GetRootComponent() ? GetRootComponent()->RelativeScale3D : FVector::ZeroVector;
 		ExecuteConstruction( FTransform(SpawnRotation, SpawnLocation, SpawnScale), NULL );
 		PostActorConstruction();
 	}
@@ -2376,7 +2391,7 @@ void AActor::BeginPlay()
 #if ENABLE_VISUAL_LOG
 void AActor::RedirectToVisualLog(const AActor* NewRedir)
 { 
-	FVisualLog::Get()->Redirect(this, NewRedir);
+	FVisualLog::Get().Redirect(this, NewRedir);
 }
 #endif // ENABLE_VISUAL_LOG
 
@@ -2677,8 +2692,7 @@ UPrimitiveComponent* AActor::GetRootPrimitiveComponent() const
 bool AActor::SetRootComponent(class USceneComponent* NewRootComponent)
 {
 	/** Only components owned by this actor can be used as a its root component. */
-	check(NewRootComponent == NULL || NewRootComponent->GetOwner() == this);
-	if (NewRootComponent == NULL || NewRootComponent->GetOwner() == this)
+	if (ensure(NewRootComponent == NULL || NewRootComponent->GetOwner() == this))
 	{
 		RootComponent = NewRootComponent;
 		return true;
@@ -2749,7 +2763,7 @@ ENetMode AActor::GetNetMode() const
 	return NetDriver ? NetDriver->GetNetMode() : NM_Standalone;
 }
 
-UNetDriver * AActor::GetNetDriver() const
+UNetDriver* AActor::GetNetDriver() const
 {
 	UWorld *World = GetWorld();
 	if (NetDriverName == NAME_GameNetDriver)
@@ -3027,8 +3041,42 @@ void AActor::UnregisterAllComponents()
 
 void AActor::RegisterAllComponents()
 {
-	// Second phase, register the components
+	// 0 - means register all components
+	verify(IncrementalRegisterComponents(0));
+}
 
+// Walks through components hierarchy and returns closest to root parent component that is unregistered
+// Only for components that belong to the same owner
+static USceneComponent* GetUnregisteredParent(UActorComponent* Component)
+{
+	USceneComponent* ParentComponent = nullptr;
+	USceneComponent* SceneComponent = Cast<USceneComponent>(Component);
+	
+	while (	SceneComponent && 
+			SceneComponent->AttachParent && 
+			SceneComponent->AttachParent->GetOwner() == Component->GetOwner() && 
+			!SceneComponent->AttachParent->IsRegistered())
+	{
+		SceneComponent = SceneComponent->AttachParent;
+		if (SceneComponent->bAutoRegister && !SceneComponent->IsPendingKill())
+		{
+			// We found unregistered parent that should be registered
+			// But keep looking up the tree
+			ParentComponent = SceneComponent;
+		}
+	}
+
+	return ParentComponent;
+}
+
+bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
+{
+	if (NumComponentsToRegister == 0)
+	{
+		// 0 - means register all components
+		NumComponentsToRegister = MAX_int32;
+	}
+	
 	// Register RootComponent first so all other components can reliable use it (ie call GetLocation) when they register
 	if( RootComponent != NULL && !RootComponent->IsRegistered() )
 	{
@@ -3043,60 +3091,48 @@ void AActor::RegisterAllComponents()
 		RootComponent->RegisterComponentWithWorld(GetWorld());
 	}
 
+	int32 NumTotalRegisteredComponents = 0;
+	int32 NumRegisteredComponentsThisRun = 0;
 	TArray<UActorComponent*> Components;
 	GetComponents(Components);
 
-	for(int32 CompIdx=0; CompIdx < Components.Num(); CompIdx++)
+	for (int32 CompIdx = 0; CompIdx < Components.Num() && NumRegisteredComponentsThisRun < NumComponentsToRegister; CompIdx++)
 	{
 		UActorComponent* Component = Components[CompIdx];
 		if(!Component->IsRegistered() && Component->bAutoRegister && !Component->IsPendingKill())
 		{
+			// Ensure that all parent are registered first
+			USceneComponent* ParentComponent = GetUnregisteredParent(Component);
+			if (ParentComponent)
+			{
+				// Register parent first, then return to this component on a next iteration
+				Component = ParentComponent;
+				CompIdx--;
+				NumTotalRegisteredComponents--; // because we will try to register the parent again later...
+			}
+				
 			//Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
 			//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
 			Component->Modify(false);
 
 			check(GetWorld());
 			Component->RegisterComponentWithWorld(GetWorld());
+			NumRegisteredComponentsThisRun++;
 		}
+
+		NumTotalRegisteredComponents++;
 	}
 
-	// First phase, try and get transforms correct.
-	// Obviously a component could be attached to something in another actor that has not been processed yet, that will just move the registered components to the correct location
-
-	// We refetch the components because the registration process could have modified the list
-	TArray<USceneComponent*> SceneComponents;
-	GetComponents(SceneComponents);
-
-	for(int32 CompIdx=0; CompIdx < SceneComponents.Num(); CompIdx++)
+	// See whether we are done
+	if (Components.Num() == NumTotalRegisteredComponents)
 	{
-		USceneComponent* SceneComp = SceneComponents[CompIdx];
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			AActor* CompOwner = SceneComp->GetOwner();
-			FString CompOwnerPathName = (CompOwner != NULL) ? CompOwner->GetFullName() : TEXT("NONE");
-			checkf(SceneComp->GetOwner() == this, TEXT("SceneComp '%s' has Owner of %x'%s', expected %x'%s' (TTP 241544)"), *SceneComp->GetFullName(), CompOwner, *CompOwnerPathName, this, *this->GetFullName());
-#endif
-			//UE_LOG(LogActorComponent, Log, TEXT("%d: %s (AP: %s)"), CompIdx, *SceneComp->GetPathName(), SceneComp->AttachParent ? *SceneComp->AttachParent->GetPathName() : TEXT("NONE"));
-			// If we need to perform a call to AttachTo to add it to AttachChildren array, do that now
-			if(SceneComp->AttachParent != NULL && !SceneComp->AttachParent->AttachChildren.Contains(SceneComp))
-			{
-				USceneComponent* PendingAttachParent = SceneComp->AttachParent;
-				SceneComp->AttachParent = NULL;
-
-				FName PendingAttachSocketName = SceneComp->AttachSocketName;
-				SceneComp->AttachSocketName = NAME_None;
-
-				//UE_LOG(LogActorComponent, Log, TEXT("  Attached!"));
-				SceneComp->AttachTo(PendingAttachParent, PendingAttachSocketName);
-			}
-			// Otherwise just update its ComponentToWorld
-			else
-			{
-				SceneComp->UpdateComponentToWorld();
-			}
-		}
-
-	// Finally, call PostRegisterAllComponents
-	PostRegisterAllComponents();
+		// Finally, call PostRegisterAllComponents
+		PostRegisterAllComponents();
+		return true;
+	}
+	
+	// Still have components to register
+	return false;
 }
 
 bool AActor::HasValidRootComponent()

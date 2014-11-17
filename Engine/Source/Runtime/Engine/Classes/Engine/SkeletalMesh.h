@@ -8,9 +8,14 @@
 
 #include "SkeletalMeshTypes.h"
 #include "Animation/PreviewAssetAttachComponent.h"
+#include "BoneContainer.h"
 #include "SkeletalMesh.generated.h"
 
+/** The maximum number of skeletal mesh LODs allowed. */
+#define MAX_SKELETAL_MESH_LODS 5
+
 class UMorphTarget;
+class USkeleton;
 
 #if WITH_APEX_CLOTHING
 struct FApexClothCollisionVolumeData;
@@ -114,6 +119,162 @@ struct FTriangleSortSettings
 
 };
 
+
+USTRUCT()
+struct FBoneReference
+{
+	GENERATED_USTRUCT_BODY()
+
+		/** Name of bone to control. This is the main bone chain to modify from. **/
+		UPROPERTY(EditAnywhere, Category = BoneReference)
+		FName BoneName;
+
+	/** Cached bone index for run time - right now bone index of skeleton **/
+	int32 BoneIndex;
+
+	FBoneReference()
+		: BoneIndex(INDEX_NONE)
+	{
+	}
+
+	bool operator==(const FBoneReference& Other) const
+	{
+		// faster to compare, and BoneName won't matter
+		return BoneIndex == Other.BoneIndex;
+	}
+	/** Initialize Bone Reference, return TRUE if success, otherwise, return false **/
+	ENGINE_API bool Initialize(const FBoneContainer& RequiredBones);
+
+	// @fixme laurent - only used by blendspace 'PerBoneBlend'. Fix this to support SkeletalMesh pose.
+	ENGINE_API bool Initialize(const USkeleton* Skeleton);
+
+	/** return true if valid. Otherwise return false **/
+	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
+};
+
+/**
+* FSkeletalMeshOptimizationSettings - The settings used to optimize a skeletal mesh LOD.
+*/
+USTRUCT()
+struct FSkeletalMeshOptimizationSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+		/** The method to use when optimizing the skeletal mesh LOD */
+		UPROPERTY()
+		TEnumAsByte<enum SkeletalMeshOptimizationType> ReductionMethod;
+
+	/** If ReductionMethod equals SMOT_NumOfTriangles this value is the ratio of triangles [0-1] to remove from the mesh */
+	UPROPERTY()
+		float NumOfTrianglesPercentage;
+
+	/**If ReductionMethod equals SMOT_MaxDeviation this value is the maximum deviation from the base mesh as a percentage of the bounding sphere. */
+	UPROPERTY()
+		float MaxDeviationPercentage;
+
+	/** The welding threshold distance. Vertices under this distance will be welded. */
+	UPROPERTY()
+		float WeldingThreshold;
+
+	/** Whether Normal smoothing groups should be preserved. If false then NormalsThreshold is used **/
+	UPROPERTY()
+		bool bRecalcNormals;
+
+	/** If the angle between two triangles are above this value, the normals will not be
+	smooth over the edge between those two triangles. Set in degrees. This is only used when PreserveNormals is set to false*/
+	UPROPERTY()
+		float NormalsThreshold;
+
+	/** How important the shape of the geometry is. */
+	UPROPERTY()
+		TEnumAsByte<enum SkeletalMeshOptimizationImportance> SilhouetteImportance;
+
+	/** How important texture density is. */
+	UPROPERTY()
+		TEnumAsByte<enum SkeletalMeshOptimizationImportance> TextureImportance;
+
+	/** How important shading quality is. */
+	UPROPERTY()
+		TEnumAsByte<enum SkeletalMeshOptimizationImportance> ShadingImportance;
+
+	/** How important skinning quality is. */
+	UPROPERTY()
+		TEnumAsByte<enum SkeletalMeshOptimizationImportance> SkinningImportance;
+
+	/** The ratio of bones that will be removed from the mesh */
+	UPROPERTY()
+		float BoneReductionRatio;
+
+	/** Maximum number of bones that can be assigned to each vertex. */
+	UPROPERTY()
+		int32 MaxBonesPerVertex;
+
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		TArray<FBoneReference> BonesToRemove;
+
+
+	FSkeletalMeshOptimizationSettings()
+		: ReductionMethod(SMOT_MaxDeviation)
+		, NumOfTrianglesPercentage(1.0f)
+		, MaxDeviationPercentage(0)
+		, WeldingThreshold(0.1f)
+		, bRecalcNormals(true)
+		, NormalsThreshold(60.0f)
+		, SilhouetteImportance(SMOI_Normal)
+		, TextureImportance(SMOI_Normal)
+		, ShadingImportance(SMOI_Normal)
+		, SkinningImportance(SMOI_Normal)
+		, BoneReductionRatio(100.0f)
+		, MaxBonesPerVertex(4)
+	{
+	}
+
+	/** Equality operator. */
+	bool operator==(const FSkeletalMeshOptimizationSettings& Other) const
+	{
+		// first, check whether bones to remove are same or not
+		const TArray<FBoneReference>& TempBones1 = BonesToRemove.Num() > Other.BonesToRemove.Num() ? BonesToRemove : Other.BonesToRemove;
+		const TArray<FBoneReference>& TempBones2 = BonesToRemove.Num() > Other.BonesToRemove.Num() ? Other.BonesToRemove : BonesToRemove;
+
+		for (int32 Index = 0; Index < TempBones2.Num(); Index++)
+		{
+			if (TempBones1[Index].BoneName != TempBones2[Index].BoneName)
+			{
+				return false;
+			}
+		}
+
+		// check remained bones 
+		for (int32 Index = TempBones2.Num(); Index < TempBones1.Num(); Index++)
+		{
+			// if it has an actual bone name, these are not the same
+			if (TempBones1[Index].BoneName != FName("None"))
+			{
+				return false;
+			}
+		}
+
+		return ReductionMethod == Other.ReductionMethod
+			&& NumOfTrianglesPercentage == Other.NumOfTrianglesPercentage
+			&& MaxDeviationPercentage == Other.MaxDeviationPercentage
+			&& WeldingThreshold == Other.WeldingThreshold
+			&& NormalsThreshold == Other.NormalsThreshold
+			&& SilhouetteImportance == Other.SilhouetteImportance
+			&& TextureImportance == Other.TextureImportance
+			&& ShadingImportance == Other.ShadingImportance
+			&& SkinningImportance == Other.SkinningImportance
+			&& bRecalcNormals == Other.bRecalcNormals
+			&& BoneReductionRatio == Other.BoneReductionRatio
+			&& MaxBonesPerVertex == Other.MaxBonesPerVertex;
+	}
+
+	/** Inequality. */
+	bool operator!=(const FSkeletalMeshOptimizationSettings& Other) const
+	{
+		return !(*this == Other);
+	}
+};
+
 /** Struct containing information for a particular LOD level, such as materials and info for when to use it. */
 USTRUCT()
 struct FSkeletalMeshLODInfo
@@ -122,7 +283,7 @@ struct FSkeletalMeshLODInfo
 
 	/**	Indicates when to use this LOD. A smaller number means use this LOD when further away. */
 	UPROPERTY(EditAnywhere, Category=SkeletalMeshLODInfo)
-	float DisplayFactor;
+	float ScreenSize;
 
 	/**	Used to avoid 'flickering' when on LOD boundary. Only taken into account when moving from complex->simple. */
 	UPROPERTY(EditAnywhere, Category=SkeletalMeshLODInfo)
@@ -147,86 +308,14 @@ struct FSkeletalMeshLODInfo
 	UPROPERTY()
 	uint32 bHasBeenSimplified:1;
 
+	/** Reduction settings to apply when building render data. */
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+	FSkeletalMeshOptimizationSettings ReductionSettings;
 
 	FSkeletalMeshLODInfo()
-		: DisplayFactor(0)
+		: ScreenSize(0)
 		, LODHysteresis(0)
 		, bHasBeenSimplified(false)
-	{
-	}
-
-};
-
-/**
- * FSkeletalMeshOptimizationSettings - The settings used to optimize a skeletal mesh LOD.
- */
-USTRUCT()
-struct FSkeletalMeshOptimizationSettings
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** The method to use when optimizing the skeletal mesh LOD */
-	UPROPERTY()
-	TEnumAsByte<enum SkeletalMeshOptimizationType> ReductionMethod;
-
-	/** If ReductionMethod equals SMOT_NumOfTriangles this value is the ratio of triangles [0-1] to remove from the mesh */
-	UPROPERTY()
-	float NumOfTrianglesPercentage;
-
-	/**If ReductionMethod equals SMOT_MaxDeviation this value is the maximum deviation from the base mesh as a percentage of the bounding sphere. */
-	UPROPERTY()
-	float MaxDeviationPercentage;
-
-	/** The welding threshold distance. Vertices under this distance will be welded. */
-	UPROPERTY()
-	float WeldingThreshold; 
-
-	/** Whether Normal smoothing groups should be preserved. If false then NormalsThreshold is used **/
-	UPROPERTY()
-	bool bRecalcNormals;
-
-	/** If the angle between two triangles are above this value, the normals will not be
-	smooth over the edge between those two triangles. Set in degrees. This is only used when PreserveNormals is set to false*/
-	UPROPERTY()
-	float NormalsThreshold;
-
-	/** How important the shape of the geometry is. */
-	UPROPERTY()
-	TEnumAsByte<enum SkeletalMeshOptimizationImportance> SilhouetteImportance;
-
-	/** How important texture density is. */
-	UPROPERTY()
-	TEnumAsByte<enum SkeletalMeshOptimizationImportance> TextureImportance;
-
-	/** How important shading quality is. */
-	UPROPERTY()
-	TEnumAsByte<enum SkeletalMeshOptimizationImportance> ShadingImportance;
-
-	/** How important skinning quality is. */
-	UPROPERTY()
-	TEnumAsByte<enum SkeletalMeshOptimizationImportance> SkinningImportance;
-
-	/** The ratio of bones that will be removed from the mesh */
-	UPROPERTY()
-	float BoneReductionRatio;
-
-	/** Maximum number of bones that can be assigned to each vertex. */
-	UPROPERTY()
-	int32 MaxBonesPerVertex;
-
-	FSkeletalMeshOptimizationSettings()
-		: ReductionMethod(SMOT_MaxDeviation)
-		, NumOfTrianglesPercentage(1.0f)
-		, MaxDeviationPercentage(0)
-		, WeldingThreshold(0.1f)
-		, bRecalcNormals(true)
-		, NormalsThreshold(60.0f)
-		, SilhouetteImportance(SMOI_Normal)
-		, TextureImportance(SMOI_Normal)
-		, ShadingImportance(SMOI_Normal)
-		, SkinningImportance(SMOI_Normal)
-		, BoneReductionRatio(100.0f)
-		, MaxBonesPerVertex(4)
 	{
 	}
 
@@ -479,11 +568,11 @@ public:
 	FORCEINLINE FSkeletalMeshResource* GetImportedResource() const { return ImportedResource.Get(); }
 
 	/** Get the resource to use for rendering. */
-	FORCEINLINE FSkeletalMeshResource* GetResourceForRendering(ERHIFeatureLevel::Type FeatureLevel) const { return GetImportedResource(); }
+	FORCEINLINE FSkeletalMeshResource* GetResourceForRendering() const { return GetImportedResource(); }
 
 	/** Skeleton of this skeletal mesh **/
 	UPROPERTY(Category=Mesh, AssetRegistrySearchable, VisibleAnywhere, BlueprintReadOnly)
-	class USkeleton* Skeleton;
+	USkeleton* Skeleton;
 
 	UPROPERTY(transient, duplicatetransient)
 	FBoxSphereBounds Bounds;
@@ -507,7 +596,7 @@ public:
 	TArray<struct FSkeletalMeshLODInfo> LODInfo;
 
 	/** If true, use 32 bit UVs. If false, use 16 bit UVs to save memory */
-	UPROPERTY(EditAnywhere, Category=SkeletalMesh)
+	UPROPERTY(EditAnywhere, Category=Mesh)
 	uint32 bUseFullPrecisionUVs:1;
 
 	/** true if this mesh has ever been simplified with Simplygon. */

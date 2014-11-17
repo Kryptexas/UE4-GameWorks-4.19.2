@@ -114,6 +114,7 @@ void SStandaloneAssetEditorToolkitHost::RestoreFromLayout( const TSharedRef<FTab
 {
 	const TSharedRef<SDockTab> HostTab = HostTabPtr.Pin().ToSharedRef();
 	HostTab->SetCanCloseTab(EditorCloseRequest);
+	HostTab->SetOnTabClosed(SDockTab::FOnTabClosedCallback::CreateSP(this, &SStandaloneAssetEditorToolkitHost::OnTabClosed));
 
 	this->ChildSlot[SNullWidget::NullWidget];
 	MyTabManager->CloseAllAreas();
@@ -251,6 +252,37 @@ FReply SStandaloneAssetEditorToolkitHost::OnKeyDown( const FGeometry& MyGeometry
 	}
 
 	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyboardEvent);
+}
+
+
+void SStandaloneAssetEditorToolkitHost::OnTabClosed(TSharedRef<SDockTab> TabClosed) const
+{
+	check(TabClosed == HostTabPtr.Pin());
+
+	const TSharedPtr<FAssetEditorToolkit> AssetEditorToolkit = StaticCastSharedPtr<FAssetEditorToolkit>(HostedToolkit);
+	if(AssetEditorToolkit.IsValid())
+	{
+		const TArray<UObject*>* const ObjectsBeingEdited = AssetEditorToolkit->GetObjectsCurrentlyBeingEdited();
+		if(ObjectsBeingEdited)
+		{
+			const bool IsDockedAssetEditor = TabClosed->HasSiblingTab(FName("DockedToolkit"), false/*TreatIndexNoneAsWildcard*/);
+			const EAssetEditorToolkitTabLocation AssetEditorToolkitTabLocation = (IsDockedAssetEditor) ? EAssetEditorToolkitTabLocation::Docked : EAssetEditorToolkitTabLocation::Standalone;
+			for(const UObject* ObjectBeingEdited : *ObjectsBeingEdited)
+			{
+				// Only record assets that have a valid saved package
+				UPackage* const Package = ObjectBeingEdited->GetOutermost();
+				if(Package && Package->GetFileSize())
+				{
+					GConfig->SetInt(
+						TEXT("AssetEditorToolkitTabLocation"), 
+						*ObjectBeingEdited->GetPathName(), 
+						static_cast<int32>(AssetEditorToolkitTabLocation), 
+						GEditorUserSettingsIni
+						);
+				}
+			}
+		}
+	}
 }
 
 

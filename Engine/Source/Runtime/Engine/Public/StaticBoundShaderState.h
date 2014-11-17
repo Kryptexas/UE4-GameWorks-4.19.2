@@ -48,7 +48,41 @@ private:
 	ENGINE_API virtual void ReleaseRHI();
 };
 
-typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState;
+typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState_Internal;
+
+
+struct FGlobalBoundShaderStateArgs
+{
+	FVertexDeclarationRHIParamRef VertexDeclarationRHI;
+	FShader* VertexShader;
+	FShader* PixelShader;
+	FShader* GeometryShader;
+};
+
+struct FGlobalBoundShaderStateWorkArea
+{
+	FGlobalBoundShaderStateArgs Args;
+	FGlobalBoundShaderState_Internal* BSS; //ideally this would be part of this memory block and not a separate allocation...that is doable, if a little tedious. The point is we need to delay the construction until we get back to the render thread.
+
+	FGlobalBoundShaderStateWorkArea()
+		: BSS(nullptr)
+	{
+	}
+};
+
+struct FGlobalBoundShaderState
+{
+public:
+
+	FGlobalBoundShaderStateWorkArea* Get(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return WorkAreas[InFeatureLevel]; }
+	FGlobalBoundShaderStateWorkArea** GetPtr(ERHIFeatureLevel::Type InFeatureLevel = GRHIFeatureLevel)  { return &WorkAreas[InFeatureLevel]; }
+
+private:
+
+	FGlobalBoundShaderStateWorkArea* WorkAreas[ERHIFeatureLevel::Num];
+};
+
+
 
 /**
  * SetGlobalBoundShaderState - sets the global bound shader state, also creates and caches it if necessary
@@ -61,13 +95,13 @@ typedef TGlobalResource<FGlobalBoundShaderStateResource> FGlobalBoundShaderState
  * @param GeometryShader			- the geometry shader to use in creating the new bound shader state (0 if not used)
  */
 
-extern ENGINE_API void SetGlobalBoundShaderState(
-	FRHICommandListImmediate& RHICmdList,
+ENGINE_API void SetGlobalBoundShaderState(
+	FRHICommandList& RHICmdList,
 	FGlobalBoundShaderState& BoundShaderState,
 	FVertexDeclarationRHIParamRef VertexDeclaration,
 	FShader* VertexShader,
 	FShader* PixelShader,
-	FShader* GeometryShader = 0
+	FShader* GeometryShader = nullptr
 	);
 
 #endif

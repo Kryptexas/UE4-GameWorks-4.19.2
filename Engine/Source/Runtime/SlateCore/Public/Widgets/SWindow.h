@@ -7,6 +7,9 @@
 #pragma once
 
 
+/** Notification that a window has been activated */
+DECLARE_DELEGATE( FOnWindowActivated );
+
 /** Notification that a window has been deactivated */
 DECLARE_DELEGATE( FOnWindowDeactivated );
 
@@ -380,6 +383,10 @@ public:
 	/** @return should this window show up in the taskbar */
 	bool AppearsInTaskbar() const;
 
+	/** Sets the delegate to execute when the window is activated */
+	void SetOnWindowActivated( const FOnWindowActivated& InDelegate );
+
+	/** Sets the delegate to execute when the window is deactivated */
 	void SetOnWindowDeactivated( const FOnWindowDeactivated& InDelegate );
 
 	/** Sets the delegate to execute right before the window is closed */
@@ -514,9 +521,15 @@ public:
 	/** Set modal window related flags - called by Slate app code during FSlateApplication::AddModalWindow() */
 	void SetAsModalWindow()
 	{
+        bIsModalWindow = true;
 		bHasMaximizeButton = false;
 		bHasMinimizeButton = false;
 	}
+
+	bool IsModalWindow()
+    {
+        return bIsModalWindow;
+    }
 
 	void SetTitleBar( const TSharedPtr<IWindowTitleBar> InTitleBar )
 	{
@@ -555,18 +568,6 @@ public:
 
 	/** The window's desired size takes into account the ratio between the slate units and the pixel size */
 	virtual FVector2D ComputeDesiredSize() const override;
-
-	/** Marks this window as having been drawn at least once */
-	inline void MarkAsDrawn()
-	{
-		bHasEverBeenDrawn = true;
-	}
-
-	/** @return Returns True if the window has even been drawn */
-	inline bool HasEverBeenDrawn() const
-	{
-		return bHasEverBeenDrawn;
-	}
 
 	/** @return true if this window will be focused when it is first shown */
 	inline bool IsFocusedInitially() const
@@ -631,6 +632,9 @@ protected:
 	/** Get the color used to tint the window outline */
 	FSlateColor GetWindowOutlineColor() const;
 
+	/** Windows that are not hittestable should not show up in the hittest grid. */
+	EVisibility GetWindowVisibility() const;
+
 protected:
 
 	/** Title of the window, displayed in the title bar as well as potentially in the task bar (Windows platform) */
@@ -674,9 +678,6 @@ protected:
 	/** True if this window has been shown yet */
 	bool bHasEverBeenShown : 1;
 
-	/** True if this window has ever been drawn */
-	bool bHasEverBeenDrawn : 1;
-
 	/** Focus this window immediately as it is shown */
 	bool bFocusWhenFirstShown : 1;
 
@@ -694,6 +695,9 @@ protected:
 
 	/** True if this window displays thick edge that can be used to resize the window */
 	bool bHasSizingFrame : 1;
+    
+    /** True if the window is modal */
+    bool bIsModalWindow : 1;
 
 	/** Initial desired position of the window's content in screen space */
 	FVector2D InitialDesiredScreenPosition;
@@ -767,6 +771,9 @@ protected:
 private:
 	/** The native window that is backing this Slate Window */
 	TSharedPtr<FGenericWindow> NativeWindow;
+	
+	/** Invoked when the window has been activated. */
+	FOnWindowActivated OnWindowActivated;
 	
 	/** Invoked when the window has been deactivated. */
 	FOnWindowDeactivated OnWindowDeactivated;

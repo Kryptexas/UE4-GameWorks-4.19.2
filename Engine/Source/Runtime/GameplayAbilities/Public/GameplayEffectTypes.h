@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameplayTagAssetInterface.h"
 #include "AttributeSet.h"
 #include "GameplayEffectTypes.generated.h"
 
@@ -197,7 +198,7 @@ struct TStructOpsTypeTraits< FGameplayEffectInstigatorContext > : public TStruct
 	enum
 	{
 		WithNetSerializer = true,
-		WithCopy = true		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+		WithCopy = true		// Necessary so that TSharedPtr<FHitResult> Data is copied around
 	};
 };
 

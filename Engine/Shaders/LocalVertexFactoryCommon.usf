@@ -17,8 +17,8 @@ struct FVertexFactoryInterpolantsVSToPS
 #endif
 
 #if USE_INSTANCING
-	// x = per-instance random, y = per-instance fade out amount
-	float2  PerInstanceParams : COLOR1;
+	// x = per-instance random, y = per-instance fade out amount, z = hide/show flag
+	float3  PerInstanceParams : COLOR1;
 #endif
 
 #if NUM_MATERIAL_TEXCOORDS
@@ -139,6 +139,11 @@ struct FVertexFactoryInterpolantsVSToPS
 
 	// ShadowmapUV, tangent zw
 	float4 PackedInterpolator5 : TEXCOORD5;
+#endif
+
+#if USE_INSTANCING
+	// x = per-instance random, y = per-instance fade out amount
+	float3  PerInstanceParams : COLOR1;
 #endif
 };
 

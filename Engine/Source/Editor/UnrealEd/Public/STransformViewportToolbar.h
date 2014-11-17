@@ -74,6 +74,9 @@ private:
 	TSharedRef<SWidget> BuildLocationGridCheckBoxList(FName InExtentionHook, const FText& InHeading, const TArray<float>& InGridSizes) const;
 	TSharedRef<SWidget> BuildRotationGridCheckBoxList(FName InExtentionHook, const FText& InHeading, const TArray<float>& InGridSizes, ERotationGridMode InGridMode) const;
 
+	/** Make the surface snapping toolbar checkbox button */
+	TSharedRef< SWidget > MakeSurfaceSnappingButton( FName ToolBarStyle );
+
 	/** Grid Snap checked state callbacks */
 	ESlateCheckBoxState::Type IsLocationGridSnapChecked() const;
 	ESlateCheckBoxState::Type IsRotationGridSnapChecked() const;

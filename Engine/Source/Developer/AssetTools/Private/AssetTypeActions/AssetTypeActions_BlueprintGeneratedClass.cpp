@@ -38,13 +38,17 @@ void FAssetTypeActions_BlueprintGeneratedClass::GetActions( const TArray<UObject
 
 	if ( BlueprintGeneratedClasses.Num() == 1 )
 	{
+		TAttribute<FText>::FGetter DynamicTooltipGetter;
+		DynamicTooltipGetter.BindSP(this, &FAssetTypeActions_BlueprintGeneratedClass::GetNewDerivedBlueprintTooltip, BlueprintGeneratedClasses[0]);
+		TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("Blueprint_NewDerivedBlueprint", "Create Blueprint based on this"),
-			LOCTEXT("Blueprint_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint."),
+			DynamicTooltipAttribute,
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetTypeActions_BlueprintGeneratedClass::ExecuteNewDerivedBlueprint, BlueprintGeneratedClasses[0] ),
-				FCanExecuteAction()
+				FCanExecuteAction::CreateSP( this, &FAssetTypeActions_BlueprintGeneratedClass::CanExecuteNewDerivedBlueprint, BlueprintGeneratedClasses[0] )
 				)
 			);
 	}
@@ -163,6 +167,23 @@ void FAssetTypeActions_BlueprintGeneratedClass::ExecuteNewDerivedBlueprint(TWeak
 	}
 }
 
+FText FAssetTypeActions_BlueprintGeneratedClass::GetNewDerivedBlueprintTooltip(TWeakObjectPtr<UBlueprintGeneratedClass> InObject)
+{
+	if(InObject->HasAnyClassFlags(CLASS_Deprecated))
+	{
+		return LOCTEXT("Blutility_NewDerivedBlueprintIsDeprecatedTooltip", "Blueprint class is deprecated, cannot derive a child Blueprint!");
+	}
+	else
+	{
+		return LOCTEXT("Blutility_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint.");
+	}
+}
+
+bool FAssetTypeActions_BlueprintGeneratedClass::CanExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlueprintGeneratedClass> InObject)
+{
+	return !InObject->HasAnyClassFlags(CLASS_Deprecated);
+}
+
 bool FAssetTypeActions_BlueprintGeneratedClass::ShouldUseDataOnlyEditor( const UBlueprint* Blueprint ) const
 {
 	return FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) 
@@ -211,7 +232,7 @@ UThumbnailInfo* FAssetTypeActions_BlueprintGeneratedClass::GetThumbnailInfo(UObj
 	return ThumbnailInfo;
 }
 
-void FAssetTypeActions_BlueprintGeneratedClass::OpenInDefaults( class UBlueprint* OldBlueprint, class UBlueprint* NewBlueprint ) const
+void FAssetTypeActions_BlueprintGeneratedClass::OpenInDefaults( const UBlueprint* OldBlueprint, const UBlueprint* NewBlueprint ) const
 {
 	FString OldTextFilename = DumpAssetToTempFile(OldBlueprint->GeneratedClass->GetDefaultObject());
 	FString NewTextFilename = DumpAssetToTempFile(NewBlueprint->GeneratedClass->GetDefaultObject());

@@ -111,7 +111,7 @@ goto Exit_Failure
 :Exit_Failure
 echo BUILD FAILED
 popd
-exit /B 1
+exit /B %ERRORLEVEL%
 
 :Exit
 rem ## Restore original CWD in case we change it

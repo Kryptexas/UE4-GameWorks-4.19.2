@@ -49,6 +49,26 @@ FCollisionShape					FCollisionShape::LineShape;
 // default being the 0. That isn't invalid, but ObjectQuery param overrides this 
 ECollisionChannel DefaultCollisionChannel = (ECollisionChannel) 0;
 
+
+/* Set functions for each Shape type */
+void FBaseTraceDatum::Set(UWorld * World, const FCollisionShape & InCollisionShape, const FCollisionQueryParams & Param, const struct FCollisionResponseParams &InResponseParam, const struct FCollisionObjectQueryParams& InObjectQueryParam,
+	ECollisionChannel Channel, uint32 InUserData, bool bInIsMultiTrace, int32 FrameCounter)
+{
+	ensure(World);
+	CollisionParams.CollisionShape = InCollisionShape;
+	CollisionParams.CollisionQueryParam = Param;
+	CollisionParams.ResponseParam = InResponseParam;
+	CollisionParams.ObjectQueryParam = InObjectQueryParam;
+	TraceChannel = Channel;
+	UserData = InUserData;
+	bIsMultiTrace = bInIsMultiTrace;
+	FrameNumber = FrameCounter;
+	PhysWorld = World;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
 bool UWorld::LineTraceTest(const FVector& Start, const FVector& End, ECollisionChannel TraceChannel, const struct FCollisionQueryParams& Params, const struct FCollisionResponseParams& ResponseParam) const
 {
 #if UE_WITH_PHYSICS

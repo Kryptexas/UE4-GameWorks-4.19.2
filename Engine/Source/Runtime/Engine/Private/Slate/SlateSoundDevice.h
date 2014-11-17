@@ -2,7 +2,7 @@
 #pragma once
 
 #include "EnginePrivate.h"
-#include "Slate.h"
+#include "Sound/ISlateSoundDevice.h"
 
 class FSlateSoundDevice : public ISlateSoundDevice
 {

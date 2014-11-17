@@ -107,7 +107,7 @@ public:
 	
 	// Material properties.
 	/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-	virtual int32 CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const;
+	virtual int32 CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const;
 
 	virtual int32 GetMaterialDomain() const override { return MD_Surface; }
 	virtual FString GetMaterialUsageDescription() const { return FString::Printf(TEXT("FMatExpressionPreview %s"), Expression.IsValid() ? *Expression->GetName() : TEXT("NULL")); }
@@ -258,12 +258,12 @@ public:
 	void RefreshPreviewViewport();
 	
 	/** Regenerates the code view widget with new text */
-	void RegenerateCodeView();
+	void RegenerateCodeView(bool bForce=false);
 	
 	/**
 	 * Recompiles the material used in the preview window.
 	 */
-	void UpdatePreviewMaterial();
+	void UpdatePreviewMaterial(bool bForce=false);
 
 	/**
 	 * Updates the original material with the changes made in the editor
@@ -482,6 +482,9 @@ private:
 	/** Command for the show unused connectors button */
 	void OnShowConnectors();
 	bool IsOnShowConnectorsChecked() const;
+	/** Command for the Toggle Live Preview button */
+	void ToggleLivePreview();
+	bool IsToggleLivePreviewChecked() const;
 	/** Command for the Toggle Real Time button */
 	void ToggleRealTimeExpressions();
 	bool IsToggleRealTimeExpressionsChecked() const;
@@ -645,6 +648,9 @@ private:
 
 	/** If true, don't render connectors that are not connected to anything. */
 	bool bHideUnusedConnectors;
+
+	/** If true, the preview material is compiled on every edit of the material. If false, only on Apply. */
+	bool bLivePreview;
 
 	/** Just storing this choice for now, not sure what difference it will make to Graph Editor */
 	bool bIsRealtime;

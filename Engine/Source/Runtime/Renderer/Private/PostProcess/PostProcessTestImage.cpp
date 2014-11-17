@@ -193,7 +193,7 @@ void FRCPassPostProcessTestImage::Process(FRenderingCompositePassContext& Contex
 		Line = FString::Printf(TEXT("   4 white pixel sized lines (only visible without overscan)"));
 		Canvas.DrawShadowedString( X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 
-		Canvas.Flush();
+		Canvas.Flush_RenderThread(Context.RHICmdList);
 	}
 
 

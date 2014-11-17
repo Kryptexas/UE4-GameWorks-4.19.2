@@ -198,7 +198,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 
 		if(Blueprint != NULL)
 		{
-			Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VariableProperty->GetFName() );
+			Category = FBlueprintEditorUtils::GetBlueprintVariableCategory(Blueprint, VariableProperty->GetFName(), GetLocalVariableScope() );
 		}
 
 		FName NewCategory = FName(*HoveredCategoryName,  FNAME_Find);
@@ -312,7 +312,7 @@ FReply FKismetVariableDragDropAction::DroppedOnPin(FVector2D ScreenPosition, FVe
 					Action.NodeTemplate = VarNode;
 
 					UBlueprint* DropOnBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(TargetPin->GetOwningNode()->GetGraph());
-					ConfigureVarNode(VarNode, VariableName, VariableSource.Get(), DropOnBlueprint);
+					UEdGraphSchema_K2::ConfigureVarNode(VarNode, VariableName, VariableSource.Get(), DropOnBlueprint);
 
 					Action.PerformAction(TargetPin->GetOwningNode()->GetGraph(), TargetPin, GraphPosition);
 				}
@@ -348,7 +348,7 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 			TargetNode->Modify();
 			Pin->Modify();
 
-			ConfigureVarNode(TargetNode, VariableName, VariableSource.Get(), DropOnBlueprint);
+			UEdGraphSchema_K2::ConfigureVarNode(TargetNode, VariableName, VariableSource.Get(), DropOnBlueprint);
 
 
 			if ((Pin == NULL) || (Pin->LinkedTo.Num() == BadLinks.Num()) || (Schema == NULL))
@@ -376,46 +376,26 @@ FReply FKismetVariableDragDropAction::DroppedOnNode(FVector2D ScreenPosition, FV
 	return FReply::Unhandled();
 }
 
-void FKismetVariableDragDropAction::ConfigureVarNode(UK2Node_Variable* InVarNode, FName InVariableName, UStruct* InVariableSource, UBlueprint* InTargetBlueprint)
-{
-	// See if this is a 'self context' (ie. blueprint class is owner (or child of owner) of dropped var class)
-	if ((InVariableSource == NULL) || InTargetBlueprint->SkeletonGeneratedClass->IsChildOf(InVariableSource))
-	{
-		InVarNode->VariableReference.SetSelfMember(InVariableName);
-	}
-	else if(InVariableSource->IsA(UStruct::StaticClass()))
-	{
-		InVarNode->VariableReference.SetLocalMember(InVariableName, InVariableSource, FBlueprintEditorUtils::FindLocalVariableGuidByName(InTargetBlueprint, InVariableName));
-	}
-	else
-	{
-		InVarNode->VariableReference.SetExternalMember(InVariableName, CastChecked<UClass>(InVariableSource));
-	}
-}
-
-
 void FKismetVariableDragDropAction::MakeGetter(FNodeConstructionParams InParams)
 {
 	check(InParams.Graph);
 
-	UK2Node_VariableGet* GetVarNodeTemplate = NewObject<UK2Node_VariableGet>();
-	UBlueprint* DropOnBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(InParams.Graph);
-
-	ConfigureVarNode(GetVarNodeTemplate, InParams.VariableName, InParams.VariableSource.Get(), DropOnBlueprint);
-
-	FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_VariableGet>(InParams.Graph, GetVarNodeTemplate, InParams.GraphPosition);
+	const UEdGraphSchema_K2* K2_Schema = Cast<const UEdGraphSchema_K2>(InParams.Graph->GetSchema());
+	if (K2_Schema)
+	{
+		K2_Schema->SpawnVariableGetNode(InParams.GraphPosition, InParams.Graph, InParams.VariableName, InParams.VariableSource.Get());
+	}
 }
 
 void FKismetVariableDragDropAction::MakeSetter(FNodeConstructionParams InParams)
 {
 	check(InParams.Graph);
 
-	UK2Node_VariableSet* SetVarNodeTemplate = NewObject<UK2Node_VariableSet>();
-	UBlueprint* DropOnBlueprint = FBlueprintEditorUtils::FindBlueprintForGraph(InParams.Graph);
-
-	ConfigureVarNode(SetVarNodeTemplate, InParams.VariableName, InParams.VariableSource.Get(), DropOnBlueprint);
-
-	FEdGraphSchemaAction_K2NewNode::SpawnNodeFromTemplate<UK2Node_VariableSet>(InParams.Graph, SetVarNodeTemplate, InParams.GraphPosition);
+	const UEdGraphSchema_K2* K2_Schema = Cast<const UEdGraphSchema_K2>(InParams.Graph->GetSchema());
+	if (K2_Schema)
+	{
+		K2_Schema->SpawnVariableSetNode(InParams.GraphPosition, InParams.Graph, InParams.VariableName, InParams.VariableSource.Get());
+	}
 }
 
 bool FKismetVariableDragDropAction::CanExecuteMakeSetter(FNodeConstructionParams InParams, UProperty* InVariableProperty)
@@ -525,11 +505,11 @@ FReply FKismetVariableDragDropAction::DroppedOnAction(TSharedRef<FEdGraphSchemaA
 			if(bMoved)
 			{
 				// Change category of var to match the one we dragged on to as well
-				FName MovedVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName);
-				FName TargetVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, TargetVarName);
+				FName MovedVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope());
+				FName TargetVarCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, TargetVarName, GetLocalVariableScope());
 				if(MovedVarCategory != TargetVarCategory)
 				{
-					FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, TargetVarCategory, true);
+					FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope(), TargetVarCategory, true);
 				}
 
 				// Update Blueprint after changes so they reflect in My Blueprint tab.
@@ -559,10 +539,10 @@ FReply FKismetVariableDragDropAction::DroppedOnCategory(FString Category)
 	if(BP != NULL)
 	{
 		// Check this is actually a different category
-		FName CurrentCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName);
+		FName CurrentCategory = FBlueprintEditorUtils::GetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope());
 		if(FName(*Category) != CurrentCategory)
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, FName(*Category), false);
+			FBlueprintEditorUtils::SetBlueprintVariableCategory(BP, VariableName, GetLocalVariableScope(), FName(*Category), false);
 		}
 	}
 
@@ -584,6 +564,15 @@ bool FKismetVariableDragDropAction::CanVariableBeDropped(const UProperty* InVari
 		}
 	}
 	return bCanVariableBeDropped;
+}
+
+UStruct* FKismetVariableDragDropAction::GetLocalVariableScope() const
+{
+	if( VariableSource->IsA(UFunction::StaticClass()) )
+	{
+		return VariableSource.Get();
+	}
+	return NULL;
 }
 
 #undef LOCTEXT_NAMESPACE

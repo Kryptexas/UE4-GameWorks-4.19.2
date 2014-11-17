@@ -812,6 +812,9 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 
 				if(Radius > 0 && !bSimpleDynamicLighting)
 				{
+					// matching AdjustGBufferRefCount(-1) call is in FRCPassPostProcessSubsurface::Process()
+					GSceneRenderTargets.AdjustGBufferRefCount(1);
+
 					FRenderingCompositePass* PassSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceSetup());
 					PassSetup->SetInput(ePId_Input0, Context.FinalOutput);
 
@@ -1080,7 +1083,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, const FViewI
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
-		if(View.Family->EngineShowFlags.GBufferHints)
+		if (View.Family->EngineShowFlags.GBufferHints && FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessGBufferHints());
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -1475,6 +1478,16 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, const FVi
 					}
 				}
 			}
+		}
+
+		// Composite editor primitives if we had any to draw and compositing is enabled
+		// TODO: Move FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives somewhere more generic
+		if (FDeferredShadingSceneRenderer::ShouldCompositeEditorPrimitives(View))
+		{
+			FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives());
+			EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
+			Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
 		}
 
 		// Must run to blit to back buffer even if post processing is off.

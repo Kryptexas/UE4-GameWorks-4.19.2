@@ -14,6 +14,8 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
 
+#define LOCTEXT_NAMESPACE "SGraphNode_BehaviorTree"
+
 /////////////////////////////////////////////////////
 // SBehaviorTreePin
 
@@ -78,6 +80,91 @@ FSlateColor SBehaviorTreePin::GetPinColor() const
 		(GraphPinObj->PinType.PinCategory == UBehaviorTreeEditorTypes::PinCategory_SingleNode) ? BehaviorTreeColors::Pin::SingleNode :
 		BehaviorTreeColors::Pin::Default;
 }
+
+/** Widget for overlaying an execution-order index onto a node */
+class SBehaviorTreeIndex : public SCompoundWidget
+{
+public:
+	/** Delegate event fired when the hover state of this widget changes */
+	DECLARE_DELEGATE_OneParam(FOnHoverStateChanged, bool /* bHovered */);
+
+	/** Delegate used to receive the color of the node, depending on hover state and state of other siblings */
+	DECLARE_DELEGATE_RetVal_OneParam(FSlateColor, FOnGetIndexColor, bool /* bHovered */);
+
+	SLATE_BEGIN_ARGS(SBehaviorTreeIndex){}
+		SLATE_ATTRIBUTE(FText, Text)
+		SLATE_EVENT(FOnHoverStateChanged, OnHoverStateChanged)
+		SLATE_EVENT(FOnGetIndexColor, OnGetIndexColor)
+	SLATE_END_ARGS()
+
+	void Construct( const FArguments& InArgs )
+	{
+		OnHoverStateChangedEvent = InArgs._OnHoverStateChanged;
+		OnGetIndexColorEvent = InArgs._OnGetIndexColor;
+
+		const FSlateBrush* IndexBrush = FEditorStyle::GetBrush(TEXT("BTEditor.Graph.BTNode.Index"));
+
+		ChildSlot
+		[
+			SNew(SOverlay)
+			+SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				// Add a dummy box here to make sure the widget doesnt get smaller than the brush
+				SNew(SBox)
+				.WidthOverride(IndexBrush->ImageSize.X)
+				.HeightOverride(IndexBrush->ImageSize.Y)
+			]
+			+SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				SNew(SBorder)
+				.BorderImage(IndexBrush)
+				.BorderBackgroundColor(this, &SBehaviorTreeIndex::GetColor)
+				.Padding(FMargin(4.0f, 0.0f, 4.0f, 1.0f))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(InArgs._Text)
+					.Font(FEditorStyle::GetFontStyle("BTEditor.Graph.BTNode.IndexText"))
+				]
+			]
+		];
+	}
+
+	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
+	{
+		OnHoverStateChangedEvent.ExecuteIfBound(true);
+		SCompoundWidget::OnMouseEnter(MyGeometry, MouseEvent);
+	}
+
+	virtual void OnMouseLeave( const FPointerEvent& MouseEvent ) override
+	{
+		OnHoverStateChangedEvent.ExecuteIfBound(false);
+		SCompoundWidget::OnMouseLeave(MouseEvent);
+	}
+
+	/** Get the color we use to display the rounded border */
+	FSlateColor GetColor() const
+	{
+		if(OnGetIndexColorEvent.IsBound())
+		{
+			return OnGetIndexColorEvent.Execute(IsHovered());
+		}
+
+		return FSlateColor::UseForeground();
+	}
+
+private:
+	/** Delegate event fired when the hover state of this widget changes */
+	FOnHoverStateChanged OnHoverStateChangedEvent;
+
+	/** Delegate used to receive the color of the node, depending on hover state and state of other siblings */
+	FOnGetIndexColor OnGetIndexColorEvent;
+};
 
 /////////////////////////////////////////////////////
 // SGraphNode_BehaviorTree
@@ -268,6 +355,13 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 		NodePadding = 2.0f;
 	}
 
+	IndexOverlay = SNew(SBehaviorTreeIndex)
+		.ToolTipText(this, &SGraphNode_BehaviorTree::GetIndexTooltipText)
+		.Visibility(this, &SGraphNode_BehaviorTree::GetIndexVisibility)
+		.Text(this, &SGraphNode_BehaviorTree::GetIndexText)
+		.OnHoverStateChanged(this, &SGraphNode_BehaviorTree::OnIndexHoverStateChanged)
+		.OnGetIndexColor(this, &SGraphNode_BehaviorTree::GetIndexColor);
+
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 	this->ChildSlot
 		.HAlign(HAlign_Fill)
@@ -321,7 +415,7 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						SNew(SBorder)
+						SAssignNew(NodeBody, SBorder)
 						.BorderImage( FEditorStyle::GetBrush("BTEditor.Graph.BTNode.Body") )
 						.BorderBackgroundColor( this, &SGraphNode_BehaviorTree::GetBackgroundColor )
 						.HAlign(HAlign_Fill)
@@ -413,14 +507,14 @@ void SGraphNode_BehaviorTree::UpdateGraphNode()
 					SNew(SBorder)
 					.BorderBackgroundColor(BehaviorTreeColors::Action::DragMarker)
 					.ColorAndOpacity(BehaviorTreeColors::Action::DragMarker)
-					.BorderImage(FEditorStyle::GetBrush("Graph.BTNode.Body"))
+					.BorderImage(FEditorStyle::GetBrush("BTEditor.Graph.BTNode.Body"))
 					.Visibility(this, &SGraphNode_BehaviorTree::GetDragOverMarkerVisibility)
 					[
 						SNew(SBox)
 						.HeightOverride(4)
 					]
 				]
-				//drag marker overlay
+				// Blueprint indicator overlay
 				+SOverlay::Slot()
 				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Top)
@@ -767,50 +861,7 @@ FReply SGraphNode_BehaviorTree::OnDrop( const FGeometry& MyGeometry, const FDrag
 FString	SGraphNode_BehaviorTree::GetDescription() const
 {
 	UBehaviorTreeGraphNode* StateNode = CastChecked<UBehaviorTreeGraphNode>(GraphNode);
-	UEdGraphPin* MyInputPin = StateNode->GetInputPin();
-	UEdGraphPin* MyParentOutputPin = NULL;
-	if (MyInputPin != NULL && MyInputPin->LinkedTo.Num() > 0)
-	{
-		MyParentOutputPin = MyInputPin->LinkedTo[0];
-	}
-
-	int32 Index = 0;
-
-	if (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL)
-	{
-		// show execution index (debugging purposes)
-		UBTNode* BTNode = Cast<UBTNode>(StateNode->NodeInstance);
-		Index = (BTNode && BTNode->GetExecutionIndex() < 0xffff) ? BTNode->GetExecutionIndex() : -1;
-
-		// special case: range of execution indices in composite decorator node
-		UBehaviorTreeGraphNode_CompositeDecorator* CompDecorator = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GraphNode);
-		if (CompDecorator && CompDecorator->FirstExecutionIndex != CompDecorator->LastExecutionIndex)
-		{
-			return FString::Printf( TEXT("(%d..%d) %s"),
-				CompDecorator->FirstExecutionIndex, CompDecorator->LastExecutionIndex, *StateNode->GetDescription());
-		}
-	}
-	else
-	{
-		// show child index
-	if (MyParentOutputPin != NULL)
-	{
-		for (Index = 0; Index < MyParentOutputPin->LinkedTo.Num(); ++Index)
-		{
-			if (MyParentOutputPin->LinkedTo[Index] == MyInputPin)
-			{
-				break;
-			}
-		}
-	}
-
-	if (!MyParentOutputPin || MyParentOutputPin->LinkedTo.Num() < 2 )
-	{
-		return FString::Printf( TEXT("%s"), StateNode ? *StateNode->GetDescription() : TEXT(""));
-	}
-	}
-
-	return FString::Printf( TEXT("(%d) %s"), Index, StateNode ? *StateNode->GetDescription() : TEXT(""));
+	return StateNode->GetDescription();
 }
 
 FString SGraphNode_BehaviorTree::GetPinTooltip(UEdGraphPin* GraphPinObj) const
@@ -836,14 +887,14 @@ void SGraphNode_BehaviorTree::CreatePinWidgets()
 	{
 		UEdGraphPin* MyPin = StateNode->Pins[PinIdx];
 		if (!MyPin->bHidden)
-	{
+		{
 			TSharedPtr<SGraphPin> NewPin = SNew(SBehaviorTreePin, MyPin)
 				.ToolTipText( this, &SGraphNode_BehaviorTree::GetPinTooltip, MyPin);
 
-		NewPin->SetIsEditable(IsEditable);
+			NewPin->SetIsEditable(IsEditable);
 
 			AddPin(NewPin.ToSharedRef());
-	}
+		}
 	}
 }
 
@@ -926,6 +977,122 @@ const FSlateBrush* SGraphNode_BehaviorTree::GetNameIcon() const
 	return BTGraphNode != nullptr ? FEditorStyle::GetBrush(BTGraphNode->GetNameIcon()) : FEditorStyle::GetBrush(TEXT("BTEditor.Graph.BTNode.Icon"));
 }
 
+static UBehaviorTreeGraphNode* GetParentNode(UEdGraphNode* GraphNode)
+{
+	UBehaviorTreeGraphNode* StateNode = CastChecked<UBehaviorTreeGraphNode>(GraphNode);
+	if(StateNode->ParentNode != nullptr)
+	{
+		StateNode = StateNode->ParentNode;
+	}
+	UEdGraphPin* MyInputPin = StateNode->GetInputPin();
+	UEdGraphPin* MyParentOutputPin = nullptr;
+	if (MyInputPin != nullptr && MyInputPin->LinkedTo.Num() > 0)
+	{
+		MyParentOutputPin = MyInputPin->LinkedTo[0];
+		if(MyParentOutputPin != nullptr)
+		{
+			if(MyParentOutputPin->GetOwningNode() != nullptr)
+			{
+				return CastChecked<UBehaviorTreeGraphNode>(MyParentOutputPin->GetOwningNode());
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+void SGraphNode_BehaviorTree::OnIndexHoverStateChanged(bool bHovered)
+{
+	UBehaviorTreeGraphNode* ParentNode = GetParentNode(GraphNode);
+	if(ParentNode != nullptr)
+	{
+		ParentNode->bHighlightChildNodeIndices = bHovered;
+	}
+}
+
+FSlateColor SGraphNode_BehaviorTree::GetIndexColor(bool bHovered) const
+{
+	UBehaviorTreeGraphNode* ParentNode = GetParentNode(GraphNode);
+	const bool bHighlightHover = bHovered || (ParentNode && ParentNode->bHighlightChildNodeIndices);
+	return bHighlightHover ? FEditorStyle::Get().GetSlateColor("BTEditor.Graph.BTNode.Index.HoveredColor") : FEditorStyle::Get().GetSlateColor("BTEditor.Graph.BTNode.Index.Color");
+}
+
+EVisibility SGraphNode_BehaviorTree::GetIndexVisibility() const
+{
+	// always hide the index on the root node
+	if(GraphNode->IsA(UBehaviorTreeGraphNode_Root::StaticClass()))
+	{
+		return EVisibility::Collapsed;
+	}
+
+	UBehaviorTreeGraphNode* StateNode = CastChecked<UBehaviorTreeGraphNode>(GraphNode);
+	UEdGraphPin* MyInputPin = StateNode->GetInputPin();
+	UEdGraphPin* MyParentOutputPin = NULL;
+	if (MyInputPin != NULL && MyInputPin->LinkedTo.Num() > 0)
+	{
+		MyParentOutputPin = MyInputPin->LinkedTo[0];
+	}
+
+	// Visible if we are in PIE or if we have siblings
+	const bool bIsVisible = (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL) || (MyParentOutputPin && MyParentOutputPin->LinkedTo.Num() > 1);
+	return bIsVisible ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+FText SGraphNode_BehaviorTree::GetIndexText() const
+{
+	UBehaviorTreeGraphNode* StateNode = CastChecked<UBehaviorTreeGraphNode>(GraphNode);
+	UEdGraphPin* MyInputPin = StateNode->GetInputPin();
+	UEdGraphPin* MyParentOutputPin = NULL;
+	if (MyInputPin != NULL && MyInputPin->LinkedTo.Num() > 0)
+	{
+		MyParentOutputPin = MyInputPin->LinkedTo[0];
+	}
+
+	int32 Index = 0;
+
+	if (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL)
+	{
+		// special case: range of execution indices in composite decorator node
+		UBehaviorTreeGraphNode_CompositeDecorator* CompDecorator = Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GraphNode);
+		if (CompDecorator && CompDecorator->FirstExecutionIndex != CompDecorator->LastExecutionIndex)
+		{
+			return FText::Format(LOCTEXT("CompositeDecoratorFormat", "{0}..{1}"), FText::AsNumber(CompDecorator->FirstExecutionIndex), FText::AsNumber(CompDecorator->LastExecutionIndex));
+		}
+
+		// show execution index (debugging purposes)
+		UBTNode* BTNode = Cast<UBTNode>(StateNode->NodeInstance);
+		Index = (BTNode && BTNode->GetExecutionIndex() < 0xffff) ? BTNode->GetExecutionIndex() : -1;
+	}
+	else
+	{
+		// show child index
+		if (MyParentOutputPin != NULL)
+		{
+			for (Index = 0; Index < MyParentOutputPin->LinkedTo.Num(); ++Index)
+			{
+				if (MyParentOutputPin->LinkedTo[Index] == MyInputPin)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	return FText::AsNumber(Index);
+}
+
+FText SGraphNode_BehaviorTree::GetIndexTooltipText() const
+{
+	if (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL)
+	{
+		return LOCTEXT("ExecutionIndexTooltip", "Execution index: this shows the order in which nodes are executed.");
+	}
+	else
+	{
+		return LOCTEXT("ChildIndexTooltip", "Child index: this shows the order in which child nodes are executed.");
+	}
+}
+
 EVisibility SGraphNode_BehaviorTree::GetBlueprintIconVisibility() const
 {
 	UBehaviorTreeGraphNode* BTGraphNode = Cast<UBehaviorTreeGraphNode>(GraphNode);
@@ -996,3 +1163,47 @@ void SGraphNode_BehaviorTree::GetOverlayBrushes(bool bSelected, const FVector2D 
 		}
 	}
 }
+
+TArray<FOverlayWidgetInfo> SGraphNode_BehaviorTree::GetOverlayWidgets(bool bSelected, const FVector2D& WidgetSize) const
+{
+	TArray<FOverlayWidgetInfo> Widgets;
+
+	check(NodeBody.IsValid());
+	check(IndexOverlay.IsValid());
+
+	FVector2D Origin(0.0f, 0.0f);
+
+	// build overlays for decorator sub-nodes
+	for(const auto& DecoratorWidget : DecoratorWidgets)
+	{
+		TArray<FOverlayWidgetInfo> OverlayWidgets = DecoratorWidget->GetOverlayWidgets(bSelected, WidgetSize);
+		for(auto& OverlayWidget : OverlayWidgets)
+		{
+			OverlayWidget.OverlayOffset.Y += Origin.Y;
+		}
+		Widgets.Append(OverlayWidgets);
+		Origin.Y += DecoratorWidget->GetDesiredSize().Y;
+	}
+
+	FOverlayWidgetInfo Overlay(IndexOverlay);
+	Overlay.OverlayOffset = FVector2D(WidgetSize.X - (IndexOverlay->GetDesiredSize().X * 0.5f), Origin.Y);
+	Widgets.Add(Overlay);
+
+	Origin.Y += NodeBody->GetDesiredSize().Y;
+
+	// build overlays for service sub-nodes
+	for(const auto& ServiceWidget : ServicesWidgets)
+	{
+		TArray<FOverlayWidgetInfo> OverlayWidgets = ServiceWidget->GetOverlayWidgets(bSelected, WidgetSize);
+		for(auto& OverlayWidget : OverlayWidgets)
+		{
+			OverlayWidget.OverlayOffset.Y += Origin.Y;
+		}
+		Widgets.Append(OverlayWidgets);
+		Origin.Y += ServiceWidget->GetDesiredSize().Y;
+	}
+
+	return Widgets;
+}
+
+#undef LOCTEXT_NAMESPACE

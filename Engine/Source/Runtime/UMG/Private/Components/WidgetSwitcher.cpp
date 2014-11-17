@@ -2,6 +2,8 @@
 
 #include "UMGPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE "UMG"
+
 /////////////////////////////////////////////////////
 // UWidgetSwitcher
 
@@ -9,6 +11,16 @@ UWidgetSwitcher::UWidgetSwitcher(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = true;
+
+	SWidgetSwitcher::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+}
+
+void UWidgetSwitcher::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyWidgetSwitcher.Reset();
 }
 
 int32 UWidgetSwitcher::GetNumWidgets() const
@@ -61,7 +73,11 @@ void UWidgetSwitcher::OnSlotRemoved(UPanelSlot* Slot)
 	// Remove the widget from the live slot if it exists.
 	if ( MyWidgetSwitcher.IsValid() )
 	{
-		MyWidgetSwitcher->RemoveSlot(Slot->Content->GetWidget());
+		TSharedPtr<SWidget> Widget = Slot->Content->GetCachedWidget();
+		if ( Widget.IsValid() )
+		{
+			MyWidgetSwitcher->RemoveSlot(Widget.ToSharedRef());
+		}
 	}
 }
 
@@ -87,3 +103,39 @@ void UWidgetSwitcher::SyncronizeProperties()
 
 	SetActiveWidgetIndex(ActiveWidgetIndex);
 }
+
+#if WITH_EDITOR
+
+const FSlateBrush* UWidgetSwitcher::GetEditorIcon()
+{
+	return FUMGStyle::Get().GetBrush("Widget.WidgetSwitcher");
+}
+
+void UWidgetSwitcher::OnDescendantSelected(UWidget* DescendantWidget)
+{
+	// Temporarily sets the active child to the selected child to make
+	// dragging and dropping easier in the editor.
+	UWidget* SelectedChild = UWidget::FindChildContainingDescendant(this, DescendantWidget);
+	if ( SelectedChild )
+	{
+		int32 OverrideIndex = GetChildIndex(SelectedChild);
+		if ( OverrideIndex != -1 && MyWidgetSwitcher.IsValid() )
+		{
+			MyWidgetSwitcher->SetActiveWidgetIndex(OverrideIndex);
+		}
+	}
+}
+
+void UWidgetSwitcher::OnDescendantDeselected(UWidget* DescendantWidget)
+{
+	if ( MyWidgetSwitcher.IsValid() )
+	{
+		MyWidgetSwitcher->SetActiveWidgetIndex(ActiveWidgetIndex);
+	}
+}
+
+#endif
+
+/////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

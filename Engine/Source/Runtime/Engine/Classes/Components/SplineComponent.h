@@ -80,6 +80,10 @@ class ENGINE_API USplineComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	void GetLocalLocationAndTangentAtSplinePoint(int32 PointIndex, FVector& LocalLocation, FVector& LocalTangent) const;
 
+	/** Get the distance along the spline at the spline point */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	float GetDistanceAlongSplineAtSplinePoint(int32 PointIndex) const;
+
 	/** Returns total length along this spline */
 	UFUNCTION(BlueprintCallable, Category=Spline) 
 	float GetSplineLength() const;
@@ -95,6 +99,10 @@ class ENGINE_API USplineComponent : public USceneComponent
 	/** Given a distance along the length of this spline, return a unit direction vector of the spline tangent there. */
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	FVector GetWorldDirectionAtDistanceAlongSpline(float Distance) const;
+
+	/** Given a distance along the length of this spline, return the tangent vector of the spline there. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector GetWorldTangentAtDistanceAlongSpline(float Distance) const;
 
 	/** Given a distance along the length of this spline, return a rotation corresponding to the spline's position and direction there. */
 	UFUNCTION(BlueprintCallable, Category = Spline)
@@ -114,7 +122,7 @@ class ENGINE_API USplineComponent : public USceneComponent
 
 	// UObject interface
 	virtual void PostLoad() override;
-	virtual void PostDuplicate(bool bDuplicateForPIE) override;
+	virtual void PostEditImport() override;
 #if WITH_EDITORONLY_DATA
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface

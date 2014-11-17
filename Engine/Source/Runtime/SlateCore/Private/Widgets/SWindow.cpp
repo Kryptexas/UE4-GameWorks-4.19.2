@@ -266,6 +266,9 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->InitialDesiredScreenPosition = WindowPosition;
 	this->InitialDesiredSize = WindowSize;
 
+	// Window visibility is currently driven by whether the window is interactive.
+	this->Visibility = TAttribute<EVisibility>::Create( TAttribute<EVisibility>::FGetter::CreateRaw(this, &SWindow::GetWindowVisibility) );
+
 	this->ConstructWindowInternals( bCreateTitleBar );
 	this->SetContent( InArgs._Content.Widget );
 }
@@ -338,7 +341,6 @@ FVector2D SWindow::ComputeWindowSizeForContent( FVector2D ContentSize )
 	//                  size reported here will be too large!
 	return ContentSize + FVector2D(0, SWindowDefs::DefaultTitleBarSize) + SWindowDefs::WindowBorderSize.GetDesiredSize();
 }
-
 
 void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 {
@@ -470,6 +472,7 @@ void SWindow::ConstructWindowInternals( const bool bCreateTitleBar )
 	}
 }
 
+
 /** Are any of our child windows active? */
 bool SWindow::HasActiveChildren() const
 {
@@ -487,7 +490,7 @@ bool SWindow::HasActiveChildren() const
 
 void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	if( Morpher.bIsActive && bHasEverBeenDrawn )
+	if( Morpher.bIsActive )
 	{
 		if(Morpher.bIsPendingPlay)
 		{
@@ -775,6 +778,13 @@ FSlateColor SWindow::GetWindowOutlineColor() const
 	return Style->OutlineColor;
 }
 
+EVisibility SWindow::GetWindowVisibility() const
+{
+	return ( AcceptsInput() || FSlateApplicationBase::Get().IsWindowHousingInteractiveTooltip(SharedThis(this)) )
+		? EVisibility::Visible
+		: EVisibility::HitTestInvisible;
+}
+
 void SWindow::UpdateMorphTargetShape( const FSlateRect& TargetShape )
 {
 	Morpher.TargetMorphShape = TargetShape;
@@ -917,6 +927,11 @@ void SWindow::RemovePopupLayerSlot( const TSharedRef<SWidget>& WidgetToRemove )
 bool SWindow::AppearsInTaskbar() const
 {
 	return !bIsPopupWindow && !bIsToolTipWindow && !bIsCursorDecoratorWindow;
+}
+
+void SWindow::SetOnWindowActivated( const FOnWindowActivated& InDelegate )
+{
+	OnWindowActivated = InDelegate;
 }
 
 void SWindow::SetOnWindowDeactivated( const FOnWindowDeactivated& InDelegate )
@@ -1199,6 +1214,10 @@ bool SWindow::OnIsActiveChanged( const FWindowActivateEvent& ActivateEvent )
 			WidgetToFocusOnActivate.Reset();
 		}
 	}
+	else
+	{
+		OnWindowActivated.ExecuteIfBound();
+	}
 
 	return true;
 }
@@ -1240,22 +1259,33 @@ bool SWindow::SupportsKeyboardFocus() const
 
 FReply SWindow::OnKeyboardFocusReceived( const FGeometry& MyGeometry, const FKeyboardFocusEvent& InKeyboardFocusEvent )
 {
-	// If we're becoming active and we were set to restore keyboard focus to a specific widget
-	// after reactivating, then do so now
-	TSharedPtr< SWidget > PinnedWidgetToFocusOnActivate( WidgetToFocusOnActivate.Pin() );
-
-	if( PinnedWidgetToFocusOnActivate.IsValid() && 
-		( InKeyboardFocusEvent.GetCause() == EKeyboardFocusCause::WindowActivate  || FSlateApplicationBase::Get().IsExternalUIOpened() ) )
+	if( InKeyboardFocusEvent.GetCause() == EKeyboardFocusCause::WindowActivate  || FSlateApplicationBase::Get().IsExternalUIOpened() )
 	{
 		TArray< TSharedRef<SWindow> > JustThisWindow;
 		{
 			JustThisWindow.Add( SharedThis(this) );
 		}
-
-		FWidgetPath WidgetToFocusPath;
-		if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, PinnedWidgetToFocusOnActivate.ToSharedRef(), WidgetToFocusPath ) )
+		
+		// If we're becoming active and we were set to restore keyboard focus to a specific widget
+		// after reactivating, then do so now
+		TSharedPtr< SWidget > PinnedWidgetToFocusOnActivate( WidgetToFocusOnActivate.Pin() );
+		
+		if(PinnedWidgetToFocusOnActivate.IsValid())
 		{
-			FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+			FWidgetPath WidgetToFocusPath;
+			if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, PinnedWidgetToFocusOnActivate.ToSharedRef(), WidgetToFocusPath ) )
+			{
+				FSlateApplicationBase::Get().SetKeyboardFocus( WidgetToFocusPath, EKeyboardFocusCause::SetDirectly );
+			}
+		}
+		else
+		{
+			FWidgetPath WindowWidgetPath;
+			if( FSlateWindowHelper::FindPathToWidget( JustThisWindow, AsShared(), WindowWidgetPath ) )
+			{
+				FWeakWidgetPath WeakWindowPath(WindowWidgetPath);
+				FSlateApplicationBase::Get().SetKeyboardFocus( WeakWindowPath.ToNextFocusedPath(EFocusMoveDirection::Next), EKeyboardFocusCause::SetDirectly );
+			}
 		}
 	}
 
@@ -1615,13 +1645,13 @@ SWindow::SWindow()
 	, bIsCursorDecoratorWindow( false )
 	, bInitiallyMaximized( false )
 	, bHasEverBeenShown( false )
-	, bHasEverBeenDrawn( false )
 	, bFocusWhenFirstShown(true)
 	, bActivateWhenFirstShown(true)
 	, bHasOSWindowBorder( false )
 	, bHasMinimizeButton( false )
 	, bHasMaximizeButton( false )
 	, bHasSizingFrame( false )
+    , bIsModalWindow( false )
 	, InitialDesiredScreenPosition( FVector2D::ZeroVector )
 	, InitialDesiredSize( FVector2D::ZeroVector )
 	, ScreenPosition( FVector2D::ZeroVector )
@@ -1634,6 +1664,7 @@ SWindow::SWindow()
 	, bShouldShowWindowContentDuringOverlay( false )
 	, ExpectedMaxWidth( INDEX_NONE )
 	, ExpectedMaxHeight( INDEX_NONE )
+	, TitleBar()
 {
 }
 

@@ -344,7 +344,7 @@ FBoundShaderStateRHIRef FMetalDynamicRHI::RHICreateBoundShaderState(
 FMetalShaderParameterCache::FMetalShaderParameterCache() :
 	GlobalUniformArraySize(-1)
 {
-	for (int32 ArrayIndex = 0; ArrayIndex < METAL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
+	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
 		PackedGlobalUniformDirty[ArrayIndex].HighVector = 0;
@@ -355,19 +355,19 @@ void FMetalShaderParameterCache::InitializeResources(int32 UniformArraySize)
 {
 	check(GlobalUniformArraySize == -1);
 	
-	PackedGlobalUniforms[0] = (uint8*)FMemory::Malloc(UniformArraySize * METAL_PACKED_TYPEINDEX_MAX);
-	PackedUniformsScratch[0] = (uint8*)FMemory::Malloc(UniformArraySize * METAL_PACKED_TYPEINDEX_MAX);
+	PackedGlobalUniforms[0] = (uint8*)FMemory::Malloc(UniformArraySize * CrossCompiler::PACKED_TYPEINDEX_MAX);
+	PackedUniformsScratch[0] = (uint8*)FMemory::Malloc(UniformArraySize * CrossCompiler::PACKED_TYPEINDEX_MAX);
 	
-	FMemory::Memzero(PackedGlobalUniforms[0], UniformArraySize * METAL_PACKED_TYPEINDEX_MAX);
-	FMemory::Memzero(PackedUniformsScratch[0], UniformArraySize * METAL_PACKED_TYPEINDEX_MAX);
-	for (int32 ArrayIndex = 1; ArrayIndex < METAL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
+	FMemory::Memzero(PackedGlobalUniforms[0], UniformArraySize * CrossCompiler::PACKED_TYPEINDEX_MAX);
+	FMemory::Memzero(PackedUniformsScratch[0], UniformArraySize * CrossCompiler::PACKED_TYPEINDEX_MAX);
+	for (int32 ArrayIndex = 1; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniforms[ArrayIndex] = PackedGlobalUniforms[ArrayIndex - 1] + UniformArraySize;
 		PackedUniformsScratch[ArrayIndex] = PackedUniformsScratch[ArrayIndex - 1] + UniformArraySize;
 	}
 	GlobalUniformArraySize = UniformArraySize;
 	
-	for (int32 ArrayIndex = 0; ArrayIndex < METAL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
+	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
 		PackedGlobalUniformDirty[ArrayIndex].HighVector = 0;
@@ -394,7 +394,7 @@ FMetalShaderParameterCache::~FMetalShaderParameterCache()
  */
 void FMetalShaderParameterCache::MarkAllDirty()
 {
-	for (int32 ArrayIndex = 0; ArrayIndex < METAL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
+	for (int32 ArrayIndex = 0; ArrayIndex < CrossCompiler::PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
 		PackedGlobalUniformDirty[ArrayIndex].HighVector = 0;//UniformArraySize / 16;
@@ -408,9 +408,9 @@ const int SizeOfFloat4 = 4 * sizeof(float);
  */
 void FMetalShaderParameterCache::Set(uint32 BufferIndexName, uint32 ByteOffset, uint32 NumBytes, const void* NewValues)
 {
-	uint32 BufferIndex = MetalPackedTypeNameToTypeIndex(BufferIndexName);
+	uint32 BufferIndex = CrossCompiler::PackedTypeNameToTypeIndex(BufferIndexName);
 	check(GlobalUniformArraySize != -1);
-	check(BufferIndex < METAL_PACKED_TYPEINDEX_MAX);
+	check(BufferIndex < CrossCompiler::PACKED_TYPEINDEX_MAX);
 	check(ByteOffset + NumBytes <= (uint32)GlobalUniformArraySize);
 	PackedGlobalUniformDirty[BufferIndex].LowVector = FMath::Min(PackedGlobalUniformDirty[BufferIndex].LowVector, ByteOffset / SizeOfFloat4);
 	PackedGlobalUniformDirty[BufferIndex].HighVector = FMath::Max(PackedGlobalUniformDirty[BufferIndex].HighVector, (ByteOffset + NumBytes + SizeOfFloat4 - 1) / SizeOfFloat4);
@@ -434,7 +434,7 @@ void FMetalShaderParameterCache::CommitPackedGlobals(int32 Stage, const FMetalSh
 			//check(SizeToUpload <= TotalSize);
 			SizeToUpload = TotalSize;
  /*
-			if (UniformBufferIndex == METAL_PACKED_TYPEINDEX_MEDIUMP)
+			if (UniformBufferIndex == CrossCompiler::PACKED_TYPEINDEX_MEDIUMP)
 			{
 				// Float4 -> Half4
 				SizeToUpload /= 2;
@@ -445,7 +445,7 @@ void FMetalShaderParameterCache::CommitPackedGlobals(int32 Stage, const FMetalSh
 			uint32 Offset = FMetalManager::Get()->AllocateFromRingBuffer(TotalSize);
 /*
 			// copy into the middle of the ring buffer
-			if (UniformBufferIndex == METAL_PACKED_TYPEINDEX_MEDIUMP)
+			if (UniformBufferIndex == CrossCompiler::PACKED_TYPEINDEX_MEDIUMP)
 			{
 				// Convert to half
 				const int NumVectors = PackedGlobalUniformDirty[UniformBufferIndex].HighVector;
@@ -462,19 +462,19 @@ void FMetalShaderParameterCache::CommitPackedGlobals(int32 Stage, const FMetalSh
 			else
  */
 			{
-				//check(UniformBufferIndex != METAL_PACKED_TYPEINDEX_LOWP);
+				//check(UniformBufferIndex != CrossCompiler::PACKED_TYPEINDEX_LOWP);
 //@todo-rco: Temp workaround
 				FMemory::Memcpy(((uint8*)[RingBuffer contents]) + Offset, PackedGlobalUniforms[UniformBufferIndex], FMath::Min(TotalSize, SizeToUpload));
 			}
 			
 			switch (Stage)
 			{
-				case METAL_SHADER_STAGE_VERTEX:
+				case CrossCompiler::SHADER_STAGE_VERTEX:
 //					NSLog(@"Uploading %d bytes to vertex", SizeToUpload);
 					[FMetalManager::GetContext() setVertexBuffer:RingBuffer offset:Offset atIndex:UniformBufferIndex];
 					break;
 
-				case METAL_SHADER_STAGE_PIXEL:
+				case CrossCompiler::SHADER_STAGE_PIXEL:
 //					NSLog(@"Uploading %d bytes to pixel", SizeToUpload);
 					[FMetalManager::GetContext() setFragmentBuffer:RingBuffer offset : Offset atIndex : UniformBufferIndex];
 					break;
@@ -494,12 +494,12 @@ void FMetalShaderParameterCache::CommitPackedUniformBuffers(TRefCountPtr<FMetalB
 //	SCOPE_CYCLE_COUNTER(STAT_MetalConstantBufferUpdateTime);
 	// Uniform Buffers are split into precision/type; the list of RHI UBs is traversed and if a new one was set, its
 	// contents are copied per precision/type into corresponding scratch buffers which are then uploaded to the program
-	if (Stage == METAL_SHADER_STAGE_PIXEL && !IsValidRef(BoundShaderState->PixelShader))
+	if (Stage == CrossCompiler::SHADER_STAGE_PIXEL && !IsValidRef(BoundShaderState->PixelShader))
 	{
 		return;
 	}
 
-	auto& Bindings = Stage == METAL_SHADER_STAGE_VERTEX ? BoundShaderState->VertexShader->Bindings : BoundShaderState->PixelShader->Bindings;
+	auto& Bindings = Stage == CrossCompiler::SHADER_STAGE_VERTEX ? BoundShaderState->VertexShader->Bindings : BoundShaderState->PixelShader->Bindings;
 	check(Bindings.NumUniformBuffers == RHIUniformBuffers.Num());
 	if (!Bindings.bHasRegularUniformBuffers)
 	{
@@ -537,7 +537,7 @@ void FMetalShaderParameterCache::CommitPackedUniformBuffers(TRefCountPtr<FMetalB
 			if (RHIUniformBuffer)
 			{
 				auto* UB = (FMetalUniformBuffer*)RHIUniformBuffer;
-				if (Stage == METAL_SHADER_STAGE_VERTEX)
+				if (Stage == CrossCompiler::SHADER_STAGE_VERTEX)
 				{
 					[FMetalManager::GetContext() setVertexBuffer:UB->Buffer offset:UB->Offset atIndex:BufferIndex];
 				}

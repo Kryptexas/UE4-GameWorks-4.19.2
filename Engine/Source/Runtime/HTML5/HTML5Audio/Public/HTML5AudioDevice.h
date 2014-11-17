@@ -29,6 +29,10 @@ class FALAudioDevice;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogALAudio, Log, All);
 
+//     2 UU == 1"
+// <=> 1 UU == 0.0127 m
+#define AUDIO_DISTANCE_FACTOR ( 0.0127f )
+
 /**
  * OpenAL implementation of FSoundBuffer, containing the wave data and format information.
  */

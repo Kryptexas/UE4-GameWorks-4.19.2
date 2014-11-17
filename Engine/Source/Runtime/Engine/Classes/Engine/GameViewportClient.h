@@ -19,6 +19,9 @@
 #include "Engine/ScriptViewportClient.h"
 #include "GameViewportClient.generated.h"
 
+class UGameInstance;
+class UNetDriver;
+
 /**
  * Enum of the different splitscreen types
  */
@@ -148,6 +151,8 @@ struct FDebugDisplayProperty
 
 };
 
+class ULocalPlayer;
+
 /**
  * Delegate type for when a screenshot has been captured
  *
@@ -210,6 +215,9 @@ protected:
 	UPROPERTY()
 	UWorld* World;
 
+	UPROPERTY()
+	UGameInstance* GameInstance;
+
 	/** If true will suppress the blue transition text messages. */
 	bool bSuppressTransitionMessage;
 
@@ -220,23 +228,9 @@ public:
 	/** see enum EViewModeIndex */
 	int32 ViewModeIndex;
 
-	/**
-	 * Debug console command to create a player.
-	 * @param ControllerId - The controller ID the player should accept input from.
-	 */
-	UFUNCTION(exec)
-	virtual void DebugCreatePlayer(int32 ControllerId);
-
 	/** Rotates controller ids among gameplayers, useful for testing splitscreen with only one controller. */
 	UFUNCTION(exec)
 	virtual void SSSwapControllers();
-
-	/**
-	 * Debug console command to remove the player with a given controller ID.
-	 * @param ControllerId - The controller ID to search for.
-	 */
-	UFUNCTION(exec)
-	virtual void DebugRemovePlayer(int32 ControllerId);
 
 	/** Exec for toggling the display of the title safe area */
 	UFUNCTION(exec)
@@ -249,9 +243,11 @@ public:
 	/** Returns a relative world context for this viewport.	 */
 	virtual UWorld* GetWorld() const override;
 
-	virtual void SetReferenceToWorldContext(struct FWorldContext& WorldContext);
-
 	class FSceneViewport* GetGameViewport();
+
+	UGameInstance* GetGameInstance() const;
+
+	virtual void Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance);
 
 public:
 	// Begin UObject Interface
@@ -322,14 +318,14 @@ public:
 	 * @param  ViewportContent	The widget to add.  Must be valid.
 	 * @param  ZOrder  The Z-order index for this widget.  Larger values will cause the widget to appear on top of widgets with lower values.
 	 */
-	void AddViewportWidgetContent( TSharedRef<class SWidget> ViewportContent, const int32 ZOrder = 0 );
+	virtual void AddViewportWidgetContent( TSharedRef<class SWidget> ViewportContent, const int32 ZOrder = 0 );
 
 	/**
 	 * Removes a previously-added widget from the Slate viewport
 	 *
 	 * @param	ViewportContent  The widget to remove.  Must be valid.
 	 */
-	void RemoveViewportWidgetContent( TSharedRef<class SWidget> ViewportContent );
+	virtual void RemoveViewportWidgetContent( TSharedRef<class SWidget> ViewportContent );
 
 
 	/**
@@ -412,37 +408,17 @@ public:
 	bool ShouldForceFullscreenViewport() const;
 
 	/**
-	 * Adds a new player.
-	 * @param ControllerId - The controller ID the player should accept input from.
-	 * @param OutError - If no player is returned, OutError will contain a string describing the reason.
-	 * @param SpawnActor - True if an actor should be spawned for the new player.
-	 * @return The player which was created.
-	 */
-	virtual class ULocalPlayer* CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
-
-	/**
-	 * Removes a player.
-	 * @param Player - The player to remove.
-	 * @return whether the player was successfully removed. Removal is not allowed while connected to a server.
-	 */
-	virtual bool RemovePlayer(class ULocalPlayer* ExPlayer);
-
-	/**
 	 * Initialize the game viewport.
 	 * @param OutError - If an error occurs, returns the error description.
 	 * @return False if an error occurred, true if the viewport was initialized successfully.
 	 */
-	virtual ULocalPlayer* Init(FString& OutError);
+	virtual ULocalPlayer* SetupInitialLocalPlayer(FString& OutError);
 
-	/**
-	 * Create the game's initial player at startup.  
-	 * Creates a player with a ControllerId of 0.
-	 *
-	 * @param	OutError	receives the error string if an error occurs while creating the player.
-	 *
-	 * @return	player that was created (NULL if failed).
-	 */
-	virtual ULocalPlayer* CreateInitialPlayer( FString& OutError );
+	DEPRECATED(4.4, "CreatePlayer is deprecated UGameInstance::CreateLocalPlayer instead.")
+	virtual ULocalPlayer* CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
+
+	DEPRECATED(4.4, "RemovePlayer is deprecated UGameInstance::RemoveLocalPlayer instead.")
+	virtual bool RemovePlayer(class ULocalPlayer* ExPlayer);
 
 	/** @return Returns the splitscreen type that is currently being used */
 	FORCEINLINE ESplitScreenType::Type GetCurrentSplitscreenConfiguration() const
@@ -458,6 +434,9 @@ public:
 
 	/** Called before rendering to allow the game viewport to allocate subregions to players. */
 	virtual void LayoutPlayers();
+
+	/** Allows game code to disable splitscreen (useful when in menus) */
+	void SetDisableSplitscreenOverride( const bool bDisabled );
 
 	/** called before rending subtitles to allow the game viewport to determine the size of the subtitle area
 	 * @param Min top left bounds of subtitle region (0 to 1)
@@ -534,21 +513,6 @@ public:
 	void NotifyPlayerRemoved( int32 PlayerIndex, class ULocalPlayer* RemovedPlayer );
 
 	/**
-	 * Adds a LocalPlayer to the local and global list of Players.
-	 *
-	 * @param	NewPlayer	the player to add
-	 * @param	ControllerId id of the controller associated with the player
-	 */
-	int32 AddLocalPlayer( class ULocalPlayer* NewPlayer, int32 ControllerId );
-
-	/**
-	 * Removes a LocalPlayer from the local and global list of Players.
-	 *
-	 * @param	ExistingPlayer	the player to remove
-	 */
-	int32 RemoveLocalPlayer( class ULocalPlayer* ExistingPlayer );
-
-	/**
 	 * Notification of server travel error messages, generally network connection related (package verification, client server handshaking, etc) 
 	 * generally not expected to handle the failure here, but provide notification to the user
 	 *
@@ -566,16 +530,6 @@ public:
 	 * @param	ErrorString	additional string detailing the error
 	 */
 	virtual void PeekNetworkFailureMessages(UWorld *World, UNetDriver *NetDriver, enum ENetworkFailure::Type FailureType, const FString& ErrorString);
-
-	/**
-	 * Retrieves a reference to a LocalPlayer.
-	 *
-	 * @param	PlayerIndex		if specified, returns the player at this index in the GamePlayers array.  Otherwise, returns
-	 *							the player associated with the owner scene.
-	 * @return	the player that owns this scene or is located in the specified index of the GamePlayers array.
-	 */
-	virtual void OnPrimaryPlayerSwitch(class ULocalPlayer* OldPrimaryPlayer, class ULocalPlayer* NewPrimaryPlayer);
-
 
 	/** Make sure all navigation objects have appropriate path rendering components set.  Called when EngineShowFlags.Navigation is set. */
 	virtual void VerifyPathRenderingComponents();
@@ -750,6 +704,9 @@ private:
 
 	/** Those sound stat flags which are enabled on this viewport */
 	static ESoundShowFlags::Type SoundShowFlags;
+
+	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
+	bool bDisableSplitScreenOverride;
 };
 
 

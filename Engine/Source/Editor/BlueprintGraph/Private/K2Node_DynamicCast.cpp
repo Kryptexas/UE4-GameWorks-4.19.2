@@ -3,6 +3,9 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "DynamicCastHandler.h"
+#include "EditorCategoryUtils.h"
+
+#define LOCTEXT_NAMESPACE "K2Node_DynamicCast"
 
 UK2Node_DynamicCast::UK2Node_DynamicCast(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -158,3 +161,10 @@ bool UK2Node_DynamicCast::HasExternalBlueprintDependencies(TArray<class UStruct*
 	}
 	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
+
+FText UK2Node_DynamicCast::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Utilities, LOCTEXT("ActionMenuCategory", "Casting"));
+}
+
+#undef LOCTEXT_NAMESPACE

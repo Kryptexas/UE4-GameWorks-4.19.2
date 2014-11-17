@@ -27,7 +27,7 @@ public:
 			&& VertexShader == Other.VertexShader
 			&& PixelShader == Other.PixelShader;
 	}
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View, FBoundShaderStateRHIRef ShaderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const;
 	void SetMeshRenderState(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
@@ -38,7 +38,7 @@ public:
 		const ElementDataType& ElementData
 		) const;
 
-	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
 
 	friend int32 Compare(const FVelocityDrawingPolicy& A, const FVelocityDrawingPolicy& B);
 

@@ -17,6 +17,17 @@ public class ShaderCompileWorker : ModuleRules
 			}
 			);
 
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"NetworkFile",
+				"PakFile",
+				"StreamingFile",
+				}
+			);
+		}
+
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Launch",

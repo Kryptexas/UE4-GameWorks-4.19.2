@@ -2,8 +2,8 @@
 
 #pragma once
 
-#include "InputScaleBias.h"
 #include "Animation/AnimNodeBase.h"
+#include "Animation/InputScaleBias.h"
 #include "AnimNode_TwoWayBlend.generated.h"
 
 // This represents a baked transition

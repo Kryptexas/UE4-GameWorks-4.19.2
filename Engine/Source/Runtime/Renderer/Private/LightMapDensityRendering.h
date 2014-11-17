@@ -296,11 +296,8 @@ public:
 			LightMapPolicy == Other.LightMapPolicy;
 	}
 
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View, FBoundShaderStateRHIRef ShaderState ) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
 	{
-		// Set the actual shader & vertex declaration state
-		RHICmdList.SetBoundShaderState(ShaderState);
-
 		// Set the base pass shader parameters for the material.
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy,*View);
 		PixelShader->SetParameters(RHICmdList, MaterialRenderProxy,View);
@@ -399,19 +396,15 @@ public:
 	 * as well as the shaders needed to draw the mesh
 	 * @return new bound shader state object
 	 */
-	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
 	{
-		FBoundShaderStateRHIRef BoundShaderState;
-
-		BoundShaderState = RHICreateBoundShaderState(
+		return FBoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 
 			VertexShader->GetVertexShader(),
 			GETSAFERHISHADER_HULL(HullShader), 
 			GETSAFERHISHADER_DOMAIN(DomainShader),
 			PixelShader->GetPixelShader(),
 			FGeometryShaderRHIRef());
-
-		return BoundShaderState;
 	}
 
 	friend int32 CompareDrawingPolicy(const TLightMapDensityDrawingPolicy& A,const TLightMapDensityDrawingPolicy& B)

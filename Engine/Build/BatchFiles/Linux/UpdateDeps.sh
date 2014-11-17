@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script will verify the downloaded zip file depenencies, unzip them and
+# This script will verify the downloaded zip file dependencies, unzip them and
 # apply linux-specific patches.  It tries to clean up any previous versions
 # using 'git clean' on certain directories.
 # WARNING: This script can be destructive so use with caution if you have
@@ -31,21 +31,41 @@ cd ${TOP_DIR}
 set -e
 trap "echo '==> An error occured while running UpdateDeps.sh'" ERR
 
-FILES="Optional.zip Required_1of3.zip Required_2of3.zip Required_3of3.zip"
-REQUIRED_SHA1SUMS=$SCRIPT_DIR/dependencies.sha1sums
-INSTALLED_SHA1SUMS=$REQUIRED_SHA1SUMS.installed
+DEPENDENCIES=$SCRIPT_DIR/dependencies.txt
+INSTALLED_DEPENDENCIES=${DEPENDENCIES%.txt}.installed
 
+#TODO: Move these hardcodings out of this file
 PERFORCE_ARCHIVE=$ARCHIVE_ROOT/p4api.tgz
-STEAM_ARCHIVE=$ARCHIVE_ROOT/steamworks_sdk_129.zip
-FBX_ARCHIVE=$ARCHIVE_ROOT/fbx20142_1_fbxsdk_linux.tar.gz
+STEAM_ARCHIVE=$ARCHIVE_ROOT/steamworks_sdk_129a.zip
+
+# Make it super easy for users of certain linux distributions.
+CheckDistroDependencies() {
+  echo "==> Checking build dependencies"
+  if [ "$(lsb_release --id)" = "Distributor ID:	Ubuntu" -o "$(lsb_release --id)" = "Distributor ID:	Debian" ]; then
+    # Install all necessary dependencies
+    DEPS="libqt4-dev
+      libglew-dev
+      dos2unix 
+      clang-3.3"
+
+    for DEP in $DEPS; do
+      if ! dpkg -s $DEP > /dev/null 2>&1; then
+        echo "Attempting installation of missing package: $DEP"
+        set -x
+        sudo apt-get install $DEP
+        set +x
+      fi
+    done
+  fi
+}
 
 CheckInstalled() {
   echo "==> Checking existing install"
   # Phase one, check sha1 sums of previously installed files.
-  if [ -f $INSTALLED_SHA1SUMS ]; then
-    if [ "`cat $INSTALLED_SHA1SUMS`" = "`cat $REQUIRED_SHA1SUMS`" ]; then
+  if [ -f $INSTALLED_DEPENDENCIES ]; then
+    if [ "`cat $INSTALLED_DEPENDENCIES`" = "`cat $DEPENDENCIES`" ]; then
       echo "Dependencies are up-to-date."
-      echo "(remove $INSTALLED_SHA1SUMS file and re-run to force install)."
+      echo "(remove $INSTALLED_DEPENDENCIES file and re-run to force install)."
       exit 0
     else
       echo "Installed dependencies are out-of-date."
@@ -56,35 +76,39 @@ CheckInstalled() {
 }
 
 Download() {
-  # For those archives that are missing some can be downloaded automatically using curl
-  # The steamworks SDK lives on a standard public URL but seems to be authorised based
-  # on source IP for a certain amount of time, afterwhich we get a 401 error.
-  #if [ ! -f $STEAM_ARCHIVE ]; then
-  #  echo "==> Downloading steamworks SDK"
-  #  curl --progress -o $STEAM_ARCHIVE https://partner.steamgames.com/downloads/steamworks_sdk_129.zip
-  #fi
-  if [ ! -f $PERFORCE_ARCHIVE ]; then
-	echo "==> Downloading p4api.tgz"
-    curl --progress -o $PERFORCE_ARCHIVE http://ftp.perforce.com/perforce/r12.1/bin.linux26x86_64/p4api.tgz
-  fi
-  if [ ! -f $FBX_ARCHIVE ]; then
-	echo "==> Downloading FBX SDK"
-	curl --progress -o $FBX_ARCHIVE http://images.autodesk.com/adsk/files/fbx20142_1_fbxsdk_linux.tar.gz
-  fi
+  # For those archives that are missing some can be downloaded automatically
+  # using curl.
+  cat $DEPENDENCIES | while read line; do
+    DEP_URL=`echo $line | cut -d " " -f 2`
+    DEP_WALLED=`echo $line | cut -d " " -f 3`
+    DEP_FILE=$(basename $DEP_URL)
+    if [ ! -f $ARCHIVE_ROOT/$DEP_FILE ]; then
+      if [ "$DEP_WALLED" -eq 0 ]; then
+        echo "==> Downloading $DEP_FILE"
+        curl --progress -o $ARCHIVE_ROOT/$DEP_FILE $DEP_URL
+      fi
+    fi
+  done
 }
 
 VerifyDownloads() {
   echo "==> Verifying downloaded archives"
   cd $ARCHIVE_ROOT
-  if ! sha1sum -c $REQUIRED_SHA1SUMS; then
-	echo ""
-    echo "ERROR: One or more archives files are missing or out-of-date."
-	echo "Please download zip files from github release page and place them in "
-	echo "'$ARCHIVE_ROOT'."
-	echo "If you have already downloaded them somewhere else then you can pass "
-	echo "the location as the first argument to this script."
-    exit 1
-  fi
+  cat $DEPENDENCIES | while read line; do
+    DEP_HASH=`echo $line | cut -d " " -f 1`
+    DEP_URL=`echo $line | cut -d " " -f 2`
+    DEP_FILE=$(basename $DEP_URL)
+    if ! echo "$DEP_HASH  $DEP_FILE" | sha1sum -c -; then
+      echo ""
+      echo "ERROR: Missing or out-of-date dependency: $DEP_FILE"
+      echo "Please download the following file to $ARCHIVE_ROOT:"
+      echo "  $DEP_URL"
+      echo "If you have downloaded these files somewhere else you can"
+      echo "pass the location as the first argument to this script."
+      exit 1
+    fi
+  done
+
   cd ${TOP_DIR}
 }
 
@@ -107,6 +131,7 @@ ExtractArchives() {
     Engine/Binaries
     Engine/Source/ThirdParty
     Engine/Plugins/Script/ScriptGeneratorPlugin/Binaries
+    Engine/Plugins/Messaging/UdpMessaging/Binaries
     Engine/Content
     Engine/Documentation
     Engine/Extras
@@ -118,14 +143,19 @@ ExtractArchives() {
 
   echo "==> Installing dependencies"
   # Extract files and write new sha1 files.
-  for file in $FILES; do
-    file_full=$ARCHIVE_ROOT/$file
+  cat $DEPENDENCIES | while read line; do
+    DEP_URL=`echo $line | cut -d " " -f 2`
+    if [[ $(dirname $DEP_URL) != https://github.com/EpicGames/* ]]; then
+      continue
+    fi
+    DEP_FILE=$(basename $DEP_URL)
+    file_full=$ARCHIVE_ROOT/$DEP_FILE
     if [ ! -f $file_full ]; then
       echo "Zip file dependency not found: $file_full"
       exit 1
     fi
     echo "Extracting $file_full"
-    unzip -q $file_full
+    unzip -q -n $file_full
   done
 }
 
@@ -182,16 +212,30 @@ ApplyPatches() {
   chmod +x config.guess
   cd -
 
-  cd ICU/icu4c-51_2/source/
-  chmod +x configure
-  chmod +x config.sub
-  chmod +x config.guess
+  cd SDL2/
+  pwd
+  tar xf SDL2-2.0.3/build/SDL2-2.0.3.tar.gz -C SDL2-2.0.3/build
+  rm -f DisplayServerExtensions/bin/libdsext.a
+  patch -f -p1 < ${SCRIPT_DIR}/SDL2.patch
   cd -
 
-  patch -p1 < ${SCRIPT_DIR}/hlslcc.patch
-  patch -p1 < ${SCRIPT_DIR}/nvtesslib.patch
-  patch -p1 < ${SCRIPT_DIR}/HACD.patch
-  patch -p1 < ${SCRIPT_DIR}/mcpp.patch
+  # This needs to be moved out of the way as the LinuxToolChain.cs
+  # Links via -l and not via path name so will pick the .so instead
+  cd FBX/2014.2.1/
+  pwd
+  rm -f lib/linux/x86_64-unknown-linux-gnu/libfbxsdk.so
+  cd -
+
+  cd ${TOP_DIR}
+}
+
+RenameContent() {
+  echo "==> Correcting Filename case"
+  cd Engine/Content
+  echo "PWD=$PWD"
+
+  find . -name "*.PNG" -exec rename 's/\.PNG$/\.png/' {} \;
+
   cd ${TOP_DIR}
 }
 
@@ -206,42 +250,38 @@ InstallPerforce() {
 
 InstallSteamworks() {
   echo "==> Installing Steamworks SDK"
-  rm -rf Engine/Source/ThirdParty/Steamworks/Steamv129
-  mkdir Engine/Source/ThirdParty/Steamworks/Steamv129
-  cd Engine/Source/ThirdParty/Steamworks/Steamv129
+  rm -rf Engine/Source/ThirdParty/Steamworks/Steamv129a
+  mkdir Engine/Source/ThirdParty/Steamworks/Steamv129a
+  cd Engine/Source/ThirdParty/Steamworks/Steamv129a
   unzip -q $STEAM_ARCHIVE
   cd ${TOP_DIR}
   mkdir -p Engine/Binaries/Linux/
   rm -f Engine/Binaries/Linux/libsteam_api.so
-  ln -s Engine/Source/ThirdParty/Steamworks/Steamv129/sdk/redistributable_bin/linux64/libsteam_api.so Engine/Binaries/Linux/
-}
-
-InstallFBX() {
-  echo "==> Installing FBX"
-  cd Engine/Source/ThirdParty/FBX
-  tar xf $FBX_ARCHIVE
-  rm -rf fbx
-  mkdir fbx
-  yes yes | ./fbx20142_1_fbxsdk_linux fbx > /dev/null
-  rm -rf 2014.2.1/lib/linux
-  mkdir 2014.2.1/lib/linux
-  cp fbx/lib/gcc4/x64/release/libfbxsdk.a 2014.2.1/lib/linux
+  cd Engine/Binaries/Linux
+  ln -s ../../Source/ThirdParty/Steamworks/Steamv129a/sdk/redistributable_bin/linux64/libsteam_api.so
   cd ${TOP_DIR}
 }
 
 UpdateInstallStamp() {
-  echo "==> Updating install stamp ($INSTALLED_SHA1SUMS)"
-  cp $REQUIRED_SHA1SUMS $INSTALLED_SHA1SUMS
+  echo "==> Updating install stamp ($INSTALLED_DEPENDENCIES)"
+  cp $DEPENDENCIES $INSTALLED_DEPENDENCIES
 }
 
+CheckDistroDependencies
 CheckInstalled
 Download
 VerifyDownloads
 ExtractArchives
 ApplyPatches
-InstallFBX
+RenameContent
 InstallPerforce
 InstallSteamworks
 UpdateInstallStamp
 
 echo "********** SUCCESS ****************"
+
+# Once we've successfully updated the deps we need to rebuild the
+# ThirdParty modules.  This is mostly so that we get everything built
+# with -fPIC.  BuildThirdParty.sh is a seperate script so that it can
+# be run repeatedly and independently of UpdateDeps.sh if needed.
+# $SCRIPT_DIR/BuildThirdParty.sh

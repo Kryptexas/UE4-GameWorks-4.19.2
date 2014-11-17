@@ -42,7 +42,34 @@ namespace AutomationTool
 
 		private static void CreatePlatformsFromAssembly(Assembly ScriptAssembly)
 		{
-			var AllTypes = ScriptAssembly.GetTypes();
+			Log("Looking for platforms in {0}", ScriptAssembly.Location);
+			Type[] AllTypes = null;
+			try
+			{
+				AllTypes = ScriptAssembly.GetTypes();
+			}
+			catch (Exception Ex)
+			{
+				LogError("Failed to get assembly types for {0}", ScriptAssembly.Location);
+				if (Ex is ReflectionTypeLoadException)
+				{					
+					var TypeLoadException = (ReflectionTypeLoadException)Ex;
+					if (!IsNullOrEmpty(TypeLoadException.LoaderExceptions))
+					{
+						LogError("Loader Exceptions:");
+						foreach (var LoaderException in TypeLoadException.LoaderExceptions)
+						{
+							Log(System.Diagnostics.TraceEventType.Error, LoaderException);
+						}
+					}
+					else
+					{
+						Log("No Loader Exceptions available.");
+					}
+				}
+				// Re-throw, this is still a critical error!
+				throw Ex;
+			}
 			foreach (var PotentialPlatformType in AllTypes)
 			{
 				if (PotentialPlatformType != typeof(Platform) && typeof(Platform).IsAssignableFrom(PotentialPlatformType) && !PotentialPlatformType.IsAbstract)
@@ -364,6 +391,14 @@ namespace AutomationTool
 			return false;
 		}
 
+        /// <summary>
+        /// Returns platform specific command line options for UnrealPak
+        /// </summary>
+        public virtual string GetPlatformPakCommandLine()
+        {
+            return "";
+        }
+
 		#region Hooks
 
 		public virtual void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
@@ -374,6 +409,15 @@ namespace AutomationTool
 		public virtual void PostBuildTarget(UE4Build Build, string ProjectName, string UProjectPath, string Config)
 		{
 
+		}
+
+		/// <summary>
+		/// General purpose command to run generic string commands inside the platform interfeace
+		/// </summary>
+		/// <param name="Command"></param>
+		public virtual int RunCommand(string Command)
+		{
+			return 0;
 		}
 
 		public virtual bool ShouldUseManifestForUBTBuilds(string AddArgs)

@@ -44,6 +44,8 @@
 #include "LevelEditor.h"
 #include "SCreateAssetFromActor.h"
 
+#include "Editor/ActorPositioning.h"
+
 #include "Developer/DirectoryWatcher/Public/DirectoryWatcherModule.h"
 
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
@@ -78,6 +80,9 @@
 #include "MRUFavoritesList.h"
 #include "EditorStyle.h"
 #include "EngineBuildSettings.h"
+
+#include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
+#include "EngineAnalytics.h"
 
 // AIMdule
 #include "BehaviorTree/BehaviorTreeManager.h"
@@ -359,13 +364,18 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	// Call base.
 	UEngine::Init(InEngineLoop);
 
-	if( !FEngineBuildSettings::IsInternalBuild() &&
-		!FEngineBuildSettings::IsPerforceBuild() && 
-		!FApp::IsBenchmarking() &&
-		!GIsDemoMode && 
-		!IsRunningCommandlet() &&
-		!FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher") ) &&
-		!FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher") ) )
+	// Specify "-ForceLauncher" on the command-line to always open the launcher, even in unusual cases.  This is useful for debugging the Launcher startup.
+	const bool bForceLauncherToOpen = FParse::Param( FCommandLine::Get(),TEXT( "ForceLauncher" ) );
+
+	if( bForceLauncherToOpen ||
+		( !FEngineBuildSettings::IsInternalBuild() &&
+		  !FEngineBuildSettings::IsPerforceBuild() && 
+		  !FPlatformMisc::IsDebuggerPresent() &&	// Don't spawn launcher while running in the Visual Studio debugger by default
+		  !FApp::IsBenchmarking() &&
+		  !GIsDemoMode && 
+		  !IsRunningCommandlet() &&
+		  !FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher") ) &&
+		  !FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher") ) ) )
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if( DesktopPlatform != NULL )
@@ -427,14 +437,15 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
 void UEditorEngine::HandleSettingChanged( FName Name )
 {
-	if (Name == FName(TEXT("ColorVisionDeficiencyPreviewType")))
+	// When settings are reset to default, the property name will be "None" so make sure that case is handled.
+	if (Name == FName(TEXT("ColorVisionDeficiencyPreviewType")) || Name == NAME_None)
 	{
 		uint32 DeficiencyType = (uint32)GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue();
 		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType(DeficiencyType);
 
 		GEngine->Exec(NULL, TEXT("RecompileShaders SlateElementPixelShader"));
 	}
-	else if (Name == FName("SelectionColor"))
+	if (Name == FName("SelectionColor") || Name == NAME_None)
 	{
 		// Selection outline color and material color use the same color but sometimes the selected material color can be overidden so these need to be set independently
 		GEngine->SetSelectedMaterialColor(GetDefault<UEditorStyleSettings>()->SelectionColor);
@@ -478,6 +489,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FCoreDelegates::ModalErrorMessage.BindUObject(this, &UEditorEngine::OnModalMessageDialog);
 	FCoreDelegates::ShouldLoadOnTop.BindUObject(this, &UEditorEngine::OnShouldLoadOnTop);
 	FCoreDelegates::PreWorldOriginOffset.AddUObject(this, &UEditorEngine::PreWorldOriginOffset);
+	FCoreDelegates::OnAssetLoaded.AddUObject(this, &UEditorEngine::OnAssetLoaded);
 	FWorldDelegates::LevelAddedToWorld.AddUObject(this, &UEditorEngine::OnLevelAddedToWorld);
 	FWorldDelegates::LevelRemovedFromWorld.AddUObject(this, &UEditorEngine::OnLevelRemovedFromWorld);
 	FLevelStreamingGCHelper::OnGCStreamedOutLevels.AddUObject(this, &UEditorEngine::OnGCStreamedOutLevels);
@@ -490,6 +502,10 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Init transactioning.
 	Trans = CreateTrans();
+
+	// Load all of the runtime modules that the game needs.  The game is part of the editor, so we'll need these loaded.
+	UGameEngine::LoadRuntimeEngineStartupModules();
+
 
 	// Load all editor modules here
 	{
@@ -542,29 +558,17 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
 		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
-		FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
+		FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
 
 		if (!IsRunningCommandlet())
 		{
+			FModuleManager::Get().LoadModule(TEXT("EditorLiveStreaming"));
 			FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
-		}
-
-		if ( FParse::Param(FCommandLine::Get(), TEXT("umg")) )
-		{
-			FModuleManager::Get().LoadModule(TEXT("UMGEditor"));
 		}
 
 		if( FParse::Param( FCommandLine::Get(),TEXT( "PListEditor" ) ) )
 		{
 			FModuleManager::Get().LoadModule(TEXT("PListEditor"));
-		}
-		
-		//check if we need to load behavior tree editor module (it could be loaded earlier) 
-		bool bBehaviorTreeEditorEnabled = false;
-		GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeEditorEnabled"), bBehaviorTreeEditorEnabled, GEngineIni);
-		if ( (GetDefault<UEditorExperimentalSettings>()->bBehaviorTreeEditor || bBehaviorTreeEditorEnabled) && UBehaviorTreeManager::IsBehaviorTreeUsageEnabled() && !FModuleManager::Get().IsModuleLoaded(TEXT("BehaviorTreeEditor")))
-		{
-			FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
 		}
 
 		bool bEnvironmentQueryEditor = false;
@@ -672,7 +676,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	if (GameUserSettings)
 	{
 		GameUserSettings->LoadSettings();
-		GameUserSettings->ApplySettings();
+		GameUserSettings->ApplySettings(true);
 	}
 
 	UEditorStyleSettings* Settings = GetMutableDefault<UEditorStyleSettings>();
@@ -732,6 +736,7 @@ void UEditorEngine::FinishDestroy()
 		FCoreDelegates::ModalErrorMessage.Unbind();
 		FCoreDelegates::ShouldLoadOnTop.Unbind();
 		FCoreDelegates::PreWorldOriginOffset.RemoveAll(this);
+		FCoreDelegates::OnAssetLoaded.RemoveAll(this);
 		FWorldDelegates::LevelAddedToWorld.RemoveAll(this);
 		FWorldDelegates::LevelRemovedFromWorld.RemoveAll(this);
 		FLevelStreamingGCHelper::OnGCStreamedOutLevels.RemoveAll(this);
@@ -849,7 +854,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.	
-		StaticTick(DeltaSeconds, AsyncLoadingTimeLimit / 1000.f);
+		StaticTick(DeltaSeconds, bAsyncLoadingUseFullTimeLimit, AsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// Look for realtime flags.
@@ -1864,14 +1869,24 @@ void UEditorEngine::CloseEditedWorldAssets(UWorld* InWorld)
 
 	for(int32 i=0; i<AllAssets.Num(); i++)
 	{
-		UWorld* AssetWorld = AllAssets[i]->GetTypedOuter<UWorld>();
+		UObject* Asset = AllAssets[i];
+		UWorld* AssetWorld = Asset->GetTypedOuter<UWorld>();
+
+		if ( !AssetWorld )
+		{
+			// This might be a world, itself
+			AssetWorld = Cast<UWorld>(Asset);
+		}
 
 		if (AssetWorld && ClosingWorlds.Contains(AssetWorld))
-		{		
-			IAssetEditorInstance* EditorInstance = EditorManager.FindEditorForAsset(AllAssets[i], false);
-			if(EditorInstance != NULL)
+		{
+			const TArray<IAssetEditorInstance*> AssetEditors = EditorManager.FindEditorsForAsset(Asset);
+			for (IAssetEditorInstance* EditorInstance : AssetEditors )
 			{
-				EditorInstance->CloseWindow();
+				if (EditorInstance != NULL)
+				{
+					EditorInstance->CloseWindow();
+				}
 			}
 		}
 	}
@@ -2586,6 +2601,10 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 					{
 						Obj->PostEditChange();
 						GEditor->BroadcastObjectReimported(Obj);
+						if (FEngineAnalytics::IsAvailable())
+						{
+							FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.AssetReimported"));
+						}
 						bSuccess = true;
 					}
 					else if( Result == EReimportResult::Cancelled )
@@ -3165,7 +3184,14 @@ void UEditorEngine::SelectLevelInLevelBrowser( bool bDeselectOthers )
 	}
 
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	LevelEditorModule.SummonLevelBrowser();
+	if (FParse::Param(FCommandLine::Get(), TEXT("oldlevels")))
+	{
+		LevelEditorModule.SummonLevelBrowser();
+	}
+	else
+	{
+		LevelEditorModule.SummonWorldBrowserHierarchy();
+	}
 }
 
 void UEditorEngine::DeselectLevelInLevelBrowser()
@@ -3178,9 +3204,16 @@ void UEditorEngine::DeselectLevelInLevelBrowser()
 			Actor->GetWorld()->DeSelectLevel( Actor->GetLevel() );
 		}
 	}
-
+	
 	FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
-	LevelEditorModule.SummonLevelBrowser();
+	if (FParse::Param(FCommandLine::Get(), TEXT("oldlevels")))
+	{
+		LevelEditorModule.SummonLevelBrowser();
+	}
+	else
+	{
+		LevelEditorModule.SummonWorldBrowserHierarchy();
+	}
 }
 
 void UEditorEngine::SelectAllActorsControlledByMatinee()
@@ -4629,46 +4662,14 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UStruct* Owne
 	return FoundText.ToString();
 }
 
-AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FVector* ActorLocation, bool bUseSurfaceOrientation, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactoryOnCurrentSelection( UActorFactory* Factory, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
 {
 	// ensure that all selected assets are loaded
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
-	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), ActorLocation, bUseSurfaceOrientation, ObjectFlags );
+	return UseActorFactory(Factory, FAssetData( GetSelectedObjects()->GetTop<UObject>() ), InActorTransform, ObjectFlags );
 }
 
-/**
- * Corrects the orientation if the mesh if placed on a mesh 
- * and applies static mesh tool settings if applicable. 
- *
- * @param	Actor					The static mesh or speed tree actor that was placed.
- * @param	bUseSurfaceOrientation	When true, changes the mesh orientation to reflect the surface.
- */
-void OnPlaceStaticMeshActor( AActor* Actor, bool bUseSurfaceOrientation )
-{
-	check( Actor );
-
-	if( Actor->IsA(AStaticMeshActor::StaticClass())  && bUseSurfaceOrientation )
-	{
-		AStaticMeshActor* MeshActor = CastChecked<AStaticMeshActor>(Actor);
-		if( bUseSurfaceOrientation )
-		{
-			MeshActor->SetActorRotation(GEditor->ClickPlane.SafeNormal().Rotation());
-
-			// This is necessary because static meshes are authored along the vertical axis rather than
-			// the X axis, as the surface orientation code expects.  To compensate for this, we add 90
-			// degrees to the static mesh's Pitch.
-
-			FRotator Rot = MeshActor->GetActorRotation();
-			Rot.Pitch -= 90.f;
-			MeshActor->SetActorRotation(Rot);
-		}
-
-		MeshActor->UpdateComponentTransforms();
-	}
-}
-
-
-AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FVector* ActorLocation, bool bUseSurfaceOrientation, EObjectFlags ObjectFlags )
+AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData& AssetData, const FTransform* InActorTransform, EObjectFlags ObjectFlags )
 {
 	check( Factory );
 
@@ -4696,47 +4697,7 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 			return NULL;
 		}
 
-		FVector Collision = NewActorTemplate->GetPlacementExtent();
-
-		// Get cursor origin and direction in world space.
-		FViewportCursorLocation CursorLocation = GCurrentLevelEditingViewportClient->GetCursorWorldLocationFromMousePos();
-
-		// Position the actor relative to the mouse?
-		FVector Location = FVector::ZeroVector;
-		HHitProxy* HitProxy = NULL;
-		if ( ActorLocation )
-		{
-			Location = *ActorLocation;
-		}
-		else
-		{
-			FSnappingUtils::SnapPointToGrid( ClickLocation, FVector(0, 0, 0) );
-
-			float DistanceMultiplier = 1.0f;
-			if( CursorLocation.GetViewportType() != LVT_Perspective )
-			{
-				// If an asset was dropped in an orthographic view,
-				// adjust the location so the asset will not be positioned at the camera origin (which is at the edge of the world for ortho cams)
-				DistanceMultiplier = HALF_WORLD_MAX;
-			}
-
-			const FIntPoint CursorPos = CursorLocation.GetCursorPos();
-			HitProxy = GCurrentLevelEditingViewportClient->Viewport->GetHitProxy( CursorPos.X, CursorPos.Y );
-			if( HitProxy == NULL )
-			{
-				// If the hit proxy is null, we clicked on the background so we need to calculate our own click location since the old one will be off at the worlds edge somewhere.
-				ClickLocation = CursorLocation.GetOrigin() + CursorLocation.GetDirection() * DistanceMultiplier;
-			}
-
-			// Calculate the new actors location from the mouse click location and collision information.
-			Location = ClickLocation + ClickPlane * (FVector::BoxPushOut(ClickPlane, Collision) + 0.1);
-
-			FSnappingUtils::SnapPointToGrid( Location, FVector(0, 0, 0) );
-		}
-
-		// Orient the new actor with the surface normal?
-		const FRotator SurfaceOrientation( ClickPlane.Rotation() );
-		const FRotator* const Rotation = bUseSurfaceOrientation ? &SurfaceOrientation : NULL;
+		const FTransform ActorTransform = InActorTransform ? *InActorTransform : FActorPositioning::GetCurrentViewportPlacementTransform(*NewActorTemplate);
 
 		ULevel* DesiredLevel = GWorld->GetCurrentLevel();
 
@@ -4750,18 +4711,9 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 				const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActor", "Create Actor") );
 
 				// Create the actor.
-				Actor = Factory->CreateActor( Asset, DesiredLevel, Location, Rotation, ObjectFlags );
+				Actor = Factory->CreateActor( Asset, DesiredLevel, ActorTransform, ObjectFlags );
 				if(Actor != NULL)
 				{
-					// Apply any static mesh tool settings if we placed a static mesh. 
-					OnPlaceStaticMeshActor( Actor, bUseSurfaceOrientation );
-
-					if( !ActorLocation && CursorLocation.GetViewportType() == LVT_Perspective && HitProxy == NULL  )
-					{
-						// Move the actor in front of the camera if the cursor location is in the perspective viewport and we dont have a valid hit proxy (which would place the actor somewhere else)
-						MoveActorInFrontOfCamera( *Actor, CursorLocation.GetOrigin(), CursorLocation.GetDirection() );
-					}
-
 					SelectNone( false, true );
 					SelectActor( Actor, true, true );
 					Actor->InvalidateLightingCache();
@@ -5055,13 +5007,12 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 		ULevel* Level = OldActor->GetLevel();
 		AActor* NewActor = NULL;
 
-		const FVector OldLocation = OldActor->GetActorLocation();
-		const FRotator OldRotation = OldActor->GetActorRotation();
+		const FTransform OldTransform = OldActor->ActorToWorld();
 
 		// create the actor
 		if (Factory != NULL)
 		{
-			NewActor = Factory->CreateActor( Asset, Level, OldLocation, &OldRotation);
+			NewActor = Factory->CreateActor( Asset, Level, OldTransform);
 			// For blueprints, try to copy over properties
 			if (Factory->IsA(UActorFactoryBlueprint::StaticClass()))
 			{
@@ -5080,7 +5031,10 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 		{
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.OverrideLevel = Level;
-			NewActor = World->SpawnActor( NewActorClass, &OldLocation, &OldRotation,	SpawnInfo );
+
+			const auto Rotation = OldTransform.GetRotation().Rotator();
+			const auto Translation = OldTransform.GetTranslation();
+			NewActor = World->SpawnActor( NewActorClass, &Translation, &Rotation, SpawnInfo );
 		}
 		if ( NewActor != NULL )
 		{
@@ -5677,7 +5631,14 @@ void UEditorEngine::ConvertActors( const TArray<AActor*>& ActorsToConvert, UClas
 			);
 
 		TSharedPtr<SWindow> RootWindow = FGlobalTabmanager::Get()->GetRootWindow();
-		FSlateApplication::Get().AddWindowAsNativeChild(CreateAssetFromActorWindow.ToSharedRef(), RootWindow.ToSharedRef());
+		if (RootWindow.IsValid())
+		{
+			FSlateApplication::Get().AddWindowAsNativeChild(CreateAssetFromActorWindow.ToSharedRef(), RootWindow.ToSharedRef());
+		}
+		else
+		{
+			FSlateApplication::Get().AddWindow(CreateAssetFromActorWindow.ToSharedRef());
+		}
 	}
 	else
 	{
@@ -6023,12 +5984,13 @@ bool UEditorEngine::AreAllWindowsHidden() const
 	return bAllHidden;
 }
 
-AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& Location, bool bSilent, EObjectFlags ObjectFlags)
+AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform& Transform, bool bSilent, EObjectFlags ObjectFlags)
 {
 	check( Class );
 
 	if( !bSilent )
 	{
+		const auto Location = Transform.GetLocation();
 		UE_LOG(LogEditor, Log,
 			TEXT("Attempting to add actor of class '%s' to level at %0.2f,%0.2f,%0.2f"),
 			*Class->GetName(), Location.X, Location.Y, Location.Z );
@@ -6083,7 +6045,9 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& L
 		SpawnInfo.OverrideLevel = DesiredLevel;
 		SpawnInfo.bNoCollisionFail = true;
 		SpawnInfo.ObjectFlags = ObjectFlags;
-		Actor = World->SpawnActor( Class, &Location, NULL, SpawnInfo );
+		const auto Location = Transform.GetLocation();
+		const auto Rotation = Transform.GetRotation().Rotator();
+		Actor = World->SpawnActor( Class, &Location, &Rotation, SpawnInfo );
 
 		if( Actor )
 		{
@@ -6394,7 +6358,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		}
 
 		// Load the new mesh, if not already loaded. 
-		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>( NULL, *MeshName.AssetLongPathname, NULL, LOAD_None, NULL );
+		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>(NULL, *MeshName.ToString(), NULL, LOAD_None, NULL);
 
 		// Swap out the meshes if we loaded or found the given static mesh. 
 		if( PreviewMesh )
@@ -6404,7 +6368,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		}
 		else
 		{
-			UE_LOG(LogEditorViewport, Warning, TEXT("Couldn't load the PreviewMeshNames for the player at index, %d, with the name, %s."), Index, *MeshName.AssetLongPathname );
+			UE_LOG(LogEditorViewport, Warning, TEXT("Couldn't load the PreviewMeshNames for the player at index, %d, with the name, %s."), Index, *MeshName.ToString());
 		}
 	}
 	else
@@ -6542,7 +6506,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 			ComponentValues[i] = [Component integerValue];
 		}
 		
-		if(ComponentValues[0] < 10 || ComponentValues[1] < 9 || ComponentValues[2] < 2)
+		if(ComponentValues[0] < 10 || ComponentValues[1] < 9 || (ComponentValues[1] == 9 && ComponentValues[2] < 4))
 		{
 			FSuppressableWarningDialog::FSetupInfo Info( LOCTEXT("UpdateMacOSX_Body","Please update to the latest version of Mac OS X for best performance."), LOCTEXT("UpdateMacOSX_Title","Update Mac OS X"), TEXT("UpdateMacOSX"), GEditorGameAgnosticIni );
 			Info.ConfirmText = LOCTEXT( "OK", "OK");
@@ -7208,4 +7172,32 @@ namespace EditorUtilities
 
 		return CopiedPropertyCount;
 	}
+}
+
+void UEditorEngine::OnAssetLoaded(UObject* Asset)
+{
+	UWorld* WorldAsset = Cast<UWorld>(Asset);
+	if (WorldAsset != NULL)
+	{
+		// Init inactive worlds here instead of UWorld::PostLoad because it is illegal to call UpdateWorldComponents while GIsRoutingPostLoad
+		if (WorldAsset->WorldType == EWorldType::Inactive)
+		{
+			// Create the world without a physics scene because creating too many physics scenes causes deadlock issues in PhysX. The scene will be created when it is opened in the level editor.
+			// Also, don't create an FXSystem because it consumes too much video memory. This is also created when the level editor opens this world.
+			WorldAsset->InitWorld(GetEditorWorldInitializationValues()
+				.CreatePhysicsScene(false)
+				.CreateFXSystem(false)
+				);
+
+			// Update components so the scene is populated
+			WorldAsset->UpdateWorldComponents(true, true);
+		}
+	}
+}
+
+UWorld::InitializationValues UEditorEngine::GetEditorWorldInitializationValues() const
+{
+	return UWorld::InitializationValues()
+		.ShouldSimulatePhysics(false)
+		.EnableTraceCollision(true);
 }

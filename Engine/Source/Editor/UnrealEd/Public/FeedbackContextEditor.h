@@ -102,6 +102,9 @@ public:
 	/** Whether or not the user has canceled out of this dialog */
 	bool ReceivedUserCancel();
 
+	/** Enable/Disable the ability to cancel the current task */
+	void EnableUserCancel(bool bUserCancel) override;
+
 	void OnUserCancel();
 
 	virtual bool YesNof( const FText& Question ) override

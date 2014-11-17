@@ -750,8 +750,10 @@ struct FAnimTrailTypeDataPayload : public FTrailsBaseTypeDataPayload
 /** Mesh rotation data payload										*/
 struct FMeshRotationPayloadData
 {
-	FVector	 InitialOrientation;
+	FVector	 InitialOrientation;		// from mesh data module
+	FVector  InitRotation;				// from init rotation module
 	FVector  Rotation;
+	FVector	 CurContinuousRotation;
 	FVector  RotationRate;
 	FVector  RotationRateBase;
 };
@@ -1133,7 +1135,7 @@ public:
 		ClearPoolInternal();
 	}
 
-	FParticleVertexFactoryBase* GetParticleVertexFactory(EParticleVertexFactoryType InType);
+	FParticleVertexFactoryBase* GetParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel);
 
 	bool ReturnParticleVertexFactory(FParticleVertexFactoryBase* InVertexFactory);
 
@@ -1168,9 +1170,9 @@ protected:
 	 *
 	 *	@return	FParticleVertexFactoryBase*	The created VF; NULL if invalid InType
 	 */
-	FParticleVertexFactoryBase* CreateParticleVertexFactory(EParticleVertexFactoryType InType);
+	FParticleVertexFactoryBase* CreateParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel);
 
-	TArray<FParticleVertexFactoryBase*>	VertexFactoriesAvailable[PVFT_MAX];
+	TArray<FParticleVertexFactoryBase*>	VertexFactoriesAvailable[PVFT_MAX][ERHIFeatureLevel::Num];
 	TArray<FParticleVertexFactoryBase*>	VertexFactories;
 };
 

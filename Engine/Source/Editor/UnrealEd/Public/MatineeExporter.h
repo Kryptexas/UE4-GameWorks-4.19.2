@@ -63,8 +63,10 @@ public:
 
 	/**
 	 * Exports the given Matinee sequence information into a file.
+	 * 
+	 * @return	true, if sucessful
 	 */
-	virtual void ExportMatinee(class AMatineeActor* InMatineeActor) = 0;
+	virtual bool ExportMatinee(class AMatineeActor* InMatineeActor) = 0;
 
 	/**
 	 * Writes the file to disk and releases it.

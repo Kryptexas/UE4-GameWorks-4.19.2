@@ -137,7 +137,7 @@ void SPropertyTableCell::Tick( const FGeometry& AllottedGeometry, const double I
 	}
 }
 
-int32 SPropertyTableCell::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SPropertyTableCell::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	if ( CellBackground && CellBackground->DrawAs != ESlateBrushDrawType::NoDrawType )
 	{
@@ -163,7 +163,7 @@ int32 SPropertyTableCell::OnPaint( const FGeometry& AllottedGeometry, const FSla
 			);
 	}
 
-	return SCompoundWidget::OnPaint( AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 }
 
 FReply SPropertyTableCell::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

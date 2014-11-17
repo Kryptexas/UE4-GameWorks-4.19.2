@@ -57,6 +57,9 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Vertex Buffer Memory"), STAT_SlateVertexBufferM
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMemory, STATGROUP_SlateMemory, SLATECORE_API);
 
 
+// Compile all the RichText and MultiLine editable text?
+#define WITH_FANCY_TEXT 1
+
 /* Includes
  *****************************************************************************/
 
@@ -64,6 +67,7 @@ DECLARE_MEMORY_STAT_EXTERN(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMem
 #include "SlateConstants.h"
 #include "SlateEnums.h"
 #include "SlateStructs.h"
+#include "PaintArgs.h"
 
 // Layout
 #include "Margin.h"

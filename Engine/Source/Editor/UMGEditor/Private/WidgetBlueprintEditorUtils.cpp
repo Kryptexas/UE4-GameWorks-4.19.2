@@ -81,23 +81,29 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 
 	if ( Widget )
 	{
+		const FScopedTransaction Transaction(LOCTEXT("RenameWidget", "Rename Widget"));
+
 		// Rename Template
 		Blueprint->Modify();
 		Widget->Modify();
-		Widget->Rename(*NewNameStr);
 
-		// Rename Preview
+
+		// Rename Preview before renaming the template widget so the preview widget can be found
 		UWidget* WidgetPreview = FWidgetReference::FromTemplate(BlueprintEditor, Widget).GetPreview();
-		if ( WidgetPreview )
+		if(WidgetPreview)
 		{
 			WidgetPreview->Rename(*NewNameStr);
 		}
 
+		// Find and update all variable references in the graph
+
+		Widget->Rename(*NewNameStr);
+	
+		// Update Variable References
 		TArray<UK2Node_Variable*> WidgetVarNodes;
 		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(Blueprint, WidgetVarNodes);
-		for ( int32 It = 0; It < WidgetVarNodes.Num(); It++ )
+		for ( UK2Node_Variable* TestNode : WidgetVarNodes )
 		{
-			UK2Node_Variable* TestNode = WidgetVarNodes[It];
 			if ( TestNode && ( OldName == TestNode->GetVarName() ) )
 			{
 				UEdGraphPin* TestPin = TestNode->FindPin(OldNameStr);
@@ -120,12 +126,40 @@ bool FWidgetBlueprintEditorUtils::RenameWidget(TSharedRef<FWidgetBlueprintEditor
 			}
 		}
 
+		// Update Event References to member variables
+		TArray<UK2Node_ComponentBoundEvent*> EventNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_ComponentBoundEvent>(Blueprint, EventNodes);
+		for ( UK2Node_ComponentBoundEvent* EventNode : EventNodes )
+		{
+			if ( EventNode->ComponentPropertyName == OldName )
+			{
+				EventNode->ComponentPropertyName = NewName;
+			}
+		}
+
+		// Find and update all binding references in the widget blueprint
+		for ( FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == OldNameStr )
+			{
+				Binding.ObjectName = NewNameStr;
+			}
+		}
+
+		// Update widget blueprint names
+		for( FWidgetAnimation& WidgetAnimation : Blueprint->AnimationData )
+		{
+			for( FWidgetAnimationBinding& AnimBinding : WidgetAnimation.AnimationBindings )
+			{
+				if( AnimBinding.WidgetName == OldName )
+				{
+					AnimBinding.WidgetName = NewName;
+				}
+			}
+		}
+
 		// Validate child blueprints and adjust variable names to avoid a potential name collision
 		FBlueprintEditorUtils::ValidateBlueprintChildVariables(Blueprint, NewName);
-
-		// Refresh references and flush editors
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
-		bRenamed = true;
 
 		// Refresh references and flush editors
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
@@ -144,12 +178,17 @@ void FWidgetBlueprintEditorUtils::CreateWidgetContextMenu(FMenuBuilder& MenuBuil
 
 	MenuBuilder.PushCommandList(BlueprintEditor->WidgetCommandList.ToSharedRef());
 
-	MenuBuilder.BeginSection("Actions");
+	MenuBuilder.BeginSection("Edit", LOCTEXT("Edit", "Edit"));
 	{
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete);
+	}
+	MenuBuilder.EndSection();
 
+	MenuBuilder.BeginSection("Actions");
+	{
 		MenuBuilder.AddSubMenu(
 			LOCTEXT("WidgetTree_WrapWith", "Wrap With..."),
 			LOCTEXT("WidgetTree_WrapWithToolTip", "Wraps the currently selected widgets inside of another container widget"),
@@ -172,7 +211,30 @@ void FWidgetBlueprintEditorUtils::DeleteWidgets(UWidgetBlueprint* BP, TSet<FWidg
 		bool bRemoved = false;
 		for ( FWidgetReference& Item : Widgets )
 		{
-			bRemoved = BP->WidgetTree->RemoveWidget(Item.GetTemplate());
+			UWidget* WidgetTemplate = Item.GetTemplate();
+
+			// Modify the widget's parent
+			UPanelWidget* Parent = WidgetTemplate->GetParent();
+			if ( Parent )
+			{
+				Parent->Modify();
+			}
+			
+			// Modify the widget being removed.
+			WidgetTemplate->Modify();
+
+			bRemoved = BP->WidgetTree->RemoveWidget(WidgetTemplate);
+
+			// Rename the removed widget to the transient package so that it doesn't conflict with future widgets sharing the same name.
+			WidgetTemplate->Rename(NULL, NULL);
+
+			// Rename all child widgets as well, to the transient package so that they don't conflict with future widgets sharing the same name.
+			TArray<UWidget*> ChildWidgets;
+			BP->WidgetTree->GetChildWidgets(WidgetTemplate, ChildWidgets);
+			for ( UWidget* Widget : ChildWidgets )
+			{
+				Widget->Rename(NULL, NULL);
+			}
 		}
 
 		//TODO UMG There needs to be an event for widget removal so that caches can be updated, and selection
@@ -230,6 +292,12 @@ void FWidgetBlueprintEditorUtils::WrapWidgets(UWidgetBlueprint* BP, TSet<FWidget
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 }
 
+void FWidgetBlueprintEditorUtils::CutWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
+{
+	CopyWidgets(BP, Widgets);
+	DeleteWidgets(BP, Widgets);
+}
+
 void FWidgetBlueprintEditorUtils::CopyWidgets(UWidgetBlueprint* BP, TSet<FWidgetReference> Widgets)
 {
 	TSet<UWidget*> CopyableWidets;
@@ -273,15 +341,23 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 {
 	const FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
 
-	UPanelWidget* ParentWidget = CastChecked<UPanelWidget>(ParentWidgetRef.GetTemplate());
-
+	UPanelWidget* ParentWidget = NULL;
+	
+	if ( ParentWidgetRef.IsValid() )
+	{
+		ParentWidget = CastChecked<UPanelWidget>(ParentWidgetRef.GetTemplate());
+	}
+	
 	// TODO UMG Find paste parent, may not be the selected widget...  Maybe it should be the parent of the copied widget until,
 	// we do a paste here, from a right click menu.
 
 	if ( !ParentWidget )
 	{
-		// TODO UMG allow pasting into the root slot?
-		return;
+		// If we already have a root widget, then we can't replace the root.
+		if ( BP->WidgetTree->RootWidget )
+		{
+			return;
+		}
 	}
 
 	// Grab the text to paste from the clipboard.
@@ -292,23 +368,49 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 	TSet<UWidget*> PastedWidgets;
 	FWidgetBlueprintEditorUtils::ImportWidgetsFromText(BP, TextToImport, /*out*/ PastedWidgets);
 
-	if ( !ParentWidget->CanHaveMultipleChildren() )
+	// Ignore an empty set of widget paste data.
+	if ( PastedWidgets.Num() == 0 )
 	{
-		if ( ParentWidget->GetChildrenCount() > 0 || PastedWidgets.Num() > 1 )
-		{
-			// We can't paste the widgets into this container, there isn't enough room.
-			return;
-		}
+		return;
 	}
 
-	ParentWidget->Modify();
-
+	TArray<UWidget*> RootPasteWidgets;
 	for ( UWidget* NewWidget : PastedWidgets )
 	{
 		// Widgets with a null parent mean that they were the root most widget of their selection set when
 		// they were copied and thus we need to paste only the root most widgets.  All their children will be added
 		// automatically.
 		if ( NewWidget->GetParent() == NULL )
+		{
+			RootPasteWidgets.Add(NewWidget);
+		}
+	}
+
+	// If there isn't a root widget and we're copying multiple root widgets, then we need to add a container root
+	// to hold the pasted data since multiple root widgets isn't permitted.
+	if ( !ParentWidget && RootPasteWidgets.Num() > 1 )
+	{
+		ParentWidget = BP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+		BP->WidgetTree->Modify();
+		BP->WidgetTree->RootWidget = ParentWidget;
+	}
+
+	if ( ParentWidget )
+	{
+		if ( !ParentWidget->CanHaveMultipleChildren() )
+		{
+			if ( ParentWidget->GetChildrenCount() > 0 || RootPasteWidgets.Num() > 1 )
+			{
+				UCanvasPanel* PasteContainer = BP->WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass());
+				//TODO UMG The new container could be tiny, unless filling the space.
+				UPanelSlot* Slot = ParentWidget->AddChild(PasteContainer);
+				ParentWidget = PasteContainer;
+			}
+		}
+
+		ParentWidget->Modify();
+
+		for ( UWidget* NewWidget : RootPasteWidgets )
 		{
 			UPanelSlot* Slot = ParentWidget->AddChild(NewWidget);
 			if ( Slot )
@@ -318,23 +420,57 @@ void FWidgetBlueprintEditorUtils::PasteWidgets(UWidgetBlueprint* BP, FWidgetRefe
 			//TODO UMG - The paste location needs to be relative from the most upper left hand corner of other widgets in their container.
 		}
 
-		NewWidget->SetFlags( RF_Transactional );
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
 	}
+	else
+	{
+		check(RootPasteWidgets.Num() == 1)
+		// If we've arrived here, we must be creating the root widget from paste data, and there can only be
+		// one item in the paste data by now.
+		BP->WidgetTree->Modify();
 
-	//TODO UMG Reorder the live slot without rebuilding the structure
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+		for ( UWidget* NewWidget : RootPasteWidgets )
+		{
+			BP->WidgetTree->RootWidget = NewWidget;
+			break;
+		}
+		
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+	}
 }
 
 void FWidgetBlueprintEditorUtils::ImportWidgetsFromText(UWidgetBlueprint* BP, const FString& TextToImport, /*out*/ TSet<UWidget*>& ImportedWidgetSet)
 {
+	// We create our own transient package here so that we can deserialize the data in isolation and ensure unreferenced
+	// objects not part of the deserialization set are unresolved.
+	UPackage* TempPackage = ConstructObject<UPackage>(UPackage::StaticClass(), nullptr, TEXT("/Engine/UMG/Editor/Transient"), RF_Transient);
+	TempPackage->AddToRoot();
+
 	// Turn the text buffer into objects
 	FWidgetObjectTextFactory Factory;
-	Factory.ProcessBuffer(BP->WidgetTree, RF_Transactional, TextToImport);
+	Factory.ProcessBuffer(TempPackage, RF_Transactional, TextToImport);
 
 	for ( auto& Entry : Factory.NewObjectMap )
 	{
-		ImportedWidgetSet.Add(Entry.Value);
+		UWidget* Widget = Entry.Value;
+
+		ImportedWidgetSet.Add(Widget);
+
+		Widget->SetFlags(RF_Transactional);
+
+		// If there is an existing widget with the same name, rename the newly placed widget.
+		if ( FindObject<UObject>(BP->WidgetTree, *Widget->GetName()) )
+		{
+			Widget->Rename(nullptr, BP->WidgetTree);
+		}
+		else
+		{
+			Widget->Rename(*Widget->GetName(), BP->WidgetTree);
+		}
 	}
+
+	// Remove the temp package from the root now that it has served its purpose.
+	TempPackage->RemoveFromRoot();
 }
 
 void FWidgetBlueprintEditorUtils::ExportPropertiesToText(UObject* Object, TMap<FName, FString>& ExportedProperties)

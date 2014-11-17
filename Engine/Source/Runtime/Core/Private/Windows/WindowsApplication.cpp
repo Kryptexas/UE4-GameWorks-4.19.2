@@ -1,6 +1,6 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "WindowsApplication.h"
 #include "WindowsWindow.h"
 #include "WindowsCursor.h"
@@ -20,6 +20,7 @@
 	#include <shlobj.h>
 	#include <objbase.h>
 	#include <SetupApi.h>
+	#include <devguid.h>
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
 #ifndef WM_MOUSEHWHEEL
@@ -42,6 +43,7 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 	: GenericApplication( MakeShareable( new FWindowsCursor() ) )
 	, InstanceHandle( HInstance )
 	, bUsingHighPrecisionMouseInput( false )
+	, bIsMouseAttached( false )
 	, XInput( XInputInterface::Create( MessageHandler ) )
 	, CVarDeferMessageProcessing( 
 		TEXT( "Slate.DeferWindowsMessageProcessing" ),
@@ -72,6 +74,118 @@ FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON
 
 	// Get initial display metrics. (display information for existing desktop, before we start changing resolutions)
 	GetDisplayMetrics(InitialDisplayMetrics);
+
+	// Save the current sticky/toggle/filter key settings so they can be restored them later
+	// If there are .ini settings, use them instead of the current system settings.
+	// NOTE: Whenever we exit and restore these settings gracefully, the .ini settings are removed.
+	FMemory::MemZero(StartupStickyKeys);
+	FMemory::MemZero(StartupToggleKeys);
+	FMemory::MemZero(StartupFilterKeys);
+	
+	StartupStickyKeys.cbSize = sizeof(StartupStickyKeys);
+	StartupToggleKeys.cbSize = sizeof(StartupToggleKeys);
+	StartupFilterKeys.cbSize = sizeof(StartupFilterKeys);
+
+	SystemParametersInfo(SPI_GETSTICKYKEYS, sizeof(STICKYKEYS), &StartupStickyKeys, 0);
+	SystemParametersInfo(SPI_GETTOGGLEKEYS, sizeof(TOGGLEKEYS), &StartupToggleKeys, 0);
+	SystemParametersInfo(SPI_GETFILTERKEYS, sizeof(FILTERKEYS), &StartupFilterKeys, 0);
+
+	bool bSKHotkey = (StartupStickyKeys.dwFlags & SKF_HOTKEYACTIVE) ? true : false;
+	bool bTKHotkey = (StartupToggleKeys.dwFlags & TKF_HOTKEYACTIVE) ? true : false;
+	bool bFKHotkey = (StartupFilterKeys.dwFlags & FKF_HOTKEYACTIVE) ? true : false;
+	bool bSKConfirmation = (StartupStickyKeys.dwFlags & SKF_CONFIRMHOTKEY) ? true : false;
+	bool bTKConfirmation = (StartupToggleKeys.dwFlags & TKF_CONFIRMHOTKEY) ? true : false;
+	bool bFKConfirmation = (StartupFilterKeys.dwFlags & FKF_CONFIRMHOTKEY) ? true : false;
+
+	GConfig->GetBool(TEXT("WindowsApplication.Accessibility"), TEXT("StickyKeysHotkey"), bSKHotkey, GEngineIni);
+	GConfig->GetBool(TEXT("WindowsApplication.Accessibility"), TEXT("ToggleKeysHotkey"), bTKHotkey, GEngineIni);
+	GConfig->GetBool(TEXT("WindowsApplication.Accessibility"), TEXT("FilterKeysHotkey"), bFKHotkey, GEngineIni);
+	GConfig->GetBool(TEXT("WindowsApplication.Accessibility"), TEXT("StickyKeysConfirmation"), bSKConfirmation, GEngineIni);
+	GConfig->GetBool(TEXT("WindowsApplication.Accessibility"), TEXT("ToggleKeysConfirmation"), bTKConfirmation, GEngineIni);
+	GConfig->GetBool(TEXT("WindowsApplication.Accessibility"), TEXT("FilterKeysConfirmation"), bFKConfirmation, GEngineIni);
+
+	StartupStickyKeys.dwFlags = bSKHotkey ? (StartupStickyKeys.dwFlags | SKF_HOTKEYACTIVE) : (StartupStickyKeys.dwFlags & ~SKF_HOTKEYACTIVE);
+	StartupToggleKeys.dwFlags = bTKHotkey ? (StartupToggleKeys.dwFlags | TKF_HOTKEYACTIVE) : (StartupToggleKeys.dwFlags & ~TKF_HOTKEYACTIVE);
+	StartupFilterKeys.dwFlags = bFKHotkey ? (StartupFilterKeys.dwFlags | FKF_HOTKEYACTIVE) : (StartupFilterKeys.dwFlags & ~FKF_HOTKEYACTIVE);
+	StartupStickyKeys.dwFlags = bSKConfirmation ? (StartupStickyKeys.dwFlags | SKF_CONFIRMHOTKEY) : (StartupStickyKeys.dwFlags & ~SKF_CONFIRMHOTKEY);
+	StartupToggleKeys.dwFlags = bTKConfirmation ? (StartupToggleKeys.dwFlags | TKF_CONFIRMHOTKEY) : (StartupToggleKeys.dwFlags & ~TKF_CONFIRMHOTKEY);
+	StartupFilterKeys.dwFlags = bFKConfirmation ? (StartupFilterKeys.dwFlags | FKF_CONFIRMHOTKEY) : (StartupFilterKeys.dwFlags & ~FKF_CONFIRMHOTKEY);
+
+	GConfig->SetBool(TEXT("WindowsApplication.Accessibility"), TEXT("StickyKeysHotkey"), bSKHotkey, GEngineIni);
+	GConfig->SetBool(TEXT("WindowsApplication.Accessibility"), TEXT("ToggleKeysHotkey"), bTKHotkey, GEngineIni);
+	GConfig->SetBool(TEXT("WindowsApplication.Accessibility"), TEXT("FilterKeysHotkey"), bFKHotkey, GEngineIni);
+	GConfig->SetBool(TEXT("WindowsApplication.Accessibility"), TEXT("StickyKeysConfirmation"), bSKConfirmation, GEngineIni);
+	GConfig->SetBool(TEXT("WindowsApplication.Accessibility"), TEXT("ToggleKeysConfirmation"), bTKConfirmation, GEngineIni);
+	GConfig->SetBool(TEXT("WindowsApplication.Accessibility"), TEXT("FilterKeysConfirmation"), bFKConfirmation, GEngineIni);
+
+	GConfig->Flush(false, GEngineIni);
+
+	FCoreDelegates::OnShutdownAfterError.AddRaw(this, &FWindowsApplication::ShutDownAfterError);
+
+	// Disable accessibility shortcuts
+	AllowAccessibilityShortcutKeys(false);
+
+	QueryConnectedMice();
+}
+
+void FWindowsApplication::AllowAccessibilityShortcutKeys(const bool bAllowKeys)
+{
+	if (bAllowKeys)
+	{
+		// Restore StickyKeys/etc to original state and enable Windows key      
+		SystemParametersInfo(SPI_SETSTICKYKEYS, sizeof(STICKYKEYS), &StartupStickyKeys, 0);
+		SystemParametersInfo(SPI_SETTOGGLEKEYS, sizeof(TOGGLEKEYS), &StartupToggleKeys, 0);
+		SystemParametersInfo(SPI_SETFILTERKEYS, sizeof(FILTERKEYS), &StartupFilterKeys, 0);
+	}
+	else
+	{
+		// Disable StickyKeys/etc shortcuts but if the accessibility feature is on, 
+		// then leave the settings alone as its probably being usefully used
+
+		STICKYKEYS skOff = StartupStickyKeys;
+		if ((skOff.dwFlags & SKF_STICKYKEYSON) == 0)
+		{
+			// Disable the hotkey and the confirmation
+			skOff.dwFlags &= ~SKF_HOTKEYACTIVE;
+			skOff.dwFlags &= ~SKF_CONFIRMHOTKEY;
+
+			SystemParametersInfo(SPI_SETSTICKYKEYS, sizeof(STICKYKEYS), &skOff, 0);
+		}
+
+		TOGGLEKEYS tkOff = StartupToggleKeys;
+		if ((tkOff.dwFlags & TKF_TOGGLEKEYSON) == 0)
+		{
+			// Disable the hotkey and the confirmation
+			tkOff.dwFlags &= ~TKF_HOTKEYACTIVE;
+			tkOff.dwFlags &= ~TKF_CONFIRMHOTKEY;
+
+			SystemParametersInfo(SPI_SETTOGGLEKEYS, sizeof(TOGGLEKEYS), &tkOff, 0);
+		}
+
+		FILTERKEYS fkOff = StartupFilterKeys;
+		if ((fkOff.dwFlags & FKF_FILTERKEYSON) == 0)
+		{
+			// Disable the hotkey and the confirmation
+			fkOff.dwFlags &= ~FKF_HOTKEYACTIVE;
+			fkOff.dwFlags &= ~FKF_CONFIRMHOTKEY;
+
+			SystemParametersInfo(SPI_SETFILTERKEYS, sizeof(FILTERKEYS), &fkOff, 0);
+		}
+	}
+}
+
+void FWindowsApplication::DestroyApplication()
+{
+	// Restore accessibility shortcuts and remove the saved state from the .ini
+	AllowAccessibilityShortcutKeys(true);
+	GConfig->EmptySection(TEXT("WindowsApplication.Accessibility"), GEngineIni);
+}
+
+void FWindowsApplication::ShutDownAfterError()
+{
+	// Restore accessibility shortcuts and remove the saved state from the .ini
+	AllowAccessibilityShortcutKeys(true);
+	GConfig->EmptySection(TEXT("WindowsApplication.Accessibility"), GEngineIni);
 }
 
 bool FWindowsApplication::RegisterClass( const HINSTANCE HInstance, const HICON HIcon )
@@ -149,7 +263,7 @@ FModifierKeysState FWindowsApplication::GetModifierKeys() const
 	const bool bIsLeftAltDown = ( ::GetAsyncKeyState( VK_LMENU ) & 0x8000 ) != 0;
 	const bool bIsRightAltDown = ( ::GetAsyncKeyState( VK_RMENU ) & 0x8000 ) != 0;
 
-	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown );
+	return FModifierKeysState( bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false ); // Win key is ignored
 }
 
 void FWindowsApplication::SetCapture( const TSharedPtr< FGenericWindow >& InWindow )
@@ -460,11 +574,6 @@ EWindowTitleAlignment::Type FWindowsApplication::GetWindowTitleAlignment() const
 	return EWindowTitleAlignment::Left;
 }
 
-void FWindowsApplication::DestroyApplication()
-{
-
-}
-
 static TSharedPtr< FWindowsWindow > FindWindowByHWND( const TArray< TSharedRef< FWindowsWindow > >& WindowsToSearch, HWND HandleToFind )
 {
 	for (int32 WindowIndex=0; WindowIndex < WindowsToSearch.Num(); ++WindowIndex)
@@ -490,6 +599,10 @@ LRESULT CALLBACK FWindowsApplication::AppWndProc(HWND hwnd, uint32 msg, WPARAM w
 
 int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam )
 {
+	//The message id for when the taskbar button becoems created.
+	//This is set to s proper id once a WM_CREATE message is received.
+	static DWORD wmTaskbarButtonCreate = (DWORD)-1; 
+
 	TSharedPtr< FWindowsWindow > CurrentNativeEventWindowPtr = FindWindowByHWND( Windows, hwnd );
 
 	if( Windows.Num() && CurrentNativeEventWindowPtr.IsValid() )
@@ -907,6 +1020,15 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			}
 			break;
 
+		case WM_DISPLAYCHANGE:
+			{
+				// Slate needs to know when desktop size changes.
+				FDisplayMetrics DisplayMetrics;
+				GetDisplayMetrics( DisplayMetrics );
+				BroadcastDisplayMetricsChanged(DisplayMetrics);
+			}
+			break;
+
 		case WM_GETDLGCODE:
 			{
 				// Slate wants all keys and messages.
@@ -916,6 +1038,7 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		
 		case WM_CREATE:
 			{
+				wmTaskbarButtonCreate = RegisterWindowMessage(TEXT("TaskbarButtonCreated"));
 				return 0;
 			}
 			break;
@@ -923,7 +1046,13 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 		case WM_DEVICECHANGE:
 			{
 				XInput->SetNeedsControllerStateUpdate(); 
+				QueryConnectedMice();
 			}
+		}
+
+		if (wmTaskbarButtonCreate)
+		{
+			TaskbarList = FTaskbarList::Create();
 		}
 	}
 
@@ -1589,6 +1718,10 @@ void FWindowsApplication::SetChannelValue (int32 ControllerId, FForceFeedbackCha
 
 void FWindowsApplication::SetChannelValues (int32 ControllerId, const FForceFeedbackValues &Values)
 {
+	const FForceFeedbackValues* InternalValues = &Values;
+ 
+ 	XInput->SetChannelValues( ControllerId, *InternalValues );
+ 
 	// send vibration to externally-implemented devices
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
 	{
@@ -1602,6 +1735,11 @@ void FWindowsApplication::AddExternalInputDevice(TSharedPtr<IInputDevice> InputD
 	{
 		ExternalInputDevices.Add(InputDevice);
 	}
+}
+
+TSharedPtr<FTaskbarList> FWindowsApplication::GetTaskbarList()
+{
+	return TaskbarList;
 }
 
 void FWindowsApplication::DeferDragDropOperation(const FDeferredWindowsDragDropOperation& DeferredDragDropOperation)
@@ -1670,6 +1808,114 @@ HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData&
 	}
 
 	return 0;
+}
+
+void FWindowsApplication::QueryConnectedMice()
+{
+	TArray<RAWINPUTDEVICELIST> DeviceList;
+	UINT DeviceCount;
+
+	GetRawInputDeviceList(nullptr, &DeviceCount, sizeof(RAWINPUTDEVICELIST));
+	if (DeviceCount == 0)
+	{
+		bIsMouseAttached = false;
+		return;
+	}
+
+	DeviceList.AddUninitialized(DeviceCount);
+	GetRawInputDeviceList(DeviceList.GetData(), &DeviceCount, sizeof(RAWINPUTDEVICELIST));
+	
+	int32 MouseCount = 0;
+	for (const auto& Device : DeviceList)
+	{
+		UINT NameLen;
+		TAutoPtr<char> Name;
+		if (Device.dwType != RIM_TYPEMOUSE)
+			continue;
+		//Force the use of ANSI versions of these calls
+		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, nullptr, &NameLen) < 0)
+			continue;
+
+		Name.Reset(new char[NameLen+1]);
+		if (GetRawInputDeviceInfoA(Device.hDevice, RIDI_DEVICENAME, Name.GetOwnedPointer(), &NameLen) < 0)
+			continue;
+
+		Name[NameLen] = 0;
+		FString WName = ANSI_TO_TCHAR(Name);
+		WName.ReplaceInline(TEXT("#"), TEXT("\\"));
+		/*
+		 * Name XP starts with \??\, vista+ starts \\?\ 
+		 * In the device list exists a fake Mouse device with the device name of RDP_MOU
+		 * This is used for Remote Desktop so ignore it.
+		 */
+		if (WName.StartsWith(TEXT("\\??\\ROOT\\RDP_MOU\\")) || WName.StartsWith(TEXT("\\\\?\\ROOT\\RDP_MOU\\")))
+		{
+			continue;
+		}
+
+		++MouseCount;
+	}
+
+	bIsMouseAttached = MouseCount > 0;
+}
+
+void FTaskbarList::Initialize()
+{
+	if (FWindowsPlatformMisc::CoInitialize())
+	{
+		CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, IID_ITaskbarList3, (void **)&TaskBarList3);
+	}
+}
+
+FTaskbarList::FTaskbarList() 
+	: TaskBarList3(NULL)
+{
+
+}
+
+FTaskbarList::~FTaskbarList()
+{
+	if (FWindowsPlatformMisc::CoInitialize() && TaskBarList3)
+	{
+		TaskBarList3->Release();
+	}
+
+	TaskBarList3 = NULL;
+}
+
+void FTaskbarList::SetOverlayIcon(const TSharedRef<FGenericWindow>& NativeWindow, HICON Icon, FText Description)
+{
+	if (TaskBarList3)
+	{
+		const TSharedRef< FWindowsWindow > Window = StaticCastSharedRef< FWindowsWindow >(NativeWindow);
+		TaskBarList3->SetOverlayIcon(Window->GetHWnd(), Icon, *Description.ToString());
+	}
+}
+
+void FTaskbarList::SetProgressValue(const TSharedRef<FGenericWindow>& NativeWindow, uint64 Current, uint64 Total)
+{
+	if (TaskBarList3)
+	{
+		const TSharedRef< FWindowsWindow > Window = StaticCastSharedRef< FWindowsWindow >(NativeWindow);
+		TaskBarList3->SetProgressValue(Window->GetHWnd(), (ULONGLONG)Current, (ULONGLONG)Total);
+	}
+}
+
+void FTaskbarList::SetProgressState(const TSharedRef<FGenericWindow>& NativeWindow, ETaskbarProgressState::Type State)
+{
+	if (TaskBarList3)
+	{
+		const TSharedRef< FWindowsWindow > Window = StaticCastSharedRef< FWindowsWindow >(NativeWindow);
+		TaskBarList3->SetProgressState(Window->GetHWnd(), (TBPFLAG)State);
+	}
+}
+
+TSharedRef<FTaskbarList> FTaskbarList::Create()
+{
+	TSharedRef<FTaskbarList> TaskbarList = MakeShareable(new FTaskbarList());
+	TaskbarList->Initialize();
+
+	return TaskbarList;
 }
 
 #include "HideWindowsPlatformTypes.h"

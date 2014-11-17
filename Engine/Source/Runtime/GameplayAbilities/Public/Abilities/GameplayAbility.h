@@ -6,6 +6,7 @@
 #include "GameplayTagAssetInterface.h"
 #include "Runtime/Engine/Classes/Animation/AnimInstance.h"
 #include "Abilities/GameplayAbilityTypes.h"
+#include "GameplayEffect.h"
 #include "GameplayAbility.generated.h"
 
 /**
@@ -64,6 +65,8 @@
 
 /***
  
+
+ TODO: Update: this is not all accurate anymore now that PredictiveACtivateAbility is gone. Please update comments!
 
 
 This is the basic flow of function calls in a networked environment:
@@ -149,6 +152,11 @@ public:
 		return ReplicationPolicy;
 	}
 
+	EGameplayAbilityNetExecutionPolicy::Type GetNetExecutionPolicy() const
+	{
+		return NetExecutionPolicy;
+	}
+
 	/** Gets the current actor info bound to this ability - can only be called on instanced abilities. */
 	const FGameplayAbilityActorInfo* GetCurrentActorInfo()
 	{
@@ -177,6 +185,8 @@ public:
 	/** This ability has these tags */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer AbilityTags;
+
+	FGenericAbilityDelegate	OnConfirmDelegate;
 
 protected:
 		
@@ -207,6 +217,9 @@ protected:
 	bool HasBlueprintActivate;
 
 	void CallActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
+
+	/** Called on a predictive ability when the server confirms its execution */
+	void ConfirmActivateSucceed();
 
 	// --------------------------------------
 	//	CommitAbility
@@ -246,19 +259,6 @@ protected:
 
 	/** Destroys intanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
 	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) { }
-
-	// -------------------------------------
-	//	PredictiveActivate
-	// -------------------------------------
-
-	UFUNCTION(BlueprintImplementableEvent, Category = Ability, FriendlyName="PredictiveActivateAbility")
-	virtual void K2_PredictiveActivateAbility();
-
-	virtual void PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
-
-	void CallPredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
-
-	bool HasBlueprintPredictiveActivate;
 
 	// -------------------------------------
 	//	EndAbility
@@ -301,8 +301,11 @@ protected:
 		}
 	}
 
-	UFUNCTION(BlueprintPure, Category = Ability)
+	UFUNCTION(BlueprintPure, Category=Ability)
 	FGameplayAbilityActorInfo GetActorInfo();
+
+	UFUNCTION(BlueprintCallable, Category=Ability)
+	FGameplayEffectSpecHandle GetOutgoingSpec(UGameplayEffect* GameplayEffect) const;
 
 	UFUNCTION(Client, Reliable)
 	void ClientActivateAbilitySucceed(int32 PredictionKey);

@@ -1217,11 +1217,8 @@ float FParticleRibbonEmitterInstance::Spawn(float DeltaTime)
 	if (bProcessSpawnRate)
 	{
 		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component);
-		if (Component->GetCurrentDetailMode() != DM_High)
-		{
-			RateScale *= SpriteTemplate->MediumDetailSpawnRateScale;
-		}
-		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(RateScale, 0.0f, RateScale);
+		float QualityMult = SpriteTemplate->GetQualityLevelSpawnRateMult();
+		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(QualityMult, 0.0f, 1.0);
 	}
 
 	// Take Bursts into account as well...
@@ -3296,10 +3293,8 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	if (bProcessSpawnRate)
 	{
 		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component);
-		if (Component->GetCurrentDetailMode() != DM_High)
-		{
-			RateScale *= SpriteTemplate->MediumDetailSpawnRateScale;
-		}
+		float QualityMult = 0.25f * (1 << Scalability::GetQualityLevels().EffectsQuality);
+		RateScale *= SpriteTemplate->QualityLevelSpawnRateScale*QualityMult;
 		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(RateScale, 0.0f, RateScale);
 	}
 

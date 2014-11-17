@@ -4,16 +4,22 @@
 
 #include "EditableTextBox.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextBlock_TextChangedEvent, const FText&, Text);
-//DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEditableTextBlock_TextCommittedEvent, const FText&, Text, ETextCommit::Type, Type);
-
 /** Editable text box widget */
 UCLASS(meta=( Category="Common" ), ClassGroup=UserInterface)
 class UMG_API UEditableTextBox : public UWidget
 {
 	GENERATED_UCLASS_BODY()
 
-protected:
+public:
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEditableTextBoxChangedEvent, const FText&, Text);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEditableTextBoxCommittedEvent, const FText&, Text, ETextCommit::Type, CommitMethod);
+
+public:
+
+	/** Style used for the text box */
+	UPROPERTY(EditDefaultsOnly, Category="Style", meta=( DisplayThumbnail = "true" ))
+	USlateWidgetStyleAsset* Style;
 
 	/** The text content for this editable text box widget */
 	UPROPERTY(EditDefaultsOnly, Category=Content)
@@ -29,15 +35,15 @@ protected:
 
 	/** Text color and opacity (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateColor ForegroundColor;
+	FLinearColor ForegroundColor;
 
 	/** The color of the background/border around the editable text (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateColor BackgroundColor;
+	FLinearColor BackgroundColor;
 
 	/** Text color and opacity when read-only (overrides Style) */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
-	FSlateColor ReadOnlyForegroundColor;
+	FLinearColor ReadOnlyForegroundColor;
 
 	/** Sets whether this text box can actually be modified interactively by the user */
 	UPROPERTY(EditDefaultsOnly, Category=Appearance)
@@ -76,12 +82,12 @@ protected:
 	bool SelectAllTextOnCommit;
 
 	/** Called whenever the text is changed interactively by the user */
-	UPROPERTY(BlueprintAssignable)
-	FOnEditableTextBlock_TextChangedEvent OnTextChanged;
+	UPROPERTY(BlueprintAssignable, Category="Widget Event")
+	FOnEditableTextBoxChangedEvent OnTextChanged;
 
-	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. *///
-	//UPROPERTY(BlueprintAssignable)
-	//FOnTextCommittedEvent OnTextCommitted;
+	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
+	UPROPERTY(BlueprintAssignable, Category="Widget Event")
+	FOnEditableTextBoxCommittedEvent OnTextCommitted;
 
 	/** Provide a alternative mechanism for error reporting. */
 	//SLATE_ARGUMENT(TSharedPtr<class IErrorReportingWidget>, ErrorReporting)
@@ -93,10 +99,18 @@ protected:
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetText(FText InText);
-	
+
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void SetError(FText InError);
+
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ClearError();
+
 	// UWidget interface
 	virtual void SyncronizeProperties() override;
 	// End of UWidget interface
+
+	virtual void ReleaseNativeWidget() override;
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -107,7 +121,8 @@ protected:
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget
 
-	void SlateOnTextChanged(const FText& Text);
+	void HandleOnTextChanged(const FText& Text);
+	void HandleOnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
 
 protected:
 	TSharedPtr<SEditableTextBox> MyEditableTextBlock;

@@ -40,6 +40,7 @@ public:
 	virtual IOnlineUserPtr GetUserInterface() const override { return NULL; }
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual IOnlinePresencePtr GetPresenceInterface() const override { return NULL; }
+
 	virtual class UObject* GetNamedInterface(FName InterfaceName) override { return NULL; }
 	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) override {}
 	virtual bool IsDedicated() const override { return false; }

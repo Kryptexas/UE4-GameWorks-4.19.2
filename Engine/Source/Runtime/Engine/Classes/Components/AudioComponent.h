@@ -3,7 +3,6 @@
 
 #pragma once
 #include "Audio.h"
-#include "Sound/ReverbVolume.h"
 #include "Sound/SoundAttenuation.h"
 #include "Engine/EngineTypes.h"
 
@@ -189,8 +188,8 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	 * @param FadeInDuration how long it should take to reach the FadeVolumeLevel
 	 * @param FadeVolumeLevel the percentage of the AudioComponents's calculated volume to fade to
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio", meta=(FadeVolumeLevel="1.0"))
-	void FadeIn(float FadeInDuration, float FadeVolumeLevel, float StartTime = 0.f);
+	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
+	void FadeIn(float FadeInDuration, float FadeVolumeLevel = 1.f, float StartTime = 0.f);
 
 	/**
 	 * This is used in place of "stop" when it is desired to fade the volume of the sound before stopping.
@@ -310,7 +309,7 @@ public:
 	// End ActorComponent interface.
 
 	const FAttenuationSettings* GetAttenuationSettingsToApply() const;
-	void CollectAttenuationShapesForVisualization(TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
+	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
 
 private:
 	

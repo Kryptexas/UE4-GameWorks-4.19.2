@@ -23,8 +23,7 @@ public:
 		// serialize out the asset info
 		Ar << DependencyData.PackageName;
 		Ar << DependencyData.ImportMap;
-		//Ar << DependencyData.ExportMap;
-		//Ar << DependencyData.DependsMap;
+		Ar << DependencyData.StringAssetReferencesMap;
 
 		return Ar;
 	}

@@ -32,6 +32,7 @@ public:
 	FNiagaraSceneProxy(const UNiagaraComponent* InComponent)
 		:	FPrimitiveSceneProxy(InComponent)
 		,	DynamicData(NULL)
+		, VertexFactory(PVFT_Sprite, InComponent->GetWorld()->FeatureLevel)
 	{
 		Material = InComponent->Material;
 		if (!Material || !Material->CheckMaterialUsage(MATUSAGE_ParticleSprites))

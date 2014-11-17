@@ -573,78 +573,6 @@ void duDebugDrawNavMeshClusters(struct duDebugDraw* dd, const dtNavMesh& mesh)
 			duDebugDrawNavMeshPoly(dd, mesh, base | (dtPolyRef)ip, duIntToCol(tile->polyClusters[ip],255));
 		}
 	}
-
-	unsigned int linkCol_Normal = duRGBA(0,0,0,196);
-	unsigned int linkCol_NormalUnknown = duRGBA(0,255,0,196);
-	unsigned int linkCol_NormalDisabled = duRGBA(255,0,0,196);
-	unsigned int linkCol_Backtrack = duRGBA(0,0,128,196);
-	unsigned int linkCol_BacktrackUnknown = duRGBA(0,128,128,196);
-	unsigned int linkCol_BacktrackDisabled = duRGBA(255,0,128,196);
-
-	dd->depthMask(false);
-	dd->begin(DU_DRAW_LINES, 2.0f);
-	for (int i = 0; i < mesh.getMaxTiles(); ++i)
-	{
-		const dtMeshTile* tile = mesh.getTile(i);
-		if (!tile->header) continue;
-
-		for (int j = 0; j < tile->header->clusterCount; ++j)
-		{
-			const dtCluster& c0 = tile->clusters[j];
-
-			unsigned int il = c0.firstLink;
-			while (il != DT_NULL_LINK)
-			{
-				const dtClusterLink& testLink = mesh.getClusterLink(tile, il);
-				const dtMeshTile* linkedTile = mesh.getTileByRef(testLink.ref);
-				const unsigned int linkedIdx = mesh.decodeClusterIdCluster(testLink.ref);
-				const dtCluster& c1 = linkedTile->clusters[linkedIdx];
-
-				float center0[3];
-				float center1[3];
-				dtVcopy(center0, c0.center);
-				dtVcopy(center1, c1.center);
-
-				if ((int)linkedIdx > j || i > (int)mesh.decodeClusterIdTile(testLink.ref))
-				{
-					float right[3];
-					float dir[3];
-					float up[3] = { 0, 1.0f, 0 };
-
-					dtVsub(dir, center0, center1);
-					dtVnormalize(dir);
-					dtVcross(right, dir, up);
-					dtVmad(center0, center0, right, 0.25f);
-					dtVmad(center1, center1, right, 0.25f);
-				}
-
-				unsigned int linkCol = (testLink.flags & DT_CLINK_VALID_FWD) ?
-					(testLink.flags & DT_CLINK_HASCOST_FWD) ? ((testLink.costFwd < 0.0f) ? linkCol_NormalDisabled : linkCol_Normal) : linkCol_NormalUnknown :
-					(testLink.flags & DT_CLINK_HASCOST_BCK) ? ((testLink.costBck < 0.0f) ? linkCol_BacktrackDisabled : linkCol_Backtrack) : linkCol_BacktrackUnknown;
-
-				duAppendArc(dd, center0[0],center0[1],center0[2], center1[0],center1[1],center1[2], 0.25f, 0.0f, 0.6f, linkCol);
-
-				il = testLink.next;
-			}
-		}
-	}
-	dd->end();
-
-	dd->begin(DU_DRAW_POINTS, 7.0f);
-	for (int i = 0; i < mesh.getMaxTiles(); ++i)
-	{
-		const dtMeshTile* tile = mesh.getTile(i);
-		if (!tile->header) continue;
-
-		for (int j = 0; j < tile->header->clusterCount; ++j)
-		{
-			const dtCluster& c = tile->clusters[j];
-			unsigned int col = duDarkenCol(duIntToCol(j,255));
-			dd->vertex(c.center, col);
-		}
-	}
-	dd->end();
-	dd->depthMask(true);
 } 
 
 void duDebugDrawNavMeshCluster(struct duDebugDraw* dd, const dtNavMesh& mesh, dtClusterRef ref, const unsigned int col)
@@ -959,34 +887,7 @@ void duDebugDrawTileCacheContours(duDebugDraw* dd, const struct dtTileCacheConto
 
 void duDebugDrawTileCacheClusters(duDebugDraw* dd, const struct dtTileCacheClusterSet& lclusters)
 {
-	if (!dd) return;
-
-	dd->depthMask(false);
-	dd->begin(DU_DRAW_LINES, 2.0f);
-
-	int nlink = 0;
-	for (int i = 0; i < lclusters.nclusters; ++i)
-	{
-		int nnei = lclusters.nlinks[i];
-		for (int j = 0; j < nnei; j++)
-		{
-			float* center0 = &lclusters.center[i*3];
-			float* center1 = &lclusters.center[lclusters.links[nlink]*3];
-
-			duAppendArc(dd, center0[0],center0[1],center0[2],center1[0],center1[1],center1[2], 0.25f, 0.0f, 0.6f, duRGBA(0,0,0,196));
-			nlink++;
-		}
-	}
-	dd->end();
-
-	dd->begin(DU_DRAW_POINTS, 7.0f);
-	for (int i = 0; i < lclusters.nclusters; ++i)
-	{
-		unsigned int col = duDarkenCol(duIntToCol(i,255));
-		dd->vertex(&lclusters.center[i*3], col);
-	}
-	dd->end();
-	dd->depthMask(true);
+	// empty for now
 }
 
 void duDebugDrawTileCachePolyMesh(duDebugDraw* dd, const struct dtTileCachePolyMesh& lmesh,

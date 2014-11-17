@@ -4,7 +4,7 @@
 	HTML5Misc.cpp: HTML5 implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "HTML5Application.h"
 #include <ctime>
 

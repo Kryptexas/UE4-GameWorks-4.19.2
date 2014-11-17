@@ -16,6 +16,7 @@ public class IOSTargetPlatform : ModuleRules
 				"TargetPlatform",
 				"DesktopPlatform",
 				"LaunchDaemonMessages",
+				"Projects"
 			}
 		);
 

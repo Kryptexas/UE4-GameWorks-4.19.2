@@ -29,8 +29,8 @@ class FParticleBeamTrailVertexFactory : public FParticleVertexFactoryBase
 public:
 
 	/** Default constructor. */
-	FParticleBeamTrailVertexFactory( EParticleVertexFactoryType InType = PVFT_BeamTrail )
-		: FParticleVertexFactoryBase(InType)
+	FParticleBeamTrailVertexFactory( EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel )
+		: FParticleVertexFactoryBase(InType, InFeatureLevel)
 	{
 	}
 

@@ -105,7 +105,7 @@ typedef size_t uintptr_t;
     /* Use the predefined value. */
 #elif U_PLATFORM_USES_ONLY_WIN32_API
 #   define U_TZSET _tzset
-#elif U_PLATFORM == U_PF_OS400
+#elif (U_PLATFORM == U_PF_OS400 || U_PLATFORM == U_PF_ORBIS)
    /* not defined */
 #else
 #   define U_TZSET tzset
@@ -122,7 +122,7 @@ typedef size_t uintptr_t;
 #   endif
 #elif U_PLATFORM_USES_ONLY_WIN32_API
 #   define U_TIMEZONE _timezone
-#elif U_PLATFORM == U_PF_BSD && !defined(__NetBSD__)
+#elif (U_PLATFORM == U_PF_BSD || U_PLATFORM == U_PF_ORBIS) && !defined(__NetBSD__)
    /* not defined */
 #elif U_PLATFORM == U_PF_OS400
    /* not defined */
@@ -136,7 +136,7 @@ typedef size_t uintptr_t;
     /* Use the predefined value. */
 #elif U_PLATFORM_USES_ONLY_WIN32_API
 #   define U_TZNAME _tzname
-#elif U_PLATFORM == U_PF_OS400
+#elif (U_PLATFORM == U_PF_OS400 || U_PLATFORM == U_PF_ORBIS)
    /* not defined */
 #else
 #   define U_TZNAME tzname
@@ -167,7 +167,7 @@ typedef size_t uintptr_t;
  */
 #ifdef U_HAVE_DIRENT_H
     /* Use the predefined value. */
-#elif U_PLATFORM_HAS_WIN32_API
+#elif (U_PLATFORM_HAS_WIN32_API || U_PLATFORM == U_PF_ORBIS)
 #   define U_HAVE_DIRENT_H 0
 #else
 #   define U_HAVE_DIRENT_H 1

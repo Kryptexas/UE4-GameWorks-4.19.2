@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#if WITH_FANCY_TEXT
+
 class SRichTextHyperlink : public SHyperlink
 {
 public:
@@ -73,3 +75,6 @@ private:
 
 	TSharedPtr< FSlateHyperlinkRun::FWidgetViewModel > ViewModel;
 };
+
+
+#endif //WITH_FANCY_TEXT

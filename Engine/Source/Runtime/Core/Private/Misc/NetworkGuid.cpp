@@ -4,7 +4,7 @@
 	NetworkGuid.cpp: Implements the FNetworkGUID class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 
 /* FNetworkGUID

@@ -27,6 +27,15 @@ public:
 	virtual bool GetAddressList( TArray<TSharedPtr<FInternetAddr> >& OutAddresses ) const = 0;
 
 	/**
+	  * Gets the list of local network addresses that the file server listens on.
+	  *
+	  * @param OutAddresses - Will hold the address list.
+	  *
+	  * @return true on success, false otherwise.
+	  */
+	virtual FString GetSupportedProtocol() const = 0;
+
+	/**
 	 * Gets the number of active connections.
 	 *
 	 * @return The number of connections.

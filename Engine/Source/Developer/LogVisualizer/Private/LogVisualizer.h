@@ -6,6 +6,9 @@
 
 #if ENABLE_VISUAL_LOG
 
+class FVisualLog;
+struct FActorsVisLog;
+
 /** Actual implementation of LogVisualizer, private inside module */
 class FLogVisualizer : public ILogVisualizer
 {
@@ -34,7 +37,7 @@ public:
 
 	void CleanUp();
 
-	void PullDataFromVisualLog(FVisualLog* VisualLog);
+	void PullDataFromVisualLog(FVisualLog& VisualLog);
 
 	int32 GetLogIndexForActor(const class AActor* Actor);
 

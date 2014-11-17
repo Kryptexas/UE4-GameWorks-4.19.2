@@ -47,7 +47,8 @@ public class MainFrame : ModuleRules
 				"GameProjectGeneration",
 				"ProjectTargetPlatformEditor",
 				"LevelEditor",
-				"OutputLog",
+                "OutputLog",
+				"SuperSearch",
 				"Settings",
 				"SourceCodeAccess",
 			}
@@ -69,7 +70,8 @@ public class MainFrame : ModuleRules
 				"GameProjectGeneration",
 				"ProjectTargetPlatformEditor",
 				"LevelEditor",
-				"OutputLog",
+                "OutputLog",
+				"SuperSearch",
                 "TranslationEditor",
 				"SourceCodeAccess",
 				"EditorLiveStreaming"

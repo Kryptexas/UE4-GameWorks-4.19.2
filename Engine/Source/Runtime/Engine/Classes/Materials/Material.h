@@ -358,6 +358,14 @@ public:
 	UPROPERTY()
 	FColorMaterialInput SubsurfaceColor;
 
+	/**  */
+	UPROPERTY()
+	FScalarMaterialInput ClearCoat;
+
+	/**  */
+	UPROPERTY()
+	FScalarMaterialInput ClearCoatRoughness;
+
 	/** output ambient occlusion to the GBuffer */
 	UPROPERTY()
 	FScalarMaterialInput AmbientOcclusion;
@@ -762,13 +770,14 @@ public:
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
+	ENGINE_API virtual bool IsMasked_Internal() const;
 
 	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
-	ENGINE_API virtual int32 CompileProperty( class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector );
+	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property );
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	// End UMaterialInterface interface.
 
@@ -1018,13 +1027,13 @@ public:
 	 * Return whether the provided expression parameter has duplicates.
 	 * @param	Expression	The expression parameter to check for duplicates.
 	 */
-	ENGINE_API virtual bool HasDuplicateParameters(UMaterialExpression* Expression);
+	ENGINE_API virtual bool HasDuplicateParameters(const UMaterialExpression* Expression);
 
 	/**
 	 * Return whether the provided expression dynamic parameter has duplicates.
 	 * @param	Expression	The expression dynamic parameter to check for duplicates.
 	 */
-	ENGINE_API virtual bool HasDuplicateDynamicParameters(UMaterialExpression* Expression);
+	ENGINE_API virtual bool HasDuplicateDynamicParameters(const UMaterialExpression* Expression);
 
 	/**
 	 * Iterate through all of the expression nodes and fix up changed names on
@@ -1032,7 +1041,7 @@ public:
 	 *
 	 * @param	Expression	The expression dynamic parameter.
 	 */
-	ENGINE_API virtual void UpdateExpressionDynamicParameterNames(UMaterialExpression* Expression);
+	ENGINE_API virtual void UpdateExpressionDynamicParameterNames(const UMaterialExpression* Expression);
 
 	/**
 	 * Get the name of a parameter.
@@ -1040,7 +1049,7 @@ public:
 	 * @param	OutName		The variable that will hold the parameter name.
 	 * @return	true if the expression is a parameter with a name.
 	 */
-	static bool GetExpressionParameterName(UMaterialExpression* Expression, FName& OutName);
+	static bool GetExpressionParameterName(const UMaterialExpression* Expression, FName& OutName);
 
 	/**
 	 * Copy the values of an expression parameter to another expression parameter of the same class.
@@ -1062,7 +1071,7 @@ public:
 	 *
 	 * @param	Expression	The expression node to inspect.
 	 */
-	ENGINE_API static bool IsDynamicParameter(UMaterialExpression* Expression);
+	ENGINE_API static bool IsDynamicParameter(const UMaterialExpression* Expression);
 
 	/**
 	 * Return wheter the number of parameter groups. NOTE: The number returned can be innaccurate if you have parameters of different types with the same name.

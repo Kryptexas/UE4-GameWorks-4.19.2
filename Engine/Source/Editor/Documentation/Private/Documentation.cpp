@@ -115,9 +115,10 @@ bool FDocumentation::Open(const FString& Link, const TSharedRef<FCulture, ESPMod
 	return !DocumentationUrl.IsEmpty();
 }
 
-TSharedRef< SWidget > FDocumentation::CreateAnchor( const FString& Link, const FString& PreviewLink, const FString& PreviewExcerptName ) const
+TSharedRef< SWidget > FDocumentation::CreateAnchor( const TAttribute<FString>& Link, const FString& PreviewLink, const FString& PreviewExcerptName ) const
 {
-	return SNew( SDocumentationAnchor, Link )
+	return SNew( SDocumentationAnchor )
+		.Link(Link)
 		.PreviewLink(PreviewLink)
 		.PreviewExcerptName(PreviewExcerptName);
 }

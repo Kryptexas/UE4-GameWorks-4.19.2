@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Distributions/DistributionFloat.h"
 #include "DistributionFloatConstant.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew,MinimalAPI)

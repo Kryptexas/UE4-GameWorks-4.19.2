@@ -38,13 +38,17 @@ void FAssetTypeActions_Blueprint::GetActions( const TArray<UObject*>& InObjects,
 
 	if ( Blueprints.Num() == 1 && CanCreateNewDerivedBlueprint() )
 	{
+		TAttribute<FText>::FGetter DynamicTooltipGetter;
+		DynamicTooltipGetter.BindSP(this, &FAssetTypeActions_Blueprint::GetNewDerivedBlueprintTooltip, Blueprints[0]);
+		TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
+
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("Blueprint_NewDerivedBlueprint", "Create Blueprint based on this"),
-			LOCTEXT("Blueprint_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint."),
+			DynamicTooltipAttribute,
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint, Blueprints[0] ),
-				FCanExecuteAction()
+				FCanExecuteAction::CreateSP( this, &FAssetTypeActions_Blueprint::CanExecuteNewDerivedBlueprint, Blueprints[0] )
 				)
 			);
 	}
@@ -166,6 +170,23 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 	}
 }
 
+FText FAssetTypeActions_Blueprint::GetNewDerivedBlueprintTooltip(TWeakObjectPtr<UBlueprint> InObject)
+{
+	if(InObject->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated))
+	{
+		return LOCTEXT("Blueprint_NewDerivedBlueprintIsDeprecatedTooltip", "Blueprint class is deprecated, cannot derive a child Blueprint!");
+	}
+	else
+	{
+		return LOCTEXT("Blueprint_NewDerivedBlueprintTooltip", "Creates a blueprint based on the selected blueprint.");
+	}
+}
+
+bool FAssetTypeActions_Blueprint::CanExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlueprint> InObject)
+{
+	return !InObject->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated);
+}
+
 bool FAssetTypeActions_Blueprint::ShouldUseDataOnlyEditor( const UBlueprint* Blueprint ) const
 {
 	return FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) 
@@ -230,7 +251,7 @@ UThumbnailInfo* FAssetTypeActions_Blueprint::GetThumbnailInfo(UObject* Asset) co
 	return ThumbnailInfo;
 }
 
-void FAssetTypeActions_Blueprint::OpenInDefaults( class UBlueprint* OldBlueprint, class UBlueprint* NewBlueprint ) const
+void FAssetTypeActions_Blueprint::OpenInDefaults( const UBlueprint* OldBlueprint, const UBlueprint* NewBlueprint ) const
 {
 	const bool bComparedBlueprintsHaveGeneratedClasses = *(OldBlueprint->GeneratedClass) && *(NewBlueprint->GeneratedClass);
 	ensure(bComparedBlueprintsHaveGeneratedClasses);

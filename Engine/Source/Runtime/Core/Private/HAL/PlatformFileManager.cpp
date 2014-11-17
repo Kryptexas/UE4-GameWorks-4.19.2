@@ -4,7 +4,7 @@
 	GenericPlatformFile.cpp: Generic implementations of platform file I/O functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ModuleManager.h"
 #include "../HAL/IPlatformFileLogWrapper.h"
 #include "../HAL/IPlatformFileProfilerWrapper.h"

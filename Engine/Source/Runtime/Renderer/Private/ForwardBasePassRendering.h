@@ -264,11 +264,8 @@ public:
 			SceneTextureMode == Other.SceneTextureMode;
 	}
 
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const
 	{
-		// Set the actual shader & vertex declaration state
-		RHICmdList.SetBoundShaderState(BoundShaderState);
-
 		VertexShader->SetParameters(RHICmdList, MaterialRenderProxy, VertexFactory, *MaterialResource, *View, SceneTextureMode);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -326,7 +323,7 @@ public:
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
 	{
 		FPixelShaderRHIParamRef PixelShaderRHIRef = PixelShader->GetPixelShader();
 
@@ -338,15 +335,13 @@ public:
 		}
 #endif
 
-		FBoundShaderStateRHIRef BoundShaderState = RHICreateBoundShaderState(
+		return FBoundShaderStateInput(
 			FMeshDrawingPolicy::GetVertexDeclaration(), 
 			VertexShader->GetVertexShader(),
 			FHullShaderRHIRef(), 
 			FDomainShaderRHIRef(), 
 			PixelShaderRHIRef,
 			FGeometryShaderRHIRef());
-
-		return BoundShaderState;
 	}
 
 	void SetMeshRenderState(
@@ -436,7 +431,7 @@ public:
 		ESceneRenderTargetsMode::Type TextureMode;
 	};
 
-	static void AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh);
+	static void AddStaticMesh(FRHICommandList& RHICmdList, FScene* Scene, FStaticMesh* StaticMesh);
 	static bool DrawDynamicMesh(
 		FRHICommandList& RHICmdList, 
 		const FSceneView& View,
@@ -458,6 +453,7 @@ public:
 /** Processes a base pass mesh using an unknown light map policy, and unknown fog density policy. */
 template<typename ProcessActionType>
 void ProcessBasePassMeshForForwardShading(
+	FRHICommandList& RHICmdList,
 	const FProcessBasePassMeshParameters& Parameters,
 	const ProcessActionType& Action
 	)
@@ -468,11 +464,6 @@ void ProcessBasePassMeshForForwardShading(
 	const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
 		? Parameters.Mesh.LCI->GetLightMapInteraction() 
 		: FLightMapInteraction();
-
-	check(!AllowHighQualityLightmaps());
-
-	
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
 	if (LightMapInteraction.GetType() == LMIT_Texture)
 	{

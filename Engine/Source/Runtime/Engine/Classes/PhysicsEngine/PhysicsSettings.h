@@ -48,6 +48,23 @@ namespace EFrictionCombineMode
 	};
 }
 
+UENUM()
+namespace ESettingsLockedAxis
+{
+	enum Type
+	{
+		/*No axis is locked*/
+		None,
+		/*Lock movement along the x-axis*/
+		X,
+		/*Lock movement along the y-axis*/
+		Y,
+		/*Lock movement along the z-axis*/
+		Z
+	};
+}
+
+
 /**
  * Implements project settings for the physics sub-system.
  */
@@ -73,9 +90,19 @@ class ENGINE_API UPhysicsSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bEnable2DPhysics;
 
+	/** Locks axis of movement for physical objects. (Useful for making 2D games in a 3D setting) */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	TEnumAsByte<ESettingsLockedAxis::Type> LockedAxis;
+	
+
 	/** Friction combine mode, controls how friction is computed for multiple materials. */
 	UPROPERTY(config, EditAnywhere, Category=Simulation)
 	TEnumAsByte<EFrictionCombineMode::Type> FrictionCombineMode;
+
+	/** Max velocity which may be used to depenetrate simulated physics objects. 0 means no maximum. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	float MaxDepenetrationVelocity;
+
 
 	/** Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)

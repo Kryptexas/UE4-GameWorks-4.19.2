@@ -244,6 +244,7 @@ public:
 	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
 	ENGINE_API virtual bool IsTwoSided_Internal() const;
+	ENGINE_API virtual bool IsMasked_Internal() const;
 
 	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
 	ENGINE_API virtual bool GetOpacityMaskClipValueOverride(float& OutResult) const;
@@ -253,11 +254,13 @@ public:
 	ENGINE_API virtual bool GetShadingModelOverride(EMaterialShadingModel& OutResult) const;
 	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
 	ENGINE_API virtual bool IsTwoSidedOverride(bool& OutResult) const;
+	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
+	ENGINE_API virtual bool IsMaskedOverride(bool& OutResult) const;
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
-	ENGINE_API virtual int32 CompileProperty(class FMaterialCompiler* Compiler, EMaterialProperty Property, float DefaultFloat, FLinearColor DefaultColor, const FVector4& DefaultVector);
+	ENGINE_API virtual int32 CompilePropertyEx(class FMaterialCompiler* Compiler, EMaterialProperty Property);
 	// End UMaterialInterface interface.
 
 	// Begin UObject interface.

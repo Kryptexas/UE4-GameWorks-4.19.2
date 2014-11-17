@@ -62,14 +62,6 @@ public:
 	void MapAction( const TSharedPtr< const FUICommandInfo > InUICommandInfo, const FUIAction& InUIAction );
 
 	/**
-	 * Checks to see whether a command info is already mapped to an action
-	 * 
-	 * @param InUICommandInfo	The command info to check
-	 * @return true if the command info is mapped to an action
-	 */
-	bool IsCommandInfoMapped( const TSharedPtr< const FUICommandInfo > InUICommandInfo ) const;
-
-	/**
 	 * Append commands in InCommandsToAppend to this command list.
 	 */
 	void Append( const TSharedRef<FUICommandList>& InCommandsToAppend );
@@ -162,7 +154,7 @@ protected:
 	 * @param bRepeat	True if command is repeating (held)
 	 * @return True if a command was executed, False otherwise
 	 */
-	bool ConditionalProcessCommandBindings( const FKey Key, bool bCtrl, bool bAlt, bool bShift, bool bRepeat ) const;
+	bool ConditionalProcessCommandBindings( const FKey Key, bool bCtrl, bool bAlt, bool bShift, bool bCmd, bool bRepeat ) const;
 
 	/** 
 	  * Attempts to find an action for the specified command in the current UICommandList. If it is not found, the action for the

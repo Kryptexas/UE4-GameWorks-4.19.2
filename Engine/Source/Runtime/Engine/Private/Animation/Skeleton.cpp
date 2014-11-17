@@ -713,9 +713,9 @@ USkeletalMesh* USkeleton::GetPreviewMesh(bool bFindIfNotSet)
 		// if preview mesh isn't loaded, see if we have set
 		FStringAssetReference PreviewMeshStringRef = PreviewSkeletalMesh.ToStringReference();
 		// load it since now is the time to load
-		if(!PreviewMeshStringRef.AssetLongPathname.IsEmpty())
+		if (!PreviewMeshStringRef.ToString().IsEmpty())
 		{
-			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.AssetLongPathname, NULL, LOAD_None, NULL));
+			PreviewMesh = Cast<USkeletalMesh>(StaticLoadObject(USkeletalMesh::StaticClass(), NULL, *PreviewMeshStringRef.ToString(), NULL, LOAD_None, NULL));
 		}
 		// if not existing, and if bFindIfNotExisting is true, then try find one
 		else if (bFindIfNotSet)

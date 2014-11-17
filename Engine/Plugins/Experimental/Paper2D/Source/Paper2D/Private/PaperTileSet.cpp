@@ -20,8 +20,8 @@ int32 UPaperTileSet::GetTileCount() const
 		const int32 TextureWidth = TileSheet->GetSizeX();
 		const int32 TextureHeight = TileSheet->GetSizeY();
 
-		const int32 CellsX = TextureWidth / TileWidth;
-		const int32 CellsY = TextureHeight / TileHeight;
+		const int32 CellsX = (TextureWidth - (Margin * 2) + Spacing) / (TileWidth + Spacing);
+		const int32 CellsY = (TextureHeight - (Margin * 2) + Spacing) / (TileHeight + Spacing);
 
 		return CellsX * CellsY;
 	}
@@ -37,7 +37,7 @@ int32 UPaperTileSet::GetTileCountX() const
 	{
 		checkSlow(TileWidth > 0);
 		const int32 TextureWidth = TileSheet->GetSizeX();
-		const int32 CellsX = TextureWidth / TileWidth;
+		const int32 CellsX = (TextureWidth - (Margin * 2) + Spacing) / (TileWidth + Spacing);
 		return CellsX;
 	}
 	else
@@ -52,7 +52,7 @@ int32 UPaperTileSet::GetTileCountY() const
 	{
 		checkSlow(TileHeight > 0);
 		const int32 TextureHeight = TileSheet->GetSizeY();
-		const int32 CellsY = TextureHeight / TileHeight;
+		const int32 CellsY = (TextureHeight - (Margin * 2) + Spacing) / (TileHeight + Spacing);
 		return CellsY;
 	}
 	else
@@ -67,11 +67,11 @@ bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) co
 	if (TileSheet != NULL)
 	{
 		checkSlow((TileWidth > 0) && (TileHeight > 0));
-		const int32 TextureWidth = TileSheet->GetSizeX();
-		const int32 TextureHeight = TileSheet->GetSizeY();
+		const int32 TextureWidth = TileSheet->GetSizeX() - (Margin * 2) + Spacing;
+		const int32 TextureHeight = TileSheet->GetSizeY() - (Margin * 2) + Spacing;
 
-		const int32 CellsX = TextureWidth / TileWidth;
-		const int32 CellsY = TextureHeight / TileHeight;
+		const int32 CellsX = TextureWidth / (TileWidth + Spacing);
+		const int32 CellsY = TextureHeight / (TileHeight + Spacing);
 
 		const int32 NumCells = CellsX * CellsY;
 
@@ -84,8 +84,8 @@ bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) co
 			const int32 X = TileIndex % CellsX;
 			const int32 Y = TileIndex / CellsX;
 
-			Out_TileUV.X = X * TileWidth;
-			Out_TileUV.Y = Y * TileHeight;
+			Out_TileUV.X = X * (TileWidth + Spacing) + Margin;
+			Out_TileUV.Y = Y * (TileHeight + Spacing) + Margin;
 			return true;
 		}
 	}
@@ -94,3 +94,25 @@ bool UPaperTileSet::GetTileUV(int32 TileIndex, /*out*/ FVector2D& Out_TileUV) co
 		return false;
 	}
 }
+
+#if WITH_EDITOR
+
+#include "PaperTileMapRenderComponent.h"
+#include "ComponentReregisterContext.h"
+
+void UPaperTileSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	Margin = FMath::Max<int32>(Margin, 0);
+	Spacing = FMath::Max<int32>(Spacing, 0);
+
+	TileWidth = FMath::Max<int32>(TileWidth, 1);
+	TileHeight = FMath::Max<int32>(TileHeight, 1);
+
+	//@TODO: Determine when these are really needed, as they're seriously expensive!
+	TComponentReregisterContext<UPaperTileMapRenderComponent> ReregisterStaticComponents;
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+#endif

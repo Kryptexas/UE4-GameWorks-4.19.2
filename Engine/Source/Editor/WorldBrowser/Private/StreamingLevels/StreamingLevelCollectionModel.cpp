@@ -6,16 +6,22 @@
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "LevelEditor.h"
 #include "DesktopPlatformModule.h"
+#include "AssetData.h"
 
 #include "StreamingLevelCustomization.h"
 #include "StreamingLevelCollectionModel.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
-FStreamingLevelCollectionModel::FStreamingLevelCollectionModel( const TWeakObjectPtr< UEditorEngine >& InEditor )
+FStreamingLevelCollectionModel::FStreamingLevelCollectionModel(UEditorEngine* InEditor)
 	: FLevelCollectionModel(InEditor)
 	, AddedLevelStreamingClass(ULevelStreamingKismet::StaticClass())
 {
+	const TSubclassOf<ULevelStreaming> DefaultLevelStreamingClass = GetDefault<ULevelEditorMiscSettings>()->DefaultLevelStreamingClass;
+	if ( DefaultLevelStreamingClass )
+	{
+		AddedLevelStreamingClass = DefaultLevelStreamingClass;
+	}
 }
 
 FStreamingLevelCollectionModel::~FStreamingLevelCollectionModel()
@@ -23,12 +29,12 @@ FStreamingLevelCollectionModel::~FStreamingLevelCollectionModel()
 	Editor->UnregisterForUndo( this );
 }
 
-void FStreamingLevelCollectionModel::Initialize()
+void FStreamingLevelCollectionModel::Initialize(UWorld* InWorld)
 {
 	BindCommands();	
 	Editor->RegisterForUndo( this );
 	
-	FLevelCollectionModel::Initialize();
+	FLevelCollectionModel::Initialize(InWorld);
 }
 
 void FStreamingLevelCollectionModel::OnLevelsCollectionChanged()
@@ -62,9 +68,11 @@ void FStreamingLevelCollectionModel::OnLevelsCollectionChanged()
 			LevelModel->SetParent(PersistentLevelModel);
 		}
 	}
-
-	RefreshSortIndexes();
+	
 	FLevelCollectionModel::OnLevelsCollectionChanged();
+
+	// Sync levels selection to world
+	SetSelectedLevelsFromWorld();
 }
 
 void FStreamingLevelCollectionModel::OnLevelsSelectionChanged()
@@ -126,6 +134,11 @@ void FStreamingLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevel
 	// This will remove streaming levels from a persistent world, so we need to re-populate levels list
 	FLevelCollectionModel::UnloadLevels(InLevelList);
 	PopulateLevelsList();
+}
+
+void FStreamingLevelCollectionModel::AddExistingLevelsFromAssetData(const TArray<FAssetData>& WorldList)
+{
+	HandleAddExistingLevelSelected(WorldList, false);
 }
 
 void FStreamingLevelCollectionModel::BindCommands()
@@ -218,49 +231,82 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 
-	if (IsOneLevelSelected())
+	// We show the "level missing" commands, when missing level is selected solely
+	if (IsOneLevelSelected() && InvalidSelectedLevels.Num() == 1)
 	{
-		// We only show the level missing level commands if only 1 invalid level and no valid levels
-		if (InvalidSelectedLevels.Num() == 1)
+		InMenuBuilder.BeginSection("MissingLevel", LOCTEXT("ViewHeaderRemove", "Missing Level") );
 		{
-			InMenuBuilder.BeginSection("MissingLevel", LOCTEXT("ViewHeaderRemove", "Missing Level") );
-			{
-				InMenuBuilder.AddMenuEntry( Commands.FixUpInvalidReference );
-				InMenuBuilder.AddMenuEntry( Commands.RemoveInvalidReference );
-			}
-			InMenuBuilder.EndSection();
+			InMenuBuilder.AddMenuEntry( Commands.FixUpInvalidReference );
+			InMenuBuilder.AddMenuEntry( Commands.RemoveInvalidReference );
 		}
-		else
-		{
-			InMenuBuilder.BeginSection("Level", FText::FromName(GetSelectedLevels()[0]->GetLongPackageName()));
-			{
-				InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
-				InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
-			}
-			InMenuBuilder.EndSection();
-		}
+		InMenuBuilder.EndSection();
 	}
 
-	// Adds common commands
-	FLevelCollectionModel::BuildHierarchyMenu(InMenuBuilder);
-
-	InMenuBuilder.BeginSection("LevelsAddChangeStreaming");
+	// Add common commands
+	InMenuBuilder.BeginSection("Levels", LOCTEXT("LevelsHeader", "Levels") );
 	{
+		// Make level current
+		if (IsOneLevelSelected())
+		{
+			InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
+		}
+		
+		// Visibility commands
+		InMenuBuilder.AddSubMenu( 
+			LOCTEXT("VisibilityHeader", "Visibility"),
+			LOCTEXT("VisibilitySubMenu_ToolTip", "Selected Level(s) visibility commands"),
+			FNewMenuDelegate::CreateSP(this, &FStreamingLevelCollectionModel::FillVisibilitySubMenu ) );
+
+		// Lock commands
+		InMenuBuilder.AddSubMenu( 
+			LOCTEXT("LockHeader", "Lock"),
+			LOCTEXT("LockSubMenu_ToolTip", "Selected Level(s) lock commands"),
+			FNewMenuDelegate::CreateSP(this, &FStreamingLevelCollectionModel::FillLockSubMenu ) );
+		
+		// Level streaming specific commands
 		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && GetSelectedLevels()[0]->IsPersistent()))
 		{
 			InMenuBuilder.AddMenuEntry(Commands.World_RemoveSelectedLevels);
-			
 			//
 			InMenuBuilder.AddSubMenu( 
 				LOCTEXT("LevelsChangeStreamingMethod", "Change Streaming Method"),
 				LOCTEXT("LevelsChangeStreamingMethod_Tooltip", "Changes the streaming method for the selected levels"),
-				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillSetStreamingMethodMenu ) );
+				FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillSetStreamingMethodSubMenu ));
+		}
+	}
+	InMenuBuilder.EndSection();
+	
+
+	// Level selection commands
+	InMenuBuilder.BeginSection("LevelsSelection", LOCTEXT("SelectionHeader", "Selection") );
+	{
+		InMenuBuilder.AddMenuEntry( Commands.SelectAllLevels );
+		InMenuBuilder.AddMenuEntry( Commands.DeselectAllLevels );
+		InMenuBuilder.AddMenuEntry( Commands.InvertLevelSelection );
+	}
+	InMenuBuilder.EndSection();
+	
+	// Level actors selection commands
+	InMenuBuilder.BeginSection("Actors", LOCTEXT("ActorsHeader", "Actors") );
+	{
+		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
+		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
+
+		// Move selected actors to a selected level
+		if (IsOneLevelSelected())
+		{
+			InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
+		}
+
+		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && SelectedLevelsList[0]->IsPersistent()))
+		{
+			InMenuBuilder.AddMenuEntry( Commands.SelectStreamingVolumes );
 		}
 	}
 	InMenuBuilder.EndSection();
 }
 
-void FStreamingLevelCollectionModel::FillSetStreamingMethodMenu(FMenuBuilder& InMenuBuilder)
+void FStreamingLevelCollectionModel::FillSetStreamingMethodSubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	InMenuBuilder.AddMenuEntry( Commands.SetStreamingMethod_Blueprint, NAME_None, LOCTEXT("SetStreamingMethodBlueprintOverride", "Blueprint") );
@@ -278,7 +324,7 @@ void FStreamingLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuB
 		InMenuBuilder.AddSubMenu( 
 			LOCTEXT("LevelsStreamingMethod", "Default Streaming Method"),
 			LOCTEXT("LevelsStreamingMethod_Tooltip", "Changes the default streaming method for a new levels"),
-			FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillDefaultStreamingMethodMenu ) );
+			FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillDefaultStreamingMethodSubMenu ) );
 		
 		InMenuBuilder.AddMenuEntry( Commands.World_CreateEmptyLevel );
 		InMenuBuilder.AddMenuEntry( Commands.World_AddExistingLevel );
@@ -288,7 +334,7 @@ void FStreamingLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuB
 	InMenuBuilder.EndSection();
 }
 
-void FStreamingLevelCollectionModel::FillDefaultStreamingMethodMenu(FMenuBuilder& InMenuBuilder)
+void FStreamingLevelCollectionModel::FillDefaultStreamingMethodSubMenu(FMenuBuilder& InMenuBuilder)
 {
 	const FLevelCollectionCommands& Commands = FLevelCollectionCommands::Get();
 	InMenuBuilder.AddMenuEntry( Commands.SetAddStreamingMethod_Blueprint, NAME_None, LOCTEXT("SetAddStreamingMethodBlueprintOverride", "Blueprint") );
@@ -311,96 +357,10 @@ void FStreamingLevelCollectionModel::UnregisterDetailsCustomization(FPropertyEdi
 	InDetailsView->UnregisterInstancedCustomPropertyLayout(ULevelStreaming::StaticClass());
 }
 
-bool FStreamingLevelCollectionModel::CanShiftSelection()
-{
-	if (!IsOneLevelSelected())
-	{
-		return false;
-	}
-
-	for (int32 i = 0; i < SelectedLevelsList.Num(); ++i)
-	{
-		if (SelectedLevelsList[i]->IsLocked() || SelectedLevelsList[i]->IsPersistent())
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-void FStreamingLevelCollectionModel::ShiftSelection( bool bUp )
-{
-	if (!CanShiftSelection())
-	{
-		return;
-	}
-
-	if (!IsSelectedLevelEditable())
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ShiftLevelLocked", "Shift Level: The requested operation could not be completed because the level is locked or not loaded.") );
-		return;
-	}
-	
-	TSharedPtr<FStreamingLevelModel> TargetModel = StaticCastSharedPtr<FStreamingLevelModel>(SelectedLevelsList[0]);
-	ULevelStreaming* InLevelStreaming = TargetModel->GetLevelStreaming().Get();
-	
-	int32 FoundLevelIndex =  CurrentWorld->StreamingLevels.Find(InLevelStreaming);
-	int32 PrevFoundLevelIndex = FoundLevelIndex - 1;
-	int32 PostFoundLevelIndex = FoundLevelIndex + 1;
-
-	// If we found the level . . .
-	if ( FoundLevelIndex != INDEX_NONE )
-	{
-		// Check if we found a destination index to swap it to.
-		const int32 DestIndex = bUp ? PrevFoundLevelIndex : PostFoundLevelIndex;
-		if (CurrentWorld->StreamingLevels.IsValidIndex(DestIndex))
-		{
-			// Swap the level into position.
-			const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "ShiftLevelInLevelBrowser", "Shift level in Level Browser") );
-			CurrentWorld->Modify();
-			CurrentWorld->StreamingLevels.Swap( FoundLevelIndex, DestIndex );
-			CurrentWorld->MarkPackageDirty();
-		}
-	}
-
-	RefreshSortIndexes();
-}
-
-
 const FLevelModelList& FStreamingLevelCollectionModel::GetInvalidSelectedLevels() const 
 { 
 	return InvalidSelectedLevels;
 }
-
-void FStreamingLevelCollectionModel::RefreshSortIndexes()
-{
-	//for( auto LevelIt = AllLevelsList.CreateIterator(); LevelIt; ++LevelIt )
-	//{
-	//	(*LevelIt)->RefreshStreamingLevelIndex();
-	//}
-
-	//OnFilterChanged();
-}
-
-void FStreamingLevelCollectionModel::SortFilteredLevels()
-{
-	struct FCompareLevels
-	{
-		FORCEINLINE bool operator()(const TSharedPtr<FLevelModel>& InLhs, 
-									const TSharedPtr<FLevelModel>& InRhs) const 
-		{ 
-			TSharedPtr<FStreamingLevelModel> Lhs = StaticCastSharedPtr<FStreamingLevelModel>(InLhs);
-			TSharedPtr<FStreamingLevelModel> Rhs = StaticCastSharedPtr<FStreamingLevelModel>(InRhs);
-				
-			// Sort by a user-defined order.
-			return (Lhs->GetStreamingLevelIndex() < Rhs->GetStreamingLevelIndex());
-		}
-	};
-
-	FilteredLevelsList.Sort(FCompareLevels());
-}
-
 
 //levels
 void FStreamingLevelCollectionModel::CreateEmptyLevel_Executed()
@@ -416,113 +376,122 @@ void FStreamingLevelCollectionModel::AddExistingLevel_Executed()
 	AddExistingLevel();
 }
 
-bool FStreamingLevelCollectionModel::AddExistingLevel()
+void FStreamingLevelCollectionModel::AddExistingLevel(bool bRemoveInvalidSelectedLevelsAfter)
 {
-	TArray<FString> OpenFilenames;
-	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-	bool bOpened = false;
-	if ( DesktopPlatform )
+	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
 	{
-		void* ParentWindowWindowHandle = NULL;
-
-		IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-		const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
-		if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
+		const bool bAllowMultipleSelection = true;
+		FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, bAllowMultipleSelection);
+	}
+	else
+	{
+		TArray<FString> OpenFilenames;
+		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+		bool bOpened = false;
+		if ( DesktopPlatform )
 		{
-			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			void* ParentWindowWindowHandle = NULL;
+
+			IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+			const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+			if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+			{
+				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			}
+
+			bOpened = DesktopPlatform->OpenFileDialog(
+				ParentWindowWindowHandle,
+				NSLOCTEXT("UnrealEd", "Open", "Open").ToString(),
+				*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
+				TEXT(""),
+				*FEditorFileUtils::GetFilterString(FI_Load),
+				EFileDialogFlags::Multiple,
+				OpenFilenames
+				);
 		}
 
-		bOpened = DesktopPlatform->OpenFileDialog(
-			ParentWindowWindowHandle,
-		NSLOCTEXT("UnrealEd", "Open", "Open").ToString(),
-		*FEditorDirectories::Get().GetLastDirectory(ELastDirectory::UNR),
-		TEXT(""),
-		*FEditorFileUtils::GetFilterString(FI_Load),
-			EFileDialogFlags::Multiple,
-			OpenFilenames
-			);
+		if( bOpened )
+		{
+			// Save the path as default for next time
+			FEditorDirectories::Get().SetLastDirectory( ELastDirectory::UNR, FPaths::GetPath( OpenFilenames[ 0 ] ) );
+
+			TArray<FString> Filenames;
+			for( int32 FileIndex = 0 ; FileIndex < OpenFilenames.Num() ; ++FileIndex )
+			{
+				// Strip paths from to get the level package names.
+				const FString FilePath( OpenFilenames[FileIndex] );
+
+				// make sure the level is in our package cache, because the async loading code will use this to find it
+				if (!FPaths::FileExists(FilePath))
+				{
+					FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_LevelImportFromExternal", "Importing external sublevels is not allowed. Move the level files into the standard content directory and try again.\nAfter moving the level(s), restart the editor.") );
+					return;				
+				}
+
+				FText ErrorMessage;
+				bool bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(OpenFilenames[FileIndex], ErrorMessage);
+				if ( !bFilenameIsValid )
+				{
+					// Start the loop over, prompting for save again
+					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*OpenFilenames[FileIndex]) );
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("Filename"), DisplayFilename);
+					Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
+					Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
+					const FText DisplayMessage = FText::Format( NSLOCTEXT("UnrealEd", "Error_InvalidLevelToAdd", "Unable to add streaming level {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
+					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
+					return;
+				}
+
+				Filenames.Add( FilePath );
+			}
+
+			TArray<FString> PackageNames;
+			for (const auto& Filename : Filenames)
+			{
+				const FString& PackageName = FPackageName::FilenameToLongPackageName(Filename);
+				PackageNames.Add(PackageName);
+			}
+
+			// Save or selected list, adding a new level will clean it up
+			FLevelModelList SavedInvalidSelectedLevels = InvalidSelectedLevels;
+
+			EditorLevelUtils::AddLevelsToWorld(CurrentWorld.Get(), PackageNames, AddedLevelStreamingClass);
+			
+			// Force a cached level list rebuild
+			PopulateLevelsList();
+			
+			if (bRemoveInvalidSelectedLevelsAfter)
+			{
+				InvalidSelectedLevels = SavedInvalidSelectedLevels;
+				RemoveInvalidSelectedLevels_Executed();
+			}
+		}
+	}
+}
+
+void FStreamingLevelCollectionModel::HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter)
+{
+	TArray<FString> PackageNames;
+	for (const auto& AssetData : SelectedAssets)
+	{
+		PackageNames.Add(AssetData.PackageName.ToString());
 	}
 
-	if( bOpened )
+	// Save or selected list, adding a new level will clean it up
+	FLevelModelList SavedInvalidSelectedLevels = InvalidSelectedLevels;
+
+	EditorLevelUtils::AddLevelsToWorld(CurrentWorld.Get(), PackageNames, AddedLevelStreamingClass);
+
+	// Force a cached level list rebuild
+	PopulateLevelsList();
+
+	if (bRemoveInvalidSelectedLevelsAfter)
 	{
-		// Save the path as default for next time
-		FEditorDirectories::Get().SetLastDirectory( ELastDirectory::UNR, FPaths::GetPath( OpenFilenames[ 0 ] ) );
-
-		TArray<FString> Filenames;
-		for( int32 FileIndex = 0 ; FileIndex < OpenFilenames.Num() ; ++FileIndex )
-		{
-			// Strip paths from to get the level package names.
-			const FString FilePath( OpenFilenames[FileIndex] );
-
-			// make sure the level is in our package cache, because the async loading code will use this to find it
-			if (!FPaths::FileExists(FilePath))
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_LevelImportFromExternal", "Importing external sublevels is not allowed. Move the level files into the standard content directory and try again.\nAfter moving the level(s), restart the editor.") );
-				return false;				
-			}
-
-			FText ErrorMessage;
-			bool bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(OpenFilenames[FileIndex], ErrorMessage);
-			if ( !bFilenameIsValid )
-			{
-				// Start the loop over, prompting for save again
-				const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*OpenFilenames[FileIndex]) );
-				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("Filename"), DisplayFilename);
-				Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
-				Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
-				const FText DisplayMessage = FText::Format( NSLOCTEXT("UnrealEd", "Error_InvalidLevelToAdd", "Unable to add streaming level {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
-				FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
-				return false;
-			}
-
-			Filenames.Add( FilePath );
-		}
-
-		// Sort the level packages alphabetically by name.
-		Filenames.Sort();
-
-		// Fire ULevel::LevelDirtiedEvent when falling out of scope.
-		FScopedLevelDirtied LevelDirtyCallback;
-
-		// Try to add the levels that were specified in the dialog.
-		ULevel* NewLevel = nullptr;
-		for( int32 FileIndex = 0 ; FileIndex < Filenames.Num() ; ++FileIndex )
-		{
-			const FString& PackageName = FPackageName::FilenameToLongPackageName(Filenames[FileIndex]);
-
-			NewLevel = EditorLevelUtils::AddLevelToWorld(CurrentWorld.Get(), *PackageName, AddedLevelStreamingClass);
-			if (NewLevel)
-			{
-				LevelDirtyCallback.Request();
-			}
-
-		} // for each file
-
-		// Force a cached level list rebuild
-		PopulateLevelsList();
-
-		// Set the last loaded level to be the current level
-		if (NewLevel)
-		{
-			CurrentWorld->SetCurrentLevel(NewLevel);
-		}
-
-		// For safety
-		if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
-		{
-			GLevelEditorModeTools().ActivateDefaultMode();
-		}
-
-		// refresh editor windows
-		FEditorDelegates::RefreshAllBrowsers.Broadcast();
+		InvalidSelectedLevels = SavedInvalidSelectedLevels;
+		RemoveInvalidSelectedLevels_Executed();
 	}
-
-	// Update volume actor visibility for each viewport since we loaded a level which could potentially contain volumes
-	GUnrealEd->UpdateVolumeActorVisibility(NULL);
-
-	// return whether a level was selected
-	return bOpened;
 }
 
 void FStreamingLevelCollectionModel::AddSelectedActorsToNewLevel_Executed()
@@ -535,15 +504,9 @@ void FStreamingLevelCollectionModel::AddSelectedActorsToNewLevel_Executed()
 
 void FStreamingLevelCollectionModel::FixupInvalidReference_Executed()
 {
-	// Save or selected list, adding a new level will clean it up
-	FLevelModelList SavedInvalidSelectedLevels = InvalidSelectedLevels;
-
 	// Browsing is essentially the same as adding an existing level
-	if (AddExistingLevel())
-	{
-		InvalidSelectedLevels = SavedInvalidSelectedLevels;
-		RemoveInvalidSelectedLevels_Executed();
-	}
+	const bool bRemoveInvalidSelectedLevelsAfter = true;
+	AddExistingLevel(bRemoveInvalidSelectedLevelsAfter);
 }
 
 void FStreamingLevelCollectionModel::RemoveInvalidSelectedLevels_Executed()

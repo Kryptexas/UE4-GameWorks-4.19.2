@@ -5,6 +5,7 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/ScopedTransaction.h"
 #include "FlipbookEditorCommands.h"
+#include "PaperStyle.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
@@ -26,7 +27,6 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<const FUI
 	CommandList = InCommandList;
 
 	SlateUnitsPerFrame = 32;
-	const int32 FrameHeight = 48;
 
 	ChildSlot
 	[
@@ -63,9 +63,9 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<const FUI
 				+SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SNew(SBox).HeightOverride(FrameHeight)
+					SNew(SBox).HeightOverride(FFlipbookUIConstants::FrameHeight)
 					[
-						SNew(STimelineTrack, InCommandList)
+						SNew(SFlipbookTimelineTrack, InCommandList)
 						.SlateUnitsPerFrame(SlateUnitsPerFrame)
 						.FlipbookBeingEdited(FlipbookBeingEdited)
 						.OnSelectionChanged(OnSelectionChanged)
@@ -74,6 +74,36 @@ void SFlipbookTimeline::Construct(const FArguments& InArgs, TSharedPtr<const FUI
 			]
 		]
 	];
+}
+
+void SFlipbookTimeline::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	SCompoundWidget::OnDragEnter(MyGeometry, DragDropEvent);
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+	}
+	else if (Operation->IsOfType<FFlipbookKeyFrameDragDropOp>())
+	{
+		const auto& FrameDragDropOp = StaticCastSharedPtr<FFlipbookKeyFrameDragDropOp>(Operation);
+		FrameDragDropOp->SetCanDropHere(true);
+	}
+}
+
+void SFlipbookTimeline::OnDragLeave(const FDragDropEvent& DragDropEvent)
+{
+	SCompoundWidget::OnDragLeave(DragDropEvent);
+
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+	}
+	else if (Operation->IsOfType<FFlipbookKeyFrameDragDropOp>())
+	{
+		const auto& FrameDragDropOp = StaticCastSharedPtr<FFlipbookKeyFrameDragDropOp>(Operation);
+		FrameDragDropOp->SetCanDropHere(false);
+	}
 }
 
 FReply SFlipbookTimeline::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
@@ -86,11 +116,18 @@ FReply SFlipbookTimeline::OnDrop(const FGeometry& MyGeometry, const FDragDropEve
 	}
 	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
-		const auto& DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
-
-		OnAssetsDropped(*DragDropOp);
-
+		const auto& AssetDragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
+		OnAssetsDropped(*AssetDragDropOp);
 		bWasDropHandled = true;
+	}
+	else if (Operation->IsOfType<FFlipbookKeyFrameDragDropOp>())
+	{
+		const auto& FrameDragDropOp = StaticCastSharedPtr<FFlipbookKeyFrameDragDropOp>(Operation);
+		if (UPaperFlipbook* ThisFlipbook = FlipbookBeingEdited.Get())
+		{
+			FrameDragDropOp->AppendToFlipbook(ThisFlipbook);
+			bWasDropHandled = true;
+		}
 	}
 
 	return bWasDropHandled ? FReply::Handled() : FReply::Unhandled();
@@ -134,9 +171,9 @@ void SFlipbookTimeline::OnAssetsDropped(const class FAssetDragDropOp& DragDropOp
 	}
 }
 
-int32 SFlipbookTimeline::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+int32 SFlipbookTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	LayerId = SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	LayerId = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	const float CurrentTimeSecs = PlayTime.Get();
 	UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();

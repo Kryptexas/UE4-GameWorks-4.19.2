@@ -11,10 +11,8 @@
 void SEditableTextBox::Construct( const FArguments& InArgs )
 {
 	check (InArgs._Style);
-	BorderImageNormal = &InArgs._Style->BackgroundImageNormal;
-	BorderImageHovered = &InArgs._Style->BackgroundImageHovered;
-	BorderImageFocused = &InArgs._Style->BackgroundImageFocused;
-	BorderImageReadOnly = &InArgs._Style->BackgroundImageReadOnly;
+	SetStyle(InArgs._Style);
+
 	TAttribute<FMargin> Padding = InArgs._Padding.IsSet() ? InArgs._Padding : InArgs._Style->Padding;
 	TAttribute<FSlateFontInfo> Font = InArgs._Font.IsSet() ? InArgs._Font : InArgs._Style->Font;
 	TAttribute<FSlateColor> ForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : InArgs._Style->ForegroundColor;
@@ -28,7 +26,8 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 		.Padding( 0 )
 		[
 			SAssignNew( Box, SHorizontalBox)
-			+SHorizontalBox::Slot()
+
+			+ SHorizontalBox::Slot()
 			.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
 			.FillWidth(1)
@@ -68,12 +67,22 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 
 }
 
+void SEditableTextBox::SetStyle(const FEditableTextBoxStyle* InStyle)
+{
+	Style = InStyle;
 
-/**
- * Sets the text string currently being edited 
- *
- * @param  InNewText  The new text string
- */
+	if ( Style == NULL )
+	{
+		FArguments Defaults;
+		Style = Defaults._Style;
+	}
+
+	BorderImageNormal = &Style->BackgroundImageNormal;
+	BorderImageHovered = &Style->BackgroundImageHovered;
+	BorderImageFocused = &Style->BackgroundImageFocused;
+	BorderImageReadOnly = &Style->BackgroundImageReadOnly;
+}
+
 void SEditableTextBox::SetText( const TAttribute< FText >& InNewText )
 {
 	EditableText->SetText( InNewText );

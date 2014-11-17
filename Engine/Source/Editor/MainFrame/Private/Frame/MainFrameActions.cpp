@@ -3,7 +3,6 @@
 
 #include "MainFramePrivatePCH.h"
 
-
 #define LOCTEXT_NAMESPACE "MainFrameActions"
 
 DEFINE_LOG_CATEGORY_STATIC(MainFrameActions, Log, All);
@@ -413,6 +412,13 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 		return;
 	}
 
+	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled)
+	{
+		IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), PlatformInfo->SDKTutorial);
+		return;
+	}
+
 	if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
 	{
 		OptionalParams += TEXT(" -targetplatform=Mac");
@@ -429,19 +435,6 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 		OptionalParams += PlatformInfo->UATCommandLine;
 	}
 
-	FString ExecutableName = FPlatformProcess::ExecutableName(false);
-
-#if PLATFORM_WINDOWS
-	// turn UE4editor into UE4editor-cmd
-	if(ExecutableName.EndsWith(".exe", ESearchCase::IgnoreCase) && !FPaths::GetBaseFilename(ExecutableName).EndsWith("-cmd", ESearchCase::IgnoreCase))
-	{
-		FString NewExeName = ExecutableName.Left(ExecutableName.Len() - 4) + "-Cmd.exe";
-		if (FPaths::FileExists(NewExeName))
-		{
-			ExecutableName = NewExeName;
-		}
-	}
-#endif
 	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
 
 	if (bRunningDebug)
@@ -455,7 +448,7 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
 		*PlatformInfo->TargetPlatformName.ToString(),
-		*ExecutableName,
+		*FUnrealEdMisc::Get().GetExecutableForCommandlets(),
 		*OptionalParams
 	);
 
@@ -487,33 +480,53 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
 	check(PlatformInfo);
 
+	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled)
+	{
+		IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+		MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), PlatformInfo->SDKTutorial);
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), 0.0));
+		FEditorAnalytics::ReportEvent(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, EAnalyticsErrorCodes::SDKNotFound, ParamArray);
+		return;
+	}
+
 	{
 		const ITargetPlatform* const Platform = GetTargetPlatformManager()->FindTargetPlatform(PlatformInfo->TargetPlatformName.ToString());
 		if (Platform)
 		{
 			FString NotInstalledDocLink;
-			if (!Platform->IsSdkInstalled(bProjectHasCode, NotInstalledDocLink))
+			FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
+			int32 Result = Platform->DoesntHaveRequirements(ProjectPath, bProjectHasCode, NotInstalledDocLink);
+			FEditorAnalytics::ReportBuildRequirementsFailure(TEXT("Editor.Package.Failed"), PlatformInfo->TargetPlatformName.ToString(), bProjectHasCode, Result);
+			switch (Result)
 			{
 				// broadcast this, and assume someone will pick it up
-				IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-				MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), NotInstalledDocLink);
+			case ETargetPlatformReadyStatus::SDKNotFound:
+			case ETargetPlatformReadyStatus::ProvisionNotFound:
+			case ETargetPlatformReadyStatus::SigningKeyNotFound:
+			case (ETargetPlatformReadyStatus::ProvisionNotFound | ETargetPlatformReadyStatus::SigningKeyNotFound):
+				{
+					IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+					MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), NotInstalledDocLink);
+				}
 				return;
+
+#if PLATFORM_WINDOWS
+			case ETargetPlatformReadyStatus::CodeUnsupported:
+				// show the message
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
+				return;
+
+			case ETargetPlatformReadyStatus::PluginsUnsupported:
+				// show the message
+				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
+				return;
+#endif
+			default:
+				break;
 			}
 		}
 	}
-
-#if PLATFORM_WINDOWS
-	if (bProjectHasCode && FRocketSupport::IsRocket() && PlatformInfo->TargetPlatformName == FName("IOS"))
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
-		return;
-	}
-	if (FRocketSupport::IsRocket() && PlatformInfo->TargetPlatformName == FName("IOS") && IProjectManager::Get().IsNonDefaultPluginEnabled())
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
-		return;
-	}
-#endif
 
 	if (!FModuleManager::LoadModuleChecked<IProjectTargetPlatformEditorModule>("ProjectTargetPlatformEditor").ShowUnsupportedTargetWarning(PlatformInfo->VanillaPlatformName))
 	{
@@ -556,12 +569,15 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 
 	if (PackagingSettings->UsePakFile)
 	{
+	  if (PlatformInfo->TargetPlatformName != FName("HTML5")) 
+	  { 
 		OptionalParams += TEXT(" -pak");
 
 		if (PackagingSettings->UseOBB_InAPK)
 		{
 			OptionalParams += TEXT(" -obbinapk");
 		}
+	  }
 	}
 
 	if (PackagingSettings->ForDistribution)
@@ -629,10 +645,10 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	CreateUatTask(CommandLine, PlatformInfo->DisplayName, LOCTEXT("PackagingProjectTaskName", "Packaging project"), LOCTEXT("PackagingTaskName", "Packaging"), FEditorStyle::GetBrush(TEXT("MainFrame.PackageProject")));
 }
 
-bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FName PlatformInfoName, bool IsImplemented )
+bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FName PlatformInfoName )
 {
 	// For a binary Rocket build, Development is ALWAYS Win64, and Shipping is ALWAYS Win32.
-	if(IsImplemented && FRocketSupport::IsRocket())
+	if(FRocketSupport::IsRocket())
 	{
 		const EProjectPackagingBuildConfigurations BuildConfiguration = GetDefault<UProjectPackagingSettings>()->BuildConfiguration;
 		switch(BuildConfiguration)
@@ -649,7 +665,7 @@ bool FMainFrameActionCallbacks::PackageProjectCanExecute( const FName PlatformIn
 		}
 	}
 
-	return IsImplemented;
+	return true;
 }
 
 void FMainFrameActionCallbacks::RefreshCodeProject()
@@ -992,18 +1008,28 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 #if PLATFORM_WINDOWS
 	FString RunUATScriptName = TEXT("RunUAT.bat");
 	FString CmdExe = TEXT("cmd.exe");
+#elif PLATFORM_LINUX
+	FString RunUATScriptName = TEXT("RunUAT.sh");
+	FString CmdExe = TEXT("/bin/sh");
 #else
 	FString RunUATScriptName = TEXT("RunUAT.command");
 	FString CmdExe = TEXT("/bin/sh");
 #endif
 
 	FString UatPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles") / RunUATScriptName);
+	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
+	bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
 
 	if (!FPaths::FileExists(UatPath))
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("File"), FText::FromString(UatPath));
 		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("RequiredFileNotFoundMessage", "A required file could not be found:\n{File}"), Arguments));
+
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), 0.0));
+		FString EventName = (CommandLine.Contains(TEXT("-package")) ? TEXT("Editor.Package") : TEXT("Editor.Cook"));
+		FEditorAnalytics::ReportEvent(EventName + TEXT(".Failed"), PlatformDisplayName.ToString(), bHasCode, EAnalyticsErrorCodes::UATNotFound, ParamArray);
 		
 		return;
 	}
@@ -1042,20 +1068,8 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 		return;
 	}
 
-	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
-	bool bProjectHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
-
 	FString EventName = (CommandLine.Contains(TEXT("-package")) ? TEXT("Editor.Package") : TEXT("Editor.Cook"));
-	if( FEngineAnalytics::IsAvailable() )
-	{
-		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
-		TArray<FAnalyticsEventAttribute> ParamArray;
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformDisplayName.ToString()));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), bProjectHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
-
-		FEngineAnalytics::GetProvider().RecordEvent( EventName + TEXT(".Start"), ParamArray );
-	}
+	FEditorAnalytics::ReportEvent(EventName + TEXT(".Start"), PlatformDisplayName.ToString(), bHasCode);
 
 	NotificationItem->SetCompletionState(SNotificationItem::CS_Pending);
 
@@ -1065,7 +1079,7 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 	EventData Data;
 	Data.StartTime = FPlatformTime::Seconds();
 	Data.EventName = EventName;
-	Data.bProjectHasCode = bProjectHasCode;
+	Data.bProjectHasCode = bHasCode;
 	UatProcess->OnCanceled().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessCanceled, NotificationItemPtr, PlatformDisplayName, TaskShortName, Data);
 	UatProcess->OnCompleted().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessCompleted, NotificationItemPtr, PlatformDisplayName, TaskShortName, Data);
 	UatProcess->OnOutput().BindStatic(&FMainFrameActionCallbacks::HandleUatProcessOutput, NotificationItemPtr, PlatformDisplayName, TaskShortName);
@@ -1081,9 +1095,12 @@ void FMainFrameActionCallbacks::CreateUatTask( const FString& CommandLine, const
 		NotificationItem->SetText(LOCTEXT("UatLaunchFailedNotification", "Failed to launch Unreal Automation Tool (UAT)!"));
 		NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 		NotificationItem->ExpireAndFadeout();
+
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), 0.0));
+		FEditorAnalytics::ReportEvent(EventName + TEXT(".Failed"), PlatformDisplayName.ToString(), bHasCode, EAnalyticsErrorCodes::UATLaunchFailure, ParamArray);
 	}
 }
-
 
 /* FMainFrameActionCallbacks callbacks
  *****************************************************************************/
@@ -1160,17 +1177,9 @@ void FMainFrameActionCallbacks::HandleUatProcessCanceled( TWeakPtr<SNotification
 		FText::Format(LOCTEXT("UatProcessFailedNotification", "{TaskName} canceled!"), Arguments)
 	);
 
-	if( FEngineAnalytics::IsAvailable() )
-	{
-		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
-		TArray<FAnalyticsEventAttribute> ParamArray;
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformDisplayName.ToString()));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), Event.bProjectHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
-		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
-
-		FEngineAnalytics::GetProvider().RecordEvent( Event.EventName + TEXT(".Canceled"), ParamArray );
-	}
+	TArray<FAnalyticsEventAttribute> ParamArray;
+	ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+	FEditorAnalytics::ReportEvent(Event.EventName + TEXT(".Canceled"), PlatformDisplayName.ToString(), Event.bProjectHasCode, ParamArray);
 //	FMessageLog("PackagingResults").Warning(FText::Format(LOCTEXT("UatProcessCanceledMessageLog", "{TaskName} for {Platform} canceled by user"), Arguments));
 }
 
@@ -1189,17 +1198,9 @@ void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWe
 			FText::Format(LOCTEXT("UatProcessSucceededNotification", "{TaskName} complete!"), Arguments)
 		);
 
-		if( FEngineAnalytics::IsAvailable() )
-		{
-			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
-			TArray<FAnalyticsEventAttribute> ParamArray;
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformDisplayName.ToString()));
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), Event.bProjectHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
-
-			FEngineAnalytics::GetProvider().RecordEvent( Event.EventName + TEXT(".Completed"), ParamArray );
-		}
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+		FEditorAnalytics::ReportEvent(Event.EventName + TEXT(".Completed"), PlatformDisplayName.ToString(), Event.bProjectHasCode, ParamArray);
 
 //		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessSuccessMessageLog", "{TaskName} for {Platform} completed successfully"), Arguments));
 	}
@@ -1211,17 +1212,9 @@ void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWe
 			FText::Format(LOCTEXT("PackagerFailedNotification", "{TaskName} failed!"), Arguments)
 		);
 
-		if( FEngineAnalytics::IsAvailable() )
-		{
-			const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
-			TArray<FAnalyticsEventAttribute> ParamArray;
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectID"), ProjectSettings.ProjectID.ToString()));
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Platform"), PlatformDisplayName.ToString()));
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("ProjectType"), Event.bProjectHasCode ? TEXT("C++ Code") : TEXT("Content Only")));
-			ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
-
-			FEngineAnalytics::GetProvider().RecordEvent( Event.EventName + TEXT(".Completed"), ParamArray );
-		}
+		TArray<FAnalyticsEventAttribute> ParamArray;
+		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
+		FEditorAnalytics::ReportEvent(Event.EventName + TEXT(".Failed"), PlatformDisplayName.ToString(), Event.bProjectHasCode, ReturnCode, ParamArray);
 
 //		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessFailedMessageLog", "{TaskName} for {Platform} failed"), Arguments));
 	}
@@ -1230,7 +1223,7 @@ void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWe
 
 void FMainFrameActionCallbacks::HandleUatProcessOutput( FString Output, TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName )
 {
-	if (!Output.IsEmpty())
+	if (!Output.IsEmpty() && !Output.Equals("\r"))
 	{
 		UE_LOG(MainFrameActions, Log, TEXT("%s (%s): %s"), *TaskName.ToString(), *PlatformDisplayName.ToString(), *Output);
 	}	

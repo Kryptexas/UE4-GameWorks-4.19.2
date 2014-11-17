@@ -462,17 +462,17 @@ void FPakPlatformFile::HandleMountCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 	if (!PakFilename.IsEmpty())
 	{
 		const FString MountPoint = FParse::Token(Cmd, false);
-		Mount(*PakFilename, MountPoint.IsEmpty() ? NULL : *MountPoint);
+		Mount(*PakFilename, 0, MountPoint.IsEmpty() ? NULL : *MountPoint);
 	}
 }
 
 void FPakPlatformFile::HandlePakListCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	TArray<FPakFile*> Paks;
+	TArray<FPakListEntry> Paks;
 	GetMountedPaks(Paks);
 	for (auto Pak : Paks)
 	{
-		Ar.Logf(TEXT("%s"), *Pak->GetFilename());
+		Ar.Logf(TEXT("%s"), *Pak.PakFile->GetFilename());
 	}	
 }
 #endif // !UE_BUILD_SHIPPING
@@ -498,7 +498,8 @@ FPakPlatformFile::~FPakPlatformFile()
 		FScopeLock ScopedLock(&PakListCritical);
 		for (int32 PakFileIndex = 0; PakFileIndex < PakFiles.Num(); PakFileIndex++)
 		{
-			delete PakFiles[PakFileIndex];
+			delete PakFiles[PakFileIndex].PakFile;
+			PakFiles[PakFileIndex].PakFile = nullptr;
 		}
 	}	
 }
@@ -631,7 +632,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 		}
 		if (bLoadPak)
 		{
-			Mount(*PakFilename);
+			Mount(*PakFilename, 0);
 		}
 	}
 
@@ -643,7 +644,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 	return !!LowerLevel;
 }
 
-bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, const TCHAR* InPath /*= NULL*/)
+bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, uint32 PakOrder, const TCHAR* InPath /*= NULL*/)
 {
 	bool bSuccess = false;
 	IFileHandle* PakHandle = LowerLevel->OpenRead(InPakFilename);
@@ -659,7 +660,11 @@ bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, const TCHAR* InPath /*=
 			{
 				// Add new pak file
 				FScopeLock ScopedLock(&PakListCritical);
-				PakFiles.Add(Pak);
+				FPakListEntry Entry;
+				Entry.ReadOrder = PakOrder;
+				Entry.PakFile = Pak;
+				PakFiles.Add(Entry);
+				PakFiles.Sort();
 			}
 			bSuccess = true;
 		}
@@ -704,9 +709,9 @@ IFileHandle* FPakPlatformFile::CreatePakFileHandle(const TCHAR* Filename, FPakFi
 	return Result;
 }
 
-bool FPakPlatformFile::HandleMountPakDelegate(const FString& PakFilePath)
+bool FPakPlatformFile::HandleMountPakDelegate(const FString& PakFilePath, uint32 PakOrder)
 {
-	return Mount(*PakFilePath);
+	return Mount(*PakFilePath, PakOrder);
 }
 
 IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename)

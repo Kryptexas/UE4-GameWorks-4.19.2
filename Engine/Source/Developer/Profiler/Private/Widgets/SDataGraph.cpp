@@ -283,15 +283,7 @@ void SDataGraph::UpdateState()
 	}
 }
 
-int32 SDataGraph::OnPaint
-( 
-	const FGeometry& AllottedGeometry, 
-	const FSlateRect& MyClippingRect, 
-	FSlateWindowElementList& OutDrawElements, 
-	int32 LayerId, 
-	const FWidgetStyle& InWidgetStyle, 
-	bool bParentEnabled 
-) const
+int32 SDataGraph::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	static double TotalTime = 0.0f;
 	static uint32 NumCalls = 0;
@@ -978,7 +970,7 @@ int32 SDataGraph::OnPaint
 	}
 #endif // DEBUG_PROFILER_PERFORMANCE
 
-	return SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
+	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled && IsEnabled() );
 }
 
 

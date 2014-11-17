@@ -1620,8 +1620,6 @@ void FD3D11DynamicRHI::RHIClear(bool bClearColor,const FLinearColor& Color,bool 
 
 void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const FLinearColor* ClearColorArray,bool bClearDepth,float Depth,bool bClearStencil,uint32 Stencil, FIntRect ExcludeRect)
 {
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetRecursiveRHICommandList();
-
 	GRHICommandList.Verify();
 
 	// Helper struct to record and restore device states RHIClearMRT modifies.
@@ -1941,65 +1939,68 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 			TShaderMapRef<TOneColorPixelShaderMRT<8> > MRTPixelShader(GetGlobalShaderMap());
 			PixelShader = *MRTPixelShader;
 		}
-		
-		SetGlobalBoundShaderState(RHICmdList, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
-		FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
-		FMemory::MemZero(ShaderClearColors);
 
-		for (int32 i = 0; i < NumClearColors; i++)
 		{
-			ShaderClearColors[i] = ClearColorArray[i];
-		}
+			FRHICommandList_RecursiveHazardous RHICmdList;
+			SetGlobalBoundShaderState(RHICmdList, GD3D11ClearMRTBoundShaderState[FMath::Max(BoundRenderTargets.GetNumActiveTargets() - 1, 0)], GD3D11Vector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
+			FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
+			FMemory::MemZero(ShaderClearColors);
 
-		SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),PixelShader->ColorParameter,ShaderClearColors,NumClearColors);
-		
-		{
-			// Draw a fullscreen quad
-			if(ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
+			for (int32 i = 0; i < NumClearColors; i++)
 			{
-				// with a hole in it (optimization in case the hardware has non constant clear performance)
-				FVector4 OuterVertices[4];
-				OuterVertices[0].Set( -1.0f,  1.0f, Depth, 1.0f );
-				OuterVertices[1].Set(  1.0f,  1.0f, Depth, 1.0f );
-				OuterVertices[2].Set(  1.0f, -1.0f, Depth, 1.0f );
-				OuterVertices[3].Set( -1.0f, -1.0f, Depth, 1.0f );
-
-				float InvViewWidth = 1.0f / Viewport.Width;
-				float InvViewHeight = 1.0f / Viewport.Height;
-				FVector4 FractionRect = FVector4(ExcludeRect.Min.X * InvViewWidth, ExcludeRect.Min.Y * InvViewHeight, (ExcludeRect.Max.X - 1) * InvViewWidth, (ExcludeRect.Max.Y - 1) * InvViewHeight);
-
-				FVector4 InnerVertices[4];
-				InnerVertices[0].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f );
-				InnerVertices[1].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f );
-				InnerVertices[2].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f );
-				InnerVertices[3].Set( FMath::Lerp(-1.0f,  1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f );
-				
-				FVector4 Vertices[10];
-				Vertices[0] = OuterVertices[0];
-				Vertices[1] = InnerVertices[0];
-				Vertices[2] = OuterVertices[1];
-				Vertices[3] = InnerVertices[1];
-				Vertices[4] = OuterVertices[2];
-				Vertices[5] = InnerVertices[2];
-				Vertices[6] = OuterVertices[3];
-				Vertices[7] = InnerVertices[3];
-				Vertices[8] = OuterVertices[0];
-				Vertices[9] = InnerVertices[0];
-
-				DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]));
+				ShaderClearColors[i] = ClearColorArray[i];
 			}
-			else
+
+			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(), PixelShader->ColorParameter, ShaderClearColors, NumClearColors);
+
 			{
-				// without a hole
-				FVector4 Vertices[4];
-				Vertices[0].Set( -1.0f,  1.0f, Depth, 1.0f );
-				Vertices[1].Set(  1.0f,  1.0f, Depth, 1.0f );
-				Vertices[2].Set( -1.0f, -1.0f, Depth, 1.0f );
-				Vertices[3].Set(  1.0f, -1.0f, Depth, 1.0f );
-				DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+				// Draw a fullscreen quad
+				if (ExcludeRect.Width() > 0 && ExcludeRect.Height() > 0)
+				{
+					// with a hole in it (optimization in case the hardware has non constant clear performance)
+					FVector4 OuterVertices[4];
+					OuterVertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+					OuterVertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+					OuterVertices[2].Set(1.0f, -1.0f, Depth, 1.0f);
+					OuterVertices[3].Set(-1.0f, -1.0f, Depth, 1.0f);
+
+					float InvViewWidth = 1.0f / Viewport.Width;
+					float InvViewHeight = 1.0f / Viewport.Height;
+					FVector4 FractionRect = FVector4(ExcludeRect.Min.X * InvViewWidth, ExcludeRect.Min.Y * InvViewHeight, (ExcludeRect.Max.X - 1) * InvViewWidth, (ExcludeRect.Max.Y - 1) * InvViewHeight);
+
+					FVector4 InnerVertices[4];
+					InnerVertices[0].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
+					InnerVertices[1].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.Y), Depth, 1.0f);
+					InnerVertices[2].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.Z), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
+					InnerVertices[3].Set(FMath::Lerp(-1.0f, 1.0f, FractionRect.X), FMath::Lerp(1.0f, -1.0f, FractionRect.W), Depth, 1.0f);
+
+					FVector4 Vertices[10];
+					Vertices[0] = OuterVertices[0];
+					Vertices[1] = InnerVertices[0];
+					Vertices[2] = OuterVertices[1];
+					Vertices[3] = InnerVertices[1];
+					Vertices[4] = OuterVertices[2];
+					Vertices[5] = InnerVertices[2];
+					Vertices[6] = OuterVertices[3];
+					Vertices[7] = InnerVertices[3];
+					Vertices[8] = OuterVertices[0];
+					Vertices[9] = InnerVertices[0];
+
+					DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 8, Vertices, sizeof(Vertices[0]));
+				}
+				else
+				{
+					// without a hole
+					FVector4 Vertices[4];
+					Vertices[0].Set(-1.0f, 1.0f, Depth, 1.0f);
+					Vertices[1].Set(1.0f, 1.0f, Depth, 1.0f);
+					Vertices[2].Set(-1.0f, -1.0f, Depth, 1.0f);
+					Vertices[3].Set(1.0f, -1.0f, Depth, 1.0f);
+					DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, Vertices, sizeof(Vertices[0]));
+				}
 			}
+			// Implicit flush. Always call flush when using a command list in RHI implementations before doing anything else. This is super hazardous.
 		}
-		RHICmdList.Flush(); // always call flush with GetRecursiveRHICommandList, recursive use of the RHI is hazardous
 
 		if (bChangedDepthStencilTarget)
 		{
@@ -2082,463 +2083,7 @@ uint32 FD3D11DynamicRHI::RHIGetGPUFrameCycles()
 
 void FD3D11DynamicRHI::RHIExecuteCommandList(FRHICommandList* CmdList)
 {
-	FRHICommandListIterator Iter(*CmdList);
-	while (Iter.HasCommandsLeft())
-	{
-		auto* Cmd = *Iter;
-		switch (Cmd->Type)
-		{
-		case ERCT_NopBlob:
-			{
-				// Nop
-				auto* RHICmd = Iter.NextCommand<FRHICommandNopBlob>();// (FRHICommandNopBlob*)Cmd;
-				(void)RHICmd;	// Unused
-			}
-			break;
-		case ERCT_NopEndOfPage:
-			{
-				// Nop
-				auto* RHICmd = Iter.NextCommand<FRHICommandNopEndOfPage>();
-				(void)RHICmd;	// Unused
-			}
-			break;
-		case ERCT_SetRasterizerState:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetRasterizerState>();
-				{
-					auto* State = (FD3D11RasterizerState*)RHICmd->State;
-					StateCache.SetRasterizerState(State->Resource);
-				}
-				RHICmd->State->Release();
-			}
-			break;
-		case ERCT_SetShaderParameter:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderParameter>();
-				{
-					switch (RHICmd->ShaderFrequency)
-					{
-					case SF_Vertex: 
-						VALIDATE_BOUND_SHADER((FVertexShaderRHIParamRef)RHICmd->Shader);
-						checkSlow(VSConstantBuffers[RHICmd->BufferIndex]);
-						VSConstantBuffers[RHICmd->BufferIndex]->UpdateConstant((const uint8*)RHICmd->NewValue, RHICmd->BaseIndex, RHICmd->NumBytes);
-						break;
-					case SF_Hull:
-						VALIDATE_BOUND_SHADER((FHullShaderRHIParamRef)RHICmd->Shader);
-						checkSlow(HSConstantBuffers[RHICmd->BufferIndex]);
-						HSConstantBuffers[RHICmd->BufferIndex]->UpdateConstant((const uint8*)RHICmd->NewValue, RHICmd->BaseIndex, RHICmd->NumBytes);
-						break;
-					case SF_Domain:
-						VALIDATE_BOUND_SHADER((FDomainShaderRHIParamRef)RHICmd->Shader);
-						checkSlow(DSConstantBuffers[RHICmd->BufferIndex]);
-						DSConstantBuffers[RHICmd->BufferIndex]->UpdateConstant((const uint8*)RHICmd->NewValue, RHICmd->BaseIndex, RHICmd->NumBytes);
-						break;
-					case SF_Geometry:
-						VALIDATE_BOUND_SHADER((FGeometryShaderRHIParamRef)RHICmd->Shader);
-						checkSlow(GSConstantBuffers[RHICmd->BufferIndex]);
-						GSConstantBuffers[RHICmd->BufferIndex]->UpdateConstant((const uint8*)RHICmd->NewValue, RHICmd->BaseIndex, RHICmd->NumBytes);
-						break;
-					case SF_Pixel:
-						VALIDATE_BOUND_SHADER((FPixelShaderRHIParamRef)RHICmd->Shader);
-						checkSlow(PSConstantBuffers[RHICmd->BufferIndex]);
-						PSConstantBuffers[RHICmd->BufferIndex]->UpdateConstant((const uint8*)RHICmd->NewValue, RHICmd->BaseIndex, RHICmd->NumBytes);
-						break;
-					case SF_Compute:
-						VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
-						checkSlow(CSConstantBuffers[RHICmd->BufferIndex]);
-						CSConstantBuffers[RHICmd->BufferIndex]->UpdateConstant((const uint8*)RHICmd->NewValue, RHICmd->BaseIndex, RHICmd->NumBytes);
-						break;
-					default: check(0); break;
-					}
-				}
-			}
-			break;
-		case ERCT_SetShaderUniformBuffer:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderUniformBuffer>();
-				{
-					FD3D11UniformBuffer* Buffer = (FD3D11UniformBuffer*)RHICmd->UniformBuffer;
-					ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : nullptr;
-					switch (RHICmd->ShaderFrequency)
-					{
-					case SF_Vertex:
-						VALIDATE_BOUND_SHADER((FVertexShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetConstantBuffer<SF_Vertex>(ConstantBuffer, RHICmd->BaseIndex);
-						BoundUniformBuffers[SF_Vertex][RHICmd->BaseIndex] = Buffer;
-						DirtyUniformBuffers[SF_Vertex] |= (1 << RHICmd->BaseIndex);
-						break;
-					case SF_Hull:
-						VALIDATE_BOUND_SHADER((FHullShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetConstantBuffer<SF_Hull>(ConstantBuffer, RHICmd->BaseIndex);
-						BoundUniformBuffers[SF_Hull][RHICmd->BaseIndex] = Buffer;
-						DirtyUniformBuffers[SF_Hull] |= (1 << RHICmd->BaseIndex);
-						break;
-					case SF_Domain:
-						VALIDATE_BOUND_SHADER((FDomainShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetConstantBuffer<SF_Domain>(ConstantBuffer, RHICmd->BaseIndex);
-						BoundUniformBuffers[SF_Domain][RHICmd->BaseIndex] = Buffer;
-						DirtyUniformBuffers[SF_Domain] |= (1 << RHICmd->BaseIndex);
-						break;
-					case SF_Geometry:
-						VALIDATE_BOUND_SHADER((FGeometryShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetConstantBuffer<SF_Geometry>(ConstantBuffer, RHICmd->BaseIndex);
-						BoundUniformBuffers[SF_Geometry][RHICmd->BaseIndex] = Buffer;
-						DirtyUniformBuffers[SF_Geometry] |= (1 << RHICmd->BaseIndex);
-						break;
-					case SF_Pixel:
-						VALIDATE_BOUND_SHADER((FPixelShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetConstantBuffer<SF_Pixel>(ConstantBuffer, RHICmd->BaseIndex);
-						BoundUniformBuffers[SF_Pixel][RHICmd->BaseIndex] = Buffer;
-						DirtyUniformBuffers[SF_Pixel] |= (1 << RHICmd->BaseIndex);
-						break;
-					case SF_Compute:
-						VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetConstantBuffer<SF_Compute>(ConstantBuffer, RHICmd->BaseIndex);
-						BoundUniformBuffers[SF_Compute][RHICmd->BaseIndex] = Buffer;
-						DirtyUniformBuffers[SF_Compute] |= (1 << RHICmd->BaseIndex);
-						break;
-					default: check(0); break;
-					}
-				}
-				RHICmd->Shader->Release(); 
-				RHICmd->UniformBuffer->Release();
-			}
-			break;
-		case ERCT_SetShaderSampler:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderSampler>();
-				{
-					FD3D11SamplerState* SamplerState = (FD3D11SamplerState*)RHICmd->Sampler;
-					ID3D11SamplerState* StateResource = SamplerState->Resource;
-					switch (RHICmd->ShaderFrequency)
-					{
-					case SF_Vertex:
-						VALIDATE_BOUND_SHADER((FVertexShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetSamplerState<SF_Vertex>(StateResource, RHICmd->SamplerIndex);
-						break;
-					case SF_Hull:
-						VALIDATE_BOUND_SHADER((FHullShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetSamplerState<SF_Hull>(StateResource, RHICmd->SamplerIndex);
-						break;
-					case SF_Domain:
-						VALIDATE_BOUND_SHADER((FDomainShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetSamplerState<SF_Domain>(StateResource, RHICmd->SamplerIndex);
-						break;
-					case SF_Geometry:
-						VALIDATE_BOUND_SHADER((FGeometryShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetSamplerState<SF_Geometry>(StateResource, RHICmd->SamplerIndex);
-						break;
-					case SF_Pixel:
-						VALIDATE_BOUND_SHADER((FPixelShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetSamplerState<SF_Pixel>(StateResource, RHICmd->SamplerIndex);
-						break;
-					case SF_Compute:
-						VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
-						StateCache.SetSamplerState<SF_Compute>(StateResource, RHICmd->SamplerIndex);
-						break;
-					default: check(0); break;
-					}
-				}
-				RHICmd->Shader->Release(); 
-				RHICmd->Sampler->Release();
-			}
-			break;
-		case ERCT_SetShaderTexture:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderTexture>();
-				{
-					uint32 Start = FPlatformTime::Cycles();
-					FD3D11TextureBase* Texture = GetD3D11TextureFromRHITexture(RHICmd->Texture);
-					ID3D11ShaderResourceView* ShaderResourceView = Texture ? Texture->GetShaderResourceView() : nullptr;
-					auto SRVType = (Texture == nullptr || Texture->GetRenderTargetView(0, 0) != nullptr || Texture->HasDepthStencilView()) ? FD3D11StateCache::SRV_Dynamic : FD3D11StateCache::SRV_Static;
-					switch (RHICmd->ShaderFrequency)
-					{
-					case SF_Vertex:
-						VALIDATE_BOUND_SHADER((FVertexShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Vertex>(Texture, ShaderResourceView, RHICmd->TextureIndex, SRVType);
-						break;
-					case SF_Hull:
-						VALIDATE_BOUND_SHADER((FHullShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Hull>(Texture, ShaderResourceView, RHICmd->TextureIndex, SRVType);
-						break;
-					case SF_Domain:
-						VALIDATE_BOUND_SHADER((FDomainShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Domain>(Texture, ShaderResourceView, RHICmd->TextureIndex, SRVType);
-						break;
-					case SF_Geometry:
-						VALIDATE_BOUND_SHADER((FGeometryShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Geometry>(Texture, ShaderResourceView, RHICmd->TextureIndex, SRVType);
-						break;
-					case SF_Pixel:
-						VALIDATE_BOUND_SHADER((FPixelShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Pixel>(Texture, ShaderResourceView, RHICmd->TextureIndex, SRVType);
-						break;
-					case SF_Compute:
-						VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Compute>(Texture, ShaderResourceView, RHICmd->TextureIndex, SRVType);
-						break;
-					default: check(0); break;
-					}
-					SetShaderTextureCycles += (FPlatformTime::Cycles() - Start);
-					SetShaderTextureCalls++;
-				}
-				RHICmd->Shader->Release();
-				RHICmd->Texture->Release();
-			}
-			break;
-		case ERCT_SetShaderResourceViewParameter:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetShaderResourceViewParameter>();
-				{
-					uint32 Start = FPlatformTime::Cycles();
-
-					FD3D11ShaderResourceView*  SRV = (FD3D11ShaderResourceView*)RHICmd->SRV;
-
-					FD3D11BaseShaderResource* Resource = SRV->Resource;
-					ID3D11ShaderResourceView* D3D11SRV = SRV->View;
-
-					switch (RHICmd->ShaderFrequency)
-					{
-					case SF_Vertex:
-						VALIDATE_BOUND_SHADER((FVertexShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Vertex>(Resource, D3D11SRV, RHICmd->SamplerIndex);
-						break;
-					case SF_Hull:
-						VALIDATE_BOUND_SHADER((FHullShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Hull>(Resource, D3D11SRV, RHICmd->SamplerIndex);
-						break;
-					case SF_Domain:
-						VALIDATE_BOUND_SHADER((FDomainShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Domain>(Resource, D3D11SRV, RHICmd->SamplerIndex);
-						break;
-					case SF_Geometry:
-						VALIDATE_BOUND_SHADER((FGeometryShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Geometry>(Resource, D3D11SRV, RHICmd->SamplerIndex);
-						break;
-					case SF_Pixel:
-						VALIDATE_BOUND_SHADER((FPixelShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Pixel>(Resource, D3D11SRV, RHICmd->SamplerIndex);
-						break;
-					case SF_Compute:
-						VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
-						SetShaderResourceView<SF_Compute>(Resource, D3D11SRV, RHICmd->SamplerIndex);
-						break;
-					default: check(0); break;
-					}
-				}
-				RHICmd->Shader->Release();
-				RHICmd->SRV->Release();
-			}
-			break;
-		case ERCT_SetUAVParameter:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetUAVParameter>();
-				{
-					uint32 Start = FPlatformTime::Cycles();
-
-					FD3D11UnorderedAccessView*  UAV = (FD3D11UnorderedAccessView*)RHICmd->UAV;
-
-					FD3D11BaseShaderResource* Resource = UAV->Resource;
-					ID3D11UnorderedAccessView* D3D11UAV = UAV->View;
-
-
-					ConditionalClearShaderResource(Resource);
-
-					uint32 InitialCount = -1;
-
-					switch (RHICmd->ShaderFrequency)
-					{
-					case SF_Compute:
-						//VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
-						Direct3DDeviceIMContext->CSSetUnorderedAccessViews(RHICmd->UAVIndex, 1, &D3D11UAV, &InitialCount);
-						break;
-					default: check(0); break;
-					}
-				}
-				RHICmd->Shader->Release();
-				RHICmd->UAV->Release();
-			}
-			break;
-		case ERCT_SetUAVParameter_IntialCount:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetUAVParameter_IntialCount>();
-				{
-					uint32 Start = FPlatformTime::Cycles();
-
-					FD3D11UnorderedAccessView*  UAV = (FD3D11UnorderedAccessView*)RHICmd->UAV;
-
-					FD3D11BaseShaderResource* Resource = UAV->Resource;
-					ID3D11UnorderedAccessView* D3D11UAV = UAV->View;
-
-
-					ConditionalClearShaderResource(Resource);
-
-					switch (RHICmd->ShaderFrequency)
-					{
-					case SF_Compute:
-						//VALIDATE_BOUND_SHADER((FComputeShaderRHIParamRef)RHICmd->Shader);
-						Direct3DDeviceIMContext->CSSetUnorderedAccessViews(RHICmd->UAVIndex, 1, &D3D11UAV, &RHICmd->InitialCount);
-						break;
-					default: check(0); break;
-					}
-				}
-				RHICmd->Shader->Release();
-				RHICmd->UAV->Release();
-			}
-			break;
-		case ERCT_DrawPrimitive:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandDrawPrimitive>();
-				{
-					RHI_DRAW_CALL_STATS(RHICmd->PrimitiveType, RHICmd->NumInstances * RHICmd->NumPrimitives);
-
-					CommitGraphicsResourceTables();
-					CommitNonComputeShaderConstants();
-					const uint32 VertexCount = GetVertexCountForPrimitiveCount(RHICmd->NumPrimitives, RHICmd->PrimitiveType);
-
-					GPUProfilingData.RegisterGPUWork(RHICmd->NumPrimitives * RHICmd->NumInstances, VertexCount * RHICmd->NumInstances);
-					StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(RHICmd->PrimitiveType, bUsingTessellation));
-					if (RHICmd->NumInstances > 1)
-					{
-						Direct3DDeviceIMContext->DrawInstanced(VertexCount, RHICmd->NumInstances, RHICmd->BaseVertexIndex,0);
-					}
-					else
-					{
-						Direct3DDeviceIMContext->Draw(VertexCount, RHICmd->BaseVertexIndex);
-					}
-				}
-			}
-			break;
-		case ERCT_DrawIndexedPrimitive:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandDrawIndexedPrimitive>();
-				{
-					auto* IndexBuffer = (FD3D11IndexBuffer*)RHICmd->IndexBuffer;
-
-					// Caller should make sure the input is valid, this avoid hidden bugs
-					ensure(RHICmd->NumPrimitives > 0);
-
-					RHI_DRAW_CALL_STATS(RHICmd->PrimitiveType, RHICmd->NumInstances* RHICmd->NumPrimitives);
-
-					GPUProfilingData.RegisterGPUWork(RHICmd->NumPrimitives * RHICmd->NumInstances, RHICmd->NumVertices * RHICmd->NumInstances);
-
-					CommitGraphicsResourceTables();
-					CommitNonComputeShaderConstants();
-
-					// determine 16bit vs 32bit indices
-					uint32 SizeFormat = sizeof(DXGI_FORMAT);
-					const DXGI_FORMAT Format = (IndexBuffer->GetStride() == sizeof(uint16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
-
-					uint32 IndexCount = GetVertexCountForPrimitiveCount(RHICmd->NumPrimitives, RHICmd->PrimitiveType);
-
-					// Verify that we are not trying to read outside the index buffer range
-					checkf(RHICmd->StartIndex + IndexCount <= IndexBuffer->GetSize() / IndexBuffer->GetStride(), 
-						TEXT("Start %u, Count %u, Type %u, Buffer Size %u, Buffer stride %u"), RHICmd->StartIndex, IndexCount, RHICmd->PrimitiveType, IndexBuffer->GetSize(), IndexBuffer->GetStride());
-
-					StateCache.SetIndexBuffer(IndexBuffer->Resource, Format, 0);
-					StateCache.SetPrimitiveTopology(GetD3D11PrimitiveType(RHICmd->PrimitiveType, bUsingTessellation));
-
-					if (RHICmd->NumInstances > 1)
-					{
-						Direct3DDeviceIMContext->DrawIndexedInstanced(IndexCount, RHICmd->NumInstances, RHICmd->StartIndex, RHICmd->BaseVertexIndex,0);
-					}
-					else
-					{
-						Direct3DDeviceIMContext->DrawIndexed(IndexCount, RHICmd->StartIndex, RHICmd->BaseVertexIndex);
-					}
-				}
-				RHICmd->IndexBuffer->Release();
-			}
-			break;
-		case ERCT_SetBoundShaderState:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetBoundShaderState>();
-				{
-					auto* BoundShaderState = (FD3D11BoundShaderState*)RHICmd->BoundShaderState;
-
-					StateCache.SetInputLayout(BoundShaderState->InputLayout);
-					StateCache.SetVertexShader(BoundShaderState->VertexShader);
-					StateCache.SetPixelShader(BoundShaderState->PixelShader);
-
-					StateCache.SetHullShader(BoundShaderState->HullShader);
-					StateCache.SetDomainShader(BoundShaderState->DomainShader);
-					StateCache.SetGeometryShader(BoundShaderState->GeometryShader);
-
-					if(BoundShaderState->HullShader != NULL && BoundShaderState->DomainShader != NULL)
-					{
-						bUsingTessellation = true;
-					}
-					else
-					{
-						bUsingTessellation = false;
-					}
-
-					// @TODO : really should only discard the constants if the shader state has actually changed.
-					bDiscardSharedConstants = true;
-
-					// Prevent transient bound shader states from being recreated for each use by keeping a history of the most recently used bound shader states.
-					// The history keeps them alive, and the bound shader state cache allows them to be reused if needed.
-					BoundShaderStateHistory.Add(BoundShaderState);
-
-					// Shader changed so all resource tables are dirty
-					DirtyUniformBuffers[SF_Vertex] = 0xffff;
-					DirtyUniformBuffers[SF_Pixel] = 0xffff;
-					DirtyUniformBuffers[SF_Hull] = 0xffff;
-					DirtyUniformBuffers[SF_Domain] = 0xffff;
-					DirtyUniformBuffers[SF_Geometry] = 0xffff;
-				}
-				RHICmd->BoundShaderState->Release();
-			}
-			break;
-		case ERCT_SetBlendState:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetBlendState>();
-				{
-					auto* State = (FD3D11BlendState*)RHICmd->State;
-					StateCache.SetBlendState(State->Resource, (const float*)&RHICmd->BlendFactor, 0xffffffff);
-				}
-				RHICmd->State->Release();
-			}
-			break;
-		case ERCT_SetStreamSource:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetStreamSource>();
-				{
-					auto* VertexBuffer = (FD3D11VertexBuffer*)RHICmd->VertexBuffer;
-					ID3D11Buffer* D3DBuffer = VertexBuffer ? VertexBuffer->Resource : nullptr;
-					StateCache.SetStreamSource(D3DBuffer, RHICmd->StreamIndex, RHICmd->Stride, RHICmd->Offset);
-				}
-				RHICmd->VertexBuffer->Release();
-			}
-			break;
-		case ERCT_SetDepthStencilState:
-			{
-				auto* RHICmd = Iter.NextCommand<FRHICommandSetDepthStencilState>();
-				{
-					auto* State = (FD3D11DepthStencilState*)RHICmd->State;
-
-					if (CurrentDepthTexture && State->AccessType != CurrentDSVAccessType)
-					{
-						CurrentDSVAccessType = State->AccessType;
-						CurrentDepthStencilTarget = CurrentDepthTexture->GetDepthStencilView(CurrentDSVAccessType);
-
-						// Unbind any shader views of the depth stencil target that are bound.
-						ConditionalClearShaderResource(CurrentDepthTexture);
-
-						CommitRenderTargetsAndUAVs();
-					}
-
-					StateCache.SetDepthStencilState(State->Resource, RHICmd->StencilRef);
-				}
-				RHICmd->State->Release();
-			}
-			break;
-		default:
-			checkf(0, TEXT("Unimplemented RHICmd %d!"), Cmd->Type);
-		}
-	}
-
-	Iter.CheckNumCommands();
+	check(0); // this path has gone stale and needs updated methods, starting at ERCT_SetScissorRect
 }
 
 // NVIDIA Depth Bounds Test interface

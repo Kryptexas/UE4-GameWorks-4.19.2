@@ -11,11 +11,12 @@ UMovieScenePropertyTrack::UMovieScenePropertyTrack( const FPostConstructInitiali
 }
 
 
-void UMovieScenePropertyTrack::SetPropertyName( FName InPropertyName )
+void UMovieScenePropertyTrack::SetPropertyNameAndPath( FName InPropertyName, const FString& InPropertyPath )
 {
-	check( InPropertyName != NAME_None );
+	check( InPropertyName != NAME_None && !InPropertyPath.IsEmpty() );
 
 	PropertyName = InPropertyName;
+	PropertyPath = InPropertyPath;
 }
 
 TArray<UMovieSceneSection*> UMovieScenePropertyTrack::GetAllSections() const

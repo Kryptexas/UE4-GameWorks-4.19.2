@@ -3,6 +3,8 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
 
 struct FK2Node_SpawnActorFromClassHelper
 {
@@ -73,12 +75,13 @@ void UK2Node_SpawnActorFromClass::SetPinToolTip(UEdGraphPin& MutatablePin, const
 	MutatablePin.PinToolTip += FString(TEXT("\n")) + PinDescription.ToString();
 }
 
-
 void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
 {
 	check(InClass != NULL);
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	const UObject* const ClassDefaultObject = InClass->GetDefaultObject(false);
 
 	for (TFieldIterator<UProperty> PropertyIt(InClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 	{
@@ -92,11 +95,19 @@ void UK2Node_SpawnActorFromClass::CreatePinsForClass(UClass* InClass)
 			!Property->HasAnyPropertyFlags(CPF_Parm) && 
 			bIsSettableExternally &&
 			Property->HasAllPropertyFlags(CPF_BlueprintVisible) &&
-			!bIsDelegate )
+			!bIsDelegate &&
+			(NULL == FindPin(Property->GetName()) ) )
 		{
 			UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
-			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);	
-			Pin->bDefaultValueIsIgnored = true;
+			const bool bPinGood = (Pin != NULL) && K2Schema->ConvertPropertyToPinType(Property, /*out*/ Pin->PinType);
+			
+			if( ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
+			{
+				FString DefaultValueAsString;
+				const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, reinterpret_cast<const uint8*>(ClassDefaultObject), DefaultValueAsString);
+				check( bDefaultValueSet );
+				K2Schema->TrySetDefaultValue(*Pin, DefaultValueAsString);
+			}
 		}
 	}
 
@@ -129,10 +140,19 @@ void UK2Node_SpawnActorFromClass::ReallocatePinsDuringReconstruction(TArray<UEdG
 		CreatePinsForClass(UseSpawnClass);
 	}
 }
-
 bool UK2Node_SpawnActorFromClass::IsSpawnVarPin(UEdGraphPin* Pin)
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	UEdGraphPin* ParentPin = Pin->ParentPin;
+	while (ParentPin)
+	{
+		if (ParentPin->PinName == FK2Node_SpawnActorFromClassHelper::SpawnTransformPinName)
+		{
+			return false;
+		}
+		ParentPin = ParentPin->ParentPin;
+	}
 
 	return(	Pin->PinName != K2Schema->PN_Execute &&
 			Pin->PinName != K2Schema->PN_Then &&
@@ -252,25 +272,30 @@ FLinearColor UK2Node_SpawnActorFromClass::GetNodeTitleColor() const
 
 FText UK2Node_SpawnActorFromClass::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	UEdGraphPin* ClassPin = GetClassPin();
-
-	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
-	if(ClassPin != NULL)
+	FText NodeTitle = NSLOCTEXT("K2Node", "SpawnActor_BaseTitle", "Spawn Actor from Class");
+	if (TitleType != ENodeTitleType::ListView)
 	{
-		if(ClassPin->LinkedTo.Num() > 0)
+		FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
+		if (UEdGraphPin* ClassPin = GetClassPin())
 		{
-			// Blueprint will be determined dynamically, so we don't have the name in this case
-			SpawnString = FText::GetEmpty();
+			if(ClassPin->LinkedTo.Num() > 0)
+			{
+				// Blueprint will be determined dynamically, so we don't have the name in this case
+				SpawnString = FText::GetEmpty();
+			}
+			else if(ClassPin->DefaultObject != NULL)
+			{
+				SpawnString = FText::FromString(ClassPin->DefaultObject->GetName());
+			}
 		}
-		else if(ClassPin->DefaultObject != NULL)
-		{
-			SpawnString = FText::FromString(ClassPin->DefaultObject->GetName());
-		}
+		
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ClassName"), SpawnString);
+		
+		NodeTitle = FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
 	}
 
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("ClassName"), SpawnString);
-	return FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ClassName}"), Args);
+	return NodeTitle;
 }
 
 bool UK2Node_SpawnActorFromClass::CanPasteHere( const UEdGraph* TargetGraph, const UEdGraphSchema* Schema ) const 
@@ -287,6 +312,19 @@ void UK2Node_SpawnActorFromClass::GetNodeAttributes( TArray<TKeyValuePair<FStrin
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Class" ), GetClass()->GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "Name" ), GetName() ));
 	OutNodeAttributes.Add( TKeyValuePair<FString, FString>( TEXT( "ActorClass" ), ClassToSpawnStr ));
+}
+
+void UK2Node_SpawnActorFromClass::GetMenuActions(TArray<UBlueprintNodeSpawner*>& ActionListOut) const
+{
+	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
+	check(NodeSpawner != nullptr);
+
+	ActionListOut.Add(NodeSpawner);
+}
+
+FText UK2Node_SpawnActorFromClass::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Gameplay);
 }
 
 void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
@@ -307,8 +345,6 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 		static FString ObjectParamName = FString(TEXT("Object"));
 		static FString ValueParamName = FString(TEXT("Value"));
 		static FString PropertyNameParamName = FString(TEXT("PropertyName"));
-
-		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 
 		UK2Node_SpawnActorFromClass* SpawnNode = this;
 		UEdGraphPin* SpawnNodeExec = SpawnNode->GetExecPin();
@@ -396,56 +432,9 @@ void UK2Node_SpawnActorFromClass::ExpandNode(class FKismetCompilerContext& Compi
 		// create 'set var' nodes
 
 		// Get 'result' pin from 'begin spawn', this is the actual actor we want to set properties on
-		UK2Node_CallFunction* LastNode = CallBeginSpawnNode;
-
-		// Create 'set var by name' nodes and hook them up
-		for(int32 PinIdx=0; PinIdx < SpawnNode->Pins.Num(); PinIdx++)
-		{
-			// Only create 'set param by name' node if this pin is linked to something
-			UEdGraphPin* SpawnVarPin = SpawnNode->Pins[PinIdx];
-			if(SpawnVarPin->LinkedTo.Num() > 0)
-			{
-				UFunction* SetByNameFunction = Schema->FindSetVariableByNameFunction(SpawnVarPin->PinType);
-				if(SetByNameFunction)
-				{
-					UK2Node_CallFunction* SetVarNode = NULL;
-					if(SpawnVarPin->PinType.bIsArray)
-					{
-						SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallArrayFunction>(SpawnNode, SourceGraph);
-					}
-					else
-					{
-						SetVarNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(SpawnNode, SourceGraph);
-					}
-					SetVarNode->SetFromFunction(SetByNameFunction);
-					SetVarNode->AllocateDefaultPins();
-
-					// Connect this node into the exec chain
-					UEdGraphPin* LastThen = LastNode->GetThenPin();
-					UEdGraphPin* SetVarExec = SetVarNode->GetExecPin();
-					LastThen->MakeLinkTo(SetVarExec);
-
-					// Connect the new actor to the 'object' pin
-					UEdGraphPin* ObjectPin = SetVarNode->FindPinChecked(ObjectParamName);
-					CallBeginResult->MakeLinkTo(ObjectPin);
-
-					// Fill in literal for 'property name' pin - name of pin is property name
-					UEdGraphPin* PropertyNamePin = SetVarNode->FindPinChecked(PropertyNameParamName);
-					PropertyNamePin->DefaultValue = SpawnVarPin->PinName;
-
-					// Move connection from the variable pin on the spawn node to the 'value' pin
-					UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
-					SetVarNode->PinConnectionListChanged(ValuePin);
-
-					// Update 'last node in sequence' var
-					LastNode = SetVarNode;
-				}
-			}
-		}
+		UEdGraphPin* LastThen = FKismetCompilerUtilities::GenerateAssignmentNodes(CompilerContext, SourceGraph, CallBeginSpawnNode, SpawnNode, CallBeginResult, GetClassToSpawn() );
 
 		// Make exec connection between 'then' on last node and 'finish'
-		UEdGraphPin* LastThen = LastNode->GetThenPin();
 		LastThen->MakeLinkTo(CallFinishExec);
 
 		// Break any links to the expanded node

@@ -1159,7 +1159,7 @@ static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestH
 	
 	// If we started penetrating, we may want to ignore it if we are moving out of penetration.
 	// This helps prevent getting stuck in walls.
-	if ( TestHit.bStartPenetrating && TestHit.bBlockingHit )
+	if ( TestHit.bStartPenetrating && TestHit.bBlockingHit && !(MoveFlags & MOVECOMP_NeverIgnoreBlockingOverlaps) )
 	{
 		const float DotTolerance = CVarInitialOverlapTolerance.GetValueOnGameThread();
 
@@ -1215,21 +1215,6 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 	}
 
 	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
-}
-
-void UPrimitiveComponent::SetRelativeScale3D(FVector NewScale3D)
-{
-	const FVector OldScale3D = RelativeScale3D;
-	Super::SetRelativeScale3D(NewScale3D);
-
-	AActor* Actor = GetOwner();
-	if (UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() && Actor && OldScale3D != RelativeScale3D && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
-	{
-		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
-		{
-			NavSys->UpdateNavOctree(Actor);
-		}
-	}
 }
 
 bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
@@ -1531,15 +1516,6 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		}
 	}
 
-	// Update Nav system if relevant.
-	if (bMoved && UNavigationSystem::ShouldUpdateNavOctreeOnPrimitiveComponentChange() && Actor && IsRegistered() && Actor->IsNavigationRelevant() && CanEverAffectNavigation() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
-	{
-		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
-		{
-			NavSys->UpdateNavOctree(Actor);
-		}
-	}
-
 #if defined(PERF_SHOW_MOVECOMPONENT_TAKING_LONG_TIME) || LOOKING_FOR_PERF_ISSUES
 	UNCLOCK_CYCLES(MoveCompTakingLongTime);
 	const float MSec = FPlatformTime::ToMilliseconds(MoveCompTakingLongTime);
@@ -1581,6 +1557,11 @@ void UPrimitiveComponent::DispatchBlockingHit(AActor& Owner, FHitResult const& B
 
 bool UPrimitiveComponent::IsNavigationRelevant(bool bSkipCollisionEnabledCheck) const 
 { 
+	if (!CanEverAffectNavigation())
+	{
+		return false;
+	}
+
 	if (HasCustomNavigableGeometry() >= EHasCustomNavigableGeometry::EvenIfNotCollidable)
 	{
 		return true;
@@ -1598,6 +1579,7 @@ void UPrimitiveComponent::DisableNavigationRelevance()
 	check(!bRegistered);
 	bCanEverAffectNavigation = false;
 }
+
 
 //////////////////////////////////////////////////////////////////////////
 // COLLISION
@@ -2480,6 +2462,12 @@ bool UPrimitiveComponent::CanCharacterStepUp(APawn* Pawn) const
 	}
 }
 
+bool UPrimitiveComponent::CanEditSimulatePhysics()
+{
+	//Even if there's no collision but there is a body setup, we still let them simulate physics.
+	// The object falls through the world - this behavior is debatable but what we decided on for now
+	return GetBodySetup() != nullptr;
+}
 
 #undef LOCTEXT_NAMESPACE
 

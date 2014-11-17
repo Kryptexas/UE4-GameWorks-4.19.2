@@ -8,24 +8,33 @@ void FTestEntitlementsInterface::Test(UWorld* InWorld)
 {
 	IOnlineSubsystem* OSS = Online::GetSubsystem(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
 
-	EntitlementsOSS = OSS->GetEntitlementsInterface();
 	IdentityOSS = OSS->GetIdentityInterface();
 	if (IdentityOSS.IsValid())
 	{
 		UserId = IdentityOSS->GetUniquePlayerId(LocalUserIdx);
 	}
-	if (UserId.IsValid() && UserId->IsValid() &&
-		EntitlementsOSS.IsValid())
+	if (UserId.IsValid() && UserId->IsValid())
 	{
-		// Add delegates for the various async calls
-		EntitlementsOSS->AddOnQueryEntitlementsCompleteDelegate(OnQueryEntitlementsCompleteDelegate);
+		EntitlementsOSS = OSS->GetEntitlementsInterface();
+		if (EntitlementsOSS.IsValid())
+		{
+			// Add delegates for the various async calls
+			EntitlementsOSS->AddOnQueryEntitlementsCompleteDelegate(OnQueryEntitlementsCompleteDelegate);
 
-		// kick off next test
-		StartNextTest();
+			// kick off next test
+			StartNextTest();
+		}
+		else
+		{
+			UE_LOG(LogOnline, Warning, TEXT("Entitlement test failed. Failed to get entitlement service API"));
+
+			// done with the test
+			FinishTest();
+		}
 	}
 	else
 	{
-		UE_LOG(LogOnline, Warning, TEXT("Failed to get entitlement service Mcp "));
+		UE_LOG(LogOnline, Warning, TEXT("Entitlement test failed. No logged in user"));
 
 		// done with the test
 		FinishTest();
@@ -66,6 +75,13 @@ void FTestEntitlementsInterface::OnQueryEntitlementsComplete(bool bWasSuccessful
 	// Now check em out
 	TArray<TSharedRef<FOnlineEntitlement>> Entitlements;
 	EntitlementsOSS->GetAllEntitlements(UserId, Entitlements);
+
+	for (auto It = Entitlements.CreateConstIterator(); It; ++It)
+	{
+		const TSharedRef<FOnlineEntitlement> Entry = *It;
+		UE_LOG(LogOnline, Log, TEXT("	entitlement id=%s name=%s"),
+			*Entry->Id, *Entry->Name);
+	}
 
 	// kick off next test
 	bQueryEntitlements = false;

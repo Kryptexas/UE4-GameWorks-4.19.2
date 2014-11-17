@@ -1,32 +1,25 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "ScriptAsset.h"
+#include "ScriptBlueprintGeneratedClass.h"
 #include "ScriptComponent.generated.h"
 
-/** Script context for this component */
-class FScriptContextBase
-{
-public:
-	virtual bool Initialize(class UScriptComponent* Owner) = 0;
-	virtual void BeginPlay() = 0;
-	virtual void Tick(float DeltaTime) = 0;
-	virtual void Destroy() = 0;
-	virtual bool CanTick() = 0;
-	virtual ~FScriptContextBase() {}
-};
-
-/** Component that allows you to specify custom triangle mesh geometry */
-UCLASS(hidecategories=(Object, ActorComponent), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Script)
+/** 
+ * Script-extendable component class
+ */
+UCLASS(hidecategories = (Object, ActorComponent), editinlinenew, meta = (BlueprintSpawnableComponent), ClassGroup = Script, Abstract, EarlyAccessPreview)
 class SCRIPTPLUGIN_API UScriptComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
-	/** Script code for this component */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Script)
-	UScriptAsset* Script;
+	/**
+	* Calls a script-defined function (no arguments)
+	* @param FunctionName Name of the function to call
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Script|Functions")
+	virtual bool CallScriptFunction(FString FunctionName);
 
 	// Begin UActorComponent interface.
 	virtual void OnRegister() override;
@@ -37,7 +30,7 @@ public:
 
 protected:
 
+	/** Script context (code) */
 	FScriptContextBase* Context;
 };
-
 

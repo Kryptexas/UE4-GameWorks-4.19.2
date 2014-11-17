@@ -4,7 +4,7 @@
 	DateTimeTest.cpp: Unit test for the FDateTime class.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "AutomationTest.h"
 
 

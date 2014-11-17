@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "TaskGraphInterfaces.h"
 #include "DefaultValueHelper.h"
 
@@ -1378,6 +1378,9 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		{
 		}
 		else if ( FParse::Command( &TempCmd, TEXT( "hier" ) ) )
+		{
+		}
+		else if ( FParse::Command( &TempCmd, TEXT( "net" ) ) )
 		{
 		}
 		else

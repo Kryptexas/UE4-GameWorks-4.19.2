@@ -67,6 +67,25 @@ public:
 	 */
 	void GetAvailableHistoryMenuItems(bool bGetPrior, FMenuBuilder& MenuBuilder);
 
+	/** Removes all history data as determined by the passed in predicate */
+	template <class PREDICATE_CLASS>
+	void RemoveHistoryData(const PREDICATE_CLASS& Predicate)
+	{
+		for (int32 HistoryIndex = 0; HistoryIndex < HistoryData.Num(); HistoryIndex++)
+		{
+			if (Predicate(HistoryData[HistoryIndex]))
+			{
+				HistoryData.RemoveAt(HistoryIndex);
+				if (CurrentHistoryIndex >= HistoryIndex)
+				{
+					// Ensure if possible that current history index continues to point to the same item if something is removed before it.
+					CurrentHistoryIndex = FMath::Max(0, CurrentHistoryIndex - 1);
+				}
+				HistoryIndex--;
+			}
+		}
+	}
+
 private:
 	/** Notifies the owner to update to the state described by the current history data */
 	void ApplyCurrentHistoryData();

@@ -4,6 +4,7 @@
 
 class IPropertyHandle;
 
+struct FKeyPropertyParams;
 
 /**
  * Tools for animatable property types such as floats ands vectors
@@ -40,7 +41,7 @@ private:
 	 * @param PropertyValue			Handle to the property value which changed
 	 */
 	template <typename Type, typename TrackType>
-	void OnAnimatedPropertyChanged( const TArray<UObject*>& InObjectsThatChanged, const IPropertyHandle& PropertyValue, bool bRequireAutoKey );
+	void OnAnimatedPropertyChanged( const FKeyPropertyParams& KeyPropertyParams );
 
 	/**
 	 * Called by the details panel when an animatable vector property changes
@@ -48,7 +49,7 @@ private:
 	 * @param InObjectsThatChanged	List of objects that changed
 	 * @param PropertyValue			Handle to the property value which changed
 	 */
-	void OnAnimatedVectorPropertyChanged( const TArray<UObject*>& InObjectsThatChanged, const IPropertyHandle& PropertyValue, bool bRequireAutoKey );
+	void OnAnimatedVectorPropertyChanged( const FKeyPropertyParams& KeyPropertyParams );
 	
 	/**
 	 * Called by the details panel when an animatable color property changes
@@ -56,11 +57,11 @@ private:
 	 * @param InObjectsThatChanged	List of objects that changed
 	 * @param PropertyValue			Handle to the property value which changed
 	 */
-	void OnAnimatedColorPropertyChanged( const TArray<UObject*>& InObjectsThatChanged, const IPropertyHandle& PropertyValue, bool bRequireAutoKey );
+	void OnAnimatedColorPropertyChanged( const FKeyPropertyParams& KeyPropertyParams );
 	
 	/** Delegates for animatable property changed functions */
 	template <typename Type, typename TrackType>
-	void OnKeyProperty( float KeyTime, FName PropertyName, const TArray<UObject*> InObjectsThatChanged, const Type* Value, bool bAutoKeying);
+	void OnKeyProperty( float KeyTime, FKeyPropertyParams KeyPropertyParams, Type Value );
 };
 
 

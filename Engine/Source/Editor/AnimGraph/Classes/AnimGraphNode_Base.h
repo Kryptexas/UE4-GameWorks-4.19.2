@@ -113,6 +113,9 @@ class UAnimGraphNode_Base : public UK2Node
 	ANIMGRAPH_API virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
 	ANIMGRAPH_API virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	ANIMGRAPH_API virtual void GetNodeAttributes(TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes) const override;
+
+	// By default return any animation assets we have
+	virtual UObject* GetJumpTargetForDoubleClick() const override { return GetAnimationAsset(); }
 	// End of UK2Node interface
 
 	// UAnimGraphNode_Base interface

@@ -32,7 +32,7 @@ public:
 	 * @param Ar An archive containing the payload data.
 	 * @param Out An archive that will contain the processed data.
 	 */
-	void ProcessPayload(FArchive& Ar,FArchive& Out);
+	bool ProcessPayload(FArchive& Ar);
 
 	/**
 	 * Gets the client connection's description.
@@ -111,7 +111,7 @@ protected:
 	void ProcessReportLocalFiles(FArchive& In, FArchive& Out);
 
 	/** Walk over a set of directories, and get all files (recursively) in them, along with their timestamps. */
-	void ProcessGetFileList(FArchive& In, FArchive& Out);
+	bool ProcessGetFileList(FArchive& In, FArchive& Out);
 
 	/** Heartbeat. */
 	void ProcessHeartbeat(FArchive& In, FArchive& Out);
@@ -147,6 +147,9 @@ protected:
 	 */
 	void ProcessSyncFile( FArchive& In, FArchive& Out );
 
+
+	virtual bool SendPayload( TArray<uint8> &Out ) { return false; }
+	
 private:
 
 	// Hold the name of the currently connected platform.

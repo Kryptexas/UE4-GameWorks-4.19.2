@@ -165,6 +165,11 @@ public:
 	bool IsReady();
 
 	/**
+	 * See if the request experienced a connection error during processing
+	 */
+	bool HadError();
+
+	/**
 	 * Constructor
 	 *
 	 * @param InRequest - original request that created this response

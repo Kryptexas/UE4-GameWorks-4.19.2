@@ -81,6 +81,13 @@ public:
 	 * @return	Total size of all specified mips, in bytes
 	 */
 	virtual uint32 CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const override;
+
+#if WITH_EDITORONLY_DATA
+	/**
+	* Return maximum dimension for this texture type.
+	*/
+	virtual uint32 GetMaximumDimension() const override;
+#endif
 };
 
 

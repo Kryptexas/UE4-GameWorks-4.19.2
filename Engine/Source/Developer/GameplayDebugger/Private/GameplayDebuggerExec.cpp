@@ -9,7 +9,6 @@
 #include "LevelEditorViewport.h"
 #endif //WITH_EDITOR
 
-
 struct FGameplayDebuggerExec : public FSelfRegisteringExec
 {
 	FGameplayDebuggerExec()
@@ -63,17 +62,18 @@ bool FGameplayDebuggerExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevic
 		if (Inworld->GetNetMode() != NM_DedicatedServer)
 		{
 			AGameplayDebuggingReplicator* Replicator = NULL;
-			for (FActorIterator It(Inworld); It; ++It)
+			for (TActorIterator<AGameplayDebuggingReplicator> It(Inworld); It; ++It)
 			{
-				AActor* A = *It;
-				if (A && A->IsA(AGameplayDebuggingReplicator::StaticClass()) && !A->IsPendingKill())
+				Replicator = *It;
+ 				if (Replicator && !Replicator->IsPendingKill())
 				{
-					Replicator = Cast<AGameplayDebuggingReplicator>(A);
-					if (Replicator && Replicator->GetLocalPlayerOwner() == PC)
+					APlayerController* LocalPC = Replicator->GetLocalPlayerOwner();
+					if (LocalPC == PC)
 					{
 						break;
 					}
 				}
+				Replicator = NULL;
 			}
 
 			if (Replicator && !Replicator->IsToolCreated())

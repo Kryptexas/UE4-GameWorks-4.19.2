@@ -52,8 +52,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 									 float AnimStartOffset,
 									 float AnimEndOffset,
 									 float AnimPlayRate,
-									 float StartTime,
-									 bool bLooping)
+									 float StartTime)
 {
 	USkeleton * Skeleton = AnimSeq->GetSkeleton();
 
@@ -102,7 +101,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 		while (!bLastKey)
 		{
 			FTransform BoneAtom;
-			AnimSeq->GetBoneTransform(BoneAtom, BoneTrackIndex, AnimTime, bLooping, true);
+			AnimSeq->GetBoneTransform(BoneAtom, BoneTrackIndex, AnimTime, true);
 
 			FbxVector4 Translation = Converter.ConvertToFbxPos(BoneAtom.GetTranslation());
 
@@ -217,8 +216,7 @@ void FFbxExporter::ExportAnimSequence( const UAnimSequence* AnimSeq, USkeletalMe
 			0.f,		// AnimStartOffset
 			0.f,		// AnimEndOffset
 			1.f,		// AnimPlayRate
-			0.f,		// StartTime
-			false);		// bLooping
+			0.f);		// StartTime
 
 		CorrectAnimTrackInterpolation(BoneNodes, AnimLayer);
 	}
@@ -288,8 +286,7 @@ void FFbxExporter::ExportAnimSequencesAsSingle( USkeletalMesh* SkelMesh, const A
 			TrackKey.AnimStartOffset,
 			TrackKey.AnimEndOffset,
 			TrackKey.AnimPlayRate,
-			CurrentStartTime,
-			TrackKey.bLooping);
+			CurrentStartTime);
 	}
 
 	CorrectAnimTrackInterpolation(BoneNodes, AnimLayer);

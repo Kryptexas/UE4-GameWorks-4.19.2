@@ -14,6 +14,12 @@
 #include "Engine/LevelScriptBlueprint.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "AssetSelection.h"
+#include "K2Node_CustomEvent.h"
+#include "ScopedTimers.h"
+#include "BlueprintActionMenuBuilder.h"
+#include "BlueprintActionFilter.h"
+#include "BlueprintActionDatabase.h"
+#include "BlueprintActionMenuUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -85,6 +91,13 @@ DumpBlueprintsInfo commandlet params: \n\
                         '{1}' and '{2}' as placeholders for filenames, like so:\n\
                         -diffcmd=\"AraxisP4Diff.exe {2} {1}\".                 \n\
 \n\
+    -experimental       Uses an new way of constructing Blueprint action menus \n\
+                        (that will replace the current system).                \n\
+\n\
+    -name=<Filename>    Overrides the default filename. Leave off the extention\n\
+                        (this will add .json to the end). When -multifile is   \n\
+                        supplied, the class name will be postfixed to the name.\n\
+\n\
     -help, -h, -?       Display this message and then exit.                    \n\
 \n");
 
@@ -102,6 +115,7 @@ DumpBlueprintsInfo commandlet params: \n\
 		BPDUMP_DoNotDumpActionInfo  = (1<<7),
 		BPDUMP_RecordTiming			= (1<<8),
 		BPDUMP_SelectAllObjTypes    = (1<<9), 
+		BPDUMP_UseLegacyMenuBuilder = (1<<10),
 
 		BPDUMP_PaletteMask = (BPDUMP_UnfilteredPalette | BPDUMP_FilteredPalette),
 		BPDUMP_ContextMask = (BPDUMP_GraphContextActions | BPDUMP_PinContextActions),
@@ -138,6 +152,7 @@ DumpBlueprintsInfo commandlet params: \n\
 		UClass*    SelectedObjectType;
 		FString    DiffPath;
 		FString    DiffCommand;
+		FString    Filename;
 	};
 
 	/** Static instance of the command switches (so we don't have to pass one along the call stack) */
@@ -145,30 +160,9 @@ DumpBlueprintsInfo commandlet params: \n\
 
 	/** Tracks spawned level actors (so we don't have to create more the we have to). */
 	static TMap<UClass*, AActor*> LevelActors;
-
-	/**
-	 * Utility class for tracking the duration of a scoped action (tracks time 
-	 * in seconds and adds it to the specified variable on destruction).
-	 */
-	class FScopedDurationTimer
-	{
-	public:
-		FScopedDurationTimer(double& AccumulatorIn)
-			: StartTime(FPlatformTime::Seconds())
-			, Accumulator(AccumulatorIn)
-		{}
-
-		/** Dtor, updating seconds with time delta. */
-		~FScopedDurationTimer()
-		{
-			Accumulator += FPlatformTime::Seconds() - StartTime;
-		}
-	private:
-		/** Start time, captured in ctor. */
-		double StartTime;
-		/** Time variable to update. */
-		double& Accumulator;
-	};
+	
+	/** Tracks instantiated blueprints (so we don't have to create more the we have to). */
+	static TMap<UClass*, UBlueprint*> ClassBlueprints;
 
 	/**
 	 * Certain blueprints (like level blueprints) require a level outer, and 
@@ -364,12 +358,12 @@ DumpBlueprintsInfo commandlet params: \n\
 //------------------------------------------------------------------------------
 DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> const& Switches)
 	: BlueprintClass(nullptr)
-	, DumpFlags(DumpBlueprintInfoUtils::BPDUMP_UnfilteredPalette)
+	, DumpFlags(BPDUMP_UnfilteredPalette | BPDUMP_UseLegacyMenuBuilder)
 	, PaletteFilter(nullptr)
 	, GraphFilter(GT_MAX)
 	, SelectedObjectType(nullptr)
 {
-	uint32 NewDumpFlags = 0u;
+	uint32 NewDumpFlags = BPDUMP_UseLegacyMenuBuilder;
 	for (FString const& Switch : Switches)
 	{
 		if (Switch.StartsWith("class="))
@@ -495,6 +489,8 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		{
 			FString DiffSwitch;
 			Switch.Split(TEXT("="), &DiffSwitch, &DiffCommand);
+			
+			DiffCommand = DiffCommand.Replace(TEXT("\""), TEXT(""));
 		}
 		else if (!Switch.Compare("palette", ESearchCase::IgnoreCase))
 		{
@@ -527,6 +523,15 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		{
 			NewDumpFlags |= BPDUMP_RecordTiming;
 		}
+		else if (!Switch.Compare("experimental", ESearchCase::IgnoreCase))
+		{
+			NewDumpFlags &= ~BPDUMP_UseLegacyMenuBuilder;
+		}
+		else if (Switch.StartsWith("name="))
+		{
+			FString NameSwitch;
+			Switch.Split(TEXT("="), &NameSwitch, &Filename);
+		}
 		else
 		{
 			UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Unrecognized command switch '%s', use -help for a listing of all accepted params"), *Switch);
@@ -537,7 +542,7 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 	{
 		DumpFlags = NewDumpFlags;
 	}
-	if (!(DumpFlags & (BPDUMP_PaletteMask | BPDUMP_ContextMask)))
+	if ((DumpFlags & (BPDUMP_PaletteMask | BPDUMP_ContextMask)) == 0)
 	{
 		DumpFlags |= BPDUMP_UnfilteredPalette;
 	}
@@ -593,8 +598,6 @@ static AActor* DumpBlueprintInfoUtils::SpawnLevelActor(UClass* ActorClass, bool 
 
 		UBlueprint* ActorTemplate = MakeTempBlueprint(ActorClass);
 		SpawnedActor = FActorFactoryAssetProxy::AddActorForAsset(ActorTemplate,
-			/*ActorLocation =*/nullptr,
-			/*bUseSurfaceOrientation =*/false,
 			/*SelectActor =*/bSelect,
 			RF_Transient, NewFactory, NAME_None);
 	}
@@ -627,113 +630,133 @@ static AActor* DumpBlueprintInfoUtils::SpawnLevelActor(UClass* ActorClass, bool 
 //------------------------------------------------------------------------------
 static UBlueprint* DumpBlueprintInfoUtils::MakeTempBlueprint(UClass* ParentClass)
 {
-	UObject* BlueprintOuter = GetTransientPackage();
-
-	bool bIsAnimBlueprint = ParentClass->IsChildOf(UAnimInstance::StaticClass());
-	bool bIsLevelBlueprint = ParentClass->IsChildOf(ALevelScriptActor::StaticClass());
-
-	UClass* BlueprintClass = UBlueprint::StaticClass();
-	UClass* GeneratedClass = UBlueprintGeneratedClass::StaticClass();
-	EBlueprintType BlueprintType = BPTYPE_Normal;
-
-	if (bIsAnimBlueprint)
+	UBlueprint* MadeBlueprint = nullptr;
+	if (UBlueprint** FoundBlueprint = ClassBlueprints.Find(ParentClass))
 	{
-		BlueprintClass = UAnimBlueprint::StaticClass();
-		GeneratedClass = UAnimBlueprintGeneratedClass::StaticClass();
+		MadeBlueprint = *FoundBlueprint;
 	}
-	else if (bIsLevelBlueprint)
+	else
 	{
-		UWorld* World = GetWorld();
-		if (World == nullptr)
+		UObject* BlueprintOuter = GetTransientPackage();
+
+		bool bIsAnimBlueprint = ParentClass->IsChildOf(UAnimInstance::StaticClass());
+		bool bIsLevelBlueprint = ParentClass->IsChildOf(ALevelScriptActor::StaticClass());
+
+		UClass* BlueprintClass = UBlueprint::StaticClass();
+		UClass* GeneratedClass = UBlueprintGeneratedClass::StaticClass();
+		EBlueprintType BlueprintType = BPTYPE_Normal;
+
+		if (bIsAnimBlueprint)
 		{
-			UE_LOG(LogBlueprintInfoDump, Error, TEXT("Cannot make a proper level blueprint without a valid editor level for its outer."));
+			BlueprintClass = UAnimBlueprint::StaticClass();
+			GeneratedClass = UAnimBlueprintGeneratedClass::StaticClass();
 		}
-		else
+		else if (bIsLevelBlueprint)
 		{
-			BlueprintClass = ULevelScriptBlueprint::StaticClass();
-			BlueprintType = BPTYPE_LevelScript;
-			BlueprintOuter = World->GetCurrentLevel();
-		}
-	}
-	// @TODO: UEditorUtilityBlueprint
-
-	FString const ClassName = ParentClass->GetName();
-	FString const DesiredName = FString::Printf(TEXT("COMMANDLET_TEMP_Blueprint_%s"), *ClassName);
-	FName   const TempBpName = MakeUniqueObjectName(BlueprintOuter, BlueprintClass, FName(*DesiredName));
-
-	check(FKismetEditorUtilities::CanCreateBlueprintOfClass(ParentClass));
-	UBlueprint* TempBlueprint = FKismetEditorUtilities::CreateBlueprint(ParentClass, BlueprintOuter, TempBpName, BlueprintType, BlueprintClass, GeneratedClass);
-
-	// if this is an animation blueprint, then we want anim specific graphs to test as well...
-	if (bIsAnimBlueprint)
-	{
-		check(TempBlueprint->FunctionGraphs.Num() > 0);
-		UAnimationGraph* AnimGraph = CastChecked<UAnimationGraph>(TempBlueprint->FunctionGraphs[0]);
-
-		// should add a state-machine graph
-		UAnimGraphNode_StateMachine* StateMachineNode = AddNodeToGraph<UAnimGraphNode_StateMachine>(AnimGraph);
-
-		UAnimationStateMachineGraph* StateMachineGraph = StateMachineNode->EditorStateMachineGraph;
-		// should add an conduit graph 
-		UAnimStateConduitNode* ConduitNode = AddNodeToGraph<UAnimStateConduitNode>((UEdGraph*)StateMachineGraph);
-
-		UAnimStateNode* StateNode = AddNodeToGraph<UAnimStateNode>((UEdGraph*)StateMachineGraph);
-		// should create a transition graph
-		StateNode->AutowireNewNode(ConduitNode->GetOutputPin());
-	}
-
-	// may have been altered in CreateBlueprint()
-	BlueprintType = TempBlueprint->BlueprintType;
-
-	bool bCanAddFunctions = (BlueprintType != BPTYPE_MacroLibrary); // taken from FBlueprintEditor::NewDocument_IsVisibleForType()
-	if (bCanAddFunctions)
-	{
-		// add a functions graph that isn't the construction script (or an animation graph)
-		FName FuncGraphName = MakeUniqueObjectName(TempBlueprint, UEdGraph::StaticClass(), FName(TEXT("NewFunction")));
-		UEdGraph* FuncGraph = FBlueprintEditorUtils::CreateNewGraph(TempBlueprint, FuncGraphName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-		FBlueprintEditorUtils::AddFunctionGraph<UClass>(TempBlueprint, FuncGraph, /*bIsUserCreated =*/true, nullptr);
-	}
-
-	bool bCanAddMacros = ((BlueprintType == BPTYPE_MacroLibrary) || (BlueprintType == BPTYPE_Normal) || (BlueprintType == BPTYPE_LevelScript));
-	if (bCanAddMacros)
-	{
-		FName MacroGraphName = MakeUniqueObjectName(TempBlueprint, UEdGraph::StaticClass(), FName(TEXT("NewMacro")));
-		UEdGraph* MacroGraph = FBlueprintEditorUtils::CreateNewGraph(TempBlueprint, MacroGraphName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-		FBlueprintEditorUtils::AddMacroGraph(TempBlueprint, MacroGraph, /*bIsUserCreated =*/true, nullptr);
-	}
-
-	UClass* ObjTypeToAdd = CommandOptions.SelectedObjectType;
-	if (ObjTypeToAdd && ObjTypeToAdd->IsChildOf(UActorComponent::StaticClass()))
-	{
-		if (!AddComponentToBlueprint(TempBlueprint, ObjTypeToAdd))
-		{
-			UE_LOG(LogBlueprintInfoDump, Error, TEXT("Cannot add a '%s' to a '%s' blueprint."), *ObjTypeToAdd->GetName(), *ClassName);
-		}
-	}
-	else if (CommandOptions.DumpFlags & BPDUMP_SelectAllObjTypes)
-	{
-		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
-		{
-			UClass* Class = *ClassIt;
-			if (Class->IsChildOf(UActorComponent::StaticClass()))
+			UWorld* World = GetWorld();
+			if (World == nullptr)
 			{
-				AddComponentToBlueprint(TempBlueprint, Class);
+				UE_LOG(LogBlueprintInfoDump, Error, TEXT("Cannot make a proper level blueprint without a valid editor level for its outer."));
+			}
+			else
+			{
+				BlueprintClass = ULevelScriptBlueprint::StaticClass();
+				BlueprintType = BPTYPE_LevelScript;
+				BlueprintOuter = World->GetCurrentLevel();
 			}
 		}
+		// @TODO: UEditorUtilityBlueprint
+
+		FString const ClassName = ParentClass->GetName();
+		FString const DesiredName = FString::Printf(TEXT("COMMANDLET_TEMP_Blueprint_%s"), *ClassName);
+		FName   const TempBpName = MakeUniqueObjectName(BlueprintOuter, BlueprintClass, FName(*DesiredName));
+
+		check(FKismetEditorUtilities::CanCreateBlueprintOfClass(ParentClass));
+		MadeBlueprint = FKismetEditorUtilities::CreateBlueprint(ParentClass, BlueprintOuter, TempBpName, BlueprintType, BlueprintClass, GeneratedClass);
+		
+		// if this is an animation blueprint, then we want anim specific graphs to test as well (if it has an anim graph)...
+		if (bIsAnimBlueprint && (MadeBlueprint->FunctionGraphs.Num() > 0))
+		{
+			UAnimationGraph* AnimGraph = CastChecked<UAnimationGraph>(MadeBlueprint->FunctionGraphs[0]);
+			check(AnimGraph != nullptr);
+
+			// should add a state-machine graph
+			UAnimGraphNode_StateMachine* StateMachineNode = AddNodeToGraph<UAnimGraphNode_StateMachine>(AnimGraph);
+
+			UAnimationStateMachineGraph* StateMachineGraph = StateMachineNode->EditorStateMachineGraph;
+			// should add an conduit graph 
+			UAnimStateConduitNode* ConduitNode = AddNodeToGraph<UAnimStateConduitNode>((UEdGraph*)StateMachineGraph);
+
+			UAnimStateNode* StateNode = AddNodeToGraph<UAnimStateNode>((UEdGraph*)StateMachineGraph);
+			// should create a transition graph
+			StateNode->AutowireNewNode(ConduitNode->GetOutputPin());
+		}
+		else if (bIsLevelBlueprint)
+		{
+			ULevel* Level = CastChecked<ULevel>(BlueprintOuter);
+			Level->LevelScriptBlueprint = Cast<ULevelScriptBlueprint>(MadeBlueprint);
+		}
+
+		// may have been altered in CreateBlueprint()
+		BlueprintType = MadeBlueprint->BlueprintType;
+
+		bool bCanAddFunctions = (BlueprintType != BPTYPE_MacroLibrary); // taken from FBlueprintEditor::NewDocument_IsVisibleForType()
+		if (bCanAddFunctions)
+		{
+			// add a functions graph that isn't the construction script (or an animation graph)
+			FName FuncGraphName = MakeUniqueObjectName(MadeBlueprint, UEdGraph::StaticClass(), FName(TEXT("NewFunction")));
+			UEdGraph* FuncGraph = FBlueprintEditorUtils::CreateNewGraph(MadeBlueprint, FuncGraphName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+			FBlueprintEditorUtils::AddFunctionGraph<UClass>(MadeBlueprint, FuncGraph, /*bIsUserCreated =*/true, nullptr);
+		}
+
+		bool bCanAddMacros = ((BlueprintType == BPTYPE_MacroLibrary) || (BlueprintType == BPTYPE_Normal) || (BlueprintType == BPTYPE_LevelScript));
+		if (bCanAddMacros)
+		{
+			FName MacroGraphName = MakeUniqueObjectName(MadeBlueprint, UEdGraph::StaticClass(), FName(TEXT("NewMacro")));
+			UEdGraph* MacroGraph = FBlueprintEditorUtils::CreateNewGraph(MadeBlueprint, MacroGraphName, UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
+			FBlueprintEditorUtils::AddMacroGraph(MadeBlueprint, MacroGraph, /*bIsUserCreated =*/true, nullptr);
+		}
+
+		// if you can add custom events to this blueprint, do so (so show that we 
+		// can call an event on ourselves)
+		if (MadeBlueprint->UbergraphPages.Num() > 0)
+		{
+			UK2Node_CustomEvent* CustomEventNode = AddNodeToGraph<UK2Node_CustomEvent>(MadeBlueprint->UbergraphPages[0]);
+			CustomEventNode->CustomFunctionName = FBlueprintEditorUtils::FindUniqueCustomEventName(MadeBlueprint);
+		}
+
+		UClass* ObjTypeToAdd = CommandOptions.SelectedObjectType;
+		if (ObjTypeToAdd && ObjTypeToAdd->IsChildOf(UActorComponent::StaticClass()))
+		{
+			if (!AddComponentToBlueprint(MadeBlueprint, ObjTypeToAdd))
+			{
+				UE_LOG(LogBlueprintInfoDump, Error, TEXT("Cannot add a '%s' to a '%s' blueprint."), *ObjTypeToAdd->GetName(), *ClassName);
+			}
+		}
+		else if (CommandOptions.DumpFlags & BPDUMP_SelectAllObjTypes)
+		{
+			for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+			{
+				UClass* Class = *ClassIt;
+				if (Class->IsChildOf(UActorComponent::StaticClass()))
+				{
+					AddComponentToBlueprint(MadeBlueprint, Class);
+				}
+			}
+		}
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(MadeBlueprint);		
+		ClassBlueprints.Add(ParentClass, MadeBlueprint);
 	}
 
-	return TempBlueprint;
+	check(MadeBlueprint != nullptr);
+	return MadeBlueprint;
 }
 
 //------------------------------------------------------------------------------
 static bool DumpBlueprintInfoUtils::AddComponentToBlueprint(UBlueprint* Blueprint, UClass* ComponentClass)
 {
-	// copied from FBlueprintEditor::CanAccessComponentsMode()
-	bool const bCanUserAddComponents = (Blueprint->SimpleConstructionScript != nullptr) // An SCS must be present (otherwise there is nothing valid to edit)
-		&& FBlueprintEditorUtils::IsActorBased(Blueprint)        // Must be parented to an AActor-derived class (some older BPs may have an SCS but may not be Actor-based)
-		&& (Blueprint->BlueprintType != BPTYPE_MacroLibrary)     // Must not be a macro-type Blueprint
-		&& (Blueprint->BlueprintType != BPTYPE_FunctionLibrary); // Must not be a function library
-
+	bool const bCanUserAddComponents  = FBlueprintEditorUtils::DoesSupportComponents(Blueprint);
 	bool const bClassIsActorComponent = ComponentClass->IsChildOf(UActorComponent::StaticClass());
 	bool const bCanBeAddedToBlueprint = !ComponentClass->HasAnyClassFlags(CLASS_Abstract) && ComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent);
 	bool const bCanMakeComponent = (bCanUserAddComponents && bClassIsActorComponent && bCanBeAddedToBlueprint);
@@ -770,6 +793,7 @@ static NodeType* DumpBlueprintInfoUtils::AddNodeToGraph(UEdGraph* Graph)
 	NodeType* NewNode = NewObject<NodeType>(Graph);
 	Graph->AddNode(NewNode, /*bFromUI =*/true, /*bSelectNewNode =*/false);
 
+	NewNode->CreateNewGuid();
 	NewNode->PostPlacedNewNode();
 	NewNode->AllocateDefaultPins();
 	return NewNode;
@@ -778,22 +802,39 @@ static NodeType* DumpBlueprintInfoUtils::AddNodeToGraph(UEdGraph* Graph)
 //------------------------------------------------------------------------------
 static FString DumpBlueprintInfoUtils::BuildDumpFilePath(UClass* BlueprintClass)
 {
-	FString CommandletSaveDir = FPaths::GameSavedDir() + TEXT("Commandlets/");
-	CommandletSaveDir = FPaths::ConvertRelativePathToFull(CommandletSaveDir);
-	IFileManager::Get().MakeDirectory(*CommandletSaveDir);
-
 	FString Pathname = FString::Printf(TEXT("BlueprintsInfoDump_%s"), FPlatformTime::StrTimestamp());
 	Pathname = Pathname.Replace(TEXT(" "), TEXT("_"));
 	Pathname = Pathname.Replace(TEXT("/"), TEXT("-"));
 	Pathname = Pathname.Replace(TEXT(":"), TEXT("."));
-
+	
 	bool const bSplitBlueprintsByFile = (CommandOptions.DumpFlags & BPDUMP_FilePerBlueprint) != 0;
+	
+	static FString CommandletSaveDir;
+	if (CommandletSaveDir.IsEmpty())
+	{
+		CommandletSaveDir = FPaths::GameSavedDir() + TEXT("Commandlets/");
+		CommandletSaveDir = FPaths::ConvertRelativePathToFull(CommandletSaveDir);
+		IFileManager::Get().MakeDirectory(*CommandletSaveDir);
+		
+		if (bSplitBlueprintsByFile)
+		{
+			CommandletSaveDir += Pathname + "/";
+			IFileManager::Get().MakeDirectory(*CommandletSaveDir);
+		}
+	}
+	
+	if (!CommandOptions.Filename.IsEmpty())
+	{
+		Pathname = CommandOptions.Filename;
+	}
+
 	if (bSplitBlueprintsByFile && (BlueprintClass != nullptr))
 	{
-		CommandletSaveDir += Pathname + "/";
-		IFileManager::Get().MakeDirectory(*CommandletSaveDir);
-
-		Pathname = ("BlueprintInfo_" + BlueprintClass->GetName() + ".json");
+		if (CommandOptions.Filename.IsEmpty())
+		{
+			Pathname = TEXT("BlueprintInfo");
+		}
+		Pathname += "_" + BlueprintClass->GetName() + ".json";
 	}
 	else
 	{
@@ -931,9 +972,26 @@ static double DumpBlueprintInfoUtils::GetPaletteMenuActions(FBlueprintPaletteLis
 	UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	double MenuBuildDuration = 0.0;
+	
+	if (CommandOptions.DumpFlags & BPDUMP_UseLegacyMenuBuilder)
 	{
 		FScopedDurationTimer DurationTimer(MenuBuildDuration);
 		FK2ActionMenuBuilder(K2Schema).GetPaletteActions(PaletteBuilder, PaletteFilter);
+	}
+	else
+	{
+		FBlueprintActionContext FilterContext;
+		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(PaletteBuilder.Blueprint));
+		
+		FBlueprintActionMenuBuilder MenuBuilder;
+		{
+			// prime the database so it's not recorded in our timing capture
+			FBlueprintActionDatabase::Prime();
+			
+			FScopedDurationTimer DurationTimer(MenuBuildDuration);
+			FBlueprintActionMenuUtils::MakePaletteMenu(FilterContext, PaletteFilter, MenuBuilder);
+		}
+		PaletteBuilder.Append(MenuBuilder);
 	}
 
 	return MenuBuildDuration;
@@ -991,7 +1049,7 @@ static void DumpBlueprintInfoUtils::DumpPalette(uint32 Indent, UBlueprint* Bluep
 	}
 	else
 	{
-		FBlueprintPaletteListBuilder PaletteBuilder(Blueprint);
+		FBlueprintPaletteListBuilder PaletteBuilder(Blueprint, TEXT("Library"));
 		double MenuBuildDuration = GetPaletteMenuActions(PaletteBuilder, ClassFilter);
 
 		BeginPaletteEntry += NestedIndent + "\"FilterClass\" : \"" + FilterClassName + "\",\n";
@@ -1106,6 +1164,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 		FString const IndentedNewline = "\n" + BuildIndentString(Indent);
 
 		ActionEntry += " : {";
+		ActionEntry += IndentedNewline + "\"ActionType\"  : \"" + PrimeAction->GetTypeId() + "\",";
 		ActionEntry += IndentedNewline + "\"Name\"        : \"" + ActionName + "\",";
 		ActionEntry += IndentedNewline + "\"Category\"    : \"";
 		if (bHasCategory)
@@ -1121,7 +1180,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 
 		ActionEntry += IndentedNewline + TooltipFieldLabel + TooltipStr + "\",";
 		ActionEntry += IndentedNewline + "\"Keywords\"    : \"" + PrimeAction->Keywords + "\",";
-		ActionEntry += IndentedNewline + "\"SearchTitle\" : \"" + PrimeAction->SearchTitle.ToString() + "\",";
+		ActionEntry += IndentedNewline + "\"SearchTitle\" : \"" + PrimeAction->GetSearchTitle().ToString() + "\",";
 		ActionEntry += IndentedNewline + FString::Printf(TEXT("\"Grouping\"    : %d"), PrimeAction->Grouping);
 		
 		// Get action node type info
@@ -1196,6 +1255,7 @@ static void DumpBlueprintInfoUtils::DumpGraphContextActions(uint32 Indent, UEdGr
 	FileOutWriter->Serialize(TCHAR_TO_ANSI(*BeginGraphEntry), BeginGraphEntry.Len());
 
 	FBlueprintGraphActionListBuilder ActionBuilder(Graph);
+	UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping graph context actions..."), *BuildIndentString(Indent, true));
 	DumpContextActionList(Indent, ActionBuilder, FileOutWriter);
 
 	if (CommandOptions.DumpFlags & BPDUMP_SelectAllObjTypes)
@@ -1203,11 +1263,19 @@ static void DumpBlueprintInfoUtils::DumpGraphContextActions(uint32 Indent, UEdGr
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass* Class = *ClassIt;
-			if (Class->IsChildOf(AActor::StaticClass()))
+			
+			bool const bIsTempBpClass = (Class->GetOuterUPackage() == GetTransientPackage());
+			// have to exclude classes that were created explicitly in this commandlet
+			if (bIsTempBpClass)
 			{
+				continue;
+			}
+			
+			if (Class->IsChildOf<AActor>() && !Class->IsChildOf<ALevelScriptActor>())
+			{				
 				if (AActor* LevelActor = SpawnLevelActor(Class, true))
 				{
-					UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping level actor actions: '%s'..."), *BuildIndentString(Indent, true), *Class->GetName());
+					UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping actions with actor selection: '%s'..."), *BuildIndentString(Indent, true), *Class->GetName());
 
 					FString ActorSelectionEntry = "," + IndentedNewline + "\"LevelActorMenu-" + Class->GetName() + "\" : \n";
 					FileOutWriter->Serialize(TCHAR_TO_ANSI(*ActorSelectionEntry), ActorSelectionEntry.Len());
@@ -1218,13 +1286,21 @@ static void DumpBlueprintInfoUtils::DumpGraphContextActions(uint32 Indent, UEdGr
 		}
 	}
 
-	UBlueprint* Blueprint = CastChecked<UBlueprint>(Graph->GetOuter());
+	UObject* GraphOuter = Graph->GetOuter();
+	UBlueprint* Blueprint = Cast<UBlueprint>(GraphOuter);
+	while ((Blueprint == nullptr) && (GraphOuter != nullptr))
+	{
+		GraphOuter = GraphOuter->GetOuter();
+		Blueprint = Cast<UBlueprint>(GraphOuter);
+	}
+	check(Blueprint != nullptr);
+
 	TArray<UObjectProperty*> ComponentProperties;
 	GetComponentProperties(Blueprint, ComponentProperties);
 
 	for (UObjectProperty* Component : ComponentProperties)
 	{
-		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping component actions: '%s'..."), *BuildIndentString(Indent, true), *Component->GetName());
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping actions with component selection: '%s'..."), *BuildIndentString(Indent, true), *Component->GetName());
 
 		FString SelectionContextEntry = "," + IndentedNewline + "\"ComponentContextMenu-" + Component->GetName() + "\" : \n";
 		FileOutWriter->Serialize(TCHAR_TO_ANSI(*SelectionContextEntry), SelectionContextEntry.Len());
@@ -1393,9 +1469,9 @@ static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FBluepr
 {
 	ActionBuilder.Empty();
 
-	FString PinTypeLog("<UNKNOWN>");
 	if (ActionBuilder.FromPin != nullptr)
 	{
+		FString PinTypeLog("<NONE>");
 		if (ActionBuilder.FromPin->Direction == EGPD_Input)
 		{
 			PinTypeLog = "INPUT ";
@@ -1405,9 +1481,10 @@ static void DumpBlueprintInfoUtils::DumpContextActionList(uint32 Indent, FBluepr
 			PinTypeLog = "OUTPUT";
 		}
 		PinTypeLog += UEdGraphSchema_K2::TypeToString(ActionBuilder.FromPin->PinType);
-	}
-	UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping pin actions: %s"), *BuildIndentString(Indent, true), *PinTypeLog);
 
+		UE_LOG(LogBlueprintInfoDump, Display, TEXT("%sDumping pin actions: %s"), *BuildIndentString(Indent, true), *PinTypeLog);
+	}
+	
 	double MenuBuildDuration = GetContextMenuActions(ActionBuilder);
 
 	FString const ContextEntryIndent = BuildIndentString(Indent);
@@ -1433,13 +1510,43 @@ static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActio
 	ActionBuilder.Empty();
 	check(ActionBuilder.CurrentGraph != nullptr);
 
-	UEdGraphSchema const* GraphSchema = GetDefault<UEdGraphSchema>(ActionBuilder.CurrentGraph->Schema);
-
 	double MenuBuildDuration = 0.0;
-	FBlueprintPaletteListBuilder PaletteBuilder(ActionBuilder.Blueprint);
+
+	UEdGraphSchema const* GraphSchema = GetDefault<UEdGraphSchema>(ActionBuilder.CurrentGraph->Schema);
+	if (CommandOptions.DumpFlags & BPDUMP_UseLegacyMenuBuilder)
 	{
 		FScopedDurationTimer DurationTimer(MenuBuildDuration);
 		GraphSchema->GetGraphContextActions(ActionBuilder);
+	}
+	else
+	{
+		FBlueprintActionContext FilterContext;
+		FilterContext.Blueprints.Add(const_cast<UBlueprint*>(ActionBuilder.Blueprint));
+		FilterContext.Graphs.Add(const_cast<UEdGraph*>(ActionBuilder.CurrentGraph));
+		
+		if (ActionBuilder.FromPin != nullptr)
+		{
+			FilterContext.Pins.Add(const_cast<UEdGraphPin*>(ActionBuilder.FromPin));
+		}
+		
+		TArray<UProperty*> SelectedProperties;
+		for (UObject* SelectedObj : ActionBuilder.SelectedObjects)
+		{
+			if (UProperty* SelectedProperty = Cast<UObjectProperty>(SelectedObj))
+			{
+				SelectedProperties.Add(SelectedProperty);
+			}
+		}
+		
+		FBlueprintActionMenuBuilder MenuBuilder;
+		{
+			// prime the database so it's not recorded in our timing capture
+			FBlueprintActionDatabase::Prime();
+			
+			FScopedDurationTimer DurationTimer(MenuBuildDuration);
+			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, SelectedProperties, MenuBuilder);
+		}
+		ActionBuilder.Append(MenuBuilder);
 	}
 
 	return MenuBuildDuration;
@@ -1576,14 +1683,16 @@ static void DumpBlueprintInfoUtils::DiffDumpFiles(FString const& NewFilePath, FS
 			// -dw : Ignore line ending and all whitespace differences
 			DiffCommand = TEXT("p4merge.exe -dw \"{2}\" \"{1}\"");
 		}
-		DiffCommand = DiffCommand.Replace(TEXT("{1}"), *NewFilePath).Replace(TEXT("{2}"), *QualifiedOldFilePath);
-
+		
 		FString DiffArgs;
 		if (int32 ArgsIndex = DiffCommand.Find(TEXT(" ")))
 		{
 			DiffArgs = *DiffCommand + ArgsIndex + 1;
 			DiffCommand = DiffCommand.Left(ArgsIndex);
 		}
+		
+		DiffArgs = DiffArgs.Replace(TEXT("{1}"), *NewFilePath);
+		DiffArgs = DiffArgs.Replace(TEXT("{2}"), *QualifiedOldFilePath);
 
 		FProcHandle DiffProc = FPlatformProcess::CreateProc(*DiffCommand,
 			/*Params =*/              *DiffArgs,
@@ -1642,7 +1751,7 @@ int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 	// closing out the writer (and diffing the resultant file if the user deigns us to do so)
 	auto CloseFileStream = [bDiffGeneratedFile, &ActiveFilePath, &CommandOptions](FArchive** FileOutPtr)
 	{
-		FArchive* FileOut = (*FileOutPtr);
+		FArchive*& FileOut = (*FileOutPtr);
 		if (FileOut != nullptr)
 		{
 			FileOut->Serialize(TCHAR_TO_ANSI(TEXT("\n}")), 2);
@@ -1702,7 +1811,11 @@ int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 	// class is a blueprintable type... broken into it's own lambda to save on reuse
 	auto IsInvalidBlueprintClass = [](UClass* Class)->bool
 	{
-		return Class->HasAnyClassFlags(CLASS_NewerVersionExists) || FKismetEditorUtilities::IsClassABlueprintSkeleton(Class) || !FKismetEditorUtilities::CanCreateBlueprintOfClass(Class);
+		return !IsValid(Class) ||
+			Class->HasAnyClassFlags(CLASS_NewerVersionExists) ||
+			FKismetEditorUtilities::IsClassABlueprintSkeleton(Class)  ||
+			!FKismetEditorUtilities::CanCreateBlueprintOfClass(Class) ||
+			(Class->GetOuterUPackage() == GetTransientPackage());
 	};
 
 	UClass* const BlueprintClass = CommandOptions.BlueprintClass;

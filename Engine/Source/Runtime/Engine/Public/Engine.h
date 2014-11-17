@@ -71,7 +71,6 @@
 #include "GameFramework/PlayerState.h"
 #include "Engine/SkyLight.h"
 #include "Engine/WindDirectionalSource.h"
-#include "GameFramework/MusicTrackDataStructures.h"
 #include "GameFramework/WorldSettings.h"
 #include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
@@ -379,6 +378,6 @@
 
 #include "DrawDebugHelpers.h"
 #include "UnrealEngine.h"					// Unreal engine helpers.
-#include "Canvas.h"							// Canvas.
+#include "CanvasTypes.h"							// Canvas.
 #include "EngineUtils.h"
 #include "TimerManager.h"					// Game play timers

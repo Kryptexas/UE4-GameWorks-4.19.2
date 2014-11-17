@@ -3,8 +3,6 @@
 #pragma once
 
 #include "BlendSpaceBase.h"
-#include "AnimInterpFilter.h"
-#include "AnimInstance.h"
 
 #include "BlendSpace.generated.h"
 

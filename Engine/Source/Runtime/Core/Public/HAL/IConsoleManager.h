@@ -691,7 +691,7 @@ public:
 #if !defined(__clang__) // @todo Mac: figure out how to make this compile
 		// compiled out in shipping for performance (we can change in development later), if this get triggered you need to call GetValueOnGameThread() or GetValueOnAnyThread(), the last one is a bit slower
 	#if DO_CHECK
-		ensure(IsInRenderingThread());	// ensure to not block content creators, #if to optimize in shipping
+		ensure(IsInParallelRenderingThread());	// ensure to not block content creators, #if to optimize in shipping
 	#endif
 
 #endif

@@ -104,7 +104,7 @@ FVector2D SRealtimeProfilerLineGraph::GetWidgetPosition(float X, float Y, const 
 }
 
 
-int32 SRealtimeProfilerLineGraph::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SRealtimeProfilerLineGraph::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// Rendering info
 	bool bEnabled = ShouldBeEnabled( bParentEnabled );
@@ -329,7 +329,7 @@ int32 SRealtimeProfilerLineGraph::OnPaint( const FGeometry& AllottedGeometry, co
 	LayerId++;
 
 	// Paint children
-	SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	return LayerId;
 }

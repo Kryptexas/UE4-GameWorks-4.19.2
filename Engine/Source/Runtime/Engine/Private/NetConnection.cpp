@@ -177,7 +177,6 @@ void UNetConnection::Serialize( FArchive& Ar )
 	{
 		Children.CountBytes(Ar);
 		ClientVisibleLevelNames.CountBytes(Ar);
-		PendingPackageInfos.CountBytes(Ar);
 		QueuedAcks.CountBytes(Ar);
 		ResendAcks.CountBytes(Ar);
 		OpenChannels.CountBytes(Ar);
@@ -403,25 +402,6 @@ void UNetConnection::AssertValid()
 }
 void UNetConnection::SendPackageMap()
 {
-}
-
-
-void UNetConnection::ParsePackageInfo(FInBunch& Bunch, FPackageInfo& Info)
-{
-	FString PackageName, FileName, ForcedExportName;
-	FNetControlMessage<NMT_Uses>::Receive(Bunch, Info.Guid, PackageName, FileName, Info.Extension, Info.PackageFlags, Info.RemoteGeneration, ForcedExportName, Info.LoadingPhase);
-	Info.PackageName = FName(*PackageName);
-	Info.FileName = FName(*FileName);
-	Info.ForcedExportBasePackageName = FName(*ForcedExportName);
-}
-
-void UNetConnection::SendPackageInfo(FPackageInfo& Info)
-{
-	FString PackageName(Info.PackageName.ToString());
-	FString FileName(Info.FileName.ToString());
-	FString ForcedExportName((Info.Parent != NULL && Info.Parent->GetForcedExportBasePackageName() != NAME_None) ? *Info.Parent->GetForcedExportBasePackageName().ToString() : TEXT(""));
-	UE_LOG(LogNet, Verbose, TEXT("   UNetConnection::SendPackageInfo: %s  HasMap: %d"), *PackageName, (int32)Info.Parent->ContainsMap());
-	FNetControlMessage<NMT_Uses>::Send(this, Info.Guid, PackageName, FileName, Info.Extension, Info.PackageFlags, Info.LocalGeneration, ForcedExportName, Info.LoadingPhase);
 }
 
 bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
@@ -1492,7 +1472,7 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 	PC->Role = ROLE_AutonomousProxy;
 	PC->SetPlayer(LocalPlayer);
 	PC->NetConnection = NetConnection;
-	UE_LOG(LogNet, Log, TEXT("%s setplayer %s"),*PC->GetName(),*LocalPlayer->GetName());
+	UE_LOG(LogNet, Verbose, TEXT("%s setplayer %s"),*PC->GetName(),*LocalPlayer->GetName());
 	LastReceiveTime = Driver->Time;
 	State = USOCK_Open;
 	PlayerController = PC;
@@ -1593,7 +1573,7 @@ void UChildConnection::HandleClientPlayer(APlayerController* PC, UNetConnection*
 	PC->Role = ROLE_AutonomousProxy;
 	PC->SetPlayer(NewPlayer);
 	PC->NetConnection = NetConnection;
-	UE_LOG(LogNet, Log, TEXT("%s setplayer %s"), *PC->GetName(), *NewPlayer->GetName());
+	UE_LOG(LogNet, Verbose, TEXT("%s setplayer %s"), *PC->GetName(), *NewPlayer->GetName());
 	PlayerController = PC;
 	OwningActor = PC;
 }

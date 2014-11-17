@@ -75,6 +75,8 @@ void appHandleCriticalError()
 #endif
 #elif PLATFORM_MAC
 				FCString::Strcpy(PlatformName, TEXT("Mac"));
+#elif PLATFORM_LINUX
+				FCString::Strcpy(PlatformName, TEXT("Linux"));
 #endif
 				TCHAR LangExt[10];
 				FCString::Strcpy(LangExt, TEXT("English"));

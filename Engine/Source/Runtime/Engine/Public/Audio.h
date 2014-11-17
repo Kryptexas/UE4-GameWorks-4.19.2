@@ -302,6 +302,16 @@ public:
 	 */
 	FString GetChannelsDesc();
 
+	/**
+	 * Gets the chunk index that was last read from (for Streaming Manager requests)
+	 */
+	virtual int32 GetCurrentChunkIndex() const {return -1;}
+
+	/**
+	 * Gets the offset into the chunk that was last read to (for Streaming Manager priority)
+	 */
+	virtual int32 GetCurrentChunkOffset() const {return -1;}
+
 	/** Unique ID that ties this buffer to a USoundWave */
 	int32	ResourceID;
 	/** Cumulative channels from all streams */
@@ -432,6 +442,8 @@ public:
 	 * Set the HighFrequencyGain value
 	 */
 	ENGINE_API void SetHighFrequencyGain( void );
+
+	const FSoundBuffer* GetBuffer() const {return Buffer;}
 
 protected:
 	// Variables.	

@@ -5,7 +5,7 @@
 =============================================================================*/
 
 // Precompiled header include. Can't add anything above this line.
-#include "CorePrivate.h"
+#include "Core.h"
 #include "Database.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDataBase, Log, All);

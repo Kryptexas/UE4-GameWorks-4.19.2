@@ -21,7 +21,5 @@ public:
 
 	virtual void InputReleased(int32 InputID, const FGameplayAbilityActorInfo* ActorInfo) override;
 
-	virtual void PredictiveActivateAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
-
 	virtual void CancelAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
 };

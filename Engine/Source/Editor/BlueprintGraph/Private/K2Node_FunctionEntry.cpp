@@ -196,7 +196,24 @@ FNodeHandlingFunctor* UK2Node_FunctionEntry::CreateNodeHandler(FKismetCompilerCo
 	return new FKCHandler_FunctionEntry(CompilerContext);
 }
 
+void UK2Node_FunctionEntry::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const
+{
+	Super::GetRedirectPinNames(Pin, RedirectPinNames);
 
+	if(RedirectPinNames.Num() > 0)
+	{
+		const FString & OldPinName = RedirectPinNames[0];
+
+		
+		// first add functionname.param
+		RedirectPinNames.Add(FString::Printf(TEXT("%s.%s"), *SignatureName.ToString(), *OldPinName));
+		// if there is class, also add an option for class.functionname.param
+		if(SignatureClass!=NULL)
+		{
+			RedirectPinNames.Add(FString::Printf(TEXT("%s.%s.%s"), *SignatureClass->GetName(), *SignatureName.ToString(), *OldPinName));
+		}
+	}
+}
 
 bool UK2Node_FunctionEntry::IsDeprecated() const
 {

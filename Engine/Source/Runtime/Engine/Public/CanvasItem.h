@@ -1,14 +1,19 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	FCanvasItem.h: Unreal canvas item definitions
+	CanvasItem.h: Unreal canvas item definitions
 =============================================================================*/
 
 #pragma once
 
-#include "BatchedElements.h"
+#include "Engine/EngineTypes.h"
+#include "SceneTypes.h"
 
+class FCanvas;
+class FBatchedElementParameters;
+class FBatchedElements;
 class FMaterialRenderProxy;
+class FTexture;
 
 class FCanvasItem
 {
@@ -25,7 +30,7 @@ public:
 		, BatchedElementParameters( NULL )
 		, Color( FLinearColor::White ) {};
 
-	virtual void Draw( class FCanvas* InCanvas ) = 0;
+	virtual void Draw( FCanvas* InCanvas ) = 0;
 
 	/* 
 	 * Draw this item (this will affect the items position for future draw calls that do no specify a position)
@@ -33,7 +38,7 @@ public:
 	 * @param	InCanvas		Canvas on which to draw
 	 * @param	InPosition		Draw position - this will not preserve the items position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, const FVector2D& InPosition )
+	virtual void Draw( FCanvas* InCanvas, const FVector2D& InPosition )
 	{
 		Position = InPosition;
 		Draw( InCanvas );
@@ -46,7 +51,7 @@ public:
 	 * @param	X				X Draw position 
 	 * @param	Y				Y Draw position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, float X, float Y )
+	virtual void Draw( FCanvas* InCanvas, float X, float Y )
 	{
 		Position.X = X;
 		Position.Y = Y;
@@ -85,22 +90,7 @@ public:
 	 * @param	InPosition		Draw position
 	 * @param	InTexture		The texture
 	 */
-	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FLinearColor& InColor )
-		: FCanvasItem( InPosition )
-		, Z( 1.0f )
-		, UV0( 0.0f, 0.0f )
-		, UV1( 1.0f, 1.0f )
-		, Texture( InTexture )
-		, MaterialRenderProxy( NULL )
-		, Rotation( ForceInitToZero )
-		, PivotPoint( FVector2D::ZeroVector )
-	{
-		SetColor( InColor );
-		// Ensure texture is valid.
-		check( InTexture );
-		Size.X = InTexture->GetSizeX();
-		Size.Y = InTexture->GetSizeY();
-	}
+	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FLinearColor& InColor );
 
 	/* 
 	 * Tile item with texture using given size. 
@@ -109,21 +99,7 @@ public:
 	 * @param	InTexture		The texture
 	 * @param	InSize			The size to render
 	 */
-	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InSize, const FLinearColor& InColor )
-		: FCanvasItem( InPosition )
-		, Size( InSize )
-		, Z( 1.0f )
-		, UV0( 0.0f, 0.0f )
-		, UV1( 1.0f, 1.0f )
-		, Texture( InTexture )
-		, MaterialRenderProxy( NULL )
-		, Rotation( ForceInitToZero )
-		, PivotPoint( FVector2D::ZeroVector )
-	{
-		SetColor( InColor );
-		// Ensure texture is valid
-		check( InTexture );
-	}
+	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InSize, const FLinearColor& InColor );
 
 	/* 
 	 * Tile item which uses the default white texture using given size. 
@@ -141,22 +117,7 @@ public:
 	 * @param	InUV0			UV coordinates (Normalized Top/Left)
 	 * @param	InUV1			UV coordinates (Normalized Bottom/Right)
 	 */
-	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InUV0, const FVector2D& InUV1, const FLinearColor& InColor )
-		: FCanvasItem( InPosition )	 
-		, Z( 1.0f )
-		, UV0( InUV0 )
-		, UV1( InUV1 )
-		, MaterialRenderProxy( NULL )
-		, Rotation( ForceInitToZero )
-		, PivotPoint( FVector2D::ZeroVector )
-	{
-		SetColor( InColor );
-		// Ensure texture is valid.
-		check( InTexture );
-		
-		Size.X = InTexture->GetSizeX();
-		Size.Y = InTexture->GetSizeY();
-	}
+	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InUV0, const FVector2D& InUV1, const FLinearColor& InColor );
 
 	/* 
 	 * Tile item with texture using given size and specific UVs.
@@ -167,21 +128,7 @@ public:
 	 * @param	InUV0			UV coordinates (Normalized Top/Left)
 	 * @param	InUV1			UV coordinates (Normalized Bottom/Right)
 	 */
-	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InSize, const FVector2D& InUV0, const FVector2D& InUV1, const FLinearColor& InColor )
-		: FCanvasItem( InPosition )
-		, Size( InSize )
-		, Z( 1.0f )
-		, UV0( InUV0 )
-		, UV1( InUV1 )
-		, Texture( InTexture )
-		, MaterialRenderProxy( NULL )
-		, Rotation( ForceInitToZero )
-		, PivotPoint( FVector2D::ZeroVector )
-	{
-		SetColor( InColor );
-		// Ensure texture is valid.
-		check( InTexture != NULL);
-	}
+	FCanvasTileItem( const FVector2D& InPosition, const FTexture* InTexture, const FVector2D& InSize, const FVector2D& InUV0, const FVector2D& InUV1, const FLinearColor& InColor );
 
 	/* 
 	 * Tile item with FMaterialRenderProxy using given size. 
@@ -190,21 +137,7 @@ public:
 	 * @param	InMaterialRenderProxy	Material proxy for rendering
 	 * @param	InSize					The size to render
 	 */
-	FCanvasTileItem( const FVector2D& InPosition, const FMaterialRenderProxy* InMaterialRenderProxy, const FVector2D& InSize )
-		: FCanvasItem( InPosition )
-		, Size( InSize )
-		, Z( 1.0f )
-		, UV0( 0.0f, 0.0f )
-		, UV1( 1.0f, 1.0f )
-		, Texture( NULL )
-		, MaterialRenderProxy( InMaterialRenderProxy )
-		, Rotation( ForceInitToZero )
-		, PivotPoint( FVector2D::ZeroVector )
-	{
-		// Ensure specify Texture or material, but not both.
-		check( InMaterialRenderProxy );
-	}
-
+	FCanvasTileItem( const FVector2D& InPosition, const FMaterialRenderProxy* InMaterialRenderProxy, const FVector2D& InSize );
 
 	/* 
 	 * Tile item with FMaterialRenderProxy using given size and UVs.
@@ -215,28 +148,14 @@ public:
 	 * @param	InUV0					UV coordinates (Normalized Top/Left)
 	 * @param	InUV1					UV coordinates (Normalized Bottom/Right)
 	 */
-	FCanvasTileItem( const FVector2D& InPosition, const FMaterialRenderProxy* InMaterialRenderProxy, const FVector2D& InSize, const FVector2D& InUV0, const FVector2D& InUV1 )
-		: FCanvasItem( InPosition )
-		, Size( InSize )
-		, Z( 1.0f )
-		, UV0( InUV0 )
-		, UV1( InUV1 )
-		, Texture( NULL )
-		, MaterialRenderProxy( InMaterialRenderProxy )
-		, Rotation( ForceInitToZero )
-		, PivotPoint( FVector2D::ZeroVector )
-	{
-		// Ensure material proxy is valid.
-		check( InMaterialRenderProxy );
-	}
-
+	FCanvasTileItem( const FVector2D& InPosition, const FMaterialRenderProxy* InMaterialRenderProxy, const FVector2D& InSize, const FVector2D& InUV0, const FVector2D& InUV1 );
 
 	/* 
 	 * Draw the item at the given coordinates.
 	 *
 	 * @param	InPosition		Draw position.
 	 */
-	virtual void Draw( class FCanvas* InCanvas ) override;
+	virtual void Draw( FCanvas* InCanvas ) override;
 
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -267,7 +186,7 @@ public:
 
 private:
 	/* Render when we have a material proxy. */
-	void RenderMaterialTile( class FCanvas* InCanvas, const FVector2D& InPosition );
+	void RenderMaterialTile( FCanvas* InCanvas, const FVector2D& InPosition );
 };
 
 /* Resizable 3x3 border item. */
@@ -314,7 +233,7 @@ public:
 	 *
 	 * @param	InPosition		Draw position.
 	 */
-	virtual void Draw( class FCanvas* InCanvas ) override;
+	virtual void Draw( FCanvas* InCanvas ) override;
 
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -423,7 +342,7 @@ public:
 	 *
 	 * @param	InCanvas		Canvas on which to draw
 	 */
-	virtual void Draw( class FCanvas* InCanvas ) override;
+	virtual void Draw( FCanvas* InCanvas ) override;
 
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -481,7 +400,7 @@ protected:
 	 *
 	 * In a method to make it simpler to do effects like shadow, outline
 	 */
-	void DrawStringInternal( class FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& DrawColor );
+	void DrawStringInternal( FCanvas* InCanvas, const FVector2D& DrawPos, const FLinearColor& DrawColor );
 
 	/* 
 	 * These are used bye the DrawStringInternal function. 
@@ -560,7 +479,7 @@ public:
 	 *
 	 * @param	InCanvas		Canvas on which to draw
 	 */
-	virtual void Draw( class FCanvas* InCanvas ) override;
+	virtual void Draw( FCanvas* InCanvas ) override;
 	
 	/* 
 	 * Draw line at the given coordinates.
@@ -568,7 +487,7 @@ public:
 	 * @param	InCanvas		Canvas on which to draw
 	 * @param	InPosition		Draw Start position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, const FVector2D& InPosition ) override
+	virtual void Draw( FCanvas* InCanvas, const FVector2D& InPosition ) override
 	{
 		Origin.X = InPosition.X;
 		Origin.Y = InPosition.Y;
@@ -581,7 +500,7 @@ public:
 	 * @param	InStartPos		Line start position
 	 * @param	InEndPos		Line end position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, const FVector2D& InStartPos, const FVector2D& InEndPos )
+	virtual void Draw( FCanvas* InCanvas, const FVector2D& InStartPos, const FVector2D& InEndPos )
 	{
 		Origin.X = InStartPos.X;
 		Origin.Y = InStartPos.Y;
@@ -596,7 +515,7 @@ public:
 	 * @param	X				X Draw position 
 	 * @param	Y				Y Draw position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, float InX, float InY ) override
+	virtual void Draw( FCanvas* InCanvas, float InX, float InY ) override
 	{
 		Origin.X = InX;
 		Origin.Y = InY;
@@ -609,7 +528,7 @@ public:
 	 * @param	InCanvas		Canvas on which to draw
 	 * @param	InPosition		Draw position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, const FVector& InPosition )
+	virtual void Draw( FCanvas* InCanvas, const FVector& InPosition )
 	{
 		Origin = InPosition;
 		Draw( InCanvas );
@@ -623,7 +542,7 @@ public:
 	 * @param	Y				Y Draw position
 	 * @param	Z				Z Draw position
 	 */
-	virtual void Draw( class FCanvas* InCanvas, float X, float Y, float Z )
+	virtual void Draw( FCanvas* InCanvas, float X, float Y, float Z )
 	{
 		Origin.X = X;
 		Origin.Y = Y;
@@ -660,7 +579,7 @@ public:
 		, Size( InSize )
 		, LineThickness( 0.0f )	{};
 
-	virtual void Draw( class FCanvas* InCanvas ) override;
+	virtual void Draw( FCanvas* InCanvas ) override;
 
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -780,7 +699,7 @@ public:
 		TriangleList[0].V2_Pos = InPointC;
 	}
 
-	virtual void Draw( class FCanvas* InCanvas ) override;
+	virtual void Draw( FCanvas* InCanvas ) override;
 		
 	/* Expose the functions defined in the base class. */
 	using FCanvasItem::Draw;
@@ -835,7 +754,7 @@ public:
 	 {
 		 delete TriListItem;
 	 }
-	 virtual void Draw( class FCanvas* InCanvas ) override;
+	 virtual void Draw( FCanvas* InCanvas ) override;
 
 	 /* 	 
 	 * Regenerates the tri list for the object with a new central point and radius
@@ -883,7 +802,7 @@ class ENGINE_API FCanvasItemTestbed
 {
 public:
 	FCanvasItemTestbed(){};
-	void  Draw( class FViewport* Viewport, class FCanvas* Canvas );
+	void  Draw( class FViewport* Viewport, FCanvas* Canvas );
 	struct LineVars
 	{
 		LineVars()

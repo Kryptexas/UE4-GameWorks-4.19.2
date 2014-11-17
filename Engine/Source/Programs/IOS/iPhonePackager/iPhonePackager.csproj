@@ -21,7 +21,8 @@
     <SccProvider>
     </SccProvider>
     <IsWebBootstrapper>false</IsWebBootstrapper>
-    <StartupObject>iPhonePackager.Program</StartupObject>
+    <StartupObject>
+    </StartupObject>
     <ApplicationIcon>IPhonePackagerIcon.ico</ApplicationIcon>
     <FileUpgradeFlags>
     </FileUpgradeFlags>

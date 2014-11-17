@@ -185,6 +185,16 @@ public:
 	 */
 	static FText FromString( FString String );
 
+	/**
+	 * Generate a culture invariant FText representing the passed in string
+	 */
+	static FText AsCultureInvariant( FString String );
+
+	/**
+	 * Generate a culture invariant FText representing the passed in FText
+	 */
+	static FText AsCultureInvariant( FText Text );
+
 	const FString& ToString() const;
 
 	/** Deep build of the source string for this FText, climbing the history hierarchy */
@@ -295,6 +305,8 @@ private:
 	static FText FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
 	static FText FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource);
 
+	bool ShouldGatherForLocalization() const;
+
 private:
 	template<typename T1, typename T2>
 	static FText AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const TSharedPtr<FCulture, ESPMode::ThreadSafe>& TargetCulture = NULL);
@@ -353,6 +365,7 @@ private:
 	~FTextInspector() {}
 
 public:
+	static bool ShouldGatherForLocalization(const FText& Text);
 	static const FString* GetNamespace(const FText& Text);
 	static const FString* GetKey(const FText& Text);
 	static const FString* GetSourceString(const FText& Text);

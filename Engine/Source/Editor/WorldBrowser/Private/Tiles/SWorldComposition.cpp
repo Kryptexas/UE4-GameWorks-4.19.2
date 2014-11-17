@@ -274,9 +274,7 @@ public:
 	}
 	
 	/**  SWidget interface */
-	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 
-							FSlateWindowElementList& OutDrawElements, int32 LayerId, 
-							const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
 		// First paint the background
 		{
@@ -306,7 +304,7 @@ public:
 			TSharedRef<SWorldTileItem> ChildNode = StaticCastSharedRef<SWorldTileItem>(CurWidget.Widget);
 		
 			ChildNode->bAffectedByMarquee = SelectionToVisualize->Contains(ChildNode->GetObjectBeingDisplayed());
-			LayerId = CurWidget.Widget->Paint(CurWidget.Geometry, MyClippingRect, OutDrawElements, NodesLayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+			LayerId = CurWidget.Widget->Paint(Args.WithNewParent(this), CurWidget.Geometry, MyClippingRect, OutDrawElements, NodesLayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 			ChildNode->bAffectedByMarquee = false;
 		}
 		
@@ -627,7 +625,7 @@ protected:
 	
 		// Summon context menu
 		FMenuBuilder MenuBuilder(true, WorldModel->GetCommandList());
-		WorldModel->BuildGridMenu(MenuBuilder);
+		WorldModel->BuildWorldCompositionMenu(MenuBuilder);
 		TSharedPtr<SWidget> MenuWidget = MenuBuilder.MakeWidget();
 
 		FSlateApplication::Get().PushMenu(

@@ -37,8 +37,8 @@ class AAmbientSound : public AActor
 	// End AActor interface.
 
 	// BEGIN DEPRECATED (use component functions now in level script)
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(FadeVolumeLevel="1.0",DeprecatedFunction))
-	void FadeIn(float FadeInDuration, float FadeVolumeLevel);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
+	void FadeIn(float FadeInDuration, float FadeVolumeLevel = 1.f);
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))
 	void FadeOut(float FadeOutDuration, float FadeVolumeLevel);
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))

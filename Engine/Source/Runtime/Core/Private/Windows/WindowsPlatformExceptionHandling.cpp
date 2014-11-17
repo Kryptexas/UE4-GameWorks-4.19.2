@@ -4,7 +4,7 @@
 	WindowsPlatformExceptionHandling.cpp: Exception handling for functions that want to create crash dumps.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 #include "../../Launch/Resources/Version.h"
 
@@ -192,6 +192,10 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 				case '\n':	Char = '#';		break;
 			}
 		}
+	}
+	else
+	{
+		FCString::Strcpy( LocalBuffer, TEXT("") );
 	}
 
 	StringCchPrintf( StringBuffer, LocalBufferSize, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::Get(), LocalBuffer );

@@ -5,6 +5,9 @@
 #include "Slate.h"
 #include "SlateCore.h"
 #include "UnrealEd.h"
+
+#include "IDocumentation.h"
+
 #include "BlueprintGraphDefinitions.h"
 
 #include "BlueprintEditorUtils.h"
@@ -15,8 +18,18 @@
 #include "UMG.h"
 
 #include "UMGEditorClasses.h"
+#include "WidgetBlueprint.h"
+
+#include "BlueprintEditorModes.h"
+#include "WidgetBlueprintApplicationModes.h"
+#include "WidgetBlueprintApplicationMode.h"
+
+#include "WidgetReference.h"
+#include "WidgetBlueprintEditor.h"
 
 #include "AssetTypeActions_Base.h"
+
+#include "DesignTimeUtils.h"
 
 #include "DesignerExtension.h"
 #include "VerticalSlotExtension.h"
@@ -26,6 +39,9 @@
 
 #include "DetailCustomizations.h"
 #include "CanvasSlotCustomization.h"
+#include "HorizontalAlignmentCustomization.h"
+#include "VerticalAlignmentCustomization.h"
+#include "SlateChildSizeCustomization.h"
 
 #include "WidgetTemplate.h"
 #include "WidgetTemplateDragDropOp.h"

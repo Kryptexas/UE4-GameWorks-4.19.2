@@ -14,7 +14,7 @@ class ONLINEBLUEPRINTSUPPORT_API UK2Node_LeaderboardFlush : public UK2Node_BaseA
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	// End of UEdGraphNode interface
 
-	// UK2Node_BaseAsyncTask interface
-	virtual FString GetCategoryName() override;
-	// End of UK2Node_BaseAsyncTask interface
+	// Begin UK2Node interface
+	virtual FText GetMenuCategory() const override;
+	// End UK2Node interface
 };

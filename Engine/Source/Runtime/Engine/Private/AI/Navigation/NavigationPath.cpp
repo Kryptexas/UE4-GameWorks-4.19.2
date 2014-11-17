@@ -4,6 +4,7 @@
 #include "VisualLog.h"
 #include "AI/Navigation/NavigationTypes.h"
 #include "AI/Navigation/RecastNavMesh.h"
+#include "AI/Navigation/NavigationPath.h"
 
 #define DEBUG_DRAW_OFFSET 0
 #define PATH_OFFSET_KEEP_VISIBLE_POINTS 1
@@ -24,6 +25,7 @@ FNavigationPath::FNavigationPath()
 	, bIsReady(false)
 	, bIsPartial(false)
 	, bReachedSearchLimit(false)
+	, GoalActorLocationTetherDistanceSq(-1.f)
 {
 
 }
@@ -33,6 +35,8 @@ FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 	, bUpToDate(true)
 	, bIsReady(true)
 	, bIsPartial(false)
+	, bReachedSearchLimit(false)
+	, GoalActorLocationTetherDistanceSq(-1.f)
 {
 	Base = InBase;
 
@@ -42,6 +46,79 @@ FNavigationPath::FNavigationPath(const TArray<FVector>& Points, AActor* InBase)
 		FBasedPosition BasedPoint(InBase, Points[i]);
 		PathPoints[i] = FNavPathPoint(*BasedPoint);
 	}
+}
+
+FVector FNavigationPath::GetGoalLocation() const
+{
+	return GoalActor != NULL ? (GoalActorAsNavAgent != NULL ? GoalActorAsNavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation()) : GetEndLocation();
+}
+
+FVector FNavigationPath::GetPathFindingStartLocation() const
+{
+	return SourceActor != NULL ? (SourceActorAsNavAgent != NULL ? SourceActorAsNavAgent->GetNavAgentLocation() : SourceActor->GetActorLocation()) : GetStartLocation();
+}
+
+void FNavigationPath::SetGoalActorObservation(const AActor& ActorToObserve, float TetherDistance)
+{
+	if (NavigationDataUsed.IsValid() == false)
+	{
+		// this mechanism is available only for navigation-generated paths
+		UE_LOG(LogNavigation, Warning, TEXT("Updating navigation path on goal actor's location change is available only for navigation-generated paths. Called for %s")
+			, *GetNameSafe(&ActorToObserve));
+		return;
+	}
+	else if (IsValid() == false)
+	{
+		UE_LOG(LogNavigation, Log, TEXT("FNavigationPath::SetGoalActorObservation called for an invalid path. Skipping."));
+		return;
+	}
+
+	// register for path observing only if we weren't registered already
+	const bool RegisterForPathUpdates = GoalActor.IsValid() == false;	
+	GoalActor = &ActorToObserve;
+	GoalActorAsNavAgent = InterfaceCast<INavAgentInterface>(&ActorToObserve);
+	GoalActorLocationTetherDistanceSq = FMath::Square(TetherDistance);
+
+	NavigationDataUsed->RegisterObservedPath(AsShared());
+}
+
+void FNavigationPath::SetSourceActor(const AActor& InSourceActor)
+{
+	SourceActor = &InSourceActor;
+	SourceActorAsNavAgent = InterfaceCast<INavAgentInterface>(&InSourceActor);
+}
+
+EPathObservationResult::Type FNavigationPath::TickPathObservation()
+{
+	if (GoalActor.IsValid() == false)
+	{
+		return EPathObservationResult::NoLongerObserving;
+	}
+
+	const FVector GoalLocation = GoalActorAsNavAgent != NULL ? GoalActorAsNavAgent->GetNavAgentLocation() : GoalActor->GetActorLocation();
+	return FVector::DistSquared(GoalLocation, PathPoints.Last().Location) <= GoalActorLocationTetherDistanceSq ? EPathObservationResult::NoChange : EPathObservationResult::RequestRepath;
+}
+
+void FNavigationPath::DisableGoalActorObservation()
+{
+	GoalActor = NULL;
+	GoalActorAsNavAgent = NULL;
+	GoalActorLocationTetherDistanceSq = -1.f;
+}
+
+void FNavigationPath::Invalidate()
+{
+	bUpToDate = false;
+	ObserverDelegate.Broadcast(this, ENavPathEvent::Invalidated);
+	if (bDoAutoUpdateOnInvalidation && NavigationDataUsed.IsValid())
+	{
+		NavigationDataUsed->RequestRePath(AsShared(), ENavPathUpdateType::NavigationChanged);
+	}
+}
+
+void FNavigationPath::RePathFailed()
+{
+	ObserverDelegate.Broadcast(this, ENavPathEvent::RePathFailed);
 }
 
 void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor, UCanvas* Canvas, bool bPersistent, const uint32 NextPathPointIndex) const
@@ -68,6 +145,16 @@ void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor
 	if (NumPathVerts > 0)
 	{
 		DrawDebugBox(World, PathPoints[NumPathVerts-1].Location + NavigationDebugDrawing::PathOffset, FVector(15.f), PathColor, bPersistent);
+	}
+
+	// if observing goal actor draw a radius and a line to the goal
+	if (GoalActor.IsValid())
+	{
+		const FVector GoalLocation = GetGoalLocation() + NavigationDebugDrawing::PathOffset;
+		const FVector EndLocation = GetEndLocation() + NavigationDebugDrawing::PathOffset;
+		static const FVector CylinderHalfHeight = FVector::UpVector * 10.f;
+		DrawDebugCylinder(World, EndLocation - CylinderHalfHeight, EndLocation + CylinderHalfHeight, FMath::Sqrt(GoalActorLocationTetherDistanceSq), 16, PathColor, bPersistent);
+		DrawDebugLine(World, EndLocation, GoalLocation, Grey, bPersistent);
 	}
 }
 
@@ -130,16 +217,16 @@ bool FNavigationPath::ContainsAnyCustomLink() const
 	return false;
 }
 
-bool FNavigationPath::DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex) const
+bool FNavigationPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
 {
 	// iterate over all segments and check if any intersects with given box
 	bool bIntersects = false;
 	int32 PathPointIndex = INDEX_NONE;
 
-	if (PathPoints.Num() > 1)
+	if (PathPoints.Num() > 1 && PathPoints.IsValidIndex(int32(StartingIndex)))
 	{
-		FVector Start = PathPoints[0].Location;
-		for (PathPointIndex = 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex)
+		FVector Start = PathPoints[StartingIndex].Location;
+		for (PathPointIndex = int32(StartingIndex) + 1; PathPointIndex < PathPoints.Num(); ++PathPointIndex)
 		{
 			const FVector End = PathPoints[PathPointIndex].Location;
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
@@ -261,9 +348,9 @@ const TArray<FNavigationPortalEdge>* FNavMeshPath::GeneratePathCorridorEdges() c
 	// mz@todo the underlying recast function queries the navmesh a portal at a time, 
 	// which is a waste of performance. A batch-query function has to be added.
 	const int32 CorridorLenght = PathCorridor.Num();
-	if (CorridorLenght != 0 && IsInGameThread() && Owner.IsValid())
+	if (CorridorLenght != 0 && IsInGameThread() && NavigationDataUsed.IsValid())
 	{
-		const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(Owner.Get());
+		const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
 		MyOwner->GetEdgesForPathCorridor(&PathCorridor, &PathCorridorEdges);
 		bCorridorEdgesGenerated = PathCorridorEdges.Num() > 0;
 	}
@@ -435,7 +522,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 {
 	SCOPE_CYCLE_COUNTER(STAT_Navigation_OffsetFromCorners);
 
-	const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(Owner.Get());
+	const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
 	if (PathPoints.Num() == 0 || PathPoints.Num() > 100)
 	{
 		// skip it, there is not need to offset that path from performance point of view
@@ -723,23 +810,24 @@ bool FNavMeshPath::ContainsWithSameEnd(const FNavMeshPath* Other) const
 	return bAreTheSame;
 }
 
-bool FNavMeshPath::DoesIntersectBox(const FBox& Box, int32* IntersectingSegmentIndex) const
+bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32* IntersectingSegmentIndex) const
 {
 	if (IsStringPulled())
 	{
-		return Super::DoesIntersectBox(Box, IntersectingSegmentIndex);
+		return Super::DoesIntersectBox(Box, StartingIndex, IntersectingSegmentIndex);
 	}
 
-	// note that it's a big simplified. It work
+	// note that it's a big simplified. It works
 
 	bool bIntersects = false;
 	int32 PortalIndex = INDEX_NONE;
 	const TArray<FNavigationPortalEdge>* CorridorEdges = GetPathCorridorEdges();
 
-	if (CorridorEdges->Num() > 0)
+	if (CorridorEdges->Num() > 0 && CorridorEdges->IsValidIndex(StartingIndex))
 	{
-		FVector Start = PathPoints[0].Location;
-		for (PortalIndex = 0; PortalIndex < CorridorEdges->Num() && bIntersects == false; ++PortalIndex)
+		FVector Start = StartingIndex == 0 ? PathPoints[0].Location
+			: ((*CorridorEdges)[StartingIndex].Right + ((*CorridorEdges)[StartingIndex].Left - (*CorridorEdges)[StartingIndex].Right) / 2);
+		for (PortalIndex = StartingIndex; PortalIndex < CorridorEdges->Num() && bIntersects == false; ++PortalIndex)
 		{
 			const FNavigationPortalEdge& Edge = (*CorridorEdges)[PortalIndex];
 			const FVector End = Edge.Right + (Edge.Left - Edge.Right) / 2;
@@ -794,7 +882,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisLogEntry* Snapshot) const
 	const FVector CorridorOffset = NavigationDebugDrawing::PathOffset * 1.25f;
 	int32 NumAreaMark = 1;
 
-	ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(GetOwner());
+	ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(GetNavigationDataUsed());
 	NavMesh->BeginBatchQuery();
 
 	TArray<FVector> Verts;
@@ -845,3 +933,156 @@ FString FNavMeshPath::GetDescription() const
 }
 
 #endif // ENABLE_VISUAL_LOG
+
+//----------------------------------------------------------------------//
+// UNavigationPath
+//----------------------------------------------------------------------//
+
+UNavigationPath::UNavigationPath(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+	, bIsValid(false)
+	, bDebugDrawingEnabled(false)
+	, DebugDrawingColor(FColor::White)
+	, SharedPath(NULL)
+{	
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		PathObserver = FNavigationPath::FPathObserverDelegate::FDelegate::CreateUObject(this, &UNavigationPath::OnPathEvent);
+	}
+}
+
+void UNavigationPath::BeginDestroy()
+{
+	if (SharedPath.IsValid())
+	{
+		SharedPath->RemoveObserver(PathObserver);
+	}
+	Super::BeginDestroy();
+}
+
+void UNavigationPath::OnPathEvent(FNavigationPath* UpdatedPath, ENavPathEvent::Type PathEvent)
+{
+	if (UpdatedPath == SharedPath.Get())
+	{
+		PathUpdatedNotifier.Broadcast(this, PathEvent);
+		bIsValid = SharedPath.IsValid() && SharedPath->IsValid();
+	}
+}
+
+FString UNavigationPath::GetDebugString() const
+{
+	check((SharedPath.IsValid() && SharedPath->IsValid()) == !!bIsValid);
+	if (!bIsValid)
+	{
+		return TEXT("Invalid path");
+	}
+
+	return FString::Printf(TEXT("Path: points %d%s%s"), SharedPath->GetPathPoints().Num()
+		, SharedPath->IsPartial() ? TEXT(", partial") : TEXT("")
+		, SharedPath->IsUpToDate() ? TEXT("") : TEXT(", OUT OF DATE!")
+		);
+}
+
+void UNavigationPath::DrawDebug(UCanvas* Canvas, APlayerController*)
+{
+	if (SharedPath.IsValid())
+	{
+		SharedPath->DebugDraw(SharedPath->GetNavigationDataUsed(), DebugDrawingColor, Canvas, /*bPersistent=*/false);
+	}
+}
+
+void UNavigationPath::EnableDebugDrawing(bool bShouldDrawDebugData, FLinearColor PathColor)
+{
+	DebugDrawingColor = PathColor;
+
+	if (bDebugDrawingEnabled == bShouldDrawDebugData)
+	{
+		return;
+	}
+
+	bDebugDrawingEnabled = bShouldDrawDebugData;
+	if (bShouldDrawDebugData)
+	{
+		UDebugDrawService::Register(TEXT("Navigation"), FDebugDrawDelegate::CreateUObject(this, &UNavigationPath::DrawDebug));
+	}
+	else
+	{
+		UDebugDrawService::Unregister(FDebugDrawDelegate::CreateUObject(this, &UNavigationPath::DrawDebug));
+	}
+}
+
+void UNavigationPath::EnableRecalculationOnInvalidation(TEnumAsByte<ENavigationOptionFlag::Type> DoRecalculation)
+{
+	if (DoRecalculation != RecalculateOnInvalidation)
+	{
+		RecalculateOnInvalidation = DoRecalculation;
+		if (!!bIsValid && RecalculateOnInvalidation != ENavigationOptionFlag::Default)
+		{
+			SharedPath->EnableRecalculationOnInvalidation(RecalculateOnInvalidation == ENavigationOptionFlag::Enable);
+		}
+	}
+}
+
+float UNavigationPath::GetPathLenght() const
+{
+	check((SharedPath.IsValid() && SharedPath->IsValid()) == !!bIsValid);
+	return !!bIsValid ? SharedPath->GetLength() : -1.f;
+}
+
+float UNavigationPath::GetPathCost() const
+{
+	check((SharedPath.IsValid() && SharedPath->IsValid()) == !!bIsValid);
+	return !!bIsValid ? SharedPath->GetCost() : -1.f;
+}
+
+bool UNavigationPath::IsPartial() const
+{
+	check((SharedPath.IsValid() && SharedPath->IsValid()) == !!bIsValid);
+	return !!bIsValid && SharedPath->IsPartial();
+}
+
+bool UNavigationPath::IsValid() const
+{
+	check((SharedPath.IsValid() && SharedPath->IsValid()) == !!bIsValid);
+	return !!bIsValid;
+}
+
+bool UNavigationPath::IsStringPulled() const
+{
+	return false;
+}
+
+void UNavigationPath::SetPath(FNavPathSharedPtr NewSharedPath)
+{
+	FNavigationPath* NewPath = NewSharedPath.Get();
+	if (SharedPath.Get() != NewPath)
+	{
+		if (SharedPath.IsValid())
+		{
+			SharedPath->RemoveObserver(PathObserver);
+		}
+		SharedPath = NewSharedPath;
+		if (NewPath != NULL)
+		{
+			NewPath->AddObserver(PathObserver);
+
+			if (RecalculateOnInvalidation != ENavigationOptionFlag::Default)
+			{
+				NewPath->EnableRecalculationOnInvalidation(RecalculateOnInvalidation == ENavigationOptionFlag::Enable);
+			}
+			
+			PathPoints.Reset(NewPath->GetPathPoints().Num());
+			for (const auto& PathPoint : NewPath->GetPathPoints())
+			{
+				PathPoints.Add(PathPoint.Location);
+			}
+		}
+		else
+		{
+			PathPoints.Reset();
+		}
+
+		OnPathEvent(NewPath, NewPath != NULL ? ENavPathEvent::NewPath : ENavPathEvent::Cleared);
+	}
+}
+

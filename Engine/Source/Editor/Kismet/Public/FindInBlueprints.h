@@ -229,6 +229,9 @@ public:
 	void OnCacheComplete();
 private:
 
+	/** Register any Find-in-Blueprint commands */
+	void RegisterCommands();
+
 	/*Called when user changes the text they are searching for */
 	void OnSearchTextChanged(const FText& Text);
 
@@ -306,6 +309,18 @@ private:
 
 	/** Returns the color of the caching bar */
 	FSlateColor GetCachingBarColor() const;
+
+	/** Callback to build the context menu when right clicking in the tree */
+	TSharedPtr<SWidget> OnContextMenuOpening();
+
+	/** Helper function to select all items */
+	void SelectAllItemsHelper(FSearchResult InItemToSelect);
+
+	/** Callback when user attempts to select all items in the search results */
+	void OnSelectAllAction();
+
+	/** Callback when user attempts to copy their selection in the Find-in-Blueprints */
+	void OnCopyAction();
 
 private:
 	/** Pointer back to the blueprint editor that owns us */

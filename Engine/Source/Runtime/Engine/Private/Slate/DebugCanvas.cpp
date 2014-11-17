@@ -178,9 +178,9 @@ void FDebugCanvasDrawer::DrawRenderThread(FRHICommandListImmediate& RHICmdList, 
 		else
 		{
 			RenderThreadCanvas->Canvas.SetRenderTargetRect( RenderTarget->GetViewRect() );
-			RenderThreadCanvas->Canvas.Flush( true );
+			RenderThreadCanvas->Canvas.Flush_RenderThread(RHICmdList, true);
 		}
-		RenderThreadCanvas->Canvas.Flush( true );
+		RenderThreadCanvas->Canvas.Flush_RenderThread(RHICmdList, true);
 		RenderTarget->ClearRenderTargetTexture();
 	}
 }

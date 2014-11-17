@@ -1,6 +1,7 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
@@ -12,7 +13,7 @@ using System.Text.RegularExpressions;
 
 namespace UnrealBuildTool
 {
-	abstract class RemoteToolChain : UEToolChain
+	public abstract class RemoteToolChain : UEToolChain
     {
 		protected void RegisterRemoteToolChain(UnrealTargetPlatform InPlatform, CPPTargetPlatform CPPPlatform)
 		{
@@ -25,7 +26,7 @@ namespace UnrealBuildTool
 
 		/** These two variables will be loaded from XML config file in XmlConfigLoader.Init() */
 		[XmlConfig]
-		public static string RemoteServerName;
+		public static string RemoteServerName = "";
 		[XmlConfig]
 		public static string[] PotentialServerNames = new string[] { };
 
@@ -34,6 +35,43 @@ namespace UnrealBuildTool
 
 		/** The path (on the Mac) to the your particular development directory, where files will be copied to from the PC */
 		public static string UserDevRootMac = "/UE4/Builds/";
+
+		/** Whether or not to connect to UnrealRemoteTool using RPCUtility */
+		[XmlConfig]
+		public static bool bUseRPCUtil = true;
+		
+		/** Path to rsync executable and parameters for your rsync utility */
+		[XmlConfig]
+		public static string RSyncExe = "${PROGRAM_FILES}\\DeltaCopy\\rsync.exe";
+		public static string ResolvedRSyncExe = null;
+
+		/** Path to rsync executable and parameters for your rsync utility */
+		[XmlConfig]
+		public static string SSHExe = "${PROGRAM_FILES}\\DeltaCopy\\ssh.exe";
+		public static string ResolvedSSHExe = null;
+
+		/** Instead of looking for RemoteToolChainPrivate.key in the usual places (Documents/Unreal Engine/UnrealBuildTool/SSHKeys, Engine/Build/SSHKeys), this private key will be used if set */
+		[XmlConfig]
+		public static string SSHPrivateKeyOverridePath = "";
+		public static string ResolvedSSHPrivateKey = null;
+
+		/** The authentication used for Rsync (for the -e rsync flag) */
+		[XmlConfig]
+		public static string RsyncAuthentication = "ssh -i '${CYGWIN_SSH_PRIVATE_KEY}'";
+		public static string ResolvedRsyncAuthentication = null;
+
+		/** The authentication used for SSH (probably similar to RsyncAuthentication) */
+		[XmlConfig]
+		public static string SSHAuthentication = "-i '${CYGWIN_SSH_PRIVATE_KEY}'";
+		public static string ResolvedSSHAuthentication = null;
+
+		/** Username on the remote machine to connect to with RSync */
+		[XmlConfig]
+		public static string RSyncUsername = "${CURRENT_USER}";
+		public static string ResolvedRSyncUsername = null;
+
+		// has the toolchain initialized remote execution yet? no need to do it multiple times
+		private static bool bHasBeenInitialized = false;
 
 		/** The directory that this local branch is in, without drive information (strip off X:\ from X:\UE4\iOS) */
 		public static string BranchDirectory = Path.GetFullPath(".\\");
@@ -44,6 +82,9 @@ namespace UnrealBuildTool
 
 		/** The platform this toolchain is compiling for */
 		protected UnrealTargetPlatform RemoteToolChainPlatform;
+
+		/** The average amound of memory a compile takes, used so that we don't compile too many things at once */
+		public static int MemoryPerCompileMB = 1000;
 
 		static RemoteToolChain()
         {
@@ -56,11 +97,104 @@ namespace UnrealBuildTool
 
 			BranchDirectory = BranchDirectory.Replace("Engine\\Binaries\\DotNET", "");
 			BranchDirectory = BranchDirectory.Replace("Engine\\Source\\", "");
-        }
+		}
+
+		private static string ResolveString(string Input, bool bIsPath)
+		{
+			string Result = Input;
+
+			// these assume entire string is a path, and will do file operations on the whole string
+			if (bIsPath)
+			{
+				if (Result.Contains("${PROGRAM_FILES}"))
+				{
+					// first look in real ProgramFiles
+					string Temp = Result.Replace("${PROGRAM_FILES}", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolderOption.DoNotVerify));
+					if (File.Exists(Temp) || Directory.Exists(Temp))
+					{
+						Result = Temp;
+					}
+					else
+					{
+						// fallback to ProgramFilesX86
+						Temp = Result.Replace("${PROGRAM_FILES}", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86, Environment.SpecialFolderOption.DoNotVerify));
+						if (File.Exists(Temp) || Directory.Exists(Temp))
+						{
+							Result = Temp;
+						}
+					}
+				}
+
+				if (Result.Contains("${ENGINE_ROOT}"))
+				{
+					string Temp = Result.Replace("${ENGINE_ROOT}", Path.GetFullPath(BuildConfiguration.RelativeEnginePath + "\\.."));
+
+					// get the best version
+					Result = LookForSpecialFile(Temp);
+				}
+
+				if (Result.Contains("${PROJECT_ROOT}"))
+				{
+					if (!UnrealBuildTool.HasUProjectFile())
+					{
+						throw new BuildException("Configuration setting was using ${PROJECT_ROOT}, but there was no project specified");
+					}
+
+					string Temp = Result.Replace("${PROJECT_ROOT}", Path.GetFullPath(UnrealBuildTool.GetUProjectPath()));
+					
+					// get the best version
+					Result = LookForSpecialFile(Temp);
+				}
+			}
+
+			// non path variables
+			Result = Result.Replace("${CURRENT_USER}", Environment.UserName);
+
+			// needs a resolved key (which isn't required if user is using alternate authentication)
+			if (Result.Contains("${SSH_PRIVATE_KEY}") || Result.Contains("${CYGWIN_SSH_PRIVATE_KEY}"))
+			{
+				// if it needs the key, then make sure we have it!
+				if (ResolvedSSHPrivateKey != null)
+				{
+					Result = Result.Replace("${SSH_PRIVATE_KEY}", ResolvedSSHPrivateKey);
+					Result = Result.Replace("${CYGWIN_SSH_PRIVATE_KEY}", ConvertPathToCygwin(ResolvedSSHPrivateKey));
+				}
+				else
+				{
+					Result = null;
+				}
+			}
+
+			return Result;
+		}
+
+		private static string LookForSpecialFile(string InPath)
+		{
+			// look in special NotForLicensees dir first
+			string Special = Path.Combine(Path.GetDirectoryName(InPath), "NoRedist", Path.GetFileName(InPath));
+			if (File.Exists(Special) || Directory.Exists(Special))
+			{
+				return Special;
+			}
+
+			Special = Path.Combine(Path.GetDirectoryName(InPath), "NotForLicensees", Path.GetFileName(InPath));
+			if (File.Exists(Special) || Directory.Exists(Special))
+			{
+				return Special;
+			}
+
+			return InPath;
+		}
 
         // Do any one-time, global initialization for the tool chain
-        public override void SetUpGlobalEnvironment()
+		static int InitializationErrorCode = 0;
+		private static int InitializeRemoteExecution()
         {
+			if (bHasBeenInitialized)
+			{
+				return InitializationErrorCode;
+			}
+
             if (ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
             {
             	// If we don't care which machine we're going to build on, query and
@@ -118,18 +252,104 @@ namespace UnrealBuildTool
 					Log.TraceInformation("Picking the default remote server " + RemoteServerName);
 				}
 
-				if (!Utils.IsRunningOnMono)
+				// we need a server name!
+				if (string.IsNullOrEmpty(RemoteServerName))
 				{
-					// crank up RPC communications
-					RPCUtilHelper.Initialize(RemoteServerName);
+					Log.TraceError("Remote compiling requires a server name. Use the editor to set up your remote compilation settings.");
+					InitializationErrorCode = 99;
 				}
-            }
+
+				if (!bUseRPCUtil)
+				{
+					// we need the RemoteServerName and the Username to find the private key
+					ResolvedRSyncUsername = ResolveString(RSyncUsername, false);
+
+					// if the override path is set, just use it directly
+					if (!string.IsNullOrEmpty(SSHPrivateKeyOverridePath))
+					{
+						ResolvedSSHPrivateKey = ResolveString(SSHPrivateKeyOverridePath, true);
+						// make sure it exists
+						if (!File.Exists(ResolvedSSHPrivateKey))
+						{
+							throw new BuildException("An SSHKey override was specified [" + SSHPrivateKeyOverridePath + "] but it doesn't exist. Can't continue...");
+						}
+					}
+					else
+					{
+						// all the places to look for a key
+						string[] Locations = new string[] {
+							Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "UnrealBuildTool"),
+							Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool"),
+							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NotForLicensees"),
+							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NoRedist"),
+							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build"),
+						};
+
+						// look for a key file
+						foreach (string Location in Locations)
+						{
+							string KeyPath = Path.Combine(Location, "SSHKeys", RemoteServerName, ResolvedRSyncUsername, "RemoteToolChainPrivate.key");
+							if (File.Exists(KeyPath))
+							{
+								ResolvedSSHPrivateKey = KeyPath;
+								break;
+							}
+						}
+					}
+
+					// resolve the rest of the strings
+					ResolvedRSyncExe = ResolveString(RSyncExe, true);
+					ResolvedSSHExe = ResolveString(SSHExe, true);
+					ResolvedRsyncAuthentication = ResolveString(RsyncAuthentication, false);
+					ResolvedSSHAuthentication = ResolveString(SSHAuthentication, false);
+				}
+
+				// start up remote communication and record if it succeeds
+				InitializationErrorCode = RPCUtilHelper.Initialize(RemoteServerName);
+
+				// allow user to set up
+				if (InitializationErrorCode == 100)
+				{
+					Process KeyProcess = new Process();
+					KeyProcess.StartInfo.WorkingDirectory = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "BatchFiles"));
+					KeyProcess.StartInfo.FileName = "MakeAndInstallSSHKey.bat";
+					KeyProcess.StartInfo.Arguments = string.Format(
+						"\"{0}\" \"{1}\" {2} {3} \"{4}\" \"{5}\" \"{6}\"",
+						ResolvedSSHExe,
+						ResolvedRSyncExe,
+						ResolvedRSyncUsername,
+						RemoteServerName,
+						Environment.GetFolderPath(Environment.SpecialFolder.Personal),
+						ConvertPathToCygwin(Environment.GetFolderPath(Environment.SpecialFolder.Personal)),
+						Path.GetFullPath(BuildConfiguration.RelativeEnginePath));
+
+					KeyProcess.Start();
+					KeyProcess.WaitForExit();
+
+					// make sure it succeeded if we want to re-init
+					if (KeyProcess.ExitCode == 0)
+					{
+						InitializeRemoteExecution();
+					}
+				}
+			}
             else
-            {
+			{
 				RemoteServerName = Environment.MachineName;
-            }
+				// can't error in this case
+			}
+
+			bHasBeenInitialized = true;
+			return InitializationErrorCode;
         }
 
+		public override void SetUpGlobalEnvironment()
+		{
+			base.SetUpGlobalEnvironment();
+
+			// connect to server
+			InitializeRemoteExecution();
+		}
 
         /** Converts the passed in path from UBT host to compiler native format. */
         public override String ConvertPath(String OriginalPath)
@@ -183,26 +403,12 @@ namespace UnrealBuildTool
 			{
 				RsyncDirs.Add(Entry);
 			}
-			
-			
-// 			// If not, create it now
-//             string RemoteFilePath = ConvertPath(LocalFileItem.AbsolutePath);
-// 
-//             // add this file to the list of files we will RPCBatchUpload later
-//             string Entry = LocalFileItem.AbsolutePath + " " + RemoteFilePath;
-//             if (!BatchUploadCommands.Contains(Entry))
-//             {
-//                 BatchUploadCommands.Add(Entry);
-//             }
-
-// 			// strip it down to the root (rsync wants it to end in a / for -a to work)
-// 			Entry = Utils.MakePathRelativeTo(Path.GetDirectoryName(LocalFileItem.AbsolutePath), "../..").Replace('\\', '/') + "/";
-// 			if (!RsyncDirs.Contains(Entry))
-// 			{
-// 				RsyncDirs.Add(Entry);
-// 			}
 
 			string Ext = Path.GetExtension(LocalFileItem.AbsolutePath);
+			if (Ext == "")
+			{
+				Ext = Path.GetFileName(LocalFileItem.AbsolutePath);
+			}
 			if (!RsyncExtensions.Contains(Ext))
             {
 				RsyncExtensions.Add(Ext);
@@ -316,7 +522,30 @@ namespace UnrealBuildTool
 				Log.TraceInformation(Line.Data);
 			}
 		}
+
+		private static Dictionary<Object,StringBuilder> SSHOutputMap = new Dictionary<object,StringBuilder>();
+		static public void OutputReceivedForSSH(Object Sender, DataReceivedEventArgs Line)
+		{
+			if ((Line != null) && (Line.Data != null) && (Line.Data != ""))
+			{
+				StringBuilder SSHOutput = SSHOutputMap[Sender];
+				if (SSHOutput.Length != 0)
+				{
+					SSHOutput.Append(Environment.NewLine);
+				}
+				SSHOutput.Append(Line.Data);
+			}
+		}
 		
+		private static string ConvertPathToCygwin(string InPath)
+		{
+			if (InPath == null)
+			{
+				return null;
+			}
+			return "/cygdrive/" + Utils.CleanDirectorySeparators(InPath.Replace(":", ""), '/');
+		}
+
 		public override void PreBuildSync()
         {
 			// no need to sync on the Mac!
@@ -325,21 +554,33 @@ namespace UnrealBuildTool
 				return;
 			}
 
-			bool bUseRPCUtil = true;
-
 			if (bUseRPCUtil)
 			{
-				List<string> BatchUploadCommands = new List<string>();
+				string ExtString = "";
 
+				// look only for useful extensions
+				foreach (string Ext in RsyncExtensions)
+				{
+					// for later ls
+					ExtString += Ext.StartsWith(".") ? ("*" + Ext) : Ext;
+					ExtString += " ";
+				}
+
+				List<string> BatchUploadCommands = new List<string>();
 				// for each directory we visited, add all the files in that directory
 				foreach (string Dir in RsyncDirs)
 				{
+					List<string> LocalFilenames = new List<string>();
+
 					// look only for useful extensions
 					foreach (string Ext in RsyncExtensions)
 					{
 						string[] Files = Directory.GetFiles(Dir, "*" + Ext);
 						foreach (string SyncFile in Files)
 						{
+							// remember all local files
+							LocalFilenames.Add(Path.GetFileName(SyncFile));
+
 							string RemoteFilePath = ConvertPath(SyncFile);
 							// an upload command is local name and remote name
 							BatchUploadCommands.Add(SyncFile + ";" + RemoteFilePath);
@@ -359,33 +600,186 @@ namespace UnrealBuildTool
 				}
 
 				// write out directories to copy
-				File.WriteAllLines("D:\\dev\\CarefullyRedist\\DeltaCopy\\RSyncPaths.txt", RelativeRsyncDirs.ToArray());
-				File.WriteAllLines("D:\\dev\\CarefullyRedist\\DeltaCopy\\IncludeFrom.txt", RsyncExtensions);
+				string RSyncPathsFile = Path.GetTempFileName();
+				string IncludeFromFile = Path.GetTempFileName();
+				File.WriteAllLines(RSyncPathsFile, RelativeRsyncDirs.ToArray());
+				File.WriteAllLines(IncludeFromFile, RsyncExtensions);
 
 				// source and destination paths in the format rsync wants
-				string CygPath = "/cygdrive/" + Utils.CleanDirectorySeparators(Path.GetFullPath("../../").Replace(":", ""), '/');
-				string RemotePath = ConvertPath(Path.GetFullPath("../../"));
+				string CygRootPath = ConvertPathToCygwin(Path.GetFullPath("../../"));
+				string RemotePath = ConvertPath(Path.GetFullPath("../../")).Replace(" ", "\\ ");
 
+				// get the executable dir for SSH, so Rsync can call it easily
+				string ExeDir = Path.GetDirectoryName(ResolvedSSHExe);
+	
 				Process RsyncProcess = new Process();
-				RsyncProcess.StartInfo.WorkingDirectory = Path.GetFullPath("D:\\dev\\CarefullyRedist\\DeltaCopy");
-				RsyncProcess.StartInfo.FileName = "D:\\dev\\CarefullyRedist\\DeltaCopy\\rsync.exe";
+				if (ExeDir != "")
+				{
+					RsyncProcess.StartInfo.WorkingDirectory = ExeDir;
+				}
+
+				// --exclude='*'  ??? why???
+				RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 				RsyncProcess.StartInfo.Arguments = string.Format(
-					"-vzae \"ssh -i id_rsa\" --delete --files-from=RsyncPaths.txt " +
-					"--include-from=IncludeFrom.txt --include='*/' --exclude='*' {0} josh.adams@{2}:{1}",
-					CygPath,
+					"-vzae \"{0}\" --rsync-path=\"mkdir -p {2} && rsync\" --delete --files-from=\"{4}\" --include-from=\"{5}\" --include='*/' --exclude='*.o' --exclude='Timestamp' {1} {6}@{3}:'{2}'",
+					ResolvedRsyncAuthentication,
+					CygRootPath,
 					RemotePath,
-					RemoteServerName);
+					RemoteServerName,
+					ConvertPathToCygwin(RSyncPathsFile),
+					ConvertPathToCygwin(IncludeFromFile),
+					RSyncUsername);
 
 				RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
 				RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
 
 				// run rsync
 				Utils.RunLocalProcess(RsyncProcess);
+
+				File.Delete(IncludeFromFile);
+				File.Delete(RSyncPathsFile);
 			}
 
 			// we can now clear out the set of files
             RsyncDirs.Clear();
 			RsyncExtensions.Clear();
+		}
+
+		static public bool UploadFile(string LocalPath, string RemotePath)
+		{
+			string RemoteDir = Path.GetDirectoryName(RemotePath).Replace("\\", "/");
+			string RemoteFilename = Path.GetFileName(RemotePath);
+
+			// get the executable dir for SSH, so Rsync can call it easily
+			string ExeDir = Path.GetDirectoryName(ResolvedSSHExe);
+
+			Process RsyncProcess = new Process();
+			if (ExeDir != "")
+			{
+				RsyncProcess.StartInfo.WorkingDirectory = ExeDir;
+			}
+
+			// make simple rsync commandline to send a file
+			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
+			RsyncProcess.StartInfo.Arguments = string.Format(
+				"-zae \"{0}\" --rsync-path=\"mkdir -p '{1}' && rsync\" \"{2}\" {3}@{4}:\"{1}/{5}\"",
+				ResolvedRsyncAuthentication,
+				RemoteDir,
+				ConvertPathToCygwin(LocalPath),
+				RSyncUsername,
+				RemoteServerName,
+				RemoteFilename
+				);
+
+			RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+			RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+
+			// run rsync (0 means success)
+			return Utils.RunLocalProcess(RsyncProcess) == 0;
+		}
+
+		static public bool DownloadFile(string RemotePath, string LocalPath)
+		{
+			// get the executable dir for SSH, so Rsync can call it easily
+			string ExeDir = Path.GetDirectoryName(ResolvedSSHExe);
+
+			Process RsyncProcess = new Process();
+			if (ExeDir != "")
+			{
+				RsyncProcess.StartInfo.WorkingDirectory = ExeDir;
+			}
+
+			// make sure directory exists to download to
+			Directory.CreateDirectory(Path.GetDirectoryName(LocalPath));
+
+			// make simple rsync commandline to send a file
+			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
+			RsyncProcess.StartInfo.Arguments = string.Format(
+				"-zae {0} {2}@{3}:\"{4}\" \"{1}\"",
+				ResolvedRsyncAuthentication,
+				ConvertPathToCygwin(LocalPath),
+				RSyncUsername,
+				RemoteServerName,
+				RemotePath
+				);
+
+			RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+			RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
+
+			//Console.WriteLine("COPY: {0} {1}", RsyncProcess.StartInfo.FileName, RsyncProcess.StartInfo.Arguments);
+
+			// run rsync (0 means success)
+			return Utils.RunLocalProcess(RsyncProcess) == 0;
+		}
+
+		static public Hashtable SSHCommand(string WorkingDirectory, string Command, string RemoteOutputPath)
+		{
+			Console.WriteLine("Doing {0}", Command);
+
+			// make the commandline for other end
+			string RemoteCommandline = "cd " + WorkingDirectory;
+			if (!string.IsNullOrWhiteSpace(RemoteOutputPath))
+			{
+				RemoteCommandline += " && mkdir -p " + Path.GetDirectoryName(RemoteOutputPath).Replace("\\", "/");
+			}
+
+			// get the executable dir for SSH
+			string ExeDir = Path.GetDirectoryName(ResolvedSSHExe);
+
+			Process SSHProcess = new Process();
+			if (ExeDir != "")
+			{
+				SSHProcess.StartInfo.WorkingDirectory = ExeDir;
+			}
+
+			// long commands go as a file
+			if (Command.Length > 1024)
+			{
+				// upload the commandline text file
+				string CommandLineFile = Path.GetTempFileName();
+				File.WriteAllText(CommandLineFile, Command);
+
+				string RemoteCommandlineDir = "/var/tmp/" + Environment.MachineName;
+				string RemoteCommandlinePath = RemoteCommandlineDir + "/" + Path.GetFileName(CommandLineFile);
+
+				DateTime Now = DateTime.Now;
+				UploadFile(CommandLineFile, RemoteCommandlinePath);
+				Console.WriteLine("Upload took {0}", (DateTime.Now - Now).ToString());
+
+				// execute the file, not a commandline
+				RemoteCommandline += string.Format(" && bash < {0} && rm {0}", RemoteCommandlinePath);
+			}
+			else
+			{
+				RemoteCommandline += " && " + Command;
+			}
+
+			SSHProcess.StartInfo.FileName = ResolvedSSHExe;
+			SSHProcess.StartInfo.Arguments = string.Format(
+				"{0} {1}@{2} \"{3}\"",
+				ResolvedSSHAuthentication,
+				RSyncUsername,
+				RemoteServerName,
+				RemoteCommandline.Replace("\"", "\\\""));
+
+			Hashtable Return = new Hashtable();
+
+			// add this process to the map
+			SSHOutputMap[SSHProcess] = new StringBuilder("");
+			SSHProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForSSH);
+			SSHProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForSSH);
+
+			DateTime Start = DateTime.Now;
+			Int64 ExitCode = Utils.RunLocalProcess(SSHProcess);
+			Console.WriteLine("Execute took {0}", (DateTime.Now - Start).ToString());
+
+			// now we have enough to fill out the HashTable
+			Return["CommandOutput"] = SSHOutputMap[SSHProcess].ToString();
+			Return["ExitCode"] = (object)ExitCode;
+
+			SSHOutputMap.Remove(SSHProcess);
+
+			return Return;
 		}
 
 		public override void PostBuildSync(UEBuildTarget Target)

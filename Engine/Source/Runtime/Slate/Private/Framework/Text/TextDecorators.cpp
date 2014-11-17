@@ -1,6 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
+
+#if WITH_FANCY_TEXT
+
 #include "TextDecorators.h"
 
 TSharedRef< FWidgetDecorator > FWidgetDecorator::Create( FString InRunName, const FCreateWidget& InCreateWidgetDelegate )
@@ -138,3 +141,4 @@ TSharedRef< ISlateRun > FHyperlinkDecorator::Create( const FTextRunParseResults&
 
 	return FSlateHyperlinkRun::Create( InOutModelText, Style->GetWidgetStyle<FHyperlinkStyle>( FName( *StyleName ) ), MetaData, NavigateDelegate, ModelRange );
 }
+#endif //WITH_FANCY_TEXT

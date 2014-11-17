@@ -15,7 +15,7 @@ void FAudioComponentVisualizer::DrawVisualization( const UActorComponent* Compon
 		{
 			const FTransform& Transform = AudioComp->ComponentToWorld;
 
-			TMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
+			TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails> ShapeDetailsMap;
 			AudioComp->CollectAttenuationShapesForVisualization(ShapeDetailsMap);
 
 			for ( auto It = ShapeDetailsMap.CreateConstIterator(); It; ++It )

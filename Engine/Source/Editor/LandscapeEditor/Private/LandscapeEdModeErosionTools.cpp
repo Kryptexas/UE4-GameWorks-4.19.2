@@ -20,15 +20,15 @@ class FLandscapeToolStrokeErosionBase
 {
 public:
 	FLandscapeToolStrokeErosionBase(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-	:	LandscapeInfo(InTarget.LandscapeInfo.Get())
-	,	HeightCache(InTarget)
-	,	WeightCache(InTarget)
-	,	bWeightApplied(InTarget.TargetType != ELandscapeToolTargetType::Heightmap)
+		: LandscapeInfo(InTarget.LandscapeInfo.Get())
+		, HeightCache(InTarget)
+		, WeightCache(InTarget)
+		, bWeightApplied(InTarget.TargetType != ELandscapeToolTargetType::Heightmap)
 	{}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) = 0;
 protected:
-	class ULandscapeInfo* LandscapeInfo;
+	ULandscapeInfo* LandscapeInfo;
 	FLandscapeHeightCache HeightCache;
 	FLandscapeFullWeightCache WeightCache;
 	bool bWeightApplied;
@@ -38,14 +38,13 @@ template<class TStrokeClass>
 class FLandscapeToolErosionBase : public FLandscapeToolBase<TStrokeClass>
 {
 public:
-	FLandscapeToolErosionBase(class FEdModeLandscape* InEdMode)
-	:	FLandscapeToolBase<TStrokeClass>(InEdMode)
+	FLandscapeToolErosionBase(FEdModeLandscape* InEdMode)
+		: FLandscapeToolBase<TStrokeClass>(InEdMode)
 	{}
 
-	virtual bool IsValidForTarget(const FLandscapeToolTarget& Target) override 
+	virtual ELandscapeToolTargetTypeMask::Type GetSupportedTargetTypes() override
 	{
-		// Erosion is applied to all layers
-		return true;
+		return ELandscapeToolTargetTypeMask::Heightmap;
 	}
 };
 
@@ -57,12 +56,12 @@ class FLandscapeToolStrokeErosion : public FLandscapeToolStrokeErosionBase
 {
 public:
 	FLandscapeToolStrokeErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-	:	FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
+		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
 	{}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{
-		if( !LandscapeInfo )
+		if (!LandscapeInfo)
 		{
 			return;
 		}
@@ -70,7 +69,7 @@ public:
 		// Get list of verts to update
 		TMap<FIntPoint, float> BrushInfo;
 		int32 X1, Y1, X2, Y2;
-		if( !Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2) || MousePositions.Num()==0 )
+		if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2) || MousePositions.Num() == 0)
 		{
 			return;
 		}
@@ -89,13 +88,13 @@ public:
 		const int32 Thickness = UISettings->ErodeSurfaceThickness;
 		const int32 LayerNum = LandscapeInfo->Layers.Num();
 
-		HeightCache.CacheData(X1,Y1,X2,Y2);
+		HeightCache.CacheData(X1, Y1, X2, Y2);
 		TArray<uint16> HeightData;
-		HeightCache.GetCachedData(X1,Y1,X2,Y2,HeightData);
+		HeightCache.GetCachedData(X1, Y1, X2, Y2, HeightData);
 
 		TArray<uint8> WeightDatas; // Weight*Layers...
-		WeightCache.CacheData(X1,Y1,X2,Y2);
-		WeightCache.GetCachedData(X1,Y1,X2,Y2, WeightDatas, LayerNum);	
+		WeightCache.CacheData(X1, Y1, X2, Y2);
+		WeightCache.GetCachedData(X1, Y1, X2, Y2, WeightDatas, LayerNum);
 
 		// Apply the brush	
 		uint16 Thresh = UISettings->ErodeThresh;
@@ -112,15 +111,15 @@ public:
 		for (int32 i = 0; i < Iteration; i++)
 		{
 			bHasChanged = false;
-			for( auto It = BrushInfo.CreateIterator(); It; ++It )
+			for (auto It = BrushInfo.CreateIterator(); It; ++It)
 			{
 				int32 X, Y;
 				ALandscape::UnpackKey(It.Key(), X, Y);
 
-				if( It.Value() > 0.f )
+				if (It.Value() > 0.f)
 				{
-					int32 Center = (X-X1) + (Y-Y1)*(1+X2-X1);
-					int32 Neighbor[NeighborNum] = {(X-1-X1) + (Y-Y1)*(1+X2-X1), (X+1-X1) + (Y-Y1)*(1+X2-X1), (X-X1) + (Y-1-Y1)*(1+X2-X1), (X-X1) + (Y+1-Y1)*(1+X2-X1)};
+					int32 Center = (X - X1) + (Y - Y1)*(1 + X2 - X1);
+					int32 Neighbor[NeighborNum] = { (X - 1 - X1) + (Y - Y1)*(1 + X2 - X1), (X + 1 - X1) + (Y - Y1)*(1 + X2 - X1), (X - X1) + (Y - 1 - Y1)*(1 + X2 - X1), (X - X1) + (Y + 1 - Y1)*(1 + X2 - X1) };
 					uint32 SlopeTotal = 0;
 					uint16 SlopeMax = Thresh;
 
@@ -178,14 +177,14 @@ public:
 											for (int32 LayerIdx = 0; LayerIdx < LayerNum; LayerIdx++)
 											{
 												float CenterWeight = (float)(WeightDatas[Center*LayerNum + LayerIdx]) / 255.f;
-												float Weight = (float)(WeightDatas[Neighbor[Idx]*LayerNum + LayerIdx]) / 255.f;
+												float Weight = (float)(WeightDatas[Neighbor[Idx] * LayerNum + LayerIdx]) / 255.f;
 												NeighborWeight[Idx*LayerNum + LayerIdx] = Weight*(float)Thickness + CenterWeight*WeightDiff*WeightTransfer; // transferred + original...
 												TotalWeight += NeighborWeight[Idx*LayerNum + LayerIdx];
 											}
 											// Need to normalize weight...
 											for (int32 LayerIdx = 0; LayerIdx < LayerNum; LayerIdx++)
 											{
-												WeightDatas[Neighbor[Idx]*LayerNum + LayerIdx] = (uint8)(255.f * NeighborWeight[Idx*LayerNum + LayerIdx] / TotalWeight);
+												WeightDatas[Neighbor[Idx] * LayerNum + LayerIdx] = (uint8)(255.f * NeighborWeight[Idx*LayerNum + LayerIdx] / TotalWeight);
 											}
 										}
 									}
@@ -230,24 +229,24 @@ public:
 		}
 
 		// Make some noise...
-		for( auto It = BrushInfo.CreateIterator(); It; ++It )
+		for (auto It = BrushInfo.CreateIterator(); It; ++It)
 		{
 			int32 X, Y;
 			ALandscape::UnpackKey(It.Key(), X, Y);
 
-			if( It.Value() > 0.f )
+			if (It.Value() > 0.f)
 			{
 				FNoiseParameter NoiseParam(0, UISettings->ErosionNoiseScale, It.Value() * Thresh * UISettings->ToolStrength * BrushSizeAdjust);
 				float PaintAmount = ELandscapeToolNoiseMode::Conversion((ELandscapeToolNoiseMode::Type)UISettings->ErosionNoiseMode.GetValue(), NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y));
-				HeightData[(X-X1) + (Y-Y1)*(1+X2-X1)] = FLandscapeHeightCache::ClampValue(HeightData[(X-X1) + (Y-Y1)*(1+X2-X1)] + PaintAmount);
+				HeightData[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = FLandscapeHeightCache::ClampValue(HeightData[(X - X1) + (Y - Y1)*(1 + X2 - X1)] + PaintAmount);
 			}
 		}
 
-		HeightCache.SetCachedData(X1,Y1,X2,Y2,HeightData);
+		HeightCache.SetCachedData(X1, Y1, X2, Y2, HeightData);
 		HeightCache.Flush();
 		if (bWeightApplied)
 		{
-			WeightCache.SetCachedData(X1,Y1,X2,Y2,WeightDatas, LayerNum, ELandscapeLayerPaintingRestriction::None);
+			WeightCache.SetCachedData(X1, Y1, X2, Y2, WeightDatas, LayerNum, ELandscapeLayerPaintingRestriction::None);
 		}
 		WeightCache.Flush();
 	}
@@ -256,8 +255,8 @@ public:
 class FLandscapeToolErosion : public FLandscapeToolErosionBase<FLandscapeToolStrokeErosion>
 {
 public:
-	FLandscapeToolErosion(class FEdModeLandscape* InEdMode)
-	:	FLandscapeToolErosionBase(InEdMode)
+	FLandscapeToolErosion(FEdModeLandscape* InEdMode)
+		: FLandscapeToolErosionBase(InEdMode)
 	{}
 
 	virtual const TCHAR* GetToolName() override { return TEXT("Erosion"); }
@@ -273,12 +272,12 @@ class FLandscapeToolStrokeHydraErosion : public FLandscapeToolStrokeErosionBase
 {
 public:
 	FLandscapeToolStrokeHydraErosion(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-	:	FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
+		: FLandscapeToolStrokeErosionBase(InEdMode, InTarget)
 	{}
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions) override
 	{
-		if( !LandscapeInfo )
+		if (!LandscapeInfo)
 		{
 			return;
 		}
@@ -286,7 +285,7 @@ public:
 		// Get list of verts to update
 		TMap<FIntPoint, float> BrushInfo;
 		int32 X1, Y1, X2, Y2;
-		if( !Brush->ApplyBrush(MousePositions,BrushInfo, X1, Y1, X2, Y2) || MousePositions.Num()==0 )
+		if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2) || MousePositions.Num() == 0)
 		{
 			return;
 		}
@@ -309,48 +308,48 @@ public:
 		const float EvaporateRatio = 0.5;
 		const float SedimentCapacity = 0.10 * UISettings->SedimentCapacity; //DissolvingRatio; //0.01;
 
-		HeightCache.CacheData(X1,Y1,X2,Y2);
+		HeightCache.CacheData(X1, Y1, X2, Y2);
 		TArray<uint16> HeightData;
-		HeightCache.GetCachedData(X1,Y1,X2,Y2,HeightData);
+		HeightCache.GetCachedData(X1, Y1, X2, Y2, HeightData);
 
 		// Apply the brush
 		TArray<uint16> WaterData;
-		WaterData.Empty((1+X2-X1)*(1+Y2-Y1));
-		WaterData.AddZeroed((1+X2-X1)*(1+Y2-Y1));
+		WaterData.Empty((1 + X2 - X1)*(1 + Y2 - Y1));
+		WaterData.AddZeroed((1 + X2 - X1)*(1 + Y2 - Y1));
 		TArray<uint16> SedimentData;
-		SedimentData.Empty((1+X2-X1)*(1+Y2-Y1));
-		SedimentData.AddZeroed((1+X2-X1)*(1+Y2-Y1));
+		SedimentData.Empty((1 + X2 - X1)*(1 + Y2 - Y1));
+		SedimentData.AddZeroed((1 + X2 - X1)*(1 + Y2 - Y1));
 
 		// Only initial raining works better...
 		FNoiseParameter NoiseParam(0, UISettings->RainDistScale, RainAmount);
-		for( auto It = BrushInfo.CreateIterator(); It; ++It )
+		for (auto It = BrushInfo.CreateIterator(); It; ++It)
 		{
 			int32 X, Y;
 			ALandscape::UnpackKey(It.Key(), X, Y);
 
-			if( It.Value() >= 1.f )
+			if (It.Value() >= 1.f)
 			{
 				float PaintAmount = ELandscapeToolNoiseMode::Conversion((ELandscapeToolNoiseMode::Type)UISettings->RainDistMode.GetValue(), NoiseParam.NoiseAmount, NoiseParam.Sample(X, Y));
 				if (PaintAmount > 0) // Raining only for positive region...
-					WaterData[(X-X1) + (Y-Y1)*(1+X2-X1)] += PaintAmount;
+					WaterData[(X - X1) + (Y - Y1)*(1 + X2 - X1)] += PaintAmount;
 			}
 		}
 
 		for (int32 i = 0; i < Iteration; i++)
 		{
 			bool bWaterExist = false;
-			for( auto It = BrushInfo.CreateIterator(); It; ++It )
+			for (auto It = BrushInfo.CreateIterator(); It; ++It)
 			{
 				int32 X, Y;
 				ALandscape::UnpackKey(It.Key(), X, Y);
 
-				if( It.Value() > 0.f)
+				if (It.Value() > 0.f)
 				{
-					int32 Center = (X-X1) + (Y-Y1)*(1+X2-X1);
+					int32 Center = (X - X1) + (Y - Y1)*(1 + X2 - X1);
 
 					int32 Neighbor[NeighborNum] = {
-						(X-1-X1) + (Y-Y1)*(1+X2-X1), (X+1-X1) + (Y-Y1)*(1+X2-X1), (X-X1) + (Y-1-Y1)*(1+X2-X1), (X-X1) + (Y+1-Y1)*(1+X2-X1)
-						,(X-1-X1) + (Y-1-Y1)*(1+X2-X1), (X+1-X1) + (Y+1-Y1)*(1+X2-X1), (X+1-X1) + (Y-1-Y1)*(1+X2-X1), (X-1-X1) + (Y+1-Y1)*(1+X2-X1)
+						(X - 1 - X1) + (Y - Y1)*(1 + X2 - X1), (X + 1 - X1) + (Y - Y1)*(1 + X2 - X1), (X - X1) + (Y - 1 - Y1)*(1 + X2 - X1), (X - X1) + (Y + 1 - Y1)*(1 + X2 - X1)
+						, (X - 1 - X1) + (Y - 1 - Y1)*(1 + X2 - X1), (X + 1 - X1) + (Y + 1 - Y1)*(1 + X2 - X1), (X + 1 - X1) + (Y - 1 - Y1)*(1 + X2 - X1), (X - 1 - X1) + (Y + 1 - Y1)*(1 + X2 - X1)
 					};
 
 					// Dissolving...				
@@ -363,16 +362,16 @@ public:
 
 					uint32 TotalHeightDiff = 0;
 					uint32 TotalAltitudeDiff = 0;
-					uint32 AltitudeDiff[NeighborNum] = {0};
+					uint32 AltitudeDiff[NeighborNum] = { 0 };
 					uint32 TotalWaterDiff = 0;
 					uint32 TotalSedimentDiff = 0;
 
-					uint32 Altitude = HeightData[Center]+WaterData[Center];
+					uint32 Altitude = HeightData[Center] + WaterData[Center];
 					float AverageAltitude = 0;
 					uint32 LowerNeighbor = 0;
 					for (int32 Idx = 0; Idx < NeighborNum; Idx++)
 					{
-						uint32 NeighborAltitude = HeightData[Neighbor[Idx]]+WaterData[Neighbor[Idx]];
+						uint32 NeighborAltitude = HeightData[Neighbor[Idx]] + WaterData[Neighbor[Idx]];
 						if (Altitude > NeighborAltitude)
 						{
 							AltitudeDiff[Idx] = Altitude - NeighborAltitude;
@@ -430,13 +429,13 @@ public:
 						if (SedimentDiff > 0)
 						{
 							SedimentData[Center] -= SedimentDiff;
-							HeightData[Center] = FMath::Clamp<uint16>(HeightData[Center]+SedimentDiff, 0, 65535);
+							HeightData[Center] = FMath::Clamp<uint16>(HeightData[Center] + SedimentDiff, 0, 65535);
 						}
 					}
-				}	
+				}
 			}
 
-			if (!bWaterExist) 
+			if (!bWaterExist)
 			{
 				break;
 			}
@@ -448,7 +447,7 @@ public:
 			LowPassFilter<uint16>(X1, Y1, X2, Y2, BrushInfo, HeightData, UISettings->HErosionDetailScale, 1.0f);
 		}
 
-		HeightCache.SetCachedData(X1,Y1,X2,Y2,HeightData);
+		HeightCache.SetCachedData(X1, Y1, X2, Y2, HeightData);
 		HeightCache.Flush();
 	}
 };
@@ -456,11 +455,11 @@ public:
 class FLandscapeToolHydraErosion : public FLandscapeToolErosionBase<FLandscapeToolStrokeHydraErosion>
 {
 public:
-	FLandscapeToolHydraErosion(class FEdModeLandscape* InEdMode)
-	:	FLandscapeToolErosionBase(InEdMode)
+	FLandscapeToolHydraErosion(FEdModeLandscape* InEdMode)
+		: FLandscapeToolErosionBase(InEdMode)
 	{}
 
-	virtual const TCHAR* GetToolName() override { return TEXT("HydraulicErosion"); }
+	virtual const TCHAR* GetToolName() override { return TEXT("HydraErosion"); } // formerly HydraulicErosion
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_HydraErosion", "Hydraulic Erosion"); };
 
 };
@@ -468,22 +467,20 @@ public:
 //
 // Toolset initialization
 //
-void FEdModeLandscape::IntializeToolSet_Erosion()
+void FEdModeLandscape::InitializeTool_Erosion()
 {
-	FLandscapeToolSet* ToolSet_Erosion = new(LandscapeToolSets) FLandscapeToolSet(TEXT("ToolSet_Erosion"));
-	ToolSet_Erosion->AddTool(new FLandscapeToolErosion(this));
-
-	ToolSet_Erosion->ValidBrushes.Add("BrushSet_Circle");
-	ToolSet_Erosion->ValidBrushes.Add("BrushSet_Alpha");
-	ToolSet_Erosion->ValidBrushes.Add("BrushSet_Pattern");
+	auto Tool_Erosion = MakeUnique<FLandscapeToolErosion>(this);
+	Tool_Erosion->ValidBrushes.Add("BrushSet_Circle");
+	Tool_Erosion->ValidBrushes.Add("BrushSet_Alpha");
+	Tool_Erosion->ValidBrushes.Add("BrushSet_Pattern");
+	LandscapeTools.Add(MoveTemp(Tool_Erosion));
 }
 
-void FEdModeLandscape::IntializeToolSet_HydraErosion()
+void FEdModeLandscape::InitializeTool_HydraErosion()
 {
-	FLandscapeToolSet* ToolSet_HydraErosion = new(LandscapeToolSets) FLandscapeToolSet(TEXT("ToolSet_HydraErosion"));
-	ToolSet_HydraErosion->AddTool(new FLandscapeToolHydraErosion(this));
-
-	ToolSet_HydraErosion->ValidBrushes.Add("BrushSet_Circle");
-	ToolSet_HydraErosion->ValidBrushes.Add("BrushSet_Alpha");
-	ToolSet_HydraErosion->ValidBrushes.Add("BrushSet_Pattern");
+	auto Tool_HydraErosion = MakeUnique<FLandscapeToolHydraErosion>(this);
+	Tool_HydraErosion->ValidBrushes.Add("BrushSet_Circle");
+	Tool_HydraErosion->ValidBrushes.Add("BrushSet_Alpha");
+	Tool_HydraErosion->ValidBrushes.Add("BrushSet_Pattern");
+	LandscapeTools.Add(MoveTemp(Tool_HydraErosion));
 }

@@ -6,11 +6,7 @@
  */
 
 #pragma once
-
-#include "SoundNodeAttenuation.h"
-#include "Distributions/DistributionFloat.h"
 #include "SoundNodeAmbient.h"
-
 #include "SoundNodeAmbientNonLoop.generated.h"
 
 UCLASS(editinlinenew)

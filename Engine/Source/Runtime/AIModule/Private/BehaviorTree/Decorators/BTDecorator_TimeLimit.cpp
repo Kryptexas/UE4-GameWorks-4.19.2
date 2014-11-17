@@ -21,6 +21,7 @@ void UBTDecorator_TimeLimit::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp,
 {
 	FBTAuxiliaryMemory* DecoratorMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
 	DecoratorMemory->NextTickRemainingTime = TimeLimit;
+	DecoratorMemory->AccumulatedDeltaTime = 0.0f;
 }
 
 void UBTDecorator_TimeLimit::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)

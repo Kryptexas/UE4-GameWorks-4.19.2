@@ -19,6 +19,8 @@ class UMG_API UHorizontalBox : public UPanelWidget
 	// End UWidget interface
 #endif
 
+	virtual void ReleaseNativeWidget() override;
+
 protected:
 
 	// UPanelWidget

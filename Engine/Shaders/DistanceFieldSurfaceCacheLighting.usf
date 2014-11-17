@@ -114,7 +114,7 @@ void ComputeDistanceFieldNormalPS(
 	uint2 TileCoordinate = (uint2)(SVPos) / uint2(THREADGROUP_SIZEX, THREADGROUP_SIZEY);
 	uint4 TileHead = GetTileHead(TileCoordinate);
 
-	float2 ScreenUV = float2((((uint2)SVPos.xy) * DOWNSAMPLE_FACTOR + .5f) * View.ViewSizeAndSceneTexelSize.zw);
+	float2 ScreenUV = float2((((uint2)SVPos.xy) * DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + .5f) * View.ViewSizeAndSceneTexelSize.zw);
 	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 
 	float SceneDepth = CalcSceneDepth(ScreenUV);
@@ -195,7 +195,7 @@ void ComputeDistanceFieldNormalPS(
 	{
 		WorldNormal = GBufferData.WorldNormal;
 	}
-	
+
 	float DepthSign = GBufferData.HasDistanceFieldRepresentation > 0 ? 1 : -1;
 	// Note: Encoding whether the pixel has a distance field representation in the sign bit of the alpha
 	OutColor = float4(EncodeNormalForAO(WorldNormal), DepthSign * SceneDepth);
@@ -222,7 +222,7 @@ void ComputeDistanceFieldNormalCS(
 	uint2 TileCoordinate = PixelCoordinate / uint2(THREADGROUP_SIZEX, THREADGROUP_SIZEY);
 	uint4 TileHead = GetTileHead(TileCoordinate);
 
-	float2 ScreenUV = float2((PixelCoordinate * DOWNSAMPLE_FACTOR + .5f) * View.ViewSizeAndSceneTexelSize.zw);
+	float2 ScreenUV = float2((PixelCoordinate * DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + .5f) * View.ViewSizeAndSceneTexelSize.zw);
 	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 
 	float SceneDepth = CalcSceneDepth(ScreenUV);
@@ -437,7 +437,7 @@ void IrradianceCacheSplatPS(
 
 #else
 
-	float2 ScreenUV = float2((((uint2)SVPos.xy) * CurrentLevelDownsampleFactor + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw);
+	float2 ScreenUV = float2((((uint2)SVPos.xy) * CurrentLevelDownsampleFactor + View.ViewRectMin.xy + float2(.5f, .5f)) * View.ViewSizeAndSceneTexelSize.zw);
 	float SceneW = CalcSceneDepth(ScreenUV); 
 	float2 ScreenPosition = (ScreenUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition.xy * SceneW, SceneW, 1), View.ScreenToWorld);
@@ -500,7 +500,7 @@ void AOCombinePS2(
 	in float4 SVPos : SV_POSITION,
 	out float4 OutColor : SV_Target0)
 {
-	float2 ScreenUV = float2((((uint2)SVPos.xy) * DOWNSAMPLE_FACTOR + .5f) * View.ViewSizeAndSceneTexelSize.zw);
+	float2 ScreenUV = float2((((uint2)SVPos.xy) * DOWNSAMPLE_FACTOR + View.ViewRectMin.xy + .5f) * View.ViewSizeAndSceneTexelSize.zw);
 	float SceneDepth = CalcSceneDepth(ScreenUV);
 
 #define VISUALIZE_ACCUMULATED_WEIGHTS 0
@@ -602,8 +602,11 @@ void UpdateHistoryPS(
     float2 OldUV = UVAndScreenPos.xy + mv / float2(0.5, -0.5) * View.ScreenPositionScaleBias.xy;
 	float2 OldScreenPosition = (OldUV.xy - View.ScreenPositionScaleBias.wz) / View.ScreenPositionScaleBias.xy;
 
-	float4 NewValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UVAndScreenPos.xy, 0);
-	float4 HistoryValue = Texture2DSampleLevel(HistoryTexture, HistorySampler, OldUV, 0);
+	// Distance field AO was computed at 0,0 regardless of viewrect min
+	float2 DistanceFieldUVs = UVAndScreenPos.xy - View.ViewRectMin.xy * View.ViewSizeAndSceneTexelSize.zw;
+	float4 NewValue = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, DistanceFieldUVs, 0);
+	float2 OldDistanceFieldUVs = OldUV.xy - View.ViewRectMin.xy * View.ViewSizeAndSceneTexelSize.zw;
+	float4 HistoryValue = Texture2DSampleLevel(HistoryTexture, HistorySampler, OldDistanceFieldUVs, 0);
 	
 	//@todo - this doesn't take camera movement into account
 	float DepthDelta = abs(abs(NewValue.a) - abs(HistoryValue.a));
@@ -626,12 +629,15 @@ void UpdateHistoryPS(
 /** Upsamples the AO results to full resolution using a bilateral filter. */
 void AOUpsamplePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
+	// Distance field AO was computed at 0,0 regardless of viewrect min
+	float2 DistanceFieldUVs = UVAndScreenPos.xy - View.ViewRectMin.xy * View.ViewSizeAndSceneTexelSize.zw;
+
 #define BILATERAL_UPSAMPLE 1
 #if BILATERAL_UPSAMPLE
 	float2 LowResBufferSize = floor(View.RenderTargetSize / DOWNSAMPLE_FACTOR);
 	float2 LowResTexelSize = 1.0f / LowResBufferSize;
-	float2 Corner00UV = floor(UVAndScreenPos.xy * LowResBufferSize - .5f) / LowResBufferSize + .5f * LowResTexelSize;
-	float2 BilinearWeights = (UVAndScreenPos.xy - Corner00UV) * LowResBufferSize;
+	float2 Corner00UV = floor(DistanceFieldUVs * LowResBufferSize - .5f) / LowResBufferSize + .5f * LowResTexelSize;
+	float2 BilinearWeights = (DistanceFieldUVs - Corner00UV) * LowResBufferSize;
 
 	float4 TextureValues00 = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, Corner00UV, 0);
 	float4 TextureValues10 = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, Corner00UV + float2(LowResTexelSize.x, 0), 0);
@@ -661,7 +667,7 @@ void AOUpsamplePS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV
 	float3 BentNormal = InterpolatedResult.xyz;
 
 #else
-	float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UVAndScreenPos.xy, 0).xyz;
+	float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, DistanceFieldUVs, 0).xyz;
 #endif
 
 	OutColor = float4(BentNormal, 1);

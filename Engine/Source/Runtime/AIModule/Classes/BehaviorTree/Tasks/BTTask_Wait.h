@@ -9,6 +9,10 @@ struct FBTWaitTaskMemory
 	float RemainingWaitTime;
 };
 
+/**
+ * Wait task node.
+ * Wait for the specified time when executed.
+ */
 UCLASS()
 class UBTTask_Wait : public UBTTaskNode
 {

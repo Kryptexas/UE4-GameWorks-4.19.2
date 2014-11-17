@@ -3,6 +3,9 @@
 #pragma once
 #include "EditorParentPlayerListObj.generated.h"
 
+struct FAnimParentNodeAssetOverride;
+class UAnimGraphNode_Base;
+
 UCLASS()
 class UNREALED_API UEditorParentPlayerListObj : public UObject
 {

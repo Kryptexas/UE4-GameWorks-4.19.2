@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "ActiveSound.h"
 #include "Audio.h"
 #include "AudioDevice.h"
 #include "Sound/SoundCue.h"
@@ -172,6 +173,7 @@ FString FSoundSource::Describe(bool bUseLongName)
 
 void FSoundSource::Stop( void )
 {
+	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundSource(this);
 	if( WaveInstance )
 	{
 		check( AudioDevice );

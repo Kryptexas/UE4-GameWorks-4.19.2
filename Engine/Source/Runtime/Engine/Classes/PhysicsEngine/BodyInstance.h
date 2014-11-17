@@ -10,6 +10,7 @@
 #define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
 
 struct FCollisionShape;
+class UPhysicsConstraintComponent;
 
 #if WITH_PHYSX
 namespace physx
@@ -22,6 +23,26 @@ namespace physx
 	class PxTransform;
 }
 #endif // WITH_PHYSX
+
+UENUM()
+namespace ELockedAxis
+{
+	enum Type
+	{
+		/*Uses the default locked axis as specified in the project settings.*/
+		Default,
+		/*Lock movement along the x-axis*/
+		X,
+		/*Lock movement along the y-axis*/
+		Y,
+		/*Lock movement along the z-axis*/
+		Z,
+		/*Lock movement along custom axis*/
+		Custom,
+		/*No axis is locked.*/
+		None
+	};
+}
 
 USTRUCT()
 struct ENGINE_API FCollisionResponse
@@ -164,6 +185,20 @@ public:
 	/** If true, it will update mass when scale changes **/
 	UPROPERTY()
 	uint32 bUpdateMassWhenScaleChanges:1;
+
+	/** Locks physical movement along specified axis.*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName="Locked Axis"))
+	TEnumAsByte<ELockedAxis::Type> LockedAxisMode;
+	
+	/** Locks physical movement along custom axis. (0,0,0) indicates no lock*/
+	UPROPERTY(EditAnywhere, Category = Physics)
+	FVector CustomLockedAxis;
+
+	FVector GetLockedAxis() const;
+	void CreateDOFLock();
+
+	/** Constraint used to allow for easy DOF setup per bodyinstance */
+	FConstraintInstance * DOFConstraint;
 
 protected:
 
@@ -361,6 +396,8 @@ public:
 	void SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent);
 	/** Set the maximum angular velocity of this body */
 	void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent);
+	/** Set the maximum depenetration velocity the physics simulation will introduce */
+	void SetMaxDepenetrationVelocity(float MaxVelocity);
 	/** Set whether we should get a notification about physics collisions */
 	void SetInstanceNotifyRBCollision(bool bNewNotifyCollision);
 	/** Enables/disables whether this body is affected by gravity. */

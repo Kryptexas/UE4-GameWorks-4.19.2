@@ -171,7 +171,11 @@ void FMatineeCommands::RegisterCommands()
 	UI_COMMAND(SplitAnimKey,"Split Anim Key","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::None, EKeys::R));
 	UI_COMMAND(MoveActiveUp,"Move Active Track/Group Up","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::None, EKeys::Up));
 	UI_COMMAND(MoveActiveDown,"Move Active Track/Group Down","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::None, EKeys::Down));
+#if PLATFORM_MAC
+	UI_COMMAND(DuplicateSelectedKeys,"Duplicate Selected Keys","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::Command, EKeys::W));
+#else
 	UI_COMMAND(DuplicateSelectedKeys,"Duplicate Selected Keys","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::Control, EKeys::W));
+#endif
 	UI_COMMAND(CropAnimationBeginning,"Crop Animation Start","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::Control, EKeys::I));
 	UI_COMMAND(CropAnimationEnd,"Crop Animation End","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::Control, EKeys::O));
 	UI_COMMAND(ChangeKeyInterpModeAuto,"Change Key Interp Mode Auto","",EUserInterfaceActionType::Button,FInputGesture(EModifierKey::None, EKeys::One));

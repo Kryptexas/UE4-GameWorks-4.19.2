@@ -99,6 +99,8 @@ static bool EncryptBuffer(const uint8* SrcBuffer,const uint32 SrcLen,uint8* Dest
 		UE_LOG(LogTaskBrowser, Log, TEXT("CCCrypt failed w/ 0x%08x"), Status);
 	}
 	FMemory::Free(OutBuffer);
+#elif PLATFORM_LINUX
+	printf("STaskBrowser.cpp: LINUX EncryptBuffer()\n");
 #elif PLATFORM_WINDOWS
 	DATA_BLOB SourceBlob, EntropyBlob, FinalBlob;
 	// Set up the datablob to encrypt
@@ -189,6 +191,8 @@ static bool DecryptBuffer(const uint8* SrcBuffer,const uint32 SrcLen,uint8* Dest
 		UE_LOG(LogTaskBrowser, Log, TEXT("CCCrypt failed w/ 0x%08x"), Status);
 	}
 	FMemory::Free(OutBuffer);
+#elif PLATFORM_LINUX
+        printf("STaskBrowser.cpp: LINUX DecryptBuffer()\n");
 #elif PLATFORM_WINDOWS
 	DATA_BLOB SourceBlob, EntropyBlob, FinalBlob;
 	// Set up the datablob to encrypt

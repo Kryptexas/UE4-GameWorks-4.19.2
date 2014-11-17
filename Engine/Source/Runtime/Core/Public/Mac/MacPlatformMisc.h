@@ -16,6 +16,12 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void PlatformPostInit(bool IsMoviePlaying = false);
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
+
+	static const TCHAR* GetPathVarDelimiter()
+	{
+		return TEXT(":");
+	}
+
 	static TArray<uint8> GetMacAddress();
 	static void SubmitErrorReport( const TCHAR* InErrorHist, EErrorReportMode::Type InMode );
 #if !UE_BUILD_SHIPPING
@@ -54,7 +60,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void ClipboardPaste(class FString& Dest);
 	static void CreateGuid(class FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
-	static void PreventScreenSaver();
+	static bool ControlScreensaver(EScreenSaverAction Action);
 	static bool CommandLineCommands();
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();

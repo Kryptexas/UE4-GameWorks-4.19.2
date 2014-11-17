@@ -53,12 +53,6 @@ namespace UnrealBuildTool
 		 */
 		private static void SendOutputToEventHandler(Action Action, string Output)
 		{
-			// Output status description (file name) when no output is returned
-			if (string.IsNullOrEmpty(Output))
-			{
-				Output = Action.StatusDescription;
-			}
-
 			// pass the output to any handler requested
 			if (Action.OutputEventHandler != null)
 			{
@@ -122,6 +116,20 @@ namespace UnrealBuildTool
 				// call the function and get the ExitCode and an output string
 				string Output;
 				Action.ActionHandler(Action, out ExitCode, out Output);
+
+				// Output status description (file name) when no output is returned
+				if (string.IsNullOrEmpty(Output))
+				{
+					if (Action.bShouldOutputStatusDescription)
+					{
+						Output = string.Format("[{0}/{1}] {2} {3}", JobNumber, TotalJobs, Action.CommandDescription, Action.StatusDescription);
+					}
+					else
+					{
+						Output = Action.StatusDescription;
+					}
+				}
+				
 				SendOutputToEventHandler(Action, Output);
 			}
 			else

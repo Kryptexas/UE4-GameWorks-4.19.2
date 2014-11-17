@@ -42,28 +42,15 @@ void FSymbolDebugger_AsyncInspect::DoWork()
 	}
 	else if ((EngineVersionName.Len() > 0) || (ChangelistName.Len() > 0))
 	{
-		bool bEngineVersion = (EngineVersionName.Len() > 0);
-
 		FCrashDebugHelperModule& CrashHelperModule = FModuleManager::LoadModuleChecked<FCrashDebugHelperModule>(FName("CrashDebugHelper"));
 		ICrashDebugHelper* Handler = CrashHelperModule.Get();
 		check(Handler != NULL);
 
-		FString FoundLabel;
-		if (bEngineVersion == true)
-		{
-			FoundLabel = Handler->GetLabelFromEngineVersion(FCString::Atoi(*EngineVersionName));
-		}
-		else
-		{
-			FoundLabel = Handler->GetLabelFromChangelistNumber(FCString::Atoi(*ChangelistName));
-		}
+		const FString FoundLabel = Handler->GetLabelFromChangelistNumber(FCString::Atoi(*ChangelistName));
 
 		if (FoundLabel.Len() > 0)
 		{
-			if (bEngineVersion == true)
-			{
-				Result_EngineVersionName = EngineVersionName;
-			}
+			Result_EngineVersionName = TEXT( "" );
 			Result_LabelName = FoundLabel;
 		}
 		else

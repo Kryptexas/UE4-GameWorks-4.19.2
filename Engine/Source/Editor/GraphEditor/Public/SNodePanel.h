@@ -173,6 +173,30 @@ public:
 	}
 };
 
+// Entry for an overlay widget in the node panel
+struct FOverlayWidgetInfo
+{
+public:
+	/** Widget to use */
+	TSharedPtr<SWidget> Widget;
+
+	/** Offset origin of the overlay from the widget */
+	FVector2D OverlayOffset;
+
+public:
+	FOverlayWidgetInfo()
+		: Widget(nullptr)
+		, OverlayOffset(0.f, 0.f)
+	{
+	}
+
+	FOverlayWidgetInfo(TSharedPtr<SWidget> InWidget)
+		: Widget(InWidget)
+		, OverlayOffset(0.f, 0.f)
+	{
+	}
+};
+
 // Entry for an information popup in the node panel
 struct FGraphInformationPopupInfo
 {
@@ -292,10 +316,16 @@ public:
 		{
 		}
 
+		/** Populate the widgets array with any overlay widgets to render */
+		virtual TArray<FOverlayWidgetInfo> GetOverlayWidgets(bool bSelected, const FVector2D& WidgetSize) const
+		{
+			return TArray<FOverlayWidgetInfo>();
+		}
+
 		/** Populate the popups array with any popups to render */
 		virtual void GetNodeInfoPopups(FNodeInfoContext* Context, TArray<FGraphInformationPopupInfo>& Popups) const
 		{
-		}
+		}	
 
 		/** Returns true if this node is dependent on the location of other nodes (it can only depend on the location of first-pass only nodes) */
 		virtual bool RequiresSecondPassLayout() const
@@ -355,6 +385,7 @@ public:
 	virtual FReply OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) override;
 	virtual void OnKeyboardFocusLost( const FKeyboardFocusEvent& InKeyboardFocusEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent ) override;
+	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 
 	// End of SWidget interface
 public:
@@ -476,6 +507,9 @@ protected:
 	/** Populate visibile children array */
 	virtual void PopulateVisibleChildren(const FGeometry& AllottedGeometry);
 
+	/** Arrange child nodes - allows derived classes to supply non-node children in OnArrangeChildren */
+	virtual void ArrangeChildNodes(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const;
+
 	// Paint the background as lines
 	void PaintBackgroundAsLines(const FSlateBrush* BackgroundImage, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32& DrawLayerId) const;
 
@@ -550,6 +584,9 @@ protected:
 	/** Are we panning the view at the moment? */
 	bool bIsPanning;
 
+	/** Are we zooming the view with trackpad at the moment? */
+	bool bIsZoomingWithTrackpad;
+
 	/** The graph node widgets owned by this panel */
 	TSlotlessChildren<SNode> Children;
 	TSlotlessChildren<SNode> VisibleChildren;
@@ -568,6 +605,9 @@ protected:
 
 	/** Offset in the panel the user started the LMB+RMB zoom from */
 	FVector2D ZoomStartOffset;
+
+	/** Cumulative magnify delta from trackpad gesture */
+	float TotalGestureMagnify;
 public:
 	/** Nodes selected in this instance of the editor; the selection is per-instance of the GraphEditor */
 	FGraphSelectionManager SelectionManager;

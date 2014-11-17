@@ -109,27 +109,13 @@ namespace SourceControlHelpers
 	 */
 	SOURCECONTROL_API extern bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSourceFile, const FText& InFileDescription, FText& OutFailReason );
 
-	/** Helper struct for CopyFilesUnderSourceControl */
-	struct FBranchData
-	{
-		FBranchData(const FString& InDestFilename, const FString& InSourceFilename)
-			: DestFilename(InDestFilename)
-			, SourceFilename(InSourceFilename)
-		{
-		}
-
-		/** The filenames for the copy operation */
-		FString DestFilename;
-		FString SourceFilename;
-	};
-
 	/**
-	 * Helper function to branch/integrate files from one location to another
-	 * @param	DestFilename			The destination path
-	 * @param	SourceFilename			The source path
-	 * @return	Success or failure of the operation
+	 * Helper function to branch/integrate packages from one location to another
+	 * @param	DestPackage			The destination package
+	 * @param	SourcePackage		The source package
+	 * @return true if the file packages were successfully branched.
 	 */
-	SOURCECONTROL_API extern bool BranchFile( const FString& DestFilename, const FString& SourceFilename );
+	SOURCECONTROL_API extern bool BranchPackage( UPackage* DestPackage, UPackage* SourcePackage );
 }
 
 /** 

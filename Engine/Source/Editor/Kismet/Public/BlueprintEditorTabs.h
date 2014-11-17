@@ -11,6 +11,7 @@ struct KISMET_API FBlueprintEditorTabs
 	static const FName PaletteID;
 	static const FName CompilerResultsID;
 	static const FName FindResultsID;
+	static const FName MergeToolID;
 	static const FName ConstructionScriptEditorID;
 	static const FName SCSViewportID;
 	static const FName MyBlueprintID;

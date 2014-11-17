@@ -9,19 +9,11 @@
 static const float MinStepLengh=15.f;
 
 /** This function is used by a few random widgets and is mostly arbitrary. It could be moved anywhere. */
-int32 SScrubWidget::GetDivider(float InputMinX, float InputMaxX, FVector2D WidgetSize, float SequenceLength, int32 NumFrames, bool bLastFrameIsFirstFrame)
+int32 SScrubWidget::GetDivider(float InputMinX, float InputMaxX, FVector2D WidgetSize, float SequenceLength, int32 NumFrames)
 {
 	FTrackScaleInfo TimeScaleInfo(InputMinX, InputMaxX, 0.f, 0.f, WidgetSize);
 
-	float TimePerKey = 0.0f;
-	if (bLastFrameIsFirstFrame)
-	{
-		TimePerKey = (NumFrames > 1) ? SequenceLength / (float)(NumFrames - 1) : 0.0f;
-	}
-	else
-	{
-		TimePerKey = (NumFrames > 0) ? SequenceLength / (float)(NumFrames) : 0.0f;
-	}
+	float TimePerKey = (NumFrames > 0) ? SequenceLength / (float)(NumFrames) : 0.0f;
 
 	float TotalWidgetWidth = TimeScaleInfo.WidgetSize.X;
 	float NumKeys = TimeScaleInfo.ViewInputRange / TimePerKey;
@@ -60,10 +52,9 @@ void SScrubWidget::Construct( const SScrubWidget::FArguments& InArgs )
 	DraggingBar = false;
 
 	bAllowZoom = InArgs._bAllowZoom;
-	bLastFrameIsFirstFrame = InArgs._bLastFrameIsFirstFrame;
 }
 
-int32 SScrubWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SScrubWidget::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	const bool bActiveFeedback = IsHovered() || bDragging;
 	const FSlateBrush* BackgroundImage = bActiveFeedback ?
@@ -89,20 +80,12 @@ int32 SScrubWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect
 	if ( NumOfKeys.Get() > 0 && SequenceLength.Get() > 0)
 	{
 		FTrackScaleInfo TimeScaleInfo(ViewInputMin.Get(), ViewInputMax.Get(), 0.f, 0.f, AllottedGeometry.Size);
-		int32 Divider = SScrubWidget::GetDivider( ViewInputMin.Get(), ViewInputMax.Get(), AllottedGeometry.Size, SequenceLength.Get(), NumOfKeys.Get(), bLastFrameIsFirstFrame );
+		int32 Divider = SScrubWidget::GetDivider( ViewInputMin.Get(), ViewInputMax.Get(), AllottedGeometry.Size, SequenceLength.Get(), NumOfKeys.Get() );
 		float HalfDivider = Divider/2.f;
 		
 		int32 TotalNumKeys = NumOfKeys.Get();
 
-		float TimePerKey = 0.0f;
-		if (bLastFrameIsFirstFrame)
-		{
-			TimePerKey = (TotalNumKeys > 1) ? SequenceLength.Get() / (float)(TotalNumKeys - 1) : 0.0f;
-		}
-		else
-		{
-			TimePerKey = (TotalNumKeys > 0) ? SequenceLength.Get() / (float)(TotalNumKeys) : 0.0f;
-		}
+		float TimePerKey = (TotalNumKeys > 0) ? SequenceLength.Get() / (float)(TotalNumKeys) : 0.0f;
 
 		for (float KeyVal = 0; KeyVal < TotalNumKeys; KeyVal += HalfDivider)
 		{
@@ -202,10 +185,10 @@ int32 SScrubWidget::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect
 				);
 		}
 
-		return FMath::Max( ArrowLayer, SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, ArrowLayer, InWidgetStyle, bEnabled ) );
+		return FMath::Max( ArrowLayer, SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, ArrowLayer, InWidgetStyle, bEnabled ) );
 	}
 
-	return SCompoundWidget::OnPaint(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bEnabled );
+	return SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bEnabled );
 }
 
 FReply SScrubWidget::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -446,7 +429,7 @@ void SScrubWidget::CreateContextMenu(float CurrentFrameTime)
 					float CorrectedFrameTime = CurrentFrameFraction * SequenceLength.Get();
 
 					Action = FUIAction(FExecuteAction::CreateSP(this, &SScrubWidget::OnSequenceCropped, true, CorrectedFrameTime));
-					Label = FText::Format(LOCTEXT("RemoveTillFrame", "Remove till frame {0}"), FText::AsNumber(CurrentFrameNumber));
+					Label = FText::Format(LOCTEXT("RemoveTillFrame", "Remove frame 0 to frame {0}"), FText::AsNumber(CurrentFrameNumber));
 					MenuBuilder.AddMenuEntry(Label, LOCTEXT("RemoveBefore_ToolTip", "Remove sequence before current position"), FSlateIcon(), Action);
 				}
 
@@ -459,7 +442,7 @@ void SScrubWidget::CreateContextMenu(float CurrentFrameTime)
 					float NextFrameFraction = float(NextFrameNumber) / (float)NumOfKeys.Get();
 					float NextFrameTime = NextFrameFraction * SequenceLength.Get();
 					Action = FUIAction(FExecuteAction::CreateSP(this, &SScrubWidget::OnSequenceCropped, false, NextFrameTime));
-					Label = FText::Format(LOCTEXT("RemoveFromFrame", "Remove from frame {0}"), FText::AsNumber(NextFrameNumber));
+					Label = FText::Format(LOCTEXT("RemoveFromFrame", "Remove from frame {0} to frame {1}"), FText::AsNumber(NextFrameNumber), FText::AsNumber(NumOfKeys.Get()));
 					MenuBuilder.AddMenuEntry(Label, LOCTEXT("RemoveAfter_ToolTip", "Remove sequence after current position"), FSlateIcon(), Action);
 				}
 			}
@@ -469,7 +452,7 @@ void SScrubWidget::CreateContextMenu(float CurrentFrameTime)
 				//Menu - "ReZero"
 				Action = FUIAction(FExecuteAction::CreateSP(this, &SScrubWidget::OnReZero));
 				Label = FText::Format(LOCTEXT("ReZeroAtFrame", "ReZero at frame {0}"), FText::AsNumber(CurrentFrameNumber));
-				MenuBuilder.AddMenuEntry(Label, LOCTEXT("ReZeroAtFrame_ToolTip", "ReZero sequence at the current frame"), FSlateIcon(), Action);
+				MenuBuilder.AddMenuEntry(Label, LOCTEXT("ReZeroAtFrame_ToolTip", "Resets the root track of the frame to (0, 0, 0), and apply the difference to all root transform of the sequence. It moves whole sequence to the amount of current root transform. "), FSlateIcon(), Action);
 			}
 		}
 		MenuBuilder.EndSection();

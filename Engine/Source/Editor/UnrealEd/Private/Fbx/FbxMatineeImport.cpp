@@ -178,18 +178,18 @@ static FbxCamera* FindCamera( FbxNode* Parent )
 	return Camera;
 }
 
-void FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
+bool FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 {
-	if (Scene == NULL || InMatineeActor == NULL) return;
+	if (Scene == NULL || InMatineeActor == NULL) return false;
 	
 	// merge animation layer at first
 	FbxAnimStack* AnimStack = Scene->GetMember<FbxAnimStack>(0);
-	if (!AnimStack) return;
+	if (!AnimStack) return false;
 		
 	MergeAllLayerAnimation(AnimStack, FbxTime::GetFrameRate(Scene->GetGlobalSettings().GetTimeMode()));
 
 	FbxAnimLayer* AnimLayer = AnimStack->GetMember<FbxAnimLayer>(0);
-	if (AnimLayer == NULL) return;
+	if (AnimLayer == NULL) return false;
 
 	// If the Matinee editor is not open, we need to initialize the sequence.
 	//bool InitializeMatinee = InMatineeActor->MatineeData == NULL;
@@ -233,7 +233,7 @@ void FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 			CameraNode = FindCamera(Node);
 			if ( bCreateUnknownCameras && CameraNode != NULL )
 			{
-				Actor = GEditor->AddActor( InMatineeActor->GetWorld()->GetCurrentLevel(), ACameraActor::StaticClass(), FVector::ZeroVector );
+				Actor = GEditor->AddActor( InMatineeActor->GetWorld()->GetCurrentLevel(), ACameraActor::StaticClass(), FTransform::Identity );
 				Actor->SetActorLabel( ANSI_TO_TCHAR(CameraNode->GetName()) );
 			}
 			else
@@ -287,6 +287,7 @@ void FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 	MatineeData->InterpLength = (InterpLength < 0.0f) ? 5.0f : InterpLength;
 	InMatineeActor->Modify();
 
+	return true;
 	//if (InitializeMatinee)
 	//{
 	//	InMatineeActor->TermInterp();
@@ -505,7 +506,7 @@ float FFbxImporter::ImportMatineeActor(FbxNode* Node, UInterpGroupInst* MatineeG
 			}
 
 			// apply Pre rotations only on bones / end of chains
-			if(Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eSkeleton
+			if((Node->GetNodeAttribute() && Node->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eSkeleton)
 				|| (Node->GetMarker() && Node->GetMarker()->GetType() == FbxMarker::eEffectorFK)
 				|| (Node->GetMarker() && Node->GetMarker()->GetType() == FbxMarker::eEffectorIK))
 			{

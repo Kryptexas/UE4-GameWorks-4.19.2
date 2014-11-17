@@ -154,6 +154,11 @@ public:
 
 	void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift);
 
+	// temporary, for ES2 preview verification.
+	FORCEINLINE bool IsUsingHighQualityLightMap() const
+	{
+		return OctreeForRendering == &HighQualityLightmapOctree;
+	}
 private:
 
 	bool bInitialized;

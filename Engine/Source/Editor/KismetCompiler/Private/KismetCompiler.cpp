@@ -16,6 +16,7 @@
 #include "MovieSceneBindings.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #include "UserDefinedStructureCompilerUtils.h"
+#include "EditorCategoryUtils.h"
 
 static bool bDebugPropertyPropagation = false;
 
@@ -115,40 +116,24 @@ void FKismetCompilerContext::SpawnNewClass(const FString& NewClassName)
 	}
 }
 
-struct FSubobjectCollection
-{ 
-private:
-	TSet<const UObject*> Collection;
-
-public:
-	void AddObject(const UObject* const InObject)
+void FKismetCompilerContext::FSubobjectCollection::AddObject(const UObject* const InObject)
+{
+	if ( InObject )
 	{
-		if (InObject)
+		Collection.Add(InObject);
+		TArray<UObject*> Subobjects;
+		GetObjectsWithOuter(InObject, Subobjects, true);
+		for ( auto SubObject : Subobjects )
 		{
-			Collection.Add(InObject);
-			TArray<UObject*> Subobjects;
-			GetObjectsWithOuter(InObject, Subobjects, true);
-			for (auto SubObject : Subobjects)
-			{
-				Collection.Add(SubObject);
-			}
+			Collection.Add(SubObject);
 		}
 	}
+}
 
-	template<typename TOBJ>
-	void AddObjects(const TArray<TOBJ*>& InObjects)
-	{
-		for (const auto ObjPtr : InObjects)
-		{
-			AddObject(ObjPtr);
-		}
-	}
-
-	bool operator()(const UObject* const RemovalCandidate) const
-	{
-		return (NULL != Collection.Find(RemovalCandidate));
-	}
-};
+bool FKismetCompilerContext::FSubobjectCollection::operator()(const UObject* const RemovalCandidate) const
+{
+	return ( NULL != Collection.Find(RemovalCandidate) );
+}
 
 void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
 {
@@ -163,7 +148,7 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 		ParentClass = UObject::StaticClass();
 	}
 	TransientClass->ClassAddReferencedObjects = ParentClass->AddReferencedObjects;
-    
+	
 	NewClass = ClassToClean;
 	OldCDO = ClassToClean->ClassDefaultObject; // we don't need to create the CDO at this point
 	
@@ -179,45 +164,10 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	TArray<UObject*> ClassSubObjects;
 	GetObjectsWithOuter(ClassToClean, ClassSubObjects, true);
 
-	{	// Save subobjects, that won't be regenerated.
+	{
+		// Save subobjects, that won't be regenerated.
 		FSubobjectCollection SubObjectsToSave;
-		SubObjectsToSave.AddObjects(Blueprint->ComponentTemplates);
-		SubObjectsToSave.AddObjects(Blueprint->Timelines);
-		if (Blueprint->SimpleConstructionScript)
-		{
-			SubObjectsToSave.AddObject(Blueprint->SimpleConstructionScript);
-			if (const USCS_Node* DefaultScene = Blueprint->SimpleConstructionScript->GetDefaultSceneRootNode())
-	{
-				SubObjectsToSave.AddObject(DefaultScene->ComponentTemplate);
-	}
-
-			TArray<USCS_Node*> SCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-			for (auto SCSNode : SCSNodes)
-	{
-				SubObjectsToSave.AddObject(SCSNode->ComponentTemplate);
-			}
-	}
-	{
-			TSet<class UCurveBase*> Curves;
-			for (auto Timeline : Blueprint->Timelines)
-			{
-				if (Timeline)
-		{
-					Timeline->GetAllCurves(Curves);
-		}
-			}
-			for (auto Component : Blueprint->ComponentTemplates)
-			{
-				if (auto TimelineComponent = Cast<UTimelineComponent>(Component))
-		{
-					TimelineComponent->GetAllCurves(Curves);
-		}
-			}
-			for (auto Curve : Curves)
-			{
-				SubObjectsToSave.AddObject(Curve);
-			}
-		}
+		SaveSubObjectsFromCleanAndSanitizeClass(SubObjectsToSave, ClassToClean, OldCDO);
 
 		ClassSubObjects.RemoveAllSwap(SubObjectsToSave);
 	}
@@ -244,6 +194,49 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	ClassToClean->ClassWithin = ParentClass;
 	ClassToClean->ClassConfigName = ClassToClean->HasAnyFlags(RF_Native) ? FName(ClassToClean->StaticConfigName()) : FName(*ParentClass->GetConfigName());
 	ClassToClean->DebugData = FBlueprintDebugData();
+}
+
+void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectCollection& SubObjectsToSave, UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO)
+{
+	SubObjectsToSave.AddObjects(Blueprint->ComponentTemplates);
+	SubObjectsToSave.AddObjects(Blueprint->Timelines);
+
+	if ( Blueprint->SimpleConstructionScript )
+	{
+		SubObjectsToSave.AddObject(Blueprint->SimpleConstructionScript);
+		if ( const USCS_Node* DefaultScene = Blueprint->SimpleConstructionScript->GetDefaultSceneRootNode() )
+		{
+			SubObjectsToSave.AddObject(DefaultScene->ComponentTemplate);
+		}
+
+		TArray<USCS_Node*> SCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
+		for ( auto SCSNode : SCSNodes )
+		{
+			SubObjectsToSave.AddObject(SCSNode->ComponentTemplate);
+		}
+	}
+
+	{
+		TSet<class UCurveBase*> Curves;
+		for ( auto Timeline : Blueprint->Timelines )
+		{
+			if ( Timeline )
+			{
+				Timeline->GetAllCurves(Curves);
+			}
+		}
+		for ( auto Component : Blueprint->ComponentTemplates )
+		{
+			if ( auto TimelineComponent = Cast<UTimelineComponent>(Component) )
+			{
+				TimelineComponent->GetAllCurves(Curves);
+			}
+		}
+		for ( auto Curve : Curves )
+		{
+			SubObjectsToSave.AddObject(Curve);
+		}
+	}
 }
 
 void FKismetCompilerContext::PostCreateSchema()
@@ -287,6 +280,13 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 {
 	Super::ValidatePin(Pin);
 
+	auto OwningNodeUnchecked = Pin ? Pin->GetOwningNodeUnchecked() : NULL;
+	if (!OwningNodeUnchecked)
+	{
+		//handled by Super::ValidatePin
+		return;
+	}
+
 	// Fixing up references to the skel or the generated classes to be PSC_Self pins
 	if ((Pin->PinType.PinCategory == Schema->PC_Object) || (Pin->PinType.PinCategory == Schema->PC_Interface))
 	{
@@ -303,7 +303,7 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 	if (Pin->PinType.PinCategory == Schema->PC_Wildcard)
 	{
 		// Wildcard pins should never be seen by the compiler; they should always be forced into a particular type by wiring.
-		MessageLog.Error(*LOCTEXT("UndeterminedPinType_Error", "The type of @@ is undetermined.  Connect something to @@ to imply a specific type.").ToString(), Pin, Pin->GetOwningNode()); 
+		MessageLog.Error(*LOCTEXT("UndeterminedPinType_Error", "The type of @@ is undetermined.  Connect something to @@ to imply a specific type.").ToString(), Pin, OwningNodeUnchecked);
 	}
 
 	if (Pin->LinkedTo.Num() > 1)
@@ -325,7 +325,7 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 			else if( Schema->IsSelfPin(*Pin) )
 			{
 				// Pure functions and latent functions cannot have more than one self connection
-				UK2Node_CallFunction* OwningNode = Cast<UK2Node_CallFunction>(Pin->GetOwningNode());
+				UK2Node_CallFunction* OwningNode = Cast<UK2Node_CallFunction>(OwningNodeUnchecked);
 				if( OwningNode )
 				{
 					if( OwningNode->IsNodePure() )
@@ -352,7 +352,7 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 	//function return node exec pin should be connected to something
 	if(Pin->Direction == EGPD_Input && Pin->LinkedTo.Num() == 0 && Schema->IsExecPin(*Pin) )
 	{
-		if(UK2Node_FunctionResult* OwningNode = Cast<UK2Node_FunctionResult>(Pin->GetOwningNode()))
+		if (UK2Node_FunctionResult* OwningNode = Cast<UK2Node_FunctionResult>(OwningNodeUnchecked))
 		{
 			MessageLog.Warning(*LOCTEXT("ReturnNodeExecPinUnconnected", "ReturnNode Exec pin has no connections on @@").ToString(), Pin);
 		}
@@ -1151,6 +1151,10 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		{
 			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category);
 		}
+		if( FunctionMetaData.bCallInEditor )
+		{
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_CallInEditor, TEXT( "true" ));
+		}
 		
 		// Link it
 		//@TODO: should this be in regular or reverse order?
@@ -1484,8 +1488,6 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	}
 	else
 	{
-		Function->FunctionFlags |= FUNC_Exec;
-
 		// If this is the root of a blueprint-defined function or event, and if it's public, make it overrideable
 		if( !Context.IsEventGraph() && !Function->HasAnyFunctionFlags(FUNC_Private) )
 		{
@@ -1533,7 +1535,10 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_Tooltip, *EntryNode->MetaData.ToolTip);
 	}
-
+	if (EntryNode->MetaData.bCallInEditor)
+	{
+		Function->SetMetaData(FBlueprintMetadata::MD_CallInEditor, TEXT( "true" ));
+	}
 	if (auto WorldContextPin = EntryNode->GetAutoWorldContextPin())
 	{
 		Function->SetMetaData(FBlueprintMetadata::MD_DefaultToSelf, *WorldContextPin->PinName); 
@@ -1590,6 +1595,8 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 {
 	UClass* ParentClass = Class->GetSuperClass();
 
+	TArray<FString> AllHideCategories;
+
 	if (ParentClass != NULL)
 	{
 		// Propagate the new parent's inheritable class flags
@@ -1603,12 +1610,18 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		Class->ClassWithin = ParentClass->ClassWithin ? ParentClass->ClassWithin : UObject::StaticClass();
 		Class->ClassConfigName = ParentClass->ClassConfigName;
 
+		// If the Blueprint was marked as deprecated, then flag the class as deprecated.
+		if(Blueprint->bDeprecate)
+		{
+			Class->ClassFlags |= CLASS_Deprecated;
+		}
+
+		// If the flag is inherited, this will keep the bool up-to-date
+		Blueprint->bDeprecate = (Class->ClassFlags & CLASS_Deprecated) == CLASS_Deprecated;
+
 		// Copy the category info from the parent class
 #if WITH_EDITORONLY_DATA
-		if (ParentClass->HasMetaData(TEXT("HideCategories")))
-		{
-			Class->SetMetaData(TEXT("HideCategories"), *ParentClass->GetMetaData("HideCategories"));
-		}
+		FEditorCategoryUtils::GetClassHideCategories(ParentClass, AllHideCategories);
 		if (ParentClass->HasMetaData(TEXT("ShowCategories")))
 		{
 			Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));
@@ -1631,6 +1644,13 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		{
 			Class->SetMetaData(TEXT("Category"), *Blueprint->BlueprintCategory);
 		}
+
+		if ((Blueprint->BlueprintType == BPTYPE_Normal) || 
+			(Blueprint->BlueprintType == BPTYPE_Const)  || 
+			(Blueprint->BlueprintType == BPTYPE_Interface))
+		{
+			Class->SetMetaData(FBlueprintMetadata::MD_AllowableBlueprintVariableType, TEXT("true"));
+		}
 #endif
 
 		// Add in additional flags implied by the blueprint
@@ -1645,6 +1665,12 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		}
 
 		//@TODO: Might want to be able to specify some of these here too
+	}
+
+	AllHideCategories.Append(Blueprint->HideCategories);
+	if (AllHideCategories.Num())
+	{
+		Class->SetMetaData(TEXT("HideCategories"), *FString::Join(AllHideCategories, TEXT(" ")));
 	}
 
 	// Add in any other needed flags
@@ -2202,20 +2228,22 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 
 	// If this is a customizable event, make sure to copy over the user defined pins
 	if (UK2Node_CustomEvent const* SrcCustomEventNode = Cast<UK2Node_CustomEvent const>(SrcEventNode))
- 	{
+	{
 		EntryNode->UserDefinedPins = SrcCustomEventNode->UserDefinedPins;
 		// CustomEvents may inherit net flags (so let's use their GetNetFlags() incase this is an override)
 		StubContext.MarkAsNetFunction(SrcCustomEventNode->GetNetFlags());
- 	}
+		// Synchronize the entry node call in editor value with the entry point
+		EntryNode->MetaData.bCallInEditor = SrcCustomEventNode->bCallInEditor;
+	}
 	EntryNode->AllocateDefaultPins();
 
 	// Confirm that the event node matches the latest function signature, which the newly created EntryNode should have
- 	if( !SrcEventNode->IsFunctionEntryCompatible(EntryNode) )
- 	{
- 		// There is no match, so the function parameters must have changed.  Throw an error, and force them to refresh
- 		MessageLog.Error(*FString::Printf(*LOCTEXT("EventNodeOutOfDate_Error", "Event node @@ is out-of-date.  Please refresh it.").ToString()), SrcEventNode);
- 		return;
- 	}
+	if( !SrcEventNode->IsFunctionEntryCompatible(EntryNode) )
+	{
+		// There is no match, so the function parameters must have changed.  Throw an error, and force them to refresh
+		MessageLog.Error(*FString::Printf(*LOCTEXT("EventNodeOutOfDate_Error", "Event node @@ is out-of-date.  Please refresh it.").ToString()), SrcEventNode);
+		return;
+	}
 
 	// Copy each event parameter to the assignment node, if there are any inputs
 	UK2Node_VariableSet* AssignmentNode = NULL;
@@ -2260,7 +2288,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	CallIntoUbergraph->NodePosX = 300;
 
 	// Use the ExecuteUbergraph base function to generate the pins...
- 	CallIntoUbergraph->FunctionReference.SetExternalMember(Schema->FN_ExecuteUbergraphBase, UObject::StaticClass());
+	CallIntoUbergraph->FunctionReference.SetExternalMember(Schema->FN_ExecuteUbergraphBase, UObject::StaticClass());
 	CallIntoUbergraph->AllocateDefaultPins();
 	
 	// ...then swap to the generated version for this level
@@ -2953,25 +2981,25 @@ void FKismetCompilerContext::Compile()
 	UBlueprintGeneratedClass* TargetClass = Cast<UBlueprintGeneratedClass>(TargetUClass);
 
 	// >>> Backwards Compatibility: Make sure that skeleton generated classes have the proper "SKEL_" naming convention
- 	const FString SkeletonPrefix(TEXT("SKEL_"));
- 	if( bIsSkeletonOnly && TargetClass && !TargetClass->GetName().StartsWith(SkeletonPrefix) )
- 	{
- 		FString NewName = SkeletonPrefix + TargetClass->GetName();
+	const FString SkeletonPrefix(TEXT("SKEL_"));
+	if( bIsSkeletonOnly && TargetClass && !TargetClass->GetName().StartsWith(SkeletonPrefix) )
+	{
+		FString NewName = SkeletonPrefix + TargetClass->GetName();
  
- 		// Ensure we have a free name for this class
- 		UClass* AnyClassWithGoodName = (UClass*)StaticFindObject(UClass::StaticClass(), Blueprint->GetOutermost(), *NewName, false);
- 		if( AnyClassWithGoodName )
- 		{
- 			// Special Case:  If the CDO of the class has become dissociated from its actual CDO, attempt to find the proper named CDO, and get rid of it.
- 			if( AnyClassWithGoodName->ClassDefaultObject == TargetClass->ClassDefaultObject )
- 			{
- 				AnyClassWithGoodName->ClassDefaultObject = NULL;
- 				FString DefaultObjectName = FString(DEFAULT_OBJECT_PREFIX) + NewName;
- 				AnyClassWithGoodName->ClassDefaultObject = (UObject*)StaticFindObject(UObject::StaticClass(), Blueprint->GetOutermost(), *DefaultObjectName, false);
- 			}
+		// Ensure we have a free name for this class
+		UClass* AnyClassWithGoodName = (UClass*)StaticFindObject(UClass::StaticClass(), Blueprint->GetOutermost(), *NewName, false);
+		if( AnyClassWithGoodName )
+		{
+			// Special Case:  If the CDO of the class has become dissociated from its actual CDO, attempt to find the proper named CDO, and get rid of it.
+			if( AnyClassWithGoodName->ClassDefaultObject == TargetClass->ClassDefaultObject )
+			{
+				AnyClassWithGoodName->ClassDefaultObject = NULL;
+				FString DefaultObjectName = FString(DEFAULT_OBJECT_PREFIX) + NewName;
+				AnyClassWithGoodName->ClassDefaultObject = (UObject*)StaticFindObject(UObject::StaticClass(), Blueprint->GetOutermost(), *DefaultObjectName, false);
+			}
  
 			// Get rid of the old class to make room for renaming our class to the final SKEL name
- 			FKismetCompilerUtilities::ConsignToOblivion(AnyClassWithGoodName, Blueprint->bIsRegeneratingOnLoad);
+			FKismetCompilerUtilities::ConsignToOblivion(AnyClassWithGoodName, Blueprint->bIsRegeneratingOnLoad);
 
 			// Update the refs to the old SKC
 			TMap<UObject*, UObject*> ClassReplacementMap;
@@ -2982,11 +3010,11 @@ void FKismetCompilerContext::Compile()
 			{
 				FArchiveReplaceObjectRef<UObject> ReplaceInBlueprintAr(AllGraphs[i], ClassReplacementMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
 			}
- 		}
+		}
  
- 		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0));
- 		TargetClass->Rename(*NewName, NULL, RenameFlags);
- 	}
+		ERenameFlags RenameFlags = (REN_DontCreateRedirectors|REN_NonTransactional|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : 0));
+		TargetClass->Rename(*NewName, NULL, RenameFlags);
+	}
 	// <<< End Backwards Compatibility
 
 	// >>> Backwards compatibility:  If SkeletonGeneratedClass == GeneratedClass, we need to make a new generated class the first time we need it
@@ -3380,29 +3408,29 @@ void FKismetCompilerContext::Compile()
 	}
 
 	// For full compiles, find other blueprints that may need refreshing, and mark them dirty, in case they try to run
-  	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
-  	{
-  		TArray<UObject*> AllBlueprints;
-  		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
+	if( bIsFullCompile && !Blueprint->bIsRegeneratingOnLoad )
+	{
+		TArray<UObject*> AllBlueprints;
+		GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, true);
   
-  		// Mark any blueprints that implement this interface as dirty
-  		for( auto CurrentObj = AllBlueprints.CreateIterator(); CurrentObj; ++CurrentObj )
-  		{
-  			UBlueprint* CurrentBP = Cast<UBlueprint>(*CurrentObj);
+		// Mark any blueprints that implement this interface as dirty
+		for( auto CurrentObj = AllBlueprints.CreateIterator(); CurrentObj; ++CurrentObj )
+		{
+			UBlueprint* CurrentBP = Cast<UBlueprint>(*CurrentObj);
   
-  			if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, Blueprint) )
-  			{
+			if( FBlueprintEditorUtils::IsBlueprintDependentOn(CurrentBP, Blueprint) )
+			{
 				CurrentBP->Status = BS_Dirty;
-  				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP);
+				FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(CurrentBP);
 				CurrentBP->BroadcastChanged();
-  			}
-  		}
-  	}
+			}
+		}
+	}
 
 	// Clear out pseudo-local members that are only valid within a Compile call
 	UbergraphContext = NULL;
- 	CallsIntoUbergraph.Empty();
- 	TimelineToMemberVariableMap.Empty();
+	CallsIntoUbergraph.Empty();
+	TimelineToMemberVariableMap.Empty();
 
 
 	check(NewClass->PropertiesSize >= UObject::StaticClass()->PropertiesSize);

@@ -49,9 +49,9 @@ public:
 			// if preview mesh isn't loaded, see if we have set
 			FStringAssetReference AttachedObjectStringRef = AttachedObject.ToStringReference();
 			// load it since now is the time to load
-			if (!AttachedObjectStringRef.AssetLongPathname.IsEmpty())
+			if (!AttachedObjectStringRef.ToString().IsEmpty())
 			{
-				AttachedObjectPtr = Cast<UObject>(StaticLoadObject(UObject::StaticClass(), NULL, *AttachedObjectStringRef.AssetLongPathname, NULL, LOAD_None, NULL));
+				AttachedObjectPtr = Cast<UObject>(StaticLoadObject(UObject::StaticClass(), NULL, *AttachedObjectStringRef.ToString(), NULL, LOAD_None, NULL));
 			}
 		}
 		return AttachedObjectPtr;

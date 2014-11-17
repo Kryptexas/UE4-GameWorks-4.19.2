@@ -4,7 +4,17 @@
 
 class IPropertyHandle;
 
-DECLARE_MULTICAST_DELEGATE_ThreeParams( FOnAnimatablePropertyChanged, const TArray<UObject*>&, const IPropertyHandle&, bool );
+struct FKeyPropertyParams
+{
+	const IPropertyHandle* PropertyHandle;
+	TArray<UObject*> ObjectsThatChanged;
+	FString PropertyPath;
+	FName InnerStructPropertyName;
+	bool bRequireAutoKey;
+};
+
+
+DECLARE_MULTICAST_DELEGATE_OneParam( FOnAnimatablePropertyChanged, const FKeyPropertyParams& );
 
 DECLARE_MULTICAST_DELEGATE_OneParam ( FOnPropagateObjectChanges, UObject* );
 
@@ -28,4 +38,8 @@ public:
 	 * Triggers all properties as changed for the passed in object.
 	 */
 	virtual void TriggerAllPropertiesChanged(UObject* Object) = 0;
+
+	virtual bool IsTypeKeyable(const UClass& ObjectClass, const IPropertyHandle& PropertyHandle) const = 0;
+
+	virtual void KeyProperty( const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle ) const = 0;
 };

@@ -192,7 +192,9 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 					Widget1
 				]
 			]
-
+		 
+// For platforms without a global menu bar we can put the perf. tools in the editor window's menu bar
+#if !PLATFORM_MAC
 			+SOverlay::Slot()
 			.HAlign( HAlign_Right )
 			[
@@ -201,6 +203,7 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 					SAssignNew( NotificationBarBox, SHorizontalBox )
 				]
 			]
+#endif
 		]
 
 		+SVerticalBox::Slot()
@@ -209,6 +212,16 @@ void SLevelEditor::Initialize( const TSharedRef<SDockTab>& OwnerTab, const TShar
 			Widget2
 		]
 	];
+	
+// For OS X we need to put it into the window's title bar since there's no per-window menu bar
+#if PLATFORM_MAC
+	TSharedRef<SWidget> TutorialWidget = SNew( STutorialWrapper, TEXT("PerformanceTools") )
+	[
+		SAssignNew( NotificationBarBox, SHorizontalBox )
+	];
+	
+	OwnerTab->SetRightContent(TutorialWidget);
+#endif
 
 	ConstructNotificationBar();
 
@@ -227,6 +240,9 @@ void SLevelEditor::ConstructNotificationBar()
 			FLevelEditorMenu::MakeNotificationBar( LevelEditorCommands, SharedThis(this ) )
 		];
 
+#define SHOW_NEWS_FEED 0
+
+#if SHOW_NEWS_FEED
 	// news feed button
 	INewsFeedModule& NewsFeedModule = FModuleManager::LoadModuleChecked<INewsFeedModule>(NewsFeedModuleName);
 
@@ -238,6 +254,7 @@ void SLevelEditor::ConstructNotificationBar()
 			NewsFeedModule.CreateNewsFeedButton()
 		];
 
+#endif
 	// developer tools
 	const IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(MainFrameModuleName);
 
@@ -274,7 +291,7 @@ FText SLevelEditor::GetTabTitle() const
 
 	const bool bIncludeGameName = false;
 
-	const bool bDirtyState = World->GetCurrentLevel()->GetOutermost()->IsDirty();
+	const bool bDirtyState = World && World->GetCurrentLevel()->GetOutermost()->IsDirty();
 
 	FFormatNamedArguments Args;
 	Args.Add( TEXT("LevelName"), FText::FromString( MainFrameModule.GetLoadedLevelName() ) );
@@ -725,7 +742,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 		FWorldBrowserModule& WorldBrowserModule = FModuleManager::LoadModuleChecked<FWorldBrowserModule>( "WorldBrowser" );
 		return SNew( SDockTab )
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowserComposition" ) )
-			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserCompositionTabTitle", "Levels Composition") )
+			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserCompositionTabTitle", "World Composition") )
 			[
 				WorldBrowserModule.CreateWorldBrowserComposition()
 			];
@@ -1045,7 +1062,7 @@ TSharedRef<SWidget> SLevelEditor::RestoreContentArea( const TSharedRef<SDockTab>
 		
 			LevelEditorTabManager->RegisterTabSpawner( WorldBrowserCompositionTab, FOnSpawnTab::CreateSP<SLevelEditor, FName, FString>(this, &SLevelEditor::SpawnLevelEditorTab, WorldBrowserCompositionTab, FString()) )
 				.SetMenuType( ETabSpawnerMenuType::Hide )
-				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserComposition", "Levels Composition"))
+				.SetDisplayName(NSLOCTEXT("LevelEditorTabs", "WorldBrowserComposition", "World Composition"))
 				.SetGroup( WorkspaceMenu::GetMenuStructure().GetLevelEditorCategory() )
 				.SetIcon( FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.WorldBrowserComposition") );
 		}

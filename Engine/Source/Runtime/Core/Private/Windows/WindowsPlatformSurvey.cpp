@@ -4,7 +4,7 @@
 	WindowsPlatformSurvey.cpp: Microsoft Windows platform hardware-survey classes
 =================================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 #define USING_WINSAT_API	1
 #define USING_POWRPROF		1

@@ -54,19 +54,29 @@
 #include "WidgetSwitcherSlot.h"
 #include "WidgetSwitcher.h"
 
-#include "TextBlock.h"
+#include "BorderSlot.h"
 #include "Border.h"
+
+#include "ButtonSlot.h"
 #include "Button.h"
+
+#include "TextBlock.h"
 #include "CheckBox.h"
+#include "Image.h"
+
 #include "EditableText.h"
 #include "EditableTextBox.h"
-#include "Image.h"
+
+#include "MultiLineEditableText.h"
+#include "MultiLineEditableTextBox.h"
+
 #include "Slider.h"
 #include "ProgressBar.h"
 #include "ComboBox.h"
 
 #include "Spacer.h"
 #include "MenuAnchor.h"
+#include "ScrollBar.h"
 
 #include "Throbber.h"
 #include "CircularThrobber.h"
@@ -75,6 +85,8 @@
 #include "ListView.h"
 #include "TileView.h"
 
+#include "Viewport.h"
+
 // Slate
 #include "SObjectWidget.h"
 
@@ -82,13 +94,7 @@
 #include "WidgetTree.h"
 #include "UserWidget.h"
 
-#include "WidgetNode_Base.h"
-#include "WidgetNode_Text.h"
-
-#include "WidgetBlueprint.h"
 #include "WidgetBlueprintGeneratedClass.h"
-
-#include "WidgetActor.h"
 
 // Interfaces
 #include "IUMGModule.h"

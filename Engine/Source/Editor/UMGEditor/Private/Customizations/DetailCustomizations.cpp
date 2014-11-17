@@ -12,6 +12,178 @@
 
 #define LOCTEXT_NAMESPACE "UMG"
 
+void FBlueprintWidgetCustomization::CreateDelegateCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property )
+{
+	FString ConstPropertyName = Property->GetName();
+	ConstPropertyName.RemoveFromEnd(TEXT("Delegate"));
+
+	//TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), PropertyClass);
+	TSharedRef<IPropertyHandle> ConstPropertyHandle = DetailLayout.GetProperty(FName(*ConstPropertyName), CastChecked<UClass>(Property->GetOuter()));
+
+	const bool bHasValidHandle = ConstPropertyHandle->IsValidHandle();
+	if(!bHasValidHandle)
+	{
+		return;
+	}
+
+	UProperty* ConstProperty = ConstPropertyHandle->GetProperty();
+
+	const bool bIsEditable = ConstProperty->HasAnyPropertyFlags(CPF_Edit | CPF_EditConst);
+	const bool bDoSignaturesMatch = Property->SignatureFunction->GetReturnProperty()->SameType(ConstProperty);
+
+	if(!(bIsEditable && bDoSignaturesMatch))
+	{
+		return;
+	}
+
+	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(ConstProperty));
+
+	IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(ConstPropertyHandle);
+
+	TSharedPtr<SWidget> NameWidget;
+	TSharedPtr<SWidget> ValueWidget;
+	FDetailWidgetRow Row;
+	PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+
+	TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
+		.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, ConstPropertyHandle, Property->SignatureFunction)
+		.ContentPadding(0)
+		.ButtonContent()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				SNew(SImage)
+				.Image(this, &FBlueprintWidgetCustomization::GetCurrentBindingImage, ConstPropertyHandle)
+				.ColorAndOpacity(FLinearColor(0.25f, 0.25f, 0.25f))
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			.Padding(4, 1, 0, 0)
+			[
+				SNew(STextBlock)
+				.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, ConstPropertyHandle)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+			]
+		];
+
+	const bool bShowChildren = true;
+	PropertyRow.CustomWidget(bShowChildren)
+		.NameContent()
+		.MinDesiredWidth(Row.NameWidget.MinWidth)
+		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+		[
+			NameWidget.ToSharedRef()
+		]
+		.ValueContent()
+		.MinDesiredWidth(Row.ValueWidget.MinWidth * 2)
+		.MaxDesiredWidth(Row.ValueWidget.MaxWidth * 2)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1)
+			.Padding(FMargin(0, 0, 4, 0))
+			[
+				ValueWidget.ToSharedRef()
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.VAlign(VAlign_Center)
+			[
+				DelegateButton
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+				.Visibility(this, &FBlueprintWidgetCustomization::GetGotoBindingVisibility, ConstPropertyHandle)
+				.OnClicked(this, &FBlueprintWidgetCustomization::HandleGotoBindingClicked, ConstPropertyHandle)
+				.VAlign(VAlign_Center)
+				.ToolTipText(LOCTEXT("GotoFunction", "Goto Function"))
+				[
+					SNew(SImage)
+					.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Browse"))
+				]
+			]
+		];
+}
+
+void FBlueprintWidgetCustomization::CreateEventCustomization( IDetailLayoutBuilder& DetailLayout, UDelegateProperty* Property )
+{
+	if(!Property->GetName().EndsWith(TEXT("Event")))
+	{
+		return;
+	}
+
+	TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), CastChecked<UClass>(Property->GetOuter()));
+
+	const bool bHasValidHandle = DelegatePropertyHandle->IsValidHandle();
+	if(!bHasValidHandle)
+	{
+		return;
+	}
+
+	IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(Property));
+
+	IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(DelegatePropertyHandle);
+
+	TSharedPtr<SWidget> NameWidget;
+	TSharedPtr<SWidget> ValueWidget;
+	FDetailWidgetRow Row;
+	PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
+
+	TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
+		.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, DelegatePropertyHandle, Property->SignatureFunction)
+		.ContentPadding(0)
+		.ButtonContent()
+		[
+			SNew(STextBlock)
+			.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, DelegatePropertyHandle)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+		];
+
+	const bool bShowChildren = true;
+	PropertyRow.CustomWidget(bShowChildren)
+		.NameContent()
+		.MinDesiredWidth(Row.NameWidget.MinWidth)
+		.MaxDesiredWidth(Row.NameWidget.MaxWidth)
+		[
+			NameWidget.ToSharedRef()
+		]
+	.ValueContent()
+		.MinDesiredWidth(Row.ValueWidget.MinWidth)
+		.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1)
+			.VAlign(VAlign_Center)
+			[
+				DelegateButton
+			]
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.Visibility(this, &FBlueprintWidgetCustomization::GetGotoBindingVisibility, DelegatePropertyHandle)
+					.OnClicked(this, &FBlueprintWidgetCustomization::HandleGotoBindingClicked, DelegatePropertyHandle)
+					.VAlign(VAlign_Center)
+					.ToolTipText(LOCTEXT("GotoFunction", "Goto Function"))
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("PropertyWindow.Button_Browse"))
+					]
+				]
+		];
+}
+
 void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	TArray< TWeakObjectPtr<UObject> > OutObjects;
@@ -23,156 +195,29 @@ void FBlueprintWidgetCustomization::CustomizeDetails( IDetailLayoutBuilder& Deta
 
 		for ( TFieldIterator<UProperty> PropertyIt(PropertyClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt )
 		{
-			if ( UDelegateProperty* Property = Cast<UDelegateProperty>(*PropertyIt) )
+			UProperty* Property = *PropertyIt;
+			if ( UDelegateProperty* DelegateProperty = Cast<UDelegateProperty>(*PropertyIt) )
 			{
-				if ( !Property->GetName().EndsWith(TEXT("Delegate")) )
+				if( DelegateProperty->GetName().EndsWith(TEXT("Delegate")) )
 				{
-					continue;
+					CreateDelegateCustomization( DetailLayout, DelegateProperty );
 				}
-
-				FString ConstPropertyName = Property->GetName();
-				ConstPropertyName.RemoveFromEnd(TEXT("Delegate"));
-
-				//TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), PropertyClass);
-				TSharedRef<IPropertyHandle> ConstPropertyHandle = DetailLayout.GetProperty(FName(*ConstPropertyName), CastChecked<UClass>(Property->GetOuter()));
-
-				const bool bHasValidHandle = ConstPropertyHandle->IsValidHandle();
-
-				if ( !bHasValidHandle )
+				else if( DelegateProperty->GetName().EndsWith(TEXT("Event")) )
 				{
-					continue;
+					CreateEventCustomization( DetailLayout, DelegateProperty );
 				}
-
-				UProperty* ConstProperty = ConstPropertyHandle->GetProperty();
-
-				const bool bIsEditable = ConstProperty->HasAnyPropertyFlags(CPF_Edit | CPF_EditConst);
-				const bool bDoSignaturesMatch = Property->SignatureFunction->GetReturnProperty()->SameType(ConstProperty);
-
-				if ( !(bIsEditable && bDoSignaturesMatch) )
-				{
-					continue;
-				}
-
-				IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(ConstProperty));
-
-				IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(ConstPropertyHandle);
-
-				TSharedPtr<SWidget> NameWidget;
-				TSharedPtr<SWidget> ValueWidget;
-				FDetailWidgetRow Row;
-				PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
-
-				TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
-				.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, ConstPropertyHandle, Property->SignatureFunction)
-				.ContentPadding(0)
-				.ButtonContent()
-				[
-					SNew(STextBlock)
-					.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, ConstPropertyHandle)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				];
-
-				const bool bShowChildren = true;
-				PropertyRow.CustomWidget(bShowChildren)
-				.NameContent()
-				.MinDesiredWidth(Row.NameWidget.MinWidth)
-				.MaxDesiredWidth(Row.NameWidget.MaxWidth)
-				[
-					NameWidget.ToSharedRef()
-				]
-				.ValueContent()
-				.MinDesiredWidth(Row.ValueWidget.MinWidth * 2)
-				.MaxDesiredWidth(Row.ValueWidget.MaxWidth * 2)
-				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()
-					.FillWidth(1)
-					.Padding(FMargin(0, 0, 4, 0))
-					[
-						ValueWidget.ToSharedRef()
-					]
-					
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						DelegateButton
-					]
-				];
 			}
 		}
-
-		//--------------------------------------------
-
-		for ( TFieldIterator<UProperty> PropertyIt(PropertyClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt )
-		{
-			if ( UDelegateProperty* Property = Cast<UDelegateProperty>(*PropertyIt) )
-			{
-				if ( !Property->GetName().EndsWith(TEXT("Event")) )
-				{
-					continue;
-				}
-
-				TSharedRef<IPropertyHandle> DelegatePropertyHandle = DetailLayout.GetProperty(Property->GetFName(), CastChecked<UClass>(Property->GetOuter()));
-
-				const bool bHasValidHandle = DelegatePropertyHandle->IsValidHandle();
-
-				if ( !bHasValidHandle )
-				{
-					continue;
-				}
-
-				IDetailCategoryBuilder& PropertyCategory = DetailLayout.EditCategory(FObjectEditorUtils::GetCategoryFName(Property));
-
-				IDetailPropertyRow& PropertyRow = PropertyCategory.AddProperty(DelegatePropertyHandle);
-
-				TSharedPtr<SWidget> NameWidget;
-				TSharedPtr<SWidget> ValueWidget;
-				FDetailWidgetRow Row;
-				PropertyRow.GetDefaultWidgets(NameWidget, ValueWidget, Row);
-
-				TSharedRef<SComboButton> DelegateButton = SNew(SComboButton)
-				.OnGetMenuContent(this, &FBlueprintWidgetCustomization::OnGenerateDelegateMenu, DelegatePropertyHandle, Property->SignatureFunction)
-				.ContentPadding(0)
-				.ButtonContent()
-				[
-					SNew(STextBlock)
-					.Text(this, &FBlueprintWidgetCustomization::GetCurrentBindingText, DelegatePropertyHandle)
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				];
-
-				const bool bShowChildren = true;
-				PropertyRow.CustomWidget(bShowChildren)
-				.NameContent()
-				.MinDesiredWidth(Row.NameWidget.MinWidth)
-				.MaxDesiredWidth(Row.NameWidget.MaxWidth)
-				[
-					NameWidget.ToSharedRef()
-				]
-				.ValueContent()
-				.MinDesiredWidth(Row.ValueWidget.MinWidth)
-				.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
-				[
-					SNew(SHorizontalBox)
-					
-					+ SHorizontalBox::Slot()
-					.FillWidth(1)
-					[
-						DelegateButton
-					]
-				];
-			}
-		}
-
 	}
 }
 
-void FBlueprintWidgetCustomization::RefreshBlueprintFunctionCache(const UFunction* DelegateSignature)
+void FBlueprintWidgetCustomization::RefreshBlueprintMemberCache(const UFunction* DelegateSignature)
 {
 	const UWidgetGraphSchema* Schema = GetDefault<UWidgetGraphSchema>();
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
 	BlueprintFunctionCache.Reset();
+	BlueprintPropertyCache.Reset();
 
 	// Get the current skeleton class, think header for the blueprint.
 	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->SkeletonGeneratedClass);
@@ -212,27 +257,49 @@ void FBlueprintWidgetCustomization::RefreshBlueprintFunctionCache(const UFunctio
 			BlueprintFunctionCache.Add(NewFuncAction);
 		}
 	}
+
+	// Grab functions implemented by the blueprint
+	for ( TFieldIterator<UProperty> PropIt(SkeletonClass, EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt )
+	{
+		UProperty* Prop = *PropIt;
+		
+		if ( DelegateSignature->GetReturnProperty()->SameType(Prop) )
+		{
+			if ( Prop->HasAnyPropertyFlags(UP::BlueprintReadWrite) )
+			{
+				BlueprintPropertyCache.Add(Prop);
+			}
+		}
+	}
 }
 
 TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature)
 {
-	RefreshBlueprintFunctionCache(DelegateSignature);
+	RefreshBlueprintMemberCache(DelegateSignature);
 
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, NULL);
 
-	//TODO UMG Enable or disable Remove Binding if needed.
+	static FName PropertyIcon(TEXT("Kismet.Tabs.Variables"));
+	static FName FunctionIcon(TEXT("GraphEditor.Function_16x"));
 
-	MenuBuilder.BeginSection("ClearBinding");
+	//FLinearColor ColorOut;
+	//const UClass* VarClass = PropertyHandle->GetPropertyClass();
+	//BrushOut = FBlueprintEditor::GetVarIconAndColor(VarClass, PropertyHandle->GetProperty()->GetFName(), ColorOut);
+
+	if ( CanRemoveBinding(PropertyHandle) )
 	{
-		MenuBuilder.AddMenuEntry(
-			LOCTEXT("RemoveBinding", "Remove Binding"),
-			LOCTEXT("RemoveBindingToolTip", "Removes the current binding"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleRemoveBinding, PropertyHandle))
-			);
+		MenuBuilder.BeginSection("RemoveBinding");
+		{
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("RemoveBinding", "Remove Binding"),
+				LOCTEXT("RemoveBindingToolTip", "Removes the current binding"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleRemoveBinding, PropertyHandle))
+				);
+		}
+		MenuBuilder.EndSection(); //RemoveBinding
 	}
-	MenuBuilder.EndSection(); //ClearBinding
 
 	MenuBuilder.BeginSection("CreateBinding");
 	{
@@ -245,15 +312,29 @@ TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TShare
 	}
 	MenuBuilder.EndSection(); //CreateBinding
 
-	MenuBuilder.BeginSection("Functions");
+	MenuBuilder.BeginSection("Functions", LOCTEXT("Functions", "Functions"));
 	{
 		for ( TSharedPtr<FunctionInfo>& Function : BlueprintFunctionCache )
 		{
 			MenuBuilder.AddMenuEntry(
 				Function->DisplayName,
 				FText::FromString(Function->Tooltip),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleAddBinding, PropertyHandle, Function))
+				FSlateIcon(FEditorStyle::GetStyleSetName(), FunctionIcon),
+				FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleAddFunctionBinding, PropertyHandle, Function))
+				);
+		}
+	}
+	MenuBuilder.EndSection(); //Functions
+
+	MenuBuilder.BeginSection("Properties", LOCTEXT("Properties", "Properties"));
+	{
+		for ( UProperty* ExistingProperty : BlueprintPropertyCache )
+		{
+			MenuBuilder.AddMenuEntry(
+				ExistingProperty->GetDisplayNameText(),
+				ExistingProperty->GetToolTipText(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), PropertyIcon),
+				FUIAction(FExecuteAction::CreateSP(this, &FBlueprintWidgetCustomization::HandleAddPropertyBinding, PropertyHandle, ExistingProperty))
 				);
 		}
 	}
@@ -273,8 +354,11 @@ TSharedRef<SWidget> FBlueprintWidgetCustomization::OnGenerateDelegateMenu(TShare
 		];
 }
 
-FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const
+const FSlateBrush* FBlueprintWidgetCustomization::GetCurrentBindingImage(TSharedRef<IPropertyHandle> PropertyHandle) const
 {
+	static FName PropertyIcon(TEXT("Kismet.Tabs.Variables"));
+	static FName FunctionIcon(TEXT("GraphEditor.Function_16x"));
+
 	TArray<UObject*> OuterObjects;
 	PropertyHandle->GetOuterObjects(OuterObjects);
 
@@ -283,7 +367,7 @@ FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyH
 	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
-		// Ignore null outter objects
+		// Ignore null outer objects
 		if ( OuterObjects[ObjectIndex] == NULL )
 		{
 			continue;
@@ -295,9 +379,53 @@ FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyH
 		{
 			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
 			{
-				FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
-				return FText::FromName(FoundName);
-				//return FText::FromName(Binding.FunctionName);
+				if ( Binding.Kind == EBindingKind::Function )
+				{
+					return FEditorStyle::GetBrush(FunctionIcon);
+				}
+				else // Property
+				{
+					return FEditorStyle::GetBrush(PropertyIcon);
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
+FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const
+{
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	//TODO UMG O(N) Isn't good for this, needs to be map, but map isn't serialized, need cached runtime map for fast lookups.
+
+	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
+	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
+	{
+		// Ignore null outer objects
+		if ( OuterObjects[ObjectIndex] == NULL )
+		{
+			continue;
+		}
+
+		//TODO UMG handle multiple things selected
+
+		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
+			{
+				if ( Binding.Kind == EBindingKind::Function )
+				{
+					FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
+					return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+				}
+				else // Property
+				{
+					FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->GeneratedClass, Binding.MemberGuid);
+					return FText::FromString( FName::NameToDisplayString(FoundName.ToString(), false) );
+				}
 			}
 		}
 
@@ -307,6 +435,26 @@ FText FBlueprintWidgetCustomization::GetCurrentBindingText(TSharedRef<IPropertyH
 	}
 
 	return LOCTEXT("Bind", "Bind");
+}
+
+bool FBlueprintWidgetCustomization::CanRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
+
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+	for ( UObject* SelectedObject : OuterObjects )
+	{
+		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == SelectedObject->GetName() && Binding.PropertyName == PropertyName )
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void FBlueprintWidgetCustomization::HandleRemoveBinding(TSharedRef<IPropertyHandle> PropertyHandle)
@@ -329,7 +477,7 @@ void FBlueprintWidgetCustomization::HandleRemoveBinding(TSharedRef<IPropertyHand
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
-void FBlueprintWidgetCustomization::HandleAddBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction)
+void FBlueprintWidgetCustomization::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction)
 {
 	const FScopedTransaction Transaction(LOCTEXT("BindDelegate", "Set Binding"));
 
@@ -344,6 +492,37 @@ void FBlueprintWidgetCustomization::HandleAddBinding(TSharedRef<IPropertyHandle>
 		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
 		Binding.FunctionName = SelectedFunction->FuncName;
 		Binding.MemberGuid = SelectedFunction->EdGraph->GraphGuid;
+		Binding.Kind = EBindingKind::Function;
+
+		Blueprint->Bindings.Remove(Binding);
+		Blueprint->Bindings.AddUnique(Binding);
+	}
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+}
+
+void FBlueprintWidgetCustomization::HandleAddPropertyBinding(TSharedRef<IPropertyHandle> PropertyHandle, UProperty* SelectedProperty)
+{
+	const FScopedTransaction Transaction(LOCTEXT("BindDelegate", "Set Binding"));
+
+	// Get the current skeleton class, think header for the blueprint.
+	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->SkeletonGeneratedClass);
+
+	Blueprint->Modify();
+
+	FGuid MemberGuid;
+	UBlueprint::GetGuidFromClassByFieldName<UProperty>(SkeletonClass, SelectedProperty->GetFName(), MemberGuid);
+
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+	for ( UObject* SelectedObject : OuterObjects )
+	{
+		FDelegateEditorBinding Binding;
+		Binding.ObjectName = SelectedObject->GetName();
+		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
+		Binding.SourceProperty = SelectedProperty->GetFName();
+		Binding.MemberGuid = MemberGuid;
+		Binding.Kind = EBindingKind::Property;
 
 		Blueprint->Bindings.Remove(Binding);
 		Blueprint->Bindings.AddUnique(Binding);
@@ -376,7 +555,95 @@ void FBlueprintWidgetCustomization::HandleCreateAndAddBinding(TSharedRef<IProper
 	SelectedFunction->FuncName = FunctionGraph->GetFName();
 	SelectedFunction->EdGraph = FunctionGraph;
 
-	HandleAddBinding(PropertyHandle, SelectedFunction);
+	HandleAddFunctionBinding(PropertyHandle, SelectedFunction);
+
+	GotoFunction(FunctionGraph);
+}
+
+EVisibility FBlueprintWidgetCustomization::GetGotoBindingVisibility(TSharedRef<IPropertyHandle> PropertyHandle) const
+{
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	//TODO UMG O(N) Isn't good for this, needs to be map, but map isn't serialized, need cached runtime map for fast lookups.
+
+	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
+	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
+	{
+		// Ignore null outer objects
+		if ( OuterObjects[ObjectIndex] == NULL )
+		{
+			continue;
+		}
+
+		//TODO UMG handle multiple things selected
+
+		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
+			{
+				if ( Binding.Kind == EBindingKind::Function )
+				{
+					return EVisibility::Visible;
+				}
+			}
+		}
+	}
+
+	return EVisibility::Collapsed;
+}
+
+FReply FBlueprintWidgetCustomization::HandleGotoBindingClicked(TSharedRef<IPropertyHandle> PropertyHandle)
+{
+	TArray<UObject*> OuterObjects;
+	PropertyHandle->GetOuterObjects(OuterObjects);
+
+	//TODO UMG O(N) Isn't good for this, needs to be map, but map isn't serialized, need cached runtime map for fast lookups.
+
+	FName PropertyName = PropertyHandle->GetProperty()->GetFName();
+	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
+	{
+		// Ignore null outer objects
+		if ( OuterObjects[ObjectIndex] == NULL )
+		{
+			continue;
+		}
+
+		//TODO UMG handle multiple things selected
+
+		for ( const FDelegateEditorBinding& Binding : Blueprint->Bindings )
+		{
+			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
+			{
+				if ( Binding.Kind == EBindingKind::Function )
+				{
+					TArray<UEdGraph*> AllGraphs;
+					Blueprint->GetAllGraphs(AllGraphs);
+
+					for ( UEdGraph* Graph : AllGraphs )
+					{
+						if ( Graph->GraphGuid == Binding.MemberGuid )
+						{
+							GotoFunction(Graph);
+						}
+					}
+
+
+					// Either way return
+					return FReply::Handled();
+				}
+			}
+		}
+	}
+
+	return FReply::Unhandled();
+}
+
+void FBlueprintWidgetCustomization::GotoFunction(UEdGraph* FunctionGraph)
+{
+	Editor.Pin()->SetCurrentMode(FWidgetBlueprintApplicationModes::GraphMode);
+
+	Editor.Pin()->OpenDocument(FunctionGraph, FDocumentTracker::OpenNewDocument);
 }
 
 #undef LOCTEXT_NAMESPACE

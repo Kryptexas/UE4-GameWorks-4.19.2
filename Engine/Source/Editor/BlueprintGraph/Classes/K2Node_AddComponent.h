@@ -67,6 +67,8 @@ private:
 	{
 		return FindPin(TEXT("TemplateName"));
 	}
+
+	const UClass* GetSpawnedType() const;
 };
 
 

@@ -96,13 +96,7 @@ static NSOpenGLContext* CreateContext( NSOpenGLContext* SharedContext )
 	{
 		CGLEnable((CGLContextObj)[Context CGLContextObj], kCGLCEMPEngine);
 		
-		// Disable OpenGL.UseMapBuffer when using MTGL to reduce the number of context synchronisation points.
-		// All calls to glMapBuffer/Range will stall the MTGL thread, even with the unsynchronized bit set, so we want to avoid it.
-		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("OpenGL.UseMapBuffer"));
-		if(CVar && CVar->GetInt() == 1)
-		{
-			CVar->Set(0);
-		}
+		// @todo: We should disable OpenGL.UseMapBuffer for improved performance under MTGL, but radr://17662549 prevents it when using GL_TEXTURE_BUFFER's for skinning.
 	}
 
 	return Context;
@@ -217,90 +211,6 @@ bool GMacEnableCocoaScreenUpdates = true;
 	[super renewGState];
 }
 
-- (BOOL)acceptsFirstMouse:(NSEvent *)Event
-{
-	return YES;
-}
-
-/** Forward mouse events up to the window rather than through the responder chain - thus avoiding 
- *	the hidden titlebar controls. Normal windows just use the responder chain as usual.
- */
-- (void)mouseDown:(NSEvent*)Event
-{
-	// Swallowed by FSlateTextView
-	[super mouseDown:Event];
-	
-	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
-	if (SlateCocoaWindow)
-	{
-		[SlateCocoaWindow mouseDown:Event];
-	}
-}
-
-- (void)rightMouseDown:(NSEvent*)Event
-{
-	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
-	if (SlateCocoaWindow)
-	{
-		[SlateCocoaWindow rightMouseDown:Event];
-	}
-	else
-	{
-		[super rightMouseDown:Event];
-	}
-}
-
-- (void)otherMouseDown:(NSEvent*)Event
-{
-	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
-	if (SlateCocoaWindow)
-	{
-		[SlateCocoaWindow otherMouseDown:Event];
-	}
-	else
-	{
-		[super otherMouseDown:Event];
-	}
-}
-
-- (void)mouseUp:(NSEvent*)Event
-{
-	// Swallowed by FSlateTextView
-	[super mouseUp:Event];
-	
-	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
-	if (SlateCocoaWindow)
-	{
-		[SlateCocoaWindow mouseUp:Event];
-	}
-}
-
-- (void)rightMouseUp:(NSEvent*)Event
-{
-	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
-	if (SlateCocoaWindow)
-	{
-		[SlateCocoaWindow rightMouseUp:Event];
-	}
-	else
-	{
-		[super rightMouseUp:Event];
-	}
-}
-
-- (void)otherMouseUp:(NSEvent*)Event
-{
-	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
-	if (SlateCocoaWindow)
-	{
-		[SlateCocoaWindow otherMouseUp:Event];
-	}
-	else
-	{
-		[super otherMouseUp:Event];
-	}
-}
-
 @end
 
 class FMacOpenGLTimer
@@ -385,6 +295,15 @@ static TAutoConsoleVariable<int32> CVarMacUseFrameBufferSRGB(
 		TEXT("Flag to toggle use of GL_FRAMEBUFFER_SRGB for better color accuracy.\n"),
 		ECVF_RenderThreadSafe
 		);
+
+// @todo: remove once Apple fixes radr://15553950, TTP# 315197
+static int32 GMacMustFlushTexStorage = 0;
+static FAutoConsoleVariableRef CVarMacMustFlushTexStorage(
+	TEXT("r.Mac.MustFlushTexStorage"),
+	GMacMustFlushTexStorage,
+	TEXT("If true, flush the OpenGL command stream after calls to glTexStorage* to avoid driver errors, do nothing if false (faster, the default)."),
+	ECVF_RenderThreadSafe
+	);
 
 bool GIsRunningOnIntelCard = false; // @todo: remove once Apple fixes radr://16223045 Changes to the GL separate blend state aren't always respected on Intel cards
 static bool GIsEmulatingTimestamp = false; // @todo: Now crashing on Nvidia cards, but not on AMD...
@@ -627,6 +546,10 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 	if (VendorName.Contains(TEXT("Intel ")))
 	{
 		GIsRunningOnIntelCard = true;
+	}
+	else if (VendorName.Contains(TEXT("NVIDIA ")))
+	{
+		GMacMustFlushTexStorage = true;
 	}
 	
 	// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
@@ -1389,6 +1312,49 @@ PFNGLPOPGROUPMARKEREXTPROC FMacOpenGL::glPopGroupMarkerEXT = NULL;
 bool FMacOpenGL::bSupportsTessellationShader = false;
 PFNGLPATCHPARAMETERIPROC FMacOpenGL::glPatchParameteri = NULL;
 
+uint64 FMacOpenGL::GetVideoMemorySize()
+{
+	uint64 VideoMemory = 0;
+	NSOpenGLContext* NSContext = [NSOpenGLContext currentContext];
+	CGLContextObj Context = NSContext ? (CGLContextObj)[NSContext CGLContextObj] : NULL;
+	if(Context)
+	{
+		GLint VirtualScreen = [NSContext currentVirtualScreen];
+		GLint RendererID = 0;
+		GLint DisplayMask = 0;
+		
+		CGLPixelFormatObj PixelFormat = CGLGetPixelFormat(Context);
+		
+		if(PixelFormat && CGLDescribePixelFormat(PixelFormat, VirtualScreen, kCGLPFADisplayMask, &DisplayMask) == kCGLNoError
+		   && CGLGetParameter(Context, kCGLCPCurrentRendererID, &RendererID) == kCGLNoError)
+		{
+			// Get renderer info for all renderers that match the display mask.
+			GLint Num = 0;
+			CGLRendererInfoObj Renderer;
+			
+			CGLQueryRendererInfo((GLuint)DisplayMask, &Renderer, &Num);
+			
+			for (GLint i = 0; i < Num; i++)
+			{
+				GLint ThisRendererID = 0;
+				CGLDescribeRenderer(Renderer, i, kCGLRPRendererID, &ThisRendererID);
+				
+				// See if this is the one we want
+				if (ThisRendererID == RendererID)
+				{
+					GLint MemoryMB = 0;
+					CGLDescribeRenderer(Renderer, i, kCGLRPVideoMemoryMegabytes, (GLint*)&MemoryMB);
+					VideoMemory = (uint64)MemoryMB * 1024llu * 1024llu;
+					break;
+				}
+			}
+			
+			CGLDestroyRendererInfo(Renderer);
+		}
+	}
+	return VideoMemory;
+}
+
 void FMacOpenGL::ProcessQueryGLInt()
 {
 	GET_GL_INT(GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS, 0, MaxHullUniformComponents);
@@ -1829,4 +1795,9 @@ void FMacOpenGL::MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint 
 	{
 		FOpenGL3::GetQueryObject(QueryId, QueryMode, OutResult);
 	}
+}
+
+bool FMacOpenGL::MustFlushTexStorage(void)
+{
+	return GMacMustFlushTexStorage;
 }

@@ -86,13 +86,33 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 
 	/** Add an instance to this component. Transform is given in world space. */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
-	 void AddInstanceWorldSpace(const FTransform& WorldTransform);
+	void AddInstanceWorldSpace(const FTransform& WorldTransform);
 
-	virtual bool ShouldCreatePhysicsState() const;
+	/** Get the transform for the instance specified. Instance is returned in local space of this component unless bWorldSpace is set.  Returns True on success. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	bool GetInstanceTransform(int32 InstanceIndex, FTransform& OutInstanceTransform, bool bWorldSpace = false) const;
+	
+	/** Update the transform for the instance specified. Instance is given in local space of this component unless bWorldSpace is set.  Returns True on success. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace=false);
 
+	/** Remove the instance specified. Returns True on success. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	bool RemoveInstance(int32 InstanceIndex);
+	
 	/** Clear all instances being rendered by this component */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
 	void ClearInstances();
+	
+	/** Get the number of instances in this component */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	int32 GetInstanceCount() const;
+
+	/** Sets the fading start and culling end distances for this component. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	void SetCullDistances(int32 StartCullDistance, int32 EndCullDistance);
+
+	virtual bool ShouldCreatePhysicsState() const;
 
 public:
 #if WITH_EDITOR
@@ -118,6 +138,7 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
+	virtual bool CanEditSimulatePhysics() override;
 
 	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;
 #if WITH_EDITOR
@@ -145,6 +166,9 @@ public:
 private:
 	/** Initializes the body instance for the specified instance of the static mesh*/
 	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* BodyInstance);
+
+	/** Creates body instances for all instances owned by this component */
+	void CreateAllInstanceBodies();
 
 	/** Terminate all body instances owned by this component */
 	void ClearAllInstanceBodies();

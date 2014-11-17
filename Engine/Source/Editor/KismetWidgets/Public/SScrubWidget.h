@@ -30,7 +30,6 @@ public:
 		, _ViewInputMin()
 		, _OnSetInputViewRange()
 		, _OnCropAnimSequence()
-		, _bLastFrameIsFirstFrame(true)
 		{}
 		
 		/** The value to display */
@@ -55,7 +54,6 @@ public:
 		/** Optional, additional values to draw on the timeline **/
 		SLATE_ATTRIBUTE( TArray<float>, DraggableBars )
 		SLATE_EVENT( FOnScrubBarDrag, OnBarDrag)
-		SLATE_ARGUMENT( bool, bLastFrameIsFirstFrame )
 	SLATE_END_ARGS()
 
 
@@ -68,14 +66,14 @@ public:
 
 	// SWidget interface
 	virtual FVector2D ComputeDesiredSize() const override;
-	virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
+	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
 
-	static int32 GetDivider(float InputMinX, float InputMaxX, FVector2D WidgetSize, float SequenceLength, int32 NumFrames, bool bLastFrameIsFirstFrame = true);
+	static int32 GetDivider(float InputMinX, float InputMaxX, FVector2D WidgetSize, float SequenceLength, int32 NumFrames);
 protected:
 
 	/**
@@ -128,7 +126,5 @@ private:
 	/** Bar Dragging*/
 	int32 DraggableBarIndex;
 	bool DraggingBar;
-
-	bool bLastFrameIsFirstFrame;
 };
 

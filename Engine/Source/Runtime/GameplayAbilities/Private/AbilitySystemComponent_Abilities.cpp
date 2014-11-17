@@ -79,6 +79,29 @@ UGameplayAbility * UAbilitySystemComponent::CreateNewInstanceOfAbility(UGameplay
 	return AbilityInstance;
 }
 
+void UAbilitySystemComponent::NotifyAbilityEnded(UGameplayAbility* Ability)
+{
+	check(Ability);
+	
+	/** If this is instanced per execution, mark pending kill and remove it from our instanced lists if we are the authority */
+	if (Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
+	{
+		if (Ability->GetReplicationPolicy() != EGameplayAbilityReplicationPolicy::ReplicateNone)
+		{
+			if (GetOwnerRole() == ROLE_Authority)
+			{
+				ReplicatedInstancedAbilities.Remove(Ability);
+				Ability->MarkPendingKill();
+			}
+		}
+		else
+		{
+			NonReplicatedInstancedAbilities.Remove(Ability);
+			Ability->MarkPendingKill();
+		}
+	}
+}
+
 bool UAbilitySystemComponent::ActivateAbility(TWeakObjectPtr<UGameplayAbility> Ability)
 {
 	check(AbilityActorInfo.IsValid());
@@ -223,11 +246,45 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceed_Implementation(UGamep
 	AActor * OwnerActor = GetOwner();
 	check(OwnerActor);
 
-	// Fixme: We need a better way to link up/reconcile preditive replicated abilities.
-	if (AbilityToActivate->GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::InstancedPerExecution)
+	// Fixme: We need a better way to link up/reconcile preditive replicated abilities. It would be ideal if we could predictively spawn an
+	// ability and then replace/link it with the server spawned one once the server has confirmed it.
+	// 
+
+	FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, PredictionKey);
+
+
+	if (AbilityToActivate->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::Predictive)
 	{
-		FGameplayAbilityActivationInfo	ActivationInfo(EGameplayAbilityActivationMode::Confirmed, PredictionKey);
-		AbilityToActivate->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
+		// Find the one we predictively spawned, tell them we are confirmed
+		bool found = false;
+		for (UGameplayAbility* LocalAbility : NonReplicatedInstancedAbilities)				// Fixme: this has to be updated once predictive abilities can replicate
+		{
+			if (LocalAbility->GetCurrentActivationInfo().PredictionKey == PredictionKey)
+			{
+				LocalAbility->ConfirmActivateSucceed();
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			ABILITY_LOG(Warning, TEXT("Ability %s was confirmed by server but no longer exists on client (replication key: %d"), *AbilityToActivate->GetName(), PredictionKey);
+		}
+	}
+	else
+	{
+		// We haven't already executed this ability at all, so kick it off.
+		if (AbilityToActivate->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
+		{
+			// Need to instantiate this in order to execute
+			UGameplayAbility* InstancedAbility = CreateNewInstanceOfAbility(AbilityToActivate);
+			InstancedAbility->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
+		}
+		else
+		{
+			AbilityToActivate->CallActivateAbility(AbilityActorInfo.Get(), ActivationInfo);
+		}
 	}
 }
 

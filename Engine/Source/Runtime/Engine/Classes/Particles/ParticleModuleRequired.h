@@ -277,6 +277,13 @@ class UParticleModuleRequired : public UParticleModule
 	UPROPERTY(EditAnywhere, Category=Emitter)
 	uint32 bOrbitModuleAffectsVelocityAlignment:1;
 
+	/** 
+	*	Named material overrides for this emitter. 
+	*	Overrides this emitter's material(s) with those in the correspondingly named slot(s) of the owning system.
+	*/
+	UPROPERTY(EditAnywhere, Category = Materials)
+	TArray<FName> NamedMaterialOverrides;
+
 	/** Initializes the default values for this property */
 	void InitializeDefaults();
 

@@ -263,6 +263,8 @@ TSharedRef<SWidget> FMainMenu::MakeMainMenu( const TSharedPtr<FTabManager>& TabM
 			LOCTEXT("EditMenu_ToolTip", "Open the edit menu"),
 			FNewMenuDelegate::CreateStatic(&FMainMenu::FillEditMenu, Extender, TabManager),
 			"Edit"
+			,
+			FName(TEXT("EditMenu"))
 		);
 
 		// Window
@@ -285,6 +287,9 @@ TSharedRef<SWidget> FMainMenu::MakeMainMenu( const TSharedPtr<FTabManager>& TabM
 	// Create the menu bar!
 	TSharedRef<SWidget> MenuBarWidget = MenuBuilder.MakeWidget();
 
+	// Tell tab-manager about the multi-box for platforms with a global menu bar
+	TabManager->SetMenuMultiBox(MenuBuilder.GetMultiBox());
+	
 	return MenuBarWidget;
 }
 

@@ -4,7 +4,7 @@
 	WindowsPlatformAtomics.cpp: Windows implementations of atomic functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 
 void FWindowsPlatformAtomics::HandleAtomicsFailure( const TCHAR* InFormat, ... )
 {	

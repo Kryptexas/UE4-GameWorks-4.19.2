@@ -401,9 +401,35 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 	ConstraintInstance.SecAxis1 = A1Transform.InverseTransformVectorNoScale(WOrth);
 
 	ConstraintInstance.Pos2 = A2Transform.InverseTransformPosition(WPos);
-	ConstraintInstance.PriAxis2 = A2Transform.InverseTransformVectorNoScale(WPri);
-	ConstraintInstance.SecAxis2 = A2Transform.InverseTransformVectorNoScale(WOrth);
+	ConstraintInstance.PriAxis2 = A2Transform.InverseTransformVectorNoScale(ConstraintInstance.AngularRotationOffset.RotateVector(WPri));
+	ConstraintInstance.SecAxis2 = A2Transform.InverseTransformVectorNoScale(ConstraintInstance.AngularRotationOffset.RotateVector(WOrth));
 }
+
+void UPhysicsConstraintComponent::SetConstraintReferenceFrame(EConstraintFrame::Type Frame, const FTransform& RefFrame)
+{
+	ConstraintInstance.SetRefFrame(Frame, RefFrame);
+}
+
+void UPhysicsConstraintComponent::SetConstraintReferencePosition(EConstraintFrame::Type Frame, const FVector& RefPosition)
+{
+	ConstraintInstance.SetRefPosition(Frame, RefPosition);
+}
+
+void UPhysicsConstraintComponent::SetConstraintReferenceOrientation(EConstraintFrame::Type Frame, const FVector& PriAxis, const FVector& SecAxis)
+{
+	ConstraintInstance.SetRefOrientation(Frame, PriAxis, SecAxis);
+}
+
+void UPhysicsConstraintComponent::GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce)
+{
+	ConstraintInstance.GetConstraintForce(OutLinearForce, OutAngularForce);
+}
+
+void UPhysicsConstraintComponent::SetDisableCollision(bool bDisableCollision)
+{
+	ConstraintInstance.SetDisableCollision(bDisableCollision);
+}
+
 
 #if WITH_EDITOR
 void UPhysicsConstraintComponent::UpdateSpriteTexture()

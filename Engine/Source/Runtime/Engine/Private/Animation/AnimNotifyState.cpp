@@ -16,18 +16,39 @@ UAnimNotifyState::UAnimNotifyState(const class FPostConstructInitializePropertie
 }
 
 
-void UAnimNotifyState::NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq)
+void UAnimNotifyState::NotifyBegin(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
 {
-	Received_NotifyBegin(MeshComp, AnimSeq);
+	Received_NotifyBegin(MeshComp, Animation);
 }
 
-void UAnimNotifyState::NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq, float FrameDeltaTime)
+void UAnimNotifyState::NotifyTick(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation, float FrameDeltaTime)
 {
-	Received_NotifyTick(MeshComp, AnimSeq, FrameDeltaTime);
+	Received_NotifyTick(MeshComp, Animation, FrameDeltaTime);
 }
 
-void UAnimNotifyState::NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequence * AnimSeq)
+void UAnimNotifyState::NotifyEnd(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation)
 {
-	Received_NotifyEnd(MeshComp, AnimSeq);
+	Received_NotifyEnd(MeshComp, Animation);
+}
+
+FString UAnimNotifyState::GetNotifyName_Implementation() const
+{
+	UObject* ClassGeneratedBy = GetClass()->ClassGeneratedBy;
+	FString NotifyName;
+
+	if(ClassGeneratedBy)
+	{
+		// GeneratedBy will be valid for blueprint types and gives a clean name without a suffix
+		NotifyName = ClassGeneratedBy->GetName();
+	}
+	else
+	{
+		// Native notify classes are clean without a suffix otherwise
+		NotifyName = GetClass()->GetName();
+	}
+
+	NotifyName = NotifyName.Replace(TEXT("AnimNotifyState_"), TEXT(""), ESearchCase::CaseSensitive);
+	
+	return NotifyName;
 }
 

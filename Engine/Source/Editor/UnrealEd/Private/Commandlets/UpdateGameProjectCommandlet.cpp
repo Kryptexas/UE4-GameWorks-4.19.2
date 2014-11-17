@@ -71,9 +71,10 @@ int32 UUpdateGameProjectCommandlet::Main( const FString& InParams )
 
 	UE_LOG(LogUpdateGameProjectCommandlet, Display, TEXT("Updating project file %s to %s..."), *ProjectFilePath, *EngineIdentifier);
 
-	if ( !FGameProjectGenerationModule::Get().UpdateGameProject(EngineIdentifier) )
+	FText FailReason;
+	if ( !FGameProjectGenerationModule::Get().UpdateGameProject(ProjectFilePath, EngineIdentifier, FailReason) )
 	{
-		// UpdateGameProject produces it's own error to the log
+		UE_LOG(LogUpdateGameProjectCommandlet, Error, TEXT("Couldn't update game project: %s"), *FailReason.ToString());
 		return 1;
 	}
 

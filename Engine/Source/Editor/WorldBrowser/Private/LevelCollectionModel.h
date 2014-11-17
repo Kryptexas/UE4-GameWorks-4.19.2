@@ -22,7 +22,7 @@ public:
 
 
 public:
-	FLevelCollectionModel(const TWeakObjectPtr<UEditorEngine>& InEditor);
+	FLevelCollectionModel(UEditorEngine* InEditor);
 	virtual ~FLevelCollectionModel();
 
 	/** FTickableEditorObject interface */
@@ -72,6 +72,9 @@ public:
 
 	/**	Sets selected level list */
 	void SetSelectedLevels(const FLevelModelList& InList);
+	
+	/**	Sets selection to a levels that is currently marked as selected in UWorld */
+	void SetSelectedLevelsFromWorld();
 
 	/**	@return	Found level model which represents specified level object */
 	TSharedPtr<FLevelModel> FindLevelModel(ULevel* InLevel) const;
@@ -111,19 +114,19 @@ public:
 
 	/** Attach levels as children to specified level */
 	void AssignParent(const FLevelModelList& InLevels, TSharedPtr<FLevelModel> InParent);
+
+	/** Adds all levels in worlds represented by the supplied world list as sublevels */
+	virtual void AddExistingLevelsFromAssetData(const TArray<class FAssetData>& WorldList);
 			
 	/**	Create drag drop operation for a selected level models */
 	virtual TSharedPtr<class FLevelDragDropOp> CreateDragDropOp() const;
 	
 	/**	@return	Whether specified level passes all filters */
 	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const;
-
-	/**	Builds 'minimap' commands menu for a selected levels */
-	virtual void BuildGridMenu(FMenuBuilder& InMenuBuilder) const;
 	
 	/**	Builds 'hierarchy' commands menu for a selected levels */
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const;
-
+	
 	/**	Customize 'File' section in main menu  */
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const;
 
@@ -404,17 +407,17 @@ protected:
 	}
 	
 	/** Fills MenuBulder with Lock level related commands */
-	void FillLockMenu(class FMenuBuilder& MenuBuilder);
+	void FillLockSubMenu(class FMenuBuilder& MenuBuilder);
 	
 	/** Fills MenuBulder with level visisbility related commands */
-	void FillVisibilityMenu(class FMenuBuilder& MenuBuilder);
+	void FillVisibilitySubMenu(class FMenuBuilder& MenuBuilder);
 
 	/** Fills MenuBulder with SCC related commands */
-	void FillSourceControlMenu(class FMenuBuilder& MenuBuilder);
+	void FillSourceControlSubMenu(class FMenuBuilder& MenuBuilder);
 				
 protected:
 	/**  */
-	virtual void Initialize();
+	virtual void Initialize(UWorld* InWorld);
 	
 	/**  */
 	virtual void BindCommands();
@@ -424,6 +427,9 @@ protected:
 	
 	/** Called whenever level selection has been changed */
 	virtual void OnLevelsSelectionChanged();
+
+	/** Called whenever level selection has been changed outside of this module, usually via World->SetSelectedLevels */
+	void OnLevelsSelectionChangedOutside();
 	
 	/** Called whenever level collection hierarchy has been changed */
 	virtual void OnLevelsHierarchyChanged();
@@ -515,6 +521,9 @@ protected:
 
 	/** Flag for whether the selection of levels or actors has changed */
 	bool								bSelectionHasChanged;
+
+	/** Guard to avoid recursive level selection updates */
+	bool								bUpdatingLevelsSelection;
 };
 
 //

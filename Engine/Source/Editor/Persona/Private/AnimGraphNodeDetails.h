@@ -193,7 +193,7 @@ private:
 	bool OnShouldFilterAsset(const FAssetData& AssetData);
 
 	// Sets the override asset when selected from the asset picker
-	void OnAssetSelected(const UObject* Obj);
+	void OnAssetSelected(const FAssetData& AssetData);
 
 	void OnCloseMenu(){}
 

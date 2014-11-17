@@ -292,8 +292,11 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 	bPreviewLockModeOn = 0;
 	LODSelection = LOD_Auto;
 
+	TSharedPtr<FPersona> SharedPersona = PersonaPtr.Pin();
+	check(SharedPersona.IsValid());
+
 	// register delegate for anim change notification
-	PersonaPtr.Pin()->RegisterOnAnimChanged(FPersona::FOnAnimChanged::CreateSP(this, &SAnimationEditorViewportTabBody::AnimChanged));
+	SharedPersona->RegisterOnAnimChanged(FPersona::FOnAnimChanged::CreateSP(this, &SAnimationEditorViewportTabBody::AnimChanged));
 
 	const FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
 
@@ -309,9 +312,10 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 
 	ViewportWidget = SNew(SAnimationEditorViewport, InArgs._Persona, SharedThis(this));
 
+	TSharedPtr<SVerticalBox> ViewportContainer = nullptr;
 	this->ChildSlot
 	[
-		SNew(SVerticalBox)
+		SAssignNew(ViewportContainer, SVerticalBox)
 
 		// Build our toolbar level toolbar
 		+SVerticalBox::Slot()
@@ -340,7 +344,11 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 				.OnClicked(this, &SAnimationEditorViewportTabBody::ClickedOnViewportCornerText)
 			]
 		]
-		+SVerticalBox::Slot()
+	];
+
+	if(!SharedPersona->IsModeCurrent(FPersonaModes::AnimationEditMode) && ViewportContainer.IsValid())
+	{
+		ViewportContainer->AddSlot()
 		.AutoHeight()
 		[
 			SAssignNew(ScrubPanelContainer, SVerticalBox)
@@ -353,10 +361,10 @@ void SAnimationEditorViewportTabBody::Construct(const FArguments& InArgs)
 				.ViewInputMax(this, &SAnimationEditorViewportTabBody::GetViewMaxInput)
 				.bAllowZoom(true)
 			]
-		]
-	];
+		];
 
-	UpdateScrubPanel(Cast<UAnimationAsset>(PersonaPtr.Pin()->GetPreviewAnimationAsset()));
+		UpdateScrubPanel(Cast<UAnimationAsset>(SharedPersona->GetPreviewAnimationAsset()));
+	}
 
 	LevelViewportClient = ViewportWidget->GetViewportClient();
 	LevelViewportClient->VisibilityDelegate.BindSP(this, &SAnimationEditorViewportTabBody::IsVisible);
@@ -482,10 +490,22 @@ void SAnimationEditorViewportTabBody::BindCommands()
 
 	//Display info
 	CommandList.MapAction( 
-		ViewportShowMenuCommands.ShowDisplayInfo,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo),
+		ViewportShowMenuCommands.ShowDisplayInfoBasic,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo, (int32)EDisplayInfoMode::Basic),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo));
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo, (int32)EDisplayInfoMode::Basic));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowDisplayInfoDetailed,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo, (int32)EDisplayInfoMode::Detailed),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo, (int32)EDisplayInfoMode::Detailed));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.HideDisplayInfo,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowDisplayInfo, (int32)EDisplayInfoMode::None),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMeshInfo, (int32)EDisplayInfoMode::None));
 
 	//Bone weight
 	CommandList.MapAction( 
@@ -642,10 +662,6 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsLODModelSelected, LOD_3));
 
-	CommandList.MapAction(
-		ViewportLODMenuCommands.ShowLevelOfDetailSettings,
-		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowLevelOfDetailSettings));
-
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ToggleGrid,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowGrid),
@@ -689,6 +705,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnMuteAudio),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsAudioMuted));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ProcessRootMotion,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnTogglePreviewRootMotion),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsPreviewingRootMotion));
 }
 
 bool SAnimationEditorViewportTabBody::IsPreviewModeOn(int32 PreviewMode) const
@@ -815,14 +837,14 @@ bool SAnimationEditorViewportTabBody::IsShowingAdditiveBase() const
 	return PreviewComponent != NULL && PreviewComponent->bDisplayAdditiveBasePose;
 }
 
-void SAnimationEditorViewportTabBody::OnShowDisplayInfo()
+void SAnimationEditorViewportTabBody::OnShowDisplayInfo(int32 DisplayInfoMode)
 {
-	GetAnimationViewportClient()->OnToggleShowMeshStats();
+	GetAnimationViewportClient()->OnSetShowMeshStats(DisplayInfoMode);
 }
 
-bool SAnimationEditorViewportTabBody::IsShowingMeshInfo() const
+bool SAnimationEditorViewportTabBody::IsShowingMeshInfo(int32 DisplayInfoMode) const
 {
-	return GetAnimationViewportClient()->IsShowingMeshStats();
+	return GetAnimationViewportClient()->GetShowMeshStats() == DisplayInfoMode;
 }
 
 void SAnimationEditorViewportTabBody::OnShowBoneWeight()
@@ -1119,32 +1141,36 @@ void SAnimationEditorViewportTabBody::PopulateUVChoices()
 
 void SAnimationEditorViewportTabBody::UpdateScrubPanel(UAnimationAsset* AnimAsset)
 {
-	ScrubPanelContainer->ClearChildren();
-	bool bUseDefaultScrubPanel = true;
-	if (UAnimMontage* Montage = Cast<UAnimMontage>(AnimAsset))
+	// We might not have a scrub panel if we're in animation mode.
+	if(ScrubPanelContainer.IsValid())
 	{
-		ScrubPanelContainer->AddSlot()
-		.AutoHeight()
-		[
-			SNew(SAnimMontageScrubPanel)
-			.Persona(PersonaPtr)
-			.ViewInputMin(this, &SAnimationEditorViewportTabBody::GetViewMinInput)
-			.ViewInputMax(this, &SAnimationEditorViewportTabBody::GetViewMaxInput)
-			.bAllowZoom(true)
-		];
-		bUseDefaultScrubPanel = false;
-	}
-	if (bUseDefaultScrubPanel)
-	{
-		ScrubPanelContainer->AddSlot()
-		.AutoHeight()
-		[
-			SNew(SAnimationScrubPanel)
-			.Persona(PersonaPtr)
-			.ViewInputMin(this, &SAnimationEditorViewportTabBody::GetViewMinInput)
-			.ViewInputMax(this, &SAnimationEditorViewportTabBody::GetViewMaxInput)
-			.bAllowZoom(true)
-		];
+		ScrubPanelContainer->ClearChildren();
+		bool bUseDefaultScrubPanel = true;
+		if(UAnimMontage* Montage = Cast<UAnimMontage>(AnimAsset))
+		{
+			ScrubPanelContainer->AddSlot()
+				.AutoHeight()
+				[
+					SNew(SAnimMontageScrubPanel)
+					.Persona(PersonaPtr)
+					.ViewInputMin(this, &SAnimationEditorViewportTabBody::GetViewMinInput)
+					.ViewInputMax(this, &SAnimationEditorViewportTabBody::GetViewMaxInput)
+					.bAllowZoom(true)
+				];
+			bUseDefaultScrubPanel = false;
+		}
+		if(bUseDefaultScrubPanel)
+		{
+			ScrubPanelContainer->AddSlot()
+				.AutoHeight()
+				[
+					SNew(SAnimationScrubPanel)
+					.Persona(PersonaPtr)
+					.ViewInputMin(this, &SAnimationEditorViewportTabBody::GetViewMinInput)
+					.ViewInputMax(this, &SAnimationEditorViewportTabBody::GetViewMaxInput)
+					.bAllowZoom(true)
+				];
+		}
 	}
 }
 
@@ -1217,20 +1243,6 @@ void SAnimationEditorViewportTabBody::OnSetLODModel(ELODViewSelection LODSelecti
 	{
 		PreviewComponent->ForcedLodModel = LODSelection;
 		PopulateUVChoices();
-	}
-}
-
-void SAnimationEditorViewportTabBody::OnShowLevelOfDetailSettings()
-{
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	if(TargetSkeleton)
-	{
-		FSkeletalMeshUpdateContext UpdateContext;
-		UpdateContext.SkeletalMesh = PersonaPtr.Pin()->GetMesh();
-		UpdateContext.AssociatedComponents.Push(PreviewComponent);
-		UpdateContext.OnLODChanged.BindSP(this, &SAnimationEditorViewportTabBody::OnLODChanged);
-
-		FLODUtilities::CreateLODSettingsDialog(UpdateContext);
 	}
 }
 
@@ -1371,6 +1383,27 @@ void SAnimationEditorViewportTabBody::OnMuteAudio()
 bool SAnimationEditorViewportTabBody::IsAudioMuted()
 {
 	return GetAnimationViewportClient()->IsAudioMuted();
+}
+
+void SAnimationEditorViewportTabBody::OnTogglePreviewRootMotion()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if (PreviewComponent)
+	{
+		PreviewComponent->bPreviewRootMotion = !PreviewComponent->bPreviewRootMotion;
+	}
+}
+
+bool SAnimationEditorViewportTabBody::IsPreviewingRootMotion() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+
+	if (PreviewComponent)
+	{
+		return PreviewComponent->bPreviewRootMotion;
+	}
+	return false;
 }
 
 #if WITH_APEX_CLOTHING

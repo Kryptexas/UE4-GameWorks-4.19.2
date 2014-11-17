@@ -105,10 +105,6 @@ struct FAnimExtractContext
 	UPROPERTY()
 	bool bExtractRootMotionRotation;
 
-	/** Are we looping this animation? */
-	UPROPERTY()
-	bool bLooping;
-
 	/** Position in animation to extract pose from */
 	UPROPERTY()
 	float CurrentTime;
@@ -120,278 +116,29 @@ struct FAnimExtractContext
 	FAnimExtractContext()
 		: bExtractRootMotionTranslation(false)
 		, bExtractRootMotionRotation(false)
-		, bLooping(false)
 		, CurrentTime(0.f)
 		, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	{
 	}
 
-	FAnimExtractContext(float InCurrentTime, bool InbLooping)
+	FAnimExtractContext(float InCurrentTime)
 		: bExtractRootMotionTranslation(false)
 		, bExtractRootMotionRotation(false)
-		, bLooping(InbLooping)
 		, CurrentTime(InCurrentTime)
 		, RootMotionRootLock(ERootMotionRootLock::RefPose)
 	{
 	}
 
-	FAnimExtractContext(float InCurrentTime, bool InbLooping, bool InbExtractRootMotionTranslation, bool InbExtractRootMotionRotation, ERootMotionRootLock::Type InRootMotionRootLock)
+	FAnimExtractContext(float InCurrentTime, bool InbExtractRootMotionTranslation, bool InbExtractRootMotionRotation, ERootMotionRootLock::Type InRootMotionRootLock)
 		: bExtractRootMotionTranslation(InbExtractRootMotionTranslation)
 		, bExtractRootMotionRotation(InbExtractRootMotionRotation)
-		, bLooping(InbLooping)
 		, CurrentTime(InCurrentTime)
 		, RootMotionRootLock(InRootMotionRootLock)
 	{
 	}
 };
 
-/**
- * This is a native transient structure.
- * Contains:
- * - BoneIndicesArray: Array of RequiredBoneIndices for Current Asset. In increasing order. Mapping to current Array of Transforms (Pose).
- * - BoneSwitchArray: Size of current Skeleton. true if Bone is contained in RequiredBones array, false otherwise.
- **/
-struct FBoneContainer
-{
-private:
-	/** Array of RequiredBonesIndices. In increasing order. */
-	TArray<FBoneIndexType>	BoneIndicesArray;
-	/** Array sized by Current RefPose. true if Bone is contained in RequiredBones array, false otherwise. */
-	TBitArray<>				BoneSwitchArray;
 
-	/** Asset BoneIndicesArray was made for. Typically a SkeletalMesh. */
-	TWeakObjectPtr<UObject>	Asset;
-	/** If Asset is a SkeletalMesh, this will be a pointer to it. Can be NULL if Asset is a USkeleton. */
-	TWeakObjectPtr<USkeletalMesh> AssetSkeletalMesh;
-	/** If Asset is a Skeleton that will be it. If Asset is a SkeletalMesh, that will be its Skeleton. */
-	TWeakObjectPtr<USkeleton> AssetSkeleton;
-
-	/** Pointer to RefSkeleton of Asset. */
-	const FReferenceSkeleton* RefSkeleton;
-
-	/** Mapping table between Skeleton Bone Indices and Pose Bone Indices. */
-	TArray<int32> SkeletonToPoseBoneIndexArray;
-
-	/** Mapping table between Pose Bone Indices and Skeleton Bone Indices. */
-	TArray<int32> PoseToSkeletonBoneIndexArray;
-
-	/** For debugging. */
-	/** Disable Retargeting. Extract animation, but do not retarget it. */
-	bool bDisableRetargeting;
-	/** Disable animation compression, use RAW data instead. */
-	bool bUseRAWData;
-
-public:
-
-	FBoneContainer()
-		: Asset(NULL)
-		, AssetSkeletalMesh(NULL)
-		, AssetSkeleton(NULL)
-		, RefSkeleton(NULL)
-		, bDisableRetargeting(false)
-		, bUseRAWData(false)
-	{
-		BoneIndicesArray.Empty();
-		BoneSwitchArray.Empty();
-		SkeletonToPoseBoneIndexArray.Empty();
-		PoseToSkeletonBoneIndexArray.Empty();
-	}
-
-	FBoneContainer(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset)
-		: BoneIndicesArray(InRequiredBoneIndexArray)
-		, Asset(&InAsset)
-		, AssetSkeletalMesh(NULL)
-		, AssetSkeleton(NULL)
-		, RefSkeleton(NULL)
-		, bDisableRetargeting(false)
-		, bUseRAWData(false)
-	{
-		Initialize();
-	}
-
-	/** Initialize BoneContainer to a new Asset, RequiredBonesArray and RefPoseArray. */
-	void InitializeTo(const TArray<FBoneIndexType>& InRequiredBoneIndexArray, UObject& InAsset);
-
-	/** Returns true if FBoneContainer is Valid. Needs an Asset, a RefPoseArray, and a RequiredBonesArray. */
-	const bool IsValid() const
-	{
-		return (Asset.IsValid() && (RefSkeleton != NULL) && (BoneIndicesArray.Num() > 0));
-	}
-
-	/** Get Asset this BoneContainer was made for. Typically a SkeletalMesh, but could also be a USkeleton. */
-	UObject* GetAsset() const
-	{
-		return Asset.Get();
-	}
-
-	/** Get SkeletalMesh Asset this BoneContainer was made for. Could be NULL if Asset is a Skeleton. */
-	USkeletalMesh* GetSkeletalMeshAsset() const
-	{
-		return AssetSkeletalMesh.Get();
-	}
-
-	/** Get Skeleton Asset. Could either be the SkeletalMesh's Skeleton, or the Skeleton this BoneContainer was made for. Is non NULL is BoneContainer is valid. */
-	USkeleton * GetSkeletonAsset() const
-	{
-		return AssetSkeleton.Get();
-	}
-
-	/** Disable Retargeting for debugging. */
-	void SetDisableRetargeting(bool InbDisableRetargeting)
-	{
-		bDisableRetargeting = InbDisableRetargeting;
-	}
-
-	/** True if retargeting is disabled for debugging. */
-	bool GetDisableRetargeting() const
-	{
-		return bDisableRetargeting;
-	}
-
-	/** Ignore compressed data and use RAW data instead, for debugging. */
-	void SetUseRAWData(bool InbUseRAWData)
-	{
-		bUseRAWData = InbUseRAWData;
-	}
-
-	/** True if we're requesting RAW data instead of compressed data. For debugging. */
-	bool ShouldUseRawData() const
-	{
-		return bUseRAWData;
-	}
-
- 	/**
-	 * returns Required Bone Indices Array
-	 */
-	const TArray<FBoneIndexType>& GetBoneIndicesArray() const
-	{
-		return BoneIndicesArray;
-	}
-
-	/**
-	 * returns Bone Switch Array. BitMask for RequiredBoneIndex array.
-	 */
-	const TBitArray<>& GetBoneSwitchArray() const
-	{
-		return BoneSwitchArray;
-	}
-
-	/** Pointer to RefPoseArray for current Asset. */
-	const TArray<FTransform>& GetRefPoseArray() const
-	{
-		return RefSkeleton->GetRefBonePose();
-	}
-
-	/** Access to Asset's RefSkeleton. */
-	const FReferenceSkeleton& GetReferenceSkeleton() const
-	{
-		return *RefSkeleton;
-	}
-
-	/** Number of Bones in RefPose for current asset. This is NOT the number of bones in RequiredBonesArray, but the TOTAL number of bones in the RefPose of the current Asset! */ 
-	const int32 GetNumBones() const
-	{
-		return RefSkeleton->GetNum();
-	}
-
-	/** Get BoneIndex for BoneName for current Asset. */
-	ENGINE_API int32 GetPoseBoneIndexForBoneName(const FName& BoneName) const;
-
-	/** Get ParentBoneIndex for current Asset. */
-	ENGINE_API int32 GetParentBoneIndex(const int32& BoneIndex) const;
-
-	/** Get Depth between bones for current asset. */
-	int32 GetDepthBetweenBones(const int32& BoneIndex, const int32& ParentBoneIndex) const;
-
-	/** Returns true if bone is child of for current asset. */
-	bool BoneIsChildOf(const int32& BoneIndex, const int32& ParentBoneIndex) const;
-
-	/**
-	 * Serializes the bones
-	 *
-	 * @param Ar - The archive to serialize into.
-	 * @param Rect - The bone container to serialize.
-	 *
-	 * @return Reference to the Archive after serialization.
-	 */
-	friend FArchive& operator<<( FArchive& Ar, FBoneContainer& B )
-	{ 
-		Ar 
-			<< B.BoneIndicesArray 
-			<< B.BoneSwitchArray 
-			<< B.Asset 
-			<< B.AssetSkeletalMesh 
-			<< B.AssetSkeleton 
-			<< B.SkeletonToPoseBoneIndexArray
-			<< B.PoseToSkeletonBoneIndexArray
-			<< B.bDisableRetargeting
-			<< B.bUseRAWData
-			;	
-		return Ar;
-	}
-
-	/**
-	 * Returns true of RequiredBonesArray contains this bone index.
-	 */
-	bool Contains(FBoneIndexType NewIndex) const
-	{
-		return BoneSwitchArray[NewIndex];
-	}
-
-	/** Const accessor to GetSkeletonToPoseBoneIndexArray(). */
-	TArray<int32> const & GetSkeletonToPoseBoneIndexArray() const
-	{
-		return SkeletonToPoseBoneIndexArray;
-	}
-
-	/** Const accessor to GetSkeletonToPoseBoneIndexArray(). */
-	TArray<int32> const & GetPoseToSkeletonBoneIndexArray() const
-	{
-		return PoseToSkeletonBoneIndexArray;
-	}
-
-private:
-	/** Initialize FBoneContainer. */
-	ENGINE_API void Initialize();
-
-	/** Cache remapping data if current Asset is a SkeletalMesh, with all compatible Skeletons. */
-	void RemapFromSkelMesh(USkeletalMesh const & SourceSkeletalMesh, USkeleton & TargetSkeleton);
-
-	/** Cache remapping data if current Asset is a Skeleton, with all compatible Skeletons. */
-	void RemapFromSkeleton(USkeleton const & SourceSkeleton);
-};
-
-USTRUCT()
-struct FBoneReference
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Name of bone to control. This is the main bone chain to modify from. **/
-	UPROPERTY(EditAnywhere, Category=BoneReference)
-	FName BoneName;
-
-	/** Cached bone index for run time - right now bone index of skeleton **/
-	int32 BoneIndex;
-
-	FBoneReference()
-		: BoneIndex(INDEX_NONE)
-	{
-	}
-
-	bool operator==( const FBoneReference& Other ) const
-	{
-		// faster to compare, and BoneName won't matter
-		return BoneIndex==Other.BoneIndex;
-	}
-	/** Initialize Bone Reference, return TRUE if success, otherwise, return false **/
-	ENGINE_API bool Initialize(const FBoneContainer& RequiredBones);
-
-	// @fixme laurent - only used by blendspace 'PerBoneBlend'. Fix this to support SkeletalMesh pose.
-	ENGINE_API bool Initialize(const USkeleton* Skeleton);
-
-	/** return true if valid. Otherwise return false **/
-	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
-};
 /**
  * Information about an animation asset that needs to be ticked
  */
@@ -482,6 +229,56 @@ public:
 			// Never set the leader index; the actual tick code will handle the case of no leader by using the first element in the array
 			break;
 		}
+	}
+};
+
+/** Utility struct to accumulate root motion. */
+USTRUCT()
+struct FRootMotionMovementParams
+{
+	GENERATED_USTRUCT_BODY()
+
+		UPROPERTY()
+		bool bHasRootMotion;
+
+	UPROPERTY()
+		FTransform RootMotionTransform;
+
+	FRootMotionMovementParams()
+		: bHasRootMotion(false)
+		, RootMotionTransform(FTransform::Identity)
+	{
+	}
+
+	void Set(const FTransform & InTransform)
+	{
+		bHasRootMotion = true;
+		RootMotionTransform = InTransform;
+	}
+
+	void Accumulate(const FTransform & InTransform)
+	{
+		if (!bHasRootMotion)
+		{
+			Set(InTransform);
+		}
+		else
+		{
+			RootMotionTransform = InTransform * RootMotionTransform;
+		}
+	}
+
+	void Accumulate(const FRootMotionMovementParams & MovementParams)
+	{
+		if (MovementParams.bHasRootMotion)
+		{
+			Accumulate(MovementParams.RootMotionTransform);
+		}
+	}
+
+	void Clear()
+	{
+		bHasRootMotion = false;
 	}
 };
 
@@ -616,7 +413,12 @@ public:
 	 * @param ReplacementMap	Mapping of original asset to new asset
 	 **/
 	ENGINE_API virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap);	
+#endif
 
+#if WITH_EDITORONLY_DATA
+	/** Information for thumbnail rendering */
+	UPROPERTY(VisibleAnywhere, EditInline, Category = Thumbnail)
+	class UThumbnailInfo* ThumbnailInfo;
 #endif
 
 public:

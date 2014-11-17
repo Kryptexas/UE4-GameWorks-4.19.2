@@ -111,7 +111,13 @@ public:
 	 */
 	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() = 0;
 
+	virtual bool CanKeyProperty(const UClass& ObjectClass, const class IPropertyHandle& PropertyHandle) const = 0;
+
+	virtual void KeyProperty( const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle ) = 0;
+
 	virtual void NotifyMovieSceneDataChanged() = 0;
 
 	virtual void UpdateRuntimeInstances() = 0;
+
+
 };

@@ -412,8 +412,6 @@ public:
 	FLinearColor LightShaftColorApply;
 	bool bLightShaftUse;
 
-	ERHIFeatureLevel::Type FeatureLevel;
-
 	/** 
 	 * Initialization constructor. Passes all parameters to FSceneView constructor
 	 */
@@ -513,6 +511,9 @@ public:
 	/** Copy from main thread GFrameNumber to be accessible on renderthread side */
 	uint32 FrameNumber;
 
+	/** Feature level being rendered */
+	ERHIFeatureLevel::Type FeatureLevel;
+
 public:
 
 	FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer);
@@ -551,7 +552,7 @@ protected:
 	bool ShouldRenderTranslucency() const;
 
 	/** TODO: REMOVE if no longer needed: Copies scene color to the viewport's render target after applying gamma correction. */
-	void GammaCorrectToViewportRenderTarget(FRHICommandListImmediate& RHICmdList, const FViewInfo* View, float OverrideGamma);
+	void GammaCorrectToViewportRenderTarget(FRHICommandList& RHICmdList, const FViewInfo* View, float OverrideGamma);
 
 	/** Updates state for the end of the frame. */
 	void RenderFinish(FRHICommandListImmediate& RHICmdList);

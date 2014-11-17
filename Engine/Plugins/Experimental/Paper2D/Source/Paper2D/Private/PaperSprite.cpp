@@ -213,7 +213,7 @@ void UPaperSprite::ExtractSourceRegionFromTexturePoint(const FVector2D& SourcePo
 	FIntPoint ClosestValidPoint;
 
 	FBitmap Bitmap(SourceTexture, 0, 0);
-	if (Bitmap.IsValid() && Bitmap.FoundClosestValidPoint(SourceIntPoint.X, SourceIntPoint.Y, 10, /*out*/ClosestValidPoint))
+	if (Bitmap.IsValid() && Bitmap.FoundClosestValidPoint(SourceIntPoint.X, SourceIntPoint.Y, 10, /*out*/ ClosestValidPoint))
 	{
 		FIntPoint Origin;
 		FIntPoint Dimension;
@@ -254,44 +254,66 @@ UPaperSprite::UPaperSprite(const FPostConstructInitializeProperties& PCIP)
 {
 	// Default to using physics
 	SpriteCollisionDomain = ESpriteCollisionMode::Use3DPhysics;
+	
+	AlternateMaterialSplitIndex = INDEX_NONE;
 
 #if WITH_EDITORONLY_DATA
 	PivotMode = ESpritePivotMode::Center_Center;
+	bSnapPivotToPixelGrid = true;
 
 	CollisionGeometry.GeometryType = ESpritePolygonMode::TightBoundingBox;
 	CollisionThickness = 10.0f;
 
 	PixelsPerUnrealUnit = 2.56f;
+
+	bTrimmedInSourceImage = false;
+	bRotatedInSourceImage = false;
 #endif
 
-	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterialRef(TEXT("/Paper2D/DefaultSpriteMaterial.DefaultSpriteMaterial"));
-	DefaultMaterial = DefaultMaterialRef.Object;
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial.MaskedUnlitSpriteMaterial"));
+	DefaultMaterial = MaskedMaterialRef.Object;
+
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterialRef(TEXT("/Paper2D/OpaqueUnlitSpriteMaterial.OpaqueUnlitSpriteMaterial"));
+	AlternateMaterial = OpaqueMaterialRef.Object;
 }
 
 #if WITH_EDITORONLY_DATA
 void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	//@TODO: Determine when these are really needed, as they're seriously expensive!
+	TComponentReregisterContext<UPaperSpriteComponent> ReregisterStaticComponents;
+	TComponentReregisterContext<UPaperFlipbookComponent> ReregisterAnimatedComponents;
+
+	// Look for changed properties
+	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName MemberPropertyName = (PropertyChangedEvent.MemberProperty != NULL) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+
 	if (PixelsPerUnrealUnit <= 0.0f)
 	{
 		PixelsPerUnrealUnit = 1.0f;
 	}
 
-	SourceDimension.X = FMath::Max(SourceDimension.X, 0.0f);
-	SourceDimension.Y = FMath::Max(SourceDimension.Y, 0.0f);
-
-	//@TODO: Determine when these are really needed, as they're seriously expensive!
-	TComponentReregisterContext<UPaperSpriteComponent> ReregisterStaticComponents;
-	TComponentReregisterContext<UPaperFlipbookComponent> ReregisterAnimatedComponents;
-
-	// Update the pivot
-	if (PivotMode != ESpritePivotMode::Custom)
+	if (CollisionGeometry.GeometryType == ESpritePolygonMode::Diced)
 	{
-		CustomPivotPoint = GetPivotPosition();
+		// Disallow dicing on collision geometry for now
+		CollisionGeometry.GeometryType == ESpritePolygonMode::SourceBoundingBox;
+	}
+	RenderGeometry.PixelsPerSubdivisionX = FMath::Max(RenderGeometry.PixelsPerSubdivisionX, 4);
+	RenderGeometry.PixelsPerSubdivisionY = FMath::Max(RenderGeometry.PixelsPerSubdivisionY, 4);
+
+	if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceUV))
+	{
+		SourceUV.X = FMath::Max(FMath::RoundToFloat(SourceUV.X), 0.0f);
+		SourceUV.Y = FMath::Max(FMath::RoundToFloat(SourceUV.Y), 0.0f);
+	}
+	else if (MemberPropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceDimension))
+	{
+		SourceDimension.X = FMath::Max(FMath::RoundToFloat(SourceDimension.X), 0.0f);
+		SourceDimension.Y = FMath::Max(FMath::RoundToFloat(SourceDimension.Y), 0.0f);
 	}
 
-	// Look for changed properties
-
-	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	// Update the pivot (roundtripping thru the function will round to a pixel position if that option is enabled)
+	CustomPivotPoint = GetPivotPosition();
 
 	bool bRenderDataModified = false;
 	bool bCollisionDataModified = false;
@@ -379,6 +401,7 @@ void UPaperSprite::RebuildCollisionData()
 		BodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 		switch (CollisionGeometry.GeometryType)
 		{
+		case ESpritePolygonMode::Diced:
 		case ESpritePolygonMode::SourceBoundingBox:
 			BuildBoundingBoxCollisionData(/*bUseTightBounds=*/ false);
 			break;
@@ -549,8 +572,11 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 
 void UPaperSprite::RebuildRenderData()
 {
+	FSpritePolygonCollection AlternateGeometry;
+
 	switch (RenderGeometry.GeometryType)
 	{
+	case ESpritePolygonMode::Diced:
 	case ESpritePolygonMode::SourceBoundingBox:
 		CreatePolygonFromBoundingBox(RenderGeometry, /*bUseTightBounds=*/ false);
 		break;
@@ -570,21 +596,19 @@ void UPaperSprite::RebuildRenderData()
 		check(false); // unknown mode
 	};
 
-	// Triangulate the render geometry
-	TArray<FVector2D> TriangluatedPoints;
-	Triangulate(RenderGeometry, /*out*/ TriangluatedPoints);
-
 	// Determine the texture size
 	UTexture2D* EffectiveTexture = GetBakedTexture();
 
 	FVector2D TextureSize(1.0f, 1.0f);
 	if (EffectiveTexture)
 	{
-		EffectiveTexture->FinishCachePlatformData();
+		EffectiveTexture->ConditionalPostLoad();
 		const int32 TextureWidth = EffectiveTexture->GetSizeX();
 		const int32 TextureHeight = EffectiveTexture->GetSizeY();
-		check((TextureWidth > 0) && (TextureHeight > 0));
-		TextureSize = FVector2D(TextureWidth, TextureHeight);
+		if (ensure((TextureWidth > 0) && (TextureHeight > 0)))
+		{
+			TextureSize = FVector2D(TextureWidth, TextureHeight);
+		}
 	}
 	const float InverseWidth = 1.0f / TextureSize.X;
 	const float InverseHeight = 1.0f / TextureSize.Y;
@@ -594,6 +618,79 @@ void UPaperSprite::RebuildRenderData()
 
 	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 
+	if ((RenderGeometry.GeometryType == ESpritePolygonMode::Diced) && (EffectiveTexture != nullptr))
+	{
+		const int32 AlphaThresholdInt = FMath::Clamp<int32>(RenderGeometry.AlphaThreshold * 255, 0, 255);
+		FAlphaBitmap SourceBitmap(EffectiveTexture);
+		SourceBitmap.ThresholdImageBothWays(AlphaThresholdInt, 255);
+
+		bool bSeparateOpaqueSections = true;
+
+		// Dice up the source geometry and sort into translucent and opaque sections
+		RenderGeometry.Polygons.Empty();
+
+		const int32 X0 = (int32)SourceUV.X;
+		const int32 Y0 = (int32)SourceUV.Y;
+		const int32 X1 = (int32)(SourceUV.X + SourceDimension.X);
+		const int32 Y1 = (int32)(SourceUV.Y + SourceDimension.Y);
+
+		for (int32 Y = Y0; Y < Y1; Y += RenderGeometry.PixelsPerSubdivisionY)
+		{
+			const int32 TileHeight = FMath::Min(RenderGeometry.PixelsPerSubdivisionY, Y1 - Y);
+
+			for (int32 X = X0; X < X1; X += RenderGeometry.PixelsPerSubdivisionX)
+			{
+				const int32 TileWidth = FMath::Min(RenderGeometry.PixelsPerSubdivisionX, X1 - X);
+
+				if (!SourceBitmap.IsRegionEmpty(X, Y, X + TileWidth - 1, Y + TileHeight - 1))
+				{
+					FIntPoint Origin(X, Y);
+					FIntPoint Dimension(TileWidth, TileHeight);
+					
+					SourceBitmap.TightenBounds(Origin, Dimension);
+
+					bool bOpaqueSection = false;
+					if (bSeparateOpaqueSections)
+					{
+						if (SourceBitmap.IsRegionEqual(Origin.X, Origin.Y, Origin.X + Dimension.X - 1, Origin.Y + Dimension.Y - 1, 255))
+						{
+							bOpaqueSection = true;
+						}
+					}
+
+					if (bOpaqueSection)
+					{
+						AlternateGeometry.AddRectanglePolygon(Origin, Dimension);
+					}
+					else
+					{
+						RenderGeometry.AddRectanglePolygon(Origin, Dimension);
+					}
+				}
+			}
+		}
+	}
+
+	// Triangulate the render geometry
+	TArray<FVector2D> TriangluatedPoints;
+	Triangulate(RenderGeometry, /*out*/ TriangluatedPoints);
+
+	// Triangulate the alternate render geometry, if present
+	if (AlternateGeometry.Polygons.Num() > 0)
+	{
+		TArray<FVector2D> AlternateTriangluatedPoints;
+		Triangulate(AlternateGeometry, /*out*/ AlternateTriangluatedPoints);
+
+		AlternateMaterialSplitIndex = TriangluatedPoints.Num();
+		TriangluatedPoints.Append(AlternateTriangluatedPoints);
+		RenderGeometry.Polygons.Append(AlternateGeometry.Polygons);
+	}
+	else
+	{
+		AlternateMaterialSplitIndex = INDEX_NONE;
+	}
+
+	// Bake the verts
 	BakedRenderData.Empty(TriangluatedPoints.Num());
 	for (int32 PointIndex = 0; PointIndex < TriangluatedPoints.Num(); ++PointIndex)
 	{
@@ -860,18 +957,14 @@ void UPaperSprite::CreatePolygonFromBoundingBox(FSpritePolygonCollection& GeomOw
 
 	// Put the bounding box into the geometry array
 	GeomOwner.Polygons.Empty();
-	FSpritePolygon& Poly = *new (GeomOwner.Polygons) FSpritePolygon();
-	new (Poly.Vertices) FVector2D(BoxPosition.X, BoxPosition.Y);
-	new (Poly.Vertices) FVector2D(BoxPosition.X + BoxSize.X, BoxPosition.Y);
-	new (Poly.Vertices) FVector2D(BoxPosition.X + BoxSize.X, BoxPosition.Y + BoxSize.Y);
-	new (Poly.Vertices) FVector2D(BoxPosition.X, BoxPosition.Y + BoxSize.Y);
-	Poly.BoxSize = BoxSize;
-	Poly.BoxPosition = BoxPosition;
+	GeomOwner.AddRectanglePolygon(BoxPosition, BoxSize);
 }
 
 void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FVector2D>& Target)
 {
 	Target.Empty();
+
+	TArray<FClipSMTriangle> AllGeneratedTriangles;
 
 	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
 	{
@@ -880,7 +973,7 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 		{
 			// Convert our format into one the triangulation library supports
 			FClipSMPolygon ClipPolygon(0);
-			for (int32 VertexIndex = 0; VertexIndex < SourcePoly.Vertices.Num() ; ++VertexIndex)
+			for (int32 VertexIndex = 0; VertexIndex < SourcePoly.Vertices.Num(); ++VertexIndex)
 			{
 				FClipSMVertex* ClipVertex = new (ClipPolygon.Vertices) FClipSMVertex;
 				FMemory::Memzero(ClipVertex, sizeof(FClipSMVertex));
@@ -895,17 +988,22 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 			TArray<FClipSMTriangle> GeneratedTriangles;
 			if (TriangulatePoly(/*out*/ GeneratedTriangles, ClipPolygon, Source.bAvoidVertexMerging))
 			{
-				// Convert the triangles back to our 2D data structure
-				for (int32 TriangleIndex = 0; TriangleIndex < GeneratedTriangles.Num(); ++TriangleIndex)
-				{
-					const FClipSMTriangle& Triangle = GeneratedTriangles[TriangleIndex];
-
-					new (Target) FVector2D(Triangle.Vertices[0].Pos.X, Triangle.Vertices[0].Pos.Z);
-					new (Target) FVector2D(Triangle.Vertices[1].Pos.X, Triangle.Vertices[1].Pos.Z);
-					new (Target) FVector2D(Triangle.Vertices[2].Pos.X, Triangle.Vertices[2].Pos.Z);
-				}
+				AllGeneratedTriangles.Append(GeneratedTriangles);
 			}
 		}
+	}
+
+	if (!Source.bAvoidVertexMerging && (Source.Polygons.Num() > 1) && (AllGeneratedTriangles.Num() > 1))
+	{
+		RemoveRedundantTriangles(AllGeneratedTriangles);
+	}
+
+	// Convert the triangles back to our 2D data structure
+	for (const FClipSMTriangle& Triangle : AllGeneratedTriangles)
+	{
+		new (Target) FVector2D(Triangle.Vertices[0].Pos.X, Triangle.Vertices[0].Pos.Z);
+		new (Target) FVector2D(Triangle.Vertices[1].Pos.X, Triangle.Vertices[1].Pos.Z);
+		new (Target) FVector2D(Triangle.Vertices[2].Pos.X, Triangle.Vertices[2].Pos.Z);
 	}
 }
 
@@ -948,19 +1046,47 @@ void UPaperSprite::InitializeSprite(UTexture2D* Texture, const FVector2D& Offset
 	InitializeSprite(Texture, Offset, Dimension, GetDefault<UPaperRuntimeSettings>()->DefaultPixelsPerUnrealUnit);
 }
 
+void UPaperSprite::SetTrim(bool bTrimmed, const FVector2D& OriginInSourceImage, const FVector2D& SourceImageDimension)
+{
+	this->bTrimmedInSourceImage = bTrimmed;
+	this->OriginInSourceImageBeforeTrimming = OriginInSourceImage;
+	this->SourceImageDimensionBeforeTrimming = SourceImageDimension;
+	RebuildRenderData();
+	RebuildCollisionData();
+}
+
+void UPaperSprite::SetRotated(bool bRotated)
+{
+	this->bRotatedInSourceImage = bRotated;
+	RebuildRenderData();
+	RebuildCollisionData();
+}
+
+void UPaperSprite::SetPivot(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot)
+{
+	this->PivotMode = PivotMode;
+	this->CustomPivotPoint = CustomTextureSpacePivot;
+}
+
 FVector2D UPaperSprite::ConvertTextureSpaceToPivotSpace(FVector2D Input) const
 {
 	const FVector2D Pivot = GetPivotPosition();
 
 	const float X = Input.X - Pivot.X;
 	const float Y = -Input.Y + Pivot.Y;
-	
-	return FVector2D(X, Y);
+
+	return bRotatedInSourceImage ? FVector2D(-Y, X) : FVector2D(X, Y);
 }
 
 FVector2D UPaperSprite::ConvertPivotSpaceToTextureSpace(FVector2D Input) const
 {
 	const FVector2D Pivot = GetPivotPosition();
+
+	if (bRotatedInSourceImage)
+	{
+		Swap(Input.X, Input.Y);
+		Input.Y = -Input.Y;
+	}
 
 	const float X = Input.X + Pivot.X;
 	const float Y = -Input.Y + Pivot.Y;
@@ -992,59 +1118,126 @@ FVector UPaperSprite::ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoi
 {
 	const float UnitsPerPixel = GetUnrealUnitsPerPixel();
 
-	const FVector2D SourcePointInUU = SourcePoint * UnitsPerPixel;
-
-	const FVector2D SourceDimsInPixels = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-	const FVector2D SourceDimsInUU = SourceDimsInPixels * UnitsPerPixel;
-
-	return (PaperAxisX * SourcePointInUU.X) + (PaperAxisY * (SourceDimsInUU.Y - SourcePointInUU.Y));
+	const FVector2D SourcePointInUU = ConvertTextureSpaceToPivotSpace(SourcePoint) * UnitsPerPixel;
+	return (PaperAxisX * SourcePointInUU.X) + (PaperAxisY * SourcePointInUU.Y);
 }
 
 FVector2D UPaperSprite::ConvertWorldSpaceToTextureSpace(const FVector& WorldPoint) const
 {
-	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
 	const FVector ProjectionX = WorldPoint.ProjectOnTo(PaperAxisX);
 	const FVector ProjectionY = WorldPoint.ProjectOnTo(PaperAxisY);
-	return FVector2D(FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size(), SourceDims.Y - FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size());		
+
+	const float XValue = FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size() * PixelsPerUnrealUnit;
+	const float YValue = FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size() * PixelsPerUnrealUnit;
+
+	return ConvertPivotSpaceToTextureSpace(FVector2D(XValue, YValue));
+}
+
+FVector2D UPaperSprite::ConvertWorldSpaceDeltaToTextureSpace(const FVector& WorldSpaceDelta) const
+{
+	const FVector ProjectionX = WorldSpaceDelta.ProjectOnTo(PaperAxisX);
+	const FVector ProjectionY = WorldSpaceDelta.ProjectOnTo(PaperAxisY);
+
+	float XValue = FMath::Sign(ProjectionX | PaperAxisX) * ProjectionX.Size() * PixelsPerUnrealUnit;
+	float YValue = FMath::Sign(ProjectionY | PaperAxisY) * ProjectionY.Size() * PixelsPerUnrealUnit;
+
+	// Undo pivot space rotation, ignoring pivot position
+	if (bRotatedInSourceImage)
+	{
+		Swap(XValue, YValue);
+		XValue = -XValue;
+	}
+
+	return FVector2D(XValue, YValue);
 }
 
 FTransform UPaperSprite::GetPivotToWorld() const
 {
-	const FVector2D Pivot = GetPivotPosition();
-	const FVector2D SourceDims = (SourceTexture != NULL) ? FVector2D(SourceTexture->GetSurfaceWidth(), SourceTexture->GetSurfaceHeight()) : FVector2D::ZeroVector;
-
-	const FVector Translation(((Pivot.X * PaperAxisX) + ((SourceDims.Y - Pivot.Y) * PaperAxisY)) * GetUnrealUnitsPerPixel());
+	const FVector Translation(0, 0, 0);
 	return FTransform(Translation);
+}
+
+FVector2D UPaperSprite::GetRawPivotPosition() const
+{
+	FVector2D TopLeftUV = SourceUV;
+	FVector2D Dimension = SourceDimension;
+	
+	if (bTrimmedInSourceImage)
+	{
+		TopLeftUV = SourceUV - OriginInSourceImageBeforeTrimming;
+		Dimension = SourceImageDimensionBeforeTrimming;
+	}
+
+	if (bRotatedInSourceImage)
+	{
+		switch (PivotMode)
+		{
+		case ESpritePivotMode::Top_Left:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y);
+		case ESpritePivotMode::Top_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Top_Right:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y + Dimension.Y);
+		case ESpritePivotMode::Center_Left:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y);
+		case ESpritePivotMode::Center_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Center_Right:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y + Dimension.Y);
+		case ESpritePivotMode::Bottom_Left:
+			return TopLeftUV;
+		case ESpritePivotMode::Bottom_Center:
+			return FVector2D(TopLeftUV.X, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Bottom_Right:
+			return FVector2D(TopLeftUV.X, TopLeftUV.Y + Dimension.Y);
+		default:
+		case ESpritePivotMode::Custom:
+			return CustomPivotPoint;
+			break;
+		};
+	}
+	else
+	{
+		switch (PivotMode)
+		{
+		case ESpritePivotMode::Top_Left:
+			return TopLeftUV;
+		case ESpritePivotMode::Top_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y);
+		case ESpritePivotMode::Top_Right:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y);
+		case ESpritePivotMode::Center_Left:
+			return FVector2D(TopLeftUV.X, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Center_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Center_Right:
+			return FVector2D(TopLeftUV.X + Dimension.X, TopLeftUV.Y + Dimension.Y * 0.5f);
+		case ESpritePivotMode::Bottom_Left:
+			return FVector2D(TopLeftUV.X, TopLeftUV.Y + Dimension.Y);
+		case ESpritePivotMode::Bottom_Center:
+			return FVector2D(TopLeftUV.X + Dimension.X * 0.5f, TopLeftUV.Y + Dimension.Y);
+		case ESpritePivotMode::Bottom_Right:
+			return TopLeftUV + Dimension;
+
+		default:
+		case ESpritePivotMode::Custom:
+			return CustomPivotPoint;
+			break;
+		};
+	}
 }
 
 FVector2D UPaperSprite::GetPivotPosition() const
 {
-	switch (PivotMode)
-	{
-	case ESpritePivotMode::Top_Left:
-		return SourceUV;
-	case ESpritePivotMode::Top_Center:
-		return FVector2D(SourceUV.X + SourceDimension.X * 0.5f, SourceUV.Y);
-	case ESpritePivotMode::Top_Right:
-		return FVector2D(SourceUV.X + SourceDimension.X, SourceUV.Y);
-	case ESpritePivotMode::Center_Left:
-		return FVector2D(SourceUV.X, SourceUV.Y + SourceDimension.Y * 0.5f);
-	case ESpritePivotMode::Center_Center:
-		return FVector2D(SourceUV.X + SourceDimension.X * 0.5f, SourceUV.Y + SourceDimension.Y * 0.5f);
-	case ESpritePivotMode::Center_Right:
-		return FVector2D(SourceUV.X + SourceDimension.X, SourceUV.Y + SourceDimension.Y * 0.5f);
-	case ESpritePivotMode::Bottom_Left:
-		return FVector2D(SourceUV.X, SourceUV.Y + SourceDimension.Y);
-	case ESpritePivotMode::Bottom_Center:
-		return FVector2D(SourceUV.X + SourceDimension.X * 0.5f, SourceUV.Y + SourceDimension.Y);
-	case ESpritePivotMode::Bottom_Right:
-		return SourceUV + SourceDimension;
+	FVector2D RawPivot = GetRawPivotPosition();
 
-	default:
-	case ESpritePivotMode::Custom:
-		return CustomPivotPoint;
-		break;
-	};
+	if (bSnapPivotToPixelGrid)
+	{
+		RawPivot.X = FMath::RoundToFloat(RawPivot.X);
+		RawPivot.Y = FMath::RoundToFloat(RawPivot.Y);
+	}
+
+	return RawPivot;
 }
 
 void UPaperSprite::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
@@ -1136,6 +1329,11 @@ void UPaperSprite::PostLoad()
 		SetFlags(RF_Transactional);
 	}
 
+	if (PaperVer < FPaperCustomVersion::AddPivotSnapToPixelGrid)
+	{
+		bSnapPivotToPixelGrid = false;
+	}
+
 	if (PaperVer < FPaperCustomVersion::AddPixelsPerUnrealUnit)
 	{
 		PixelsPerUnrealUnit = 1.0f;
@@ -1163,4 +1361,25 @@ void UPaperSprite::PostLoad()
 UTexture2D* UPaperSprite::GetBakedTexture() const
 {
 	return (BakedSourceTexture != nullptr) ? BakedSourceTexture : SourceTexture;
+}
+
+UMaterialInterface* UPaperSprite::GetMaterial(int32 MaterialIndex) const
+{
+	if (MaterialIndex == 0)
+	{
+		return GetDefaultMaterial();
+	}
+	else if (MaterialIndex == 1)
+	{
+		return GetAlternateMaterial();
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
+int32 UPaperSprite::GetNumMaterials() const
+{
+	return (AlternateMaterialSplitIndex != INDEX_NONE) ? 2 : 1;
 }

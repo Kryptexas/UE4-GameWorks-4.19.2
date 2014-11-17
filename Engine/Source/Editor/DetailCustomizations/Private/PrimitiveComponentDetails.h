@@ -34,5 +34,7 @@ private:
 private:
 	/** Objects being customized so we can update the 'Simulate Physics' state if physics geometry is added/removed */
 	TArray< TWeakObjectPtr<UObject> > ObjectsCustomized;
+	TSharedPtr<IPropertyHandle> LockedAxisProperty;
+	EVisibility IsCustomLockedAxisSelected() const;
 };
 

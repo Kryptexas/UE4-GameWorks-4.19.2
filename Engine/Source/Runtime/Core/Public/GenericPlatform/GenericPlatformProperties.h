@@ -153,6 +153,14 @@ struct FGenericPlatformProperties
 	}
 
 	/**
+	 * Returns true if platform supports the AutoSDK system
+	 */
+	static FORCEINLINE bool SupportsAutoSDK()
+	{
+		return false;
+	}
+
+	/**
 	 * Gets whether this platform supports gray scale sRGB texture formats.
 	 *
 	 * @return true if gray scale sRGB texture formats are supported.
@@ -198,6 +206,14 @@ struct FGenericPlatformProperties
 	static FORCEINLINE bool AllowsFramerateSmoothing()
 	{
 		return true;
+	}
+
+	/**
+	 * Whether this platform supports streaming audio
+	 */
+	static FORCEINLINE bool SupportsAudioStreaming()
+	{
+		return false;
 	}
 
 	static FORCEINLINE bool SupportsHighQualityLightmaps()

@@ -489,6 +489,11 @@ UBodySetup* USkeletalMeshComponent::GetBodySetup()
 	return NULL;
 }
 
+bool USkeletalMeshComponent::CanEditSimulatePhysics()
+{
+	return GetPhysicsAsset() != nullptr;
+}
+
 void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 {
 	if ( !bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer() )
@@ -823,6 +828,17 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			// this is not true for all other BodyInstance, but for physics assets it is true. 
 			BodyInst->bSimulatePhysics = false;
 			BodyInst->InstanceBodyIndex = i; // Set body index 
+
+			if (i == RootBodyIndex)
+			{
+				BodyInst->LockedAxisMode = BodyInstance.LockedAxisMode;
+				BodyInst->CustomLockedAxis = BodyInstance.CustomLockedAxis;
+			}
+			else
+			{
+				BodyInst->LockedAxisMode = ELockedAxis::None;
+			}
+
 #if WITH_PHYSX
 			// Create physics body instance.
 			FTransform BoneTransform = GetBoneTransform( BoneIndex );

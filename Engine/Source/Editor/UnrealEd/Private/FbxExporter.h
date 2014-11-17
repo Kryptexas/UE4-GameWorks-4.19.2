@@ -91,8 +91,10 @@ public:
 
 	/**
 	 * Exports the given Matinee sequence information into a FBX document.
+	 * 
+	 * @return	true, if sucessful
 	 */
-	virtual void ExportMatinee(class AMatineeActor* InMatineeActor);
+	virtual bool ExportMatinee(class AMatineeActor* InMatineeActor);
 
 	/**
 	 * Exports all the animation sequences part of a single Group in a Matinee sequence
@@ -244,7 +246,7 @@ private:
 	 * Add the given animation sequence as rotation and translation tracks to the given list of bone nodes
 	 */
 	void ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq, const USkeletalMesh* SkelMesh, TArray<FbxNode*>& BoneNodes, FbxAnimLayer* AnimLayer,
-		float AnimStartOffset, float AnimEndOffset, float AnimPlayRate, float StartTime, bool bLooping);
+		float AnimStartOffset, float AnimEndOffset, float AnimPlayRate, float StartTime);
 
 	/** 
 	 * The curve code doesn't differentiate between angles and other data, so an interpolation from 179 to -179

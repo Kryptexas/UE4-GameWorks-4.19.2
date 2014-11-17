@@ -8,6 +8,8 @@ namespace UnrealBuildTool.Rules
 		{
             PrivateIncludePaths.AddRange(
                 new string[] {
+                    "Editor/GraphEditor/Private",
+				    "Editor/Kismet/Private",
 					"Editor/GameplayAbilitiesEditor/Private",
 				}
 			);

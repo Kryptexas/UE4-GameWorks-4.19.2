@@ -15,8 +15,8 @@ public:
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override = 0;
 
 protected:
-	static class FEdModeLandscape* GetEditorMode();
-	static bool IsToolActive(FName ToolSetName);
+	static FEdModeLandscape* GetEditorMode();
+	static bool IsToolActive(FName ToolName);
 	static bool IsBrushSetActive(FName BrushSetName);
 
 	static TOptional<int32> OnGetValue(TSharedRef<IPropertyHandle> PropertyHandle);
@@ -97,5 +97,5 @@ void FLandscapeEditorDetailCustomization_Base::SetPropertyValue(type NewValue, E
 class FLandscapeEditorStructCustomization_Base : public IPropertyTypeCustomization
 {
 protected:
-	static class FEdModeLandscape* GetEditorMode();
+	static FEdModeLandscape* GetEditorMode();
 };

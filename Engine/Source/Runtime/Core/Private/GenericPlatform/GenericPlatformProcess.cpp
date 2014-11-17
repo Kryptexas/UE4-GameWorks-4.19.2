@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "../../Public/Modules/ModuleVersion.h"
 
 
@@ -394,6 +394,12 @@ FString FGenericPlatformProcess::ReadPipe( void* ReadPipe )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ReadPipe not implemented on this platform"));
 	return FString();
+}
+
+bool FGenericPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ReadPipeToArray not implemented on this platform"));
+	return false;
 }
 
 bool FGenericPlatformProcess::SupportsMultithreading()

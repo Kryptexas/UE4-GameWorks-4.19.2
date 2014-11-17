@@ -4,7 +4,7 @@
 	WindowsPlatformMisc.cpp: Windows implementations of misc functions
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ExceptionHandling.h"
 #include "SecureHash.h"
 #include "WindowsApplication.h"
@@ -481,9 +481,17 @@ void FWindowsPlatformMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCH
 {
 	uint32 Error = ::GetEnvironmentVariable(VariableName, Result, ResultLength);
 	if (Error <= 0)
-	{
-		// on error, just return an empty string
+	{		
 		*Result = 0;
+	}
+}
+
+void FWindowsPlatformMisc::SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value)
+{
+	uint32 Error = ::SetEnvironmentVariable(VariableName, Value);
+	if (Error == 0)
+	{
+		UE_LOG(LogWindows, Warning, TEXT("Failed to set EnvironmentVariable: %s to : %s"), VariableName, Value);
 	}
 }
 

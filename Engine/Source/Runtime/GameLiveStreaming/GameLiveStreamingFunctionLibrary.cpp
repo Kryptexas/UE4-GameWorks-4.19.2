@@ -24,6 +24,7 @@ void UGameLiveStreamingFunctionLibrary::StartBroadcastingGame(
 		bool bEnableWebCam,
 		int32 DesiredWebCamWidth,
 		int32 DesiredWebCamHeight,
+		bool bMirrorWebCamImage,
 		bool bCaptureAudioFromComputer,
 		bool bCaptureAudioFromMicrophone,
 		bool bDrawSimpleWebCamVideo )
@@ -34,6 +35,7 @@ void UGameLiveStreamingFunctionLibrary::StartBroadcastingGame(
 	Config.bEnableWebCam = bEnableWebCam;
 	Config.DesiredWebCamWidth = DesiredWebCamWidth;
 	Config.DesiredWebCamHeight = DesiredWebCamHeight;
+	Config.bMirrorWebCamImage = bMirrorWebCamImage;
 	Config.bCaptureAudioFromComputer = bCaptureAudioFromComputer;
 	Config.bCaptureAudioFromMicrophone = bCaptureAudioFromMicrophone;
 	Config.bDrawSimpleWebCamVideo = bDrawSimpleWebCamVideo;

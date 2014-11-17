@@ -101,7 +101,7 @@ protected:
 	/** FPropertyNode interface */
 	virtual void InitBeforeNodeFlags() override;
 	virtual void InitChildNodes() override;
-	virtual void GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex ) const override;
+	virtual bool GetQualifiedName( FString& PathPlusIndex, const bool bWithArrayIndex, const FPropertyNode* StopParent = nullptr, bool bIgnoreCategories = false ) const override;
 
 	/**
 	 * Looks at the Objects array and creates the best base class.  Called by

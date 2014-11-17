@@ -91,7 +91,7 @@ void AAbilitySystemDebugHUD::DrawDebugAbilitySystemComponent(UAbilitySystemCompo
 	DrawWithBackground(Font, String, Color, EAlignHorizontal::Left, X, EAlignVertical::Top, Y);
 
 
-	for (UAttributeSet * Set : Component->SpawnedAttributes)
+	for (const UAttributeSet * Set : Component->SpawnedAttributes)
 	{
 		if (!Set)
 			continue;
@@ -108,7 +108,7 @@ void AAbilitySystemDebugHUD::DrawDebugAbilitySystemComponent(UAbilitySystemCompo
 			UProperty *Prop = *PropertyIt;			
 
 			FString ValueString;
-			void *PropertyValue = Prop->ContainerPtrToValuePtr<void>(Set);
+			const void *PropertyValue = Prop->ContainerPtrToValuePtr<void>(Set);
 			Prop->ExportTextItem(ValueString, PropertyValue, NULL, NULL, 0);
 
 			String = FString::Printf(TEXT("%s: %s"), *Prop->GetName(), *ValueString);

@@ -27,7 +27,13 @@ void SDockingArea::Construct( const FArguments& InArgs, const TSharedRef<FTabMan
 			SAssignNew(Splitter, SSplitter)
 			. Orientation( PersistentNode->GetOrientation() )
 		]
-
+		
+		+ SOverlay::Slot()
+		// Houses the minimize, maximize, restore, and icon
+		.Expose(WindowControlsArea)
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Top)
+		
 		+SOverlay::Slot()
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Fill)
@@ -190,7 +196,7 @@ void SDockingArea::HideCross()
 void SDockingArea::CleanUp( ELayoutModification RemovalMethod )
 {
 	const ECleanupRetVal CleanupResult = CleanUpNodes();
-
+	
 	if ( CleanupResult != VisibleTabsUnderNode )
 	{
 		bIsCenterTargetVisible = true;
@@ -221,6 +227,11 @@ void SDockingArea::CleanUp( ELayoutModification RemovalMethod )
 	{
 		bIsCenterTargetVisible = false;
 	}
+
+	// In some cases a dock area will control the window,
+	// and we need to move some of the tabs out of the way
+	// to make room for window chrome.
+	MakeRoomForWindowChrome();
 }
 
 void SDockingArea::SetParentWindow( const TSharedRef<SWindow>& NewParentWindow )
@@ -229,7 +240,18 @@ void SDockingArea::SetParentWindow( const TSharedRef<SWindow>& NewParentWindow )
 	{
 		NewParentWindow->SetRequestDestroyWindowOverride( FRequestDestroyWindowOverride::CreateSP( this, &SDockingArea::OnOwningWindowBeingDestroyed ) );
 	}
+
+	// Even thought we don't manage the parent window's lifetime, we are still responsible for making its window chrome.
+	{
+		TSharedPtr<IWindowTitleBar> TitleBar;
+		TSharedRef<SWidget> TitleBarWidget = FSlateApplication::Get().MakeWindowTitleBar(NewParentWindow, SNullWidget::NullWidget, HAlign_Fill, TitleBar);
+
+		(*WindowControlsArea)[TitleBarWidget];
+		NewParentWindow->SetTitleBar(TitleBar);
+	}
+
 	ParentWindowPtr = NewParentWindow;
+	NewParentWindow->SetOnWindowActivated( FOnWindowActivated::CreateSP( this, &SDockingArea::OnOwningWindowActivated ) );
 }
 
 TSharedPtr<FTabManager::FLayoutNode> SDockingArea::GatherPersistentLayout() const
@@ -402,10 +424,60 @@ void SDockingArea::OnOwningWindowBeingDestroyed(const TSharedRef<SWindow>& Windo
 
 }
 
+void SDockingArea::OnOwningWindowActivated()
+{
+	// Update the global menu bar when the window activation changes.
+	TSharedPtr< SWidget > MenuBar;
+	TSharedPtr<FTabManager> TabManager = MyTabManager.Pin();
+	if(FGlobalTabmanager::Get() == TabManager)
+	{
+		TSharedPtr<FGlobalTabmanager> GlobalTabManager = FGlobalTabmanager::Get();
+		TSharedPtr<SDockTab> ActiveTab = GlobalTabManager->GetActiveTab();
+		if(ActiveTab.IsValid())
+		{
+			ActiveTab->GetTabManager()->UpdateMainMenu(true);
+		}
+	}
+	else
+	{
+		TabManager->UpdateMainMenu(true);
+	}
+}
 
 void SDockingArea::OnLiveTabAdded()
 {
 	bIsCenterTargetVisible = false;
 	SDockingNode::OnLiveTabAdded();
+
+	CleanUp(SDockingNode::TabRemoval_None);
+}
+
+void SDockingArea::MakeRoomForWindowChrome()
+{
+	TArray< TSharedRef<SDockingNode> > AllNodes = this->GetChildNodesRecursively();
+	if (AllNodes.Num() > 0)
+	{
+		// Clear out all the reserved space.
+		for (auto SomeNode : AllNodes)
+		{
+			if (SomeNode->GetNodeType() == DockTabStack)
+			{
+				auto SomeTabStack = StaticCastSharedRef<SDockingTabStack>(SomeNode);
+				SomeTabStack->ClearReservedSpace();
+			}
+		}
+
+		if (this->ParentWindowPtr.IsValid())
+		{
+			// Reserve some space for the minimize, restore, and close controls
+			TSharedRef<SDockingTabStack> WindowControlHousing = this->FindTabStackToHouseWindowControls();
+			WindowControlHousing->ReserveSpaceForWindowChrome(SDockingTabStack::EChromeElement::Controls);
+
+			// Reserve some space for the app icons
+			TSharedRef<SDockingTabStack> IconHousing = this->FindTabStackToHouseWindowIcon();
+			IconHousing->ReserveSpaceForWindowChrome(SDockingTabStack::EChromeElement::Icon);
+		}
+	}
+
 }
 

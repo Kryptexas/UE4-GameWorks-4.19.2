@@ -16,9 +16,7 @@ UBlackboardDataFactory::UBlackboardDataFactory(const class FPostConstructInitial
 
 bool UBlackboardDataFactory::CanCreateNew() const
 {
-	bool bBehaviorTreeNewAssetsEnabled = false;
-	GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeNewAssetsEnabled"), bBehaviorTreeNewAssetsEnabled, GEngineIni);
-	return (bBehaviorTreeNewAssetsEnabled || GetDefault<UEditorExperimentalSettings>()->bBehaviorTreeEditor);
+	return true;
 }
 
 UObject* UBlackboardDataFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FName Name,EObjectFlags Flags,UObject* Context,FFeedbackContext* Warn)

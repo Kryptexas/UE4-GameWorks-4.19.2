@@ -63,7 +63,7 @@ FBoxSphereBounds UNavLinkRenderingComponent::CalcBounds(const FTransform & Local
 		return FBoxSphereBounds(BoundingBox).TransformBy(LocalToWorld);
 	}
 
-	return FBoxSphereBounds();
+	return FBoxSphereBounds(EForceInit::ForceInitToZero);
 }
 
 FPrimitiveSceneProxy* UNavLinkRenderingComponent::CreateSceneProxy()

@@ -24,7 +24,6 @@ public class ContentBrowser : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"Engine",
-                "Merge",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",

@@ -9,6 +9,13 @@
 /* Begin PBXBuildFile section */
 		167F26B118DB430E00778E55 /* ir_gen_glsl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 167F26AF18DB430E00778E55 /* ir_gen_glsl.cpp */; };
 		167F26B218DB430E00778E55 /* ir_gen_glsl.h in Headers */ = {isa = PBXBuildFile; fileRef = 167F26B018DB430E00778E55 /* ir_gen_glsl.h */; };
+		168A4E4019706C5B00611B10 /* glcpp-lex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E3E19706C5B00611B10 /* glcpp-lex.cpp */; };
+		168A4E4119706C5B00611B10 /* glcpp-parse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E3F19706C5B00611B10 /* glcpp-parse.cpp */; };
+		168A4E4619706C7400611B10 /* pp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4219706C7400611B10 /* pp.cpp */; };
+		168A4E4719706C7400611B10 /* ralloc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4319706C7400611B10 /* ralloc.cpp */; };
+		168A4E4819706C7400611B10 /* strtod.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4419706C7400611B10 /* strtod.cpp */; };
+		168A4E4919706C7400611B10 /* symbol_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4519706C7400611B10 /* symbol_table.cpp */; };
+		168A4E4B19706CF600611B10 /* hash_table.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 168A4E4A19706CF600611B10 /* hash_table.cpp */; };
 		16AE93B71946467D001EF3E3 /* MetalBackend.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16AE93B31946467D001EF3E3 /* MetalBackend.cpp */; };
 		16AE93B81946467D001EF3E3 /* MetalBackend.h in Headers */ = {isa = PBXBuildFile; fileRef = 16AE93B41946467D001EF3E3 /* MetalBackend.h */; };
 		16AE93B91946467D001EF3E3 /* MetalUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 16AE93B51946467D001EF3E3 /* MetalUtils.cpp */; };
@@ -23,8 +30,6 @@
 		90438E451610833400C0D669 /* builtin_stubs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DE31610833400C0D669 /* builtin_stubs.cpp */; };
 		90438E461610833400C0D669 /* builtin_types.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DE41610833400C0D669 /* builtin_types.h */; };
 		90438E471610833400C0D669 /* compiler.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DE51610833400C0D669 /* compiler.h */; };
-		90438E481610833400C0D669 /* glcpp-lex.c in Sources */ = {isa = PBXBuildFile; fileRef = 90438DE61610833400C0D669 /* glcpp-lex.c */; };
-		90438E491610833400C0D669 /* glcpp-parse.c in Sources */ = {isa = PBXBuildFile; fileRef = 90438DE71610833400C0D669 /* glcpp-parse.c */; };
 		90438E4A1610833400C0D669 /* glcpp-parse.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DE81610833400C0D669 /* glcpp-parse.h */; };
 		90438E4B1610833400C0D669 /* glcpp.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DE91610833400C0D669 /* glcpp.h */; };
 		90438E4C1610833400C0D669 /* glsl_parser_extras.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DEA1610833400C0D669 /* glsl_parser_extras.cpp */; };
@@ -33,7 +38,6 @@
 		90438E4F1610833400C0D669 /* glsl_symbol_table.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DED1610833400C0D669 /* glsl_symbol_table.h */; };
 		90438E501610833400C0D669 /* glsl_types.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DEE1610833400C0D669 /* glsl_types.cpp */; };
 		90438E511610833400C0D669 /* glsl_types.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DEF1610833400C0D669 /* glsl_types.h */; };
-		90438E521610833400C0D669 /* hash_table.c in Sources */ = {isa = PBXBuildFile; fileRef = 90438DF01610833400C0D669 /* hash_table.c */; };
 		90438E531610833400C0D669 /* hash_table.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438DF11610833400C0D669 /* hash_table.h */; };
 		90438E541610833400C0D669 /* hir_field_selection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DF21610833400C0D669 /* hir_field_selection.cpp */; };
 		90438E551610833400C0D669 /* hlsl_lexer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438DF31610833400C0D669 /* hlsl_lexer.cpp */; };
@@ -105,13 +109,9 @@
 		90438E971610833400C0D669 /* opt_structure_splitting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E351610833400C0D669 /* opt_structure_splitting.cpp */; };
 		90438E981610833400C0D669 /* opt_swizzle_swizzle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E361610833400C0D669 /* opt_swizzle_swizzle.cpp */; };
 		90438E991610833400C0D669 /* opt_tree_grafting.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 90438E371610833400C0D669 /* opt_tree_grafting.cpp */; };
-		90438E9A1610833400C0D669 /* pp.c in Sources */ = {isa = PBXBuildFile; fileRef = 90438E381610833400C0D669 /* pp.c */; };
-		90438E9B1610833400C0D669 /* ralloc.c in Sources */ = {isa = PBXBuildFile; fileRef = 90438E391610833400C0D669 /* ralloc.c */; };
 		90438E9C1610833400C0D669 /* ralloc.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E3A1610833400C0D669 /* ralloc.h */; };
 		90438E9D1610833400C0D669 /* simple_list.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E3B1610833400C0D669 /* simple_list.h */; };
-		90438E9E1610833400C0D669 /* strtod.c in Sources */ = {isa = PBXBuildFile; fileRef = 90438E3C1610833400C0D669 /* strtod.c */; };
 		90438E9F1610833400C0D669 /* strtod.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E3D1610833400C0D669 /* strtod.h */; };
-		90438EA01610833400C0D669 /* symbol_table.c in Sources */ = {isa = PBXBuildFile; fileRef = 90438E3E1610833400C0D669 /* symbol_table.c */; };
 		90438EA11610833400C0D669 /* symbol_table.h in Headers */ = {isa = PBXBuildFile; fileRef = 90438E3F1610833400C0D669 /* symbol_table.h */; };
 		90438EB1161090E200C0D669 /* hlsl_lexer.ll in Sources */ = {isa = PBXBuildFile; fileRef = 90438EAD161090E200C0D669 /* hlsl_lexer.ll */; };
 		9063D4A81743B03D00540C43 /* IRDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9063D4A41743B03D00540C43 /* IRDump.cpp */; };
@@ -152,6 +152,13 @@
 /* Begin PBXFileReference section */
 		167F26AF18DB430E00778E55 /* ir_gen_glsl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ir_gen_glsl.cpp; sourceTree = "<group>"; };
 		167F26B018DB430E00778E55 /* ir_gen_glsl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ir_gen_glsl.h; sourceTree = "<group>"; };
+		168A4E3E19706C5B00611B10 /* glcpp-lex.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "glcpp-lex.cpp"; sourceTree = "<group>"; };
+		168A4E3F19706C5B00611B10 /* glcpp-parse.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "glcpp-parse.cpp"; sourceTree = "<group>"; };
+		168A4E4219706C7400611B10 /* pp.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = pp.cpp; sourceTree = "<group>"; };
+		168A4E4319706C7400611B10 /* ralloc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ralloc.cpp; sourceTree = "<group>"; };
+		168A4E4419706C7400611B10 /* strtod.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = strtod.cpp; sourceTree = "<group>"; };
+		168A4E4519706C7400611B10 /* symbol_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = symbol_table.cpp; sourceTree = "<group>"; };
+		168A4E4A19706CF600611B10 /* hash_table.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = hash_table.cpp; sourceTree = "<group>"; };
 		16AE93B31946467D001EF3E3 /* MetalBackend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MetalBackend.cpp; sourceTree = "<group>"; };
 		16AE93B41946467D001EF3E3 /* MetalBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MetalBackend.h; sourceTree = "<group>"; };
 		16AE93B51946467D001EF3E3 /* MetalUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MetalUtils.cpp; sourceTree = "<group>"; };
@@ -167,8 +174,6 @@
 		90438DE31610833400C0D669 /* builtin_stubs.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = builtin_stubs.cpp; sourceTree = "<group>"; };
 		90438DE41610833400C0D669 /* builtin_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = builtin_types.h; sourceTree = "<group>"; };
 		90438DE51610833400C0D669 /* compiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compiler.h; sourceTree = "<group>"; };
-		90438DE61610833400C0D669 /* glcpp-lex.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = "glcpp-lex.c"; sourceTree = "<group>"; };
-		90438DE71610833400C0D669 /* glcpp-parse.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = "glcpp-parse.c"; sourceTree = "<group>"; };
 		90438DE81610833400C0D669 /* glcpp-parse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "glcpp-parse.h"; sourceTree = "<group>"; };
 		90438DE91610833400C0D669 /* glcpp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glcpp.h; sourceTree = "<group>"; };
 		90438DEA1610833400C0D669 /* glsl_parser_extras.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = glsl_parser_extras.cpp; sourceTree = "<group>"; };
@@ -177,7 +182,6 @@
 		90438DED1610833400C0D669 /* glsl_symbol_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glsl_symbol_table.h; sourceTree = "<group>"; };
 		90438DEE1610833400C0D669 /* glsl_types.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = glsl_types.cpp; sourceTree = "<group>"; };
 		90438DEF1610833400C0D669 /* glsl_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glsl_types.h; sourceTree = "<group>"; };
-		90438DF01610833400C0D669 /* hash_table.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = hash_table.c; sourceTree = "<group>"; };
 		90438DF11610833400C0D669 /* hash_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hash_table.h; sourceTree = "<group>"; };
 		90438DF21610833400C0D669 /* hir_field_selection.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = hir_field_selection.cpp; sourceTree = "<group>"; };
 		90438DF31610833400C0D669 /* hlsl_lexer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = hlsl_lexer.cpp; sourceTree = "<group>"; };
@@ -249,13 +253,9 @@
 		90438E351610833400C0D669 /* opt_structure_splitting.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = opt_structure_splitting.cpp; sourceTree = "<group>"; };
 		90438E361610833400C0D669 /* opt_swizzle_swizzle.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = opt_swizzle_swizzle.cpp; sourceTree = "<group>"; };
 		90438E371610833400C0D669 /* opt_tree_grafting.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = opt_tree_grafting.cpp; sourceTree = "<group>"; };
-		90438E381610833400C0D669 /* pp.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = pp.c; sourceTree = "<group>"; };
-		90438E391610833400C0D669 /* ralloc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = ralloc.c; sourceTree = "<group>"; };
 		90438E3A1610833400C0D669 /* ralloc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ralloc.h; sourceTree = "<group>"; };
 		90438E3B1610833400C0D669 /* simple_list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = simple_list.h; sourceTree = "<group>"; };
-		90438E3C1610833400C0D669 /* strtod.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = strtod.c; sourceTree = "<group>"; };
 		90438E3D1610833400C0D669 /* strtod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = strtod.h; sourceTree = "<group>"; };
-		90438E3E1610833400C0D669 /* symbol_table.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; path = symbol_table.c; sourceTree = "<group>"; };
 		90438E3F1610833400C0D669 /* symbol_table.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = symbol_table.h; sourceTree = "<group>"; };
 		90438EAB161090E200C0D669 /* glcpp-lex.l */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.lex; path = "glcpp-lex.l"; sourceTree = "<group>"; };
 		90438EAC161090E200C0D669 /* glcpp-parse.y */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.yacc; path = "glcpp-parse.y"; sourceTree = "<group>"; };
@@ -357,6 +357,13 @@
 		90438DD7161082F400C0D669 /* mesa */ = {
 			isa = PBXGroup;
 			children = (
+				168A4E4A19706CF600611B10 /* hash_table.cpp */,
+				168A4E4219706C7400611B10 /* pp.cpp */,
+				168A4E4319706C7400611B10 /* ralloc.cpp */,
+				168A4E4419706C7400611B10 /* strtod.cpp */,
+				168A4E4519706C7400611B10 /* symbol_table.cpp */,
+				168A4E3E19706C5B00611B10 /* glcpp-lex.cpp */,
+				168A4E3F19706C5B00611B10 /* glcpp-parse.cpp */,
 				90438EAB161090E200C0D669 /* glcpp-lex.l */,
 				90438EAC161090E200C0D669 /* glcpp-parse.y */,
 				90438EAD161090E200C0D669 /* hlsl_lexer.ll */,
@@ -369,8 +376,6 @@
 				90438DE31610833400C0D669 /* builtin_stubs.cpp */,
 				90438DE41610833400C0D669 /* builtin_types.h */,
 				90438DE51610833400C0D669 /* compiler.h */,
-				90438DE61610833400C0D669 /* glcpp-lex.c */,
-				90438DE71610833400C0D669 /* glcpp-parse.c */,
 				90438DE81610833400C0D669 /* glcpp-parse.h */,
 				90438DE91610833400C0D669 /* glcpp.h */,
 				90438DEA1610833400C0D669 /* glsl_parser_extras.cpp */,
@@ -379,7 +384,6 @@
 				90438DED1610833400C0D669 /* glsl_symbol_table.h */,
 				90438DEE1610833400C0D669 /* glsl_types.cpp */,
 				90438DEF1610833400C0D669 /* glsl_types.h */,
-				90438DF01610833400C0D669 /* hash_table.c */,
 				90438DF11610833400C0D669 /* hash_table.h */,
 				90438DF21610833400C0D669 /* hir_field_selection.cpp */,
 				90438DF31610833400C0D669 /* hlsl_lexer.cpp */,
@@ -451,13 +455,9 @@
 				90438E351610833400C0D669 /* opt_structure_splitting.cpp */,
 				90438E361610833400C0D669 /* opt_swizzle_swizzle.cpp */,
 				90438E371610833400C0D669 /* opt_tree_grafting.cpp */,
-				90438E381610833400C0D669 /* pp.c */,
-				90438E391610833400C0D669 /* ralloc.c */,
 				90438E3A1610833400C0D669 /* ralloc.h */,
 				90438E3B1610833400C0D669 /* simple_list.h */,
-				90438E3C1610833400C0D669 /* strtod.c */,
 				90438E3D1610833400C0D669 /* strtod.h */,
-				90438E3E1610833400C0D669 /* symbol_table.c */,
 				90438E3F1610833400C0D669 /* symbol_table.h */,
 			);
 			path = mesa;
@@ -592,22 +592,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				168A4E4B19706CF600611B10 /* hash_table.cpp in Sources */,
 				90438DDB1610831A00C0D669 /* hlslcc.cpp in Sources */,
 				90438E401610833400C0D669 /* ast_expr.cpp in Sources */,
 				90438E411610833400C0D669 /* ast_function.cpp in Sources */,
 				90438E421610833400C0D669 /* ast_to_hir.cpp in Sources */,
 				90438E431610833400C0D669 /* ast_type.cpp in Sources */,
 				90438E451610833400C0D669 /* builtin_stubs.cpp in Sources */,
-				90438E481610833400C0D669 /* glcpp-lex.c in Sources */,
-				90438E491610833400C0D669 /* glcpp-parse.c in Sources */,
 				90438E4C1610833400C0D669 /* glsl_parser_extras.cpp in Sources */,
 				90438E4E1610833400C0D669 /* glsl_symbol_table.cpp in Sources */,
 				90438E501610833400C0D669 /* glsl_types.cpp in Sources */,
-				90438E521610833400C0D669 /* hash_table.c in Sources */,
 				90438E541610833400C0D669 /* hir_field_selection.cpp in Sources */,
 				90438E551610833400C0D669 /* hlsl_lexer.cpp in Sources */,
+				168A4E4619706C7400611B10 /* pp.cpp in Sources */,
 				90438E561610833400C0D669 /* hlsl_parser.cpp in Sources */,
 				90438E591610833400C0D669 /* ir_basic_block.cpp in Sources */,
+				168A4E4019706C5B00611B10 /* glcpp-lex.cpp in Sources */,
 				90438E5B1610833400C0D669 /* ir_clone.cpp in Sources */,
 				90438E5C1610833400C0D669 /* ir_constant_expression.cpp in Sources */,
 				90438E5D1610833400C0D669 /* ir_expression_flattening.cpp in Sources */,
@@ -619,11 +619,14 @@
 				16AE93B71946467D001EF3E3 /* MetalBackend.cpp in Sources */,
 				90438E651610833400C0D669 /* ir_hv_accept.cpp in Sources */,
 				90438E661610833400C0D669 /* ir_import_prototypes.cpp in Sources */,
+				168A4E4919706C7400611B10 /* symbol_table.cpp in Sources */,
 				90438E681610833400C0D669 /* ir_print_visitor.cpp in Sources */,
 				90438E6A1610833400C0D669 /* ir_rvalue_visitor.cpp in Sources */,
+				168A4E4819706C7400611B10 /* strtod.cpp in Sources */,
 				90438E6D1610833400C0D669 /* ir_unused_structs.cpp in Sources */,
 				90438E6F1610833400C0D669 /* ir_validate.cpp in Sources */,
 				90438E701610833400C0D669 /* ir_variable_refcount.cpp in Sources */,
+				168A4E4119706C5B00611B10 /* glcpp-parse.cpp in Sources */,
 				90438E731610833400C0D669 /* ir.cpp in Sources */,
 				90438E761610833400C0D669 /* loop_analysis.cpp in Sources */,
 				90438E781610833400C0D669 /* loop_controls.cpp in Sources */,
@@ -658,13 +661,10 @@
 				90438E941610833400C0D669 /* opt_if_simplification.cpp in Sources */,
 				90438E951610833400C0D669 /* opt_noop_swizzle.cpp in Sources */,
 				90438E961610833400C0D669 /* opt_redundant_jumps.cpp in Sources */,
+				168A4E4719706C7400611B10 /* ralloc.cpp in Sources */,
 				90438E971610833400C0D669 /* opt_structure_splitting.cpp in Sources */,
 				90438E981610833400C0D669 /* opt_swizzle_swizzle.cpp in Sources */,
 				90438E991610833400C0D669 /* opt_tree_grafting.cpp in Sources */,
-				90438E9A1610833400C0D669 /* pp.c in Sources */,
-				90438E9B1610833400C0D669 /* ralloc.c in Sources */,
-				90438E9E1610833400C0D669 /* strtod.c in Sources */,
-				90438EA01610833400C0D669 /* symbol_table.c in Sources */,
 				90438EB1161090E200C0D669 /* hlsl_lexer.ll in Sources */,
 				90F7E6DB171A1CE300B562D0 /* ir_track_image_access.cpp in Sources */,
 				9063D4A81743B03D00540C43 /* IRDump.cpp in Sources */,

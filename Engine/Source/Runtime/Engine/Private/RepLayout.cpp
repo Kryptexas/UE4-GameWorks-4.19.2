@@ -1329,7 +1329,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 		if ( AbsOffset >= MaxAbsOffset )
 		{
 			// Array must have shrunk, we can remove this item
-			UE_LOG( LogNet, VeryVerbose, TEXT( "REMOVED unmapped property: AbsOffset >= MaxAbsOffset. Offset: %i" ), AbsOffset );
+			UE_LOG( LogNet, VeryVerbose, TEXT( "UpdateUnmappedObjects_r: REMOVED unmapped property: AbsOffset >= MaxAbsOffset. Offset: %i" ), AbsOffset );
 			It.RemoveCurrent();
 			continue;
 		}
@@ -1351,7 +1351,7 @@ void FRepLayout::UpdateUnmappedObjects_r(
 
 		if ( Object != NULL )
 		{
-			UE_LOG( LogNet, VeryVerbose, TEXT( "REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *It.Value().Guid.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
+			UE_LOG( LogNet, VeryVerbose, TEXT( "UpdateUnmappedObjects_r: REMOVED unmapped property: Offset: %i, Guid: %s, PropName: %s, ObjName: %s" ), AbsOffset, *It.Value().Guid.ToString(), *Cmd.Property->GetName(), *Object->GetName() );
 			UObjectPropertyBase * ObjProperty = CastChecked< UObjectPropertyBase>( Cmd.Property );
 
 			UObject * OldObject = ObjProperty->GetObjectPropertyValue( Data + AbsOffset );
@@ -1378,7 +1378,14 @@ void FRepLayout::UpdateUnmappedObjects_r(
 			continue;
 		}
 
-		UE_LOG( LogNet, VeryVerbose, TEXT( "UnmappedGuids: Offset: %i, Guid: %s" ), AbsOffset, *It.Value().Guid.ToString() );
+		if ( PackageMap->IsGUIDBroken( It.Value().Guid, false ) )
+		{
+			UE_LOG( LogNet, Warning, TEXT( "UpdateUnmappedObjects_r: Broken GUID. NetGuid: %s" ), *It.Value().Guid.ToString() );
+			It.RemoveCurrent();
+			continue;
+		}
+
+		UE_LOG( LogNet, VeryVerbose, TEXT( "UpdateUnmappedObjects_r: Still unmapped. Offset: %i, NetGuid: %s" ), AbsOffset, *It.Value().Guid.ToString() );
 
 		bOutHasMoreUnmapped = true;
 	}

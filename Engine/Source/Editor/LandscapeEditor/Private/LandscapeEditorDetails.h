@@ -5,6 +5,14 @@
 #include "PropertyEditorModule.h"
 #include "LandscapeEditorDetailCustomization_Base.h"
 
+// Forward declarations
+class FLandscapeEditorDetailCustomization_NewLandscape;
+class FLandscapeEditorDetailCustomization_ResizeLandscape;
+class FLandscapeEditorDetailCustomization_CopyPaste;
+class FLandscapeEditorDetailCustomization_MiscTools;
+class FLandscapeEditorDetailCustomization_AlphaBrush;
+class FLandscapeEditorDetailCustomization_TargetLayers;
+
 class FLandscapeEditorDetails : public FLandscapeEditorDetailCustomization_Base
 {
 public:
@@ -12,10 +20,10 @@ public:
 	static TSharedRef<IDetailCustomization> MakeInstance();
 
 	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
 protected:
-	static FText GetLocalizedName(FName Name);
+	static FText GetLocalizedName(FString Name);
 
 	static EVisibility GetTargetLandscapeSelectorVisibility();
 	static FText GetTargetLandscapeName();
@@ -27,8 +35,8 @@ protected:
 	TSharedRef<SWidget> GetToolSelector();
 	bool GetToolSelectorIsVisible() const;
 	EVisibility GetToolSelectorVisibility() const;
-	void OnChangeTool(FName ToolSetName);
-	bool IsToolEnabled(FName ToolSetName) const;
+	void OnChangeTool(FName ToolName);
+	bool IsToolEnabled(FName ToolName) const;
 
 	FText GetCurrentBrushName() const;
 	FSlateIcon GetCurrentBrushIcon() const;
@@ -46,10 +54,10 @@ protected:
 
 	TSharedPtr<FUICommandList> CommandList;
 
-	TSharedPtr<class FLandscapeEditorDetailCustomization_NewLandscape> Customization_NewLandscape;
-	TSharedPtr<class FLandscapeEditorDetailCustomization_ResizeLandscape> Customization_ResizeLandscape;
-	TSharedPtr<class FLandscapeEditorDetailCustomization_CopyPaste> Customization_CopyPaste;
-	TSharedPtr<class FLandscapeEditorDetailCustomization_MiscTools> Customization_MiscTools;
-	TSharedPtr<class FLandscapeEditorDetailCustomization_AlphaBrush> Customization_AlphaBrush;
-	TSharedPtr<class FLandscapeEditorDetailCustomization_TargetLayers> Customization_TargetLayers;
+	TSharedPtr<FLandscapeEditorDetailCustomization_NewLandscape> Customization_NewLandscape;
+	TSharedPtr<FLandscapeEditorDetailCustomization_ResizeLandscape> Customization_ResizeLandscape;
+	TSharedPtr<FLandscapeEditorDetailCustomization_CopyPaste> Customization_CopyPaste;
+	TSharedPtr<FLandscapeEditorDetailCustomization_MiscTools> Customization_MiscTools;
+	TSharedPtr<FLandscapeEditorDetailCustomization_AlphaBrush> Customization_AlphaBrush;
+	TSharedPtr<FLandscapeEditorDetailCustomization_TargetLayers> Customization_TargetLayers;
 };

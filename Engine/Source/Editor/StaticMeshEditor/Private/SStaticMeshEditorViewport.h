@@ -67,6 +67,20 @@ public:
 	/** Set the parent tab of the viewport for determining visibility */
 	void SetParentTab( TSharedRef<SDockTab> InParentTab ) { ParentTab = InParentTab; }
 
+	/** Struct defining the text and its style of each item in the overlay widget */
+	struct FOverlayTextItem
+	{
+		explicit FOverlayTextItem(const FText& InText, const FName& InStyle = "TextBlock.ShadowedText")
+			: Text(InText), Style(InStyle)
+		{}
+
+		FText Text;
+		FName Style;
+	};
+
+	/** Specifies an array of text items which will be added to the viewport overlay */
+	void PopulateOverlayText( const TArray<FOverlayTextItem>& TextItems );
+
 protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
@@ -74,6 +88,7 @@ protected:
 	virtual void BindCommands() override;
 	virtual void OnFocusViewportToSelection() override;
 	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+
 private:
 	/** Determines the visibility of the viewport. */
 	bool IsVisible() const;
@@ -114,4 +129,7 @@ private:
 
 	/** The currently selected view mode. */
 	EViewModeIndex CurrentViewMode;
+
+	/** Pointer to the vertical box into which the overlay text items are added */
+	TSharedPtr<SVerticalBox> OverlayTextVerticalBox;
 };

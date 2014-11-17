@@ -81,31 +81,6 @@ private:
 };
 
 //
-// Ordered information of linker file requirements.
-//
-class COREUOBJECT_API FPackageInfo
-{
-public:
-	// Variables.
-	FName			PackageName;		// name of the package we need to request.
-	UPackage*		Parent;				// The parent package.
-	FGuid			Guid;				// Package identifier.
-	int32				ObjectBase;			// Net index of first object.
-	int32				ObjectCount;		// Number of objects, defined by server.
-	int32				LocalGeneration;	// This machine's generation of the package.
-	int32				RemoteGeneration;	// Remote machine's generation of the package.
-	uint32			PackageFlags;		// Package flags.
-	FName			ForcedExportBasePackageName; // for packages that were a forced export in another package (seekfree loading), the name of that base package, otherwise NAME_None
-	uint8			LoadingPhase;		// indicates if package was loaded during a seamless loading operation (e.g. seamless level change) to aid client in determining when to process it
-	FString			Extension;			// Extension of the package file, used so HTTP downloading can get the package
-	FName			FileName;			// Name of the file this package was loaded from if it is not equal to the PackageName
-
-	// Functions.
-	FPackageInfo(UPackage* Package = NULL);
-	friend COREUOBJECT_API FArchive& operator<<( FArchive& Ar, FPackageInfo& I );
-};
-
-//
 // Maps objects and names to and from indices for network communication.
 //
 class COREUOBJECT_API UPackageMap : public UObject
@@ -143,6 +118,7 @@ class COREUOBJECT_API UPackageMap : public UObject
 
 	virtual void		LogDebugInfo( FOutputDevice & Ar) { }
 	virtual UObject *	GetObjectFromNetGUID( const FNetworkGUID & NetGUID, const bool bIgnoreMustBeMapped ) { return NULL; }
+	virtual bool		IsGUIDBroken( const FNetworkGUID & NetGUID, const bool bMustBeRegistered ) const { return false; }
 
 protected:
 
@@ -254,6 +230,7 @@ public:
 
 	FArchive& operator<<( FName& Name );
 	FArchive& operator<<( UObject*& Object );
+	FArchive& operator<<(FStringAssetReference& Value) override;
 };
 
 /**
@@ -271,6 +248,7 @@ public:
 
 	FArchive& operator<<( FName& Name );
 	FArchive& operator<<( UObject*& Object );
+	FArchive& operator<<(FStringAssetReference& Value) override;
 };
 
 

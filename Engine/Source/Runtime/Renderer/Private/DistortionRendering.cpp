@@ -295,14 +295,14 @@ public:
 	* @param CI - The command interface to execute the draw commands on.
 	* @param View - The view of the scene being drawn.
 	*/
-	void DrawShared(FRHICommandList& RHICmdList, const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const;
+	void SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View) const;
 	
 	/** 
 	* Create bound shader state using the vertex decl from the mesh draw policy
 	* as well as the shaders needed to draw the mesh
 	* @return new bound shader state object
 	*/
-	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
+	FBoundShaderStateInput GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel);
 
 	/**
 	* Sets the render states for drawing a mesh.
@@ -403,17 +403,13 @@ bool TDistortionMeshDrawingPolicy<DistortMeshPolicy>::Matches(
 * @param View - The view of the scene being drawn.
 */
 template<class DistortMeshPolicy>
-void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::DrawShared(
+void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::SetSharedState(
 	FRHICommandList& RHICmdList, 
-	const FSceneView* View,
-	FBoundShaderStateRHIParamRef BoundShaderState
+	const FSceneView* View
 	) const
 {
 	// Set shared mesh resources
 	FMeshDrawingPolicy::DrawShared(RHICmdList, View);
-
-	// Set the actual shader & vertex declaration state
-	RHICmdList.SetBoundShaderState(BoundShaderState);
 
 	// Set the translucent shader parameters for the material instance
 	VertexShader->SetParameters(RHICmdList, VertexFactory,MaterialRenderProxy,View);
@@ -447,7 +443,7 @@ void TDistortionMeshDrawingPolicy<DistortMeshPolicy>::DrawShared(
 * @return new bound shader state object
 */
 template<class DistortMeshPolicy>
-FBoundShaderStateRHIRef TDistortionMeshDrawingPolicy<DistortMeshPolicy>::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
+FBoundShaderStateInput TDistortionMeshDrawingPolicy<DistortMeshPolicy>::GetBoundShaderStateInput(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	FPixelShaderRHIParamRef PixelShaderRHIRef = NULL;
 
@@ -467,9 +463,7 @@ FBoundShaderStateRHIRef TDistortionMeshDrawingPolicy<DistortMeshPolicy>::CreateB
 		PixelShaderRHIRef = DistortPixelShader->GetPixelShader();
 	}
 
-	FBoundShaderStateRHIRef BoundShaderState;
-
-	BoundShaderState = RHICreateBoundShaderState(
+	return FBoundShaderStateInput(
 		FMeshDrawingPolicy::GetVertexDeclaration(), 
 		VertexShader->GetVertexShader(),
 		GETSAFERHISHADER_HULL(HullShader), 
@@ -477,7 +471,6 @@ FBoundShaderStateRHIRef TDistortionMeshDrawingPolicy<DistortMeshPolicy>::CreateB
 		PixelShaderRHIRef,
 		FGeometryShaderRHIRef());
 
-	return BoundShaderState;
 }
 
 /**
@@ -606,8 +599,9 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawDynamicMesh(
 			bInitializeOffsets,
 			View.Family->EngineShowFlags.ShaderComplexity
 			);
-		DrawingPolicy.DrawShared(RHICmdList, &View,DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
-		for( int32 BatchElementIndex=0;BatchElementIndex < Mesh.Elements.Num();BatchElementIndex++ )
+		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
+		DrawingPolicy.SetSharedState(RHICmdList, &View);
+		for (int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
 		{
 			DrawingPolicy.SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,typename TDistortionMeshDrawingPolicy<DistortMeshPolicy>::ElementDataType());
 			DrawingPolicy.DrawMesh(RHICmdList, Mesh,BatchElementIndex);
@@ -650,7 +644,8 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 			bInitializeOffsets,
 			View->Family->EngineShowFlags.ShaderComplexity
 			);
-		DrawingPolicy.DrawShared(RHICmdList, View,DrawingPolicy.CreateBoundShaderState(FeatureLevel));
+		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View->GetFeatureLevel()));
+		DrawingPolicy.SetSharedState(RHICmdList, View);
 		int32 BatchElementIndex = 0;
 		do
 		{
@@ -688,6 +683,7 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 
 	// Draw the view's elements with the translucent drawing policy.
 	bDirty |= DrawViewElements<TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy> >(
+		RHICmdList,
 		*ViewInfo,
 		bInitializeOffsets,
 		0,	// DPG Index?
@@ -698,6 +694,7 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 	{
 		// For drawing scene prims with dynamic relevance.
 		TDynamicPrimitiveDrawer<TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy> > Drawer(
+			RHICmdList,
 			ViewInfo,
 			bInitializeOffsets,
 			false // Distortion is rendered post fog.
@@ -847,7 +844,8 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 
 // OCULUS BEGIN: select ONE render target for all views (eyes)
 		TRefCountPtr<IPooledRenderTarget> NewSceneColor;
-		GRenderTargetPool.FindFreeElement(GSceneRenderTargets.GetSceneColor()->GetDesc(), NewSceneColor, TEXT("RefractedSceneColor"));
+		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
+		GRenderTargetPool.FindFreeElement(GSceneRenderTargets.GetSceneColor()->GetDesc(), NewSceneColor, TEXT("SceneColor"));
 		const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem();
 // OCULUS END
 
@@ -868,7 +866,8 @@ void FSceneRenderer::RenderDistortion(FRHICommandListImmediate& RHICmdList)
 			{
 // OCULUS BEGIN: Weird, different eyes may have different render targets!
 // 				TRefCountPtr<IPooledRenderTarget> NewSceneColor;
-// 				GRenderTargetPool.FindFreeElement(GSceneRenderTargets.SceneColor->GetDesc(), NewSceneColor, TEXT("RefractedSceneColor"));
+// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
+// 				GRenderTargetPool.FindFreeElement(GSceneRenderTargets.SceneColor->GetDesc(), NewSceneColor, TEXT("SceneColor"));
 // 				const FSceneRenderTargetItem& DestRenderTarget = NewSceneColor->GetRenderTargetItem(); 
 // OCULUS END
 

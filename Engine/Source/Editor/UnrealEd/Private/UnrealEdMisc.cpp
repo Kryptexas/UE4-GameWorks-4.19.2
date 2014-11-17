@@ -483,6 +483,12 @@ FString CreateProjectPath()
 	{
 		return UTF8_TO_TCHAR([[[NSBundle mainBundle] executablePath] fileSystemRepresentation]);
 	}
+#elif PLATFORM_LINUX
+	const TCHAR* PlatformConfig = FPlatformMisc::GetUBTPlatform();
+	FString ExeFileName = FPaths::EngineDir() / TEXT("Binaries") / PlatformConfig / FString(FPlatformProcess::ExecutableName());
+	return ExeFileName;
+#else
+#error "Unknown platform"
 #endif
 }
 
@@ -1274,7 +1280,6 @@ void FUnrealEdMisc::TickPerformanceSurvey()
 			FString AveFrameRateString = FString::Printf( TEXT( "%.1f" ), AveFrameRate);
 			IAnalyticsProvider& EngineAnalytics = FEngineAnalytics::GetProvider();
 			EngineAnalytics.RecordEvent(TEXT( "Editor.Performance.FrameRate" ), TEXT( "MeanFrameRate" ), AveFrameRateString);
-			EngineAnalytics.RecordUserAttribute(TEXT( "MeanFrameRate" ), AveFrameRateString);
 		}
 
 		CancelPerformanceSurvey();
@@ -1324,6 +1329,23 @@ bool FUnrealEdMisc::GetURL( const TCHAR* InKey, FString& OutURL, const bool bChe
 	return bFound;
 }
 
+FString FUnrealEdMisc::GetExecutableForCommandlets() const
+{
+	FString ExecutableName = FPlatformProcess::ExecutableName(false);
+#if PLATFORM_WINDOWS
+	// turn UE4editor into UE4editor-cmd
+	if(ExecutableName.EndsWith(".exe", ESearchCase::IgnoreCase) && !FPaths::GetBaseFilename(ExecutableName).EndsWith("-cmd", ESearchCase::IgnoreCase))
+	{
+		FString NewExeName = ExecutableName.Left(ExecutableName.Len() - 4) + "-Cmd.exe";
+		if (FPaths::FileExists(NewExeName))
+		{
+			ExecutableName = NewExeName;
+		}
+	}
+#endif
+	return ExecutableName;
+}
+
 void FUnrealEdMisc::OnUserDefinedGestureChanged(const FUICommandInfo& CommandInfo)
 {
 	if( FEngineAnalytics::IsAvailable() )
@@ -1331,10 +1353,10 @@ void FUnrealEdMisc::OnUserDefinedGestureChanged(const FUICommandInfo& CommandInf
 		FString GestureName = FString::Printf(TEXT("%s.%s"), *CommandInfo.GetBindingContext().ToString(), *CommandInfo.GetCommandName().ToString());
 
 		//@todo This shouldn't be using a localized value; GetInputText() [10/11/2013 justin.sargent]
-		FEngineAnalytics::GetProvider().RecordEvent(
-			TEXT("Editor.Usage.KeyboardShortcut"),
-			TEXT("Context"), GestureName,
-			TEXT("Shortcut"), CommandInfo.GetActiveGesture()->GetInputText().ToString());
+		TArray< FAnalyticsEventAttribute > GestureAttribs;
+		GestureAttribs.Add(FAnalyticsEventAttribute(TEXT("Context"), GestureName));
+		GestureAttribs.Add(FAnalyticsEventAttribute(TEXT("Shortcut"), CommandInfo.GetActiveGesture()->GetInputText().ToString()));
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.KeyboardShortcut"), GestureAttribs);
 	}
 }
 

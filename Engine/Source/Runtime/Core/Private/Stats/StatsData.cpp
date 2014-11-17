@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #if STATS
 
 #include "TaskGraphInterfaces.h"
@@ -1353,9 +1353,12 @@ FString FStatsUtils::DebugPrint(FStatMessage const& Item)
 	FString Desc = Item.NameAndInfo.GetDescription();
 	Desc.Trim();
 
-	if( Desc.Len() && Desc != ShortName )
+	if( Desc != ShortName )
 	{
-		Desc += TEXT(" - ");
+		if( Desc.Len() )
+		{
+			Desc += TEXT( " - " );
+		}
 		Desc += ShortName;
 	}
 

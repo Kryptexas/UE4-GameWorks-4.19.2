@@ -40,10 +40,10 @@ public:
 	TSharedPtr< FUICommandInfo > AddSocket;
 
 	/** Customize a socket for a mesh */
-	TSharedPtr< FUICommandInfo > CustomizeSocket;
+	TSharedPtr< FUICommandInfo > CreateMeshSocket;
 
 	/** Remove customization for a socket (actually just deletes the mesh socket) */
-	TSharedPtr< FUICommandInfo > RemoveSocketCustomization;
+	TSharedPtr< FUICommandInfo > RemoveMeshSocket;
 
 	/** Promotes a mesh-only socket to the skeleton */
 	TSharedPtr< FUICommandInfo > PromoteSocketToSkeleton;

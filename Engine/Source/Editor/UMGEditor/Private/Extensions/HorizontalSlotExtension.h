@@ -9,11 +9,13 @@ class FHorizontalSlotExtension : public FDesignerExtension
 public:
 	FHorizontalSlotExtension();
 
-	bool IsActive(const TArray< FWidgetReference >& Selection);
+	virtual bool CanExtendSelection(const TArray< FWidgetReference >& Selection) const override;
 	
-	virtual void BuildWidgetsForSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<SWidget> >& Widgets) override;
+	virtual void ExtendSelection(const TArray< FWidgetReference >& Selection, TArray< TSharedRef<FDesignerSurfaceElement> >& SurfaceElements) override;
 
 private:
+
+	bool CanShift(int32 ShiftAmount) const;
 
 	FReply HandleShift(int32 ShiftAmount);
 	

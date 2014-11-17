@@ -25,15 +25,17 @@ void UMovieSceneTransformSection::MoveSection( float DeltaTime )
 
 void UMovieSceneTransformSection::DilateSection( float DilationFactor, float Origin )
 {
+	Super::DilateSection(DilationFactor, Origin);
+
 	for( int32 Axis = 0; Axis < 3; ++Axis )
 	{
 		Translation[Axis].ScaleCurve( Origin, DilationFactor );
 		Rotation[Axis].ScaleCurve( Origin, DilationFactor );
 		Scale[Axis].ScaleCurve( Origin, DilationFactor );
 	}
-
-	Super::DilateSection(DilationFactor, Origin);
 }
+
+	
 
 bool UMovieSceneTransformSection::EvalTranslation( float Time, FVector& OutTranslation ) const
 {
@@ -124,6 +126,7 @@ void UMovieSceneTransformSection::AddKeyToCurve( FRichCurve& InCurve, float Time
 {
 	if( IsTimeWithinSection(Time) )
 	{
+		Modify();
 		InCurve.UpdateOrAddKey(Time, Value);
 	}
 }

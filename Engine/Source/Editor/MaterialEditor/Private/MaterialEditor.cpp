@@ -10,6 +10,7 @@
 #include "Materials/MaterialExpressionConstant2Vector.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
 #include "Materials/MaterialExpressionConstant4Vector.h"
+#include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialExpressionFontSampleParameter.h"
 #include "Materials/MaterialExpressionFunctionInput.h"
 #include "Materials/MaterialExpressionFunctionOutput.h"
@@ -85,47 +86,63 @@ bool FMatExpressionPreview::ShouldCache(EShaderPlatform Platform, const FShaderT
 		// we only need the non-light-mapped, base pass, local vertex factory shaders for drawing an opaque Material Tile
 		// @todo: Added a FindShaderType by fname or something"
 
-		if(FCString::Stristr(ShaderType->GetName(), TEXT("BasePassVSFNoLightMapPolicy")) ||
-			FCString::Stristr(ShaderType->GetName(), TEXT("BasePassHSFNoLightMapPolicy")) ||
-			FCString::Stristr(ShaderType->GetName(), TEXT("BasePassDSFNoLightMapPolicy")))
+		if (IsES2Platform(Platform))
 		{
-			return true;
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassForForwardShadingVSFNoLightMapPolicy")) ||
+				FCString::Stristr(ShaderType->GetName(), TEXT("BasePassForForwardShadingPSFNoLightMapPolicy")))
+			{
+				return true;
+			}
 		}
-		else if(FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFNoLightMapPolicy")))
+		else
 		{
-			return true;
+			if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassVSFNoLightMapPolicy")) ||
+				FCString::Stristr(ShaderType->GetName(), TEXT("BasePassHSFNoLightMapPolicy")) ||
+				FCString::Stristr(ShaderType->GetName(), TEXT("BasePassDSFNoLightMapPolicy")))
+			{
+				return true;
+			}
+			else if (FCString::Stristr(ShaderType->GetName(), TEXT("BasePassPSFNoLightMapPolicy")))
+			{
+				return true;
+			}
 		}
 	}
 
 	return false;
 }
 
-// Material properties.
-/** Entry point for compiling a specific material property.  This must call SetMaterialProperty. */
-int32 FMatExpressionPreview::CompileProperty(EMaterialProperty Property,EShaderFrequency InShaderFrequency,FMaterialCompiler* Compiler) const
+int32 FMatExpressionPreview::CompilePropertyAndSetMaterialProperty(EMaterialProperty Property, FMaterialCompiler* Compiler, EShaderFrequency OverrideShaderFrequency) const
 {
-	Compiler->SetMaterialProperty(Property, InShaderFrequency);
+	// needs to be called in this function!!
+	Compiler->SetMaterialProperty(Property, OverrideShaderFrequency);
+
+	int32 Ret = INDEX_NONE;
+
 	if( Property == MP_EmissiveColor && Expression.IsValid())
 	{
 		// Hardcoding output 0 as we don't have the UI to specify any other output
 		const int32 OutputIndex = 0;
 		// Get back into gamma corrected space, as DrawTile does not do this adjustment.
-		return Compiler->Power(Compiler->Max(Expression->CompilePreview(Compiler, OutputIndex, -1), Compiler->Constant(0)), Compiler->Constant(1.f/2.2f));
+		Ret = Compiler->Power(Compiler->Max(Expression->CompilePreview(Compiler, OutputIndex, -1), Compiler->Constant(0)), Compiler->Constant(1.f / 2.2f));
 	}
 	else if ( Property == MP_WorldPositionOffset)
 	{
 		//set to 0 to prevent off by 1 pixel errors
-		return Compiler->Constant(0.0f);
+		Ret = Compiler->Constant(0.0f);
 	}
 	else if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 	{
 		const int32 TextureCoordinateIndex = Property - MP_CustomizedUVs0;
-		return Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
+		Ret = Compiler->TextureCoordinate(TextureCoordinateIndex, false, false);
 	}
 	else
 	{
-		return Compiler->Constant(1.0f);
+		Ret = Compiler->Constant(1.0f);
 	}
+
+	// output should always be the right type for this property
+	return Compiler->ForceCast(Ret, GetMaterialPropertyType(Property));
 }
 
 void FMatExpressionPreview::NotifyCompilationFinished()
@@ -228,7 +245,7 @@ void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMateria
 	// Create a temporary material to preview the material function
 	Material = (UMaterial*)StaticConstructObject(UMaterial::StaticClass()); 
 	{
-		FArchive DummyArchive;
+		FArchiveUObject DummyArchive;
 		// Hack: serialize the new material with an archive that does nothing so that its material resources are created
 		Material->Serialize(DummyArchive);
 	}
@@ -387,7 +404,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 	LoadEditorSettings();
 	
 	// Set the preview mesh for the material.  This call must occur after the toolbar is initialized.
-	if ( !SetPreviewMesh( *Material->PreviewMesh.AssetLongPathname ) )
+	if (!SetPreviewMesh(*Material->PreviewMesh.ToString()))
 	{
 		// The material preview mesh couldn't be found or isn't loaded.  Default to the one of the primitive types.
 		Viewport->SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
@@ -453,6 +470,11 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 
 	Material->MaterialGraph->RebuildGraph();
 	RecenterEditor();
+
+	//Make sure the preview material is initialized.
+	UpdatePreviewMaterial(true);
+	RegenerateCodeView(true);
+
 	ForceRefreshExpressionPreviews();
 }
 
@@ -470,6 +492,7 @@ FMaterialEditor::FMaterialEditor()
 	, ScopedTransaction(NULL)
 	, bAlwaysRefreshAllPreviews(false)
 	, bHideUnusedConnectors(false)
+	, bLivePreview(true)
 	, bIsRealtime(false)
 	, bShowStats(true)
 	, bShowBuiltinStats(false)
@@ -707,7 +730,8 @@ void FMaterialEditor::ExtendToolbar()
 			{
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().CameraHome);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().CleanUnusedExpressions);
-				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ShowHideConnectors);
+				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ShowHideConnectors); 
+				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleLivePreview);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleRealtimeExpressions);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().AlwaysRefreshAllPreviews);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleMaterialStats);
@@ -993,6 +1017,10 @@ void FMaterialEditor::LoadEditorSettings()
 	EditorOptions = ConstructObject<UMaterialEditorOptions>( UMaterialEditorOptions::StaticClass() );
 	
 	if (EditorOptions->bHideUnusedConnectors) {OnShowConnectors();}
+	if (bLivePreview != EditorOptions->bLivePreviewUpdate)
+	{
+		ToggleLivePreview();
+	}
 	if (EditorOptions->bAlwaysRefreshAllPreviews) {OnAlwaysRefreshAllPreviews();}
 	if (EditorOptions->bRealtimeExpressionViewport) {ToggleRealTimeExpressions();}
 
@@ -1044,6 +1072,9 @@ void FMaterialEditor::SaveEditorSettings()
 		EditorOptions->bHideUnusedConnectors		= !IsOnShowConnectorsChecked();
 		EditorOptions->bAlwaysRefreshAllPreviews	= IsOnAlwaysRefreshAllPreviews();
 		EditorOptions->bRealtimeExpressionViewport	= IsToggleRealTimeExpressionsChecked();
+		EditorOptions->bLivePreviewUpdate		= IsToggleLivePreviewChecked();
+		EditorOptions->bShowBuiltinStats 		= IsToggleBuiltinStatsChecked();
+		EditorOptions->bReleaseStats 			= IsToggleReleaseStatsChecked();
 		EditorOptions->SaveConfig();
 	}
 
@@ -1062,12 +1093,19 @@ FReply FMaterialEditor::CopyCodeViewTextToClipboard()
 	return FReply::Handled();
 }
 
-void FMaterialEditor::RegenerateCodeView()
+void FMaterialEditor::RegenerateCodeView(bool bForce)
 {
 #define MARKTAG TEXT("/*MARK_")
 #define MARKTAGLEN 7
 
 	HLSLCode = TEXT("");
+
+	if (!bLivePreview && !bForce)
+	{
+		//When bLivePreview is false then the source can be out of date. 
+		return;
+	}
+
 	TMap<FMaterialExpressionKey,int32> ExpressionCodeMap[MP_MAX][SF_NumFrequencies];
 	for (int32 PropertyIndex = 0; PropertyIndex < MP_MAX; PropertyIndex++)
 	{
@@ -1117,8 +1155,14 @@ void FMaterialEditor::RegenerateCodeView()
 	}
 }
 
-void FMaterialEditor::UpdatePreviewMaterial( )
+void FMaterialEditor::UpdatePreviewMaterial( bool bForce )
 {
+	if (!bLivePreview && !bForce)
+	{
+		//Don't update the preview material
+		return;
+	}
+
 	bStatsFromPreviewMaterial = true;
 
 	if( PreviewExpression && ExpressionPreviewMaterial )
@@ -1223,7 +1267,9 @@ void FMaterialEditor::UpdateOriginalMaterial()
 	FlushShaderFileCache();
 
 	//recompile and refresh the preview material so it will be updated if there was a shader change
-	UpdatePreviewMaterial();
+	//Force it even if bLivePreview is false.
+	UpdatePreviewMaterial(true);
+	RegenerateCodeView(true);
 
 	const FScopedBusyCursor BusyCursor;
 
@@ -1672,6 +1718,12 @@ void FMaterialEditor::BindCommands()
 		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsOnShowConnectorsChecked));
 
 	ToolkitCommands->MapAction(
+		Commands.ToggleLivePreview,
+		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleLivePreview),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleLivePreviewChecked));
+
+	ToolkitCommands->MapAction(
 		Commands.ToggleRealtimeExpressions,
 		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleRealTimeExpressions),
 		FCanExecuteAction(),
@@ -1790,6 +1842,21 @@ void FMaterialEditor::OnShowConnectors()
 bool FMaterialEditor::IsOnShowConnectorsChecked() const
 {
 	return bHideUnusedConnectors == false;
+}
+
+void FMaterialEditor::ToggleLivePreview()
+{
+	bLivePreview = !bLivePreview;
+	if (bLivePreview)
+	{
+		UpdatePreviewMaterial();
+		RegenerateCodeView();
+	}
+}
+
+bool FMaterialEditor::IsToggleLivePreviewChecked() const
+{
+	return bLivePreview;
 }
 
 void FMaterialEditor::ToggleRealTimeExpressions()
@@ -2455,7 +2522,7 @@ void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpres
 {
 	UMaterialExpressionFunctionOutput* FunctionOutput = Cast<UMaterialExpressionFunctionOutput>(NewPreviewExpression);
 
-	if( PreviewExpression == NewPreviewExpression || NULL == NewPreviewExpression )
+	if (!NewPreviewExpression || PreviewExpression == NewPreviewExpression)
 	{
 		if (FunctionOutput)
 		{
@@ -2647,6 +2714,13 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 		{
 			PositionTransform->TransformSourceType = TRANSFORMPOSSOURCE_Local;
 			PositionTransform->TransformType = TRANSFORMPOSSOURCE_World;
+		}
+
+		// Make sure the dynamic parameters are named based on existing ones
+		UMaterialExpressionDynamicParameter* DynamicExpression = Cast<UMaterialExpressionDynamicParameter>(NewExpression);
+		if (DynamicExpression)
+		{
+			DynamicExpression->UpdateDynamicParameterNames();
 		}
 
 		Material->AddExpressionParameter(NewExpression);
@@ -3181,7 +3255,7 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 		{
 			// SetPreviewMesh will return false if the material has bUsedWithSkeletalMesh and
 			// a skeleton was requested, in which case revert to a sphere static mesh.
-			if ( !SetPreviewMesh( *Material->PreviewMesh.AssetLongPathname ) )
+			if (!SetPreviewMesh(*Material->PreviewMesh.ToString()))
 			{
 				SetPreviewMesh( GUnrealEd->GetThumbnailManager()->EditorSphere, NULL );
 			}

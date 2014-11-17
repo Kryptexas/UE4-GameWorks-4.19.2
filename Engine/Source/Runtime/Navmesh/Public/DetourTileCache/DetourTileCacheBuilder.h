@@ -69,10 +69,11 @@ struct dtTileCacheContourSet
 
 struct dtTileCacheClusterSet
 {
-	int nclusters;			///< The number of clusters
-	float* center;			///< Center points per clusters [Size: 3 * #nclusters]
-	unsigned short* nlinks;	///< Number of links per cluster [Size: #nclusters]
-	unsigned short* links;	///< Neighbor Ids per cluster [Size: sum of #nlinks]
+	int nclusters;				///< The number of clusters
+	int nregs;					///< The number of regions
+	int npolys;					///< The number of polys
+	unsigned short* regMap;		///< Cluster Id for each region [size: #nregs]
+	unsigned short* polyMap;	///< Cluster Id for each poly [size: #npolys]
 };
 
 struct dtTileCachePolyMesh
@@ -84,7 +85,7 @@ struct dtTileCachePolyMesh
 	unsigned short* polys;	///< Polygons of the mesh, nvp*2 elements per polygon.
 	unsigned short* flags;	///< Per polygon flags.
 	unsigned char* areas;	///< Area ID of polygons.
-	unsigned short* regs;	///< Region (cluster) ID of polygon
+	unsigned short* regs;	///< Region ID of polygon
 };
 
 //@UE4 BEGIN
@@ -210,34 +211,38 @@ NAVMESH_API dtStatus dtMarkConvexArea(dtTileCacheLayer& layer, const float* orig
 NAVMESH_API dtStatus dtBuildTileCacheDistanceField(dtTileCacheAlloc* alloc, dtTileCacheLayer& layer, dtTileCacheDistanceField& dfield);
 
 NAVMESH_API dtStatus dtBuildTileCacheRegions(dtTileCacheAlloc* alloc,
-								 const int borderSize, const int minRegionArea, const int mergeRegionArea,
-								 dtTileCacheLayer& layer, dtTileCacheDistanceField dfield);
+								const int borderSize, const int minRegionArea, const int mergeRegionArea,
+								dtTileCacheLayer& layer, dtTileCacheDistanceField dfield);
 
 NAVMESH_API dtStatus dtBuildTileCacheRegionsMonotone(dtTileCacheAlloc* alloc,
-										 dtTileCacheLayer& layer);
+								dtTileCacheLayer& layer);
 
 NAVMESH_API dtStatus dtBuildTileCacheRegionsChunky(dtTileCacheAlloc* alloc,
-									   dtTileCacheLayer& layer, int regionChunkSize);
+								dtTileCacheLayer& layer, int regionChunkSize);
 //@UE4 END
 
 NAVMESH_API dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc,
-								  dtTileCacheLayer& layer,
-								  const int walkableClimb, const float maxError,
-								  const float cs, const float ch,
-								  dtTileCacheContourSet& lcset,
-								  dtTileCacheClusterSet& lclusters);
+								dtTileCacheLayer& layer,
+								const int walkableClimb, const float maxError,
+								const float cs, const float ch,
+								dtTileCacheContourSet& lcset,
+								dtTileCacheClusterSet& lclusters);
 
 NAVMESH_API dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
-								  dtTileCacheContourSet& lcset,
-								  dtTileCachePolyMesh& mesh);
+								dtTileCacheContourSet& lcset,
+								dtTileCachePolyMesh& mesh);
 
 //@UE4 BEGIN
 NAVMESH_API dtStatus dtBuildTileCachePolyMeshDetail(dtTileCacheAlloc* alloc,
-										const float cs, const float ch,
-										const float sampleDist, const float sampleMaxError,
-										dtTileCacheLayer& layer,
-										dtTileCachePolyMesh& lmesh,
-										dtTileCachePolyMeshDetail& dmesh);
+								const float cs, const float ch,
+								const float sampleDist, const float sampleMaxError,
+								dtTileCacheLayer& layer,
+								dtTileCachePolyMesh& lmesh,
+								dtTileCachePolyMeshDetail& dmesh);
+
+NAVMESH_API dtStatus dtBuildTileCacheClusters(dtTileCacheAlloc* alloc,
+								dtTileCacheClusterSet& lclusters,
+								dtTileCachePolyMesh& lmesh);
 //@UE4 END
 
 /// Swaps the endianess of the compressed tile data's header (#dtTileCacheLayerHeader).

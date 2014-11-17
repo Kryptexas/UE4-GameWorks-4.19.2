@@ -7,6 +7,9 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "Particles/Material/ParticleModuleMeshMaterial.h"
+#include "Particles/ParticleLODLevel.h"
+#include "Particles/ParticleModuleRequired.h"
+#include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 
 UParticleModuleMaterialBase::UParticleModuleMaterialBase(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -45,3 +48,27 @@ uint32 UParticleModuleMeshMaterial::RequiredBytesPerInstance(FParticleEmitterIns
 	}
 	return 0;
 }
+
+#if WITH_EDITOR
+
+bool UParticleModuleMeshMaterial::IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString)
+{
+	if (LODLevel->RequiredModule->NamedMaterialOverrides.Num() > 0)
+	{
+		OutErrorString = NSLOCTEXT("UnrealEd", "MeshMaterialsWithNamedMaterialsError", "Cannot use Mesh Materials Module when using Named Material Overrides in the required module.").ToString();
+		return false;
+	}
+
+	if (UParticleModuleTypeDataMesh* MeshTypeData = Cast<UParticleModuleTypeDataMesh>(LODLevel->TypeDataModule))
+	{
+		if (MeshTypeData->bOverrideMaterial)
+		{
+			OutErrorString = NSLOCTEXT("UnrealEd", "MeshMaterialsWithOverrideMaterialError", "Cannot use Mesh Materials Module when using OverrideMaterial in the mesh type data module.").ToString();
+			return false;
+		}
+	}
+
+	return true;
+}
+
+#endif

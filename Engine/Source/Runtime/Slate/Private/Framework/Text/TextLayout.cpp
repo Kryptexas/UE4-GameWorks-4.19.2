@@ -109,7 +109,7 @@ FTextLayout::FBreakCandidate FTextLayout::CreateBreakCandidate( int32& OutRunInd
 	return BreakCandidate;
 }
 
-void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, int32& OutRunIndex, int32& OutHighlightIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine )
+void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIndex, int32& OutRunIndex, int32& OutRendererIndex, int32& OutPreviousBlockEnd, TArray< TSharedRef< ILayoutBlock > >& OutSoftLine )
 {
 	const FLineModel& LineModel = LineModels[ LineModelIndex ];
 
@@ -121,40 +121,40 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 		const FRunModel& Run = LineModel.Runs[ OutRunIndex ];
 		const FTextRange RunRange = Run.GetTextRange();
 
-		TSharedPtr< IRunHighlighter > BlockHighlighter = NULL;
+		TSharedPtr< IRunRenderer > BlockRenderer = nullptr;
 
 		int32 BlockStopIndex = RunRange.EndIndex;
-		if ( OutHighlightIndex != INDEX_NONE )
+		if ( OutRendererIndex != INDEX_NONE )
 		{
-			//Grab the currently active highlighter
-			const FTextHighlight& Highlight = LineModel.Highlights[OutHighlightIndex];
+			// Grab the currently active renderer
+			const FTextRunRenderer& Renderer = LineModel.RunRenderers[OutRendererIndex];
 
-			//Check to see if the last block was highlighted with the same highlighter
-			if ( OutPreviousBlockEnd >= Highlight.Range.BeginIndex )
+			// Check to see if the last block was rendered with the same renderer
+			if ( OutPreviousBlockEnd >= Renderer.Range.BeginIndex )
 			{
-				//If the highlighter ends before our run...
-				if ( Highlight.Range.EndIndex <= RunRange.EndIndex )
+				//If the renderer ends before our run...
+				if ( Renderer.Range.EndIndex <= RunRange.EndIndex )
 				{
-					//Adjust the stopping point of the block to be the end of the highlight,
-					//since highlights need their own block segments
-					BlockStopIndex = Highlight.Range.EndIndex;
-					BlockHighlighter = Highlight.Highlighter;
+					// Adjust the stopping point of the block to be the end of the renderer range,
+					// since highlights need their own block segments
+					BlockStopIndex = Renderer.Range.EndIndex;
+					BlockRenderer = Renderer.Renderer;
 				}
 				else
 				{
-					//This whole run is encompassed by the highlighter
-					BlockHighlighter = Highlight.Highlighter;
+					// This whole run is encompassed by the renderer
+					BlockRenderer = Renderer.Renderer;
 				}
 			}
 			else
 			{
-				//Does the highlight begin before our run ends?
-				if ( Highlight.Range.BeginIndex <= RunRange.EndIndex )
+				// Does the renderer range begin before our run ends?
+				if ( Renderer.Range.BeginIndex <= RunRange.EndIndex )
 				{
-					// then adjust the current block stopping point to just before the highlight begins,
-					//since highlights need their own block segments
-					BlockStopIndex = Highlight.Range.BeginIndex;
-					BlockHighlighter = NULL;
+					// then adjust the current block stopping point to just before the renderer range begins,
+					// since renderers need their own block segments
+					BlockStopIndex = Renderer.Range.BeginIndex;
+					BlockRenderer = nullptr;
 				}
 			}
 		}
@@ -174,7 +174,7 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 
 			FBlockDefinition BlockDefine;
 			BlockDefine.ActualRange = FTextRange(BlockBeginIndex, BlockStopIndex);
-			BlockDefine.Highlighter = BlockHighlighter;
+			BlockDefine.Renderer = BlockRenderer;
 
 			OutSoftLine.Add( Run.CreateBlock( BlockDefine, Scale ) );
 			OutPreviousBlockEnd = BlockStopIndex;
@@ -183,7 +183,7 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 		{
 			FBlockDefinition BlockDefine;
 			BlockDefine.ActualRange = RunRange;
-			BlockDefine.Highlighter = BlockHighlighter;
+			BlockDefine.Renderer = BlockRenderer;
 
 			OutSoftLine.Add( Run.CreateBlock( BlockDefine, Scale ) );
 			OutPreviousBlockEnd = RunRange.EndIndex;
@@ -201,13 +201,13 @@ void FTextLayout::CreateLineViewBlocks( int32 LineModelIndex, const int32 StopIn
 			++OutRunIndex;
 		}
 
-		if ( OutHighlightIndex != INDEX_NONE && BlockStopIndex == LineModel.Highlights[ OutHighlightIndex ].Range.EndIndex )
+		if ( OutRendererIndex != INDEX_NONE && BlockStopIndex == LineModel.RunRenderers[ OutRendererIndex ].Range.EndIndex )
 		{
-			++OutHighlightIndex;
+			++OutRendererIndex;
 
-			if ( OutHighlightIndex >= LineModel.Highlights.Num() )
+			if ( OutRendererIndex >= LineModel.RunRenderers.Num() )
 			{
-				OutHighlightIndex = INDEX_NONE;
+				OutRendererIndex = INDEX_NONE;
 			}
 		}
 
@@ -289,6 +289,42 @@ void FTextLayout::JustifyLayout()
 	}
 }
 
+void FTextLayout::JustifyHighlights()
+{
+	if ( Justification == ETextJustify::Left )
+	{
+		return;
+	}
+
+	const float LayoutWidthNoMargin = DrawSize.X - Margin.GetTotalSpaceAlong<Orient_Horizontal>() * Scale;
+
+	for (int LineViewIndex = 0; LineViewIndex < LineViews.Num(); LineViewIndex++)
+	{
+		FLineView& LineView = LineViews[ LineViewIndex ];
+		const float ExtraSpace = LayoutWidthNoMargin - LineView.Size.X;
+
+		float HighlightOffset = 0;
+		if ( Justification == ETextJustify::Center )
+		{
+			HighlightOffset = ExtraSpace / 2;
+		}
+		else if ( Justification == ETextJustify::Right )
+		{
+			HighlightOffset = ExtraSpace;
+		}
+
+		for (FLineViewHighlight& Highlight : LineView.UnderlayHighlights)
+		{
+			Highlight.OffsetX += HighlightOffset;
+		}
+
+		for (FLineViewHighlight& Highlight : LineView.OverlayHighlights)
+		{
+			Highlight.OffsetX += HighlightOffset;
+		}
+	}
+}
+
 void FTextLayout::FlowLayout()
 {
 	check( WrappingWidth >= 0 );
@@ -307,17 +343,17 @@ void FTextLayout::FlowLayout()
 		int32 CurrentRunIndex = 0;
 		int32 PreviousBlockEnd = 0;
 
-		int32 CurrentHighlightIndex = 0;
-		if ( CurrentHighlightIndex >= LineModel.Highlights.Num() )
+		int32 CurrentRendererIndex = 0;
+		if ( CurrentRendererIndex >= LineModel.RunRenderers.Num() )
 		{
-			CurrentHighlightIndex = INDEX_NONE;
+			CurrentRendererIndex = INDEX_NONE;
 		}
 
 		// if the Line doesn't have any BreakCandidates
 		if ( LineModel.BreakCandidates.Num() == 0 )
 		{
 			//Then iterate over all of it's runs
-			CreateLineViewBlocks( LineModelIndex, INDEX_NONE, /*OUT*/CurrentRunIndex, /*OUT*/CurrentHighlightIndex, /*OUT*/PreviousBlockEnd, SoftLine );
+			CreateLineViewBlocks( LineModelIndex, INDEX_NONE, /*OUT*/CurrentRunIndex, /*OUT*/CurrentRendererIndex, /*OUT*/PreviousBlockEnd, SoftLine );
 			check( CurrentRunIndex == LineModel.Runs.Num() );
 			CurrentWidth = 0;
 			SoftLine.Empty();
@@ -340,7 +376,7 @@ void FTextLayout::FlowLayout()
 
 					const FBreakCandidate& FinalBreakOnSoftLine = ( !IsFirstBreak && !IsFirstBreakOnSoftLine && !BreakWithoutTrailingWhitespaceDoesFit ) ? LineModel.BreakCandidates[ --BreakIndex ] : Break;
 
-					CreateLineViewBlocks( LineModelIndex, FinalBreakOnSoftLine.ActualRange.EndIndex, /*OUT*/CurrentRunIndex, /*OUT*/CurrentHighlightIndex, /*OUT*/PreviousBlockEnd, SoftLine );
+					CreateLineViewBlocks( LineModelIndex, FinalBreakOnSoftLine.ActualRange.EndIndex, /*OUT*/CurrentRunIndex, /*OUT*/CurrentRendererIndex, /*OUT*/PreviousBlockEnd, SoftLine );
 
 					if ( CurrentRunIndex < LineModel.Runs.Num() && FinalBreakOnSoftLine.ActualRange.EndIndex == LineModel.Runs[ CurrentRunIndex ].GetTextRange().EndIndex )
 					{
@@ -365,16 +401,89 @@ void FTextLayout::FlowLayout()
 	DrawSize.Y += Margin.GetTotalSpaceAlong<Orient_Vertical>() * Scale;
 }
 
-void FTextLayout::CreateView()
+void FTextLayout::FlowHighlights()
 {
-	ClearView();
-	BeginLayout();
+	// FlowLayout must have been called first
+	check(!(DirtyFlags & EDirtyState::Layout));
 
-	FlowLayout();
-	JustifyLayout();
+	for (FLineView& LineView : LineViews)
+	{
+		LineView.UnderlayHighlights.Empty();
+		LineView.OverlayHighlights.Empty();
 
-	EndLayout();
-	HasChanged = false;
+		FLineModel& LineModel = LineModels[LineView.ModelIndex];
+		
+		// Insert each highlighter into every line view that's within its range, either as an underlay, or as an overlay
+		for (FTextLineHighlight& LineHighlight : LineModel.LineHighlights)
+		{
+			if (LineHighlight.LineIndex != LineView.ModelIndex)
+			{
+				continue;
+			}
+
+			const bool bIsHighlightInRange = LineView.Range.InclusiveContains(LineHighlight.Range.BeginIndex) && LineView.Range.InclusiveContains(LineHighlight.Range.EndIndex);
+			if(!bIsHighlightInRange)
+			{
+				continue;
+			}
+
+			FLineViewHighlight LineViewHighlight;
+			LineViewHighlight.OffsetX = 0.0f;
+			LineViewHighlight.Width = 0.0f;
+			LineViewHighlight.Highlighter = LineHighlight.Highlighter;
+
+			// Measure the blocks up to the start of this highlight to get the correct start offset
+			int32 CurrentBlockIndex = 0;
+			for (; CurrentBlockIndex < LineView.Blocks.Num(); ++CurrentBlockIndex)
+			{
+				const TSharedRef< ILayoutBlock >& Block = LineView.Blocks[CurrentBlockIndex];
+				const TSharedRef<IRun> Run = Block->GetRun();
+
+				const FTextRange& BlockTextRange = Block->GetTextRange();
+				if (LineHighlight.Range.BeginIndex > BlockTextRange.EndIndex)
+				{
+					// Highlight starts after this block, just include its entire size
+					LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, BlockTextRange.EndIndex, Scale).X;
+				}
+				else
+				{
+					// This block contains the start of this highlight, measure to that point and then we're done!
+					LineViewHighlight.OffsetX += Run->Measure(BlockTextRange.BeginIndex, LineHighlight.Range.BeginIndex, Scale).X;
+					break;
+				}
+			}
+
+			// Now measure the blocks under this highlight to get the correct size
+			for (; CurrentBlockIndex < LineView.Blocks.Num(); ++CurrentBlockIndex)
+			{
+				const TSharedRef< ILayoutBlock >& Block = LineView.Blocks[CurrentBlockIndex];
+				const TSharedRef<IRun> Run = Block->GetRun();
+
+				const FTextRange& BlockTextRange = Block->GetTextRange();
+				const FTextRange IntersectedRange = BlockTextRange.Intersect(LineHighlight.Range);
+				if (!IntersectedRange.IsEmpty())
+				{
+					// Measure the part of the run which intersects the highlight
+					LineViewHighlight.Width += Run->Measure(IntersectedRange.BeginIndex, IntersectedRange.EndIndex, Scale).X;
+				}
+					
+				if (BlockTextRange.EndIndex > LineHighlight.Range.EndIndex)
+				{
+					// We've measured all the runs under the highlight
+					break;
+				}
+			}
+
+			if (LineHighlight.ZOrder < 0)
+			{
+				LineView.UnderlayHighlights.Add(LineViewHighlight);
+			}
+			else
+			{
+				LineView.OverlayHighlights.Add(LineViewHighlight);
+			}
+		}
+	}
 }
 
 void FTextLayout::EndLayout()
@@ -449,7 +558,7 @@ void FTextLayout::ClearWrappingCache()
 
 FTextLayout::FTextLayout() : LineModels()
 	, LineViews()
-	, HasChanged( false )
+	, DirtyFlags( EDirtyState::None )
 	, Scale( 1.0f )
 	, WrappingWidth( 0 )
 	, Margin()
@@ -461,75 +570,151 @@ FTextLayout::FTextLayout() : LineModels()
 
 void FTextLayout::UpdateIfNeeded()
 {
-	if ( HasChanged )
+	const bool bHasChangedLayout = !!(DirtyFlags & EDirtyState::Layout);
+	const bool bHasChangedHighlights = !!(DirtyFlags & EDirtyState::Highlights);
+
+	if ( bHasChangedLayout )
 	{
 		// if something has changed then create a new View
-		Update();
+		UpdateLayout();
 	}
-}
 
-void FTextLayout::Update()
-{
-	CreateView();
-}
-
-void FTextLayout::SetHighlights( const TArray< FTextHighlight >& Highlights )
-{
-	ClearHighlights();
-
-	for (int Index = 0; Index < Highlights.Num(); Index++)
+	// If the layout has changed, we always need to update the highlights
+	if ( bHasChangedLayout || bHasChangedHighlights)
 	{
-		AddHighlight( Highlights[ Index ] );
+		UpdateHighlights();
 	}
 }
 
-void FTextLayout::AddHighlight( const FTextHighlight& Highlight )
+void FTextLayout::UpdateLayout()
 {
-	checkf( LineModels.IsValidIndex( Highlight.LineIndex ), TEXT("Highlights must be for a valid Line Index") );
+	ClearView();
+	BeginLayout();
 
-	//Highlights needs to be in order and not overlap
-	bool InsertSuccessful = false;
-	FLineModel& LineModel = LineModels[ Highlight.LineIndex ];
-	for (int Index = 0; Index < LineModel.Highlights.Num(); Index++)
-	{
-		if ( LineModel.Highlights[ Index ].Range.BeginIndex > Highlight.Range.BeginIndex )
-		{
-			checkf( Index == 0 || LineModel.Highlights[ Index - 1 ].Range.EndIndex <= Highlight.Range.BeginIndex, TEXT("Highlights cannot overlap") );
-			LineModel.Highlights.Insert( Highlight, Index - 1 );
-			InsertSuccessful = true;
-		}
-		else if ( LineModel.Highlights[ Index ].Range.EndIndex > Highlight.Range.EndIndex )
-		{
-			checkf( LineModel.Highlights[ Index ].Range.BeginIndex >= Highlight.Range.EndIndex, TEXT("Highlights cannot overlap") );
-			LineModel.Highlights.Insert( Highlight, Index - 1 );
-			InsertSuccessful = true;
-		}
-	}
+	FlowLayout();
+	JustifyLayout();
 
-	if ( !InsertSuccessful )
-	{
-		LineModel.Highlights.Add( Highlight );
-	}
+	EndLayout();
 
-	HasChanged = true;
+	DirtyFlags &= ~EDirtyState::Layout;
 }
 
-void FTextLayout::ClearHighlights()
+void FTextLayout::UpdateHighlights()
+{
+	FlowHighlights();
+	JustifyHighlights();
+
+	DirtyFlags &= ~EDirtyState::Highlights;
+}
+
+void FTextLayout::ClearRunRenderers()
 {
 	for (int32 Index = 0; Index < LineModels.Num(); Index++)
 	{
-		LineModels[ Index ].Highlights.Empty();
+		if (LineModels[ Index ].RunRenderers.Num() )
+		{
+			LineModels[ Index ].RunRenderers.Empty();
+			DirtyFlags |= EDirtyState::Layout;
+		}
 	}
-
-	HasChanged = true;
 }
 
-FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative )
+void FTextLayout::SetRunRenderers( const TArray< FTextRunRenderer >& Renderers )
+{
+	ClearRunRenderers();
+
+	for (int Index = 0; Index < Renderers.Num(); Index++)
+	{
+		AddRunRenderer( Renderers[ Index ] );
+	}
+}
+
+void FTextLayout::AddRunRenderer( const FTextRunRenderer& Renderer )
+{
+	checkf( LineModels.IsValidIndex( Renderer.LineIndex ), TEXT("Renderers must be for a valid Line Index") );
+
+	FLineModel& LineModel = LineModels[ Renderer.LineIndex ];
+
+	// Renderers needs to be in order and not overlap
+	bool bWasInserted = false;
+	for (int Index = 0; Index < LineModel.RunRenderers.Num() && !bWasInserted; Index++)
+	{
+		if ( LineModel.RunRenderers[ Index ].Range.BeginIndex > Renderer.Range.BeginIndex )
+		{
+			checkf( Index == 0 || LineModel.RunRenderers[ Index - 1 ].Range.EndIndex <= Renderer.Range.BeginIndex, TEXT("Renderers cannot overlap") );
+			LineModel.RunRenderers.Insert( Renderer, Index - 1 );
+			bWasInserted = true;
+		}
+		else if ( LineModel.RunRenderers[ Index ].Range.EndIndex > Renderer.Range.EndIndex )
+		{
+			checkf( LineModel.RunRenderers[ Index ].Range.BeginIndex >= Renderer.Range.EndIndex, TEXT("Renderers cannot overlap") );
+			LineModel.RunRenderers.Insert( Renderer, Index - 1 );
+			bWasInserted = true;
+		}
+	}
+
+	if ( !bWasInserted )
+	{
+		LineModel.RunRenderers.Add( Renderer );
+	}
+
+	DirtyFlags |= EDirtyState::Layout;
+}
+
+void FTextLayout::ClearLineHighlights()
+{
+	for (int32 Index = 0; Index < LineModels.Num(); Index++)
+	{
+		if (LineModels[ Index ].LineHighlights.Num())
+		{
+			LineModels[ Index ].LineHighlights.Empty();
+			DirtyFlags |= EDirtyState::Highlights;
+		}
+	}
+}
+
+void FTextLayout::SetLineHighlights( const TArray< FTextLineHighlight >& Highlights )
+{
+	ClearLineHighlights();
+
+	for (int Index = 0; Index < Highlights.Num(); Index++)
+	{
+		AddLineHighlight( Highlights[ Index ] );
+	}
+}
+
+void FTextLayout::AddLineHighlight( const FTextLineHighlight& Highlight )
+{
+	checkf( LineModels.IsValidIndex( Highlight.LineIndex ), TEXT("Highlights must be for a valid Line Index") );
+	checkf( Highlight.ZOrder, TEXT("The highlight Z-order must be <0 to create an underlay, or >0 to create an overlay") );
+
+	FLineModel& LineModel = LineModels[ Highlight.LineIndex ];
+
+	// Try and maintain a stable sorted z-order - highlights with the same z-order should just render in the order they were added
+	bool bWasInserted = false;
+	for (int Index = 0; Index < LineModel.LineHighlights.Num() && !bWasInserted; Index++)
+	{
+		if ( LineModel.LineHighlights[ Index ].ZOrder > Highlight.ZOrder )
+		{
+			LineModel.LineHighlights.Insert( Highlight, Index - 1 );
+			bWasInserted = true;
+		}
+	}
+
+	if ( !bWasInserted )
+	{
+		LineModel.LineHighlights.Add( Highlight );
+	}
+
+	DirtyFlags |= EDirtyState::Highlights;
+}
+
+FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const FVector2D& Relative, ETextHitPoint* const OutHitPoint )
 {
 	for (int32 BlockIndex = 0; BlockIndex < LineView.Blocks.Num(); BlockIndex++)
 	{
 		const TSharedRef< ILayoutBlock >& Block = LineView.Blocks[ BlockIndex ];
-		const int32 TextIndex = Block->GetRun()->GetTextIndexAt(Block, FVector2D(Relative.X, Block->GetLocationOffset().Y), Scale);
+		const int32 TextIndex = Block->GetRun()->GetTextIndexAt(Block, FVector2D(Relative.X, Block->GetLocationOffset().Y), Scale, OutHitPoint);
 
 		if ( TextIndex == INDEX_NONE )
 		{
@@ -542,36 +727,59 @@ FTextLocation FTextLayout::GetTextLocationAt( const FLineView& LineView, const F
 	const int32 LineTextLength = LineModels[ LineView.ModelIndex ].Text->Len();
 	if ( LineTextLength == 0 || !LineView.Blocks.Num() )
 	{
+		if(OutHitPoint)
+		{
+			*OutHitPoint = ETextHitPoint::WithinText;
+		}
 		return FTextLocation( LineView.ModelIndex, 0 );
 	}
 	else if (Relative.X < LineView.Blocks[0]->GetLocationOffset().X)
 	{
+		if(OutHitPoint)
+		{
+			*OutHitPoint = ETextHitPoint::LeftGutter;
+		}
 		return FTextLocation(LineView.ModelIndex, LineView.Range.BeginIndex);
 	}
 
+	if(OutHitPoint)
+	{
+		*OutHitPoint = ETextHitPoint::RightGutter;
+	}
 	return FTextLocation( LineView.ModelIndex, LineView.Range.EndIndex );
 }
 
-int32 FTextLayout::GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location)
+int32 FTextLayout::GetLineViewIndexForTextLocation(const TArray< FTextLayout::FLineView >& LineViews, const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck)
 {
 	const int32 LineModelIndex = Location.GetLineIndex();
 	const int32 Offset = Location.GetOffset();
 
 	const FLineModel& LineModel = LineModels[LineModelIndex];
-	for (int Index = 0; Index < LineViews.Num(); Index++)
+	for(int32 Index = 0; Index < LineViews.Num(); Index++)
 	{
 		const FTextLayout::FLineView& LineView = LineViews[Index];
 
-		if (LineView.ModelIndex == LineModelIndex && (Offset == 0 || LineView.Range.InclusiveContains(Offset) || LineModel.Text->IsEmpty()))
+		if(LineView.ModelIndex == LineModelIndex)
 		{
-			return Index;
+			// Simple case where we're either the start of, or are contained within, the line view
+			if(Offset == 0 || LineModel.Text->IsEmpty() || LineView.Range.Contains(Offset))
+			{
+				return Index;
+			}
+
+			// If we're the last line, then we also need to test for the end index being part of the range
+			const bool bIsLastLineForModel = Index == (LineViews.Num() - 1) || LineViews[Index + 1].ModelIndex != LineModelIndex;
+			if((bIsLastLineForModel || bPerformInclusiveBoundsCheck) && LineView.Range.EndIndex == Offset)
+			{
+				return Index;
+			}
 		}
 	}
 
 	return INDEX_NONE;
 }
 
-FTextLocation FTextLayout::GetTextLocationAt( const FVector2D& Relative )
+FTextLocation FTextLayout::GetTextLocationAt( const FVector2D& Relative, ETextHitPoint* const OutHitPoint )
 {
 	// Early out if we have no LineViews
 	if (LineViews.Num() == 0)
@@ -599,7 +807,7 @@ FTextLocation FTextLayout::GetTextLocationAt( const FVector2D& Relative )
 		// just use the very last line
 		ViewIndex = LineViews.Num() - 1;
 		const FLineView& LineView = LineViews[ ViewIndex ];
-		return GetTextLocationAt( LineView, Relative );
+		return GetTextLocationAt( LineView, Relative, OutHitPoint );
 	}
 	else 
 	{
@@ -613,25 +821,16 @@ FTextLocation FTextLayout::GetTextLocationAt( const FVector2D& Relative )
 	}
 
 	const FLineView& LineView = LineViews[ ViewIndex ];
-	return GetTextLocationAt(LineView, FVector2D(Relative.X, LineView.Offset.Y));
+	return GetTextLocationAt( LineView, FVector2D(Relative.X, LineView.Offset.Y), OutHitPoint );
 }
 
-FVector2D FTextLayout::GetLocationAt( const FTextLocation& Location )
+FVector2D FTextLayout::GetLocationAt( const FTextLocation& Location, const bool bPerformInclusiveBoundsCheck )
 {
 	const int32 LineModelIndex = Location.GetLineIndex();
 	const int32 Offset = Location.GetOffset();
 
 	// Find the LineView which encapsulates the location's offset
-	int LineViewIndex;
-	for (LineViewIndex = 0; LineViewIndex < LineViews.Num(); LineViewIndex++)
-	{
-		const FTextLayout::FLineView& LineView = LineViews[ LineViewIndex ];
-
-		if ( LineView.ModelIndex == LineModelIndex && ( Offset == 0 || LineView.Range.InclusiveContains(Offset) ) )
-		{
-			break;
-		}
-	}
+	const int32 LineViewIndex = GetLineViewIndexForTextLocation( LineViews, Location, bPerformInclusiveBoundsCheck );
 
 	// if we failed to find a LineView for the location, early out
 	if ( !LineViews.IsValidIndex( LineViewIndex ) )
@@ -704,7 +903,7 @@ bool FTextLayout::InsertAt(const FTextLocation& Location, TCHAR Character)
 		}
 	}
 
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -745,7 +944,7 @@ bool FTextLayout::InsertAt( const FTextLocation& Location, const FString& Text )
 		}
 	}
 
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -792,7 +991,7 @@ bool FTextLayout::JoinLineWithNextLine(int32 LineIndex)
 	//Remove the next line from the list of line models
 	LineModels.RemoveAt(LineIndex + 1);
 
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -854,7 +1053,7 @@ bool FTextLayout::SplitLineAt(const FTextLocation& Location)
 	LineModels.Insert(LeftLineModel, LineIndex);
 	LineModels.Insert(RightLineModel, LineIndex + 1);
 
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -910,7 +1109,7 @@ bool FTextLayout::RemoveAt( const FTextLocation& Location, int32 Count )
 		}
 	}
 
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 	return true;
 }
 
@@ -923,7 +1122,8 @@ bool FTextLayout::RemoveLine(int32 LineIndex)
 
 	LineModels.RemoveAt(LineIndex);
 
-	return true;;
+	DirtyFlags |= EDirtyState::Layout;
+	return true;
 }
 
 void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSharedRef< IRun > >& Runs )
@@ -936,13 +1136,13 @@ void FTextLayout::AddLine( const TSharedRef< FString >& Text, const TArray< TSha
 	}
 
 	LineModels.Add( LineModel );
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 }
 
 void FTextLayout::ClearLines()
 {
 	LineModels.Empty();
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 }
 
 bool FTextLayout::IsEmpty() const
@@ -1141,7 +1341,7 @@ void FTextLayout::SetMargin( const FMargin& InMargin )
 	if ( WrappingWidth > 0 )
 	{
 		// Since we are wrapping our text we'll need to rebuild the view as the actual wrapping width includes the margin.
-		HasChanged = true;
+		DirtyFlags |= EDirtyState::Layout;
 	}
 	else
 	{
@@ -1176,7 +1376,7 @@ void FTextLayout::SetScale( float Value )
 	}
 
 	Scale = Value;
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 
 	// Changing the scale will affect the wrapping information for *all lines*
 	// Clear out the entire cache so it gets regenerated on the text call to FlowLayout
@@ -1196,7 +1396,7 @@ void FTextLayout::SetJustification( ETextJustify::Type Value )
 	}
 
 	Justification = Value;
-	HasChanged = true;
+	DirtyFlags |= EDirtyState::Layout;
 }
 
 ETextJustify::Type FTextLayout::GetJustification() const
@@ -1209,7 +1409,7 @@ void FTextLayout::SetLineHeightPercentage( float Value )
 	if ( LineHeightPercentage != Value )
 	{
 		LineHeightPercentage = Value; 
-		HasChanged = true;
+		DirtyFlags |= EDirtyState::Layout;
 	}
 }
 
@@ -1223,7 +1423,7 @@ void FTextLayout::SetWrappingWidth( float Value )
 	if ( WrappingWidth != Value )
 	{
 		WrappingWidth = Value; 
-		HasChanged = true;
+		DirtyFlags |= EDirtyState::Layout;
 	}
 }
 
@@ -1261,7 +1461,7 @@ FTextLayout::FLineModel::FLineModel( const TSharedRef< FString >& InText )
 	: Text( InText )
 	, Runs()
 	, BreakCandidates()
-	, Highlights()
+	, RunRenderers()
 	, HasWrappingInformation( false )
 {
 
@@ -1290,7 +1490,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 	if ( MeasuredRanges.Num() == 0 )
 	{
 		FTextRange RunRange = Run->GetTextRange();
-		return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, Scale ), BlockDefine.Highlighter );
+		return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, Run->Measure( SizeRange.BeginIndex, SizeRange.EndIndex, Scale ), BlockDefine.Renderer );
 	}
 
 	int32 StartRangeIndex = 0;
@@ -1388,7 +1588,7 @@ TSharedRef< ILayoutBlock > FTextLayout::FRunModel::CreateBlock( const FBlockDefi
 		}
 	}
 
-	return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, BlockSize, BlockDefine.Highlighter );
+	return Run->CreateBlock( BlockDefine.ActualRange.BeginIndex, BlockDefine.ActualRange.EndIndex, BlockSize, BlockDefine.Renderer );
 }
 
 int FTextLayout::FRunModel::BinarySearchForEndIndex( const TArray< FTextRange >& Ranges, int32 RangeBeginIndex, int32 EndIndex )

@@ -19,6 +19,8 @@ void SContentReference::Construct(const FArguments& InArgs)
 	AllowSelectingNewAsset = InArgs._AllowSelectingNewAsset;
 	AllowClearingReference = InArgs._AllowClearingReference;
 	AllowedClass = InArgs._AllowedClass;
+	AssetPickerSizeOverride = InArgs._AssetPickerSizeOverride;
+	InitialAssetViewType = InArgs._InitialAssetViewType;
 
 	// Save off delegates
 	OnShouldFilterAsset = InArgs._OnShouldFilterAsset;
@@ -224,10 +226,11 @@ TSharedRef<SWidget> SContentReference::MakeAssetPickerMenu()
 	AssetPickerConfig.OnShouldFilterAsset = OnShouldFilterAsset;
 	AssetPickerConfig.bAllowNullSelection = true;
 	AssetPickerConfig.ThumbnailLabel = EThumbnailLabel::ClassName;
+	AssetPickerConfig.InitialAssetViewType = InitialAssetViewType;
 
 	return SNew(SBox)
-		.WidthOverride(384)
-		.HeightOverride(768)
+		.WidthOverride(AssetPickerSizeOverride.Get().X)
+		.HeightOverride(AssetPickerSizeOverride.Get().Y)
 		[
 			ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
 		];

@@ -295,6 +295,12 @@ namespace UnrealBuildTool
 						{
 							Result += " /Zi";
 						}
+                        // We need to add this so VS won't lock the PDB file and prevent synchronous updates. This forces serialization through MSPDBSRV.exe.
+                        // See http://msdn.microsoft.com/en-us/library/dn502518.aspx for deeper discussion of /FS switch.
+                        if (BuildConfiguration.bUseIncrementalLinking)
+                        {
+                            Result += " /FS";
+                        }
 					}
 					// Store C7-format debug info in the .obj files, which is faster.
 					else
@@ -1052,7 +1058,7 @@ namespace UnrealBuildTool
 
 			// Tell the action that we're building an import library here and it should conditionally be
 			// ignored as a prerequisite for other actions
-			LinkAction.bProducesImportLibrary = bIsBuildingLibrary || LinkEnvironment.Config.bIsBuildingDLL;
+			LinkAction.bProducesImportLibrary = bBuildImportLibraryOnly || LinkEnvironment.Config.bIsBuildingDLL;
 
 
 			// If we're only building an import library, add the '/DEF' option that tells the LIB utility
@@ -1511,5 +1517,18 @@ namespace UnrealBuildTool
 
 			return BaseVSToolPath;
 		}
+
+        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        {
+            // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
+            if (UnrealBuildTool.BuildingRocket() &&
+                Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath).StartsWith("UE4Editor-", StringComparison.InvariantCultureIgnoreCase) &&
+                Path.GetExtension(Binary.Config.OutputFilePath).EndsWith("dll", StringComparison.InvariantCultureIgnoreCase) &&
+                Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
+            {
+                // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
+                Manifest.AddBinaryNames(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
+            }
+        }
 	};
 }

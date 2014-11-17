@@ -9,7 +9,7 @@ UComponentDelegateBinding::UComponentDelegateBinding(const class FPostConstructI
 {
 }
 
-void UComponentDelegateBinding::BindDynamicDelegates(AActor* InInstance) const
+void UComponentDelegateBinding::BindDynamicDelegates(UObject* InInstance) const
 {
 	for(int32 BindIdx=0; BindIdx<ComponentDelegateBindings.Num(); BindIdx++)
 	{
@@ -22,7 +22,7 @@ void UComponentDelegateBinding::BindDynamicDelegates(AActor* InInstance) const
 		if(ObjProp != NULL && FunctionToBind != NULL)
 		{
 			// ..see if there is actually a component assigned
-			UActorComponent* Component = Cast<UActorComponent>(ObjProp->GetObjectPropertyValue_InContainer(InInstance));
+			UObject* Component = Cast<UObject>(ObjProp->GetObjectPropertyValue_InContainer(InInstance));
 			if(Component != NULL)
 			{
 				// If there is, find the delegate property on it

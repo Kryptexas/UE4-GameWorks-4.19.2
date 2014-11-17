@@ -75,6 +75,9 @@ extern RENDERCORE_API void AdvanceFrameRenderPrerequisite();
  */
 extern RENDERCORE_API void FlushRenderingCommands();
 
+extern RENDERCORE_API void FlushPendingDeleteRHIResources_GameThread();
+extern RENDERCORE_API void FlushPendingDeleteRHIResources_RenderThread();
+
 
 ////////////////////////////////////
 // Render thread suspension

@@ -1472,6 +1472,7 @@ IMPLEMENT_PROPERTY_ACCESSOR( FVector4 )
 IMPLEMENT_PROPERTY_ACCESSOR( FQuat )
 IMPLEMENT_PROPERTY_ACCESSOR( FRotator )
 IMPLEMENT_PROPERTY_ACCESSOR( UObject* )
+IMPLEMENT_PROPERTY_ACCESSOR( FAssetData )
 
 FPropertyHandleBase::FPropertyHandleBase( TSharedPtr<FPropertyNode> PropertyNode, FNotifyHook* NotifyHook, TSharedPtr<IPropertyUtilities> PropertyUtilities )
 	: Implementation( MakeShareable( new FPropertyValueImpl( PropertyNode, NotifyHook, PropertyUtilities ) ) )
@@ -1517,6 +1518,20 @@ bool FPropertyHandleBase::IsCustomized() const
 	return Implementation->GetPropertyNode()->HasNodeFlags( EPropertyNodeFlags::IsCustomized ) != 0;
 }
 
+FString FPropertyHandleBase::GeneratePathToProperty() const
+{
+	FString OutPath;
+	if( Implementation.IsValid() && Implementation->GetPropertyNode().IsValid() )
+	{
+		const bool bArrayIndex = true;
+		const bool bIgnoreCategories = true;
+		FPropertyNode* StopParent = Implementation->GetPropertyNode()->FindObjectItemParent();
+		Implementation->GetPropertyNode()->GetQualifiedName( OutPath, bArrayIndex, StopParent, bIgnoreCategories );
+	}
+
+	return OutPath;
+
+}
 
 TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FString& NameOverride, bool bDisplayResetToDefault, bool bDisplayText, bool bDisplayThumbnail ) const
 {
@@ -1635,7 +1650,7 @@ uint32 FPropertyHandleBase::GetNumOuterObjects() const
 	return NumObjects;
 }
 
-void FPropertyHandleBase::GetOuterObjects( TArray<UObject*>& OuterObjects )
+void FPropertyHandleBase::GetOuterObjects( TArray<UObject*>& OuterObjects ) const
 {
 	FObjectPropertyNode* ObjectNode = Implementation->GetPropertyNode()->FindObjectItemParent();
 	if( ObjectNode )
@@ -2096,7 +2111,7 @@ FPropertyAccess::Result FPropertyHandleFloat::SetValue( const float& NewValue, E
 	// Clamp the value from any meta data ranges stored on the property value
 	float FinalValue = Implementation->ClampFloatValueFromMetaData( NewValue );
 
-	const FString ValueStr = FString::Printf( TEXT("%f"), FinalValue );
+	const FString ValueStr = FString::Printf( TEXT("%.9g"), FinalValue );
 	Res = Implementation->ImportText( ValueStr, Flags );
 
 	return Res;
@@ -2277,6 +2292,40 @@ FPropertyAccess::Result FPropertyHandleObject::SetValue( const UObject*& NewValu
 	{
 		FString ObjectPathName = NewValue ? NewValue->GetPathName() : TEXT("None");
 		bResult = Implementation->SendTextToObjectProperty( ObjectPathName, Flags );
+	}
+
+	return bResult ? FPropertyAccess::Success : FPropertyAccess::Fail;
+}
+
+FPropertyAccess::Result FPropertyHandleObject::GetValue(FAssetData& OutValue) const
+{
+	UObject* ObjectValue = nullptr;
+	FPropertyAccess::Result	Result = GetValue(ObjectValue);
+	
+	if ( Result == FPropertyAccess::Success )
+	{
+		OutValue = FAssetData(ObjectValue);
+	}
+
+	return Result;
+}
+
+FPropertyAccess::Result FPropertyHandleObject::SetValue(const FAssetData& NewValue, EPropertyValueSetFlags::Type Flags)
+{
+	UProperty* Property = Implementation->GetPropertyNode()->GetProperty();
+
+	bool bResult = false;
+	// Instanced references can not be set this way (most likely editinlinenew )
+	if (!Property->HasAnyPropertyFlags(CPF_InstancedReference))
+	{
+		if ( !Property->IsA( UAssetObjectProperty::StaticClass() ) )
+		{
+			// Make sure the asset is loaded if we are not a string asset reference.
+			NewValue.GetAsset();
+		}
+
+		FString ObjectPathName = NewValue.IsValid() ? NewValue.ObjectPath.ToString() : TEXT("None");
+		bResult = Implementation->SendTextToObjectProperty(ObjectPathName, Flags);
 	}
 
 	return bResult ? FPropertyAccess::Success : FPropertyAccess::Fail;

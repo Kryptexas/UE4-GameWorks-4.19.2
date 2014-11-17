@@ -5,8 +5,13 @@
  */
 
 #pragma once
-#include "Components/SceneComponent.h"
+#include "Components/ActorComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "MovementComponent.generated.h"
+
+struct FCollisionQueryParams;
+struct FCollisionResponseParams;
+struct FCollisionShape;
 
 UCLASS(ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent
@@ -15,7 +20,7 @@ class ENGINE_API UMovementComponent : public UActorComponent
 
 	/** The component we move and update. **/
 	UPROPERTY(BlueprintReadOnly, Category=MovementComponent)
-	class UPrimitiveComponent* UpdatedComponent;
+	UPrimitiveComponent* UpdatedComponent;
 
 	/**
 	 * Flags that control the behavior of calls to MoveComponent() on our UpdatedComponent.
@@ -229,7 +234,7 @@ public:
 	 * @param	Strength	The strength of the force
 	 * @param	Falloff		The falloff from the force's origin
 	 */
-	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff);
+	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff);
 
 	/**
 	 * Adds impulse from radial force components.
@@ -239,7 +244,7 @@ public:
 	 * @param	Falloff		The falloff from the force's origin
 	 * @param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
 	 */
-	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange);
+	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange);
 
 	/**
 	 * Sets the normal of the plane that constrains movement, if plane constraint is enabled.

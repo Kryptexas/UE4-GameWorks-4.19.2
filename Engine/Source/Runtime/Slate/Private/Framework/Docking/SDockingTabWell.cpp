@@ -108,7 +108,7 @@ void SDockingTabWell::OnArrangeChildren( const FGeometry& AllottedGeometry, FArr
 }
 	
 
-int32 SDockingTabWell::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
+int32 SDockingTabWell::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	// When we are dragging a tab, it must be painted on top of the other tabs, so we cannot
 	// just reuse the Panel's default OnPaint.
@@ -136,7 +136,7 @@ int32 SDockingTabWell::OnPaint( const FGeometry& AllottedGeometry, const FSlateR
 		else
 		{
 			FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( CurWidget.Geometry.GetClippingRect() );
-			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+			const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, ChildClipRect, OutDrawElements, MaxLayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 			MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
 		}
 	}
@@ -145,7 +145,7 @@ int32 SDockingTabWell::OnPaint( const FGeometry& AllottedGeometry, const FSlateR
 	if (ForegroundTab != TSharedPtr<SDockTab>())
 	{
 		FSlateRect ChildClipRect = MyClippingRect.IntersectionWith( ForegroundTabGeometry->Geometry.GetClippingRect() );
-		const int32 CurWidgetsMaxLayerId = ForegroundTabGeometry->Widget->Paint( ForegroundTabGeometry->Geometry, ChildClipRect, OutDrawElements, MaxLayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
+		const int32 CurWidgetsMaxLayerId = ForegroundTabGeometry->Widget->Paint( Args.WithNewParent(this), ForegroundTabGeometry->Geometry, ChildClipRect, OutDrawElements, MaxLayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ) );
 		MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
 	}
 
@@ -408,6 +408,20 @@ void SDockingTabWell::BringTabToFront( int32 TabIndexToActivate )
 
 	// Always force a refresh, even if we don't think the active index changed.
 	RefreshParentContent();
+
+	// Update the native, global menu bar if a tab is in the foreground.
+	if( ForegroundTabIndex != INDEX_NONE )
+	{
+		TSharedPtr<FTabManager> TabManager = Tabs[ForegroundTabIndex]->GetTabManager();
+		if(TabManager == FGlobalTabmanager::Get())
+		{
+			FGlobalTabmanager::Get()->UpdateMainMenu(Tabs[ForegroundTabIndex], false);
+		}
+		else
+		{
+			TabManager->UpdateMainMenu(false);
+		}
+	}
 }
 
 /** Activate the tab specified by TabToActivate SDockTab. */

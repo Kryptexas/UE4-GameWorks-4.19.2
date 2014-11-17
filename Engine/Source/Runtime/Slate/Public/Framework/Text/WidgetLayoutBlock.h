@@ -5,9 +5,9 @@ class SLATE_API FWidgetLayoutBlock : public ILayoutBlock
 {
 public:
 
-	static TSharedRef< FWidgetLayoutBlock > Create( const TSharedRef< IRun >& InRun, const TSharedRef< SWidget >& InWidget, const FTextRange& InRange, FVector2D InSize, const TSharedPtr< IRunHighlighter >& InHighlighter )
+	static TSharedRef< FWidgetLayoutBlock > Create( const TSharedRef< IRun >& InRun, const TSharedRef< SWidget >& InWidget, const FTextRange& InRange, FVector2D InSize, const TSharedPtr< IRunRenderer >& InRenderer )
 	{
-		return MakeShareable( new FWidgetLayoutBlock( InRun, InWidget, InRange, InSize, InHighlighter ) );
+		return MakeShareable( new FWidgetLayoutBlock( InRun, InWidget, InRange, InSize, InRenderer ) );
 	}
 
 	virtual ~FWidgetLayoutBlock() {}
@@ -18,7 +18,7 @@ public:
 
 	virtual FVector2D GetSize() const override { return Size; }
 
-	virtual TSharedPtr< IRunHighlighter > GetHighlighter() const override { return Highlighter; }
+	virtual TSharedPtr< IRunRenderer > GetRenderer() const override { return Renderer; }
 
 	TSharedRef< SWidget > GetWidget() const { return Widget; }
 
@@ -32,13 +32,13 @@ private:
 		return MakeShareable( new FWidgetLayoutBlock( Block ) );
 	}
 
-	FWidgetLayoutBlock( const TSharedRef< IRun >& InRun, const TSharedRef< SWidget >& InWidget, const FTextRange& InRange, FVector2D InSize, const TSharedPtr< IRunHighlighter >& InHighlighter )
+	FWidgetLayoutBlock( const TSharedRef< IRun >& InRun, const TSharedRef< SWidget >& InWidget, const FTextRange& InRange, FVector2D InSize, const TSharedPtr< IRunRenderer >& InRenderer )
 		: Run( InRun )
 		, Widget( InWidget )
 		, Range( InRange )
 		, Size( InSize )
 		, LocationOffset( ForceInitToZero )
-		, Highlighter( InHighlighter )
+		, Renderer( InRenderer )
 	{
 
 	}
@@ -49,7 +49,7 @@ private:
 		, Range( Block.Range )
 		, Size( Block.Size )
 		, LocationOffset( ForceInitToZero )
-		, Highlighter( Block.Highlighter )
+		, Renderer( Block.Renderer )
 	{
 
 	}
@@ -62,5 +62,5 @@ private:
 	FTextRange Range;
 	FVector2D Size;
 	FVector2D LocationOffset;
-	TSharedPtr< IRunHighlighter > Highlighter;
+	TSharedPtr< IRunRenderer > Renderer;
 };

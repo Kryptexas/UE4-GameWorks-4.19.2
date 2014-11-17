@@ -63,28 +63,41 @@ public:
 	 */
 	virtual void SetIp(const TCHAR* InAddr, bool& bIsValid) override
 	{
+
+		// Count colons to determine IP address type
+		int NumColons = 0;
+		int LastColonIndex = 0;
+		int i = 0;
+		while(InAddr && InAddr[i] != '\0')
+		{
+			if(InAddr[i] == ':')
+			{
+				NumColons++;
+				LastColonIndex = i;
+			}
+			i++;
+		}
+
+		// Break off port portion of string
+		FString AddressString(InAddr);
+		FString Port;
+		if(NumColons == 1 || NumColons == 8)
+		{
+			Port = AddressString.RightChop(LastColonIndex+1);
+			AddressString = AddressString.Left(LastColonIndex);
+			SetPort(FCString::Atoi(*Port));
+		}
+
+		// IPv6 URLs are surrounded by square brackets, check for that.
+		AddressString.RemoveFromStart(FString("["));
+		AddressString.RemoveFromEnd(FString("]"));
+
 		// check for valid IPv6 address
-		auto InAddrAnsi = StringCast<ANSICHAR>(InAddr);
+		auto InAddrAnsi = StringCast<ANSICHAR>(*AddressString);
 		if (inet_pton(AF_INET6, InAddrAnsi.Get(), &Addr.sin6_addr))
 		{
 			bIsValid = true;
 			return;
-		}
-
-		// IPv6 URLs are surrounded by square brackets, check for that.
-		if(InAddr && *InAddr == '[')
-		{
-			// Make a copy, skipping the opening brace.
-			FString CopiedAddr(InAddr + 1);
-
-			// Remove the closing brace if it exists
-			CopiedAddr.RemoveFromEnd(TEXT("]"));
-
-			if(inet_pton(AF_INET6, StringCast<ANSICHAR>(CopiedAddr.GetCharArray().GetTypedData()).Get(), &Addr.sin6_addr))
-			{
-				bIsValid = true;
-				return;
-			}
 		}
 
 		// Check if it's a valid IPv4 address, and if it is convert

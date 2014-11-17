@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Components/StaticMeshComponent.h"
 #include "MaterialEditorMeshComponent.generated.h"
 
 UCLASS()

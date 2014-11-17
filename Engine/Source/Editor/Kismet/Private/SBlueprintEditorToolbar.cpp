@@ -22,6 +22,7 @@
 #include "STutorialWrapper.h"
 #include "SBlueprintEditorSelectedDebugObjectWidget.h"
 #include "Engine/LevelScriptBlueprint.h"
+#include "Merge.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 
@@ -53,7 +54,6 @@ public:
 	// End of SWidget interface
 };
 
-
 //////////////////////////////////////////////////////////////////////////
 // FKismet2Menu
 
@@ -69,6 +69,12 @@ void FKismet2Menu::FillFileMenuBlueprintSection( FMenuBuilder& MenuBuilder, FBlu
 			LOCTEXT("BlueprintEditorDiffToolTip", "Diff against previous revisions"),
 			FOnGetContent::CreateStatic< FBlueprintEditor& >( &FKismet2Menu::MakeDiffMenu, Kismet),
 			FSlateIcon());
+
+		UBlueprint* BlueprintObj = Kismet.GetBlueprintObj();
+		if (BlueprintObj && IMerge::Get().PendingMerge( *BlueprintObj ) )
+		{
+			MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().BeginBlueprintMerge);
+		}
 	}
 	MenuBuilder.EndSection();
 

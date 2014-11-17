@@ -128,6 +128,11 @@ void ULocalPlayer::PostInitProperties()
 			StereoViewState.Allocate();
 		}
 	}
+
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{	
+		FCoreDelegates::OnControllerConnectionChange.AddUObject(this, &ULocalPlayer::HandleControllerConnectionChange);
+	}
 }
 
 void ULocalPlayer::PlayerAdded(UGameViewportClient* InViewportClient, int32 InControllerID)
@@ -206,8 +211,14 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		UClass* PCClass = PendingLevelPlayerControllerClass;
 		// The PlayerController gets replicated from the client though the engine assumes that every Player always has
 		// a valid PlayerController so we spawn a dummy one that is going to be replaced later.
+
+		// 
+		// Look at APlayerController::OnActorChannelOpen + UNetConnection::HandleClientPlayer for the code the
+		// replaces this fake player controller with the real replicated one from the server
+		//
+
 		PlayerController = CastChecked<APlayerController>(InWorld->SpawnActor(PCClass));
-		const int32 PlayerIndex=GEngine->GetGamePlayers(InWorld).Find(this);
+		const int32 PlayerIndex = GEngine->GetGamePlayers(InWorld).Find(this);
 		PlayerController->NetPlayerIndex = PlayerIndex;
 	}
 	return PlayerController != NULL;
@@ -269,6 +280,12 @@ void ULocalPlayer::SendSplitJoin()
 			bSentSplitJoin = true;
 		}
 	}
+}
+
+void ULocalPlayer::BeginDestroy()
+{
+	FCoreDelegates::OnControllerConnectionChange.RemoveAll(this);
+	Super::BeginDestroy();
 }
 
 void ULocalPlayer::FinishDestroy()
@@ -662,6 +679,8 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		// Was there a camera cut this frame?
 		ViewInitOptions.bInCameraCut = PlayerController->PlayerCameraManager->bGameCameraCutThisFrame;
 	}
+	
+	check( PlayerController->GetWorld() );
 
 	// Fill out the rest of the view init options
 	ViewInitOptions.ViewFamily = ViewFamily;
@@ -673,6 +692,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	ViewInitOptions.StereoPass = StereoPass;
 	ViewInitOptions.WorldToMetersScale = PlayerController->GetWorldSettings()->WorldToMeters;
 	ViewInitOptions.CursorPos = Viewport->HasMouseCapture() ? FIntPoint(-1, -1) : FIntPoint(Viewport->GetMouseX(), Viewport->GetMouseY());
+	ViewInitOptions.bOriginOffsetThisFrame = PlayerController->GetWorld()->bOriginOffsetThisFrame;
 	PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);
 
 	FSceneView* const View = new FSceneView(ViewInitOptions);
@@ -682,9 +702,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 
 	//@TODO: SPLITSCREEN: This call will have an issue with splitscreen, as the show flags are shared across the view family
 	EngineShowFlagOrthographicOverride(View->IsPerspectiveProjection(), ViewFamily->EngineShowFlags);
-
-	check( PlayerController->GetWorld() );
-
+		
 	ViewFamily->Views.Add(View);
 
 	{
@@ -1054,11 +1072,6 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	return true;
 }
 
-void ULocalPlayer::ApplyWorldOffset(FVector InOffset)
-{
-	ViewState.GetReference()->ApplyWorldOffset(InOffset);
-}
-
 bool ULocalPlayer::HandleDNCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	// Create a pending Note actor (only in PIE)
@@ -1177,7 +1190,7 @@ bool ULocalPlayer::HandleListSkelMeshesCommand( const TCHAR* Cmd, FOutputDevice&
 		if( SkeletalMesh && SkeletalMeshComponents.Num() )
 		{
 			// Dump information about skeletal mesh.
-			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering(GRHIFeatureLevel);
+			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
 			check(SkelMeshResource->LODModels.Num());
 			UE_LOG(LogPlayerManagement, Log, TEXT("%5i Vertices for LOD 0 of %s"),SkelMeshResource->LODModels[0].NumVertices,*SkeletalMesh->GetFullName());
 
@@ -1494,6 +1507,22 @@ void ULocalPlayer::ExecMacro( const TCHAR* Filename, FOutputDevice& Ar )
 	}
 }
 
+void ULocalPlayer::HandleControllerConnectionChange(bool bConnected, int32 InUserId, int32 InControllerId)
+{
+	// if this is an event for this LocalPlayer
+	if (InControllerId == ControllerId)
+	{
+		// if we lost the connection we need to flush all the keys on the PlayerInput to avoid the PC spinning in place, or firing forever, etc.
+		if (!bConnected)
+		{		
+			if (PlayerController && PlayerController->PlayerInput)
+			{
+				PlayerController->PlayerInput->FlushPressedKeys();	
+			}
+		}
+	}
+}
+
 void ULocalPlayer::SetControllerId( int32 NewControllerId )
 {
 	if ( ControllerId != NewControllerId )
@@ -1548,15 +1577,13 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetId() const
 
 UWorld* ULocalPlayer::GetWorld() const
 {
-	UWorld* World = NULL;
-	if (ViewportClient != NULL)
-	{
-		World = ViewportClient->GetWorld();
-	}
-
-	return World;
+	return ViewportClient ? ViewportClient->GetWorld() : nullptr;
 }
 
+UGameInstance* ULocalPlayer::GetGameInstance() const
+{
+	return ViewportClient ? ViewportClient->GetGameInstance() : nullptr;
+}
 
 void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
@@ -1571,3 +1598,11 @@ void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 
 	UPlayer::AddReferencedObjects(This, Collector);
 }
+
+bool ULocalPlayer::IsPrimaryPlayer() const
+{
+	ULocalPlayer* const PrimaryPlayer = GetOuterUEngine()->GetFirstGamePlayer(GetWorld());
+	return (this == PrimaryPlayer);
+}
+
+

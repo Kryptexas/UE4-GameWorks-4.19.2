@@ -9,6 +9,16 @@ UHorizontalBox::UHorizontalBox(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
+
+	SHorizontalBox::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+}
+
+void UHorizontalBox::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyHorizontalBox.Reset();
 }
 
 UClass* UHorizontalBox::GetSlotClass() const
@@ -30,7 +40,11 @@ void UHorizontalBox::OnSlotRemoved(UPanelSlot* Slot)
 	// Remove the widget from the live slot if it exists.
 	if ( MyHorizontalBox.IsValid() )
 	{
-		MyHorizontalBox->RemoveSlot(Slot->Content->GetWidget());
+		TSharedPtr<SWidget> Widget = Slot->Content->GetCachedWidget();
+		if ( Widget.IsValid() )
+		{
+			MyHorizontalBox->RemoveSlot(Widget.ToSharedRef());
+		}
 	}
 }
 

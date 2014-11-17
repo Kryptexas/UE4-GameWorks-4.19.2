@@ -11,3 +11,6 @@ DEFINE_STAT(STAT_GameplayAbilityGetCooldownTimeRemaining);
 DEFINE_STAT(STAT_RemoveActiveGameplayEffect);
 DEFINE_STAT(STAT_CreateNewActiveGameplayEffect);
 DEFINE_STAT(STAT_GetGameplayCueFunction);
+DEFINE_STAT(STAT_GetOutgoingSpec);
+
+

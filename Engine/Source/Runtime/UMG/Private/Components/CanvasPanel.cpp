@@ -3,47 +3,22 @@
 #include "UMGPrivatePCH.h"
 
 /////////////////////////////////////////////////////
-// SFixedSizeCanvas
-
-class SFixedSizeCanvas : public SConstraintCanvas
-{
-	SLATE_BEGIN_ARGS( SFixedSizeCanvas )
-		{
-			_Visibility = EVisibility::SelfHitTestInvisible;
-		}
-	SLATE_END_ARGS()
-
-	FVector2D CanvasSize;
-
-	void Construct(const FArguments& InArgs, FVector2D InSize)
-	{
-		SConstraintCanvas::FArguments ParentArgs;
-		SConstraintCanvas::Construct(ParentArgs);
-
-		CanvasSize = InSize;
-	}
-
-	void SetDesiredSize(FVector2D InSize)
-	{
-		CanvasSize = InSize;
-	}
-
-	// SWidget interface
-	virtual FVector2D ComputeDesiredSize() const override
-	{
-		return CanvasSize;
-	}
-	// End of SWidget interface
-};
-
-/////////////////////////////////////////////////////
 // UCanvasPanel
 
 UCanvasPanel::UCanvasPanel(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	bIsVariable = false;
-	DesiredCanvasSize = FVector2D(128.0f, 128.0f);
+
+	SConstraintCanvas::FArguments Defaults;
+	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+}
+
+void UCanvasPanel::ReleaseNativeWidget()
+{
+	Super::ReleaseNativeWidget();
+
+	MyCanvas.Reset();
 }
 
 UClass* UCanvasPanel::GetSlotClass() const
@@ -65,13 +40,17 @@ void UCanvasPanel::OnSlotRemoved(UPanelSlot* Slot)
 	// Remove the widget from the live slot if it exists.
 	if ( MyCanvas.IsValid() )
 	{
-		MyCanvas->RemoveSlot(Slot->Content->GetWidget());
+		TSharedPtr<SWidget> Widget = Slot->Content->GetCachedWidget();
+		if ( Widget.IsValid() )
+		{
+			MyCanvas->RemoveSlot(Widget.ToSharedRef());
+		}
 	}
 }
 
 TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 {
-	MyCanvas = SNew(SFixedSizeCanvas, DesiredCanvasSize);
+	MyCanvas = SNew(SConstraintCanvas);
 
 	for ( UPanelSlot* Slot : Slots )
 	{
@@ -88,8 +67,6 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 void UCanvasPanel::SyncronizeProperties()
 {
 	Super::SyncronizeProperties();
-
-	MyCanvas->SetDesiredSize(DesiredCanvasSize);
 }
 
 TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
@@ -118,7 +95,7 @@ bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& Arrange
 
 		for ( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ChildIndex++ )
 		{
-			if ( ArrangedChildren(ChildIndex).Widget == Slot->Content->GetWidget() )
+			if ( ArrangedChildren(ChildIndex).Widget == Slot->Content->TakeWidget() )
 			{
 				ArrangedGeometry = ArrangedChildren(ChildIndex).Geometry;
 				return true;

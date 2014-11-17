@@ -390,8 +390,11 @@ protected:
 	UNREALED_API virtual float GetTimeStep(FTrackScaleInfo &ScaleInfo) const;
 	
 	// SWidget interface
-	UNREALED_API virtual int32 OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 
+	UNREALED_API virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 
 		FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const ;
+
+	/** Update view range */
+	UNREALED_API void SetInputMinMax(float NewMin, float NewMax);
 
 private:
 
@@ -468,7 +471,6 @@ private:
 	/** Gradient editor */
 	TSharedPtr<class SColorGradientEditor> GradientViewer;
 
-	void SetInputMinMax(float NewMin, float NewMax);
 protected:
 	/** Minimum input of view range  */
 	TAttribute<float>	ViewMinInput;

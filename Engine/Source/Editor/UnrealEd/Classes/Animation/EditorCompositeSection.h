@@ -6,6 +6,8 @@
  */
 
 #pragma once
+#include "Animation/AnimMontage.h"
+#include "Animation/EditorAnimBaseObj.h"
 #include "EditorCompositeSection.generated.h"
 
 UCLASS(hidecategories=UObject, MinimalAPI, BlueprintType)

@@ -4,7 +4,7 @@
 	Core.cpp: Unreal core.
 =============================================================================*/
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "Core"

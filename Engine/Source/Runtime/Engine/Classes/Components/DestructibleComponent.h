@@ -123,6 +123,7 @@ public:
 
 	// Begin UPrimitiveComponent interface.
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None) const override;
+	virtual bool CanEditSimulatePhysics() override;
 	virtual bool IsAnySimulatingPhysics() const override;
 
 	virtual void AddImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false) override;

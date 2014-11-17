@@ -918,7 +918,18 @@ void FSCSEditorViewportClient::UpdatePreviewActorForBlueprint(UBlueprint* InBlue
 			SpawnInfo.bNoCollisionFail = true;
 			SpawnInfo.bNoFail = true;
 			SpawnInfo.ObjectFlags = RF_Transient;
+
+			// Temporarily remove the deprecated flag so we can respawn the Blueprint in the viewport
+			bool bIsClassDeprecated = PreviewBlueprint->GeneratedClass->HasAnyClassFlags(CLASS_Deprecated);
+			PreviewBlueprint->GeneratedClass->ClassFlags &= ~CLASS_Deprecated;
+
 			PreviewActorPtr = PreviewActor = PreviewScene->GetWorld()->SpawnActor( PreviewBlueprint->GeneratedClass, &SpawnLocation, &SpawnRotation, SpawnInfo );
+
+			// Reassign the deprecated flag if it was previously assigned
+			if(bIsClassDeprecated)
+			{
+				PreviewBlueprint->GeneratedClass->ClassFlags |= CLASS_Deprecated;
+			}
 
 			check(PreviewActor);
 

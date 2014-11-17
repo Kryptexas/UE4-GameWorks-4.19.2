@@ -2,19 +2,18 @@
 
 #pragma once
 
-class FPaperStyle : public FEditorStyle
+class FPaperStyle
 {
 public:
 	static void Initialize();
 
 	static void Shutdown();
 
-private:
-	static TSharedRef<class FSlateStyleSet> Create();
+	static TSharedPtr< class ISlateStyle > Get();
 
 private:
-	static TSharedPtr<class FSlateStyleSet> PaperStyleInstance;
+	static FString InContent(const FString& RelativePath, const ANSICHAR* Extension);
 
 private:
-	FPaperStyle() {}
+	static TSharedPtr< class FSlateStyleSet > StyleSet;
 };

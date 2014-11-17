@@ -41,13 +41,11 @@ FContentBrowserSingleton::FContentBrowserSingleton()
 	FGlobalTabmanager::Get()->AddLegacyTabType( "MajorContentBrowserTab", "ContentBrowserTab2" );
 
 	// Register to be notified when properties are edited
-	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FContentBrowserSingleton::OnObjectPropertyChanged);
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.AddRaw(this, &FContentBrowserSingleton::OnEditorLoadSelectedAssetsIfNeeded);
 }
 
 FContentBrowserSingleton::~FContentBrowserSingleton()
 {
-	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	FEditorDelegates::LoadSelectedAssetsIfNeeded.RemoveAll(this);
 
 	if ( FSlateApplication::IsInitialized() )
@@ -339,51 +337,6 @@ void FContentBrowserSingleton::SummonNewBrowser(bool bAllowLockedBrowsers)
 	else
 	{
 		// No available slots... don't summon anything
-	}
-}
-
-void FContentBrowserSingleton::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
-{
-	if ( !ensure(ObjectBeingModified) )
-	{
-		return;
-	}
-
-	if ( ObjectBeingModified->HasAnyFlags(RF_ClassDefaultObject) && ObjectBeingModified->GetClass()->ClassGeneratedBy != NULL )
-	{
-		// This is a CDO for a blueprint. Pretend the blueprint changed instead.
-		ObjectBeingModified = ObjectBeingModified->GetClass()->ClassGeneratedBy;
-	}
-
-	if ( ObjectBeingModified->IsAsset() )
-	{
-		// An object in memory was modified.  We'll mark it's thumbnail as dirty so that it'll be
-		// regenerated on demand later. (Before being displayed in the browser, or package saves, etc.)
-		FObjectThumbnail* Thumbnail = ThumbnailTools::GetThumbnailForObject( ObjectBeingModified );
-
-		if ( Thumbnail == NULL )
-		{
-			// If we don't yet have a thumbnail map, load one from disk if possible
-			FName ObjectFullName = FName(*ObjectBeingModified->GetFullName());
-			TArray<FName> ObjectFullNames;
-			FThumbnailMap LoadedThumbnails;
-			ObjectFullNames.Add( ObjectFullName );
-			if ( ThumbnailTools::ConditionallyLoadThumbnailsForObjects( ObjectFullNames, LoadedThumbnails ) )
-			{
-				Thumbnail = LoadedThumbnails.Find(ObjectFullName);
-				
-				if ( Thumbnail != NULL )
-				{
-					Thumbnail = ThumbnailTools::CacheThumbnail(ObjectBeingModified->GetFullName(), Thumbnail, ObjectBeingModified->GetOutermost());
-				}
-			}
-		}
-
-		if( Thumbnail != NULL )
-		{
-			// Mark the thumbnail as dirty
-			Thumbnail->MarkAsDirty();
-		}
 	}
 }
 

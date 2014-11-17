@@ -22,6 +22,9 @@
 #include "MessageLog.h"
 
 #include "Dialogs/DlgPickAssetPath.h"
+#include "Dialogs/SOpenLevelDialog.h"
+
+#include "Runtime/AssetRegistry/Public/AssetData.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
@@ -235,6 +238,14 @@ void FEditorFileUtils::RegisterLevelFilename(UObject* Object, const FString& New
 
 static FString GetFilename(const FName& PackageName)
 {
+	// First see if it is an in-memory package that already has an associated filename
+	const FString PackageNameString = PackageName.ToString();
+	const bool bIncludeReadOnlyRoots = false;
+	if ( FPackageName::IsValidLongPackageName(PackageNameString, bIncludeReadOnlyRoots) )
+	{
+		return FPackageName::LongPackageNameToFilename(PackageNameString, FPackageName::GetMapPackageExtension());
+	}
+
 	FString* Result = LevelFilenames.Find( PackageName );
 	if ( !Result )
 	{
@@ -380,6 +391,13 @@ static bool SaveWorld(UWorld* World,
 			CleanFilename	= FPaths::GetCleanFilename(ExistingFilename);
 		}
 	}
+	else if ( !bAutosaving && FPackageName::IsValidLongPackageName(PackageName, false) )
+	{
+		// If the package is made with a path in a non-read-only root, save it there
+		const FString ImplicitFilename = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetMapPackageExtension());
+		Path = FPaths::GetPath(ImplicitFilename);
+		CleanFilename = FPaths::GetCleanFilename(ImplicitFilename);
+	}
 	else
 	{
 		// No package filename exists and none was specified, so save the package in the autosaves folder.
@@ -483,11 +501,11 @@ static bool SaveWorld(UWorld* World,
 
 		// Save package.
 		{
-			const bool bWarnOfLongFilename = !(bAutosaving | bPIESaving);
-			uint32 SaveFlags = ( bAutosaving || bPIESaving ) ? SAVE_FromAutosave : SAVE_None;
-			SaveFlags |= bPIESaving ? SAVE_KeepDirty : SAVE_None;
+			const FString AutoSavingString = (bAutosaving || bPIESaving) ? TEXT("true") : TEXT("false");
+			const FString KeepDirtyString = bPIESaving ? TEXT("true") : TEXT("false");
 			FSaveErrorOutputDevice SaveErrors;
-			bSuccess = GEditor->SavePackage(Package, World, RF_Standalone, *FinalFilename, &SaveErrors, NULL, false, bWarnOfLongFilename, SaveFlags);
+
+			bSuccess = GUnrealEd->Exec( NULL, *FString::Printf( TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\" SILENT=true AUTOSAVING=%s KEEPDIRTY=%s"), *Package->GetName(), *FinalFilename, *AutoSavingString, *KeepDirtyString ), SaveErrors );
 			SaveErrors.Flush();
 		}
 
@@ -1490,6 +1508,11 @@ bool FEditorFileUtils::PromptToCheckoutLevels(bool bCheckDirty, ULevel* Specific
 	return FEditorFileUtils::PromptToCheckoutLevels( bCheckDirty, LevelsToCheckOut );	
 }
 
+void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection)
+{
+	SOpenLevelDialog::CreateAndShowOpenLevelDialog(OnLevelsChosen, bAllowMultipleSelection);
+}
+
 bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& OutErrorMessage)
 {
 	if( FPaths::GetExtension(MapFilename, true) != FPackageName::GetMapPackageExtension() )
@@ -1582,51 +1605,87 @@ void FEditorFileUtils::LoadMap()
 		return;
 	}
 
-	bool bFilenameIsValid = false;
-	FString DefaultDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
-
-	while( !bFilenameIsValid )
+	if (FParse::Param(FCommandLine::Get(), TEXT("WorldAssets")))
 	{
-		TArray<FString> OutFiles;
-		if ( FileDialogHelpers::OpenFiles( NSLOCTEXT("UnrealEd", "Open", "Open").ToString(), GetFilterString(FI_Load), DefaultDirectory, EFileDialogFlags::None, OutFiles) )
+		struct FLocal
 		{
-			const FString& FileToOpen = OutFiles[0];
-
-			FText ErrorMessage;
-			bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(FileToOpen, ErrorMessage);
-			if ( !bFilenameIsValid )
+			static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets)
 			{
-				// Start the loop over, prompting for load again
-				const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FileToOpen) );
-				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("Filename"), DisplayFilename);
-				Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
-				Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
-				const FText DisplayMessage = FText::Format( NSLOCTEXT("LoadMap", "InvalidMapName", "Failed to load map {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
-				FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
-				continue;
-			}
-
-			if( !GIsDemoMode )
-			{
-				// If there are any unsaved changes to the current level, see if the user wants to save those first.
-				bool bPromptUserToSave = true;
-				bool bSaveMapPackages = true;
-				bool bSaveContentPackages = true;
-				if( FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false )
+				if ( SelectedAssets.Num() > 0 )
 				{
-					// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
-					return;
+					const FAssetData& AssetData = SelectedAssets[0];
+
+					if (!GIsDemoMode)
+					{
+						// If there are any unsaved changes to the current level, see if the user wants to save those first.
+						bool bPromptUserToSave = true;
+						bool bSaveMapPackages = true;
+						bool bSaveContentPackages = true;
+						if (FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false)
+						{
+							return;
+						}
+					}
+
+					const FString FileToOpen = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), FPackageName::GetMapPackageExtension());
+					const bool bLoadAsTemplate = false;
+					const bool bShowProgress = true;
+					FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
 				}
 			}
+		};
+		
+		const bool bAllowMultipleSelection = false;
+		OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen), bAllowMultipleSelection);
+	}
+	else
+	{
+		bool bFilenameIsValid = false;
+		FString DefaultDirectory = FEditorDirectories::Get().GetLastDirectory(ELastDirectory::LEVEL);
 
-			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FPaths::GetPath(FileToOpen));
-			LoadMap( FileToOpen, false, true );
-		}
-		else
+		while( !bFilenameIsValid )
 		{
-			// User canceled the open dialog, do not prompt again.
-			break;
+			TArray<FString> OutFiles;
+			if ( FileDialogHelpers::OpenFiles( NSLOCTEXT("UnrealEd", "Open", "Open").ToString(), GetFilterString(FI_Load), DefaultDirectory, EFileDialogFlags::None, OutFiles) )
+			{
+				const FString& FileToOpen = OutFiles[0];
+
+				FText ErrorMessage;
+				bFilenameIsValid = FEditorFileUtils::IsValidMapFilename(FileToOpen, ErrorMessage);
+				if ( !bFilenameIsValid )
+				{
+					// Start the loop over, prompting for load again
+					const FText DisplayFilename = FText::FromString( IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FileToOpen) );
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("Filename"), DisplayFilename);
+					Arguments.Add(TEXT("LineTerminators"), FText::FromString(LINE_TERMINATOR LINE_TERMINATOR));
+					Arguments.Add(TEXT("ErrorMessage"), ErrorMessage);
+					const FText DisplayMessage = FText::Format( NSLOCTEXT("LoadMap", "InvalidMapName", "Failed to load map {Filename}{LineTerminators}{ErrorMessage}"), Arguments );
+					FMessageDialog::Open( EAppMsgType::Ok, DisplayMessage );
+					continue;
+				}
+
+				if( !GIsDemoMode )
+				{
+					// If there are any unsaved changes to the current level, see if the user wants to save those first.
+					bool bPromptUserToSave = true;
+					bool bSaveMapPackages = true;
+					bool bSaveContentPackages = true;
+					if( FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages) == false )
+					{
+						// something went wrong or the user pressed cancel.  Return to the editor so the user doesn't lose their changes		
+						return;
+					}
+				}
+
+				FEditorDirectories::Get().SetLastDirectory(ELastDirectory::LEVEL, FPaths::GetPath(FileToOpen));
+				LoadMap( FileToOpen, false, true );
+			}
+			else
+			{
+				// User canceled the open dialog, do not prompt again.
+				break;
+			}
 		}
 	}
 }
@@ -1685,23 +1744,8 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		return;
 	}
 
-	// Change out of Matinee when opening new map, so we avoid editing data in the old one.
-	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_InterpEdit ) )
-	{
-		GLevelEditorModeTools().ActivateDefaultMode();
-	}
-
-	// Also change out of Landscape mode to ensure all references are cleared.
-	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_Landscape ) )
-	{
-		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Landscape );
-	}
-
-	// Change out of mesh paint mode when loading a map
-	if( GLevelEditorModeTools().IsModeActive( FBuiltinEditorModes::EM_MeshPaint ) )
-	{
-		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_MeshPaint );
-	}
+	// Deactivate any editor modes when loading a new map
+	GLevelEditorModeTools().DeactivateAllModes();
 
 	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d"), *Filename, LoadAsTemplate, bShowProgress );
 	bool bResult = GUnrealEd->Exec( NULL, *LoadCommand );
@@ -2201,96 +2245,23 @@ static void WarnUserAboutFailedSave( const TArray<UPackage*>& InFailedPackages )
 		OpenMsgDlgInt( EAppMsgType::Ok, Message, NSLOCTEXT("FileHelper", "FailedSavePrompt_Title", "Packages Failed To Save") );
 	}
 }
-bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const bool bSaveMapPackages, const bool bSaveContentPackages, const bool bFastSave, const bool bNotifyNoPackagesSaved,  bool* bOutPackagesNeededSaving )
+
+static bool InternalSavePackages(TArray<UPackage*>& PackagesToSave, int32 NumPackagesNotIgnored, bool bPromptUserToSave, bool bFastSave, bool bNotifyNoPackagesSaved, bool* bOutPackagesNeededSaving)
 {
 	bool bReturnCode = true;
 
-	if (bOutPackagesNeededSaving != NULL)
-	{
-		*bOutPackagesNeededSaving = false;
-	}
-
-	// A list of all packages that need to be saved
-	TArray<UPackage*> PackagesToSave;
-
-	// Need to track the number of packages we're not ignoring for save.
-	int32 NumPackagesNotIgnored = 0;
-
-	if( bSaveMapPackages )
-	{
-		// If we are saving map packages, collect all valid worlds and see if their package is dirty
-		TArray<UWorld*> Worlds;
-		EditorLevelUtils::GetWorlds( GWorld, Worlds, true );
-
-		for( int32 WorldIdx = 0; WorldIdx < Worlds.Num(); ++WorldIdx  )
-		{
-			UPackage* WorldPackage = Worlds[ WorldIdx ]->GetOutermost();
-			if( WorldPackage->IsDirty() && (WorldPackage->PackageFlags & PKG_PlayInEditor) == 0 
-				&& !WorldPackage->HasAnyFlags(RF_Transient))
-			{
-				// Count the number of packages to not ignore.
-				NumPackagesNotIgnored += (PackagesNotSavedDuringSaveAll.Find(WorldPackage->GetName())==NULL) ? 1 : 0;
-
-				// IF the package is dirty and its not a pie package, add the world package to the list of packages to save
-				PackagesToSave.Add( WorldPackage );
-			}
-		}
-	}
-
-	// Don't iterate through content packages if we dont plan on saving them
-	if( bSaveContentPackages )
-	{
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-
-		// Make a list of all content packages that we should save
-		for ( TObjectIterator<UPackage> It; It; ++It )
-		{
-			UPackage*	Package					= *It;
-			bool		bShouldIgnorePackage	= false;
-
-			// Only look at root packages.
-			bShouldIgnorePackage |= Package->GetOuter() != NULL;
-			// Don't try to save "Transient" package.
-			bShouldIgnorePackage |= Package == GetTransientPackage();
-			// Ignore PIE packages.
-			bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
-			// Ignore packages that haven't been modified.
-			bShouldIgnorePackage |= !Package->IsDirty();
-
-			if ( !bShouldIgnorePackage )
-			{
-				UWorld*		AssociatedWorld			= UWorld::FindWorldInPackage(Package);
-				const bool	bIsMapPackage			= AssociatedWorld != NULL;
-
-				// Ignore map packages, they are caught above.
-				bShouldIgnorePackage |= bIsMapPackage; 
-
-				// Ignore packages with long, invalid names. This culls out packages with paths in read-only roots such as /Temp.
-				bShouldIgnorePackage |= (!FPackageName::IsShortPackageName(Package->GetFName()) && !FPackageName::IsValidLongPackageName(Package->GetName(), /*bIncludeReadOnlyRoots=*/false));
-			}
-
-			if( !bShouldIgnorePackage )
-			{
-				// Count the number of packages to not ignore.
-				NumPackagesNotIgnored += (PackagesNotSavedDuringSaveAll.Find(Package->GetName())==NULL) ? 1 : 0;
-
-				PackagesToSave.Add( Package );
-			}
-		}
-	}
-
-	if( PackagesToSave.Num() > 0 && (NumPackagesNotIgnored > 0 || bPromptUserToSave) ) 
+	if (PackagesToSave.Num() > 0 && (NumPackagesNotIgnored > 0 || bPromptUserToSave))
 	{
 		// The caller asked us 
 		if (bOutPackagesNeededSaving != NULL)
 		{
-			*bOutPackagesNeededSaving  = true;
+			*bOutPackagesNeededSaving = true;
 		}
 
-		if( !bFastSave )
+		if (!bFastSave)
 		{
 			const FEditorFileUtils::EPromptReturnCode Return = FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, true, bPromptUserToSave);
-			if( Return == FEditorFileUtils::EPromptReturnCode::PR_Cancelled )
+			if (Return == FEditorFileUtils::EPromptReturnCode::PR_Cancelled)
 			{
 				// Only cancel should return false and stop whatever we were doing before.(like closing the editor)
 				// If failure is returned, the user was given ample times to retry saving the package and didn't want to
@@ -2301,27 +2272,27 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 		else
 		{
 			FSaveErrorOutputDevice SaveErrors;
-			GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackagesE", "Saving packages..."), true );
+			GWarn->BeginSlowTask(NSLOCTEXT("UnrealEd", "SavingPackagesE", "Saving packages..."), true);
 
 			// Packages that failed to save
 			TArray< UPackage* > FailedPackages;
 
-			for ( TArray<UPackage*>::TConstIterator PkgIter( PackagesToSave ); PkgIter; ++PkgIter )
+			for (TArray<UPackage*>::TConstIterator PkgIter(PackagesToSave); PkgIter; ++PkgIter)
 			{
 				UPackage* CurPackage = *PkgIter;
 
 				// Check if a file exists for this package
 				FString Filename;
-				bool bFoundFile = FPackageName::DoesPackageExist( CurPackage->GetName(), NULL, &Filename );
-				if( bFoundFile )
+				bool bFoundFile = FPackageName::DoesPackageExist(CurPackage->GetName(), NULL, &Filename);
+				if (bFoundFile)
 				{
 					// determine if the package file is read only
-					const bool bPkgReadOnly = IFileManager::Get().IsReadOnly( *Filename );
+					const bool bPkgReadOnly = IFileManager::Get().IsReadOnly(*Filename);
 
 					// Only save writable files in fast mode
-					if ( !bPkgReadOnly )
-					{	
-						if( !CurPackage->IsFullyLoaded() )
+					if (!bPkgReadOnly)
+					{
+						if (!CurPackage->IsFullyLoaded())
 						{
 							// Packages must be fully loaded to save
 							CurPackage->FullyLoad();
@@ -2330,36 +2301,36 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 						const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(CurPackage);
 						const bool bIsMapPackage = AssociatedWorld != nullptr;
 
-						const FText SavingPackageText = (bIsMapPackage) 
+						const FText SavingPackageText = (bIsMapPackage)
 							? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(CurPackage->GetName()))
 							: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(CurPackage->GetName()));
 
-						GWarn->StatusForceUpdate( PkgIter.GetIndex(), PackagesToSave.Num(), SavingPackageText );
+						GWarn->StatusForceUpdate(PkgIter.GetIndex(), PackagesToSave.Num(), SavingPackageText);
 
 						// Save the package
 						bool bPackageLocallyWritable;
-						const int32 SaveStatus = InternalSavePackage( CurPackage, bPackageLocallyWritable, SaveErrors );
+						const int32 SaveStatus = InternalSavePackage(CurPackage, bPackageLocallyWritable, SaveErrors);
 
-						if( SaveStatus == EAppReturnType::No )
+						if (SaveStatus == EAppReturnType::No)
 						{
 							// The package could not be saved so add it to the failed array 
-							FailedPackages.Add( CurPackage );
+							FailedPackages.Add(CurPackage);
 
 						}
 					}
 				}
-				
+
 			}
 			GWarn->EndSlowTask();
 			SaveErrors.Flush();
 
 			// Warn the user about any packages which failed to save.
-			WarnUserAboutFailedSave( FailedPackages );
+			WarnUserAboutFailedSave(FailedPackages);
 		}
 	}
-	else if(bNotifyNoPackagesSaved)
+	else if (bNotifyNoPackagesSaved)
 	{
-		FNotificationInfo NotificationInfo( LOCTEXT("NoAssetsToSave", "No new changes to save!") );
+		FNotificationInfo NotificationInfo(LOCTEXT("NoAssetsToSave", "No new changes to save!"));
 		NotificationInfo.Image = FEditorStyle::GetBrush(FTokenizedMessage::GetSeverityIconName(EMessageSeverity::Info));
 		NotificationInfo.bFireAndForget = true;
 		NotificationInfo.ExpireDuration = 4.0f; // Need this message to last a little longer than normal since the user may have expected there to be modified files.
@@ -2369,6 +2340,98 @@ bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const boo
 	return bReturnCode;
 }
 
+bool FEditorFileUtils::SaveDirtyPackages(const bool bPromptUserToSave, const bool bSaveMapPackages, const bool bSaveContentPackages, const bool bFastSave, const bool bNotifyNoPackagesSaved,  bool* bOutPackagesNeededSaving )
+{
+	if (bOutPackagesNeededSaving != NULL)
+	{
+		*bOutPackagesNeededSaving = false;
+	}
+
+	// A list of all packages that need to be saved
+	TArray<UPackage*> PackagesToSave;
+
+	if( bSaveMapPackages )
+	{
+		GetDirtyWorldPackages(PackagesToSave);
+	}
+
+	// Don't iterate through content packages if we dont plan on saving them
+	if( bSaveContentPackages )
+	{
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+
+		GetDirtyContentPackages(PackagesToSave);
+	}
+
+	// Need to track the number of packages we're not ignoring for save.
+	int32 NumPackagesNotIgnored = 0;
+
+	for (auto* Package : PackagesToSave)
+	{
+		// Count the number of packages to not ignore.
+		NumPackagesNotIgnored += (PackagesNotSavedDuringSaveAll.Find(Package->GetName()) == NULL) ? 1 : 0;
+	}
+
+	return InternalSavePackages(PackagesToSave, NumPackagesNotIgnored, bPromptUserToSave, bFastSave, bNotifyNoPackagesSaved, bOutPackagesNeededSaving);
+}
+
+bool FEditorFileUtils::SaveDirtyContentPackages(TArray<UClass*>& SaveContentClasses, const bool bPromptUserToSave, const bool bFastSave, const bool bNotifyNoPackagesSaved)
+{
+	bool bReturnCode = true;
+
+	// A list of all packages that need to be saved
+	TArray<UPackage*> PackagesToSave;
+
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+
+	// Make a list of all content packages that we should save
+	for (TObjectIterator<UPackage> It; It; ++It)
+	{
+		UPackage*	Package = *It;
+		bool		bShouldIgnorePackage = false;
+
+		// Only look at root packages.
+		bShouldIgnorePackage |= Package->GetOuter() != NULL;
+		// Don't try to save "Transient" package.
+		bShouldIgnorePackage |= Package == GetTransientPackage();
+		// Ignore PIE packages.
+		bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
+		// Ignore packages that haven't been modified.
+		bShouldIgnorePackage |= !Package->IsDirty();
+
+		// Ignore packages with long, invalid names. This culls out packages with paths in read-only roots such as /Temp.
+		bShouldIgnorePackage |= (!FPackageName::IsShortPackageName(Package->GetFName()) && !FPackageName::IsValidLongPackageName(Package->GetName(), /*bIncludeReadOnlyRoots=*/false));
+
+		if (!bShouldIgnorePackage)
+		{
+			TArray<UObject*> Objects;
+			GetObjectsWithOuter(Package, Objects);
+
+			for (auto Iter = Objects.CreateIterator(); Iter; ++Iter)
+			{
+				bool bNeedToSave = false;
+
+				for (const UClass* ClassType : SaveContentClasses)
+				{
+					if ((*Iter)->GetClass()->IsChildOf(ClassType))
+					{
+						bNeedToSave = true;
+						break;
+					}
+				}
+
+				if (bNeedToSave)
+				{
+					// add to asset 
+					PackagesToSave.Add(Package);
+					break;
+				}
+			}
+		}
+	}
+
+	return InternalSavePackages(PackagesToSave, PackagesToSave.Num(), bPromptUserToSave, bFastSave, bNotifyNoPackagesSaved, NULL);
+}
 
 /**
  * Saves the active level, prompting the use for checkout if necessary.
@@ -2891,6 +2954,62 @@ FString FEditorFileUtils::ExtractPackageName(const FString& ObjectPath)
 	}
 
 	return ObjectPath;
+}
+
+void FEditorFileUtils::GetDirtyWorldPackages(TArray<UPackage*>& OutDirtyPackages)
+{
+	// If we are saving map packages, collect all valid worlds and see if their package is dirty
+	TArray<UWorld*> Worlds;
+	EditorLevelUtils::GetWorlds(GWorld, Worlds, true);
+
+	for (int32 WorldIdx = 0; WorldIdx < Worlds.Num(); ++WorldIdx)
+	{
+		UPackage* WorldPackage = Worlds[WorldIdx]->GetOutermost();
+		if (WorldPackage->IsDirty() && (WorldPackage->PackageFlags & PKG_PlayInEditor) == 0
+			&& !WorldPackage->HasAnyFlags(RF_Transient))
+		{
+			// IF the package is dirty and its not a pie package, add the world package to the list of packages to save
+			OutDirtyPackages.Add(WorldPackage);
+		}
+	}
+}
+
+void FEditorFileUtils::GetDirtyContentPackages(TArray<UPackage*>& OutDirtyPackages)
+{
+	// Make a list of all content packages that we should save
+	for (TObjectIterator<UPackage> It; It; ++It)
+	{
+		UPackage*	Package = *It;
+		bool		bShouldIgnorePackage = false;
+
+		// Only look at root packages.
+		bShouldIgnorePackage |= Package->GetOuter() != NULL;
+		// Don't try to save "Transient" package.
+		bShouldIgnorePackage |= Package == GetTransientPackage();
+		// Don't try to save packages with the RF_Transient flag.
+		bShouldIgnorePackage |= Package->HasAnyFlags(RF_Transient);
+		// Ignore PIE packages.
+		bShouldIgnorePackage |= (Package->PackageFlags & PKG_PlayInEditor) != 0;
+		// Ignore packages that haven't been modified.
+		bShouldIgnorePackage |= !Package->IsDirty();
+
+		if (!bShouldIgnorePackage)
+		{
+			UWorld*		AssociatedWorld = UWorld::FindWorldInPackage(Package);
+			const bool	bIsMapPackage = AssociatedWorld != NULL;
+
+			// Ignore map packages, they are caught above.
+			bShouldIgnorePackage |= bIsMapPackage;
+
+			// Ignore packages with long, invalid names. This culls out packages with paths in read-only roots such as /Temp.
+			bShouldIgnorePackage |= (!FPackageName::IsShortPackageName(Package->GetFName()) && !FPackageName::IsValidLongPackageName(Package->GetName(), /*bIncludeReadOnlyRoots=*/false));
+		}
+
+		if (!bShouldIgnorePackage)
+		{
+			OutDirtyPackages.Add(Package);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

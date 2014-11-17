@@ -84,7 +84,19 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 						.Icon( this, &FAssetEditorToolkit::GetDefaultTabIcon )
 						.Label( Label );
 		{
-			FGlobalTabmanager::Get()->InsertNewDocumentTab( "StandaloneToolkit", FTabManager::ESearchPreference::PreferLiveTab, NewMajorTab.ToSharedRef() );
+			static_assert(sizeof(EAssetEditorToolkitTabLocation) == sizeof(int32), "EAssetEditorToolkitTabLocation is the incorrect size");
+
+			// Work out where we should create this asset editor
+			EAssetEditorToolkitTabLocation SavedAssetEditorToolkitTabLocation = EAssetEditorToolkitTabLocation::Standalone;
+			GConfig->GetInt(
+				TEXT("AssetEditorToolkitTabLocation"), 
+				*ObjectsToEdit[0]->GetPathName(), 
+				reinterpret_cast<int32&>(SavedAssetEditorToolkitTabLocation), 
+				GEditorUserSettingsIni
+				);
+
+			const FName AssetEditorToolkitTab = (SavedAssetEditorToolkitTabLocation == EAssetEditorToolkitTabLocation::Docked) ? "DockedToolkit" : "StandaloneToolkit";
+			FGlobalTabmanager::Get()->InsertNewDocumentTab( AssetEditorToolkitTab, FTabManager::ESearchPreference::PreferLiveTab, NewMajorTab.ToSharedRef() );
 		}
 
 		IUserFeedbackModule& UserFeedback = FModuleManager::LoadModuleChecked<IUserFeedbackModule>(TEXT("UserFeedback"));

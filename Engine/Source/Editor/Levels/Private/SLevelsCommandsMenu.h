@@ -173,21 +173,7 @@ private:
 		MenuBuilder.BeginSection("LevelsAddLevel");
 		{
 			MenuBuilder.AddMenuEntry( Commands.CreateEmptyLevel );
-			
-			static const bool bUsingWorldAssets = FParse::Param(FCommandLine::Get(), TEXT("WorldAssets"));
-			if (bUsingWorldAssets)
-			{
-				// Add existing level submenu.
-				MenuBuilder.AddSubMenu(
-					LOCTEXT("AddExistingLevelSubMenu", "Add Existing Level"),
-					LOCTEXT("AddExistingLevelSubMenu_ToolTip", "Select an existing sublevel"),
-					FNewMenuDelegate::CreateSP(this, &SLevelsCommandsMenu::FillAddExistingLevelSubMenu));
-			}
-			else
-			{
-				MenuBuilder.AddMenuEntry( Commands.AddExistingLevel );
-			}
-
+			MenuBuilder.AddMenuEntry( Commands.AddExistingLevel );
 			MenuBuilder.AddMenuEntry( Commands.AddSelectedActorsToNewLevel );
 			MenuBuilder.AddMenuEntry( Commands.MergeSelectedLevels );
 		}
@@ -197,36 +183,6 @@ private:
 		{
 			MenuBuilder.AddMenuEntry( Commands.SetAddStreamingMethod_Blueprint, NAME_None, LOCTEXT("SetAddStreamingMethodBlueprintOverride", "Blueprint") );
 			MenuBuilder.AddMenuEntry( Commands.SetAddStreamingMethod_AlwaysLoaded, NAME_None, LOCTEXT("SetAddStreamingMethodAlwaysLoadedOverride", "Always Loaded") );
-		}
-		MenuBuilder.EndSection();
-	}
-
-	/** Populates the "Add Existing Level" submenu */
-	void FillAddExistingLevelSubMenu(FMenuBuilder& MenuBuilder)
-	{
-		// Asset picker for a level
-		{
-			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-			FAssetPickerConfig AssetPickerConfig = FLevelEditorActionCallbacks::CreateLevelAssetPickerConfig();
-			AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateSP( ViewModel.Get(), &FLevelCollectionViewModel::AddExistingLevelFromAssetPicker );
-			AssetPickerConfig.ThumbnailScale = 0;
-
-			TSharedRef<SWidget> MenuContent =
-				SNew(SBox)
-				.HeightOverride(600)
-				.WidthOverride(300)
-				[
-					ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-				];
-
-			const bool bNoIndent = true;
-			MenuBuilder.AddWidget(MenuContent, FText::GetEmpty(), bNoIndent);
-		}
-
-		MenuBuilder.BeginSection("LegacyAddExistingLevel", LOCTEXT("LegacyAddExistingLevelHeading", "Other Levels"));
-		{
-			// Legacy Add Existing Level
-			MenuBuilder.AddMenuEntry(FLevelsViewCommands::Get().AddExistingLevel);
 		}
 		MenuBuilder.EndSection();
 	}

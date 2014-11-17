@@ -54,8 +54,8 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 		// No need to create the mesh object if we aren't actually rendering anything (see UPrimitiveComponent::Attach)
 		if ( FApp::CanEverRender() && ShouldComponentAddToScene() )
 		{
-			ERHIFeatureLevel::Type SceneFeatureLevel = GRHIFeatureLevel;
-			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering(SceneFeatureLevel);
+			ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
+			FSkeletalMeshResource* SkelMeshResource = SkeletalMesh->GetResourceForRendering();
 
 			// Also check if skeletal mesh has too many bones/chunk for GPU skinning.
 			const bool bIsCPUSkinned = SkelMeshResource->RequiresCPUSkinning(SceneFeatureLevel) || (GIsEditor && ShouldCPUSkin());
@@ -761,8 +761,8 @@ FSkeletalMeshResource* USkinnedMeshComponent::GetSkeletalMeshResource() const
 	}
 	else if (SkeletalMesh)
 	{
-		ERHIFeatureLevel::Type SceneFeatureLevel = GRHIFeatureLevel;
-		return SkeletalMesh->GetResourceForRendering(SceneFeatureLevel);
+		ERHIFeatureLevel::Type SceneFeatureLevel = GetWorld()->FeatureLevel;
+		return SkeletalMesh->GetResourceForRendering();
 	}
 	else
 	{

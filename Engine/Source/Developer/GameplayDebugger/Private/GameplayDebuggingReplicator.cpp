@@ -124,7 +124,7 @@ void AGameplayDebuggingReplicator::ServerEnableTargetSelection_Implementation(bo
 {
 	if (GetDebugComponent())
 	{
-		GetDebugComponent()->ServerEnableTargetSelection(true);
+		GetDebugComponent()->ServerEnableTargetSelection(bEnable);
 	}
 }
 

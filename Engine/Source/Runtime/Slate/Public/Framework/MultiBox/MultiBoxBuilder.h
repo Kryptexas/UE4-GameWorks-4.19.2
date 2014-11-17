@@ -51,6 +51,14 @@ public:
 	 * @return  New widget object
 	 */
 	TSharedRef< class SWidget > MakeWidget();
+	
+	
+	/** 
+	 * Get the multi-box being built.
+	 *
+	 * @return The multi-box being built.
+	 */
+	TSharedRef< class FMultiBox > GetMultiBox();
 
 
 	/**
@@ -214,9 +222,9 @@ public:
 	 * @param	InSubMenu			Sub-Menu object which creates menu entries for the sub-menu
 	 * @param bInOpenSubMenuOnClick Sub-menu will open only if the sub-menu entry is clicked
 	 */
-	void AddSubMenu( const FText& InMenuLabel, const FText& InToolTip, const FNewMenuDelegate& InSubMenu, const FUIAction& InUIAction, FName InExtensionHook, const EUserInterfaceActionType::Type InUserInterfaceActionType, const bool bInOpenSubMenuOnClick = false, const FSlateIcon& InIcon = FSlateIcon() );
+	void AddSubMenu( const TAttribute<FText>& InMenuLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InSubMenu, const FUIAction& InUIAction, FName InExtensionHook, const EUserInterfaceActionType::Type InUserInterfaceActionType, const bool bInOpenSubMenuOnClick = false, const FSlateIcon& InIcon = FSlateIcon() );
 
-	void AddSubMenu( const FText& InMenuLabel, const FText& InToolTip, const FNewMenuDelegate& InSubMenu, const bool bInOpenSubMenuOnClick = false, const FSlateIcon& InIcon = FSlateIcon() );
+	void AddSubMenu( const TAttribute<FText>& InMenuLabel, const TAttribute<FText>& InToolTip, const FNewMenuDelegate& InSubMenu, const bool bInOpenSubMenuOnClick = false, const FSlateIcon& InIcon = FSlateIcon() );
 
 	void AddSubMenu( const TSharedRef< SWidget > Contents, const FNewMenuDelegate& InSubMenu, const bool bInOpenSubMenuOnClick = false );
 

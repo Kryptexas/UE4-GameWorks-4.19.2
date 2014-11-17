@@ -23,6 +23,8 @@ public:
 
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName) override;
 		
+	void UpdateEntries();
+
 private:
 	int32 GetCurrentLogEntryIndex() const;
 

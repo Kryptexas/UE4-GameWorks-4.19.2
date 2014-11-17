@@ -230,7 +230,7 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	ViewUniformShaderParameters.ViewRight = EffectiveTranslatedViewMatrix.GetColumn(0);
 	ViewUniformShaderParameters.InvDeviceZToWorldZTransform = View->InvDeviceZToWorldZTransform;
 	ViewUniformShaderParameters.ScreenPositionScaleBias = FVector4(0,0,0,0);
-	ViewUniformShaderParameters.ScreenTexelBias = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
+	ViewUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
 	ViewUniformShaderParameters.ViewSizeAndSceneTexelSize = FVector4(ViewRect.Width(), ViewRect.Height(), 1.0f/ViewRect.Width(), 1.0f/ViewRect.Height() );
 	ViewUniformShaderParameters.ViewOrigin = View->ViewMatrices.ViewOrigin;
 	ViewUniformShaderParameters.TranslatedViewOrigin = View->ViewMatrices.ViewOrigin + View->ViewMatrices.PreViewTranslation;
@@ -324,17 +324,15 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 			if( !ShaderResource || ShaderResource->GetType() == ESlateShaderResource::Texture ) 
 			{
 				FSlateElementPS* PixelShader = GetTexturePixelShader(ShaderType, DrawEffects);
-				FBoundShaderStateRHIRef BoundShaderState;
 
-				BoundShaderState = RHICreateBoundShaderState(
+				RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
 					GSlateVertexDeclaration.VertexDeclarationRHI,
 					VertexShader->GetVertexShader(),
 					nullptr,
 					nullptr,
 					PixelShader->GetPixelShader(),
-					FGeometryShaderRHIRef());
+					FGeometryShaderRHIRef()));
 
-				RHICmdList.SetBoundShaderState(BoundShaderState);
 
 				VertexShader->SetViewProjection(RHICmdList, ViewProjectionMatrix);
 				VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams);
@@ -449,17 +447,13 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 				if( PixelShader )
 				{
-					FBoundShaderStateRHIRef BoundShaderState;
-
-					BoundShaderState = RHICreateBoundShaderState(
+					RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
 						GSlateVertexDeclaration.VertexDeclarationRHI,
 						VertexShader->GetVertexShader(),
 						nullptr,
 						nullptr,
 						PixelShader->GetPixelShader(),
-						FGeometryShaderRHIRef());
-
-					RHICmdList.SetBoundShaderState(BoundShaderState);
+						FGeometryShaderRHIRef()));
 
 					VertexShader->SetShaderParameters(RHICmdList, ShaderParams.VertexParams);
 					PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, 1.0f / DisplayGamma, ShaderParams.PixelParams);
@@ -483,10 +477,14 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 			}
 
 		}
-		else if (RenderBatch.CustomDrawer.IsValid())
+		else
 		{
-			// This element is custom and has no Slate geometry.  Tell it to render itself now
-			RenderBatch.CustomDrawer.Pin()->DrawRenderThread(RHICmdList, &BackBuffer.GetRenderTargetTexture());
+			TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer = RenderBatch.CustomDrawer.Pin();
+			if (CustomDrawer.IsValid())
+			{
+				// This element is custom and has no Slate geometry.  Tell it to render itself now
+				CustomDrawer->DrawRenderThread(RHICmdList, &BackBuffer.GetRenderTargetTexture());
+			}
 		}
 
 	}

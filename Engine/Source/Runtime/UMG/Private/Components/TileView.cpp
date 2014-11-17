@@ -49,7 +49,7 @@ TSharedRef<ITableRow> UTileView::HandleOnGenerateTile(UObject* Item, const TShar
 		{
 			return SNew(STableRow< UObject* >, OwnerTable)
 			[
-				Widget->GetWidget()
+				Widget->TakeWidget()
 			];
 		}
 	}

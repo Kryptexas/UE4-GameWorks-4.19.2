@@ -65,6 +65,10 @@ struct FNVOutputHandler : public nvtt::OutputHandler
 		return true;
 	}
 
+    virtual void endImage()
+    {
+    }
+
 	uint8* Buffer;
 	uint8* BufferEnd;
 };

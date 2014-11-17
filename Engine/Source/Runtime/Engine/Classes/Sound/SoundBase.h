@@ -11,7 +11,10 @@
 struct FActiveSound;
 struct FSoundParseParameters;
 struct FWaveInstance;
-class  USoundClass;
+struct FAttenuationSettings; 
+class USoundClass;
+class USoundAttenuation;
+
 
 UENUM()
 namespace EMaxConcurrentResolutionRule

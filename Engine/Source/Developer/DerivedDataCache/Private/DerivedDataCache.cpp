@@ -13,10 +13,12 @@
 DEFINE_STAT(STAT_DDC_NumGets);
 DEFINE_STAT(STAT_DDC_NumPuts);
 DEFINE_STAT(STAT_DDC_NumBuilds);
+DEFINE_STAT(STAT_DDC_NumExist);
 DEFINE_STAT(STAT_DDC_SyncGetTime);
 DEFINE_STAT(STAT_DDC_ASyncWaitTime);
 DEFINE_STAT(STAT_DDC_PutTime);
 DEFINE_STAT(STAT_DDC_SyncBuildTime);
+DEFINE_STAT(STAT_DDC_ExistTime);
 
 /** 
  * Implementation of the derived data cache
@@ -288,7 +290,15 @@ public:
 
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
-		return FDerivedDataBackend::Get().GetRoot().CachedDataProbablyExists(CacheKey);
+		bool bResult;
+		INC_DWORD_STAT(STAT_DDC_NumExist);
+		STAT(double ThisTime = 0);
+		{
+			SCOPE_SECONDS_COUNTER(ThisTime);
+			bResult = FDerivedDataBackend::Get().GetRoot().CachedDataProbablyExists(CacheKey);
+		}
+		INC_FLOAT_STAT_BY(STAT_DDC_ExistTime, (float)ThisTime);
+		return bResult;
 	}
 
 	void NotifyBootComplete() override

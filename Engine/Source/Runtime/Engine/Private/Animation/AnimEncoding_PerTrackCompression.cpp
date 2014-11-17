@@ -451,14 +451,12 @@ void AEFPerTrackCompressionCodec::ByteSwapOut(
  * @param	Seq				An Animation Sequence to extract the BoneAtom from.
  * @param	TrackIndex		The index of the track desired in the Animation Sequence.
  * @param	Time			The time (in seconds) to calculate the BoneAtom for.
- * @param	bLooping		true if the animation should be played in a cyclic manner.
  */
 void AEFPerTrackCompressionCodec::GetBoneAtom(
 	FTransform& OutAtom,
 	const UAnimSequence& Seq,
 	int32 TrackIndex,
-	float Time,
-	bool bLooping)
+	float Time)
 {
 	// Initialize to identity to set the scale and in case of a missing rotation or translation codec
 	OutAtom.SetIdentity();
@@ -469,13 +467,13 @@ void AEFPerTrackCompressionCodec::GetBoneAtom(
 	const int32 RotKeysOffset = TrackData[1];
 	const float RelativePos = Time / (float)Seq.SequenceLength;
 
-	GetBoneAtomTranslation(OutAtom, Seq, TransKeysOffset, Time, RelativePos, bLooping);
-	GetBoneAtomRotation(OutAtom, Seq, RotKeysOffset, Time, RelativePos, bLooping);
+	GetBoneAtomTranslation(OutAtom, Seq, TransKeysOffset, Time, RelativePos);
+	GetBoneAtomRotation(OutAtom, Seq, RotKeysOffset, Time, RelativePos);
 	const bool bHasScaleData = Seq.CompressedScaleOffsets.IsValid();
 	if (bHasScaleData)
 	{
 		const int32 ScaleKeysOffset = Seq.CompressedScaleOffsets.GetOffsetData(TrackIndex, 0);
-		GetBoneAtomScale(OutAtom, Seq, ScaleKeysOffset, Time, RelativePos, bLooping);
+		GetBoneAtomScale(OutAtom, Seq, ScaleKeysOffset, Time, RelativePos);
 	}
 }
 	
@@ -489,8 +487,7 @@ void AEFPerTrackCompressionCodec::GetBoneAtomRotation(
 	const UAnimSequence& Seq,
 	int32 Offset,
 	float Time,
-	float RelativePos,
-	bool bLooping)
+	float RelativePos)
 {
 	if (Offset != INDEX_NONE)
 	{
@@ -515,12 +512,12 @@ void AEFPerTrackCompressionCodec::GetBoneAtomRotation(
 		{
 			if ((FormatFlags & 0x8) == 0)
 			{
-				Alpha = TimeToIndex(Seq, RelativePos, bLooping, NumKeys, Index0, Index1);
+				Alpha = TimeToIndex(Seq, RelativePos, NumKeys, Index0, Index1);
 			}
 			else
 			{
 				const uint8* RESTRICT FrameTable = Align(TrackData + FixedBytes + BytesPerKey * NumKeys, 4);
-				Alpha = TimeToIndex(Seq, FrameTable, RelativePos, bLooping, NumKeys, Index0, Index1);
+				Alpha = TimeToIndex(Seq, FrameTable, RelativePos, NumKeys, Index0, Index1);
 			}
 		}
 
@@ -581,8 +578,7 @@ void AEFPerTrackCompressionCodec::GetBoneAtomTranslation(
 	const UAnimSequence& Seq,
 	int32 Offset,
 	float Time,
-	float RelativePos,
-	bool bLooping)
+	float RelativePos)
 {
 	if (Offset != INDEX_NONE)
 	{
@@ -607,12 +603,12 @@ void AEFPerTrackCompressionCodec::GetBoneAtomTranslation(
 		{
 			if ((FormatFlags & 0x8) == 0)
 			{
-				Alpha = TimeToIndex(Seq, RelativePos, bLooping, NumKeys, Index0, Index1);
+				Alpha = TimeToIndex(Seq, RelativePos, NumKeys, Index0, Index1);
 			}
 			else
 			{
 				const uint8* RESTRICT FrameTable = Align(TrackData + FixedBytes + BytesPerKey * NumKeys, 4);
-				Alpha = TimeToIndex(Seq, FrameTable, RelativePos, bLooping, NumKeys, Index0, Index1);
+				Alpha = TimeToIndex(Seq, FrameTable, RelativePos, NumKeys, Index0, Index1);
 			}
 		}
 
@@ -667,8 +663,7 @@ void AEFPerTrackCompressionCodec::GetBoneAtomScale(
 	const UAnimSequence& Seq,
 	int32 Offset,
 	float Time,
-	float RelativePos,
-	bool bLooping)
+	float RelativePos)
 {
 	if (Offset != INDEX_NONE)
 	{
@@ -693,12 +688,12 @@ void AEFPerTrackCompressionCodec::GetBoneAtomScale(
 		{
 			if ((FormatFlags & 0x8) == 0)
 			{
-				Alpha = TimeToIndex(Seq, RelativePos, bLooping, NumKeys, Index0, Index1);
+				Alpha = TimeToIndex(Seq, RelativePos, NumKeys, Index0, Index1);
 			}
 			else
 			{
 				const uint8* RESTRICT FrameTable = Align(TrackData + FixedBytes + BytesPerKey * NumKeys, 4);
-				Alpha = TimeToIndex(Seq, FrameTable, RelativePos, bLooping, NumKeys, Index0, Index1);
+				Alpha = TimeToIndex(Seq, FrameTable, RelativePos, NumKeys, Index0, Index1);
 			}
 		}
 
@@ -756,15 +751,13 @@ void AEFPerTrackCompressionCodec::GetBoneAtomScale(
 * @param	DesiredPairs	Array of requested bone information
 * @param	Seq				The animation sequence to use.
 * @param	Time			Current time to solve for.
-* @param	bLooping		True when looping the stream in intended.
 * @return					None.
 */
 void AEFPerTrackCompressionCodec::GetPoseRotations(
 	FTransformArray& Atoms,
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,
-	float Time,
-	bool bLooping )
+	float Time)
 {
 	const int32 PairCount = DesiredPairs.Num();
 	const float RelativePos = Time / Seq.SequenceLength;
@@ -779,7 +772,7 @@ void AEFPerTrackCompressionCodec::GetPoseRotations(
 		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetTypedData() + (TrackIndex * 2);
 		const int32 RotKeysOffset = *(TrackData + 1);
 
-		GetBoneAtomRotation( BoneAtom, Seq, RotKeysOffset, Time, RelativePos, bLooping );
+		GetBoneAtomRotation( BoneAtom, Seq, RotKeysOffset, Time, RelativePos );
 	}
 }
 
@@ -790,15 +783,13 @@ void AEFPerTrackCompressionCodec::GetPoseRotations(
 * @param	DesiredPairs	Array of requested bone information
 * @param	Seq				The animation sequence to use.
 * @param	Time			Current time to solve for.
-* @param	bLooping		True when looping the stream in intended.
 * @return					None.
 */
 void AEFPerTrackCompressionCodec::GetPoseTranslations(
 	FTransformArray& Atoms,
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,
-	float Time,
-	bool bLooping )
+	float Time)
 {
 	const int32 PairCount = DesiredPairs.Num();
 	const float RelativePos = Time / Seq.SequenceLength;
@@ -813,7 +804,7 @@ void AEFPerTrackCompressionCodec::GetPoseTranslations(
 		const int32* RESTRICT TrackData = Seq.CompressedTrackOffsets.GetTypedData() + (TrackIndex * 2);
 		const int32 PosKeysOffset = *(TrackData + 0);
 
-		GetBoneAtomTranslation( BoneAtom, Seq, PosKeysOffset, Time, RelativePos, bLooping );
+		GetBoneAtomTranslation( BoneAtom, Seq, PosKeysOffset, Time, RelativePos );
 	}
 }
 
@@ -824,15 +815,13 @@ void AEFPerTrackCompressionCodec::GetPoseTranslations(
 * @param	DesiredPairs	Array of requested bone information
 * @param	Seq				The animation sequence to use.
 * @param	Time			Current time to solve for.
-* @param	bLooping		True when looping the stream in intended.
 * @return					None.
 */
 void AEFPerTrackCompressionCodec::GetPoseScales(
 	FTransformArray& Atoms,
 	const BoneTrackArray& DesiredPairs,
 	const UAnimSequence& Seq,
-	float Time,
-	bool bLooping )
+	float Time)
 {
 	check( Seq.CompressedScaleOffsets.IsValid() );
 
@@ -848,7 +837,7 @@ void AEFPerTrackCompressionCodec::GetPoseScales(
 
 		const int32 ScaleKeysOffset = Seq.CompressedScaleOffsets.GetOffsetData( TrackIndex, 0 );
 
-		GetBoneAtomScale( BoneAtom, Seq, ScaleKeysOffset, Time, RelativePos, bLooping );
+		GetBoneAtomScale( BoneAtom, Seq, ScaleKeysOffset, Time, RelativePos );
 	}
 }
 

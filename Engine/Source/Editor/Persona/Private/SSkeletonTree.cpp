@@ -314,7 +314,11 @@ TSharedRef< SWidget > FDisplayedMeshBoneInfo::GenerateWidgetForDataColumn()
 	return SNew( SComboButton )
 		.ContentPadding(3)
 		.OnGetMenuContent( this, &FDisplayedMeshBoneInfo::CreateBoneTranslationRetargetingModeMenu )
-		.ToolTipText( LOCTEXT( "RetargetingToolTip", "Set bone translation retargeting mode" ) )
+		.ToolTip(IDocumentation::Get()->CreateToolTip(
+		LOCTEXT("RetargetingToolTip", "Set bone translation retargeting mode"),
+		NULL,
+		TEXT("Shared/Editors/Persona"),
+		TEXT("TranslationRetargeting")))
 		.ButtonContent()
 		[
 			SNew( STextBlock )
@@ -530,8 +534,8 @@ void FDisplayedSocketInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalB
 	if ( ParentType == ESocketParentType::Mesh )
 	{
 		FText SocketSuffix = IsSocketCustomized() ?
-			LOCTEXT( "CustomizedSuffix", " [Customized]" ) :
-			LOCTEXT( "MeshSuffix", " [Mesh]" );
+			LOCTEXT( "CustomizedSuffix", " [Mesh]" ) :
+			LOCTEXT( "MeshSuffix", " [Mesh Only]" );
 
 		Box->AddSlot()
 		.AutoWidth()
@@ -647,7 +651,7 @@ FString FDisplayedSocketInfo::GetSocketToolTip()
 	}
 	else if ( ParentType == ESocketParentType::Skeleton )
 	{
-		ToolTip = LOCTEXT( "SocketToolTipSkeleton", "This socket is on the skeleton (shared with all meshes that use the skeleton), and the current mesh has customized it" );
+		ToolTip = LOCTEXT( "SocketToolTipSkeleton", "This socket is on the skeleton (shared with all meshes that use the skeleton), and the current mesh has duplciated version of it" );
 	}
 	else
 	{
@@ -799,6 +803,20 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 	FSkeletonTreeCommands::Register();
 	BindCommands();
 
+	TSharedRef<SHeaderRow> TreeHeaderRow = SNew(SHeaderRow)
+		+ SHeaderRow::Column(ColumnID_BoneLabel)
+		.DefaultLabel(LOCTEXT("SkeletonBoneNameLabel", "Name"))
+		.FillWidth(0.75f);
+
+	if (IsInSkeletonMode())
+	{
+		TreeHeaderRow->AddColumn(
+			SHeaderRow::Column(ColumnID_RetargetingLabel)
+			.DefaultLabel(LOCTEXT("SkeletonBoneTranslationRetargetingLabel", "Translation Retargeting"))
+			.FillWidth(0.25f)
+			);
+	}
+
 	this->ChildSlot
 	[
 		SNew( SVerticalBox )
@@ -862,18 +880,11 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 			.OnSelectionChanged( this, &SSkeletonTree::OnSelectionChanged )
 			.OnItemScrolledIntoView( this, &SSkeletonTree::OnItemScrolledIntoView )
 			.OnMouseButtonDoubleClick( this, &SSkeletonTree::OnTreeDoubleClick)
+			.OnSetExpansionRecursive(this, &SSkeletonTree::SetTreeItemExpansionRecursive)
 			.ItemHeight( 24 )
 			.HeaderRow
 			(
-				SNew(SHeaderRow)
-
-				+ SHeaderRow::Column( ColumnID_BoneLabel )
-				.DefaultLabel( LOCTEXT( "SkeletonBoneNameLabel", "Name" ) )
-				.FillWidth( 0.75f )
-
-				+ SHeaderRow::Column( ColumnID_RetargetingLabel )
-				.DefaultLabel( LOCTEXT( "SkeletonBoneTranslationRetargetingLabel", "Translation Retargeting" ) )
-				.FillWidth( 0.25f )
+				TreeHeaderRow
 			)
 		]
 	];
@@ -980,11 +991,11 @@ void SSkeletonTree::BindCommands()
 		FCanExecuteAction::CreateSP( this, &SSkeletonTree::CanRenameSelected ) );
 
 	CommandList.MapAction(
-		MenuActions.CustomizeSocket,
+		MenuActions.CreateMeshSocket,
 		FExecuteAction::CreateSP( this, &SSkeletonTree::OnCustomizeSocket ) );
 
 	CommandList.MapAction(
-		MenuActions.RemoveSocketCustomization,
+		MenuActions.RemoveMeshSocket,
 		FExecuteAction::CreateSP( this, &SSkeletonTree::OnDeleteSelectedRows ) ); // Removing customization just deletes the mesh socket
 
 	CommandList.MapAction(
@@ -1358,49 +1369,33 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 
 			MenuBuilder.EndSection();
 
-			MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT( "BoneTranslationRetargetingHeader", "Bone Translation Retargeting" ) );
+			if(IsInSkeletonMode())
 			{
-				FUIAction RecursiveRetargetingSkeletonAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Skeleton));
-				FUIAction RecursiveRetargetingAnimationAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Animation));
-				FUIAction RecursiveRetargetingAnimationScaledAction = FUIAction( FExecuteAction::CreateSP( this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationScaled));
-
-				MenuBuilder.AddMenuEntry
-					( LOCTEXT( "SetTranslationRetargetingSkeletonChildrenAction", "Recursively Set Translation Retargeting Skeleton" )
-					, LOCTEXT( "BoneTranslationRetargetingSkeletonToolTip", "Use translation from Skeleton." )
-					, FSlateIcon()
-					, RecursiveRetargetingSkeletonAction 
-					);
-
-				MenuBuilder.AddMenuEntry
-					( LOCTEXT( "SetTranslationRetargetingAnimationChildrenAction", "Recursively Set Translation Retargeting Animation" )
-					, LOCTEXT( "BoneTranslationRetargetingAnimationToolTip", "Use translation from animation." )
-					, FSlateIcon()
-					, RecursiveRetargetingAnimationAction 
-					);
-
-				MenuBuilder.AddMenuEntry
-					( LOCTEXT( "SetTranslationRetargetingAnimationScaledChildrenAction", "Recursively Set Translation Retargeting AnimationScaled" )
-					, LOCTEXT( "BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions." )
-					, FSlateIcon()
-					, RecursiveRetargetingAnimationScaledAction
-					);
-			}
-			MenuBuilder.EndSection();
-
-			if (bMeshReductionSupported)
-			{
-				MenuBuilder.BeginSection("SkeletonTreeBoneReductionForLOD", LOCTEXT( "BoneReductionHeader", "LOD Bone Reduction" ) );
+				MenuBuilder.BeginSection("SkeletonTreeBoneTranslationRetargeting", LOCTEXT("BoneTranslationRetargetingHeader", "Bone Translation Retargeting"));
 				{
-					MenuBuilder.AddSubMenu(
-						LOCTEXT( "SkeletonTreeBoneReductionForLOD_RemoveBonesFromLOD", "Remove Selected Bone from..." ),
-						FText::GetEmpty(),
-						FNewMenuDelegate::CreateStatic(&SSkeletonTree::CreateMenuForBoneReduction, this, TargetSkeleton, false)
+					FUIAction RecursiveRetargetingSkeletonAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Skeleton));
+					FUIAction RecursiveRetargetingAnimationAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::Animation));
+					FUIAction RecursiveRetargetingAnimationScaledAction = FUIAction(FExecuteAction::CreateSP(this, &SSkeletonTree::SetBoneTranslationRetargetingModeRecursive, EBoneTranslationRetargetingMode::AnimationScaled));
+
+					MenuBuilder.AddMenuEntry
+						(LOCTEXT("SetTranslationRetargetingSkeletonChildrenAction", "Recursively Set Translation Retargeting Skeleton")
+						, LOCTEXT("BoneTranslationRetargetingSkeletonToolTip", "Use translation from Skeleton.")
+						, FSlateIcon()
+						, RecursiveRetargetingSkeletonAction
 						);
 
-					MenuBuilder.AddSubMenu(
-						LOCTEXT( "SkeletonTreeBoneReductionForLOD_AddBonesToLOD", "Add Remove Selected Bone to..." ),
-						FText::GetEmpty(),
-						FNewMenuDelegate::CreateStatic(&SSkeletonTree::CreateMenuForBoneReduction, this, TargetSkeleton, true)
+					MenuBuilder.AddMenuEntry
+						(LOCTEXT("SetTranslationRetargetingAnimationChildrenAction", "Recursively Set Translation Retargeting Animation")
+						, LOCTEXT("BoneTranslationRetargetingAnimationToolTip", "Use translation from animation.")
+						, FSlateIcon()
+						, RecursiveRetargetingAnimationAction
+						);
+
+					MenuBuilder.AddMenuEntry
+						(LOCTEXT("SetTranslationRetargetingAnimationScaledChildrenAction", "Recursively Set Translation Retargeting AnimationScaled")
+						, LOCTEXT("BoneTranslationRetargetingAnimationScaledToolTip", "Use translation from animation, scale length by Skeleton's proportions.")
+						, FSlateIcon()
+						, RecursiveRetargetingAnimationScaledAction
 						);
 				}
 				MenuBuilder.EndSection();
@@ -1421,7 +1416,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 
 				if ( DisplayedSocketInfo->IsSocketCustomized() && DisplayedSocketInfo->GetParentType() == ESocketParentType::Mesh )
 				{
-					MenuBuilder.AddMenuEntry( Actions.RemoveSocketCustomization );
+					MenuBuilder.AddMenuEntry( Actions.RemoveMeshSocket );
 				}
 
 				USkeletalMeshSocket* SelectedSocket = static_cast< USkeletalMeshSocket* >( DisplayedSocketInfo->GetData() );
@@ -1433,7 +1428,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 				{
 					if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Skeleton )
 					{
-						MenuBuilder.AddMenuEntry( Actions.CustomizeSocket );
+						MenuBuilder.AddMenuEntry( Actions.CreateMeshSocket );
 					}
 					else if ( DisplayedSocketInfo->GetParentType() == ESocketParentType::Mesh )
 					{
@@ -1468,6 +1463,7 @@ TSharedPtr< SWidget > SSkeletonTree::CreateContextMenu()
 	return MenuBuilder.MakeWidget();
 }
 
+/*
 void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkeletonTree * Widget, USkeleton * Skeleton, bool bAdd)
 {
 	if (bMeshReductionSupported)
@@ -1513,6 +1509,7 @@ void SSkeletonTree::CreateMenuForBoneReduction(FMenuBuilder& MenuBuilder, SSkele
 		}
 	}
 }
+*/
 
 void SSkeletonTree::SetBoneTranslationRetargetingModeRecursive(EBoneTranslationRetargetingMode::Type NewRetargetingMode)
 {
@@ -1776,7 +1773,7 @@ void SSkeletonTree::OnCustomizeSocket()
 
 			if ( Mesh )
 			{
-				const FScopedTransaction Transaction( LOCTEXT( "CustomizeSocket", "Customize Socket" ) );
+				const FScopedTransaction Transaction( LOCTEXT( "CreateMeshSocket", "Create Mesh Socket" ) );
 				Mesh->Modify();
 
 				USkeletalMeshSocket* NewSocket = ConstructObject<USkeletalMeshSocket>( USkeletalMeshSocket::StaticClass(), Mesh );
@@ -2054,6 +2051,17 @@ void SSkeletonTree::OnTreeDoubleClick( FDisplayedTreeRowInfoPtr InItem )
 	InItem->OnItemDoubleClicked();
 }
 
+void SSkeletonTree::SetTreeItemExpansionRecursive(TSharedPtr< FDisplayedTreeRowInfo > TreeItem, bool bInExpansionState) const
+{
+	SkeletonTreeView->SetItemExpansion(TreeItem, bInExpansionState);
+
+	// Recursively go through the children.
+	for (auto It = TreeItem->Children.CreateIterator(); It; ++It)
+	{
+		SetTreeItemExpansionRecursive(*It, bInExpansionState);
+	}
+}
+
 void SSkeletonTree::PostUndo()
 {
 	// Rebuild the tree view whenever we undo a change to the skeleton
@@ -2302,13 +2310,18 @@ void SSkeletonTree::RenameSocketAttachments(FName& OldSocketName, FName& NewSock
 {
 	const FScopedTransaction Transaction( LOCTEXT( "RenameSocketAttachments", "Rename Socket Attachments" ) );
 
-	TargetSkeleton->Modify();
-
+	bool bSkeletonModified = false;
 	for(int AttachedObjectIndex = 0; AttachedObjectIndex < TargetSkeleton->PreviewAttachedAssetContainer.Num(); ++AttachedObjectIndex)
 	{
 		FPreviewAttachedObjectPair& Pair = TargetSkeleton->PreviewAttachedAssetContainer[AttachedObjectIndex];
 		if(Pair.AttachedTo == OldSocketName)
 		{
+			// Only modify the skeleton if we actually intend to change something.
+			if(!bSkeletonModified)
+			{
+				TargetSkeleton->Modify();
+				bSkeletonModified = true;
+			}
 			Pair.AttachedTo = NewSocketName;
 		}
 		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.GetAttachedObject(), OldSocketName);
@@ -2321,13 +2334,19 @@ void SSkeletonTree::RenameSocketAttachments(FName& OldSocketName, FName& NewSock
 
 		if ( Mesh )
 		{
-			Mesh->Modify();
-
+			bool bMeshModified = false;
 			for(int AttachedObjectIndex = 0; AttachedObjectIndex < Mesh->PreviewAttachedAssetContainer.Num(); ++AttachedObjectIndex)
 			{
 				FPreviewAttachedObjectPair& Pair = Mesh->PreviewAttachedAssetContainer[AttachedObjectIndex];
 				if(Pair.AttachedTo == OldSocketName)
 				{
+					// Only modify the mesh if we actually intend to change something. Avoids dirtying
+					// meshes when we don't actually update any data on them. (such as adding a new socket)
+					if(!bMeshModified)
+					{
+						Mesh->Modify();
+						bMeshModified = true;
+					}
 					Pair.AttachedTo = NewSocketName;
 				}
 				PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.GetAttachedObject(), OldSocketName);
@@ -2474,6 +2493,11 @@ void SSkeletonTree::AddAttachedAssets( const FPreviewAssetAttachContainer& Attac
 			SkeletonRowList.Add( DisplayInfo );
 		}
 	}
+}
+
+bool SSkeletonTree::IsInSkeletonMode() const
+{
+	return PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::SkeletonDisplayMode);
 }
 
 

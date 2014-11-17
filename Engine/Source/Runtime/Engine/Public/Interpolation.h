@@ -15,6 +15,7 @@ struct FInterpEdInputData
 		  bCtrlDown( false ),
 		  bAltDown( false ),
 		  bShiftDown( false ),
+		  bCmdDown( false ),
 		  MouseStart( 0, 0 ),
 		  MouseCurrent( 0, 0 ),
 		  PixelsPerSec( 0.0f )
@@ -28,6 +29,7 @@ struct FInterpEdInputData
 		  bCtrlDown( false ),
 		  bAltDown( false ),
 		  bShiftDown( false ),
+		  bCmdDown( false ),
 		  MouseStart( 0, 0 ),
 		  MouseCurrent( 0, 0 ),
 		  PixelsPerSec( 0.0f )
@@ -42,6 +44,7 @@ struct FInterpEdInputData
 	bool bCtrlDown;
 	bool bAltDown;
 	bool bShiftDown;
+	bool bCmdDown;
 	FIntPoint MouseStart;
 	FIntPoint MouseCurrent;
 	float PixelsPerSec;

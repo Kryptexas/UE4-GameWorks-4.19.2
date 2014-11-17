@@ -38,6 +38,7 @@ void SAnimationOutlinerTreeNode::Construct( const FArguments& InArgs, TSharedRef
 		.VAlign( VAlign_Center )
 		[
 			SNew(SButton)
+			.ContentPadding(0)
 			.Visibility( this, &SAnimationOutlinerTreeNode::GetExpanderVisibility )
 			.OnClicked( this, &SAnimationOutlinerTreeNode::OnExpanderClicked )
 			.ClickMethod( EButtonClickMethod::MouseDown )

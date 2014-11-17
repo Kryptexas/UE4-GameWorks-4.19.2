@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "CorePrivate.h"
+#include "Core.h"
 #include "HTML5Cursor.h"
 #include "HTML5InputInterface.h"
 #include <SDL/SDL_events.h>
@@ -93,7 +93,16 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event)
 		{
 			Cursor->SetPosition(Event.motion.x, Event.motion.y);
 			MessageHandler->OnRawMouseMove(Event.motion.xrel, -Event.motion.yrel);
+			MessageHandler->OnMouseMove(); 
+		} 
+#if PLATFORM_HTML5_BROWSER 
+		else if ( Event.type == SDL_MOUSEWHEEL )
+		{
+			SDL_MouseWheelEvent* w = (SDL_MouseWheelEvent*)&Event;
+			const float SpinFactor = 1 / 120.0f;
+			MessageHandler->OnMouseWheel(w->y * SpinFactor);
 		}
+#endif 
 #if PLATFORM_HTML5_WIN32 && SDL_MAJOR_VERSION < 2
 		else if (Event.type == SDL_ACTIVEEVENT)
 		{

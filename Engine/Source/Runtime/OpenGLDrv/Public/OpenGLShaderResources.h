@@ -6,89 +6,18 @@
 
 #pragma once
 
-/**
- * OpenGL shader stages.
- */
-enum
-{
-	OGL_SHADER_STAGE_VERTEX = 0,
-	OGL_SHADER_STAGE_PIXEL,
-	OGL_SHADER_STAGE_GEOMETRY,
-	OGL_SHADER_STAGE_HULL,
-	OGL_SHADER_STAGE_DOMAIN,
-	OGL_NUM_NON_COMPUTE_SHADER_STAGES,
-	OGL_SHADER_STAGE_COMPUTE = OGL_NUM_NON_COMPUTE_SHADER_STAGES,
-	OGL_NUM_SHADER_STAGES
-};
+#include "CrossCompilerCommon.h"
 
 /**
  * Shader related constants.
  */
 enum
 {
-	OGL_PACKED_TYPENAME_HIGHP	= 'h',	// Make sure these enums match hlslcc
-	OGL_PACKED_TYPENAME_MEDIUMP	= 'm',
-	OGL_PACKED_TYPENAME_LOWP	= 'l',
-	OGL_PACKED_TYPENAME_INT		= 'i',
-	OGL_PACKED_TYPENAME_UINT	= 'u',
-	OGL_PACKED_TYPENAME_SAMPLER	= 's',
-	OGL_PACKED_TYPENAME_IMAGE	= 'g',
-
-	OGL_PACKED_TYPEINDEX_HIGHP		= 0,
-	OGL_PACKED_TYPEINDEX_MEDIUMP	= 1,
-	OGL_PACKED_TYPEINDEX_LOWP		= 2,
-	OGL_PACKED_TYPEINDEX_INT		= 3,
-	OGL_PACKED_TYPEINDEX_UINT		= 4,
-	OGL_PACKED_TYPEINDEX_MAX		= 5,
-
 	OGL_MAX_UNIFORM_BUFFER_BINDINGS = 12,	// @todo-mobile: Remove me
 	OGL_FIRST_UNIFORM_BUFFER = 0,			// @todo-mobile: Remove me
 	OGL_MAX_COMPUTE_STAGE_UAV_UNITS = 8,	// @todo-mobile: Remove me
 	OGL_UAV_NOT_SUPPORTED_FOR_GRAPHICS_UNIT = -1, // for now, only CS supports UAVs/ images
 };
-
-static FORCEINLINE uint8 GLPackedTypeIndexToTypeName(uint8 ArrayType)
-{
-	switch (ArrayType)
-	{
-		case OGL_PACKED_TYPEINDEX_HIGHP:	return OGL_PACKED_TYPENAME_HIGHP;
-		case OGL_PACKED_TYPEINDEX_MEDIUMP:	return OGL_PACKED_TYPENAME_MEDIUMP;
-		case OGL_PACKED_TYPEINDEX_LOWP:		return OGL_PACKED_TYPENAME_LOWP;
-		case OGL_PACKED_TYPEINDEX_INT:		return OGL_PACKED_TYPENAME_INT;
-		case OGL_PACKED_TYPEINDEX_UINT:		return OGL_PACKED_TYPENAME_UINT;
-	}
-	check(0);
-	return 0;
-}
-
-static FORCEINLINE uint8 GLPackedTypeNameToTypeIndex(uint8 ArrayName)
-{
-	switch (ArrayName)
-	{
-		case OGL_PACKED_TYPENAME_HIGHP:		return OGL_PACKED_TYPEINDEX_HIGHP;
-		case OGL_PACKED_TYPENAME_MEDIUMP:	return OGL_PACKED_TYPEINDEX_MEDIUMP;
-		case OGL_PACKED_TYPENAME_LOWP:		return OGL_PACKED_TYPEINDEX_LOWP;
-		case OGL_PACKED_TYPENAME_INT:		return OGL_PACKED_TYPEINDEX_INT;
-		case OGL_PACKED_TYPENAME_UINT:		return OGL_PACKED_TYPEINDEX_UINT;
-	}
-	check(0);
-	return 0;
-}
-
-struct FOpenGLPackedArrayInfo
-{
-	uint16	Size;		// Bytes
-	uint8	TypeName;	// OGL_PACKED_TYPENAME
-	uint8	TypeIndex;	// OGL_PACKED_TYPE
-};
-
-inline FArchive& operator<<(FArchive& Ar, FOpenGLPackedArrayInfo& Info)
-{
-	Ar << Info.Size;
-	Ar << Info.TypeName;
-	Ar << Info.TypeIndex;
-	return Ar;
-}
 
 struct FOpenGLShaderResourceTable : public FBaseShaderResourceTable
 {
@@ -124,8 +53,8 @@ inline FArchive& operator<<(FArchive& Ar, FOpenGLShaderResourceTable& SRT)
  */
 struct FOpenGLShaderBindings
 {
-	TArray<TArray<FOpenGLPackedArrayInfo>>	PackedUniformBuffers;
-	TArray<FOpenGLPackedArrayInfo>			PackedGlobalArrays;
+	TArray<TArray<CrossCompiler::FPackedArrayInfo>>	PackedUniformBuffers;
+	TArray<CrossCompiler::FPackedArrayInfo>			PackedGlobalArrays;
 	FOpenGLShaderResourceTable				ShaderResourceTable;
 
 	uint16	InOutMask;
@@ -166,8 +95,8 @@ struct FOpenGLShaderBindings
 
 		for (int32 Item = 0; Item < A.PackedUniformBuffers.Num(); Item++)
 		{
-			const TArray<FOpenGLPackedArrayInfo> &ArrayA = A.PackedUniformBuffers[Item];
-			const TArray<FOpenGLPackedArrayInfo> &ArrayB = B.PackedUniformBuffers[Item];
+			const TArray<CrossCompiler::FPackedArrayInfo> &ArrayA = A.PackedUniformBuffers[Item];
+			const TArray<CrossCompiler::FPackedArrayInfo> &ArrayB = B.PackedUniformBuffers[Item];
 
 			bEqual &= FMemory::Memcmp(ArrayA.GetTypedData(),ArrayB.GetTypedData(),ArrayA.GetTypeSize()*ArrayA.Num()) == 0;
 		}
@@ -189,7 +118,7 @@ struct FOpenGLShaderBindings
 
 		for (int32 Item = 0; Item < Binding.PackedUniformBuffers.Num(); Item++)
 		{
-			const TArray<FOpenGLPackedArrayInfo> &Array = Binding.PackedUniformBuffers[Item];
+			const TArray<CrossCompiler::FPackedArrayInfo> &Array = Binding.PackedUniformBuffers[Item];
 			Hash ^= FCrc::MemCrc_DEPRECATED( Array.GetTypedData(), Array.GetTypeSize()* Array.Num());
 		}
 		return Hash;
@@ -229,7 +158,7 @@ inline FArchive& operator<<(FArchive& Ar, FOpenGLUniformBufferCopyInfo& Info)
 	Ar << Info.DestUBTypeName;
 	if (Ar.IsLoading())
 	{
-		Info.DestUBTypeIndex = GLPackedTypeNameToTypeIndex(Info.DestUBTypeName);
+		Info.DestUBTypeIndex = CrossCompiler::PackedTypeNameToTypeIndex(Info.DestUBTypeName);
 	}
 	Ar << Info.DestOffsetInFloats;
 	Ar << Info.SizeInFloats;
@@ -382,7 +311,7 @@ public:
 
 private:
 	/** CPU memory block for storing uniform values. */
-	uint8* PackedGlobalUniforms[OGL_PACKED_TYPEINDEX_MAX];
+	uint8* PackedGlobalUniforms[CrossCompiler::PACKED_TYPEINDEX_MAX];
 	
 	struct FRange
 	{
@@ -390,10 +319,10 @@ private:
 		uint32	HighVector;
 	};
 	/** Dirty ranges for each uniform array. */
-	FRange	PackedGlobalUniformDirty[OGL_PACKED_TYPEINDEX_MAX];
+	FRange	PackedGlobalUniformDirty[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
 	/** Scratch CPU memory block for uploading packed uniforms. */
-	uint8* PackedUniformsScratch[OGL_PACKED_TYPEINDEX_MAX];
+	uint8* PackedUniformsScratch[CrossCompiler::PACKED_TYPEINDEX_MAX];
 
 	int32 GlobalUniformArraySize;
 };

@@ -13,7 +13,7 @@
 /**
  * Implements the Level Editor's loading and saving settings.
  */
-UCLASS(config=EditorUserSettings, autoexpandcategories=(AutoSave, AutoReimport))
+UCLASS(config=EditorUserSettings, autoexpandcategories=(AutoSave, AutoReimport, Blueprints))
 class UNREALED_API UEditorLoadingSavingSettings
 	: public UObject
 {
@@ -42,6 +42,12 @@ public:
 	/**Automatically reimports CSV files when a change to source content is detected */
 	UPROPERTY(EditAnywhere, config, Category=AutoReimport, meta=(DisplayName="Auto Reimport CSVData"))
 	bool bAutoReimportCSV;
+
+public:
+
+	/** Whether to mark blueprints dirty if they are automatically migrated during loads */
+	UPROPERTY(EditAnywhere, config, Category=Blueprints, meta=(DisplayName="Dirty Migrated Blueprints"))
+	bool bDirtyMigratedBlueprints;
 
 public:
 

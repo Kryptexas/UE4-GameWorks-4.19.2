@@ -21,7 +21,9 @@ UTextureRenderTarget2D::UTextureRenderTarget2D(const class FPostConstructInitial
 
 FTextureResource* UTextureRenderTarget2D::CreateResource()
 {
-	if (GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	UWorld* World = GetWorld();
+	ERHIFeatureLevel::Type FeatureLevel = World != nullptr ? World->FeatureLevel : GMaxRHIFeatureLevel;
+	if (FeatureLevel <= ERHIFeatureLevel::ES2)
 	{
 		EPixelFormat Format = GetFormat();
 		if ((!GSupportsRenderTargetFormat_PF_FloatRGBA && (Format == PF_FloatRGBA || Format == PF_FloatRGB))
@@ -86,7 +88,7 @@ void UTextureRenderTarget2D::UpdateResourceImmediate()
 		UpdateResourceImmediate,
 		FRenderResource*,Resource,Resource,
 		{
-			static_cast< FTextureRenderTarget2DResource* >( Resource )->UpdateResource();
+			static_cast<FTextureRenderTarget2DResource*>(Resource)->UpdateDeferredResource(RHICmdList);
 		}
 	);
 }
@@ -363,10 +365,9 @@ void FTextureRenderTarget2DResource::ReleaseDynamicRHI()
 /**
  * Clear contents of the render target. 
  */
-void FTextureRenderTarget2DResource::UpdateResource()
+void FTextureRenderTarget2DResource::UpdateDeferredResource(FRHICommandListImmediate& RHICmdList)
 {
 	RemoveFromDeferredUpdateList();
-	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 
  	// clear the target surface to green
 	SetRenderTarget(RHICmdList, RenderTargetTextureRHI, FTextureRHIRef());

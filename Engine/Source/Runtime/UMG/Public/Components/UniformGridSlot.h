@@ -26,11 +26,11 @@ public:
 	TEnumAsByte<EVerticalAlignment> VerticalAlignment;
 	
 	/** The row index of the cell this slot is in */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, meta=( UIMin = "0" ), Category=Layout)
 	int32 Row;
 	
 	/** The column index of the cell this slot is in */
-	UPROPERTY(EditDefaultsOnly, Category=Layout)
+	UPROPERTY(EditDefaultsOnly, meta=( UIMin = "0" ), Category=Layout)
 	int32 Column;
 
 	/** Sets the row index of the slot, this determines what cell the slot is in the panel */
@@ -41,12 +41,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Layout)
 	void SetColumn(int32 InColumn);
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category=Layout)
+	void SetHorizontalAlignment(EHorizontalAlignment InHorizontalAlignment);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category=Layout)
+	void SetVerticalAlignment(EVerticalAlignment InVerticalAlignment);
+
 	// UPanelSlot interface
 	virtual void SyncronizeProperties() override;
 	// End of UPanelSlot interface
 
 	/** Builds the underlying FSlot for the Slate layout panel. */
 	void BuildSlot(TSharedRef<SUniformGridPanel> GridPanel);
+
+	virtual void ReleaseNativeWidget() override;
 
 private:
 	//TODO UMG Slots should hold weak or shared refs to slots.

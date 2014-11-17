@@ -5,8 +5,8 @@
 #include "AnimStateMachineTypes.h"
 #include "AnimNode_StateMachine.generated.h"
 
-struct FAnimNode_TransitionPoseEvaluator;
 struct FAnimNode_StateMachine;
+struct FAnimNode_TransitionPoseEvaluator;
 
 // Information about an active transition on the transition stack
 USTRUCT()

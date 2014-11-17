@@ -96,7 +96,7 @@ FString UK2Node_VariableGet::GetTooltip() const
 	if (VarName != NAME_None)
 	{
 		FString BPMetaData;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprint(), VarName, TEXT("tooltip"), BPMetaData);
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprint(), VarName, VariableReference.GetMemberScope(this), TEXT("tooltip"), BPMetaData);
 
 		if( !BPMetaData.IsEmpty() )
 		{

@@ -8,6 +8,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/PawnMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
 #include "ParticleDefinitions.h"
@@ -110,6 +111,11 @@ void APawn::PostRegisterAllComponents()
 	Super::PostRegisterAllComponents();
 
 	UpdateNavAgent();
+}
+
+UPawnMovementComponent* APawn::GetMovementComponent() const
+{
+	return FindComponentByClass<UPawnMovementComponent>();
 }
 
 void APawn::UpdateNavAgent()
@@ -315,6 +321,8 @@ void APawn::TurnOff()
 
 void APawn::BecomeViewTarget(APlayerController* PC)
 {
+	Super::BecomeViewTarget(PC);
+
 	if (GetNetMode() != NM_Client)
 	{
 		PC->ForceSingleNetUpdateFor(this);
@@ -331,7 +339,7 @@ void APawn::PawnClientRestart()
 		// Handle camera possession
 		if (PC->bAutoManageActiveCameraTarget)
 		{
-			PC->SetViewTarget(this);
+			PC->AutoManageActiveCameraTarget(this);
 		}
 
 		// Set up player input component, if there isn't one already.
@@ -425,7 +433,7 @@ void APawn::OnRep_Controller()
 		APlayerController* const PC = Cast<APlayerController>(Controller);
 		if ( (PC != NULL) && PC->bAutoManageActiveCameraTarget && (PC->PlayerCameraManager->ViewTarget.Target == Controller) )
 		{
-			PC->SetViewTarget(this);
+			PC->AutoManageActiveCameraTarget(this);
 		}
 	}
 }
@@ -527,14 +535,69 @@ void APawn::DestroyPlayerInputComponent()
 }
 
 
-void APawn::AddMovementInput(FVector WorldDirection, float ScaleValue)
+bool APawn::IsMoveInputIgnored() const
+{
+	const APlayerController* PCOwner = Cast<const APlayerController>(Controller);
+	if (PCOwner && PCOwner->IsMoveInputIgnored())
+	{
+		return true;
+	}
+
+	// No player controller or not ignoring input. We allow non-PCs to receive input, so AI can use the movement input system.
+	return false;
+}
+
+
+void APawn::AddMovementInput(FVector WorldDirection, float ScaleValue, bool bForce /*=false*/)
 {
 	UPawnMovementComponent* MovementComponent = GetMovementComponent();
 	if (MovementComponent)
 	{
-		MovementComponent->AddInputVector(WorldDirection * ScaleValue);
+		MovementComponent->AddInputVector(WorldDirection * ScaleValue, bForce);
+	}
+	else
+	{
+		Internal_AddMovementInput(WorldDirection * ScaleValue, bForce);
 	}
 }
+
+
+FVector APawn::GetMovementInputVector() const
+{
+	// There's really no point redirecting to the MovementComponent since GetInputVector is not virtual there, and it just comes back to us.
+	return ControlInputVector;
+}
+
+
+FVector APawn::ConsumeMovementInputVector()
+{
+	UPawnMovementComponent* MovementComponent = GetMovementComponent();
+	if (MovementComponent)
+	{
+		return MovementComponent->ConsumeInputVector();
+	}
+	else
+	{
+		return Internal_ConsumeMovementInputVector();
+	}
+}
+
+
+void APawn::Internal_AddMovementInput(FVector WorldAccel, bool bForce /*=false*/)
+{
+	if (bForce || !IsMoveInputIgnored())
+	{
+		ControlInputVector += WorldAccel;
+	}
+}
+
+FVector APawn::Internal_ConsumeMovementInputVector()
+{
+	const FVector OldValue = ControlInputVector;
+	ControlInputVector = FVector::ZeroVector;
+	return OldValue;
+}
+
 
 void APawn::AddControllerPitchInput(float Val)
 {
@@ -832,7 +895,7 @@ void APawn::DisableInput(class APlayerController* PlayerController)
 	}
 }
 
-void APawn::GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const 
+void APawn::GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const 
 {
 	GoalOffset = FVector::ZeroVector;
 	GetSimpleCollisionCylinder(GoalRadius, GoalHalfHeight);
@@ -879,10 +942,10 @@ void APawn::PostNetReceiveVelocity(const FVector& NewVelocity)
 	}
 }
 
-void APawn::PostNetReceiveLocation()
+void APawn::PostNetReceiveLocationAndRotation()
 {
 	// always consider Location as changed if we were spawned this tick as in that case our replicated Location was set as part of spawning, before PreNetReceive()
-	if( (ReplicatedMovement.Location == GetActorLocation()) && (CreationTime != GetWorld()->TimeSeconds) )
+	if( (ReplicatedMovement.Location == GetActorLocation() && ReplicatedMovement.Rotation == GetActorRotation()) && (CreationTime != GetWorld()->TimeSeconds) )
 	{
 		return;
 	}
@@ -892,8 +955,9 @@ void APawn::PostNetReceiveLocation()
 		// Correction to make sure pawn doesn't penetrate floor after replication rounding
 		ReplicatedMovement.Location.Z += 0.01f;
 
-		FVector OldLocation = GetActorLocation();
-		TeleportTo( ReplicatedMovement.Location, GetActorRotation(), false, true );
+		const FVector OldLocation = GetActorLocation();
+		TeleportTo( ReplicatedMovement.Location, ReplicatedMovement.Rotation, false, true );
+		// SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation); <-- preferred, but awaiting answer to question about UpdateNavOctree() missing in SceneComponent::MoveComponent
 
 		INetworkPredictionInterface* PredictionInterface = InterfaceCast<INetworkPredictionInterface>(GetMovementComponent());
 		if (PredictionInterface)
@@ -986,4 +1050,9 @@ void APawn::PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseM
 		NoiseMaker = this;
 	}
 	NoiseMaker->MakeNoise(Loudness, this, bUseNoiseMakerLocation ? NoiseMaker->GetActorLocation() : NoiseLocation);
+}
+
+const struct FNavAgentProperties* APawn::GetNavAgentProperties() const
+{
+	return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : NULL;
 }
