@@ -22,7 +22,7 @@
     <WarningLevel>4</WarningLevel>
     <RegisterForComInterop>false</RegisterForComInterop>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Development|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>True</Optimize>
     <OutputPath>..\..\..\..\Binaries\DotNET\</OutputPath>
