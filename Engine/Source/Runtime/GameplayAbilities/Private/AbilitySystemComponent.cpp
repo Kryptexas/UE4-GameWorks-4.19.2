@@ -1065,9 +1065,11 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				const FModifierSpec& ModSpec = ActiveGE.Spec.Modifiers[ModIdx];
 				const FGameplayModifierInfo& ModInfo = ActiveGE.Spec.Def->Modifiers[ModIdx];
 
+				// Do a quick Qualifies() check to see if this mod is active.
 				FAggregatorMod TempMod;
 				TempMod.SourceTagReqs = &ModInfo.SourceTags;
 				TempMod.TargetTagReqs = &ModInfo.TargetTags;
+				TempMod.IsPredicted = false;
 
 				FAggregatorEvaluateParameters EmptyParams;
 				bool IsActivelyModifyingAttribute = TempMod.Qualifies(EmptyParams);

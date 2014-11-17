@@ -26,14 +26,6 @@ void UAbilityTask_WaitInputRelease::OnReleaseCallback(int32 InputID)
 		return;
 	}
 
-	FScopedPredictionWindow	ScopedPrediction(MyAbility);
-
-	if (MyAbility->GetCurrentActivationInfo().ActivationMode != EGameplayAbilityActivationMode::Authority)
-	{
-		// Tell the server we released.
-		AbilitySystemComponent->ServerInputRelease(MyAbility->GetCurrentAbilitySpecHandle(), ScopedPrediction.ScopedPredictionKey);
-	}
-
 	// We are done. Kill us so we don't keep getting broadcast messages
 	OnRelease.Broadcast(ElapsedTime);
 	EndTask();

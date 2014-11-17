@@ -26,14 +26,6 @@ void UAbilityTask_WaitInputPress::OnPressCallback(int32 InputID)
 		return;
 	}
 
-	FScopedPredictionWindow	ScopedPrediction(MyAbility);
-
-	if (MyAbility->GetCurrentActivationInfo().ActivationMode != EGameplayAbilityActivationMode::Authority)
-	{
-		// Tell the server we pressed.
-		AbilitySystemComponent->ServerInputPress(MyAbility->GetCurrentAbilitySpecHandle(), ScopedPrediction.ScopedPredictionKey);
-	}
-
 	// We are done. Kill us so we don't keep getting broadcast messages
 	OnPress.Broadcast(ElapsedTime);
 	EndTask();
