@@ -364,3 +364,15 @@ void FAnimLinkableElement::ConditionalRelink()
 		}
 	}
 }
+
+void FAnimLinkableElement::Link(UAnimSequenceBase* AnimObject, float AbsTime, int32 InSlotIndex /*= 0*/)
+{
+	if(UAnimMontage* Montage = Cast<UAnimMontage>(AnimObject))
+	{
+		LinkMontage(Montage, AbsTime, InSlotIndex);
+	}
+	else
+	{
+		LinkSequence(AnimObject, AbsTime);
+	}
+}
