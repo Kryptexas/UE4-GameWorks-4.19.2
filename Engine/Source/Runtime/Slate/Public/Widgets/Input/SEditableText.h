@@ -34,6 +34,7 @@ public:
 		, _MinDesiredWidth(0.0f)
 		, _SelectAllTextOnCommit( false )
 		, _VirtualKeyboardType(EKeyboardType::Keyboard_Default)
+		, _MaxCharacterLength(-1)
 		{}
 
 		/** Sets the text content for this editable text widget */
@@ -106,6 +107,9 @@ public:
 
 		/** The type of virtual keyboard to use on mobile devices */
 		SLATE_ATTRIBUTE( EKeyboardType, VirtualKeyboardType)
+
+		/** The maximum number of characters that can be entered by the user into this text box */
+		SLATE_ATTRIBUTE( int32, MaxCharacterLength)
 
 	SLATE_END_ARGS()
 
@@ -522,6 +526,9 @@ private:
 
 	/** Whether to select all text when pressing enter to commit changes */
 	TAttribute< bool > SelectAllTextOnCommit;
+
+	/** Maximum number of characters that can be entered into this text box */
+	TAttribute< int32 > MaxCharacterLength;
 
 	/** Called when a character is typed and we want to know if the text field supports typing this character. */
 	FOnIsTypedCharValid OnIsTypedCharValid;
