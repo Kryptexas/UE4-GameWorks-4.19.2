@@ -585,6 +585,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 
 void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!DebugComponent)
 	{
 		return;
@@ -625,6 +626,7 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 			}
 		}
 	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void AGameplayDebuggingHUDComponent::DrawNavMeshSnapshot(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)

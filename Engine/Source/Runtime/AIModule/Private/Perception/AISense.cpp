@@ -92,7 +92,7 @@ void UAISenseConfig::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& Perc
 {
 
 }
-
+#endif // !UE_BUILD_SHIPPING
 //----------------------------------------------------------------------//
 // 
 //----------------------------------------------------------------------//
@@ -100,7 +100,7 @@ TSubclassOf<UAISense> UAISenseConfig_Sight::GetSenseImplementation() const
 { 
 	return *Implementation; 
 }
-
+#if !UE_BUILD_SHIPPING
 void UAISenseConfig_Sight::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
 {
 	/*PeripheralVisionAngleDegrees*/
@@ -119,7 +119,7 @@ void UAISenseConfig_Sight::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent
 		DrawDebugLine(World, BodyLocation, BodyLocation + (BodyFacing.RotateAngleAxis(-PeripheralVisionAngleDegrees, FVector::UpVector) * SightPieLength), UAISense_Sight::GetDebugSightRangeColor());
 	}
 }
-
+#endif // !UE_BUILD_SHIPPING
 //----------------------------------------------------------------------//
 // UAISenseConfig_Hearing
 //----------------------------------------------------------------------//
@@ -127,7 +127,7 @@ TSubclassOf<UAISense> UAISenseConfig_Hearing::GetSenseImplementation() const
 { 
 	return *Implementation; 
 }
-
+#if !UE_BUILD_SHIPPING
 void UAISenseConfig_Hearing::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
 {	
 	const AActor* BodyActor = PerceptionComponent.GetBodyActor();

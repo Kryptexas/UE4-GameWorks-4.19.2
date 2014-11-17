@@ -218,7 +218,9 @@ public:
 	bool HasAnyActiveStimulus(const AActor& Source) const;
 	bool HasActiveStimulus(const AActor& Source, FAISenseID Sense) const;
 
+#if !UE_BUILD_SHIPPING
 	void DrawDebugInfo(UCanvas* Canvas);
+#endif // !UE_BUILD_SHIPPING
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const;

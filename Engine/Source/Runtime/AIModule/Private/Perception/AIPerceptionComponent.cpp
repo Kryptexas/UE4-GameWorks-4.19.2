@@ -540,9 +540,9 @@ bool UAIPerceptionComponent::GetActorsPerception(AActor* Actor, FActorPerception
 //----------------------------------------------------------------------//
 // debug
 //----------------------------------------------------------------------//
+#if !UE_BUILD_SHIPPING
 void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 {
-#if !UE_BUILD_SHIPPING
 	if (Canvas == nullptr)
 	{
 		return;
@@ -595,8 +595,8 @@ void UAIPerceptionComponent::DrawDebugInfo(UCanvas* Canvas)
 			Sense->DrawDebugInfo(*Canvas, *this);
 		}
 	}
-#endif // #if !UE_BUILD_SHIPPING
 }
+#endif // !UE_BUILD_SHIPPING
 
 #if ENABLE_VISUAL_LOG
 void UAIPerceptionComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
