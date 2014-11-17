@@ -105,11 +105,6 @@ namespace LevelEditorActionsHelpers
 	}
 }
 
-namespace EditorUtilities
-{
-	extern UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor );
-}
-
 bool FLevelEditorActionCallbacks::DefaultCanExecuteAction()
 {
 	return FSlateApplication::Get().IsNormalExecution();
