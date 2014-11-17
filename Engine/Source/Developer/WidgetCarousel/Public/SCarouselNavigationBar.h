@@ -12,11 +12,15 @@ class WIDGETCAROUSEL_API SCarouselNavigationBar : public SCompoundWidget
 
 public:
 	SLATE_BEGIN_ARGS(SCarouselNavigationBar)
-		: _OnSelectedIndexChanged()
+		: _Style(&FWidgetCarouselModuleStyle::Get().GetWidgetStyle<FWidgetCarouselNavigationBarStyle>("CarouselNavigationBar")) 
+		, _OnSelectedIndexChanged()
 		, _ItemCount(0)
 		, _CurrentItemIndex(0)
 		, _CurrentSlideAmount(0.0f)
+		
 	{}
+
+		SLATE_STYLE_ARGUMENT(FWidgetCarouselNavigationBarStyle, Style)
 
 		/** Called when the selected index changes. */
 		SLATE_EVENT(FOnSelectedIndexChanged, OnSelectedIndexChanged)
@@ -46,6 +50,7 @@ private:
 	FVector2D GetPlaceHolderPosition() const;
 
 private:
+	const FWidgetCarouselNavigationBarStyle* Style;
 	TSharedPtr<SHorizontalBox> WidgetScrollBox;
 	FOnSelectedIndexChanged OnSelectedIndexChanged;
 	int32 ItemCount;

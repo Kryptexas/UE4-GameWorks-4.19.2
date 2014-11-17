@@ -17,6 +17,7 @@ void SCarouselNavigationBar::SetItemCount(int32 InItemCount)
 
 void SCarouselNavigationBar::Construct(const FArguments& InArgs)
 {
+	Style = InArgs._Style;
 	OnSelectedIndexChanged = InArgs._OnSelectedIndexChanged;
 	ItemCount = InArgs._ItemCount;
 	CurrentItemIndex = InArgs._CurrentItemIndex;
@@ -38,7 +39,7 @@ void SCarouselNavigationBar::Construct(const FArguments& InArgs)
 				.HAlign(HAlign_Left)
 				[
 					SNew(SImage)
-					.Image(FWidgetCarouselStyle::Get().GetBrush(TEXT("WidgetCarousel.NavigationScrollBarHighlight")))
+					.Image(&Style->HighlightBrush)
 				]
 			]
 		]
@@ -60,14 +61,18 @@ void SCarouselNavigationBar::BuildScrollBar()
 	{
 		for (int32 Index = 0; Index < ItemCount; Index++)
 		{
-			FString BrushName = TEXT("WidgetCarousel.NavigationScrollBarCenterButton");
+			const FButtonStyle* ButtonStyle;
 			if (Index == 0)
 			{
-				BrushName = TEXT("WidgetCarousel.NavigationScrollBarLeftButton");
+				ButtonStyle = &Style->LeftButtonStyle;
 			}
 			else if (Index == ItemCount - 1)
 			{
-				BrushName = TEXT("WidgetCarousel.NavigationScrollBarRightButton");
+				ButtonStyle = &Style->RightButtonStyle;
+			}
+			else
+			{
+				ButtonStyle = &Style->CenterButtonStyle;
 			}
 
 			WidgetScrollBox->AddSlot()
@@ -76,7 +81,7 @@ void SCarouselNavigationBar::BuildScrollBar()
 			.VAlign(VAlign_Center)
 			[
 				SNew(SButton)
-				.ButtonStyle(FWidgetCarouselStyle::Get(), *BrushName)
+				.ButtonStyle(ButtonStyle)
 				.OnClicked(this, &SCarouselNavigationBar::HandleItemButtonClicked, Index)
 				.Cursor(EMouseCursor::Hand)
 			];

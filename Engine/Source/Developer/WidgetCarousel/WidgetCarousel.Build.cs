@@ -12,7 +12,7 @@ public class WidgetCarousel : ModuleRules
 				"Slate",
 				"SlateCore",
 				"InputCore",
-				"EditorStyle",
+				"CoreUObject"
 			}
 		);
 

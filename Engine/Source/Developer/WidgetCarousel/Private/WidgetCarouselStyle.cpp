@@ -2,11 +2,60 @@
 
 #include "WidgetCarouselPrivatePCH.h"
 
-#include "EditorStyle.h"
+#define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
+#define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
 
-TSharedPtr< FSlateStyleSet > FWidgetCarouselStyle::WidgetCarouselStyleInstance = NULL;
+/**
+	Navigation button style
+*/
+FWidgetCarouselNavigationButtonStyle::FWidgetCarouselNavigationButtonStyle()
+{
+}
 
-void FWidgetCarouselStyle::Initialize()
+const FName FWidgetCarouselNavigationButtonStyle::TypeName(TEXT("FWidgetCarouselNavigationButtonStyle"));
+
+const FWidgetCarouselNavigationButtonStyle& FWidgetCarouselNavigationButtonStyle::GetDefault()
+{
+	static FWidgetCarouselNavigationButtonStyle Default;
+	return Default;
+}
+
+void FWidgetCarouselNavigationButtonStyle::GetResources(TArray< const FSlateBrush* > & OutBrushes) const
+{
+	OutBrushes.Add(&NavigationButtonLeftImage);
+	OutBrushes.Add(&NavigationButtonRightImage);
+	InnerButtonStyle.GetResources(OutBrushes);
+}
+
+/**
+Navigation bar style
+*/
+FWidgetCarouselNavigationBarStyle::FWidgetCarouselNavigationBarStyle()
+{
+}
+
+const FName FWidgetCarouselNavigationBarStyle::TypeName(TEXT("FWidgetCarouselNavigationBarStyle"));
+
+const FWidgetCarouselNavigationBarStyle& FWidgetCarouselNavigationBarStyle::GetDefault()
+{
+	static FWidgetCarouselNavigationBarStyle Default;
+	return Default;
+}
+
+void FWidgetCarouselNavigationBarStyle::GetResources(TArray< const FSlateBrush* > & OutBrushes) const
+{
+	OutBrushes.Add(&HighlightBrush);
+	LeftButtonStyle.GetResources(OutBrushes);
+	CenterButtonStyle.GetResources(OutBrushes);
+	RightButtonStyle.GetResources(OutBrushes);
+}
+
+/**
+	Module style set
+*/
+TSharedPtr< FSlateStyleSet > FWidgetCarouselModuleStyle::WidgetCarouselStyleInstance = NULL;
+
+void FWidgetCarouselModuleStyle::Initialize()
 {
 	if ( !WidgetCarouselStyleInstance.IsValid() )
 	{
@@ -15,30 +64,20 @@ void FWidgetCarouselStyle::Initialize()
 	}
 }
 
-void FWidgetCarouselStyle::Shutdown()
+void FWidgetCarouselModuleStyle::Shutdown()
 {
 	FSlateStyleRegistry::UnRegisterSlateStyle( *WidgetCarouselStyleInstance );
 	ensure( WidgetCarouselStyleInstance.IsUnique() );
 	WidgetCarouselStyleInstance.Reset();
 }
 
-FName FWidgetCarouselStyle::GetStyleSetName()
+FName FWidgetCarouselModuleStyle::GetStyleSetName()
 {
-	static FName StyleSetName(TEXT("WidgetCarouselStyle"));
+	static FName StyleSetName(TEXT("WidgetCarousel"));
 	return StyleSetName;
 }
 
-#define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( Style->RootToContentDir( RelativePath, TEXT(".png") ), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".ttf") ), __VA_ARGS__ )
-#define OTF_FONT( RelativePath, ... ) FSlateFontInfo( Style->RootToContentDir( RelativePath, TEXT(".otf") ), __VA_ARGS__ )
-
-const FVector2D Icon16x16(16.0f, 16.0f);
-const FVector2D Icon20x20(20.0f, 20.0f);
-const FVector2D Icon40x40(40.0f, 40.0f);
-
-TSharedRef< FSlateStyleSet > FWidgetCarouselStyle::Create()
+TSharedRef< FSlateStyleSet > FWidgetCarouselModuleStyle::Create()
 {
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("WidgetCarouselStyle"));
 	Style->SetContentRoot(FPaths::EngineContentDir() / TEXT("Editor/Slate/WidgetCarousel"));
@@ -48,54 +87,46 @@ TSharedRef< FSlateStyleSet > FWidgetCarouselStyle::Create()
 		.SetPressedPadding(0);
 
 	FLinearColor PrimaryCallToActionColor = FLinearColor(1.0, 0.7372, 0.05637);
-	FLinearColor PrimaryCallToActionColor_Hovered = FLinearColor(1.0, 0.83553, 0.28445);
-	FLinearColor PrimaryCallToActionColor_Pressed = FLinearColor(1.0, 0.66612, 0.0012);
+	FLinearColor PrimaryCallToActionColorHovered = FLinearColor(1.0, 0.83553, 0.28445);
+	FLinearColor PrimaryCallToActionColorPressed = FLinearColor(1.0, 0.66612, 0.0012);
 
-	Style->Set("PrimaryColor", PrimaryCallToActionColor);
+	Style->Set("CarouselNavigationButton", FWidgetCarouselNavigationButtonStyle()
+		.SetInnerButtonStyle(FButtonStyle(DefaultButton)
+			.SetNormal(BOX_BRUSH("WhiteBox_7px_CornerRadius", FVector2D(17, 17), FMargin(0.5), PrimaryCallToActionColor))
+			.SetPressed(BOX_BRUSH("WhiteBox_7px_CornerRadius", FVector2D(17, 17), FMargin(0.5), PrimaryCallToActionColorPressed))
+			.SetHovered(BOX_BRUSH("WhiteBox_7px_CornerRadius", FVector2D(17, 17), FMargin(0.5), PrimaryCallToActionColorHovered)))
+		.SetNavigationButtonLeftImage(IMAGE_BRUSH("Arrow-Left", FVector2D(25.0f, 42.0f)))
+		.SetNavigationButtonRightImage(IMAGE_BRUSH("Arrow-Right", FVector2D(25.0f, 42.0f))));
 
-	Style->Set("WidgetCarousel.NavigationButtonLeft", new IMAGE_BRUSH("Arrow-Left", FVector2D(25.0f, 42.0f)));
-
-	Style->Set("WidgetCarousel.NavigationButtonRight", new IMAGE_BRUSH("Arrow-Right", FVector2D(25.0f, 42.0f)));
-
-	Style->Set("WidgetCarousel.NavigationButton", FButtonStyle(DefaultButton)
-		.SetNormal(BOX_BRUSH("WhiteBox_7px_CornerRadius", FVector2D(17, 17), FMargin(0.5), PrimaryCallToActionColor))
-		.SetPressed(BOX_BRUSH("WhiteBox_7px_CornerRadius", FVector2D(17, 17), FMargin(0.5), PrimaryCallToActionColor_Pressed))
-		.SetHovered(BOX_BRUSH("WhiteBox_7px_CornerRadius", FVector2D(17, 17), FMargin(0.5), PrimaryCallToActionColor_Hovered)));
-
-	Style->Set("WidgetCarousel.NavigationScrollBarHighlight", new IMAGE_BRUSH("CarouselNavMarker", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor));
-
-	Style->Set("WidgetCarousel.NavigationScrollBarLeftButton", FButtonStyle(DefaultButton)
-		.SetNormal(IMAGE_BRUSH("CarouselNavLeft", FVector2D(80.0f, 20.0f), FLinearColor::White))
-		.SetHovered(IMAGE_BRUSH("CarouselNavLeft", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor))
-		.SetPressed(IMAGE_BRUSH("CarouselNavLeft", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor_Pressed)));
-
-	Style->Set("WidgetCarousel.NavigationScrollBarCenterButton", FButtonStyle(DefaultButton)
-		.SetNormal(IMAGE_BRUSH("CarouselNavCenter", FVector2D(80.0f, 20.0f), FLinearColor::White))
-		.SetHovered(IMAGE_BRUSH("CarouselNavCenter", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor))
-		.SetPressed(IMAGE_BRUSH("CarouselNavCenter", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor_Pressed)));
-
-	Style->Set("WidgetCarousel.NavigationScrollBarRightButton", FButtonStyle(DefaultButton)
-		.SetNormal(IMAGE_BRUSH("CarouselNavRight", FVector2D(80.0f, 20.0f), FLinearColor::White))
-		.SetHovered(IMAGE_BRUSH("CarouselNavRight", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor))
-		.SetPressed(IMAGE_BRUSH("CarouselNavRight", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor_Pressed)));
+	Style->Set("CarouselNavigationBar", FWidgetCarouselNavigationBarStyle()
+		.SetHighlightBrush(IMAGE_BRUSH("CarouselNavMarker", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor))
+		.SetLeftButtonStyle(FButtonStyle(DefaultButton)
+			.SetNormal(IMAGE_BRUSH("CarouselNavLeft", FVector2D(80.0f, 20.0f), FLinearColor::White))
+			.SetHovered(IMAGE_BRUSH("CarouselNavLeft", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor))
+			.SetPressed(IMAGE_BRUSH("CarouselNavLeft", FVector2D(80.0f, 20.0f), PrimaryCallToActionColorPressed)))
+		.SetCenterButtonStyle(FButtonStyle()
+			.SetNormal(IMAGE_BRUSH("CarouselNavCenter", FVector2D(80.0f, 20.0f), FLinearColor::White))
+			.SetHovered(IMAGE_BRUSH("CarouselNavCenter", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor))
+			.SetPressed(IMAGE_BRUSH("CarouselNavCenter", FVector2D(80.0f, 20.0f), PrimaryCallToActionColorPressed)))
+		.SetRightButtonStyle(FButtonStyle()
+			.SetNormal(IMAGE_BRUSH("CarouselNavRight", FVector2D(80.0f, 20.0f), FLinearColor::White))
+			.SetHovered(IMAGE_BRUSH("CarouselNavRight", FVector2D(80.0f, 20.0f), PrimaryCallToActionColor))
+			.SetPressed(IMAGE_BRUSH("CarouselNavRight", FVector2D(80.0f, 20.0f), PrimaryCallToActionColorPressed))));
 
 	Style->Set("Black .6", FLinearColor(0, 0, 0, 0.6f));
 
 	return Style;
 }
 
-#undef IMAGE_BRUSH
-#undef BOX_BRUSH
-#undef BORDER_BRUSH
-#undef TTF_FONT
-#undef OTF_FONT
-
-void FWidgetCarouselStyle::ReloadTextures()
+void FWidgetCarouselModuleStyle::ReloadTextures()
 {
 	FSlateApplication::Get().GetRenderer()->ReloadTextureResources();
 }
 
-const ISlateStyle& FWidgetCarouselStyle::Get()
+const ISlateStyle& FWidgetCarouselModuleStyle::Get()
 {
 	return *WidgetCarouselStyleInstance;
 }
+
+#undef IMAGE_BRUSH
+#undef BOX_BRUSH

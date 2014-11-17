@@ -94,7 +94,11 @@ public:
 		Right
 	};
 
-	SLATE_BEGIN_ARGS(SCarouselNavigationButton) {}
+	SLATE_BEGIN_ARGS(SCarouselNavigationButton)
+		: _Style(&FWidgetCarouselModuleStyle::Get().GetWidgetStyle<FWidgetCarouselNavigationButtonStyle>("CarouselNavigationButton"))
+		{}
+
+		SLATE_STYLE_ARGUMENT(FWidgetCarouselNavigationButtonStyle, Style)
 
 		/** Called when the button is clicked */
 		SLATE_EVENT(FOnClicked, OnClicked)
@@ -111,6 +115,7 @@ public:
 	void Construct(const FArguments& InArgs)
 	{
 		ImageTransparency = 0.f;
+		Style = InArgs._Style;
 
 		ChildSlot
 		[
@@ -144,7 +149,7 @@ public:
 							.VAlign(VAlign_Center)
 							.ToolTipText(InArgs._ToolTipText)
 							.OnClicked(InArgs._OnClicked)
-							.ButtonStyle(FWidgetCarouselStyle::Get(), "WidgetCarousel.NavigationButton")
+							.ButtonStyle(&Style->InnerButtonStyle)
 							.ContentPadding(FMargin(15, 30))
 							.ButtonColorAndOpacity(this, &SCarouselNavigationButton::GetButtonColor)
 							.Cursor(EMouseCursor::Hand)
@@ -155,8 +160,7 @@ public:
 								[
 									SNew(SImage)
 									.Image(InArgs._Direction == ENavigationButtonDirection::Left ?
-										FWidgetCarouselStyle::Get().GetBrush("WidgetCarousel.NavigationButtonLeft") :
-										FWidgetCarouselStyle::Get().GetBrush("WidgetCarousel.NavigationButtonRight"))
+										&Style->NavigationButtonLeftImage : &Style->NavigationButtonRightImage)
 									.ColorAndOpacity(this, &SCarouselNavigationButton::GetButtonImageColor)
 								]
 							]
@@ -180,7 +184,7 @@ private:
 		{
 			if (!VisibleButton->IsHovered())
 			{
-				FLinearColor Color = FWidgetCarouselStyle::Get().GetColor("PrimaryColor");
+				FLinearColor Color = FLinearColor::White;
 				Color.A = ImageTransparency;
 				return Color;
 			}
@@ -241,7 +245,7 @@ private:
 	}
 
 private:
-
+	const FWidgetCarouselNavigationButtonStyle* Style;
 	TSharedPtr<SButton> HiddenButton;
 	TSharedPtr<SButton> VisibleButton;
 
