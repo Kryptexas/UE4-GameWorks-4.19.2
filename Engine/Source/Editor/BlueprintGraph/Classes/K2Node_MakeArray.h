@@ -49,6 +49,8 @@ protected:
 	/** If needed, will clear all pins to be wildcards */
 	void ClearPinTypeToWildcard();
 
+	bool CanResetToWildcard() const;
+
 	/** Propagates the pin type from the output (array) pin to the inputs, to make sure types are consistent */
 	void PropagatePinType();
 
