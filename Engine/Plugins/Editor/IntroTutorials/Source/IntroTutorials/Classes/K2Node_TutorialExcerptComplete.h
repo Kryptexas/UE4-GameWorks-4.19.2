@@ -28,7 +28,8 @@ class UK2Node_TutorialExcerptComplete : public UK2Node_CallFunction
 	// End UK2Node_CallFunction interface
 
 	// Begin UEdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void PostPlacedNewNode() OVERRIDE;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
 	// End UEdGraphNode interface

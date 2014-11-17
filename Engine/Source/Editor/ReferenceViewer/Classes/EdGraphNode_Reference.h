@@ -16,7 +16,7 @@ class UEdGraphNode_Reference : public UEdGraphNode
 	class UEdGraph_ReferenceViewer* GetReferenceViewerGraph() const;
 
 	// UEdGraphNode implementation
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
 	// End UEdGraphNode implementation
@@ -36,7 +36,7 @@ protected:
 
 private:
 	TArray<FName> PackageNames;
-	FString NodeTitle;
+	FText NodeTitle;
 
 	bool bUsesThumbnail;
 	FAssetData CachedAssetData;

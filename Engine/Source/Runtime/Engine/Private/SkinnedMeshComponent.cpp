@@ -81,7 +81,7 @@ void USkinnedMeshComponent::CreateRenderState_Concurrent()
 		if(MeshObject)
 		{
 			int32 UseLOD = PredictedLODLevel;
-			if(MasterPoseComponent)
+			if(MasterPoseComponent.IsValid())
 			{
 				UseLOD = FMath::Clamp(MasterPoseComponent->PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
 			}
@@ -146,7 +146,7 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 		// If we have a MasterPoseComponent - force this component to render at that LOD, so all bones are present for it.
 		// Note that this currently relies on the behaviour where this mesh is rendered at the LOD we pass in here for all viewports. We should
 		// be able to render it at lower LOD on viewports where it is further away. That will make the MasterPoseComponent case a bit harder to solve.
-		if(MasterPoseComponent)
+		if(MasterPoseComponent.IsValid())
 		{
 			UseLOD = FMath::Clamp(MasterPoseComponent->PredictedLODLevel, 0, MeshObject->GetSkeletalMeshResource().LODModels.Num()-1);
 		}
@@ -280,6 +280,7 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 	AActor * Owner = GetOwner();
 	const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
 
+	bPoseTicked = false;
 	// Tick Pose first
 	if( ShouldTickPose() )
 	{
@@ -294,6 +295,7 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 		else
 		{
 			TickPose(DeltaTime + SkippedTickDeltaTime);
+			bPoseTicked = true;
 			SkippedTickDeltaTime = 0.f;
 		}
 	}
@@ -309,7 +311,7 @@ void USkinnedMeshComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 	if( ShouldUpdateTransform(bLODHasChanged) )
 	{
 		// Do not update bones if we are taking bone transforms from another SkelMeshComp
-		if( MasterPoseComponent )
+		if( MasterPoseComponent.IsValid() )
 		{
 			UpdateSlaveComponent();
 		}
@@ -386,7 +388,7 @@ void USkinnedMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrim
 bool USkinnedMeshComponent::ShouldUpdateBoneVisibility() const
 {
 	// do not update if it has MasterPoseComponent
-	return !MasterPoseComponent;
+	return !MasterPoseComponent.IsValid();
 }
 void USkinnedMeshComponent::RebuildVisibilityArray()
 {
@@ -477,7 +479,7 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector & RootOffset
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
 		NewBounds = RootAdjustedBounds.TransformBy(LocalToWorld);
 	}
-	else if( MasterPoseComponent && MasterPoseComponent->SkeletalMesh && MasterPoseComponent->bComponentUseFixedSkelBounds )
+	else if(MasterPoseComponent.IsValid() && MasterPoseComponent->SkeletalMesh && MasterPoseComponent->bComponentUseFixedSkelBounds)
 	{
 		FBoxSphereBounds RootAdjustedBounds = MasterPoseComponent->SkeletalMesh->Bounds;
 		RootAdjustedBounds.Origin += RootOffset; // Adjust bounds by root bone translation
@@ -498,11 +500,11 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector & RootOffset
 		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this));
 	}
 	// Use MasterPoseComponent's PhysicsAsset, if we don't have one and it does
-	else if( MasterPoseComponent && bCanUsePhysicsAsset && bUseBoundsFromMasterPoseComponent )
+	else if( MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bUseBoundsFromMasterPoseComponent )
 	{
 		NewBounds = MasterPoseComponent->Bounds;
 	}
-	else if (MasterPoseComponent && bCanUsePhysicsAsset && bMasterHasPhysBodies)
+	else if(MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bMasterHasPhysBodies)
 	{
 		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld		
 		NewBounds = FBoxSphereBounds(MasterPhysicsAsset->CalcAABB(this));
@@ -541,7 +543,7 @@ FMatrix USkinnedMeshComponent::GetBoneMatrix(int32 BoneIdx) const
 	}
 
 	// Handle case of use a MasterPoseComponent - get bone matrix from there.
-	if(MasterPoseComponent)
+	if(MasterPoseComponent.IsValid())
 	{
 		if(BoneIdx < MasterBoneMap.Num())
 		{
@@ -590,7 +592,7 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const
 	}
 
 	// Handle case of use a MasterPoseComponent - get bone matrix from there.
-	if(MasterPoseComponent)
+	if(MasterPoseComponent.IsValid())
 	{
 		if(BoneIdx < MasterBoneMap.Num())
 		{
@@ -820,7 +822,7 @@ void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* 
 	MasterPoseComponent = NewMasterBoneComponent;
 
 	// now add to slave components list, 
-	if (MasterPoseComponent)
+	if(MasterPoseComponent.IsValid())
 	{
 		bool bAddNew=true;
 		// make sure no empty element is there, this is weak obj ptr, so it will go away unless there is 
@@ -909,7 +911,7 @@ void USkinnedMeshComponent::UpdateMasterBoneMap()
 {
 	MasterBoneMap.Empty();
 
-	if(SkeletalMesh && MasterPoseComponent && MasterPoseComponent->SkeletalMesh)
+	if(SkeletalMesh && MasterPoseComponent.IsValid() && MasterPoseComponent->SkeletalMesh)
 	{
 		USkeletalMesh* ParentMesh = MasterPoseComponent->SkeletalMesh;
 
@@ -1053,7 +1055,7 @@ FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, int32 Space) cons
 	FTransform BoneTransform;
 	if( Space == 1 )
 	{
-		if(MasterPoseComponent)
+		if(MasterPoseComponent.IsValid())
 		{
 			if(BoneIndex < MasterBoneMap.Num())
 			{
@@ -1101,7 +1103,7 @@ FVector USkinnedMeshComponent::GetBoneLocation( FName BoneName, int32 Space ) co
 	// If space == Local
 	if( Space == 1 )
 	{
-		if(MasterPoseComponent)
+		if(MasterPoseComponent.IsValid())
 		{
 			if(BoneIndex < MasterBoneMap.Num())
 			{
@@ -1349,7 +1351,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 {
 	FVector SkinnedPos(0,0,0);
 
-	const USkinnedMeshComponent* BaseComponent = MasterPoseComponent ? MasterPoseComponent : this;
+	const USkinnedMeshComponent* BaseComponent = MasterPoseComponent.IsValid() ? MasterPoseComponent.Get() : this;
 
 	// Do soft skinning for this vertex.
 	if(bSoftVertex)
@@ -1364,7 +1366,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 #endif
 		{
 			int32 BoneIndex = Chunk.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
-			if(MasterPoseComponent)
+			if(MasterPoseComponent.IsValid())
 			{		
 				check(MasterBoneMap.Num() == SkeletalMesh->RefSkeleton.GetNum());
 				BoneIndex = MasterBoneMap[BoneIndex];
@@ -1382,7 +1384,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 		const TGPUSkinVertexBase<false>* SrcRigidVertex = VertexBufferGPUSkin.GetVertexPtr<false>(Chunk.GetRigidVertexBufferIndex()+VertIndex);
 		const int32 RigidInfluenceIndex = SkinningTools::GetRigidInfluenceIndex();
 		int32 BoneIndex = Chunk.BoneMap[SrcRigidVertex->InfluenceBones[RigidInfluenceIndex]];
-		if(MasterPoseComponent)
+		if(MasterPoseComponent.IsValid())
 		{
 			check(MasterBoneMap.Num() == SkeletalMesh->RefSkeleton.GetNum());
 			BoneIndex = MasterBoneMap[BoneIndex];

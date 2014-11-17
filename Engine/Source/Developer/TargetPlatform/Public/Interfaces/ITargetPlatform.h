@@ -77,6 +77,11 @@ namespace ETargetPlatformFeatures
 		Packaging,
 
 		/**
+		 * Connect and disconnect devices through the SDK.
+		 */
+		SdkConnectDisconnect,
+
+		/**
 		 * GPU tesselation.
 		 */
 		Tessellation,
@@ -84,12 +89,17 @@ namespace ETargetPlatformFeatures
 		/**
 		 * Texture streaming.
 		 */
-		 TextureStreaming,
+		TextureStreaming,
+
+		/**
+		 * User credentials are required to use the device.
+		 */
+		UserCredentials,
 
 		/**
 		 * Vertex Shader Texture Sampling.
 		 */
-		 VertexShaderTextureSampling,
+		VertexShaderTextureSampling,
 	};
 };
 

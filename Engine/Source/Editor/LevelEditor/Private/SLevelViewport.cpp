@@ -4,7 +4,7 @@
 #include "LevelEditor.h"
 #include "SLevelViewport.h"
 #include "SLevelViewportToolBar.h"
-#include "Editor/UnrealEd/Public/STransformViewportToolBar.h"
+#include "Editor/UnrealEd/Public/STransformViewportToolbar.h"
 #include "LevelViewportLayout.h"
 #include "LevelViewportTabContent.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
@@ -26,6 +26,7 @@
 #include "HighresScreenshotUI.h"
 #include "SCaptureRegionWidget.h"
 #include "Settings.h"
+#include "SceneOutlinerTreeItems.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -140,6 +141,8 @@ void SLevelViewport::Construct(const FArguments& InArgs)
 
 	// Tell the level editor we want to be notified when selection changes
 	LevelEditor.OnMapChanged().AddSP( this, &SLevelViewport::OnMapChanged );
+
+	GEngine->OnLevelActorDeleted().AddSP( this, &SLevelViewport::OnLevelActorsRemoved );
 }
 
 void SLevelViewport::ConstructViewportOverlayContent()
@@ -705,8 +708,9 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 	}
 
 	// Check to see if the locked actor wants to override the camera settings
-	if( AActor* LockedActor = LevelViewportClient->ActorLockedToCamera.Get() )
+	if( LevelViewportClient->GetActiveActorLock().IsValid() )
 	{
+		AActor* LockedActor = LevelViewportClient->GetActiveActorLock().Get();
 		FMinimalViewInfo CameraInfo;
 		if( GetCameraInformationFromActor(LockedActor, /*out*/ CameraInfo) )
 		{
@@ -795,6 +799,20 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChange
 		World->EditorViews[LevelViewportClient->ViewportType].CamUpdated = false;
 
 		RedrawViewport(true);
+	}
+}
+
+void SLevelViewport::OnLevelActorsRemoved(AActor* InActor)
+{
+	// Kill any existing actor previews that have expired
+	for( int32 PreviewIndex = 0; PreviewIndex < ActorPreviews.Num(); ++PreviewIndex )
+	{
+		AActor* ExistingActor = ActorPreviews[PreviewIndex].Actor.Get();
+		if ( !ExistingActor || ExistingActor == InActor )
+		{
+			// decrement index so we don't miss next preview after deleting
+			RemoveActorPreview( PreviewIndex-- );
+		}
 	}
 }
 
@@ -1428,7 +1446,7 @@ bool SLevelViewport::IsPerspectiveViewport() const
 
 void SLevelViewport::OnTakeHighResScreenshot()
 {
-	HighResScreenshotDialog = SHighResScreenshotDialog::OpenDialog(GetWorld(), GetActiveViewport(), CaptureRegionWidget);
+	HighResScreenshotDialog = SHighResScreenshotDialog::OpenDialog(ActiveViewport, CaptureRegionWidget);
 }
 
 void SLevelViewport::ToggleGameView()
@@ -1776,7 +1794,7 @@ void SLevelViewport::OnActorLockToggleFromMenu(AActor* Actor)
 {
 	if (Actor != NULL)
 	{
-		const bool bLockNewActor = Actor != LevelViewportClient->ActorLockedToCamera.Get();
+		const bool bLockNewActor = Actor != LevelViewportClient->GetActiveActorLock().Get();
 
 		// Unlock the previous actor
 		OnActorUnlock();
@@ -1815,7 +1833,7 @@ bool SLevelViewport::CanFindSelectedInLevelScript() const
 
 void SLevelViewport::OnActorUnlock()
 {
-	if (AActor* LockedActor = LevelViewportClient->ActorLockedToCamera.Get())
+	if (AActor* LockedActor = LevelViewportClient->GetActiveActorLock().Get())
 	{
 		// Check to see if the locked actor was previously overriding the camera settings
 		if (CanGetCameraInformationFromActor(LockedActor))
@@ -1824,7 +1842,7 @@ void SLevelViewport::OnActorUnlock()
 			LevelViewportClient->ViewFOV = LevelViewportClient->FOVAngle;
 		}
 
-		LevelViewportClient->ActorLockedToCamera.Reset();
+		LevelViewportClient->SetActorLock(nullptr);
 
 		// remove roll and pitch from camera when unbinding from actors
 		GEditor->RemovePerspectiveViewRotation(true, true, false);
@@ -1865,7 +1883,7 @@ bool SLevelViewport::IsSelectedActorLocked() const
 	if (1 == ActorSelection->Num() && IsAnyActorLocked())
 	{
 		AActor* Actor = CastChecked<AActor>(ActorSelection->GetSelectedObject(0));
-		if (LevelViewportClient->ActorLockedToCamera.Get() == Actor)
+		if (LevelViewportClient->GetActiveActorLock().Get() == Actor)
 		{
 			return true;
 		}
@@ -1910,11 +1928,13 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 				];
 		}
 
-		virtual const TSharedRef< SWidget > ConstructRowWidget( const TWeakObjectPtr< AActor >&  InActor ) OVERRIDE
+		virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) OVERRIDE
 		{
-			bool bLocked = Viewport->IsActorLocked(InActor);
+			if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
+			{
+				bool bLocked = Viewport->IsActorLocked(StaticCastSharedRef<SceneOutliner::TOutlinerActorTreeItem>(TreeItem)->Actor);
 
-			return SNew(SBox)
+				return SNew(SBox)
 					.WidthOverride(SLevelViewport::GetActorLockSceneOutlinerColumnWidth())
 					.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
 					[
@@ -1922,6 +1942,11 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 						.Image(FEditorStyle::GetBrush(bLocked ? "PropertyWindow.Locked" : "PropertyWindow.Unlocked"))
 						.ColorAndOpacity(bLocked ? FLinearColor::White : FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
 					];
+			}
+			else
+			{
+				return SNullWidget::NullWidget;
+			}
 		}
 
 		virtual bool ProvidesSearchStrings() { return false; }
@@ -2069,7 +2094,7 @@ void SLevelViewport::PreviewSelectedCameraActors()
 	{
 		AActor* SelectedActor = CastChecked<AActor>( *SelectionIt );
 
-		if (LevelViewportClient->ActorLockedToCamera.Get() == SelectedActor)
+		if (LevelViewportClient->IsLockedToActor(SelectedActor))
 		{
 			// If this viewport is already locked to the specified camera, then we don't need to do anything
 		}
@@ -2853,7 +2878,7 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient )
 		ShowMouseCaptureLabel(AnchorMode);
 	}
 
-	GEngine->BroadcastLevelActorsChanged();
+	GEngine->BroadcastLevelActorListChanged();
 }
 
 FLinearColor SLevelViewport::GetMouseCaptureLabelColorAndOpacity() const
@@ -3030,7 +3055,7 @@ void SLevelViewport::EndPlayInEditorSession()
 	bViewTransitionAnimPending = true;
 	GEditor->PlayEditorSound( TEXT( "/Engine/EditorSounds/GamePreview/EndPlayInEditor_Cue.EndPlayInEditor_Cue" ) );
 
-	GEngine->BroadcastLevelActorsChanged();
+	GEngine->BroadcastLevelActorListChanged();
 }
 
 void SLevelViewport::SwapViewportsForSimulateInEditor()
@@ -3141,7 +3166,7 @@ FText SLevelViewport::GetLockedIconToolTip() const
 	FText ToolTip;
 	if (IsAnyActorLocked())
 	{
-		ToolTip = FText::Format( LOCTEXT("ActorLockedIcon_ToolTip", "Viewport Locked to {0}"), FText::FromString( LevelViewportClient->ActorLockedToCamera.Get()->GetActorLabel() ) );
+		ToolTip = FText::Format( LOCTEXT("ActorLockedIcon_ToolTip", "Viewport Locked to {0}"), FText::FromString( LevelViewportClient->GetActiveActorLock().Get()->GetActorLabel() ) );
 	}
 
 	return ToolTip;
@@ -3197,8 +3222,8 @@ void SLevelViewport::LockActorInternal(AActor* NewActorToLock)
 {
 	if (NewActorToLock != NULL)
 	{
-		LevelViewportClient->ActorLockedToCamera = NewActorToLock;
-		if (LevelViewportClient->IsPerspective() )
+		LevelViewportClient->SetActorLock(NewActorToLock);
+		if (LevelViewportClient->IsPerspective() && LevelViewportClient->GetActiveActorLock().IsValid())
 		{
 			LevelViewportClient->MoveCameraToLockedActor();
 		}

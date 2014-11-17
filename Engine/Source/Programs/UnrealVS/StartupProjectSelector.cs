@@ -48,6 +48,7 @@ namespace UnrealVS
 				// StartupProjectCombo
 				var StartupProjectComboCommandId = new CommandID( GuidList.UnrealVSCmdSet, StartupProjectComboId );
 				StartupProjectComboCommand = new OleMenuCommand( StartupProjectComboHandler, StartupProjectComboCommandId );
+				StartupProjectComboCommand.BeforeQueryStatus += (sender, args) => { StartupProjectComboCommand.Enabled = _bIsSolutionOpened; };
 				UnrealVSPackage.Instance.MenuCommandService.AddCommand( StartupProjectComboCommand );
 
 				// StartupProjectComboList
@@ -58,10 +59,39 @@ namespace UnrealVS
 
 			// Register for events that we care about
 			UnrealVSPackage.Instance.OnStartupProjectChanged += OnStartupProjectChanged;
-			UnrealVSPackage.Instance.OnSolutionOpened += delegate { _bIsSolutionOpened = true; UpdateStartupProjectList(Utils.GetAllProjectsFromDTE()); };
-			UnrealVSPackage.Instance.OnSolutionClosing += delegate { _bIsSolutionOpened = false; _CachedStartupProjects.Clear(); };
-			UnrealVSPackage.Instance.OnProjectOpened += delegate(Project OpenedProject) { if (_bIsSolutionOpened) UpdateStartupProjectList(OpenedProject); };
-			UnrealVSPackage.Instance.OnProjectClosed += RemoveFromStartupProjectList;
+			UnrealVSPackage.Instance.OnSolutionOpened +=
+				delegate
+				{
+					Logging.WriteLine("Opened solution " + UnrealVSPackage.Instance.DTE.Solution.FullName);
+					_bIsSolutionOpened = true;
+					UpdateStartupProjectList(Utils.GetAllProjectsFromDTE());
+				};
+			UnrealVSPackage.Instance.OnSolutionClosing +=
+				delegate
+				{
+					Logging.WriteLine("Closing solution");
+					_bIsSolutionOpened = false;
+					_CachedStartupProjects.Clear();
+				};
+			UnrealVSPackage.Instance.OnProjectOpened +=
+				delegate(Project OpenedProject)
+				{		
+					if (_bIsSolutionOpened)
+					{
+						Logging.WriteLine("Opened project node " + OpenedProject.Name);
+						UpdateStartupProjectList(OpenedProject);
+					}
+					else
+					{
+						Logging.WriteLine("Opened project node " + OpenedProject.Name + " with the solution CLOSED");
+					}
+				};
+			UnrealVSPackage.Instance.OnProjectClosed +=
+				delegate(Project ClosedProject)
+				{
+					Logging.WriteLine("Closed project node " + ClosedProject.Name);
+					RemoveFromStartupProjectList(ClosedProject);
+				};
 			UnrealVSPackage.Instance.OptionsPage.OnOptionsChanged += OnOptionsChanged;
 
 			UpdateStartupProjectList(Utils.GetAllProjectsFromDTE());
@@ -126,14 +156,22 @@ namespace UnrealVS
 			// Optionally, ignore non-game projects
 			if (CachedHideNonGameStartupProjects.Value)
 			{
-				if (!Project.Name.EndsWith("Game", StringComparison.OrdinalIgnoreCase))
+				if (!Project.Name.EndsWith("Game", StringComparison.InvariantCultureIgnoreCase))
 				{
+					Logging.WriteLine("StartupProjectSelector: Not listing project " + Project.Name + " because it is not a game");
 					return false;
 				}
 			}
 
 			// Always filter out non-executable projects
-			return Utils.IsProjectExecutable(Project);
+			if (!Utils.IsProjectExecutable(Project))
+			{
+				Logging.WriteLine("StartupProjectSelector: Not listing project " + Project.Name + " because it is not executable");
+				return false;
+			}
+
+			Logging.WriteLine("StartupProjectSelector: Listing project " + Project.Name);
+			return true;
 		}
 
 		/// Remove projects from the list CachedStartupProjectNames whenever one unloads
@@ -220,13 +258,13 @@ namespace UnrealVS
 				ProjectReference ProjectRefMatch = _CachedStartupProjects.FirstOrDefault(ProjRef => ProjRef.Name == InputString);
 
 				if (ProjectRefMatch != null && ProjectRefMatch.Project != null)
-					{
-						// Switch to this project!
+				{
+					// Switch to this project!
 					var ProjectHierarchy = Utils.ProjectToHierarchyObject(ProjectRefMatch.Project);
-						UnrealVSPackage.Instance.SolutionBuildManager.set_StartupProject(ProjectHierarchy);
-					}					
-				}
+					UnrealVSPackage.Instance.SolutionBuildManager.set_StartupProject(ProjectHierarchy);
+				}					
 			}
+		}
 
 		/// Called by combo control to populate the drop-down list
 		void StartupProjectComboListHandler( object Sender, EventArgs Args )

@@ -202,6 +202,8 @@ uint NumCaptureArrayMips;
 TextureCube ReflectionEnvironmentColorTexture;
 SamplerState ReflectionEnvironmentColorSampler;
 
+#if COMPUTEBRIGHTNESS_PIXELSHADER
+
 void ComputeBrightnessMain(
 	in float4 UVAndScreenPos : TEXCOORD0, 
 	out float4 OutColor : SV_Target0
@@ -217,6 +219,8 @@ void ComputeBrightnessMain(
 
 	OutColor = dot(AverageColor / 6, .3333f);
 }
+
+#endif
 
 #ifndef NUM_FILTER_SAMPLES
 #define NUM_FILTER_SAMPLES 1

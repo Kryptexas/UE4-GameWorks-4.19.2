@@ -172,7 +172,7 @@ public:
 		.BorderImage( FEditorStyle::GetBrush( "NoBrush" ) )
 		.Content()
 		[
-			SceneOutlinerModule.CreateSceneOutliner( InitOptions, FOnContextMenuOpening(), FOnActorPicked() )
+			SceneOutlinerModule.CreateSceneOutliner( InitOptions, FOnActorPicked() )
 		];
 
 
@@ -214,7 +214,7 @@ protected:
 		}
 
 		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-		DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_Default );
+		DragActorOp->ResetToDefaultToolTip();
 	}
 
 	/**

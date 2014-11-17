@@ -5,6 +5,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_CustomTransitionResult
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_CustomTransitionResult::UAnimGraphNode_CustomTransitionResult(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -12,15 +14,17 @@ UAnimGraphNode_CustomTransitionResult::UAnimGraphNode_CustomTransitionResult(con
 
 FLinearColor UAnimGraphNode_CustomTransitionResult::GetNodeTitleColor() const
 {
-	return FLinearColor(1.0f, 0.65f, 0.4f);
+	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
 }
 
 FString UAnimGraphNode_CustomTransitionResult::GetTooltip() const
 {
-	return TEXT("Result node for a custom transition blend graph");
+	return LOCTEXT("AnimGraphNode_CustomTransitionResult_Tooltip", "Result node for a custom transition blend graph").ToString();
 }
 
-FString UAnimGraphNode_CustomTransitionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_CustomTransitionResult::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Custom Transition Blend Result");
+	return LOCTEXT("AnimGraphNode_CustomTransitionResult_Title", "Custom Transition Blend Result");
 }
+
+#undef LOCTEXT_NAMESPACE

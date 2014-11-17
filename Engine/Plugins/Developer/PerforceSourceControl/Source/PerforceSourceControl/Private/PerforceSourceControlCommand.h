@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PerforceConnectionInfo.h"
+
 DECLARE_DELEGATE_RetVal(bool, FOnIsCancelled);
 
 /**
@@ -41,10 +43,7 @@ public:
 
 public:
 	/** Connection parameters, reproduced here because if is not safe to access the provider's settings from another thread */
-	FString Port;
-	FString UserName;
-	FString ClientSpec;
-	FString Ticket;
+	FPerforceConnectionInfo ConnectionInfo;
 
 	/** Operation we want to perform - contains outward-facing parameters & results */
 	TSharedRef<class ISourceControlOperation, ESPMode::ThreadSafe> Operation;
@@ -77,8 +76,8 @@ public:
 	TArray< FString > Files;
 
 	/**Info and/or warning message message storage*/
-	TArray< FString > InfoMessages;
+	TArray< FText > InfoMessages;
 
 	/**Potential error message storage*/
-	TArray< FString > ErrorMessages;
+	TArray< FText > ErrorMessages;
 };

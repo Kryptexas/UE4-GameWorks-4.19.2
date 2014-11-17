@@ -56,7 +56,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef< SPlug
 		// Clickable 'Created by' URL text
 		CreatedByWidget = SNew( SHyperlink )
 			.Text( Item->PluginStatus.CreatedBy )
-			.ToolTipText( FText::Format( LOCTEXT("NavigateToCreatedByURL", "Launch a web browser to visit {0}"), FText::FromString( Item->PluginStatus.CreatedByURL ) ).ToString() )
+			.ToolTipText( FText::Format( LOCTEXT("NavigateToCreatedByURL", "Launch a web browser to visit {0}"), FText::FromString( Item->PluginStatus.CreatedByURL ) ) )
 			.OnNavigate_Static( &Local::NavigateToURL, Item->PluginStatus.CreatedByURL );
 
 	}

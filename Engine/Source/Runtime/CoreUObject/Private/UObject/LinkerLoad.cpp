@@ -2682,6 +2682,7 @@ void ULinkerLoad::Preload( UObject* Object )
 						UObject* PrevSerializedObject = GSerializedObject;
 						GSerializedObject = Object;
 						Object->Serialize( *this );
+						Object->SetFlags(RF_LoadCompleted);
 						GSerializedObject = PrevSerializedObject;
 					}
 				}
@@ -3156,7 +3157,7 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
  					// Preload classes on first access.  Note that this may update the Export.Object, so ClassObject is not guaranteed to be valid after this point
 					// If we're async loading on a cooked build we can skip this as there's no chance we will need to recompile the class. 
 					// Preload will be called during async package tick when the data has been precached
-					if( !FPlatformProperties::RequiresCookedData() || !GIsAsyncLoading )
+					if( !FPlatformProperties::RequiresCookedData() )
 					{
  						Preload( Export.Object );
 					}
@@ -3696,6 +3697,54 @@ bool ULinkerLoad::CreateImportClassAndPackage( FName ClassName, FName PackageNam
 
 	return true;
 }
+
+TArray<FName> ULinkerLoad::FindPreviousNamesForClass(FString CurrentClassPath, bool bIsInstance)
+{
+	TArray<FName> OldNames;
+	for (auto It = ObjectNameRedirects.CreateConstIterator(); It; ++It)
+	{
+		if (It.Value().ToString() == CurrentClassPath)
+		{
+			OldNames.Add(It.Key());
+		}
+	}
+
+	if (bIsInstance)
+	{
+		for (auto It = ObjectNameRedirectsInstanceOnly.CreateConstIterator(); It; ++It)
+		{
+			if (It.Value().ToString() == CurrentClassPath)
+			{
+				OldNames.Add(It.Key());
+			}
+		}
+	}
+
+	return OldNames;
+}
+
+FName ULinkerLoad::FindNewNameForClass(FName OldClassName, bool bIsInstance)
+{
+	FName *RedirectName = ObjectNameRedirects.Find(OldClassName);
+
+	if (RedirectName)
+	{
+		return *RedirectName;
+	}
+
+	if (bIsInstance)
+	{
+		RedirectName = ObjectNameRedirectsInstanceOnly.Find(OldClassName);
+	}
+
+	if (RedirectName)
+	{
+		return *RedirectName;
+	}
+
+	return NAME_None;
+}
+
 
 /**
 * Allows object instances to be converted to other classes upon loading a package

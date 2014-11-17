@@ -138,6 +138,9 @@ public:
 	/** The licensee package file version at the time this project was last updated */
 	int32 PackageFileLicenseeUE4Version;
 
+	/** The associated engine label. Used by UnrealVersionSelector to open projects with the correct editor */
+	FString EngineAssociation;
+
 	/** Friendly name of the project or plugin */
 	FString FriendlyName;
 
@@ -218,12 +221,12 @@ public:
 	 *
 	 * @return true if the project file is up to date, false otherwise.
 	 */
-	bool IsUpToDate( ) const;
+	bool IsUpToDate( const FString &EngineIdentifier ) const;
 
 	/**
 	 * Updates all version info to match the currently running executable.
 	 */
-	void UpdateVersionToCurrent( );
+	void UpdateVersionToCurrent( const FString &EngineIdentifier );
 
 	/**
 	 * Updates the modules in the project file

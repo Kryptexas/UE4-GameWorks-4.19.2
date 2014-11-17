@@ -1809,7 +1809,6 @@ FReply SFoliageEditMeshDisplayItem::OnSaveRemoveSettings()
 
 		if (SettingDlg->ShowModal() != EAppReturnType::Cancel)
 		{
-			FEdModeFoliage* Mode = (FEdModeFoliage*)GEditorModeTools().GetActiveMode( FBuiltinEditorModes::EM_Foliage );
 			UInstancedFoliageSettings* NewSettings = NULL;
 
 			NewSettings = Mode->SaveSettingsObject(SettingDlg->GetFullAssetPath(), AssociatedStaticMesh);
@@ -1855,7 +1854,7 @@ FString SFoliageEditMeshDisplayItem::GetSaveRemoveSettingsTooltip() const
 bool SFoliageEditMeshDisplayItem::IsPropertyVisible(UProperty const * const InProperty) const
 {
 	const FString Category = FObjectEditorUtils::GetCategory(InProperty);
-	return Category == TEXT("Clustering") || Category == TEXT("Culling") || Category == TEXT("Lighting");
+	return Category == TEXT("Clustering") || Category == TEXT("Culling") || Category == TEXT("Lighting") || Category == TEXT("Collision");
 }
 
 FString SFoliageEditMeshDisplayItem::GetInstanceCountString() const

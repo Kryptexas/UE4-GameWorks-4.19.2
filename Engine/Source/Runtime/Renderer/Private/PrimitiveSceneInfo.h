@@ -23,8 +23,10 @@ public:
 		AllocationTexelSize(0),
 		TargetPosition(FVector(0, 0, 0)),
 		TargetDirectionalShadowing(1),
+		TargetSkyBentNormal(FVector4(0, 0, 1, 1)),
 		SingleSamplePosition(FVector(0, 0, 0)),
 		CurrentDirectionalShadowing(1),
+		CurrentSkyBentNormal(FVector4(0, 0, 1, 1)),
 		bHasEverUpdatedSingleSample(false),
 		bOpaqueRelevance(true),
 		bIsDirty(false)
@@ -63,6 +65,9 @@ public:
 	/** Target shadowing of the stationary directional light. */
 	float TargetDirectionalShadowing;
 
+	/** Target directional occlusion of the sky. */
+	FVector4 TargetSkyBentNormal;
+
 	/** Current position of the single lighting sample.  Used for interpolation over time. */
 	FVector SingleSamplePosition;
 
@@ -71,6 +76,9 @@ public:
 
 	/** Current shadowing of the stationary directional light. */
 	float CurrentDirectionalShadowing;
+
+	/** Current directional occlusion of the sky. */
+	FVector4 CurrentSkyBentNormal;
 
 	/** Whether SingleSamplePacked has ever been populated with valid results, used to initialize. */
 	bool bHasEverUpdatedSingleSample;
@@ -323,6 +331,11 @@ struct FPrimitiveOctreeSemantics
 	FORCEINLINE static void SetElementId(const FPrimitiveSceneInfoCompact& Element,FOctreeElementId Id)
 	{
 		Element.PrimitiveSceneInfo->OctreeId = Id;
+	}
+
+	FORCEINLINE static void ApplyOffset(FPrimitiveSceneInfoCompact& Element, FVector Offset)
+	{
+		Element.Bounds.Origin+= Offset;
 	}
 };
 

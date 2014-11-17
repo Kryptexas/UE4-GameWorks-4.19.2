@@ -120,6 +120,7 @@ void FOnlineAsyncTaskManagerSteam::MessagePump()
 void FOnlineAsyncTaskManagerSteam::OnlineTick()
 {
 	check(SteamSubsystem);
+	check(FPlatformTLS::GetCurrentThreadId() == OnlineThreadId);
 
 	if (SteamSubsystem->IsSteamClientAvailable())
 	{
@@ -158,8 +159,8 @@ void FOnlineAsyncTaskManagerSteam::OnLobbyInviteAccepted(GameLobbyJoinRequested_
 	{
 		FUniqueNetIdSteam LobbyId(CallbackData->m_steamIDLobby);
 
-		FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(SteamSubsystem->GetSessionInterface());
-		if (Sessions.IsValid() && !Sessions->IsMemberOfLobby(LobbyId))
+		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(SteamSubsystem->GetSessionInterface());
+		if (SessionInt.IsValid() && !SessionInt->IsMemberOfLobby(LobbyId))
 		{
 			FOnlineAsyncEventSteamLobbyInviteAccepted* NewEvent = 
 				new FOnlineAsyncEventSteamLobbyInviteAccepted(SteamSubsystem, FUniqueNetIdSteam(CallbackData->m_steamIDFriend), LobbyId);
@@ -222,11 +223,11 @@ public:
 	 */
 	virtual void Finalize()
 	{
-		FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-		if (Sessions.IsValid())
+		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+		if (SessionInt.IsValid())
 		{
 			FUniqueNetIdSteam LobbyId(CallbackResults.m_ulSteamIDLobby);
-			FNamedOnlineSession* Session = Sessions->GetNamedSessionFromLobbyId(LobbyId);
+			FNamedOnlineSession* Session = SessionInt->GetNamedSessionFromLobbyId(LobbyId);
 			if (!Session)
 			{
 				UE_LOG_ONLINE(Warning, TEXT("Entered lobby %s, but not found in sessions list"), *LobbyId.ToDebugString());
@@ -297,12 +298,12 @@ public:
 	 */
 	virtual void Finalize()
 	{
-		FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-		if (Sessions.IsValid())
+		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+		if (SessionInt.IsValid())
 		{
 			FUniqueNetIdSteam LobbyId(CallbackResults.m_ulSteamIDLobby);
 			// Lobby data update for existing session
-			FNamedOnlineSession* Session = Sessions->GetNamedSessionFromLobbyId(LobbyId);
+			FNamedOnlineSession* Session = SessionInt->GetNamedSessionFromLobbyId(LobbyId);
 			if (Session)
 			{
 				// Recreate the lobby member list
@@ -372,16 +373,16 @@ public:
 		FOnlineAsyncEvent::Finalize();
 
 		// Searching for lobbies case (NULL CurrentSessionSearch implies no active search query)
-		FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-		if (Sessions.IsValid() && Sessions->CurrentSessionSearch.IsValid() && Sessions->CurrentSessionSearch->SearchState == EOnlineAsyncTaskState::InProgress)
+		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+		if (SessionInt.IsValid() && SessionInt->CurrentSessionSearch.IsValid() && SessionInt->CurrentSessionSearch->SearchState == EOnlineAsyncTaskState::InProgress)
 		{
 			// Add this lobby as available for adding to search results
-			Sessions->PendingSearchLobbyIds.AddUnique(LobbyId);
+			SessionInt->PendingSearchLobbyIds.AddUnique(LobbyId);
 		}
 		else
 		{
 			// Lobby data update for existing session
-			FNamedOnlineSession* Session = Sessions->GetNamedSessionFromLobbyId(LobbyId);
+			FNamedOnlineSession* Session = SessionInt->GetNamedSessionFromLobbyId(LobbyId);
 			if (Session)
 			{
 				// Make sure the session has all the valid session data
@@ -796,16 +797,16 @@ public:
 	 */
 	virtual void Finalize() OVERRIDE
 	{
-		FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-		if (Sessions.IsValid())
+		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+		if (SessionInt.IsValid())
 		{
-			Sessions->bSteamworksGameServerConnected = true;
-			Sessions->GameServerSteamId = MakeShareable(new FUniqueNetIdSteam(ServerId));
+			SessionInt->bSteamworksGameServerConnected = true;
+			SessionInt->GameServerSteamId = MakeShareable(new FUniqueNetIdSteam(ServerId));
 
 			FSocketSubsystemSteam* SocketSubsystem = (FSocketSubsystemSteam*)ISocketSubsystem::Get(STEAM_SUBSYSTEM);
 			if (SocketSubsystem)
 			{			
-				SocketSubsystem->FixupSockets(*Sessions->GameServerSteamId);
+				SocketSubsystem->FixupSockets(*SessionInt->GameServerSteamId);
 			}
 		}
 
@@ -866,14 +867,14 @@ public:
 	virtual void Finalize() OVERRIDE
 	{
 		bool bTriggerConnectionStatusUpdate = true;
-		FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-		if (Sessions.IsValid())
+		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+		if (SessionInt.IsValid())
 		{
-			Sessions->bSteamworksGameServerConnected = false;
-			Sessions->GameServerSteamId = NULL;
+			SessionInt->bSteamworksGameServerConnected = false;
+			SessionInt->GameServerSteamId = NULL;
 
 			// Don't trigger the delegates if a DestroySession() call was made
-			FNamedOnlineSession* Session = Sessions->GetGameServerSession();
+			FNamedOnlineSession* Session = SessionInt->GetGameServerSession();
 			if (Session && Session->SessionState == EOnlineSessionState::Destroying)
 			{
 				bTriggerConnectionStatusUpdate = false;
@@ -947,11 +948,11 @@ public:
 	 */
 	virtual void Finalize() OVERRIDE
 	{
-		FOnlineSessionSteamPtr Sessions = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
-		if (Sessions.IsValid())
+		FOnlineSessionSteamPtr SessionInt = StaticCastSharedPtr<FOnlineSessionSteam>(Subsystem->GetSessionInterface());
+		if (SessionInt.IsValid())
 		{
-			Sessions->bPolicyResponseReceived = true;
-			if (!Sessions->bSteamworksGameServerConnected || !Sessions->GameServerSteamId->IsValid())
+			SessionInt->bPolicyResponseReceived = true;
+			if (!SessionInt->bSteamworksGameServerConnected || !SessionInt->GameServerSteamId->IsValid())
 			{
 				UE_LOG_ONLINE(Warning, TEXT("Unexpected GSPolicyResponse callback"));
 			}
@@ -1189,7 +1190,7 @@ void FOnlineAsyncTaskManagerSteam::AddToInMsgQueue(FOnlineAsyncMsgSteam* NewMsg)
 {
 #if WITH_STEAMGC
 	// assert if not game thread
-	check(FPlatformTLS::GetCurrentThreadId() == FOnlineAsyncItem::GameThreadId);
+	check(IsInGameThread());
 
 	int64 LocalJobId = -1;
 	{

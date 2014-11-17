@@ -38,6 +38,22 @@ private:
 		FPlatformMisc::ReleaseAutoreleasePool(Pool);
 	}
     
+	/**
+	 * Allows platforms to adjust stack size
+	 */
+	virtual uint32 AdjustStackSize(uint32 InStackSize)
+	{
+		InStackSize = FRunnableThreadPThread::AdjustStackSize(InStackSize);
+        
+		// If it's set, make sure it's at least 128 KB or stack allocations (e.g. in Logf) may fail
+		if (InStackSize && InStackSize < 128 * 1024)
+		{
+			InStackSize = 128 * 1024;
+		}
+        
+		return InStackSize;
+	}
+    
     void*      Pool;
 };
 

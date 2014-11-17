@@ -4,7 +4,7 @@
 #include "EnvQueryGenerator_OnCircle.generated.h"
 
 UCLASS()	
-class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator
+class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 {
 	GENERATED_UCLASS_BODY()
 
@@ -14,15 +14,11 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator
 
 	/** items will be generated on a circle this much apart */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	float ItemSpacing;
+	FEnvFloatParam ItemSpacing;
 
 	/** If you generate items on a piece of circle you define direction of Arc cut here */
 	UPROPERTY(EditDefaultsOnly, Category=Generator, meta=(EditCondition="bDefineArc"))
-	TSubclassOf<class UEnvQueryContext> ArcDirectionStart;
-
-	/** If you generate items on a piece of circle you define direction of Arc cut here. If not set ArcDirectionStart's rotation will be used*/
-	UPROPERTY(EditDefaultsOnly, Category=Generator, meta=(EditCondition="bDefineArc"))
-	TSubclassOf<class UEnvQueryContext> ArcDirectionEnd;
+	FEnvDirection ArcDirection;
 
 	/** If you generate items on a piece of circle you define angle of Arc cut here */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
@@ -35,14 +31,9 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator
 	UPROPERTY(EditAnywhere, Category=Generator)
 	TSubclassOf<class UEnvQueryContext> CircleCenter;
 
+	/** horizontal trace for nearest obstacle */
 	UPROPERTY(EditAnywhere, Category=Generator)
-	TEnumAsByte<EEnvQueryTrace::Type> TraceType;
-
-	UPROPERTY(EditAnywhere, Category=Generator, meta=(EditCondition="bUseNavigationRaycast"))
-	TSubclassOf<class UNavigationQueryFilter> NavigationFilterClass;
-
-	UPROPERTY()
-	uint32 bUseNavigationRaycast:1;
+	FEnvTraceData TraceData;
 
 	UPROPERTY()
 	uint32 bDefineArc:1;
@@ -51,8 +42,8 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator
 
 	void GenerateItems(struct FEnvQueryInstance& QueryInstance); 
 
-	virtual FString GetDescriptionTitle() const OVERRIDE;
-	virtual FString GetDescriptionDetails() const OVERRIDE;
+	virtual FText GetDescriptionTitle() const OVERRIDE;
+	virtual FText GetDescriptionDetails() const OVERRIDE;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
@@ -60,4 +51,11 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator
 
 protected:
 	FVector CalcDirection(struct FEnvQueryInstance& QueryInstance) const;
+
+	DECLARE_DELEGATE_SevenParams(FRunTraceSignature, const FVector&, const FVector&, UWorld*, enum ECollisionChannel, const FCollisionQueryParams&, const FVector&, FVector&);
+
+	void RunLineTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos);
+	void RunSphereTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos);
+	void RunCapsuleTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos);
+	void RunBoxTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos);
 };

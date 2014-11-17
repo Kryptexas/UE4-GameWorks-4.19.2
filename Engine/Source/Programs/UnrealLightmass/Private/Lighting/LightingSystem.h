@@ -286,13 +286,11 @@ struct FFinalGatherInfo
 	FFinalGatherInfo() :
 		NumBackfaceHits(0),
 		NumSamplesOccluded(0),
-		NumSamplesSkyUnoccluded(0),
 		CombinedSkyUnoccludedDirections(FVector(0))
 	{}
 
 	int32 NumBackfaceHits;
 	float NumSamplesOccluded;
-	int32 NumSamplesSkyUnoccluded;
 	FVector CombinedSkyUnoccludedDirections;
 };
 
@@ -2046,6 +2044,7 @@ private:
 	/** Calculates incident radiance for a given world space position. */
 	void CalculateVolumeSampleIncidentRadiance(
 		const TArray<FVector4>& UniformHemisphereSamples,
+		float MaxUnoccludedLength,
 		FVolumeLightingSample& LightingSample,
 		FLMRandomStream& RandomStream,
 		FStaticLightingMappingContext& MappingContext,
@@ -2191,6 +2190,7 @@ private:
 		int32 ElementIndex,
 		int32 BounceNumber,
 		const TArray<FVector4>& UniformHemisphereSamples,
+		float MaxUnoccludedLength,
 		const TArray<FVector4>& ImportancePhotonDirections,
 		FStaticLightingMappingContext& MappingContext,
 		FLMRandomStream& RandomStream,

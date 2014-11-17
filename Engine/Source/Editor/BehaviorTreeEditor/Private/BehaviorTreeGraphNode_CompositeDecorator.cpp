@@ -29,9 +29,9 @@ FString UBehaviorTreeGraphNode_CompositeDecorator::GetNodeTypeDescription() cons
 	return LOCTEXT("Composite","Composite").ToString();
 }
 
-FString UBehaviorTreeGraphNode_CompositeDecorator::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UBehaviorTreeGraphNode_CompositeDecorator::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return CompositeName.Len() ? CompositeName : GetNodeTypeDescription();
+	return FText::FromString(CompositeName.Len() ? CompositeName : GetNodeTypeDescription());
 }
 
 FName UBehaviorTreeGraphNode_CompositeDecorator::GetNameIcon() const

@@ -10,8 +10,10 @@ struct FVertexAnimDelta
 {
 	/** change in position */
 	FVector			PositionDelta;
-	/** change in tangent basis normal */
-	FPackedNormal	TangentZDelta;
+	/** old format of change in tangent basis normal */
+	FPackedNormal	TangentZDelta_DEPRECATED;
+	/** new format of change in tangent basis normal */
+	FVector			TangentZDelta;
 
 	/** index of source vertex to apply deltas to */
 	uint32			SourceIdx;
@@ -19,7 +21,15 @@ struct FVertexAnimDelta
 	/** pipe operator */
 	friend FArchive& operator<<( FArchive& Ar, FVertexAnimDelta& V )
 	{
-		Ar << V.PositionDelta << V.TangentZDelta << V.SourceIdx;
+		if ( Ar.UE4Ver() < VER_UE4_MORPHTARGET_CPU_TANGENTZDELTA_FORMATCHANGE )
+		{
+			Ar << V.PositionDelta << V.TangentZDelta_DEPRECATED << V.SourceIdx;
+			V.TangentZDelta = FVector(V.TangentZDelta_DEPRECATED);
+		}
+		else
+		{
+			Ar << V.PositionDelta << V.TangentZDelta << V.SourceIdx;
+		}
 		return Ar;
 	}
 };

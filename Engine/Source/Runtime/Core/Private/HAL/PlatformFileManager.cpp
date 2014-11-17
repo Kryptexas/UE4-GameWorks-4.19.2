@@ -8,7 +8,9 @@
 #include "ModuleManager.h"
 #include "../HAL/IPlatformFileLogWrapper.h"
 #include "../HAL/IPlatformFileProfilerWrapper.h"
+#include "../HAL/IPlatformFileCachedWrapper.h"
 #include "../HAL/IPlatformFileModule.h"
+#include "../HAL/IPlatformFileOpenLogWrapper.h"
 
 
 FPlatformFileManager::FPlatformFileManager()
@@ -69,7 +71,17 @@ IPlatformFile* FPlatformFileManager::GetPlatformFile(const TCHAR* Name)
 		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FPlatformFileReadStats());
 		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
 	}
+	else if (FCString::Strcmp(FPlatformFileOpenLog::GetTypeName(), Name) == 0)
+	{
+		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FPlatformFileOpenLog());
+		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
+	}
 #endif
+	else if (FCString::Strcmp(FCachedReadPlatformFile::GetTypeName(), Name) == 0)
+	{
+		static TScopedPointer<IPlatformFile> AutoDestroySingleton(new FCachedReadPlatformFile());
+		PlatformFile = AutoDestroySingleton.GetOwnedPointer();
+	}
 	else
 	{
 		// Try to load a module containing the platform file.

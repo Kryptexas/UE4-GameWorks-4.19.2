@@ -83,7 +83,7 @@ public:
 	TSharedPtr< FUICommandInfo > AlwaysRefreshAllPreviews;
 
 	/** Toggles the material stats on the canvas pane */
-	TSharedPtr< FUICommandInfo > ToggleStats;
+	TSharedPtr< FUICommandInfo > ToggleMaterialStats;
 
 	/** Shows material stats and errors when compiled for mobile. */
 	TSharedPtr< FUICommandInfo > ToggleMobileStats;
@@ -95,7 +95,7 @@ public:
 	TSharedPtr< FUICommandInfo > UseCurrentTexture;
 	
 	/** Pastes the copied items at the current location */
-	TSharedPtr< FUICommandInfo > PasteHere;
+	TSharedPtr< FUICommandInfo > MatertialPasteHere;
 	
 	/** Converts selected objects to parameters */
 	TSharedPtr< FUICommandInfo > ConvertObjects;

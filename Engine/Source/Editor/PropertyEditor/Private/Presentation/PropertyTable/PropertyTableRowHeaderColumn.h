@@ -55,6 +55,8 @@ public:
 
 	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return EPropertyTableColumnSizeMode::Fixed; }
 
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) OVERRIDE {}
+
 	virtual float GetWidth() const OVERRIDE { return 20.0f; } 
 
 	virtual void SetWidth( float InWidth ) OVERRIDE {  }
@@ -73,10 +75,15 @@ public:
 
 	virtual void Tick() OVERRIDE {}
 
+	DECLARE_DERIVED_EVENT( FPropertyTableColumn, IPropertyTableColumn::FFrozenStateChanged, FFrozenStateChanged );
+	FFrozenStateChanged* OnFrozenStateChanged() OVERRIDE { return &FrozenStateChanged; }
+
 private:
 
 	TWeakPtr< IPropertyTable > Table;
 	TMap< TSharedRef< IPropertyTableRow >, TSharedRef< class IPropertyTableCell > > Cells;
 	bool bIsHidden;
 	TSharedRef< IDataSource > DataSource;
+	
+	FFrozenStateChanged FrozenStateChanged;
 };

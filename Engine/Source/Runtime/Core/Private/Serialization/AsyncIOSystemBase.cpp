@@ -776,8 +776,11 @@ void FIOSystem::Shutdown()
 		AsyncIOThread->Kill(true);
 		delete AsyncIOThread;
 	}
-	delete AsyncIOSystem;
-	AsyncIOSystem = NULL;
+	if (AsyncIOSystem)
+	{
+		delete AsyncIOSystem;
+		AsyncIOSystem = NULL;
+	}
 	AsyncIOThread = (FRunnableThread*)-1; // non null, we don't allow a restart after a shutdown as this is usually an error of some sort
 }
 

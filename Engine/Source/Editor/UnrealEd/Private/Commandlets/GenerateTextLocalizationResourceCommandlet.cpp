@@ -79,7 +79,7 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 
 	for(int32 i = 0; i < CulturesToGenerate.Num(); ++i)
 	{
-		if( FInternationalization::GetCulture( CulturesToGenerate[i] ).IsValid() )
+		if( FInternationalization::Get().GetCulture( CulturesToGenerate[i] ).IsValid() )
 		{
 			UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Verbose, TEXT("Specified culture is not a valid runtime culture, but may be a valid base language: %s"), *(CulturesToGenerate[i]));
 		}
@@ -127,10 +127,10 @@ int32 UGenerateTextLocalizationResourceCommandlet::Main(const FString& Params)
 
 		if( SourceControlInfo.IsValid() )
 		{
-			FString SCCErrorString;
-			if( !SourceControlInfo->CheckOutFile( TextLocalizationResourcePath, SCCErrorString ) )
+			FText SCCErrorText;
+			if (!SourceControlInfo->CheckOutFile(TextLocalizationResourcePath, SCCErrorText))
 			{
-				UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("Check out of file %s failed: %s"), *TextLocalizationResourcePath, *SCCErrorString);
+				UE_LOG(LogGenerateTextLocalizationResourceCommandlet, Error, TEXT("Check out of file %s failed: %s"), *TextLocalizationResourcePath, *SCCErrorText.ToString());
 				return -1;
 			}
 		}

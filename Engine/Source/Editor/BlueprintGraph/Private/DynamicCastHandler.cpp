@@ -62,7 +62,7 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	{
 		ObjectToCast = Context.LiteralHackMap.Find(PinToTry);
 
-		if (!ObjectToCast)
+		if (!ObjectToCast || !(*ObjectToCast))
 		{
 			CompilerContext.MessageLog.Error(*LOCTEXT("InvalidConnectionOnNode_Error", "Node @@ has an invalid connection on @@").ToString(), Node, SourceObjectPin);
 			return;
@@ -70,40 +70,72 @@ void FKCHandler_DynamicCast::Compile(FKismetFunctionContext& Context, UEdGraphNo
 	}
 
 	// Output pin
-	const UEdGraphPin* InterfacePin = DynamicCastNode->GetCastResultPin();
-	if( !InterfacePin )
+	const UEdGraphPin* CastOutputPin = DynamicCastNode->GetCastResultPin();
+	if( !CastOutputPin )
 	{
 		CompilerContext.MessageLog.Error(*LOCTEXT("InvalidDynamicCastClass_Error", "Node @@ has an invalid target class").ToString(), Node);
 		return;
 	}
 
-	FBPTerminal** InterfaceTerm = Context.NetMap.Find(InterfacePin);
+	FBPTerminal** CastResultTerm = Context.NetMap.Find(CastOutputPin);
+	if (!CastResultTerm || !(*CastResultTerm))
+	{
+		CompilerContext.MessageLog.Error(*LOCTEXT("InvalidDynamicCastClass_Error", "Node @@ has an invalid target class. (Inner compiler error?)").ToString(), Node);
+		return;
+	}
 
 	// Create a literal term from the class specified in the node
 	FBPTerminal* ClassTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
 	ClassTerm->Name = DynamicCastNode->TargetType->GetName();
 	ClassTerm->bIsLiteral = true;
-	ClassTerm->Source = DynamicCastNode->TargetType;
+	ClassTerm->Source = Node;
 	ClassTerm->ObjectLiteral = DynamicCastNode->TargetType;
 
 	// Find the boolean intermediate result term, so we can track whether the cast was successful
 	FBPTerminal* BoolTerm = *BoolTermMap.Find(DynamicCastNode);
 
+	UClass const* const InputObjClass  = Cast<UClass>((*ObjectToCast)->Type.PinSubCategoryObject.Get());
+	UClass const* const OutputObjClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());
+
+	const bool bIsOutputInterface = ((OutputObjClass != NULL) && OutputObjClass->HasAnyClassFlags(CLASS_Interface));
+	const bool bIsInputInterface = ((InputObjClass != NULL) && InputObjClass->HasAnyClassFlags(CLASS_Interface));
+
+	EKismetCompiledStatementType CastOpType = KCST_DynamicCast;
+	if (bIsInputInterface)
+	{
+		check(bIsOutputInterface);
+		CastOpType = KCST_CrossInterfaceCast;
+	}
+	else if (bIsOutputInterface)
+	{
+		CastOpType = KCST_CastObjToInterface;
+	}
+
+	if (KCST_MetaCast == CastType)
+	{
+		if (bIsInputInterface || bIsOutputInterface)
+		{
+			CompilerContext.MessageLog.Error(*LOCTEXT("InvalidClassDynamicCastClass_Error", "Node @@ has an invalid target class. Interfaces are not supported.").ToString(), Node);
+			return;
+		}
+		CastOpType = KCST_MetaCast;
+	}
+
 	// Cast Statement
 	FBlueprintCompiledStatement& CastStatement = Context.AppendStatementForNode(Node);
-	CastStatement.Type = CastType;
-	CastStatement.LHS = *InterfaceTerm;
+	CastStatement.Type = CastOpType;
+	CastStatement.LHS = *CastResultTerm;
 	CastStatement.RHS.Add(ClassTerm);
 	CastStatement.RHS.Add(*ObjectToCast);
 
 	// Check result of cast statement
 	FBlueprintCompiledStatement& CheckResultStatement = Context.AppendStatementForNode(Node);
-	const UClass* SubObjectClass = Cast<UClass>((*InterfaceTerm)->Type.PinSubCategoryObject.Get());
+	const UClass* SubObjectClass = Cast<UClass>((*CastResultTerm)->Type.PinSubCategoryObject.Get());
 	const bool bIsInterfaceCast = (SubObjectClass != NULL && SubObjectClass->HasAnyClassFlags(CLASS_Interface));
 
 	CheckResultStatement.Type = KCST_ObjectToBool;
 	CheckResultStatement.LHS = BoolTerm;
-	CheckResultStatement.RHS.Add(*InterfaceTerm);
+	CheckResultStatement.RHS.Add(*CastResultTerm);
 
 	// Failure condition...skip to the failed output
 	FBlueprintCompiledStatement& FailCastGoto = Context.AppendStatementForNode(Node);

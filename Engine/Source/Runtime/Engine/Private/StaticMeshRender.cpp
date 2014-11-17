@@ -498,12 +498,12 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 				// Draw the static mesh sections.
 				for(int32 SectionIndex = 0;SectionIndex < LODModel.Sections.Num();SectionIndex++)
 				{
-					bool bSectionIsSelected = bProxyIsSelected;
+					bool bSectionIsSelected = false;
 
 #if WITH_EDITOR
 					if( GIsEditor )
 					{
-						bSectionIsSelected = bSectionIsSelected || LODs[LODIndex].Sections[SectionIndex].bSelected;
+						bSectionIsSelected = LODs[LODIndex].Sections[SectionIndex].bSelected;
 					}
 #endif // WITH_EDITOR
 					FMeshBatch MeshElement;
@@ -582,6 +582,32 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 									);
 								INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshElement.GetNumPrimitives() * NumPasses);
 							}
+						}
+						else
+#endif
+#if WITH_EDITOR
+						if (bSectionIsSelected)
+						{
+							// Override the mesh's material with our material that draws the collision color
+							const FOverrideSelectionColorMaterialRenderProxy SelectedMaterialInstance(
+								GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(bSectionIsSelected, IsHovered()),
+								GetSelectionColor(GEngine->GetSelectedMaterialColor(), bSectionIsSelected, IsHovered())
+								);
+
+							FMeshBatch ModifiedMeshElement(MeshElement);
+							ModifiedMeshElement.MaterialRenderProxy = &SelectedMaterialInstance;
+
+							const int32 NumPasses = DrawRichMesh(
+								PDI,
+								ModifiedMeshElement,
+								WireframeColor,
+								UtilColor,
+								PropertyColor,
+								this,
+								bSectionIsSelected,
+								bIsWireframeView
+								);
+							INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, MeshElement.GetNumPrimitives() * NumPasses);
 						}
 						else
 #endif

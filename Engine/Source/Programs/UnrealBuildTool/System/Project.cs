@@ -23,7 +23,8 @@ namespace UnrealBuildTool
 		/// Adds all of the specified include paths to this VCProject's list of include paths for all modules in the project
 		/// </summary>
 		/// <param name="NewIncludePaths">List of include paths to add</param>
-		void AddInteliiSenseIncludePaths( List<string> NewIncludePaths );
+		/// <param name="bAddingSystemIncludes">Are the include paths to add system include paths</param>
+		void AddInteliiSenseIncludePaths( List<string> NewIncludePaths, bool bAddingSystemIncludes );
 	}
 
 
@@ -261,11 +262,11 @@ namespace UnrealBuildTool
 		/// Adds all of the specified include paths to this VCProject's list of include paths for all modules in the project
 		/// </summary>
 		/// <param name="NewIncludePaths">List of include paths to add</param>
-		public void AddInteliiSenseIncludePaths( List<string> NewIncludePaths ) 
+		public void AddInteliiSenseIncludePaths( List<string> NewIncludePaths, bool bAddingSystemIncludes ) 
 		{
 			foreach( var CurPath in NewIncludePaths )
 			{
-				if( KnownIntelliSenseIncludeSearchPaths.Add( CurPath ) )
+				if( bAddingSystemIncludes ? KnownIntelliSenseSystemIncludeSearchPaths.Add( CurPath ) : KnownIntelliSenseIncludeSearchPaths.Add( CurPath ) )
 				{
 					string PathRelativeToProjectFile;
 
@@ -287,7 +288,8 @@ namespace UnrealBuildTool
 
 					// Make sure that it doesn't exist already
 					var AlreadyExists = false;
-					foreach( var ExistingPath in IntelliSenseIncludeSearchPaths )
+					List<string> SearchPaths = bAddingSystemIncludes ? IntelliSenseSystemIncludeSearchPaths : IntelliSenseIncludeSearchPaths;
+					foreach( var ExistingPath in SearchPaths )
 					{
 						if( PathRelativeToProjectFile == ExistingPath )
 						{
@@ -298,7 +300,7 @@ namespace UnrealBuildTool
 
 					if( !AlreadyExists )
 					{
-						IntelliSenseIncludeSearchPaths.Add( PathRelativeToProjectFile );
+						SearchPaths.Add( PathRelativeToProjectFile );
 					}
 				}
 			}
@@ -373,7 +375,11 @@ namespace UnrealBuildTool
 			}
 			if (FullInputPath.StartsWith(FullSolutionPath))
 			{
-				return Utils.MakePathRelativeTo(FullInputPath, Path.GetDirectoryName(Path.GetFullPath(ProjectFilePath)));
+				FullInputPath = Utils.MakePathRelativeTo(Utils.CleanDirectorySeparators(FullInputPath), Path.GetDirectoryName(Path.GetFullPath(ProjectFilePath)));
+			}
+			else
+			{
+				FullInputPath = Utils.CleanDirectorySeparators(FullInputPath);
 			}
 
 			// Otherwise return the input
@@ -399,7 +405,9 @@ namespace UnrealBuildTool
 
 		/// Include paths for every single module in the project file, merged together
 		public readonly List<string> IntelliSenseIncludeSearchPaths = new List<string>();
+		public readonly List<string> IntelliSenseSystemIncludeSearchPaths = new List<string>();
 		public readonly HashSet<string> KnownIntelliSenseIncludeSearchPaths = new HashSet<string>( StringComparer.InvariantCultureIgnoreCase );
+		public readonly HashSet<string> KnownIntelliSenseSystemIncludeSearchPaths = new HashSet<string>( StringComparer.InvariantCultureIgnoreCase );
 
 		/// Preprocessor definitions for every single module in the project file, merged together
 		public readonly List<string> IntelliSensePreprocessorDefinitions = new List<string>();

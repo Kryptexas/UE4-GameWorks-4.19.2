@@ -99,13 +99,14 @@ bool UPlayerInput::InputKey( FKey Key, EInputEvent Event, float AmountDepressed,
 		{
 			// check for doubleclick
 			// note, a tripleclick will currently count as a 2nd double click.
-			if ( World->TimeSince(KeyState.LastUpDownTransitionTime) < GetDefault<UInputSettings>()->DoubleClickTime )
+			const float WorldRealTimeSeconds = World->GetRealTimeSeconds();
+			if ((WorldRealTimeSeconds - KeyState.LastUpDownTransitionTime) < GetDefault<UInputSettings>()->DoubleClickTime)
 			{
 				KeyState.EventAccumulator[IE_DoubleClick].Add(++EventCount);
 			}
 
 			// just went down
-			KeyState.LastUpDownTransitionTime = World->GetTimeSeconds();
+			KeyState.LastUpDownTransitionTime = WorldRealTimeSeconds;
 		}
 		break;
 	case IE_Released:
@@ -583,6 +584,7 @@ void UPlayerInput::GetChordsForAction(const FInputActionBinding& ActionBinding, 
 						check(EventIndices.Num() > 0);
 						FDelegateDispatchDetails FoundChord(  
 													EventIndices[0]
+													, FoundChords.Num()
 													, Chord
 													, ((!bGamePaused || ActionBinding.bExecuteWhenPaused) ? ActionBinding.ActionDelegate : FInputActionUnifiedDelegate())
 													, ActionBinding.KeyEvent
@@ -643,6 +645,7 @@ void UPlayerInput::GetChordForKey(const FInputKeyBinding& KeyBinding, const bool
 				check(EventIndices.Num() > 0);
 				FDelegateDispatchDetails FoundChord(
 											EventIndices[0]
+											, FoundChords.Num()
 											, KeyBinding.Chord
 											, ((!bGamePaused || KeyBinding.bExecuteWhenPaused) ? KeyBinding.KeyDelegate : FInputActionUnifiedDelegate())
 											, KeyBinding.KeyEvent);
@@ -791,7 +794,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 	{
 		bool operator()( const FDelegateDispatchDetails& A, const FDelegateDispatchDetails& B ) const
 		{
-			return A.EventIndex < B.EventIndex;
+			return (A.EventIndex == B.EventIndex ? A.FoundIndex < B.FoundIndex : A.EventIndex < B.EventIndex);
 		}
 	};
 
@@ -827,7 +830,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 				if (FoundChord.SourceAction && FoundChord.SourceAction->bPaired)
 				{
 					FActionKeyDetails& KeyDetails = ActionKeyMap.FindChecked(FoundChord.SourceAction->ActionName);
-					if (!KeyDetails.CapturingChord.Key.IsValid() || KeyDetails.CapturingChord == FoundChord.Chord)
+					if (!KeyDetails.CapturingChord.Key.IsValid() || KeyDetails.CapturingChord == FoundChord.Chord || !IsPressed(KeyDetails.CapturingChord.Key))
 					{
 						if (FoundChord.SourceAction->KeyEvent == IE_Pressed)
 						{
@@ -846,6 +849,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 
 				if (bFireDelegate && FoundChords[ChordIndex].ActionDelegate.IsBound())
 				{
+					FoundChords[ChordIndex].FoundIndex = NonAxisDelegates.Num();
 					NonAxisDelegates.Add(FoundChords[ChordIndex]);
 				}
 			}
@@ -863,7 +867,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 						if (TB.bExecuteWhenPaused || !bGamePaused)
 						{
 							check(EventIndices.Num() > 0);
-							FDelegateDispatchDetails TouchInfo(EventIndices[0], TB.TouchDelegate, Touches[TouchIndex], TouchIndex);
+							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, Touches[TouchIndex], TouchIndex);
 							NonAxisDelegates.Add(TouchInfo);
 							for (int32 EventsIndex = 1; EventsIndex < EventIndices.Num(); ++EventsIndex)
 							{
@@ -890,7 +894,8 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 					FKeyState const* const KeyState = KeyStateMap.Find(GB.GestureKey);
 					if (KeyState)
 					{
-						FDelegateDispatchDetails GestureInfo(GB.GestureDelegate, KeyState->Value.X);
+						check(EventIndices.Num() > 0);
+						FDelegateDispatchDetails GestureInfo(EventIndices[0], NonAxisDelegates.Num(), GB.GestureDelegate, KeyState->Value.X);
 						NonAxisDelegates.Add(GestureInfo);
 
 						if (GB.bConsumeInput)
@@ -961,32 +966,28 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		UInputComponent* IC = InputComponentStack[StackIndex];
 		if (IC)
 		{
-			for (int32 AxisIndex=0; AxisIndex<IC->AxisBindings.Num(); ++AxisIndex)
+			for (FInputAxisBinding& AxisBinding : IC->AxisBindings)
 			{
-				IC->AxisBindings[AxisIndex].AxisValue = 0.f;
+				AxisBinding.AxisValue = 0.f;
 			}
-			for (int32 AxisIndex = 0; AxisIndex < IC->AxisKeyBindings.Num(); ++AxisIndex)
+			for (FInputAxisKeyBinding& AxisKeyBinding : IC->AxisKeyBindings)
 			{
-				IC->AxisKeyBindings[AxisIndex].AxisValue = 0.f;
+				AxisKeyBinding.AxisValue = 0.f;
 			}
 		}
 	}
 
 	// Dispatch the delegates in the order they occurred
 	NonAxisDelegates.Sort(FDelegateDispatchDetailsSorter());
-	for (int32 DelegateIndex = 0; DelegateIndex < NonAxisDelegates.Num(); ++DelegateIndex)
+	for (const FDelegateDispatchDetails& Details : NonAxisDelegates)
 	{
-		const FDelegateDispatchDetails& Details = NonAxisDelegates[DelegateIndex];
-		if (Details.bTouchDelegate)
-		{
-			if (Details.TouchDelegate.IsBound())
-			{
-				Details.TouchDelegate.Execute(Details.FingerIndex, Details.TouchLocation);
-			}
-		}
-		else if (Details.ActionDelegate.IsBound())
+		if (Details.ActionDelegate.IsBound())
 		{
 			Details.ActionDelegate.Execute();
+		}
+		else if (Details.TouchDelegate.IsBound())
+		{
+			Details.TouchDelegate.Execute(Details.FingerIndex, Details.TouchLocation);
 		}
 		else if (Details.GestureDelegate.IsBound())
 		{
@@ -994,9 +995,8 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		}
 	}
 	// Now dispatch delegates for summed axes
-	for (int32 DelegateIndex = 0; DelegateIndex < AxisDelegates.Num(); ++DelegateIndex)
+	for (const FAxisDelegateDetails& Details : AxisDelegates)
 	{
-		const FAxisDelegateDetails& Details = AxisDelegates[DelegateIndex];
 		if (Details.Delegate.IsBound())
 		{
 			Details.Delegate.Execute(Details.Value);

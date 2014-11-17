@@ -10,6 +10,12 @@
 #include "AllowWindowsPlatformTypes.h"
 #include "EngineBuildSettings.h"
 
+#include <strsafe.h>
+
+#include "wincodec.h"
+
+#pragma comment( lib, "windowscodecs.lib" )
+
 /**
  * Splash screen functions and static globals
  */
@@ -24,6 +30,7 @@ static FText GSplashScreenText[ SplashTextType::NumTextTypes ];
 static RECT GSplashScreenTextRects[ SplashTextType::NumTextTypes ];
 static HFONT GSplashScreenSmallTextFontHandle = NULL;
 static HFONT GSplashScreenNormalTextFontHandle = NULL;
+static HFONT GSplashScreenTitleTextFontHandle = NULL;
 static FCriticalSection GSplashScreenSynchronizationObject;
 
 
@@ -57,15 +64,29 @@ LRESULT CALLBACK SplashScreenWindowProc(HWND hWnd, uint32 message, WPARAM wParam
 
 						if( !SplashText.IsEmpty() )
 						{
-							if( CurTypeIndex == SplashTextType::StartupProgress ||
-								CurTypeIndex == SplashTextType::VersionInfo1 )
+							if ( CurTypeIndex == SplashTextType::VersionInfo1 || CurTypeIndex == SplashTextType::StartupProgress )
 							{
 								SelectObject( hdc, GSplashScreenNormalTextFontHandle );
+							}
+							else if ( CurTypeIndex == SplashTextType::GameName )
+							{
+								SelectObject( hdc, GSplashScreenTitleTextFontHandle );
 							}
 							else
 							{
 								SelectObject( hdc, GSplashScreenSmallTextFontHandle );
 							}
+
+							// Alignment
+							if ( CurTypeIndex == SplashTextType::GameName )
+							{
+								SetTextAlign( hdc, TA_RIGHT | TA_TOP | TA_NOUPDATECP );
+							}
+							else
+							{
+								SetTextAlign( hdc, TA_LEFT | TA_TOP | TA_NOUPDATECP );
+							}
+
 							SetBkColor( hdc, 0x00000000 );
 							SetBkMode( hdc, TRANSPARENT );
 
@@ -98,20 +119,25 @@ LRESULT CALLBACK SplashScreenWindowProc(HWND hWnd, uint32 message, WPARAM wParam
 									*SplashText.ToString(),
 									SplashText.ToString().Len() );
 							}
-
+							
 							// Draw foreground text pass
 							if( CurTypeIndex == SplashTextType::StartupProgress )
 							{
-								SetTextColor( hdc, RGB( 180, 180, 180 ) );
+								SetTextColor( hdc, RGB( 200, 200, 200 ) );
 							}
 							else if( CurTypeIndex == SplashTextType::VersionInfo1 )
 							{
 								SetTextColor( hdc, RGB( 240, 240, 240 ) );
 							}
+							else if ( CurTypeIndex == SplashTextType::GameName )
+							{
+								SetTextColor(hdc, RGB(240, 240, 240));
+							}
 							else
 							{
 								SetTextColor( hdc, RGB( 160, 160, 160 ) );
 							}
+
 							TextOut(
 								hdc,
 								TextRect.left,
@@ -135,6 +161,185 @@ LRESULT CALLBACK SplashScreenWindowProc(HWND hWnd, uint32 message, WPARAM wParam
 	}
 
 	return 0;
+}
+
+/**
+ * Helper function to load the splash screen bitmap
+ * This replaces the old win32 api call to ::LoadBitmap which couldn't handle more modern BMP formats containing
+ *  - colour space information or newer format extensions.
+ * This code is largely taken from the WicViewerGDI sample provided by Microsoft on MSDN.
+ */
+HBITMAP LoadSplashBitmap()
+{
+	HRESULT hr = CoInitialize(NULL);
+
+	// The factory pointer
+	IWICImagingFactory *Factory = NULL;
+
+	// Create the COM imaging factory
+	hr = CoCreateInstance(
+		CLSID_WICImagingFactory,
+		NULL,
+		CLSCTX_INPROC_SERVER,
+		IID_PPV_ARGS(&Factory)
+		);
+
+	// Decode the source image to IWICBitmapSource
+	IWICBitmapDecoder *Decoder = NULL;
+
+	// Create a decoder
+	hr = Factory->CreateDecoderFromFilename(
+		(LPCTSTR)*GSplashScreenFileName, // Image to be decoded
+		NULL,                            // Do not prefer a particular vendor
+		GENERIC_READ,                    // Desired read access to the file
+		WICDecodeMetadataCacheOnDemand,  // Cache metadata when needed
+		&Decoder                        // Pointer to the decoder
+		);
+
+	IWICBitmapFrameDecode *Frame = NULL;
+
+	// Retrieve the first frame of the image from the decoder
+	if (SUCCEEDED(hr))
+	{
+		hr = Decoder->GetFrame(0, &Frame);
+	}
+
+	// Retrieve IWICBitmapSource from the frame
+	IWICBitmapSource *OriginalBitmapSource = NULL;
+	if (SUCCEEDED(hr))
+	{
+		hr = Frame->QueryInterface( IID_IWICBitmapSource, reinterpret_cast<void **>(&OriginalBitmapSource));
+	}
+
+	IWICBitmapSource *ToRenderBitmapSource = NULL;
+
+	// convert the pixel format
+	if (SUCCEEDED(hr))
+	{
+		IWICFormatConverter *Converter = NULL;
+
+		hr = Factory->CreateFormatConverter(&Converter);
+
+		// Format convert to 32bppBGR
+		if (SUCCEEDED(hr))
+		{
+			hr = Converter->Initialize(
+				Frame,                          // Input bitmap to convert
+				GUID_WICPixelFormat32bppBGR,     // Destination pixel format
+				WICBitmapDitherTypeNone,         // Specified dither patterm
+				NULL,                            // Specify a particular palette 
+				0.f,                             // Alpha threshold
+				WICBitmapPaletteTypeCustom       // Palette translation type
+				);
+
+			// Store the converted bitmap if successful
+			if (SUCCEEDED(hr))
+			{
+				hr = Converter->QueryInterface(IID_PPV_ARGS(&ToRenderBitmapSource));
+			}
+		}
+
+		DeleteObject(Converter);
+	}
+
+	// Create a DIB from the converted IWICBitmapSource
+	HBITMAP hDIBBitmap = 0;
+	if (SUCCEEDED(hr))
+	{
+		// Get image attributes and check for valid image
+		UINT width = 0;
+		UINT height = 0;
+
+		void *ImageBits = NULL;
+	
+		// Check BitmapSource format
+		WICPixelFormatGUID pixelFormat;
+		hr = ToRenderBitmapSource->GetPixelFormat(&pixelFormat);
+
+		if (SUCCEEDED(hr))
+		{
+			hr = (pixelFormat == GUID_WICPixelFormat32bppBGR) ? S_OK : E_FAIL;
+		}
+
+		if (SUCCEEDED(hr))
+		{
+			hr = ToRenderBitmapSource->GetSize(&width, &height);
+		}
+
+		// Create a DIB section based on Bitmap Info
+		// BITMAPINFO Struct must first be setup before a DIB can be created.
+		// Note that the height is negative for top-down bitmaps
+		if (SUCCEEDED(hr))
+		{
+			BITMAPINFO bminfo;
+			ZeroMemory(&bminfo, sizeof(bminfo));
+			bminfo.bmiHeader.biSize         = sizeof(BITMAPINFOHEADER);
+			bminfo.bmiHeader.biWidth        = width;
+			bminfo.bmiHeader.biHeight       = -(LONG)height;
+			bminfo.bmiHeader.biPlanes       = 1;
+			bminfo.bmiHeader.biBitCount     = 32;
+			bminfo.bmiHeader.biCompression  = BI_RGB;
+
+			// Get a DC for the full screen
+			HDC hdcScreen = GetDC(NULL);
+
+			hr = hdcScreen ? S_OK : E_FAIL;
+
+			// Release the previously allocated bitmap 
+			if (SUCCEEDED(hr))
+			{
+				if (hDIBBitmap)
+				{
+					DeleteObject(hDIBBitmap);
+				}
+
+				hDIBBitmap = CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &ImageBits, NULL, 0);
+
+				ReleaseDC(NULL, hdcScreen);
+
+				hr = hDIBBitmap ? S_OK : E_FAIL;
+			}
+		}
+
+		UINT cbStride = 0;
+		if (SUCCEEDED(hr))
+		{
+			// Size of a scan line represented in bytes: 4 bytes each pixel
+			hr = UIntMult(width, sizeof(DWORD), &cbStride);
+		}
+	
+		UINT cbImage = 0;
+		if (SUCCEEDED(hr))
+		{
+			// Size of the image, represented in bytes
+			hr = UIntMult(cbStride, height, &cbImage);
+		}
+
+		// Extract the image into the HBITMAP    
+		if (SUCCEEDED(hr))
+		{
+			hr = ToRenderBitmapSource->CopyPixels(
+				NULL,
+				cbStride,
+				cbImage, 
+				reinterpret_cast<BYTE *> (ImageBits));
+		}
+
+		// Image Extraction failed, clear allocated memory
+		if (FAILED(hr))
+		{
+			DeleteObject(hDIBBitmap);
+			hDIBBitmap = NULL;
+		}
+	}
+
+	DeleteObject(OriginalBitmapSource);
+	DeleteObject(ToRenderBitmapSource);
+	DeleteObject(Decoder);
+	DeleteObject(Frame);
+	DeleteObject(Factory);
+
+	return hDIBBitmap;
 }
 
 /**
@@ -166,7 +371,7 @@ uint32 WINAPI StartSplashScreenThread( LPVOID unused )
 	} 
 
 	// Load splash screen image, display it and handle all window's messages
-	GSplashScreenBitmap = (HBITMAP) LoadImage(hInstance, (LPCTSTR)*GSplashScreenFileName, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
+	GSplashScreenBitmap = LoadSplashBitmap();
 	if(GSplashScreenBitmap)
 	{
 		BITMAP bm;
@@ -242,7 +447,30 @@ uint32 WINAPI StartSplashScreenThread( LPVOID unused )
 					GSplashScreenNormalTextFontHandle = SystemFontHandle;
 				}
 			}
+
+			// Create title font
+			{
+				LOGFONT MyFont;
+				FMemory::Memzero(&MyFont, sizeof( MyFont ));
+				GetObject(SystemFontHandle, sizeof( MyFont ), &MyFont);
+				MyFont.lfHeight = 40;
+				MyFont.lfWeight = FW_BOLD;
+				MyFont.lfQuality = ANTIALIASED_QUALITY;
+				StringCchCopy(MyFont.lfFaceName, LF_FACESIZE, TEXT("Verdana"));
+				GSplashScreenTitleTextFontHandle = CreateFontIndirect(&MyFont);
+				if ( GSplashScreenTitleTextFontHandle == NULL )
+				{
+					// Couldn't create font, so just use a system font
+					GSplashScreenTitleTextFontHandle = SystemFontHandle;
+				}
+			}
 		}
+
+		// Setup bounds for game name
+		GSplashScreenTextRects[ SplashTextType::GameName ].top = 10;
+		GSplashScreenTextRects[ SplashTextType::GameName ].bottom = 60;
+		GSplashScreenTextRects[ SplashTextType::GameName ].left = bm.bmWidth - 12;
+		GSplashScreenTextRects[ SplashTextType::GameName ].right = 12;
 		
 		// Setup bounds for version info text 1
 		GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].top = bm.bmHeight - 60;
@@ -335,10 +563,11 @@ uint32 WINAPI StartSplashScreenThread( LPVOID unused )
  *
  * @return true if a splash screen was found
  */
-static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath)
+static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath, bool& OutIsCustom)
 {
 	// first look in game's splash directory
 	OutPath = FPaths::GameContentDir() + TEXT("Splash/") + SplashFilename;
+	OutIsCustom = true;
 	
 	// if this was found, then we're done
 	if (IFileManager::Get().FileSize(*OutPath) != -1)
@@ -348,6 +577,7 @@ static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath)
 
 	// next look in Engine/Splash
 	OutPath = FPaths::EngineContentDir() + TEXT("Splash/") + SplashFilename;
+	OutIsCustom = false;
 
 	// if this was found, then we're done
 	if (IFileManager::Get().FileSize(*OutPath) != -1)
@@ -368,23 +598,28 @@ static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath)
 static void StartSetSplashText( const SplashTextType::Type InType, const TCHAR* InText )
 {
 	// Only allow copyright text displayed while loading the game.  Editor displays all.
-	if( InType == SplashTextType::CopyrightInfo || GIsEditor )
-	{
-		// Update splash text
-		GSplashScreenText[ InType ] = FText::FromString( InText );
-	}
+	GSplashScreenText[InType] = FText::FromString(InText);
 }
 
 void FWindowsPlatformSplash::Show()
 {
 	if( !GSplashScreenThread && FParse::Param(FCommandLine::Get(),TEXT("NOSPLASH")) != true )
 	{
-		const TCHAR* SplashImage = GIsEditor ? TEXT("EdSplash.bmp") : TEXT("Splash.bmp");
+		const FText GameName = FText::FromString( FApp::GetGameName() );
+
+		const TCHAR* SplashImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault.bmp") : TEXT("EdSplash.bmp") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault.bmp") : TEXT("Splash.bmp") );
 
 		// make sure a splash was found
 		FString SplashPath;
-		if (GetSplashPath( SplashImage, SplashPath ) == true)
+		bool IsCustom;
+		if ( GetSplashPath(SplashImage, SplashPath, IsCustom ) == true )
 		{
+			// Don't set the game name if the splash screen is custom.
+			if ( !IsCustom )
+			{
+				StartSetSplashText(SplashTextType::GameName, *GameName.ToString());
+			}
+
 			// In the editor, we'll display loading info
 			if( GIsEditor )
 			{
@@ -402,8 +637,6 @@ void FWindowsPlatformSplash::Show()
 #else	//PLATFORM_64BITS
 					const FText PlatformBits = FText::FromString( TEXT( "32" ) );
 #endif	//PLATFORM_64BITS
-
-					const FText GameName = FText::FromString( FApp::GetGameName() );
 					
 					const FText Version = FText::FromString( GEngineVersion.ToString( FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch ) );
 

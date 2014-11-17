@@ -6,10 +6,11 @@
 
 #include "EnginePrivate.h"
 
+#if USE_MALLOC_PROFILER
+
 #include "MallocProfiler.h"
 #include "MallocProfilerEx.h"
-
-#if USE_MALLOC_PROFILER
+#include "MemoryMisc.h"
 
 // These functions are here because FMallocProfiler is in the Core
 // project, and therefore can't access most of the classes needed by these functions.
@@ -73,7 +74,7 @@ void FMallocProfilerEx::WriteLoadedLevels( UWorld* InWorld )
 /** 
  * Gather texture memory stats. 
  */
-void FMallocProfilerEx::GetTexturePoolSize( FMemoryAllocationStats_DEPRECATED& MemoryStats )
+void FMallocProfilerEx::GetTexturePoolSize( FGenericMemoryStats& out_Stats )
 {
 	FTextureMemoryStats Stats;
 
@@ -82,8 +83,8 @@ void FMallocProfilerEx::GetTexturePoolSize( FMemoryAllocationStats_DEPRECATED& M
 		RHIGetTextureMemoryStats(Stats);
 	}
 
-	MemoryStats.AllocatedTextureMemorySize = Stats.AllocatedMemorySize;
-	MemoryStats.AvailableTextureMemorySize = Stats.AllocatedMemorySize;
+	static const FName NAME_TextureAllocatedMemorySize = TEXT("Texture Allocated Memory Size");
+	out_Stats.Add( NAME_TextureAllocatedMemorySize, Stats.AllocatedMemorySize );
 }
 
 #endif // USE_MALLOC_PROFILER

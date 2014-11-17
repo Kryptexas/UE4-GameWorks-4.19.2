@@ -29,6 +29,11 @@ public:
 
 	void PostSerialize(const FArchive& Ar);
 
+	class UBlueprint* GetBlueprint() const
+	{
+		return GraphBlueprint;
+	}
+
 #if WITH_EDITORONLY_DATA
 	void SetGraph(UEdGraph* InGraph);
 	UEdGraph* GetGraph() const;
@@ -73,9 +78,14 @@ class ENGINE_API UEdGraph : public UObject
 	/** Child graphs that are a part of this graph; the separation is purely visual */
 	UPROPERTY()
 	TArray<class UEdGraph*> SubGraphs;
+
+	/** Guid for this graph */
 	UPROPERTY()
 	FGuid GraphGuid;
 
+	/** Guid of interface graph this graph comes from (used for conforming) */
+	UPROPERTY()
+	FGuid InterfaceGuid;
 #endif // WITH_EDITORONLY_DATA
 
 public:

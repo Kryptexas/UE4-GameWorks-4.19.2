@@ -677,6 +677,12 @@ FOutputDeviceRedirector::FOutputDeviceRedirector()
 {
 }
 
+FOutputDeviceRedirector* FOutputDeviceRedirector::Get()
+{
+	static FOutputDeviceRedirector Singleton;
+	return &Singleton;
+}
+
 /**
  * Adds an output device to the chain of redirections.	
  *
@@ -724,7 +730,7 @@ void FOutputDeviceRedirector::UnsynchronizedFlushThreadedLogs( bool bUseAllDevic
 {
 	for(int32 LineIndex = 0;LineIndex < BufferedLines.Num();LineIndex++)
 	{
-		const FBufferedLine& BufferedLine = BufferedLines[LineIndex];
+		FBufferedLine BufferedLine = BufferedLines[LineIndex];
 
 		for( int32 OutputDeviceIndex=0; OutputDeviceIndex<OutputDevices.Num(); OutputDeviceIndex++ )
 		{
@@ -1157,9 +1163,8 @@ void FOutputDeviceAnsiError::Serialize( const TCHAR* Msg, ELogVerbosity::Type Ve
 		// Propagate error so structured exception handler can perform necessary work.
 #if PLATFORM_EXCEPTIONS_DISABLED
 		FPlatformMisc::DebugBreak();
-#else
-		FPlatformMisc::RaiseException( 1 );
 #endif
+		FPlatformMisc::RaiseException( 1 );
 	}
 	else
 	{

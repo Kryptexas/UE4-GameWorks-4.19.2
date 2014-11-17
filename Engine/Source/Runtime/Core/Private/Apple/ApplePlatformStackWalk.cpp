@@ -128,11 +128,12 @@ void FApplePlatformStackWalk::ProgramCounterToSymbolInfo( uint64 ProgramCounter,
 	int32 Status = 0;
 	ANSICHAR* DemangledName = NULL;
 	
-	size_t DemangledNameLen = MAX_SPRINTF;
-	ANSICHAR DemangledNameBuffer[MAX_SPRINTF]= {0};
+	// Increased the size of the demangle destination to reduce the chances that abi::__cxa_demangle will allocate
+	// this causes the app to hang as malloc isn't signal handler safe. Ideally we wouldn't call this function in a handler.
+	size_t DemangledNameLen = 65536;
+	ANSICHAR DemangledNameBuffer[65536]= {0};
 	DemangledName = abi::__cxa_demangle(DylibInfo.dli_sname, DemangledNameBuffer, &DemangledNameLen, &Status);
 
-	ANSICHAR FunctionName[MAX_SPRINTF];
 	if (DemangledName)
 	{
 		// C++ function

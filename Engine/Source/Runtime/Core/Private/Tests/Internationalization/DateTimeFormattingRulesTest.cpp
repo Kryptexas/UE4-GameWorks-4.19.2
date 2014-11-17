@@ -21,7 +21,9 @@ namespace
 
 bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 {
-	const FString OriginalCulture = FInternationalization::GetCurrentCulture()->GetName();
+	FInternationalization& I18N = FInternationalization::Get();
+
+	const FString OriginalCulture = I18N.GetCurrentCulture()->GetName();
 
 	//////////////////////////////////////////////////////////////////////////
 
@@ -34,7 +36,7 @@ bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 	const FDateTime::FTime TestTime = { 12, 34, 56, 789 };
 	const FDateTime TestDateTime( TestDate.Year, TestDate.Month, TestDate.Day, TestTime.Hour, TestTime.Minute, TestTime.Second, TestTime.Millisecond );
 
-	FInternationalization::SetCurrentCulture("en-US");
+	I18N.SetCurrentCulture("en-US");
 
 	// Unix Time Values via Date Time
 	Test( this, TEXT("Testing Unix Epoch"), FText::AsDateTime(UnixEpoch, EDateTimeStyle::Short, EDateTimeStyle::Short, "GMT"), FText::FromString( TEXT("1/1/70, 12:00 AM") ) );
@@ -75,7 +77,7 @@ bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Long, EDateTimeStyle::Long, "GMT"), FText::FromString( TEXT("June 13, 1990 at 12:34:56 PM GMT") ) );
 	Test( this, TEXT("Testing Date-Time"), FText::AsDateTime(TestDateTime, EDateTimeStyle::Full, EDateTimeStyle::Full, "GMT"), FText::FromString( TEXT("Wednesday, June 13, 1990 at 12:34:56 PM GMT") ) );
 
-	FInternationalization::SetCurrentCulture("ja-JP");
+	I18N.SetCurrentCulture("ja-JP");
 
 	// Unix Time Values via Date Time
 	Test( this, TEXT("Testing Unix Epoch"), FText::AsDateTime(UnixEpoch, EDateTimeStyle::Short, EDateTimeStyle::Short, "GMT"), FText::FromString( TEXT("1970/01/01 0:00") ) );
@@ -120,7 +122,7 @@ bool FDateTimeFormattingRulesTest::RunTest (const FString& Parameters)
 #endif
 	//////////////////////////////////////////////////////////////////////////
 
-	FInternationalization::SetCurrentCulture(OriginalCulture);
+	I18N.SetCurrentCulture(OriginalCulture);
 
 	return true;
 }

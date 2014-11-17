@@ -16,7 +16,7 @@ class ONLINESUBSYSTEMUTILS_API UOnlineSessionClient : public UOnlineSession
 protected:
 
 	/** Reference to the online sessions interface */
-	IOnlineSessionPtr Sessions;
+	IOnlineSessionPtr SessionInt;
 
 	/** Delegate when an invite has been accepted from an external source */
 	FOnSessionInviteAcceptedDelegate OnSessionInviteAcceptedDelegate;
@@ -131,12 +131,12 @@ public:
 	/**
 	 * Register all delegates needed to manage online sessions
 	 */
-	virtual void RegisterOnlineDelegates() OVERRIDE;
+	virtual void RegisterOnlineDelegates(class UWorld* InWorld) OVERRIDE;
 
 	/**
 	 * Tear down all delegates used to manage online sessions
 	 */
-	virtual void ClearOnlineDelegates() OVERRIDE;
+	virtual void ClearOnlineDelegates(class UWorld* InWorld) OVERRIDE;
 
 	/**
 	 * Called to tear down any online sessions and return to main menu

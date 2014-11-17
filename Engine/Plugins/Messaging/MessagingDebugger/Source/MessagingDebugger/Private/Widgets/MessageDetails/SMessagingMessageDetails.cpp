@@ -46,7 +46,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 					.Padding(0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("MessageTypeLabel", "Message Type:").ToString())
+							.Text(LOCTEXT("MessageTypeLabel", "Message Type:"))
 					]
 
 				+ SGridPanel::Slot(1, 0)
@@ -62,7 +62,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 					.Padding(0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("SenderLabel", "Sender:").ToString())
+							.Text(LOCTEXT("SenderLabel", "Sender:"))
 					]
 
 				+ SGridPanel::Slot(1, 1)
@@ -78,7 +78,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 					.Padding(0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("SenderThreadLabel", "Sender Thread:").ToString())
+						.Text(LOCTEXT("SenderThreadLabel", "Sender Thread:"))
 					]
 
 				+ SGridPanel::Slot(1, 2)
@@ -94,7 +94,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 					.Padding(0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("TimestampLabel", "Timestamp:").ToString())
+							.Text(LOCTEXT("TimestampLabel", "Timestamp:"))
 					]
 
 				+ SGridPanel::Slot(1, 3)
@@ -110,7 +110,7 @@ void SMessagingMessageDetails::Construct( const FArguments& InArgs, const FMessa
 					.Padding(0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("ExpirationLabel", "Expiration:").ToString())
+							.Text(LOCTEXT("ExpirationLabel", "Expiration:"))
 					]
 
 				+ SGridPanel::Slot(1, 4)
@@ -199,7 +199,7 @@ TSharedRef<ITableRow> SMessagingMessageDetails::HandleDispatchStateListGenerateR
 }
 
 
-FString SMessagingMessageDetails::HandleExpirationText( ) const
+FText SMessagingMessageDetails::HandleExpirationText( ) const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -209,26 +209,26 @@ FString SMessagingMessageDetails::HandleExpirationText( ) const
 		
 		if (Expiration == FDateTime::MaxValue())
 		{
-			return LOCTEXT("ExpirationNever", "Never").ToString();
+			return LOCTEXT("ExpirationNever", "Never");
 		}
 
-		return Expiration.ToString();
+		return FText::AsDateTime(Expiration);
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 
-FString SMessagingMessageDetails::HandleMessageTypeText( ) const
+FText SMessagingMessageDetails::HandleMessageTypeText( ) const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
 	if (SelectedMessage.IsValid() && SelectedMessage->TypeInfo.IsValid())
 	{
-		return SelectedMessage->TypeInfo->TypeName.ToString();
+		return FText::FromName(SelectedMessage->TypeInfo->TypeName);
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 
@@ -238,20 +238,20 @@ void SMessagingMessageDetails::HandleModelSelectedMessageChanged( )
 }
 
 
-FString SMessagingMessageDetails::HandleSenderText( ) const
+FText SMessagingMessageDetails::HandleSenderText( ) const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
 	if (SelectedMessage.IsValid() && SelectedMessage->SenderInfo.IsValid())
 	{
-		return SelectedMessage->SenderInfo->Name.ToString();
+		return FText::FromName(SelectedMessage->SenderInfo->Name);
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 
-FString SMessagingMessageDetails::HandleSenderThreadText( ) const
+FText SMessagingMessageDetails::HandleSenderThreadText( ) const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
@@ -262,36 +262,36 @@ FString SMessagingMessageDetails::HandleSenderThreadText( ) const
 		switch (Thread)
 		{
 		case ENamedThreads::AnyThread:
-			return TEXT("AnyThread");
+			return LOCTEXT("AnyThread", "AnyThread");
 			break;
 
 		case ENamedThreads::GameThread:
-			return TEXT("GameThread");
+			return LOCTEXT("GameThread", "GameThread");
 			break;
 
 		case ENamedThreads::ActualRenderingThread:
-			return TEXT("ActualRenderingThread");
+			return LOCTEXT("ActualRenderingThread", "ActualRenderingThread");
 			break;
 
 		default:
-			return LOCTEXT("UnknownThread", "Unknown").ToString();
+			return LOCTEXT("UnknownThread", "Unknown");
 		}
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 
-FString SMessagingMessageDetails::HandleTimestampText( ) const
+FText SMessagingMessageDetails::HandleTimestampText( ) const
 {
 	FMessageTracerMessageInfoPtr SelectedMessage = Model->GetSelectedMessage();
 
 	if (SelectedMessage.IsValid() && SelectedMessage->Context.IsValid())
 	{
-		return SelectedMessage->Context->GetTimeSent().ToString();
+		return FText::AsDateTime(SelectedMessage->Context->GetTimeSent());
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 

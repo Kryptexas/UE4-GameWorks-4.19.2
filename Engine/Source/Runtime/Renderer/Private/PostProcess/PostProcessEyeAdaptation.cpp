@@ -20,6 +20,12 @@ class FPostProcessEyeAdaptationPS : public FGlobalShader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
+	static void ModifyCompilationEnvironment( EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment )
+	{
+		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
+	}
+
 	/** Default constructor. */
 	FPostProcessEyeAdaptationPS() {}
 

@@ -386,7 +386,7 @@ protected:
 		}
 
 		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-		DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_Default );
+		DragActorOp->ResetToDefaultToolTip();
 	}
 
 	/**
@@ -594,6 +594,8 @@ private:
 				GEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_Level );
 			}
 		}
+
+		const FScopedTransaction Transaction( LOCTEXT("ToggleLevelLock", "Toggle Level Lock") );
 
 		ViewModel->ToggleLock();
 		return FReply::Handled();

@@ -13,6 +13,32 @@
 
 DEFINE_LOG_CATEGORY(LogPakFile);
 
+bool FPakEntry::VerifyPakEntriesMatch(const FPakEntry& FileEntryA, const FPakEntry& FileEntryB)
+{
+	bool bResult = true;
+	if (FileEntryA.Size != FileEntryB.Size)
+	{
+		UE_LOG(LogPakFile, Error, TEXT("Pak header file size mismatch, got: %lld, expected: %lld"), FileEntryB.Size, FileEntryA.Size);
+		bResult = false;		
+	}
+	if (FileEntryA.UncompressedSize != FileEntryB.UncompressedSize)
+	{
+		UE_LOG(LogPakFile, Error, TEXT("Pak header uncompressed file size mismatch, got: %lld, expected: %lld"), FileEntryB.UncompressedSize, FileEntryA.UncompressedSize);
+		bResult = false;
+	}
+	if (FileEntryA.CompressionMethod != FileEntryB.CompressionMethod)
+	{
+		UE_LOG(LogPakFile, Error, TEXT("Pak header file compression method mismatch, got: %d, expected: %d"), FileEntryB.CompressionMethod, FileEntryA.CompressionMethod);
+		bResult = false;
+	}
+	if (FMemory::Memcmp(FileEntryA.Hash, FileEntryB.Hash, sizeof(FileEntryA.Hash)) != 0)
+	{
+		UE_LOG(LogPakFile, Error, TEXT("Pak file hash does not match its index entry"));
+		bResult = false;
+	}
+	return bResult;
+}
+
 FPakFile::FPakFile(const TCHAR* Filename, bool bIsSigned)
 	: PakFilename(Filename)
 	, bSigned(bIsSigned)
@@ -269,6 +295,8 @@ FPakPlatformFile::FPakPlatformFile()
 
 FPakPlatformFile::~FPakPlatformFile()
 {
+	FCoreDelegates::OnMountPak.Unbind();
+
 	// We need to flush async IO... if it hasn't been shut down already.
 	if (FIOSystem::HasShutdown() == false)
 	{
@@ -282,7 +310,7 @@ FPakPlatformFile::~FPakPlatformFile()
 		{
 			delete PakFiles[PakFileIndex];
 		}
-	}
+	}	
 }
 
 void FPakPlatformFile::FindPakFilesInDirectory(IPlatformFile* LowLevelFile, const TCHAR* Directory, TArray<FString>& OutPakFiles)
@@ -421,11 +449,13 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 	GPakExec = new FPakExec(*this);
 #endif // !UE_BUILD_SHIPPING
 
+	FCoreDelegates::OnMountPak.BindRaw(this, &FPakPlatformFile::HandleMountPakDelegate);
 	return !!LowerLevel;
 }
 
-void FPakPlatformFile::Mount(const TCHAR* InPakFilename, const TCHAR* InPath /*= NULL*/)
+bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, const TCHAR* InPath /*= NULL*/)
 {
+	bool bSuccess = false;
 	IFileHandle* PakHandle = LowerLevel->OpenRead(InPakFilename);
 	if (PakHandle != NULL)
 	{
@@ -441,6 +471,7 @@ void FPakPlatformFile::Mount(const TCHAR* InPakFilename, const TCHAR* InPath /*=
 				FScopeLock ScopedLock(&PakListCritical);
 				PakFiles.Add(Pak);
 			}
+			bSuccess = true;
 		}
 		else
 		{
@@ -451,6 +482,7 @@ void FPakPlatformFile::Mount(const TCHAR* InPakFilename, const TCHAR* InPath /*=
 	{
 		UE_LOG(LogPakFile, Warning, TEXT("Pak \"%s\" does not exist!"), InPakFilename);
 	}
+	return bSuccess;
 }
 
 IFileHandle* FPakPlatformFile::CreatePakFileHandle(const TCHAR* Filename, FPakFile* PakFile, const FPakEntry* FileEntry)
@@ -458,47 +490,15 @@ IFileHandle* FPakPlatformFile::CreatePakFileHandle(const TCHAR* Filename, FPakFi
 	IFileHandle* Result = NULL;
 	FArchive* PakReader = PakFile->GetSharedReader(LowerLevel);
 
-	// Insufficent but at least minimal pak file corruption protection.
-	FPakEntry FileHeader;
-	PakReader->Seek(FileEntry->Offset);
-	FileHeader.Serialize(*PakReader, PakFile->GetInfo().Version);
-	if (VerifyHeaderAndPakEntry(*FileEntry, FileHeader))
-	{
-		// Ok to create the handle.
-		Result = new FPakFileHandle(*PakFile, *FileEntry, PakReader, true);		
-	}
-	else
-	{
-		UE_LOG(LogPakFile, Fatal, TEXT("Pak file \"%s\" corruption detected when trying to create a handle for \"%s\"."), *PakFile->GetFilename(), Filename);
-	}
+	// Create the handle.
+	Result = new FPakFileHandle(*PakFile, *FileEntry, PakReader, true);		
 
 	return Result;
 }
 
-bool FPakPlatformFile::VerifyHeaderAndPakEntry(const FPakEntry& FileEntry, const FPakEntry& FileHeader) const
+bool FPakPlatformFile::HandleMountPakDelegate(const FString& PakFilePath)
 {
-	bool bResult = true;
-	if (FileEntry.Size != FileHeader.Size)
-	{
-		UE_LOG(LogPakFile, Error, TEXT("Pak header file size mismatch, got: %lld, expected: %lld"), FileHeader.Size, FileEntry.Size);
-		bResult = false;		
-	}
-	if (FileEntry.UncompressedSize != FileHeader.UncompressedSize)
-	{
-		UE_LOG(LogPakFile, Error, TEXT("Pak header uncompressed file size mismatch, got: %lld, expected: %lld"), FileHeader.UncompressedSize, FileEntry.UncompressedSize);
-		bResult = false;
-	}
-	if (FileEntry.CompressionMethod != FileHeader.CompressionMethod)
-	{
-		UE_LOG(LogPakFile, Error, TEXT("Pak header file compression method mismatch, got: %d, expected: %d"), FileHeader.CompressionMethod, FileEntry.CompressionMethod);
-		bResult = false;
-	}
-	if (FMemory::Memcmp(FileEntry.Hash, FileHeader.Hash, sizeof(FileEntry.Hash)) != 0)
-	{
-		UE_LOG(LogPakFile, Error, TEXT("Pak file hash does not match its index entry"));
-		bResult = false;
-	}
-	return bResult;
+	return Mount(*PakFilePath);
 }
 
 IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename)

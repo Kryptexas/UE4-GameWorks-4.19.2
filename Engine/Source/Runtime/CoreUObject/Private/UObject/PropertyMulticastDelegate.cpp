@@ -248,6 +248,11 @@ void UMulticastDelegateProperty::Serialize( FArchive& Ar )
 	Ar << SignatureFunction;
 }
 
+bool UMulticastDelegateProperty::SameType(const UProperty* Other) const
+{
+	return Super::SameType(Other) && (SignatureFunction == ((UMulticastDelegateProperty*)Other)->SignatureFunction);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UMulticastDelegateProperty, UProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UMulticastDelegateProperty, SignatureFunction ) );

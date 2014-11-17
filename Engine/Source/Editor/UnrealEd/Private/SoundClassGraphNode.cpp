@@ -93,11 +93,11 @@ bool USoundClassGraphNode::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* S
 	return Schema->IsA(USoundClassGraphSchema::StaticClass());
 }
 
-FString USoundClassGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText USoundClassGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (SoundClass)
 	{
-		return SoundClass->GetName();
+		return FText::FromString(SoundClass->GetName());
 	}
 	else
 	{

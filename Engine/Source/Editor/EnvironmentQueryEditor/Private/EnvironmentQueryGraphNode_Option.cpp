@@ -31,16 +31,16 @@ void UEnvironmentQueryGraphNode_Option::PostPlacedNewNode()
 	}
 }
 
-FString UEnvironmentQueryGraphNode_Option::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UEnvironmentQueryGraphNode_Option::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);
-	return OptionInstance ? OptionInstance->GetDescriptionTitle() : FString();
+	return OptionInstance ? OptionInstance->GetDescriptionTitle() : FText::GetEmpty();
 }
 
-FString UEnvironmentQueryGraphNode_Option::GetDescription() const
+FText UEnvironmentQueryGraphNode_Option::GetDescription() const
 {
 	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);
-	return OptionInstance ? OptionInstance->GetDescriptionDetails() : FString();
+	return OptionInstance ? OptionInstance->GetDescriptionDetails() : FText::GetEmpty();
 }
 
 void UEnvironmentQueryGraphNode_Option::AddSubNode(UEnvironmentQueryGraphNode_Test* NodeTemplate, class UEdGraph* ParentGraph)

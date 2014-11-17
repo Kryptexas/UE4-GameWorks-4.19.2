@@ -9,6 +9,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendListByInt
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_BlendListByInt::UAnimGraphNode_BlendListByInt(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -16,12 +18,12 @@ UAnimGraphNode_BlendListByInt::UAnimGraphNode_BlendListByInt(const FPostConstruc
 
 FString UAnimGraphNode_BlendListByInt::GetTooltip() const
 {
-	return FString::Printf(TEXT("Blend List (by int)"));
+	return LOCTEXT("AnimGraphNode_BlendListByInt_Tooltip", "Blend List (by int)").ToString();
 }
 
-FString UAnimGraphNode_BlendListByInt::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_BlendListByInt::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(TEXT("Blend Poses by int"));
+	return LOCTEXT("AnimGraphNode_BlendListByInt_Title", "Blend Poses by int");
 }
 
 void UAnimGraphNode_BlendListByInt::PostPlacedNewNode()
@@ -85,3 +87,5 @@ void UAnimGraphNode_BlendListByInt::GetContextMenuActions(const FGraphNodeContex
 		Context.MenuBuilder->EndSection();	
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

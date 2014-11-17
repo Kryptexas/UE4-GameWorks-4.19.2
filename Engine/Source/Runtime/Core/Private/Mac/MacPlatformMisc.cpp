@@ -149,14 +149,16 @@ struct MacApplicationInfo
 		FString UserCrashVideoPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*CrashVideoPath);
 		FCStringAnsi::Strcpy(CrashReportVideo, PATH_MAX+1, TCHAR_TO_UTF8(*UserCrashVideoPath));
 		
+		// Cache & create the crash report folder.
 		FString ReportPath = FPaths::ConvertRelativePathToFull(FString::Printf(TEXT("%s"), *(FPaths::GameAgnosticSavedDir() / TEXT("Crashes"))));
 		FCStringAnsi::Strcpy(CrashReportPath, PATH_MAX+1, TCHAR_TO_UTF8(*ReportPath));
-		FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), FApp::GetBuildConfiguration()));
+		FString ReportClient = FPaths::ConvertRelativePathToFull(FPlatformProcess::GenerateApplicationPath(TEXT("CrashReportClient"), EBuildConfigurations::Development));
 		FCStringAnsi::Strcpy(CrashReportClient, PATH_MAX+1, TCHAR_TO_UTF8(*ReportClient));
+		IFileManager::Get().MakeDirectory(*ReportPath, true);
 		
 		AppPath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
 		
-		LCID = FString::Printf(TEXT("%d"), FInternationalization::GetCurrentCulture()->GetLCID());
+		LCID = FString::Printf(TEXT("%d"), FInternationalization::Get().GetCurrentCulture()->GetLCID());
 	}
 	
 	char AppNameUTF8[PATH_MAX+1];
@@ -325,6 +327,8 @@ void FMacPlatformMisc::PlatformPostInit()
 	}
 }
 
+#endif		// WITH_ENGINE
+
 /**
  * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
  * Vista in the presence of a group policy for password protected screen saver.
@@ -338,8 +342,6 @@ void FMacPlatformMisc::PreventScreenSaver()
 	CGEventPost( kCGHIDEventTap, MouseMoveCommand );
 	CFRelease( MouseMoveCommand );
 }
-
-#endif		// WITH_ENGINE
 
 GenericApplication* FMacPlatformMisc::CreateApplication()
 {
@@ -474,7 +476,7 @@ void FMacPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorReport
 			FCString::Strcpy(PlatformName, TEXT("Mac 32-bit"));
 #endif	//PLATFORM_64BITS
 			TCHAR CultureName[10];
-			FCString::Strcpy(CultureName, *FInternationalization::GetCurrentCulture()->GetName());
+			FCString::Strcpy(CultureName, *FInternationalization::Get().GetCurrentCulture()->GetName());
 			TCHAR SystemTime[256];
 			FCString::Strcpy(SystemTime, *FDateTime::Now().ToString());
 			TCHAR EngineVersionStr[32];
@@ -1061,11 +1063,31 @@ FString FMacPlatformMisc::GetCPUVendor()
 	return ANSI_TO_TCHAR(VendorResult.Buffer);
 }
 
+uint32 FMacPlatformMisc::GetCPUInfo()
+{
+	uint32 Args[4];
+	asm( "cpuid" : "=a" (Args[0]), "=b" (Args[1]), "=c" (Args[2]), "=d" (Args[3]) : "a" (1));
+
+	return Args[0];
+}
+
 int32 FMacPlatformMisc::ConvertSlateYPositionToCocoa(int32 YPosition)
 {
-	NSScreen* PrimaryScreen = [[NSScreen screens] objectAtIndex: 0];
-	const float PrimaryScreenHeight = [PrimaryScreen frame].size.height;
-	return -(YPosition - PrimaryScreenHeight + 1);
+	NSArray* AllScreens = [NSScreen screens];
+	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
+	NSRect ScreenFrame = [PrimaryScreen frame];
+	NSRect WholeWorkspace = {0};
+	for(NSScreen* Screen in AllScreens)
+	{
+		if(Screen)
+		{
+			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
+		}
+	}
+	
+	const float WholeWorkspaceOrigin = FMath::Min((ScreenFrame.size.height - (WholeWorkspace.origin.y + WholeWorkspace.size.height)), 0.0);
+	const float WholeWorkspaceHeight = WholeWorkspace.origin.y + WholeWorkspace.size.height;
+	return -((YPosition - WholeWorkspaceOrigin) - WholeWorkspaceHeight + 1);
 }
 
 
@@ -1404,9 +1426,6 @@ void FMacCrashContext::GenerateMinidump(char const* MinidumpCallstackInfo, char 
 
 void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 {
-	// do not report crashes for tools (particularly for crash reporter itself)
-#if !IS_PROGRAM
-	
 	// create a crash-specific directory
 	char CrashInfoFolder[PATH_MAX] = {};
 	FCStringAnsi::Strncpy(CrashInfoFolder, GMacAppInfo.CrashReportPath, PATH_MAX);
@@ -1510,8 +1529,6 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 			waitpid(ForkPID, &StatLoc, 0);
 		}
 	}
-	
-#endif
 	
 	_Exit(0);
 }

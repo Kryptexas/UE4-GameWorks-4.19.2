@@ -77,5 +77,5 @@ public:
 	 *
 	 * @param InRecipients list of user ids to send test messages to
 	 */
-	void Test(const TArray<FString>& InRecipients);
+	void Test(class UWorld* InWorld, const TArray<FString>& InRecipients);
  };

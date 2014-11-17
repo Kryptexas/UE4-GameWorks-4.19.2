@@ -7,11 +7,10 @@
 
 #pragma once
 
-// TODO: @JarekS 2013-12-10, 20:36 As stats?
 /**
  *	Windows implementation of the FGenericPlatformMemoryStats.
  *	At this moment it's just the same as the FGenericPlatformMemoryStats.
- *	Can be extended as showed in the following example.
+ *	Can be extended as shown in the following example.
  */
 struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
 {
@@ -41,17 +40,37 @@ struct CORE_API FWindowsPlatformMemory : public FGenericPlatformMemory
 		MCR_MAX
 	};
 
+	/**
+	 * Windows representation of a shared memory region
+	 */
+	struct FWindowsSharedMemoryRegion : public FSharedMemoryRegion
+	{
+		/** Returns the handle to file mapping object. */
+		HANDLE GetMapping() const { return Mapping; }
+
+		FWindowsSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize, HANDLE InMapping)
+			:	FSharedMemoryRegion(InName, InAccessMode, InAddress, InSize)
+			,	Mapping(InMapping)
+		{}
+
+	protected:
+
+		/** Handle of a file mapping object */
+		HANDLE				Mapping;
+	};
+
 	// Begin FGenericPlatformMemory interface
 	static void Init();
 	static class FMalloc* BaseAllocator();
 	static FPlatformMemoryStats GetStats();
+	static void GetStatsForMallocProfiler( FGenericMemoryStats& out_Stats );
 	static const FPlatformMemoryConstants& GetConstants();
+	static void UpdateStats();
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
+	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
+	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
 	// End FGenericPlatformMemory interface
 };
 
 typedef FWindowsPlatformMemory FPlatformMemory;
-
-
-

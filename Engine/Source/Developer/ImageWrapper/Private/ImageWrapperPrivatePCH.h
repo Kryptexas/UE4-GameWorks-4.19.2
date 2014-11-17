@@ -34,3 +34,4 @@ DECLARE_LOG_CATEGORY_EXTERN(LogImageWrapper, Log, All);
 #endif
 
 #include "BmpImageWrapper.h"
+#include "IcoImageWrapper.h"

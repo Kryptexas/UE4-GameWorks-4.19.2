@@ -414,14 +414,14 @@ public:
 
 	// Begin IReceiveMessages interface
 
+	virtual FName GetDebugName( ) const OVERRIDE
+	{
+		return Name;
+	}
+
 	virtual const FGuid& GetRecipientId( ) const OVERRIDE
 	{
 		return Id;
-	}
-
-	virtual FName GetRecipientName( const FMessageAddress& RecipientAddress ) const OVERRIDE
-	{
-		return Name;
 	}
 
 	virtual ENamedThreads::Type GetRecipientThread( ) const OVERRIDE

@@ -28,7 +28,7 @@ void SProfilerToolbar::Construct( const FArguments& InArgs )
 			ToolbarBuilder.BeginSection("File");
 			{
 				ToolbarBuilder.AddToolBarButton( FProfilerCommands::Get().ProfilerManager_Load );
-				ToolbarBuilder.AddToolBarButton( FProfilerCommands::Get().Save );
+				ToolbarBuilder.AddToolBarButton( FProfilerCommands::Get().ProfilerManager_Save );
 			}
 			ToolbarBuilder.EndSection();
 			ToolbarBuilder.BeginSection("Capture");
@@ -153,7 +153,7 @@ void SProfilerToolbar::CreateCommands()
 	const FProfilerCommands& Commands = FProfilerCommands::Get();
 
 	// Save command
-	ProfilerCommandList->MapAction( Commands.Save,
+	ProfilerCommandList->MapAction( Commands.ProfilerManager_Save,
 		FExecuteAction(),
 		FCanExecuteAction::CreateRaw( this, &SProfilerToolbar::IsImplemented )
 	);

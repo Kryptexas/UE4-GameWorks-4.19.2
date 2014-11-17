@@ -595,11 +595,11 @@ bool FCascadeEdPreviewViewportClient::InputAxis(FViewport* Viewport, int32 Contr
 	{
 		FRotator LightDir = CascadePreviewScene.GetLightDirection();
 		// Look at which axis is being dragged and by how much
-		const float DragX = (Key == EKeys::MouseX) ? Delta : 0.f;
-		const float DragY = (Key == EKeys::MouseY) ? Delta : 0.f;
+		const float DragDeltaX = (Key == EKeys::MouseX) ? Delta : 0.f;
+		const float DragDeltaY = (Key == EKeys::MouseY) ? Delta : 0.f;
 
-		LightDir.Yaw += -DragX * LightRotSpeed;
-		LightDir.Pitch += -DragY * LightRotSpeed;
+		LightDir.Yaw += -DragDeltaX * LightRotSpeed;
+		LightDir.Pitch += -DragDeltaY * LightRotSpeed;
 
 		CascadePreviewScene.SetLightDirection(LightDir);
 

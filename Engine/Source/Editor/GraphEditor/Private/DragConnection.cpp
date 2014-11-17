@@ -7,7 +7,6 @@
 TSharedRef<FDragConnection> FDragConnection::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphPin>& InStartingPin)
 {
 	TSharedRef<FDragConnection> Operation = MakeShareable(new FDragConnection);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FDragConnection>(Operation);
 	Operation->GraphPanel = InGraphPanel;
 	Operation->StartingPins.Add(InStartingPin);
 
@@ -26,7 +25,6 @@ TSharedRef<FDragConnection> FDragConnection::New(const TSharedRef<SGraphPanel>& 
 TSharedRef<FDragConnection> FDragConnection::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphPin> >& InStartingPins, bool bIsMovingLinks)
 {
 	TSharedRef<FDragConnection> Operation = MakeShareable(new FDragConnection);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FDragConnection>(Operation);
 	Operation->GraphPanel = InGraphPanel;
 	Operation->StartingPins = InStartingPins;
 	Operation->DecoratorAdjust = FSlateApplication::Get().GetCursorSize();
@@ -100,7 +98,7 @@ void FDragConnection::HoverTargetChanged()
 		SetSimpleFeedbackMessage(
 			FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode")),
 			FLinearColor::White,
-			NSLOCTEXT("GraphEditor.Feedback", "PlaceNewNode", "Place a new node.").ToString());
+			NSLOCTEXT("GraphEditor.Feedback", "PlaceNewNode", "Place a new node."));
 	}
 	else
 	{

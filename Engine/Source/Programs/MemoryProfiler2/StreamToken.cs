@@ -11,14 +11,14 @@ using System.Diagnostics;
 namespace MemoryProfiler2
 {
 	/// <summary> The lower 2 bits of a pointer are piggy-bagged to store what kind of data follows it. This enum lists the possible types. </summary>
-    public enum EProfilingPayloadType
-    {
-        TYPE_Malloc		= 0,
-        TYPE_Free		= 1,
-        TYPE_Realloc	= 2,
-        TYPE_Other		= 3,
-        // Don't add more than 4 values - we only have 2 bits to store this.
-    }
+	public enum EProfilingPayloadType
+	{
+		TYPE_Malloc		= 0,
+		TYPE_Free		= 1,
+		TYPE_Realloc	= 2,
+		TYPE_Other		= 3,
+		// Don't add more than 4 values - we only have 2 bits to store this.
+	}
 
 	/// <summary> 
 	///	The the case of TYPE_Other, this enum determines the subtype of the token.
@@ -99,7 +99,7 @@ namespace MemoryProfiler2
 		/// <summary> Marker used to determine when a previously streamed level has been made visible. </summary> 
 		SUBTYPE_SnapshotMarker_LevelStream_End = 27,
 
-		/// <summary> Marker used to store a generic malloc statistics. @see FMemoryAllocationStats. </summary> 
+		/// <summary> Marker used to store a generic malloc statistics. @see FMallocProfiler::WriteMemoryAllocationStats </summary> 
 		SUBTYPE_MemoryAllocationStats = 31,
 
 		/// <summary> Start licensee-specific subtypes from here. </summary> 
@@ -109,65 +109,13 @@ namespace MemoryProfiler2
 		SUBTYPE_Unknown,
 	};
 
-	/// <summary> Enumeration of all memory allocation statistics types. </summary>
-	public enum FMemoryAllocationTypes
+	public interface IMemoryStats
 	{
-		/// <summary> The total amount of memory used by the game. </summary>
-		TotalUsed,
-		/// <summary> The total amount of memory allocated from the OS. </summary>
-		TotalAllocated,
 
-		// Virtual memory for Xbox and PC / Main memory for PS3 (tracked in the allocators) Host is not included ??
-
-		/// <summary> The allocated in use by the application virtual memory. </summary>
-		CPUUsed,
-		/// <summary> The allocated from the OS/allocator, but not used by the application. </summary>
-		CPUSlack,
-		/// <summary> Alignment waste from a pooled allocator plus book keeping overhead. </summary>
-		CPUWaste,
-		/// <summary> The amount of free memory before the first malloc has been done. (PS3 only). </summary>
-		CPUAvailable,
-
-		// Physical memory for Xbox and PC / Local memory for PS3 (tracked in the allocators)
-
-		/// <summary> The allocated in use by the application physical memory. </summary>
-		GPUUsed,
-		/// <summary> The allocated from the OS, but not used by the application. </summary>
-		GPUSlack,
-		/// <summary> Alignment waste from a pooled allocator plus book keeping overhead. </summary>
-		GPUWaste,
-		/// <summary> The total amount of memory available for the allocator. (PS3 only) </summary>
-		GPUAvailable,
-
-		/// <summary> Used memory as reported by the operating system. (Xbox360, PS3 only) </summary>
-		OSReportedUsed,
-		/// <summary> Free memory as reported by the operating system. (Xbox360, PS3 only) </summary>
-		OSReportedFree,
-		/// <summary> The overhead of the operating system. (Xbox360 only) </summary>
-		OSOverhead,
-		/// <summary> Size of loaded executable, stack, static, and global object size. (Xbox360, PS3 only) </summary>
-		ImageSize,
-
-		/// <summary> Host memory in use by the application. (PS3 only) </summary>
-		HostUsed,
-		/// <summary> Host memory allocated, but not used by the application. (PS3 only) </summary>
-		HostSlack,
-		/// <summary> Host memory wasted due to allocations' alignment. (PS3 only) </summary>
-		HostWaste,
-		/// <summary> The total amount of host memory that has been allocated. (PS3 only) </summary>
-		HostAvailable,
-
-		/// <summary> Size of allocated memory in the texture pool. </summary>
-		AllocatedTextureMemorySize,
-		/// <summary> Size of available memory in the texture pool. </summary>
-		AvailableTextureMemorySize,
-
-		/// <summary> Last item used as a count. </summary>
-		Count,
 	}
 
 	/// <summary> Struct used to hold memory allocation statistics. Mirrored in MemoryBase.h. This need to be a class because of how ReadMemoryAllocationsStats method works. </summary>
-	public class FMemoryAllocationStats
+	public class FMemoryAllocationStatsV3
 	{
 		/// <summary> The total amount of memory used by the game. </summary>
 		public Int64 TotalUsed;
@@ -249,11 +197,11 @@ namespace MemoryProfiler2
 		}
 
 		/// <summary> Returns a difference between old and new memory allocation stats. </summary>
-		public static FMemoryAllocationStats Diff( FMemoryAllocationStats Old, FMemoryAllocationStats New )
+		public static FMemoryAllocationStatsV3 Diff( FMemoryAllocationStatsV3 Old, FMemoryAllocationStatsV3 New )
 		{
-			FMemoryAllocationStats Diff = new FMemoryAllocationStats();
+			FMemoryAllocationStatsV3 Diff = new FMemoryAllocationStatsV3();
 
-			FieldInfo[] FieldInfos = typeof( FMemoryAllocationStats ).GetFields();
+			FieldInfo[] FieldInfos = typeof( FMemoryAllocationStatsV3 ).GetFields();
 			int PropertiesNum = FieldInfos.Length;
 
 			for( int FieldIndex = 0; FieldIndex < PropertiesNum; FieldIndex++ )
@@ -268,9 +216,9 @@ namespace MemoryProfiler2
 		}
 
 		/// <summary> Creates a new copy of this class. </summary>
-		public FMemoryAllocationStats DeepCopy()
+		public FMemoryAllocationStatsV3 DeepCopy()
 		{
-			FMemoryAllocationStats Copy = ( FMemoryAllocationStats )MemberwiseClone();
+			FMemoryAllocationStatsV3 Copy = ( FMemoryAllocationStatsV3 )MemberwiseClone();
 			return Copy;
 		}
 
@@ -353,58 +301,176 @@ namespace MemoryProfiler2
 		}
 	};
 
+	/// <summary> 
+	/// Struct used to hold platform memory stats and allocator stats. Valid only for MemoryProfiler2.FProfileDataHeader.Version >= 4.
+	/// @see FGenericPlatformMemory::GetStatsForMallocProfiler 
+	/// @see FMalloc::GetAllocatorStats
+	/// @todo add support for non-generic platform memory stats.
+	/// </summary>
+	public class FMemoryAllocationStatsV4
+	{
+		// Names of generic platform memory stats. @see FGenericPlatformMemoryStats
+		
+		/// <summary> The amount of actual physical memory, in bytes. </summary>
+		static public string PlatformTotalPhysical = "Total Physical";
+
+		/// <summary> The amount of virtual memory, in bytes. </summary>
+		static public string PlatformTotalVirtual = "Total Virtual";
+
+		/// <summary> The size of a page, in bytes. </summary>
+		static public string PlatformPageSize = "Page Size";
+
+		/// <summary> Approximate physical RAM in GB"; 1 on everything except PC. Used for "course tuning", like FPlatformMisc::NumberOfCores(). </summary>
+		static public string PlatformTotalPhysicalGB = "Total Physical GB";
+
+		/// <summary> The amount of physical memory currently available, in bytes. </summary>
+		static public string PlatformAvailablePhysical = "Available Physical";
+
+		/// <summary> The amount of virtual memory currently available, in bytes. </summary>
+		static public string PlatformAvailableVirtual = "Available Virtual";
+
+		/// <summary> The amount of physical memory used by the process, in bytes. </summary>
+		static public string PlatformUsedPhysical = "Used Physical";
+
+		/// <summary> The peak amount of physical memory used by the process, in bytes. </summary>
+		static public string PlatformPeakUsedPhysical = "Peak Used Physical";
+
+		/// <summary> Total amount of virtual memory used by the process. </summary>
+		static public string PlatformUsedVirtual = "Used Virtual";
+
+		/// <summary> The peak amount of virtual memory used by the process. </summary>
+		static public string PlatformPeakUsedVirtual = "Peak Used Virtual";
+
+		static public string MemoryProfilingOverhead = "Memory Profiling Overhead";
+
+		// Names of malloc binned memory stats. @see FMallocBinned.GetAllocatorStats 
+
+		static public string BinnedWasteCurrent = "Binned Waste Current";
+		static public string BinnedUsedCurrent = "Binned Used Current";
+		static public string BinnedSlackCurrent = "Binned Slack Current";
+
+		private Dictionary<string, Int64> _Stats;
+
+		public FMemoryAllocationStatsV4()
+		{
+			_Stats = new Dictionary<string, Int64>();
+		}
+
+		public FMemoryAllocationStatsV4( FMemoryAllocationStatsV4 Other )
+		{
+			this._Stats = new Dictionary<string, Int64>( Other._Stats );
+		}
+
+		public Int64 this[string StatName]
+		{
+			get
+			{
+				return _Stats[StatName];
+			}
+			set
+			{
+				_Stats[StatName] = value;
+			}
+		}
+
+		public Int64 NumStats()
+		{
+			return _Stats.Count;
+		}
+
+		/// <summary> Returns a difference between old and new platform memory stats. </summary>
+		public static FMemoryAllocationStatsV4 Diff( FMemoryAllocationStatsV4 Old, FMemoryAllocationStatsV4 New )
+		{
+			FMemoryAllocationStatsV4 Diff = new FMemoryAllocationStatsV4();
+
+			var Keys = Old._Stats.Keys;
+
+			foreach( string KeyValue in Keys )
+			{
+				Int64 OldValue = Old[KeyValue];
+				Int64 NewValue = New[KeyValue];
+
+				Diff[KeyValue] = NewValue - OldValue;
+			}
+
+			return Diff;
+		}
+
+		/// <summary> Creates a new copy of this class. </summary>
+		public FMemoryAllocationStatsV4 DeepCopy()
+		{
+			FMemoryAllocationStatsV4 Copy = new FMemoryAllocationStatsV4(this);
+			return Copy;
+		}
+
+		/// <summary> Converts this memory allocation statistics to its equivalent string representation. </summary>
+		public override string ToString()
+		{
+			StringBuilder StrBuilder = new StringBuilder( 1024 );
+
+			foreach( KeyValuePair<string, Int64> KeyPairValue in _Stats )
+			{
+				StrBuilder.AppendLine( string.Format( "	{0}: {1}", KeyPairValue.Key, MainWindow.FormatSizeString2( KeyPairValue.Value ) ) );
+			}
+
+			return StrBuilder.ToString();
+		}
+
+		
+	};
+
 	/// <summary>
-    /// Variable sized token emitted by capture code. The parsing code ReadNextToken deals with this and updates
-    /// internal data. The calling code is responsible for only accessing member variables associated with the type.
-    /// </summary>
-    public class FStreamToken//@TODO: Can I turn this back into a struct?
-    {
-        // Parsing configuration
+	/// Variable sized token emitted by capture code. The parsing code ReadNextToken deals with this and updates
+	/// internal data. The calling code is responsible for only accessing member variables associated with the type.
+	/// </summary>
+	public class FStreamToken//@TODO: Can I turn this back into a struct?
+	{
+		// Parsing configuration
 
 		/// <summary> Mask of pointer field to get a real pointer (the two LSB are type fields, and the top bits may be a pool index. </summary>
-        public static UInt64 PointerMask = 0xFFFFFFFFFFFFFFFCUL;
+		public static UInt64 PointerMask = 0xFFFFFFFFFFFFFFFCUL;
 
-        public const UInt64 TypeMask = 0x3UL;
-        public static int PoolShift = 64;
+		public const UInt64 TypeMask = 0x3UL;
+		public static int PoolShift = 64;
 
-		/// <summary> Whether to decote the script callstacks. </summary>
-        public static bool bDecodeScriptCallstacks;
+		/// <summary> Whether to decode the script callstacks. </summary>
+		public static bool bDecodeScriptCallstacks;
 
-		/// <summary> Version of the stream. </summary>
-        public static uint Version;
+		/// <summary> Version of the stream, same as FProfileDataHeader.Version  </summary>
+		public static uint Version;
 
 		/// <summary> Position in the stream. </summary>
 		public ulong StreamIndex = 0;
 
 		/// <summary> Type of token. </summary>
-        public EProfilingPayloadType Type;
+		public EProfilingPayloadType Type;
 
 		/// <summary> Subtype of token if it's of TYPE_Other. </summary>
-        public EProfilingPayloadSubType SubType;
+		public EProfilingPayloadSubType SubType;
 
 		/// <summary> Pointer in the case of alloc / free. </summary>
-        public UInt64 Pointer;
+		public UInt64 Pointer;
 
 		/// <summary> Old pointer in the case of realloc. </summary>
-        public UInt64 OldPointer;
+		public UInt64 OldPointer;
 
 		/// <summary> New pointer in the case of realloc. </summary>
-        public UInt64 NewPointer;
+		public UInt64 NewPointer;
 
 		/// <summary> Index into callstack array. </summary>
-        public Int32 CallStackIndex;
+		public Int32 CallStackIndex;
 
 		/// <summary> Size of allocation in alloc / realloc case. </summary>
-        public Int32 Size;
+		public Int32 Size;
 
 		/// <summary> Payload if type is TYPE_Other. </summary>
-        public UInt32 Payload;
+		public UInt32 Payload;
 
 		/// <summary> Payload data if type is TYPE_Other and subtype is SUBTYPE_SnapshotMarker or SUBTYPE_TextMarker. Index into array of unique names. </summary>
-        public int TextIndex;
+		public int TextIndex;
 
 		/// <summary> Payload data if type is TYPE_Other and subtype is SUBTYPE_FrameTimeMarker. Current delta time in seconds. </summary>
-        public float DeltaTime;
+		public float DeltaTime;
 
 		/// <summary> Total time, increased every time DeltaTime has been read. </summary>
 		public float TotalTime = 0.0f;
@@ -413,22 +479,25 @@ namespace MemoryProfiler2
 		public float ElapsedTime = 0.0f;
 
 		/// <summary> Memory pool. </summary>
-        public EMemoryPool Pool;
+		public EMemoryPool Pool;
 
 		/// <summary> Platform dependent memory metrics. </summary>
-        public List<long> Metrics = new List<long>();
+		public List<long> Metrics = new List<long>();
 
 		/// <summary> A list of indices into the name table, one for each loaded level including persistent level. </summary>
-        public List<int> LoadedLevels = new List<int>();
+		public List<int> LoadedLevels = new List<int>();
 
-		/// <summary> Generic memory allocation stats. </summary>
-		public FMemoryAllocationStats MemoryAllocationStats = new FMemoryAllocationStats();
+		/// <summary> Generic memory allocation stats for V3. </summary>
+		public FMemoryAllocationStatsV3 MemoryAllocationStats3 = new FMemoryAllocationStatsV3();
+
+		/// <summary> Generic memory allocation stats for V4. </summary>
+		public FMemoryAllocationStatsV4 MemoryAllocationStats4 = new FMemoryAllocationStatsV4();
 
 		/// <summary> Index into script callstack array. </summary>
-        public int ScriptCallstackIndex;
+		public int ScriptCallstackIndex;
 
 		/// <summary> Index into script-object type array. </summary>
-        public int ScriptObjectTypeIndex;
+		public int ScriptObjectTypeIndex;
 
 		/// <summary> Reads a script callstack. </summary>
 		/// <param name="BinaryStream"> Stream to serialize data from </param>
@@ -479,15 +548,15 @@ namespace MemoryProfiler2
 
 		/// <summary> Reads platform dependent memory metrics. </summary>
 		/// <param name="BinaryStream"> Stream to serialize data from </param>
-        void ReadMetrics(BinaryReader BinaryStream)
-        {
-            // Read the metrics 
-            int NumMetrics = BinaryStream.ReadByte();
-            for (int i = 0; i < NumMetrics; i++)
-            {
-                Metrics.Add(BinaryStream.ReadInt64());
-            }
-        }
+		void ReadMetrics(BinaryReader BinaryStream)
+		{
+			// Read the metrics 
+			int NumMetrics = BinaryStream.ReadByte();
+			for (int i = 0; i < NumMetrics; i++)
+			{
+				Metrics.Add(BinaryStream.ReadInt64());
+			}
+		}
 
 		/// <summary> Reads names of all loaded levels. </summary>
 		/// <param name="BinaryStream"> Stream to serialize data from </param>
@@ -507,43 +576,61 @@ namespace MemoryProfiler2
 		/// <param name="BinaryStream"> Stream to serialize data from </param>
 		private void ReadMemoryAllocationsStats( BinaryReader BinaryStream )
 		{
-			int StatsNum = BinaryStream.ReadByte();
-
-			FieldInfo[] FieldInfos = MemoryAllocationStats.GetType().GetFields();
-			int PropertiesNum = FieldInfos.Length;
-			Debug.Assert( StatsNum == PropertiesNum );
-
-			for( int StatIndex = 0; StatIndex < StatsNum; StatIndex++ )
+			if( Version >= 4 )
 			{
-				Int64 Value = BinaryStream.ReadInt64();
-				FieldInfos[ StatIndex ].SetValue( MemoryAllocationStats, Value );
+				// Read Platform Memory and Allocator Stats
+				// @see FMallocProfiler::WriteMemoryAllocationStats
+				int StatsNum = BinaryStream.ReadByte();
+
+				for( int StatIndex = 0; StatIndex < StatsNum; StatIndex++ )
+				{
+					int NameIndex = BinaryStream.ReadInt32();
+					Int64 StatValue = BinaryStream.ReadInt64();
+					string StatName = FStreamInfo.GlobalInstance.NameArray[NameIndex];
+
+					MemoryAllocationStats4[StatName] = StatValue;
+				}
 			}
+			else
+			{
+				int StatsNum = BinaryStream.ReadByte();
+
+				FieldInfo[] FieldInfos = MemoryAllocationStats3.GetType().GetFields();
+				int PropertiesNum = FieldInfos.Length;
+				Debug.Assert( StatsNum == PropertiesNum );
+
+				for( int StatIndex = 0; StatIndex < StatsNum; StatIndex++ )
+				{
+					Int64 Value = BinaryStream.ReadInt64();
+					FieldInfos[StatIndex].SetValue( MemoryAllocationStats3, Value );
+				}
+			}			
 		}
 
 		/// <summary> Updates the token with data read from passed in stream and returns whether we've reached the end. </summary>
 		/// <param name="BinaryStream"> Stream to serialize data from </param>
 		public bool ReadNextToken( BinaryReader BinaryStream )
-        {
-            bool bReachedEndOfStream = false;
+		{
+			bool bReachedEndOfStream = false;
 
 			// Initialize to defaults.
 			SubType = EProfilingPayloadSubType.SUBTYPE_Unknown;
 			TextIndex = -1;
 
-            // Read the pointer and convert to token type by looking at lowest 2 bits. Pointers are always
-            // 4 byte aligned so need to clear them again after the conversion.
-            UInt64 RawPointerData = BinaryStream.ReadUInt64();
+			// Read the pointer and convert to token type by looking at lowest 2 bits. Pointers are always
+			// 4 byte aligned so need to clear them again after the conversion.
+			UInt64 RawPointerData = BinaryStream.ReadUInt64();
 
 			Pool = EMemoryPool.MEMPOOL_Main;
-            Type = (EProfilingPayloadType)(RawPointerData & TypeMask);
-            Pointer = RawPointerData & PointerMask;
+			Type = (EProfilingPayloadType)(RawPointerData & TypeMask);
+			Pointer = RawPointerData & PointerMask;
 
-            Metrics.Clear();
-            LoadedLevels.Clear();
-			MemoryAllocationStats.Zero();
+			Metrics.Clear();
+			LoadedLevels.Clear();
+			MemoryAllocationStats3.Zero();
 			CallStackIndex = -1;
-            ScriptCallstackIndex = -1;
-            ScriptObjectTypeIndex = -1;
+			ScriptCallstackIndex = -1;
+			ScriptObjectTypeIndex = -1;
 
 			NewPointer = 0;
 			OldPointer = 0;
@@ -551,11 +638,11 @@ namespace MemoryProfiler2
 			Payload = 0;
 			DeltaTime = -1.0f;
 
-            // Serialize based on token type.
+			// Serialize based on token type.
 			switch( Type )
-            {
-                // Malloc
-                case EProfilingPayloadType.TYPE_Malloc:
+			{
+				// Malloc
+				case EProfilingPayloadType.TYPE_Malloc:
 				{
 					// Get the call stack index.
 					CallStackIndex = BinaryStream.ReadInt32();
@@ -576,9 +663,9 @@ namespace MemoryProfiler2
 				}
 				
 
-                // Free
-                case EProfilingPayloadType.TYPE_Free:
-                {
+				// Free
+				case EProfilingPayloadType.TYPE_Free:
+				{
 					break;
 				}
 
@@ -600,7 +687,7 @@ namespace MemoryProfiler2
 				}
 				
 
-                // Other
+				// Other
 				case EProfilingPayloadType.TYPE_Other:
 				{
 					SubType = ( EProfilingPayloadSubType )BinaryStream.ReadInt32();
@@ -612,12 +699,16 @@ namespace MemoryProfiler2
 						// End of stream!
 						case EProfilingPayloadSubType.SUBTYPE_EndOfStreamMarker:
 						{
-							if( Version > 2 )
+							if( Version >= 4 )
+							{
+								ReadMemoryAllocationsStats( BinaryStream );
+								ReadLoadedLevels( BinaryStream );
+							}
+							else
 							{
 								ReadMemoryAllocationsStats( BinaryStream );
 								ReadLoadedLevels( BinaryStream );
 								ReadMetrics( BinaryStream );
-
 							}
 							bReachedEndOfStream = true;
 							break;
@@ -640,7 +731,12 @@ namespace MemoryProfiler2
 						{
 							TextIndex = ( int )Payload;
 
-							if( Version > 2 )
+							if( Version >= 4 )
+							{
+								ReadMemoryAllocationsStats( BinaryStream );
+								ReadLoadedLevels( BinaryStream );
+							}
+							else
 							{
 								ReadMemoryAllocationsStats( BinaryStream );
 								ReadLoadedLevels( BinaryStream );
@@ -693,7 +789,7 @@ namespace MemoryProfiler2
 				}
 			}
 
-            return !bReachedEndOfStream;
-        }
-    }
+			return !bReachedEndOfStream;
+		}
+	}
 }

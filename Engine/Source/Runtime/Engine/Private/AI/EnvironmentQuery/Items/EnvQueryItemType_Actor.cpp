@@ -5,13 +5,6 @@
 UEnvQueryItemType_Actor::UEnvQueryItemType_Actor(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	ValueSize = sizeof(FWeakObjectPtr);
-
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-		GetLocationDelegate.BindUObject(this, &UEnvQueryItemType_Actor::GetActorLocation);
-		GetRotationDelegate.BindUObject(this, &UEnvQueryItemType_Actor::GetActorRotation);
-		GetActorDelegate.BindUObject(this, &UEnvQueryItemType_Actor::GetActor);
-	}
 }
 
 AActor* UEnvQueryItemType_Actor::GetValue(const uint8* RawData)
@@ -26,19 +19,19 @@ void UEnvQueryItemType_Actor::SetValue(uint8* RawData, const AActor* Value)
 	SetValueInMemory<FWeakObjectPtr>(RawData, WeakObjPtr);
 }
 
-FVector UEnvQueryItemType_Actor::GetActorLocation(const uint8* RawData)
+FVector UEnvQueryItemType_Actor::GetLocation(const uint8* RawData) const
 {
 	AActor* MyActor = UEnvQueryItemType_Actor::GetValue(RawData);
 	return MyActor ? MyActor->GetActorLocation() : FVector::ZeroVector;
 }
 
-FRotator UEnvQueryItemType_Actor::GetActorRotation(const uint8* RawData)
+FRotator UEnvQueryItemType_Actor::GetRotation(const uint8* RawData) const
 {
 	AActor* MyActor = UEnvQueryItemType_Actor::GetValue(RawData);
 	return MyActor ? MyActor->GetActorRotation() : FRotator::ZeroRotator;
 }
 
-AActor* UEnvQueryItemType_Actor::GetActor(const uint8* RawData)
+AActor* UEnvQueryItemType_Actor::GetActor(const uint8* RawData) const
 {
 	return UEnvQueryItemType_Actor::GetValue(RawData);
 }

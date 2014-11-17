@@ -400,6 +400,7 @@ void FVisualizeTexture::GenerateContent(const FSceneRenderTargetItem& RenderTarg
 	VisualizeTextureData.CustomMip = CustomMip;
 	VisualizeTextureData.StencilSRV = StencilSRV;
 
+	if(!(Desc.Flags & TexCreate_CPUReadback))		// We cannot make a texture lookup on such elements
 	{	
 		SCOPED_DRAW_EVENT(VisualizeTexture, DEC_SCENE_ITEMS);
 		// continue rendering to HDR if necessary
@@ -581,8 +582,17 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 	}
 
 	X += 40;
-	Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Red: <0"), GetStatsFont(), FLinearColor(1,0,0));
-	Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Blue: NAN or Inf"), GetStatsFont(), FLinearColor(0,0,1));
+
+	if(Desc.Flags & TexCreate_CPUReadback)
+	{
+		Canvas.DrawShadowedString( X, Y += YStep, TEXT("Content cannot be visualized on the GPU (TexCreate_CPUReadback)"), GetStatsFont(), FLinearColor(1,1,0));
+	}
+	else
+	{
+		Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Red: <0"), GetStatsFont(), FLinearColor(1,0,0));
+		Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Blue: NAN or Inf"), GetStatsFont(), FLinearColor(0,0,1));
+	}
+
 	Canvas.Flush();
 }
 

@@ -19,6 +19,24 @@ ANavMeshBoundsVolume::ANavMeshBoundsVolume(const class FPostConstructInitializeP
 
 #if WITH_EDITOR
 
+void ANavMeshBoundsVolume::ReregisterAllComponents()
+{
+	Super::ReregisterAllComponents();
+	/*
+	// uncommenting this would make navigation rebuild during NavMeshBoundsVolume's
+	// changing with Geometry Tool. This gets called too often though, so we'll 
+	// stick to updating navigation upon leaving geometry tool
+	if (GIsEditor)
+	{
+		UWorld* World = GetWorld();
+		if (World != NULL && World->GetNavigationSystem() != NULL)
+		{
+		GetWorld()->GetNavigationSystem()->OnNavigationBoundsUpdated(this);
+		}
+	}
+	*/
+}
+
 void ANavMeshBoundsVolume::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);

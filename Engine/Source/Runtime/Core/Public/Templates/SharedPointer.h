@@ -137,6 +137,11 @@ FORCEINLINE TSharedRef< CastToType, Mode > DynamicCastSharedRef( TSharedRef< Cas
 
 
 /**
+ * This tricky code is used to prevent the use of TSharedPtrs and TSharedRefs with UObjects
+ */
+class UObjectBase;
+
+/**
  * TSharedRef is a non-nullable, non-intrusive reference-counted authoritative object reference.   This
  * shared reference  will be conditionally thread-safe when the optional Mode template argument is set
  * to ThreadSafe.
@@ -145,7 +150,8 @@ FORCEINLINE TSharedRef< CastToType, Mode > DynamicCastSharedRef( TSharedRef< Cas
 template< class ObjectType, ESPMode::Type Mode >
 class TSharedRef
 {
-
+	// TSharedRefs with UObjects are illegal.
+	checkAtCompileTime((!CanConvertPointerFromTo<ObjectType, UObjectBase>::Result), You_Cannot_Use_TSharedRefs_With_UObjects);
 public:
 
 	// NOTE: TSharedRef has no default constructor as it does not support empty references.  You must
@@ -435,11 +441,6 @@ private:
 	SharedPointerInternals::FSharedReferencer< Mode > SharedReferenceCount;
 
 };
-
-/**
- * This tricky code is used to prevent the use of TSharedPtrs with UObjects
- */
-class UObjectBase;
 
 /**
  * TSharedPtr is a non-intrusive reference-counted authoritative object pointer.  This shared pointer

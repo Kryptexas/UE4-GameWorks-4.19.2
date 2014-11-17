@@ -10,19 +10,12 @@ class UMaterialExpressionSphericalParticleOpacity : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 	/** Density of the particle sphere. */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstantDensity' if not specified"))
 	FExpressionInput Density;
 
 	/** Constant density of the particle sphere.  Will be overridden if Density is connected. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionSphericalParticleOpacity)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionSphericalParticleOpacity, meta=(OverridingInputProperty = "Density"))
 	float ConstantDensity;
-
-
-	// Begin UObject Interface
-#if WITH_EDITOR
-	virtual bool CanEditChange( const UProperty* InProperty ) const OVERRIDE;
-#endif // WITH_EDITOR
-	// End UObject Interface
 
 
 	// Begin UMaterialExpression Interface

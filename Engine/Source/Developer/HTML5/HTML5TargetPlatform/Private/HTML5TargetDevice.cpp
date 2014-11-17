@@ -84,19 +84,9 @@ bool FHTML5TargetDevice::SupportsFeature( ETargetDeviceFeatures::Type Feature ) 
 	case ETargetDeviceFeatures::MultiLaunch:
 		return true;
 
-		// @todo gmp: implement turning off remote PCs
-	case ETargetDeviceFeatures::PowerOff:
-		return false;
-
-		// @todo gmp: implement turning on remote PCs (wake on LAN)
-	case ETargetDeviceFeatures::PowerOn:
-		return false;
-
-	case ETargetDeviceFeatures::Reboot:
+	default:
 		return false;
 	}
-
-	return false;
 }
 
 

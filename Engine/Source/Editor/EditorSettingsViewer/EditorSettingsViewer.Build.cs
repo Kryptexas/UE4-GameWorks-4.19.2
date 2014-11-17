@@ -24,6 +24,7 @@ namespace UnrealBuildTool.Rules
 					"SettingsEditor",
 					"Slate",
 					"UnrealEd",
+                    "InternationalizationSettings"
 				}
 			);
 

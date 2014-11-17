@@ -26,9 +26,9 @@ namespace KismetDebugViewConstants
 //////////////////////////////////////////////////////////////////////////
 // FDebugLineItem
 
-FString FDebugLineItem::GetDisplayName() const
+FText FDebugLineItem::GetDisplayName() const
 {
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 FString FDebugLineItem::GetDescription() const
@@ -171,7 +171,7 @@ protected:
 protected:
 	virtual TSharedRef<SWidget> GenerateNameWidget() OVERRIDE;
 	virtual FString GetDescription() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE;
+	virtual FText GetDisplayName() const OVERRIDE;
 	void OnNavigateToLatentNode();
 
 	class UEdGraphNode* FindAssociatedNode() const;
@@ -224,15 +224,19 @@ UEdGraphNode* FLatentActionLineItem::FindAssociatedNode() const
 	return NULL;
 }
 
-FString FLatentActionLineItem::GetDisplayName() const
+FText FLatentActionLineItem::GetDisplayName() const
 {
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ID"), UUID);
 	if (UK2Node* Node = Cast<UK2Node>(FindAssociatedNode()))
 	{
-		return FString::Printf( *LOCTEXT("ID", "%s (ID: %d)").ToString(), *Node->GetCompactNodeTitle(), UUID);
+		Args.Add(TEXT("Title"), Node->GetCompactNodeTitle());
+
+		return FText::Format(LOCTEXT("ID", "{Title} (ID: {ID})"), Args);
 	}
 	else
 	{
-		return FString::Printf( *LOCTEXT("LatentAction", "Latent action # %d").ToString(), UUID);
+		return FText::Format(LOCTEXT("LatentAction", "Latent action # {ID}"), Args);
 	}
 }
 
@@ -289,13 +293,13 @@ public:
 	}
 protected:
 	virtual FString GetDescription() const OVERRIDE;
-	virtual FString GetDisplayName() const OVERRIDE;
+	virtual FText GetDisplayName() const OVERRIDE;
 	virtual TSharedRef<SWidget> GenerateNameWidget() OVERRIDE;
 
 	void OnNavigateToWatchLocation();
 };
 
-FString FWatchLineItem::GetDisplayName() const
+FText FWatchLineItem::GetDisplayName() const
 {
 	if (UEdGraphPin* PinToWatch = Cast<UEdGraphPin>(ObjectRef.Get()))
 	{
@@ -303,15 +307,17 @@ FString FWatchLineItem::GetDisplayName() const
 		{
 			if (UProperty* Property = FKismetDebugUtilities::FindClassPropertyForPin(Blueprint, PinToWatch))
 			{
-				return UEditorEngine::GetFriendlyName(Property);
+				return FText::FromString(UEditorEngine::GetFriendlyName(Property));
 			}
 		}
 
-		return PinToWatch->GetName() + LOCTEXT("NoProp", " (no prop)").ToString();
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PinWatchName"), FText::FromString(PinToWatch->GetName()));
+		return FText::Format(LOCTEXT("DisplayNameNoProperty", "{PinWatchName} (no prop)"), Args);
 	}
 	else
 	{
-		return TEXT("");
+		return FText::GetEmpty();
 	}
 }
 
@@ -672,18 +678,18 @@ protected:
 		return new FParentLineItem(ObjectRef.Get());
 	}
 
-	virtual FString GetDisplayName() const OVERRIDE
+	virtual FText GetDisplayName() const OVERRIDE
 	{
 		UObject* Object = ObjectRef.Get();
 		AActor* Actor = Cast<AActor>(Object);
 
 		if (Actor != NULL)
 		{
-			 return Actor->GetActorLabel();
+			 return FText::FromString(Actor->GetActorLabel());
 		}
 		else
 		{
-			return (Object != NULL) ? Object->GetName() : TEXT("(null)");
+			return (Object != NULL) ? FText::FromString(Object->GetName()) : LOCTEXT("Null", "(null)");
 		}
 	}
 
@@ -768,7 +774,7 @@ protected:
 		return NULL;
 	}
 
-	virtual FString GetDisplayName() const OVERRIDE
+	virtual FText GetDisplayName() const OVERRIDE
 	{
 		UEdGraphNode* Node = GetNode();
 		if (Node != NULL)
@@ -777,7 +783,7 @@ protected:
 		}
 		else
 		{
-			return LOCTEXT("Unknown", "(unknown)").ToString();
+			return LOCTEXT("Unknown", "(unknown)");
 		}
 	}
 
@@ -907,9 +913,9 @@ public:
 		}
 	}
 protected:
-	virtual FString GetDisplayName() const
+	virtual FText GetDisplayName() const
 	{
-		return LOCTEXT("ExecutionTrace", "Execution Trace").ToString();
+		return LOCTEXT("ExecutionTrace", "Execution Trace");
 	}
 
 	virtual bool Compare(const FDebugLineItem* BaseOther) const OVERRIDE

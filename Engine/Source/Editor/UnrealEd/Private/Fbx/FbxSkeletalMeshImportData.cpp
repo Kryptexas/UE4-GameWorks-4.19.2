@@ -4,8 +4,8 @@
 
 UFbxSkeletalMeshImportData::UFbxSkeletalMeshImportData(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
+	, bImportMeshesInBoneHierarchy(true)
 {
-	bImportMeshesInBoneHierarchy = false;
 }
 
 UFbxSkeletalMeshImportData* UFbxSkeletalMeshImportData::GetImportDataForSkeletalMesh(USkeletalMesh* SkeletalMesh, UFbxSkeletalMeshImportData* TemplateForCreation)

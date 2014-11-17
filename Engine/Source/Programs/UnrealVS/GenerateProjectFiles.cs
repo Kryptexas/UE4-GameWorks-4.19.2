@@ -66,7 +66,7 @@ namespace UnrealVS
 					}
 
 					GenerateProjectFilesProcess = UnrealVSPackage.Instance.LaunchProgram(
-						"cmd.exe", "/C " + BatchFileName,
+                        "cmd.exe", "/C " + GetSafeFilePath(BatchFileName),
 						OnGenerateProjectFilesProcessExit,
 						OnOutputFromGenerateProjectFilesProcess );
 				}
@@ -146,17 +146,29 @@ namespace UnrealVS
 		private string GetBatchFileName()
 		{
 			// Check to see if we have UE4.sln loaded
-			string SolutionDirectory, SolutionFile, UserOptsFile;
-			UnrealVSPackage.Instance.SolutionManager.GetSolutionInfo( out SolutionDirectory, out SolutionFile, out UserOptsFile );
-			if( SolutionFile != null && Path.GetFileName( SolutionFile ).Equals( "UE4.sln", StringComparison.InvariantCultureIgnoreCase ) )
-			{
+			if (UnrealVSPackage.Instance.IsUE4Loaded)
+			{ 
 				// We expect "GenerateProjectFiles.bat" to live in the same directory as the solution
-				return Path.Combine( Path.GetDirectoryName( SolutionFile ), "GenerateProjectFiles.bat" );
+				return Path.Combine(Path.GetDirectoryName(UnrealVSPackage.Instance.SolutionFilepath), "GenerateProjectFiles.bat");
 			}
 			return null;
 		}
 
+        /// <summary>
+        /// Wraps a file path in quotes if it contains a space character
+        /// </summary>
+        /// <param name="InPath"></param>
+        /// <returns></returns>
+        private string GetSafeFilePath( string InPath )
+        {
+            string WorkingPath = InPath;
 
+            if (WorkingPath.Contains(" ") && !WorkingPath.Contains("\""))
+            {
+                WorkingPath = "\"" + WorkingPath + "\"";
+            }
+            return WorkingPath;
+        }
 
 		/// Active process for the "generate project files" command
 		System.Diagnostics.Process GenerateProjectFilesProcess;

@@ -24,7 +24,7 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	uint32 bCanAbortFlow : 1;
 
 	FString GetNodeTypeDescription() const;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	/** gets icon resource name for title bar */
 	virtual FName GetNameIcon() const OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;

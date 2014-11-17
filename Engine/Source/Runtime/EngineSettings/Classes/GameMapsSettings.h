@@ -8,6 +8,25 @@
 
 #include "GameMapsSettings.generated.h"
 
+UENUM()
+namespace ETwoPlayerSplitScreenType
+{
+	enum Type
+	{
+		Horizontal,
+		Vertical
+	};
+}
+
+UENUM()
+namespace EThreePlayerSplitScreenType
+{
+	enum Type
+	{
+		FavorTop,
+		FavorBottom
+	};
+}
 
 UCLASS(config=Engine)
 class ENGINESETTINGS_API UGameMapsSettings
@@ -57,6 +76,15 @@ public:
 	 */
 	UPROPERTY(config, EditAnywhere, Category=DefaultMaps, AdvancedDisplay)
 	FString TransitionMap;
+
+	UPROPERTY(config, EditAnywhere, Category=LocalMultiplayer)
+	bool bUseSplitscreen;
+
+	UPROPERTY(config, EditAnywhere, Category=LocalMultiplayer, meta=(editcondition="bUseSplitScreen"))
+	TEnumAsByte<ETwoPlayerSplitScreenType::Type> TwoPlayerSplitscreenLayout;
+
+	UPROPERTY(config, EditAnywhere, Category=LocalMultiplayer, meta=(editcondition="bUseSplitScreen"))
+	TEnumAsByte<EThreePlayerSplitScreenType::Type> ThreePlayerSplitscreenLayout;
 
 private:
 

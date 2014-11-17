@@ -111,5 +111,10 @@ namespace AutomationTool
 		/// Returns the pdb file extenstion for the host platform.
 		/// </summary>
 		abstract public string PdbExtension { get; }
+
+		/// <summary>
+		/// List of processes that can't not be killed
+		/// </summary>
+		abstract public string[] DontKillProcessList { get; }
 	}
 }

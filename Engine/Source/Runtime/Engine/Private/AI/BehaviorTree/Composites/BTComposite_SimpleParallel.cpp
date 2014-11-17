@@ -54,7 +54,7 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(class UBehaviorTreeCompon
 			MyMemory->MainTaskResult = NodeResult;
 			MyMemory->bMainTaskIsActive = false;
 
-			OwnerComp->UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask);
+			OwnerComp->UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask, OwnerComp->GetActiveInstanceIdx());
 			if (NodeResult != EBTNodeResult::Aborted)
 			{
 				// check if subtree should be aborted when task finished with success/failed result

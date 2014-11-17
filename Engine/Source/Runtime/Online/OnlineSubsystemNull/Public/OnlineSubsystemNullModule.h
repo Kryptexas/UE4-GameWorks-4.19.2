@@ -13,9 +13,13 @@ class FOnlineSubsystemNullModule : public IModuleInterface
 {
 private:
 
+	/** Class responsible for creating instance(s) of the subsystem */
+	class FOnlineFactoryNull* NullFactory;
+
 public:
 
-	FOnlineSubsystemNullModule()
+	FOnlineSubsystemNullModule() : 
+		NullFactory(NULL)
 	{}
 
 	virtual ~FOnlineSubsystemNullModule() {}
@@ -34,5 +38,3 @@ public:
 		return false;
 	}
 };
-
-typedef TSharedPtr<FOnlineSubsystemNullModule, ESPMode::ThreadSafe> FOnlineSubsystemNullModulePtr;

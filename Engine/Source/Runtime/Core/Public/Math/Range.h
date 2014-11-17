@@ -48,7 +48,6 @@ template<typename ElementType> class TRange
 {
 	typedef TRangeBound<ElementType> BoundsType;
 
-
 public:
 	
 	/**
@@ -91,7 +90,6 @@ public:
 		: LowerBound(InLowerBound)
 		, UpperBound(InUpperBound)
 	{ }
-
 	
 public:
 
@@ -128,7 +126,6 @@ public:
 
 		return ((LowerBound != Other.LowerBound) || (UpperBound != Other.UpperBound));
 	}
-	
 	
 public:
 
@@ -415,7 +412,6 @@ public:
 		
 		return Result;
 	}
-	
 
 public:
 
@@ -620,7 +616,6 @@ public:
 		return OutRanges;
 	}
 
-
 public:
 
 	/**
@@ -680,7 +675,6 @@ public:
 	{
 		return TRange(BoundsType::Open(), BoundsType::Exclusive(Value));
 	}
-
 	
 public:
 
@@ -709,7 +703,6 @@ public:
 		return (GetTypeHash(Range.LowerBound) + 23 * GetTypeHash(Range.UpperBound));
 	}
 
-	
 private:
 
 	// Holds the range's lower bound.

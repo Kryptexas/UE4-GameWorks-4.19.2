@@ -24,7 +24,7 @@ FGraphDataSource::FGraphDataSource( const FProfilerSessionRef& InProfilerSession
 	, ProfilerSession( InProfilerSession ) 
 {
 	const FProfilerStatMetaDataRef MetaData = ProfilerSession->GetMetaData();
-	const FProfilerStat& Stat = MetaData->GetStat(InStatID);
+	const FProfilerStat& Stat = MetaData->GetStatByID(InStatID);
 	const FProfilerGroup& Group = Stat.OwningGroup();
 
 	Initialize( Stat.Name().GetPlainNameString(), Group.ID(), Group.Name().GetPlainNameString(), Stat.Type(), ProfilerSession->GetCreationTime() );
@@ -432,10 +432,10 @@ void FEventGraphData::PopulateHierarchy_Recurrent
 	{
 		const FProfilerSample& ChildSample = DataProvider->GetCollection()[ ParentSample.ChildrenIndices()[ChildIndex] ];
 
-		const FProfilerStat& ProfilerThread = MetaData->GetStat( ChildSample.ThreadID() );
+		const FProfilerStat& ProfilerThread = MetaData->GetStatByID( ChildSample.ThreadID() );
 		const FName& ThreadName = ProfilerThread.Name();
 
-		const FProfilerStat& ProfilerStat = MetaData->GetStat( ChildSample.StatID() );
+		const FProfilerStat& ProfilerStat = MetaData->GetStatByID( ChildSample.StatID() );
 		const FName& StatName = ProfilerStat.Name();
 		const FName& GroupName = ProfilerStat.OwningGroup().Name();
 

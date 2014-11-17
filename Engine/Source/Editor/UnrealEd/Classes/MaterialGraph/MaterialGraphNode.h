@@ -54,7 +54,8 @@ public:
 
 	// Begin UEdGraphNode interface.
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual void PrepareForCopying() OVERRIDE;
@@ -80,4 +81,19 @@ private:
 
 	/** Sets the Material Expression's parameter name */
 	void SetParameterName(const FString& NewName);
+
+	/** Should expression use the bool pin colour for its title */
+	static bool UsesBoolColour(UMaterialExpression* Expression);
+
+	/** Should expression use the float pin colour for its title */
+	static bool UsesFloatColour(UMaterialExpression* Expression);
+
+	/** Should expression use the vector pin colour for its title */
+	static bool UsesVectorColour(UMaterialExpression* Expression);
+
+	/** Should expression use the object pin colour for its title */
+	static bool UsesObjectColour(UMaterialExpression* Expression);
+
+	/** Should expression use the event node colour for its title */
+	static bool UsesEventColour(UMaterialExpression* Expression);
 };

@@ -32,6 +32,4 @@ public:
 	}
 };
 
-/** Public references to the online subsystem module pointer should use this */
-typedef TSharedPtr<FOnlineSubsystemUtilsModule, ESPMode::ThreadSafe> FOnlineSubsystemUtilsModulePtr;
 

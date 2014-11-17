@@ -20,7 +20,7 @@ PACKAGE_SCOPE:
 
 public:
 
-	virtual ~FOnlineLeaderboardsIOS() {};
+	virtual ~FOnlineLeaderboardsIOS();
 
 	// Begin IOnlineLeaderboards interface
 	virtual bool ReadLeaderboards(const TArray< TSharedRef<FUniqueNetId> >& Players, FOnlineLeaderboardReadRef& ReadObject) OVERRIDE;

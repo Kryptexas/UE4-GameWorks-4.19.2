@@ -12,7 +12,6 @@
 #include "EngineMaterialClasses.h"
 #include "EngineLevelScriptClasses.h"
 #include "SoundDefinitions.h"
-#include "LinkedObjDrawUtils.h"
 #include "InterpolationHitProxy.h"
 #include "AVIWriter.h"
 #include "AnimationUtils.h"
@@ -97,7 +96,7 @@ float TrackClass::GetKeyframeTime(int32 KeyIndex) const \
 	{ \
 		return 0.f; \
 	} \
- 	return KeyArray[KeyIndex].TimeVar; \
+	return KeyArray[KeyIndex].TimeVar; \
 }
 
 #define STRUCTTRACK_GETKEYFRAMEINDEX( TrackClass, KeyArray, TimeVar ) \
@@ -245,38 +244,54 @@ namespace InterpTools
 	AMatineeActor
 -----------------------------------------------------------------------------*/
 
-bool AMatineeActor::bIgnoreActorSelection = false;
+uint8 AMatineeActor::IgnoreActorSelectionCount = 0;
+
+void AMatineeActor::PushIgnoreActorSelection()
+{
+	++IgnoreActorSelectionCount;
+}
+
+void AMatineeActor::PopIgnoreActorSelection()
+{
+	check(IgnoreActorSelection());
+	--IgnoreActorSelectionCount;
+}
+
+bool AMatineeActor::IgnoreActorSelection()
+{
+	return IgnoreActorSelectionCount > 0;
+}
 
 AMatineeActor::AMatineeActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> SceneManagerObject;
-		FName ID_Matinee;
-		FText NAME_Matinee;
-		FConstructorStatics()
-			: SceneManagerObject(TEXT("/Engine/EditorResources/SceneManager"))
-			, ID_Matinee(TEXT("Matinee"))
-			, NAME_Matinee(NSLOCTEXT( "SpriteCategory", "Matinee", "Matinee" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
-
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("SceneComp"));
 	RootComponent = SceneComponent;
 
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SceneManagerObject;
+			FName ID_Matinee;
+			FText NAME_Matinee;
+			FConstructorStatics()
+				: SceneManagerObject(TEXT("/Engine/EditorResources/SceneManager"))
+				, ID_Matinee(TEXT("Matinee"))
+				, NAME_Matinee(NSLOCTEXT("SpriteCategory", "Matinee", "Matinee"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.SceneManagerObject.Get();
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Matinee;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Matinee;
 		SpriteComponent->AttachParent = RootComponent;
+		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 
@@ -294,6 +309,7 @@ AMatineeActor::AMatineeActor(const class FPostConstructInitializeProperties& PCI
 	InterpPosition = -1.0f;
 	PlayRate = 1.0f;
 	ClientSidePositionErrorTolerance = 0.1f;
+	ReplicationForceIsPlaying = 0;
 }
 
 FName AMatineeActor::GetFunctionNameForEvent(FName EventName)
@@ -984,6 +1000,14 @@ void AMatineeActor::StepInterp( float DeltaTime, bool bPreview )
 
 			// Name should reflect the value UEdGraphSchema_K2::PN_MatineeFinished.  Accessing it directly would cause editor dependencies though
 			NotifyEventTriggered( FName(TEXT("Finished")), NewPosition );
+
+			// Events can turn us back on
+			if (bIsPlaying)
+			{			
+				// Client has also stopped, but we are playing again, force replication of a flag to indicate we are playing.
+				ReplicationForceIsPlaying++;
+				UpdateReplicatedData(true);
+			}
 		}
 
 		UpdateStreamingForCameraCuts(NewPosition, bPreview);
@@ -2031,6 +2055,20 @@ void UInterpGroup::UpdateGroup(float NewPosition, UInterpGroupInst* GrInst, bool
 	UpdateAnimWeights(NewPosition, GrInst, bPreview, bJump);
 }
 
+bool UInterpGroup::HasSelectedTracks() const
+{
+	for(auto TrackIt = InterpTracks.CreateConstIterator(); TrackIt; ++TrackIt)
+	{
+		UInterpTrack* const Track = *TrackIt;
+		if(Track->IsSelected())
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 /** Utility function for adding a weight entry to a slot with the given name. Creates a new entry in the array if there is not already one present. */
 static void AddSlotInfo(TArray<FAnimSlotInfo>& SlotInfos, FName SlotName, float InChannelWeight)
 {
@@ -2219,6 +2257,8 @@ int32 UInterpGroup::GetAnimTracksUsingSlot(FName InSlotName)
 
 AActor* UInterpGroup::SelectGroupActor( UInterpGroupInst* GrInst, bool bDeselectActors )
 {
+	AMatineeActor::PushIgnoreActorSelection();
+
 #if WITH_EDITOR
 	// Deselect all, if specified
 	if ( bDeselectActors )
@@ -2235,11 +2275,11 @@ AActor* UInterpGroup::SelectGroupActor( UInterpGroupInst* GrInst, bool bDeselect
 	// Select the actor, if it isn't already
 	if( Actor && !Actor->IsSelected() )
 	{
-		AMatineeActor::bIgnoreActorSelection = true;
 		GEditor->SelectActor( Actor, true, true );
-		AMatineeActor::bIgnoreActorSelection = false;
 	}
 #endif // WITH_EDITOR
+
+	AMatineeActor::PopIgnoreActorSelection();
 
 	return Actor;
 }
@@ -2362,8 +2402,8 @@ void UInterpFilter_Classes::FilterData(class AMatineeActor* InMatineeActor)
 		}
 		else
 		{
-			// No group inst (probably a folder), so don't include it
-			bIncludeThisGroup = false;
+			// No group inst, so don't include it unless it's a folder
+			bIncludeThisGroup = Group->bIsFolder;
 		}
 
 		if( bIncludeThisGroup )
@@ -2590,9 +2630,9 @@ AActor* UInterpGroupDirector::SelectGroupActor( UInterpGroupInst* GrInst, bool b
 			// Select the actor, if it isn't already
 			if( Actor && !Actor->IsSelected() )
 			{
-				AMatineeActor::bIgnoreActorSelection = true;
+				AMatineeActor::PushIgnoreActorSelection();
 				GEditor->SelectActor( Actor, true, true );
-				AMatineeActor::bIgnoreActorSelection = false;
+				AMatineeActor::PopIgnoreActorSelection();
 			}
 		}
 	}
@@ -2807,6 +2847,7 @@ UInterpTrack::UInterpTrack(const class FPostConstructInitializeProperties& PCIP)
 	bVisible = true;
 	SetSelected( false );
 	bIsRecording = false;
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
 #if WITH_EDITORONLY_DATA
 	bIsCollapsed = false;
 #endif // WITH_EDITORONLY_DATA
@@ -3299,6 +3340,7 @@ UInterpTrackMove::UInterpTrackMove(const class FPostConstructInitializePropertie
 	RotMode = IMR_Keyframed;
 	bShowTranslationOnCurveEd = true;
 	bShowRotationOnCurveEd = false;
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Move.MAT_Groups_Move"), NULL, LOAD_None, NULL ));
 
 #if WITH_EDITORONLY_DATA
 	int32 NewArrayIndex0 = SupportedSubTracks.Add(FSupportedSubTrackInfo());
@@ -4961,6 +5003,8 @@ UInterpTrackToggle::UInterpTrackToggle(const class FPostConstructInitializePrope
 	bFireEventsWhenForwards = true;
 	bFireEventsWhenBackwards = true;
 	bFireEventsWhenJumpingForwards = true;
+
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MAT_Groups_Toggle.MAT_Groups_Toggle"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackToggle::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5419,6 +5463,7 @@ UInterpTrackFloatProp::UInterpTrackFloatProp(const class FPostConstructInitializ
 {
 	TrackInstClass = UInterpTrackInstFloatProp::StaticClass();
 	TrackTitle = TEXT("Float Property");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackFloatProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5581,6 +5626,7 @@ UInterpTrackVectorProp::UInterpTrackVectorProp(const class FPostConstructInitial
 
 	TrackInstClass = UInterpTrackInstVectorProp::StaticClass();
 	TrackTitle = TEXT("Vector Property");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Vector.MAT_Groups_Vector"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackVectorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5730,6 +5776,7 @@ UInterpTrackBoolProp::UInterpTrackBoolProp(const class FPostConstructInitializeP
 {
 	TrackInstClass = UInterpTrackInstBoolProp::StaticClass();
 	TrackTitle = TEXT("Bool Property");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackBoolProp::AddKeyframe( float Time, UInterpTrackInst* TrackInst, EInterpCurveMode InitInterpMode )
@@ -5905,6 +5952,7 @@ UInterpTrackColorProp::UInterpTrackColorProp(const class FPostConstructInitializ
 
 	TrackInstClass = UInterpTrackInstColorProp::StaticClass();
 	TrackTitle = TEXT("Color Property");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_ColorTrack.MAT_ColorTrack"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackColorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6060,6 +6108,7 @@ UInterpTrackLinearColorProp::UInterpTrackLinearColorProp(const class FPostConstr
 {
 	TrackInstClass = UInterpTrackInstLinearColorProp::StaticClass();
 	TrackTitle = TEXT("LinearColor Property");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_ColorTrack.MAT_ColorTrack"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackLinearColorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6216,6 +6265,7 @@ UInterpTrackEvent::UInterpTrackEvent(const class FPostConstructInitializePropert
 	TrackTitle = TEXT("Event");
 	bFireEventsWhenForwards = true;
 	bFireEventsWhenBackwards = true;
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Event.MAT_Groups_Event"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackEvent::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6403,6 +6453,7 @@ UInterpTrackDirector::UInterpTrackDirector(const class FPostConstructInitializeP
 	TrackInstClass = UInterpTrackInstDirector::StaticClass();
 	TrackTitle = TEXT("Director");
 	bSimulateCameraCutsOnClients = true;
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Director.MAT_Groups_Director"), NULL, LOAD_None, NULL ));
 #if WITH_EDITORONLY_DATA
 	PreviewCamera = NULL;
 #endif // WITH_EDITORONLY_DATA
@@ -6735,6 +6786,7 @@ UInterpTrackFade::UInterpTrackFade(const class FPostConstructInitializePropertie
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstFade::StaticClass();
 	TrackTitle = TEXT("Fade");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Fade.MAT_Groups_Fade"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackFade::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6823,6 +6875,7 @@ UInterpTrackSlomo::UInterpTrackSlomo(const class FPostConstructInitializePropert
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstSlomo::StaticClass();
 	TrackTitle = TEXT("Slomo");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Slomo.MAT_Groups_Slomo"), NULL, LOAD_None, NULL ));
 }
 
 
@@ -6861,7 +6914,7 @@ void UInterpTrackSlomo::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 float UInterpTrackSlomo::GetSlomoFactorAtTime(float Time)
 {
 	float Slomo = FloatTrack.Eval(Time, 0.f);
-	Slomo = FMath::Max(Slomo, 0.1f);
+	Slomo = FMath::Max(Slomo, KINDA_SMALL_NUMBER);
 	return Slomo;
 }
 
@@ -6952,6 +7005,7 @@ UInterpTrackAnimControl::UInterpTrackAnimControl(const class FPostConstructIniti
 	TrackInstClass = UInterpTrackInstAnimControl::StaticClass();
 	TrackTitle = TEXT("Anim");
 	bIsAnimControlTrack = true;
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Anim.MAT_Groups_Anim"), NULL, LOAD_None, NULL ));
 }
 
 void UInterpTrackAnimControl::PostLoad()
@@ -7552,6 +7606,7 @@ UInterpTrackSound::UInterpTrackSound(const class FPostConstructInitializePropert
 
 	TrackInstClass = UInterpTrackInstSound::StaticClass();
 	TrackTitle = TEXT("Sound");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Sound.MAT_Groups_Sound"), NULL, LOAD_None, NULL ));
 
 	bAttach = true;
 }
@@ -7738,11 +7793,21 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 		VolumePitchValue *= FVector( SoundTrackKey.Volume, SoundTrackKey.Pitch, 1.0f );
 		if (VectorTrack.Points.Num() > 0)
 		{
-			VolumePitchValue *= VectorTrack.Eval(NewPosition,VolumePitchValue);
+			VolumePitchValue *= VectorTrack.Eval(NewPosition, VolumePitchValue);
 		}
 
-		// If we have moved into a new sound, we should start playing it now.
-		if(StartSoundIndex != EndSoundIndex)
+		// Check if we're in the audio range, and if we need to start playing the audio,
+		// either because it has never been played, or isn't currently playing.
+		bool bIsInRangeAndNeedsStart = NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
+		if ( bIsInRangeAndNeedsStart )
+		{
+			bIsInRangeAndNeedsStart = SoundInst->PlayAudioComp == NULL || !SoundInst->PlayAudioComp->IsPlaying();
+		}
+
+		// If we have moved into a new sound, we should start playing it now, or if we don't have an audio
+		// component we must be starting mid playback, so go ahead and create one.  Or if it's not currently playing, but should be
+		// lets start it.
+		if ( StartSoundIndex != EndSoundIndex || bIsInRangeAndNeedsStart )
 		{
 			USoundBase* NewSound = SoundTrackKey.Sound;
 
@@ -7785,7 +7850,7 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 					SoundInst->PlayAudioComp->SetVolumeMultiplier(VolumePitchValue.X);
 					SoundInst->PlayAudioComp->SetPitchMultiplier(VolumePitchValue.Y);
 					SoundInst->PlayAudioComp->SubtitlePriority = bSuppressSubtitles ? 0.f : SUBTITLE_PRIORITY_MATINEE;
-					SoundInst->PlayAudioComp->Play();
+					SoundInst->PlayAudioComp->Play(NewPosition - SoundTrackKey.Time);
 				}
 				else
 				{
@@ -7815,7 +7880,7 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 						SoundInst->PlayAudioComp->SetVolumeMultiplier(VolumePitchValue.X);
 						SoundInst->PlayAudioComp->SetPitchMultiplier(VolumePitchValue.Y);
 						SoundInst->PlayAudioComp->SubtitlePriority = bSuppressSubtitles ? 0.f : SUBTITLE_PRIORITY_MATINEE;
-						SoundInst->PlayAudioComp->Play();				
+						SoundInst->PlayAudioComp->Play(NewPosition - SoundTrackKey.Time);
 					}
 				}
 			}
@@ -7876,16 +7941,42 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 	}
 
 	// Dont play sounds unless we are preview playback (ie not scrubbing).
-	bool bJump = !(MatineeActor->bIsPlaying);
+	bool bJump = !( MatineeActor->bIsPlaying );
 	UpdateTrack(NewPosition, TrInst, bJump);
+
+#if WITH_EDITORONLY_DATA
+	bool bTimeChangedDrastically = !FMath::IsNearlyEqual(NewPosition, MatineeActor->InterpPosition);
+	if ( bTimeChangedDrastically && MatineeActor->bIsScrubbing )
+	{
+		FSoundTrackKey& SoundTrackKey = GetSoundTrackKeyAtPosition(NewPosition);
+		const bool bIsInRange = NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
+
+		USoundCue* TempPlaybackAudioCue = ConstructObject<USoundCue>(USoundCue::StaticClass());
+		UAudioComponent* Component = FAudioDevice::CreateComponent(TempPlaybackAudioCue, NULL, NULL, false, false);
+
+		if ( bIsInRange && Component )
+		{
+			float PitchMultiplier = 1.0f / 1.0f;// AudioSection->GetAudioDilationFactor();
+			Component->bAllowSpatialization = false;// !AudioTrack->IsAMasterTrack();
+			Component->SetSound(SoundTrackKey.Sound);
+			Component->SetVolumeMultiplier(1.f);
+			Component->SetPitchMultiplier(PitchMultiplier);
+			Component->bIsUISound = true;
+			Component->Play(NewPosition - SoundTrackKey.Time);
+
+			const float ScrubDuration = 0.05f;
+			Component->FadeOut(ScrubDuration, 1.0f);
+		}
+	}
+#endif
 }
 
-const FString	UInterpTrackSound::GetEdHelperClassName() const
+const FString UInterpTrackSound::GetEdHelperClassName() const
 {
 	return FString( TEXT("UnrealEd.InterpTrackSoundHelper") );
 }
 
-const FString	UInterpTrackSound::GetSlateHelperClassName() const
+const FString UInterpTrackSound::GetSlateHelperClassName() const
 {
 	return FString( TEXT("Matinee.MatineeTrackSoundHelper") );
 }
@@ -8619,6 +8710,7 @@ AMaterialInstanceActor::AMaterialInstanceActor(const class FPostConstructInitial
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Materials;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Materials;
 		SpriteComponent->AttachParent = SceneComponent;
+		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 }
@@ -8722,6 +8814,7 @@ UInterpTrackColorScale::UInterpTrackColorScale(const class FPostConstructInitial
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstColorScale::StaticClass();
 	TrackTitle = TEXT("Color Scale");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Fade.MAT_Groups_Fade"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackColorScale::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -8803,6 +8896,7 @@ UInterpTrackAudioMaster::UInterpTrackAudioMaster(const class FPostConstructIniti
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstAudioMaster::StaticClass();
 	TrackTitle = TEXT("Audio Master");
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_AudioMaster.MAT_Groups_AudioMaster"), NULL, LOAD_None, NULL ));
 }
 
 
@@ -8907,6 +9001,7 @@ UInterpTrackVisibility::UInterpTrackVisibility(const class FPostConstructInitial
 	bFireEventsWhenForwards = true;
 	bFireEventsWhenBackwards = true;
 	bFireEventsWhenJumpingForwards = true;
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MAT_Groups_Visibility.MAT_Groups_Visibility"), NULL, LOAD_None, NULL ));
 }
 
 int32 UInterpTrackVisibility::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)

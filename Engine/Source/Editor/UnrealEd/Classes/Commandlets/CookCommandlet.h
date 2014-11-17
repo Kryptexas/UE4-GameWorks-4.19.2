@@ -76,8 +76,20 @@ class UCookCommandlet
 	 *	@return	bool			true if packages was cooked
 	 */
 	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate );
+	/**
+	 *	Cook (save) the given package
+	 *
+	 *	@param	Package				The package to cook/save
+	 *	@param	SaveFlags			The flags to pass to the SavePackage function
+	 *	@param	bOutWasUpToDate		Upon return, if true then the cooked package was cached (up to date)
+	 *	@param  TargetPlatformNames Only cook for target platforms which are included in this array (if empty cook for all target platforms specified on commandline options)
+	 *									TargetPlatformNames is in and out value returns the platforms which the SaveCookedPackage function saved for
+	 *
+	 *	@return	bool			true if packages was cooked
+	 */
+	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FString> &TargetPlatformNames );
 
-	bool ShouldCook(const FString& InFilename);
+	bool ShouldCook(const FString& InFilename, const FString &InPlatformname = TEXT(""));
 
 public:
 
@@ -90,7 +102,7 @@ public:
 private:
 
 	// Callback for handling a network file request.
-	void HandleNetworkFileServerFileRequest( const FString& Filename, TArray<FString>& UnsolicitedFiles );
+	void HandleNetworkFileServerFileRequest( const FString& Filename, const FString &Platformname, TArray<FString>& UnsolicitedFiles );
 
 	// Callback for recompiling shaders
 	void HandleNetworkFileServerRecompileShaders(const struct FShaderRecompileData& RecompileData);

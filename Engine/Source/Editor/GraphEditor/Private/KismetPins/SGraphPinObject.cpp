@@ -82,6 +82,7 @@ TSharedRef<SWidget>	SGraphPinObject::GetDefaultValueWidget()
 			.ForegroundColor( this, &SGraphPinObject::OnGetComboForeground)
 			.ContentPadding( FMargin(2,2,2,1) )
 			.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
+			.MenuPlacement(MenuPlacement_BelowAnchor)
 			.ButtonContent()
 			[
 				SNew(STextBlock)
@@ -202,6 +203,7 @@ TSharedRef<SWidget> SGraphPinObject::GenerateAssetPicker()
 	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SGraphPinObject::OnAssetSelectedFromPicker);
 	AssetPickerConfig.ThumbnailScale = 0;
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+	AssetPickerConfig.bAllowDragging = false;
 
 	return
 		SNew(SBox)

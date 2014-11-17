@@ -47,13 +47,14 @@ namespace UnrealBuildTool
 		/// <param name="InTargetPlatform">Name of the target that may be built.</param>
 		/// <param name="InDependencies">Name of the target that may be built.</param>
 		/// <param name="bHasPlist">Name of the target that may be built.</param>
-		public XcodeProjectTarget(string InDisplayName, string InTargetName, string InType, string InProductName = "", UnrealTargetPlatform InTargetPlatform = UnrealTargetPlatform.Mac, List<XcodeTargetDependency> InDependencies = null, bool bHasPlist = false, List<XcodeFrameworkRef> InFrameworks = null)
+		public XcodeProjectTarget(string InDisplayName, string InTargetName, string InType, string InProductName = "", UnrealTargetPlatform InTargetPlatform = UnrealTargetPlatform.Mac, bool bInIsMacOnly = false, List<XcodeTargetDependency> InDependencies = null, bool bHasPlist = false, List<XcodeFrameworkRef> InFrameworks = null)
 		{
 			DisplayName = InDisplayName;
 			TargetName = InTargetName;
 			Type = InType;
 			ProductName = InProductName;
 			TargetPlatform = InTargetPlatform;
+			bIsMacOnly = bInIsMacOnly;
 			Guid = XcodeProjectFileGenerator.MakeXcodeGuid();
 			BuildConfigGuild = XcodeProjectFileGenerator.MakeXcodeGuid();
 			SourcesPhaseGuid = XcodeProjectFileGenerator.MakeXcodeGuid();
@@ -79,6 +80,7 @@ namespace UnrealBuildTool
 		public string TargetName;				//Actual name of the target.
 		public string Type;						// "Native", "Legacy" or "Project"
 		public UnrealTargetPlatform TargetPlatform;	//Mac, IOS
+		public bool bIsMacOnly;
 		public string ProductName;
 
 		public string Guid;
@@ -246,6 +248,10 @@ namespace UnrealBuildTool
             FrameworkGroupGuid = MakeXcodeGuid();
 			Contents.Append(string.Format("\t\t\t\t{0} /* Products */,{1}", ProductRefGroupGuid, ProjectFileGenerator.NewLine));
             Contents.Append(string.Format("\t\t\t\t{0} /* Frameworks */,{1}", FrameworkGroupGuid, ProjectFileGenerator.NewLine));
+			if (Groups.ContainsKey(""))
+			{
+				Groups[""].Append(ref Contents, bFilesOnly: true);
+			}
 
 			Contents.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
 			Contents.Append("\t\t\tsourceTree = \"<group>\";" + ProjectFileGenerator.NewLine);
@@ -288,7 +294,10 @@ namespace UnrealBuildTool
 
 			foreach (XcodeFileGroup Group in Groups.Values)
 			{
-				Group.Append(ref Contents);
+				if (Group.GroupName != "")
+				{
+					Group.Append(ref Contents);
+				}
 			}
 
 			Contents.Append("/* End PBXGroup section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine);
@@ -371,7 +380,7 @@ namespace UnrealBuildTool
 
 			if (Target.Type == "Native")
 			{
-				if (Target.DisplayName.Contains("(Build)"))
+				if (Target.DisplayName == "UE4XcodeHelper")
 				{
 					Contents.Append(
 						"\t\t\tproductReference = " + Target.ProductGuid + " /* " + Target.ProductName + " */;" + ProjectFileGenerator.NewLine +
@@ -393,6 +402,249 @@ namespace UnrealBuildTool
 			Contents.Append("\t\t};" + ProjectFileGenerator.NewLine);
 		}
 
+		private void AppendProjectConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, string PreprocessorDefinitions, string HeaderSearchPaths)
+		{
+			Contents.Append(
+				"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
+				"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
+				"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
+				PreprocessorDefinitions +
+				HeaderSearchPaths +
+				"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tGCC_WARN_CHECK_SWITCH_STATEMENTS = NO;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSUPPORTED_PLATFORMS = \"macosx\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
+				"\t\t\t};" + ProjectFileGenerator.NewLine +
+				"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
+				"\t\t};" + ProjectFileGenerator.NewLine);
+		}
+
+		private void AppendMacBuildConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, bool bIsMacOnly)
+		{
+			if (bIsMacOnly)
+			{
+				Contents.Append(
+					"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
+					"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
+					"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tARCHS = \"x86_64\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tVALID_ARCHS = \"x86_64\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
+					"\t\t\t};" + ProjectFileGenerator.NewLine +
+					"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
+					"\t\t};" + ProjectFileGenerator.NewLine);
+			}
+			else
+			{
+				Contents.Append(
+					"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
+					"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
+					"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tARCHS = \"x86_64 arm64 armv7 armv7s\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tVALID_ARCHS = \"x86_64 arm64 armv7 armv7s\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tSUPPORTED_PLATFORMS = \"macosx iphoneos iphonesimulator\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\t\"PRODUCT_NAME[sdk=macosx*]\" = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"$(TARGET_NAME)-simulator\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.9;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\t\"SDKROOT[arch=x86_64]\" = macosx;" + ProjectFileGenerator.NewLine +
+					"\t\t\t\t\"SDKROOT[arch=arm*]\" = iphoneos;" + ProjectFileGenerator.NewLine +
+					"\t\t\t};" + ProjectFileGenerator.NewLine +
+					"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
+					"\t\t};" + ProjectFileGenerator.NewLine);
+			}
+		}
+
+		private void AppendIOSBuildConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid)
+		{
+			Contents.Append(
+				"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
+				"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
+				"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"$(TARGET_NAME)-simulator\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSUPPORTED_PLATFORMS = \"iphoneos iphonesimulator\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
+				"\t\t\t};" + ProjectFileGenerator.NewLine +
+				"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
+				"\t\t};" + ProjectFileGenerator.NewLine);
+		}
+
+		private void AppendIOSRunConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, string TargetName, string EngineRelative, string GamePath, bool bIsUE4Game, bool IsAGame)
+		{
+			Contents.Append(
+				"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
+				"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
+				"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"" + TargetName + "\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"" + TargetName + "-simulator\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSUPPORTED_PLATFORMS = \"iphoneos iphonesimulator\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Developer\";" + ProjectFileGenerator.NewLine);
+			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
+			{
+				if (bIsUE4Game)
+				{
+					Contents.Append(
+						"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Intermediate/IOS/" + TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
+				}
+				else if (IsAGame)
+				{
+					Contents.Append(
+						"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tINFOPLIST_FILE = \"" + GamePath + "/Intermediate/IOS/" + TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tSYMROOT = \"" + GamePath + "/Binaries/IOS\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tOBJROOT = \"" + GamePath + "/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
+				}
+				else
+				{
+					Contents.Append(
+						"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Source/Programs/" + TargetName + "/Resources/IOS/" + TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
+						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
+				}
+			}
+			else
+			{
+				Contents.Append(
+					"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"XcodeSupportFiles/" + TargetName + ".entitlements\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tINFOPLIST_FILE = \"XcodeSupportFiles/" + TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
+					"\t\t\t\tOBJROOT = \"XcodeSupportFiles/build\";" + ProjectFileGenerator.NewLine);
+
+				// if we're building for PC, set up Xcode to accommodate IphonePackager
+				if (bIsUE4Game)
+				{
+					Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
+				}
+				else if (IsAGame)
+				{
+					Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
+				}
+				else
+				{
+					Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
+				}
+			}
+			Contents.Append(
+				"\t\t\t\tINFOPLIST_OUTPUT_FORMAT = xml;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\"PROVISIONING_PROFILE[sdk=iphoneos*]\" = \"\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
+				"\t\t\t};" + ProjectFileGenerator.NewLine +
+				"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
+				"\t\t};" + ProjectFileGenerator.NewLine);
+		}
+
+		private void AppendIOSXCTestConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, string TargetName, string EngineTarget, string EngineRelative)
+		{
+			Contents.Append(
+				"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
+				"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
+				"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tBUNDLE_LOADER = \"" + EngineTarget + "Binaries/IOS/Payload/" + TargetName + ".app/" + TargetName + "\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++0x\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCLANG_ENABLE_MODULES = YES;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCODE_SIGN_IDENTITY = \"iPhone Developer\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCOPY_PHASE_STRIP = NO;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tFRAMEWORK_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\t\"$(SDKROOT)/Developer/Library/Frameworks\"," + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\t\"$(DEVELOPER_FRAMEWORKS_DIR)\"," + ProjectFileGenerator.NewLine +
+				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tGCC_C_LANGUAGE_STANDARD = gnu99;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tDYNAMIC_NO_PIC = NO;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tOPTIMIZATION_LEVEL = 0;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = NO;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\t\"DEBUG=1\"," + ProjectFileGenerator.NewLine +
+				"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
+				"\t\t\t\t);" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tGCC_SYMBOLS_PRIVATE_EXTERN = NO;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Build/IOS/UE4CmdLineRun/UE4CmdLineRun-Info.plist\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSYMROOT = \"" + EngineTarget + "Binaries/IOS\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSUPPORTED_PLATFORMS = \"iphoneos iphonesimulator\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tWRAPPER_EXTENSION = xctest;" + ProjectFileGenerator.NewLine +
+				"\t\t\t};" + ProjectFileGenerator.NewLine +
+				"\t\t\tname = " + ConfigName + ";" + ProjectFileGenerator.NewLine +
+				"\t\t};" + ProjectFileGenerator.NewLine);
+		}
+
+		private void AppendSingleConfig(ref StringBuilder Contents, XcodeProjectTarget Target, string ConfigName, string ConfigGuid, string PreprocessorDefinitions, string HeaderSearchPaths,
+										string EngineRelative, string GamePath, bool bIsUE4Game, bool IsAGame)
+		{
+			if (Target.Type == "Project")
+			{
+				AppendProjectConfig(ref Contents, ConfigName, ConfigGuid, PreprocessorDefinitions, HeaderSearchPaths);
+			}
+			else
+			{
+				if (Target.TargetPlatform == UnrealTargetPlatform.Mac)
+				{
+					AppendMacBuildConfig(ref Contents, ConfigName, ConfigGuid, Target.bIsMacOnly);
+				}
+				else
+				{
+					if (Target.Type == "Legacy")
+					{
+						AppendIOSBuildConfig(ref Contents, ConfigName, ConfigGuid);
+					}
+					else
+					{
+						if (Target.Type != "XCTest")
+						{
+							AppendIOSRunConfig(ref Contents, ConfigName, ConfigGuid, Target.TargetName, EngineRelative, GamePath, bIsUE4Game, IsAGame);
+						}
+						else
+						{
+							string EngineTarget = "";
+							if (bIsUE4Game)
+							{
+								if (!bGeneratingGameProjectFiles && !bGeneratingRocketProjectFiles)
+								{
+									EngineTarget = "Engine/";
+								}
+							}
+
+							AppendIOSXCTestConfig(ref Contents, ConfigName, ConfigGuid, Target.TargetName, EngineTarget, EngineRelative);
+						}
+					}
+				}
+			}
+		}
+
 		/// <summary>
 		/// Appends a build configuration section for specific target.
 		/// </summary>
@@ -400,7 +652,7 @@ namespace UnrealBuildTool
 		/// <param name="Target">Target for which we generate the build configuration</param>
 		/// <param name="HeaderSearchPaths">Optional string with header search paths section</param>
 		/// <param name="PreprocessorDefinitions">Optional string with preprocessor definitions section</param>
-		private void AppendBuildConfig(ref StringBuilder Contents, XcodeProjectTarget Target, string HeaderSearchPaths = "", string PreprocessorDefinitions = "")
+		private void AppendBuildConfigs(ref StringBuilder Contents, XcodeProjectTarget Target, string HeaderSearchPaths = "", string PreprocessorDefinitions = "")
 		{
 			List<string> GameFolders = UEBuildTarget.DiscoverAllGameFolders();
 
@@ -427,827 +679,14 @@ namespace UnrealBuildTool
 				EngineRelative = Path.GetFullPath(EngineRelativePath + "/../");
 			}
 
-			if (Target.Type == "Project")
+			if (!bGeneratingRocketProjectFiles)
 			{
-				if (!bGeneratingRocketProjectFiles)
-				{
-					Contents.Append(
-						"\t\t" + Target.DebugConfigGuid + " /* Debug */ = {" + ProjectFileGenerator.NewLine +
-						"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-						"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-						PreprocessorDefinitions +
-						HeaderSearchPaths +
-						"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
-						//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
-						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-						"\t\t\t};" + ProjectFileGenerator.NewLine +
-						"\t\t\tname = Debug;" + ProjectFileGenerator.NewLine +
-						"\t\t};" + ProjectFileGenerator.NewLine +
-
-						"\t\t" + Target.TestConfigGuid + " /* Test */ = {" + ProjectFileGenerator.NewLine +
-						"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-						"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-						PreprocessorDefinitions +
-						HeaderSearchPaths +
-						"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
-						//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
-						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-						"\t\t\t};" + ProjectFileGenerator.NewLine +
-						"\t\t\tname = Test;" + ProjectFileGenerator.NewLine +
-						"\t\t};" + ProjectFileGenerator.NewLine);
-				}
-				else
-				{
-					Contents.Append(
-						"\t\t" + Target.DebugGameConfigGuid + " /* DebugGame */ = {" + ProjectFileGenerator.NewLine +
-						"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-						"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-						PreprocessorDefinitions +
-						HeaderSearchPaths +
-						"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
-						//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
-						"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-						"\t\t\t};" + ProjectFileGenerator.NewLine +
-						"\t\t\tname = DebugGame;" + ProjectFileGenerator.NewLine +
-						"\t\t};" + ProjectFileGenerator.NewLine);
-
-				}
-				Contents.Append(
-					"\t\t" + Target.DevelopmentConfigGuid + " /* Development */ = {" + ProjectFileGenerator.NewLine +
-					"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-					"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-					PreprocessorDefinitions +
-					HeaderSearchPaths +
-					"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
-									//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
-					"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-					"\t\t\t};" + ProjectFileGenerator.NewLine +
-					"\t\t\tname = Development;" + ProjectFileGenerator.NewLine +
-					"\t\t};" + ProjectFileGenerator.NewLine +
-
-					"\t\t" + Target.ShippingConfigGuid + " /* Shipping */ = {" + ProjectFileGenerator.NewLine +
-					"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-					"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-					PreprocessorDefinitions +
-					HeaderSearchPaths +
-					"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"c++0x\";" + ProjectFileGenerator.NewLine +
-									//This should only be needed for packaging for iOS. If this changes it should be moved to the iOS exclusive sections.
-					"\t\t\t\tCONFIGURATION_BUILD_DIR = \"Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-					"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-					"\t\t\t};" + ProjectFileGenerator.NewLine +
-					"\t\t\tname = Shipping;" + ProjectFileGenerator.NewLine +
-					"\t\t};" + ProjectFileGenerator.NewLine);
+				AppendSingleConfig(ref Contents, Target, "Debug", Target.DebugConfigGuid, PreprocessorDefinitions, HeaderSearchPaths, EngineRelative, GamePath, bIsUE4Game, IsAGame);
+				AppendSingleConfig(ref Contents, Target, "Test", Target.TestConfigGuid, PreprocessorDefinitions, HeaderSearchPaths, EngineRelative, GamePath, bIsUE4Game, IsAGame);
 			}
-			else
-			{
-				if (Target.TargetPlatform == UnrealTargetPlatform.Mac)
-				{
-					if (!bGeneratingRocketProjectFiles)
-					{
-						// Non-project targets inherit build settings from the project
-						Contents.Append(
-							"\t\t" + Target.DebugConfigGuid + " /* Debug */ = {" + ProjectFileGenerator.NewLine +
-							"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-							"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-							"\t\t\t};" + ProjectFileGenerator.NewLine +
-							"\t\t\tname = Debug;" + ProjectFileGenerator.NewLine +
-							"\t\t};" + ProjectFileGenerator.NewLine +
-
-							"\t\t" + Target.TestConfigGuid + " /* Test */ = {" + ProjectFileGenerator.NewLine +
-							"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-							"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-							"\t\t\t};" + ProjectFileGenerator.NewLine +
-							"\t\t\tname = Test;" + ProjectFileGenerator.NewLine +
-							"\t\t};" + ProjectFileGenerator.NewLine);
-					}
-					else
-					{
-						// Non-project targets inherit build settings from the project
-						Contents.Append(
-							"\t\t" + Target.DebugGameConfigGuid + " /* DebugGame */ = {" + ProjectFileGenerator.NewLine +
-							"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-							"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-							"\t\t\t};" + ProjectFileGenerator.NewLine +
-							"\t\t\tname = DebugGame;" + ProjectFileGenerator.NewLine +
-							"\t\t};" + ProjectFileGenerator.NewLine);
-					}
-					// Non-project targets inherit build settings from the project
-					Contents.Append(
-						"\t\t" + Target.DevelopmentConfigGuid + " /* Development */ = {" + ProjectFileGenerator.NewLine +
-						"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-						"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-						"\t\t\t};" + ProjectFileGenerator.NewLine +
-						"\t\t\tname = Development;" + ProjectFileGenerator.NewLine +
-						"\t\t};" + ProjectFileGenerator.NewLine +
-
-						"\t\t" + Target.ShippingConfigGuid + " /* Shipping */ = {" + ProjectFileGenerator.NewLine +
-						"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-						"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tCOMBINE_HIDPI_IMAGES = YES;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tMACOSX_DEPLOYMENT_TARGET = 10.8;" + ProjectFileGenerator.NewLine +
-						"\t\t\t\tSDKROOT = macosx;" + ProjectFileGenerator.NewLine +
-						"\t\t\t};" + ProjectFileGenerator.NewLine +
-						"\t\t\tname = Shipping;" + ProjectFileGenerator.NewLine +
-						"\t\t};" + ProjectFileGenerator.NewLine);
-				}
-				else
-				{
-					// IOS build target
-					if (Target.Type == "Legacy")
-					{
-						if (!bGeneratingRocketProjectFiles)
-						{
-							Contents.Append(
-								"\t\t" + Target.DebugConfigGuid + " /* Debug */ = {" + ProjectFileGenerator.NewLine +
-								"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-								"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"$(TARGET_NAME)-simulator\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-								"\t\t\t};" + ProjectFileGenerator.NewLine +
-								"\t\t\tname = Debug;" + ProjectFileGenerator.NewLine +
-								"\t\t};" + ProjectFileGenerator.NewLine +
-
-								"\t\t" + Target.ShippingConfigGuid + " /* Shipping */ = {" + ProjectFileGenerator.NewLine +
-								"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-								"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"$(TARGET_NAME)-simulator\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-								"\t\t\t};" + ProjectFileGenerator.NewLine +
-								"\t\t\tname = Shipping;" + ProjectFileGenerator.NewLine +
-								"\t\t};" + ProjectFileGenerator.NewLine);
-						}
-						else
-						{
-							Contents.Append(
-								"\t\t" + Target.DebugGameConfigGuid + " /* DebugGame */ = {" + ProjectFileGenerator.NewLine +
-								"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-								"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"$(TARGET_NAME)-simulator\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-								"\t\t\t};" + ProjectFileGenerator.NewLine +
-								"\t\t\tname = DebugGame;" + ProjectFileGenerator.NewLine +
-								"\t\t};" + ProjectFileGenerator.NewLine);
-						}
-						Contents.Append(
-							"\t\t" + Target.DevelopmentConfigGuid + " /* Development */ = {" + ProjectFileGenerator.NewLine +
-							"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-							"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-							"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"$(TARGET_NAME)-simulator\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-							"\t\t\t};" + ProjectFileGenerator.NewLine +
-							"\t\t\tname = Development;" + ProjectFileGenerator.NewLine +
-							"\t\t};" + ProjectFileGenerator.NewLine +
-
-							"\t\t" + Target.ShippingConfigGuid + " /* Shipping */ = {" + ProjectFileGenerator.NewLine +
-							"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-							"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-							"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"$(TARGET_NAME)-simulator\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-							"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-							"\t\t\t};" + ProjectFileGenerator.NewLine +
-							"\t\t\tname = Shipping;" + ProjectFileGenerator.NewLine +
-							"\t\t};" + ProjectFileGenerator.NewLine);
-					}
-					// IOS run target (Native Target)
-					else
-					{
-						if ( Target.Type != "XCTest" )
-						{
-							if (!bGeneratingRocketProjectFiles)
-							{
-								Contents.Append(
-									"\t\t" + Target.DebugConfigGuid + " /* Debug */ = {" + ProjectFileGenerator.NewLine +
-									"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-									"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"" + Target.TargetName + "-simulator\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Developer\";" + ProjectFileGenerator.NewLine);
-								if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
-								{
-									if (bIsUE4Game)
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else if (IsAGame)
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"" + Target.TargetName + "/Intermediate/IOS/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + GamePath + "/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + GamePath + "/Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + GamePath + "/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Source/Programs/" + Target.TargetName + "/Resources/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-								}
-								else
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"XcodeSupportFiles/" + Target.TargetName + ".entitlements\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tINFOPLIST_FILE = \"XcodeSupportFiles/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"XcodeSupportFiles/build\";" + ProjectFileGenerator.NewLine);
-
-									// if we're building for PC, set up Xcode to accommodate IphonePackager
-									if (bIsUE4Game)
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else if (IsAGame)
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-									}
-								}
-								Contents.Append(
-									"\t\t\t\tINFOPLIST_OUTPUT_FORMAT = xml;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PROVISIONING_PROFILE[sdk=iphoneos*]\" = \"\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-									"\t\t\t};" + ProjectFileGenerator.NewLine +
-									"\t\t\tname = Debug;" + ProjectFileGenerator.NewLine +
-									"\t\t};" + ProjectFileGenerator.NewLine);
-								Contents.Append(
-									"\t\t" + Target.TestConfigGuid + " /* Test */ = {" + ProjectFileGenerator.NewLine +
-									"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-									"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"" + Target.TargetName + "-simulator\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Developer\";" + ProjectFileGenerator.NewLine);
-								if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
-								{
-									if (bIsUE4Game)
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else if (IsAGame)
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"" + Target.TargetName + "/Intermediate/IOS/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + GamePath + "/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + GamePath + "/Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + GamePath + "/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Source/Programs/" + Target.TargetName + "/Resources/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-								}
-								else
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"XcodeSupportFiles/" + Target.TargetName + ".entitlements\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tINFOPLIST_FILE = \"XcodeSupportFiles/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"XcodeSupportFiles/build\";" + ProjectFileGenerator.NewLine);
-
-									// if we're building for PC, set up Xcode to accommodate IphonePackager
-									if (bIsUE4Game)
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else if (IsAGame)
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-									}
-								}
-								Contents.Append(
-									"\t\t\t\tINFOPLIST_OUTPUT_FORMAT = xml;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PROVISIONING_PROFILE[sdk=iphoneos*]\" = \"\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-									"\t\t\t};" + ProjectFileGenerator.NewLine +
-									"\t\t\tname = Test;" + ProjectFileGenerator.NewLine +
-									"\t\t};" + ProjectFileGenerator.NewLine);
-							}
-							else
-							{
-								Contents.Append(
-									"\t\t" + Target.DebugGameConfigGuid + " /* DebugGame */ = {" + ProjectFileGenerator.NewLine +
-									"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-									"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"" + Target.TargetName + "-simulator\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_ENABLE_CPP_RTTI = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Developer\";" + ProjectFileGenerator.NewLine);
-								if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
-								{
-									if (bIsUE4Game)
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else if (IsAGame)
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"" + Target.TargetName + "/Intermediate/IOS/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + GamePath + "/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + GamePath + "/Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + GamePath + "/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else
-									{
-										Contents.Append(
-											"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-											//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Source/Programs/" + Target.TargetName + "/Resources/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-								}
-								else
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"XcodeSupportFiles/" + Target.TargetName + ".entitlements\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tINFOPLIST_FILE = \"XcodeSupportFiles/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"XcodeSupportFiles/build\";" + ProjectFileGenerator.NewLine);
-
-									// if we're building for PC, set up Xcode to accommodate IphonePackager
-									if (bIsUE4Game)
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else if (IsAGame)
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-									}
-									else
-									{
-										Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-									}
-								}
-								Contents.Append(
-									"\t\t\t\tINFOPLIST_OUTPUT_FORMAT = xml;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\"PROVISIONING_PROFILE[sdk=iphoneos*]\" = \"\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-									"\t\t\t};" + ProjectFileGenerator.NewLine +
-									"\t\t\tname = DebugGame;" + ProjectFileGenerator.NewLine +
-									"\t\t};" + ProjectFileGenerator.NewLine);
-							}
-							Contents.Append(
-								"\t\t" + Target.DevelopmentConfigGuid + " /* Development */ = {" + ProjectFileGenerator.NewLine +
-								"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-								"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"" + Target.TargetName + "-simulator\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Developer\";" + ProjectFileGenerator.NewLine);
-							if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
-							{
-								if (bIsUE4Game)
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-										//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-								}
-								else if (IsAGame)
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-										//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"" + Target.TargetName + "/Intermediate/IOS/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + GamePath + "/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tSYMROOT = \"" + GamePath + "/Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"" + GamePath + "/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-								}
-								else
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-										//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Source/Programs/" + Target.TargetName + "/Resources/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-								}
-							}
-							else
-							{
-								Contents.Append(
-									"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"XcodeSupportFiles/" + Target.TargetName + ".entitlements\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tINFOPLIST_FILE = \"XcodeSupportFiles/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tOBJROOT = \"XcodeSupportFiles/build\";" + ProjectFileGenerator.NewLine);
-
-								// if we're building for PC, set up Xcode to accommodate IphonePackager
-								if (bIsUE4Game)
-								{
-									Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-								}
-								else if (IsAGame)
-								{
-									Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-								}
-								else
-								{
-									Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-								}
-							}
-
-							Contents.Append(
-								"\t\t\t\tINFOPLIST_OUTPUT_FORMAT = xml;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PROVISIONING_PROFILE[sdk=iphoneos*]\" = \"\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-								"\t\t\t};" + ProjectFileGenerator.NewLine +
-								"\t\t\tname = Development;" + ProjectFileGenerator.NewLine +
-								"\t\t};" + ProjectFileGenerator.NewLine);
-
-							Contents.Append(
-								"\t\t" + Target.ShippingConfigGuid + " /* Shipping */ = {" + ProjectFileGenerator.NewLine +
-								"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-								"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphoneos*]\" = \"" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PRODUCT_NAME[sdk=iphonesimulator*]\" = \"" + Target.TargetName + "-simulator\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = " + IOSToolChain.IOSVersion + ";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"iPhone Developer\";" + ProjectFileGenerator.NewLine);
-							if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
-							{
-								if (bIsUE4Game)
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-										//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-								}
-								else if (IsAGame)
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-										//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"" + Target.TargetName + "/Intermediate/IOS/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-											"\t\t\t\tINFOPLIST_FILE = \"" + GamePath + "/Intermediate/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tSYMROOT = \"" + GamePath + "/Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"" + GamePath + "/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-								}
-								else
-								{
-									Contents.Append(
-										"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-										//"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \""Engine/Intermediate/Build/IOS/Debug/" + Target.Name + "/" + Target.Name + ".entitlements\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Source/Programs/" + Target.TargetName + "/Resources/IOS/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tSYMROOT = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tOBJROOT = \"" + EngineRelative + "Engine/Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-										"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineRelative + "Engine/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-								}
-							}
-							else
-							{
-								Contents.Append(
-									"\t\t\t\tCODE_SIGN_ENTITLEMENTS = \"XcodeSupportFiles/" + Target.TargetName + ".entitlements\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tINFOPLIST_FILE = \"XcodeSupportFiles/" + Target.TargetName + "-Info.plist\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tOBJROOT = \"XcodeSupportFiles/build\";" + ProjectFileGenerator.NewLine);
-
-								// if we're building for PC, set up Xcode to accommodate IphonePackager
-								if (bIsUE4Game)
-								{
-									Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-								}
-								else if (IsAGame)
-								{
-									Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + GamePath + "/Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine);
-								}
-								else
-								{
-									Contents.Append("\t\t\t\tCONFIGURATION_BUILD_DIR = \"Payload\";" + ProjectFileGenerator.NewLine);
-								}
-							}
-
-							Contents.Append(
-								"\t\t\t\tINFOPLIST_OUTPUT_FORMAT = xml;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\"PROVISIONING_PROFILE[sdk=iphoneos*]\" = \"\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tTARGETED_DEVICE_FAMILY = \"1,2\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-								"\t\t\t};" + ProjectFileGenerator.NewLine +
-								"\t\t\tname = Shipping;" + ProjectFileGenerator.NewLine +
-								"\t\t};" + ProjectFileGenerator.NewLine);
-						}
-						else
-						{
-							string EngineTarget = "";
-							if (bIsUE4Game)
-							{
-								if (!bGeneratingGameProjectFiles && !bGeneratingRocketProjectFiles)
-								{
-									EngineTarget = "Engine/";
-								}
-							}
-
-							if (!bGeneratingRocketProjectFiles)
-							{
-								Contents.Append(
-									"\t\t" + Target.DebugConfigGuid + " /* Debug */ = {" + ProjectFileGenerator.NewLine +
-									"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-									"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tBUNDLE_LOADER = \"" + EngineTarget + "Binaries/IOS/Payload/" + Target.TargetName + ".app/" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++0x\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_ENABLE_MODULES = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCODE_SIGN_IDENTITY = \"iPhone Developer\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCOPY_PHASE_STRIP = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tFRAMEWORK_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(SDKROOT)/Developer/Library/Frameworks\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(DEVELOPER_FRAMEWORKS_DIR)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_C_LANGUAGE_STANDARD = gnu99;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tDYNAMIC_NO_PIC = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tOPTIMIZATION_LEVEL = 0;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"DEBUG=1\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_SYMBOLS_PRIVATE_EXTERN = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Build/IOS/UE4CmdLineRun/UE4CmdLineRun-Info.plist\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSYMROOT = \"" + EngineTarget + "Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tWRAPPER_EXTENSION = xctest;" + ProjectFileGenerator.NewLine +
-									"\t\t\t};" + ProjectFileGenerator.NewLine +
-									"\t\t\tname = Debug;" + ProjectFileGenerator.NewLine +
-									"\t\t};" + ProjectFileGenerator.NewLine +
-
-									"\t\t" + Target.TestConfigGuid + " /* Test */ = {" + ProjectFileGenerator.NewLine +
-									"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-									"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tBUNDLE_LOADER = \"" + EngineTarget + "Binaries/IOS/Payload/" + Target.TargetName + ".app/" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++0x\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_ENABLE_MODULES = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCODE_SIGN_IDENTITY = \"iPhone Developer\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCOPY_PHASE_STRIP = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tFRAMEWORK_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(SDKROOT)/Developer/Library/Frameworks\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(DEVELOPER_FRAMEWORKS_DIR)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_C_LANGUAGE_STANDARD = gnu99;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tDYNAMIC_NO_PIC = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tOPTIMIZATION_LEVEL = 0;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"DEBUG=1\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_SYMBOLS_PRIVATE_EXTERN = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Build/IOS/UE4CmdLineRun/UE4CmdLineRun-Info.plist\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSYMROOT = \"" + EngineTarget + "Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tWRAPPER_EXTENSION = xctest;" + ProjectFileGenerator.NewLine +
-									"\t\t\t};" + ProjectFileGenerator.NewLine +
-									"\t\t\tname = Test;" + ProjectFileGenerator.NewLine +
-									"\t\t};" + ProjectFileGenerator.NewLine);
-							}
-							else
-							{
-								Contents.Append(
-									"\t\t" + Target.DebugGameConfigGuid + " /* DebugGame */ = {" + ProjectFileGenerator.NewLine +
-									"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-									"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tBUNDLE_LOADER = \"" + EngineTarget + "Binaries/IOS/Payload/" + Target.TargetName + ".app/" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++0x\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_ENABLE_MODULES = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCODE_SIGN_IDENTITY = \"iPhone Developer\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCOPY_PHASE_STRIP = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tFRAMEWORK_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(SDKROOT)/Developer/Library/Frameworks\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(DEVELOPER_FRAMEWORKS_DIR)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_C_LANGUAGE_STANDARD = gnu99;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tDYNAMIC_NO_PIC = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tOPTIMIZATION_LEVEL = 0;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"DEBUG=1\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-									"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tGCC_SYMBOLS_PRIVATE_EXTERN = NO;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Build/IOS/UE4CmdLineRun/UE4CmdLineRun-Info.plist\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSYMROOT = \"" + EngineTarget + "Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
-									"\t\t\t\tWRAPPER_EXTENSION = xctest;" + ProjectFileGenerator.NewLine +
-									"\t\t\t};" + ProjectFileGenerator.NewLine +
-									"\t\t\tname = DebugGame;" + ProjectFileGenerator.NewLine +
-									"\t\t};" + ProjectFileGenerator.NewLine);
-							}
-							Contents.Append(
-								"\t\t" + Target.DevelopmentConfigGuid + " /* Development */ = {" + ProjectFileGenerator.NewLine +
-								"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-								"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tBUNDLE_LOADER = \"" + EngineTarget + "Binaries/IOS/Payload/" + Target.TargetName + ".app/" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++0x\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCLANG_ENABLE_MODULES = YES;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCODE_SIGN_IDENTITY = \"iPhone Developer\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCOPY_PHASE_STRIP = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tFRAMEWORK_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"$(SDKROOT)/Developer/Library/Frameworks\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"$(DEVELOPER_FRAMEWORKS_DIR)\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_C_LANGUAGE_STANDARD = gnu99;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tDYNAMIC_NO_PIC = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tOPTIMIZATION_LEVEL = 0;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"DEBUG=1\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_SYMBOLS_PRIVATE_EXTERN = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Build/IOS/UE4CmdLineRun/UE4CmdLineRun-Info.plist\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSYMROOT = \"" + EngineTarget + "Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tWRAPPER_EXTENSION = xctest;" + ProjectFileGenerator.NewLine +
-								"\t\t\t};" + ProjectFileGenerator.NewLine +
-								"\t\t\tname = Development;" + ProjectFileGenerator.NewLine +
-								"\t\t};" + ProjectFileGenerator.NewLine +
-
-								"\t\t" + Target.ShippingConfigGuid + " /* Shipping */ = {" + ProjectFileGenerator.NewLine +
-								"\t\t\tisa = XCBuildConfiguration;" + ProjectFileGenerator.NewLine +
-								"\t\t\tbuildSettings = {" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tBUNDLE_LOADER = \"" + EngineTarget + "Binaries/IOS/Payload/" + Target.TargetName + ".app/" + Target.TargetName + "\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCLANG_CXX_LANGUAGE_STANDARD = \"gnu++0x\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCLANG_CXX_LIBRARY = \"libc++\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCLANG_ENABLE_MODULES = YES;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCLANG_ENABLE_OBJC_ARC = YES;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCODE_SIGN_IDENTITY = \"iPhone Developer\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCODE_SIGN_RESOURCE_RULES_PATH = \"" + EngineRelative + "Engine/Build/iOS/XcodeSupportFiles/CustomResourceRules.plist\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCOPY_PHASE_STRIP = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tFRAMEWORK_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"$(SDKROOT)/Developer/Library/Frameworks\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"$(DEVELOPER_FRAMEWORKS_DIR)\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_C_LANGUAGE_STANDARD = gnu99;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tDYNAMIC_NO_PIC = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tOPTIMIZATION_LEVEL = 0;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_PRECOMPILE_PREFIX_HEADER = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (" + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"DEBUG=1\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t\t\"$(inherited)\"," + ProjectFileGenerator.NewLine +
-								"\t\t\t\t);" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tGCC_SYMBOLS_PRIVATE_EXTERN = NO;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tINFOPLIST_FILE = \"" + EngineRelative + "Engine/Build/IOS/UE4CmdLineRun/UE4CmdLineRun-Info.plist\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSYMROOT = \"" + EngineTarget + "Binaries/IOS\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tOBJROOT = \"" + EngineTarget + "Intermediate/IOS/build\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tCONFIGURATION_BUILD_DIR = \"" + EngineTarget + "Binaries/IOS/Payload\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tIPHONEOS_DEPLOYMENT_TARGET = 7.0;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tONLY_ACTIVE_ARCH = YES;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tPRODUCT_NAME = \"$(TARGET_NAME)\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tSDKROOT = iphoneos;" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tTEST_HOST = \"$(BUNDLE_LOADER)\";" + ProjectFileGenerator.NewLine +
-								"\t\t\t\tWRAPPER_EXTENSION = xctest;" + ProjectFileGenerator.NewLine +
-								"\t\t\t};" + ProjectFileGenerator.NewLine +
-								"\t\t\tname = Shipping;" + ProjectFileGenerator.NewLine +
-								"\t\t};" + ProjectFileGenerator.NewLine);
-						}
-					}
-				}
-			}
+			AppendSingleConfig(ref Contents, Target, "DebugGame", Target.DebugGameConfigGuid, PreprocessorDefinitions, HeaderSearchPaths, EngineRelative, GamePath, bIsUE4Game, IsAGame);
+			AppendSingleConfig(ref Contents, Target, "Development", Target.DevelopmentConfigGuid, PreprocessorDefinitions, HeaderSearchPaths, EngineRelative, GamePath, bIsUE4Game, IsAGame);
+			AppendSingleConfig(ref Contents, Target, "Shipping", Target.ShippingConfigGuid, PreprocessorDefinitions, HeaderSearchPaths, EngineRelative, GamePath, bIsUE4Game, IsAGame);
 		}
 
 		/// <summary>
@@ -1267,6 +706,7 @@ namespace UnrealBuildTool
 					"\t\t\tisa = XCConfigurationList;" + ProjectFileGenerator.NewLine +
 					"\t\t\tbuildConfigurations = (" + ProjectFileGenerator.NewLine +
 					"\t\t\t\t" + Target.DebugConfigGuid + " /* Debug */," + ProjectFileGenerator.NewLine +
+					"\t\t\t\t" + Target.DebugGameConfigGuid + " /* DebugGame */," + ProjectFileGenerator.NewLine +
 					"\t\t\t\t" + Target.DevelopmentConfigGuid + " /* Development */," + ProjectFileGenerator.NewLine +
 					"\t\t\t\t" + Target.ShippingConfigGuid + " /* Shipping */," + ProjectFileGenerator.NewLine +
 					"\t\t\t\t" + Target.TestConfigGuid + " /* Test */," + ProjectFileGenerator.NewLine +
@@ -1281,7 +721,7 @@ namespace UnrealBuildTool
 					"\t\t" + Target.BuildConfigGuild + " /* Build configuration list for " + TypeName + " \"" + Target.DisplayName + "\" */ = {" + ProjectFileGenerator.NewLine +
 					"\t\t\tisa = XCConfigurationList;" + ProjectFileGenerator.NewLine +
 					"\t\t\tbuildConfigurations = (" + ProjectFileGenerator.NewLine +
-					"\t\t\t\t" + Target.DebugGameConfigGuid + " /* Debug */," + ProjectFileGenerator.NewLine +
+					"\t\t\t\t" + Target.DebugGameConfigGuid + " /* DebugGame */," + ProjectFileGenerator.NewLine +
 					"\t\t\t\t" + Target.DevelopmentConfigGuid + " /* Development */," + ProjectFileGenerator.NewLine +
 					"\t\t\t\t" + Target.ShippingConfigGuid + " /* Shipping */," + ProjectFileGenerator.NewLine +
 					"\t\t\t);" + ProjectFileGenerator.NewLine +
@@ -1513,10 +953,20 @@ namespace UnrealBuildTool
 		/// Adds the include directory to the list, after converting it to relative to UE4 root
 		private void AddIncludeDirectory(ref List<string> IncludeDirectories, string IncludeDir, string ProjectDir)
 		{
-			string FullPath = Path.GetFullPath(Path.Combine(ProjectDir, IncludeDir));
-			FullPath = Utils.MakePathRelativeTo(FullPath, Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../..")));
-			FullPath = FullPath.TrimEnd('/');
-			if (!IncludeDirectories.Contains(FullPath))
+			string FullProjectPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath);
+			string FullPath = "";
+			if (IncludeDir.StartsWith("/") && !IncludeDir.StartsWith(FullProjectPath))
+			{
+				// Full path to a fulder outside of project
+				FullPath = IncludeDir;
+			}
+			else
+			{
+				FullPath = Path.GetFullPath(Path.Combine(ProjectDir, IncludeDir));
+				FullPath = Utils.MakePathRelativeTo(FullPath, FullProjectPath);
+				FullPath = FullPath.TrimEnd('/');
+			}
+			if (!IncludeDirectories.Contains(FullPath) && !FullPath.Contains("FortniteGame/")) // @todo: skipping Fortnite header paths to shorten clang command line for building UE4XcodeHelper
 			{
 				IncludeDirectories.Add(FullPath);
 			}
@@ -1608,6 +1058,7 @@ namespace UnrealBuildTool
 			string PBXShellScriptBuildPhaseSection = "/* Begin PBXShellScriptBuildPhase section */" + ProjectFileGenerator.NewLine;
 			Dictionary<string, XcodeFileGroup> Groups = new Dictionary<string, XcodeFileGroup>();
 			List<string> IncludeDirectories = new List<string>();
+			List<string> SystemIncludeDirectories = new List<string>();
 			List<string> PreprocessorDefinitions = new List<string>();
 
             foreach (XcodeFramework Framework in Frameworks)
@@ -1755,25 +1206,34 @@ namespace UnrealBuildTool
                             {
                                 Group.bReference = true;
                             }
-
                         }
                     }
                     else
                     {
-					XcodeProject.GenerateSectionsContents (ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups);
+						XcodeProject.GenerateSectionsContents(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups);
                     }
 
 					foreach (var CurPath in XcodeProject.IntelliSenseIncludeSearchPaths)
 					{
-						AddIncludeDirectory (ref IncludeDirectories, CurPath, Path.GetDirectoryName (XcodeProject.ProjectFilePath));
+						AddIncludeDirectory(ref IncludeDirectories, CurPath, Path.GetDirectoryName(XcodeProject.ProjectFilePath));
+					}
+
+					foreach (var CurPath in XcodeProject.IntelliSenseSystemIncludeSearchPaths)
+					{
+						AddIncludeDirectory(ref SystemIncludeDirectories, CurPath, Path.GetDirectoryName(XcodeProject.ProjectFilePath));
 					}
 
 					foreach (var CurDefinition in XcodeProject.IntelliSensePreprocessorDefinitions)
 					{
-						string AlternateDefinition = CurDefinition.Contains("=0") ? CurDefinition.Replace("=0", "=1") :  CurDefinition.Replace("=1", "=0");
-						if (!PreprocessorDefinitions.Contains(CurDefinition) && !PreprocessorDefinitions.Contains(AlternateDefinition) && !CurDefinition.StartsWith("UE_ENGINE_DIRECTORY") && !CurDefinition.StartsWith("ORIGINAL_FILE_NAME"))
+						string Definition = CurDefinition;
+						string AlternateDefinition = Definition.Contains("=0") ? Definition.Replace("=0", "=1") : Definition.Replace("=1", "=0");
+						if (Definition.Equals("WITH_EDITORONLY_DATA=0"))
 						{
-							PreprocessorDefinitions.Add (CurDefinition);
+							Definition = AlternateDefinition;
+						}
+						if (!PreprocessorDefinitions.Contains(Definition) && !PreprocessorDefinitions.Contains(AlternateDefinition) && !Definition.StartsWith("UE_ENGINE_DIRECTORY") && !Definition.StartsWith("ORIGINAL_FILE_NAME"))
+						{
+							PreprocessorDefinitions.Add(Definition);
 						}
 					}
 				}
@@ -1781,7 +1241,7 @@ namespace UnrealBuildTool
 				"\t\t\trunOnlyForDeploymentPostprocessing = 0;" + ProjectFileGenerator.NewLine +
 				"\t\t};" + ProjectFileGenerator.NewLine;
 
-				if( !bGeneratingRocketProjectFiles )
+				if (!bGeneratingRocketProjectFiles)
 				{
 					// Add UnrealBuildTool to the master project
 					string ProjectPath = System.IO.Path.Combine(System.IO.Path.Combine(EngineRelativePath, "Source"), "Programs", "UnrealBuildTool", "UnrealBuildTool_Mono.csproj");
@@ -1878,7 +1338,7 @@ namespace UnrealBuildTool
 				"\t\t" + UE4ProjectTarget.Guid + " /* Project object */ = {" + ProjectFileGenerator.NewLine +
 				"\t\t\tisa = PBXProject;" + ProjectFileGenerator.NewLine +
 				"\t\t\tattributes = {" + ProjectFileGenerator.NewLine +
-				"\t\t\t\tLastUpgradeCheck = 0440;" + ProjectFileGenerator.NewLine +
+				"\t\t\t\tLastUpgradeCheck = 0510;" + ProjectFileGenerator.NewLine +
 				"\t\t\t\tORGANIZATIONNAME = EpicGames;" + ProjectFileGenerator.NewLine +
 				"\t\t\t};" + ProjectFileGenerator.NewLine +
 				"\t\t\tbuildConfigurationList = " + UE4ProjectTarget.BuildConfigGuild + " /* Build configuration list for PBXProject \"" + UE4ProjectTarget.DisplayName + "\" */;" + ProjectFileGenerator.NewLine +
@@ -1920,7 +1380,13 @@ namespace UnrealBuildTool
 			PreprocessorDefinitionsString += "\t\t\t\t\t\"MONOLITHIC_BUILD=1\"," + ProjectFileGenerator.NewLine;
 			PreprocessorDefinitionsString += "\t\t\t\t);" + ProjectFileGenerator.NewLine;
 
-			string HeaderSearchPaths = "\t\t\t\tUSER_HEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine;
+			string HeaderSearchPaths = "\t\t\t\tHEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine;
+			foreach (string Path in SystemIncludeDirectories)
+			{
+				HeaderSearchPaths += "\t\t\t\t\t\"" + Path + "\"," + ProjectFileGenerator.NewLine;
+			}
+			HeaderSearchPaths += "\t\t\t\t);" + ProjectFileGenerator.NewLine;
+			HeaderSearchPaths += "\t\t\t\tUSER_HEADER_SEARCH_PATHS = (" + ProjectFileGenerator.NewLine;
 			foreach (string Path in IncludeDirectories)
 			{
 				HeaderSearchPaths += "\t\t\t\t\t\"" + Path + "\"," + ProjectFileGenerator.NewLine;
@@ -1928,18 +1394,18 @@ namespace UnrealBuildTool
 			HeaderSearchPaths += "\t\t\t\t);" + ProjectFileGenerator.NewLine;
 
 			XcodeProjectFileContent.Append ("/* Begin XCBuildConfiguration section */" + ProjectFileGenerator.NewLine);
-			AppendBuildConfig (ref XcodeProjectFileContent, UE4ProjectTarget, HeaderSearchPaths, PreprocessorDefinitionsString);
+			AppendBuildConfigs(ref XcodeProjectFileContent, UE4ProjectTarget, HeaderSearchPaths, PreprocessorDefinitionsString);
 			foreach (var target in ProjectTargets)
 			{
 				if(target == UE4ProjectTarget || target == UE4XcodeHelperTarget)
 				{
 					continue;
 				}
-				AppendBuildConfig (ref XcodeProjectFileContent, target);
+				AppendBuildConfigs(ref XcodeProjectFileContent, target);
 			}
 			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
 			{
-				AppendBuildConfig (ref XcodeProjectFileContent, UE4XcodeHelperTarget);
+				AppendBuildConfigs(ref XcodeProjectFileContent, UE4XcodeHelperTarget);
 			}
 			XcodeProjectFileContent.Append ("/* End XCBuildConfiguration section */" + ProjectFileGenerator.NewLine + ProjectFileGenerator.NewLine);
 
@@ -1997,6 +1463,17 @@ namespace UnrealBuildTool
 			else
 			{
 				Log.TraceInformation("Skipping project file write, as it didn't change...");
+			}
+
+			// Delete obsolete schemes
+			string SchemesDir = XcodeProjectPath + "/xcuserdata/" + Environment.UserName + ".xcuserdatad/xcschemes";
+			if (Directory.Exists(SchemesDir))
+			{
+				var ObsoleteSchemes = Directory.GetFiles(SchemesDir, "*iOS (*.xcscheme", SearchOption.AllDirectories);
+				foreach (string SchemeFile in ObsoleteSchemes)
+				{
+					File.Delete(SchemeFile);
+				}
 			}
 
 			// write scheme files for targets
@@ -2121,16 +1598,6 @@ namespace UnrealBuildTool
 
 					if( WantProjectFileForTarget )
 					{
-						string MacTargetRun = "";
-						string IOSTargetRun = " (Run)";
-						string IOSTargetBuild = " (Build)";
-						if (ProjectFilePlatform.HasFlag(XcodeProjectFilePlatform.All))
-						{
-							MacTargetRun = " - Mac";
-							IOSTargetRun = " - iOS (Run)";
-							IOSTargetBuild = " - iOS (Build)";
-						}
-
 						string TargetFilePath;
 						var Target = new TargetInfo(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Development);
 						var TargetRulesObject = RulesCompiler.CreateTargetRules( TargetName, Target, false, out TargetFilePath );
@@ -2145,11 +1612,10 @@ namespace UnrealBuildTool
 							TargetsThatNeedApp.Add(TargetName);
 						}
 
-						if (ProjectFilePlatform.HasFlag(XcodeProjectFilePlatform.Mac) && SupportedPlatforms.Contains(UnrealTargetPlatform.Mac))
-						{
-							XcodeProjectTarget MacBuildTarget = new XcodeProjectTarget(TargetName + MacTargetRun, TargetName, "Legacy");
-							ProjectTargets.Add(MacBuildTarget);
-						}
+						// @todo: Remove target platform param and merge Mac and iOS targets. For now BuildTarget knows how to build iOS, but cannot run iOS apps, so we need separate DeployTarget.
+						bool bIsMacOnly = !SupportedPlatforms.Contains(UnrealTargetPlatform.IOS);
+						XcodeProjectTarget BuildTarget = new XcodeProjectTarget(TargetName + " - Mac", TargetName, "Legacy", "", UnrealTargetPlatform.Mac, bIsMacOnly);
+						ProjectTargets.Add(BuildTarget);
 
 						if (ProjectFilePlatform.HasFlag(XcodeProjectFilePlatform.iOS) && SupportedPlatforms.Contains(UnrealTargetPlatform.IOS))
 						{
@@ -2162,16 +1628,14 @@ namespace UnrealBuildTool
 									FrameworkRefs.Add(new XcodeFrameworkRef(Framework));
 								}
 
-								XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + IOSTargetRun, TargetName, "Native", TargetName + ".app", UnrealTargetPlatform.IOS, null, true, FrameworkRefs);
+								XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + " - iOS", TargetName, "Native", TargetName + ".app", UnrealTargetPlatform.IOS, false, null, true, FrameworkRefs);
 								ProjectTargets.Add(IOSDeployTarget);
 							}
 							else
 							{
-								XcodeProjectTarget IOSBuildTarget = new XcodeProjectTarget(TargetName + IOSTargetBuild, TargetName, "Legacy", "", UnrealTargetPlatform.IOS);
-								XcodeContainerItemProxy ContainerProxy = new XcodeContainerItemProxy(ProjectTarget.Guid, IOSBuildTarget.Guid, IOSBuildTarget.DisplayName);
-								XcodeTargetDependency TargetDependency = new XcodeTargetDependency(IOSBuildTarget.DisplayName, IOSBuildTarget.Guid, ContainerProxy.Guid);
-								XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + IOSTargetRun, TargetName, "Native", TargetName + ".app", UnrealTargetPlatform.IOS, new List<XcodeTargetDependency>() { TargetDependency }, true);
-								ProjectTargets.Add(IOSBuildTarget);
+								XcodeContainerItemProxy ContainerProxy = new XcodeContainerItemProxy(ProjectTarget.Guid, BuildTarget.Guid, BuildTarget.DisplayName);
+								XcodeTargetDependency TargetDependency = new XcodeTargetDependency(BuildTarget.DisplayName, BuildTarget.Guid, ContainerProxy.Guid);
+								XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + " - iOS", TargetName, "Native", TargetName + ".app", UnrealTargetPlatform.IOS, false, new List<XcodeTargetDependency>() { TargetDependency }, true);
 								ProjectTargets.Add(IOSDeployTarget);
 								ContainerItemProxies.Add(ContainerProxy);
 								TargetDependencies.Add(TargetDependency);
@@ -2193,7 +1657,7 @@ namespace UnrealBuildTool
 							FrameworkRefs.Add(new XcodeFrameworkRef(Framework));
 						}
 
-						XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + "_RunIOS", TargetName, "Native", TargetName + ".app", UnrealTargetPlatform.IOS, null, true, FrameworkRefs);
+						XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(TargetName + "_RunIOS", TargetName, "Native", TargetName + ".app", UnrealTargetPlatform.IOS, false, null, true, FrameworkRefs);
 						ProjectTargets.Add(IOSDeployTarget);
 					}
 				}
@@ -2222,6 +1686,9 @@ namespace UnrealBuildTool
 		/// Which platforms we should generate targets for
 		static public XcodeProjectFilePlatform ProjectFilePlatform = XcodeProjectFilePlatform.All;
 
+		/// Should we generate a special project to use for iOS signing instead of a normal one
+		static public bool bGeneratingRunIOSProject = false;
+
 		/// <summary>
 		/// Configures project generator based on command-line options
 		/// </summary>
@@ -2232,6 +1699,15 @@ namespace UnrealBuildTool
 			// Call parent implementation first
 			base.ConfigureProjectFileGeneration( Arguments, ref IncludeAllPlatforms );
 			ProjectFilePlatform = IncludeAllPlatforms ? XcodeProjectFilePlatform.All : XcodeProjectFilePlatform.Mac;
+
+			foreach( var CurArgument in Arguments )
+			{
+				if (CurArgument.ToLowerInvariant() == "-iosdeployonly")
+				{
+					bGeneratingRunIOSProject = true;
+					break;
+				}
+			}
 		}
 
 		private string UE4CmdLineGuid;

@@ -19,12 +19,12 @@ USoundCueGraphNode_Root::USoundCueGraphNode_Root(const class FPostConstructIniti
 
 FLinearColor USoundCueGraphNode_Root::GetNodeTitleColor() const
 {
-	return FLinearColor(1.0f, 0.65f, 0.4f);
+	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
 }
 
-FString USoundCueGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText USoundCueGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return LOCTEXT("RootTitle", "Output").ToString();
+	return LOCTEXT("RootTitle", "Output");
 }
 
 FString USoundCueGraphNode_Root::GetTooltip() const

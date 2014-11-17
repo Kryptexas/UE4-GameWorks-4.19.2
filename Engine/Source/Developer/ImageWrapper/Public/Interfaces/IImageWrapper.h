@@ -16,7 +16,8 @@ namespace EImageFormat
 	{
 		PNG,	// Portable Network Graphics
 		JPEG,	// Joint Photographic Experts Group
-		BMP		// Windows Bitmap
+		BMP,	// Windows Bitmap
+		ICO,	// Windows Icon resource
 	};
 };
 

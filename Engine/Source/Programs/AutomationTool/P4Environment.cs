@@ -29,12 +29,12 @@ namespace AutomationTool
 
 		#endregion
 
-		internal P4Environment(CommandEnvironment CmdEnv)
+		internal P4Environment(P4Connection Connection, CommandEnvironment CmdEnv)
 		{
-			InitEnvironment(CmdEnv);
+			InitEnvironment(Connection, CmdEnv);
 		}
 
-		protected virtual void InitEnvironment(CommandEnvironment CmdEnv)
+		protected virtual void InitEnvironment(P4Connection Connection, CommandEnvironment CmdEnv)
 		{
 			//
 			// P4 Environment
@@ -58,6 +58,13 @@ namespace AutomationTool
 			if (((CommandUtils.P4Enabled || CommandUtils.IsBuildMachine) && (ClientRoot == String.Empty || User == String.Empty ||
 				ChangelistString == String.Empty || Client == String.Empty || BuildRootP4 == String.Empty)))
 			{
+                Log.TraceInformation("P4Enabled={0}", CommandUtils.P4Enabled);
+                Log.TraceInformation("ClientRoot={0}",ClientRoot );
+                Log.TraceInformation("User={0}", User);
+                Log.TraceInformation("ChangelistString={0}", ChangelistString);
+                Log.TraceInformation("Client={0}", Client);
+                Log.TraceInformation("BuildRootP4={0}", BuildRootP4);
+
 				throw new AutomationException("BUILD FAILED Perforce Environment is not set up correctly. Please check your environment variables.");
 			}
 

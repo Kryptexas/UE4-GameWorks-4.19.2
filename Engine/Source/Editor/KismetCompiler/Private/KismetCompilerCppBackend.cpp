@@ -428,7 +428,7 @@ void FKismetCppBackend::EmitAssignmentStatment(FKismetFunctionContext& FunctionC
 	Emit(Body, *FString::Printf(TEXT("\t\t\t%s = %s;\n"), *DestinationExpression, *SourceExpression));
 }
 
-void FKismetCppBackend::EmitCastToInterfaceStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+void FKismetCppBackend::EmitCastObjToInterfaceStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
 	FString InterfaceClass = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
 	FString ObjectValue = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UObjectProperty>()));
@@ -443,6 +443,26 @@ void FKismetCppBackend::EmitCastToInterfaceStatement(FKismetFunctionContext& Fun
 	Emit(Body, *FString::Printf(TEXT("\t\t\telse\n")));
 	Emit(Body, *FString::Printf(TEXT("\t\t\t{\n")));
 	Emit(Body, *FString::Printf(TEXT("\t\t\t\t%s.SetObject(NULL);\n"), *InterfaceValue));
+	Emit(Body, *FString::Printf(TEXT("\t\t\t}\n")));
+}
+
+void FKismetCppBackend::EmitCastBetweenInterfacesStatement(FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
+{
+	FString ClassToCastTo   = TermToText(Statement.RHS[0], (UProperty*)(GetDefault<UClassProperty>()));
+	FString InputInterface  = TermToText(Statement.RHS[1], (UProperty*)(GetDefault<UInterfaceProperty>()));
+	FString ResultInterface = TermToText(Statement.LHS, (UProperty*)(GetDefault<UInterfaceProperty>()));
+
+	FString InputObject = FString::Printf(TEXT("%s.GetObjectRef()"), *InputInterface);
+
+	Emit(Body, *FString::Printf(TEXT("\t\t\tif ( %s && %s->GetClass()->IsChildOf(%s) )\n"), *InputObject, *InputObject, *ClassToCastTo));
+	Emit(Body, *FString::Printf(TEXT("\t\t\t{\n")));
+	Emit(Body, *FString::Printf(TEXT("\t\t\t\t%s.SetObject(%s);\n"), *ResultInterface, *InputObject));
+	Emit(Body, *FString::Printf(TEXT("\t\t\t\tvoid* IAddress = %s->GetInterfaceAddress(%s);\n"), *InputObject, *ClassToCastTo));
+	Emit(Body, *FString::Printf(TEXT("\t\t\t\t%s.SetInterface(IAddress);\n"), *ResultInterface));
+	Emit(Body, *FString::Printf(TEXT("\t\t\t}\n")));
+	Emit(Body, *FString::Printf(TEXT("\t\t\telse\n")));
+	Emit(Body, *FString::Printf(TEXT("\t\t\t{\n")));
+	Emit(Body, *FString::Printf(TEXT("\t\t\t\t%s.SetObject(NULL);\n"), *ResultInterface));
 	Emit(Body, *FString::Printf(TEXT("\t\t\t}\n")));
 }
 
@@ -775,8 +795,11 @@ void FKismetCppBackend::ConstructFunction(FKismetFunctionContext& FunctionContex
 					case KCST_Assignment:
 						EmitAssignmentStatment(FunctionContext, Statement);
 						break;
-					case KCST_CastToInterface:
-						EmitCastToInterfaceStatement(FunctionContext, Statement);
+					case KCST_CastObjToInterface:
+						EmitCastObjToInterfaceStatement(FunctionContext, Statement);
+						break;
+					case KCST_CrossInterfaceCast:
+						EmitCastBetweenInterfacesStatement(FunctionContext, Statement);
 						break;
 					case KCST_DynamicCast:
 						EmitDynamicCastStatement(FunctionContext, Statement);

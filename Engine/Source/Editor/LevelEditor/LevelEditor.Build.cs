@@ -32,12 +32,15 @@ public class LevelEditor : ModuleRules
                 "EditorStyle",
 				"Engine",
 				"MessageLog",
+				"NewsFeed",
 				"Settings",
                 "SourceControl",
                 "StatsViewer",
 				"UnrealEd", 
 				"RenderCore",
-				"DeviceProfileServices"
+				"DeviceProfileServices",
+				"ContentBrowser",
+                "SceneOutliner"
 			}
 		);
 
@@ -47,7 +50,6 @@ public class LevelEditor : ModuleRules
 				"PropertyEditor",
 				"SceneOutliner",
 				"ClassViewer",
-				"ContentBrowser",
 				"DeviceManager",
 				"SettingsEditor",
 				"SessionFrontend",

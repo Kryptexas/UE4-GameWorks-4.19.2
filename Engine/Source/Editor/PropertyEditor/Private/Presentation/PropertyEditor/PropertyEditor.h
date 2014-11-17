@@ -79,6 +79,7 @@ public:
 	void EmptyArray();
 	void Find();
 	void ResetToDefault();
+	void CustomResetToDefault( FSimpleDelegate OnCustomResetToDefaultDelegate );
 	void OnGetClassesForAssetPicker( TArray<const UClass*>& OutClasses );
 	void OnAssetSelected( const FAssetData& AssetData );
 	void OnActorSelected( AActor* InActor );
@@ -113,6 +114,7 @@ private:
 	void OnBrowseTo();
 	void OnEmptyArray();
 	void OnResetToDefault();
+	void OnCustomResetToDefault( FSimpleDelegate OnCustomResetToDefaultDelegate );
 
 	/**
 	 * Returns true if the value of the conditional property matches the value required.  Indicates whether editing or otherwise interacting with this item's

@@ -1141,7 +1141,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 			FGlobalDynamicVertexBuffer::FAllocation* Allocation = new(InstanceDataAllocations) FGlobalDynamicVertexBuffer::FAllocation();
 			FGlobalDynamicVertexBuffer::FAllocation* DynamicParameterAllocation = new(DynamicParameterDataAllocations) FGlobalDynamicVertexBuffer::FAllocation();
 			
-			FParticleSpriteViewUniformBufferRef* SpriteViewUniformBufferPtr = new(PerViewUniformBuffers) FParticleSpriteViewUniformBufferRef();
+			FParticleSpriteUniformBufferRef* SpriteUniformBufferPtr = new(PerViewUniformBuffers) FParticleSpriteUniformBufferRef();
 			if ( VisibilityMap & ViewBit )
 			{
 				const FSceneView* View = ViewFamily->Views[ViewIndex];
@@ -1186,12 +1186,12 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 				}
 
 				// Create per-view uniform buffer.
-				FParticleSpriteViewUniformParameters UniformParameters;
+				FParticleSpriteUniformParameters PerViewUniformParameters = UniformParameters;
 				FVector2D ObjectNDCPosition;
 				FVector2D ObjectMacroUVScales;
 				Proxy->GetObjectPositionAndScale(*View,ObjectNDCPosition, ObjectMacroUVScales);
-				UniformParameters.MacroUVParameters = FVector4(ObjectNDCPosition.X, ObjectNDCPosition.Y, ObjectMacroUVScales.X, ObjectMacroUVScales.Y);
-				*SpriteViewUniformBufferPtr = FParticleSpriteViewUniformBufferRef::CreateUniformBufferImmediate(UniformParameters, UniformBuffer_SingleUse);
+				PerViewUniformParameters.MacroUVParameters = FVector4(ObjectNDCPosition.X, ObjectNDCPosition.Y, ObjectMacroUVScales.X, ObjectMacroUVScales.Y);
+				*SpriteUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleUse);
 			}
 		}
 	}
@@ -1322,8 +1322,7 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 
 			// Set the sprite uniform buffer for this view.
 			check( SpriteVertexFactory );
-			SpriteVertexFactory->SetSpriteUniformBuffer( UniformBuffer );
-			SpriteVertexFactory->SetSpriteViewUniformBuffer( PerViewUniformBuffers[ViewIndex] );
+			SpriteVertexFactory->SetSpriteUniformBuffer( PerViewUniformBuffers[ViewIndex] );
 			SpriteVertexFactory->SetInstanceBuffer( Allocation->VertexBuffer, Allocation->VertexOffset, GetDynamicVertexStride(), bInstanced );
 			SpriteVertexFactory->SetDynamicParameterBuffer( DynamicParameterAllocation ? DynamicParameterAllocation->VertexBuffer : NULL, DynamicParameterAllocation->VertexOffset, GetDynamicParameterVertexStride(), bInstanced );
 
@@ -1415,7 +1414,6 @@ void FDynamicSpriteEmitterData::CreateRenderThreadResources(const FParticleSyste
 	const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
 	if( SourceData )
 	{
-		FParticleSpriteUniformParameters UniformParameters;
 		UniformParameters.AxisLockRight = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 		UniformParameters.AxisLockUp = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 		UniformParameters.RotationScale = 1.0f;
@@ -1475,18 +1473,21 @@ void FDynamicSpriteEmitterData::CreateRenderThreadResources(const FParticleSyste
 			1.0f / SourceData->SubImages_Horizontal,
 			1.0f / SourceData->SubImages_Vertical );
 
-		// Transform local space coordinates into worldspace
-		const FVector WorldSpaceSphereCenter = LocalToWorld.TransformPosition(SourceData->NormalsSphereCenter);
-		const FVector WorldSpaceCylinderDirection = LocalToWorld.TransformVector(SourceData->NormalsCylinderDirection);
-
 		const EEmitterNormalsMode NormalsMode = (EEmitterNormalsMode)SourceData->EmitterNormalsMode;
 		UniformParameters.NormalsType = NormalsMode;
-		UniformParameters.NormalsSphereCenter = WorldSpaceSphereCenter;
-		UniformParameters.NormalsCylinderUnitDirection = WorldSpaceCylinderDirection;
+		UniformParameters.NormalsSphereCenter = FVector::ZeroVector;
+		UniformParameters.NormalsCylinderUnitDirection = FVector(0.0f,0.0f,1.0f);
+
+		if (NormalsMode != ENM_CameraFacing)
+		{
+			UniformParameters.NormalsSphereCenter = LocalToWorld.TransformPosition(SourceData->NormalsSphereCenter);
+			if (NormalsMode == ENM_Cylindrical)
+			{
+				UniformParameters.NormalsCylinderUnitDirection = LocalToWorld.TransformVector(SourceData->NormalsCylinderDirection);
+			}
+		}
 
 		UniformParameters.PivotOffset = SourceData->PivotOffset;
-
-		UniformBuffer = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate( UniformParameters, UniformBuffer_MultiUse );
 	}
 }
 
@@ -1500,7 +1501,6 @@ void FDynamicSpriteEmitterData::CreateRenderThreadResources(const FParticleSyste
 void FDynamicSpriteEmitterData::ReleaseRenderThreadResources(const FParticleSystemSceneProxy* InOwnerProxy)
 {
 	FDynamicSpriteEmitterDataBase::ReleaseRenderThreadResources( InOwnerProxy );
-	UniformBuffer.SafeRelease();
 	PerViewUniformBuffers.Empty();
 }
 
@@ -2751,7 +2751,7 @@ void FDynamicBeam2EmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, c
 	// Only need to do this once per-view
 	if (LastFramePreRendered < FrameNumber)
 	{
-		bool bOnlyOneView = !GIsEditor && ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == eSST_NONE)) ? true : false);
+		bool bOnlyOneView = !GIsEditor && ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None)) ? true : false);
 
 		BuildViewFillDataAndSubmit(Proxy,ViewFamily,VisibilityMap,bOnlyOneView,Source.VertexCount,sizeof(FParticleBeamTrailVertex),0);
 
@@ -3253,14 +3253,71 @@ void FDynamicBeam2EmitterData::GetIndexAllocInfo(int32& OutNumIndices, int32& Ou
 	OutStride = Source.IndexStride;
 }
 
+template <typename TIndexType>
+static int32 CreateDynamicBeam2EmitterIndices(TIndexType* OutIndex, const FDynamicBeam2EmitterReplayData& Source)
+{
+	int32	TrianglesToRender = 0;
+	TIndexType	VertexIndex = 0;
+	TIndexType	StartVertexIndex = 0;
+
+	for (int32 Beam = 0; Beam < Source.ActiveParticleCount; Beam++)
+	{
+		DECLARE_PARTICLE_PTR(Particle, Source.ParticleData.GetData() + Source.ParticleStride * Beam);
+		FBeam2TypeDataPayload*	BeamPayloadData = (FBeam2TypeDataPayload*)((uint8*)Particle + Source.BeamDataOffset);
+		if (BeamPayloadData->TriangleCount == 0)
+		{
+			continue;
+		}
+		if ((Source.InterpolationPoints > 0) && (BeamPayloadData->Steps == 0))
+		{
+			continue;
+		}
+
+		if (Beam == 0)
+		{
+			*(OutIndex++) = VertexIndex++;	// SheetIndex + 0
+			*(OutIndex++) = VertexIndex++;	// SheetIndex + 1
+		}
+
+		for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
+		{
+			// 2 triangles per tessellation factor
+			TrianglesToRender += BeamPayloadData->TriangleCount;
+
+			// Sequentially step through each triangle - 1 vertex per triangle
+			for (int32 i = 0; i < BeamPayloadData->TriangleCount; i++)
+			{
+				*(OutIndex++) = VertexIndex++;
+			}
+
+			// Degenerate tris
+			if ((SheetIndex + 1) < Source.Sheets)
+			{
+				*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
+				*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
+				*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
+				*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
+
+				TrianglesToRender += 4;
+			}
+		}
+		if ((Beam + 1) < Source.ActiveParticleCount)
+		{
+			*(OutIndex++) = VertexIndex - 1;	// Last vertex of the previous sheet
+			*(OutIndex++) = VertexIndex;		// First vertex of the next sheet
+			*(OutIndex++) = VertexIndex++;		// First vertex of the next sheet
+			*(OutIndex++) = VertexIndex++;		// Second vertex of the next sheet
+
+			TrianglesToRender += 4;
+		}
+	}
+
+	return TrianglesToRender;
+}
+
 int32 FDynamicBeam2EmitterData::FillIndexData(struct FAsyncBufferFillData& Data)
 {
 	SCOPE_CYCLE_COUNTER(STAT_BeamFillIndexTime);
-
-	int32	TrianglesToRender = 0;
-
-	//	bool bWireframe = (View->Family->EngineShowFlags.Wireframe) && !View->Family->EngineShowFlags.Materials;
-	bool bWireframe = false;
 
 	// Beam2 polygons are packed and joined as follows:
 	//
@@ -3273,171 +3330,26 @@ int32 FDynamicBeam2EmitterData::FillIndexData(struct FAsyncBufferFillData& Data)
 	//
 	// NOTE: This is primed for moving to tri-strips...
 	//
-	int32 TessFactor	= Source.InterpolationPoints ? Source.InterpolationPoints : 1;
+	int32 TessFactor = Source.InterpolationPoints ? Source.InterpolationPoints : 1;
 	if (Source.Sheets <= 0)
 	{
 		Source.Sheets = 1;
 	}
 
-	check( Data.IndexCount > 0 && Data.IndexData != NULL );
+	check(Data.IndexCount > 0 && Data.IndexData != NULL);
 
+	//DESCRIPTION:
+	//	When in Cascade, creating a particle beam with 20 beams and 130 sheets or higher causes the system to crash.
+
+	int32	TrianglesToRender = 0;
 	if (Source.IndexStride == sizeof(uint16))
 	{
-		uint16*	Index				= (uint16*)Data.IndexData;
-		uint16	VertexIndex			= 0;
-		uint16	StartVertexIndex	= 0;
-
-		for (int32 Beam = 0; Beam < Source.ActiveParticleCount; Beam++)
-		{
-			DECLARE_PARTICLE_PTR(Particle, Source.ParticleData.GetData() + Source.ParticleStride * Beam);
-
-			FBeam2TypeDataPayload*	BeamPayloadData		= NULL;
-			FVector*				InterpolatedPoints	= NULL;
-			float*					NoiseRate			= NULL;
-			float*					NoiseDelta			= NULL;
-			FVector*				TargetNoisePoints	= NULL;
-			FVector*				NextNoisePoints		= NULL;
-			float*					TaperValues			= NULL;
-
-			BeamPayloadData = (FBeam2TypeDataPayload*)((uint8*)Particle + Source.BeamDataOffset);
-			if (BeamPayloadData->TriangleCount == 0)
-			{
-				continue;
-			}
-			if ((Source.InterpolationPoints > 0) && (BeamPayloadData->Steps == 0))
-			{
-				continue;
-			}
-
-			if (bWireframe)
-			{
-				for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
-				{
-					VertexIndex = 0;
-
-					// The 'starting' line
-					TrianglesToRender += 1;
-					*(Index++) = StartVertexIndex + 0;
-					*(Index++) = StartVertexIndex + 1;
-
-					// 4 lines per quad
-					int32 TriCount = Source.TrianglesPerSheet[Beam];
-					int32 QuadCount = TriCount / 2;
-					TrianglesToRender += TriCount * 2;
-
-					for (int32 i = 0; i < QuadCount; i++)
-					{
-						*(Index++) = StartVertexIndex + VertexIndex + 0;
-						*(Index++) = StartVertexIndex + VertexIndex + 2;
-						*(Index++) = StartVertexIndex + VertexIndex + 1;
-						*(Index++) = StartVertexIndex + VertexIndex + 2;
-						*(Index++) = StartVertexIndex + VertexIndex + 1;
-						*(Index++) = StartVertexIndex + VertexIndex + 3;
-						*(Index++) = StartVertexIndex + VertexIndex + 2;
-						*(Index++) = StartVertexIndex + VertexIndex + 3;
-
-						VertexIndex += 2;
-					}
-
-					StartVertexIndex += TriCount + 2;
-				}
-			}
-			else
-			{
-				// 
-				if (Beam == 0)
-				{
-					*(Index++) = VertexIndex++;	// SheetIndex + 0
-					*(Index++) = VertexIndex++;	// SheetIndex + 1
-				}
-
-				for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
-				{
-					// 2 triangles per tessellation factor
-					TrianglesToRender += BeamPayloadData->TriangleCount;
-
-					// Sequentially step through each triangle - 1 vertex per triangle
-					for (int32 i = 0; i < BeamPayloadData->TriangleCount; i++)
-					{
-						*(Index++) = VertexIndex++;
-					}
-
-					// Degenerate tris
-					if ((SheetIndex + 1) < Source.Sheets)
-					{
-						*(Index++) = VertexIndex - 1;	// Last vertex of the previous sheet
-						*(Index++) = VertexIndex;		// First vertex of the next sheet
-						*(Index++) = VertexIndex++;		// First vertex of the next sheet
-						*(Index++) = VertexIndex++;		// Second vertex of the next sheet
-
-						TrianglesToRender += 4;
-					}
-				}
-				if ((Beam + 1) < Source.ActiveParticleCount)
-				{
-					*(Index++) = VertexIndex - 1;	// Last vertex of the previous sheet
-					*(Index++) = VertexIndex;		// First vertex of the next sheet
-					*(Index++) = VertexIndex++;		// First vertex of the next sheet
-					*(Index++) = VertexIndex++;		// Second vertex of the next sheet
-
-					TrianglesToRender += 4;
-				}
-			}
-		}
+		TrianglesToRender = CreateDynamicBeam2EmitterIndices<uint16>((uint16*)Data.IndexData, Source);
 	}
 	else
 	{
-		check(!TEXT("Rendering beam with > 5000 vertices!"));
-		uint32*	Index		= (uint32*)Data.IndexData;
-		uint32	VertexIndex	= 0;
-		for (int32 Beam = 0; Beam < Source.ActiveParticleCount; Beam++)
-		{
-			DECLARE_PARTICLE_PTR(Particle, Source.ParticleData.GetData() + Source.ParticleStride * Beam);
-
-			FBeam2TypeDataPayload*	BeamPayloadData		= NULL;
-			BeamPayloadData = (FBeam2TypeDataPayload*)((uint8*)Particle + Source.BeamDataOffset);
-			if (BeamPayloadData->TriangleCount == 0)
-			{
-				continue;
-			}
-
-			// 
-			if (Beam == 0)
-			{
-				*(Index++) = VertexIndex++;	// SheetIndex + 0
-				*(Index++) = VertexIndex++;	// SheetIndex + 1
-			}
-
-			for (int32 SheetIndex = 0; SheetIndex < Source.Sheets; SheetIndex++)
-			{
-				// 2 triangles per tessellation factor
-				TrianglesToRender += BeamPayloadData->TriangleCount;
-
-				// Sequentially step through each triangle - 1 vertex per triangle
-				for (int32 i = 0; i < BeamPayloadData->TriangleCount; i++)
-				{
-					*(Index++) = VertexIndex++;
-				}
-
-				// Degenerate tris
-				if ((SheetIndex + 1) < Source.Sheets)
-				{
-					*(Index++) = VertexIndex - 1;	// Last vertex of the previous sheet
-					*(Index++) = VertexIndex;		// First vertex of the next sheet
-					*(Index++) = VertexIndex++;		// First vertex of the next sheet
-					*(Index++) = VertexIndex++;		// Second vertex of the next sheet
-					TrianglesToRender += 4;
-				}
-			}
-			if ((Beam + 1) < Source.ActiveParticleCount)
-			{
-				*(Index++) = VertexIndex - 1;	// Last vertex of the previous sheet
-				*(Index++) = VertexIndex;		// First vertex of the next sheet
-				*(Index++) = VertexIndex++;		// First vertex of the next sheet
-				*(Index++) = VertexIndex++;		// Second vertex of the next sheet
-				TrianglesToRender += 4;
-			}
-		}
+		check(Source.IndexStride == sizeof(uint32));
+		TrianglesToRender = CreateDynamicBeam2EmitterIndices<uint32>((uint32*)Data.IndexData, Source);
 	}
 
 	Data.OutTriangleCount = TrianglesToRender;
@@ -5644,7 +5556,7 @@ void FDynamicTrailsEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 			DynamicParameterVertexStride = GetDynamicParameterVertexStride();
 		}
 
-		bool bOnlyOneView = ShouldUsePrerenderView() || ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == eSST_NONE)) ? true : false);
+		bool bOnlyOneView = ShouldUsePrerenderView() || ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None)) ? true : false);
 
 		BuildViewFillDataAndSubmit(Proxy,ViewFamily,VisibilityMap,bOnlyOneView,SourcePointer->VertexCount,VertexStride, DynamicParameterVertexStride);
 
@@ -7347,12 +7259,16 @@ void DrawParticleSystemHelpers(UParticleSystemComponent* InPSysComp, const FScen
 
 ENGINE_API void DrawParticleSystemHelpers(const FSceneView* View,FPrimitiveDrawInterface* PDI)
 {
-	for (TObjectIterator<AEmitter> It; It; ++It)
+	TArray<UParticleSystemComponent*> PSCArray;
+
+	for (TObjectIterator<AActor> It; It; ++It)
 	{
-		AEmitter* EmitterActor = *It;
-		if (EmitterActor->ParticleSystemComponent.IsValid())
+		PSCArray.Empty();
+		(*It)->GetComponents(PSCArray);
+
+		for (int PSCIndex = 0; PSCIndex < PSCArray.Num(); ++PSCIndex)
 		{
-			DrawParticleSystemHelpers(EmitterActor->ParticleSystemComponent, View, PDI);
+			DrawParticleSystemHelpers(PSCArray[PSCIndex], View, PDI);
 		}
 	}
 }

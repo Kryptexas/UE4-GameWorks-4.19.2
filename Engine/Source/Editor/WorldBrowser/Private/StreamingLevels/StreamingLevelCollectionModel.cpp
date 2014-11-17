@@ -46,7 +46,8 @@ void FStreamingLevelCollectionModel::OnLevelsCollectionChanged()
 	PersistentLevelModel->SetLevelExpansionFlag(true);
 	RootLevelsList.Add(PersistentLevelModel);
 	AllLevelsList.Add(PersistentLevelModel);
-
+	AllLevelsMap.Add(PersistentLevelModel->GetLongPackageName(), PersistentLevelModel);
+		
 	// Add models for each streaming level in the world
 	for (auto It = CurrentWorld->StreamingLevels.CreateConstIterator(); It; ++It)
 	{
@@ -55,6 +56,7 @@ void FStreamingLevelCollectionModel::OnLevelsCollectionChanged()
 		{
 			TSharedPtr<FStreamingLevelModel> LevelModel = MakeShareable(new FStreamingLevelModel(Editor, *this, StreamingLevel));
 			AllLevelsList.Add(LevelModel);
+			AllLevelsMap.Add(LevelModel->GetLongPackageName(), LevelModel);
 
 			PersistentLevelModel->AddChild(LevelModel);
 			LevelModel->SetParent(PersistentLevelModel);
@@ -126,21 +128,21 @@ void FStreamingLevelCollectionModel::BindCommands()
 		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::RemoveInvalidSelectedLevels_Executed ));
 
 	//levels
-	ActionList.MapAction( Commands.CreateEmptyLevel,
+	ActionList.MapAction( Commands.World_CreateEmptyLevel,
 		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::CreateEmptyLevel_Executed  ) );
 	
-	ActionList.MapAction( Commands.AddExistingLevel,
+	ActionList.MapAction( Commands.World_AddExistingLevel,
 		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::AddExistingLevel_Executed ) );
 
-	ActionList.MapAction( Commands.AddSelectedActorsToNewLevel,
+	ActionList.MapAction( Commands.World_AddSelectedActorsToNewLevel,
 		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::AddSelectedActorsToNewLevel_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreActorsSelected ) );
 	
-	ActionList.MapAction( Commands.RemoveSelectedLevels,
+	ActionList.MapAction( Commands.World_RemoveSelectedLevels,
 		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::UnloadSelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAllSelectedLevelsEditable ) );
 	
-	ActionList.MapAction( Commands.MergeSelectedLevels,
+	ActionList.MapAction( Commands.World_MergeSelectedLevels,
 		FExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::MergeSelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FStreamingLevelCollectionModel::AreAllSelectedLevelsEditable ) );
 	
@@ -222,7 +224,7 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 
 		InMenuBuilder.BeginSection("Level", FText::FromName(LevelModel->GetLongPackageName()));
 		{
-			InMenuBuilder.AddMenuEntry( Commands.MakeLevelCurrent );
+			InMenuBuilder.AddMenuEntry( Commands.World_MakeLevelCurrent );
 			InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
 		}
 		InMenuBuilder.EndSection();
@@ -235,7 +237,7 @@ void FStreamingLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuil
 	{
 		if (AreAnyLevelsSelected())
 		{
-			InMenuBuilder.AddMenuEntry(Commands.RemoveSelectedLevels);
+			InMenuBuilder.AddMenuEntry(Commands.World_RemoveSelectedLevels);
 			
 			//
 			InMenuBuilder.AddSubMenu( 
@@ -267,10 +269,10 @@ void FStreamingLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuB
 			LOCTEXT("LevelsStreamingMethod_Tooltip", "Changes the default streaming method for a new levels"),
 			FNewMenuDelegate::CreateRaw(this, &FStreamingLevelCollectionModel::FillDefaultStreamingMethodMenu ) );
 		
-		InMenuBuilder.AddMenuEntry( Commands.CreateEmptyLevel );
-		InMenuBuilder.AddMenuEntry( Commands.AddExistingLevel );
-		InMenuBuilder.AddMenuEntry( Commands.AddSelectedActorsToNewLevel );
-		InMenuBuilder.AddMenuEntry( Commands.MergeSelectedLevels );
+		InMenuBuilder.AddMenuEntry( Commands.World_CreateEmptyLevel );
+		InMenuBuilder.AddMenuEntry( Commands.World_AddExistingLevel );
+		InMenuBuilder.AddMenuEntry( Commands.World_AddSelectedActorsToNewLevel );
+		InMenuBuilder.AddMenuEntry( Commands.World_MergeSelectedLevels );
 	}
 	InMenuBuilder.EndSection();
 }

@@ -150,6 +150,9 @@ void FMatinee::OnToggleDirectorTimeline()
 		DirectorTrackWindow->InterpEdVC->bWantTimeline = !DirectorTrackWindow->InterpEdVC->bWantTimeline;
 		DirectorTrackWindow->InterpEdVC->Viewport->Invalidate();
 		DirectorTrackWindow->InterpEdVC->Viewport->Draw();
+
+		// Save to ini when it changes.
+		GConfig->SetBool(TEXT("Matinee"), TEXT("DirectorTimelineEnabled"), DirectorTrackWindow->InterpEdVC->bWantTimeline, GEditorUserSettingsIni);
 	}
 }
 
@@ -163,19 +166,38 @@ bool FMatinee::IsDirectorTimelineToggled()
 	return false;
 }
 
+void FMatinee::OnToggleCurveEditor()
+{
+	if ( CurveEdTab.IsValid() )
+	{
+		SetCurveTabVisibility(false);
+	}
+	else
+	{
+		SetCurveTabVisibility(true);
+	}
+}
+
+bool FMatinee::IsCurveEditorToggled()
+{
+	if ( CurveEdTab.IsValid() )
+	{
+		return true;
+	}
+
+	return false;
+}
+
 void FMatinee::BuildTrackWindow()
 {	
 	TWeakPtr<FMatinee> MatineePtr = SharedThis(this);
 
 	TrackWindow = SNew(SMatineeViewport, MatineePtr);
-	DirectorTrackWindow = SNew(SMatineeViewport, MatineePtr);
-
-	// Start off with the window unsplit, showing only the regular track window
-	UpdateDirectorTrackWindowVisibility();
+	DirectorTrackWindow = SNew(SMatineeViewport, MatineePtr)
+		.Visibility(this, &FMatinee::GetDirectorTrackWindowVisibility);
 
 	// Setup track window defaults
 	TrackWindow->InterpEdVC->bIsDirectorTrackWindow = false;
-	TrackWindow->InterpEdVC->bWantFilterTabs = true;
 	TrackWindow->InterpEdVC->bWantTimeline = true;
 
 	DirectorTrackWindow->InterpEdVC->bIsDirectorTrackWindow = true;

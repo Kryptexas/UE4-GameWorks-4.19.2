@@ -71,13 +71,15 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 
 		float AnimTime					= AnimStartOffset;
 		float AnimEndTime				= (AnimSeq->SequenceLength - AnimEndOffset);
-		const float AnimTimeIncrement	= (AnimSeq->SequenceLength / AnimSeq->NumFrames) * AnimPlayRate;
+		// Subtracts 1 because NumFrames includes an initial pose for 0.0 second
+		double TimePerKey				= (AnimSeq->SequenceLength / (AnimSeq->NumFrames-1));
+		const float AnimTimeIncrement	= TimePerKey * AnimPlayRate;
 
 		FbxTime ExportTime;
 		ExportTime.SetSecondDouble(StartTime);
 
 		FbxTime ExportTimeIncrement;
-		ExportTimeIncrement.SetSecondDouble( (AnimSeq->SequenceLength / AnimSeq->NumFrames) );
+		ExportTimeIncrement.SetSecondDouble( TimePerKey );
 
 		int32 BoneTreeIndex = Skeleton->GetSkeletonBoneIndexFromMeshBoneIndex(SkelMesh, BoneIndex);
 		int32 BoneTrackIndex = Skeleton->GetAnimationTrackIndex(BoneTreeIndex, AnimSeq);
@@ -94,7 +96,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 
 		bool bLastKey = false;
 		// Step through each frame and add the bone's transformation data
-		while (AnimTime < AnimEndTime)
+		while (!bLastKey)
 		{
 			FTransform BoneAtom;
 			AnimSeq->GetBoneTransform(BoneAtom, BoneTrackIndex, AnimTime, bLooping, true);
@@ -104,8 +106,6 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 			FbxVector4 Rotation = Converter.ConvertToFbxRot(BoneAtom.GetRotation().Euler());
 		
 			int32 lKeyIndex;
-
-			AnimTime += AnimTimeIncrement;
 
 			bLastKey = AnimTime >= AnimEndTime;
 			for(int32 i = 0, j=3; i < 3; ++i, ++j)
@@ -130,8 +130,7 @@ void FFbxExporter::ExportAnimSequenceToFbx(const UAnimSequence* AnimSeq,
 			}
 
 			ExportTime += ExportTimeIncrement;
-		
-		
+			AnimTime += AnimTimeIncrement;
 		}
 
 		for(int32 i = 0; i < 6; ++i)

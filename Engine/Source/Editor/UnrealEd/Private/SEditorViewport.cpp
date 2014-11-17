@@ -5,6 +5,9 @@
 #include "EditorViewportClient.h"
 #include "SceneViewport.h"
 #include "EditorViewportCommands.h"
+#include "IDocumentation.h"
+
+#define LOCTEXT_NAMESPACE "EditorViewport"
 
 SEditorViewport::SEditorViewport()
 {
@@ -30,12 +33,9 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 
 	ChildSlot
 	[
-		SNew(STutorialWrapper)
-		.Name("EditorViewports")
-		.Content()
+		SNew( STutorialWrapper, TEXT("EditorViewports") )
 		[
 			SAssignNew( ViewportWidget, SViewport )
-			.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
 			.ShowEffectWhenDisabled( false )
 			.EnableGammaCorrection( false ) // Scene rendering handles this
 			[
@@ -74,6 +74,8 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 				ViewportToolbar.ToSharedRef()
 			];
 	}
+
+	FCoreDelegates::StatsEnabled.AddSP(this, &SEditorViewport::HandleViewportStatsEnabled);
 }
 
 FReply SEditorViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
@@ -306,12 +308,20 @@ void SEditorViewport::OnToggleRealtime()
 void SEditorViewport::OnToggleStats()
 {
 	bool bIsEnabled =  Client->ShouldShowStats();
-	 Client->SetShowStats( !bIsEnabled );
+	Client->SetShowStats( !bIsEnabled );
 
 	if( !bIsEnabled )
 	{
 		// We cannot show stats unless realtime rendering is enabled
 		 Client->SetRealtime( true );
+
+		 // let the user know how they can enable stats via the console
+		 FNotificationInfo Info(LOCTEXT("StatsEnableHint", "Stats display can be toggled via the STAT [type] console command"));
+		 Info.ExpireDuration = 3.0f;
+		 Info.HyperlinkText = LOCTEXT("StatsEnableHyperlink", "Learn more");
+		 Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ IDocumentation::Get()->Open(TEXT("Engine/Basics/ConsoleCommands#statisticscommands")); });
+
+		 FSlateNotificationManager::Get().AddNotification(Info);
 	}
 }
 
@@ -372,7 +382,7 @@ bool SEditorViewport::IsWidgetModeActive( FWidget::EWidgetMode Mode ) const
 
 bool SEditorViewport::IsTranslateRotateModeVisible() const
 {
-	return GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget;
+	return GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget;
 }
 
 bool SEditorViewport::IsCoordSystemActive( ECoordSystem CoordSystem ) const
@@ -390,7 +400,7 @@ void SEditorViewport::OnCycleWidgetMode()
 	{
 		++WidgetModeAsInt;
 
-		if ((WidgetModeAsInt == FWidget::WM_TranslateRotateZ) && (!GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget))
+		if ((WidgetModeAsInt == FWidget::WM_TranslateRotateZ) && (!GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget))
 		{
 			++WidgetModeAsInt;
 		}
@@ -417,3 +427,14 @@ void SEditorViewport::OnCycleCoordinateSystem()
 
 	Client->SetWidgetCoordSystemSpace( (ECoordSystem)CoordSystemAsInt );
 }
+
+void SEditorViewport::HandleViewportStatsEnabled()
+{
+	if(Client.Get() == GCurrentLevelEditingViewportClient)
+	{
+		Client->SetShowStats( true );
+		Client->SetRealtime( true );
+	}
+}
+
+#undef LOCTEXT_NAMESPACE

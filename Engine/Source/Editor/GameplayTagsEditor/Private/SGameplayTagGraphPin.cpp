@@ -25,6 +25,7 @@ TSharedRef<SWidget>	SGameplayTagGraphPin::GetDefaultValueWidget()
 			.OnGetMenuContent( this, &SGameplayTagGraphPin::GetListContent )
 			.ContentPadding( FMargin( 2.0f, 2.0f ) )
 			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
+			.MenuPlacement(MenuPlacement_BelowAnchor)
 			.ButtonContent()
 			[
 				SNew( STextBlock )
@@ -54,6 +55,10 @@ void SGameplayTagGraphPin::ParseDefaultValueData()
 			ReadTag.Split( "=", NULL, &ReadTag );
 			TagString = Remainder;
 			TagContainer->AddTag( FName( *ReadTag ) );
+		}
+		if( Remainder.IsEmpty() )
+		{
+			Remainder = TagString;
 		}
 		if( !Remainder.IsEmpty() )
 		{

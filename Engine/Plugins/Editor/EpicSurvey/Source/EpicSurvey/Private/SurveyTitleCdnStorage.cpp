@@ -2,7 +2,7 @@
 
 #include "EpicSurveyPrivatePCH.h"
 #include "SurveyTitleCdnStorage.h"
-#include "OnlinesubSystemTypes.h"
+#include "OnlineSubsystemTypes.h"
 #include "Base64.h"
 #include "SecureHash.h"
 #include "HttpModule.h"
@@ -376,7 +376,7 @@ void FSurveyTitleCdnStorage::ReadFile_HttpRequestComplete(FHttpRequestPtr HttpRe
 				*HttpRequest->GetURL(), HttpResponse->GetResponseCode());
 
 			// update the memory copy of the file with data that was just downloaded
-			FCloudFile* CloudFile = GetCloudFile(PendingRequest.FileName, true);
+			CloudFile = GetCloudFile(PendingRequest.FileName, true);
 			CloudFile->AsyncState = EOnlineAsyncTaskState::Done;
 			CloudFile->Data = HttpResponse->GetContent();
 

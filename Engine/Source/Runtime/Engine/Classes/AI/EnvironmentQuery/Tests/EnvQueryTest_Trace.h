@@ -3,46 +3,14 @@
 #pragma once
 #include "EnvQueryTest_Trace.generated.h"
 
-UENUM()
-namespace EEnvTestTrace
-{
-	enum Type
-	{
-		Line,
-		Box,
-		Sphere,
-		Capsule,
-	};
-}
-
 UCLASS(MinimalAPI)
 class UEnvQueryTest_Trace : public UEnvQueryTest
 {
 	GENERATED_UCLASS_BODY()
 
-	/** trace channel */
+	/** trace data */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TEnumAsByte<enum ETraceTypeQuery> TraceChannel;
-
-	/** shape used for tracing */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TEnumAsByte<EEnvTestTrace::Type> TraceMode;
-
-	/** shape param */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	FEnvFloatParam TraceExtentX;
-
-	/** shape param */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	FEnvFloatParam TraceExtentY;
-
-	/** shape param */
-	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	FEnvFloatParam TraceExtentZ;
-
-	/** test against complex collisions */
-	UPROPERTY(EditDefaultsOnly, Category=Trace, AdvancedDisplay)
-	FEnvBoolParam TraceComplex;
+	FEnvTraceData TraceData;
 
 	/** trace direction */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
@@ -63,7 +31,7 @@ class UEnvQueryTest_Trace : public UEnvQueryTest
 	void RunTest(struct FEnvQueryInstance& QueryInstance);
 
 	virtual FString GetDescriptionTitle() const OVERRIDE;
-	virtual FString GetDescriptionDetails() const OVERRIDE;
+	virtual FText GetDescriptionDetails() const OVERRIDE;
 
 protected:
 

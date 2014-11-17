@@ -372,22 +372,31 @@ void SFilterList::Construct( const FArguments& InArgs )
 	OnGetContextMenu = InArgs._OnGetContextMenu;
 	OnFilterChanged = InArgs._OnFilterChanged;
 	FrontendFilters = InArgs._FrontendFilters;
+	InitialClassFilters = InArgs._InitialClassFilters;
+
+	TSharedPtr<FFrontendFilterCategory> DefaultCategory = MakeShareable( new FFrontendFilterCategory(LOCTEXT("FrontendFiltersCategory", "Other Filters"), LOCTEXT("FrontendFiltersCategoryTooltip", "Filter assets by all filters in this category.")) );
 
 	// Add all frontend filters here
-	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_CheckedOut) );
-	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_Modified) );
-	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ShowOtherDevelopers) );
-	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ReplicatedBlueprint) );
-	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ShowRedirectors) );
-	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_InUseByLoadedLevels) );
+	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_CheckedOut(DefaultCategory)) );
+	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_Modified(DefaultCategory)) );
+	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ShowOtherDevelopers(DefaultCategory)) );
+	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ReplicatedBlueprint(DefaultCategory)) );
+	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_ShowRedirectors(DefaultCategory)) );
+	AllFrontendFilters.Add( MakeShareable(new FFrontendFilter_InUseByLoadedLevels(DefaultCategory)) );
+
+	for(auto Iter = InArgs._ExtraFrontendFilters.CreateConstIterator(); Iter; ++Iter)
+	{
+		TSharedRef<FFrontendFilter> Filter = (*Iter);
+		AllFrontendFilterCategories.AddUnique( Filter->GetCategory() );
+		AllFrontendFilters.Add(Filter);
+	}
+
+	AllFrontendFilterCategories.Add(DefaultCategory);
 
 	// Auto add all inverse filters
 	for ( auto FilterIt = AllFrontendFilters.CreateConstIterator(); FilterIt; ++FilterIt )
 	{
-		if ( (*FilterIt)->IsInverseFilter() )
-		{
-			SetFrontendFilterActive(*FilterIt, true);
-		}
+		SetFrontendFilterActive(*FilterIt, false);
 	}
 
 	ChildSlot
@@ -475,9 +484,9 @@ FARFilter SFilterList::GetCombinedBackendFilter() const
 	return CombinedFilter;
 }
 
-TSharedRef<SWidget> SFilterList::ExternalMakeAddFilterMenu()
+TSharedRef<SWidget> SFilterList::ExternalMakeAddFilterMenu(EAssetTypeCategories::Type MenuExpansion)
 {
-	return MakeAddFilterMenu();
+	return MakeAddFilterMenu(MenuExpansion);
 }
 
 void SFilterList::DisableAllFilters()
@@ -506,14 +515,7 @@ void SFilterList::RemoveAllFilters()
 			{
 				// Update the frontend filters collection
 				const TSharedRef<FFrontendFilter>& FrontendFilter = FilterToRemove->GetFrontendFilter().ToSharedRef();
-				if ( FrontendFilter->IsInverseFilter() )
-				{
-					SetFrontendFilterActive(FrontendFilter, true);
-				}
-				else
-				{
-					SetFrontendFilterActive(FrontendFilter, false);
-				}
+				SetFrontendFilterActive(FrontendFilter, false);
 			}
 		}
 
@@ -710,6 +712,11 @@ void SFilterList::LoadSettings(const FString& IniFilename, const FString& IniSec
 
 void SFilterList::SetFrontendFilterActive(const TSharedRef<FFrontendFilter>& Filter, bool bActive)
 {
+	if(Filter->IsInverseFilter())
+	{
+		//Inverse filters are active when they are "disabled"
+		bActive = !bActive;
+	}
 	Filter->ActiveStateChanged(bActive);
 
 	if ( bActive )
@@ -825,14 +832,7 @@ void SFilterList::RemoveFilter(const TSharedRef<SFilter>& FilterToRemove)
 	{
 		// Update the frontend filters collection
 		const TSharedRef<FFrontendFilter>& FrontendFilter = FilterToRemove->GetFrontendFilter().ToSharedRef();
-		if ( FrontendFilter->IsInverseFilter() )
-		{
-			SetFrontendFilterActive(FrontendFilter, true);
-		}
-		else
-		{
-			SetFrontendFilterActive(FrontendFilter, false);
-		}
+		SetFrontendFilterActive(FrontendFilter, false);
 	}
 }
 
@@ -851,22 +851,7 @@ void SFilterList::FrontendFilterChanged(TSharedRef<FFrontendFilter> FrontendFilt
 
 	if ( FilterToUpdate.IsValid() )
 	{
-		bool bShouldAdd = FilterToUpdate->IsEnabled();
-
-		// Inverse filters are only added when they are disabled
-		if ( FrontendFilter->IsInverseFilter() )
-		{
-			bShouldAdd = !bShouldAdd;
-		}
-
-		if ( bShouldAdd )
-		{
-			SetFrontendFilterActive(FrontendFilter, true);
-		}
-		else
-		{
-			SetFrontendFilterActive(FrontendFilter, false);
-		}
+		SetFrontendFilterActive(FrontendFilter, FilterToUpdate->IsEnabled());
 	}
 }
 
@@ -897,27 +882,46 @@ void SFilterList::CreateFiltersMenuCategory(FMenuBuilder& MenuBuilder, const TAr
 	}
 }
 
-void SFilterList::CreateOtherFiltersMenuCategory(FMenuBuilder& MenuBuilder) const
+void SFilterList::CreateOtherFiltersMenuCategory(FMenuBuilder& MenuBuilder, TSharedPtr<FFrontendFilterCategory> MenuCategory) const
 {	
 	for ( auto FrontendFilterIt = AllFrontendFilters.CreateConstIterator(); FrontendFilterIt; ++FrontendFilterIt )
 	{
 		const TSharedRef<FFrontendFilter>& FrontendFilter = *FrontendFilterIt;
 
-		MenuBuilder.AddMenuEntry(
-			FrontendFilter->GetDisplayName(),
-			FrontendFilter->GetToolTipText(),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), FrontendFilter->GetIconName()),
-			FUIAction(
+		if(FrontendFilter->GetCategory() == MenuCategory)
+		{
+			MenuBuilder.AddMenuEntry(
+				FrontendFilter->GetDisplayName(),
+				FrontendFilter->GetToolTipText(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), FrontendFilter->GetIconName()),
+				FUIAction(
 				FExecuteAction::CreateSP( this, &SFilterList::FrontendFilterClicked, FrontendFilter ),
 				FCanExecuteAction(),
 				FIsActionChecked::CreateSP(this, &SFilterList::IsFrontendFilterInUse, FrontendFilter ) ),
-			NAME_None,
-			EUserInterfaceActionType::ToggleButton
-			);
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+				);
+		}
 	}
 }
 
-TSharedRef<SWidget> SFilterList::MakeAddFilterMenu()
+bool IsFilteredByPicker(TArray<UClass*> FilterClassList, UClass* TestClass)
+{
+	if(FilterClassList.Num() == 0)
+	{
+		return false;
+	}
+	for(auto Iter = FilterClassList.CreateIterator(); Iter; ++Iter)
+	{
+		if(TestClass->IsChildOf(*Iter))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+TSharedRef<SWidget> SFilterList::MakeAddFilterMenu(EAssetTypeCategories::Type MenuExpansion)
 {
 	// A local struct to describe a category in the filter menu
 	struct FCategoryMenu
@@ -926,21 +930,27 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu()
 		FText Tooltip;
 		TArray<TWeakPtr<IAssetTypeActions>> Assets;
 
-		FCategoryMenu(const FText& InName, const FText& InTooltip)
+		//Menu section
+		FName SectionExtensionHook;
+		FText SectionHeading;
+
+		FCategoryMenu(const FText& InName, const FText& InTooltip, const FName& InSectionExtensionHook, const FText& InSectionHeading)
 			: Name(InName)
 			, Tooltip(InTooltip)
 			, Assets()
+			, SectionExtensionHook(InSectionExtensionHook)
+			, SectionHeading(InSectionHeading)
 		{}
 	};
 
 	// Create a map of Categories to Menus
 	TMap<EAssetTypeCategories::Type, FCategoryMenu> CategoryToMenuMap;
-	CategoryToMenuMap.Add(EAssetTypeCategories::Basic, FCategoryMenu( LOCTEXT("BasicFilter", "Basic"), LOCTEXT("BasicFilterTooltip", "Filter by basic assets.") ) );
-	CategoryToMenuMap.Add(EAssetTypeCategories::Animation, FCategoryMenu( LOCTEXT("AnimationFilter", "Animation"), LOCTEXT("AnimationFilterTooltip", "Filter by animation assets.") ) );
-	CategoryToMenuMap.Add(EAssetTypeCategories::MaterialsAndTextures, FCategoryMenu( LOCTEXT("MaterialFilter", "Materials & Textures"), LOCTEXT("MaterialFilterTooltip", "Filter by material and texture assets.") ) );
-	CategoryToMenuMap.Add(EAssetTypeCategories::Sounds, FCategoryMenu( LOCTEXT("SoundFilter", "Sounds"), LOCTEXT("SoundFilterTooltip", "Filter by sound assets.") ) );
-	CategoryToMenuMap.Add(EAssetTypeCategories::Physics, FCategoryMenu( LOCTEXT("PhysicsFilter", "Physics"), LOCTEXT("PhysicsFilterTooltip", "Filter by physics assets.") ) );
-	CategoryToMenuMap.Add(EAssetTypeCategories::Misc, FCategoryMenu( LOCTEXT("MiscFilter", "Miscellaneous"), LOCTEXT("MiscFilterTooltip", "Filter by miscellaneous assets.") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::Basic, FCategoryMenu( LOCTEXT("BasicFilter", "Basic"), LOCTEXT("BasicFilterTooltip", "Filter by basic assets."), "ContentBrowserFilterBasicAsset", LOCTEXT("BasicAssetsMenuHeading", "Basic Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::Animation, FCategoryMenu( LOCTEXT("AnimationFilter", "Animation"), LOCTEXT("AnimationFilterTooltip", "Filter by animation assets."), "ContentBrowserFilterAnimationAsset", LOCTEXT("AnimationAssetsMenuHeading", "Animation Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::MaterialsAndTextures, FCategoryMenu( LOCTEXT("MaterialFilter", "Materials & Textures"), LOCTEXT("MaterialFilterTooltip", "Filter by material and texture assets."), "ContentBrowserFilterMaterialAsset", LOCTEXT("MaterialAssetsMenuHeading", "Material Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::Sounds, FCategoryMenu( LOCTEXT("SoundFilter", "Sounds"), LOCTEXT("SoundFilterTooltip", "Filter by sound assets."), "ContentBrowserFilterSoundAsset", LOCTEXT("SoundAssetsMenuHeading", "Sound Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::Physics, FCategoryMenu( LOCTEXT("PhysicsFilter", "Physics"), LOCTEXT("PhysicsFilterTooltip", "Filter by physics assets."), "ContentBrowserFilterPhysicsAsset", LOCTEXT("PhysicsAssetsMenuHeading", "Physics Assets") ) );
+	CategoryToMenuMap.Add(EAssetTypeCategories::Misc, FCategoryMenu( LOCTEXT("MiscFilter", "Miscellaneous"), LOCTEXT("MiscFilterTooltip", "Filter by miscellaneous assets."), "ContentBrowserFilterMiscAsset", LOCTEXT("MiscAssetsMenuHeading", "Misc Assets") ) );
 
 	// Load the asset tools module to get access to the browser type maps
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
@@ -966,13 +976,16 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu()
 			TSharedPtr<IAssetTypeActions> TypeActions = WeakTypeActions.Pin();
 			if ( ensure(TypeActions.IsValid()) && TypeActions->CanFilter() )
 			{
-				for ( auto MenuIt = CategoryToMenuMap.CreateIterator(); MenuIt; ++MenuIt )
+				if(!IsFilteredByPicker(InitialClassFilters, TypeActions->GetSupportedClass()))
 				{
-					if ( TypeActions->GetCategories() & MenuIt.Key() )
+					for ( auto MenuIt = CategoryToMenuMap.CreateIterator(); MenuIt; ++MenuIt )
 					{
-						// This is a valid asset type which can be filtered, add it to the correct category
-						FCategoryMenu& Menu = MenuIt.Value();
-						Menu.Assets.Add( WeakTypeActions );
+						if ( TypeActions->GetCategories() & MenuIt.Key() )
+						{
+							// This is a valid asset type which can be filtered, add it to the correct category
+							FCategoryMenu& Menu = MenuIt.Value();
+							Menu.Assets.Add( WeakTypeActions );
+						}
 					}
 				}
 			}
@@ -992,67 +1005,78 @@ TSharedRef<SWidget> SFilterList::MakeAddFilterMenu()
 	}
 	MenuBuilder.EndSection(); //ContentBrowserResetFilters
 
-	// First add the basic category, this appears as standard entries in the list (Note: intentionally not using FindChecked here as removing it from the map later would cause the ref to be garbage)
-	FCategoryMenu* BasicCategory = CategoryToMenuMap.Find( EAssetTypeCategories::Basic );
-	check( BasicCategory );
+	// First add the expanded category, this appears as standard entries in the list (Note: intentionally not using FindChecked here as removing it from the map later would cause the ref to be garbage)
+	FCategoryMenu* ExpandedCategory = CategoryToMenuMap.Find( MenuExpansion );
+	check( ExpandedCategory );
 
-	MenuBuilder.BeginSection("ContentBrowserFilterBasicAsset", LOCTEXT("BasicAssetsMenuHeading", "Basic Assets") );
+	MenuBuilder.BeginSection(ExpandedCategory->SectionExtensionHook, ExpandedCategory->SectionHeading );
 	{
-		// Add a menu entry which toggles all other categories
-		MenuBuilder.AddMenuEntry(
-			BasicCategory->Name,
-			BasicCategory->Tooltip,
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP( this, &SFilterList::FilterByTypeCategoryClicked, EAssetTypeCategories::Basic ),
-				FCanExecuteAction(),
-				FIsActionChecked::CreateSP(this, &SFilterList::IsAssetTypeCategoryInUse, EAssetTypeCategories::Basic ) ),
-			NAME_None,
-			EUserInterfaceActionType::ToggleButton
-			);
-
-		// Now populate with all the basic assets
-		SFilterList::CreateFiltersMenuCategory( MenuBuilder, BasicCategory->Assets);
-	}
-	MenuBuilder.EndSection(); //ContentBrowserFilterBasicAsset
-
-	// Remove the basic category from the map now, as this is treated differently and is no longer needed.
-	BasicCategory = NULL;
-	CategoryToMenuMap.Remove( EAssetTypeCategories::Basic );
-
-	MenuBuilder.BeginSection("ContentBrowserFilterAdvancedAsset", LOCTEXT("AdvancedAssetsMenuHeading", "Other Assets") );
-	{
-		// For all the remaining categories, add them as submenus
-		for ( auto MenuIt = CategoryToMenuMap.CreateIterator(); MenuIt; ++MenuIt )
+		if(MenuExpansion == EAssetTypeCategories::Basic)
 		{
-			FCategoryMenu& Menu = MenuIt.Value();
-
-			MenuBuilder.AddSubMenu(
-				Menu.Name,
-				Menu.Tooltip,
-				FNewMenuDelegate::CreateSP(this, &SFilterList::CreateFiltersMenuCategory, Menu.Assets),
+			// If we are doing a full menu (i.e expanding basic) we add a menu entry which toggles all other categories
+			MenuBuilder.AddMenuEntry(
+				ExpandedCategory->Name,
+				ExpandedCategory->Tooltip,
+				FSlateIcon(),
 				FUIAction(
-					FExecuteAction::CreateSP( this, &SFilterList::FilterByTypeCategoryClicked, MenuIt.Key() ),
-					FCanExecuteAction(),
-					FIsActionChecked::CreateSP(this, &SFilterList::IsAssetTypeCategoryInUse, MenuIt.Key() ) ),
+				FExecuteAction::CreateSP( this, &SFilterList::FilterByTypeCategoryClicked, MenuExpansion ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP(this, &SFilterList::IsAssetTypeCategoryInUse, MenuExpansion ) ),
 				NAME_None,
 				EUserInterfaceActionType::ToggleButton
 				);
 		}
-	
+
+		// Now populate with all the basic assets
+		SFilterList::CreateFiltersMenuCategory( MenuBuilder, ExpandedCategory->Assets);
+	}
+	MenuBuilder.EndSection(); //ContentBrowserFilterBasicAsset
+
+	// Remove the basic category from the map now, as this is treated differently and is no longer needed.
+	ExpandedCategory = NULL;
+	CategoryToMenuMap.Remove( EAssetTypeCategories::Basic );
+
+	// If we have expanded Basic, assume we are in full menu mode and add all the other categories
+	MenuBuilder.BeginSection("ContentBrowserFilterAdvancedAsset", LOCTEXT("AdvancedAssetsMenuHeading", "Other Assets") );
+	{
+		if(MenuExpansion == EAssetTypeCategories::Basic)
+		{
+			// For all the remaining categories, add them as submenus
+			for ( auto MenuIt = CategoryToMenuMap.CreateIterator(); MenuIt; ++MenuIt )
+			{
+				FCategoryMenu& Menu = MenuIt.Value();
+
+				MenuBuilder.AddSubMenu(
+					Menu.Name,
+					Menu.Tooltip,
+					FNewMenuDelegate::CreateSP(this, &SFilterList::CreateFiltersMenuCategory, Menu.Assets),
+					FUIAction(
+					FExecuteAction::CreateSP( this, &SFilterList::FilterByTypeCategoryClicked, MenuIt.Key() ),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(this, &SFilterList::IsAssetTypeCategoryInUse, MenuIt.Key() ) ),
+					NAME_None,
+					EUserInterfaceActionType::ToggleButton
+					);
+			}
+		}
+
 		// Now add the other filter which aren't assets
-		const FText LabelText = LOCTEXT("FrontendFiltersCategory", "Other Filters");
-		MenuBuilder.AddSubMenu(
-			LabelText,
-			LOCTEXT("FrontendFiltersCategoryTooltip", "Filter assets by all filters in this category."),
-			FNewMenuDelegate::CreateSP(this, &SFilterList::CreateOtherFiltersMenuCategory),
-			FUIAction(
-				FExecuteAction::CreateSP( this, &SFilterList::FrontendFilterCategoryClicked ),
+		for(auto Iter = AllFrontendFilterCategories.CreateIterator(); Iter; ++Iter)
+		{
+			TSharedPtr<FFrontendFilterCategory> Category = (*Iter);
+
+			MenuBuilder.AddSubMenu(
+				Category->Title,
+				Category->Tooltip,
+				FNewMenuDelegate::CreateSP(this, &SFilterList::CreateOtherFiltersMenuCategory, Category),
+				FUIAction(
+				FExecuteAction::CreateSP( this, &SFilterList::FrontendFilterCategoryClicked, Category ),
 				FCanExecuteAction(),
-				FIsActionChecked::CreateSP(this, &SFilterList::IsFrontendFilterCategoryInUse ) ),
-			NAME_None,
-			EUserInterfaceActionType::ToggleButton
-			);
+				FIsActionChecked::CreateSP(this, &SFilterList::IsFrontendFilterCategoryInUse, Category ) ),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+				);
+		}
 	}
 	MenuBuilder.EndSection(); //ContentBrowserFilterAdvancedAsset
 
@@ -1208,32 +1232,35 @@ bool SFilterList::IsFrontendFilterInUse(TSharedRef<FFrontendFilter> FrontendFilt
 	return false;
 }
 
-void SFilterList::FrontendFilterCategoryClicked()
+void SFilterList::FrontendFilterCategoryClicked(TSharedPtr<FFrontendFilterCategory> MenuCategory)
 {
-	bool bFullCategoryInUse = IsFrontendFilterCategoryInUse();
+	bool bFullCategoryInUse = IsFrontendFilterCategoryInUse(MenuCategory);
 	for ( auto FrontendFilterIt = AllFrontendFilters.CreateConstIterator(); FrontendFilterIt; ++FrontendFilterIt )
 	{
 		const TSharedRef<FFrontendFilter>& FrontendFilter = *FrontendFilterIt;
-
-		if ( bFullCategoryInUse )
+		
+		if(FrontendFilter->GetCategory() == MenuCategory)
 		{
-			RemoveFilter( FrontendFilter );
-		}
-		else if ( !IsFrontendFilterInUse( FrontendFilter ) )
-		{
-			TSharedRef<SFilter> NewFilter = AddFilter( FrontendFilter );
-			NewFilter->SetEnabled(true);
+			if ( bFullCategoryInUse )
+			{
+				RemoveFilter( FrontendFilter );
+			}
+			else if ( !IsFrontendFilterInUse( FrontendFilter ) )
+			{
+				TSharedRef<SFilter> NewFilter = AddFilter( FrontendFilter );
+				NewFilter->SetEnabled(true);
+			}
 		}
 	}
 }
 
-bool SFilterList::IsFrontendFilterCategoryInUse() const
+bool SFilterList::IsFrontendFilterCategoryInUse(TSharedPtr<FFrontendFilterCategory> MenuCategory) const
 {
 	for ( auto FrontendFilterIt = AllFrontendFilters.CreateConstIterator(); FrontendFilterIt; ++FrontendFilterIt )
 	{
 		const TSharedRef<FFrontendFilter>& FrontendFilter = *FrontendFilterIt;
 
-		if ( !IsFrontendFilterInUse( FrontendFilter ) )
+		if ( FrontendFilter->GetCategory() == MenuCategory && !IsFrontendFilterInUse( FrontendFilter ) )
 		{
 			return false;
 		}

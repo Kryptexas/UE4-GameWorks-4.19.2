@@ -9,5 +9,5 @@ class UEnvironmentQueryGraphNode_Root : public UEnvironmentQueryGraphNode
 
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 };

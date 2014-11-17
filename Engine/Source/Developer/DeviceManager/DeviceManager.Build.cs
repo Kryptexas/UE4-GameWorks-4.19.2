@@ -16,6 +16,7 @@ public class DeviceManager : ModuleRules
 				"Developer/DeviceManager/Private/Widgets/Browser",
 				"Developer/DeviceManager/Private/Widgets/Details",
 				"Developer/DeviceManager/Private/Widgets/Processes",
+				"Developer/DeviceManager/Private/Widgets/Shared",
 				"Developer/DeviceManager/Private/Widgets/Toolbar",
 			}
 		);
@@ -26,7 +27,6 @@ public class DeviceManager : ModuleRules
 				"Core",
 				"EditorStyle",
                 "InputCore",
-//				"PropertyEditor",
 				"Slate",
 			}
 		);

@@ -1071,11 +1071,11 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 					for( int32 p = 0 ; p < Polygons.Num() ; ++p )
 					{
-						FPoly Poly = Polygons[p];
+						FPoly Polygon = Polygons[p];
 
-						if( Poly.Finalize( BuilderBrush, 1 ) == 0 )
+						if (Polygon.Finalize(BuilderBrush, 1) == 0)
 						{
-							BuilderBrush->Brush->Polys->Element.Add( Poly );
+							BuilderBrush->Brush->Polys->Element.Add(Polygon);
 						}
 					}
 
@@ -1117,12 +1117,12 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 					for( int32 p = 0 ; p < Polygons.Num() ; ++p )
 					{
-						FPoly Poly = Polygons[p];
-						Poly.Reverse();
+						FPoly Polygon = Polygons[p];
+						Polygon.Reverse();
 
-						if( Poly.Finalize( BuilderBrush, 1 ) == 0 )
+						if (Polygon.Finalize(BuilderBrush, 1) == 0)
 						{
-							BuilderBrush->Brush->Polys->Element.Add( Poly );
+							BuilderBrush->Brush->Polys->Element.Add(Polygon);
 						}
 					}
 				}
@@ -3046,9 +3046,9 @@ bool UGeomModifier_Turn::OnApply()
 
 				for( int32 p = 0 ; p < ge->ParentPolyIndices.Num() ; ++p )
 				{
-					FGeomPoly* gp = &go->PolyPool[ ge->ParentPolyIndices[p] ];
+					FGeomPoly* GeomPoly = &go->PolyPool[ ge->ParentPolyIndices[p] ];
 
-					go->GetActualBrush()->Brush->Polys->Element[ gp->ActualPolyIndex ].PolyFlags |= PF_GeomMarked;
+					go->GetActualBrush()->Brush->Polys->Element[GeomPoly->ActualPolyIndex].PolyFlags |= PF_GeomMarked;
 				}
 			}
 		}

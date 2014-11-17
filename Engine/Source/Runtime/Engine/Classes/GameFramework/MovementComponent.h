@@ -275,4 +275,5 @@ inline float UMovementComponent::GetModifiedMaxSpeed() const
 inline void UMovementComponent::StopMovementImmediately()
 {
 	Velocity = FVector::ZeroVector;
+	UpdateComponentVelocity();
 }

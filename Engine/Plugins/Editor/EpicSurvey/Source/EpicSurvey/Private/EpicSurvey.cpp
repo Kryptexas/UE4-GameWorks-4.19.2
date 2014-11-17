@@ -80,11 +80,11 @@ TSharedPtr< FSlateDynamicImageBrush > FEpicSurvey::LoadRawDataAsBrush( FName Res
 		Width = ImageWrapper->GetWidth();
 		Height = ImageWrapper->GetHeight();
 
-		const TArray<uint8>* RawData = NULL;
-		if (ImageWrapper->GetRaw( ERGBFormat::BGRA, 8, RawData))
+		const TArray<uint8>* RawImageData = NULL;
+		if (ImageWrapper->GetRaw(ERGBFormat::BGRA, 8, RawImageData))
 		{
 			DecodedImage.AddUninitialized( Width * Height * BytesPerPixel );
-			DecodedImage = *RawData;
+			DecodedImage = *RawImageData;
 			bSucceeded = true;
 		}
 	}
@@ -152,7 +152,7 @@ void FEpicSurvey::Initialize()
 
 void FEpicSurvey::InitializeTitleCloud()
 {
-	TSharedRef<FCulture> Culture = FInternationalization::GetCurrentCulture();
+	TSharedRef<FCulture> Culture = FInternationalization::Get().GetCurrentCulture();
 
 	FString CultureString;
 	switch (CurrentCulture)

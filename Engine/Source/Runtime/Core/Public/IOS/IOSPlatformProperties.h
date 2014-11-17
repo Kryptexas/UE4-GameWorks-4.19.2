@@ -67,4 +67,9 @@ struct FIOSPlatformProperties
 	{
 		return false;
 	}
+
+	static FORCEINLINE bool HasFixedResolution()
+	{
+		return true;
+	}
 };

@@ -286,6 +286,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void Montage_SetNextSection(FName SectionNameToChange, FName NextSection);
 
+	/** Change AnimMontage play rate. NewPlayRate = 1.0 is the default playback rate. */
+	UFUNCTION(BlueprintCallable, Category="Animation", meta=(NewPlayRate="1.0"))
+	void Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate);
+
 	/** Plays an animation montage. Returns the length of the animation montage in seconds. Returns 0.f if failed to play. */
 	UFUNCTION(BlueprintCallable, Category="Animation", meta=(InPlayRate="1.0"))
 	float Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate);
@@ -471,9 +475,6 @@ public:
 
 	/** Get PlayRate */
 	float Montage_GetPlayRate(UAnimMontage* Montage);
-
-	/** Set PlayRate */
-	void Montage_SetPlayRate(UAnimMontage* Montage, float NewPlayRate);
 
 	/** Get next sectionID for given section ID */
 	int32 Montage_GetNextSectionID(UAnimMontage* Montage, int32 CurrentSectionID);

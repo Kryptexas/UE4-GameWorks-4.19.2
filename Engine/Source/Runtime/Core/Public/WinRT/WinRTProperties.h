@@ -41,7 +41,12 @@ struct FWinRTPlatformProperties : public FGenericPlatformProperties
 	static FORCEINLINE const char* GetPhysicsFormat()
 	{
 		return "PhysXWinRT";
-	}              
+	}
+
+	static FORCEINLINE bool HasFixedResolution()
+	{
+		return true;
+	}
 };
 
 

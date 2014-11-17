@@ -1,0 +1,95 @@
+<Configuration>
+	<!--
+	#########################################################################
+	#																		#
+	#	This is a template UBT configuration classes fields override.		#
+	#	If you want value to be overridden just uncomment right				#
+	#	element and put in the desired value.								#
+	#																		#
+	#########################################################################
+	
+	The syntax of this file is:
+	<Configuration>
+		<ClassA>
+			<Field1>Value</Field2>
+			<ArrayField2>
+				<Item>First item</Item>
+				<Item>Second item</Item>
+				...
+				<Item>Last item</Item>
+			</ArrayField2>
+			
+			...
+			
+		</ClassA>
+		<ClassB>
+			...
+		</ClassB>
+
+		...
+
+		<ClassN>
+			...
+		</ClassN>
+	</Configuration>
+	
+	There are four possible location for this file:
+		a. UE4/Engine/Programs/UnrealBuildTool
+		b. UE4/Engine/Programs/NoRedist/UnrealBuildTool
+		c. UE4/Engine/Saved/UnrealBuildTool
+		d. My Documents/Unreal Engine/UnrealBuildTool
+	
+	The UBT is looking for it in all four places in the given order and
+	overrides already read data with the loaded ones, hence d. has the
+	priority. Not defined classes and fields are left alone.
+	-->
+	
+	<!--
+		<BuildConfiguration>
+			<bUseUnityBuild>True</bUseUnityBuild>
+			<bForceUnityBuild>False</bForceUnityBuild>
+			<MinGameModuleSourceFilesForUnityBuild>32</MinGameModuleSourceFilesForUnityBuild>
+			<bUseMonolithicGraphicsDrivers>True</bUseMonolithicGraphicsDrivers>
+			<bUseFastMonoCalls>True</bUseFastMonoCalls>
+			<NumIncludedBytesPerUnityCPP>262144</NumIncludedBytesPerUnityCPP>
+			<bStressTestUnity>False</bStressTestUnity>
+			<bCheckSystemHeadersForModification>False</bCheckSystemHeadersForModification>
+			<bCheckExternalHeadersForModification>False</bCheckExternalHeadersForModification>
+			<bIgnoreOutdatedImportLibraries>True</bIgnoreOutdatedImportLibraries>
+			<bDisableDebugInfo>False</bDisableDebugInfo>
+			<bOmitPCDebugInfoInDevelopment>False</bOmitPCDebugInfoInDevelopment>
+			<bUsePDBFiles>False</bUsePDBFiles>
+			<bUsePCHFiles>True</bUsePCHFiles>
+			<bUseActionHistory>True</bUseActionHistory>
+			<MinFilesUsingPrecompiledHeader>6</MinFilesUsingPrecompiledHeader>
+			<bForcePrecompiledHeaderForGameModules>True</bForcePrecompiledHeaderForGameModules>
+			<bPrintDebugInfo>False</bPrintDebugInfo>
+			<bPrintPerformanceInfo>False</bPrintPerformanceInfo>
+			<bLogDetailedActionStats>False</bLogDetailedActionStats>
+			<bDeployAfterCompile>False</bDeployAfterCompile>
+			<bFlushBuildDirOnRemoteMac>False</bFlushBuildDirOnRemoteMac>
+			<bAllowXGE>True</bAllowXGE>
+			<bXGEExport>False</bXGEExport>
+			<bShowXGEMonitor>False</bShowXGEMonitor>
+			<bStopXGECompilationAfterErrors>True</bStopXGECompilationAfterErrors>
+			<bAllowRemotelyCompiledPCHs>False</bAllowRemotelyCompiledPCHs>
+			<bShouldDeleteAllOutdatedProducedItems>False</bShouldDeleteAllOutdatedProducedItems>
+			<bUseIncrementalLinking>False</bUseIncrementalLinking>
+			<bAllowLTCG>False</bAllowLTCG>
+			<bSupportEditAndContinue>False</bSupportEditAndContinue>
+			<bOmitFramePointers>True</bOmitFramePointers>
+			<ProcessorCountMultiplier>1</ProcessorCountMultiplier>
+			<BaseIntermediateFolder>Intermediate/Build/</BaseIntermediateFolder>
+			<bGeneratedSYMFile>False</bGeneratedSYMFile>
+			<bStripSymbolsOnIOS>False</bStripSymbolsOnIOS>
+			<bCreateStubIPA>True</bCreateStubIPA>
+			<bCopyAppBundleBackToDevice>False</bCopyAppBundleBackToDevice>
+			<bUseMallocProfiler>False</bUseMallocProfiler>
+			<bEnableCodeAnalysis>False</bEnableCodeAnalysis>
+			<bUseSharedPCHs>True</bUseSharedPCHs>
+			<bUseIncludeDependencyResolveCache>True</bUseIncludeDependencyResolveCache>
+			<bTestIncludeDependencyResolveCache>False</bTestIncludeDependencyResolveCache>
+			<bDebugBuildsActuallyUseDebugCRT>False</bDebugBuildsActuallyUseDebugCRT>
+		</BuildConfiguration>
+	-->
+</Configuration>

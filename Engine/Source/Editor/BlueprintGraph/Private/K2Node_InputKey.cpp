@@ -128,15 +128,31 @@ FText UK2Node_InputKey::GetKeyText() const
 	return InputKey.GetDisplayName();
 }
 
-FString UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_InputKey::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (bControl || bAlt || bShift)
 	{
-		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Name_WithModifiers", "{0} {1}"), GetModifierText(), GetKeyText()).ToString();
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ModifierKey"), GetModifierText());
+		Args.Add(TEXT("Key"), GetKeyText());
+		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Name_WithModifiers", "{ModifierKey} {Key}"), Args);
 	}
 	else
 	{
-		return FText::Format(NSLOCTEXT("K2Node", "InputKey_Name", "{0}"), GetKeyText()).ToString();
+		return GetKeyText();
+	}
+}
+
+FString UK2Node_InputKey::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	if (bControl || bAlt || bShift)
+	{
+		return FString::Printf(TEXT("%s %s"), *GetModifierName().ToString(), *InputKey.ToString());
+	}
+	else
+	{
+		return GetKeyText().ToString();
 	}
 }
 

@@ -147,9 +147,14 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 			TSharedPtr<FJsonObject> FramesBlock = ReadObject(SpriteDescriptorObject, TEXT("frames"));
 			if (FramesBlock.IsValid())
 			{
+				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ParsingSprites", "Parsing Sprite Frame"), true, true);
+
 				// Parse all of the frames
+				int32 FrameCount = 0;
 				for (auto FrameIt = FramesBlock->Values.CreateIterator(); FrameIt; ++FrameIt)
 				{
+					GWarn->StatusUpdate(FrameCount, FramesBlock->Values.Num(), NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ParsingSprites", "Parsing Sprite Frames"));
+
 					bool bReadFrameSuccessfully = true;
 
 					FSpriteFrame Frame;
@@ -212,7 +217,11 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 						UE_LOG( LogPaperJsonImporter, Warning, TEXT( "Frame %s is in an unexpected format" ), *Frame.FrameName.ToString() );
 						bLoadedSuccessfully = false;
 					}
+
+					FrameCount++;
 				}
+
+				GWarn->EndSlowTask();
 
 				// Create an animated sprite that encompasses the frames
 				UPaperFlipbook* Flipbook = NULL;
@@ -222,10 +231,20 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 					Result = Flipbook;
 				}
 
+				GWarn->BeginSlowTask(NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ImportingSprites", "Imprting Sprite Frame"), true, true);
+
 				// Create objects for each successfully parsed frame
 				const int32 FrameRun = 1; //@TODO: Don't make a keyframe for every single item if we can help it
 				for (int32 FrameIndex = 0; FrameIndex < ParsedFrames.Num(); ++FrameIndex)
 				{
+					GWarn->StatusUpdate(FrameIndex, ParsedFrames.Num(), NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ImportingSprites", "Imprting Sprite Frames"));
+
+					// Check for user canceling the import
+					if ( GWarn->ReceivedUserCancel() )
+					{
+						break;
+					}
+
 					const FSpriteFrame& Frame = ParsedFrames[FrameIndex];
 
 					// Create a package for the frame
@@ -260,6 +279,8 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 
 					TargetSprite->PostEditChange();
 				}
+
+				GWarn->EndSlowTask();
 			}
 			else
 			{

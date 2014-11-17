@@ -93,6 +93,28 @@ public:
 		return NULL;
 	}
 
+	virtual const TArray<ITargetPlatform*>& GetCookingTargetPlatforms() OVERRIDE
+	{
+		static bool bInitialized = false;
+		static TArray<ITargetPlatform*> Results;
+
+		if ( !bInitialized || bForceCacheUpdate )
+		{
+			Results = GetActiveTargetPlatforms();
+
+			FString PlatformStr;
+			if (FParse::Value(FCommandLine::Get(), TEXT("TARGETPLATFORM="), PlatformStr))
+			{
+				if (PlatformStr == TEXT("None"))
+				{
+					Results = Platforms;
+				}
+			}
+		}
+
+		return Results;
+	}
+
 	virtual const TArray<ITargetPlatform*>& GetActiveTargetPlatforms() OVERRIDE
 	{
 		static bool bInitialized = false;

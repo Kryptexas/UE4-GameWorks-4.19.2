@@ -30,7 +30,7 @@ const FString FIntroTutorials::BlueprintHomePath(TEXT("Shared/Tutorials/InBluepr
 
 const FWelcomeTutorialProperties FIntroTutorials::UE4WelcomeTutorial(TEXT("Shared/Tutorials/UE4Welcome"), TEXT("SeenUE4Welcome"));	
 const FWelcomeTutorialProperties FIntroTutorials::BlueprintHomeTutorial(TEXT("Shared/Tutorials/InBlueprintEditorTutorial"), TEXT("SeenBlueprintWelcome"));
-const FWelcomeTutorialProperties FIntroTutorials::ClassBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/InBlueprintEditorTutorial"), TEXT("SeenBlueprintWelcome_Class"), FString("5DCD4D58-9C9F-407F-8388-75D89CBBA7E8"));
+const FWelcomeTutorialProperties FIntroTutorials::ClassBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/BlueprintInterfaceTutorial"), TEXT("SeenBlueprintWelcome_Class"), FString("5DCD4D58-9C9F-407F-8388-75D89CBBA7E8"));
 const FWelcomeTutorialProperties FIntroTutorials::MacroLibraryBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/BlueprintMacroLibInterfaceTutorial"), TEXT("SeenBlueprintWelcome_MacroLib"), FString("0D5081E0-F29A-4C35-B4DC-1E5E2825AB54"));
 const FWelcomeTutorialProperties FIntroTutorials::InterfaceBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/BlueprintInterfacesInterfaceTutorial"), TEXT("SeenBlueprintWelcome_Interface"), FString("E86E8C9A-4804-4680-B10F-BDC8E95C7AFD"));
 const FWelcomeTutorialProperties FIntroTutorials::LevelScriptBlueprintWelcomeTutorial(TEXT("Shared/Tutorials/LevelBlueprintInterfaceTutorial"), TEXT("SeenBlueprintWelcome_LevelScript"), FString("B061E309-517D-4916-BFCB-E8104C8F4C35"));
@@ -38,6 +38,7 @@ const FWelcomeTutorialProperties FIntroTutorials::AddCodeToProjectWelcomeTutoria
 const FWelcomeTutorialProperties FIntroTutorials::MatineeEditorWelcomeTutorial(TEXT("Shared/Tutorials/InMatineeEditorTutorial"), TEXT("SeenMatineeEditorWelcome"), FString("6439C991-A77B-4B52-953D-3F29B1DD1860"));
 
 FIntroTutorials::FIntroTutorials()
+	: CurrentObjectClass(nullptr)
 {
 	bEnablePostTutorialSurveys = false;
 }
@@ -218,7 +219,7 @@ void FIntroTutorials::AddSummonBlueprintTutorialsMenuExtension(FMenuBuilder& Men
 		LOCTEXT("BlueprintMenuEntryTitle", "Blueprint Overview"),
 		LOCTEXT("BlueprintMenuEntryToolTip", "Opens up an introductory overview of Blueprints."),
 		FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tutorials"),
-		FUIAction(FExecuteAction::CreateRaw(this, &FIntroTutorials::SummonBlueprintTutorialHome, (UObject*)nullptr)));
+		FUIAction(FExecuteAction::CreateRaw(this, &FIntroTutorials::SummonBlueprintTutorialHome, PrimaryObject, true)));
 
 	if(PrimaryObject != nullptr)
 	{
@@ -231,7 +232,7 @@ void FIntroTutorials::AddSummonBlueprintTutorialsMenuExtension(FMenuBuilder& Men
 				FText::Format(LOCTEXT("BlueprintTutorialsMenuEntryTitle", "{0} Tutorial"), Enum->GetEnumText(BP->BlueprintType)),
 				LOCTEXT("BlueprintTutorialsMenuEntryToolTip", "Opens up an introductory tutorial covering this particular part of the Blueprint editor."),
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tutorials"),
-				FUIAction(FExecuteAction::CreateRaw(this, &FIntroTutorials::SummonBlueprintTutorialHome, PrimaryObject)));
+				FUIAction(FExecuteAction::CreateRaw(this, &FIntroTutorials::SummonBlueprintTutorialHome, PrimaryObject, false)));
 		}
 	}
 
@@ -255,12 +256,18 @@ void FIntroTutorials::MainFrameLoad(TSharedPtr<SWindow> InRootWindow, bool bIsNe
 
 void FIntroTutorials::SummonTutorialHome()
 {
+	CurrentObjectClass = nullptr;
 	SummonTutorialWindowForPage(HomePath);
 }
 
-void FIntroTutorials::SummonBlueprintTutorialHome(UObject* Asset)
+void FIntroTutorials::SummonBlueprintTutorialHome(UObject* Asset, bool bForceWelcome)
 {
-	FWelcomeTutorialProperties const* Tutorial = ChooseBlueprintWelcomeTutorial(Asset);
+	if(Asset != nullptr)
+	{
+		CurrentObjectClass = Asset->GetClass();
+	}
+
+	FWelcomeTutorialProperties const* Tutorial = ChooseBlueprintWelcomeTutorial(Asset, bForceWelcome);
 	check(Tutorial);
 	SummonTutorialWindowForPage(Tutorial->TutorialPath);
 
@@ -337,7 +344,7 @@ void FIntroTutorials::OnTutorialDismissed() const
 			// prepare and send analytics data
 			bool const bQuitOnWelcomeScreen = (CurrentPagePath == WelcomeTutorialPath);
 
-			FString const CurrentExcerptTitle = bQuitOnWelcomeScreen ? TEXT("Welcome Screen") : WidgetPtr->GetCurrentExcerptTitle();
+			FString const CurrentExcerptTitle = bQuitOnWelcomeScreen ? TEXT("Welcome Screen") : WidgetPtr->GetCurrentExcerptIdentifierName();
 			int32 const CurrentExcerptIndex = bQuitOnWelcomeScreen ? -1 : WidgetPtr->GetCurrentExcerptIndex();
 			float const CurrentPageElapsedTime = bQuitOnWelcomeScreen ? 0.f : WidgetPtr->GetCurrentPageElapsedTime();
 
@@ -366,17 +373,23 @@ void FIntroTutorials::OnTutorialDismissed() const
 
 void FIntroTutorials::OnAssetEditorOpened(UObject* Asset)
 {
-	FWelcomeTutorialProperties const* const FoundProps = FindAssetEditorTutorialProperties(Asset->GetClass());
-	if (FoundProps)
+	if(Asset != nullptr)
 	{
-		// run delegate if it exists
-		FWelcomeTutorialProperties const* const PropsToUse = FoundProps->ChooserDelegate.IsBound()
-			? FoundProps->ChooserDelegate.Execute(Asset)
-			: FoundProps;
-
-		if (PropsToUse)
+		FWelcomeTutorialProperties const* const FoundProps = FindAssetEditorTutorialProperties(Asset->GetClass());
+		if (FoundProps)
 		{
-			MaybeOpenWelcomeTutorial(PropsToUse->TutorialPath, PropsToUse->SeenOnceSettingName);
+			// run delegate if it exists
+			FWelcomeTutorialProperties const* const PropsToUse = FoundProps->ChooserDelegate.IsBound()
+				? FoundProps->ChooserDelegate.Execute(Asset)
+				: FoundProps;
+
+			if (PropsToUse)
+			{
+				if(MaybeOpenWelcomeTutorial(PropsToUse->TutorialPath, PropsToUse->SeenOnceSettingName))
+				{
+					CurrentObjectClass = Asset->GetClass();
+				}
+			}
 		}
 	}
 }
@@ -384,7 +397,11 @@ void FIntroTutorials::OnAssetEditorOpened(UObject* Asset)
 
 FWelcomeTutorialProperties const* FIntroTutorials::ChooseBlueprintWelcomeTutorial(UObject* BlueprintObject)
 {
-	bShowHome = false;
+	return ChooseBlueprintWelcomeTutorial(BlueprintObject, true);
+}
+
+FWelcomeTutorialProperties const* FIntroTutorials::ChooseBlueprintWelcomeTutorial(UObject* BlueprintObject, bool bForceWelcome)
+{
 	TutorialChainMap.Empty();
 
 	UBlueprint* BP = Cast<UBlueprint>(BlueprintObject);
@@ -392,7 +409,7 @@ FWelcomeTutorialProperties const* FIntroTutorials::ChooseBlueprintWelcomeTutoria
 	{
 		bool bSeenWelcome = false;
 		GConfig->GetBool(*IntroTutorialConfigSection, *BlueprintHomeTutorial.SeenOnceSettingName, bSeenWelcome, GEditorGameAgnosticIni);
-		if(!bSeenWelcome)
+		if(!bSeenWelcome || bForceWelcome)
 		{
 			switch (BP->BlueprintType)
 			{
@@ -443,12 +460,12 @@ FWelcomeTutorialProperties const* FIntroTutorials::FindAssetEditorTutorialProper
 	return NULL;
 }
 
-void FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName)
+bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName)
 {
 	// don't open if viewing any tutorial other than the index
 	if (TutorialWidget.IsValid() && (TutorialWidget.Pin()->GetCurrentPagePath() != HomePath))
 	{
-		return;
+		return false;
 	}
 
 	bool bSeenWelcome = false;
@@ -463,13 +480,17 @@ void FIntroTutorials::MaybeOpenWelcomeTutorial(const FString& TutorialPath, cons
 
 			// Tell ini file that we've seen this now
 			GConfig->SetBool(*IntroTutorialConfigSection, *ConfigSettingName, true, GEditorGameAgnosticIni);
+
+			return true;
 		}
 	}
+
+	return false;
 }
 
-void FIntroTutorials::MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties)
+bool FIntroTutorials::MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties)
 {
-	MaybeOpenWelcomeTutorial(TutorialProperties.TutorialPath, TutorialProperties.SeenOnceSettingName);
+	return MaybeOpenWelcomeTutorial(TutorialProperties.TutorialPath, TutorialProperties.SeenOnceSettingName);
 }
 
 template< typename KeyType >
@@ -556,7 +577,12 @@ void FIntroTutorials::ResetTutorial(const FWelcomeTutorialProperties& TutProps) 
 
 EVisibility FIntroTutorials::GetHomeButtonVisibility() const
 {
-	return bShowHome ? EVisibility::Visible : EVisibility::Hidden;
+	if(CurrentObjectClass != nullptr)
+	{
+		return CurrentObjectClass->IsChildOf(UBlueprint::StaticClass()) ? EVisibility::Hidden : EVisibility::Visible;
+	}
+	
+	return EVisibility::Visible;
 }
 
 FString FIntroTutorials::HandleGotoNextTutorial(const FString& InCurrentPage) const

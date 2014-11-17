@@ -4,10 +4,16 @@
 #include "MacWindow.h"
 #include "MacApplication.h"
 
+@interface NSWindow (UE4Extensions)
+- (bool)shouldAddChildWindow:(NSWindow*)Window;
+@end
+
 /**
  * Custom window class used for input handling
  */
 @implementation FSlateCocoaWindow
+
+@synthesize bForwardEvents;
 
 - (id)initWithContentRect:(NSRect)ContentRect styleMask:(NSUInteger)Style backing:(NSBackingStoreType)BufferingType defer:(BOOL)Flag
 {
@@ -24,6 +30,7 @@
 		bDeferOpacity = 0.0f;
 		bRenderInitialised = false;
 		bZoomed = [super isZoomed];
+		self.bForwardEvents = true;
 		[super setAlphaValue:bDeferOpacity];
 	}
 	return NewSelf;
@@ -38,6 +45,20 @@
 	else
 	{
 		return [[self contentView] frame];
+	}
+}
+
+
+- (NSView*)openGLView
+{
+	if([self styleMask] & (NSTexturedBackgroundWindowMask))
+	{
+		NSView* SuperView = [[self contentView] superview];
+		return [[SuperView subviews] lastObject];
+	}
+	else
+	{
+		return [self contentView];
 	}
 }
 
@@ -73,7 +94,10 @@
 
 - (void)redrawContents
 {
-	MacApplication->OnWindowRedrawContents( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowRedrawContents( self );
+	}
 }
 
 - (void)setWindowMode:(EWindowMode::Type)NewWindowMode
@@ -96,10 +120,22 @@
 	Parent = InParent;
 }
 
+- (bool)shouldAddChildWindow:(NSWindow*)Window
+{
+	bool bShouldAddChildWindow = false;
+	if(Window && ![self isMiniaturized] && NSContainsRect([[self screen] frame], [Window frame]))
+	{
+		bool bSelfOnScreen = [Window isOnActiveSpace];
+		bool bParentOnScreen = [self isOnActiveSpace];
+		bShouldAddChildWindow = bSelfOnScreen && bParentOnScreen;
+	}
+	return bShouldAddChildWindow;
+}
+
 - (void)orderFrontEvenIfChildAndMakeMain:(bool)bMain andKey:(bool)bKey
 {
 	NSWindow* ParentWindow = [self getParent];
-	if( ParentWindow && ![ParentWindow isMiniaturized] && NSContainsRect([[ParentWindow screen] frame], [self frame]) )
+	if( ParentWindow && [ParentWindow shouldAddChildWindow:self] )
 	{
 		[ParentWindow removeChildWindow: self];
 		[ParentWindow addChildWindow: self ordered: NSWindowAbove];
@@ -140,7 +176,7 @@
 		for( int32 Index = 0; Index < [ChildWindows count]; Index++ )
 		{
 			NSWindow* Window = (NSWindow*)[ChildWindows objectAtIndex: Index];
-			if(NSContainsRect([[Window screen] frame], [self frame]) && ![self isMiniaturized])
+			if([self shouldAddChildWindow:Window])
 			{
 				[self addChildWindow: Window ordered: NSWindowAbove];
 				[Window setLevel: ([Window styleMask] & NSClosableWindowMask) ? NSNormalWindowLevel : NSFloatingWindowLevel];
@@ -149,7 +185,7 @@
 		[ChildWindows release];
 		ChildWindows = NULL;
 	}
-	if(Parent && ![Parent isMiniaturized] && [self parentWindow] == nil && NSContainsRect([[Parent screen] frame], [self frame]))
+	if(Parent && [self parentWindow] == nil && [Parent shouldAddChildWindow:self])
 	{
 		[Parent addChildWindow: self ordered: NSWindowAbove];
 		[self setLevel: ([self styleMask] & NSClosableWindowMask) ? NSNormalWindowLevel : NSFloatingWindowLevel];
@@ -265,13 +301,19 @@
 - (void)windowDidEnterFullScreen:(NSNotification *)notification
 {
 	WindowMode = EWindowMode::WindowedFullscreen;
-	MacApplication->OnWindowDidResize( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowDidResize( self );
+	}
 }
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification
 {
 	WindowMode = EWindowMode::Windowed;
-	MacApplication->OnWindowDidResize( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowDidResize( self );
+	}
 }
 
 - (void)windowDidBecomeKey:(NSNotification *)Notification
@@ -283,7 +325,10 @@
 		[self orderFrontEvenIfChildAndMakeMain:false andKey:false];
 	}
 
-	MacApplication->OnWindowDidBecomeKey( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowDidBecomeKey( self );
+	}
 }
 
 - (void)windowDidResignKey:(NSNotification *)Notification
@@ -291,18 +336,31 @@
 	[self setMovable: YES];
 	[self setMovableByWindowBackground: NO];
 	
-	MacApplication->OnWindowDidResignKey( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowDidResignKey( self );
+	}
 }
 
 - (void)windowWillMove:(NSNotification *)Notification
 {
-	MacApplication->OnWindowWillMove( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowWillMove( self );
+	}
 }
 
 - (void)windowDidMove:(NSNotification *)Notification
 {
 	bZoomed = [self isZoomed];
-	MacApplication->OnWindowDidMove( self );
+	
+	NSView* OpenGLView = [self openGLView];
+	[[NSNotificationCenter defaultCenter] postNotificationName:NSViewGlobalFrameDidChangeNotification object:OpenGLView];
+	
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowDidMove( self );
+	}
 }
 
 - (void)windowDidChangeScreen:(NSNotification *)notification
@@ -313,7 +371,7 @@
 	// It does however, work fine for handling display arrangement changes that cause a window to go offscreen.
 	if(bDisplayReconfiguring)
 	{
-		if(Parent && ![Parent isMiniaturized] && [self parentWindow] == nil && NSContainsRect([[Parent screen] frame], [self frame]))
+		if(Parent && [self parentWindow] == nil && [Parent shouldAddChildWindow:self])
 		{
 			[Parent addChildWindow: self ordered: NSWindowAbove];
 		}
@@ -380,22 +438,34 @@
 - (void)windowDidResize:(NSNotification *)Notification
 {
 	bZoomed = [self isZoomed];
-	MacApplication->OnWindowDidResize( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowDidResize( self );
+	}
 }
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-	MacApplication->OnWindowDidClose( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnWindowDidClose( self );
+	}
 }
 
 - (void)mouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	if(self.bForwardEvents)
+	{
+		MacApplication->AddPendingEvent( Event );
+	}
 }
 
 - (void)rightMouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	if(self.bForwardEvents)
+	{
+		MacApplication->AddPendingEvent( Event );
+	}
 	
 	// Really we shouldn't be doing this - on OS X only left-click changes focus,
 	// but for the moment it is easier than changing Slate.
@@ -407,22 +477,34 @@
 
 - (void)otherMouseDown:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	if(self.bForwardEvents)
+	{
+		MacApplication->AddPendingEvent( Event );
+	}
 }
 
 - (void)mouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	if(self.bForwardEvents)
+	{
+		MacApplication->AddPendingEvent( Event );
+	}
 }
 
 - (void)rightMouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	if(self.bForwardEvents)
+	{
+		MacApplication->AddPendingEvent( Event );
+	}
 }
 
 - (void)otherMouseUp:(NSEvent*)Event
 {
-	MacApplication->AddPendingEvent( Event );
+	if(self.bForwardEvents)
+	{
+		MacApplication->AddPendingEvent( Event );
+	}
 }
 
 - (NSDragOperation)draggingEntered:(id < NSDraggingInfo >)Sender
@@ -432,24 +514,36 @@
 
 - (void)draggingExited:(id < NSDraggingInfo >)Sender
 {
-	MacApplication->OnDragOut( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnDragOut( self );
+	}
 }
 
 - (NSDragOperation)draggingUpdated:(id < NSDraggingInfo >)Sender
 {
-	MacApplication->OnDragOver( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnDragOver( self );
+	}
 	return NSDragOperationGeneric;
 }
 
 - (BOOL)prepareForDragOperation:(id < NSDraggingInfo >)Sender
 {
-	MacApplication->OnDragEnter( self, [Sender draggingPasteboard] );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnDragEnter( self, [Sender draggingPasteboard] );
+	}
 	return YES;
 }
 
 - (BOOL)performDragOperation:(id < NSDraggingInfo >)Sender
 {
-	MacApplication->OnDragDrop( self );
+	if(self.bForwardEvents)
+	{
+		MacApplication->OnDragDrop( self );
+	}
 	return YES;
 }
 
@@ -645,14 +739,22 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		// Only makes sense for regular windows (windows that last a while.)
 		[WindowHandle registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
 
-		[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary];
+		[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+	}
+	else if(Definition->AppearsInTaskbar)
+	{
+		[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+	}
+	else
+	{
+		[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorCanJoinAllSpaces|NSWindowCollectionBehaviorTransient|NSWindowCollectionBehaviorIgnoresCycle];
 	}
 
 	if( InParent.IsValid() )
 	{
 		FSlateCocoaWindow* ParentWindowHandle = static_cast<FSlateCocoaWindow*>(InParent->WindowHandle);
 		[WindowHandle setParent:ParentWindowHandle];
-		if(![ParentWindowHandle shouldAddChildWindows] || !NSContainsRect([[ParentWindowHandle screen] frame], [WindowHandle frame]))
+		if(![ParentWindowHandle shouldAddChildWindows] || ![ParentWindowHandle shouldAddChildWindow:WindowHandle])
 		{
 			[WindowHandle setLevel: ([WindowHandle styleMask] & NSClosableWindowMask) ? NSNormalWindowLevel : NSFloatingWindowLevel];
 		}
@@ -753,6 +855,7 @@ void FMacWindow::Destroy()
 		// This makes it possible to correctly handle any NSEvent's sent to the window during destruction
 		// as the WindowHandle is still a valid NSWindow. Unlike HWNDs accessing a destructed NSWindow* is fatal.
 		FSlateCocoaWindow* Window = [WindowHandle retain];
+		Window.bForwardEvents = false;
 		if( MacApplication->OnWindowDestroyed( Window ) )
 		{
 			// This FMacWindow may have been destructed by now & so the WindowHandle will probably be invalid memory.
@@ -944,16 +1047,14 @@ bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 		// Only fetch the spans-displays once - it requires a log-out to change.
 		// Note that we have no way to tell if the current setting is actually in effect,
 		// so this won't work if the user schedules a change but doesn't logout to confirm it.
-		static bool bSpansDisplays = false;
+		static bool bScreensHaveSeparateSpaces = false;
 		static bool bSettingFetched = false;
 		if(!bSettingFetched)
 		{
 			bSettingFetched = true;
-			NSUserDefaults* SpacesDefaults = [[[NSUserDefaults alloc] init] autorelease];
-			[SpacesDefaults addSuiteNamed:@"com.apple.spaces"];
-			bSpansDisplays = [SpacesDefaults boolForKey:@"spans-displays"] == YES;
+			bScreensHaveSeparateSpaces = [NSScreen screensHaveSeparateSpaces];
 		}
-		if(!bSpansDisplays)
+		if(bScreensHaveSeparateSpaces)
 		{
 			NSRect ScreenFrame = [[WindowHandle screen] frame];
 			NSRect Intersection = NSIntersectionRect(ScreenFrame, WindowFrame);
@@ -962,7 +1063,11 @@ bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 			VisibleFrame.origin.y = (WindowFrame.origin.y + WindowFrame.size.height) > (ScreenFrame.origin.y + ScreenFrame.size.height) ? (WindowFrame.size.height - Intersection.size.height) : 0;
 		}
 	#endif
-		PointInWindow = (NSPointInRect(NSMakePoint(X, Y), VisibleFrame) == YES);
+		
+		if([WindowHandle isOnActiveSpace])
+		{
+			PointInWindow = (NSPointInRect(NSMakePoint(X, Y), VisibleFrame) == YES);
+		}
 	}
 	return PointInWindow;
 }
@@ -1015,5 +1120,18 @@ void FMacWindow::OnDisplayReconfiguration(CGDirectDisplayID Display, CGDisplayCh
 		{
 			[WindowHandle setDisplayReconfiguring: false];
 		}
+	}
+}
+
+bool FMacWindow::OnIMKKeyDown(NSEvent* Event)
+{
+	if(WindowHandle && [WindowHandle openGLView])
+	{
+		FSlateTextView* View = (FSlateTextView*)[WindowHandle openGLView];
+		return View && [View imkKeyDown:Event];
+	}
+	else
+	{
+		return false;
 	}
 }

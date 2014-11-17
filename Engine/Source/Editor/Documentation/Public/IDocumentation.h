@@ -139,15 +139,21 @@ public:
 
 	virtual bool OpenHome() const = 0;
 
+	virtual bool OpenHome(const TSharedRef<FCulture>& Culture) const = 0;
+
 	virtual bool OpenAPIHome() const = 0;
 
 	virtual bool Open( const FString& Link ) const = 0;
+
+	virtual bool Open(const FString& Link, const TSharedRef<FCulture>& Culture) const = 0;
 
 	virtual TSharedRef< class SWidget > CreateAnchor( const FString& Link, const FString& PreviewLink = FString(), const FString& PreviewExcerptName = FString() ) const = 0;
 
 	virtual TSharedRef< class IDocumentationPage > GetPage( const FString& Link, const TSharedPtr< FParserConfiguration >& Config, const FDocumentationStyle& Style = FDocumentationStyle() ) = 0;
 
 	virtual bool PageExists(const FString& Link) const = 0;
+
+	virtual bool PageExists(const FString& Link, const TSharedRef<FCulture>& Culture) const = 0;
 
 	virtual TSharedRef< class SToolTip > CreateToolTip( const TAttribute<FText>& Text, const TSharedPtr<SWidget>& OverrideContent, const FString& Link, const FString& ExcerptName ) const = 0;
 };

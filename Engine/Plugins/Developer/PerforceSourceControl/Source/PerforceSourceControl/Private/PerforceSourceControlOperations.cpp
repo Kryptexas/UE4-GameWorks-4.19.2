@@ -21,9 +21,9 @@ struct FRemoveRedundantErrors
 	{
 	}
 
-	bool operator()(const FString& String) const
+	bool operator()(const FText& Text) const
 	{
-		if(String.Contains(Filter))
+		if(Text.ToString().Contains(Filter))
 		{
 			return true;
 		}
@@ -46,7 +46,7 @@ static void RemoveRedundantErrors(FPerforceSourceControlCommand& InCommand, cons
 	{
 		// Perforce reports files that are already synced as errors, so copy any errors
 		// we get to the info list in this case
-		if(Iter->Contains(InFilter))
+		if(Iter->ToString().Contains(InFilter))
 		{
 			InCommand.InfoMessages.Add(*Iter);
 			bFoundRedundantError = true;
@@ -63,7 +63,7 @@ static void RemoveRedundantErrors(FPerforceSourceControlCommand& InCommand, cons
 }
 
 /** Simple parsing of a record set into strings, one string per record */
-static void ParseRecordSet(const FP4RecordSet& InRecords, TArray<FString>& OutResults)
+static void ParseRecordSet(const FP4RecordSet& InRecords, TArray<FText>& OutResults)
 {
 	const FString Delimiter = FString(TEXT(" "));
 
@@ -72,7 +72,7 @@ static void ParseRecordSet(const FP4RecordSet& InRecords, TArray<FString>& OutRe
 		const FP4Record& ClientRecord = InRecords[RecordIndex];
 		for(FP4Record::TConstIterator It = ClientRecord.CreateConstIterator(); It; ++It)
 		{
-			OutResults.Add(It.Key() + Delimiter + It.Value());
+			OutResults.Add(FText::FromString(It.Key() + Delimiter + It.Value()));
 		}
 	}
 }
@@ -120,6 +120,10 @@ static void ParseRecordSetForState(const FP4RecordSet& InRecords, TMap<FString, 
 				{
 					OutResults.Add(FullPath, EPerforceState::ReadOnly);
 				}
+				else if(OldAction == TEXT("delete"))
+				{
+					OutResults.Add(FullPath, EPerforceState::ReadOnly);
+				}
 			}
 		}
 	}
@@ -138,6 +142,42 @@ static bool UpdateCachedStates(const TMap<FString, EPerforceState::Type>& InResu
 	return InResults.Num() > 0;
 }
 
+static bool CheckWorkspaceRecordSet(const FP4RecordSet& InRecords, TArray<FText>& OutErrorMessages, FText& OutNotificationText)
+{
+	FString ApplicationPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FPaths::GameDir()).ToLower();
+	ApplicationPath = ApplicationPath.Replace(TEXT("\\"), TEXT("/"));
+
+	for(const auto& Record : InRecords)
+	{
+		FString Root = Record(TEXT("Root"));	
+		
+		// A workspace root could be "null" which allows the user to map depot locations to different drives.
+		// Allow these workspaces since we already allow workspaces mapped to drive letters.
+		const bool bIsNullClientRootPath = (Root == TEXT("null"));
+			
+		// Sanitize root name
+		Root = Root.Replace(TEXT("\\"), TEXT("/"));
+		if (!Root.EndsWith(TEXT("/")))
+		{
+			Root += TEXT("/");
+		}
+			
+		if (bIsNullClientRootPath || ApplicationPath.Contains(Root))
+		{
+			return true;
+		}
+		else
+		{
+			const FString Client = Record(TEXT("Client"));	
+			OutNotificationText = FText::Format(LOCTEXT("WorkspaceError", "Workspace '{0}' does not map into this project's directory."), FText::FromString(Client));
+			OutErrorMessages.Add(OutNotificationText);
+			OutErrorMessages.Add(LOCTEXT("WorkspaceHelp", "You should set your workspace up to map to a directory at or above the project's directory."));
+		}
+	}
+
+	return false;
+}
+
 FName FPerforceConnectWorker::GetName() const
 {
 	return "Connect";
@@ -152,7 +192,7 @@ bool FPerforceConnectWorker::Execute(FPerforceSourceControlCommand& InCommand)
 		TArray<FString> Parameters;
 		FP4RecordSet Records;
 		Parameters.Add(TEXT("-o"));
-		Parameters.Add(InCommand.ClientSpec);
+		Parameters.Add(InCommand.ConnectionInfo.Workspace);
 		InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("client"), Parameters, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
 		
 		// If there are error messages, user name is most likely invalid. Otherwise, make sure workspace actually
@@ -160,7 +200,20 @@ bool FPerforceConnectWorker::Execute(FPerforceSourceControlCommand& InCommand)
 		InCommand.bCommandSuccessful &= InCommand.ErrorMessages.Num() == 0 && Records.Num() > 0 && Records[0].Contains(TEXT("Update"));
 		if (!InCommand.bCommandSuccessful && InCommand.ErrorMessages.Num() == 0)
 		{
-			InCommand.ErrorMessages.Add(TEXT("Invalid workspace."));
+			InCommand.ErrorMessages.Add(LOCTEXT("InvalidWorkspace", "Invalid workspace."));
+		}
+
+		// check if we can actually work with this workspace
+		if(InCommand.bCommandSuccessful)
+		{
+			FText Notification;
+			InCommand.bCommandSuccessful = CheckWorkspaceRecordSet(Records, InCommand.ErrorMessages, Notification);
+			if(!InCommand.bCommandSuccessful)
+			{
+				check(InCommand.Operation->GetName() == "Connect");
+				TSharedRef<FConnect, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FConnect>(InCommand.Operation);
+				Operation->SetErrorText(Notification);
+			}
 		}
 
 		if(InCommand.bCommandSuccessful)
@@ -207,6 +260,22 @@ FName FPerforceCheckInWorker::GetName() const
 	return "CheckIn";
 }
 
+static FText ParseSubmitResults(const FP4RecordSet& InRecords)
+{
+	// Iterate over each record found as a result of the command, parsing it for relevant information
+	for (int32 Index = 0; Index < InRecords.Num(); ++Index)
+	{
+		const FP4Record& ClientRecord = InRecords[Index];
+		const FString SubmittedChange = ClientRecord(TEXT("submittedChange"));
+		if(SubmittedChange.Len() > 0)
+		{
+			return FText::Format(LOCTEXT("SubmitMessage", "Submitted changelist {0}"), FText::FromString(SubmittedChange));
+		}
+	}
+
+	return LOCTEXT("SubmitMessageUnknown", "Submitted changelist");
+}
+
 bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {
 	FScopedPerforceConnection ScopedConnection(InCommand);
@@ -220,13 +289,12 @@ bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 		int32 ChangeList = Connection.CreatePendingChangelist(Operation->GetDescription(), FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.ErrorMessages);
 		if (ChangeList > 0)
 		{
-			FP4RecordSet Records;
-
 			// Batch reopen into multiple commands, to avoid command line limits
 			const int32 BatchedCount = 100;
 			InCommand.bCommandSuccessful = true;
 			for (int32 StartingIndex = 0; StartingIndex < InCommand.Files.Num() && InCommand.bCommandSuccessful; StartingIndex += BatchedCount)
 			{
+				FP4RecordSet Records;
 				TArray< FString > ReopenParams;
 						
 				//Add changelist information to params
@@ -245,10 +313,20 @@ bool FPerforceCheckInWorker::Execute(FPerforceSourceControlCommand& InCommand)
 			if (InCommand.bCommandSuccessful)
 			{
 				// Only submit if reopen was successful
-				InCommand.bCommandSuccessful = Connection.SubmitChangelist(ChangeList, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.ErrorMessages);
+				TArray<FString> SubmitParams;
+				FP4RecordSet Records;
+
+				SubmitParams.Insert(TEXT("-c"), 0);
+				SubmitParams.Insert(FString::Printf(TEXT("%d"), ChangeList), 1);
+
+				InCommand.bCommandSuccessful = Connection.RunCommand(TEXT("submit"), SubmitParams, Records, InCommand.ErrorMessages, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), InCommand.bConnectionDropped);
 
 				if(InCommand.bCommandSuccessful)
 				{
+					check(InCommand.Operation->GetName() == "CheckIn");
+					TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
+					Operation->SetSuccessMessage(ParseSubmitResults(Records));
+
 					for(auto Iter(InCommand.Files.CreateIterator()); Iter; Iter++)
 					{
 						OutResults.Add(*Iter, EPerforceState::ReadOnly);
@@ -435,7 +513,7 @@ bool FPerforceSyncWorker::UpdateStates() const
 	return UpdateCachedStates(OutResults);
 }
 
-static void ParseUpdateStatusResults(const FP4RecordSet& InRecords, const TArray<FString>& ErrorMessages, TArray<FPerforceSourceControlState>& OutStates)
+static void ParseUpdateStatusResults(const FP4RecordSet& InRecords, const TArray<FText>& ErrorMessages, TArray<FPerforceSourceControlState>& OutStates)
 {
 	// Iterate over each record found as a result of the command, parsing it for relevant information
 	for (int32 Index = 0; Index < InRecords.Num(); ++Index)
@@ -516,12 +594,14 @@ static void ParseUpdateStatusResults(const FP4RecordSet& InRecords, const TArray
 	// also see if we can glean anything from the error messages
 	for (int32 Index = 0; Index < ErrorMessages.Num(); ++Index)
 	{
-		const FString& Error = ErrorMessages[Index];
-		int32 TruncatePos = Error.Find(TEXT(" - no such file(s).\n"), ESearchCase::IgnoreCase, ESearchDir::FromStart);
+		const FText& Error = ErrorMessages[Index];
+
+		//@todo P4 could be returning localized error messages
+		int32 TruncatePos = Error.ToString().Find(TEXT(" - no such file(s).\n"), ESearchCase::IgnoreCase, ESearchDir::FromStart);
 		if(TruncatePos != INDEX_NONE)
 		{
 			// found an error about a file that is not in the depot
-			FString FullPath(Error.Left(TruncatePos));
+			FString FullPath(Error.ToString().Left(TruncatePos));
 			FPaths::NormalizeFilename(FullPath);
 			OutStates.Add(FPerforceSourceControlState(FullPath));
 			FPerforceSourceControlState& State = OutStates.Last();
@@ -837,7 +917,7 @@ bool FPerforceGetWorkspacesWorker::Execute(FPerforceSourceControlCommand& InComm
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		TArray<FString> ClientSpecList;
-		InCommand.bCommandSuccessful = Connection.GetWorkspaceList(InCommand.UserName, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), ClientSpecList, InCommand.ErrorMessages);
+		InCommand.bCommandSuccessful = Connection.GetWorkspaceList(InCommand.ConnectionInfo, FOnIsCancelled::CreateRaw(&InCommand, &FPerforceSourceControlCommand::IsCanceled), ClientSpecList, InCommand.ErrorMessages);
 
 		check(InCommand.Operation->GetName() == "GetWorkspaces");
 		TSharedRef<FGetWorkspaces, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FGetWorkspaces>(InCommand.Operation);

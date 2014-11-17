@@ -441,6 +441,8 @@ public:
 	 */
 	FSpatializationHelper( void );
 
+	void Init();
+
 	/**
 	 * Calculates the spatialized volumes for each channel.
 	 *
@@ -470,7 +472,7 @@ struct FXAudioDeviceProperties
 	#define UE4_XAUDIO2_CHANNELMASK		FXAudioDeviceProperties::DeviceDetails.OutputFormat.dwChannelMask
 	#define UE4_XAUDIO2_SAMPLERATE		FXAudioDeviceProperties::DeviceDetails.OutputFormat.Format.nSamplesPerSec
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
-	#define UE4_XAUDIO2_NUMCHANNELS		XAUDIO2_DEFAULT_CHANNELS
+	#define UE4_XAUDIO2_NUMCHANNELS		8		// Up to 7.1 supported
 	#define UE4_XAUDIO2_CHANNELMASK		3		// Default to left and right speakers...
-	#define UE4_XAUDIO2_SAMPLERATE		XAUDIO2_DEFAULT_SAMPLERATE
+	#define UE4_XAUDIO2_SAMPLERATE		44100	// Default to CD sample rate
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS

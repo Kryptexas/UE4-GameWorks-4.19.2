@@ -51,7 +51,6 @@ void FTrackNodeDragDropOp::OnDragged( const class FDragDropEvent& DragDropEvent 
 TSharedRef<FTrackNodeDragDropOp> FTrackNodeDragDropOp::New(TSharedRef<STrackNode> TrackNode, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfNode)
 {
 	TSharedRef<FTrackNodeDragDropOp> Operation = MakeShareable(new FTrackNodeDragDropOp);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FTrackNodeDragDropOp>(Operation);
 	Operation->OriginalTrackNode = TrackNode;
 
 	Operation->Offset = ScreenPositionOfNode - CursorPosition;

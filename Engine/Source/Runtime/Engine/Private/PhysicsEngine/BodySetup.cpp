@@ -34,7 +34,8 @@ UBodySetup::UBodySetup(const class FPostConstructInitializeProperties& PCIP)
 	bGenerateMirroredCollision = true;
 	bGenerateNonMirroredCollision = true;
 	DefaultInstance.SetObjectType(ECC_PhysicsBody);
-	BuildScale = 1.0f;
+	BuildScale_DEPRECATED = 1.0f;
+	BuildScale3D = FVector(1.0f, 1.0f, 1.0f);
 }
 
 void UBodySetup::CopyBodyPropertiesFrom(class UBodySetup* FromSetup)
@@ -231,13 +232,8 @@ bool CalcMeshNegScaleCompensation(const FVector& InScale3D, PxTransform& POutTra
 	return (InScale3D.X * InScale3D.Y * InScale3D.Z) < 0.f;
 }
 
-void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D)
+void SetupNonUniformHelper(FVector & Scale3D, float & MinScale, float & MinScaleAbs, FVector & Scale3DAbs)
 {
-#if WITH_EDITOR
-	// in editor, there are a lot of things relying on body setup to create physics meshes
-	CreatePhysicsMeshes();
-#endif
-
 	// if almost zero, set min scale
 	// @todo fixme
 	if (Scale3D.IsNearlyZero())
@@ -246,16 +242,53 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 		Scale3D = FVector(0.1f);
 	}
 	// Determine if applied scaling is uniform. If it isn't, only convex geometry will be copied over
-	float MinScale = Scale3D.GetMin(); // Uniform scaling factor
-	float MinScaleAbs = FMath::Abs(MinScale);
-	if ( FMath::IsNearlyZero(MinScale) )
+	MinScale = Scale3D.GetMin(); // Uniform scaling factor
+	MinScaleAbs = FMath::Abs(MinScale);
+	if (FMath::IsNearlyZero(MinScale))
 	{
 		// only one of them can be 0, we make sure they have mini set up correctly
 		MinScale = 0.1f;
 		MinScaleAbs = 0.1f;
 	}
 
-	FVector Scale3DAbs(FMath::Abs(Scale3D.X), FMath::Abs(Scale3D.Y), FMath::Abs(Scale3D.Z)); // magnitude of scale (sign removed)
+	Scale3DAbs = FVector(FMath::Abs(Scale3D.X), FMath::Abs(Scale3D.Y), FMath::Abs(Scale3D.Z)); // magnitude of scale (sign removed)
+}
+
+#if WITH_BODY_WELDING
+void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM /* = NULL */)
+#else
+void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D)
+#endif
+{
+#if WITH_EDITOR
+	// in editor, there are a lot of things relying on body setup to create physics meshes
+	CreatePhysicsMeshes();
+#endif
+
+#if WITH_BODY_WELDING
+#else
+	FTransform * RelativeTM = NULL;	//code below already handles NULL case, just using ifdef to make it clear that the non NULL case isn't really supported yet
+#endif
+
+	float MinScale;
+	float MinScaleAbs;
+	FVector Scale3DAbs;
+	SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
+
+	if (RelativeTM)
+	{
+		float MinScaleRelative;
+		float MinScaleAbsRelative;
+		FVector Scale3DAbsRelative;
+		FVector Scale3DRelative = RelativeTM->GetScale3D();
+
+		SetupNonUniformHelper(Scale3DRelative, MinScaleRelative, MinScaleAbsRelative, Scale3DAbsRelative);
+
+		MinScaleAbs *= MinScaleAbsRelative;
+		Scale3DAbs.X *= Scale3DAbsRelative.X;
+		Scale3DAbs.Y *= Scale3DAbsRelative.Y;
+		Scale3DAbs.Z *= Scale3DAbsRelative.Z;
+	}
 
 	// Is the target a static actor
 	bool bDestStatic = (PDestActor->isRigidStatic() != NULL);
@@ -283,7 +316,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 
 			if(PSphereGeom.isValid())
 			{
-				PxTransform PLocalPose( U2PVector( SphereElem->Center ) );
+				PxTransform PLocalPose( U2PVector( RelativeTM ? RelativeTM->TransformPosition(SphereElem->Center) : SphereElem->Center ) );
 				PLocalPose.p *= MinScale;
 
 				ensure(PLocalPose.isValid());
@@ -308,8 +341,8 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 			PBoxGeom.halfExtents.y = (0.5f * BoxElem->Y * MinScaleAbs);
 			PBoxGeom.halfExtents.z = (0.5f * BoxElem->Z * MinScaleAbs);
 
-			FTransform BoxTransform = BoxElem->GetTransform();
-			if(PBoxGeom.isValid() && BoxTransform.IsValid() )
+			FTransform BoxTransform = RelativeTM ? BoxElem->GetTransform() * *RelativeTM : BoxElem->GetTransform();
+			if(PBoxGeom.isValid() && BoxTransform.IsValid())
 			{
 				PxTransform PLocalPose( U2PTransform( BoxTransform ));
 				PLocalPose.p *= MinScale;
@@ -338,7 +371,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 			if(PCapsuleGeom.isValid())
 			{
 				// The stored sphyl transform assumes the sphyl axis is down Z. In PhysX, it points down X, so we twiddle the matrix a bit here (swap X and Z and negate Y).
-				PxTransform PLocalPose( U2PVector( SphylElem->Center ), U2PQuat( SphylElem->Orientation ) * U2PSphylBasis );
+				PxTransform PLocalPose(U2PVector(RelativeTM ? RelativeTM->TransformPosition(SphylElem->Center) : SphylElem->Center), U2PQuat(SphylElem->Orientation) * U2PSphylBasis);
 				PLocalPose.p *= MinScale;
 
 				ensure(PLocalPose.isValid());
@@ -369,9 +402,9 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				FTransform ConvexTransform = ConvexElem->GetTransform();
 				if ( ConvexTransform.IsValid() )
 				{
-					PxTransform PElementTransform = U2PTransform(ConvexTransform);
+					PxTransform PElementTransform = U2PTransform(RelativeTM ? ConvexTransform * *RelativeTM : ConvexTransform);
 					PLocalPose.q *= PElementTransform.q;
-					PLocalPose.p += PElementTransform.p;
+					PLocalPose.p += PElementTransform.p * MinScale;
 
 					if(PConvexGeom.isValid())
 					{
@@ -431,9 +464,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 				if(NewShape)
 				{
 					NewShape->setLocalPose(PLocalPose);
-
-					const float ContactOffset = FMath::Min(MaxContactOffset, GPhysXCooking->getParams().skinWidth);
-					NewShape->setContactOffset(ContactOffset);
+					NewShape->setContactOffset(MaxContactOffset);
 				}
 				else
 				{
@@ -459,14 +490,12 @@ void UBodySetup::RemoveSimpleCollision()
 	InvalidatePhysicsData();
 }
 
-void UBodySetup::RescaleSimpleCollision( float UniformScale )
+void UBodySetup::RescaleSimpleCollision( FVector BuildScale )
 {
-	if( BuildScale != UniformScale )
-	{
-		float PrevBuildScale = BuildScale;
-						
+	if( BuildScale3D != BuildScale )
+	{					
 		// Back out the old scale when applying the new scale
-		const float ScaleMultiplier = (UniformScale / PrevBuildScale);
+		const FVector ScaleMultiplier3D = (BuildScale / BuildScale3D);
 
 		for (int32 i = 0; i < AggGeom.ConvexElems.Num(); i++)
 		{
@@ -475,18 +504,20 @@ void UBodySetup::RescaleSimpleCollision( float UniformScale )
 			TArray<FVector>& Vertices = ConvexElem->VertexData;
 			for (int32 VertIndex = 0; VertIndex < Vertices.Num(); ++VertIndex)
 			{
-
-				Vertices[VertIndex] *= ScaleMultiplier;
+				Vertices[VertIndex] *= ScaleMultiplier3D;
 			}
 
 			ConvexElem->UpdateElemBox();
 		}
 
+		// @todo Deal with non-vector properties by just applying the max value for the time being
+		const float ScaleMultiplier = ScaleMultiplier3D.GetMax();
+
 		for (int32 i = 0; i < AggGeom.SphereElems.Num(); i++)
 		{
 			FKSphereElem* SphereElem = &(AggGeom.SphereElems[i]);
 
-			SphereElem->Center *= ScaleMultiplier;
+			SphereElem->Center *= ScaleMultiplier3D;
 			SphereElem->Radius *= ScaleMultiplier;
 		}
 
@@ -494,23 +525,22 @@ void UBodySetup::RescaleSimpleCollision( float UniformScale )
 		{
 			FKBoxElem* BoxElem = &(AggGeom.BoxElems[i]);
 
-			BoxElem->Center *= ScaleMultiplier;
-			BoxElem->X *= ScaleMultiplier;
-			BoxElem->Y *= ScaleMultiplier;
-			BoxElem->Z *= ScaleMultiplier;
+			BoxElem->Center *= ScaleMultiplier3D;
+			BoxElem->X *= ScaleMultiplier3D.X;
+			BoxElem->Y *= ScaleMultiplier3D.Y;
+			BoxElem->Z *= ScaleMultiplier3D.Z;
 		}
-
 
 		for (int32 i = 0; i < AggGeom.SphylElems.Num(); i++)
 		{
 			FKSphylElem* SphylElem = &(AggGeom.SphylElems[i]);
 
-			SphylElem->Center *= ScaleMultiplier;
+			SphylElem->Center *= ScaleMultiplier3D;
 			SphylElem->Radius *= ScaleMultiplier;
 			SphylElem->Length *= ScaleMultiplier;
 		}
 
-		BuildScale = UniformScale;
+		BuildScale3D = BuildScale;
 	}
 }
 
@@ -607,6 +637,11 @@ void UBodySetup::PostLoad()
 	if (Outer)
 	{
 		Outer->ConditionalPostLoad();
+	}
+
+	if ( GetLinkerUE4Version() < VER_UE4_BUILD_SCALE_VECTOR )
+	{
+		BuildScale3D = FVector( BuildScale_DEPRECATED );
 	}
 
 	DefaultInstance.FixupData(this);

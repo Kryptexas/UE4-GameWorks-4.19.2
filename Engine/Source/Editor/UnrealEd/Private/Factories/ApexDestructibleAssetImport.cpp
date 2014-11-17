@@ -373,8 +373,7 @@ static void CreateBones(FSkeletalMeshImportData &ImportData, const NxDestructibl
 
 		// Set transform to identity
 		VJointPos& JointMatrix = Bone.BonePos;
-		JointMatrix.Orientation = FQuat(0.0f,0.0f,0.0f,1.0f);
-		JointMatrix.Position = FVector(0.0f,0.0f,0.0f);
+		JointMatrix.Transform = FTransform::Identity;
 		JointMatrix.Length = 1.0f;
 		JointMatrix.XSize = 100.0f;
 		JointMatrix.YSize = 100.0f;

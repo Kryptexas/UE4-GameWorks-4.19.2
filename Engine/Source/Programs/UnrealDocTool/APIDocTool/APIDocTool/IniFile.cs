@@ -112,6 +112,10 @@ namespace APIDocTool
 							CurrentSection = new IniSection(Name);
 
 							File.Sections.Add(CurrentSection);
+							if(File.NameToSection.ContainsKey(Name.ToLowerInvariant()))
+							{
+								Console.WriteLine("{0} has already been added", Name);
+							}
 							File.NameToSection.Add(Name.ToLowerInvariant(), CurrentSection);
 						}
 						else

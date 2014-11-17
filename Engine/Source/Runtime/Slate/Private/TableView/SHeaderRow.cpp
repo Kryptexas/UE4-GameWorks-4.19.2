@@ -42,6 +42,8 @@ public:
 		OnSortModeChanged = Column.OnSortModeChanged;
 		ContextMenuContent = Column.HeaderMenuContent.Widget;
 
+		ComboVisibility = Column.HeaderComboVisibility;
+
 		FMargin AdjustedDefaultHeaderContentPadding = DefaultHeaderContentPadding;
 
 		TAttribute< FString > LabelText = Column.DefaultText;
@@ -102,6 +104,13 @@ public:
 				.Visibility( this, &STableColumnHeader::GetMenuOverlayVisibility )
 				+SOverlay::Slot()
 				[
+					SNew( SSpacer )
+					.Size( FVector2D( 12.0f, 0 ) )
+				]
+
+				+SOverlay::Slot()
+				.Padding(FMargin(0,1,0,1))
+				[
 					SNew( SBorder )
 					.Padding( FMargin( 0, 0, AdjustedDefaultHeaderContentPadding.Right, 0 ) )
 					.BorderImage( this, &STableColumnHeader::GetComboButtonBorderBrush )
@@ -109,11 +118,11 @@ public:
 						SAssignNew( ComboButton, SComboButton)
 						.HasDownArrow(false)
 						.ButtonStyle( FCoreStyle::Get(), "NoBorder" )
-						.ContentPadding( FMargin(4, 0, 4, 0) )
+						.ContentPadding( FMargin(0) )
 						.ButtonContent()
 						[
 							SNew( SSpacer )
-							.Size( FVector2D( 12.0f, 0 ) )
+							.Size( FVector2D( 14.0f, 0 ) )
 						]
 						.MenuContent()
 						[
@@ -123,11 +132,13 @@ public:
 				]
 
 				+SOverlay::Slot()
+				.Padding(FMargin(0,0,0,2))
 				.HAlign( HAlign_Center )
-				.VAlign( VAlign_Center )
+				.VAlign( VAlign_Bottom )
 				[
 					SNew(SImage)
 					.Image( &Style->MenuDropdownImage )
+					.ColorAndOpacity( this, &STableColumnHeader::GetComboButtonTint )
 					.Visibility( EVisibility::HitTestInvisible )
 				]
 			];		
@@ -197,12 +208,15 @@ private:
 
 	EVisibility GetMenuOverlayVisibility() const
 	{
-		if ( IsHovered() || ( ComboButton.IsValid() && ComboButton->IsOpen() ) )
+		if (ComboVisibility == EHeaderComboVisibility::OnHover)
 		{
-			return EVisibility::Visible;
+			if (!ComboButton.IsValid() || !(IsHovered() || ComboButton->IsOpen()))
+			{
+				return EVisibility::Collapsed;
+			}
 		}
 
-		return EVisibility::Collapsed;
+		return EVisibility::Visible;
 	}
 
 	const FSlateBrush* GetComboButtonBorderBrush() const
@@ -212,12 +226,50 @@ private:
 			return &Style->MenuDropdownHoveredBorderBrush;
 		}
 
-		if ( IsHovered() )
+		if ( IsHovered() || ComboVisibility == EHeaderComboVisibility::Always )
 		{
 			return &Style->MenuDropdownNormalBorderBrush;
 		}
 
 		return FStyleDefaults::GetNoBrush();
+	}
+
+	FSlateColor GetComboButtonTint() const
+	{
+		if (!ComboButton.IsValid())
+		{
+			return FLinearColor::White;
+		}
+
+		switch (ComboVisibility)
+		{
+		case EHeaderComboVisibility::Always:
+			{
+				return FLinearColor::White;
+			}
+
+		case EHeaderComboVisibility::Ghosted:
+			if ( ComboButton->IsHovered() || ComboButton->IsOpen() )
+			{
+				return FLinearColor::White;
+			}
+			else
+			{
+				return FLinearColor::White.CopyWithNewOpacity(0.5f);
+			}
+
+		case EHeaderComboVisibility::OnHover:
+			if ( IsHovered() || ComboButton->IsHovered() || ComboButton->IsOpen() )
+			{
+				return FLinearColor::White;
+			}
+			break;
+
+		default:
+			break;
+		}
+		
+		return FLinearColor::Transparent;
 	}
 
 	/** Gets the icon associated with the current sorting mode */
@@ -273,6 +325,9 @@ private:
 	TSharedRef< SWidget > ContextMenuContent;
 
 	TSharedPtr< SComboButton > ComboButton;
+	
+	/** The visibility method of the combo button */
+	EHeaderComboVisibility ComboVisibility;
 
 	TSharedPtr< SOverlay > MenuOverlay;
 

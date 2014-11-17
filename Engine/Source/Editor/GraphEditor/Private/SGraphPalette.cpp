@@ -156,12 +156,12 @@ void SGraphPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommit::T
 
 FText SGraphPaletteItem::GetDisplayText() const
 {
-	return FText::FromString(ActionPtr.Pin()->MenuDescription);
+	return ActionPtr.Pin()->MenuDescription;
 }
 
 FString SGraphPaletteItem::GetItemTooltip() const
 {
-	return ActionPtr.Pin()->MenuDescription;
+	return ActionPtr.Pin()->MenuDescription.ToString();
 }
 
 

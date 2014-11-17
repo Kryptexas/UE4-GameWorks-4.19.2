@@ -1595,7 +1595,6 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 			FTextureBuildSettings BuildSettings;
 			TArray<FName> PlatformFormats;
 			TArray<FTexturePlatformData*> PlatformDataToSerialize;
-			TScopedPointer<FTexturePlatformData>& PlatformDataLink = *PlatformDataLinkPtr;
 
 			GetTextureBuildSettings(*this, Ar.CookingTarget()->GetTextureLODSettings(), BuildSettings);
 			Ar.CookingTarget()->GetTextureFormats(this, PlatformFormats);

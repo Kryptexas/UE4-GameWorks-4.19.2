@@ -160,7 +160,7 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessWordCountReport(const FSt
 
 	for(int32 i = 0; i < CulturesToGenerate.Num(); ++i)
 	{
-		if( FInternationalization::GetCulture( CulturesToGenerate[i] ).IsValid() )
+		if( FInternationalization::Get().GetCulture( CulturesToGenerate[i] ).IsValid() )
 		{
 			UE_LOG(LogGenerateTextLocalizationReportCommandlet, Verbose, TEXT("Specified culture is not a valid runtime culture, but may be a valid base language: %s"), *(CulturesToGenerate[i]));
 		}
@@ -272,6 +272,7 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessWordCountReport(const FSt
 		uint32 TranslatedWords = 0;
 		FString CultureStr = CulturesToGenerate[Culture];
 		FString CulturePath = SourcePath / (*CultureStr);
+		CountedText.Empty();
 
 		// Find archives in the culture-specific folder.
 		TArray<FString> ArchiveFileNames;
@@ -299,21 +300,36 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessWordCountReport(const FSt
 			}
 
 			// Finds all the manifest entries in the archive and adds the source text word count to the running total if there is a valid translation.
-			for(TManifestEntryByContextIdContainer::TConstIterator i = InternationalizationManifest->GetEntriesByContextIdIterator(); i; ++i)
+			for (TManifestEntryBySourceTextContainer::TConstIterator i = InternationalizationManifest->GetEntriesBySourceTextIterator(); i; ++i)
 			{
 				// Gather relevant info from manifest entry.
 				const TSharedRef<FManifestEntry>& ManifestEntry = i.Value();
 				const FString& Namespace = ManifestEntry->Namespace;
 				const FLocItem& Source = ManifestEntry->Source;
 
-				for( auto ContextIter = ManifestEntry->Contexts.CreateConstIterator(); ContextIter; ++ContextIter )
+				if (ManifestEntry->Contexts.Num() > 0)
 				{
-					if( !(*ContextIter).bIsOptional )
+					TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource(Namespace, Source, ManifestEntry->Contexts[0].KeyMetadataObj);
+					if (ArchiveEntry.IsValid() && !ArchiveEntry->Translation.Text.IsEmpty())
 					{
-						TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, Source, ContextIter->KeyMetadataObj );
-						if( ArchiveEntry.IsValid() && !ArchiveEntry->Translation.Text.IsEmpty() )
+						bool HasNonOptional = false;
+						for (auto ContextIter = ManifestEntry->Contexts.CreateConstIterator(); ContextIter; ++ContextIter)
 						{
-							TranslatedWords += CountWords( Source.Text );
+							if (!(*ContextIter).bIsOptional)
+							{
+								HasNonOptional = true;
+								break;
+							}
+						}
+
+						const FString CountedTextId = Source.Text + FString(TEXT("::")) + ManifestEntry->Namespace;
+						if (!CountedText.Contains(CountedTextId))
+						{
+							TranslatedWords += CountWords(Source.Text);
+
+							bool IsAlreadySet = false;
+							CountedText.Add(CountedTextId, &IsAlreadySet);
+							check(!IsAlreadySet);
 						}
 					}
 				}

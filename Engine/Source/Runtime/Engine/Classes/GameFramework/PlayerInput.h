@@ -322,7 +322,7 @@ protected:
 	struct FDelegateDispatchDetails
 	{
 		uint32 EventIndex;
-		uint32 bTouchDelegate:1;
+		uint32 FoundIndex;
 
 		FInputActionUnifiedDelegate ActionDelegate;
 		const FInputActionBinding* SourceAction;
@@ -336,25 +336,27 @@ protected:
 		FInputGestureUnifiedDelegate GestureDelegate;
 		float GestureValue;
 
-		FDelegateDispatchDetails(const uint32 InEventIndex, const FInputChord& InChord, const FInputActionUnifiedDelegate& InDelegate, const EInputEvent InKeyEvent, const FInputActionBinding* InSourceAction = NULL)
+		FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputChord& InChord, const FInputActionUnifiedDelegate& InDelegate, const EInputEvent InKeyEvent, const FInputActionBinding* InSourceAction = NULL)
 			: EventIndex(InEventIndex)
-			, bTouchDelegate(false)
+			, FoundIndex(InFoundIndex)
 			, ActionDelegate(InDelegate)
 			, SourceAction(InSourceAction)
 			, Chord(InChord)
 			, KeyEvent(InKeyEvent)
 		{}
 
-		FDelegateDispatchDetails(const uint32 InEventIndex, const FInputTouchUnifiedDelegate& InDelegate, const FVector InLocation, const ETouchIndex::Type InFingerIndex)
+		FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputTouchUnifiedDelegate& InDelegate, const FVector InLocation, const ETouchIndex::Type InFingerIndex)
 			: EventIndex(InEventIndex)
-			, bTouchDelegate(true)
+			, FoundIndex(InFoundIndex)
 			, TouchDelegate(InDelegate)
 			, TouchLocation(InLocation)
 			, FingerIndex(InFingerIndex)
 		{}
 
-		FDelegateDispatchDetails(const FInputGestureUnifiedDelegate& InDelegate, const float InValue)
-			: GestureDelegate(InDelegate)
+		FDelegateDispatchDetails(const uint32 InEventIndex, const uint32 InFoundIndex, const FInputGestureUnifiedDelegate& InDelegate, const float InValue)
+			: EventIndex(InEventIndex)
+			, FoundIndex(InFoundIndex)
+			, GestureDelegate(InDelegate)
 			, GestureValue(InValue)
 		{}
 	};

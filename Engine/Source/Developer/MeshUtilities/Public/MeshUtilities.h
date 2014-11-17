@@ -4,6 +4,9 @@
 
 #include "ModuleInterface.h"
 
+/** The maximum index for a material in a mesh */
+#define MAX_MESH_MATERIAL_INDEX 64
+
 /**
  * Mesh reduction interface.
  */
@@ -37,6 +40,11 @@ public:
 	 * Returns a unique string identifying both the reduction plugin itself and the version of the plugin.
 	 */
 	virtual const FString& GetVersionString() const = 0;
+
+	/**
+	 *	Returns true if mesh reduction is supported
+	 */
+	virtual bool IsSupported() const = 0;
 };
 
 //

@@ -839,14 +839,14 @@ int FTextLayout::FRunModel::BinarySearchForBeginIndex( const TArray< FTextRange 
 	return Mid;
 }
 
-uint8 FTextLayout::FRunModel::GetKerning( int32 CurrentIndex, float Scale )
+uint8 FTextLayout::FRunModel::GetKerning(int32 CurrentIndex, float InScale)
 {
-	return Run->GetKerning( CurrentIndex, Scale );
+	return Run->GetKerning(CurrentIndex, InScale);
 }
 
-FVector2D FTextLayout::FRunModel::Measure( int32 BeginIndex, int32 EndIndex, float Scale )
+FVector2D FTextLayout::FRunModel::Measure(int32 BeginIndex, int32 EndIndex, float InScale)
 {
-	FVector2D Size = Run->Measure( BeginIndex, EndIndex, Scale );
+	FVector2D Size = Run->Measure(BeginIndex, EndIndex, InScale);
 
 	MeasuredRanges.Add( FTextRange( BeginIndex, EndIndex ) );
 	MeasuredRangeSizes.Add( Size );
@@ -854,14 +854,14 @@ FVector2D FTextLayout::FRunModel::Measure( int32 BeginIndex, int32 EndIndex, flo
 	return Size;
 }
 
-int16 FTextLayout::FRunModel::GetMaxHeight( float Scale ) const
+int16 FTextLayout::FRunModel::GetMaxHeight(float InScale) const
 {
-	return Run->GetMaxHeight( Scale );
+	return Run->GetMaxHeight(InScale);
 }
 
-int16 FTextLayout::FRunModel::GetBaseLine( float Scale ) const
+int16 FTextLayout::FRunModel::GetBaseLine( float InScale ) const
 {
-	return Run->GetBaseLine( Scale );
+	return Run->GetBaseLine(InScale);
 }
 
 FTextRange FTextLayout::FRunModel::GetTextRange() const

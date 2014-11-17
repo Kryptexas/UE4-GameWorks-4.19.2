@@ -27,7 +27,7 @@ protected :
 	void UpdateCompactNode();
 
 	/** Get title in compact mode */
-	FString GetNodeCompactTitle() const;
+	FText GetNodeCompactTitle() const;
 
 	/** Retrieves text to tack on to the top of the tooltip (above the standard text) */
 	FText GetToolTipHeading() const;

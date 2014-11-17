@@ -347,7 +347,8 @@ enum EStructFlags
 	STRUCT_IdenticalNative		= 0x00000002,
 	
 	STRUCT_HasInstancedReference= 0x00000004,
-	STRUCT_Transient			= 0x00000008,
+
+	// Unused entry				= 0x00000008,
 
 	/** Indicates that this struct should always be serialized as a single unit */
 	STRUCT_Atomic				= 0x00000010,
@@ -1330,27 +1331,10 @@ public:
 		return FName(NAME_None).ToString();
 	}
 
-
 	/**
 	 * @return	The enum string at the specified index.
 	 */
-	COREUOBJECT_API virtual FString GetEnumString(int32 InIndex) const
-	{
-#if WITH_EDITOR
-		FString LocalizedDisplayName = GetDisplayNameText(InIndex).ToString();
-		if(!LocalizedDisplayName.IsEmpty())
-		{
-			return LocalizedDisplayName;
-		}
-#endif
-
-		return GetEnumName(InIndex);
-	}
-
-	/**
-	 * @return	The enum string at the specified index.
-	 */
-	FText GetEnumText(int32 InIndex) const
+	COREUOBJECT_API virtual FText GetEnumText(int32 InIndex) const
 	{
 #if WITH_EDITOR
 		//@todo These values should be properly localized [9/24/2013 justin.sargent]
@@ -1486,6 +1470,32 @@ public:
 		out_StringValue = GetValueAsString( EnumPath, EnumValue );
 	}
 
+	/**
+	 * @param EnumPath	- Full enum path
+	 * @param EnumValue - Enum value
+	 *
+	 * @return the localized display string associated with the specified enum value for the enum specified by a path
+	 */
+	template <typename T>
+	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumValue )
+	{
+		// For the C++ enum.
+		static_assert(IS_ENUM(T), "Should only call this with enum types");
+		return GetDisplayValueAsText_Internal(EnumPath, (int32)EnumValue);
+	}
+
+	template <typename T>
+	FORCEINLINE static FText GetDisplayValueAsText( const TCHAR* EnumPath, const TEnumAsByte<T> EnumValue )
+	{
+		return GetDisplayValueAsText_Internal(EnumPath, (int32)EnumValue.GetValue());
+	}
+
+	template< class T >
+	FORCEINLINE static void GetDisplayValueAsText( const TCHAR* EnumPath, const T EnumValue, FText& out_TextValue )
+	{
+		out_TextValue = GetDisplayValueAsText( EnumPath, EnumValue );
+	}
+
 private:
 	/** Map of Enum Name to Map of Old Enum entry to New Enum entry */
 	static TMap<FName,TMap<FName,FName> > EnumRedirects;
@@ -1497,7 +1507,14 @@ private:
 	{
 		UEnum* EnumClass = FindObject<UEnum>( nullptr, EnumPath );
 		UE_CLOG( !EnumClass, LogClass, Fatal, TEXT("Couldn't find enum '%s'"), EnumPath );
-		return EnumClass->GetEnumString(Value);
+		return EnumClass->GetEnumName(Value);
+	}
+
+	FORCEINLINE static FText GetDisplayValueAsText_Internal( const TCHAR* EnumPath, const int32 Value )
+	{
+		UEnum* EnumClass = FindObject<UEnum>(nullptr, EnumPath);
+		UE_CLOG(!EnumClass, LogClass, Fatal, TEXT("Couldn't find enum '%s'"), EnumPath);
+		return EnumClass->GetEnumText(Value);
 	}
 };
 
@@ -1585,8 +1602,11 @@ public:
 	UObject* ClassGeneratedBy;
 
 #if WITH_EDITOR
-	// Conditionally recompiles the class after loading, in case any dependencies were also newly loaded
-	virtual void ConditionalRecompileClass() {};
+	/**
+	 * Conditionally recompiles the class after loading, in case any dependencies were also newly loaded
+	 * @param ObjLoaded	If set this is the list of objects that are currently loading, usualy GObjLoaded
+	 */
+	virtual void ConditionalRecompileClass(TArray<UObject*>* ObjLoaded) {};
 #endif //WITH_EDITOR
 
 	//
@@ -1601,7 +1621,7 @@ public:
 #if WITH_EDITOR || HACK_HEADER_GENERATOR 
 	// Editor only properties
 	void GetHideCategories(TArray<FString>& OutHideCategories) const;
-	bool IsCategoryHidden(const TCHAR* InCategory) const;
+	bool IsCategoryHidden(const FString& InCategory) const;
 	void GetHideFunctions(TArray<FString>& OutHideFunctions) const;
 	bool IsFunctionHidden(const TCHAR* InFunction) const;
 	void GetAutoExpandCategories(TArray<FString>& OutAutoExpandCategories) const;

@@ -329,7 +329,7 @@ bool RaycastTest(const UWorld * World, const FVector Start, const FVector End, E
 
 		// Enable scene locks, in case they are required
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
-		SCOPED_SCENE_READ_LOCK_INDEXED(SyncScene, 1);
+		SCOPED_SCENE_READ_LOCK(SyncScene);
 
 		const PxVec3 PDir = U2PVector(Delta/DeltaMag);
 
@@ -340,8 +340,7 @@ bool RaycastTest(const UWorld * World, const FVector Start, const FVector End, E
 		if( !bHaveBlockingHit && Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SCOPED_SCENE_READ_LOCK_INDEXED(AsyncScene, 2);
-			bHaveBlockingHit = AsyncScene->raycastAny(U2PVector(Start), PDir, DeltaMag, PQueryHit, PQueryFilterData, &PQueryCallback);
+			SCOPED_SCENE_READ_LOCK(AsyncScene);			bHaveBlockingHit = AsyncScene->raycastAny(U2PVector(Start), PDir, DeltaMag, PQueryHit, PQueryFilterData, &PQueryCallback);
 		}
 	}
 
@@ -390,8 +389,7 @@ bool RaycastSingle(const UWorld * World, struct FHitResult& OutHit, const FVecto
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
 		// Enable scene locks, in case they are required
-		SCOPED_SCENE_READ_LOCK_INDEXED(SyncScene, 1);
-
+		SCOPED_SCENE_READ_LOCK(SyncScene);
 		PxRaycastHit PHit;
 		bHaveBlockingHit = SyncScene->raycastSingle(U2PVector(Start), PDir, DeltaMag, POutputFlags, PHit, PQueryFilterData, &PQueryCallback);
 
@@ -399,8 +397,7 @@ bool RaycastSingle(const UWorld * World, struct FHitResult& OutHit, const FVecto
 		if( Params.bTraceAsyncScene && PhysScene->HasAsyncScene() )
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SCOPED_SCENE_READ_LOCK_INDEXED(AsyncScene, 2);
-
+			SCOPED_SCENE_READ_LOCK(AsyncScene);
 			bool bHaveBlockingHitAsync;
 			PxRaycastHit PHitAsync;
 			bHaveBlockingHitAsync = AsyncScene->raycastSingle(U2PVector(Start), PDir, DeltaMag, POutputFlags, PHitAsync, PQueryFilterData, &PQueryCallback);
@@ -473,7 +470,7 @@ bool RaycastMulti(const UWorld * World, TArray<struct FHitResult>& OutHits, cons
 		FPhysScene* PhysScene = World->GetPhysicsScene();
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
-		SCOPED_SCENE_READ_LOCK_INDEXED(SyncScene, 1);
+		SCOPED_SCENE_READ_LOCK(SyncScene);
 
 		PxI32 NumHits = SyncScene->raycastMultiple(U2PVector(Start), PDir, DeltaMag, POutputFlags, PHits, HIT_BUFFER_MAX_SYNC_QUERIES, bBlockingHit, PQueryFilterData, &PQueryCallback);
 
@@ -491,7 +488,7 @@ bool RaycastMulti(const UWorld * World, TArray<struct FHitResult>& OutHits, cons
 		if( Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SCOPED_SCENE_READ_LOCK_INDEXED(AsyncScene, 2);
+			SCOPED_SCENE_READ_LOCK(AsyncScene);
 
 			// Write into the same PHits buffer
 			PxRaycastHit* PHitsAsync = PHits+NumHits;
@@ -609,7 +606,7 @@ bool GeomSweepTest(const UWorld * World, const PxGeometry& PGeom, const PxQuat& 
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
 		// Enable scene locks, in case they are required
-		SCOPED_SCENE_READ_LOCK_INDEXED(SyncScene, 1);
+		SCOPED_SCENE_READ_LOCK(SyncScene);
 
 		PxSceneQueryHit PQueryHit;
 		bHaveBlockingHit = SyncScene->sweepAny(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PQueryHit, PQueryFilterData, &PQueryCallbackSweep);
@@ -618,7 +615,7 @@ bool GeomSweepTest(const UWorld * World, const PxGeometry& PGeom, const PxQuat& 
 		if( !bHaveBlockingHit && Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SCOPED_SCENE_READ_LOCK_INDEXED(AsyncScene, 2);
+			SCOPED_SCENE_READ_LOCK(AsyncScene);
 
 			bHaveBlockingHit = AsyncScene->sweepAny(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PQueryHit, PQueryFilterData, &PQueryCallbackSweep);
 		}
@@ -673,7 +670,7 @@ bool GeomSweepSingle(const UWorld * World, const PxGeometry& PGeom, const PxQuat
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
 		// Enable scene locks, in case they are required
-		SCOPED_SCENE_READ_LOCK_INDEXED(SyncScene, 1);
+		SCOPED_SCENE_READ_LOCK(SyncScene);
 
 		PxSweepHit PHit;
 		bHaveBlockingHit = SyncScene->sweepSingle(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PHit, PQueryFilterData, &PQueryCallbackSweep);
@@ -702,7 +699,7 @@ bool GeomSweepSingle(const UWorld * World, const PxGeometry& PGeom, const PxQuat
 		if( Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SCOPED_SCENE_READ_LOCK_INDEXED(AsyncScene, 2);
+			SCOPED_SCENE_READ_LOCK(AsyncScene);
 
 			bool bHaveBlockingHitAsync;
 			PxSweepHit PHitAsync;
@@ -773,7 +770,7 @@ bool GeomSweepMulti(const UWorld * World, const PxGeometry& PGeom, const PxQuat&
 		FPhysScene* PhysScene = World->GetPhysicsScene();
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
-		SCOPED_SCENE_READ_LOCK_INDEXED(SyncScene, 1);
+		SCOPED_SCENE_READ_LOCK(SyncScene);
 
 		const PxTransform PStartTM(U2PVector(Start), PGeomRot);
 		const PxVec3 PDir = U2PVector(Delta/DeltaMag);
@@ -843,7 +840,7 @@ bool GeomSweepMulti(const UWorld * World, const PxGeometry& PGeom, const PxQuat&
 		if( Params.bTraceAsyncScene && MinBlockDistance > SMALL_NUMBER && PhysScene->HasAsyncScene())
 		{
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SCOPED_SCENE_READ_LOCK_INDEXED(AsyncScene, 2);
+			SCOPED_SCENE_READ_LOCK(AsyncScene);
 
 			// Write into the same PHits buffer
 			PxSweepHit* PHitsAsync = PHits + NumHits;
@@ -976,7 +973,7 @@ bool GeomOverlapSingle(const UWorld * World, const PxGeometry& PGeom, const PxTr
 	FPhysScene* PhysScene = World->GetPhysicsScene();
 	PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
-	SCOPED_SCENE_READ_LOCK_INDEXED(SyncScene, 1);
+	SCOPED_SCENE_READ_LOCK(SyncScene);
 
 	PxOverlapHit POverlapResult;
 	bool bHit = SyncScene->overlapAny(PGeom, PGeomPose, POverlapResult, PQueryFilterData, &PQueryCallback);
@@ -993,7 +990,7 @@ bool GeomOverlapSingle(const UWorld * World, const PxGeometry& PGeom, const PxTr
 	if( !bHaveBlockingHit && Params.bTraceAsyncScene && PhysScene->HasAsyncScene() )
 	{
 		PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-		SCOPED_SCENE_READ_LOCK_INDEXED(AsyncScene, 2);
+		SCOPED_SCENE_READ_LOCK(AsyncScene);
 
 		PxOverlapHit PAnotherOverlapResult;
 		bHit = AsyncScene->overlapAny(PGeom, PGeomPose, PAnotherOverlapResult, PQueryFilterData, &PQueryCallback);
@@ -1045,7 +1042,7 @@ bool GeomOverlapMulti(const UWorld * World, const PxGeometry& PGeom, const PxTra
 		FPhysScene* PhysScene = World->GetPhysicsScene();
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
-		SCOPED_SCENE_READ_LOCK_INDEXED(SyncScene, 1);
+		SCOPED_SCENE_READ_LOCK(SyncScene);
 
 		PxOverlapHit POverlapArray[OVERLAP_BUFFER_SIZE]; 
 		PxI32 NumHits = SyncScene->overlapMultiple(PGeom, PGeomPose, POverlapArray,  OVERLAP_BUFFER_SIZE_MAX_SYNC_QUERIES, PQueryFilterData, &PQueryCallback);
@@ -1064,7 +1061,7 @@ bool GeomOverlapMulti(const UWorld * World, const PxGeometry& PGeom, const PxTra
 		if( Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{		
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SCOPED_SCENE_READ_LOCK_INDEXED(AsyncScene, 2);
+			SCOPED_SCENE_READ_LOCK(AsyncScene);
 
 			// Write into the same PHits buffer
 			PxOverlapHit* PAsyncOverlapArray = POverlapArray + NumHits;
@@ -1334,6 +1331,9 @@ PxGeometry * GetGeometryFromShape(GeometryFromShapeStorage & LocalStorage, const
 			PShape->getTriangleMeshGeometry(LocalStorage.TriangleGeom);
 			return &LocalStorage.TriangleGeom;
 		}
+	case PxGeometryType::eHEIGHTFIELD:
+		PShape->getHeightFieldGeometry(LocalStorage.HeightFieldGeom);
+		return &LocalStorage.HeightFieldGeom;
 	default:
 		return NULL;
 	}

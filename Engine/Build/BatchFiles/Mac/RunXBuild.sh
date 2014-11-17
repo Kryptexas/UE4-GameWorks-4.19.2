@@ -10,20 +10,10 @@ echo
 echo Running XBuild...
 echo
 
-# Fix Mono if needed
-CUR_DIR=`pwd`
-cd "`dirname "$0"`"
-sh FixMonoFiles.sh
-cd "$CUR_DIR"
+source "`dirname "$0"`/SetupMono.sh" "`dirname "$0"`"
 
 # put ourselves into Engine directory (two up from location of this script)
 pushd "`dirname "$0"`/../../.."
-
-# setup bundled mono
-CUR_DIR=`pwd`
-export UE_MONO_DIR=$CUR_DIR/Binaries/ThirdParty/Mono/Mac
-export PATH=$UE_MONO_DIR/bin:$PATH
-export MONO_PATH=$UE_MONO_DIR/lib:$MONO_PATH
 
 if [ ! -f Build/BatchFiles/Mac/RunXBuild.sh ]; then
 	echo RunXBuild ERROR: The batch file does not appear to be located in the /Engine/Build/BatchFiles directory.  This script must be run from within that directory.

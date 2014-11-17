@@ -4,7 +4,6 @@
 #include "SBspPalette.h"
 #include "BspModeModule.h"
 #include "SScrollBorder.h"
-#include "BspModeActions.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/BrushBuilderDragDropOp.h"
 
 #define LOCTEXT_NAMESPACE "BspPalette"
@@ -38,26 +37,21 @@ void SBspPalette::Construct( const FArguments& InArgs )
 	ChildSlot
 	[
 		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
+
+		+ SVerticalBox::Slot()
 		.FillHeight(1.0f)
 		[
-			SNew(SOverlay)
-			+SOverlay::Slot()
-			.Padding(0.0f)
+			SNew(SScrollBorder, ListViewWidget)
 			[
 				ListViewWidget
 			]
-			+SOverlay::Slot()
-			.HAlign( HAlign_Fill )
-			.VAlign( VAlign_Fill )
-			[
-				SNew(SScrollBorder, ListViewWidget)
-			]
 		]
-		+SVerticalBox::Slot()
+
+		+ SVerticalBox::Slot()
 		.AutoHeight()
 		[
 			SNew( SHorizontalBox )
+
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			.Padding( 3.0f )
@@ -94,7 +88,8 @@ void SBspPalette::Construct( const FArguments& InArgs )
 					]
 				]
 			]
-			+SHorizontalBox::Slot()
+
+			+ SHorizontalBox::Slot()
 			.Padding( 3.0f )
 			.AutoWidth()
 			.HAlign(HAlign_Right)
@@ -102,7 +97,7 @@ void SBspPalette::Construct( const FArguments& InArgs )
 			[
 				SNew(SCheckBox)
 				.Style(FEditorStyle::Get(), "Toolbar.RadioButton")
-				.ToolTipText(LOCTEXT("BspModeAdditiveTooltip", "Place brushes in subtractive mode."))
+				.ToolTipText(LOCTEXT("BspModeSubtractiveTooltip", "Place brushes in subtractive mode."))
 				.OnCheckStateChanged(this, &SBspPalette::OnSubtractiveModeButtonClicked)
 				.IsChecked(this, &SBspPalette::IsSubtractiveModeChecked)
 				.ForegroundColor(FCoreStyle::Get().GetSlateColor("Foreground"))

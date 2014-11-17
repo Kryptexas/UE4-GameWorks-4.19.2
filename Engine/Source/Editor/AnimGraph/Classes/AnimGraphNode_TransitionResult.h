@@ -16,7 +16,7 @@ class UAnimGraphNode_TransitionResult : public UAnimGraphNode_Base
 	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
 	// End of UEdGraphNode interface
 

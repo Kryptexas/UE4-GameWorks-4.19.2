@@ -4,7 +4,7 @@
 class FLevelDragDropOp : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FLevelDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FLevelDragDropOp, FDragDropOperation)
 
 	/** The levels to be dropped. */
 	TArray<TWeakObjectPtr<ULevel>> LevelsToDrop;
@@ -52,7 +52,6 @@ public:
 	static TSharedRef<FLevelDragDropOp> New(const TArray<TWeakObjectPtr<ULevelStreaming>>& LevelsToDrop)
 	{
 		TSharedRef<FLevelDragDropOp> Operation = MakeShareable(new FLevelDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FLevelDragDropOp>(Operation);
 		Operation->StreamingLevelsToDrop.Append(LevelsToDrop);
 		Operation->bGoodToDrop = true;
 		Operation->Construct();
@@ -62,7 +61,6 @@ public:
 	static TSharedRef<FLevelDragDropOp> New(const TArray<TWeakObjectPtr<ULevel>>& LevelsToDrop)
 	{
 		TSharedRef<FLevelDragDropOp> Operation = MakeShareable(new FLevelDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FLevelDragDropOp>(Operation);
 		Operation->LevelsToDrop.Append(LevelsToDrop);
 		Operation->bGoodToDrop = true;
 		Operation->Construct();

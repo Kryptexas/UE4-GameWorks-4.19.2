@@ -37,7 +37,7 @@ private:
 	* @param In Name - menu item name
 	* @param InType - menu item type
 	*/
-	void BuildMenuItems( const FString InName, EFileExportType::Type InType );
+	void BuildMenuItems( const FText& InName, EFileExportType::Type InType );
 
 	/**
 	* Create the menu widgets.
@@ -54,14 +54,14 @@ private:
 	*
 	* @return true export report is ready
 	*/
-	FString GetExportButtonTooltip() const;
+	FText GetExportButtonTooltip() const;
 
 	/**
 	* Get the export combo button tooltop
 	*
 	* @return true export report is ready
 	*/
-	FString GetExportComboButtonTooltip() const;
+	FText GetExportComboButtonTooltip() const;
 
 	/**
 	* Get the test result summary from the manager.

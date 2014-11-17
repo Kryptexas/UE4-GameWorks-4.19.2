@@ -88,7 +88,7 @@ namespace APIDocTool
 
 				// Write the class list
 				Writer.EnterTag("[PARAM:filters]");
-				APIFilter.WriteListSection(Writer, "filters", "Filters", Filters);
+				APIFilter.WriteListSection(Writer, "filters", "Filters", Filters.OrderBy(x => x.Name));
 				Writer.LeaveTag("[/PARAM]");
 
 				// Write the class list

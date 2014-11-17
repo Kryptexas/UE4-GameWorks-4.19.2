@@ -20,23 +20,31 @@ class UMaterialExpressionTextureSample : public UMaterialExpressionTextureBase
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstCoordinate' if not specified"))
 	FExpressionInput Coordinates;
 
 	/** 
 	 * Texture object input which overrides Texture if specified. 
 	 * This only shows up in material functions and is used to implement texture parameters without actually putting the texture parameter in the function.
 	 */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'Texture' if not specified"))
 	FExpressionInput TextureObject;
 
 	/** Meaning depends on MipValueMode */
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstMipValue' if not specified"))
 	FExpressionInput MipValue;
 
 	/** Noise function, affects performance and look */
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionTextureSample, meta=(DisplayName = "MipValueMode"))
 	TEnumAsByte<enum ETextureMipValueMode> MipValueMode;
+
+	/** only used if Coordinates is not hooked up */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSample)
+	uint32 ConstCoordinate;
+
+	/** only used if MipValue is not hooked up */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSample)
+	int32 ConstMipValue;
 
 	// Begin UObject Interface
 #if WITH_EDITOR

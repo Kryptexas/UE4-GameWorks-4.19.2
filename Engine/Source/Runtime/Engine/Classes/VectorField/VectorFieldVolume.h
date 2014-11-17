@@ -16,8 +16,10 @@ class AVectorFieldVolume : public AActor
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=VectorFieldVolume)
 	TSubobjectPtr<class UVectorFieldComponent> VectorFieldComponent;
 
+#if WITH_EDITORONLY_DATA
 	UPROPERTY()
 	TSubobjectPtr<UBillboardComponent> SpriteComponent;
+#endif
 };
 
 

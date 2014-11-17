@@ -24,7 +24,7 @@ class USoundClassGraphNode : public UEdGraphNode
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* Schema) const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanUserDeleteNode() const OVERRIDE;
 	// End UEdGraphNode interface.
 

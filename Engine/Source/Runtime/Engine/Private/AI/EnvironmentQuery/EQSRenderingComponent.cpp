@@ -15,9 +15,9 @@ namespace FEQSRenderingHelper
 	FVector ExtractLocation(TSubclassOf<class UEnvQueryItemType> ItemType, TArray<uint8> RawData, const TArray<FEnvQueryItem>& Items, int32 Index)
 	{
 		if (Items.IsValidIndex(Index) &&
-			ItemType->IsChildOf(UEnvQueryItemType_LocationBase::StaticClass()))
+			ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 		{
-			UEnvQueryItemType_LocationBase* DefTypeOb = (UEnvQueryItemType_LocationBase*)ItemType->GetDefaultObject();
+			UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
 			return DefTypeOb->GetLocation(RawData.GetTypedData() + Items[Index].DataOffset);
 		}
 		return FVector::ZeroVector;
@@ -263,13 +263,23 @@ void FEQSSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController*)
 	Canvas->SetDrawColor(OldDrawColor);
 }
 
+bool FEQSSceneProxy::SafeIsActorSelected() const
+{
+	if(ActorOwner)
+	{
+		return ActorOwner->IsSelected();
+	}
+
+	return false;
+}
+
 FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View)
 {
 	FPrimitiveViewRelevance Result;
-	Result.bDrawRelevance = !!View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) && IsShown(View) 
-		&& (bDrawOnlyWhenSelected == false || ActorOwner->IsSelected());
+	Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) && IsShown(View) 
+		&& (!bDrawOnlyWhenSelected || SafeIsActorSelected());
 	Result.bDynamicRelevance = true;
-	Result.bNormalTranslucencyRelevance = IsShown(View) && GIsEditor;
+	Result.bNormalTranslucencyRelevance = IsShown(View);
 	return Result;
 }
 
@@ -289,12 +299,13 @@ uint32 FEQSSceneProxy::GetAllocatedSize( void ) const
 UEQSRenderingComponent::UEQSRenderingComponent(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 	, DrawFlagName("GameplayDebug")
+	, bDrawOnlyWhenSelected(true)
 {
 }
 
 FPrimitiveSceneProxy* UEQSRenderingComponent::CreateSceneProxy()
 {
-	return new FEQSSceneProxy(this, DrawFlagName);
+	return new FEQSSceneProxy(this, DrawFlagName, bDrawOnlyWhenSelected);
 }
 
 FBoxSphereBounds UEQSRenderingComponent::CalcBounds(const FTransform & LocalToWorld) const

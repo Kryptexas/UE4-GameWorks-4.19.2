@@ -455,6 +455,7 @@ namespace EditorLevelUtils
 			UE_LOG(LogLevelTools, Log, TEXT("Failed to destroy %d actors after attempting to destroy level!"), NumFailedDestroyedAttempts);
 		}
 
+		InLevel->GetOuter()->MarkPendingKill();
 		InLevel->MarkPendingKill();		
 		InLevel->GetOuter()->ClearFlags(RF_Public|RF_Standalone);
 		World->MarkPackageDirty();
@@ -707,7 +708,7 @@ namespace EditorLevelUtils
 		FEditorDelegates::RefreshLayerBrowser.Broadcast();
 
 		// Notify the Scene Outliner, as new Actors may be present in the world.
-		GEngine->BroadcastLevelActorsChanged();
+		GEngine->BroadcastLevelActorListChanged();
 
 		// If the level is being hidden, deselect actors and surfaces that belong to this level.
 		if ( !bShouldBeVisible )

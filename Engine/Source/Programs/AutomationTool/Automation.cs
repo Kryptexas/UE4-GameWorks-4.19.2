@@ -110,6 +110,7 @@ namespace AutomationTool
 		public static CommandLineArg Rocket = new CommandLineArg("-Rocket");
 		public static CommandLineArg NoKill = new CommandLineArg("-NoKill");
 		public static CommandLineArg Installed = new CommandLineArg("-Installed");
+		public static CommandLineArg UTF8Output = new CommandLineArg("-UTF8Output");
 
 		/// <summary>
 		/// Force initialize static members by calling this.
@@ -323,6 +324,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				Log.TraceInformation("Setting up Perforce environment.");
 				CommandUtils.InitP4Environment();
+				CommandUtils.InitDefaultP4Connection();
 			}
 
 			// Find and execute commands.

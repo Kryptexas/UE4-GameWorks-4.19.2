@@ -14,7 +14,7 @@ UBTTask_MoveTo::UBTTask_MoveTo(const class FPostConstructInitializeProperties& P
 	BlackboardKey.AddVectorFilter(this);
 }
 
-EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
 	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
@@ -28,7 +28,7 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* Ow
 
 		if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 		{
-			UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.SelectedKeyID);
+			UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.GetSelectedKeyID());
 			AActor* TargetActor = Cast<AActor>(KeyValue);
 			if (TargetActor)
 			{
@@ -41,7 +41,7 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* Ow
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 		{
-			const FVector TargetLocation = MyBlackboard->GetValueAsVector(BlackboardKey.SelectedKeyID);
+			const FVector TargetLocation = MyBlackboard->GetValueAsVector(BlackboardKey.GetSelectedKeyID());
 			RequestResult = MyController->MoveToLocation(TargetLocation, AcceptableRadius, true, true, false, bAllowStrafe, FilterClass);
 		}
 
@@ -64,7 +64,7 @@ EBTNodeResult::Type UBTTask_MoveTo::ExecuteTask(class UBehaviorTreeComponent* Ow
 	return NodeResult;
 }
 
-EBTNodeResult::Type UBTTask_MoveTo::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_MoveTo::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTMoveToTaskMemory* MyMemory = (FBTMoveToTaskMemory*)NodeMemory;
 	AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
@@ -77,7 +77,7 @@ EBTNodeResult::Type UBTTask_MoveTo::AbortTask(class UBehaviorTreeComponent* Owne
 	return Super::AbortTask(OwnerComp, NodeMemory);
 }
 
-void UBTTask_MoveTo::OnMessage(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, FName Message, int32 SenderID, bool bSuccess) const
+void UBTTask_MoveTo::OnMessage(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, FName Message, int32 SenderID, bool bSuccess)
 {
 	// AIMessage_RepathFailed means task has failed
 	bSuccess &= (Message != UBrainComponent::AIMessage_RepathFailed);
@@ -105,7 +105,7 @@ void UBTTask_MoveTo::DescribeRuntimeValues(const class UBehaviorTreeComponent* O
 
 	if (MyMemory->MoveRequestID && BlackboardComp)
 	{
-		FString KeyValue = BlackboardComp->DescribeKeyValue(BlackboardKey.SelectedKeyID, EBlackboardDescription::OnlyValue);
+		FString KeyValue = BlackboardComp->DescribeKeyValue(BlackboardKey.GetSelectedKeyID(), EBlackboardDescription::OnlyValue);
 		Values.Add(FString::Printf(TEXT("move target: %s"), *KeyValue));
 	}
 }

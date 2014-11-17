@@ -363,6 +363,14 @@ void FBlueprintEditor::SummonSearchUI(bool bSetFindWithinBlueprint, FString NewS
 	FindResults->FocusForUse(bSetFindWithinBlueprint, NewSearchTerms, bSelectFirstResult);
 }
 
+void FBlueprintEditor::EnableSCSPreview(bool bEnable)
+{
+	if(SCSViewport.IsValid())
+	{
+		SCSViewport->EnablePreview(bEnable);
+	}
+}
+
 void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 {
 	// refresh widget
@@ -372,8 +380,6 @@ void FBlueprintEditor::UpdateSCSPreview(bool bUpdateNow)
 		SCSViewport->RequestRefresh(false, bUpdateNow && IsModeCurrent(FBlueprintEditorApplicationModes::BlueprintComponentsMode));
 	}
 }
-
-
 
 /** Create new tab for the supplied graph - don't call this directly.*/
 TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FTabInfo> InTabInfo, UEdGraph* InGraph)
@@ -621,6 +627,16 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnFindVariableReferences ),
 				FCanExecuteAction::CreateSP( this, &FBlueprintEditor::CanFindVariableReferences )
 				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeFunctionDefinition,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeFunctionDefinition ),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeFunction)
+				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().GotoNativeVariableDefinition,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::GotoNativeVariableDefinition ),
+				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::IsSelectionNativeVariable)
+				);
 		}
 	}
 
@@ -803,6 +819,29 @@ void FBlueprintEditor::EnsureBlueprintIsUpToDate(UBlueprint* BlueprintObj)
 			UCSGraph->bAllowDeletion = false;
 		}
 	}
+	else
+	{
+		// If we have an SCS but don't support it, then we remove it
+		if(BlueprintObj->SimpleConstructionScript)
+		{
+			// Remove any SCS variable nodes
+			TArray<USCS_Node*> AllSCSNodes = BlueprintObj->SimpleConstructionScript->GetAllNodes();
+			for(auto SCSNodeIt = AllSCSNodes.CreateConstIterator(); SCSNodeIt; ++SCSNodeIt)
+			{
+				USCS_Node* SCS_Node = *SCSNodeIt;
+				if(SCS_Node)
+				{
+					FBlueprintEditorUtils::RemoveVariableNodes(BlueprintObj, SCS_Node->VariableName);
+				}
+			}
+		
+			// Remove the SCS object reference
+			BlueprintObj->SimpleConstructionScript = NULL;
+
+			// Mark the Blueprint as having been structurally modified
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BlueprintObj);
+		}
+	}
 
 	// Set transactional flag on SimpleConstructionScript and Nodes associated with it.
 	if ((BlueprintObj->SimpleConstructionScript != NULL) && (BlueprintObj->GetLinkerUE4Version() < VER_UE4_FLAG_SCS_TRANSACTIONAL))
@@ -857,7 +896,13 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 
 	if (InitBlueprints.Num() == 1)
 	{
+		// Load blueprint libraries
+		LoadLibrariesFromAssetRegistry();
+
+		LoadUserDefinedEnumsFromAssetRegistry();
+
 		UBlueprint* InitBlueprint = InitBlueprints[0];
+
 		// Update the blueprint if required
 		EBlueprintStatus OldStatus = InitBlueprint->Status;
 		EnsureBlueprintIsUpToDate(InitBlueprint);
@@ -865,11 +910,6 @@ void FBlueprintEditor::CommonInitialization(const TArray<UBlueprint*>& InitBluep
 
 		// Flag the blueprint as having been opened
 		InitBlueprint->bIsNewlyCreated = false;
-
-		// Load blueprint libraries
-		LoadLibrariesFromAssetRegistry();
-
-		LoadUserDefinedEnumsFromAssetRegistry();
 
 		// When the blueprint that we are observing changes, it will notify this wrapper widget.
 		InitBlueprint->OnChanged().AddSP( this, &FBlueprintEditor::OnBlueprintChanged );
@@ -4654,7 +4694,7 @@ void FBlueprintEditor::CollapseNodesIntoGraph(UEdGraphNode* InGatewayNode, UK2No
 
 				ExtractEventTemplateForFunction(CustomEvent, InGatewayNode, InEntryNode, InResultNode, InCollapsableNodes);
 
-				FString GraphName = FBlueprintEditorUtils::GenerateUniqueGraphName(GetBlueprintObj(), CustomEvent->GetNodeTitle(ENodeTitleType::ListView)).ToString();
+				FString GraphName = FBlueprintEditorUtils::GenerateUniqueGraphName(GetBlueprintObj(), CustomEvent->GetNodeTitle(ENodeTitleType::ListView).ToString()).ToString();
 				FBlueprintEditorUtils::RenameGraph(InDestinationGraph, GraphName);
 
 				// Remove the node, it has no place in the new graph
@@ -5829,6 +5869,93 @@ bool FBlueprintEditor::CanFindVariableReferences()
 		if( SelectedNodes.Num() == 1 )
 		{
 			return true;
+		}
+	}
+	return false;
+}
+
+void FBlueprintEditor::GotoNativeFunctionDefinition()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if( GraphEditor.IsValid() && IsSelectionNativeFunction() )
+	{
+		const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		FGraphPanelSelectionSet::TConstIterator NodeIter( SelectedNodes );
+
+		const UK2Node_CallFunction* FunctionNode = Cast<UK2Node_CallFunction>( *NodeIter );
+
+		if( FunctionNode )
+		{
+			UFunction* TargetFunction = FunctionNode->GetTargetFunction();
+
+			if( TargetFunction )
+			{
+				FSourceCodeNavigation::NavigateToFunctionAsync( TargetFunction );
+			}
+		}
+	}
+}
+
+bool FBlueprintEditor::IsSelectionNativeFunction()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if( GraphEditor.IsValid() && FSourceCodeNavigation::IsCompilerAvailable() )
+	{
+		FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		FGraphPanelSelectionSet::TIterator NodeIter( SelectedNodes );
+		const UK2Node_CallFunction* FunctionNode = Cast<UK2Node_CallFunction>( *NodeIter );
+
+		if( FunctionNode && SelectedNodes.Num() == 1 )
+		{
+			UClass* OwningClass = FunctionNode->FunctionReference.GetMemberParentClass( FunctionNode );
+
+			if( OwningClass && OwningClass->HasAllClassFlags( CLASS_Native ))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void FBlueprintEditor::GotoNativeVariableDefinition()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if( GraphEditor.IsValid() && IsSelectionNativeVariable() )
+	{
+		const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		FGraphPanelSelectionSet::TConstIterator NodeIter( SelectedNodes );
+		const UK2Node_Variable* VarNode = Cast<UK2Node_Variable>( *NodeIter );
+
+		if( VarNode )
+		{
+			UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode );
+
+			if( VariableProperty )
+			{
+				FSourceCodeNavigation::NavigateToProperty( VariableProperty );
+			}
+		}
+	}
+}
+
+bool FBlueprintEditor::IsSelectionNativeVariable()
+{
+	auto GraphEditor = FocusedGraphEdPtr.Pin();
+	if( GraphEditor.IsValid() )
+	{
+		FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
+		FGraphPanelSelectionSet::TIterator NodeIter( SelectedNodes );
+		const UK2Node_Variable* VarNode = Cast<UK2Node_Variable>( *NodeIter );
+
+		if( VarNode && SelectedNodes.Num() == 1 )
+		{
+			UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode );
+
+			if( VariableProperty && VariableProperty->HasAllFlags( RF_Native ))
+			{
+				return true;
+			}
 		}
 	}
 	return false;

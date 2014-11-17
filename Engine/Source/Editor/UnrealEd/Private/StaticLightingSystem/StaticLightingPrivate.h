@@ -360,16 +360,6 @@ private:
 
 	int32 NextVisibilityId;
 
-	/** The 'custom' importance bounds when building selected objects/levels. */
-	FBox CustomImportanceBoundingBox;
-
-	/** 
-	 *	If true, then pass the CustomImportanceVolume to Lightmass.
-	 *	Will initialize to false, but get set to true if any mapping is
-	 *	skipped during the setup phase of the scene.
-	 */
-	bool bUseCustomImportanceVolume;
-
 	/** Lighting comes in various stages (amortized, async, etc.), we track them here. */
 	enum LightingStage
 	{

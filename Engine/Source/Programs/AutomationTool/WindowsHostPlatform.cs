@@ -182,7 +182,7 @@ namespace AutomationTool
 
 		public override string LocalBuildsLogFolder
 		{
-			get { return CommandUtils.CombinePaths(PathSeparator.Slash, Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "AutomationTool", "Logs"); }
+			get { return CommandUtils.CombinePaths(PathSeparator.Slash, Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "AutomationTool", "Logs"); }
 		}
 
 		public override string P4Exe
@@ -218,6 +218,26 @@ namespace AutomationTool
 		public override string PdbExtension
 		{
 			get { return ".pdb"; }
+		}
+
+		static string[] SystemServices = new string[]
+		{
+			"winlogon",
+			"system idle process",
+			"taskmgr",
+			"spoolsv",
+			"csrss",
+			"smss",
+			"svchost",
+			"services",
+			"lsass"
+		};
+		public override string[] DontKillProcessList
+		{
+			get 
+			{
+				return SystemServices;
+			}
 		}
 	}
 }

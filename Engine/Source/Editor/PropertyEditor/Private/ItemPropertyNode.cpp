@@ -337,7 +337,7 @@ FString FItemPropertyNode::GetDisplayName() const
 					}
 					if( GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 					{
-						PropertyDisplayName = EngineUtils::SanitizeDisplayName( PropertyDisplayName, bIsBoolProperty );
+						PropertyDisplayName = FName::NameToDisplayString( PropertyDisplayName, bIsBoolProperty );
 					}
 
 					FinalDisplayName = PropertyDisplayName;

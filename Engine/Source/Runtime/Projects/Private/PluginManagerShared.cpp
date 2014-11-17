@@ -195,6 +195,7 @@ bool FProjectOrPlugin::DeserializeFromJSON( const FString& JSONInput, FText& Out
 
 		ReadNumberFromJSON(FileObject, TEXT("PackageFileUE4Version"), ProjectOrPluginInfo.PackageFileUE4Version);
 		ReadNumberFromJSON(FileObject, TEXT("PackageFileLicenseeUE4Version"), ProjectOrPluginInfo.PackageFileLicenseeUE4Version);
+		ReadStringFromJSON(FileObject, TEXT("EngineAssociation"), ProjectOrPluginInfo.EngineAssociation);
 		ReadStringFromJSON(FileObject, TEXT("FriendlyName"), ProjectOrPluginInfo.FriendlyName);
 		ReadStringFromJSON(FileObject, TEXT("Description"), ProjectOrPluginInfo.Description);
 
@@ -202,6 +203,13 @@ bool FProjectOrPlugin::DeserializeFromJSON( const FString& JSONInput, FText& Out
 		{
 			// Category used to be called CategoryPath in .uplugin files
 			ReadStringFromJSON(FileObject, TEXT("CategoryPath"), ProjectOrPluginInfo.Category);
+		}
+        
+		// Due to a difference in command line parsing between Windows and Mac, we shipped a few Mac samples containing
+		// a category name with escaped quotes. Remove them here to make sure we can list them in the right category.
+		if(ProjectOrPluginInfo.Category.Len() >= 2 && ProjectOrPluginInfo.Category.StartsWith(TEXT("\"")) && ProjectOrPluginInfo.Category.EndsWith(TEXT("\"")))
+		{
+			ProjectOrPluginInfo.Category = ProjectOrPluginInfo.Category.Mid(1, ProjectOrPluginInfo.Category.Len() - 2);
 		}
 
 		ReadStringFromJSON(FileObject, TEXT("CreatedBy"), ProjectOrPluginInfo.CreatedBy);
@@ -240,6 +248,7 @@ FString FProjectOrPlugin::SerializeToJSON( ) const
 	Writer->WriteValue(TEXT("EngineVersion"), ProjectOrPluginInfo.EngineVersion.ToString());
 	Writer->WriteValue(TEXT("PackageFileUE4Version"), (float)ProjectOrPluginInfo.PackageFileUE4Version);
 	Writer->WriteValue(TEXT("PackageFileLicenseeUE4Version"), (float)ProjectOrPluginInfo.PackageFileLicenseeUE4Version);
+	Writer->WriteValue(TEXT("EngineAssociation"), ProjectOrPluginInfo.EngineAssociation);
 	Writer->WriteValue(TEXT("FriendlyName"), ProjectOrPluginInfo.FriendlyName);
 	Writer->WriteValue(TEXT("Description"), ProjectOrPluginInfo.Description);
 	Writer->WriteValue(TEXT("Category"), ProjectOrPluginInfo.Category);
@@ -287,25 +296,24 @@ FString FProjectOrPlugin::SerializeToJSON( ) const
 	return JSONOutput;
 }
 
-bool FProjectOrPlugin::IsUpToDate( ) const
+bool FProjectOrPlugin::IsUpToDate( const FString &EngineIdentifier ) const
 {
 	const FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
 
-	if ( ProjectOrPluginInfo.FileVersion < VER_LATEST_PROJECT_FILE
-		|| ProjectOrPluginInfo.PackageFileUE4Version < GPackageFileUE4Version
-		|| ProjectOrPluginInfo.EngineVersion.ToString() != GEngineVersion.ToString()
-		|| ProjectOrPluginInfo.PackageFileLicenseeUE4Version < GPackageFileLicenseeUE4Version )
+	if (ProjectOrPluginInfo.FileVersion < VER_LATEST_PROJECT_FILE)
 	{
-		// This project file is out of date in at least one category
 		return false;
 	}
-	else
+
+	if (ProjectOrPluginInfo.EngineAssociation != EngineIdentifier)
 	{
-		return true;
+		return false;
 	}
+
+	return true;
 }
 
-void FProjectOrPlugin::UpdateVersionToCurrent( )
+void FProjectOrPlugin::UpdateVersionToCurrent( const FString &EngineIdentifier )
 {
 	FProjectOrPluginInfo& ProjectOrPluginInfo = GetProjectOrPluginInfo();
 
@@ -313,6 +321,7 @@ void FProjectOrPlugin::UpdateVersionToCurrent( )
 	ProjectOrPluginInfo.EngineVersion = GEngineVersion;
 	ProjectOrPluginInfo.PackageFileUE4Version = GPackageFileUE4Version;
 	ProjectOrPluginInfo.PackageFileLicenseeUE4Version = GPackageFileLicenseeUE4Version;
+	ProjectOrPluginInfo.EngineAssociation = EngineIdentifier;
 }
 
 void FProjectOrPlugin::ReplaceModulesInProject(const TArray<FString>* StartupModuleNames)

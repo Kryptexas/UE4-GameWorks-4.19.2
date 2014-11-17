@@ -4,6 +4,7 @@
 
 #include "ModuleInterface.h"
 #include "ModuleManager.h"
+#include "OnlineSubsystemAmazonPackage.h"
 
 /**
  * Module used for talking with an Amazon service via Http requests
@@ -11,12 +12,19 @@
 class FOnlineSubsystemAmazonModule :
 	public IModuleInterface
 {
+
+private:
+
+	/** Class responsible for creating instance(s) of the subsystem */
+	class FOnlineFactoryAmazon* AmazonFactory;
+
 public:
 
 	/**
 	 * Constructor
 	 */
-	FOnlineSubsystemAmazonModule()
+	FOnlineSubsystemAmazonModule() :
+		AmazonFactory(NULL)
 	{}
 
 	/**

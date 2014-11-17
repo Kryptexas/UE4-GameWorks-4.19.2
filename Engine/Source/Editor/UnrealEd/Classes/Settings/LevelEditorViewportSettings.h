@@ -154,11 +154,13 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Orthographic Zoom to Cursor Position"))
 	uint32 bCenterZoomAroundCursor:1;
 
-	/**
-	 * If checked all orthographic view ports are linked to the same position and move together.
-	 */
-	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Link Orthographic Viewport Movement"))
-	uint32 bUseLinkedOrthographicViewports:1;
+	/** Allow translate/rotate widget */
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=( DisplayName = "Enable Combined Translate/Rotate Widget" ))
+	uint32 bAllowTranslateRotateZWidget:1;
+
+	/** If true, Clicking a BSP selects the brush and ctrl+shift+click selects the surface. If false, vice versa */
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=( DisplayName = "Clicking BSP Enables Brush" ))
+	uint32 bClickBSPSelectsBrush:1;
 
 	/**
 	 * How fast the perspective camera moves when flying through the world.
@@ -179,21 +181,29 @@ public:
 	float MouseSensitivty;
 	
 	/**
-	 * Whether to use mouse position as direct widget position.
+	 * Whether or not to invert the direction of middle mouse panning in viewports
 	 */
 	UPROPERTY(EditAnywhere, config, Category=Controls)
+	bool bInvertMiddleMousePan;
+
+	/**
+	 * Whether to use mouse position as direct widget position.
+	 */
+	UPROPERTY(EditAnywhere, config, Category=Controls, AdvancedDisplay)
 	uint32 bUseAbsoluteTranslation:1;
 
 	/**
 	 * If enabled, the viewport will stream in levels automatically when the camera is moved.
 	 */
-	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"))
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"), aDvancedDisplay)
 	bool bLevelStreamingVolumePrevis;
 
 	/** When checked, orbit the camera by using the L or U keys when unchecked, Alt and Left Mouse Drag will orbit around the look at point */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName="Use UE3 Orbit Controls"), AdvancedDisplay)
 	bool bUseUE3OrbitControls;
+
 public:
+
 	/** If enabled will use power of 2 grid settings (e.g, 1,2,4,8,16,...,1024) instead of decimal grid sizes */
 	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "User Power of Two Snap Size"))
 	bool bUsePowerOf2SnapSize;
@@ -225,8 +235,6 @@ public:
 	/** Grid sizes for scaling */
 	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=GridSnapping)
 	TArray<float> ScalingGridSizes;
-
-public:
 
 	/** If enabled, actor positions will snap to the grid. */
 	UPROPERTY(EditAnywhere, config, Category=GridSnapping, meta=(DisplayName = "Enable Grid Snapping"))
@@ -296,6 +304,12 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Highlight Selected Objects with Brackets"))
 	uint32 bHighlightWithBrackets:1;
 
+	/**
+	 * If checked all orthographic view ports are linked to the same position and move together.
+	 */
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Link Orthographic Viewport Movement"))
+	uint32 bUseLinkedOrthographicViewports:1;
+
 	/** True if viewport box selection requires objects to be fully encompassed by the selection box to be selected */
 	UPROPERTY(config)
 	uint32 bStrictBoxSelection:1;
@@ -332,11 +346,19 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Background Drop Distance"))
 	float BackgroundDropDistance;
 
+	/** A list of meshes that can be used as preview mesh in the editor view port by holding down the backslash key */
+	UPROPERTY(EditAnywhere, config, Category=Preview, meta=(AllowedClasses = "StaticMesh"))
+	TArray<FStringAssetReference> PreviewMeshes;
+
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin = "0.01", UIMin = "0.01", UIMax = "5"))
+	float BillboardScale;
+
 public:
+
 	/**
 	 * @return The instance settings for the given viewport; null if no settings were found for this viewport
 	 */
-	const FLevelEditorViewportInstanceSettings* GetViewportInstanceSettings(const FString& InConfigName) const
+	const FLevelEditorViewportInstanceSettings* GetViewportInstanceSettings( const FString& InConfigName ) const
 	{
 		for(auto It = PerInstanceSettings.CreateConstIterator(); It; ++It)
 		{
@@ -353,7 +375,7 @@ public:
 	/**
 	 * Set the instance settings for the given viewport
 	 */
-	void SetViewportInstanceSettings(const FString& InConfigName, const FLevelEditorViewportInstanceSettings& InConfigSettings)
+	void SetViewportInstanceSettings( const FString& InConfigName, const FLevelEditorViewportInstanceSettings& InConfigSettings )
 	{
 		check(!InConfigName.IsEmpty());
 

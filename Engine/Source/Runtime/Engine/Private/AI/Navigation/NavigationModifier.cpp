@@ -442,6 +442,7 @@ void FCompositeNavModifier::Empty()
 	Areas.Empty();
 	SimpleLinks.Empty();
 	CustomLinks.Empty();
+	bHasPotentialLinks = false;
 }
 
 FCompositeNavModifier FCompositeNavModifier::GetInstantiatedMetaModifier(const FNavAgentProperties* NavAgent, TWeakObjectPtr<UObject> WeakOwnerPtr) const

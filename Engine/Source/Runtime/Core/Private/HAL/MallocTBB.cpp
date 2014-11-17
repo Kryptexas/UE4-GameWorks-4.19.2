@@ -26,23 +26,11 @@
 
 #define MEM_TIME(st)
 
-void FMallocTBB::GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats )
-{
-	FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-
-	MemStats.TotalUsed = MemoryStats.WorkingSetSize;
-	MemStats.TotalAllocated = MemoryStats.WorkingSetSize;
-	MemStats.CPUUsed = MemoryStats.PagefileUsage;
-}
-
-void FMallocTBB::DumpAllocations( FOutputDevice& Ar )
-{
-	STAT(Ar.Logf( TEXT("Memory Allocation Status") ));
-	MEM_TIME(Ar.Logf( TEXT("Seconds     % 5.3f"), MemTime ));
-}
 
 void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 {
+	IncrementTotalMallocCalls();
+
 	MEM_TIME(MemTime -= FPlatformTime::Seconds());
 
 	void* Free = NULL;
@@ -72,6 +60,8 @@ void* FMallocTBB::Malloc( SIZE_T Size, uint32 Alignment )
 
 void* FMallocTBB::Realloc( void* Ptr, SIZE_T NewSize, uint32 Alignment )
 {
+	IncrementTotalReallocCalls();
+
 	MEM_TIME(MemTime -= FPlatformTime::Seconds())
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	SIZE_T OldSize = 0;
@@ -118,6 +108,7 @@ void FMallocTBB::Free( void* Ptr )
 #if UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT
 	FMemory::Memset(Ptr, DEBUG_FILL_FREED, scalable_msize(Ptr)); 
 #endif
+	IncrementTotalFreeCalls();
 	scalable_free(Ptr);
 
 	MEM_TIME(MemTime += FPlatformTime::Seconds())

@@ -21,6 +21,18 @@ namespace EProcessResource
 	};
 }
 
+/** Not all platforms have different opening semantics, but Windows allows you to specify a specific verb when opening a file. */
+namespace ELaunchVerb
+{
+	enum Type
+	{
+		/** Launch the application associated with opening file to 'view' */
+		Open,
+		/** Launch the application associated with opening file to 'edit' */
+		Edit,
+	};
+}
+
 struct FBinaryFileVersion
 {
 	FBinaryFileVersion(int32 InA, int32 InB, int32 InC, int32 InD)
@@ -109,6 +121,49 @@ struct FProcHandle;
 **/
 struct CORE_API FGenericPlatformProcess
 {
+	/**
+	 * Generic representation of a interprocess semaphore
+	 */
+	struct FSemaphore
+	{
+		/** Returns the name of the object */
+		const TCHAR *	GetName() const			{ return Name; }
+
+		/** Acquires an exclusive access (also known as Wait()) */
+		virtual void	Lock() = 0;
+
+		/** 
+		 * Tries to acquire and exclusive access for a specified amount of nanoseconds (also known as TryWait()).
+		 *
+		 * @param Nanoseconds (10^-9 seconds) to wait for, 
+		 * @return false if was not able to lock within given time
+		 */
+		virtual bool	TryLock(uint64 NanosecondsToWait) = 0;
+
+		/** Relinquishes an exclusive access (also known as Release())*/
+		virtual void	Unlock() = 0;
+
+		/** 
+		 * Constructor
+		 *
+		 * @param InName name of the semaphore (all processes should use the same)
+		 */
+		FSemaphore(const FString & InName);
+
+		/** Destructor */
+		virtual ~FSemaphore()  {};
+
+	protected:
+
+		enum Limits
+		{
+			MaxSemaphoreName = 128
+		};
+
+		/** Name of the region */
+		TCHAR			Name[MaxSemaphoreName];
+	};
+
 	/** Load a DLL. **/
 	static void* GetDllHandle( const TCHAR* Filename );
 
@@ -139,10 +194,13 @@ struct CORE_API FGenericPlatformProcess
 
 	}
 
-	/** Retrieves the ProcessId of this process
-	* @return the ProcessId of this process
-	*/
+	/**
+	 * Retrieves the ProcessId of this process
+	 * @return the ProcessId of this process
+	 */
 	static uint32 GetCurrentProcessId();
+	/** Sets the CPU affinity mask for the current thread. */
+	static void SetThreadAffinityMask( uint64 AffinityMask );
 	/** Get startup directory.  NOTE: Only one return value is valid at a time! **/
 	static const TCHAR* BaseDir();
 	/** Get user directory.  NOTE: Only one return value is valid at a time! **/
@@ -276,7 +334,13 @@ struct CORE_API FGenericPlatformProcess
 	 * Executes a process, returning the return code, stdout, and stderr. This
 	 * call blocks until the process has returned.
 	 */
-	static void ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+
+	/**
+	* Executes a process as administrator, requesting elevation as necessary. This
+	* call blocks until the process has returned.
+	*/
+	static bool ExecElevatedProcess(const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode);
 
 	/**
 	 * Attempt to launch the provided file name in its default external application. Similar to FPlatformProcess::LaunchURL,
@@ -285,8 +349,9 @@ struct CORE_API FGenericPlatformProcess
 	 *
 	 * @param	FileName	Name of the file to attempt to launch in its default external application
 	 * @param	Parms		Optional parameters to the default application
+	 * @param	Verb		Optional verb to use when opening the file, if it applies for the platform.
 	 */
-	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL );
+	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
 
 	/**
 	 * Attempt to "explore" the folder specified by the provided file path
@@ -366,14 +431,30 @@ struct CORE_API FGenericPlatformProcess
 	 * @return true if the platform can use multiple threads, false otherwise.
 	 */
 	static bool SupportsMultithreading();
-    
-    /**
-     * Enables Real Time Mode on the current thread
-     *
-     */
-    static void SetRealTimeMode()
-    {
-    }
+	
+	/**
+	 * Enables Real Time Mode on the current thread
+	 *
+	 */
+	static void SetRealTimeMode()
+	{
+	}
+
+	/**
+	 * Creates or opens an interprocess synchronization object.
+	 *
+	 * @param Name name (so we can use it across processes)
+	 * @param bCreate - if true, the function will try to create, otherwise will try to open existing
+	 * @param MaxLocks - maximum amount of locks that the semaphore can have (pass 1 to make it act as mutex)
+	 */
+	static FSemaphore * NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks = 1);
+
+	/**
+	 * Deletes an interprocess synchronization object.
+	 *
+	 * @param Object object to destroy
+	 */
+	static bool DeleteInterprocessSynchObject(FSemaphore * Object);
 };
 
 

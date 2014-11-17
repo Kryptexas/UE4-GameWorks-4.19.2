@@ -13,12 +13,15 @@ namespace APIDocTool
 {
 	public abstract class APIConstant : APIMember
 	{
+		public readonly DoxygenEntity Entity;
+
 		public string BriefDescription;
 		public string FullDescription;
 
-		public APIConstant(APIPage InParent, string InName)
+		public APIConstant(APIPage InParent, DoxygenEntity InEntity, string InName)
 			: base(InParent, InName)
 		{
+			Entity = InEntity;
 		}
 
 		protected abstract void WriteDefinition(UdnWriter Writer);
@@ -55,6 +58,11 @@ namespace APIDocTool
 				}
 				Writer.LeaveTag("[/PARAM]");
 
+				// Write the references
+				Writer.EnterParam("references");
+				WriteReferencesSection(Writer, Entity);
+				Writer.LeaveParam();
+
 				Writer.LeaveTag("[/OBJECT]");
 			}
 		}
@@ -71,10 +79,10 @@ namespace APIDocTool
 		public readonly XmlNode ValueNode;
 		public string Initializer;
 
-		public APIConstantEnum(APIPage InParent, XmlNode InEnumNode, XmlNode InValueNode, string InName)
-			: base(InParent, InName)
+		public APIConstantEnum(APIPage InParent, DoxygenEntity InEnumEntity, XmlNode InValueNode, string InName)
+			: base(InParent, InEnumEntity, InName)
 		{
-			EnumNode = InEnumNode;
+			EnumNode = InEnumEntity.Node;
 			ValueNode = InValueNode;
 		}
 
@@ -100,7 +108,7 @@ namespace APIDocTool
 				foreach (XmlNode ValueNode in ValueNodeList)
 				{
 					string Name = ValueNode.SelectSingleNode("name").InnerText;
-					APIConstant Constant = new APIConstantEnum(Parent, EnumNode, ValueNode, Name);
+					APIConstant Constant = new APIConstantEnum(Parent, Entity, ValueNode, Name);
 					yield return Constant;
 				}
 			}
@@ -121,16 +129,14 @@ namespace APIDocTool
 
 	public class APIConstantVariable : APIConstant
 	{
-		public readonly DoxygenEntity Entity;
 		public readonly XmlNode Node;
 
 		public string Type;
 		public string Initializer;
 
 		public APIConstantVariable(APIPage InParent, DoxygenEntity InEntity)
-			: base(InParent, InEntity.Name)
+			: base(InParent, InEntity, InEntity.Name)
 		{
-			Entity = InEntity;
 			Node = Entity.Node;
 		}
 

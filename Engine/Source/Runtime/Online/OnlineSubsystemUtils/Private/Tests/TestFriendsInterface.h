@@ -137,5 +137,5 @@
 	 *
 	 * @param Invites list of friend ids to send invites for
 	 */
-	void Test(const TArray<FString>& Invites);
+	void Test(class UWorld* InWorld, const TArray<FString>& Invites);
  };

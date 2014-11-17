@@ -16,8 +16,13 @@ public class SharedSettingsWidgets : ModuleRules
 				"Slate",
 				"EditorStyle",
 				"SourceControl",
-				"ExternalImagePicker",
+			}
+		);
 
+		PublicDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"ExternalImagePicker",
 			}
 		);
 	}

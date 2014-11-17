@@ -85,7 +85,7 @@ namespace MemoryProfiler2
     }
 
 	/// <summary> State of total memory at a specific moment in time. </summary>
-	public enum ESliceTypes
+	public enum ESliceTypesV3
 	{
 		TotalUsed,
 		TotalAllocated,
@@ -104,34 +104,65 @@ namespace MemoryProfiler2
 		Count
 	};
 
+	public enum ESliceTypesV4
+	{
+		PlatformUsedPhysical,
+		BinnedWasteCurrent,
+		BinnedUsedCurrent,
+		BinnedSlackCurrent,
+		MemoryProfilingOverhead,
+		OverallAllocatedMemory,
+		Count
+	};
+
 	public class FMemorySlice
 	{
 		public long[] MemoryInfo = null;
 
 		public FMemorySlice( FStreamSnapshot Snapshot )
 		{
-			MemoryInfo = new long[]
+			if( FStreamToken.Version >= 4 )
 			{
-				Snapshot.MemoryAllocationStats.TotalUsed,
-				Snapshot.MemoryAllocationStats.TotalAllocated,
-				Snapshot.MemoryAllocationStats.CPUUsed,
-				Snapshot.MemoryAllocationStats.CPUSlack,
-				Snapshot.MemoryAllocationStats.CPUWaste,
-				Snapshot.MemoryAllocationStats.GPUUsed,
-				Snapshot.MemoryAllocationStats.GPUSlack,
-				Snapshot.MemoryAllocationStats.GPUWaste,
-				Snapshot.MemoryAllocationStats.OSOverhead,
-				Snapshot.MemoryAllocationStats.ImageSize,
-				Snapshot.MemoryAllocationStats.HostUsed,
-				Snapshot.MemoryAllocationStats.HostSlack,
-				Snapshot.MemoryAllocationStats.HostWaste,
-				Snapshot.AllocationSize,
-			};
+				MemoryInfo = new long[]
+				{
+					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.PlatformUsedPhysical],
+					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedWasteCurrent],
+					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedUsedCurrent],
+					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.BinnedSlackCurrent],
+					Snapshot.MemoryAllocationStats4[FMemoryAllocationStatsV4.MemoryProfilingOverhead],
+					Snapshot.AllocationSize,
+				};
+			}
+			else
+			{
+				MemoryInfo = new long[]
+				{
+					Snapshot.MemoryAllocationStats3.TotalUsed,
+					Snapshot.MemoryAllocationStats3.TotalAllocated,
+					Snapshot.MemoryAllocationStats3.CPUUsed,
+					Snapshot.MemoryAllocationStats3.CPUSlack,
+					Snapshot.MemoryAllocationStats3.CPUWaste,
+					Snapshot.MemoryAllocationStats3.GPUUsed,
+					Snapshot.MemoryAllocationStats3.GPUSlack,
+					Snapshot.MemoryAllocationStats3.GPUWaste,
+					Snapshot.MemoryAllocationStats3.OSOverhead,
+					Snapshot.MemoryAllocationStats3.ImageSize,
+					Snapshot.MemoryAllocationStats3.HostUsed,
+					Snapshot.MemoryAllocationStats3.HostSlack,
+					Snapshot.MemoryAllocationStats3.HostWaste,
+					Snapshot.AllocationSize,
+				};
+			}
 		}
 
-		public long GetSliceInfo( ESliceTypes SliceType )
+		public long GetSliceInfoV3( ESliceTypesV3 SliceType )
 		{
-			return ( MemoryInfo[( int )SliceType] );
+			return ( MemoryInfo[(int)SliceType] );
+		}
+
+		public long GetSliceInfoV4( ESliceTypesV4 SliceType )
+		{
+			return ( MemoryInfo[(int)SliceType] );
 		}
 	}
 
@@ -175,7 +206,10 @@ namespace MemoryProfiler2
 		public List<string> LoadedLevelNames = new List<string>();
 
 		/// <summary> Generic memory allocation stats. </summary>
-		public FMemoryAllocationStats MemoryAllocationStats = new FMemoryAllocationStats();
+		public FMemoryAllocationStatsV3 MemoryAllocationStats3 = new FMemoryAllocationStatsV3();
+
+		/// <summary> Generic memory allocation stats. </summary>
+		public FMemoryAllocationStatsV4 MemoryAllocationStats4 = new FMemoryAllocationStatsV4();
 
 		/// <summary> Running count of number of allocations. </summary>
 		public long AllocationCount = 0;
@@ -209,7 +243,7 @@ namespace MemoryProfiler2
 		/// <summary> Performs a deep copy of the relevant data structures. </summary>
 		public FStreamSnapshot DeepCopy( Dictionary<ulong, FCallStackAllocationInfo> PointerToPointerInfoMap )
 		{
-			// Create new snaphot object.
+			// Create new snapshot object.
 			FStreamSnapshot Snapshot = new FStreamSnapshot( "Copy" );
 
 			// Manually perform a deep copy of LifetimeCallstackList
@@ -287,7 +321,9 @@ namespace MemoryProfiler2
 					ResultSnapshot.MetricArray.Add( New.MetricArray[ CallstackIndex ] - Old.MetricArray[ CallstackIndex ] );
 				}
 
-				ResultSnapshot.MemoryAllocationStats = FMemoryAllocationStats.Diff( Old.MemoryAllocationStats, New.MemoryAllocationStats );
+				
+				ResultSnapshot.MemoryAllocationStats3 = FMemoryAllocationStatsV3.Diff( Old.MemoryAllocationStats3, New.MemoryAllocationStats3 );
+				ResultSnapshot.MemoryAllocationStats4 = FMemoryAllocationStatsV4.Diff( Old.MemoryAllocationStats4, New.MemoryAllocationStats4 );
 
 				ResultSnapshot.StreamIndex = New.StreamIndex;
 				ResultSnapshot.bIsDiffResult = true;
@@ -496,7 +532,11 @@ namespace MemoryProfiler2
 			StrBuilder.AppendLine( "Metrics: " );
 			if( MetricArray.Count > 0 )
 			{
-				if( FStreamToken.Version > 2 && MetricArray.Count == (int)ESnapshotMetricV3.Count )
+				if( FStreamToken.Version >= 4 )
+				{
+					// Just ignore
+				}
+				else if( FStreamToken.Version > 2 && MetricArray.Count == (int)ESnapshotMetricV3.Count )
 				{
 					string[] MetricNames = Enum.GetNames( typeof( ESnapshotMetricV3 ) );
 					for( int MetricIndex = 0; MetricIndex < MetricNames.Length - 1; MetricIndex++ )
@@ -523,9 +563,18 @@ namespace MemoryProfiler2
 
 			///// <summary> Generic memory allocation stats. </summary>
 			//public FMemoryAllocationStats MemoryAllocationStats = new FMemoryAllocationStats();
-			StrBuilder.AppendLine( "Memory Allocation Stats: " );
-			StrBuilder.Append( MemoryAllocationStats.ToString() );
 
+			if( FStreamToken.Version >= 4 )
+			{
+				StrBuilder.AppendLine( "Memory Allocation Stats: " );
+				StrBuilder.Append( MemoryAllocationStats4.ToString() );
+			}
+			else
+			{
+				StrBuilder.AppendLine( "Memory Allocation Stats: " );
+				StrBuilder.Append( MemoryAllocationStats3.ToString() );
+			}
+			
 			///// <summary> Running count of number of allocations. </summary>
 			//public long AllocationCount = 0;
 			StrBuilder.AppendLine( "Allocation Count: " + AllocationCount );

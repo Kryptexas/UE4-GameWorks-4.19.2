@@ -15,7 +15,7 @@ DEFINE_LOG_CATEGORY(LogCompile);
  * @param	ArgC	Command-line argument count
  * @param	ArgV	Argument strings
  */
-int32 main( int32 ArgC, char* ArgV[] )
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	FString CmdLine;
 
@@ -78,7 +78,7 @@ int32 main( int32 ArgC, char* ArgV[] )
 
 	if (GWarn->Errors.Num() > 0 || GWarn->Warnings.Num() > 0)
 	{
-		ErrorLevel = 1;
+		ErrorLevel = 2;
 	}
 
 	FEngineLoop::AppPreExit();

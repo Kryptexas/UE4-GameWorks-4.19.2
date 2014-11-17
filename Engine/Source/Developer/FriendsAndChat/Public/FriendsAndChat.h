@@ -13,8 +13,8 @@
 #include "Http.h"
 #include "Slate.h"
 #include "SlateStyle.h"
-#include "OnlineSubSystem.h"
-#include "OnlineSubSystemMcp.h"
+#include "OnlineSubsystem.h"
+#include "OnlineSubsystemMcp.h"
 
 /* Interfaces
  *****************************************************************************/

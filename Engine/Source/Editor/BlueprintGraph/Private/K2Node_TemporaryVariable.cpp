@@ -46,12 +46,26 @@ void UK2Node_TemporaryVariable::AllocateDefaultPins()
 
 FString UK2Node_TemporaryVariable::GetTooltip() const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "LocalTemporaryVariable", "Local temporary %s variable").ToString(), *UEdGraphSchema_K2::TypeToString(VariableType));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("VariableType"), UEdGraphSchema_K2::TypeToText(VariableType));
+	return FText::Format(NSLOCTEXT("K2Node", "LocalTemporaryVariable", "Local temporary {VariableType} variable"), Args).ToString();
 }
 
-FString UK2Node_TemporaryVariable::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_TemporaryVariable::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FString Result = !bIsPersistent ? NSLOCTEXT("K2Node", "LocalVariable", "Local ").ToString() : NSLOCTEXT("K2Node", "PersistentLocalVariable", "Persistent Local ").ToString();
+	FText Result = !bIsPersistent ? NSLOCTEXT("K2Node", "LocalVariable", "Local {VariableType}") : NSLOCTEXT("K2Node", "PersistentLocalVariable", "Persistent Local {VariableType}");
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("VariableType"), UEdGraphSchema_K2::TypeToText(VariableType));
+	Result = FText::Format(Result, Args);
+	return Result;
+}
+
+FString UK2Node_TemporaryVariable::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+
+	FString Result = !bIsPersistent ? TEXT("Local ") : TEXT("Persistent Local ");
 	Result += UEdGraphSchema_K2::TypeToString(VariableType);
 	return Result;
 }

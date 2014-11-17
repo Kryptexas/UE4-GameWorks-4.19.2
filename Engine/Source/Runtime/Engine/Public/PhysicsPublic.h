@@ -33,6 +33,8 @@ namespace physx
 	class PxMat44;
 	class PxCpuDispatcher;
 	class PxSimulationEventCallback;
+	struct PxActiveTransform;
+	class PxActor;
 	
 #if WITH_APEX
 	namespace apex
@@ -307,6 +309,9 @@ public:
 	/** Ends a frame */
 	ENGINE_API void EndFrame(ULineBatchComponent* LineBatcher);
 
+	/** Starts cloth Simulation*/
+	ENGINE_API void StartCloth();
+
 	/** returns the completion event for a frame */
 	FGraphEventRef GetCompletionEvent()
 	{
@@ -319,6 +324,9 @@ public:
 	/** Waits for all physics scenes to complete */
 	ENGINE_API void WaitPhysScenes();
 
+	/** Waits for cloth scene to complete */
+	ENGINE_API void WaitClothScene();
+
 	/** Fetches results, fires events, and adds debug lines */
 	void ProcessPhysScene(uint32 SceneType);
 
@@ -326,7 +334,7 @@ public:
 	void SyncComponentsToBodies(uint32 SceneType);
 
 	/** Call after WaitPhysScene on the synchronous scene to make deferred OnRigidBodyCollision calls.  */
-	void DispatchPhysCollisionNotifies();
+	void DispatchPhysNotifications();
 
 	/** Add any debug lines from the physics scene of the given type to the supplied line batcher. */
 	ENGINE_API void AddDebugLines(uint32 SceneType, class ULineBatchComponent* LineBatcherToUse);
@@ -365,6 +373,25 @@ public:
 	/** Sets a Kinematic actor's target position - We need to do this here to support substepping*/
 	void SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTM);
 
+	/** Gets the collision disable table */
+	const TMap<uint32, TMap<struct FRigidBodyIndexPair, bool> *> & GetCollisionDisableTableLookup()
+	{
+		return CollisionDisableTableLookup;
+	}
+
+	/** Adds to queue of skelmesh we want to add to collision disable table */
+	void DeferredAddCollisionDisableTable(uint32 SkelMeshCompID, TMap<struct FRigidBodyIndexPair, bool> * CollisionDisableTable);
+
+	/** Adds to queue of skelmesh we want to remove from collision disable table */
+	void DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID);
+
+#if WITH_SUBSTEPPING
+#if WITH_APEX
+	/** Adds a damage event to be fired when substepping is done */
+	void DeferredDestructibleDamageNotify(const NxApexDamageEventReportData& damageEvent);
+#endif
+#endif
+
 private:
 	/** Initialize a scene of the given type.  Must only be called once for each scene type. */
 	void InitPhysScene(uint32 SceneType);
@@ -383,12 +410,50 @@ private:
 #if WITH_PHYSX
 	/** User data wrapper passed to physx */
 	struct FPhysxUserData PhysxUserData;
+
+	/** Cache of active transforms */ //TODO: this solution is not great
+	TArray<const PxActiveTransform*> ActiveTransforms[PST_MAX];
+
+	/** Updates our cache of active transforms */
+	void UpdateActiveTransforms(uint32 SceneType);
+
+	/** When actors are destroyed they must be removed from active transforms */
+	void RemoveBodyFromActiveTransforms(PxActor * PActor, uint32 SceneType);
 #endif
 
 #if WITH_SUBSTEPPING
 	class FPhysSubstepTask * PhysSubSteppers[PST_MAX];
+
+#if WITH_APEX
+	TArray<NxApexDamageEventReportData> DestructibleDamageEventQueue;
 #endif
+#endif
+
+	struct FPendingCollisionDisableTable
+	{
+		uint32 SkelMeshCompID;
+		TMap<struct FRigidBodyIndexPair, bool>* CollisionDisableTable;
+	};
+
+	/** Updates CollisionDisableTableLookup with the deferred insertion and deletion */
+	void FlushDeferredCollisionDisableTableQueue();
+
+	/** Queue of deferred collision table insertion and deletion */
+	TArray<FPendingCollisionDisableTable> DeferredCollisionDisableTableQueue;
+
+	/** Map from SkeletalMeshComponent UniqueID to a pointer to the collision disable table inside its PhysicsAsset */
+	TMap< uint32, TMap<struct FRigidBodyIndexPair, bool>* >		CollisionDisableTableLookup;
 };
+
+#if WITH_PHYSX
+/** Struct used for passing info to the PhysX shader */
+
+struct FPhysSceneShaderInfo
+{
+	FPhysScene * PhysScene;
+};
+
+#endif
 
 // Might be handy somewhere...
 enum EKCollisionPrimitiveType
@@ -479,6 +544,22 @@ public:
 	FConvexCollisionVertexBuffer* VertexBuffer;
 	FConvexCollisionIndexBuffer* IndexBuffer;
 	FConvexCollisionVertexFactory* CollisionVertexFactory;
+
+	FKConvexGeomRenderInfo()
+	: VertexBuffer(NULL)
+	, IndexBuffer(NULL)
+	, CollisionVertexFactory(NULL)
+	{}
+
+	/** Util to see if this render info has some valid geometry to render. */
+	bool HasValidGeometry()
+	{
+		return 
+			(VertexBuffer != NULL) && 
+			(VertexBuffer->Vertices.Num() > 0) && 
+			(IndexBuffer != NULL) &&
+			(IndexBuffer->Indices.Num() > 0);
+	}
 };
 
 /**

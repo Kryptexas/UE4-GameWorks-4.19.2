@@ -43,7 +43,7 @@ private:
 
 	void UpdateBuilding();
 	
-	void TiggerGeneration();
+	void TriggerGeneration();
 
 public:
 	virtual void OnNavigationBuildingLocked() OVERRIDE;

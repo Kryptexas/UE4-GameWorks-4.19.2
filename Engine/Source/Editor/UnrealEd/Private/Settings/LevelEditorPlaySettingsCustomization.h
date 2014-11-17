@@ -224,9 +224,11 @@ protected:
 			{
 				FUIAction Action(FExecuteAction::CreateRaw(this, &SScreenResolutionCustomization::HandleCommonResolutionSelected, Iter->Width, Iter->Height));
 
+				FInternationalization& I18N = FInternationalization::Get();
+
 				FFormatNamedArguments Args;
-				Args.Add(TEXT("Width"), FText::AsNumber(Iter->Width, NULL, FInternationalization::GetInvariantCulture()));
-				Args.Add(TEXT("Height"), FText::AsNumber(Iter->Height, NULL, FInternationalization::GetInvariantCulture()));
+				Args.Add(TEXT("Width"), FText::AsNumber(Iter->Width, NULL, I18N.GetInvariantCulture()));
+				Args.Add(TEXT("Height"), FText::AsNumber(Iter->Height, NULL, I18N.GetInvariantCulture()));
 				Args.Add(TEXT("AspectRatio"), FText::FromString(Iter->AspectRatio));
 
 				MenuBuilder.AddMenuEntry(FText::FromString(Iter->Description), FText::Format(LOCTEXT("CommonResolutionFormat", "{Width} x {Height} (AspectRatio)"), Args), FSlateIcon(), Action);

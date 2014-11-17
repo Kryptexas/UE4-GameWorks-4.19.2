@@ -42,12 +42,12 @@ void SMessagingBreakpoints::Construct( const FArguments& InArgs, const TSharedRe
 								SNew(SHeaderRow)
 
 								+ SHeaderRow::Column("Name")
-									.DefaultLabel(LOCTEXT("BreakpointListNameColumnHeader", "Name").ToString())
+									.DefaultLabel(LOCTEXT("BreakpointListNameColumnHeader", "Name"))
 									.FillWidth(1.0f)
 
 								+ SHeaderRow::Column("HitCount")
-									.DefaultLabel(LOCTEXT("BreakpointListHitCountColumnHeader", "Hit Count").ToString())
-									.FixedWidth(48.0f)
+									.DefaultLabel(LOCTEXT("BreakpointListHitCountColumnHeader", "Hit Count"))
+									.FixedWidth(64.0f)
 							)
 					]
 			]

@@ -16,7 +16,11 @@ FContentBrowserSingleton::FContentBrowserSingleton()
 	// Register the tab spawners for all content browsers
 	const FSlateIcon ContentBrowserIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.TabIcon");
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
-	TSharedRef<FWorkspaceItem> ContentBrowserGroup = MenuStructure.GetToolsCategory()->AddGroup(LOCTEXT( "WorkspaceMenu_ContentBrowserCategory", "Content Browser" ), ContentBrowserIcon, true);
+	TSharedRef<FWorkspaceItem> ContentBrowserGroup = MenuStructure.GetToolsCategory()->AddGroup(
+		LOCTEXT( "WorkspaceMenu_ContentBrowserCategory", "Content Browser" ),
+		LOCTEXT( "ContentBrowserMenuTooltipText", "Open a Content Browser tab." ),
+		ContentBrowserIcon,
+		true);
 
 	for ( int32 BrowserIdx = 0; BrowserIdx < ARRAY_COUNT(ContentBrowserTabIDs); BrowserIdx++ )
 	{
@@ -27,6 +31,7 @@ FContentBrowserSingleton::FContentBrowserSingleton()
 
 		FGlobalTabmanager::Get()->RegisterNomadTabSpawner( TabID, FOnSpawnTab::CreateRaw(this, &FContentBrowserSingleton::SpawnContentBrowserTab, BrowserIdx) )
 			.SetDisplayName(DefaultDisplayName)
+			.SetTooltipText( LOCTEXT( "ContentBrowserMenuTooltipText", "Open a Content Browser tab." ) )
 			.SetGroup( ContentBrowserGroup )
 			.SetIcon(ContentBrowserIcon);
 	}
@@ -98,7 +103,7 @@ bool FContentBrowserSingleton::HasPrimaryContentBrowser() const
 	}
 }
 
-void FContentBrowserSingleton::FocusPrimaryContentBrowser()
+void FContentBrowserSingleton::FocusPrimaryContentBrowser(bool bFocusSearch)
 {
 	// See if the primary content browser is still valid
 	if ( !PrimaryContentBrowser.IsValid() )
@@ -115,11 +120,17 @@ void FContentBrowserSingleton::FocusPrimaryContentBrowser()
 		// If we couldn't find a primary content browser, open one
 		SummonNewBrowser();
 	}
+
+	// Do we also want to focus on the search box of the content browser?
+	if ( bFocusSearch && PrimaryContentBrowser.IsValid() )
+	{
+		PrimaryContentBrowser.Pin()->SetKeyboardFocusOnSearch();
+	}
 }
 
 void FContentBrowserSingleton::CreateNewAsset(const FString& DefaultAssetName, const FString& PackagePath, UClass* AssetClass, UFactory* Factory)
 {
-	FocusPrimaryContentBrowser();
+	FocusPrimaryContentBrowser(false);
 
 	if ( PrimaryContentBrowser.IsValid() )
 	{
@@ -399,9 +410,7 @@ TSharedRef<SDockTab> FContentBrowserSingleton::SpawnContentBrowserTab( const FSp
 
 	// Add wrapper for tutorial highlighting
 	TSharedRef<STutorialWrapper> Wrapper = 
-		SNew(STutorialWrapper)
-		.Name(FName(TEXT("ContentBrowser")))
-		.Content()
+		SNew( STutorialWrapper, TEXT("ContentBrowser") )
 		[
 			NewBrowser
 		];

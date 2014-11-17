@@ -40,7 +40,7 @@ void USoundClassGraphSchema::GetBreakLinkToSubMenuActions( class FMenuBuilder& M
 	for(TArray<class UEdGraphPin*>::TConstIterator Links(InGraphPin->LinkedTo); Links; ++Links)
 	{
 		UEdGraphPin* Pin = *Links;
-		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
 		FText Title = FText::FromString( TitleString );
 		if ( Pin->PinName != TEXT("") )
 		{
@@ -80,7 +80,7 @@ void USoundClassGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Co
 	const FText Name = LOCTEXT("NewSoundClass", "New Sound Class");
 	const FText ToolTip = LOCTEXT("NewSoundClassTooltip", "Create a new sound class");
 	
-	TSharedPtr<FSoundClassGraphSchemaAction_NewNode> NewAction(new FSoundClassGraphSchemaAction_NewNode(TEXT(""), Name.ToString(), ToolTip.ToString(), 0));
+	TSharedPtr<FSoundClassGraphSchemaAction_NewNode> NewAction(new FSoundClassGraphSchemaAction_NewNode(TEXT(""), Name, ToolTip.ToString(), 0));
 
 	ContextMenuBuilder.AddAction( NewAction );
 }

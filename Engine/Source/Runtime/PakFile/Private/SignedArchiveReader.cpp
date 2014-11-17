@@ -11,6 +11,10 @@
 #include "SignedArchiveReader.h"
 #include "PublicKey.inl"
 
+DECLARE_CYCLE_STAT( TEXT( "FChunkCacheWorker.ProcessQueue" ), STAT_FChunkCacheWorker_ProcessQueue, STATGROUP_PakFile );
+DECLARE_CYCLE_STAT( TEXT( "FChunkCacheWorker.CheckSignature" ), STAT_FChunkCacheWorker_CheckSignature, STATGROUP_PakFile );
+DECLARE_CYCLE_STAT( TEXT( "FSignedArchiveReader.Serialize" ), STAT_SignedArchiveReader_Serialize, STATGROUP_PakFile );
+
 FChunkCacheWorker::FChunkCacheWorker(FArchive* InReader)
 	: Reader(InReader)
 	, QueuedRequestsEvent(NULL)
@@ -105,6 +109,8 @@ void FChunkCacheWorker::ReleaseBuffer(int32 ChunkIndex)
 
 int32 FChunkCacheWorker::ProcessQueue()
 {
+	SCOPE_CYCLE_COUNTER( STAT_FChunkCacheWorker_ProcessQueue );
+
 	// Add the queue to the active requests list
 	{
 		FScopeLock LockQueue(&QueueLock);	
@@ -171,6 +177,8 @@ void FChunkCacheWorker::Decrypt(uint8* DecryptedData, const int256* Data, const 
 
 bool FChunkCacheWorker::CheckSignature(const FChunkRequest& ChunkInfo)
 {
+	SCOPE_CYCLE_COUNTER( STAT_FChunkCacheWorker_CheckSignature );
+
 	FSignature Signature;
 	Reader->Seek(ChunkInfo.Offset);
 	Reader->Serialize(ChunkInfo.Buffer->Data, ChunkInfo.Size);
@@ -320,6 +328,8 @@ void FSignedArchiveReader::PrecacheChunks(TArray<FSignedArchiveReader::FReadInfo
 
 void FSignedArchiveReader::Serialize(void* Data, int64 Length)
 {
+	SCOPE_CYCLE_COUNTER( STAT_SignedArchiveReader_Serialize );
+
 	// First make sure the chunks we're going to read are actually cached.
 	TArray<FReadInfo> QueuedChunks;
 	PrecacheChunks(QueuedChunks, Length);

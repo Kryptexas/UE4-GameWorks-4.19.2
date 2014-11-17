@@ -8,35 +8,48 @@
 // FOnlineSubsystemAmazonModule
 IMPLEMENT_MODULE(FOnlineSubsystemAmazonModule, OnlineSubsystemAmazon);
 
+/**
+ * Class responsible for creating instance(s) of the subsystem
+ */
+class FOnlineFactoryAmazon : public IOnlineFactory
+{
+public:
+
+	FOnlineFactoryAmazon() {}
+	virtual ~FOnlineFactoryAmazon() {}
+
+	virtual IOnlineSubsystemPtr CreateSubsystem(FName InstanceName)
+	{
+		FOnlineSubsystemAmazonPtr OnlineSub = MakeShareable(new FOnlineSubsystemAmazon());
+		if (OnlineSub->IsEnabled())
+		{
+			if(!OnlineSub->Init())
+			{
+				UE_LOG(LogOnline, Warning, TEXT("Amazon API failed to initialize!"));
+				OnlineSub->Shutdown();
+				OnlineSub = NULL;
+			}
+		}
+		else
+		{
+			UE_LOG(LogOnline, Warning, TEXT("Amazon API disabled!"));
+			OnlineSub->Shutdown();
+			OnlineSub = NULL;
+		}
+
+		return OnlineSub;
+	}
+};
+
 void FOnlineSubsystemAmazonModule::StartupModule()
 {
 	UE_LOG(LogOnline, Log, TEXT("Amazon Startup!"));
 
-	bool bSuccess = false;
-	// Create and register our singleton factory with the main online subsystem for easy access
-	FOnlineSubsystemAmazon* OnlineSubsystem = FOnlineSubsystemAmazon::Create();
-	if (OnlineSubsystem->IsEnabled())
-	{
-		if (OnlineSubsystem->Init())
-		{
-			FOnlineSubsystemModule& OSS = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>("OnlineSubsystem");
-			OSS.RegisterPlatformService(AMAZON_SUBSYSTEM, OnlineSubsystem);
-			bSuccess = true;
-		}
-		else
-		{
-			UE_LOG(LogOnline, Warning, TEXT("Amazon API failed to initialize!"));
-		}
-	}
-	else
-	{
-		UE_LOG(LogOnline, Warning, TEXT("Amazon API disabled!"));
-	}
+	AmazonFactory = new FOnlineFactoryAmazon();
 
-	if (!bSuccess)
-	{
-		FOnlineSubsystemAmazon::Destroy();
-	}
+	// Create and register our singleton factory with the main online subsystem for easy access
+	FOnlineSubsystemModule& OSS = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>("OnlineSubsystem");
+	OSS.RegisterPlatformService(AMAZON_SUBSYSTEM, AmazonFactory);
 }
 
 void FOnlineSubsystemAmazonModule::ShutdownModule()
@@ -45,7 +58,9 @@ void FOnlineSubsystemAmazonModule::ShutdownModule()
 
 	FOnlineSubsystemModule& OSS = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>("OnlineSubsystem");
 	OSS.UnregisterPlatformService(AMAZON_SUBSYSTEM);
-	FOnlineSubsystemAmazon::Destroy();
+	
+	delete AmazonFactory;
+	AmazonFactory = NULL;
 }
 
 IOnlineIdentityPtr FOnlineSubsystemAmazon::GetIdentityInterface() const
@@ -82,26 +97,9 @@ FString FOnlineSubsystemAmazon::GetAppId() const
 	return TEXT("Amazon");
 }
 
-bool FOnlineSubsystemAmazon::Exec(const TCHAR* Cmd, FOutputDevice& Ar)
+bool FOnlineSubsystemAmazon::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) 
 {
 	return false;
-}
-
-FOnlineSubsystemAmazon* FOnlineSubsystemAmazon::AmazonSingleton = NULL;
-
-FOnlineSubsystemAmazon* FOnlineSubsystemAmazon::Create()
-{
-	if (AmazonSingleton == NULL)
-	{
-		AmazonSingleton = new FOnlineSubsystemAmazon();
-	}
-	return AmazonSingleton;
-}
-
-void FOnlineSubsystemAmazon::Destroy()
-{
-	delete AmazonSingleton;
-	AmazonSingleton = NULL;
 }
 
 bool FOnlineSubsystemAmazon::IsEnabled(void)

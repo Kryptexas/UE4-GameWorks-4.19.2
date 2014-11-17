@@ -14,9 +14,9 @@ namespace TutorialConstants
 	const float MaxBorderOffset = 8.0f;
 }
 
-void STutorialWrapper::Construct( const FArguments& InArgs )
+void STutorialWrapper::Construct( const FArguments& InArgs, const FName& InName )
 {
-	Name = InArgs._Name;
+	Name = InName;
 
 	BorderIntroAnimation.AddCurve(0.0f, TutorialConstants::BorderIntroAnimationLength, ECurveEaseFunction::CubicOut);
 	BorderPulseAnimation.AddCurve(0.0f, TutorialConstants::BorderPulseAnimationLength, ECurveEaseFunction::Linear);
@@ -53,7 +53,9 @@ void STutorialWrapper::Tick( const FGeometry& AllottedGeometry, const double InC
 
 int32 STutorialWrapper::OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	if(OnWidgetHighlightDelegate.IsBound() && OnWidgetHighlightDelegate.Execute(Name))
+	bool IsVisible = !( CachedGeometry.Size.X == 0 || CachedGeometry.Size.Y == 0 );
+
+	if ( OnWidgetHighlightDelegate.IsBound() && OnWidgetHighlightDelegate.Execute(Name) && IsVisible )
 	{
 		float AlphaFactor;
 		float PulseFactor;

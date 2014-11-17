@@ -145,10 +145,19 @@ class ENGINE_API UBlackboardComponent : public UActorComponent
 	void SetValueAsVector(const FName& KeyName, FVector VectorValue);
 	void SetValueAsVector(uint8 KeyID, const FVector& VectorValue);
 
+	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	void ClearValueAsVector(const FName& KeyName);
+	void ClearValueAsVector(uint8 KeyID);
+
 	/** return false if call failed (most probably no such entry in BB) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|Blackboard")
 	bool GetLocationFromEntry(const FName& KeyName, FVector& ResultLocation) const;
 	bool GetLocationFromEntry(uint8 KeyID, FVector& ResultLocation) const;
+
+	/** return false if call failed (most probably no such entry in BB) */
+	UFUNCTION(BlueprintCallable, Category="Blackboard")
+	bool GetRotationFromEntry(const FName& KeyName, FRotator& ResultRotation) const;
+	bool GetRotationFromEntry(uint8 KeyID, FRotator& ResultRotation) const;
 
 	/** get pointer to raw data for given key */
 	FORCEINLINE uint8* GetKeyRawData(const FName& KeyName) { return GetKeyRawData(GetKeyID(KeyName)); }

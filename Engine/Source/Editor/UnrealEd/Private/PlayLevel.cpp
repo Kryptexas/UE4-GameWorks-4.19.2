@@ -141,7 +141,7 @@ void UEditorEngine::EndPlayMap()
 		GUnrealEd->UpdateFloatingPropertyWindows();
 
 		// Clean up any pie actors being referenced 
-		GEngine->BroadcastLevelActorsChanged();
+		GEngine->BroadcastLevelActorListChanged();
 	}
 
 	// Lose the EditorWorld pointer (this is only maintained while PIEing)
@@ -341,7 +341,14 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	{
 		GetAudioDevice()->Flush( PlayWorld );
 		GetAudioDevice()->ResetInterpolation();
+		GetAudioDevice()->OnEndPIE(bIsSimulatingInEditor);
+		GetAudioDevice()->TransientMasterVolume = 1.0f;
 	}
+
+	// Clean up all streaming levels
+	PlayWorld->bIsLevelStreamingFrozen = false;
+	PlayWorld->bShouldForceUnloadStreamingLevels = true;
+	PlayWorld->FlushLevelStreaming();
 
 	// cleanup refs to any duplicated streaming levels
 	for ( int32 LevelIndex=0; LevelIndex<PlayWorld->StreamingLevels.Num(); LevelIndex++ )
@@ -374,11 +381,6 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 			}
 		}
 	}
-
-	// Clean up all streaming levels
-	PlayWorld->bIsLevelStreamingFrozen = false;
-	PlayWorld->bShouldForceUnloadStreamingLevels = true;
-	PlayWorld->FlushLevelStreaming();
 
 	// Construct a list of editors that are active for objects being debugged. We will refresh these when we have cleaned up to ensure no invalid objects exist in them
 	TArray< IBlueprintEditor* > Editors;
@@ -680,10 +682,6 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 {
 	const bool bWantSimulateInEditor = bIsSimulateInEditorQueued;
 
-	// note that we no longer have a queued request
-	bIsPlayWorldQueued = false;
-	bIsSimulateInEditorQueued = false;
-
 	//ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
 	//PlaySettings->LastExecutedPlayModeType = PlayMode;
 
@@ -713,6 +711,12 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 				// Listen server counts as a client
 				NumClients++;
 			}
+		}
+		
+		if(!bPlayOnLocalPcSession && !bStartMovieCapture && PlayInSettings->PlayNetMode == PIE_Client)
+		{
+			// Editor counts as a client
+			NumClients++;
 		}
 
 		// Spawn number of clients
@@ -763,6 +767,10 @@ void UEditorEngine::StartQueuedPlayMapRequest()
 			PlayInEditor( GetEditorWorldContext().World(), bWantSimulateInEditor );
 		}
 	}
+
+	// note that we no longer have a queued request
+	bIsPlayWorldQueued = false;
+	bIsSimulateInEditorQueued = false;
 }
 
 /* Temporarily renames streaming levels for pie saving */
@@ -779,12 +787,14 @@ public:
 				ULevelStreaming* StreamingLevel = InWorld->StreamingLevels[LevelIndex];
 				if ( StreamingLevel )
 				{
+					PreviousStreamingPackageNames.Add( StreamingLevel->PackageName );
 					const FString StreamingLevelPackageName = FString::Printf(TEXT("%s%s/%s%s"), *AutosavePackagePrefix, *FPackageName::GetLongPackagePath( StreamingLevel->PackageName.ToString() ), *MapnamePrefix, *FPackageName::GetLongPackageAssetName( StreamingLevel->PackageName.ToString() ));
-					PreviousStreamingPackageNames.Add( StreamingLevel->PackageNameToLoad );
-					StreamingLevel->PackageNameToLoad = FName(*StreamingLevelPackageName);
+					StreamingLevel->PackageName = FName(*StreamingLevelPackageName);
 				}
 			}
 		}
+
+		World->StreamingLevelsPrefix = MapnamePrefix;
 	}
 
 	~FScopedRenameStreamingLevels()
@@ -798,10 +808,12 @@ public:
 				ULevelStreaming* StreamingLevel = World->StreamingLevels[LevelIndex];
 				if ( StreamingLevel )
 				{
-					StreamingLevel->PackageNameToLoad = PreviousStreamingPackageNames[LevelIndex];
+					StreamingLevel->PackageName = PreviousStreamingPackageNames[LevelIndex];
 				}
 			}
 		}
+
+		World->StreamingLevelsPrefix.Empty();
 	}
 private:
 	TWeakObjectPtr<UWorld> World;
@@ -810,7 +822,7 @@ private:
 
 
 void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
-{
+	{
 	UWorld* World = GWorld;
 
 	// check if PersistentLevel has any external references
@@ -863,7 +875,7 @@ void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
 	{
 		World->DestroyActor(PlayerStart);
 	}
-
+	
 	if (bSavedWorld)
 	{
 		// Convert the filenames into map names
@@ -902,7 +914,7 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 	TArray<FString> SavedMapNames;
 	if (MapNameOverride.IsEmpty())
 	{
-		FWorldContext& EditorContext = GetEditorWorldContext();
+		FWorldContext & EditorContext = GetEditorWorldContext();
 		if (EditorContext.World()->WorldComposition)
 		{
 			// Open world composition from original folder
@@ -914,6 +926,10 @@ void UEditorEngine::PlayOnLocalPc(FString MapNameOverride, FString URLParms, FSt
 		{
 			SaveWorldForPlay(SavedMapNames);
 		}
+	}
+	else
+	{
+		SavedMapNames.Add(MapNameOverride);
 	}
 
 	if (SavedMapNames.Num() == 0)
@@ -1080,7 +1096,7 @@ static void HandleLaunchCompleted(bool Succeeded, bool* bPlayUsingLauncher, TWea
 		TGraphTask<FLauncherNotificationTask>::CreateTask().ConstructAndDispatchWhenReady(
 			NotificationItemPtr,
 			SNotificationItem::CS_Fail,
-			LOCTEXT("LauncherTaskCompleted", "Launch failed!!")
+			LOCTEXT("LauncherTaskFailed", "Launch failed!!")
 			);
 	}
 	*bPlayUsingLauncher = false;
@@ -1109,11 +1125,11 @@ void UEditorEngine::PlayUsingLauncher()
 		bool bHasCode = GameProjectModule.Get().GetProjectCodeFileCount() > 0;
 
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
-		LauncherProfile->SetBuildGame(bHasCode && FSourceCodeNavigation::IsCompilerAvailable());
+		LauncherProfile->SetBuildGame((bHasCode && FSourceCodeNavigation::IsCompilerAvailable()) || !FRocketSupport::IsRocket());
 		LauncherProfile->SetCookMode(ELauncherProfileCookModes::ByTheBook);
 		LauncherProfile->AddCookedPlatform(PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@"))));
-        LauncherProfile->SetForceClose(true);
-        LauncherProfile->SetTimeout(60);
+		LauncherProfile->SetForceClose(true);
+		LauncherProfile->SetTimeout(60);
 
 		// Run the same version of the cooker that the editor is compiled as
 #if UE_BUILD_DEBUG
@@ -1135,7 +1151,7 @@ void UEditorEngine::PlayUsingLauncher()
 		LauncherProfile->SetLaunchMode(ELauncherProfileLaunchModes::DefaultRole);
 
 		TArray<FString> MapNames;
-		FWorldContext& EditorContext = GetEditorWorldContext();
+		FWorldContext & EditorContext = GetEditorWorldContext();
 		if (EditorContext.World()->WorldComposition)
 		{
 			// Open world composition from original folder
@@ -1148,7 +1164,7 @@ void UEditorEngine::PlayUsingLauncher()
 		{
 			SaveWorldForPlay(MapNames);
 		}
-
+	
 		FString InitialMapName;
 		if (MapNames.Num() > 0)
 		{
@@ -1159,7 +1175,7 @@ void UEditorEngine::PlayUsingLauncher()
 
 		for (const FString& MapName : MapNames)
 		{
-			LauncherProfile->AddCookedMap(MapName);
+		LauncherProfile->AddCookedMap(MapName);
 		}
 
 		ILauncherPtr Launcher = LauncherServicesModule.CreateLauncher();
@@ -1254,9 +1270,22 @@ void UEditorEngine::PlayForMovieCapture()
 		//set fps
 		EditorCommandLine += FString::Printf(TEXT(" -BENCHMARK -FPS=%d"), GEditor->MatineeCaptureFPS);
 	
-		if (GEditor->MatineeCaptureType == 1)
+		if (GEditor->MatineeCaptureType.GetValue() != EMatineeCaptureType::AVI)
 		{
 			EditorCommandLine += FString::Printf(TEXT(" -MATINEESSCAPTURE=%s"), *GEngine->MatineeCaptureName);//*GEditor->MatineeNameForRecording);
+
+			switch(GEditor->MatineeCaptureType.GetValue())
+			{
+			case EMatineeCaptureType::BMP:
+				EditorCommandLine += TEXT(" -MATINEESSFORMAT=BMP");
+				break;
+			case EMatineeCaptureType::PNG:
+				EditorCommandLine += TEXT(" -MATINEESSFORMAT=PNG");
+				break;
+			case EMatineeCaptureType::JPEG:
+				EditorCommandLine += TEXT(" -MATINEESSFORMAT=JPEG");
+				break;
+			}
 
 			// If buffer visualization dumping is enabled, we need to tell capture process to enable it too
 			static const auto CVarDumpFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFrames"));
@@ -1272,7 +1301,6 @@ void UEditorEngine::PlayForMovieCapture()
 		}
 					
 		EditorCommandLine += FString::Printf(TEXT(" -MATINEEPACKAGE=%s"), *GEngine->MatineePackageCaptureName);//*GEditor->MatineePackageNameForRecording);
-		EditorCommandLine += FString::Printf(TEXT(" -VISIBLEPACKAGES=%s"), *GEngine->VisibleLevelsForMatineeCapture);
 	
 		if (GEditor->bCompressMatineeCapture == 1)
 		{
@@ -1538,6 +1566,36 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 				{
 					UBlueprint* Blueprint = *BlueprintIt;
 
+					int32 CurrItIndex = BlueprintIt.GetIndex();
+					// gather dependencies so we can ensure that they're getting recompiled as well
+					TArray<UBlueprint*> Dependencies;
+					FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, Dependencies);
+					// if the user made a change, but didn't hit "compile", then dependent blueprints
+					// wouldn't have been marked dirty, so here we make sure to add those dependencies 
+					// to the end of the BlueprintsToRecompile array (so we hit them too in this loop)
+					for (auto DependencyIt = Dependencies.CreateIterator(); DependencyIt; ++DependencyIt)
+					{
+						UBlueprint* DependentBp = *DependencyIt;
+
+						int32 ExistingIndex = BlueprintsToRecompile.Find(DependentBp);
+						// if this dependent blueprint is already set up to compile 
+						// later in this loop, then there is no need to add it to be recompiled again
+						if (ExistingIndex >= CurrItIndex)
+						{
+							continue;
+						}
+
+						// if this blueprint wasn't slated to  be recompiled
+						if (ExistingIndex == INDEX_NONE)
+						{
+							// we need to make sure this gets recompiled as well 
+							// (since it depends on this other one that is dirty)
+							BlueprintsToRecompile.Add(DependentBp);
+						}
+						// else this is a circular dependency... it has previously been compiled
+						// ... is there a case where we'd want to recompile this again?
+					}
+
 					// Cache off the dirty flag for the package, so we can restore it later
 					UPackage* Package = Cast<UPackage>(Blueprint->GetOutermost());
 					const bool bIsPackageDirty = Package ? Package->IsDirty() : false;
@@ -1656,11 +1714,17 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	{
 		GetAudioDevice()->Flush( EditorWorld );
 		GetAudioDevice()->ResetInterpolation();
+		GetAudioDevice()->OnBeginPIE(bInSimulateInEditor);
 	}
 	EditorWorld->bAllowAudioPlayback = false;
 
 	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
 	int32 PIEInstance = 0;
+
+	if (!PlayInSettings->EnableSound && GetAudioDevice())
+	{
+		GetAudioDevice()->TransientMasterVolume = 0.0f;
+	}
 
 	if (!GEditor->bAllowMultiplePIEWorlds)
 	{
@@ -1778,7 +1842,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 
 	// Establish World Context for PIE World
 	PieWorldContext.LastURL.Map = WorldPackageName;
-	PieWorldContext.PIEPrefix = FString::Printf(TEXT("UEDPIE_%d_"), PieWorldContext.PIEInstance);
+	PieWorldContext.PIEPrefix = UWorld::BuildPIEPackagePrefix(PieWorldContext.PIEInstance);
 
 	const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 
@@ -2033,6 +2097,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew( SOverlay );
 				PieViewportWidget = 
 					SNew( SViewport )
+						.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 						.EnableGammaCorrection( false )// Gamma correction in the game is handled in post processing in the scene renderer
 						[
 							ViewportOverlayWidgetRef
@@ -2119,10 +2184,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 		PlayWorld->NavigateTo(PlayWorld->GlobalOriginOffset);
 	}
 	
-	if (PlayWorld->GetNavigationSystem() != NULL)
-	{
-		PlayWorld->GetNavigationSystem()->OnWorldInitDone(PieWorldContext.GamePlayers.Num() > 0 ? NavigationSystem::PIEMode : NavigationSystem::SimulationMode);
-	}
+	UNavigationSystem::InitializeForWorld(PlayWorld, PieWorldContext.GamePlayers.Num() > 0 ? NavigationSystem::PIEMode : NavigationSystem::SimulationMode);
 
 	EditorWorld->TransferBlueprintDebugReferences(PlayWorld);
 
@@ -2173,7 +2235,7 @@ UWorld* UEditorEngine::CreatePlayInEditorWorld(FWorldContext &PieWorldContext, b
 	GUnrealEd->UpdateFloatingPropertyWindows();
 
 	// Clean up any editor actors being referenced 
-	GEngine->BroadcastLevelActorsChanged();
+	GEngine->BroadcastLevelActorListChanged();
 
 	
 	// Auto connect to a local instance if necessary
@@ -2439,7 +2501,7 @@ bool UEditorEngine::PackageUsingExternalObjects( ULevel* LevelToCheck, bool bAdd
 UWorld* UEditorEngine::CreatePIEWorldBySavingToTemp(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName)
 {
 	double StartTime = FPlatformTime::Seconds();
-	UWorld* LoadedWorld = NULL;
+	UWorld * LoadedWorld = NULL;
 
 	// We haven't saved it off yet
 	TArray<FString> SavedMapNames;
@@ -2491,11 +2553,10 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	UWorld* CurrentWorld = InWorld;
 	UWorld* NewPIEWorld = NULL;
 	
-	const FString Prefix = PLAYWORLD_PACKAGE_PREFIX;
 	const FString WorldPackageName = InPackage->GetName();
 
 	// Preserve the old path keeping EditorWorld name the same
-	PlayWorldMapName = FString::Printf(TEXT("%s/%s_%d_%s"), *FPackageName::GetLongPackagePath(WorldPackageName), *Prefix, WorldContext.PIEInstance, *FPackageName::GetLongPackageAssetName(WorldPackageName) );
+	PlayWorldMapName = UWorld::ConvertToPIEPackageName(WorldPackageName, WorldContext.PIEInstance);
 
 	// Display a busy cursor while we prepare the PIE world
 	const FScopedBusyCursor BusyCursor;
@@ -2533,6 +2594,8 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 			SDO_DuplicateForPie		// bDuplicateForPIE
 			) );
 
+		// Store prefix we used to rename this world and streaming levels package names
+		NewPIEWorld->StreamingLevelsPrefix = UWorld::BuildPIEPackagePrefix(WorldContext.PIEInstance);
 		// Fixup model components. The index buffers have been created for the components in the EditorWorld and the order
 		// in which components were post-loaded matters. So don't try to guarantee a particular order here, just copy the
 		// elements over.
@@ -2587,7 +2650,10 @@ UWorld* UEditorEngine::CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWor
 	// Create the world
 	UWorld *LoadedWorld = UWorld::CreateWorld( EWorldType::PIE, false );
 	check(LoadedWorld);
-
+	if (LoadedWorld->GetOutermost() != GetTransientPackage())
+	{
+		LoadedWorld->GetOutermost()->PIEInstanceID = WorldContext.PIEInstance;
+	}
 	// Force default GameMode class so project specific code doesn't fire off. 
 	// We want this world to truly remain empty while we wait for connect!
 	check(LoadedWorld->GetWorldSettings());
@@ -2599,7 +2665,7 @@ UWorld* UEditorEngine::CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWor
 
 bool UEditorEngine::WorldIsPIEInNewViewport(UWorld *InWorld)
 {
-	FWorldContext &WorldContext = WorldContextFromWorld(InWorld);
+	FWorldContext &WorldContext = GetWorldContextFromWorldChecked(InWorld);
 	if (WorldContext.WorldType == EWorldType::PIE)
 	{
 		FSlatePlayInEditorInfo * SlateInfoPtr = SlatePlayInEditorMap.Find(WorldContext.ContextHandle);

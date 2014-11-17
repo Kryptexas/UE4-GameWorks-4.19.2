@@ -80,7 +80,7 @@ private:
 	void SummonTutorialHome();
 
 	/** Summon blueprint tutorial home page to front */
-	void SummonBlueprintTutorialHome(UObject* Asset);
+	void SummonBlueprintTutorialHome(UObject* Asset, bool bForceWelcome);
 
 	/** Event to be called when Tutorial window is closed. */
 	void OnTutorialWindowClosed(const TSharedRef<SWindow>& Window);
@@ -102,8 +102,8 @@ private:
 	/** Events to call when SDK isn't installed */
 	void HandleSDKNotInstalled(const FString& PlatformName, const FString& DocLink);
 
-	void MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties);
-	void MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName);
+	bool MaybeOpenWelcomeTutorial(const FWelcomeTutorialProperties& TutorialProperties);
+	bool MaybeOpenWelcomeTutorial(const FString& TutorialPath, const FString& ConfigSettingName);
 	void ResetWelcomeTutorials() const;
 
 	template< typename KeyType >
@@ -112,6 +112,7 @@ private:
 	bool HasSeenTutorial(const FWelcomeTutorialProperties& TutProps) const;
 
 	FWelcomeTutorialProperties const* ChooseBlueprintWelcomeTutorial(UObject* BlueprintObject);
+	FWelcomeTutorialProperties const* ChooseBlueprintWelcomeTutorial(UObject* BlueprintObject, bool bForceWelcome);
 	FWelcomeTutorialProperties const* FindAssetEditorTutorialProperties(UClass const* Class) const;
 
 	FString AnalyticsEventNameFromTutorialPath(const FString& TutorialPath) const;
@@ -148,8 +149,8 @@ private:
 
 	TMap<FName, FWelcomeTutorialProperties> EditorModeTutorialPropertyMap;
 
-	/** Whether to show the home button */
-	bool bShowHome;
+	/** The current object we are using as a basis for displaying a tutorial */
+	UClass* CurrentObjectClass;
 
 	bool bEnablePostTutorialSurveys;
 

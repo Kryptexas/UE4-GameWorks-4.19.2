@@ -21,11 +21,15 @@ class UMaterialExpressionSceneDepth : public UMaterialExpression
 	* UV coordinates to apply to the scene depth lookup or 
 	* an offset to apply to the scene depth lookup, in a 2d fraction of the screen.
 	*/
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstInput' if not specified"))
 	FExpressionInput Input;
 
 	UPROPERTY()
 	FExpressionInput Coordinates_DEPRECATED;
+
+	/** only used if Input is not hooked up */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionSceneDepth)
+	FVector2D ConstInput;
 
 	// Begin UObject interface.
 	virtual void PostLoad() OVERRIDE;

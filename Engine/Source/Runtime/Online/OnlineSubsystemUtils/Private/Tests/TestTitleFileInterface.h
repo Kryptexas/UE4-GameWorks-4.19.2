@@ -7,7 +7,7 @@
 class FTestTitleFileInterface
 {
 public:
-	void Test();
+	void Test(class UWorld* InWorld);
 
 	/**
 	 * Sets the subsystem name to test

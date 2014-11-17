@@ -6,7 +6,7 @@
 
 const FVector2D FTabManager::FallbackWindowSize( 1000, 600 );
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogTabManager, Display, All);
 
 #define LOCTEXT_NAMESPACE "TabManager"
 
@@ -666,7 +666,7 @@ void FTabManager::PopulateTabSpawnerMenu_Helper( FMenuBuilder& PopulateMe, FPopu
 				{
 					PopulateMe.AddSubMenu(
 						ChildItem->GetDisplayName(),
-						FText::GetEmpty(),
+						ChildItem->GetTooltipText(),
 						FNewMenuDelegate::CreateRaw( this, &FTabManager::PopulateTabSpawnerMenu_Helper, Payload ),
 						false,
 						ChildItem->GetIcon()
@@ -687,7 +687,7 @@ void FTabManager::MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedP
 	{
 		PopulateMe.AddMenuEntry(
 			SpawnerNode->GetDisplayName().IsEmpty() ? FText::FromName( SpawnerNode->TabType ) : SpawnerNode->GetDisplayName(),
-			FText::GetEmpty(),
+			SpawnerNode->GetTooltipText(),
 			SpawnerNode->GetIcon(),
 			FUIAction(
 			FExecuteAction::CreateSP(SharedThis(this), &FTabManager::InvokeTabForMenu, SpawnerNode->TabType),
@@ -781,7 +781,7 @@ TSharedRef<SDockTab> FTabManager::InvokeTab( const FTabId& TabId )
 {
 	TSharedRef<SDockTab> NewTab = InvokeTab_Internal( TabId );
 	TSharedPtr<SWindow> ParentWindowPtr = NewTab->GetParentWindow();
-	if (ParentWindowPtr.IsValid() && ParentWindowPtr != FGlobalTabmanager::Get()->GetRootWindow())
+	if ((NewTab->GetTabRole() == ETabRole::MajorTab || NewTab->GetTabRole() == ETabRole::NomadTab) && ParentWindowPtr.IsValid() && ParentWindowPtr != FGlobalTabmanager::Get()->GetRootWindow())
 	{
 		ParentWindowPtr->SetTitle( NewTab->GetTabLabel() );
 	}
@@ -812,7 +812,7 @@ TSharedRef<SDockTab> FTabManager::InvokeTab_Internal( const FTabId& TabId )
 
 	if ( !Spawner.IsValid() )
 	{
-		UE_LOG(LogAnalytics, Warning, TEXT("Cannot spawn tab because no spawner is registered for '%s'"), *(TabId.ToString()));
+		UE_LOG(LogTabManager, Warning, TEXT("Cannot spawn tab because no spawner is registered for '%s'"), *(TabId.ToString()));
 	}
 	else
 	{	
@@ -908,7 +908,7 @@ void FTabManager::InsertDocumentTab( FName PlaceholderId, ESearchPreference::Typ
 			TSharedPtr<SDockingTabStack> StackToSpawnIn = FindPotentiallyClosedTab( PlaceholderId );
 			if( StackToSpawnIn.IsValid() == false )
 			{
-				UE_LOG(LogAnalytics, Warning, TEXT("Unable to insert tab '%s'."), *(PlaceholderId.ToString()));
+				UE_LOG(LogTabManager, Warning, TEXT("Unable to insert tab '%s'."), *(PlaceholderId.ToString()));
 				LiveTab = InvokeTab_Internal( FTabId( PlaceholderId ) );
 				LiveTab->GetParent()->GetParentDockTabStack()->OpenTab( UnmanagedTab );
 			}
@@ -978,7 +978,7 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 		{
 			WidgetToActivate->ActivateInParent(ETabActivationCause::SetDirectly);
 
-			if (ParentWindow.IsValid() && ParentWindow != FGlobalTabmanager::Get()->GetRootWindow())
+			if ((WidgetToActivate->GetTabRole() == ETabRole::MajorTab || WidgetToActivate->GetTabRole() == ETabRole::NomadTab) && ParentWindow.IsValid() && ParentWindow != FGlobalTabmanager::Get()->GetRootWindow())
 			{
 				ParentWindow->SetTitle(WidgetToActivate->GetTabLabel());
 			}
@@ -1004,7 +1004,7 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 			const bool bAutoPlacement = (NodeAsArea->WindowPlacement == FArea::Placement_Automatic);
 			TSharedRef<SWindow> NewWindow = (bAutoPlacement)
 				? SNew(SWindow)
-					.AutoCenter( EAutoCenter::PrimaryWorkArea )
+					.AutoCenter( EAutoCenter::PreferredWorkArea )
 					.ClientSize( NodeAsArea->WindowSize )
 					.CreateTitleBar( false )
 					.IsInitiallyMaximized( NodeAsArea->bIsMaximized )

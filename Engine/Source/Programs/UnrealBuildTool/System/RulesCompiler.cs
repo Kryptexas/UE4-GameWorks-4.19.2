@@ -313,11 +313,20 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bUsesSlateEditorStyle = false;
 
+        /// <summary>
+        // By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
+        // Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
+        // our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
+        // it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
+        // so that you can debug your program's code.
+        /// </summary>
+        public bool bDebugBuildsActuallyUseDebugCRT = false;
+
 		/// <summary>
 		/// A list of additional plugins which need to be built for this target. Game and editor targets can use the EnabledPlugins 
 		/// setting in their config files to control this.
 		/// </summary>
-		public List<string> AdditionalPlugins = new List<string>();
+		public List<string> AdditionalPlugins = new List<string>();		
 
 		/// <summary>
 		/// Is the given type a 'game' type (Game/Editor/Server) wrt building?
@@ -363,8 +372,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Type of target
 		/// </summary>
-		public TargetType Type = TargetType.Game;
-
+		public TargetType Type = TargetType.Game;		
 
 		/// <summary>
 		/// The name of this target's 'configuration' within the development IDE.  No project may have more than one target with the same configuration name.
@@ -445,6 +453,12 @@ namespace UnrealBuildTool
 
 		public bool SupportsPlatform(UnrealTargetPlatform InPlatform)
 		{
+			// Win32 is not supported by the editor.
+			if (IsEditorType(Type) && InPlatform == UnrealTargetPlatform.Win32)
+			{
+				return false;
+			}
+
 			List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
 			if (GetSupportedPlatforms(ref SupportedPlatforms) == true)
 			{
@@ -536,10 +550,28 @@ namespace UnrealBuildTool
         /// Return true if this target should always be built with the tools. Usually programs like unrealpak.
         /// </summary>
         /// <returns>true if this target should always be built with the base editor.</returns>
-        public virtual bool GUBP_AlwaysBuildWithTools()
+        public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly)
         {
+            bInternalToolOnly = false;
             return false;
         }
+        /// <summary>
+        /// Return a list of platforms to build a tool for
+        /// </summary>
+        /// <returns>a list of platforms to build a tool for</returns>
+        public virtual List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)
+        {
+            return new List<UnrealTargetPlatform> { InHostPlatform };
+        }
+        /// <summary>
+        /// Return a list of configs to build a tool for
+        /// </summary>
+        /// <returns>a list of configs to build a tool for</returns>
+        public virtual List<UnrealTargetConfiguration> GUBP_ToolConfigs(UnrealTargetPlatform InHostPlatform)
+        {
+            return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development };
+        }
+
         /// <summary>
         /// Return true if this target should use a platform specific pass
         /// </summary>
@@ -608,12 +640,14 @@ namespace UnrealBuildTool
         /// <summary>
         /// Return a list of "test name", "UAT command" pairs for testing the editor
         /// </summary>
-        public virtual Dictionary<string, string> GUBP_GetEditorTests_EditorTypeOnly()
+        public virtual Dictionary<string, string> GUBP_GetEditorTests_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
         {
+            var MacOption = HostPlatform == UnrealTargetPlatform.Mac ? " -Mac" : "";
             var Result = new Dictionary<string, string>();
-            Result.Add("EditorTest", "BuildCookRun -run -editortest -unattended -nullrhi -NoP4");
-            Result.Add("EditorAutomationTest", "BuildCookRun -run -editortest -RunAutomationTests -unattended -nullrhi -NoP4");
-            Result.Add("GameAutomationTest", "BuildCookRun -run -RunAutomationTests -unattended -nullrhi -NoP4");
+            Result.Add("EditorTest", "BuildCookRun -run -editortest -unattended -nullrhi -NoP4" + MacOption);
+            Result.Add("GameTest", "BuildCookRun -run -unattended -nullrhi -NoP4" + MacOption);
+            Result.Add("EditorAutomationTest", "BuildCookRun -run -editortest -RunAutomationTests -unattended -nullrhi -NoP4" + MacOption);
+            Result.Add("GameAutomationTest", "BuildCookRun -run -RunAutomationTests -unattended -nullrhi -NoP4" + MacOption);
             return Result;
         }
         /// <summary>
@@ -659,46 +693,6 @@ namespace UnrealBuildTool
             }
             return Result;
         }
-
-		/// <summary>
-		/// Various metadata properties about the target (like some per-platform IDs, etc). It's a map of a string to an object (string, array, etc), and
-		/// it's up to the user of the metadata to get the right type
-		/// </summary>
-		public Dictionary<string, object> TargetMetadata = new Dictionary<string,object>();
-
-		/// <summary>
-		/// Return the raw object for the given key, or null
-		/// </summary>
-		public object GetMetadata(string Key)
-		{
-			if (TargetMetadata.ContainsKey(Key))
-			{
-				return TargetMetadata[Key];
-			}
-			return null;
-		}
-
-		/// <summary>
-		/// Some helper functions to cast the object to a specific type
-		/// </summary>
-		public string GetMetadataAsString(string Key)
-		{
-			object Value = GetMetadata(Key);
-			if (Value != null && Value is string)
-			{
-				return Value as string;
-			}
-			return null;
-		}
-		public string[] GetMetadataAsStringArray(string Key)
-		{
-			object Value = GetMetadata(Key);
-			if (Value != null && Value is string[])
-			{
-				return Value as string[];
-			}
-			return null;
-		}
 	}
 
 
@@ -1141,7 +1135,7 @@ namespace UnrealBuildTool
 			// Make sure the module file is known to us
 			if( !ModuleNameToModuleFileMap.ContainsKey( ModuleName ) )
 			{
-				throw new BuildException( "Couldn't find module rules file for module '{0}'.", ModuleName );
+				throw new MissingModuleException( ModuleName );
 			}
 
 			// Return the module file name to the caller

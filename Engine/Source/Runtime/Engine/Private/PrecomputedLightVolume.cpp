@@ -28,6 +28,11 @@ FArchive& operator<<(FArchive& Ar, FVolumeLightingSample& Sample)
 		Ar << Sample.Lighting;
 	}
 
+	if (Ar.UE4Ver() >= VER_UE4_SKY_BENT_NORMAL)
+	{
+		Ar << Sample.PackedSkyBentNormal;
+	}
+
 	if (Ar.UE4Ver() >= VER_UE4_VOLUME_SAMPLE_LOW_QUALITY_SUPPORT)
 	{
 		Ar << Sample.DirectionalLightShadowing;
@@ -251,7 +256,8 @@ void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
 		const FVector& WorldPosition, 
 		float& AccumulatedWeight,
 		float& AccumulatedDirectionalLightShadowing,
-		FSHVectorRGB2& AccumulatedIncidentRadiance) const
+		FSHVectorRGB2& AccumulatedIncidentRadiance,
+		FVector& SkyBentNormal) const
 {
 	// Handle being called on a NULL volume, which can happen for a newly created level,
 	// Or a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
@@ -276,6 +282,7 @@ void FPrecomputedLightVolume::InterpolateIncidentRadiancePoint(
 				const float SampleWeight = (1.0f - DistanceSquared * InvRadiusSquared) * InvRadiusSquared;
 				// Accumulate weighted results and the total weight for normalization later
 				AccumulatedIncidentRadiance += VolumeSample.Lighting * SampleWeight;
+				SkyBentNormal += VolumeSample.GetSkyBentNormalUnpacked() * SampleWeight;
 				AccumulatedDirectionalLightShadowing += VolumeSample.DirectionalLightShadowing * SampleWeight;
 				AccumulatedWeight += SampleWeight;
 			}
@@ -290,7 +297,8 @@ void FPrecomputedLightVolume::InterpolateIncidentRadianceBlock(
 	const FIntVector& DestCellDimensions,
 	const FIntVector& DestCellPosition,
 	TArray<float>& AccumulatedWeights,
-	TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance) const
+	TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
+	TArray<FVector>& AccumulatedSkyBentNormal) const
 {
 	// Handle being called on a NULL volume, which can happen for a newly created level,
 	// Or a volume that hasn't been initialized yet, which can happen if lighting hasn't been built yet.
@@ -334,6 +342,7 @@ void FPrecomputedLightVolume::InterpolateIncidentRadianceBlock(
 							const float SampleWeight = (1.0f - DistanceSquared / RadiusSquared) / RadiusSquared;
 							// Accumulate weighted results and the total weight for normalization later
 							AccumulatedIncidentRadiance[LinearIndex] += VolumeSample.Lighting * SampleWeight;
+							AccumulatedSkyBentNormal[LinearIndex] += VolumeSample.GetSkyBentNormalUnpacked() * SampleWeight;
 							AccumulatedWeights[LinearIndex] += SampleWeight;
 						}
 					}
@@ -392,18 +401,6 @@ SIZE_T FPrecomputedLightVolume::GetAllocatedBytes() const
 	}
 
 	return NodeBytes;
-}
-
-/**
- * Specialization for LightVolumeOctree elements
- */
-template<>
-void ElementsApplyOffset(const FVector& InOffset, FLightVolumeOctree::ElementArrayType& Elements)
-{
-	for (int32 i = 0; i < Elements.Num(); ++i)
-	{
-		Elements[i].Position+= InOffset;
-	}
 }
 
 void FPrecomputedLightVolume::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)

@@ -266,8 +266,8 @@ void FSurvey::EvaluateBranches()
 				// Remove the branch survey pages from the survey.
 				struct FRemovePred
 				{
-					FRemovePred( TSharedPtr< FSurvey > OldBranchSurvey )
-						: Pages(OldBranchSurvey->GetPages())
+					FRemovePred( TSharedPtr< FSurvey > InOldBranchSurvey )
+						: Pages(InOldBranchSurvey->GetPages())
 					{
 					}
 					bool operator()( const TSharedPtr<FSurveyPage>& InPage ) const

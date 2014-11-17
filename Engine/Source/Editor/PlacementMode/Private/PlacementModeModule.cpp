@@ -15,7 +15,6 @@ public:
 	{
 		PlacementMode = FPlacementMode::Create();
 		GEditorModeTools().RegisterMode( PlacementMode.ToSharedRef() );
-		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Default);
 		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Bsp);
 		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Geometry);
 		GEditorModeTools().RegisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_InterpEdit);
@@ -34,7 +33,6 @@ public:
 	{
 		if ( PlacementMode.IsValid() )
 		{
-			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Default);
 			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Bsp);
 			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_Geometry);
 			GEditorModeTools().UnregisterCompatibleModes(PlacementMode->GetID(), FBuiltinEditorModes::EM_InterpEdit);

@@ -214,6 +214,7 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 				{
 					if( StopAfterHorizontalOffset < CurrentX )
 					{
+						//LastWholeCharacterBeforeOffset is an inclusive index
 						--CharIndex;
 						if ( CharIndex < StartIndex )
 						{
@@ -233,6 +234,16 @@ FVector2D FSlateFontMeasure::MeasureStringInternal( const FString& Text, int32 S
 
 	Size.X = MaxLineWidth;
 	Size.Y = StringSizeY;
+
+	if (CharIndexFormat == ELastCharacterIndexFormat::LastWholeCharacterBeforeOffset)
+	{
+		if (CharIndex >= EndIndex)
+		{
+			//LastWholeCharacterBeforeOffset is an inclusive index
+			CharIndex = EndIndex - 1;
+		}
+	}
+
 	OutLastCharacterIndex = CharIndex;
 
 #if USE_MEASURE_CACHING

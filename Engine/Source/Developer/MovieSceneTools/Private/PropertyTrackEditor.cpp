@@ -31,7 +31,7 @@ public:
 	FPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: SectionObject( InSectionObject )
 	{
-		DisplayName = EngineUtils::SanitizeDisplayName( SectionName.ToString(), false );
+		DisplayName = FName::NameToDisplayString( SectionName.ToString(), false );
 	}
 
 	/** ISequencerSection interface */

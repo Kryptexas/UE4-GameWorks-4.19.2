@@ -39,6 +39,9 @@ static const int32_t AxisList[] =
     //AMOTION_EVENT_AXIS_HAT_Y,
 };
 
+// map of all supported keycodes
+static TSet<uint16> MappedKeyCodes;
+
 // -nostdlib means no crtbegin_so.o, so we have to provide our own __dso_handle and atexit()
 extern "C"
 {
@@ -49,6 +52,9 @@ extern "C"
 }
 
 extern void AndroidThunkCpp_ShowConsoleWindow();
+
+// Base path for file accesses
+extern FString GFilePathBase;
 
 /** The global EngineLoop instance */
 FEngineLoop	GEngineLoop;
@@ -119,7 +125,7 @@ static void InitCommandLine()
 	FCommandLine::Set(TEXT(""));
 
 	// read in the command line text file from the sdcard if it exists
-	FString CommandLineFilePath = FString("/mnt/sdcard/") + (GGameName[0] ? GGameName : TEXT("UE4Game")) + FString("/UE4CommandLine.txt");
+	FString CommandLineFilePath = GFilePathBase + FString("/") + (GGameName[0] ? GGameName : TEXT("UE4Game")) + FString("/UE4CommandLine.txt");
 	FILE* CommandLineFile = fopen(TCHAR_TO_UTF8(*CommandLineFilePath), "r");
 	if(CommandLineFile == NULL)
 	{
@@ -149,6 +155,9 @@ static void InitCommandLine()
 int32 AndroidMain(struct android_app* state)
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"Entered AndroidMain()");
+
+	// Force the first call to GetJavaEnv() to happen on the game thread, allowing subsequent calls to occur on any thread
+	GetJavaEnv();
 
 	// adjust the file descriptor limits to allow as many open files as possible
 	rlimit cur_fd_limit;
@@ -187,6 +196,16 @@ int32 AndroidMain(struct android_app* state)
 		{
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Controller interface UNsupported\n"));
 		}
+	}
+
+	// setup key filtering
+	static const uint32 MAX_KEY_MAPPINGS(256);
+	uint16 KeyCodes[MAX_KEY_MAPPINGS];
+	uint32 NumKeyCodes = FPlatformMisc::GetKeyMap(KeyCodes, nullptr, MAX_KEY_MAPPINGS);
+
+	for (int i = 0; i < NumKeyCodes; ++i)
+	{
+		MappedKeyCodes.Add(KeyCodes[i]);
 	}
 
 	// read the command line file
@@ -240,6 +259,9 @@ static void* AndroidEventThreadWorker( void* param )
 {
 	struct android_app* state = (struct android_app*)param;
 
+	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
+	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
+
 	FPlatformMisc::LowLevelOutputDebugString(L"Entering event processing thread engine entry point");
 
 	ALooper* looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
@@ -286,8 +308,8 @@ static void AndroidProcessEvents(struct android_app* state)
 		// process this event
 		if (source)
 			source->process(state, source);
+		}
 	}
-}
 
 pthread_t G_AndroidEventThread;
 
@@ -312,6 +334,9 @@ void android_main(struct android_app* state)
 //Called from the event process thread
 static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 {
+//	FPlatformMisc::LowLevelOutputDebugStringf(L"INPUT - type: %x, action: %x, source: %x, keycode: %x, buttons: %x", AInputEvent_getType(event), 
+//		AMotionEvent_getAction(event), AInputEvent_getSource(event), AKeyEvent_getKeyCode(event), AMotionEvent_getButtonState(event));
+
 	if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION)
 	{
 		int action = AMotionEvent_getAction(event);
@@ -366,7 +391,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			ANativeWindow* Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
 			if (!Window)
 			{
-				return 1;
+				return 0;
 			}
 
 			int32_t Width = 0 ;
@@ -392,7 +417,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 				float y = FMath::Min<float>(AMotionEvent_getY(event, actionPointer) / Height, 1.f);
 				y *= (ScreenRect.Bottom - 1);
 
-//  				UE_LOG(LogAndroid, Log, TEXT("Received targeted motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), actionPointer, pointerId, action, x, y);
+				UE_LOG(LogAndroid, Verbose, TEXT("Received targeted motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), actionPointer, pointerId, action, x, y);
 
 				TouchInput TouchMessage;
 				TouchMessage.Handle = pointerId;
@@ -412,7 +437,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 					float y = FMath::Min<float>(AMotionEvent_getY(event, i) / Height, 1.f);
 					y *= (ScreenRect.Bottom - 1);
 
-//  					UE_LOG(LogAndroid, Log, TEXT("Received motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), i, action, AMotionEvent_getPointerId(event,i), x, y);
+					UE_LOG(LogAndroid, Verbose, TEXT("Received motion event from pointer %u (id %d) action %d: (%.2f, %.2f)"), i, action, AMotionEvent_getPointerId(event,i), x, y);
 
 					TouchInput TouchMessage;
 					TouchMessage.Handle = AMotionEvent_getPointerId(event, i);
@@ -426,7 +451,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			FAndroidInputInterface::QueueTouchInput(TouchesArray);
 
 #if !UE_BUILD_SHIPPING
-			if(pointerCount >= 4)
+			if ((pointerCount >= 4) && (type == TouchBegan))
 			{
 				GShowConsoleWindowNextTick = true;
 			}
@@ -440,7 +465,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 		int keyCode = AKeyEvent_getKeyCode(event);
 
 		//Trap Joystick events first, with fallthrough if there is no joystick support
-		if (((AInputEvent_getSource(event) & AINPUT_SOURCE_CLASS_JOYSTICK) != 0) && (GetAxes != NULL))
+		if (((AInputEvent_getSource(event) & (AINPUT_SOURCE_GAMEPAD | AINPUT_SOURCE_DPAD)) != 0) && (GetAxes != NULL))
 		{
 			int device = AInputEvent_getDeviceId(event);
 			bool down = AKeyEvent_getAction(event) != AKEY_EVENT_ACTION_UP;
@@ -450,6 +475,12 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 		else
 		{
 			FPlatformMisc::LowLevelOutputDebugStringf(L"Received key event: %d", keyCode);
+
+			// only handle mapped key codes
+			if (!MappedKeyCodes.Contains(keyCode))
+			{
+				return 0;
+			}
 
 			FDeferredAndroidMessage Message;
 

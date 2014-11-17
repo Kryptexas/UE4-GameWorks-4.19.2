@@ -30,6 +30,11 @@ bool FDocumentation::OpenHome() const
 	return Open( TEXT("%ROOT%") );
 }
 
+bool FDocumentation::OpenHome(const TSharedRef<FCulture>& Culture) const
+{
+	return Open(TEXT("%ROOT%"), Culture);
+}
+
 bool FDocumentation::OpenAPIHome() const
 {
 	FString APIPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Documentation/CHM/API.chm"));
@@ -50,29 +55,63 @@ bool FDocumentation::Open( const FString& Link ) const
 {
 	FString DocumentationUrl;
 
-	if( !FParse::Param( FCommandLine::Get(), TEXT("testdocs") ) )
+	if (!FParse::Param(FCommandLine::Get(), TEXT("testdocs")))
 	{
-		const FString OnDiskPath = FDocumentationLink::ToFilePath(Link);
+		FString OnDiskPath = FDocumentationLink::ToFilePath(Link);
 		if (IFileManager::Get().FileSize(*OnDiskPath) != INDEX_NONE)
 		{
 			DocumentationUrl = FDocumentationLink::ToFileUrl(Link);
 		}
 	}
 
-	if( DocumentationUrl.IsEmpty() )
+	if (DocumentationUrl.IsEmpty())
 	{
-		DocumentationUrl = FDocumentationLink::ToUrl( Link );
+		// When opening a doc website we always request the most ideal culture for our documentation.
+		// The DNS will redirect us if necessary.
+		DocumentationUrl = FDocumentationLink::ToUrl(Link);
 	}
 
-	if( !DocumentationUrl.IsEmpty() )
+	if (!DocumentationUrl.IsEmpty())
 	{
-		FPlatformProcess::LaunchURL( *DocumentationUrl, NULL, NULL );
+		FPlatformProcess::LaunchURL(*DocumentationUrl, NULL, NULL);
 	}
 
-	if( !DocumentationUrl.IsEmpty() && FEngineAnalytics::IsAvailable() )
+	if (!DocumentationUrl.IsEmpty() && FEngineAnalytics::IsAvailable())
 	{
-		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Documentation"), TEXT("OpenedPage"), Link );
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Documentation"), TEXT("OpenedPage"), Link);
 	}
+
+	return !DocumentationUrl.IsEmpty();
+}
+
+bool FDocumentation::Open(const FString& Link, const TSharedRef<FCulture>& Culture) const
+{
+	FString DocumentationUrl;
+
+	if (!FParse::Param(FCommandLine::Get(), TEXT("testdocs")))
+	{
+		FString OnDiskPath = FDocumentationLink::ToFilePath(Link, Culture);
+		if (IFileManager::Get().FileSize(*OnDiskPath) != INDEX_NONE)
+		{
+			DocumentationUrl = FDocumentationLink::ToFileUrl(Link, Culture);
+		}
+	}
+
+	if (DocumentationUrl.IsEmpty())
+	{
+		DocumentationUrl = FDocumentationLink::ToUrl(Link, Culture);
+	}
+
+	if (!DocumentationUrl.IsEmpty())
+	{
+		FPlatformProcess::LaunchURL(*DocumentationUrl, NULL, NULL);
+	}
+
+	if (!DocumentationUrl.IsEmpty() && FEngineAnalytics::IsAvailable())
+	{
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.Documentation"), TEXT("OpenedPage"), Link);
+	}
+
 	return !DocumentationUrl.IsEmpty();
 }
 
@@ -114,8 +153,20 @@ bool FDocumentation::PageExists(const FString& Link) const
 		return true;
 	}
 
-	const FString SourcePath = FDocumentationLink::ToSourcePath(Link, true);
-	return !SourcePath.IsEmpty();
+	const FString SourcePath = FDocumentationLink::ToSourcePath(Link);
+	return FPaths::FileExists(SourcePath);
+}
+
+bool FDocumentation::PageExists(const FString& Link, const TSharedRef<FCulture>& Culture) const
+{
+	const TWeakPtr< IDocumentationPage >* ExistingPagePtr = LoadedPages.Find(Link);
+	if (ExistingPagePtr != NULL)
+	{
+		return true;
+	}
+
+	const FString SourcePath = FDocumentationLink::ToSourcePath(Link, Culture);
+	return FPaths::FileExists(SourcePath);
 }
 
 TSharedRef< class SToolTip > FDocumentation::CreateToolTip( const TAttribute<FText>& Text, const TSharedPtr<SWidget>& OverrideContent, const FString& Link, const FString& ExcerptName ) const

@@ -19,10 +19,8 @@ void UK2Node_TransitionRuleGetter::AllocateDefaultPins()
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-	FString FriendlyName = GetFriendlyName(GetterType);
-
 	UEdGraphPin* OutputPin = CreatePin(EGPD_Output, Schema->PC_Float, /*PSC=*/ TEXT(""), /*PSC object=*/ NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, TEXT("Output"));
-	OutputPin->PinFriendlyName = FriendlyName;
+	OutputPin->PinFriendlyName = GetFriendlyName(GetterType);
 
 	PreloadObject(AssociatedAnimAssetPlayerNode);
 	PreloadObject(AssociatedStateNode);
@@ -30,7 +28,7 @@ void UK2Node_TransitionRuleGetter::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_TransitionRuleGetter::GetFriendlyName(ETransitionGetter::Type TypeID)
+FText UK2Node_TransitionRuleGetter::GetFriendlyName(ETransitionGetter::Type TypeID)
 {
 	FText FriendlyName;
 	switch (TypeID)
@@ -67,17 +65,19 @@ FString UK2Node_TransitionRuleGetter::GetFriendlyName(ETransitionGetter::Type Ty
 		break;
 	}
 
-	return FriendlyName.ToString();
+	return FriendlyName;
 }
 
-FString UK2Node_TransitionRuleGetter::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_TransitionRuleGetter::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (AssociatedAnimAssetPlayerNode != NULL)
 	{
 		UAnimationAsset* BoundAsset = AssociatedAnimAssetPlayerNode->GetAnimationAsset();
 		if (BoundAsset)
 		{
-			return  FString::Printf(*LOCTEXT("AnimationAssetInfoGetterTitle", "%s Asset").ToString(), *BoundAsset->GetName());
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("BoundAsset"), FText::FromString(BoundAsset->GetName()));
+			return  FText::Format(LOCTEXT("AnimationAssetInfoGetterTitle", "{BoundAsset} Asset"), Args);
 		}
 	}
 	else if (AssociatedStateNode != NULL)
@@ -86,25 +86,61 @@ FString UK2Node_TransitionRuleGetter::GetNodeTitle(ENodeTitleType::Type TitleTyp
 		{
 			const FString OwnerName = State->GetOuter()->GetName();
 
-			return FString::Printf(*LOCTEXT("StateInfoGetterTitle", "%s.%s State").ToString(), *OwnerName, *(State->GetStateName()));
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("OwnerName"), FText::FromString(OwnerName));
+			Args.Add(TEXT("StateName"), FText::FromString(State->GetStateName()));
+			return FText::Format(LOCTEXT("StateInfoGetterTitle", "{OwnerName}.{StateName} State"), Args);
 		}
 	}
 	else if (GetterType == ETransitionGetter::CurrentTransitionDuration)
 	{
-		return LOCTEXT("TransitionDuration", "Transition").ToString();
+		return LOCTEXT("TransitionDuration", "Transition");
 	}
 	else if (GetterType == ETransitionGetter::CurrentState_ElapsedTime ||
 			 GetterType == ETransitionGetter::CurrentState_GetBlendWeight)
 	{
-		return LOCTEXT("CurrentState", "Current State").ToString();
+		return LOCTEXT("CurrentState", "Current State");
 	}
 
 	return Super::GetNodeTitle(TitleType);
 }
 
+FString UK2Node_TransitionRuleGetter::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	if (AssociatedAnimAssetPlayerNode != NULL)
+	{
+		UAnimationAsset* BoundAsset = AssociatedAnimAssetPlayerNode->GetAnimationAsset();
+		if (BoundAsset)
+		{
+			return  FString::Printf(TEXT("%s Asset"), *BoundAsset->GetName());
+		}
+	}
+	else if (AssociatedStateNode != NULL)
+	{
+		if (UAnimStateNode* State = Cast<UAnimStateNode>(AssociatedStateNode))
+		{
+			const FString OwnerName = State->GetOuter()->GetName();
+
+			return FString::Printf(TEXT("%s.%s State"), *OwnerName, *(State->GetStateName()));
+		}
+	}
+	else if (GetterType == ETransitionGetter::CurrentTransitionDuration)
+	{
+		return TEXT("Transition");
+	}
+	else if (GetterType == ETransitionGetter::CurrentState_ElapsedTime ||
+		GetterType == ETransitionGetter::CurrentState_GetBlendWeight)
+	{
+		return TEXT("Current State");
+	}
+
+	return Super::GetNodeNativeTitle(TitleType);
+}
+
 FString UK2Node_TransitionRuleGetter::GetTooltip() const
 {
-	return GetNodeTitle(ENodeTitleType::FullTitle);
+	return GetNodeTitle(ENodeTitleType::FullTitle).ToString();
 }
 
 UEdGraphPin* UK2Node_TransitionRuleGetter::GetOutputPin() const

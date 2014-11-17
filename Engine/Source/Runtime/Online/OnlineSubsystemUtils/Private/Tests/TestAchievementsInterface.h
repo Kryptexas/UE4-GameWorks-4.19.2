@@ -19,12 +19,6 @@
 	/** The online interface to use for testing */
 	IOnlineAchievementsPtr OnlineAchievements;
 
-	/** Delegate called when we have read/failed to read the achievements from the server */
-	FOnAchievementsReadDelegate OnAchievementsReadDelegate;
-
-	/** Delegate called when we have read/failed to read the achievement descriptions from the server */
-	FOnAchievementDescriptionsReadDelegate OnAchievementDescriptionsReadDelegate;
-
 	/** Delegate called when we have wrote/failed to write achievements to the server */
 	FOnAchievementsWrittenDelegate OnAchievementsWrittenDelegate;
 
@@ -54,12 +48,12 @@
 	 * @param PlayerId The player id who is responsible for this delegate being fired
 	 * @param bWasSuccessful true if the server responded successfully to the request
 	 */
-	void OnAchievementsRead(const FUniqueNetId& PlayerId, bool bWasSuccessful);
+	void OnQueryAchievementsComplete(const FUniqueNetId& PlayerId, const bool bWasSuccessful);
 	
 	/**
 	 * Test the OSS capacity to read achievement descriptions from a server
 	 */
-	void ReadAchievementDescriptions();
+	void QueryAchievementDescriptions(const FUniqueNetId& PlayerId);
 
 	/**
 	 * Called when the read achievement descriptions request from the server is complete
@@ -67,7 +61,7 @@
 	 * @param PlayerId The player id who is responsible for this delegate being fired
 	 * @param bWasSuccessful true if the server responded successfully to the request
 	 */
-	void OnAchievementDescriptionsRead(const FUniqueNetId& PlayerId, bool bWasSuccessful);
+	void OnQueryAchievementDescriptionsComplete(const FUniqueNetId& PlayerId, const bool bWasSuccessful);
 
 	/**
 	 * Test the OSS capacity to write achievementsto the server. We will write one that completes an achievement
@@ -99,8 +93,6 @@
 	FTestAchievementsInterface(const FString& InSubsystemName)
 		: SubsystemName(InSubsystemName)
 		, OnlineAchievements(NULL)
-		, OnAchievementsReadDelegate(FOnAchievementsReadDelegate::CreateRaw(this, &FTestAchievementsInterface::OnAchievementsRead))
-		, OnAchievementDescriptionsReadDelegate( FOnAchievementDescriptionsReadDelegate::CreateRaw(this, &FTestAchievementsInterface::OnAchievementDescriptionsRead))
 		, OnAchievementsWrittenDelegate( FOnAchievementsWrittenDelegate::CreateRaw(this, &FTestAchievementsInterface::OnAchievementsWritten))
 		, OnAchievementUnlockedDelegate(FOnAchievementUnlockedDelegate::CreateRaw(this, &FTestAchievementsInterface::OnAchievementsUnlocked))
 	{
@@ -109,5 +101,5 @@
 	/**
 	 * Kicks off all of the testing process
 	 */
-	void Test(void);
+	void Test(class UWorld* InWorld);
  };

@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-#ifndef __FILEHELPERS_H__
-#define __FILEHELPERS_H__
+#pragma once
 
 #include "ISourceControlProvider.h"
 
@@ -326,6 +324,15 @@ public:
 	 */
 	UNREALED_API static bool IsMapPackageAsset(const FString& ObjectPath);
 
+	/**
+	* Helper function used to decide whether a package name is a map package or not. Map packages aren't added to the additional package list.
+	*
+	* @param	ObjectPath		The path to the package to test
+	* @param	MapFilePath		OUT parameter that returns the map file path if it exists.
+	* @return					True if package is a map
+	*/
+	UNREALED_API static bool IsMapPackageAsset(const FString& ObjectPath, FString& MapFilePath);
+
 	/** 
 	 * Helper function used to extract the package name from the object path
 	 *
@@ -344,5 +351,3 @@ private:
 	static TSet<FString> PackagesNotSavedDuringSaveAll;
 
 };
-
-#endif

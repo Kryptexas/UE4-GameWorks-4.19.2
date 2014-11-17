@@ -163,7 +163,7 @@ void FAssetTypeActions_SoundWave::ExecuteOpenInExternalEditor(TArray<TWeakObject
 			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->SourceFilePath, Object);
 			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
 			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath );
+				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath, NULL, ELaunchVerb::Edit );
 			}
 		}
 	}

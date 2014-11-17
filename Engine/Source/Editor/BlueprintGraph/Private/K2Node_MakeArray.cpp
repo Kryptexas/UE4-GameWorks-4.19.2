@@ -81,9 +81,9 @@ FNodeHandlingFunctor* UK2Node_MakeArray::CreateNodeHandler(FKismetCompilerContex
 	return new FKCHandler_MakeArray(CompilerContext);
 }
 
-FString UK2Node_MakeArray::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_MakeArray::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return LOCTEXT("NodeTitle", "Make Array").ToString();
+	return LOCTEXT("NodeTitle", "Make Array");
 }
 
 UEdGraphPin* UK2Node_MakeArray::GetOutputPin() const
@@ -206,6 +206,16 @@ void UK2Node_MakeArray::PropagatePinType()
 
 	if (OutputPin)
 	{
+		UClass const* CallingContext = NULL;
+		if (UBlueprint const* Blueprint = GetBlueprint())
+		{
+			CallingContext = Blueprint->GeneratedClass;
+			if (CallingContext == NULL)
+			{
+				CallingContext = Blueprint->ParentClass;
+			}
+		}
+
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 		bool bWantRefresh = false;
 		// Propagate pin type info (except for array info!) to pins with dependent types
@@ -224,7 +234,7 @@ void UK2Node_MakeArray::PropagatePinType()
 				for (TArray<UEdGraphPin*>::TIterator ConnectionIt(CurrentPin->LinkedTo); ConnectionIt; ++ConnectionIt)
 				{
 					UEdGraphPin* ConnectedPin = *ConnectionIt;
-					if (!Schema->ArePinsCompatible(CurrentPin, ConnectedPin))
+					if (!Schema->ArePinsCompatible(CurrentPin, ConnectedPin, CallingContext))
 					{
 						CurrentPin->BreakLinkTo(ConnectedPin);
 					}

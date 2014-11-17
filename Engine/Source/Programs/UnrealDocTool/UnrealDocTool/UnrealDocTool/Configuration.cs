@@ -77,6 +77,9 @@ namespace UnrealDocTool
                 () => Language.Message("ParamDescLang", string.Join(", ", supportedLanguages)),
                 groupDescDir);
 
+            LinksToAllLangs = new Flag(
+                "linksToAllLangs", "Links to all langs", () => Language.Message("ParamDescLinksToAllLangs"), groupDescDir);
+
             if (runningGUI)
             {
                 PublishFlagsParam.Parse(User.Default.SupportedAvailability);
@@ -132,6 +135,7 @@ namespace UnrealDocTool
                         PublishFlagsParam,
                         OutputFormatParam,
                         LangParam,
+                        LinksToAllLangs,
                         TemplateParam,
                         OutputParam,
                         SourceParam,
@@ -158,6 +162,7 @@ namespace UnrealDocTool
         public EnumParam<OutputFormat> OutputFormatParam { get; private set; }
         public EnumParam<LocalizationLanguage> LocParam { get; private set; }
         public MultipleChoiceParam LangParam { get; private set; }
+        public Flag LinksToAllLangs { get; private set; }
         public StringParam TemplateParam { get; private set; }
         public StringParam OutputParam { get; private set; }
         public StringParam SourceParam { get; private set; }

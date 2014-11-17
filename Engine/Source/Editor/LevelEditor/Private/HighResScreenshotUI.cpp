@@ -184,6 +184,20 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 							.Image(FEditorStyle::GetBrush("HighresScreenshot.FullViewportCaptureRegion"))
 						]
 					]
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Right)
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.ToolTipText(NSLOCTEXT("HighResScreenshot", "ScreenshotCameraSafeAreaCaptureRegionTooltip", "Set the capture rectangle to the attached camera safe area (only enabled when the viewport is locked to a camera actor)"))
+						.Visibility(this, &SHighResScreenshotDialog::GetCaptureRegionControlsVisibility)
+						.OnClicked(this, &SHighResScreenshotDialog::OnSetCameraSafeAreaCaptureRegionClicked)
+						.IsEnabled(this, &SHighResScreenshotDialog::IsSetCameraSafeAreaCaptureRegionEnabled)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("HighresScreenshot.CameraSafeAreaCaptureRegion"))
+						]
+					]
 					+SHorizontalBox::Slot()
 						// for padding
 					+SHorizontalBox::Slot()
@@ -208,56 +222,63 @@ void SHighResScreenshotDialog::Construct( const FArguments& InArgs )
 void SHighResScreenshotDialog::WindowClosedHandler(const TSharedRef<SWindow>& InWindow)
 {
 	FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
-	if (CurrentDialog.IsValid())
+
+	ResetViewport();
+
+	// Cleanup the config after each usage as it is a static and we don't want it to keep pointers or settings around between runs.
+	Config.bDisplayCaptureRegion = false;
+	Config.ChangeViewport(TWeakPtr<FSceneViewport>());
+	CurrentWindow.Reset();
+	CurrentDialog.Reset();
+}
+
+void SHighResScreenshotDialog::ResetViewport()
+{
+	FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
+	auto CurrentDialogPinned = CurrentDialog.Pin();
+	auto ConfigViewport = Config.TargetViewport.Pin();
+
+	if (CurrentDialogPinned.IsValid())
 	{
-		TSharedPtr<SCaptureRegionWidget> CaptureRegionWidget = CurrentDialog.Pin()->GetCaptureRegionWidget();
+		// Deactivate capture region widget from old viewport
+		TSharedPtr<SCaptureRegionWidget> CaptureRegionWidget = CurrentDialogPinned->GetCaptureRegionWidget();
 		if (CaptureRegionWidget.IsValid())
 		{
 			CaptureRegionWidget->Deactivate(false);
 		}
 
-		// Restore mask visualization state from before window was opened
-		if (Config.TargetViewport &&
-			Config.TargetViewport->GetClient() &&
-			Config.TargetViewport->GetClient()->GetEngineShowFlags())
+		if (ConfigViewport.IsValid())
 		{
-			Config.TargetViewport->GetClient()->GetEngineShowFlags()->HighResScreenshotMask = bMaskVisualizationWasEnabled;
+			// Restore mask visualization state from before window was opened
+			if (ConfigViewport->GetClient() &&
+				ConfigViewport->GetClient()->GetEngineShowFlags())
+			{
+				ConfigViewport->GetClient()->GetEngineShowFlags()->HighResScreenshotMask = bMaskVisualizationWasEnabled;
+			}
 		}
 	}
-
-	// Cleanup the config after each usage as it is a static and we don't want it to keep pointers or settings around between runs.
-	Config.bDisplayCaptureRegion = false;
-	Config.ChangeViewport(NULL);
-	CurrentWindow.Reset();
-	CurrentDialog.Reset();
 }
 
-bool SHighResScreenshotDialog::IsOpen()
+TWeakPtr<class SWindow> SHighResScreenshotDialog::OpenDialog(const TSharedPtr<FSceneViewport>& InViewport, TSharedPtr<SCaptureRegionWidget> InCaptureRegionWidget)
 {
-	return CurrentWindow.IsValid();
-}
-
-TWeakPtr<class SWindow> SHighResScreenshotDialog::OpenDialog(UWorld* InWorld, FViewport* InViewport, TSharedPtr<SCaptureRegionWidget> InCaptureRegionWidget)
-{
-	// If there is already a UI window open and pointing at a different viewport, close it
 	FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
-	if (IsOpen() && InViewport != Config.TargetViewport)
+	auto ConfigViewport = Config.TargetViewport.Pin();
+	auto CurrentWindowPinned = CurrentWindow.Pin();
+
+	bool bInitializeDialog = false;
+
+	if (CurrentWindowPinned.IsValid())
 	{
-		if (CurrentWindow.IsValid())
+		// Dialog window is already open - if it is being pointed at a new viewport, reset the old one
+		if (InViewport != ConfigViewport)
 		{
-			CurrentDialog.Reset();
-			CurrentWindow.Pin()->RequestDestroyWindow();
-			CurrentWindow.Reset();
+			ResetViewport();
+			bInitializeDialog = true;
 		}
 	}
-
-	if (!CurrentWindow.IsValid())
+	else
 	{
-		if (Config.TargetViewport != InViewport)
-		{
-			Config.ChangeViewport(InViewport);
-		}
-
+		// No dialog window currently open - need to create one
 		TSharedRef<SHighResScreenshotDialog> Dialog = SNew(SHighResScreenshotDialog);
 		TSharedRef<SWindow> Window = SNew(SWindow)
 			.Title( NSLOCTEXT("HighResScreenshot", "HighResolutionScreenshot", "High Resolution Screenshot") )
@@ -269,29 +290,39 @@ TWeakPtr<class SWindow> SHighResScreenshotDialog::OpenDialog(UWorld* InWorld, FV
 				Dialog
 			];
 
-		Dialog->SetWorld(InWorld);
-		Dialog->SetWindow(Window);
-		Dialog->SetCaptureRegionWidget(InCaptureRegionWidget);
-		FSlateApplication::Get().AddWindow(Window);
-		Window->BringToFront();
 		Window->SetOnWindowClosed(FOnWindowClosed::CreateStatic(&WindowClosedHandler));
+		Dialog->SetWindow(Window);
+		FSlateApplication::Get().AddWindow(Window);
+
 		CurrentWindow = TWeakPtr<SWindow>(Window);
 		CurrentDialog = TWeakPtr<SHighResScreenshotDialog>(Dialog);
-		
+
 		Config.bDisplayCaptureRegion = true;
 
-		// Enable mask visualization if the mask is enabled
-		bMaskVisualizationWasEnabled = Config.TargetViewport->GetClient()->GetEngineShowFlags()->HighResScreenshotMask;
-		Config.TargetViewport->GetClient()->GetEngineShowFlags()->HighResScreenshotMask = Config.bMaskEnabled;
-
-		return CurrentWindow;
+		bInitializeDialog = true;
 	}
-	else
+
+	if (bInitializeDialog)
 	{
+		auto CurrentDialogPinned = CurrentDialog.Pin();
+		if (CurrentDialogPinned.IsValid())
+		{
+			CurrentDialogPinned->SetCaptureRegionWidget(InCaptureRegionWidget);
+			CurrentDialogPinned->SetCaptureRegionControlsVisibility(false);
+		}
+
 		CurrentWindow.Pin()->BringToFront();
+		Config.ChangeViewport(InViewport);
+
+		// Enable mask visualization if the mask is enabled
+		if (InViewport.IsValid())
+		{
+			bMaskVisualizationWasEnabled = InViewport->GetClient()->GetEngineShowFlags()->HighResScreenshotMask;
+			InViewport->GetClient()->GetEngineShowFlags()->HighResScreenshotMask = Config.bMaskEnabled;
+		}
 	}
 
-	return TWeakPtr<class SWindow>();
+	return CurrentWindow;
 }
 
 FReply SHighResScreenshotDialog::OnSelectCaptureRegionClicked()
@@ -307,22 +338,28 @@ FReply SHighResScreenshotDialog::OnSelectCaptureRegionClicked()
 
 FReply SHighResScreenshotDialog::OnCaptureClicked()
 {
-	GScreenshotResolutionX = Config.TargetViewport->GetSizeXY().X * Config.ResolutionMultiplier;
-	GScreenshotResolutionY = Config.TargetViewport->GetSizeXY().Y * Config.ResolutionMultiplier;
-	FIntRect ScaledCaptureRegion = Config.UnscaledCaptureRegion;
-
-	if (Config.UnscaledCaptureRegion.Width() == -1 || Config.UnscaledCaptureRegion.Height() == -1)
+	if (!GIsHighResScreenshot)
 	{
-		ScaledCaptureRegion = FIntRect(0, 0, Config.TargetViewport->GetSizeXY().X, Config.TargetViewport->GetSizeXY().Y);
+		auto ConfigViewport = Config.TargetViewport.Pin();
+		if (ConfigViewport.IsValid())
+		{
+			GScreenshotResolutionX = ConfigViewport->GetSizeXY().X * Config.ResolutionMultiplier;
+			GScreenshotResolutionY = ConfigViewport->GetSizeXY().Y * Config.ResolutionMultiplier;
+			FIntRect ScaledCaptureRegion = Config.UnscaledCaptureRegion;
+
+		if (ScaledCaptureRegion.Width() == -1 || ScaledCaptureRegion.Height() == -1)
+		{
+			ScaledCaptureRegion = FIntRect(0, 0, ConfigViewport->GetSizeXY().X, ConfigViewport->GetSizeXY().Y);
+		}
+
+			ScaledCaptureRegion.Clip(FIntRect(FIntPoint::ZeroValue, ConfigViewport->GetSizeXY()));
+			ScaledCaptureRegion *= Config.ResolutionMultiplier;
+			Config.CaptureRegion = ScaledCaptureRegion;
+
+			// Trigger the screenshot on the owning viewport
+			ConfigViewport->TakeHighResScreenShot();
+		}
 	}
-
-	ScaledCaptureRegion.Clip(FIntRect(FIntPoint::ZeroValue, Config.TargetViewport->GetSizeXY()));
-	ScaledCaptureRegion *= Config.ResolutionMultiplier;
-	Config.CaptureRegion = ScaledCaptureRegion;
-
-	// Trigger the screenshot on the owning viewport
-	Config.TargetViewport->TakeHighResScreenShot();
-	Config.ChangeViewport(NULL);
 
 	return FReply::Handled();
 }
@@ -331,6 +368,12 @@ FReply SHighResScreenshotDialog::OnSelectCaptureCancelRegionClicked()
 {
 	if (CaptureRegionWidget.IsValid())
 	{
+		auto ConfigViewport = Config.TargetViewport.Pin();
+		if (ConfigViewport.IsValid())
+		{
+			ConfigViewport->Invalidate();
+		}
+
 		CaptureRegionWidget->Deactivate(false);
 	}
 
@@ -353,13 +396,48 @@ FReply SHighResScreenshotDialog::OnSelectCaptureAcceptRegionClicked()
 
 FReply SHighResScreenshotDialog::OnSetFullViewportCaptureRegionClicked()
 {
+	auto ConfigViewport = Config.TargetViewport.Pin();
+	if (ConfigViewport.IsValid())
+	{
+		ConfigViewport->Invalidate();
+	}
+
 	Config.UnscaledCaptureRegion = FIntRect(0, 0, -1, -1);
-	Config.TargetViewport->Invalidate();
 	CaptureRegionWidget->Reset();
 	return FReply::Handled();
 }
 
-TWeakPtr<SHighResScreenshotDialog> SHighResScreenshotDialog::GetCurrentDialog()
+FReply SHighResScreenshotDialog::OnSetCameraSafeAreaCaptureRegionClicked()
 {
-	return CurrentDialog;
+	FIntRect NewCaptureRegion;
+
+	if (Config.TargetViewport.IsValid())
+	{
+		auto ConfigViewport = Config.TargetViewport.Pin();
+		if (ConfigViewport->GetClient()->OverrideHighResScreenshotCaptureRegion(NewCaptureRegion))
+		{
+			Config.UnscaledCaptureRegion = NewCaptureRegion;
+			ConfigViewport->Invalidate();
+		}
+	}
+
+	return FReply::Handled();
+}
+
+bool SHighResScreenshotDialog::IsSetCameraSafeAreaCaptureRegionEnabled() const
+{
+	if (Config.TargetViewport.IsValid())
+	{
+		FViewportClient* Client = Config.TargetViewport.Pin()->GetClient();
+		if (Client)
+		{
+			FIntRect Rect;
+			if (Client->OverrideHighResScreenshotCaptureRegion(Rect))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }

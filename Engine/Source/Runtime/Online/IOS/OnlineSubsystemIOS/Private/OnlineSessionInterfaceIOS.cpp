@@ -24,7 +24,7 @@
 
 -(void)session:(GKSession *)session didReceiveConnectionRequestFromPeer:(NSString *)peerID
 {
-	UE_LOG(LogOnline, Display, TEXT("-(void)session:(GKSession *)session didReceiveConnectionRequestFromPeer:(NSString *)peerID - %s"), ANSI_TO_TCHAR([[session displayNameForPeer:peerID] cStringUsingEncoding:NSASCIIStringEncoding]));
+	UE_LOG(LogOnline, Display, TEXT("-(void)session:(GKSession *)session didReceiveConnectionRequestFromPeer:(NSString *)peerID - %s"), *FString([session displayNameForPeer:peerID]));
 	[session acceptConnectionFromPeer:peerID error:nil];
 }
 
@@ -35,11 +35,12 @@
 
 - (void)session:(GKSession *)session peer:(NSString *)peerID didChangeState:(GKPeerConnectionState)state
 {
+	const FString PeerId([session displayNameForPeer:peerID]);
 	switch (state)
 	{
 		case GKPeerStateAvailable:
 		{
-			UE_LOG(LogOnline, Display, TEXT("Peer available: %s"), ANSI_TO_TCHAR([[session displayNameForPeer:peerID] cStringUsingEncoding:NSASCIIStringEncoding]));
+			UE_LOG(LogOnline, Display, TEXT("Peer available: %s"), *PeerId);
 
 			[session connectToPeer:peerID withTimeout:5.0f];
 			break;
@@ -47,25 +48,25 @@
 
 		case GKPeerStateUnavailable:
 		{
-			UE_LOG(LogOnline, Display, TEXT("Peer unavailable: %s"), ANSI_TO_TCHAR([[session displayNameForPeer:peerID] cStringUsingEncoding:NSASCIIStringEncoding]));
+			UE_LOG(LogOnline, Display, TEXT("Peer unavailable: %s"), *PeerId);
 			break;
 		}
 
 		case GKPeerStateConnected:
 		{
-			UE_LOG(LogOnline, Display, TEXT("Peer connected: %s"), ANSI_TO_TCHAR([[session displayNameForPeer:peerID] cStringUsingEncoding:NSASCIIStringEncoding]));
+			UE_LOG(LogOnline, Display, TEXT("Peer connected: %s"), *PeerId);
 			break;
 		}
 
 		case GKPeerStateDisconnected:
 		{
-			UE_LOG(LogOnline, Display, TEXT("Peer disconnected: %s"), ANSI_TO_TCHAR([[session displayNameForPeer:peerID] cStringUsingEncoding:NSASCIIStringEncoding]));
+			UE_LOG(LogOnline, Display, TEXT("Peer disconnected: %s"), *PeerId);
 			break;
 		}
 
 		case GKPeerStateConnecting:
 		{
-			UE_LOG(LogOnline, Display, TEXT("Peer connecting: %s"), ANSI_TO_TCHAR([[session displayNameForPeer:peerID] cStringUsingEncoding:NSASCIIStringEncoding]));
+			UE_LOG(LogOnline, Display, TEXT("Peer connecting: %s"), *PeerId);
 			break;
 		}
 	}
@@ -83,8 +84,8 @@
 - (void)session:(GKSession *)session connectionWithPeerFailed:(NSString *)peerID withError:(NSError *)error
 {
 	NSString* ErrorString = [NSString stringWithFormat:@"connectionWithPeerFailed - Failed to connect to %@ with error code %i", [session displayNameForPeer:peerID], [error code]];
-	FString ConvertedErrorStr = ANSI_TO_TCHAR([ErrorString cStringUsingEncoding:NSASCIIStringEncoding]);
-	UE_LOG(LogOnline, Display, TEXT("%s"), ANSI_TO_TCHAR([ErrorString cStringUsingEncoding:NSASCIIStringEncoding]) );
+	const FString ConvertedErrorStr(ErrorString);
+	UE_LOG(LogOnline, Display, TEXT("%s"), *ConvertedErrorStr);
 }
 
 @end
@@ -208,7 +209,7 @@ bool FOnlineSessionIOS::CreateSession(int32 HostingPlayerNum, FName SessionName,
 		if( NewGKSession != NULL )
 		{
 			UE_LOG(LogOnline, Display, TEXT("Created session delegate"));
-			NSString* SafeSessionName = [NSString stringWithCString:TCHAR_TO_ANSI(*SessionName.ToString())  encoding:NSASCIIStringEncoding];
+			NSString* SafeSessionName = [NSString stringWithFString:SessionName.ToString()];
 			GKSessions.Add(SessionName, NewGKSession);
 		}
 		else
@@ -241,7 +242,7 @@ bool FOnlineSessionIOS::StartSession(FName SessionName)
 	{
 		// Find the linked GK session and start it.
 		FGameCenterSessionDelegate* LinkedGKSession = *GKSessions.Find( SessionName );
-		NSString* SafeSessionName = [NSString stringWithCString:TCHAR_TO_ANSI(*SessionName.ToString())  encoding:NSASCIIStringEncoding];
+		NSString* SafeSessionName = [NSString stringWithFString:SessionName.ToString()];
 		[LinkedGKSession  initSessionWithName:SafeSessionName];
 
 		// Update the session state as we are now running.

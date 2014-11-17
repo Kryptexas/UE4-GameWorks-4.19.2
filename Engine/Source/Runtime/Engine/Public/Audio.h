@@ -223,6 +223,8 @@ struct FWaveInstance
 	uint32				TypeHash;
 	/** Hash value for finding the wave instance based on the path through the cue to get to it */
 	UPTRINT				WaveInstanceHash;
+	/** User / Controller index that owns the sound */
+	uint8				UserIndex;
 
 	/**
 	 * Constructor, initializing all member variables.

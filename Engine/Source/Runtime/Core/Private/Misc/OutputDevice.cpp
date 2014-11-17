@@ -117,7 +117,7 @@ void FOutputDevice::Log( const FText& T )
 /** Number of top function calls to hide when dumping the callstack as text. */
 #define CALLSTACK_IGNOREDEPTH 2
 
-VARARG_BODY( void, FOutputDevice::CategorizedLogf, const TCHAR*, VARARG_EXTRA(ELogVerbosity::Type Verbosity) VARARG_EXTRA(const class FName& Category) )
+VARARG_BODY( void, FOutputDevice::CategorizedLogf, const TCHAR*, VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity)  )
 {
 	GROWABLE_LOGF(Serialize(Buffer, Verbosity, Category))
 }
@@ -189,8 +189,8 @@ void VARARGS FDebug::AssertFailed( const ANSICHAR* Expr, const ANSICHAR* File, i
  */
 void FDebug::EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg )
 {
-	// Shipping and Test builds always crash for these asserts
-	const bool bShouldCrash = UE_BUILD_SHIPPING != 0 || UE_BUILD_TEST != 0;
+	// You can set bShouldCrash to true to cause a regular assertion to trigger (stopping program execution) when an ensure() error occurs
+	const bool bShouldCrash = false;		// By default, don't crash on ensure()
 	if( bShouldCrash )
 	{
 		// Just trigger a regular assertion which will crash via GError->Logf()
@@ -451,55 +451,68 @@ public:
 	}
 } ThrowOut;
 
-CORE_API FOutputDeviceRedirectorBase*	GLog							= &LogRedirector;			/* Regular logging */
 CORE_API FOutputDeviceError*			GError							= NULL;						/* Critical errors */
 CORE_API FOutputDevice*					GThrow							= &ThrowOut;				/* Exception thrower */
 
-VARARG_BODY( void, FMsg::Logf, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) VARARG_EXTRA(int32 Line) VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity) )
+// Statics to prevent FMsg::Logf from allocating too much stack memory
+static FCriticalSection					MsgLogfStaticBufferGuard;
+static TCHAR							MsgLogfStaticBuffer[8192]; // Increased from 4096 to fix crashes in the renderthread without autoreporter
+
+VARARG_BODY(void, FMsg::Logf, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) VARARG_EXTRA(int32 Line) VARARG_EXTRA(const class FName& Category) VARARG_EXTRA(ELogVerbosity::Type Verbosity))
 {
 #if !NO_LOGGING
 	if (Verbosity != ELogVerbosity::Fatal)
 	{
 		// SetColour is routed to GWarn just like the other verbosities and handled in the 
 		// device that does the actual printing.
+		FOutputDevice* LogDevice = NULL;
 		switch (Verbosity)
 		{
 		case ELogVerbosity::Error:
 		case ELogVerbosity::Warning:
 		case ELogVerbosity::Display:
 		case ELogVerbosity::SetColor:
+			if (GWarn)
 			{
-				if (GWarn)
-				{
-					GROWABLE_LOGF(GWarn->Log(Category, Verbosity, Buffer))
-					break;
-				}
+				LogDevice = GWarn;
+				break;
 			}
 		default:
 			{
-				GROWABLE_LOGF(GLog->Log(Category, Verbosity, Buffer))
+				LogDevice = GLog;
 			}
 			break;
 		}
+		GROWABLE_LOGF(LogDevice->Log(Category, Verbosity, Buffer))
 	}
 	else
 	{
 		// Flush logs queued by threads when we hit an assert because they will not make it to the log otherwise
 		GLog->PanicFlushThreadedLogs();
 
-		TCHAR DescriptionString[8192]; // Increased from 4096 to fix crashes in the renderthread without autoreporter
+		// Keep Message buffer small, in some cases, this code is executed with 16KB stack.
+		TCHAR Message[4096];
+		{
+			// Simulate Sprintf_s
+			// @todo: implement platform independent sprintf_S
+			// We're using one big shared static buffer here, so guard against re-entry
+			FScopeLock MsgLock(&MsgLogfStaticBufferGuard);
+			// Print to a large static buffer so we can keep the stack allocation below 16K
+			GET_VARARGS(MsgLogfStaticBuffer, ARRAY_COUNT(MsgLogfStaticBuffer), ARRAY_COUNT(MsgLogfStaticBuffer) - 1, Fmt, Fmt);
+			// Copy the message to the stack-allocated buffer)
+			FCString::Strncpy(Message, MsgLogfStaticBuffer, ARRAY_COUNT(Message) - 1);
+			Message[ARRAY_COUNT(Message) - 1] = '\0';
+		}
 
-		GET_VARARGS( DescriptionString, ARRAY_COUNT(DescriptionString), ARRAY_COUNT(DescriptionString)-1, Fmt, Fmt );
-
-		FailDebug(TEXT("Fatal error:"),File,Line,DescriptionString);
-		if(!FPlatformMisc::IsDebuggerPresent())
+		FailDebug(TEXT("Fatal error:"), File, Line, Message);
+		if (!FPlatformMisc::IsDebuggerPresent())
 		{
 			FPlatformMisc::PromptForRemoteDebugging(false);
 		}
 
 		FPlatformMisc::DebugBreak();
 
-		GError->Log(Category, Verbosity, DescriptionString);
+		GError->Log(Category, Verbosity, Message);
 	}
 #endif
 }

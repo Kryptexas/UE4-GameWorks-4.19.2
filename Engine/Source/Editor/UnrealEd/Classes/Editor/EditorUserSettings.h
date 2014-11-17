@@ -8,7 +8,7 @@ UENUM()
 enum EWASDType
 {
 	WASD_Always UMETA(DisplayName="Use WASD for Camera Controls"),
-	WASD_RMBOnly UMETA(DisplayName="Use WASD only when the Right Mouse Button is pressed"),
+	WASD_RMBOnly UMETA(DisplayName="Use WASD only when a Mouse Button is Pressed"),
 	WASD_Never UMETA(DisplayName="Never use WASD for Camera Controls"),
 	WASD_MAX,
 };
@@ -17,7 +17,7 @@ enum EWASDType
 UENUM()
 enum ERotationGridMode
 {
-	/** Using Divisions of 360 degress (e.g 360/2. 360/3, 360/4, ... ) */
+	/** Using Divisions of 360 degrees (e.g 360/2. 360/3, 360/4, ... ) */
 	GridMode_DivisionsOf360,
 
 	/** Uses the user defined grid values */
@@ -33,26 +33,6 @@ class UEditorUserSettings : public UObject
 
 	// =====================================================================
 	// The following options are exposed in the Preferences Editor 
-
-	/** Allow translate/rotate widget */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Enable Combined Translate/Rotate Widget" ))
-	uint32 bAllowTranslateRotateZWidget:1;
-
-	/** If true, Clicking a BSP selects the brush and ctrl+shift+click selects the surface. If false, vice versa */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Clicking BSP Enables Brush" ))
-	uint32 bClickBSPSelectsBrush:1;
-
-	/** If true, BSP will auto-update */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Update BSP Automatically" ))
-	uint32 bBSPAutoUpdate:1;
-
-	/** If true, Navigation will auto-update */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Update Navigation Automatically" ))
-	uint32 bNavigationAutoUpdate:1;
-
-	/** If enabled, replacing actors will respect the scale of the original actor.  Otherwise, the replaced actors will have a scale of 1.0 */
-	UPROPERTY(EditAnywhere, config, Category=LevelEditing, meta=( DisplayName = "Preserve Actor Scale on Replace" ))
-	uint32 bReplaceRespectsScale:1;
 
 	/** If enabled, any newly opened UI menus, menu bars, and toolbars will show the developer hooks that would accept extensions */
 	UPROPERTY(EditAnywhere, config, Category=DeveloperTools)
@@ -78,11 +58,13 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(config)
 	int32 PropertyMatrix_NumberOfPasteOperationsBeforeWarning;
 
-	/**
-	 * Blueprint editor settings; These are not config/visible/editable unless we need to tweak them.  Make ones you want to adjust 'config, EditAnywhere, Category=Blueprint'
-	 */
-	UPROPERTY(config, EditAnywhere, Category=Blueprint)
+	/** The visual styling to use for graph editor pins (in Blueprints, materials, etc...) */
+	UPROPERTY(config, EditAnywhere, Category = Blueprint)
 	TEnumAsByte<EBlueprintPinStyleType> DataPinStyle;
+
+	/**
+	* Blueprint editor settings; These are not config/visible/editable unless we need to tweak them.  Make ones you want to adjust 'config, EditAnywhere, Category=Blueprint'
+	*/
 
 	/** The default color is used only for types not specifically defined below.  Generally if it's seen, it means another type needs to be defined so that the wire in question can have an appropriate color. */
 	UPROPERTY()
@@ -184,6 +166,10 @@ class UEditorUserSettings : public UObject
 	UPROPERTY()
 	FLinearColor ExecSequenceNodeTitleColor;
 
+	/** Result node title color */
+	UPROPERTY()
+	FLinearColor ResultNodeTitleColor;
+
 	UPROPERTY()
 	FLinearColor TraceAttackColor;
 
@@ -262,17 +248,6 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(config)
 	uint32 bAllowSelectTranslucent:1;
 
-	UPROPERTY(EditAnywhere, config, Category=Sound)
-	uint32 bAllowBackgroundAudio:1;
-
-	/** If true audio will be enabled in the editor. Does not affect PIE **/
-	UPROPERTY(config)
-	uint32 bEnableRealTimeAudio:1;
-
-	/** Global volume setting for the editor */
-	UPROPERTY(config)
-	float EditorVolumeLevel;
-
 	/** True if the actor count is displayed in the slate level browser */
 	UPROPERTY(config)
 	uint32 bDisplayActorCountInLevelBrowser:1;
@@ -293,16 +268,8 @@ class UEditorUserSettings : public UObject
 	UPROPERTY(config)
 	uint32 bDisplayEditorOffsetInLevelBrowser:1;
 
-	/** Enables audio feedback for certain operations in Unreal Editor, such as entering and exiting Play mode */
-	UPROPERTY(EditAnywhere, config, Category=Sound)
-	uint32 bEnableEditorSounds:1;
-
 	UPROPERTY()
 	class UBlueprintPaletteFavorites* BlueprintFavorites;
-
-	/** Whether to automatically save after a time interval */
-	UPROPERTY( EditAnywhere, config, Category = Build, meta = ( DisplayName = "Enable auto apply lighting" ) )
-	uint32 bAutoApplyLightingEnable : 1;
 
 public:
 
@@ -321,6 +288,7 @@ public:
 	int32 MaterialQualityLevel;
 
 public:
+
 	/** Delegate for when a user setting has changed */
 	DECLARE_EVENT_OneParam(UEditorUserSettings, FUserSettingChangedEvent, FName /*PropertyName*/);
 	FUserSettingChangedEvent& OnUserSettingChanged() { return UserSettingChangedEvent; }

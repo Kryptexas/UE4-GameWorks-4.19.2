@@ -21,6 +21,13 @@ public:
 	 */
 	static FString EngineDir();
 
+	/**
+	* Returns the root directory for user-specific engine files. Always writable.
+	*
+	* @return root user directory
+	*/
+	static FString EngineUserDir();
+
 	/** 
 	 * Returns the content directory of the "core" engine that can be shared across
 	 * several games or across games & mods. 
@@ -73,6 +80,13 @@ public:
 	 * @return base directory
 	 */
 	static FString GameDir();
+
+	/**
+	* Returns the root directory for user-specific game files.
+	*
+	* @return game user directory
+	*/
+	static FString GameUserDir();
 
 	/**
 	 * Returns the content directory of the current game by looking at the global
@@ -207,6 +221,16 @@ public:
 	static const TArray<FString>& GetEditorLocalizationPaths();
 
 	/** 
+	 * Returns a list of property name localization paths
+	 */
+	static const TArray<FString>& GetPropertyNameLocalizationPaths();
+
+		/** 
+	 * Returns a list of tool tip localization paths
+	 */
+	static const TArray<FString>& GetToolTipLocalizationPaths();
+
+	/** 
 	 * Returns a list of game-specific localization paths
 	 */
 	static const TArray<FString>& GetGameLocalizationPaths();
@@ -311,6 +335,9 @@ public:
 	 *    - Makes relative to Engine\Binaries\<Platform> (will ALWAYS start with ..\..\..)
 	 */
 	static void MakeStandardFilename(FString& InPath);
+
+	/** Takes an "Unreal" pathname and converts it to a platform filename. */
+	static void MakePlatformFilename(FString& InPath);
 
 	/** 
 	 * Assuming both paths (or filenames) are relative to the base dir, find the relative path to the InPath 

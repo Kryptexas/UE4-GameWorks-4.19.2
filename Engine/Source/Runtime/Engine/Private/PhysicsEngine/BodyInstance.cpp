@@ -444,7 +444,11 @@ void FBodyInstance::UpdatePhysicsFilterData()
 		return;
 	}
 
-	check(BodySetup.IsValid());
+	// this can happen in landscape height field collision component
+	if (!BodySetup.IsValid())
+	{
+		return;
+	}
 
 	// Figure out if we are static
 	AActor* Owner = OwnerComponent.IsValid() ? OwnerComponent.Get()->GetOwner() : NULL;
@@ -906,6 +910,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		// Update damping
 		UpdateDampingProperties();
 
+		SetMaxAngularVelocity(MaxAngularVelocity, false);
+
 		// Set initial velocity 
 		if(bUseSimulate)
 		{
@@ -950,64 +956,66 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 }
 #endif // WITH_PHYSX
 
+//helper function for TermBody to avoid code duplication between scenes
+#if WITH_PHYSX
+void TermBodyHelper(int32 & SceneIndex, PxRigidActor *& PRigidActor, FBodyInstance * BodyInstance)
+{
+	if (SceneIndex)
+	{
+		PxScene* PScene = GetPhysXSceneFromIndex(SceneIndex);
+
+		if (PScene)
+		{
+			// Enable scene lock
+			SCOPED_SCENE_WRITE_LOCK(PScene);
+
+			if (PRigidActor)
+			{
+				// Let FPhysScene know
+				FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+				if (PhysScene)
+				{
+					PhysScene->TermBody(BodyInstance);
+				}
+
+				PRigidActor->release();
+				PRigidActor = NULL;	//we must do this within the lock because we use it in the sub-stepping thread to determine that RigidActor is still valid
+			}
+		}
+
+		SceneIndex = 0;
+	}
+#if WITH_APEX
+	else
+	{
+		if (PRigidActor)
+		{
+			//When DestructibleMesh is used we create fake BodyInstances. In this case the RigidActor is set, but InitBody is never called.
+			//The RigidActor is released by the destructible component, but it's still up to us to NULL out the pointer
+			checkSlow(FPhysxUserData::Get<FDestructibleChunkInfo>(PRigidActor->userData));	//Make sure we are really a destructible
+			PRigidActor = NULL;
+		}
+	}
+#endif
+
+	checkSlow(PRigidActor == NULL);
+	checkSlow(SceneIndex == 0);
+}
+
+#endif
+
 /**
  *	Clean up the physics engine info for this instance.
  */
 void FBodyInstance::TermBody()
 {
 #if WITH_PHYSX
-	// Release sync actor if the scene still exists
-	PxScene* PSceneSync = GetPhysXSceneFromIndex( SceneIndexSync );
+	// Release sync actor
+	TermBodyHelper(SceneIndexSync, RigidActorSync, this);
+	// Release async actor
+	TermBodyHelper(SceneIndexAsync, RigidActorAsync, this);
 
-	if( PSceneSync != NULL )
-	{
-		// Enable scene lock, in case it is required
-		SCOPED_SCENE_WRITE_LOCK(PSceneSync);
-
-		if( RigidActorSync )
-		{
-			// Let FPhysScene know
-			FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PSceneSync->userData);
-			if (PhysScene)
-			{
-				PhysScene->TermBody(this);
-			}
-
-			RigidActorSync->release();
-			RigidActorSync = NULL;	//we must do this within the lock because we use it in the substepping thread to determine that RigidActorSync is still valid
-		}
-	}
-	
-	SceneIndexSync = 0;
-
-	// Release async actor if the scene still exists
-	if (SceneIndexAsync != 0)
-	{
-		PxScene* PSceneAsync = GetPhysXSceneFromIndex( SceneIndexAsync );
-		if( PSceneAsync != NULL )
-		{
-			// Enable scene lock, in case it is required
-			SCOPED_SCENE_WRITE_LOCK(PSceneAsync);
-
-			if( RigidActorAsync )
-			{
-				// Let FPhysScene know
-				FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PSceneAsync->userData);
-				if (PhysScene)
-				{
-					PhysScene->TermBody(this);
-				}
-
-				RigidActorAsync->release();
-				RigidActorAsync = NULL;
-			}
-		}
-		
-		SceneIndexAsync = 0;
-	}
-	
-
-	BodySetup	= NULL;
+	BodySetup = NULL;
 	// releasing BodyAggregate, it shouldn't contain RigidActor now, because it's released above
 	if(BodyAggregate)
 	{
@@ -1021,6 +1029,45 @@ void FBodyInstance::TermBody()
 
 	OwnerComponent = NULL;
 }
+
+#if WITH_BODY_WELDING
+void FBodyInstance::Weld(FBodyInstance * TheirBody, const FTransform & RelativeTM)
+{
+	check(TheirBody);
+#if WITH_PHYSX
+	
+	//UBodySetup * LocalSpaceSetup = TheirBody->BodySetup->CreateSpaceCopy(RelativeTM);
+
+	//child body gets placed into the same scenes as parent body
+	if (PxRigidActor * MyBody = RigidActorSync)
+	{
+		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM);
+	}
+
+	if (PxRigidActor * MyBody = RigidActorAsync)
+	{
+		TheirBody->BodySetup->AddShapesToRigidActor(MyBody, Scale3D, &RelativeTM);
+	}
+
+
+	
+	// Apply correct physical materials to shape we created.
+	UpdatePhysicalMaterials();
+
+	// Set the filter data on the shapes (call this after setting BodyData because it uses that pointer)
+	UpdatePhysicsFilterData();
+
+
+	UpdateMassProperties();
+	// Update damping
+	UpdateDampingProperties();
+
+	//remove their body from scenes
+	TermBodyHelper(TheirBody->SceneIndexSync, TheirBody->RigidActorSync, TheirBody);
+	TermBodyHelper(TheirBody->SceneIndexAsync, TheirBody->RigidActorAsync, TheirBody);
+#endif
+}
+#endif
 
 bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 {
@@ -1317,9 +1364,9 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 {
 #if WITH_PHYSX
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (bSimulate)
+	if (bSimulate && OwnerComponent.IsValid())
 	{
-		PxRigidActor* PRigidActor = GetPxRigidActor();
+		PxRigidActor const* const PRigidActor = GetPxRigidActor();
 		if(PRigidActor == NULL)
 		{
 			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("SimPhysNoBody", "Trying to simulate physics on ''{0}'' but no physics body."), 
@@ -1858,7 +1905,6 @@ void FBodyInstance::UpdateMassProperties()
 void FBodyInstance::UpdateDampingProperties()
 {
 #if WITH_PHYSX
-	check(BodySetup != NULL);
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
 	if (PRigidDynamic != NULL)
 	{
@@ -1944,6 +1990,31 @@ void FBodyInstance::SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurr
 #endif //WITH_PHYSX
 }
 
+void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent)
+{
+	//NewMaxAngVel = 400;
+#if WITH_PHYSX
+	PxRigidDynamic * PRigidDynamic = GetPxRigidDynamic();
+	if (PRigidDynamic)
+	{
+		float RadNewMaxAngVel = FMath::DegreesToRadians(NewMaxAngVel);
+		
+		if (bAddToCurrent)
+		{
+			float RadOldMaxAngVel = PRigidDynamic->getMaxAngularVelocity();
+			RadNewMaxAngVel += RadOldMaxAngVel;
+		}
+
+		PRigidDynamic->setMaxAngularVelocity(RadNewMaxAngVel);
+
+		MaxAngularVelocity = FMath::RadiansToDegrees(RadNewMaxAngVel);
+	}
+	else
+	{
+		MaxAngularVelocity = NewMaxAngVel;	//doesn't really matter since we are not dynamic, but makes sense that we update this anyway
+	}
+#endif
+}
 
 
 void FBodyInstance::AddForce(const FVector& Force)

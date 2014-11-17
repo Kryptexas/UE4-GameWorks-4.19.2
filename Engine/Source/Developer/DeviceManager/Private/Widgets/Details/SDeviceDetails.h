@@ -37,11 +37,11 @@ public:
 
 private:
 
-	// Callback for getting the enabled state of the details panel.
-	bool HandleDetailsIsEnabled() const;
+	// Callback for getting the visibility of the details box.
+	EVisibility HandleDetailsBoxVisibility( ) const;
 
-	// Callback for getting the visibility of the details panel.
-	EVisibility HandleDetailsVisibility( ) const;
+	// Callback for generating a row widget for the feature list view.
+	TSharedRef<ITableRow> HandleFeatureListGenerateRow( FDeviceDetailsFeaturePtr Feature, const TSharedRef<STableViewBase>& OwnerTable );
 
 	// Callback for handling device service selection changes.
 	void HandleModelSelectedDeviceServiceChanged( );
@@ -51,9 +51,15 @@ private:
 
 private:
 
-	// Holds the details view.
-//	TSharedPtr<IDetailsView> DetailsView;
+	// Holds the list of device features.
+	TArray<FDeviceDetailsFeaturePtr> FeatureList;
+
+	// Holds the device's feature list view.
+	TSharedPtr<SListView<FDeviceDetailsFeaturePtr> > FeatureListView;
 
 	// Holds a pointer the device manager's view model.
 	FDeviceManagerModelPtr Model;
+
+	// Holds the quick information widget.
+	TSharedPtr<SDeviceQuickInfo> QuickInfo;
 };

@@ -55,6 +55,7 @@ TSharedRef<SWidget> FLevelViewportLayout2x2::MakeViewportLayout(const FString& L
 		.ParentLayout( AsShared() )
 		.ParentLevelEditor( ParentLevelEditor )
 		.ConfigKey( TopLeftKey )
+		.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 	]
 	.BottomLeft()
 	[
@@ -64,6 +65,7 @@ TSharedRef<SWidget> FLevelViewportLayout2x2::MakeViewportLayout(const FString& L
 		.ParentLayout( AsShared() )
 		.ParentLevelEditor( ParentLevelEditor )
 		.ConfigKey( BottomLeftKey )
+		.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 	]
 	.TopRight()
 	[
@@ -72,6 +74,7 @@ TSharedRef<SWidget> FLevelViewportLayout2x2::MakeViewportLayout(const FString& L
 		.ParentLayout( AsShared() )
 		.ParentLevelEditor( ParentLevelEditor )
 		.ConfigKey( TopRightKey )
+		.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 	]
 	.BottomRight()
 	[
@@ -80,6 +83,7 @@ TSharedRef<SWidget> FLevelViewportLayout2x2::MakeViewportLayout(const FString& L
 		.ParentLayout( AsShared() )
 		.ParentLevelEditor( ParentLevelEditor )
 		.ConfigKey( BottomRightKey )
+		.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
 	];
 
 	Viewports.Add( ViewportWidgetTL );

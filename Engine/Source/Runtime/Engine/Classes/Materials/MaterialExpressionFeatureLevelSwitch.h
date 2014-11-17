@@ -24,6 +24,7 @@ class UMaterialExpressionFeatureLevelSwitch : public UMaterialExpression
 	virtual FExpressionInput* GetInput(int32 InputIndex) OVERRIDE;
 	virtual FString GetInputName(int32 InputIndex) const OVERRIDE;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const OVERRIDE;
+	virtual bool IsResultMaterialAttributes(int32 OutputIndex) OVERRIDE;
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex) OVERRIDE {return MCT_Unknown;}
 	virtual uint32 GetOutputType(int32 OutputIndex) OVERRIDE {return MCT_Unknown;}

@@ -41,6 +41,30 @@ public:
 **/
 struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 {
+	/**
+	 * Windows representation of a interprocess semaphore
+	 */
+	struct FWindowsSemaphore : public FSemaphore
+	{
+		virtual void	Lock();
+		virtual bool	TryLock(uint64 NanosecondsToWait);
+		virtual void	Unlock();
+
+		/** Returns the OS handle */
+		HANDLE			GetSemaphore() { return Semaphore; }
+
+		/** Constructor */
+		FWindowsSemaphore(const FString & InName, HANDLE InSemaphore);
+
+		/** Destructor */
+		virtual ~FWindowsSemaphore();
+
+	protected:
+
+		/** OS handle */
+		HANDLE			Semaphore;
+	};
+
 	// Begin FGenericPlatformProcess interface
 
 	static void* GetDllHandle( const TCHAR* Filename );
@@ -51,6 +75,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static void PopDllDirectory(const TCHAR* Directory);
 	static void CleanFileCache();
 	static uint32 GetCurrentProcessId();
+	static void SetThreadAffinityMask( uint64 AffinityMask );
 	static const TCHAR* BaseDir();
 	static const TCHAR* UserDir();
 	static const TCHAR* UserSettingsDir();
@@ -70,8 +95,9 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static bool IsApplicationRunning( uint32 ProcessId );
 	static bool IsApplicationRunning( const TCHAR* ProcName );
 	static bool IsThisApplicationForeground();
-	static void ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
-	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL );
+	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+	static bool ExecElevatedProcess(const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode);
+	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
 	static void ExploreFolder( const TCHAR* FilePath );
 	static bool ResolveNetworkPath( FString InUNCPath, FString& OutPath ); 
 	static void Sleep( float Seconds );
@@ -81,6 +107,8 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static void ClosePipe( void* ReadPipe, void* WritePipe );
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
+	static FSemaphore * NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks = 1);
+	static bool DeleteInterprocessSynchObject(FSemaphore * Object);
 
 	// End FGenericPlatformProcess interface
 

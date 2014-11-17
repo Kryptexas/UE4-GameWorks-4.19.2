@@ -50,6 +50,14 @@ bool UIpNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, const
 	}
 
 	// Derived types may have already allocated a socket
+
+	// First, try and create a socket specific to the session subsystem
+	if ( Socket == NULL )
+	{
+		// Create UDP socket and enable broadcasting.
+		Socket = SocketSubsystem->CreateSocket( FName( "SessionSocket" ), TEXT( "Unreal" ) );
+	}
+
 	if (Socket == NULL)
 	{
 		// Create UDP socket and enable broadcasting.
@@ -264,7 +272,7 @@ void UIpNetDriver::TickDispatch( float DeltaTime )
 	}
 }
 
-void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FFrame* Stack, class UObject * SubObject )
+void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack, class UObject * SubObject )
 {
 	bool bIsServer = IsServer();
 
@@ -309,7 +317,7 @@ void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Functio
 							Connection = ((UChildConnection*)Connection)->Parent;
 						}
 						
-						InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, Stack, bIsServer );
+						InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
 					}
 				}
 			}			
@@ -323,7 +331,7 @@ void UIpNetDriver::ProcessRemoteFunction(class AActor* Actor, UFunction* Functio
 	Connection = Actor->GetNetConnection();
 	if (Connection)
 	{
-		InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, Stack, bIsServer );
+		InternalProcessRemoteFunction( Actor, SubObject, Connection, Function, Parameters, OutParms, Stack, bIsServer );
 	}
 }
 

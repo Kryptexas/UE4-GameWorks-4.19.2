@@ -64,6 +64,10 @@ bool FGenericErrorReport::SetUserComment(const FText& UserComment)
 	}
 
 	DynamicSignaturesNode->AppendChildNode(TEXT("Parameter3"), UserComment.ToString());
+
+	// Also write a user ID into the report
+	DynamicSignaturesNode->AppendChildNode(TEXT("Parameter4"), GCrashUserId);
+
 	// Re-save over the top
 	return XmlFile.Save(XmlFilePath);
 }
@@ -74,6 +78,12 @@ TArray<FString> FGenericErrorReport::GetFilesToUpload() const
 
 	for (const auto& Filename: ReportFilenames)
 	{
+		if (FRocketSupport::IsRocket() && Filename.EndsWith(TEXT(".log")))
+		{
+			// Temporarily side-step privacy concerns by not uploading Rocket logs
+			continue;
+		}
+
 		FilesToUpload.Push(ReportDirectory / Filename);
 	}
 	return FilesToUpload;
@@ -116,7 +126,7 @@ bool FGenericErrorReport::TryReadDiagnosticsFile(FText& OutReportDescription)
 		switch (ReportSection)
 		{
 		default:
-			check(false);
+			CRASHREPORTCLIENT_CHECK(false);
 
 		case EReportSection::CallStack:
 			if (Line.StartsWith(CallStackEndKey))

@@ -331,7 +331,7 @@ EVisibility SSymbolDebugger::IsFileOpenVisible() const
 
 FReply SSymbolDebugger::FileOpenClicked()
 {
-	if (Delegate_OnFileOpen.Execute() == true)
+	if (Delegate_OnFileOpen.Execute(AsShared()) == true)
 	{
 		return FReply::Handled();
 	}

@@ -22,6 +22,9 @@ public:
 		/** Delegate fired when an image is picked */
 		SLATE_ARGUMENT(FOnExternalImagePicked, OnExternalImagePicked)
 
+		/** Delegate fired to get the path to start picking from */
+		SLATE_ARGUMENT(FOnGetPickerPath, OnGetPickerPath)
+
 		/** The dimensions the image display should be constrained to. Aspect ratio is maintained. */
 		SLATE_ARGUMENT(FVector2D, MaxDisplayedImageDimensions)
 
@@ -29,7 +32,7 @@ public:
 		SLATE_ARGUMENT(FIntPoint, RequiredImageDimensions)
 
 		/** Does the image need to be a specific size? */
-		SLATE_ARGUMENT(bool, bRequiresSpecificSize)
+		SLATE_ARGUMENT(bool, RequiresSpecificSize)
 
 	SLATE_END_ARGS()
 
@@ -66,6 +69,15 @@ private:
 	/** Load an image off disk & make a Slate brush out of it */
 	TSharedPtr< FSlateDynamicImageBrush > LoadImageAsBrush( const FString& ImagePath );
 
+	/** Delegate handler for resetting the image to default */
+	void HandleResetToDefault();
+
+	/** Delegate handler for getting the text to use when resetting to default */
+	FText GetResetToDefaultText() const;
+
+	/** Check to see if we differ from the default */
+	bool DiffersFromDefault() const;
+
 private:
 	/** The brush we use to draw the splash */
 	TSharedPtr<FSlateDynamicImageBrush> ImageBrush;
@@ -84,6 +96,9 @@ private:
 
 	/** Delegate fired when an image is picked */
 	FOnExternalImagePicked OnExternalImagePicked;
+
+	/** The path the picker will use to start from */
+	FOnGetPickerPath OnGetPickerPath;
 
 	/** The kind of image being used */
 	enum EFileLocation

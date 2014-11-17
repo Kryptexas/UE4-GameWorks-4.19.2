@@ -25,24 +25,29 @@ namespace UnrealBuildTool
             string BaseSDKPath = ""; 
 			if (!Utils.IsRunningOnMono)
 			{
-				Microsoft.Win32.RegistryKey localKey = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryView.Registry64); 
-				Microsoft.Win32.RegistryKey key = localKey.OpenSubKey("Software\\Emscripten64"); 
-	            if (key != null)
+				Microsoft.Win32.RegistryKey LocalKey = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryView.Registry64); 
+				Microsoft.Win32.RegistryKey Key = LocalKey.OpenSubKey("Software\\Emscripten64"); 
+	            if (Key != null)
 	            {
-	                string sdkdir = key.GetValue("Install_Dir") as string;
-	                // emscripten path is the highest numbered directory 
-	                DirectoryInfo dInfo = new DirectoryInfo(sdkdir + "\\emscripten");
-	                string Latest_Ver = (from S in dInfo.GetDirectories() select S.Name).ToList().Last();
-	                BaseSDKPath = sdkdir + @"\emscripten\" + Latest_Ver;
-	            }
-	            else
-	            {
-	                BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");    
+	                string SDKDir = Key.GetValue("Install_Dir") as string;
+					if (SDKDir != null)
+					{
+						SDKDir = Path.Combine(SDKDir, "emscripten");
+						if (Directory.Exists(SDKDir))
+						{
+							// emscripten path is the highest numbered directory 
+							DirectoryInfo DirInfo = new DirectoryInfo(SDKDir);
+							string Latest_Ver = (from S in DirInfo.GetDirectories() select S.Name).ToList().Last();
+							BaseSDKPath = Path.Combine(SDKDir, Latest_Ver);
+						}
+					}
 	            }
 			}
-			else
+
+			// if the above didn't set the SDK path, use the environment variable (for anyone who installed by unzipping or similar)
+			if (BaseSDKPath == "")
 			{
-	            BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
+                BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
 			}
 
 			if (!String.IsNullOrEmpty(BaseSDKPath))
@@ -483,8 +488,6 @@ namespace UnrealBuildTool
 		    LinkAction.CommandArguments += GetLinkArguments(LinkEnvironment);
 
 			// Add the input files to a response file, and pass the response file on the command-line.
-			List<string> InputFileNames = new List<string>();
-			string ResponseFileName = Path.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileName(LinkEnvironment.Config.OutputFilePath) + ".response");
 			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
                 System.Console.WriteLine("File  {0} ", InputFile.AbsolutePath);

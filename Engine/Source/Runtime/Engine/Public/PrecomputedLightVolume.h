@@ -26,14 +26,28 @@ public:
 	 */
 	FSHVectorRGB2 Lighting;
 
+	/** BentNormal occlusion of the sky, packed into an FColor.  This is only valid in the high quality lightmap data. */
+	FColor PackedSkyBentNormal;
+
 	/** Shadow factor for the stationary directional light.  This is only valid in the low quality lightmap data. */
 	float DirectionalLightShadowing;
 
 	FVolumeLightingSample() :
 		Position(FVector(0, 0, 0)),
 		Radius(0),
+		PackedSkyBentNormal(FColor(127, 127, 255)),
 		DirectionalLightShadowing(1)
 	{
+	}
+
+	void SetPackedSkyBentNormal(FVector InSkyBentNormal)
+	{
+		PackedSkyBentNormal = FColor(FMath::Trunc((InSkyBentNormal.X * .5f + .5f) * 255.0f), FMath::Trunc((InSkyBentNormal.Y * .5f + .5f) * 255.0f), FMath::Trunc((InSkyBentNormal.Z * .5f + .5f) * 255.0f));
+	}
+
+	inline FVector GetSkyBentNormalUnpacked() const
+	{
+		return FVector(PackedSkyBentNormal.R / 255.0f * 2.0f - 1.0f, PackedSkyBentNormal.G / 255.0f * 2.0f - 1.0f, PackedSkyBentNormal.B / 255.0f * 2.0f - 1.0f);
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FVolumeLightingSample& Sample);
@@ -57,6 +71,11 @@ struct FLightVolumeOctreeSemantics
 
 	static void SetElementId(const FVolumeLightingSample& Element, FOctreeElementId Id)
 	{
+	}
+
+	FORCEINLINE static void ApplyOffset(FVolumeLightingSample& Element, FVector Offset)
+	{
+		Element.Position+= Offset;
 	}
 };
 
@@ -96,7 +115,8 @@ public:
 		const FVector& Position, 
 		float& AccumulatedWeight,
 		float& AccumulatedDirectionalLightShadowing,
-		FSHVectorRGB2& AccumulatedIncidentRadiance) const;
+		FSHVectorRGB2& AccumulatedIncidentRadiance,
+		FVector& SkyBentNormal) const;
 	
 	/** Interpolates incident radiance to Position. */
 	ENGINE_API void InterpolateIncidentRadianceBlock(
@@ -105,7 +125,8 @@ public:
 		const FIntVector& DestCellDimensions,
 		const FIntVector& DestCellPosition,
 		TArray<float>& AccumulatedWeights,
-		TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance) const;
+		TArray<FSHVectorRGB2>& AccumulatedIncidentRadiance,
+		TArray<FVector>& AccumulatedSkyBentNormal) const;
 
 	ENGINE_API void DebugDrawSamples(FPrimitiveDrawInterface* PDI, bool bDrawDirectionalShadowing) const;
 

@@ -3,8 +3,6 @@
 #include "OnlineSubsystemIOSPrivatePCH.h"
 
 
-FOnlineSubsystemIOS* FOnlineSubsystemIOS::IOSSingleton = NULL;
-
 FOnlineSubsystemIOS::FOnlineSubsystemIOS()
 {
 
@@ -142,7 +140,6 @@ bool FOnlineSubsystemIOS::Init()
 	return bSuccessfullyStartedUp;
 }
 
-
 bool FOnlineSubsystemIOS::Tick(float DeltaTime)
 {
 	if (SessionInterface.IsValid())
@@ -152,7 +149,6 @@ bool FOnlineSubsystemIOS::Tick(float DeltaTime)
 	return true;
 }
 
-
 bool FOnlineSubsystemIOS::Shutdown() 
 {
 	bool bSuccessfullyShutdown = true;
@@ -161,38 +157,14 @@ bool FOnlineSubsystemIOS::Shutdown()
 	return bSuccessfullyShutdown;
 }
 
-
 FString FOnlineSubsystemIOS::GetAppId() const 
 {
 	return TEXT( "" );
 }
 
-
-bool FOnlineSubsystemIOS::Exec(const TCHAR* Cmd, FOutputDevice& Ar) 
+bool FOnlineSubsystemIOS::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)  
 {
 	return false;
-}
-
-
-FOnlineSubsystemIOS* FOnlineSubsystemIOS::Create()
-{
-	if (IOSSingleton == NULL)
-	{
-		IOSSingleton = new FOnlineSubsystemIOS();
-	}
-
-	return IOSSingleton;
-}
-
-
-void FOnlineSubsystemIOS::Destroy()
-{
-	if (IOSSingleton != NULL)
-	{
-		IOSSingleton->Shutdown();
-		delete IOSSingleton;
-		IOSSingleton = NULL;
-	}
 }
 
 bool FOnlineSubsystemIOS::IsEnabled()

@@ -103,6 +103,7 @@ struct FKConvexElem
 
 		void SetTransform( const FTransform& InTransform )
 		{
+			ensure(InTransform.IsValid());
 			Transform = InTransform;
 		}
 
@@ -230,6 +231,7 @@ struct FKBoxElem
 
 	void SetTransform( const FTransform& InTransform )
 	{
+		ensure(InTransform.IsValid());
 		Orientation = InTransform.GetRotation();
 		Center = InTransform.GetLocation();
 	}
@@ -299,6 +301,7 @@ struct FKSphylElem
 
 	void SetTransform( const FTransform& InTransform )
 	{
+		ensure(InTransform.IsValid());
 		Orientation = InTransform.GetRotation();
 		Center = InTransform.GetLocation();
 	}
@@ -445,9 +448,12 @@ class UBodySetup : public UObject
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Physics)
 	struct FWalkableSlopeOverride WalkableSlopeOverride;
 
-	/** BuildScale for this body setup (static mesh settings define this value) */
 	UPROPERTY()
-	float BuildScale;
+	float BuildScale_DEPRECATED;
+
+	/** Build scale for this body setup (static mesh settings define this value) */
+	UPROPERTY()
+	FVector BuildScale3D;
 public:
 	/** GUID used to uniquely identify this setup so it can be found in the DDC */
 	FGuid						BodySetupGuid;
@@ -506,9 +512,9 @@ public:
 	/** 
 	 * Rescales simple collision geometry.  Note you must recreate physics meshes after this 
 	 *
-	 * @param UniformScale	The uniform scale to apply to the geometry
+	 * @param BuildScale	The scale to apply to the geometry
 	 */
-	ENGINE_API void			RescaleSimpleCollision( float UniformScale );
+	ENGINE_API void			RescaleSimpleCollision( FVector BuildScale );
 
 	/** Invalidate physics data */
 	ENGINE_API void			InvalidatePhysicsData();	
@@ -537,7 +543,11 @@ public:
 	/** 
 	 *   Add the shapes defined by this body setup to the supplied PxRigidBody. 
 	 */
+#if WITH_BODY_WELDING
+	void                    AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D, const FTransform * RelativeTM = NULL);
+#else
 	void                    AddShapesToRigidActor(physx::PxRigidActor* PDestActor, FVector& Scale3D);
+#endif
 #endif // WITH_PHYSX
 
 };

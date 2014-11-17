@@ -679,7 +679,7 @@ void SSessionLauncherCookByTheBookSettings::RefreshCultureList()
 	CultureList.Reset();
 
 	TArray<FString> CultureNames;
-	FInternationalization::GetCultureNames(CultureNames);
+	FInternationalization::Get().GetCultureNames(CultureNames);
 
 	if (CultureNames.Num() > 0)
 	{
@@ -733,7 +733,7 @@ void SSessionLauncherCookByTheBookSettings::HandleAllCulturesHyperlinkNavigate( 
 		if (AllPlatforms)
 		{
 			TArray<FString> CultureNames;
-			FInternationalization::GetCultureNames(CultureNames);
+			FInternationalization::Get().GetCultureNames(CultureNames);
 
 			for (int32 ExtensionIndex = 0; ExtensionIndex < CultureNames.Num(); ++ExtensionIndex)
 			{
@@ -751,7 +751,7 @@ void SSessionLauncherCookByTheBookSettings::HandleAllCulturesHyperlinkNavigate( 
 EVisibility SSessionLauncherCookByTheBookSettings::HandleAllCulturesHyperlinkVisibility( ) const
 {
 	TArray<FString> CultureNames;
-	FInternationalization::GetCultureNames(CultureNames);
+	FInternationalization::Get().GetCultureNames(CultureNames);
 
 	if (CultureNames.Num() > 1)
 	{

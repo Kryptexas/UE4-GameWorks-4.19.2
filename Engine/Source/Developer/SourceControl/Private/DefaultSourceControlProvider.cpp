@@ -19,9 +19,9 @@ void FDefaultSourceControlProvider::Close()
 
 }
 
-FString FDefaultSourceControlProvider::GetStatusText() const
+FText FDefaultSourceControlProvider::GetStatusText() const
 {
-	return LOCTEXT("SourceControlDisabled", "Source control is disabled").ToString();
+	return LOCTEXT("SourceControlDisabled", "Source control is disabled");
 }
 
 bool FDefaultSourceControlProvider::IsAvailable() const

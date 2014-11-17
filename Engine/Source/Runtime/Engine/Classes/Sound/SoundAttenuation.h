@@ -37,7 +37,7 @@ namespace EAttenuationShape
 	};
 }
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct ENGINE_API FAttenuationSettings
 {
 	GENERATED_USTRUCT_BODY()

@@ -34,13 +34,6 @@ bool FWordWrapper::ProcessLine()
 			BreakIndex = INDEX_NONE;
 			int32 WrapIndex = FindIndexAtOrAfterWrapWidth(StartIndex);
 
-			if ( WrapIndex == INDEX_NONE )
-			{
-				//If the next character doesn't fit within the wrap width then just assume that it does anyways
-				//This will produce a nice clipping effect
-				WrapIndex = 0;
-			}
-
 			if(WrapIndex == StringLength)
 			{
 				BreakIndex = WrapIndex;
@@ -72,8 +65,24 @@ bool FWordWrapper::ProcessLine()
 			--BreakIndex;			
 		}
 
-		AddLine(StartIndex, BreakIndex);
-		bHasAddedLine = true;
+		//@todo Use ICU's whitespace functionality [12/5/2013 justin.sargent]
+		while (TChar<TCHAR>::IsWhitespace(String[BreakIndex - 1]))
+		{
+			--BreakIndex;
+		}
+
+		if( StartIndex <= BreakIndex )
+		{
+			AddLine(StartIndex, BreakIndex);
+
+			bHasAddedLine = true;
+		}
+
+		//@todo Use ICU's whitespace functionality [12/5/2013 justin.sargent]
+		while (TChar<TCHAR>::IsWhitespace(String[NextStartIndex]))
+		{
+			++NextStartIndex;
+		}
 
 		if(WrappedLineData)
 		{

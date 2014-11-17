@@ -18,7 +18,7 @@ FLevelModel::FLevelModel(FLevelCollectionModel& InLevelCollectionModel,
 	, LevelActorsCount(0)
 	, bFilteredOut(false)
 {
-
+	SimulationStatus = FSimulationLevelStatus();
 }
 
 void FLevelModel::SetLevelSelectionFlag(bool bSelectedFlag)
@@ -296,16 +296,6 @@ void FLevelModel::MakeLevelCurrent()
 	Update();
 }
 
-bool FLevelModel::IsAlwaysLoaded() const
-{
-	return false;
-}
-
-void FLevelModel::SetAlwaysLoaded(bool bAlwaysLoaded)
-{
-
-}
-
 bool FLevelModel::HitTest2D(const FVector2D& Point) const
 {
 	return false;
@@ -376,7 +366,6 @@ bool FLevelModel::AttachTo(TSharedPtr<FLevelModel> InParent)
 	if (LevelCollectionModel.IsReadOnly() || 
 		!IsLoaded() || 
 		IsPersistent() ||
-		IsAlwaysLoaded() ||
 		InParent.IsValid() == false ||
 		InParent.Get() == this ||
 		HasDescendant(InParent))
@@ -498,7 +487,7 @@ bool FLevelModel::IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const
 	return false;
 }
 
-void FLevelModel::OnLevelAddedToWorld()
+void FLevelModel::OnLevelAddedToWorld(ULevel* InLevel)
 {
 	UpdateLevelActorsCount();
 }
@@ -513,49 +502,35 @@ void FLevelModel::BroadcastChangedEvent()
 	ChangedEvent.Broadcast();
 }
 
-void FLevelModel::UpdateSimulationStatus(UWorld* InWorld)
+void FLevelModel::UpdateSimulationStatus(ULevelStreaming* StreamingLevel)
 {
-	check(InWorld);
 	SimulationStatus = FSimulationLevelStatus();
 	
-	// Matcher for finding streaming level in PIE world by package name
-	struct FSimulationLevelStreamingMatcher
+	// Persistent level always loaded and visible in PIE
+	if (IsPersistent())
 	{
-		FSimulationLevelStreamingMatcher( const FName& InPackageName )
-			: PackageName( InPackageName )
-		{}
+		SimulationStatus.bLoaded = true;
+		SimulationStatus.bVisible = true;
+		return;
+	}
 
-		bool Matches( const ULevelStreaming* Candidate ) const
-		{
-			if (Candidate->PackageNameToLoad != NAME_None)
-			{
-				return Candidate->PackageNameToLoad == PackageName;
-			}
-			return Candidate->PackageName == PackageName;
-		}
-
-		FName PackageName;
-	};
-	
-	// Find corresponding streaming level
-	int32 StreamingLevelIdx = InWorld->StreamingLevels.FindMatch(FSimulationLevelStreamingMatcher(GetLongPackageName()));
-	if (StreamingLevelIdx != INDEX_NONE)
+	if (StreamingLevel == nullptr)
 	{
-		ULevelStreaming* StreamingLevel = InWorld->StreamingLevels[StreamingLevelIdx];
-
-		if (StreamingLevel->GetLoadedLevel())
-		{
-			SimulationStatus.bLoaded = true;
+		return;
+	}
+		
+	if (StreamingLevel->GetLoadedLevel())
+	{
+		SimulationStatus.bLoaded = true;
 				
-			if (StreamingLevel->GetLoadedLevel()->bIsVisible)
-			{
-				SimulationStatus.bVisible = true;
-			}
-		}
-		else if (StreamingLevel->bHasLoadRequestPending)
+		if (StreamingLevel->GetLoadedLevel()->bIsVisible)
 		{
-			SimulationStatus.bLoading = true;
+			SimulationStatus.bVisible = true;
 		}
+	}
+	else if (StreamingLevel->bHasLoadRequestPending)
+	{
+		SimulationStatus.bLoading = true;
 	}
 }
 

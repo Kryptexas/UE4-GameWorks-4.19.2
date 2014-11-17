@@ -348,7 +348,7 @@ void OpenLauncherCommandLine( const FString& InCommandLine )
 	
 }
 
-bool FDesktopPlatformMac::OpenLauncher(bool Install, const FString& CommandLineParams )
+bool FDesktopPlatformMac::OpenLauncher(bool Install, FString CommandLineParams )
 {
 	// If the launcher is already running, bring it to front
 	NSArray* RunningLaunchers = [NSRunningApplication runningApplicationsWithBundleIdentifier: @"com.epicgames.UnrealEngineLauncher"];
@@ -366,6 +366,7 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, const FString& CommandLineP
 	if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
 	{
 		LaunchPath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Binaries"), TEXT("Mac"), TEXT("UnrealEngineLauncher-Mac-Debug.app/Contents/MacOS/UnrealEngineLauncher-Mac-Debug"));
+		CommandLineParams += TEXT(" -noselfupdate");
 	}
 	else
 	{
@@ -510,6 +511,93 @@ bool FDesktopPlatformMac::FileDialogShared(bool bSave, const void* ParentWindowH
 	MacApplication->ResetModifierKeys();
 
 	return bSuccess;
+}
+
+void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations)
+{
+	EnumerateLauncherEngineInstallations(OutInstallations);
+
+	// Create temp .uproject file to use with LSCopyApplicationURLsForURL
+	FString UProjectPath = FPaths::GameIntermediateDir() / "Unreal.uproject";
+	FArchive* File = IFileManager::Get().CreateFileWriter(*UProjectPath, FILEWRITE_EvenIfReadOnly);
+	if (File)
+	{
+		File->Close();
+		delete File;
+	}
+	else
+	{
+		NSRunAlertPanel(@"Error", UProjectPath.GetNSString(), @"OK", NULL, NULL);
+	}
+
+	FConfigFile ConfigFile;
+	FString ConfigPath = FString(FPlatformProcess::ApplicationSettingsDir()) / FString(TEXT("UnrealEngine")) / FString(TEXT("Install.ini"));
+	ConfigFile.Read(ConfigPath);
+
+	FConfigSection &Section = ConfigFile.FindOrAdd(TEXT("Installations"));
+
+	CFArrayRef AllApps = LSCopyApplicationURLsForURL((__bridge CFURLRef)[NSURL fileURLWithPath:UProjectPath.GetNSString()], kLSRolesAll);
+	if (AllApps)
+	{
+		const CFIndex AppsCount = CFArrayGetCount(AllApps);
+		for (CFIndex Index = 0; Index < AppsCount; ++Index)
+		{
+			NSURL* AppURL = (NSURL*)CFArrayGetValueAtIndex(AllApps, Index);
+			NSBundle* AppBundle = [NSBundle bundleWithURL:AppURL];
+			FString EngineDir = FString([[AppBundle bundlePath] stringByDeletingLastPathComponent]);
+			if (([[AppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4Editor"] || [[AppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
+				&& EngineDir.RemoveFromEnd(TEXT("/Engine/Binaries/Mac")))
+			{
+				FString EngineId;
+				const FName* Key = Section.FindKey(EngineDir);
+				if (Key)
+				{
+					EngineId = Key->ToString();
+				}
+				else
+				{
+					if (!OutInstallations.FindKey(EngineDir))
+					{
+						EngineId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+						Section.AddUnique(*EngineId, EngineDir);
+						ConfigFile.Dirty = true;
+					}
+				}
+				if (!EngineId.IsEmpty() && !OutInstallations.Find(EngineId))
+				{
+					OutInstallations.Add(EngineId, EngineDir);
+				}
+			}
+		}
+
+		ConfigFile.Write(ConfigPath);
+		CFRelease(AllApps);
+	}
+
+	IFileManager::Get().Delete(*UProjectPath);
+}
+
+bool FDesktopPlatformMac::VerifyFileAssociations()
+{
+	CFURLRef GlobalDefaultAppURL = NULL;
+	OSStatus Status = LSGetApplicationForInfo(kLSUnknownType, kLSUnknownCreator, CFSTR("uproject"), kLSRolesAll, NULL, &GlobalDefaultAppURL);
+	if (Status == noErr)
+	{
+		NSBundle* GlobalDefaultAppBundle = [NSBundle bundleWithURL:(__bridge NSURL*)GlobalDefaultAppURL];
+		CFRelease(GlobalDefaultAppURL);
+
+		if ([[GlobalDefaultAppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4Editor"] || [[GlobalDefaultAppBundle bundleIdentifier] isEqualToString:@"com.epicgames.UE4EditorServices"])
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool FDesktopPlatformMac::UpdateFileAssociations()
+{
+	OSStatus Status = LSSetDefaultRoleHandlerForContentType(CFSTR("com.epicgames.uproject"), kLSRolesAll, CFSTR("com.epicgames.UE4EditorServices"));
+	return Status == noErr;
 }
 
 #undef LOCTEXT_NAMESPACE

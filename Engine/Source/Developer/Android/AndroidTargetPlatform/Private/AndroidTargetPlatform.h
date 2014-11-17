@@ -102,18 +102,15 @@ public:
 		return false;
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const OVERRIDE
-	{
-		if (Feature == ETargetPlatformFeatures::Packaging)
-		{
-			// not implemented yet
-			return true;
-		}
-
-		return TTargetPlatformBase< FAndroidPlatformProperties >::SupportsFeature(Feature);
-	}
-
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const OVERRIDE;
+
+	virtual bool SupportsFeature( ETargetPlatformFeatures::Type Feature ) const OVERRIDE;
+
+	virtual bool SupportsTextureFormat( FName Format ) const 
+	{
+		// By default we support all texture formats.
+		return true;
+	}
 
 #if WITH_ENGINE
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const OVERRIDE
@@ -131,12 +128,6 @@ public:
 
 	virtual FName GetWaveFormat( class USoundWave* Wave ) const OVERRIDE;
 #endif //WITH_ENGINE
-
-	virtual bool SupportsTextureFormat( FName Format ) const 
-	{
-		// By default we support all texture formats.
-		return true;
-	}
 
 	DECLARE_DERIVED_EVENT(FAndroidTargetPlatform, ITargetPlatform::FOnTargetDeviceDiscovered, FOnTargetDeviceDiscovered);
 	virtual FOnTargetDeviceDiscovered& OnDeviceDiscovered( ) OVERRIDE
@@ -163,28 +154,20 @@ protected:
 	void AddTextureFormatIfSupports( FName Format, TArray<FName>& OutFormats ) const;
 
 	/**
-	 * Executes an SDK command with the specified command line.
+	 * Return true if this device has a supported set of extensions for this platform.
 	 *
-	 * @param Params - The command line parameters.
-	 * @param OutStdOut - Optional pointer to a string that will hold the command's output log.
-	 * @param OutStdErr - Optional pointer to a string that will hold the error message, if any.
-	 *
-	 * @return true on success, false otherwise.
+	 * @param Extensions - The GL extensions string.
+	 * @param GLESVersion - The GLES version reported by this device.
 	 */
-	bool ExecuteAdbCommand( const FString& Params, FString* OutStdOut, FString* OutStdErr ) const;
-
-	/**
-	 * Gathers a list of all devices that are currently connected.
-	 */
-	void QueryConnectedDevices( );
+	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const
+	{
+		return true;
+	}
 
 private:
 
 	// Handles when the ticker fires.
 	bool HandleTicker( float DeltaTime );
-
-	// Handles received pong messages from the LauncherDaemon.
-//	void HandlePongMessage( const FAndroidPong &Message, const IMessageContextRef &Context );
 
 private:
 
@@ -193,6 +176,9 @@ private:
 
 	// Holds a delegate to be invoked when the widget ticks.
 	FTickerDelegate TickDelegate;
+	
+	// Pointer to the device detection handler that grabs device ids in another thread
+	IAndroidDeviceDetection* DeviceDetection;
 
 #if WITH_ENGINE
 	// Holds the Engine INI settings (for quick access).

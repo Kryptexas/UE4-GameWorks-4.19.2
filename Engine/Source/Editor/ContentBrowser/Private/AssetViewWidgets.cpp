@@ -114,6 +114,8 @@ SAssetViewItem::~SAssetViewItem()
 	}
 
 	OnItemDestroyed.ExecuteIfBound( AssetItem );
+
+	SetForceMipLevelsToBeResident(false);
 }
 
 void SAssetViewItem::Construct( const FArguments& InArgs )
@@ -179,7 +181,7 @@ void SAssetViewItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 			if ( AssetDatas.Num() > 0 )
 			{
 				TSharedPtr< FAssetDragDropOp > DragDropOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
-				DragDropOp->SetTooltip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
+				DragDropOp->SetToolTip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
 			}
 			bDraggedOver = true;
 		}
@@ -208,7 +210,7 @@ void SAssetViewItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 		if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
 		{
 			TSharedPtr< FAssetDragDropOp > DragDropOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
-			DragDropOp->ClearTooltip();
+			DragDropOp->ResetToDefaultToolTip();
 		}
 	}
 
@@ -396,9 +398,9 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 
 				for ( auto TagIt = Tags.CreateConstIterator(); TagIt; ++TagIt )
 				{
-					if ( (*TagIt).Type != UObject::FAssetRegistryTag::TT_Hidden )
+					if (TagIt->Type != UObject::FAssetRegistryTag::TT_Hidden )
 					{
-						ShownTags.Add((*TagIt).Name);
+						ShownTags.Add(TagIt->Name);
 					}
 				}
 			}
@@ -418,7 +420,20 @@ TSharedRef<SToolTip> SAssetViewItem::CreateToolTipWidget() const
 						const FString* ImportantValue = ImportantTags.Find(TagIt.Key());
 						const bool bImportant = (ImportantValue && (*ImportantValue) == TagIt.Value());
 
-						AddToToolTipInfoBox( InfoBox, FText::FromName(TagIt.Key()), FText::FromString(TagIt.Value()), bImportant );
+						// Since all we have at this point is a string, we can't be very smart here.
+						// We need to strip some noise off class paths in some cases, but can't load the asset to inspect its UPROPERTYs manually due to performance concerns.
+						FString ValueString = TagIt.Value();
+						const TCHAR StringToRemove[] = TEXT("Class'/Script/");
+						if (ValueString.StartsWith(StringToRemove) && ValueString.EndsWith(TEXT("'")))
+						{
+							// Remove the class path for native classes, and also remove Engine. for engine classes
+							const int32 SizeOfPrefix = ARRAY_COUNT(StringToRemove);
+							ValueString = ValueString.Mid(SizeOfPrefix - 1, ValueString.Len() - SizeOfPrefix).Replace(TEXT("Engine."), TEXT(""));
+						}
+
+						// We have no type information by this point, so no idea if it's a bool :(
+						const bool bIsBool = false;
+						AddToToolTipInfoBox( InfoBox, FText::FromString(FName::NameToDisplayString(TagIt.Key().ToString(), bIsBool)), FText::FromString(ValueString), bImportant );
 					}
 				}
 			}
@@ -600,7 +615,7 @@ EVisibility SAssetViewItem::GetCheckedOutByOtherTextVisibility() const
 
 FString SAssetViewItem::GetCheckedOutByOtherText() const
 {
-	if(AssetItem.IsValid() && AssetItem->GetType() != EAssetItemType::Folder)
+	if ( AssetItem.IsValid() && AssetItem->GetType() != EAssetItemType::Folder && !GIsSavingPackage && !GIsGarbageCollecting )
 	{
 		const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
@@ -648,7 +663,9 @@ FText SAssetViewItem::GetAssetUserDescription() const
 
 void SAssetViewItem::AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox, const FText& Key, const FText& Value, bool bImportant) const
 {
-	const FLinearColor ImportantColor = FLinearColor(1, 0.5, 0, 1);
+	FWidgetStyle ImportantStyle;
+	ImportantStyle.SetForegroundColor(FLinearColor(1, 0.5, 0, 1));
+
 	InfoBox->AddSlot()
 	.AutoHeight()
 	.Padding(0, 1)
@@ -660,14 +677,14 @@ void SAssetViewItem::AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox
 		.Padding(0, 0, 4, 0)
 		[
 			SNew(STextBlock) .Text( FText::Format(LOCTEXT("AssetViewTooltipFormat", "{0}:"), Key ) )
-			.ColorAndOpacity(bImportant ? ImportantColor : FSlateColor::UseForeground())
+			.ColorAndOpacity(bImportant ? ImportantStyle.GetSubduedForegroundColor() : FSlateColor::UseSubduedForeground())
 		]
 
 		+SHorizontalBox::Slot()
 		.AutoWidth()
 		[
 			SNew(STextBlock) .Text( Value )
-			.ColorAndOpacity(bImportant ? ImportantColor : FSlateColor::UseForeground())
+			.ColorAndOpacity(bImportant ? ImportantStyle.GetForegroundColor() : FSlateColor::UseForeground())
 		]
 	];
 }
@@ -774,9 +791,55 @@ FSlateColor SAssetViewItem::GetAssetColor() const
 	return ContentBrowserUtils::GetDefaultColor();
 }
 
+void SAssetViewItem::SetForceMipLevelsToBeResident(bool bForce) const
+{
+	if(AssetItem.IsValid() && AssetItem->GetType() == EAssetItemType::Normal)
+	{
+		const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
+		if(AssetData.IsValid() && AssetData.IsAssetLoaded())
+		{
+			UObject* Asset = AssetData.GetAsset();
+			if(Asset != nullptr)
+			{
+				if(UTexture2D* Texture2D = Cast<UTexture2D>(Asset))
+				{
+					Texture2D->bForceMiplevelsToBeResident = bForce;
+				}
+				else if(UMaterial* Material = Cast<UMaterial>(Asset))
+				{
+					Material->SetForceMipLevelsToBeResident(bForce, bForce, -1.0f);
+				}
+			}
+		}
+	}
+}
+
+void SAssetViewItem::HandleAssetLoaded(UObject* InAsset) const
+{
+	if(InAsset != nullptr)
+	{
+		if(AssetItem.IsValid() && AssetItem->GetType() == EAssetItemType::Normal)
+		{
+			const FAssetData& AssetData = StaticCastSharedPtr<FAssetViewAsset>(AssetItem)->Data;
+			if(AssetData.IsValid() && AssetData.IsAssetLoaded())
+			{
+				if(InAsset == AssetData.GetAsset())
+				{
+					SetForceMipLevelsToBeResident(true);
+				}
+			}
+		}
+	}
+}
+
 ///////////////////////////////
 // SAssetListItem
 ///////////////////////////////
+
+SAssetListItem::~SAssetListItem()
+{
+	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+}
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SAssetListItem::Construct( const FArguments& InArgs )
@@ -954,6 +1017,11 @@ void SAssetListItem::Construct( const FArguments& InArgs )
 	{
 		AssetItem->RenamedRequestEvent.BindSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
 	}
+
+	SetForceMipLevelsToBeResident(true);
+
+	// listen for asset loads so we can force mips to stream in if required
+	FCoreDelegates::OnAssetLoaded.Add(FCoreDelegates::FOnAssetLoaded::FDelegate::CreateSP(this, &SAssetViewItem::HandleAssetLoaded));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -978,6 +1046,11 @@ FOptionalSize SAssetListItem::GetSCCImageSize() const
 ///////////////////////////////
 // SAssetTileItem
 ///////////////////////////////
+
+SAssetTileItem::~SAssetTileItem()
+{
+	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
+}
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SAssetTileItem::Construct( const FArguments& InArgs )
@@ -1138,6 +1211,11 @@ void SAssetTileItem::Construct( const FArguments& InArgs )
 	{
 		AssetItem->RenamedRequestEvent.BindSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
 	}
+
+	SetForceMipLevelsToBeResident(true);
+
+	// listen for asset loads so we can force mips to stream in if required
+	FCoreDelegates::OnAssetLoaded.Add(FCoreDelegates::FOnAssetLoaded::FDelegate::CreateSP(this, &SAssetViewItem::HandleAssetLoaded));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 

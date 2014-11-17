@@ -2,7 +2,9 @@
 
 #pragma once
 
-class FDesktopPlatformMac : public IDesktopPlatform
+#include "../DesktopPlatformBase.h"
+
+class FDesktopPlatformMac : public FDesktopPlatformBase
 {
 public:
 	// IDesktopPlatform Implementation
@@ -10,7 +12,12 @@ public:
 	virtual bool SaveFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames) OVERRIDE;
 	virtual bool OpenDirectoryDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, FString& OutFolderName) OVERRIDE;
 	virtual bool OpenFontDialog(const void* ParentWindowHandle, FString& OutFontName, float& OutHeight, EFontImportFlags::Type& OutFlags) OVERRIDE;
-	virtual bool OpenLauncher(bool Install, const FString& CommandLineParams ) OVERRIDE;
+	virtual bool OpenLauncher(bool Install, FString CommandLineParams ) OVERRIDE;
+
+	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) OVERRIDE;
+
+	virtual bool VerifyFileAssociations() OVERRIDE;
+	virtual bool UpdateFileAssociations() OVERRIDE;
 
 private:
 	bool FileDialogShared(bool bSave, const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames);

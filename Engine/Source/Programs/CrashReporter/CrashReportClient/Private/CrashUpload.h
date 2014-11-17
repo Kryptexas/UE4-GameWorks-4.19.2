@@ -153,6 +153,11 @@ private:
 	TSharedRef<IHttpRequest> CreateHttpRequest();
 
 	/**
+	 * Send a ping request to the server
+	 */
+	void SendPingRequest();
+
+	/**
 	 * Parse an XML response from the server for the success field
 	 * @param Response Response to get message to parse from
 	 * @return Whether it's both a valid message and the code is success

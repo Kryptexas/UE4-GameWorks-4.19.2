@@ -16,7 +16,7 @@ UGameplayTagsManager::UGameplayTagsManager(const class FPostConstructInitializeP
 
 const UDataTable* UGameplayTagsManager::LoadGameplayTagTable( FString TagTableName )
 {
-	if (!IsRunningCommandlet() && !GameplayTagTable && !TagTableName.IsEmpty())
+	if (!GameplayTagTable && !TagTableName.IsEmpty())
 	{
 		GameplayTagTable = LoadObject<UDataTable>(NULL, *TagTableName, NULL, LOAD_None, NULL);
 #if WITH_EDITOR

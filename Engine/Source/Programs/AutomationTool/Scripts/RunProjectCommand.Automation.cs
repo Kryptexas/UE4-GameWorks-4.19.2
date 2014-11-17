@@ -52,6 +52,34 @@ public partial class Project : CommandUtils
         "THREADGPF",
     };
 
+	/// <summary>
+	/// For not-installed runs, returns a temp log folder to make sure it doesn't fall into sandbox paths
+	/// </summary>
+	/// <returns></returns>
+	private static string GetLogFolderOutsideOfSandbox()
+	{
+		return GlobalCommandLine.Installed ? 
+			CmdEnv.LogFolder : 
+			CombinePaths(Path.GetTempPath(), CmdEnv.LocalRoot.Replace("/", "+").Replace("\\", "+").Replace(":", "+"), "Logs");
+	}
+
+	/// <summary>
+	/// Fot not-installed runs, copies all logs from the temp log folder back to the UAT log folder.
+	/// </summary>
+	private static void CopyLogsBackToLogFolder()
+	{
+		if (!GlobalCommandLine.Installed)
+		{
+			var LogFolderOutsideOfSandbox = GetLogFolderOutsideOfSandbox();
+			var TempLogFiles = FindFiles_NoExceptions("*", false, LogFolderOutsideOfSandbox);
+			foreach (var LogFilename in TempLogFiles)
+			{
+				var DestFilename = CombinePaths(CmdEnv.LogFolder, Path.GetFileName(LogFilename));
+				CopyFile_NoExceptions(LogFilename, DestFilename);
+			}
+		}
+	}
+
 	public static void Run(ProjectParams Params)
 	{
 		Params.ValidateAndLog();
@@ -60,9 +88,32 @@ public partial class Project : CommandUtils
 			return;
 		}
 
-		var ServerLogFile = CombinePaths(CmdEnv.LogFolder, "Server.log");
-		var ClientLogFile = CombinePaths(CmdEnv.LogFolder, Params.EditorTest ? "Editor.log" : "Client.log");
+		var LogFolderOutsideOfSandbox = GetLogFolderOutsideOfSandbox();
+		if (!GlobalCommandLine.Installed)
+		{
+			// In the installed runs, this is the same folder as CmdEnv.LogFolder so delete only in not-installed
+			DeleteDirectory(LogFolderOutsideOfSandbox);
+			CreateDirectory(LogFolderOutsideOfSandbox);
+		}
+		var ServerLogFile = CombinePaths(LogFolderOutsideOfSandbox, "Server.log");
+		var ClientLogFile = CombinePaths(LogFolderOutsideOfSandbox, Params.EditorTest ? "Editor.log" : "Client.log");
 
+		try
+		{
+			RunInternal(Params, ServerLogFile, ClientLogFile);
+		}
+		catch
+		{
+			throw;
+		}
+		finally
+		{
+			CopyLogsBackToLogFolder();
+		}
+	}
+
+	private static void RunInternal(ProjectParams Params, string ServerLogFile, string ClientLogFile)
+	{
 		// Setup server process if required.
 		ProcessResult ServerProcess = null;
 		if (Params.CookOnTheFly && !Params.SkipServer)
@@ -71,7 +122,7 @@ public partial class Project : CommandUtils
 			{
 				UnrealTargetPlatform ClientPlatform = Params.ClientTargetPlatforms[0];
 				Platform ClientPlatformInst = Params.ClientTargetPlatformInstances[0];
-				string TargetCook = ClientPlatformInst.GetCookPlatform( false, Params.HasDedicatedServerAndClient, Params.CookFlavor );
+				string TargetCook = ClientPlatformInst.GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor);
 				ServerProcess = RunCookOnTheFlyServer(Params.RawProjectPath, Params.NoClient ? "" : ServerLogFile, TargetCook, Params.RunCommandline);
 			}
 			else
@@ -737,7 +788,7 @@ public partial class Project : CommandUtils
 			// skip arguments which don't make sense for iOS
 			TempCmdLine += "-Messaging -nomcp ";
 		}
-		if (Params.NullRHI)
+        if (Params.NullRHI && SC.StageTargetPlatform.PlatformType != UnrealTargetPlatform.Mac) // all macs have GPUs, and currently the mac dies with nullrhi
 		{
 			TempCmdLine += "-nullrhi ";
 		}
@@ -749,7 +800,7 @@ public partial class Project : CommandUtils
 		{
 			ClientCmdLine = "-run=Launch ";
 			ClientCmdLine += "-Device=" + Params.Device + " ";
-			ClientCmdLine += "-Exe=" + ClientApp + " ";
+			ClientCmdLine += "-Exe=\"" + ClientApp + "\" ";
 			ClientCmdLine += "-Targetplatform=" + Params.ClientTargetPlatforms[0].ToString() + " ";
 			ClientCmdLine += "-Params=\"" + TempCmdLine + "\"";
 			ClientApp = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealFrontend.exe");
@@ -830,10 +881,9 @@ public partial class Project : CommandUtils
 		else
 		{
 			var Map = ServerParams.MapToRun;
-			if (Params.RawProjectPath.Contains("FortniteGame"))
+			if (!String.IsNullOrEmpty(ServerParams.AdditionalServerMapParams))
 			{
-				// hack, to work around a fortnite issue with not running right fromt he command line
-				Map += "?game=zone";
+				Map += ServerParams.AdditionalServerMapParams;
 			}
 			if (Params.FakeClient)
 			{
@@ -876,15 +926,19 @@ public partial class Project : CommandUtils
 	private static ProcessResult RunCookOnTheFlyServer(string ProjectName, string ServerLogFile, string TargetPlatform, string AdditionalCommandLine)
 	{
 		var ServerApp = HostPlatform.Current.GetUE4ExePath("UE4Editor.exe");
-        var Args = String.Format("{0} -run=cook -targetplatform={1} -cookonthefly -abslog={2}  -unattended -CrashForUAT -FORCELOGFLUSH -log {3}",
+        var Args = String.Format("{0} -run=cook -targetplatform={1} -cookonthefly -unattended -CrashForUAT -FORCELOGFLUSH -log",
 			CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName),
-			TargetPlatform,
-			CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile),
-			AdditionalCommandLine);
+			TargetPlatform);
+		if (!String.IsNullOrEmpty(ServerLogFile))
+		{
+			Args += " -abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ServerLogFile);
+		}
         if (IsBuildMachine)
         {
             Args += " -buildmachine";
         }
+		Args += " " + AdditionalCommandLine;
+
 		// Run the server (Without NoStdOutRedirect -log doesn't log anything to the window)
 		PushDir(Path.GetDirectoryName(ServerApp));
 		var Result = Run(ServerApp, Args, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);

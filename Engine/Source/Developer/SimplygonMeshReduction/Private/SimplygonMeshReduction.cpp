@@ -320,12 +320,26 @@ public:
 		return true;
 	}
 	
+	bool IsSupported() const 
+	{
+#if WITH_SIMPLYGON_DLL
+		return true;
+#else
+		return false;
+#endif
+	}
 	static FSimplygonMeshReduction* Create()
 	{
 		SimplygonSDK::ISimplygonSDK* SDK = NULL;
 		ANSICHAR VersionHash[200];
 
 #if WITH_SIMPLYGON_DLL
+		if (FRocketSupport::IsRocket())
+		{
+			// this was killing DDC build, for now we won't even try in rocket mode.
+			return NULL;
+		}
+
 		typedef void (*GetInterfaceVersionSimplygonSDKPtr)(ANSICHAR*);
 		typedef int (*InitializeSimplygonSDKPtr)(const char* LicenseData , SimplygonSDK::ISimplygonSDK** OutInterfacePtr);
  

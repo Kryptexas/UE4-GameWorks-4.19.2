@@ -38,9 +38,17 @@ FLinearColor UK2Node_InputAction::GetNodeTitleColor() const
 	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
 }
 
-FString UK2Node_InputAction::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_InputAction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "InputAction_Name", "InputAction %s").ToString(), *InputActionName.ToString());
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("InputActionName"), FText::FromName(InputActionName));
+	return FText::Format(NSLOCTEXT("K2Node", "InputAction_Name", "InputAction {InputActionName}"), Args);
+}
+
+FString UK2Node_InputAction::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	return FString::Printf(TEXT("InputAction %s"), *InputActionName.ToString());
 }
 
 FString UK2Node_InputAction::GetTooltip() const

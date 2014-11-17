@@ -981,15 +981,22 @@ void SNewProjectWizard::FindTemplateProjects()
 void SNewProjectWizard::SetDefaultProjectLocation( )
 {
 	FString DefaultProjectFilePath;
-	if ( GEditor->GetGameAgnosticSettings().CreatedProjectPaths.Num() <= 0 )
+	
+	// First, try and use the first previously used path that still exists
+	for ( const FString& CreatedProjectPath : GEditor->GetGameAgnosticSettings().CreatedProjectPaths )
+	{
+		if ( IFileManager::Get().DirectoryExists(*CreatedProjectPath) )
+		{
+			DefaultProjectFilePath = CreatedProjectPath;
+			break;
+		}
+	}
+
+	if ( DefaultProjectFilePath.IsEmpty() )
 	{
 		// No previously used path, decide a default path.
 		DefaultProjectFilePath = GameProjectUtils::GetDefaultProjectCreationPath();
 		IFileManager::Get().MakeDirectory(*DefaultProjectFilePath, true);
-	}
-	else
-	{
-		DefaultProjectFilePath = GEditor->GetGameAgnosticSettings().CreatedProjectPaths[0];
 	}
 
 	if ( !DefaultProjectFilePath.IsEmpty() && DefaultProjectFilePath.Right(1) == TEXT("/") )
@@ -1156,19 +1163,18 @@ void SNewProjectWizard::CreateAndOpenProject( )
 			// Prevent periodic validity checks. This is to prevent a brief error message about the project already existing while you are exiting.
 			bPreventPeriodicValidityChecksUntilNextChange = true;
 
-			/** Only prompt for project switching if we are already in a project */
-			const bool bPromptForConfirmation = FApp::HasGameName();
-
 			const bool bCodeAdded = GetSelectedTemplateItem()->bGenerateCode;
 			if ( bCodeAdded )
 			{
 				// In non-rocket, the engine executable may need to be built in order to build the game binaries,
 				// just open the code editing ide now instead of automatically building for them since it is not safe to do so.
+				const bool bPromptForConfirmation = FApp::HasGameName(); /** Only prompt for project switching if we are already in a project */
 				OpenCodeIDE( ProjectFile, bPromptForConfirmation );
 			}
 			else
 			{
 				// Successfully created a content only project. Now open it.
+				const bool bPromptForConfirmation = false;
 				OpenProject( ProjectFile, bPromptForConfirmation );
 			}
 		}

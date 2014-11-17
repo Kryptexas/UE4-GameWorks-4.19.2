@@ -25,6 +25,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Behavior Tree Editor"))
 	bool bBehaviorTreeEditor;
 
+	/** Allows usage of the Translation Editor */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "Translation Editor"))
+	bool bEnableTranslationEditor;
+
 	/** The Blutility shelf holds editor utility Blueprints. Summon from the Workspace menu. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
 	bool bEnableEditorUtilityBlueprints;
@@ -44,10 +48,6 @@ public:
 	/** Allows to use actor merging utilities (Simplygon Proxy LOD, Grouping by Materials)*/
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Actor Merging"))
 	bool bActorMerging;
-
-	/** Enables 'Code View' in the actor Details panel, which enables browsing of C++ classes and functions, then navigating to code by double-clicking.  This requires full debug symbols in order to work. */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Code View"))
-	bool bCodeView;
 
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, meta=(DisplayName="Console for Gamepad Labels"))
 	TEnumAsByte<EConsoleForGamepadLabels::Type> ConsoleForGamepadLabels;

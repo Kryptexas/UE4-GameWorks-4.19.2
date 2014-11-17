@@ -31,4 +31,15 @@ namespace UnrealBuildTool
 			}
 		}
 	};
+
+	public class MissingModuleException : BuildException
+	{
+		public MissingModuleException(string InModuleName):
+			base( "Couldn't find module rules file for module '{0}'.", InModuleName )
+		{
+			ModuleName = InModuleName;
+		}
+
+		public string ModuleName;
+	};
 }

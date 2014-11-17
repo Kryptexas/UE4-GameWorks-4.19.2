@@ -111,8 +111,7 @@ public:
 
 	/** Constructor */
 	FMeshPaintSettings()
-		: BrushRadius( 32.0f ),
-		  BrushFalloffAmount( 1.0f ),
+		: BrushFalloffAmount( 1.0f ),
 		  BrushStrength( 0.2f ),
 		  bEnableFlow( true ),
 		  FlowAmount( 1.0f ),
@@ -120,7 +119,7 @@ public:
 		  ResourceType( EMeshPaintResource::VertexColors ),
 		  PaintMode( EMeshPaintMode::PaintColors ),
 		  PaintColor( 1.0f, 1.0f, 1.0f, 1.0f ),
-		  EraseColor( 0.0f, 0.0f, 0.0f, 0.0f ),
+		  EraseColor( 1.0f, 1.0f, 1.0f, 1.0f ),
 		  bWriteRed( true ),
 		  bWriteGreen( true ),
 		  bWriteBlue( true ),
@@ -137,9 +136,6 @@ public:
 
 
 public:
-
-	/** Radius of the brush (world space units) */
-	float BrushRadius;
 
 	/** Amount of falloff to apply (0.0 - 1.0) */
 	float BrushFalloffAmount;
@@ -271,6 +267,19 @@ struct FTextureTargetListInfo
 	{}
 };
 
+/** 
+ *  Wrapper to store which of a meshes materials is selected as well as the total number of materials. 
+ */
+struct FMeshSelectedMaterialInfo
+{
+	int32 NumMaterials;
+	int32 SelectedMaterialIndex;
+
+	FMeshSelectedMaterialInfo(int32 InNumMaterials)
+		:	NumMaterials(InNumMaterials)
+		,	SelectedMaterialIndex(0)
+	{}
+};
 
 /**
  * Mesh Paint editor mode
@@ -439,6 +448,12 @@ public:
 	/** Returns information about the currently selected mesh */
 	bool GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes, int32& OutTotalInstanceVertexColorBytes, bool& bOutHasInstanceMaterialAndTexture ) const;
 
+	/** Sets the default brush radius size */
+	void SetBrushRadiiDefault( float InBrushRadius );
+
+	/** Returns the default brush radius size */
+	float GetBrushRadiiDefault() const;
+
 	/** Returns the min and max brush radius sizes specified in the user config */
 	void GetBrushRadiiSliderLimits( float& OutMinBrushSliderRadius, float& OutMaxBrushSliderRadius ) const;
 
@@ -499,6 +514,27 @@ public:
 
 	/** Will create a new texture. */
 	void CreateNewTexture();
+
+	/** Sets the currently editing actor to the actor thats passed in */
+	void SetEditingMesh(  TWeakObjectPtr<AActor> InActor );
+
+	/** Returns an array of weak object pointers to the currently editing meshes */
+	TArray<TWeakObjectPtr<AActor>> GetEditingActors() const;
+
+	/** Returns a weak pointer to the currently Editing actor */
+	TWeakObjectPtr<AActor> GetEditingActor() const;
+
+	/** Sets the currently editing material index */
+	void SetEditingMaterialIndex( int32 SelectedIndex );
+
+	/** Returns the currently editing material index */
+	int32 GetEditingMaterialIndex() const;
+
+	/** Returns the amount of materials on the currently editing mesh */
+	int32 GetEditingActorsNumberOfMaterials() const;
+
+	/** Is the tool currently painting vertices */
+	bool IsPainting() const { return bIsPainting; }
 
 private:
 
@@ -690,6 +726,8 @@ private:
 	/** Helper function to end painting, finish painting textures & update transactions */
 	void EndPainting();
 
+	/** Caches the currently selected actors info into CurrentlySelectedActorsMaterialInfo */
+	void CacheActorInfo();
 private:
 
 	/** Whether we're currently painting */
@@ -769,6 +807,13 @@ private:
 
 	/** Used to store the transaction to some vertex paint operations that can not be easily scoped. */
 	FScopedTransaction* ScopedTransaction;
+
+	/** A map of the currently selected actors against info required for painting (selected material index etc)*/ 
+	TMap<TWeakObjectPtr<AActor>,FMeshSelectedMaterialInfo> CurrentlySelectedActorsMaterialInfo;
+
+	/** The currently selected actor, used to refer into the Map of Selected actor info */
+	TWeakObjectPtr<AActor> ActorBeingEdited;
+
 };
 
 

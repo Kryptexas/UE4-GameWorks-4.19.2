@@ -68,7 +68,10 @@ TSharedRef<SWidget> SKismetLinearExpression::MakeNodeWidget(const UEdGraphNode* 
 	{
 		// The source node is impure or has multiple outputs, so cannot be directly part of this pure expression
 		// Instead show it as a special sort of variable get
-		const FString EffectiveVariableName = FString::Printf(TEXT("%s_%s"), *Node->GetNodeTitle(ENodeTitleType::ListView), FromPin->PinFriendlyName.IsEmpty() ? *FromPin->PinName : *FromPin->PinFriendlyName);
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeTitle"), Node->GetNodeTitle(ENodeTitleType::ListView));
+		Args.Add(TEXT("PinName"), FromPin->PinFriendlyName.IsEmpty() ? FText::FromString(FromPin->PinName) : FromPin->PinFriendlyName);
+		const FText EffectiveVariableName = FText::Format(LOCTEXT("NodeTitleWithPinName", "{NodeTitle}_{PinName}"), Args );
 
 		return SNew(SOverlay)
 			+ SOverlay::Slot()
@@ -119,14 +122,14 @@ TSharedRef<SWidget> SKismetLinearExpression::MakeNodeWidget(const UEdGraphNode* 
 			];
 			*/
 	}
-	else if (auto FuncNode = Cast<const UK2Node_CallFunction>(Node))
+	else if (const UK2Node* AnyNode = Cast<const UK2Node>(Node))
 	{
-		const bool bIsCompact = FuncNode->ShouldDrawCompact() && (InputPinCount <= 2);
+		const bool bIsCompact = AnyNode->ShouldDrawCompact() && (InputPinCount <= 2);
 
 		TSharedRef<SWidget> OperationWidget = 
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), bIsCompact ? TEXT("KismetExpression.OperatorNode") : TEXT("KismetExpression.FunctionNode") )
-			.Text(FuncNode->GetCompactNodeTitle());
+			.Text(AnyNode->GetCompactNodeTitle());
 
 		if ((InputPinCount == 1) && bIsCompact)
 		{

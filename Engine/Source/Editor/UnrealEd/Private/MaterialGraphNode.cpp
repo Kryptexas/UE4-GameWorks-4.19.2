@@ -120,8 +120,52 @@ bool UMaterialGraphNode::CanPasteHere(const UEdGraph* TargetGraph, const UEdGrap
 	return false;
 }
 
-FString UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	TArray<FString> Captions;
+	MaterialExpression->GetCaption(Captions);
+
+	if (TitleType == ENodeTitleType::EditableTitle)
+	{
+		return FText::FromString(GetParameterName());
+	}
+	else if (TitleType == ENodeTitleType::ListView)
+	{
+		return FText::FromString(MaterialExpression->GetClass()->GetDescription());
+	}
+	else
+	{
+		// More useful to display multi line parameter captions in reverse order
+		// TODO: May have to choose order based on expression type if others need correct order
+		int32 CaptionIndex = Captions.Num() -1;
+
+		FTextBuilder NodeTitle;
+		NodeTitle.AppendLine(Captions[CaptionIndex]);
+
+		for (; CaptionIndex > 0; )
+		{
+			CaptionIndex--;
+			NodeTitle.AppendLine(Captions[CaptionIndex]);
+		}
+
+		if ( MaterialExpression->bShaderInputData && (MaterialExpression->bHidePreviewWindow || MaterialExpression->bCollapsed))
+		{
+			NodeTitle.AppendLine(LOCTEXT("InputData", "Input Data"));
+		}
+
+		if (bIsPreviewExpression)
+		{
+			NodeTitle.AppendLine(LOCTEXT("PreviewExpression", "\nPreviewing"));
+		}
+
+		return NodeTitle.ToText();
+	}
+}
+
+FString UMaterialGraphNode::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	
 	TArray<FString> Captions;
 	MaterialExpression->GetCaption(Captions);
 
@@ -154,7 +198,7 @@ FString UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if (bIsPreviewExpression)
 		{
-			NodeTitle += LOCTEXT("PreviewExpression", "\nPreviewing").ToString();
+			NodeTitle += TEXT("\nPreviewing");
 		}
 
 		return NodeTitle;
@@ -165,48 +209,69 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 {
 	UMaterial* Material = CastChecked<UMaterialGraph>(GetGraph())->Material;
 
-	// Generate title color
-	FColor TitleColor = MaterialExpression->BorderColor;
-	TitleColor.A = 255;
-
-	if (bIsErrorExpression)
-	{
-		// Outline expressions that caused errors in red
-		TitleColor = FColor( 255, 0, 0 );
-	}
-	else if (bIsCurrentSearchResult)
-	{
-		TitleColor = FColor( 64, 64, 255 );
-	}
-	else if (bIsPreviewExpression)
+	if (bIsPreviewExpression)
 	{
 		// If we are currently previewing a node, its border should be the preview color.
-		TitleColor = FColor( 70, 100, 200 );
+		return FColor( 70, 100, 200 );
+	}
+
+	const UEditorUserSettings& Options = GEditor->AccessEditorUserSettings();
+
+	if (UsesBoolColour(MaterialExpression))
+	{
+		return Options.BooleanPinTypeColor;
+	}
+	else if (UsesFloatColour(MaterialExpression))
+	{
+		return Options.FloatPinTypeColor;
+	}
+	else if (UsesVectorColour(MaterialExpression))
+	{
+		return Options.VectorPinTypeColor;
+	}
+	else if (UsesObjectColour(MaterialExpression))
+	{
+		return Options.ObjectPinTypeColor;
+	}
+	else if (UsesEventColour(MaterialExpression))
+	{
+		return Options.EventNodeTitleColor;
+	}
+	else if (MaterialExpression->IsA(UMaterialExpressionMaterialFunctionCall::StaticClass()))
+	{
+		// Previously FColor(0, 116, 255);
+		return Options.FunctionCallNodeTitleColor;
+	}
+	else if (MaterialExpression->IsA(UMaterialExpressionFunctionOutput::StaticClass()))
+	{
+		// Previously FColor(255, 155, 0);
+		return Options.ResultNodeTitleColor;
 	}
 	else if (UMaterial::IsParameter(MaterialExpression))
 	{
 		if (Material->HasDuplicateParameters(MaterialExpression))
 		{
-			TitleColor = FColor( 0, 255, 255 );
+			return FColor( 0, 255, 255 );
 		}
 		else
 		{
-			TitleColor = FColor( 0, 128, 128 );
+			return FColor( 0, 128, 128 );
 		}
 	}
 	else if (UMaterial::IsDynamicParameter(MaterialExpression))
 	{
 		if (Material->HasDuplicateDynamicParameters(MaterialExpression))
 		{
-			TitleColor = FColor( 0, 255, 255 );
+			return FColor( 0, 255, 255 );
 		}
 		else
 		{
-			TitleColor = FColor( 0, 128, 128 );
+			return FColor( 0, 128, 128 );
 		}
 	}
 
-	return FLinearColor(TitleColor);
+	// Assume that most material expressions act like pure functions and don't affect anything else
+	return Options.PureFunctionCallNodeTitleColor;
 }
 
 FString UMaterialGraphNode::GetTooltip() const
@@ -412,7 +477,7 @@ void UMaterialGraphNode::CreateInputPins()
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			NewPin->PinName = CreateUniquePinName(TEXT("Input"));
-			NewPin->PinFriendlyName = TEXT(" ");
+			NewPin->PinFriendlyName = FText::FromString(TEXT(" "));
 		}
 	}
 }
@@ -462,7 +527,7 @@ void UMaterialGraphNode::CreateOutputPins()
 		{
 			// Makes sure pin has a name for lookup purposes but user will never see it
 			NewPin->PinName = CreateUniquePinName(TEXT("Output"));
-			NewPin->PinFriendlyName = TEXT(" ");
+			NewPin->PinFriendlyName = FText::FromString(TEXT(" "));
 		}
 	}
 }
@@ -626,6 +691,93 @@ void UMaterialGraphNode::SetParameterName(const FString& NewName)
 	}
 
 	CastChecked<UMaterialGraph>(GetGraph())->Material->UpdateExpressionParameterName(MaterialExpression);
+}
+
+bool UMaterialGraphNode::UsesBoolColour(UMaterialExpression* Expression)
+{
+	if (Expression->IsA<UMaterialExpressionStaticBool>())
+	{
+		return true;
+	}
+	// Explicitly check for bool param as switch params inherit from it
+	else if (Expression->GetClass() == UMaterialExpressionStaticBoolParameter::StaticClass())
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool UMaterialGraphNode::UsesFloatColour(UMaterialExpression* Expression)
+{
+	if (Expression->IsA<UMaterialExpressionConstant>())
+	{
+		return true;
+	}
+	else if (Expression->IsA<UMaterialExpressionScalarParameter>())
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool UMaterialGraphNode::UsesVectorColour(UMaterialExpression* Expression)
+{
+	if (Expression->IsA<UMaterialExpressionConstant2Vector>())
+	{
+		return true;
+	}
+	else if (Expression->IsA<UMaterialExpressionConstant3Vector>())
+	{
+		return true;
+	}
+	else if (Expression->IsA<UMaterialExpressionConstant4Vector>())
+	{
+		return true;
+	}
+	else if (Expression->IsA<UMaterialExpressionVectorParameter>())
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool UMaterialGraphNode::UsesObjectColour(UMaterialExpression* Expression)
+{
+	if (Expression->IsA<UMaterialExpressionTextureBase>())
+	{
+		return true;
+	}
+	else if (Expression->IsA<UMaterialExpressionCustomTexture>())
+	{
+		return true;
+	}
+	else if (Expression->IsA<UMaterialExpressionFontSample>())
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool UMaterialGraphNode::UsesEventColour(UMaterialExpression* Expression)
+{
+	if (Expression->bShaderInputData && !Expression->IsA<UMaterialExpressionStaticBool>())
+	{
+		return true;
+	}
+	else if (Expression->IsA<UMaterialExpressionFunctionInput>())
+	{
+		return true;
+	}
+	else if (Expression->IsA<UMaterialExpressionTextureCoordinate>())
+	{
+		return true;
+	}
+
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE

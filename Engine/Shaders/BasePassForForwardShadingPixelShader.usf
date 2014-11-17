@@ -85,6 +85,14 @@ void Main(
 	//Clip if the blend mode requires it.
 	GetMaterialCoverageAndClipping(MaterialParameters);
 
+#if COMPILER_HLSL	// Not sure why this isn't needed everywhere
+	float2 PixelPos = SvPosition - View.ScreenTexelBias.xy;	
+	MaterialParameters.ScreenPosition.xy = ( PixelPos / View.ViewSizeAndSceneTexelSize.xy - 0.5 ) * float2(2,-2);
+	MaterialParameters.ScreenPosition.zw = SvPosition.zw;
+	
+	MaterialParameters.ScreenPosition.xyz *= MaterialParameters.ScreenPosition.w;
+#endif
+
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 #if DIFFUSE_SPEC_INPUTS
 	half3 DiffuseColor = GetMaterialDiffuseColor( MaterialParameters );
@@ -169,10 +177,10 @@ void Main(
 			Shadow = DirectionalLightShadowing;
 		#endif
 		
-		half NoL = max( 0, dot( MaterialParameters.WorldNormal, View.DirectionalLightDirection ) );
-		half RoL = max( 0, dot( MaterialParameters.ReflectionVector, View.DirectionalLightDirection ) );
+		half NoL = max(0, dot(MaterialParameters.WorldNormal, View.DirectionalLightDirection));
+		half RoL = max(0, dot(MaterialParameters.ReflectionVector, View.DirectionalLightDirection));
 
-		Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * ( DiffuseColor + SpecularColor * PhongApprox( Roughness, RoL ) );
+		Color += (Shadow * NoL) * View.DirectionalLightColor.rgb * (DiffuseColor + SpecularColor * PhongApprox(Roughness, RoL));
 
 		#if !MATERIAL_FULLY_ROUGH
 			half3 SpecularIBL = GetImageBasedReflectionLighting(MaterialParameters, Roughness);

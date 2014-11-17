@@ -137,13 +137,17 @@ private:
 	ESlateCheckBoxState::Type ShouldRecomputeTangents() const;
 	ESlateCheckBoxState::Type ShouldRemoveDegenerates() const;
 	ESlateCheckBoxState::Type ShouldUseFullPrecisionUVs() const;
-	TOptional<float> GetBuildScale() const;
+	TOptional<float> GetBuildScaleX() const;
+	TOptional<float> GetBuildScaleY() const;
+	TOptional<float> GetBuildScaleZ() const;
 
 	void OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState);
 	void OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState);
-	void OnBuildScaleChanged( float NewScale );
+	void OnBuildScaleXChanged( float NewScaleX );
+	void OnBuildScaleYChanged( float NewScaleY );
+	void OnBuildScaleZChanged( float NewScaleZ );
 
 private:
 	TWeakPtr<FLevelOfDetailSettingsLayout> ParentLODSettings;

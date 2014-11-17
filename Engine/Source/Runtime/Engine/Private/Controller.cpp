@@ -10,9 +10,6 @@
 #include "NavigationPathBuilder.h"
 #include "EngineUserInterfaceClasses.h"
 #include "EngineInterpolationClasses.h"
-#include "Online.h"
-#include "OnlineSubsystemTypes.h"
-
 
 DEFINE_LOG_CATEGORY(LogPath);
 
@@ -291,18 +288,18 @@ void AController::ClientSetRotation_Implementation( FRotator NewRotation, bool b
 	}
 }
 
-void AController::RemovePawnTickDependency(APawn* OldPawn)
+void AController::RemovePawnTickDependency(APawn* InOldPawn)
 {
-	if (OldPawn != NULL)
+	if (InOldPawn != NULL)
 	{
-		UPawnMovementComponent* PawnMovement = OldPawn->GetMovementComponent();
+		UPawnMovementComponent* PawnMovement = InOldPawn->GetMovementComponent();
 		if (PawnMovement)
 		{
 			PawnMovement->PrimaryComponentTick.RemovePrerequisite(this, this->PrimaryActorTick);
 		}
 		else
 		{
-			OldPawn->PrimaryActorTick.RemovePrerequisite(this, this->PrimaryActorTick);
+			InOldPawn->PrimaryActorTick.RemovePrerequisite(this, this->PrimaryActorTick);
 		}
 	}
 }
@@ -396,8 +393,8 @@ void AController::CleanupPlayerState()
 
 void AController::InstigatedAnyDamage(float Damage, const class UDamageType* DamageType, class AActor* DamagedActor, class AActor* DamageCauser)
 {
- 	ReceiveInstigatedAnyDamage(Damage, DamageType, DamagedActor, DamageCauser);
- 	OnInstigatedAnyDamage.Broadcast(Damage, DamageType, DamagedActor, DamageCauser);
+	ReceiveInstigatedAnyDamage(Damage, DamageType, DamagedActor, DamageCauser);
+	OnInstigatedAnyDamage.Broadcast(Damage, DamageType, DamagedActor, DamageCauser);
 }
 
 void AController::InitPlayerState()

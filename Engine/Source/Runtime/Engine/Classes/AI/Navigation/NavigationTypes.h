@@ -84,16 +84,6 @@ struct FNavigationDirtyElement
 
 	bool operator==(const FNavigationDirtyElement& Other) const 
 	{ 
-		if (bHasBoundsOverride)
-		{
-			if (BoundsOverride.IsValid != Other.BoundsOverride.IsValid ||
-				BoundsOverride.Min != Other.BoundsOverride.Min ||
-				BoundsOverride.Max != Other.BoundsOverride.Max)
-			{
-				return false;
-			}
-		}
-	
 		return Owner == Other.Owner; 
 	}
 
@@ -159,7 +149,7 @@ private:
 typedef TSharedPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathSharedPtr;
 typedef TWeakPtr<struct FNavigationPath, ESPMode::ThreadSafe> FNavPathWeakPtr;
 
-struct FNavigationPath : public TSharedFromThis<FNavigationPath, ESPMode::ThreadSafe>
+struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPMode::ThreadSafe>
 {
 	DECLARE_DELEGATE_OneParam(FPathObserverDelegate, FNavigationPath*);
 
@@ -210,7 +200,7 @@ struct FNavigationPath : public TSharedFromThis<FNavigationPath, ESPMode::Thread
 	FORCEINLINE float GetCost() const { return GetCostFromIndex(0); }
 
 	/** calculates total length of segments from NextPathPoint to the end of path, plus distance from CurrentPosition to NextPathPoint */
-	ENGINE_API float GetLengthFromPosition(FVector SegmentStart, uint32 NextPathPointIndex) const;
+	float GetLengthFromPosition(FVector SegmentStart, uint32 NextPathPointIndex) const;
 
 	FORCEINLINE float GetLength() const { return PathPoints.Num() ? GetLengthFromPosition(PathPoints[0].Location, 1) : 0.0f; }
 

@@ -94,15 +94,15 @@ FName FClassIconFinder::FindIconNameForClass(UClass* InClass, const FName& InDef
 	{
 		// walk up class hierarchy until we find an icon
 		UClass* ActorClass = InClass;
-		while( (Brush == NULL || Brush == FEditorStyle::GetDefaultBrush()) && ActorClass && (ActorClass != AActor::StaticClass()) )
+		while( Brush == NULL && ActorClass && ActorClass != AActor::StaticClass() )
 		{
 			BrushName = *FString::Printf( TEXT( "ClassIcon.%s" ), *ActorClass->GetName() );
-			Brush = FEditorStyle::GetBrush( BrushName );
+			Brush = FEditorStyle::GetOptionalBrush( BrushName, nullptr, nullptr );
 			ActorClass = ActorClass->GetSuperClass();
 		}
 	}
 
-	if( Brush == NULL || Brush == FEditorStyle::GetDefaultBrush() )
+	if( Brush == NULL )
 	{
 		// If we didn't supply an override name for the default icon use default class icon.
 		if( InDefaultName == "" )

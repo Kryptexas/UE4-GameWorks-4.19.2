@@ -647,13 +647,33 @@ namespace UnrealBuildTool
 		{
 			base.PostBuildSync(Target);
 
-			bool bIsUE4Game = Target.GameName.Equals("UE4Game", StringComparison.InvariantCultureIgnoreCase);
 			string AppName = Target.Rules.Type == TargetRules.TargetType.Game ? Target.GameName : Target.AppName;
 
 			if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
 			{
 				string RemoteShadowDirectoryMac = Path.GetDirectoryName(Target.OutputPath);
 				string FinalRemoteExecutablePath = String.Format("{0}/Payload/{1}.app/{1}", RemoteShadowDirectoryMac, Target.GameName);
+
+				// strip the debug info from the executable if needed
+				if (BuildConfiguration.bStripSymbolsOnIOS || (Target.Configuration == UnrealTargetConfiguration.Shipping))
+				{
+					Process StripProcess = new Process();
+					StripProcess.StartInfo.WorkingDirectory = RemoteShadowDirectoryMac;
+					StripProcess.StartInfo.FileName = "/usr/bin/xcrun";
+					StripProcess.StartInfo.Arguments = "strip \"" + Target.OutputPath + "\"";
+					StripProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
+					StripProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
+
+					OutputReceivedDataEventHandlerEncounteredError = false;
+					OutputReceivedDataEventHandlerEncounteredErrorMessage = "";
+					Utils.RunLocalProcess(StripProcess);
+					if (OutputReceivedDataEventHandlerEncounteredError)
+					{
+						throw new Exception(OutputReceivedDataEventHandlerEncounteredErrorMessage);
+					}
+				}
+
+				// copy the executable
 				if (!File.Exists(FinalRemoteExecutablePath))
 				{
 					Directory.CreateDirectory(String.Format("{0}/Payload/{1}.app", RemoteShadowDirectoryMac, Target.GameName));

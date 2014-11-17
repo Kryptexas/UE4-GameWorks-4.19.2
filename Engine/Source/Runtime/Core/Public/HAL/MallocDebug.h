@@ -6,8 +6,6 @@
 
 #pragma once
 
-extern FRunnableThread* GRenderingThread;
-
 // Debug memory allocator.
 class FMallocDebug : public FMalloc
 {
@@ -31,7 +29,7 @@ private:
 	struct FMemDebug
 	{
 		SIZE_T		Size;
-		int32			RefCount;
+		int32		RefCount;
 		int32*		PreTag;
 		FMemDebug*	Next;
 		FMemDebug**	PrevLink;
@@ -42,7 +40,6 @@ private:
 	/** Total size of allocations */
 	SIZE_T		TotalAllocationSize;
 	/** Total size of allocation overhead */
-
 	SIZE_T		TotalWasteSize;
 
 	static const uint32 AllocatorOverhead = sizeof(FMemDebug) + sizeof(FMemDebug*) + sizeof(int32) + ALLOCATION_ALIGNMENT + sizeof(int32);
@@ -169,25 +166,15 @@ public:
 	}
 
 	/**
-	 * Gathers memory allocations for both virtual and physical allocations.
-	 *
-	 * @param FMemoryAllocationStats_DEPRECATED	[out] structure containing information about the size of allocations
-	 */
-	virtual void GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats ) OVERRIDE
-	{
-		MemStats.TotalUsed = TotalAllocationSize;
-		MemStats.TotalAllocated = TotalAllocationSize + TotalWasteSize;
-		MemStats.CPUUsed = TotalAllocationSize;
-		MemStats.CPUWaste = TotalWasteSize;
-	}
-
-	/**
 	 * Dumps details about all allocations to an output device
 	 *
 	 * @param Ar	[in] Output device
 	 */
-	virtual void DumpAllocations( FOutputDevice& Ar ) OVERRIDE
+	virtual void DumpAllocatorStats( FOutputDevice& Ar ) OVERRIDE
 	{
+		Ar.Logf( TEXT( "Total Allocation Size: %u" ), TotalAllocationSize );
+		Ar.Logf( TEXT( "Total Waste Size: %u" ), TotalWasteSize );
+
 		int32 Count = 0;
 		int32 Chunks = 0;
 

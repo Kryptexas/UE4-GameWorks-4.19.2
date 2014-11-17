@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpTrackVectorMaterialParam.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Vector UMaterial Param Track" ) )
+UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Vector Material Parameter Track" ))
 class UInterpTrackVectorMaterialParam : public UInterpTrackVectorBase
 {
 	GENERATED_UCLASS_BODY()

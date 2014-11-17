@@ -11,11 +11,10 @@
 class FActorDragDropGraphEdOp : public FActorDragDropOp
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FActorDragDropGraphEdOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FActorDragDropGraphEdOp, FActorDragDropOp)
 
 	enum ToolTipTextType
 	{
-		ToolTip_Default,
 		ToolTip_Compatible,
 		ToolTip_Incompatible,
 		ToolTip_MultipleSelection_Incompatible,
@@ -28,24 +27,11 @@ public:
 		ToolTip_CompatibleMultipleDetach
 	};
 
-	/** Copy default values*/
-	void SetDefaults( )
-	{
-		DefaultHoverText = CurrentHoverText;
-		DefaultHoverIcon = CurrentIconBrush;
-	}
-
 	/** Set the appropriate tool tip when dragging functionality is active*/
 	void SetToolTip(ToolTipTextType TextType, FString ParamText = FString(TEXT("")))
 	{
 		switch( TextType )
 		{
-		case ToolTip_Default:
-			{
-				CurrentHoverText = DefaultHoverText;
-				CurrentIconBrush = DefaultHoverIcon;
-				break;
-			}
 		case ToolTip_Compatible:
 			{
 				CurrentHoverText = FString::Printf( *LOCTEXT("ToolTipCompatible", "'%s' is compatible to replace object reference").ToString(), *Actors[0].Get()->GetActorLabel( ) );
@@ -112,22 +98,13 @@ public:
 	static TSharedRef<FActorDragDropGraphEdOp> New(const TArray< TWeakObjectPtr<AActor> >& InActors)
 	{
 		TSharedRef<FActorDragDropGraphEdOp> Operation = MakeShareable(new FActorDragDropGraphEdOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FActorDragDropGraphEdOp>(Operation);
 		
 		Operation->Init(InActors);
-		Operation->SetDefaults();
+		Operation->SetupDefaults();
 
 		Operation->Construct();
 		return Operation;
 	}
-
-private:
-
-	/** String to show as hover text */
-	FString								DefaultHoverText;
-
-	/** Icon to be displayed */
-	const FSlateBrush*					DefaultHoverIcon;
 };
 
 #undef LOCTEXT_NAMESPACE

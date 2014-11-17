@@ -200,6 +200,11 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
  	}
 }
 
+bool UInterfaceProperty::SameType(const UProperty* Other) const
+{
+	return Super::SameType(Other) && (InterfaceClass == ((UInterfaceProperty*)Other)->InterfaceClass);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UInterfaceProperty, UProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UInterfaceProperty, InterfaceClass ) );

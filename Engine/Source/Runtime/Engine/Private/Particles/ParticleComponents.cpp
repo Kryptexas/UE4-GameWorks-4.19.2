@@ -145,51 +145,55 @@ void Particle_ModifyVectorDistribution(UDistributionVector* pkDistribution, FVec
 AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTextureObject;
-		FName ID_Effects;
-		FText NAME_Effects;
-		FConstructorStatics()
-			: SpriteTextureObject(TEXT("/Engine/EditorResources/S_Emitter"))
-			, ID_Effects(TEXT("Effects"))
-			, NAME_Effects(NSLOCTEXT( "SpriteCategory", "Effects", "Effects" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	ParticleSystemComponent = PCIP.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("ParticleSystemComponent0"));
 	ParticleSystemComponent->SecondsBeforeInactive = 1;
 	RootComponent = ParticleSystemComponent;
 
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
-	{
-		SpriteComponent->Sprite = ConstructorStatics.SpriteTextureObject.Get();
-		SpriteComponent->bHiddenInGame = true;
-		SpriteComponent->bIsScreenSizeScaled = true;
-		SpriteComponent->ScreenSize = 0.0025f;
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
-		SpriteComponent->AttachParent = ParticleSystemComponent;
-		SpriteComponent->bReceivesDecals = false;
-	}
-
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("ArrowComponent0"));
-	if (ArrowComponent)
-	{
-		ArrowComponent->ArrowColor = FColor(0, 255, 128);
 
-		ArrowComponent->ArrowSize = 1.5f;
-		ArrowComponent->AlwaysLoadOnClient = false;
-		ArrowComponent->AlwaysLoadOnServer = false;
-		ArrowComponent->bTreatAsASprite = true;
-		ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
-		ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
-		ArrowComponent->AttachParent = ParticleSystemComponent;
+	if (!IsRunningCommandlet())
+	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTextureObject;
+			FName ID_Effects;
+			FText NAME_Effects;
+			FConstructorStatics()
+				: SpriteTextureObject(TEXT("/Engine/EditorResources/S_Emitter"))
+				, ID_Effects(TEXT("Effects"))
+				, NAME_Effects(NSLOCTEXT("SpriteCategory", "Effects", "Effects"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
+		if (SpriteComponent)
+		{
+			SpriteComponent->Sprite = ConstructorStatics.SpriteTextureObject.Get();
+			SpriteComponent->bHiddenInGame = true;
+			SpriteComponent->bIsScreenSizeScaled = true;
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
+			SpriteComponent->AttachParent = ParticleSystemComponent;
+			SpriteComponent->bReceivesDecals = false;
+		}
+
+		if (ArrowComponent)
+		{
+			ArrowComponent->ArrowColor = FColor(0, 255, 128);
+
+			ArrowComponent->ArrowSize = 1.5f;
+			ArrowComponent->AlwaysLoadOnClient = false;
+			ArrowComponent->AlwaysLoadOnServer = false;
+			ArrowComponent->bTreatAsASprite = true;
+			ArrowComponent->bIsScreenSizeScaled = true;
+			ArrowComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
+			ArrowComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Effects;
+			ArrowComponent->AttachParent = ParticleSystemComponent;
+		}
 	}
 #endif // WITH_EDITORONLY_DATA
 }
@@ -2290,6 +2294,12 @@ void UParticleSystem::UpdateColorModuleClampAlpha(UParticleModuleColorBase* Colo
 	}
 }
 
+void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	OutTags.Add( FAssetRegistryTag("HasGPUEmitter", HasGPUEmitter() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical) );
+	Super::GetAssetRegistryTags(OutTags);
+}
+
 
 bool UParticleSystem::CalculateMaxActiveParticleCounts()
 {
@@ -2486,13 +2496,6 @@ bool UParticleSystem::ToggleSoloing(class UParticleEmitter* InEmitter)
 
 bool UParticleSystem::TurnOffSoloing()
 {
-	// @todo: ChrisW - This is a temporary fix to
-	// stop a crash when closing the Cascade editor.
-	if (Emitters.Num() != SoloTracking.Num())
-	{
-		SetupSoloing();
-	}
-
 	for (int32 EmitterIdx = 0; EmitterIdx < Emitters.Num(); EmitterIdx++)
 	{
 		UParticleEmitter* Emitter = Emitters[EmitterIdx];
@@ -2840,6 +2843,23 @@ void UParticleSystem::ComputeCanTickInAnyThread()
 	}
 }
 
+bool UParticleSystem::HasGPUEmitter() const
+{
+	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
+	{
+		// We can just check for the GPU type data at the highest LOD.
+		UParticleLODLevel* LODLevel = Emitters[EmitterIndex]->LODLevels[0];
+		if( LODLevel )
+		{
+			UParticleModule* TypeDataModule = LODLevel->TypeDataModule;
+			if( TypeDataModule && TypeDataModule->IsA(UParticleModuleTypeDataGpu::StaticClass()) )
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 UParticleSystemComponent::UParticleSystemComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -3443,10 +3463,10 @@ UMaterialInterface* UParticleSystemComponent::GetMaterial(int32 ElementIndex) co
 		UParticleEmitter* Emitter = Template->Emitters[ElementIndex];
 		if (Emitter && Emitter->LODLevels.Num() > 0)
 		{
-			UParticleLODLevel* LODLevel = Emitter->LODLevels[0];
-			if (LODLevel && LODLevel->RequiredModule)
+			UParticleLODLevel* EmitterLODLevel = Emitter->LODLevels[0];
+			if (EmitterLODLevel && EmitterLODLevel->RequiredModule)
 			{
-				return LODLevel->RequiredModule->Material;
+				return EmitterLODLevel->RequiredModule->Material;
 			}
 		}
 	}
@@ -3891,8 +3911,8 @@ void UParticleSystemComponent::ComputeTickComponent_Concurrent()
 		{
 			check(Instance->SpriteTemplate->LODLevels.Num() > 0);
 
-			UParticleLODLevel* LODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-			if (LODLevel && LODLevel->bEnabled)
+			UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+			if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 			{
 				Instance->Tick(DeltaTimeTick, bSuppressSpawning);
 
@@ -3934,8 +3954,8 @@ void UParticleSystemComponent::FinalizeTickComponent()
 
 			if (Instance && Instance->SpriteTemplate)
 			{
-				UParticleLODLevel* LODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-				if (LODLevel && LODLevel->bEnabled)
+				UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+				if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 				{
 					Instance->ProcessParticleEvents(DeltaTimeTick, bSuppressSpawning);
 				}
@@ -3999,8 +4019,8 @@ void UParticleSystemComponent::FinalizeTickComponent()
 				FParticleEmitterInstance* Instance = EmitterInstances[i];
 				if (Instance && Instance->SpriteTemplate)
 				{
-					UParticleLODLevel* LODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
-					if (LODLevel && LODLevel->bEnabled)
+					UParticleLODLevel* SpriteLODLevel = Instance->SpriteTemplate->GetCurrentLODLevel(Instance);
+					if (SpriteLODLevel && SpriteLODLevel->bEnabled)
 					{
 						BoundingBox += Instance->GetBoundingBox();
 					}
@@ -4903,7 +4923,7 @@ void UParticleSystemComponent::CacheViewRelevanceFlags(UParticleSystem* Template
 
 			for (int32 LODIndex = 0; LODIndex < Emitter->LODLevels.Num(); LODIndex++)
 			{
-				UParticleLODLevel* LODLevel = Emitter->LODLevels[LODIndex];
+				UParticleLODLevel* EmitterLODLevel = Emitter->LODLevels[LODIndex];
 
 				// Prime the array
 				// This code assumes that the particle system emitters all have the same number of LODLevels. 
@@ -4912,11 +4932,11 @@ void UParticleSystemComponent::CacheViewRelevanceFlags(UParticleSystem* Template
 					CachedViewRelevanceFlags.AddZeroed(1);
 				}
 				FMaterialRelevance& LODViewRel = CachedViewRelevanceFlags[LODIndex];
-				check(LODLevel->RequiredModule);
+				check(EmitterLODLevel->RequiredModule);
 
-				if (LODLevel->bEnabled == true)
+				if (EmitterLODLevel->bEnabled == true)
 				{
-					EmitterInst->GatherMaterialRelevance( &LODViewRel, LODLevel );						
+					EmitterInst->GatherMaterialRelevance(&LODViewRel, EmitterLODLevel);
 				}
 			}
 		}

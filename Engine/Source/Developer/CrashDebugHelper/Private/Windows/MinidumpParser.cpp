@@ -10,8 +10,6 @@
 
 bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& InCrashDumpFilename )
 {
-	bool bResult = false;
-
 	const bool bSyncSymbols = FParse::Param( FCommandLine::Get(), TEXT( "SyncSymbols" ) );
 	const bool bAnnotate = FParse::Param( FCommandLine::Get(), TEXT( "Annotate" ) );
 	const bool bSyncMicrosoftSymbols = FParse::Param( FCommandLine::Get(), TEXT( "SyncMicrosoftSymbols" ) );
@@ -24,6 +22,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 
 	FWindowsPlatformStackWalkExt::InitStackWalking();
 
+	bool bAtLeastOneFunctionNameFoundInCallstack = false;
 	if( FWindowsPlatformStackWalkExt::OpenDumpFile( &CrashInfo, InCrashDumpFilename ) )
 	{
 		// Get a list of modules, and the version of the executable
@@ -68,7 +67,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 			FWindowsPlatformStackWalkExt::GetExceptionInfo( &CrashInfo );
 
 			// Get the callstacks for each thread
-			FWindowsPlatformStackWalkExt::GetCallstacks( &CrashInfo );
+			bAtLeastOneFunctionNameFoundInCallstack = FWindowsPlatformStackWalkExt::GetCallstacks(&CrashInfo);
 
 			// Sync the source file where the crash occurred
 			if( CrashInfo.SourceFile.Len() > 0 )
@@ -110,7 +109,7 @@ bool FCrashDebugHelperWindows::CreateMinidumpDiagnosticReport( const FString& In
 		ShutdownSourceControl();
 	}
 
-	return bResult;
+	return bAtLeastOneFunctionNameFoundInCallstack;
 }
 
 #include "HideWindowsPlatformTypes.h"

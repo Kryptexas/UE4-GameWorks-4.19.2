@@ -40,7 +40,7 @@ private:
 
 	FString	GetDurationText() const
 	{
-		return FString::Printf( TEXT("%.2lf"), EventDuration.Get() );
+		return FString::Printf( TEXT("%.2f"), EventDuration.Get() );
 	}
 
 	FString EventName;

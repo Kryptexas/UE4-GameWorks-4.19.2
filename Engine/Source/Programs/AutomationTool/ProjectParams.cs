@@ -212,6 +212,7 @@ namespace AutomationTool
 			this.NoDebugInfo = InParams.NoDebugInfo;
 			this.NoCleanStage = InParams.NoCleanStage;
 			this.MapToRun = InParams.MapToRun;
+			this.AdditionalServerMapParams = InParams.AdditionalServerMapParams;
 			this.Foreign = InParams.Foreign;
 			this.ForeignCode = InParams.ForeignCode;
 			this.StageCommandline = InParams.StageCommandline;
@@ -243,6 +244,7 @@ namespace AutomationTool
             this.bUsesSteam = InParams.bUsesSteam;
 			this.bUsesSlate = InParams.bUsesSlate;
 			this.bUsesSlateEditorStyle = InParams.bUsesSlateEditorStyle;
+            this.bDebugBuildsActuallyUseDebugCRT = InParams.bDebugBuildsActuallyUseDebugCRT;
 			this.Archive = InParams.Archive;
 			this.ArchiveDirectoryParam = InParams.ArchiveDirectoryParam;
 			this.Distribution = InParams.Distribution;
@@ -258,7 +260,8 @@ namespace AutomationTool
 
 			CommandUtils Command = null,
 			string Device = null,			
-			string MapToRun = null,			
+			string MapToRun = null,	
+			string AdditionalServerMapParams = null,
 			string Port = null,
 			string RunCommandline = null,						
 			string StageCommandline = null,
@@ -404,6 +407,7 @@ namespace AutomationTool
 			this.NoDebugInfo = GetParamValueIfNotSpecified(Command, NoDebugInfo, this.NoDebugInfo, "nodebuginfo");
 			this.NoCleanStage = GetParamValueIfNotSpecified(Command, NoCleanStage, this.NoCleanStage, "nocleanstage");
 			this.MapToRun = ParseParamValueIfNotSpecified(Command, MapToRun, "map", String.Empty);
+			this.AdditionalServerMapParams = ParseParamValueIfNotSpecified(Command, AdditionalServerMapParams, "AdditionalServerMapParams", String.Empty);
 			this.Foreign = GetParamValueIfNotSpecified(Command, Foreign, this.Foreign, "foreign");
 			this.ForeignCode = GetParamValueIfNotSpecified(Command, ForeignCode, this.ForeignCode, "foreigncode");
 			this.StageCommandline = ParseParamValueIfNotSpecified(Command, StageCommandline, "cmdline");
@@ -499,7 +503,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Shared: The current project is a foreign project, commandline: -foreign
 		/// </summary>
-		[Help("foreign", "Generate a foreign uproject from tappychicken and use that")]
+		[Help("foreign", "Generate a foreign uproject from blankproject and use that")]
 		public bool Foreign { private set; get; }
 
 		/// <summary>
@@ -818,6 +822,15 @@ namespace AutomationTool
 		/// </summary>
 		public bool bUsesSlateEditorStyle = false;
 
+        /// <summary>
+        // By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
+        // Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
+        // our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
+        // it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
+        // so that you can debug your program's code.
+        /// </summary>
+        public bool bDebugBuildsActuallyUseDebugCRT = false;
+
 		#endregion
 
 		#region Run
@@ -869,6 +882,12 @@ namespace AutomationTool
 		/// </summary>
 		[Help("map", "map to run the game with")]
 		public string MapToRun;
+
+		/// <summary>
+		/// Run: Additional server map params.
+		/// </summary>
+		[Help("AdditionalServerMapParams", "Additional server map params, i.e ?param=value")]
+		public string AdditionalServerMapParams;
 
 		/// <summary>
 		/// Run: The target device to run the game on
@@ -994,6 +1013,7 @@ namespace AutomationTool
 			bUsesSteam = Properties.bUsesSteam;
 			bUsesSlate = Properties.bUsesSlate;
 			bUsesSlateEditorStyle = Properties.bUsesSlateEditorStyle;
+            bDebugBuildsActuallyUseDebugCRT = Properties.bDebugBuildsActuallyUseDebugCRT;
 
 			bIsCodeBasedProject = Properties.bIsCodeBasedProject;			
 			DetectedTargets = Properties.Targets;
@@ -1095,6 +1115,7 @@ namespace AutomationTool
 					if (DetectedTargets.TryGetValue(ValidTarget, out TargetData))
 					{
 						GameTarget = TargetData.TargetName;
+                        bDebugBuildsActuallyUseDebugCRT = TargetData.Rules.bDebugBuildsActuallyUseDebugCRT;
 						bUsesSlate = TargetData.Rules.bUsesSlate;
 						bUsesSlateEditorStyle = TargetData.Rules.bUsesSlateEditorStyle;
 						bUsesSteam = TargetData.Rules.bUsesSteam;
@@ -1442,6 +1463,7 @@ namespace AutomationTool
 				// In alphabetical order.
 				CommandUtils.Log("Project Params **************");
 
+				CommandUtils.Log("AdditionalServerMapParams={0}", AdditionalServerMapParams);
 				CommandUtils.Log("Archive={0}", Archive);
 				CommandUtils.Log("BaseArchiveDirectory={0}", BaseArchiveDirectory);
 				CommandUtils.Log("BaseStageDirectory={0}", BaseStageDirectory);
@@ -1501,6 +1523,7 @@ namespace AutomationTool
 				CommandUtils.Log("Stage={0}", Stage);
 				CommandUtils.Log("bUsesSteam={0}", bUsesSteam);
 				CommandUtils.Log("bUsesSlate={0}", bUsesSlate);
+                CommandUtils.Log("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
 				CommandUtils.Log("Project Params **************");
 			}
 			bLogged = true;

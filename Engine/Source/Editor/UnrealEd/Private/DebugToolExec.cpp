@@ -69,7 +69,7 @@ bool FDebugToolExec::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 {
 	// these commands are only allowed in standalone games
 #if UE_BUILD_SHIPPING || UE_BUILD_TEST
-	if (GEngine->GetNetMode(InWorld) != NM_Standalone || (GEngine->WorldContextFromWorld(InWorld).PendingNetGame != NULL))
+	if (GEngine->GetNetMode(InWorld) != NM_Standalone || (GEngine->GetWorldContextFromWorldChecked(InWorld).PendingNetGame != NULL))
 	{
 		return 0;
 	}

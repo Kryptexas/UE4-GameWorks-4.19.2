@@ -10,10 +10,11 @@
 
 #include "MallocProfiler.h"
 #include "ModuleManager.h"
+#include "MemoryMisc.h"
 
 DEFINE_LOG_CATEGORY(LogProfilingDebugging);
 
-FMallocProfiler* GMallocProfiler;
+CORE_API FMallocProfiler* GMallocProfiler;
 
 /**
  * Maximum depth of stack backtrace.
@@ -29,7 +30,7 @@ FMallocProfiler* GMallocProfiler;
 /** Magic value, determining that file is a memory profiler file.				*/
 #define MEMORY_PROFILER_MAGIC						0xDA15F7D8
 /** Version of memory profiler.													*/
-#define MEMORY_PROFILER_VERSION						3
+#define MEMORY_PROFILER_VERSION						4
 
 /*=============================================================================
 	Profiler header.
@@ -41,8 +42,8 @@ struct FProfilerHeader
 	uint32	Magic;
 	/** Version number to detect version mismatches.	*/
 	uint32	Version;
-	/** Platform that was captured.						*/
-	uint32	Platform;
+	/** Platform that this file was captured on.		*/
+	FString	PlatformName;
 	/** Whether symbol information is being serialized. */
 	uint32	bShouldSerializeSymbolInfo;
 	/** Name of executable, used for finding symbols.	*/
@@ -79,9 +80,11 @@ struct FProfilerHeader
 	friend FArchive& operator << ( FArchive& Ar, FProfilerHeader Header )
 	{
 		Ar	<< Header.Magic
-			<< Header.Version
-			<< Header.Platform
-			<< Header.bShouldSerializeSymbolInfo
+			<< Header.Version;
+
+		Header.PlatformName.SerializeAsANSICharArray(Ar,255);
+
+		Ar	<< Header.bShouldSerializeSymbolInfo
 			<< Header.NameTableOffset
 			<< Header.NameTableEntries
 			<< Header.CallStackAddressTableOffset
@@ -92,14 +95,8 @@ struct FProfilerHeader
 			<< Header.ModuleEntries
 			<< Header.NumDataFiles;
 
-		// @todo: Backwards compatibility with MemoryProfiler2 header reader
-		uint32 Dummy = -1;
-		Ar
-			<< Dummy	// ScriptCallstackTableOffset (-1 means, "no script data")
-			<< Dummy;	// ScriptNameTableOffset (-1 means, "no script data")
-
 		check( Ar.IsSaving() );
-		Header.ExecutableName.SerializeAsANSICharArray(Ar, 255);
+		Header.ExecutableName.SerializeAsANSICharArray(Ar,255);
 		return Ar;
 	}
 };
@@ -257,8 +254,8 @@ struct FProfilerOtherInfo
 	 *
 	 * @param	Ar			Archive to serialize to
 	 * @param	OtherInfo	Info to serialize
- 	 * @return	Passed in archive
- 	 */
+	 * @return	Passed in archive
+	 */
 	friend FArchive& operator << ( FArchive& Ar, FProfilerOtherInfo OtherInfo )
 	{
 		Ar	<< OtherInfo.DummyPointer
@@ -374,6 +371,8 @@ void FMallocProfiler::TrackSpecialMemory()
 		// Avoid tracking operations caused by tracking!
 		if (SyncObjectLockCount == 0)
 		{
+			FScopedMallocProfilerLock MallocProfilerLock;
+
 			// Write marker snapshot to stream.
 			FProfilerOtherInfo SnapshotMarker;
 			SnapshotMarker.DummyPointer	= TYPE_Other;
@@ -508,7 +507,7 @@ void FMallocProfiler::EndProfiling()
 		FProfilerHeader Header;
 		Header.Magic				= MEMORY_PROFILER_MAGIC;
 		Header.Version				= MEMORY_PROFILER_VERSION;
-		Header.Platform				= 0; //@todo this is now a string FPlatformProperties::PlatformName()
+		Header.PlatformName			= FPlatformProperties::PlatformName();
 		Header.bShouldSerializeSymbolInfo = SERIALIZE_SYMBOL_INFO ? 1 : 0;
 #if PLATFORM_WINDOWS
 		Header.ExecutableName		= FPlatformProcess::ExecutableName();
@@ -889,19 +888,24 @@ void FMallocProfiler::EmbedDwordMarker(EProfilingPayloadSubType SubType, uint32 
 /** Writes memory allocations stats. */
 void FMallocProfiler::WriteMemoryAllocationStats()
 {
-	FMemoryAllocationStats_DEPRECATED MemStats;
-	UsedMalloc->GetAllocationInfo( MemStats );
-	GetTexturePoolSize( MemStats );
+	FGenericMemoryStats Stats;
+	FPlatformMemory::GetStatsForMallocProfiler( Stats ); 
+	UsedMalloc->GetAllocatorStats( Stats );
 
-	uint8 StatsCount = FMemoryAllocationStats_DEPRECATED::GetStatsNum();
+	static const FName NAME_MemoryProfilingOverhead = TEXT("Memory Profiling Overhead");
+	int64 MemoryProfilingOverhead = CalculateMemoryProfilingOverhead();
+	Stats.Add( NAME_MemoryProfilingOverhead, MemoryProfilingOverhead );
+
+	check( Stats.Data.Num() < MAX_uint8 );
+	uint8 StatsCount = Stats.Data.Num();
 	BufferedFileWriter << StatsCount;
 
-	// Convert memory allocations stats into more reliable format. Size of SIZE_T is platform-dependent.
-	for( int32 StatIndex = 0; StatIndex < StatsCount; StatIndex++ )
+	for( const auto& MapIt : Stats.Data )
 	{
-		// Serialize as SQWORDs.
-		int64 Value = (int64)(*( (SIZE_T*)&MemStats + StatIndex ));
-		BufferedFileWriter << Value;
+		FString StatName = MapIt.Key.ToString();
+		int64 StatValue = (int64)MapIt.Value;
+		int32 StatNameIndex = GetNameTableIndex(StatName);
+		BufferedFileWriter << StatNameIndex << StatValue;
 	}
 }
 
@@ -914,34 +918,6 @@ void FMallocProfiler::WriteAdditionalSnapshotMemoryStats()
 
 	// Write "stat levels" information.
 	WriteLoadedLevels( NULL );
-
-	// Write memory metrics, need to be redone. It could be used to store platform dependent memory metrics.
-	FMemoryAllocationStats_DEPRECATED MemStats;
-	UsedMalloc->GetAllocationInfo( MemStats );
-
-	int64 MemoryProfilingOverhead = CalculateMemoryProfilingOverhead();
-
-	int64 AllocatedFromOS = 0;
-	int64 MaxAllocatedFromOS = 0;
-	int64 TotalUsedChunks = 0;
-	int64 AllocateFromGame = 0;
-	int64 TextureLightmapMemory = 0;
-	int64 TextureShadowmapMemory = 0;
-#if STATS
-//	TextureLightmapMemory = GStatManager.GetStatValueDWORD(STAT_TextureLightmapMemory);
-//	TextureShadowmapMemory = GStatManager.GetStatValueDWORD(STAT_TextureShadowmapMemory);
-#endif
-
-	// IMPORTANT: All metrics MUST be serialized as SQWORDs!
-	uint8 NumMetrics = 7;
-	BufferedFileWriter << NumMetrics
-						<< MemoryProfilingOverhead
-						<< AllocatedFromOS
-						<< MaxAllocatedFromOS
-						<< AllocateFromGame
-						<< TotalUsedChunks
-						<< TextureLightmapMemory
-						<< TextureShadowmapMemory;
 }
 
 /** Snapshot taken when engine has started the cleaning process before loading a new level. */
@@ -1020,10 +996,8 @@ void FMallocProfiler::WriteLoadedLevels( UWorld* InWorld )
 /** 
  * Gather texture memory stats. 
  */
-void FMallocProfiler::GetTexturePoolSize( FMemoryAllocationStats_DEPRECATED& MemoryStats )
+void FMallocProfiler::GetTexturePoolSize( FGenericMemoryStats& out_Stats )
 {
-	MemoryStats.AllocatedTextureMemorySize = 0;
-	MemoryStats.AvailableTextureMemorySize = 0;
 }
 
 /*=============================================================================

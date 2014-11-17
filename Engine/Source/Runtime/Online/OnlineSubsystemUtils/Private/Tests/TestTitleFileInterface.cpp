@@ -2,11 +2,10 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "TestTitleFileInterface.h"
-#include "Online.h"
 
-void FTestTitleFileInterface::Test()
+void FTestTitleFileInterface::Test(UWorld* InWorld)
 {
-	OnlineTitleFile = Online::GetTitleFileInterface(SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
+	OnlineTitleFile = Online::GetTitleFileInterface(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
 	if (OnlineTitleFile.IsValid())
 	{
 		OnlineTitleFile->AddOnEnumerateFilesCompleteDelegate(OnEnumerateFilesCompleteDelegate);

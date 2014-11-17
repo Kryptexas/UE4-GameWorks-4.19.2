@@ -7,12 +7,15 @@
 #ifndef __STATICMESHDRAWLIST_INL__
 #define __STATICMESHDRAWLIST_INL__
 
+// Expensive
+#define PER_MESH_DRAW_STATS 0
+
 template<typename DrawingPolicyType>
 void TStaticMeshDrawList<DrawingPolicyType>::FElementHandle::Remove()
 {
 	// Make a copy of this handle's variables on the stack, since the call to Elements.RemoveSwap deletes the handle.
 	TStaticMeshDrawList* const LocalDrawList = StaticMeshDrawList;
-	FDrawingPolicyLink* const LocalDrawingPolicyLink = &LocalDrawList->DrawingPolicySet(SetId);
+	FDrawingPolicyLink* const LocalDrawingPolicyLink = &LocalDrawList->DrawingPolicySet[SetId];
 	const int32 LocalElementIndex = ElementIndex;
 
 	checkSlow(LocalDrawingPolicyLink->SetId == SetId);
@@ -60,7 +63,9 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 	bool& bDrawnShared
 	)
 {
+#if PER_MESH_DRAW_STATS
 	FScopeCycleCounter Context(Element.Mesh->PrimitiveSceneInfo->Proxy->GetStatId());
+#endif // #if PER_MESH_DRAW_STATS
 
 	if (!bDrawnShared)
 	{
@@ -72,12 +77,14 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 		bDrawnShared = true;
 	}
 	
+	uint32 BackFaceEnd = DrawingPolicyLink->DrawingPolicy.NeedsBackfacePass() ? 2 : 1;
+
 	int32 BatchElementIndex = 0;
 	do
 	{
 		if(BatchElementMask & 1)
 		{
-			for (int32 bBackFace = 0; bBackFace < (DrawingPolicyLink->DrawingPolicy.NeedsBackfacePass() ? 2 : 1); bBackFace++)
+			for (uint32 BackFace = 0; BackFace < BackFaceEnd; ++BackFace)
 			{
 				INC_DWORD_STAT(STAT_StaticDrawListMeshDrawCalls);
 
@@ -86,7 +93,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::DrawElement(
 					Element.Mesh->PrimitiveSceneInfo->Proxy,
 					*Element.Mesh,
 					BatchElementIndex,
-					!!bBackFace,
+					!!BackFace,
 					Element.PolicyData
 					);
 				DrawingPolicyLink->DrawingPolicy.DrawMesh(*Element.Mesh,BatchElementIndex);
@@ -112,7 +119,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(
 		// If no existing drawing policy matches the mesh, create a new one.
 		const FSetElementId DrawingPolicyLinkId = DrawingPolicySet.Add(FDrawingPolicyLink(this,InDrawingPolicy));
 
-		DrawingPolicyLink = &DrawingPolicySet(DrawingPolicyLinkId);
+		DrawingPolicyLink = &DrawingPolicySet[DrawingPolicyLinkId];
 		DrawingPolicyLink->SetId = DrawingPolicyLinkId;
 
 		TotalBytesUsed += DrawingPolicyLink->GetSizeBytes();
@@ -123,7 +130,7 @@ void TStaticMeshDrawList<DrawingPolicyType>::AddMesh(
 		while(MinIndex < MaxIndex)
 		{
 			int32 PivotIndex = (MaxIndex + MinIndex) / 2;
-			int32 CompareResult = CompareDrawingPolicy(DrawingPolicySet(OrderedDrawingPolicies[PivotIndex]).DrawingPolicy,DrawingPolicyLink->DrawingPolicy);
+			int32 CompareResult = CompareDrawingPolicy(DrawingPolicySet[OrderedDrawingPolicies[PivotIndex]].DrawingPolicy,DrawingPolicyLink->DrawingPolicy);
 			if(CompareResult < 0)
 			{
 				MinIndex = PivotIndex + 1;
@@ -178,7 +185,7 @@ TStaticMeshDrawList<DrawingPolicyType>::~TStaticMeshDrawList()
 #if STATS
 	for (typename TArray<FSetElementId>::TConstIterator PolicyIt(OrderedDrawingPolicies); PolicyIt; ++PolicyIt)
 	{
-		const FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet(*PolicyIt);
+		const FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*PolicyIt];
 		TotalBytesUsed -= DrawingPolicyLink->GetSizeBytes();
 	}
 #endif
@@ -206,11 +213,11 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 		bool bDrawnShared = false;
 		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->VisibilityBitReference);
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
 		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
-			if(StaticMeshVisibilityMap.AccessCorrespondingBit(CompactElementPtr->VisibilityBitReference))
+			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
 			{
 				const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 				INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,Element.Mesh->GetNumPrimitives());
@@ -234,15 +241,15 @@ bool TStaticMeshDrawList<DrawingPolicyType>::DrawVisible(
 	bool bDirty = false;
 	for(typename TArray<FSetElementId>::TConstIterator PolicyIt(OrderedDrawingPolicies); PolicyIt; ++PolicyIt)
 	{
-		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet(*PolicyIt);
+		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*PolicyIt];
 		bool bDrawnShared = false;
 		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->VisibilityBitReference);
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
 		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
-			if(StaticMeshVisibilityMap.AccessCorrespondingBit(CompactElementPtr->VisibilityBitReference))
+			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
 			{
 				const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 				INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,Element.Mesh->GetNumPrimitives());
@@ -271,15 +278,15 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 
 	for(typename TArray<FSetElementId>::TConstIterator PolicyIt(OrderedDrawingPolicies); PolicyIt; ++PolicyIt)
 	{
-		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet(*PolicyIt);
+		FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*PolicyIt];
 		FVector DrawingPolicyCenter = DrawingPolicyLink->CachedBoundingSphere.Center;
 		FPlatformMisc::Prefetch(DrawingPolicyLink->CompactElements.GetTypedData());
 		const int32 NumElements = DrawingPolicyLink->Elements.Num();
-		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->VisibilityBitReference);
+		FPlatformMisc::Prefetch(&DrawingPolicyLink->CompactElements.GetTypedData()->MeshId);
 		const FElementCompact* CompactElementPtr = DrawingPolicyLink->CompactElements.GetTypedData();
 		for(int32 ElementIndex = 0; ElementIndex < NumElements; ElementIndex++, CompactElementPtr++)
 		{
-			if(StaticMeshVisibilityMap.AccessCorrespondingBit(CompactElementPtr->VisibilityBitReference))
+			if(StaticMeshVisibilityMap.AccessCorrespondingBit(FRelativeBitReference(CompactElementPtr->MeshId)))
 			{
 				const FElement& Element = DrawingPolicyLink->Elements[ElementIndex];
 				const FBoxSphereBounds& Bounds = Element.Bounds;
@@ -301,7 +308,7 @@ int32 TStaticMeshDrawList<DrawingPolicyType>::DrawVisibleFrontToBack(
 		int32 ElementIndex = SortKeys[SortedIndex].Fields.MeshElementIndex;
 		if (DrawingPolicyIndex != LastDrawingPolicyIndex)
 		{
-			DrawingPolicyLink = &DrawingPolicySet(FSetElementId::FromInteger(DrawingPolicyIndex));
+			DrawingPolicyLink = &DrawingPolicySet[FSetElementId::FromInteger(DrawingPolicyIndex)];
 			LastDrawingPolicyIndex = DrawingPolicyIndex;
 			bDrawnShared = false;
 		}
@@ -326,8 +333,8 @@ typename TStaticMeshDrawList<DrawingPolicyType>::TDrawingPolicySet* TStaticMeshD
 template<typename DrawingPolicyType>
 int32 TStaticMeshDrawList<DrawingPolicyType>::Compare(FSetElementId A, FSetElementId B)
 {
-	const FSphere& BoundsA = (*SortDrawingPolicySet)(A).CachedBoundingSphere;
-	const FSphere& BoundsB = (*SortDrawingPolicySet)(B).CachedBoundingSphere;
+	const FSphere& BoundsA = (*SortDrawingPolicySet)[A].CachedBoundingSphere;
+	const FSphere& BoundsB = (*SortDrawingPolicySet)[B].CachedBoundingSphere;
 
 	// Assume state buckets with large bounds are background geometry
 	if (BoundsA.W >= HALF_WORLD_MAX / 2 && BoundsB.W < HALF_WORLD_MAX / 2)
@@ -425,7 +432,7 @@ FDrawListStats TStaticMeshDrawList<DrawingPolicyType>::GetStats() const
 	TArray<int32> MeshCounts;
 	for(typename TArray<FSetElementId>::TConstIterator PolicyIt(OrderedDrawingPolicies); PolicyIt; ++PolicyIt)
 	{
-		const FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet(*PolicyIt);
+		const FDrawingPolicyLink* DrawingPolicyLink = &DrawingPolicySet[*PolicyIt];
 		int32 NumMeshes = DrawingPolicyLink->Elements.Num();
 		Stats.NumDrawingPolicies++;
 		Stats.NumMeshes += NumMeshes;

@@ -400,8 +400,7 @@ public:
 	TShadowDepthBasePS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		: FMeshMaterialShader(Initializer)
 	{
-		InvMaxSubjectDepth.Bind(Initializer.ParameterMap,TEXT("InvMaxSubjectDepth"));
-		DepthBias.Bind(Initializer.ParameterMap,TEXT("DepthBias"));
+		ShadowParams.Bind(Initializer.ParameterMap,TEXT("ShadowParams"));
 		TransmissionStrength.Bind(Initializer.ParameterMap,TEXT("TransmissionStrength"));
 		ReflectiveShadowMapTextureResolution.Bind(Initializer.ParameterMap,TEXT("ReflectiveShadowMapTextureResolution"));
 		ProjectionMatrixParameter.Bind(Initializer.ParameterMap,TEXT("ProjectionMatrix"));
@@ -420,8 +419,7 @@ public:
 
 		FMeshMaterialShader::SetParameters(ShaderRHI, MaterialRenderProxy, Material, View, ESceneRenderTargetsMode::DontSet);
 
-		SetShaderValue(ShaderRHI, InvMaxSubjectDepth, 1.0f / ShadowInfo->MaxSubjectDepth);
-		SetShaderValue(ShaderRHI, DepthBias, ShadowInfo->GetShaderDepthBias());
+		SetShaderValue(ShaderRHI, ShadowParams, FVector2D(ShadowInfo->GetShaderDepthBias(), ShadowInfo->InvMaxSubjectDepth));
 
 		if(bRenderReflectiveShadowMap)
 		{
@@ -433,6 +431,17 @@ public:
 				ProjectionMatrixParameter,
 				FTranslationMatrix(ShadowInfo->PreShadowTranslation - View.ViewMatrices.PreViewTranslation) * ShadowInfo->SubjectAndReceiverMatrix
 				);
+
+			const FSceneViewState* ViewState = (const FSceneViewState*)View.State;
+			if(ViewState)
+			{
+				const FLightPropagationVolume* Lpv = ViewState->GetLightPropagationVolume();
+
+				if(Lpv)
+				{
+					SetUniformBufferParameter(ShaderRHI, GetUniformBufferParameter<FLpvWriteUniformBufferParameters>(), Lpv->GetWriteUniformBuffer());
+				}
+			}
 		}
 	}
 
@@ -445,8 +454,7 @@ public:
 	{
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 
-		Ar << InvMaxSubjectDepth;
-		Ar << DepthBias;
+		Ar << ShadowParams;
 
 		Ar << TransmissionStrength;
 		Ar << ReflectiveShadowMapTextureResolution;
@@ -457,8 +465,7 @@ public:
 
 private:
 
-	FShaderParameter InvMaxSubjectDepth;
-	FShaderParameter DepthBias;
+	FShaderParameter ShadowParams;
 
 	FShaderParameter TransmissionStrength;
 	FShaderParameter ReflectiveShadowMapTextureResolution;
@@ -702,11 +709,12 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	HullShader = NULL;
 	DomainShader = NULL;
 
-	const EMaterialTessellationMode TessellationMode = MaterialResource->GetTessellationMode();
+	FVertexFactoryType* VFType = InVertexFactory->GetType();
+
 	const bool bInitializeTessellationShaders = 
-		RHISupportsTessellation(GRHIShaderPlatform)
-		&& InVertexFactory->GetType()->SupportsTessellationShaders()
-		&& TessellationMode != MTM_NoTessellation;
+		MaterialResource->GetTessellationMode() != MTM_NoTessellation
+		&& RHISupportsTessellation(GRHIShaderPlatform)
+		&& VFType->SupportsTessellationShaders();
 
 	bUsePositionOnlyVS = !bRenderingReflectiveShadowMaps
 		&& VertexFactory->SupportsPositionOnlyStream()
@@ -718,68 +726,68 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	{
 		if (bUsePositionOnlyVS)
 		{
-			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, true, true> >(InVertexFactory->GetType());
+			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, true, true> >(VFType);
 		}
 		else
 		{
-			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true> >(InVertexFactory->GetType());
+			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false, true> >(VFType);
 		}
 		// Use the geometry shader which will clone output triangles to all faces of the cube map
-		GeometryShader = MaterialResource->GetShader<FOnePassPointShadowProjectionGS>(InVertexFactory->GetType());
+		GeometryShader = MaterialResource->GetShader<FOnePassPointShadowProjectionGS>(VFType);
 		if(bInitializeTessellationShaders)
 		{
-			HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_OnePassPointLight, false> >(InVertexFactory->GetType());	
-			DomainShader = MaterialResource->GetShader<TShadowDepthDS<VertexShadowDepth_OnePassPointLight, false> >(InVertexFactory->GetType());	
+			HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_OnePassPointLight, false> >(VFType);	
+			DomainShader = MaterialResource->GetShader<TShadowDepthDS<VertexShadowDepth_OnePassPointLight, false> >(VFType);	
 		}
 	}
 	else if (bUsePerspectiveCorrectShadowDepths)
 	{
 		if (bRenderingReflectiveShadowMaps)
 		{
-			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_PerspectiveCorrect, true, false> >(InVertexFactory->GetType());	
+			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_PerspectiveCorrect, true, false> >(VFType);	
 		}
 		else
 		{
 			if (bUsePositionOnlyVS)
 			{
-				VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_PerspectiveCorrect, false, true> >(InVertexFactory->GetType());
+				VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_PerspectiveCorrect, false, true> >(VFType);
 			}
 			else
 			{
-				VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_PerspectiveCorrect, false, false> >(InVertexFactory->GetType());
+				VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_PerspectiveCorrect, false, false> >(VFType);
 			}
 		}
 		if(bInitializeTessellationShaders)
 		{
-			HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_PerspectiveCorrect, bRenderingReflectiveShadowMaps> >(InVertexFactory->GetType());	
-			DomainShader = MaterialResource->GetShader<TShadowDepthDS<VertexShadowDepth_PerspectiveCorrect, bRenderingReflectiveShadowMaps> >(InVertexFactory->GetType());	
+			HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_PerspectiveCorrect, bRenderingReflectiveShadowMaps> >(VFType);	
+			DomainShader = MaterialResource->GetShader<TShadowDepthDS<VertexShadowDepth_PerspectiveCorrect, bRenderingReflectiveShadowMaps> >(VFType);	
 		}
 	}
 	else
 	{
 		if (bRenderingReflectiveShadowMaps)
 		{
-			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OutputDepth, true, false> >(InVertexFactory->GetType());	
+			VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OutputDepth, true, false> >(VFType);	
 			if(bInitializeTessellationShaders)
 			{
-				HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_OutputDepth, true> >(InVertexFactory->GetType());	
-				DomainShader = MaterialResource->GetShader<TShadowDepthDS<VertexShadowDepth_OutputDepth, true> >(InVertexFactory->GetType());	
+				HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_OutputDepth, true> >(VFType);	
+				DomainShader = MaterialResource->GetShader<TShadowDepthDS<VertexShadowDepth_OutputDepth, true> >(VFType);	
 			}
 		}
 		else
 		{
 			if (bUsePositionOnlyVS)
 			{
-				VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OutputDepth, false, true> >(InVertexFactory->GetType());
+				VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OutputDepth, false, true> >(VFType);
 			}
 			else
 			{
-				VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OutputDepth, false, false> >(InVertexFactory->GetType());
+				VertexShader = MaterialResource->GetShader<TShadowDepthVS<VertexShadowDepth_OutputDepth, false, false> >(VFType);
 			}
 			if(bInitializeTessellationShaders)
 			{
-				HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_OutputDepth, false> >(InVertexFactory->GetType());	
-				DomainShader = MaterialResource->GetShader<TShadowDepthDS<VertexShadowDepth_OutputDepth, false> >(InVertexFactory->GetType());	
+				HullShader = MaterialResource->GetShader<TShadowDepthHS<VertexShadowDepth_OutputDepth, false> >(VFType);	
+				DomainShader = MaterialResource->GetShader<TShadowDepthDS<VertexShadowDepth_OutputDepth, false> >(VFType);	
 			}
 		}
 	}
@@ -794,15 +802,15 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	{
 		if (bUsePerspectiveCorrectShadowDepths)
 		{
-			PixelShader = (TShadowDepthBasePS<bRenderingReflectiveShadowMaps> *)MaterialResource->GetShader<TShadowDepthPS<PixelShadowDepth_PerspectiveCorrect, bRenderingReflectiveShadowMaps> >(InVertexFactory->GetType());
+			PixelShader = (TShadowDepthBasePS<bRenderingReflectiveShadowMaps> *)MaterialResource->GetShader<TShadowDepthPS<PixelShadowDepth_PerspectiveCorrect, bRenderingReflectiveShadowMaps> >(VFType);
 		}
 		else if (bOnePassPointLightShadow)
 		{
-			PixelShader = (TShadowDepthBasePS<bRenderingReflectiveShadowMaps> *)MaterialResource->GetShader<TShadowDepthPS<PixelShadowDepth_OnePassPointLight, false> >(InVertexFactory->GetType());
+			PixelShader = (TShadowDepthBasePS<bRenderingReflectiveShadowMaps> *)MaterialResource->GetShader<TShadowDepthPS<PixelShadowDepth_OnePassPointLight, false> >(VFType);
 		}
 		else
 		{
-			PixelShader = (TShadowDepthBasePS<bRenderingReflectiveShadowMaps> *)MaterialResource->GetShader<TShadowDepthPS<PixelShadowDepth_NonPerspectiveCorrect, bRenderingReflectiveShadowMaps> >(InVertexFactory->GetType());
+			PixelShader = (TShadowDepthBasePS<bRenderingReflectiveShadowMaps> *)MaterialResource->GetShader<TShadowDepthPS<PixelShadowDepth_NonPerspectiveCorrect, bRenderingReflectiveShadowMaps> >(VFType);
 		}
 	}
 }
@@ -1037,7 +1045,7 @@ bool FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(
 					);
 
 				DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
-				for( int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++)
+				for( int32 BatchElementIndex = 0, Num = Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++)
 				{
 					DrawingPolicy.SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType());
 					DrawingPolicy.DrawMesh(Mesh,BatchElementIndex);
@@ -2017,7 +2025,7 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 		FMatrix(
 			FPlane(ShadowResolutionFractionX,0,							0,									0),
 			FPlane(0,						 -ShadowResolutionFractionY,0,									0),
-			FPlane(0,						0,							1.0f / MaxSubjectDepth,	0),
+			FPlane(0,						0,							InvMaxSubjectDepth,	0),
 			FPlane(
 				(X + SHADOW_BORDER + GPixelCenterOffset) * InvBufferResolutionX + ShadowResolutionFractionX,
 				(Y + SHADOW_BORDER + GPixelCenterOffset) * InvBufferResolutionY + ShadowResolutionFractionY,
@@ -2049,7 +2057,7 @@ FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, 
 		FMatrix(
 			FPlane(ShadowResolutionFractionX,0,							0,									0),
 			FPlane(0,						 -ShadowResolutionFractionY,0,									0),
-			FPlane(0,						0,							1.0f / MaxSubjectDepth,	0),
+			FPlane(0,						0,							InvMaxSubjectDepth,	0),
 			FPlane(
 				(X + ShadowBorder + GPixelCenterOffset) * InvBufferResolutionX + ShadowResolutionFractionX,
 				(Y + ShadowBorder + GPixelCenterOffset) * InvBufferResolutionY + ShadowResolutionFractionY,

@@ -367,6 +367,7 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 ,	Pitch( 0.0f )
 ,	Velocity( FVector::ZeroVector )
 ,	Location( FVector::ZeroVector )
+,	UserIndex( 0 )
 {
 	TypeHash = ++TypeHashCounter;
 }

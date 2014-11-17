@@ -50,6 +50,7 @@ void FPluginsEditor::StartupModule()
 	// Register a tab spawner so that our tab can be automatically restored from layout files
 	FGlobalTabmanager::Get()->RegisterTabSpawner( PluginsEditorTabName, FOnSpawnTab::CreateStatic( &Local::SpawnPluginsEditorTab ) )
 			.SetDisplayName( LOCTEXT( "PluginsEditorTabTitle", "Plugins" ) )
+			.SetTooltipText( LOCTEXT( "PluginsEditorTooltipText", "Open the Plugins Browser tab." ) )
 			.SetIcon(FSlateIcon(FPluginStyle::Get()->GetStyleSetName(), "Plugins.TabIcon"));
 }
 

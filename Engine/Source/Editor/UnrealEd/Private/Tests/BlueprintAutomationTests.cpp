@@ -4,19 +4,24 @@
 #include "Json.h"
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
+#include "AssetEditorManager.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "Kismet2/CompilerResultsLog.h"
 #include "Editor/GraphEditor/Public/GraphDiffControl.h"
+#include "BlueprintSupport.h" // for FScopedClassDependencyGather::GetCachedDependencies()
+#include "EdGraphSchema_K2.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintAutomationTests, Log, All);
 
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintCompileTest, "Blueprints.Compile-On-Load", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintCompileOnLoadTest, "Blueprints.Compile-On-Load", EAutomationTestFlags::ATF_Editor )
 IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintInstancesTest, "Blueprints.Instance Test", EAutomationTestFlags::ATF_Editor )
 IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintReparentTest, "Blueprints.Reparent", EAutomationTestFlags::ATF_Editor )
-//IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintRenameAndCloneTest, "Blueprints.Rename And Clone", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FBlueprintRenameAndCloneTest, "Blueprints.Rename And Clone", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FCompileBlueprintsTest, "Blueprints.Compile Blueprints", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FCompileAnimBlueprintsTest, "Blueprints.Compile Anims", EAutomationTestFlags::ATF_Editor )
 
 class FBlueprintAutomationTestUtilities
 {
@@ -283,6 +288,21 @@ public:
 		DontSavePackage(Package);
 	}
 
+	/**
+	 * Helper method to close a specified blueprint (if it is open in the blueprint-editor).
+	 * 
+	 * @param  BlueprintObj		The blueprint you want the editor closed for.
+	 */
+	static void CloseBlueprint(UBlueprint* const BlueprintObj)
+	{
+		IAssetEditorInstance* EditorInst = FAssetEditorManager::Get().FindEditorForAsset(BlueprintObj, /*bool bFocusIfOpen =*/false);
+		if (EditorInst != nullptr)
+		{
+			UE_LOG(LogBlueprintAutomationTests, Log, TEXT("Closing '%s' so we don't invalidate the open version when unloading it."), *BlueprintObj->GetName());
+			EditorInst->CloseWindow();
+		}
+	}
+
 	/** 
 	 * Helper method to unload loaded blueprints. Use with caution.
 	 *
@@ -294,25 +314,77 @@ public:
 		// have to grab the blueprint's package before we move it to the transient package
 		UPackage* const OldPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
 
-		UPackage* NewPackage = GetTransientPackage();
-		// move the blueprint to the transient package (to be picked up by garbage collection later)
-		FName UnloadedName = MakeUniqueObjectName(NewPackage, UBlueprint::StaticClass(), BlueprintObj->GetFName());
-		BlueprintObj->Rename(*UnloadedName.ToString(), NewPackage, REN_DontCreateRedirectors|REN_DoNotDirty);
-		
-		// make sure the blueprint is properly trashed so we can rerun tests on it
-		BlueprintObj->SetFlags(RF_Transient);
-		BlueprintObj->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
-		BlueprintObj->RemoveFromRoot();
-		BlueprintObj->MarkPendingKill();
+		UPackage* const TransientPackage = GetTransientPackage();
+		if (OldPackage == TransientPackage)
+		{
+			UE_LOG(LogBlueprintAutomationTests, Log, TEXT("No need to unload '%s' from the transient package."), *BlueprintObj->GetName());
+		}
+		else if (OldPackage->HasAnyFlags(RF_RootSet) || BlueprintObj->HasAnyFlags(RF_RootSet))
+		{
+			UE_LOG(LogBlueprintAutomationTests, Error, TEXT("Cannot unload '%s' when its root is set (it will not be garbage collected, leaving it in an erroneous state)."), *OldPackage->GetName());
+		}
+		else if (OldPackage->IsDirty())
+		{
+			UE_LOG(LogBlueprintAutomationTests, Error, TEXT("Cannot unload '%s' when it has unsaved changes (save the asset and then try again)."), *OldPackage->GetName());
+		}
+		else 
+		{
+			// prevent users from modifying an open blueprint, after it has been unloaded
+			CloseBlueprint(BlueprintObj);
 
-		InvalidatePackage(OldPackage);
+			UPackage* NewPackage = TransientPackage;
+			// move the blueprint to the transient package (to be picked up by garbage collection later)
+			FName UnloadedName = MakeUniqueObjectName(NewPackage, UBlueprint::StaticClass(), BlueprintObj->GetFName());
+			BlueprintObj->Rename(*UnloadedName.ToString(), NewPackage, REN_DontCreateRedirectors|REN_DoNotDirty);
+
+			// make sure the blueprint is properly trashed so we can rerun tests on it
+			BlueprintObj->SetFlags(RF_Transient);
+			BlueprintObj->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+			BlueprintObj->RemoveFromRoot();
+			BlueprintObj->MarkPendingKill();
+
+			InvalidatePackage(OldPackage);
+		}
 
 		// because we just emptied out an existing package, we may want to clean 
 		// up garbage so an attempted load doesn't stick us with an invalid asset
 		if (bForceFlush)
 		{
+#if WITH_EDITOR
+			// clear undo history to ensure that the transaction buffer isn't 
+			// holding onto any references to the blueprints we want unloaded
+			GEditor->Trans->Reset(NSLOCTEXT("BpAutomation", "BpAutomationTest", "Blueprint Automation Test"));
+#endif // #if WITH_EDITOR
 			CollectGarbage(RF_Native);
 		}
+	}
+
+	/**
+	 * A utility function to help separate a package name and asset name out 
+	 * from a full asset object path.
+	 * 
+	 * @param  AssetObjPathIn	The asset object path you want split.
+	 * @param  PackagePathOut	The first half of the in string (the package portion).
+	 * @param  AssetNameOut		The second half of the in string (the asset name portion).
+	 */
+	static void SplitPackagePathAndAssetName(FString const& AssetObjPathIn, FString& PackagePathOut, FString& AssetNameOut)
+	{
+		AssetObjPathIn.Split(TEXT("."), &PackagePathOut, &AssetNameOut);
+	}
+
+	/**
+	 * A utility function for looking up a package from an asset's full path (a 
+	 * long package path).
+	 * 
+	 * @param  AssetPath	The object path for a package that you want to look up.
+	 * @return A package containing the specified asset (NULL if the asset doesn't exist, or it isn't loaded).
+	 */
+	static UPackage* FindPackageForAsset(FString const& AssetPath)
+	{
+		FString PackagePath, AssetName;
+		SplitPackagePathAndAssetName(AssetPath, PackagePath, AssetName);
+
+		return FindPackage(NULL, *PackagePath);
 	}
 
 	/**
@@ -321,24 +393,83 @@ public:
 	 * @param  AssetPath	A path detailing the asset in question (in the form of <PackageName>.<AssetName>)
 	 * @return True if a blueprint can be found with a matching package/name, false if no corresponding blueprint was found.
 	 */
-	static bool IsBlueprintLoaded(FString const& AssetPath)
+	static bool IsBlueprintLoaded(FString const& AssetPath, UBlueprint** BlueprintOut = nullptr)
 	{
 		bool bIsLoaded = false;
 
-		FString PackageName;
-		FString AssetName;
-		AssetPath.Split(TEXT("."), &PackageName, &AssetName);
-
-		if (FindPackage(NULL, *PackageName) != NULL)
+		if (UPackage* ExistingPackage = FindPackageForAsset(AssetPath))
 		{
-			UPackage* ExistingPackage = LoadPackage(NULL, *PackageName, LOAD_None);
+			FString PackagePath, AssetName;
+			SplitPackagePathAndAssetName(AssetPath, PackagePath, AssetName);
+
 			if (UBlueprint* ExistingBP = Cast<UBlueprint>(StaticFindObject(UBlueprint::StaticClass(), ExistingPackage, *AssetName)))
 			{
 				bIsLoaded = true;
+				if (BlueprintOut != nullptr)
+				{
+					*BlueprintOut = ExistingBP;
+				}
 			}
 		}
 
 		return bIsLoaded;
+	}
+
+	/** */
+	static bool GetExternalReferences(UObject* Obj, TArray<FReferencerInformation>& ExternalRefsOut)
+	{
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+
+		bool bHasReferences = false;
+
+		FReferencerInformationList Refs;
+		if (IsReferenced(Obj, RF_Native | RF_Public, true, &Refs))
+		{
+			ExternalRefsOut = Refs.ExternalReferences;
+			bHasReferences = true;
+		}
+
+		return bHasReferences;
+	}
+
+	/**
+	 * Helper method for determining if the specified asset has pending changes.
+	 * 
+	 * @param  AssetPath	The object path to an asset you want checked.
+	 * @return True if the package is unsaved, false if it is up to date.
+	 */
+	static bool IsAssetUnsaved(FString const& AssetPath)
+	{
+		bool bIsUnsaved = false;
+		if (UPackage* ExistingPackage = FindPackageForAsset(AssetPath))
+		{
+			bIsUnsaved = ExistingPackage->IsDirty();
+		}
+		return bIsUnsaved;
+	}
+
+	/**
+	 * Simulates the user pressing the blueprint's compile button (will load the
+	 * blueprint first if it isn't already).
+	 * 
+	 * @param  BlueprintAssetPath	The asset object path that you wish to compile.
+	 * @return False if we failed to load the blueprint, true otherwise
+	 */
+	static bool CompileBlueprint(const FString& BlueprintAssetPath)
+	{
+		UBlueprint* BlueprintObj = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *BlueprintAssetPath));
+		if (!BlueprintObj || !BlueprintObj->ParentClass)
+		{
+			UE_LOG(LogBlueprintAutomationTests, Error, TEXT("Failed to compile invalid blueprint, or blueprint parent no longer exists."));
+			return false;
+		}
+
+		bool bIsRegeneratingOnLoad = false;
+		bool bSkipGarbageCollection = true;
+		FBlueprintEditorUtils::RefreshAllNodes(BlueprintObj);
+		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, bIsRegeneratingOnLoad, bSkipGarbageCollection);
+
+		return true;
 	}
 
 	/**
@@ -479,19 +610,186 @@ public:
 		UPackage* const AssetPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
 		return UPackage::SavePackage(AssetPackage, NULL, RF_Standalone, *SavePath, GWarn);
 	}
+
+	static void ResolveCircularDependencyDiffs(UBlueprint const* const BlueprintIn, TArray<FDiffSingleResult>& DiffsInOut)
+	{
+		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+		typedef TArray<FDiffSingleResult>::TIterator TDiffIt;
+		TMap<UEdGraphPin*, TDiffIt> PinLinkDiffsForRepair;
+
+		for (auto DiffIt(DiffsInOut.CreateIterator()); DiffIt; ++DiffIt)
+		{
+			// as far as we know, pin link diffs are the only ones that would be
+			// affected by circular references pointing to an unloaded class 
+			// 
+			// NOTE: we only handle PIN_LINKEDTO_NUM_INC over PIN_LINKEDTO_NUM_DEC,
+			//       this assumes that the diff was performed in a specific 
+			//       order (the reloaded blueprint first).
+			if (DiffIt->Diff != EDiffType::PIN_LINKEDTO_NUM_INC)
+			{
+				continue;
+			}
+
+			check(DiffIt->Pin1 != nullptr);
+			check(DiffIt->Pin2 != nullptr);
+			UEdGraphPin* MalformedPin = DiffIt->Pin1;
+			
+			FEdGraphPinType const& PinType = MalformedPin->PinType;
+			// only object pins would reference the unloaded blueprint
+			if (!PinType.PinSubCategoryObject.IsValid() || ((PinType.PinCategory != K2Schema->PC_Object) && (PinType.PinCategory != K2Schema->PSC_Self)))
+			{
+				continue;
+			}
+
+			UStruct const* PinObjType = Cast<UStruct>(PinType.PinSubCategoryObject.Get());
+			// only pins that match the blueprint class would have been affected 
+			// by the unload (assumes an FArchiveReplaceObjectRef() has since been 
+			// ran to fix-up any references to the unloaded class... meaning the 
+			// malformed pins now have the proper reference)
+			if (!PinObjType->IsChildOf(BlueprintIn->GeneratedClass))
+			{
+				continue;
+			}
+
+			UEdGraphPin* LegitPin = DiffIt->Pin2;
+			// make sure we interpreted which pin is which correctly
+			check(LegitPin->LinkedTo.Num() > MalformedPin->LinkedTo.Num());
+
+			for (UEdGraphPin* LinkedPin : LegitPin->LinkedTo)
+			{
+				// pin linked-to-count diffs always come in pairs (one for the
+				// input pin, another for the output)... we use this to know 
+				// which pins we should attempt to link again
+				TDiffIt const* CorrespendingDiff = PinLinkDiffsForRepair.Find(LinkedPin);
+				// we don't have the full pair yet, we'll have to wait till we have the other one
+				if (CorrespendingDiff == nullptr)
+				{
+					continue;
+				}
+
+				UEdGraphPin* OtherMalformedPin = (*CorrespendingDiff)->Pin1;
+				if (K2Schema->ArePinsCompatible(MalformedPin, OtherMalformedPin, BlueprintIn->GeneratedClass))
+				{
+					MalformedPin->MakeLinkTo(OtherMalformedPin);
+				}
+				// else pin types still aren't compatible (even after running 
+				// FArchiveReplaceObjectRef), meaning this diff isn't fully resolvable
+			}
+
+			// track diffs that are in possible need of repair (so we know which  
+			// two pins should attempt to relink)
+			PinLinkDiffsForRepair.Add(LegitPin, DiffIt);
+		}
+
+		// remove any resolved diffs that no longer are valid (iterating backwards
+		// so we can remove array items and not have to offset the index)
+		for (int32 DiffIndex = DiffsInOut.Num()-1; DiffIndex >= 0; --DiffIndex)
+		{
+			FDiffSingleResult const& Diff = DiffsInOut[DiffIndex];
+			if ((Diff.Diff == EDiffType::PIN_LINKEDTO_NUM_INC) || (Diff.Diff == EDiffType::PIN_LINKEDTO_NUM_DEC))
+			{
+				check(Diff.Pin1 && Diff.Pin2);
+				// if this diff has been resolved (it's no longer valid)
+				if (Diff.Pin1->LinkedTo.Num() == Diff.Pin2->LinkedTo.Num())
+				{
+					DiffsInOut.RemoveAt(DiffIndex);
+				}
+			}
+		}
+	}
 };
 
 uint32 FBlueprintAutomationTestUtilities::QueuedTempId = 0u;
 TArray<FName> FBlueprintAutomationTestUtilities::DontSavePackagesList;
 
 /************************************************************************/
-/* FBlueprintCompileTest                                                */
+/* FScopedBlueprintUnloader                                             */
+/************************************************************************/
+
+class FScopedBlueprintUnloader
+{
+public:
+	FScopedBlueprintUnloader(bool bAutoOpenScope, bool bRunGCOnCloseIn)
+		: bIsOpen(false)
+		, bRunGCOnClose(bRunGCOnCloseIn)
+	{
+		if (bAutoOpenScope)
+		{
+			OpenScope();
+		}
+	}
+
+	~FScopedBlueprintUnloader()
+	{
+		CloseScope();
+	}
+
+	/** Tracks currently loaded blueprints at the time of this object's creation */
+	void OpenScope()
+	{
+		PreLoadedBlueprints.Empty();
+
+		// keep a list of blueprints that were loaded at the start (so we can unload new ones after)
+		for (TObjectIterator<UBlueprint> BpIt; BpIt; ++BpIt)
+		{
+			UBlueprint* Blueprint = *BpIt;
+			PreLoadedBlueprints.Add(Blueprint);
+		}
+		bIsOpen = true;
+	}
+
+	/** Unloads any blueprints that weren't loaded when this object was created */
+	void CloseScope()
+	{
+		if (bIsOpen)
+		{
+			// clean up any dependencies that we're loading in the scope of this object's lifetime
+			for (TObjectIterator<UBlueprint> BpIt; BpIt; ++BpIt)
+			{
+				UBlueprint* Blueprint = *BpIt;
+				if (PreLoadedBlueprints.Find(Blueprint) == nullptr)
+				{
+					FBlueprintAutomationTestUtilities::UnloadBlueprint(Blueprint);
+				}
+			}
+
+			bIsOpen = false;
+		}
+
+		// run, even if it was not open (some tests may be relying on this, and 
+		// not running it themselves)
+		if (bRunGCOnClose)
+		{
+#if WITH_EDITOR
+			// clear undo history to ensure that the transaction buffer isn't 
+			// holding onto any references to the blueprints we want unloaded
+			GEditor->Trans->Reset(NSLOCTEXT("BpAutomation", "BpAutomationTest", "Blueprint Automation Test"));
+#endif // #if WITH_EDITOR
+			CollectGarbage(RF_Native);
+		}
+	}
+
+	void ClearScope()
+	{
+		PreLoadedBlueprints.Empty();
+		bIsOpen = false;
+	}
+
+private:
+	bool bIsOpen;
+	TSet<UBlueprint*> PreLoadedBlueprints;
+	bool bRunGCOnClose;
+};
+
+/************************************************************************/
+/* FBlueprintCompileOnLoadTest                                          */
 /************************************************************************/
 
 /** 
  * Gather the tests to run
  */
-void FBlueprintCompileTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+void FBlueprintCompileOnLoadTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
 {
 	bool bTestLoadedBlueprints = false;
 	GConfig->GetBool( TEXT("AutomationTesting.Blueprint"), TEXT("TestAllBlueprints"), /*out*/ bTestLoadedBlueprints, GEngineIni );
@@ -502,16 +800,30 @@ void FBlueprintCompileTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray
  * Runs compile-on-load test against all unloaded, and optionally loaded, blueprints
  * See the TestAllBlueprints config key in the [Automation.Blueprint] config sections
  */
-bool FBlueprintCompileTest::RunTest(const FString& BlueprintAssetPath)
+bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 {
 	FCompilerResultsLog Results;
 
+	UBlueprint* ExistingBP = nullptr;
 	// if this blueprint was already loaded, then these tests are invalidated 
 	// (because dependencies have already been loaded)
-	if (FBlueprintAutomationTestUtilities::IsBlueprintLoaded(BlueprintAssetPath))
+	if (FBlueprintAutomationTestUtilities::IsBlueprintLoaded(BlueprintAssetPath, &ExistingBP))
 	{
-		AddWarning(FString::Printf(TEXT("Invalid test, blueprint has previously been loaded: '%s'"), *BlueprintAssetPath));
+		if (FBlueprintAutomationTestUtilities::IsAssetUnsaved(BlueprintAssetPath))
+		{
+			AddError(FString::Printf(TEXT("You have unsaved changes made to '%s', please save them before running this test."), *BlueprintAssetPath));
+			return false;
+		}
+		else 
+		{
+			AddWarning(FString::Printf(TEXT("Test may be invalid (the blueprint is already loaded): '%s'"), *BlueprintAssetPath));
+			FBlueprintAutomationTestUtilities::UnloadBlueprint(ExistingBP);
+		}		
 	}
+	
+	// tracks blueprints that were already loaded (and cleans up any that were 
+	// loaded in its lifetime, once it is destroyed)
+	FScopedBlueprintUnloader NewBlueprintUnloader(/*bAutoOpenScope =*/true, /*bRunGCOnCloseIn =*/true);
 
 	// We load the blueprint twice and compare the two for discrepancies. This is 
 	// to bring dependency load issues to light (among other things). If a blueprint's
@@ -526,6 +838,22 @@ bool FBlueprintCompileTest::RunTest(const FString& BlueprintAssetPath)
 		return false;
 	}
 
+#if WITH_EDITOR
+	TArray<UClass*> BlueprintDependencies = FScopedClassDependencyGather::GetCachedDependencies();
+#else 
+	TArray<UClass*> BlueprintDependencies;
+	for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+	{
+		if (*BlueprintIt == InitialBlueprint)
+		{
+			continue;
+		}
+		else if (BlueprintIt->GeneratedClass != NULL)
+		{
+			BlueprintDependencies.Add(BlueprintIt->GeneratedClass);
+		}
+	}
+#endif 
 
 	// store off data for the initial blueprint so we can unload it (and reconstruct 
 	// later to compare it with a second one)
@@ -537,7 +865,8 @@ bool FBlueprintCompileTest::RunTest(const FString& BlueprintAssetPath)
 	// unload the blueprint so we can reload it (to catch any differences, now  
 	// that all its dependencies should be loaded as well)
 	FBlueprintAutomationTestUtilities::UnloadBlueprint(InitialBlueprint);
-	// this blueprint is now invalid
+	// this blueprint is now dead (will be destroyed next garbage-collection pass)
+	UBlueprint* UnloadedBlueprint = InitialBlueprint;
 	InitialBlueprint = NULL;
 
 	// load the blueprint a second time; if the two separately loaded blueprints 
@@ -545,6 +874,28 @@ bool FBlueprintCompileTest::RunTest(const FString& BlueprintAssetPath)
 	// dependencies loaded)
 	UBlueprint* ReloadedBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *BlueprintAssetPath));
 
+	// fixup any circular dependencies that may now be referencing the unloaded 
+	// blueprint (replace them with the reloaded blueprint, class, etc.)...
+	{
+		TMap<UBlueprint*, UBlueprint*> BlueprintRedirects;
+		BlueprintRedirects.Add(UnloadedBlueprint, ReloadedBlueprint);
+
+		TMap<UClass*, UClass*> ClassRedirects;
+		ClassRedirects.Add(UnloadedBlueprint->GeneratedClass, ReloadedBlueprint->GeneratedClass);
+		ClassRedirects.Add(UnloadedBlueprint->SkeletonGeneratedClass, ReloadedBlueprint->SkeletonGeneratedClass);
+
+		for (UClass* ClassDependency : BlueprintDependencies)
+		{
+			FArchiveReplaceObjectRef<UBlueprint>(ClassDependency, BlueprintRedirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/true, /*bIgnoreArchetypeRef=*/false);
+			FArchiveReplaceObjectRef<UClass>(ClassDependency, ClassRedirects, /*bNullPrivateRefs=*/false, /*bIgnoreOuterRef=*/true, /*bIgnoreArchetypeRef=*/false);
+		}
+
+		UPackage* AssetPackage = ReloadedBlueprint->GetOutermost();
+		bool bHasUnsavedChanges = AssetPackage->IsDirty();
+		FBlueprintEditorUtils::RefreshAllNodes(ReloadedBlueprint);
+		AssetPackage->SetDirtyFlag(bHasUnsavedChanges);
+	}
+	
 	UPackage* TransientPackage = GetTransientPackage();
 	FName ReconstructedName = MakeUniqueObjectName(TransientPackage, UBlueprint::StaticClass(), BlueprintName);
 	// reconstruct the initial blueprint (using the serialized data from its initial load)
@@ -557,7 +908,17 @@ bool FBlueprintCompileTest::RunTest(const FString& BlueprintAssetPath)
 	bool bDiffsFound = FBlueprintAutomationTestUtilities::DiffBlueprints(InitialBlueprint, ReloadedBlueprint, BlueprintDiffs);
 	if (bDiffsFound)
 	{
-		AddError(FString::Printf(TEXT("Inconsistencies between subsequent blueprint loads for: '%s' (was a dependency not preloaded?)"), *BlueprintAssetPath));
+		FBlueprintAutomationTestUtilities::ResolveCircularDependencyDiffs(ReloadedBlueprint, BlueprintDiffs);
+		// if there are still diffs after resolving any the could have been from unloaded circular dependencies
+		if (BlueprintDiffs.Num() > 0)
+		{
+			AddError(FString::Printf(TEXT("Inconsistencies between subsequent blueprint loads for: '%s' (was a dependency not preloaded?)"), *BlueprintAssetPath));
+		}
+		else 
+		{
+			bDiffsFound = false;
+		}
+		
 		// list all the differences (so as to help identify what dependency was missing)
 		for (auto DiffIt(BlueprintDiffs.CreateIterator()); DiffIt; ++DiffIt)
 		{
@@ -568,20 +929,56 @@ bool FBlueprintCompileTest::RunTest(const FString& BlueprintAssetPath)
 				DiffDescription = FString::Printf(TEXT("%s (%s)"), *DiffDescription, *DiffIt->DisplayString);
 			}
 
-			FString const GraphName = DiffIt->Node1->GetGraph()->GetName();
+			const UEdGraphNode* NodeFromPin = DiffIt->Pin1 ? Cast<const UEdGraphNode>(DiffIt->Pin1->GetOuter()) : NULL;
+			const UEdGraphNode* Node = DiffIt->Node1 ? DiffIt->Node1 : NodeFromPin;
+			const UEdGraph* Graph = Node ? Node->GetGraph() : NULL;
+			const FString GraphName = Graph ? Graph->GetName() : FString(TEXT("Unknown Graph"));
 			AddError(FString::Printf(TEXT("%s.%s differs between subsequent loads: %s"), *BlueprintName.ToString(), *GraphName, *DiffDescription));
 		}
 	}
 
-	FBlueprintAutomationTestUtilities::UnloadBlueprint(ReloadedBlueprint);
-	FBlueprintAutomationTestUtilities::UnloadBlueprint(InitialBlueprint);
-	// run garbage collection, in hopes that the imports for this blueprint get destroyed
-	// so that they don't invalidate other tests that share the same dependencies
-	CollectGarbage(RF_Native);
-
+	// At the close of this function, the FScopedBlueprintUnloader should prep 
+	// for following tests by unloading any blueprint dependencies that were 
+	// loaded for this one (should catch InitialBlueprint and ReloadedBlueprint) 
+	// 
+	// The FScopedBlueprintUnloader should also run garbage-collection after,
+	// in hopes that the imports for this blueprint get destroyed so that they 
+	// don't invalidate other tests that share the same dependencies
 	return !bDiffsFound;
 }
 
+
+/************************************************************************/
+/* FCompileBlueprintsTest                                              */
+/************************************************************************/
+
+/** Requests a enumeration of all blueprints to be loaded */
+void FCompileBlueprintsTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
+{
+	FBlueprintAutomationTestUtilities::CollectTestsByClass(UBlueprint::StaticClass(), OutBeautifiedNames, OutTestCommands, /*bool bIgnoreLoaded =*/false);
+}
+
+
+bool FCompileBlueprintsTest::RunTest(const FString& Parameters)
+{
+	UE_LOG(LogBlueprintAutomationTests, Log, TEXT("Beginning compile test for %s"), *Parameters);
+	return FBlueprintAutomationTestUtilities::CompileBlueprint(Parameters);
+}
+
+/************************************************************************/
+/* FCompileAnimBlueprintsTest                                           */
+/************************************************************************/
+
+/** Requests a enumeration of all blueprints to be loaded */
+void FCompileAnimBlueprintsTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
+{
+	FBlueprintAutomationTestUtilities::CollectTestsByClass(UAnimBlueprint::StaticClass(), OutBeautifiedNames, OutTestCommands, /*bool bIgnoreLoaded =*/false);
+}
+
+bool FCompileAnimBlueprintsTest::RunTest(const FString& Parameters)
+{
+	return FBlueprintAutomationTestUtilities::CompileBlueprint(Parameters);
+}
 
 /************************************************************************/
 /* FBlueprintInstancesTest                                              */
@@ -717,7 +1114,7 @@ bool FBlueprintReparentTest::RunTest(const FString& BlueprintAssetPath)
 {
 	bool bTestFailed = false;
 
-	UBlueprint const* const BlueprintTemplate = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *BlueprintAssetPath));
+	UBlueprint * const BlueprintTemplate = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *BlueprintAssetPath));
 	if (BlueprintTemplate != NULL)
 	{
 		// want to explicitly test switching from actors->objects, and vise versa (objects->actors), 
@@ -754,8 +1151,16 @@ bool FBlueprintReparentTest::RunTest(const FString& BlueprintAssetPath)
 				bTestFailed = true;
 			}
 
-			FBlueprintAutomationTestUtilities::UnloadBlueprint(BlueprintObj, /* bForceFlush =*/true);
+			FBlueprintAutomationTestUtilities::UnloadBlueprint(BlueprintObj);
 		}
+
+#if WITH_EDITOR
+		// clear undo history to ensure that the transaction buffer isn't 
+		// holding onto any references to the blueprints we want unloaded
+		GEditor->Trans->Reset(NSLOCTEXT("BpAutomation", "ReparentTest", "Reparent Blueprint Test"));
+#endif // #if WITH_EDITOR
+		// make sure the unloaded blueprints are properly flushed (for future tests)
+		CollectGarbage(RF_Native);
 	}
 
 	return !bTestFailed;
@@ -765,57 +1170,122 @@ bool FBlueprintReparentTest::RunTest(const FString& BlueprintAssetPath)
 * FBlueprintRenameTest
 *******************************************************************************/
 
-// void FBlueprintRenameAndCloneTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
-// {
-// 	FBlueprintAutomationTestUtilities::CollectTestsByClass(UBlueprint::StaticClass(), OutBeautifiedNames, OutTestCommands, /* bIgnoreLoaded =*/false);
-// }
-// 
-// bool FBlueprintRenameAndCloneTest::RunTest(const FString& BlueprintAssetPath)
-// {
-// 	bool bTestFailed = false;
-// 
-// 	UBlueprint* const OriginalBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *BlueprintAssetPath));
-// 	if (OriginalBlueprint != NULL)
-// 	{
-// 		// duplicate
-// 		{
-// 			UBlueprint* DuplicateBluprint = FBlueprintAutomationTestUtilities::DuplicateBlueprint(OriginalBlueprint);
-// 			if (!FBlueprintAutomationTestUtilities::TestSaveBlueprint(DuplicateBluprint))
-// 			{
-// 				AddError(FString::Printf(TEXT("Failed to save blueprint after duplication: '%s'"), *BlueprintAssetPath));
-// 				bTestFailed = true;
-// 			}
-// 			FBlueprintAutomationTestUtilities::UnloadBlueprint(DuplicateBluprint);
-// 		}
-// 
-// 		// rename
-// 		{
-// 			// store the original package so we can manually invalidate it after the move
-// 			UPackage* const OriginalPackage = Cast<UPackage>(OriginalBlueprint->GetOutermost());
-// 
-// 			FString const BlueprintName = OriginalBlueprint->GetName();
-// 			UPackage* TempPackage = FBlueprintAutomationTestUtilities::CreateTempPackage(BlueprintName);
-// 
-// 			FString NewName = FString::Printf(TEXT("%s-Rename"), *BlueprintName);
-// 			NewName = MakeUniqueObjectName(TempPackage, OriginalBlueprint->GetClass(), *NewName).ToString();
-// 
-// 			OriginalBlueprint->Rename(*NewName, TempPackage, REN_None);
-// 
-// 			if (!FBlueprintAutomationTestUtilities::TestSaveBlueprint(OriginalBlueprint))
-// 			{
-// 				AddError(FString::Printf(TEXT("Failed to save blueprint after rename: '%s'"), *BlueprintAssetPath));
-// 				bTestFailed = true;
-// 			}
-// 
-// 			// the blueprint has been moved out of this package, invalidate it so 
-// 			// we don't save it in this state and so we can reload the blueprint later
-// 			FBlueprintAutomationTestUtilities::InvalidatePackage(OriginalPackage);
-// 		}
-// 
-// 		FBlueprintAutomationTestUtilities::UnloadBlueprint(OriginalBlueprint);
-// 		// make sure the unloaded blueprints are properly flushed (for future tests)
-// 		CollectGarbage(RF_Native);
-// 	}
-// 
-// 	return !bTestFailed;
-// }
+void FBlueprintRenameAndCloneTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	
+	TArray<FAssetData> ObjectList;
+	AssetRegistryModule.Get().GetAssetsByClass(UBlueprint::StaticClass()->GetFName(), ObjectList);
+
+	for (FAssetData const& Asset : ObjectList)
+	{
+		FString AssetObjPath = Asset.ObjectPath.ToString();
+
+		FString const Filename = FPackageName::LongPackageNameToFilename(AssetObjPath);
+		if (!FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+		{
+			continue;
+		}
+
+		FString PackageName, AssetName;
+		FBlueprintAutomationTestUtilities::SplitPackagePathAndAssetName(AssetObjPath, PackageName, AssetName);
+
+		if (UPackage* ExistingPackage = FindPackage(NULL, *PackageName))
+		{
+			if (ExistingPackage->HasAnyFlags(RF_RootSet))
+			{
+				continue;
+			}
+		}
+
+		OutBeautifiedNames.Add(Asset.AssetName.ToString());
+		OutTestCommands.Add(AssetObjPath);
+	}
+}
+
+bool FBlueprintRenameAndCloneTest::RunTest(const FString& BlueprintAssetPath)
+{
+	bool bTestFailed = false;
+	if (FBlueprintAutomationTestUtilities::IsAssetUnsaved(BlueprintAssetPath))
+	{
+		bTestFailed = true;
+		AddError(FString::Printf(TEXT("You have unsaved changes made to '%s', please save them before running this test."), *BlueprintAssetPath));
+	}
+
+	bool bIsAlreadyLoaded = false;
+	if (FBlueprintAutomationTestUtilities::IsBlueprintLoaded(BlueprintAssetPath))
+	{
+		bIsAlreadyLoaded = true;
+		AddWarning(FString::Printf(TEXT("'%s' is already loaded, and possibly referenced by external objects (unable to perform rename tests... please run again in an empty map)."), *BlueprintAssetPath));
+	}
+
+	// track the loaded blueprint (and any other BP dependencies) so we can 
+	// unload them if we end up renaming it.
+	FScopedBlueprintUnloader NewBlueprintUnloader(/*bAutoOpenScope =*/true, /*bRunGCOnCloseIn =*/false);
+
+	UBlueprint* const OriginalBlueprint = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *BlueprintAssetPath));
+	if (OriginalBlueprint == NULL)
+	{
+		bTestFailed = true;
+		AddError(FString::Printf(TEXT("Failed to load '%s' (has it been renamed?)."), *BlueprintAssetPath));
+	}
+	else if (!bTestFailed)
+	{
+		// duplicate
+		{
+			UBlueprint* DuplicateBluprint = FBlueprintAutomationTestUtilities::DuplicateBlueprint(OriginalBlueprint);
+			if (!FBlueprintAutomationTestUtilities::TestSaveBlueprint(DuplicateBluprint))
+			{
+				AddError(FString::Printf(TEXT("Failed to save blueprint after duplication: '%s'"), *BlueprintAssetPath));
+				bTestFailed = true;
+			}
+			FBlueprintAutomationTestUtilities::UnloadBlueprint(DuplicateBluprint);
+		}
+
+		// rename
+		if (!bIsAlreadyLoaded)
+		{
+			// store the original package so we can manually invalidate it after the move
+			UPackage* const OriginalPackage = Cast<UPackage>(OriginalBlueprint->GetOutermost());
+
+			FString const BlueprintName = OriginalBlueprint->GetName();
+			UPackage* TempPackage = FBlueprintAutomationTestUtilities::CreateTempPackage(BlueprintName);
+
+			FString NewName = FString::Printf(TEXT("%s-Rename"), *BlueprintName);
+			NewName = MakeUniqueObjectName(TempPackage, OriginalBlueprint->GetClass(), *NewName).ToString();
+
+			OriginalBlueprint->Rename(*NewName, TempPackage, REN_None);
+
+			if (!FBlueprintAutomationTestUtilities::TestSaveBlueprint(OriginalBlueprint))
+			{
+				AddError(FString::Printf(TEXT("Failed to save blueprint after rename: '%s'"), *BlueprintAssetPath));
+				bTestFailed = true;
+			}
+
+			// the blueprint has been moved out of this package, invalidate it so 
+			// we don't save it in this state and so we can reload the blueprint later
+			FBlueprintAutomationTestUtilities::InvalidatePackage(OriginalPackage);
+
+			// need to unload the renamed blueprint (and any other blueprints 
+			// that were relying on it), so that the renamed blueprint doesn't get used by the user
+			FBlueprintAutomationTestUtilities::UnloadBlueprint(OriginalBlueprint);
+			NewBlueprintUnloader.CloseScope();
+		}
+		else 
+		{
+			// no need to unload the blueprint or any of its dependencies (since 
+			// we didn't muck with it by renaming it) 
+			NewBlueprintUnloader.ClearScope();
+		}
+
+#if WITH_EDITOR
+		// clear undo history to ensure that the transaction buffer isn't 
+		// holding onto any references to the blueprints we want unloaded
+		GEditor->Trans->Reset(NSLOCTEXT("BpAutomation", "RenameCloneTest", "Rename and Clone Test"));
+#endif // #if WITH_EDITOR
+		// make sure the unloaded blueprints are properly flushed (for future tests)
+		CollectGarbage(RF_Native);		
+	}
+
+	return !bTestFailed;
+}

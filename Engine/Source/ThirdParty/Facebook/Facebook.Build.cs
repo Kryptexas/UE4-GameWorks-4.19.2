@@ -1,8 +1,6 @@
 ﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 using UnrealBuildTool;
-
 
 public class Facebook : ModuleRules
 {
@@ -10,9 +8,9 @@ public class Facebook : ModuleRules
     {
         Type = ModuleType.External;
 
-        string FacebookPath = UEBuildConfiguration.UEThirdPartyDirectory + "Facebook/";
         Definitions.Add("WITH_FACEBOOK=1");
 
+		string FacebookPath = UEBuildConfiguration.UEThirdPartyDirectory + "Facebook/";
         if (Target.Platform == UnrealTargetPlatform.IOS)
         {
             FacebookPath += "Facebook-IOS-3.7/";

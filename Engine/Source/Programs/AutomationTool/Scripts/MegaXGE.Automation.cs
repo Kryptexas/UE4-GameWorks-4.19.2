@@ -6,6 +6,11 @@ using System.IO;
 using AutomationTool;
 using UnrealBuildTool;
 
+[Help("Compiles a bunch of stuff together with megaxge: Example arguments: -Target1=\"PlatformerGame win32|ios debug|development\"")]
+[Help(typeof(UE4Build))]
+[Help("Target1", "target1[|target2...] platform1[|platform2...] config1[|config2...]")]
+[Help("Target2", "target1[|target2...] platform1[|platform2...] config1[|config2...]")]
+
 class MegaXGE : BuildCommand
 {
 	public override void ExecuteBuild()
@@ -18,7 +23,7 @@ class MegaXGE : BuildCommand
 			{
 				CmdLine += Arg.ToString() + " ";
 			}
-			WorkingCL = CreateChange(P4Env.Client, String.Format("MegaXGE build from changelist {0} - Params: {1}", P4Env.Changelist, CmdLine));
+			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("MegaXGE build from changelist {0} - Params: {1}", P4Env.Changelist, CmdLine));
 		}
 
 		Log("************************* MegaXGE");
@@ -155,7 +160,7 @@ class MegaXGE : BuildCommand
 			UE4Build.AddBuildProductsToChangelist(WorkingCL, UE4Build.BuildProductFiles);
 
 			int SubmittedCL;
-			Submit(WorkingCL, out SubmittedCL, true, true);
+			P4.Submit(WorkingCL, out SubmittedCL, true, true);
 		}
 
 		PrintRunTime();

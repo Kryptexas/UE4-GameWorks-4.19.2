@@ -11,7 +11,6 @@
 
 #include "UnrealEd.h"
 #include "ISocketManager.h"
-#include "LinkedObjDrawUtils.h"
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
 #include "BusyCursor.h"
@@ -651,7 +650,7 @@ void FStaticMeshEditor::RegenerateUVChannelComboList()
 	int32 MaxUVChannels = FMath::Max<int32>(GetNumUVChannels(),1);
 	for(int32 UVChannelID = 0; UVChannelID < MaxUVChannels; ++UVChannelID)
 	{
-		UVChannels.Add( MakeShareable( new FString( FString::Printf(*LOCTEXT("UVChannel_ID", "UV Channel %d").ToString(), UVChannelID ) ) ) );
+		UVChannels.Add( MakeShareable( new FString( FText::Format( LOCTEXT("UVChannel_ID", "UV Channel {0}"), FText::AsNumber( UVChannelID ) ).ToString() ) ) );
 	}
 
 	if(UVChannelCombo.IsValid())
@@ -978,7 +977,7 @@ void FStaticMeshEditor::SetEditorMesh(UStaticMesh* InStaticMesh)
 	UVChannels.Empty();
 	for(int32 UVChannelID = 0; UVChannelID < GetNumUVChannels(0); ++UVChannelID)
 	{
-		UVChannels.Add( MakeShareable( new FString( FString::Printf(*LOCTEXT("UVChannel_ID", "UV Channel %d").ToString(), UVChannelID ) ) ) );
+		UVChannels.Add( MakeShareable( new FString( FText::Format( LOCTEXT("UVChannel_ID", "UV Channel {0}"), FText::AsNumber( UVChannelID ) ).ToString() ) ) );
 	}
 
 	if( UVChannelCombo.IsValid() )

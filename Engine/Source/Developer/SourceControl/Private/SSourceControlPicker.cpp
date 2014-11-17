@@ -14,28 +14,33 @@ void SSourceControlPicker::Construct(const FArguments& InArgs)
 {
 	ChildSlot
 	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.FillWidth(1.0f)
-		.Padding(2.0f)
+		SNew( SBorder )
+		.BorderImage( FEditorStyle::GetBrush("DetailsView.CategoryTop") )
+		.Padding( FMargin( 0.0f, 3.0f, 1.0f, 0.0f ) )
 		[
-			SNew( STextBlock )
-			.Text( LOCTEXT("ProviderLabel", "Provider") )
-			.Font( FEditorStyle::GetFontStyle(TEXT("SourceControl.LoginWindow.Font")) )
-		]
-		+SHorizontalBox::Slot()
-		.FillWidth(2.0f)
-		[
-			SNew(SComboButton)
-			.OnGetMenuContent(this, &SSourceControlPicker::OnGetMenuContent)
-			.ContentPadding(1)
-			.ToolTipText( LOCTEXT("ChooseProvider", "Choose the source control provider you want to use before you edit login settings.") )
-			.ButtonContent()
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.FillWidth(1.0f)
+			.Padding(2.0f)
 			[
 				SNew( STextBlock )
-				.Text( this, &SSourceControlPicker::OnGetButtonText )
+				.Text( LOCTEXT("ProviderLabel", "Provider") )
 				.Font( FEditorStyle::GetFontStyle(TEXT("SourceControl.LoginWindow.Font")) )
+			]
+			+SHorizontalBox::Slot()
+			.FillWidth(2.0f)
+			[
+				SNew(SComboButton)
+				.OnGetMenuContent(this, &SSourceControlPicker::OnGetMenuContent)
+				.ContentPadding(1)
+				.ToolTipText( LOCTEXT("ChooseProvider", "Choose the source control provider you want to use before you edit login settings.") )
+				.ButtonContent()
+				[
+					SNew( STextBlock )
+					.Text( this, &SSourceControlPicker::OnGetButtonText )
+					.Font( FEditorStyle::GetFontStyle(TEXT("SourceControl.LoginWindow.Font")) )
+				]
 			]
 		]
 	];

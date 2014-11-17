@@ -34,7 +34,7 @@ void SMessagingEndpointDetails::Construct( const FArguments& InArgs, const FMess
 					.Padding(0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("EndpointDetailsReceivedMessagesLabel", "Messages Received:").ToString())
+							.Text(LOCTEXT("EndpointDetailsReceivedMessagesLabel", "Messages Received:"))
 					]
 
 				+ SGridPanel::Slot(1, 0)
@@ -50,7 +50,7 @@ void SMessagingEndpointDetails::Construct( const FArguments& InArgs, const FMess
 					.Padding(0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("EndpointDetailsReceivedLabel", "Messages Sent:").ToString())
+							.Text(LOCTEXT("EndpointDetailsReceivedLabel", "Messages Sent:"))
 					]
 
 				+ SGridPanel::Slot(1, 1)

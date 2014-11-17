@@ -35,6 +35,7 @@ namespace iPhonePackager
 
     public interface DeploymentInterface
     {
+		string DeviceId { get; set; }
         void SetReportingInterface(DeployTimeReportingInterface InReporter);
         bool UninstallIPAOnDevice(string ApplicationIdentifier);
         ConnectedDeviceInfo [] EnumerateConnectedDevices();

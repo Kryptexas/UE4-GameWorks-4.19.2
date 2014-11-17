@@ -95,7 +95,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 					CanExecPin = ResultNode->FindPin(TEXT("bCanEnterTransition"));
 				}
 			}
-			TransitionCategory.AddCustomRow( CanExecPin ? CanExecPin->PinFriendlyName : FString() )
+			TransitionCategory.AddCustomRow( CanExecPin ? CanExecPin->PinFriendlyName.ToString() : FString() )
 			[
 				SNew(SKismetLinearExpression, CanExecPin)
 			];

@@ -722,20 +722,6 @@ struct FSceneFileHeader
 	/** Copy ctor that doesn't modify padding in FSceneFileHeader. */
 	FSceneFileHeader(const FSceneFileHeader& Other);
 
-	void SetCustomImportanceBoundingBox(const FBox& NewBox) { CustomImportanceBoundingBox = NewBox; }
-
-protected:
-
-	/** 
-	 *	The bounding box of the 'custom' LightmassImportance volume.
-	 *	If this is non-zero, it indicates that the build is for selected
-	 *	actors only. In this case, the solver will use this importance
-	 *	volume but trace rays outside of it to find light sources.
-	 */
-	FBox CustomImportanceBoundingBox;
-
-public:
-
 	/** If true, pad the mappings (shrink the requested size and then pad) */
 	uint32	bPadMappings:1;
 	/** If true, draw a solid border as the padding around mappings */

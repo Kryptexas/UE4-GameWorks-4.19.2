@@ -7,7 +7,6 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
-#include "Online.h"
 
 UPendingNetGame::UPendingNetGame( const class FPostConstructInitializeProperties& PCIP, const FURL& InURL )
 	: Super(PCIP)
@@ -240,7 +239,12 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 			ConnectionError = ErrorMsg;
 
 			// Force close the session
-			UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] from NMT_Failure %s"), Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"), *ConnectionError);
+			UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] [%s] [%s] from NMT_Failure %s"), 
+				Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
+				Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
+				Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"),
+				*ConnectionError);
+
 			Connection->Close();
 			break;
 		}

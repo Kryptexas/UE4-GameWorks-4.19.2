@@ -166,14 +166,27 @@ FString GSavedCommandLine;
 
 int main(int argc, char *argv[])
 {
-	for(int Option = 1; Option < argc; Option++)
+    for(int Option = 1; Option < argc; Option++)
 	{
 		GSavedCommandLine += TEXT(" ");
-		GSavedCommandLine += ANSI_TO_TCHAR(argv[Option]);
+		GSavedCommandLine += UTF8_TO_TCHAR(argv[Option]);
 	}
 
 	FIOSCommandLineHelper::InitCommandArgs(FString());
 	
+#if UE_BUILD_DEBUG
+    if (FParse::Param(FCommandLine::Get(), TEXT("WaitForDebugger")))
+    {
+        while(!FPlatformMisc::IsDebuggerPresent())
+        {
+            FPlatformMisc::LowLevelOutputDebugString(TEXT("Waiting for debugger...\n"));
+            FPlatformProcess::Sleep(1.f);
+        }
+        FPlatformMisc::LowLevelOutputDebugString(TEXT("Debugger attached.\n"));
+    }
+#endif
+    
+    
 	@autoreleasepool {
 	    return UIApplicationMain(argc, argv, nil, NSStringFromClass([IOSAppDelegate class]));
 	}

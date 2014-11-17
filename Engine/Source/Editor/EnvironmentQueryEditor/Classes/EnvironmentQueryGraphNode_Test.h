@@ -26,8 +26,8 @@ class UEnvironmentQueryGraphNode_Test : public UEnvironmentQueryGraphNode
 	virtual void PostPlacedNewNode() OVERRIDE;
 	virtual void DestroyNode() OVERRIDE;
 	virtual bool IsSubNode() const OVERRIDE { return true; }
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
-	virtual FString GetDescription() const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetDescription() const OVERRIDE;
 
 	void SetDisplayedWeight(float Pct, bool bNamed);
 };

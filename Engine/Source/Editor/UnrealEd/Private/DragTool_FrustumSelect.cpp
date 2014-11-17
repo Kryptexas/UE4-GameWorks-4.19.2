@@ -69,12 +69,8 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 
 	bool bShouldSelect = true;
 
-	if( bAltDown )
-	{
-		// If control is down remove from selection
-		bShouldSelect = false;
-	}
-	else if( !bShiftDown )
+
+	if( !bShiftDown )
 	{
 		// If the user is selecting, but isn't hold down SHIFT, remove all current selections.
 		GEditorModeTools().SelectNone();
@@ -89,12 +85,7 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 
 	if( !bEditorModeHandledSelection )
 	{
-		if( bAltDown )
-		{
-			// If control is down remove from selection
-			bShouldSelect = false;
-		}
-		else if( !bShiftDown )
+		if( !bShiftDown )
 		{
 			// If the user is selecting, but isn't hold down SHIFT, remove all current selections.
 			GEditor->SelectNone( true, true );

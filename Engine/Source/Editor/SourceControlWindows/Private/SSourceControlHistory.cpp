@@ -343,24 +343,12 @@ public:
 	static TSharedRef<FSourceControlHistoryRowDragDropOp> New()
 	{
 		TSharedPtr<FSourceControlHistoryRowDragDropOp> NewOperation = MakeShareable(new FSourceControlHistoryRowDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FSourceControlHistoryRowDragDropOp>(NewOperation);
 		NewOperation->Construct();
 
 		return NewOperation.ToSharedRef();
 	}
 
-	/**
-	 * A static method, used to identify FDragDropOperations of this type, which 
-	 * is required for GetDragDropReflector().RegisterOperation<>().
-	 * 
-	 * @return A string identifier (the class name).
-	 */
-	static FString GetTypeId() 
-	{
-		static FString TypeId = TEXT("FSourceControlHistoryRowDragDropOp"); 
-		return TypeId;
-	}
-
+	DRAG_DROP_OPERATOR_TYPE(FSourceControlHistoryRowDragDropOp, FDragDropOperation)
 	
 	struct EDropAction
 	{
@@ -522,14 +510,14 @@ public:
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text( FText::AsNumber( RevisionListItem->RevisionNumber, NULL, FInternationalization::GetInvariantCulture() ) )
+					.Text( FText::AsNumber( RevisionListItem->RevisionNumber, NULL, FInternationalization::Get().GetInvariantCulture() ) )
 				];	
 		}
 		else if (ColumnName == TEXT("Changelist"))
 		{
 			return
 				SNew(STextBlock) 
-				.Text( FText::AsNumber( RevisionListItem->ChangelistNumber, NULL, FInternationalization::GetInvariantCulture() ) ) ;
+				.Text( FText::AsNumber( RevisionListItem->ChangelistNumber, NULL, FInternationalization::Get().GetInvariantCulture() ) ) ;
 		}
 		else if (ColumnName == TEXT("Date"))
 		{

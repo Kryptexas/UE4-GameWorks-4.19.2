@@ -33,9 +33,9 @@ void UAnimStateConduitNode::AutowireNewNode(UEdGraphPin* FromPin)
 	}
 }
 
-FString UAnimStateConduitNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimStateConduitNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return GetStateName();
+	return FText::FromString(GetStateName());
 }
 
 FString UAnimStateConduitNode::GetTooltip() const

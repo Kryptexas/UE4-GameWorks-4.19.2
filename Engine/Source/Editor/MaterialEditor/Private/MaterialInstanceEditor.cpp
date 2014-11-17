@@ -5,7 +5,6 @@
 #include "MaterialEditor.h"
 #include "MaterialEditorActions.h"
 #include "MaterialEditorUtilities.h"
-#include "LinkedObjDrawUtils.h"
 
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
@@ -758,8 +757,7 @@ void FMaterialInstanceEditor::DrawSamplerWarningStrings(FCanvas* Canvas, int32& 
 									SamplerTypeDisplayName = SamplerTypeEnum->GetEnumName( Expression->SamplerType );
 								}
 
-								FLinkedObjDrawUtils::DrawShadowedString(
-									Canvas,
+								Canvas->DrawShadowedString(
 									5,
 									DrawPositionY,
 									*FString::Printf( TEXT("Warning: %s samples %s as %s."),
@@ -782,8 +780,7 @@ void FMaterialInstanceEditor::DrawSamplerWarningStrings(FCanvas* Canvas, int32& 
 									SamplerTypeDisplayName = SamplerTypeEnum->GetEnumName( Expression->SamplerType );
 								}
 
-								FLinkedObjDrawUtils::DrawShadowedString(
-									Canvas,
+								Canvas->DrawShadowedString(
 									5,
 									DrawPositionY,
 									*FString::Printf( TEXT("Warning: %s samples texture as '%s'. SRGB should be disabled for '%s'."),
@@ -949,11 +946,13 @@ void FMaterialInstanceEditor::Refresh()
 
 void FMaterialInstanceEditor::PostUndo( bool bSuccess )
 {
+	MaterialEditorInstance->CopyToSourceInstance();
 	Refresh();
 }
 
 void FMaterialInstanceEditor::PostRedo( bool bSuccess )
 {
+	MaterialEditorInstance->CopyToSourceInstance();
 	Refresh();
 }
 

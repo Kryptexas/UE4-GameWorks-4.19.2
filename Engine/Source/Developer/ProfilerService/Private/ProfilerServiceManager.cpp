@@ -316,7 +316,7 @@ FProfilerServiceManager::FProfilerServiceManager()
 	PingDelegate = FTickerDelegate::CreateRaw(this, &FProfilerServiceManager::HandlePing);
 	DataFrame.Frame = 0;
 
-	MetaData.ThreadDescriptions.FindOrAdd(GGameThreadId) = TEXT("Game Thread");
+	MetaData.ThreadDescriptions.FindOrAdd(GGameThreadId) = FName(NAME_GameThread).GetPlainNameString();
 
 	UpdateMetaData();
 }
@@ -356,32 +356,14 @@ void FProfilerServiceManager::SendData(FProfilerCycleGraph& Data)
 	DataFrame.CycleGraphs.FindOrAdd(Data.ThreadId) = Data;
 }
 
-
-void WriteString(FArchive* File, const ANSICHAR* Format, ...)
-{
-	if (File != nullptr)
-	{
-		ANSICHAR Array[1024];
-
-		// get the var args
-		va_list ArgPtr;
-		va_start(ArgPtr, Format);
-
-		// create the string
-		int32 Count = FCStringAnsi::GetVarArgs(Array, ARRAY_COUNT(Array), ARRAY_COUNT(Array)-1, Format, ArgPtr);
-
-		// write to the file
-		File->Serialize((void*)Array, Count);
-	}
-}
-
 void FProfilerServiceManager::StartCapture()
 {
 #if STATS
 	// fire off the equivalent of the stat startfile command
 	if (!Archive.IsValid())
 	{
-		FString Filename = CreateProfileFilename( TEXT(".ue4stats"), true);
+		// @TODO yrx 2014-03-24 Standardize
+		FString Filename = CreateProfileFilename( FStatConstants::StatsFileExtension, true );
 		LastStatFilename = FApp::GetInstanceName() + TEXT("_") + Filename;
 		TSharedPtr<FStatsWriteFile, ESPMode::ThreadSafe> ArchivePtr = MakeShareable(new FStatsWriteFile());
 		Archive = ArchivePtr;
@@ -730,11 +712,12 @@ void FProfilerServiceManager::HandleServiceSubscribeMessage( const FProfilerServ
 		FClientData Data;
 		Data.Active = true;
 		Data.Preview = false;
+		Data.StatsWriteFile.WriteHeader();
 
 		// add to the client list
 		ClientData.Add(Context->GetSender(), Data);
 		// send authorized and stat descriptions
-		TArray<uint8>& OutData = ClientData.Find(Context->GetSender())->Stream.OutData;
+		const TArray<uint8>& OutData = ClientData.Find(Context->GetSender())->StatsWriteFile.GetOutData();
 		MessageEndpoint->Send(new FProfilerServiceAuthorize2(SessionId, InstanceId, OutData), Context->GetSender());
 
 		// initiate the ping callback
@@ -782,13 +765,12 @@ void FProfilerServiceManager::HandleNewFrame(int64 Frame)
 		for (auto It = PreviewClients.CreateConstIterator(); It; ++It)
 		{
 			FClientData& Client = *ClientData.Find(*It);
-			FStastsWriteStream& Stream = ClientData.Find(*It)->Stream;
 			while(Client.CurrentFrame < Frame)
 			{
 				Client.CurrentFrame++;
-				Stream.OutData.Reset();
-				Stream.WriteCondensedFrame(Client.CurrentFrame);
-				MessageEndpoint->Send(new FProfilerServiceData2(InstanceId, Client.CurrentFrame, Stream.OutData), PreviewClients );
+				Client.StatsWriteFile.ResetData();
+				Client.StatsWriteFile.WriteFrame( Client.CurrentFrame );
+				MessageEndpoint->Send( new FProfilerServiceData2( InstanceId, Client.CurrentFrame, Client.StatsWriteFile.GetOutData() ), PreviewClients );
 			}
 		}
 	}

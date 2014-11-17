@@ -30,6 +30,9 @@ private:
 	/** @return True if the property can be edited */
 	bool CanEdit() const;
 
+	/** @return True if the property is Read Only */
+	bool IsReadOnly() const;
+
 private:
 
 	TSharedPtr< class FPropertyEditor > PropertyEditor;

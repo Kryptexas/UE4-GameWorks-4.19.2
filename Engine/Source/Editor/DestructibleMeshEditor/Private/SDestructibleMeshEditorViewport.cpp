@@ -238,7 +238,7 @@ bool FDestructibleMeshEditorViewportClient::CanRefreshFromStaticMesh()
 	}
 
 	FDateTime CurrentSourceTimestamp;
-	if (!FDateTime::Parse(DestructibleMesh->SourceStaticMesh->AssetImportData->SourceFileTimestamp,
+	if (DestructibleMesh->SourceStaticMesh->AssetImportData == NULL || !FDateTime::Parse(DestructibleMesh->SourceStaticMesh->AssetImportData->SourceFileTimestamp,
 						 CurrentSourceTimestamp))
 	{
 		CurrentSourceTimestamp = FDateTime::MinValue();

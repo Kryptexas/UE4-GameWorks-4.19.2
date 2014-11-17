@@ -219,7 +219,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	TSharedPtr<SComboButton> NewComboButton;
 	TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
 
-	TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one"), NULL, DocLink, TEXT("Category"));
+	TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
 	Category.AddCustomRow( TEXT("Category") )
 	.NameContent()
@@ -270,8 +270,10 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> SliderRangeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("SliderRange_Tooltip", "Allows setting the minimum and maximum values for the UI slider for this variable."), NULL, DocLink, TEXT("SliderRange"));
 
+	FName UIMin = TEXT("UIMin");
+	FName UIMax = TEXT("UIMax");
 	Category.AddCustomRow( TEXT("Slider Range") )
-	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::SliderVisibility))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::RangeVisibility))
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -287,8 +289,8 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.FillWidth(1)
 		[
 			SNew(SEditableTextBox)
-			.Text( this, &FBlueprintVarActionDetails::OnGetSliderMinValue )
-			.OnTextCommitted( this, &FBlueprintVarActionDetails::OnSliderMinValueChanged )
+			.Text(this, &FBlueprintVarActionDetails::OnGetMetaKeyValue, UIMin)
+			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnMetaKeyValueChanged, UIMin)
 			.Font( DetailFontInfo )
 		]
 		+SHorizontalBox::Slot()
@@ -302,12 +304,53 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.FillWidth(1)
 		[
 			SNew(SEditableTextBox)
-			.Text( this, &FBlueprintVarActionDetails::OnGetSliderMaxValue )
-			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnSliderMaxValueChanged)
+			.Text(this, &FBlueprintVarActionDetails::OnGetMetaKeyValue, UIMax)
+			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnMetaKeyValueChanged, UIMax)
 			.Font( DetailFontInfo )
 		]
 	];
 
+	TSharedPtr<SToolTip> ValueRangeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("ValueRangeLabel_Tooltip", "The range of values allowed by this variable. Values outside of this will be clamped to the range."), NULL, DocLink, TEXT("ValueRange"));
+
+	FName ClampMin = TEXT("ClampMin");
+	FName ClampMax = TEXT("ClampMax");
+	Category.AddCustomRow(TEXT("Value Range"))
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::RangeVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text(LOCTEXT("ValueRangeLabel", "Value Range"))
+		.ToolTipText(LOCTEXT("ValueRangeLabel_Tooltip", "The range of values allowed by this variable. Values outside of this will be clamped to the range."))
+		.ToolTip(ValueRangeTooltip)
+		.Font(DetailFontInfo)
+	]
+	.ValueContent()
+	[
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
+		.FillWidth(1)
+		[
+			SNew(SEditableTextBox)
+			.Text(this, &FBlueprintVarActionDetails::OnGetMetaKeyValue, ClampMin)
+			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnMetaKeyValueChanged, ClampMin)
+			.Font(DetailFontInfo)
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(STextBlock)
+			.Text(LOCTEXT("Min .. Max Separator", " .. "))
+			.Font(DetailFontInfo)
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(1)
+		[
+			SNew(SEditableTextBox)
+			.Text(this, &FBlueprintVarActionDetails::OnGetMetaKeyValue, ClampMax)
+			.OnTextCommitted(this, &FBlueprintVarActionDetails::OnMetaKeyValueChanged, ClampMax)
+			.Font(DetailFontInfo)
+		]
+	];
 	ReplicationOptions.Empty();
 	ReplicationOptions.Add(MakeShareable(new FString("None")));
 	ReplicationOptions.Add(MakeShareable(new FString("Replicated")));
@@ -1177,57 +1220,32 @@ EVisibility FBlueprintVarActionDetails::ExposeToMatineeVisibility() const
 	return EVisibility::Collapsed;
 }
 
-FText FBlueprintVarActionDetails::OnGetSliderMinValue() const
+FText FBlueprintVarActionDetails::OnGetMetaKeyValue(FName Key) const
 {
 	FName VarName = GetVariableName();
 	if (VarName != NAME_None)
 	{
 		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("UIMin"), /*out*/ Result);
+		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, Key, /*out*/ Result);
 
 		return FText::FromString(Result);
 	}
 	return FText();
 }
 
-void FBlueprintVarActionDetails::OnSliderMinValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo)
+void FBlueprintVarActionDetails::OnMetaKeyValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo, FName Key)
 {
 	FName VarName = GetVariableName();
 	if (VarName != NAME_None)
 	{
 		if ((CommitInfo == ETextCommit::OnEnter) || (CommitInfo == ETextCommit::OnUserMovedFocus))
 		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("UIMin"), NewMinValue.ToString());
+			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, Key, NewMinValue.ToString());
 		}
 	}
 }
 
-FText FBlueprintVarActionDetails::OnGetSliderMaxValue() const
-{
-	FName VarName = GetVariableName();
-	if (VarName != NAME_None)
-	{
-		FString Result;
-		FBlueprintEditorUtils::GetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("UIMax"), /*out*/ Result);
-
-		return FText::FromString(Result);
-	}
-	return FText();
-}
-
-void FBlueprintVarActionDetails::OnSliderMaxValueChanged(const FText& NewMaxValue, ETextCommit::Type CommitInfo)
-{
-	FName VarName = GetVariableName();
-	if (VarName != NAME_None)
-	{
-		if ((CommitInfo == ETextCommit::OnEnter) || (CommitInfo == ETextCommit::OnUserMovedFocus))
-		{
-			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, TEXT("UIMax"), NewMaxValue.ToString());
-		}
-	}
-}
-
-EVisibility FBlueprintVarActionDetails::SliderVisibility() const
+EVisibility FBlueprintVarActionDetails::RangeVisibility() const
 {
 	UProperty* VariableProperty = SelectionAsProperty();
 	if (VariableProperty)
@@ -1314,7 +1332,7 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 				if (!FuncGraph)
 				{
 					FuncGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), FName(*NewFuncName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-					FBlueprintEditorUtils::AddFunctionGraph(GetBlueprintObj(), FuncGraph, true, NULL);
+					FBlueprintEditorUtils::AddFunctionGraph(GetBlueprintObj(), FuncGraph, false, NULL);
 				}
 
 				if (FuncGraph)
@@ -1600,7 +1618,7 @@ void FBlueprintLocalVarActionDetails::OnLocalVarNameCommitted(const FText& InNew
 {
 	if(InTextCommit == ETextCommit::OnEnter && !bIsVarNameInvalid)
 	{
-		const FScopedTransaction Transaction( LOCTEXT( "RenameVariable", "Rename Local Variable" ) );
+		const FScopedTransaction Transaction( LOCTEXT( "RenameLocalVariable", "Rename Local Variable" ) );
 
 		FName NewVarName = FName(*InNewText.ToString());
 
@@ -2132,23 +2150,68 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 		if (IsCustomEvent())
 		{
+			/** A collection of static utility callbacks to provide the custom-event details ui with */
+			struct LocalCustomEventUtils
+			{
+				/** Checks to see if the selected node is NOT an override */
+				static bool IsNotCustomEventOverride(TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode)
+				{
+					bool bIsOverride = false;
+					if (SelectedNode.IsValid())
+					{
+						UK2Node_CustomEvent const* SelectedCustomEvent = Cast<UK2Node_CustomEvent const>(SelectedNode.Get());
+						check(SelectedCustomEvent != NULL);
+
+						bIsOverride = SelectedCustomEvent->IsOverride();
+					}
+
+					return !bIsOverride;
+				}
+
+				/** If the selected node represent an override, this returns tooltip text explaining why you can't alter the replication settings */
+				static FText GetDisabledTooltip(TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode)
+				{
+					FText ToolTipOut = FText::GetEmpty();
+					if (!IsNotCustomEventOverride(SelectedNode))
+					{
+						ToolTipOut = LOCTEXT("CannotChangeOverrideReplication", "Cannot alter a custom-event's replication settings when it overrides an event declared in a parent.");
+					}
+					return ToolTipOut;
+				}
+
+				/** Determines if the selected node's "Reliable" net setting should be enabled for the user */
+				static bool CanSetReliabilityProperty(TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode)
+				{
+					bool bIsReliabilitySettingEnabled = false;
+					if (IsNotCustomEventOverride(SelectedNode))
+					{
+						UK2Node_CustomEvent const* SelectedCustomEvent = Cast<UK2Node_CustomEvent const>(SelectedNode.Get());
+						check(SelectedCustomEvent != NULL);
+
+						bIsReliabilitySettingEnabled = ((SelectedCustomEvent->GetNetFlags() & FUNC_Net) != 0);
+					}
+					return bIsReliabilitySettingEnabled;
+				}
+			};
+			FCanExecuteAction CanExecuteDelegate = FCanExecuteAction::CreateStatic(&LocalCustomEventUtils::IsNotCustomEventOverride, FunctionEntryNodePtr);
+
 			FMenuBuilder RepComboMenu( true, NULL );
 			RepComboMenu.AddMenuEntry( 	ReplicationSpecifierProperName(0), 
 										LOCTEXT("NotReplicatedToolTip", "This event is not replicated to anyone."),
 										FSlateIcon(),
-										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, 0U )));
+										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, 0U ), CanExecuteDelegate));
 			RepComboMenu.AddMenuEntry(	ReplicationSpecifierProperName(FUNC_NetMulticast), 
 										LOCTEXT("MulticastToolTip", "Replicate this event from the server to everyone else. Server executes this event locally too. Only call this from the server."),
 										FSlateIcon(),
-										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetMulticast) )));
+										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetMulticast) ), CanExecuteDelegate));
 			RepComboMenu.AddMenuEntry(	ReplicationSpecifierProperName(FUNC_NetServer), 
 										LOCTEXT("ServerToolTip", "Replicate this event from net owning client to server."),
 										FSlateIcon(),
-										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetServer) )));
+										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetServer) ), CanExecuteDelegate));
 			RepComboMenu.AddMenuEntry(	ReplicationSpecifierProperName(FUNC_NetClient), 
 										LOCTEXT("ClientToolTip", "Replicate this event from the server to owning client."),
 										FSlateIcon(),
-										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetClient) )));
+										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetClient) ), CanExecuteDelegate));
 
 			Category.AddCustomRow( LOCTEXT( "FunctionReplicate", "Replicates" ).ToString() )
 			.NameContent()
@@ -2164,44 +2227,47 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				+SVerticalBox::Slot()
 				[
 					SNew(SComboButton)
-					.ContentPadding(0)
-					.ButtonContent()
-					[
-						SNew(STextBlock)
-						.Text(this, &FBlueprintGraphActionDetails::GetCurrentReplicatedEventString)
-						.Font( IDetailLayoutBuilder::GetDetailFont() )
-					]
-					.MenuContent()
-					[
-						SNew(SVerticalBox)
-						+SVerticalBox::Slot()
+						.ContentPadding(0)
+						.IsEnabled_Static(&LocalCustomEventUtils::IsNotCustomEventOverride, FunctionEntryNodePtr)
+						.ToolTipText_Static(&LocalCustomEventUtils::GetDisabledTooltip, FunctionEntryNodePtr)
+						.ButtonContent()
+						[
+							SNew(STextBlock)
+								.Text(this, &FBlueprintGraphActionDetails::GetCurrentReplicatedEventString)
+								.Font( IDetailLayoutBuilder::GetDetailFont() )
+						]
+						.MenuContent()
 						[
 							SNew(SVerticalBox)
 							+SVerticalBox::Slot()
-							.AutoHeight()
-							.MaxHeight(400.0f)
 							[
-								RepComboMenu.MakeWidget()
+								SNew(SVerticalBox)
+								+SVerticalBox::Slot()
+									.AutoHeight()
+									.MaxHeight(400.0f)
+								[
+									RepComboMenu.MakeWidget()
+								]
 							]
 						]
-					]
 				]
 
 				+SVerticalBox::Slot()
-				.AutoHeight()
-				.MaxHeight(400.0f)
+					.AutoHeight()
+					.MaxHeight(400.0f)
 				[
 					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
+					+SHorizontalBox::Slot()
+						.AutoWidth()
 					[
 						SNew( SCheckBox )
-						.IsChecked( this, &FBlueprintGraphActionDetails::GetIsReliableReplicatedFunction )
-						.IsEnabled( this, &FBlueprintGraphActionDetails::GetIsReplicatedFunction )
-						.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified )
+							.IsChecked( this, &FBlueprintGraphActionDetails::GetIsReliableReplicatedFunction )
+							.IsEnabled_Static(&LocalCustomEventUtils::CanSetReliabilityProperty, FunctionEntryNodePtr)
+							.ToolTipText_Static(&LocalCustomEventUtils::GetDisabledTooltip, FunctionEntryNodePtr)
+							.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified )
 						[
 							SNew(STextBlock)
-							.Text( LOCTEXT( "FunctionReplicateReliable", "Reliable" ).ToString() )
+								.Text( LOCTEXT( "FunctionReplicateReliable", "Reliable" ).ToString() )
 						]
 					]
 				]
@@ -2315,7 +2381,17 @@ FString FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
 	const UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
 
-	uint32 NetFlags = CustomEvent->FunctionFlags & (FUNC_NetMulticast | FUNC_NetServer | FUNC_NetClient);
+	uint32 const ReplicatedNetMask = (FUNC_NetMulticast | FUNC_NetServer | FUNC_NetClient);
+
+	uint32 NetFlags = CustomEvent->FunctionFlags & ReplicatedNetMask;
+	if (CustomEvent->IsOverride())
+	{
+		UFunction* SuperFunction = FindField<UFunction>(CustomEvent->GetBlueprint()->ParentClass, CustomEvent->CustomFunctionName);
+		check(SuperFunction != NULL);
+
+		NetFlags = SuperFunction->FunctionFlags & ReplicatedNetMask;
+	}
+
 	return ReplicationSpecifierProperName(NetFlags).ToString();
 }
 
@@ -3387,29 +3463,13 @@ ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsReliableReplicatedF
 		ESlateCheckBoxState::Undetermined;
 	}
 
-	if (((CustomEvent->FunctionFlags & FUNC_Net) != 0) && ((CustomEvent->FunctionFlags & FUNC_NetReliable) != 0))
+	uint32 const NetReliableMask = (FUNC_Net | FUNC_NetReliable);
+	if ((CustomEvent->GetNetFlags() & NetReliableMask) == NetReliableMask)
 	{
 		return ESlateCheckBoxState::Checked;
 	}
 	
 	return ESlateCheckBoxState::Unchecked;
-}
-
-bool FBlueprintGraphActionDetails::GetIsReplicatedFunction() const
-{
-	const UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
-	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
-	if(!CustomEvent)
-	{
-		false;
-	}
-
-	if (((CustomEvent->FunctionFlags & FUNC_Net) != 0))
-	{
-		return true;
-	}
-
-	return false;
 }
 
 bool FBlueprintGraphActionDetails::IsPureFunctionVisible() const
@@ -4471,6 +4531,130 @@ void FBlueprintComponentDetails::OnSocketSelection( FName SocketName )
 		// Record selection if there is an actual asset attached
 		SCS_Node->AttachToName = SocketName;
 		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
+	}
+}
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
+void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
+{
+	// Cache the GraphNode
+	if( BlueprintEditorPtr.IsValid() )
+	{
+		/** Get the currently selected set of nodes */
+		TSet<UObject*> Objects = BlueprintEditorPtr.Pin()->GetSelectedNodes();
+
+		if (Objects.Num() == 1)
+		{
+			TSet<UObject*>::TIterator Iter(Objects);
+			UObject* Object = *Iter;
+
+			if (Object && Object->IsA<UEdGraphNode>())
+			{
+				GraphNodePtr = Cast<UEdGraphNode>(Object);
+			}
+		}
+	}
+
+	if(!GraphNodePtr.IsValid() || !GraphNodePtr.Get()->bCanRenameNode)
+	{
+		return;
+	}
+
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("GraphNodeDetail", LOCTEXT("GraphNodeDetailsCategory", "Graph Node").ToString(), ECategoryPriority::Important);
+	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
+	FText RowHeader;
+	FText NameContent;
+
+	if( GraphNodePtr->IsA( UEdGraphNode_Comment::StaticClass() ))
+	{
+		RowHeader = LOCTEXT("GraphNodeDetail_CommentRowTitle", "Comment");
+		NameContent = LOCTEXT("GraphNodeDetail_CommentContentTitle", "Comment Text");
+	}
+	else
+	{
+		RowHeader = LOCTEXT("GraphNodeDetail_NodeRowTitle", "Node Title");
+		NameContent = LOCTEXT("GraphNodeDetail_ContentTitle", "Name");
+	}
+
+
+	Category.AddCustomRow( RowHeader.ToString() )
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Text( NameContent )
+		.Font(DetailFontInfo)
+	]
+	.ValueContent()
+	[
+		SAssignNew(NameEditableTextBox, SEditableTextBox)
+		.Text(this, &FBlueprintGraphNodeDetails::OnGetName)
+		.OnTextChanged(this, &FBlueprintGraphNodeDetails::OnNameChanged)
+		.OnTextCommitted(this, &FBlueprintGraphNodeDetails::OnNameCommitted)
+		.Font(DetailFontInfo)
+	];
+}
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+bool FBlueprintGraphNodeDetails::IsNameReadOnly() const
+{
+	bool bReadOnly = true;
+	if(GraphNodePtr.IsValid())
+	{
+		bReadOnly = !GraphNodePtr->bCanRenameNode;
+	}
+	return bReadOnly;
+}
+
+FText FBlueprintGraphNodeDetails::OnGetName() const
+{
+	FText Name;
+	if(GraphNodePtr.IsValid())
+	{
+		Name = GraphNodePtr->GetNodeTitle( ENodeTitleType::EditableTitle );
+	}
+	return Name;
+}
+
+void FBlueprintGraphNodeDetails::OnNameChanged(const FText& InNewText)
+{
+	bIsNodeNameInvalid = true;
+
+	if( GraphNodePtr.IsValid() && BlueprintEditorPtr.IsValid() )
+	{
+		FName NodeName( *GraphNodePtr->GetNodeTitle(ENodeTitleType::EditableTitle).ToString() );
+		TSharedPtr<INameValidatorInterface> NameValidator = GraphNodePtr->MakeNameValidator();
+
+		if( !NameValidator.IsValid() )
+		{
+			NameValidator = MakeShareable(new FKismetNameValidator(BlueprintEditorPtr.Pin()->GetBlueprintObj(), NodeName));
+		}
+
+		EValidatorResult ValidatorResult = NameValidator->IsValid(InNewText.ToString());
+		if(ValidatorResult == EValidatorResult::AlreadyInUse)
+		{
+			NameEditableTextBox->SetError(FText::Format(LOCTEXT("RenameFailed_InUse", "{0} is in use by another variable or function!"), InNewText));
+		}
+		else if(ValidatorResult == EValidatorResult::EmptyName)
+		{
+			NameEditableTextBox->SetError(LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!"));
+		}
+		else if(ValidatorResult == EValidatorResult::TooLong)
+		{
+			NameEditableTextBox->SetError(FText::Format( LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than {0} characters!"), FText::AsNumber( FKismetNameValidator::GetMaximumNameLength())));
+		}
+		else
+		{
+			bIsNodeNameInvalid = false;
+			NameEditableTextBox->SetError(FText::GetEmpty());
+		}
+	}
+}
+
+void FBlueprintGraphNodeDetails::OnNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit)
+{
+	if( BlueprintEditorPtr.IsValid() && GraphNodePtr.IsValid() )
+	{
+		BlueprintEditorPtr.Pin()->OnNodeTitleCommitted( InNewText, InTextCommit, GraphNodePtr.Get() );
 	}
 }
 

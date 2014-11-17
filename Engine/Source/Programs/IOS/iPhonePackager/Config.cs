@@ -40,6 +40,16 @@ namespace iPhonePackager
 		public static string RepackageStagingDirectory = "";
 
 		/// <summary>
+		/// The project root directory that is passed into IPP from UAT
+		/// </summary>
+		public static string ProjectRootDirectory = "";
+
+		/// <summary>
+		/// The device to deploy or launch on
+		/// </summary>
+		public static string DeviceId = "";
+
+		/// <summary>
 		/// The local build directory (on PC)
 		/// </summary>
 		public static string BuildDirectory
@@ -167,6 +177,34 @@ namespace iPhonePackager
 				Filename = Path.Combine(Config.BinariesDirectory, FilePrefix + Program.GameName + "-IOS-" + Program.GameConfiguration + Program.Architecture + FileSuffix);
 			}
 
+			return Filename;
+		}
+
+		public static string RemapIPAPath(string FileSuffix)
+		{
+			// Quash the default Epic_ so that stubs for UDK installers get named correctly and can be used
+			string FilePrefix = (SigningPrefix == "Epic_") ? "" : SigningPrefix;
+
+			string Filename;
+
+			string BinariesDir = BinariesDirectory;
+			string GameName = Program.GameName;
+			if (!String.IsNullOrEmpty(ProjectRootDirectory))
+			{
+				BinariesDir = Path.Combine(ProjectRootDirectory, "Binaries", "IOS");
+				GameName = ProjectRootDirectory.Substring(ProjectRootDirectory.LastIndexOfAny(new char[] { '\\', '/' }) + 1);
+			}
+			if (Program.GameConfiguration == "Development")
+			{
+				Filename = Path.Combine(BinariesDir, FilePrefix + GameName + Program.Architecture + FileSuffix);
+			}
+			else
+			{
+				Filename = Path.Combine(BinariesDir, FilePrefix + GameName + "-IOS-" + Program.GameConfiguration + Program.Architecture + FileSuffix);
+			}
+
+			// ensure the directory exists
+			
 			return Filename;
 		}
 

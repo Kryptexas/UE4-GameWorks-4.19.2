@@ -247,7 +247,7 @@ public:
 	bool SetMethodText(const FString& InNewMethodText);
 
 	/** Select a crash dump file via the file open dialog */
-	bool OnFileOpen();
+	bool OnFileOpen(TSharedRef<SWidget> ParentWidget);
 
 	/** Get the current action being performed */
 	SSymbolDebugger::ESymbolDebuggerActions GetCurrentAction() const

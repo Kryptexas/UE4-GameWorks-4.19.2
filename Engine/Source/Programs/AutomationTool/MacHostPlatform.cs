@@ -76,7 +76,10 @@ namespace AutomationTool
 			if (AppName == "mono")
 			{
 				// Enable case-insensitive mode for Mono
-				NewProcess.StartInfo.EnvironmentVariables.Add("MONO_IOMAP", "case");
+                if (!NewProcess.StartInfo.EnvironmentVariables.ContainsKey("MONO_IOMAP"))
+                {
+                    NewProcess.StartInfo.EnvironmentVariables.Add("MONO_IOMAP", "case");
+                }
 			}
 			return NewProcess;
 		}
@@ -134,6 +137,18 @@ namespace AutomationTool
 		public override string PdbExtension
 		{
 			get { return ".exe.mdb"; }
+		}
+
+		static string[] SystemServices = new string[]
+		{
+			// TODO: Add any system process names here
+		};
+		public override string[] DontKillProcessList
+		{
+			get
+			{
+				return SystemServices;
+			}
 		}
 	}
 }

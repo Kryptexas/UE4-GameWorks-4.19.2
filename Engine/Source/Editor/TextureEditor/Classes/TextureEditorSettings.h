@@ -66,10 +66,10 @@ public:
 public:
 
 	/**
-	 * Whether the texture should fill the view port.
+	 * Whether the texture should scale to fit the view port.
 	 */
 	UPROPERTY(config)
-	bool FillViewport;
+	bool FitToViewport;
 
 	/**
 	 * Color to use for the texture border, if enabled.

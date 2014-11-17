@@ -134,5 +134,5 @@ public:
 	 *
 	 * @param bWithImage - Do we want to test sharing an image
 	 */
-	void Test(bool bWithImage);
+	void Test(class UWorld* InWorld, bool bWithImage);
  };

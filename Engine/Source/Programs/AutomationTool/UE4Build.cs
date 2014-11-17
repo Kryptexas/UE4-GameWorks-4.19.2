@@ -164,7 +164,7 @@ namespace AutomationTool
 			}
 			PrepareUBT();
 
-			string UBTManifest = GetUBTManifest(UprojectPath);
+            string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
 
 			DeleteFile(UBTManifest);
 			XGEItem Result = new XGEItem();
@@ -308,7 +308,7 @@ namespace AutomationTool
 
 			if (UseManifest)
 			{
-				string UBTManifest = GetUBTManifest(UprojectPath);
+                string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
 
 				DeleteFile(UBTManifest);
 
@@ -324,7 +324,7 @@ namespace AutomationTool
 
 			if (UseManifest)
 			{
-				string UBTManifest = GetUBTManifest(UprojectPath);
+                string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
 
 				AddBuildProductsFromManifest(UBTManifest);
 
@@ -338,7 +338,6 @@ namespace AutomationTool
 			{
 				".dll",
 				".pdb",
-				".xml",
 				".exe.config",
 				".exe",
 				"exe.mdb"
@@ -416,13 +415,13 @@ namespace AutomationTool
 		/// <summary>
 		/// Updates the engine version files
 		/// </summary>
-		public List<string> UpdateVersionFiles()
+		public List<string> UpdateVersionFiles(bool ActuallyUpdateVersionFiles = true)
 		{
 			var Result = new List<String>();
 			string Branch = P4Enabled ? P4Env.BuildRootEscaped : "";
 			{
 				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "build.properties");
-				if (CommandUtils.P4Enabled)
+                if (CommandUtils.P4Enabled && ActuallyUpdateVersionFiles)
 				{
 					Log("Updating {0} with:", VerFile);
 					Log("  TimestampForBVT={0}", CmdEnv.TimestampAsString);
@@ -450,7 +449,7 @@ namespace AutomationTool
 
 			{
 				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Core", "Private", "UObject", "ObjectVersion.cpp");
-				if (CommandUtils.P4Enabled)
+                if (CommandUtils.P4Enabled && ActuallyUpdateVersionFiles)
 				{
 					Log("Updating {0} with:", VerFile);
 					Log(" #define	ENGINE_VERSION  {0}", P4Env.ChangelistString);
@@ -469,7 +468,7 @@ namespace AutomationTool
             string EngineVersionFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime", "Launch", "Resources", "Version.h");
             {
                 string VerFile = EngineVersionFile;
-				if (CommandUtils.P4Enabled)
+                if (CommandUtils.P4Enabled && ActuallyUpdateVersionFiles)
 				{
 					Log("Updating {0} with:", VerFile);
 					Log(" #define	ENGINE_VERSION  {0}", P4Env.ChangelistString);
@@ -498,7 +497,7 @@ namespace AutomationTool
                 // Use Version.h data to update MetaData.cs so the assemblies match the engine version.
                 string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Programs", "DotNETCommon", "MetaData.cs");
 
-                if (CommandUtils.P4Enabled)
+                if (CommandUtils.P4Enabled && ActuallyUpdateVersionFiles)
                 {
                     // Get the MAJOR/MINOR/PATCH from the Engine Version file, as it is authoritative. The rest we get from the P4Env.
                     string NewInformationalVersion = FEngineVersionSupport.FromVersionFile(EngineVersionFile).ToString();
@@ -997,21 +996,44 @@ namespace AutomationTool
 				string Args = "\"" + TaskFilePath + "\" /Rebuild /MaxCPUS=200";
 
 				int Retries = DoRetries ? 2 : 1;
-				for (int i = 0; i < Retries; i++)
+                int ConnectionRetries = 4;
+                for (int i = 0; i < Retries; i++)
 				{
 					try
 					{
-						Log("Running XGE *******");
-						PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
-						RunAndLog(CmdEnv, XGEConsole, Args);
-						PopDir();
-						Log("XGE Done *******");
-						break;
+                        while (true)
+                        {
+                            Log("Running XGE *******");
+                            PushDir(CombinePaths(CmdEnv.LocalRoot, @"\Engine\Source"));
+                            int SuccesCode;
+                            string LogFile = GetRunAndLogLogName(CmdEnv, XGEConsole);
+                            string Output = RunAndLog(XGEConsole, Args, out SuccesCode, LogFile);
+                            PopDir();
+                            if (ConnectionRetries > 0 && (SuccesCode == 4 || SuccesCode == 2) && !Output.Contains("------Project:"))
+                            {
+                                Log(System.Diagnostics.TraceEventType.Warning, "XGE failure on the local connection timeout");
+                                if (ConnectionRetries < 2)
+                                {
+                                    System.Threading.Thread.Sleep(60000);
+                                }
+                                ConnectionRetries--;
+                                continue;
+                            }
+                            else if (SuccesCode != 0)
+                            {
+                                Log("XGE did not succeed *******");
+                                throw new AutomationException(String.Format("Command failed (Result:{3}): {0} {1}. See logfile for details: '{2}' ",
+                                                                XGEConsole, Args, Path.GetFileName(LogFile), SuccesCode));
+                            }
+                            Log("XGE Done *******");
+                            break;
+                        }
+                        break;
 					}
 					catch (Exception Ex)
 					{
 						Log("XGE failed on try {0}: {1}", i + 1, Ex.ToString());
-						if (i + 1 == Retries)
+						if (i + 1 >= Retries)
 						{
 							return false;
 						}
@@ -1178,7 +1200,7 @@ namespace AutomationTool
 					{
 						// When building a target for Mac or iOS, use UBT's -flushmac option to clean up the remote builder
 						bool bForceFlushMac = DeleteBuildProducts && (Target.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac || Target.Platform == UnrealBuildTool.UnrealTargetPlatform.IOS);
-						BuildWithUBT(Target.ProjectName, Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, false, Target.UBTArgs, bForceUnity);
+						BuildWithUBT(Target.ProjectName, Target.TargetName, Target.Platform, Target.Config.ToString(), Target.UprojectPath, bForceMonolithic, bForceNonUnity, bForceDebugInfo, bForceFlushMac, true, Target.UBTArgs, bForceUnity);
 					}
 				}
 
@@ -1263,20 +1285,32 @@ namespace AutomationTool
 			Log("Adding {0} build products to changelist {1}...", Files.Count, WorkingCL);
 			foreach (var File in Files)
 			{
-				Sync("-f -k " + File + "#head"); // sync the file without overwriting local one
+				P4.Sync("-f -k " + File + "#head"); // sync the file without overwriting local one
 				if (!FileExists(File))
 				{
 					throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", File);
 				}
 
-				ReconcileNoDeletes(WorkingCL, File);
+				P4.ReconcileNoDeletes(WorkingCL, File);
 
 				// Change file type on binary files to be always writeable.
-				var FileStats = FStat(File);
-				if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & P4FileAttributes.Writeable) != P4FileAttributes.Writeable)
-				{
-					ChangeFileType(File, P4FileAttributes.Writeable);
-				}
+				var FileStats = P4.FStat(File);
+
+                if (IsProbablyAMacOrIOSExe(File))
+                {
+                    if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & (P4FileAttributes.Executable | P4FileAttributes.Writeable)) != (P4FileAttributes.Executable | P4FileAttributes.Writeable))
+                    {
+                        P4.ChangeFileType(File, (P4FileAttributes.Executable | P4FileAttributes.Writeable));
+                    }
+                }
+                else
+                {
+                    if (FileStats.Type == P4FileType.Binary && (FileStats.Attributes & P4FileAttributes.Writeable) != P4FileAttributes.Writeable)
+                    {
+                        P4.ChangeFileType(File, P4FileAttributes.Writeable);
+                    }
+
+                }                    
 			}
 		}
 
@@ -1326,7 +1360,9 @@ namespace AutomationTool
 			var UATFiles = new List<string>(new string[] 
 					{
 						"AutomationTool.exe",
+						"AutomationTool.exe.config",
 						"UnrealBuildTool.exe",
+						"UnrealBuildTool.exe.config",
 						"DotNETUtilities.dll",
 					});
 
@@ -1352,10 +1388,12 @@ namespace AutomationTool
 			}
 		}
 
-		string GetUBTManifest(string UProjectPath)
+		string GetUBTManifest(string UProjectPath, string InAddArgs)
 		{
 			// Can't write to Engine directory on 
-			if (GlobalCommandLine.Rocket && !String.IsNullOrEmpty(UProjectPath))
+            bool bForceRocket = InAddArgs.ToLowerInvariant().Contains(" -rocket"); //awful
+
+            if ((GlobalCommandLine.Rocket || bForceRocket) && !String.IsNullOrEmpty(UProjectPath))
 			{
 				return Path.Combine(Path.GetDirectoryName(UProjectPath), "Intermediate/Build/Manifest.xml");
 			}

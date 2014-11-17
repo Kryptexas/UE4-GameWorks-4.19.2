@@ -43,5 +43,6 @@ ATriggerBase::ATriggerBase(const class FPostConstructInitializeProperties& PCIP)
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Triggers;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Triggers;
 #endif
+		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 }

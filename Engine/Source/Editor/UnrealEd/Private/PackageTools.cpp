@@ -65,10 +65,8 @@ namespace PackageTools
 		// the outer chain of each object.
 
 		// Assemble a list of packages.  Only show packages that match the current resource type filter.
-		for( TObjectIterator<UObject> It ; It ; ++It )
+		for (auto* Obj : TObjectRange<UObject>())
 		{
-			UObject* Obj = *It;
-
 			// Make sure that we support displaying this object type
 			bool bIsSupported = ObjectTools::IsObjectBrowsable( Obj );
 			if( bIsSupported )
@@ -230,13 +228,13 @@ namespace PackageTools
 
 		TArray<UPackage*> PackagesToUnload;
 
-		GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackage", "Saving package"), true );
+		GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackagesE", "Saving packages..."), true );
 		for(int32 i=0; i<Packages.Num(); i++)
 		{
 			UPackage* PackageToSave = Packages[i];
 			if ( PackageToSave != NULL )
 			{
-				GWarn->StatusUpdate( i, Packages.Num(), FText::Format( NSLOCTEXT("UnrealEd", "SavingPackagef", "Saving package {0}"), FText::FromString(PackageToSave->GetName()) ) );
+				GWarn->StatusUpdate( i, Packages.Num(), FText::Format( NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(PackageToSave->GetName()) ) );
 
 				// Prevent level packages from being saved via the Generic Browser.
 				UWorld* TheWorld = UWorld::FindWorldInPackage(PackageToSave);
@@ -290,7 +288,7 @@ namespace PackageTools
 
 								bSave = DesktopPlatform->SaveFileDialog(
 									ParentWindowWindowHandle,
-									*NSLOCTEXT("UnrealEd", "SavePackage", "Save Package").ToString(),
+									*NSLOCTEXT("UnrealEd", "SaveAsset", "Save Asset").ToString(),
 									*LastSaveDirectory,
 									*File,
 									*FileTypes,
@@ -350,7 +348,7 @@ namespace PackageTools
 						else if( !GUnrealEd->Exec( GWorld, *FString::Printf(TEXT("OBJ SAVEPACKAGE PACKAGE=\"%s\" FILE=\"%s\""), *PackageName, *SaveFileName) ) )
 						{
 							// Couldn't save.
-							FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_CouldntSavePackage", "Couldn't save package. Check log window for further details.") );
+							FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_CouldntSaveAsset", "Couldn't save asset. Check log window for further details.") );
 							bAllPackagesWereSaved = false;
 						}
 						else

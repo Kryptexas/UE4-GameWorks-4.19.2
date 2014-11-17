@@ -340,10 +340,12 @@ class SBlueprintDiffMenu : public SCompoundWidget
 					TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryIndex);
 					if(Revision.IsValid())
 					{
-						FText Label = FText::Format( LOCTEXT("RevisionNumber", "Revision {0}"), FText::AsNumber( Revision->GetRevisionNumber(), NULL, FInternationalization::GetInvariantCulture() ) );
+						FInternationalization& I18N = FInternationalization::Get();
+
+						FText Label = FText::Format( LOCTEXT("RevisionNumber", "Revision {0}"), FText::AsNumber( Revision->GetRevisionNumber(), NULL, I18N.GetInvariantCulture() ) );
 
 						FFormatNamedArguments Args;
-						Args.Add( TEXT("CheckInNumber"), FText::AsNumber( Revision->GetCheckInIdentifier(), NULL, FInternationalization::GetInvariantCulture() ) );
+						Args.Add( TEXT("CheckInNumber"), FText::AsNumber( Revision->GetCheckInIdentifier(), NULL, I18N.GetInvariantCulture() ) );
 						Args.Add( TEXT("UserName"), FText::FromString( Revision->GetUserName() ) );
 						Args.Add( TEXT("DateTime"), FText::AsDate( Revision->GetDate().ToDate() ) );
 						Args.Add( TEXT("ChanglistDescription"), FText::FromString( Revision->GetDescription() ) );
@@ -354,8 +356,8 @@ class SBlueprintDiffMenu : public SCompoundWidget
 							Label = LOCTEXT("Depo", "Depot");
 						}
 
- 						MenuBuilder.AddMenuEntry(TAttribute<FText>(Label), ToolTip, FSlateIcon(), 
- 									FUIAction(FExecuteAction::CreateSP(this, &SBlueprintDiffMenu::DiffAgainstRevision, Revision->GetRevisionNumber())));
+						MenuBuilder.AddMenuEntry(TAttribute<FText>(Label), ToolTip, FSlateIcon(), 
+									FUIAction(FExecuteAction::CreateSP(this, &SBlueprintDiffMenu::DiffAgainstRevision, Revision->GetRevisionNumber())));
 					}
 				}
 			}
@@ -639,9 +641,7 @@ void FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar(FToolBarBuilder& T
 		BlueprintEditorPtr->AddToolbarWidget(SNew(SSpacer).Size(FVector2D(4.0f, 1.0f)));
 
 		BlueprintEditorPtr->AddToolbarWidget(
-			SNew(STutorialWrapper)
-			.Name(TEXT("DefaultsMode"))
-			.Content()
+			SNew( STutorialWrapper, TEXT("DefaultsMode") )
 			[
 				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::BlueprintDefaultsMode ), FBlueprintEditorApplicationModes::BlueprintDefaultsMode)
 				.OnGetActiveMode(GetActiveMode)
@@ -659,9 +659,7 @@ void FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar(FToolBarBuilder& T
 		BlueprintEditorPtr->AddToolbarWidget(SNew(SBlueprintModeSeparator));
 
 		BlueprintEditorPtr->AddToolbarWidget(
-			SNew(STutorialWrapper)
-			.Name(TEXT("ComponentsMode"))
-			.Content()
+			SNew( STutorialWrapper, TEXT("ComponentsMode") )
 			[
 				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::BlueprintComponentsMode ), FBlueprintEditorApplicationModes::BlueprintComponentsMode)
 				.OnGetActiveMode(GetActiveMode)
@@ -680,9 +678,7 @@ void FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar(FToolBarBuilder& T
 		BlueprintEditorPtr->AddToolbarWidget(SNew(SBlueprintModeSeparator));
 
 		BlueprintEditorPtr->AddToolbarWidget(
-			SNew(STutorialWrapper)
-			.Name(TEXT("GraphMode"))
-			.Content()
+			SNew( STutorialWrapper, TEXT("GraphMode") )
 			[
 				SNew(SModeWidget, FBlueprintEditorApplicationModes::GetLocalizedMode( FBlueprintEditorApplicationModes::StandardBlueprintEditorMode ), FBlueprintEditorApplicationModes::StandardBlueprintEditorMode)
 				.OnGetActiveMode(GetActiveMode)
@@ -814,7 +810,7 @@ FSlateIcon FBlueprintEditorToolbar::GetStatusImage() const
 	EBlueprintStatus Status = BlueprintObj->Status;
 
 	// For macro types, always show as up-to-date, since we don't compile them
-	if ((BlueprintObj->BlueprintType == BPTYPE_MacroLibrary) || FBlueprintEditorUtils::IsDataOnlyBlueprint(BlueprintObj))
+	if (BlueprintObj->BlueprintType == BPTYPE_MacroLibrary)
 	{
 		Status = BS_UpToDate;
 	}
@@ -840,7 +836,7 @@ FText FBlueprintEditorToolbar::GetStatusTooltip() const
 	EBlueprintStatus Status = BlueprintObj->Status;
 
 	// For macro types, always show as up-to-date, since we don't compile them
-	if ((BlueprintObj->BlueprintType == BPTYPE_MacroLibrary) || FBlueprintEditorUtils::IsDataOnlyBlueprint(BlueprintObj))
+	if (BlueprintObj->BlueprintType == BPTYPE_MacroLibrary)
 	{
 		Status = BS_UpToDate;
 	}

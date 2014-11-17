@@ -134,7 +134,7 @@ void FFileHelper::BufferToString( FString& Result, const uint8* Buffer, int32 Si
 			ResultArray[ i ] = CharCast<TCHAR>( (UCS2CHAR)(( uint16 )Buffer[i * 2 + 3] + ( uint16 )Buffer[i * 2 + 2] * 256) );
 		}
 	}
-	else if ( Size >= 4 && Buffer[0] == 0xef && Buffer[1] == 0xbb && Buffer[2] == 0xbf )
+	else if ( Size >= 3 && Buffer[0] == 0xef && Buffer[1] == 0xbb && Buffer[2] == 0xbf )
 	{
 		FUTF8ToTCHAR Conv((const ANSICHAR*)&Buffer[3], Size - 3);
 		int32 Length = Conv.Length();
@@ -148,8 +148,16 @@ void FFileHelper::BufferToString( FString& Result, const uint8* Buffer, int32 Si
 		FPlatformString::Convert(ResultArray.GetTypedData(), Size, (ANSICHAR*)Buffer, Size);
 	}
 
-	// Ensure null terminator is present
-	ResultArray.Last() = 0;
+	if (ResultArray.Num() == 1)
+	{
+		// If it's only a zero terminator then make the result actually empty
+		ResultArray.Empty();
+	}
+	else
+	{
+		// Else ensure null terminator is present
+		ResultArray.Last() = 0;
+	}
 }
 
 /**
@@ -249,7 +257,7 @@ bool FFileHelper::SaveStringToFile( const FString& String, const TCHAR* Filename
 /**
  * Generates the next unique bitmap filename
  * 
- * @param Pattern filename with path, must not be 0, if with "bmp" extension (e.g. "out.bmp") the filename stays like this, if without (e.g. "out") automatic index numbers are addended (e.g. "out00002.bmp")
+ * @param Pattern filename with path, must not be 0, if with "bmp" extension (e.g. "out.bmp") the filename stays like this, if without (e.g. "out") automatic index numbers are appended (e.g. "out00002.bmp")
  * @param OutFilename reference to an FString where the newly generated filename will be placed
  * @param FileManager must not be 0
  *
@@ -309,6 +317,7 @@ bool FFileHelper::CreateBitmap( const TCHAR* Pattern, int32 SourceWidth, int32 S
 		FString Filename;
 		if (GenerateNextBitmapFilename(Pattern, Filename, FileManager))
 		{
+			Filename += TEXT(".bmp");
 			FCString::Strcpy(File, *Filename);
 			if ( OutFilename )
 			{

@@ -820,6 +820,7 @@ public:
 		OutEnvironment.SetDefine(TEXT("PARTICLE_SIMULATION_PIXELSHADER"), 1);
 		OutEnvironment.SetDefine(TEXT("MAX_VECTOR_FIELDS"), MAX_VECTOR_FIELDS);
 		OutEnvironment.SetDefine(TEXT("DEPTH_BUFFER_COLLISION"), (uint32)(bUseDepthBufferCollision ? 1 : 0));
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 	}
 
 	/** Default constructor. */
@@ -1024,6 +1025,7 @@ public:
 	{
 		FGlobalShader::ModifyCompilationEnvironment( Platform, OutEnvironment );
 		OutEnvironment.SetDefine( TEXT("PARTICLE_CLEAR_PIXELSHADER"), 1 );
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 	}
 
 	/** Default constructor. */
@@ -1378,6 +1380,12 @@ public:
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
 		return SupportsGPUParticles(Platform);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 	}
 
 	/** Default constructor. */
@@ -3373,7 +3381,7 @@ private:
 	 * @param ActiveTileCount - Number of active tiles, incremented each time a new tile is allocated.
 	 * @returns the number of particles which were successfully allocated.
 	 */
-	int32 AllocateTilesForParticles(TArray<FNewParticle>& NewParticles, int32 NumNewParticles, int32& ActiveTileCount)
+	int32 AllocateTilesForParticles(TArray<FNewParticle>& InNewParticles, int32 NumNewParticles, int32& ActiveTileCount)
 	{
 		// Need to allocate space in tiles for all new particles.
 		FParticleSimulationResources* SimulationResources = FXSystem->GetParticleSimulationResources();
@@ -3417,7 +3425,7 @@ private:
 				TileOffset.Y = FMath::Fractional(FMath::TruncFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY);
 				FreeParticlesInTile = GParticlesPerTile;
 			}
-			FNewParticle& Particle = *new(NewParticles) FNewParticle();
+			FNewParticle& Particle = *new(InNewParticles) FNewParticle();
 			const int32 SubTileIndex = GParticlesPerTile - FreeParticlesInTile;
 			const int32 SubTileX = SubTileIndex % GParticleSimulationTileSize;
 			const int32 SubTileY = SubTileIndex / GParticleSimulationTileSize;
@@ -3500,7 +3508,7 @@ private:
 	 * @param SpawnTime - The time at which to begin spawning particles.
 	 * @param Increment - The amount by which to increment time for each particle spawned.
 	 */
-	void BuildNewParticles(FNewParticle* NewParticles, FSpawnInfo SpawnInfo)
+	void BuildNewParticles(FNewParticle* InNewParticles, FSpawnInfo SpawnInfo)
 	{
 		const float OneOverTwoPi = 1.0f / (2.0f * PI);
 		UParticleModuleRequired* RequiredModule = EmitterInfo.RequiredModule;
@@ -3540,7 +3548,7 @@ private:
 			}
 
 			const float RandomOrbit = RandomStream.GetFraction();
-			FNewParticle* NewParticle = NewParticles++;
+			FNewParticle* NewParticle = InNewParticles++;
 			int32 AllocatedTileIndex = NewParticle->ResilienceAndTileIndex.AllocatedTileIndex;
 			float InterpFraction = (float)i / (float)SpawnInfo.Count;
 

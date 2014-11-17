@@ -24,8 +24,8 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 			BlackboardKey.SelectedKeyType == UBlackboardKeyType_Name::StaticClass())
 		{
 			const FString BBStringValue = (BlackboardKey.SelectedKeyType == UBlackboardKeyType_String::StaticClass()) ?
-				BlackboardComp->GetValueAsString(BlackboardKey.SelectedKeyID) :
-				BlackboardComp->GetValueAsName(BlackboardKey.SelectedKeyID).ToString();
+				BlackboardComp->GetValueAsString(BlackboardKey.GetSelectedKeyID()) :
+				BlackboardComp->GetValueAsName(BlackboardKey.GetSelectedKeyID()).ToString();
 
 			switch (OperationType)
 			{
@@ -41,7 +41,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		//
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Int::StaticClass())
 		{
-			const int32 BBIntValue = BlackboardComp->GetValueAsInt(BlackboardKey.SelectedKeyID);
+			const int32 BBIntValue = BlackboardComp->GetValueAsInt(BlackboardKey.GetSelectedKeyID());
 			switch (OperationType)
 			{
 			case EArithmeticKeyOperation::Equal:			return (BBIntValue == IntValue);
@@ -55,7 +55,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Enum::StaticClass())
 		{
-			const uint8 EnumValue = BlackboardComp->GetValueAsEnum(BlackboardKey.SelectedKeyID);
+			const uint8 EnumValue = BlackboardComp->GetValueAsEnum(BlackboardKey.GetSelectedKeyID());
 			switch (OperationType)
 			{
 			case EArithmeticKeyOperation::Equal:			return (EnumValue == IntValue);
@@ -69,7 +69,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_NativeEnum::StaticClass())
 		{
-			uint8 EnumValue = BlackboardComp->GetValueAsEnum(BlackboardKey.SelectedKeyID);
+			uint8 EnumValue = BlackboardComp->GetValueAsEnum(BlackboardKey.GetSelectedKeyID());
 			switch (OperationType)
 			{
 			case EArithmeticKeyOperation::Equal:			return (EnumValue == IntValue);
@@ -83,7 +83,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Float::StaticClass())
 		{
-			const float BBFloatValue = BlackboardComp->GetValueAsFloat(BlackboardKey.SelectedKeyID);
+			const float BBFloatValue = BlackboardComp->GetValueAsFloat(BlackboardKey.GetSelectedKeyID());
 			switch (OperationType)
 			{
 			case EArithmeticKeyOperation::Equal:			return (BBFloatValue == FloatValue);
@@ -100,7 +100,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		// 
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 		{
-			UObject* ObjectValue = BlackboardComp->GetValueAsObject(BlackboardKey.SelectedKeyID);
+			UObject* ObjectValue = BlackboardComp->GetValueAsObject(BlackboardKey.GetSelectedKeyID());
 			switch (OperationType)
 			{
 			case EBasicKeyOperation::Set:		return (ObjectValue != NULL);
@@ -110,7 +110,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Class::StaticClass())
 		{
-			UClass* ClassValue = BlackboardComp->GetValueAsClass(BlackboardKey.SelectedKeyID);
+			UClass* ClassValue = BlackboardComp->GetValueAsClass(BlackboardKey.GetSelectedKeyID());
 			switch (OperationType)
 			{
 			case EBasicKeyOperation::Set:		return (ClassValue != NULL);
@@ -120,7 +120,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Bool::StaticClass())
 		{
-			bool BoolValue = BlackboardComp->GetValueAsBool(BlackboardKey.SelectedKeyID);
+			bool BoolValue = BlackboardComp->GetValueAsBool(BlackboardKey.GetSelectedKeyID());
 			switch (OperationType)
 			{
 			case EBasicKeyOperation::Set:		return (BoolValue == true);
@@ -130,7 +130,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 		{
-			FVector VectorValue = BlackboardComp->GetValueAsVector(BlackboardKey.SelectedKeyID);
+			FVector VectorValue = BlackboardComp->GetValueAsVector(BlackboardKey.GetSelectedKeyID());
 			switch (OperationType)
 			{
 			case EBasicKeyOperation::Set:		return (VectorValue.IsNearlyZero() == false);
@@ -146,7 +146,7 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 void UBTDecorator_Blackboard::OnBlackboardChange(const class UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
 {
 	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBehaviorComponent() : NULL;
-	if (BlackboardKey.SelectedKeyID == ChangedKeyID && BehaviorComp)
+	if (BlackboardKey.GetSelectedKeyID() == ChangedKeyID && BehaviorComp)
 	{
 		if (NotifyObserver != EBTBlackboardRestart::ValueChange)
 		{
@@ -184,7 +184,7 @@ void UBTDecorator_Blackboard::DescribeRuntimeValues(const class UBehaviorTreeCom
 
 	if (BlackboardComp)
 	{
-		DescKeyValue = BlackboardComp->DescribeKeyValue(BlackboardKey.SelectedKeyID, EBlackboardDescription::OnlyValue);
+		DescKeyValue = BlackboardComp->DescribeKeyValue(BlackboardKey.GetSelectedKeyID(), EBlackboardDescription::OnlyValue);
 	}
 
 	const bool bResult = EvaluateOnBlackboard(BlackboardComp);
@@ -225,7 +225,7 @@ static void CacheOperationEnums()
 void UBTDecorator_Blackboard::BuildDescription()
 {
 	UBlackboardData* BlackboardAsset = GetBlackboardAsset();
-	const FBlackboardEntry* EntryInfo = BlackboardAsset ? BlackboardAsset->GetKey(BlackboardKey.SelectedKeyID) : NULL;
+	const FBlackboardEntry* EntryInfo = BlackboardAsset ? BlackboardAsset->GetKey(BlackboardKey.GetSelectedKeyID()) : NULL;
 
 	FString BlackboardDesc = "invalid";
 	if (EntryInfo)

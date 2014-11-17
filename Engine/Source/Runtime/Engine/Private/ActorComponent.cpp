@@ -29,9 +29,9 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext()
 	FlushRenderingCommands();
 
 	// Detach all actor components.
-	for(TObjectIterator<UActorComponent> ComponentIt;ComponentIt;++ComponentIt)
+	for(auto* Component : TObjectRange<UActorComponent>())
 	{
-		new(ComponentContexts) FComponentReregisterContext(*ComponentIt);		
+		new(ComponentContexts) FComponentReregisterContext(Component);
 	}
 }
 
@@ -43,14 +43,13 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 	FlushRenderingCommands();
 
 	// Detach only actor components that are not in the excluded list
-	for(TObjectIterator<UActorComponent> ComponentIt;ComponentIt;++ComponentIt)
+	for (auto* Component : TObjectRange<UActorComponent>())
 	{
 		bool bShouldReregister=true;
-		for( int32 Idx=0; Idx < ExcludeComponents.Num(); Idx++ )
+		for (UClass* ExcludeClass : ExcludeComponents)
 		{
-			UClass* ExcludeClass = ExcludeComponents[Idx];
 			if( ExcludeClass &&
-				ComponentIt->IsA(ExcludeClass) )
+				Component->IsA(ExcludeClass) )
 			{
 				bShouldReregister = false;
 				break;
@@ -58,7 +57,7 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 		}
 		if( bShouldReregister )
 		{
-			new(ComponentContexts) FComponentReregisterContext(*ComponentIt);		
+			new(ComponentContexts) FComponentReregisterContext(Component);		
 		}
 	}
 }
@@ -71,10 +70,10 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 	FlushRenderingCommands();
 
 	// Detach only actor components that are children of the actors list provided
-	for(TObjectIterator<UActorComponent> ComponentIt;ComponentIt;++ComponentIt)
+	for (auto* Component : TObjectRange<UActorComponent>())
 	{
 		bool bShouldReregister=false;
-		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(*ComponentIt);
+		UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(Component);
 		if (PrimitiveComponent && PrimitiveComponent->ReplacementPrimitive.Get())
 		{
 			UPrimitiveComponent* ReplacementPrimitive = PrimitiveComponent->ReplacementPrimitive.Get();
@@ -86,7 +85,7 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 		}
 		if( bShouldReregister )
 		{
-			new(ComponentContexts) FComponentReregisterContext(*ComponentIt);		
+			new(ComponentContexts) FComponentReregisterContext(Component);		
 		}
 	}
 }
@@ -302,7 +301,7 @@ int32 UActorComponent::GetFunctionCallspace( UFunction* Function, void* Paramete
 	return Owner->GetFunctionCallspace(Function, Parameters, Stack);
 }
 
-bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters, FFrame* Stack )
+bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack )
 {
 	AActor* Owner = GetOwner();
 	if (Owner == NULL)
@@ -313,7 +312,7 @@ bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters,
 	UNetDriver* NetDriver = Owner->GetNetDriver();
 	if (NetDriver)
 	{
-		NetDriver->ProcessRemoteFunction(Owner, Function, Parameters, Stack, this);
+		NetDriver->ProcessRemoteFunction(Owner, Function, Parameters, OutParms, Stack, this);
 		return true;
 	}
 
@@ -755,6 +754,7 @@ void UActorComponent::ExecuteUnregisterEvents()
 		check(bRegistered); // should not have physics state unless we are registered
 		DestroyPhysicsState();
 		checkf(!bPhysicsStateCreated, TEXT("Failed to route DestroyPhysicsState (%s)"), *GetFullName());
+		checkf(!HasValidPhysicsState(), TEXT("Failed to destroy physics state (%s)"), *GetFullName());
 	}
 
 	if(bRenderStateCreated)
@@ -805,6 +805,7 @@ void UActorComponent::RecreatePhysicsState()
 		check(IsRegistered()); // Should never have physics state unless registered
 		DestroyPhysicsState();
 		checkf(!bPhysicsStateCreated, TEXT("Failed to route DestroyPhysicsState (%s)"), *GetFullName());
+		checkf(!HasValidPhysicsState(), TEXT("Failed to destroy physics state (%s)"), *GetFullName());
 	}
 
 	if (IsRegistered() && World->GetPhysicsScene() && ShouldCreatePhysicsState())
@@ -1069,6 +1070,7 @@ bool UActorComponent::IsNetSimulating() const
 void UActorComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	DOREPLIFETIME( UActorComponent, bIsActive );
+	DOREPLIFETIME( UActorComponent, bReplicates );
 }
 
 void UActorComponent::OnRep_IsActive()

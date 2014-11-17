@@ -6,6 +6,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_SkeletalControlBase
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_SkeletalControlBase::UAnimGraphNode_SkeletalControlBase(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -21,14 +23,14 @@ FString UAnimGraphNode_SkeletalControlBase::GetNodeCategory() const
 	return TEXT("Skeletal Controls");
 }
 
-FString UAnimGraphNode_SkeletalControlBase::GetControllerDescription() const
+FText UAnimGraphNode_SkeletalControlBase::GetControllerDescription() const
 {
-	return TEXT("Implement me");
+	return LOCTEXT("ImplementMe", "Implement me");
 }
 
 FString UAnimGraphNode_SkeletalControlBase::GetTooltip() const
 {
-	return GetControllerDescription();
+	return GetControllerDescription().ToString();
 }
 
 void UAnimGraphNode_SkeletalControlBase::CreateOutputPins()
@@ -42,10 +44,13 @@ void UAnimGraphNode_SkeletalControlBase::GetMenuEntries(FGraphContextMenuBuilder
 	UAnimGraphNode_Base* TemplateNode = NewObject<UAnimGraphNode_Base>(GetTransientPackage(), GetClass());
 
 	FString Category = TemplateNode->GetNodeCategory();
-	FString MenuDesc = GetControllerDescription();
-	FString Tooltip = GetControllerDescription();
+	FText MenuDesc = GetControllerDescription();
+	FString Tooltip = GetControllerDescription().ToString();
 	FString Keywords = TemplateNode->GetKeywords();
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
 	NodeAction->NodeTemplate = TemplateNode;
+	NodeAction->SearchTitle = NodeAction->NodeTemplate->GetNodeSearchTitle();
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -100,7 +100,6 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsETC1()								{ return bSupportsETC1; }
 	static FORCEINLINE bool SupportsETC2()								{ return bSupportsETC2; }
 	static FORCEINLINE bool SupportsCombinedDepthStencilAttachment()	{ return false; }
-	static FORCEINLINE bool SupportsTextureFilterAnisotropic()			{ return bSupportsTextureFilterAnisotropic; }
 	static FORCEINLINE bool SupportsPackedDepthStencil()				{ return bSupportsPackedDepthStencil; }
 	static FORCEINLINE bool SupportsTextureCubeLodEXT()					{ return bSupportsTextureCubeLodEXT; }
 	static FORCEINLINE bool SupportsShaderTextureLod()					{ return bSupportsShaderTextureLod; }
@@ -207,11 +206,17 @@ struct FOpenGLES2 : public FOpenGLBase
 
 	static FORCEINLINE void EnableIndexed(GLenum Parameter, GLuint Index)
 	{
+		// We don't have MRT on ES2 and Index was used for RenderTargetIndex so Index can be ignore, other Parameters might not work.
+		check(Parameter == GL_BLEND);
+
 		glEnable(Parameter);
 	}
 
 	static FORCEINLINE void DisableIndexed(GLenum Parameter, GLuint Index)
 	{
+		// We don't have MRT on ES2 and Index was used for RenderTargetIndex so Index can be ignore, other Parameters might not work.
+		check(Parameter == GL_BLEND);
+
 		glDisable(Parameter);
 	}
 
@@ -393,9 +398,6 @@ protected:
 
 	/** GL_NV_framebuffer_blit */
 	static bool bSupportsNVFrameBufferBlit;
-
-	/** GL_EXT_texture_filter_anisotropic  */
-	static bool bSupportsTextureFilterAnisotropic;
 
 	/** GL_OES_packed_depth_stencil */
 	static bool bSupportsPackedDepthStencil;
@@ -640,6 +642,9 @@ protected:
 #endif
 #ifndef GL_RG32F
 #define GL_RG32F 0x8230
+#endif
+#ifndef GL_FRAMEBUFFER_SRGB
+#define GL_FRAMEBUFFER_SRGB 0x8DB9
 #endif
 #define GL_RG8I 0x8237
 #define GL_RG8UI 0x8238

@@ -6,7 +6,7 @@
 
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 #include "RenderCore.h"
 #include "ColorList.h"
@@ -43,61 +43,61 @@ extern int32 GetBoundFullScreenModeCVar();
 //////////////////////////////////////////////////////////////////////////
 // ULocalPlayer
 
-FGameWorldContext::FGameWorldContext()
+FLocalPlayerContext::FLocalPlayerContext()
 {
 
 }
 
-FGameWorldContext::FGameWorldContext( const AActor* InActor )
-{
-	SetPlayerController( GEngine->GetFirstLocalPlayerController( InActor->GetWorld() ) );
-}
-
-FGameWorldContext::FGameWorldContext( const class ULocalPlayer* InLocalPlayer )
+FLocalPlayerContext::FLocalPlayerContext( const class ULocalPlayer* InLocalPlayer )
 {
 	SetLocalPlayer( InLocalPlayer );
 }
 
-FGameWorldContext::FGameWorldContext( const class APlayerController* InPlayerController )
+FLocalPlayerContext::FLocalPlayerContext( const class APlayerController* InPlayerController )
 {
 	SetPlayerController( InPlayerController );
 }
 
-FGameWorldContext::FGameWorldContext( const FGameWorldContext& InWorldContext )
+FLocalPlayerContext::FLocalPlayerContext( const FLocalPlayerContext& InPlayerContext )
 {
-	check(InWorldContext.GetLocalPlayer());
-	SetLocalPlayer( InWorldContext.GetLocalPlayer() );	
+	check(InPlayerContext.GetLocalPlayer());
+	SetLocalPlayer(InPlayerContext.GetLocalPlayer());
 }
 
-UWorld* FGameWorldContext::GetWorld() const
+UWorld* FLocalPlayerContext::GetWorld() const
 {
 	check( LocalPlayer.IsValid() );
 	return LocalPlayer->GetWorld();	
 }
 
-ULocalPlayer* FGameWorldContext::GetLocalPlayer() const
+ULocalPlayer* FLocalPlayerContext::GetLocalPlayer() const
 {
 	check( LocalPlayer.IsValid() );
 	return LocalPlayer.Get();
 }
 
-APlayerController* FGameWorldContext::GetPlayerController() const
+APlayerController* FLocalPlayerContext::GetPlayerController() const
 {
 	check( LocalPlayer.IsValid() );
 	return LocalPlayer->PlayerController;
 }
 
-bool FGameWorldContext::IsValid() const
+bool FLocalPlayerContext::IsValid() const
+{
+	return LocalPlayer.IsValid() && GetWorld() && GetPlayerController() && GetLocalPlayer();
+}
+
+bool FLocalPlayerContext::IsInitialized() const
 {
 	return LocalPlayer.IsValid();
 }
 
-void FGameWorldContext::SetLocalPlayer( const ULocalPlayer* InLocalPlayer )
+void FLocalPlayerContext::SetLocalPlayer( const ULocalPlayer* InLocalPlayer )
 {
 	LocalPlayer = InLocalPlayer;
 }
 
-void FGameWorldContext::SetPlayerController( const APlayerController* InPlayerController )
+void FLocalPlayerContext::SetPlayerController( const APlayerController* InPlayerController )
 {
 	check( InPlayerController->IsLocalPlayerController() );
 	LocalPlayer = CastChecked<ULocalPlayer>(InPlayerController->Player);
@@ -109,6 +109,7 @@ void FGameWorldContext::SetPlayerController( const APlayerController* InPlayerCo
 ULocalPlayer::ULocalPlayer(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	PendingLevelPlayerControllerClass = APlayerController::StaticClass();
 }
 
 void ULocalPlayer::PostInitProperties()
@@ -129,13 +130,23 @@ void ULocalPlayer::PlayerAdded(UGameViewportClient* InViewportClient, int32 InCo
 {
 	ViewportClient = InViewportClient;
 	ControllerId = InControllerID;
+}
 
-	UClass* SpawnClass = GetOnlineSessionClass();
-	OnlineSession = ConstructObject<UOnlineSession>(SpawnClass, this);
-	if (OnlineSession)
+void ULocalPlayer::InitOnlineSession()
+{
+	if (OnlineSession == NULL)
 	{
-		OnlineSession->RegisterOnlineDelegates();
-	}	
+		UClass* SpawnClass = GetOnlineSessionClass();
+		OnlineSession = ConstructObject<UOnlineSession>(SpawnClass, this);
+		if (OnlineSession)
+		{
+			UWorld* World = GetWorld();
+			if (World != NULL)
+			{
+				OnlineSession->RegisterOnlineDelegates(World);
+			}
+		}
+	}
 }
 
 void ULocalPlayer::PlayerRemoved()
@@ -143,7 +154,7 @@ void ULocalPlayer::PlayerRemoved()
 	// Clear all online delegates
 	if (OnlineSession != NULL)
 	{
-		OnlineSession->ClearOnlineDelegates();
+		OnlineSession->ClearOnlineDelegates(GetWorld());
 		OnlineSession = NULL;
 	}
 }
@@ -187,17 +198,8 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 	}
 	else
 	{
-		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
 		// Statically bind to the specified player controller
-		UClass* PCClass = GameEngine != NULL ?
-			LoadClass<APlayerController>(NULL, *GameEngine->PendingLevelPlayerControllerClassName, NULL, LOAD_None, NULL) :
-			NULL;
-		if (PCClass == NULL)
-		{
-			// This failed to load so use the engine one as default
-			PCClass = APlayerController::StaticClass();
-			UE_LOG(LogPlayerManagement, Log, TEXT("PlayerController class for the pending level is %s"),*PCClass->GetFName().ToString());
-		}
+		UClass* PCClass = PendingLevelPlayerControllerClass;
 		// The PlayerController gets replicated from the client though the engine assumes that every Player always has
 		// a valid PlayerController so we spawn a dummy one that is going to be replaced later.
 		PlayerController = CastChecked<APlayerController>(InWorld->SpawnActor(PCClass));
@@ -294,7 +296,7 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
     // allow HMDs to override fov
     if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
     {
-        float HmdFov = GEngine->HMDDevice->GetFieldOfView();
+        float HmdFov = GEngine->HMDDevice->GetFieldOfViewInRadians();
         if (HmdFov > 0)
         {
             OutViewInfo.FOV = HmdFov;
@@ -372,19 +374,14 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
-    
-    View->ViewLocation = OutViewLocation;
-    View->ViewRotation = OutViewRotation;
+	
+	View->ViewLocation = OutViewLocation;
+	View->ViewRotation = OutViewRotation;
 
 	//@TODO: SPLITSCREEN: This call will have an issue with splitscreen, as the show flags are shared across the view family
 	EngineShowFlagOrthographicOverride(View->IsPerspectiveProjection(), ViewFamily->EngineShowFlags);
 
 	check( PlayerController->GetWorld() );
-
-    for( int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++ )
-    {
-        ViewFamily->ViewExtensions[ViewExt]->SetupView(*View);
-    }
 
 	ViewFamily->Views.Add(View);
 
@@ -444,6 +441,10 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		}
 	}
 
+	for (int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++)
+	{
+		ViewFamily->ViewExtensions[ViewExt]->SetupView(*View);
+	}
 	return View;
 }
 
@@ -454,7 +455,7 @@ bool ULocalPlayer::GetPixelBoundingBox(const FBox& ActorBox, FVector2D& OutLower
 	{
 		// get the projection data
 		FSceneViewProjectionData ProjectionData;
-        if (GetProjectionData(ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData) == false)
+		if (GetProjectionData(ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData) == false)
 		{
 			return false;
 		}
@@ -607,12 +608,12 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	FMinimalViewInfo ViewInfo;
 	GetViewPoint(/*out*/ ViewInfo);
 
-    // If stereo rendering is enabled, update the size and offset appropriately for this pass
-    const bool bNeedStereo = GEngine->IsStereoscopic3D() && (StereoPass != eSSP_FULL);
-    if( bNeedStereo )
-    {
-        GEngine->StereoRenderingDevice->AdjustViewRect(StereoPass, X, Y, SizeX, SizeY);
-    }
+	// If stereo rendering is enabled, update the size and offset appropriately for this pass
+	const bool bNeedStereo = GEngine->IsStereoscopic3D() && (StereoPass != eSSP_FULL);
+	if( bNeedStereo )
+	{
+		GEngine->StereoRenderingDevice->AdjustViewRect(StereoPass, X, Y, SizeX, SizeY);
+	}
 
 	// scale distances for cull distance purposes by the ratio of our current FOV to the default FOV
 	PlayerController->LocalPlayerCachedLODDistanceFactor = ViewInfo.FOV / FMath::Max<float>(0.01f, (PlayerController->PlayerCameraManager != NULL) ? PlayerController->PlayerCameraManager->DefaultFOV : 90.f);
@@ -623,14 +624,14 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
         GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
     }
 
-    // Create the view matrix
-    ProjectionData.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
-    ProjectionData.ViewMatrix = ProjectionData.ViewMatrix * FInverseRotationMatrix(ViewInfo.Rotation);
-    ProjectionData.ViewMatrix = ProjectionData.ViewMatrix * FMatrix(
-        FPlane(0,	0,	1,	0),
-        FPlane(1,	0,	0,	0),
-        FPlane(0,	1,	0,	0),
-        FPlane(0,	0,	0,	1));
+	// Create the view matrix
+	ProjectionData.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
+	ProjectionData.ViewMatrix = ProjectionData.ViewMatrix * FInverseRotationMatrix(ViewInfo.Rotation);
+	ProjectionData.ViewMatrix = ProjectionData.ViewMatrix * FMatrix(
+		FPlane(0,	0,	1,	0),
+		FPlane(1,	0,	0,	0),
+		FPlane(0,	1,	0,	0),
+		FPlane(0,	0,	0,	1));
 
 	if( !bNeedStereo )
 	{
@@ -1156,10 +1157,14 @@ void ULocalPlayer::SetControllerId( int32 NewControllerId )
 
 FString ULocalPlayer::GetNickname() const
 {
-	IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface();
-	if (OnlineIdentityInt.IsValid())
+	UWorld* World = GetWorld();
+	if (World != NULL)
 	{
-		return OnlineIdentityInt->GetPlayerNickname(ControllerId);
+		IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface(World);
+		if (OnlineIdentityInt.IsValid())
+		{
+			return OnlineIdentityInt->GetPlayerNickname(ControllerId);
+		}
 	}
 
 	return TEXT("");
@@ -1167,13 +1172,17 @@ FString ULocalPlayer::GetNickname() const
 
 TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetId() const
 {
-	IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface();
-	if (OnlineIdentityInt.IsValid())
+	UWorld* World = GetWorld();
+	if (World != NULL)
 	{
-		TSharedPtr<FUniqueNetId> UniqueId = OnlineIdentityInt->GetUniquePlayerId(ControllerId);
-		if (UniqueId.IsValid())
+		IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface(World);
+		if (OnlineIdentityInt.IsValid())
 		{
-			return UniqueId;
+			TSharedPtr<FUniqueNetId> UniqueId = OnlineIdentityInt->GetUniquePlayerId(ControllerId);
+			if (UniqueId.IsValid())
+			{
+				return UniqueId;
+			}
 		}
 	}
 
@@ -1183,9 +1192,9 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetId() const
 UWorld* ULocalPlayer::GetWorld() const
 {
 	UWorld* World = NULL;
-	if (PlayerController != NULL)
+	if (ViewportClient != NULL)
 	{
-		World = PlayerController->GetWorld();
+		World = ViewportClient->GetWorld();
 	}
 
 	return World;

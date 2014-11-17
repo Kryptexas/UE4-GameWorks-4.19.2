@@ -10,14 +10,6 @@ class FWorldTileCollectionModel
 {
 
 public:
-	enum EWorldDirections
-	{
-		XNegative,
-		YNegative,
-		XPositive,
-		YPositive
-	};
-	
 	/** FWorldTileCollectionModel destructor */
 	virtual ~FWorldTileCollectionModel();
 
@@ -36,7 +28,7 @@ public:
 	/** FLevelCollection interface */
 	virtual void UnloadLevels(const FLevelModelList& InLevelList) OVERRIDE;
 	virtual void TranslateLevels(const FLevelModelList& InList, FVector2D InAbsoluteDelta, bool bSnapDelta = true)  OVERRIDE;
-	virtual FVector2D SnapTranslationDelta(const FLevelModelList& InList, FVector2D InAbsoluteDelta, float SnappingDistance) OVERRIDE;
+	virtual FVector2D SnapTranslationDelta(const FLevelModelList& InList, FVector2D InTranslationDelta, bool bBoundsSnapping, float InSnappingValue) OVERRIDE;
 	virtual TSharedPtr<FLevelDragDropOp> CreateDragDropOp() const OVERRIDE;
 	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const OVERRIDE;
 	virtual void BuildGridMenu(FMenuBuilder& InMenuBuilder) const OVERRIDE;
@@ -83,9 +75,6 @@ public:
 
 	/** Show a levels in the editor and place them to actual world position */
 	void UnshelveLevels(const FWorldTileModelList& InLevels);
-
-	/** Toggles levels always loaded flag*/
-	void ToggleAlwaysLoaded(const FLevelModelList& InLevels);
 
 	/** Whether specified list of levels has at least one landscape level */
 	bool HasLandscapeLevel(const FWorldTileModelList& InLevels) const;
@@ -210,9 +199,6 @@ private:
 	/** Reset world origin offset */
 	void ResetLevelOrigin_Executed();
 
-	/** Toggles always loaded flag for selected levels */
-	void ToggleAlwaysLoaded_Executed();
-		
 	/** Clear parent links fro selected levels */
 	void ClearParentLink_Executed();
 
@@ -220,10 +206,10 @@ private:
 	 * Creates a new Level with landscape proxy in it
 	 * @param InWhere  Defines on which side of currently selected landscape level
 	 */
-	void AddLandscapeProxy_Executed(EWorldDirections InWhere);
+	void AddLandscapeProxy_Executed(FWorldTileModel::EWorldDirections InWhere);
 	
 	/** @return whether it is possible to add a level with landscape proxy at specified location */	
-	bool CanAddLandscapeProxy(EWorldDirections InWhere) const;
+	bool CanAddLandscapeProxy(FWorldTileModel::EWorldDirections InWhere) const;
 
 public:
 	/** Whether Editor has support for generating LOD levels */	
@@ -242,9 +228,6 @@ public:
 private:
 	/** List of tiles currently not affected by user selection set */
 	FLevelModelList						StaticTileList;	
-
-	/** Streamed in tiles which have to be added to the world*/
-	TArray<TWeakPtr<FWorldTileModel>>	PendingVisibilityTiles;
 
 	/** Cached streaming tiles which are potentially visible from specified view point*/
 	TArray<FName>						PreviewVisibleTiles;

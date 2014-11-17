@@ -75,6 +75,14 @@ public:
 	 */
 	virtual ITargetPlatform* FindTargetPlatform(FString Name) = 0;
 
+
+	/**
+	 * Return the list of platforms which we need to support when cooking (only set when actually cooking)
+	 *
+	 * @return Collection of platforms.
+	 */
+	virtual const TArray<ITargetPlatform*>& GetCookingTargetPlatforms() = 0;
+
 	/**
 	 * Return the list of the ITargetPlatforms that we want to build data for.
 	 *

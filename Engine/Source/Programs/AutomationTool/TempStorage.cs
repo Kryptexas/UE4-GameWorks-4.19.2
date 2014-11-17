@@ -24,7 +24,7 @@ namespace AutomationTool
             public TempStorageFileInfo(string Filename, string RelativeFile)
             {
                 FileInfo Info = new FileInfo(Filename);
-                Name = RelativeFile;
+                Name = RelativeFile.Replace("\\", "/"); 
                 Timestamp = Info.LastWriteTimeUtc;
                 Size = Info.Length;
             }
@@ -40,16 +40,26 @@ namespace AutomationTool
                 else
                 {
                     // this is a bit of a hack, but UAT itself creates these, so we need to allow them to be 
-                    bool bOkToBeDifferent = Name.Contains(@"Engine\Binaries\DotNET\");
+                    bool bOkToBeDifferent = Name.Contains("Engine/Binaries/DotNET/");
+                    // this is a problem with mac compiles
+                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libtbb.dylib");
+                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libtbbmalloc.dylib");
+                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libfreetype.dylib");
+                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libogg.dylib");
+                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("MacOS/libvorbis.dylib");
+                    bOkToBeDifferent = bOkToBeDifferent || Name.EndsWith("Contents/MacOS/UE4Editor");
+
+                    //temp hack until the mac build products work correctly
+                    bOkToBeDifferent = bOkToBeDifferent || Name.Contains("Engine/Binaries/Mac/UE4Editor.app/Contents/MacOS/");
 
                     if (!((Timestamp - Other.Timestamp).TotalSeconds < 1 && (Timestamp - Other.Timestamp).TotalSeconds > -1))
                     {
-                        CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Information : System.Diagnostics.TraceEventType.Error, "File date mismatch {0} {1} {2} {3}", Name, Timestamp.ToString(), Other.Name, Other.Timestamp.ToString());
+                        CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Warning : System.Diagnostics.TraceEventType.Error, "File date mismatch {0} {1} {2} {3}", Name, Timestamp.ToString(), Other.Name, Other.Timestamp.ToString());
                         bOk = bOkToBeDifferent;
                     }
                     if (!(Size == Other.Size))
                     {
-                        CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Information : System.Diagnostics.TraceEventType.Error, "File size mismatch {0} {1} {2} {3}", Name, Size, Other.Name, Other.Size);
+                        CommandUtils.Log(bOkToBeDifferent ? System.Diagnostics.TraceEventType.Warning : System.Diagnostics.TraceEventType.Error, "File size mismatch {0} {1} {2} {3}", Name, Size, Other.Name, Other.Size);
                         bOk = bOkToBeDifferent;
                     }
                 }
@@ -98,7 +108,7 @@ namespace AutomationTool
                     {
                         throw new AutomationException("Could not add directory {0} to manifest because it does not start with the base folder {1}", DirectoryName, BaseFolder);
                     }
-                    var RelativeDir = DirectoryName.Substring(BaseFolder.Length);
+                    var RelativeDir = DirectoryName.Substring(BaseFolder.Length).Replace("\\", "/");
                     if (Directories.TryGetValue(RelativeDir, out ManifestDirectory) == false)
                     {
                         ManifestDirectory = new List<TempStorageFileInfo>();
@@ -208,7 +218,7 @@ namespace AutomationTool
                 {
                     foreach (var SyncedFile in Directory)
                     {
-                        if (SyncedFile.Name.Equals(RelativeFile, StringComparison.InvariantCultureIgnoreCase))
+                        if (SyncedFile.Name.Equals(RelativeFile.Replace("\\", "/"), StringComparison.InvariantCultureIgnoreCase))
                         {
                             return SyncedFile;
                         }
@@ -418,7 +428,22 @@ namespace AutomationTool
                         var NewFile = CombinePaths(NewBaseDir, ThisFileInfo.Name);
                         if (!FileExists_NoExceptions(false, NewFile))
                         {
-                            throw new AutomationException("Rebased manifest file does not exist {0}", NewFile);
+                            bool bFound = false;
+                            // mac is terrible on shares, this isn't a solution, but a stop gap
+                            if (NewFile.StartsWith("/Volumes/"))
+                            {
+                                int Retry = 60;
+                                while (!bFound && --Retry > 0)
+                                {
+                                    CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "*** Mac temp storage retry {0}", NewFile);
+                                    System.Threading.Thread.Sleep(10000);
+                                    bFound = FileExists_NoExceptions(false, NewFile);
+                                }
+                            }
+                            if (!bFound)
+                            {
+                                throw new AutomationException("Rebased manifest file does not exist {0}", NewFile);
+                            }
                         }
                         FileInfo Info = new FileInfo(NewFile);
 
@@ -441,7 +466,8 @@ namespace AutomationTool
         static HashSet<string> TestedForClean = new HashSet<string>();
         static void CleanSharedTempStorage(string Directory)
         {
-            if (!IsBuildMachine || TestedForClean.Contains(Directory))
+            if (!IsBuildMachine || TestedForClean.Contains(Directory) ||
+                UnrealBuildTool.Utils.IsRunningOnMono)  // saw a hang on this, anyway it isn't necessary to clean with macs, they are slow anyway
             {
                 return;
             }
@@ -474,7 +500,16 @@ namespace AutomationTool
         
         public static string RootSharedTempStorageDirectory()
         {
-            return CombinePaths("P:", "Builds");
+            string StorageDirectory = "";
+            if(UnrealBuildTool.Utils.IsRunningOnMono)
+            {
+                StorageDirectory = "/Volumes/Builds";
+            }
+            else
+            {
+                StorageDirectory = CombinePaths("P:", "Builds");
+            }
+            return StorageDirectory;
         }
         public static string SharedTempStorageDirectory()
         {
@@ -679,7 +714,7 @@ namespace AutomationTool
 
         }
 
-        public static List<string> RetrieveFromTempStorage(CommandEnvironment Env, string StorageBlockName, string GameFolder = "", string BaseFolder = "")
+        public static List<string> RetrieveFromTempStorage(CommandEnvironment Env, string StorageBlockName, out bool WasLocal, string GameFolder = "", string BaseFolder = "")
         {
             if (String.IsNullOrEmpty(BaseFolder))
             {
@@ -706,8 +741,10 @@ namespace AutomationTool
                 {
                     throw new AutomationException("Local files in manifest {0} were tampered with.", LocalManifest);
                 }
+                WasLocal = true;
                 return Files;
             }
+            WasLocal = false;
 
             var BlockPath = CombinePaths(SharedTempStorageDirectory(StorageBlockName, GameFolder, false), "/");
             if (!BlockPath.EndsWith("/") && !BlockPath.EndsWith("\\"))
@@ -749,10 +786,16 @@ namespace AutomationTool
                     DeleteFile(DestFile);
                 }
                 CopyFile(Filename, DestFile, true);
+
                 if (!FileExists_NoExceptions(true, DestFile))
                 {
                     throw new AutomationException("Could not copy {0} to {1}", Filename, DestFile);
                 }
+                if (UnrealBuildTool.Utils.IsRunningOnMono && IsProbablyAMacOrIOSExe(DestFile))
+                {
+                    SetExecutableBit(DestFile);
+                }
+
                 FileInfo Info = new FileInfo(DestFile);
                 DestFiles.Add(Info.FullName);
             }
@@ -770,11 +813,8 @@ namespace AutomationTool
             var Files = new List<string>();
 
             var LocalFiles = LocalTempStorageManifestFilename(Env, StorageBlockName);
-            Log("Looking for local directories that match {0}", LocalFiles);
             var LocalParent = Path.GetDirectoryName(LocalFiles);
-            Log("  Looking in parent dir {0}", LocalParent);
             var WildCard = Path.GetFileName(LocalFiles);
-            Log("  WildCard {0}", WildCard);
 
             int IndexOfStar = WildCard.IndexOf("*");
             if (IndexOfStar < 0 || WildCard.LastIndexOf("*") != IndexOfStar)
@@ -783,9 +823,7 @@ namespace AutomationTool
             }
 
             string PreStarWildcard = WildCard.Substring(0, IndexOfStar);
-            Log("  PreStarWildcard {0}", PreStarWildcard);
             string PostStarWildcard = Path.GetFileNameWithoutExtension(WildCard.Substring(IndexOfStar + 1));
-            Log("  PostStarWildcard {0}", PostStarWildcard);
 
             if (!SharedOnly && DirectoryExists_NoExceptions(LocalParent))
             {
@@ -807,7 +845,6 @@ namespace AutomationTool
                     {
                         throw new AutomationException("Dir {0} didn't have any string to fit the star in the wildcard {1}", ThisFile, WildCard);
                     }
-                    Log("  Star Replacement {0}", StarReplacement);
                     if (!Files.Contains(StarReplacement))
                     {
                         Files.Add(StarReplacement);
@@ -818,12 +855,10 @@ namespace AutomationTool
             if (!LocalOnly)
             {
                 var SharedFiles = SharedTempStorageManifestFilename(Env, StorageBlockName, GameFolder);
-                Log("Looking for shared directories that match {0}", SharedFiles);
                 var SharedParent = Path.GetDirectoryName(Path.GetDirectoryName(SharedFiles));
 
                 if (DirectoryExists_NoExceptions(SharedParent))
                 {
-                    Log("  Looking in shared parent dir {0} with wildcard {1}", SharedParent, Path.GetFileNameWithoutExtension(SharedFiles));
                     string[] Dirs = null;
 
                     try
@@ -839,7 +874,6 @@ namespace AutomationTool
                     {
                         foreach (var ThisSubDir in Dirs)
                         {
-                            Log("  Found dir {0}", ThisSubDir);
                             int IndexOfWildcard = ThisSubDir.IndexOf(PreStarWildcard);
                             if (IndexOfWildcard < 0)
                             {

@@ -549,6 +549,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "LinearColor * (LinearColor)", CompactNodeTitle = "*"), Category="Math|Color")
 	static FLinearColor Multiply_LinearColorLinearColor(FLinearColor A, FLinearColor B);
 
+	/* Element-wise multiplication of a linear color by a float (F*R, F*G, F*B, F*A) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "LinearColor * Float", CompactNodeTitle = "*", Keywords = "* multiply"), Category="Math|Color")
+	static FLinearColor Multiply_LinearColorFloat(FLinearColor A, float B);
+
 	// -- Begin K2 utilities
 
 	/** Converts a byte to a float */
@@ -780,6 +784,18 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (Object)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Utilities")
 	static bool NotEqual_ObjectObject(class UObject* A, class UObject* B);
 
+	//
+	// Class operators and functions.
+	//
+
+	/* Returns true if A and B are equal (A == B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Equal (Class)", CompactNodeTitle = "==", Keywords = "== equal"), Category="Utilities")
+	static bool EqualEqual_ClassClass(class UClass* A, class UClass* B);
+
+	/* Returns true if A and B are not equal (A != B) */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "NotEqual (Class)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Utilities")
+	static bool NotEqual_ClassClass(class UClass* A, class UClass* B);
+
 	/**
 	 * Determine if a class is a child of another class.
 	 *
@@ -978,4 +994,26 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Math|Geometry", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
 	static void MinimumAreaRectangle(UObject* WorldContextObject, const TArray<FVector>& InVerts, const FVector& SampleSurfaceNormal, FVector& OutRectCenter, FRotator& OutRectRotation, float& OutSideLengthX, float& OutSideLengthY, bool bDebugDraw = false);
+
+	//
+	// Intersection
+	//
+
+	/**
+	 * Computes the intersection point between a line and a plane.
+	 * @param		T - The t of the intersection between the line and the plane
+	 * @param		Intersection - The point of intersection between the line and the plane
+	 * @return		True if the intersection test was successful.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Math|Intersection")
+	static bool LinePlaneIntersection(const FVector& LineStart, const FVector& LineEnd, const FPlane& APlane, float& T, FVector& Intersection);
+
+	/**
+	 * Computes the intersection point between a line and a plane.
+	 * @param		T - The t of the intersection between the line and the plane
+	 * @param		Intersection - The point of intersection between the line and the plane
+	 * @return		True if the intersection test was successful.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Math|Intersection", meta = (FriendlyName = "Line Plane Intersection (Origin & Normal)"))
+	static bool LinePlaneIntersection_OriginNormal(const FVector& LineStart, const FVector& LineEnd, FVector PlaneOrigin, FVector PlaneNormal, float& T, FVector& Intersection);
 };

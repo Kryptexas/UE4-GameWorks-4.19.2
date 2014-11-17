@@ -4,6 +4,15 @@
 #include "VoiceCodecOpus.h"
 #include "Voice.h"
 
+bool InitVoiceCapture()
+{
+	return false;
+}
+
+void ShutdownVoiceCapture()
+{
+}
+
 IVoiceCapture* CreateVoiceCaptureObject()
 {
 	return NULL; 

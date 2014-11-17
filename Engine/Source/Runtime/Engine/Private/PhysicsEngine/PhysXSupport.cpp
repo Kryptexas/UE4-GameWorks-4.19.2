@@ -14,7 +14,9 @@
 PxFoundation*			GPhysXFoundation = NULL;
 PxProfileZoneManager*	GPhysXProfileZoneManager = NULL;
 PxPhysics*				GPhysXSDK = NULL;
+#if WITH_PHYSICS_COOKING
 PxCooking*				GPhysXCooking = NULL;
+#endif
 FPhysXAllocator*		GPhysXAllocator = NULL;
 
 #if WITH_APEX
@@ -44,8 +46,6 @@ TArray<PxConvexMesh*>	GPhysXPendingKillConvex;
 TArray<PxTriangleMesh*>	GPhysXPendingKillTriMesh;
 TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 TArray<PxMaterial*>		GPhysXPendingKillMaterial;
-
-TMap< uint32, TMap<FRigidBodyIndexPair,bool>* >		GCollisionDisableTableLookup;
 
 ///////////////////// Unreal to PhysX conversion /////////////////////
 
@@ -92,6 +92,31 @@ PxMat44 U2PMatrix(const FMatrix& UTM)
 PxPlane U2PPlane(FPlane& Plane)
 {
 	return PxPlane(Plane.X, Plane.Y, Plane.Z, -Plane.W);
+}
+
+UCollision2PGeom::UCollision2PGeom(const FCollisionShape & CollisionShape)
+{
+	switch (CollisionShape.ShapeType)
+	{
+		case ECollisionShape::Box:
+		{
+			new (Storage)PxBoxGeometry(U2PVector(CollisionShape.GetBox()));
+			break;
+		}
+		case ECollisionShape::Sphere:
+		{
+			new (Storage)PxSphereGeometry(CollisionShape.GetSphereRadius());
+			break;
+		}
+		case ECollisionShape::Capsule:
+		{
+			new (Storage)PxCapsuleGeometry(CollisionShape.GetCapsuleRadius(), CollisionShape.GetCapsuleAxisHalfLength());
+			break;
+		}
+		default:
+			// invalid point
+			ensure(false);
+	}
 }
 
 ///////////////////// PhysX to Unreal conversion /////////////////////
@@ -321,7 +346,14 @@ PxFilterFlags PhysXSimFilterShader(	PxFilterObjectAttributes attributes0, PxFilt
 	// if these bodies are from the same skeletal mesh component, use the disable table to see if we should disable collision
 	if((filterData0.word2 == filterData1.word2) && (filterData0.word2 != 0))
 	{
-		TMap<FRigidBodyIndexPair,bool>** DisableTablePtrPtr = GCollisionDisableTableLookup.Find(filterData1.word2);
+		check(constantBlockSize == sizeof(FPhysSceneShaderInfo));
+		const FPhysSceneShaderInfo * PhysSceneShaderInfo = (const FPhysSceneShaderInfo*) constantBlock;
+		check(PhysSceneShaderInfo);
+		FPhysScene * PhysScene = PhysSceneShaderInfo->PhysScene;
+		check(PhysScene);
+
+		const TMap<uint32, TMap<FRigidBodyIndexPair, bool> *> & CollisionDisableTableLookup = PhysScene->GetCollisionDisableTableLookup();
+		TMap<FRigidBodyIndexPair, bool>* const * DisableTablePtrPtr = CollisionDisableTableLookup.Find(filterData1.word2);
 		check(DisableTablePtrPtr);
 		TMap<FRigidBodyIndexPair,bool>* DisableTablePtr = *DisableTablePtrPtr;
 		FRigidBodyIndexPair BodyPair(filterData0.word0, filterData1.word0); // body indexes are stored in word 0
@@ -651,7 +683,7 @@ PxTriangleMesh* FPhysXFormatDataReader::ReadTriMesh( FBufferReader& Ar, uint8* I
 	return CookedMesh;
 }
 
-SIZE_T GetPhysxObjectSize(PxBase* Obj, PxCollection* SharedCollection)
+SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection)
 {
 	PxSerializationRegistry* Sr = PxSerialization::createSerializationRegistry(*GPhysXSDK);
 	PxCollection* Collection = PxCreateCollection();
@@ -674,8 +706,18 @@ SIZE_T GetPhysxObjectSize(PxBase* Obj, PxCollection* SharedCollection)
 void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageEvent)
 {
 	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(damageEvent.destructible->userData));
-	check( DestructibleComponent );
-	DestructibleComponent->OnDamageEvent(damageEvent);
+	check(DestructibleComponent);
+
+#if WITH_SUBSTEPPING
+	if (UPhysicsSettings::Get()->bSubstepping)
+	{
+		DestructibleComponent->GetWorld()->GetPhysicsScene()->DeferredDestructibleDamageNotify(damageEvent);
+	}
+	else
+#endif
+	{
+		DestructibleComponent->OnDamageEvent(damageEvent);
+	}
 }
 
 ///////// FApexPhysX3Interface //////////////////////////////////
@@ -702,7 +744,7 @@ void FPhysxSharedData::Add( PxBase* Obj )
 {
 	if(Obj) 
 	{ 
-		SharedObjects->add(*Obj, (PxSerialObjectId)(SharedObjects->getNbObjects() + 1)); 
+		SharedObjects->add(*Obj); 
 	}
 }
 

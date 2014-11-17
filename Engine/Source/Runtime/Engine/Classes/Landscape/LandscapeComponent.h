@@ -230,6 +230,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostLoad() OVERRIDE;
 	virtual void PostEditUndo() OVERRIDE;
+	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	// End UObject interface
 
@@ -399,7 +400,7 @@ public:
 	/**
 	 * Update collision component dominant layer data for the whole component, locking and unlocking the weightmap textures.
 	 */
-	void UpdateCollisionLayerData();
+	ENGINE_API void UpdateCollisionLayerData();
 
 	/**
 	 * Create weightmaps for this component for the layers specified in the WeightmapLayerAllocations array

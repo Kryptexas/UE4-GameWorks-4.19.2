@@ -2,6 +2,8 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const class FPostConstructInitializeProperties& PCIP) 
 	: Super(PCIP)
 {
@@ -10,10 +12,18 @@ UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const class FPostConstr
 	CircleCenter = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Point::StaticClass();
 	Radius.Value = 1000.0f;
-	ItemSpacing = 50.0f;
-	ArcDirectionStart = UEnvQueryContext_Querier::StaticClass();
+	ItemSpacing.Value = 50.0f;
+	ArcDirection.DirMode = EEnvDirection::TwoPoints;
+	ArcDirection.LineFrom = UEnvQueryContext_Querier::StaticClass();
+	ArcDirection.Rotation = UEnvQueryContext_Querier::StaticClass();
 	Angle.Value = 360.f;
 	AngleRadians = FMath::DegreesToRadians(360.f);
+
+	TraceData.bCanProjectDown = false;
+	TraceData.bCanDisableTrace = false;
+	TraceData.TraceMode = EEnvQueryTrace::Navigation;
+
+	ProjectionData.TraceMode = EEnvQueryTrace::None;
 }
 
 void UEnvQueryGenerator_OnCircle::PostLoad()
@@ -30,50 +40,54 @@ void UEnvQueryGenerator_OnCircle::PostLoad()
 FVector UEnvQueryGenerator_OnCircle::CalcDirection(FEnvQueryInstance& QueryInstance) const
 {
 	AActor* Querier = Cast<AActor>(QueryInstance.Owner.Get());
+	FVector Direction = Querier->GetActorRotation().Vector();
 
 	if (bDefineArc)
 	{
-		TArray<FVector> Start;
-		TArray<FVector> End;
-		QueryInstance.PrepareContext(ArcDirectionStart, Start);
-		QueryInstance.PrepareContext(ArcDirectionEnd, End);
-
-		if (Start.Num() > 0)
+		if (ArcDirection.DirMode == EEnvDirection::TwoPoints)
 		{
-			if (End.Num() > 0)
+			TArray<FVector> Start;
+			TArray<FVector> End;
+			QueryInstance.PrepareContext(ArcDirection.LineFrom, Start);
+			QueryInstance.PrepareContext(ArcDirection.LineTo, End);
+
+			if (Start.Num() > 0 && End.Num() > 0)
 			{
-				return (End[0] - Start[0]).SafeNormal();
+				Direction = (End[0] - Start[0]).SafeNormal();
 			}
 			else
 			{
-				TArray<AActor*> StartActors;
-				QueryInstance.PrepareContext(ArcDirectionStart, StartActors);
-				if (StartActors.Num() > 0)
-				{
-					return StartActors[0]->GetActorRotation().Vector();
-				}
-				else
-				{
-					UE_VLOG(Querier, LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to generate direction actor for %s. Using Querier."), *QueryInstance.QueryName);
-				}
+				UE_VLOG(Querier, LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *QueryInstance.QueryName);
 			}
 		}
 		else
 		{
-			UE_VLOG(Querier, LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *QueryInstance.QueryName);
+			TArray<FRotator> Rot;
+			QueryInstance.PrepareContext(ArcDirection.Rotation, Rot);
+
+			if (Rot.Num() > 0)
+			{
+				Direction = Rot[0].Vector();
+			}
+			else
+			{
+				UE_VLOG(Querier, LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection failed to calc direction in %s. Using querier facing."), *QueryInstance.QueryName);
+			}
 		}
 	}
-	
-	return Querier->GetActorRotation().Vector();
+
+	return Direction;
 }
 
 void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance)
 {
 	float AngleDegree = 360.f;
 	float RadiusValue = 0.f;
+	float ItemSpace = 1.0f;
 
 	if (QueryInstance.GetParamValue(Angle, AngleDegree, TEXT("Angle")) == false
 		|| QueryInstance.GetParamValue(Radius, RadiusValue, TEXT("Radius")) == false
+		|| QueryInstance.GetParamValue(ItemSpacing, ItemSpace, TEXT("ItemSpacing")) == false
 		|| AngleDegree <= 0.f || AngleDegree > 360.f
 		|| RadiusValue <= 0.f)
 	{
@@ -86,7 +100,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	const float CircumferenceLength = 2.f * PI * RadiusValue;
 	const float ArcAnglePercentage = Angle.Value / 360.f;
 	const float ArcLength = CircumferenceLength * ArcAnglePercentage;
-	const int32 StepsCount = FMath::Ceil(ArcLength / ItemSpacing) + 1;
+	const int32 StepsCount = FMath::Ceil(ArcLength / ItemSpace) + 1;
 	const float AngleStep = AngleDegree / (StepsCount - 1);
 
 	FVector StartDirection = CalcDirection(QueryInstance);
@@ -116,126 +130,148 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 		ItemCandidates[Step] = CenterLocation + StartDirection.RotateAngleAxis(AngleStep*Step, FVector::UpVector);
 	}
 
-	if (TraceType == EEnvQueryTrace::Navigation)
+#if WITH_RECAST
+	// @todo this needs to be optimize to batch raycasts
+	const ARecastNavMesh* NavMesh = 
+		(TraceData.TraceMode == EEnvQueryTrace::Navigation) || (ProjectionData.TraceMode == EEnvQueryTrace::Navigation) ?
+		FEQSHelpers::FindNavMeshForQuery(QueryInstance) : NULL;
+
+	if (NavMesh)
 	{
-		// @todo this needs to be optimize to batch raycasts
-		const ARecastNavMesh* NavMesh = FEQSHelpers::FindNavMeshForQuery(QueryInstance);
-		
-		TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavigationFilterClass);
+		NavMesh->BeginBatchQuery();
+	}
+#endif
+
+	if (TraceData.TraceMode == EEnvQueryTrace::Navigation)
+	{
+#if WITH_RECAST
+		TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavMesh, TraceData.NavigationFilter);
 
 		for (int32 Step = 0; Step < StepsCount; ++Step)
 		{
 			NavMesh->Raycast(CenterLocation, ItemCandidates[Step], ItemCandidates[Step], NavigationFilter);
 		}
+#endif
 	}
-
-	for (int32 Step = 0; Step < StepsCount; ++Step)
+	else
 	{
-		QueryInstance.AddItemData<UEnvQueryItemType_Point>(ItemCandidates[Step]);
+		FRunTraceSignature TraceFunc;
+		switch (TraceData.TraceShape)
+		{
+		case EEnvTraceShape::Line:		TraceFunc.BindUObject(this, &UEnvQueryGenerator_OnCircle::RunLineTrace); break;
+		case EEnvTraceShape::Sphere:	TraceFunc.BindUObject(this, &UEnvQueryGenerator_OnCircle::RunSphereTrace); break;
+		case EEnvTraceShape::Capsule:	TraceFunc.BindUObject(this, &UEnvQueryGenerator_OnCircle::RunCapsuleTrace); break;
+		case EEnvTraceShape::Box:		TraceFunc.BindUObject(this, &UEnvQueryGenerator_OnCircle::RunBoxTrace); break;
+		default: break;
+		}
+
+		if (TraceFunc.IsBound())
+		{
+			ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);	
+			FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
+
+			FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
+			TraceParams.bTraceAsyncScene = true;
+
+			for (int32 Step = 0; Step < StepsCount; ++Step)
+			{
+				TraceFunc.Execute(CenterLocation, ItemCandidates[Step], QueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent, ItemCandidates[Step]);
+			}
+		}
 	}
 
 #if WITH_RECAST
-	//const ARecastNavMesh* NavMesh = FEQSHelpers::FindNavMeshForQuery(QueryInstance);
-	//if (NavMesh == NULL) return;
+	if (NavMesh)
+	{
+		ProjectAndFilterNavPoints(ItemCandidates, NavMesh);
+		NavMesh->FinishBatchQuery();
+	}
+#endif
 
-	//float PathDistanceValue = 0.0f;
-	//float DensityValue = 0.0f;
-	//bool bFromContextValue = true;
-
-	//if (! ||
-	//	!QueryInstance.GetParamValue(Density, DensityValue, TEXT("Density")) ||
-	//	!QueryInstance.GetParamValue(PathFromContext, bFromContextValue, TEXT("PathFromContext")))
-	//{
-	//	return;
-	//}
-
-	//const int32 nItems = FPlatformMath::Trunc((PathDistanceValue * 2.0f / DensityValue) + 1);
-	//const int32 nItemsHalf = nItems / 2;
-
-	//TArray<FVector> ContextLocations;
-	//QueryInstance.PrepareContext(GenerateAround, ContextLocations);
-	//QueryInstance.ReserveItemData(nItemsHalf * nItemsHalf * ContextLocations.Num());
-
-	//TArray<NavNodeRef> NavNodeRefs;
-	//NavMesh->BeginBatchQuery();
-
-	//int32 DataOffset = 0;
-	//for (int32 i = 0; i < ContextLocations.Num(); i++)
-	//{
-	//	// find all node refs in pathing distance
-	//	FBox AllowedBounds;
-	//	NavNodeRefs.Reset();
-	//	FindNodeRefsInPathDistance(NavMesh, ContextLocations[i], PathDistanceValue, bFromContextValue, NavNodeRefs, AllowedBounds);
-
-	//	// cast 2D grid on generated node refs
-	//	for (int32 iX = 0; iX < nItems; ++iX)
-	//	{
-	//		for (int32 iY = 0; iY < nItems; ++iY)
-	//		{
-	//			const FVector TestPoint = ContextLocations[i] - FVector(DensityValue * (iX - nItemsHalf), DensityValue * (iY - nItemsHalf), 0);
-	//			if (!AllowedBounds.IsInsideXY(TestPoint))
-	//			{
-	//				continue;
-	//			}
-
-	//			// trace line on navmesh, and process all hits with collected node refs
-	//			TArray<FNavLocation> Hits;
-	//			NavMesh->ProjectPointMulti(TestPoint, Hits, FVector::ZeroVector, AllowedBounds.Min.Z, AllowedBounds.Max.Z);
-
-	//			for (int32 i = 0; i < Hits.Num(); i++)
-	//			{
-	//				if (IsNavLocationInPathDistance(NavMesh, Hits[i], NavNodeRefs))
-	//				{
-	//					// store generated point
-	//					QueryInstance.AddItemData<UEnvQueryItemType_Point>(Hits[i].Location);
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
-
-	//NavMesh->FinishBatchQuery();
-#endif // WITH_RECAST
+	for (int32 Step = 0; Step < ItemCandidates.Num(); ++Step)
+	{
+		QueryInstance.AddItemData<UEnvQueryItemType_Point>(ItemCandidates[Step]);
+	}
 }
 
-FString UEnvQueryGenerator_OnCircle::GetDescriptionTitle() const
+void UEnvQueryGenerator_OnCircle::RunLineTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos)
 {
-	return FString::Printf(TEXT("%s: generate items on circle around %s"),
-		*Super::GetDescriptionTitle(), *UEnvQueryTypes::DescribeContext(CircleCenter));
+	FHitResult OutHit;
+	const bool bHit = World->LineTraceSingle(OutHit, StartPos, EndPos, Channel, Params);
+	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
+};
+
+void UEnvQueryGenerator_OnCircle::RunSphereTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos)
+{
+	FHitResult OutHit;
+	const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat::Identity, Channel, FCollisionShape::MakeSphere(Extent.X), Params);
+	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
+};
+
+void UEnvQueryGenerator_OnCircle::RunCapsuleTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos)
+{
+	FHitResult OutHit;
+	const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), Params);
+	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
+};
+
+void UEnvQueryGenerator_OnCircle::RunBoxTrace(const FVector& StartPos, const FVector& EndPos, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent, FVector& HitPos)
+{
+	FHitResult OutHit;
+	const bool bHit = World->SweepSingle(OutHit, StartPos, EndPos, FQuat((EndPos - StartPos).Rotation()), Channel, FCollisionShape::MakeBox(Extent), Params);
+	HitPos = bHit ? OutHit.ImpactPoint : EndPos;
+};
+
+FText UEnvQueryGenerator_OnCircle::GetDescriptionTitle() const
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("DescriptionTitle"), Super::GetDescriptionTitle());
+	Args.Add(TEXT("DescribeContext"), UEnvQueryTypes::DescribeContext(CircleCenter));
+
+	return FText::Format(LOCTEXT("DescriptionGenerateCircleAroundContext", "{DescriptionTitle}: generate items on circle around {DescribeContext}"), Args);
 }
 
-FString UEnvQueryGenerator_OnCircle::GetDescriptionDetails() const
+FText UEnvQueryGenerator_OnCircle::GetDescriptionDetails() const
 {
-	static const UEnum* EnvQueryTraceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EEnvQueryTrace"));
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Radius"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(Radius)));
+	Args.Add(TEXT("ItemSpacing"), FText::FromString(UEnvQueryTypes::DescribeFloatParam(ItemSpacing)));
+	Args.Add(TEXT("TraceData"), TraceData.ToText(FEnvTraceData::Detailed));
 
-	FString RaycastDesc = bUseNavigationRaycast ? FString::Printf(TEXT("\nTraceType %s"), *EnvQueryTraceEnum->GetEnumName(TraceType)) : TEXT("");
-	FString ArcDesc = bDefineArc ? FString::Printf(TEXT("\nLimit to %.2f angle both sides on line %s-%s"), Angle.Value, *UEnvQueryTypes::DescribeContext(ArcDirectionStart), *UEnvQueryTypes::DescribeContext(ArcDirectionEnd)) 
-		: TEXT("");
+	FText Desc = FText::Format(LOCTEXT("OnCircleDescription", "radius: {Radius}, item span: {ItemSpacing}\n{TraceData}"), Args);
 
-	return FString::Printf(TEXT("radius: %s, item span: %.2f%s%s")
-		, *UEnvQueryTypes::DescribeFloatParam(Radius)
-		, ItemSpacing
-		, *RaycastDesc
-		, *ArcDesc);
+	if (bDefineArc)
+	{
+		FFormatNamedArguments ArcArgs;
+		ArcArgs.Add(TEXT("Description"), Desc);
+		ArcArgs.Add(TEXT("AngleValue"), Angle.Value);
+		ArcArgs.Add(TEXT("ArcDirection"), ArcDirection.ToText());
+		Desc = FText::Format(LOCTEXT("DescriptionWithArc", "{Description}\nLimit to {AngleValue} angle both sides on {ArcDirection}"), ArcArgs);
+	}
+
+	FText ProjDesc = ProjectionData.ToText(FEnvTraceData::Brief);
+	if (!ProjDesc.IsEmpty())
+	{
+		FFormatNamedArguments ProjArgs;
+		ProjArgs.Add(TEXT("Description"), Desc);
+		ProjArgs.Add(TEXT("ProjectionDescription"), ProjDesc);
+		Desc = FText::Format(LOCTEXT("DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
+	}
+
+	return Desc;
 }
 
 #if WITH_EDITOR
 
 void UEnvQueryGenerator_OnCircle::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) 
 {
-	static const FName NAME_TraceType = GET_MEMBER_NAME_CHECKED(UEnvQueryGenerator_OnCircle, TraceType);
 	static const FName NAME_Angle = GET_MEMBER_NAME_CHECKED(UEnvQueryGenerator_OnCircle, Angle);
 	static const FName NAME_Radius = GET_MEMBER_NAME_CHECKED(UEnvQueryGenerator_OnCircle, Radius);
-	static const FName NAME_ItemSpacing = GET_MEMBER_NAME_CHECKED(UEnvQueryGenerator_OnCircle, ItemSpacing);
 
 	if (PropertyChangedEvent.Property != NULL)
 	{
 		const FName PropName = PropertyChangedEvent.MemberProperty->GetFName();
-		if (PropName == NAME_TraceType)
-		{
-			bUseNavigationRaycast = TraceType == EEnvQueryTrace::Navigation;
-		}
-		else if (PropName == NAME_Angle)
+		if (PropName == NAME_Angle)
 		{
 			Angle.Value = FMath::Clamp(Angle.Value, 0.0f, 360.f);
 			AngleRadians = FMath::DegreesToRadians(Angle.Value);
@@ -248,16 +284,13 @@ void UEnvQueryGenerator_OnCircle::PostEditChangeProperty( struct FPropertyChange
 				Radius.Value = 100.f;
 			}
 		}
-		else if (PropName == NAME_ItemSpacing)
-		{
-			if (ItemSpacing <= 1.f)
-			{
-				ItemSpacing = 1.f;
-			}
-		}
+
+		ItemSpacing.Value = FMath::Max(1.0f, ItemSpacing.Value);
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 #endif // WITH_EDITOR
+
+#undef LOCTEXT_NAMESPACE

@@ -66,10 +66,10 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 	{
 		SourceControlInfo = MakeShareable( new FGatherTextSCC() );
 
-		FString SCCErrorStr;
+		FText SCCErrorStr;
 		if( !SourceControlInfo->IsReady( SCCErrorStr ) )
 		{
-			UE_LOG( LogGatherTextCommandlet, Error, TEXT("Source Control error: %s"), *SCCErrorStr );
+			UE_LOG( LogGatherTextCommandlet, Error, TEXT("Source Control error: %s"), *SCCErrorStr.ToString() );
 			return -1;
 		}
 	}
@@ -132,10 +132,10 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 			UE_LOG(LogGatherTextCommandlet, Error,TEXT("%s-%s reported an error."),*SectionName, *CommandletClassName);
 			if( SourceControlInfo.IsValid() )
 			{
-				FString SCCErrorStr;
+				FText SCCErrorStr;
 				if( !SourceControlInfo->CleanUp( SCCErrorStr ) )
 				{
-					UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr);
+					UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr.ToString());
 				}
 			}
 			return -1;
@@ -146,17 +146,17 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 
 	if( SourceControlInfo.IsValid() && !bDisableSubmit )
 	{
-		FString SCCErrorStr;
+		FText SCCErrorStr;
 		if( SourceControlInfo->CheckinFiles( GetChangelistDescription(GatherTextConfigPath), SCCErrorStr ) )
 		{
 			UE_LOG(LogGatherTextCommandlet, Log,TEXT("Submitted Localization files."));
 		}
 		else
 		{
-			UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr);
+			UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr.ToString());
 			if( !SourceControlInfo->CleanUp( SCCErrorStr ) )
 			{
-				UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr);
+				UE_LOG(LogGatherTextCommandlet, Error, TEXT("%s"), *SCCErrorStr.ToString());
 			}
 			return -1;
 		}
@@ -165,7 +165,7 @@ int32 UGatherTextCommandlet::Main( const FString& Params )
 	return 0;
 }
 
-FString UGatherTextCommandlet::GetChangelistDescription( const FString& InConfigPath )
+FText UGatherTextCommandlet::GetChangelistDescription( const FString& InConfigPath )
 {
 	// Find the target name to include in the change list description, this is just the config file name without path or extension info
 	const FString TargetName = FPaths::GetBaseFilename( InConfigPath, true );
@@ -213,5 +213,5 @@ FString UGatherTextCommandlet::GetChangelistDescription( const FString& InConfig
 	}
 	
 	ChangeDescriptionString += FString::Printf( TEXT(" Target: %s"), *TargetName );
-	return ChangeDescriptionString;
+	return FText::FromString( ChangeDescriptionString );
 }

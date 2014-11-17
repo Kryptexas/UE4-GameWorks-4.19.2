@@ -338,6 +338,7 @@ public:
 	}
 
 	FString GPUFamily;
+	FString GLVersion;
 	bool bSupportsFloatingPointRenderTargets;
 	TArray<FString> TargetPlatformNames;
 
@@ -361,6 +362,8 @@ private:
 
 		GPUFamily = (const ANSICHAR*)glGetString(GL_RENDERER);
 		check(!GPUFamily.IsEmpty());
+
+		GLVersion = (const ANSICHAR*)glGetString(GL_VERSION);
 
 		// highest priority is the per-texture version
 		if (FAndroidOpenGL::SupportsASTC())
@@ -397,6 +400,11 @@ private:
 FString FAndroidMisc::GetGPUFamily()
 {
 	return FAndroidGPUInfo::Get().GPUFamily;
+}
+
+FString FAndroidMisc::GetGLVersion()
+{
+	return FAndroidGPUInfo::Get().GLVersion;
 }
 
 bool FAndroidMisc::SupportsFloatingPointRenderTargets()

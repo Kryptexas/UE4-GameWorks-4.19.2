@@ -1646,6 +1646,7 @@ bool ShouldRenderAtmosphere(const FSceneViewFamily& Family)
 	const FEngineShowFlags EngineShowFlags = Family.EngineShowFlags;
 
 	return GAtmosphere
+		&& GSupportsVolumeTextureRendering
 		&& EngineShowFlags.Atmosphere
 		&& !EngineShowFlags.ShaderComplexity
 		&& !EngineShowFlags.StationaryLightOverlap 

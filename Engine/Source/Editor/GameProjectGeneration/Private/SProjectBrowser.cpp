@@ -221,10 +221,10 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& CategoriesBox, const TSharedRef<FProjectCategory>& Category ) const
+void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCategoriesBox, const TSharedRef<FProjectCategory>& Category ) const
 {
 	// Title
-	CategoriesBox->AddSlot()
+	InCategoriesBox->AddSlot()
 	.Padding(FMargin(5.f, 0.f))
 	.AutoHeight()
 	[
@@ -235,7 +235,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& Categor
 	];
 
 	// Separator
-	CategoriesBox->AddSlot()
+	InCategoriesBox->AddSlot()
 	.AutoHeight()
 	.Padding(5.0f, 2.0f, 5.0f, 8.0f)
 	[
@@ -244,7 +244,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& Categor
 	];
 
 	// Project tile view
-	CategoriesBox->AddSlot()
+	InCategoriesBox->AddSlot()
 	.AutoHeight()
 	.Padding(5.0f, 0.0f, 5.0f, 40.0f)
 	[
@@ -409,7 +409,7 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 	for (auto RecentIt = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles.CreateConstIterator(); RecentIt; ++RecentIt)
 	{
 		const FString File = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(**RecentIt);
-	DiscoveredProjectFilesToCategory.Add(File, MyProjectsCategoryName);
+		DiscoveredProjectFilesToCategory.Add(File, MyProjectsCategoryName);
 	}
 
 	// Form a list of folders that may contain project files and their category names.
@@ -447,23 +447,25 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 	{
 		const FString Root = (*RootFolderIt).Folder;
 		const FText Category = (*RootFolderIt).Category;
-		const FString SearchString = Root / TEXT("*");
+		const FString RootSearchString = Root / TEXT("*");
 		TArray<FString> PotentialProjectFolders;
-		IFileManager::Get().FindFiles(PotentialProjectFolders, *SearchString, /*Files=*/false, /*Directories=*/true);
+		IFileManager::Get().FindFiles(PotentialProjectFolders, *RootSearchString, /*Files=*/false, /*Directories=*/true);
 		for (auto FolderIt = PotentialProjectFolders.CreateConstIterator(); FolderIt; ++FolderIt)
 		{
 			const FString FolderName = Root / (*FolderIt);
-			const FString SearchString = FolderName / TEXT("*.") + IProjectManager::GetProjectFileExtension();
+			const FString ProjectSearchString = FolderName / TEXT("*.") + IProjectManager::GetProjectFileExtension();
 			TArray<FString> FoundProjectFiles;
-			IFileManager::Get().FindFiles(FoundProjectFiles, *SearchString, /*Files=*/true, /*Directories=*/false);
+			IFileManager::Get().FindFiles(FoundProjectFiles, *ProjectSearchString, /*Files=*/true, /*Directories=*/false);
 			for (auto ProjectFilenameIt = FoundProjectFiles.CreateConstIterator(); ProjectFilenameIt; ++ProjectFilenameIt)
 			{
 				const FString PotentiallyRelativeFile = FolderName / (*ProjectFilenameIt);
 				const FString AbsoluteFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*PotentiallyRelativeFile);
-			DiscoveredProjectFilesToCategory.Add(AbsoluteFile, Category);
+				DiscoveredProjectFilesToCategory.Add(AbsoluteFile, Category);
 			}
 		}
 	}
+
+	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
 
 	// Add all discovered projects to the list
 	for ( auto ProjectFilenameIt = DiscoveredProjectFilesToCategory.CreateConstIterator(); ProjectFilenameIt; ++ProjectFilenameIt )
@@ -474,13 +476,11 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 		{
 			const bool bPromptIfSavedWithNewerVersionOfEngine = false;
 			FProjectStatus ProjectStatus;
-			if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, ProjectStatus) )
+			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, EngineIdentifier, ProjectStatus))
 			{
 				// @todo localized project name
-				const FText ProjectName = FText::FromString(FPaths::GetBaseFilename(ProjectFilename));
-
-				// @todo project description
-				FText ProjectDescription = FText();
+				const FText ProjectName = FText::FromString(ProjectStatus.Name);
+				const FText ProjectDescription = FText::FromString(ProjectStatus.Description);
 
 				TSharedPtr<FSlateDynamicImageBrush> DynamicBrush;
 				const FString ThumbnailPNGFile = FPaths::GetBaseFilename(ProjectFilename, false) + TEXT(".png");
@@ -516,14 +516,10 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 					{
 						ProjectCategory = ShowcasesCategoryName;
 					}
-					else
-					{
-						ProjectCategory = FText::FromString(ProjectStatus.Category);
-					}
 				}
 				else
 				{
-					ProjectCategory = DetectedCategory;
+					ProjectCategory = (ProjectStatus.Category.IsEmpty()) ? DetectedCategory : FText::FromString(ProjectStatus.Category);
 				}
 
 				if ( ProjectCategory.IsEmpty() )

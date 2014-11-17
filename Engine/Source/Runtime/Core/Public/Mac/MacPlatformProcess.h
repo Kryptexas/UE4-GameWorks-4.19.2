@@ -51,16 +51,20 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
-    static bool IsApplicationRunning( const TCHAR* ProcName );
+	static bool IsApplicationRunning( const TCHAR* ProcName );
 	static bool IsApplicationRunning( uint32 ProcessId );
 	static bool IsThisApplicationForeground();
-	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL );
+	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
 	static void ExploreFolder( const TCHAR* FilePath );
-    static FRunnableThread* CreateRunnableThread();
+	static FRunnableThread* CreateRunnableThread();
 	static void ClosePipe( void* ReadPipe, void* WritePipe );
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
-	static void ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
+
+	// Mac specific
+	static const TCHAR* UserPreferencesDir();
+	static const TCHAR* UserLogsDir();
 };
 
 typedef FMacPlatformProcess FPlatformProcess;

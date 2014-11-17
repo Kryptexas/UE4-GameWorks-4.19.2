@@ -29,6 +29,8 @@
 #include "MaterialEditorActions.h"
 #include "NormalMapIdentification.h"
 #include "EngineBuildSettings.h"
+#include "Slate.h"
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -112,6 +114,9 @@ void FUnrealEdMisc::OnInit()
 
 	// Register Material Editor commands
 	FMaterialEditorCommands::Register();
+
+	// Register navigation commands for all viewports
+	FViewportNavigationCommands::Register();
 
 	// Init the editor mode tools, and set default editor mode initially
 	GEditorModeTools().Init();
@@ -331,7 +336,7 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			const FString& LoadedProjectFilePath = FPaths::GetProjectFilePath();
 			FProjectStatus ProjectStatus;
 
-			if ( IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus) )
+			if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
 			{
 				if ( ProjectStatus.bSignedSampleProject )
 				{
@@ -370,18 +375,20 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			bIsAssetAnalyticsPending = true;
 		}
 
-// @todo: cwood: Disabled "Editor.Usage.Modules" event due to it spamming analytics. Needs better solution.
-#if 0
 		// Record known modules' compilation methods
 		TArray<FModuleManager::FModuleStatus> Modules;
 		FModuleManager::Get().QueryModules(Modules);
-		TArray< FAnalyticsEventAttribute > ModuleAttributes;
-		for (auto ModuleIter = Modules.CreateConstIterator(); ModuleIter; ++ModuleIter)
+		for (auto& Module : Modules)
 		{
-			ModuleAttributes.Add(FAnalyticsEventAttribute(ModuleIter->Name, ModuleIter->CompilationMethod));
+			// Record only game modules as these are the only ones that should be hot-reloaded
+			if (Module.bIsGameModule)
+			{
+				TArray< FAnalyticsEventAttribute > ModuleAttributes;
+				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("ModuleName"), Module.Name));
+				ModuleAttributes.Add(FAnalyticsEventAttribute(FString("CompilationMethod"), Module.CompilationMethod));
+				EngineAnalytics.RecordEvent(FString("Editor.Usage.Modules"), ModuleAttributes);
+			}
 		}
-		EngineAnalytics.RecordEvent(FString("Editor.Usage.Modules"), ModuleAttributes);
-#endif
 	}
 }
 
@@ -489,6 +496,10 @@ void FUnrealEdMisc::OnExit()
 		TabsAttribs.Add(FAnalyticsEventAttribute(FString("ProjectId"), ProjectSettings.ProjectID.ToString()));
 
 		FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Usage.WindowCounts"), TabsAttribs);
+		
+		FSlateApplication::Get().GetPlatformApplication()->SendAnalytics(&FEngineAnalytics::GetProvider());
+
+		FEditorViewportStats::SendUsageData();
 	}
 
 	FInputBindingManager::Get().UnregisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
@@ -834,27 +845,27 @@ void FUnrealEdMisc::OnMessageTokenActivated(const TSharedRef<IMessageToken>& Tok
 
 FText FUnrealEdMisc::OnGetDisplayName(UObject* InObject, bool bFullPath)
 {
-	FText Name = LOCTEXT("None", "<None>");
+	FText Name = LOCTEXT("DisplayNone", "<None>");
 
 	if(InObject != NULL)
 	{
 		// Is this an object held by an actor?
- 		AActor* Actor = NULL;
- 		UActorComponent* Component = Cast<UActorComponent>(InObject);
+		AActor* Actor = NULL;
+		UActorComponent* Component = Cast<UActorComponent>(InObject);
  
- 		if (Component != NULL)
- 		{
- 			Actor = Cast<AActor>(Component->GetOuter());
- 		}
+		if (Component != NULL)
+		{
+			Actor = Cast<AActor>(Component->GetOuter());
+		}
  
- 		if (Actor != NULL)
- 		{
- 			Name = FText::FromString( bFullPath ? Actor->GetPathName() : Actor->GetName() );
- 		}
- 		else if (InObject != NULL)
- 		{
- 			Name = FText::FromString( bFullPath ? InObject->GetPathName() : InObject->GetName() );
- 		}
+		if (Actor != NULL)
+		{
+			Name = FText::FromString( bFullPath ? Actor->GetPathName() : Actor->GetName() );
+		}
+		else if (InObject != NULL)
+		{
+			Name = FText::FromString( bFullPath ? InObject->GetPathName() : InObject->GetName() );
+		}
 	}
 
 	return Name;
@@ -1013,7 +1024,9 @@ FString FUnrealEdMisc::GenerateURL(const FString& InUDNPage)
 {
 	if( InUDNPage.Len() > 0 )
 	{
-		const FString PageURL = FString::Printf( TEXT( "%s/Editor/LevelEditing/MapErrors/index.html" ), *FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() );
+		FInternationalization& I18N = FInternationalization::Get();
+
+		const FString PageURL = FString::Printf( TEXT( "%s/Editor/LevelEditing/MapErrors/index.html" ), *I18N.GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() );
 		const FString BookmarkURL = FString::Printf( TEXT( "#%s" ), *InUDNPage );
 
 		// Developers can browse documentation included with the engine distribution, check for file presence...
@@ -1025,7 +1038,7 @@ FString FUnrealEdMisc::GenerateURL(const FString& InUDNPage)
 		// ... if it's not present, fallback to using the online version, if the full URL is provided...
 		else if(FUnrealEdMisc::Get().GetURL( TEXT("MapErrorURL"), MapErrorURL, true ) && MapErrorURL.EndsWith( TEXT( ".html" ) ))
 		{	
-			MapErrorURL.ReplaceInline( TEXT( "/INT/" ), *FString::Printf( TEXT( "/%s/" ), *FInternationalization::GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() ) );
+			MapErrorURL.ReplaceInline( TEXT( "/INT/" ), *FString::Printf( TEXT( "/%s/" ), *I18N.GetCurrentCulture()->GetUnrealLegacyThreeLetterISOLanguageName() ) );
 			MapErrorURL += BookmarkURL;
 		}
 		// ...otherwise, attempt to create the URL from what we know here...

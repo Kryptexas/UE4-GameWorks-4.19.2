@@ -649,7 +649,7 @@ void SGraphPanel::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
 	{
 		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
-		AssetOp->ClearTooltip();
+		AssetOp->ResetToDefaultToolTip();
 	}
 }
 
@@ -673,7 +673,7 @@ FReply SGraphPanel::OnDragOver( const FGeometry& MyGeometry, const FDragDropEven
 			FString TooltipText;
 			GraphObj->GetSchema()->GetAssetsGraphHoverMessage(AssetOp->AssetData, GraphObj, TooltipText, bOkIcon);
 			const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
-			AssetOp->SetTooltip(TooltipText, TooltipIcon);
+			AssetOp->SetToolTip(TooltipText, TooltipIcon);
 		}
 		return FReply::Handled();
 	} 

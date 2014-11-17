@@ -60,12 +60,6 @@ void ULandscapeComponent::UpdateCachedBounds()
 		HFCollisionComponent->Modify();
 		HFCollisionComponent->CachedLocalBox = CachedLocalBox;	
 		HFCollisionComponent->UpdateComponentToWorld();
-
-		ULandscapeMeshCollisionComponent* MeshCollisionComponent = Cast<ULandscapeMeshCollisionComponent>(HFCollisionComponent);
-		if (MeshCollisionComponent)
-		{
-			MeshCollisionComponent->RecreateCollision(false);
-		}
 	}
 }
 
@@ -492,8 +486,6 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 			CollisionComp->UpdateComponentToWorld();
 		}
 
-		// Necessary for background navimesh building
-		CollisionComp->CollisionDataSyncObject.Lock();
 		CollisionHeightData = (uint16*)CollisionComp->CollisionHeightData.Lock(LOCK_READ_WRITE);
 
 		if (XYOffsetmapTexture && MeshCollisionComponent)
@@ -549,9 +541,6 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		CollisionComp->CollisionScale = (float)(ComponentSizeQuads) / (float)(CollisionComp->CollisionSizeQuads);
 		CollisionComp->CachedLocalBox = CachedLocalBox;
 		CreatedNew = true;
-
-		// Necessary for background navimesh building
-		CollisionComp->CollisionDataSyncObject.Lock();
 
 		// Reallocate raw collision data
 		CollisionComp->CollisionHeightData.Lock(LOCK_READ_WRITE);
@@ -678,8 +667,6 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 			}
 		}
 	}
-	// Necessary for background navimesh building
-	CollisionComp->CollisionDataSyncObject.Unlock();
 
 	CollisionComp->CollisionHeightData.Unlock();
 
@@ -770,7 +757,6 @@ void ULandscapeComponent::UpdateCollisionLayerData(TArray<FColor*>& WeightmapTex
 				if (AllocInfo.LayerInfo == ALandscapeProxy::DataLayer)
 				{
 					DataLayerIdx = Idx;
-					CollisionComponent->bIncludeHoles = true;
 					bExistingLayerMismatch = true; // always rebuild whole component for hole
 				}
 			}	
@@ -870,11 +856,6 @@ void ULandscapeComponent::UpdateCollisionLayerData(TArray<FColor*>& WeightmapTex
 									{
 										DominantLayer = LayerIdx;
 										DominantWeight = INT_MAX;
-									}
-									else
-									{
-										DominantLayer = 255;
-										DominantWeight = 0;
 									}
 								}
 								else if( LayerWeight > DominantWeight )
@@ -1697,7 +1678,7 @@ ULandscapeLayerInfoObject* ALandscapeProxy::CreateLayerInfo(const TCHAR* LayerNa
 #define HEIGHTDATA(X,Y) (HeightData[ FMath::Clamp<int32>(Y,0,VertsY) * VertsX + FMath::Clamp<int32>(X,0,VertsX) ])
 void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY, 
 								int32 InComponentSizeQuads, int32 InNumSubsections, int32 InSubsectionSizeQuads, 
-								uint16* HeightData, const TCHAR* HeightmapFileName, 
+								const uint16* HeightData, const TCHAR* HeightmapFileName, 
 								TArray<FLandscapeImportLayerInfo> ImportLayerInfos, uint8* AlphaDataPointers[] )
 {
 	GWarn->BeginSlowTask( LOCTEXT("BeingImportingLandscapeTask", "Importing Landscape"), true);
@@ -2282,14 +2263,14 @@ void ALandscapeProxy::Import(FGuid Guid, int32 VertsX, int32 VertsY,
 
 bool ALandscapeProxy::ExportToRawMesh(FRawMesh& OutRawMesh) const
 {
-	TArray<ULandscapeComponent*> LandscapeComponents;
-	GetComponents<ULandscapeComponent>(LandscapeComponents);
+	TArray<ULandscapeComponent*> RegisteredLandscapeComponents;
+	GetComponents<ULandscapeComponent>(RegisteredLandscapeComponents);
 	
 	const FIntRect LandscapeSectionRect = GetBoundingRect();
 	const FVector2D LandscapeUVScale = FVector2D(1.f, 1.f)/FVector2D(LandscapeSectionRect.Size());
 		
 	// Export data for each component
-	for (auto It = LandscapeComponents.CreateConstIterator(); It; ++It)
+	for (auto It = RegisteredLandscapeComponents.CreateConstIterator(); It; ++It)
 	{
 		ULandscapeComponent* Component = (*It);
 		FLandscapeComponentDataInterface CDI(Component, ExportLOD);
@@ -2521,8 +2502,6 @@ FVector ULandscapeInfo::GetLandscapeCenterPos(float& LengthZ, int32 MinX /*= MAX
 					ULandscapeHeightfieldCollisionComponent* CollisionComp = Comp->CollisionComponent.Get();
 					if (CollisionComp)
 					{
-						// Necessary for background navimesh building
-						FScopeLock ScopeLock(&CollisionComp->CollisionDataSyncObject);
 						uint16* Heights = (uint16*)CollisionComp->CollisionHeightData.Lock(LOCK_READ_ONLY);
 						int32 CollisionSizeVerts = CollisionComp->CollisionSizeQuads + 1;
 
@@ -3392,14 +3371,38 @@ ULandscapeLayerInfoObject::ULandscapeLayerInfoObject(const class FPostConstructI
 void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	static const FName NAME_Hardness = FName(TEXT("Hardness"));
+	static const FName NAME_PhysMaterial = FName(TEXT("PhysMaterial"));
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-	if (GIsEditor && PropertyName == NAME_Hardness)
+	if (GIsEditor)
 	{
-		Hardness = FMath::Clamp<float>(Hardness, 0.f, 1.f);
+		if (PropertyName == NAME_Hardness)
+		{
+			Hardness = FMath::Clamp<float>(Hardness, 0.f, 1.f);
+		}
+		else if (PropertyName == NAME_PhysMaterial)
+		{
+			// Only care current world object
+			for (TActorIterator<ALandscapeProxy> It(GWorld); It; ++It)
+			{
+				ALandscapeProxy* Proxy = *It;
+				ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);
+				if (Info)
+				{
+					for (int32 i = 0; i < Info->Layers.Num(); ++i)
+					{
+						if (Info->Layers[i].LayerInfoObj == this)
+						{
+							Proxy->ChangedPhysMaterial();
+							break;
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -3561,12 +3564,12 @@ void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 			// Lock X and Y scaling to the same value
 			if (PropertyName == FName("Y"))
 			{
-				ModifiedScale.X = RootComponent->RelativeScale3D.Y;
+				ModifiedScale.X = FMath::Abs(RootComponent->RelativeScale3D.Y)*FMath::Sign(ModifiedScale.X);
 			}
 			else
 			{
 				// There's no "if name == X" here so that if we can't tell which has changed out of X and Y, we just use X
-				ModifiedScale.Y = RootComponent->RelativeScale3D.X;
+				ModifiedScale.Y = FMath::Abs(RootComponent->RelativeScale3D.X)*FMath::Sign(ModifiedScale.Y);
 			}
 
 			ULandscapeInfo* Info = GetLandscapeInfo(false);
@@ -3601,6 +3604,16 @@ void ALandscapeProxy::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 			if (Info)
 			{
 				Info->DrawScale = ModifiedScale;
+			}
+
+			// We need to regenerate collision objects, they depend on scale value 
+			for (int32 ComponentIndex = 0; ComponentIndex < CollisionComponents.Num(); ComponentIndex++)
+			{
+				ULandscapeHeightfieldCollisionComponent* Comp = CollisionComponents[ComponentIndex];
+				if (Comp)
+				{
+					Comp->RecreateCollision(false);
+				}
 			}
 		}
 	}
@@ -3829,6 +3842,26 @@ void ULandscapeComponent::SetLOD(bool bForcedLODChanged, int32 InLODValue)
 		}
 	}
 	FComponentReregisterContext ReregisterContext(this);
+}
+
+void ULandscapeComponent::PreEditChange(UProperty* PropertyThatWillChange)
+{
+	Super::PreEditChange(PropertyThatWillChange);
+	if (GIsEditor && PropertyThatWillChange && (PropertyThatWillChange->GetName() == TEXT("ForcedLOD") || PropertyThatWillChange->GetName() == TEXT("LODBias")))
+	{
+		// PreEdit unregister component and re-register after PostEdit so we will lose XYtoComponentMap for this component
+		ULandscapeInfo* Info = GetLandscapeInfo(false);
+		if (Info)
+		{
+			FIntPoint ComponentKey = GetSectionBase() / ComponentSizeQuads;
+			auto RegisteredComponent = Info->XYtoComponentMap.FindRef(ComponentKey);
+
+			if (RegisteredComponent == NULL)
+			{
+				Info->XYtoComponentMap.Add(ComponentKey, this);
+			}
+		}
+	}
 }
 
 void ULandscapeComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

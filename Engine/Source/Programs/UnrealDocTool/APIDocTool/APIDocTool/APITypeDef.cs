@@ -7,21 +7,24 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.IO;
+using DoxygenLib;
 
 namespace APIDocTool
 {
     class APITypeDef : APIMember
     {
+		public readonly DoxygenEntity Entity;
 		public readonly XmlNode Node;
 		public readonly string Id;
 		public string Type;
 		public string BriefDescription;
 		public string FullDescription;
 
-		public APITypeDef(APIPage InParent, XmlNode InNode) 
-			: base(InParent, InNode.SelectSingleNode("name").InnerText)
+		public APITypeDef(APIPage InParent, DoxygenEntity InEntity) 
+			: base(InParent, InEntity.Node.SelectSingleNode("name").InnerText)
         {
-			Node = InNode;
+			Entity = InEntity;
+			Node = Entity.Node;
 			Id = Node.Attributes["id"].Value;
 			AddRefLink(Id, this);
 		}
@@ -75,6 +78,11 @@ namespace APIDocTool
 					Writer.WriteLine(FullDescription);
 					Writer.LeaveSection();
 				}
+				Writer.LeaveTag("[/PARAM]");
+
+				// Write the references
+				Writer.EnterTag("[PARAM:references]");
+				WriteReferencesSection(Writer, Entity);
 				Writer.LeaveTag("[/PARAM]");
 
 				// Leave the object tag

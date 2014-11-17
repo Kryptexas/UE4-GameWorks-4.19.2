@@ -65,7 +65,6 @@ public:
 		, Value(InValue)
 	{ }
 
-
 public:
 
 	/**
@@ -91,7 +90,6 @@ public:
 	{
 		return ((Type != Other.Type) || (!IsOpen() && (Value != Other.Value)));
 	}
-
 
 public:
 
@@ -151,7 +149,6 @@ public:
 		return (Type == ERangeBoundTypes::Open);
 	}
 
-
 public:
 
 	/**
@@ -179,7 +176,6 @@ public:
 		return (GetTypeHash((uint8)Bound.Type) + 23 * GetTypeHash(Bound.Value));
 	}
 
-
 public:
 
 	/**
@@ -198,7 +194,6 @@ public:
 
 		return Result;
 	}
-
 
 	/**
 	 * Returns a closed bound that includes the specified value.
@@ -230,7 +225,6 @@ public:
 
 		return Result;
 	}
-
 
 public:
 
@@ -332,7 +326,6 @@ public:
 		return B;
 	}
 
-
 private:
 
 	// Holds the type of the bound.
@@ -341,7 +334,6 @@ private:
 	// Holds the bound's value.
 	ElementType Value;
 };
-
 
 
 /* Default range bounds for built-in types

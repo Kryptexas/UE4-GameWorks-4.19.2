@@ -49,22 +49,22 @@ private:
 	TSharedRef<ITableRow> HandleDispatchStateListGenerateRow( FMessageTracerDispatchStatePtr DispatchState, const TSharedRef<STableViewBase>& OwnerTable );
 
 	// Callback for getting the text of the 'Expiration' field.
-	FString HandleExpirationText( ) const;
+	FText HandleExpirationText( ) const;
 
 	// Callback for getting the text of the 'Message Type' field.
-	FString HandleMessageTypeText( ) const;
+	FText HandleMessageTypeText( ) const;
 
 	// Callback for handling message selection changes.
 	void HandleModelSelectedMessageChanged( );
 
 	// Callback for getting the text of the 'Sender' field.
-	FString HandleSenderText( ) const;
+	FText HandleSenderText( ) const;
 
 	// Callback for getting the text of the 'Sender Thread' field.
-	FString HandleSenderThreadText() const;
+	FText HandleSenderThreadText() const;
 
 	// Callback for getting the text of the 'Timestamp' field.
-	FString HandleTimestampText( ) const;
+	FText HandleTimestampText() const;
 
 private:
 

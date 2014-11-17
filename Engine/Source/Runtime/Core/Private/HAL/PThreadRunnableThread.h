@@ -407,9 +407,6 @@ protected:
 			// Let the thread start up, then set the name for debug purposes.
 			ThreadInitSyncEvent->Wait((uint32)-1); // infinite wait
 
-			// register the thread for access by ID
-			FRunnableThread::GetThreadRegistry().Add(ThreadID, this);
-
 			// set the priority
 			SetThreadPriority(InThreadPri);
 

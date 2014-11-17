@@ -48,17 +48,9 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	UPROPERTY()
 	FBox CachedLocalBox;
 
-	UPROPERTY()
-	uint32 bIncludeHoles:1;
-
-	UPROPERTY()
-	uint32 bHeightFieldDataHasHole:1;
-
 	/** Reference to render component */
 	UPROPERTY()
 	TLazyObjectPtr<class ULandscapeComponent> RenderComponent;
-
-	mutable FCriticalSection CollisionDataSyncObject;
 
 	struct FPhysXHeightfieldRef : public FRefCountedObject
 	{
@@ -68,29 +60,48 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 		/** List of PxMaterials used on this landscape */
 		TArray<class physx::PxMaterial*>	UsedPhysicalMaterialArray;
 		class physx::PxHeightField*			RBHeightfield;
+#if WITH_EDITOR
+		class physx::PxHeightField*			RBHeightfieldEd; // Used only by landscape editor, does not have holes in it
+#endif	//WITH_EDITOR
 #endif	//WITH_PHYSX
 
 		/** tors **/
 		FPhysXHeightfieldRef() 
 #if WITH_PHYSX
 			:	RBHeightfield(NULL)
+#if WITH_EDITOR
+			,	RBHeightfieldEd(NULL)
+#endif	//WITH_EDITOR
 #endif	//WITH_PHYSX
 		{}
 		FPhysXHeightfieldRef(FGuid& InGuid)
 			:	Guid(InGuid)
 #if WITH_PHYSX
 			,	RBHeightfield(NULL)
+#if WITH_EDITOR
+			,	RBHeightfieldEd(NULL)
+#endif	//WITH_EDITOR
 #endif	//WITH_PHYSX
 		{}
 		virtual ~FPhysXHeightfieldRef();
 	};
-
-	/** The collision height values. */
+	
+	/** The collision height values. Stripped from cooked content */
 	FWordBulkData								CollisionHeightData;
 
-	/** Indices into the ComponentLayers array for the per-vertex dominant layer. */
+	/** Indices into the ComponentLayers array for the per-vertex dominant layer. Stripped from cooked content */
 	FByteBulkData								DominantLayerData;
 
+	/** 
+	 *	Cooked HeightField data. Serialized only with cooked content 
+	 *	Stored as array instead of BulkData to take advantage of precaching during async loading
+	 */
+	TArray<uint8>								CookedCollisionData;
+
+	/** This is a list of physical materials that is actually used by a cooked HeightField. Serialized only with cooked content */
+	UPROPERTY(transient)
+	TArray<UPhysicalMaterial*>					CookedPhysicalMaterials;
+	
 	/** Physics engine version of heightfield data. */
 	TRefCountPtr<struct FPhysXHeightfieldRef>	HeightfieldRef;
 
@@ -100,10 +111,6 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 		QF_EdgeTurned = 64,				// This quad's diagonal has been turned.
 		QF_NoCollision = 128,			// This quad has no collision.
 	};
-
-	// Begin UPrimitiveComponent interface
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
-	//End UPrimitiveComponent interface
 
 	// Begin UActorComponent interface.
 	virtual void CreatePhysicsState() OVERRIDE;
@@ -120,16 +127,19 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const OVERRIDE;
 	// End USceneComponent interface.
 
+	// Begin UPrimitiveComponent interface
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
+	//End UPrimitiveComponent interface
+
 	// Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
+	virtual void PostLoad() OVERRIDE;
 #if WITH_EDITOR
 	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) OVERRIDE;
 	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) OVERRIDE;
 	virtual void PostEditImport() OVERRIDE;
 	virtual void PostEditUndo() OVERRIDE;
-	virtual void PreSave() OVERRIDE;
-	virtual void PostLoad() OVERRIDE;
 	// End UObject Interface.
 
 	// Update Collision object for add LandscapeComponent tool
@@ -137,10 +147,18 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 
 	// @todo document
 	class ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true) const;
-#endif
 
-	/** Return a list of collision triangles in local space */
-	void GetCollisionTriangles(TArray<FVector>& OutVertexBuffer, TArray<int32>& OutIndexBuffer) const;
+	/** 
+	 * Cooks raw height data into collision object binary stream
+	 */
+	virtual bool CookCollsionData(const FName& Format, bool bUseOnlyDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterails) const;
+
+	/** Modify a sub-region of the PhysX heightfield. Note that this does not update the physical material */
+	void UpdateHeightfieldRegion(int32 ComponentX1, int32 ComponentY1, int32 ComponentX2, int32 ComponentY2);
+
+#endif
+	/** Creates collision object from a cooked collision data */
+	virtual void CreateCollisionObject();
 
 	/** Return the landscape actor associated with this component. */
 	class ALandscape* GetLandscapeActor() const;
@@ -155,8 +173,6 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	/** Recreate heightfield and restart physics */
 	ENGINE_API virtual void RecreateCollision(bool bUpdateAddCollision = true);
 
-	/** Modify a sub-region of the PhysX heightfield. Note that this does not update the physical material */
-	void UpdateHeightfieldRegion(int32 ComponentX1, int32 ComponentY1, int32 ComponentX2, int32 ComponentY2);
 
 };
 

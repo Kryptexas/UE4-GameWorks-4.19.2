@@ -144,6 +144,28 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 		}
 	}
 
+	float AverageMass = 0;
+	{
+		float TotalMass = 0;
+		int NumDynamic = 0;
+
+		if (PActor1 && PActor1->isRigidDynamic())
+		{
+			TotalMass += PActor1->isRigidDynamic()->getMass();
+			++NumDynamic;
+		}
+
+		if (PActor2 && PActor2->isRigidDynamic())
+		{
+			TotalMass += PActor2->isRigidDynamic()->getMass();
+			++NumDynamic;
+		}
+
+		check(NumDynamic);
+		AverageMass = TotalMass / NumDynamic;
+	}
+
+
 	// record if actors are asleep before creating joint, so we can sleep them afterwards if so (creating joint wakes them)
 	const bool bActor1Asleep = (PActor1 == NULL || !PActor1->isRigidDynamic() || PActor1->isRigidDynamic()->isSleeping());
 	const bool bActor2Asleep = (PActor2 == NULL || !PActor2->isRigidDynamic() || PActor2->isRigidDynamic()->isSleeping());
@@ -236,7 +258,7 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 		// If angle drops below RB_MinAngleToLockDOF, just pass RB_MinAngleToLockDOF to physics - that axis will be locked anyway, and PhysX dislikes 0 here
 		float TwistLimitRad = TwistLimitAngle * (PI/180.0f);
 		PxJointAngularLimitPair PTwistLimitPair(-TwistLimitRad, TwistLimitRad, 1.f * (PI/180.0f));
-		SetSoftLimitParams(&PTwistLimitPair, bTwistLimitSoft, TwistLimitStiffness*CVarConstraintSitffnessScale->GetValueOnGameThread(), TwistLimitDamping*CVarConstraintDamplingScale->GetValueOnGameThread());
+		SetSoftLimitParams(&PTwistLimitPair, bTwistLimitSoft, TwistLimitStiffness*AverageMass*CVarConstraintSitffnessScale->GetValueOnGameThread(), TwistLimitDamping*AverageMass*CVarConstraintDamplingScale->GetValueOnGameThread());
 		PD6Joint->setTwistLimit(PTwistLimitPair);
 	}
 	else if (AngularTwistMotion==ACM_Locked)
@@ -274,7 +296,7 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 		float Limit1Rad = FMath::ClampAngle(Swing1LimitAngle, KINDA_SMALL_NUMBER, 179.9999f) * (PI/180.0f);
 		float Limit2Rad = FMath::ClampAngle(Swing2LimitAngle, KINDA_SMALL_NUMBER, 179.9999f) * (PI/180.0f);
 		PxJointLimitCone PSwingLimitCone(Limit2Rad, Limit1Rad, 1.f * (PI/180.0f));
-		SetSoftLimitParams(&PSwingLimitCone, bSwingLimitSoft, SwingLimitStiffness*CVarConstraintSitffnessScale->GetValueOnGameThread(), SwingLimitDamping*CVarConstraintDamplingScale->GetValueOnGameThread());
+		SetSoftLimitParams(&PSwingLimitCone, bSwingLimitSoft, SwingLimitStiffness*AverageMass*CVarConstraintSitffnessScale->GetValueOnGameThread(), SwingLimitDamping*AverageMass*CVarConstraintDamplingScale->GetValueOnGameThread());
 		PD6Joint->setSwingLimit(PSwingLimitCone);
 	}
 
@@ -294,7 +316,7 @@ void FConstraintInstance::InitConstraint(USceneComponent* Owner, FBodyInstance* 
 		// If limit drops below RB_MinSizeToLockDOF, just pass RB_MinSizeToLockDOF to physics - that axis will be locked anyway, and PhysX dislikes 0 here
 		float LinearLimit = FMath::Max<float>(LinearLimitSize, RB_MinSizeToLockDOF);
 		PxJointLinearLimit PLinearLimit(GPhysXSDK->getTolerancesScale(), LinearLimit, 0.05f * GPhysXSDK->getTolerancesScale().length);
-		SetSoftLimitParams(&PLinearLimit, bLinearLimitSoft, LinearLimitStiffness*CVarConstraintSitffnessScale->GetValueOnGameThread(), LinearLimitDamping*CVarConstraintDamplingScale->GetValueOnGameThread());
+		SetSoftLimitParams(&PLinearLimit, bLinearLimitSoft, LinearLimitStiffness*AverageMass*CVarConstraintSitffnessScale->GetValueOnGameThread(), LinearLimitDamping*AverageMass*CVarConstraintDamplingScale->GetValueOnGameThread());
 		PD6Joint->setLinearLimit(PLinearLimit);
 	}
 

@@ -31,7 +31,6 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 	// Subscribe to tile properties changes
 	TileDetails->PositionChangedEvent.AddRaw(this, &FWorldTileModel::OnPositionPropertyChanged);
 	TileDetails->ParentPackageNameChangedEvent.AddRaw(this, &FWorldTileModel::OnParentPackageNamePropertyChanged);
-	TileDetails->AlwaysLoadedChangedEvent.AddRaw(this, &FWorldTileModel::OnAlwaysLoadedPropertyChanged);
 	TileDetails->StreamingLevelsChangedEvent.AddRaw(this, &FWorldTileModel::OnStreamingLevelsPropertyChanged);
 	TileDetails->LODSettingsChangedEvent.AddRaw(this, &FWorldTileModel::OnLODSettingsPropertyChanged);
 	TileDetails->ZOrderChangedEvent.AddRaw(this, &FWorldTileModel::OnZOrderPropertyChanged);
@@ -62,6 +61,10 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 				LoadedLevel = World->PersistentLevel;
 				// Enable tile properties
 				TileDetails->bTileEditable = true;
+				if (World->PersistentLevel->bIsVisible)
+				{
+					LoadedLevel.Get()->LevelBoundsActorUpdated().AddRaw(this, &FWorldTileModel::OnLevelBoundsActorUpdated);
+				}
 			}
 		}
 	}
@@ -79,11 +82,15 @@ FWorldTileModel::~FWorldTileModel()
 	{
 		TileDetails->PositionChangedEvent.RemoveAll(this);
 		TileDetails->ParentPackageNameChangedEvent.RemoveAll(this);
-		TileDetails->AlwaysLoadedChangedEvent.RemoveAll(this);
 		TileDetails->StreamingLevelsChangedEvent.RemoveAll(this);
 		
 		TileDetails->RemoveFromRoot();
 		TileDetails->MarkPendingKill();
+	}
+
+	if (LoadedLevel.IsValid())
+	{
+		LoadedLevel.Get()->LevelBoundsActorUpdated().RemoveAll(this);
 	}
 }
 
@@ -111,11 +118,6 @@ FName FWorldTileModel::GetAssetName() const
 FName FWorldTileModel::GetLongPackageName() const
 {
 	return TileDetails->PackageName;
-}
-
-bool FWorldTileModel::IsAlwaysLoaded() const
-{
-	return TileDetails->bAlwaysLoaded;
 }
 
 bool FWorldTileModel::HitTest2D(const FVector2D& Point) const
@@ -188,7 +190,7 @@ void FWorldTileModel::OnDrop(const TSharedPtr<FLevelDragDropOp>& Op)
 
 bool FWorldTileModel::IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const
 {
-	return !IsAlwaysLoaded();
+	return true;
 }
 
 void FWorldTileModel::GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const
@@ -222,8 +224,7 @@ void FWorldTileModel::GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, 
 
 bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 {
-	// Always loaded levels always visible
-	if (IsAlwaysLoaded() || IsRootTile())
+	if (IsRootTile())
 	{
 		return true;
 	}
@@ -324,61 +325,6 @@ void FWorldTileModel::Unshelve()
 	//
 	SetVisible(true);
 	bWasShelved = false;
-}
-
-/**
-* Attempt to lock/unlock the level of this window
-*
-* @param	bLocked	If true, attempt to lock the level; If false, attempt to unlock the level
-*/
-
-void FWorldTileModel::SetAlwaysLoaded(bool bAlwaysLoaded)
-{
-	if (LevelCollectionModel.IsReadOnly() || GetLevelObject() == NULL || IsRootTile())
-	{
-		return;
-	}
-
-	FWorldTileInfo Info = LevelCollectionModel.GetWorld()->WorldComposition->GetTileInfo(TileDetails->PackageName);
-	
-	if (Info.bAlwaysLoaded != bAlwaysLoaded)
-	{
-		bool bWasVisible = GetLevelObject()->bIsVisible;
-		
-		// Hide level, so it will be positioned at origin
-		SetVisible(false);
-		
-		auto& WorldModel = static_cast<FWorldTileCollectionModel&>(LevelCollectionModel);
-		TSharedPtr<FWorldTileModel> RootTileModel = WorldModel.GetWorldRootModel();
-
-		// Remove parent relationship	
-		AttachTo(RootTileModel);
-		
-		// Detach children
-		for (auto It = AllChildren.CreateConstIterator(); It; ++It)
-		{
-			(*It)->AttachTo(RootTileModel);
-		}
-		
-		//Remove world positioning
-		TileDetails->Position = FIntPoint::ZeroValue;
-		TileDetails->AbsolutePosition = FIntPoint::ZeroValue;
-
-		//Mark level
-		TileDetails->bAlwaysLoaded = bAlwaysLoaded;
-		OnLevelInfoUpdated();
-
-		// Restore level visibility
-		if (bAlwaysLoaded)
-		{
-			// Always loaded levels - always visible
-			SetVisible(true);
-		}
-		else
-		{
-			SetVisible(bWasVisible);
-		}
-	}
 }
 
 bool FWorldTileModel::IsLandscapeBased() const
@@ -582,27 +528,18 @@ void FWorldTileModel::Update()
 		}
 		else 
 		{
+			if (Level->LevelBoundsActor.IsValid())
+			{
+				TileDetails->Bounds = Level->LevelBoundsActor.Get()->GetComponentsBoundingBox();
+			}
+
 			if (Level->bIsVisible)
 			{
-				if (Level->LevelBoundsActor.IsValid())
-				{
-					TileDetails->Bounds = Level->LevelBoundsActor.Get()->GetComponentsBoundingBox();
-				}
-
-				// Always loaded level should not have any valid bounds
-				// and be positioned at zero origin
-				if (TileDetails->bAlwaysLoaded)
-				{
-					TileDetails->Bounds = FBox(0);
-					TileDetails->Position = FIntPoint::ZeroValue;
-					TileDetails->AbsolutePosition = FIntPoint::ZeroValue;
-				}
-						
 				// True level bounds without offsets applied
 				if (TileDetails->Bounds.IsValid)
 				{
 					FBox LevelWorldBounds = TileDetails->Bounds;
-					FIntPoint GlobalOriginOffset =  LevelCollectionModel.GetWorld()->GlobalOriginOffset;
+					FIntPoint GlobalOriginOffset = LevelCollectionModel.GetWorld()->GlobalOriginOffset;
 					FIntPoint LevelAbolutePosition = GetAbsoluteLevelPosition();
 					FIntPoint LevelOffset = LevelAbolutePosition - GlobalOriginOffset;
 
@@ -640,132 +577,64 @@ void FWorldTileModel::LoadLevel()
 		return;
 	}
 
-	// stream in this level
+	// Create transient level streaming object and add to persistent level
+	ULevelStreaming* LevelStreaming = GetAssosiatedStreamingLevel();
+
+	// Load level
 	bLoadingLevel = true;
-	ULevel::StreamedLevelsOwningWorld.Add(TileDetails->PackageName, LevelCollectionModel.GetWorld());
-	
-	LoadPackageAsync(*TileDetails->PackageName.ToString(), 
-		FLoadPackageAsyncDelegate::CreateSP(this, &FWorldTileModel::AsyncLevelLoadComplete) 
-		);
-}
-
-/* Callback function used by LoadPackageAsync
- * @param	LevelPackage	level package that finished async loading
- */
-void FWorldTileModel::AsyncLevelLoadComplete(const FString& PackageName, UPackage* LevelPackage)
-{
-	check(bLoadingLevel == true);
+	LevelStreaming->bShouldBeLoaded = true;
+	LevelStreaming->bShouldBeVisible = false;
+	LevelStreaming->bShouldBeVisibleInEditor = ShouldBeVisible(LevelCollectionModel.EditableWorldArea());
+	LevelCollectionModel.GetWorld()->FlushLevelStreaming();
 	bLoadingLevel = false;
-	
-	if (LevelPackage)
-	{
-		// Try to find a UWorld object in the level package.
-		UWorld* World = UWorld::FindWorldInPackage(LevelPackage);
-		ULevel* Level = World ? World->PersistentLevel : NULL;	
-				
-		if (Level)
-		{
-			OnLevelLoadedFromDisk(Level);
-		}
-		else
-		{
-			UE_LOG(WorldBrowser, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *PackageName );
-		}
-	}
-	else
-	{
-		UE_LOG(WorldBrowser, Warning, TEXT("Failed to load package '%s'"), *PackageName );
-	}
-}
-
-ULevelStreaming* FWorldTileModel::CreateAssosiatedStreamingLevel()
-{
-	ULevelStreaming* AssociatedStreamingLevel = NULL;
-	ULevel* Level = GetLevelObject();
-		
-	if (Level)
-	{
-		FName PackageName = Level->GetOutermost()->GetFName();
-		UWorld* PersistentWorld = LevelCollectionModel.GetWorld();
-				
-		// Try to find existing object first
-		int32 FoundIndex = PersistentWorld->StreamingLevels.FindMatch(ULevelStreaming::FPackageNameMatcher(PackageName));
-		if (FoundIndex != INDEX_NONE)
-		{
-			AssociatedStreamingLevel = PersistentWorld->StreamingLevels[FoundIndex];
-		}
-		else
-		{
-			// Create new streaming level
-			AssociatedStreamingLevel = Cast<ULevelStreaming>(
-				StaticConstructObject(ULevelStreamingKismet::StaticClass(), PersistentWorld, NAME_None, RF_Transient, NULL)
-				);
-
-			//
-			AssociatedStreamingLevel->PackageName		= PackageName;
-			AssociatedStreamingLevel->DrawColor			= FColor::MakeRandomColor();
-			AssociatedStreamingLevel->LevelTransform	= FTransform::Identity;
-			AssociatedStreamingLevel->PackageNameToLoad	= PackageName;
-			//
-			PersistentWorld->StreamingLevels.Add(AssociatedStreamingLevel);
-		}
-	}
-
-	return AssociatedStreamingLevel;
-}
-
-void FWorldTileModel::OnLevelLoadedFromDisk(ULevel* InLevel)
-{
-	check(InLevel != NULL);
-
-	UWorld* LevelWorld = CastChecked<UWorld>(InLevel->GetOuter());
-	UWorld* PersistentWorld = LevelCollectionModel.GetWorld();
-	UPackage* LevelPackage = CastChecked<UPackage>(InLevel->GetOutermost());
-	
-	LoadedLevel = InLevel;
-
-	// SaveLevel procedure relies on Levels list to be non empty!
-	LevelWorld->AddLevel(LevelWorld->PersistentLevel);
-	{
-		ULevelStreaming* AssociatedStreaming = CreateAssosiatedStreamingLevel();
-		AssociatedStreaming->bShouldBeLoaded = true;
-		AssociatedStreaming->bShouldBeVisible = false;
-	}
-
+	LoadedLevel = LevelStreaming->GetLoadedLevel();
 	// Enable tile properties
-	TileDetails->bTileEditable = true;
-
-	//FixupStreamingObjects();
-	//EnsureLevelHasBoundsActor();
-	
-	// This level might be added to world, it depends on current world origin position
-	// In case level far enough from origin it will shelved
-	auto& WorldModel = static_cast<FWorldTileCollectionModel&>(LevelCollectionModel);
-	WorldModel.OnLevelLoadedFromDisk(
-		StaticCastSharedRef<FWorldTileModel>(this->AsShared())
-		);
+	TileDetails->bTileEditable = (LoadedLevel != nullptr);
 }
 
-void FWorldTileModel::OnLevelUnloaded()
+ULevelStreaming* FWorldTileModel::GetAssosiatedStreamingLevel()
 {
-	TileDetails->bTileEditable = false;
-	// Discard level info 
-	LevelCollectionModel.GetWorld()->WorldComposition->DiscardTileInfo(TileDetails->PackageName);
-	// Pull data from world composition
-	Update();
-	// Make sure children positions are in sync with parent
-	SetLevelPosition(GetAbsoluteLevelPosition());
-}
-
-void FWorldTileModel::OnLevelAddedToWorld()
-{
-	FLevelModel::OnLevelAddedToWorld();
-
-	if (!TileDetails->bAlwaysLoaded)
+	FName PackageName = TileDetails->PackageName;
+	UWorld* PersistentWorld = LevelCollectionModel.GetWorld();
+				
+	// Try to find existing object first
+	auto Predicate = [&](ULevelStreaming* StreamingLevel) 
 	{
-		EnsureLevelHasBoundsActor();
-		LoadedLevel.Get()->LevelBoundsActorUpdated().AddSP(this, &FWorldTileModel::OnLevelBoundsActorUpdated);
+		return (StreamingLevel->PackageName == PackageName && StreamingLevel->HasAnyFlags(RF_Transient));
+	};
+	
+	int32 Index = PersistentWorld->StreamingLevels.IndexOfByPredicate(Predicate);
+	
+	if (Index == INDEX_NONE)
+	{
+		// Create new streaming level
+		ULevelStreaming* AssociatedStreamingLevel = Cast<ULevelStreaming>(
+			StaticConstructObject(ULevelStreamingKismet::StaticClass(), PersistentWorld, NAME_None, RF_Transient, NULL)
+			);
+
+		//
+		AssociatedStreamingLevel->PackageName		= PackageName;
+		AssociatedStreamingLevel->DrawColor			= FColor::MakeRandomColor();
+		AssociatedStreamingLevel->LevelTransform	= FTransform::Identity;
+		AssociatedStreamingLevel->PackageNameToLoad	= PackageName;
+		//
+		Index =PersistentWorld->StreamingLevels.Add(AssociatedStreamingLevel);
 	}
+
+	return PersistentWorld->StreamingLevels[Index];
+}
+
+void FWorldTileModel::OnLevelAddedToWorld(ULevel* InLevel)
+{
+	if (!LoadedLevel.IsValid())
+	{
+		LoadedLevel = InLevel;
+	}
+		
+	FLevelModel::OnLevelAddedToWorld(InLevel);
+
+	EnsureLevelHasBoundsActor();
+	LoadedLevel.Get()->LevelBoundsActorUpdated().AddRaw(this, &FWorldTileModel::OnLevelBoundsActorUpdated);
 }
 
 void FWorldTileModel::OnLevelRemovedFromWorld()
@@ -862,7 +731,7 @@ void FWorldTileModel::OnPositionPropertyChanged()
 
 		// Snap the delta
 		FLevelModelList LevelsList; LevelsList.Add(this->AsShared());
-		FVector2D SnappedDelta = LevelCollectionModel.SnapTranslationDelta(LevelsList, FVector2D(Delta), 0.f);
+		FVector2D SnappedDelta = LevelCollectionModel.SnapTranslationDelta(LevelsList, FVector2D(Delta), false, 0.f);
 
 		// Set new level position
 		SetLevelPosition(Info.AbsolutePosition + FIntPoint(SnappedDelta.X, SnappedDelta.Y));
@@ -875,7 +744,7 @@ void FWorldTileModel::OnPositionPropertyChanged()
 
 void FWorldTileModel::OnParentPackageNamePropertyChanged()
 {	
-	if (GetLevelObject() && !TileDetails->bAlwaysLoaded)
+	if (GetLevelObject())
 	{
 		TSharedPtr<FLevelModel> NewParent = LevelCollectionModel.FindLevelModel(TileDetails->ParentPackageName);
 		// Assign to a root level if new parent is not found
@@ -892,20 +761,6 @@ void FWorldTileModel::OnParentPackageNamePropertyChanged()
 	// Restore original parent
 	FWorldTileInfo Info = LevelCollectionModel.GetWorld()->WorldComposition->GetTileInfo(TileDetails->PackageName);
 	TileDetails->ParentPackageName = FName(*Info.ParentTilePackageName);
-}
-
-void FWorldTileModel::OnAlwaysLoadedPropertyChanged()
-{
-	if (GetLevelObject())
-	{
-		SetAlwaysLoaded(TileDetails->bAlwaysLoaded);
-		LevelCollectionModel.RequestUpdateAllLevels();
-		return;
-	}
-	
-	// Restore original value
-	FWorldTileInfo Info = LevelCollectionModel.GetWorld()->WorldComposition->GetTileInfo(TileDetails->PackageName);
-	TileDetails->bAlwaysLoaded = Info.bAlwaysLoaded;
 }
 
 void FWorldTileModel::OnStreamingLevelsPropertyChanged()
@@ -963,6 +818,126 @@ FText FWorldTileModel::GetLevelLayerNameText() const
 FText FWorldTileModel::GetLevelLayerDistanceText() const
 {
 	return FText::AsNumber(TileDetails->Layer.StreamingDistance);
+}
+
+bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandscape, FIntPoint SourceTileOffset, FWorldTileModel::EWorldDirections InWhere)
+{
+	if (!IsLoaded())	
+	{
+		return false;
+	}
+
+	// Determine import parameters from source landscape
+	FBox SourceLandscapeBounds = SourceLandscape->GetComponentsBoundingBox(true);
+	FVector SourceLandscapeScale = SourceLandscape->GetRootComponent()->GetComponentToWorld().GetScale3D();
+	FIntRect SourceLandscapeRect = SourceLandscape->GetBoundingRect();
+	FIntPoint SourceLandscapeSize = SourceLandscapeRect.Size();
+
+	FLandscapeImportSettings ImportSettings;
+	ImportSettings.SourceLandscape = SourceLandscape;
+	ImportSettings.ComponentSizeQuads = SourceLandscape->ComponentSizeQuads;
+	ImportSettings.SectionsPerComponent = SourceLandscape->NumSubsections;
+	ImportSettings.QuadsPerSection = SourceLandscape->SubsectionSizeQuads;
+	ImportSettings.SizeX = SourceLandscapeRect.Width() + 1;
+	ImportSettings.SizeY = SourceLandscapeRect.Height() + 1;
+
+	// Initialize blank heightmap data
+	ImportSettings.HeightData.AddUninitialized(ImportSettings.SizeX * ImportSettings.SizeY);
+	for (auto& HeightSample : ImportSettings.HeightData)
+	{
+		HeightSample = 32768;
+	}
+
+	// Set proxy location at landscape bounds Min point
+	ImportSettings.LandscapeTransform.SetLocation(-FVector(SourceLandscapeSize, 0.f)*SourceLandscapeScale*0.5f + FVector(0.f, 0.f, SourceLandscape->GetActorLocation().Z));
+	ImportSettings.LandscapeTransform.SetScale3D(SourceLandscapeScale);
+	
+	// Create new landscape object
+	ALandscapeProxy* AdjacenLandscape = ImportLandscape(ImportSettings);
+	if (AdjacenLandscape)
+	{
+		// Refresh level model bounding box
+		FBox AdjacentLandscapeBounds = AdjacenLandscape->GetComponentsBoundingBox(true);
+		TileDetails->Bounds = AdjacentLandscapeBounds;
+
+		// Calculate proxy offset from source landscape actor
+		FVector ProxyOffset(SourceLandscapeBounds.GetCenter() - AdjacentLandscapeBounds.GetCenter());
+
+		// Add offset by chosen direction
+		switch (InWhere)
+		{
+		case FWorldTileModel::XNegative:
+			ProxyOffset += FVector(-SourceLandscapeScale.X*SourceLandscapeSize.X, 0.f, 0.f);
+			break;
+		case FWorldTileModel::XPositive:
+			ProxyOffset += FVector(+SourceLandscapeScale.X*SourceLandscapeSize.X, 0.f, 0.f);
+			break;
+		case FWorldTileModel::YNegative:
+			ProxyOffset += FVector(0.f, -SourceLandscapeScale.Y*SourceLandscapeSize.Y, 0.f);
+			break;
+		case FWorldTileModel::YPositive:
+			ProxyOffset += FVector(0.f, +SourceLandscapeScale.Y*SourceLandscapeSize.Y, 0.f);
+			break;
+		}
+
+		// Add source level position
+		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + SourceTileOffset;
+
+		// Move level with landscape proxy to desired position
+		SetLevelPosition(IntOffset);
+		return true;
+	}
+
+	return false;
+}
+
+ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings& Settings)
+{
+	if (!IsLoaded())
+	{
+		return nullptr;
+	}
+	
+	// In case SourceLandscape os provided, create LnadscapeProxy and copy settings from it
+	// Otherwise create a new LandscapeActor
+	ALandscapeProxy*	Landscape;
+	FGuid				LandscapeGuid;
+	if (Settings.SourceLandscape)
+	{
+		// These settings have to match source landscape settings
+		if (Settings.ComponentSizeQuads != Settings.SourceLandscape->ComponentSizeQuads || 
+			Settings.SectionsPerComponent != Settings.SourceLandscape->NumSubsections ||
+			Settings.QuadsPerSection != Settings.SourceLandscape->SubsectionSizeQuads)
+		{
+			return nullptr;
+		}
+				
+		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
+		Landscape->GetSharedProperties(Settings.SourceLandscape);
+		LandscapeGuid = Settings.SourceLandscape->GetLandscapeGuid();
+	}
+	else
+	{
+		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscape>();
+		LandscapeGuid = FGuid::NewGuid();
+	}
+	
+	Landscape->SetActorTransform(Settings.LandscapeTransform);
+	
+	// Create landscape components	
+	Landscape->Import(
+		LandscapeGuid, 
+		Settings.SizeX, 
+		Settings.SizeY, 
+		Settings.ComponentSizeQuads, 
+		Settings.SectionsPerComponent, 
+		Settings.QuadsPerSection, 
+		Settings.HeightData.GetData(), 
+		NULL, 
+		Settings.ImportLayers, 
+		NULL);
+
+	return Landscape;
 }
 
 #undef LOCTEXT_NAMESPACE

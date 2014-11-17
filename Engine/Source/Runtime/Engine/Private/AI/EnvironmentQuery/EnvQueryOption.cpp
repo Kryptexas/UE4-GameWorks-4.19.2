@@ -6,12 +6,12 @@ UEnvQueryOption::UEnvQueryOption(const class FPostConstructInitializeProperties&
 {
 }
 
-FString UEnvQueryOption::GetDescriptionTitle() const
+FText UEnvQueryOption::GetDescriptionTitle() const
 {
-	return Generator ? Generator->GetDescriptionTitle() : FString();
+	return Generator ? Generator->GetDescriptionTitle() : FText::GetEmpty();
 }
 
-FString UEnvQueryOption::GetDescriptionDetails() const
+FText UEnvQueryOption::GetDescriptionDetails() const
 {
-	return Generator ? Generator->GetDescriptionDetails() : FString();
+	return Generator ? Generator->GetDescriptionDetails() : FText::GetEmpty();
 }

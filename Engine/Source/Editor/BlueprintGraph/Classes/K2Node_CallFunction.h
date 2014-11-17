@@ -48,7 +48,6 @@ private:
 
 public:
 
-#if WITH_EDITOR
 	// UObject interface
 	virtual void PostDuplicate(bool bDuplicateForPIE) OVERRIDE;
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
@@ -59,7 +58,8 @@ public:
 	virtual void DestroyNode() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetDescriptiveCompiledName() const OVERRIDE;
 	virtual bool IsDeprecated() const OVERRIDE;
 	virtual bool ShouldWarnOnDeprecation() const OVERRIDE;
@@ -73,11 +73,11 @@ public:
 	// UK2Node interface
 	virtual void ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) OVERRIDE;
 	virtual bool IsNodePure() const OVERRIDE { return bIsPureFunc; }
-	virtual bool HasExternalBlueprintDependencies() const OVERRIDE;
+	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
 	virtual void PostReconstructNode() OVERRIDE;
 	virtual bool ShouldDrawCompact() const OVERRIDE;
 	virtual bool ShouldDrawAsBead() const OVERRIDE;
-	virtual FString GetCompactNodeTitle() const OVERRIDE;
+	virtual FText GetCompactNodeTitle() const OVERRIDE;
 	virtual void PostPasteNode() OVERRIDE;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
 	virtual bool ShouldShowNodeProperties() const OVERRIDE;
@@ -168,7 +168,5 @@ private:
 protected:
 	/** Helper function to ensure function is called in our context */
 	virtual void EnsureFunctionIsInBlueprint();
-
-#endif
 };
 

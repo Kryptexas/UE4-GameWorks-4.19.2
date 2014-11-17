@@ -8,7 +8,7 @@
 #include "EngineUserInterfaceClasses.h"
 #include "EngineInterpolationClasses.h"
 #include "EngineLevelScriptClasses.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 #include "IHeadMountedDisplay.h"
 #include "IForceFeedbackSystem.h"
 #include "Slate.h"
@@ -18,7 +18,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 
 const float RetryClientRestartThrottleTime = 0.5f;
 const float RetryServerAcknowledgeThrottleTime = 0.25f;
-const float RetryServerCheckSpectatorThrottleTime = 0.025f;
+const float RetryServerCheckSpectatorThrottleTime = 0.25f;
 
 //////////////////////////////////////////////////////////////////////////
 // APlayerController
@@ -380,6 +380,8 @@ bool APlayerController::ServerNotifyLoadedWorld_Validate(FName WorldPackageName)
 
 void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackageName)
 {
+	UE_LOG(LogPlayerController, Log, TEXT("APlayerController::ServerNotifyLoadedWorld_Implementation: Client loaded %s"), *WorldPackageName.ToString());
+
 	UWorld* CurWorld = GetWorld();
 
 	// Only valid for calling, for PC's that have seamlessly traveled
@@ -489,12 +491,6 @@ int32 BlendRot(float DeltaTime, float BlendC, float NewC)
 
 void APlayerController::SmoothTargetViewRotation(APawn* TargetPawn, float DeltaSeconds)
 {
-	const ACharacter* TargetCharacter = Cast<const ACharacter>(TargetPawn);
-	if (TargetCharacter && TargetCharacter->bSimulateGravity)
-	{
-		TargetViewRotation.Roll = 0;
-	}
-
 	BlendedTargetViewRotation.Pitch = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Pitch, FRotator::ClampAxis(TargetViewRotation.Pitch));
 	BlendedTargetViewRotation.Yaw = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Yaw, FRotator::ClampAxis(TargetViewRotation.Yaw));
 	BlendedTargetViewRotation.Roll = BlendRot(DeltaSeconds, BlendedTargetViewRotation.Roll, FRotator::ClampAxis(TargetViewRotation.Roll));
@@ -634,9 +630,9 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		SetControlRotation( PawnToPossess->GetActorRotation() );
 
 		SetPawn(PawnToPossess);
-		GetPawn()->SetActorTickEnabled(true);
-
 		check(GetPawn() != NULL);
+
+		GetPawn()->SetActorTickEnabled(true);
 		GetControlledPawn()->Restart();
 
 		INetworkPredictionInterface* NetworkPredictionInterface = GetPawn() ? InterfaceCast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent()) : NULL;
@@ -655,6 +651,15 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		}
 		UpdateNavigationComponents();
 	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
+	{
+		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+		DebuggingController->RegisterComponent();
+		DebuggingController->InitializeComponent();
+	}
+#endif
 }
 
 void APlayerController::AcknowledgePossession(APawn* P)
@@ -913,6 +918,17 @@ void APlayerController::CreateTouchInterface()
 				DefaultTouchInterface->Activate(VirtualJoystick);
 			}
 		}
+	}
+}
+
+void APlayerController::CleanupGameViewport()
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+
+	if (LocalPlayer && LocalPlayer->ViewportClient && VirtualJoystick.IsValid())
+	{
+		LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+		VirtualJoystick = NULL;
 	}
 }
 
@@ -1478,7 +1494,12 @@ void APlayerController::Pause()
 
 bool APlayerController::ServerPause_Validate()
 {
+#if UE_BUILD_SHIPPING
+	// Don't let clients remotely pause the game in shipping builds.
+	return IsLocalController();
+#else
 	return true;
+#endif
 }
 
 void APlayerController::ServerPause_Implementation()
@@ -1856,7 +1877,7 @@ void APlayerController::PlayerTick( float DeltaTime )
 	ProcessForceFeedback(DeltaTime, DeltaTime == 0.f);
 
 
-	if (Player != NULL)
+	if ((Player != NULL) && (Player->PlayerController == this))
 	{
 		// Validate current state
 		bool bUpdateRotation = false;
@@ -2448,7 +2469,7 @@ void APlayerController::StartFire( uint8 FireModeNum )
 	}
 	else if ( GetPawn() && !bCinematicMode && !GetWorld()->bPlayersOnly )
 	{
- 		GetPawn()->PawnStartFire( FireModeNum );
+		GetPawn()->PawnStartFire( FireModeNum );
 	}
 }
 
@@ -2533,12 +2554,14 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 	{
 		if (PlayerCameraManager != NULL)
 		{
-			PlayerCameraManager->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
+			Canvas->DrawText(RenderFont, "<<<< CAMERA >>>>", 4.0f, YPos );
+			YPos += YL;
+			PlayerCameraManager->DisplayDebug( Canvas, DebugDisplay, YL, YPos );
 		}
 		else
 		{
 			Canvas->SetDrawColor(255,0,0);
-			Canvas->DrawText(RenderFont, "NO CAMERA", 4.0f, YPos );
+			Canvas->DrawText(RenderFont, "<<<< NO CAMERA >>>>", 4.0f, YPos );
 			YPos += YL;
 		}
 	}
@@ -2548,7 +2571,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 		BuildInputStack(InputStack);
 
 		Canvas->SetDrawColor(255,255,255);
-		Canvas->DrawText(RenderFont, TEXT("Input Stack"), 4.0f, YPos);
+		Canvas->DrawText(RenderFont, TEXT("<<<< INPUT STACK >>>"), 4.0f, YPos);
 		YPos += YL;
 
 		for(int32 i=InputStack.Num() - 1; i >= 0; --i)
@@ -2760,7 +2783,8 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 	ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
 	if (LP != NULL)
 	{
-		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
+		UWorld* World = GetWorld();
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
 		if (VoiceInt.IsValid())
 		{
 			if (bSpeaking)
@@ -2775,15 +2799,30 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 	}
 }
 
-/**
- * Tell the server to mute a player for this controller
- *
- * @param PlayerId player id to mute
- */
+void APlayerController::ClientVoiceHandshakeComplete_Implementation()
+{
+	MuteList.bHasVoiceHandshakeCompleted = true;
+}
+
+void APlayerController::GameplayMutePlayer(const FUniqueNetIdRepl& PlayerNetId)
+{
+	if (PlayerNetId.IsValid())
+	{
+		MuteList.GameplayMutePlayer(this, PlayerNetId);
+	}
+}
+
+void APlayerController::GameplayUnmutePlayer(const FUniqueNetIdRepl& PlayerNetId)
+{
+	if (PlayerNetId.IsValid())
+	{
+		MuteList.GameplayUnmutePlayer(this, PlayerNetId);
+	}
+}
+
 void APlayerController::ServerMutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
-MuteList.ServerMutePlayer(this, PlayerId);
-
+	MuteList.ServerMutePlayer(this, PlayerId);
 }
 
 bool APlayerController::ServerMutePlayer_Validate(FUniqueNetIdRepl PlayerId)
@@ -2796,11 +2835,6 @@ bool APlayerController::ServerMutePlayer_Validate(FUniqueNetIdRepl PlayerId)
 	return true;
 }
 
-/**
- * Tell the server to unmute a player for this controller
- *
- * @param PlayerId player id to unmute
- */
 void APlayerController::ServerUnmutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
 	MuteList.ServerUnmutePlayer(this, PlayerId);
@@ -2816,33 +2850,16 @@ bool APlayerController::ServerUnmutePlayer_Validate(FUniqueNetIdRepl PlayerId)
 	return true;
 }
 
-/**
- * Tell the client to mute a player for this controller
- *
- * @param PlayerId player id to mute
- */
 void APlayerController::ClientMutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
-MuteList.ClientMutePlayer(this, PlayerId);
+	MuteList.ClientMutePlayer(this, PlayerId);
 }
 
-/**
- * Tell the client to unmute a player for this controller
- *
- * @param PlayerId player id to unmute
- */
 void APlayerController::ClientUnmutePlayer_Implementation(FUniqueNetIdRepl PlayerId)
 {
-MuteList.ClientUnmutePlayer(this, PlayerId);
+	MuteList.ClientUnmutePlayer(this, PlayerId);
 }
 
-/**
- * Is the specified player muted by this controlling player
- *
- * @param PlayerId potentially muted player
- *
- * @return true if player is muted, false otherwise
- */
 bool APlayerController::IsPlayerMuted(const FUniqueNetId& PlayerId)
 {
 	return MuteList.IsPlayerMuted(PlayerId);
@@ -2858,9 +2875,9 @@ void APlayerController::NotifyDirectorControl(bool bNowControlling, AMatineeActo
 	}
 }
 
-
-void APlayerController::ClientWasKicked_Implementation() {}
-
+void APlayerController::ClientWasKicked_Implementation(const FText& KickReason)
+{
+}
 
 void APlayerController::ConsoleKey(FKey Key)
 {
@@ -3276,8 +3293,10 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 	}
 
 	// initializations only for local players
-	if (Cast<ULocalPlayer>(InPlayer) != NULL)
+	ULocalPlayer *LP = Cast<ULocalPlayer>(InPlayer);
+	if (LP != NULL)
 	{
+		LP->InitOnlineSession();
 		InitInputSystem();
 	}
 	else
@@ -3293,15 +3312,6 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 
 	// notify script that we've been assigned a valid player
 	ReceivedPlayer();
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
-	{
-		DebuggingController = ConstructObject<UGameplayDebuggingController>(UGameplayDebuggingController::StaticClass(), this);
-		DebuggingController->RegisterComponent();
-		DebuggingController->InitializeComponent();
-	}
-#endif
 }
 
 
@@ -3690,9 +3700,13 @@ bool APlayerController::PopInputComponent(UInputComponent* InputComponent)
 	{
 		if (CurrentInputStack.RemoveSingle(InputComponent) > 0)
 		{
-			for (int32 AxisIndex=0; AxisIndex<InputComponent->AxisBindings.Num(); ++AxisIndex)
+			for (FInputAxisBinding& AxisBinding : InputComponent->AxisBindings)
 			{
-				InputComponent->AxisBindings[AxisIndex].AxisValue = 0.f;
+				AxisBinding.AxisValue = 0.f;
+			}
+			for (FInputAxisKeyBinding& AxisKeyBinding : InputComponent->AxisKeyBindings)
+			{
+				AxisKeyBinding.AxisValue = 0.f;
 			}
 
 			return true;

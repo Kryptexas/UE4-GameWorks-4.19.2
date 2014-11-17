@@ -100,6 +100,10 @@ public:
 	/** Callback for checking the additional data drawing flag. */
 	bool IsSetDrawAdditionalData() const;
 
+protected:
+	// FEditorViewportClient interface
+	virtual void PerspectiveCameraMoved() OVERRIDE;
+
 private:
 	/** The Simplygon logo to be drawn when Simplygon has been used on the static mesh. */
 	UTexture2D* SimplygonLogo;

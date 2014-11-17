@@ -251,6 +251,18 @@ public:
 	/** Handles opening the header file of native parent class */
 	void OnEditParentClassNativeCodeClicked();
 
+	/** Called to open native function definition of the current node selection in an IDE */
+	void GotoNativeFunctionDefinition();
+
+	/** Called to check if the current selection is a native function */
+	bool IsSelectionNativeFunction();
+
+	/** Called to open native variable declaration of the current node selection in an IDE */
+	void GotoNativeVariableDefinition();
+
+	/** Called to check if the current selection is a native variable */
+	bool IsSelectionNativeVariable();
+
 	/** Returns: "(<NativeParentClass>.h)" */
 	FText GetTextForNativeParentClassHeaderLink() const;
 
@@ -316,6 +328,9 @@ public:
 
 	/** Called when graph editor focus is changed */
 	virtual void OnGraphEditorFocused(const TSharedRef<class SGraphEditor>& InGraphEditor);
+
+	/** Enable/disable the SCS editor preview viewport */
+	void EnableSCSPreview(bool bEnable);
 
 	/** Refresh the preview viewport to reflect changes in the SCS */
 	void UpdateSCSPreview(bool bUpdateNow = false);
@@ -436,6 +451,9 @@ public:
 
 	/** Adds to a list of custom objects for debugging beyond what will automatically be found/used */
 	virtual void GetCustomDebugObjects(TArray<FCustomDebugObject>& DebugList) const { }
+
+	/** Called when a node's title is committed for a rename */
+	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
 
 protected:
 	
@@ -747,9 +765,6 @@ protected:
 
 	/** Called when a node's title is being committed for a rename so it can be verified */
 	bool OnNodeVerifyTitleCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged);
-
-	/** Called when a node's title is committed for a rename */
-	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
 
 	/**Load macro & function blueprint libraries from asset registry*/
 	void LoadLibrariesFromAssetRegistry();

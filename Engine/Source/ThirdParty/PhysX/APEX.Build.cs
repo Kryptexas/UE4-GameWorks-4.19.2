@@ -79,7 +79,7 @@ public class APEX : ModuleRules
 
 		string APEXLibDir = APEXDir + "lib";
 
-		PublicIncludePaths.AddRange(
+		PublicSystemIncludePaths.AddRange(
 			new string[] {
 				APEXDir + "public",
 				APEXDir + "framework/public",

@@ -233,6 +233,13 @@ public:
 	void Update(bool bGameTicking);
 
 	/**
+	 * Suspend/resume all sounds (global pause for device suspend/resume, etc.)
+	 *
+	 * @param bGameTicking Whether the game is still ticking at the time of suspend
+	 */
+	void Suspend(bool bGameTicking);
+
+	/**
 	 * Counts the bytes for the structures used in this class
 	 */
 	virtual void CountBytes(FArchive& Ar);
@@ -257,6 +264,12 @@ public:
 #if WITH_EDITOR
 	/* Stop any playing sounds so that we can reimport a specific sound wave */
 	void StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray<UAudioComponent*>& ComponentsToRestart);
+
+	/** Deals with anything audio related that should happen when PIE starts */
+	void OnBeginPIE(const bool bIsSimulating);
+
+	/** Deals with anything audio related that should happen when PIE ends */
+	void OnEndPIE(const bool bIsSimulating);
 #endif
 
 	/**
@@ -477,9 +490,9 @@ protected:
 	friend class FSoundSource;
 
 	/**
-	 * Handle pausing/unpausing of sources when entering or leaving pause mode
+	 * Handle pausing/unpausing of sources when entering or leaving pause mode, or global pause (like device suspend)
 	 */
-	void HandlePause( bool bGameTicking );
+	void HandlePause( bool bGameTicking, bool bGlobalPause = false );
 
 	/**
 	 * Stop sources that need to be stopped, and touch the ones that need to be kept alive
@@ -666,15 +679,16 @@ protected:
 	/** Creates a new platform specific sound source */
 	virtual class FSoundSource* CreateSoundSource() PURE_VIRTUAL(FAudioDevice::CreateSoundSource,return NULL;);
 
+	/** Low pass filter OneOverQ value */
+	float GetLowPassFilterResonance() const;
+
 public:
+
 	/** The maximum number of concurrent audible sounds */
 	int32 MaxChannels;
 
 	/** The amount of memory to reserve for always resident sounds */
 	int32 CommonAudioPoolSize;
-
-	/** Low pass filter OneOverQ value */
-	float LowPassFilterResonance;
 
 	/** Pointer to permanent memory allocation stack. */
 	void* CommonAudioPool;

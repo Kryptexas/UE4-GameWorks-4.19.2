@@ -182,7 +182,7 @@ private:
 	void AddIndices( TArray<SlateIndex>& OutIndices, FSlateElementBatch& ElementBatch, const TArray<SlateIndex>& IndexBatch );
 
 private:
-	FSlateImageBrush SplineBrush;
+	const FSlateBrush *SplineBrush;
 	/** Element batch maps sorted by layer */
 	TMap< uint32, TSet<FSlateElementBatch> > LayerToElementBatches;
 	/** Array of vertex lists that are currently free (have no elements in them) */

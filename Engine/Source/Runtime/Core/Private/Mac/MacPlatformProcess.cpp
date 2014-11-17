@@ -24,6 +24,10 @@ void* FMacPlatformProcess::GetDllHandle( const TCHAR* Filename )
 		// Maybe we're not a bundle. Try opening from current working dir.
 		Handle = dlopen( TCHAR_TO_ANSI(Filename), RTLD_LAZY | RTLD_LOCAL );
 	}
+	if (!Handle)
+	{
+		UE_LOG(LogMac, Warning, TEXT("dlopen failed: %s"), ANSI_TO_TCHAR(dlerror()) );
+	}
 	return Handle;
 }
 
@@ -192,7 +196,7 @@ void FMacPlatformProcess::LaunchURL( const TCHAR* URL, const TCHAR* Parms, FStri
 	}
 }
 
-void FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
+bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
 {
 	SCOPED_AUTORELEASE_POOL;
 
@@ -203,7 +207,7 @@ void FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 	{
 		*OutReturnCode = ENOENT;
 		*OutStdErr = TEXT("No such executable");
-		return;
+		return false;
 	}
 	
 	NSTask* ProcessHandle = [[NSTask new] autorelease];
@@ -286,7 +290,9 @@ void FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 				*OutStdErr = FString(StdErrString);
 			}
 		}
+		return true;
 	}
+	return false;
 }
 
 FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite )
@@ -299,7 +305,7 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 	FString ProcessPath = URL;
 	if (*URL != '/' && OptionalWorkingDirectory)
 	{
- 		ProcessPath = FString(BaseDir()) + ProcessPath;
+		ProcessPath = FString(BaseDir()) + ProcessPath;
 	}
 
 	NSString* LaunchPath = (NSString*)FPlatformString::TCHARToCFString(*ProcessPath);
@@ -440,7 +446,7 @@ void FMacPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool KillT
 
 		int32 Mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
 		size_t BufferSize = 0;
-		if (BufferSize > 0 && sysctl(Mib, 4, NULL, &BufferSize, NULL, 0) != -1)
+		if (sysctl(Mib, 4, NULL, &BufferSize, NULL, 0) != -1 && BufferSize > 0)
 		{
 			struct kinfo_proc* Processes = (struct kinfo_proc*)FMemory::Malloc(BufferSize);
 			if (sysctl(Mib, 4, Processes, &BufferSize, NULL, 0) != -1)
@@ -483,25 +489,25 @@ bool FMacPlatformProcess::GetProcReturnCode( FProcHandle & ProcessHandle, int32*
 
 bool FMacPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 {
-    SCOPED_AUTORELEASE_POOL;
-    
-    NSArray* ActiveApps = [[NSWorkspace sharedWorkspace] runningApplications ];
-    
-    if( ActiveApps )
-    {
-        for( NSRunningApplication* App in ActiveApps )
-        {
-            if( App )
-            {
-                NSString* AppName = [App localizedName];
-                if( FString(AppName) == FString(ProcName) )
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
+	SCOPED_AUTORELEASE_POOL;
+	
+	NSArray* ActiveApps = [[NSWorkspace sharedWorkspace] runningApplications ];
+	
+	if( ActiveApps )
+	{
+		for( NSRunningApplication* App in ActiveApps )
+		{
+			if( App )
+			{
+				NSString* AppName = [App localizedName];
+				if( FString(AppName) == FString(ProcName) )
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 bool FMacPlatformProcess::IsApplicationRunning( uint32 ProcessId )
 {
@@ -542,7 +548,15 @@ const TCHAR* FMacPlatformProcess::BaseDir()
 		// If it has .app extension, it's a bundle, otherwise BasePath is a full path to Binaries/Mac (in case of command line tools)
 		if ([[BasePath pathExtension] isEqual: @"app"])
 		{
-			NSString* BundledBinariesPath = [BasePath stringByAppendingPathComponent: @"Contents/UE4/Engine/Binaries/Mac"];
+			NSString* BundledBinariesPath = NULL;
+			if (GGameName[0] != 0)
+			{
+				BundledBinariesPath = [BasePath stringByAppendingPathComponent: [NSString stringWithFormat: @"Contents/UE4/%s/Binaries/Mac", TCHAR_TO_UTF8(GGameName)]];
+			}
+			if (!BundledBinariesPath || ![FileManager fileExistsAtPath:BundledBinariesPath])
+			{
+				BundledBinariesPath = [BasePath stringByAppendingPathComponent: @"Contents/UE4/Engine/Binaries/Mac"];
+			}
 			if ([FileManager fileExistsAtPath: BundledBinariesPath])
 			{
 				BasePath = BundledBinariesPath;
@@ -574,7 +588,57 @@ const TCHAR* FMacPlatformProcess::UserDir()
 
 const TCHAR* FMacPlatformProcess::UserSettingsDir()
 {
-	return UserDir();
+	return ApplicationSettingsDir();
+}
+
+static TCHAR* UserLibrarySubDirectory()
+{
+	static TCHAR Result[MAX_PATH] = TEXT("");
+	if (!Result[0])
+	{
+		FString SubDirectory = IsRunningGame() ? GGameName : FString(TEXT("Unreal Engine")) / GGameName;
+		if (IsRunningDedicatedServer())
+		{
+			SubDirectory += TEXT("Server");
+		}
+		else if (!IsRunningGame())
+		{
+#if WITH_EDITOR
+			SubDirectory += TEXT("Editor");
+#endif
+		}
+		SubDirectory += TEXT("/");
+		FCString::Strcpy(Result, *SubDirectory);
+	}
+	return Result;
+}
+
+const TCHAR* FMacPlatformProcess::UserPreferencesDir()
+{
+	static TCHAR Result[MAX_PATH] = TEXT("");
+	if (!Result[0])
+	{
+		SCOPED_AUTORELEASE_POOL;
+		NSString *UserLibraryDirectory = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
+		FPlatformString::CFStringToTCHAR((CFStringRef)UserLibraryDirectory, Result);
+		FCString::Strcat(Result, TEXT("/Preferences/"));
+		FCString::Strcat(Result, UserLibrarySubDirectory());
+	}
+	return Result;
+}
+
+const TCHAR* FMacPlatformProcess::UserLogsDir()
+{
+	static TCHAR Result[MAX_PATH] = TEXT("");
+	if (!Result[0])
+	{
+		SCOPED_AUTORELEASE_POOL;
+		NSString *UserLibraryDirectory = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex: 0];
+		FPlatformString::CFStringToTCHAR((CFStringRef)UserLibraryDirectory, Result);
+		FCString::Strcat(Result, TEXT("/Logs/"));
+		FCString::Strcat(Result, UserLibrarySubDirectory());
+	}
+	return Result;
 }
 
 const TCHAR* FMacPlatformProcess::ApplicationSettingsDir()
@@ -673,7 +737,7 @@ const FString FMacPlatformProcess::GetModulesDirectory()
 	}
 }
 
-void FMacPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms /*= NULL*/ )
+void FMacPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms /*= NULL*/, ELaunchVerb::Type Verb /*= ELaunchVerb::Open*/ )
 {
 	SCOPED_AUTORELEASE_POOL;
 	// First attempt to open the file in its default application

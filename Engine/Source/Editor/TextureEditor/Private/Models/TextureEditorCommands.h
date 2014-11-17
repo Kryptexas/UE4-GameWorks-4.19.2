@@ -45,7 +45,7 @@ public:
 	TSharedPtr<FUICommandInfo> Saturation;
 
 	/** If enabled, the texture will be scaled to fit the viewport */
-	TSharedPtr<FUICommandInfo> FillViewport;
+	TSharedPtr<FUICommandInfo> FitToViewport;
 
 	/** Sets the checkered background pattern */
 	TSharedPtr<FUICommandInfo> CheckeredBackground;

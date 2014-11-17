@@ -80,6 +80,10 @@ public:
 
 	// End IImageWrapper interface
 
+	const TArray<uint8>& GetRawData() const
+	{
+		return RawData;
+	}
 
 protected:
 

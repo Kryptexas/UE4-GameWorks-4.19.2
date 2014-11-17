@@ -46,7 +46,7 @@ enum EParticleSourceSelectionMethod
 	EPSSM_MAX,
 };
 
-USTRUCT(transient)
+USTRUCT()
 struct FParticleCurvePair
 {
 	GENERATED_USTRUCT_BODY()

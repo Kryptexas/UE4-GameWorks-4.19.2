@@ -103,6 +103,7 @@ DECLARE_DELEGATE(FOnAutomationControllerManagerShutdown);
 class IAutomationControllerManager
 {
 public:
+	virtual ~IAutomationControllerManager() { }
 
 	/** 
 	 * Broadcast a request for workers to ping if they are available 

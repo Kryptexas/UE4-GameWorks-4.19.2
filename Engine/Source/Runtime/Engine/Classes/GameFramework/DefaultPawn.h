@@ -37,9 +37,20 @@ class ENGINE_API ADefaultPawn : public APawn
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	void TurnAtRate(float Rate);
 
+	/**
+	* Called via input to lookup at a given rate.
+	* @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
+	*/
+	UFUNCTION(BlueprintCallable, Category="Pawn")
+	void LookUpAtRate(float Rate);
+	
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Pawn")
 	float BaseTurnRate;
+
+	/** Base lookup rate, in deg/sec. Other scaling may affect final lookup rate. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Pawn")
+	float BaseLookUpRate;
 
 private:
 	/** Input callback on pitch (look up) input. */

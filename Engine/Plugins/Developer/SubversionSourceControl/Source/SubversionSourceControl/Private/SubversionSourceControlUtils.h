@@ -14,6 +14,8 @@ public:
 	/** Constructor - open & write string to temp file */
 	FScopedTempFile(const FString& InText);
 
+	FScopedTempFile(const FText& InText);
+
 	/** Destructor - delete temp file */
 	~FScopedTempFile();
 

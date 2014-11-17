@@ -29,7 +29,6 @@ TSharedRef<FColorDragDrop> FColorDragDrop::New(FLinearColor InColor, bool bSRGB,
 	TSharedPtr<SThemeColorBlocksBar> Origin, int32 OriginPosition)
 {
 	TSharedRef<FColorDragDrop> Operation = MakeShareable(new FColorDragDrop);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FColorDragDrop>(Operation);
 
 	Operation->Color = InColor;
 	Operation->bUseSRGB = bSRGB;

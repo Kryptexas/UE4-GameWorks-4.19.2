@@ -18,23 +18,24 @@
 #include <unicode/locid.h>
 #include <unicode/timezone.h>
 #include <unicode/uclean.h>
+#include <unicode/udata.h>
 #endif
 
 #define LOCTEXT_NAMESPACE "Internationalization"
 
-FInternationalization::FInternationalizationLifetimeObject FInternationalization::InternationalizationLifetimeObject;
-bool FInternationalization::bIsInitialized = false;
-TArray< TSharedRef< FCulture > > FInternationalization::AllCultures;
-int FInternationalization::CurrentCultureIndex = -1;
-TSharedPtr< FCulture > FInternationalization::DefaultCulture;
-TSharedPtr< FCulture > FInternationalization::InvariantCulture;
+FInternationalization* FInternationalization::Instance;
 
-FInternationalization::FInternationalizationLifetimeObject::FInternationalizationLifetimeObject()
+FInternationalization& FInternationalization::Get()
 {
-	if(!(FInternationalization::IsInitialized()))
+	if(!Instance)
 	{
-		FInternationalization::Initialize();
+		Instance = new FInternationalization();
 	}
+	if(Instance && !Instance->IsInitialized())
+	{
+		Instance->Initialize();
+	}
+	return *Instance;
 }
 
 void FInternationalization::GetTimeZonesIDs(TArray<FString>& TimeZonesIDs)
@@ -170,9 +171,22 @@ namespace
 
 void FInternationalization::Initialize()
 {
+	if(IsInitialized())
+	{
+		return;
+	}
+
 #if UE_ENABLE_ICU
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	u_setMemoryFunctions(NULL, &(FICUOverrides::Malloc), &(FICUOverrides::Realloc), &(FICUOverrides::Free), &(ICUStatus));
+	FString DataDirectory;
+	DataDirectory = FPaths::EngineContentDir() / TEXT("Localization");
+	if( !FPaths::FileExists(DataDirectory / TEXT("icudt51l.dat")) )
+	{
+		DataDirectory = FString(FPlatformProcess::BaseDir()) / FPaths::EngineContentDir() / TEXT("Localization");
+	}
+	check( FPaths::FileExists(DataDirectory / TEXT("icudt51l.dat")) );
+	u_setDataDirectory(StringCast<char>(*DataDirectory).Get());
 	u_init(&(ICUStatus));
 #endif
 
@@ -184,7 +198,11 @@ void FInternationalization::Initialize()
 	SetCurrentCulture( TEXT("") );
 #endif
 
+#if UE_ENABLE_ICU
+	bIsInitialized = U_SUCCESS(ICUStatus) ? true : false;
+#else
 	bIsInitialized = true;
+#endif
 }
 
 void FInternationalization::Terminate()
@@ -197,6 +215,9 @@ void FInternationalization::Terminate()
 #if UE_ENABLE_ICU
 	u_cleanup();
 #endif
+
+	delete Instance;
+	Instance = nullptr;
 }
 
 #if ENABLE_LOC_TESTING
@@ -359,6 +380,13 @@ void FInternationalization::GetCultureNames(TArray<FString>& CultureNames)
 		CultureNames.Add(AllCultures[i]->GetName());
 	}
 #endif
+}
+
+FInternationalization::FInternationalization()
+	:	bIsInitialized(false)
+	,	CurrentCultureIndex(INDEX_NONE)
+{
+
 }
 
 void FInternationalization::PopulateAllCultures(void)

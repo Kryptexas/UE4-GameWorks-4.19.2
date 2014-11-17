@@ -21,7 +21,7 @@ int32 UUpdateGameProjectCommandlet::Main( const FString& InParams )
 	UCommandlet::ParseCommandLine(*InParams, Tokens, Switches);
 
 	FString Category;
-	FString ChangelistDescription = TEXT("Updated game project");
+	FText ChangelistDescription = NSLOCTEXT("UpdateGameProjectCmdlet", "ChangelistDescription", "Updated game project");
 	bool bAutoCheckout = false;
 	bool bAutoSubmit = false;
 	bool bSignSampleProject = false;
@@ -49,7 +49,7 @@ int32 UUpdateGameProjectCommandlet::Main( const FString& InParams )
 		}
 		else if ( Switch.StartsWith(ChangelistDescriptionSwitch) )
 		{
-			ChangelistDescription = Switch.Mid( ChangelistDescriptionSwitch.Len() );
+			ChangelistDescription = FText::FromString( Switch.Mid( ChangelistDescriptionSwitch.Len() ) );
 		}
 	}
 
@@ -67,9 +67,11 @@ int32 UUpdateGameProjectCommandlet::Main( const FString& InParams )
 		SourceControlProvider.Init();
 	}
 
-	UE_LOG(LogUpdateGameProjectCommandlet, Display, TEXT("Updating project file %s..."), *ProjectFilePath);
+	FString EngineIdentifier = GEngineVersion.ToString(EVersionComponent::Minor);
 
-	if ( !FGameProjectGenerationModule::Get().UpdateGameProject() )
+	UE_LOG(LogUpdateGameProjectCommandlet, Display, TEXT("Updating project file %s to %s..."), *ProjectFilePath, *EngineIdentifier);
+
+	if ( !FGameProjectGenerationModule::Get().UpdateGameProject(EngineIdentifier) )
 	{
 		// UpdateGameProject produces it's own error to the log
 		return 1;

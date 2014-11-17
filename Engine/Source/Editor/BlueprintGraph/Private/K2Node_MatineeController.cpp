@@ -45,15 +45,15 @@ FLinearColor UK2Node_MatineeController::GetNodeTitleColor() const
 }
 
 
-FString UK2Node_MatineeController::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_MatineeController::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if(MatineeActor != NULL)
 	{
-		return MatineeActor->GetActorLabel();
+		return FText::FromString(MatineeActor->GetActorLabel());
 	}
 	else
 	{
-		return NSLOCTEXT("K2Node", "InvalidMatineeController", "INVALID MATINEECONTROLLER").ToString();
+		return NSLOCTEXT("K2Node", "InvalidMatineeController", "INVALID MATINEECONTROLLER");
 	}
 }
 

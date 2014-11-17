@@ -50,7 +50,8 @@ class UK2Node_InputKey : public UK2Node
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE;
 	// End UEdGraphNode interface.

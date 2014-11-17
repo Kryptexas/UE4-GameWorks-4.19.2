@@ -211,6 +211,8 @@ public:
 
 	TSharedPtr< FUICommandInfo > AttachSelectedActors;
 
+	TSharedPtr< FUICommandInfo > CreateNewOutlinerFolder;
+
 	TSharedPtr< FUICommandInfo > HoldToEnableVertexSnapping;
 
 	/**
@@ -752,6 +754,9 @@ public:
 
 	/** Called when attach selected actors is pressed */
 	static void AttachSelectedActors();
+
+	/** Called when create new outliner folder is clicked */
+	static void CreateNewOutlinerFolder_Clicked();
 
 	/** Called when 'Go to Code for Actor' is clicked */
 	static void GoToCodeForActor_Clicked();

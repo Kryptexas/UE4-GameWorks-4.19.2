@@ -260,9 +260,9 @@ FLinearColor UK2Node_Timeline::GetNodeTitleColor() const
 	return FLinearColor(1.0f, 0.51f, 0.0f);
 }
 
-FString UK2Node_Timeline::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_Timeline::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TimelineName.ToString();
+	return FText::FromName(TimelineName);
 }
 
 UEdGraphPin* UK2Node_Timeline::GetDirectionPin() const
@@ -362,11 +362,16 @@ void FindExactTimelineDifference(struct FDiffResults& Results, FDiffSingleResult
 {
 	if(Tracks1.Num() != Tracks2.Num())
 	{
-		FString NodeName = *Result.Node1->GetNodeTitle(ENodeTitleType::ListView);
+		FText NodeName = Result.Node1->GetNodeTitle(ENodeTitleType::ListView);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("TrackType"), FText::FromString(TrackTypeStr));
+		Args.Add(TEXT("NodeName"), NodeName);
+
 		Result.Diff = EDiffType::TIMELINE_NUM_TRACKS;
-		Result.ToolTip =  FString::Printf(*LOCTEXT("DIF_TimelineNumTracksToolTip", "The number of %s tracks in Timeline '%s' has changed").ToString(), *TrackTypeStr, *NodeName);
+		Result.ToolTip =  FText::Format(LOCTEXT("DIF_TimelineNumTracksToolTip", "The number of {TrackType} tracks in Timeline '{NodeName}' has changed"), Args).ToString();
 		Result.DisplayColor = FLinearColor(0.05f,0.261f,0.775f);
-		Result.DisplayString = FString::Printf(*LOCTEXT("DIF_TimelineNumTracks", "%s Track Count '%s'").ToString(), *TrackTypeStr, *NodeName);
+		Result.DisplayString = FText::Format(LOCTEXT("DIF_TimelineNumTracks", "{TrackType} Track Count '{NodeName}'"), Args).ToString();
 		Results.Add(Result);
 		return;
 	}
@@ -376,11 +381,16 @@ void FindExactTimelineDifference(struct FDiffResults& Results, FDiffSingleResult
 		if(!(Tracks1[i] == Tracks2[i]))
 		{
 			FName TrackName = Tracks2[i].TrackName;
-			FString NodeName = *Result.Node1->GetNodeTitle(ENodeTitleType::ListView);
+			FText NodeName = Result.Node1->GetNodeTitle(ENodeTitleType::ListView);
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("TrackName"), FText::FromName(TrackName));
+			Args.Add(TEXT("NodeName"), NodeName);
+
 			Result.Diff = EDiffType::TIMELINE_TRACK_MODIFIED;
-			Result.ToolTip =  FString::Printf(*LOCTEXT("DIF_TimelineTrackModifiedToolTip", "Track '%s' of Timeline '%s' was Modified").ToString(), *TrackName.ToString(),  *NodeName);
+			Result.ToolTip =  FText::Format(LOCTEXT("DIF_TimelineTrackModifiedToolTip", "Track '{TrackName}' of Timeline '{NodeName}' was Modified"), Args).ToString();
 			Result.DisplayColor = FLinearColor(0.75f,0.1f,0.15f);
-			Result.DisplayString = FString::Printf(*LOCTEXT("DIF_TimelineTrackModified", "Track Modified '%s'").ToString(), *TrackName.ToString());;
+			Result.DisplayString = FText::Format(LOCTEXT("DIF_TimelineTrackModified", "Track Modified '{TrackName}'"), Args).ToString();
 			Results.Add(Result);
 			break;
 		}
@@ -409,28 +419,42 @@ void UK2Node_Timeline::FindDiffs( class UEdGraphNode* OtherNode, struct FDiffRes
 		if(Template1->bAutoPlay != Template2->bAutoPlay)
 		{
 			Diff.Diff = EDiffType::TIMELINE_AUTOPLAY;
-			FString NodeName = *GetNodeTitle(ENodeTitleType::ListView);
-			Diff.ToolTip =  FString::Printf(*LOCTEXT("DIF_TimelineAutoPlayToolTip", "Timeline '%s' had its AutoPlay state changed").ToString(), *NodeName);
+			FText NodeName = GetNodeTitle(ENodeTitleType::ListView);
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("NodeName"), NodeName);
+
+			Diff.ToolTip =  FText::Format(LOCTEXT("DIF_TimelineAutoPlayToolTip", "Timeline '{NodeName}' had its AutoPlay state changed"), Args).ToString();
 			Diff.DisplayColor = FLinearColor(0.15f,0.61f,0.15f);
-			Diff.DisplayString = FString::Printf(*LOCTEXT("DIF_TimelineAutoPlay", "Timeline AutoPlay Changed '%s'").ToString(), *NodeName);
+			Diff.DisplayString = FText::Format(LOCTEXT("DIF_TimelineAutoPlay", "Timeline AutoPlay Changed '{NodeName}'"), Args).ToString();
 			Results.Add(Diff);
 		}
 		if(Template1->bLoop != Template2->bLoop)
 		{
 			Diff.Diff = EDiffType::TIMELINE_LOOP;
-			FString NodeName = *GetNodeTitle(ENodeTitleType::ListView);
-			Diff.ToolTip =  FString::Printf(*LOCTEXT("DIF_TimelineLoopingToolTip", "Timeline '%s' had its looping state changed").ToString(), *NodeName);
+			FText NodeName = GetNodeTitle(ENodeTitleType::ListView);
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("NodeName"), NodeName);
+
+			Diff.ToolTip =  FText::Format(LOCTEXT("DIF_TimelineLoopingToolTip", "Timeline '{NodeName}' had its looping state changed"), Args).ToString();
 			Diff.DisplayColor = FLinearColor(0.75f,0.1f,0.75f);
-			Diff.DisplayString =  FString::Printf(*LOCTEXT("DIF_TimelineLooping", "Timeline Loop Changed '%s'").ToString(), *NodeName);
+			Diff.DisplayString =  FText::Format(LOCTEXT("DIF_TimelineLooping", "Timeline Loop Changed '{NodeName}'"), Args).ToString();
 			Results.Add(Diff);
 		}
 		if(Template1->TimelineLength != Template2->TimelineLength)
 		{
-			FString NodeName = *GetNodeTitle(ENodeTitleType::ListView);
+			FText NodeName = GetNodeTitle(ENodeTitleType::ListView);
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("NodeName"), NodeName);
+			Args.Add(TEXT("TimelineLength1"), Template1->TimelineLength);
+			Args.Add(TEXT("TimelineLength2"), Template2->TimelineLength);
+
 			Diff.Diff = EDiffType::TIMELINE_LENGTH;
-			Diff.ToolTip = FString::Printf(*LOCTEXT("DIF_TimelineLengthToolTip", "Length of Timeline '%s' has changed. Was %f, but is now %f").ToString(), *NodeName,Template1->TimelineLength, Template2->TimelineLength);
+			Diff.ToolTip = FText::Format(LOCTEXT("DIF_TimelineLengthToolTip", "Length of Timeline '{NodeName}' has changed. Was {TimelineLength1}, but is now {TimelineLength2}"), Args).ToString();
 			Diff.DisplayColor = FLinearColor(0.25f,0.1f,0.15f);
-			Diff.DisplayString =  FString::Printf(*LOCTEXT("DIF_TimelineLength", "Timeline Length '%s' [%f -> %f]").ToString(), *NodeName, Template1->TimelineLength, Template2->TimelineLength);
+			Diff.DisplayString =  FText::Format(LOCTEXT("DIF_TimelineLength", "Timeline Length '{NodeName}' [{TimelineLength1} -> {TimelineLength2}]"), Args).ToString();
 			Results.Add(Diff);
 		}
 

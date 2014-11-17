@@ -26,7 +26,6 @@ public:
 	 * Destructor.
 	 */
 	~TRangeSet( ) { }
-	
 
 public:
 	
@@ -109,7 +108,6 @@ public:
 	{
 		Ranges.Empty();
 	}
-	
 	
 public:
 	
@@ -215,7 +213,6 @@ public:
 		return false;
 	}
 	
-	
 public:
 
 	/**
@@ -230,7 +227,6 @@ public:
 	{
 		return Ar << RangeSet.Ranges;
 	}
-
 
 private:
 

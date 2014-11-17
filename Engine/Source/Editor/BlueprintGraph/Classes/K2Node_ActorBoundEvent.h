@@ -18,11 +18,11 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 	class AActor* EventOwner;
 
 
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void ReconstructNode() OVERRIDE;
 	virtual void DestroyNode() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetDocumentationLink() const OVERRIDE;
 	virtual FString GetDocumentationExcerptName() const OVERRIDE;
@@ -51,6 +51,5 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 
 	/** Returns the delegate that this event is bound in */
 	BLUEPRINTGRAPH_API FMulticastScriptDelegate* GetTargetDelegate();
-#endif
 };
 

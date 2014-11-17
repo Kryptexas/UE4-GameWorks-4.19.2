@@ -22,7 +22,7 @@ public:
 
 public:
 	// UEdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void PostReconstructNode() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;

@@ -17,12 +17,11 @@ class UK2Node_DelegateSet : public UK2Node
 	UPROPERTY()
 	TSubclassOf<class UObject>  DelegatePropertyClass;
 
-
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const { return FColor(216,88,88); }
 	// End UEdGraphNode interface
 
@@ -49,7 +48,5 @@ class UK2Node_DelegateSet : public UK2Node
 	// @todo document
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature();
 	BLUEPRINTGRAPH_API UFunction* GetDelegateSignature() const;
-
-#endif
 };
 

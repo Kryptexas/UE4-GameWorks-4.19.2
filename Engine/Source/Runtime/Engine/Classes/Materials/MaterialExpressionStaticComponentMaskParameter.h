@@ -9,7 +9,7 @@ class UMaterialExpressionStaticComponentMaskParameter : public UMaterialExpressi
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY()
 	FExpressionInput Input;
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionStaticComponentMaskParameter)

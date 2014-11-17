@@ -79,8 +79,24 @@ void UK2Node_ActorBoundEvent::DestroyNode()
 	Super::DestroyNode();
 }
 
-FString UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_ActorBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FText TargetName = LOCTEXT("None", "None");
+	if( EventOwner )
+	{
+		TargetName = FText::FromString(EventOwner->GetActorLabel());		
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
+	Args.Add(TEXT("TargetName"), TargetName);
+
+	return FText::Format(LOCTEXT("ActorBoundEventTitle", "{DelegatePropertyName} ({TargetName})"), Args);
+}
+
+FString UK2Node_ActorBoundEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	FString TargetName = TEXT("None");
 	if( EventOwner )
 	{

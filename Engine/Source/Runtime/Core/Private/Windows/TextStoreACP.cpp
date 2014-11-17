@@ -23,9 +23,9 @@ namespace
 FTextStoreACP::FTextStoreACP(const TSharedRef<ITextInputMethodContext>& Context)
 	:	ReferenceCount(1)
 	,	TextContext(Context)
-	,	TextFrameworkDocumentManager(nullptr)
-	,	TextFrameworkContext(nullptr)
-	,	TextFrameworkEditCookie(0)
+	,	TSFDocumentManager(nullptr)
+	,	TSFContext(nullptr)
+	,	TSFEditCookie(0)
 {
 }
 
@@ -464,10 +464,10 @@ STDAPI FTextStoreACP::GetTextExt(TsViewCookie vcView, LONG acpStart, LONG acpEnd
 	FVector2D Position;
 	FVector2D Size;
 	*pfClipped	=	TextContext->GetTextBounds(acpStart, acpEnd - acpStart, Position, Size);
-	prc->top	=	Position.Y;
 	prc->left	=	Position.X;
-	prc->bottom	=	Size.Y;
-	prc->right	=	Size.X;
+	prc->top	=	Position.Y;
+	prc->right	=	Position.X + Size.X;
+	prc->bottom	=	Position.Y + Size.Y;
 
 	return S_OK;
 }
@@ -485,10 +485,10 @@ STDAPI FTextStoreACP::GetScreenExt(TsViewCookie vcView, RECT *prc)
 	FVector2D Position;
 	FVector2D Size;
 	TextContext->GetScreenBounds(Position, Size);
-	prc->top	=	Position.Y;
 	prc->left	=	Position.X;
-	prc->bottom	=	Size.Y;
-	prc->right	=	Size.X;
+	prc->top	=	Position.Y;
+	prc->right	=	Position.X + Size.X;
+	prc->bottom	=	Position.Y + Size.Y;
 
 	return S_OK;
 }
@@ -742,9 +742,9 @@ STDAPI FTextStoreACP::OnStartComposition(ITfCompositionView *pComposition, BOOL 
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("OnStartComposition"));
 
 	// Can only handle 1 composition. This is not an error or failure, however.
-	if(!Composition.TextFrameworkCompositionView)
+	if(!Composition.TSFCompositionView)
 	{
-		Composition.TextFrameworkCompositionView = pComposition;
+		Composition.TSFCompositionView = pComposition;
 
 		TextContext->BeginComposition();
 
@@ -763,13 +763,13 @@ STDAPI FTextStoreACP::OnUpdateComposition(ITfCompositionView *pComposition, ITfR
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("OnUpdateComposition"));
 
 	// Can not update without an active composition.
-	if(!Composition.TextFrameworkCompositionView)
+	if(!Composition.TSFCompositionView)
 	{
 		return E_UNEXPECTED;
 	}
 
 	// Specified composition must be our composition.
-	if(pComposition != Composition.TextFrameworkCompositionView)
+	if(pComposition != Composition.TSFCompositionView)
 	{
 		return E_UNEXPECTED;
 	}
@@ -796,18 +796,18 @@ STDAPI FTextStoreACP::OnEndComposition(ITfCompositionView *pComposition)
 	UE_LOG(LogTextStoreACP, Verbose, TEXT("OnEndComposition"));
 
 	// Can not update without an active composition.
-	if(!Composition.TextFrameworkCompositionView)
+	if(!Composition.TSFCompositionView)
 	{
 		return E_UNEXPECTED;
 	}
 
 	// Specified composition must be our composition.
-	if(pComposition != Composition.TextFrameworkCompositionView)
+	if(pComposition != Composition.TSFCompositionView)
 	{
 		return E_UNEXPECTED;
 	}
 
-	Composition.TextFrameworkCompositionView.Reset();
+	Composition.TSFCompositionView.Reset();
 
 	TextContext->EndComposition();
 

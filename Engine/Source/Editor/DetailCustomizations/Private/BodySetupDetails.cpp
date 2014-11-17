@@ -4,6 +4,7 @@
 #include "BodySetupDetails.h"
 #include "ScopedTransaction.h"
 #include "ObjectEditorUtils.h"
+#include "IDocumentation.h"
 
 #define LOCTEXT_NAMESPACE "BodySetupDetails"
 
@@ -39,7 +40,7 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 				[
 					SNew (STextBlock)
 					.Text(NSLOCTEXT("MassInKG", "MassInKG_Name", "Mass in KG"))
-					.ToolTipText(NSLOCTEXT("MassInKG", "MassInKG_ToolTip", "Mass of the body in KG"))
+					.ToolTip( IDocumentation::Get()->CreateToolTip(LOCTEXT("MassInKG", "Mass of the body in KG"), NULL, TEXT("Shared/Physics"), TEXT("MassInKG")) )
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 			.ValueContent()

@@ -27,6 +27,7 @@
 #include "GlobalEditorCommonCommands.h"
 #include "LevelEditorCreateActorMenu.h"
 #include "SourceCodeNavigation.h"
+#include "Developer/MeshUtilities/Public/MeshUtilities.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportContextMenu"
 
@@ -143,13 +144,23 @@ struct FLevelScriptEventMenuHelper
 //       payload contains a weak reference to a level editor instance
 TSharedPtr< SWidget > FLevelViewportContextMenu::BuildMenuWidget( TWeakPtr< SLevelEditor > LevelEditor, TSharedPtr<FExtender> Extender )
 {
-	TSharedRef< FAssetThumbnailPool > ThumbnailPool = MakeShareable(new FAssetThumbnailPool(5, true));
+	// Build up the menu
+	const bool bShouldCloseWindowAfterMenuSelection = true;
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, TSharedPtr<const FUICommandList>());
 
+	FillMenu(MenuBuilder, LevelEditor, Extender);
+	
+	return MenuBuilder.MakeWidget();
+}
+
+void FLevelViewportContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> LevelEditor, TSharedPtr<FExtender> Extender )
+{
 	// Generate information about our selection
 	TArray<AActor*> SelectedActors;
 	GEditor->GetSelectedActors()->GetSelectedObjects<AActor>( SelectedActors );
-	FLevelViewportContextMenuImpl::SelectionInfo = AssetSelectionUtils::BuildSelectedActorInfo( SelectedActors );
 
+	FSelectedActorInfo& SelectionInfo = FLevelViewportContextMenuImpl::SelectionInfo;
+	SelectionInfo = AssetSelectionUtils::BuildSelectedActorInfo( SelectedActors );
 
 	// Get all menu extenders for this context menu from the level editor module
 	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
@@ -161,21 +172,17 @@ TSharedPtr< SWidget > FLevelViewportContextMenu::BuildMenuWidget( TWeakPtr< SLev
 		Extenders.Add(Extender);
 	}
 
+	auto LevelEditorActions = LevelEditor.Pin()->GetLevelEditorActions().ToSharedRef();
 	for (int32 i = 0; i < MenuExtenderDelegates.Num(); ++i)
 	{
 		if (MenuExtenderDelegates[i].IsBound())
 		{
-			Extenders.Add(MenuExtenderDelegates[i].Execute(LevelEditor.Pin()->GetLevelEditorActions().ToSharedRef(), SelectedActors));
+			Extenders.Add(MenuExtenderDelegates[i].Execute(LevelEditorActions, SelectedActors));
 		}
 	}
-	TSharedPtr<FExtender> MenuExtender = FExtender::Combine(Extenders);
 
-
-	FSelectedActorInfo& SelectionInfo = FLevelViewportContextMenuImpl::SelectionInfo;
-
-	// Build up the menu
-	const bool bShouldCloseWindowAfterMenuSelection = true;	// Set the menu to automatically close when the user commits to a choice
-	FMenuBuilder MenuBuilder( bShouldCloseWindowAfterMenuSelection, LevelEditor.Pin()->GetLevelEditorActions(), MenuExtender );
+	MenuBuilder.PushCommandList(LevelEditorActions);
+	MenuBuilder.PushExtender(FExtender::Combine(Extenders).ToSharedRef());
 
 	TArray<TWeakObjectPtr<UObject>> LabelObjects;
 	for ( FSelectionIterator SelItor(*GEditor->GetSelectedActors()) ; SelItor ; ++SelItor )
@@ -310,7 +317,7 @@ TSharedPtr< SWidget > FLevelViewportContextMenu::BuildMenuWidget( TWeakPtr< SLev
 				LOCTEXT( "ActorAttachToSubMenu_ToolTip", "Attach Actor as child" ),
 				FNewMenuDelegate::CreateStatic( &FLevelViewportContextMenuImpl::FillActorMenu ) );
 		}
-		
+
 		// Add a heading for "Movement" if an actor is selected
 		if ( GEditor->GetSelectedActorIterator() )
 		{
@@ -344,7 +351,8 @@ TSharedPtr< SWidget > FLevelViewportContextMenu::BuildMenuWidget( TWeakPtr< SLev
 
 	FLevelScriptEventMenuHelper::FillLevelBlueprintEventsMenu(MenuBuilder, SelectedActors);
 
-	return MenuBuilder.MakeWidget();
+	MenuBuilder.PopCommandList();
+	MenuBuilder.PopExtender();
 }
 
 
@@ -783,7 +791,15 @@ void FLevelViewportContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 				{
 					AActor* Actor = static_cast<AActor*>( *It );
 					if (!GEditor->CanParentActors(ParentActor, Actor))
-					{		
+					{
+						return false;
+					}
+
+					USceneComponent* ChildRoot = Actor->GetRootComponent();
+					USceneComponent* ParentRoot = ParentActor->GetRootComponent();
+
+					if (ChildRoot != nullptr && ParentRoot != nullptr && ChildRoot->IsAttachedTo(ParentRoot))
+					{
 						return false;
 					}
 				}
@@ -803,7 +819,6 @@ void FLevelViewportContextMenuImpl::FillActorMenu( FMenuBuilder& MenuBuilder )
 		[
 			SceneOutlinerModule.CreateSceneOutliner(
 			InitOptions,
-			FOnContextMenuOpening(), //no context menu allowed here
 			FOnActorPicked::CreateStatic( &FLevelEditorActionCallbacks::AttachToActor ) )
 		];
 
@@ -978,13 +993,17 @@ void FLevelViewportContextMenuImpl::FillMergeActorsMenu( class FMenuBuilder& Men
 {
 	MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MergeActorsByMaterials );
 
-#if WITH_SIMPLYGON
-	MenuBuilder.BeginSection("ProxySimplygon", LOCTEXT("SimplygonHeading", "Simplygon") );
+	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+	IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
+
+	if (MeshReduction && MeshReduction->IsSupported())
 	{
-		MenuBuilder.AddMenuEntry( FLevelEditorCommands::Get().MergeActors );
+		MenuBuilder.BeginSection("ProxySimplygon", LOCTEXT("SimplygonHeading", "Simplygon"));
+		{
+			MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().MergeActors);
+		}
+		MenuBuilder.EndSection();
 	}
-	MenuBuilder.EndSection();
-#endif
 }
 
 void FLevelScriptEventMenuHelper::FillLevelBlueprintEventsMenu(class FMenuBuilder& MenuBuilder, const TArray<AActor*>& SelectedActors)

@@ -1585,10 +1585,8 @@ void FScene::Release()
 
 	if (!bTriggeredOnce)
 	{
-		for( TObjectIterator<UActorComponent> It; It; ++It )
+		for (auto* ActorComponent : TObjectRange<UActorComponent>())
 		{
-			UActorComponent* ActorComponent = *It;
-
 			if ( !ensureMsg(!ActorComponent->IsRegistered() || ActorComponent->GetScene() != this, 
 					*FString::Printf(TEXT("Component Name: %s World Name: %s Component Mesh: %s"), 
 										*ActorComponent->GetFullName(), 
@@ -1816,27 +1814,6 @@ static void StaticMeshDrawListApplyWorldOffset(T(&InList)[N], FVector InOffset)
 	for (int32 i = 0; i < N; i++)
 	{
 		InList[i].ApplyWorldOffset(InOffset);
-	}
-}
-
-// Octree elements shifting: specialization for FSceneLightOctree
-template<>
-void ElementsApplyOffset(const FVector& InOffset, FSceneLightOctree::ElementArrayType& Elements)
-{
-	VectorRegister OffsetReg = VectorLoadFloat3(&InOffset);
-	for (int32 i = 0; i < Elements.Num(); ++i)
-	{
-		Elements[i].BoundingSphereVector = VectorAdd(Elements[i].BoundingSphereVector, OffsetReg);
-	}
-}
-
-// Octree elements shifting: specialization for FScenePrimitiveOctree
-template<>
-void ElementsApplyOffset(const FVector& InOffset, FScenePrimitiveOctree::ElementArrayType& Elements)
-{
-	for (int32 i = 0; i < Elements.Num(); ++i)
-	{
-		Elements[i].Bounds.Origin+= InOffset;
 	}
 }
 
@@ -2278,10 +2255,7 @@ void FMotionBlurInfoData::UpdateMotionBlurCache()
 {
 	check(IsInRenderingThread());
 
-	bool bPaused = GRenderingRealtimeClock.GetGamePaused();
-
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 &&
-		!bPaused)
+	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		if(bShouldClearMotionBlurInfo)
 		{

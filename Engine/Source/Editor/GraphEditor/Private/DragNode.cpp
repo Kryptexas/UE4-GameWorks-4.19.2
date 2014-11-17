@@ -7,7 +7,6 @@
 TSharedRef<FDragNode> FDragNode::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TSharedRef<SGraphNode>& InDraggedNode)
 {
 	TSharedRef<FDragNode> Operation = MakeShareable(new FDragNode);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FDragNode>(Operation);
 	Operation->GraphPanel = InGraphPanel;
 	Operation->DraggedNodes.Add(InDraggedNode);
 	// adjust the decorator away from the current mouse location a small amount based on cursor size
@@ -19,7 +18,6 @@ TSharedRef<FDragNode> FDragNode::New(const TSharedRef<SGraphPanel>& InGraphPanel
 TSharedRef<FDragNode> FDragNode::New(const TSharedRef<SGraphPanel>& InGraphPanel, const TArray< TSharedRef<SGraphNode> >& InDraggedNodes)
 {
 	TSharedRef<FDragNode> Operation = MakeShareable(new FDragNode);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FDragNode>(Operation);
 	Operation->GraphPanel = InGraphPanel;
 	Operation->DraggedNodes = InDraggedNodes;
 	Operation->DecoratorAdjust = FSlateApplication::Get().GetCursorSize();
@@ -82,7 +80,7 @@ void FDragNode::HoverTargetChanged()
 		SetSimpleFeedbackMessage(
 			FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")),
 			FLinearColor::White,
-			NSLOCTEXT("GraphEditor.Feedback", "DragNode", "This node cannot be placed here.").ToString());
+			NSLOCTEXT("GraphEditor.Feedback", "DragNode", "This node cannot be placed here."));
 	}
 	else
 	{

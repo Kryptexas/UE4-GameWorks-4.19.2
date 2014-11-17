@@ -14,7 +14,6 @@
 
 #include "UMemoryDefines.h"
 #include "StatsMisc.h"
-CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogStats, Warning, All);
 
 // used by the profiler
 enum EStatType
@@ -35,7 +34,7 @@ template<> inline const TCHAR* GetStatFormatString<int64>(void) { return TEXT("%
 template<> inline const TCHAR* GetStatFormatString<float>(void) { return TEXT("%.1f"); }
 template<> inline const TCHAR* GetStatFormatString<double>(void) { return TEXT("%.1f"); }
 
-#include "stats2.h"
+#include "Stats2.h"
 
 #if STATS
 

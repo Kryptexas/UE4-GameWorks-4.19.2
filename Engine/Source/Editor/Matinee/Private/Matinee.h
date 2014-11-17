@@ -86,7 +86,9 @@ public:
 	 * @param bPlayLoop		Whether or not we should play the looping section.
 	 * @param bPlayForward	true if we should play forwards, or false for reverse
 	 */
-	void StartPlaying( bool bPlayLoop, bool bPlayForward ) OVERRIDE;
+	void StartPlaying(bool bPlayLoop, bool bPlayForward) OVERRIDE;
+
+	void ResumePlaying() OVERRIDE;
 
 	/** Stops playing the current sequence. */
 	void StopPlaying() OVERRIDE;
@@ -196,6 +198,9 @@ public:
 	void OnToggleDirectorTimeline();
 	bool IsDirectorTimelineToggled();
 
+	void OnToggleCurveEditor();
+	bool IsCurveEditorToggled();
+
 	/**
 	 * Called when the user selects the 'Expand All Groups' option from a menu.  Expands every group such that the
 	 * entire hierarchy of groups and tracks are displayed.
@@ -208,8 +213,8 @@ public:
 	 */
 	void OnCollapseAllGroups();
 
-	void OnContextNewTrack( int32 InIndex );
-	bool CanCreateNewTrack( int32 InIndex ) const;
+	void OnContextNewTrack(UClass* NewInterpTrackClass);
+	bool CanCreateNewTrack(UClass* NewInterpTrackClass) const;
 	void OnContextNewGroup( FMatineeCommands::EGroupAction::Type InActionId ); 
 	bool CanCreateNewGroup( FMatineeCommands::EGroupAction::Type InActionId ) const;
 	void OnContextTrackRename();
@@ -666,11 +671,6 @@ public:
 	void InvalidateTrackWindowViewports() OVERRIDE;
 
 	/**
-	 * Either shows or hides the director track window by splitting/unsplitting the parent window
-	 */
-	void UpdateDirectorTrackWindowVisibility();
-
-	/**
 	 * Updates the contents of the property window based on which groups or tracks are selected if any. 
 	 */
 	void UpdatePropertyWindow();
@@ -907,7 +907,7 @@ public:
 	 */
 	void AddTrackToCurveEd( FString GroupName, FColor GroupColor, UInterpTrack* InTrack, bool bShouldShowTrack );
 
-	void SetInterpPosition(float NewPosition);
+	void SetInterpPosition(float NewPosition, bool Scrubbing = false);
 
 	/** Refresh the Matinee position marker and viewport state */
 	void RefreshInterpPosition();
@@ -967,7 +967,7 @@ public:
 	void MoveInitialPosition(const FVector& Delta, const FRotator& DeltaRot) OVERRIDE;
 
 	void ActorModified( bool bUpdateViewportTransform = true ) OVERRIDE;
-	void ActorSelectionChange() OVERRIDE;
+	void ActorSelectionChange( const bool bClearSelectionIfInvalid = true ) OVERRIDE;
 	void CamMoved(const FVector& NewCamLocation, const FRotator& NewCamRotation) OVERRIDE;
 	bool ProcessKeyPress(FKey Key, bool bCtrlDown, bool bAltDown) OVERRIDE;
 
@@ -986,8 +986,12 @@ public:
 	/** Called from TickInterp, handles the ticking of the camera recording (game caster, xbox controller)*/
 	void UpdateCameraRecording (void);
 
+	void UpdateViewportSettings();
+
 	/** Constrains the maximum frame rate to the fixed time step rate when playing back in that mode */
 	void ConstrainFixedTimeStepFrameRate();
+
+	void UpdateInitialTransformForMoveTrack(UInterpGroup* OwningGroup, UInterpTrackMove* InMoveTrack);
 
 	static void UpdateAttachedLocations(AActor* BaseActor);
 
@@ -1003,20 +1007,23 @@ public:
 	void SetAudioRealtimeOverride( bool bAudioIsRealtime ) const;
 
 	/**
-	 * Called to enable aspect ratio bar display override
+	 * Called to enable/disable aspect ratio bar display
 	 */
-	void OnEnableAspectRatioBars();
+	void OnToggleAspectRatioBars();
 
 	/**
-	 * Called to enable safe frame display override
+	 * Called to enable/disable safe frame display
 	 */
-	void OnEnableSafeFrames();
+	void OnToggleSafeFrames();
 
 	/** @return True if aspect ratio bars are being displayed in a matinee controlled viewport */
 	bool AreAspectRatioBarsEnabled() const;
 
 	/** @return True if safe frames are displayed in a matinee controlled viewport */
 	bool IsSafeFrameDisplayEnabled() const;
+
+	/** Sets the curve tab's visibility */
+	void SetCurveTabVisibility(bool Visible);
 
 	/** Menubar */
 	TSharedPtr<SWidget> MenuBar;
@@ -1027,11 +1034,16 @@ public:
 	/** The curve editor window (dockable) */
 	TSharedPtr<IDistributionCurveEditor> CurveEd;
 
+	/** A weak pointer to the curve editor's tab so that we can tell if it's open or closed */
+	TWeakPtr<SDockTab> CurveEdTab;
+
 	/** Director track editor window (dockable) */
 	TSharedPtr<SMatineeViewport> DirectorTrackWindow;
 
 	/** Main track editor window (dockable) */
 	TSharedPtr<SMatineeViewport> TrackWindow;
+
+	TSharedPtr<SBorder> GroupFilterContainer;
 
 	UTexture2D*	BarGradText;
 	FColor PosMarkerColor;
@@ -1257,6 +1269,19 @@ public:
 
 protected:
 
+	/**
+	* Gets the visibility of the director track view
+	*/
+	EVisibility GetDirectorTrackWindowVisibility() const;
+
+	TSharedRef<SWidget> BuildGroupFilterToolbar();
+
+	TSharedRef<SWidget> AddFilterButton(UInterpFilter* Filter);
+
+	void SetFilterActive(ESlateCheckBoxState::Type CheckStatus, UInterpFilter* Filter);
+
+	ESlateCheckBoxState::Type GetFilterActive(UInterpFilter* Filter) const;
+
 	/** Holds the slate object for the Matinee Recorder. */
 	TWeakPtr<SMatineeRecorder> MatineeRecorderWindow;
 
@@ -1376,34 +1401,12 @@ protected:
 	float GetLongestTrackTime() const;
 
 	/**
-	 * Selects the group actor associated to the given interp group. 
-	 *
-	 * @param	AssociatedGroup	The group corresponding to the referenced actor to select. 
-	 * @param	bDeselectActors	If true, deselects all other actors first
-	 */
-	void SelectGroupActor( UInterpGroup* AssociatedGroup, bool bDeselectActors );
-
-	/**
-	 * Deselects the group actor associated to the given interp group. 
-	 *
-	 * @param	AssociatedGroup	The group corresponding to the referenced actor to deselect. 
-	 */
-	void DeselectGroupActor( UInterpGroup* AssociatedGroup );
-
-	/**
 	 * Update the preview camera actor, should be called when the track or group selection state changes
 	 *
 	 * @param	Associated	The group or track corresponding to the referenced actor update 
 	 */
 	void UpdatePreviewCamera( UInterpGroup* AssociatedGroup ) const;
 	void UpdatePreviewCamera( UInterpTrack* AssociatedTrack ) const;
-
-	/**
-	 * Determines if the currently selected scene actor is within the currently selected Matinee group.
-	 *
-	 * @return	True if the actor is within the group, otherwise false
-	 */
-	bool IsSelectedActorInSelectedGroup();
 
 	/**Recording Menu Selection State*/
 	int32 RecordMenuSelection;
@@ -1474,7 +1477,7 @@ private:
 	void BuildTrackWindow();
 
 	/** Show a slate notification to say why an actor couldn't be added to a matinee group. */
-	void ShowAddActorWarningSlateNotification( AActor* ActorToAdd );
+	bool PrepareToAddActorAndWarnUser(AActor* ActorToAdd);
 	
 	/* Context Menu Builders */
 	TSharedPtr<SWidget> CreateBkgMenu(bool bIsDirectorTrackWindow);
@@ -1533,6 +1536,9 @@ private:
 
 	/** check to see if this matinee is currently editing a camera anim (restricts functionality) */
 	bool IsCameraAnim() const;
+
+	/** Update the actor selection in the editor to match those needed by the currently selected groups/tracks */
+	void UpdateActorSelection() const;
 
 public:
 	/** Called by Matinee track helpers to finish the CreateKey once all the needed data is gathered 

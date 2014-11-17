@@ -34,7 +34,6 @@ FSceneFileHeader::FSceneFileHeader(const FSceneFileHeader& Other)
 	IrradianceCachingSettings = Other.IrradianceCachingSettings;
 	MaterialSettings = Other.MaterialSettings;
 	DebugInput = Other.DebugInput;
-	CustomImportanceBoundingBox = Other.CustomImportanceBoundingBox; 
 
 	/** If true, pad the mappings (shrink the requested size and then pad) */
 	bPadMappings = Other.bPadMappings;
@@ -258,11 +257,7 @@ void FScene::Import( FLightmassImporter& Importer )
 FBoxSphereBounds FScene::GetImportanceBounds() const
 {
 	const FBoxSphereBounds ImportanceBoundSphere(ImportanceBoundingBox);
-	FBoxSphereBounds CustomImportanceBounds(CustomImportanceBoundingBox);
-	const float CustomBoundsRadius = FMath::Clamp<float>(CustomImportanceBounds.SphereRadius, 0.0f, ImportanceBoundSphere.SphereRadius > 0.0f ? ImportanceBoundSphere.SphereRadius : (float)HALF_WORLD_MAX);
-	const FVector BoxExtent(CustomBoundsRadius / FMath::Sqrt(3.0f), CustomBoundsRadius / FMath::Sqrt(3.0f), CustomBoundsRadius / FMath::Sqrt(3.0f));
-	CustomImportanceBounds = FBoxSphereBounds(CustomImportanceBounds.Origin, BoxExtent, CustomBoundsRadius);
-	return CustomImportanceBounds.SphereRadius > 0.0f ? CustomImportanceBounds : ImportanceBoundSphere;
+	return ImportanceBoundSphere;
 }
 
 const FLight* FScene::FindLightByGuid(const FGuid& Guid) const

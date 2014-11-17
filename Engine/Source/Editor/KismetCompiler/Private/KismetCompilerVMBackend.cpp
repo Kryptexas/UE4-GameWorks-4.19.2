@@ -449,7 +449,7 @@ public:
 				else
 				{
 					UScriptStruct* Struct = StructProperty->Struct;
-					int32 StructSize = Struct->GetStructureSize();
+					int32 StructSize = Struct->GetStructureSize() * StructProperty->ArrayDim;
 					uint8* StructData = (uint8*)FMemory_Alloca(StructSize);
 					StructProperty->InitializeValue(StructData);
 					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UBlueprintGeneratedStruct>(Struct), StructData))
@@ -808,7 +808,7 @@ public:
 		EmitTerm(SourceExpression, DestinationExpression->AssociatedVarProperty);
 	}
 
-	void EmitCastToInterfaceStatement(FBlueprintCompiledStatement& Statement)
+	void EmitCastObjToInterfaceStatement(FBlueprintCompiledStatement& Statement)
 	{
 		FBPTerminal* DestinationExpression = Statement.LHS;
 		FBPTerminal* InterfaceExpression = Statement.RHS[0];
@@ -817,11 +817,27 @@ public:
 		Writer << EX_Let;
 		EmitTerm(DestinationExpression);
 
-		Writer << EX_InterfaceCast;
+		Writer << EX_ObjToInterfaceCast;
 		UClass* ClassPtr = CastChecked<UClass>(InterfaceExpression->ObjectLiteral);
 		check(ClassPtr);
 		Writer << ClassPtr;
 		EmitTerm(TargetExpression, (UProperty*)(GetDefault<UObjectProperty>()));
+	}
+
+	void EmitCastBetweenInterfacesStatement(FBlueprintCompiledStatement& Statement) 
+	{
+		FBPTerminal* DestinationExpression = Statement.LHS;
+		FBPTerminal* InterfaceExpression   = Statement.RHS[0];
+		FBPTerminal* TargetExpression      = Statement.RHS[1];
+
+		Writer << EX_Let;
+		EmitTerm(DestinationExpression);
+
+		Writer << EX_CrossInterfaceCast;
+		UClass* ClassPtr = CastChecked<UClass>(InterfaceExpression->ObjectLiteral);
+		check(ClassPtr);
+		Writer << ClassPtr;
+		EmitTerm(TargetExpression, (UProperty*)(GetDefault<UInterfaceProperty>()));
 	}
 
 	void EmitDynamicCastStatement(FBlueprintCompiledStatement& Statement)
@@ -833,10 +849,25 @@ public:
 		Writer << EX_Let;
 		EmitTerm(DestinationExpression);
 
-		Writer << EX_DynamicCast;  //@TODO: EX_MetaCast support?
+		Writer << EX_DynamicCast;
 		UClass* ClassPtr = CastChecked<UClass>(InterfaceExpression->ObjectLiteral);
 		Writer << ClassPtr;
 		EmitTerm(TargetExpression, (UProperty*)(GetDefault<UObjectProperty>()));
+	}
+
+	void EmitMetaCastStatement(FBlueprintCompiledStatement& Statement)
+	{
+		FBPTerminal* DestinationExpression = Statement.LHS;
+		FBPTerminal* InterfaceExpression = Statement.RHS[0];
+		FBPTerminal* TargetExpression = Statement.RHS[1];
+
+		Writer << EX_Let;
+		EmitTerm(DestinationExpression);
+
+		Writer << EX_MetaCast;
+		UClass* ClassPtr = CastChecked<UClass>(InterfaceExpression->ObjectLiteral);
+		Writer << ClassPtr;
+		EmitTerm(TargetExpression, (UProperty*)(GetDefault<UClassProperty>()));
 	}
 
 	void EmitObjectToBoolStatement(FBlueprintCompiledStatement& Statement)
@@ -1080,11 +1111,17 @@ public:
 		case KCST_Assignment:
 			EmitAssignmentStatment(Statement);
 			break;
-		case KCST_CastToInterface:
-			EmitCastToInterfaceStatement(Statement);
+		case KCST_CastObjToInterface:
+			EmitCastObjToInterfaceStatement(Statement);
+			break;
+		case KCST_CrossInterfaceCast:
+			EmitCastBetweenInterfacesStatement(Statement);
 			break;
 		case KCST_DynamicCast:
 			EmitDynamicCastStatement(Statement);
+			break;
+		case KCST_MetaCast:
+			EmitMetaCastStatement(Statement);
 			break;
 		case KCST_ObjectToBool:
 			EmitObjectToBoolStatement(Statement);

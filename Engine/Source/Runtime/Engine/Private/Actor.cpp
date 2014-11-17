@@ -394,7 +394,8 @@ void AActor::AddControllingMatineeActor( AMatineeActor& InMatineeActor )
 		RootComponent->PrimaryComponentTick.AddPrerequisite(&InMatineeActor, InMatineeActor.PrimaryActorTick);
 	}
 
-	ControllingMatineeActors.Add(&InMatineeActor);
+	PrimaryActorTick.AddPrerequisite(&InMatineeActor, InMatineeActor.PrimaryActorTick);
+	ControllingMatineeActors.AddUnique(&InMatineeActor);
 }
 
 void AActor::RemoveControllingMatineeActor( AMatineeActor& InMatineeActor )
@@ -404,7 +405,8 @@ void AActor::RemoveControllingMatineeActor( AMatineeActor& InMatineeActor )
 		RootComponent->PrimaryComponentTick.RemovePrerequisite(&InMatineeActor, InMatineeActor.PrimaryActorTick);
 	}
 
-	ControllingMatineeActors.Remove(&InMatineeActor);
+	PrimaryActorTick.RemovePrerequisite(&InMatineeActor, InMatineeActor.PrimaryActorTick);
+	ControllingMatineeActors.RemoveSwap(&InMatineeActor);
 }
 
 void AActor::BeginDestroy()
@@ -809,16 +811,19 @@ void AActor::GetSimpleCollisionCylinder(float& CollisionRadius, float& Collision
 	}
 }
 
-
 bool AActor::IsRootComponentCollisionRegistered() const
 {
 	return RootComponent != NULL && RootComponent->IsRegistered() && RootComponent->IsCollisionEnabled();
 }
 
-
-bool AActor::IsBasedOn( const AActor* Other ) const
+bool AActor::IsAttachedTo(const AActor * Other) const
 {
 	return (RootComponent && Other && Other->RootComponent) ? RootComponent->IsAttachedTo(Other->RootComponent) : false;
+}
+
+bool AActor::IsBasedOnActor(const AActor* Other) const
+{
+	return IsAttachedTo(Other);
 }
 
 bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
@@ -1106,9 +1111,15 @@ void AActor::OnRep_AttachmentReplication()
 
 			if (ParentComponent)
 			{
+				// Calculate scale before attachment as ComponentToWorld will be modified after AttachTo()
+				FTransform ParentToWorld = ParentComponent->GetSocketTransform(AttachmentReplication.AttachSocket);
+				FTransform RelativeTM = RootComponent->ComponentToWorld.GetRelativeTransform(ParentToWorld);
+				FVector RelativeScale3D = RelativeTM.GetScale3D();
+
 				RootComponent->AttachTo(ParentComponent, AttachmentReplication.AttachSocket);
 				RootComponent->RelativeLocation = AttachmentReplication.LocationOffset;
 				RootComponent->RelativeRotation = AttachmentReplication.RotationOffset;
+				RootComponent->RelativeScale3D = RelativeScale3D;
 
 				RootComponent->UpdateComponentToWorld();
 			}
@@ -1282,9 +1293,10 @@ ULevel* AActor::GetLevel() const
 bool AActor::IsInPersistentLevel(bool bIncludeLevelStreamingPersistent) const
 {
 	ULevel* MyLevel = GetLevel();
-	return ( (MyLevel == GetWorld()->PersistentLevel) || ( bIncludeLevelStreamingPersistent && GetWorld()->StreamingLevels.Num() > 0 &&
-														Cast<ULevelStreamingPersistent>(GetWorld()->StreamingLevels[0]) != NULL &&
-														GetWorld()->StreamingLevels[0]->GetLoadedLevel() == MyLevel ) );
+	UWorld* World = GetWorld();
+	return ( (MyLevel == World->PersistentLevel) || ( bIncludeLevelStreamingPersistent && World->StreamingLevels.Num() > 0 &&
+														Cast<ULevelStreamingPersistent>(World->StreamingLevels[0]) != NULL &&
+														World->StreamingLevels[0]->GetLoadedLevel() == MyLevel ) );
 }
 
 
@@ -1813,10 +1825,17 @@ void AActor::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 {
 	if (bFindCameraComponentWhenViewTarget)
 	{
-		if (UCameraComponent* CameraComponent = FindComponentByClass<UCameraComponent>())
+		// Look for the first active camera component and use that for the view
+		TArray<UCameraComponent*> Cameras;
+		GetComponents<UCameraComponent>(/*out*/ Cameras);
+
+		for (UCameraComponent* CameraComponent : Cameras)
 		{
-			CameraComponent->GetCameraView(DeltaTime, OutResult);
-			return;
+			if (CameraComponent->bIsActive)
+			{
+				CameraComponent->GetCameraView(DeltaTime, OutResult);
+				return;
+			}
 		}
 	}
 
@@ -2273,6 +2292,15 @@ bool AActor::SetActorLocationAndRotation(const FVector& NewLocation, FRotator Ne
 	return false;
 }
 
+void AActor::SetActorScale3D(const FVector& NewScale3D)
+{
+	if (RootComponent)
+	{
+		RootComponent->SetWorldScale3D(NewScale3D);
+	}
+}
+
+
 bool AActor::SetActorTransform(const FTransform& NewTransform, bool bSweep)
 {
 	// we have seen this gets NAN from kismet, and would like to see if this
@@ -2645,8 +2673,13 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 				return Callspace;
 			}
 		}
+		else if (!NetConnection->Driver || !NetConnection->Driver->World)
+		{
+			// NetDriver does not have a world, most likely shutting down
+			return FunctionCallspace::Absorbed;
+		}
 
-		// There is a net connection, so continue and call remotely
+		// There is a valid net connection, so continue and call remotely
 	}
 
 	// about to call remotely - unless the actor is not actually replicating
@@ -2664,12 +2697,12 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	return FunctionCallspace::Remote;
 }
 
-bool AActor::CallRemoteFunction( UFunction* Function, void* Parameters, FFrame* Stack )
+bool AActor::CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack )
 {
 	UNetDriver* NetDriver = GetNetDriver();
 	if (NetDriver)
 	{
-		NetDriver->ProcessRemoteFunction(this, Function, Parameters, Stack, NULL);
+		NetDriver->ProcessRemoteFunction(this, Function, Parameters, OutParms, Stack, NULL);
 		return true;
 	}
 
@@ -2989,6 +3022,13 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 		{
 			FVector ClosestPoint;
 			const float Distance = Primitive->GetDistanceToCollision(Point, ClosestPoint);
+
+			if (Distance < 0.f)
+			{
+				// Invalid result, impossible to be better than ClosestPointDistance
+				continue;
+			}
+
 			if( (ClosestPointDistance < 0.f) || (Distance < ClosestPointDistance) )
 			{
 				ClosestPointDistance = Distance;
@@ -3107,6 +3147,30 @@ float AActor::GetHorizontalDistanceTo(AActor* OtherActor)
 float AActor::GetVerticalDistanceTo(AActor* OtherActor)
 {
 	return OtherActor ? FMath::Abs((GetActorLocation().Z - OtherActor->GetActorLocation().Z)) : 0.f;
+}
+
+float AActor::GetDotProductTo(AActor* OtherActor)
+{
+	if (OtherActor)
+	{
+		FVector Dir = GetActorForwardVector();
+		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
+		Offset = Offset.SafeNormal();
+		return Dir.DotProduct(Dir, Offset);
+	}
+	return -2.0;
+}
+
+float AActor::GetHorizontalDotProductTo(AActor* OtherActor)
+{
+	if (OtherActor)
+	{
+		FVector Dir = GetActorForwardVector();
+		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
+		Offset = Offset.SafeNormal2D();
+		return Dir.DotProduct(Dir, Offset);
+	}
+	return -2.0;
 }
 
 #if WITH_EDITOR

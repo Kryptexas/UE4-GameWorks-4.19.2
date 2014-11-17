@@ -304,12 +304,19 @@ public class DeploymentContext //: ProjectParams
 				{
 					if (Plat != StageTargetPlatform.PlatformType && Plat != UnrealTargetPlatform.Unknown)
 					{
-						int RootOffset = FileToCopy.IndexOf(LocalRoot, 0, StringComparison.InvariantCultureIgnoreCase);
-						if (RootOffset >= 0)
-						{
-							RootOffset += LocalRoot.Length;
-						}
-						if (FileToCopy.IndexOf(CommandUtils.CombinePaths("/" + Plat.ToString() + "/"), 0, StringComparison.InvariantCultureIgnoreCase) > RootOffset)
+                        var Search = FileToCopy;
+                        if (Search.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
+                        {
+                            if (LocalRoot.EndsWith("\\") || LocalRoot.EndsWith("/"))
+                            {
+                                Search = Search.Substring(LocalRoot.Length - 1);
+                            }
+                            else
+                            {
+                                Search = Search.Substring(LocalRoot.Length);
+                            }
+                        }
+                        if (Search.IndexOf(CommandUtils.CombinePaths("/" + Plat.ToString() + "/"), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
 						{
 							OtherPlatform = true;
 							break;

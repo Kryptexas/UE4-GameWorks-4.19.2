@@ -50,6 +50,12 @@ bool UBehaviorTreeManager::IsBehaviorTreeUsageEnabled()
 	return CheckMeStaticly.bBehaviorTreeUsageEnabled;
 }
 
+int32 UBehaviorTreeManager::GetAlignedDataSize(int32 Size)
+{
+	// round to 4 bytes
+	return ((Size + 3) & ~3);
+}
+
 struct FNodeInitializationData
 {
 	UBTNode* Node;
@@ -61,13 +67,13 @@ struct FNodeInitializationData
 
 	FNodeInitializationData() {}
 	FNodeInitializationData(UBTNode* InNode, UBTCompositeNode* InParentNode,
-		uint16 InExecutionIndex, uint8 InTreeDepth, uint16 NodeMemory, uint16 SpecialNodeMemory) :
-		Node(InNode), ParentNode(InParentNode), ExecutionIndex(InExecutionIndex), TreeDepth(InTreeDepth)
+		uint16 InExecutionIndex, uint8 InTreeDepth, uint16 NodeMemory, uint16 SpecialNodeMemory = 0)
+		: Node(InNode), ParentNode(InParentNode), ExecutionIndex(InExecutionIndex), TreeDepth(InTreeDepth)
 	{
-		SpecialDataSize = ((SpecialNodeMemory + 3) & ~3);
+		SpecialDataSize = UBehaviorTreeManager::GetAlignedDataSize(SpecialNodeMemory);
 
 		const uint16 NodeMemorySize = NodeMemory + SpecialDataSize;
-		DataSize = (NodeMemorySize <= 2) ? NodeMemorySize : ((NodeMemorySize + 3) & ~3);
+		DataSize = (NodeMemorySize <= 2) ? NodeMemorySize : UBehaviorTreeManager::GetAlignedDataSize(NodeMemorySize);
 	}
 
 	struct FMemorySort
@@ -83,7 +89,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 	uint8 TreeDepth, TArray<FNodeInitializationData>& InitList,
 	class UBehaviorTree* TreeAsset, UObject* NodeOuter)
 {
-	InitList.Add(FNodeInitializationData(NodeOb, ParentNode, InitList.Num(), TreeDepth, NodeOb->GetInstanceMemorySize(), 0));
+	InitList.Add(FNodeInitializationData(NodeOb, ParentNode, InitList.Num(), TreeDepth, NodeOb->GetInstanceMemorySize(), NodeOb->GetSpecialMemorySize()));
 	NodeOb->InitializeFromAsset(TreeAsset);
 
 	UBTCompositeNode* CompositeOb = Cast<UBTCompositeNode>(NodeOb);
@@ -95,7 +101,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 			CompositeOb->Services[i] = Service;
 
 			InitList.Add(FNodeInitializationData(Service, CompositeOb, InitList.Num(), TreeDepth,
-				Service->GetInstanceMemorySize(), Service->GetInstanceAuxMemorySize()));
+				Service->GetInstanceMemorySize(), Service->GetSpecialMemorySize()));
 
 			Service->InitializeFromAsset(TreeAsset);
 		}
@@ -109,7 +115,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 				ChildInfo.Decorators[j] = Decorator;
 
 				InitList.Add(FNodeInitializationData(Decorator, CompositeOb, InitList.Num(), TreeDepth,
-					Decorator->GetInstanceMemorySize(), Decorator->GetInstanceAuxMemorySize()));
+					Decorator->GetInstanceMemorySize(), Decorator->GetSpecialMemorySize()));
 
 				Decorator->InitializeFromAsset(TreeAsset);
 				Decorator->InitializeDecorator(i);

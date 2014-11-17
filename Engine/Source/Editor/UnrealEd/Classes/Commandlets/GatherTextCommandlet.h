@@ -25,7 +25,7 @@ public:
 	// End UCommandlet Interface
 
 	// Helpler function to generate a changelist description
-	FString GetChangelistDescription( const FString& InConfigPath );
+	FText GetChangelistDescription( const FString& InConfigPath );
 
 	static const FString UsageText;
 

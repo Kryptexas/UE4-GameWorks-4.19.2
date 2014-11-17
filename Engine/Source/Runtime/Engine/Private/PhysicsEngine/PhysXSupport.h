@@ -74,10 +74,8 @@ private:
 };
 
 
-#define SCOPED_SCENE_READ_LOCK_INDEXED( _scene, _index ) FPhysXSceneReadLock _rlock##_index(_scene)
-#define SCOPED_SCENE_READ_LOCK( _scene ) SCOPED_SCENE_READ_LOCK_INDEXED( _scene, 1 )
-#define SCOPED_SCENE_WRITE_LOCK_INDEXED( _scene, _index ) FPhysXSceneWriteLock _wlock##_index(_scene)
-#define SCOPED_SCENE_WRITE_LOCK( _scene ) SCOPED_SCENE_WRITE_LOCK_INDEXED( _scene, 1 )
+#define SCOPED_SCENE_READ_LOCK( _scene ) FPhysXSceneReadLock _rlock##__LINE__(_scene)
+#define SCOPED_SCENE_WRITE_LOCK( _scene ) FPhysXSceneWriteLock _wlock##__LINE__(_scene)
 #define SCENE_LOCK_READ( _scene ) if((_scene) != NULL) { (_scene)->lockRead(); }
 #define SCENE_UNLOCK_READ( _scene ) if((_scene) != NULL) { (_scene)->unlockRead(); }
 #define SCENE_LOCK_WRITE( _scene ) if((_scene) != NULL) { (_scene)->lockWrite(); }
@@ -118,6 +116,24 @@ ENGINE_API FPlane P2UPlane(PxPlane& Plane);
 ENGINE_API FMatrix P2UMatrix(const PxMat44& PMat);
 /** Convert PhysX PxTransform to Unreal FMatrix */
 ENGINE_API FMatrix PTransform2UMatrix(const PxTransform& PTM);
+
+//////// GEOM CONVERSION
+// we need this helper struct since PhysX needs geoms to be on the stack
+struct UCollision2PGeom
+{
+	UCollision2PGeom(const FCollisionShape & CollisionShape);
+	const PxGeometry * GetGeometry() { return (PxGeometry*)Storage; }
+private:
+	
+	union StorageUnion
+	{
+		char box[sizeof(PxBoxGeometry)];
+		char sphere[sizeof(PxSphereGeometry)];
+		char capsule[sizeof(PxCapsuleGeometry)];
+	};	//we need this because we can't use real union since these structs have non trivial constructors
+
+	char Storage[sizeof(StorageUnion)];
+};
 
 /** Thresholds for aggregates  */
 const uint32 AggregatePhysicsAssetThreshold  = 999999999;
@@ -205,9 +221,6 @@ extern TArray<PxHeightField*>	GPhysXPendingKillHeightfield;
 /** Array of PxMaterial objects which are awaiting cleaning up. */
 extern TArray<PxMaterial*>		GPhysXPendingKillMaterial;
 
-/** Map from SkeletalMeshComponent UniqueID to a pointer to the collision disable table inside its PhysicsAsset */
-extern TMap< uint32, TMap<struct FRigidBodyIndexPair,bool>* >		GCollisionDisableTableLookup;
-
 /** Utility class to keep track of shared physics data */
 class FPhysxSharedData
 {
@@ -227,7 +240,7 @@ public:
 	void Add(PxBase* Obj);
 	void Remove(PxBase* Obj)	{ if(Obj) { SharedObjects->remove(*Obj); } }
 
-	PxCollection* GetCollection()	{ return SharedObjects; }
+	const PxCollection* GetCollection()	{ return SharedObjects; }
 
 	void DumpSharedMemoryUsage(FOutputDevice* Ar);
 private:
@@ -499,12 +512,12 @@ public:
 	{
 		return NULL;
 	}
-	/*
+	
 	virtual NxUserRenderSurfaceBuffer*  createSurfaceBuffer(const NxUserRenderSurfaceBufferDesc& desc)   OVERRIDE
 	{
 		return NULL;
 	}
-	*/
+	
 	virtual NxUserRenderResource*		createResource(const NxUserRenderResourceDesc&) OVERRIDE
 	{
 		return NULL;
@@ -514,7 +527,7 @@ public:
 	virtual void						releaseBoneBuffer(NxUserRenderBoneBuffer&) OVERRIDE {}
 	virtual void						releaseInstanceBuffer(NxUserRenderInstanceBuffer&) OVERRIDE {}
 	virtual void						releaseSpriteBuffer(NxUserRenderSpriteBuffer&) OVERRIDE {}
-	//virtual void                        releaseSurfaceBuffer(NxUserRenderSurfaceBuffer& buffer) OVERRIDE{}
+	virtual void                        releaseSurfaceBuffer(NxUserRenderSurfaceBuffer& buffer) OVERRIDE{}
 	virtual void						releaseResource(NxUserRenderResource&) OVERRIDE {}
 
 	virtual physx::PxU32				getMaxBonesForMaterial(void*) OVERRIDE
@@ -619,5 +632,5 @@ public:
  * @param	SharedCollection	Shared collection of data to ignore
  * @returns						Size of the object in bytes determined by serialization
  **/
-ENGINE_API SIZE_T GetPhysxObjectSize(PxBase* Obj, PxCollection* SharedCollection);
+ENGINE_API SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection);
 #endif // WITH_PHYSX

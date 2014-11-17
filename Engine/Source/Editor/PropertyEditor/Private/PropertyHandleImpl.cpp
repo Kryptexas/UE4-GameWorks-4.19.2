@@ -66,18 +66,8 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
-					// see if we have alternate text to use for displaying the value
-					UMetaData* PackageMetaData = ByteProperty->Enum->GetOutermost()->GetMetaData();
-					if ( PackageMetaData )
-					{
-						FName AltDisplayName = FName(*(OutString+TEXT(".DisplayName")));
-						FString ValueText = PackageMetaData->GetValue(ByteProperty->Enum, AltDisplayName);
-						if ( ValueText.Len() > 0 )
-						{
-							// render the alternate text for this enum value
-							OutString = ValueText;
-						}
-					}
+					uint8 EnumValue = ByteProperty->GetPropertyValue(ValueAddress);
+					OutString = ByteProperty->Enum->GetEnumName(EnumValue);
 				}
 			}
 			else
@@ -123,18 +113,8 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueText( FText& OutText
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
 				if ( ByteProperty != NULL && ByteProperty->Enum != NULL )
 				{
-					// see if we have alternate text to use for displaying the value
-					UMetaData* PackageMetaData = ByteProperty->Enum->GetOutermost()->GetMetaData();
-					if ( PackageMetaData )
-					{
-						FName AltDisplayName = FName(*(OutString+TEXT(".DisplayName")));
-						FString ValueText = PackageMetaData->GetValue(ByteProperty->Enum, AltDisplayName);
-						if ( ValueText.Len() > 0 )
-						{
-							// render the alternate text for this enum value
-							OutString = ValueText;
-						}
-					}
+					uint8 EnumValueIndex = ByteProperty->GetPropertyValue(ValueAddress);
+					OutString = ByteProperty->Enum->GetEnumName(EnumValueIndex);
 				}
 
 				OutText = FText::FromString(OutString);
@@ -720,6 +700,8 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 		UInterfaceProperty* IntProp = Cast<UInterfaceProperty>( NodeProperty );
 		UClassProperty* ClassProp = Cast<UClassProperty>( NodeProperty );
 		UAssetClassProperty* AssetClassProperty = Cast<UAssetClassProperty>( NodeProperty );
+		UClass* const InterfaceThatMustBeImplemented = ObjProp ? ObjProp->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement")) : NULL;
+
 		if(ClassProp || AssetClassProperty)
 		{
 			FEditorDelegates::LoadSelectedAssetsIfNeeded.Broadcast();
@@ -727,7 +709,10 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 			const UClass* const SelectedClass = GEditor->GetFirstSelectedClass(ClassProp ? ClassProp->MetaClass : AssetClassProperty->MetaClass);
 			if(SelectedClass)
 			{
-				SetValueAsString(SelectedClass->GetPathName(), EPropertyValueSetFlags::DefaultFlags);
+				if (!InterfaceThatMustBeImplemented || SelectedClass->ImplementsInterface(InterfaceThatMustBeImplemented))
+				{
+					SetValueAsString(SelectedClass->GetPathName(), EPropertyValueSetFlags::DefaultFlags);
+				}
 			}
 		}
 		else
@@ -744,7 +729,6 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 				ObjPropClass = IntProp->InterfaceClass;
 			}
 
-			UClass* const InterfaceThatMustBeImplemented = ObjProp ? ObjProp->GetOwnerProperty()->GetClassMetaData(TEXT("MustImplement")) : NULL;
 			bool const bMustBeLevelActor = ObjProp ? ObjProp->GetOwnerProperty()->GetBoolMetaData(TEXT("MustBeLevelActor")) : false;
 
 			// Find best appropriate selected object

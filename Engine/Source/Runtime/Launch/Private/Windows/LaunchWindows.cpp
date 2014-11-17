@@ -12,6 +12,11 @@ DEFINE_LOG_CATEGORY_STATIC(LogLaunchWindows, Log, All);
 extern int32 GuardedMain( const TCHAR* CmdLine, HINSTANCE hInInstance, HINSTANCE hPrevInstance, int32 nCmdShow );
 extern void LaunchStaticShutdownAfterError();
 
+// http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+// The following line is to favor the high performance NVIDIA GPU if there are multiple GPUs
+// Has to be .exe module to be correctly detected.
+extern "C" { _declspec(dllexport) uint32 NvOptimusEnablement = 0x00000001; }
+
 /**
  * Maintain a named mutex to detect whether we are the first instance of this game
  */
@@ -170,6 +175,12 @@ int32 WINAPI WinMain( HINSTANCE hInInstance, HINSTANCE hPrevInstance, char*, int
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 	if (FParse::Param(CmdLine, TEXT("useautoreporter")))
 #endif
+	{
+		GUseCrashReportClient = false;
+	}
+
+	// @todo For now, crash report client is disabled for build targets that require cooked data since the resources necessary to launch crashreportclient are no available in stripped builds
+	if ( FPlatformProperties::RequiresCookedData() )
 	{
 		GUseCrashReportClient = false;
 	}

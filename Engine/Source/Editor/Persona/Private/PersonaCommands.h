@@ -18,4 +18,7 @@ public:
 
 	// Command to allow users to set the skeletons preview mesh
 	TSharedPtr<FUICommandInfo> ChangeSkeletonPreviewMesh;
+
+	// Command to allow users to remove unused bones (not referenced by any skeletalmesh) from the skeleton
+	TSharedPtr<FUICommandInfo> RemoveUnusedBones;
 };

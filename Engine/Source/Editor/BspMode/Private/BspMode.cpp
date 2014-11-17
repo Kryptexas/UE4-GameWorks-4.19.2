@@ -2,7 +2,6 @@
 
 #include "BspModePrivatePCH.h"
 #include "BspMode.h"
-#include "BspModeActions.h"
 
 TSharedRef< FBspMode > FBspMode::Create()
 {

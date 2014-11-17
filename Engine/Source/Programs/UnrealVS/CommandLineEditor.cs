@@ -12,6 +12,7 @@ using Microsoft.VisualStudio.OLE.Interop;
 using EnvDTE;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using EnvDTE80;
 
 
 namespace UnrealVS
@@ -23,7 +24,7 @@ namespace UnrealVS
 		private const int ComboID = 0x1030;
 		private const int ComboListID = 0x1040;
 		private const string InvalidProjectString = "<No Command-line>";
-		private const int ComboListCountMax = 10;
+		private const int ComboListCountMax = 32;
 
 		/** methods */
 
@@ -34,6 +35,7 @@ namespace UnrealVS
 				// CommandLineCombo
 				var ComboCommandID = new CommandID(GuidList.UnrealVSCmdSet, ComboID);
 				ComboCommand = new OleMenuCommand(new EventHandler(ComboHandler), ComboCommandID);
+				ComboCommand.BeforeQueryStatus += (sender, args) => { ComboCommand.Enabled = UnrealVSPackage.Instance.DTE.Solution.IsOpen; };
 				UnrealVSPackage.Instance.MenuCommandService.AddCommand(ComboCommand);
 
 				// CommandLineComboList
@@ -161,6 +163,17 @@ namespace UnrealVS
 					{
 						var CommandLineArguments = (string) CommandLineArgumentsProperty.Value;
 
+						// for "Game" projects automatically remove the game project filename from the start of the command line
+						var ActiveConfiguration = (SolutionConfiguration2) UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
+						if (UnrealVSPackage.Instance.IsUE4Loaded && Utils.IsGameProject(SelectedStartupProject) && Utils.HasUProjectCommandLineArg(ActiveConfiguration.Name))
+						{
+							string UProjectFileName = Utils.GetUProjectFileName(SelectedStartupProject);
+							if (CommandLineArguments.Trim().StartsWith(UProjectFileName, StringComparison.InvariantCultureIgnoreCase))
+							{
+								CommandLineArguments = CommandLineArguments.Trim().Substring(UProjectFileName.Length).Trim();
+							}
+						}
+
 						Text = CommandLineArguments;
 					}
 					else
@@ -177,54 +190,66 @@ namespace UnrealVS
 		/// Called by combo control to query the text to display or to apply newly-entered text
 		private void ComboHandler(object Sender, EventArgs Args)
 		{
-			var OleArgs = (OleMenuCmdEventArgs)Args;
+			try
+			{
+				var OleArgs = (OleMenuCmdEventArgs)Args;
 
-			string InString = OleArgs.InValue as string;
-			if (InString != null)
-			{
-				// New text set on the combo - set the command line property
-				DesiredCommandLine = null;
-				CommitCommandLineText(InString);
-			}
-			else if (OleArgs.OutValue != IntPtr.Zero)
-			{
-				string EditingString = null;
-				if (OleArgs.InValue != null)
+				string InString = OleArgs.InValue as string;
+				if (InString != null)
 				{
-					object[] InArray = OleArgs.InValue as object[];
-					if (InArray != null && 0 < InArray.Length)
+					// New text set on the combo - set the command line property
+					DesiredCommandLine = null;
+					CommitCommandLineText(InString);
+				}
+				else if (OleArgs.OutValue != IntPtr.Zero)
+				{
+					string EditingString = null;
+					if (OleArgs.InValue != null)
 					{
-						EditingString = InArray.Last() as string;
+						object[] InArray = OleArgs.InValue as object[];
+						if (InArray != null && 0 < InArray.Length)
+						{
+							EditingString = InArray.Last() as string;
+						}
 					}
-				}
 
-				string TextToDisplay = string.Empty;
-				if (EditingString != null)
-				{
-					// The control wants to put EditingString in the box
-					TextToDisplay = DesiredCommandLine = EditingString;
-				}
-				else
-				{
-					// This is always hit at the end of interaction with the combo
-					if (DesiredCommandLine != null)
+					string TextToDisplay = string.Empty;
+					if (EditingString != null)
 					{
-						TextToDisplay = DesiredCommandLine;
-						DesiredCommandLine = null;
-						CommitCommandLineText(TextToDisplay);
+						// The control wants to put EditingString in the box
+						TextToDisplay = DesiredCommandLine = EditingString;
 					}
 					else
 					{
-						TextToDisplay = MakeCommandLineComboText();
+						// This is always hit at the end of interaction with the combo
+						if (DesiredCommandLine != null)
+						{
+							TextToDisplay = DesiredCommandLine;
+							DesiredCommandLine = null;
+							CommitCommandLineText(TextToDisplay);
+						}
+						else
+						{
+							TextToDisplay = MakeCommandLineComboText();
+						}
 					}
-				}
 
-				Marshal.GetNativeVariantForObject(TextToDisplay, OleArgs.OutValue);
+					Marshal.GetNativeVariantForObject(TextToDisplay, OleArgs.OutValue);
+				}
+			}
+			catch (Exception ex)
+			{
+				Exception AppEx = new ApplicationException("CommandLineEditor threw an exception in ComboHandler()", ex);
+				Logging.WriteLine(AppEx.ToString());
+				throw AppEx;
 			}
 		}
 
 		private void CommitCommandLineText(string CommandLine)
 		{
+			
+			string FullCommandLine = CommandLine;
+
 			IVsHierarchy ProjectHierarchy;
 			UnrealVSPackage.Instance.SolutionBuildManager.get_StartupProject(out ProjectHierarchy);
 			if (ProjectHierarchy != null)
@@ -233,11 +258,31 @@ namespace UnrealVS
 
 				if (SelectedStartupProject != null)
 				{
+					// for "Game" projects automatically remove the game project filename from the start of the command line
+					var ActiveConfiguration = (SolutionConfiguration2)UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.ActiveConfiguration;
+					if (UnrealVSPackage.Instance.IsUE4Loaded && Utils.IsGameProject(SelectedStartupProject) && Utils.HasUProjectCommandLineArg(ActiveConfiguration.Name))
+					{
+						string UProjectFileName = Utils.GetUProjectFileName(SelectedStartupProject);
+						if (FullCommandLine.Trim().StartsWith(UProjectFileName, StringComparison.InvariantCultureIgnoreCase))
+						{
+							VsShellUtilities.ShowMessageBox(ServiceProvider.GlobalProvider,
+															string.Format("INFORMATION: The filename {0} has been removed from the command line because it is included automatically for 'Game' projects.", UProjectFileName),
+															"UnrealVS",
+															OLEMSGICON.OLEMSGICON_INFO,
+															OLEMSGBUTTON.OLEMSGBUTTON_OK,
+															OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+						}
+						else
+						{
+							FullCommandLine = UProjectFileName + " " + FullCommandLine;
+						}
+					}
+
 					var CommandLineArgumentsProperty = GetProjectCommandLineProperty(SelectedStartupProject);
 
 					if (CommandLineArgumentsProperty != null)
 					{
-						Utils.SetPropertyValue(CommandLineArgumentsProperty, CommandLine);
+						Utils.SetPropertyValue(CommandLineArgumentsProperty, FullCommandLine);
 					}
 				}
 			}

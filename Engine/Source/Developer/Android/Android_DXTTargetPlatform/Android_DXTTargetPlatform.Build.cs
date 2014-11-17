@@ -16,6 +16,7 @@ public class Android_DXTTargetPlatform : ModuleRules
 				"TargetPlatform",
 				"Messaging",
 				"TargetDeviceServices",
+				"AndroidDeviceDetection",
 			}
 		);
 

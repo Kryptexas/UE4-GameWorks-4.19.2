@@ -30,8 +30,42 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 	}
 
 	InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("info"), TArray<FString>(), Parameters, InCommand.InfoMessages, InCommand.ErrorMessages, InCommand.UserName, Password);
+	if(InCommand.bCommandSuccessful)
+	{
+		TArray<FXmlFile> ResultsXml;
+		TArray<FString> Files;
+		Files.Add(FPaths::ConvertRelativePathToFull(FPaths::GameDir()));
 
-	// @todo: should we also check for the presence of a valid working copy?
+		TArray<FString> StatusParameters;
+		StatusParameters.Add(TEXT("--show-updates"));
+		StatusParameters.Add(TEXT("--verbose"));
+
+		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("status"), Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName, Password);
+
+		if(InCommand.bCommandSuccessful)
+		{
+			// Check to see if this was a working copy - if not deny connection as we wont be able to work with it.
+			TArray<FSubversionSourceControlState> States;
+			SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, States);
+			if(InCommand.ErrorMessages.Num() > 0)
+			{
+				for (int32 MessageIndex = 0; MessageIndex < InCommand.ErrorMessages.Num(); ++MessageIndex)
+				{
+					const FString& Error = InCommand.ErrorMessages[MessageIndex];
+					int32 Pattern = Error.Find(TEXT("' is not a working copy"), ESearchCase::IgnoreCase, ESearchDir::FromStart);
+					if(Pattern != INDEX_NONE)
+					{
+						check(InCommand.Operation->GetName() == "Connect");
+						TSharedRef<FConnect, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FConnect>(InCommand.Operation);
+						Operation->SetErrorText(LOCTEXT("NotAWorkingCopyError", "Project is not part of an SVN working copy."));
+						InCommand.ErrorMessages.Add(LOCTEXT("NotAWorkingCopyErrorHelp", "You should check out a working copy into your project directory.").ToString());
+						InCommand.bCommandSuccessful = false;
+						break;
+					}
+				}
+			}
+		}	
+	}
 
 	return InCommand.bCommandSuccessful;
 }
@@ -159,6 +193,22 @@ static void AddDirectoriesToCommit(const FSubversionSourceControlCommand& InComm
 	InOutFiles.Append(Directories);
 }
 
+static FText ParseCommitResults(const TArray<FString>& InResults)
+{
+	for(const auto& Result : InResults)
+	{
+		// @todo: We could potentially parse the recent history for the last commit by this user here. This is the simpler option.
+		const FString ExpectedText(TEXT("Committed revision"));
+		if(Result.Contains(ExpectedText))
+		{
+			const FString RevisionNumberString = Result.RightChop(ExpectedText.Len());
+			return FText::Format(LOCTEXT("CommitMessage", "Submitted revision {0}."), FText::AsNumber(FCString::Atoi(*RevisionNumberString)));
+		}
+	}
+
+	return LOCTEXT("CommitMessageUnknown", "Submitted revision.");
+}
+
 bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InCommand)
 {
 	check(InCommand.Operation->GetName() == "CheckIn");
@@ -198,6 +248,12 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 				Parameters.Add(FString(TEXT("--targets ")) + TargetsFilename);
 
 				InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunAtomicCommand(TEXT("commit"), TArray<FString>(), Parameters, InCommand.InfoMessages, InCommand.ErrorMessages, InCommand.UserName);
+				if(InCommand.bCommandSuccessful)
+				{
+					check(InCommand.Operation->GetName() == "CheckIn");
+					TSharedRef<FCheckIn, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FCheckIn>(InCommand.Operation);
+					Operation->SetSuccessMessage(ParseCommitResults(InCommand.InfoMessages));
+				}
 			}
 		}
 	}

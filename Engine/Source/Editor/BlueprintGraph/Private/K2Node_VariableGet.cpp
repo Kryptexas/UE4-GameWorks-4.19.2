@@ -7,6 +7,8 @@
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_VariableGet
 
+#define LOCTEXT_NAMESPACE "K2Node"
+
 class FKCHandler_VariableGet : public FNodeHandlingFunctor
 {
 public:
@@ -107,8 +109,41 @@ FString UK2Node_VariableGet::GetTooltip() const
 	return FText::Format( NSLOCTEXT( "K2Node", "GetVariable_ToolTip", "Read the value of variable {VarName}{TextPartition}{MetaData}"), Args ).ToString();
 }
 
-FString UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_VariableGet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FText Result;
+
+	// If there is only one variable being read, the title can be made the variable name
+	FString OutputPinName;
+	int32 NumOutputsFound = 0;
+
+	for (int32 PinIndex = 0; PinIndex < Pins.Num(); ++PinIndex)
+	{
+		UEdGraphPin* Pin = Pins[PinIndex];
+		if (Pin->Direction == EGPD_Output)
+		{
+			++NumOutputsFound;
+			OutputPinName = Pin->PinName;
+		}
+	}
+
+	if (NumOutputsFound == 1)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PinName"), FText::FromString(OutputPinName));
+		Result = FText::Format(LOCTEXT("GetPinName", "Get {PinName}"), Args);
+	}
+	else
+	{
+		Result = LOCTEXT("Get", "Get");
+	}
+
+	return Result;
+}
+
+FString UK2Node_VariableGet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	FString Result = TEXT("Get");
 
 	// If there is only one variable being read, the title can be made the variable name
@@ -137,3 +172,5 @@ FNodeHandlingFunctor* UK2Node_VariableGet::CreateNodeHandler(FKismetCompilerCont
 {
 	return new FKCHandler_VariableGet(CompilerContext);
 }
+
+#undef LOCTEXT_NAMESPACE

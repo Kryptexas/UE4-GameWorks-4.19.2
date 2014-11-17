@@ -41,9 +41,9 @@ int32 UKismetUpdateCommandlet::InitializeResaveParameters(const TArray<FString>&
 	return Result;
 }
 
-FString UKismetUpdateCommandlet::GetChangelistDescription() const
+FText UKismetUpdateCommandlet::GetChangelistDescription() const
 {
-	return TEXT("Update Blueprints");
+	return NSLOCTEXT("KismetUpdateCmdlet", "ChangelistDescription", "Update Blueprints");
 }
 
 void UKismetUpdateCommandlet::PerformAdditionalOperations(class UObject* Object, bool& bSavePackage)

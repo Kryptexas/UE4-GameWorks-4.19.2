@@ -77,45 +77,62 @@ void SMessagingHistory::Construct( const FArguments& InArgs, const FMessagingDeb
 							(
 								SNew(SHeaderRow)
 
-								+ SHeaderRow::Column("SendType")
-									.DefaultLabel( FText::FromString(TEXT(" ")))
+								+ SHeaderRow::Column("Flag")
+									.DefaultLabel(FText::FromString(TEXT(" ")))
 									.FixedWidth(20.0f)
+									.HAlignCell(HAlign_Center)
+									.HAlignHeader(HAlign_Center)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("TimeSent")
 									.DefaultLabel(LOCTEXT("MessageListTimeSentColumnHeader", "Time Sent"))
-									.FixedWidth(112.0f)
+									.FillWidth(0.15f)
 									.HAlignCell(HAlign_Right)
 									.HAlignHeader(HAlign_Right)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("MessageType")
 									.DefaultLabel(LOCTEXT("MessageListMessageTypeColumnHeader", "Message Type"))
-									.FillWidth(1.0f)
+									.FillWidth(0.3f)
+									.VAlignCell(VAlign_Center)
+
+								+ SHeaderRow::Column("Sender")
+									.DefaultLabel(LOCTEXT("MessageListSenderColumnHeader", "Sender"))
+									.FillWidth(0.4f)
+									.VAlignCell(VAlign_Center)
+
+								+ SHeaderRow::Column("Recipients")
+									.DefaultLabel(LOCTEXT("MessageListRecipientsColumnHeader", "Recipients"))
+									.FillWidth(0.15f)
+									.HAlignCell(HAlign_Center)
+									.HAlignHeader(HAlign_Center)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("Scope")
 									.DefaultLabel(LOCTEXT("MessageListScopeColumnHeader", "Scope"))
 									.FixedWidth(64.0f)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("RouteLatency")
 									.DefaultLabel(LOCTEXT("MessageListRouteLatencyColumnHeader", "Routing Latency"))
 									.FixedWidth(112.0f)
 									.HAlignCell(HAlign_Right)
 									.HAlignHeader(HAlign_Right)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("DispatchLatency")
 									.DefaultLabel(LOCTEXT("MessageListDispatchLatencyColumnHeader", "Dispatch Latency"))
 									.FixedWidth(112.0f)
 									.HAlignCell(HAlign_Right)
 									.HAlignHeader(HAlign_Right)
+									.VAlignCell(VAlign_Center)
 
 								+ SHeaderRow::Column("HandleTime")
 									.DefaultLabel(LOCTEXT("MessageListHandleTimeColumnHeader", "Handle Time"))
 									.FixedWidth(80.0f)
 									.HAlignCell(HAlign_Right)
 									.HAlignHeader(HAlign_Right)
-
-								+ SHeaderRow::Column("Flag")
-									.DefaultLabel( FText::FromString(TEXT(" ")))
-									.FixedWidth(20.0f)
+									.VAlignCell(VAlign_Center)
 							)
 					]
 			]
@@ -276,28 +293,41 @@ EVisibility SMessagingHistory::HandleShowHiddenHyperlinkVisibility( ) const
 }
 
 
-FString SMessagingHistory::HandleStatusBarText( ) const
+FText SMessagingHistory::HandleStatusBarText() const
 {
-	FString Result;
+	FText Result;
 	int32 VisibleMessages = MessageList.Num();
 
 	if (VisibleMessages > 0)
 	{
-		Result = FString::Printf(*LOCTEXT("StatusBarNumMessages", "%i messages").ToString(), MessageList.Num());
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NumberOfMessages"), MessageList.Num());
+		Args.Add(TEXT("NumberOfSelectedMessages"), MessageListView->GetNumItemsSelected());
+		Args.Add(TEXT("NumberOfHiddenMessages"), TotalMessages - VisibleMessages);
 
-		if (MessageListView->GetNumItemsSelected() > 0)
+		const bool bHasSelectedMessages = MessageListView->GetNumItemsSelected() > 0;
+		const bool bHasHiddenMessages = VisibleMessages < TotalMessages;
+
+		if (bHasSelectedMessages && bHasHiddenMessages)
 		{
-			Result += FString::Printf(*LOCTEXT("StatusBarNumSelected", ", %i selected").ToString(), MessageListView->GetNumItemsSelected());
+			Result = FText::Format(LOCTEXT("StatusBar Number Messages, Selected Messages and Hidden Messages", "{NumberOfMessages} messages, {NumberOfSelectedMessages} selected, {NumberOfHiddenMessages} hidden"), Args);
 		}
-
-		if (VisibleMessages < TotalMessages)
+		else if (bHasSelectedMessages && !bHasHiddenMessages)
 		{
-			Result += FString::Printf(*LOCTEXT("StatusBarNumHidden", ", %i hidden - ").ToString(), (TotalMessages - VisibleMessages));
+			Result = FText::Format(LOCTEXT("StatusBar Number Messages and Selected Messages", "{NumberOfMessages} messages, {NumberOfSelectedMessages} selected"), Args);
+		}
+		else if (!bHasSelectedMessages && bHasHiddenMessages)
+		{
+			Result = FText::Format(LOCTEXT("StatusBar Number Messages and Hidden Messages", "{NumberOfMessages} messages, {NumberOfHiddenMessages} hidden"), Args);
+		}
+		else //if(!bHasSelectedMessages && !bHasHiddenMessages)
+		{
+			Result = FText::Format(LOCTEXT("StatusBar Number Messages", "{NumberOfMessages} messages"), Args);
 		}
 	}
 	else
 	{
-		Result = TEXT("Press the 'Start' button to trace messages");
+		Result = LOCTEXT("StatusBarBeginTracing", "Press the 'Start' button to trace messages");
 	}
 
 	return Result;

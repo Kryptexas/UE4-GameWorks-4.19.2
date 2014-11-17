@@ -22,6 +22,9 @@ namespace SplashTextType
 		/** Copyright information text */
 		CopyrightInfo,
 
+		/** Game Name */
+		GameName,
+
 		// ...
 
 		/** Number of text types (must be final enum value) */

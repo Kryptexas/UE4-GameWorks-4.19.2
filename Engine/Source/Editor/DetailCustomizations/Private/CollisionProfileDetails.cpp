@@ -1266,7 +1266,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("SettingsEditor.Collision_Engine"))
-					.ToolTipText(LOCTEXT("SProfileListItem_Tooltip", "You can't modify the name of Engine profiles").ToString())
+					.ToolTipText(LOCTEXT("CantModify_Tooltip", "You can't modify the name of Engine profiles").ToString())
 				];
 		}
 		else
@@ -1277,7 +1277,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("SettingsEditor.Collision_Game"))
-					.ToolTipText(LOCTEXT("SProfileListItem_Tooltip", "This is your custom project profie").ToString())
+					.ToolTipText(LOCTEXT("CanModify_Tooltip", "This is your custom project profie").ToString())
 				];
 		}
 	}
@@ -1346,7 +1346,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 	check(CollisionProfile);
 
 	// save currently loaded data
-	//SavedData.Save(CollisionProfile);
+	SavedData.Save(CollisionProfile);
 
 	RefreshChannelList(true);
 	RefreshChannelList(false);
@@ -1359,9 +1359,9 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 	const FString TraceChannelDocLink = TEXT("Shared/Collision");
 	const FString PresetsDocLink = TEXT("Shared/Collision");
 
-	TSharedPtr<SToolTip> ObjectChannelTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("CollisionChannel", "Edit collision object types."), NULL, ObjectChannelDocLink, TEXT("ObjectChannel"));
-	TSharedPtr<SToolTip> TraceChannelTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("CollisionChannel", "Edit collision trace channels."), NULL, TraceChannelDocLink, TEXT("TraceChannel"));
-	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("CollisionChannel", "Edit collision presets."), NULL, PresetsDocLink, TEXT("Preset"));
+	TSharedPtr<SToolTip> ObjectChannelTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCollisionObject", "Edit collision object types."), NULL, ObjectChannelDocLink, TEXT("ObjectChannel"));
+	TSharedPtr<SToolTip> TraceChannelTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCollisionChannel", "Edit collision trace channels."), NULL, TraceChannelDocLink, TEXT("TraceChannel"));
+	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCollisionPreset", "Edit collision presets."), NULL, PresetsDocLink, TEXT("Preset"));
 
 	// Customize collision section
 	ObjectChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionObjectChannels", "ObjectChannels").ToString())
@@ -1385,8 +1385,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 					.ToolTip(ObjectChannelTooltip)
-					.Text(LOCTEXT("ObjectChannel_Menu_Description", "You can have up to 18 custom channels including object and trace channels. This is list of object type for your project. \n\
-															 If you delete the object type that has been used by game, it will go back to WorldStatic.").ToString())
+					.Text(LOCTEXT("ObjectChannel_Menu_Description", "You can have up to 18 custom channels including object and trace channels. This is list of object type for your project. \nIf you delete the object type that has been used by game, it will go back to WorldStatic."))
 				]
 
 				+SHorizontalBox::Slot()
@@ -1490,8 +1489,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 					.ToolTip(TraceChannelTooltip)
-					.Text(LOCTEXT("TraceChannel_Menu_Description", "You can have up to 18 custom channels including object and trace channels. This is list of trace channel for your project. \n\
-									If you delete the trace channel that has been used by game, the behavior of trace is undefined.").ToString())
+					.Text(LOCTEXT("TraceChannel_Menu_Description", "You can have up to 18 custom channels including object and trace channels. This is list of trace channel for your project. \nIf you delete the trace channel that has been used by game, the behavior of trace is undefined."))
 				]
 
 				+SHorizontalBox::Slot()
@@ -1595,8 +1593,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 					.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 					.ToolTip(ProfileTooltip)
-					.Text(LOCTEXT("Profile_Menu_Description", "You can modify any of your project profiles. Please note that if you modify profile, it can change collision behavior.\n\
-															 Please be careful when you change currently exisiting (used) collision profiles.").ToString())
+					.Text(LOCTEXT("Profile_Menu_Description", "You can modify any of your project profiles. Please note that if you modify profile, it can change collision behavior.\nPlease be careful when you change currently exisiting (used) collision profiles."))
 				]
 
 				+SHorizontalBox::Slot()
@@ -1712,14 +1709,97 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 
 void FCollisionProfileDetails::CommitProfileChange(int32 ProfileIndex, FCollisionResponseTemplate & NewProfile)
 {
-	FCollisionResponseTemplate & SouceProfile = CollisionProfile->Profiles[ProfileIndex];
-	CollisionProfile->SaveCustomResponses(NewProfile);
-	SouceProfile = (NewProfile);
+	FCollisionResponseTemplate & SourceProfile = CollisionProfile->Profiles[ProfileIndex];
 
-	// @TOdo fixme - instead of applying profile directly, add system to apply to EditProfile
-// 	if(SouceProfile.bCanModify)
-// 	{
-// 	}
+	// if name changed, we need to add redirect
+	if(SourceProfile.Name != NewProfile.Name)
+	{
+		CollisionProfile->AddProfileRedirect(SourceProfile.Name, NewProfile.Name);
+	}
+
+	if(SourceProfile.bCanModify)
+	{
+		// if you can modify, overwrites everything
+		CollisionProfile->SaveCustomResponses(NewProfile);
+		SourceProfile = (NewProfile);
+	}
+	else
+	{
+		// copy everything else but not the response
+		// we add that to EditProfile
+		SourceProfile.CollisionEnabled = NewProfile.CollisionEnabled;
+		SourceProfile.ObjectTypeName = NewProfile.ObjectTypeName;
+		SourceProfile.HelpMessage = NewProfile.HelpMessage;
+
+		// now update EditProfiles
+		// look at the saved profile, and collect different responses first
+		FCollisionResponseTemplate & SavedProfile = SavedData.Profiles[ProfileIndex];
+		TArray<FResponseChannel>	NewCustomResponses;
+
+		struct FFindByName
+		{
+			FName Name;
+
+			FFindByName(FName InName): Name(InName) { }
+
+			bool operator() (const FResponseChannel& Element) const
+			{
+				return (Name == Element.Channel);
+			}
+
+			bool operator() (const FCustomProfile & Element) const
+			{
+				return (Name == Element.Name);
+			}
+			
+		};
+		
+		for (int32 Index = 0; Index<MAX_COLLISION_CHANNEL; ++Index)
+		{
+			if (NewProfile.ResponseToChannels.EnumArray[Index] != SavedProfile.ResponseToChannels.EnumArray[Index])
+			{
+				FName ChannelName = CollisionProfile->ChannelDisplayNames[Index];
+				NewCustomResponses.Add( FResponseChannel(ChannelName, (ECollisionResponse) NewProfile.ResponseToChannels.EnumArray[Index]) );
+			}
+		}
+
+		// we have new list, merge with existing ones
+		if ( NewCustomResponses.Num() > 0 )
+		{
+			FCustomProfile * CurrentProfile = CollisionProfile->EditProfiles.FindByPredicate(FFindByName(NewProfile.Name));
+			if ( !CurrentProfile )
+			{
+				// need to add new one, and just copy NewCustomResponses
+				FCustomProfile NewCustomProfile;
+				NewCustomProfile.Name = NewProfile.Name;
+				NewCustomProfile.CustomResponses = NewCustomResponses;
+				CollisionProfile->EditProfiles.Add(NewCustomProfile);
+			}
+			else
+			{
+				// need to merge previous list and new list
+				for (auto & Iter : NewCustomResponses)
+				{
+					FResponseChannel * CurrentChannel = CurrentProfile->CustomResponses.FindByPredicate(FFindByName(Iter.Channel));
+
+					if (CurrentChannel)
+					{
+						if (CurrentChannel->Response != Iter.Response)
+						{
+							CurrentChannel->Response = Iter.Response;
+						}
+					}
+					else 
+					{
+						// just add new one
+						CurrentProfile->CustomResponses.Add(Iter);
+					}
+				}
+			}
+		}	
+	}
+
+	SavedData.Save(CollisionProfile);
 }
 
 void FCollisionProfileDetails::UpdateChannel(bool bTraceType)
@@ -1992,9 +2072,9 @@ bool	FCollisionProfileDetails::IsAnyChannelSelected(bool bTraceType) const
 	return (bTraceType)? TraceChannelListView->GetNumItemsSelected() > 0: ObjectChannelListView->GetNumItemsSelected() > 0;
 }
 
-FReply	FCollisionProfileDetails::OnDeleteChannel(bool bTraceType)
+FReply	FCollisionProfileDetails::OnDeleteChannel(bool bInTraceType)
 {
-	TArray< TSharedPtr< FChannelListItem > > SelectedItems = (bTraceType)? TraceChannelListView->GetSelectedItems() : ObjectChannelListView->GetSelectedItems();
+	TArray< TSharedPtr< FChannelListItem > > SelectedItems = (bInTraceType) ? TraceChannelListView->GetSelectedItems() : ObjectChannelListView->GetSelectedItems();
 
 	if(SelectedItems.Num() == 1)
 	{
@@ -2092,13 +2172,6 @@ FReply	FCollisionProfileDetails::OnEditProfile()
 			if(ProfileEditor->bApplyChange &&
 				ensure(IsValidProfileSetup(&(ProfileEditor->ProfileTemplate), ProfileIndex)))
 			{
-				// if name changed, we need to add redirect
-				FCollisionResponseTemplate & SouceProfile = CollisionProfile->Profiles[ProfileIndex];
-				if(SouceProfile.Name != ProfileEditor->ProfileTemplate.Name)
-				{
-					CollisionProfile->AddProfileRedirect(SouceProfile.Name, ProfileEditor->ProfileTemplate.Name);
-				}
-
 				CommitProfileChange(ProfileIndex, ProfileEditor->ProfileTemplate);
 				UpdateProfile();
 			}
@@ -2157,26 +2230,12 @@ void FCollisionProfileDetails::OnProfileListItemDoubleClicked(TSharedPtr< FProfi
 // FCollsiionProfileData
 //=====================================================================================
 
-// void FCollisionProfileDetails::FCollsiionProfileData::Save(UCollisionProfile * Profile)
-// {
-// 	Profiles = Profile->Profiles;
-// 	DefaultChannelResponses = Profile->DefaultChannelResponses;
-// 	EditProfiles = Profile->EditProfiles;
-// }
-// 
-// bool FCollisionProfileDetails::FCollsiionProfileData::Equal(UCollisionProfile * Profile) const
-// {
-// // 	return (Profiles == Profile->Profiles &&
-// // 		DefaultChannelResponses == Profile->DefaultChannelResponses &&
-// // 		EditProfiles == Profile->EditProfiles);
-// 
-// 	return false;
-// }
-// 
-// bool FCollisionProfileDetails::FCollsiionProfileData::RegenerateEditProfiles(UCollisionProfile* Profile)
-// {
-// 	return false;
-// }
+void FCollisionProfileDetails::FCollsiionProfileData::Save(UCollisionProfile * Profile)
+{
+	Profiles = Profile->Profiles;
+	DefaultChannelResponses = Profile->DefaultChannelResponses;
+	EditProfiles = Profile->EditProfiles;
+}
 
 //=====================================================================================
 

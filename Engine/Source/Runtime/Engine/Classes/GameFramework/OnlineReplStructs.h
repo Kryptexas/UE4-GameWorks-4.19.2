@@ -62,6 +62,9 @@ struct FUniqueNetIdRepl
     /** Export contents of this struct as a string */
 	bool ExportTextItem(FString& ValueStr, FUniqueNetIdRepl const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 
+	/** Convert this value to a string */
+	ENGINE_API FString ToString() const;
+
 	/** Network serialization */
 	ENGINE_API bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
@@ -143,4 +146,4 @@ class UOnlineReplStructs: public UObject
 };
 
 /** Test harness for Unique Id replication */
-ENGINE_API void TestUniqueIdRepl();
+ENGINE_API void TestUniqueIdRepl(class UWorld* InWorld);

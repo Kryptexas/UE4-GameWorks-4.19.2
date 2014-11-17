@@ -136,21 +136,36 @@ void FOnlineAchievementsSteam::OnWriteAchievementsComplete(const FUniqueNetIdSte
 	TriggerOnAchievementsWrittenDelegates(PlayerId, bWasSuccessful);
 }
 
-bool FOnlineAchievementsSteam::ReadAchievements(const FUniqueNetId& PlayerId)
+void FOnlineAchievementsSteam::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate)
 {
 	if (!bHaveConfiguredAchievements)
 	{
 		// we don't have achievements
 		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been configured in .ini"));
 
-		TriggerOnAchievementsReadDelegates(PlayerId, false);
-		return false;
+		Delegate.ExecuteIfBound( PlayerId, false );
+		return;
 	}
 
 	// schedule a read (this will trigger the OnAchievementsRead delegates)
-	StatsInt->ReadAchievements(FUniqueNetIdSteam(PlayerId), false);
-	return true;
-};
+	StatsInt->QueryAchievements( FUniqueNetIdSteam(PlayerId), Delegate );
+}
+
+void FOnlineAchievementsSteam::QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate )
+{
+	if (!bHaveConfiguredAchievements)
+	{
+		// we don't have achievements
+		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been configured in .ini"));
+
+		Delegate.ExecuteIfBound( PlayerId, false );
+		return;
+	}
+
+	// schedule a read (this will trigger the OnAchievementDescriptionsRead delegates)
+	StatsInt->QueryAchievements( FUniqueNetIdSteam(PlayerId), Delegate );
+}
+
 
 /**
  * ** INTERNAL **
@@ -207,29 +222,13 @@ void FOnlineAchievementsSteam::UpdateAchievementsForUser(const FUniqueNetIdSteam
 	PlayerAchievements.Add(PlayerId, AchievementsForPlayer);
 }
 
-bool FOnlineAchievementsSteam::ReadAchievementDescriptions(const FUniqueNetId& PlayerId)
+EOnlineCachedResult::Type FOnlineAchievementsSteam::GetCachedAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement)
 {
 	if (!bHaveConfiguredAchievements)
 	{
 		// we don't have achievements
 		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been configured in .ini"));
-
-		TriggerOnAchievementDescriptionsReadDelegates(PlayerId, false);
-		return false;
-	}
-
-	// schedule a read (this will trigger the OnAchievementDescriptionsRead delegates)
-	StatsInt->ReadAchievements(FUniqueNetIdSteam(PlayerId), true);
-	return true;
-};
-
-bool FOnlineAchievementsSteam::GetAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement)
-{
-	if (!bHaveConfiguredAchievements)
-	{
-		// we don't have achievements
-		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been configured in .ini"));
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	const TArray<FOnlineAchievement> * PlayerAch = PlayerAchievements.Find(FUniqueNetIdSteam (PlayerId));
@@ -237,7 +236,7 @@ bool FOnlineAchievementsSteam::GetAchievement(const FUniqueNetId& PlayerId, cons
 	{
 		// achievements haven't been read for a player
 		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been read for player %s"), *PlayerId.ToString());
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	const int32 AchNum = PlayerAch->Num();
@@ -246,22 +245,22 @@ bool FOnlineAchievementsSteam::GetAchievement(const FUniqueNetId& PlayerId, cons
 		if ((*PlayerAch)[ AchIdx ].Id == AchievementId)
 		{
 			OutAchievement = (*PlayerAch)[ AchIdx ];
-			return true;
+			return EOnlineCachedResult::Success;
 		}
 	}
 
 	// no such achievement
 	UE_LOG_ONLINE(Warning, TEXT("Could not find Steam achievement '%s' for player %s"), *AchievementId, *PlayerId.ToString());
-	return false;
+	return EOnlineCachedResult::NotFound;
 };
 
-bool FOnlineAchievementsSteam::GetAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement> & OutAchievements)
+EOnlineCachedResult::Type FOnlineAchievementsSteam::GetCachedAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement> & OutAchievements)
 {
 	if (!bHaveConfiguredAchievements)
 	{
 		// we don't have achievements
 		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been configured in .ini"));
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	const TArray<FOnlineAchievement> * PlayerAch = PlayerAchievements.Find(FUniqueNetIdSteam (PlayerId));
@@ -269,27 +268,27 @@ bool FOnlineAchievementsSteam::GetAchievements(const FUniqueNetId& PlayerId, TAr
 	{
 		// achievements haven't been read for a player
 		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been read for player %s"), *PlayerId.ToString());
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	OutAchievements = *PlayerAch;
-	return true;
+	return EOnlineCachedResult::Success;
 };
 
-bool FOnlineAchievementsSteam::GetAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
+EOnlineCachedResult::Type FOnlineAchievementsSteam::GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
 {
 	if (!bHaveConfiguredAchievements)
 	{
 		// we don't have achievements
 		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been configured in .ini"));
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	if (AchievementDescriptions.Num() == 0 )
 	{
 		// don't have descs
 		UE_LOG_ONLINE(Warning, TEXT("Descriptions have not been read"));
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	FOnlineAchievementDesc * AchDesc = AchievementDescriptions.Find(AchievementId);
@@ -297,11 +296,11 @@ bool FOnlineAchievementsSteam::GetAchievementDescription(const FString& Achievem
 	{
 		// no such achievement
 		UE_LOG_ONLINE(Warning, TEXT("Achievement '%s' does not have a description"), *AchievementId);
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	OutAchievementDesc = *AchDesc;
-	return true;
+	return EOnlineCachedResult::Success;
 };
 
 #if !UE_BUILD_SHIPPING

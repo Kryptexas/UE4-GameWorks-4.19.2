@@ -49,22 +49,32 @@ DECLARE_DELEGATE_OneParam(FOnMessageTransportNodeLost, const FGuid&);
  * Interface for message transport technologies.
  *
  * Licensees can implement this interface to add support for custom message transport
- * technologies that are not implemented in this module, i.e. when integrating custom
- * network protocols or APIs.
+ * technologies that are not supported, i.e. custom network protocols or APIs.
  */
 class ITransportMessages
 {
 public:
 
 	/**
+	 * Gets the name of this transport (for debugging purposes).
+	 *
+	 * @return The debug name.
+	 */
+	virtual FName GetDebugName( ) const = 0;
+
+	/**
 	 * Starts up the message transport.
 	 *
 	 * @return Whether the transport was started successfully.
+	 *
+	 * @see StopTransport
 	 */
 	virtual bool StartTransport( ) = 0;
 
 	/**
 	 * Shuts down the message transport.
+	 *
+	 * @see StartTransport
 	 */
 	virtual void StopTransport( ) = 0;
 

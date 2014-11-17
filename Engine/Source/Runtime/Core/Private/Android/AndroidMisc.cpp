@@ -138,23 +138,26 @@ int32 FAndroidMisc::NumberOfCores()
 	return NumberOfCores;
 }
 
+extern FString GFilePathBase;
+
 class FTestUtime
 {
 public:
 	FTestUtime()
 		: Supported(false)
 	{
-		static const char * TestFilePath = "/mnt/sdcard/UE4UtimeTest.txt";
-		FILE * FileHandle = fopen(TestFilePath, "w");
+		static FString TestFilePath = GFilePathBase + FString(TEXT("/UE4UtimeTest.txt"));
+		static const char * TestFilePathChar = StringCast<ANSICHAR>(*TestFilePath).Get();
+		FILE * FileHandle = fopen(TestFilePathChar, "w");
 		if(FileHandle)
 		{
 			fclose(FileHandle);
 			struct utimbuf Times;
 			Times.actime = 0;
 			Times.modtime = 0;
-			int Result = utime(TestFilePath, &Times);
+			int Result = utime(TestFilePathChar, &Times);
 			Supported = -1 != Result;
-			unlink(TestFilePath);
+			unlink(TestFilePathChar);
 		}
 
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Is Local Caching Supported? %d\n"), Supported);
@@ -237,11 +240,11 @@ bool FAndroidMisc::GetUseVirtualJoysticks()
 
 uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
 {
-#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; KeyNames[NumMappings]=KeyName; ++NumMappings; };
+#define ADDKEYMAP(KeyCode, KeyName)		if (NumMappings<MaxMappings) { KeyCodes[NumMappings]=KeyCode; if(KeyNames) { KeyNames[NumMappings]=KeyName; } ++NumMappings; };
 
 	uint32 NumMappings = 0;
 
-	if ( KeyCodes && KeyNames && (MaxMappings > 0) )
+	if ( KeyCodes && (MaxMappings > 0) )
 	{
 		ADDKEYMAP( AKEYCODE_0, TEXT("Zero") );
 		ADDKEYMAP( AKEYCODE_1, TEXT("One") );

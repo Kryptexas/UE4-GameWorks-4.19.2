@@ -38,32 +38,14 @@ bool IsSilence(T* Buffer, int32 BuffSize)
 	return AverageMeanSquare < Threshold;
 }
 
-/** Callback to access all the voice capture devices on the platform */
-BOOL CALLBACK CaptureDeviceCallback(
-	LPGUID lpGuid,
-	LPCSTR lpcstrDescription,
-	LPCSTR lpcstrModule,
-	LPVOID lpContext
-	)
-{
-	// @todo identify the proper device
-	FVoiceCaptureWindows* VCPtr = (FVoiceCaptureWindows*)(lpContext);
-	UE_LOG(LogVoice, Display, TEXT("Device: %s Desc: %s"), lpcstrDescription, lpcstrModule);
-	return true;
-}
-
 FVoiceCaptureWindows::FVoiceCaptureWindows() :
 	VoiceCaptureState(EVoiceCaptureState::UnInitialized),
-	DirectSound(NULL),
-	VoiceCaptureDev(NULL),
 	VoiceCaptureBuffer8(NULL),
 	LastEventTriggered(STOP_EVENT - 1),
-	LastBufferWritten(1),
 	NextCaptureOffset(0)
 {
 	FMemory::Memzero(&WavFormat, sizeof(WavFormat));
 	FMemory::Memzero(&VoiceCaptureBufferDesc, sizeof(VoiceCaptureBufferDesc));
-	FMemory::Memzero(&VoiceCaptureDevCaps, sizeof(VoiceCaptureDevCaps));
 	FMemory::Memzero(&VoiceCaptureBufferCaps8, sizeof(VoiceCaptureBufferCaps8));
 	FMemory::Memzero(&Events, ARRAY_COUNT(Events) * sizeof(HANDLE));
 
@@ -72,54 +54,38 @@ FVoiceCaptureWindows::FVoiceCaptureWindows() :
 		Events[i] = INVALID_HANDLE_VALUE;
 	}
 
-	AudioBuffers[0].Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
-	AudioBuffers[1].Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
+	UncompressedAudioBuffer.Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
 }
 
 FVoiceCaptureWindows::~FVoiceCaptureWindows()
 {
 	Shutdown();
+
+	FVoiceCaptureDeviceWindows* VoiceCaptureDev = FVoiceCaptureDeviceWindows::Get();
+ 	if (VoiceCaptureDev)	
+	{
+ 		VoiceCaptureDev->FreeVoiceCaptureObject(this);
+ 	}
 }
 
 bool FVoiceCaptureWindows::Init(int32 SampleRate, int32 NumChannels)
 {
 	if (SampleRate < 8000 || SampleRate > 48000)
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Voice capture doesn't support %d hz"), SampleRate);
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Voice capture doesn't support %d hz"), SampleRate);
 		return false;
 	}
 
 	if (NumChannels < 0 || NumChannels > 2)
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Voice capture only supports 1 or 2 channels"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Voice capture only supports 1 or 2 channels"));
 		return false;
 	}
 
-	// @todo move this to voice module (only init/deinit once ever)
-	if (FAILED(DirectSoundCreate8(NULL, &DirectSound, NULL)))
+	FVoiceCaptureDeviceWindows* VoiceDev = FVoiceCaptureDeviceWindows::Get();
+	if (!VoiceDev || !VoiceDev->VoiceCaptureDev)
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to init DirectSound"));
-		return false;
-	}
-
-	if (FAILED(DirectSoundCaptureEnumerate((LPDSENUMCALLBACK)CaptureDeviceCallback, this)))
-	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to enumerate devices"));
-		return false;
-	}
-
-	// DSDEVID_DefaultCapture WAVEINCAPS 
-	if (FAILED(DirectSoundCaptureCreate8(&DSDEVID_DefaultVoiceCapture, &VoiceCaptureDev, NULL)))
-	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to create capture device"));
-		return false;
-	}
-
-	// Device capabilities
-	VoiceCaptureDevCaps.dwSize = sizeof(DSCCAPS);
-	if (FAILED(VoiceCaptureDev->GetCaps(&VoiceCaptureDevCaps)))
-	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to get mic device caps"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("No voice capture interface."));
 		return false;
 	}
 
@@ -142,9 +108,9 @@ bool FVoiceCaptureWindows::Init(int32 SampleRate, int32 NumChannels)
 	VoiceCaptureBufferDesc.lpDSCFXDesc = NULL;
 
 	LPDIRECTSOUNDCAPTUREBUFFER VoiceBuffer = NULL;
-	if (FAILED(VoiceCaptureDev->CreateCaptureBuffer(&VoiceCaptureBufferDesc, &VoiceBuffer, NULL)))
+	if (FAILED(VoiceDev->VoiceCaptureDev->CreateCaptureBuffer(&VoiceCaptureBufferDesc, &VoiceBuffer, NULL)))
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to create voice capture buffer"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to create voice capture buffer"));
 		return false;
 	}
 
@@ -153,14 +119,14 @@ bool FVoiceCaptureWindows::Init(int32 SampleRate, int32 NumChannels)
 	VoiceBuffer = NULL;
 	if (FAILED(BufferCreateHR))
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to create voice capture buffer"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to create voice capture buffer"));
 		return false;
 	}
 
 	VoiceCaptureBufferCaps8.dwSize = sizeof(DSCBCAPS);
 	if (FAILED(VoiceCaptureBuffer8->GetCaps(&VoiceCaptureBufferCaps8)))
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to get voice buffer caps"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to get voice buffer caps"));
 		return false;
 	}
 
@@ -178,7 +144,7 @@ bool FVoiceCaptureWindows::Init(int32 SampleRate, int32 NumChannels)
 
 	if (!CreateNotifications(VoiceCaptureBufferCaps8.dwBufferBytes))
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to create voice buffer notifications"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to create voice buffer notifications"));
 		return false;
 	}
 
@@ -194,19 +160,6 @@ void FVoiceCaptureWindows::Shutdown()
 	{
 		VoiceCaptureBuffer8->Release();
 		VoiceCaptureBuffer8 = NULL;
-	}
-
-	if (VoiceCaptureDev)
-	{
-		VoiceCaptureDev->Release();
-		VoiceCaptureDev = NULL;
-	}
-
-	// @todo move to voice module
-	if (DirectSound)
-	{
-		DirectSound->Release();
-		DirectSound = NULL;
 	}
 
 	for (int i = 0; i < ARRAY_COUNT(Events); i++)
@@ -227,7 +180,7 @@ bool FVoiceCaptureWindows::Start()
 
 	if (FAILED(VoiceCaptureBuffer8->Start(DSCBSTART_LOOPING)))
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to start capture"));
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to start capture"));
 		return false;
 	}
 
@@ -253,7 +206,7 @@ bool FVoiceCaptureWindows::IsCapturing()
 		DWORD Status = 0;
 		if (FAILED(VoiceCaptureBuffer8->GetStatus(&Status)))
 		{
-			UE_LOG(LogVoice, Warning, TEXT("Failed to get voice buffer status"));
+			UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to get voice buffer status"));
 		}
 
 		// Status & DSCBSTATUS_LOOPING
@@ -268,7 +221,7 @@ EVoiceCaptureState::Type FVoiceCaptureWindows::GetCaptureState(uint32& OutAvaila
 	if (VoiceCaptureState != EVoiceCaptureState::UnInitialized &&
 		VoiceCaptureState != EVoiceCaptureState::Error)
 	{
-		OutAvailableVoiceData = AudioBuffers[LastBufferWritten].Num();
+		OutAvailableVoiceData = UncompressedAudioBuffer.Num();
 	}
 	else
 	{
@@ -286,7 +239,7 @@ void FVoiceCaptureWindows::ProcessData()
 	HRESULT HR = VoiceCaptureBuffer8 ? VoiceCaptureBuffer8->GetCurrentPosition(&CurrentCapturePos, &CurrentReadPos) : E_FAIL;
 	if (FAILED(HR))
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to get voice buffer cursor position 0x%08x"), HR);
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to get voice buffer cursor position 0x%08x"), HR);
 		VoiceCaptureState = EVoiceCaptureState::Error;
 		return;
 	}
@@ -304,15 +257,13 @@ void FVoiceCaptureWindows::ProcessData()
 			&CaptureData2, &CaptureLength2, CaptureFlags);
 		if (SUCCEEDED(HR))
 		{
-			LastBufferWritten = 0;//!LastBufferWritten;
-
 			CaptureLength = FMath::Min(CaptureLength, (DWORD)MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
 			CaptureLength2 = FMath::Min(CaptureLength2, (DWORD)MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE - CaptureLength);
 
-			AudioBuffers[LastBufferWritten].Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
-			AudioBuffers[LastBufferWritten].AddUninitialized(CaptureLength + CaptureLength2);
+			UncompressedAudioBuffer.Empty(MAX_UNCOMPRESSED_VOICE_BUFFER_SIZE);
+			UncompressedAudioBuffer.AddUninitialized(CaptureLength + CaptureLength2);
 
-			uint8* AudioBuffer = AudioBuffers[LastBufferWritten].GetTypedData();
+			uint8* AudioBuffer = UncompressedAudioBuffer.GetTypedData();
 			FMemory::Memcpy(AudioBuffer, CaptureData, CaptureLength);
 
 			if (CaptureData2 && CaptureLength2 > 0)
@@ -326,7 +277,7 @@ void FVoiceCaptureWindows::ProcessData()
 			NextCaptureOffset = (NextCaptureOffset + CaptureLength) % VoiceCaptureBufferCaps8.dwBufferBytes; 
 			NextCaptureOffset = (NextCaptureOffset + CaptureLength2) % VoiceCaptureBufferCaps8.dwBufferBytes; 
 
-			if (IsSilence((int16*)AudioBuffer, AudioBuffers[LastBufferWritten].Num()))
+			if (IsSilence((int16*)AudioBuffer, UncompressedAudioBuffer.Num()))
 			{
 				VoiceCaptureState = EVoiceCaptureState::NoData;
 			}
@@ -338,13 +289,13 @@ void FVoiceCaptureWindows::ProcessData()
 #if !UE_BUILD_SHIPPING
 			static double LastCapture = 0.0;
 			double NewTime = FPlatformTime::Seconds();
-			UE_LOG(LogVoice, VeryVerbose, TEXT("LastCapture: %f %s"), (NewTime - LastCapture) * 1000.0, EVoiceCaptureState::ToString(VoiceCaptureState));
+			UE_LOG(LogVoiceCapture, VeryVerbose, TEXT("LastCapture: %f %s"), (NewTime - LastCapture) * 1000.0, EVoiceCaptureState::ToString(VoiceCaptureState));
 			LastCapture = NewTime;
 #endif
 		}
 		else
 		{
-			UE_LOG(LogVoice, Warning, TEXT("Failed to lock voice buffer 0x%08x"), HR);
+			UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to lock voice buffer 0x%08x"), HR);
 			VoiceCaptureState = EVoiceCaptureState::Error;
 		}
 	}
@@ -358,10 +309,10 @@ EVoiceCaptureState::Type FVoiceCaptureWindows::GetVoiceData(uint8* OutVoiceBuffe
 	if (VoiceCaptureState == EVoiceCaptureState::Ok ||
 		VoiceCaptureState == EVoiceCaptureState::Stopping)
 	{
-		OutAvailableVoiceData = AudioBuffers[LastBufferWritten].Num();
+		OutAvailableVoiceData = UncompressedAudioBuffer.Num();
 		if (InVoiceBufferSize >= OutAvailableVoiceData)
 		{
-			FMemory::Memcpy(OutVoiceBuffer, AudioBuffers[LastBufferWritten].GetTypedData(), OutAvailableVoiceData);
+			FMemory::Memcpy(OutVoiceBuffer, UncompressedAudioBuffer.GetTypedData(), OutAvailableVoiceData);
 			VoiceCaptureState = EVoiceCaptureState::NoData;
 		}
 		else
@@ -390,7 +341,7 @@ bool FVoiceCaptureWindows::CreateNotifications(uint32 BufferSize)
 			Events[i] = CreateEvent(NULL, true, false, NULL);
 			if (Events[i] == INVALID_HANDLE_VALUE)
 			{
-				UE_LOG(LogVoice, Warning, TEXT("Error creating sync event"));
+				UE_LOG(LogVoiceCapture, Warning, TEXT("Error creating sync event"));
 				bSuccess = false;
 			}
 		}
@@ -412,19 +363,19 @@ bool FVoiceCaptureWindows::CreateNotifications(uint32 BufferSize)
 
 			if (FAILED(NotifyInt->SetNotificationPositions(NUM_EVENTS, NotifyEvents)))
 			{
-				UE_LOG(LogVoice, Warning, TEXT("Failed to set notifications"));
+				UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to set notifications"));
 				bSuccess = false;
 			}
 
 			float BufferSegMs = BufferSegSize / ((WavFormat.nSamplesPerSec / 1000.0) * (WavFormat.wBitsPerSample / 8.0));
-			UE_LOG(LogVoice, Display, TEXT("%d notifications, every %d bytes [%f ms]"), NumSegments, BufferSegSize, BufferSegMs);
+			UE_LOG(LogVoiceCapture, Display, TEXT("%d notifications, every %d bytes [%f ms]"), NumSegments, BufferSegSize, BufferSegMs);
 		}
 
 		NotifyInt->Release();
 	}
 	else
 	{
-		UE_LOG(LogVoice, Warning, TEXT("Failed to create voice notification interface 0x%08x"), NotifyHR);
+		UE_LOG(LogVoiceCapture, Warning, TEXT("Failed to create voice notification interface 0x%08x"), NotifyHR);
 	}
 
 	if (!bSuccess)
@@ -451,7 +402,9 @@ bool FVoiceCaptureWindows::Tick(float DeltaTime)
 		uint32 NextEvent = (LastEventTriggered + 1) % (NUM_EVENTS - 1);
 		if (WaitForSingleObject(Events[NextEvent], 0) == WAIT_OBJECT_0)
 		{
-			UE_LOG(LogVoice, VeryVerbose, TEXT("Event %d Signalled"), NextEvent);
+#if !UE_BUILD_SHIPPING
+			UE_LOG(LogVoiceCapture, VeryVerbose, TEXT("Event %d Signalled"), NextEvent);
+#endif
 			ProcessData();
 
 			LastEventTriggered = NextEvent;
@@ -463,7 +416,9 @@ bool FVoiceCaptureWindows::Tick(float DeltaTime)
 		{
 			if (WaitForSingleObject(Events[EventIdx], 0) == WAIT_OBJECT_0)
 			{
-				UE_LOG(LogVoice, VeryVerbose, TEXT("Event %d Signalled"), EventIdx);
+#if !UE_BUILD_SHIPPING
+				UE_LOG(LogVoiceCapture, VeryVerbose, TEXT("Event %d Signalled"), EventIdx);
+#endif
 				if (LastEventTriggered != EventIdx)
 				{
 					ProcessData();
@@ -477,7 +432,7 @@ bool FVoiceCaptureWindows::Tick(float DeltaTime)
 
 		if (Events[STOP_EVENT] != INVALID_HANDLE_VALUE && WaitForSingleObject(Events[STOP_EVENT], 0) == WAIT_OBJECT_0)
 		{
-			UE_LOG(LogVoice, Verbose, TEXT("Voice capture stopped"));
+			UE_LOG(LogVoiceCapture, Verbose, TEXT("Voice capture stopped"));
 			ResetEvent(Events[STOP_EVENT]);
 			VoiceCaptureState = EVoiceCaptureState::NotCapturing;
 		}

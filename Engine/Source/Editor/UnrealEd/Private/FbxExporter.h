@@ -183,6 +183,7 @@ private:
 	
 	/**
 	 * Exports a static mesh
+	 * @param StaticMesh	The static mesh to export
 	 * @param RenderMesh	The static mesh render data to export
 	 * @param MeshName		The name of the mesh for the FBX file
 	 * @param FbxActor		The fbx node representing the mesh
@@ -192,6 +193,21 @@ private:
 	 */
 	FbxNode* ExportStaticMeshToFbx(UStaticMesh* StaticMesh, FStaticMeshLODResources& RenderMesh, const TCHAR* MeshName, FbxNode* FbxActor, int32 LightmapUVChannel = -1, FColorVertexBuffer* ColorBuffer = NULL, const TArray<UMaterialInterface*>* MaterialOrderOverride = NULL );
 
+	/**
+	* Exports a spline mesh
+	* @param SplineMeshComp	The spline mesh component to export
+	* @param RenderMesh		The mesh render data to export
+	* @param MeshName		The name of the mesh for the FBX file
+	* @param FbxActor		The fbx node representing the mesh
+	*/
+	FbxNode* ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshComp, FStaticMeshLODResources& RenderMesh, const TCHAR* MeshName, FbxNode* FbxActor);
+
+	/**
+	* Exports a landscape
+	* @param Landscape		The landscape to export
+	* @param MeshName		The name of the mesh for the FBX file
+	* @param FbxActor		The fbx node representing the mesh
+	*/
 	FbxNode* ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TCHAR* MeshName, FbxNode* FbxActor, bool bSelectedOnly);
 
 	/**

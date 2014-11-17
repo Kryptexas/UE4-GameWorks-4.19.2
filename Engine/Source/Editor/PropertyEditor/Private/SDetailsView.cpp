@@ -119,6 +119,7 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			// Create the search box
 			SNew( SButton )
 			.OnClicked( this, &SDetailsView::OnOpenRawPropertyEditorClicked )
+			.IsEnabled( this, &SDetailsView::IsPropertyEditingEnabled )
 			.ToolTipText( LOCTEXT("RawPropertyEditorButtonLabel", "Open Selection in Property Matrix") )
 			[
 				SNew( SImage )
@@ -1028,7 +1029,6 @@ void SDetailsView::QueryLayoutForClass( FDetailLayoutBuilderImpl& CustomDetailLa
 	CustomDetailLayout.SetCurrentCustomizationClass( CastChecked<UClass>( Class ), NAME_None );
 
 	FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	FCustomDetailLayoutMap& GlobalCustomLayoutMap = ParentPlugin.ClassToDetailLayoutMap;
 	FCustomDetailLayoutNameMap& GlobalCustomLayoutNameMap = ParentPlugin.ClassNameToDetailLayoutNameMap;
 
 	// Check the instanced map first
@@ -1037,12 +1037,6 @@ void SDetailsView::QueryLayoutForClass( FDetailLayoutBuilderImpl& CustomDetailLa
 	if( !Callback )
 	{
 		// callback wasn't found in the per instance map, try the global instances instead
-		Callback = GlobalCustomLayoutMap.Find( TWeakObjectPtr<UStruct>(Class) );
-	}
-
-	if( !Callback )
-	{
-		// callback wasn't found in the global class map, try the global name map instead
 		Callback = GlobalCustomLayoutNameMap.Find( Class->GetFName() );
 	}
 
@@ -1064,7 +1058,6 @@ void SDetailsView::QueryCustomDetailLayout( FDetailLayoutBuilderImpl& CustomDeta
 	FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	// Get the registered classes that customize details
-	FCustomDetailLayoutMap& GlobalCustomLayoutMap = ParentPlugin.ClassToDetailLayoutMap;
 	FCustomDetailLayoutNameMap& GlobalCustomLayoutNameMap = ParentPlugin.ClassNameToDetailLayoutNameMap;
 	
 	UClass* BaseClass = GetBaseClass();
@@ -1107,12 +1100,6 @@ void SDetailsView::QueryCustomDetailLayout( FDetailLayoutBuilderImpl& CustomDeta
 		if( !Callback )
 		{
 			// callback wasn't found in the per instance map, try the global instances instead
-			Callback = GlobalCustomLayoutMap.Find( *ClassIt );
-		}
-
-		if( !Callback )
-		{
-			// callback wasn't found in the global class map, try the global name map instead
 			Callback = GlobalCustomLayoutNameMap.Find( (*ClassIt)->GetFName() );
 		}
 

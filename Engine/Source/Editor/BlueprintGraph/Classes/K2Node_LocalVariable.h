@@ -17,10 +17,10 @@ class UK2Node_LocalVariable : public UK2Node_TemporaryVariable
 	UPROPERTY()
 	FText VariableTooltip;
 
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface.
  	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const OVERRIDE;
 	virtual void PostPlacedNewNode() OVERRIDE;
@@ -39,5 +39,4 @@ class UK2Node_LocalVariable : public UK2Node_TemporaryVariable
 	 * @param InVariableType		The type to assign this local variable to
 	 */
 	BLUEPRINTGRAPH_API void ChangeVariableType(const FEdGraphPinType& InVariableType);
-#endif
 };

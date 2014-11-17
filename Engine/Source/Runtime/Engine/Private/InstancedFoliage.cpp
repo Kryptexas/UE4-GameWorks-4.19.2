@@ -123,12 +123,17 @@ UInstancedFoliageSettings::UInstancedFoliageSettings(const class FPostConstructI
 	VertexColorMask = FOLIAGEVERTEXCOLORMASK_Disabled;
 	VertexColorMaskThreshold = 0.5f;
 
+	// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
+	// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
+	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 	CastShadow = true;
-	bCastDynamicShadow = true;
+	//bCastDynamicShadow = true;
+	//bCastStaticShadow = true;
 	bAffectDynamicIndirectLighting = false;
-	bCastStaticShadow = true;
 	bCastHiddenShadow = false;
 	bCastShadowAsTwoSided = false;
+
+	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 }
 
 //
@@ -289,13 +294,10 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 			ConstructObject<UInstancedStaticMeshComponent>(UInstancedStaticMeshComponent::StaticClass(),InIFA,NAME_None,RF_Transactional),
 			InMesh->GetBounds().TransformBy(InstanceTransform)
 			);
-		// Set IsPendingKill() to true so that when the initial undo record is made,
-		// the component will be treated as destroyed, in that undo an add will
-		// actually work
-		BestCluster->ClusterComponent->SetFlags(RF_PendingKill);
-		BestCluster->ClusterComponent->Modify( false );
-		BestCluster->ClusterComponent->ClearFlags(RF_PendingKill);
-			
+
+		// Make the instanced static mesh component movable so it doesn't get statically lit; see the comment below about CastShadow for more details
+		BestCluster->ClusterComponent->Mobility = EComponentMobility::Movable;
+
 		BestCluster->ClusterComponent->StaticMesh = InMesh;
 		BestCluster->ClusterComponent->bSelectable = true;
 		BestCluster->ClusterComponent->bHasPerInstanceHitProxies = true;
@@ -303,12 +305,17 @@ void FFoliageMeshInfo::AddInstance( AInstancedFoliageActor* InIFA, UStaticMesh* 
 		BestCluster->ClusterComponent->InstanceStartCullDistance = Settings->StartCullDistance;
 		BestCluster->ClusterComponent->InstanceEndCullDistance = Settings->EndCullDistance;
 
+		// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
+		// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
+		// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 		BestCluster->ClusterComponent->CastShadow = Settings->CastShadow;
-		BestCluster->ClusterComponent->bCastDynamicShadow = Settings->bCastDynamicShadow;
+		BestCluster->ClusterComponent->bCastDynamicShadow = true; //Settings->bCastDynamicShadow;
+		BestCluster->ClusterComponent->bCastStaticShadow = false; //Settings->bCastStaticShadow;
 		BestCluster->ClusterComponent->bAffectDynamicIndirectLighting = Settings->bAffectDynamicIndirectLighting;
-		BestCluster->ClusterComponent->bCastStaticShadow = Settings->bCastStaticShadow;
 		BestCluster->ClusterComponent->bCastHiddenShadow = Settings->bCastHiddenShadow;
 		BestCluster->ClusterComponent->bCastShadowAsTwoSided = Settings->bCastShadowAsTwoSided;
+
+		BestCluster->ClusterComponent->BodyInstance.CopyBodyInstancePropertiesFrom(&Settings->BodyInstance);
 
 		BestCluster->ClusterComponent->SetRelativeTransform(FTransform::Identity);
 		BestCluster->ClusterComponent->RegisterComponent();
@@ -734,7 +741,7 @@ void FFoliageMeshInfo::SelectInstances( AInstancedFoliageActor* InIFA, bool bSel
 AInstancedFoliageActor::AInstancedFoliageActor(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	SetActorEnableCollision(false);
+	SetActorEnableCollision(true);
 #if WITH_EDITORONLY_DATA
 	bListedInSceneOutliner = false;
 #endif // WITH_EDITORONLY_DATA
@@ -1005,24 +1012,57 @@ void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel( class UAct
 
 void AInstancedFoliageActor::MoveInstancesToNewComponent( class UActorComponent* InOldComponent, class UActorComponent* InNewComponent )
 {
-	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActor(InOldComponent->GetWorld());
-	
-	for( TMap<class UStaticMesh*, struct FFoliageMeshInfo>::TIterator MeshIt(FoliageMeshes); MeshIt; ++MeshIt )
+	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(InNewComponent->GetTypedOuter<ULevel>());
+	if (!NewIFA)
 	{
-		FFoliageMeshInfo& MeshInfo = MeshIt.Value();
+		NewIFA = InNewComponent->GetWorld()->SpawnActor<AInstancedFoliageActor>();
+	}
+	check(NewIFA);
+
+	for (TPair<UStaticMesh*, FFoliageMeshInfo>& Entry : FoliageMeshes)
+	{
+		FFoliageMeshInfo& MeshInfo = Entry.Value;
 
 		const FFoliageComponentHashInfo* ComponentHashInfo = MeshInfo.ComponentHash.Find(InOldComponent);
-		if( ComponentHashInfo )
+		if (ComponentHashInfo)
 		{
-			// Update the instances
-			for( auto InstanceIt = ComponentHashInfo->Instances.CreateConstIterator(); InstanceIt; ++InstanceIt )
+			// For same level can just remap the instances, otherwise we have to do a more complex move
+			if (NewIFA == this)
 			{
-				MeshInfo.Instances[*InstanceIt].Base = InNewComponent;
-			}
+				FFoliageComponentHashInfo NewComponentHashInfo = MoveTemp(*ComponentHashInfo);
+				NewComponentHashInfo.UpdateLocationFromActor(InNewComponent);
 
-			// Update the hash
-			MeshInfo.ComponentHash.Add(InNewComponent, *ComponentHashInfo);
-			MeshInfo.ComponentHash.Remove(InOldComponent);
+				// Update the instances
+				for (int32 InstanceIndex : NewComponentHashInfo.Instances)
+				{
+					MeshInfo.Instances[InstanceIndex].Base = InNewComponent;
+				}
+
+				// Update the hash
+				MeshInfo.ComponentHash.Add(InNewComponent, MoveTemp(NewComponentHashInfo));
+				MeshInfo.ComponentHash.Remove(InOldComponent);
+			}
+			else
+			{
+				FFoliageMeshInfo* NewMeshInfo = NewIFA->FoliageMeshes.Find(Entry.Key);
+				if (!NewMeshInfo)
+				{
+					NewMeshInfo = NewIFA->AddMesh(Entry.Key);
+				}
+
+				// Add the foliage to the new level
+				for (int32 InstanceIndex : ComponentHashInfo->Instances)
+				{
+					FFoliageInstance NewInstance = MeshInfo.Instances[InstanceIndex];
+					NewInstance.Base = InNewComponent;
+					NewInstance.ClusterIndex = INDEX_NONE;
+					NewMeshInfo->AddInstance(NewIFA, Entry.Key, NewInstance);
+				}
+
+				// Remove from old level
+				MeshInfo.RemoveInstances(this, ComponentHashInfo->Instances.Array());
+				check(!MeshInfo.ComponentHash.Contains(InOldComponent));
+			}
 		}
 	}
 }
@@ -1427,6 +1467,20 @@ void AInstancedFoliageActor::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 	Ar << FoliageMeshes;
+
+	if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOVABLE_MOBILITY)
+	{
+		for (const TPair<UStaticMesh*, FFoliageMeshInfo>& MeshInfo : FoliageMeshes)
+		{
+			for (const FFoliageInstanceCluster& Cluster : MeshInfo.Value.InstanceClusters)
+			{
+				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_MOVABLE_MOBILITY)
+					Cluster.ClusterComponent->SetMobility(EComponentMobility::Movable);
+				if (Ar.UE4Ver() < VER_UE4_FOLIAGE_COLLISION)
+					Cluster.ClusterComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
+		}
+	}
 }
 
 void AInstancedFoliageActor::PostLoad()

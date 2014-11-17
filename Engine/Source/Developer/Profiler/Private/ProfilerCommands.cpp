@@ -35,7 +35,7 @@ void FProfilerCommands::RegisterCommands()
 		Global commands.
 	-----------------------------------------------------------------------------*/
 
-	UI_COMMAND( Save, "Save", "Saves all collected data to file or files", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::S ) );
+	UI_COMMAND( ProfilerManager_Save, "Save", "Saves all collected data to file or files", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::S ) );
 	UI_COMMAND( StatsProfiler, "Statistics", "Enables the Stats Profiler", EUserInterfaceActionType::ToggleButton, FInputGesture( EModifierKey::Control, EKeys::P ) );
 	UI_COMMAND( MemoryProfiler, "Memory", "Enables the Memory Profiler", EUserInterfaceActionType::ToggleButton, FInputGesture( EModifierKey::Control, EKeys::M ) );
 	UI_COMMAND( FPSChart, "FPS Chart", "Shows the FPS Chart", EUserInterfaceActionType::ToggleButton, FInputGesture( EModifierKey::Control, EKeys::H ) );
@@ -305,6 +305,7 @@ void FProfilerActionManager::Map_ProfilerManager_Load()
 
 void FProfilerActionManager::ProfilerManager_Load_Execute()
 {
+	// @see FStatConstants::StatsFileExtension
 	TArray<FString> OutFiles;
 	const FString ProfilingDirectory = *FPaths::ConvertRelativePathToFull( *FPaths::ProfilingDir() );
 
@@ -318,20 +319,26 @@ void FProfilerActionManager::ProfilerManager_Load_Execute()
 			LOCTEXT("ProfilerManager_Load_Desc", "Open profiler capture file...").ToString(),
 			ProfilingDirectory, 
 			TEXT(""), 
-			LOCTEXT("ProfilerManager_Load_FileFilter", "Capture Files (*.ue4stats)|*.ue4stats").ToString(), 
-			FProfilerManager::GetSettings().bSingleInstanceMode ? EFileDialogFlags::None : EFileDialogFlags::Multiple, 
+			LOCTEXT("ProfilerManager_Load_FileFilter", "Stats files (*.ue4stats)|*.ue4stats|Raw Stats files (*.ue4statsraw)|*.ue4statsraw").ToString(), 
+			//FProfilerManager::GetSettings().bSingleInstanceMode ? EFileDialogFlags::None : EFileDialogFlags::Multiple, 
+			EFileDialogFlags::None,
 			OutFiles
 		);
 	}
 
 	if( bOpened == true )
 	{
-		if( OutFiles.Num() > 0 )
+		if( OutFiles.Num() == 1 )
 		{
-			for( int32 FileIndex = 0; FileIndex < OutFiles.Num(); FileIndex++ )
+			const FString DraggedFileExtension = FPaths::GetExtension( OutFiles[0], true );
+			if( DraggedFileExtension == FStatConstants::StatsFileExtension )
 			{
-				const FString ProfilerCaptureFilepath = OutFiles[FileIndex];
-				This->LoadProfilerCapture( ProfilerCaptureFilepath, FileIndex == 0 ? false : true );
+				This->LoadProfilerCapture( OutFiles[0] );
+
+			}
+			else if( DraggedFileExtension == FStatConstants::StatsFileRawExtension )
+			{
+				This->LoadRawStatsFile( OutFiles[0] );
 			}
 		}
 	}

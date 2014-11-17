@@ -205,6 +205,11 @@ namespace ELauncherProfileValidationErrors
 		 * The deployment requires a package directory to be specified
 		 */
 		NoPackageDirectorySpecified,
+		
+		/**
+		 * The platform SDK is not installed but is required.
+		 */
+		NoPlatformSDKInstalled,
 	};
 }
 

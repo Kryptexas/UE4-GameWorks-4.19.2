@@ -695,13 +695,7 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 	}
 
 	// Remap RequiredBones array to Source Skeleton.
-	const FSkeletonRemappedBoneArray * RemappedBoneArray = RequiredBones.GetRemappedArrayForSkeleton(*MySkeleton);
-	if( !RemappedBoneArray )
-	{
-		return;
-	}
-
-	const TArray<int32> & SkeletonToPoseBoneIndexArray = RemappedBoneArray->SkeletonToPoseBoneIndexArray;
+	TArray<int32> const & SkeletonToPoseBoneIndexArray = RequiredBones.GetSkeletonToPoseBoneIndexArray();
 
 	// Slower path for disable retargeting, that's only used in editor and for debugging.
 	if( RequiredBones.ShouldUseRawData() || RequiredBones.GetDisableRetargeting() )
@@ -803,6 +797,7 @@ void UAnimSequence::GetBonePose(FTransformArrayA2 & OutAtoms, const FBoneContain
 		ExtractionContext.CurrentTime,
 		bDoLoopingInterpolation);
 
+	// Once pose has been extracted, snap root bone back to first frame if we are extracting root motion.
 	if( ExtractionContext.bExtractRootMotionTranslation || ExtractionContext.bExtractRootMotionRotation )
 	{
 		ResetRootBoneForRootMotion(OutAtoms, RequiredBones, ExtractionContext);

@@ -153,6 +153,7 @@ class ENGINE_API UNavigationComponent : public UActorComponent, public INavigati
 	/** set whether this component should receive update broadcasts from nearby smart links or not */
 	void SetReceiveSmartLinkUpdates(bool bEnabled);
 
+	TSharedPtr<const FNavigationQueryFilter> GetStoredQueryFilter() { return StoredQueryFilter; }
 	//----------------------------------------------------------------------//
 	// debug
 	//----------------------------------------------------------------------//

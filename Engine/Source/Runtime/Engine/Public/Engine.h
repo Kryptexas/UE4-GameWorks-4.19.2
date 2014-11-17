@@ -25,6 +25,10 @@
 	#define WITH_APEX (1 && WITH_PHYSX)
 #endif
 
+#ifndef WITH_PHYSICS_COOKING
+	#define WITH_PHYSICS_COOKING (WITH_EDITOR || WITH_APEX)		//APEX currently relies on cooking even at runtime
+#endif
+
 #if WITH_APEX
 
 #ifndef WITH_SUBSTEPPING
@@ -46,6 +50,10 @@
 	#define WITH_CLOTH_COLLISION_DETECTION (1 && WITH_APEX_CLOTHING)
 #endif//WITH_CLOTH_COLLISION_DETECTION
 #endif //WITH_APEX_CLOTHING
+
+#ifndef WITH_BODY_WELDING
+	//#define WITH_BODY_WELDING 1
+#endif
 
 #ifndef ENABLE_VISUAL_LOG
 	#define ENABLE_VISUAL_LOG (1 && !NO_LOGGING && !USING_CODE_ANALYSIS && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
@@ -448,6 +456,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Sync pathfinding"),STAT_Navigation_PathfindingSy
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Sync requests for async pathfinding"),STAT_Navigation_RequestingAsyncPathfinding,STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Async pathfinding"),STAT_Navigation_PathfindingAsync,STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Offset from corners"), STAT_Navigation_OffsetFromCorners, STATGROUP_Navigation, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Visibility test for path optimisation"), STAT_Navigation_PathVisibilityOptimisation, STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Sync queries"),STAT_Navigation_QueriesTimeSync,STATGROUP_Navigation, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("    Sync meta nav area preparation"),STAT_Navigation_MetaAreaTranslation,STATGROUP_Navigation, ); 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("    Async nav areas sorting"),STAT_Navigation_TileNavAreaSorting,STATGROUP_Navigation, );
@@ -552,7 +561,6 @@ class FSceneView;
 class FSceneViewFamily;
 class FViewportClient;
 class FCanvas;
-class FLinkedObjectDrawHelper;
 class UActorChannel;
 class FAudioDevice;
 

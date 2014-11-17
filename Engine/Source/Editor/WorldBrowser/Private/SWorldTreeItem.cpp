@@ -331,11 +331,6 @@ FSlateColor SWorldTreeItem::GetLevelDisplayNameColorAndOpacity() const
 		return LevelModel->GetLevelSelectionFlag() ? FSlateColor::UseForeground() : FLinearColor(0.12f, 0.56f, 1.0f);
 	}
 
-	if (LevelModel->IsAlwaysLoaded())
-	{
-		return LevelModel->GetLevelSelectionFlag() ? FSlateColor::UseForeground() : FLinearColor(1.0f, 0.56f, 0.12f);
-	}
-	
 	return FSlateColor::UseForeground();
 }
 

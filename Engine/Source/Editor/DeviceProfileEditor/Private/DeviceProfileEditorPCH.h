@@ -20,6 +20,8 @@
 *****************************************************************************/
 #include "DetailsPanel/SDeviceProfileDetailsPanel.h"
 
+#include "DeviceProfileConsoleVariableColumn.h"
+#include "SDeviceProfileEditorSingleProfileView.h"
 #include "SDeviceProfileCreateProfilePanel.h"
 #include "SDeviceProfileSelectionPanel.h"
 #include "SDeviceProfileEditor.h"

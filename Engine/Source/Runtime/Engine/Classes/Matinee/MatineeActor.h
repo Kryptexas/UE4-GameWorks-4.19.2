@@ -49,7 +49,7 @@ struct FInterpGroupActorInfo
 
 };
 
-UCLASS(dependson = UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Input))
+UCLASS(dependson=UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input))
 class AMatineeActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -164,6 +164,11 @@ class AMatineeActor : public AActor
 
 	UPROPERTY(transient)
 	uint32 bIsBeingEdited:1;
+
+	/** Set by the editor when scrubbing data */
+	UPROPERTY(transient)
+	uint32 bIsScrubbing : 1;
+
 #endif // WITH_EDITORONLY_DATA
 
 	/** properties that may change on InterpAction that we need to notify clients about, since the object's properties will not be replicated */
@@ -184,8 +189,25 @@ class AMatineeActor : public AActor
 	/** How much error is tolerated in the client-side position before the position that the server replicated is applied */
 	float ClientSidePositionErrorTolerance;
 
-	/** Special flag for ignore internal matinee actor selection*/
-	ENGINE_API static bool bIgnoreActorSelection;
+private:
+
+	/** Counter to indicate that play count has changed. Used to work around single frames that go from play-stop-play where bIsPlaying won't get replicated. */
+	UPROPERTY(replicated)
+	uint8 ReplicationForceIsPlaying;
+
+	/** Special flag to ignore internal matinee actor selection*/
+	static uint8 IgnoreActorSelectionCount;
+
+public:
+
+	/** Increment the count to ignore internal matinee actor selection */
+	ENGINE_API static void PushIgnoreActorSelection();
+
+	/** Decrement the count to ignore internal matinee actor selection */
+	ENGINE_API static void PopIgnoreActorSelection();
+
+	/** @return Should we ignore internal matinee actor selection? */
+	ENGINE_API static bool IgnoreActorSelection();
 
 	/**
 	 * Check if we should perform a network positional update of this matinee
@@ -198,19 +220,19 @@ class AMatineeActor : public AActor
 	 * Begin playback of the matinee. Only called in game.
 	 * Will then advance Position by (PlayRate * Deltatime) each time the matinee is ticked.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Cinematic")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Cinematic")
 	virtual void Play();
 
 	/** Stops playback at the current position */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Cinematic")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Cinematic")
 	virtual void Stop();
 
 	/** Similar to play, but the playback will go backwards until the beginning of the sequence is reached. */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Cinematic")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Cinematic")
 	virtual void Reverse();
 
 	/** Hold playback at its current position. Calling Pause again will continue playback in its current direction. */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Cinematic")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Cinematic")
 	virtual void Pause();
 
 	/** 
@@ -219,15 +241,15 @@ class AMatineeActor : public AActor
 	 * @param NewPosition the new position to set the interpolation to
 	 * @param bJump if true, teleport to the new position (don't trigger any events between the old and new positions, etc)
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Cinematic")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Cinematic")
 	ENGINE_API void SetPosition(float NewPosition, bool bJump = false);
 
 	/** Changes the direction of playback (go in reverse if it was going forward, or vice versa) */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Cinematic")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Cinematic")
 	virtual void ChangePlaybackDirection();
 
 	/** Change the looping behaviour of this matinee */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Cinematic")
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Cinematic")
 	virtual void SetLoopingState(bool bNewLooping);
 
 #if WITH_EDITOR

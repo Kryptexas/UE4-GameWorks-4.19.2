@@ -203,8 +203,9 @@ bool FViewInfo::IsDistanceCulled( float DistanceSquared, float MinDrawDistance, 
 	float FadeRadius = GDisableLODFade ? 0.0f : GDistanceFadeMaxTravel;
 	float MaxDrawDistance = InMaxDrawDistance * MaxDrawDistanceScale;
 
-	// If cull distance is disabled, always show
-	if (Family->EngineShowFlags.DistanceCulledPrimitives)
+	// If cull distance is disabled, always show (except foliage)
+	if (Family->EngineShowFlags.DistanceCulledPrimitives
+		&& !PrimitiveSceneInfo->Proxy->IsDetailMesh())
 	{
 		return false;
 	}
@@ -258,8 +259,9 @@ static int32 FrustumCull(const FScene* Scene, FViewInfo& View)
 		float DistanceSquared = (Bounds.Origin - ViewOriginForDistanceCulling).SizeSquared();
 		float MaxDrawDistance = Bounds.MaxDrawDistance * MaxDrawDistanceScale;
 
-		// If cull distance is disabled, always show
-		if (View.Family->EngineShowFlags.DistanceCulledPrimitives)
+		// If cull distance is disabled, always show (except foliage)
+		if (View.Family->EngineShowFlags.DistanceCulledPrimitives
+			&& !Scene->Primitives[BitIt.GetIndex()]->Proxy->IsDetailMesh())
 		{
 			MaxDrawDistance = FLT_MAX;
 		}
@@ -361,6 +363,8 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 	// Use precomputed visibility data if it is available.
 	if (View.PrecomputedVisibilityData)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_LookupPrecomputedVisibility);
+
 		uint8 PrecomputedVisibilityFlags = EOcclusionFlags::CanBeOccluded | EOcclusionFlags::HasPrecomputedVisibility;
 		for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 		{
@@ -390,11 +394,14 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 
 			if( bHZBOcclusion )
 			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_MapHZBResults);
 				check(!ViewState->HZBOcclusionTests.IsValidFrame(View.FrameNumber));
 				ViewState->HZBOcclusionTests.MapResults();
 			}
 
 			FViewElementPDI OcclusionPDI(&View, NULL);
+
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FetchVisibilityForPrimitives);
 
 			for (FSceneSetBitIterator BitIt(View.PrimitiveVisibilityMap); BitIt; ++BitIt)
 			{
@@ -419,9 +426,9 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 				if (!PrimitiveOcclusionHistory)
 				{
 					// If the primitive doesn't have an occlusion history yet, create it.
-					PrimitiveOcclusionHistory = &ViewState->PrimitiveOcclusionHistorySet(
+					PrimitiveOcclusionHistory = &ViewState->PrimitiveOcclusionHistorySet[
 						ViewState->PrimitiveOcclusionHistorySet.Add(FPrimitiveOcclusionHistory(PrimitiveId))
-						);
+						];
 
 					// If the primitive hasn't been visible recently enough to have a history, treat it as unoccluded this frame so it will be rendered as an occluder and its true occlusion state can be determined.
 					// already set bIsOccluded = false;
@@ -611,6 +618,8 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 
 			if( bHZBOcclusion )
 			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_HZBUnmapResults);
+
 				ViewState->HZBOcclusionTests.UnmapResults();
 
 				if( bSubmitQueries )
@@ -801,22 +810,29 @@ static void MarkRelevantStaticMeshesForView(
 
 	// outside of the loop to be more efficient
 	int32 ForcedLODLevel = (View.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
+	
+	static const auto* StaticMeshLODDistanceScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.StaticMeshLODDistanceScale"));
+	check(StaticMeshLODDistanceScale);
+	const float InvLODScale = 1.0f / StaticMeshLODDistanceScale->GetValueOnRenderThread();
+
+	const float MinScreenRadiusForCSMDepthSquared = GMinScreenRadiusForCSMDepth * GMinScreenRadiusForCSMDepth;
+	const float MinScreenRadiusForDepthPrepassSquared = GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass;
+	
 	extern TAutoConsoleVariable<int32> CVarEarlyZPass;
 	const bool bForceEarlyZPass = CVarEarlyZPass.GetValueOnRenderThread() == 2;
 
-	for (int32 StaticPrimIndex = 0; StaticPrimIndex < RelevantStaticPrimitives.Num(); ++StaticPrimIndex)
+	// using a local counter to reduce memory traffic
+	int32 NumVisibleStaticMeshElements = 0;
+
+	for (int32 StaticPrimIndex = 0, Num = RelevantStaticPrimitives.Num(); StaticPrimIndex < Num; ++StaticPrimIndex)
 	{
 		int32 PrimitiveIndex = RelevantStaticPrimitives[StaticPrimIndex];
-		FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
-		const FPrimitiveBounds& Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
-		const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
-
-		static const auto* StaticMeshLODDistanceScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.StaticMeshLODDistanceScale"));
-		check(StaticMeshLODDistanceScale);
-		const float LODScale = StaticMeshLODDistanceScale->GetValueOnRenderThread();
+		const FPrimitiveSceneInfo * RESTRICT PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
+		const FPrimitiveBounds & Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
+		const FPrimitiveViewRelevance & ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
 
 		float DistanceSquared = (Bounds.Origin - ViewOrigin).SizeSquared();
-		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * (1.0f / LODScale));
+		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * InvLODScale);
 
 		// Go through the meshes and find the LOD to render
 		int8 LODToRender = ComputeLODForMeshes(
@@ -826,7 +842,7 @@ static void MarkRelevantStaticMeshesForView(
 			ForcedLODLevel
 			);
 
-		const bool bDrawShadowDepth = FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForCSMDepth * GMinScreenRadiusForCSMDepth * LODFactorDistanceSquared;
+		const bool bDrawShadowDepth = FMath::Square(Bounds.SphereRadius) > MinScreenRadiusForCSMDepthSquared * LODFactorDistanceSquared;
 		const bool bDrawDepthOnly = bForceEarlyZPass || FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared;
 		
 		// We could compute this only if required by the following code. Not sure if that is worth.
@@ -852,7 +868,7 @@ static void MarkRelevantStaticMeshesForView(
 					// Mark static mesh as visible for rendering
 					View.StaticMeshVisibilityMap[StaticMesh.Id] = true;
 					View.StaticMeshVelocityMap[StaticMesh.Id] = bShouldRenderVelocity;
-					++View.NumVisibleStaticMeshElements;
+					++NumVisibleStaticMeshElements;
 
 					// If the static mesh is an occluder, check whether it covers enough of the screen to be used as an occluder.
 					if(	StaticMesh.bUseAsOccluder && bDrawDepthOnly )
@@ -870,6 +886,8 @@ static void MarkRelevantStaticMeshesForView(
 			}
 		}
 	}
+
+	View.NumVisibleStaticMeshElements += NumVisibleStaticMeshElements;
 }
 
 /**

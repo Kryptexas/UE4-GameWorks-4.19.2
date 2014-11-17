@@ -22,19 +22,9 @@ public:
 
 	virtual void StartupModule( ) OVERRIDE
 	{
-		if (FApp::IsGame())
+		if (!SupportsNetworkedTransport())
 		{
-			// don't use UDP transports in shipping and testing configurations
-			if ((FApp::GetBuildConfiguration() == EBuildConfigurations::Shipping) || (FApp::GetBuildConfiguration() == EBuildConfigurations::Test))
-			{
-				return;
-			}
-
-			// don't use UDP transports in debug configurations unless supported and explicitly desired
-			if (!FParse::Param(FCommandLine::Get(), TEXT("Messaging")) || !FPlatformMisc::SupportsMessaging() || !FPlatformProcess::SupportsMultithreading())
-			{
-				return;
-			}
+			return;
 		}
 
 		// load dependencies
@@ -114,7 +104,11 @@ protected:
 
 		if (!FIPv4Endpoint::Parse(Settings->UnicastEndpoint, UnicastEndpoint))
 		{
-			GLog->Logf(TEXT("Warning: Invalid UDP Messaging UnicastEndpoint '%s' - binding to all local network adapters instead"), *Settings->UnicastEndpoint);
+			if (!Settings->UnicastEndpoint.IsEmpty())
+			{
+				GLog->Logf(TEXT("Warning: Invalid UDP Messaging UnicastEndpoint '%s' - binding to all local network adapters instead"), *Settings->UnicastEndpoint);
+			}
+
 			UnicastEndpoint = FIPv4Endpoint::Any;
 			Settings->UnicastEndpoint = UnicastEndpoint.ToText().ToString();
 			ResaveSettings = true;
@@ -122,7 +116,11 @@ protected:
 
 		if (!FIPv4Endpoint::Parse(Settings->MulticastEndpoint, MulticastEndpoint))
 		{
-			GLog->Logf(TEXT("Warning: Invalid UDP Messaging MulticastEndpoint '%s' - using default endpoint '%s' instead"), *Settings->MulticastEndpoint, *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToText().ToString());
+			if (!Settings->MulticastEndpoint.IsEmpty())
+			{
+				GLog->Logf(TEXT("Warning: Invalid UDP Messaging MulticastEndpoint '%s' - using default endpoint '%s' instead"), *Settings->MulticastEndpoint, *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToText().ToString());
+			}
+
 			MulticastEndpoint = UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT;
 			Settings->MulticastEndpoint = MulticastEndpoint.ToText().ToString();
 			ResaveSettings = true;
@@ -198,6 +196,42 @@ protected:
 				GLog->Logf(TEXT("Warning: Invalid UDP RemoteTunnelEndpoint '%s' - skipping"), *Settings->RemoteTunnelEndpoints[EndpointIndex]);
 			}
 		}
+	}
+
+	/**
+	 * Checks whether networked message transport is supported.
+	 *
+	 * @todo gmp: this should be moved into an Engine module, so it can be shared with other transports
+	 *
+	 * @return true if networked transport is supported, false otherwise.
+	 */
+	bool SupportsNetworkedTransport( ) const
+	{
+		if (FApp::IsGame())
+		{
+			// only allow UDP transport in Debug and Development configurations
+			if ((FApp::GetBuildConfiguration() == EBuildConfigurations::Shipping) || (FApp::GetBuildConfiguration() == EBuildConfigurations::Test))
+			{
+				return false;
+			}
+
+			// only allow UDP transport if the platform supports it
+			if (!FPlatformMisc::SupportsMessaging() || !FPlatformProcess::SupportsMultithreading())
+			{
+				return false;
+			}
+		}
+
+		if (FApp::IsGame() || IsRunningCommandlet())
+		{
+			// only allow UDP transport if explicitly desired
+			if (!FParse::Param(FCommandLine::Get(), TEXT("Messaging")))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**

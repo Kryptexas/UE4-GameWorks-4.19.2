@@ -68,7 +68,7 @@ class SAssetMenuEntry : public SCompoundWidget
 		FText AssetDisplayName = FText::FromName( Asset.AssetName );
 		if ( IsClass )
 		{
-			AssetDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( Asset.AssetName.ToString(), false ) );
+			AssetDisplayName = FText::FromString( FName::NameToDisplayString( Asset.AssetName.ToString(), false ) );
 		}
 
 		FText ActorTypeDisplayName;
@@ -80,7 +80,7 @@ class SAssetMenuEntry : public SCompoundWidget
 			if ( IsClass && Cast<UClass>( MenuItem.AssetData.GetAsset() )->IsChildOf( AActor::StaticClass() ) )
 			{
 				DefaultActor = Cast<AActor>( Cast<UClass>( MenuItem.AssetData.GetAsset() )->ClassDefaultObject );
-				ActorTypeDisplayName = FText::FromString( EngineUtils::SanitizeDisplayName( DefaultActor->GetClass()->GetName(), false ) );
+				ActorTypeDisplayName = FText::FromString( FName::NameToDisplayString( DefaultActor->GetClass()->GetName(), false ) );
 			}
 
 			const FSlateBrush* IconBrush = NULL;
@@ -90,11 +90,7 @@ class SAssetMenuEntry : public SCompoundWidget
 				ActorTypeDisplayName = MenuItem.FactoryToUse->GetDisplayName();
 
 				FName BrushName = *FString::Printf( TEXT("ClassIcon.%s"), *MenuItem.FactoryToUse->GetClass()->GetName() );
-				IconBrush = FEditorStyle::GetBrush(BrushName);
-				if ( IconBrush == FEditorStyle::GetDefaultBrush() )
-				{
-					IconBrush = NULL;
-				}
+				IconBrush = FEditorStyle::GetOptionalBrush(BrushName, nullptr, nullptr);
 			}
 
 			if ( DefaultActor != NULL && ( MenuItem.FactoryToUse != NULL || !IsClass ) )
@@ -230,7 +226,7 @@ static void FillAssetAddReplaceActorMenu( FMenuBuilder& MenuBuilder, const FAsse
 		FText ToolTip = MenuItem.FactoryToUse->DisplayName;
 
 		FName Icon = *FString::Printf( TEXT("ClassIcon.%s"), *MenuItem.FactoryToUse->GetClass()->GetName() );
-		if ( FEditorStyle::GetBrush(Icon) == FEditorStyle::GetDefaultBrush() )
+		if ( !FEditorStyle::GetOptionalBrush(Icon, nullptr, nullptr) )
 		{
 			Icon = FClassIconFinder::FindIconNameForActor( DefaultActor ) ;
 		}

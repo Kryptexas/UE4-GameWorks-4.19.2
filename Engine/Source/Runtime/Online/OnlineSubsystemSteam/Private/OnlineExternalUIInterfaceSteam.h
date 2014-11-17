@@ -50,10 +50,21 @@ public:
  */
 class FOnlineExternalUISteam : public IOnlineExternalUI
 {
-PACKAGE_SCOPE:
+
+private:
+	/** Reference to the main Steam subsystem */
+	class FOnlineSubsystemSteam* SteamSubsystem;
 
 	/** Hidden on purpose */
-	FOnlineExternalUISteam()
+	FOnlineExternalUISteam() :
+		SteamSubsystem(NULL)
+	{
+	}
+
+PACKAGE_SCOPE:
+
+	FOnlineExternalUISteam(class FOnlineSubsystemSteam* InSteamSubsystem) :
+		SteamSubsystem(InSteamSubsystem)
 	{
 	}
 
@@ -64,11 +75,12 @@ public:
 	}
 
 	// IOnlineExternalUI
-	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly = false) OVERRIDE;
+	virtual bool ShowLoginUI(const int ControllerIndex, bool bShowOnlineOnly, const FOnLoginUIClosedDelegate& Delegate) OVERRIDE;
 	virtual bool ShowFriendsUI(int32 LocalUserNum) OVERRIDE;
 	virtual bool ShowInviteUI(int32 LocalUserNum) OVERRIDE;
 	virtual bool ShowAchievementsUI(int32 LocalUserNum) OVERRIDE;
 	virtual bool ShowWebURL(const FString& WebURL) OVERRIDE;
+	virtual void ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) OVERRIDE;
 };
 
 typedef TSharedPtr<FOnlineExternalUISteam, ESPMode::ThreadSafe> FOnlineExternalUISteamPtr;

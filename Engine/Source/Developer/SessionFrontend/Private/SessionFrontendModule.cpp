@@ -40,6 +40,7 @@ public:
 	{
 		FGlobalTabmanager::Get()->RegisterTabSpawner(SessionFrontendTabName, FOnSpawnTab::CreateRaw(this, &FSessionFrontendModule::SpawnSessionFrontendTab))
 			.SetDisplayName(NSLOCTEXT("FSessionFrontendModule", "FrontendTabTitle", "Session Frontend"))
+			.SetTooltipText(NSLOCTEXT("FSessionFrontendModule", "FrontendTooltipText", "Open the Session Frontend tab."))
 			.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "SessionFrontEnd.TabIcon"));
 	}
 
@@ -61,12 +62,12 @@ private:
 	 */
 	TSharedRef<SDockTab> SpawnSessionFrontendTab( const FSpawnTabArgs& SpawnTabArgs )
 	{
-		const TSharedRef<SDockTab> MajorTab = SNew(SDockTab)
+		const TSharedRef<SDockTab> DockTab = SNew(SDockTab)
 			.TabRole(ETabRole::MajorTab);
 
-		MajorTab->SetContent(SNew(SSessionFrontend, MajorTab, SpawnTabArgs.GetOwnerWindow()));
+		DockTab->SetContent(SNew(SSessionFrontend, DockTab, SpawnTabArgs.GetOwnerWindow()));
 
-		return MajorTab;
+		return DockTab;
 	}
 };
 

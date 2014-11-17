@@ -8,5 +8,5 @@ class UEnvQueryContext_Querier : public UEnvQueryContext
 {
 	GENERATED_UCLASS_BODY()
  
-	void ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const;
+	virtual void ProvideContext(struct FEnvQueryInstance& QueryInstance, struct FEnvQueryContextData& ContextData) const OVERRIDE;
 };

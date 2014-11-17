@@ -82,14 +82,14 @@ public:
 		SetupReticle( 8.0f, 20.0f );
 	}
 
-	void SetupReticle( float Length, float InnerSize )
+	void SetupReticle( const float Length, const float InnerSize )
 	{
 		HorizontalOffsetMin.Set( InnerSize, 0.0f );
 		HorizontalOffsetMax.Set( InnerSize + Length, 0.0f );
 		VerticalOffsetMin.Set( 0.0f, InnerSize);
 		VerticalOffsetMax.Set( 0.0f, InnerSize + Length );
 	}
-	void Draw( class FCanvas* InCanvas, FLinearColor InColor );
+	void Draw( class UCanvas* InCanvas, FLinearColor InColor );
 private:
 	FVector2D HorizontalOffsetMin;
 	FVector2D HorizontalOffsetMax;
@@ -399,8 +399,6 @@ public:
 	void AddHitBox(FVector2D Position, FVector2D Size, FName Name, bool bConsumesInput, int32 Priority = 0);
 
 protected:
-	FSimpleReticle	Reticle;
-
 	/** Returns the PlayerController for this HUD's player.	 */
 	UFUNCTION(BlueprintCallable, Category=HUD)
 	APlayerController* GetOwningPlayerController() const;
@@ -455,7 +453,7 @@ public:
 	 * @param DebugType - type of debug message
 	 * @result bool - true if it should be displayed
 	 */
-	virtual bool ShouldDisplayDebug(FName DebugType);
+	virtual bool ShouldDisplayDebug(const FName & DebugType) const;
 
 	/** 
 	 * Entry point for basic debug rendering on the HUD.  Activated and controlled via the "showdebug" console command.  

@@ -22,6 +22,8 @@ UGenerateGatherArchiveCommandlet::UGenerateGatherArchiveCommandlet(const class F
 
 int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 {
+	FInternationalization& I18N = FInternationalization::Get();
+
 	// Parse command line - we're interested in the param vals
 	TArray<FString> Tokens;
 	TArray<FString> Switches;
@@ -76,7 +78,7 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 	FString SourceCulture;
 	if( GetConfigString( *SectionName, TEXT("SourceCulture"), SourceCulture, GatherTextConfigPath ) )
 	{
-		if( FInternationalization::GetCulture( SourceCulture ).IsValid() )
+		if( I18N.GetCulture( SourceCulture ).IsValid() )
 		{
 			UE_LOG(LogGenerateArchiveCommandlet, Verbose, TEXT("Specified culture is not a valid runtime culture, but may be a valid base language: %s"), *(SourceCulture) );
 		}
@@ -94,7 +96,7 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 
 	for(int32 i = 0; i < CulturesToGenerate.Num(); ++i)
 	{
-		if( FInternationalization::GetCulture( CulturesToGenerate[i] ).IsValid() )
+		if( I18N.GetCulture( CulturesToGenerate[i] ).IsValid() )
 		{
 			UE_LOG(LogGenerateArchiveCommandlet, Verbose, TEXT("Specified culture is not a valid runtime culture, but may be a valid base language: %s"), *(CulturesToGenerate[i]) );
 		}

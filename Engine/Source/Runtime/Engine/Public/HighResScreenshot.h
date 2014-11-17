@@ -12,13 +12,13 @@ struct ENGINE_API FHighResScreenshotConfig
 	float ResolutionMultiplierScale;
 	bool bMaskEnabled;
 	bool bDumpBufferVisualizationTargets;
-	class FViewport* TargetViewport;
+	TWeakPtr<FSceneViewport> TargetViewport;
 	bool bDisplayCaptureRegion;
 
 	FHighResScreenshotConfig();
 
 	/** Point the screenshot UI at a different viewport **/
-	void ChangeViewport(FViewport* InViewport);
+	void ChangeViewport(TWeakPtr<FSceneViewport> InViewport);
 
 	/** Parse screenshot parameters from the supplied console command line **/
 	bool ParseConsoleCommand(const FString& InCmd, FOutputDevice& Ar);

@@ -182,6 +182,10 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
 	float LinearDamping;
 
+	/** The maximum angular velocity for this instance */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Physics, meta=(editcondition="bSimulatePhysics"))
+	float MaxAngularVelocity;
+
 	/**	Influence of rigid body physics (blending) on the mesh's pose (0.0 == use only animation, 1.0 == use only physics) */
 	/** Provide appropriate interface for doing this instead of allowing BlueprintReadWrite **/
 	UPROPERTY()
@@ -238,6 +242,7 @@ public:
 		, MassScale(1.f)
 		, AngularDamping(0.0)
 		, LinearDamping(0.01)
+		, MaxAngularVelocity(400.f)
 		, PhysicsBlendWeight(0.f)
 		, PositionSolverIterationCount(8)
 		, VelocitySolverIterationCount(1)
@@ -269,6 +274,14 @@ public:
 #endif	//WITH_PHYSX
 
 		void TermBody();
+
+
+#if WITH_BODY_WELDING
+		/** 
+		 * Takes two body instances and welds them together to create a single simulated rigid body
+		 */
+		void Weld(FBodyInstance * Body, const FTransform & RelativeTM);
+#endif
 
 		/**
 		 * Update Body Scale
@@ -346,6 +359,8 @@ public:
 		void SetLinearVelocity(const FVector& NewVel, bool bAddToCurrent);
 		/** Set the angular velocity of this body */
 		void SetAngularVelocity(const FVector& NewAngVel, bool bAddToCurrent);
+		/** Set the maximum angular velocity of this body */
+		void SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent);
 		/** Set whether we should get a notification about physics collisions */
 		void SetInstanceNotifyRBCollision(bool bNewNotifyCollision);
 		/** Enables/disables whether this body is affected by gravity. */

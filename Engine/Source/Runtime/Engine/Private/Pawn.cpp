@@ -89,16 +89,8 @@ void APawn::PostInitializeComponents()
 			SpawnDefaultController();
 		}
 
-		UPawnMovementComponent* MovementComponent = GetMovementComponent();
-		if (MovementComponent != NULL)
-		{
-			// Update Nav Agent props with collision component's setup if it's not set yet
-			float BoundRadius, BoundHalfHeight;
-			GetSimpleCollisionCylinder(BoundRadius, BoundHalfHeight);
-			FNavAgentProperties* NavAgent = MovementComponent->GetNavAgentProperties();
-			NavAgent->AgentRadius = BoundRadius;
-			NavAgent->AgentHeight = BoundHalfHeight * 2.f;
-		}
+		// update movement component's nav agent values
+		UpdateNavAgent();
 	}
 }
 
@@ -106,22 +98,6 @@ void APawn::PostInitializeComponents()
 void APawn::PostInitProperties()
 {
 	Super::PostInitProperties();
-
-	UPawnMovementComponent* MovementComponent = GetMovementComponent();
-	if (MovementComponent != NULL)
-	{
-		// Update Nav Agent props with collision component's setup if it's not set yet
-		if (RootComponent)
-		{
-			// Can't call GetSimpleCollisionCylinder(), because no components will be registered.
-			float BoundRadius, BoundHalfHeight;
-			RootComponent->UpdateBounds();
-			RootComponent->CalcBoundingCylinder(BoundRadius, BoundHalfHeight);
-			FNavAgentProperties* NavAgent = MovementComponent->GetNavAgentProperties();
-			NavAgent->AgentRadius = BoundRadius;
-			NavAgent->AgentHeight = BoundHalfHeight * 2.f;
-		}	
-	}
 }
 
 void APawn::PostLoad()
@@ -130,6 +106,24 @@ void APawn::PostLoad()
 
 	// A pawn should never have this enabled, so we'll aggressively disable it if it did occur.
 	AutoReceiveInput = EAutoReceiveInput::Disabled;
+}
+
+void APawn::PostRegisterAllComponents()
+{
+	Super::PostRegisterAllComponents();
+
+	UpdateNavAgent();
+}
+
+void APawn::UpdateNavAgent()
+{
+	UPawnMovementComponent* MovementComponent = GetMovementComponent();
+	//// Update Nav Agent props with collision component's setup if it's not set yet
+	if (RootComponent != NULL && MovementComponent != NULL && MovementComponent->ShouldUpdateNavAgentWithOwnersCollision())
+	{
+		RootComponent->UpdateBounds();
+		MovementComponent->UpdateNavAgent(this);
+	}
 }
 
 void APawn::PawnStartFire(uint8 FireModeNum) {}
@@ -853,11 +847,11 @@ void APawn::DisableInput(class APlayerController* PlayerController)
 {
 	if (PlayerController == Controller || PlayerController == NULL)
 	{
-		bInputEnabled = true;
+		bInputEnabled = false;
 	}
 	else
 	{
-		UE_LOG(LogPawn, Error, TEXT("EnableInput can only be specified on a Pawn for its Controller"));
+		UE_LOG(LogPawn, Error, TEXT("DisableInput can only be specified on a Pawn for its Controller"));
 	}
 }
 
@@ -932,10 +926,24 @@ void APawn::PostNetReceiveLocation()
 	}
 }
 
+bool APawn::IsBasedOnActor(const AActor* Other) const
+{
+	UPrimitiveComponent * MovementBase = GetMovementBase();
+	AActor* MovementBaseActor = MovementBase ? MovementBase->GetOwner() : NULL;
+
+	if (MovementBaseActor && MovementBaseActor == Other)
+	{
+		return true;
+	}
+
+	return Super::IsBasedOnActor(Other);
+}
+
+
 bool APawn::IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
 {
 	if( bAlwaysRelevant || RealViewer == Controller || IsOwnedBy(Viewer) || IsOwnedBy(RealViewer) || this==Viewer || Viewer==Instigator
-		|| IsBasedOn(Viewer) || (Viewer && Viewer->IsBasedOn(this)) )
+		|| IsBasedOnActor(Viewer) || (Viewer && Viewer->IsBasedOnActor(this)))
 	{
 		return true;
 	}

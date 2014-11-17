@@ -7,6 +7,7 @@
 #include "SourceControlWindows.h"
 #include "ContentBrowserModule.h"
 #include "ReferenceViewer.h"
+#include "AssetToolsModule.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -79,8 +80,8 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 			if ( SelectedPaths.Num() == 1 )
 			{
 				MenuBuilder.AddMenuEntry( FGenericCommands::Get().Rename, NAME_None,
-					LOCTEXT("Rename", "Rename"),
-					LOCTEXT("RenameTooltip", "Rename the selected folder.")
+					LOCTEXT("RenameFolder", "Rename"),
+					LOCTEXT("RenameFolderTooltip", "Rename the selected folder.")
 					);
 			}
 
@@ -134,6 +135,14 @@ void FPathContextMenu::MakePathViewContextMenu(FMenuBuilder& MenuBuilder)
 				FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteReferenceViewer ) )
 				);
     
+			// Fix Up Redirectors in Folder
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("FixUpRedirectorsInFolder", "Fix Up Redirectors in Folder"),
+				LOCTEXT("FixUpRedirectorsInFolderTooltip", "Finds referencers to all redirectors in the selected folders and resaves them if possible, then deletes any redirectors that had all their referencers fixed."),
+				FSlateIcon(),
+				FUIAction( FExecuteAction::CreateSP( this, &FPathContextMenu::ExecuteFixUpRedirectorsInFolder ) )
+				);
+
 		    if ( SelectedPaths.Num() == 1 )
 		    {
 			    // Migrate Folder
@@ -460,6 +469,50 @@ void FPathContextMenu::ExecuteReferenceViewer()
 		IReferenceViewerModule::Get().InvokeReferenceViewerTab(PackageNames);
 	}
 }
+
+void FPathContextMenu::ExecuteFixUpRedirectorsInFolder()
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::Get().LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	// Form a filter from the paths
+	FARFilter Filter;
+	Filter.bRecursivePaths = true;
+	for (const auto& Path : SelectedPaths)
+	{
+		Filter.PackagePaths.Emplace(*Path);
+		Filter.ClassNames.Emplace(TEXT("ObjectRedirector"));
+	}
+
+	// Query for a list of assets in the selected paths
+	TArray<FAssetData> AssetList;
+	AssetRegistryModule.Get().GetAssets(Filter, AssetList);
+
+	if (AssetList.Num() > 0)
+	{
+		TArray<FString> ObjectPaths;
+		for (const auto& Asset : AssetList)
+		{
+			ObjectPaths.Add(Asset.ObjectPath.ToString());
+		}
+
+		TArray<UObject*> Objects;
+		if (ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, Objects))
+		{
+			// Transform Objects array to ObjectRedirectors array
+			TArray<UObjectRedirector*> Redirectors;
+			for (auto Object : Objects)
+			{
+				auto Redirector = CastChecked<UObjectRedirector>(Object);
+				Redirectors.Add(Redirector);
+			}
+
+			// Load the asset tools module
+			FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+			AssetToolsModule.Get().FixupReferencers(Redirectors);
+		}
+	}
+}
+
 
 FReply FPathContextMenu::ExecuteDeleteFolderConfirmed()
 {

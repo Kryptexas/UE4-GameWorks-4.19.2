@@ -188,16 +188,18 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 			if (TrimmedMapName.EndsWith(TEXT("_P")))
 			{
 				NewIdx = 0;
-				AutoCompleteList.InsertZeroed(0,2);
+				AutoCompleteList.InsertZeroed(0,3);
 			}
 			else
 			{
-				NewIdx = AutoCompleteList.AddZeroed(2);
+				NewIdx = AutoCompleteList.AddZeroed(3);
 			}
 			AutoCompleteList[NewIdx].Command = FString::Printf(TEXT("open %s"),*TrimmedMapName);
 			AutoCompleteList[NewIdx].Desc = FString::Printf(TEXT("open %s"),*TrimmedMapName);
 			AutoCompleteList[NewIdx+1].Command = FString::Printf(TEXT("travel %s"),*TrimmedMapName);
 			AutoCompleteList[NewIdx+1].Desc = FString::Printf(TEXT("travel %s"),*TrimmedMapName);
+			AutoCompleteList[NewIdx+2].Command = FString::Printf(TEXT("servertravel %s"),*TrimmedMapName);
+			AutoCompleteList[NewIdx+2].Desc = FString::Printf(TEXT("servertravel %s"),*TrimmedMapName);
 			//MapNames.AddItem(Pkg);
 		}
 	}

@@ -30,6 +30,11 @@ public class OpenGLDrv : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, "ANGLE");
 		}
 
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
+		}
+
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{
 			PrivateIncludePathModuleNames.AddRange(

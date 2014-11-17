@@ -15,6 +15,31 @@ UDeviceProfile::UDeviceProfile(const class FPostConstructInitializeProperties& P
 }
 
 
+void UDeviceProfile::GatherParentCVarInformationRecursively(OUT TMap<FString, FString>& CVarInformation) const
+{
+	// Recursively build the parent tree
+	if (BaseProfileName != TEXT(""))
+	{
+		UDeviceProfile* ParentProfile = FindObject<UDeviceProfile>(GetTransientPackage(), *BaseProfileName);
+		check(ParentProfile != NULL);
+
+		for (auto& CurrentCVar : ParentProfile->CVars)
+		{
+			FString CVarKey, CVarValue;
+			if (CurrentCVar.Split(TEXT("="), &CVarKey, &CVarValue))
+			{
+				if (CVarInformation.Find(CVarKey) == NULL)
+				{
+					CVarInformation.Add(CVarKey, *CurrentCVar);
+				}
+			}
+		}
+
+		ParentProfile->GatherParentCVarInformationRecursively(CVarInformation);
+	}
+}
+
+
 #if WITH_EDITOR
 
 void UDeviceProfile::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
@@ -86,6 +111,11 @@ void UDeviceProfile::PostEditChangeProperty( FPropertyChangedEvent& PropertyChan
 				}
 			}
 		}
+		OnCVarsUpdated().ExecuteIfBound();
+	}
+	else if(PropertyChangedEvent.Property->GetFName() == TEXT("CVars"))
+	{
+		OnCVarsUpdated().ExecuteIfBound();
 	}
 }
 

@@ -112,12 +112,6 @@ public:
 	/** Loads level into editor */
 	virtual void LoadLevel();
 
-	/**	@return Whether level marked as always loaded */
-	virtual bool IsAlwaysLoaded() const;
-
-	/**	@return Mark level as always loaded */
-	virtual void SetAlwaysLoaded(bool bAlwaysLoaded);
-
 	/** Sets the Level's visibility */
 	virtual void SetVisible(bool bVisible);
 
@@ -193,11 +187,8 @@ public:
 	/**	@return Name->Value fields this level want to add to a grid item tooltip */
 	virtual void GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const = 0;
 
-	/** Notification when level package was unloaded from the editor */
-	virtual void OnLevelUnloaded() {};
-	
 	/** Notification when level was added(shown) to world */
-	virtual void OnLevelAddedToWorld();
+	virtual void OnLevelAddedToWorld(ULevel* InLevel);
 
 	/** Notification when level was removed(hidden) from world */
 	virtual void OnLevelRemovedFromWorld();
@@ -219,7 +210,7 @@ public:
 	};
 	
 	/** Updates this level simulation status  */
-	void UpdateSimulationStatus(UWorld* InWorld);
+	void UpdateSimulationStatus(ULevelStreaming* StreamingLevel);
 
 	/**	Broadcasts whenever level has changed */
 	FSimpleEvent ChangedEvent;

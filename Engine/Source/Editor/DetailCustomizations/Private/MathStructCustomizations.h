@@ -63,6 +63,13 @@ protected:
 	void OnValueCommitted( NumericType NewValue, ETextCommit::Type CommitType, TWeakPtr<IPropertyHandle> WeakHandlePtr );
 	
 	/**
+	 * Called to see if the value is enabled for editing
+	 *
+	 * @param WeakHandlePtr	Handle to the property that the new value is for
+	 */
+	bool IsValueEnabled( TWeakPtr<IPropertyHandle> WeakHandlePtr ) const;
+
+	/**
 	 * Called when the value is changed in the property editor
 	 *
 	 * @param NewValue		The new value of the property as a float

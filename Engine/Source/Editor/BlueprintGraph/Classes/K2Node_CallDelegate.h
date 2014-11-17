@@ -12,7 +12,8 @@ public:
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface

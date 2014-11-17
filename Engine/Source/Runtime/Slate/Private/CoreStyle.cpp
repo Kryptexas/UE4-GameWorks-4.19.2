@@ -154,6 +154,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 	FSlateBrush* GenericWhiteBox = new IMAGE_BRUSH( "Old/White", Icon16x16 );
 	{
 		Style->Set( "Checkerboard", new IMAGE_BRUSH( "Checkerboard", Icon16x16, FLinearColor::White, ESlateBrushTileType::Both) );
+		Style->Set( "SplineFilterTable", new IMAGE_BRUSH( "SplineFilterTable", FVector2D(32,1), FLinearColor::White, ESlateBrushTileType::Both, ESlateBrushImageType::Linear ) );
 
 		Style->Set( "GenericWhiteBox", GenericWhiteBox );
 
@@ -222,7 +223,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 	// Common icons
 	{
 		Style->Set( "Icons.Cross", new IMAGE_BRUSH( "Icons/Cross_12x", Icon12x12 ) );
-		Style->Set( "Icons.Denied", new IMAGE_BRUSH( "Icons/Denied_16x", Icon16x16 ) );
+		Style->Set( "Icons.Denied", new IMAGE_BRUSH( "Icons/denied_16x", Icon16x16 ) );
 		Style->Set( "Icons.Error", new IMAGE_BRUSH( "Icons/icon_error_16x", Icon16x16) );
 		Style->Set( "Icons.Help", new IMAGE_BRUSH( "Icons/icon_help_16x", Icon16x16) );
 		Style->Set( "Icons.Info", new IMAGE_BRUSH( "Icons/icon_info_16x", Icon16x16) );
@@ -243,8 +244,8 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 
 	// Generic command icons
 	{
-		Style->Set( "GenericCommands.Undo", new IMAGE_BRUSH( "icons/icon_undo_16px", Icon16x16 ) );
-		Style->Set( "GenericCommands.Redo", new IMAGE_BRUSH( "icons/icon_redo_16px", Icon16x16 ) );
+		Style->Set( "GenericCommands.Undo", new IMAGE_BRUSH( "Icons/icon_undo_16px", Icon16x16 ) );
+		Style->Set( "GenericCommands.Redo", new IMAGE_BRUSH( "Icons/icon_redo_16px", Icon16x16 ) );
 	}
 
 	// SButton defaults...
@@ -265,32 +266,32 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 	{
 		FComboButtonStyle ComboButton = FComboButtonStyle()
 			.SetButtonStyle(Button)
-			.SetContentScale(FVector2D(1,1))
-			.SetContentPadding(FMargin(5))
-			.SetHasDownArrow(true)
 			.SetDownArrowImage(IMAGE_BRUSH("Common/ComboArrow", Icon8x8))
-			.SetHAlign(HAlign_Fill)
-			.SetVAlign(VAlign_Fill)
-			.SetForegroundColor(InvertedForeground)
-			.SetButtonColorAndOpacity(FLinearColor::White)
 			.SetMenuBorderBrush(BOX_BRUSH("Old/Menu_Background", FMargin(8.0f/64.0f)))
-			.SetMenuBorderPadding(FMargin(0.0f))
-			.SetMenuPlacement(MenuPlacement_ComboBox);
+			.SetMenuBorderPadding(FMargin(0.0f));
 		Style->Set( "ComboButton", ComboButton );
 
-		ComboButton.SetContentPadding(FMargin(4.0, 2.0));
 		ComboButton.SetMenuBorderPadding(FMargin(1.0));
-		ComboButton.SetForegroundColor(InvertedForeground);
 
 		FComboBoxStyle ComboBox = FComboBoxStyle()
 			.SetComboButtonStyle(ComboButton);
 		Style->Set( "ComboBox", ComboBox );
 	}
 
+	// SMessageLogListing
+	{
+		FComboButtonStyle MessageLogListingComboButton = FComboButtonStyle()
+			.SetButtonStyle(NoBorder)
+			.SetDownArrowImage(IMAGE_BRUSH("Common/ComboArrow", Icon8x8))
+			.SetMenuBorderBrush(FSlateNoResource())
+			.SetMenuBorderPadding(FMargin(0.0f));
+		Style->Set("MessageLogListingComboButton", MessageLogListingComboButton);
+	}
+
 	// SEditableComboBox defaults...
 	{
 		Style->Set( "EditableComboBox.Add", new IMAGE_BRUSH( "Icons/PlusSymbol_12x", Icon12x12 ) );
-		Style->Set( "EditableComboBox.Delete", new IMAGE_BRUSH( "Icons/cross_12x", Icon12x12 ) );
+		Style->Set( "EditableComboBox.Delete", new IMAGE_BRUSH( "Icons/Cross_12x", Icon12x12 ) );
 		Style->Set( "EditableComboBox.Rename", new IMAGE_BRUSH( "Icons/ellipsis_12x", Icon12x12 ) );
 		Style->Set( "EditableComboBox.Accept", new IMAGE_BRUSH( "Common/Check", Icon16x16 ) );
 	}
@@ -368,13 +369,12 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 	}
 
 	// SEditableTextBox defaults...
+	const FEditableTextBoxStyle NormalEditableTextBoxStyle = FEditableTextBoxStyle()
+		.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) )
+		.SetBackgroundImageHovered( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
+		.SetBackgroundImageFocused( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
+		.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) );
 	{
-		const FEditableTextBoxStyle NormalEditableTextBoxStyle = FEditableTextBoxStyle()
-			.SetBackgroundImageNormal( BOX_BRUSH( "Common/TextBox", FMargin(4.0f/16.0f) ) )
-			.SetBackgroundImageHovered( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
-			.SetBackgroundImageFocused( BOX_BRUSH( "Common/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
-			.SetBackgroundImageReadOnly( BOX_BRUSH( "Common/TextBox_ReadOnly", FMargin(4.0f/16.0f) ) );
-
 		Style->Set( "NormalEditableTextBox", NormalEditableTextBoxStyle );
 		// "NormalFont".
 	}
@@ -422,7 +422,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 	{
 		Style->Set( "SuggestionTextBox.Background",	new BOX_BRUSH( "Old/Menu_Background", FMargin(8.0f/64.0f) ) );
 		Style->Set( "SuggestionTextBox.Text", FTextBlockStyle()
-			.SetFont( TTF_FONT( "Fonts/DroidSansMono", 9 ) )
+			.SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) )
 			.SetColorAndOpacity( FLinearColor(FColor(0xffaaaaaa)) )
 			);
 	}
@@ -613,7 +613,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
 			.SetNormalBrush( BOX_BRUSH( "Common/ColumnHeader", 4.f/32.f ) )
 			.SetHoveredBrush( BOX_BRUSH( "Common/ColumnHeader_Hovered", 4.f/32.f ) )
-			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) )
+			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
 			.SetMenuDropdownNormalBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Normal", 4.f/32.f ) )
 			.SetMenuDropdownHoveredBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Hovered", 4.f/32.f ) );
 		Style->Set( "TableView.Header.Column", TableColumnHeaderStyle );
@@ -623,7 +623,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 			.SetSortDescendingImage( IMAGE_BRUSH( "Common/SortDownArrow", Icon8x4 ) )
 			.SetNormalBrush( FSlateNoResource() )
 			.SetHoveredBrush( BOX_BRUSH( "Common/LastColumnHeader_Hovered", 4.f/32.f ) )
-			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ComboArrow", Icon8x8 ) )
+			.SetMenuDropdownImage( IMAGE_BRUSH( "Common/ColumnHeader_Arrow", Icon8x8 ) )
 			.SetMenuDropdownNormalBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Normal", 4.f/32.f ) )
 			.SetMenuDropdownHoveredBorderBrush( BOX_BRUSH( "Common/ColumnHeaderMenuButton_Hovered", 4.f/32.f ) );
 
@@ -650,6 +650,8 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 			.SetPressed( IMAGE_BRUSH( "/Docking/CloseApp_Pressed", Icon16x16 ) )
 			.SetHovered( IMAGE_BRUSH( "/Docking/CloseApp_Hovered", Icon16x16 ) )
 			);
+
+		Style->Set( "MultiboxHookColor", FLinearColor(0.f, 1.f, 0.f, 1.f) );
 	}
 
 	// ToolBar
@@ -661,7 +663,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ToolBar.SToolBarComboButtonBlock.Padding", FMargin(4.0f));
 		Style->Set( "ToolBar.SToolBarButtonBlock.Padding", FMargin(4.0f));
 		Style->Set( "ToolBar.SToolBarCheckComboButtonBlock.Padding", FMargin(4.0f));
-		Style->Set( "ToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(0.0f) );
+		Style->Set( "ToolBar.SToolBarButtonBlock.CheckBox.Padding", FMargin(4.0f) );
 		Style->Set( "ToolBar.SToolBarComboButtonBlock.ComboButton.Color", DefaultForeground );
 
 		Style->Set( "ToolBar.Block.IndentedPadding", FMargin( 18.0f, 2.0f, 4.0f, 4.0f ) );
@@ -671,7 +673,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "ToolBar.Separator.Padding", FMargin( 0.5f ) );
 
 		Style->Set( "ToolBar.Label", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "ToolBar.EditableText", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
+		Style->Set( "ToolBar.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Style->Set( "ToolBar.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
 		Style->Set( "ToolBar.Heading", FTextBlockStyle(NormalText)
@@ -680,12 +682,12 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 
 		/* Create style for "ToolBar.CheckBox" widget ... */
 		const FCheckBoxStyle ToolBarCheckBoxStyle = FCheckBoxStyle()
-				.SetUncheckedImage( IMAGE_BRUSH( "Common/SmallCheckbox", Icon14x14 ) )
-				.SetCheckedImage( IMAGE_BRUSH( "Common/SmallCheckbox_Checked",  Icon14x14 ) )
-				.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/SmallCheckbox_Hovered", Icon14x14 ) )
-				.SetCheckedImage( IMAGE_BRUSH( "Common/SmallCheckbox_Checked_Hovered", Icon14x14 ) )
-				.SetUncheckedPressedImage(IMAGE_BRUSH( "Common/SmallCheckbox_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) )
-				.SetCheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheckbox_Checked_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) );
+				.SetUncheckedImage( IMAGE_BRUSH( "Common/SmallCheckBox", Icon14x14 ) )
+				.SetCheckedImage( IMAGE_BRUSH( "Common/SmallCheckBox_Checked",  Icon14x14 ) )
+				.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/SmallCheckBox_Hovered", Icon14x14 ) )
+				.SetCheckedImage( IMAGE_BRUSH( "Common/SmallCheckBox_Checked_Hovered", Icon14x14 ) )
+				.SetUncheckedPressedImage(IMAGE_BRUSH( "Common/SmallCheckBox_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) )
+				.SetCheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheckBox_Checked_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) );
 		/* ... and add new style */
 		Style->Set( "ToolBar.CheckBox", ToolBarCheckBoxStyle );
 
@@ -747,7 +749,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 		Style->Set( "Menu.Separator.Padding", FMargin( 0.5f ) );
 
 		Style->Set( "Menu.Label", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
-		Style->Set( "Menu.EditableText", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
+		Style->Set( "Menu.EditableText", FEditableTextBoxStyle(NormalEditableTextBoxStyle) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 9 ) ) );
 		Style->Set( "Menu.Keybinding", FTextBlockStyle(NormalText) .SetFont( TTF_FONT( "Fonts/Roboto-Regular", 8 ) ) );
 
 		Style->Set( "Menu.Heading", FTextBlockStyle(NormalText)
@@ -756,15 +758,15 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 
 		/* Set images for various SCheckBox states associated with menu check box items... */
 		const FCheckBoxStyle BasicMenuCheckBoxStyle = FCheckBoxStyle()
-			.SetUncheckedImage( IMAGE_BRUSH( "Common/SmallCheckbox", Icon14x14 ) )
-			.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/SmallCheckbox_Hovered", Icon14x14 ) )
-			.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheckbox_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) )
-			.SetCheckedImage( IMAGE_BRUSH( "Common/SmallCheckbox_Checked", Icon14x14 ) )
-			.SetCheckedHoveredImage( IMAGE_BRUSH( "Common/SmallCheckbox_Checked_Hovered", Icon14x14 ) )
-			.SetCheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheckbox_Checked_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) )
-			.SetUndeterminedImage( IMAGE_BRUSH( "Common/Checkbox_Undetermined", Icon16x16 ) )
-			.SetUndeterminedHoveredImage( IMAGE_BRUSH( "Common/Checkbox_Checked_Hovered", Icon16x16 ) )
-			.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/Checkbox_Undetermined_Hovered", Icon16x16, FLinearColor( 0.5f, 0.5f, 0.5f ) ) );
+			.SetUncheckedImage( IMAGE_BRUSH( "Common/SmallCheckBox", Icon14x14 ) )
+			.SetUncheckedHoveredImage( IMAGE_BRUSH( "Common/SmallCheckBox_Hovered", Icon14x14 ) )
+			.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheckBox_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) )
+			.SetCheckedImage( IMAGE_BRUSH( "Common/SmallCheckBox_Checked", Icon14x14 ) )
+			.SetCheckedHoveredImage( IMAGE_BRUSH( "Common/SmallCheckBox_Checked_Hovered", Icon14x14 ) )
+			.SetCheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheckBox_Checked_Hovered", Icon14x14, FLinearColor( 0.5f, 0.5f, 0.5f ) ) )
+			.SetUndeterminedImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined", Icon16x16 ) )
+			.SetUndeterminedHoveredImage( IMAGE_BRUSH( "Common/CheckBox_Checked_Hovered", Icon16x16 ) )
+			.SetUndeterminedPressedImage( IMAGE_BRUSH( "Common/CheckBox_Undetermined_Hovered", Icon16x16, FLinearColor( 0.5f, 0.5f, 0.5f ) ) );
  
 		/* ...and add the new style */
 		Style->Set( "Menu.CheckBox", BasicMenuCheckBoxStyle );
@@ -774,7 +776,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 		const FCheckBoxStyle BasicMenuCheckStyle = FCheckBoxStyle()
 			.SetUncheckedImage( IMAGE_BRUSH( "Icons/Empty_14x", Icon14x14 ) )
 			.SetUncheckedHoveredImage( IMAGE_BRUSH( "Icons/Empty_14x", Icon14x14 ) )
-			.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheckbox_Hovered", Icon14x14 ) )
+			.SetUncheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheckBox_Hovered", Icon14x14 ) )
 			.SetCheckedImage( IMAGE_BRUSH( "Common/SmallCheck", Icon14x14 ) )
 			.SetCheckedHoveredImage( IMAGE_BRUSH( "Common/SmallCheck", Icon14x14 ) )
 			.SetCheckedPressedImage( IMAGE_BRUSH( "Common/SmallCheck", Icon14x14 ) )
@@ -1036,7 +1038,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 			.SetActiveTitleBrush( IMAGE_BRUSH( "Common/Window/WindowTitle", Icon32x32, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) )
 			.SetInactiveTitleBrush( IMAGE_BRUSH( "Common/Window/WindowTitle_Inactive", Icon32x32, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) )
 			.SetFlashTitleBrush( IMAGE_BRUSH( "Common/Window/WindowTitle_Flashing", Icon24x24, FLinearColor(1,1,1,1), ESlateBrushTileType::Horizontal  ) )
-			.SetOutlineBrush( BORDER_BRUSH( "Common/Window/WindowOutline", FMargin(4.0f/32.0f) ) )
+			.SetOutlineBrush( BORDER_BRUSH( "Common/Window/WindowOutline", FMargin(3.0f/32.0f) ) )
 			.SetOutlineColor( FLinearColor(0.1f, 0.1f, 0.1f, 1.0f) )
 			.SetBorderBrush( BOX_BRUSH( "Common/Window/WindowBorder", 0.48f ) )
 			.SetBackgroundBrush( IMAGE_BRUSH( "Common/Window/WindowBackground", FVector2D(74, 74), FLinearColor::White, ESlateBrushTileType::Both) )
@@ -1061,7 +1063,7 @@ TSharedRef< ISlateStyle > FCoreStyle::Create( const FName& InStyleSetName )
 
 	// Widget Reflector Window
 	{
-		Style->Set("WidgetReflector.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_widgetReflector_16x", Icon16x16 ) );
+		Style->Set("WidgetReflector.TabIcon", new IMAGE_BRUSH( "Icons/icon_tab_WidgetReflector_16x", Icon16x16 ) );
 	}
 
 	// Message Log

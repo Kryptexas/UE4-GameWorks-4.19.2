@@ -13,9 +13,9 @@ struct FUDNPageMetadata
 	{}
 
 	FString Availability;
-	FString Title;
-	FString Crumbs;
-	FString Description;
+	FText Title;
+	FText Crumbs;
+	FText Description;
 	TSet< FString > ExcerptNames;
 };
 

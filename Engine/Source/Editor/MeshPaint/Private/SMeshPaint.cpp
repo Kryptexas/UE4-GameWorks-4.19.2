@@ -119,7 +119,7 @@ public:
 						.VAlign(VAlign_Center)
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("MeshPaint_ImportUVLabel", "LOD"))
+							.Text(LOCTEXT("MeshPaint_ImportLODLabel", "LOD"))
 						]
 						+SHorizontalBox::Slot()
 						.AutoWidth() 
@@ -252,8 +252,11 @@ private:
 		bool bOpened = false;
 		if (DesktopPlatform != NULL)
 		{
+			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+			void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
+
 			bOpened = DesktopPlatform->OpenFileDialog(
-				NULL, 
+				ParentWindowHandle, 
 				TEXT("Select TGA file.."), 
 				TEXT(""), 
 				TEXT(""), 
@@ -1103,10 +1106,13 @@ void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKi
 
 	FMargin StandardPadding(0.0f, 4.0f, 0.0f, 4.0f);
 
-	float MinBrushSliderRadius, MaxBrushSliderRadius, MinBrushRadius, MaxBrushRadius;
+	const float BrushRadius = MeshPaintEditMode->GetBrushRadiiDefault();
+
+	float MinBrushSliderRadius, MaxBrushSliderRadius;
 	MeshPaintEditMode->GetBrushRadiiSliderLimits(MinBrushSliderRadius, MaxBrushSliderRadius);
+
+	float MinBrushRadius, MaxBrushRadius;
 	MeshPaintEditMode->GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);
-	FMeshPaintSettings::Get().BrushRadius = (int32)FMath::Clamp(FMeshPaintSettings::Get().BrushRadius, MinBrushRadius, MaxBrushRadius);
 
 	ChildSlot
 	[
@@ -1422,6 +1428,67 @@ void SMeshPaint::Construct(const FArguments& InArgs, TSharedRef<FMeshPaintToolKi
 						[
 							SNew(SVerticalBox)
 							.Visibility(this, &SMeshPaint::GetResourceTypeTexturesVisibility)
+
+							+SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SHorizontalBox)
+								+SHorizontalBox::Slot() 
+								.Padding(2.0f, 0.0f) 
+								.FillWidth(1) 
+								.HAlign(HAlign_Left)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("SelectedMeshIndex", "Mesh To Paint"))
+								]
+								+SHorizontalBox::Slot() 
+								.Padding(2.0f, 0.0f) 
+								.FillWidth(1) 
+								.HAlign(HAlign_Right)
+								[
+									SNew(SComboButton)
+									.OnGetMenuContent(this, &SMeshPaint::GetActorSelectionMenu)
+									.ContentPadding(2.0f)
+									.IsEnabled( this, &SMeshPaint::HasMultipleActorsSelected )
+									.ToolTipText( LOCTEXT("SelectMeshToolTip", "Controls which Mesh is edited") )
+									.ButtonContent()
+									[
+										SNew(STextBlock)
+										.Text(this, &SMeshPaint::GetEditingActorLabel)
+									]
+								]
+							]
+
+							+SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew(SHorizontalBox)
+								+SHorizontalBox::Slot() 
+								.Padding(2.0f, 0.0f) 
+								.FillWidth(1) 
+								.HAlign(HAlign_Left)
+								[
+									SNew(STextBlock)
+									.Text(LOCTEXT("SelectedMaterialIndex", "Material To Paint"))
+								]
+								+SHorizontalBox::Slot() 
+								.Padding(2.0f, 0.0f) 
+								.FillWidth(1) 
+								.HAlign(HAlign_Right)
+								[
+									SNew(SComboButton)
+									.OnGetMenuContent(this, &SMeshPaint::GetMaterialSelectionMenu)
+									.ContentPadding(2.0f)
+									.IsEnabled( this, &SMeshPaint::HasMultipleMaterialSlots )
+									.ToolTipText( LOCTEXT("SelectMaterialIndexToolTip", "Controls which material is edited") )
+									.ButtonContent()
+									[
+										SNew(STextBlock)
+										.Text(this, &SMeshPaint::GetEditingMaterial)
+									]
+								]
+							]
+
 							+SVerticalBox::Slot()
 							.AutoHeight()
 							.Padding(StandardPadding)
@@ -2054,7 +2121,7 @@ EVisibility SMeshPaint::GetImportVertexColorsVisibility() const
 
 TOptional<float> SMeshPaint::GetBrushRadius() const
 {
-	return FMeshPaintSettings::Get().BrushRadius;
+	return MeshPaintEditMode->GetBrushRadiiDefault();
 }
 
 TOptional<float> SMeshPaint::GetBrushStrength() const
@@ -2125,7 +2192,7 @@ void SMeshPaint::OnVertexPaintColorSetChanged(EMeshPaintColorSet::Type InPaintCo
 
 void SMeshPaint::OnBrushRadiusChanged(float InBrushRadius)
 {
-	FMeshPaintSettings::Get().BrushRadius = InBrushRadius;
+	MeshPaintEditMode->SetBrushRadiiDefault( InBrushRadius );
 }
 
 void SMeshPaint::OnBrushStrengthChanged(float InBrushStrength)
@@ -2726,5 +2793,66 @@ bool SMeshPaint::SavePackagesForObjects( TArray<UObject*>& InObjects )
 			
 	return true;
 }
+
+bool SMeshPaint::HasMultipleMaterialSlots() const
+{
+	return MeshPaintEditMode->GetEditingActorsNumberOfMaterials() > 1;
+}
+
+TSharedRef<SWidget> SMeshPaint::GetMaterialSelectionMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+	for (int32 MaterialIndex=0; MaterialIndex < MeshPaintEditMode->GetEditingActorsNumberOfMaterials(); ++MaterialIndex)
+	{
+		MenuBuilder.AddMenuEntry( FText::AsNumber( MaterialIndex ), FText(), FSlateIcon(), FExecuteAction::CreateSP(this, &SMeshPaint::OnSetEditingMaterial, MaterialIndex) );
+	}
+	return MenuBuilder.MakeWidget();
+}
+
+FString SMeshPaint::GetEditingMaterial() const
+{
+	int32 SelectedMaterialIndex = MeshPaintEditMode->GetEditingMaterialIndex();
+	return TTypeToString<int32>::ToString(SelectedMaterialIndex);
+}
+
+void SMeshPaint::OnSetEditingMaterial( int32 NewMaterialIndex )
+{
+	MeshPaintEditMode->SetEditingMaterialIndex(NewMaterialIndex);
+}
+
+TSharedRef<SWidget> SMeshPaint::GetActorSelectionMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+	TArray<TWeakObjectPtr<AActor>> SelectedActors = MeshPaintEditMode->GetEditingActors();
+	for (int32 MeshNameIndex=0; MeshNameIndex < SelectedActors.Num(); ++MeshNameIndex)
+	{
+		if (SelectedActors[MeshNameIndex].IsValid())
+		{
+			MenuBuilder.AddMenuEntry( FText::FromString(SelectedActors[MeshNameIndex].Get()->GetActorLabel()), FText(), FSlateIcon(), FExecuteAction::CreateSP(this, &SMeshPaint::OnSetEditingActor, SelectedActors[MeshNameIndex]) );
+		}
+	}
+	return MenuBuilder.MakeWidget();
+}
+
+FString SMeshPaint::GetEditingActorLabel() const
+{
+	TWeakObjectPtr<AActor> SelectedActor = MeshPaintEditMode->GetEditingActor();
+	if (SelectedActor.IsValid())
+	{
+		return SelectedActor.Get()->GetActorLabel();
+	}
+	return FString();
+}
+
+void SMeshPaint::OnSetEditingActor( TWeakObjectPtr<AActor> InActor )
+{
+	MeshPaintEditMode->SetEditingMesh(InActor);
+}
+
+bool SMeshPaint::HasMultipleActorsSelected() const
+{
+	return MeshPaintEditMode->GetEditingActors().Num() > 1;
+}
+
 
 #undef LOCTEXT_NAMESPACE

@@ -98,8 +98,8 @@ public:
 	 */
 	virtual void Finalize() OVERRIDE
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
+		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
 		if (Session)
 		{
 			Session->SessionState = EOnlineSessionState::Ended;
@@ -111,10 +111,10 @@ public:
 	 */
 	virtual void TriggerDelegates() OVERRIDE
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		if (SessionInterface.IsValid())
+		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
+		if (SessionInt.IsValid())
 		{
-			SessionInterface->TriggerOnEndSessionCompleteDelegates(SessionName, bWasSuccessful);
+			SessionInt->TriggerOnEndSessionCompleteDelegates(SessionName, bWasSuccessful);
 		}
 	}
 };
@@ -163,14 +163,14 @@ public:
 	 */
 	virtual void Finalize() OVERRIDE
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		if (SessionInterface.IsValid())
+		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
+		if (SessionInt.IsValid())
 		{
-			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+			FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
 			if (Session)
 			{
-				SessionInterface->RemoveNamedSession(SessionName);
-				if (SessionInterface->GetNumSessions() == 0)
+				SessionInt->RemoveNamedSession(SessionName);
+				if (SessionInt->GetNumSessions() == 0)
 				{
 					IOnlineVoicePtr VoiceInt = Subsystem->GetVoiceInterface();
 					if (VoiceInt.IsValid())
@@ -194,10 +194,10 @@ public:
 	 */
 	virtual void TriggerDelegates() OVERRIDE
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		if (SessionInterface.IsValid())
+		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
+		if (SessionInt.IsValid())
 		{
-			SessionInterface->TriggerOnDestroySessionCompleteDelegates(SessionName, bWasSuccessful);
+			SessionInt->TriggerOnDestroySessionCompleteDelegates(SessionName, bWasSuccessful);
 		}
 	}
 };

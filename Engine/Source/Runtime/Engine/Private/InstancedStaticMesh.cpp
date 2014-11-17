@@ -799,8 +799,6 @@ public:
 	,	InstancedRenderData(InComponent)
 #if WITH_EDITOR
 	,	bHasSelectedInstances(InComponent->SelectedInstances.Num() > 0)
-#else
-	,	bHasSelectedInstances(false)
 #endif
 	{
 #if WITH_EDITOR
@@ -857,7 +855,7 @@ public:
 
 	// FPrimitiveSceneProxy interface.
 	
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE
 	{
 		FPrimitiveViewRelevance Result;
 		if(View->Family->EngineShowFlags.InstancedStaticMeshes)
@@ -884,48 +882,12 @@ public:
 	virtual bool GetWireframeMeshElement(int32 LODIndex, const FMaterialRenderProxy* WireframeRenderProxy, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshElement) const OVERRIDE;
 
 	/**
-	 * Returns whether or not this component is instanced.
-	 * The base implementation returns false.  You should override this method in derived classes.
-	 *
-	 * @return	true if this component represents multiple instances of a primitive.
-	 */
-	virtual bool IsInstanced() const
-	{
-		return true;
-	}
-
-	/**
-	 * For instanced components, returns the number of instances.
-	 * The base implementation returns zero.  You should override this method in derived classes.
-	 *
-	 * @return	Number of instances
-	 */
-	virtual int32 GetInstanceCount() const
-	{
-		return PerInstanceSMData.Num();
-	}
-
-	/**
-	 * For instanced components, returns the Local -> World transform for the specific instance number.
-	 * If the function is called on non-instanced components, the component's LocalToWorld will be returned.
-	 * You should override this method in derived classes that support instancing.
-	 *
-	 * @param	InInstanceIndex	The index of the instance to return the Local -> World transform for
-	 *
-	 * @return	Number of instances
-	 */
-	virtual const FMatrix& GetInstanceLocalToWorld( int32 InInstanceIndex ) const
-	{
-		return PerInstanceSMData[ InInstanceIndex ].InstanceToWorld;
-	}
-
-	/**
 	 * Creates the hit proxies are used when DrawDynamicElements is called.
 	 * Called in the game thread.
 	 * @param OutHitProxies - Hit proxes which are created should be added to this array.
 	 * @return The hit proxy to use by default for elements drawn by DrawDynamicElements.
 	 */
-	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component,TArray<TRefCountPtr<HHitProxy> >& OutHitProxies)
+	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component,TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) OVERRIDE
 	{
 		if( InstancedRenderData.HitProxies.Num() )
 		{
@@ -941,6 +903,11 @@ public:
 		}
 	}
 
+	virtual bool IsDetailMesh() const OVERRIDE
+	{
+		return true;
+	}
+
 private:
 
 	/** Array of per-instance static mesh rendering data for the scene proxy */
@@ -949,8 +916,12 @@ private:
 	/** Per component render data */
 	FInstancedStaticMeshRenderData InstancedRenderData;
 
+#if WITH_EDITOR
 	/* If we we have any selected instances */
 	bool bHasSelectedInstances;
+#else
+	static const bool bHasSelectedInstances = false;
+#endif
 
 	/** LOD transition info. */
 	FInstancingUserData UserData_AllInstances;
@@ -962,7 +933,7 @@ void FInstancedStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_InstancedStaticMeshSceneProxy_DrawDynamicElements );
 
-#if WITH_EDITOR
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	const bool bSelectionRenderEnabled = GIsEditor && View->Family->EngineShowFlags.Selection;
 
 	// If the first pass rendered selected instances only, we need to render the deselected instances in a second pass
@@ -1090,6 +1061,10 @@ UInstancedStaticMeshComponent::UInstancedStaticMeshComponent(const class FPostCo
 {
 	Mobility = EComponentMobility::Movable;
 	BodyInstance.bSimulatePhysics = false;
+
+	// Static lighting is not currently supported by instanced static meshes, so disable it
+	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
+	bCastStaticShadow = false;
 }
 
 #if WITH_EDITOR
@@ -1173,7 +1148,7 @@ FPrimitiveSceneProxy* UInstancedStaticMeshComponent::CreateSceneProxy()
 	}
 }
 
-void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyInstance* BodyInstance)
+void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyInstance* InstanceBodyInstance)
 {
 	if (!StaticMesh)
 	{
@@ -1183,7 +1158,7 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 
 	check(InstanceIdx < PerInstanceSMData.Num());
 	check(InstanceIdx < InstanceBodies.Num());
-	check(BodyInstance);
+	check(InstanceBodyInstance);
 
 	UBodySetup* BodySetup = GetBodySetup();
 	check(BodySetup);
@@ -1191,17 +1166,30 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 	// Get transform of the instance
 	FTransform InstanceTransform = ComponentToWorld * FTransform(PerInstanceSMData[InstanceIdx].Transform);
 	
-	BodyInstance->CopyBodyInstancePropertiesFrom(&BodySetup->DefaultInstance);
-	BodyInstance->InstanceBodyIndex = InstanceIdx; // Set body index 
+	InstanceBodyInstance->CopyBodyInstancePropertiesFrom(&BodyInstance);
+	InstanceBodyInstance->InstanceBodyIndex = InstanceIdx; // Set body index 
 
 	// make sure we never enable bSimulatePhysics for ISMComps
-	BodyInstance->bSimulatePhysics = false;
+	InstanceBodyInstance->bSimulatePhysics = false;
 
 #if WITH_PHYSX
 	// Create physics body instance.
-	BodyInstance->InitBody( BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
+	InstanceBodyInstance->InitBody( BodySetup, InstanceTransform, this, GetWorld()->GetPhysicsScene(), Aggregate);
 #endif //WITH_PHYSX
 }
+
+void UInstancedStaticMeshComponent::ClearAllInstanceBodies()
+{
+	for (int32 i = 0; i < InstanceBodies.Num(); i++)
+	{
+		check(InstanceBodies[i]);
+		InstanceBodies[i]->TermBody();
+		delete InstanceBodies[i];
+	}
+
+	InstanceBodies.Empty();
+}
+
 
 void UInstancedStaticMeshComponent::CreatePhysicsState()
 {
@@ -1224,8 +1212,6 @@ void UInstancedStaticMeshComponent::CreatePhysicsState()
 	int32 NumBodies = PerInstanceSMData.Num();
 	InstanceBodies.Init(NumBodies);
 
-	UBodySetup* BodySetup = GetBodySetup();
-
 	for(int32 i=0; i < NumBodies; ++i)
 	{
 		InstanceBodies[i] = new FBodyInstance;
@@ -1239,14 +1225,8 @@ void UInstancedStaticMeshComponent::DestroyPhysicsState()
 {
 	USceneComponent::DestroyPhysicsState();
 
-	for(int32 i=0; i<InstanceBodies.Num(); i++)
-	{
-		check( InstanceBodies[i] );
-		InstanceBodies[i]->TermBody();
-		delete InstanceBodies[i];
-	}
-
-	InstanceBodies.Empty();
+	// Release all physics representations
+	ClearAllInstanceBodies();
 
 #if WITH_PHYSX
 	// releasing Aggregate, it shouldn't contain any Bodies now, because they are released above
@@ -1381,6 +1361,24 @@ void UInstancedStaticMeshComponent::AddInstance(const FTransform& InstanceTransf
 	MarkRenderStateDirty();
 }
 
+bool UInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
+{
+	return IsRegistered() && (bAlwaysCreatePhysicsState || IsCollisionEnabled());
+}
+
+
+void UInstancedStaticMeshComponent::ClearInstances()
+{
+	// Clear all the per-instance data
+	PerInstanceSMData.Empty();
+	// Release any physics representations
+	ClearAllInstanceBodies();
+
+	// Indicate we need to update render state to reflect changes
+	MarkRenderStateDirty();
+}
+
+
 void UInstancedStaticMeshComponent::SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform)
 {
 	InOutNewInstanceData.Transform = InInstanceTransform.ToMatrixWithScale();
@@ -1408,6 +1406,52 @@ void UInstancedStaticMeshComponent::ApplyWorldOffset(const FVector& InOffset, bo
 	}
 
 	MarkRenderStateDirty();
+}
+
+#include "AI/Navigation/RecastHelpers.h"
+bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
+{
+	if (StaticMesh != NULL)
+	{
+		UNavCollision* NavCollision = StaticMesh->NavCollision;
+		if (NavCollision != NULL && NavCollision->bHasConvexGeometry)
+		{
+			for (const FInstancedStaticMeshInstanceData& InstanceData : PerInstanceSMData)
+			{
+				const FVector Scale3D = InstanceData.Transform.GetScaleVector();
+				// if any of scales is 0 there's no point in exporting it
+				if (!Scale3D.IsZero())
+				{
+					GeomExport->ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
+						NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), FTransform(InstanceData.Transform));
+
+					GeomExport->ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
+						NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), FTransform(InstanceData.Transform));
+				}
+			}
+		}
+		else
+		{
+			UBodySetup* BodySetup = StaticMesh->BodySetup;
+			if (BodySetup)
+			{
+				for (const FInstancedStaticMeshInstanceData& InstanceData : PerInstanceSMData)
+				{
+					const FVector Scale3D = InstanceData.Transform.GetScaleVector();
+					// if any of scales is 0 there's no point in exporting it
+					if (!Scale3D.IsZero())
+					{
+						GeomExport->ExportRigidBodySetup(*BodySetup, FTransform(InstanceData.Transform));
+					}
+				}
+
+				//GeomExport->SlopeOverride = BodySetup->WalkableSlopeOverride;
+			}
+		}
+	}
+
+	// we don't want "regular" collision export for this component
+	return false;
 }
 
 SIZE_T UInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )

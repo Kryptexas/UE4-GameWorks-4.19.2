@@ -121,12 +121,12 @@ namespace MarkdownSharp.EpicMarkdown.PathProviders
 
         public string GetAbsolutePath(TransformationData data)
         {
-            return Markdown.Unescape(Path.Combine(data.CurrentFolderDetails.AbsoluteHTMLPath, dstRelative));
+            return Normalizer.NormalizePath(Markdown.Unescape(Path.Combine(data.CurrentFolderDetails.AbsoluteHTMLPath, dstRelative)));
         }
 
         public override string GetPath(TransformationData data)
         {
-            return Markdown.Unescape(Path.Combine(data.CurrentFolderDetails.RelativeHTMLPath, dstRelative));
+            return Normalizer.NormalizePath(Markdown.Unescape(Path.Combine(data.CurrentFolderDetails.RelativeHTMLPath, dstRelative)));
         }
 
         public string GetSource()

@@ -283,7 +283,14 @@ void FCoreAudioSoundSource::Update( void )
 		}
 		else if( WaveInstance->bUseSpatialization )
 		{
-			FRotator Rotation = AudioDevice->InverseTransform.TransformPosition( WaveInstance->Location ).SafeNormal().Rotation();
+			FVector Direction = AudioDevice->InverseTransform.TransformPosition(WaveInstance->Location).SafeNormal();
+
+			FVector EmitterPosition;
+			EmitterPosition.X = -Direction.Z;
+			EmitterPosition.Y = Direction.Y;
+			EmitterPosition.Z = Direction.X;
+
+			FRotator Rotation = EmitterPosition.Rotation();
 			Azimuth = Rotation.Yaw;
 			Elevation = Rotation.Pitch;
 		}

@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 
 namespace UnrealBuildTool
 {
-    abstract class RemoteToolChain : UEToolChain
+	abstract class RemoteToolChain : UEToolChain
     {
 		protected void RegisterRemoteToolChain(UnrealTargetPlatform InPlatform, CPPTargetPlatform CPPPlatform)
 		{
@@ -22,37 +22,10 @@ namespace UnrealBuildTool
 			Log.TraceVerbose("        Registered for {0}", CPPPlatform.ToString());
 			UEToolChain.RegisterPlatformToolChain(CPPPlatform, this);
 		}
-		
 
-        /***********************************************************************
-         * NOTE:
-         *  Do NOT change the defaults to set your values, instead you should set the environment variables
-         *  properly in your system, as other tools make use of them to work properly!
-         *  The defaults are there simply for examples so you know what to put in your env vars...
-         ***********************************************************************/
-
-        /** The name of the MacOS machine to talk to compile the game */
-		public static string RemoteServerName = Utils.GetStringEnvironmentVariable("ue.RemoteCompileServerName", "a1011"); // MacPro4,1, 16 logical cores, 16 GB
-		public static string[] PotentialServerNames =
-		{
-			// always on
-			"a1488", // Xserve3,1, 16 logical cores, 16 GB
-
-			// developers
-			"a2852", // MacPro5,1, 24 logical cores, 16 GB
-			"a2853", // MacPro5,1, 24 logical cores, 16 GB
-			"a3066", // MacPro5,1, 24 logical cores, 16 GB
-			"a3067", // MacPro5,1, 24 logical cores, 16 GB
-			//"a1719", // Unreachable
-			//"a3071", // MacPro5,1, 8 logical cores, 16 GB - testing if removing it improves promotable build times
-
-			// a1011 - dedicated to people
-			// a1012 - dedicated to Trepka
-			// a3072 - dedicated to Jenkins
-			//"a3070", // MacPro5,1, 8 logical cores, 16 GB - dedicated to Electric Commander
-			//"a3068", // MacPro5,1, 24 logical cores, 24 GB - dedicated to Electric Commander
-
-		};
+		/** These two variables will be loaded from XML config file in XmlConfigLoader.Init() */
+		public static string RemoteServerName;
+		public static string[] PotentialServerNames = new string[] { };
 
 		/** Keep a list of remote files that are potentially copied from local to remote */
 		private static Dictionary<FileItem, FileItem> CachedRemoteFileItems = new Dictionary<FileItem, FileItem>();
@@ -308,21 +281,29 @@ namespace UnrealBuildTool
 				foreach( var UObjectModule in Manifest.Modules )
 				{
 					// @todo uht: Ideally would only copy exactly the files emitted by UnrealHeaderTool, rather than scanning directory (could copy stale files; not a big deal though)
-					var GeneratedCodeDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, UObjectModule.BaseDirectory, UObjectModule.Name);
-					var GeneratedCodeFiles     = Directory.GetFiles( GeneratedCodeDirectory, "*", SearchOption.AllDirectories );
-					foreach( var GeneratedCodeFile in GeneratedCodeFiles )
+					try
 					{
-						// Skip copying "Timestamp" files (UBT temporary files)
-						if( !Path.GetFileName( GeneratedCodeFile ).Equals( @"Timestamp", StringComparison.InvariantCultureIgnoreCase ) )
+						var GeneratedCodeDirectory = UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(Target, UObjectModule.BaseDirectory, UObjectModule.Name);
+						var GeneratedCodeFiles     = Directory.GetFiles( GeneratedCodeDirectory, "*", SearchOption.AllDirectories );
+						foreach( var GeneratedCodeFile in GeneratedCodeFiles )
 						{
-							var GeneratedCodeFileItem = FileItem.GetExistingItemByPath( GeneratedCodeFile );
-							QueueFileForBatchUpload( GeneratedCodeFileItem );
+							// Skip copying "Timestamp" files (UBT temporary files)
+							if( !Path.GetFileName( GeneratedCodeFile ).Equals( @"Timestamp", StringComparison.InvariantCultureIgnoreCase ) )
+							{
+								var GeneratedCodeFileItem = FileItem.GetExistingItemByPath( GeneratedCodeFile );
+								QueueFileForBatchUpload( GeneratedCodeFileItem );
+							}
 						}
+					}
+					catch (System.IO.DirectoryNotFoundException)
+					{
+						// Ignore directory not found
 					}
 
 					// For source files in legacy "Classes" directories, we need to make sure they all get copied over too, since
 					// they may not have been directly included in any C++ source files (only generated headers), and the initial
 					// header scan wouldn't have picked them up if they hadn't been generated yet!
+					try
 					{
 						var SourceFiles = Directory.GetFiles( UObjectModule.BaseDirectory, "*", SearchOption.AllDirectories );
 						foreach( var SourceFile in SourceFiles )
@@ -330,6 +311,10 @@ namespace UnrealBuildTool
 							var SourceFileItem = FileItem.GetExistingItemByPath( SourceFile );
 							QueueFileForBatchUpload( SourceFileItem );
 						}
+					}
+					catch (System.IO.DirectoryNotFoundException)
+					{
+						// Ignore directory not found
 					}
 				}
 			}

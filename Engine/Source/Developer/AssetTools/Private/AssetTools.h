@@ -26,6 +26,7 @@ public:
 	virtual FString DumpAssetToTempFile(UObject* Asset) const OVERRIDE;
 	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& DiffArgs) const OVERRIDE;
 	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const OVERRIDE;
+	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const OVERRIDE;
 
 public:
 	/** Gets the asset tools singleton as a FAssetTools for asset tools module use */
@@ -36,6 +37,9 @@ public:
 	void SyncBrowserToAssets(const TArray<FAssetData>& AssetsToSync);
 
 private:
+	/** Expands any folders found in the files list, and returns a flattened list of destination paths and files.  Mirrors directory structure. */
+	void ExpandDirectories(const TArray<FString>& Files, const FString& DestinationPath, TArray<TPair<FString, FString>>& FilesAndDestinations) const;
+
 	/** Checks to see if a package is marked for delete then ask the user if he would like to check in the deleted file before he can continue. Returns true when it is safe to proceed. */
 	bool CheckForDeletedPackage(const UPackage* Package) const;
 
@@ -57,6 +61,9 @@ private:
 private:
 	/** The manager to handle renaming assets */
 	TSharedRef<FAssetRenameManager> AssetRenameManager;
+
+	/** The manager to handle fixing up redirectors */
+	TSharedRef<FAssetFixUpRedirectors> AssetFixUpRedirectors;
 
 	/** The list of all registered AssetTypeActions */
 	TArray<TSharedRef<IAssetTypeActions>> AssetTypeActionsList;

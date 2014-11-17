@@ -725,22 +725,20 @@ void FEditorBuildUtils::SubmitPackagesForAutomatedBuild( const TSet<UPackage*>& 
 		}
 	}
 
-	// note: we don't localize this as no provider supports unicode/utf CL descriptions!
-	const FString Desc = NSLOCTEXT("UnrealEd", "AutomatedBuild_AutomaticSubmission", "[Automatic Submission]").ToString();
-
 	// first add files that need to be added
 	SourceControlProvider.Execute( ISourceControlOperation::Create<FMarkForAdd>(), LevelsToAdd, EConcurrency::Synchronous );
 
 	// Now check in all the changes, including the files we added above
 	TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = StaticCastSharedRef<FCheckIn>(ISourceControlOperation::Create<FCheckIn>());
-	CheckInOperation->SetDescription(Desc);
+	CheckInOperation->SetDescription(NSLOCTEXT("UnrealEd", "AutomatedBuild_AutomaticSubmission", "[Automatic Submission]"));
 	SourceControlProvider.Execute( CheckInOperation, LevelsToSubmit, EConcurrency::Synchronous );
 }
 
 void FEditorBuildUtils::TriggerNavigationBuilder(UWorld* InWorld, EBuildOptions::Type Id)
 {
 #if WITH_NAVIGATION_GENERATOR
-	if( InWorld->GetWorldSettings()->bEnableNavigationSystem )
+	if( InWorld->GetWorldSettings()->bEnableNavigationSystem &&
+		InWorld->GetNavigationSystem() )
 	{
 		switch( Id )
 		{

@@ -280,6 +280,10 @@ void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUp
 	}
 }
 
+bool UCharacterMovementComponent::HasValidData() const
+{
+	return UpdatedComponent && IsValid(CharacterOwner);
+}
 
 ACharacter* UCharacterMovementComponent::GetCharacterOwner() const
 {
@@ -368,6 +372,12 @@ FVector UCharacterMovementComponent::GetImpartedMovementBaseVelocity() const
 				BaseVelocity = MovementBase->GetOwner()->GetVelocity();
 			}
 
+			// Fall back to physics velocity.
+			if (BaseVelocity.IsZero() && MovementBase->GetBodyInstance())
+			{
+				BaseVelocity = MovementBase->GetBodyInstance()->GetUnrealWorldVelocity();
+			}
+
 			if (bImpartBaseAngularVelocity)
 			{
 				const FVector BaseAngVel = MovementBase->GetPhysicsAngularVelocity();
@@ -401,6 +411,19 @@ FVector UCharacterMovementComponent::GetImpartedMovementBaseVelocity() const
 void UCharacterMovementComponent::Launch(FVector const& LaunchVel)
 {
 	PendingLaunchVelocity = LaunchVel;
+}
+
+bool UCharacterMovementComponent::HandlePendingLaunch()
+{
+	if (!PendingLaunchVelocity.IsZero() && HasValidData())
+	{
+		Velocity = PendingLaunchVelocity;
+		SetMovementMode(MOVE_Falling);
+		PendingLaunchVelocity = FVector::ZeroVector;
+		return true;
+	}
+
+	return false;
 }
 
 void UCharacterMovementComponent::JumpOff(AActor* MovementBaseActor)
@@ -475,40 +498,62 @@ void UCharacterMovementComponent::SetDefaultMovementMode()
 	}
 }
 
-void UCharacterMovementComponent::SetMovementMode(EMovementMode NewMovementMode)
+void UCharacterMovementComponent::SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode)
 {
-	if (!CharacterOwner)
+	if (NewMovementMode != MOVE_Custom)
 	{
-		return;
+		NewCustomMode = 0;
 	}
 
-	if (NewMovementMode == MOVE_Walking)
-	{
-		Velocity.Z = 0.f;
-	}
-
+	// Do nothing if nothing is changing.
 	if (MovementMode == NewMovementMode)
 	{
+		// Allow changes in custom sub-mode.
+		if ((NewMovementMode != MOVE_Custom) || (NewCustomMode == CustomMovementMode))
+		{
+			return;
+		}
+	}
+
+	const EMovementMode PrevMovementMode = MovementMode;
+	const uint8 PrevCustomMode = CustomMovementMode;
+
+	MovementMode = NewMovementMode;
+	CustomMovementMode = NewCustomMode;
+
+	// We allow setting movement mode before we have a component to update, in case this happens at startup.
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	// Handle change in movement mode
+	OnMovementModeChanged(PrevMovementMode, PrevCustomMode);
+
+	// @todo UE4 do we need to disable ragdoll physics here? Should this function do nothing if in ragdoll?
+}
+
+
+void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMovementMode, uint8 PreviousCustomMode)
+{
+	if (!HasValidData())
+	{
 		return;
 	}
 
-	EMovementMode PrevMovementMode = MovementMode;
-	MovementMode = NewMovementMode;
-	if( MovementMode == MOVE_Walking )
+	// React to changes in the movement mode.
+	if (MovementMode == MOVE_Walking)
 	{	
 		// Walking uses only XY velocity, and must be on a walkable floor, with a Base.
 		Velocity.Z = 0.f;
 		bCrouchMovesCharacterDown = true;
-		if( UpdatedComponent )
-		{
-			FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
-			AdjustFloorHeight();
-			
-			SetBase(CurrentFloor.HitResult.Component.Get());
 
-			// make sure we validate our new floor/base on initial entry of the walking physics
-			bForceNextFloorCheck = true;
-		}
+		FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
+		AdjustFloorHeight();			
+		SetBase(CurrentFloor.HitResult.Component.Get());
+
+		// make sure we validate our new floor/base on initial entry of the walking physics, even if velocity is zero.
+		bForceNextFloorCheck = true;
 	}
 	else
 	{
@@ -520,14 +565,58 @@ void UCharacterMovementComponent::SetMovementMode(EMovementMode NewMovementMode)
 			Velocity += GetImpartedMovementBaseVelocity();
 			CharacterOwner->Falling();
 		}
+
 		SetBase(NULL);
+
+		if (MovementMode == MOVE_None)
+		{
+			// Kill velocity and clear queued up events
+			StopMovementImmediately();
+			CharacterOwner->ClearJumpInput();
+		}
 	}
 
-	// Notify the pawn that the movement mode has been changed
-	CharacterOwner->OnMovementModeChanged(PrevMovementMode);
+	CharacterOwner->OnMovementModeChanged(PreviousMovementMode, PreviousCustomMode);
+};
 
-	// @todo UE4 do we need to disable ragdoll physics here? Should this function do nothing if in ragdoll?
+
+uint8 UCharacterMovementComponent::PackNetworkMovementMode() const
+{
+	if (MovementMode != MOVE_Custom)
+	{
+		return uint8(MovementMode.GetValue());
+	}
+	else
+	{
+		return CustomMovementMode + uint8(MOVE_MAX);
+	}
 }
+
+
+void UCharacterMovementComponent::UnpackNetworkMovementMode(const uint8 ReceivedMode, TEnumAsByte<EMovementMode>& OutMode, uint8& OutCustomMode) const
+{
+	if (ReceivedMode < uint8(MOVE_MAX))
+	{
+		OutMode = TEnumAsByte<EMovementMode>(ReceivedMode);
+		OutCustomMode = 0;
+	}
+	else
+	{
+		OutMode = MOVE_Custom;
+		OutCustomMode = ReceivedMode - uint8(MOVE_MAX);
+	}
+}
+
+
+void UCharacterMovementComponent::ApplyNetworkMovementMode(const uint8 ReceivedMode)
+{
+	TEnumAsByte<EMovementMode> NetMovementMode(MOVE_None);
+	uint8 NetCustomMode(0);
+	UnpackNetworkMovementMode(ReceivedMode, NetMovementMode, NetCustomMode);
+
+	SetMovementMode(NetMovementMode, NetCustomMode);
+}
+
 
 void UCharacterMovementComponent::PerformAirControl(FVector Direction, float ZDiff)
 {
@@ -582,8 +671,10 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!IsValid(CharacterOwner) || !UpdatedComponent)
+	if (!HasValidData() || UpdatedComponent->IsSimulatingPhysics())
 	{
+		// Movement is disabled, don't queue up actions that would apply when it is enabled again.
+		ConsumeInputVector();
 		return;
 	}
 
@@ -598,7 +689,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 		{
 			// Check we are still in the world, and stop simulating if not.
 			const bool bStillInWorld = (bCheatFlying || CharacterOwner->CheckStillInWorld());
-			if (!bStillInWorld || !IsValid(CharacterOwner))
+			if (!bStillInWorld || !HasValidData())
 			{
 				return;
 			}
@@ -620,6 +711,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 
 			// apply input to acceleration
 			Acceleration = ScaleInputAcceleration(ConstrainInputAcceleration(GetInputVector()));
+			AnalogInputModifier = ComputeAnalogInputModifier();
 			ConsumeInputVector();
 
 			if (CharacterOwner->Role == ROLE_Authority)
@@ -632,6 +724,14 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 			}
 
 			CharacterOwner->ClearJumpInput();
+		}
+		else if (CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy)
+		{
+			// Server ticking for remote client.
+			// Between net updates from the client we need to update position if based on another object,
+			// otherwise the object will move on intermediate frames and we won't follow it.
+			UpdateBasedMovement(DeltaTime);
+			SaveBaseLocation();
 		}
 	}
 	else if (CharacterOwner->Role == ROLE_SimulatedProxy)
@@ -720,6 +820,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 	// If we are playing a RootMotion AnimMontage.
 	if( CharacterOwner && CharacterOwner->IsPlayingRootMotion() )
 	{
+		bWasSimulatingRootMotion = true;
 		UE_LOG(LogRootMotion, Verbose, TEXT("UCharacterMovementComponent::SimulatedTick"));
 
 		// Tick animations before physics.
@@ -728,7 +829,7 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			CharacterOwner->Mesh->TickPose(DeltaSeconds);
 
 			// Make sure animation didn't trigger an event that destroyed us
-			if( !CharacterOwner || CharacterOwner->IsPendingKill() )
+			if (!HasValidData())
 			{
 				return;
 			}
@@ -762,13 +863,29 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 			CharacterOwner->SimulatedRootMotionPositionFixup(DeltaSeconds);
 		}
 	}
-	else if( UpdatedComponent->IsSimulatingPhysics() || CharacterOwner->IsMatineeControlled()  )
-	{
-		PerformMovement(DeltaSeconds);
-	}
 	else
 	{
-		SimulateMovement(DeltaSeconds);
+		// if we were simulating root motion, we've been ignoring regular ReplicatedMovement updates.
+		// If we're not simulating root motion anymore, force us to sync our movement properties.
+		// (Root Motion could leave Velocity out of sync w/ ReplicatedMovement)
+		if( bWasSimulatingRootMotion )
+		{
+			bWasSimulatingRootMotion = false;
+			if( CharacterOwner )
+			{
+				CharacterOwner->RootMotionRepMoves.Empty();
+				CharacterOwner->OnRep_ReplicatedMovement();
+			}
+		}
+
+		if( UpdatedComponent->IsSimulatingPhysics() || CharacterOwner->IsMatineeControlled()  )
+		{
+			PerformMovement(DeltaSeconds);
+		}
+		else
+		{
+			SimulateMovement(DeltaSeconds);
+		}
 	}
 
 	if( GetNetMode() == NM_Client )
@@ -804,41 +921,9 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 }
 
 
-EMovementMode UCharacterMovementComponent::DetermineSimulatedMovementMode() const
-{
-	if (!CharacterOwner || !UpdatedComponent)
-	{
-		return MOVE_None;
-	}
-	
-	// guess at movement mode
-	if (CharacterOwner->GetMovementBase())
-	{
-		// if base, assume walking
-		return MOVE_Walking;
-	}
-	else
-	{
-		// if no base, assume falling or swimming depending on physicsvolume (override to support flying, etc.)
-		if (IsInWater())
-		{
-			return MOVE_Swimming;
-		}
-		else if (!CharacterOwner->bSimulateGravity)
-		{
-			return MOVE_Flying;
-		}
-		else
-		{
-			return MOVE_Falling;
-		}
-	}
-}
-
-
 void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 {
-	if (!CharacterOwner || !UpdatedComponent)
+	if (!HasValidData() || UpdatedComponent->IsSimulatingPhysics())
 	{
 		return;
 	}
@@ -860,30 +945,40 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 
 	FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
-	// handle pending launches
-	if ( !PendingLaunchVelocity.IsZero() && IsValid(UpdatedComponent->GetOwner()) )
+	// Handle network changes
+	if (bNetworkUpdateReceived)
 	{
-		// Handle pending Launch here
-		Velocity = PendingLaunchVelocity;
-		SetMovementMode(MOVE_Falling);
-		PendingLaunchVelocity = FVector::ZeroVector;
+		bNetworkUpdateReceived = false;
+		if (bNetworkMovementModeChanged)
+		{
+			bNetworkMovementModeChanged = false;
+			ApplyNetworkMovementMode(CharacterOwner->GetReplicatedMovementMode());
+		}
+		else if (bJustTeleported)
+		{
+			// Make sure floor is current. We will continue using the replicated base, if there was one.
+			bJustTeleported = false;
+			UpdateFloorFromAdjustment();
+		}
 	}
 
-	// Movement mode is not replicated, guess at it.
-	SetMovementMode(DetermineSimulatedMovementMode());
+	HandlePendingLaunch();
+
 	if (MovementMode == MOVE_None)
 	{
 		return;
 	}
-
-	Acceleration = Velocity.SafeNormal();
+	
+	Acceleration = Velocity.SafeNormal();	// Not currently used for simulated movement
+	AnalogInputModifier = 1.0f;				// Not currently used for simulated movement
 
 	// simulated pawns predict location
+	UpdateBasedMovement(DeltaSeconds);
 	FStepDownResult StepDownResult;
 	MoveSmooth(Velocity, DeltaSeconds, &StepDownResult);
 
 	// if simulated gravity, find floor and check if falling
-	if( CharacterOwner->bSimulateGravity && !CharacterOwner->bSimGravityDisabled && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling) )
+	if (!CharacterOwner->bSimGravityDisabled && (MovementMode == MOVE_Walking || MovementMode == MOVE_Falling))
 	{
 		const FVector CollisionCenter = UpdatedComponent->GetComponentLocation();
 		if (StepDownResult.bComputedFloor)
@@ -917,6 +1012,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 			{
 				if (CurrentFloor.FloorDist <= MIN_FLOOR_DIST)
 				{
+					// Landed
 					SetMovementMode(MOVE_Walking);
 				}
 				else
@@ -929,20 +1025,24 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 		}
 	}
 
+	SaveBaseLocation();
 	UpdateComponentVelocity();
+	bJustTeleported = false;
 }
 
 void UCharacterMovementComponent::SetBase( UPrimitiveComponent* NewBase, bool bNotifyActor )
 {
-	CharacterOwner->SetBase(NewBase,bNotifyActor);
+	if (CharacterOwner)
+	{
+		CharacterOwner->SetBase(NewBase,bNotifyActor);
+	}
 }
 
 
 // @todo UE4 - handle lift moving up and down through encroachment
-// @todo UE4 - also smoothly handle simulated pawns located relative to base
 void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 {
-	if ( !CharacterOwner || !UpdatedComponent )
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -1048,6 +1148,7 @@ void UCharacterMovementComponent::DisableMovement()
 	else
 	{
 		MovementMode = MOVE_None;
+		CustomMovementMode = 0;
 	}
 }
 
@@ -1055,21 +1156,20 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementAuthority);
 
-	if (!IsValid(CharacterOwner) || !UpdatedComponent)
+	if (!HasValidData())
+	{
+		return;
+	}
+	
+	// no movement if we can't move, or if currently doing physical simulation on UpdatedComponent
+	if (MovementMode == MOVE_None || UpdatedComponent->IsSimulatingPhysics())
 	{
 		return;
 	}
 
 	FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
-	// if ( CharacterOwner->Controller && Cast<APlayerController>(CharacterOwner->Controller) && ((CharacterOwner->Role != ROLE_Authority) || !CharacterOwner->IsLocallyControlled()) ) UE_LOG(LogNet, Log, TEXT("%s PerformMovement"), *CharacterOwner->GetName());
 	UpdateBasedMovement(DeltaSeconds);
-
-	// no movement if pawn owner left world, or currently doing physical simulation on UpdatedComponent
-	if (MovementMode == MOVE_None || UpdatedComponent->IsSimulatingPhysics())
-	{
-		return;
-	}
 
 	FVector OldVelocity = Velocity;
 	FVector OldLocation = CharacterOwner->GetActorLocation();
@@ -1088,14 +1188,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		}
 	}
 
-	// handle pending launches
-	if ( !PendingLaunchVelocity.IsZero() && UpdatedComponent && IsValid(UpdatedComponent->GetOwner()) )
-	{
-		// Handle pending Launch here
-		Velocity = PendingLaunchVelocity;
-		SetMovementMode(MOVE_Falling);
-		PendingLaunchVelocity = FVector::ZeroVector;
-	}
+	HandlePendingLaunch();
 
 	// If using RootMotion, tick animations before running physics.
 	if( !CharacterOwner->bClientUpdating && CharacterOwner->IsPlayingRootMotion() && CharacterOwner->Mesh )
@@ -1103,7 +1196,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		CharacterOwner->Mesh->TickPose(DeltaSeconds);
 
 		// Make sure animation didn't trigger an event that destroyed us
-		if( !CharacterOwner || CharacterOwner->IsPendingKill() )
+		if (!HasValidData())
 		{
 			return;
 		}
@@ -1147,7 +1240,7 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	// change position
 	StartNewPhysics(DeltaSeconds, 0);
 
-	if (!IsValid(CharacterOwner))
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -1205,24 +1298,30 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 		RootMotionParams.Clear();
 	}
 
-	CharacterOwner->bSimulateGravity = (IsFalling() || IsMovingOnGround());
-
 	// update relative location/rotation
-	if (CharacterOwner->Role == ROLE_Authority || CharacterOwner->Role == ROLE_AutonomousProxy)
-	{		
-		UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
-		if (MovementBaseUtility::UseRelativePosition(MovementBase) && !CharacterOwner->IsMatineeControlled() && !Cast<USkeletalMeshComponent>(MovementBase))
-		{
-			OldBaseLocation = MovementBase->GetComponentLocation();
-			CharacterOwner->RelativeMovement.Location = CharacterOwner->GetActorLocation() - OldBaseLocation;
-
-			OldBaseRotation = MovementBase->GetComponentRotation();
-			CharacterOwner->RelativeMovement.Rotation = (FRotationMatrix(CharacterOwner->GetActorRotation()) * FRotationMatrix(OldBaseRotation).GetTransposed()).Rotator();
-		}
-	}	
+	SaveBaseLocation();
 
 	// update component velocity
 	UpdateComponentVelocity();
+}
+
+
+void UCharacterMovementComponent::SaveBaseLocation()
+{
+	if (!HasValidData())
+	{
+		return;
+	}
+
+	UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
+	if (MovementBaseUtility::UseRelativePosition(MovementBase) && !CharacterOwner->IsMatineeControlled() && !Cast<USkeletalMeshComponent>(MovementBase))
+	{
+		OldBaseLocation = MovementBase->GetComponentLocation();
+		CharacterOwner->RelativeMovement.Location = CharacterOwner->GetActorLocation() - OldBaseLocation;
+
+		OldBaseRotation = MovementBase->GetComponentRotation();
+		CharacterOwner->RelativeMovement.Rotation = (FRotationMatrix(CharacterOwner->GetActorRotation()) * FRotationMatrix(OldBaseRotation).GetTransposed()).Rotator();
+	}
 }
 
 
@@ -1239,7 +1338,7 @@ bool UCharacterMovementComponent::CanCrouchInCurrentState() const
 
 void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 {
-	if (!CharacterOwner || !UpdatedComponent)
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -1313,7 +1412,7 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 
 void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 {
-	if (!CharacterOwner || !UpdatedComponent)
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -1424,10 +1523,10 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 
 void UCharacterMovementComponent::StartNewPhysics(float deltaTime, int32 Iterations)
 {
-	if ( (deltaTime < 0.0003f) || (Iterations > 7) || !CharacterOwner)
+	if ( (deltaTime < 0.0003f) || (Iterations > 7) || !HasValidData())
 		return;
 
-	if(UpdatedComponent != NULL && UpdatedComponent->IsSimulatingPhysics())
+	if (UpdatedComponent->IsSimulatingPhysics())
 	{
 		UE_LOG(LogCharacterMovement, Log, TEXT("UCharacterMovementComponent::StartNewPhysics: UpdateComponent (%s) is simulating physics - aborting."), *UpdatedComponent->GetPathName());
 		return;
@@ -1721,16 +1820,15 @@ bool UCharacterMovementComponent::IsCrouching() const
 void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
 	// Do not update velocity when using root motion
-	if (!CharacterOwner || HasRootMotion())
+	if (!HasValidData() || HasRootMotion())
 	{
 		return;
 	}
 
 	Friction = FMath::Max(0.f, Friction);
 	const float MaxAccel = GetModifiedMaxAcceleration();
-	const float MaxSpeed = GetModifiedMaxSpeed();
-	const float MaxSpeedSquared = FMath::Square(MaxSpeed);
-
+	float MaxSpeed = GetModifiedMaxSpeed();
+	
 	// Check if path following requested movement
 	if ( !ApplyRequestedMove(Velocity, Acceleration, DeltaTime, MaxAccel, MaxSpeed) )
 	{
@@ -1747,7 +1845,12 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 			{
 				Acceleration = MaxAccel * (Velocity.SizeSquared() < SMALL_NUMBER ? CharacterOwner->GetActorRotation().Vector() : SafeNormalPrecise(Velocity));
 			}
+
+			AnalogInputModifier = 1.f;
 		}
+
+		// Path following above didn't care about the analog modifier, but we do for everything else below, so get the fully modified value.
+		MaxSpeed *= AnalogInputModifier;
 
 		// Apply braking or deceleration
 		const bool bVelocityOverMax = IsExceedingMaxSpeed(MaxSpeed);
@@ -1757,7 +1860,7 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 			ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 	
 			// Don't allow braking to lower us below max speed if we started above it.
-			if (bVelocityOverMax && Velocity.SizeSquared() < MaxSpeedSquared)
+			if (bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed))
 			{
 				Velocity = SafeNormalPrecise(OldVelocity) * MaxSpeed;
 			}
@@ -1781,7 +1884,7 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 		Velocity = ClampMaxSizePrecise(Velocity, NewMaxSpeed);
 	}
 
-	if (bUseRVOAvoidance && CharacterOwner->bUseAvoidancePathing)
+	if (bUseRVOAvoidance)
 	{
 		CalcAvoidanceVelocity(DeltaTime);
 	}
@@ -2030,7 +2133,7 @@ FVector UCharacterMovementComponent::GetCurrentAcceleration() const
 
 void UCharacterMovementComponent::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
 {
-	if( Velocity.IsZero() || (!CharacterOwner && !HasRootMotion()) )
+	if (Velocity.IsZero() || !HasValidData() || HasRootMotion())
 	{
 		return;
 	}
@@ -2291,21 +2394,21 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 {
 	// Bound final 2d portion of velocity
 	const float Speed2d = Velocity.Size2D();
-	float BoundSpeed = FMath::Max(Speed2d, GetModifiedMaxSpeed());
+	const float BoundSpeed = FMath::Max(Speed2d, GetModifiedMaxSpeed() * AnalogInputModifier);
 
 	//bound acceleration, falling object has minimal ability to impact acceleration
-	FVector RealAcceleration = Acceleration;
+	FVector FallAcceleration = Acceleration;
+	FallAcceleration.Z = 0.f;
+	
 	FHitResult Hit(1.f);
-
-	Acceleration.Z = 0.f;
 	if( !HasRootMotion() )
 	{
 		// test for slope to avoid using air control to climb walls
 		float TickAirControl = AirControl;
-		if ( TickAirControl > 0.0f && Acceleration.SizeSquared() > 0.f )
+		if ( TickAirControl > 0.0f && FallAcceleration.SizeSquared() > 0.f )
 		{
 			const float TestWalkTime = FMath::Max(deltaTime, 0.05f);
-			const FVector TestWalk = ((TickAirControl * GetModifiedMaxAcceleration() * Acceleration.SafeNormal() + GetGravityZ()) * TestWalkTime + Velocity) * TestWalkTime;
+			const FVector TestWalk = ((TickAirControl * GetModifiedMaxAcceleration() * FallAcceleration.SafeNormal() + FVector(0.f,0.f,GetGravityZ())) * TestWalkTime + Velocity) * TestWalkTime;
 			if(!TestWalk.IsZero())
 			{
 				static const FName FallingTraceParamsTag = FName(TEXT("PhysFalling"));
@@ -2335,7 +2438,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			MaxAccel = MaxAccel + (10.f - Speed2d)/deltaTime;
 		}
 		
-		Acceleration = Acceleration.ClampMaxSize(MaxAccel);
+		FallAcceleration = FallAcceleration.ClampMaxSize(MaxAccel);
 	}
 
 	float remainingTime = deltaTime;
@@ -2358,6 +2461,8 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 		// Apply input
 		if (!HasRootMotion())
 		{
+			// Acceleration = FallAcceleration for CalcVelocity, but we restore it after using it.
+			TGuardValue<FVector> RestoreAcceleration(Acceleration, FallAcceleration);
 			const float SavedVelZ = Velocity.Z;
 			Velocity.Z = 0.f;
 			CalcVelocity(timeTick, FallingLateralFriction, false, BrakingDecelerationFalling);
@@ -2383,7 +2488,7 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 		FVector Adjusted = 0.5f*(OldVelocity + Velocity) * timeTick;  
 		SafeMoveUpdatedComponent( Adjusted, PawnRotation, true, Hit);
 		
-		if( !CharacterOwner || CharacterOwner->IsPendingKill() )
+		if (!HasValidData())
 		{
 			return;
 		}
@@ -2410,10 +2515,10 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			{
 				HandleImpact(Hit, deltaTime, Adjusted);
 				
-				if( !RealAcceleration.IsZero() )
+				if (Acceleration.SizeSquared2D() > 0.f)
 				{
 					// If we've changed physics mode, abort.
-					if( !CharacterOwner || CharacterOwner->IsPendingKill() || !IsFalling() )
+					if (!HasValidData() || !IsFalling())
 					{
 						return;
 					}
@@ -2438,12 +2543,12 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 						HandleImpact(Hit, timeTick, Delta);
 
 						// If we've changed physics mode, abort.
-						if( !CharacterOwner || CharacterOwner->IsPendingKill() || !IsFalling() )
+						if (!HasValidData() || !IsFalling())
 						{
 							return;
 						}
 
- 						TwoWallAdjust(Delta, Hit, OldHitNormal);
+						TwoWallAdjust(Delta, Hit, OldHitNormal);
 
 						// bDitch=true means that pawn is straddling two slopes, neither of which he can stand on
 						bool bDitch = ( (OldHitImpactNormal.Z > 0.f) && (Hit.ImpactNormal.Z > 0.f) && (FMath::Abs(Delta.Z) <= KINDA_SMALL_NUMBER) && ((Hit.ImpactNormal | OldHitImpactNormal) < 0.f) );
@@ -2513,8 +2618,6 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 			Velocity = Velocity.ClampMaxSize(GetPhysicsVolume()->TerminalVelocity);
 		}
 	}
-
-	Acceleration = RealAcceleration;
 }
 
 
@@ -2548,7 +2651,7 @@ bool UCharacterMovementComponent::CheckLedgeDirection(const FVector& OldLocation
 FVector UCharacterMovementComponent::GetLedgeMove(const FVector& OldLocation, const FVector& Delta, const FVector& GravDir)
 {
 	// We have a ledge!
-	if ( !CharacterOwner )
+	if (!HasValidData())
 	{
 		return FVector::ZeroVector;
 	}
@@ -2589,7 +2692,7 @@ bool UCharacterMovementComponent::CanWalkOffLedges() const
 
 bool UCharacterMovementComponent::CheckFall(FHitResult &Hit, FVector Delta, FVector subLoc, float remainingTime, float timeTick, int32 Iterations, bool bMustJump)
 {
-	if (!CharacterOwner)
+	if (!HasValidData())
 	{
 		return false;
 	}
@@ -2640,7 +2743,7 @@ void UCharacterMovementComponent::RevertMove(const FVector& OldLocation, UPrimit
 	bJustTeleported = false;
 	// if our previous base couldn't have moved or changed in any physics-affecting way, restore it
 	if (OldBase && 
-		(OldBase->IsWorldGeometry() ||
+		(!MovementBaseUtility::IsDynamicBase(OldBase) ||
 		 (OldBase->Mobility == EComponentMobility::Static) ||
 		 (OldBase->GetOwner() && OldBase->GetOwner()->GetActorLocation() == PreviousBaseLocation)
 		)
@@ -2884,7 +2987,7 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 			{
 				// see if it is OK to jump
 				// @todo collision : only thing that can be problem is that oldbase has world collision on
-				bool bMustJump = bZeroDelta || (OldBase == NULL || ((!OldBase->IsCollisionEnabled()) && !OldBase->IsWorldGeometry()));
+				bool bMustJump = bZeroDelta || (OldBase == NULL || (!OldBase->IsCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
 				if ( (bMustJump || !bCheckedFall) && CheckFall(CurrentFloor.HitResult, Delta, subLoc, remainingTime, timeTick, Iterations, bMustJump) )
 				{
 					return;
@@ -2944,7 +3047,7 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 			// See if we need to start falling.
 			if (!CurrentFloor.IsWalkableFloor() && !CurrentFloor.HitResult.bStartPenetrating)
 			{
-				const bool bMustJump = bJustTeleported || bZeroDelta || (OldBase == NULL || (!OldBase->IsCollisionEnabled() && !OldBase->IsWorldGeometry()));
+				const bool bMustJump = bJustTeleported || bZeroDelta || (OldBase == NULL || (!OldBase->IsCollisionEnabled() && MovementBaseUtility::IsDynamicBase(OldBase)));
 				if ((bMustJump || !bCheckedFall) && CheckFall(CurrentFloor.HitResult, Delta, subLoc, remainingTime, timeTick, Iterations, bMustJump) )
 				{
 					return;
@@ -2970,7 +3073,10 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 
 void UCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterations)
 {
-
+	if (CharacterOwner)
+	{
+		CharacterOwner->K2_UpdateCustomMovement(deltaTime);
+	}
 }
 
 
@@ -3033,15 +3139,17 @@ void UCharacterMovementComponent::AdjustFloorHeight()
 
 float UCharacterMovementComponent::GetMaxSpeedModifier() const
 {
-	if (CharacterOwner)
+	float Result = 1.0f;
+
+	// Apply crouch modifier
+	if (CharacterOwner && IsCrouching() && IsMovingOnGround())
 	{
-		return IsCrouching() && IsMovingOnGround() ? CrouchedSpeedMultiplier : 1.f;
+		Result *= CrouchedSpeedMultiplier;
 	}
-	else
-	{
-		return 1.0f;
-	}
+
+	return Result;
 }
+
 
 void UCharacterMovementComponent::StopActiveMovement() 
 { 
@@ -3077,9 +3185,39 @@ void UCharacterMovementComponent::SetPostLandedPhysics(const FHitResult& Hit)
 			SetMovementMode(MOVE_Walking);
 		}
 	}
+}
+
+
+void UCharacterMovementComponent::OnTeleported()
+{
+	bJustTeleported = true;
+	if (!HasValidData())
+	{
+		return;
+	}
+
+	// Find floor at current location
+	UpdateFloorFromAdjustment();
+	SaveBaseLocation();
+
+	// Validate it. We don't want to pop down to walking mode from very high off the ground, but we'd like to keep walking if possible.
+	UPrimitiveComponent* OldBase = CharacterOwner->GetMovementBase();
+	UPrimitiveComponent* NewBase = NULL;
+	
+	if (OldBase && CurrentFloor.IsWalkableFloor() && CurrentFloor.FloorDist <= MAX_FLOOR_DIST)
+	{
+		// Close enough to land or just keep walking.
+		NewBase = CurrentFloor.HitResult.Component.Get();
+	}
 	else
 	{
-		DisableMovement();
+		CurrentFloor.Clear();
+	}
+
+	// If we were walking but no longer have a valid base or floor, start falling.
+	if (!CurrentFloor.IsWalkableFloor() || (OldBase && !NewBase))
+	{
+		SetDefaultMovementMode();
 	}
 }
 
@@ -3124,7 +3262,7 @@ FRotator UCharacterMovementComponent::ComputeOrientToMovementRotation(const FRot
 
 void UCharacterMovementComponent::PhysicsRotation(float DeltaTime)
 {
-	if ( !CharacterOwner || !CharacterOwner->Controller )
+	if (!HasValidData() || !CharacterOwner->Controller)
 	{
 		return;
 	}
@@ -3204,7 +3342,7 @@ bool UPrimitiveComponent::CanBeBaseForCharacter(APawn* Pawn) const
 
 void UCharacterMovementComponent::PhysicsVolumeChanged( APhysicsVolume* NewVolume )
 {
-	if ( !CharacterOwner )
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -3263,7 +3401,7 @@ void UCharacterMovementComponent::JumpOutOfWater(FVector WallNormal) {}
 
 bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& WallNormal)
 {
-	if ( !CharacterOwner || !CharacterOwner->CapsuleComponent )
+	if (!HasValidData())
 	{
 		return false;
 	}
@@ -3302,7 +3440,7 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 
 void UCharacterMovementComponent::AddMomentum( FVector const& Momentum, FVector const& LocationToApplyMomentum, bool bMassIndependent )
 {
-	if ( CharacterOwner && !Momentum.IsZero() )
+	if (HasValidData() && !Momentum.IsZero())
 	{
 		// handle scaling by mass
 		FVector FinalMomentum = Momentum;
@@ -3336,7 +3474,7 @@ void UCharacterMovementComponent::AddMomentum( FVector const& Momentum, FVector 
 void UCharacterMovementComponent::MoveSmooth(const FVector& InVelocity, const float DeltaSeconds, FStepDownResult* OutStepDownResult)
 {
 	FVector Delta = InVelocity * DeltaSeconds;
-	if ( !CharacterOwner || Delta.IsZero() )
+	if (!HasValidData() || Delta.IsZero())
 	{
 		return;
 	}
@@ -3629,7 +3767,7 @@ void UCharacterMovementComponent::FindFloor(const FVector& CapsuleLocation, FFin
 			const AActor* BaseActor = MovementBase ? MovementBase->GetOwner() : NULL;
 			const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
 
-			if (!bForceNextFloorCheck && MovementBase != NULL)
+			if (MovementBase != NULL)
 			{
 				MutableThis->bForceNextFloorCheck = !MovementBase->IsCollisionEnabled()
 				|| MovementBase->GetCollisionResponseToChannel(CollisionChannel) != ECR_Block
@@ -3640,7 +3778,7 @@ void UCharacterMovementComponent::FindFloor(const FVector& CapsuleLocation, FFin
 			const bool IsActorBasePendingKill = BaseActor && BaseActor->IsPendingKill();
 
 			if ( !bForceNextFloorCheck && !IsActorBasePendingKill && MovementBase &&
-				(MovementBase->IsWorldGeometry() || (CharacterOwner->RelativeMovement.Location == CharacterOwner->GetActorLocation() - MovementBase->GetComponentLocation()))
+				(!MovementBaseUtility::IsDynamicBase(MovementBase) || (CharacterOwner->RelativeMovement.Location == CharacterOwner->GetActorLocation() - MovementBase->GetComponentLocation()))
 				)
 			{
 				//UE_LOG(LogCharacterMovement, Log, TEXT("%s SKIP check for floor"), *CharacterOwner->GetName());
@@ -3773,7 +3911,7 @@ bool UCharacterMovementComponent::ShouldComputePerchResult(const FHitResult& InH
 		return false;
 	}
 
- 	if (bCheckRadius)
+	if (bCheckRadius)
 	{
 		const float DistFromCenterSq = (InHit.ImpactPoint - InHit.Location).SizeSquared2D();
 		const float StandOnEdgeRadius = GetValidPerchRadius();
@@ -3823,7 +3961,7 @@ bool UCharacterMovementComponent::ComputePerchResult(const float TestRadius, con
 
 bool UCharacterMovementComponent::CanStepUp(const FHitResult& Hit) const
 {
-	if (!Hit.IsValidBlockingHit() || !CharacterOwner || MovementMode == MOVE_Falling)
+	if (!Hit.IsValidBlockingHit() || !HasValidData() || MovementMode == MOVE_Falling)
 	{
 		return false;
 	}
@@ -4145,7 +4283,7 @@ FString UCharacterMovementComponent::GetMovementName()
 		case MOVE_Swimming:			return TEXT("Swimming"); break;
 		case MOVE_Flying:			return TEXT("Flying"); break;
 		case MOVE_Custom:			return TEXT("Custom"); break;
-		case MOVE_Unused:			return TEXT("Unused"); break;
+		default:					break;
 	}
 	return TEXT("Unknown");
 }
@@ -4208,19 +4346,30 @@ FVector UCharacterMovementComponent::ConstrainInputAcceleration(const FVector& I
 
 FVector UCharacterMovementComponent::ScaleInputAcceleration(const FVector& InputAcceleration) const
 {
-	if (InputAcceleration.SizeSquared() > 0.f)
-	{
-		return GetModifiedMaxAcceleration() * SafeNormalPrecise(InputAcceleration);
-	}
-
-	return FVector::ZeroVector;
+	return GetModifiedMaxAcceleration() * ClampMaxSizePrecise(InputAcceleration, 1.0f);
 }
 
+
+float UCharacterMovementComponent::ComputeAnalogInputModifier() const
+{
+	const float ModifiedMaxAccel = GetModifiedMaxAcceleration();
+	if (Acceleration.SizeSquared() > 0.f && ModifiedMaxAccel > SMALL_NUMBER)
+	{
+		return FMath::Clamp(Acceleration.Size() / ModifiedMaxAccel, 0.f, 1.f);
+	}
+
+	return 0.f;
+}
+
+float UCharacterMovementComponent::GetAnalogInputModifier() const
+{
+	return AnalogInputModifier;
+}
 
 
 void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation)
 {
-	if (!CharacterOwner || GetNetMode() != NM_Client)
+	if (!HasValidData() || GetNetMode() != NM_Client)
 	{
 		return;
 	}
@@ -4245,7 +4394,7 @@ void UCharacterMovementComponent::SmoothCorrection(const FVector& OldLocation)
 
 void UCharacterMovementComponent::SmoothClientPosition(float DeltaSeconds)
 {
-	if (!CharacterOwner || GetNetMode() != NM_Client)
+	if (!HasValidData() || GetNetMode() != NM_Client)
 	{
 		return;
 	}
@@ -4280,7 +4429,7 @@ void UCharacterMovementComponent::SmoothClientPosition(float DeltaSeconds)
 
 bool UCharacterMovementComponent::ClientUpdatePositionAfterServerUpdate()
 {
-	if (!IsValid(CharacterOwner))
+	if (!HasValidData())
 	{
 		return false;
 	}
@@ -4307,6 +4456,8 @@ bool UCharacterMovementComponent::ClientUpdatePositionAfterServerUpdate()
 		return false;
 	}
 
+	// Save important values that might get affected by the replay.
+	float SavedAnalogInputModifier = AnalogInputModifier;
 	FRootMotionMovementParams BackupRootMotionParams = RootMotionParams;
 	bool bRealJump = CharacterOwner->bPressedJump;
 	bool bRealCrouch = bWantsToCrouch;
@@ -4320,16 +4471,18 @@ bool UCharacterMovementComponent::ClientUpdatePositionAfterServerUpdate()
 	for (int32 i=0; i<ClientData->SavedMoves.Num(); i++)
 	{
 		const FSavedMovePtr& CurrentMove = ClientData->SavedMoves[i];
-		if (ClientData->PendingMove == CurrentMove)
-		{
-			ClientData->PendingMove->SetInitialPosition(CharacterOwner);
-		}
-
 		CurrentMove->PrepMoveFor(CharacterOwner);
 		MoveAutonomous(CurrentMove->TimeStamp, CurrentMove->DeltaTime, CurrentMove->GetCompressedFlags(), CurrentMove->Acceleration);
-		CurrentMove->ResetMoveFor(CharacterOwner);
+		CurrentMove->PostUpdate(CharacterOwner, FSavedMove_Character::PostUpdate_Replay);
 	}
 
+	if (ClientData->PendingMove.IsValid())
+	{
+		ClientData->PendingMove->bForceNoCombine = true;
+	}
+
+	// Restore saved values.
+	AnalogInputModifier = SavedAnalogInputModifier;
 	RootMotionParams = BackupRootMotionParams;
 	CharacterOwner->bClientResimulateRootMotion = false;
 	CharacterOwner->bClientUpdating = false;
@@ -4344,7 +4497,7 @@ bool UCharacterMovementComponent::ClientUpdatePositionAfterServerUpdate()
 
 void UCharacterMovementComponent::ForcePositionUpdate(float DeltaTime)
 {
-	if (!IsValid(CharacterOwner) || MovementMode == MOVE_None)
+	if (!HasValidData() || MovementMode == MOVE_None)
 	{
 		return;
 	}
@@ -4516,25 +4669,27 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 	if( ClientData->PendingMove.IsValid() && !ClientData->PendingMove->bOldTimeStampBeforeReset && ClientData->PendingMove->CanCombineWith(NewMove, CharacterOwner, ClientData->MaxResponseTime * CharacterOwner->GetWorldSettings()->GetEffectiveTimeDilation()))
 	{
 		// Only combine and move back to the start location if we don't move back in to a spot that would make us collide with something new.
-		if (!OverlapTest(ClientData->PendingMove->GetStartLocation(), ClientData->PendingMove->StartRotation.Quaternion(), UpdatedComponent->GetCollisionObjectType(), GetPawnCapsuleCollisionShape(SHRINK_None), CharacterOwner))
+		const FVector OldStartLocation = ClientData->PendingMove->GetStartLocation(ClientData->PendingMove->StartBase.Get());
+		if (!OverlapTest(OldStartLocation, ClientData->PendingMove->StartRotation.Quaternion(), UpdatedComponent->GetCollisionObjectType(), GetPawnCapsuleCollisionShape(SHRINK_None), CharacterOwner))
 		{
 			FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, EScopedUpdate::DeferredUpdates);
-			UE_LOG(LogNetPlayerMovement, VeryVerbose, TEXT("CombineMove: add delta %f + %f and revert from %f %f to %f %f"), DeltaTime, ClientData->PendingMove->DeltaTime, CharacterOwner->GetActorLocation().X, CharacterOwner->GetActorLocation().Y, ClientData->PendingMove->GetStartLocation().X, ClientData->PendingMove->GetStartLocation().Y);
+			UE_LOG(LogNetPlayerMovement, VeryVerbose, TEXT("CombineMove: add delta %f + %f and revert from %f %f to %f %f"), DeltaTime, ClientData->PendingMove->DeltaTime, CharacterOwner->GetActorLocation().X, CharacterOwner->GetActorLocation().Y, OldStartLocation.X, OldStartLocation.Y);
 			
 			// to combine move, first revert pawn position to PendingMove start position, before playing combined move on client
 			const bool bNoCollisionCheck = true;
-			UpdatedComponent->SetWorldLocationAndRotation(ClientData->PendingMove->GetStartLocation(), ClientData->PendingMove->StartRotation, false);
+			UpdatedComponent->SetWorldLocationAndRotation(OldStartLocation, ClientData->PendingMove->StartRotation, false);
 			Velocity = ClientData->PendingMove->StartVelocity;
 
 			if (ClientData->PendingMove->StartBase != CharacterOwner->GetMovementBase())
 			{
-				CharacterOwner->SetBase( ClientData->PendingMove->StartBase.Get() );
+				SetBase(ClientData->PendingMove->StartBase.Get());
 			}
 			CurrentFloor = ClientData->PendingMove->StartFloor;
 
 			// Now that we have reverted to the old position, prepare a new move from that position,
 			// using our current velocity, acceleration, and rotation, but applied over the combined time from the old and new move.
 
+			SaveBaseLocation();
 			NewMove->DeltaTime += ClientData->PendingMove->DeltaTime;
 			NewMove->SetInitialPosition(CharacterOwner);
 
@@ -4557,7 +4712,7 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 	CharacterOwner->ClientRootMotionParams.Clear();
 	PerformMovement(NewMove->DeltaTime);
 
-	NewMove->PostUpdate(CharacterOwner);
+	NewMove->PostUpdate(CharacterOwner, FSavedMove_Character::PostUpdate_Record);
 
 	// Add NewMove to the list
 	ClientData->SavedMoves.Push(NewMove);
@@ -4598,32 +4753,37 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 		NewMove->TimeStamp, *NewMove->Acceleration.ToString(), *CharacterOwner->GetActorLocation().ToString(), DeltaTime);
 
 	// Send to the server
-	// Compress rotation down to 5 bytes
-	const FRotator ControllerRot = CharacterOwner->GetControlRotation().GetNormalized();
-	const uint32 ClientYawShort = FRotator::CompressAxisToShort(ControllerRot.Yaw);
-	const uint32 ClientPitchShort = FRotator::CompressAxisToShort(ControllerRot.Pitch);
-	const uint32 RotationINT = (ClientYawShort << 16) | ClientPitchShort;
-	const uint8 ClientRollBYTE = FRotator::CompressAxisToByte(ControllerRot.Roll);
-
-	CallServerMove( NewMove.Get(),
-		CharacterOwner->GetActorLocation(),
-		ClientRollBYTE,
-		RotationINT,
-		OldMove.Get() );
-
+	CallServerMove( NewMove.Get(), OldMove.Get() );
 	ClientData->PendingMove = NULL;
 }
 
+
+inline uint32 PackYawAndPitchTo32(const float Yaw, const float Pitch)
+{
+	const uint32 YawShort = FRotator::CompressAxisToShort(Yaw);
+	const uint32 PitchShort = FRotator::CompressAxisToShort(Pitch);
+	const uint32 Rotation32 = (YawShort << 16) | PitchShort;
+	return Rotation32;
+}
+
+
 void UCharacterMovementComponent::CallServerMove
 	(
-	class FSavedMove_Character* NewMove,
-	const FVector& ClientLoc,
-	uint8 ClientRoll,
-	int32 View,
-	class FSavedMove_Character* OldMove
+	const class FSavedMove_Character* NewMove,
+	const class FSavedMove_Character* OldMove
 	)
 {
-	// compress old move if it exists
+	check(NewMove != NULL);
+
+	// Compress rotation down to 5 bytes
+	const uint32 ClientYawPitchINT = PackYawAndPitchTo32(NewMove->SavedControlRotation.Yaw, NewMove->SavedControlRotation.Pitch);
+	const uint8 ClientRollBYTE = FRotator::CompressAxisToByte(NewMove->SavedControlRotation.Roll);
+
+	// Determine if we send absolute or relative location
+	UPrimitiveComponent* ClientMovementBase = NewMove->EndBase.Get();
+	const FVector SendLocation = MovementBaseUtility::UseRelativePosition(ClientMovementBase) ? NewMove->SavedRelativeLocation : NewMove->SavedLocation;
+
+	// send old move if it exists
 	if (OldMove)
 	{
 		CharacterOwner->ServerMoveOld(OldMove->TimeStamp, OldMove->Acceleration, OldMove->GetCompressedFlags());
@@ -4632,8 +4792,7 @@ void UCharacterMovementComponent::CallServerMove
 	FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
 	if (ClientData->PendingMove.IsValid())
 	{
-		//@hack
-		int32 RotationINT = (((int32)(182.0444f * ClientData->PendingMove->ControlRotation.Yaw) & 65335) << 16) + ((int32)(182.0444f * ClientData->PendingMove->ControlRotation.Pitch) & 65335);
+		const uint32 OldClientYawPitchINT = PackYawAndPitchTo32(ClientData->PendingMove->SavedControlRotation.Yaw, ClientData->PendingMove->SavedControlRotation.Pitch);
 
 		// send two moves simultaneously
 		CharacterOwner->ServerMoveDual
@@ -4641,13 +4800,15 @@ void UCharacterMovementComponent::CallServerMove
 			ClientData->PendingMove->TimeStamp,
 			ClientData->PendingMove->Acceleration,
 			ClientData->PendingMove->GetCompressedFlags(),
-			RotationINT,
+			OldClientYawPitchINT,
 			NewMove->TimeStamp,
 			NewMove->Acceleration,
-			ClientLoc,
+			SendLocation,
 			NewMove->GetCompressedFlags(),
-			ClientRoll,
-			View
+			ClientRollBYTE,
+			ClientYawPitchINT,
+			ClientMovementBase,
+			PackNetworkMovementMode()
 			);
 	}
 	else
@@ -4656,10 +4817,12 @@ void UCharacterMovementComponent::CallServerMove
 			(
 			NewMove->TimeStamp,
 			NewMove->Acceleration,
-			ClientLoc,
+			SendLocation,
 			NewMove->GetCompressedFlags(),
-			ClientRoll,
-			View
+			ClientRollBYTE,
+			ClientYawPitchINT,
+			ClientMovementBase,
+			PackNetworkMovementMode()
 			);
 	}
 
@@ -4681,7 +4844,7 @@ void UCharacterMovementComponent::ServerMoveOld_Implementation
 	uint8 OldMoveFlags
 	)
 {
-	if (!IsValid(CharacterOwner) || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsComponentTickEnabled())
 	{
 		return;
 	}
@@ -4703,10 +4866,10 @@ void UCharacterMovementComponent::ServerMoveOld_Implementation
 }
 
 
-void UCharacterMovementComponent::ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View)
+void UCharacterMovementComponent::ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize100 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
 {
-	ServerMove_Implementation(TimeStamp0, InAccel0, FVector(1.f,2.f,3.f), PendingFlags, ClientRoll, View0);
-	ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View);
+	ServerMove_Implementation(TimeStamp0, InAccel0, FVector(1.f,2.f,3.f), PendingFlags, ClientRoll, View0, ClientMovementBase, ClientMovementMode);
+	ServerMove_Implementation(TimeStamp, InAccel, ClientLoc, NewFlags, ClientRoll, View, ClientMovementBase, ClientMovementMode);
 }
 
 bool UCharacterMovementComponent::VerifyClientTimeStamp(float TimeStamp, FNetworkPredictionData_Server_Character & ServerData)
@@ -4742,9 +4905,9 @@ bool UCharacterMovementComponent::VerifyClientTimeStamp(float TimeStamp, FNetwor
 	return true;
 }
 
-void UCharacterMovementComponent::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View)
+void UCharacterMovementComponent::ServerMove_Implementation(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
 {
-	if (!IsValid(CharacterOwner) || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsComponentTickEnabled())
 	{
 		return;
 	}	
@@ -4807,13 +4970,13 @@ void UCharacterMovementComponent::ServerMove_Implementation(float TimeStamp, FVe
 	UE_LOG(LogNetPlayerMovement, Verbose, TEXT("ServerMove Time %f Acceleration %s Position %s DeltaTime %f"),
 			TimeStamp, *Accel.ToString(), *CharacterOwner->GetActorLocation().ToString(), DeltaTime);
 
-	ServerMoveHandleClientError(TimeStamp, DeltaTime, Accel, ClientLoc);
+	ServerMoveHandleClientError(TimeStamp, DeltaTime, Accel, ClientLoc, ClientMovementBase, ClientMovementMode);
 }
 
 
-void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& ClientLoc)
+void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, float DeltaTime, const FVector& Accel, const FVector& RelativeClientLoc, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
 {
-	if (ClientLoc == FVector(1.f,2.f,3.f)) // first part of double servermove
+	if (RelativeClientLoc == FVector(1.f,2.f,3.f)) // first part of double servermove
 	{
 		return;
 	}
@@ -4829,10 +4992,19 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 		return;
 	}
 
+	// Offset may be relative to base component
+	FVector ClientLoc = RelativeClientLoc;
+	if (MovementBaseUtility::UseRelativePosition(ClientMovementBase))
+	{
+		ClientLoc += ClientMovementBase->GetComponentLocation();
+	}
+
+	// Compute the client error from the server's position
 	const FVector LocDiff = CharacterOwner->GetActorLocation() - ClientLoc;
+	const uint8 CurrentPackedMovementMode = PackNetworkMovementMode();
 
 	// If client has accumulated a noticeable positional error, correct him.
-	if (GetDefault<AGameNetworkManager>()->ExceedsAllowablePositionError(LocDiff))
+	if (GetDefault<AGameNetworkManager>()->ExceedsAllowablePositionError(LocDiff) || (CurrentPackedMovementMode != ClientMovementMode))
 	{
 		UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
 		ServerData->PendingAdjustment.NewVel = Velocity;
@@ -4865,32 +5037,33 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float TimeStamp, f
 		ServerData->LastUpdateTime = GetWorld()->TimeSeconds;
 		ServerData->PendingAdjustment.DeltaTime = DeltaTime;
 		ServerData->PendingAdjustment.TimeStamp = TimeStamp;
-		ServerData->PendingAdjustment.bAckGoodMove = 0;
+		ServerData->PendingAdjustment.bAckGoodMove = false;
+		ServerData->PendingAdjustment.MovementMode = CurrentPackedMovementMode;
 	}
 	else
 	{
 		if (GetDefault<AGameNetworkManager>()->ClientAuthorativePosition)
 		{
-			if (!LocDiff.IsZero())
+			if (!LocDiff.IsZero() || ClientMovementMode != CurrentPackedMovementMode)
 			{
 				// Just set the position. On subsequent moves we will resolve initially overlapping conditions.
 				UpdatedComponent->SetWorldLocation(ClientLoc, false);
 
-				// If walking, we need to know where the base and floor are for UpdateBasedMovement() and MoveAlongFloor() to work properly.
-				if (MovementMode == MOVE_Walking)
-				{
-					FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
-					SetBase(CurrentFloor.HitResult.Component.Get());
-				}
+				// Trust the client's movement mode.
+				ApplyNetworkMovementMode(ClientMovementMode);
 
-				// Stay in sync with what movement mode is most likely set on the client (now that we know what the floor/base situation is)
-				UpdateMovementModeFromAdjustment();
-			}			
+				// Update base and floor at new location.
+				SetBase(ClientMovementBase);
+				UpdateFloorFromAdjustment();
+
+				// Even if base has not changed, we need to recompute the relative offsets (since we've moved).
+				SaveBaseLocation();
+			}
 		}
 
 		// acknowledge receipt of this successful servermove()
 		ServerData->PendingAdjustment.TimeStamp = TimeStamp;
-		ServerData->PendingAdjustment.bAckGoodMove = 1;
+		ServerData->PendingAdjustment.bAckGoodMove = true;
 	}
 }
 
@@ -4903,7 +5076,7 @@ void UCharacterMovementComponent::MoveAutonomous
 	const FVector& NewAccel
 	)
 {
-	if (!CharacterOwner)
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -4912,6 +5085,7 @@ void UCharacterMovementComponent::MoveAutonomous
 	CharacterOwner->CheckJumpInput(DeltaTime);
 
 	Acceleration = ConstrainInputAcceleration(NewAccel);
+	AnalogInputModifier = ComputeAnalogInputModifier();
 	PerformMovement(DeltaTime);
 
 	CharacterOwner->ClearJumpInput();
@@ -4924,24 +5098,31 @@ void UCharacterMovementComponent::MoveAutonomous
 }
 
 
-void UCharacterMovementComponent::UpdateMovementModeFromAdjustment()
+void UCharacterMovementComponent::UpdateFloorFromAdjustment()
 {
-	// Do not turn movement back on if it is disabled
-	if (MovementMode == MOVE_None)
+	if (!HasValidData())
 	{
 		return;
 	}
 
-	if (CharacterOwner && UpdatedComponent)
+	// If walking, try to update the cached floor so it is current. This is necessary for UpdateBasedMovement() and MoveAlongFloor() to work properly.
+	// If base is now NULL, presumably we are no longer walking. If we had a valid floor but don't find one now, we'll likely start falling.
+	if (CharacterOwner->GetMovementBase() && Velocity.Z <= 0.f)
 	{
-		SetMovementMode(DetermineSimulatedMovementMode());
+		FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
 	}
+	else
+	{
+		CurrentFloor.Clear();
+	}
+
+	bForceNextFloorCheck = true;
 }
 
 
 void UCharacterMovementComponent::SendClientAdjustment()
 {
-	if (!CharacterOwner)
+	if (!HasValidData())
 	{
 		return;
 	}
@@ -4954,7 +5135,7 @@ void UCharacterMovementComponent::SendClientAdjustment()
 		return;
 	}
 
-	if (ServerData->PendingAdjustment.bAckGoodMove == 1)
+	if (ServerData->PendingAdjustment.bAckGoodMove == true)
 	{
 		// just notify client this move was received
 		CharacterOwner->ClientAckGoodMove(ServerData->PendingAdjustment.TimeStamp);
@@ -4974,7 +5155,8 @@ void UCharacterMovementComponent::SendClientAdjustment()
 				ServerData->PendingAdjustment.NewVel.Z,
 				ServerData->PendingAdjustment.NewBase,
 				ServerData->PendingAdjustment.NewBase != NULL,
-				ServerData->PendingAdjustment.bBaseRelativePosition
+				ServerData->PendingAdjustment.bBaseRelativePosition,
+				PackNetworkMovementMode()
 				);
 		}
 		else if (ServerData->PendingAdjustment.NewVel.IsZero())
@@ -4985,7 +5167,8 @@ void UCharacterMovementComponent::SendClientAdjustment()
 				ServerData->PendingAdjustment.NewLoc,
 				ServerData->PendingAdjustment.NewBase,
 				ServerData->PendingAdjustment.NewBase != NULL,
-				ServerData->PendingAdjustment.bBaseRelativePosition
+				ServerData->PendingAdjustment.bBaseRelativePosition,
+				PackNetworkMovementMode()
 				);
 		}
 		else
@@ -4997,13 +5180,14 @@ void UCharacterMovementComponent::SendClientAdjustment()
 				ServerData->PendingAdjustment.NewVel,
 				ServerData->PendingAdjustment.NewBase,
 				ServerData->PendingAdjustment.NewBase != NULL,
-				ServerData->PendingAdjustment.bBaseRelativePosition
+				ServerData->PendingAdjustment.bBaseRelativePosition,
+				PackNetworkMovementMode()
 				);
 		}
 	}
 
 	ServerData->PendingAdjustment.TimeStamp = 0;
-	ServerData->PendingAdjustment.bAckGoodMove = 0;
+	ServerData->PendingAdjustment.bAckGoodMove = false;
 }
 
 
@@ -5013,12 +5197,13 @@ void UCharacterMovementComponent::ClientVeryShortAdjustPosition_Implementation
 	FVector NewLoc,
 	UPrimitiveComponent* NewBase,
 	bool bHasBase,
-	bool bBaseRelativePosition
+	bool bBaseRelativePosition,
+	uint8 ServerMovementMode
 	)
 {
-	if (IsValid(CharacterOwner))
+	if (HasValidData())
 	{
-		CharacterOwner->ClientAdjustPosition(TimeStamp, NewLoc, FVector::ZeroVector, NewBase, bHasBase, bBaseRelativePosition);
+		CharacterOwner->ClientAdjustPosition(TimeStamp, NewLoc, FVector::ZeroVector, NewBase, bHasBase, bBaseRelativePosition, ServerMovementMode);
 	}
 }
 
@@ -5030,10 +5215,11 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 	FVector NewVelocity,
 	UPrimitiveComponent* NewBase,
 	bool bHasBase,
-	bool bBaseRelativePosition
+	bool bBaseRelativePosition,
+	uint8 ServerMovementMode
 	)
 {
-	if (!IsValid(CharacterOwner) || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsComponentTickEnabled())
 	{
 		return;
 	}
@@ -5089,6 +5275,11 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 
 	// Trust the server's positioning.
 	UpdatedComponent->SetWorldLocation(NewLocation, false);	
+	Velocity = NewVelocity;
+
+	// Trust the server's movement mode
+	UPrimitiveComponent* PreviousBase = CharacterOwner->GetMovementBase();
+	ApplyNetworkMovementMode(ServerMovementMode);
 
 	// Set base component
 	UPrimitiveComponent* FinalBase = NewBase;
@@ -5099,33 +5290,34 @@ void UCharacterMovementComponent::ClientAdjustPosition_Implementation
 		
 		// We had an unresolved base from the server
 		// If walking, we'd like to continue walking if possible, to avoid falling for a frame, so try to find a base where we moved to.
-		if (MovementMode == MOVE_Walking)
+		if (PreviousBase)
 		{
 			FindFloor(UpdatedComponent->GetComponentLocation(), CurrentFloor, false);
 			FinalBase = CurrentFloor.HitResult.Component.Get();
 		}
 	}
-
-	// Set base component
 	SetBase(FinalBase);
 
-	// Update movement mode (base may have changed)
-	UpdateMovementModeFromAdjustment();
-	Velocity = NewVelocity;
-	UpdateComponentVelocity();
+	// Update floor at new location
+	UpdateFloorFromAdjustment();
+	bJustTeleported = true;
 
+	// Even if base has not changed, we need to recompute the relative offsets (since we've moved).
+	SaveBaseLocation();
+
+	UpdateComponentVelocity();
 	ClientData->bUpdatePosition = true;
 }
 
-void UCharacterMovementComponent::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent * ServerBase, bool bHasBase, bool bBaseRelativePosition)
+void UCharacterMovementComponent::ClientAdjustRootMotionPosition_Implementation(float TimeStamp, float ServerMontageTrackPosition, FVector ServerLoc, FVector_NetQuantizeNormal ServerRotation, float ServerVelZ, class UPrimitiveComponent * ServerBase, bool bHasBase, bool bBaseRelativePosition, uint8 ServerMovementMode)
 {
-	if (!IsValid(CharacterOwner) || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsComponentTickEnabled())
 	{
 		return;
 	}
 
 	// Call ClientAdjustPosition first. This will Ack the move if it's not outdated.
-	CharacterOwner->ClientAdjustPosition(TimeStamp, ServerLoc, FVector(0.f, 0.f, ServerVelZ), ServerBase, bHasBase, bBaseRelativePosition);
+	CharacterOwner->ClientAdjustPosition(TimeStamp, ServerLoc, FVector(0.f, 0.f, ServerVelZ), ServerBase, bHasBase, bBaseRelativePosition, ServerMovementMode);
 	
 	FNetworkPredictionData_Client_Character* ClientData = GetPredictionData_Client_Character();
 	check(ClientData);
@@ -5173,7 +5365,7 @@ void UCharacterMovementComponent::ClientAdjustRootMotionPosition_Implementation(
 
 void UCharacterMovementComponent::ClientAckGoodMove_Implementation(float TimeStamp)
 {
-	if (!IsValid(CharacterOwner) || !IsComponentTickEnabled())
+	if (!HasValidData() || !IsComponentTickEnabled())
 	{
 		return;
 	}
@@ -5354,7 +5546,7 @@ FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character
 	bSmoothNetUpdates = true;
 	MaxSmoothNetUpdateDist = 84.0;
 	NoSmoothNetUpdateDist = 128.0;
-	SmoothNetUpdateTime = 0.125;
+	SmoothNetUpdateTime = 0.100;
 
 	MaxResponseTime = 0.125f;
 }
@@ -5498,18 +5690,15 @@ float FNetworkPredictionData_Server_Character::GetServerMoveDeltaTime(float Time
 	return DeltaTime;
 }
 
-static uint32 s_savedMoveCount = 0;
 
 FSavedMove_Character::FSavedMove_Character()
 {
 	AccelMagThreshold = 1.f;
 	AccelDotThreshold = 0.9f;
-	s_savedMoveCount++;
 }
 
 FSavedMove_Character::~FSavedMove_Character()
 {
-	s_savedMoveCount--;
 }
 
 void FSavedMove_Character::Clear()
@@ -5517,11 +5706,13 @@ void FSavedMove_Character::Clear()
 	bPressedJump = false;
 	bWantsToCrouch = false;
 	bForceMaxAccel = false;
+	bForceNoCombine = false;
 	bOldTimeStampBeforeReset = false;
 
 	TimeStamp = 0.f;
 	DeltaTime = 0.f;
 	CustomTimeDilation = 1.0f;
+	MovementMode = 0;
 
 	StartLocation = FVector::ZeroVector;
 	StartRelativeLocation = FVector::ZeroVector;
@@ -5533,7 +5724,7 @@ void FSavedMove_Character::Clear()
 	SavedRotation = FRotator::ZeroRotator;
 	SavedRelativeLocation = FVector::ZeroVector;
 	Acceleration = FVector::ZeroVector;
-	ControlRotation = FRotator::ZeroRotator;
+	SavedControlRotation = FRotator::ZeroRotator;
 
 	StartBase = NULL;
 	EndBase = NULL;
@@ -5557,6 +5748,7 @@ void FSavedMove_Character::SetMoveFor(ACharacter* Character, float InDeltaTime, 
 	bPressedJump = Character->bPressedJump;
 	bWantsToCrouch = Character->CharacterMovement->bWantsToCrouch;
 	bForceMaxAccel = Character->CharacterMovement->bForceMaxAccel;
+	MovementMode = Character->CharacterMovement->PackNetworkMovementMode();
 	
 	TimeStamp = ClientData.CurrentTimeStamp;
 }
@@ -5571,31 +5763,32 @@ void FSavedMove_Character::SetInitialPosition(ACharacter* Character)
 	StartFloor = Character->CharacterMovement->CurrentFloor;
 	CustomTimeDilation = Character->CustomTimeDilation;
 
-	if (Character->Controller)
-	{
-		StartControlRotation = Character->Controller->GetControlRotation();
-	}
+	StartControlRotation = Character->GetControlRotation().Clamp();
 
 	if (MovementBaseUtility::UseRelativePosition(MovementBase))
 	{
-		StartRelativeLocation = StartLocation - MovementBase->GetComponentLocation();
+		StartRelativeLocation = Character->RelativeMovement.Location;
 	}
 }
 
-void FSavedMove_Character::PostUpdate(ACharacter* Character)
+void FSavedMove_Character::PostUpdate(ACharacter* Character, FSavedMove_Character::EPostUpdateMode PostUpdateMode)
 {
-	SavedLocation = Character->GetActorLocation();
-	SavedRotation = Character->GetActorRotation();
-	UPrimitiveComponent* const MovementBase = Character->GetMovementBase();
-	EndBase = MovementBase;
-	if (MovementBaseUtility::UseRelativePosition(MovementBase))
+	// Common code for both recording and after a replay.
 	{
-		SavedRelativeLocation = SavedLocation - MovementBase->GetComponentLocation();
+		SavedLocation = Character->GetActorLocation();
+		SavedRotation = Character->GetActorRotation();
+		UPrimitiveComponent* const MovementBase = Character->GetMovementBase();
+		EndBase = MovementBase;
+		if (MovementBaseUtility::UseRelativePosition(MovementBase))
+		{
+			SavedRelativeLocation = Character->RelativeMovement.Location;
+		}
+
+		SavedControlRotation = Character->GetControlRotation().Clamp();
 	}
 
-	ControlRotation = Character->GetControlRotation();
-
-	if( Character )
+	// Only save RootMotion params when initially recording
+	if (PostUpdateMode == PostUpdate_Record)
 	{
 		const FAnimMontageInstance * RootMotionMontageInstance = Character->GetRootMotionAnimMontageInstance();
 		if( RootMotionMontageInstance )
@@ -5607,10 +5800,15 @@ void FSavedMove_Character::PostUpdate(ACharacter* Character)
 	}
 }
 
-bool FSavedMove_Character::IsImportantMove(const FSavedMovePtr& LastAckedMove)
+bool FSavedMove_Character::IsImportantMove(const FSavedMovePtr& LastAckedMove) const
 {
 	// Check if any important movement flags have changed status.
-	if( (bPressedJump != LastAckedMove->bPressedJump)|| (bWantsToCrouch != LastAckedMove->bWantsToCrouch) )
+	if( (bPressedJump != LastAckedMove->bPressedJump) || (bWantsToCrouch != LastAckedMove->bWantsToCrouch) )
+	{
+		return true;
+	}
+
+	if (MovementMode != LastAckedMove->MovementMode)
 	{
 		return true;
 	}
@@ -5627,18 +5825,23 @@ bool FSavedMove_Character::IsImportantMove(const FSavedMovePtr& LastAckedMove)
 	return false;
 }
 
-FVector FSavedMove_Character::GetStartLocation()
+FVector FSavedMove_Character::GetStartLocation(const class UPrimitiveComponent* MovementBase) const
 {
-	if (MovementBaseUtility::UseRelativePosition(StartBase.Get()))
+	if (MovementBaseUtility::UseRelativePosition(MovementBase))
 	{
-		return StartBase->GetComponentLocation() + StartRelativeLocation;
+		return MovementBase->GetComponentLocation() + StartRelativeLocation;
 	}
 
 	return StartLocation;
 }
 
-bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* Character, float MaxDelta)
+bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharacter* Character, float MaxDelta) const
 {
+	if (bForceNoCombine || NewMove->bForceNoCombine)
+	{
+		return false;
+	}
+
 	// Cannot combine moves which contain root motion for now.
 	// @fixme laurent - we should be able to combine most of them though, but current scheme of resetting pawn location and resimulating forward doesn't work.
 	// as we don't want to tick montage twice (so we don't fire events twice). So we need to rearchitecture this so we tick only the second part of the move, and reuse the first part.
@@ -5654,7 +5857,8 @@ bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharact
 			&& NewMove->StartVelocity.IsZero()
 			&& !bPressedJump && !NewMove->bPressedJump
 			&& bWantsToCrouch == NewMove->bWantsToCrouch
-			&& (StartBase == NewMove->StartBase)
+			&& StartBase == NewMove->StartBase
+			&& MovementMode == NewMove->MovementMode
 			&& (CustomTimeDilation == NewMove->CustomTimeDilation);
 	}
 	else
@@ -5662,7 +5866,8 @@ bool FSavedMove_Character::CanCombineWith(const FSavedMovePtr& NewMove, ACharact
 		return (NewMove->DeltaTime + DeltaTime < MaxDelta)
 			&& !bPressedJump && !NewMove->bPressedJump
 			&& bWantsToCrouch == NewMove->bWantsToCrouch
-			&& (StartBase == NewMove->StartBase)
+			&& StartBase == NewMove->StartBase
+			&& MovementMode == NewMove->MovementMode
 			&& ((AccelNormal | NewMove->AccelNormal) > 0.99f)
 			&& (CustomTimeDilation == NewMove->CustomTimeDilation);
 	}
@@ -5690,19 +5895,8 @@ void FSavedMove_Character::PrepMoveFor(ACharacter* Character)
 	Character->CharacterMovement->bForceMaxAccel = bForceMaxAccel;
 }
 
-void FSavedMove_Character::ResetMoveFor(ACharacter* Character)
-{
-	SavedLocation = Character->GetActorLocation();
-	SavedRotation = Character->GetActorRotation();
-	UPrimitiveComponent* const MovementBase = Character->GetMovementBase();
-	EndBase = MovementBase;
-	if (MovementBaseUtility::UseRelativePosition(MovementBase))
-	{
-		SavedRelativeLocation = Character->GetActorLocation() - MovementBase->GetComponentLocation();
-	}	
-}
 
-uint8 FSavedMove_Character::GetCompressedFlags()
+uint8 FSavedMove_Character::GetCompressedFlags() const
 {
 	uint8 Result = 0;
 

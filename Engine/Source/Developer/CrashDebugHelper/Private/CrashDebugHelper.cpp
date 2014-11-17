@@ -161,49 +161,56 @@ bool ICrashDebugHelper::SyncModules( FCrashInfo* CrashInfo )
 			{
 				UE_LOG(LogCrashDebugHelper, Log, TEXT(" Syncing modules with label '%s'."), *Label->GetName());
 
-				TArray<FString> FilesToSync;
-				for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
-				{
-					FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-
-					{
-						if( Label->Sync(DepotPath) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-						}
-
-						FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-						if( Label->Sync(PDBName) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-						}
-
-						//@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
-						DepotPath = FString::Printf( TEXT( "%s/Rocket/Installed/Windows/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						if( Label->Sync(DepotPath) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-						}
-
-						DepotPath = FString::Printf( TEXT( "%s/Rocket/Symbols/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-						if( Label->Sync(PDBName) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-						}
-
-						DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherInstalled/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						if( Label->Sync(DepotPath) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
-						}
-
-						DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherSymbols/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
-						PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
-						if( Label->Sync(PDBName) )
-						{
-							UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
-						}
+		        TArray<FString> FilesToSync;
+		        for( int32 ModuleNameIndex = 0; ModuleNameIndex < CrashInfo->ModuleNames.Num(); ModuleNameIndex++ )
+		        {
+			        FString DepotPath = FString::Printf( TEXT( "%s/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+			        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+			        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
+        
+			        {
+				        TSharedRef<ISourceControlLabel> Label = Labels[0];
+				        if( Label->Sync(DepotPath) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
+				        }
+        
+				        FString PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( ".pdb" ) ).Replace( TEXT( ".exe" ), TEXT( ".pdb" ) );
+				        if( Label->Sync(PDBName) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
+				        }
+        
+				        //@TODO: ROCKETHACK: Adding additional Installed and Symbol paths - revisit when builds are made by the builder...
+				        DepotPath = FString::Printf( TEXT( "%s/Rocket/Installed/Windows/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+				        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
+				        if( Label->Sync(DepotPath) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
+				        }
+        
+				        DepotPath = FString::Printf( TEXT( "%s/Rocket/Symbols/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				        PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
+				        if( Label->Sync(PDBName) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
+				        }
+        
+				        DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherInstalled/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				        // Match all decorated versions of the module. We may need them if the file was renamed to remove the "-Platform-Configuration" decoration.
+				        DepotPath = DepotPath.Replace(TEXT(".dll"), TEXT("*.dll")).Replace(TEXT(".exe"), TEXT("*.exe"));
+				        if( Label->Sync(DepotPath) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced binary '%s'."), *DepotPath );
+				        }
+        
+				        DepotPath = FString::Printf( TEXT( "%s/Rocket/LauncherSymbols/Windows/Launcher/%s" ), *DepotName, *CrashInfo->ModuleNames[ModuleNameIndex] );
+				        PDBName = DepotPath.Replace( TEXT( ".dll" ), TEXT( "*.pdb" ) ).Replace( TEXT( ".exe" ), TEXT( "*.pdb" ) );
+				        if( Label->Sync(PDBName) )
+				        {
+					        UE_LOG( LogCrashDebugHelper, Warning, TEXT( " ... synced symbol '%s'."), *PDBName );
+				        }
 					}
 				}
 			}
@@ -720,20 +727,14 @@ FString ICrashDebugHelper::RetrieveBuildLabel(int32 InEngineVersion, int32 InCha
 		TArray< TSharedRef<ISourceControlLabel> > Labels = ISourceControlModule::Get().GetProvider().GetLabels( TestLabel );
 		if ( Labels.Num() > 0 )
 		{
-			if (Labels.Num() == 1)
+			// If we found more than one label, warn about it and just use the first one
+			if ( Labels.Num() > 1 )
 			{
-				FoundLabelString = Labels[0]->GetName();
-				UE_LOG(LogCrashDebugHelper, Log, TEXT("RetrieveBuildLabel: Failed to find build label in database %s.%s, but found label %s matching pattern %s in source control."), *DatabaseName, *DatabaseCatalog, *FoundLabelString, *TestLabel);
+				UE_LOG(LogCrashDebugHelper, Warning, TEXT("RetrieveBuildLabel: More than one build label found with pattern %s - Using label %s"), *TestLabel, *Labels[0]->GetName());
 			}
-			else
-			{
-				FoundLabelString = TestLabel;
-				UE_LOG(LogCrashDebugHelper, Log, TEXT("RetrieveBuildLabel: Failed to find build label in database %s.%s, but found %d labels matching pattern %s in source control."), *DatabaseName, *DatabaseCatalog, Labels.Num(), *TestLabel);
-				for (int32 LabelIdx = 0; LabelIdx < Labels.Num(); ++LabelIdx)
-				{
-					UE_LOG(LogCrashDebugHelper, Log, TEXT("RetrieveBuildLabel:     Label: %s"), *Labels[LabelIdx]->GetName());
-				}
-			}
+
+			FoundLabelString = Labels[0]->GetName();
+			UE_LOG(LogCrashDebugHelper, Log, TEXT("RetrieveBuildLabel: Failed to find build label in database %s.%s, but found label %s matching pattern %s in source control."), *DatabaseName, *DatabaseCatalog, *FoundLabelString, *TestLabel);
 		}
 	}
 

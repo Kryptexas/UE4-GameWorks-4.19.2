@@ -36,7 +36,8 @@
 	#pragma comment(lib, "psapi.lib")
 #endif
 
-
+#include <fcntl.h>
+#include <io.h>
 
 /** 
  * Whether support for integrating into the firewall is there
@@ -255,6 +256,8 @@ void FWindowsPlatformMisc::PlatformPostInit()
 
 }
 
+#endif		// WITH_ENGINE
+
 /**
  * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
  * Vista in the presence of a group policy for password protected screen saver.
@@ -271,8 +274,6 @@ void FWindowsPlatformMisc::PreventScreenSaver()
 	Input.mi.dwExtraInfo = 0; 	
 	SendInput(1,&Input,sizeof(INPUT));
 }
-
-#endif		// WITH_ENGINE
 
 
 
@@ -422,7 +423,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 			FCString::Strcpy(PlatformName, TEXT("PC 32-bit"));
 #endif	//PLATFORM_64BITS
 			TCHAR CultureName[10];
-			FCString::Strcpy(CultureName, *FInternationalization::GetDefaultCulture()->GetName());
+			FCString::Strcpy(CultureName, *FInternationalization::Get().GetDefaultCulture()->GetName());
 			TCHAR SystemTime[256];
 			FCString::Strcpy(SystemTime, *FDateTime::Now().ToString());
 			TCHAR EngineVersionStr[32];
@@ -724,6 +725,10 @@ uint32 FWindowsPlatformMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uin
 	return NumMappings;
 }
 
+void FWindowsPlatformMisc::SetUTF8Output()
+{
+	_setmode(_fileno(stdout), _O_U8TEXT);
+}
 
 void FWindowsPlatformMisc::LocalPrint( const TCHAR *Message )
 {
@@ -1775,6 +1780,19 @@ FString FWindowsPlatformMisc::GetCPUVendor()
 	return Vendor;
 }
 
+uint32 FWindowsPlatformMisc::GetCPUInfo()
+{
+	uint32 Info = 0;
+	if (HasCPUIDInstruction())
+	{
+		int Args[4];
+		__cpuid(Args, 1);
+
+		Info = Args[0];
+	}
+	return Info;
+}
+
 bool FWindowsPlatformMisc::GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue)
 {
 	FString RegistryValue;
@@ -1821,36 +1839,6 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 	return bSuccess;
 }
 
-FString FWindowsPlatformMisc::GetDefaultBrowser()
-{
-	// Default browser, should a custom one not be set
-	FString Browser( TEXT("iexplore") );
-
-	// Internet explorer doesn't modify the standard registry keys when it is made default browser again, check the program id to see if it should be overridden
-	FString IEKey;
-	if ( !QueryRegKey( HKEY_CURRENT_USER, TEXT("Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice"), TEXT("Progid"), IEKey )
-		|| !IEKey.StartsWith( TEXT( "IE." ) ) )	// If the key doesn't start with IE, then it doesn't use internet explorer either
-	{
-		// If it's being overridden, look up the actual application used to launch urls from the registry
-		FString BrowserKey;
-		if ( QueryRegKey( HKEY_CLASSES_ROOT, TEXT("http\\shell\\open\\command"), NULL, BrowserKey ) )
-		{
-			// Extract the path to the executable, don't use TrimQuotes as there may be params in the key too which we don't want
-			const int32 FirstQuote = BrowserKey.Find( TEXT("\"") );
-			if ( FirstQuote != INDEX_NONE )
-			{
-				const int32 SecondQuote = BrowserKey.Find( TEXT("\""), ESearchCase::IgnoreCase, ESearchDir::FromStart, FirstQuote+1 );
-				if ( SecondQuote != INDEX_NONE )
-				{
-					Browser = BrowserKey.Mid( FirstQuote+1, (SecondQuote-1)-FirstQuote );
-				}
-			}
-		}
-	}
-
-	return Browser;
-}
-
 int32 FWindowsPlatformMisc::GetCacheLineSize()
 {
 	int32 Result = 1;
@@ -1864,3 +1852,9 @@ int32 FWindowsPlatformMisc::GetCacheLineSize()
 	}
 	return Result;
 }
+
+const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
+{
+	return TEXT( "\\" );
+}
+

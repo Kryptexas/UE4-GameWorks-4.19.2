@@ -16,19 +16,26 @@ namespace DeploymentServer
         {
             if ((args.Length == 2) && (args[0].Equals("-iphonepackager")))
             {
-                // We were run as a 'child' process, quit when our 'parent' process exits
-                // There is no parent-child relationship WRT windows, it's self-imposed.
-                int ParentPID = int.Parse(args[1]);
+				try
+				{
+					// We were run as a 'child' process, quit when our 'parent' process exits
+					// There is no parent-child relationship WRT windows, it's self-imposed.
+					int ParentPID = int.Parse(args[1]);
 
-                IpcServerChannel Channel = new IpcServerChannel("iPhonePackager");
-                ChannelServices.RegisterChannel(Channel, false);
-                RemotingConfiguration.RegisterWellKnownServiceType(typeof(DeploymentImplementation), "DeploymentServer_PID" + ParentPID.ToString(), WellKnownObjectMode.Singleton);
+					IpcServerChannel Channel = new IpcServerChannel("iPhonePackager");
+					ChannelServices.RegisterChannel(Channel, false);
+					RemotingConfiguration.RegisterWellKnownServiceType(typeof(DeploymentImplementation), "DeploymentServer_PID" + ParentPID.ToString(), WellKnownObjectMode.Singleton);
 
-                Process ParentProcess = Process.GetProcessById(ParentPID);
-                while (!ParentProcess.HasExited)
-                {
-                    System.Threading.Thread.Sleep(1000);
-                }
+					Process ParentProcess = Process.GetProcessById(ParentPID);
+					while (!ParentProcess.HasExited)
+					{
+						System.Threading.Thread.Sleep(1000);
+					}
+				}
+				catch (System.Exception)
+				{
+					
+				}
             }
             else
             {

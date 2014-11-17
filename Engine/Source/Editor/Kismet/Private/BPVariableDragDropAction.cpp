@@ -49,7 +49,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 	// Icon/text to draw on tooltip
 	FSlateColor IconColor = FLinearColor::White;
 	const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("NoBrush")); 
-	FString Message;
+	FText Message;
 
 	UEdGraphPin* PinUnderCursor = GetHoveredPin();
 
@@ -67,7 +67,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 	if (bBadSchema)
 	{
 		StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-		Message = LOCTEXT("CannotCreateInThisSchema", "Cannot access variables in this type of graph").ToString();
+		Message = LOCTEXT("CannotCreateInThisSchema", "Cannot access variables in this type of graph");
 	}
 	else if (PinUnderCursor != NULL)
 	{
@@ -82,17 +82,21 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		Schema->ConvertPropertyToPinType(VariableProperty, VariablePinType);
 		const bool bTypeMatch = Schema->ArePinTypesCompatible(VariablePinType, PinUnderCursor->PinType);
 
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PinUnderCursor"), FText::FromString(PinUnderCursor->PinName));
+		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
+
 		if (bTypeMatch && bCanWriteIfNeeded)
 		{
 			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
 
 			if (bIsRead)
 			{
-				Message = FString::Printf( *LOCTEXT("MakeThisEqualThat", "Make %s = %s").ToString(), *PinUnderCursor->PinName, *VariableString);
+				Message = FText::Format(LOCTEXT("MakeThisEqualThat", "Make {PinUnderCursor} = {VariableName}"), Args);
 			}
 			else
 			{
-				Message = FString::Printf( *LOCTEXT("MakeThisEqualThat", "Make %s = %s").ToString(), *VariableString, *PinUnderCursor->PinName);
+				Message = FText::Format(LOCTEXT("MakeThisEqualThat", "Make {VariableName} = {PinUnderCursor}"), Args);
 			}
 		}
 		else
@@ -100,11 +104,11 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 			if (!bCanWriteIfNeeded)
 			{
-				Message = FString::Printf( *LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '%s'").ToString(), *VariableString);
+				Message = FText::Format(LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '{VariableName}'"), Args);
 			}
 			else
 			{
-				Message = FString::Printf( *LOCTEXT("NotCompatible_Error", "The type of '%s' is not compatible with %s").ToString(), *VariableString, *(PinUnderCursor->PinName));
+				Message = FText::Format(LOCTEXT("NotCompatible_Error", "The type of '{VariableName}' is not compatible with {PinUnderCursor}"), Args);
 			}
 		}
 	}
@@ -115,23 +119,27 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		const bool bReadOnlyProperty = FBlueprintEditorUtils::IsPropertyReadOnlyInCurrentBlueprint(Blueprint, VariableProperty);
 		const bool bCanWriteIfNeeded = bIsRead || !bReadOnlyProperty;
 		
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
+
 		if (bCanWriteIfNeeded)
 		{
+			Args.Add(TEXT("ReadOrWrite"), bIsRead ? LOCTEXT("Read", "read") : LOCTEXT("Write", "write"));
 			if(WillBreakLinks(VarNodeUnderCursor, VariableProperty))
 			{
 				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OKWarn"));
-				Message = FString::Printf( *LOCTEXT("ChangeNodeToWarnBreakLinks", "Change node to %s '%s', WARNING this will break links!").ToString(), bIsRead ? TEXT("read") : TEXT("write"), *VariableString);
+				Message = FText::Format( LOCTEXT("ChangeNodeToWarnBreakLinks", "Change node to {ReadOrWrite} '{VariableName}', WARNING this will break links!"), Args);
 			}
 			else
 			{
 				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-				Message = FString::Printf( *LOCTEXT("ChangeNodeTo", "Change node to %s '%s'").ToString(), bIsRead ? TEXT("read") : TEXT("write"), *VariableString);
+				Message = FText::Format( LOCTEXT("ChangeNodeTo", "Change node to {ReadOrWrite} '{VariableName}'"), Args);
 			}
 		}
 		else
 		{
 			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-			Message = FString::Printf( *LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '%s'").ToString(), *VariableString);
+			Message = FText::Format( LOCTEXT("ReadOnlyVar_Error", "Cannot write to read-only variable '{VariableName}'"), Args);
 		}
 	}
 	else if (HoveredCategoryName.Len() > 0)
@@ -150,20 +158,24 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 		UClass* OuterClass = CastChecked<UClass>(VariableProperty->GetOuter());
 		const bool bIsNativeVar = (OuterClass->ClassGeneratedBy == NULL);
 
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
+		Args.Add(TEXT("HoveredCategoryName"), FText::FromString(HoveredCategoryName));
+
 		if (bIsNativeVar)
 		{
 			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-			Message = FString::Printf( *LOCTEXT("ChangingCatagoryNotThisVar", "Cannot change category for variable '%s'").ToString(), *VariableString );
+			Message = FText::Format( LOCTEXT("ChangingCatagoryNotThisVar", "Cannot change category for variable '{VariableName}'"), Args );
 		}
 		else if (Category == NewCategory)
 		{
 			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-			Message = FString::Printf( *LOCTEXT("ChangingCatagoryAlreadyIn", "Variable '%s' is already in category '%s'").ToString(), *VariableString, *HoveredCategoryName );
+			Message = FText::Format( LOCTEXT("ChangingCatagoryAlreadyIn", "Variable '{VariableName}' is already in category '{HoveredCategoryName}'"), Args );
 		}
 		else
 		{
 			StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-			Message = FString::Printf( *LOCTEXT("ChangingCatagoryOk", "Move variable '%s' to category '%s'").ToString(),  *VariableString, *HoveredCategoryName );
+			Message = FText::Format( LOCTEXT("ChangingCatagoryOk", "Move variable '{VariableName}' to category '{HoveredCategoryName}'"), Args );
 		}
 	}
 	else if (HoveredAction.IsValid())
@@ -183,25 +195,29 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 				TargetVarIndex = FBlueprintEditorUtils::FindNewVariableIndex(Blueprint, TargetVarName);
 			}
 
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("VariableName"), FText::FromString(VariableString));
+			Args.Add(TEXT("TargetVarName"), FText::FromName(TargetVarName));
+
 			if(MoveVarIndex == INDEX_NONE)
 			{
 				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FString::Printf( *LOCTEXT("MoveVarDiffClass", "Cannot reorder variable '%s'.").ToString(), *VariableString );
+				Message = FText::Format( LOCTEXT("MoveVarDiffClass", "Cannot reorder variable '{VariableName}'."), Args );
 			}
 			else if(TargetVarIndex == INDEX_NONE)
 			{
 				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FString::Printf( *LOCTEXT("MoveVarOther", "Cannot reorder variable '%s' before '%s'.").ToString(), *VariableString, *TargetVarName.ToString() );
+				Message = FText::Format( LOCTEXT("MoveVarOther", "Cannot reorder variable '{VariableName}' before '{TargetVarName}'."), Args );
 			}
 			else if(VariableName == TargetVarName)
 			{
 				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
-				Message = FString::Printf( *LOCTEXT("MoveVarYourself", "Cannot reorder variable '%s' before itself.").ToString(), *VariableString );
+				Message = FText::Format( LOCTEXT("MoveVarYourself", "Cannot reorder variable '{VariableName}' before itself."), Args );
 			}
 			else
 			{
 				StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
-				Message = FString::Printf( *LOCTEXT("MoveVarOK", "Reorder variable '%s' before '%s'").ToString(), *VariableString, *TargetVarName.ToString() );
+				Message = FText::Format( LOCTEXT("MoveVarOK", "Reorder variable '{VariableName}' before '{TargetVarName}'"), Args );
 			}
 		}
 	}
@@ -209,7 +225,7 @@ void FKismetVariableDragDropAction::HoverTargetChanged()
 	else
 	{
 		StatusSymbol = FBlueprintEditor::GetVarIconAndColor(VariableSourceClass.Get(), VariableName, IconColor);
-		Message = VariableString;
+		Message = FText::FromString(VariableString);
 	}
 
 	SetSimpleFeedbackMessage(StatusSymbol, IconColor, Message);

@@ -158,13 +158,18 @@ FSlateColor SGraphNode_BehaviorTree::GetBackgroundColor() const
 		false;
 
 	FLinearColor NodeColor = BehaviorTreeColors::NodeBody::Default;
-	if (BTGraph_Decorator || Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GraphNode))
+	if (BTGraphNode && BTGraphNode->DeprecationMessage.Len() > 0)
+	{
+		NodeColor = BehaviorTreeColors::NodeBody::Deprecated;
+	}
+	else if (BTGraph_Decorator || Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GraphNode))
 	{
 		NodeColor = bIsActiveForDebugger ? BehaviorTreeColors::Debugger::ActiveDecorator : BehaviorTreeColors::NodeBody::Decorator;
 	}
 	else if (Cast<UBehaviorTreeGraphNode_Task>(GraphNode))
 	{
-		NodeColor = BehaviorTreeColors::NodeBody::Task;
+		const bool bIsSpecialTask = Cast<UBTTask_RunBehavior>(BTGraphNode->NodeInstance) != NULL;
+		NodeColor = bIsSpecialTask ? BehaviorTreeColors::NodeBody::TaskSpecial : BehaviorTreeColors::NodeBody::Task;
 	}
 	else if (Cast<UBehaviorTreeGraphNode_Composite>(GraphNode))
 	{

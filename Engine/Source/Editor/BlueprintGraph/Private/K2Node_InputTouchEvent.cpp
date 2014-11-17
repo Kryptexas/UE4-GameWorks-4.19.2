@@ -9,6 +9,7 @@ UK2Node_InputTouchEvent::UK2Node_InputTouchEvent(const class FPostConstructIniti
 {
 	bConsumeInput = true;
 	bOverrideParentBinding = true;
+	bInternalEvent = true;
 }
 
 UClass* UK2Node_InputTouchEvent::GetDynamicBindingClass() const

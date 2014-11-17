@@ -28,7 +28,8 @@ extern void UniformBufferBeginFrame();
 
 // http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
 // The following line is to favor the high performance NVIDIA GPU if there are multiple GPUs
-extern "C" { _declspec(dllexport) uint32 NvOptimusEnablement = 0x00000001; }
+// Has to be .exe module to be correctly detected.
+// extern "C" { _declspec(dllexport) uint32 NvOptimusEnablement = 0x00000001; }
 
 void FD3D11DynamicRHI::RHIBeginFrame()
 {

@@ -162,13 +162,13 @@ private:
 		ScriptRootPath = TEXT("/Script/");
 		TempRootPath = TEXT("/Temp/");
 
-		EngineContentPath = FPaths::EngineDir() / TEXT("Content/");
+		EngineContentPath = FPaths::EngineContentDir();
 		ContentPathShort = TEXT("../../Content/");
 		EngineShadersPath = FPaths::EngineDir() / TEXT("Shaders/");
 		EngineShadersPathShort = TEXT("../../Shaders/");
-		GameContentPath = FString(FPlatformMisc::GameDir()) / TEXT("Content/");
-		GameScriptPath = FString(FPlatformMisc::GameDir()) / TEXT("Script/");
-		GameSavedPath = FString(FPlatformMisc::GameDir()) / TEXT("Saved/");
+		GameContentPath = FPaths::GameContentDir();
+		GameScriptPath = FPaths::GameDir() / TEXT("Script/");
+		GameSavedPath = FPaths::GameSavedDir();
 
 		FString RebasedGameDir = FString::Printf(TEXT("../../../%s/"), GGameName);
 

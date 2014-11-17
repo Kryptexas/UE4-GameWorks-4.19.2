@@ -44,7 +44,7 @@ class FMessageTracer
 		// Creates and initializes a new instance.
 		FRecipientInfo( const FMessageAddress& Address, const IReceiveMessagesRef& Recipient )
 			: Id(Recipient->GetRecipientId())
-			, Name(Recipient->GetRecipientName(Address))
+			, Name(Recipient->GetDebugName())
 			, Remote(Recipient->IsRemote())
 		{ }
 	};

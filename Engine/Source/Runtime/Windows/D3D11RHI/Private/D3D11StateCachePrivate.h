@@ -123,6 +123,8 @@ protected:
 		uint32 NumConstants;
 	} CurrentConstantBuffers[SF_NumFrequencies][D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 
+	bool bAlwaysSetIndexBuffers;
+
 #endif
 
 	template <EShaderFrequency ShaderFrequency>
@@ -173,7 +175,8 @@ protected:
 	{
 #if D3D11_ALLOW_STATE_CACHE
 		D3D11_STATE_CACHE_VERIFY_PRE();
-		if ((CurrentIndexBuffer != IndexBuffer || CurrentIndexFormat != Format || CurrentIndexOffset != Offset) || GD3D11SkipStateCaching)
+
+		if ( bAlwaysSetIndexBuffers || (CurrentIndexBuffer != IndexBuffer || CurrentIndexFormat != Format || CurrentIndexOffset != Offset) || GD3D11SkipStateCaching)
 		{
 			CurrentIndexBuffer = IndexBuffer;
 			CurrentIndexFormat = Format;
@@ -849,11 +852,12 @@ public:
 	{
 	}
 
-	void Init(ID3D11DeviceContext* InDeviceContext)
+	void Init(ID3D11DeviceContext* InDeviceContext, bool bInAlwaysSetIndexBuffers = false )
 	{
 		SetContext(InDeviceContext);
 		
 #if D3D11_ALLOW_STATE_CACHE
+		bAlwaysSetIndexBuffers = bInAlwaysSetIndexBuffers;
 #endif
 	}
 

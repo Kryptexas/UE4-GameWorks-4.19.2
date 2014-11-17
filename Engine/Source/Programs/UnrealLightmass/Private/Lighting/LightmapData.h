@@ -118,6 +118,8 @@ namespace Lightmass
 			Data.AddZeroed(InSizeX * InSizeY);
 		}
 
+		virtual ~FShadowMapData2D(){ }
+
 		// Accessors.
 		const FShadowSample& operator()(uint32 X,uint32 Y) const { return Data[SizeX * Y + X]; }
 		FShadowSample& operator()(uint32 X,uint32 Y) { return Data[SizeX * Y + X]; }
@@ -179,6 +181,8 @@ namespace Lightmass
 			Data.Empty(InSizeX * InSizeY);
 			Data.AddZeroed(InSizeX * InSizeY);
 		}
+
+		virtual ~FSignedDistanceFieldShadowMapData2D(){ }
 
 		// Accessors.
 		const FSignedDistanceFieldShadowSample& operator()(uint32 X,uint32 Y) const { return Data[SizeX * Y + X]; }

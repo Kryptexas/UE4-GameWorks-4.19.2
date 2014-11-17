@@ -13,12 +13,10 @@ class UK2Node_MatineeController : public UK2Node
 	UPROPERTY(EditAnywhere, Category=K2Node_MatineeController)
 	class AMatineeActor* MatineeActor;
 
-
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
 	virtual bool NodeCausesStructuralBlueprintChange() const OVERRIDE { return true; }
 	// End UEdGraphNode interface
@@ -31,7 +29,5 @@ class UK2Node_MatineeController : public UK2Node
 
 	/** Gets the "finished playing matinee sequence" pin */
 	UEdGraphPin* GetFinishedPin() const;
-
-#endif
 };
 

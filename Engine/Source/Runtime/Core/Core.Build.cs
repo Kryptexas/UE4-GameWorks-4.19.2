@@ -41,6 +41,7 @@ public class Core : ModuleRules
 				"Runtime/Core/Private/Serialization/Json",
                 "Runtime/Core/Private/Internationalization",
 				"Runtime/Core/Private/Internationalization/Cultures",
+                "Runtime/Analytics/Public",
 			}
 			);
 
@@ -49,6 +50,7 @@ public class Core : ModuleRules
 				"TargetPlatform",
 				"DerivedDataCache",
 				"InputDevice",
+                "Analytics"
 			}
 			);
 
@@ -108,8 +110,14 @@ public class Core : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"zlib",
 				"jemalloc",
-				"elftoolchain"
+				"elftoolchain",
+				"SDL2"
                 );
+
+            if (UEBuildConfiguration.bCompileAgainstEngine == true && Target.Type != TargetRules.TargetType.Server && UEBuildConfiguration.bCompileSteamOSS)
+            {
+                AddThirdPartyPrivateStaticDependencies(Target, "SteamController");
+            }
         }
 		else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
@@ -129,6 +137,8 @@ public class Core : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, "ICU");
         }
         Definitions.Add("UE_ENABLE_ICU=" + (UEBuildConfiguration.bCompileICU ? "1" : "0")); // Enable/disable (=1/=0) ICU usage in the codebase. NOTE: This flag is for use while integrating ICU and will be removed afterward.
+
+        Definitions.Add("WITH_STEAMWORKS=" + (UEBuildConfiguration.bCompileSteamOSS ? "1" : "0"));
 
 		// If we're compiling with the engine, then add Core's engine dependencies
 		if (UEBuildConfiguration.bCompileAgainstEngine == true)

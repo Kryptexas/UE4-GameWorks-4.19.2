@@ -4,6 +4,7 @@
 
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemAmazonModule.h"
+#include "OnlineSubsystemAmazonPackage.h"
 
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineIdentityAmazon, ESPMode::ThreadSafe> FOnlineIdentityAmazonPtr;
@@ -16,19 +17,18 @@ class ONLINESUBSYSTEMAMAZON_API FOnlineSubsystemAmazon :
 	public FTickerObjectBase
 
 {
-	/** 
-	 * Private constructor as this is a singleton 
-	 */
-	FOnlineSubsystemAmazon();
-
-	/** Single instantiation of the interface */
-	static FOnlineSubsystemAmazon* AmazonSingleton;
+	class FOnlineFactoryAmazon* AmazonFactory;
 
 	/** Interface to the identity registration/auth services */
 	FOnlineIdentityAmazonPtr IdentityInterface;
 
 	/** Used to toggle between 1 and 0 */
 	int TickToggle;
+
+PACKAGE_SCOPE:
+
+	/** Only the factory makes instances */
+	FOnlineSubsystemAmazon();
 
 public:
 	// IOnlineSubsystem
@@ -116,7 +116,7 @@ public:
 	virtual bool Init() OVERRIDE;
 	virtual bool Shutdown() OVERRIDE;
 	virtual FString GetAppId() const OVERRIDE;
-	virtual bool Exec(const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;
 
 	// FTickerBaseObject
 
@@ -129,21 +129,10 @@ public:
 	 */
 	virtual ~FOnlineSubsystemAmazon();
 
-	/** 
-	 * Create the singleton instance
-	 *
-	 * @return the only instance of this subsystem
-	 */
-	static FOnlineSubsystemAmazon* Create();
-
-	/** 
-	 * Destroy the singleton for this subsystem
-	 */
-	static void Destroy();
 	/**
 	 * @return whether this subsystem is enabled or not
 	 */
 	bool IsEnabled();
 };
 
-
+typedef TSharedPtr<FOnlineSubsystemAmazon, ESPMode::ThreadSafe> FOnlineSubsystemAmazonPtr;

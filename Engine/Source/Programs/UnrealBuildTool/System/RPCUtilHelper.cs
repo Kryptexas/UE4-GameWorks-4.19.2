@@ -26,9 +26,6 @@ namespace UnrealBuildTool
 		/** A socket per command thread */
 		private static Hashtable CommandThreadSockets = new Hashtable();
 
-		/** Random number generator */
-		private static Random RandomStream = new Random();
-
 		static RPCUtilHelper()
 		{
 			AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
@@ -186,7 +183,8 @@ namespace UnrealBuildTool
 		{
 			if (bIsUpload)
 			{
-				Hashtable CommandResult = RPCUtility.CommandHelper.RPCUpload(GetSocket(), Source, Dest);
+//				Hashtable CommandResult = 
+				RPCUtility.CommandHelper.RPCUpload(GetSocket(), Source, Dest);
 //				Log.TraceInformation(CommandResult["CommandOutput"] as string);
 			}
 			else

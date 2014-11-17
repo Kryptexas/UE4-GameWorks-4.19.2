@@ -10,22 +10,37 @@ void SMaterialEditorTitleBar::Construct(const FArguments& InArgs)
 
 	this->ChildSlot
 	[
-		SNew(SVerticalBox)
-		// Title text/icon
-		+SVerticalBox::Slot()
-		.VAlign(VAlign_Top)
-		.AutoHeight()
+		SNew(SBorder)
+		.BorderImage( FEditorStyle::GetBrush( TEXT("Graph.TitleBackground") ) )
+		.HAlign(HAlign_Fill)
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			.FillWidth(1.f)
-			.Padding(5)
+			SNew(SVerticalBox)
+			// Title text/icon
+			+SVerticalBox::Slot()
+			.HAlign(HAlign_Center)
+			.Padding(10)
+			.AutoHeight()
 			[
-				SAssignNew(MaterialInfoList, SListView<TSharedPtr<FMaterialInfo>>)
-				.ListItemsSource(InArgs._MaterialInfoList)
-				.OnGenerateRow(this, &SMaterialEditorTitleBar::MakeMaterialInfoWidget)
-				.SelectionMode( ESelectionMode::None )
+				SNew(STextBlock)
+				.TextStyle( FEditorStyle::Get(), TEXT("GraphBreadcrumbButtonText") )
+				.Text( InArgs._TitleText )
+			]
+			+SVerticalBox::Slot()
+			.VAlign(VAlign_Top)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.HAlign(HAlign_Left)
+				.FillWidth(1.f)
+				.Padding(5,0)
+				[
+					SAssignNew(MaterialInfoList, SListView<TSharedPtr<FMaterialInfo>>)
+					.ListItemsSource(InArgs._MaterialInfoList)
+					.OnGenerateRow(this, &SMaterialEditorTitleBar::MakeMaterialInfoWidget)
+					.SelectionMode( ESelectionMode::None )
+					.Visibility((InArgs._MaterialInfoList != NULL) ? EVisibility::Visible : EVisibility::Collapsed)
+				]
 			]
 		]
 	];

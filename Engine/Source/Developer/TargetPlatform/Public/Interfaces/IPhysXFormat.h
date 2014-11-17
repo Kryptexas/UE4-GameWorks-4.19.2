@@ -47,6 +47,19 @@ public:
 	 * @return	true if succeeded, false otherwise.
 	 */
 	virtual bool CookTriMesh( FName Format, const TArray<FVector>& SrcVertices, const TArray<struct FTriIndices>& SrcIndices, const TArray<uint16>& SrcMaterialIndices, const bool FlipNormals, TArray<uint8>& OutBuffer ) const = 0;
+		
+	/**
+	 * Cooks the source height field data for the platform and stores the cooked data internally.
+	 *
+	 * @param Format - The desired format
+	 * @param HFSize - Size of height field [NumColumns, NumRows]
+	 * @param Thickness - Sets how thick the height field surface is
+	 * @param SrcBuffer - The source buffer
+	 * @param OutBuffer - The resulting cooked data
+	 *
+	 * @return	true if succeeded, false otherwise.
+	 */
+	virtual bool CookHeightField( FName Format, FIntPoint HFSize, float Thickness, const void* Samples, uint32 SamplesStride, TArray<uint8>& OutBuffer ) const = 0;
 
 	/**
 	 * Gets the list of supported formats.

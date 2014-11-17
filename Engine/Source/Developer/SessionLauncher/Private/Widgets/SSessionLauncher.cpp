@@ -27,220 +27,244 @@ void SSessionLauncher::Construct( const FArguments& InArgs, const TSharedRef<SDo
 	CurrentTask = ESessionLauncherTasks::NoTask;
 	Model = InModel;
 
+	// create & initialize main menu bar
+	TSharedRef<FWorkspaceItem> RootMenuGroup = FWorkspaceItem::NewGroup(LOCTEXT("RootMenuGroup", "Root"));
+
+	FMenuBarBuilder MenuBarBuilder = FMenuBarBuilder(TSharedPtr<FUICommandList>());
+	MenuBarBuilder.AddPullDownMenu(
+		LOCTEXT("WindowMenuLabel", "Window"),
+		FText::GetEmpty(),
+		FNewMenuDelegate::CreateStatic(&SSessionLauncher::FillWindowMenu, RootMenuGroup),
+		"Window"
+	);
+
 	ChildSlot
 	[
-		SNew(SHorizontalBox)
+		SNew(SVerticalBox)
 
-		+ SHorizontalBox::Slot()
-			.AutoWidth()
+		+ SVerticalBox::Slot()
+			.AutoHeight()
 			[
-				SNew(SBorder)
-					.Padding(FMargin(8.0f, 6.0f, 8.0f, 4.0f))
-					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-					[
-						// common launcher task bar
-						SAssignNew(Toolbar, SSessionLauncherToolbar, InModel, this)
-					]
+				// main menu bar
+				MenuBarBuilder.MakeWidget()
 			]
 
-		+ SHorizontalBox::Slot()
-			.FillWidth(1.0f)
+		+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
 			[
-				SNew(SVerticalBox)
+				SNew(SHorizontalBox)
 
-				+ SVerticalBox::Slot()
-					.FillHeight(1.0f)
-					.Padding(8.0f, 8.0f, 0.0f, 8.0f)
-					[
-						SAssignNew(WidgetSwitcher, SWidgetSwitcher)
-							.WidgetIndex((int32)ESessionLauncherTasks::QuickLaunch)
-
-						+ SWidgetSwitcher::Slot()
-							[
-								// empty panel
-								SNew(SBorder)
-							]
-
-						+ SWidgetSwitcher::Slot()
-							[
-								// deploy build panel
-								SNew(SSessionLauncherBuildTaskSettings, InModel)
-							]
-
-						+ SWidgetSwitcher::Slot()
-							[
-								// deploy build panel
-								SNew(SSessionLauncherDeployTaskSettings, InModel)
-							]
-
-						+ SWidgetSwitcher::Slot()
-							[
-								// Quick launch panel
-								SNew(SSessionLauncherLaunchTaskSettings, InModel)
-							]
-
-						+ SWidgetSwitcher::Slot()
-							[
-								// advanced settings panel
-								SNew(SSessionLauncherSettings, InModel)
-							]
-
-						+ SWidgetSwitcher::Slot()
-							[
-								// preview panel
-								SNew(SSessionLauncherPreviewPage, InModel)
-							]
-
-						+ SWidgetSwitcher::Slot()
-							.Padding(8.0f, 0.0f)
-							[
-								// progress panel
-								SAssignNew(ProgressPanel, SSessionLauncherProgress)
-							]
-					]
-
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(8.0f)
-					[
-						SNew(SSessionLauncherValidation, InModel)
-					]
-
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					.Padding(0.0f, 8.0f, 0.0f, 0.0f)
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
 					[
 						SNew(SBorder)
 							.Padding(FMargin(8.0f, 6.0f, 8.0f, 4.0f))
 							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 							[
-								SNew(SHorizontalBox)
+								// common launcher task bar
+								SAssignNew(Toolbar, SSessionLauncherToolbar, InModel, this)
+							]
+					]
 
-								+ SHorizontalBox::Slot()
-									.FillWidth(1.0f)
-									.HAlign(HAlign_Left)
+				+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					[
+						SNew(SVerticalBox)
+
+						+ SVerticalBox::Slot()
+							.FillHeight(1.0f)
+							.Padding(8.0f, 8.0f, 0.0f, 8.0f)
+							[
+								SAssignNew(WidgetSwitcher, SWidgetSwitcher)
+									.WidgetIndex((int32)ESessionLauncherTasks::QuickLaunch)
+
+								+ SWidgetSwitcher::Slot()
 									[
-										SNew(SOverlay)
-
-										+ SOverlay::Slot()
-											[
-												// edit button
-												SNew(SButton)
-													.ContentPadding(FMargin(6.0f, 2.0f))
-													.OnClicked(this, &SSessionLauncher::HandleEditButtonClicked)
-													.ToolTipText(LOCTEXT("EditButtonTooltip", "Edit the settings of the selected profile.").ToString())
-													[
-														SNew(STextBlock)
-															.Text(LOCTEXT("EditButtonLabel", "Edit Settings").ToString())
-													]
-													.Visibility(this, &SSessionLauncher::HandleEditButtonVisibility)
-											]
-
-										+ SOverlay::Slot()
-											[
-												// preview button
-												SNew(SButton)
-													.ContentPadding(FMargin(6.0f, 2.0f))
-													.OnClicked(this, &SSessionLauncher::HandlePreviewButtonClicked)
-													.ToolTipText(LOCTEXT("PreviewButtonTooltip", "Preview the settings of the selected profile.").ToString())
-													[
-														SNew(STextBlock)
-															.Text(LOCTEXT("PreviewButtonLabel", "Preview Settings").ToString())
-													]
-													.Visibility(this, &SSessionLauncher::HandlePreviewButtonVisibility)
-											]
+										// empty panel
+										SNew(SBorder)
 									]
 
-								+ SHorizontalBox::Slot()
-									.FillWidth(1.0f)
-									.HAlign(HAlign_Right)
+								+ SWidgetSwitcher::Slot()
 									[
-										SNew(SOverlay)
+										// deploy build panel
+										SNew(SSessionLauncherBuildTaskSettings, InModel)
+									]
 
-										+ SOverlay::Slot()
+								+ SWidgetSwitcher::Slot()
+									[
+										// deploy build panel
+										SNew(SSessionLauncherDeployTaskSettings, InModel)
+									]
+
+								+ SWidgetSwitcher::Slot()
+									[
+										// Quick launch panel
+										SNew(SSessionLauncherLaunchTaskSettings, InModel)
+									]
+
+								+ SWidgetSwitcher::Slot()
+									[
+										// advanced settings panel
+										SNew(SSessionLauncherSettings, InModel)
+									]
+
+								+ SWidgetSwitcher::Slot()
+									[
+										// preview panel
+										SNew(SSessionLauncherPreviewPage, InModel)
+									]
+
+								+ SWidgetSwitcher::Slot()
+									.Padding(8.0f, 0.0f)
+									[
+										// progress panel
+										SAssignNew(ProgressPanel, SSessionLauncherProgress)
+									]
+							]
+
+						+ SVerticalBox::Slot()
+							.AutoHeight()
+							.Padding(8.0f)
+							[
+								SNew(SSessionLauncherValidation, InModel)
+							]
+
+						+ SVerticalBox::Slot()
+							.AutoHeight()
+							.Padding(0.0f, 8.0f, 0.0f, 0.0f)
+							[
+								SNew(SBorder)
+									.Padding(FMargin(8.0f, 6.0f, 8.0f, 4.0f))
+									.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+									[
+										SNew(SHorizontalBox)
+
+										+ SHorizontalBox::Slot()
+											.FillWidth(1.0f)
+											.HAlign(HAlign_Left)
 											[
-												// launch button
-												SNew(SButton)
-													.ContentPadding(FMargin(6.0f, 2.0f))
-													.IsEnabled(this, &SSessionLauncher::HandleFinishButtonIsEnabled)
-													.OnClicked(this, &SSessionLauncher::HandleFinishButtonClicked)
-													.ToolTipText(LOCTEXT("FinishButtonTooltip", "Launch the task as configured in the selected profile.").ToString())
+												SNew(SOverlay)
+
+												+ SOverlay::Slot()
 													[
-														SNew(STextBlock)
-															.Text(LOCTEXT("FinishButtonLabel", "Launch").ToString())
-													]
-													.Visibility(this, &SSessionLauncher::HandleFinishButtonVisibility)
-											]
-
-										+ SOverlay::Slot()
-											[
-												// cancel button
-												SNew(SButton)
-													.ContentPadding(FMargin(6.0f, 2.0f))
-													.OnClicked(this, &SSessionLauncher::HandleCancelButtonClicked)
-													.ToolTipText(LOCTEXT("CancelButtonTooltip", "Cancel the task.").ToString())
-													[
-														SNew(STextBlock)
-															.Text(LOCTEXT("CancelButtonLabel", "Cancel").ToString())
-													]
-													.Visibility(this, &SSessionLauncher::HandleCancelButtonVisibility)
-											]
-
-										+ SOverlay::Slot()
-											[
-												SNew(SHorizontalBox)
-													.Visibility(this, &SSessionLauncher::HandleCancelingThrobberVisibility)
-
-												+ SHorizontalBox::Slot()
-													.AutoWidth()
-													[
-														SNew(SCircularThrobber)
-															.NumPieces(5)
-															.Radius(10.0f)
-													]
-
-												+ SHorizontalBox::Slot()
-													.AutoWidth()
-													.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-													.VAlign(VAlign_Center)
-													[
-														SNew(STextBlock)
-															.Text(LOCTEXT("CancellingText", "Canceling...").ToString())
-													]
-											]
-
-										+ SOverlay::Slot()
-											[
-												SNew(SHorizontalBox)
-													.Visibility(this, &SSessionLauncher::HandleDoneButtonVisibility)
-
-												+ SHorizontalBox::Slot()
-													.AutoWidth()
-													.Padding(4.0f, 0.0f, 0.0f, 0.0f)
-													[
-														// re-run button
+														// edit button
 														SNew(SButton)
 															.ContentPadding(FMargin(6.0f, 2.0f))
+															.OnClicked(this, &SSessionLauncher::HandleEditButtonClicked)
+															.ToolTipText(LOCTEXT("EditButtonTooltip", "Edit the settings of the selected profile.").ToString())
+															[
+																SNew(STextBlock)
+																	.Text(LOCTEXT("EditButtonLabel", "Edit Settings").ToString())
+															]
+															.Visibility(this, &SSessionLauncher::HandleEditButtonVisibility)
+													]
+
+												+ SOverlay::Slot()
+													[
+														// preview button
+														SNew(SButton)
+															.ContentPadding(FMargin(6.0f, 2.0f))
+															.OnClicked(this, &SSessionLauncher::HandlePreviewButtonClicked)
+															.ToolTipText(LOCTEXT("PreviewButtonTooltip", "Preview the settings of the selected profile.").ToString())
+															[
+																SNew(STextBlock)
+																	.Text(LOCTEXT("PreviewButtonLabel", "Preview Settings").ToString())
+															]
+															.Visibility(this, &SSessionLauncher::HandlePreviewButtonVisibility)
+													]
+											]
+
+										+ SHorizontalBox::Slot()
+											.FillWidth(1.0f)
+											.HAlign(HAlign_Right)
+											[
+												SNew(SOverlay)
+
+												+ SOverlay::Slot()
+													[
+														// launch button
+														SNew(SButton)
+															.ContentPadding(FMargin(6.0f, 2.0f))
+															.IsEnabled(this, &SSessionLauncher::HandleFinishButtonIsEnabled)
 															.OnClicked(this, &SSessionLauncher::HandleFinishButtonClicked)
-															.ToolTipText(LOCTEXT("RerunButtonTooltip", "Execute the selected profile one more time.").ToString())
+															.ToolTipText(LOCTEXT("FinishButtonTooltip", "Launch the task as configured in the selected profile.").ToString())
 															[
 																SNew(STextBlock)
-																	.Text(LOCTEXT("RerunButtonLabel", "Run Again").ToString())
-															]								
+																	.Text(LOCTEXT("FinishButtonLabel", "Launch").ToString())
+															]
+															.Visibility(this, &SSessionLauncher::HandleFinishButtonVisibility)
 													]
 
-												+ SHorizontalBox::Slot()
-													.AutoWidth()
-													.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+												+ SOverlay::Slot()
 													[
-														// done button
+														// cancel button
 														SNew(SButton)
 															.ContentPadding(FMargin(6.0f, 2.0f))
-															.OnClicked(this, &SSessionLauncher::HandleDoneButtonClicked)
-															.ToolTipText(LOCTEXT("DoneButtonTooltip", "Close this page.").ToString())
+															.OnClicked(this, &SSessionLauncher::HandleCancelButtonClicked)
+															.ToolTipText(LOCTEXT("CancelButtonTooltip", "Cancel the task.").ToString())
 															[
 																SNew(STextBlock)
-																	.Text(LOCTEXT("DoneButtonLabel", "Done").ToString())
+																	.Text(LOCTEXT("CancelButtonLabel", "Cancel").ToString())
+															]
+															.Visibility(this, &SSessionLauncher::HandleCancelButtonVisibility)
+													]
+
+												+ SOverlay::Slot()
+													[
+														SNew(SHorizontalBox)
+															.Visibility(this, &SSessionLauncher::HandleCancelingThrobberVisibility)
+
+														+ SHorizontalBox::Slot()
+															.AutoWidth()
+															[
+																SNew(SCircularThrobber)
+																	.NumPieces(5)
+																	.Radius(10.0f)
+															]
+
+														+ SHorizontalBox::Slot()
+															.AutoWidth()
+															.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+															.VAlign(VAlign_Center)
+															[
+																SNew(STextBlock)
+																	.Text(LOCTEXT("CancellingText", "Canceling...").ToString())
+															]
+													]
+
+												+ SOverlay::Slot()
+													[
+														SNew(SHorizontalBox)
+															.Visibility(this, &SSessionLauncher::HandleDoneButtonVisibility)
+
+														+ SHorizontalBox::Slot()
+															.AutoWidth()
+															.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+															[
+																// re-run button
+																SNew(SButton)
+																	.ContentPadding(FMargin(6.0f, 2.0f))
+																	.OnClicked(this, &SSessionLauncher::HandleFinishButtonClicked)
+																	.ToolTipText(LOCTEXT("RerunButtonTooltip", "Execute the selected profile one more time.").ToString())
+																	[
+																		SNew(STextBlock)
+																			.Text(LOCTEXT("RerunButtonLabel", "Run Again").ToString())
+																	]								
+															]
+
+														+ SHorizontalBox::Slot()
+															.AutoWidth()
+															.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+															[
+																// done button
+																SNew(SButton)
+																	.ContentPadding(FMargin(6.0f, 2.0f))
+																	.OnClicked(this, &SSessionLauncher::HandleDoneButtonClicked)
+																	.ToolTipText(LOCTEXT("DoneButtonTooltip", "Close this page.").ToString())
+																	[
+																		SNew(STextBlock)
+																			.Text(LOCTEXT("DoneButtonLabel", "Done").ToString())
+																	]
 															]
 													]
 											]
@@ -260,6 +284,18 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 /* SSessionLauncher implementation
 *****************************************************************************/
+
+void SSessionLauncher::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWorkspaceItem> RootMenuGroup )
+{
+#if !WITH_EDITOR
+	MenuBuilder.BeginSection("WindowGlobalTabSpawners", LOCTEXT("UfeMenuGroup", "Unreal Frontend"));
+	{
+		FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, RootMenuGroup);
+	}
+	MenuBuilder.EndSection();
+#endif //!WITH_EDITOR
+}
+
 
 void SSessionLauncher::LaunchSelectedProfile( )
 {

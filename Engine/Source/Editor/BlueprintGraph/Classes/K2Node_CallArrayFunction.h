@@ -20,7 +20,6 @@ class UK2Node_CallArrayFunction : public UK2Node_CallFunction
 {
 	GENERATED_UCLASS_BODY()
 
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void PostReconstructNode() OVERRIDE;
@@ -52,6 +51,5 @@ class UK2Node_CallArrayFunction : public UK2Node_CallFunction
 
 	void GetArrayTypeDependentPins(TArray<UEdGraphPin*>& OutPins) const;
 	void PropagateArrayTypeInfo();
-#endif
 };
 

@@ -85,7 +85,7 @@ public:
 	TSubclassOf<class AAIController>  AIControllerClass;
 
 	/** If Pawn is possessed by a player, points to his playerstate.  Needed for network play as controllers are not replicated to clients. */
-	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState)
+	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")
 	class APlayerState* PlayerState;
 
 	/** Replicated so we can see where remote clients are looking. */
@@ -142,6 +142,8 @@ public:
 	UFUNCTION(BlueprintPure, Category="Pawn", meta=(ToolTip="Gets the owning actor of the Movement Base Component on which the pawn is standing."))
 	static AActor* GetMovementBaseActor(const APawn* Pawn);
 
+	virtual bool IsBasedOnActor(const AActor * Other) const OVERRIDE;
+
 	virtual bool ReachedDesiredRotation();
 
 	/** @return The half-height of the default Pawn, scaled by the component scale. By default returns the half-height of the RootComponent, regardless of whether it is registered or collidable. */
@@ -190,6 +192,7 @@ public:
 	virtual class UNetConnection* GetNetConnection() OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
+	virtual void PostRegisterAllComponents() OVERRIDE;
 	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) OVERRIDE;
 	virtual void BecomeViewTarget(class APlayerController* PC) OVERRIDE;
 	virtual bool UpdateNavigationRelevancy() OVERRIDE { SetNavigationRelevancy(false); return false; }
@@ -202,9 +205,14 @@ public:
 
 	// Begin INavAgentInterface Interface
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const OVERRIDE { return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : NULL;}
+	/** Basically retrieved pawn's location on navmesh */
+	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual FVector GetNavAgentLocation() const OVERRIDE { return GetActorLocation(); }
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE;
 	// End INavAgentInterface Interface
+
+	/** updates MovementComponent's parameters used by navigation system */
+	void UpdateNavAgent();
 
 	/** @return true if we are in a state to take damage (checked at the start of TakeDamage.
 	*   Subclasses may check this as well if they override TakeDamage and don't want to potentially trigger TakeDamage actions by checking if it returns zero in the super class. */

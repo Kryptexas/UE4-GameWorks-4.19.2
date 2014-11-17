@@ -110,8 +110,11 @@ public:
 	 */
 	virtual bool GetReferencers(FName PackageName, TArray<FName>& OutReferencers) const = 0;
 
-	/** Returns true if the specified ClassName is derived from ParentClassName */
+	/** Returns true if the specified ClassName's ancestors could be found. If so, OutAncestorClassNames is a list of all its ancestors */
 	virtual bool GetAncestorClassNames(FName ClassName, TArray<FName>& OutAncestorClassNames) const = 0;
+
+	/** Returns the names of all classes derived by the supplied class names, excluding any classes matching the excluded class names. */
+	virtual void GetDerivedClassNames(const TArray<FName>& ClassNames, const TSet<FName>& ExcludedClassNames, TSet<FName>& OutDerivedClassNames) const = 0;
 
 	/** Gets a list of all paths that are currently cached */
 	virtual void GetAllCachedPaths(TArray<FString>& OutPathList) const = 0;
@@ -133,13 +136,15 @@ public:
 	 * Gets an ETA or percentage complete for an asset that is still in the process of being installed.
 	 *
 	 * @param FAssetData the asset to check for progress status
+	 * @param ReportType the type of report to query.
 	 */
-	virtual float GetAssetAvailabilityProgress(const FAssetData& AssetData) const = 0;
+	virtual float GetAssetAvailabilityProgress(const FAssetData& AssetData, EAssetAvailabilityProgressReportingType::Type ReportType) const = 0;
 
 	/**
-	 * Returns how asset availability progress is reported, either ETA or percentage complete.
+	 * @param ReportType The report type to query.
+	 * Returns if a given report type is supported on the current platform
 	 */
-	virtual EAssetAvailabilityProgressReportingType::Type GetAssetAvailabilityProgressType() const = 0;
+	virtual bool GetAssetAvailabilityProgressTypeSupported(EAssetAvailabilityProgressReportingType::Type ReportType) const = 0;	
 
 	/**
 	 * Hint the streaming installers to prioritize a specific asset for install.
@@ -154,8 +159,8 @@ public:
 	/** Attempts to remove the specified path to the set of cached paths. This will only succeed if there are no assets left in the specified path. */
 	virtual bool RemovePath(const FString& PathToRemove) = 0;
 
-	/** Scan the supplied paths right now and populate the asset registry */
-	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths) = 0;
+	/** Scan the supplied paths right now and populate the asset registry. If bForceRescan is true, the paths will be scanned again, even if they were previously scanned */
+	virtual void ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan = false) = 0;
 
 	/** Look for all assets on disk (can be async or synchronous) */
 	virtual void SearchAllAssets(bool bSynchronousSearch) = 0;

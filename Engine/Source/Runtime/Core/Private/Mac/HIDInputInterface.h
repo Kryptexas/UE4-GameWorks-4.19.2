@@ -24,8 +24,6 @@ public:
 
 	void SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
 
-	const FVector2D& GetMouseDelta() const { return MouseDelta; }
-
 private:
 
 	HIDInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& MessageHandler );
@@ -37,10 +35,6 @@ private:
 	static void HIDDeviceRemovalCallback( void* Context, IOReturn Result, void* Sender, IOHIDDeviceRef DeviceRef );
 
 	void OnNewHIDController( IOReturn Result, IOHIDDeviceRef DeviceRef );
-
-	void OnNewHIDMouse( IOReturn Result, IOHIDDeviceRef DeviceRef );
-
-	bool IsMouseAlreadyKnown( IOHIDDeviceRef DeviceRef );
 
 private:
 
@@ -98,15 +92,6 @@ private:
 		FHIDDeviceInfo Device;
 	};
 
-	struct FMouseState
-	{
-		IOHIDDeviceRef DeviceRef;
-		IOHIDElementRef AxisXElement;
-		IOHIDElementRef AxisYElement;
-
-		FMouseState() : DeviceRef(NULL), AxisXElement(NULL), AxisYElement(NULL) {}
-	};
-
 private:
 
 	/** In the engine, all controllers map to xbox controllers for consistency */
@@ -117,11 +102,6 @@ private:
 
 	/** Controller states */
 	FControllerState ControllerStates[MAX_NUM_HIDINPUT_CONTROLLERS];
-
-	/** Mouse states */
-	TArray<FMouseState> MouseStates;
-
-	FVector2D MouseDelta;
 
 	/** Delay before sending a repeat message after a button was first pressed */
 	float InitialButtonRepeatDelay;

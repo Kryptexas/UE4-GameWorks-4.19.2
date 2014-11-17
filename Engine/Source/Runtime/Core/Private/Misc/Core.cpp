@@ -75,6 +75,9 @@ bool GAllowActorScriptExecutionInEditor = false;
 /** Forces use of template names for newly instanced components in a CDO */
 bool GCompilingBlueprint = false;
 
+/** True if we're reconstructing blueprint instances. Should never be true on cooked builds */
+bool GIsReconstructingBlueprintInstances = false;
+
 /** Force blueprints to not compile on load */
 bool GForceDisableBlueprintCompileOnLoad = false;
 
@@ -155,6 +158,11 @@ TCHAR					GGameName[64];
 // macro for the game's main game module.
 #endif
 
+// Foreign engine directory. This is required to projects built outside the engine root to reference their engine directory.
+#if !IS_MONOLITHIC
+IMPLEMENT_FOREIGN_ENGINE_DIR()
+#endif
+
 /** Exec handler for game debugging tool, allowing commands like "editactor", ...							*/
 FExec*					GDebugToolExec					= NULL;
 /** Whether we're currently in the async loading codepath or not											*/
@@ -190,8 +198,6 @@ bool					GIsFirstInstance				= true;
 #endif
 /** Threshold for a frame to be considered a hitch (in seconds. */
 float GHitchThreshold = 0.075f;
-/** Whether to forcefully enable capturing of stats due to a profiler attached								*/
-bool					GProfilerAttached = false;
 /** Size to break up data into when saving compressed data													*/
 int32					GSavingCompressionChunkSize		= SAVING_COMPRESSION_CHUNK_SIZE;
 /** Whether we are using the seekfree/ cooked loading codepath.												*/
@@ -239,25 +245,9 @@ bool					GIsAutomationTesting					= false;
 /** Whether or not messages are being pumped outside of the main loop										*/
 bool					GPumpingMessagesOutsideOfMainLoop = false;
 
-/** Total number of calls to Malloc, if implemented by derived class.										*/
-uint64 FMalloc::TotalMallocCalls;
-/** Total number of calls to Free, if implemented by derived class.											*/
-uint64 FMalloc::TotalFreeCalls;
-/** Total number of calls to Realloc, if implemented by derived class.										*/
-uint64 FMalloc::TotalReallocCalls;
-
 /** Total blueprint compile time.																			*/
 double GBlueprintCompileTime = 0.0;
 
-
-/** Memory stats objects 
- *
- * If you add new Stat Memory stats please update:  FMemoryChartEntry so the automated memory chart has the info
- */
-
-
-DEFINE_STAT(STAT_PhysicalAllocSize);
-DEFINE_STAT(STAT_VirtualAllocSize);
 DEFINE_STAT(STAT_AudioMemory);
 DEFINE_STAT(STAT_TextureMemory);
 DEFINE_STAT(STAT_MemoryPhysXTotalAllocationSize);
@@ -282,16 +272,13 @@ DEFINE_STAT(STAT_ResourceVertexColorMemory);
 DEFINE_STAT(STAT_InstVertexColorMemory);
 DEFINE_STAT(STAT_StaticMeshIndexMemory);
 
-DEFINE_STAT(STAT_MallocCalls);
-DEFINE_STAT(STAT_ReallocCalls);
-DEFINE_STAT(STAT_FreeCalls);
-DEFINE_STAT(STAT_TotalAllocatorCalls);
+
 
 /** Threading stats objects */
 
 DEFINE_STAT(STAT_RenderingIdleTime_WaitingForGPUQuery);
 DEFINE_STAT(STAT_RenderingIdleTime_WaitingForGPUPresent);
-DEFINE_STAT(STAT_RenderingIdleTime_WaitingForRenderCommands);
+DEFINE_STAT(STAT_RenderingIdleTime_RenderThreadSleepTime);
 
 DEFINE_STAT(STAT_RenderingIdleTime);
 DEFINE_STAT(STAT_RenderingBusyTime);
@@ -332,6 +319,7 @@ DEFINE_LOG_CATEGORY(LogSerialization);
 DEFINE_LOG_CATEGORY(LogContentComparisonCommandlet);
 DEFINE_LOG_CATEGORY(LogNetPackageMap);
 DEFINE_LOG_CATEGORY(LogNetSerialization);
+DEFINE_LOG_CATEGORY(LogMemory);
 
 DEFINE_LOG_CATEGORY(LogTemp);
 

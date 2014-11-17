@@ -235,9 +235,11 @@ FReply SCheckBox::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEv
 				}
 			}
 		}
+
+		return FReply::Handled().ReleaseMouseCapture();
 	}
 
-	return FReply::Handled().ReleaseMouseCapture();
+	return FReply::Unhandled();
 }
 
 void SCheckBox::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

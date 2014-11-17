@@ -13,7 +13,7 @@
 #include "DebugCameraController.generated.h"
 
 UCLASS(config=Game)
-class ADebugCameraController : public APlayerController
+class ENGINE_API ADebugCameraController : public APlayerController
 {
 	GENERATED_UCLASS_BODY()
 

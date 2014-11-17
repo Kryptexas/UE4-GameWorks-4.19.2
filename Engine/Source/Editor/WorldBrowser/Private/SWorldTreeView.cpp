@@ -22,6 +22,15 @@ void SWorldLevelsTreeView::Construct(const FArguments& InArgs)
 			SNew( SHeaderRow )
 			.Visibility(EVisibility::Collapsed)
 
+			/** Level visibility column */
+			+ SHeaderRow::Column(HierarchyColumns::ColumnID_Visibility)
+			.FixedWidth(24.0f)
+			.HeaderContent()
+			[
+				SNew(STextBlock)
+				.ToolTipText(NSLOCTEXT("WorldBrowser", "Visibility", "Visibility"))
+			]
+
 			/** LevelName label column */
 			+ SHeaderRow::Column( HierarchyColumns::ColumnID_LevelLabel )
 				.FillWidth( 0.45f )
@@ -40,15 +49,6 @@ void SWorldLevelsTreeView::Construct(const FArguments& InArgs)
 						.ToolTipText(NSLOCTEXT("WorldBrowser", "Lock", "Lock"))
 				]
 	
-			/** Level visibility column */
-			+ SHeaderRow::Column( HierarchyColumns::ColumnID_Visibility )
-				.FixedWidth( 24.0f )
-				.HeaderContent()
-				[
-					SNew(STextBlock)
-						.ToolTipText(NSLOCTEXT("WorldBrowser", "Visibility", "Visibility"))
-				]
-
 			/** Level kismet column */
 			+ SHeaderRow::Column( HierarchyColumns::ColumnID_Kismet )
 				.FixedWidth( 24.0f )

@@ -16,7 +16,6 @@
 void SNodeTitle::Construct(const FArguments& InArgs, UEdGraphNode* InNode)
 {
 	GraphNode = InNode;
-	CachedString = FString();
 
 	ExtraLineStyle = InArgs._ExtraLineStyle;
 
@@ -27,9 +26,9 @@ void SNodeTitle::Construct(const FArguments& InArgs, UEdGraphNode* InNode)
 	}
 	else
 	{
-		TitleText = TAttribute<FString>(this, &SNodeTitle::GetNodeTitle);
+		TitleText = TAttribute<FText>(this, &SNodeTitle::GetNodeTitle);
 	}
-	CachedString = TitleText.Get();
+	CachedTitle = TitleText.Get();
 	RebuildWidget();
 }
 
@@ -38,24 +37,23 @@ void SNodeTitle::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 
 	// Checks to see if the cached string is valid, and if not, updates it.
-	FString CurrentNodeTitle = TitleText.Get();
-	if (CurrentNodeTitle != CachedString)
+	if (TitleText.Get().CompareTo(CachedTitle) != 0)
 	{
-		CachedString = CurrentNodeTitle;
+		CachedTitle = TitleText.Get();
 		RebuildWidget();
 	}
 }
 
-FString SNodeTitle::GetNodeTitle() const
+FText SNodeTitle::GetNodeTitle() const
 {
 	return (GraphNode != NULL)
 		? GraphNode->GetNodeTitle(ENodeTitleType::FullTitle)
-		: NSLOCTEXT("GraphEditor", "NullNode", "Null Node").ToString();
+		: NSLOCTEXT("GraphEditor", "NullNode", "Null Node");
 }
 
 FText SNodeTitle::GetHeadTitle() const
 {
-	return GraphNode->bCanRenameNode? FText::FromString(GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle)) : CachedHeadTitle;
+	return GraphNode->bCanRenameNode? GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle) : CachedHeadTitle;
 }
 
 void SNodeTitle::RebuildWidget()
@@ -69,7 +67,7 @@ void SNodeTitle::RebuildWidget()
 
 	// Break the title into lines
 	TArray<FString> Lines;
-	CachedString.ParseIntoArray(&Lines, TEXT("\n"), false);
+	CachedTitle.ToString().ParseIntoArray(&Lines, TEXT("\n"), false);
 
 	if(Lines.Num())
 	{
@@ -188,12 +186,12 @@ void SGraphNode::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	{
 		//Default tool tip
 		TSharedPtr<FActorDragDropGraphEdOp> DragConnectionOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
-		DragConnectionOp->SetToolTip(FActorDragDropGraphEdOp::ToolTip_Default);
+		DragConnectionOp->ResetToDefaultToolTip();
 	}
 	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
 	{
 		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
-		AssetOp->ClearTooltip();
+		AssetOp->ResetToDefaultToolTip();
 	}
 	else if ( DragDrop::IsTypeMatch<FBoneDragDropOp>(DragDropEvent.GetOperation()) )
 	{
@@ -212,7 +210,7 @@ FReply SGraphNode::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 			FString TooltipText;
 			GraphNode->GetSchema()->GetAssetsNodeHoverMessage(AssetOp->AssetData, GraphNode, TooltipText, bOkIcon);
 			const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
-			AssetOp->SetTooltip(TooltipText, TooltipIcon);
+			AssetOp->SetToolTip( TooltipText, TooltipIcon );
 		}
 		return FReply::Handled();
 	}
@@ -310,8 +308,12 @@ FReply SGraphNode::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 // Called when a mouse button is double clicked.  Override this in derived classes
 FReply SGraphNode::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
-	OnDoubleClick.ExecuteIfBound(GraphNode);
-	return FReply::Handled();
+	if(InMouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
+	{
+		OnDoubleClick.ExecuteIfBound(GraphNode);
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
 }
 
 TSharedPtr<SToolTip> SGraphNode::GetToolTip()
@@ -383,9 +385,10 @@ void SGraphNode::MoveTo( const FVector2D& NewPosition )
 	{
 		if (!RequiresSecondPassLayout())
 		{
+			GraphNode->Modify();
+
 			GraphNode->NodePosX = NewPosition.X;
 			GraphNode->NodePosY = NewPosition.Y;
-			GraphNode->MarkPackageDirty();
 		}
 	}
 }
@@ -406,13 +409,13 @@ FString SGraphNode::GetEditableNodeTitle() const
 
 	if(GraphNode)
 	{
-		return GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle);
+		return GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle).ToString();
 	}
 	return NSLOCTEXT("GraphEditor", "NullNode", "Null Node").ToString();
 
 	// Get the portion of the node that is actually editable text (may be a subsection of the title, or something else entirely)
 	return (GraphNode != NULL)
-		? GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle)
+		? GraphNode->GetNodeTitle(ENodeTitleType::EditableTitle).ToString()
 		: NSLOCTEXT("GraphEditor", "NullNode", "Null Node").ToString();
 }
 
@@ -449,6 +452,12 @@ FText SGraphNode::GetNodeTooltip() const
 {
 	if (GraphNode != NULL)
 	{
+		// Display the native title of the node when alt is held
+		if(FSlateApplication::Get().GetModifierKeys().IsAltDown())
+		{
+			return FText::FromString(GraphNode->GetNodeNativeTitle(ENodeTitleType::ListView));
+		}
+
 		FText TooltipText = FText::FromString(GraphNode->GetTooltip());
 
 		if (UEdGraph* Graph = GraphNode->GetGraph())
@@ -456,13 +465,16 @@ FText SGraphNode::GetNodeTooltip() const
 			// If the node resides in an intermediate graph, show the UObject name for debug purposes
 			if (Graph->HasAnyFlags(RF_Transient))
 			{
-				TooltipText = FText::FromString(FString::Printf(TEXT("%s\n\n%s"), *GraphNode->GetName(), *TooltipText.ToString()));
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("NodeName"), FText::FromString(GraphNode->GetName()));
+				Args.Add(TEXT("TooltipText"), TooltipText);
+				TooltipText = FText::Format(NSLOCTEXT("GraphEditor", "GraphNodeTooltip", "{NodeName}\n\n{TooltipText}"), Args);
 			}
 		}
 
 		if (TooltipText.IsEmpty())
 		{
-			TooltipText =  FText::FromString(GraphNode->GetNodeTitle(ENodeTitleType::FullTitle));
+			TooltipText =  GraphNode->GetNodeTitle(ENodeTitleType::FullTitle);
 		}
 
 		return TooltipText;
@@ -699,6 +711,8 @@ void SGraphNode::UpdateGraphNode()
 
 	CreateBelowWidgetControls(MainVerticalBox);
 	CreatePinWidgets();
+	CreateInputSideAddButton(LeftNodeBox);
+	CreateOutputSideAddButton(RightNodeBox);
 	CreateBelowPinControls(InnerVerticalBox);
 	CreateAdvancedViewArrow(InnerVerticalBox);
 }
@@ -1143,4 +1157,88 @@ bool SGraphNode::UseLowDetailNodeTitles() const
 	{
 		return false;
 	}
+}
+
+TSharedRef<SWidget> SGraphNode::AddPinButtonContent(FText PinText, FText PinTooltipText, bool bRightSide, FString DocumentationExcerpt, TSharedPtr<SToolTip> CustomTooltip)
+{
+	TSharedPtr<SWidget> ButtonContent;
+	if(bRightSide)
+	{
+		SAssignNew(ButtonContent, SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		[
+			SNew(STextBlock)
+			.Text(PinText)
+			.ColorAndOpacity(FLinearColor::White)
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		. VAlign(VAlign_Center)
+		. Padding( 7,0,0,0 )
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_AddToArray")))
+		];
+	}
+	else
+	{
+		SAssignNew(ButtonContent, SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		. VAlign(VAlign_Center)
+		. Padding( 0,0,7,0 )
+		[
+			SNew(SImage)
+			.Image(FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_AddToArray")))
+		]
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Left)
+		[
+			SNew(STextBlock)
+			.Text(PinText)
+			.ColorAndOpacity(FLinearColor::White)
+		];
+	}
+
+	TSharedPtr<SToolTip> Tooltip;
+
+	if (CustomTooltip.IsValid())
+	{
+		Tooltip = CustomTooltip;
+	}
+	else if (!DocumentationExcerpt.IsEmpty())
+	{
+		Tooltip = IDocumentation::Get()->CreateToolTip( PinTooltipText, NULL, GraphNode->GetDocumentationLink(), DocumentationExcerpt );
+	}
+
+	TSharedRef<SButton> AddPinButton = SNew(SButton)
+	.ContentPadding(0.0f)
+	.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+	.OnClicked( this, &SGraphNode::OnAddPin )
+	.ToolTipText(PinTooltipText)
+	.ToolTip(Tooltip)
+	.Visibility(this, &SGraphNode::IsAddPinButtonVisible)
+	[
+		ButtonContent.ToSharedRef()
+	];
+
+	AddPinButton->SetCursor( EMouseCursor::Hand );
+
+	return AddPinButton;
+}
+
+EVisibility SGraphNode::IsAddPinButtonVisible() const
+{
+	bool bIsHidden = false;
+	auto OwnerGraphPanel = OwnerGraphPanelPtr.Pin();
+	if(OwnerGraphPanel.IsValid())
+	{
+		bIsHidden |= (SGraphEditor::EPinVisibility::Pin_Show != OwnerGraphPanel->GetPinVisibility());
+		bIsHidden |= (OwnerGraphPanel->GetCurrentLOD() <= EGraphRenderingLOD::LowDetail);
+	}
+
+	return bIsHidden ? EVisibility::Collapsed : EVisibility::Visible;
 }

@@ -128,7 +128,7 @@ public:
 private:
 
 	// Callback for getting the text in the 'Claimed' column.
-	FString HandleClaimedText( ) const
+	FText HandleClaimedText( ) const
 	{
 		FString ClaimUser = DeviceService->GetClaimUser();
 
@@ -137,13 +137,13 @@ private:
 			ClaimUser += LOCTEXT("RemotelyHint", " (remotely)").ToString();
 		}
 
-		return ClaimUser;
+		return FText::FromString(ClaimUser);
 	}
 
 	// Callback for getting the text in the 'Name' column.
-	FString HandleNameText( ) const
+	FText HandleNameText( ) const
 	{
-		return DeviceService->GetCachedDeviceName();
+		return FText::FromString(DeviceService->GetCachedDeviceName());
 	}
 
 	// Callback for changing this row's Share check box state.
@@ -170,7 +170,7 @@ private:
 	}
 
 	// Callback for getting the status text.
-	FString HandleStatusTextBlockText( ) const
+	FText HandleStatusTextBlockText( ) const
 	{
 		ITargetDevicePtr TargetDevice = DeviceService->GetDevice();
 
@@ -178,13 +178,13 @@ private:
 		{
 			if (TargetDevice->IsConnected())
 			{
-				return LOCTEXT("StatusConnected", "Connected").ToString();
+				return LOCTEXT("StatusConnected", "Connected");
 			}
 
-			return LOCTEXT("StatusDisconnected", "Disconnected").ToString();
+			return LOCTEXT("StatusDisconnected", "Disconnected");
 		}
 
-		return LOCTEXT("StatusUnavailable", "Unavailable").ToString();
+		return LOCTEXT("StatusUnavailable", "Unavailable");
 	}
 
 	// Callback for getting the text color.

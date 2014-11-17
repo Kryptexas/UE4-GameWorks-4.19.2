@@ -90,6 +90,9 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Utilities|Platform")
 	static FString GetUniqueDeviceId();
 
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "ToObject (interface)", CompactNodeTitle = "->"), Category="Utilities")
+	static UObject* Conv_InterfaceToObject(const FScriptInterface& Interface); 
+
 	/**
 	 * Creates a literal integer
 	 * @param	Value	value to set the integer to
@@ -354,9 +357,9 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DeprecatedFunction, DeprecationMessage = "Use new SphereOverlapComponents", HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore"))
 	static ENGINE_API bool SphereOverlapComponents_DEPRECATED(UObject* WorldContextObject, const FVector& SpherePos, float SphereRadius, EOverlapFilterOption Filter, UClass* ComponentClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class UPrimitiveComponent*>& OutComponents);
- 	
+	
 
- 	/**
+	/**
 	 * Returns an array of actors that overlap the given axis-aligned box.
 	 * @param WorldContext	World context
 	 * @param BoxPos		Center of box.
@@ -373,7 +376,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DeprecatedFunction, DeprecationMessage = "Use new BoxOverlapActors", HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore"))
 	static ENGINE_API bool BoxOverlapActors_DEPRECATED(UObject* WorldContextObject, const FVector& BoxPos, FVector BoxExtent, EOverlapFilterOption Filter, UClass* ActorClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class AActor*>& OutActors);
 
- 	/**
+	/**
 	 * Returns an array of components that overlap the given axis-aligned box.
 	 * @param WorldContext	World context
 	 * @param BoxPos		Center of box.
@@ -391,7 +394,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static ENGINE_API bool BoxOverlapComponents_DEPRECATED(UObject* WorldContextObject, const FVector& BoxPos, FVector Extent, EOverlapFilterOption Filter, UClass* ComponentClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class UPrimitiveComponent*>& OutComponents);
 
 
- 	/**
+	/**
 	 * Returns an array of actors that overlap the given capsule.
 	 * @param WorldContext	World context
 	 * @param CapsulePos	Center of the capsule.
@@ -408,7 +411,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DeprecatedFunction, DeprecationMessage = "Use new CapsuleOverlapActors", HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore"))
 	static ENGINE_API bool CapsuleOverlapActors_DEPRECATED(UObject* WorldContextObject, const FVector& CapsulePos, float Radius, float HalfHeight, EOverlapFilterOption Filter, UClass* ActorClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class AActor*>& OutActors);
- 	/**
+	/**
 	 * Returns an array of components that overlap the given capsule.
 	 * @param WorldContext	World context
 	 * @param CapsulePos	Center of the capsule.
@@ -427,7 +430,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static ENGINE_API bool CapsuleOverlapComponents_DEPRECATED(UObject* WorldContextObject, const FVector& CapsulePos, float Radius, float HalfHeight, EOverlapFilterOption Filter, UClass* ComponentClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class UPrimitiveComponent*>& OutComponents);
 	
 
- 	/**
+	/**
 	 * Returns an array of actors that overlap the given component.
 	 * @param Component				Component to test with.
 	 * @param ComponentTransform	Defines where to place the component for overlap testing.
@@ -442,7 +445,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DeprecatedFunction, DeprecationMessage = "Use new ComponentOverlapActors", AutoCreateRefTerm="ActorsToIgnore"))
 	static ENGINE_API bool ComponentOverlapActors_DEPRECATED(UPrimitiveComponent* Component, const FTransform& ComponentTransform, EOverlapFilterOption Filter, UClass* ActorClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class AActor*>& OutActors);
- 	
+	
 	/**
 	 * Returns an array of components that overlap the given component.
 	 * @param Component				Component to test with.
@@ -922,6 +925,17 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Rendering|Debug")
 	static ENGINE_API void DrawDebugCamera(const ACameraActor* CameraActor, FLinearColor CameraColor = FLinearColor::White, float Duration=-1.f);
 
+	/* Draws a 2D Histogram of size 'DrawSize' based FDebugFloatHistory struct, using DrawTransform for the position in the world. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Debug")
+	static ENGINE_API void DrawDebugFloatHistoryTransform(UObject * WorldContextObject, const FDebugFloatHistory & FloatHistory, const FTransform & DrawTransform, FVector2D DrawSize, FLinearColor DrawColor, float Duration = -1.f);
+
+	/* Draws a 2D Histogram of size 'DrawSize' based FDebugFloatHistory struct, using DrawLocation for the location in the world, rotation will face camera of first player. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering|Debug")
+	static ENGINE_API void DrawDebugFloatHistoryLocation(UObject * WorldContextObject, const FDebugFloatHistory & FloatHistory, FVector DrawLocation, FVector2D DrawSize, FLinearColor DrawColor, float Duration = -1.f);
+
+	UFUNCTION(BlueprintPure, Category = "Rendering|Debug")
+	static ENGINE_API FDebugFloatHistory AddFloatHistorySample(float Value, const FDebugFloatHistory & FloatHistory);
+	
 	/** Mark as modified. */
 	UFUNCTION(BlueprintCallable, Category="Development|Editor")
 	static ENGINE_API void CreateCopyForUndoBuffer(UObject* ObjectToModify);
@@ -934,7 +948,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static ENGINE_API void GetActorBounds(const AActor* Actor, FVector& Origin, FVector& BoxExtent);
 
 	/**
- 	 * Get the clamped state of r.DetailMode, see console variable help (allows for scalability, cannot be used in construction scripts)
+	 * Get the clamped state of r.DetailMode, see console variable help (allows for scalability, cannot be used in construction scripts)
 	 * 0: low, show only object with DetailMode low or higher
 	 * 1: medium, show all object with DetailMode medium or higher
 	 * 2: high, show all objects
@@ -943,7 +957,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static int32 GetRenderingDetailMode();
 
 	/**
- 	 * Get the clamped state of r.MaterialQualityLevel, see console variable help (allows for scalability, cannot be used in construction scripts)
+	 * Get the clamped state of r.MaterialQualityLevel, see console variable help (allows for scalability, cannot be used in construction scripts)
 	 * 0: low
 	 * 1: high
 	 */
@@ -981,4 +995,10 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
 	static void EXPERIMENTAL_CloseAdBanner();
+
+	/**
+	 * Displays the built-in iOS leaderboard GUI (iOS only; this function will be renamed or moved in a future release)
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void EXPERIMENTAL_ShowGameCenterLeaderboard(const FString& CategoryName);
 };

@@ -9,7 +9,7 @@ class UMaterialExpressionStaticSwitch : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionStaticSwitch)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionStaticSwitch, meta=(OverridingInputProperty = "Value"))
 	uint32 DefaultValue:1;
 
 	UPROPERTY()
@@ -18,15 +18,9 @@ class UMaterialExpressionStaticSwitch : public UMaterialExpression
 	UPROPERTY()
 	FExpressionInput B;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Ignored if not specified"))
 	FExpressionInput Value;
 
-
-	// Begin UObject Interface
-#if WITH_EDITOR
-	virtual bool CanEditChange( const UProperty* InProperty ) const OVERRIDE;
-#endif // WITH_EDITOR
-	// End UObject Interface
 
 	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;

@@ -128,23 +128,23 @@ bool FIOSTargetDevice::Run(const FString& ExecutablePath, const FString& Params,
 #endif // !PLATFORM_MAC
 }
 
-bool FIOSTargetDevice::SupportsFeature(ETargetDeviceFeatures::Type InFeature) const
+bool FIOSTargetDevice::SupportsFeature(ETargetDeviceFeatures::Type Feature) const
 {
-	if (InFeature == ETargetDeviceFeatures::Reboot)
+	switch (Feature)
 	{
+	case ETargetDeviceFeatures::Reboot:
 		return bCanReboot;
-	}
-	else if (InFeature == ETargetDeviceFeatures::PowerOn)
-	{
-		return bCanPowerOn;
-	}
-	else if (InFeature == ETargetDeviceFeatures::PowerOff)
-	{
-		return bCanPowerOff;
-	}
 
-	else
-	{
+	case ETargetDeviceFeatures::PowerOn:
+		return bCanPowerOn;
+
+	case ETargetDeviceFeatures::PowerOff:
+		return bCanPowerOff;
+
+	case ETargetDeviceFeatures::ProcessSnapshot:
+		return false;
+
+	default:
 		return false;
 	}
 }

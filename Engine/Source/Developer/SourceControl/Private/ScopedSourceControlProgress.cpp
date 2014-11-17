@@ -181,7 +181,6 @@ FScopedSourceControlProgress::FScopedSourceControlProgress(const FText& InText, 
 			.SupportsMaximize(false) 
 			.SupportsMinimize(false)
 			.CreateTitleBar(false)
-			.AutoCenter(EAutoCenter::PrimaryWorkArea)
 			.SizingRule(ESizingRule::Autosized);
 
 		WindowPtr = Window;

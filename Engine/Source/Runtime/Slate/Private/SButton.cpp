@@ -105,7 +105,10 @@ FReply SButton::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& In
 	//see if we pressed the Enter or Spacebar keys
 	if(InKeyboardEvent.GetKey() == EKeys::Enter || InKeyboardEvent.GetKey() == EKeys::SpaceBar)
 	{
-		PlayPressedSound();
+		if(IsEnabled())
+		{
+			PlayPressedSound();
+		}		
 
 		//execute our "OnClicked" delegate, if we have one
 		if(OnClicked.IsBound() == true)
@@ -125,8 +128,12 @@ FReply SButton::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 	if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
 		bIsPressed = true;
-		PlayPressedSound();
 
+		if(IsEnabled())
+		{
+			PlayPressedSound();
+		}
+		
 		if( ClickMethod == EButtonClickMethod::MouseDown )
 		{
 			//get the reply from the execute function
@@ -207,8 +214,11 @@ FReply SButton::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& M
 
 void SButton::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	PlayHoverSound();
-
+	if(IsEnabled())
+	{
+		PlayHoverSound();
+	}
+	
 	SBorder::OnMouseEnter( MyGeometry, MouseEvent );
 }
 

@@ -88,6 +88,14 @@
 #define ES2_PROFILE										0
 #endif
 
+#ifndef IOS
+#define IOS												0
+#endif
+
+#ifndef MAC
+#define MAC												0
+#endif
+
 #ifndef USING_TESSELLATION
 #define USING_TESSELLATION							0
 #endif

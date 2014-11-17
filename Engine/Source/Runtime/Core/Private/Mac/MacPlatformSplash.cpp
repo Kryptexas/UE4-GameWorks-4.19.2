@@ -38,32 +38,34 @@ static NSRect GSplashScreenTextRects[ SplashTextType::NumTextTypes ];
 
 /**
  * Finds a usable splash pathname for the given filename
- * 
+ *
  * @param SplashFilename Name of the desired splash name ("Splash.bmp")
  * @param OutPath String containing the path to the file, if this function returns true
  *
  * @return true if a splash screen was found
  */
-static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath)
+static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath, bool& OutIsCustom)
 {
 	// first look in game's splash directory
 	OutPath = FPaths::GameContentDir() + TEXT("Splash/") + SplashFilename;
+	OutIsCustom = true;
 	
 	// if this was found, then we're done
 	if (IFileManager::Get().FileSize(*OutPath) != -1)
 	{
 		return true;
 	}
-
+	
 	// next look in Engine/Splash
 	OutPath = FPaths::EngineContentDir() + TEXT("Splash/") + SplashFilename;
-
+	OutIsCustom = false;
+	
 	// if this was found, then we're done
 	if (IFileManager::Get().FileSize(*OutPath) != -1)
 	{
 		return true;
 	}
-
+	
 	// if not found yet, then return failure
 	return false;
 }
@@ -76,12 +78,8 @@ static bool GetSplashPath(const TCHAR* SplashFilename, FString& OutPath)
  */
 static void StartSetSplashText( const SplashTextType::Type InType, const FText& InText )
 {
-	// Only allow copyright text displayed while loading the game.  Editor displays all.
-	if( InType == SplashTextType::CopyrightInfo || GIsEditor )
-	{
-		// Update splash text
-		GSplashScreenText[ InType ] = InText;
-	}
+	// Update splash text
+	GSplashScreenText[ InType ] = InText;
 }
 
 @interface UE4SplashView : NSView
@@ -89,7 +87,7 @@ static void StartSetSplashText( const SplashTextType::Type InType, const FText& 
 }
 
 - (void)drawRect: (NSRect)DirtyRect;
-- (void)drawText: (NSString *)Text inRect: (NSRect)Rect withColor: (NSColor *)Color fontSize: (int32)FontSize;
+- (void)drawText: (NSString *)Text inRect: (NSRect)Rect withAlignment: (NSTextAlignment)align withColor: (NSColor *)Color fontName: (NSString *)FontName fontSize: (int32)FontSize;
 
 @end
 
@@ -109,43 +107,74 @@ static void StartSetSplashText( const SplashTextType::Type InType, const FText& 
 
 		if( SplashText.ToString().Len() > 0 )
 		{
-			int32 FontSize = (CurTypeIndex == SplashTextType::StartupProgress || CurTypeIndex == SplashTextType::VersionInfo1) ? 12 : 11;
-
-			float Brightness;
-
-			if( CurTypeIndex == SplashTextType::StartupProgress )
+			int32 FontSize = 11;
+			switch ( CurTypeIndex )
 			{
-				Brightness = 180.0f / 255.0f;
+				case SplashTextType::StartupProgress:
+				case SplashTextType::VersionInfo1:
+					FontSize = 12;
+					break;
+				case SplashTextType::GameName:
+					FontSize = 34;
+					break;
 			}
-			else if( CurTypeIndex == SplashTextType::VersionInfo1 )
+
+			float Brightness = 160.0f / 255.0f;
+
+			switch ( CurTypeIndex )
 			{
-				Brightness = 240.0f / 255.0f;
-			}
-			else
-			{
-				Brightness = 160.0f / 255.0f;
+				case SplashTextType::StartupProgress:
+					Brightness = 180.0f / 255.0f;
+					break;
+				case SplashTextType::VersionInfo1:
+					Brightness = 240.0f / 255.0f;
+					break;
+				case SplashTextType::GameName:
+					Brightness = 240.0f / 255.0f;
+					break;
 			}
 
 			NSColor *TextColor = [NSColor colorWithDeviceRed: Brightness green: Brightness blue: Brightness alpha: 1.0f];
 
+			NSString* FontName = @"Helvetica-Bold";
+			switch ( CurTypeIndex )
+			{
+			case SplashTextType::GameName:
+				FontName = @"Verdana-Bold";
+				break;
+			}
+
+			// Alignment
+			NSTextAlignment align = NSLeftTextAlignment;
+			switch ( CurTypeIndex )
+			{
+			case SplashTextType::GameName:
+				align = NSRightTextAlignment;
+				break;
+			}
+
 			NSString *Text = (NSString *)FPlatformString::TCHARToCFString(*SplashText.ToString());
-			[self drawText: Text inRect: TextRect withColor: TextColor fontSize: FontSize];
+			[self drawText: Text inRect: TextRect withAlignment: align withColor: TextColor fontName: FontName fontSize: FontSize];
 			[Text release];
 		}
 	}
 }
 
-- (void)drawText: (NSString *)Text inRect: (NSRect)Rect withColor: (NSColor *)Color fontSize: (int32)FontSize
+- (void)drawText: (NSString *)Text inRect: (NSRect)Rect withAlignment: (NSTextAlignment)align withColor: (NSColor *)Color fontName: (NSString *)FontName fontSize: (int32)FontSize
 {
 	SCOPED_AUTORELEASE_POOL;
+
+	NSMutableParagraphStyle *style =[[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+	[style setAlignment : align];
 
 	NSDictionary* Dict =
 		[NSDictionary dictionaryWithObjects:
 			[NSArray arrayWithObjects:
 				Color,
-				[NSFont fontWithName:@"Helvetica-Bold" size: FontSize],
+				[NSFont fontWithName: FontName size: FontSize],
 				[NSColor colorWithDeviceRed: 0.0 green: 0.0 blue: 0.0 alpha: 1.0],
 				[NSNumber numberWithFloat:-4.0],
+				style,
 				nil ]
 		forKeys:
 			[NSArray arrayWithObjects:
@@ -153,6 +182,7 @@ static void StartSetSplashText( const SplashTextType::Type InType, const FText& 
 				NSFontAttributeName,
 				NSStrokeColorAttributeName,
 				NSStrokeWidthAttributeName,
+				NSParagraphStyleAttributeName,
 				nil]
 		];
 	[Text drawInRect: Rect withAttributes: Dict];
@@ -166,13 +196,21 @@ void FMacPlatformSplash::Show()
 	{
 		SCOPED_AUTORELEASE_POOL;
 
-		const TCHAR* SplashImage =
-				( GIsEditor ? TEXT("EdSplash.bmp") : TEXT("Splash.bmp") );
+		const FText GameName = FText::FromString(FApp::GetGameName());
+
+		const TCHAR* SplashImage = GIsEditor ? ( GameName.IsEmpty() ? TEXT("EdSplashDefault.bmp") : TEXT("EdSplash.bmp") ) : ( GameName.IsEmpty() ? TEXT("SplashDefault.bmp") : TEXT("Splash.bmp") );
 
 		// make sure a splash was found
 		FString SplashPath;
-		if (GetSplashPath( SplashImage, SplashPath ) == true)
+		bool IsCustom;
+		if ( GetSplashPath(SplashImage, SplashPath, IsCustom) == true )
 		{
+			// Don't set the game name if the splash screen is custom.
+			if ( !IsCustom )
+			{
+				StartSetSplashText( SplashTextType::GameName, GameName );
+			}
+
 			// In the editor, we'll display loading info
 			if( GIsEditor )
 			{
@@ -228,6 +266,12 @@ void FMacPlatformSplash::Show()
 		int32 OriginX = 10;
 		int32 OriginY = 6;
 		int32 FontHeight = 14;
+
+		// Setup bounds for game name
+		GSplashScreenTextRects[ SplashTextType::GameName ].origin.x = 10;
+		GSplashScreenTextRects[ SplashTextType::GameName ].origin.y = 0;
+		GSplashScreenTextRects[ SplashTextType::GameName ].size.width = ImageWidth - 2 * 10;
+		GSplashScreenTextRects[ SplashTextType::GameName ].size.height = ImageHeight;
 
 		// Setup bounds for texts
 		GSplashScreenTextRects[ SplashTextType::VersionInfo1 ].origin.x =

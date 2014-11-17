@@ -38,14 +38,14 @@ void UEnvironmentQueryGraphNode::ResetNodeOwner()
 	}
 }
 
-FString UEnvironmentQueryGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UEnvironmentQueryGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString();
+	return FText::GetEmpty();
 }
 
-FString UEnvironmentQueryGraphNode::GetDescription() const
+FText UEnvironmentQueryGraphNode::GetDescription() const
 {
-	return FString();
+	return FText::GetEmpty();
 }
 
 UEdGraphPin* UEnvironmentQueryGraphNode::GetInputPin(int32 InputIndex) const

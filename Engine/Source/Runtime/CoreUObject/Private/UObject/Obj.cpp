@@ -2041,11 +2041,11 @@ static void ShowIntrinsicClasses( FOutputDevice& Ar )
 static void ShowClasses( UClass* Class, FOutputDevice& Ar, int32 Indent )
 {
 	Ar.Logf( TEXT("%s%s (%d)"), FCString::Spc(Indent), *Class->GetName(), Class->GetPropertiesSize() );
-	for( TObjectIterator<UClass> It; It; ++It )
+	for( auto Obj : TObjectRange<UClass>() )
 	{
-		if( It->GetSuperClass() == Class )
+		if( Obj->GetSuperClass() == Class )
 		{
-			ShowClasses( *It, Ar, Indent+2 );
+			ShowClasses( Obj, Ar, Indent+2 );
 		}
 	}
 }
@@ -2493,11 +2493,11 @@ TArray<const TCHAR*> ParsePropertyFlags(uint64 Flags)
 		TEXT("CPF_EditConst"),
 		TEXT("CPF_GlobalConfig"),
 		TEXT("CPF_InstancedReference"),
-		TEXT("CPF_AlwaysInit"),
+		TEXT("0x0000000000100000"),
 		TEXT("CPF_DuplicateTransient"),
 		TEXT("CPF_SubobjectReference"),
 		TEXT("0x0000000000800000"),
-		TEXT("CPF_SaveGame"),
+		TEXT("CPF_SaveGame"),	
 		TEXT("CPF_NoClear"),
 		TEXT("CPF_EditInline"),
 		TEXT("CPF_ReferenceParm"),
@@ -3699,9 +3699,8 @@ void MarkObjectsToDisregardForGC()
 	// Iterate over all class objects and force the default objects to be created. Additionally also
 	// assembles the token reference stream at this point. This is required for class objects that are
 	// not taken into account for garbage collection but have instances that are.
-	for( TObjectIterator<UClass> It; It; ++It )
+	for( auto* Class : TObjectRange<UClass>() )
 	{
-		UClass* Class = *It;
 		// Force the default object to be created.
 		Class->GetDefaultObject(); // Force the default object to be constructed if it isn't already
 		// Assemble reference token stream for garbage collection/ RTGC.

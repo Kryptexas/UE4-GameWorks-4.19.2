@@ -311,6 +311,55 @@ namespace AutomationTool
             return FoundFiles.ToArray();
         }
 		/// <summary>
+		/// Finds files in specified paths. 
+		/// </summary>
+		/// <param name="SearchPattern">Pattern</param>
+		/// <param name="Recursive">Recursive search</param>
+		/// <param name="Paths">Paths to search</param>
+		/// <returns>An array of files found in the specified paths</returns>
+		public static string[] FindDirectories(bool bQuiet, string SearchPattern, bool Recursive, params string[] Paths)
+		{
+			List<string> FoundDirs = new List<string>();
+			foreach (var PathToSearch in Paths)
+			{
+				var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
+				if (DirectoryExists(NormalizedPath))
+				{
+					var FoundInPath = InternalUtils.SafeFindDirectories(NormalizedPath, SearchPattern, Recursive, bQuiet);
+					if (FoundInPath == null)
+					{
+						throw new AutomationException(String.Format("Failed to find directories in '{0}'", NormalizedPath));
+					}
+					FoundDirs.AddRange(FoundInPath);
+				}
+			}
+			return FoundDirs.ToArray();
+		}
+		/// <summary>
+		/// Finds Directories in specified paths. 
+		/// </summary>
+		/// <param name="SearchPattern">Pattern</param>
+		/// <param name="Recursive">Recursive search</param>
+		/// <param name="Paths">Paths to search</param>
+		/// <returns>An array of files found in the specified paths</returns>
+		public static string[] FindDirectories_NoExceptions(bool bQuiet, string SearchPattern, bool Recursive, params string[] Paths)
+		{
+			List<string> FoundDirs = new List<string>();
+			foreach (var PathToSearch in Paths)
+			{
+				var NormalizedPath = ConvertSeparators(PathSeparator.Default, PathToSearch);
+				if (DirectoryExists(NormalizedPath))
+				{
+					var FoundInPath = InternalUtils.SafeFindDirectories(NormalizedPath, SearchPattern, Recursive, bQuiet);
+					if (FoundInPath != null)
+					{
+						FoundDirs.AddRange(FoundInPath);
+					}
+				}
+			}
+			return FoundDirs.ToArray();
+		}
+		/// <summary>
 		/// Deletes a file(s). 
 		/// If the file does not exist, silently succeeds.
 		/// If the deletion of the file fails, this function throws an Exception.
@@ -1797,7 +1846,12 @@ namespace AutomationTool
 		/// </summary>
 		public static void SignSingleExecutableIfEXEOrDLL(string Filename, bool bIgnoreExtension = false)
 		{
-			if (!CommandUtils.FileExists(Filename))
+            if (UnrealBuildTool.Utils.IsRunningOnMono)
+            {
+                CommandUtils.Log(TraceEventType.Information, String.Format("Can't sign '{0}', we are running under mono.", Filename));
+                return;
+            }
+            if (!CommandUtils.FileExists(Filename))
 			{
 				throw new AutomationException("Can't sign '{0}', file does not exist.", Filename);
 			}

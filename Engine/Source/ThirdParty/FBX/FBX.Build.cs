@@ -10,7 +10,7 @@ public class FBX : ModuleRules
 
 		Definitions.Add("FBXSDK_NEW_API");
 
-		PublicIncludePaths.AddRange(
+		PublicSystemIncludePaths.AddRange(
 			new string[] {
 					UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2013.3/include",
 					UEBuildConfiguration.UEThirdPartyDirectory + "FBX/2013.3/include/fbxsdk",
@@ -46,11 +46,11 @@ public class FBX : ModuleRules
 
 			if (bAllowDebugFBXLibraries && Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
 			{
-				PublicAdditionalLibraries.Add(LibDir + "libfbxsdk-2013.3-staticd.a");
+				PublicAdditionalLibraries.Add(LibDir + "libfbxsdk-2013.3d.dylib");
 			}
 			else
 			{
-				PublicAdditionalLibraries.Add(LibDir + "libfbxsdk-2013.3-static.a");
+				PublicAdditionalLibraries.Add(LibDir + "libfbxsdk-2013.3.dylib");
 			}
 		}
 	}

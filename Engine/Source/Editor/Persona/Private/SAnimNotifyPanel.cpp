@@ -401,7 +401,7 @@ public:
 		TSharedPtr<SAnimNotifyTrack> NotifyTrack;
 	};
 
-	static FString GetTypeId() {static FString Type = TEXT("FNotifyDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FNotifyDragDropOp, FDragDropOperation)
 
 	virtual void OnDrop( bool bDropWasHandled, const FPointerEvent& MouseEvent ) OVERRIDE
 	{
@@ -566,7 +566,6 @@ public:
 	static TSharedRef<FNotifyDragDropOp> New(TSharedRef<SAnimNotifyNode> NotifyNode, const TArray<TSharedPtr<SAnimNotifyTrack>>& NotifyTracks, class UAnimSequenceBase* InSequence, const FVector2D &CursorPosition, const FVector2D &ScreenPositionOfNode, float& CurrentDragXPosition, FPanTrackRequest& RequestTrackPanDelegate, TAttribute<TArray<FTrackMarkerBar>>	MarkerBars)
 	{
 		TSharedRef<FNotifyDragDropOp> Operation = MakeShareable(new FNotifyDragDropOp(CurrentDragXPosition));
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FNotifyDragDropOp>(Operation);
 		Operation->NotifyEvent = NotifyNode->NotifyEvent;
 		Operation->Sequence = InSequence;
 		Operation->OriginalNotifyNode = NotifyNode;

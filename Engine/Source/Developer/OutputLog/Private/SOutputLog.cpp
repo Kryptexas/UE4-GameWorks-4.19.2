@@ -476,6 +476,9 @@ void SOutputLog::Construct( const FArguments& InArgs )
 				.FillWidth(1)
 				[
 					SNew(SScrollBorder, MessageListView.ToSharedRef())
+					[
+						MessageListView.ToSharedRef()
+					]
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
@@ -588,7 +591,7 @@ void SOutputLog::Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const
 	{
 		MessageListView->RequestListRefresh();
 		// Don't scroll to the bottom automatically when the user is scrolling the view or has scrolled it away from the bottom.
-		if( OutputLogScrollBar->DistanceFromBottom() <= 1.f )
+		if( OutputLogScrollBar->DistanceFromBottom() <= 0.f )
 		{
 			MessageListView->RequestScrollIntoView(Messages.Last());
 		}

@@ -7,7 +7,7 @@
   * Represents a camera viewpoint and settings, such as projection type, field of view, and post-process overrides.
   * The default behavior for an actor used as the camera view target is to look for an attached camera component and use its location, rotation, and settings.
   */
-UCLASS(HeaderGroup=Component, HideCategories=(Mobility, Activation, "Components|Activation", Rendering, LOD), ClassGroup=Camera, meta=(BlueprintSpawnableComponent), MinimalAPI)
+UCLASS(HeaderGroup=Component, HideCategories=(Mobility, Rendering, LOD), ClassGroup=Camera, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UCameraComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -59,6 +59,7 @@ class UCameraComponent : public USceneComponent
 	 * Returns camera's Point of View.
 	 * Called by Camera class. Subclass and postprocess to add any effects.
 	 */
+	UFUNCTION(BlueprintCallable, Category=Camera)
 	ENGINE_API virtual void GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView);
 
 protected:

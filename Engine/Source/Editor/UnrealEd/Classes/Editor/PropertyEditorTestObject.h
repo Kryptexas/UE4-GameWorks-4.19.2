@@ -118,6 +118,9 @@ class UPropertyEditorTestObject : public UObject
 	UObject* ObjectProperty;
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)
+	UClass* ClassProperty;
+
+	UPROPERTY(EditAnywhere, Category=BasicProperties)
 	FLinearColor LinearColorProperty;
 
 	UPROPERTY(EditAnywhere, Category=BasicProperties)

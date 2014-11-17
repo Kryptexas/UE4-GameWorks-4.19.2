@@ -46,14 +46,13 @@ FPlatformMemoryStats FMacPlatformMemory::GetStats()
 	MemoryStats.AvailablePhysical = FreeMem;
 	MemoryStats.AvailableVirtual = 0;
 
-	//MemoryStats.WorkingSetSize = UsedMem;??
-	MemoryStats.PagefileUsage = 0;
+	MemoryStats.UsedVirtual = 0;
 
 	// Just get memory information for the process and report the working set instead
 	task_basic_info_64_data_t TaskInfo;
 	mach_msg_type_number_t TaskInfoCount = TASK_BASIC_INFO_COUNT;
 	task_info( mach_task_self(), TASK_BASIC_INFO, (task_info_t)&TaskInfo, &TaskInfoCount );
-	MemoryStats.WorkingSetSize = TaskInfo.resident_size;
+	MemoryStats.UsedPhysical = TaskInfo.resident_size;
 
 	return MemoryStats;
 }

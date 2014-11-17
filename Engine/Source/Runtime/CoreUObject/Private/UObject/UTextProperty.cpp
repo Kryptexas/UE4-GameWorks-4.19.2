@@ -24,12 +24,15 @@ bool UTextProperty::Identical( const void* A, const void* B, uint32 PortFlags ) 
 			return *FTextInspector::GetDisplayString(ValueA) == *FTextInspector::GetDisplayString(ValueB);
 		}
 
-#if WITH_EDITOR
-		return *FTextInspector::GetSourceString(ValueA) == *FTextInspector::GetSourceString(ValueB);
-#else
-		return	FTextInspector::GetNamespace(ValueA)	==	FTextInspector::GetNamespace(ValueB) &&
-				FTextInspector::GetKey(ValueA)			==	FTextInspector::GetKey(ValueB);
-#endif
+		if (GIsEditor)
+		{
+			return *FTextInspector::GetSourceString(ValueA) == *FTextInspector::GetSourceString(ValueB);
+		}
+		else
+		{
+			return	FTextInspector::GetNamespace(ValueA)	==	FTextInspector::GetNamespace(ValueB) &&
+					FTextInspector::GetKey(ValueA)			==	FTextInspector::GetKey(ValueB);
+		}
 	}
 
 	return FTextInspector::GetDisplayString(ValueA).IsEmpty();
@@ -40,9 +43,10 @@ void UTextProperty::SerializeItem( FArchive& Ar, void* Value, int32 MaxReadBytes
 	const TCppType PropertyValue = GetPropertyValue(Value);
 	if ( Ar.IsSaving() && Ar.IsPersistent() && PropertyValue.IsTransient() )
 	{
-		const FText ErrorMessage = FText::Format( FText::SerializationFailureError, FText::FromString( FTextInspector::GetDisplayString(PropertyValue) ) );
-		UE_LOG( LogProperty, Warning, TEXT("%s"), *ErrorMessage.ToString());
-		SetPropertyValue(Value, ErrorMessage);
+		// Convert to a string and back, to get it set as an invariant message instead of transient. If it stayed transient, error messages recursively expand
+		FString ErrorMessage = FText::Format( FText::SerializationFailureError, FText::FromString( FTextInspector::GetDisplayString(PropertyValue) ) ).ToString();
+		UE_LOG( LogProperty, Warning, TEXT("%s"), *ErrorMessage);
+		SetPropertyValue(Value, FText::FromString(ErrorMessage));
 	}
 
 	Ar << *GetPropertyValuePtr(Value);

@@ -30,7 +30,6 @@ public:
 		, _SelectAllTextWhenFocused( false )
 		, _RevertTextOnEscape( false )
 		, _ClearKeyboardFocusOnCommit( true )
-		, _Padding()
 		, _MinDesiredWidth( 0.0f )
 		, _SelectAllTextOnCommit( false )
 		{}
@@ -79,9 +78,6 @@ public:
 
 		/** Whether to clear keyboard focus when pressing enter to commit changes */
 		SLATE_ATTRIBUTE( bool, ClearKeyboardFocusOnCommit )
-
-		/** Padding between the box/border and the text inside */
-		SLATE_ATTRIBUTE( FMargin, Padding )
 
 		/**
 		 * This is NOT for validating input!
@@ -442,13 +438,6 @@ protected:
 	 */
 	float CalculateCaretWidth(const float FontMaxCharHeight) const;
 
-	/** 
-	 * Convert geometry in render-space to geometry in text-space by taking into account the padding around the text
-	 * @param RenderGeometry The render-space geometry to convert
-	 * @return The updated text-space geometry
-	 */
-	FGeometry ConvertGeometryFromRenderSpaceToTextSpace(const FGeometry &RenderGeometry) const;
-
 private:
 	/** 
 	 * @return whether there is anything in the clipboard
@@ -487,9 +476,6 @@ private:
 
 	/** Image brush used for the caret */
 	TAttribute< const FSlateBrush* > CaretImage;
-
-	/** Padding between the box/border and the text inside */
-	TAttribute< FMargin > Padding;
 
 	/** Sets whether this text box can actually be modified interactively by the user */
 	TAttribute< bool > IsReadOnly;

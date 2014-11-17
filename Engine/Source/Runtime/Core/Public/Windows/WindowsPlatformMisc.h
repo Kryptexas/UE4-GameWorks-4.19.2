@@ -38,6 +38,7 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static void PumpMessages(bool bFromMainLoop);
 	static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings );
 	static uint32 GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings);
+	static void SetUTF8Output();
 	static void LocalPrint(const TCHAR *Message);
 	static void RequestExit(bool Force);
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
@@ -144,6 +145,22 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 */
 	static FString GetCPUVendor();
 
+	/**
+	 * Uses cpuid instruction to get the vendor string
+	 *
+	 * @return	CPU info bitfield
+	 *
+	 *			Bits 0-3	Stepping ID
+	 *			Bits 4-7	Model
+	 *			Bits 8-11	Family
+	 *			Bits 12-13	Processor type (Intel) / Reserved (AMD)
+	 *			Bits 14-15	Reserved
+	 *			Bits 16-19	Extended model
+	 *			Bits 20-27	Extended family
+	 *			Bits 28-31	Reserved
+	 */
+	static uint32 GetCPUInfo();
+
 	static bool GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue);
 
 	/** 
@@ -158,19 +175,18 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 */
 	static bool QueryRegKey( const HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData );
 
-	/** 
-	 * Looks up the application the user has set as their default browser choice from the registry
-	 *
-	 * @return	The applications to run to invoke the users default browser choice
-	 */
-	static FString GetDefaultBrowser();
-
 	/**
 	 * Returns the size of the cache line in bytes.
 	 *
 	 * @return The cache line size.
 	 */
 	static int32 GetCacheLineSize();
+
+	/**
+	* @return Windows path separator.
+	*/
+	static const TCHAR* GetDefaultPathSeparator();
+
 };
 
 typedef FWindowsPlatformMisc FPlatformMisc;

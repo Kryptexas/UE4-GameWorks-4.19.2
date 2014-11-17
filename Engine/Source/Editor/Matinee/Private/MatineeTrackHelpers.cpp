@@ -279,9 +279,13 @@ void UMatineeTrackAnimControlHelper::OnAddKeyTextEntry(const FAssetData& AssetDa
 		EntryPopupWindow.Pin()->RequestDestroyWindow();
 	}
 
-	KeyframeAddAnimSequence = CastChecked<UAnimSequence>(AssetData.GetAsset());
+	UObject * SelectedObject = AssetData.GetAsset();
+	if (SelectedObject && SelectedObject->IsA(UAnimSequence::StaticClass()))
+	{
+		KeyframeAddAnimSequence = CastChecked<UAnimSequence>(AssetData.GetAsset());
 
-	Matinee->FinishAddKey(Track,true);
+		Matinee->FinishAddKey(Track, true);
+	}
 }
 
 void  UMatineeTrackAnimControlHelper::PostCreateKeyframe( UInterpTrack *Track, int32 KeyIndex ) const
@@ -311,12 +315,12 @@ bool UMatineeTrackDirectorHelper::PreCreateKeyframe( UInterpTrack *Track, float 
 	{
 		// Make array of group names
 		TArray<FString> GroupNames;
-		for ( int32 i = 0; i < Mode->InterpEd->GetInterpData()->InterpGroups.Num(); i++ )
+		for ( UInterpGroup* InterpGroup : Mode->InterpEd->GetInterpData()->InterpGroups )
 		{
-			// Skip folder groups
-			if( !Mode->InterpEd->GetInterpData()->InterpGroups[i]->bIsFolder)
+			// Skip folder groups and the director group (we can't cut to ourselves)
+			if ( !(InterpGroup->bIsFolder || InterpGroup->IsA(UInterpGroupDirector::StaticClass())) )
 			{
-				GroupNames.Add( *(Mode->InterpEd->GetInterpData()->InterpGroups[i]->GroupName.ToString()) );
+				GroupNames.Add(InterpGroup->GroupName.ToString());
 			}
 		}
 
@@ -324,8 +328,7 @@ bool UMatineeTrackDirectorHelper::PreCreateKeyframe( UInterpTrack *Track, float 
 			SNew(STextComboPopup)
 			.Label(NSLOCTEXT("Matinee.Popups", "NewCut", "Cut to Group...").ToString())
 			.TextOptions(GroupNames)
-			.OnTextChosen_UObject(this, &UMatineeTrackDirectorHelper::OnAddKeyTextEntry, Mode->InterpEd, Track)
-			;
+			.OnTextChosen_UObject(this, &UMatineeTrackDirectorHelper::OnAddKeyTextEntry, Mode->InterpEd, Track);
 
 		TSharedPtr< SWindow > Parent = FSlateApplication::Get().GetActiveTopLevelWindow();
 		if ( Parent.IsValid() )
@@ -336,6 +339,8 @@ bool UMatineeTrackDirectorHelper::PreCreateKeyframe( UInterpTrack *Track, float 
 				FSlateApplication::Get().GetCursorPos(),
 				FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
 				);
+
+			TextEntryPopup->FocusDefaultWidget();
 		}
 	}
 

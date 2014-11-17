@@ -13,6 +13,7 @@ class UEnvironmentQueryGraph : public UEdGraph
 	void UpdateVersion();
 	void MarkVersion();
 
+	void CalculateAllWeights();
 	void UpdateAsset();
 	void CreateEnvQueryFromGraph(class UEnvironmentQueryGraphNode* RootEdNode);
 

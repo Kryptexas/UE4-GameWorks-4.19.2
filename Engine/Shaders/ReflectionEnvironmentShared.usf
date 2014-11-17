@@ -21,3 +21,28 @@ half ComputeReflectionCaptureMipFromRoughness(half Roughness)
 	half HardcodedNumCaptureArrayMips = 7;
 	return HardcodedNumCaptureArrayMips - 1 - LevelFrom1x1;
 }
+
+TextureCube SkyLightCubemap;
+SamplerState SkyLightCubemapSampler;
+
+/** X = max mip, Y = 1 if sky light should be rendered, 0 otherwise. */
+float2 SkyLightParameters;
+
+float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness)
+{
+	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness);
+	float3 Reflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, AbsoluteSpecularMip).rgb;
+
+	FLATTEN
+	if (View.ReflectionLightmapMixingMask > 0)
+	{
+		// Sample the lowest resolution mip to get the average color
+		//@todo - put this in a shader constant
+		//@todo - can't normalize sky lighting and reflection capture lighting separately
+		float3 LowFrequencyReflection = TextureCubeSampleLevel(SkyLightCubemap, SkyLightCubemapSampler, ReflectionVector, SkyLightParameters.x).rgb;
+		float LowFrequencyBrightness = Luminance(LowFrequencyReflection);
+		Reflection /= max(LowFrequencyBrightness, .00001f);
+	}
+
+	return Reflection * View.SkyLightColor.rgb;
+}

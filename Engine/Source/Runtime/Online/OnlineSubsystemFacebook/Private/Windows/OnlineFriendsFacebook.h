@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineFriendsInterface.h"
+#include "OnlineSubsystemFacebookPackage.h"
 #include "OnlinePresenceInterface.h"
 
 /**

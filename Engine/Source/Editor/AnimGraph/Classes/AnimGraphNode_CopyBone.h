@@ -13,12 +13,13 @@ class UAnimGraphNode_CopyBone : public UAnimGraphNode_SkeletalControlBase
 
 public:
 	// UEdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	// End of UEdGraphNode interface
 
 protected:
 	// UAnimGraphNode_SkeletalControlBase interface
-	virtual FString GetControllerDescription() const;
+	virtual FText GetControllerDescription() const OVERRIDE;
 	// End of UAnimGraphNode_SkeletalControlBase interface
 };

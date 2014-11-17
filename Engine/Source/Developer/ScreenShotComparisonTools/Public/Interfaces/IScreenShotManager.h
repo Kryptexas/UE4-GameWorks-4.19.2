@@ -30,6 +30,7 @@ DECLARE_DELEGATE(FOnScreenFilterChanged)
 class IScreenShotManager
 {
 public:
+	virtual ~IScreenShotManager(){ }
 
 	/**
 	* Generate the screen shot data

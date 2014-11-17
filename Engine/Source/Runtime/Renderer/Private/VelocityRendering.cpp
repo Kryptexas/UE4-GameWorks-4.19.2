@@ -131,6 +131,12 @@ public:
 			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
+	static void ModifyCompilationEnvironment( EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment )
+	{
+		FMaterialShader::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_G16R16);
+	}
+
 	FVelocityPS() {}
 
 	FVelocityPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)

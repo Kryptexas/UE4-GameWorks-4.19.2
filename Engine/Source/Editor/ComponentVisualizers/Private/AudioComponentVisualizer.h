@@ -2,8 +2,12 @@
 
 #pragma once
 
-class FAudioComponentVisualizer
+#include "ComponentVisualizer.h"
+
+class FAudioComponentVisualizer : public FComponentVisualizer
 {
 public:
-	static void DrawVisualization( const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI );
+	// Begin FComponentVisualizer interface
+	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) OVERRIDE;
+	// End FComponentVisualizer interface
 };

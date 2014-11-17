@@ -5,6 +5,8 @@
 #include "EngineKismetLibraryClasses.h"
 #include "CompilerResultsLog.h"
 
+#define LOCTEXT_NAMESPACE "K2Node_AIMoveTo"
+
 UK2Node_AIMoveTo::UK2Node_AIMoveTo(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -13,7 +15,6 @@ UK2Node_AIMoveTo::UK2Node_AIMoveTo(const class FPostConstructInitializePropertie
 	ProxyClass = UKismetAIAsyncTaskProxy::StaticClass();
 }
 
-#if WITH_EDITOR
 FString UK2Node_AIMoveTo::GetCategoryName()
 {
 	return TEXT("AI");
@@ -24,9 +25,11 @@ FString UK2Node_AIMoveTo::GetTooltip() const
 	return TEXT("Simple order for Pawn with AIController to move to a specific location");
 }
 
-FString UK2Node_AIMoveTo::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_AIMoveTo::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return "AI MoveTo";
+	return LOCTEXT("AIMoveTo", "AI MoveTo");
 }
-#endif // WITH_EDITOR
+
+#undef LOCTEXT_NAMESPACE
+
 

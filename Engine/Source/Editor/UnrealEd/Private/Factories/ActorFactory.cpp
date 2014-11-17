@@ -554,7 +554,6 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
-	FAssetData SkeletalMeshData;
 
 	if ( AssetData.GetClass()->IsChildOf( UAnimSequence::StaticClass() ) )
 	{
@@ -573,15 +572,30 @@ bool UActorFactoryAnimationAsset::CanCreateActorFrom( const FAssetData& AssetDat
 			return false;
 		}
 
-		const FString* SkeletalMeshPath = SkeletonData.TagsAndValues.Find( TEXT("PreviewSkeletalMesh") );
-		if ( SkeletalMeshPath == NULL || SkeletalMeshPath->IsEmpty() ) 
+		// skeleton should be loaded by this time. If not, we have problem
+		// so I'm changing this to load directly not using tags and values
+		USkeleton * Skeleton = Cast<USkeleton>(SkeletonData.GetAsset());
+		if (Skeleton)
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "UAnimationAssetNoSkeleton", "UAnimationAssets must have a valid Skeleton with a valid preview skeletal mesh.");
+			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);
+			if (PreviewMesh)
+			{ 
+				return true;
+			}
+			else
+			{
+				OutErrorMsg = NSLOCTEXT("CanCreateActor", "UAnimationAssetNoSkeleton", "UAnimationAssets must have a valid Skeleton with a valid preview skeletal mesh.");
+				return false;
+			}			
+		}
+		else
+		{
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoSkeleton", "UAnimationAssets must have a valid Skeleton.");
 			return false;
 		}
-
-		SkeletalMeshData = AssetRegistry.GetAssetByObjectPath( **SkeletalMeshPath );
 	}
+
+	FAssetData SkeletalMeshData;
 
 	if ( AssetData.GetClass()->IsChildOf( UVertexAnimation::StaticClass() ) )
 	{
@@ -620,7 +634,7 @@ USkeletalMesh* UActorFactoryAnimationAsset::GetSkeletalMeshFromAsset( UObject* A
 	if( AnimationAsset != NULL )
 	{
 		// base it on preview skeletal mesh, just to have something
-		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetPreviewMesh() : NULL;
+		SkeletalMesh = AnimationAsset->GetSkeleton()? AnimationAsset->GetSkeleton()->GetPreviewMesh(true) : NULL;
 	}
 	else if( VertexAnimation != NULL )
 	{
@@ -734,26 +748,49 @@ bool UActorFactorySkeletalMesh::CanCreateActorFrom( const FAssetData& AssetData,
 			return false;
 		}
 
-		const FString* SkeletalMeshPath = TargetSkeleton.TagsAndValues.Find( TEXT("PreviewSkeletalMesh") );
-		if ( SkeletalMeshPath == NULL || SkeletalMeshPath->IsEmpty() )
+		// skeleton should be loaded by this time. If not, we have problem
+		// so I'm changing this to load directly not using tags and values
+		USkeleton * Skeleton = Cast<USkeleton>(TargetSkeleton.GetAsset());
+		if(Skeleton)
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoPreviewSkeletalMesh", "The Target Skeleton of the UAnimBlueprint must have a valid Preview Skeletal Mesh.");
-			return false;
+			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);
+			if(PreviewMesh)
+			{
+				return true;
+			}
+			else
+			{
+				OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoPreviewSkeletalMesh", "The Target Skeleton of the UAnimBlueprint must have a valid Preview Skeletal Mesh.");
+				return false;
+			}
 		}
-
-		SkeletalMeshData = AssetRegistry.GetAssetByObjectPath( **SkeletalMeshPath );
+		else
+		{
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "UAnimBlueprints must have a valid Target Skeleton.");
+		}
 	}
 
 	if ( !SkeletalMeshData.IsValid() && AssetData.GetClass()->IsChildOf( USkeleton::StaticClass() ) )
 	{
-		const FString* PreviewSkeletalMeshPath = AssetData.TagsAndValues.Find( TEXT("PreviewSkeletalMesh") );
-		if ( PreviewSkeletalMeshPath == NULL || PreviewSkeletalMeshPath->IsEmpty() )
+		// so I'm changing this to load directly not using tags and values
+		USkeleton * Skeleton = Cast<USkeleton>(AssetData.GetAsset());
+		if(Skeleton)
 		{
-			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoPreviewSkeletalMesh", "The Target Skeleton of the UAnimBlueprint must have a valid Preview Skeletal Mesh.");
-			return false;
+			USkeletalMesh * PreviewMesh = Skeleton->GetPreviewMesh(true);
+			if(PreviewMesh)
+			{
+				return true;
+			}
+			else
+			{
+				OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoPreviewSkeletalMesh", "The Target Skeleton of the UAnimBlueprint must have a valid Preview Skeletal Mesh.");
+				return false;
+			}
 		}
-
-		SkeletalMeshData = AssetRegistry.GetAssetByObjectPath( **PreviewSkeletalMeshPath );
+		else
+		{
+			OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoTargetSkeleton", "SkeletalMesh must have a valid Target Skeleton.");
+		}
 	}
 
 	if ( !SkeletalMeshData.IsValid() )
@@ -781,12 +818,12 @@ USkeletalMesh* UActorFactorySkeletalMesh::GetSkeletalMeshFromAsset( UObject* Ass
 	if( SkeletalMesh == NULL && AnimBlueprint != NULL && AnimBlueprint->TargetSkeleton )
 	{
 		// base it on preview skeletal mesh, just to have something
-		SkeletalMesh = AnimBlueprint->TargetSkeleton->GetPreviewMesh();
+		SkeletalMesh = AnimBlueprint->TargetSkeleton->GetPreviewMesh(true);
 	}
 
 	if( SkeletalMesh == NULL && Skeleton != NULL )
 	{
-		SkeletalMesh = Skeleton->GetPreviewMesh();
+		SkeletalMesh = Skeleton->GetPreviewMesh(true);
 	}
 
 	check( SkeletalMesh != NULL );
@@ -1023,7 +1060,7 @@ bool UActorFactoryBlueprint::CanCreateActorFrom( const FAssetData& AssetData, FT
 
 	if ( !bIsActorBased )
 	{
-		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NoBlueprint", "The specified Blueprint must be Actor based.");
+		OutErrorMsg = NSLOCTEXT("CanCreateActor", "NotActor", "The specified Blueprint must be Actor based.");
 		return false;
 	}
 

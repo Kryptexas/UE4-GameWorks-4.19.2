@@ -11,14 +11,12 @@ class UAnimGraphNode_BlendListByBool : public UAnimGraphNode_BlendListBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_BlendListByBool Node;
 
-#if WITH_EDITOR
 	// UEdGraphNode interface
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	// End of UEdGraphNode interface
 
 	// UAnimGraphNode_Base interface
 	virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex) const OVERRIDE;
 	// End of UAnimGraphNode_Base interface
-#endif
 };

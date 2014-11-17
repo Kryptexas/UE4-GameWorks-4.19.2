@@ -304,11 +304,6 @@ void CollideWithDepthBuffer(
 }
 #endif // #if DEPTH_BUFFER_COLLISION
 
-#if PS4_PROFILE
-#define SLOT0_32323232 1
-#include "PS4/PS4Pragmas.usf"
-#endif
-
 void PixelMain(
 	in FShaderInterpolants Interpolants,
 	out float4 OutPosition : SV_Target0,
@@ -414,22 +409,12 @@ void PixelMain(
 	OutVelocity.w = TimeScale;
 }
 
-#if PS4_PROFILE
-#define SLOT_RESET 1
-#include "PS4/PS4Pragmas.usf"
-#endif
-
 #endif // #if PARTICLE_SIMULATION_PIXELSHADER
 
 /*------------------------------------------------------------------------------
 	Clear particle simulation pixel shader.
 ------------------------------------------------------------------------------*/
 #if PARTICLE_CLEAR_PIXELSHADER
-
-#if PS4_PROFILE
-#define SLOT0_32323232 1
-#include "PS4/PS4Pragmas.usf"
-#endif
 
 void PixelMain(
 	in FShaderInterpolants Interpolants,
@@ -439,11 +424,6 @@ void PixelMain(
 	// Relative time just needs to be >1.0f so the particle is considered dead.
 	OutPosition = float4(0,0,0,2.0f);
 }
-
-#if PS4_PROFILE
-#define SLOT_RESET 1
-#include "PS4/PS4Pragmas.usf"
-#endif
 
 #endif // #if PARTICLE_CLEAR_PIXELSHADER
 

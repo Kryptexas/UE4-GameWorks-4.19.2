@@ -14,100 +14,94 @@ FOnlineAchievementsIOS::FOnlineAchievementsIOS( class FOnlineSubsystemIOS* InSub
 	IOSSubsystem = InSubsystem;
 }
 
-
-bool FOnlineAchievementsIOS::ReadAchievements( const FUniqueNetId& PlayerId )
+void FOnlineAchievementsIOS::QueryAchievements(const FUniqueNetId & PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
 	dispatch_async(dispatch_get_main_queue(), ^
 	{
-		[GKAchievement loadAchievementsWithCompletionHandler: ^(NSArray *loadedAchievements, NSError *error)
+	[GKAchievement loadAchievementsWithCompletionHandler: ^(NSArray *loadedAchievements, NSError *error)
+		{
+			bool bSuccess = error == NULL;
+			UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::loadAchievementsWithCompletionHandler - %d"), bSuccess);
+
+			if( bSuccess )
 			{
-				bool bSuccess = error == NULL;
-				UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::loadAchievementsWithCompletionHandler - %d"), bSuccess);
+				UE_LOG(LogOnline, Display, TEXT("Loaded %d achievements"), [loadedAchievements count]);
+				Achievements.Empty();
 
-				if( bSuccess )
+				for( int32 AchievementIdx = 0; AchievementIdx < [loadedAchievements count]; AchievementIdx++ )
 				{
-					UE_LOG(LogOnline, Display, TEXT("Loaded %d achievements"), [loadedAchievements count]);
-					Achievements.Empty();
-
-					for( int32 AchievementIdx = 0; AchievementIdx < [loadedAchievements count]; AchievementIdx++ )
-					{
-						GKAchievement* LoadedAchievement = [loadedAchievements objectAtIndex:AchievementIdx];
-						UE_LOG(LogOnline, Display, TEXT("Loaded achievement: %s"), ANSI_TO_TCHAR([LoadedAchievement.identifier cStringUsingEncoding:NSASCIIStringEncoding]));
+					GKAchievement* LoadedAchievement = [loadedAchievements objectAtIndex:AchievementIdx];
+					UE_LOG(LogOnline, Display, TEXT("Loaded achievement: %s"), *FString(LoadedAchievement.identifier));
 					
-						Achievements.AddZeroed();
-						FOnlineAchievement& OnlineAchievement = Achievements[AchievementIdx];
-						OnlineAchievement.Id = ANSI_TO_TCHAR([LoadedAchievement.identifier cStringUsingEncoding:NSASCIIStringEncoding]);
-						OnlineAchievement.Progress = LoadedAchievement.percentComplete;
-					}
+					Achievements.AddZeroed();
+					FOnlineAchievement& OnlineAchievement = Achievements[AchievementIdx];
+					OnlineAchievement.Id = LoadedAchievement.identifier;
+					OnlineAchievement.Progress = LoadedAchievement.percentComplete;
 				}
-				else
-				{
-					UE_LOG(LogOnline, Display, TEXT("Failed to load achievements with error [%d]"), [error code]);
-				}
-
-				// Report back to the game thread whether this succeeded.
-				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
-				{
-					TriggerOnAchievementsReadDelegates(PlayerId, bSuccess);
-					return true;
-				}];
 			}
-		];
-	});
+			else
+			{
+				UE_LOG(LogOnline, Display, TEXT("Failed to load achievements with error [%d]"), [error code]);
+			}
 
-	return true;
+			// Report back to the game thread whether this succeeded.
+			[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+			{
+				Delegate.ExecuteIfBound(PlayerId, bSuccess);
+				return true;
+			}];
+		}
+	];
+	});
 }
 
-
-bool FOnlineAchievementsIOS::ReadAchievementDescriptions( const FUniqueNetId& PlayerId )
+void FOnlineAchievementsIOS::QueryAchievementDescriptions(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
 	dispatch_async(dispatch_get_main_queue(), ^
 	{
-		[GKAchievementDescription loadAchievementDescriptionsWithCompletionHandler: ^(NSArray *descriptions, NSError *error)
+		[GKAchievementDescription loadAchievementDescriptionsWithCompletionHandler : ^ (NSArray *descriptions, NSError *error)
+		{
+			bool bSuccess = error == NULL;
+			UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::loadAchievementDescriptionsWithCompletionHandler - %d"), bSuccess);
+
+			if (bSuccess)
 			{
-				bool bSuccess = error == NULL;
-				UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::loadAchievementDescriptionsWithCompletionHandler - %d"), bSuccess);
+				AchievementDescriptions.Empty();
 
-				if( bSuccess )
+				for (GKAchievementDescription* desc in descriptions)
 				{
-					AchievementDescriptions.Empty();
+					FString Id(desc.identifier);
 
-					for( GKAchievementDescription* desc in descriptions )
-					{
-						FString Id = ANSI_TO_TCHAR([desc.identifier cStringUsingEncoding:NSASCIIStringEncoding]);
-					
-						FOnlineAchievementDesc OnlineAchievementDesc;
-						OnlineAchievementDesc.Title = FText::FromString( ANSI_TO_TCHAR([desc.title cStringUsingEncoding:NSASCIIStringEncoding]) );
-						OnlineAchievementDesc.LockedDesc = FText::FromString( ANSI_TO_TCHAR([desc.unachievedDescription cStringUsingEncoding:NSASCIIStringEncoding]) );
-						OnlineAchievementDesc.UnlockedDesc = FText::FromString( ANSI_TO_TCHAR([desc.achievedDescription cStringUsingEncoding:NSASCIIStringEncoding]) );
-						OnlineAchievementDesc.bIsHidden = desc.hidden;
-					
-						UE_LOG(LogOnline, Display, TEXT("============================================"));
-						UE_LOG(LogOnline, Display, TEXT("Loaded achievement id: %s"), *Id );
-						UE_LOG(LogOnline, Display, TEXT("Loaded achievement title: %s"), *OnlineAchievementDesc.Title.ToString() );
-						UE_LOG(LogOnline, Display, TEXT("Loaded achievement locked desc: %s"), *OnlineAchievementDesc.LockedDesc.ToString() );
-						UE_LOG(LogOnline, Display, TEXT("Loaded achievement unlocked desc: %s"), *OnlineAchievementDesc.UnlockedDesc.ToString() );
-						UE_LOG(LogOnline, Display, TEXT("Loaded achievement hidden: %d"), OnlineAchievementDesc.bIsHidden );
-						UE_LOG(LogOnline, Display, TEXT("============================================"));
+					FOnlineAchievementDesc OnlineAchievementDesc;
+					OnlineAchievementDesc.Title = FText::FromString(desc.title);
+					OnlineAchievementDesc.LockedDesc = FText::FromString(desc.unachievedDescription);
+					OnlineAchievementDesc.UnlockedDesc = FText::FromString(desc.achievedDescription);
+					OnlineAchievementDesc.bIsHidden = desc.hidden;
 
-						AchievementDescriptions.Add( Id, OnlineAchievementDesc );
-					}
+					UE_LOG(LogOnline, Display, TEXT("============================================"));
+					UE_LOG(LogOnline, Display, TEXT("Loaded achievement id: %s"), *Id);
+					UE_LOG(LogOnline, Display, TEXT("Loaded achievement title: %s"), *OnlineAchievementDesc.Title.ToString());
+					UE_LOG(LogOnline, Display, TEXT("Loaded achievement locked desc: %s"), *OnlineAchievementDesc.LockedDesc.ToString());
+					UE_LOG(LogOnline, Display, TEXT("Loaded achievement unlocked desc: %s"), *OnlineAchievementDesc.UnlockedDesc.ToString());
+					UE_LOG(LogOnline, Display, TEXT("Loaded achievement hidden: %d"), OnlineAchievementDesc.bIsHidden);
+					UE_LOG(LogOnline, Display, TEXT("============================================"));
+
+					AchievementDescriptions.Add(Id, OnlineAchievementDesc);
 				}
-				else
-				{
-					UE_LOG(LogOnline, Display, TEXT("Failed to load achievement descriptionss with error [%d]"), [error code]);
-				}
-
-				// Report back to the game thread whether this succeeded.
-				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
-				{
-					TriggerOnAchievementDescriptionsReadDelegates(PlayerId, bSuccess);
-					return true;
-				}];
 			}
-		];
+			else
+			{
+				UE_LOG(LogOnline, Display, TEXT("Failed to load achievement descriptionss with error [%d]"), [error code]);
+			}
+
+			// Report back to the game thread whether this succeeded.
+			[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+			{
+				Delegate.ExecuteIfBound(PlayerId, bSuccess);
+				return true;
+			}];
+		}];
 	});
-	return true;
 }
 
 
@@ -127,7 +121,7 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 		const FVariantData& Stat = It.Value();
 
 		// Create an achievement object which should be reported to the server.
-		NSString* AchievementID = [NSString stringWithCString:TCHAR_TO_UTF8( *NormalizeAchievementName( It.Key().ToString() ) ) encoding:NSUTF8StringEncoding];
+		NSString* AchievementID = [NSString stringWithFString:NormalizeAchievementName(It.Key().ToString())];
 		
 		GKAchievement* Achievement = [[[GKAchievement alloc] initWithIdentifier:AchievementID] autorelease];
 
@@ -171,7 +165,7 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 				{
 					for (GKAchievement* achievement in UnreportedAchievements)
 					{
-						FString AchievementId = ANSI_TO_TCHAR([achievement.identifier cStringUsingEncoding : NSASCIIStringEncoding]);
+						FString AchievementId(achievement.identifier);
 						UE_LOG(LogOnline, Display, TEXT("Successfully reported achievement: %s, isComplete:%d"), *AchievementId, [achievement isCompleted] ? 1 : 0);
 
 						if ([achievement isCompleted])
@@ -203,7 +197,7 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 					return true;
 				}];
 			}
-			];
+		];
 		});
 	}
 	else
@@ -217,42 +211,39 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 }
 
 
-bool FOnlineAchievementsIOS::GetAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement)
+EOnlineCachedResult::Type FOnlineAchievementsIOS::GetCachedAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement)
 {
-	bool bHasMatchingAchievement = false;
-	
 	for( int32 AchievementIdx = 0; AchievementIdx < Achievements.Num(); AchievementIdx++ )
 	{
 		if( Achievements[AchievementIdx].Id == AchievementId )
 		{
 			OutAchievement = Achievements[AchievementIdx];
-			bHasMatchingAchievement = true;
-			break;
+			return EOnlineCachedResult::Success;
 		}
 	}
 
-	return bHasMatchingAchievement;
+	return EOnlineCachedResult::NotFound;
 }
 
 
-bool FOnlineAchievementsIOS::GetAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement>& OutAchievements)
+EOnlineCachedResult::Type FOnlineAchievementsIOS::GetCachedAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement>& OutAchievements)
 {
 	// look up achievements for player
 	OutAchievements = Achievements;
 
 	// did we have them cached?
-	return OutAchievements.Num() > 0;
+	return OutAchievements.Num() > 0 ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
 }
 
 
-bool FOnlineAchievementsIOS::GetAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
+EOnlineCachedResult::Type FOnlineAchievementsIOS::GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
 {
 	FOnlineAchievementDesc* FoundDesc = AchievementDescriptions.Find( AchievementId );
 	if( FoundDesc != NULL )
 	{
 		OutAchievementDesc = *FoundDesc;
 	}
-	return FoundDesc != NULL;
+	return ( FoundDesc != NULL ) ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
 }
 
 

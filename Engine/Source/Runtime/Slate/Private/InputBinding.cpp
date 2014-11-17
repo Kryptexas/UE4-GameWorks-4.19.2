@@ -194,8 +194,6 @@ TSharedRef<FUICommandDragDropOp> FUICommandDragDropOp::New( TSharedRef<const FUI
 {
 	TSharedRef<FUICommandDragDropOp> Operation = MakeShareable( new FUICommandDragDropOp( InCommandInfo, InOriginMultiBox, CustomDectorator, DecoratorOffset ) );
 
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FUICommandDragDropOp>(Operation);
-
 	Operation->Construct();
 
 	return Operation;

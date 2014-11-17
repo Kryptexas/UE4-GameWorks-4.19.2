@@ -17,7 +17,7 @@ public:
 	virtual void RegisterCommands() OVERRIDE;
 
 	TSharedPtr< FUICommandInfo > SaveAsset;
-	TSharedPtr< FUICommandInfo > Reimport;
+	TSharedPtr< FUICommandInfo > ReimportAsset;
 	TSharedPtr< FUICommandInfo > SwitchToStandaloneEditor;
 	TSharedPtr< FUICommandInfo > SwitchToWorldCentricEditor;
 };

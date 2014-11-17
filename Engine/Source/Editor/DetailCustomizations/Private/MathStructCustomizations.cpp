@@ -25,14 +25,15 @@ void FMathStructCustomization::CustomizeStructChildren( TSharedRef<class IProper
 		// Add the individual properties as children as well so the vector can be expanded for more room
 		StructBuilder.AddChildProperty( ChildHandle );
 	}
-
 }
-	
+
 void FMathStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>& StructPropertyHandle, FDetailWidgetRow& Row )
 {
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
 	const FString DisplayNameOverride = TEXT("");
+
+	TWeakPtr<IPropertyHandle> StructWeakHandlePtr = StructPropertyHandle;
 
 	TSharedPtr<SHorizontalBox> HorizontalBox;
 
@@ -46,6 +47,7 @@ void FMathStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>&
 	.MaxDesiredWidth(125.0f * SortedChildHandles.Num() )
 	[
 		SAssignNew( HorizontalBox, SHorizontalBox )
+		.IsEnabled( this, &FMathStructCustomization::IsValueEnabled, StructWeakHandlePtr )
 	];
 
 	for( int32 ChildIndex = 0; ChildIndex < SortedChildHandles.Num(); ++ChildIndex )
@@ -83,6 +85,7 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(TSharedRef<IProp
 
 	return 
 		SNew( SNumericEntryBox<NumericType> )
+		.IsEnabled( this, &FMathStructCustomization::IsValueEnabled, WeakHandlePtr )
 		.Value( this, &FMathStructCustomization::OnGetValue, WeakHandlePtr )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 		.UndeterminedString( NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString() )
@@ -155,6 +158,16 @@ void FMathStructCustomization::OnValueChanged( NumericType NewValue, TWeakPtr<IP
 		EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::InteractiveChange;
 		WeakHandlePtr.Pin()->SetValue( NewValue, Flags );
 	}
+}
+
+bool FMathStructCustomization::IsValueEnabled(TWeakPtr<IPropertyHandle> WeakHandlePtr) const
+{
+	if ( WeakHandlePtr.IsValid() )
+	{
+		return !WeakHandlePtr.Pin()->IsEditConst();
+	}
+
+	return false;
 }
 
 void FMathStructCustomization::OnBeginSliderMovement()

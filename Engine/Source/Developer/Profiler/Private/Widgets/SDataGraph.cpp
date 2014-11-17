@@ -208,7 +208,6 @@ SDataGraph::SDataGraph()
 
 SDataGraph::~SDataGraph()
 {
-	SelectionChangedForIndexEvent;
 }
 
 void SDataGraph::Construct( const FArguments& InArgs )

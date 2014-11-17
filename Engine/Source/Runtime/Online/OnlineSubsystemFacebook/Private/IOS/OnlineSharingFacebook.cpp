@@ -189,7 +189,7 @@ bool FOnlineSharingFacebook::ShareStatusUpdate(int32 LocalUserNum, const FOnline
 				// The contents of the post
 				NSMutableDictionary* Params = [[NSMutableDictionary alloc] init];
 
-				NSString* ConvertedMessage = [NSString stringWithCString:TCHAR_TO_ANSI(*StatusUpdate.Message)  encoding:NSASCIIStringEncoding];
+				NSString* ConvertedMessage = [NSString stringWithFString:StatusUpdate.Message];
 				[Params setObject:ConvertedMessage forKey:@"message"];
 
 				// Setup the image if one was added to the post
@@ -226,7 +226,7 @@ bool FOnlineSharingFacebook::ShareStatusUpdate(int32 LocalUserNum, const FOnline
 
 				for(int32 FriendIdx = 0; FriendIdx < StatusUpdate.TaggedFriends.Num(); FriendIdx++)
 				{
-					NSString* FriendId = [NSString stringWithCString:TCHAR_TO_ANSI(*StatusUpdate.TaggedFriends[FriendIdx]->ToString())  encoding:NSASCIIStringEncoding];
+					NSString* FriendId = [NSString stringWithFString:StatusUpdate.TaggedFriends[FriendIdx]->ToString()];
 								
 					TaggedFriendIds = [TaggedFriendIds stringByAppendingFormat:@"%@%@", 
 						FriendId,
@@ -285,7 +285,7 @@ bool FOnlineSharingFacebook::ReadNewsFeed(int32 LocalUserNum, int32 NumPostsToRe
 					{
 						if( error )
 						{
-							UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface::ReadStatusFeed - error[%s]"), ANSI_TO_TCHAR([[error localizedDescription] cStringUsingEncoding: NSASCIIStringEncoding]));
+							UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface::ReadStatusFeed - error[%s]"), *FString([error localizedDescription]));
 						}
 
 						TriggerOnReadNewsFeedCompleteDelegates(LocalUserNum, error==nil);

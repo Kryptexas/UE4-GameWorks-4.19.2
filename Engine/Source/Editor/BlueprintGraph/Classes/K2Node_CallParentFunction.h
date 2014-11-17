@@ -9,15 +9,14 @@ class UK2Node_CallParentFunction : public UK2Node_CallFunction
 {
 	GENERATED_UCLASS_BODY()
 
-#if WITH_EDITOR
 	// Begin EdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual void PostPlacedNewNode() OVERRIDE;
 	// End EdGraphNode interface
 
 	virtual void SetFromFunction(const UFunction* Function) OVERRIDE;
-#endif
 };
 

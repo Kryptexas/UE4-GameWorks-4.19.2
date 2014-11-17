@@ -13,14 +13,13 @@ bool FPerforceSourceControlRevision::Get( FString& InOutFilename ) const
 {
 	bool bCommandOK = false;
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
-	FPerforceSourceControlProvider& Provider = PerforceSourceControl.GetProvider();
-	FScopedPerforceConnection ScopedConnection(EConcurrency::Synchronous, Provider.GetPort(), Provider.GetUser(), Provider.GetClientSpec(), Provider.GetTicket());
+	FScopedPerforceConnection ScopedConnection(EConcurrency::Synchronous, PerforceSourceControl.AccessSettings().GetConnectionInfo());
 	if(ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		FP4RecordSet Records;
 		bool bConnectionDropped;
-		TArray<FString> ErrorMessages;
+		TArray<FText> ErrorMessages;
 		TArray<FString> Parameters;
 
 		// Suppress the one-line file header normally added by Perforce.
@@ -53,7 +52,7 @@ bool FPerforceSourceControlRevision::Get( FString& InOutFilename ) const
 		{
 			for(auto Iter(ErrorMessages.CreateConstIterator()); Iter; Iter++)
 			{
-				FMessageLog("SourceControl").Error(FText::FromString(*Iter));
+				FMessageLog("SourceControl").Error(*Iter);
 			}
 		}
 	}
@@ -71,7 +70,7 @@ static FString GetUserFromChangelist(int32 ChangeNumber, FPerforceConnection& In
 {
 	FP4RecordSet Records;
 	bool bConnectionDropped;
-	TArray<FString> ErrorMessages;
+	TArray<FText> ErrorMessages;
 	TArray<FString> Parameters;
 
 	// Only describe the basic changelist information, suppress output of the file diffs
@@ -89,7 +88,7 @@ static FString GetUserFromChangelist(int32 ChangeNumber, FPerforceConnection& In
 	{
 		for(auto Iter(ErrorMessages.CreateConstIterator()); Iter; Iter++)
 		{
-			FMessageLog("SourceControl").Error(FText::FromString(*Iter));
+			FMessageLog("SourceControl").Error(*Iter);
 		}
 	}
 
@@ -135,14 +134,13 @@ bool FPerforceSourceControlRevision::GetAnnotated( TArray<FAnnotationLine>& OutL
 {
 	bool bCommandOK = false;
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>("PerforceSourceControl");
-	FPerforceSourceControlProvider& Provider = PerforceSourceControl.GetProvider();
-	FScopedPerforceConnection ScopedConnection(EConcurrency::Synchronous, Provider.GetPort(), Provider.GetUser(), Provider.GetClientSpec(), Provider.GetTicket());
+	FScopedPerforceConnection ScopedConnection(EConcurrency::Synchronous, PerforceSourceControl.AccessSettings().GetConnectionInfo());
 	if(ScopedConnection.IsValid())
 	{
 		FPerforceConnection& Connection = ScopedConnection.GetConnection();
 		FP4RecordSet Records;
 		bool bConnectionDropped;
-		TArray<FString> ErrorMessages;
+		TArray<FText> ErrorMessages;
 		TArray<FString> Parameters;
 
 		Parameters.Add(TEXT("-q"));	// Suppress the one-line file header normally added by Perforce.
@@ -161,7 +159,7 @@ bool FPerforceSourceControlRevision::GetAnnotated( TArray<FAnnotationLine>& OutL
 		{
 			for(auto Iter(ErrorMessages.CreateConstIterator()); Iter; Iter++)
 			{
-				FMessageLog("SourceControl").Error(FText::FromString(*Iter));
+				FMessageLog("SourceControl").Error(*Iter);
 			}
 		}
 	}

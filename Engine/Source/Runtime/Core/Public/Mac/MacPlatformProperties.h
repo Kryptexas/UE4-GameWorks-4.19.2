@@ -83,6 +83,11 @@ struct FMacPlatformProperties
 		return true;
 	}
 
+	static FORCEINLINE bool HasFixedResolution()
+	{
+		return false;
+	}
+
 	static FORCEINLINE bool SupportsQuit()
 	{
 		return true;

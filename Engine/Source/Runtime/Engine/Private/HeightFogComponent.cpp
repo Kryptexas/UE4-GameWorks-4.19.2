@@ -25,24 +25,25 @@ UExponentialHeightFogComponent::UExponentialHeightFogComponent(const class FPost
 	StartDistance = 0.0f;
 }
 
-void UExponentialHeightFogComponent::CreateRenderState_Concurrent()
+void UExponentialHeightFogComponent::AddFogIfNeeded()
 {
-	Super::CreateRenderState_Concurrent();
-
-	if(bVisible && FogDensity * 1000 > DELTA && FogMaxOpacity > DELTA)
+	if (ShouldComponentAddToScene() && ShouldRender() && IsRegistered() && FogDensity * 1000 > DELTA && FogMaxOpacity > DELTA
+		&& (GetOuter() == NULL || !GetOuter()->HasAnyFlags(RF_ClassDefaultObject)))
 	{
 		World->Scene->AddExponentialHeightFog(this);
 	}
 }
 
+void UExponentialHeightFogComponent::CreateRenderState_Concurrent()
+{
+	Super::CreateRenderState_Concurrent();
+	AddFogIfNeeded();
+}
+
 void UExponentialHeightFogComponent::SendRenderTransform_Concurrent()
 {
 	World->Scene->RemoveExponentialHeightFog(this);
-	if(bVisible && FogDensity * 1000 > DELTA && FogMaxOpacity > DELTA)
-	{
-		World->Scene->AddExponentialHeightFog(this);
-	}
-
+	AddFogIfNeeded();
 	Super::SendRenderTransform_Concurrent();
 }
 
@@ -159,27 +160,29 @@ void UExponentialHeightFogComponent::SetStartDistance(float Value)
 AExponentialHeightFog::AExponentialHeightFog(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> FogTextureObject;
-		FName ID_Fog;
-		FText NAME_Fog;
-		FConstructorStatics()
-			: FogTextureObject(TEXT("/Engine/EditorResources/S_ExpoHeightFog"))
-			, ID_Fog(TEXT("Fog"))
-			, NAME_Fog(NSLOCTEXT( "SpriteCategory", "Fog", "Fog" ))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	Component = PCIP.CreateDefaultSubobject<UExponentialHeightFogComponent>(this, TEXT("HeightFogComponent0"));
 	RootComponent = Component;
 
+	bHidden = false;
+
 #if WITH_EDITORONLY_DATA
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != NULL))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> FogTextureObject;
+			FName ID_Fog;
+			FText NAME_Fog;
+			FConstructorStatics()
+				: FogTextureObject(TEXT("/Engine/EditorResources/S_ExpoHeightFog"))
+				, ID_Fog(TEXT("Fog"))
+				, NAME_Fog(NSLOCTEXT("SpriteCategory", "Fog", "Fog"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.FogTextureObject.Get();
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;

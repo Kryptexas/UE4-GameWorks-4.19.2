@@ -8,7 +8,7 @@
 #include "Channel.generated.h"
 
 // Constant for all buffers that are reading from the network
-#define MAX_STRING_SERIALIZE_SIZE	2048
+const int MAX_STRING_SERIALIZE_SIZE	= NAME_SIZE;
 
 // Types of channels.
 enum EChannelType

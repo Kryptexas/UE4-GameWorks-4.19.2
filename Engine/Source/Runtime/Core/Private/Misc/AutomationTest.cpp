@@ -120,7 +120,8 @@ bool FAutomationTestFramework::RunSmokeTests()
 	// Skip running on cooked platforms like mobile
 	//@todo - better determination of whether to run than requires cooked data
 	// Ensure there isn't another slow task in progress when trying to run unit tests
-	if ( !FPlatformProperties::RequiresCookedData() && !GIsSlowTask && !GIsPlayInEditorWorld )
+	const bool bRequiresCookedData = FPlatformProperties::RequiresCookedData();
+	if( !bRequiresCookedData && !GIsSlowTask && !GIsPlayInEditorWorld )
 	{
 		TArray<FAutomationTestInfo> TestInfo;
 
@@ -159,6 +160,10 @@ bool FAutomationTestFramework::RunSmokeTests()
 
 			FAutomationTestFramework::DumpAutomationTestExecutionInfo( OutExecutionInfoMap );
 		}
+	}
+	else if( bRequiresCookedData )
+	{
+		UE_LOG( LogAutomationTest, Log, TEXT( "Skipping unit tests for the cooked build." ) );
 	}
 	else
 	{

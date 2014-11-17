@@ -474,7 +474,8 @@ public:
 			{
 				uint32 DestStride;
 				FColor* DestBuffer = (FColor*)RHILockTextureCubeFace(TextureCubeArray,FaceIndex,0,0,RLM_WriteOnly,DestStride,false);
-				*DestBuffer = FColor::Black;
+				// Note: alpha is used by reflection environment to say how much of the foreground texture is visible, so 0 says it is completely invisible
+				*DestBuffer = FColor(0, 0, 0, 0);
 				RHIUnlockTextureCubeFace(TextureCubeArray,FaceIndex,0,0,false);
 			}
 

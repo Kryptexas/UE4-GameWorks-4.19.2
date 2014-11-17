@@ -39,7 +39,6 @@ public:
 
 	// End IStructCustomization interface
 
-
 public:
 
 	/**
@@ -49,7 +48,6 @@ public:
 	 */
 	static TSharedRef<IStructCustomization> MakeInstance( );
 
-
 protected:
 
 	/**
@@ -58,7 +56,6 @@ protected:
 	 * @param Guid - The value to set.
 	 */
 	void SetGuidValue( const FGuid& Guid );
-
 
 private:
 
@@ -76,7 +73,6 @@ private:
 
 	// Handles committing the text in the editable text box.
 	void HandleTextBoxTextCommited( const FText& NewText, ETextCommit::Type CommitInfo );
-
 
 private:
 

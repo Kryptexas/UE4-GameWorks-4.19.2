@@ -31,6 +31,7 @@ public:
 
 	/** Constructs a key string for the DDC that uniquely identifies a FReflectionCaptureFullHDRDerivedData. */
 	static FString GetDDCKeyString(const FGuid& StateId);
+	static FString GetLegacyDDCKeyString(const FGuid& StateId);
 
 private:
 
@@ -94,7 +95,6 @@ class UReflectionCaptureComponent : public USceneComponent
 
 	/** Marks this component has having been recaptured. */
 	void SetCaptureCompleted() { bCaptureDirty = false; }
-	bool IsCaptureDirty() const { return bCaptureDirty; }
 
 	/** Gets the radius that bounds the shape's influence, used for culling. */
 	virtual float GetInfluenceBoundingRadius() const PURE_VIRTUAL(UReflectionCaptureComponent::GetInfluenceBoundingRadius,return 0;);
@@ -179,10 +179,8 @@ private:
 	 */
 	static TArray<UReflectionCaptureComponent*> ReflectionCapturesToUpdateForLoad;
 
-	/** Newly created captures don't get PostLoad called so we use this queue. */
-	static TArray<UReflectionCaptureComponent*> ReflectionCapturesToUpdateNewlyCreated;
-
-	void InvalidateDerivedData();
+	void UpdateDerivedData(FReflectionCaptureFullHDRDerivedData* NewDerivedData);
+	void SerializeSourceData(FArchive& Ar);
 
 	friend class FReflectionCaptureProxy;
 };

@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "StatsViewerPrivatePCH.h"
-#include "ActorArrayHyperLinkColumn.h"
+#include "ActorArrayHyperlinkColumn.h"
 #include "StatsCellPresenter.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyPath.h"

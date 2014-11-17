@@ -1,18 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	UnStats.h: Performance stats framework.
+	StatsData.h: Performance stats framework.
 =============================================================================*/
 #pragma once
 
 #if STATS
 
-DECLARE_LOG_CATEGORY_EXTERN(LogStats2, Log, All);
-
 /**
 * Used for a few different things, but roughly one more than the maximum render thread game thread lag, in frames.
 */
-
 enum
 {
 	STAT_FRAME_SLOP = 3 
@@ -21,7 +18,18 @@ enum
 /** Holds stats related constants. */
 struct CORE_API FStatConstants
 {
-	static FName NAME_ThreadRoot;
+	/** Special name for thread root. */
+	static const FName NAME_ThreadRoot;
+
+	/** This is a special group name used to store threads metadata. */
+	static const char* ThreadGroupName;
+	static const FName NAME_ThreadGroup;
+
+	/** Extension used to save a stats file. */
+	static const FString StatsFileExtension;
+
+	/** Extension used to save a raw stats file, may be changed to the same as a regular stats file. */
+	static const FString StatsFileRawExtension;
 };
 
 /** Enumerates stat compare types. */
@@ -346,6 +354,7 @@ struct IItemFiler
 	virtual bool Keep(FStatMessage const& Item) = 0;
 };
 
+// @TODO yrx 2014-03-21 Move metadata functionality into a separate class
 /**
 * Tracks stat state and history
 *  GetLocalState() is a singleton to the state for stats being collected in this executable.
@@ -364,9 +373,17 @@ class CORE_API FStatsThreadState
 	/** Internal method to scan the messages to accumulate any non-frame stats. **/
 	void ProcessMetaDataForLoad(TArray<FStatMessage>& Data);
 
+public:
 	/** Internal method to add meta data packets to the data structures. **/
 	void ProcessMetaDataOnly(TArray<FStatMessage>& Data);
 
+	/** Marks this stats state as loaded. */
+	void MarkAsLoaded()
+	{
+		bWasLoaded =  true;
+	}
+
+private:
 	/** Internal method to scan the messages to accumulate any non-frame stats. **/
 	void ProcessNonFrameStats(TArray<FStatMessage>& Data, TSet<FName>* NonFrameStatsFound);
 
@@ -381,6 +398,9 @@ class CORE_API FStatsThreadState
 
 	/** Parse the raw frame history into a flat-array-based tree representation **/
 	void Condense(int64 TargetFrame, TArray<FStatMessage>& OutStats) const;
+
+	/** Returns cycles spent in the specified thread. */
+	int64 GetFastThreadFrameTimeInternal(int64 TargetFrame, int32 ThreadID, EThreadType::Type Thread) const;
 
 	/** Number of frames to keep in the history. **/
 	int32 HistoryFrames;
@@ -418,6 +438,7 @@ public:
 	FStatsThreadState(FString const& Filename);
 
 	/** Delegate we fire every time we have a new complete frame of data. **/
+	// @TODO yrx 2014-03-21 Not thread-safe ?
 	mutable FOnNewFrameHistory NewFrameDelegate;
 
 	/** New packets not on the render thread as assign this frame **/
@@ -438,6 +459,9 @@ public:
 	/** Defines the groups. the group called "Groups" can be used to enumerate the groups. **/
 	TMultiMap<FName, FName> Groups;
 
+	/** Map from a thread id to the thread name. */
+	TMap<uint32, FName> Threads;
+
 	/** Raw data for a frame. **/
 	TMap<int64, FStatPacketArray> History;
 
@@ -455,9 +479,21 @@ public:
 
 	/** Used by the hitch detector. Does a very fast look a thread to decide if this is a hitch frame. **/
 	int64 GetFastThreadFrameTime(int64 TargetFrame, EThreadType::Type Thread) const;
+	int64 GetFastThreadFrameTime(int64 TargetFrame, uint32 ThreadID) const;
+
+	/** For the specified stat packet looks for the thread name. */
+	FName GetStatThreadName( const FStatPacket& Packet ) const;
 
 	/** Looks in the history for a condensed frame, builds it if it isn't there. **/
 	TArray<FStatMessage> const& GetCondensedHistory(int64 TargetFrame) const;
+
+	/** Looks in the history for a stat packet array, the stat packet array must be in the history. */
+	const FStatPacketArray& GetStatPacketArray( int64 TargetFrame ) const
+	{
+		check( IsFrameValid( TargetFrame ) );
+		const FStatPacketArray& Frame = History.FindChecked( TargetFrame );
+		return Frame;
+	}
 
 	/** Gets the old-skool flat grouped inclusive stats. These ignore recursion, merge threads, etc and so generally the condensed callstack is less confusing. **/
 	void GetInclusiveAggregateStackStats(int64 TargetFrame, TArray<FStatMessage>& OutStats, IItemFiler* Filter = NULL, bool bAddNonStackStats = true) const;
@@ -477,8 +513,6 @@ public:
 	/** Singleton to get the stats being collected by this executable **/
 	static FStatsThreadState& GetLocalState();
 };
-
-
 
 //@todo split header
 
@@ -563,6 +597,24 @@ struct CORE_API FStatsUtils
 	/** Internal use, converts arbitrary string to and from an escaped notation for storage in an FName. **/
 	static FString ToEscapedFString(const TCHAR* Source);
 	static FString FromEscapedFString(const TCHAR* Escaped);
+
+	static FString BuildUniqueThreadName( const FName InThreadName, uint32 InThreadID )
+	{
+		// Make unique name.
+		return FString::Printf( TEXT( "%s_%x_0" ), *InThreadName.ToString(), InThreadID );
+	}
+
+	static int32 ParseThreadID( const FName ThreadFName )
+	{
+		// Extract the thread id.
+		const FString ThreadName = ThreadFName.ToString().Replace(TEXT("_0"),TEXT(""));
+		int32 Index = 0;
+		ThreadName.FindLastChar(TEXT('_'),Index);
+
+		const FString ThreadIDStr = ThreadName.RightChop(Index+1);
+		const uint32 ThreadID = FParse::HexNumber( *ThreadIDStr );
+		return ThreadID;
+	}
 };
 
 /**
@@ -584,143 +636,6 @@ struct FComplexStatUtils
 };
 
 //@todo split header
-
-
-/**
-* Class for maintaining state to send a stream of stat messages
-*/
-struct CORE_API FStastsWriteStream
-{
-	/** Set of names already sent **/
-	TSet<int32> FNamesSent;
-
-	/** Data to send **/
-	TArray<uint8> OutData;
-
-	/** Constructor, add the header info to the stream. **/
-	FStastsWriteStream();
-
-	/** Grabs a frame from the local FStatsThreadState and adds it to the output **/
-	void WriteCondensedFrame(int64 TargetFrame);
-
-	/** Sends an FName, and the string it represents if we have not sent that string before. **/
-	FORCEINLINE_STATS void WriteFName(FArchive& Ar, FStatNameAndInfo NameAndInfo)
-	{
-		FName RawName = NameAndInfo.GetRawName();
-		bool bSendFName = !FNamesSent.Contains(RawName.GetIndex());
-		int32 Index = RawName.GetIndex();
-		Ar << Index;
-		int32 Number = NameAndInfo.GetRawNumber();
-		if (bSendFName)
-		{
-			FNamesSent.Add(RawName.GetIndex());
-			Number |= EStatMetaFlags::SendingFName << (EStatMetaFlags::Shift + EStatAllFields::StartShift);
-		}
-		Ar << Number;
-		if (bSendFName)
-		{
-			FString Name = RawName.ToString();
-			Ar << Name;
-		}
-	}
-
-	/** Write a stat message. **/
-	FORCEINLINE_STATS void WriteMessage(FArchive& Ar, FStatMessage const& Item)
-	{
-		WriteFName(Ar, Item.NameAndInfo);
-		switch (Item.NameAndInfo.GetField<EStatDataType>())
-		{
-		case EStatDataType::ST_int64:
-			{
-				int64 Payload = Item.GetValue_int64();
-				Ar << Payload;
-			}
-			break;
-		case EStatDataType::ST_double:
-			{
-				double Payload = Item.GetValue_double();
-				Ar << Payload;
-			}
-			break;
-		case EStatDataType::ST_FName:
-			WriteFName(Ar, FStatNameAndInfo(Item.GetValue_FName(), false));
-			break;
-		}
-	}
-};
-
-/**
-* Class for maintaining state of receiving a stream of stat messages
-*/
-struct CORE_API FStatsReadStream
-{
-	/** FNames have a different index on each machine, so we translate via this map. **/
-	TMap<int32, int32> FNamesIndexMap;
-
-	/** Read and translate or create an FName. **/
-	FORCEINLINE_STATS FStatNameAndInfo ReadFName(FArchive& Ar)
-	{
-		int32 Index = 0;
-		Ar << Index;
-		int32 Number = 0;
-		Ar << Number;
-		FName TheFName;
-		if (Number & (EStatMetaFlags::SendingFName << (EStatMetaFlags::Shift + EStatAllFields::StartShift)))
-		{
-			FString Name;
-			Ar << Name;
-			TheFName = FName(*Name);
-			FNamesIndexMap.Add(Index, TheFName.GetIndex());
-			Number &= ~ (EStatMetaFlags::SendingFName << (EStatMetaFlags::Shift + EStatAllFields::StartShift));
-		}
-		else
-		{
-			if (FNamesIndexMap.Contains(Index))
-			{
-				int32 MyIndex = FNamesIndexMap.FindChecked(Index);
-				TheFName = FName(EName(MyIndex));
-			}
-			else
-			{
-				TheFName = FName(TEXT("Unknown FName"));
-				Number = 0;
-				UE_LOG(LogTemp, Warning, TEXT("Missing FName Indexed: %d, %d"), Index, Number);
-			}
-		}
-		FStatNameAndInfo Result(TheFName, false);
-		Result.SetNumberDirect(Number);
-		return Result;
-	}
-
-	/** Read a stat message. **/
-	FORCEINLINE_STATS FStatMessage ReadMessage(FArchive& Ar)
-	{
-		FStatMessage Result(ReadFName(Ar));
-		Result.Clear();
-		switch (Result.NameAndInfo.GetField<EStatDataType>())
-		{
-		case EStatDataType::ST_int64:
-			{
-				int64 Payload = 0;
-				Ar << Payload;
-				Result.GetValue_int64() = Payload;
-			}
-			break;
-		case EStatDataType::ST_double:
-			{
-				double Payload = 0;
-				Ar << Payload;
-				Result.GetValue_double() = Payload;
-			}
-			break;
-		case EStatDataType::ST_FName:
-			FStatNameAndInfo Payload(ReadFName(Ar));
-			Result.GetValue_FName() = Payload.GetRawName();
-			break;
-		}
-		return Result;
-	}
-};
 
 /**
 * Predicate to sort stats into reverse order of definition, which historically is how people specified a preferred order.
@@ -766,8 +681,6 @@ struct FGroupSort
 		return GroupA.GetIndex() > GroupB.GetIndex();
 	}
 };
-
-//@todo split header
 
 
 /** Holds stats data used for displayed on the hud. */
@@ -826,62 +739,6 @@ struct CORE_API FHUDGroupGameThreadRenderer
 	}
 
 	static FHUDGroupGameThreadRenderer& Get();
-};
-
-
-struct CORE_API FStatsWriteFile : public TSharedFromThis<FStatsWriteFile, ESPMode::ThreadSafe>
-{
-	class FAsyncWriteWorker : public FNonAbandonableTask
-	{
-	public:
-		/** File To write to**/
-		FArchive *File;
-		/** Data for the file **/
-		TArray<uint8> Data;
-
-		/** Constructor
-		*/
-		FAsyncWriteWorker(FArchive *InFile, TArray<uint8>* InData)
-			: File(InFile)
-		{
-			Exchange(Data, *InData);
-		}
-		
-		/** Write the file  */
-		void DoWork()
-		{
-			check(Data.Num());
-			File->Serialize(Data.GetTypedData(), Data.Num());
-		}
-		/** Give the name for external event viewers
-		* @return	the name to display in external event viewers
-		*/
-		static const TCHAR *Name()
-		{
-			return TEXT("FAsyncStatsWriteWorker");
-		}
-	};
-
-	FString ArchiveFilename;
-	FStastsWriteStream Stream;
-	FArchive *File;
-	FAsyncTask<FAsyncWriteWorker>* AsyncTask;
-	FCriticalSection CriticalSection;
-	bool bFirstFrameWritten;
-	
-
-	FStatsWriteFile();
-	~FStatsWriteFile();
-
-	void NewFrame(int64 TargetFrame);
-	void SendTask();
-	bool IsValid() const
-	{
-		return !!File;
-	}
-
-	void Start(FString const& InFilename);
-	void Stop();
 };
 
 #endif

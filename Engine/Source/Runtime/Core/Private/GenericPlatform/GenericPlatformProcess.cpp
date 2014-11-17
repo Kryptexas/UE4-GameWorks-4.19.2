@@ -40,6 +40,11 @@ uint32 FGenericPlatformProcess::GetCurrentProcessId()
 	return 0;
 }
 
+void FGenericPlatformProcess::SetThreadAffinityMask( uint64 AffinityMask )
+{
+	// Not implemented cross-platform. Each platform may or may not choose to implement this.
+}
+
 const TCHAR* FGenericPlatformProcess::UserDir()
 {
 	// default to the root directory
@@ -189,12 +194,18 @@ bool FGenericPlatformProcess::IsThisApplicationForeground()
 	return false;
 }
 
-void FGenericPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
+bool FGenericPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ExecProcess not implemented on this platform"));
+	return false;
 }
 
-void FGenericPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms )
+bool FGenericPlatformProcess::ExecElevatedProcess(const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode)
+{
+	return FPlatformProcess::ExecProcess(URL, Params, OutReturnCode, NULL, NULL);
+}
+
+void FGenericPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms, ELaunchVerb::Type Verb )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::LaunchFileInDefaultExternalApplication not implemented on this platform"));
 }
@@ -383,4 +394,21 @@ bool FGenericPlatformProcess::SupportsMultithreading()
 void FBinaryFileVersion::ToString(FString& OutString) const
 {
 	OutString = FString::Printf(TEXT("%d %d %d %d"), A, B, C, D);
+}
+
+FGenericPlatformProcess::FSemaphore::FSemaphore(const FString & InName)
+{
+	FCString::Strcpy(Name, sizeof(Name)-1, *InName);
+}
+
+FGenericPlatformProcess::FSemaphore * FGenericPlatformProcess::NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::NewInterprocessSynchObject not implemented on this platform"));
+	return NULL;
+}
+
+bool FGenericPlatformProcess::DeleteInterprocessSynchObject(FSemaphore * Object)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::DeleteInterprocessSynchObject not implemented on this platform"));
+	return false;
 }

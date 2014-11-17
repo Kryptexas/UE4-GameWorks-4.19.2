@@ -340,47 +340,58 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 			ModuleInfo->Handle = NULL;
 
 			// Skip this check if file manager has not yet been initialized
-			if ( FPaths::FileExists(ModuleFileToLoad) && CheckModuleCompatibility(*ModuleFileToLoad))
+			if ( FPaths::FileExists(ModuleFileToLoad) )
 			{
-				ModuleInfo->Handle = FPlatformProcess::GetDllHandle(*ModuleFileToLoad);
-				if( ModuleInfo->Handle != NULL )
+				if ( CheckModuleCompatibility(*ModuleFileToLoad) )
 				{
-					// First things first.  If the loaded DLL has UObjects in it, then their generated code's
-					// static initialization will have run during the DLL loading phase, and we'll need to
-					// go in and make sure those new UObject classes are properly registered.
+					ModuleInfo->Handle = FPlatformProcess::GetDllHandle(*ModuleFileToLoad);
+					if( ModuleInfo->Handle != NULL )
 					{
-						// Sometimes modules are loaded before even the UObject systems are ready.  We need to assume
-						// these modules aren't using UObjects.
-						if( bCanProcessNewlyLoadedObjects)
+						// First things first.  If the loaded DLL has UObjects in it, then their generated code's
+						// static initialization will have run during the DLL loading phase, and we'll need to
+						// go in and make sure those new UObject classes are properly registered.
 						{
-							// OK, we've verified that loading the module caused new UObject classes to be
-							// registered, so we'll treat this module as a module with UObjects in it.
-							ProcessLoadedObjectsCallback.Broadcast();
+							// Sometimes modules are loaded before even the UObject systems are ready.  We need to assume
+							// these modules aren't using UObjects.
+							if( bCanProcessNewlyLoadedObjects)
+							{
+								// OK, we've verified that loading the module caused new UObject classes to be
+								// registered, so we'll treat this module as a module with UObjects in it.
+								ProcessLoadedObjectsCallback.Broadcast();
+							}
 						}
-					}
 
-					// Find our "InitializeModule" global function, which must exist for all module DLLs
-					FInitializeModuleFunctionPtr InitializeModuleFunctionPtr =
-						( FInitializeModuleFunctionPtr )FPlatformProcess::GetDllExport( ModuleInfo->Handle, TEXT( "InitializeModule" ) );
-					if( InitializeModuleFunctionPtr != NULL )
-					{
-						// Initialize the module!
-						ModuleInfo->Module = MakeShareable( InitializeModuleFunctionPtr() );
-
-						if( ModuleInfo->Module.IsValid() )
+						// Find our "InitializeModule" global function, which must exist for all module DLLs
+						FInitializeModuleFunctionPtr InitializeModuleFunctionPtr =
+							( FInitializeModuleFunctionPtr )FPlatformProcess::GetDllExport( ModuleInfo->Handle, TEXT( "InitializeModule" ) );
+						if( InitializeModuleFunctionPtr != NULL )
 						{
-							// Startup the module
-							ModuleInfo->Module->StartupModule();
+							// Initialize the module!
+							ModuleInfo->Module = MakeShareable( InitializeModuleFunctionPtr() );
 
-							// Module was started successfully!  Fire callbacks.
-							ModulesChangedEvent.Broadcast( InModuleName, EModuleChangeReason::ModuleLoaded );
+							if( ModuleInfo->Module.IsValid() )
+							{
+								// Startup the module
+								ModuleInfo->Module->StartupModule();
 
-							// Set the return parameter
-							LoadedModule = ModuleInfo->Module;
+								// Module was started successfully!  Fire callbacks.
+								ModulesChangedEvent.Broadcast( InModuleName, EModuleChangeReason::ModuleLoaded );
+
+								// Set the return parameter
+								LoadedModule = ModuleInfo->Module;
+							}
+							else
+							{
+								UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because InitializeModule function failed (returned NULL pointer.)" ), *ModuleFileToLoad );
+
+								FPlatformProcess::FreeDllHandle( ModuleInfo->Handle );
+								ModuleInfo->Handle = NULL;
+								OutFailureReason = ELoadModuleFailureReason::FailedToInitialize;
+							}
 						}
 						else
 						{
-							UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because InitializeModule function failed (returned NULL pointer.)" ), *ModuleFileToLoad );
+							UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because InitializeModule function was not found." ), *ModuleFileToLoad );
 
 							FPlatformProcess::FreeDllHandle( ModuleInfo->Handle );
 							ModuleInfo->Handle = NULL;
@@ -389,17 +400,14 @@ TSharedPtr<IModuleInterface> FModuleManager::LoadModuleWithFailureReason( const 
 					}
 					else
 					{
-						UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because InitializeModule function was not found." ), *ModuleFileToLoad );
-
-						FPlatformProcess::FreeDllHandle( ModuleInfo->Handle );
-						ModuleInfo->Handle = NULL;
-						OutFailureReason = ELoadModuleFailureReason::FailedToInitialize;
+						UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because the file couldn't be loaded by the OS." ), *ModuleFileToLoad );
+						OutFailureReason = ELoadModuleFailureReason::CouldNotBeLoadedByOS;
 					}
 				}
 				else
 				{
-					UE_LOG(LogModuleManager, Warning, TEXT( "ModuleManager: Unable to load module '%s' because the file couldn't be loaded by the OS." ), *ModuleFileToLoad );
-					OutFailureReason = ELoadModuleFailureReason::CouldNotBeLoadedByOS;
+					// The log warning about this failure reason is within CheckModuleCompatibility
+					OutFailureReason = ELoadModuleFailureReason::FileIncompatible;
 				}
 			}
 			else
@@ -1403,7 +1411,7 @@ bool FModuleManager::GenerateCodeProjectFiles( const FString& ProjectFilename, F
 bool FModuleManager::IsUnrealBuildToolAvailable()
 {
 	// If using Rocket and the Rocket unreal build tool executable exists, then UBT is available
-	if ( FRocketSupport::IsRocket() )
+	if ( FApp::IsEngineInstalled() )
 	{
 		return FPaths::FileExists(GetUnrealBuildToolExecutableFilename());
 	}
@@ -1587,7 +1595,7 @@ FString FModuleManager::GetUnrealBuildToolExecutableFilename()
 bool FModuleManager::BuildUnrealBuildTool(FOutputDevice &Ar)
 {
 #if !IS_MONOLITHIC
-	if ( FRocketSupport::IsRocket() )
+	if ( FApp::IsEngineInstalled() )
 	{
 		// We may not build UBT in rocket
 		return false;
@@ -1693,7 +1701,7 @@ bool FModuleManager::InvokeUnrealBuildTool( const FString& InCmdLineParams, FOut
 	FString ExecutableFileName = GetUnrealBuildToolExecutableFilename();
 
 	// Rocket never builds UBT, UnrealBuildTool should already exist
-	if ( !FRocketSupport::IsRocket() )
+	if ( !FApp::IsEngineInstalled() )
 	{
 		// When not using rocket, we should attempt to build UBT to make sure it is up to date
 		// Only do this if we have not already successfully done it once during this session.

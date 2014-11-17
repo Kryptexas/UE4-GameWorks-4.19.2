@@ -17,5 +17,4 @@ public:
 private:
 	IAssetTools* AssetTools;
 	class FAssetToolsConsoleCommands* ConsoleCommands;
-	TArray<TSharedRef<IAssetTypeActions>> AssetTypeActionsList;
 };

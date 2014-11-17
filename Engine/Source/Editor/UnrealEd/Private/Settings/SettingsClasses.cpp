@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Settings.cpp: Implements the constructors for the various settings classes.
@@ -10,6 +10,8 @@
 
 /* UContentBrowserSettings interface
  *****************************************************************************/
+
+UContentBrowserSettings::FSettingChangedEvent UContentBrowserSettings::SettingChangedEvent;
 
 UContentBrowserSettings::UContentBrowserSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
@@ -117,12 +119,41 @@ void UEditorLoadingSavingSettings::PostEditChangeProperty( struct FPropertyChang
 }
 
 
-/* ULevelEditorPlaySettings interface
+/* UEditorMiscSettings interface
  *****************************************************************************/
 
 UEditorMiscSettings::UEditorMiscSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 { }
+
+
+/* ULevelEditorMiscSettings interface
+ *****************************************************************************/
+
+ULevelEditorMiscSettings::ULevelEditorMiscSettings( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{
+	bAutoApplyLightingEnable = true;
+}
+
+
+void ULevelEditorMiscSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if (Name == FName(TEXT("bNavigationAutoUpdate")))
+	{
+		FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
+		UNavigationSystem::SetNavigationAutoUpdateEnabled(bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem());
+	}
+
+	if (!FUnrealEdMisc::Get().IsDeletePreferences())
+	{
+		SaveConfig();
+	}
+}
 
 
 /* ULevelEditorPlaySettings interface
@@ -147,6 +178,10 @@ ULevelEditorViewportSettings::ULevelEditorViewportSettings( const class FPostCon
 	: Super(PCIP)
 {
 	bLevelStreamingVolumePrevis = false;
+	BillboardScale = 1.0f;
+
+	// Set a default preview mesh
+	PreviewMeshes.Add(FStringAssetReference("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));
 }
 
 
@@ -156,7 +191,18 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 
 	const FName Name = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-	if (Name == FName(TEXT("bHighlightWithBrackets")))
+	if (Name == FName(TEXT("bAllowTranslateRotateZWidget")))
+	{
+		if (bAllowTranslateRotateZWidget)
+		{
+			GEditorModeTools().SetWidgetMode(FWidget::WM_TranslateRotateZ);
+		}
+		else if (GEditorModeTools().GetWidgetMode() == FWidget::WM_TranslateRotateZ)
+		{
+			GEditorModeTools().SetWidgetMode(FWidget::WM_Translate);
+		}
+	}
+	else if (Name == FName(TEXT("bHighlightWithBrackets")))
 	{
 		GEngine->SetSelectedMaterialColor(bHighlightWithBrackets ? FLinearColor::Black : GetDefault<UEditorStyleSettings>()->SelectionColor);
 	}
@@ -203,6 +249,12 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 		const float BSPSnapSize = bUsePowerOf2SnapSize ? 128.0f : 100.0f;
 		UModel::SetGlobalBSPTexelScale( BSPSnapSize );
 	}
+	else if( Name == FName(TEXT("BillboardScale")))
+	{
+		UBillboardComponent::SetEditorScale(BillboardScale);
+		UArrowComponent::SetEditorScale(BillboardScale);
+	}
+
 	if (!FUnrealEdMisc::Get().IsDeletePreferences())
 	{
 		SaveConfig();
@@ -210,7 +262,6 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 
 	SettingChangedEvent.Broadcast(Name);
 }
-
 
 /* UProjectPackagingSettings interface
  *****************************************************************************/
@@ -269,4 +320,3 @@ void UProjectPackagingSettings::UpdateBuildConfigurationVisibility()
 		ProjectPackagingConfigEnum->RemoveMetaData(TEXT("Hidden"), PPBC_DebugGame);
 	}
 }
-

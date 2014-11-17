@@ -22,18 +22,37 @@ FString UK2Node_LocalVariable::GetTooltip() const
 	return VariableTooltip.ToString();
 }
 
-FString UK2Node_LocalVariable::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_LocalVariable::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	if (TitleType == ENodeTitleType::EditableTitle)
+	{
+		return FText::FromName(CustomVariableName);
+	}
+	else if(TitleType == ENodeTitleType::ListView)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("TypeName"), UEdGraphSchema_K2::TypeToText(VariableType));
+		return FText::Format(NSLOCTEXT("K2Node", "LocalVariable", "Local {TypeName}"), Args);
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Title"), FText::FromName(CustomVariableName));
+	return FText::Format(NSLOCTEXT("K2Node", "LocalVariable_Name", "{Title}\nLocal Variable"), Args);
+}
+
+FString UK2Node_LocalVariable::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	if (TitleType == ENodeTitleType::EditableTitle)
 	{
 		return CustomVariableName.ToString();
 	}
 	else if(TitleType == ENodeTitleType::ListView)
 	{
-		return NSLOCTEXT("K2Node", "LocalVariable", "Local ").ToString() + UEdGraphSchema_K2::TypeToString(VariableType);
+		return FString(TEXT("Local ")) + UEdGraphSchema_K2::TypeToString(VariableType);
 	}
 
-	return FString::Printf(*NSLOCTEXT("K2Node", "LocalVariable_Name", "%s\nLocal Variable").ToString(), *CustomVariableName.ToString());
+	return FString::Printf(TEXT("%s\nLocal Variable"), *CustomVariableName.ToString());
 }
 
 void UK2Node_LocalVariable::OnRenameNode(const FString& NewName)
@@ -50,7 +69,7 @@ void UK2Node_LocalVariable::OnRenameNode(const FString& NewName)
 
 TSharedPtr<class INameValidatorInterface> UK2Node_LocalVariable::MakeNameValidator() const
 {
-	return MakeShareable(new FKismetNameValidator(GetBlueprint(), *GetNodeTitle(ENodeTitleType::EditableTitle)));
+	return MakeShareable(new FKismetNameValidator(GetBlueprint(), *GetNodeTitle(ENodeTitleType::EditableTitle).ToString()));
 }
 
 void UK2Node_LocalVariable::ChangeVariableType(const FEdGraphPinType& InVariableType)

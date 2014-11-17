@@ -950,7 +950,7 @@ struct FTextureLODSettings
 	 * Returns the filter state that should be used for the passed in texture, taking
 	 * into account other system settings.
 	 *
-	 * @param	Texture		Texture to retrieve filter state for
+	 * @param	Texture		Texture to retrieve filter state for, must not be 0
 	 * @return	Filter sampler state for passed in texture
 	 */
 	ESamplerFilter GetSamplerFilter( const UTexture* Texture ) const;

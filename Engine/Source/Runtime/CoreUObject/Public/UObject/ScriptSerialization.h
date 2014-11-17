@@ -91,9 +91,12 @@
 			SerializeExpr( iCode, Ar );
 			break;
 		}
-		case EX_InterfaceCast:
+		case EX_ObjToInterfaceCast:
+		case EX_CrossInterfaceCast:
 		{
-			// A conversion from an object variable to a native interface variable.  We use a different bytecode to avoid the branching each time we process a cast token
+			// A conversion from an object or interface variable to a native interface variable.  
+			// We use a different bytecode to avoid the branching each time we process a cast token.
+			
 			XFERPTR(UClass*);	// the interface class to convert to
 			SerializeExpr( iCode, Ar );
 			break;

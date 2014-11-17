@@ -29,14 +29,14 @@ FString UK2Node_CastByteToEnum::GetTooltip() const
 		*Enum->GetName());
 }
 
-FString UK2Node_CastByteToEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_CastByteToEnum::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return GetTooltip();
+	return FText::FromString(GetTooltip());
 }
 
-FString UK2Node_CastByteToEnum::GetCompactNodeTitle() const
+FText UK2Node_CastByteToEnum::GetCompactNodeTitle() const
 {
-	return TEXT("\x2022");
+	return NSLOCTEXT("K2Node", "CastSymbol", "\x2022");
 }
 
 FName UK2Node_CastByteToEnum::GetFunctionName() const

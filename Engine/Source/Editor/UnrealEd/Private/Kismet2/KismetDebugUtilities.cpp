@@ -106,9 +106,9 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 					{
 						TraceClassificationMessageLog = FTextToken::Create(FText::FromString(TEXT("from node")));
 
-						FString NodeTitle = BlueprintNode->GetNodeTitle(ENodeTitleType::ListView); // a more user friendly name
+						FText NodeTitle = BlueprintNode->GetNodeTitle(ENodeTitleType::ListView); // a more user friendly name
 						// link to the last executed node (the one throwing the exception, presumably)
-						TraceTargetMessageLog = FUObjectToken::Create(BlueprintNode, FText::FromString(NodeTitle))->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated));
+						TraceTargetMessageLog = FUObjectToken::Create(BlueprintNode, NodeTitle)->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated));
 					}
 				}
 #endif // WITH_EDITORONLY_DATA

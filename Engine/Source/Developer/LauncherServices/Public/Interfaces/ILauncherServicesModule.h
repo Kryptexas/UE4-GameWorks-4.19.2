@@ -49,6 +49,13 @@ public:
 	 * @return The launcher profile manager.
 	 */
 	virtual ILauncherProfileManagerRef GetProfileManager( ) = 0;
+	
+	/**
+	 * Delegate for when a platform SDK isn't installed corrected (takes the platform name and the documentation link to show)
+	 */
+	DECLARE_EVENT_TwoParams(ILauncherServicesModule, FLauncherServicesSDKNotInstalled, const FString&, const FString&);
+	virtual FLauncherServicesSDKNotInstalled& OnLauncherServicesSDKNotInstalled( ) = 0;
+	virtual void BroadcastLauncherServicesSDKNotInstalled(const FString& PlatformName, const FString& DocLink) = 0;
 
 
 public:

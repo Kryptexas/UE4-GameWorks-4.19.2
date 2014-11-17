@@ -13,7 +13,10 @@ class FOnlineSubsystemSteamModule : public IModuleInterface
 {
 private:
 
-#if PLATFORM_WINDOWS
+	/** Class responsible for creating instance(s) of the subsystem */
+	class FOnlineFactorySteam* SteamFactory;
+
+#if PLATFORM_WINDOWS || PLATFORM_MAC
 	/** Handle to the STEAM API dll */
 	void* SteamDLLHandle;
 	/** Handle to the STEAM dedicated server support dlls */
@@ -33,9 +36,10 @@ private:
 public:
 
 	FOnlineSubsystemSteamModule()
-#if PLATFORM_WINDOWS
-		 :	SteamDLLHandle(NULL),
-			SteamServerDLLHandle(NULL)
+        : SteamFactory(NULL)
+#if PLATFORM_WINDOWS || PLATFORM_MAC
+		, SteamDLLHandle(NULL)
+		, SteamServerDLLHandle(NULL)
 #endif	//PLATFORM_WINDOWS
 	{}
 
@@ -61,5 +65,3 @@ public:
 	 */
 	bool AreSteamDllsLoaded() const;
 };
-
-typedef TSharedPtr<FOnlineSubsystemSteamModule, ESPMode::ThreadSafe> FOnlineSubsystemSteamModulePtr;

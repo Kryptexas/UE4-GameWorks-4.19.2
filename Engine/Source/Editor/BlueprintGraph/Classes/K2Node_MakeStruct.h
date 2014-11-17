@@ -9,13 +9,13 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 {
 	GENERATED_UCLASS_BODY()
 
-#if WITH_EDITOR
 	BLUEPRINTGRAPH_API static bool CanBeMade(const UScriptStruct* Struct);
 	static bool CanBeExposed(const UProperty* Property);
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
@@ -28,5 +28,4 @@ class UK2Node_MakeStruct : public UK2Node_StructMemberSet
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const OVERRIDE;
 	// End K2Node interface
-#endif
 };

@@ -70,33 +70,40 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Appends a group entry (and, recusrively, it's children) to Contents. Should be called while generating PBXGroup section.
 		/// </summary>
-		public void Append(ref StringBuilder Contents)
+		public void Append(ref StringBuilder Contents, bool bFilesOnly = false)
 		{
             if (bReference)
                 return;
 
-			Contents.Append(string.Format("\t\t{0} = {{{1}", GroupGuid, ProjectFileGenerator.NewLine));
-			Contents.Append("\t\t\tisa = PBXGroup;" + ProjectFileGenerator.NewLine);
-			Contents.Append("\t\t\tchildren = (" + ProjectFileGenerator.NewLine);
-
-			foreach (XcodeFileGroup Group in Children.Values)
+			if (!bFilesOnly)
 			{
-				Contents.Append(string.Format("\t\t\t\t{0} /* {1} */,{2}", Group.GroupGuid, Group.GroupName, ProjectFileGenerator.NewLine));
+				Contents.Append(string.Format("\t\t{0} = {{{1}", GroupGuid, ProjectFileGenerator.NewLine));
+				Contents.Append("\t\t\tisa = PBXGroup;" + ProjectFileGenerator.NewLine);
+				Contents.Append("\t\t\tchildren = (" + ProjectFileGenerator.NewLine);
+
+				foreach (XcodeFileGroup Group in Children.Values)
+				{
+					Contents.Append(string.Format("\t\t\t\t{0} /* {1} */,{2}", Group.GroupGuid, Group.GroupName, ProjectFileGenerator.NewLine));
+				}
 			}
+
 			foreach (XcodeSourceFile File in Files)
 			{
 				Contents.Append(string.Format("\t\t\t\t{0} /* {1} */,{2}", File.FileRefGUID, Path.GetFileName(File.FilePath), ProjectFileGenerator.NewLine));
 			}
 
-			Contents.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
-			Contents.Append("\t\t\tname = \"" + GroupName + "\";" + ProjectFileGenerator.NewLine);
-			Contents.Append("\t\t\tpath = \"" + GroupPath + "\";" + ProjectFileGenerator.NewLine);
-			Contents.Append("\t\t\tsourceTree = \"<group>\";" + ProjectFileGenerator.NewLine);
-			Contents.Append("\t\t};" + ProjectFileGenerator.NewLine);
-
-			foreach (XcodeFileGroup Group in Children.Values)
+			if (!bFilesOnly)
 			{
-				Group.Append(ref Contents);
+				Contents.Append("\t\t\t);" + ProjectFileGenerator.NewLine);
+				Contents.Append("\t\t\tname = \"" + GroupName + "\";" + ProjectFileGenerator.NewLine);
+				Contents.Append("\t\t\tpath = \"" + GroupPath + "\";" + ProjectFileGenerator.NewLine);
+				Contents.Append("\t\t\tsourceTree = \"<group>\";" + ProjectFileGenerator.NewLine);
+				Contents.Append("\t\t};" + ProjectFileGenerator.NewLine);
+
+				foreach (XcodeFileGroup Group in Children.Values)
+				{
+					Group.Append(ref Contents);
+				}
 			}
 		}
 
@@ -142,16 +149,14 @@ namespace UnrealBuildTool
 			switch (Extension)
 			{
 			case ".c":
-				return "sourcecode.c.c";
-			case ".cc":
-				return "sourcecode.cpp.cpp";
-			case ".cpp":
-				return "sourcecode.cpp.cpp";
 			case ".m":
 				return "sourcecode.c.objc";
+			case ".cc":
+			case ".cpp":
 			case ".mm":
 				return "sourcecode.cpp.objcpp";
 			case ".h":
+			case ".inl":
 			case ".pch":
 				return "sourcecode.c.h";
 			case ".framework":
@@ -167,13 +172,40 @@ namespace UnrealBuildTool
 			return Extension == ".c" || Extension == ".cc" || Extension == ".cpp" || Extension == ".m" || Extension == ".mm";
 		}
 
+		private bool IsPartOfUE4XcodeHelperTarget(XcodeSourceFile SourceFile)
+		{
+			string FileExtension = Path.GetExtension(SourceFile.FilePath);
+
+			if (IsSourceCode(FileExtension))// || GetFileType(FileExtension) == "sourcecode.c.h") @todo: It seemed that headers need to be added to project for live issues detection to work in them
+			{
+				foreach (string PlatformName in Enum.GetNames(typeof(UnrealTargetPlatform)))
+				{
+					string AltName = PlatformName == "Win32" || PlatformName == "Win64" ? "windows" : PlatformName.ToLower();
+					if ((SourceFile.FilePath.ToLower().Contains("/" + PlatformName.ToLower() + "/")) || (SourceFile.FilePath.ToLower().Contains("/" + AltName + "/")) && PlatformName != "Mac")
+					{
+						// UE4XcodeHelper is Mac only target, so skip other platforms files
+						return false;
+					}
+					else if (SourceFile.FilePath.EndsWith("SimplygonMeshReduction.cpp") || SourceFile.FilePath.EndsWith("Android.cpp"))
+					{
+						// @todo: We need a way to filter out files that use SDKs we don't have
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			return false;
+		}
+
 		/**
 		 * Returns a project navigator group to which the file should belong based on its path.
 		 * Creates a group tree if it doesn't exist yet.
 		 */
 		public XcodeFileGroup FindGroupByFullPath(ref Dictionary<string, XcodeFileGroup> Groups, string FullPath)
 		{
-			string RelativePath = Utils.MakePathRelativeTo(FullPath, XcodeProjectFileGenerator.MasterProjectRelativePath);
+			string RelativePath = (FullPath == XcodeProjectFileGenerator.MasterProjectRelativePath) ? "" : Utils.MakePathRelativeTo(FullPath, XcodeProjectFileGenerator.MasterProjectRelativePath);
 			if (RelativePath.StartsWith(".."))
 			{
 				string UE4Dir = Path.GetFullPath(Directory.GetCurrentDirectory() + "../../..");
@@ -222,10 +254,19 @@ namespace UnrealBuildTool
 		/// <param name="InitFilePath">Path to the source file on disk</param>
 		/// <param name="InitProjectSubFolder">Optional sub-folder to put the file in.  If empty, this will be determined automatically from the file's path relative to the project file</param>
 		/// <returns>The newly allocated source file object</returns>
-		public override SourceFile AllocSourceFile (string InitFilePath, string InitProjectSubFolder)
+		public override SourceFile AllocSourceFile(string InitFilePath, string InitProjectSubFolder)
 		{
 			if (Path.GetFileName(InitFilePath) == ".DS_Store")
 			{
+				return null;
+			}
+			else if (InitFilePath.EndsWith("Classes/Engine/Engine.h") || InitFilePath.EndsWith("Classes/VectorField/VectorField.h") || InitFilePath.EndsWith("Classes/Materials/MaterialInstance.h")
+				|| InitFilePath.EndsWith("Classes/Engine/Canvas.h") || InitFilePath.EndsWith("Classes/Intrinsic/Model.h") || InitFilePath.EndsWith("Classes/Engine/Texture.h")
+				|| InitFilePath.EndsWith("Windows/OnlineFriendsFacebook.h") || InitFilePath.EndsWith("Windows/OnlineIdentityFacebook.h") || InitFilePath.EndsWith("HTML5/Simulator/SocketSubsystem.h")
+				|| InitFilePath.EndsWith("HTML5/Device/SocketSubsystem.h") || InitFilePath.EndsWith("ContentBrowser/Private/HistoryManager.h") || InitFilePath.EndsWith("Private/Menus/TranslationEditorMenu.h"))
+			{
+				// @todo: Get rid of this workaround when possible.
+				// Xcode has a bug (radr://15660224) that makes indexing fail if there are multiple header files with the same name, so we skip few files that cause the problem.
 				return null;
 			}
 			return new XcodeSourceFile(InitFilePath, InitProjectSubFolder);
@@ -272,7 +313,7 @@ namespace UnrealBuildTool
 				                            GetFileType(FileExtension),
                                             FilePathMac);
 
-				if (IsSourceCode(FileExtension))
+				if (IsPartOfUE4XcodeHelperTarget(SourceFile))
 				{
 					PBXSourcesBuildPhaseSection += "\t\t\t\t" + SourceFile.FileGUID + " /* " + FileName + " in Sources */," + ProjectFileGenerator.NewLine;
 				}

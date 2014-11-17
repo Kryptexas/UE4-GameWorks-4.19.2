@@ -86,6 +86,28 @@ void FGridWidget::AddReferencedObjects( FReferenceCollector& Collector )
 	Collector.AddReferencedObject( LevelGridMaterialInst2 );
 }
 
+static void GetAxisColors(FLinearColor Out[3], bool b3D)
+{
+	Out[0] = FLinearColor::Red;
+	Out[1] = FLinearColor::Green;
+	Out[2] = FLinearColor::Blue;
+
+	// less prominent axis lines
+	for(int i = 0; i < 3; ++i)
+	{
+		// darker
+		if(b3D)
+		{
+			Out[i] += FLinearColor(0.2f, 0.2f, 0.2f, 0);
+			Out[i] *= 0.1f;
+		}
+		else
+		{
+//			Out[i] += FLinearColor(0.5f, 0.5f, 0.5f, 0);
+			Out[i] *= 0.5f;
+		}
+	}
+}
 
 void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
@@ -108,24 +130,16 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 	bool bMSAA = IsEditorCompositingMSAAEnabled();
 	bool bIsPerspective = ( View->ViewMatrices.ProjMatrix.M[3][3] < 1.0f );
 
-	// 0: off, in unreal units
-	float SnapGridSize = 0.0f;
+	// in unreal units
+	float SnapGridSize = GEditor->GetGridSize();
 
-	if(GetDefault<ULevelEditorViewportSettings>()->GridEnabled)
-	{
-		SnapGridSize = GEditor->GetGridSize();
-	}
+	// not used yet
+	const bool bSnapEnabled = GetDefault<ULevelEditorViewportSettings>()->GridEnabled;
 
 	float SnapAlphaMultiplier = 1.0f;
 
-	if(SnapGridSize <= 0.0f)
-	{
-		// to hide the snap in the texture based solution
-		SnapAlphaMultiplier = 0;
-	}
-
 	// to get a light grid in a black level but use a high opacity value to be able to see it in a bright level
-	const float Darken = 0.11f;
+	static float Darken = 0.11f;
 
 	if(bIsPerspective)
 	{
@@ -196,13 +210,6 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 		GridSplitTriple.B = 0.25f * FMath::Min(GridScale / 100 / Scale, GridMin);
 	}
 
-	// if snap is not enabled and we want to hide it in this view port
-	if(SnapGridSize <= 0.0f || !View->Family->EngineShowFlags.Snap)
-	{
-		// 0.0f is off
-		SnapSplit = 0.0f;
-	}
-
 	float SnapTile = (1.0f / WorldToUVScale) / FMath::Max(1.0f, SnapGridSize);
 
 	MaterialInst->SetVectorParameterValue("GridSplit", GridSplitTriple);
@@ -217,8 +224,11 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 
 	ObjectToWorld.SetOrigin(FVector(CameraPos.X, CameraPos.Y, 0));
 
-	FLinearColor UAxisColor = FLinearColor::Green;
-	FLinearColor VAxisColor = FLinearColor::Red;
+	FLinearColor AxisColors[3];
+	GetAxisColors(AxisColors, true);
+
+	FLinearColor UAxisColor = AxisColors[1];
+	FLinearColor VAxisColor = AxisColors[0];
 
 	if(!bIsPerspective)
 	{
@@ -235,8 +245,8 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 			ObjectToWorld.SetAxis(1, FVector(1,0,0));
 			ObjectToWorld.SetAxis(2, FVector(0,1,0));
 			ObjectToWorld.SetOrigin(FVector(CameraPos.X, -FarZ, CameraPos.Z));
-			UAxisColor = FLinearColor::Red;
-			VAxisColor = FLinearColor::Blue;
+			UAxisColor = AxisColors[0];
+			VAxisColor = AxisColors[2];
 		}
 		else if(View->ViewMatrices.ViewMatrix.M[1][0] == 1.f )		// Side
 		{
@@ -245,23 +255,11 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 			ObjectToWorld.SetAxis(1, FVector(0,0,1));
 			ObjectToWorld.SetAxis(2, FVector(1,0,0));
 			ObjectToWorld.SetOrigin(FVector(FarZ, CameraPos.Y, CameraPos.Z));
-			UAxisColor = FLinearColor::Blue;
-			VAxisColor = FLinearColor::Green;
+			UAxisColor = AxisColors[2];
+			VAxisColor = AxisColors[1];
 		}
 	}
 	
-	// less prominent axis lines
-	{
-		// desaturate
-		UAxisColor += FLinearColor(0.5f, 0.5f, 0.5f, 0);
-		VAxisColor += FLinearColor(0.5f, 0.5f, 0.5f, 0);
-
-		// darker
-		UAxisColor *= 0.1f;
-		VAxisColor *= 0.1f;
-	}
-
-
 	MaterialInst->SetVectorParameterValue("UAxisColor", UAxisColor);
 	MaterialInst->SetVectorParameterValue("VAxisColor", VAxisColor);
 
@@ -355,6 +353,12 @@ void FEditorCommonDrawHelper::Draw(const FSceneView* View,class FPrimitiveDrawIn
 		{
 			bool bShouldUseNewLevelGrid = CVarEditorNewLevelGrid.GetValueOnGameThread() != 0;
 
+			if(!View->IsPerspectiveProjection())
+			{
+				// 3D looks better with the old grid (no thick lines)
+				bShouldUseNewLevelGrid = false;
+			}
+
 			if(bShouldUseNewLevelGrid)
 			{
 				if(!GridWidget)
@@ -435,18 +439,19 @@ void FEditorCommonDrawHelper::DrawOldGrid(const FSceneView* View,FPrimitiveDrawI
 		const bool bIsOrthoXZ = ( FMath::Abs(View->ViewMatrices.ViewMatrix.M[1][2]) > 0.0f );
 		const bool bIsOrthoYZ = ( FMath::Abs(View->ViewMatrices.ViewMatrix.M[0][2]) > 0.0f );
 
+		FLinearColor AxisColors[3];
+		GetAxisColors(AxisColors, false);
+
 		if( bIsOrthoXY )
 		{
 			FVector StartY( 0.0f, +HALF_WORLD_MAX1, -HALF_WORLD_MAX );
 			FVector EndY( 0.0f, -HALF_WORLD_MAX1, -HALF_WORLD_MAX );
 			FVector StartX( +HALF_WORLD_MAX1, 0.0f, -HALF_WORLD_MAX );
 			FVector EndX( -HALF_WORLD_MAX1, 0.0f, -HALF_WORLD_MAX );
-			DrawGridSection( GEditor->GetGridSize(), &StartY, &EndY, &StartY.X, &EndY.X, 0, View, PDI, EAxisLines::Minor );
-			DrawGridSection( GEditor->GetGridSize(), &StartX, &EndX, &StartX.Y, &EndX.Y, 1, View, PDI, EAxisLines::Minor );
-			DrawGridSection( GEditor->GetGridSize(), &StartY, &EndY, &StartY.X, &EndY.X, 0, View, PDI, EAxisLines::Major );
-			DrawGridSection( GEditor->GetGridSize(), &StartX, &EndX, &StartX.Y, &EndX.Y, 1, View, PDI, EAxisLines::Major );
-			DrawOriginAxisLine( &StartY, &EndY, &StartY.X, &EndY.X, View, PDI );
-			DrawOriginAxisLine( &StartX, &EndX, &StartX.Y, &EndX.Y, View, PDI );
+			DrawGridSection( GEditor->GetGridSize(), &StartY, &EndY, &StartY.X, &EndY.X, 0, View, PDI);
+			DrawGridSection( GEditor->GetGridSize(), &StartX, &EndX, &StartX.Y, &EndX.Y, 1, View, PDI);
+			DrawOriginAxisLine( &StartY, &EndY, &StartY.X, &EndY.X, View, PDI, AxisColors[1] );
+			DrawOriginAxisLine( &StartX, &EndX, &StartX.Y, &EndX.Y, View, PDI, AxisColors[0] );
 		}
 		else if( bIsOrthoXZ )
 		{
@@ -454,12 +459,10 @@ void FEditorCommonDrawHelper::DrawOldGrid(const FSceneView* View,FPrimitiveDrawI
 			FVector EndZ( 0.0f, -HALF_WORLD_MAX, -HALF_WORLD_MAX1 );
 			FVector StartX( +HALF_WORLD_MAX1, -HALF_WORLD_MAX, 0.0f );
 			FVector EndX( -HALF_WORLD_MAX1, -HALF_WORLD_MAX, 0.0f );
-			DrawGridSection( GEditor->GetGridSize(), &StartZ, &EndZ, &StartZ.X, &EndZ.X, 0, View, PDI, EAxisLines::Minor );
-			DrawGridSection( GEditor->GetGridSize(), &StartX, &EndX, &StartX.Z, &EndX.Z, 2, View, PDI, EAxisLines::Minor );
-			DrawGridSection( GEditor->GetGridSize(), &StartZ, &EndZ, &StartZ.X, &EndZ.X, 0, View, PDI, EAxisLines::Major );
-			DrawGridSection( GEditor->GetGridSize(), &StartX, &EndX, &StartX.Z, &EndX.Z, 2, View, PDI, EAxisLines::Major );
-			DrawOriginAxisLine( &StartZ, &EndZ, &StartZ.X, &EndZ.X, View, PDI );
-			DrawOriginAxisLine( &StartX, &EndX, &StartX.Z, &EndX.Z, View, PDI );
+			DrawGridSection( GEditor->GetGridSize(), &StartZ, &EndZ, &StartZ.X, &EndZ.X, 0, View, PDI);
+			DrawGridSection( GEditor->GetGridSize(), &StartX, &EndX, &StartX.Z, &EndX.Z, 2, View, PDI);
+			DrawOriginAxisLine( &StartZ, &EndZ, &StartZ.X, &EndZ.X, View, PDI, AxisColors[2] );
+			DrawOriginAxisLine( &StartX, &EndX, &StartX.Z, &EndX.Z, View, PDI, AxisColors[0] );
 		}
 		else if( bIsOrthoYZ )
 		{
@@ -467,12 +470,10 @@ void FEditorCommonDrawHelper::DrawOldGrid(const FSceneView* View,FPrimitiveDrawI
 			FVector EndZ( +HALF_WORLD_MAX, 0.0f, -HALF_WORLD_MAX1 );
 			FVector StartY( +HALF_WORLD_MAX, +HALF_WORLD_MAX1, 0.0f );
 			FVector EndY( +HALF_WORLD_MAX, -HALF_WORLD_MAX1, 0.0f );
-			DrawGridSection( GEditor->GetGridSize(), &StartZ, &EndZ, &StartZ.Y, &EndZ.Y, 1, View, PDI, EAxisLines::Minor );
-			DrawGridSection( GEditor->GetGridSize(), &StartY, &EndY, &StartY.Z, &EndY.Z, 2, View, PDI, EAxisLines::Minor );
-			DrawGridSection( GEditor->GetGridSize(), &StartZ, &EndZ, &StartZ.Y, &EndZ.Y, 1, View, PDI, EAxisLines::Major );
-			DrawGridSection( GEditor->GetGridSize(), &StartY, &EndY, &StartY.Z, &EndY.Z, 2, View, PDI, EAxisLines::Major );
-			DrawOriginAxisLine( &StartZ, &EndZ, &StartZ.Y, &EndZ.Y, View, PDI );
-			DrawOriginAxisLine( &StartY, &EndY, &StartY.Z, &EndY.Z, View, PDI );
+			DrawGridSection( GEditor->GetGridSize(), &StartZ, &EndZ, &StartZ.Y, &EndZ.Y, 1, View, PDI);
+			DrawGridSection( GEditor->GetGridSize(), &StartY, &EndY, &StartY.Z, &EndY.Z, 2, View, PDI);
+			DrawOriginAxisLine( &StartZ, &EndZ, &StartZ.Y, &EndZ.Y, View, PDI, AxisColors[2] );
+			DrawOriginAxisLine( &StartY, &EndY, &StartY.Z, &EndY.Z, View, PDI, AxisColors[1] );
 		}
 
 		if( bDrawKillZ && ( bIsOrthoXZ || bIsOrthoYZ ) )
@@ -492,13 +493,16 @@ void FEditorCommonDrawHelper::DrawOldGrid(const FSceneView* View,FPrimitiveDrawI
 }
 
 
-void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVector* B,float* AX,float* BX,int32 Axis,const FSceneView* View,FPrimitiveDrawInterface* PDI, const EAxisLines::Type LineType )
+void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVector* B,float* AX,float* BX,int32 Axis,const FSceneView* View,FPrimitiveDrawInterface* PDI )
 {
 	if( ViewportGridY == 0 )
 	{
 		// Don't draw zero-size grid
 		return;
 	}
+
+	// todo
+	static int32 Exponent = GEditor->IsGridSizePowerOfTwo() ? 8 : 10;
 
 	const FMatrix InvViewProjMatrix = View->ViewMatrices.ProjMatrix.Inverse() * View->ViewMatrices.ViewMatrix.Inverse();
 	int32 FirstLine = FMath::Trunc(InvViewProjMatrix.TransformPosition(FVector(-1,-1,0.5f)).Component(Axis) / ViewportGridY);
@@ -510,42 +514,54 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 
 	const float SizeX = View->ViewRect.Width();
 	const float Zoom = (1.0f / View->ViewMatrices.ProjMatrix.M[0][0]) * 2.0f / SizeX;
-	const int32 Dist = FMath::Trunc(SizeX * Zoom / ViewportGridY);
+	const float Dist = SizeX * Zoom / ViewportGridY;
 
-	// Figure out alpha interpolator for fading in the grid lines.
-	float Alpha;
-	int32 IncBits=0;
+	// when the grid fades
+	static float Tweak = 4.0f;
+
+	float IncValue = FMath::LogX(Exponent, Dist / (float)(SizeX / Tweak));
+	
+	int32 IncScale = 1;
+
+	for(float x = 0; x < IncValue; ++x)
 	{
-		if( Dist+Dist >= SizeX/4 )
-		{
-			while( (Dist>>IncBits) >= SizeX/4 )
-			{
-				IncBits++;
-			}
-			Alpha = 2 - 2*(float)Dist / (float)((1<<IncBits) * SizeX/4);
-		}
-		else
-		{
-			Alpha = 1.0;
-		}
+		IncScale *= Exponent;
+	}
+
+	// 0 excluded for hard transitions .. 0.5f for very soft transitions
+	const float TransitionRegion = 0.5f;
+
+	const float InvTransitionRegion = 1.0f / TransitionRegion;
+	float Fract = IncValue - floorf(IncValue);
+	float AlphaA = FMath::Clamp(Fract * InvTransitionRegion, 0.0f, 1.0f);
+	float AlphaB = FMath::Clamp(InvTransitionRegion - Fract * InvTransitionRegion, 0.0f, 1.0f);
+
+	if(IncValue < -0.5f)
+	{
+		// no fade in magnification case
+		AlphaA = 1.0f;
+		AlphaB = 1.0f;
 	}
 
 	const int32 MajorLineInterval = GEditor->GetGridInterval();
 
-	const FLinearColor Background = FColor(View->BackgroundColor).ReinterpretAsLinear();
+	const FLinearColor Background = View->BackgroundColor;
+
+	FLinearColor MajorColor = FMath::Lerp(Background, FLinearColor::White, 0.05f);
+	FLinearColor MinorColor = FMath::Lerp(Background, FLinearColor::White, 0.02f);
 
 	// Draw major and minor grid lines
-	const int32 FirstLineClamped = FMath::Max<int32>(FirstLine - 1,-HALF_WORLD_MAX/ViewportGridY) >> IncBits;
-	const int32 LastLineClamped = FMath::Min<int32>(LastLine + 1, +HALF_WORLD_MAX/ViewportGridY) >> IncBits;
-	for( int32 LineIndex = FirstLineClamped; LineIndex < LastLineClamped; ++LineIndex )
+	const int32 FirstLineClamped = FMath::Max<int32>(FirstLine - 1,-HALF_WORLD_MAX/ViewportGridY) / IncScale;
+	const int32 LastLineClamped = FMath::Min<int32>(LastLine + 1, +HALF_WORLD_MAX/ViewportGridY) / IncScale;
+	for( int32 LineIndex = FirstLineClamped; LineIndex <= LastLineClamped; ++LineIndex )
 	{
-		*AX = FPlatformMath::Trunc(LineIndex * ViewportGridY) << IncBits;
-		*BX = FPlatformMath::Trunc(LineIndex * ViewportGridY) << IncBits;
+		*AX = FPlatformMath::Trunc(LineIndex * ViewportGridY) * IncScale;
+		*BX = FPlatformMath::Trunc(LineIndex * ViewportGridY) * IncScale;
 
 		// Only minor lines fade out with ortho zoom distance.  Origin lines and major lines are drawn
 		// at 100% opacity, but with a brighter value
 		const bool bIsMajorLine = (LineIndex % MajorLineInterval) == 0;
-		if( bIsMajorLine || LineType != EAxisLines::Major )
+
 		{
 			// Don't bother drawing the world origin line.  We'll do that later.
 			const bool bIsOriginLine = ( LineIndex == 0 );
@@ -554,32 +570,27 @@ void FEditorCommonDrawHelper::DrawGridSection(float ViewportGridY,FVector* A,FVe
 				FLinearColor Color;
 				if( bIsMajorLine )
 				{
-					Color = Background * 1.5f;
+					Color = FMath::Lerp( Background, MajorColor, AlphaA );
 				}
 				else
 				{
-					Color = FMath::Lerp( Background, Background * 1.25f, Alpha );
+					Color = FMath::Lerp( Background, MinorColor, AlphaB );
 				}
 
-				PDI->DrawLine(*A,*B,FLinearColor(Color.Quantize()),SDPG_World);
+				PDI->DrawLine(*A,*B,Color,SDPG_World);
 			}
 		}
 	}
 }
 
 
-void FEditorCommonDrawHelper::DrawOriginAxisLine(FVector* A,FVector* B,float* AX,float* BX,const FSceneView* View,FPrimitiveDrawInterface* PDI)
+void FEditorCommonDrawHelper::DrawOriginAxisLine(FVector* A,FVector* B,float* AX,float* BX,const FSceneView* View,FPrimitiveDrawInterface* PDI, const FLinearColor& Color)
 {
-	const FLinearColor Background = FColor(View->BackgroundColor).ReinterpretAsLinear();
-
 	// Draw world origin lines.  We draw these last so they appear on top of the other lines.
-	{
-		*AX = 0;
-		*BX = 0;
+	*AX = 0;
+	*BX = 0;
 
-		const FLinearColor Color = Background * 2.0f;
-		PDI->DrawLine(*A,*B,FLinearColor(Color.Quantize()),SDPG_World);
-	}
+	PDI->DrawLine(*A,*B,FLinearColor(Color.Quantize()),SDPG_World);
 }
 
 

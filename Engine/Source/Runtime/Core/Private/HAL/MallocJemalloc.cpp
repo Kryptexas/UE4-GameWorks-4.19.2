@@ -133,24 +133,10 @@ namespace
 	}
 }
 
-void FMallocJemalloc::DumpAllocations( FOutputDevice& Ar ) 
+void FMallocJemalloc::DumpAllocatorStats( FOutputDevice& Ar ) 
 {
-	STAT(Ar.Logf( TEXT("Memory Allocation Status") ));
 	MEM_TIME(Ar.Logf( TEXT("Seconds     % 5.3f"), MemTime ));
-
 	je_malloc_stats_print(JemallocStatsPrintCallback, &Ar, NULL);
-}
-
-void FMallocJemalloc::GetAllocationInfo( FMemoryAllocationStats_DEPRECATED& MemStats )
-{
-	size_t TotalAllocated, TotalAllocatedLen = sizeof(TotalAllocated), 
-		TotalMapped, TotalMappedLen = sizeof(TotalMapped);
-	je_mallctl("stats.allocated", &TotalAllocated, &TotalAllocatedLen, NULL, 0);
-	je_mallctl("stats.mapped", &TotalMapped, &TotalMappedLen, NULL, 0);
-
-	MemStats.TotalUsed = TotalMapped;
-	MemStats.TotalAllocated = TotalAllocated;
-	MemStats.CPUUsed = TotalMapped;
 }
 
 bool FMallocJemalloc::GetAllocationSize(void *Original, SIZE_T &SizeOut)

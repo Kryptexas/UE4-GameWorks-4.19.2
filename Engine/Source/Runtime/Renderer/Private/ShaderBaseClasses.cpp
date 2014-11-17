@@ -12,7 +12,7 @@ int32 FMaterialShader::bAllowCachedUniformExpressions = true;
 
 /** Console variable ref to toggle cached uniform expressions. */
 FAutoConsoleVariableRef FMaterialShader::CVarAllowCachedUniformExpressions(
-	TEXT("AllowCachedUniformExpressions"),
+	TEXT("r.AllowCachedUniformExpressions"),
 	bAllowCachedUniformExpressions,
 	TEXT("Allow uniform expressions to be cached."),
 	ECVF_RenderThreadSafe);

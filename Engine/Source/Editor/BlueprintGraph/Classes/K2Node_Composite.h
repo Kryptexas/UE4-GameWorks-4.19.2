@@ -12,15 +12,14 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	UPROPERTY()
 	class UEdGraph* BoundGraph;
 
-
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() OVERRIDE;
 	BLUEPRINTGRAPH_API virtual void DestroyNode() OVERRIDE;
 	BLUEPRINTGRAPH_API virtual void PostPasteNode() OVERRIDE;
 	BLUEPRINTGRAPH_API virtual FString GetTooltip() const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	BLUEPRINTGRAPH_API virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	BLUEPRINTGRAPH_API virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual bool CanUserDeleteNode() const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual UObject* GetJumpTargetForDoubleClick() const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual void PostPlacedNewNode() OVERRIDE;
@@ -47,8 +46,6 @@ private:
 
 	/** Determine if the name already used by another graph in composite nodes chain */
 	bool IsCompositeNameAvailable( const FString& NewName );
-
-#endif
 };
 
 

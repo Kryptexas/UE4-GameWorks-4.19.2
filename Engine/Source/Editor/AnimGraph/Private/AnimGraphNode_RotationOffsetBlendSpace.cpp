@@ -7,6 +7,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_RotationOffsetBlendSpace
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_RotationOffsetBlendSpace::UAnimGraphNode_RotationOffsetBlendSpace(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -17,8 +19,27 @@ FString UAnimGraphNode_RotationOffsetBlendSpace::GetTooltip() const
 	return FString::Printf(TEXT("AimOffset %s"), *(Node.BlendSpace->GetPathName()));
 }
 
-FString UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_RotationOffsetBlendSpace::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		return FText::Format(LOCTEXT("AimOffsetListTitle", "AimOffset '{BlendSpaceName}'"), Args);
+	}
+	else
+	{
+		return FText::Format(LOCTEXT("AimOffsetFullTitle", "{BlendSpaceName}\nAimOffset"), Args);
+	}
+}
+
+FString UAnimGraphNode_RotationOffsetBlendSpace::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	
 	const FString BlendSpaceName((Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetName()) : TEXT("(None)"));
 
 	if (TitleType == ENodeTitleType::ListView)
@@ -71,3 +92,5 @@ void UAnimGraphNode_RotationOffsetBlendSpace::GetContextMenuActions(const FGraph
 		Context.MenuBuilder->EndSection();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -2,40 +2,33 @@
 
 #include "EnginePrivate.h"
 
+#define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+
 UEnvQueryTest_Trace::UEnvQueryTest_Trace(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	ExecuteDelegate.BindUObject(this, &UEnvQueryTest_Trace::RunTest);
 
-	Context = UEnvQueryContext_Querier::StaticClass();
 	Cost = EEnvTestCost::High;
-	ValidItemType = UEnvQueryItemType_LocationBase::StaticClass();
+	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
 	bWorkOnFloatValues = false;
+	
+	Context = UEnvQueryContext_Querier::StaticClass();
 	TraceToItem.Value = false;
-	TraceExtentX.Value = 10.0f;
-	TraceExtentY.Value = 10.0f;
-	TraceExtentZ.Value = 10.0f;
-	TraceComplex.Value = true;
 	ItemOffsetZ.Value = 0.0f;
 	ContextOffsetZ.Value = 0.0f;
+
+	TraceData.SetGeometryOnly();
 }
 
 void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 {
 	bool bWantsHit = false;
 	bool bTraceToItem = false;
-	bool bTraceComplex = true;
-	float ExtentX = 0.0f;
-	float ExtentY = 0.0f;
-	float ExtentZ = 0.0f;
 	float ItemZ = 0.0f;
 	float ContextZ = 0.0f;
 
 	if (!QueryInstance.GetParamValue(BoolFilter, bWantsHit, TEXT("BoolFilter")) ||
 		!QueryInstance.GetParamValue(TraceToItem, bTraceToItem, TEXT("TraceToItem")) ||
-		!QueryInstance.GetParamValue(TraceComplex, bTraceComplex, TEXT("TraceComplex")) ||
-		!QueryInstance.GetParamValue(TraceExtentX, ExtentX, TEXT("TraceExtentX")) ||
-		!QueryInstance.GetParamValue(TraceExtentY, ExtentY, TEXT("TraceExtentY")) ||
-		!QueryInstance.GetParamValue(TraceExtentZ, ExtentZ, TEXT("TraceExtentY")) ||
 		!QueryInstance.GetParamValue(ItemOffsetZ, ItemZ, TEXT("ItemOffsetZ")) ||
 		!QueryInstance.GetParamValue(ContextOffsetZ, ContextZ, TEXT("ContextOffsetZ"))
 		)
@@ -49,7 +42,7 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 		return;
 	}
 
-	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), bTraceComplex);
+	FCollisionQueryParams TraceParams(TEXT("EnvQueryTrace"), TraceData.bTraceComplex);
 	TraceParams.bTraceAsyncScene = true;
 
 	TArray<AActor*> IgnoredActors;
@@ -58,23 +51,24 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 		TraceParams.AddIgnoredActors(IgnoredActors);
 	}
 	
-	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceChannel);	
+	ECollisionChannel TraceCollisionChannel = UEngineTypes::ConvertToCollisionChannel(TraceData.TraceChannel);	
+	FVector TraceExtent(TraceData.ExtentX, TraceData.ExtentY, TraceData.ExtentZ);
 	FRunTraceSignature TraceFunc;
-	switch (TraceMode)
+	switch (TraceData.TraceShape)
 	{
-	case EEnvTestTrace::Line:
+	case EEnvTraceShape::Line:
 		TraceFunc.BindUObject(this, bTraceToItem ? &UEnvQueryTest_Trace::RunLineTraceTo : &UEnvQueryTest_Trace::RunLineTraceFrom);
 		break;
 
-	case EEnvTestTrace::Box:
+	case EEnvTraceShape::Box:
 		TraceFunc.BindUObject(this, bTraceToItem ? &UEnvQueryTest_Trace::RunBoxTraceTo : &UEnvQueryTest_Trace::RunBoxTraceFrom);
 		break;
 
-	case EEnvTestTrace::Sphere:
+	case EEnvTraceShape::Sphere:
 		TraceFunc.BindUObject(this, bTraceToItem ? &UEnvQueryTest_Trace::RunSphereTraceTo : &UEnvQueryTest_Trace::RunSphereTraceFrom);
 		break;
 
-	case EEnvTestTrace::Capsule:
+	case EEnvTraceShape::Capsule:
 		TraceFunc.BindUObject(this, bTraceToItem ? &UEnvQueryTest_Trace::RunCapsuleTraceTo : &UEnvQueryTest_Trace::RunCapsuleTraceFrom);
 		break;
 
@@ -94,7 +88,7 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 
 		for (int32 iContext = 0; iContext < ContextLocations.Num(); iContext++)
 		{
-			const bool bHit = TraceFunc.Execute(ItemLocation, ContextLocations[iContext], ItemActor, QueryInstance.World, TraceCollisionChannel, TraceParams, FVector(ExtentX, ExtentY, ExtentZ));
+			const bool bHit = TraceFunc.Execute(ItemLocation, ContextLocations[iContext], ItemActor, QueryInstance.World, TraceCollisionChannel, TraceParams, TraceExtent);
 			It.SetScore(Condition, bHit, bWantsHit);
 		}
 	}
@@ -103,39 +97,23 @@ void UEnvQueryTest_Trace::RunTest(struct FEnvQueryInstance& QueryInstance)
 FString UEnvQueryTest_Trace::GetDescriptionTitle() const
 {
 	UEnum* ChannelEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("ETraceTypeQuery"), true);
-	FString ChannelDesc = ChannelEnum->GetEnumString(TraceChannel);
+	FString ChannelDesc = ChannelEnum->GetEnumText(TraceData.TraceChannel).ToString();
 
 	FString DirectionDesc = TraceToItem.IsNamedParam() ?
-		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context), *UEnvQueryTypes::DescribeBoolParam(TraceToItem)) :
-		FString::Printf(TEXT("%s %s"), TraceToItem.Value ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context));
+		FString::Printf(TEXT("%s, direction: %s"), *UEnvQueryTypes::DescribeContext(Context).ToString(), *UEnvQueryTypes::DescribeBoolParam(TraceToItem)) :
+		FString::Printf(TEXT("%s %s"), TraceToItem.Value ? TEXT("from") : TEXT("to"), *UEnvQueryTypes::DescribeContext(Context).ToString());
 
 	return FString::Printf(TEXT("%s: %s on %s"), 
 		*Super::GetDescriptionTitle(), *DirectionDesc, *ChannelDesc);
 }
 
-FString UEnvQueryTest_Trace::GetDescriptionDetails() const
+FText UEnvQueryTest_Trace::GetDescriptionDetails() const
 {
-	FString ShapeDesc = (TraceMode == EEnvTestTrace::Line) ? TEXT("line") :
-		(TraceMode == EEnvTestTrace::Sphere) ? FString::Printf(TEXT("sphere (radius: %s)"), *UEnvQueryTypes::DescribeFloatParam(TraceExtentX)) :
-		(TraceMode == EEnvTestTrace::Capsule) ? FString::Printf(TEXT("capsule (radius: %s, half height: %s)"),
-			*UEnvQueryTypes::DescribeFloatParam(TraceExtentX), *UEnvQueryTypes::DescribeFloatParam(TraceExtentY)) :
-		(TraceMode == EEnvTestTrace::Box) ? FString::Printf(TEXT("box (extent: %s %s %s)"),
-			*UEnvQueryTypes::DescribeFloatParam(TraceExtentX), *UEnvQueryTypes::DescribeFloatParam(TraceExtentY), *UEnvQueryTypes::DescribeFloatParam(TraceExtentZ)) :
-		TEXT("unknown");
-
-	if (TraceComplex.IsNamedParam())
-	{
-		ShapeDesc += FString::Printf(TEXT(", complex collisions: %s"), *TraceComplex.ParamName.ToString());
-	}
-	else if (TraceComplex.Value)
-	{
-		ShapeDesc += TEXT(", complex collisions");
-	}
-
-	ShapeDesc.AppendChar(TEXT('\n'));
-	ShapeDesc += DescribeBoolTestParams("hit");
-
-	return ShapeDesc;
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("TraceData"),  TraceData.ToText(FEnvTraceData::Detailed));
+	Args.Add(TEXT("TestParams"),  DescribeBoolTestParams("hit"));
+	
+	return LOCTEXT("TraceDescription", "{TraceData}\n{TestParams}");
 }
 
 bool UEnvQueryTest_Trace::RunLineTraceTo(const FVector& ItemPos, const FVector& ContextPos, AActor* ItemActor, UWorld* World, enum ECollisionChannel Channel, const FCollisionQueryParams& Params, const FVector& Extent)
@@ -209,3 +187,5 @@ bool UEnvQueryTest_Trace::RunCapsuleTraceFrom(const FVector& ItemPos, const FVec
 	const bool bHit = World->SweepTest(ItemPos, ContextPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), TraceParams);
 	return bHit;
 }
+
+#undef LOCTEXT_NAMESPACE

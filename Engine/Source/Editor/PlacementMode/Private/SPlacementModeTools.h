@@ -5,6 +5,51 @@
 #include "AssetData.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 
+/**
+ * A tile representation of the class or the asset.  These are embedded into the views inside
+ * of each tab.
+ */
+class SPlacementAssetEntry : public SCompoundWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS(SPlacementAssetEntry)
+		: _LabelOverride()
+	{}
+	
+	/** Highlight this text in the text block */
+	SLATE_ATTRIBUTE(FText, HighlightText)
+
+	SLATE_ARGUMENT(FText, LabelOverride)
+	
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, UActorFactory* InFactory, const FAssetData& InAsset);
+
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) OVERRIDE;
+
+	bool IsPressed() const;
+
+	FText AssetDisplayName;
+
+	UActorFactory* FactoryToUse;
+	FAssetData AssetData;
+
+private:
+	const FSlateBrush* GetBorder() const;
+
+	bool bIsPressed;
+
+	/** Brush resource that represents a button */
+	const FSlateBrush* NormalImage;
+	/** Brush resource that represents a button when it is hovered */
+	const FSlateBrush* HoverImage;
+	/** Brush resource that represents a button when it is pressed */
+	const FSlateBrush* PressedImage;
+};
+
 class SPlacementModeTools : public SCompoundWidget
 {
 public:
@@ -25,6 +70,9 @@ private:
 
 	// Gets the tab 'active' state, so that we can show the active style
 	ESlateCheckBoxState::Type GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const;
+
+	// Create the standard panel displayed when no search is being performed.
+	TSharedRef< SWidget > CreateStandardPanel();
 
 	// Creates a tab widget to show on the left that when clicked actives the right widget switcher index.
 	TSharedRef< SWidget > CreatePlacementGroupTab( int32 TabIndex, FText TabText, bool Important );
@@ -56,12 +104,30 @@ private:
 	// End SWidget
 
 private:
+	void OnSearchChanged(const FText& InFilterText);
 
-	// Flag set when the placeables widget needs to be rebuilt.
+	FText GetHighlightText() const;
+
+	// Get the selected panel (normal or search results)
+	int32 GetSelectedPanel() const;
+
+	void RebuildPlaceableClassWidgetCache();
+
+	// Flag set when the placeable widget needs to be rebuilt.
 	bool bPlaceablesRefreshRequested;
+
+	// Flag set when the placeable widget needs to be rebuilt including the placeable widget cache.
+	bool bPlaceablesFullRefreshRequested;
 
 	// Flag set when the volumes widget needs to be rebuilt.
 	bool bVolumesRefreshRequested;
+
+	// The last text the user searched
+	FText SearchText;
+
+	// The list of placeable classes in widget form, these get put in the search results or
+	// the all classes view depending on which is currently visible.
+	TArray< TSharedRef<SPlacementAssetEntry> > PlaceableClassWidgets;
 
 	// Holds the widget switcher.
 	TSharedPtr<SWidgetSwitcher> WidgetSwitcher;
@@ -74,4 +140,7 @@ private:
 
 	// The container widget for the classes.
 	TSharedPtr< SVerticalBox > PlaceablesContainer;
+
+	// The container widget for the classes search results.
+	TSharedPtr< SVerticalBox > SearchResultsContainer;
 };

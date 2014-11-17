@@ -88,7 +88,6 @@ public:
 		: A(InA), B(InB), C(InC), D(InD)
 	{ }
 
-
 public:
 
 	/**
@@ -190,7 +189,6 @@ public:
 		return Ar << G.A << G.B << G.C << G.D;
 	}
 
-
 public:
 
 	/**
@@ -281,7 +279,6 @@ public:
 	 */
 	CORE_API FString ToString( EGuidFormats::Type Format ) const;
 
-
 public:
 
 	/**
@@ -295,7 +292,6 @@ public:
 	{
 		return FCrc::MemCrc_DEPRECATED(&Guid,sizeof(FGuid));
 	}
-
 
 public:
 
@@ -326,7 +322,6 @@ public:
 	 * @return true if the string was converted successfully, false otherwise.
 	 */
 	static CORE_API bool ParseExact( const FString& GuidString, EGuidFormats::Type Format, FGuid& OutGuid );
-
 
 //private:
 public:

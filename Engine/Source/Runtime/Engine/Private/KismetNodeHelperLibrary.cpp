@@ -151,7 +151,7 @@ FString UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName(const UEnum* Enu
 {
 	if (NULL != Enum)
 	{
-		return Enum->GetEnumString(EnumeratorIndex);
+		return Enum->GetEnumText(EnumeratorIndex).ToString();
 	}
 
 	return FName().ToString();

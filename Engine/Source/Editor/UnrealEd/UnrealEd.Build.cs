@@ -101,6 +101,7 @@ public class UnrealEd : ModuleRules
                 "EditorWidgets",
 				"GraphEditor",
 				"Kismet",
+                "InternationalizationSettings"
 			}
 		);
 
@@ -130,7 +131,6 @@ public class UnrealEd : ModuleRules
 				"LevelEditor",
 				"InputBindingEditor",
 				"PackagesDialog",
-				"PreferencesEditor",
 				"Persona",
 				"PhAT",
 				"DeviceManager",
@@ -161,6 +161,7 @@ public class UnrealEd : ModuleRules
 				"ViewportSnapping",
 				"UserFeedback",
 				"GameplayTagsEditor",
+				"UndoHistory",
 			}
 		);
 
@@ -216,11 +217,6 @@ public class UnrealEd : ModuleRules
 			(Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/Simplygon") == true))
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "Simplygon");
-
-			// Because we test WITH_SIMPLYGON in public UnrealEd header files, we need to make sure that modules
-			// that import us also have this definition set appropriately.  Simplygon is a private dependency
-			// module, so it's definitions won't propagate to modules that import UnrealEd.
-			Definitions.Add("WITH_SIMPLYGON=1");
 		}
 		else
 		{

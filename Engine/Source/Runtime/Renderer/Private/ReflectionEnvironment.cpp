@@ -128,56 +128,6 @@ END_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData)
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FReflectionCaptureData,TEXT("ReflectionCapture"));
 
-class FSkyLightReflectionParameters
-{
-public:
-
-	void Bind(const FShaderParameterMap& ParameterMap)
-	{
-		SkyLightCubemap.Bind(ParameterMap, TEXT("SkyLightCubemap"));
-		SkyLightCubemapSampler.Bind(ParameterMap, TEXT("SkyLightCubemapSampler"));
-		SkyLightParameters.Bind(ParameterMap, TEXT("SkyLightParameters"));
-	}
-
-	template<typename TParamRef>
-	void SetParameters(const TParamRef& ShaderRHI, FScene* Scene, bool bApplySkyLight)
-	{
-		FTexture* SkyLightTextureResource = GBlackTextureCube;
-		float ApplySkyLightMask = 0;
-
-		if (Scene->SkyLight 
-			&& Scene->SkyLight->ProcessedTexture
-			&& bApplySkyLight)
-		{
-			SkyLightTextureResource = Scene->SkyLight->ProcessedTexture;
-			ApplySkyLightMask = 1;
-		}
-
-		SetTextureParameter(ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
-
-		float SkyMipCount = 1;
-
-		if (SkyLightTextureResource)
-		{
-			int32 CubemapWidth = SkyLightTextureResource->GetSizeX();
-			SkyMipCount = FMath::Log2(CubemapWidth) + 1.0f;
-		}
-
-		const FVector2D SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask);
-		SetShaderValue(ShaderRHI, SkyLightParameters, SkyParametersValue);
-	}
-
-	friend FArchive& operator<<(FArchive& Ar,FSkyLightReflectionParameters& P)
-	{
-		Ar << P.SkyLightCubemap << P.SkyLightCubemapSampler << P.SkyLightParameters;
-		return Ar;
-	}
-
-	FShaderResourceParameter SkyLightCubemap;
-	FShaderResourceParameter SkyLightCubemapSampler;
-	FShaderParameter SkyLightParameters;
-};
-
 /** Compute shader that does tiled deferred culling of reflection captures, then sorts and composites them. */
 class FReflectionEnvironmentTiledDeferredCS : public FGlobalShader
 {

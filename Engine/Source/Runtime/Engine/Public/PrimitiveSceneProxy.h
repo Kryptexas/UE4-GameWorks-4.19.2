@@ -292,6 +292,15 @@ public:
 #endif
 
 	/**
+	* Returns whether this proxy should be considered a "detail mesh".
+	* Detail meshes are distance culled even if distance culling is normally disabled for the view. (e.g. in editor)
+	*/
+	virtual bool IsDetailMesh() const
+	{
+		return false;
+	}
+
+	/**
 	 *	Returns whether the proxy utilizes custom occlusion bounds or not
 	 *
 	 *	@return	bool		true if custom occlusion bounds are used, false if not;

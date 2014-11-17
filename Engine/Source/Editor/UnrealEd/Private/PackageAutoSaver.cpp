@@ -334,7 +334,10 @@ FText FPackageAutoSaver::GetAutoSaveNotificationText(const int32 TimeInSecondsUn
 		// Count down the time
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("TimeInSecondsUntilAutosave"), TimeInSecondsUntilAutosave);
-		return FText::Format(NSLOCTEXT("AutoSaveNotify", "AutoSaveIn", "Autosave in {TimeInSecondsUntilAutosave} seconds"), Args);
+		Args.Add(TEXT("DirtyPackagesCount"), DirtyPackagesForUserSave.Num());
+		return (DirtyPackagesForUserSave.Num() == 1)
+			? FText::Format(NSLOCTEXT("AutoSaveNotify", "AutoSaveIn", "Autosave in {TimeInSecondsUntilAutosave} seconds"), Args)
+			: FText::Format(NSLOCTEXT("AutoSaveNotify", "AutoSaveXPackagesIn", "Autosave in {TimeInSecondsUntilAutosave} seconds for {DirtyPackagesCount} items"), Args);
 	}
 
 	// Auto-save is imminent 
@@ -372,6 +375,8 @@ void FPackageAutoSaver::UpdateAutoSaveNotification()
 		{
 			if (CanAutoSave())
 			{
+				ClearStalePointers();
+
 				// Starting a new request! Notify the UI.
 				if (AutoSaveNotificationPtr.IsValid())
 				{
@@ -392,7 +397,7 @@ void FPackageAutoSaver::UpdateAutoSaveNotification()
 				Info.ButtonDetails.Add(FNotificationButtonInfo(AutoSaveSaveButtonText, AutoSaveSaveButtonToolTipText, FSimpleDelegate::CreateRaw(this, &FPackageAutoSaver::OnAutoSaveSave)));
 
 				// Force the width so that any text changes don't resize the notification
-				Info.WidthOverride = 170.0f;
+				Info.WidthOverride = 240.0f;
 
 				// We will be keeping track of this ourselves
 				Info.bFireAndForget = false;

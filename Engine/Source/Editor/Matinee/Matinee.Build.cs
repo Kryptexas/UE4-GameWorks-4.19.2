@@ -16,7 +16,13 @@ public class Matinee : ModuleRules
 
 		PrivateIncludePaths.Add("Editor/UnrealEd/Private");	//compatibility for FBX exporter
 
-		PrivateIncludePathModuleNames.Add("UnrealEd");	//compatibility for FBX exporter
+        PrivateIncludePathModuleNames.AddRange(
+            new string[] {
+                "UnrealEd",	//compatibility for FBX exporter
+                "MainFrame",
+                "WorkspaceMenuStructure",
+            }
+            );
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {

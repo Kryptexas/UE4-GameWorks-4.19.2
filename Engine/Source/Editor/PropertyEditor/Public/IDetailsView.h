@@ -138,6 +138,11 @@ public:
 	virtual void SetIsPropertyEditingEnabledDelegate( FIsPropertyEditingEnabled IsPropertyEditingEnabled ) = 0;
 
 	/**
+	 * @return true if property editing is enabled (based on the FIsPropertyEditingEnabled delegate)
+	 */ 
+	virtual bool IsPropertyEditingEnabled() const = 0;
+
+	/**
 	 * A delegate which is called after properties have been edited and PostEditChange has been called on all objects.
 	 * This can be used to safely make changes to data that the details panel is observing instead of during PostEditChange (which is
 	 * unsafe)

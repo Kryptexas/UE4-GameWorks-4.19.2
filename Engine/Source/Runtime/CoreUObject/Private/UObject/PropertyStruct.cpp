@@ -427,6 +427,11 @@ bool UStructProperty::IsLocalized() const
 	}
 }
 
+bool UStructProperty::SameType(const UProperty* Other) const
+{
+	return Super::SameType(Other) && (Struct == ((UStructProperty*)Other)->Struct);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UStructProperty, UProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UStructProperty, Struct ) );

@@ -339,6 +339,10 @@ namespace UnrealBuildTool
 				{
 					VCIncludeSearchPaths.Append( CurPath + ";" );
 				}
+				foreach( var CurPath in IntelliSenseSystemIncludeSearchPaths )
+				{
+					VCIncludeSearchPaths.Append( CurPath + ";" );
+				}
 				if(InPlatforms.Contains(UnrealTargetPlatform.Win64))
 				{
 					VCIncludeSearchPaths.Append(VCToolChain.GetVCIncludePaths(CPPTargetPlatform.Win64) + ";");
@@ -982,7 +986,7 @@ namespace UnrealBuildTool
 					// Force specification of TargetName on XboxOne so that the manifest can identify the correct executable to the debugger.
 					if (Platform == UnrealTargetPlatform.XboxOne)
 					{
-						VCProjectFileContent.Append("		<TargetName>$(ProjectName)");
+						VCProjectFileContent.Append("		<TargetName>" + Utils.GetFilenameWithoutAnyExtensions( TargetFilePath ));
 						if (Configuration != UnrealTargetConfiguration.Development)
 						{
 							VCProjectFileContent.Append(UBTConfigurationName);

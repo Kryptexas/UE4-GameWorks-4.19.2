@@ -96,19 +96,19 @@ void FEnvQueryTestDetails::BuildConditionValues()
 	check(TestConditionEnum);
 
 	ConditionValues.Reset();
-	ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumString(EEnvTestCondition::NoCondition), EEnvTestCondition::NoCondition));
+	ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumText(EEnvTestCondition::NoCondition).ToString(), EEnvTestCondition::NoCondition));
 
 	UEnvQueryTest* EditedTest = (UEnvQueryTest*)(MyTest.Get());
 	if (EditedTest)
 	{
 		if (EditedTest->bWorkOnFloatValues)
 		{
-			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumString(EEnvTestCondition::AtLeast), EEnvTestCondition::AtLeast));
-			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumString(EEnvTestCondition::UpTo), EEnvTestCondition::UpTo));
+			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumText(EEnvTestCondition::AtLeast).ToString(), EEnvTestCondition::AtLeast));
+			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumText(EEnvTestCondition::UpTo).ToString(), EEnvTestCondition::UpTo));
 		}
 		else
 		{
-			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumString(EEnvTestCondition::Match), EEnvTestCondition::Match));
+			ConditionValues.Add(FStringIntPair(TestConditionEnum->GetEnumText(EEnvTestCondition::Match).ToString(), EEnvTestCondition::Match));
 		}
 	}
 }

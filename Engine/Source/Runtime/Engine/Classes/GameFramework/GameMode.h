@@ -120,11 +120,11 @@ public:
 	TSubclassOf<class APlayerController> PlayerControllerClass;
 
 	/** The pawn class used by the PlayerController for players when spectating. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=GameMode)
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=GameMode)
 	TSubclassOf<class ASpectatorPawn> SpectatorClass;
 
 	/** A PlayerState of this class will be associated with every player to replicate relevant player information to all clients. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=GameMode, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadWrite, Category=GameMode, AdvancedDisplay)
 	TSubclassOf<class APlayerState> PlayerStateClass;
 
 	/** Class of GameState associated with this GameMode. */
@@ -333,6 +333,10 @@ public:
 	/** Called after a successful login.  This is the first place it is safe to call replicated functions on the PlayerAController. */
 	virtual void PostLogin( APlayerController* NewPlayer );
 
+	/** Notification that a player has successfully logged in, and has been given a player controller */
+	UFUNCTION(BlueprintImplementableEvent, Category="Game", meta=(FriendlyName="PostLogin"))
+	virtual void K2_PostLogin( APlayerController* NewPlayer );
+
 	/** Spawns a PlayerController at the specified location; split out from Login()/HandleSeamlessTravelPlayer() for easier overriding */
 	virtual APlayerController* SpawnPlayerController(FVector const& SpawnLocation, FRotator const& SpawnRotation);
 
@@ -429,6 +433,16 @@ public:
 	/** @return true if player can be restarted */
 	virtual bool PlayerCanRestart( APlayerController* aPlayer );
 
+	/**
+	 * Used to notify the game type that it is ok to update a player's gameplay
+	 * specific muting information now. The playercontroller needs to notify
+	 * the server when it is possible to do so or the unique net id will be
+	 * incorrect and the muting not work.
+	 *
+	 * @param aPlayer the playercontroller that is ready for updates
+	 */
+	virtual void UpdateGameplayMuteList( APlayerController* aPlayer );
+
 	/** @return true if player is allowed to access the cheats */
 	virtual bool AllowCheats(APlayerController* P);
 
@@ -497,9 +511,6 @@ public:
 	/** Called when this PC is in cinematic mode, and its matinee is canceled by the user. */
 	virtual void MatineeCancelled();
 
-	/** Alters the synthetic bandwidth limit for a running game **/
-	virtual void OnEngineHasLoaded();
-
 	/** Does end of game handling for the online layer */
 	virtual void RestartPlayer(class AController* NewPlayer);
 
@@ -510,8 +521,15 @@ public:
 	virtual void DefaultTimer();	
 
 protected:
-	/** Customize incoming player based on URL options  */
-	virtual void InitNewPlayer(AController* NewPlayer, const FString& Options);
+	/** 
+	 * Customize incoming player based on URL options
+	 *
+	 * @param NewPlayer player logging in
+	 * @param UniqueId unique id for this player
+	 * @param Options URL options that came at login
+	 *
+	 */
+	virtual void InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options);
 
 private:
 	// Hidden functions that don't make sense to use on this class.

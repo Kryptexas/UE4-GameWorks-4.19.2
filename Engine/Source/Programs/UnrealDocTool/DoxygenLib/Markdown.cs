@@ -137,10 +137,82 @@ namespace DoxygenLib
 			return output;
 		}
 
+		/** 
+		 * Parses Markdown from a Doxygen code node
+		 * 
+		 * @param Node			Xml node we want to parse into Markdown 
+		 * @param ResolveLink	Delegate to call to resolve doxygen id's into link paths. may be null.
+		 * @return				Converted text
+		 */
+		public static string ParseXmlCodeLine(XmlNode Node, ResolveLinkDelegate ResolveLink)
+		{
+			StringBuilder Builder = new StringBuilder();
+			ParseXmlCodeLine(Node, Builder, ResolveLink);
+			return Builder.ToString();
+		}
+
+		/** 
+		 * Parses Markdown from a Doxygen code node
+		 * 
+		 * @param Node			Xml node we want to parse into Markdown 
+		 * @param Output		StringBuilder to receive the output
+		 * @param ResolveLink	Delegate to call to resolve doxygen id's into link paths. may be null.
+		 */
+		static void ParseXmlCodeLine(XmlNode Node, StringBuilder Output, ResolveLinkDelegate ResolveLink)
+		{
+			switch(Node.Name)
+			{
+				case "sp":
+					Output.Append(' ');
+					return;
+				case "ref":
+					XmlAttribute RefAttribute = Node.Attributes["refid"];
+
+					string LinkPath = (RefAttribute != null && ResolveLink != null)? ResolveLink(RefAttribute.Value) : null;
+					if(LinkPath != null)
+					{
+						Output.Append("[");
+					}
+
+					ParseXmlCodeLineChildren(Node, Output, ResolveLink);
+
+					if(LinkPath != null)
+					{
+						Output.AppendFormat("]({0})", LinkPath);
+					}
+					break;
+				case "#text":
+					Output.Append(EscapeText(Node.InnerText));
+					break;
+				default:
+					ParseXmlCodeLineChildren(Node, Output, ResolveLink);
+					break;
+			}
+		}
+
+		/** 
+		 * Parses Markdown from the children of a Doxygen code node
+		 * 
+		 * @param Node			Xml node we want to parse into Markdown 
+		 * @param Output		StringBuilder to receive the output
+		 * @param ResolveLink	Delegate to call to resolve doxygen id's into link paths. may be null.
+		 */
+		static void ParseXmlCodeLineChildren(XmlNode Node, StringBuilder Output, ResolveLinkDelegate ResolveLink)
+		{
+			foreach(XmlNode ChildNode in Node.ChildNodes)
+			{
+				ParseXmlCodeLine(ChildNode, Output, ResolveLink);
+			}
+		}
+
+		/** 
+		 * Escape a string to be valid markdown.
+		 * 
+		 * @param Text			String to escape
+		 * @return				Escaped string
+		 */
 		public static string EscapeText(string Text)
 		{
-			const string MarkdownCharacters = "_[]*{}()%#";
-
 			StringBuilder Result = new StringBuilder();
 			for (int Idx = 0; Idx < Text.Length; Idx++)
 			{
@@ -164,13 +236,13 @@ namespace DoxygenLib
 				{
 					Result.Append("    ");
 				}
-				else if (Text[Idx] < 0x20 || Text[Idx] > 0x7e || MarkdownCharacters.Contains(Text[Idx]))
+				else if(Char.IsLetterOrDigit(Text[Idx]) || Text[Idx] == '_' || Text[Idx] == ' ' || Text[Idx] == ',' || Text[Idx] == '.')
 				{
-					Result.AppendFormat("&#{0:00};", (int)Text[Idx]);
+					Result.Append(Text[Idx]);
 				}
 				else
 				{
-					Result.Append(Text[Idx]);
+					Result.AppendFormat("&#{0:00};", (int)Text[Idx]);
 				}
 			}
 			return Result.ToString();

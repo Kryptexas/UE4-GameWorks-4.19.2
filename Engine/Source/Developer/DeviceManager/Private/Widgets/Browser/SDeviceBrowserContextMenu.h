@@ -10,36 +10,6 @@
 #define LOCTEXT_NAMESPACE "SDeviceBrowserContextMenu"
 
 
-namespace EDeviceBrowserContextMenuActions
-{
-	/**
-	 * Enumerates available context menu actions.
-	 */
-	enum Type
-	{
-		/**
-		 * Power off the device (forcefully).
-		 */
-		ForcePowerOff,
-
-		/**
-		 * Power off the device.
-		 */
-		PowerOff,
-
-		/**
-		 * Power on the device.
-		 */
-		PowerOn,
-
-		/**
-		 * Reboot the device.
-		 */
-		Reboot
-	};
-}
-
-
 /**
  * Implements a context menu for the device browser list view.
  */
@@ -57,19 +27,17 @@ public:
 	 * Construct this widget.
 	 *
 	 * @param InArgs - The declaration data for this widget.
-	 * @param InDeviceProxy - The target device proxy to use.
+	 * @param InUICommandList - The UI command list to use.
 	 */
-	void Construct( const FArguments& InArgs, ITargetDeviceServicePtr InDeviceService )
+	void Construct( const FArguments& InArgs, const TSharedPtr<FUICommandList>& InUICommandList )
 	{
-		DeviceService = InDeviceService;
-
 		ChildSlot
 		[
 			SNew(SBorder)
 				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 				.Content()
 				[
-					MakeContextMenu()
+					MakeContextMenu(InUICommandList)
 				]
 		];
 	}
@@ -81,116 +49,40 @@ protected:
 	 *
 	 * @return The context menu.
 	 */
-	TSharedRef<SWidget> MakeContextMenu( )
+	TSharedRef<SWidget> MakeContextMenu( const TSharedPtr<FUICommandList>& CommandList )
 	{
-		FMenuBuilder MenuBuilder(true, NULL);
+		FMenuBuilder MenuBuilder(true, CommandList);
 
-		MenuBuilder.BeginSection("RemoteControl", LOCTEXT("MenuHeadingText", "Remote Control"));
+		// ownership actions
+		MenuBuilder.BeginSection("Ownership", LOCTEXT("OwnershipMenuHeading", "Ownership"));
 		{
-			MenuBuilder.AddMenuEntry(LOCTEXT("MenuEntryPowerOnText", "Power on"), FText::GetEmpty(), FSlateIcon(), FUIAction(
-				FExecuteAction::CreateRaw(this, &SDeviceBrowserContextMenu::HandleContextMenuEntryExecute, EDeviceBrowserContextMenuActions::PowerOn),
-				FCanExecuteAction::CreateRaw(this, &SDeviceBrowserContextMenu::HandleContextMenuEntryCanExecute, EDeviceBrowserContextMenuActions::PowerOn))
-				);
-
-			MenuBuilder.AddMenuEntry(LOCTEXT("MenuEntryPowerOffText", "Power off"), FText::GetEmpty(), FSlateIcon(), FUIAction(
-				FExecuteAction::CreateRaw(this, &SDeviceBrowserContextMenu::HandleContextMenuEntryExecute, EDeviceBrowserContextMenuActions::PowerOff),
-				FCanExecuteAction::CreateRaw(this, &SDeviceBrowserContextMenu::HandleContextMenuEntryCanExecute, EDeviceBrowserContextMenuActions::PowerOff))
-				);
-
-			MenuBuilder.AddMenuEntry(LOCTEXT("MenuEntryForcePowerOffText", "Power off (force)"), FText::GetEmpty(), FSlateIcon(), FUIAction(
-				FExecuteAction::CreateRaw(this, &SDeviceBrowserContextMenu::HandleContextMenuEntryExecute, EDeviceBrowserContextMenuActions::ForcePowerOff),
-				FCanExecuteAction::CreateRaw(this, &SDeviceBrowserContextMenu::HandleContextMenuEntryCanExecute, EDeviceBrowserContextMenuActions::ForcePowerOff))
-				);
-
-			MenuBuilder.AddMenuEntry(LOCTEXT("MenuEntryRebootText", "Reboot"), FText::GetEmpty(), FSlateIcon(), FUIAction(
-				FExecuteAction::CreateRaw(this, &SDeviceBrowserContextMenu::HandleContextMenuEntryExecute, EDeviceBrowserContextMenuActions::Reboot),
-				FCanExecuteAction::CreateRaw(this, &SDeviceBrowserContextMenu::HandleContextMenuEntryCanExecute, EDeviceBrowserContextMenuActions::Reboot))
-				);
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().Claim);
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().Release);
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().Share);
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().Remove);
 		}
 		MenuBuilder.EndSection();
+
+		// connectivity actions
+		MenuBuilder.BeginSection("Connectivity", LOCTEXT("ConnectivityMenuHeading", "Connectivity"));
+		{
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().Connect);
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().Disconnect);
+		}
+		MenuBuilder.EndSection();
+
+		// remote control actions
+		MenuBuilder.BeginSection("RemoteControl", LOCTEXT("RemoteControlMenuHeading", "Remote Control"));
+		{
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().PowerOn);
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().PowerOff);
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().PowerOffForce);
+			MenuBuilder.AddMenuEntry(FDeviceDetailsCommands::Get().Reboot);
+		}
+		MenuBuilder.EndSection();
+
 		return MenuBuilder.MakeWidget();
 	}
-
-private:
-
-	// Callback for determining whether the specified context menu action can be executed.
-	bool HandleContextMenuEntryCanExecute( EDeviceBrowserContextMenuActions::Type Action )
-	{
-		if (DeviceService.IsValid())
-		{
-			const ITargetDevicePtr& Device = DeviceService->GetDevice();
-
-			if (Device.IsValid())
-			{
-				switch (Action)
-				{
-				case EDeviceBrowserContextMenuActions::ForcePowerOff:
-				case EDeviceBrowserContextMenuActions::PowerOff:
-					return Device->SupportsFeature(ETargetDeviceFeatures::PowerOff);
-
-				case EDeviceBrowserContextMenuActions::PowerOn:
-					return Device->SupportsFeature(ETargetDeviceFeatures::PowerOn);
-
-				case EDeviceBrowserContextMenuActions::Reboot:
-					return Device->SupportsFeature(ETargetDeviceFeatures::Reboot);
-				}
-			}
-		}
-
-		return false;
-	}
-
-	// Callback for executing the specified context menu action.
-	void HandleContextMenuEntryExecute( EDeviceBrowserContextMenuActions::Type Action )
-	{
-		if (DeviceService.IsValid())
-		{
-			if (DeviceService->GetCachedDeviceName() == FPlatformProcess::ComputerName())
-			{
-				int32 DialogResult = FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("LocalHostDialogPrompt", "WARNING: This device represents your local computer.\n\nAre you sure you want to proceed?"));
-
-				if (DialogResult != EAppReturnType::Yes)
-				{
-					return;
-				}
-			}
-
-			const ITargetDevicePtr& Device = DeviceService->GetDevice();
-
-			if (!Device.IsValid())
-			{
-				return;
-			}
-
-			switch (Action)
-			{
-			case EDeviceBrowserContextMenuActions::ForcePowerOff:
-				Device->PowerOff(true);
-				break;
-
-			case EDeviceBrowserContextMenuActions::PowerOff:
-				Device->PowerOff(false);
-				break;
-
-			case EDeviceBrowserContextMenuActions::PowerOn:
-				Device->PowerOn();
-				break;
-
-			case EDeviceBrowserContextMenuActions::Reboot:
-				Device->Reboot();
-				break;
-
-			default:
-
-				return;
-			}
-		}
-	}
-
-private:
-
-	// Holds a pointer to the target device service.
-	ITargetDeviceServicePtr DeviceService;
 };
 
 

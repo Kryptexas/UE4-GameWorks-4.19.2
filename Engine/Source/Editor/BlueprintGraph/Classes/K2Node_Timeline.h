@@ -29,14 +29,13 @@ class UK2Node_Timeline : public UK2Node
 	UPROPERTY(Transient)
 	uint32 bReplicated:1;
 
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void DestroyNode() OVERRIDE;
 	virtual void PostPasteNode() OVERRIDE;
 	virtual void PrepareForCopying() OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results )  OVERRIDE;
 	virtual void OnRenameNode(const FString& NewName) OVERRIDE;
@@ -44,6 +43,7 @@ class UK2Node_Timeline : public UK2Node
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetDocumentationExcerptName() const OVERRIDE;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.Timeline_16x"); }
+	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface.
@@ -93,7 +93,5 @@ class UK2Node_Timeline : public UK2Node
 
 private:
 	void ExpandForPin(UEdGraphPin* TimelinePin, const FName PropertyName, FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
-
-#endif
 };
 

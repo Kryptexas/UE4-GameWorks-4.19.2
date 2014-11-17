@@ -55,6 +55,9 @@ static FString GSavedCommandLine;
 	FPlatformMisc::SetGracefulTerminationHandler();
 	FPlatformMisc::SetCrashHandler(CrashReporterCrashHandler);
 	
+	// Force ourselves to the front
+	[[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
+	
 	RunCrashReportClient(*GSavedCommandLine);
 	
 	[NSApp terminate: self];

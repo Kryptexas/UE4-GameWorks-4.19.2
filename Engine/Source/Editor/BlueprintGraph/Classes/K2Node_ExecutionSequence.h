@@ -9,13 +9,11 @@ class UK2Node_ExecutionSequence : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
-
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.Sequence_16x"); }
 	// End UEdGraphNode interface
 
@@ -50,6 +48,5 @@ class UK2Node_ExecutionSequence : public UK2Node
 private:
 	// Returns the exec output pin name for a given 0-based index
 	virtual FString GetPinNameGivenIndex(int32 Index) const;
-#endif 
 };
 

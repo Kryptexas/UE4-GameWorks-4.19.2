@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivate.h"
+#include <sys/file.h>	// flock()
 
 DEFINE_LOG_CATEGORY_STATIC(LogLinuxPlatformFile, Log, All);
 
@@ -120,11 +121,13 @@ int64 FLinuxPlatformFile::FileSize(const TCHAR* Filename)
 {
 	struct stat FileInfo;
 	FileInfo.st_size = -1;
-	stat(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), &FileInfo);
-	// make sure to return -1 for directories
-	if (S_ISDIR(FileInfo.st_mode))
+	if (stat(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), &FileInfo) != -1)
 	{
-		FileInfo.st_size = -1;
+		// make sure to return -1 for directories
+		if (S_ISDIR(FileInfo.st_mode))
+		{
+			FileInfo.st_size = -1;
+		}
 	}
 	return FileInfo.st_size;
 }
@@ -239,7 +242,7 @@ IFileHandle* FLinuxPlatformFile::OpenRead(const TCHAR* Filename)
 
 IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead)
 {
-	int Flags = O_CREAT;
+	int Flags = O_CREAT | O_CLOEXEC;	// prevent children from inheriting this
 	if (bAppend)
 	{
 		Flags |= O_APPEND;
@@ -259,6 +262,20 @@ IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, 
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), Flags, S_IRUSR | S_IWUSR);
 	if (Handle != -1)
 	{
+		// mimic Windows "exclusive write" behavior (we don't use FILE_SHARE_WRITE) by locking the file.
+		// note that the lock will be removed by itself when the last file descriptor is close()d
+		if (flock(Handle, LOCK_EX | LOCK_NB) == -1)
+		{
+			// if locked, consider operation a failure
+			if (EWOULDBLOCK == errno)
+			{
+				close(Handle);
+				return NULL;
+			}
+
+			// all the other locking errors are ignored.
+		}
+
 		FFileHandleLinux* FileHandleLinux = new FFileHandleLinux(Handle);
 		if (bAppend)
 		{

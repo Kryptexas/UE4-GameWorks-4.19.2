@@ -10,29 +10,37 @@ UBTAuxiliaryNode::UBTAuxiliaryNode(const class FPostConstructInitializePropertie
 	bTickIntervals = false;
 }
 
-void UBTAuxiliaryNode::ConditionalOnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTAuxiliaryNode::WrappedOnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	if (bNotifyBecomeRelevant)
 	{
-		OnBecomeRelevant(OwnerComp, NodeMemory);
+		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
+		if (NodeOb)
+		{
+			((UBTAuxiliaryNode*)NodeOb)->OnBecomeRelevant(OwnerComp, NodeMemory);
+		}
 	}
 }
 
-void UBTAuxiliaryNode::ConditionalOnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTAuxiliaryNode::WrappedOnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
 {
 	if (bNotifyCeaseRelevant)
 	{
-		OnCeaseRelevant(OwnerComp, NodeMemory);
+		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
+		if (NodeOb)
+		{
+			((UBTAuxiliaryNode*)NodeOb)->OnCeaseRelevant(OwnerComp, NodeMemory);
+		}
 	}
 }
 
-void UBTAuxiliaryNode::ConditionalTickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
+void UBTAuxiliaryNode::WrappedTickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
 {
 	if (bNotifyTick)
 	{
 		if (bTickIntervals)
 		{
-			FBTAuxiliaryMemory* AuxMemory = GetAuxNodeMemory(NodeMemory);
+			FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
 			AuxMemory->NextTickRemainingTime -= DeltaSeconds;
 			if (AuxMemory->NextTickRemainingTime > 0.0f)
 			{
@@ -40,7 +48,11 @@ void UBTAuxiliaryNode::ConditionalTickNode(class UBehaviorTreeComponent* OwnerCo
 			}	
 		}
 
-		TickNode(OwnerComp, NodeMemory, DeltaSeconds);
+		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(OwnerComp, NodeMemory) : this;
+		if (NodeOb)
+		{
+			((UBTAuxiliaryNode*)NodeOb)->TickNode(OwnerComp, NodeMemory, DeltaSeconds);
+		}
 	}
 }
 
@@ -48,7 +60,7 @@ void UBTAuxiliaryNode::SetNextTickTime(uint8* NodeMemory, float RemainingTime) c
 {
 	if (bTickIntervals)
 	{
-		FBTAuxiliaryMemory* AuxMemory = GetAuxNodeMemory(NodeMemory);
+		FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
 		AuxMemory->NextTickRemainingTime = RemainingTime;
 	}
 }
@@ -59,38 +71,27 @@ void UBTAuxiliaryNode::DescribeRuntimeValues(const class UBehaviorTreeComponent*
 
 	if (Verbosity == EBTDescriptionVerbosity::Detailed && bTickIntervals)
 	{
-		FBTAuxiliaryMemory* AuxMemory = GetAuxNodeMemory(NodeMemory);
+		FBTAuxiliaryMemory* AuxMemory = GetSpecialNodeMemory<FBTAuxiliaryMemory>(NodeMemory);
 		Values.Add(FString::Printf(TEXT("next tick: %ss"), *FString::SanitizeFloat(AuxMemory->NextTickRemainingTime)));
 	}
 }
 
-void UBTAuxiliaryNode::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTAuxiliaryNode::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	// empty in base class
 }
 
-void UBTAuxiliaryNode::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTAuxiliaryNode::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	// empty in base class
 }
 
-void UBTAuxiliaryNode::TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
+void UBTAuxiliaryNode::TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	// empty in base class
 }
 
-uint16 UBTAuxiliaryNode::GetInstanceAuxMemorySize() const
+uint16 UBTAuxiliaryNode::GetSpecialMemorySize() const
 {
-	return bTickIntervals ? sizeof(FBTAuxiliaryMemory) : 0;
-}
-
-FBTAuxiliaryMemory* UBTAuxiliaryNode::GetAuxNodeMemory(uint8* NodeMemory) const
-{
-	if (bTickIntervals)
-	{
-		const int32 AlignedAuxMemory = ((sizeof(FBTAuxiliaryMemory) + 3) & ~3);
-		return (FBTAuxiliaryMemory*)(NodeMemory - AlignedAuxMemory);
-	}
-
-	return NULL;
+	return bTickIntervals ? sizeof(FBTAuxiliaryMemory) : Super::GetSpecialMemorySize();
 }

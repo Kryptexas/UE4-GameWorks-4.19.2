@@ -23,7 +23,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewNode : public FEdGraphSchemaAc
 		, MaterialExpressionClass(NULL)
 	{}
 
-	FMaterialGraphSchemaAction_NewNode(const FString& InNodeCategory, const FString& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FMaterialGraphSchemaAction_NewNode(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping) 
 		, MaterialExpressionClass(NULL)
 	{}
@@ -31,6 +31,14 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewNode : public FEdGraphSchemaAc
 	// FEdGraphSchemaAction interface
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) OVERRIDE;
 	// End of FEdGraphSchemaAction interface
+
+	/**
+	 * Sets the type of a Function input based on an EMaterialValueType value.
+	 *
+	 * @param	FunctionInput		The function input to set.
+	 * @param	MaterialValueType	Value type we want input to accept.
+	 */
+	void SetFunctionInputType(UMaterialExpressionFunctionInput* FunctionInput, uint32 MaterialValueType) const;
 };
 
 /** Action to add a Material Function call to the graph */
@@ -51,7 +59,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewFunctionCall : public FEdGraph
 		: FEdGraphSchemaAction()
 	{}
 
-	FMaterialGraphSchemaAction_NewFunctionCall(const FString& InNodeCategory, const FString& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FMaterialGraphSchemaAction_NewFunctionCall(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
 	{}
 
@@ -74,7 +82,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewComment : public FEdGraphSchem
 		: FEdGraphSchemaAction()
 	{}
 
-	FMaterialGraphSchemaAction_NewComment(const FString& InNodeCategory, const FString& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FMaterialGraphSchemaAction_NewComment(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
 	{}
 
@@ -97,7 +105,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_Paste : public FEdGraphSchemaActi
 		: FEdGraphSchemaAction()
 	{}
 
-	FMaterialGraphSchemaAction_Paste(const FString& InNodeCategory, const FString& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+	FMaterialGraphSchemaAction_Paste(const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
 		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
 	{}
 
@@ -179,6 +187,9 @@ class UMaterialGraphSchema : public UEdGraphSchema
 	/** Check whether the types of pins are compatible */
 	bool ArePinsCompatible(const UEdGraphPin* InputPin, const UEdGraphPin* OutputPin, FText& ResponseMessage) const;
 
+	/** Gets the type of this pin (must be part of a UMaterialGraphNode_Base) */
+	UNREALED_API static uint32 GetMaterialValueType(const UEdGraphPin* MaterialPin);
+
 	// Begin UEdGraphSchema interface
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;
 	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const OVERRIDE;
@@ -199,4 +210,13 @@ private:
 	void GetMaterialFunctionActions(FGraphActionMenuBuilder& ActionMenuBuilder) const;
 	/** Adds action for creating a comment */
 	void GetCommentAction(FGraphActionMenuBuilder& ActionMenuBuilder, const UEdGraph* CurrentGraph = NULL) const;
+	/**
+	 * Checks whether a Material Function has any connections that are compatible with a type/direction
+	 *
+	 * @param	FunctionAssetData	Asset Data for function to test against (may need to be fully loaded).
+	 * @param	TestType			Material Value Type we are testing.
+	 * @param	TestDirection		Pin Direction we are testing.
+	*/
+	bool HasCompatibleConnection(const FAssetData& FunctionAssetData, uint32 TestType, EEdGraphPinDirection TestDirection) const;
+
 };

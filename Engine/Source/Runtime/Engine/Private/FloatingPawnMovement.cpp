@@ -86,30 +86,41 @@ bool UFloatingPawnMovement::LimitWorldBounds()
 
 void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 {
-	const FVector ControlAcceleration = GetInputVector().SafeNormal();
-	if (ControlAcceleration.SizeSquared() > 0.f)
-	{
-		const float VelSize = Velocity.Size();
-		if (VelSize > 0.f)
-		{
-			Velocity -= (Velocity - ControlAcceleration * VelSize) * FMath::Min(DeltaTime * 8.f, 1.f);
-		}
+	const FVector ControlAcceleration = GetInputVector().ClampMaxSize(1.f);
 
-		Velocity += ControlAcceleration * Acceleration * DeltaTime;
+	const float AnalogInputModifier = (ControlAcceleration.SizeSquared() > 0.f ? ControlAcceleration.Size() : 0.f);
+	const float MaxSpeed = GetModifiedMaxSpeed() * AnalogInputModifier;
+	const bool bExceedingMaxSpeed = IsExceedingMaxSpeed(MaxSpeed);
+
+	if (AnalogInputModifier > 0.f && !bExceedingMaxSpeed)
+	{
+		// Apply change in velocity direction
+		if (Velocity.SizeSquared() > 0.f)
+		{
+			Velocity -= (Velocity - ControlAcceleration * Velocity.Size()) * FMath::Min(DeltaTime * 8.f, 1.f);
+		}
 	}
 	else
 	{
-		// Dampen
-		float VelSize = Velocity.Size();
-		if (VelSize > 0.f)
+		// Dampen velocity magnitude based on deceleration.
+		if (Velocity.SizeSquared() > 0.f)
 		{
-			VelSize = FMath::Max(VelSize - Deceleration * DeltaTime, 0.f);
+			const FVector OldVelocity = Velocity;
+			const float VelSize = FMath::Max(Velocity.Size() - FMath::Abs(Deceleration) * DeltaTime, 0.f);
 			Velocity = Velocity.SafeNormal() * VelSize;
+
+			// Don't allow braking to lower us below max speed if we started above it.
+			if (bExceedingMaxSpeed && Velocity.SizeSquared() < FMath::Square(MaxSpeed))
+			{
+				Velocity = OldVelocity.SafeNormal() * MaxSpeed;
+			}
 		}
 	}
 
-	// Limit velocity magnitude
-	Velocity = Velocity.ClampMaxSize(GetMaxSpeed());
+	// Apply acceleration and clamp velocity magnitude.
+	const float NewMaxSpeed = (IsExceedingMaxSpeed(MaxSpeed)) ? Velocity.Size() : MaxSpeed;
+	Velocity += ControlAcceleration * FMath::Abs(Acceleration) * DeltaTime;
+	Velocity = Velocity.ClampMaxSize(NewMaxSpeed);
 
 	ConsumeInputVector();
 }

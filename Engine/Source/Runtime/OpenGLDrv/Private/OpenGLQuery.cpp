@@ -214,6 +214,12 @@ FOpenGLRenderQuery::FOpenGLRenderQuery(ERenderQueryType InQueryType)
 	OnQueryCreation( this );
 }
 
+FOpenGLRenderQuery::FOpenGLRenderQuery(FOpenGLRenderQuery const& OtherQuery)
+{
+	operator=(OtherQuery);
+	OnQueryCreation( this );
+}
+
 FOpenGLRenderQuery::~FOpenGLRenderQuery()
 {
 	OnQueryDeletion( this );
@@ -221,6 +227,21 @@ FOpenGLRenderQuery::~FOpenGLRenderQuery()
 	{
 		PlatformReleaseRenderQuery(Resource, ResourceContext);
 	}
+}
+
+FOpenGLRenderQuery& FOpenGLRenderQuery::operator=(FOpenGLRenderQuery const& OtherQuery)
+{
+	if(this != &OtherQuery)
+	{
+		Resource = OtherQuery.Resource;
+		ResourceContext = OtherQuery.ResourceContext;
+		Result = OtherQuery.Result;
+		bResultIsCached = OtherQuery.bResultIsCached;
+		bInvalidResource = OtherQuery.bInvalidResource;
+		QueryType = OtherQuery.QueryType;
+		const_cast<FOpenGLRenderQuery*>(&OtherQuery)->bInvalidResource = true;
+	}
+	return *this;
 }
 	
 

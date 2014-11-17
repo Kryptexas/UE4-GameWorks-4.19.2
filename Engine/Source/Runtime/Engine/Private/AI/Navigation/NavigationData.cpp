@@ -6,7 +6,7 @@
 //----------------------------------------------------------------------//
 // FNavDataGenerator
 //----------------------------------------------------------------------//
-void FNavDataGenerator::TiggerGeneration()
+void FNavDataGenerator::TriggerGeneration()
 {
 }
 
@@ -15,8 +15,7 @@ void FNavDataGenerator::TiggerGeneration()
 //----------------------------------------------------------------------//
 ANavigationData::ANavigationData(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
-	, bEnableDrawing(true)
-	, bShowOnlyDefaultAgent(true)
+	, bEnableDrawing(false)
 	, bRebuildAtRuntime(true)
 	, DataVersion(NAVMESHVER_LATEST)
 	, FindPathImplementation(NULL)
@@ -382,6 +381,21 @@ int32 ANavigationData::GetAreaID(const UClass* AreaClass) const
 void ANavigationData::UpdateSmartLink(class USmartNavLinkComponent* LinkComp)
 {
 	// no implementation for abstract class
+}
+
+TSharedPtr<const FNavigationQueryFilter> ANavigationData::GetQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass) const
+{
+	return QueryFilters.FindRef(FilterClass);
+}
+
+void ANavigationData::StoreQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass, TSharedPtr<const FNavigationQueryFilter> NavFilter)
+{
+	QueryFilters.Add(FilterClass, NavFilter);
+}
+
+void ANavigationData::RemoveQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass)
+{
+	QueryFilters.Remove(FilterClass);
 }
 
 uint32 ANavigationData::LogMemUsed() const

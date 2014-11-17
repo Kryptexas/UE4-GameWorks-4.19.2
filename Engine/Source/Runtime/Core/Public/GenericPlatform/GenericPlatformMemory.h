@@ -7,7 +7,8 @@
 
 #pragma once
 
-// @todo: Add stats
+/** Holds generic memory stats, internally implemented as a map. */
+struct FGenericMemoryStats;
 
 /** 
  * Struct used to hold common memory constants for all platforms.
@@ -34,13 +35,23 @@ struct FGenericPlatformMemoryConstants
 		, PageSize( 0 )
 		, TotalPhysicalGB( 1 )
 	{}
+
+	/** Copy constructor, used by the generic platform memory stats. */
+	FGenericPlatformMemoryConstants( const FGenericPlatformMemoryConstants& Other )
+		: TotalPhysical( Other.TotalPhysical )
+		, TotalVirtual( Other.TotalVirtual )
+		, PageSize( Other.PageSize )
+		, TotalPhysicalGB( Other.TotalPhysicalGB )
+	{}
 };
+
+typedef FGenericPlatformMemoryConstants FPlatformMemoryConstants;
 
 /** 
  * Struct used to hold common memory stats for all platforms.
  * These values may change over the entire life of the executable.
  */
-struct FGenericPlatformMemoryStats
+struct FGenericPlatformMemoryStats : public FPlatformMemoryConstants
 {
 	/** The amount of physical memory currently available, in bytes. */
 	SIZE_T AvailablePhysical;
@@ -48,28 +59,23 @@ struct FGenericPlatformMemoryStats
 	/** The amount of virtual memory currently available, in bytes. */
 	SIZE_T AvailableVirtual;
 
-	/** The current working set size, in bytes. This is the amount of physical memory used by the process. */
-	SIZE_T WorkingSetSize;
+	/** The amount of physical memory used by the process, in bytes. */
+	SIZE_T UsedPhysical;
 
-	/** The peak working set size, in bytes. */
-	SIZE_T PeakWorkingSetSize;
+	/** The peak amount of physical memory used by the process, in bytes. */
+	SIZE_T PeakUsedPhysical;
 
 	/** Total amount of virtual memory used by the process. */
-	SIZE_T PagefileUsage;
+	SIZE_T UsedVirtual;
+
+	/** The peak amount of virtual memory used by the process. */
+	SIZE_T PeakUsedVirtual;
 	
 	/** Default constructor, clears all variables. */
-	FGenericPlatformMemoryStats()
-		: AvailablePhysical( 0 )
-		, AvailableVirtual( 0 )
-		, WorkingSetSize( 0 )
-		, PeakWorkingSetSize( 0 )
-		, PagefileUsage( 0 )		
-	{}
+	FGenericPlatformMemoryStats();
 };
 
 struct FPlatformMemoryStats;
-
-typedef FGenericPlatformMemoryConstants FPlatformMemoryConstants;
 
 /**
  * FMemory_Alloca/alloca implementation. This can't be a function, even FORCEINLINE'd because there's no guarantee that 
@@ -90,7 +96,7 @@ struct CORE_API FGenericPlatformMemory
 	 * Various memory regions that can be used with memory stats. The exact meaning of
 	 * the enums are relatively platform-dependent, although the general ones (Physical, GPU)
 	 * are straightforward. A platform can add more of these, and it won't affect other 
-	 * platforms, other than a miniscule amount of memory for the StatManager to track the
+	 * platforms, other than a minuscule amount of memory for the StatManager to track the
 	 * max available memory for each region (uses an array FPlatformMemory::MCR_MAX big)
 	 */
 	enum EMemoryCounterRegion
@@ -103,6 +109,54 @@ struct CORE_API FGenericPlatformMemory
 		MCR_MAX
 	};
 
+	/**
+	 * Flags used for shared memory creation/open
+	 */
+	enum ESharedMemoryAccess
+	{
+		Read	=		(1 << 1),
+		Write	=		(1 << 2)
+	};
+
+	/**
+	 * Generic representation of a shared memory region
+	 */
+	struct FSharedMemoryRegion
+	{
+		/** Returns the name of the region */
+		const TCHAR *	GetName() const			{ return Name; }
+
+		/** Returns the beginning of the region in process address space */
+		void *			GetAddress()			{ return Address; }
+
+		/** Returns the beginning of the region in process address space */
+		const void *	GetAddress() const		{ return Address; }
+
+		/** Returns size of the region in bytes */
+		SIZE_T			GetSize() const			{ return Size; }
+	
+		
+		FSharedMemoryRegion(const FString & InName, uint32 InAccessMode, void * InAddress, SIZE_T InSize);
+
+	protected:
+
+		enum Limits
+		{
+			MaxSharedMemoryName		=	128
+		};
+
+		/** Name of the region */
+		TCHAR			Name[MaxSharedMemoryName];
+
+		/** Access mode for the region */
+		uint32			AccessMode;
+
+		/** The actual buffer */
+		void *			Address;
+
+		/** Size of the buffer */
+		SIZE_T			Size;
+	};
 
 	/** Initializes platform memory specific constants. */
 	static void Init();
@@ -123,6 +177,11 @@ struct CORE_API FGenericPlatformMemory
 	static FPlatformMemoryStats GetStats();
 
 	/**
+	 * Writes all platform specific current memory statistics in the format usable by the malloc profiler.
+	 */
+	static void GetStatsForMallocProfiler( FGenericMemoryStats& out_Stats );
+
+	/**
 	 * @return platform specific memory constants.
 	 */
 	static const FPlatformMemoryConstants& GetConstants();
@@ -131,6 +190,9 @@ struct CORE_API FGenericPlatformMemory
 	 * @return approximate physical RAM in GB.
 	 */
 	static uint32 GetPhysicalGBRam();
+
+	/** Called once per frame, gathers and sets all platform memory statistics into the corresponding stats. */
+	static void UpdateStats();
 
 	/**
 	 * Allocates pages from the OS.
@@ -199,5 +261,25 @@ struct CORE_API FGenericPlatformMemory
 	}
 
 	static void Memswap( void* Ptr1, void* Ptr2, SIZE_T Size );
-};
 
+	/**
+	 * Maps a named shared memory region into process address space (creates or opens it)
+	 *
+	 * @param Name unique name of the shared memory region (should not contain [back]slashes to remain cross-platform).
+	 * @param bCreate whether we're creating it or just opening existing (created by some other process).
+	 * @param AccessMode mode which we will be accessing it (use values from ESharedMemoryAccess)
+	 * @param Size size of the buffer (should be >0. Also, the real size is subject to platform limitations and may be increased to match page size)
+	 *
+	 * @return pointer to FSharedMemoryRegion (or its descendants) if successful, NULL if not.
+	 */
+	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString & Name, bool bCreate, uint32 AccessMode, SIZE_T Size);
+
+	/**
+	 * Unmaps a name shared memory region
+	 *
+	 * @param MemoryRegion an object that encapsulates a shared memory region (will be destroyed even if function fails!)
+	 *
+	 * @return true if successful
+	 */
+	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
+};

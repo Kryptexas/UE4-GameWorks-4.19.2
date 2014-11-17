@@ -12,14 +12,20 @@ struct FKCHandlerDelegateHelper
 		for (TFieldIterator<UProperty> PropIt(SignatureFunc); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 		{
 			UProperty* FuncParam = *PropIt;
-
-			if(FuncParam->HasAllPropertyFlags(CPF_OutParm) && !FuncParam->HasAllPropertyFlags(CPF_ConstParm))
+			if (FuncParam->HasAllPropertyFlags(CPF_OutParm) && !FuncParam->HasAllPropertyFlags(CPF_ConstParm))
 			{
-				MessageLog.Warning(
-					*FString::Printf(
-					*LOCTEXT("DelegatesDontSupportRef", "Event Dispatcher: No value will be return by reference. Parameter '%s'. @@").ToString(), 
-					*FuncParam->GetName()),
-					DelegateNode);
+				const bool bIsArray = FuncParam->IsA<UArrayProperty>(); // array is always passed by reference, see FKismetCompilerContext::CreatePropertiesFromList
+				const FString MessageStr = FString::Printf(
+					*LOCTEXT("DelegatesDontSupportRef", "Event Dispatcher: No value will be return by reference. Parameter '%s'. Node '@@'").ToString(),
+					*FuncParam->GetName());
+				if (bIsArray)
+				{
+					MessageLog.Note(*MessageStr,DelegateNode);
+				}
+				else
+				{
+					MessageLog.Warning(*MessageStr, DelegateNode);
+				}
 			}
 		}
 	}

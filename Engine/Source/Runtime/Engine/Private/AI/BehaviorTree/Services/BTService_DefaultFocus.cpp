@@ -17,7 +17,7 @@ UBTService_DefaultFocus::UBTService_DefaultFocus(const class FPostConstructIniti
 	BlackboardKey.AddVectorFilter(this);
 }
 
-void UBTService_DefaultFocus::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTService_DefaultFocus::OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) 
 {
 	Super::OnBecomeRelevant(OwnerComp, NodeMemory);
 
@@ -32,7 +32,7 @@ void UBTService_DefaultFocus::OnBecomeRelevant(class UBehaviorTreeComponent* Own
 	{
 		if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 		{
-			UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.SelectedKeyID);
+			UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.GetSelectedKeyID());
 			AActor* TargetActor = Cast<AActor>(KeyValue);
 			if (TargetActor)
 			{
@@ -43,14 +43,14 @@ void UBTService_DefaultFocus::OnBecomeRelevant(class UBehaviorTreeComponent* Own
 		}
 		else
 		{
-			const FVector FocusLocation = MyBlackboard->GetValueAsVector(BlackboardKey.SelectedKeyID);
+			const FVector FocusLocation = MyBlackboard->GetValueAsVector(BlackboardKey.GetSelectedKeyID());
 			OwnerController->SetFocalPoint(FocusLocation, /*bOffsetFromBase=*/false, EAIFocusPriority::Default);
 			MyMemory->FocusLocationSet = FocusLocation;
 		}
 	}
 }
 
-void UBTService_DefaultFocus::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTService_DefaultFocus::OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	Super::OnCeaseRelevant(OwnerComp, NodeMemory);
 

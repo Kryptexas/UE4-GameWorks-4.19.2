@@ -58,6 +58,8 @@ XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails	= { 0 };
 
 #define DEBUG_XAUDIO2 0
 
+FSpatializationHelper FXAudio2Device::SpatializationHelper;
+
 bool FXAudio2Device::InitializeHardware()
 {
 	if (IsRunningDedicatedServer())
@@ -89,6 +91,8 @@ bool FXAudio2Device::InitializeHardware()
 		UE_LOG(LogInit, Log, TEXT( "Failed to create XAudio2 interface" ) );
 		return( false );
 	}
+
+	SpatializationHelper.Init();
 
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	UINT32 DeviceCount = 0;
@@ -148,7 +152,7 @@ bool FXAudio2Device::InitializeHardware()
 	}
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 	// Create the final output voice
-	if (FXAudioDeviceProperties::XAudio2->CreateMasteringVoice(&FXAudioDeviceProperties::MasteringVoice) != S_OK)
+	if (FXAudioDeviceProperties::XAudio2->CreateMasteringVoice(&FXAudioDeviceProperties::MasteringVoice, UE4_XAUDIO2_NUMCHANNELS, UE4_XAUDIO2_SAMPLERATE, 0, 0, NULL ) != S_OK)
 	{
 		UE_LOG(LogInit, Log, TEXT( "Failed to create the mastering voice for XAudio2" ) );
 		FXAudioDeviceProperties::XAudio2 = NULL;

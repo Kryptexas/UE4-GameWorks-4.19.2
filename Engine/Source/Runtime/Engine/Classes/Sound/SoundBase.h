@@ -30,9 +30,6 @@ class USoundBase : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(Config)
-	FString DefaultSoundClassName;
-
 	UPROPERTY()
 	FName SoundClass_DEPRECATED;
 

@@ -1,11 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 /*=============================================================================
-	AndroidTargetPlatformPrivatePCH.h: Pre-compiled header file for the AndroidTargetPlatform module.
+	LinuxTargetPlatformPrivatePCH.h: Pre-compiled header file for the AndroidTargetPlatform module.
 =============================================================================*/
 
 #pragma once
+
 
 /* Dependencies
  *****************************************************************************/

@@ -534,6 +534,31 @@ public:
 	/** Make sure this object has been shut down. */
 	void ConditionalShutdownAfterError();
 
+
+	/**
+	 * Starts caching of platform specific data for the target platform
+	 * Called when cooking before serialization so that object can prepare platform specific data
+	 * Not called during normal loading of objects
+	 * 
+	 * @param	TargetPlatform	target platform to cache platform specific data for
+	 */
+	virtual void BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+
+	/**
+	 * Clears cached cooked platform data for specific platform
+	 * 
+	 * @param	TargetPlatform	target platform to cache platform specific data for
+	 */
+	virtual void ClearCachedCookedPlatformData( const ITargetPlatform *TargetPlatform ) {  }
+
+	/**
+	 * Clear all cached cooked platform data
+	 * 
+	 * @param	TargetPlatform	target platform to cache platform specific data for
+	 */
+	virtual void ClearAllCachedCookedPlatformData() { }
+
+
 	/**
 	 * Determine if this object has SomeObject in its archetype chain.
 	 */
@@ -709,7 +734,7 @@ public:
 	 * @param Parameters arguments to the function call
 	 * @param Stack stack frame for the function call
 	 */
-	virtual bool CallRemoteFunction( UFunction* Function, void* Parms, FFrame* Stack )
+	virtual bool CallRemoteFunction( UFunction* Function, void* Parms, struct FOutParmRec* OutParms, FFrame* Stack )
 	{
 		return false;
 	}
@@ -895,6 +920,7 @@ public:
 	DECLARE_FUNCTION(execObjectToBool);
 	DECLARE_FUNCTION(execInterfaceToBool);
 	DECLARE_FUNCTION(execObjectToInterface);
+	DECLARE_FUNCTION(execInterfaceToInterface);
 
 	// Dynamic array functions
 	// Array support

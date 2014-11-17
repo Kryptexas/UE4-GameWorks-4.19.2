@@ -156,6 +156,12 @@ public:
 	bool AutoRecompileBlueprints;
 
 	/**
+	 * Whether to play sounds during PIE
+	 */
+	UPROPERTY(config, EditAnywhere, Category = PlayInEditor, meta = (ToolTip = "Whether to play sounds when in a Play In Editor session"))
+	bool EnableSound;
+
+	/**
 	 * True if Play In Editor should only load currently-visible levels in PIE.
 	 */
 	UPROPERTY(config)

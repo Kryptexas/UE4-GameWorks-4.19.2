@@ -17,7 +17,7 @@ class ULevelExporterT3D : public UExporter
 	virtual bool ExportText( const FExportObjectInnerContext* Context, UObject* Object, const TCHAR* Type, FOutputDevice& Ar, FFeedbackContext* Warn, uint32 PortFlags=0 ) OVERRIDE;
 	virtual void ExportPackageObject(FExportPackageParams& ExpPackageParams) OVERRIDE;
 	virtual void ExportPackageInners(FExportPackageParams& ExpPackageParams) OVERRIDE;
-	virtual void ExportComponentExtra( const FExportObjectInnerContext* Context, const TArray<UObject*>& Components, FOutputDevice& Ar, uint32 PortFlags) OVERRIDE;
+	virtual void ExportComponentExtra(const FExportObjectInnerContext* Context, const TArray<UActorComponent*>& Components, FOutputDevice& Ar, uint32 PortFlags) OVERRIDE;
 	// End UExporter Interface
 };
 

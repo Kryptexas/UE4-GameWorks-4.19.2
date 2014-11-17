@@ -50,6 +50,7 @@
 #include "KismetPins/SGraphPinVector2D.h"
 #include "KismetPins/SGraphPinIndex.h"
 
+#include "SoundNodes/SGraphNodeSoundBase.h"
 #include "SoundNodes/SGraphNodeSoundResult.h"
 
 #include "MaterialNodes/SGraphNodeMaterialBase.h"
@@ -100,6 +101,10 @@ TSharedPtr<SGraphNode> FNodeFactory::CreateNodeWidget(UEdGraphNode* InNode)
 		if (USoundCueGraphNode_Root* RootSoundNode = Cast<USoundCueGraphNode_Root>(InNode))
 		{
 			return SNew(SGraphNodeSoundResult, RootSoundNode);
+		}
+		else if (USoundCueGraphNode* SoundNode = Cast<USoundCueGraphNode>(InNode))
+		{
+			return SNew(SGraphNodeSoundBase, SoundNode);
 		}
 	}
 

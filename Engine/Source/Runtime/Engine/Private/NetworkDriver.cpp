@@ -8,7 +8,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
 #include "NavigationPathBuilder.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
@@ -291,6 +291,27 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 	{
 		DrawNetDriverDebug();
 	}
+
+	// Update properties that are unmapped, try to hook up the object pointers if they exist now
+	for ( auto It = UnmappedReplicators.CreateIterator(); It; ++It )
+	{
+		if ( !It->IsValid() )
+		{
+			// These are weak references, so if the object has been freed, we can stop checking
+			It.RemoveCurrent();
+			continue;
+		}
+
+		bool bHasMoreUnmapped = false;
+
+		It->Pin().Get()->UpdateUnmappedObjects( bHasMoreUnmapped );
+		
+		if ( !bHasMoreUnmapped )
+		{
+			// If there are no more unmapped objects, we can also stop checking
+			It.RemoveCurrent();
+		}
+	}
 }
 
 /**
@@ -332,21 +353,24 @@ void UNetDriver::ReplicateVoicePacket(TSharedPtr<FVoicePacket> VoicePacket, UNet
  */
 void UNetDriver::ProcessLocalServerPackets()
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
-	if (VoiceInt.IsValid())
+	if (World)
 	{
-		// Process all of the local packets
-		for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+		if (VoiceInt.IsValid())
 		{
-			// Returns a ref counted copy of the local voice data or NULL if nothing to send
-			TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
-			// Check for something to send for this local talker
-			if (LocalPacket.IsValid())
+			// Process all of the local packets
+			for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
 			{
-				// See if anyone wants this packet
-				ReplicateVoicePacket(LocalPacket, NULL);
+				// Returns a ref counted copy of the local voice data or NULL if nothing to send
+				TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
+				// Check for something to send for this local talker
+				if (LocalPacket.IsValid())
+				{
+					// See if anyone wants this packet
+					ReplicateVoicePacket(LocalPacket, NULL);
 
-				// once all local voice packets are processed then call ClearVoicePackets()
+					// once all local voice packets are processed then call ClearVoicePackets()
+				}
 			}
 		}
 	}
@@ -357,28 +381,31 @@ void UNetDriver::ProcessLocalServerPackets()
  */
 void UNetDriver::ProcessLocalClientPackets()
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
-	if (VoiceInt.IsValid())
+	if (World)
 	{
-		UVoiceChannel* VoiceChannel = ServerConnection->GetVoiceChannel();
-		if (VoiceChannel)
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+		if (VoiceInt.IsValid())
 		{
-			// Process all of the local packets
-			for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
+			UVoiceChannel* VoiceChannel = ServerConnection->GetVoiceChannel();
+			if (VoiceChannel)
 			{
-				// Returns a ref counted copy of the local voice data or NULL if nothing to send
-				TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
-				// Check for something to send for this local talker
-				if (LocalPacket.IsValid())
+				// Process all of the local packets
+				for (int32 Index = 0; Index < VoiceInt->GetNumLocalTalkers(); Index++)
 				{
-					// If there is a voice channel to the server, submit the packets
-					//if (ShouldSendVoicePacketsToServer())
+					// Returns a ref counted copy of the local voice data or NULL if nothing to send
+					TSharedPtr<FVoicePacket> LocalPacket = VoiceInt->GetLocalPacket(Index);
+					// Check for something to send for this local talker
+					if (LocalPacket.IsValid())
 					{
-						// Add the voice packet for network sending
-						VoiceChannel->AddVoicePacket(LocalPacket);
-					}
+						// If there is a voice channel to the server, submit the packets
+						//if (ShouldSendVoicePacketsToServer())
+						{
+							// Add the voice packet for network sending
+							VoiceChannel->AddVoicePacket(LocalPacket);
+						}
 
-					// once all local voice packets are processed then call ClearLocalVoicePackets()
+						// once all local voice packets are processed then call ClearLocalVoicePackets()
+					}
 				}
 			}
 		}
@@ -387,10 +414,13 @@ void UNetDriver::ProcessLocalClientPackets()
 
 void UNetDriver::PostTickFlush()
 {
-	IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface();
-	if (VoiceInt.IsValid())
+	if (World)
 	{
-		VoiceInt->ClearVoicePackets();
+		IOnlineVoicePtr VoiceInt = Online::GetVoiceInterface(World);
+		if (VoiceInt.IsValid())
+		{
+			VoiceInt->ClearVoicePackets();
+		}
 	}
 }
 
@@ -421,7 +451,7 @@ ENetMode UNetDriver::GetNetMode() const
 #if WITH_EDITOR
 	if (IsServer() && World && World->WorldType == EWorldType::PIE)
 	{
-		if ( GEngine->WorldContextFromWorld(World).RunAsDedicated )
+		if ( GEngine->GetWorldContextFromWorldChecked(World).RunAsDedicated )
 		{
 			return NM_DedicatedServer;
 		}
@@ -524,6 +554,20 @@ void UNetDriver::TickDispatch( float DeltaTime )
 	}
 }
 
+bool UNetDriver::IsLevelInitializedForActor(class AActor* InActor, class UNetConnection* InConnection)
+{
+	check(InActor);
+    check(InConnection);
+	UWorld* World = InActor->GetWorld();
+	check(World);
+
+	// we can't create channels while the client is in the wrong world
+	const bool bCorrectWorld = (InConnection->ClientWorldPackageName == World->GetOutermost()->GetFName() && InConnection->ClientHasInitializedLevelFor(InActor));
+	// exception: Special case for PlayerControllers as they are required for the client to travel to the new world correctly			
+	const bool bIsConnectionPC = (InActor == InConnection->PlayerController);
+	return bCorrectWorld || bIsConnectionPC;
+}
+
 //
 // Internal RPC calling.
 //
@@ -534,6 +578,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	UNetConnection*	Connection,
 	UFunction*		Function,
 	void*			Parms,
+	FOutParmRec*	OutParms,
 	FFrame*			Stack,
 	bool			IsServer
 	)
@@ -578,17 +623,15 @@ void UNetDriver::InternalProcessRemoteFunction
 				// Don't try opening a channel for me, I am in the process of being destroyed. Ignore my RPCs.
 				return;
 			}
-	
-			// we can't create channels while the client is in the wrong world
-			// exception: Special case for PlayerControllers as they are required for the client to travel to the new world correctly			
-			if ((Connection->ClientWorldPackageName == Actor->GetWorld()->GetOutermost()->GetFName() && Connection->ClientHasInitializedLevelFor(Actor)) || Cast<APlayerController>(Actor) != NULL)
+
+			if (IsLevelInitializedForActor(Actor, Connection))
 			{
 				Ch = (UActorChannel *)Connection->CreateChannel( CHTYPE_Actor, 1 );
 			}
 			else
 			{
 				UE_LOG(LogNet, Log, TEXT("Error: Can't send function '%s' on '%s': Client hasn't loaded the level for this Actor"), *Function->GetName(), *Actor->GetName());
-				if ( !Connection->TrackLogsPerSecond() )	// This will disconnect the client if we get her too often
+				if ( !Connection->TrackLogsPerSecond() )	// This will disconnect the client if we get here too often
 				{
 					return;
 				}
@@ -643,6 +686,8 @@ void UNetDriver::InternalProcessRemoteFunction
 	Bunch.DebugString = FString::Printf(TEXT("%.2f RPC: %s - %s"), Connection->Driver->Time, *Actor->GetName(), *Function->GetName());
 #endif
 
+	TArray< UProperty * > LocalOutParms;
+
 	// Form the RPC parameters.
 	if( Stack )
 	{
@@ -671,6 +716,42 @@ void UNetDriver::InternalProcessRemoteFunction
 		}
 		checkSlow(*Stack->Code==EX_EndFunctionParms);
 	}
+	else
+	{
+		// Look for CPF_OutParm's, we'll need to copy these into the local parameter memory manually
+		// The receiving side will pull these back out when needed
+		for ( TFieldIterator<UProperty> It(Function); It && (It->PropertyFlags & (CPF_Parm|CPF_ReturnParm))==CPF_Parm; ++It )
+		{
+			if ( It->HasAnyPropertyFlags( CPF_OutParm ) )
+			{
+				if ( OutParms == NULL )
+				{
+					UE_LOG( LogNet, Warning, TEXT( "Missing OutParms. Property: %s, Function: %s, Actor: %s" ), *It->GetName(), *Function->GetName(), *Actor->GetName() );
+					continue;
+				}
+
+				FOutParmRec * Out = OutParms;
+
+				checkSlow( Out );
+
+				while ( Out->Property != *It )
+				{
+					Out = Out->NextOutParm;
+					checkSlow( Out );
+				}
+
+				void * Dest = It->ContainerPtrToValuePtr< void >( Parms );
+
+				const int32 CopySize = It->ElementSize * It->ArrayDim;
+
+				check( ( (uint8*)Dest - (uint8*)Parms ) + CopySize <= Function->ParmsSize );
+
+				It->CopyCompleteValue( Dest, Out->PropAddr );
+
+				LocalOutParms.Add( *It );
+			}
+		}
+	}
 
 	// verify we haven't overflowed unacked bunch buffer (Connection is not net ready)
 	//@warning: needs to be after parameter evaluation for script stack integrity
@@ -697,6 +778,13 @@ void UNetDriver::InternalProcessRemoteFunction
 	// Use the replication layout to send the rpc parameter values
 	TSharedPtr<FRepLayout> RepLayout = GetFunctionRepLayout( Function );
 	RepLayout->SendPropertiesForRPC( Actor, Function, Ch, Bunch, Parms );
+
+	// Destroy the memory used for the copied out parameters
+	for ( int32 i = 0; i < LocalOutParms.Num(); i++ )
+	{
+		check( LocalOutParms[i]->HasAnyPropertyFlags( CPF_OutParm ) );
+		LocalOutParms[i]->DestroyValue_InContainer( Parms );
+	}
 
 	// Write footer for content we just wrote
 	if ( !QueueBunch )
@@ -2058,7 +2146,6 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 						}
 					}
 
-					const bool bLevelInitializedForActor = Connection->ClientWorldPackageName == Actor->GetWorld()->GetOutermost()->GetFName() && Connection->ClientHasInitializedLevelFor( Actor );
 
 					// Skip actor if not relevant and theres no channel already.
 					// Historically Relevancy checks were deferred until after prioritization because they were expensive (line traces).
@@ -2066,7 +2153,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 					// prioritized actors low.
 					if (!Channel)
 					{
-						if ( !bLevelInitializedForActor )
+						if ( !IsLevelInitializedForActor(Actor, Connection) )
 						{
 							// If the level this actor belongs to isn't loaded on client, don't bother sending
 							continue;
@@ -2204,28 +2291,37 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 						AActor*		Actor       = PriorityActors[j]->Actor;
 						bool		bIsRelevant = false;
 
-						const bool bLevelInitializedForActor = Connection->ClientWorldPackageName == Actor->GetWorld()->GetOutermost()->GetFName() && Connection->ClientHasInitializedLevelFor( Actor );
+						const bool bLevelInitializedForActor = IsLevelInitializedForActor(Actor, Connection);
 
 						// only check visibility on already visible actors every 1.0 + 0.5R seconds
 						// bTearOff actors should never be checked
-						if ( bLevelInitializedForActor && !Actor->bTearOff && (!Channel || Time - Channel->RelevantTime > 1.f) )
+						if ( bLevelInitializedForActor )
 						{
-							for (int32 k = 0; k < ConnectionViewers.Num(); k++)
+							if (!Actor->bTearOff && (!Channel || Time - Channel->RelevantTime > 1.f))
 							{
-								if (Actor->IsNetRelevantFor(ConnectionViewers[k].InViewer, ConnectionViewers[k].Viewer, ConnectionViewers[k].ViewLocation))
+								for (int32 k = 0; k < ConnectionViewers.Num(); k++)
 								{
-									bIsRelevant = true;
-									break;
-								}
-								else
-								{
-									//UE_LOG(LogNetPackageMap, Warning, TEXT("Actor NonRelevant: %s"), *Actor->GetName() );
-									if (DebugRelevantActors)
+									if (Actor->IsNetRelevantFor(ConnectionViewers[k].InViewer, ConnectionViewers[k].Viewer, ConnectionViewers[k].ViewLocation))
 									{
-										LastNonRelevantActors.Add(Actor);
+										bIsRelevant = true;
+										break;
+									}
+									else
+									{
+										//UE_LOG(LogNetPackageMap, Warning, TEXT("Actor NonRelevant: %s"), *Actor->GetName() );
+										if (DebugRelevantActors)
+										{
+											LastNonRelevantActors.Add(Actor);
+										}
 									}
 								}
 							}
+						}
+						else
+						{
+							// Actor is no longer relevant because the world it is/was in is not loaded by client
+							// exception: player controllers should never show up here
+							UE_LOG(LogNetTraffic, Log, TEXT("- Level not initialized for actor %s"), *Actor->GetName());
 						}
 						
 						// if the actor is now relevant or was recently relevant
@@ -2240,7 +2336,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 							if ( Channel == NULL && Connection->PackageMap->SupportsObject(Actor->GetClass()) &&
 									Connection->PackageMap->SupportsObject(Actor->IsNetStartupActor() ? Actor : Actor->GetArchetype()) )
 							{
-								if (Connection->ClientWorldPackageName == Actor->GetWorld()->GetOutermost()->GetFName() && Connection->ClientHasInitializedLevelFor(Actor))
+								if (bLevelInitializedForActor)
 								{
 									// Create a new channel for this actor.
 									Channel = (UActorChannel*)Connection->CreateChannel( CHTYPE_Actor, 1 );
@@ -2902,7 +2998,7 @@ static bool NetDriverExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 			}
 			else
 			{
-				FWorldContext &Context = GEngine->WorldContextFromWorld(InWorld);
+				FWorldContext &Context = GEngine->GetWorldContextFromWorldChecked(InWorld);
 
 				Cmd -= FCString::Strlen(TokenStr);
 				for (int32 NetDriverIdx=0; NetDriverIdx < Context.ActiveNetDrivers.Num(); NetDriverIdx++)

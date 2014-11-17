@@ -37,6 +37,11 @@ public class BuildDocumentation : BuildCommand
 		bool bBuildHtml = bBuild || ParseParam("buildhtml");
 		bool bBuildChm = bBuild || ParseParam("buildchm");
 
+		if(ParseParam("nodoxygen"))
+		{
+			bCleanMeta = bCleanEnv = bCleanXml = bBuildMeta = bBuildEnv = bBuildXml = false;
+		}
+
 		bool bStats = ParseParam("stats");
 
 		bool bMakeArchives = ParseParam("archive");
@@ -45,7 +50,6 @@ public class BuildDocumentation : BuildCommand
 
 		// Create the intermediate folders
 		string IntermediateDir = Path.Combine(CmdEnv.LocalRoot, "Engine\\Intermediate\\Documentation");
-		CommandUtils.DeleteDirectory(IntermediateDir);
 		CommandUtils.CreateDirectory(IntermediateDir);
 		string BuildDir = Path.Combine(IntermediateDir, "build");
 		CommandUtils.CreateDirectory(BuildDir);
@@ -183,15 +187,15 @@ public class BuildDocumentation : BuildCommand
 	{
 		if (P4Enabled)
 		{
-			int Changelist = CreateChange(P4Env.Client, String.Format("{0} from CL#{1}", Description, P4Env.Changelist));
-			Reconcile(Changelist, CombinePaths(PathSeparator.Slash, P4Env.ClientRoot, DepotPath));
+			int Changelist = P4.CreateChange(P4Env.Client, String.Format("{0} from CL#{1}", Description, P4Env.Changelist));
+			P4.Reconcile(Changelist, CombinePaths(PathSeparator.Slash, P4Env.ClientRoot, DepotPath));
 
-			if (!TryDeleteEmptyChange(Changelist))
+			if (!P4.TryDeleteEmptyChange(Changelist))
 			{
 				if (!GlobalCommandLine.NoSubmit)
 				{
 					int SubmittedChangelist;
-					Submit(Changelist, out SubmittedChangelist, true, true);
+					P4.Submit(Changelist, out SubmittedChangelist, true, true);
 				}
 			}
 		}

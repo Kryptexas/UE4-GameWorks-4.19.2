@@ -172,6 +172,7 @@ public:
 
 		// the NodeTemplate UPROPERTY takes ownership of GraphNode's lifetime (hence it being a weak-pointer here)
 		NewActionNode->NodeTemplate = GraphNode.Get();
+		NewActionNode->SearchTitle = NewActionNode->NodeTemplate->GetNodeSearchTitle();
 
 		return NewActionNode;
 	}
@@ -289,7 +290,7 @@ void FBlueprintSpawnNodeCommands::RegisterCommands()
 			// The class name matches that of a UEdGraphNode, so setup a spawn info that can generate UEdGraphNode graph actions
 			UEdGraphNode* GraphNode = Cast<UEdGraphNode>(FoundClass->GetDefaultObject());
 
-			CommandLabel = GraphNode->GetNodeTitle(ENodeTitleType::ListView);
+			CommandLabel = GraphNode->GetNodeTitle(ENodeTitleType::ListView).ToString();
 
 			if(CommandLabel.Len() == 0)
 			{

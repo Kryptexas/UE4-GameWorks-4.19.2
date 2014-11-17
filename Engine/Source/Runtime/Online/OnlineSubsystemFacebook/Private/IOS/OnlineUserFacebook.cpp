@@ -65,7 +65,7 @@ bool FOnlineUserFacebook::QueryUserInfo(int32 LocalUserNum, const TArray<TShared
 
 				for( int32 Idx = 0; Idx < UserIds.Num(); Idx++ )
 				{
-					[fqlQuery appendString:[NSString stringWithCString:TCHAR_TO_ANSI(*UserIds[Idx]->ToString())  encoding:NSASCIIStringEncoding]];
+					[fqlQuery appendString:[NSString stringWithFString:UserIds[Idx]->ToString()]];
 					
 					// Append a comma or close the parenthesis
 					if( Idx < UserIds.Num()-1 )
@@ -78,7 +78,7 @@ bool FOnlineUserFacebook::QueryUserInfo(int32 LocalUserNum, const TArray<TShared
 					}
 				}
 
-				UE_LOG(LogOnline, Verbose, TEXT("RunningFQL Query: %s"), ANSI_TO_TCHAR([fqlQuery cStringUsingEncoding: NSASCIIStringEncoding]));
+				UE_LOG(LogOnline, Verbose, TEXT("RunningFQL Query: %s"), *FString(fqlQuery));
 
 
 				// Kick off the FB Request
@@ -91,7 +91,7 @@ bool FOnlineUserFacebook::QueryUserInfo(int32 LocalUserNum, const TArray<TShared
 						FString ErrorStr;
 						if( error )
 						{
-							ErrorStr = FString::Printf( TEXT("%s"), ANSI_TO_TCHAR([[error localizedDescription] cStringUsingEncoding: NSASCIIStringEncoding]) );
+							ErrorStr = FString::Printf( TEXT("%s"), *FString([error localizedDescription]) );
 						}
 						else
 						{
@@ -104,8 +104,8 @@ bool FOnlineUserFacebook::QueryUserInfo(int32 LocalUserNum, const TArray<TShared
 							{	
 								NSDictionary* User = UserList[ UserIdx ];
 
-								FString UserName = ANSI_TO_TCHAR([[User objectForKey:@"username"] cStringUsingEncoding:NSASCIIStringEncoding]);
-								FString RealName = ANSI_TO_TCHAR([[User objectForKey:@"name"] cStringUsingEncoding:NSASCIIStringEncoding]);
+								const FString UserName([User objectForKey:@"username"]);
+								const FString RealName([User objectForKey:@"name"]);
 
 								TSharedRef<FOnlineUserInfoFacebook> FBUserInfo = MakeShareable(new FOnlineUserInfoFacebook(UserIds[UserIdx]->ToString()));
 								FBUserInfo->AccountData.Add(TEXT("name"), RealName);

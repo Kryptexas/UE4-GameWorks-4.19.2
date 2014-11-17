@@ -38,7 +38,7 @@ public class IOSTargetPlatform : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-            PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/MobileDevice.Framework/Versions/Current/MobileDevice");
+            PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/MobileDevice.framework/Versions/Current/MobileDevice");
 		}
 	}
 }

@@ -4,7 +4,6 @@
 #include "SGraphNodeK2Base.h"
 #include "SGraphNodeFormatText.h"
 #include "KismetPins/SGraphPinExec.h"
-#include "SGraphNodeK2Sequence.h"
 #include "NodeFactory.h"
 
 #include "ScopedTransaction.h"
@@ -39,24 +38,14 @@ void SGraphNodeFormatText::CreatePinWidgets()
 	}
 }
 
-void SGraphNodeFormatText::UpdateGraphNode()
+void SGraphNodeFormatText::CreateInputSideAddButton(TSharedPtr<SVerticalBox> InputBox)
 {
-	SGraphNodeK2Base::UpdateGraphNode();
+	TSharedRef<SWidget> AddPinButton = AddPinButtonContent(
+										NSLOCTEXT("FormatTextNode", "FormatTextNodeAddPinButton", "Add pin"),
+										NSLOCTEXT("FormatTextNode", "FormatTextNodeAddPinButton_Tooltip", "Adds an argument to the node"),
+										false);
 
-	TSharedRef<SButton> AddPinButton = SNew(SButton)
-		.ContentPadding(0.0f)
-		.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
-		.OnClicked( this, &SGraphNodeFormatText::OnAddPin )
-		.ToolTipText(NSLOCTEXT("FormatTextNode", "FormatTextNodeAddPinButton_Tooltip", "Adds an argument to the node"))
-		.Visibility(this, &SGraphNodeFormatText::IsAddPinButtonVisible)
-		[
-			FAddPinButtonHelper::AddPinButtonContent(false)
-		];	
-		
-	AddPinButton->SetCursor( EMouseCursor::Hand );
-
-	//Add buttons to the format text node.
-	LeftNodeBox->AddSlot()
+	InputBox->AddSlot()
 	.AutoHeight()
 	.VAlign(VAlign_Center)
 	.Padding(10,10,10,4)
@@ -70,7 +59,7 @@ EVisibility SGraphNodeFormatText::IsAddPinButtonVisible() const
 	EVisibility VisibilityState = EVisibility::Collapsed;
 	if(NULL != Cast<UK2Node_FormatText>(GraphNode))
 	{
-		VisibilityState = FAddPinButtonHelper::IsAddPinButtonVisible(OwnerGraphPanelPtr);
+		VisibilityState = SGraphNode::IsAddPinButtonVisible();
 		if(VisibilityState == EVisibility::Visible)
 		{
 			UK2Node_FormatText* FormatNode = CastChecked<UK2Node_FormatText>(GraphNode);

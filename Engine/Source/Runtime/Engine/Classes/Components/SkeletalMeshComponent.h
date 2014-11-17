@@ -28,6 +28,23 @@ class FPhysScene;
 class FClothingActor
 {
 public:
+	enum TeleportMode
+	{
+		/** Simulation continues smoothly. This is the most commonly used mode */
+		Continuous,
+		/**
+		 * Transforms the current simulation state from the old global pose to the new global pose.
+		 * This will transform positions and velocities and thus keep the simulation state, just translate it to a new pose.
+		 */
+		Teleport,
+
+		/**
+		 * Forces the cloth to the animated position in the next frame.
+		 * This can be used to reset it from a bad state or by a teleport where the old state is not important anymore.
+		 */
+		TeleportAndReset,
+	};
+
 	void Clear(bool bReleaseResource = false);
 
 	/** 
@@ -168,6 +185,33 @@ struct FSingleAnimationPlayData
 };
 
 /**
+* Tick function that prepares for cloth tick
+**/
+USTRUCT()
+struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
+{
+	GENERATED_USTRUCT_BODY()
+
+#if WITH_APEX_CLOTHING
+	/** World this tick function belongs to **/
+	class USkeletalMeshComponent*	Target;
+
+	/**
+	* Abstract function actually execute the tick.
+	* @param DeltaTime - frame time to advance, in seconds
+	* @param TickType - kind of tick for this frame
+	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
+	**/
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	virtual FString DiagnosticMessage();
+
+#endif
+};
+
+
+/**
  * SkeletalMeshComponent is a mesh that supports skeletal animation and physics.
  */
 UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
@@ -255,19 +299,34 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	uint32 bUpdateJointsFromAnimation:1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
-	uint32	bFreezeClothSection:1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
-	uint32	bAutomaticLodCloth:1;
 	/** Disable cloth simulation and play original animation without simulation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bDisableClothSimulation:1;
 
+	/** can't collide with part of environment if total collision volumes exceed 16 capsules or 32 planes per convex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bCollideWithEnvironment:1;
+	/** can't collide with part of attached children if total collision volumes exceed 16 capsules or 32 planes per convex */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	uint32 bCollideWithAttachedChildren:1;
+	/** reset the clothing after moving the clothing position (called teleport) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
+	uint32 bResetAfterTeleport:1;
+	/** 
+	 * conduct teleportation if the character's movement is greater than this threshold in 1 frame. 
+	 * Zero or negative values will skip the check 
+	 * you can also do force teleport manually using ForceNextUpdateTeleport() / ForceNextUpdateTeleportAndReset()
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
+	float TeleportDistanceThreshold;
+	/** 
+	 * rotation threshold in degree, ranging from 0 to 180
+	 * conduct teleportation if the character's rotation is greater than this threshold in 1 frame. 
+	 * Zero or negative values will skip the check 
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
+	float TeleportRotationThreshold;
+	
 
 	/** Draw the APEX Clothing Normals on clothing sections. */
 	uint32 bDisplayClothingNormals:1;
@@ -275,7 +334,10 @@ public:
 	/** Draw Computed Normal Vectors in Tangent space for clothing section */
 	uint32 bDisplayClothingTangents:1;
 
-	/** Draw Collision Volumes from apex clothing asset */
+	/** 
+	 * Draw Collision Volumes from apex clothing asset. 
+	 * Supports up to 16 capsules / 32 planes per convex and ignored collisions by a max number will be drawn in Dark Gray.
+	 */
 	uint32 bDisplayClothingCollisionVolumes:1;
 
 	/** Draw only clothing sections, disables non-clothing sections */
@@ -414,6 +476,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void SetClothMaxDistanceScale(float Scale);
 
+	/** 
+	 * Used to indicate we should force 'teleport' during the next call to UpdateClothState, 
+	 * This will transform positions and velocities and thus keep the simulation state, just translate it to a new pose.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
+	void ForceClothNextUpdateTeleport();
+	/** 
+	 * Used to indicate we should force 'teleport and reset' during the next call to UpdateClothState.
+	 * This can be used to reset it from a bad state or by a teleport where the old state is not important anymore.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
+	void ForceClothNextUpdateTeleportAndReset();
+
+	/**
+	 * Reset the teleport mode of a next update to 'Continuous'
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
+	void ResetClothTeleportMode();
+
 	/** We detach the Component once we are done playing it.
 	 *
 	 * @param	ParticleSystemComponent that finished
@@ -449,6 +530,8 @@ public:
 #endif	//WITH_PHYSX
 
 #if WITH_APEX_CLOTHING
+
+	FSkeletalMeshComponentPreClothTickFunction PreClothTickFunction;
 	/** 
 	* clothing actors will be created from clothing assets for cloth simulation 
 	* 1 actor should correspond to 1 asset
@@ -457,12 +540,26 @@ public:
 
 	float ClothMaxDistanceScale;
 
+	FClothingActor::TeleportMode ClothTeleportMode;
+	/** previous root bone matrix to compare the difference and decide to do clothing teleport  */
+	FMatrix	PrevRootBoneMatrix;
+	/** used for pre-computation using TeleportRotationThreshold property */
+	float ClothTeleportCosineThresholdInRad;
+	/** used for pre-computation using tTeleportDistanceThreshold property */
+	float ClothTeleportDistThresholdSquared;
+	/** 
+	 * clothing reset is needed once more to avoid clothing pop up 
+	 * use until Apex clothing bug is resolved 
+	 */
+	bool bNeedTeleportAndResetOnceMore;
+
 #if WITH_CLOTH_COLLISION_DETECTION
 	/** increase every tick to update clothing collision  */
 	uint32 ClothingCollisionRevision; 
 
 	TArray<physx::apex::NxClothingCollision*>	ParentCollisions;
 	TArray<physx::apex::NxClothingCollision*>	EnvironmentCollisions;
+	TArray<physx::apex::NxClothingCollision*>	ChildrenCollisions;
 
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, FApexClothCollisionInfo> ClothOverlappedComponentsMap;
 #endif // WITH_CLOTH_COLLISION_DETECTION
@@ -484,7 +581,7 @@ public:
 	void TickAnimation(float DeltaTime);
 
 	/** Tick Clothing Animation , basically this is called inside TickComponent */
-	void TickClothing();
+	void TickClothing(float DeltaTime);
 
 	/** Store cloth simulation data into OutClothSimData */
 	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData);
@@ -551,6 +648,7 @@ public:
 	virtual void DestroyPhysicsState() OVERRIDE;
 	virtual void InitializeComponent() OVERRIDE;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
+	virtual void RegisterComponentTickFunctions(bool bRegister) OVERRIDE;
 	// End UActorComponent interface.
 
 	// Begin USceneComponent interface.
@@ -566,10 +664,11 @@ public:
 	 *  @param  World			World to use for overlap test
 	 *  @param  Pos             Location to place the component's geometry at to test against the world
 	 *  @param  Rot             Rotation to place components' geometry at to test against the world
+	 *  @param  TestChannel		The 'channel' that this ray is in, used to determine which components to hit
 	 *	@param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
 	 *  @return TRUE if OutOverlaps contains any blocking results
 	 */
-	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams=FCollisionObjectQueryParams::DefaultObjectQueryParam) const OVERRIDE;
+	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const OVERRIDE;
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface.
@@ -587,7 +686,6 @@ public:
 	virtual void SetPhysMaterialOverride(UPhysicalMaterial* NewPhysMaterial) OVERRIDE;
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) OVERRIDE;
 	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) OVERRIDE;
-	virtual bool ShouldTrackOverlaps() const OVERRIDE;
 	virtual bool ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator FRotator, const FCollisionQueryParams& Params) OVERRIDE;
 	virtual bool OverlapComponent(const FVector& Pos, const FQuat& Rot, const FCollisionShape& CollisionShape) OVERRIDE;
 	virtual void SetSimulatePhysics(bool bEnabled) OVERRIDE;
@@ -595,7 +693,7 @@ public:
 	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff) OVERRIDE;
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddToCurrent = false) OVERRIDE;
 	virtual float GetMass() const OVERRIDE;
-	virtual float CalculateMass() const OVERRIDE;
+	virtual float CalculateMass(FName BoneName = NAME_None) OVERRIDE;
 	// End UPrimitiveComponent interface.
 
 	// Begin USkinnedMeshComponent interface
@@ -789,10 +887,14 @@ public:
 	void AddClothingBounds(FBoxSphereBounds& InOutBounds) const;
 	/** changes clothing LODs, if clothing LOD is disabled or LODIndex is greater than apex clothing LODs, simulation will be disabled */
 	void SetClothingLOD(int32 LODIndex);
+	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
+	void CheckClothTeleport(float DeltaTime);
+	/** Calls needed cloth updates */
+	void PreClothTick(float DeltaTime);
 	/** 
 	 * Updates all clothing animation states including ComponentToWorld-related states.
 	 */
-	void UpdateClothState();
+	void UpdateClothState(float DeltaTime);
 	/** 
 	 * Updates clothing actor's global pose.
 	 * So should be called when ComponentToWorld is changed.
@@ -816,10 +918,13 @@ public:
 	void RemoveAllOverappedComponentMap();
 
 	void ReleaseAllParentCollisions();
+	void ReleaseAllChildrenCollisions();
 
 	void ProcessClothCollisionWithEnvironment();
 
 	void CopyCollisionsToChildren();
+	// copy children's collisions to parent, where parent means this component
+	void CopyChildrenCollisionsToParent();
 
 	/**
   	 * Get collision data only for collision with clothes.

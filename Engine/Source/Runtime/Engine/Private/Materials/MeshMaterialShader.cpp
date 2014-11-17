@@ -58,6 +58,8 @@ void FMeshMaterialShaderType::BeginCompileShader(
 	// Allow the shader type to modify the compile environment.
 	SetupCompileEnvironment(Platform, Material, ShaderEnvironment);
 
+	bool bAllowDevelopmentShaderCompile = Material->GetAllowDevelopmentShaderCompile();
+
 	// Compile the shader environment passed in with the shader type's source code.
 	::GlobalBeginCompileShader(
 		Material->GetFriendlyName(),
@@ -67,7 +69,8 @@ void FMeshMaterialShaderType::BeginCompileShader(
 		GetFunctionName(),
 		FShaderTarget(GetFrequency(),Platform),
 		NewJob,
-		NewJobs
+		NewJobs,
+		bAllowDevelopmentShaderCompile
 		);
 }
 

@@ -12,18 +12,10 @@ public:
 
 	// SGraphNode interface
 	virtual void CreatePinWidgets() OVERRIDE;
+
+protected:
+	virtual void CreateInputSideAddButton(TSharedPtr<SVerticalBox> InputBox) OVERRIDE;
+	virtual EVisibility IsAddPinButtonVisible() const OVERRIDE;
+	virtual FReply OnAddPin() OVERRIDE;
 	// End of SGraphNode interface
-
-	/**
-	 * Update this GraphNode to match the data that it is observing
-	 */
-	virtual void UpdateGraphNode();
-
-private:
-
-	/** Returns the visibility of the "AddPin" button */
-	EVisibility IsAddPinButtonVisible() const;
-
-	/** Callback when adding a pin */
-	FReply OnAddPin();
 };

@@ -29,7 +29,7 @@ FString FCategoryPropertyNode::GetDisplayName() const
 	//if in "readable display name mode" return that
 	if ( FPropertySettings::Get().ShowFriendlyPropertyNames() )
 	{
-		FString DisplaySubcategoryName = EngineUtils::SanitizeDisplayName( SubcategoryName, false );
+		FString DisplaySubcategoryName = FName::NameToDisplayString( SubcategoryName, false );
 
 		//if there is a localized version, return that
 		FText LocalizedName;

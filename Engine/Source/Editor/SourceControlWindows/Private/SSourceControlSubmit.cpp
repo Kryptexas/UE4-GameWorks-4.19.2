@@ -31,27 +31,27 @@ class FChangeListDescription
 public:
 	TArray<FString> FilesForAdd;
 	TArray<FString> FilesForSubmit;
-	FString Description;
+	FText Description;
 };
 
 /** Holds the display string and check state for items being submitted. */
 struct TSubmitItemData
 {
-	/** The display string for the item. */
-	TSharedPtr< FString > DisplayString;
+	/** The display text for the item. */
+	TSharedPtr< FText > DisplayText;
 
 	/** Whether or not the item is checked. */
 	bool bIsChecked;
 
-	TSubmitItemData(TSharedPtr< FString > InListItemPtr)
+	TSubmitItemData(TSharedPtr< FText > InListItemPtr)
 	{
-		DisplayString = InListItemPtr;
+		DisplayText = InListItemPtr;
 		bIsChecked = true;
 	}
 };
 
 /** The item that appears in the list of items for submitting. */
-class SSubmitItem : public STableRow< TSharedPtr<FString> >
+class SSubmitItem : public STableRow< TSharedPtr<FText> >
 {
 public:
 	SLATE_BEGIN_ARGS( SSubmitItem )
@@ -65,15 +65,15 @@ public:
 	{
 		SubmitItemData = InArgs._SubmitItemData;
 
-		STableRow< TSharedPtr<FString> >::Construct(
-			STableRow< TSharedPtr<FString> >::FArguments()
+		STableRow< TSharedPtr<FText> >::Construct(
+			STableRow< TSharedPtr<FText> >::FArguments()
 			[
 				SNew(SCheckBox)
 				.IsChecked(this, &SSubmitItem::IsChecked)
 				.OnCheckStateChanged(this, &SSubmitItem::OnCheckStateChanged)
 				[
 					SNew(STextBlock)				
-					.Text(*SubmitItemData->DisplayString)
+					.Text(*SubmitItemData->DisplayText)
 				]
 			]
 			,InOwnerTableView
@@ -134,7 +134,7 @@ public:
 				.Padding(5)
 				[
 					SNew( STextBlock )
-					.Text( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDesc", "Changelist Description").ToString() )
+					.Text( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDesc", "Changelist Description") )
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -178,7 +178,7 @@ public:
 								.FillWidth(1)
 								[
 									SNew(STextBlock) 
-									.Text(LOCTEXT("File", "File").ToString())
+									.Text(LOCTEXT("File", "File"))
 								]
 							]
 						]
@@ -205,7 +205,7 @@ public:
 					.Padding(5)
 					[
 						SNew( STextBlock )
-						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDescWarning", "Changelist description is required to submit").ToString() )
+						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDescWarning", "Changelist description is required to submit") )
 					]
 				]
 				+SVerticalBox::Slot()
@@ -222,7 +222,7 @@ public:
 						.IsChecked( this, &SSourceControlSubmitWidget::GetKeepCheckedOut )
 						[
 							SNew(STextBlock)
-							.Text(NSLOCTEXT("SourceControl.SubmitPanel", "KeepCheckedOut", "Keep Files Checked Out").ToString() )
+							.Text(NSLOCTEXT("SourceControl.SubmitPanel", "KeepCheckedOut", "Keep Files Checked Out") )
 						]
 					]
 				]
@@ -238,7 +238,7 @@ public:
 					[
 						SNew(SButton)
 						.IsEnabled(this, &SSourceControlSubmitWidget::IsOKEnabled)
-						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "OKButton", "OK").ToString() )
+						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "OKButton", "OK") )
 						.OnClicked(this, &SSourceControlSubmitWidget::OKClicked)
 					]
 					+SHorizontalBox::Slot()
@@ -246,7 +246,7 @@ public:
 					.HAlign(HAlign_Right)
 					[
 						SNew(SButton)
-						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "CancelButton", "Cancel").ToString() )
+						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "CancelButton", "Cancel") )
 						.OnClicked(this, &SSourceControlSubmitWidget::CancelClicked)
 					]
 				]
@@ -257,6 +257,8 @@ public:
 
 		DialogResult = ESubmitResults::SUBMIT_CANCELED;
 		KeepCheckedOut = ESlateCheckBoxState::Unchecked;
+
+		ParentFrame.Pin()->SetWidgetToFocusOnActivate(ChangeListDescriptionTextCtrl);
 	}
 
 
@@ -353,7 +355,7 @@ public:
 	/**Gets the requested files and the change list description*/
 	void FillChangeListDescription (FChangeListDescription& OutDesc, TArray<FString>& InAddFiles, TArray<FString>& InOpenFiles)
 	{
-		OutDesc.Description = ChangeListDescriptionTextCtrl->GetText().ToString();
+		OutDesc.Description = ChangeListDescriptionTextCtrl->GetText();
 
 		check(ListViewItems.Num() == InAddFiles.Num() + InOpenFiles.Num());
 
@@ -426,7 +428,7 @@ private:
 	/**Helper function to append a check box and label to the list view*/
 	void AddFileToListView (const FString& InFileName)
 	{
-		ListViewItems.Add( MakeShareable( new TSubmitItemData( MakeShareable(new FString(InFileName) ) ) ) );
+		ListViewItems.Add( MakeShareable( new TSubmitItemData( MakeShareable(new FText(FText::FromString(InFileName)) ) ) ) );
 	}
 
 	TSharedRef<ITableRow> OnGenerateRowForList( TSharedPtr< TSubmitItemData > SubmitItemData, const TSharedRef<STableViewBase>& OwnerTable )
@@ -545,6 +547,12 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 				TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = ISourceControlOperation::Create<FCheckIn>();
 				CheckInOperation->SetDescription(Description.Description);
 				bCheckInSuccess &= (SourceControlProvider.Execute(CheckInOperation, CombinedFileList) == ECommandResult::Succeeded);
+
+				if(bCheckInSuccess)
+				{
+					// report success with a notification
+					FMessageLog("SourceControl").Notify(CheckInOperation->GetSuccessMessage());
+				}
 			}
 
 			if(!bCheckInSuccess)

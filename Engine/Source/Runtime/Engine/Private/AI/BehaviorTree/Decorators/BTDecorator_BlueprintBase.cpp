@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "../BlueprintNodeHelpers.h"
+#include "BlueprintNodeHelpers.h"
 
 UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
@@ -20,29 +20,33 @@ UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const class FPostConstruc
 	bNotifyDeactivation = bImplementsReceiveExecutionFinish;
 	bShowPropertyDetails = true;
 
-	// no point in waiting, since we don't care about meta data anymore
-	DelayedInitialize();
+	// all blueprint based nodes must create instances
+	bCreateNodeInstance = true;
+
+	InitializeProperties();
 }
 
-void UBTDecorator_BlueprintBase::DelayedInitialize()
+void UBTDecorator_BlueprintBase::InitializeProperties()
 {
-	UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
-	BlueprintNodeHelpers::CollectPropertyData(this, StopAtClass, PropertyData);
-
-	PropertyMemorySize = BlueprintNodeHelpers::GetPropertiesMemorySize(PropertyData);
-
-	ObservedKeyNames.Reset();
-	if (GetFlowAbortMode() != EBTFlowAbortMode::None)
+	if (HasAnyFlags(RF_ClassDefaultObject))
 	{
-		// find all blackboard key selectors and store their names
-		BlueprintNodeHelpers::CollectBlackboardSelectors(this, StopAtClass, ObservedKeyNames);
+		UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
+		BlueprintNodeHelpers::CollectPropertyData(this, StopAtClass, PropertyData);
+
+		if (GetFlowAbortMode() != EBTFlowAbortMode::None)
+		{
+			// find all blackboard key selectors and store their names
+			BlueprintNodeHelpers::CollectBlackboardSelectors(this, StopAtClass, ObservedKeyNames);
+		}
 	}
-
-	if (ObservedKeyNames.Num())
+	else
 	{
-		UBTDecorator_BlueprintBase* MyNode = (UBTDecorator_BlueprintBase*)this;
-		MyNode->bNotifyBecomeRelevant = true;
-		MyNode->bNotifyCeaseRelevant = true;
+		UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
+		if (CDO && CDO->ObservedKeyNames.Num())
+		{
+			bNotifyBecomeRelevant = true;
+			bNotifyCeaseRelevant = true;
+		}
 	}
 }
 
@@ -53,28 +57,21 @@ void UBTDecorator_BlueprintBase::PostInitProperties()
 	BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlueprintBase::OnBlackboardChange);
 }
 
-void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	if (bImplementsReceiveObserverActivated)
 	{
-		// can't use const functions with blueprints
-		UBTDecorator_BlueprintBase* MyNode = (UBTDecorator_BlueprintBase*)this;
-		CurrentCallOwner = OwnerComp;
-
-		MyNode->CopyPropertiesFromMemory(NodeMemory);
-		MyNode->ReceiveObserverActivated(CurrentCallOwner->GetOwner());
-		CopyPropertiesToMemory(NodeMemory);
-
-		CurrentCallOwner = NULL;
+		ReceiveObserverActivated(OwnerComp->GetOwner());
 	}
 
 	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
-	if (BlackboardComp)
+	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
+	if (BlackboardComp && CDO)
 	{
-		for (int32 i = 0; i < ObservedKeyNames.Num(); i++)
+		for (int32 i = 0; i < CDO->ObservedKeyNames.Num(); i++)
 		{
-			const uint8 KeyID = BlackboardComp->GetKeyID(ObservedKeyNames[i]);
-			if (KeyID < 0xFF)
+			const uint8 KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[i]);
+			if (KeyID != UBlackboardData::InvalidKeyID)
 			{
 				BlackboardComp->RegisterObserver(KeyID, BBKeyObserver);
 			}
@@ -82,15 +79,16 @@ void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerC
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
-	if (BlackboardComp)
+	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
+	if (BlackboardComp && CDO)
 	{
-		for (int32 i = 0; i < ObservedKeyNames.Num(); i++)
+		for (int32 i = 0; i < CDO->ObservedKeyNames.Num(); i++)
 		{
-			const uint8 KeyID = BlackboardComp->GetKeyID(ObservedKeyNames[i]);
-			if (KeyID < 0xFF)
+			const uint8 KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[i]);
+			if (KeyID != UBlackboardData::InvalidKeyID)
 			{
 				BlackboardComp->UnregisterObserver(KeyID, BBKeyObserver);
 			}
@@ -99,61 +97,29 @@ void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerCo
 		
 	if (bImplementsReceiveObserverDeactivated)
 	{
-		// can't use const functions with blueprints
-		UBTDecorator_BlueprintBase* MyNode = (UBTDecorator_BlueprintBase*)this;
-		CurrentCallOwner = OwnerComp;
-
-		MyNode->CopyPropertiesFromMemory(NodeMemory);
-		MyNode->ReceiveObserverDeactivated(CurrentCallOwner->GetOwner());
-		CopyPropertiesToMemory(NodeMemory);
-
-		CurrentCallOwner = NULL;
+		ReceiveObserverDeactivated(OwnerComp->GetOwner());
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const
+void UBTDecorator_BlueprintBase::OnNodeActivation(struct FBehaviorTreeSearchData& SearchData)
 {
 	// skip flag, will be handled by bNotifyActivation
 
-	// can't use const functions with blueprints
-	UBTDecorator_BlueprintBase* MyNode = (UBTDecorator_BlueprintBase*)this;
-	CurrentCallOwner = SearchData.OwnerComp;
-
-	MyNode->CopyPropertiesFromMemory(SearchData);
-	MyNode->ReceiveExecutionStart(CurrentCallOwner->GetOwner());
-	CopyPropertiesToMemory(SearchData);
-
-	CurrentCallOwner = NULL;
+	ReceiveExecutionStart(SearchData.OwnerComp->GetOwner());
 }
 
-void UBTDecorator_BlueprintBase::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const
+void UBTDecorator_BlueprintBase::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
 {
 	// skip flag, will be handled by bNotifyDeactivation
 
-	// can't use const functions with blueprints
-	UBTDecorator_BlueprintBase* MyNode = (UBTDecorator_BlueprintBase*)this;
-	CurrentCallOwner = SearchData.OwnerComp;
-
-	MyNode->CopyPropertiesFromMemory(SearchData);
-	MyNode->ReceiveExecutionFinish(CurrentCallOwner->GetOwner(), NodeResult);
-	CopyPropertiesToMemory(SearchData);
-
-	CurrentCallOwner = NULL;
+	ReceiveExecutionFinish(SearchData.OwnerComp->GetOwner(), NodeResult);
 }
 
-void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
+void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	// skip flag, will be handled by bNotifyTick
 
-	// can't use const functions with blueprints
-	UBTDecorator_BlueprintBase* MyNode = (UBTDecorator_BlueprintBase*)this;
-	CurrentCallOwner = OwnerComp;
-
-	MyNode->CopyPropertiesFromMemory(NodeMemory);
-	MyNode->ReceiveTick(CurrentCallOwner->GetOwner(), DeltaSeconds);
-	CopyPropertiesToMemory(NodeMemory);
-
-	CurrentCallOwner = NULL;
+	ReceiveTick(OwnerComp->GetOwner(), DeltaSeconds);
 }
 
 bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
@@ -163,99 +129,26 @@ bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(class UBehaviorTreeC
 	{
 		// can't use const functions with blueprints
 		UBTDecorator_BlueprintBase* MyNode = (UBTDecorator_BlueprintBase*)this;
-		CurrentCallOwner = OwnerComp;
-
-		MyNode->CopyPropertiesFromMemory(NodeMemory);
-		MyNode->ReceiveConditionCheck(CurrentCallOwner->GetOwner());
-		CopyPropertiesToMemory(NodeMemory);
-
-		CurrentCallOwner = NULL;
+		MyNode->ReceiveConditionCheck(OwnerComp->GetOwner());
 	}
 
 	return CurrentCallResult;
 }
 
-void UBTDecorator_BlueprintBase::FinishConditionCheck(UBTDecorator_BlueprintBase* NodeOwner, bool bAllowExecution)
+void UBTDecorator_BlueprintBase::FinishConditionCheck(bool bAllowExecution)
 {
-	if (NodeOwner)
-	{
-		NodeOwner->CurrentCallResult = bAllowExecution;
-	}
-}
-
-uint16 UBTDecorator_BlueprintBase::GetInstanceMemorySize() const
-{
-	return Super::GetInstanceMemorySize() + PropertyMemorySize;
-}
-
-void UBTDecorator_BlueprintBase::CopyPropertiesToMemory(struct FBehaviorTreeSearchData& SearchData) const
-{
-	CopyPropertiesToMemory(GetNodeMemory<uint8>(SearchData));
-}
-
-void UBTDecorator_BlueprintBase::CopyPropertiesToMemory(uint8* NodeMemory) const
-{
-	if (PropertyMemorySize > 0)
-	{
-		BlueprintNodeHelpers::CopyPropertiesToContext(PropertyData, (uint8*)this, NodeMemory + Super::GetInstanceMemorySize());
-	}
-}
-
-void UBTDecorator_BlueprintBase::CopyPropertiesFromMemory(const struct FBehaviorTreeSearchData& SearchData)
-{
-	CopyPropertiesFromMemory(GetNodeMemory<uint8>(SearchData));
-}
-
-void UBTDecorator_BlueprintBase::CopyPropertiesFromMemory(const uint8* NodeMemory)
-{
-	if (PropertyMemorySize > 0)
-	{
-		BlueprintNodeHelpers::CopyPropertiesFromContext(PropertyData, (uint8*)this, (uint8*)NodeMemory + Super::GetInstanceMemorySize());
-	}
-}
-
-void UBTDecorator_BlueprintBase::StartUsingExternalEvent(AActor* OwningActor)
-{
-	int32 InstanceIdx = INDEX_NONE;
-
-	const bool bFound = BlueprintNodeHelpers::FindNodeOwner(OwningActor, this, CurrentCallOwner, InstanceIdx);
-	if (bFound)
-	{
-		uint8* NodeMemory = CurrentCallOwner->GetNodeMemory(this, InstanceIdx);
-		if (NodeMemory)
-		{
-			CopyPropertiesFromMemory(NodeMemory);
-		}
-	}
-	else
-	{
-		UE_VLOG(OwningActor, LogBehaviorTree, Error, TEXT("Unable to find owning behavior tree for StartUsingExternalEvent!"));
-	}
-}
-
-void UBTDecorator_BlueprintBase::StopUsingExternalEvent()
-{
-	if (CurrentCallOwner != NULL)
-	{
-		const int32 InstanceIdx = CurrentCallOwner->FindInstanceContainingNode(this);
-		uint8* NodeMemory = CurrentCallOwner->GetNodeMemory(this, InstanceIdx);
-
-		if (NodeMemory)
-		{
-			CopyPropertiesToMemory(NodeMemory);
-		}
-
-		CurrentCallOwner = NULL;
-	}
+	CurrentCallResult = bAllowExecution;
 }
 
 FString UBTDecorator_BlueprintBase::GetStaticDescription() const
 {
 	FString ReturnDesc = Super::GetStaticDescription();
-	if (bShowPropertyDetails)
+
+	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
+	if (bShowPropertyDetails && CDO)
 	{
 		UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
-		FString PropertyDesc = BlueprintNodeHelpers::CollectPropertyDescription(this, StopAtClass, PropertyData);
+		FString PropertyDesc = BlueprintNodeHelpers::CollectPropertyDescription(this, StopAtClass, CDO->PropertyData);
 		if (PropertyDesc.Len())
 		{
 			ReturnDesc += TEXT(":\n\n");
@@ -268,10 +161,10 @@ FString UBTDecorator_BlueprintBase::GetStaticDescription() const
 
 void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
-	if (PropertyMemorySize > 0)
+	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
+	if (CDO && CDO->PropertyData.Num())
 	{
-		UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
-		BlueprintNodeHelpers::DescribeRuntimeValues(this, StopAtClass, PropertyData, NodeMemory + Super::GetInstanceMemorySize(), Verbosity, Values);
+		BlueprintNodeHelpers::DescribeRuntimeValues(this, CDO->PropertyData, Values);
 	}
 }
 

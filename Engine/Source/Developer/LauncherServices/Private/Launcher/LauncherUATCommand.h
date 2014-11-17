@@ -12,6 +12,8 @@
 class FLauncherUATCommand
 {
 public:
+	virtual ~FLauncherUATCommand() { }
+
 	/**
 	 * Retrieves the name of the command
 	 *

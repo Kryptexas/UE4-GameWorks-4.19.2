@@ -12,11 +12,13 @@
 #include "ProfilerClient.h"
 #include "SessionFrontend.h"
 #include "StatsData.h"
+#include "StatsFile.h"
 #include "EditorStyle.h"
 
 
 IMPLEMENT_APPLICATION(UnrealFrontend, "UnrealFrontend");
 
+#define IDEAL_FRAMERATE 60;
 
 namespace WorkspaceMenu
 {
@@ -234,30 +236,48 @@ void RunStatsConvertCommand()
 		StatList.Add(TEXT("STAT_FrameTime"));
 	}
 
-	// attempt to read the data and convert to csv
-	FArchive* FileReader = IFileManager::Get().CreateFileReader(*TargetFile);
-	if (!FileReader)
+	// open a csv file for write
+	TAutoPtr<FArchive> FileWriter( IFileManager::Get().CreateFileWriter( *OutFile ) );
+	if (!FileWriter)
 	{
+		UE_LOG( LogStats, Error, TEXT( "Could not open output file: %s" ), *OutFile );
 		return;
 	}
 
-	// open a csv file for write
-	FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*OutFile);
-	if (!FileWriter)
+	// @TODO yrx 2014-03-24 move to function
+	// attempt to read the data and convert to csv
+	const int64 Size = IFileManager::Get().FileSize( *TargetFile );
+	if( Size < 4 )
 	{
-		FileReader->Close();
+		UE_LOG( LogStats, Error, TEXT( "Could not open input file: %s" ), *TargetFile );
+		return;
+	}
+
+	TAutoPtr<FArchive> FileReader( IFileManager::Get().CreateFileReader( *TargetFile ) );
+	if( !FileReader )
+	{
+		UE_LOG( LogStats, Error, TEXT( "Could not open input file: %s" ), *TargetFile );
+		return;
+	}
+
+	FStatsReadStream Stream;
+	if( !Stream.ReadHeader( *FileReader ) )
+	{
+		UE_LOG( LogStats, Error, TEXT( "Could not open input file, bad magic: %s" ), *TargetFile );
+		return;
+	}
+
+	// This is not supported yet.
+	if( Stream.Header.bRawStatFile )
+	{
+		UE_LOG( LogStats, Error, TEXT( "Could not open input file, not supported type (raw): %s" ), *TargetFile );
 		return;
 	}
 
 	// output the csv header
-	WriteString(FileWriter, "Frame,Name,Value\r\n");
-
-	// header magic
-	uint32 Magic = 0;
-	*FileReader << Magic;
+	WriteString( FileWriter, "Frame,Name,Value\r\n" );
 
 	// read in the data
-	FStatsReadStream Stream;
 	TArray<FStatMessage> Messages;
 	FStatsThreadState ThreadState;
 	while(FileReader->Tell() < FileReader->TotalSize())
@@ -316,11 +336,6 @@ void RunStatsConvertCommand()
 			break;
 		}
 	}
-
-	FileWriter->Close();
-	FileReader->Close();
-	delete FileWriter;
-	delete FileReader;
 }
 
 
@@ -391,7 +406,8 @@ void RunUI()
 
 	// enter main loop
 	double DeltaTime = 0.0;
-	double LastTime = FPlatformTime::Seconds() - 0.0001;
+	double LastTime = FPlatformTime::Seconds();
+	const float IdealFrameTime = 1.0f / IDEAL_FRAMERATE;
 	static int32 MasterDisableChangeTagStartFrame = -1;
 
 	while (!GIsRequestingExit)
@@ -406,7 +422,8 @@ void RunUI()
 		FTicker::GetCoreTicker().Tick(DeltaTime);
 		AutomationControllerModule.Tick();
 
-		FPlatformProcess::Sleep(0.0f);
+		// throttle frame rate
+		FPlatformProcess::Sleep(FMath::Max<float>(0.0f, IdealFrameTime - (FPlatformTime::Seconds() - LastTime)));
 
 		double CurrentTime = FPlatformTime::Seconds();
 		DeltaTime =  CurrentTime - LastTime;

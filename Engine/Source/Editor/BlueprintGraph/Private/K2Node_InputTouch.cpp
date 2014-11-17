@@ -55,9 +55,9 @@ FLinearColor UK2Node_InputTouch::GetNodeTitleColor() const
 	return GEditor->AccessEditorUserSettings().EventNodeTitleColor;
 }
 
-FString UK2Node_InputTouch::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_InputTouch::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return NSLOCTEXT("K2Node", "InputTouch_Name", "InputTouch").ToString();
+	return NSLOCTEXT("K2Node", "InputTouch_Name", "InputTouch");
 }
 
 UEdGraphPin* UK2Node_InputTouch::GetPressedPin() const

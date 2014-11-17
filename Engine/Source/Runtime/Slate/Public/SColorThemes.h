@@ -576,7 +576,7 @@ private:
 class FColorDragDrop : public FDragDropOperation
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FColorDragDrop"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FColorDragDrop, FDragDropOperation)
 
 	/**
 	 * Invoked when the drag and drop operation has ended.

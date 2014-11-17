@@ -289,21 +289,23 @@ public:
 		// set up other segment options
 		if (Start->ConnectedSegments.Num() > 0)
 		{
-			NewSegment->LayerName        = Start->ConnectedSegments[0].Segment->LayerName;
-			NewSegment->SplineMeshes     = Start->ConnectedSegments[0].Segment->SplineMeshes;
-			NewSegment->bRaiseTerrain    = Start->ConnectedSegments[0].Segment->bRaiseTerrain;
-			NewSegment->bLowerTerrain    = Start->ConnectedSegments[0].Segment->bLowerTerrain;
-			NewSegment->bEnableCollision = Start->ConnectedSegments[0].Segment->bEnableCollision;
-			NewSegment->bCastShadow      = Start->ConnectedSegments[0].Segment->bCastShadow;
+			NewSegment->LayerName         = Start->ConnectedSegments[0].Segment->LayerName;
+			NewSegment->SplineMeshes      = Start->ConnectedSegments[0].Segment->SplineMeshes;
+			NewSegment->LDMaxDrawDistance = Start->ConnectedSegments[0].Segment->LDMaxDrawDistance;
+			NewSegment->bRaiseTerrain     = Start->ConnectedSegments[0].Segment->bRaiseTerrain;
+			NewSegment->bLowerTerrain     = Start->ConnectedSegments[0].Segment->bLowerTerrain;
+			NewSegment->bEnableCollision  = Start->ConnectedSegments[0].Segment->bEnableCollision;
+			NewSegment->bCastShadow       = Start->ConnectedSegments[0].Segment->bCastShadow;
 		}
 		else if (End->ConnectedSegments.Num() > 0)
 		{
-			NewSegment->LayerName        = End->ConnectedSegments[0].Segment->LayerName;
-			NewSegment->SplineMeshes     = End->ConnectedSegments[0].Segment->SplineMeshes;
-			NewSegment->bRaiseTerrain    = End->ConnectedSegments[0].Segment->bRaiseTerrain;
-			NewSegment->bLowerTerrain    = End->ConnectedSegments[0].Segment->bLowerTerrain;
-			NewSegment->bEnableCollision = End->ConnectedSegments[0].Segment->bEnableCollision;
-			NewSegment->bCastShadow      = End->ConnectedSegments[0].Segment->bCastShadow;
+			NewSegment->LayerName         = End->ConnectedSegments[0].Segment->LayerName;
+			NewSegment->SplineMeshes      = End->ConnectedSegments[0].Segment->SplineMeshes;
+			NewSegment->LDMaxDrawDistance = End->ConnectedSegments[0].Segment->LDMaxDrawDistance;
+			NewSegment->bRaiseTerrain     = End->ConnectedSegments[0].Segment->bRaiseTerrain;
+			NewSegment->bLowerTerrain     = End->ConnectedSegments[0].Segment->bLowerTerrain;
+			NewSegment->bEnableCollision  = End->ConnectedSegments[0].Segment->bEnableCollision;
+			NewSegment->bCastShadow       = End->ConnectedSegments[0].Segment->bCastShadow;
 		}
 		else
 		{
@@ -383,7 +385,7 @@ public:
 		}
 	}
 
-	void DeleteSegment(ULandscapeSplineSegment* ToDelete, bool bDeleteLooseEnds)
+	void DeleteSegment(ULandscapeSplineSegment* ToDelete, bool bInDeleteLooseEnds)
 	{
 		FScopedTransaction Transaction( LOCTEXT("LandscapeSpline_DeleteSegment", "Delete Landscape Spline Segment") );
 
@@ -398,7 +400,7 @@ public:
 		ToDelete->Connections[0].ControlPoint->ConnectedSegments.Remove(FLandscapeSplineConnection(ToDelete, 0));
 		ToDelete->Connections[1].ControlPoint->ConnectedSegments.Remove(FLandscapeSplineConnection(ToDelete, 1));
 
-		if (bDeleteLooseEnds)
+		if (bInDeleteLooseEnds)
 		{
 			if (ToDelete->Connections[0].ControlPoint->ConnectedSegments.Num() == 0)
 			{
@@ -426,7 +428,7 @@ public:
 		SplinesComponent->MarkRenderStateDirty();
 	}
 
-	void DeleteControlPoint(ULandscapeSplineControlPoint* ToDelete, bool bDeleteLooseEnds)
+	void DeleteControlPoint(ULandscapeSplineControlPoint* ToDelete, bool bInDeleteLooseEnds)
 	{
 		FScopedTransaction Transaction( LOCTEXT("LandscapeSpline_DeleteControlPoint", "Delete Landscape Spline Control Point") );
 
@@ -492,7 +494,7 @@ public:
 			OtherEnd->ConnectedSegments.Remove(FLandscapeSplineConnection(Connection.Segment, 1 - Connection.End));
 			SplinesComponent->Segments.Remove(Connection.Segment);
 
-			if (bDeleteLooseEnds)
+			if (bInDeleteLooseEnds)
 			{
 				if (OtherEnd != ToDelete
 					&& OtherEnd->ConnectedSegments.Num() == 0)
@@ -541,12 +543,13 @@ public:
 		NewSegment->Connections[1].ControlPoint = Segment->Connections[1].ControlPoint;
 		NewSegment->Connections[1].TangentLen = Segment->Connections[1].TangentLen * (1 - t);
 		NewSegment->Connections[1].ControlPoint->ConnectedSegments.Add(FLandscapeSplineConnection(NewSegment, 1));
-		NewSegment->LayerName        = Segment->LayerName;
-		NewSegment->SplineMeshes     = Segment->SplineMeshes;
-		NewSegment->bRaiseTerrain    = Segment->bRaiseTerrain;
-		NewSegment->bLowerTerrain    = Segment->bLowerTerrain;
-		NewSegment->bEnableCollision = Segment->bEnableCollision;
-		NewSegment->bCastShadow      = Segment->bCastShadow;
+		NewSegment->LayerName         = Segment->LayerName;
+		NewSegment->SplineMeshes      = Segment->SplineMeshes;
+		NewSegment->LDMaxDrawDistance = Segment->LDMaxDrawDistance;
+		NewSegment->bRaiseTerrain     = Segment->bRaiseTerrain;
+		NewSegment->bLowerTerrain     = Segment->bLowerTerrain;
+		NewSegment->bEnableCollision  = Segment->bEnableCollision;
+		NewSegment->bCastShadow       = Segment->bCastShadow;
 
 		Segment->Connections[0].TangentLen *= t;
 		Segment->Connections[1].ControlPoint->ConnectedSegments.Remove(FLandscapeSplineConnection(Segment, 1));
@@ -588,9 +591,7 @@ public:
 		SplinesComponent->Modify();
 		ControlPoint->Modify();
 
-		const ALandscapeProxy* Landscape = CastChecked<ALandscapeProxy>(SplinesComponent->GetOuter());
-		const FTransform LocalToWorld = Landscape->GetTransform();
-
+		const FTransform LocalToWorld = SplinesComponent->GetComponentToWorld();
 		const FVector Start = LocalToWorld.TransformPosition(ControlPoint->Location);
 		const FVector End = Start + FVector(0, 0, -HALF_WORLD_MAX);
 
@@ -1157,24 +1158,22 @@ public:
 		{
 			for (auto It = EdMode->GetLandscapeList().CreateConstIterator(); It; ++It)
 			{
-				ULandscapeInfo* LandscapeInfo = (*It).Info;
-
-				ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
+				ALandscape* Landscape = (*It).Info->LandscapeActor.Get();
 				if (Landscape != NULL && Landscape->SplineComponent != NULL)
 				{
-					for (auto It = Landscape->SplineComponent->ControlPoints.CreateConstIterator(); It; ++It)
+					for (auto ControlPointIt = Landscape->SplineComponent->ControlPoints.CreateConstIterator(); ControlPointIt; ++ControlPointIt)
 					{
-						if ((*It)->IsSplineSelected())
+						if ((*ControlPointIt)->IsSplineSelected())
 						{
-							SelectedSplineControlPoints.Add(*It);
+							SelectedSplineControlPoints.Add(*ControlPointIt);
 						}
 					}
 
-					for (auto It = Landscape->SplineComponent->Segments.CreateConstIterator(); It; ++It)
+					for (auto SegmentIt = Landscape->SplineComponent->Segments.CreateConstIterator(); SegmentIt; ++SegmentIt)
 					{
-						if ((*It)->IsSplineSelected())
+						if ((*SegmentIt)->IsSplineSelected())
 						{
-							SelectedSplineSegments.Add(*It);
+							SelectedSplineSegments.Add(*SegmentIt);
 						}
 					}
 				}
@@ -1184,19 +1183,17 @@ public:
 		{
 			for (auto It = EdMode->GetLandscapeList().CreateConstIterator(); It; ++It)
 			{
-				ULandscapeInfo* LandscapeInfo = (*It).Info;
-
-				ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
+				ALandscape* Landscape = (*It).Info->LandscapeActor.Get();
 				if (Landscape != NULL && Landscape->SplineComponent != NULL)
 				{
-					for (auto It = Landscape->SplineComponent->ControlPoints.CreateConstIterator(); It; ++It)
+					for (auto ControlPointIt = Landscape->SplineComponent->ControlPoints.CreateConstIterator(); ControlPointIt; ++ControlPointIt)
 					{
-						(*It)->SetSplineSelected(false);
+						(*ControlPointIt)->SetSplineSelected(false);
 					}
 
-					for (auto It = Landscape->SplineComponent->Segments.CreateConstIterator(); It; ++It)
+					for (auto SegmentIt = Landscape->SplineComponent->Segments.CreateConstIterator(); SegmentIt; ++SegmentIt)
 					{
-						(*It)->SetSplineSelected(false);
+						(*SegmentIt)->SetSplineSelected(false);
 					}
 				}
 			}
@@ -1215,9 +1212,7 @@ public:
 
 		for (auto It = EdMode->GetLandscapeList().CreateConstIterator(); It; ++It)
 		{
-			ULandscapeInfo* LandscapeInfo = (*It).Info;
-
-			ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
+			ALandscape* Landscape = (*It).Info->LandscapeActor.Get();
 			if (Landscape != NULL && Landscape->SplineComponent != NULL)
 			{
 				Landscape->SplineComponent->ShowSplineEditorMesh(true);
@@ -1232,9 +1227,7 @@ public:
 
 		for (auto It = EdMode->GetLandscapeList().CreateConstIterator(); It; ++It)
 		{
-			ULandscapeInfo* LandscapeInfo = (*It).Info;
-
-			ALandscape* Landscape = LandscapeInfo->LandscapeActor.Get();
+			ALandscape* Landscape = (*It).Info->LandscapeActor.Get();
 			if (Landscape != NULL && Landscape->SplineComponent != NULL)
 			{
 				Landscape->SplineComponent->ShowSplineEditorMesh(false);

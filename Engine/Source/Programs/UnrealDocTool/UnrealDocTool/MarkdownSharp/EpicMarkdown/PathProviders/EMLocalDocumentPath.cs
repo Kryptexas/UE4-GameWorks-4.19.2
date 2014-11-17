@@ -125,7 +125,7 @@ namespace MarkdownSharp.EpicMarkdown.PathProviders
                 path += "#" + bookmark.UniqueKey;
             }
 
-            return path;
+            return Normalizer.NormalizePath(path);
         }
 
         public static string DocumentPathId(string documentPath)

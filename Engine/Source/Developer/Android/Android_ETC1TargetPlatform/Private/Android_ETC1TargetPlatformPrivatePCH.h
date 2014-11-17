@@ -22,6 +22,7 @@
 #endif
 #include "TargetDeviceServices.h"
 #include "TargetPlatform.h"
+#include "AndroidDeviceDetection.h"
 
 
 /* Private includes

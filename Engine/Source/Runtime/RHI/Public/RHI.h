@@ -106,8 +106,14 @@ extern RHI_API bool GRHISupportsAsyncTextureCreation;
 /** Can we handle quad primitives? */
 extern RHI_API bool GSupportsQuads;
 
+/** True if and only if the GPU support rendering to volume textures (2D Array, 3D). Some OpenGL 3.3 cards support SM4, but can't render to volume textures. */
+extern RHI_API bool GSupportsVolumeTextureRendering;
+
 /** Used to work around a bug with Nvidia cards on Mac: using GL_LayerIndex to specify render target layer doesn't work when rendering to mips. */
 extern RHI_API bool GSupportsGSRenderTargetLayerSwitchingToMips;
+
+/** True if the RHI supports separate blend states per render target. */
+extern RHI_API bool GSupportsSeparateRenderTargetBlendState;
 
 /** The offset from the upper left corner of a pixel to the position which is used to sample textures for fragments of that pixel. */
 extern RHI_API float GPixelCenterOffset;
@@ -636,7 +642,7 @@ public:
 
 	float ComputeNormalizedDepth(float DeviceZ) const
 	{
-		return abs(ConvertFromDeviceZ(DeviceZ) / MaxDepthRange);
+		return FMath::Abs(ConvertFromDeviceZ(DeviceZ) / MaxDepthRange);
 	}
 
 private:
@@ -1198,6 +1204,8 @@ enum ETextureCreateFlags
 	// Creates a RenderTargetView for each array slice of the texture
 	// Warning: if this was specified when the resource was created, you can't use SV_RenderTargetArrayIndex to route to other slices!
 	TexCreate_TargetArraySlicesIndependently	= 1<<23,
+	// Texture that may be shared with DX9 or other devices
+	TexCreate_Shared = 1 << 24,
 };
 
 // Forward-declaration.

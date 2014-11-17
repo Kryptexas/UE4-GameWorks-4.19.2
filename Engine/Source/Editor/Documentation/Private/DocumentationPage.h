@@ -19,7 +19,7 @@ public:
 	virtual void GetExcerpts( /*OUT*/ TArray< FExcerpt >& Excerpts ) OVERRIDE;
 	virtual bool GetExcerptContent( FExcerpt& Excerpt ) OVERRIDE;
 
-	virtual FString GetTitle() OVERRIDE;
+	virtual FText GetTitle() OVERRIDE;
 
 	virtual void Reload() OVERRIDE;
 

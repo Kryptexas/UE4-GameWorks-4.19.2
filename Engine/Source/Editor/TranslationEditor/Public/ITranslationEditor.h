@@ -13,10 +13,10 @@ class ITranslationEditor : public FAssetEditorToolkit
 
 public:
 
-	static void OpenTranslationEditor(FName ProjectName, FName TranslationTargetLanguage)
+	static void OpenTranslationEditor(const FString& ManifestFile, const FString& ArchiveFile)
 	{
 		FTranslationEditorModule& TranslationEditorModule = FModuleManager::LoadModuleChecked<FTranslationEditorModule>( "TranslationEditor" );
-		TSharedRef< FTranslationEditor > NewTranslationEditor = TranslationEditorModule.CreateTranslationEditor(ProjectName, TranslationTargetLanguage);
+		TSharedRef< FTranslationEditor > NewTranslationEditor = TranslationEditorModule.CreateTranslationEditor(ManifestFile, ArchiveFile);
 	}
 
 };

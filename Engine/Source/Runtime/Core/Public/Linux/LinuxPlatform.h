@@ -45,6 +45,10 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_SUPPORTS_JEMALLOC					1
 #define PLATFORM_EXCEPTIONS_DISABLED				1
 
+#define PLATFORM_USES_DYNAMIC_RHI					1
+#define PLATFORM_ENABLE_VECTORINTRINSICS			1
+
+
 // Function type macros.
 #define VARARGS													/* Functions with variable arguments */
 #define CDECL													/* Standard C function */

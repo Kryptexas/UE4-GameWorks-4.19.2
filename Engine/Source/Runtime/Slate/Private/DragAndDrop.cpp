@@ -5,7 +5,6 @@
 TSharedRef<FExternalDragOperation> FExternalDragOperation::NewText( const FString& InText )
 {
 	TSharedRef<FExternalDragOperation> Operation = MakeShareable(new FExternalDragOperation);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FExternalDragOperation>(Operation);
 	Operation->DragType = DragText;
 	Operation->DraggedText = InText;
 	Operation->Construct();
@@ -15,7 +14,6 @@ TSharedRef<FExternalDragOperation> FExternalDragOperation::NewText( const FStrin
 TSharedRef<FExternalDragOperation> FExternalDragOperation::NewFiles( const TArray<FString>& InFileNames )
 {
 	TSharedRef<FExternalDragOperation> Operation = MakeShareable(new FExternalDragOperation);
-	FSlateApplication::GetDragDropReflector().RegisterOperation<FExternalDragOperation>(Operation);
 	Operation->DragType = DragFiles;
 	Operation->DraggedFileNames = InFileNames;
 	Operation->Construct();

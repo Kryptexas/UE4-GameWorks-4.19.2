@@ -224,7 +224,6 @@ void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifeti
 	DOREPLIFETIME( AActor, Role );
 	DOREPLIFETIME( AActor, RemoteRole );
 	DOREPLIFETIME( AActor, bHidden );
-	DOREPLIFETIME( AActor, Owner );
 
 	DOREPLIFETIME( AActor, bTearOff );
 	DOREPLIFETIME( AActor, bCanBeDamaged );
@@ -232,6 +231,7 @@ void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifeti
 
 	DOREPLIFETIME( AActor, Instigator );
 
+	DOREPLIFETIME_CONDITION( AActor, Owner, COND_OwnerOrNotNull );
 	DOREPLIFETIME_CONDITION( AActor, ReplicatedMovement, COND_SimulatedOrPhysics );
 }
 

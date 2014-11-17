@@ -12,7 +12,6 @@ public class TranslationEditor : ModuleRules
         PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"DesktopPlatform",
-                "MainFrame",
                 "MessageLog",
 			}
 		);
@@ -46,7 +45,6 @@ public class TranslationEditor : ModuleRules
 			new string[] {
 				"WorkspaceMenuStructure",
 				"DesktopPlatform",
-				"MainFrame",
 				"SourceControl"
 			}
 		);

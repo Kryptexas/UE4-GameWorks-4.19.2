@@ -113,7 +113,7 @@ FString SKismetInspector::GetContextualEditingWidgetTitle() const
 
 			if (UEdGraphNode* Node = Cast<UEdGraphNode>(Object))
 			{
-				Title = Node->GetNodeTitle(ENodeTitleType::ListView);
+				Title = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 			}
 			else if (USCS_Node* SCSNode = Cast<USCS_Node>(Object))
 			{
@@ -237,17 +237,19 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 
 		FOnGetDetailCustomizationInstance LayoutFormatTextDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FFormatTextDetails::MakeInstance);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_FormatText::StaticClass(), LayoutFormatTextDetails);
+
+		FOnGetDetailCustomizationInstance GraphNodeDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGraphNodeDetails::MakeInstance, Kismet2Ptr);
+		PropertyView->RegisterInstancedCustomPropertyLayout(UEdGraphNode::StaticClass(), GraphNodeDetails);
 	}
 
 	// Create the border that all of the content will get stuffed into
 	ChildSlot
 	[
-		SNew(STutorialWrapper)
-		.Name(TEXT("BlueprintInspector"))
-		.Content()
+		SNew( STutorialWrapper, TEXT("BlueprintInspector") )
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
+
+			+ SVerticalBox::Slot()
 			.FillHeight(1.0f)
 			[
 				SAssignNew( ContextualEditingBorderWidget, SBorder )

@@ -96,6 +96,14 @@ public:
 	/**
 	 * @return timeout in seconds to send a request on the connection
 	 */
+	inline float GetHttpMaxConnectionsPerServer() const
+	{
+		return HttpMaxConnectionsPerServer;
+	}
+
+	/**
+	 * @return max number of simultaneous connections to a specific server
+	 */
 	inline float GetHttpSendTimeout() const
 	{
 		return HttpSendTimeout;
@@ -136,6 +144,8 @@ private:
 	float HttpReceiveTimeout;
 	/** timeout in seconds to send a request on the connection. -1 for system defaults */
 	float HttpSendTimeout;
+	/** Max number of simultaneous connections to a specific server */
+	int32 HttpMaxConnectionsPerServer;
 	/** toggles http requests */
 	bool bEnableHttp;
 	/** singleton for the module while loaded and available */

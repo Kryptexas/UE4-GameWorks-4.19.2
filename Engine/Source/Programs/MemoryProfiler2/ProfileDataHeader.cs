@@ -20,6 +20,8 @@ namespace MemoryProfiler2
 		public UInt32 Version;
 		/** Platform that was captured.								*/
         public EPlatformType Platform;
+		/** Platform that was captured.								*/
+		public string PlatformName;
 		/** Whether symbol information was serialized.				*/
 		public bool	bShouldSerializeSymbolInfo;
 		/** Name of executable this information was gathered with.	*/
@@ -73,8 +75,19 @@ namespace MemoryProfiler2
 			{
 				// Version info for backward compatible serialization.
 				Version = BinaryStream.ReadUInt32();
-				// Platform and max backtrace depth.
-				Platform = (EPlatformType)BinaryStream.ReadUInt32();
+				
+				if( Version >= 4 )
+				{
+					// Read platform name.
+					PlatformName = FStreamParser.ReadString( BinaryStream );
+					PlatformName = FixFixedSizeString( PlatformName );
+				}
+				else
+				{
+					// Read platform type.
+					Platform = (EPlatformType)BinaryStream.ReadUInt32();
+				}
+
 				// Whether symbol information was serialized.
 				bShouldSerializeSymbolInfo = BinaryStream.ReadUInt32() == 0 ? false : true;
 
@@ -97,7 +110,11 @@ namespace MemoryProfiler2
 				NumDataFiles = BinaryStream.ReadUInt32();
 
                 FStreamToken.Version = Version;
-				if (Version > 2)
+				if( Version >= 4 )
+				{
+					// Just ignore
+				}
+				else if (Version > 2)
 				{
 	                ScriptCallstackTableOffset = BinaryStream.ReadUInt32();
                     ScriptNameTableOffset = BinaryStream.ReadUInt32();
@@ -106,15 +123,20 @@ namespace MemoryProfiler2
                 }
 
 				// Name of executable.
-				UInt32 ExecutableNameLength = BinaryStream.ReadUInt32();
-				ExecutableName = new string(BinaryStream.ReadChars((int)ExecutableNameLength));
-				// We serialize a fixed size string. Trim the null characters that make it in by converting char[] to string.
-				int RealLength = 0;
-				while( ExecutableName[RealLength++] != '\0' ) 
-				{
-				}
-				ExecutableName = ExecutableName.Remove(RealLength-1);
+				ExecutableName = FStreamParser.ReadString( BinaryStream );
+				ExecutableName = FixFixedSizeString( ExecutableName );			
 			}
+		}
+
+		/// <summary> Trims the null characters that make it in by converting char[] to string. </summary>
+		static String FixFixedSizeString( string String )
+		{
+			int RealLength = 0;
+			while( String[RealLength++] != '\0' )
+			{
+			}
+			string Result = String.Remove( RealLength - 1 );
+			return Result;
 		}
 	}
 

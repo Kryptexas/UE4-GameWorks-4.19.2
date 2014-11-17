@@ -287,13 +287,12 @@ void FAssetTypeActions_Skeleton::ExecuteRetargetSkeleton(TArray<TWeakObjectPtr<U
 	// warn the user to shut down any persona that is opened
 	if ( FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("CloseReferencingEditors", "You need to close Persona or anything that references animation, mesh or animation blueprint before this step. Continue?")) == EAppReturnType::Yes )
 	{
-		TArray<UObject*> ObjectsToSync;
 		for (auto SkelIt = Skeletons.CreateConstIterator(); SkelIt; ++SkelIt)
 		{	
 			USkeleton * OldSkeleton = (*SkelIt).Get();
 			USkeleton * NewSkeleton = NULL;
 
-			const FText Message = LOCTEXT("RemapSkeleton_Warning", "This only converts animation data -i.e. animation assets and Anim Blueprints. \nIf you'd like to convert SkeletalMesh, use the context menu (Assign Skeleton) for each mesh. \n\nIf you'd like to convert mesh as well, please do so before converting animation data. \nOtherwise you will lose any extra track that is in the new mesh.");
+			const FText Message = LOCTEXT("RetargetSkeleton_Warning", "This only converts animation data -i.e. animation assets and Anim Blueprints. \nIf you'd like to convert SkeletalMesh, use the context menu (Assign Skeleton) for each mesh. \n\nIf you'd like to convert mesh as well, please do so before converting animation data. \nOtherwise you will lose any extra track that is in the new mesh.");
 
 			// ask user what they'd like to change to 
 			if (SAnimationRemapSkeleton::ShowModal(OldSkeleton, NewSkeleton, Message ))
@@ -383,7 +382,7 @@ void FAssetTypeActions_Skeleton::LoadPackages(TArray<FAssetToRemapSkeleton>& Ass
 		UPackage* Package = LoadPackage(NULL, *PackageName, LOAD_None);
 		if ( !Package )
 		{
-			RemapData.ReportFailed( LOCTEXT("RemapSkeletonFailed_LoadPackage", "Could not load the package.").ToString());
+			RemapData.ReportFailed( LOCTEXT("RemapSkeletonFailed_LoadPackage", "Could not load the package."));
 			continue;
 		}
 
@@ -419,7 +418,7 @@ void FAssetTypeActions_Skeleton::LoadPackages(TArray<FAssetToRemapSkeleton>& Ass
 		// if none was relevant - skeletal mesh is going to get here
 		if ( !RemapData.Asset.IsValid() )
 		{
-			RemapData.ReportFailed( LOCTEXT("RemapSkeletonFailed_LoadObject", "Could not load any related object.").ToString());
+			RemapData.ReportFailed( LOCTEXT("RemapSkeletonFailed_LoadObject", "Could not load any related object."));
 			continue;
 		}
 
@@ -464,7 +463,7 @@ bool FAssetTypeActions_Skeleton::CheckOutPackages(TArray<FAssetToRemapSkeleton>&
 
 						if (RemapData.Asset.IsValid() && RemapData.Asset.Get()->GetOutermost() == *PackageIt)
 						{
-							RemapData.ReportFailed( LOCTEXT("RemapSkeletonFailed_CheckOutFailed", "Check out failed").ToString());
+							RemapData.ReportFailed( LOCTEXT("RemapSkeletonFailed_CheckOutFailed", "Check out failed"));
 						}
 					}
 
@@ -501,7 +500,7 @@ void FAssetTypeActions_Skeleton::DetectReadOnlyPackages(TArray<FAssetToRemapSkel
 
 						if (RenameData.Asset.IsValid() && RenameData.Asset.Get()->GetOutermost() == Package)
 						{
-							RenameData.ReportFailed( LOCTEXT("RemapSkeletonFailed_FileReadOnly", "File still read only").ToString());
+							RenameData.ReportFailed( LOCTEXT("RemapSkeletonFailed_FileReadOnly", "File still read only"));
 						}
 					}				
 
@@ -527,7 +526,7 @@ void FAssetTypeActions_Skeleton::SavePackages(const TArray<UPackage*> PackagesTo
 
 void FAssetTypeActions_Skeleton::ReportFailures(const TArray<FAssetToRemapSkeleton>& AssetsToRemap) const
 {
-	TArray<FString> FailedToRemap;
+	TArray<FText> FailedToRemap;
 	for ( auto RenameIt = AssetsToRemap.CreateConstIterator(); RenameIt; ++RenameIt )
 	{
 		const FAssetToRemapSkeleton& RemapData = *RenameIt;
@@ -536,11 +535,15 @@ void FAssetTypeActions_Skeleton::ReportFailures(const TArray<FAssetToRemapSkelet
 			UObject* Asset = RemapData.Asset.Get();
 			if ( Asset )
 			{
-				FailedToRemap.Add(Asset->GetOutermost()->GetName() + TEXT(" - ") + RemapData.FailureReason);
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("FailureReason"), RemapData.FailureReason);
+				Args.Add(TEXT("AssetName"), FText::FromString(Asset->GetOutermost()->GetName()));
+
+				FailedToRemap.Add(FText::Format(LOCTEXT("AssetRemapFailure", "{AssetName} - {FailureReason}"), Args));
 			}
 			else
 			{
-				FailedToRemap.Add(LOCTEXT("RemapSkeletonFailed_InvalidAssetText", "Invalid Asset").ToString());
+				FailedToRemap.Add(LOCTEXT("RemapSkeletonFailed_InvalidAssetText", "Invalid Asset"));
 			}
 		}
 	}

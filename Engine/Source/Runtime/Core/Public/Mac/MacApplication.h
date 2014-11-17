@@ -4,6 +4,8 @@
 #include "Core.h"
 #include "GenericApplication.h"
 #include "MacWindow.h"
+#include "MacTextInputMethodSystem.h"
+
 
 /**
  * Mac-specific application implementation.
@@ -51,6 +53,11 @@ public:
 
 	virtual void GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const OVERRIDE;
 
+	virtual ITextInputMethodSystem *GetTextInputMethodSystem() OVERRIDE
+	{
+		return TextInputMethodSystem.Get();
+	}
+
 	void AddPendingEvent( NSEvent* Event );
 
 	void OnWindowDraggingFinished();
@@ -69,6 +76,8 @@ public:
 	virtual bool SupportsSourceAccess() const OVERRIDE;
 
 	virtual void GotoLineInSource(const FString& FileAndLineNumber) OVERRIDE;
+
+    virtual void SendAnalytics(IAnalyticsProvider* Provider) OVERRIDE;
 #endif
 
 
@@ -109,6 +118,12 @@ private:
 
 	void HandleExternallyChangedModifier(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
+#if WITH_EDITOR
+	void RecordUsage(EGestureEvent::Type Gesture);
+#else
+	void RecordUsage(EGestureEvent::Type Gesture) { }
+#endif
+
 private:
 
 	bool bUsingHighPrecisionMouseInput;
@@ -136,10 +151,20 @@ private:
 	/** The current set of modifier keys that are pressed. This is used to detect differences between left and right modifier keys on key up events*/
 	uint32 ModifierKeysFlags;
 
-	/** The current set of Cocoa modifier flags, used to detech when Mission Control has been invoked & returned so that we can synthesis the modifier events it steals */
+	/** The current set of Cocoa modifier flags, used to detect when Mission Control has been invoked & returned so that we can synthesis the modifier events it steals */
 	NSUInteger CurrentModifierFlags;
 
 	TArray< TSharedRef< FMacWindow > > KeyWindows;
+
+	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
+
+#if WITH_EDITOR
+	/** Holds the last gesture used to try and capture unique uses for gestures. */
+	EGestureEvent::Type LastGestureUsed;
+
+	/** Stores the number of times a gesture has been used for analytics */
+	int32 GestureUsage[EGestureEvent::Count];
+#endif
 
 	friend class FMacWindow;
 };

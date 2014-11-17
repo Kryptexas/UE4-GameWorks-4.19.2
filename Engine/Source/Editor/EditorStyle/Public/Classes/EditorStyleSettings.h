@@ -57,8 +57,8 @@ public:
 	FLinearColor KeyboardFocusColor;
 
 	/** Applies a color vision deficiency filter to the entire editor */
-	UPROPERTY(EditAnywhere, config, Category=Colors, AdvancedDisplay)
-	TEnumAsByte<EColorVisionDeficiency> ColorVisionDeficiencyType;
+	UPROPERTY(EditAnywhere, config, Category=Colors)
+	TEnumAsByte<EColorVisionDeficiency> ColorVisionDeficiencyPreviewType;
 
 public:
 

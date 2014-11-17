@@ -342,5 +342,10 @@ void SCaptureRegionWidget::BuildNewCaptureRegion(const FVector2D& InPointA, cons
 
 void SCaptureRegionWidget::SendUpdatedCaptureRegion()
 {
-	GetHighResScreenshotConfig().TargetViewport->Invalidate();
+	auto& Config = GetHighResScreenshotConfig();
+	auto ConfigViewport = Config.TargetViewport.Pin();
+	if (ConfigViewport.IsValid())
+	{
+		ConfigViewport->Invalidate();
+	}
 }

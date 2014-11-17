@@ -163,6 +163,14 @@ FString FMaterialExpressionCollectionParameterDetails::GetParameterNameString() 
 	return CurrentParameterName;
 }
 
+bool FMaterialExpressionCollectionParameterDetails::IsParameterNameComboEnabled() const
+{
+	UObject* CollectionObject = NULL;
+	verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
+	UMaterialParameterCollection* Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	return Collection != nullptr;
+}
+
 void FMaterialExpressionCollectionParameterDetails::OnCollectionChanged()
 {
 	PopulateParameters();
@@ -183,11 +191,16 @@ void FMaterialExpressionCollectionParameterDetails::CustomizeDetails( IDetailLay
 	CollectionPropertyHandle->SetOnPropertyValueChanged( OnCollectionChangedDelegate );
 
 	ParameterNamePropertyHandle->MarkHiddenByCustomization();
+	CollectionPropertyHandle->MarkHiddenByCustomization();
 
 	PopulateParameters();
 
 	TSharedPtr<SComboButton> NewComboButton;
 	TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
+
+	// This isn't strictly speaking customized, but we need it to appear before the "Parameter Name" property, 
+	// so we manually add it and set MarkHiddenByCustomization on it to avoid it being automatically added
+	Category.AddProperty(CollectionPropertyHandle);
 
 	Category.AddCustomRow( ParameterNamePropertyHandle->GetPropertyDisplayName() )
 	.NameContent()
@@ -199,6 +212,7 @@ void FMaterialExpressionCollectionParameterDetails::CustomizeDetails( IDetailLay
 	.ValueContent()
 	[
 		SAssignNew(NewComboButton, SComboButton)
+		.IsEnabled(this, &FMaterialExpressionCollectionParameterDetails::IsParameterNameComboEnabled)
 		.ContentPadding(0)
 		.ButtonContent()
 		[

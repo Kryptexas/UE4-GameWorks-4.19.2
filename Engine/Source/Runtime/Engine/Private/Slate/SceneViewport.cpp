@@ -139,9 +139,18 @@ int32 FSceneViewport::GetMouseY() const
 	return CachedMousePos.Y;
 }
 
-void FSceneViewport::GetMousePos( FIntPoint& MousePosition )
+void FSceneViewport::GetMousePos( FIntPoint& MousePosition, const bool bLocalPosition )
 {
-	MousePosition = CachedMousePos;
+	if (bLocalPosition)
+	{
+		MousePosition = CachedMousePos;
+	}
+	else
+	{
+		const FVector2D AbsoluteMousePos = CachedGeometry.LocalToAbsolute(FVector2D(CachedMousePos.X, CachedMousePos.Y));
+		MousePosition.X = AbsoluteMousePos.X;
+		MousePosition.Y = AbsoluteMousePos.Y;
+	}
 }
 
 void FSceneViewport::SetMouse( int32 X, int32 Y )
@@ -535,6 +544,9 @@ FReply FSceneViewport::OnTouchStarted( const FGeometry& MyGeometry, const FPoint
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled().PreventThrottling(); 
 
+	UpdateCachedMousePos(MyGeometry, TouchEvent);
+	UpdateCachedGeometry(MyGeometry);
+
 	if( ViewportClient )
 	{
 		// Switch to the viewport clients world before processing input
@@ -556,6 +568,9 @@ FReply FSceneViewport::OnTouchMoved( const FGeometry& MyGeometry, const FPointer
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
 
+	UpdateCachedMousePos(MyGeometry, TouchEvent);
+	UpdateCachedGeometry(MyGeometry);
+
 	if( ViewportClient )
 	{
 		// Switch to the viewport clients world before processing input
@@ -576,6 +591,9 @@ FReply FSceneViewport::OnTouchEnded( const FGeometry& MyGeometry, const FPointer
 {
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled(); 
+
+	UpdateCachedMousePos(MyGeometry, TouchEvent);
+	UpdateCachedGeometry(MyGeometry);
 
 	if( ViewportClient )
 	{

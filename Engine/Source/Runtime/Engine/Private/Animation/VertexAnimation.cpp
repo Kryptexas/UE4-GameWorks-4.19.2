@@ -142,7 +142,7 @@ FVertexAnimDelta* UVertexAnimation::GetDeltasAtTime(float Time, int32 LODIndex, 
 
 			FVertexAnimDelta* Delta = VertAnimState->Deltas + VertIdx;
 			Delta->PositionDelta = ImportVertDeltas[ImportIdx];
-			Delta->TangentZDelta = FVector(0,0,0);
+			Delta->TangentZDelta = FVector::ZeroVector;
 			Delta->SourceIdx = VertIdx;
 		}
 

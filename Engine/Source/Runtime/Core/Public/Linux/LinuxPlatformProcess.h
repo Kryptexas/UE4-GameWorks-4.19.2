@@ -7,7 +7,7 @@
 
 #pragma once
 
-/** Dummy process handle for platforms that use generic implementation. */
+/** Wrapper around Linux pid_t. */
 struct FProcHandle : public TProcHandle<pid_t, -1>
 {
 	typedef TProcHandle<pid_t, -1> Parent;
@@ -93,11 +93,42 @@ protected:	// the below is not a public API!
 	int32	ReturnCode;
 };
 
+/** Wrapper around Linux file descriptors */
+struct FPipeHandle
+{
+	FPipeHandle(int Fd)
+		:	PipeDesc(Fd)
+	{
+	}
+
+	~FPipeHandle();
+
+	/**
+	 * Reads until EOF.
+	 */
+	FString Read();
+
+	/**
+	 * Returns raw file handle.
+	 */
+	int GetHandle() const
+	{
+		return PipeDesc;
+	}
+
+protected:
+
+	int	PipeDesc;
+};
+
 /**
- * Android implementation of the Process OS functions
- **/
+ * Linux implementation of the Process OS functions
+ */
 struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 {
+	static void* GetDllHandle( const TCHAR* Filename );
+	static void FreeDllHandle( void* DllHandle );
+	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
 	static const TCHAR* ComputerName();
 	static const TCHAR* BaseDir();
 	static bool SetProcessLimits(EProcessResource::Type Resource, uint64 Limit);

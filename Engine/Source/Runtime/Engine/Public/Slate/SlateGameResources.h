@@ -43,6 +43,7 @@ public:
 	virtual void SetContentRoot( const FString& InContentRootDir ) OVERRIDE;
 
 	virtual const FSlateBrush* GetBrush( const FName PropertyName, const ANSICHAR* Specifier = NULL ) const OVERRIDE;
+	virtual const FSlateBrush* GetOptionalBrush(const FName PropertyName, const ANSICHAR* Specifier = NULL, const FSlateBrush* const DefaultBrush = FStyleDefaults::GetNoBrush()) const OVERRIDE;
 
 	UCurveFloat* GetCurveFloat( const FName AssetName ) const;
 	UCurveVector* GetCurveVector( const FName AssetName ) const;

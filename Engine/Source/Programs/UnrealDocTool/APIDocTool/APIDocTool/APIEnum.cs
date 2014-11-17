@@ -13,6 +13,7 @@ namespace APIDocTool
 {
 	public class APIEnum : APIMember
     {
+		public readonly DoxygenEntity Entity;
 		public readonly XmlNode Node;
 		public APIProtection Protection;
 
@@ -26,15 +27,11 @@ namespace APIDocTool
 		public List<APIEnumValue> Values = new List<APIEnumValue>();
 
 		public APIEnum(APIPage InParent, DoxygenEntity InEntity, string InName)
-			: this(InParent, InEntity.Node, InName)
-		{
-		}
-
-		public APIEnum(APIPage InParent, XmlNode InNode, string InName)
 			: base(InParent, InName)
         {
 			// Set the defaults
-			Node = InNode;
+			Entity = InEntity;
+			Node = InEntity.Node;
 			Protection = ParseProtection(Node);
 
 			// Read the values
@@ -135,6 +132,11 @@ namespace APIDocTool
 					Writer.WriteLine(FullDescription);
 					Writer.LeaveSection();
 				}
+				Writer.LeaveTag("[/PARAM]");
+
+				// Write the references
+				Writer.EnterTag("[PARAM:references]");
+				WriteReferencesSection(Writer, Entity);
 				Writer.LeaveTag("[/PARAM]");
 
 				Writer.LeaveTag("[/OBJECT]");

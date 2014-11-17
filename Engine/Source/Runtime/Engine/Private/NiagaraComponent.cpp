@@ -63,7 +63,6 @@ private:
 	void ReleaseRenderThreadResources()
 	{
 		VertexFactory.ReleaseResource();
-		SpriteUniformBuffer.SafeRelease();
 		PerViewUniformBuffers.Empty();
 		WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 	}
@@ -73,7 +72,6 @@ private:
 	{
 		VertexFactory.InitResource();
 
-		FParticleSpriteUniformParameters UniformParameters;
 		UniformParameters.AxisLockRight = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 		UniformParameters.AxisLockUp = FVector4(0.0f, 0.0f, 0.0f, 0.0f);
 		UniformParameters.RotationScale = 1.0f;
@@ -84,8 +82,6 @@ private:
 		UniformParameters.NormalsType = 0;
 		UniformParameters.NormalsSphereCenter = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 		UniformParameters.NormalsCylinderUnitDirection = FVector4(0.0f, 0.0f, 1.0f, 0.0f);
-		SpriteUniformBuffer = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(UniformParameters, UniformBuffer_MultiUse);
-		VertexFactory.SetSpriteUniformBuffer(SpriteUniformBuffer);
 	}
 
 	virtual void OnActorPositionChanged() OVERRIDE
@@ -123,12 +119,12 @@ private:
 			uint32 ViewBit = 1;
 			for (int32 ViewIndex = 0; ViewIndex < NumViews; ++ViewIndex, ViewBit <<= 1)
 			{
-				FParticleSpriteViewUniformBufferRef* SpriteViewUniformBufferPtr = new(PerViewUniformBuffers) FParticleSpriteViewUniformBufferRef();
+				FParticleSpriteUniformBufferRef* SpriteViewUniformBufferPtr = new(PerViewUniformBuffers) FParticleSpriteUniformBufferRef();
 				if (VisibilityMap & ViewBit)
 				{
-					FParticleSpriteViewUniformParameters UniformParameters;
-					UniformParameters.MacroUVParameters = FVector4(0.0f,0.0f,1.0f,1.0f);
-					*SpriteViewUniformBufferPtr = FParticleSpriteViewUniformBufferRef::CreateUniformBufferImmediate(UniformParameters, UniformBuffer_SingleUse);
+					FParticleSpriteUniformParameters PerViewUniformParameters = UniformParameters;
+					PerViewUniformParameters.MacroUVParameters = FVector4(0.0f,0.0f,1.0f,1.0f);
+					*SpriteViewUniformBufferPtr = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleUse);
 				}
 			}
 
@@ -187,7 +183,7 @@ private:
 
 			int32 ViewIndex = View->Family->Views.Find(View);
 			check(PerViewUniformBuffers.IsValidIndex(ViewIndex) && PerViewUniformBuffers[ViewIndex]);
-			VertexFactory.SetSpriteViewUniformBuffer(PerViewUniformBuffers[ViewIndex]);
+			VertexFactory.SetSpriteUniformBuffer(PerViewUniformBuffers[ViewIndex]);
 
 			DrawRichMesh(
 				PDI, 
@@ -253,8 +249,8 @@ private:
 	FNiagaraDynamicData* DynamicData;
 	TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
 	FParticleSpriteVertexFactory VertexFactory;
-	FParticleSpriteUniformBufferRef SpriteUniformBuffer;
-	TArray<FParticleSpriteViewUniformBufferRef, TInlineAllocator<2> > PerViewUniformBuffers;
+	FParticleSpriteUniformParameters UniformParameters;
+	TArray<FParticleSpriteUniformBufferRef, TInlineAllocator<2> > PerViewUniformBuffers;
 	FGlobalDynamicVertexBuffer::FAllocation DynamicVertexAllocation;
 	FMaterialRelevance MaterialRelevance;
 };

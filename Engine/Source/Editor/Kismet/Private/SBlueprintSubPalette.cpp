@@ -11,6 +11,7 @@
 #include "SBlueprintEditorToolbar.h"
 #include "BlueprintPaletteFavorites.h"
 #include "BlueprintEditorUtils.h"
+#include "SBlueprintActionMenu.h" // for SBlueprintActionMenuExpander
 
 #define LOCTEXT_NAMESPACE "BlueprintSubPalette"
 
@@ -175,6 +176,23 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 {
 	BlueprintEditorPtr = InBlueprintEditor;
 
+	struct LocalUtils
+	{
+		static TSharedRef<SExpanderArrow> CreateCustomExpander(const FCustomExpanderData& ActionMenuData, bool bShowFavoriteToggle)
+		{
+			TSharedPtr<SExpanderArrow> CustomExpander;
+			if (bShowFavoriteToggle)
+			{
+				SAssignNew(CustomExpander, SBlueprintActionMenuExpander, ActionMenuData);
+			}
+			else
+			{
+				SAssignNew(CustomExpander, SExpanderArrow, ActionMenuData.TableRow);
+			}
+			return CustomExpander.ToSharedRef();
+		}
+	};
+
 	ChildSlot
  	[
 		SNew(SBorder)
@@ -201,6 +219,7 @@ void SBlueprintSubPalette::Construct(FArguments const& InArgs, TWeakPtr<FBluepri
 						.OnActionDragged(this, &SBlueprintSubPalette::OnActionDragged)
 						.OnCollectAllActions(this, &SBlueprintSubPalette::CollectAllActions)
 						.OnContextMenuOpening(this, &SBlueprintSubPalette::ConstructContextMenuWidget)
+						.OnCreateCustomRowExpander_Static(&LocalUtils::CreateCustomExpander, InArgs._ShowFavoriteToggles.Get())
 				]
 			]
 		]
@@ -269,30 +288,7 @@ FReply SBlueprintSubPalette::OnActionDragged( const TArray< TSharedPtr<FEdGraphS
 
 		if(InAction->GetTypeId() == FEdGraphSchemaAction_K2NewNode::StaticGetTypeId())
 		{
-			FEdGraphSchemaAction_K2NewNode* NewNodeAction = (FEdGraphSchemaAction_K2NewNode*)InAction.Get();
-			UK2Node_CallFunction* CallFuncNode = Cast<UK2Node_CallFunction>(NewNodeAction->NodeTemplate);
-			if(CallFuncNode != NULL)
-			{
-				FMemberReference CallOnMember;
-				UK2Node_CallFunctionOnMember* CallFuncOnMemberNode = Cast<UK2Node_CallFunctionOnMember>(CallFuncNode);
-				if(CallFuncOnMemberNode != NULL)
-				{
-					CallOnMember = CallFuncOnMemberNode->MemberVariableToCallOn;
-				}
-
-				TSharedRef<FKismetFunctionDragDropAction> DragDropAction = FKismetFunctionDragDropAction::New(
-					CallFuncNode->FunctionReference.GetMemberName(),
-					CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode), 
-					CallOnMember, 
-					AnalyticsDelegate,
-					CanNodeBePlacedDelegate);
-
-				return FReply::Handled().BeginDragDrop(DragDropAction);
-			}
-			else
-			{
-				return FReply::Handled().BeginDragDrop(FKismetDragDropAction::New(InAction, AnalyticsDelegate, CanNodeBePlacedDelegate));
-			}
+			return FReply::Handled().BeginDragDrop(FKismetDragDropAction::New(InAction, AnalyticsDelegate, CanNodeBePlacedDelegate));
 		}
 		else if(InAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
 		{

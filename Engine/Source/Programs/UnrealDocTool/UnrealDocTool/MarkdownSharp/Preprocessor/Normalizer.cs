@@ -90,5 +90,10 @@ namespace MarkdownSharp.Preprocessor
         {
             return NewlinesLeadingTrailing.Replace(text, "");
         }
+
+        public static string NormalizePath(string path)
+        {
+            return path.Replace('\\', '/');
+        }
     }
 }

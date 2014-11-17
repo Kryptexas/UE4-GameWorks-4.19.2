@@ -13,12 +13,12 @@ void UBehaviorTreeGraphNode_Service::AllocateDefaultPins()
 }
 
 
-FString UBehaviorTreeGraphNode_Service::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UBehaviorTreeGraphNode_Service::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const UBTService* Service = Cast<UBTService>(NodeInstance);
 	if (Service != NULL)
 	{
-		return Service->GetNodeName();
+		return FText::FromString(Service->GetNodeName());
 	}
 
 	return Super::GetNodeTitle(TitleType);

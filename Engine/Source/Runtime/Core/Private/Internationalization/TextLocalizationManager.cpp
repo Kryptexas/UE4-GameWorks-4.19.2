@@ -165,8 +165,10 @@ void FTextLocalizationManager::FLocalizationEntryTracker::ReadFromArchive(FArchi
 
 void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const bool ShouldLoadGame)
 {
-	const FString& CultureName = FInternationalization::GetCurrentCulture()->GetName();
-	const FString& BaseLanguageName = FInternationalization::GetCurrentCulture()->GetTwoLetterISOLanguageName();
+	FInternationalization& I18N = FInternationalization::Get();
+
+	const FString& CultureName = I18N.GetCurrentCulture()->GetName();
+	const FString& BaseLanguageName = I18N.GetCurrentCulture()->GetTwoLetterISOLanguageName();
 
 #if ENABLE_LOC_TESTING
 	if(CultureName == TEXT("LEET"))
@@ -196,6 +198,17 @@ void FTextLocalizationManager::LoadResources(const bool ShouldLoadEditor, const 
 	if(ShouldLoadEditor)
 	{
 		LocalizationPaths += FPaths::GetEditorLocalizationPaths();
+		LocalizationPaths += FPaths::GetToolTipLocalizationPaths();
+
+		bool bShouldLoadLocalizedPropertyNames = true;
+		if( !GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEditorGameAgnosticIni ) )
+		{
+			GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
+		}
+		if(bShouldLoadLocalizedPropertyNames)
+		{
+			LocalizationPaths += FPaths::GetPropertyNameLocalizationPaths();
+		}
 	}
 	LocalizationPaths += FPaths::GetEngineLocalizationPaths();
 
@@ -324,7 +337,7 @@ void FTextLocalizationManager::OnCultureChanged()
 	LoadResources(ShouldLoadEditor, ShouldLoadGame);
 }
 
-TSharedPtr<FString> FTextLocalizationManager::FindString( const FString& Namespace, const FString& Key )
+TSharedPtr<FString> FTextLocalizationManager::FindString( const FString& Namespace, const FString& Key, const FString* const SourceString )
 {
 	FScopeLock ScopeLock( &SynchronizationObject );
 
@@ -334,7 +347,7 @@ TSharedPtr<FString> FTextLocalizationManager::FindString( const FString& Namespa
 	// Find key table's entry.
 	const FStringEntry* LiveEntry = LiveKeyTable ? LiveKeyTable->Find( Key ) : NULL;
 
-	if ( LiveEntry != NULL )
+	if( LiveEntry != NULL && ( !SourceString || LiveEntry->SourceStringHash == FCrc::StrCrc32(**SourceString) ) )
 	{
 		return LiveEntry->String;
 	}
@@ -353,7 +366,7 @@ TSharedRef<FString> FTextLocalizationManager::GetString(const FString& Namespace
 	}
 
 #if ENABLE_LOC_TESTING
-	const bool bShouldLEETIFYAll = bIsInitialized && FInternationalization::GetCurrentCulture()->GetName() == TEXT("LEET");
+	const bool bShouldLEETIFYAll = bIsInitialized && FInternationalization::Get().GetCurrentCulture()->GetName() == TEXT("LEET");
 	static const bool bShouldLEETIFYUnlocalizedString = FCommandLine::IsInitialized() && FParse::Param(FCommandLine::Get(), TEXT("LEETIFYUnlocalized"));
 #endif
 
@@ -482,6 +495,8 @@ namespace
 
 void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath)
 {
+	FInternationalization& I18N = FInternationalization::Get();
+
 	FString SectionName = TEXT("RegenerateResources");
 
 	// Get source path.
@@ -518,9 +533,9 @@ void FTextLocalizationManager::RegenerateResources(const FString& ConfigFilePath
 
 	TArray<FString> LocaleNames;
 	{
-		const FString CultureName = FInternationalization::GetCurrentCulture()->GetName();
+		const FString CultureName = I18N.GetCurrentCulture()->GetName();
 		LocaleNames.Add(CultureName);
-		const FString BaseLanguageName = FInternationalization::GetCurrentCulture()->GetTwoLetterISOLanguageName();
+		const FString BaseLanguageName = I18N.GetCurrentCulture()->GetTwoLetterISOLanguageName();
 		if(BaseLanguageName != CultureName)
 		{
 			LocaleNames.Add(BaseLanguageName);

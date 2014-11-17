@@ -205,54 +205,57 @@ void UUnrealEdEngine::edactRemoveFromGroup()
 
 void UUnrealEdEngine::edactMergeActors()
 {
-#if WITH_SIMPLYGON
-	TSharedPtr<IMeshProxyDialog> MeshProxyControls;
-	if (MeshProxyControls.IsValid() && MeshProxyControls->GetParentWindow().IsValid())
+	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
+	IMeshReduction* MeshReduction = MeshUtilities.GetMeshReductionInterface();
+	if (MeshReduction && MeshReduction->IsSupported())
 	{
-		MeshProxyControls->GetParentWindow()->HideWindow();
-	}
-
-	if (!MeshProxyControls.IsValid())
-	{
-		// Create the controls if they haven't already been created
-		MeshProxyControls = IMeshProxyDialog::MakeControls();
-	}
-
-	if (!MeshProxyControls->GetParentWindow().IsValid())
-	{
-		// Create window
-		TSharedRef<SWindow> MeshProxyDialog = SNew(SWindow);
-		MeshProxyDialog->SetTitle(NSLOCTEXT("SMeshProxyDialog", "MeshProxyDialogTitle", "Mesh Proxy"));
-		MeshProxyDialog->Resize(FVector2D(400.0f, 280.0f));
-
-		MeshProxyControls->AssignWindowContent(MeshProxyDialog);
-		MeshProxyControls->SetParentWindow(MeshProxyDialog);
-		
-		MeshProxyDialog->SetOnWindowClosed(FOnWindowClosed::CreateSP(MeshProxyControls.ToSharedRef(), &IMeshProxyDialog::OnWindowClosed ) );
-
-		// Spawn the dialog window
-		TSharedPtr<SWindow> ParentWindow;
-		if (FModuleManager::Get().IsModuleLoaded("MainFrame"))
+		TSharedPtr<IMeshProxyDialog> MeshProxyControls;
+		if(MeshProxyControls.IsValid() && MeshProxyControls->GetParentWindow().IsValid())
 		{
-			IMainFrameModule& MainFrame = FModuleManager::GetModuleChecked<IMainFrameModule>("MainFrame");
-			ParentWindow = MainFrame.GetParentWindow();
+			MeshProxyControls->GetParentWindow()->HideWindow();
 		}
 
-		if (ParentWindow.IsValid())
+		if(!MeshProxyControls.IsValid())
 		{
-			// Parent the window to the main frame 
-			FSlateApplication::Get().AddWindowAsNativeChild(MeshProxyDialog, ParentWindow.ToSharedRef());
+			// Create the controls if they haven't already been created
+			MeshProxyControls = IMeshProxyDialog::MakeControls();
 		}
-		else
-		{
-			// Spawn new window
-			FSlateApplication::Get().AddWindow(MeshProxyDialog);
-		}
-	}
-	MeshProxyControls->GetParentWindow()->ShowWindow();
-	MeshProxyControls->MarkDirty();
 
-#endif
+		if(!MeshProxyControls->GetParentWindow().IsValid())
+		{
+			// Create window
+			TSharedRef<SWindow> MeshProxyDialog = SNew(SWindow);
+			MeshProxyDialog->SetTitle(NSLOCTEXT("SMeshProxyDialog", "MeshProxyDialogTitle", "Mesh Proxy"));
+			MeshProxyDialog->Resize(FVector2D(400.0f, 280.0f));
+
+			MeshProxyControls->AssignWindowContent(MeshProxyDialog);
+			MeshProxyControls->SetParentWindow(MeshProxyDialog);
+
+			MeshProxyDialog->SetOnWindowClosed(FOnWindowClosed::CreateSP(MeshProxyControls.ToSharedRef(), &IMeshProxyDialog::OnWindowClosed));
+
+			// Spawn the dialog window
+			TSharedPtr<SWindow> ParentWindow;
+			if(FModuleManager::Get().IsModuleLoaded("MainFrame"))
+			{
+				IMainFrameModule& MainFrame = FModuleManager::GetModuleChecked<IMainFrameModule>("MainFrame");
+				ParentWindow = MainFrame.GetParentWindow();
+			}
+
+			if(ParentWindow.IsValid())
+			{
+				// Parent the window to the main frame 
+				FSlateApplication::Get().AddWindowAsNativeChild(MeshProxyDialog, ParentWindow.ToSharedRef());
+			}
+			else
+			{
+				// Spawn new window
+				FSlateApplication::Get().AddWindow(MeshProxyDialog);
+			}
+		}
+		MeshProxyControls->GetParentWindow()->ShowWindow();
+		MeshProxyControls->MarkDirty();
+
+	}
 }
 
 void UUnrealEdEngine::edactMergeActorsByMaterials()

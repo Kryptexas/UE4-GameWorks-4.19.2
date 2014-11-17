@@ -34,7 +34,6 @@ public:
 		: ProcessInfo(InProcessInfo)
 	{ }
 
-
 public:
 
 	/**
@@ -94,7 +93,6 @@ public:
 	{
 		Parent = Node;
 	}
-
 
 private:
 

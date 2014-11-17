@@ -49,6 +49,7 @@ TSharedPtr<FJsonObject> UGatherTextCommandletBase::ReadJSONTextFile(const FStrin
 	if( !FJsonSerializer::Deserialize( Reader, JSONObject ) || !JSONObject.IsValid())
 	{
 		UE_LOG(LogGatherTextCommandletBase, Error,TEXT("Invalid JSON in file %s."), *InFilePath);
+		UE_LOG(LogGatherTextCommandletBase, Error, TEXT("JSON Error: %s."), *Reader->GetErrorMessage());
 		return NULL;
 	}
 
@@ -64,10 +65,10 @@ bool UGatherTextCommandletBase::WriteJSONToTextFile(TSharedPtr<FJsonObject> Outp
 	{
 		if( SourceControl.IsValid() )
 		{
-			FString SCCErrorString;
-			if( !SourceControl->CheckOutFile( Filename, SCCErrorString ) )
+			FText SCCErrorText;
+			if (!SourceControl->CheckOutFile(Filename, SCCErrorText))
 			{
-				UE_LOG(LogGatherTextCommandletBase, Error, TEXT("Check out of file %s failed: %s"), *Filename, *SCCErrorString);
+				UE_LOG(LogGatherTextCommandletBase, Error, TEXT("Check out of file %s failed: %s"), *Filename, *SCCErrorText.ToString());
 				WasSuccessful = false;
 			}
 		}
@@ -682,10 +683,10 @@ FGatherTextSCC::~FGatherTextSCC()
 	if( CheckedOutFiles.Num() > 0 )
 	{
 		UE_LOG(LogGatherTextCommandletBase, Log, TEXT("Source Control wrapper shutting down with checked out files, cleaning up."));
-		FString SCCErrorStr;
-		if( !CleanUp( SCCErrorStr ) )
+		FText SCCErrorStr;
+		if (!CleanUp(SCCErrorStr))
 		{
-			UE_LOG(LogGatherTextCommandletBase, Error, TEXT("%s"), *SCCErrorStr);
+			UE_LOG(LogGatherTextCommandletBase, Error, TEXT("%s"), *SCCErrorStr.ToString());
 		}
 	}
 
@@ -693,15 +694,15 @@ FGatherTextSCC::~FGatherTextSCC()
 }
 
 
-bool FGatherTextSCC::CheckOutFile( const FString& InFile, FString& OutError )
+bool FGatherTextSCC::CheckOutFile(const FString& InFile, FText& OutError)
 {
 	if ( InFile.IsEmpty() )
 	{
-		OutError = TEXT("Could not checkout file.");
+		OutError = NSLOCTEXT("GatherTextCmdlet", "InvalidFileSpecified", "Could not checkout file at invalid path.");
 		return false;
 	}
 
-	FString SCCError;
+	FText SCCError;
 	if( !IsReady( SCCError ) )
 	{
 		OutError = SCCError;
@@ -719,6 +720,9 @@ bool FGatherTextSCC::CheckOutFile( const FString& InFile, FString& OutError )
 	TArray<FString> FilesToBeCheckedOut;
 	FilesToBeCheckedOut.Add( AbsoluteFilename );
 
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("Filepath"), FText::FromString(InFile));
+
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 	FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState( AbsoluteFilename, EStateCacheUsage::ForceUpdate );
 	if(SourceControlState.IsValid())
@@ -735,7 +739,7 @@ bool FGatherTextSCC::CheckOutFile( const FString& InFile, FString& OutError )
 			bSuccessfullyCheckedOut = (SourceControlProvider.Execute( ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut ) == ECommandResult::Succeeded);
 			if (!bSuccessfullyCheckedOut)
 			{
-				OutError = FString::Printf(TEXT("Failed to check out file '%s'."), *InFile);
+				OutError = FText::Format(NSLOCTEXT("GatherTextCmdlet", "FailedToCheckOutFile", "Failed to check out file '{Filepath}'."), Args);
 			}
 		}
 		else if(!SourceControlState->IsSourceControlled())
@@ -743,27 +747,28 @@ bool FGatherTextSCC::CheckOutFile( const FString& InFile, FString& OutError )
 			bSuccessfullyCheckedOut = (SourceControlProvider.Execute( ISourceControlOperation::Create<FMarkForAdd>(), FilesToBeCheckedOut ) == ECommandResult::Succeeded);
 			if (!bSuccessfullyCheckedOut)
 			{
-				OutError = FString::Printf(TEXT("Failed to add file '%s' to source control."), *InFile);
+				OutError = FText::Format(NSLOCTEXT("GatherTextCmdlet", "FailedToAddFileToSourceControl", "Failed to add file '{Filepath}' to source control."), Args);
 			}
 		}
 		else if(!SourceControlState->IsCurrent())
 		{
-			OutError = FString::Printf(TEXT("File '%s' is not at head revision."), *InFile);
+			OutError = FText::Format(NSLOCTEXT("GatherTextCmdlet", "FileIsNotAtHeadRevision", "File '{Filepath}' is not at head revision."), Args);
 		}
 		else if(SourceControlState->IsCheckedOutOther(&(Other)))
 		{
-			OutError = FString::Printf(TEXT("File '%s' is checked out by another ('%s')."), *InFile, *Other);
+			Args.Add(TEXT("Username"), FText::FromString(Other));
+			OutError = FText::Format(NSLOCTEXT("GatherTextCmdlet", "FileIsAlreadyCheckedOutByAnotherUser", "File '{Filepath}' is checked out by another ('{Username}')."), Args);
 		}
 		else
 		{
 			// Improper or invalid SCC state
-			OutError = FString::Printf(TEXT("Could not determine source control state of file '%s'."), *InFile);
+			OutError = FText::Format(NSLOCTEXT("GatherTextCmdlet", "CouldNotGetStateOfFile", "Could not determine source control state of file '{Filepath}'."), Args);
 		}
 	}
 	else
 	{
 		// Improper or invalid SCC state
-		OutError = FString::Printf(TEXT("Could not determine source control state of file '%s'."), *InFile);
+		OutError = FText::Format(NSLOCTEXT("GatherTextCmdlet", "CouldNotGetStateOfFile", "Could not determine source control state of file '{Filepath}'."), Args);
 	}
 
 	if( bSuccessfullyCheckedOut )
@@ -774,14 +779,14 @@ bool FGatherTextSCC::CheckOutFile( const FString& InFile, FString& OutError )
 	return bSuccessfullyCheckedOut;
 }
 
-bool FGatherTextSCC::CheckinFiles( const FString& InChangeDescription, FString& OutError )
+bool FGatherTextSCC::CheckinFiles( const FText& InChangeDescription, FText& OutError )
 {
 	if( CheckedOutFiles.Num() == 0 )
 	{
 		return true;
 	}
 
-	FString SCCError;
+	FText SCCError;
 	if( !IsReady( SCCError ) )
 	{
 		OutError = SCCError;
@@ -807,7 +812,7 @@ bool FGatherTextSCC::CheckinFiles( const FString& InChangeDescription, FString& 
 		CheckInOperation->SetDescription(InChangeDescription);
 		if (!SourceControlProvider.Execute( CheckInOperation, CheckedOutFiles ))
 		{
-			OutError = TEXT("The checked out localization files could not be checked in.");
+			OutError = NSLOCTEXT("GatherTextCmdlet", "FailedToCheckInFiles", "The checked out localization files could not be checked in.");
 			return false;
 		}
 		CheckedOutFiles.Empty();
@@ -815,7 +820,7 @@ bool FGatherTextSCC::CheckinFiles( const FString& InChangeDescription, FString& 
 	return true;
 }
 
-bool FGatherTextSCC::CleanUp(FString& OutError)
+bool FGatherTextSCC::CleanUp(FText& OutError)
 {
 	if( CheckedOutFiles.Num() == 0 )
 	{
@@ -828,8 +833,8 @@ bool FGatherTextSCC::CleanUp(FString& OutError)
 	int32 FileIdx = 0;
 	for( int32 i = 0; i < FileCount; ++i )
 	{
-		FString ErrorStr;
-		bool bReverted = RevertFile( CheckedOutFiles[FileIdx], ErrorStr );
+		FText ErrorText;
+		bool bReverted = RevertFile(CheckedOutFiles[FileIdx], ErrorText);
 		bCleanupSuccess &= bReverted;
 
 		if( !bReverted )
@@ -838,44 +843,44 @@ bool FGatherTextSCC::CleanUp(FString& OutError)
 			{
 				AccumulatedErrorsStr += TEXT(", ");
 			}
-			AccumulatedErrorsStr += FString::Printf( TEXT("%s : %s"), *CheckedOutFiles[FileIdx], *ErrorStr );
+			AccumulatedErrorsStr += FString::Printf(TEXT("%s : %s"), *CheckedOutFiles[FileIdx], *ErrorText.ToString());
 			++FileIdx;
 		}
 	}
 
 	if( !bCleanupSuccess )
 	{
-		OutError = FString::Printf( TEXT("Could not complete Source Control cleanup.  %s"), *AccumulatedErrorsStr );
+		OutError = FText::Format(NSLOCTEXT("GatherTextCmdlet", "CouldNotCompleteSourceControlCleanup", "Could not complete Source Control cleanup.  {FailureReason}"), FText::FromString(AccumulatedErrorsStr));
 	}
 
 	return bCleanupSuccess;
 }
 
-bool FGatherTextSCC::IsReady( FString& OutError )
+bool FGatherTextSCC::IsReady(FText& OutError)
 {
 	if( !ISourceControlModule::Get().IsEnabled() )
 	{
-		OutError = TEXT("Source control is not enabled.");
+		OutError = NSLOCTEXT("GatherTextCmdlet", "SourceControlNotEnabled", "Source control is not enabled.");
 		return false;
 	}
 
 	if( !ISourceControlModule::Get().GetProvider().IsAvailable() )
 	{
-		OutError = TEXT("Source control server is currently not available.");
+		OutError = NSLOCTEXT("GatherTextCmdlet", "SourceControlNotAvailable", "Source control server is currently not available.");
 		return false;
 	}
 	return true;
 }
 
-bool FGatherTextSCC::RevertFile( const FString& InFile, FString& OutError )
+bool FGatherTextSCC::RevertFile( const FString& InFile, FText& OutError )
 {
 	if( InFile.IsEmpty() )
 	{
-		OutError = TEXT("Could not revert file.");
+		OutError = NSLOCTEXT("GatherTextCmdlet", "CouldNotRevertFile", "Could not revert file.");
 		return false;
 	}
 
-	FString SCCError;
+	FText SCCError;
 	if( !IsReady( SCCError ) )
 	{
 		OutError = SCCError;
@@ -902,7 +907,7 @@ bool FGatherTextSCC::RevertFile( const FString& InFile, FString& OutError )
 	
 	if(!bSuccessfullyReverted)
 	{
-		OutError = TEXT("Could not revert file.");
+		OutError = NSLOCTEXT("GatherTextCmdlet", "CouldNotRevertFile", "Could not revert file.");
 	}
 	else
 	{

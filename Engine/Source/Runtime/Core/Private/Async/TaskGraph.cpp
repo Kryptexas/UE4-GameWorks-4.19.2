@@ -676,7 +676,7 @@ public:
 
 		for (int32 ThreadIndex = LastExternalThread + 1; ThreadIndex < NumThreads; ThreadIndex++)
 		{
-			FString Name = FString::Printf(TEXT("TaskGraphThread_%d"), ThreadIndex - (LastExternalThread + 1));
+			FString Name = FString::Printf(TEXT("TaskGraphThread %d"), ThreadIndex - (LastExternalThread + 1));
 			uint32 StackSize = 256 * 1024;
 			WorkerThreads[ThreadIndex].RunnableThread = FRunnableThread::Create( &Thread(ThreadIndex), *Name, false, false, StackSize, TPri_Normal ); // these are below normal threads? so that they sleep when the named threads are active
 			WorkerThreads[ThreadIndex].bAttached = true;

@@ -72,7 +72,9 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 
 void FLatentActionManager::TickLatentActionForObject(float DeltaTime, FActionList& ObjectActionList, UObject* InObject)
 {
-	TArray<int32> ItemsToRemove;
+	typedef TPair<int32, FPendingLatentAction*> FActionListPair;
+	TArray<FActionListPair, TInlineAllocator<4>> ItemsToRemove;
+	
 	FLatentResponse Response(DeltaTime);
 	for (TMultiMap<int32, FPendingLatentAction*>::TConstIterator It(ObjectActionList); It; ++It)
 	{
@@ -84,15 +86,18 @@ void FLatentActionManager::TickLatentActionForObject(float DeltaTime, FActionLis
 
 		if (Response.bRemoveAction)
 		{
-			delete Action;
-			ItemsToRemove.Add(It.Key());
+			new (ItemsToRemove) FActionListPair(TPairInitializer<int32, FPendingLatentAction*>(It.Key(), Action));
 		}
 	}
 
 	// Remove any items that were deleted
 	for (int32 i = 0; i < ItemsToRemove.Num(); ++i)
 	{
-		ObjectActionList.Remove(ItemsToRemove[i]);
+		const FActionListPair& ItemPair = ItemsToRemove[i];
+		const int32 ItemIndex = ItemPair.Key;
+		FPendingLatentAction* DyingAction = ItemPair.Value;
+		ObjectActionList.Remove(ItemIndex, DyingAction);
+		delete DyingAction;
 	}
 
 	// Trigger any pending execution links

@@ -69,6 +69,9 @@ public:
 	/** Copy bone names */
 	TSharedPtr< FUICommandInfo > CopyBoneNames;
 
+	/** Reset bone transforms */
+	TSharedPtr< FUICommandInfo > ResetBoneTransforms;
+
 	/** Copy sockets to clipboard */
 	TSharedPtr< FUICommandInfo > CopySockets;
 

@@ -300,8 +300,31 @@ void FSceneViewState::ApplyWorldOffset(FVector InOffset)
 	PrevViewOriginForOcclusionQuery+= InOffset;
 }
 
+class FOcclusionQueryIndexBuffer : public FIndexBuffer
+{
+public:
+	virtual void InitRHI()
+	{
+		const uint32 MaxBatchedPrimitives = FOcclusionQueryBatcher::OccludedPrimitiveQueryBatchSize;
+		const uint32 Stride = sizeof(uint16);
+		const uint32 SizeInBytes = MaxBatchedPrimitives * NUM_CUBE_VERTICES * Stride;
+
+		IndexBufferRHI = RHICreateIndexBuffer(Stride,SizeInBytes,NULL,BUF_Static);
+		uint16* RESTRICT Indices = (uint16*)RHILockIndexBuffer(IndexBufferRHI,0,SizeInBytes,RLM_WriteOnly);
+		for(uint32 PrimitiveIndex = 0;PrimitiveIndex < MaxBatchedPrimitives;PrimitiveIndex++)
+		{
+			for(int32 Index = 0;Index < NUM_CUBE_VERTICES;Index++)
+			{
+				Indices[PrimitiveIndex * NUM_CUBE_VERTICES + Index] = PrimitiveIndex * 8 + GCubeIndices[Index];
+			}
+		}
+		RHIUnlockIndexBuffer(IndexBufferRHI);
+	}
+};
+TGlobalResource<FOcclusionQueryIndexBuffer> GOcclusionQueryIndexBuffer;
+
 FOcclusionQueryBatcher::FOcclusionQueryBatcher(class FSceneViewState* ViewState,uint32 InMaxBatchedPrimitives)
-:	CurrentBatchOcclusionQuery(FRenderQueryRHIRef())
+:	CurrentBatchOcclusionQuery(NULL)
 ,	MaxBatchedPrimitives(InMaxBatchedPrimitives)
 ,	NumBatchedPrimitives(0)
 ,	OcclusionQueryPool(ViewState ? &ViewState->OcclusionQueryPool : NULL)
@@ -309,7 +332,7 @@ FOcclusionQueryBatcher::FOcclusionQueryBatcher(class FSceneViewState* ViewState,
 
 FOcclusionQueryBatcher::~FOcclusionQueryBatcher()
 {
-	check(!Primitives.Num());
+	check(!BatchOcclusionQueries.Num());
 }
 
 void FOcclusionQueryBatcher::Flush()
@@ -319,60 +342,36 @@ void FOcclusionQueryBatcher::Flush()
 		FMemMark MemStackMark(FMemStack::Get());
 
 		// Create the indices for MaxBatchedPrimitives boxes.
-		uint16* BakedIndices = new(FMemStack::Get()) uint16[MaxBatchedPrimitives * 12 * 3];
-		for(uint32 PrimitiveIndex = 0;PrimitiveIndex < MaxBatchedPrimitives;PrimitiveIndex++)
-		{
-			for(int32 Index = 0;Index < NUM_CUBE_VERTICES;Index++)
-			{
-				BakedIndices[PrimitiveIndex * NUM_CUBE_VERTICES + Index] = PrimitiveIndex * 8 + GCubeIndices[Index];
-			}
-		}
+		FIndexBufferRHIParamRef IndexBufferRHI = GOcclusionQueryIndexBuffer.IndexBufferRHI;
 
 		// Draw the batches.
-		for(int32 BatchIndex = 0;BatchIndex < BatchOcclusionQueries.Num();BatchIndex++)
+		for(int32 BatchIndex = 0, NumBatches = BatchOcclusionQueries.Num();BatchIndex < NumBatches;BatchIndex++)
 		{
-			FRenderQueryRHIParamRef BatchOcclusionQuery = BatchOcclusionQueries[BatchIndex];
-			const int32 NumPrimitivesInBatch = FMath::Clamp<int32>( Primitives.Num() - BatchIndex * MaxBatchedPrimitives, 0, MaxBatchedPrimitives );
+			FOcclusionBatch& Batch = BatchOcclusionQueries[BatchIndex];
+			FRenderQueryRHIParamRef BatchOcclusionQuery = Batch.Query;
+			FVertexBufferRHIParamRef VertexBufferRHI = Batch.VertexAllocation.VertexBuffer->VertexBufferRHI;
+			uint32 VertexBufferOffset = Batch.VertexAllocation.VertexOffset;
+			const int32 NumPrimitivesThisBatch = (BatchIndex != (NumBatches-1)) ? MaxBatchedPrimitives : NumBatchedPrimitives;
 				
 			RHIBeginRenderQuery(BatchOcclusionQuery);
-
-			float* RESTRICT Vertices;
-			uint16* RESTRICT Indices;
-			RHIBeginDrawIndexedPrimitiveUP(PT_TriangleList,NumPrimitivesInBatch * 12,NumPrimitivesInBatch * 8,sizeof(FVector),*(void**)&Vertices,0,NumPrimitivesInBatch * 12 * 3,sizeof(uint16),*(void**)&Indices);
-
-			for(int32 PrimitiveIndex = 0;PrimitiveIndex < NumPrimitivesInBatch;PrimitiveIndex++)
-			{
-				const FOcclusionPrimitive& Primitive = Primitives[BatchIndex * MaxBatchedPrimitives + PrimitiveIndex];
-				const uint32 BaseVertexIndex = PrimitiveIndex * 8;
-				const FVector PrimitiveBoxMin = Primitive.Center - Primitive.Extent;
-				const FVector PrimitiveBoxMax = Primitive.Center + Primitive.Extent;
-
-				Vertices[ 0] = PrimitiveBoxMin.X; Vertices[ 1] = PrimitiveBoxMin.Y; Vertices[ 2] = PrimitiveBoxMin.Z;
-				Vertices[ 3] = PrimitiveBoxMin.X; Vertices[ 4] = PrimitiveBoxMin.Y; Vertices[ 5] = PrimitiveBoxMax.Z;
-				Vertices[ 6] = PrimitiveBoxMin.X; Vertices[ 7] = PrimitiveBoxMax.Y; Vertices[ 8] = PrimitiveBoxMin.Z;
-				Vertices[ 9] = PrimitiveBoxMin.X; Vertices[10] = PrimitiveBoxMax.Y; Vertices[11] = PrimitiveBoxMax.Z;
-				Vertices[12] = PrimitiveBoxMax.X; Vertices[13] = PrimitiveBoxMin.Y; Vertices[14] = PrimitiveBoxMin.Z;
-				Vertices[15] = PrimitiveBoxMax.X; Vertices[16] = PrimitiveBoxMin.Y; Vertices[17] = PrimitiveBoxMax.Z;
-				Vertices[18] = PrimitiveBoxMax.X; Vertices[19] = PrimitiveBoxMax.Y; Vertices[20] = PrimitiveBoxMin.Z;
-				Vertices[21] = PrimitiveBoxMax.X; Vertices[22] = PrimitiveBoxMax.Y; Vertices[23] = PrimitiveBoxMax.Z;
-
-				Vertices += 24;
-			}
-
-			// Suppress static analysis warnings about potentially invalid read size. NumPrimitivesInBatch is clamped to [0,MaxBatchedPrimitives].
-			CA_SUPPRESS(6385);
-			FMemory::Memcpy(Indices,BakedIndices,sizeof(uint16) * NumPrimitivesInBatch * 12 * 3);
-
-			RHIEndDrawIndexedPrimitiveUP();
-
+			RHISetStreamSource(0,VertexBufferRHI,sizeof(FVector),VertexBufferOffset);
+			RHIDrawIndexedPrimitive(
+				IndexBufferRHI,
+				PT_TriangleList,
+				/*BaseVertexIndex=*/ 0,
+				/*MinIndex=*/ 0,
+				/*NumVertices=*/ 8 * NumPrimitivesThisBatch,
+				/*StartIndex=*/ 0,
+				/*NumPrimitives=*/ 12 * NumPrimitivesThisBatch,
+				/*NumInstances=*/ 1
+				);
 			RHIEndRenderQuery(BatchOcclusionQuery);
 		}
 		INC_DWORD_STAT_BY(STAT_OcclusionQueries,BatchOcclusionQueries.Num());
 
 		// Reset the batch state.
 		BatchOcclusionQueries.Empty(BatchOcclusionQueries.Num());
-		Primitives.Empty(Primitives.Num());
-		CurrentBatchOcclusionQuery = FRenderQueryRHIRef();
+		CurrentBatchOcclusionQuery = NULL;
 	}
 }
 
@@ -382,18 +381,32 @@ FRenderQueryRHIParamRef FOcclusionQueryBatcher::BatchPrimitive(const FVector& Bo
 	if(CurrentBatchOcclusionQuery == NULL || NumBatchedPrimitives >= MaxBatchedPrimitives)
 	{
 		check(OcclusionQueryPool);
-		int32 Index = BatchOcclusionQueries.Add( OcclusionQueryPool->AllocateQuery() );
-		CurrentBatchOcclusionQuery = BatchOcclusionQueries[ Index ];
+		CurrentBatchOcclusionQuery = new(BatchOcclusionQueries) FOcclusionBatch;
+		CurrentBatchOcclusionQuery->Query = OcclusionQueryPool->AllocateQuery();
+		CurrentBatchOcclusionQuery->VertexAllocation = FGlobalDynamicVertexBuffer::Get().Allocate(MaxBatchedPrimitives * 8 * sizeof(FVector));
+		check(CurrentBatchOcclusionQuery->VertexAllocation.IsValid());
 		NumBatchedPrimitives = 0;
 	}
 
-	// Add the primitive to the current batch.
-	FOcclusionPrimitive* const Primitive = new(Primitives) FOcclusionPrimitive;
-	Primitive->Center = BoundsOrigin;
-	Primitive->Extent = BoundsBoxExtent;
+	// Add the primitive's bounding box to the current batch's vertex buffer.
+	const FVector PrimitiveBoxMin = BoundsOrigin - BoundsBoxExtent;
+	const FVector PrimitiveBoxMax = BoundsOrigin + BoundsBoxExtent;
+	float* RESTRICT Vertices = (float*)CurrentBatchOcclusionQuery->VertexAllocation.Buffer;
+	Vertices[ 0] = PrimitiveBoxMin.X; Vertices[ 1] = PrimitiveBoxMin.Y; Vertices[ 2] = PrimitiveBoxMin.Z;
+	Vertices[ 3] = PrimitiveBoxMin.X; Vertices[ 4] = PrimitiveBoxMin.Y; Vertices[ 5] = PrimitiveBoxMax.Z;
+	Vertices[ 6] = PrimitiveBoxMin.X; Vertices[ 7] = PrimitiveBoxMax.Y; Vertices[ 8] = PrimitiveBoxMin.Z;
+	Vertices[ 9] = PrimitiveBoxMin.X; Vertices[10] = PrimitiveBoxMax.Y; Vertices[11] = PrimitiveBoxMax.Z;
+	Vertices[12] = PrimitiveBoxMax.X; Vertices[13] = PrimitiveBoxMin.Y; Vertices[14] = PrimitiveBoxMin.Z;
+	Vertices[15] = PrimitiveBoxMax.X; Vertices[16] = PrimitiveBoxMin.Y; Vertices[17] = PrimitiveBoxMax.Z;
+	Vertices[18] = PrimitiveBoxMax.X; Vertices[19] = PrimitiveBoxMax.Y; Vertices[20] = PrimitiveBoxMin.Z;
+	Vertices[21] = PrimitiveBoxMax.X; Vertices[22] = PrimitiveBoxMax.Y; Vertices[23] = PrimitiveBoxMax.Z;
+
+	// Bump the batches buffer pointer.
+	Vertices += 24;
+	CurrentBatchOcclusionQuery->VertexAllocation.Buffer = (uint8*)Vertices;
 	NumBatchedPrimitives++;
 
-	return CurrentBatchOcclusionQuery;
+	return CurrentBatchOcclusionQuery->Query;
 }
 
 static void IssueProjectedShadowOcclusionQuery(FViewInfo& View, const FProjectedShadowInfo& ProjectedShadowInfo, FOcclusionQueryVS* VertexShader)
@@ -507,9 +520,9 @@ void FHZBOcclusionTester::InitDynamicRHI()
 	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
 	{
 #if PLATFORM_MAC // Workaround radr://16096028 Texture Readback via glReadPixels + PBOs stalls on Nvidia GPUs
-		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, TexCreate_CPUReadback, TexCreate_None, false ) );
+		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_R8G8B8A8, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
 #else
-		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, TexCreate_CPUReadback, TexCreate_None, false ) );
+		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
 #endif
 		GRenderTargetPool.FindFreeElement( Desc, ResultsTextureCPU, TEXT("HZBResultsCPU") );
 	}
@@ -546,6 +559,8 @@ void FHZBOcclusionTester::MapResults()
 	}
 	else
 	{
+		uint32 IdleStart = FPlatformTime::Cycles();
+
 		int32 Width = 0;
 		int32 Height = 0;
 
@@ -557,6 +572,10 @@ void FHZBOcclusionTester::MapResults()
 			ResultsBuffer = FirstFrameBuffer;
 			SetInvalidFrameNumber();
 		}
+
+		// RHIMapStagingSurface will block until the results are ready (from the previous frame) so we need to consider this RT idle time
+		GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUQuery] += FPlatformTime::Cycles() - IdleStart;
+		GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUQuery]++;
 	}
 	check( ResultsBuffer );
 }
@@ -590,6 +609,11 @@ class FHZBTestPS : public FGlobalShader
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 	}
 
 	FHZBTestPS() {}
@@ -681,29 +705,34 @@ void FHZBOcclusionTester::Submit( const FViewInfo& View )
 		static float CenterBuffer[ SizeX * SizeY ][4];
 		static float ExtentBuffer[ SizeX * SizeY ][4];
 
-		FMemory::Memset( CenterBuffer, 0, sizeof( CenterBuffer ) );
-		FMemory::Memset( ExtentBuffer, 0, sizeof( ExtentBuffer ) );
-
-		const uint32 NumPrimitives = Primitives.Num();
-		for( uint32 i = 0; i < NumPrimitives; i++ )
 		{
-			const FOcclusionPrimitive& Primitive = Primitives[i];
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_HZBPackPrimitiveData);
+			
+			FMemory::Memset( CenterBuffer, 0, sizeof( CenterBuffer ) );
+			FMemory::Memset( ExtentBuffer, 0, sizeof( ExtentBuffer ) );
 
-			uint32 x = FMath::ReverseMortonCode2( i >> 0 );
-			uint32 y = FMath::ReverseMortonCode2( i >> 1 );
-			uint32 m = x + y * SizeX;
+			const uint32 NumPrimitives = Primitives.Num();
+			for( uint32 i = 0; i < NumPrimitives; i++ )
+			{
+				const FOcclusionPrimitive& Primitive = Primitives[i];
 
-			CenterBuffer[m][0] = Primitive.Center.X;
-			CenterBuffer[m][1] = Primitive.Center.Y;
-			CenterBuffer[m][2] = Primitive.Center.Z;
-			CenterBuffer[m][3] = 0.0f;
+				uint32 x = FMath::ReverseMortonCode2( i >> 0 );
+				uint32 y = FMath::ReverseMortonCode2( i >> 1 );
+				uint32 m = x + y * SizeX;
 
-			ExtentBuffer[m][0] = Primitive.Extent.X;
-			ExtentBuffer[m][1] = Primitive.Extent.Y;
-			ExtentBuffer[m][2] = Primitive.Extent.Z;
-			ExtentBuffer[m][3] = 1.0f;
+				CenterBuffer[m][0] = Primitive.Center.X;
+				CenterBuffer[m][1] = Primitive.Center.Y;
+				CenterBuffer[m][2] = Primitive.Center.Z;
+				CenterBuffer[m][3] = 0.0f;
+
+				ExtentBuffer[m][0] = Primitive.Extent.X;
+				ExtentBuffer[m][1] = Primitive.Extent.Y;
+				ExtentBuffer[m][2] = Primitive.Extent.Z;
+				ExtentBuffer[m][3] = 1.0f;
+			}
 		}
-
+		
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_HZBUpdateTextures);
 		FUpdateTextureRegion2D Region( 0, 0, 0, 0, SizeX, SizeY );
 		RHIUpdateTexture2D( (FTexture2DRHIRef&)BoundsCenterTexture->GetRenderTargetItem().ShaderResourceTexture, 0, Region, SizeX * 4 * sizeof( float ), (uint8*)CenterBuffer );
 		RHIUpdateTexture2D( (FTexture2DRHIRef&)BoundsExtentTexture->GetRenderTargetItem().ShaderResourceTexture, 0, Region, SizeX * 4 * sizeof( float ), (uint8*)ExtentBuffer );
@@ -757,6 +786,7 @@ class THZBBuildPS : public FGlobalShader
 	{
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine( TEXT("STAGE"), Stage );
+		OutEnvironment.SetRenderTargetOutputFormat(0, PF_R32_FLOAT);
 	}
 
 	THZBBuildPS() {}
@@ -819,6 +849,7 @@ IMPLEMENT_SHADER_TYPE(template<>,THZBBuildPS<1>,TEXT("HZBOcclusion"),TEXT("HZBBu
 
 void BuildHZB( const FViewInfo& View )
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_BuildHZB);
 	SCOPED_DRAW_EVENT(BuildHZB, DEC_SCENE_ITEMS);
 
 	FSceneViewState* ViewState = (FSceneViewState*)View.State;

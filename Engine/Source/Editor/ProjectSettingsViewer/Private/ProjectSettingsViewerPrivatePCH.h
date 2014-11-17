@@ -16,6 +16,7 @@
 #include "ModuleManager.h"
 #include "SettingsEditor.h"
 #include "UnrealEd.h"
+#include "MoviePlayerSettings.h"
 
 
 /* Private includes

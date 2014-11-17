@@ -354,6 +354,8 @@ enum EPhysicsSceneType
 {
 	// The synchronous scene, which must finish before Unreal sim code is run
 	PST_Sync,
+	// The cloth scene, which may run while Unreal sim code runs
+	PST_Cloth,
 	// The asynchronous scene, which may run while Unreal sim code runs
 	PST_Async,
 	PST_MAX,
@@ -1449,8 +1451,28 @@ struct ENGINE_API FOverlapResult
 	}
 };
 
+/** Structure containing information about minimum translation directon (MTD) */
+USTRUCT()
+struct ENGINE_API FMTDResult
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Direction of the minimum translation required to fix penetration. */
+	UPROPERTY()
+	FVector Direction;
+
+	/** Distance required to move along the MTD. */
+	UPROPERTY()
+	float Distance;
+
+	FMTDResult()
+	{
+		FMemory::Memzero(this, sizeof(FMTDResult));
+	}
+};
+
 /** Struct used for passing information from Matinee to an Actor for blending animations during a sequence. */
-USTRUCT(transient)
+USTRUCT()
 struct FAnimSlotInfo
 {
 	GENERATED_USTRUCT_BODY()
@@ -1465,7 +1487,7 @@ struct FAnimSlotInfo
 };
 
 /** Used to indicate each slot name and how many channels they have. */
-USTRUCT(transient)
+USTRUCT()
 struct FAnimSlotDesc
 {
 	GENERATED_USTRUCT_BODY()
@@ -1639,9 +1661,12 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bUseFullPrecisionUVs;
 
+	UPROPERTY()
+	float BuildScale_DEPRECATED;
+
 	/** The local scale applied when building the mesh */
-	UPROPERTY(EditAnywhere, Category=BuildSettings)
-	float BuildScale;
+	UPROPERTY(EditAnywhere, Category=BuildSettings, meta=(DisplayName="Build Scale"))
+	FVector BuildScale3D;
 
 	/** Default settings. */
 	FMeshBuildSettings()
@@ -1649,7 +1674,8 @@ struct FMeshBuildSettings
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)
 		, bUseFullPrecisionUVs(false)
-		, BuildScale(1.0f)
+		, BuildScale_DEPRECATED(1.0f)
+		, BuildScale3D(1.0f, 1.0f, 1.0f)
 	{
 	}
 
@@ -1660,7 +1686,7 @@ struct FMeshBuildSettings
 			&& bRecomputeTangents == Other.bRecomputeTangents
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
-			&& BuildScale == Other.BuildScale;
+			&& BuildScale3D == Other.BuildScale3D;
 	}
 
 	/** Inequality. */
@@ -2377,3 +2403,110 @@ struct ENGINE_API FRedirector
 		, NewName(InNewName)
 	{}
 };
+
+/** 
+ * Structure for recording float values and displaying them as an Histogram through DrawDebugFloatHistory
+ */
+USTRUCT(BlueprintType)
+struct FDebugFloatHistory
+{
+	GENERATED_USTRUCT_BODY()
+
+private:
+	/** Samples */
+	UPROPERTY(Transient)
+	TArray<float> Samples;
+
+public:
+	/** Max Samples to record. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="DebugFloatHistory")
+	float MaxSamples;
+
+	/** Min value to record. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DebugFloatHistory")
+	float MinValue;
+
+	/** Max value to record. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DebugFloatHistory")
+	float MaxValue;
+
+	/** Auto adjust Min/Max as new values are recorded? */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DebugFloatHistory")
+	bool bAutoAdjustMinMax;
+
+	FDebugFloatHistory()
+		: MaxSamples(100)
+		, MinValue(0.f)
+		, MaxValue(0.f)
+		, bAutoAdjustMinMax(true)
+	{
+	}
+
+	FDebugFloatHistory(float const & InMaxSamples, float const & InMinValue, float const & InMaxValue, bool const & InbAutoAdjustMinMax)
+		: MaxSamples(InMaxSamples)
+		, MinValue(InMinValue)
+		, MaxValue(InMaxValue)
+		, bAutoAdjustMinMax(InbAutoAdjustMinMax)
+	{
+	}
+
+	/**
+	 * Record a new Sample.
+	 * if bAutoAdjustMinMax is true, this new value will potentially adjust those bounds.
+	 * Otherwise value will be clamped before being recorded.
+	 * If MaxSamples is exceeded, old values will be deleted.
+	 * @param FloatValue new sample to record.
+	 */
+	void AddSample(float const & FloatValue)
+	{
+		if (bAutoAdjustMinMax)
+		{
+			// Adjust bounds and record value.
+			MinValue = FMath::Min(MinValue, FloatValue);
+			MaxValue = FMath::Max(MaxValue, FloatValue);
+			Samples.Insert(FloatValue, 0);
+		}
+		else
+		{
+			// Record clamped value.
+			Samples.Insert(FMath::Clamp(FloatValue, MinValue, MaxValue), 0);
+		}
+
+		// Do not exceed MaxSamples recorded.
+		if( Samples.Num() > MaxSamples )
+		{
+			Samples.RemoveAt(MaxSamples, Samples.Num() - MaxSamples);
+		}
+	}
+
+	/** Range between Min and Max values */
+	float GetMinMaxRange() const
+	{
+		return (MaxValue - MinValue);
+	}
+
+	/** Min value. This could either be the min value recorded or min value allowed depending on 'bAutoAdjustMinMax'. */
+	float GetMinValue() const
+	{
+		return MinValue;
+	}
+
+	/** Max value. This could be either the max value recorded or max value allowed depending on 'bAutoAdjustMinMax'. */
+	float GetMaxValue() const
+	{
+		return MaxValue;
+	}
+
+	/** Number of Samples currently recorded */
+	int GetNumSamples() const
+	{
+		return Samples.Num();
+	}
+
+	/** Read access to Samples array */
+	TArray<float> const & GetSamples() const
+	{
+		return Samples;
+	}
+};
+

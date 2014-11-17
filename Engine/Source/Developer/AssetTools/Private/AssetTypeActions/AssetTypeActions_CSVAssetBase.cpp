@@ -54,14 +54,14 @@ void FAssetTypeActions_CSVAssetBase::ExecuteOpenInExternalEditor(TArray<FString>
 				const FString FilenameWithExtension(FString::Printf(TEXT("%s/%s%s"), *RootPath, *BaseFilename, **ExtensionItr));
 				if (VerifyFileExists(FilenameWithExtension))
 				{
-					FPlatformProcess::LaunchFileInDefaultExternalApplication(*FilenameWithExtension);
+					FPlatformProcess::LaunchFileInDefaultExternalApplication(*FilenameWithExtension, NULL, ELaunchVerb::Edit);
 					break;
 				}
 			}
 		}
 		else if (VerifyFileExists(CSVFilename))
 		{
-			FPlatformProcess::LaunchFileInDefaultExternalApplication(*CSVFilename);
+			FPlatformProcess::LaunchFileInDefaultExternalApplication(*CSVFilename, NULL, ELaunchVerb::Edit);
 		}
 	}
 }

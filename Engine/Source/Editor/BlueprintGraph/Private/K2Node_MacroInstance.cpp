@@ -56,9 +56,13 @@ void UK2Node_MacroInstance::AllocateDefaultPins()
 {
 	UK2Node::AllocateDefaultPins();
 
+	PreloadObject(MacroGraphReference.GetBlueprint());
 	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
+	
 	if (MacroGraph != NULL)
 	{
+		PreloadObject(MacroGraph);
+
 		// Preload the macro graph, if needed, so that we can get the proper pins
 		if (MacroGraph->HasAnyFlags(RF_NeedLoad))
 		{
@@ -114,10 +118,24 @@ FString UK2Node_MacroInstance::GetTooltip() const
 	}
 }
 
-FString UK2Node_MacroInstance::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_MacroInstance::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
-	FString Result = NSLOCTEXT("K2Node", "MacroInstance", "Macro instance").ToString();
+	FText Result = NSLOCTEXT("K2Node", "MacroInstance", "Macro instance");
+	if (MacroGraph)
+	{
+		Result = FText::FromString(MacroGraph->GetName());
+	}
+
+	return Result;
+}
+
+FString UK2Node_MacroInstance::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+
+	UEdGraph* MacroGraph = MacroGraphReference.GetGraph();
+	FString Result = TEXT("Macro instance");
 	if (MacroGraph)
 	{
 		Result = MacroGraph->GetName();
@@ -389,6 +407,20 @@ void UK2Node_MacroInstance::ReallocatePinsDuringReconstruction(TArray<UEdGraphPi
 FText UK2Node_MacroInstance::GetActiveBreakpointToolTipText() const
 {
 	return LOCTEXT("ActiveBreakpointToolTip", "Execution will break inside the macro.");
+}
+
+bool UK2Node_MacroInstance::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+{
+	UBlueprint* OtherBlueprint = MacroGraphReference.GetBlueprint();
+	const bool bResult = OtherBlueprint && (OtherBlueprint != GetBlueprint());
+	if (bResult && OptionalOutput)
+	{
+		if (UClass* OtherClass = *OtherBlueprint->GeneratedClass)
+		{
+			OptionalOutput->Add(OtherClass);
+		}
+	}
+	return bResult;
 }
 
 #undef LOCTEXT_NAMESPACE

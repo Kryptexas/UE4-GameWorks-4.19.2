@@ -50,7 +50,7 @@ struct FAnimWeightSorted
 class FSampleDragDropOp : public FDragDropOperation, public TSharedFromThis<FSampleDragDropOp>
 {
 public:
-	static FString GetTypeId() {static FString Type = TEXT("FSampleDragDropOp"); return Type;}
+	DRAG_DROP_OPERATOR_TYPE(FSampleDragDropOp, FDragDropOperation)
 
 	int32 OriginalSampleIndex;
 	FBlendSample Sample;
@@ -95,7 +95,6 @@ public:
 	static TSharedRef<FSampleDragDropOp> New()
 	{
 		TSharedRef<FSampleDragDropOp> Operation = MakeShareable(new FSampleDragDropOp);
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FSampleDragDropOp>(Operation);
 		Operation->Construct();
 		return Operation;
 	}

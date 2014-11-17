@@ -6,6 +6,8 @@
 
 #include "ProfilerClientPrivatePCH.h"
 #include "SecureHash.h"
+#include "StatsData.h"
+#include "StatsFile.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogProfile, Log, All);
 
@@ -243,28 +245,42 @@ void FProfilerClientManager::LoadCapture( const FString& DataFilepath, const FGu
 	LoadConnection->MetaData.CriticalSection = &LoadConnection->CriticalSection;
 	LoadConnection->MetaData.SecondsPerCycle = FPlatformTime::GetSecondsPerCycle(); // fix this by adding a message which specifies this
 
-	int64 Size = IFileManager::Get().FileSize(*DataFilepath);
-	if (Size < 4)
+	const int64 Size = IFileManager::Get().FileSize( *DataFilepath );
+	if( Size < 4 )
 	{
+		UE_LOG( LogProfile, Error, TEXT( "Could not open: %s" ), *DataFilepath );
 		return;
 	}
+
 #if PROFILER_THREADED_LOAD
 	FArchive* FileReader = IFileManager::Get().CreateFileReader(*DataFilepath);
 #else
-	FileReader = IFileManager::Get().CreateFileReader(*DataFilepath);
+	FileReader = IFileManager::Get().CreateFileReader( *DataFilepath );
 #endif
-	if (!FileReader)
+
+	if( !FileReader )
 	{
+		UE_LOG( LogProfile, Error, TEXT( "Could not open: %s" ), *DataFilepath );
+		return;
+	}
+
+	if( !LoadConnection->Stream.ReadHeader( *FileReader ) )
+	{
+		UE_LOG( LogProfile, Error, TEXT( "Could not open, bad magic: %s" ), *DataFilepath );
+		delete FileReader;
+		return;
+	}
+
+	// This shouldn't happen.
+	if( LoadConnection->Stream.Header.bRawStatFile )
+	{
+		delete FileReader;
 		return;
 	}
 
 #if PROFILER_THREADED_LOAD
 	LoadTask = new FAsyncTask<FAsyncReadWorker>(LoadConnection, FileReader);
 	LoadTask->StartBackgroundTask();
-#else
-
-	uint32 Magic = 0;
-	*FileReader << Magic; // deal with header magic next
 #endif
 
 	RetryTime = 0.05f;
@@ -373,15 +389,14 @@ void FServiceConnection::Initialize( const FProfilerServiceAuthorize2& Message, 
 	CurrentData.Frame = 0;
 
 	// add the supplied meta data
-	FArrayReader ArrayReader(true);
+	FArrayReader ArrayReader(true);//
 	ArrayReader.Append(Message.Data);
 
 	MetaData.CriticalSection = &CriticalSection;
 	int64 Size = ArrayReader.TotalSize();
 
-	// read in the magic, at some point may need to know what it actually is
-	uint32 Magic = 0;
-	ArrayReader << Magic;
+	const bool bVerifyHeader = Stream.ReadHeader( ArrayReader );
+	check( bVerifyHeader );
 
 	// read in the data
 	TArray<FStatMessage> StatMessages;
@@ -487,7 +502,7 @@ void FProfilerClientManager::HandleServiceFileChunk( const FProfilerServiceFileC
 
 	const bool bValidFileChunk = !FailedTransfer.Contains( FileChunk.Filename );
 
-	// TODO: @JarekS 2013-10-01, 14:48 At this moment received file chunks are handled on the main thread, asynchronous file receiving is planned for the future release.
+	// @TODO yrx 2014-03-24 At this moment received file chunks are handled on the main thread, asynchronous file receiving is planned for the future release.
 	if (ActiveSessionId.IsValid() && Connections.Find(FileChunk.InstanceId) != nullptr && bValidFileChunk)
 	{
 		FReceivedFileInfo* ReceivedFileInfo = ActiveTransfers.Find( FileChunk.Filename );
@@ -573,28 +588,11 @@ void FProfilerClientManager::HandleServicePingMessage( const FProfilerServicePin
 bool FProfilerClientManager::AsyncLoad()
 {
 #if STATS
-	while (LoadConnection->DataFrames.Num() > 0)
-	{
-		// Fire a meta data update message
-		if (LoadConnection->DataFrames[0].MetaDataUpdated)
-		{
-			ProfilerMetaDataUpdatedDelegate.Broadcast(LoadConnection->InstanceId);
-			ProfilerLoadedMetaDataDelegate.Broadcast(LoadConnection->InstanceId);
-		}
-
-		FScopeLock ScopeLock(&(LoadConnection->CriticalSection));
-		FProfilerDataFrame& DataFrame = LoadConnection->DataFrames[0];
-		ProfilerDataDelegate.Broadcast(LoadConnection->InstanceId, DataFrame, LoadConnection->DataLoadingProgress);
-		LoadConnection->DataFrames.RemoveAt(0);
-	}
+	BroadcastMetadataUpdate();
 
 	if (LoadTask->IsDone())
 	{
-		ProfilerLoadCompletedDelegate.Broadcast(LoadConnection->InstanceId);
-		LoadConnection = nullptr;
-		delete LoadTask;
-		LoadTask = nullptr;
-		RetryTime = 5.f;
+		FinalizeLoading();
 		return false;
 	}
 #endif
@@ -604,77 +602,12 @@ bool FProfilerClientManager::AsyncLoad()
 bool FProfilerClientManager::SyncLoad()
 {
 #if STATS
-	SCOPE_CYCLE_COUNTER(STAT_PC_ReadStatMessages);
+	const bool bFinalize = LoadConnection->ReadAndConvertStatMessages( *FileReader, false );
+	BroadcastMetadataUpdate();
 
-	uint64 ReadMessages = 0;
-
-	while(FileReader->Tell() < FileReader->TotalSize() && LoadConnection->DataFrames.Num() < FProfilerClientManager::MaxFramesPerTick)
+	if( bFinalize )
 	{
-		// read the message
-		FStatMessage Message(LoadConnection->Stream.ReadMessage(*FileReader));
-		ReadMessages++;
-
-		if (Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2 )
-		{
-			new (LoadConnection->Messages) FStatMessage(Message);
-			SCOPE_CYCLE_COUNTER(STAT_PC_AddStatMessages);
-			LoadConnection->CurrentThreadState.AddMessages(LoadConnection->Messages);
-			LoadConnection->Messages.Reset(LoadConnection->Messages.Num());
-
-			// convert to the old format
-			// create an old format data frame from the data
-			FProfilerDataFrame& DataFrame = LoadConnection->CurrentData;
-			{
-				SCOPE_CYCLE_COUNTER(STAT_PC_GenerateDataFrame);
-				DataFrame.Frame = LoadConnection->CurrentThreadState.CurrentGameFrame;
-				DataFrame.FrameStart = 0.0;
-				DataFrame.CountAccumulators.Reset(DataFrame.CountAccumulators.Num());
-				DataFrame.CycleGraphs.Reset();
-				DataFrame.FloatAccumulators.Reset(DataFrame.FloatAccumulators.Num());
-
-				// get the stat stack root and the non frame stats
-				FRawStatStackNode Stack;
-				TArray<FStatMessage> NonFrameStats;
-				LoadConnection->CurrentThreadState.UncondenseStackStats(LoadConnection->CurrentThreadState.CurrentGameFrame, Stack, nullptr, &NonFrameStats );
-
-				// @todo updating metadata here is not thread safe?
-				// cycle graphs
-				LoadConnection->GenerateCycleGraphs(Stack, DataFrame.CycleGraphs);
-
-				// accumulators
-				LoadConnection->GenerateAccumulators(NonFrameStats, DataFrame.CountAccumulators, DataFrame.FloatAccumulators);
-
-				// add the frame to the work list
-				LoadConnection->DataFrames.Add(LoadConnection->CurrentData);
-				LoadConnection->DataLoadingProgress = (double)FileReader->Tell() / (double)FileReader->TotalSize();
-			}
-		}
-
-		new (LoadConnection->Messages) FStatMessage(Message);
-	}
-
-	while (LoadConnection->DataFrames.Num() > 0)
-	{
-		// Fire a meta data update message
-		if (LoadConnection->DataFrames[0].MetaDataUpdated)
-		{
-			ProfilerMetaDataUpdatedDelegate.Broadcast(LoadConnection->InstanceId);
-			ProfilerLoadedMetaDataDelegate.Broadcast(LoadConnection->InstanceId);
-		}
-
-		// update the frames
-		FProfilerDataFrame& DataFrame = LoadConnection->DataFrames[0];
-		ProfilerDataDelegate.Broadcast(LoadConnection->InstanceId, DataFrame, LoadConnection->DataLoadingProgress);
-		LoadConnection->DataFrames.RemoveAt(0);
-	}
-
-	if (FileReader->Tell() >= FileReader->TotalSize())
-	{
-		ProfilerLoadCompletedDelegate.Broadcast(LoadConnection->InstanceId);
-		LoadConnection = nullptr;
-		delete FileReader;
-		FileReader = nullptr;
-		RetryTime = 5.f;
+		FinalizeLoading();
 		return false;
 	}
 #endif
@@ -739,10 +672,7 @@ bool FProfilerClientManager::HandleMessagesTicker( float DeltaTime )
 
 					if (Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread)
 					{
-						new (Connection.Messages) FStatMessage(Message);
-						SCOPE_CYCLE_COUNTER(STAT_PC_AddStatMessages);
-						Connection.CurrentThreadState.AddMessages(Connection.Messages);
-						Connection.Messages.Reset();
+						Connection.AddCollectedStatMessages( Message );
 					}
 
 					new (Connection.Messages) FStatMessage(Message);
@@ -750,26 +680,7 @@ bool FProfilerClientManager::HandleMessagesTicker( float DeltaTime )
 			}
 
 			// create an old format data frame from the data
-			{
-				SCOPE_CYCLE_COUNTER(STAT_PC_GenerateDataFrame);
-				FProfilerDataFrame& DataFrame = Connection.CurrentData;
-				DataFrame.Frame = Connection.CurrentThreadState.CurrentGameFrame;
-				DataFrame.FrameStart = 0.0;
-				DataFrame.CountAccumulators.Reset(DataFrame.CountAccumulators.Num());
-				DataFrame.CycleGraphs.Reset();
-				DataFrame.FloatAccumulators.Reset(DataFrame.FloatAccumulators.Num());
-
-				// get the stat stack root and the non frame stats
-				FRawStatStackNode Stack;
-				TArray<FStatMessage> NonFrameStats;
-				Connection.CurrentThreadState.UncondenseStackStats(Connection.CurrentThreadState.CurrentGameFrame, Stack, nullptr, &NonFrameStats );
-
-				// cycle graphs
-				Connection.GenerateCycleGraphs(Stack, DataFrame.CycleGraphs);
-
-				// accumulators
-				Connection.GenerateAccumulators(NonFrameStats, DataFrame.CountAccumulators, DataFrame.FloatAccumulators);
-			}
+			Connection.GenerateProfilerDataFrame();
 
 			// Fire a meta data update message
 			if (Connection.CurrentData.MetaDataUpdated)
@@ -835,93 +746,44 @@ void FProfilerClientManager::HandleServiceData2Message( const FProfilerServiceDa
 #endif
 }
 
+void FProfilerClientManager::BroadcastMetadataUpdate()
+{
+	while( LoadConnection->DataFrames.Num() > 0 )
+	{
+		// Fire a meta data update message
+		if( LoadConnection->DataFrames[0].MetaDataUpdated )
+		{
+			ProfilerMetaDataUpdatedDelegate.Broadcast( LoadConnection->InstanceId );
+			ProfilerLoadedMetaDataDelegate.Broadcast( LoadConnection->InstanceId );
+		}
+
+		FScopeLock ScopeLock( &(LoadConnection->CriticalSection) );
+		FProfilerDataFrame& DataFrame = LoadConnection->DataFrames[0];
+		ProfilerDataDelegate.Broadcast( LoadConnection->InstanceId, DataFrame, LoadConnection->DataLoadingProgress );
+		LoadConnection->DataFrames.RemoveAt( 0 );
+	}
+}
+
+void FProfilerClientManager::FinalizeLoading()
+{
+	ProfilerLoadCompletedDelegate.Broadcast( LoadConnection->InstanceId );
+	LoadConnection = nullptr;
+#if	PROFILER_THREADED_LOAD
+	delete LoadTask;
+	LoadTask = nullptr;
+#else
+	delete FileReader;
+	FileReader = nullptr;
+#endif // PROFILER_THREADED_LOAD
+	RetryTime = 5.f;
+}
+
 void FProfilerClientManager::FAsyncReadWorker::DoWork()
 {
 #if STATS
-	uint32 Magic = 0;
-	*FileReader << Magic; // deal with header magic next
-/*	if (Magic == EStatMagic::MAGIC)
+	const bool bFinalize = LoadConnection->ReadAndConvertStatMessages( *FileReader, true );
+	if( bFinalize )
 	{
-
-	}
-	else if (Magic == EStatMagic::MAGIC_SWAPPED)
-	{
-		FileReader->SetByteSwapping(true);
-	}
-	else
-	{
-		delete FileReader;
-		return;
-	}*/
-
-	FStatsReadStream& Stream = Connection.Stream;
-
-	// read in the data and post if we reach a 
-	{
-		uint64 ReadMessages = 0;
-
-		SCOPE_CYCLE_COUNTER(STAT_PC_ReadStatMessages);
-		while(FileReader->Tell() < FileReader->TotalSize())
-		{
-			// read the message
-			FStatMessage Message(Stream.ReadMessage(*FileReader));
-			ReadMessages++;
-
-			if (Message.NameAndInfo.GetShortName() != TEXT("Unknown FName"))
-			{
-				if (Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2)
-				{
-					new (Connection.Messages) FStatMessage(Message);
-					SCOPE_CYCLE_COUNTER(STAT_PC_AddStatMessages);
-					Connection.CurrentThreadState.AddMessages(Connection.Messages);
-					Connection.Messages.Reset(Connection.Messages.Num());
-
-					// convert to the old format
-					// create an old format data frame from the data
-					FProfilerDataFrame& DataFrame = Connection.CurrentData;
-					{
-						SCOPE_CYCLE_COUNTER(STAT_PC_GenerateDataFrame);
-						DataFrame.Frame = Connection.CurrentThreadState.CurrentGameFrame;
-						DataFrame.FrameStart = 0.0;
-						DataFrame.CountAccumulators.Reset(DataFrame.CountAccumulators.Num());
-						DataFrame.CycleGraphs.Reset();
-						DataFrame.FloatAccumulators.Reset(DataFrame.FloatAccumulators.Num());
-
-						// get the stat stack root and the non frame stats
-						FRawStatStackNode Stack;
-						TArray<FStatMessage> NonFrameStats;
-						Connection.CurrentThreadState.UncondenseStackStats(Connection.CurrentThreadState.CurrentGameFrame, Stack, nullptr, &NonFrameStats );
-
-						// @todo updating metadata here is not thread safe?
-						// cycle graphs
-						Connection.GenerateCycleGraphs(Stack, DataFrame.CycleGraphs);
-
-						// accumulators
-						Connection.GenerateAccumulators(NonFrameStats, DataFrame.CountAccumulators, DataFrame.FloatAccumulators);
-
-						// add the frame to the work list
-						FScopeLock ScopeLock(&Connection.CriticalSection);
-						Connection.DataFrames.Add(Connection.CurrentData);
-						Connection.DataLoadingProgress = (double)FileReader->Tell() / (double)FileReader->TotalSize();
-					}
-
-					if (Connection.DataFrames.Num() > FProfilerClientManager::MaxFramesPerTick)
-					{
-						while(Connection.DataFrames.Num())
-						{
-							FPlatformProcess::Sleep(0.001f);
-						}
-					}
-				}
-
-				new (Connection.Messages) FStatMessage(Message);
-			}
-			else
-			{
-				break;
-			}
-		}
-
 		FileReader->Close();
 		delete FileReader;
 	}
@@ -938,9 +800,13 @@ void FServiceConnection::UpdateMetaData()
 		uint32 StatType = STATTYPE_Error;
 		if (LongName.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64)
 		{
-			if (LongName.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle))
+			if( LongName.NameAndInfo.GetFlag( EStatMetaFlags::IsCycle ) )
 			{
 				StatType = STATTYPE_CycleCounter;
+			}
+			else if( LongName.NameAndInfo.GetFlag( EStatMetaFlags::IsMemory ) )
+			{
+				StatType = STATTYPE_MemoryCounter;
 			}
 			else
 			{
@@ -983,6 +849,7 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 		else if (StatName == FStatConstants::NAME_ThreadRoot)
 		{
 			StatID = LongNameToStatID.Add(LongName, 1);
+			GroupName = TEXT( "NoGroup" );
 		}
 		else
 		{
@@ -1007,7 +874,7 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 			const int32 _0Pos = StatDescription.Name.Find( TEXT("_0") );
 			const bool bIsThread = Thread_Pos != INDEX_NONE && _0Pos > Thread_Pos;
 			// Add a special group for all threads.
-			if( bIsThread || StatName == FStatConstants::NAME_ThreadRoot )
+			if( bIsThread )
 			{
 				GroupName = TEXT("Threads");
 			}
@@ -1063,11 +930,7 @@ int32 FServiceConnection::FindOrAddThread(const FStatNameAndInfo& Thread)
 		// get the thread description
 		FString Desc;
 		Thread.GetDescription(Desc);
-
-		// Extract out the thread id and add to the descriptions
-		FString ID = Desc.Replace(TEXT("Thread_"), TEXT(""));
-		ID = ID.Replace(TEXT("_0"), TEXT(""));
-		ThreadID = FParse::HexNumber(*ID);
+		ThreadID = FStatsUtils::ParseThreadID( FName( *Desc ) );
 		ThreadNameArray.Add(LongName, ThreadID);
 
 		// add to the meta data
@@ -1175,4 +1038,102 @@ void FServiceConnection::GenerateCycleGraphs(const FRawStatStackNode& Root, TMap
 		CycleGraphs.Add(Graph.ThreadId, Graph);
 	}
 }
+
+bool FServiceConnection::ReadAndConvertStatMessages( FArchive& FileReader, bool bUseInAsync )
+{
+	uint64 ReadMessages = 0;
+
+	SCOPE_CYCLE_COUNTER( STAT_PC_ReadStatMessages );
+	while( FileReader.Tell() < FileReader.TotalSize() )
+	{
+		// read the message
+		FStatMessage Message( Stream.ReadMessage( FileReader ) );
+		ReadMessages++;
+
+		if( Message.NameAndInfo.GetShortName() != TEXT( "Unknown FName" ) )
+		{
+			if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::SpecialMessageMarker )
+			{
+				// Simply break the loop.
+				// The profiler supports more advanced handling of this message.
+				return true;
+			}
+			else if( Message.NameAndInfo.GetField<EStatOperation>() == EStatOperation::AdvanceFrameEventGameThread && ReadMessages > 2 )
+			{
+				AddCollectedStatMessages( Message );
+
+				// create an old format data frame from the data
+				GenerateProfilerDataFrame();
+
+				{
+					// add the frame to the work list
+					FScopeLock ScopeLock( &CriticalSection );
+					DataFrames.Add( CurrentData );
+					DataLoadingProgress = (double)FileReader.Tell() / (double)FileReader.TotalSize();
+				}
+
+				if( bUseInAsync )
+				{
+					if( DataFrames.Num() > FProfilerClientManager::MaxFramesPerTick )
+					{
+						while( DataFrames.Num() )
+						{
+							FPlatformProcess::Sleep( 0.001f );
+						}
+					}
+				}
+			}
+
+			new (Messages) FStatMessage( Message );
+		}
+		else
+		{
+			break;
+		}
+
+		if( !bUseInAsync && DataFrames.Num() < FProfilerClientManager::MaxFramesPerTick )
+		{
+			return false;
+		}
+	}
+
+	if( FileReader.Tell() >= FileReader.TotalSize() )
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void FServiceConnection::AddCollectedStatMessages( FStatMessage Message )
+{
+	SCOPE_CYCLE_COUNTER( STAT_PC_AddStatMessages );
+	new (Messages)FStatMessage( Message );
+	CurrentThreadState.AddMessages( Messages );
+	Messages.Reset();
+}
+
+void FServiceConnection::GenerateProfilerDataFrame()
+{
+	SCOPE_CYCLE_COUNTER( STAT_PC_GenerateDataFrame );
+	FProfilerDataFrame& DataFrame = CurrentData;
+	DataFrame.Frame = CurrentThreadState.CurrentGameFrame;
+	DataFrame.FrameStart = 0.0;
+	DataFrame.CountAccumulators.Reset();
+	DataFrame.CycleGraphs.Reset();
+	DataFrame.FloatAccumulators.Reset();
+
+	// get the stat stack root and the non frame stats
+	FRawStatStackNode Stack;
+	TArray<FStatMessage> NonFrameStats;
+	CurrentThreadState.UncondenseStackStats( CurrentThreadState.CurrentGameFrame, Stack, nullptr, &NonFrameStats );
+
+	// @todo updating metadata here is not thread safe?
+	// cycle graphs
+	GenerateCycleGraphs( Stack, DataFrame.CycleGraphs );
+
+	// accumulators
+	GenerateAccumulators( NonFrameStats, DataFrame.CountAccumulators, DataFrame.FloatAccumulators );
+}
+
 #endif

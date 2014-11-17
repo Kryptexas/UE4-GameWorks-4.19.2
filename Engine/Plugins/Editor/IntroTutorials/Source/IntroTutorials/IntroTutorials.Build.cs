@@ -40,6 +40,9 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"MainFrame",
+					"TargetPlatform",
+					"TargetDeviceServices",
+					"LauncherServices",
 				}
 			);
 
@@ -48,6 +51,7 @@ namespace UnrealBuildTool.Rules
 				{
                     "Documentation",
 					"MainFrame",
+					"LauncherServices",
 				}
 			);
 		}

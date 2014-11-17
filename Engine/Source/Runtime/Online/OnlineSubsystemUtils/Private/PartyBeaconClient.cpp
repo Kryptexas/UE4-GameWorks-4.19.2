@@ -1,9 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
-
 #include "OnlineSessionInterface.h"
-
 
 APartyBeaconClient::APartyBeaconClient(const class FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
@@ -15,7 +13,7 @@ APartyBeaconClient::APartyBeaconClient(const class FPostConstructInitializePrope
 void APartyBeaconClient::RequestReservation(const FOnlineSessionSearchResult& DesiredHost, const FUniqueNetIdRepl& RequestingPartyLeader, const TArray<FPlayerReservation>& PartyMembers)
 {
 	bool bSuccess = false;
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(GetWorld());
 	if (OnlineSub)
 	{
 		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
@@ -25,8 +23,9 @@ void APartyBeaconClient::RequestReservation(const FOnlineSessionSearchResult& De
 			if (SessionInt->GetResolvedConnectString(DesiredHost, BeaconPort, ConnectInfo))
 			{
 				FURL ConnectURL(NULL, *ConnectInfo, TRAVEL_Absolute);
-				if (InitClient(ConnectURL))
+				if (InitClient(ConnectURL) && DesiredHost.Session.SessionInfo.IsValid())
 				{
+					DestSessionId = DesiredHost.Session.SessionInfo->GetSessionId().ToString();
 					PendingReservation.PartyLeader = RequestingPartyLeader;
 					PendingReservation.PartyMembers = PartyMembers;
 					bPendingReservationSent = false;
@@ -72,7 +71,7 @@ void APartyBeaconClient::OnConnected()
 	if (!bCancelReservation)
 	{
 		UE_LOG(LogBeacon, Verbose, TEXT("Party beacon connection established, sending join reservation request."));
-		ServerReservationRequest(PendingReservation);
+		ServerReservationRequest(DestSessionId, PendingReservation);
 		bPendingReservationSent = true;
 	}
 	else
@@ -89,18 +88,18 @@ void APartyBeaconClient::OnFailure()
 	Super::OnFailure();
 }
 
-bool APartyBeaconClient::ServerReservationRequest_Validate(FPartyReservation Reservation)
+bool APartyBeaconClient::ServerReservationRequest_Validate(const FString& SessionId, FPartyReservation Reservation)
 {
-	return true;
+	return !SessionId.IsEmpty() && Reservation.PartyLeader.IsValid() && Reservation.PartyMembers.Num() > 0;
 }
 
-void APartyBeaconClient::ServerReservationRequest_Implementation(FPartyReservation Reservation)
+void APartyBeaconClient::ServerReservationRequest_Implementation(const FString& SessionId, FPartyReservation Reservation)
 {
 	APartyBeaconHost* BeaconHost = Cast<APartyBeaconHost>(GetBeaconOwner());
 	if (BeaconHost)
 	{
 		PendingReservation = Reservation;
-		BeaconHost->ProcessReservationRequest(this, Reservation);
+		BeaconHost->ProcessReservationRequest(this, SessionId, Reservation);
 	}
 }
 

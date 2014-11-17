@@ -27,9 +27,6 @@ public:
 
 	TSharedPtr<FUICommandInfo> CreateCameraActor;
 
-	TSharedPtr<FUICommandInfo> MatineeUndo;
-	TSharedPtr<FUICommandInfo> MatineeRedo;
-
 	TSharedPtr<FUICommandInfo> ToggleSnap;
 	TSharedPtr<FUICommandInfo> ToggleSnapTimeToFrames;
 	TSharedPtr<FUICommandInfo> FixedTimeStepPlayback;
@@ -121,6 +118,7 @@ public:
 	TSharedPtr<FUICommandInfo> NewLightingGroup;
 	TSharedPtr<FUICommandInfo> NewDirectorGroup;
 	TSharedPtr<FUICommandInfo> ToggleDirectorTimeline;
+	TSharedPtr<FUICommandInfo> ToggleCurveEditor;
 
 	//Key Context Menu
 	TSharedPtr<FUICommandInfo> KeyModeCurveAuto;

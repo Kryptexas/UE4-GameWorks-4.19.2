@@ -87,6 +87,8 @@ protected:
 	virtual void DestroyRenderState_Concurrent() OVERRIDE;
 	// End UActorComponent interface.
 
+	void AddFogIfNeeded();
+
 public:
 	// Begin UObject Interface
 	virtual void PostLoad() OVERRIDE; 

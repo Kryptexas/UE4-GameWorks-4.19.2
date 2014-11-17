@@ -67,7 +67,7 @@ protected:
 	virtual bool Compare(const FDebugLineItem* Other) const=0;
 
 	// @return The text to display in the name column, unless GenerateNameWidget is overridden
-	virtual FString GetDisplayName() const;
+	virtual FText GetDisplayName() const;
 
 	// @return The text to display in the value column, unless GenerateValueWidget is overridden
 	virtual FString GetDescription() const;

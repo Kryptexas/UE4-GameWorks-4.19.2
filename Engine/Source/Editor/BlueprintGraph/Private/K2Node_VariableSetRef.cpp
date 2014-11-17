@@ -122,7 +122,7 @@ FString UK2Node_VariableSetRef::GetTooltip() const
 	return FString::Printf(*NSLOCTEXT("K2Node", "SetValueOfRefVariable", "Set the value of the connected pass-by-ref variable").ToString());
 }
 
-FString UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -130,11 +130,31 @@ FString UK2Node_VariableSetRef::GetNodeTitle(ENodeTitleType::Type TitleType) con
 
 	if( TargetPin && TargetPin->PinType.PinCategory != Schema->PC_Wildcard )
 	{
-		return FString::Printf(*NSLOCTEXT("K2Node", "SetRefVarNodeTitle_Typed", "Set %s").ToString(), *Schema->TypeToString(TargetPin->PinType));
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PinType"), Schema->TypeToText(TargetPin->PinType));
+		return FText::Format(NSLOCTEXT("K2Node", "SetRefVarNodeTitle_Typed", "Set {PinType}"), Args);
 	}
 	else
 	{
-		return FString::Printf(*NSLOCTEXT("K2Node", "SetRefVarNodeTitle", "Set By-Ref Var").ToString());
+		return NSLOCTEXT("K2Node", "SetRefVarNodeTitle", "Set By-Ref Var");
+	}
+}
+
+FString UK2Node_VariableSetRef::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+	UEdGraphPin* TargetPin = GetTargetPin();
+
+	if( TargetPin && TargetPin->PinType.PinCategory != Schema->PC_Wildcard )
+	{
+		return FString::Printf(TEXT("Set %s"), *Schema->TypeToString(TargetPin->PinType));
+	}
+	else
+	{
+		return TEXT("Set By-Ref Var");
 	}
 }
 

@@ -375,7 +375,7 @@ namespace
 			{
 				if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
 				{
-					FError::Throwf(TEXT("BlueprintImplementableEvent  or BlueprintNativeEvent functions cannot be declared as Client or Server"));
+					FError::Throwf(TEXT("BlueprintImplementableEvent or BlueprintNativeEvent functions cannot be declared as Client or Server"));
 				}
 
 				FuncInfo.FunctionFlags |= FUNC_Net;
@@ -652,7 +652,7 @@ UField* FHeaderParser::FindField
 	FName InName( InIdentifier, FNAME_Find, true );
 	if (InName != NAME_None)
 	{
-		for( Scope; Scope; Scope = Cast<UStruct>(Scope->GetOuter()) )
+		for( ; Scope; Scope = Cast<UStruct>(Scope->GetOuter()) )
 		{
 			for( TFieldIterator<UField> It(Scope); It; ++It )
 			{
@@ -1338,10 +1338,6 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(UClass* Scope)
 			// Parse a header group filename.
 			AddHeaderGroup(Class, RequireExactlyOneSpecifierValue(*SpecifierIt), TEXT("struct"));
 		}
-		else if (Specifier == TEXT("Transient"))
-		{
-			StructFlags |= STRUCT_Transient;
-		}
 		else if (Specifier == TEXT("Atomic"))
 		{
 			StructFlags |= STRUCT_Atomic;
@@ -1619,7 +1615,6 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(UClass* Scope)
 
 			if (MatchIdentifier(TEXT("WITH_EDITORONLY_DATA")) )
 			{
-				//@TODO: UCREMOVAL: Should auto-flag properties declared within this as editoronly, and drop the flag
 				if (bInvertConditional)
 				{
 					FError::Throwf(TEXT("Cannot use !WITH_EDITORONLY_DATA"));
@@ -1629,7 +1624,6 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(UClass* Scope)
 			}
 			else if (MatchIdentifier(TEXT("WITH_EDITOR")) )
 			{
-				//@TODO: UCREMOVAL: Should auto-flag properties declared within this as editoronly, and drop the flag
 				if (bInvertConditional)
 				{
 					FError::Throwf(TEXT("Cannot use !WITH_EDITOR"));
@@ -1660,11 +1654,11 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(UClass* Scope)
 					{
 						FError::Throwf(TEXT("Unexpected end of struct definition %s"), *Struct->GetName());
 					}
-					else if ( ch=='{' || ch=='#' && (PeekIdentifier(TEXT("if")) || PeekIdentifier(TEXT("ifdef"))) )
+					else if ( ch=='{' || (ch=='#' && (PeekIdentifier(TEXT("if")) || PeekIdentifier(TEXT("ifdef")))) )
 					{
 						nest++;
 					}
-					else if ( ch=='}' || ch=='#' && PeekIdentifier(TEXT("endif")) )
+					else if ( ch=='}' || (ch=='#' && PeekIdentifier(TEXT("endif"))) )
 					{
 						nest--;
 					}
@@ -2543,6 +2537,8 @@ bool FHeaderParser::GetVarType
 	}
 
 	// Process the list of specifiers
+	bool bSeenEditSpecifier = false;
+	bool bSeenBlueprintEditSpecifier = false;
 	for (TArray<FPropertySpecifier>::TIterator SpecifierIt(SpecifiersFound); SpecifierIt; ++SpecifierIt)
 	{
 		const FString& Specifier = SpecifierIt->Key;
@@ -2551,47 +2547,91 @@ bool FHeaderParser::GetVarType
 		{
 			if (Specifier == TEXT("EditAnywhere"))
 			{
+				if (bSeenEditSpecifier)
+				{
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
+				}
 				Flags |= CPF_Edit;
+				bSeenEditSpecifier = true;
 			}
 			else if (Specifier == TEXT("EditInstanceOnly"))
 			{
-				Flags |= CPF_Edit|CPF_DisableEditOnTemplate;
+				if (bSeenEditSpecifier)
+				{
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
+				}
+				Flags |= CPF_Edit | CPF_DisableEditOnTemplate;
+				bSeenEditSpecifier = true;
 			}
 			else if (Specifier == TEXT("EditDefaultsOnly")) 
 			{
-				Flags |= CPF_Edit|CPF_DisableEditOnInstance;
+				if (bSeenEditSpecifier)
+				{
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
+				}
+				Flags |= CPF_Edit | CPF_DisableEditOnInstance;
+				bSeenEditSpecifier = true;
 			}
 			else if (Specifier == TEXT("VisibleAnywhere")) 
 			{
-				Flags |= CPF_Edit|CPF_EditConst;
+				if (bSeenEditSpecifier)
+				{
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
+				}
+				Flags |= CPF_Edit | CPF_EditConst;
+				bSeenEditSpecifier = true;
 			}
 			else if (Specifier == TEXT("VisibleInstanceOnly"))
 			{
-				Flags |= CPF_Edit|CPF_EditConst|CPF_DisableEditOnTemplate;
+				if (bSeenEditSpecifier)
+				{
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
+				}
+				Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnTemplate;
+				bSeenEditSpecifier = true;
 			}
 			else if (Specifier == TEXT("VisibleDefaultsOnly"))
 			{
-				Flags |= CPF_Edit|CPF_EditConst|CPF_DisableEditOnInstance;
+				if (bSeenEditSpecifier)
+				{
+					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier);
+				}
+				Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnInstance;
+				bSeenEditSpecifier = true;
 			}
 			else if (Specifier == TEXT("BlueprintReadWrite"))
 			{
+				if (bSeenBlueprintEditSpecifier)
+				{
+					FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier);
+				}
+
 				const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
 				const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
 				if ((CurrentAccessSpecifier == ACCESS_Private) && !bAllowPrivateAccess)
 				{
 					FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
 				}
+
 				Flags |= CPF_BlueprintVisible;
+				bSeenBlueprintEditSpecifier = true;
 			}
 			else if (Specifier == TEXT("BlueprintReadOnly"))
 			{
+				if (bSeenBlueprintEditSpecifier)
+				{
+					FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier);
+				}
+
 				const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
 				const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
 				if ((CurrentAccessSpecifier == ACCESS_Private) && !bAllowPrivateAccess)
 				{
 					FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
 				}
+
 				Flags |= CPF_BlueprintVisible|CPF_BlueprintReadOnly;
+				bSeenBlueprintEditSpecifier = true;
 			}
 			else if (Specifier == TEXT("Config"))
 			{
@@ -2605,29 +2645,9 @@ bool FHeaderParser::GetVarType
 			{
 				Flags |= CPF_Localized | CPF_BlueprintReadOnly;
 			}
-			else if (Specifier == TEXT("EditConst"))
-			{
-				FError::Throwf(TEXT("'EditConst' is deprecated, typically these should be replaced with VisibleAnywhere, VisibleDefaultsOnly or VisibleDefaultsOnly."));
-			}
-			else if (Specifier == TEXT("DisableEditOnInstance"))
-			{
-				FError::Throwf(TEXT("'DisableEditOnInstance' is deprecated, typically these should be replaced with VisibleDefaultsOnly."));
-			}
-			else if (Specifier == TEXT("DisableEditOnTemplate"))
-			{
-				FError::Throwf(TEXT("'DisableEditOnTemplate' is deprecated, typically these should be replaced with VisibleInstanceOnly."));
-			}
 			else if (Specifier == TEXT("Transient"))
 			{
 				Flags |= CPF_Transient;
-			}
-			else if (Specifier == TEXT("Native"))
-			{
-				FError::Throwf(TEXT("'Native' is deprecated, typically these should be replaced with (transient, duplicatetransient) or in some cases they don't need to be a property at all.") );
-			}
-			else if (Specifier == TEXT("NoExport"))
-			{
-				FError::Throwf(TEXT("'NoExport' is deprecated.") );
 			}
 			else if (Specifier == TEXT("DuplicateTransient"))
 			{
@@ -2704,14 +2724,6 @@ bool FHeaderParser::GetVarType
 			{
 				Flags |= CPF_EditInline | CPF_ExportObject | CPF_InstancedReference;
 			}
-			else if (Specifier == TEXT("EditorOnly"))
-			{
-				FError::Throwf(TEXT("'EditorOnly' is deprecated. Please surround the property with '#if WITH_EDITORONLY_DATA'"));
-			}
-			else if (Specifier == TEXT("SerializeText"))
-			{
-				FError::Throwf(TEXT("SerializeText is deprecated.") );
-			}
 			else if (Specifier == TEXT("BlueprintAssignable"))
 			{
 				Flags |= CPF_BlueprintAssignable;
@@ -2771,6 +2783,23 @@ bool FHeaderParser::GetVarType
 			{
 				FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier);
 			}
+		}
+	}
+
+	{
+		const FString* ExposeOnSpawnStr = MetaDataFromNewStyle.Find(TEXT("ExposeOnSpawn"));
+		const bool bExposeOnSpawn = (NULL != ExposeOnSpawnStr);
+		if (bExposeOnSpawn)
+		{
+			if ((CPF_DisableEditOnInstance | CPF_BlueprintReadOnly) & Flags)
+			{
+				UE_LOG(LogCompile, Warning, TEXT("Property cannot have 'DisableEditOnInstance' or 'BlueprintReadOnly' and 'ExposeOnSpawn' flags"));
+			}
+			if (0 == (CPF_BlueprintVisible & Flags))
+			{
+				UE_LOG(LogCompile, Warning, TEXT("Property cannot have 'ExposeOnSpawn' with 'BlueprintVisible' flag."));
+			}
+			Flags |= CPF_ExposeOnSpawn;
 		}
 	}
 
@@ -3123,6 +3152,11 @@ bool FHeaderParser::GetVarType
 			if (VarType.Matches(TEXT("TSubclassOf")))
 			{
 				TempClass = UClass::StaticClass();
+			}
+			else if (VarType.Matches(TEXT("FScriptInterface")))
+			{
+				TempClass = UInterface::StaticClass();
+				bExpectStar = false;
 			}
 			else if (bIsAssetClassTemplate)
 			{
@@ -4874,9 +4908,7 @@ void FHeaderParser::ParseParameterList(UFunction* Function, bool bExpectCommaBef
 		// Get parameter type.
 		FToken Property(CPT_None);
 		EObjectFlags ObjectFlags;
-		//@note: we need to explicitly specify CPF_AlwaysInit instead of adding it to CPF_ParmFlags because CPF_ParmFlags is treated as exclusive;
-		// i.e., flags that are in CPF_ParmFlags are not allowed in other variable types and vice versa
-		GetVarType( TopNode, Property, ObjectFlags, ~(CPF_ParmFlags|CPF_AutoWeak|CPF_AlwaysInit|CPF_RepSkip), TEXT("Function parameter"), NULL, EPropertyDeclarationStyle::None, (Function->FunctionFlags & FUNC_Net) ? EVariableCategory::ReplicatedParameter: EVariableCategory::RegularParameter);
+		GetVarType( TopNode, Property, ObjectFlags, ~(CPF_ParmFlags|CPF_AutoWeak|CPF_RepSkip), TEXT("Function parameter"), NULL, EPropertyDeclarationStyle::None, (Function->FunctionFlags & FUNC_Net) ? EVariableCategory::ReplicatedParameter: EVariableCategory::RegularParameter);
 		Property.PropertyFlags |= CPF_Parm;
 
 		if (bExpectCommaBeforeName)
@@ -5236,38 +5268,11 @@ void FHeaderParser::CompileFunctionDeclaration()
 		bAutomaticallyFinal = false;
 	}
 
-	//@TODO: UCREMOVAL: Eating up virtual if present
+	bool bSawVirtual = false;
+
 	if (MatchIdentifier(TEXT("virtual")))
 	{
-		// Remove the implicit FINAL, the user can still specifying an explicit FINAL at the end of the declaration
-		bAutomaticallyFinal = false;
-
-		// if this is a BlueprintNativeEvent or BlueprintImplementableEvent in an interface, make sure it's not "virtual"
-		if ( (Class->HasAnyClassFlags(CLASS_Interface)) && (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) )
-		{
-			FError::Throwf(TEXT("BlueprintImplementableEvents in Interfaces must not be declared 'virtual'"));
-		}
-
-		// if this is a BlueprintNativeEvent, make sure it's not "virtual"
-		if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && (FuncInfo.FunctionFlags & FUNC_Native) )
-		{
-			FError::Throwf(TEXT("BlueprintNativeEvent functions must be non-virtual."));
-		}
-
-//		@todo: we should consider making BIEs nonvirtual as well, where could simplify these checks to this...
-// 		if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) )
-// 		{
-// 			FError::Throwf(TEXT("Functions marked BlueprintImplementableEvent or BlueprintNativeEvent must not be declared 'virtual'"));
-// 		}
-
-	}
-	else
-	{
-		// if this is a function in an Interface, it must be marked 'virtual' unless it's an event
-		if (Class->HasAnyClassFlags(CLASS_Interface) && !(FuncInfo.FunctionFlags & FUNC_BlueprintEvent) )
-		{
-			FError::Throwf(TEXT("Interface functions that are not BlueprintImplementableEvents must be declared 'virtual'"));
-		}
+		bSawVirtual = true;
 	}
 
 	// If this function is blueprint callable or blueprint pure, require a category 
@@ -5285,7 +5290,7 @@ void FHeaderParser::CompileFunctionDeclaration()
 	}
 
 	// Verify interfaces with respect to their blueprint accessable functions
-	if(Class->HasAnyClassFlags(CLASS_Interface))
+	if (Class->HasAnyClassFlags(CLASS_Interface))
 	{
 		const bool bCanImplementInBlueprints = !Class->HasMetaData(TEXT("CannotImplementInterfaceInBlueprint"));  //FBlueprintMetadata::MD_CannotImplementInterfaceInBlueprint
 		if((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) != 0)
@@ -5330,19 +5335,6 @@ void FHeaderParser::CompileFunctionDeclaration()
 		FError::Throwf(TEXT("Unknown access level"));
 	}
 
-	// Handle the initial implicit/explicit final
-	// A user can still specify an explicit FINAL after the parameter list as well.
-	if (bAutomaticallyFinal || FuncInfo.bSealedEvent)
-	{
-		FuncInfo.FunctionFlags |= FUNC_Final;
-		FuncInfo.FunctionExportFlags |= FUNCEXPORT_Final;
-
-		if (Class->HasAnyClassFlags(CLASS_Interface))
-		{
-			FError::Throwf(TEXT("Interface functions cannot be declared 'final'"));
-		}
-	}
-
 	// non-static functions in a const class must be const themselves
 	if (Class->HasAnyClassFlags(CLASS_Const))
 	{
@@ -5381,6 +5373,58 @@ void FHeaderParser::CompileFunctionDeclaration()
 			{
 				UngetToken(Token);
 			}
+		}
+	}
+
+	// Look for virtual again, in case there was an ENGINE_API token first
+	if (MatchIdentifier(TEXT("virtual")))
+	{
+		bSawVirtual = true;
+	}
+
+	// Process the virtualness
+	if (bSawVirtual)
+	{
+		// Remove the implicit FINAL, the user can still specifying an explicit FINAL at the end of the declaration
+		bAutomaticallyFinal = false;
+
+		// if this is a BlueprintNativeEvent or BlueprintImplementableEvent in an interface, make sure it's not "virtual"
+		if ((Class->HasAnyClassFlags(CLASS_Interface)) && (FuncInfo.FunctionFlags & FUNC_BlueprintEvent))
+		{
+			FError::Throwf(TEXT("BlueprintImplementableEvents in Interfaces must not be declared 'virtual'"));
+		}
+
+		// if this is a BlueprintNativeEvent, make sure it's not "virtual"
+		if ((FuncInfo.FunctionFlags & FUNC_BlueprintEvent) && (FuncInfo.FunctionFlags & FUNC_Native))
+		{
+			FError::Throwf(TEXT("BlueprintNativeEvent functions must be non-virtual."));
+		}
+
+		//		@todo: we should consider making BIEs nonvirtual as well, where could simplify these checks to this...
+		// 		if ( (FuncInfo.FunctionFlags & FUNC_BlueprintEvent) )
+		// 		{
+		// 			FError::Throwf(TEXT("Functions marked BlueprintImplementableEvent or BlueprintNativeEvent must not be declared 'virtual'"));
+		// 		}
+	}
+	else
+	{
+		// if this is a function in an Interface, it must be marked 'virtual' unless it's an event
+		if (Class->HasAnyClassFlags(CLASS_Interface) && !(FuncInfo.FunctionFlags & FUNC_BlueprintEvent))
+		{
+			FError::Throwf(TEXT("Interface functions that are not BlueprintImplementableEvents must be declared 'virtual'"));
+		}
+	}
+
+	// Handle the initial implicit/explicit final
+	// A user can still specify an explicit FINAL after the parameter list as well.
+	if (bAutomaticallyFinal || FuncInfo.bSealedEvent)
+	{
+		FuncInfo.FunctionFlags |= FUNC_Final;
+		FuncInfo.FunctionExportFlags |= FUNCEXPORT_Final;
+
+		if (Class->HasAnyClassFlags(CLASS_Interface))
+		{
+			FError::Throwf(TEXT("Interface functions cannot be declared 'final'"));
 		}
 	}
 
@@ -5974,13 +6018,6 @@ void FHeaderParser::CompileVariableDeclaration(UStruct* Struct, EPropertyDeclara
 			if (NewProperty->ContainsInstancedObjectProperty())
 			{
 				StructBeingBuilt->StructFlags = EStructFlags(StructBeingBuilt->StructFlags | STRUCT_HasInstancedReference);
-			}
-
-			// if the struct is marked transient, mark all properties in the struct as CPF_AlwaysInit
-			if ((StructBeingBuilt->StructFlags & STRUCT_Transient) != 0)
-			{
-				// FError::Throwf(TEXT("%s.%s is marked transient"), *Struct->GetName(), *NewProperty->GetName() );
-				NewProperty->PropertyFlags |= CPF_AlwaysInit;
 			}
 		}
 	} while( MatchSymbol(TEXT(",")) );
@@ -6598,11 +6635,9 @@ FHeaderParser::FHeaderParser(FFeedbackContext* InWarn)
 	LegalVariableSpecifiers.Add(TEXT("Config"));
 	LegalVariableSpecifiers.Add(TEXT("GlobalConfig"));
 	LegalVariableSpecifiers.Add(TEXT("Localized"));
-	LegalVariableSpecifiers.Add(TEXT("EditConst"));
 	LegalVariableSpecifiers.Add(TEXT("EditBlueprint"));
 	LegalVariableSpecifiers.Add(TEXT("Transient"));
 	LegalVariableSpecifiers.Add(TEXT("Native"));
-	LegalVariableSpecifiers.Add(TEXT("NoExport"));
 	LegalVariableSpecifiers.Add(TEXT("DuplicateTransient"));
 	LegalVariableSpecifiers.Add(TEXT("Ref"));
 	LegalVariableSpecifiers.Add(TEXT("Export"));
@@ -6616,8 +6651,6 @@ FHeaderParser::FHeaderParser(FFeedbackContext* InWarn)
 	LegalVariableSpecifiers.Add(TEXT("NonTransactional"));
 	LegalVariableSpecifiers.Add(TEXT("Deprecated"));
 	LegalVariableSpecifiers.Add(TEXT("Instanced"));
-	LegalVariableSpecifiers.Add(TEXT("EditorOnly"));
-	LegalVariableSpecifiers.Add(TEXT("SerializeText"));
 	LegalVariableSpecifiers.Add(TEXT("BlueprintAssignable"));
 	LegalVariableSpecifiers.Add(TEXT("Category"));
 	LegalVariableSpecifiers.Add(TEXT("AssetRegistrySearchable"));
@@ -6991,9 +7024,13 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, bool& bIsInterfa
 					PreprocessorNest--;
 					bIsPrep = true;
 				}
-				else if( FParse::Command(&Str,TEXT("#if")) || FParse::Command(&Str,TEXT("#elif")) )
+				else if( FParse::Command(&Str,TEXT("#if")) )
 				{
 					PreprocessorNest++;
+					bIsPrep = true;
+				}
+				else if( FParse::Command(&Str,TEXT("#elif")) )
+				{
 					bIsPrep = true;
 				}
 				else if(PreprocessorNest == 1 && FParse::Command(&Str,TEXT("#else")))
@@ -7034,9 +7071,6 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, bool& bIsInterfa
 		}
 		else if ( bProcess && FParse::Command(&Str,TEXT("#include")) )
 		{
-			//@TODO: UCREMOVAL: Validate the include is the right format
-			//"EdGraphSchema.generated.h" for EdGraphSchema.h
-
 			ClassHeaderTextStrippedOfCppText.Logf( TEXT("%s\r\n"), *StrLine );
 		}
 		else

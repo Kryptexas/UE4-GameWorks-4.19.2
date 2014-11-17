@@ -48,7 +48,6 @@ ANavigationGraphNode::ANavigationGraphNode(const class FPostConstructInitializeP
 //----------------------------------------------------------------------//
 // ANavigationGraph
 //----------------------------------------------------------------------//
-FNavigationTypeCreator ANavigationGraph::Creator(FCreateNavigationDataInstanceDelegate::CreateStatic(&ANavigationGraph::CreateNavigationInstances));
 
 ANavigationGraph::ANavigationGraph(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)

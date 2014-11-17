@@ -81,16 +81,16 @@ void UKismetAIHelperLibrary::SendAIMessage(APawn* Target, FName Message, UObject
 	FAIMessage::Send(Target, FAIMessage(Message, MessageSource, bSuccess));
 }
 
-APawn* UKismetAIHelperLibrary::SpawnAI(class UObject* WorldContextObject, UBlueprint* Pawn, class UBehaviorTree* BehaviorTree, FVector Location, FRotator Rotation, bool bNoCollisionFail)
+APawn* UKismetAIHelperLibrary::SpawnAIFromClass(class UObject* WorldContextObject, TSubclassOf<APawn> PawnClass, class UBehaviorTree* BehaviorTree, FVector Location, FRotator Rotation, bool bNoCollisionFail)
 {
 	APawn* NewPawn = NULL;
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (World && Pawn && BehaviorTree)
+	if (World && *PawnClass && BehaviorTree)
 	{
 		FActorSpawnParameters ActorSpawnParams;
 		ActorSpawnParams.bNoCollisionFail = bNoCollisionFail;
-		NewPawn = World->SpawnActor<APawn>(Pawn->GeneratedClass, Location, Rotation, ActorSpawnParams);
+		NewPawn = World->SpawnActor<APawn>(*PawnClass, Location, Rotation, ActorSpawnParams);
 
 		ActorSpawnParams.bNoCollisionFail = true;
 
@@ -113,6 +113,19 @@ APawn* UKismetAIHelperLibrary::SpawnAI(class UObject* WorldContextObject, UBluep
 				AIController->RunBehaviorTree(BehaviorTree);
 			}
 		}
+	}
+
+	return NewPawn;
+}
+
+APawn* UKismetAIHelperLibrary::SpawnAI(class UObject* WorldContextObject, UBlueprint* Pawn, class UBehaviorTree* BehaviorTree, FVector Location, FRotator Rotation, bool bNoCollisionFail)
+{
+	APawn* NewPawn = NULL;
+
+	const bool bGoodBPGeneratedClass = Pawn && Pawn->GeneratedClass && Pawn->GeneratedClass->IsChildOf(APawn::StaticClass());
+	if (bGoodBPGeneratedClass)
+	{
+		NewPawn = SpawnAIFromClass(WorldContextObject, *(Pawn->GeneratedClass), BehaviorTree, Location, Rotation, bNoCollisionFail);
 	}
 
 	return NewPawn;

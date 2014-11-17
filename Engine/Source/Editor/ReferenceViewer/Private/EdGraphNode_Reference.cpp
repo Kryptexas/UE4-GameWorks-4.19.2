@@ -28,12 +28,12 @@ void UEdGraphNode_Reference::SetupReferenceNode(const FIntPoint& NodeLoc, const 
 	if ( NewPackageNames.Num() == 1 )
 	{
 		NodeComment = NewPackageNames[0].ToString();
-		NodeTitle = ShortPackageName;
+		NodeTitle = FText::FromString(ShortPackageName);
 	}
 	else
 	{
 		NodeComment = FText::Format(LOCTEXT("ReferenceNodeMultiplePackagesTitle", "{0} nodes"), FText::AsNumber(NewPackageNames.Num())).ToString();
-		NodeTitle = FText::Format(LOCTEXT("ReferenceNodeMultiplePackagesComment", "{0} and {1} others"), FText::FromString(ShortPackageName), FText::AsNumber(NewPackageNames.Num())).ToString();
+		NodeTitle = FText::Format(LOCTEXT("ReferenceNodeMultiplePackagesComment", "{0} and {1} others"), FText::FromString(ShortPackageName), FText::AsNumber(NewPackageNames.Num()));
 	}
 	
 	CacheAssetData(InAssetData);
@@ -48,7 +48,7 @@ void UEdGraphNode_Reference::SetReferenceNodeCollapsed(const FIntPoint& NodeLoc,
 	PackageNames.Empty();
 	NodeComment = FText::Format(LOCTEXT("ReferenceNodeCollapsedMessage", "{0} other nodes"), FText::AsNumber(InNumReferencesExceedingMax)).ToString();
 
-	NodeTitle = LOCTEXT("ReferenceNodeCollapsedTitle", "Collapsed nodes").ToString();
+	NodeTitle = LOCTEXT("ReferenceNodeCollapsedTitle", "Collapsed nodes");
 	CacheAssetData(FAssetData());
 	AllocateDefaultPins();
 }
@@ -80,7 +80,7 @@ UEdGraph_ReferenceViewer* UEdGraphNode_Reference::GetReferenceViewerGraph() cons
 	return Cast<UEdGraph_ReferenceViewer>( GetGraph() );
 }
 
-FString UEdGraphNode_Reference::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UEdGraphNode_Reference::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	return NodeTitle;
 }

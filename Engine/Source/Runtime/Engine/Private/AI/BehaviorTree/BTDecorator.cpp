@@ -33,39 +33,57 @@ void UBTDecorator::SetIsInversed(bool bShouldBeInversed)
 	bInverseCondition = bShouldBeInversed;
 }
 
-void UBTDecorator::OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const
+void UBTDecorator::OnNodeActivation(struct FBehaviorTreeSearchData& SearchData)
 {
 }
 
-void UBTDecorator::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const
+void UBTDecorator::OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
 {
 }
 
-void UBTDecorator::OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
+void UBTDecorator::OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult)
 {
 }
 
-void UBTDecorator::ConditionalOnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const
+bool UBTDecorator::WrappedCanExecute(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+{
+	const UBTDecorator* NodeOb = bCreateNodeInstance ? (const UBTDecorator*)GetNodeInstance(OwnerComp, NodeMemory) : this;
+	return NodeOb ? (IsInversed() != NodeOb->CalculateRawConditionValue(OwnerComp, NodeMemory)) : false;
+}
+
+void UBTDecorator::WrappedOnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const
 {
 	if (bNotifyActivation)
 	{
-		OnNodeActivation(SearchData);
+		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(SearchData) : this;
+		if (NodeOb)
+		{
+			((UBTDecorator*)NodeOb)->OnNodeActivation(SearchData);
+		}		
 	}
 };
 
-void UBTDecorator::ConditionalOnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const
+void UBTDecorator::WrappedOnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const
 {
 	if (bNotifyDeactivation)
 	{
-		OnNodeDeactivation(SearchData, NodeResult);
+		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(SearchData) : this;
+		if (NodeOb)
+		{
+			((UBTDecorator*)NodeOb)->OnNodeDeactivation(SearchData, NodeResult);
+		}		
 	}
 }
 
-void UBTDecorator::ConditionalOnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
+void UBTDecorator::WrappedOnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
 {
 	if (bNotifyProcessed)
 	{
-		OnNodeProcessed(SearchData, NodeResult);
+		const UBTNode* NodeOb = bCreateNodeInstance ? GetNodeInstance(SearchData) : this;
+		if (NodeOb)
+		{
+			((UBTDecorator*)NodeOb)->OnNodeProcessed(SearchData, NodeResult);
+		}		
 	}
 }
 

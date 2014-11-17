@@ -139,6 +139,10 @@ namespace iPhonePackager
 
 						if (File.Exists(GamePath))
 						{
+							if (!String.IsNullOrEmpty(Config.DeviceId))
+							{
+								DeploymentHelper.Get().DeviceId = Config.DeviceId;
+							}
 							if (!DeploymentHelper.Get().InstallIPAOnDevice(IPAPath))
 							{
 								Program.Error("Failed to install IPA on device");

@@ -789,6 +789,10 @@ FLinearColor UKismetMathLibrary::Multiply_LinearColorLinearColor(FLinearColor A,
 	return A * B;
 }
 
+FLinearColor UKismetMathLibrary::Multiply_LinearColorFloat(FLinearColor A, float B)
+{
+	return A * B;
+}
 
 FVector UKismetMathLibrary::TransformLocation(const FTransform& T, FVector Location)
 {
@@ -898,6 +902,16 @@ bool UKismetMathLibrary::EqualEqual_ObjectObject(class UObject* A, class UObject
 }
 
 bool UKismetMathLibrary::NotEqual_ObjectObject(class UObject* A, class UObject* B)
+{
+	return A != B;
+}
+
+bool UKismetMathLibrary::EqualEqual_ClassClass(class UClass* A, class UClass* B)
+{
+	return A == B;
+}
+
+bool UKismetMathLibrary::NotEqual_ClassClass(class UClass* A, class UClass* B)
 {
 	return A != B;
 }
@@ -1364,3 +1378,56 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 	}
 }
 
+bool UKismetMathLibrary::LinePlaneIntersection(const FVector& LineStart, const FVector& LineEnd, const FPlane& APlane, float& T, FVector& Intersection)
+{
+	FVector RayDir = LineEnd - LineStart;
+
+	// Check ray is not parallel to plane
+	if ((RayDir | APlane) == 0.0f)
+	{
+		T = -1.0f;
+		Intersection = FVector::ZeroVector;
+		return false;
+	}
+
+	T = ((APlane.W - (LineStart | APlane)) / (RayDir | APlane));
+
+	// Check intersection is not outside line segment
+	if (T < 0.0f || T > 1.0f)
+	{
+		Intersection = FVector::ZeroVector;
+		return false;
+	}
+
+	// Calculate intersection point
+	Intersection = LineStart + RayDir * T;
+
+	return true;
+}
+
+bool UKismetMathLibrary::LinePlaneIntersection_OriginNormal(const FVector& LineStart, const FVector& LineEnd, FVector PlaneOrigin, FVector PlaneNormal, float& T, FVector& Intersection)
+{
+	FVector RayDir = LineEnd - LineStart;
+
+	// Check ray is not parallel to plane
+	if ((RayDir | PlaneNormal) == 0.0f)
+	{
+		T = -1.0f;
+		Intersection = FVector::ZeroVector;
+		return false;
+	}
+
+	T = (((PlaneOrigin - LineStart) | PlaneNormal) / (RayDir | PlaneNormal));
+
+	// Check intersection is not outside line segment
+	if (T < 0.0f || T > 1.0f)
+	{
+		Intersection = FVector::ZeroVector;
+		return false;
+	}
+
+	// Calculate intersection point
+	Intersection = LineStart + RayDir * T;
+
+	return true;
+}

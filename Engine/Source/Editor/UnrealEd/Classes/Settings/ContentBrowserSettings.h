@@ -68,7 +68,7 @@ public:
 	 * @return The delegate.
 	 */
 	DECLARE_EVENT_OneParam(UContentBrowserSettings, FSettingChangedEvent, FName /*PropertyName*/);
-	FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
+	static FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
 
 protected:
 
@@ -95,5 +95,5 @@ private:
 	bool OverrideDisplayDevelopersFolder;
 
 	// Holds an event delegate that is executed when a setting has changed.
-	FSettingChangedEvent SettingChangedEvent;
+	static FSettingChangedEvent SettingChangedEvent;
 };

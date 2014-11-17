@@ -893,14 +893,14 @@ void FMultiSizeIndexContainer::ReleaseResources()
 /**
  * Creates a new index buffer
  */
-void FMultiSizeIndexContainer::CreateIndexBuffer(uint8 DataTypeSize)
+void FMultiSizeIndexContainer::CreateIndexBuffer(uint8 InDataTypeSize)
 {
 	check( IndexBuffer == NULL );
 	bool bNeedsCPUAccess = true;
 
-	this->DataTypeSize = DataTypeSize;
+	DataTypeSize = InDataTypeSize;
 
-	if (DataTypeSize == sizeof(uint16))
+	if (InDataTypeSize == sizeof(uint16))
 	{
 		IndexBuffer = new FRawStaticIndexBuffer16or32<uint16>(bNeedsCPUAccess);
 	}
@@ -4147,7 +4147,22 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 		BatchElement.FirstIndex *= 4;
 	}
 
+#if WITH_EDITOR
+	const FOverrideSelectionColorMaterialRenderProxy SelectionOverrideProxy(
+		SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered()),
+		GetSelectionColor(GEngine->GetSelectedMaterialColor(), bIsSelected, IsHovered())
+		);
+	if (Section.bSelected)
+	{
+		Mesh.MaterialRenderProxy = &SelectionOverrideProxy;
+	}
+	else
+	{
+		Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
+	}
+#else
 	Mesh.MaterialRenderProxy = SectionElementInfo.Material->GetRenderProxy(bIsSelected, IsHovered());
+#endif
 
 	BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 	

@@ -8,38 +8,33 @@ void SComboButton::Construct( const FArguments& InArgs )
 
 	// Work out which values we should use based on whether we were given an override, or should use the style's version
 	const FButtonStyle* const OurButtonStyle = InArgs._ButtonStyle ? InArgs._ButtonStyle : &InArgs._ComboButtonStyle->ButtonStyle;
-	ContentScale = InArgs._ContentScale.IsSet() ? InArgs._ContentScale : InArgs._ComboButtonStyle->ContentScale;
-	TAttribute<FMargin> OurContentPadding = InArgs._ContentPadding.IsSet() ? InArgs._ContentPadding : InArgs._ComboButtonStyle->ContentPadding;
-	const bool OurHasDownArrow = InArgs._HasDownArrow.Get(InArgs._ComboButtonStyle->HasDownArrow);
-	const EHorizontalAlignment OurHAlign = InArgs._HAlign.Get(InArgs._ComboButtonStyle->HAlign);
-	const EVerticalAlignment OurVAlign = InArgs._VAlign.Get(InArgs._ComboButtonStyle->VAlign);
-	TAttribute<FSlateColor> OurForegroundColor = InArgs._ForegroundColor.IsSet() ? InArgs._ForegroundColor : InArgs._ComboButtonStyle->ForegroundColor;
-	TAttribute<FSlateColor> OurButtonColorAndOpacity = InArgs._ButtonColorAndOpacity.IsSet() ? InArgs._ButtonColorAndOpacity : InArgs._ComboButtonStyle->ButtonColorAndOpacity;
-	MenuBorderBrush = InArgs._MenuBorderBrush ? InArgs._MenuBorderBrush : &InArgs._ComboButtonStyle->MenuBorderBrush;
-	MenuBorderPadding = InArgs._MenuBorderPadding.Get(InArgs._ComboButtonStyle->MenuBorderPadding);
-	Placement = InArgs._MenuPlacement.IsSet() ? InArgs._MenuPlacement : InArgs._ComboButtonStyle->MenuPlacement;
 
+	MenuBorderBrush = &InArgs._ComboButtonStyle->MenuBorderBrush;
+	MenuBorderPadding = InArgs._ComboButtonStyle->MenuBorderPadding;
+	
 	OnGetMenuContent = InArgs._OnGetMenuContent;
 	OnComboBoxOpened = InArgs._OnComboBoxOpened;
 	MenuHeight = InArgs._MenuHeight;
 	MenuWidth = InArgs._MenuWidth;
 	Method = InArgs._Method;
 	ContentWidgetPtr = InArgs._MenuContent.Widget;
+	ContentScale = InArgs._ContentScale;
+	Placement = InArgs._MenuPlacement;
 
 	TSharedPtr<SHorizontalBox> HBox;
 
 	this->ChildSlot
-	.HAlign( OurHAlign )
-	.VAlign( OurVAlign )
+	.HAlign( InArgs._HAlign )
+	.VAlign( InArgs._VAlign )
 	[
 		SNew(SButton)
 		.ContentPadding(FMargin(1,0))
 		.ButtonStyle(OurButtonStyle)	
 		.ClickMethod( EButtonClickMethod::MouseDown )
 		.OnClicked( this, &SComboButton::OnButtonClicked )
-		.ContentPadding( OurContentPadding )
-		.ForegroundColor( OurForegroundColor )
-		.ButtonColorAndOpacity( OurButtonColorAndOpacity )
+		.ContentPadding( InArgs._ContentPadding )
+		.ForegroundColor( InArgs._ForegroundColor )
+		.ButtonColorAndOpacity( InArgs._ButtonColorAndOpacity )
 		.IsFocusable( InArgs._IsFocusable )
 		[
 			// Button and down arrow on the right
@@ -58,10 +53,10 @@ void SComboButton::Construct( const FArguments& InArgs )
 			.  AutoWidth()
 			.  HAlign(HAlign_Center)
 			.  VAlign(VAlign_Center)
-			.  Padding( OurHasDownArrow ? 2 : 0)
+			.  Padding( InArgs._HasDownArrow ? 2 : 0)
 			[
 				SNew(SImage)
-				. Visibility( OurHasDownArrow ? EVisibility::Visible : EVisibility::Collapsed )
+				. Visibility( InArgs._HasDownArrow ? EVisibility::Visible : EVisibility::Collapsed )
 				. Image(&InArgs._ComboButtonStyle->DownArrowImage)
 				// Inherit tinting from parent
 				. ColorAndOpacity( FSlateColor::UseForeground() )

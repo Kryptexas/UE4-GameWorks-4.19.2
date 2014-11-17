@@ -364,8 +364,11 @@ private:
 		{
 			TArray<FString> Filenames;
 
+			TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+			void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
+
 			if (DesktopPlatform->SaveFileDialog(
-				NULL,
+				ParentWindowHandle,
 				LOCTEXT("SaveLogDialogTitle", "Save Log As...").ToString(),
 				LastLogFileSaveDirectory,
 				TEXT("Launcher.log"),

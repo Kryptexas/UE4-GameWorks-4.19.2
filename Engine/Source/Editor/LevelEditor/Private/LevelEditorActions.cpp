@@ -39,6 +39,8 @@
 #include "AnalyticsEventAttribute.h"
 #include "IAnalyticsProvider.h"
 
+#include "EditorActorFolders.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
 #define LOCTEXT_NAMESPACE "LevelEditorActions"
@@ -401,27 +403,22 @@ void FLevelEditorActionCallbacks::AttachToSocketSelection(const FName SocketName
 	if(ParentActorPtr != NULL)
 	{
 		// Attach each child
+		FScopedTransaction Transaction(LOCTEXT("AttachActors", "Attach actors"));
 		bool bAttached = false;
 
 		for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 		{
 			AActor* Actor = Cast<AActor>( *It );
 			if (GEditor->CanParentActors(ParentActorPtr, Actor))
-			{				
-				if( bAttached == false )
-				{
-					GEditor->BeginTransaction( LOCTEXT("AttachActors", "Attach actors") );
-					bAttached = true;
-				}				
+			{
+				bAttached = true;
 				GEditor->ParentActors(ParentActorPtr, Actor, SocketName);
 			}
 		}
 
-		// refresh the tree, and ensure parent is expanded so we can still see the child if we attached something
-		if (bAttached)
-		{			
-			GEngine->BroadcastLevelActorsChanged();
-			GEditor->EndTransaction();
+		if (!bAttached)
+		{
+			Transaction.Cancel();
 		}
 	}	
 }
@@ -485,7 +482,7 @@ bool FLevelEditorActionCallbacks::BuildLighting_CanExecute()
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
-	return !GWorld->GetWorldSettings()->bForceNoPrecomputedLighting && bAllowStaticLighting;
+	return bAllowStaticLighting;
 }
 
 void FLevelEditorActionCallbacks::BuildReflectionCapturesOnly_Execute()
@@ -1020,6 +1017,12 @@ void FLevelEditorActionCallbacks::DetachActor_Clicked()
 void FLevelEditorActionCallbacks::AttachSelectedActors()
 {
 	GUnrealEd->AttachSelectedActors();
+}
+
+void FLevelEditorActionCallbacks::CreateNewOutlinerFolder_Clicked()
+{
+	const FName NewFolderName = FActorFolders::Get().GetDefaultFolderNameForSelection(*GetWorld());
+	FActorFolders::Get().CreateFolderContainingSelection(*GetWorld(), NewFolderName);
 }
 
 bool FLevelEditorActionCallbacks::LockActorMovement_IsChecked()
@@ -1594,7 +1597,7 @@ void FLevelEditorActionCallbacks::OnShowWorldProperties( TWeakPtr< SLevelEditor 
 void FLevelEditorActionCallbacks::OpenContentBrowser()
 {
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowserModule.Get().FocusPrimaryContentBrowser();
+	ContentBrowserModule.Get().FocusPrimaryContentBrowser(true);
 }
 
 void FLevelEditorActionCallbacks::OpenMarketplace()
@@ -1645,8 +1648,8 @@ void FLevelEditorActionCallbacks::OpenLevelBlueprint( TWeakPtr< SLevelEditor > L
 {
 	if( LevelEditor.Pin()->GetWorld()->GetCurrentLevel() )
 	{
-		ULevelScriptBlueprint* LevelScriptBlueprint = LevelEditor.Pin()->GetWorld()->GetCurrentLevel()->GetLevelScriptBlueprint();
-		if( LevelScriptBlueprint )
+		ULevelScriptBlueprint* LevelScriptBlueprint = LevelEditor.Pin()->GetWorld()->PersistentLevel->GetLevelScriptBlueprint();
+		if (LevelScriptBlueprint)
 		{
 			// @todo Re-enable once world centric works
 			const bool bOpenWorldCentric = false;
@@ -2143,7 +2146,7 @@ bool FLevelEditorActionCallbacks::CanSetWidgetMode( FWidget::EWidgetMode WidgetM
 
 bool FLevelEditorActionCallbacks::IsTranslateRotateModeVisible()
 {
-	return GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget;
+	return GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget;
 }
 
 void FLevelEditorActionCallbacks::SetCoordinateSystem( ECoordSystem CoordinateSystem )
@@ -2462,7 +2465,7 @@ void FLevelEditorCommands::RegisterCommands()
 				this->AsShared(),
 				FName( *FString::Printf( TEXT( "OpenFavoriteFile%i" ), CurFavoriteIndex ) ),
 				FText::Format( NSLOCTEXT( "LevelEditorCommands", "OpenFavoriteFile", "Open Favorite File {0}" ), FText::AsNumber( CurFavoriteIndex ) ),
-				NSLOCTEXT( "LevelEditorCommands", "OpenFavoriteFileToolTip", "Opens a file that was tagged as a favorite" ) )
+				NSLOCTEXT( "LevelEditorCommands", "OpenFavoriteFileTaggedToolTip", "Opens a file that was tagged as a favorite" ) )
 			.UserInterfaceType( EUserInterfaceActionType::Button )
 			.DefaultGesture( FInputGesture() );
 		OpenFavoriteFileCommands.Add( OpenFavoriteFile );
@@ -2557,6 +2560,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( LockActorMovement, "Lock Actor Movement", "Locks the actor so it cannot be moved", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( DetachFromParent, "Detach", "Detach the actor from its parent", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AttachSelectedActors, "Attach Selected Actors", "Attach the selected actors to the last selected actor", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Alt, EKeys::B) );
+	UI_COMMAND( CreateNewOutlinerFolder, "Create Folder", "Place the selected actors in a new folder", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( HoldToEnableVertexSnapping, "Hold to Enable Vertex Snapping", "When the key binding is pressed and held vertex snapping will be enabled", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::V) );
 
 	//@ todo Slate better tooltips for pivot options
@@ -2668,11 +2672,11 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( EditMatinee, "Edit Matinee", "Selects a Matinee to edit", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( OpenLevelBlueprint, "Open Level Blueprint", "Edit the Level Blueprint for the current level", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenGameModeBlueprint, "Open Game Mode Blueprint", "Open the GameMode blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenGameStateBlueprint, "Open Game State Blueprint", "Open the GameState blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenDefaultPawnBlueprint, "Open Default Pawn Blueprint", "Open the Pawn blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenHUDBlueprint, "Open HUD Blueprint", "Open the HUD blueprint", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( OpenPlayerControllerBlueprint, "Open Player Controller Blueprint", "Open the Player Controller blueprint", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenGameModeBlueprint, "Open/Create Game Mode Blueprint", "Opens or create the active GameMode blueprint", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenGameStateBlueprint, "Open/Create Game State Blueprint", "Open or create the GameState blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenDefaultPawnBlueprint, "Open/Create Default Pawn Blueprint", "Open or create the Pawn blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenHUDBlueprint, "Open/Create HUD Blueprint", "Open or create the HUD blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( OpenPlayerControllerBlueprint, "Open/Create Player Controller Blueprint", "Open or create the Player Controller blueprint and auto assign it to the active GameMode", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( CreateClassBlueprint, "New Class Blueprint...", "Create a new Class Blueprint", EUserInterfaceActionType::Button, FInputGesture());
 
 	UI_COMMAND( ShowTransformWidget, "Show Transform Widget", "Toggles the visibility of the transform widgets", EUserInterfaceActionType::ToggleButton, FInputGesture() );

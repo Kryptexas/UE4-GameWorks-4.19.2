@@ -310,6 +310,7 @@ void FBlueprintComponentsApplicationMode::PreDeactivateMode()
 	BP->GetSCSEditor()->UpdateTree();
 	BP->GetInspector()->SetEnabled(true);
 	BP->GetInspector()->EnableComponentDetailsCustomization(false);
+	BP->EnableSCSPreview(false);
 }
 
 void FBlueprintComponentsApplicationMode::PostActivateMode()
@@ -317,6 +318,7 @@ void FBlueprintComponentsApplicationMode::PostActivateMode()
 	TSharedPtr<FBlueprintEditor> BP = MyBlueprintEditor.Pin();
 	BP->GetSCSEditor()->ClearSelection();
 	BP->GetSCSEditor()->UpdateTree();
+	BP->EnableSCSPreview(true);
 	BP->UpdateSCSPreview();
 	BP->GetInspector()->EnableComponentDetailsCustomization(true);
 

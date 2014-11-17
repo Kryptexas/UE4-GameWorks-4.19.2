@@ -18,8 +18,8 @@ public:
 	 * Constructor
 	 * @param	bOnlyGCedObjects	if true, skip all of the permanent objects
 	 */
-	FRawObjectIterator(bool bOnlyGCedObjects = false) :	
-	  FUObjectArray::TIterator( GUObjectArray, bOnlyGCedObjects )
+	FRawObjectIterator(bool bOnlyGCedObjects = false) :
+		FUObjectArray::TIterator( GUObjectArray, bOnlyGCedObjects )
 	{
 	}
 	/**
@@ -80,6 +80,19 @@ public:
 			}
 		} while(Advance());
 	}
+
+	/**
+	 * Constructor
+	 *
+	 * @param	Begin	The iterator to get the end iterator of.
+	 */
+	FObjectIterator( FUObjectArray::TIterator::EEndTagType, const FObjectIterator& Begin ) :
+		FUObjectArray::TIterator( FUObjectArray::TIterator::EndTag, Begin ),
+		Class( Begin.Class ),
+		ExclusionFlags(Begin.ExclusionFlags)
+	{
+	}
+
 	/**
 	 * Iterator advance
 	 */
@@ -132,14 +145,27 @@ protected:
 template< class T > class TObjectIterator
 {
 public:
+	enum EEndTagType
+	{
+		EndTag
+	};
+
 	/**
 	 * Constructor
 	 */
-	TObjectIterator(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject, bool bIncludeDerivedClasses = true)
+	explicit TObjectIterator(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject, bool bIncludeDerivedClasses = true)
 		: Index(-1)
 	{
 		GetObjectsOfClass(T::StaticClass(), ObjectArray, bIncludeDerivedClasses, AdditionalExclusionFlags);
 		Advance();
+	}
+
+	/**
+	* Constructor
+	*/
+	TObjectIterator(EEndTagType, const TObjectIterator& Begin)
+		: Index(Begin.ObjectArray.Num())
+	{
 	}
 
 	/**
@@ -149,8 +175,6 @@ public:
 	{
 		Advance();
 	}
-
-	SAFE_BOOL_OPERATORS(TObjectIterator<T>)
 
 	/** Conversion to "bool" returning true if the iterator is valid. */
 	FORCEINLINE_EXPLICIT_OPERATOR_BOOL() const
@@ -179,6 +203,9 @@ public:
 	{
 		return (T*)GetObject();
 	}
+
+	FORCEINLINE friend bool operator==(const TObjectIterator& Lhs, const TObjectIterator& Rhs) { return Lhs.Index == Rhs.Index; }
+	FORCEINLINE friend bool operator!=(const TObjectIterator& Lhs, const TObjectIterator& Rhs) { return Lhs.Index != Rhs.Index; }
 
 protected:
 	/**
@@ -219,16 +246,29 @@ protected:
 template<> class TObjectIterator<UObject> : public FObjectIterator
 {
 public:
+	explicit TObjectIterator(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject) :
+		FObjectIterator(UObject::StaticClass(), false, AdditionalExclusionFlags)
+	{
+	}
+
 	/**
 	 * Constructor
 	 *
 	 * @param	bOnlyGCedObjects			if true, skip all of the permanent objects
 	 */
-	TObjectIterator(bool bOnlyGCedObjects = false) :
-		FObjectIterator( UObject::StaticClass(),bOnlyGCedObjects, RF_ClassDefaultObject )
-
+	explicit TObjectIterator(bool bOnlyGCedObjects) :
+		FObjectIterator(UObject::StaticClass(), bOnlyGCedObjects, RF_ClassDefaultObject)
 	{
-		// there will be one unnecessary IsA in the base class constructor
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * @param	Begin	The iterator to get the end iterator of.
+	 */
+	TObjectIterator(FObjectIterator::EEndTagType, const TObjectIterator& Begin) :
+		FObjectIterator( FObjectIterator::EndTag, Begin )
+	{
 	}
 
 	/**
@@ -246,6 +286,39 @@ public:
 			}
 		}
 	}
+};
+
+template <typename T>
+struct TObjectRange
+{
+	TObjectRange(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject, bool bIncludeDerivedClasses = true)
+		: Begin(AdditionalExclusionFlags, bIncludeDerivedClasses)
+	{
+	}
+
+	friend TObjectIterator<T> begin(const TObjectRange& Range) { return Range.Begin; }
+	friend TObjectIterator<T> end  (const TObjectRange& Range) { return TObjectIterator<T>(TObjectIterator<T>::EndTag, Range.Begin); }
+
+	TObjectIterator<T> Begin;
+};
+
+template <>
+struct TObjectRange<UObject>
+{
+	explicit TObjectRange(EObjectFlags AdditionalExclusionFlags = RF_ClassDefaultObject)
+		: Begin(AdditionalExclusionFlags)
+	{
+	}
+
+	explicit TObjectRange(bool bOnlyGCedObjects)
+		: Begin(bOnlyGCedObjects)
+	{
+	}
+
+	friend TObjectIterator<UObject> begin(const TObjectRange& Range) { return Range.Begin; }
+	friend TObjectIterator<UObject> end  (const TObjectRange& Range) { return TObjectIterator<UObject>(TObjectIterator<UObject>::EndTag, Range.Begin); }
+
+	TObjectIterator<UObject> Begin;
 };
 
 

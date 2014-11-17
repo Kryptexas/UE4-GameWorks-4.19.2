@@ -31,7 +31,9 @@ public:
 
 	virtual bool CanSelectCells() const OVERRIDE { return !IsHidden(); }
 
-	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return EPropertyTableColumnSizeMode::Fill; }
+	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return SizeMode; }
+
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) OVERRIDE{ SizeMode = InSizeMode; }
 
 	virtual float GetWidth() const OVERRIDE { return Width; } 
 
@@ -43,13 +45,16 @@ public:
 
 	virtual bool IsFrozen() const OVERRIDE { return bIsFrozen; }
 
-	virtual void SetFrozen( bool InIsFrozen ) OVERRIDE { bIsFrozen = InIsFrozen; }
+	virtual void SetFrozen( bool InIsFrozen ) OVERRIDE;
 
 	virtual bool CanSortBy() const OVERRIDE;
 
 	virtual void Sort( TArray< TSharedRef< class IPropertyTableRow > >& Rows, const EColumnSortMode::Type SortMode ) OVERRIDE;
 
 	virtual void Tick() OVERRIDE;
+
+	DECLARE_DERIVED_EVENT( FPropertyTableColumn, IPropertyTableColumn::FFrozenStateChanged, FFrozenStateChanged );
+	FFrozenStateChanged* OnFrozenStateChanged() OVERRIDE { return &FrozenStateChanged; }
 
 	// End IPropertyTable Interface
 
@@ -75,5 +80,9 @@ private:
 	bool bIsHidden;
 	bool bIsFrozen;
 
+	FFrozenStateChanged FrozenStateChanged;
+
 	TSharedRef< class FPropertyPath > PartialPath;
+
+	EPropertyTableColumnSizeMode::Type SizeMode;
 };

@@ -8,6 +8,9 @@
 
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
+#include "EngineBuildSettings.h"
+
+#include "DesktopPlatformModule.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
@@ -85,7 +88,7 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 	{
 		FFormatNamedArguments Args;
 		Args.Add( TEXT("IllegalPathCharacters"), FText::FromString( IllegalPathCharacters ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectPathContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalNameCharacters}" ), Args );
+		OutFailReason = FText::Format( LOCTEXT( "ProjectNameContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalPathCharacters}" ), Args );
 		return false;
 	}
 
@@ -269,11 +272,9 @@ void GameProjectUtils::GetStarterContentFiles(TArray<FString>& OutFilenames)
 {
 	FString const SrcFolder = FPaths::StarterContentDir();
 	FString const ContentFolder = SrcFolder / TEXT("Content");
-	FString const DDCFolder = SrcFolder / TEXT("DerivedDataCache");
 
-	// only copying /Content and /DerivedDataCache
+	// only copying /Content
 	IFileManager::Get().FindFilesRecursive(OutFilenames, *ContentFolder, TEXT("*"), /*Files=*/true, /*Directories=*/false);
-	IFileManager::Get().FindFilesRecursive(OutFilenames, *DDCFolder, TEXT("*"), /*Files=*/true, /*Directories=*/false, /*bClearFilenames=*/false);
 }
 
 bool GameProjectUtils::CopyStarterContent(const FString& DestProjectFolder, FText& OutFailReason)
@@ -305,10 +306,10 @@ bool GameProjectUtils::CopyStarterContent(const FString& DestProjectFolder, FTex
 			}
 			else
 			{
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
-				Args.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
-				OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), Args);
+				FFormatNamedArguments FailArgs;
+				FailArgs.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
+				FailArgs.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
+				OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), FailArgs);
 				DeleteCreatedFiles(DestProjectFolder, CreatedFiles);
 				return false;
 			}
@@ -378,66 +379,47 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 	if ( !LoadedProjectFilePath.IsEmpty() )
 	{
 		FProjectStatus ProjectStatus;
-		if ( IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus) )
+		if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
 		{
 			if ( !ProjectStatus.bUpToDate )
 			{
-				// For the time being, if it's writable, just overwrite it with the latest info. If we need to do anything potentially destructive, we can change this logic for this in future builds.
-				bool bHaveUpdatedProject = false;
-				if (!FPlatformFileManager::Get().GetPlatformFile().IsReadOnly(*LoadedProjectFilePath))
+				const FText UpdateProjectText = LOCTEXT("UpdateProjectFilePrompt", "Update project to open in this version of the editor by default?");
+				const FText UpdateProjectConfirmText = LOCTEXT("UpdateProjectFileConfirm", "Update");
+				const FText UpdateProjectCancelText = LOCTEXT("UpdateProjectFileCancel", "Not Now");
+
+				FNotificationInfo Info(UpdateProjectText);
+				Info.bFireAndForget = false;
+				Info.bUseLargeFont = false;
+				Info.bUseThrobber = false;
+				Info.bUseSuccessFailIcons = false;
+				Info.FadeOutDuration = 3.f;
+				Info.ButtonDetails.Add(FNotificationButtonInfo(UpdateProjectConfirmText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnUpdateProjectConfirm)));
+				Info.ButtonDetails.Add(FNotificationButtonInfo(UpdateProjectCancelText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnUpdateProjectCancel)));
+
+				if (UpdateGameProjectNotification.IsValid())
 				{
-					FText FailureReason;
-					if (IProjectManager::Get().UpdateLoadedProjectFileToCurrent(NULL, FailureReason))
-					{
-						bHaveUpdatedProject = true;
-					}
-					else
-					{
-						UE_LOG(LogGameProjectGeneration, Error, TEXT("Failed to auto-update project file %s"), *LoadedProjectFilePath, *FailureReason.ToString());
-					}
+					UpdateGameProjectNotification.Pin()->ExpireAndFadeout();
+					UpdateGameProjectNotification.Reset();
 				}
 
-				// Otherwise, fall back to prompting
-				if (!bHaveUpdatedProject)
+				UpdateGameProjectNotification = FSlateNotificationManager::Get().AddNotification(Info);
+
+				if (UpdateGameProjectNotification.IsValid())
 				{
-					const FText UpdateProjectText = LOCTEXT("UpdateProjectFilePrompt", "The project file you have loaded is not up to date. Would you like to update it now?");
-					const FText UpdateProjectConfirmText = LOCTEXT("UpdateProjectFileConfirm", "Update");
-					const FText UpdateProjectCancelText = LOCTEXT("UpdateProjectFileCancel", "Not Now");
-
-					FNotificationInfo Info(UpdateProjectText);
-					Info.bFireAndForget = false;
-					Info.bUseLargeFont = false;
-					Info.bUseThrobber = false;
-					Info.bUseSuccessFailIcons = false;
-					Info.FadeOutDuration = 3.f;
-					Info.ButtonDetails.Add(FNotificationButtonInfo(UpdateProjectConfirmText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnUpdateProjectConfirm)));
-					Info.ButtonDetails.Add(FNotificationButtonInfo(UpdateProjectCancelText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnUpdateProjectCancel)));
-
-					if (UpdateGameProjectNotification.IsValid())
-					{
-						UpdateGameProjectNotification.Pin()->ExpireAndFadeout();
-						UpdateGameProjectNotification.Reset();
-					}
-
-					UpdateGameProjectNotification = FSlateNotificationManager::Get().AddNotification(Info);
-
-					if (UpdateGameProjectNotification.IsValid())
-					{
-						UpdateGameProjectNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
-					}
+					UpdateGameProjectNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
 				}
 			}
 		}
 	}
 }
 
-bool GameProjectUtils::UpdateGameProject()
+bool GameProjectUtils::UpdateGameProject(const FString& EngineIdentifier)
 {
 	const FString& ProjectFilename = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
 	if ( !ProjectFilename.IsEmpty() )
 	{
 		FProjectStatus ProjectStatus;
-		if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, ProjectStatus) )
+		if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, EngineIdentifier, ProjectStatus) )
 		{
 			if ( ProjectStatus.bUpToDate )
 			{
@@ -448,7 +430,7 @@ bool GameProjectUtils::UpdateGameProject()
 			{
 				FText FailReason;
 				bool bWasCheckedOut = false;
-				if ( !UpdateGameProjectFile(ProjectFilename, NULL, bWasCheckedOut, FailReason) )
+				if ( !UpdateGameProjectFile(ProjectFilename, EngineIdentifier, NULL, bWasCheckedOut, FailReason) )
 				{
 					// The user chose to update, but the update failed. Notify the user.
 					UE_LOG(LogGameProjectGeneration, Error, TEXT("%s failed to update. %s"), *ProjectFilename, *FailReason.ToString() );
@@ -633,7 +615,7 @@ bool GameProjectUtils::GenerateProjectFromScratch(const FString& NewProjectFile,
 	// Generate the project file
 	{
 		FText LocalFailReason;
-		if ( IProjectManager::Get().GenerateNewProjectFile(NewProjectFile, StartupModuleNames, LocalFailReason) )
+		if (IProjectManager::Get().GenerateNewProjectFile(NewProjectFile, StartupModuleNames, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
 		{
 			CreatedFiles.Add(NewProjectFile);
 		}
@@ -833,10 +815,10 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 		}
 		else
 		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("SrcFilename"), FText::FromString( SrcFilename ) );
-			Args.Add( TEXT("DestFilename"), FText::FromString( DestFilename ) );
-			OutFailReason = FText::Format( LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), Args );
+			FFormatNamedArguments FailArgs;
+			FailArgs.Add(TEXT("SrcFilename"), FText::FromString(SrcFilename));
+			FailArgs.Add(TEXT("DestFilename"), FText::FromString(DestFilename));
+			OutFailReason = FText::Format(LOCTEXT("FailedToCopyFile", "Failed to copy \"{SrcFilename}\" to \"{DestFilename}\"."), FailArgs);
 			DeleteCreatedFiles(DestFolder, CreatedFiles);
 			return false;
 		}
@@ -1002,7 +984,7 @@ bool GameProjectUtils::CreateProjectFromTemplate(const FString& NewProjectFile, 
 	// Generate the project file
 	{
 		FText LocalFailReason;
-		if ( IProjectManager::Get().DuplicateProjectFile(TemplateFile, NewProjectFile, LocalFailReason) )
+		if (IProjectManager::Get().DuplicateProjectFile(TemplateFile, NewProjectFile, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), LocalFailReason))
 		{
 			CreatedFiles.Add(NewProjectFile);
 		}
@@ -1484,7 +1466,12 @@ bool GameProjectUtils::WriteOutputFile(const FString& OutputFilename, const FStr
 
 FString GameProjectUtils::MakeCopyrightLine()
 {
-	return FString(TEXT("// ")) + Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->CopyrightNotice;
+	if(FEngineBuildSettings::IsInternalBuild())
+	{
+		return FString(TEXT("// ")) + Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->CopyrightNotice;
+	}
+
+	return "";
 }
 
 FString GameProjectUtils::MakeCommaDelimitedList(const TArray<FString>& InList, bool bPlaceQuotesAroundEveryElement)
@@ -1670,13 +1657,22 @@ bool GameProjectUtils::GenerateGameResourceFile(const FString& NewResourceFolder
 	
 	FString OutputFilename = TemplateFilename.Replace(TEXT("_GAME_NAME_"), *GameName);
 	FString FullOutputFilename = NewResourceFolderName / OutputFilename;
-	if (WriteOutputFile(FullOutputFilename, FinalOutput, OutFailReason))
-	{
-		OutCreatedFiles.Add(FullOutputFilename);
-		return true;
-	}
 
-	return false;
+	struct Local
+	{
+		static bool WriteFile(const FString& InDestFile, const FText& InFileDescription, FText& OutFailureReason, FString* InFileContents, TArray<FString>* OutCreatedFileList)
+		{
+			if (WriteOutputFile(InDestFile, *InFileContents, OutFailureReason))
+			{
+				OutCreatedFileList->Add(InDestFile);
+				return true;
+			}
+
+			return false;
+		}
+	};
+
+	return SourceControlHelpers::CheckoutOrMarkForAdd(FullOutputFilename, LOCTEXT("ResourceFileDescription", "resource"), FOnPostCheckOut::CreateStatic(&Local::WriteFile, &FinalOutput, &OutCreatedFiles), OutFailReason);
 }
 
 bool GameProjectUtils::GenerateGameResourceFiles(const FString& NewResourceFolderName, const FString& GameName, TArray<FString>& OutCreatedFiles, FText& OutFailReason)
@@ -1692,8 +1688,8 @@ bool GameProjectUtils::GenerateGameResourceFiles(const FString& NewResourceFolde
 	FString FullTemplateFilename = FPaths::EngineContentDir() / TEXT("Editor") / TEXT("Templates") / TemplateFilename;
 	FString OutputFilename = TemplateFilename.Replace(*IconPartialName, *GameName);
 	FString FullOutputFilename = NewResourceFolderName / OutputFilename;
-	bSucceeded &= (IFileManager::Get().Copy(*FullOutputFilename, *FullTemplateFilename) == COPY_OK);
-	if (bSucceeded)
+	bSucceeded &= SourceControlHelpers::CopyFileUnderSourceControl(FullOutputFilename, FullTemplateFilename, LOCTEXT("IconFileDescription", "icon"), OutFailReason);
+	if(bSucceeded)
 	{
 		OutCreatedFiles.Add(FullOutputFilename);
 	}
@@ -1782,7 +1778,7 @@ void GameProjectUtils::UpdateProject(const TArray<FString>* StartupModuleNames)
 	FText UpdateMessage;
 	SNotificationItem::ECompletionState NewCompletionState;
 	bool bWasCheckedOut = false;
-	if ( UpdateGameProjectFile(ProjectFilename, StartupModuleNames, bWasCheckedOut, FailReason) )
+	if ( UpdateGameProjectFile(ProjectFilename, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), StartupModuleNames, bWasCheckedOut, FailReason) )
 	{
 		// The project was updated successfully.
 		FFormatNamedArguments Args;
@@ -1823,7 +1819,7 @@ void GameProjectUtils::OnUpdateProjectCancel()
 	}
 }
 
-bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason)
+bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, const FString& EngineIdentifier, const TArray<FString>* StartupModuleNames, bool& OutbWasCheckedOut, FText& OutFailReason)
 {
 	// First attempt to check out the file if SCC is enabled
 	if ( ISourceControlModule::Get().IsEnabled() )
@@ -1851,7 +1847,7 @@ bool GameProjectUtils::UpdateGameProjectFile(const FString& ProjectFilename, con
 	}
 
 	// Now tell the project manager to update the file
-	if ( !IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, OutFailReason) )
+	if (!IProjectManager::Get().UpdateLoadedProjectFileToCurrent(StartupModuleNames, EngineIdentifier, OutFailReason))
 	{
 		return false;
 	}

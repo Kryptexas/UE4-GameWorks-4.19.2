@@ -34,11 +34,6 @@ UGameNetworkManagerSettings::UGameNetworkManagerSettings( const class FPostConst
 { }
 
 
-UGameMapsSettings::UGameMapsSettings( const class FPostConstructInitializeProperties& PCIP )
-	: Super(PCIP)
-{ }
-
-
 UGameSessionSettings::UGameSessionSettings( const class FPostConstructInitializeProperties& PCIP )
 	: Super(PCIP)
 { }
@@ -60,6 +55,14 @@ UHudSettings::UHudSettings( const class FPostConstructInitializeProperties& PCIP
 
 /* Static functions
  *****************************************************************************/
+
+UGameMapsSettings::UGameMapsSettings(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+	, bUseSplitscreen(true)
+	, TwoPlayerSplitscreenLayout(ETwoPlayerSplitScreenType::Horizontal)
+	, ThreePlayerSplitscreenLayout(EThreePlayerSplitScreenType::FavorTop)
+{ 
+}
 
 const FString& UGameMapsSettings::GetGameDefaultMap( )
 {

@@ -372,7 +372,7 @@ namespace MarkdownSharp.EpicMarkdown
                 Hash.FromAnonymousObject(
                     new
                         {
-                            imagePath = Path.GetPath(data),
+                            imagePath = Path.GetPath(data).Replace("\\", "/"),
                             imageAlt = Alt,
                             imageTitle = !String.IsNullOrEmpty(Title) ? Markdown.EscapeBoldItalic(Title) : null,
                         });

@@ -36,6 +36,15 @@ class IReceiveMessages
 public:
 
 	/**
+	 * Gets the recipient's name (for debugging purposes).
+	 *
+	 * @return The debug name.
+	 *
+	 * @see GetRecipientId
+	 */
+	virtual FName GetDebugName( ) const = 0;
+
+	/**
 	 * Gets the recipient's unique identifier (for debugging purposes).
 	 *
 	 * @return The recipient's identifier.
@@ -43,20 +52,6 @@ public:
 	 * @see GetRecipientName
 	 */
 	virtual const FGuid& GetRecipientId( ) const = 0;
-
-	/**
-	 * Gets the recipient's name (for debugging purposes).
-	 *
-	 * A single recipient can be bound to multiple message addresses, so we pass the address
-	 * of interest as a parameter to this method.
-	 *
-	 * @param RecipientAddress - The address that the recipient is bound to.
-	 *
-	 * @return The name.
-	 *
-	 * @see GetRecipientId
-	 */
-	virtual FName GetRecipientName( const FMessageAddress& RecipientAddress ) const = 0;
 
 	/**
 	 * Gets the name of the thread on which to receive messages.

@@ -58,7 +58,6 @@ typedef TSharedPtr<class IOnlinePresence, ESPMode::ThreadSafe> IOnlinePresencePt
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnConnectionStatusChanged, EOnlineServerConnectionStatus::Type);
 typedef FOnConnectionStatusChanged::FDelegate FOnConnectionStatusChangedDelegate;
 
-
 /**
  *	OnlineSubsystem - Series of interfaces to support communicating with various web/platform layer services
  */
@@ -82,7 +81,7 @@ public:
 		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
 		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName); 
 		return OSSModule.GetOnlineSubsystem(SubsystemName); 
-	}
+  	}
 
 	/** 
 	 * Determine if the subsystem for a given interface is already loaded
@@ -229,12 +228,13 @@ public:
 	/**
 	 * Exec handler that allows the online subsystem to process exec commands
 	 *
+	 * @param InWorld world
 	 * @param Cmd the exec command being executed
 	 * @param Ar the archive to log results to
 	 *
 	 * @return true if the handler consumed the input, false to continue searching handlers
 	 */
-	virtual bool Exec(const TCHAR* Cmd, FOutputDevice& Ar) = 0;
+	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) = 0;
 
 	/**
 	 * Called when the connection state as reported by the online platform changes
@@ -246,6 +246,26 @@ public:
 
 /** Public references to the online subsystem pointer should use this */
 typedef TSharedPtr<IOnlineSubsystem, ESPMode::ThreadSafe> IOnlineSubsystemPtr;
+
+/**
+ * Interface for creating the actual online subsystem instance for a given platform
+ * all modules must implement this
+ */
+class ONLINESUBSYSTEM_API IOnlineFactory
+{
+public:
+
+	IOnlineFactory() {}
+	virtual ~IOnlineFactory() {}
+
+	/**
+	 * Create an instance of the platform subsystem
+	 *
+	 * @param InstanceName name of this single instance of the subsystem
+	 * @return newly created and initialized online subsystem, NULL if failure
+	 */
+	virtual IOnlineSubsystemPtr CreateSubsystem(FName InstanceName) = 0;
+};
 
 /**
  * Generates a unique number based off of the current engine package

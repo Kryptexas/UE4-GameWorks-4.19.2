@@ -126,7 +126,6 @@ public:
 		int32 Millisecond;
 	};
 
-
 public:
 
 	/**
@@ -155,7 +154,6 @@ public:
 	 * @param Millisecond - The millisecond (optional).
 	 */
 	CORE_API FDateTime( int32 Year, int32 Month, int32 Day, int32 Hour = 0, int32 Minute = 0, int32 Second = 0, int32 Millisecond = 0 );
-
 
 public:
 
@@ -295,7 +293,6 @@ public:
 		return (Ticks <= Other.Ticks);
 	}
 
-
 public:
 
 	/**
@@ -409,20 +406,20 @@ public:
 	 *
 	 * @return The month.
 	 */
-	 int32 GetMonth( ) const
-	 {
-		 return ToDate().Month;
-	 }
+	int32 GetMonth( ) const
+	{
+		return ToDate().Month;
+	}
 
-	 /**
-	  * Gets the date's month of the year (January to December).
-	  *
-	  * @return Month of year.
-	  */
-	 EMonthOfYear::Type GetMonthOfYear( ) const
-	 {
-		 return static_cast<EMonthOfYear::Type>(GetMonth());
-	 }
+	/**
+	 * Gets the date's month of the year (January to December).
+	 *
+	 * @return Month of year.
+	 */
+	EMonthOfYear::Type GetMonthOfYear( ) const
+	{
+		return static_cast<EMonthOfYear::Type>(GetMonth());
+	}
 
 	/**
 	 * Gets this date's second part.
@@ -490,6 +487,17 @@ public:
 	CORE_API FDate ToDate( ) const;
 
 	/**
+	 * Returns the ISO-8601 string representation of the FDateTime.
+	 *
+	 * The resulting string assumes that the FDateTime is in UTC.
+	 * 
+	 * @return String representation.
+	 *
+	 * @see FromIso8601
+	 */
+	CORE_API FString ToIso8601( ) const;
+
+	/**
 	 * Returns the string representation of this date using a default format.
 	 *
 	 * The returned string has the following format:
@@ -498,15 +506,6 @@ public:
 	 * @return String representation.
 	 */
 	CORE_API FString ToString( ) const;
-
-	/**
-	 * Returns the ISO-8601 string representation of the FDateTime.
-	 * The resulting string assumes that the FDateTime is in UTC since this class
-	 * doesn't contain timezone offset information.
-	 * 
-	 * @return String representation.
-	 */
-	CORE_API FString ToIso8601() const;
 
 	/**
 	 * Returns the string representation of this date.
@@ -533,7 +532,6 @@ public:
 	{
 		return static_cast<int32>((Ticks - FDateTime(1970, 1, 1).Ticks) / ETimespan::TicksPerSecond);
 	}
-
 
 public:
 
@@ -581,16 +579,6 @@ public:
 	{
 		return FDateTime(1970, 1, 1) + FTimespan(static_cast<int64>(UnixTime) * ETimespan::TicksPerSecond);
 	}
-
-	/**
-	 * Parses a stringified DateTime in ISO-8601 format
-	 * 
-	 * @param DateTimeString The string to be parsed
-	 * @param OutDateTime FDateTime object (in UTC) corresponding to the input string (which may have been in any timezone).
-	 *
-	 * @return success/fail
-	 */
-	static CORE_API bool FromIso8601( const TCHAR* DateTimeString, FDateTime* OutDateTime );
 
 	/**
 	 * Checks whether the given year is a leap year.
@@ -657,6 +645,18 @@ public:
 	static CORE_API bool Parse( const FString& DateTimeString, FDateTime& OutDateTime );
 
 	/**
+	 * Parses a date string in ISO-8601 format.
+	 * 
+	 * @param DateTimeString The string to be parsed
+	 * @param OutDateTime FDateTime object (in UTC) corresponding to the input string (which may have been in any timezone).
+	 *
+	 * @return true if the string was converted successfully, false otherwise.
+	 *
+	 * @see ToIso8601
+	 */
+	static CORE_API bool ParseIso8601( const TCHAR* DateTimeString, FDateTime& OutDateTime );
+
+	/**
 	 * Gets the local date on this computer.
 	 *
 	 * The time component is set to 00:00:00
@@ -674,7 +674,6 @@ public:
 	 * @return Current date and time.
 	 */
 	static CORE_API FDateTime UtcNow( );
-
 
 public:
 
@@ -727,7 +726,6 @@ public:
 	 */
 	CORE_API bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, class UObject* Parent, FOutputDevice* ErrorText );
 
-
 protected:
 
 	/**
@@ -739,7 +737,6 @@ protected:
 	 * Holds the cumulative days per month in a non-leap year.
 	 */
 	static const int32 DaysToMonth[];
-
 
 public:
 

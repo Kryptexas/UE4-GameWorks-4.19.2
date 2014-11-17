@@ -208,10 +208,6 @@ class ENGINE_API AWorldSettings : public AInfo
 	UPROPERTY(transient, replicated)
 	float WorldGravityZ;
 
-	// default gravity (game specific) - set in defaultgame.ini
-	UPROPERTY(globalconfig)
-	float DefaultGravityZ;
-
 	// optional level specific gravity override set by level designer
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, meta=(editcondition = "bGlobalGravitySet"))
 	float GlobalGravityZ;

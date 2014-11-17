@@ -85,20 +85,25 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 	FString OutputFilename;
 	FString TemplateFolder;
 	FString OutputFolder;
+
+
 	for (int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); ++SwitchIdx)
 	{
 		const FString& Switch = Switches[SwitchIdx];
 		if ( Switch.StartsWith(TemplateFileSwitch) )
 		{
 			Switch.Split(TEXT("="), NULL, &TemplateFilename);
+			TemplateFilename = TemplateFilename.TrimQuotes();
 		}
 		else if ( Switch.StartsWith(OutputFileSwitch) )
 		{
 			Switch.Split(TEXT("="), NULL, &OutputFilename);
+			OutputFilename = OutputFilename.TrimQuotes();
 		}
 		else if ( Switch.StartsWith(TemplateFolderSwitch) )
 		{
 			Switch.Split(TEXT("="), NULL, &TemplateFolder);
+			TemplateFolder = TemplateFolder.TrimQuotes();
 			FPaths::NormalizeFilename(TemplateFolder);
 			if ( !TemplateFolder.EndsWith(TEXT("/")) )
 			{
@@ -109,6 +114,7 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 		else if ( Switch.StartsWith(OutputFolderSwitch) )
 		{
 			Switch.Split(TEXT("="), NULL, &OutputFolder);
+			OutputFolder = OutputFolder.TrimQuotes();
 			FPaths::NormalizeFilename(OutputFolder);
 			if ( !OutputFolder.EndsWith(TEXT("/")) )
 			{
@@ -118,31 +124,44 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 		}
 	}
 
-	if ( TemplateFilename.IsEmpty() || OutputFilename.IsEmpty() )
+	if ( OutputFilename.IsEmpty() )
 	{
-		UE_LOG(LogGenerateDistillFileSetsCommandlet, Error, TEXT("You must supply a -Template=TemplateFilename and -Output=OutputFilename. These files are relative to the Game/Build directory."));
+		UE_LOG(LogGenerateDistillFileSetsCommandlet, Error, TEXT("You must supply -Output=OutputFilename. These files are relative to the Game/Build directory."));
 		return 1;
 	}
-
-	// If no folder was specified, filenames are relative to the build dir.
-	if ( TemplateFolder.IsEmpty() )
-	{
-		TemplateFolder = FPaths::GameDir() + TEXT("Build/");
-	}
-	if ( OutputFolder.IsEmpty() )
+	if (OutputFolder.IsEmpty())
 	{
 		OutputFolder = FPaths::GameDir() + TEXT("Build/");
 	}
-	TemplateFilename = TemplateFolder + TemplateFilename;
 	OutputFilename = OutputFolder + OutputFilename;
 
+	bool bSimpleTxtOutput = false;
 	// Load the template file
 	FString TemplateFileContents;
-	if ( !FFileHelper::LoadFileToString(TemplateFileContents, *TemplateFilename) )
+
+	if (TemplateFilename.IsEmpty())
 	{
-		UE_LOG(LogGenerateDistillFileSetsCommandlet, Error, TEXT("Failed to load template file '%s'"), *TemplateFilename);
-		return 1;
+		UE_LOG(LogGenerateDistillFileSetsCommandlet, Log, TEXT("No template specified, assuming a simple txt output."));
+		bSimpleTxtOutput = true;
 	}
+	// If no folder was specified, filenames are relative to the build dir.
+	else 
+	{
+		if (TemplateFolder.IsEmpty())
+		{
+			TemplateFolder = FPaths::GameDir() + TEXT("Build/");
+		}
+		TemplateFilename = TemplateFolder + TemplateFilename;
+
+		if (!FFileHelper::LoadFileToString(TemplateFileContents, *TemplateFilename))
+		{
+			UE_LOG(LogGenerateDistillFileSetsCommandlet, Error, TEXT("Failed to load template file '%s'"), *TemplateFilename);
+			return 1;
+		}
+	}
+
+
+
 
 	// Form a full unique package list
 	TSet<FString> AllPackageNames;
@@ -186,11 +205,17 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 				AllPackageNames.Add(Package->GetName());
 
 				UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT( "Finding content referenced by %s..." ), *MapPackage );
-				for ( FObjectIterator ObjIt; ObjIt; ++ObjIt )
+				TArray<UObject *> ObjectsInOuter;
+				GetObjectsWithOuter(NULL, ObjectsInOuter, false);
+				for (int32 Index = 0; Index < ObjectsInOuter.Num(); Index++)
 				{
-					AllPackageNames.Add(ObjIt->GetOutermost()->GetName());
+					FString OtherName = ObjectsInOuter[Index]->GetOutermost()->GetName();
+					if (!AllPackageNames.Contains(OtherName))
+					{
+						AllPackageNames.Add(OtherName);
+						UE_LOG(LogGenerateDistillFileSetsCommandlet, Log, TEXT("Package: %s"), *OtherName);
+					}
 				}
-
 				UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT( "Collecting garbage..." ) );
 				CollectGarbage(RF_Native);
 			}
@@ -212,20 +237,41 @@ int32 UGenerateDistillFileSetsCommandlet::Main( const FString& InParams )
 		{
 			const FString PathWithoutRoot( PackageName.Mid( 5 ) );
 			const FString FileSetPath = FileSetPathRoot + PathWithoutRoot;
-			AllFileSets += FString::Printf( TEXT("<FileSet Path=\"%s.*\" bIsRecursive=\"false\"/>") LINE_TERMINATOR, *FileSetPath );
+			if (bSimpleTxtOutput)
+			{
+				FString ActualFile;
+				if (FPackageName::DoesPackageExist(PackageName, NULL, &ActualFile))
+				{
+					ActualFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ActualFile);
+					AllFileSets += FString::Printf(TEXT("%s") LINE_TERMINATOR, *ActualFile);
+					UE_LOG(LogGenerateDistillFileSetsCommandlet, Log, TEXT("File: %s"), *ActualFile);
+				}
+			}
+			else
+			{
+				AllFileSets += FString::Printf(TEXT("<FileSet Path=\"%s.*\" bIsRecursive=\"false\"/>") LINE_TERMINATOR, *FileSetPath);
+			}
 		}
 	}
 
 	// Write the output file
-	FString OutputFileContents = TemplateFileContents.Replace(TEXT("%INSTALLEDCONTENTFILESETS%"), *AllFileSets, ESearchCase::CaseSensitive);
-	if ( FApp::HasGameName() )
+	FString OutputFileContents;
+	if (bSimpleTxtOutput)
 	{
-		UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT( "Replacing %%GAMENAME%% with (%s)..." ), FApp::GetGameName() );
-		OutputFileContents = OutputFileContents.Replace(TEXT("%GAMENAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
+		OutputFileContents = AllFileSets;
 	}
 	else
 	{
-		UE_LOG(LogGenerateDistillFileSetsCommandlet, Warning, TEXT("Failed to replace %%GAMENAME%% since we are running without a game name."));
+		OutputFileContents = TemplateFileContents.Replace(TEXT("%INSTALLEDCONTENTFILESETS%"), *AllFileSets, ESearchCase::CaseSensitive);
+		if (FApp::HasGameName())
+		{
+			UE_LOG(LogGenerateDistillFileSetsCommandlet, Display, TEXT("Replacing %%GAMENAME%% with (%s)..."), FApp::GetGameName());
+			OutputFileContents = OutputFileContents.Replace(TEXT("%GAMENAME%"), FApp::GetGameName(), ESearchCase::CaseSensitive);
+		}
+		else
+		{
+			UE_LOG(LogGenerateDistillFileSetsCommandlet, Warning, TEXT("Failed to replace %%GAMENAME%% since we are running without a game name."));
+		}
 	}
 
 	if ( !FFileHelper::SaveStringToFile(OutputFileContents, *OutputFilename) )

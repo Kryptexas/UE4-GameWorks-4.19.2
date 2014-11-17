@@ -127,8 +127,12 @@ private:
 	/** Whether or not this track is selected in the editor. */
 	UPROPERTY(transient)
 	uint32 bIsSelected:1;
-
+	
 public:
+	
+	UPROPERTY(transient)
+	UTexture2D* TrackIcon;
+
 	/** If true, the  AActor  this track is working on will have BeginAnimControl/FinishAnimControl called on it. */
 	UPROPERTY()
 	uint32 bIsAnimControlTrack:1;

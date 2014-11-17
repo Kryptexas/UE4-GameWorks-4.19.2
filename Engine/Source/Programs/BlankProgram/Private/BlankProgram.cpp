@@ -8,7 +8,8 @@
 DEFINE_LOG_CATEGORY_STATIC(LogBlankProgram, Log, All);
 
 IMPLEMENT_APPLICATION(BlankProgram, "BlankProgram");
-int32 main(int32 ArgC, char* ArgV[])
+
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	GEngineLoop.PreInit(ArgC, ArgV);
 	UE_LOG(LogBlankProgram, Display, TEXT("Hello World"));

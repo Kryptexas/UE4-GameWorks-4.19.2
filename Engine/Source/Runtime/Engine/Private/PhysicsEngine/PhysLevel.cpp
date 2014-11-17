@@ -33,10 +33,15 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 {
 	StartPhysicsTickFunction.Target = this;
 	EndPhysicsTickFunction.Target = this;
+	StartClothTickFunction.Target = this;
+	EndClothTickFunction.Target = this;
+	
 	
 	// see if we need to update tick registration
 	bool bNeedToUpdateTickRegistration = (bShouldSimulatePhysics != StartPhysicsTickFunction.IsTickFunctionRegistered())
-		|| (bShouldSimulatePhysics != EndPhysicsTickFunction.IsTickFunctionRegistered());
+		|| (bShouldSimulatePhysics != EndPhysicsTickFunction.IsTickFunctionRegistered())
+		|| (bShouldSimulatePhysics != StartClothTickFunction.IsTickFunctionRegistered())
+		|| (bShouldSimulatePhysics != EndClothTickFunction.IsTickFunctionRegistered());
 
 	if (bNeedToUpdateTickRegistration && PersistentLevel)
 	{
@@ -60,6 +65,29 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 		{
 			EndPhysicsTickFunction.RemovePrerequisite(this, StartPhysicsTickFunction);
 			EndPhysicsTickFunction.UnRegisterTickFunction();
+		}
+
+		//cloth
+		if (bShouldSimulatePhysics && !StartClothTickFunction.IsTickFunctionRegistered())
+		{
+			StartClothTickFunction.TickGroup = TG_StartCloth;
+			StartClothTickFunction.RegisterTickFunction(PersistentLevel);
+		}
+		else if (!bShouldSimulatePhysics && StartClothTickFunction.IsTickFunctionRegistered())
+		{
+			StartClothTickFunction.UnRegisterTickFunction();
+		}
+
+		if (bShouldSimulatePhysics && !EndClothTickFunction.IsTickFunctionRegistered())
+		{
+			EndClothTickFunction.TickGroup = TG_EndCloth;
+			EndClothTickFunction.RegisterTickFunction(PersistentLevel);
+			EndClothTickFunction.AddPrerequisite(this, StartClothTickFunction);
+		}
+		else if (!bShouldSimulatePhysics && EndClothTickFunction.IsTickFunctionRegistered())
+		{
+			EndClothTickFunction.RemovePrerequisite(this, StartClothTickFunction);
+			EndClothTickFunction.UnRegisterTickFunction();
 		}
 	}
 
@@ -104,6 +132,17 @@ void UWorld::FinishPhysicsSim()
 	PhysScene->EndFrame(LineBatcher);
 }
 
+void UWorld::StartClothSim()
+{
+	FPhysScene* PhysScene = GetPhysicsScene();
+	if (PhysScene == NULL)
+	{
+		return;
+	}
+
+	PhysScene->StartCloth();
+}
+
 // the physics tick functions
 
 void FStartPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -141,6 +180,34 @@ void FEndPhysicsTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickT
 FString FEndPhysicsTickFunction::DiagnosticMessage()
 {
 	return TEXT("FEndPhysicsTickFunction");
+}
+
+void FStartClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	check(Target);
+	Target->StartClothSim();
+}
+
+FString FStartClothSimulationFunction::DiagnosticMessage()
+{
+	return TEXT("FStartClothSimulationFunction");
+}
+
+void FEndClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	//We currently have nothing to do in this tick group, but we still want to wait on cloth simulation so that PostPhysics is ensured this is done
+	check(Target);
+	FPhysScene* PhysScene = Target->GetPhysicsScene();
+	if (PhysScene == NULL)
+	{
+		return;
+	}
+	PhysScene->WaitClothScene();
+}
+
+FString FEndClothSimulationFunction::DiagnosticMessage()
+{
+	return TEXT("FStartClothSimulationFunction");
 }
 
 //////// GAME-LEVEL RIGID BODY PHYSICS STUFF ///////
@@ -198,6 +265,8 @@ void InitGamePhys()
 	//This approach facilitates mixing the use of height fields and meshes in the application with no tangible difference in collision behavior between the two approaches
 	PxRegisterUnifiedHeightFields(*GPhysXSDK);
 
+
+#if WITH_PHYSICS_COOKING
 	// Create Cooking
 	PxCookingParams PCookingParams(PScale);
 	PCookingParams.meshWeldTolerance = 0.1f; // Weld to 1mm precision
@@ -207,6 +276,7 @@ void InitGamePhys()
 	//PCookingParams.meshSizePerformanceTradeOff = 0.0f;
 	GPhysXCooking = PxCreateCooking(PX_PHYSICS_VERSION, *GPhysXFoundation, PCookingParams);
 	check(GPhysXCooking);
+#endif
 
 #if WITH_APEX
 	// Build the descriptor for the APEX SDK
@@ -316,11 +386,13 @@ void TermGamePhys()
 	}
 #endif	// #if WITH_APEX
 
+#if WITH_PHYSICS_COOKING
 	if(GPhysXCooking != NULL)
 	{
 		GPhysXCooking->release(); 
 		GPhysXCooking = NULL;
 	}
+#endif
 
 	PxCloseExtensions();
 	PxCloseVehicleSDK();

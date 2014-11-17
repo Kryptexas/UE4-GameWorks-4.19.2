@@ -45,6 +45,8 @@ private:
 	uint32 Entropy[NUM_ENTROPY_VALUES];
 	/** Last recorded entropy index */
 	uint32 LastEntropyIdx;
+	/** Last value set in the call to Encode() */
+	uint8 Generation;
 };
 
 /**
@@ -79,6 +81,8 @@ private:
 	uint32 Entropy[NUM_ENTROPY_VALUES];
 	/** Last recorded entropy index */
 	uint32 LastEntropyIdx;
+	/** Generation value received from the last incoming packet */
+	uint8 LastGeneration;
 };
 
 #endif // PLATFORM_SUPPORTS_VOICE_CAPTURE

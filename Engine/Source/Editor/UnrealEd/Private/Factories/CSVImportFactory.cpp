@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 
-#include "Mainframe.h"
+#include "MainFrame.h"
 #include "ModuleManager.h"
 #include "DirectoryWatcherModule.h"
 #include "../../../DataTableEditor/Public/IDataTableEditor.h"

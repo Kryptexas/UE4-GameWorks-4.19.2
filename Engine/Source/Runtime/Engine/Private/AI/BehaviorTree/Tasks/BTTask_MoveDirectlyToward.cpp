@@ -15,7 +15,7 @@ UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const class FPostConstruc
 	BlackboardKey.AddVectorFilter(this);
 }
 
-EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
 	FBTMoveDirectlyTowardMemory* MyMemory = (FBTMoveDirectlyTowardMemory*)NodeMemory;
@@ -28,7 +28,7 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(class UBehaviorTreeC
 
 		if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 		{
-			UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.SelectedKeyID);
+			UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.GetSelectedKeyID());
 			AActor* TargetActor = Cast<AActor>(KeyValue);
 			if (TargetActor)
 			{
@@ -39,7 +39,7 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(class UBehaviorTreeC
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 		{
-			const FVector TargetLocation = MyBlackboard->GetValueAsVector(BlackboardKey.SelectedKeyID);
+			const FVector TargetLocation = MyBlackboard->GetValueAsVector(BlackboardKey.GetSelectedKeyID());
 			RequestResult = MyController->MoveToLocation(TargetLocation, AcceptableRadius, /*bStopOnOverlap=*/true, /*bUsePathfinding=*/false, /*bProjectDestinationToNavigation=*/bProjectVectorGoalToNavigation, bAllowStrafe);
 		}
 
@@ -61,7 +61,7 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(class UBehaviorTreeC
 	return NodeResult;
 }
 
-EBTNodeResult::Type UBTTask_MoveDirectlyToward::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_MoveDirectlyToward::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	FBTMoveDirectlyTowardMemory* MyMemory = (FBTMoveDirectlyTowardMemory*)NodeMemory;
 	AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
@@ -95,7 +95,7 @@ void UBTTask_MoveDirectlyToward::DescribeRuntimeValues(const class UBehaviorTree
 
 	if (MyMemory->MoveRequestID && BlackboardComp)
 	{
-		FString KeyValue = BlackboardComp->DescribeKeyValue(BlackboardKey.SelectedKeyID, EBlackboardDescription::OnlyValue);
+		FString KeyValue = BlackboardComp->DescribeKeyValue(BlackboardKey.GetSelectedKeyID(), EBlackboardDescription::OnlyValue);
 		Values.Add(FString::Printf(TEXT("move target: %s"), *KeyValue));
 	}
 }

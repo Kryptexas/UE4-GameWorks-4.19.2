@@ -79,7 +79,7 @@ private:
 	FReply CreateNewLayer(const FWorldTileLayer& NewLayer);
 
 	// Grid view top status bar
-	FString GetZoomText() const;
+	FText GetZoomText() const;
 	FString	GetCurrentOriginText() const;
 	FString GetCurrentLevelText() const;
 

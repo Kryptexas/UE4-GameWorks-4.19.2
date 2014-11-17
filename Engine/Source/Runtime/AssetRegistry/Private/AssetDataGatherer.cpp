@@ -3,11 +3,15 @@
 #include "AssetRegistryPCH.h"
 
 #define MAX_FILES_TO_PROCESS_BEFORE_FLUSH 250
+#define CACHE_SERIALIZATION_VERSION 1
 
-FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInIsSynchronous)
+FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInIsSynchronous, bool bInLoadAndSaveCache)
 	: StopTaskCounter( 0 )
 	, bIsSynchronous( bInIsSynchronous )
 	, SearchStartTime( 0 )
+	, bLoadAndSaveCache( bInLoadAndSaveCache )
+	, bSavedCacheAfterInitialDiscovery( false )
+	, DiskCachedAssetDataBuffer( NULL )
 {
 	const FString AllIllegalCharacters = INVALID_LONGPACKAGE_CHARACTERS;
 	for ( int32 CharIdx = 0; CharIdx < AllIllegalCharacters.Len() ; ++CharIdx )
@@ -19,6 +23,8 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInI
 
 	bGatherDependsData = GIsEditor && !FParse::Param( FCommandLine::Get(), TEXT("NoDependsGathering") );
 
+	CacheFilename = FPaths::GameIntermediateDir() / TEXT("CachedAssetRegistry.bin");
+
 	if ( bIsSynchronous )
 	{
 		Run();
@@ -29,6 +35,24 @@ FAssetDataGatherer::FAssetDataGatherer(const TArray<FString>& InPaths, bool bInI
 	}
 }
 
+FAssetDataGatherer::~FAssetDataGatherer()
+{
+	NewCachedAssetDataMap.Empty();
+	DiskCachedAssetDataMap.Empty();
+
+	if ( DiskCachedAssetDataBuffer )
+	{
+		delete[] DiskCachedAssetDataBuffer;
+		DiskCachedAssetDataBuffer = NULL;
+	}
+
+	for ( auto CacheIt = NewCachedAssetData.CreateConstIterator(); CacheIt; ++CacheIt )
+	{
+		delete (*CacheIt);
+	}
+	NewCachedAssetData.Empty();
+}
+
 bool FAssetDataGatherer::Init()
 {
 	return true;
@@ -36,6 +60,16 @@ bool FAssetDataGatherer::Init()
 
 uint32 FAssetDataGatherer::Run()
 {
+	if ( bLoadAndSaveCache )
+	{
+		// load the cached data
+		FNameTableArchiveReader CachedAssetDataReader;
+		if (CachedAssetDataReader.LoadFile(*CacheFilename, CACHE_SERIALIZATION_VERSION))
+		{
+			SerializeCache(CachedAssetDataReader);
+		}
+	}
+
 	TArray<FString> LocalFilesToSearch;
 	TArray<FBackgroundAssetData*> LocalAssetResults;
 	TArray<FPackageDependencyData> LocalDependencyResults;
@@ -103,13 +137,60 @@ uint32 FAssetDataGatherer::Run()
 					break;
 				}
 
-				TArray<FBackgroundAssetData*> AssetDataFromFile;
-				FPackageDependencyData DependencyData;
-
-				if ( ReadAssetFile(AssetFile, AssetDataFromFile, DependencyData) )
+				bool bLoadedFromCache = false;
+				if ( bLoadAndSaveCache )
 				{
-					LocalAssetResults.Append(AssetDataFromFile);
-					LocalDependencyResults.Add(DependencyData);
+					const FName PackageName = FName(*FPackageName::FilenameToLongPackageName(AssetFile));
+					const FDateTime& FileTimestamp = IFileManager::Get().GetTimeStamp(*AssetFile);
+					FDiskCachedAssetData** DiskCachedAssetDataPtr = DiskCachedAssetDataMap.Find(PackageName);
+					FDiskCachedAssetData* DiskCachedAssetData = NULL;
+					if ( DiskCachedAssetDataPtr && *DiskCachedAssetDataPtr )
+					{
+						const FDateTime& CachedTimestamp = (*DiskCachedAssetDataPtr)->Timestamp;
+						if ( FileTimestamp == CachedTimestamp )
+						{
+							DiskCachedAssetData = *DiskCachedAssetDataPtr;
+						}
+					}
+
+					if ( DiskCachedAssetData )
+					{
+						for ( auto CacheIt = DiskCachedAssetData->AssetDataList.CreateConstIterator(); CacheIt; ++CacheIt )
+						{
+							LocalAssetResults.Add(new FBackgroundAssetData(*CacheIt));
+						}
+
+						LocalDependencyResults.Add(DiskCachedAssetData->DependencyData);
+
+						NewCachedAssetDataMap.Add(PackageName, DiskCachedAssetData);
+						bLoadedFromCache = true;
+					}
+				}
+
+				if ( !bLoadedFromCache )
+				{
+					TArray<FBackgroundAssetData*> AssetDataFromFile;
+					FPackageDependencyData DependencyData;
+					if ( ReadAssetFile(AssetFile, AssetDataFromFile, DependencyData) )
+					{
+						LocalAssetResults.Append(AssetDataFromFile);
+						LocalDependencyResults.Add(DependencyData);
+
+						if ( bLoadAndSaveCache )
+						{
+							// Update the cache
+							const FName PackageName = FName(*FPackageName::FilenameToLongPackageName(AssetFile));
+							const FDateTime& FileTimestamp = IFileManager::Get().GetTimeStamp(*AssetFile);
+							FDiskCachedAssetData* NewData = new FDiskCachedAssetData(PackageName, FileTimestamp);
+							for ( auto AssetIt = AssetDataFromFile.CreateConstIterator(); AssetIt; ++AssetIt )
+							{
+								NewData->AssetDataList.Add((*AssetIt)->ToAssetData());
+							}
+							NewData->DependencyData = DependencyData;
+							NewCachedAssetData.Add(NewData);
+							NewCachedAssetDataMap.Add(PackageName, NewData);
+						}
+					}
 				}
 			}
 
@@ -124,9 +205,27 @@ uint32 FAssetDataGatherer::Run()
 			}
 			else
 			{
-				FPlatformProcess::Sleep(0.01);
+				// If we are caching discovered assets and this is the first time we had no work to do, save off the cache now in case the user terminates unexpectedly
+				if (bLoadAndSaveCache && !bSavedCacheAfterInitialDiscovery)
+				{
+					FNameTableArchiveWriter CachedAssetDataWriter(CACHE_SERIALIZATION_VERSION);
+					SerializeCache(CachedAssetDataWriter);
+					CachedAssetDataWriter.SaveToFile(*CacheFilename);
+
+					bSavedCacheAfterInitialDiscovery = true;
+				}
+
+				// No work to do. Sleep for a little and try again later.
+				FPlatformProcess::Sleep(0.1);
 			}
 		}
+	}
+
+	if ( bLoadAndSaveCache )
+	{
+		FNameTableArchiveWriter CachedAssetData(CACHE_SERIALIZATION_VERSION);
+		SerializeCache(CachedAssetData);
+		CachedAssetData.SaveToFile(*CacheFilename);
 	}
 
 	return 0;
@@ -301,4 +400,42 @@ bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FBac
 	}
 
 	return true;
+}
+
+void FAssetDataGatherer::SerializeCache(FArchive& Ar)
+{
+	double SerializeStartTime = FPlatformTime::Seconds();
+
+	// serialize number of objects
+	int32 LocalNumAssets = NewCachedAssetDataMap.Num();
+	Ar << LocalNumAssets;
+
+	if (Ar.IsSaving())
+	{
+		// save out by walking the TMap
+		for (auto CacheIt = NewCachedAssetDataMap.CreateConstIterator(); CacheIt; ++CacheIt)
+		{
+			Ar << *CacheIt.Value();
+		}
+	}
+	else
+	{
+		// allocate one single block for all asset data structs (to reduce tens of thousands of heap allocations)
+		DiskCachedAssetDataMap.Empty(LocalNumAssets);
+		DiskCachedAssetDataBuffer = new FDiskCachedAssetData[LocalNumAssets];
+
+		for (int32 AssetIndex = 0; AssetIndex < LocalNumAssets; ++AssetIndex)
+		{
+			// make a new asset data object
+			FDiskCachedAssetData* NewCachedAssetDataPtr = &DiskCachedAssetDataBuffer[AssetIndex];
+
+			// load it
+			Ar << *NewCachedAssetDataPtr;
+
+			// hash it
+			DiskCachedAssetDataMap.Add(NewCachedAssetDataPtr->PackageName, NewCachedAssetDataPtr);
+		}
+	}
+
+	UE_LOG(LogAssetRegistry, Verbose, TEXT("Asset data gatherer serialized in %0.6f seconds"), FPlatformTime::Seconds() - SerializeStartTime);
 }

@@ -119,6 +119,17 @@ void AGameState::ReceivedSpectatorClass()
 	}
 }
 
+void AGameState::SeamlessTravelTransitionCheckpoint(bool bToTransitionMap)
+{
+	UWorld* World = GetWorld();
+
+	// mark all existing player states as from previous level for various bookkeeping
+	for (int32 i = 0; i < World->GameState->PlayerArray.Num(); i++)
+	{
+		World->GameState->PlayerArray[i]->bFromPreviousLevel = true;
+	}
+}
+
 void AGameState::AddPlayerState(APlayerState* PlayerState)
 {
 	// Determine whether it should go in the active or inactive list

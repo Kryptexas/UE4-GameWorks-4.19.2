@@ -77,9 +77,9 @@ FString UK2Node_AssignmentStatement::GetTooltip() const
 	return TEXT("Assigns Value to Variable");
 }
 
-FString UK2Node_AssignmentStatement::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_AssignmentStatement::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Assign");
+	return LOCTEXT("Assign", "Assign");
 }
 
 void UK2Node_AssignmentStatement::NotifyPinConnectionListChanged(UEdGraphPin* Pin)

@@ -9,7 +9,6 @@ public class Simplygon : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		Definitions.Add("WITH_SIMPLYGON=1");
 		Definitions.Add("WITH_SIMPLYGON_DLL=1");
 
 		string SimplygonPath = UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/Simplygon/Simplygon-5.5.2156/";

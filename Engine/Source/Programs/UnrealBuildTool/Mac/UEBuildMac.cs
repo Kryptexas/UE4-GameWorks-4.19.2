@@ -75,7 +75,7 @@ namespace UnrealBuildTool
 		 */
 		public override string GetDebugInfoExtension( UEBuildBinaryType InBinaryType )
 		{
-			return "";
+			return BuildConfiguration.bGeneratedSYMFile ? ".dsym" : "";
 		}
 
 		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
@@ -138,6 +138,7 @@ namespace UnrealBuildTool
 		{
 			UEBuildConfiguration.bCompileSimplygon = false;
 			UEBuildConfiguration.bCompileNetworkProfiler = false;
+			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
@@ -154,7 +155,6 @@ namespace UnrealBuildTool
 
         public override void ValidateUEBuildConfiguration()
         {
-            UEBuildConfiguration.bCompileICU = true;
         }
 
 		/**

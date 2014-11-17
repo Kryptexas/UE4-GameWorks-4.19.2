@@ -26,7 +26,7 @@ UEnvQueryTest_Distance::UEnvQueryTest_Distance(const class FPostConstructInitial
 
 	DistanceTo = UEnvQueryContext_Querier::StaticClass();
 	Cost = EEnvTestCost::Low;
-	ValidItemType = UEnvQueryItemType_LocationBase::StaticClass();
+	ValidItemType = UEnvQueryItemType_VectorBase::StaticClass();
 }
 
 void UEnvQueryTest_Distance::RunTest(struct FEnvQueryInstance& QueryInstance)
@@ -97,10 +97,10 @@ FString UEnvQueryTest_Distance::GetDescriptionTitle() const
 
 	return FString::Printf(TEXT("%s%s: to %s"), 
 		*Super::GetDescriptionTitle(), *ModeDesc,
-		*UEnvQueryTypes::DescribeContext(DistanceTo));
+		*UEnvQueryTypes::DescribeContext(DistanceTo).ToString());
 }
 
-FString UEnvQueryTest_Distance::GetDescriptionDetails() const
+FText UEnvQueryTest_Distance::GetDescriptionDetails() const
 {
 	return DescribeFloatTestParams();
 }

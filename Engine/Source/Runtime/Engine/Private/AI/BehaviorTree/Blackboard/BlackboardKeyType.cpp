@@ -23,12 +23,22 @@ FString UBlackboardKeyType::DescribeSelf() const
 	return FString();
 };
 
+void UBlackboardKeyType::Initialize(uint8* MemoryBlock) const
+{
+	// empty in base class
+}
+
 bool UBlackboardKeyType::IsAllowedByFilter(UBlackboardKeyType* FilterOb) const
 {
 	return GetClass() == (FilterOb ? FilterOb->GetClass() : NULL);
 }
 
 bool UBlackboardKeyType::GetLocation(const uint8* RawData, FVector& Location) const
+{
+	return false;
+}
+
+bool UBlackboardKeyType::GetRotation(const uint8* MemoryBlock, FRotator& Rotation) const
 {
 	return false;
 }

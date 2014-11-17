@@ -164,12 +164,24 @@ void FDragTool_ActorBoxSelect::EndDrag()
 		// Select all actors that are within the selection box area.  Be aware that certain modes do special processing below.	
 		bool bSelectionChanged = false;
 		UWorld* IteratorWorld = GWorld;
+		const TArray<FName>& HiddenLayers = LevelViewportClient->ViewHiddenLayers;
 		for( FActorIterator It(IteratorWorld); It; ++It )
 		{
 			AActor* Actor = *It;
 			
+			bool bActorIsVisible = true;
+			for ( auto Layer : Actor->Layers )
+			{
+				// Check the actor isn't in one of the layers hidden from this viewport.
+				if( HiddenLayers.Contains( Layer ) )
+				{
+					bActorIsVisible = false;
+					break;
+				}
+			}
+
 			// Select the actor if we need to
-			if( IntersectsBox( *Actor, SelBBox, bStrictDragSelection ) )
+			if( bActorIsVisible && IntersectsBox( *Actor, SelBBox, bStrictDragSelection ) )
 			{
 				GEditor->SelectActor( Actor, bShouldSelect, false );
 				bSelectionChanged = true;

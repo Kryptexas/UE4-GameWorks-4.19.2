@@ -91,6 +91,17 @@ public:
 	 */		
 	virtual const FSlateBrush* GetBrush( const FName PropertyName, const ANSICHAR* Specifier = NULL ) const = 0;
 
+	/**
+	 * Just like GetBrush, but returns DefaultBrush instead of the
+	 * "missing brush" image when the resource is not found.
+	 * 
+	 * @param PropertyName   Name of the property to get
+	 * @param Specifier      An optional string to append to the property name
+	 *
+	 * @return an FSlateBrush property.
+	 */		
+	virtual const FSlateBrush* GetOptionalBrush( const FName PropertyName, const ANSICHAR* Specifier = NULL, const FSlateBrush* const DefaultBrush = FStyleDefaults::GetNoBrush() ) const = 0;
+
 	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush( const FName BrushTemplate, const FName TextureName, const ANSICHAR* Specifier = NULL ) = 0;
 
 	virtual const TSharedPtr< FSlateDynamicImageBrush > GetDynamicImageBrush( const FName BrushTemplate, const ANSICHAR* Specifier, UTexture2D* TextureResource, const FName TextureName ) = 0;
@@ -102,17 +113,6 @@ public:
 	 * @return -	Default Slate brush value.
 	 */
 	virtual FSlateBrush* GetDefaultBrush() const = 0;
-
-	/**
-	 * Just like GetBrush, but returns an empty brush instead of the
-	 * "missing brush" image when the resource is not found.
-	 * 
-	 * @param PropertyName   Name of the property to get
-	 * @param Specifier      An optional string to append to the property name
-	 *
-	 * @return an FSlateBrush property.
-	 */		
-	virtual const FSlateBrush* GetOptionalBrush( const FName PropertyName, const ANSICHAR* Specifier = NULL ) const = 0;
 
 	/** Look up a sound property specified by PropertyName and optional Specifier. */
 	virtual const FSlateSound& GetSound( const FName PropertyName, const ANSICHAR* Specifier = NULL ) const = 0;

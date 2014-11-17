@@ -508,9 +508,8 @@ void UExporter::EmitEndObject( FOutputDevice& Ar )
 FExportObjectInnerContext::FExportObjectInnerContext()
 {
 	// For each object . . .
-	for ( TObjectIterator<UObject> It ; It ; ++It )
+	for (UObject* InnerObj : TObjectRange<UObject>(RF_ClassDefaultObject | RF_PendingKill))
 	{
-		UObject* InnerObj = *It;
 		UObject* OuterObj = InnerObj->GetOuter();
 		if ( OuterObj )
 		{
@@ -534,28 +533,24 @@ FExportObjectInnerContext::FExportObjectInnerContext()
 FExportObjectInnerContext::FExportObjectInnerContext(TArray<UObject*>& ObjsToIgnore)
 {
 	// For each object . . .
-	for ( TObjectIterator<UObject> It ; It ; ++It )
+	for (UObject* InnerObj : TObjectRange<UObject>(RF_ClassDefaultObject | RF_PendingKill))
 	{
-		UObject* InnerObj = *It;
-		if ( !InnerObj->IsPendingKill() )
+		if (!ObjsToIgnore.Contains(InnerObj))
 		{
-			if ( !ObjsToIgnore.Contains(InnerObj) )
+			UObject* OuterObj = InnerObj->GetOuter();
+			if (OuterObj && !OuterObj->IsPendingKill())
 			{
-				UObject* OuterObj = InnerObj->GetOuter();
-				if ( OuterObj && !OuterObj->IsPendingKill() )
+				InnerList* Inners = ObjectToInnerMap.Find(OuterObj);
+				if (Inners)
 				{
-					InnerList* Inners = ObjectToInnerMap.Find( OuterObj );
-					if ( Inners )
-					{
-						// Add object to existing inner list.
-						Inners->Add( InnerObj );
-					}
-					else
-					{
-						// Create a new inner list for the outer object.
-						InnerList& InnersForOuterObject = ObjectToInnerMap.Add( OuterObj, InnerList() );
-						InnersForOuterObject.Add( InnerObj );
-					}
+					// Add object to existing inner list.
+					Inners->Add(InnerObj);
+				}
+				else
+				{
+					// Create a new inner list for the outer object.
+					InnerList& InnersForOuterObject = ObjectToInnerMap.Add(OuterObj, InnerList());
+					InnersForOuterObject.Add(InnerObj);
 				}
 			}
 		}
@@ -563,65 +558,41 @@ FExportObjectInnerContext::FExportObjectInnerContext(TArray<UObject*>& ObjsToIgn
 }
 
 
-void UExporter::ExportObjectInner(const FExportObjectInnerContext* Context, UObject* Object, FOutputDevice& Ar, uint32 PortFlags, bool bSkipComponents)
+void UExporter::ExportObjectInner(const FExportObjectInnerContext* Context, UObject* Object, FOutputDevice& Ar, uint32 PortFlags)
 {
 	// indent all the text in here
 	TextIndent += 3;
 
-	FExportObjectInnerContext::InnerList ObjectInners;
-	if ( Context )
+	FExportObjectInnerContext::InnerList TempInners;
+	const FExportObjectInnerContext::InnerList* ContextInners = NULL;
+	if (Context)
 	{
-		const FExportObjectInnerContext::InnerList* Inners = Context->ObjectToInnerMap.Find( Object );
-		if ( Inners )
-		{
-			ObjectInners = *Inners;
-		}
+		ContextInners = Context->ObjectToInnerMap.Find(Object);
 	}
 	else
 	{
-		for (TObjectIterator<UObject> It; It; ++It)
-		{
-			if ( It->GetOuter() == Object )
-			{
-				ObjectInners.Add( *It );
-			}
-		}
+		// NOTE: We ignore inner objects that have been tagged for death
+		GetObjectsWithOuter(Object, TempInners, false, RF_PendingKill);
 	}
-
-
-	TArray<UObject*> Components;
-	if (!bSkipComponents)
-	{
-		// first export the components
-		Object->CollectDefaultSubobjects(Components, false);
-	}
+	const FExportObjectInnerContext::InnerList& ObjectInners = ContextInners ? *ContextInners : TempInners;
 
 	if (!(PortFlags & PPF_SeparateDefine))
 	{
-		for ( int32 ObjIndex = 0 ; ObjIndex < ObjectInners.Num() ; ++ObjIndex )
+		for (UObject* Obj : ObjectInners)
 		{
-			// NOTE: We ignore inner objects that have been tagged for death
-			UObject* Obj = ObjectInners[ObjIndex];
-			if ( !Obj->IsPendingKill() && !Obj->IsDefaultSubobject() && !Obj->HasAnyFlags(RF_TextExportTransient) && FCString::Stricmp(*Obj->GetClass()->GetName(), TEXT("Model")) != 0)
+			if (!Obj->HasAnyFlags(RF_TextExportTransient) && Obj->GetClass() != UModel::StaticClass())
 			{
 				// export the object
 				UExporter::ExportToOutputDevice( Context, Obj, NULL, Ar, (PortFlags & PPF_Copy) ? TEXT("Copy") : TEXT("T3D"), TextIndent, PortFlags | PPF_SeparateDeclare, false, ExportRootScope );
 			}
 		}
-
-		if (!bSkipComponents)
-		{
-			ExportComponentDefinitions(Context, Components, Ar, PortFlags | PPF_SeparateDeclare);
-		}
 	}
 
 	if (!(PortFlags & PPF_SeparateDeclare))
 	{
-		for ( int32 ObjIndex = 0 ; ObjIndex < ObjectInners.Num() ; ++ObjIndex )
+		for (UObject* Obj : ObjectInners)
 		{
-			// NOTE: We ignore inner objects that have been tagged for death
-			UObject* Obj = ObjectInners[ObjIndex];
-			if ( !Obj->IsPendingKill() && !Obj->IsDefaultSubobject() && !Obj->HasAnyFlags(RF_TextExportTransient) && FCString::Stricmp(*Obj->GetClass()->GetName(), TEXT("Model")) != 0)
+			if (!Obj->HasAnyFlags(RF_TextExportTransient) && Obj->GetClass() != UModel::StaticClass())
 			{
 				// export the object
 				UExporter::ExportToOutputDevice( Context, Obj, NULL, Ar, (PortFlags & PPF_Copy) ? TEXT("Copy") : TEXT("T3D"), TextIndent, PortFlags | PPF_SeparateDefine, false, ExportRootScope );
@@ -629,11 +600,6 @@ void UExporter::ExportObjectInner(const FExportObjectInnerContext* Context, UObj
 				// don't reexport below in ExportProperties
 				Obj->Mark(OBJECTMARK_TagImp);
 			}
-		}
-
-		if (!bSkipComponents)
-		{
-			ExportComponentDefinitions(Context, Components, Ar, PortFlags | PPF_SeparateDefine);
 		}
 
 		// export the object's properties
@@ -650,78 +616,18 @@ void UExporter::ExportObjectInner(const FExportObjectInnerContext* Context, UObj
 		}
 		ExportProperties( Context, Ar, Object->GetClass(), (uint8*)Object, TextIndent, Object->GetClass(), CompareObject, Object, PortFlags, ExportRootScope );
 
-		if (!bSkipComponents)
+		if (AActor* Actor = Cast<AActor>(Object))
 		{
 			// Export anything extra for the components. Used for instanced foliage.
 			// This is done after the actor properties so these are set when regenerating the extra data objects.
-			ExportComponentExtra( Context, Components, Ar, PortFlags );
+			TArray<UActorComponent*> Components;
+			Actor->GetComponents(Components);
+			ExportComponentExtra(Context, Components, Ar, PortFlags);
 		}
 	}
 
 	// remove indent
 	TextIndent -= 3;
-}
-
-
-void UExporter::ExportComponentDefinitions(const FExportObjectInnerContext* Context, const TArray<UObject*>& Components, FOutputDevice& Ar, uint32 PortFlags)
-{
-	PortFlags |= PPF_ExportsNotFullyQualified;
-
-	if (!(PortFlags & PPF_SeparateDefine))
-	{
-		// export forward declarations
-		// technically we only need to do this if there are circular references but it doesn't seem worth it
-		// to complicate this code for a minor speed improvement in the text import path
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			UObject* Component = Components[ComponentIndex];
-			FName ComponentName = Component->GetFName();
-			if (!Component->HasAnyMarks(OBJECTMARK_TagImp) && !Component->HasAnyFlags(RF_TextExportTransient))
-			{
-				if (Component->HasAnyFlags(RF_ClassDefaultObject) || Component->GetArchetype()->HasAllFlags(RF_ClassDefaultObject))
-				{
-					Ar.Logf(TEXT("%sBegin Object Class=%s Name=%s ObjName=%s%s"), FCString::Spc(TextIndent), *Component->GetClass()->GetName(), *ComponentName.ToString(), *Component->GetName(), LINE_TERMINATOR);
-				}
-				else
-				{
-					Ar.Logf(TEXT("%sBegin Object Class=%s Name=%s ObjName=%s Archetype=%s'%s'%s"),FCString::Spc(TextIndent),*Component->GetClass()->GetName(), *ComponentName.ToString(), *Component->GetName(), *Component->GetArchetype()->GetClass()->GetName(), *Component->GetArchetype()->GetPathName(), LINE_TERMINATOR);
-				}
-				if (PortFlags & PPF_SeparateDeclare)
-				{
-					ExportObjectInner(Context, Component, Ar, PortFlags, false);
-				}
-				Ar.Logf(TEXT("%sEnd Object%s"), FCString::Spc(TextIndent), LINE_TERMINATOR);
-			}
-		}
-	}
-
-	if (!(PortFlags & PPF_SeparateDeclare))
-	{
-		// export property definitions
-		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
-		{
-			UObject* Component = Components[ComponentIndex];
-			FName ComponentName = Component->GetFName();
-			if (!Component->HasAnyMarks(OBJECTMARK_TagImp) && !Component->HasAnyFlags(RF_TextExportTransient))
-			{
-				Ar.Logf(TEXT("%sBegin Object Name=%s%s"), FCString::Spc(TextIndent), *ComponentName.ToString(), LINE_TERMINATOR);
-
-				uint32 OldPortFlags = PortFlags;
-
-				if (!(Component->HasAnyFlags(RF_ClassDefaultObject) || Component->GetArchetype()->HasAllFlags(RF_ClassDefaultObject)))
-				{
-					// we created this thing with an archetype (see archetype=, above), so we don't want to list the archetype because it is unqualified and will clash, resetting the archetype pointer to something silly
-					PortFlags |= PPF_NoInternalArcheType;
-				}
-				ExportObjectInner(Context, Component, Ar, PortFlags, false);
-
-				PortFlags = OldPortFlags;
-				Ar.Logf(TEXT("%sEnd Object%s"), FCString::Spc(TextIndent), LINE_TERMINATOR);
-
-				Component->Mark(OBJECTMARK_TagImp);
-			}
-		}
-	}
 }
 
 /**

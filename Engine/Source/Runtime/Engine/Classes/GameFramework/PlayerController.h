@@ -387,6 +387,16 @@ public:
 	virtual void ToggleSpeaking(bool bSpeaking);
 
 	/**
+	 * Tells the client that the server has all the information it needs and that it
+	 * is ok to start sending voice packets. The server will already send voice packets
+	 * when this function is called, since it is set server side and then forwarded
+	 *
+	 * NOTE: This is done as an RPC instead of variable replication because ordering matters
+	 */
+	UFUNCTION(client, reliable)
+	virtual void ClientVoiceHandshakeComplete();
+
+	/**
 	 * Tell the server to mute a player for this controller
 	 * @param PlayerId player id to mute
 	 */
@@ -415,7 +425,23 @@ public:
 	virtual void ClientUnmutePlayer(FUniqueNetIdRepl PlayerId);
 
 	/**
+	 * Mutes a remote player on the server and then tells the client to mute
+	 *
+	 * @param PlayerNetId the remote player to mute
+	 */
+	void GameplayMutePlayer(const FUniqueNetIdRepl& PlayerNetId);
+
+	/**
+	 * Unmutes a remote player on the server and then tells the client to unmute
+	 *
+	 * @param PlayerNetId the remote player to unmute
+	 */
+	void GameplayUnmutePlayer(const FUniqueNetIdRepl& PlayerNetId);
+
+	/**
 	 * Is the specified player muted by this controlling player
+	 * for any reason (gameplay, system, etc), check voice interface IsMuted() for system mutes
+	 *
 	 * @param PlayerId potentially muted player
 	 * @return true if player is muted, false otherwise
 	 */
@@ -674,7 +700,7 @@ public:
 
 	/** Notify client they were kicked from the server */
 	UFUNCTION(reliable, client)
-	void ClientWasKicked();
+	void ClientWasKicked(const FText& KickReason);
 
 	/** Assign Pawn to player, but avoid calling ClientRestart if we have already accepted this pawn */
 	UFUNCTION(reliable, client)
@@ -766,7 +792,7 @@ public:
 	UFUNCTION(reliable, client)
 	void ClientTeamMessage(class APlayerState* SenderPlayerState, const FString& S, FName Type, float MsgLifeTime = 0);
 
-	/** Used by UGameplayDebuggingController to replicate messages for AI debugging in network games. */
+	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerReplicateMessageToAIDebugView(class APawn* InPawn, uint32 InMessage, uint32 DataView = 0);
 
@@ -874,7 +900,7 @@ protected:
 
 	/** debugging controller used to communicate with gameplay debugging components - only for development builds */
 	UPROPERTY(Transient)
-	class UGameplayDebuggingController* DebuggingController;
+	class UGameplayDebuggingControllerComponent* DebuggingController;
 
 private:
 	/* Whether the PlayerController's input handling is enabled. */
@@ -1044,6 +1070,9 @@ public:
 	/** Create the touch interface, and activate an initial touch interface (if touch interface is desired) */
 	virtual void CreateTouchInterface();
 
+	/** Gives the PlayerController an opportunity to cleanup any changes it applied to the game viewport, primarily for the touch interface */
+	virtual void CleanupGameViewport();
+
 	/** @Returns true if input should be frozen (whether UnFreeze timer is active) */
 	virtual void AcknowledgePossession(class APawn* P);
 
@@ -1108,6 +1137,9 @@ public:
 
 	/** Update the camera manager; this is called after all actors have been ticked.	 */ 
 	virtual void UpdateCameraManager(float DeltaSeconds);
+
+	/** Get instance of debugging component */
+	class UGameplayDebuggingControllerComponent* GetDebuggingController() const { return DebuggingController; }
 
 public:
 	/**

@@ -35,7 +35,6 @@
 	#include "RenderCore.h"
 	#include "ShaderCompiler.h"
 	#include "GlobalShader.h"
-	#include "TaskGraphInterfaces.h"
 	#include "ParticleHelper.h"
 	#include "Online.h"
 	#include "PlatformFeatures.h"
@@ -273,7 +272,14 @@ bool LaunchCheckForFileOverride(const TCHAR* CmdLine, bool& OutFileOverrideFound
 
 	// Try to create pak file wrapper
 	{
-		IPlatformFile* PlatformFile = ConditionallyCreateFileWrapper(TEXT("PakFile"), CurrentPlatformFile, CmdLine);
+		IPlatformFile* PlatformFile = nullptr;
+		PlatformFile = ConditionallyCreateFileWrapper(TEXT("PakFile"), CurrentPlatformFile, CmdLine);
+		if (PlatformFile)
+		{
+			CurrentPlatformFile = PlatformFile;
+			FPlatformFileManager::Get().SetPlatformFile(*CurrentPlatformFile);
+		}
+		PlatformFile = ConditionallyCreateFileWrapper(TEXT("CachedReadFile"), CurrentPlatformFile, CmdLine);
 		if (PlatformFile)
 		{
 			CurrentPlatformFile = PlatformFile;
@@ -357,8 +363,18 @@ bool LaunchCheckForFileOverride(const TCHAR* CmdLine, bool& OutFileOverrideFound
 			FPlatformFileManager::Get().SetPlatformFile(*CurrentPlatformFile);
 		}
 	}
+	// Try and create file timings stats wrapper
 	{
 		IPlatformFile* PlatformFile = ConditionallyCreateFileWrapper(TEXT("FileReadStats"), CurrentPlatformFile, CmdLine);
+		if (PlatformFile)
+		{
+			CurrentPlatformFile = PlatformFile;
+			FPlatformFileManager::Get().SetPlatformFile(*CurrentPlatformFile);
+		}
+	}
+	// Try and create file open log wrapper (lists the order files are first opened)
+	{
+		IPlatformFile* PlatformFile = ConditionallyCreateFileWrapper(TEXT("FileOpenLog"), CurrentPlatformFile, CmdLine);
 		if (PlatformFile)
 		{
 			CurrentPlatformFile = PlatformFile;
@@ -448,7 +464,7 @@ FEngineLoop::FEngineLoop()
 { }
 
 
-int32 FEngineLoop::PreInit(int32 ArgC, ANSICHAR* ArgV[], const TCHAR* AdditionalCommandline)
+int32 FEngineLoop::PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCommandline)
 {
 	FString CmdLine;
 
@@ -500,6 +516,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Engine Pre-Initialized"), STAT_PreInit, STATGROUP_LoadTime);
 
+	if (FParse::Param(CmdLine, TEXT("UTF8Output")))
+	{
+		FPlatformMisc::SetUTF8Output();
+	}
+
 	// Switch into executable's directory.
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
 
@@ -538,17 +559,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Switch into executable's directory (may be required by some of the platform file overrides)
 	FPlatformProcess::SetCurrentWorkingDirectoryToBaseDir();
 
-	// allow the command line to override the platform file singleton
-	bool bFileOverrideFound = false;
-	if (LaunchCheckForFileOverride(CmdLine, bFileOverrideFound) == false)
-	{
-		// if it failed, we cannot continue
-		return 1;
-	}
-
-	// Initialize file manager
-	IFileManager::Get().ProcessCommandLineOptions();
-
+	// This fixes up the relative project path, needs to happen before we set platform file paths
 	if (FPlatformProperties::IsProgram() == false)
 	{
 		if (FPaths::IsProjectFilePathSet())
@@ -569,6 +580,17 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			}
 		}
 	}
+
+	// allow the command line to override the platform file singleton
+	bool bFileOverrideFound = false;
+	if (LaunchCheckForFileOverride(CmdLine, bFileOverrideFound) == false)
+	{
+		// if it failed, we cannot continue
+		return 1;
+	}
+
+	// Initialize file manager
+	IFileManager::Get().ProcessCommandLineOptions();
 
 	if( GIsGameAgnosticExe )
 	{
@@ -595,16 +617,52 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UE_LOG(LogInit, Log, TEXT("Process affinity %ld System affinity %ld."), dwProcessAffinity , dwSystemAffinity);
 	}
 	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
-	::SetThreadAffinityMask(::GetCurrentThread(), (DWORD_PTR)GameThreadAffinity);
+	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
 	UE_LOG(LogInit, Log, TEXT("Runnable thread Main Thread is on Process %d."), static_cast<uint32>(::GetCurrentProcessorNumber()) );	
 #endif // PLATFORM_XBOXONE
+
+#if PLATFORM_ANDROID
+	uint64 GameThreadAffinity = AffinityManagerGetAffinity( TEXT("MainGame"));
+	FPlatformProcess::SetThreadAffinityMask( GameThreadAffinity );
+#endif
 
 	// Figure out whether we're the editor, ucc or the game.
 	const SIZE_T CommandLineSize = FCString::Strlen(CmdLine)+1;
 	TCHAR* CommandLineCopy			= new TCHAR[ CommandLineSize ];
 	FCString::Strcpy( CommandLineCopy, CommandLineSize, CmdLine );
 	const TCHAR* ParsedCmdLine	= CommandLineCopy;
+
 	FString Token				= FParse::Token( ParsedCmdLine, 0);
+
+#if	UE_EDITOR
+	TArray<FString> Tokens;
+	TArray<FString> Switches;
+	UCommandlet::ParseCommandLine(CommandLineCopy, Tokens, Switches);
+
+	bool bHasCommandletToken = false;
+
+	for( int32 TokenIndex = 0; TokenIndex < Tokens.Num(); ++TokenIndex )
+	{
+		if( Tokens[TokenIndex].EndsWith(TEXT("Commandlet")) )
+		{
+			bHasCommandletToken = true;
+			Token = Tokens[TokenIndex];
+			break;
+		}
+	}
+
+	for( int32 SwitchIndex = 0; SwitchIndex < Switches.Num() && !bHasCommandletToken; ++SwitchIndex )
+	{
+		if( Switches[SwitchIndex].StartsWith(TEXT("RUN=")) )
+		{
+			bHasCommandletToken = true;
+			Token = Switches[SwitchIndex];
+			break;
+		}
+	}
+
+#endif // UE_EDITOR
+
 
 	// trim any whitespace at edges of string - this can happen if the token was quoted with leading or trailing whitespace
 	// VC++ tends to do this in its "external tools" config
@@ -612,8 +670,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == GGameName);
 	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && Token.Replace(TEXT("\\"), TEXT("/")) == FPaths::GetProjectFilePath());
+	const bool bFirstTokenIsGameProjectFileShortName = (FPaths::IsProjectFilePathSet() && Token.Replace(TEXT("\\"), TEXT("/")) == FPaths::GetCleanFilename(FPaths::GetProjectFilePath()));
 
-	if (bFirstTokenIsGameName || bFirstTokenIsGameProjectFilePath)
+	if (bFirstTokenIsGameName || bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)
 	{
 		// first item on command line was the game name, remove it in all cases
 		FString RemainingCommandline = ParsedCmdLine;
@@ -626,7 +685,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		Token = FParse::Token( ParsedCmdLine, 0);
 		Token = Token.Trim();
 
-		if (bFirstTokenIsGameProjectFilePath)
+		if (bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)
 		{
 			// Convert it to relative if possible...
 			FString RelativeGameProjectFilePath = FFileManagerGeneric::DefaultConvertToRelativePath(*FPaths::GetProjectFilePath());
@@ -652,8 +711,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// we need it for something later. So, just move it to the end for now...
 	const bool bFirstTokenIsGame = (Token == TEXT("-GAME"));
 	const bool bFirstTokenIsServer = (Token == TEXT("-SERVER"));
-	const bool bFirstTokenIsCommandlet = Token.StartsWith(TEXT("-RUN=")) || Token.EndsWith(TEXT("Commandlet"));
-	const bool bFirstTokenIsModeOverride = bFirstTokenIsGame || bFirstTokenIsServer || bFirstTokenIsCommandlet;
+	const bool bFirstTokenIsModeOverride = bFirstTokenIsGame || bFirstTokenIsServer || bHasCommandletToken;
 	const TCHAR* CommandletCommandLine = NULL;
 	if (bFirstTokenIsModeOverride)
 	{
@@ -666,14 +724,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			RemainingCommandline += FString::Printf(TEXT(" %s"), *Token);
 			FCommandLine::Set(*RemainingCommandline); 
 		}
-		if (bFirstTokenIsCommandlet)
+		if (bHasCommandletToken)
 		{
 #if STATS
 			FThreadStats::MasterDisableForever();
 #endif
-			if (Token.StartsWith(TEXT("-run=")))
+			if (Token.StartsWith(TEXT("run=")))
 			{
-				Token = Token.RightChop(5);
+				Token = Token.RightChop(4);
 				if (!Token.EndsWith(TEXT("Commandlet")))
 				{
 					Token += TEXT("Commandlet");
@@ -722,7 +780,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		if (!bIsNotEditor)
 		{
-			bool bHasNonEditorToken = (CheckToken == TEXT("-GAME")) || (CheckToken == TEXT("-SERVER")) || (CheckToken.StartsWith(TEXT("-RUN="))) || CheckToken.EndsWith(TEXT("Commandlet"));
+			bool bHasNonEditorToken = (CheckToken == TEXT("-GAME")) || (CheckToken == TEXT("-SERVER")) || (CheckToken.StartsWith(TEXT("RUN="))) || CheckToken.EndsWith(TEXT("Commandlet"));
 			if (bHasNonEditorToken)
 			{
 				bIsNotEditor = true;
@@ -776,7 +834,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #if WITH_EDITOR
 	// If we're running as an game but don't have a project, inform the user and exit.
-	if (bHasEditorToken == false && bFirstTokenIsCommandlet == false)
+	if (bHasEditorToken == false && bHasCommandletToken == false)
 	{
 		if ( !FPaths::IsProjectFilePathSet() )
 		{
@@ -905,9 +963,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		bool bDefinitelyCommandlet = (bTokenDoesNotHaveDash && Token.EndsWith(TEXT("Commandlet")));
 		if (!bTokenDoesNotHaveDash)
 		{
-			if (Token.StartsWith(TEXT("-run=")))
+			if (Token.StartsWith(TEXT("run=")))
 			{
-				Token = Token.RightChop(5);
+				Token = Token.RightChop(4);
 				bDefinitelyCommandlet = true;
 				if (!Token.EndsWith(TEXT("Commandlet")))
 				{
@@ -997,7 +1055,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		FPlatformMisc::RequestExit(false);
 		return 1;
 #endif //WITH_EDITOR
- 	}
+	}
 
 	// If we're not in the editor stop collecting the backlog now that we know
 	if (!GIsEditor)
@@ -1606,6 +1664,10 @@ void FEngineLoop::InitTime()
 		GEngine->MatineeCaptureFPS = (int32)FixedFPS;
 		GFixedDeltaTime = 1 / FixedFPS;
 	}
+
+	// Whether we want to use a fixed time step or not.
+	GUseFixedTimeStep = FParse::Param( FCommandLine::Get(), TEXT( "UseFixedTimeStep" ) );
+
 #endif // !UE_BUILD_SHIPPING
 
 	// convert FloatMaxTickTime into number of frames (using 1 / GFixedDeltaTime to convert fps to seconds )
@@ -1716,21 +1778,7 @@ int32 FEngineLoop::Init()
 
 	GIsRunning = true;
 
-	// let the game script code run any special code for initial boot-up (this is a one time call ever)
-	for (TObjectIterator<UWorld> ObjIt;  ObjIt; ++ObjIt)
-	{
-		UWorld* const EachWorld = CastChecked<UWorld>(*ObjIt);
-		if (EachWorld)
-		{
-			AGameMode* const GameMode = EachWorld->GetAuthGameMode();
-			if (GameMode)
-			{
-				GameMode->OnEngineHasLoaded();
-			}
-		}
-	}
-
-	if( !GIsEditor)
+	if (!GIsEditor)
 	{
 		// hide a couple frames worth of rendering
 		FViewport::SetGameRenderingEnabled(true, 3);
@@ -1885,31 +1933,9 @@ void FEngineLoop::Tick()
 
 		GEngine->TickFPSChart( GDeltaTime );
 
-#if STATS	// Can't do this within the malloc classes as they get initialized before the stats
-
-		// @todo FPlatformMemory::UpdateStats();
-		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-		SET_DWORD_STAT(STAT_VirtualAllocSize,MemoryStats.PagefileUsage);
-		SET_DWORD_STAT(STAT_PhysicalAllocSize,MemoryStats.WorkingSetSize);
-
-		static uint64 LastMallocCalls		= 0;
-		static uint64 LastReallocCalls		= 0;
-		static uint64 LastFreeCalls			= 0;
-
-		uint32 CurrentFrameMallocCalls		= FMalloc::TotalMallocCalls - LastMallocCalls;
-		uint32 CurrentFrameReallocCalls		= FMalloc::TotalReallocCalls - LastReallocCalls;
-		uint32 CurrentFrameFreeCalls			= FMalloc::TotalFreeCalls - LastFreeCalls;
-		uint32 CurrentFrameAllocatorCalls	= CurrentFrameMallocCalls + CurrentFrameReallocCalls + CurrentFrameFreeCalls;
-
-		SET_DWORD_STAT( STAT_MallocCalls, CurrentFrameMallocCalls );
-		SET_DWORD_STAT( STAT_ReallocCalls, CurrentFrameReallocCalls );
-		SET_DWORD_STAT( STAT_FreeCalls, CurrentFrameFreeCalls );
-		SET_DWORD_STAT( STAT_TotalAllocatorCalls, CurrentFrameAllocatorCalls );
-
-		LastMallocCalls			= FMalloc::TotalMallocCalls;
-		LastReallocCalls		= FMalloc::TotalReallocCalls;
-		LastFreeCalls			= FMalloc::TotalFreeCalls;
-#endif
+		// Update platform memory and memory allocator stats.
+		FPlatformMemory::UpdateStats();
+		GMalloc->UpdateStats();
 	} 
 
 	FlushStatsFrame(false);
@@ -2092,31 +2118,6 @@ void FEngineLoop::OnSuspending(_In_ Platform::Object^ Sender, _In_ Windows::Appl
 	SuspendingEvent->Complete();
 }
 
-void FEngineLoop::OnResourceAvailabilityChanged( _In_ Platform::Object^ Sender, _In_ Platform::Object^ Args )
-{
-	// @TODO Implement as required? May be game specific
-// 	// Check to see what has changed
-// 	switch ( CoreApplication::ResourceAvailability )
-// 	{
-// 		case CoreApplication::ResourceAvailability::Constrained:
-// 		{
-// 		}
-// 		break;
-// 
-// 		case CoreApplication::ResourceAvailability::Full:
-// 		{
-// 		}
-// 		break;
-// 
-// 		default:
-// 		{
-// 			// Unknown State
-// 			check(0);
-// 		}
-// 		break;
-//	}
-}
-
 #endif // PLATFORM_XBOXONE
 
 #endif // WITH_ENGINE
@@ -2132,10 +2133,9 @@ void FEngineLoop::AppInit( )
 	GWarn = FPlatformOutputDevices::GetWarn();
 
 	BeginInitTextLocalization();
-	FInternationalization::Initialize();
 
 	// Avoiding potential exploits by not exposing command line overrides in the shipping games.
-#if !UE_BUILD_SHIPPING && !WITH_EDITORONLY_DATA
+#if !UE_BUILD_SHIPPING && WITH_EDITORONLY_DATA
 	// 8192 is the maximum length of the command line on Windows XP.
 	TCHAR CmdLineEnv[8192];
 
@@ -2215,11 +2215,13 @@ void FEngineLoop::AppInit( )
 	// after the above has run we now have the REQUIRED set of engine .INIs  (all of the other .INIs)
 	// that are gotten from .h files' config() are not requires and are dynamically loaded when the .u files are loaded
 
+	FInternationalization& I18N = FInternationalization::Get();
+
 	// Set culture according to configuration now that configs are available.
 #if ENABLE_LOC_TESTING
 	if( FCommandLine::IsInitialized() && FParse::Param(FCommandLine::Get(), TEXT("LEET")) )
 	{
-		FInternationalization::SetCurrentCulture(TEXT("LEET"));
+		I18N.SetCurrentCulture(TEXT("LEET"));
 	}
 	else
 #endif
@@ -2231,19 +2233,27 @@ void FEngineLoop::AppInit( )
 		{
 			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ command-line option".), *CultureName);
 		}
-		// Use culture specified in engine configuration.
 		else
 #endif // !UE_BUILD_SHIPPING
+#if WITH_EDITOR
+		// See if we've been provided a culture override in the editor
+		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, GEditorGameAgnosticIni ))
+		{
+			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *CultureName);
+		}
+		else
+#endif // WITH_EDITOR
+		// Use culture specified in engine configuration.
 		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, GEngineIni ))
 		{
 			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ engine configuration."), *CultureName);
 		}
 		else
 		{
-			CultureName = FInternationalization::GetDefaultCulture()->GetName();
+			CultureName = I18N.GetDefaultCulture()->GetName();
 		}
 
-		FInternationalization::SetCurrentCulture(CultureName);
+		I18N.SetCurrentCulture(CultureName);
 	}
 
 #if !UE_BUILD_SHIPPING
@@ -2300,6 +2310,7 @@ void FEngineLoop::AppInit( )
 	UE_LOG(LogInit, Log, TEXT("Command line: %s"), FCommandLine::Get() );
 	UE_LOG(LogInit, Log, TEXT("Base directory: %s"), FPlatformProcess::BaseDir() );
 	//UE_LOG(LogInit, Log, TEXT("Character set: %s"), sizeof(TCHAR)==1 ? TEXT("ANSI") : TEXT("Unicode") );
+	UE_LOG(LogInit, Log, TEXT("Rocket: %d"), FRocketSupport::IsRocket()? 1 : 0);
 
 	GPrintLogTimes = ELogTimes::None;
 
@@ -2348,8 +2359,9 @@ void FEngineLoop::AppInit( )
 	FThreadStats::StartThread();
 	if (FThreadStats::WillEverCollectData())
 	{
-		FThreadStats::ExplicitFlush(); // flush the stats and set update teh scope so we don't flush again until a frame update, this helps prevent fragmentation
+		FThreadStats::ExplicitFlush(); // flush the stats and set update the scope so we don't flush again until a frame update, this helps prevent fragmentation
 	}
+	FStartupMessages::Get().AddThreadMetadata( NAME_GameThread, FPlatformTLS::GetCurrentThreadId() );
 #endif
 
 #if WITH_ENGINE
@@ -2389,7 +2401,7 @@ void FEngineLoop::AppInit( )
 	
 	if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), CookerCulture, ARRAY_COUNT(CookerCulture)))
 	{
-		FInternationalization::SetCurrentCulture( CookerCulture );
+		FInternationalization::Get().SetCurrentCulture( CookerCulture );
 
 		// Write the culture passed in if first install...
 		if (FParse::Param(FCommandLine::Get(), TEXT("firstinstall")))
@@ -2449,10 +2461,9 @@ void FEngineLoop::AppExit( )
 	if( GLog )
 	{
 		GLog->TearDown();
-		GLog = NULL;
 	}
 
-	FInternationalization::Terminate();
+	FInternationalization::Get().Terminate();
 }
 
 #undef LOCTEXT_NAMESPACE

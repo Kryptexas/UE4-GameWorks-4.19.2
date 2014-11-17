@@ -217,7 +217,7 @@ public:
 	FbxString	ConvertToFbxString(const FString& String);
 };
 
-FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool& bShowOption, const FString& FullPath, bool& OutOperationCanceled, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
+FBXImportOptions* GetImportOptions( class FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& OutImportAll, bool bForceImportType = false, EFBXImportType ImportType = FBXIT_StaticMesh );
 void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOutImportOptions);
 
 /**
@@ -767,7 +767,8 @@ protected:
 														const char* MaterialProperty ,
 														FExpressionInput& MaterialInput, 
 														bool bSetupAsNormalMap,
-														TArray<FString>& UVSet );
+														TArray<FString>& UVSet,
+														const FVector2D& Location );
 	/**
 	 * Add a basic white diffuse color if no expression is linked to diffuse input.
 	 *
@@ -931,6 +932,13 @@ protected:
 	 * Check if FBX node has transform animation (translation and rotation, not check scale animation)
 	 */
 	bool IsNodeAnimated(FbxNode* FbxNode, FbxAnimLayer* AnimLayer = NULL);
+
+	/** 
+	 * As movement tracks in Unreal cannot have differing interpolation modes for position & rotation,
+	 * we consolidate the two modes here.
+	 */
+	void ConsolidateMovementTrackInterpModes(UInterpTrackMove* MovementTrack);
+
 	/**
 	 * Get Unreal Interpolation mode from FBX interpolation mode
 	 */

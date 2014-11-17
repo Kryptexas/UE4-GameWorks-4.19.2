@@ -37,7 +37,7 @@ SAssetView::~SAssetView()
 	FCoreDelegates::OnObjectPropertyChanged.RemoveAll( this );
 
 	// Remove the listener for when view settings are changed
-	GetMutableDefault<UContentBrowserSettings>()->OnSettingChanged().RemoveAll( this );
+	UContentBrowserSettings::OnSettingChanged().RemoveAll(this);
 
 	if ( FrontendFilters.IsValid() )
 	{
@@ -81,7 +81,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 	FCoreDelegates::OnObjectPropertyChanged.Add(FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP(this, &SAssetView::OnObjectPropertyChanged));
 
 	// Listen for when view settings are changed
-	GetMutableDefault<UContentBrowserSettings>()->OnSettingChanged().Add(UContentBrowserSettings::FSettingChangedEvent::FDelegate::CreateSP(this, &SAssetView::HandleSettingChanged));
+	UContentBrowserSettings::OnSettingChanged().Add(UContentBrowserSettings::FSettingChangedEvent::FDelegate::CreateSP(this, &SAssetView::HandleSettingChanged));
 
 	// Get desktop metrics
 	FDisplayMetrics DisplayMetrics;
@@ -91,7 +91,7 @@ void SAssetView::Construct( const FArguments& InArgs )
 		DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left,
 		DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top );
 
-	const float ThumbnailScaleRangeScalar = ( DisplaySize.X / 1920 );
+	const float ThumbnailScaleRangeScalar = ( DisplaySize.Y / 1080 );
 
 	// Create a thumbnail pool for rendering thumbnails	
 	AssetThumbnailPool = MakeShareable( new FAssetThumbnailPool(1024, InArgs._AreRealTimeThumbnailsAllowed) );
@@ -123,6 +123,8 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bCanShowRealTimeThumbnails = InArgs._CanShowRealTimeThumbnails;
 
 	bCanShowDevelopersFolder = InArgs._CanShowDevelopersFolder;
+
+	bPreloadAssetsForContextMenu = InArgs._PreloadAssetsForContextMenu;
 
 	SelectionMode = InArgs._SelectionMode;
 
@@ -798,7 +800,8 @@ void SAssetView::Tick(const FGeometry& AllottedGeometry, const double InCurrentT
 		RefreshSourceItems();
 		RefreshFilteredItems();
 		RefreshFolders();
-		SortList();
+		// Don't sync to selection if we are just going to do it below
+		SortList(!PendingSyncAssets.Num());
 		bRefreshSourceItemsRequested = false;
 	}
 
@@ -1030,7 +1033,7 @@ void SAssetView::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
 	{
 		TSharedPtr< FAssetDragDropOp > DragAssetOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
-		DragAssetOp->ClearTooltip();
+		DragAssetOp->ResetToDefaultToolTip();
 	}
 }
 
@@ -1071,7 +1074,7 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 				if ( IsValidDrop )
 				{
-					DragAssetOp->SetTooltip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
+					DragAssetOp->SetToolTip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))) ;
 				}
 			}
 
@@ -1755,6 +1758,7 @@ void SAssetView::ProcessRecentlyAddedAssets()
 						{
 							FilteredAssetItems.Add(MakeShareable(new FAssetViewAsset(AssetItems[AddedAssetIdx])));
 							bPendingSortFilteredItems = true;
+							bRefreshSourceItemsRequested = true;
 
 							RefreshList();
 						}
@@ -2385,7 +2389,10 @@ void SAssetView::CreateCurrentView()
 
 TSharedRef<SWidget> SAssetView::CreateShadowOverlay( TSharedRef<STableViewBase> Table )
 {
-	return SNew(SScrollBorder, Table);
+	return SNew(SScrollBorder, Table)
+		[
+			Table
+		];
 }
 
 EAssetViewType::Type SAssetView::GetCurrentViewType() const
@@ -2951,29 +2958,34 @@ bool SAssetView::CanOpenContextMenu() const
 		ObjectPaths.Add( AssetIt->ObjectPath.ToString() );
 	}
 
-	// Should the user be asked to load unloaded assets
-	TArray<FString> UnloadedObjects;
-	const bool bShouldPromptToLoadAssets = ContentBrowserUtils::ShouldPromptToLoadAssets(ObjectPaths, UnloadedObjects);
-
-	bool bShouldLoadAssets = false;
-	if(bShouldPromptToLoadAssets)
-	{
-		// The user should be prompted to loaded assets
-		bShouldLoadAssets = ContentBrowserUtils::PromptToLoadAssets(UnloadedObjects);
-	}
-	else
-	{
-		// The user should not be prompted to load assets but assets should still be loaded
-		bShouldLoadAssets = true;
-	}
-
 	bool bLoadSuccessful = true;
-	if(bShouldLoadAssets)
+	bool bShouldPromptToLoadAssets = false;
+
+	if ( bPreloadAssetsForContextMenu )
 	{
-		// Load assets that are unloaded
-		TArray<UObject*> LoadedObjects;
-		const bool bAllowedToPrompt = false;
-		bLoadSuccessful = ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, LoadedObjects, bAllowedToPrompt);
+		// Should the user be asked to load unloaded assets
+		TArray<FString> UnloadedObjects;
+		bShouldPromptToLoadAssets = ContentBrowserUtils::ShouldPromptToLoadAssets(ObjectPaths, UnloadedObjects);
+
+		bool bShouldLoadAssets = false;
+		if ( bShouldPromptToLoadAssets )
+		{
+			// The user should be prompted to loaded assets
+			bShouldLoadAssets = ContentBrowserUtils::PromptToLoadAssets(UnloadedObjects);
+		}
+		else
+		{
+			// The user should not be prompted to load assets but assets should still be loaded
+			bShouldLoadAssets = true;
+		}
+
+		if ( bShouldLoadAssets )
+		{
+			// Load assets that are unloaded
+			TArray<UObject*> LoadedObjects;
+			const bool bAllowedToPrompt = false;
+			bLoadSuccessful = ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, LoadedObjects, bAllowedToPrompt);
+		}
 	}
 
 	// Do not show the context menu if we prompted the user to load assets or if the load failed

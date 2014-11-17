@@ -28,7 +28,16 @@ namespace
 	{
 		FString StringToMeasure(String + StartIndex);
 		const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-		return StartIndex + FontMeasureService->FindLastWholeCharacterIndexBeforeOffset( StringToMeasure, FontInfo, WrapWidth, FontScale );
+
+		int32 Index = FontMeasureService->FindLastWholeCharacterIndexBeforeOffset(StringToMeasure, FontInfo, WrapWidth, FontScale);
+
+		if (Index == INDEX_NONE)
+		{
+			return StartIndex;
+		}
+
+		//This index is inclusive but we need to return an exclusive index so we increment.
+		return StartIndex + Index + 1; 
 	}
 
 	FSlateWordWrapperBase::FSlateWordWrapperBase(const FString& InString, const FSlateFontInfo& InFontInfo, const int32 InWrapWidth, const float InFontScale, FWrappedLineData* const OutWrappedLineData)

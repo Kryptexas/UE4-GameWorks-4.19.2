@@ -189,7 +189,7 @@ template <> struct TIsZeroConstructType<FCanvasUVTri> { enum { Value = true }; }
 /**
  * General purpose data structure for grouping all parameters needed when sizing or wrapping a string
  */
-USTRUCT(transient)
+USTRUCT()
 struct FTextSizingParameters
 {
 	GENERATED_USTRUCT_BODY()
@@ -252,7 +252,7 @@ struct FTextSizingParameters
 /**
  * Used by UUIString::WrapString to track information about each line that is generated as the result of wrapping.
  */
-USTRUCT(transient)
+USTRUCT()
 struct FWrappedStringElement
 {
 	GENERATED_USTRUCT_BODY()
@@ -339,7 +339,8 @@ public:
 	FCanvas* Canvas;
 	FSceneView* SceneView;
 	FMatrix	ViewProjectionMatrix;
-	FQuat HmdOrientation;	
+	FQuat HmdOrientation;
+	
 
 	// UCanvas interface.
 	

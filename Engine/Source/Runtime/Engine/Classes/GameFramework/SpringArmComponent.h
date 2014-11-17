@@ -33,12 +33,24 @@ class ENGINE_API USpringArmComponent : public USceneComponent
 	TEnumAsByte<ECollisionChannel> ProbeChannel;
 
 	/** If true, do a collision test using ProbeChannel and ProbeSize to prevent camera clipping into level.  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraCollision)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraCollision)
 	uint32 bDoCollisionTest:1;
 
 	/** If this component is placed on a pawn, should it use the view rotation of the pawn where possible? */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bUseControllerViewRotation:1;
+
+	/** If true, camera lags behind target position to smooth its movement */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag)
+	uint32 bEnableCameraLag : 1;
+
+	/** If bEnableCameraLag is true, controls how quickly camera reaches target position */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lag, meta=(editcondition="bEnableCameraLag"))
+	float CameraLagSpeed;
+
+	/** Temporary variable when using camera log, to record previous camera position */
+	FVector PreviousDesiredLoc;
+
 
 	// UActorComponent interface
 	virtual void OnRegister() OVERRIDE;
@@ -59,7 +71,7 @@ protected:
 
 protected:
 	/** Updates the desired arm location, calling BlendLocations to do the actual blending if a trace is done */
-	virtual void UpdateDesiredArmLocation(const FVector& Origin, const FRotator& Direction, bool bDoTrace, float DeltaTime);
+	virtual void UpdateDesiredArmLocation(const FVector& Origin, const FRotator& Direction, bool bDoTrace, bool bAllowLag, float DeltaTime);
 
 	/**
 	 * This function allows subclasses to blend the trace hit location with the desired arm location;

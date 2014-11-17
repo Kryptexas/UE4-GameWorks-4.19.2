@@ -25,7 +25,7 @@ namespace GraphActionMenuHelpers
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId() &&
 			((FEdGraphSchemaAction_K2Delegate*)InGraphAction)->GetDelegateName() == ItemName);
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId() &&
-			((FEdGraphSchemaAction_K2TargetNode*)InGraphAction)->NodeTemplate->GetNodeTitle(ENodeTitleType::EditableTitle) == ItemName.ToString());
+			((FEdGraphSchemaAction_K2TargetNode*)InGraphAction)->NodeTemplate->GetNodeTitle(ENodeTitleType::EditableTitle).ToString() == ItemName.ToString());
 
 		return bCheck;
 	}
@@ -165,7 +165,7 @@ void SGraphActionMenu::Construct( const FArguments& InArgs, bool bIsReadOnly/* =
 	this->OnActionDragged = InArgs._OnActionDragged;
 	this->OnCategoryDragged = InArgs._OnCategoryDragged;
 	this->OnCreateWidgetForAction = InArgs._OnCreateWidgetForAction;
-	this->OnCreateHoverOverlayWidget = InArgs._OnCreateHoverOverlayWidget;
+	this->OnCreateCustomRowExpander = InArgs._OnCreateCustomRowExpander;
 	this->OnCollectAllActions = InArgs._OnCollectAllActions;
 	this->OnCategoryTextCommitted = InArgs._OnCategoryTextCommitted;
 	this->OnCanRenameSelectedAction = InArgs._OnCanRenameSelectedAction;
@@ -211,6 +211,9 @@ void SGraphActionMenu::Construct( const FArguments& InArgs, bool bIsReadOnly/* =
 		.FillHeight(1.f)
 		[
 			SNew(SScrollBorder, TreeView.ToSharedRef())
+			[
+				TreeView.ToSharedRef()
+			]
 		]
 	];
 
@@ -241,7 +244,7 @@ void SGraphActionMenu::RefreshAllActions(bool bPreserveExpansion, bool bHandleOn
 		for (int32 i = 0; i < GraphNodes.Num(); ++i)
 		{
 			TSharedPtr<FEdGraphSchemaAction> GraphAction = GraphNodes[i]->Actions[0];
-			if (GraphAction.IsValid() && GraphAction->MenuDescription == SelectedAction->MenuDescription)
+			if (GraphAction.IsValid() && GraphAction->MenuDescription.ToString() == SelectedAction->MenuDescription.ToString())
 			{
 				// Clear the selection (if this node is already selected then setting it will have no effect)
 				TreeView->ClearSelection();
@@ -440,7 +443,7 @@ static bool CompareGraphActionNode(TSharedPtr<FGraphActionNode> A, TSharedPtr<FG
 
 	if(A->Actions[0].IsValid() && B->Actions[0].IsValid())
 	{
-		return(A->Actions[0]->MenuDescription == B->Actions[0]->MenuDescription);
+		return A->Actions[0]->MenuDescription.CompareTo(B->Actions[0]->MenuDescription) == 0;
 	}
 	else if(!A->Actions[0].IsValid() && !B->Actions[0].IsValid())
 	{
@@ -500,7 +503,7 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 	TArray<FString> SanitizedFilterTerms;
 	for (int32 iFilters = 0; iFilters < FilterTerms.Num() ; iFilters++)
 	{
-		FString EachString = EngineUtils::SanitizeDisplayName( FilterTerms[iFilters], false );
+		FString EachString = FName::NameToDisplayString( FilterTerms[iFilters], false );
 		EachString = EachString.Replace( TEXT( " " ), TEXT( "" ) );
 		SanitizedFilterTerms.Add( EachString );
 	}
@@ -521,7 +524,7 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 			// Combine the actions string, separate with \n so terms don't run into each other, and remove the spaces (incase the user is searching for a variable)
 			// In the case of groups containing multiple actions, they will have been created and added at the same place in the code, using the same description
 			// and keywords, so we only need to use the first one for filtering.
-			FString SearchText = CurrentAction.Actions[0]->MenuDescription + LINE_TERMINATOR + CurrentAction.Actions[0]->Keywords + LINE_TERMINATOR +CurrentAction.Actions[0]->Category;
+			FString SearchText = CurrentAction.Actions[0]->MenuDescription.ToString() + LINE_TERMINATOR + CurrentAction.Actions[0]->GetSearchTitle().ToString() + LINE_TERMINATOR + CurrentAction.Actions[0]->Keywords + LINE_TERMINATOR +CurrentAction.Actions[0]->Category;
 			SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
 			// Get the 'weight' of this in relation to the filter
 			EachWeight = GetActionFilteredWeight( CurrentAction, FilterTerms, SanitizedFilterTerms );
@@ -610,14 +613,8 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 	int32 WholeMatchWeightMultiplier = 2;
 	int32 DescriptionWeight = 5;
 	int32 CategoryWeight = 3;
-	if(InCurrentAction.Actions[0]->MenuDescription == TEXT( "EventActorBeginCursorOver" ) )
-	{
-		int stop = 1;
-	}
-	if(InCurrentAction.Actions[0]->MenuDescription == TEXT( "Event Actor Begin Cursor Over" ) )
-	{
-		int stop = 1;
-	}
+	int32 NodeTitleWeight = 3;
+
 	// Helper array
 	struct FArrayWithWeight
 	{
@@ -635,7 +632,7 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		// Combine the actions string, separate with \n so terms don't run into each other, and remove the spaces (incase the user is searching for a variable)
 		// In the case of groups containing multiple actions, they will have been created and added at the same place in the code, using the same description
 		// and keywords, so we only need to use the first one for filtering.
-		FString SearchText = InCurrentAction.Actions[Action]->MenuDescription + LINE_TERMINATOR + InCurrentAction.Actions[Action]->Keywords + LINE_TERMINATOR +InCurrentAction.Actions[Action]->Category;
+		FString SearchText = InCurrentAction.Actions[0]->MenuDescription.ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->GetSearchTitle().ToString() + LINE_TERMINATOR + InCurrentAction.Actions[Action]->Keywords + LINE_TERMINATOR +InCurrentAction.Actions[Action]->Category;
 		SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
 
 		// First the keywords
@@ -644,8 +641,13 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		WeightedArrayList.Add( EachEntry );
 
 		// The description
-		InCurrentAction.Actions[Action]->MenuDescription.ParseIntoArray( &EachEntry.Array, TEXT(" "), true );
+		InCurrentAction.Actions[Action]->MenuDescription.ToString().ParseIntoArray( &EachEntry.Array, TEXT(" "), true );
 		EachEntry.Weight = DescriptionWeight;
+		WeightedArrayList.Add( EachEntry );
+
+		// The node search title weight
+		InCurrentAction.Actions[Action]->GetSearchTitle().ToString().ParseIntoArray( &EachEntry.Array, TEXT(" "), true );
+		EachEntry.Weight = NodeTitleWeight;
 		WeightedArrayList.Add( EachEntry );
 
 		// The category
@@ -660,10 +662,10 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		{
 			EachTerm = InFilterTerms[FilterIndex];
 			EachTermSanitized = InSanitizedFilterTerms[FilterIndex];
- 			if( SearchText.Contains( EachTerm ) )
- 			{
- 				TotalWeight += 2;
- 			}
+			if( SearchText.Contains( EachTerm ) )
+			{
+				TotalWeight += 2;
+			}
 			else if( SearchText.Contains( EachTermSanitized ) )
 			{
 				TotalWeight++;
@@ -801,7 +803,6 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 
 
 	TSharedPtr<SWidget> RowContent;
-	TSharedPtr<SWidget> RowOverlay;
 
 	if( InItem->IsActionNode() )
 	{
@@ -822,11 +823,6 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 		else
 		{
 			RowContent = SNew(SDefaultGraphActionWidget, &CreateData);
-		}
-
-		if (OnCreateHoverOverlayWidget.IsBound())
-		{
-			RowOverlay = OnCreateHoverOverlayWidget.Execute( &CreateData );
 		}
 	}
 	else if( InItem->IsCategoryNode() )
@@ -912,56 +908,45 @@ TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode>
 		}
 	}
 
-	TSharedPtr<SOverlay> OverlayContainer;
+	TSharedPtr<SHorizontalBox> RowContainer;
 	TableRow->SetContent
 	( 
-		SAssignNew(OverlayContainer, SOverlay)
-		+SOverlay::Slot()
-		[
-			SNew(SHorizontalBox)		
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.HAlign(HAlign_Right) .VAlign(VAlign_Fill)
-			[
-				SNew(SExpanderArrow, TableRow )
-			]
-
-			+SHorizontalBox::Slot()
-				.FillWidth(1)
-			[
-				RowContent.ToSharedRef()
-			]
-		]
+		SAssignNew(RowContainer, SHorizontalBox)
 	);
 
-	if (RowOverlay.IsValid())
+	TSharedPtr<SExpanderArrow> ExpanderWidget;
+	if (OnCreateCustomRowExpander.IsBound())
 	{
-		struct HoverOverlayUtils
-		{
-			static EVisibility IsHovered(TSharedPtr<SOverlay> Container)
-			{
-				return Container->IsHovered() ? EVisibility::Visible :EVisibility::Collapsed;
-			}
-		};
+		FCustomExpanderData CreateData;
+		CreateData.TableRow        = TableRow;
+		CreateData.WidgetContainer = RowContainer;
 
-		OverlayContainer->AddSlot(0)
-		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-			[
-				// nested horizontal-box that we can turn up the visibility on 
-				// (so the outer one doesn't block tooltips for underlaid widgets)
-				SNew(SHorizontalBox)
-					.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&HoverOverlayUtils::IsHovered, OverlayContainer)))
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-				[
-					RowOverlay.ToSharedRef()
-				]
-			]
-		];
+		if (InItem->IsActionNode())
+		{
+			check(InItem->Actions.Num() > 0);
+			CreateData.RowAction = InItem->Actions[0];
+		}
+
+		ExpanderWidget = OnCreateCustomRowExpander.Execute(CreateData);
 	}
+	else 
+	{
+		ExpanderWidget = SNew(SExpanderArrow, TableRow);
+	}
+
+	RowContainer->AddSlot()
+		.AutoWidth()
+		.VAlign(VAlign_Fill)
+		.HAlign(HAlign_Right)
+	[
+		ExpanderWidget.ToSharedRef()
+	];
+
+	RowContainer->AddSlot()
+		.FillWidth(1.0)
+	[
+		RowContent.ToSharedRef()
+	];
 
 	return TableRow.ToSharedRef();
 }

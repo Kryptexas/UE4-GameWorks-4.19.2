@@ -113,10 +113,13 @@ void SGraphPinLiveEditVar::GenerateComboBoxIndexesRecurse( UStruct *InStruct, FS
 		if ( !Property->IsA(UNumericProperty::StaticClass()) )
 		{
 			UStructProperty *StructProp = Cast<UStructProperty>(Property);
-			if ( StructProp != NULL && IsPropertyPermitedForLiveEditor(*StructProp) )
+			if ( StructProp != NULL )
 			{
-				FString NewPropertyPrefix = FString::Printf( TEXT("%s%s."), *PropertyPrefix, *Property->GetName() );
-				GenerateComboBoxIndexesRecurse( StructProp->Struct, NewPropertyPrefix, OutComboBoxIndexes );
+				if ( IsPropertyPermitedForLiveEditor(*StructProp) )
+				{
+					FString NewPropertyPrefix = FString::Printf( TEXT("%s%s."), *PropertyPrefix, *Property->GetName() );
+					GenerateComboBoxIndexesRecurse( StructProp->Struct, NewPropertyPrefix, OutComboBoxIndexes );
+				}
 			}
 			continue;
 		}

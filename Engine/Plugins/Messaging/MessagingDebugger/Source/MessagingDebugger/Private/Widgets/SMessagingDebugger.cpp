@@ -326,7 +326,7 @@ void SMessagingDebugger::HandleStartDebuggerCommandExecute( )
 
 bool SMessagingDebugger::HandleStartDebuggerCommandIsVisible( ) const
 {
-	return !MessageTracer->IsRunning();
+	return !MessageTracer->IsBreaking();
 }
 
 

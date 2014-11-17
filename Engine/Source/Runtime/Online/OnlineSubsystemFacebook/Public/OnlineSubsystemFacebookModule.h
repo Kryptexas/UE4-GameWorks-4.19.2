@@ -12,6 +12,11 @@
  */
 class FOnlineSubsystemFacebookModule : public IModuleInterface
 {
+private:
+
+	/** Class responsible for creating instance(s) of the subsystem */
+	class FOnlineFactoryFacebook* FacebookFactory;
+
 public:	
 
 	// IModuleInterface 
@@ -29,8 +34,18 @@ public:
 
 	// FOnlineSubsystemFacebookModule
 
-	virtual ~FOnlineSubsystemFacebookModule(){}
+	/**
+	 * Constructor
+	 */
+	FOnlineSubsystemFacebookModule() :
+		FacebookFactory(NULL)
+	{}
+
+	/**
+	 * Destructor
+	 */
+	virtual ~FOnlineSubsystemFacebookModule() 
+	{}
 };
 
-typedef TSharedPtr<FOnlineSubsystemFacebookModule, ESPMode::ThreadSafe> FOnlineSubsystemFacebookModulePtr;
 

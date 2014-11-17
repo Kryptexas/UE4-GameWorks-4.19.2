@@ -24,9 +24,9 @@ void STaskComplete::Construct(const FArguments& InArgs)
 	const FString DefaultResolution( TEXT( "Code/Content Change" ) );	// Not localized, intentionally
 	for ( int32 iResolution = 0; iResolution < InArgs._ResolutionValues->Num(); iResolution++ )
 	{
-		const FString& Resolution = (*InArgs._ResolutionValues)[ iResolution ];
-		TSharedPtr<FString> ResolutionOption = MakeShareable( new FString( Resolution ) );
-		if ( Resolution == DefaultResolution )
+		const FString& ResolutionValue = (*InArgs._ResolutionValues)[ iResolution ];
+		TSharedPtr<FString> ResolutionOption = MakeShareable(new FString(ResolutionValue));
+		if (ResolutionValue == DefaultResolution)
 		{
 			ResolutionSelection = ResolutionOption;
 		}

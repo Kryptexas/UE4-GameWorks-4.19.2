@@ -361,14 +361,7 @@ void FButtonStyle::PostSerialize(const FArchive& Ar)
 }
 
 FComboButtonStyle::FComboButtonStyle()
-	: ContentScale(FVector2D(1,1))
-	, ContentPadding(FMargin(5))
-	, HasDownArrow(true)
-	, ButtonColorAndOpacity(FLinearColor::White)
-	, MenuBorderPadding(FMargin(0.0f))
-	, MenuPlacement(MenuPlacement_ComboBox)
-	, HAlign(HAlign_Fill)
-	, VAlign(VAlign_Fill)
+	: MenuBorderPadding(FMargin(0.0f))
 {
 }
 
@@ -389,7 +382,6 @@ const FComboButtonStyle& FComboButtonStyle::GetDefault()
 
 FComboBoxStyle::FComboBoxStyle()
 {
-	ComboButtonStyle.SetContentPadding(FMargin(4.0, 2.0));
 	ComboButtonStyle.SetMenuBorderPadding(FMargin(1.0));
 }
 

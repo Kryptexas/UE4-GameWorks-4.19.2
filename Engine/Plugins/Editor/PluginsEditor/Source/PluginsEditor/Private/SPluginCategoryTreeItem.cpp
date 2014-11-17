@@ -51,7 +51,7 @@ void SPluginCategoryTreeItem::Construct( const FArguments& Args, const TSharedRe
 		.VAlign(VAlign_Center)
 		[
 			SNew( STextBlock )
-			.Text( Item->GetCategoryName() )
+			.Text( Item->GetCategoryDisplayName() )
 			.TextStyle( FPluginStyle::Get(), bIsRootItem ? "CategoryTreeItem.Root.Text" : "CategoryTreeItem.Text" )
 		]
 			

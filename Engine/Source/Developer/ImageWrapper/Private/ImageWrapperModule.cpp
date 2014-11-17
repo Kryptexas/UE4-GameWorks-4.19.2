@@ -37,11 +37,15 @@ public:
 			ImageWrapper = new FJpegImageWrapper();
 			break;
 #endif	//WITH_UNREALJPEG
-#if WITH_EDITOR
+
 		case EImageFormat::BMP:
 			ImageWrapper = new FBmpImageWrapper();
 			break;
-#endif
+
+		case EImageFormat::ICO:
+			ImageWrapper = new FIcoImageWrapper();
+			break;
+
 		default:
 			break;
 		}

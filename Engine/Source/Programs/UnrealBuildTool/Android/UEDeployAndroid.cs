@@ -214,6 +214,37 @@ namespace UnrealBuildTool.Android
 			string UE4BuildFilesPath = Path.GetFullPath(Path.Combine(EngineDirectory, "Build/Android/Java"));
 			string GameBuildFilesPath = ProjectDirectory + "/Build/Android";
 
+
+			// check to see if it's out of date before trying the slow make apk process (look at .so and all Engine and Project build files to be safe)
+			List<String> InputFiles = new List<string>();
+			InputFiles.Add(SourceSOName);
+			InputFiles.AddRange(Directory.EnumerateFiles(UE4BuildFilesPath, "*.*", SearchOption.AllDirectories));
+			if (Directory.Exists(GameBuildFilesPath))
+			{
+				InputFiles.AddRange(Directory.EnumerateFiles(GameBuildFilesPath, "*.*", SearchOption.AllDirectories));
+			}
+
+			// look for any newer input file
+			DateTime ApkTime = File.GetLastWriteTimeUtc(DestApkName);
+			bool bAllInputsCurrent = true;
+			foreach (var InputFileName in InputFiles)
+			{
+				DateTime InputFileTime = File.GetLastWriteTimeUtc(InputFileName);
+				if (InputFileTime.CompareTo(ApkTime) > 0)
+				{
+					// could break here
+					bAllInputsCurrent = false;
+					break;
+				}
+			}
+
+			if (bAllInputsCurrent)
+			{
+				Log.TraceInformation("{0} is up to date (compared to the .so and .java input files)", DestApkName);
+				return;
+			}
+
+			
 			//Wipe the Intermediate/Build/APK directory first
 			Console.WriteLine("\nDeleting: " + UE4BuildPath);
 			if (Directory.Exists(UE4BuildPath))
@@ -461,37 +492,6 @@ namespace UnrealBuildTool.Android
 
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
-			string SourceSOName = InTarget.OutputPath;
-			string DestApkName = InTarget.ProjectDirectory + "/Binaries/Android/" + Path.GetFileNameWithoutExtension(SourceSOName) + ".apk";
-
-			// don't run the whole MakeApk path if the .so and .java files aren't newer than the .apk, 
-			// so repeated uses of F5 in the debugger aren't painfully slow
-			List<String> InputFiles = new List<string>();
-
-			InputFiles.Add(SourceSOName);
-			string UE4BuildFilesPath = BuildConfiguration.RelativeEnginePath + "Build/Android/Java";
-			InputFiles.AddRange(Directory.EnumerateFiles(UE4BuildFilesPath + "/src/com/epicgames/ue4", "*.java", SearchOption.AllDirectories));
-
-			// look for any newer input file
-			DateTime ApkTime = File.GetLastWriteTimeUtc(DestApkName);
-			bool bAllInputsCurrent = true;
-			foreach (var InputFileName in InputFiles)
-			{
-				DateTime InputFileTime = File.GetLastWriteTimeUtc(InputFileName);
-				if (InputFileTime.CompareTo(ApkTime) > 0)
-				{
-					// could break here
-					bAllInputsCurrent = false;
-					break;
-				}
-			}
-
-			if (bAllInputsCurrent)
-			{
-				Log.TraceInformation("{0} is up to date (compared to the .so and .java input files)", DestApkName);
-				return true;
-			}
-
 			return PrepForUATPackageOrDeploy(InTarget.AppName, InTarget.ProjectDirectory, InTarget.OutputPath, BuildConfiguration.RelativeEnginePath, false);
 		}
 

@@ -113,25 +113,25 @@ public:
 
 	struct FComposition
 	{
-		FComposition() : TextFrameworkCompositionView(nullptr)
+		FComposition() : TSFCompositionView(nullptr)
 		{}
 
 		// Composition view object for managing compositions.
-		FCOMPtr<ITfCompositionView> TextFrameworkCompositionView;
+		FCOMPtr<ITfCompositionView> TSFCompositionView;
 
 	} Composition;
 
 public:
 	// Document manager object for managing contexts.
-	FCOMPtr<ITfDocumentMgr> TextFrameworkDocumentManager;
+	FCOMPtr<ITfDocumentMgr> TSFDocumentManager;
 
 	// Context object for pushing context on to document manager.
-	FCOMPtr<ITfContext> TextFrameworkContext;
+	FCOMPtr<ITfContext> TSFContext;
 
 	// Context owner composition services object for terminating compositions.
-	FCOMPtr<ITfContextOwnerCompositionServices> TextFrameworkContextOwnerCompositionServices;
+	FCOMPtr<ITfContextOwnerCompositionServices> TSFContextOwnerCompositionServices;
 
-	TfEditCookie TextFrameworkEditCookie;
+	TfEditCookie TSFEditCookie;
 };
 
 #include "HideWindowsPlatformTypes.h"

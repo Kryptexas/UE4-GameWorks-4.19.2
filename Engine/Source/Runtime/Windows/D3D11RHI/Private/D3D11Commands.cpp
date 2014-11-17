@@ -473,48 +473,102 @@ void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FVertexShaderRHIParamRef Vertex
 {
 	VALIDATE_BOUND_SHADER(VertexShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-	StateCache.SetConstantBuffer<SF_Vertex>(ConstantBuffer, BufferIndex);
+#if PLATFORM_XBOXONE
+	if (Buffer && Buffer->RingAllocation.IsValid())
+	{
+		StateCache.SetDynamicConstantBuffer<SF_Vertex>(BufferIndex, Buffer->RingAllocation);
+	}
+	else
+#endif
+	{
+		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+		StateCache.SetConstantBuffer<SF_Vertex>(ConstantBuffer, BufferIndex);
+	}
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FHullShaderRHIParamRef HullShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(HullShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-	StateCache.SetConstantBuffer<SF_Hull>(ConstantBuffer, BufferIndex);
+#if PLATFORM_XBOXONE
+	if (Buffer && Buffer->RingAllocation.IsValid())
+	{
+		StateCache.SetDynamicConstantBuffer<SF_Hull>(BufferIndex, Buffer->RingAllocation);
+	}
+	else
+#endif
+	{
+		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+		StateCache.SetConstantBuffer<SF_Hull>(ConstantBuffer, BufferIndex);
+	}
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FDomainShaderRHIParamRef DomainShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(DomainShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-	StateCache.SetConstantBuffer<SF_Domain>(ConstantBuffer, BufferIndex);
+#if PLATFORM_XBOXONE
+	if (Buffer && Buffer->RingAllocation.IsValid())
+	{
+		StateCache.SetDynamicConstantBuffer<SF_Domain>(BufferIndex, Buffer->RingAllocation);
+	}
+	else
+#endif
+	{
+		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+		StateCache.SetConstantBuffer<SF_Domain>(ConstantBuffer, BufferIndex);
+	}
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FGeometryShaderRHIParamRef GeometryShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(GeometryShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-	StateCache.SetConstantBuffer<SF_Geometry>(ConstantBuffer, BufferIndex);
+#if PLATFORM_XBOXONE
+	if (Buffer && Buffer->RingAllocation.IsValid())
+	{
+		StateCache.SetDynamicConstantBuffer<SF_Geometry>(BufferIndex, Buffer->RingAllocation);
+	}
+	else
+#endif
+	{
+		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+		StateCache.SetConstantBuffer<SF_Geometry>(ConstantBuffer, BufferIndex);
+	}
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FPixelShaderRHIParamRef PixelShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	VALIDATE_BOUND_SHADER(PixelShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-	StateCache.SetConstantBuffer<SF_Pixel>(ConstantBuffer, BufferIndex);
+#if PLATFORM_XBOXONE
+	if (Buffer && Buffer->RingAllocation.IsValid())
+	{
+		StateCache.SetDynamicConstantBuffer<SF_Pixel>(BufferIndex, Buffer->RingAllocation);
+	}
+	else
+#endif
+	{
+		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+		StateCache.SetConstantBuffer<SF_Pixel>(ConstantBuffer, BufferIndex);
+	}
 }
 
 void FD3D11DynamicRHI::RHISetShaderUniformBuffer(FComputeShaderRHIParamRef ComputeShader,uint32 BufferIndex,FUniformBufferRHIParamRef BufferRHI)
 {
 	//VALIDATE_BOUND_SHADER(ComputeShader);
 	DYNAMIC_CAST_D3D11RESOURCE(UniformBuffer,Buffer);
-	ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
-	StateCache.SetConstantBuffer<SF_Compute>(ConstantBuffer, BufferIndex);
+#if PLATFORM_XBOXONE
+	if (Buffer && Buffer->RingAllocation.IsValid())
+	{
+		StateCache.SetDynamicConstantBuffer<SF_Compute>(BufferIndex, Buffer->RingAllocation);
+	}
+	else
+#endif
+	{
+		ID3D11Buffer* ConstantBuffer = Buffer ? Buffer->Resource : NULL;
+		StateCache.SetConstantBuffer<SF_Compute>(ConstantBuffer, BufferIndex);
+	}
 }
 
 void FD3D11DynamicRHI::RHISetShaderParameter(FHullShaderRHIParamRef HullShaderRHI,uint32 BufferIndex,uint32 BaseIndex,uint32 NumBytes,const void* NewValue)
@@ -622,6 +676,67 @@ void FD3D11DynamicRHI::CommitRenderTargetsAndUAVs()
 	}
 }
 
+struct FRTVDesc
+{
+	uint32 Width;
+	uint32 Height;
+	DXGI_SAMPLE_DESC SampleDesc;
+};
+
+// Return an FRTVDesc structure whose
+// Width and height dimensions are adjusted for the RTV's miplevel.
+FRTVDesc GetRenderTargetViewDesc(ID3D11RenderTargetView* RenderTargetView)
+{
+	D3D11_RENDER_TARGET_VIEW_DESC TargetDesc;
+	RenderTargetView->GetDesc(&TargetDesc);
+
+	TRefCountPtr<ID3D11Resource> BaseResource;
+	RenderTargetView->GetResource((ID3D11Resource**)BaseResource.GetInitReference());
+	uint32 MipIndex = 0;
+	FRTVDesc ret;
+	memset(&ret, 0, sizeof(ret));
+
+	switch (TargetDesc.ViewDimension)
+	{
+		case D3D11_RTV_DIMENSION_TEXTURE2D:
+		case D3D11_RTV_DIMENSION_TEXTURE2DMS:
+		case D3D11_RTV_DIMENSION_TEXTURE2DARRAY:
+		case D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY:
+		{
+			D3D11_TEXTURE2D_DESC Desc;
+			((ID3D11Texture2D*)(BaseResource.GetReference()))->GetDesc(&Desc);
+			ret.Width = Desc.Width;
+			ret.Height = Desc.Height;
+			ret.SampleDesc = Desc.SampleDesc;
+			if (TargetDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D || TargetDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DARRAY)
+			{
+				// All the non-multisampled texture types have their mip-slice in the same position.
+				MipIndex = TargetDesc.Texture2D.MipSlice;
+			}
+			break;
+		}
+		case D3D11_RTV_DIMENSION_TEXTURE3D:
+		{
+			D3D11_TEXTURE3D_DESC Desc;
+			((ID3D11Texture3D*)(BaseResource.GetReference()))->GetDesc(&Desc);
+			ret.Width = Desc.Width;
+			ret.Height = Desc.Height;
+			ret.SampleDesc.Count = 1;
+			ret.SampleDesc.Quality = 0;
+			MipIndex = TargetDesc.Texture3D.MipSlice;
+			break;
+		}
+		default:
+		{
+			// not expecting 1D targets.
+			checkNoEntry();
+		}
+	}
+	ret.Width >>= MipIndex;
+	ret.Height >>= MipIndex;
+	return ret;
+}
+
 void FD3D11DynamicRHI::RHISetRenderTargets(
 	uint32 NewNumSimultaneousRenderTargets,
 	const FRHIRenderTargetView* NewRenderTargetsRHI,
@@ -673,15 +788,10 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 			// For filter code, see D3D11Device.cpp look for "OMSETRENDERTARGETS_INVALIDVIEW"
 			if(RenderTargetView && DepthStencilView)
 			{
-				// Set the viewport to the full size of the surface
-				TRefCountPtr<ID3D11Texture2D> RenderTargetTexture;
-				RenderTargetView->GetResource((ID3D11Resource**)RenderTargetTexture.GetInitReference());
+				FRTVDesc RTTDesc = GetRenderTargetViewDesc(RenderTargetView);
 
 				TRefCountPtr<ID3D11Texture2D> DepthTargetTexture;
 				DepthStencilView->GetResource((ID3D11Resource**)DepthTargetTexture.GetInitReference());
-
-				D3D11_TEXTURE2D_DESC RTTDesc;
-				RenderTargetTexture->GetDesc(&RTTDesc);
 
 				D3D11_TEXTURE2D_DESC DTTDesc;
 				DepthTargetTexture->GetDesc(&DTTDesc);
@@ -746,15 +856,12 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 	}
 	
 	// Set the viewport to the full size of render target 0.
-	if(NewRenderTargetViews[0])
+	if (NewRenderTargetViews[0])
 	{
-		TRefCountPtr<ID3D11Texture2D> BaseResource;
-		NewRenderTargetViews[0]->GetResource((ID3D11Resource**)BaseResource.GetInitReference());
-
-		D3D11_TEXTURE2D_DESC Desc;
-		BaseResource->GetDesc(&Desc);
-
-		RHISetViewport(0,0,0.0f,Desc.Width,Desc.Height,1.0f);
+		// check target 0 is valid
+		check(0 < NewNumSimultaneousRenderTargets && IsValidRef(NewRenderTargetsRHI[0].Texture));
+		FRTVDesc RTTDesc = GetRenderTargetViewDesc(NewRenderTargetViews[0]);
+		RHISetViewport(0, 0, 0.0f, RTTDesc.Width, RTTDesc.Height, 1.0f);
 	}
 }
 
@@ -1068,7 +1175,8 @@ void FD3D11DynamicRHI::RHIDrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuff
 	uint32 IndexCount = RHIGetVertexCountForPrimitiveCount(NumPrimitives,PrimitiveType);
 
 	// Verify that we are not trying to read outside the index buffer range
-	checkf(StartIndex + IndexCount <= IndexBuffer->GetSize() / IndexBuffer->GetStride(), 
+	// test is an optimized version of: StartIndex + IndexCount <= IndexBuffer->GetSize() / IndexBuffer->GetStride() 
+	checkf((StartIndex + IndexCount) * IndexBuffer->GetStride() <= IndexBuffer->GetSize(), 		
 		TEXT("Start %u, Count %u, Type %u, Buffer Size %u, Buffer stride %u"), StartIndex, IndexCount, PrimitiveType, IndexBuffer->GetSize(), IndexBuffer->GetStride());
 
 	StateCache.SetIndexBuffer(IndexBuffer->Resource, Format, 0);
@@ -1390,27 +1498,9 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		uint32 Height = 0;
 		if (BoundRenderTargets.GetRenderTargetView(0))
 		{
-			ID3D11Texture2D* BaseTexture = NULL;
-			BoundRenderTargets.GetRenderTargetView(0)->GetResource((ID3D11Resource**)&BaseTexture);
-			D3D11_TEXTURE2D_DESC Desc;
-			BaseTexture->GetDesc(&Desc);
-			Width = Desc.Width;
-			Height = Desc.Height;
-			BaseTexture->Release();
-
-			D3D11_RENDER_TARGET_VIEW_DESC RTVDesc;
-			BoundRenderTargets.GetRenderTargetView(0)->GetDesc(&RTVDesc);
-			if (RTVDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1D ||
-				RTVDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1DARRAY ||
-				RTVDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D ||
-				RTVDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DARRAY ||
-				RTVDesc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE3D)
-			{
-				// All the non-multisampled texture types have their mip-slice in the same position.
-				uint32 MipIndex = RTVDesc.Texture2D.MipSlice;
-				Width >>= MipIndex;
-				Height >>= MipIndex;
-			}
+			FRTVDesc RTVDesc = GetRenderTargetViewDesc(BoundRenderTargets.GetRenderTargetView(0));
+			Width = RTVDesc.Width;
+			Height = RTVDesc.Height;
 		}
 		else if (DepthStencilView)
 		{
@@ -1432,6 +1522,9 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 
 	if (UseDrawClear)
 	{
+		// So we can see when we are taking the slow path
+		SCOPED_DRAW_EVENT(DrawCallClear, DEC_SCENE_ITEMS);
+
 		if (CurrentDepthTexture)
 		{
 			// Clear all texture references to this depth buffer

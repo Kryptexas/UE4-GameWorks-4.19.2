@@ -92,7 +92,7 @@ void SSourceControlLogin::Construct(const FArguments& InArgs)
 				SNew(SVerticalBox)
 				+SVerticalBox::Slot()
 				.AutoHeight()
-				.Padding(0.0f, 0.0f, 0.0f, 4.0f)
+				.Padding(0.0f)
 				[
 					SNew(SBox)
 					.WidthOverride(500)
@@ -119,9 +119,9 @@ void SSourceControlLogin::Construct(const FArguments& InArgs)
 				.Padding(0.0f, 0.0f, 0.0f, 4.0f)
 				[
 					SNew(SBorder)
-					.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+					.BorderImage(FEditorStyle::GetBrush("DetailsView.CategoryBottom"))
 					.Visibility(this, &SSourceControlLogin::GetDisabledTextVisibility)
-					.Padding(FMargin(0.0f, 12.0f))
+					.Padding(FMargin(4.0f, 12.0f))
 					[
 						SNew(STextBlock)
 						.WrapTextAt(500.0f)
@@ -243,14 +243,23 @@ void SSourceControlLogin::SourceControlOperationComplete(const FSourceControlOpe
 	else
 	{
 		ConnectionState = ELoginConnectionState::Disconnected;
-		DisplayConnectionError();
+		TSharedRef<FConnect, ESPMode::ThreadSafe> ConnectOperation = StaticCastSharedRef<FConnect>(InOperation);
+		DisplayConnectionError(ConnectOperation->GetErrorText());
 	}
 }
 
-void SSourceControlLogin::DisplayConnectionError() const
+void SSourceControlLogin::DisplayConnectionError(const FText& InErrorText) const
 {
 	FMessageLog SourceControlLog("SourceControl");
-	SourceControlLog.Error( LOCTEXT("FailedToConnect", "Failed to connect to source control. Check your settings and connection then try again.") );
+	if(InErrorText.IsEmpty())
+	{
+		SourceControlLog.Error(LOCTEXT("FailedToConnect", "Failed to connect to source control. Check your settings and connection then try again."));
+	}
+	else
+	{
+		SourceControlLog.Error(InErrorText);
+	}
+	
 	SourceControlLog.Notify();
 }
 

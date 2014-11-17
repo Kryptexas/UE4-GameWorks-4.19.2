@@ -97,7 +97,8 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	LastVisibilityChangeTime(0.0f),
 	Scene(InScene),
 	PackedIndex(INDEX_NONE),
-	ComponentForDebuggingOnly(InComponent)
+	ComponentForDebuggingOnly(InComponent),
+	bNeedsStaticMeshUpdate(true)
 {
 	check(ComponentForDebuggingOnly);
 	check(PrimitiveComponentId.IsValid());

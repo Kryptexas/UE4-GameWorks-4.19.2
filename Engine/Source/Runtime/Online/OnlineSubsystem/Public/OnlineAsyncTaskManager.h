@@ -10,12 +10,6 @@
  */
 class ONLINESUBSYSTEM_API FOnlineAsyncItem
 {
-PACKAGE_SCOPE:
-	/** Set by FOnlineAsyncTaskManager::Init */
-	static uint32 GameThreadId;
-	/** Set by FOnlineAsyncTaskManager::Run */
-	static uint32 OnlineThreadId;
-
 protected:
 	/** Time the task was created */
 	double StartTime;
@@ -52,7 +46,7 @@ public:
 	virtual void Finalize()
 	{
 		// assert that we're on the game thread
-		check(FPlatformTLS::GetCurrentThreadId() == GameThreadId);
+		check(IsInGameThread());
 	}
 
 	/**
@@ -61,7 +55,7 @@ public:
 	virtual void TriggerDelegates() 
 	{
 		// assert that we're on the game thread
-		check(FPlatformTLS::GetCurrentThreadId() == GameThreadId);
+		check(IsInGameThread());
 	}
 };
 
@@ -128,8 +122,8 @@ public:
 	 */
 	virtual void Tick()
 	{
-		// assert that we're on the online thread
-		check(FPlatformTLS::GetCurrentThreadId() == OnlineThreadId);
+		// assert that we're not on the game thread
+		check(!IsInGameThread());
 	}
 };
 
@@ -216,7 +210,7 @@ protected:
 	/** Should this manager and the thread exit */
 	int32 bRequestingExit;
 
-	/** Guards against the Run() in the runnable from being called twice */
+	/** Number of async task managers running currently */
 	static int32 InvocationCount;
 
 	/**
@@ -224,6 +218,11 @@ protected:
 	 * @param OldTask - some request of the online services
 	 */
 	void RemoveFromParallelTasks(FOnlineAsyncTask* OldTask);
+
+PACKAGE_SCOPE:
+
+	/** Set by FOnlineAsyncTaskManager::Run */
+	volatile uint32 OnlineThreadId;
 
 public:
 

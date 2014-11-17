@@ -280,7 +280,7 @@ public:
 		// Add the key-value pair to the set.  TSet::Add will replace any existing key-value pair that has the same key.
 		const FSetElementId PairId = Pairs.Emplace(TPairInitializer<InitKeyType&&, InitValueType&&>(Forward<InitKeyType>(InKey), Forward<InitValueType>(InValue)));
 
-		return Pairs(PairId).Value;
+		return Pairs[PairId].Value;
 	}
 
 	/**
@@ -306,7 +306,7 @@ public:
 		// Add the key-value pair to the set.  TSet::Add will replace any existing key-value pair that has the same key.
 		const FSetElementId PairId = Pairs.Emplace(TKeyInitializer<InitKeyType&&>(Forward<InitKeyType>(InKey)));
 
-		return Pairs(PairId).Value;
+		return Pairs[PairId].Value;
 	}
 
 	/**
@@ -835,7 +835,7 @@ public:
 		if(!PairId.IsValidId())
 			return false;
 
-		OutRemovedValue = Super::Pairs(PairId).Value;
+		OutRemovedValue = Super::Pairs[PairId].Value;
 		Super::Pairs.Remove(PairId);
 		return true;
 	}
@@ -850,7 +850,7 @@ public:
 	{
 		const FSetElementId PairId = Super::Pairs.FindId(Key);
 		check(PairId.IsValidId());
-		ValueType Result = Super::Pairs(PairId).Value;
+		ValueType Result = Super::Pairs[PairId].Value;
 		Super::Pairs.Remove(PairId);
 		return Result;
 	}
@@ -1004,7 +1004,7 @@ public:
 	FORCEINLINE ValueType& Emplace(InitKeyType&& InKey, InitValueType&& InValue)
 	{
 		const FSetElementId PairId = Super::Pairs.Emplace(TPairInitializer<InitKeyType&&, InitValueType&&>(Forward<InitKeyType>(InKey), Forward<InitValueType>(InValue)));
-		return Super::Pairs(PairId).Value;
+		return Super::Pairs[PairId].Value;
 	}
 
 	/**

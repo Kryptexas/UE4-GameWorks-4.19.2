@@ -24,6 +24,8 @@
 #include "Android/AndroidOpenGL.h"
 #elif PLATFORM_HTML5
 #include "HTML5/HTML5OpenGL.h"
+#elif PLATFORM_LINUX
+#include "Linux/OpenGLLinux.h"
 #endif
 
 #define OPENGL_USE_BINDABLE_UNIFORMS 0

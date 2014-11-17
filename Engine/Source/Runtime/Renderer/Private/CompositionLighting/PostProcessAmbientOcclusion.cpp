@@ -455,14 +455,14 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusion::ComputeOutputDesc(EP
 {
 	if(!bAOSetupAsInput)
 	{
-		// we render directly to the buffer, no need for an intermediate target
+		// we render directly to the buffer, no need for an intermediate target, we output in a single channel
 		return FPooledRenderTargetDesc();
 	}
 
 	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
-	// R:AmbientOcclusion, GBA:unused
+	// R:AmbientOcclusion, GBA:used for normal
 	Ret.Format = PF_B8G8R8A8;
 	Ret.TargetableFlags &= ~TexCreate_DepthStencilTargetable;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;

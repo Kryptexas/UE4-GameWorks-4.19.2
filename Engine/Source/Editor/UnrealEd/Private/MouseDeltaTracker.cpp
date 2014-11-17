@@ -50,7 +50,7 @@ void FMouseDeltaTracker::DetermineCurrentAxis(FEditorViewportClient* InViewportC
 
 	const bool bIsRotateObjectMode = InViewportClient->IsOrtho() && ControlDown && RightMouseButtonDown;
 	// Ctrl + LEFT/RIGHT mouse button acts the same as dragging the most appropriate widget handle.
-	if( (!InViewportClient->ShouldOrbitCamera() && bIsRotateObjectMode ) || (!bIsRotateObjectMode && ControlDown ) &&
+	if( (!InViewportClient->ShouldOrbitCamera() && bIsRotateObjectMode ) || (!bIsRotateObjectMode && ControlDown && !AltDown ) &&
 		(LeftMouseButtonDown || RightMouseButtonDown) )
 	{
 		// Only try to pick an axis if we're not dragging by widget handle.
@@ -316,17 +316,15 @@ void FMouseDeltaTracker::ConditionalBeginUsingDragTool( FEditorViewportClient* I
 
 	if( bEnoughMouseMovement )
 	{
-		const bool bCanDrag = !InViewportClient->ShouldOrbitCamera() && InViewportClient->GetCurrentWidgetAxis() == EAxisList::None && !DragTool.IsValid() && !bControlDown && !RightMouseButtonDown;
+		const bool bCanDrag = !InViewportClient->ShouldOrbitCamera() && InViewportClient->GetCurrentWidgetAxis() == EAxisList::None && !DragTool.IsValid() && !RightMouseButtonDown;
 
 		if (bCanDrag && !bHasAttemptedDragTool)
 		{
-			// Left mouse button down but not right mouse and left mouse
-			const bool bPassesNewViewportInput = InViewportClient->IsOrtho() ? (LeftMouseButtonDown ) : false;
 
 			// Create a drag tool.
 			if (InViewportClient->IsOrtho())
 			{
-				if (bPassesNewViewportInput)
+				if (LeftMouseButtonDown)
 				{
 					DragTool = InViewportClient->MakeDragTool(EDragTool::BoxSelect);
 				}
@@ -337,7 +335,7 @@ void FMouseDeltaTracker::ConditionalBeginUsingDragTool( FEditorViewportClient* I
 			}
 			else
 			{
-				if (bPassesNewViewportInput)
+				if (LeftMouseButtonDown && bControlDown && bAltDown)
 				{
 					DragTool = InViewportClient->MakeDragTool(EDragTool::FrustumSelect);
 				}

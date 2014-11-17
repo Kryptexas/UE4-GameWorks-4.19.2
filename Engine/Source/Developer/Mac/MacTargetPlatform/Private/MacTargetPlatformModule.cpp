@@ -49,7 +49,7 @@ public:
 
 	// Begin ITargetPlatformModule interface
 
-	virtual ITargetPlatform* GetTargetPlatform()
+	virtual ITargetPlatform* GetTargetPlatform() OVERRIDE
 	{
 		if (Singleton == NULL)
 		{

@@ -188,13 +188,16 @@ class UInstancedFoliageSettings : public UObject
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
 	uint32 bAffectDynamicIndirectLighting:1;
 
-	/** Controls whether the primitive should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. **/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
-	uint32 bCastDynamicShadow:1;
+	// Static lighting is not currently supported by instanced static meshes, so we treat CastShadow as controlling all shadow settings
+	// (enables dynamic shadows, disables static shadows) which makes these two settings (bCastDynamicShadow, bCastStaticShadow) irrelevant at this point in time
+	// See UInstancedStaticMeshComponent::GetStaticLightingInfo (it's empty, but it's what would add data to the Lightmass generation)
 
+	/** Controls whether the primitive should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. **/
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
+	//uint32 bCastDynamicShadow:1;
 	/** Whether the object should cast a static shadow from shadow casting lights.  This flag is only used if CastShadow is true. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
-	uint32 bCastStaticShadow:1;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting)
+	//uint32 bCastStaticShadow:1;
 
 	/** 
 	 *	If true, the primitive will cast shadows even if bHidden is true.
@@ -207,6 +210,10 @@ class UInstancedFoliageSettings : public UObject
 	/** Whether this primitive should cast dynamic shadows as if it were a two sided material. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting)
 	uint32 bCastShadowAsTwoSided:1;
+
+	/** Custom Collision for foliage */
+	UPROPERTY(EditAnywhere, Category=Collision, meta=(HideObjectType=true))
+	struct FBodyInstance BodyInstance;
 };
 
 

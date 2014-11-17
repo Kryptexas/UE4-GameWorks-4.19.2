@@ -840,35 +840,70 @@ FSceneView* FStaticMeshEditorViewportClient::CalcSceneView(FSceneViewFamily* Vie
 	return SceneView;
 }
 
+void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
+{
+	FEditorViewportClient::PerspectiveCameraMoved();
+
+	// The static mesh editor saves the camera position in terms of an orbit camera, so ensure 
+	// that orbit mode is enabled before we store the current transform information
+	const bool bWasOrbit = bUsingOrbitCamera;
+	ToggleOrbitCamera(true);
+
+	const FVector OrbitPoint = ViewTransform.GetLookAt();
+	const FVector OrbitZoom = GetViewLocation() - OrbitPoint;
+	StaticMesh->EditorCameraPosition = FAssetEditorOrbitCameraPosition(
+		OrbitPoint,
+		OrbitZoom,
+		GetViewRotation()
+		);
+
+	ToggleOrbitCamera(bWasOrbit);
+}
+
 void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InStaticMeshComponent)
 {
 	StaticMesh = InStaticMesh;
 	StaticMeshComponent = InStaticMeshComponent;
 
-	// set camera
-	FRotator ThumbnailAngle;
-	float ThumbnailDistance = 0;
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(StaticMesh->ThumbnailInfo);
-	if ( !ThumbnailInfo )
-	{
-		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
-	}
+	// If we have a thumbnail transform, we will favor that over the camera position as the user may have customized this for a nice view
+	// If we have neither a custom thumbnail nor a valid camera position, then we'll just use the default thumbnail transform 
+	const USceneThumbnailInfo* const AssetThumbnailInfo = Cast<USceneThumbnailInfo>(StaticMesh->ThumbnailInfo);
+	const USceneThumbnailInfo* const DefaultThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
 
+	// Prefer the asset thumbnail if available
+	const USceneThumbnailInfo* const ThumbnailInfo = (AssetThumbnailInfo) ? AssetThumbnailInfo : DefaultThumbnailInfo;
+	check(ThumbnailInfo);
+
+	FRotator ThumbnailAngle;
 	ThumbnailAngle.Pitch = ThumbnailInfo->OrbitPitch;
 	ThumbnailAngle.Yaw = ThumbnailInfo->OrbitYaw;
 	ThumbnailAngle.Roll = 0;
-	ThumbnailDistance = ThumbnailInfo->OrbitZoom;
+	const float ThumbnailDistance = ThumbnailInfo->OrbitZoom;
 
-	float CameraY = StaticMesh->GetBounds().SphereRadius / (75.0f * (float)PI / 360.0f);
+	const float CameraY = StaticMesh->GetBounds().SphereRadius / (75.0f * PI / 360.0f);
 	SetCameraSetup(
 		FVector::ZeroVector, 
 		ThumbnailAngle,
 		FVector(0.0f, CameraY + ThumbnailDistance - AutoViewportOrbitCameraTranslate, 0.0f), 
 		StaticMesh->GetBounds().Origin, 
 		-FVector(0, CameraY, 0), 
-		FRotator(0,90.f,0) );
-}
+		FRotator(0,90.f,0)
+		);
 
+	if(!AssetThumbnailInfo && StaticMesh->EditorCameraPosition.bIsSet)
+	{
+		// The static mesh editor saves the camera position in terms of an orbit camera, so ensure 
+		// that orbit mode is enabled before we set the new transform information
+		const bool bWasOrbit = bUsingOrbitCamera;
+		ToggleOrbitCamera(true);
+
+		SetViewRotation(StaticMesh->EditorCameraPosition.CamOrbitRotation);
+		SetViewLocation(StaticMesh->EditorCameraPosition.CamOrbitPoint + StaticMesh->EditorCameraPosition.CamOrbitZoom);
+		SetLookAtLocation(StaticMesh->EditorCameraPosition.CamOrbitPoint);
+
+		ToggleOrbitCamera(bWasOrbit);
+	}
+}
 
 void FStaticMeshEditorViewportClient::SetDrawUVOverlay()
 {

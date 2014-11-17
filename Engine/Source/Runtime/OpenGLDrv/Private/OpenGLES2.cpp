@@ -26,15 +26,11 @@ bool FOpenGLES2::bSupportsOcclusionQueries = false;
 /** GL_EXT_disjoint_timer_query */
 bool FOpenGLES2::bSupportsDisjointTimeQueries = false;
 
-
-#if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<int32> CVarDisjointTimerQueries(
 	TEXT("r.DisjointTimerQueries"),
 	0,
 	TEXT("If set to 1, allows GPU time to be measured (e.g. STAT UNIT). It defaults to 0 because some devices supports it but very slowly."),
 	ECVF_RenderThreadSafe);
-#endif
-
 
 /** GL_OES_rgb8_rgba8 */
 bool FOpenGLES2::bSupportsRGBA8 = false;
@@ -90,9 +86,6 @@ int FOpenGLES2::ShaderHighPrecision = 0;
 /** GL_NV_framebuffer_blit */
 bool FOpenGLES2::bSupportsNVFrameBufferBlit = false;
 
-/** GL_EXT_texture_filter_anisotropic */
-bool FOpenGLES2::bSupportsTextureFilterAnisotropic = false;
-
 /** GL_OES_packed_depth_stencil */
 bool FOpenGLES2::bSupportsPackedDepthStencil = false;
 
@@ -112,9 +105,7 @@ bool FOpenGLES2::bSupportsTextureStorageEXT = false;
 bool FOpenGLES2::SupportsDisjointTimeQueries()
 {
 	bool bAllowDisjointTimerQueries = false;
-#if !UE_BUILD_SHIPPING
 	bAllowDisjointTimerQueries = (CVarDisjointTimerQueries.GetValueOnRenderThread() == 1);
-#endif
 	return bSupportsDisjointTimeQueries && bAllowDisjointTimerQueries;
 }
 
@@ -164,7 +155,6 @@ void FOpenGLES2::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsVertexArrayObjects = ExtensionsString.Contains(TEXT("GL_OES_vertex_array_object")) ;
 	bSupportsDiscardFrameBuffer = ExtensionsString.Contains(TEXT("GL_EXT_discard_framebuffer"));
 	bSupportsNVFrameBufferBlit = ExtensionsString.Contains(TEXT("GL_NV_framebuffer_blit"));
-	bSupportsTextureFilterAnisotropic = ExtensionsString.Contains(TEXT("GL_EXT_texture_filter_anisotropic"));
 	bSupportsPackedDepthStencil = ExtensionsString.Contains(TEXT("GL_OES_packed_depth_stencil"));
 	bSupportsShaderTextureLod = ExtensionsString.Contains(TEXT("GL_EXT_shader_texture_lod"));
 	bSupportsTextureStorageEXT = ExtensionsString.Contains(TEXT("GL_EXT_texture_storage"));

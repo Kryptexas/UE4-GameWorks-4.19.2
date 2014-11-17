@@ -17,6 +17,6 @@ enum
 
 
 #include "NetworkMessage.h"
-#include "MultiChannelTcpReceiver.h"
-#include "MultiChannelTcpSender.h"
+#include "MultichannelTcpReceiver.h"
+#include "MultichannelTcpSender.h"
 #include "MultichannelTcpSocket.h"

@@ -292,6 +292,11 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)
 {
+	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
+	// compiling the blueprint will inherently dirty the package, but if there 
+	// weren't any changes to save before, there shouldn't be after
+	bool const bStartedWithUnsavedChanges = (BlueprintPackage != NULL) ? BlueprintPackage->IsDirty() : true;
+
 	// The old class is either the GeneratedClass if we had an old successful compile, or the SkeletonGeneratedClass stub if there were previously fatal errors
 	UClass* OldClass = (BlueprintObj->GeneratedClass != NULL && (BlueprintObj->GeneratedClass != BlueprintObj->SkeletonGeneratedClass)) ? BlueprintObj->GeneratedClass : NULL;
 
@@ -392,6 +397,11 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	{
 		UBlueprint::ValidateGeneratedClass(BlueprintObj->GeneratedClass);
 	}
+
+	if (BlueprintPackage != NULL)
+	{
+		BlueprintPackage->SetDirtyFlag(bStartedWithUnsavedChanges);
+	}	
 }
 
 /** Generates a blueprint skeleton only.  Minimal compile, no notifications will be sent, no GC, etc.  Only successful if there isn't already a skeleton generated */
@@ -422,7 +432,7 @@ void FKismetEditorUtilities::GenerateBlueprintSkeleton(UBlueprint* BlueprintObj,
 }
 
 /** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
-void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj)
+void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj, TArray<UObject*>* ObjLoaded)
 {
 	check(BlueprintObj);
 	check(BlueprintObj->GeneratedClass);
@@ -436,7 +446,7 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 
 	FKismetCompilerOptions CompileOptions;
 	CompileOptions.CompileType = EKismetCompileType::BytecodeOnly;
-	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results);
+	Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results, NULL, ObjLoaded);
 
 	ReinstanceHelper.UpdateBytecodeReferences();
 }
@@ -1346,7 +1356,7 @@ inline void AddSearchMetaInfo( TArray<UObject::FAssetRegistryTag> &OutTags, cons
 		{
 			continue;
 		}
-		Result += FString("::") + Node->GetNodeTitle(ENodeTitleType::ListView);
+		Result += FString("::") + Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 
 		if(int* Count = AllPaths.Find(Result))
 		{
@@ -1372,7 +1382,22 @@ inline void AddSearchMetaInfo( TArray<UObject::FAssetRegistryTag> &OutTags, cons
 	OutTags.Add( UObject::FAssetRegistryTag(Category, FinalString, UObject::FAssetRegistryTag::TT_Hidden) );
 }
 
-
+void FKismetEditorUtilities::AddInterfaceTags(const UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags)
+{
+	if (Blueprint->ImplementedInterfaces.Num() == 0)
+	{
+		return;
+	}
+	for (auto Iter(Blueprint->ImplementedInterfaces.CreateConstIterator()); Iter; Iter++)
+	{
+		const FBPInterfaceDescription& Description = *Iter;
+		if (Description.Interface->GetClass() != NULL)
+		{
+			FString Result = FString::Printf(TEXT("[%s] %s"), *Iter->Interface->GetSuperClass()->GetName(), *Iter->Interface->GetOuter()->GetName());
+			OutTags.Add(UObject::FAssetRegistryTag(TEXT("Interfaces"), Result, UObject::FAssetRegistryTag::TT_Hidden));
+		}
+	}
+}
 
 void FKismetEditorUtilities::GetAssetRegistryTagsForBlueprint(const UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags)
 {
@@ -1397,6 +1422,9 @@ void FKismetEditorUtilities::GetAssetRegistryTagsForBlueprint(const UBlueprint* 
 
 	//Add information for all node comments
 	AddSearchMetaInfo<UEdGraphNode>(OutTags, TEXT("Comments"), Blueprint);
+	
+	//Add information about interfaces (these are not nodes as the other tags are and so require a custom search)
+	AddInterfaceTags(Blueprint, OutTags);
 }
 
 bool FKismetEditorUtilities::IsTrackedBlueprintParent(const UClass* ParentClass)

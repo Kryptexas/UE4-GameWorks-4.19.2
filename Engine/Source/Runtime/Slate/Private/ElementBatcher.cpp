@@ -48,7 +48,7 @@ static FVector2D RotatePoint( FVector2D InPoint, const FVector2D& AboutPoint, fl
 
 
 FSlateElementBatcher::FSlateElementBatcher( TSharedRef<FSlateRenderingPolicy> InRenderingPolicy )
-	: SplineBrush( FPaths::EngineContentDir() / "Editor/Slate/SplineFilterTable.png", FVector2D(0,0) )
+	: SplineBrush( FCoreStyle::Get().GetBrush("SplineFilterTable") )
 	, RenderingPolicy( InRenderingPolicy )
 {
 
@@ -695,7 +695,8 @@ void FSlateElementBatcher::AddSplineElement( const FVector2D& Position, float Sc
 	// The amount we increase each side of the line to generate enough pixels
 	const float HalfThickness = LineThickness * .5f + Radius;
 
-	FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( SplineBrush );
+	// Currently splines are not atlased because they are tiled.  So we just assume the texture proxy holds the actual texture
+	FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( *SplineBrush );
 	check(ResourceProxy && ResourceProxy->Resource);
 
 	// Find a batch for the element
@@ -813,8 +814,8 @@ void FSlateElementBatcher::AddLineElement( const FVector2D& Position, const FVec
 
 	if( InPayload.bAntialias )
 	{
-
-		FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( SplineBrush );
+		// Currently splines are not atlased because they are tiled.  So we just assume the texture proxy holds the actual texture
+		FSlateShaderResourceProxy* ResourceProxy = RenderingPolicy->GetTextureResource( *SplineBrush );
 		check(ResourceProxy && ResourceProxy->Resource);
 
 		// The radius to use when checking the distance of pixels to the actual line.  Arbitrary value based on what looks the best
@@ -1289,7 +1290,7 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 	{
 		// No batch with the specified parameter exists.  Create it from the temp batch.
 		FSetElementId ID = ElementBatches->Add( TempBatch );
-		ElementBatch = &(*ElementBatches)(ID);
+		ElementBatch = &(*ElementBatches)[ID];
 
 		// Get a free vertex array
 		if( VertexArrayFreeList.Num() > 0 )

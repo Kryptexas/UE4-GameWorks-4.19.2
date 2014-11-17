@@ -33,9 +33,22 @@ public:
 		Password = InPassword;
 	}
 
+	const FText& GetErrorText() const
+	{
+		return OutErrorText;
+	}
+
+	void SetErrorText(const FText& InErrorText)
+	{
+		OutErrorText = InErrorText;
+	}
+
 protected:
 	/** Password we use for this operation */
 	FString Password;
+
+	/** Error text for easy diagnosis */
+	FText OutErrorText;
 };
 
 /**
@@ -55,19 +68,32 @@ public:
 		return LOCTEXT("SourceControl_CheckIn", "Checking file(s) into Source Control..."); 
 	}
 
-	void SetDescription( const FString& InDescription )
+	void SetDescription( const FText& InDescription )
 	{
 		Description = InDescription;
 	}
 
-	const FString& GetDescription() const
+	const FText& GetDescription() const
 	{
 		return Description;
 	}
 
+	void SetSuccessMessage( const FText& InSuccessMessage )
+	{
+		SuccessMessage = InSuccessMessage;
+	}
+
+	const FText& GetSuccessMessage() const
+	{
+		return SuccessMessage;
+	}
+
 protected:
 	/** Description of the checkin */
-	FString Description;
+	FText Description;
+
+	/** A short message listing changelist/revision we submitted, if successful */
+	FText SuccessMessage;
 };
 
 /**

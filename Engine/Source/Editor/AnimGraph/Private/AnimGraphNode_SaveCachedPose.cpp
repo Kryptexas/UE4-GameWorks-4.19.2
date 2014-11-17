@@ -30,6 +30,8 @@ public:
 /////////////////////////////////////////////////////
 // UAnimGraphNode_ComponentToLocalSpace
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_SaveCachedPose::UAnimGraphNode_SaveCachedPose(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -42,8 +44,23 @@ FString UAnimGraphNode_SaveCachedPose::GetTooltip() const
 	return TEXT("Denotes an animation tree that can be referenced elsewhere in the blueprint, which will be evaluated at most once per frame and then cached.");
 }
 
-FString UAnimGraphNode_SaveCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_SaveCachedPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	if (TitleType == ENodeTitleType::EditableTitle)
+	{
+		return FText::FromString(CacheName);
+	}
+	else
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeTitle"), FText::FromString(CacheName));
+		return FText::Format(LOCTEXT("AnimGraphNode_SaveCachedPose_Title", "Save cached pose '{NodeTitle}'"), Args);
+	}
+}
+
+FString UAnimGraphNode_SaveCachedPose::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	if (TitleType == ENodeTitleType::EditableTitle)
 	{
 		return CacheName;
@@ -73,8 +90,9 @@ void UAnimGraphNode_SaveCachedPose::GetMenuEntries(FGraphContextMenuBuilder& Con
 			UAnimGraphNode_SaveCachedPose* SaveCachedPose = NewObject<UAnimGraphNode_SaveCachedPose>();
 			SaveCachedPose->CacheName += FString::FromInt(FMath::Rand());
 
-			TSharedPtr<FEdGraphSchemaAction_K2NewNode> SaveCachedPoseAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetNodeCategory(), TEXT("New Save cached pose..."), SaveCachedPose->GetTooltip(), 0, SaveCachedPose->GetKeywords());
+			TSharedPtr<FEdGraphSchemaAction_K2NewNode> SaveCachedPoseAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, GetNodeCategory(), LOCTEXT("NewSaveCachedPose", "New Save cached pose..."), SaveCachedPose->GetTooltip(), 0, SaveCachedPose->GetKeywords());
 			SaveCachedPoseAction->NodeTemplate = SaveCachedPose;
+			SaveCachedPoseAction->SearchTitle = SaveCachedPoseAction->NodeTemplate->GetNodeSearchTitle();
 		}
 	}
 }
@@ -89,3 +107,5 @@ TSharedPtr<class INameValidatorInterface> UAnimGraphNode_SaveCachedPose::MakeNam
 {
 	return MakeShareable(new FCachedPoseNameValidator(GetBlueprint(), CacheName));
 }
+
+#undef LOCTEXT_NAMESPACE

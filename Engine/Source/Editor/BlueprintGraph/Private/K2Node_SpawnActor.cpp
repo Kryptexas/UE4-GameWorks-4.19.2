@@ -64,7 +64,7 @@ void UK2Node_SpawnActor::CreatePinsForClass(UClass* InClass)
 		UProperty* Property = *PropertyIt;
 		UClass* PropertyClass = CastChecked<UClass>(Property->GetOuter());
 		const bool bIsDelegate = Property->IsA(UMulticastDelegateProperty::StaticClass());
-		const bool bIsExposedToSpawn = Property->HasMetaData(FBlueprintMetadata::MD_ExposeOnSpawn);
+		const bool bIsExposedToSpawn = UEdGraphSchema_K2::IsPropertyExposedOnSpawn(Property);
 
 		const bool bIsSettableExternally = !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance)
 			|| !Property->HasAnyPropertyFlags(CPF_BlueprintReadOnly);//@TODO: Remove this after old content is fixed up
@@ -230,11 +230,35 @@ FLinearColor UK2Node_SpawnActor::GetNodeTitleColor() const
 }
 
 
-FString UK2Node_SpawnActor::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_SpawnActor::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* BlueprintPin = GetBlueprintPin();
 
-	FString SpawnString = NSLOCTEXT("K2Node", "None", "NONE").ToString();
+	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
+	if(BlueprintPin != NULL)
+	{
+		if(BlueprintPin->LinkedTo.Num() > 0)
+		{
+			// Blueprint will be determined dynamically, so we don't have the name in this case
+			SpawnString = FText::GetEmpty();
+		}
+		else if(BlueprintPin->DefaultObject != NULL)
+		{
+			SpawnString = FText::FromString(BlueprintPin->DefaultObject->GetName());
+		}
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ActorName"), SpawnString);
+	return FText::Format(NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor {ActorName}"), Args);
+}
+
+FString UK2Node_SpawnActor::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	UEdGraphPin* BlueprintPin = GetBlueprintPin();
+
+	FString SpawnString = TEXT("NONE");
 	if(BlueprintPin != NULL)
 	{
 		if(BlueprintPin->LinkedTo.Num() > 0)
@@ -248,7 +272,7 @@ FString UK2Node_SpawnActor::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		}
 	}
 
-	return FString::Printf(*NSLOCTEXT("K2Node", "SpawnActor", "SpawnActor %s").ToString(), *SpawnString);
+	return FString::Printf(TEXT("SpawnActor %s"), *SpawnString);
 }
 
 bool UK2Node_SpawnActor::CanPasteHere( const UEdGraph* TargetGraph, const UEdGraphSchema* Schema ) const 
@@ -451,11 +475,16 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 	}
 }
 
-bool UK2Node_SpawnActor::HasExternalBlueprintDependencies() const
+bool UK2Node_SpawnActor::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
-	const UClass* SourceClass = GetClassToSpawn();
+	UClass* SourceClass = GetClassToSpawn();
 	const UBlueprint* SourceBlueprint = GetBlueprint();
-	return (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	if (bResult && OptionalOutput)
+	{
+		OptionalOutput->Add(SourceClass);
+	}
+	return bResult;
 }
 
 bool UK2Node_SpawnActor::IsDeprecated() const

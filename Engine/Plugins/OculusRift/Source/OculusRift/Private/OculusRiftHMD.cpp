@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2012 Epic Games, Inc. All Rights Reserved.
 
 #include "IOculusRiftPlugin.h"
 #include "HeadMountedDisplay.h"
@@ -10,6 +10,8 @@
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	#include "OVR.h"
 	#include "OVRVersion.h"
+
+	//#undef OVR_VISION_ENABLED
 
 	#ifdef OVR_VISION_ENABLED
 	#include "../Src/Vision/Vision_PoseTracker.h"
@@ -245,18 +247,6 @@ void FOculusRiftHMD::EnableLowPersistenceMode(bool Enable)
 #endif
 }
 
-float FOculusRiftHMD::GetUserDistanceToScreenModifier() const
-{
-	return UserDistanceToScreenModifier;
-}
-
-void FOculusRiftHMD::SetUserDistanceToScreenModifier(float NewUserDistanceToScreenModifier)
-{
-	UserDistanceToScreenModifier = NewUserDistanceToScreenModifier;
-
-	UpdateStereoRenderingParams();
-}
-
 float FOculusRiftHMD::GetInterpupillaryDistance() const
 {
 	return InterpupillaryDistance;
@@ -269,7 +259,7 @@ void FOculusRiftHMD::SetInterpupillaryDistance(float NewInterpupillaryDistance)
 	UpdateStereoRenderingParams();
 }
 
-float FOculusRiftHMD::GetFieldOfView() const
+float FOculusRiftHMD::GetFieldOfViewInRadians() const
 {
 	return FOV;
 }
@@ -1250,7 +1240,7 @@ void FOculusRiftHMD::AdjustViewRect(EStereoscopicPass StereoPass, int32& X, int3
     }
 }
 
-void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation) const
+void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPassType, const FRotator& ViewRotation, const float WorldToMeters, FVector& ViewLocation)
 {
 	ConditionalLocker lock(bUpdateOnRT, &UpdateOnRTLock);
 
@@ -1414,6 +1404,7 @@ void FOculusRiftHMD::ModifyShowFlags(FEngineShowFlags& ShowFlags)
 	ShowFlags.MotionBlur = 0;
     ShowFlags.HMDDistortion = bHmdDistortion;
 	ShowFlags.ScreenPercentage = true;
+	ShowFlags.StereoRendering = IsStereoEnabled();
 }
 
 void FOculusRiftHMD::SetupView(FSceneView& InView)
@@ -1988,27 +1979,30 @@ float FOculusRiftHMD::CalcDistortionScale(float InScale)
 }
 
 #if !UE_BUILD_SHIPPING
-bool FOculusRiftHMD::HandleInputKey(UPlayerInput* pPlayerInput, FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
+bool FOculusRiftHMD::HandleInputKey(UPlayerInput* pPlayerInput, 
+	FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
 {
 #if 0 //def OVR_VISION_ENABLED
 	//UE_LOG(LogHMD, Log, TEXT("Key %d, %f, gamepad %d"), (int)Key, AmountDepressed, (int)bGamepad);
 	if (bGamepad && EventType == IE_Pressed)
 	{
-		if (Key == EKeys::Gamepad_RightThumbstick)
+		switch (Key)
 		{
+		case EKeys::Gamepad_RightThumbstick:
 			// toggles mode for the right stick
 			bPosTrackingSim = !bPosTrackingSim;
 			SimPosition.x = SimPosition.y = SimPosition.z = 0;
-		}
-		else if (   Key == EKeys::Gamepad_RightStick_Up
-			|| Key == EKeys::Gamepad_RightStick_Down
-			|| Key == EKeys::Gamepad_RightStick_Left
-			|| Key == EKeys::Gamepad_RightStick_Right )
-		{
+			break;
+		case EKeys::Gamepad_RightStick_Up: 
+		case EKeys::Gamepad_RightStick_Down:
+		case EKeys::Gamepad_RightStick_Left:
+		case EKeys::Gamepad_RightStick_Right:
 			if (bPosTrackingSim)
 			{
 				return true;
 			}
+			break;
+		default:; 
 		}
 	}
 #endif
@@ -2021,31 +2015,27 @@ bool FOculusRiftHMD::HandleInputAxis(UPlayerInput*, FKey Key, float Delta, float
 	// by default, Delta is changing in [-1..1] interval.
 	const float InputAxisScale = 0.5f;  // make it [-0.5 .. +0.5] to simulate pos tracker input
 
-	//	UE_LOG(LogHMD, Log, TEXT("Key %d, delta %f, time %f, samples %d "), 
-	//		(int)Key, Delta, DeltaTime, NumSamples);
+//	UE_LOG(LogHMD, Log, TEXT("Key %d, delta %f, time %f, samples %d "), 
+//		(int)Key, Delta, DeltaTime, NumSamples);
 	if (bGamepad && bPosTrackingSim)
 	{
-		if (Key == EKeys::Gamepad_LeftX)
+		switch (Key)
 		{
+		case EKeys::Gamepad_LeftX:
 			return true;
-		}
-		else if (Key == EKeys::Gamepad_LeftY)
-		{
+		case EKeys::Gamepad_LeftY:
 			// up - down, Oculus right-handed XYZ coord system.
 			SimPosition.y = float(Delta * InputAxisScale);
 			return true;
-		}
-		else if (Key == EKeys::Gamepad_RightX)
-		{
+		case EKeys::Gamepad_RightX:
 			// left - right, Oculus right-handed XYZ coord system.
 			SimPosition.x = float(Delta * InputAxisScale);
 			return true;
-		}
-		else if (Key == EKeys::Gamepad_RightY)
-		{
+		case EKeys::Gamepad_RightY:
 			// forward - backward, Oculus right-handed XYZ coord system.
 			SimPosition.z = float(Delta * InputAxisScale);
 			return true;
+		default:;
 		}
 	}
 #endif

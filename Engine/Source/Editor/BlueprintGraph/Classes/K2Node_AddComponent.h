@@ -16,13 +16,12 @@ class UK2Node_AddComponent : public UK2Node_CallFunction
 	UPROPERTY()
 	FString TemplateBlueprint;
 
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual void DestroyNode() OVERRIDE;
 	virtual void PrepareForCopying() OVERRIDE;
 	virtual void PostPasteNode() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetDocumentationLink() const OVERRIDE;
 	virtual FString GetDocumentationExcerptName() const OVERRIDE;
 	// End UEdGraphNode interface
@@ -67,7 +66,6 @@ private:
 	{
 		return FindPin(TEXT("TemplateName"));
 	}
-#endif
 };
 
 

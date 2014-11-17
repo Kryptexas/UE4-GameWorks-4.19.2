@@ -43,7 +43,7 @@ namespace UnrealBuildTool
 		/** Whether we should compile in support for Simplygon or not. */
 		public static bool bCompileSimplygon;
 
-		/** Whether we should compile in support for Steam OnlineSubsystem or not. */
+        /** Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled */
 		public static bool bCompileSteamOSS;
 
 		/** Whether we should compile in support for Mcp OnlineSubsystem or not. */

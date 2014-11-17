@@ -20,13 +20,21 @@ USpringArmComponent::USpringArmComponent(const class FPostConstructInitializePro
 	TargetArmLength = 300.0f;
 	ProbeSize = 12.0f;
 	ProbeChannel = ECC_Camera;
+
+	CameraLagSpeed = 10.f;
 }
 
-void USpringArmComponent::UpdateDesiredArmLocation(const FVector& Origin, const FRotator& Direction, bool bDoTrace, float DeltaTime)
+void USpringArmComponent::UpdateDesiredArmLocation(const FVector& Origin, const FRotator& Direction, bool bDoTrace, bool bDoLag, float DeltaTime)
 {
 	FRotator DesiredRot = Direction;
 
 	FVector DesiredLoc = Origin;
+	if (bDoLag)
+	{
+		DesiredLoc = FMath::VInterpTo(PreviousDesiredLoc, DesiredLoc, DeltaTime, CameraLagSpeed);
+	}
+	PreviousDesiredLoc = DesiredLoc;
+
 	DesiredLoc -= DesiredRot.Vector() * TargetArmLength;
 	DesiredLoc += FRotationMatrix(DesiredRot).TransformVector(SocketOffset);
 
@@ -58,7 +66,7 @@ FVector USpringArmComponent::BlendLocations(const FVector& DesiredArmLocation, c
 void USpringArmComponent::OnRegister()
 {
 	Super::OnRegister();
-	UpdateDesiredArmLocation(GetComponentLocation(), GetComponentRotation(), false, 0.0f);
+	UpdateDesiredArmLocation(GetComponentLocation(), GetComponentRotation(), false, false, 0.0f);
 }
 
 void USpringArmComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -77,7 +85,7 @@ void USpringArmComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		}
 	}
 
-	UpdateDesiredArmLocation(GetComponentLocation(), GetComponentRotation(), bDoCollisionTest, DeltaTime);
+	UpdateDesiredArmLocation(GetComponentLocation(), GetComponentRotation(), bDoCollisionTest, bEnableCameraLag, DeltaTime);
 }
 
 FTransform USpringArmComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const

@@ -5,7 +5,6 @@
 #include "AssetContextMenu.h"
 #include "ContentBrowserModule.h"
 
-#include "Editor/UnrealEd/Public/LinkedObjEditor.h"
 #include "Editor/UnrealEd/Public/ObjectTools.h"
 #include "Editor/UnrealEd/Public/PackageTools.h"
 #include "Editor/UnrealEd/Public/FileHelpers.h"
@@ -193,8 +192,8 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 	if ( CanExecuteConsolidate() )
 	{
 		MenuBuilder.AddMenuEntry(
-			LOCTEXT("Consolidate", "Consolidate"),
-			LOCTEXT("ConsolidateTooltip", "Consolidate the selected assets into one."),
+			LOCTEXT("ReplaceReferences", "Replace References"),
+			LOCTEXT("ConsolidateTooltip", "Replace references to the selected assets."),
 			FSlateIcon(),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteConsolidate )
@@ -559,14 +558,30 @@ struct WorldReferenceGenerator : public FFindReferencedAssets
 	{
 		MarkAllObjects();
 
-		FReferencedAssets* Referencer = new(Referencers) FReferencedAssets(GWorld);
 		const int32 MaxRecursionDepth = 0;
 		const bool bIncludeClasses = true;
 		const bool bIncludeDefaults = false;
 		const bool bReverseReferenceGraph = true;
 
 		// Generate the reference graph for GWorld
-		FFindAssetsArchive(GWorld, Referencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
+		FReferencedAssets* WorldReferencer = new(Referencers) FReferencedAssets(GWorld);
+		FFindAssetsArchive(GWorld, WorldReferencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
+
+		// Also include all the streaming levels in the results
+		for( int32 LevelIndex = 0 ; LevelIndex < GWorld->StreamingLevels.Num() ; ++LevelIndex )
+		{
+			ULevelStreaming* StreamingLevel = GWorld->StreamingLevels[LevelIndex];
+			if( StreamingLevel != NULL )
+			{
+				ULevel* Level = StreamingLevel->GetLoadedLevel();
+				if( Level != NULL )
+				{
+					// Generate the reference graph for each streamed in level
+					FReferencedAssets* LevelReferencer = new(Referencers) FReferencedAssets(Level);			
+					FFindAssetsArchive(Level, LevelReferencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
+				}
+			}
+		}
 	}
 
 	void MarkAllObjects()
@@ -623,7 +638,7 @@ void FAssetContextMenu::ExecuteFindAssetInWorld()
 		const bool ShowProgressDialog = true;
 		GWarn->BeginSlowTask(NSLOCTEXT("AssetContextMenu", "FindAssetInWorld", "Finding actors that use this asset..."), ShowProgressDialog);
 
- 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 
 		TArray< TWeakObjectPtr<UObject> > OutObjects;
 		WorldReferenceGenerator ObjRefGenerator;
@@ -785,7 +800,7 @@ void FAssetContextMenu::ExecuteDelete()
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	if(AssetViewSelectedAssets.Num() > 0)
 	{
-		TArray<UObject*> ObjectsToDelete;
+		TArray<FAssetData> AssetsToDelete;
 
 		for( auto AssetIt = AssetViewSelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt )
 		{
@@ -803,16 +818,12 @@ void FAssetContextMenu::ExecuteDelete()
 				continue;
 			}
 
-			UObject* Object = AssetData.GetAsset();
-			if( Object )
-			{
-				ObjectsToDelete.Add( Object );
-			}
+			AssetsToDelete.Add( AssetData );
 		}
 
-		if ( ObjectsToDelete.Num() > 0 )
+		if ( AssetsToDelete.Num() > 0 )
 		{
-			ObjectTools::DeleteObjects(ObjectsToDelete);
+			ObjectTools::DeleteAssets( AssetsToDelete );
 		}
 	}
 
@@ -830,7 +841,7 @@ void FAssetContextMenu::ExecuteDelete()
 		}
 
 		// Spawn a confirmation dialog since this is potentially a highly destructive operation
- 		ContentBrowserUtils::DisplayConfirmationPopup(
+		ContentBrowserUtils::DisplayConfirmationPopup(
 			Prompt,
 			LOCTEXT("FolderDeleteConfirm_Yes", "Delete"),
 			LOCTEXT("FolderDeleteConfirm_No", "Cancel"),

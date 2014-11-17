@@ -16,12 +16,11 @@ private:
 
 public:
 
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool ShouldOverridePinNames() const OVERRIDE { return true; }
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE;
 	// End UEdGraphNode interface
@@ -44,7 +43,5 @@ public:
 
 	/** Gets the referenced object */
 	BLUEPRINTGRAPH_API UObject* GetObjectRef() const { return ObjectRef; }
-
-#endif
 };
 

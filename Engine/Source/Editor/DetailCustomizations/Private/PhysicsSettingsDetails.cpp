@@ -121,7 +121,7 @@ TSharedRef<IDetailCustomization> FPhysicsSettingsDetails::MakeInstance()
 
 void FPhysicsSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-  	IDetailCategoryBuilder& PhysicalSurfaceCategory = DetailBuilder.EditCategory("Physical Surface");
+  	IDetailCategoryBuilder& PhysicalSurfaceCategory = DetailBuilder.EditCategory("Physical Surface", TEXT(""), ECategoryPriority::Uncommon);
 
 	PhysicsSettings= UPhysicsSettings::Get();
 	check(PhysicsSettings);
@@ -151,8 +151,7 @@ void FPhysicsSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 				.ToolTip(PhysicalSurfaceTooltip)
-				.Text(LOCTEXT("PhysicalSurface_Menu_Description", " You can have up to 30 custom surface types for your project. \n\
-																  Once you name each type, they will show up as surface type in the physical material.").ToString())
+				.Text(LOCTEXT("PhysicalSurface_Menu_Description", " You can have up to 30 custom surface types for your project. \nOnce you name each type, they will show up as surface type in the physical material."))
 			]
 		]
 

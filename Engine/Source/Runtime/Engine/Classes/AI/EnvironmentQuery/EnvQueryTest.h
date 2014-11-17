@@ -68,10 +68,10 @@ class ENGINE_API UEnvQueryTest : public UObject
 
 	/** get description of test */
 	virtual FString GetDescriptionTitle() const;
-	virtual FString GetDescriptionDetails() const;
+	virtual FText GetDescriptionDetails() const;
 
-	FString DescribeFloatTestParams() const;
-	FString DescribeBoolTestParams(const FString& ConditionDesc) const;
+	FText DescribeFloatTestParams() const;
+	FText DescribeBoolTestParams(const FString& ConditionDesc) const;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

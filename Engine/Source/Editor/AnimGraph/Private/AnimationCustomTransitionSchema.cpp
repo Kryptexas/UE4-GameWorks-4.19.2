@@ -45,10 +45,12 @@ void UAnimationCustomTransitionSchema::CreateDefaultNodesForGraph(UEdGraph& Grap
 
 void UAnimationCustomTransitionSchema::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const
 {
-	DisplayInfo.DisplayName = FText::FromString( Graph.GetName() );
+	DisplayInfo.PlainName = FText::FromString( Graph.GetName() );
 
 	if (const UAnimStateTransitionNode* TransNode = Cast<const UAnimStateTransitionNode>(Graph.GetOuter()))
 	{
-		DisplayInfo.DisplayName = FText::Format( NSLOCTEXT("Animation", "CustomBlendGraphTitle", "{0} (custom blend)"), FText::FromString( TransNode->GetNodeTitle(ENodeTitleType::FullTitle)) );
+		DisplayInfo.PlainName = FText::Format( NSLOCTEXT("Animation", "CustomBlendGraphTitle", "{0} (custom blend)"), TransNode->GetNodeTitle(ENodeTitleType::FullTitle) );
 	}
+
+	DisplayInfo.DisplayName = DisplayInfo.PlainName;
 }

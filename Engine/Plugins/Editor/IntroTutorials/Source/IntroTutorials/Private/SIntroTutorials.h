@@ -37,8 +37,9 @@ class SIntroTutorials : public SCompoundWidget
 	 */
 	void ChangePage(const FString& Path);
 
-	FString GetCurrentTutorialName() const;
-	FString GetCurrentExcerptTitle() const;
+	FText GetCurrentTutorialName() const;
+	FString GetCurrentExcerptIdentifierName() const;
+	FText GetCurrentExcerptTitle() const;
 	int32 GetCurrentExcerptIndex() const;
 	FString GetCurrentPagePath() const;
 	float GetCurrentPageElapsedTime() const;
@@ -56,8 +57,6 @@ private:
 
 	/** Play tutorial dialogue */
 	void PlayDialogue(UDialogueWave* InDialogueWave);
-	/** Play a sound specified by its path */
-	void PlaySound(const FString& WavePath);
 
 	/** Changes the page we are currently on, cleaning up appropriately */
 	void GotoPreviousPage();
@@ -72,7 +71,7 @@ private:
 	EVisibility GetNextButtonVisibility() const;
 	FText GetNextButtonText() const;
 	FText GetBackButtonText() const;
-	FString GetTimeRemaining() const;
+	FText GetTimeRemaining() const;
 	FReply OnHomeClicked();
 	FReply OnPreviousClicked();
 	bool OnPreviousIsEnabled() const;
@@ -81,7 +80,7 @@ private:
 	EVisibility GetContentVisibility() const;
 	EVisibility GetHomeContentVisibility() const;
 	TOptional<float> GetProgress() const;
-	FString GetProgressString() const;
+	FText GetProgressText() const;
 	const FSlateBrush* GetContentAreaBackground() const;
 
 	bool IsLastPage() const;

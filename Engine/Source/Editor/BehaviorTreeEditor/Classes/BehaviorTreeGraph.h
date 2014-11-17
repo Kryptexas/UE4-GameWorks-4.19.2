@@ -19,5 +19,6 @@ class UBehaviorTreeGraph : public UEdGraph
 	void UpdateAbortHighlight(struct FAbortDrawHelper& Mode0, struct FAbortDrawHelper& Mode1);
 	void CreateBTFromGraph(class UBehaviorTreeGraphNode* RootEdNode);
 	void UpdatePinConnectionTypes();
+	void UpdateDeprecatedNodes();
 };
 

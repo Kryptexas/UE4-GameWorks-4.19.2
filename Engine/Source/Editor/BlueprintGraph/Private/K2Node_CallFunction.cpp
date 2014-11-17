@@ -66,7 +66,7 @@ FString UK2Node_CallFunction::GetFunctionContextString() const
 }
 
 
-FString UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	FString FunctionName;
 	FString ContextString;
@@ -83,14 +83,49 @@ FString UK2Node_CallFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 		FunctionName = FunctionReference.GetMemberName().ToString();
 		if ((GEditor != NULL) && (GetDefault<UEditorStyleSettings>()->bShowFriendlyNames))
 		{
-			FunctionName = EngineUtils::SanitizeDisplayName(FunctionName, false);
+			FunctionName = FName::NameToDisplayString(FunctionName, false);
+		}
+	}
+
+	if(TitleType == ENodeTitleType::FullTitle)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("FunctionName"), FText::FromString(FunctionName));
+		Args.Add(TEXT("ContextString"), FText::FromString(ContextString));
+		Args.Add(TEXT("RPCString"), FText::FromString(RPCString));
+		return FText::Format(LOCTEXT("CallFunction_FullTitle", "{FunctionName}{ContextString}{RPCString}"), Args);
+	}
+	else
+	{
+		return FText::FromString(FunctionName);
+	}
+}
+
+FString UK2Node_CallFunction::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	FString FunctionName;
+	FString ContextString;
+	FString RPCString;
+
+	if (UFunction* Function = GetTargetFunction())
+	{
+		RPCString = UK2Node_Event::GetLocalizedNetString(Function->FunctionFlags, true);
+		FunctionName = UK2Node_CallFunction::GetUserFacingFunctionName(Function);
+		ContextString = GetFunctionContextString();
+	}
+	else
+	{
+		FunctionName = FunctionReference.GetMemberName().ToString();
+		if ((GEditor != NULL) && (GetDefault<UEditorStyleSettings>()->bShowFriendlyNames))
+		{
+			FunctionName = FName::NameToDisplayString(FunctionName, false);
 		}
 	}
 
 	const FString Result = (TitleType == ENodeTitleType::ListView) ? FunctionName : FunctionName + ContextString + RPCString;
 	return Result;
 }
-
 
 void UK2Node_CallFunction::AllocateDefaultPins()
 {
@@ -245,7 +280,7 @@ void UK2Node_CallFunction::CreateExecPinsForFunctionCall(const UFunction* Functi
 		UEdGraphPin* OutputExecPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 		if(Function->HasMetaData(FBlueprintMetadata::MD_Latent))
 		{
-			OutputExecPin->PinFriendlyName = K2Schema->PN_Completed;
+			OutputExecPin->PinFriendlyName = FText::FromString(K2Schema->PN_Completed);
 		}
 	}
 }
@@ -418,7 +453,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	UEdGraphPin* SelfPin = CreateSelfPin(Function);
 
 	//Renamed self pin to target
-	SelfPin->PinFriendlyName =  TEXT("Target");
+	SelfPin->PinFriendlyName =  LOCTEXT("Target", "Target");
 
 	// fill out the self-pin's default tool-tip
 	GeneratePinHoverText(*SelfPin, SelfPin->PinToolTip);
@@ -452,7 +487,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	for (TFieldIterator<UProperty> PropIt(Function); PropIt && (PropIt->PropertyFlags & CPF_Parm); ++PropIt)
 	{
 		UProperty* Param = *PropIt;
-		const bool bIsFunctionInput = !Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm);
+		const bool bIsFunctionInput = !Param->HasAnyPropertyFlags(CPF_ReturnParm) && (!Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm));
 		const bool bIsRefParam = Param->HasAnyPropertyFlags(CPF_ReferenceParm) && bIsFunctionInput;
 
 		const EEdGraphPinDirection Direction = bIsFunctionInput ? EGPD_Input : EGPD_Output;
@@ -693,7 +728,7 @@ FString UK2Node_CallFunction::GetUserFacingFunctionName(const UFunction* Functio
 
 	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 	{
-		FunctionName = EngineUtils::SanitizeDisplayName(FunctionName, false);
+		FunctionName = FName::NameToDisplayString(FunctionName, false);
 	}
 	return FunctionName;
 }
@@ -727,7 +762,7 @@ FString UK2Node_CallFunction::GetDefaultCategoryForFunction(const UFunction* Fun
 		FString FuncCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
 		if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 		{
-			FuncCategory = EngineUtils::SanitizeDisplayName( FuncCategory, false );
+			FuncCategory = FName::NameToDisplayString( FuncCategory, false );
 		}
 		NodeCategory += FuncCategory;
 	}
@@ -872,12 +907,12 @@ FString UK2Node_CallFunction::GetCompactNodeTitle(const UFunction* Function)
 	return Function->GetName();
 }
 
-FString UK2Node_CallFunction::GetCompactNodeTitle() const
+FText UK2Node_CallFunction::GetCompactNodeTitle() const
 {
 	UFunction* Function = GetTargetFunction();
 	if (Function != NULL)
 	{
-		return GetCompactNodeTitle(Function);
+		return FText::FromString(GetCompactNodeTitle(Function));
 	}
 	else
 	{
@@ -1422,11 +1457,16 @@ FText UK2Node_CallFunction::GetToolTipHeading() const
 	return HeadingBuilder.ConstructedHeading;
 }
 
-bool UK2Node_CallFunction::HasExternalBlueprintDependencies() const
+bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	const UClass* SourceClass = FunctionReference.GetMemberParentClass(this);
 	const UBlueprint* SourceBlueprint = GetBlueprint();
-	return (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	if (bResult && OptionalOutput)
+	{
+		OptionalOutput->Add(GetTargetFunction());
+	}
+	return bResult;
 }
 
 UEdGraph* UK2Node_CallFunction::GetFunctionGraph() const

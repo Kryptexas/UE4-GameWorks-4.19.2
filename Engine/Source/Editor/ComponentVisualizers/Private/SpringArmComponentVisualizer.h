@@ -2,8 +2,12 @@
 
 #pragma once
 
-class FSpringArmComponentVisualizer
+#include "ComponentVisualizer.h"
+
+class FSpringArmComponentVisualizer : public FComponentVisualizer
 {
 public:
-	static void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI);
+	// Begin FComponentVisualizer interface
+	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) OVERRIDE;
+	// End FComponentVisualizer interface
 };

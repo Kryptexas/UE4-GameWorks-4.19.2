@@ -16,14 +16,26 @@ struct FAbortDrawHelper
 struct FClassData
 {
 	FClassData() {}
-	FClassData(UClass* InClass) : Class(InClass) {}
+	FClassData(UClass* InClass, const FString& InDeprecatedMessage) : 
+		bIsHidden(0), bHideParent(0), Class(InClass), DeprecatedMessage(InDeprecatedMessage)
+	{}
 	FClassData(const FString& InAssetName, const FString& InGeneratedClassPackage, const FString& InClassName) :
-		AssetName(InAssetName), GeneratedClassPackage(InGeneratedClassPackage), ClassName(InClassName) {}
+		bIsHidden(0), bHideParent(0), AssetName(InAssetName), GeneratedClassPackage(InGeneratedClassPackage), ClassName(InClassName) 
+	{}
 
 	FString ToString() const;
 	FString GetClassName() const;
 	UClass* GetClass();
 	bool IsAbstract() const;
+
+	FORCEINLINE bool IsDeprecated() const { return DeprecatedMessage.Len() > 0; }
+	FORCEINLINE FString GetDeprecatedMessage() const { return DeprecatedMessage; }
+
+	/** set when child class masked this one out (e.g. always use game specific class instead of engine one) */
+	uint32 bIsHidden : 1;
+
+	/** set when class wants to hide parent class from selection (just one class up hierarchy) */
+	uint32 bHideParent : 1;
 
 private:
 
@@ -36,6 +48,9 @@ private:
 
 	/** resolved name of class from asset data */
 	FString ClassName;
+
+	/** message for deprecated class */
+	FString DeprecatedMessage;
 };
 
 struct FClassDataNode
@@ -53,6 +68,7 @@ struct FClassBrowseHelper
 	~FClassBrowseHelper();
 
 	static void GatherClasses(const UClass* BaseClass, TArray<FClassData>& AvailableClasses);
+	static FString GetDeprecationMessage(const UClass* Class);
 
 	void OnAssetAdded(const class FAssetData& AssetData);
 	void OnAssetRemoved(const class FAssetData& AssetData);
@@ -69,6 +85,8 @@ private:
 	UClass* FindAssetClass(const FString& GeneratedClassPackage, const FString& AssetName);
 	void BuildClassGraph();
 	void AddClassGraphChildren(TSharedPtr<FClassDataNode> Node, TArray<TSharedPtr<FClassDataNode> >& NodeList);
+
+	bool IsHidingParentClass(UClass* Class);
 };
 
 struct FCompareNodeXLocation

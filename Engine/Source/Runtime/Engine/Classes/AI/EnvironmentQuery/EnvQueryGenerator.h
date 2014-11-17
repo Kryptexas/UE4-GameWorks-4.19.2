@@ -17,8 +17,8 @@ class ENGINE_API UEnvQueryGenerator : public UObject
 	FGenerateItemsSignature GenerateDelegate;
 
 	/** get description of generator */
-	virtual FString GetDescriptionTitle() const;
-	virtual FString GetDescriptionDetails() const;
+	virtual FText GetDescriptionTitle() const;
+	virtual FText GetDescriptionDetails() const;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

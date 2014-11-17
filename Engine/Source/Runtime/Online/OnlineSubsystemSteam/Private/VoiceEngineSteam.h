@@ -229,3 +229,5 @@ public:
 	 */
 	void OnAudioFinished(UAudioComponent* AC);
 };
+
+typedef TSharedPtr<FVoiceEngineSteam, ESPMode::ThreadSafe> FVoiceEngineSteamPtr;

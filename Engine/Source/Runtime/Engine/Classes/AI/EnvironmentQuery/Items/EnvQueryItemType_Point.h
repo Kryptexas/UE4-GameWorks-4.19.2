@@ -4,7 +4,7 @@
 #include "EnvQueryItemType_Point.generated.h"
 
 UCLASS()
-class ENGINE_API UEnvQueryItemType_Point : public UEnvQueryItemType_LocationBase
+class ENGINE_API UEnvQueryItemType_Point : public UEnvQueryItemType_VectorBase
 {
 	GENERATED_UCLASS_BODY()
 
@@ -14,7 +14,5 @@ class ENGINE_API UEnvQueryItemType_Point : public UEnvQueryItemType_LocationBase
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const FVector& SinglePoint);
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FVector>& MultiplePoints);
 
-protected:
-
-	FVector GetPointLocation(const uint8* RawData);
+	virtual FVector GetLocation(const uint8* RawData) const OVERRIDE;
 };

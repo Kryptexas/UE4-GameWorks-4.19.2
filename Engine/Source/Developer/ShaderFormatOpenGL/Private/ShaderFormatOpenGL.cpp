@@ -9,6 +9,7 @@
 #include "ShaderCore.h"
 
 static FName NAME_GLSL_150(TEXT("GLSL_150")); 
+static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC")); 
 static FName NAME_GLSL_430(TEXT("GLSL_430"));
 static FName NAME_GLSL_ES2(TEXT("GLSL_ES2"));
 static FName NAME_GLSL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
@@ -21,6 +22,7 @@ class FShaderFormatGLSL : public IShaderFormat
 	{
 		/** Version for shader format, this becomes part of the DDC key. */
 		UE_SHADER_GLSL_150_VER = 21,
+		UE_SHADER_GLSL_150_MAC_VER = 1,
 		UE_SHADER_GLSL_430_VER = 51,
 		UE_SHADER_GLSL_ES2_VER = 10,
 		UE_SHADER_GLSL_150ES2_VER = 11,
@@ -31,6 +33,7 @@ class FShaderFormatGLSL : public IShaderFormat
 	void CheckFormat(FName Format) const
 	{
 		check(	Format == NAME_GLSL_150 ||  
+				Format == NAME_GLSL_150_MAC ||
 				Format == NAME_GLSL_430 || 
 				Format == NAME_GLSL_ES2 || 
 				Format == NAME_GLSL_150_ES2 ||
@@ -47,6 +50,10 @@ public:
 		if (Format == NAME_GLSL_150)
 		{
 			GLSLVersion  = UE_SHADER_GLSL_150_VER;
+		}
+		else if (Format == NAME_GLSL_150_MAC)
+		{
+			GLSLVersion = UE_SHADER_GLSL_150_MAC_VER;
 		}
 		else if (Format == NAME_GLSL_430)
 		{
@@ -79,6 +86,7 @@ public:
 	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const
 	{
 		OutFormats.Add(NAME_GLSL_150);
+		OutFormats.Add(NAME_GLSL_150_MAC);
 		OutFormats.Add(NAME_GLSL_430);
 		OutFormats.Add(NAME_GLSL_ES2);
 		OutFormats.Add(NAME_GLSL_ES2_WEBGL);
@@ -92,6 +100,10 @@ public:
 		if (Format == NAME_GLSL_150)
 		{
 			CompileShader_Windows_OGL(Input, Output, WorkingDirectory, GLSL_150);
+		}
+		else if (Format == NAME_GLSL_150_MAC)
+		{
+			CompileShader_Windows_OGL(Input, Output, WorkingDirectory, GLSL_150_MAC);
 		}
 		else if (Format == NAME_GLSL_430)
 		{

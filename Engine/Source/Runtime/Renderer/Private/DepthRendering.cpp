@@ -248,9 +248,10 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
 	const FMaterialRenderProxy* InMaterialRenderProxy,
 	const FMaterial& InMaterialResource,
-	bool bIsTwoSided
+	bool bIsTwoSided,
+	bool bIsWireframe
 	):
-	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,/*bInTwoSidedOverride=*/ bIsTwoSided)
+	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,bIsTwoSided,bIsWireframe)
 {
 	VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<true> >(InVertexFactory->GetType());
 }
@@ -337,7 +338,8 @@ void FDepthDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Static
 					StaticMesh->VertexFactory,
 					DefaultProxy,
 					*DefaultProxy->GetMaterial(GRHIFeatureLevel),
-					Material->IsTwoSided()
+					Material->IsTwoSided(),
+					Material->IsWireframe()
 					)
 				);
 		}
@@ -395,7 +397,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 		{
 			//render opaque primitives that support a separate position-only vertex buffer
 			const FMaterialRenderProxy* DefaultProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
-			FPositionOnlyDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory,DefaultProxy,*DefaultProxy->GetMaterial(GRHIFeatureLevel),Material->IsTwoSided());
+			FPositionOnlyDepthDrawingPolicy DrawingPolicy(Mesh.VertexFactory,DefaultProxy,*DefaultProxy->GetMaterial(GRHIFeatureLevel),Material->IsTwoSided(),Material->IsWireframe());
 			DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
 			int32 BatchElementIndex = 0;
 			uint64 Mask = BatchElementMask;

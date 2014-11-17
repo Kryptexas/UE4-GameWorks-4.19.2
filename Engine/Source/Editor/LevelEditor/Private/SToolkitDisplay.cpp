@@ -102,15 +102,12 @@ void SLevelEditorActiveToolkit::Construct( const FArguments&, const TSharedPtr< 
 			.HAlign( HAlign_Right )
 			[
 				SNew( SComboButton )
+					.ComboButtonStyle(FEditorStyle::Get(), "ToolkitDisplay.ComboButton")
 					.ButtonContent()
 					[
 						SNew(SImage)
 							.Image( FEditorStyle::GetBrush( "ToolkitDisplay.MenuDropdown" ) )
 					]
-
-					// Multiboxes draw their own border so we don't want a default content border
-					.MenuBorderBrush( FEditorStyle::GetBrush( "NoBorder" ) )
-
 					.MenuContent()
 					[
 						SNew( SAssetEditorCommon, AssetEditorToolkit, bIsPopup )

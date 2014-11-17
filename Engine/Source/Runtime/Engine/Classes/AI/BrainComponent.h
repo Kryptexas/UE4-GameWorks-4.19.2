@@ -97,6 +97,7 @@ protected:
 	virtual void ResumeLogic(const FString& Reason) {}
 public:
 	virtual bool IsRunning() const { return false; }
+	virtual bool IsPaused() const { return false; }
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const;

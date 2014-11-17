@@ -43,7 +43,7 @@ public:
 	TSharedPtr< FUICommandInfo > SetShowBinormals;
 
 	/** Draw UV mapping to viewport */
-	TSharedPtr< FUICommandInfo > SetDrawUVs;
+	TSharedPtr< FUICommandInfo > AnimSetDrawUVs;
 public:
 	/** Registers our commands with the binding system */
 	virtual void RegisterCommands() OVERRIDE;

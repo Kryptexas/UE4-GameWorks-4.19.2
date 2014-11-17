@@ -7,8 +7,9 @@
 #include "CorePrivate.h"
 
 #include "FeedbackContextAnsi.h"
-#include "../Private/Mac/MacPlatformOutputDevicesPrivate.h"
-#include "../Private/Mac/MacPlatformFeedbackContextPrivate.h"
+#include "MacApplication.h"
+#include "MacPlatformOutputDevicesPrivate.h"
+#include "MacPlatformFeedbackContextPrivate.h"
 
 //////////////////////////////////
 // FMacPlatformOutputDevices

@@ -35,7 +35,7 @@ public:
 	/** 
 	 * Gather texture memory stats. 
 	 */
-	virtual void GetTexturePoolSize( FMemoryAllocationStats_DEPRECATED& MemoryStats ) OVERRIDE;
+	virtual void GetTexturePoolSize( FGenericMemoryStats& out_Stats ) OVERRIDE;
 };
 
 #endif // USE_MALLOC_PROFILER

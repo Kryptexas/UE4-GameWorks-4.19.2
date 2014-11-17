@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Runtime/Engine/Classes/Engine/LatentActionManager.h"
+#include "Runtime/Engine/Classes/Camera/CameraTypes.h"
 #include "Actor.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
@@ -178,7 +179,7 @@ public:
 	uint32 bNetStartup:1;
 
 	/** This actor is only relevant to its owner. If this flag is changed during play, all non-owner channels would need to be explicitly closed. */
-	UPROPERTY()
+	UPROPERTY(Category=Replication, EditDefaultsOnly, BlueprintReadOnly)
 	uint32 bOnlyRelevantToOwner:1;
 
 	/** Always relevant for network (overrides bOnlyRelevantToOwner). */
@@ -395,6 +396,9 @@ private:
 	UPROPERTY()
 	FString ActorLabel;
 
+	/** The folder path of this actor in the world (empty=root, / separated)*/
+	UPROPERTY()
+	FName FolderPath;
 
 public:
 	/** Is hidden within the editor at its startup. */
@@ -449,8 +453,8 @@ public:
 	UPROPERTY()
 	TWeakObjectPtr<class AActor> ParentComponentActor;	
 
-	/** The scale to apply to any editor billboard components */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rendering, meta=(DisplayName="Editor Sprite Scale"))
+	/** The scale to apply to any billboard components in editor builds (happens in any WITH_EDITOR build, including non-cooked games) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Rendering, meta=(DisplayName="Editor Billboard Scale"))
 	float SpriteScale;
 
 	/** Returns how many lights are uncached for this actor */
@@ -663,6 +667,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
 	bool SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep=false);
 
+	/** Set the Actor's world-space scale. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	void SetActorScale3D(const FVector& NewScale3D);
+
 	/** Returns the distance from this Actor to OtherActor. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
 	float GetDistanceTo(AActor* OtherActor);
@@ -674,6 +682,14 @@ public:
 	/** Returns the distance from this Actor to OtherActor, ignoring XY. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
 	float GetVerticalDistanceTo(AActor* OtherActor);
+
+	/** Returns the dot product from this Actor to OtherActor. Returns -2.0 on failure. Returns 0.0 for coincidental actors. */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	float GetDotProductTo(AActor* OtherActor);
+
+	/** Returns the dot product from this Actor to OtherActor, ignoring Z. Returns -2.0 on failure. Returns 0.0 for coincidental actors. */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	float GetHorizontalDotProductTo(AActor* OtherActor);
 
 	/** 
 	 *	Set the Actors transform to the specified one.
@@ -945,11 +961,11 @@ public:
 	virtual void ReceiveHit(class UPrimitiveComponent* MyComp, class AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit);
 
 	/** Set the lifespan of this actor. When it expires the object will be destroyed. If requested lifespan is 0, the timer is cleared and the actor will not be destroyed. */
-	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete"))
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete destroy"))
 	virtual void SetLifeSpan( float InLifespan );
 
 	/** Get the remaining lifespan of this actor. If zero is returned the actor lives forever. */
-	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete"))
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "delete destroy"))
 	virtual float GetLifeSpan() const;
 
 	/**
@@ -985,7 +1001,7 @@ public:
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;
 	virtual void ProcessEvent( UFunction* Function, void* Parameters ) OVERRIDE;
 	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
-	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
+	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) OVERRIDE;
 	virtual void BeginDestroy() OVERRIDE;
@@ -1247,6 +1263,18 @@ public:
 	 * @return	The editable status of the actor's label
 	 */
 	bool IsActorLabelEditable() const;
+
+	/**
+	 * Returns this actor's folder path. Actor folder paths are only available in development builds.
+	 * @return	The folder path
+	 */
+	const FName& GetFolderPath() const;
+
+	/**
+	 * Assigns a new folder to this actor. Actor folder paths are only available in development builds.
+	 * @param	NewFolderPath	The new folder to assign to the actor.
+	 */
+	void SetFolderPath(const FName& NewFolderPath);
 
 	/**
 	 * Used by the "Sync to Content Browser" right-click menu option in the editor.
@@ -1596,7 +1624,14 @@ public:
 	 * @param Other the Actor to test for
 	 * @return true if this Actor is based on Other Actor
 	 */
-	virtual bool IsBasedOn( const AActor* Other ) const;
+	virtual bool IsBasedOnActor(const AActor* Other) const;
+	
+
+	/** iterates up the Base chain to see whether or not this Actor is attached to the given Actor
+	* @param Other the Actor to test for
+	* @return true if this Actor is attached on Other Actor
+	*/
+	virtual bool IsAttachedTo( const AActor* Other ) const;
 
 	/** Get the extent used when placing this actor in the editor, used for 'pulling back' hit. */
 	FVector GetPlacementExtent() const;
@@ -1856,20 +1891,21 @@ public:
 	template<class T>
 	T* FindComponentByClass() const
 	{
-		return (T*) FindComponentByClass(T::StaticClass());
+		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to FindComponentByClass must be derived from ActorComponent");
+
+		return (T*)FindComponentByClass(T::StaticClass());
 	}
 
 	template<class T>
 	void GetComponents(TArray<T*>& OutComponents) const
 	{
-		// This dummy line is to prevent the function from being used for classes outside the ActorComponent hierarchy
-		UActorComponent* DummyAC = (T*)NULL; 
+		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to GetComponents must be derived from ActorComponent");
 
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
-		OutComponents.Empty();
-
 		TArray<UObject*> ChildObjects;
 		GetObjectsWithOuter(this, ChildObjects, false, RF_PendingKill);
+
+		OutComponents.Reset(ChildObjects.Num());
 
 		for (UObject* Child : ChildObjects)
 		{

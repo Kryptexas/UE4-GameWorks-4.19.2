@@ -510,7 +510,7 @@ void UEditorEngine::LoadAndSelectAssets( TArray<FAssetData>& Assets, UClass* Typ
 bool UEditorEngine::UsePercentageBasedScaling() const
 {
 	// Use percentage based scaling if the user setting is enabled or more than component or actor is selected.  Multiplicative scaling doesn't work when more than one object is selected
-	return GetDefault<ULevelEditorViewportSettings>()->UsePercentageBasedScaling() || GetSelectedActorCount() > 1 || GetSelectedComponentCount() > 1;
+	return GetDefault<ULevelEditorViewportSettings>()->UsePercentageBasedScaling() || GetSelectedActorCount() > 1;
 }
 
 bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar )
@@ -663,7 +663,6 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 		if ( NewBrush )
 		{
 			ULevel::LevelDirtiedEvent.Broadcast();
-			GEngine->BroadcastLevelActorsChanged();
 		}
 
 #if WITH_NAVIGATION_GENERATOR
@@ -761,7 +760,6 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 		if ( NewBrush )
 		{
 			ULevel::LevelDirtiedEvent.Broadcast();
-			GEngine->BroadcastLevelActorsChanged();
 		}
 
 		if(FParse::Command(&Str,TEXT("SELECTNEWBRUSH")))
@@ -996,7 +994,7 @@ void UEditorEngine::CancelTransaction(int32 Index)
 	Trans->Cancel( Index );
 }
 
-void UEditorEngine::BroadcastUndoRedoNotification(const FText& NotificationText, bool bSuccess)
+void UEditorEngine::ShowUndoRedoNotification(const FText& NotificationText, bool bSuccess)
 {
 	// Add a new notification item only if the previous one has expired or is otherwise done fading out (CS_None). This way multiple undo/redo notifications do not pollute the notification window.
 	if(!UndoRedoNotificationItem.IsValid() || UndoRedoNotificationItem->GetCompletionState() == SNotificationItem::CS_None)
@@ -1017,6 +1015,53 @@ void UEditorEngine::BroadcastUndoRedoNotification(const FText& NotificationText,
 		// Restart the fade animation for the current undo/redo notification
 		UndoRedoNotificationItem->ExpireAndFadeout();
 	}
+}
+
+void UEditorEngine::HandleTransactorBeforeRedoUndo( FUndoSessionContext SessionContext )
+{
+	//Get the list of all selected actors before the undo/redo is performed
+	OldSelectedActors.Empty();
+
+	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	{
+		AActor* Actor = CastChecked<AActor>( *It );
+		OldSelectedActors.Add( Actor);
+	}
+}
+
+void UEditorEngine::HandleTransactorRedo( FUndoSessionContext SessionContext, bool Succeeded )
+{
+	NoteSelectionChange();
+	PostUndo(Succeeded);
+
+	BroadcastPostRedo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
+	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title), Succeeded);
+}
+
+void UEditorEngine::HandleTransactorUndo( FUndoSessionContext SessionContext, bool Succeeded )
+{
+	NoteSelectionChange();
+	PostUndo(Succeeded);
+
+	BroadcastPostUndo(SessionContext.Context, SessionContext.PrimaryObject, Succeeded);
+	ShowUndoRedoNotification(FText::Format(NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title), Succeeded);
+}
+
+UTransactor* UEditorEngine::CreateTrans()
+{
+	int32 UndoBufferSize;
+
+	if (!GConfig->GetInt(TEXT("Undo"), TEXT("UndoBufferSize"), UndoBufferSize, GEditorUserSettingsIni))
+	{
+		UndoBufferSize = 16;
+	}
+
+	UTransBuffer* TransBuffer = new UTransBuffer(FPostConstructInitializeProperties(), UndoBufferSize * 1024 * 1024);
+	TransBuffer->OnBeforeRedoUndo().AddUObject(this, &UEditorEngine::HandleTransactorBeforeRedoUndo);
+	TransBuffer->OnRedo().AddUObject(this, &UEditorEngine::HandleTransactorRedo);
+	TransBuffer->OnUndo().AddUObject(this, &UEditorEngine::HandleTransactorUndo);
+
+	return TransBuffer;
 }
 
 void UEditorEngine::PostUndo (bool bSuccess)
@@ -1074,72 +1119,24 @@ void UEditorEngine::PostUndo (bool bSuccess)
 
 bool UEditorEngine::UndoTransaction()
 {
-	return UndoTransactionInternal(false);
-}
-
-bool UEditorEngine::UndoTransactionInternal(bool bForEditor)
-{
 	// make sure we're in a valid state to perform this
 	if (GIsSavingPackage || GIsGarbageCollecting)
 	{
 		return false;
 	}
 
-	// Begin transacting
-	FUndoSessionContext SessionContext = Trans->GetUndoContext();
-	GIsTransacting = true;
-
-	bool bResult = Trans->Undo();
-	NoteSelectionChange();
-
-	// End transacting
-	GIsTransacting = false;
-
-	// Broadcast PostUndo 
-	if (bForEditor)
-	{
-		PostUndo(bResult);
-	}
-	BroadcastPostUndo(SessionContext.Context, SessionContext.PrimaryObject, bResult);
-
-	// Broadcast UI undo notification
-	BroadcastUndoRedoNotification( FText::Format( NSLOCTEXT("UnrealEd", "UndoMessageFormat", "Undo: {0}"), SessionContext.Title ), bResult );
-	return bResult;
+	return Trans->Undo();
 }
 
 bool UEditorEngine::RedoTransaction()
 {
-	return UEditorEngine::RedoTransactionInternal(false);
-}
-
-bool UEditorEngine::RedoTransactionInternal(bool bForEditor)
-{
 	// make sure we're in a valid state to perform this
 	if (GIsSavingPackage || GIsGarbageCollecting)
 	{
 		return false;
 	}
 
-	// Begin transacting
-	FUndoSessionContext SessionContext = Trans->GetRedoContext();
-	GIsTransacting = true;
-
-	bool bResult = Trans->Redo();
-	NoteSelectionChange();
-
-	// End transacting
-	GIsTransacting = false;
-
-	// Broadcast PostRedo
-	if (bForEditor)
-	{
-		PostUndo(bResult);
-	}
-	BroadcastPostRedo(SessionContext.Context, SessionContext.PrimaryObject, bResult);
-
-	// Broadcast UI redo notification
-	BroadcastUndoRedoNotification( FText::Format( NSLOCTEXT("UnrealEd", "RedoMessageFormat", "Redo: {0}"), SessionContext.Title ), bResult );
-	return bResult;
+	return Trans->Redo();
 }
 
 bool UEditorEngine::IsTransactionActive()
@@ -1384,7 +1381,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 
 	// Building the map can cause actors be created, so trigger a notification for that
 	FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::MapRebuild );
-	GEngine->BroadcastLevelActorsChanged();
+	GEngine->BroadcastLevelActorListChanged();
 	
 	GWarn->EndSlowTask();
 }
@@ -1393,7 +1390,7 @@ void UEditorEngine::RebuildMap(UWorld* InWorld, EMapRebuildType RebuildType)
 void UEditorEngine::RebuildLevel(ULevel& Level)
 {
 	// Early out if BSP auto-updating is disabled
-	if (!GEditorModeTools().GetBSPAutoUpdate())
+	if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
 	{
 		return;
 	}
@@ -1413,7 +1410,7 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 	ULevel::LevelDirtiedEvent.Broadcast();
 
 	// Actors in the level may have changed due to a rebuild
-	GEngine->BroadcastLevelActorsChanged();
+	GEngine->BroadcastLevelActorListChanged();
 
 	FBSPOps::GFastRebuild = 1;
 
@@ -1481,7 +1478,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 void UEditorEngine::RebuildAlteredBSP()
 {
 	// Early out if BSP auto-updating is disabled
-	if (!GEditorModeTools().GetBSPAutoUpdate())
+	if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
 	{
 		return;
 	}
@@ -1759,7 +1756,7 @@ UWorld* UEditorEngine::NewMap()
 
 	// Starting a new map will wipe existing actors and add some defaults actors to the scene, so we need
 	// to notify other systems about this
-	GEngine->BroadcastLevelActorsChanged();
+	GEngine->BroadcastLevelActorListChanged();
 	FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::NewMap );
 
 	FMessageLog("LoadErrors").NewPage(LOCTEXT("NewMapLogPage", "New Map"));
@@ -1779,11 +1776,8 @@ UWorld* UEditorEngine::NewMap()
 	// Make the builder brush a small 256x256x256 cube so its visible.
 	InitBuilderBrush( Context.World() );
 
-	if( Context.World()->GetNavigationSystem() )
-	{
-		// Let navigation system know we're done creating new world
-		Context.World()->GetNavigationSystem()->OnWorldInitDone(NavigationSystem::EditorMode);
-	}
+	// Let navigation system know we're done creating new world
+	UNavigationSystem::InitializeForWorld(Context.World(), NavigationSystem::EditorMode);
 
 	// Deselect all
 	GEditor->SelectNone( false, true );
@@ -2066,7 +2060,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					// A new level was loaded into the editor, so we need to let other systems know about the new
 					// actors in the scene
 					FEditorDelegates::MapChange.Broadcast(MapChangeEventFlags::NewMap );
-					GEngine->BroadcastLevelActorsChanged();
+					GEngine->BroadcastLevelActorListChanged();
 
 					// Process any completed shader maps since we at a loading screen anyway
 					if (GShaderCompilingManager)
@@ -2104,10 +2098,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Actor->SetFlags( RF_Transactional );
 					}
 
-					if (Context.World()->GetNavigationSystem() != NULL)
-					{
-						Context.World()->GetNavigationSystem()->OnWorldInitDone(NavigationSystem::EditorMode);
-					}
+					UNavigationSystem::InitializeForWorld(Context.World(), NavigationSystem::EditorMode);
 
 					// Assign stationary light channels for previewing
 					ULightComponent::ReassignStationaryLightChannels(Context.World(), false);
@@ -2211,7 +2202,7 @@ bool UEditorEngine::Map_Import( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 		// Importing content into a map will likely cause the list of actors in the level to change,
 		// so we'll trigger an event to notify other systems
 		FEditorDelegates::MapChange.Broadcast( MapChangeEventFlags::NewMap );
-		GEngine->BroadcastLevelActorsChanged();
+		GEngine->BroadcastLevelActorListChanged();
 
 		NoteSelectionChange();
 		Cleanse( false, 1, NSLOCTEXT("UnrealEd", "ImportingActors", "Importing actors") );
@@ -2680,6 +2671,14 @@ void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShould
 			}
 		}
 
+		// Take a note of the current selection, so it can be restored at the end of this process
+		TArray<AActor*> CurrentlySelectedActors;
+		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
+		{
+			AActor* Actor = static_cast<AActor*>( *It );
+			CurrentlySelectedActors.Add(Actor);
+		}
+
 		const FScopedBusyCursor BusyCursor;
 
 		// If we have selected actors and/or selected BSP surfaces, we need to setup some copy jobs. 
@@ -2796,6 +2795,12 @@ void UEditorEngine::CopySelectedActorsToClipboard( UWorld* InWorld, bool bShould
 			}
 		}
 
+		// Restore old selection
+		GEditor->SelectNone( false, true );
+		for (auto& Actor : CurrentlySelectedActors)
+		{
+			GEditor->SelectActor( Actor, true, false );
+		}
 	}
 }
 
@@ -3820,8 +3825,15 @@ bool UEditorEngine::Exec_Obj( const TCHAR* Str, FOutputDevice& Ar )
 			// Save the package.
 			if( !bSilent )
 			{
+				const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(Pkg);
+				const bool bIsMapPackage = AssociatedWorld != nullptr;
+
+				const FText SavingPackageText = (bIsMapPackage) 
+					? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(Pkg->GetName()))
+					: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(Pkg->GetName()));
+
 				GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackage", "Saving package" ), true );
-				GWarn->StatusUpdate( 1, 1, NSLOCTEXT("UnrealEd", "SavingPackageE", "Saving package..." ) );
+				GWarn->StatusUpdate( 1, 1, SavingPackageText );
 			}
 
 			uint32 SaveFlags = bAutosaving ? SAVE_FromAutosave : SAVE_None;
@@ -3933,7 +3945,7 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 	TArray<UClass*> PrimitiveComponentTypesToIgnore;
 	PrimitiveComponentTypesToIgnore.Add( UShapeComponent::StaticClass() );
 	PrimitiveComponentTypesToIgnore.Add( UNavLinkRenderingComponent::StaticClass() );
-
+	PrimitiveComponentTypesToIgnore.Add( UDrawFrustumComponent::StaticClass() );
 
 	// Create a bounding volume of all of the selected actors.
 	FBox BoundingBox( 0 );
@@ -3971,8 +3983,22 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, bo
 
 					if( PrimitiveComponent->IsRegistered() )
 					{
+						struct ComponentTypeMatcher
+						{
+							ComponentTypeMatcher( UPrimitiveComponent* InComponentToMatch )
+								: ComponentToMatch( InComponentToMatch )
+							{}
+
+							bool Matches( const UClass* ComponentClass ) const
+							{
+								return ComponentToMatch->IsA( ComponentClass );
+							}
+
+							UPrimitiveComponent* ComponentToMatch;
+						};
+
 						// Some components can have huge bounds but are not visible.  Ignore these components unless it is the only component on the actor 
-						const bool bIgnore = PrimitiveComponentTypesToIgnore.Contains( PrimitiveComponent->GetClass() ) && Components.Num() > 1;
+						const bool bIgnore = Components.Num() > 1 && PrimitiveComponentTypesToIgnore.FindMatch( ComponentTypeMatcher( PrimitiveComponent ) ) != INDEX_NONE;
 
 						if( !bIgnore )
 						{
@@ -4247,7 +4273,7 @@ void UEditorEngine::RemovePerspectiveViewRotation(bool Roll, bool Pitch, bool Ya
 	{
 		FLevelEditorViewportClient* ViewportClient = LevelViewportClients[ViewportIndex];
 
-		if (ViewportClient->IsPerspective() && !ViewportClient->ActorLockedToCamera.IsValid())
+		if (ViewportClient->IsPerspective() && !ViewportClient->GetActiveActorLock().IsValid())
 		{
 			FVector RotEuler = ViewportClient->GetViewRotation().Euler();
 
@@ -4345,33 +4371,15 @@ bool UEditorEngine::Exec_Camera( const TCHAR* Str, FOutputDevice& Ar )
 
 bool UEditorEngine::Exec_Transaction(const TCHAR* Str, FOutputDevice& Ar)
 {
-	// Was an undo requested?
-	const bool bShouldUndo = FParse::Command(&Str,TEXT("UNDO"));
-
-	// Was a redo requested?
-	const bool bShouldRedo = FParse::Command(&Str,TEXT("REDO"));
-
-	// If something was requested . . .
-	if( bShouldUndo || bShouldRedo )
+	if (FParse::Command(&Str,TEXT("REDO")))
 	{
-		//Get the list of all selected actors before the undo/redo is performed
-		OldSelectedActors.Empty();
-		for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
-		{
-			AActor* Actor = CastChecked<AActor>( *It );
-			OldSelectedActors.Add( Actor);
-		}
-
-		// Perform the operation.
-		if ( bShouldUndo )
-		{
-			UndoTransactionInternal(true);
-		}
-		else
-		{
-			RedoTransactionInternal(true);
-		}	
+		RedoTransaction();
 	}
+	else if (FParse::Command(&Str,TEXT("UNDO")))
+	{
+		UndoTransaction();
+	}
+
 	return true;
 }
 

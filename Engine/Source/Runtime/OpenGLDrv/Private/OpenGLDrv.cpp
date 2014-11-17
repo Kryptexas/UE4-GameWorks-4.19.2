@@ -437,6 +437,8 @@ GLint FOpenGLBase::MaxDomainUniformComponents = -1;
 bool  FOpenGLBase::bSupportsASTC = false;
 bool  FOpenGLBase::bSupportsCopyImage = false;
 bool  FOpenGLBase::bSupportsSeamlessCubemap = false;
+bool  FOpenGLBase::bSupportsVolumeTextureRendering = false;
+bool  FOpenGLBase::bSupportsTextureFilterAnisotropic = false;
 
 void FOpenGLBase::ProcessQueryGLInt()
 {
@@ -486,6 +488,8 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 	bSupportsCopyImage = ExtensionsString.Contains(TEXT("GL_ARB_copy_image"));
 
 	bSupportsSeamlessCubemap = ExtensionsString.Contains(TEXT("GL_ARB_seamless_cube_map"));
+	
+	bSupportsTextureFilterAnisotropic = ExtensionsString.Contains(TEXT("GL_EXT_texture_filter_anisotropic"));
 }
 
 void InitDefaultGLContextState(void)
@@ -493,4 +497,6 @@ void InitDefaultGLContextState(void)
 	// Intel HD4000 under <= 10.8.4 requires GL_DITHER disabled or dithering will occur on any channel < 8bits.
 	// No other driver does this but we don't need GL_DITHER on anyway.
 	glDisable(GL_DITHER);
+	// Render targets with TexCreate_SRGB should do sRGB conversion like in D3D11
+	glEnable(GL_FRAMEBUFFER_SRGB);
 }

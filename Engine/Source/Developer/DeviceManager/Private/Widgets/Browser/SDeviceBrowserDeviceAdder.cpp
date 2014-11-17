@@ -96,7 +96,7 @@ void SDeviceBrowserDeviceAdder::Construct( const FArguments& InArgs, const ITarg
 							.HAlign(HAlign_Left)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("DeviceNameLabel", "Device Name:").ToString())
+									.Text(LOCTEXT("DisplayNameLabel", "Display Name:").ToString())
 							]
 
 						+ SVerticalBox::Slot()

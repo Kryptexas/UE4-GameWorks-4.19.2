@@ -63,7 +63,7 @@ private:
 public:
 	static CORE_API FTextLocalizationManager& Get();
 
-	TSharedPtr<FString> FindString( const FString& Namespace, const FString& Key );
+	TSharedPtr<FString> FindString( const FString& Namespace, const FString& Key, const FString* const SourceString = nullptr );
 	TSharedRef<FString> GetString(const FString& Namespace, const FString& Key, const FString* const SourceString);
 
 	void CORE_API RegenerateResources(const FString& ConfigFilePath);

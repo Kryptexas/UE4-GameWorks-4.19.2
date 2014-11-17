@@ -21,6 +21,8 @@
 #include "GameProjectGenerationModule.h"
 #include "AssetEditorManager.h"
 
+#include "EditorActorFolders.h"
+
 UUnrealEdEngine* GUnrealEd;
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEd, Log, All);
@@ -66,6 +68,8 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	// Prime our array of default directories for loading and saving content files to
 	FEditorDirectories::Get().LoadLastDirectories();
 
+	// Set up the actor folders singleton
+	FActorFolders::Init();
 
 	// =================== CORE EDITOR INIT FINISHED ===================
 
@@ -97,7 +101,7 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	const bool bDoAutomatedMapBuild = FParse::Param( FCommandLine::Get(), TEXT("AutomatedMapBuild") );
 
 	// Prompt to update the game project file to the current version, if necessary
-	if ( FRocketSupport::IsRocket() && FPaths::IsProjectFilePathSet() )
+	if ( FPaths::IsProjectFilePathSet() )
 	{
 		FGameProjectGenerationModule::Get().CheckForOutOfDateGameProjectFile();
 	}
@@ -143,6 +147,9 @@ void EditorExit()
 	// Save out any config settings for the editor so they don't get lost
 	GEditor->SaveConfig();
 	GEditorModeTools().SaveConfig();
+
+	// Clean up the actor folders singleton
+	FActorFolders::Cleanup();
 
 	// Save out default file directories
 	FEditorDirectories::Get().SaveLastDirectories();

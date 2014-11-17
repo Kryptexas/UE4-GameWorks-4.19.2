@@ -27,6 +27,7 @@ UCameraComponent::UCameraComponent(const class FPostConstructInitializePropertie
 	bConstrainAspectRatio = false;
 	PostProcessBlendWeight = 1.0f;
 	bUseControllerViewRotation = true;
+	bAutoActivate = true;
 }
 
 void UCameraComponent::OnRegister()

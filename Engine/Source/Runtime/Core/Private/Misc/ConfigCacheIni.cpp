@@ -10,6 +10,7 @@
 #include "AES.h"
 #include "SecureHash.h"
 #include "DefaultValueHelper.h"
+#include "EngineBuildSettings.h"
 
 DEFINE_LOG_CATEGORY(LogConfig);
 
@@ -60,6 +61,8 @@ class FTextFriendHelper
 			}
 		}
 
+		//this prevents our source code text gatherer from trying to gather the following messages
+#define LOC_DEFINE_REGION
 		if( Text.IsCultureInvariant() )
 		{
 			return FString::Printf( TEXT( "NSLOCTEXT(\"\",\"\",\"%s\")" ), *Str );
@@ -69,6 +72,7 @@ class FTextFriendHelper
 			return FString::Printf( TEXT( "NSLOCTEXT(\"%s\",\"%s\",\"%s\")" ),
 				FTextInspector::GetNamespace(Text) ? **FTextInspector::GetNamespace(Text) : TEXT(""), FTextInspector::GetKey(Text) ? **FTextInspector::GetKey(Text) : TEXT(""), *Str );
 		}
+#undef LOC_DEFINE_REGION
 	}
 };
 
@@ -171,6 +175,9 @@ void FConfigFile::CombineFromBuffer(const FString& Filename,const FString& Buffe
 
 	// Replace %GAMEDIR% with the game directory.
 	Text = Text.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
+
+	// Replace %ENGINEUSERDIR% with the user's engine directory.
+	Text = Text.Replace(TEXT("%ENGINEUSERDIR%"), *FPaths::EngineUserDir(), ESearchCase::CaseSensitive);
 
 	// Replace %APPSETTINGSDIR% with the game directory.
 	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
@@ -377,6 +384,9 @@ void FConfigFile::ProcessInputFileContents(const FString& Filename, FString& Con
 	// Replace %GAMEDIR% with the game directory.
 	Text = Text.Replace( TEXT("%GAMEDIR%"), *FPaths::GameDir(), ESearchCase::CaseSensitive );
 
+	// Replace %ENGINEUSERDIR% with the user's engine directory.
+	Text = Text.Replace(TEXT("%ENGINEUSERDIR%"), *FPaths::EngineUserDir(), ESearchCase::CaseSensitive);
+
 	// Replace %APPSETTINGSDIR% with the game directory.
 	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
 	FPaths::NormalizeFilename(AppSettingsDir);
@@ -524,7 +534,7 @@ void FConfigFile::ProcessInputFileContents(const FString& Filename, FString& Con
 void FConfigFile::Read( const FString& Filename )
 {
 	// we can't read in a file if file IO is disabled
-	if (!GConfig->AreFileOperationsDisabled())
+	if (GConfig == NULL || !GConfig->AreFileOperationsDisabled())
 	{
 		Empty();
 		FString Text;
@@ -883,6 +893,8 @@ bool FConfigFile::GetString( const TCHAR* Section, const TCHAR* Key, FString& Va
 		return false;
 	}
 
+	//this prevents our source code text gatherer from trying to gather the following messages
+#define LOC_DEFINE_REGION
 	if( FCString::Strstr( **PairString, TEXT("LOCTEXT") ) )
 	{
 		UE_LOG( LogConfig, Warning, TEXT( "FConfigFile::GetString( %s, %s ) contains LOCTEXT"), Section, Key );
@@ -893,6 +905,7 @@ bool FConfigFile::GetString( const TCHAR* Section, const TCHAR* Key, FString& Va
 		Value = **PairString;
 		return true;
 	}
+#undef LOC_DEFINE_REGION
 }
 
 bool FConfigFile::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value ) const
@@ -1431,6 +1444,8 @@ bool FConfigCacheIni::GetString( const TCHAR* Section, const TCHAR* Key, FString
 		return false;
 	}
 
+	//this prevents our source code text gatherer from trying to gather the following messages
+#define LOC_DEFINE_REGION
 	if( FCString::Strstr( **PairString, TEXT("LOCTEXT") ) )
 	{
 		UE_LOG( LogConfig, Warning, TEXT( "FConfigCacheIni::GetString( %s, %s, %s ) contains LOCTEXT"), Section, Key, *Filename );
@@ -1441,6 +1456,7 @@ bool FConfigCacheIni::GetString( const TCHAR* Section, const TCHAR* Key, FString
 		Value = **PairString;
 		return true;
 	}
+#undef LOC_DEFINE_REGION
 }
 
 bool FConfigCacheIni::GetText( const TCHAR* Section, const TCHAR* Key, FText& Value, const FString& Filename )
@@ -1900,6 +1916,22 @@ bool FConfigCacheIni::GetVector
 	return false;
 }
 
+bool FConfigCacheIni::GetVector4
+(
+ const TCHAR*		Section,
+ const TCHAR*		Key,
+ FVector4&			Value,
+ const FString&	Filename
+)
+{
+	FString Text;
+	if(GetString(Section, Key, Text, Filename))
+	{
+		return Value.InitFromString(Text);
+	}
+	return false;
+}
+
 bool FConfigCacheIni::GetRotator
 (
  const TCHAR*		Section,
@@ -2032,6 +2064,17 @@ void FConfigCacheIni::SetVector
  )
 {
 	SetString( Section, Key, *Value.ToString(), Filename );
+}
+
+void FConfigCacheIni::SetVector4
+(
+ const TCHAR*		Section,
+ const TCHAR*		Key,
+ const FVector4&	 Value,
+ const FString&	Filename
+)
+{
+	SetString(Section, Key, *Value.ToString(), Filename);
 }
 
 void FConfigCacheIni::SetRotator
@@ -2446,11 +2489,14 @@ static FString GetSourceIniFilename(const TCHAR* BaseIniName, const TCHAR* Platf
 static void GetSourceIniHierarchyFilenames(const TCHAR* InBaseIniName, const TCHAR* InPlatformName, const TCHAR* InGameName, const TCHAR* EngineConfigDir, const TCHAR* SourceConfigDir, TArray<FIniFilename>& OutHierarchy, bool bRequireDefaultIni)
 {
 	const FString PlatformName(InPlatformName ? InPlatformName : ANSI_TO_TCHAR(FPlatformProperties::IniPlatformName()));
+	const FString BuildPurposeName(FEngineBuildSettings::IsInternalBuild() ? "Internal" : "External");
 
 	// Engine/Config/Base.ini (included in every ini type, required)
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase.ini"), EngineConfigDir), true) );
 	// Engine/Config/Base* ini
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase%s.ini"), EngineConfigDir, InBaseIniName), false) );
+	// Engine/Config/Base[Internal/External]* ini
+	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sBase%s%s.ini"), EngineConfigDir, *BuildPurposeName, InBaseIniName), false) );
 	// Game/Config/Default* ini
 	OutHierarchy.Add( FIniFilename(FString::Printf(TEXT("%sDefault%s.ini"), SourceConfigDir, InBaseIniName), bRequireDefaultIni) );
 	// Game/Config/DedicatedServer* ini

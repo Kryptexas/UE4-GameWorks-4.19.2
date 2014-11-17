@@ -1853,7 +1853,7 @@ namespace MemoryProfiler2
 			}
 		}
 
-		/// <summary> Class used to sort columns by specified column in the exlusive list view. </summary>
+		/// <summary> Class used to sort columns by specified column in the exclusive list view. </summary>
 		public class FColumnSorter : IComparer
 		{
 			public int ColumnToSortBy = 0;

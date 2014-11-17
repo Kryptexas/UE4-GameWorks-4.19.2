@@ -3,15 +3,10 @@
 
 #include "CorePrivate.h"
 #include "LockFreeList.h"
-
-/** the stats system increments this and when pool threads notice it has been 
-*   incremented, they call GStatManager.AdvanceFrameForThread() to advance any
-*   stats that have been collected on a pool thread.
-*/
-STAT(FThreadSafeCounter   GStatsFrameForPoolThreads);
+#include "StatsData.h"
 
 /** The global thread pool */
-FQueuedThreadPool*		GThreadPool						= NULL;
+FQueuedThreadPool*		GThreadPool = NULL;
 
 CORE_API bool IsInGameThread()
 {
@@ -257,7 +252,7 @@ FRunnableThread* FRunnableThread::Create(
 	}
 	else if (InRunnable->GetSingleThreadInterface())
 	{
-		// Create a fake thread when mulithreading is disabled.
+		// Create a fake thread when multithreading is disabled.
 		NewThread = new FFakeThread();
 		if (NewThread->CreateInternal(InRunnable,ThreadName,bAutoDeleteSelf,bAutoDeleteRunnable,InStackSize,InThreadPri) == false)
 		{
@@ -271,6 +266,15 @@ FRunnableThread* FRunnableThread::Create(
 		// The thread was marked to delete itself and it already has.
 		NewThread = NULL;
 	}
+
+	if( NewThread )
+	{
+		FRunnableThread::GetThreadRegistry().Add( NewThread->GetThreadID(), NewThread );
+#if	STATS
+		FStartupMessages::Get().AddThreadMetadata( FName( *NewThread->GetThreadName() ), NewThread->GetThreadID() );
+#endif // STATS
+	}
+
 	return NewThread;
 
 }
@@ -358,9 +362,13 @@ public:
 	 */
 	virtual bool Create(class FQueuedThreadPool* InPool,uint32 InStackSize = 0,EThreadPriority ThreadPriority=TPri_Normal)
 	{
+		static int32 PoolThreadIndex = 0;
+		const FString PoolThreadName = FString::Printf( TEXT( "PoolThread %d" ), PoolThreadIndex );
+		PoolThreadIndex++;
+
 		OwningThreadPool = InPool;
 		DoWorkEvent = FPlatformProcess::CreateSynchEvent();
-		Thread = FRunnableThread::Create( this, TEXT("PoolThread"), false, false, InStackSize, ThreadPriority );
+		Thread = FRunnableThread::Create( this, *PoolThreadName, false, false, InStackSize, ThreadPriority );
 		check(Thread);
 		return true;
 	}

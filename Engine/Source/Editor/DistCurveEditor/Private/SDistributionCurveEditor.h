@@ -7,6 +7,21 @@ class FCurveEditorSharedData;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCurveEd, Log, All);
 
+/** The scope of a curve scaling operation */
+namespace ECurveScaleScope
+{
+	enum Type
+	{
+		/** All curves in the current editor */
+		All,
+
+		/** The current curve */
+		Current,
+
+		/*  The current sub-curve */
+		CurrentSub
+	};
+}
 
 /*-----------------------------------------------------------------------------
    SDistributionCurveEditor
@@ -50,6 +65,10 @@ public:
 	virtual void SetRegionMarker(bool bEnabled, float InRegionStart, float InRegionEnd, const FColor& InRegionFillColor) OVERRIDE;
 	virtual void SetInSnap(bool bEnabled, float SnapAmount, bool bInSnapToFrames) OVERRIDE;
 	virtual void SetViewInterval(float StartIn, float EndIn) OVERRIDE;
+	/** Fits the curve editor view horizontally to the curve data */
+	virtual void FitViewHorizontally() OVERRIDE;
+	/** Fits the curve editor view vertically to the curve data */
+	virtual void FitViewVertically() OVERRIDE;
 
 	/** Accessors */
 	TSharedPtr<FCurveEditorSharedData> GetSharedData();
@@ -66,6 +85,7 @@ public:
 	void OpenLabelMenu();
 	void OpenKeyMenu();
 	void OpenGeneralMenu();
+	void OpenCurveMenu();
 
 	void CloseEntryPopup();
 private:
@@ -87,8 +107,10 @@ private:
 	void OnSetTime();
 	void OnSetValue();
 	void OnSetColor();
-	void OnScaleTimes();
-	void OnScaleValues();
+	void OnScaleTimes(ECurveScaleScope::Type Scope);
+	void OnScaleValues(ECurveScaleScope::Type Scope);
+	void OnScaleSingleCurveTimes();
+	void OnScaleSingleCurveValues();
 	void OnSetMode(int32 NewMode);
 	bool IsModeChecked(int32 Mode) const;
 	bool IsTangentTypeChecked(int32 Type) const;
@@ -103,6 +125,7 @@ private:
 	TSharedRef<SWidget> BuildMenuWidgetLabel();
 	TSharedRef<SWidget> BuildMenuWidgetKey();
 	TSharedRef<SWidget> BuildMenuWidgetGeneral();
+	TSharedRef<SWidget> BuildMenuWidgetCurve();
 
 	/** Methods related to the tab combobox */
 	void TabSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
@@ -111,18 +134,12 @@ private:
 	/** On commit callbacks for various user input dialogs */
 	void KeyTimeCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
 	void KeyValueCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
-	void ScaleTimeCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
-	void ScaleValueCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
+	void ScaleTimeCommitted(const FText& CommentText, ETextCommit::Type CommitInfo, ECurveScaleScope::Type Scope);
+	void ScaleValueCommitted(const FText& CommentText, ETextCommit::Type CommitInfo, ECurveScaleScope::Type Scope);
 	void TabNameCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
 
 	/** Helper function to handle undo/redo */
 	bool NotifyPendingCurveChange(bool bSelectedOnly);
-
-	/** Fits the curve editor view horizontally to the curve data */
-	void FitViewHorizontally();
-
-	/** Fits the curve editor view vertically to the curve data */
-	void FitViewVertically();
 
 	/** Straightens or flattens all curve tangents */
 	void ModifyTangents(bool bDoStraighten);

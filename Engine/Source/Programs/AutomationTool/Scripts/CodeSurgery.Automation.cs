@@ -212,7 +212,7 @@ class CodeSurgery : BuildCommand
         int WorkingCL = -1;
         if (P4Enabled)
         {
-            WorkingCL = CreateChange(P4Env.Client, "Stat code surgery");
+			WorkingCL = P4.CreateChange(P4Env.Client, "Stat code surgery");
             Log("Working in {0}", WorkingCL);
         }
         else
@@ -223,7 +223,7 @@ class CodeSurgery : BuildCommand
         var CheckedOuts = new HashSet<string>();
         foreach (var ToCheckOut in ToCheckOuts)
         {
-            if (Edit_NoExceptions(WorkingCL, ToCheckOut))
+			if (P4.Edit_NoExceptions(WorkingCL, ToCheckOut))
             {
                 CheckedOuts.Add(ToCheckOut);
             }
@@ -378,7 +378,7 @@ class UpdateCopyright : BuildCommand
         int WorkingCL = -1;
         if (P4Enabled)
         {
-            WorkingCL = CreateChange(P4Env.Client, "Stat code surgery");
+			WorkingCL = P4.CreateChange(P4Env.Client, "Stat code surgery");
             Log("Working in {0}", WorkingCL);
         }
         else
@@ -388,7 +388,7 @@ class UpdateCopyright : BuildCommand
 
         foreach (var ToCheckOut in AllFiles)
         {
-            if (Edit_NoExceptions(WorkingCL, ToCheckOut))
+			if (P4.Edit_NoExceptions(WorkingCL, ToCheckOut))
             {
                 Log("Checked out {0}", ToCheckOut);
             }
@@ -398,7 +398,7 @@ class UpdateCopyright : BuildCommand
             }
             else
             {
-                RevertAll(WorkingCL);
+				P4.RevertAll(WorkingCL);
                 throw new AutomationException("Couldn't check out {0}", ToCheckOut);
             }
         }

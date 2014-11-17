@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateViewerApp.h"
+#include "ExceptionHandling.h"
 
 static FString GSavedCommandLine;
 
@@ -26,6 +27,8 @@ static FString GSavedCommandLine;
 	
 	// OS X always uses the CrashReportClient, since the other paths aren't reliable
 	GUseCrashReportClient = true;
+	FPlatformMisc::SetGracefulTerminationHandler();
+	FPlatformMisc::SetCrashHandler(NULL);
 	
 	RunSlateViewer(*GSavedCommandLine);
 

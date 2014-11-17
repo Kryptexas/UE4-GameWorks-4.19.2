@@ -334,6 +334,7 @@ public:
 				{
 					return;
 				}
+				LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, SelectedComponents);
 				bBrush = true;
 			}
 
@@ -516,9 +517,9 @@ public:
 				// Change Weight maps...
 				{
 					FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
-					for(TSet<ULandscapeComponent*>::TConstIterator It(TargetSelectedComponents);It;++It)
+					for (TSet<ULandscapeComponent*>::TConstIterator ComponentIt(TargetSelectedComponents); ComponentIt; ++ComponentIt)
 					{
-						ULandscapeComponent* Comp = *It;
+						ULandscapeComponent* Comp = *ComponentIt;
 						int32 TotalNeededChannels = Comp->WeightmapLayerAllocations.Num();
 						int32 CurrentLayer = 0;
 						TArray<UTexture2D*> NewWeightmapTextures;
@@ -538,9 +539,9 @@ public:
 
 								// see if we can find a suitable existing weightmap texture with sufficient channels
 								int32 BestDistanceSquared = MAX_int32;
-								for( TMap<UTexture2D*,struct FLandscapeWeightmapUsage>::TIterator It(LandscapeProxy->WeightmapUsageMap); It; ++It )
+								for (TMap<UTexture2D*, struct FLandscapeWeightmapUsage>::TIterator WeightmapIt(LandscapeProxy->WeightmapUsageMap); WeightmapIt; ++WeightmapIt)
 								{
-									FLandscapeWeightmapUsage* TryWeightmapUsage = &It.Value();
+									FLandscapeWeightmapUsage* TryWeightmapUsage = &WeightmapIt.Value();
 									if( TryWeightmapUsage->FreeChannelCount() >= TotalNeededChannels )
 									{
 										// See if this candidate is closer than any others we've found
@@ -551,7 +552,7 @@ public:
 												int32 TryDistanceSquared = (TryWeightmapUsage->ChannelUsage[ChanIdx]->GetSectionBase() - Comp->GetSectionBase()).SizeSquared();
 												if( TryDistanceSquared < BestDistanceSquared )
 												{
-													CurrentWeightmapTexture = It.Key();
+													CurrentWeightmapTexture = WeightmapIt.Key();
 													CurrentWeightmapUsage = TryWeightmapUsage;
 													BestDistanceSquared = TryDistanceSquared;
 												}
@@ -1033,7 +1034,7 @@ public:
 			// Remove Selection
 			LandscapeInfo->ClearSelectedRegion(true);
 			//EdMode->SetMaskEnable(Landscape->SelectedRegion.Num());
-			GEngine->BroadcastLevelActorsChanged();
+			GEngine->BroadcastLevelActorListChanged();
 		}
 	}
 
@@ -1246,29 +1247,29 @@ public:
 									}
 								}
 
-								FGizmoSelectData* Data = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
-								if (Data)
+								FGizmoSelectData* GizmoData = Gizmo->SelectedData.Find(ALandscape::MakeKey(X, Y));
+								if (GizmoData)
 								{
 									if (bApplyToAll)
 									{
 										if (i < 0)
 										{
-											Data->HeightData = LerpedData.Data;
+											GizmoData->HeightData = LerpedData.Data;
 										}
 										else
 										{
-											Data->WeightDataMap.Add(LandscapeInfo->Layers[i].LayerInfoObj, LerpedData.Data);
+											GizmoData->WeightDataMap.Add(LandscapeInfo->Layers[i].LayerInfoObj, LerpedData.Data);
 										}
 									}
 									else
 									{
 										if (EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap)
 										{
-											Data->HeightData = LerpedData.Data;
+											GizmoData->HeightData = LerpedData.Data;
 										}
 										else
 										{
-											Data->WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
+											GizmoData->WeightDataMap.Add(EdMode->CurrentToolTarget.LayerInfo.Get(), LerpedData.Data);
 										}
 									}
 								}
@@ -1353,7 +1354,7 @@ public:
 
 			Gizmo->ExportToClipboard();
 
-			GEngine->BroadcastLevelActorsChanged();
+			GEngine->BroadcastLevelActorListChanged();
 		}
 	}
 
@@ -1650,7 +1651,7 @@ public:
 				Cache.Flush();
 			}
 
-			GEngine->BroadcastLevelActorsChanged();
+			GEngine->BroadcastLevelActorListChanged();
 		}
 	}
 
@@ -1887,17 +1888,19 @@ public:
 		int32 MinX, MinY, MaxX, MaxY;
 		if (EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeExtent(MinX, MinY, MaxX, MaxY))
 		{
-			EdMode->UISettings->ResizeLandscape_OriginalResolution = FIntPoint(MaxX - MinX, MaxY - MinY);
-			EdMode->UISettings->ResizeLandscape_ComponentCount.X = (MaxX - MinX) / ComponentSizeQuads;
-			EdMode->UISettings->ResizeLandscape_ComponentCount.Y = (MaxY - MinY) / ComponentSizeQuads;
+			EdMode->UISettings->ResizeLandscape_Original_ComponentCount.X = (MaxX - MinX) / ComponentSizeQuads;
+			EdMode->UISettings->ResizeLandscape_Original_ComponentCount.Y = (MaxY - MinY) / ComponentSizeQuads;
+			EdMode->UISettings->ResizeLandscape_ComponentCount = EdMode->UISettings->ResizeLandscape_Original_ComponentCount;
 		}
 		else
 		{
-			EdMode->UISettings->ResizeLandscape_OriginalResolution = FIntPoint::ZeroValue;
+			EdMode->UISettings->ResizeLandscape_Original_ComponentCount = FIntPoint::ZeroValue;
 			EdMode->UISettings->ResizeLandscape_ComponentCount = FIntPoint::ZeroValue;
 		}
-		EdMode->UISettings->ResizeLandscape_QuadsPerSection = EdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads;
-		EdMode->UISettings->ResizeLandscape_SectionsPerComponent = EdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
+		EdMode->UISettings->ResizeLandscape_Original_QuadsPerSection      = EdMode->CurrentToolTarget.LandscapeInfo->SubsectionSizeQuads;
+		EdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent = EdMode->CurrentToolTarget.LandscapeInfo->ComponentNumSubsections;
+		EdMode->UISettings->ResizeLandscape_QuadsPerSection      = EdMode->UISettings->ResizeLandscape_Original_QuadsPerSection;
+		EdMode->UISettings->ResizeLandscape_SectionsPerComponent = EdMode->UISettings->ResizeLandscape_Original_SectionsPerComponent;
 	}
 
 	virtual void ExitTool()

@@ -196,10 +196,12 @@ struct FEngineShowFlags
 		SetCollision(false);
 		SetCollisionPawn(false);
 		SetCollisionVisibility(false);
-		SetSafeFrames(false);
+		SetCameraAspectRatioBars(false);
+		SetCameraSafeFrames(false);
 		SetVisualizeOutOfBoundsPixels(false);
 		SetHighResScreenshotMask(false);
 		SetHMDDistortion(true); // only effective if a HMD is in use
+		SetStereoRendering(false);
 		SetDistanceCulledPrimitives(InitMode == ESFIM_Editor);
 		SetVisualizeLightCulling(false);
 		SetPrecomputedVisibilityCells(false);
@@ -244,6 +246,7 @@ struct FEngineShowFlags
 		SetPostProcessMaterial(false);
 		SetHighResScreenshotMask(false);
 		SetHMDDistortion(false);
+		SetStereoRendering(false);
 	}
 
 	// ---------------------------------------------------------

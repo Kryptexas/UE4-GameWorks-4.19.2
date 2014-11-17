@@ -94,12 +94,13 @@ FReply SSessionLauncherDeployRepositorySettings::HandleBrowseButtonClicked( )
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 	if ( DesktopPlatform )
 	{
-		void* ParentWindowWindowHandle = NULL;
+		TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
 
 		FString FolderName;
 		const FString Title = LOCTEXT("RepositoryBrowseTitle", "Choose a repository location").ToString();
 		const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
-			0,
+			ParentWindowHandle,
 			Title,
 			RepositoryPathTextBox->GetText().ToString(),
 			FolderName

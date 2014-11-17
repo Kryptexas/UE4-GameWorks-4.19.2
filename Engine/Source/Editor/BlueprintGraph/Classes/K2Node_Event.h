@@ -34,12 +34,12 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	UPROPERTY()
 	uint32 FunctionFlags;
 
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() OVERRIDE;
 	BLUEPRINTGRAPH_API virtual FString GetTooltip() const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual FString GetKeywords() const OVERRIDE;	
-	BLUEPRINTGRAPH_API virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	BLUEPRINTGRAPH_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	BLUEPRINTGRAPH_API virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual bool CanPasteHere(const UEdGraph* TargetGraph, const UEdGraphSchema* Schema) const OVERRIDE;
 	BLUEPRINTGRAPH_API virtual FName GetCornerIcon() const OVERRIDE;
@@ -76,6 +76,5 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	 *		Calling - whether this function is being called ("sending") or showing implementation ("receiving"). Determined whether we output "Replicated To Server" or "Replicated From Client".
 	 */
 	static FString GetLocalizedNetString(uint32 NetFlags, bool Calling);
-#endif
 };
 

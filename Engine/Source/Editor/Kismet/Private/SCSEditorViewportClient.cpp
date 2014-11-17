@@ -14,6 +14,7 @@
 #include "SoundDefinitions.h"
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "ISCSEditorCustomization.h"
+#include "ComponentVisualizer.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSCSEditorViewport, Log, All);
 
@@ -117,6 +118,9 @@ FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& I
 	WidgetCoordSystem = COORD_Local;
 	EngineShowFlags.DisableAdvancedFeatures();
 
+	check(Widget);
+	Widget->SetSnapEnabled(true);
+
 	// Selectively set particular show flags that we need
 	EngineShowFlags.TextRender = 1;
 	EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
@@ -125,22 +129,27 @@ FSCSEditorViewportClient::FSCSEditorViewportClient(TWeakPtr<FBlueprintEditor>& I
 	DrawHelper.bDrawGrid = GEditor->GetEditorUserSettings().bSCSEditorShowGrid;
 
 	// now add floor
-	UStaticMesh* FloorMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PhAT_FloorBox.PhAT_FloorBox"), NULL, LOAD_None, NULL);
-	check(FloorMesh);
 	EditorFloorComp = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass());
-	EditorFloorComp->SetStaticMesh( FloorMesh );
-	EditorFloorComp->SetRelativeScale3D(FVector(3.f, 3.f, 1.f));
-	UMaterial* Material= LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorMaterials/PersonaFloorMat.PersonaFloorMat"), NULL, LOAD_None, NULL);
-	check(Material);
-	EditorFloorComp->SetMaterial( 0, Material );
 
+	UStaticMesh* FloorMesh = LoadObject<UStaticMesh>(NULL, TEXT("/Engine/EditorMeshes/PhAT_FloorBox.PhAT_FloorBox"), NULL, LOAD_None, NULL);
+	if (ensure(FloorMesh))
+	{
+		EditorFloorComp->SetStaticMesh(FloorMesh);
+	}
+
+	UMaterial* Material = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorMaterials/PersonaFloorMat.PersonaFloorMat"), NULL, LOAD_None, NULL);
+	if (ensure(Material))
+	{
+		EditorFloorComp->SetMaterial(0, Material);
+	}
+
+	EditorFloorComp->SetRelativeScale3D(FVector(3.f, 3.f, 1.f));
 	EditorFloorComp->SetVisibility(GEditor->GetEditorUserSettings().bSCSEditorShowFloor);
 	EditorFloorComp->SetCollisionEnabled(GEditor->GetEditorUserSettings().bSCSEditorShowFloor? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 	PreviewScene->AddComponent(EditorFloorComp, FTransform::Identity);
 
 	// Turn off so that actors added to the world do not have a lifespan (so they will not auto-destroy themselves).
 	PreviewScene->GetWorld()->bBegunPlay = false;
-
 }
 
 FSCSEditorViewportClient::~FSCSEditorViewportClient()
@@ -183,19 +192,15 @@ void FSCSEditorViewportClient::Tick(float DeltaSeconds)
 			BlueprintEditorPtr.Pin()->GetBlueprintObj()->SimpleConstructionScript->SetComponentEditorActorInstance(PreviewActor);
 		}
 
-		// Tick only if preview simulation is enabled and we're not currently in an active SIE or PIE session
-		if (!GEditor->bIsSimulatingInEditor && GEditor->PlayWorld == NULL)
+		// Allow full tick only if preview simulation is enabled and we're not currently in an active SIE or PIE session
+		if(bIsSimulateEnabled && GEditor->PlayWorld == NULL && !GEditor->bIsSimulatingInEditor)
 		{
-			if(bIsSimulateEnabled)
-			{
-				PreviewScene->GetWorld()->Tick(IsRealtime() ? LEVELTICK_All : LEVELTICK_TimeOnly, DeltaSeconds);
-			}
-			else
-			{
-				PreviewScene->GetWorld()->Tick(IsRealtime() ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly, DeltaSeconds);
-			}
+			PreviewScene->GetWorld()->Tick(IsRealtime() ? LEVELTICK_All : LEVELTICK_TimeOnly, DeltaSeconds);
 		}
-
+		else
+		{
+			PreviewScene->GetWorld()->Tick(IsRealtime() ? LEVELTICK_ViewportsOnly : LEVELTICK_TimeOnly, DeltaSeconds);
+		}
 	}
 }
 
@@ -229,10 +234,10 @@ void FSCSEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 				if(Comp != NULL && Comp->IsRegistered())
 				{
 					// Try and find a visualizer
-					FOnDrawComponentVisualizer* VisualizerPtr = GUnrealEd->ComponentVisualizerMap.Find(Comp->GetClass());
-					if(VisualizerPtr != NULL && (*VisualizerPtr).IsBound())
+					TSharedPtr<FComponentVisualizer>* VisualizerPtr = GUnrealEd->ComponentVisualizerMap.Find(Comp->GetClass()->GetFName());
+					if (VisualizerPtr != NULL && (*VisualizerPtr).IsValid())
 					{
-						(*VisualizerPtr).Execute(Comp, View, PDI);
+						(*VisualizerPtr)->DrawVisualization(Comp, View, PDI);
 					}
 				}
 			}
@@ -370,14 +375,17 @@ bool FSCSEditorViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 							USceneComponent* ParentSceneComp = SceneComp->GetAttachParent();
 							if( ParentSceneComp )
 							{
-								const FTransform ParentToWorldSpace = ParentSceneComp->GetComponentToWorld();
-								const FVector ParentScale( ParentToWorldSpace.GetScale3D() );
-								if( ParentScale.X != 0.f && ParentScale.Y != 0.f && ParentScale.Z != 0.f )
-								{
-									Drag /= ParentScale;
-								}
+								const FTransform ParentToWorldSpace = ParentSceneComp->GetSocketTransform(SceneComp->AttachSocketName);
 
-								Drag = ParentToWorldSpace.InverseSafe().TransformVector(Drag);
+								if(!SceneComp->bAbsoluteLocation)
+								{
+									Drag = ParentToWorldSpace.InverseSafe().TransformVector(Drag);
+								}
+								
+								if(!SceneComp->bAbsoluteRotation)
+								{
+									Rot = (ParentToWorldSpace.InverseSafe().GetRotation() * Rot.Quaternion() * ParentToWorldSpace.GetRotation()).Rotator();
+								}
 							}
 
 							FComponentEditorUtils::FTransformData OldTransform(*SelectedTemplate);
@@ -583,7 +591,7 @@ FVector FSCSEditorViewportClient::GetWidgetLocation() const
 				}
 				else
 				{
-					Location = SceneComp->GetComponentToWorld().GetTranslation();
+					Location = SceneComp->GetComponentLocation();
 				}
 			}
 		}
@@ -614,11 +622,16 @@ FMatrix FSCSEditorViewportClient::GetWidgetCoordSystem() const
 					}					
 					else
 					{
-						Matrix = FRotationMatrix( SceneComp->RelativeRotation );
+						Matrix = FRotationMatrix( SceneComp->GetComponentRotation() );
 					}
 				}
 			}
 		}
+	}
+
+	if(!Matrix.Equals(FMatrix::Identity))
+	{
+		Matrix.RemoveScaling();
 	}
 
 	return Matrix;
@@ -831,7 +844,7 @@ void FSCSEditorViewportClient::EndTransaction()
 AActor* FSCSEditorViewportClient::GetPreviewActor() const
 {
 	// Note: The weak ptr can become stale if the actor is reinstanced due to a Blueprint change, etc. In that case we look to see if we can find the new instance in the preview world and then update the weak ptr.
-	if(PreviewActorPtr.IsStale())
+	if(PreviewActorPtr.IsStale(true))
 	{
 		UWorld* PreviewWorld = PreviewScene->GetWorld();
 		for(TActorIterator<AActor> It(PreviewWorld); It; ++It)

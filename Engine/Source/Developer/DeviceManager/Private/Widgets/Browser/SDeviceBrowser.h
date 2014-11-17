@@ -34,8 +34,9 @@ public:
 	 * @param InArgs - The construction arguments.
 	 * @param InModel - The view model to use.
 	 * @param InDeviceServiceManager - The target device service manager to use.
+	 * @param InUICommandList - The UI command list to use.
 	 */
-	void Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel, const ITargetDeviceServiceManagerRef& InDeviceServiceManager );
+	void Construct( const FArguments& InArgs, const FDeviceManagerModelRef& InModel, const ITargetDeviceServiceManagerRef& InDeviceServiceManager, const TSharedPtr<FUICommandList>& InUICommandList );
 
 public:
 
@@ -99,4 +100,7 @@ private:
 
 	// Holds a flag indicating whether the list of target device services needs to be refreshed.
 	bool NeedsServiceListRefresh;
+
+	// Holds a pointer to the command list for controlling the device.
+	TSharedPtr<FUICommandList> UICommandList;
 };

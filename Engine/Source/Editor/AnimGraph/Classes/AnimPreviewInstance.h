@@ -27,9 +27,9 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Current Asset being played **/
+	/** Controllers for individual bones */
 	UPROPERTY(transient)
-	FAnimNode_ModifyBone SingleBoneController;
+	TArray<FAnimNode_ModifyBone> BoneControllers;
 
 	/** Shared parameters for previewing blendspace or animsequence **/
 	UPROPERTY(transient)
@@ -78,6 +78,26 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	float MontagePreview_CalculateStepLength();
 	void MontagePreview_RemoveBlendOut();
 	bool IsPlayingMontage() { return GetActiveMontageInstance() != NULL; }
+
+	/** 
+	 * Finds an already modified bone 
+	 * @param	InBoneName	The name of the bone modification to find
+	 * @return the bone modification or NULL if no current modification was found
+	 */
+	FAnimNode_ModifyBone* FindModifiedBone(const FName& InBoneName);
+
+	/** 
+	 * Modifies a single bone. Create a new FAnimNode_ModifyBone if one does not exist for the passed-in bone.
+	 * @param	InBoneName	The name of the bone to modify
+	 * @return the new or existing bone modification
+	 */
+	FAnimNode_ModifyBone& ModifyBone(const FName& InBoneName);
+
+	/**
+	 * Removes an existing bone modification
+	 * @param	InBoneName	The name of the existing modification to remove
+	 */
+	void RemoveBoneModification(const FName& InBoneName);
 };
 
 

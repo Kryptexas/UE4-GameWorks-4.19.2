@@ -9,12 +9,12 @@ UBehaviorTreeGraphNode_Composite::UBehaviorTreeGraphNode_Composite(const class F
 {
 }
 
-FString UBehaviorTreeGraphNode_Composite::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UBehaviorTreeGraphNode_Composite::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	const UBTNode* MyNode = Cast<UBTNode>(NodeInstance);
 	if (MyNode != NULL)
 	{
-		return  MyNode->GetNodeName();
+		return FText::FromString(MyNode->GetNodeName());
 	}
 	return Super::GetNodeTitle(TitleType);
 }

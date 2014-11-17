@@ -120,6 +120,7 @@ public:
 
 	/** Index of the curve that was right-clicked */
 	int32 RightClickCurveIndex;
+	int32 RightClickCurveSubIndex;
 
 	/** Individual and total draw heights for labels */
 	const int32	LabelEntryHeight;

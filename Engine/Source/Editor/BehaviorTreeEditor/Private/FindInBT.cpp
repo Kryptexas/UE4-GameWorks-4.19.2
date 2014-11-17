@@ -212,7 +212,7 @@ void SFindInBT::MatchTokens(const TArray<FString>& Tokens)
 	{
 		UEdGraphNode* Node = *It;
 			
-		const FString NodeName = Node->GetNodeTitle(ENodeTitleType::ListView);
+		const FString NodeName = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
 		FSearchResult NodeResult(new FFindInBTResult(NodeName, RootSearchResult, Node));
 
 		FString NodeSearchString = NodeName + Node->GetClass()->GetName() + Node->NodeComment;
@@ -253,7 +253,7 @@ void SFindInBT::MatchTokensInChild(const TArray<FString>& Tokens, UBehaviorTreeG
 		return;
 	}
 
-	FString ChildName = Child->GetNodeTitle(ENodeTitleType::ListView);
+	FString ChildName = Child->GetNodeTitle(ENodeTitleType::ListView).ToString();
 	FString ChildSearchString = ChildName + Child->GetClass()->GetName() + Child->NodeComment;
 	ChildSearchString = ChildSearchString.Replace(TEXT(" "), TEXT(""));
 	if (StringMatchesSearchTokens(Tokens, ChildSearchString))

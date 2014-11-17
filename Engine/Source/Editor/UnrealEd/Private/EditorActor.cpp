@@ -6,7 +6,6 @@
 #include "Factories.h"
 #include "EngineFoliageClasses.h"
 #include "LevelUtils.h"
-#include "LinkedObjEditor.h"
 #include "BusyCursor.h"
 #include "BSPOps.h"
 #include "EditorLevelUtils.h"
@@ -45,9 +44,8 @@ public:
 		: FExportObjectInnerContext(false)
 	{
 		// For each object . . .
-		for ( TObjectIterator<UObject> It ; It ; ++It )
+		for (UObject* InnerObj : TObjectRange<UObject>(RF_ClassDefaultObject | RF_PendingKill))
 		{
-			UObject* InnerObj = *It;
 			UObject* OuterObj = InnerObj->GetOuter();
 
 			//assume this is not part of a selected actor
@@ -57,7 +55,7 @@ public:
 			while (TestParent)
 			{
 				AActor* TestParentAsActor = Cast<AActor>(TestParent);
-				if ( TestParentAsActor && TestParentAsActor->IsSelected())
+				if (TestParentAsActor && TestParentAsActor->IsSelected())
 				{
 					bIsChildOfSelectedActor = true;
 					break;
@@ -67,8 +65,8 @@ public:
 
 			if (bIsChildOfSelectedActor)
 			{
-				InnerList* Inners = ObjectToInnerMap.Find( OuterObj );
-				if ( Inners )
+				InnerList* Inners = ObjectToInnerMap.Find(OuterObj);
+				if (Inners)
 				{
 					// Add object to existing inner list.
 					Inners->Add( InnerObj );
@@ -76,8 +74,8 @@ public:
 				else
 				{
 					// Create a new inner list for the outer object.
-					InnerList& InnersForOuterObject = ObjectToInnerMap.Add( OuterObj, InnerList() );
-					InnersForOuterObject.Add( InnerObj );
+					InnerList& InnersForOuterObject = ObjectToInnerMap.Add(OuterObj, InnerList());
+					InnersForOuterObject.Add(InnerObj);
 				}
 			}
 		}

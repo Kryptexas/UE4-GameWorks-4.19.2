@@ -333,7 +333,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FViewInfo& View)
 			// Draw the dynamic non-occluded primitives using a base pass drawing policy.
 			TDynamicPrimitiveDrawer<FBasePassOpaqueDrawingPolicyFactory> Drawer(
 				&View,FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::DontSet),true);
-			for(int32 PrimitiveIndex = 0;PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
+			for(int32 PrimitiveIndex = 0, Num = View.VisibleDynamicPrimitives.Num();PrimitiveIndex < Num;PrimitiveIndex++)
 			{
 				const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
 				int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();
@@ -422,7 +422,7 @@ void FDeferredShadingSceneRenderer::RenderFinish()
 	FSceneRenderer::RenderFinish();
 
 	//grab the new transform out of the proxies for next frame
-	if(ViewFamily.EngineShowFlags.MotionBlur)
+	if(ViewFamily.EngineShowFlags.MotionBlur || ViewFamily.EngineShowFlags.TemporalAA)
 	{
 		Scene->MotionBlurInfoData.UpdateMotionBlurCache();
 	}
@@ -535,14 +535,7 @@ void FDeferredShadingSceneRenderer::Render()
 	if(IsDBufferEnabled())
 	{
 		GSceneRenderTargets.ResolveSceneDepthTexture();
-
-		// Resolve the scene depth to an auxiliary texture when SM3/SM4 is in use. This needs to happen so the auxiliary texture can be bound as a shader parameter
-		// while the primary scene depth texture can be bound as the target. Simultaneously binding a single DepthStencil resource as a parameter and target
-		// is unsupported in d3d feature level 10.
-		if(!(GRHIFeatureLevel >= ERHIFeatureLevel::SM5) && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
-		{
-			GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture();
-		}
+		GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture();
 
 		// e.g. ambient cubemaps, ambient occlusion, deferred decals
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
@@ -593,14 +586,7 @@ void FDeferredShadingSceneRenderer::Render()
 	
 	GSceneRenderTargets.ResolveSceneColor(FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 	GSceneRenderTargets.ResolveSceneDepthTexture();
-
-	// Resolve the scene depth to an auxiliary texture when SM3/SM4 is in use. This needs to happen so the auxiliary texture can be bound as a shader parameter
-	// while the primary scene depth texture can be bound as the target. Simultaneously binding a single DepthStencil resource as a parameter and target
-	// is unsupported in d3d feature level 10.
-	if(!GSupportsDepthFetchDuringDepthTest)
-	{
-		GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture();
-	}
+	GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture();
 	
 	RenderCustomDepthPass();
 

@@ -75,6 +75,8 @@ public:
 	uint32 bWarnedAboutOrphanedLooping:1;
 #endif
 
+	uint8 UserIndex;
+
 	float PlaybackTime;
 	float RequestedStartTime;
 

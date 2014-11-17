@@ -17,7 +17,27 @@
 **/
 class FFileSystemDerivedDataBackend : public FDerivedDataBackendInterface
 {
-
+	/* Scoped timer that warns if the DDC access is taking too long. */
+	class FSlowAccessWarning
+	{
+		const FFileSystemDerivedDataBackend& Backend;
+		double StartTime;
+	public:
+		FSlowAccessWarning(const FFileSystemDerivedDataBackend& InBackend)
+			: Backend(InBackend)
+		{
+			StartTime = FPlatformTime::Seconds();
+		}
+		~FSlowAccessWarning()
+		{			
+			double Duration = FPlatformTime::Seconds() - StartTime;
+			const double SlowDuration = 10.0;
+			if (Duration >= SlowDuration)
+			{
+				UE_LOG(LogDerivedDataCache, Warning, TEXT("%s access is very slow, consider disabling it."), *Backend.CachePath);
+			}
+		}
+	};
 public:
 	/**
 	 * Constructor that should only be called once by the singleton, grabs the cache path from the ini
@@ -34,6 +54,8 @@ public:
 	{
 		// If we find a platform that has more stingent limits, this needs to be rethought.
 		checkAtCompileTime(MAX_BACKEND_KEY_LENGTH + MAX_CACHE_DIR_LEN + MAX_BACKEND_NUMBERED_SUBFOLDER_LENGTH + MAX_CACHE_EXTENTION_LEN < PLATFORM_MAX_FILEPATH_LENGTH, not_enough_room_left_for_cache_keys_in_max_path);
+		const double SlowInitDuration = 10.0;
+		bool bFilesystemIsSlow = false;
 
 		check(CachePath.Len());
 		FPaths::NormalizeFilename(CachePath);
@@ -46,6 +68,7 @@ public:
 		}
 		if (!bReadOnly)
 		{
+			double TestStart = FPlatformTime::Seconds();
 			FString TempFilename = CachePath / FGuid::NewGuid().ToString() + ".tmp";
 			FFileHelper::SaveStringToFile(FString("TEST"),*TempFilename);
 			int32 TestFileSize = IFileManager::Get().FileSize(*TempFilename);
@@ -56,20 +79,31 @@ public:
 			else
 			{
 				bFailed = false;
-			}
+			}			
 			if (TestFileSize >= 0)
 			{
 				IFileManager::Get().Delete(*TempFilename, false, false, true);
 			}
+			double TestDuration = FPlatformTime::Seconds() - TestStart;
+			if (TestDuration > SlowInitDuration)
+			{
+				bFilesystemIsSlow = true;
+			}
 		}
 		if (bFailed)
 		{
+			double StartTime = FPlatformTime::Seconds();
 			TArray<FString> FilesAndDirectories;
 			IFileManager::Get().FindFiles(FilesAndDirectories,*(CachePath / TEXT("*.*")), true, true);
+			double TestDuration = FPlatformTime::Seconds() - StartTime;
 			if (FilesAndDirectories.Num() > 0)
 			{
 				bReadOnly = true;
 				bFailed = false;
+			}
+			if (TestDuration > SlowInitDuration)
+			{
+				bFilesystemIsSlow = true;
 			}
 		}
 		if (FString(FCommandLine::Get()).Contains(TEXT("DerivedDataCache")) )
@@ -87,6 +121,16 @@ public:
 		if (bTouch)
 		{
 			UE_LOG(LogDerivedDataCache, Display, TEXT("Files in %s will be touched."),*CachePath);
+		}
+
+		if (!bFailed && bFilesystemIsSlow)
+		{
+			UE_LOG(LogDerivedDataCache, Warning, TEXT("%s access is very slow, consider disabling it."), *CachePath);
+			uint32 Result = FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(NSLOCTEXT("Engine", "SlowDDC", "DDC filesystem backend is very slow:\n\n    {0}\n\nWould you like to disable it?"), FText::FromString(CachePath)));
+			if (Result == EAppReturnType::Yes)
+			{
+				bFailed = true;
+			}
 		}
 
 		if (!bReadOnly && !bFailed && bDeleteOldFiles && !FParse::Param(FCommandLine::Get(),TEXT("NODDCCLEANUP")) && FDDCCleanup::Get())
@@ -139,6 +183,7 @@ public:
 	{
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
+		FSlowAccessWarning ScopedWarning(*this);
 		if (FFileHelper::LoadFileToArray(Data,*Filename,FILEREAD_Silent))
 		{
 			UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache hit on %s"),*Filename);
@@ -167,7 +212,12 @@ public:
 				FString TempFilename(TEXT("temp.")); 
 				TempFilename += FGuid::NewGuid().ToString();
 				TempFilename = FPaths::GetPath(Filename) / TempFilename;
-				if (FFileHelper::SaveArrayToFile(Data,*TempFilename))
+				bool bResult;
+				{
+					FSlowAccessWarning ScopedWarning(*this);
+					bResult = FFileHelper::SaveArrayToFile(Data, *TempFilename);
+				}
+				if (bResult)
 				{
 					if (IFileManager::Get().FileSize(*TempFilename) == Data.Num())
 					{

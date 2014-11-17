@@ -18,10 +18,15 @@ bool UEnvQueryItemType_ActorBase::StoreInBlackboard(struct FBlackboardKeySelecto
 	if (!bStored && KeySelector.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 	{
 		UObject* MyObject = GetActor(RawData);
-		Blackboard->SetValueAsObject(KeySelector.SelectedKeyID, MyObject);
+		Blackboard->SetValueAsObject(KeySelector.GetSelectedKeyID(), MyObject);
 
 		bStored = true;
 	}
 
 	return bStored;
+}
+
+AActor* UEnvQueryItemType_ActorBase::GetActor(const uint8* RawData) const
+{
+	return NULL;
 }

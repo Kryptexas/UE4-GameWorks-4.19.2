@@ -79,9 +79,9 @@ public:
 		return FStyleDefaults::GetNoBrush();
 	}
 
-	static const FSlateBrush* GetOptionalBrush( FName PropertyName, const ANSICHAR* Specifier = NULL )
+	static const FSlateBrush* GetOptionalBrush( FName PropertyName, const ANSICHAR* Specifier = NULL, const FSlateBrush* const DefaultBrush = FStyleDefaults::GetNoBrush() )
 	{
-		return Instance->GetOptionalBrush( PropertyName, Specifier );
+		return Instance->GetOptionalBrush( PropertyName, Specifier, DefaultBrush );
 	}
 
 	static void GetResources( TArray< const FSlateBrush* >& OutResources )

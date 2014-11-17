@@ -214,6 +214,12 @@ struct FLightOctreeSemantics
 	{
 		Element.LightSceneInfo->OctreeId = Id;
 	}
+
+	FORCEINLINE static void ApplyOffset(FLightSceneInfoCompact& Element, FVector Offset)
+	{
+		VectorRegister OffsetReg = VectorLoadFloat3_W0(&Offset);
+		Element.BoundingSphereVector = VectorAdd(Element.BoundingSphereVector, OffsetReg);
+	}
 };
 
 #endif

@@ -431,7 +431,7 @@ FVector FEdMode::GetWidgetLocation() const
 
 bool FEdMode::ShouldDrawWidget() const
 {
-	return (GEditor->GetSelectedActors()->GetTop<AActor>() != NULL || GEditor->GetSelectedComponents()->GetTop<USceneComponent>() != NULL);
+	return (GEditor->GetSelectedActors()->GetTop<AActor>() != NULL);
 }
 
 /**
@@ -1907,7 +1907,7 @@ void FEditorModeTools::CycleWidgetMode (void)
 		do
 		{
 			Wk++;
-			if ((Wk == FWidget::WM_TranslateRotateZ) && (!GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget))
+			if ((Wk == FWidget::WM_TranslateRotateZ) && (!GetDefault<ULevelEditorViewportSettings>()->bAllowTranslateRotateZWidget))
 			{
 				Wk++;
 			}

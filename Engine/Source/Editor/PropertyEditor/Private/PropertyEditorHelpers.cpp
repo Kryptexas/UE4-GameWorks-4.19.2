@@ -41,6 +41,7 @@ void SPropertyNameWidget::Construct( const FArguments& InArgs, TSharedPtr<FPrope
 		[
 			SNew(SBorder)
 			.BorderImage_Static( &PropertyEditorConstants::GetOverlayBrush, PropertyEditor.ToSharedRef() )
+			.Padding( FMargin( 0.0f, 2.0f ) )
 			.VAlign(VAlign_Center)
 			[
 				SNew( SPropertyEditorTitle, PropertyEditor.ToSharedRef() )

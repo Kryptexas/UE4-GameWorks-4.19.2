@@ -49,9 +49,6 @@ public class UE4EditorTarget : TargetRules
 	{
 		if( UnrealBuildTool.UnrealBuildTool.BuildingRocket() )
 		{ 
-			// Tag it as a Rocket build
-			OutCPPEnvironmentConfiguration.Definitions.Add("UE_ROCKET=1");
-
 			// no exports, so no need to verify that a .lib and .exp file was emitted by the linker.
 			OutLinkEnvironmentConfiguration.bHasExports = false;
 		}
@@ -68,22 +65,41 @@ public class UE4EditorTarget : TargetRules
         NonCodeProjectNames.Add("Elemental", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("Infiltrator", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("HoverShip", new List<UnrealTargetPlatform> { HostPlatform });
-        NonCodeProjectNames.Add("Blueprint_Examples", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("BlueprintExamples", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("Reflections", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("ElementalVR", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("VersusVR", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("Stylized", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("Landscape", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("Matinee", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("RealisticRendering", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("Effects", new List<UnrealTargetPlatform> { HostPlatform });
+        NonCodeProjectNames.Add("GDC2014", new List<UnrealTargetPlatform> { HostPlatform });
         NonCodeProjectNames.Add("ContentExamples", new List<UnrealTargetPlatform> { HostPlatform });
 
-        NonCodeProjectNames.Add("MobileTemple", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("TappyChicken", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("SwingNinja", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("Mobile", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
+        List<UnrealTargetPlatform> MobilePlats = null;
+        if (HostPlatform == UnrealTargetPlatform.Mac)
+        {
+            MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.IOS };
+        }
+        else
+        {
+            MobilePlats = new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android };
+        }
 
-        NonCodeProjectNames.Add("TP_FirstPersonBP", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("TP_FlyingBP", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("TP_SideScrollerBP", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("TP_StarterContentBP", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("TP_ThirdPersonBP", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("TP_TopDownBP", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
-        NonCodeProjectNames.Add("TP_VehicleBP", new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Android, UnrealTargetPlatform.IOS });
+        NonCodeProjectNames.Add("BlackJack", MobilePlats);
+        NonCodeProjectNames.Add("Card", MobilePlats);
+        NonCodeProjectNames.Add("TappyChicken", MobilePlats);
+        NonCodeProjectNames.Add("SwingNinja", MobilePlats);
+        NonCodeProjectNames.Add("Mobile", MobilePlats);
+
+        NonCodeProjectNames.Add("StarterContent", MobilePlats);
+        NonCodeProjectNames.Add("TP_FirstPersonBP", MobilePlats);
+        NonCodeProjectNames.Add("TP_FlyingBP", MobilePlats);
+        NonCodeProjectNames.Add("TP_RollingBP", MobilePlats);
+        NonCodeProjectNames.Add("TP_SideScrollerBP", MobilePlats);
+        NonCodeProjectNames.Add("TP_ThirdPersonBP", MobilePlats);
+        NonCodeProjectNames.Add("TP_TopDownBP", MobilePlats);
 
         return NonCodeProjectNames;
     }

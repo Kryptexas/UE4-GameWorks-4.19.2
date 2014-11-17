@@ -195,7 +195,9 @@ void PlatformGetBackbufferDimensions( uint32& OutWidth, uint32& OutHeight );
 
 struct FOpenGLTextureFormat
 {
+	// [0]: without sRGB, [1]: with sRGB
 	GLenum InternalFormat[2];
+	// [0]: without sRGB, [1]: with sRGB
 	GLenum SizedInternalFormat[2];
 	GLenum Format;
 	GLenum Type;

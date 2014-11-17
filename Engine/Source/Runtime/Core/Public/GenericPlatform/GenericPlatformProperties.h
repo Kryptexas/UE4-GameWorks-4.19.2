@@ -228,6 +228,14 @@ struct FGenericPlatformProperties
 	}
 
 	/**
+	 * Gets whether user settings should override the resolution or not
+	 */
+	static FORCEINLINE bool HasFixedResolution()
+	{
+		return true;
+	}
+
+	/**
 	 *	Gets whether this platform supports Fast VRAM memory 
 	 *		Ie, whether TexCreate_FastVRAM flags actually mean something or not
 	 *	

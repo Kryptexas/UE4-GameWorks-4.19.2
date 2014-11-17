@@ -83,6 +83,7 @@ public:
 
 	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) OVERRIDE
 	{
+		// @todo Mac: implement process snapshots
 		return 0;
 	}
 
@@ -150,6 +151,10 @@ public:
 		{
 		case ETargetDeviceFeatures::MultiLaunch:
 			return true;
+
+		// @todo Mac: implement process snapshots
+		case ETargetDeviceFeatures::ProcessSnapshot:
+			return false;
 
 		case ETargetDeviceFeatures::Reboot:
 			return true;

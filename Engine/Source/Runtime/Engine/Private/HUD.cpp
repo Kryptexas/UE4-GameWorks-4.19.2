@@ -199,6 +199,7 @@ void AHUD::ShowHUD()
 	bShowHUD = !bShowHUD;
 }
 
+static FName NAME_Reset = FName(TEXT("Reset"));
 void AHUD::ShowDebug(FName DebugType)
 {
 	if (DebugType == NAME_None)
@@ -208,6 +209,12 @@ void AHUD::ShowDebug(FName DebugType)
 	else if ( DebugType == FName("HitBox") )
 	{
 		bShowHitBoxDebugInfo = !bShowHitBoxDebugInfo;
+	}
+	else if( DebugType == NAME_Reset )
+	{
+		DebugDisplay.Empty();
+		bShowDebugInfo = false;
+		SaveConfig();
 	}
 	else
 	{
@@ -231,9 +238,9 @@ void AHUD::ShowDebug(FName DebugType)
 	}
 }
 
-bool AHUD::ShouldDisplayDebug(FName DebugType)
+bool AHUD::ShouldDisplayDebug(const FName & DebugType) const
 {
-	return DebugDisplay.Contains(DebugType);
+	return bShowDebugInfo && DebugDisplay.Contains(DebugType);
 }
 
 void AHUD::ShowDebugInfo(float& YL, float& YPos)
@@ -778,15 +785,15 @@ void FHUDHitBox::Draw( FCanvas* InCanvas, const FLinearColor& InColor )
 	InCanvas->DrawItem( TextItem );
 }
 
-void FSimpleReticle::Draw( class FCanvas* InCanvas, FLinearColor InColor )
+void FSimpleReticle::Draw( UCanvas* InCanvas, FLinearColor InColor )
 {
-	FVector2D CanvasCenter( InCanvas->GetViewRect().Width() / 2.0f, InCanvas->GetViewRect().Height() / 2.0f );
+	FVector2D CanvasCenter( InCanvas->OrgX + ((InCanvas->ClipX - InCanvas->OrgX) / 2.0f), InCanvas->OrgX + ((InCanvas->ClipY - InCanvas->OrgY) / 2.0f) );
 	FCanvasLineItem LineItem( CanvasCenter, FVector2D(0.0f, 0.0f) );
 	LineItem.SetColor( InColor );
-	LineItem.Draw( InCanvas, CanvasCenter - HorizontalOffsetMin, CanvasCenter - HorizontalOffsetMax );
-	LineItem.Draw( InCanvas, CanvasCenter + HorizontalOffsetMin, CanvasCenter + HorizontalOffsetMax );
-	LineItem.Draw( InCanvas, CanvasCenter - VerticalOffsetMin, CanvasCenter - VerticalOffsetMax );
-	LineItem.Draw( InCanvas, CanvasCenter + VerticalOffsetMin, CanvasCenter + VerticalOffsetMax );
+	LineItem.Draw( InCanvas->Canvas, CanvasCenter - HorizontalOffsetMin, CanvasCenter - HorizontalOffsetMax );
+	LineItem.Draw( InCanvas->Canvas, CanvasCenter + HorizontalOffsetMin, CanvasCenter + HorizontalOffsetMax );
+	LineItem.Draw( InCanvas->Canvas, CanvasCenter - VerticalOffsetMin, CanvasCenter - VerticalOffsetMax );
+	LineItem.Draw( InCanvas->Canvas, CanvasCenter + VerticalOffsetMin, CanvasCenter + VerticalOffsetMax );
 }
 
 #undef LOCTEXT_NAMESPACE

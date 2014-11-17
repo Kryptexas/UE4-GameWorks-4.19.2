@@ -147,3 +147,9 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 
 	GEngineLoop.AppExit();
 }
+
+void CrashReportClientCheck(bool bCondition, const TCHAR* Location)
+{
+	UE_LOG(CrashReportClientLog, Warning, TEXT("CHECK FAILED at %s"), Location);
+}
+

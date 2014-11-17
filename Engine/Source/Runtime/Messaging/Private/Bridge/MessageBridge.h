@@ -52,14 +52,14 @@ public:
 
 	// Begin IReceiveMessages interface
 
+	virtual FName GetDebugName( ) const OVERRIDE
+	{
+		return *FString::Printf(TEXT("FMessageBridge (%s)"), *Transport->GetDebugName().ToString());
+	}
+
 	virtual const FGuid& GetRecipientId( ) const OVERRIDE
 	{
 		return Id;
-	}
-
-	virtual FName GetRecipientName( const FMessageAddress& RecipientAddress ) const OVERRIDE
-	{
-		return *FString::Printf(TEXT("FMessageBridge %s"), *RecipientAddress.ToString(EGuidFormats::DigitsWithHyphensInParentheses));
 	}
 
 	virtual ENamedThreads::Type GetRecipientThread( ) const OVERRIDE

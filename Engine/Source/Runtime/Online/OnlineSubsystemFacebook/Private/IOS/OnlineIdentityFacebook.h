@@ -3,10 +3,8 @@
 
 #pragma once
  
-
 // Module includes
 #include "OnlineIdentityInterface.h"
-
 
 // Facebook SDK includes
 #include "FBSession.h"
@@ -14,6 +12,8 @@
 #include "FBRequest.h"
 #include "FBRequestConnection.h"
 #include "FBAccessTokenData.h"
+
+#include "OnlineSubsystemFacebookPackage.h"
 
 /**
  * Facebook implementation of the online account information we may want

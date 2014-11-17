@@ -18,6 +18,14 @@ public:
 	// End UCommandlet Interface
 
 private:
-	void GatherTextFromUObjects(const TArray<FString>& IncludePaths, const TArray<FString>& ExcludePaths);
-	void GatherTextFromUObject(UField* const Field);
+	struct FGatherParameters
+	{
+		TArray<FString> InputKeys;
+		TArray<FString> OutputNamespaces;
+		TArray<FText> OutputKeys;
+	};
+
+private:
+	void GatherTextFromUObjects(const TArray<FString>& IncludePaths, const TArray<FString>& ExcludePaths, const FGatherParameters& Arguments);
+	void GatherTextFromUObject(UField* const Field, const FGatherParameters& Arguments);
 };

@@ -103,6 +103,12 @@ public:
 				[
 					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("NoLaunchRoleDeviceAssigned", "One or more launch roles do not have a device assigned.").ToString(), ELauncherProfileValidationErrors::NoLaunchRoleDeviceAssigned)
 				]
+		 
+			+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					MakeValidationMessage(TEXT("Icons.Error"), LOCTEXT("NoPlatformSDKInstalled", "A required platform SDK is missing.").ToString(), ELauncherProfileValidationErrors::NoPlatformSDKInstalled)
+				]
 		];
 	}
 

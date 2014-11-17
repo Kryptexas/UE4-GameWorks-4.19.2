@@ -184,7 +184,7 @@ void SWorldMainView::FillViewMenu(FMenuBuilder& MenuBuilder)
 		);
 
 		MenuBuilder.AddMenuEntry(LOCTEXT("ToggleDisplayPaths", "Display Paths"), 
-								LOCTEXT("ToggleDetailsView_Tooltip", "If enabled, displays the path for each level"), 
+								LOCTEXT("ToggleDisplayPaths_Tooltip", "If enabled, displays the path for each level"), 
 								FSlateIcon(), 
 								FUIAction(
 									FExecuteAction::CreateSP(this, &SWorldMainView::ToggleDisplayPaths_Executed), 
@@ -551,9 +551,9 @@ FReply SWorldMainView::CreateNewLayer(const FWorldTileLayer& NewLayer)
 	return FReply::Unhandled();
 }
 
-FString SWorldMainView::GetZoomText() const
+FText SWorldMainView::GetZoomText() const
 {
-	return LevelsGridView->GetZoomString();
+	return LevelsGridView->GetZoomText();
 }
 
 FString SWorldMainView::GetCurrentOriginText() const

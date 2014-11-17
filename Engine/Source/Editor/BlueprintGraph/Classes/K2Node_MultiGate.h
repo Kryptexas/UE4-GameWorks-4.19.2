@@ -12,12 +12,11 @@ class UK2Node_MultiGate : public UK2Node_ExecutionSequence
 	UPROPERTY(transient)
 	class UK2Node_TemporaryVariable* DataNode;
 
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
@@ -53,6 +52,5 @@ class UK2Node_MultiGate : public UK2Node_ExecutionSequence
 private:
 	// Returns the exec output pin name for a given 0-based index
  	virtual FString GetPinNameGivenIndex(int32 Index) const OVERRIDE;
-#endif 
 };
 

@@ -25,6 +25,7 @@ namespace MarkdownMode.DragDrop
 
     using MarkdownSharp.EpicMarkdown;
     using MarkdownSharp.FileSystemUtils;
+    using MarkdownSharp.Preprocessor;
 
     /// <summary>
     /// Handles a drag and drop of an image onto the editor.
@@ -201,7 +202,7 @@ namespace MarkdownMode.DragDrop
             switch (type)
             {
                 case ReferenceType.Link:
-                    return string.Format("[]({0})", markdownPath);
+                    return string.Format("[]({0})", Normalizer.NormalizePath(markdownPath));
                 case ReferenceType.Image:
                     return string.Format(
                         "![]({0})",
@@ -220,7 +221,7 @@ namespace MarkdownMode.DragDrop
             var documentPath = UDNDocRunningTableMonitor.CurrentUDNDocView.CurrentEMDocument
                 .TransformationData.CurrentFolderDetails.CurrentFolderFromMarkdownAsTopLeaf;
 
-            return (documentPath.ToLower() == Path.GetDirectoryName(path).ToLower()) ? Path.GetFileName(path) : path;
+            return Normalizer.TrimNewLines((documentPath.ToLower() == Path.GetDirectoryName(path).ToLower()) ? Path.GetFileName(path) : path);
         }
 
         enum ReferenceType

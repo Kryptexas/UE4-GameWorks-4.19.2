@@ -11,7 +11,7 @@ class ONLINEBLUEPRINTSUPPORT_API UK2Node_LeaderboardQuery : public UK2Node_BaseA
 
 	// UEdGraphNode interface
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	// End of UEdGraphNode interface
 
 	// UK2Node_BaseAsyncTask interface

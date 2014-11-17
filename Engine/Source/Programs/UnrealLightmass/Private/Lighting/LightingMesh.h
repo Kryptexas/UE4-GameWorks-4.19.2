@@ -452,7 +452,10 @@ public:
 	inline FLinearColor EvaluateTransmission(const FVector2D& UVs, int32 ElementIndex) const
 	{
 		checkSlow(IsTranslucent(ElementIndex));
-		const FLinearColor Transmission = MaterialElements[ElementIndex].Material->SampleTransmission(UVs);
+		FLinearColor Transmission = MaterialElements[ElementIndex].Material->SampleTransmission(UVs);
+		Transmission.R = FMath::Max(Transmission.R, 0.0f);
+		Transmission.G = FMath::Max(Transmission.G, 0.0f);
+		Transmission.B = FMath::Max(Transmission.B, 0.0f);
 		return Transmission;
 	}
 

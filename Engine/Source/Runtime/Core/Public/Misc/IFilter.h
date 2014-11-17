@@ -8,6 +8,7 @@ template< typename ItemType >
 class IFilter
 {
 public:
+	virtual ~IFilter(){ }
 
 	/** Returns whether the specified Item passes the Filter's restrictions */
 	virtual bool PassesFilter( ItemType InItem ) const = 0;

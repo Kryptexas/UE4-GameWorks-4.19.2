@@ -203,6 +203,7 @@ namespace UnrealBuildTool
 
 		public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
+			UEBuildConfiguration.bCompileICU = true;
 		}
 
         public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
@@ -222,8 +223,8 @@ namespace UnrealBuildTool
          */
         public override void ValidateUEBuildConfiguration()
         {
-            UEBuildConfiguration.bCompileICU = !bCompileWithClang;	// @todo clang: ICU causes STL link errors when using Clang on Windows.  Needs debugging.
-        }
+			UEBuildConfiguration.bCompileICU &= !bCompileWithClang;	// @todo clang: ICU causes STL link errors when using Clang on Windows.  Needs debugging.
+		}
 
 		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
 		{
@@ -361,6 +362,9 @@ namespace UnrealBuildTool
 				{
 					InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("dwmapi.lib");
 				}
+
+            	// IME
+            	InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("imm32.lib");
 
 				// Setup assembly path for .NET modules.  This will only be used when CLR is enabled. (CPlusPlusCLR module types)
 				InBuildTarget.GlobalCompileEnvironment.Config.SystemDotNetAssemblyPaths.Add(

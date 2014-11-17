@@ -47,7 +47,6 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	UPROPERTY(EditAnywhere, Category=Transition)
 	bool Bidirectional;
 
-#if WITH_EDITORONLY_DATA
 	/** The rules for this transition may be shared with other transition nodes */
 	UPROPERTY()
 	bool bSharedRules;
@@ -77,8 +76,6 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	UPROPERTY()
 	int32 SharedCrossfadeIdx;
 
-#endif
-
 	// Begin UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
@@ -86,7 +83,8 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) OVERRIDE;

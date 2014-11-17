@@ -2,7 +2,7 @@
 
 #include "OnlineSubsystemNullPrivatePCH.h"
 #include "OnlineIdentityNull.h"
-#include "IpAddress.h"
+#include "IPAddress.h"
 #include "SocketSubsystem.h"
 
 bool FUserOnlineAccountNull::GetAuthAttribute(const FString& AttrName, FString& OutAttrValue) const

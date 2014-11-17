@@ -512,6 +512,7 @@ static void InitRHICapabilitiesForGL()
 #ifndef __clang__
 	#define LOG_AND_GET_GL_INT(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Value_##IntEnum)
 #else
+	#undef LOG_AND_GET_GL_INT
 	#define LOG_AND_GET_GL_INT(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Value_##IntEnum)
 #endif
 	LOG_AND_GET_GL_INT(GL_MAX_TEXTURE_SIZE,0);
@@ -601,10 +602,12 @@ static void InitRHICapabilitiesForGL()
 	GMaxTextureArrayLayers = Value_GL_MAX_ARRAY_TEXTURE_LAYERS;
 #endif
 
+	GSupportsVolumeTextureRendering = FOpenGL::SupportsVolumeTextureRendering();
 	GSupportsGSRenderTargetLayerSwitchingToMips = FOpenGL::SupportsGSRenderTargetLayerSwitchingToMips();
 	GSupportsRenderDepthTargetableShaderResources = true;
 	GSupportsVertexTextureFetch = true;
 	GSupportsRenderTargetFormat_PF_G8 = true;
+	GSupportsSeparateRenderTargetBlendState = FOpenGL::SupportsSeparateAlphaBlend();
 
 	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
 

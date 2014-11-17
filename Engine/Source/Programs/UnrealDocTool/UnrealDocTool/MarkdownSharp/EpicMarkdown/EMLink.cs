@@ -237,7 +237,7 @@ namespace MarkdownSharp.EpicMarkdown
                         Hash.FromAnonymousObject(
                             new
                                 {
-                                    linkUrl = Path.GetPath(data),
+                                    linkUrl = Path.GetPath(data).Replace("\\", "/"),
                                     linkTitle =
                                         !String.IsNullOrWhiteSpace(Title) ? Markdown.EscapeBoldItalic(Title) : null,
                                     linkText =

@@ -41,6 +41,7 @@ private:
 		TRefCountPtr<HHitProxy> HitProxy;
 		FVector Location;
 		TArray<FLandscapeSplineInterpPoint> Points;
+		float SpriteScale;
 		uint32 bSelected : 1;
 	};
 	TArray<FControlPointProxy> ControlPoints;
@@ -80,6 +81,7 @@ public:
 			ControlPointProxy.HitProxy = NULL;
 			ControlPointProxy.Location = ControlPoint->Location;
 			ControlPointProxy.Points = ControlPoint->GetPoints();
+			ControlPointProxy.SpriteScale = FMath::Clamp<float>(ControlPoint->Width != 0 ? ControlPoint->Width / 2 : ControlPoint->SideFalloff / 4, 10, 1000);
 			ControlPointProxy.bSelected = ControlPoint->IsSplineSelected();
 			ControlPoints.Add(ControlPointProxy);
 		}
@@ -112,7 +114,7 @@ public:
 		const FMatrix& LocalToWorld = GetLocalToWorld();
 
 		const FLinearColor SelectedSplineColor = GEngine->GetSelectedMaterialColor();
-		const FLinearColor SelectedControlPointSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensity * 10); // copied from FSpriteSceneProxy::DrawDynamicElements()
+		const FLinearColor SelectedControlPointSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10); // copied from FSpriteSceneProxy::DrawDynamicElements()
 
 		for (int32 iSegment = 0; iSegment < Segments.Num(); iSegment++)
 		{
@@ -162,7 +164,8 @@ public:
 		{
 			const FControlPointProxy& ControlPoint = ControlPoints[iControlPoint];
 
-			const FVector ControlPointLocation = LocalToWorld.TransformPosition(ControlPoint.Location);
+			const float ControlPointSpriteScale = LocalToWorld.GetScaleVector().X * ControlPoint.SpriteScale;
+			const FVector ControlPointLocation = LocalToWorld.TransformPosition(ControlPoint.Location) + FVector(0, 0, ControlPointSpriteScale * 0.75f);
 
 			// Draw Sprite
 
@@ -172,8 +175,8 @@ public:
 
 			PDI->DrawSprite(
 				ControlPointLocation,
-				ControlPointSprite->Resource->GetSizeX() * 2,
-				ControlPointSprite->Resource->GetSizeY() * 2,
+				ControlPointSpriteScale,
+				ControlPointSpriteScale,
 				ControlPointSprite->Resource,
 				ControlPointSpriteColor,
 				GetDepthPriorityGroup(View),
@@ -459,6 +462,8 @@ ULandscapeSplineControlPoint::ULandscapeSplineControlPoint(const class FPostCons
 #if WITH_EDITORONLY_DATA
 	Mesh = NULL;
 	MeshScale = FVector(1);
+
+	LDMaxDrawDistance = 0;
 
 	LayerName = NAME_None;
 	bRaiseTerrain = true;
@@ -760,6 +765,14 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision)
 			}
 		}
 
+		if (MeshComponent->LDMaxDrawDistance != LDMaxDrawDistance)
+		{
+			MeshComponent->Modify();
+			MeshComponent->LDMaxDrawDistance = LDMaxDrawDistance;
+			MeshComponent->CachedMaxDrawDistance = 0;
+			MeshComponent->MarkRenderStateDirty();
+		}
+
 		if (MeshComponent->CastShadow != bCastShadow)
 		{
 			MeshComponent->Modify();
@@ -931,6 +944,7 @@ ULandscapeSplineSegment::ULandscapeSplineSegment(const class FPostConstructIniti
 
 	// SplineMesh properties
 	SplineMeshes.Empty();
+	LDMaxDrawDistance = 0;
 	bEnableCollision = true;
 	bCastShadow = true;
 
@@ -1522,6 +1536,17 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				MeshComponent->SplineParams.EndRoll = -MeshComponent->SplineParams.EndRoll;
 				MeshComponent->SplineParams.StartOffset.X = -MeshComponent->SplineParams.StartOffset.X;
 				MeshComponent->SplineParams.EndOffset.X = -MeshComponent->SplineParams.EndOffset.X;
+			}
+
+			// Set Mesh component's location to half way between the start and end points. Improves the bounds and allows LDMaxDrawDistance to work
+			MeshComponent->RelativeLocation = (MeshComponent->SplineParams.StartPos + MeshComponent->SplineParams.EndPos) / 2;
+			MeshComponent->SplineParams.StartPos -= MeshComponent->RelativeLocation;
+			MeshComponent->SplineParams.EndPos -= MeshComponent->RelativeLocation;
+
+			if (MeshComponent->LDMaxDrawDistance != LDMaxDrawDistance)
+			{
+				MeshComponent->LDMaxDrawDistance = LDMaxDrawDistance;
+				MeshComponent->CachedMaxDrawDistance = 0;
 			}
 
 			MeshComponent->SetCastShadow(bCastShadow);
@@ -2277,6 +2302,25 @@ void USplineMeshComponent::Serialize(FArchive& Ar)
 		SplineParams.EndOffset.X = -SplineParams.EndOffset.Y;
 		SplineParams.EndOffset.Y = Temp;
 	}
+
+#if WITH_EDITOR
+	if (BodySetup != NULL)
+	{
+		BodySetup->SetFlags(RF_Transactional);
+	}
+#endif
+}
+
+bool USplineMeshComponent::Modify(bool bAlwaysMarkDirty)
+{
+	bool bSavedToTransactionBuffer = Super::Modify(bAlwaysMarkDirty);
+
+	if (BodySetup != NULL)
+	{
+		BodySetup->Modify(bAlwaysMarkDirty);
+	}
+
+	return bSavedToTransactionBuffer;
 }
 
 FPrimitiveSceneProxy* USplineMeshComponent::CreateSceneProxy()
@@ -2530,6 +2574,7 @@ void USplineMeshComponent::RecreateCollision()
 		if (BodySetup == NULL)
 		{
 			BodySetup = DuplicateObject<UBodySetup>(StaticMesh->BodySetup, this);
+			BodySetup->SetFlags(RF_Transactional);
 			BodySetup->InvalidatePhysicsData();
 		}
 		else

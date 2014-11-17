@@ -90,11 +90,9 @@ private:
 	void OnExposedToMatineeChanged(ESlateCheckBoxState::Type InNewState);
 	EVisibility ExposeToMatineeVisibility() const;
 
-	FText OnGetSliderMinValue() const;
-	void OnSliderMinValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo);
-	FText OnGetSliderMaxValue() const;
-	void OnSliderMaxValueChanged(const FText& NewMaxValue, ETextCommit::Type CommitInfo);
-	EVisibility SliderVisibility() const;
+	FText OnGetMetaKeyValue(FName Key) const;
+	void OnMetaKeyValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo, FName Key);
+	EVisibility RangeVisibility() const;
 	
 	TSharedPtr<FString> GetVariableReplicationType() const;
 	void OnChangeReplication(TSharedPtr<FString> ItemSelected, ESelectInfo::Type SelectInfo);
@@ -465,7 +463,6 @@ private:
 	bool IsCustomEvent() const;
 	void OnIsReliableReplicationFunctionModified(const ESlateCheckBoxState::Type NewCheckedState);
 	ESlateCheckBoxState::Type GetIsReliableReplicatedFunction() const;
-	bool GetIsReplicatedFunction() const;
 
 	struct FReplicationSpecifierLabel
 	{
@@ -669,4 +666,43 @@ private:
 	/** Widgets for the categories */
 	TSharedPtr<SComboButton> VariableCategoryComboButton;
 	TSharedPtr<SListView<TSharedPtr<FString>>> VariableCategoryListView;
+};
+
+/** Details customization for All Graph Nodes */
+class FBlueprintGraphNodeDetails : public IDetailCustomization
+{
+public:
+	/** Constructor */
+	FBlueprintGraphNodeDetails(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
+		: BlueprintEditorPtr(InBlueprintEditorPtr)
+		, GraphNodePtr(NULL)
+	{
+
+	}
+
+	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
+	static TSharedRef<class IDetailCustomization> MakeInstance(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
+	{
+		return MakeShareable(new FBlueprintGraphNodeDetails(InBlueprintEditorPtr));
+	}
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
+	
+private:
+
+	// Callbacks for uproperty details customization
+	FText OnGetName() const;
+	bool IsNameReadOnly() const;
+	void OnNameChanged(const FText& InNewText);
+	void OnNameCommitted(const FText& InNewName, ETextCommit::Type InTextCommit);
+
+	/** The widget used when editing the name */ 
+	TSharedPtr<SEditableTextBox> NameEditableTextBox;
+	/** Flag to indicate whether or not the variable name is invalid */
+	bool bIsNodeNameInvalid;
+	/** The target GraphNode */
+	TWeakObjectPtr<UEdGraphNode> GraphNodePtr;
+	/** Weak reference to the Blueprint editor */
+	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
 };

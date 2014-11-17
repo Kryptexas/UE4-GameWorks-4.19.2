@@ -5,6 +5,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_IdentityPose
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_IdentityPose::UAnimGraphNode_IdentityPose(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -13,11 +15,12 @@ UAnimGraphNode_IdentityPose::UAnimGraphNode_IdentityPose(const FPostConstructIni
 
 FString UAnimGraphNode_IdentityPose::GetTooltip() const
 {
-	return TEXT("Returns identity pose.");
+	return LOCTEXT("AnimGraphNode_IdentityPose_Tooltip", "Returns identity pose.").ToString();
 }
 
-FString UAnimGraphNode_IdentityPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_IdentityPose::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(TEXT("Additive Identity Pose"));
+	return LOCTEXT("AnimGraphNode_IdentityPose_Title", "Additive Identity Pose");
 }
 
+#undef LOCTEXT_NAMESPACE

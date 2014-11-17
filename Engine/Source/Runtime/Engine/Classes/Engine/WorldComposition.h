@@ -8,12 +8,19 @@
  */
 struct FWorldCompositionTile
 {
+	FWorldCompositionTile()
+		: StreamingLevelStateChangeTime(0.0)
+	{
+	}
+	
 	// Long package name
 	FName					PackageName;
 	// Found LOD levels since last rescan
 	TArray<FName>			LODPackageNames;
 	// Tile information
 	FWorldTileInfo			Info;
+	// Timestamp when we have changed streaming level state
+	double					StreamingLevelStateChangeTime;
 
 	friend FArchive& operator<<( FArchive& Ar, FWorldCompositionTile& D )
 	{
@@ -43,6 +50,7 @@ struct FWorldCompositionTile
  */
 struct FDistanceVisibleLevel
 {
+	int32				TileIdx;	
 	ULevelStreaming*	StreamingLevel;
 	int32				LODIndex; 
 };
@@ -58,22 +66,25 @@ class ENGINE_API UWorldComposition : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	typedef TArray<FWorldCompositionTile> TilesList;
+	typedef TArray<FWorldCompositionTile> FTilesList;
 
 	/** Adds or removes level streaming objects to world based on distance settings from current view */
-	void UpdateStreamingState (FSceneViewFamily* InViewFamily = NULL) const;
+	void UpdateStreamingState(FSceneViewFamily* InViewFamily = NULL);
 	
 	/** Adds or removes level streaming objects to world based on distance settings from current view point */
-	void UpdateStreamingState(const FVector& InLocation) const;
+	void UpdateStreamingState(const FVector& InLocation);
 
-	/** Returns currently visible levels for distance based streaming */
-	void GetVisibleLevels(const FVector& InLocation, TArray<FDistanceVisibleLevel>& OutLevels) const;
+	/** Returns currently visible and hidden levels based on distance based streaming */
+	void GetDistanceVisibleLevels(const FVector& InLocation, TArray<FDistanceVisibleLevel>& OutVisibleLevels, TArray<FDistanceVisibleLevel>& OutHiddenLevels) const;
 
 	/** Opens world composition from specified folder (long PackageName)*/
 	bool OpenWorldRoot(const FString& InPathToRoot);
 	
 	/** @returns Currently opened world composition root folder (long PackageName)*/
 	FString GetWorldRoot() const;
+	
+	/** @returns Currently managed world obejct */
+	UWorld* GetWorld() const;
 	
 	/** Handles level OnPostLoad event*/
 	static void OnLevelPostLoad(ULevel* InLevel);
@@ -96,9 +107,6 @@ class ENGINE_API UWorldComposition : public UObject
 	/** @returns Level bounding box in current shifted space */
 	FBox GetLevelBounds(ULevel* InLevel) const;
 
-	/** @returns Whether specified level is marked as always loaded */
-	bool IsLevelAlwaysLoaded(ULevel* InLevel) const;
-
 #if WITH_EDITOR
 	/** @returns FWorldTileInfo associated with specified package */
 	FWorldTileInfo GetTileInfo(const FName& InPackageName) const;
@@ -106,11 +114,14 @@ class ENGINE_API UWorldComposition : public UObject
 	/** Notification from World browser about changes in tile info structure */
 	void OnTileInfoUpdated(const FName& InPackageName, const FWorldTileInfo& InInfo);
 
-	/** Notification from World browser that tile info is no longer valid and has to be read from package file  */
-	void DiscardTileInfo(const FName& InPackageName);
-
 	/** @returns Tiles list in a world composition */
-	TilesList& GetTilesList();
+	FTilesList& GetTilesList();
+
+	/** Restores dirty tiles information after world composition being rescanned */
+	void RestoreDirtyTilesInfo(const FTilesList& TilesPrevState);
+	
+	/** Collect tiles package names to cook  */
+	static bool CollectTilesToCook(const FString& CmdLineMapEntry, TArray<FString>& FilesInPath);
 
 #endif //WITH_EDITOR
 
@@ -123,26 +134,29 @@ private:
 	/** Scans world root folder for relevant packages and initializes world composition structures */
 	void Rescan();
 
-	/** Loads levels which are marked as always loaded to our world */
-	void StreaminAlwaysLoadedLevels();
+	/** Populate streaming level objects using tiles information */
+	void PopulateStreamingLevels();
+
+	/** Calculates tiles absolute positions based on relative positions */
+	void CaclulateTilesAbsolutePositions();
 
 	/** Resets world composition structures */
 	void Reset();
 	
 	/** @returns  Streaming level object for corresponding FWorldCompositionTile */
-	ULevelStreaming* CreateStreamingLevel(FWorldCompositionTile& Info) const;
-
-	/** Calculates tiles absolute positions based on relative positions */
-	void CaclulateTilesAbsolutePositions();
-	
+	ULevelStreaming* CreateStreamingLevel(const FWorldCompositionTile& Info) const;
+		
 	/** Fixups internal structures for PIE mode */
 	void FixupForPIE(int32 PIEInstanceID);
 
 	/**
 	 * Finds tile by package name 
-	 * @return index in Tiles array, INDEX_NONE otherwise 
+	 * @return Pointer to a found tile 
 	 */
-	int32 FindTileByName(const FName& InPackageName) const;
+	FWorldCompositionTile* FindTileByName(const FName& InPackageName) const;
+
+	/** Attempts to set new streaming state for a particular tile, could be rejected if state change on 'cooldown' */
+	void CommitTileStreamingState(UWorld* PersistenWorld, int32 TileIdx, bool bShouldBeLoaded, bool bShouldBeVisible, int32 LODIdx);
 
 public:
 #if WITH_EDITOR
@@ -154,9 +168,15 @@ private:
 	// Path to current world composition (long PackageName)
 	FString						WorldRoot;
 	
-	// List of all packages participating in world composition
-	TilesList					Tiles;
-	// List of preallocated streaming level objects to stream in and out levels based on distance 
+	// List of all tiles participating in the world composition
+	FTilesList					Tiles;
+
+public:
+	// Streaming level objects for each tile
 	UPROPERTY()
 	TArray<ULevelStreaming*>	TilesStreaming;
+
+	// Time threshold between tile streaming state changes
+	UPROPERTY(config)
+	double						TilesStreamingTimeThreshold;
 };

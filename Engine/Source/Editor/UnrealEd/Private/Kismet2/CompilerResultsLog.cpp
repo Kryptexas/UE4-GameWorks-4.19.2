@@ -137,11 +137,11 @@ void FCompilerResultsLog::InternalLogMessage(const EMessageSeverity::Type& Sever
 					}
 					else if (Node != NULL)
 					{
-						ObjText = FText::FromString( Node->GetNodeTitle(ENodeTitleType::ListView) );
+						ObjText = Node->GetNodeTitle(ENodeTitleType::ListView);
 					}
 					else if (Pin != NULL)
 					{
-						ObjText = FText::FromString( Pin->PinFriendlyName.IsEmpty() ? Pin->PinName : Pin->PinFriendlyName );
+						ObjText = Pin->PinFriendlyName.IsEmpty() ? FText::FromString(Pin->PinName) : Pin->PinFriendlyName;
 					}
 					else
 					{

@@ -240,7 +240,14 @@ public:
 	virtual void PostPasteNode() {}
 
 	/** Gets the name of this node, shown in title bar */
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const;
+	
+	/** Gets the name of this node in the native language. This should always be overridden when a node's title is built from concatenation
+		By default this will return the source string from GetNodeTitle, which is not guaranteed to be correct */
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const;
+
+	/** Gets the searchable metadata of this node */
+	virtual FText GetNodeSearchTitle() const;
 
 	/** 
 	 * Gets the draw color of a node's title bar

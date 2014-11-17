@@ -72,6 +72,7 @@ private:
 
 	FString GetToolTipText() const;
 	FString GetParameterNameString() const;
+	bool IsParameterNameComboEnabled() const;
 	void OnCollectionChanged();
 
 private:

@@ -35,6 +35,8 @@ struct FNewBlendSpacePlayerAction : public FEdGraphSchemaAction_K2NewNode
 
 		// Grab extra keywords
 		Keywords = BlendSpace->GetPathName();
+
+		SearchTitle = NodeTemplate->GetNodeSearchTitle();
 	}
 };
 
@@ -86,16 +88,16 @@ void UAnimGraphNode_BlendSpaceBase::CustomizePinData(UEdGraphPin* Pin, FName Sou
 	{
 		if (SourcePropertyName == TEXT("X"))
 		{
-			Pin->PinFriendlyName = BlendSpace->GetBlendParameter(0).DisplayName;
+			Pin->PinFriendlyName = FText::FromString(BlendSpace->GetBlendParameter(0).DisplayName);
 		}
 		else if (SourcePropertyName == TEXT("Y"))
 		{
-			Pin->PinFriendlyName = BlendSpace->GetBlendParameter(1).DisplayName;
+			Pin->PinFriendlyName = FText::FromString(BlendSpace->GetBlendParameter(1).DisplayName);
 			Pin->bHidden = (BlendSpace->NumOfDimension == 1) ? 1 : 0;
 		}
 		else if (SourcePropertyName == TEXT("Z"))
 		{
-			Pin->PinFriendlyName = BlendSpace->GetBlendParameter(2).DisplayName;
+			Pin->PinFriendlyName = FText::FromString(BlendSpace->GetBlendParameter(2).DisplayName);
 		}
 	}
 }

@@ -9,6 +9,8 @@
 
 class FText;
 
+template<typename KeyType, typename ValueType> class TPair;
+
 namespace EBuildConfigurations
 {
 	/**
@@ -417,6 +419,9 @@ public:
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static void VARARGS LowLevelOutputDebugStringf(const TCHAR *Format, ... );
 
+	/** Sets the default output to UTF8 */
+	static void SetUTF8Output();
+
 	/** Prints string to the default output */
 	static void LocalPrint( const TCHAR* Str );
 
@@ -463,6 +468,22 @@ public:
 	{
 	}
 
+	enum EScreenSaverAction
+	{
+		Disable,
+		Enable
+	};
+	/**
+	 * Disables screensaver (if platform supports such an API)
+	 *
+	 * @param Action enable or disable
+	 * @return true if succeeded, false if platform does not have this API and PreventScreenSaver() hack is needed
+	 */
+	static bool ControlScreensaver(EScreenSaverAction Action)
+	{
+		return false;
+	}
+
 	/*
 	 *	Shows the intial game window in the proper position and size.
 	 *	It also changes the window proc from StartupWindowProc to
@@ -507,6 +528,11 @@ public:
 	static void NormalizePath(FString& InPath)
 	{
 	}
+
+	/**
+	* @return platform specific path separator.
+	*/
+	static const TCHAR* GetDefaultPathSeparator();
 
 	/**
 	 * return the number of hardware CPU cores

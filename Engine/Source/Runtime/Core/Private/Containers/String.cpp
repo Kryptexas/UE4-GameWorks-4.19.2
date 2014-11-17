@@ -1124,7 +1124,7 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 
 		// Protect against network packets allocating too much memory
 		auto MaxSerializeSize = Ar.GetMaxSerializeSize();
-		if (MaxSerializeSize > 0 && SaveNum > MaxSerializeSize)
+		if (MaxSerializeSize > 0 && ( SaveNum > MaxSerializeSize || SaveNum < 0 ))		// If SaveNum is still less than 0, they must have passed in MIN_INT
 		{
 			Ar.ArIsError         = 1;
 			Ar.ArIsCriticalError = 1;
@@ -1143,14 +1143,28 @@ FArchive& operator<<( FArchive& Ar, FString& A )
 				// read in the unicode string and byteswap it, etc
 				auto Passthru = StringMemoryPassthru<UCS2CHAR>(A.Data.GetTypedData(), SaveNum, SaveNum);
 				Ar.Serialize(Passthru.Get(), SaveNum * sizeof(UCS2CHAR));
+				// Ensure the string has a null terminator
+				Passthru.Get()[SaveNum-1] = '\0';
 				Passthru.Apply();
 
 				INTEL_ORDER_TCHARARRAY(A.Data.GetTypedData())
+
+				// Since Microsoft's vsnwprintf implementation raises an invalid parameter warning
+				// with a character of 0xffff, scan for it and terminate the string there.
+				// 0xffff isn't an actual Unicode character anyway.
+				int Index = 0;
+				if(A.FindChar(0xffff, Index))
+				{
+					A[Index] = '\0';
+					A.TrimToNullTerminator();		
+				}
 			}
 			else
 			{
 				auto Passthru = StringMemoryPassthru<ANSICHAR>(A.Data.GetTypedData(), SaveNum, SaveNum);
 				Ar.Serialize(Passthru.Get(), SaveNum * sizeof(ANSICHAR));
+				// Ensure the string has a null terminator
+				Passthru.Get()[SaveNum-1] = '\0';
 				Passthru.Apply();
 			}
 

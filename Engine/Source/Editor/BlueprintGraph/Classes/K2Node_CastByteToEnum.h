@@ -20,12 +20,12 @@ class UK2Node_CastByteToEnum : public UK2Node
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const OVERRIDE{ return TEXT("GraphEditor.Enum_16x"); }
 	// End UEdGraphNode interface
 
 	// Begin UK2Node interface
-	virtual FString GetCompactNodeTitle() const OVERRIDE;
+	virtual FText GetCompactNodeTitle() const OVERRIDE;
 	virtual bool ShouldDrawCompact() const OVERRIDE { return true; }
 	virtual bool IsNodePure() const OVERRIDE { return true; }
 	FNodeHandlingFunctor* CreateNodeHandler(FKismetCompilerContext& CompilerContext) const OVERRIDE;

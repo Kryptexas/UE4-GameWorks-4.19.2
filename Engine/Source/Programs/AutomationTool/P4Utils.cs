@@ -183,11 +183,26 @@ namespace AutomationTool
 
 	public partial class CommandUtils
 	{
-		private static string P4LogPath = "";
-
 		#region Environment Setup
 
+		static private P4Connection PerforceConnection;
 		static private P4Environment PerforceEnvironment;
+
+		/// <summary>
+		/// BuildEnvironment to use for this buildcommand. This is initialized by InitBuildEnvironment. As soon
+		/// as the script execution in ExecuteBuild begins, the BuildEnv is set up and ready to use.
+		/// </summary>
+		static public P4Connection P4
+		{
+			get
+			{
+				if (PerforceConnection == null)
+				{
+					throw new AutomationException("Attempt to use P4 before it was initialized or P4 support is disabled.");
+				}
+				return PerforceConnection;
+			}
+		}
 
 		/// <summary>
 		/// BuildEnvironment to use for this buildcommand. This is initialized by InitBuildEnvironment. As soon
@@ -209,13 +224,23 @@ namespace AutomationTool
 		/// Initializes build environment. If the build command needs a specific env-var mapping or
 		/// has an extended BuildEnvironment, it must implement this method accordingly.
 		/// </summary>
-		/// <returns>Initialized and ready to use BuildEnvironment</returns>
 		static internal void InitP4Environment()
 		{
 			CheckP4Enabled();
 
-			P4LogPath = CombinePaths(CmdEnv.LogFolder, "p4.log");
-			PerforceEnvironment = Automation.IsBuildMachine ? new P4Environment(CmdEnv) : new LocalP4Environment(CmdEnv);
+			// Temporary connection - will use only the currently set env vars to connect to P4
+			var DefaultConnection = new P4Connection(User: null, Client: null);
+			PerforceEnvironment = Automation.IsBuildMachine ? new P4Environment(DefaultConnection, CmdEnv) : new LocalP4Environment(DefaultConnection, CmdEnv);
+		}
+
+		/// <summary>
+		/// Initializes default source control connection.
+		/// </summary>
+		static internal void InitDefaultP4Connection()
+		{
+			CheckP4Enabled();
+
+			PerforceConnection = new P4Connection(User: P4Env.User, Client: P4Env.Client, ServerAndPort: P4Env.P4Port);
 		}
 
 		#endregion
@@ -334,6 +359,58 @@ namespace AutomationTool
 			}
 			return false;
 		}
+	}
+
+	/// <summary>
+	/// Perforce connection.
+	/// </summary>
+	public partial class P4Connection
+	{
+		/// <summary>
+		/// List of global options for this connection (client/user)
+		/// </summary>
+		private string GlobalOptions;
+        /// <summary>
+        /// List of global options for this connection (client/user)
+        /// </summary>
+        private string GlobalOptionsWithoutClient;
+		/// <summary>
+		/// Path where this connection's log is to go to
+		/// </summary>
+		public string LogPath { get; private set; }
+
+		/// <summary>
+		/// Initializes P4 connection
+		/// </summary>
+		/// <param name="User">Username (can be null, in which case the environment variable default will be used)</param>
+		/// <param name="Client">Workspace (can be null, in which case the environment variable default will be used)</param>
+		/// <param name="ServerAndPort">Server:Port (can be null, in which case the environment variable default will be used)</param>
+		/// <param name="P4LogPath">Log filename (can be null, in which case CmdEnv.LogFolder/p4.log will be used)</param>
+		public P4Connection(string User, string Client, string ServerAndPort = null, string P4LogPath = null)
+		{
+			var UserOpts = String.IsNullOrEmpty(User) ? "" : ("-u" + User + " ");
+			var ClientOpts = String.IsNullOrEmpty(Client) ? "" : ("-c" + Client + " ");
+			var ServerOpts = String.IsNullOrEmpty(ServerAndPort) ? "" : ("-p" + ServerAndPort + " ");			
+			GlobalOptions = UserOpts + ClientOpts + ServerOpts;
+            GlobalOptionsWithoutClient = UserOpts + ServerOpts;
+
+			if (P4LogPath == null)
+			{
+				LogPath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, String.Format("p4.log", Client));
+			}
+			else
+			{
+				LogPath = P4LogPath;
+			}
+		}
+
+		/// <summary>
+		/// Throws an exception when P4 is disabled. This should be called in every P4 function.
+		/// </summary>
+		internal static void CheckP4Enabled()
+		{
+			CommandUtils.CheckP4Enabled();
+		}
 
 		/// <summary>
 		/// Shortcut to Run but with P4.exe as the program name.
@@ -342,10 +419,15 @@ namespace AutomationTool
 		/// <param name="Input">Stdin</param>
 		/// <param name="AllowSpew">true for spew</param>
 		/// <returns>Exit code</returns>
-		public static ProcessResult P4(string CommandLine, string Input = null, bool AllowSpew = true)
+        public ProcessResult P4(string CommandLine, string Input = null, bool AllowSpew = true, bool WithClient = true, bool SpewIsVerbose = false)
 		{
 			CheckP4Enabled();
-			return Run(HostPlatform.Current.P4Exe, CommandLine, Input, AllowSpew ? ERunOptions.AllowSpew : ERunOptions.NoLoggingOfRunCommand);
+			CommandUtils.ERunOptions RunOptions = AllowSpew ? CommandUtils.ERunOptions.AllowSpew : CommandUtils.ERunOptions.NoLoggingOfRunCommand;
+			if( SpewIsVerbose )
+			{
+				RunOptions |= CommandUtils.ERunOptions.SpewIsVerbose;
+			}
+            return CommandUtils.Run(HostPlatform.Current.P4Exe, (WithClient ? GlobalOptions : GlobalOptionsWithoutClient) + CommandLine, Input, Options:RunOptions);
 		}
 
 		/// <summary>
@@ -356,12 +438,12 @@ namespace AutomationTool
 		/// <param name="Input">Stdin input.</param>
 		/// <param name="AllowSpew">Whether the command should spew.</param>
 		/// <returns>True if succeeded, otherwise false.</returns>
-		public static bool P4Output(out string Output, string CommandLine, string Input = null, bool AllowSpew = true)
+        public bool P4Output(out string Output, string CommandLine, string Input = null, bool AllowSpew = true, bool WithClient = true)
 		{
 			CheckP4Enabled();
 			Output = "";
 
-			var Result = P4(CommandLine, Input, AllowSpew);
+            var Result = P4(CommandLine, Input, AllowSpew, WithClient);
 
 			Output = Result.Output;
 			return Result == 0;
@@ -373,11 +455,11 @@ namespace AutomationTool
 		/// <param name="CommandLine">Commandline to pass to p4.</param>
 		/// <param name="Input">Stdin input.</param>
 		/// <param name="AllowSpew">Whether the command is allowed to spew.</param>
-		public static void LogP4(string CommandLine, string Input = null, bool AllowSpew = true)
+        public void LogP4(string CommandLine, string Input = null, bool AllowSpew = true, bool WithClient = true, bool SpewIsVerbose = false)
 		{
 			CheckP4Enabled();
 			string Output;
-			if (!LogP4Output(out Output, CommandLine, Input, AllowSpew))
+            if (!LogP4Output(out Output, CommandLine, Input, AllowSpew, WithClient, SpewIsVerbose:SpewIsVerbose))
 			{
 				throw new P4Exception("p4.exe {0} failed.", CommandLine);
 			}
@@ -391,21 +473,21 @@ namespace AutomationTool
 		/// <param name="Input">Stdin input.</param>
 		/// <param name="AllowSpew">Whether the command should spew.</param>
 		/// <returns>True if succeeded, otherwise false.</returns>
-		public static bool LogP4Output(out string Output, string CommandLine, string Input = null, bool AllowSpew = true)
+        public bool LogP4Output(out string Output, string CommandLine, string Input = null, bool AllowSpew = true, bool WithClient = true, bool SpewIsVerbose = false)
 		{
 			CheckP4Enabled();
 			Output = "";
 
-			if (String.IsNullOrEmpty(P4LogPath))
+			if (String.IsNullOrEmpty(LogPath))
 			{
-				Log(TraceEventType.Error, "P4Utils.SetupP4() must be called before issuing Peforce commands");
+				CommandUtils.Log(TraceEventType.Error, "P4Utils.SetupP4() must be called before issuing Peforce commands");
 				return false;
 			}
 
-			var Result = P4(CommandLine, Input, AllowSpew);
+            var Result = P4(CommandLine, Input, AllowSpew, WithClient, SpewIsVerbose:SpewIsVerbose);
 
-			WriteToFile(P4LogPath, CommandLine + "\n");
-			WriteToFile(P4LogPath, Result.Output);
+			CommandUtils.WriteToFile(LogPath, CommandLine + "\n");
+			CommandUtils.WriteToFile(LogPath, Result.Output);
 			Output = Result.Output;
 			return Result == 0;
 		}
@@ -413,7 +495,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Invokes p4 login command.
 		/// </summary>
-		public static string GetAuthenticationToken()
+		public string GetAuthenticationToken()
 		{
 			string AuthenticationToken = null;
 
@@ -453,7 +535,7 @@ namespace AutomationTool
             }
         }
         static Dictionary<string, string> UserToEmailCache = new Dictionary<string, string>();
-        public static string UserToEmail(string User)
+        public string UserToEmail(string User)
         {
             if (UserToEmailCache.ContainsKey(User))
             {
@@ -462,7 +544,7 @@ namespace AutomationTool
             string Result = "";
             try
             {
-                var P4Result = CommandUtils.P4(String.Format("user -o {0}", User), AllowSpew: false);
+                var P4Result = P4(String.Format("user -o {0}", User), AllowSpew: false);
 			    if (P4Result == 0)
 			    {
 				    var Tags = ParseTaggedP4Output(P4Result.Output);
@@ -474,13 +556,13 @@ namespace AutomationTool
             }
             if (Result == "")
             {
-                Log(TraceEventType.Warning, "Could not find email for P4 user {0}", User);
+                CommandUtils.Log(TraceEventType.Warning, "Could not find email for P4 user {0}", User);
             }
             UserToEmailCache.Add(User, Result);
             return Result;
         }
         static Dictionary<string, List<ChangeRecord>> ChangesCache = new Dictionary<string, List<ChangeRecord>>();
-        public static bool Changes(out List<ChangeRecord> ChangeRecords, string CommandLine, bool AllowSpew = true, bool UseCaching = false)
+        public bool Changes(out List<ChangeRecord> ChangeRecords, string CommandLine, bool AllowSpew = true, bool UseCaching = false, bool LongComment = false)
         {
             if (UseCaching && ChangesCache.ContainsKey(CommandLine))
             {
@@ -492,14 +574,32 @@ namespace AutomationTool
             try
             {
                 // Change 1999345 on 2014/02/16 by buildmachine@BuildFarm_BUILD-23_buildmachine_++depot+UE4 'GUBP Node Shadow_LabelPromotabl'
+
+				// If the user specified '-l' or '-L', the summary will appear on subsequent lines (no quotes) instead of the same line (surrounded by single quotes)
+				bool bSummaryIsOnSameLine = CommandLine.IndexOf( "-L", StringComparison.InvariantCultureIgnoreCase ) == -1;
+				if( bSummaryIsOnSameLine && LongComment )
+				{
+					CommandLine = "-L " + CommandLine;
+					bSummaryIsOnSameLine = false;
+				}
+
                 string Output;
                 if (!LogP4Output(out Output, "changes " + CommandLine, null, AllowSpew))
                 {
                     return false;
                 }
-                var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var Line in Lines)
+
+                var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
+                for(int LineIndex = 0; LineIndex < Lines.Length; ++LineIndex)
                 {
+					var Line = Lines[ LineIndex ];
+
+					// If we've hit a blank line, then we're done
+					if( String.IsNullOrEmpty( Line ) )
+					{
+						break;
+					}
+
                     ChangeRecord Change = new ChangeRecord();
                     string MatchChange = "Change ";
                     string MatchOn = " on "; 
@@ -509,9 +609,7 @@ namespace AutomationTool
                     int OnAt = Line.IndexOf(MatchOn);
                     int ByAt = Line.IndexOf(MatchBy);
                     int AtAt = Line.IndexOf("@");
-                    int TickAt = Line.IndexOf("'");
-                    int EndTick = Line.LastIndexOf("'");
-                    if (ChangeAt >= 0 && OnAt > ChangeAt && ByAt > OnAt && TickAt > ByAt && EndTick > TickAt)
+                    if (ChangeAt == 0 && OnAt > ChangeAt && ByAt > OnAt)
                     {
                         var ChangeString = Line.Substring(ChangeAt + MatchChange.Length, OnAt - ChangeAt - MatchChange.Length);
                         Change.CL = int.Parse(ChangeString);
@@ -520,10 +618,67 @@ namespace AutomationTool
                             throw new AutomationException("weird CL {0} in {1}", Change.CL, Line);
                         }
                         Change.User = Line.Substring(ByAt + MatchBy.Length, AtAt - ByAt - MatchBy.Length);
-                        Change.Summary = Line.Substring(TickAt + 1, EndTick - TickAt - 1);
+
+						if( bSummaryIsOnSameLine )
+						{ 
+							int TickAt = Line.IndexOf("'");
+							int EndTick = Line.LastIndexOf("'");
+							if( TickAt > ByAt && EndTick > TickAt )
+							{ 
+								Change.Summary = Line.Substring(TickAt + 1, EndTick - TickAt - 1);
+							}
+						}
+						else
+						{
+							++LineIndex;
+							if( LineIndex >= Lines.Length )
+							{
+								throw new AutomationException("Was expecting a change summary to appear after Change header output from P4, but there were no more lines to read");
+							}
+
+							Line = Lines[ LineIndex ];
+							if( !String.IsNullOrEmpty( Line ) )
+							{
+								throw new AutomationException("Was expecting blank line after Change header output from P4");
+							}
+
+							++LineIndex;
+							for( ; LineIndex < Lines.Length; ++LineIndex )
+							{
+								Line = Lines[ LineIndex ];
+
+								if( String.IsNullOrEmpty( Line ) )
+								{
+									// Summaries end with a blank line (no tabs)
+									break;
+								}
+
+								// Summary lines are supposed to begin with a single tab character (even empty lines)
+								if( Line[0] != '\t' )
+								{
+									throw new AutomationException("Was expecting every line of the P4 changes summary to start with a tab character");
+								}
+
+								// Remove the tab
+								var SummaryLine = Line.Substring( 1 );
+
+								// Add a CR if we already had some summary text
+								if( !String.IsNullOrEmpty( Change.Summary ) )
+								{
+									Change.Summary += "\n";
+								}
+
+								// Append the summary line!
+								Change.Summary += SummaryLine;
+							}
+						}
                         Change.UserEmail = UserToEmail(Change.User);
                         ChangeRecords.Add(Change);
                     }
+					else
+					{
+						throw new AutomationException("Output of 'p4 changes' was not formatted how we expected.  Could not find 'Change', 'on' and 'by' in the output line: " + Line);
+					}
                 }
             }
             catch (Exception)
@@ -531,17 +686,244 @@ namespace AutomationTool
                 return false;
             }
             ChangeRecords.Sort((A, B) => ChangeRecord.Compare(A, B));
-            ChangesCache.Add(CommandLine, ChangeRecords);
+			if( ChangesCache.ContainsKey(CommandLine) )
+			{
+				ChangesCache[CommandLine] = ChangeRecords;
+			}
+			else
+			{ 
+				ChangesCache.Add(CommandLine, ChangeRecords);
+			}
             return true;
         }
+
+	
+        public class DescribeRecord
+        {
+            public int CL = 0;
+            public string User = "";
+            public string UserEmail = "";
+            public string Summary = "";
+			
+			public class DescribeFile
+			{
+				public string File;
+				public int Revision;
+				public string ChangeType;
+			}
+			public List<DescribeFile> Files = new List<DescribeFile>();
+            
+			public static int Compare(DescribeRecord A, DescribeRecord B)
+            {
+                return (A.CL < B.CL) ? -1 : (A.CL > B.CL) ? 1 : 0;
+            }
+        }
+
+		/// <summary>
+		/// Wraps P4 describe
+		/// </summary>
+		/// <param name="Changelists">List of changelist numbers to query full descriptions for</param>
+		/// <param name="DescribeRecords">List of records we found.  One for each changelist number.  These will be sorted from oldest to newest.</param>
+		/// <param name="AllowSpew"></param>
+		/// <returns>True if everything went okay</returns>
+        public bool DescribeChangelists(List<int> Changelists, out List<DescribeRecord> DescribeRecords, bool AllowSpew = true)
+        {
+			DescribeRecords = new List<DescribeRecord>();
+            CheckP4Enabled();
+            try
+            {
+				// Change 234641 by This.User@WORKSPACE-C2Q-67_Dev on 2008/05/06 10:32:32
+				// 
+				//         Desc Line 1
+				// 
+				// Affected files ...
+				// 
+				// ... //depot/UnrealEngine3/Development/Src/Engine/Classes/ArrowComponent.uc#8 edit
+				// ... //depot/UnrealEngine3/Development/Src/Engine/Classes/DecalActorBase.uc#4 edit
+
+
+				string Output;
+				string CommandLine = "-s";		// Don't automatically diff the files
+				
+				// Add changelists to the command-line
+				foreach( var Changelist in Changelists )
+				{
+					CommandLine += " " + Changelist.ToString();
+				}
+
+                if (!LogP4Output(out Output, "describe " + CommandLine, null, AllowSpew))
+                {
+                    return false;
+                }
+
+				int ChangelistIndex = 0;
+				var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
+                for (var LineIndex = 0; LineIndex < Lines.Length; ++LineIndex)
+                {
+					var Line = Lines[ LineIndex ];
+
+					// If we've hit a blank line, then we're done
+					if( String.IsNullOrEmpty( Line ) )
+					{
+						break;
+					}
+
+                    string MatchChange = "Change ";
+                    string MatchOn = " on "; 
+                    string MatchBy = " by ";
+
+                    int ChangeAt = Line.IndexOf(MatchChange);
+                    int OnAt = Line.IndexOf(MatchOn);
+                    int ByAt = Line.IndexOf(MatchBy);
+                    int AtAt = Line.IndexOf("@");
+                    if (ChangeAt == 0 && OnAt > ChangeAt && ByAt < OnAt)
+                    {
+                        var ChangeString = Line.Substring(ChangeAt + MatchChange.Length, ByAt - ChangeAt - MatchChange.Length);
+
+						var CurrentChangelist = Changelists[ ChangelistIndex++ ];
+
+                        if (!ChangeString.Equals( CurrentChangelist.ToString()))
+                        {
+                            throw new AutomationException("Was expecting changelists to be reported back in the same order we asked for them (CL {0} != {1})", ChangeString, CurrentChangelist.ToString());
+                        }
+
+						var DescribeRecord = new DescribeRecord();
+						DescribeRecords.Add( DescribeRecord );
+
+						DescribeRecord.CL = CurrentChangelist;
+                        DescribeRecord.User = Line.Substring(ByAt + MatchBy.Length, AtAt - ByAt - MatchBy.Length);
+
+						++LineIndex;
+						if( LineIndex >= Lines.Length )
+						{
+							throw new AutomationException("Was expecting a change summary to appear after Change header output from P4, but there were no more lines to read");
+						}
+
+						Line = Lines[ LineIndex ];
+						if( !String.IsNullOrEmpty( Line ) )
+						{
+							throw new AutomationException("Was expecting blank line after Change header output from P4");
+						}
+
+						// Summary
+						++LineIndex;
+						for( ; LineIndex < Lines.Length; ++LineIndex )
+						{
+							Line = Lines[ LineIndex ];
+
+							if( String.IsNullOrEmpty( Line ) )
+							{
+								// Summaries end with a blank line (no tabs)
+								break;
+							}
+
+							// Summary lines are supposed to begin with a single tab character (even empty lines)
+							if( Line[0] != '\t' )
+							{
+								throw new AutomationException("Was expecting every line of the P4 changes summary to start with a tab character");
+							}
+
+							// Remove the tab
+							var SummaryLine = Line.Substring( 1 );
+
+							// Add a CR if we already had some summary text
+							if( !String.IsNullOrEmpty( DescribeRecord.Summary ) )
+							{
+								DescribeRecord.Summary += "\n";
+							}
+
+							// Append the summary line!
+							DescribeRecord.Summary += SummaryLine;
+						}
+
+
+						++LineIndex;
+						if( LineIndex >= Lines.Length )
+						{
+							throw new AutomationException("Was expecting 'Affected files' to appear after the summary output from P4, but there were no more lines to read");
+						}
+
+						Line = Lines[ LineIndex ];
+
+						string MatchAffectedFiles = "Affected files";
+						int AffectedFilesAt = Line.IndexOf(MatchAffectedFiles);
+						if( AffectedFilesAt == 0 )
+						{
+							++LineIndex;
+							if( LineIndex >= Lines.Length )
+							{
+								throw new AutomationException("Was expecting a list of files to appear after Affected Files header output from P4, but there were no more lines to read");
+							}
+
+							Line = Lines[ LineIndex ];
+							if( !String.IsNullOrEmpty( Line ) )
+							{
+								throw new AutomationException("Was expecting blank line after Affected Files header output from P4");
+							}
+
+							// Files
+							++LineIndex;
+							for( ; LineIndex < Lines.Length; ++LineIndex )
+							{
+								Line = Lines[ LineIndex ];
+
+								if( String.IsNullOrEmpty( Line ) )
+								{
+									// Summaries end with a blank line (no tabs)
+									break;
+								}
+
+								// File lines are supposed to begin with a "... " string
+								if( !Line.StartsWith( "... " ) )
+								{
+									throw new AutomationException("Was expecting every line of the P4 describe files to start with a tab character");
+								}
+
+								// Remove the "... " prefix
+								var FilesLine = Line.Substring( 4 );
+
+								var DescribeFile = new DescribeRecord.DescribeFile();
+								DescribeRecord.Files.Add( DescribeFile );
+ 							
+								// Find the revision #
+								var RevisionNumberAt = FilesLine.LastIndexOf( "#" ) + 1;
+								var ChangeTypeAt = 1 + FilesLine.IndexOf( " ", RevisionNumberAt );
+							
+								DescribeFile.File = FilesLine.Substring( 0, RevisionNumberAt - 1 );
+								string RevisionString = FilesLine.Substring( RevisionNumberAt, ChangeTypeAt - RevisionNumberAt );
+								DescribeFile.Revision = int.Parse( RevisionString );
+								DescribeFile.ChangeType = FilesLine.Substring( ChangeTypeAt );															  
+							}
+						}
+						else
+						{
+							throw new AutomationException("Output of 'p4 describe' was not formatted how we expected.  Could not find 'Affected files' in the output line: " + Line);
+						}
+
+                        DescribeRecord.UserEmail = UserToEmail(DescribeRecord.User);
+                    }
+					else
+					{
+						throw new AutomationException("Output of 'p4 describe' was not formatted how we expected.  Could not find 'Change', 'on' and 'by' in the output line: " + Line);
+					}
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            DescribeRecords.Sort((A, B) => DescribeRecord.Compare(A, B));
+            return true;
+        }
+
 		/// <summary>
 		/// Invokes p4 sync command.
 		/// </summary>
 		/// <param name="CommandLine">CommandLine to pass on to the command.</param>
-        public static void Sync(string CommandLine, bool AllowSpew = true)
+        public void Sync(string CommandLine, bool AllowSpew = true, bool SpewIsVerbose = false)
 		{
 			CheckP4Enabled();
-			LogP4("sync " + CommandLine, null, AllowSpew);
+			LogP4("sync " + CommandLine, null, AllowSpew, SpewIsVerbose:SpewIsVerbose);
 		}
 
 		/// <summary>
@@ -550,18 +932,29 @@ namespace AutomationTool
 		/// <param name="FromCL">Changelist to unshelve.</param>
 		/// <param name="ToCL">Changelist where the checked out files should be added.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static void Unshelve(int FromCL, int ToCL, string CommandLine = "")
+		public void Unshelve(int FromCL, int ToCL, string CommandLine = "")
 		{
 			CheckP4Enabled();
 			LogP4("unshelve " + String.Format("-s {0} ", FromCL) + String.Format("-c {0} ", ToCL) + CommandLine);
 		}
 
+        /// <summary>
+        /// Invokes p4 unshelve command.
+        /// </summary>
+        /// <param name="FromCL">Changelist to unshelve.</param>
+        /// <param name="ToCL">Changelist where the checked out files should be added.</param>
+        /// <param name="CommandLine">Commandline for the command.</param>
+        public void Shelve(int FromCL, string CommandLine = "")
+        {
+            CheckP4Enabled();
+            LogP4("shelve " + String.Format("-r -c {0} ", FromCL) + CommandLine);
+        }
 		/// <summary>
 		/// Invokes p4 edit command.
 		/// </summary>
 		/// <param name="CL">Changelist where the checked out files should be added.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static void Edit(int CL, string CommandLine)
+		public void Edit(int CL, string CommandLine)
 		{
 			CheckP4Enabled();
 			LogP4("edit " + String.Format("-c {0} ", CL) + CommandLine);
@@ -572,7 +965,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist where the checked out files should be added.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static bool Edit_NoExceptions(int CL, string CommandLine)
+		public bool Edit_NoExceptions(int CL, string CommandLine)
 		{
 			try
 			{
@@ -599,7 +992,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist where the files should be added to.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static void Add(int CL, string CommandLine)
+		public void Add(int CL, string CommandLine)
 		{
 			CheckP4Enabled();
 			LogP4("add " + String.Format("-c {0} ", CL) + CommandLine);
@@ -610,11 +1003,22 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to check the files out.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static void Reconcile(int CL, string CommandLine)
+		public void Reconcile(int CL, string CommandLine)
 		{
 			CheckP4Enabled();
 			LogP4("reconcile " + String.Format("-c {0} -ead -f ", CL) + CommandLine);
 		}
+
+        /// <summary>
+        /// Invokes p4 reconcile command.
+        /// </summary>
+        /// <param name="CL">Changelist to check the files out.</param>
+        /// <param name="CommandLine">Commandline for the command.</param>
+        public void ReconcilePreview(string CommandLine)
+        {
+            CheckP4Enabled();
+            LogP4("reconcile " + String.Format("-ead -n ") + CommandLine);
+        }
 
 		/// <summary>
 		/// Invokes p4 reconcile command.
@@ -622,7 +1026,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to check the files out.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static void ReconcileNoDeletes(int CL, string CommandLine)
+		public void ReconcileNoDeletes(int CL, string CommandLine)
 		{
 			CheckP4Enabled();
 			LogP4("reconcile " + String.Format("-c {0} -ea ", CL) + CommandLine);
@@ -634,7 +1038,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to resolve.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static void Resolve(int CL, string CommandLine)
+		public void Resolve(int CL, string CommandLine)
 		{
 			CheckP4Enabled();
 			LogP4("resolve -ay " + String.Format("-c {0} ", CL) + CommandLine);
@@ -644,7 +1048,7 @@ namespace AutomationTool
 		/// Invokes revert command.
 		/// </summary>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static void Revert(string CommandLine)
+		public void Revert(string CommandLine)
 		{
 			CheckP4Enabled();
 			LogP4("revert " + CommandLine);
@@ -655,7 +1059,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to revert</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public static void Revert(int CL, string CommandLine)
+		public void Revert(int CL, string CommandLine = "")
 		{
 			CheckP4Enabled();
 			LogP4("revert " + String.Format("-c {0} ", CL) + CommandLine);
@@ -665,7 +1069,7 @@ namespace AutomationTool
 		/// Reverts all unchanged file from the specified changelist.
 		/// </summary>
 		/// <param name="CL">Changelist to revert the unmodified files from.</param>
-		public static void RevertUnchanged(int CL)
+		public void RevertUnchanged(int CL)
 		{
 			CheckP4Enabled();
 			// caution this is a really bad idea if you hope to force submit!!!
@@ -676,7 +1080,7 @@ namespace AutomationTool
 		/// Reverts all files from the specified changelist.
 		/// </summary>
 		/// <param name="CL">Changelist to revert.</param>
-		public static void RevertAll(int CL)
+		public void RevertAll(int CL)
 		{
 			CheckP4Enabled();
 			LogP4("revert " + String.Format("-c {0} //...", CL));
@@ -689,10 +1093,10 @@ namespace AutomationTool
 		/// <param name="SubmittedCL">Will be set to the submitted changelist number.</param>
 		/// <param name="Force">If true, the submit will be forced even if resolve is needed.</param>
 		/// <param name="RevertIfFail">If true, if the submit fails, revert the CL.</param>
-		public static void Submit(int CL, out int SubmittedCL, bool Force = false, bool RevertIfFail = false)
+		public void Submit(int CL, out int SubmittedCL, bool Force = false, bool RevertIfFail = false)
 		{
 			CheckP4Enabled();
-			if (!AllowSubmit)
+			if (!CommandUtils.AllowSubmit)
 			{
 				throw new P4Exception("Submit is not allowed currently. Please use the -Submit switch to override that.");
 			}
@@ -719,67 +1123,79 @@ namespace AutomationTool
 					{
 						throw new P4Exception("Change {0} failed to submit.\n{1}", CL, CmdOutput);
 					}
-					Log(TraceEventType.Information, "**** P4 Returned\n{0}\n*******", CmdOutput);
+					CommandUtils.Log(TraceEventType.Information, "**** P4 Returned\n{0}\n*******", CmdOutput);
 
 					LastCmdOutput = CmdOutput;
 					bool DidSomething = false;
-					string HashStr1 = " - must resolve";
-					string HashStr2 = " - already locked by";
-					if (CmdOutput.IndexOf(HashStr1) > 0 || CmdOutput.IndexOf(HashStr2) > 0)
-					{
-						string Work = CmdOutput;
-						while (Work.Length > 0)
-						{
-							string SlashSlashStr = "//";
-							int SlashSlash = Work.IndexOf(SlashSlashStr);
-							if (SlashSlash < 0)
-							{
-								break;
-							}
-							Work = Work.Substring(SlashSlash);
-							int Hash1 = Work.IndexOf(HashStr1);
-							int Hash2 = Work.IndexOf(HashStr2);
-							int Hash;
-							string HashStr;
-							if (Hash1 >= 0 && (Hash1 < Hash2 || Hash2 < 0))
-							{
-								Hash = Hash1;
-								HashStr = HashStr1;
-							}
-							else
-							{
-								Hash = Hash2;
-								HashStr = HashStr2;
-							}
-							if (Hash < 0)
-							{
-								break;
-							}
-							string File = Work.Substring(0, Hash).Trim();
-							if (File.IndexOf(SlashSlashStr) != File.LastIndexOf(SlashSlashStr))
-							{
-								// this is some other line about the same line, we ignore it, removing the first // so we advance
-								Work = Work.Substring(SlashSlashStr.Length);
-							}
-							else
-							{
-								Work = Work.Substring(Hash);
 
-								Log(TraceEventType.Information, "Brutal 'resolve' on {0} to force submit.\n", File);
+                    string[] KnownProblems =
+                    {
+                        " - must resolve",
+                        " - already locked by",
+                        " - add of added file",
+                        " - edit of deleted file",
+                    };
 
-								Revert(CL, "-k " + File);  // revert the file without overwriting the local one
-								Sync("-f -k " + File + "#head", false); // sync the file without overwriting local one
-								ReconcileNoDeletes(CL, File);  // re-check out, if it changed, or add
-								DidSomething = true;
-							}
-						}
+                    bool AnyIssue = false;
+                    foreach (var ProblemString in KnownProblems)
+                    {
+                        int ThisIndex = CmdOutput.IndexOf(ProblemString);
+                        if (ThisIndex > 0)
+                        {
+                            AnyIssue = true;
+                            break;
+                        }
+                    }
 
-					}
+                    if (AnyIssue)
+                    {
+                        string Work = CmdOutput;
+                        while (Work.Length > 0)
+                        {
+                            string SlashSlashStr = "//";
+                            int SlashSlash = Work.IndexOf(SlashSlashStr);
+                            if (SlashSlash < 0)
+                            {
+                                break;
+                            }
+                            Work = Work.Substring(SlashSlash);
+                            int MinMatch = Work.Length + 1;
+                            foreach (var ProblemString in KnownProblems)
+                            {
+                                int ThisIndex = Work.IndexOf(ProblemString);
+                                if (ThisIndex >= 0 && ThisIndex < MinMatch)
+                                {
+                                    MinMatch = ThisIndex;
+                                }
+                            }
+                            if (MinMatch > Work.Length)
+                            {
+                                break;
+                            }
+                            string File = Work.Substring(0, MinMatch).Trim();
+                            if (File.IndexOf(SlashSlashStr) != File.LastIndexOf(SlashSlashStr))
+                            {
+                                // this is some other line about the same line, we ignore it, removing the first // so we advance
+                                Work = Work.Substring(SlashSlashStr.Length);
+                            }
+                            else
+                            {
+                                Work = Work.Substring(MinMatch);
+
+								CommandUtils.Log(TraceEventType.Information, "Brutal 'resolve' on {0} to force submit.\n", File);
+
+								Revert(CL, "-k " + CommandUtils.MakePathSafeToUseWithCommandLine(File));  // revert the file without overwriting the local one
+								Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File + "#head"), false); // sync the file without overwriting local one
+								ReconcileNoDeletes(CL, CommandUtils.MakePathSafeToUseWithCommandLine(File));  // re-check out, if it changed, or add
+                                DidSomething = true;
+                            }
+                        }
+                    }
 					if (!DidSomething)
 					{
-						Log(TraceEventType.Information, "Change {0} failed to submit for reasons we do not recognize.\n{1}\nWaiting and retrying.", CL, CmdOutput);
+						CommandUtils.Log(TraceEventType.Information, "Change {0} failed to submit for reasons we do not recognize.\n{1}\nWaiting and retrying.", CL, CmdOutput);
 					}
-					System.Threading.Thread.Sleep(15000);
+					System.Threading.Thread.Sleep(30000);
 				}
 				else
 				{
@@ -809,7 +1225,7 @@ namespace AutomationTool
 							}
 						}
 
-						Log(TraceEventType.Information, "Submitted CL {0} which became CL {1}\n", CL, SubmittedCL);
+						CommandUtils.Log(TraceEventType.Information, "Submitted CL {0} which became CL {1}\n", CL, SubmittedCL);
 					}
 
 					if (SubmittedCL < CL)
@@ -823,9 +1239,9 @@ namespace AutomationTool
 			}
 			if (RevertIfFail)
 			{
-				Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
+				CommandUtils.Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
 				RevertAll(CL);
-				Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
+				CommandUtils.Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
 			}
 			throw new P4Exception("Change {0} failed to submit after 12 retries??.\n{1}", CL, LastCmdOutput);
 		}
@@ -836,7 +1252,7 @@ namespace AutomationTool
 		/// <param name="Owner">Owner of the changelist.</param>
 		/// <param name="Description">Description of the changelist.</param>
 		/// <returns>Id of the created changelist.</returns>
-		public static int CreateChange(string Owner = null, string Description = null)
+		public int CreateChange(string Owner = null, string Description = null)
 		{
 			CheckP4Enabled();
 			var ChangeSpec = "Change: new" + "\n";
@@ -844,7 +1260,7 @@ namespace AutomationTool
 			ChangeSpec += "Description: \n " + ((Description != null) ? Description : "(none)") + "\n";
 			string CmdOutput;
 			int CL = 0;
-			Log(TraceEventType.Information, "Creating Change\n {0}\n", ChangeSpec);
+			CommandUtils.Log(TraceEventType.Information, "Creating Change\n {0}\n", ChangeSpec);
 			if (LogP4Output(out CmdOutput, "change -i", Input: ChangeSpec))
 			{
 				string EndStr = " created.";
@@ -862,7 +1278,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				Log(TraceEventType.Information, "Returned CL {0}\n", CL);
+				CommandUtils.Log(TraceEventType.Information, "Returned CL {0}\n", CL);
 			}
 			return CL;
 		}
@@ -872,7 +1288,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to delete.</param>
 		/// <param name="RevertFiles">Indicates whether files in that changelist should be reverted.</param>
-		public static void DeleteChange(int CL, bool RevertFiles = true)
+		public void DeleteChange(int CL, bool RevertFiles = true)
 		{
 			CheckP4Enabled();
 			if (RevertFiles)
@@ -900,7 +1316,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to delete.</param>
 		/// <returns>True if the changelist was deleted, false otherwise.</returns>
-		public static bool TryDeleteEmptyChange(int CL)
+		public bool TryDeleteEmptyChange(int CL)
 		{
 			CheckP4Enabled();
 
@@ -925,7 +1341,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to get the specification from.</param>
 		/// <returns>Specification of the changelist.</returns>
-		public static string ChangeOutput(int CL)
+		public string ChangeOutput(int CL)
 		{
 			CheckP4Enabled();
 			string CmdOutput;
@@ -942,7 +1358,7 @@ namespace AutomationTool
 		/// <param name="CL">Changelist id.</param>
 		/// <param name="Pending">Whether it is a pending changelist.</param>
 		/// <returns>Returns whether the changelist exists.</returns>
-		public static bool ChangeExists(int CL, out bool Pending)
+		public bool ChangeExists(int CL, out bool Pending)
 		{
 			CheckP4Enabled();
 			string CmdOutput = ChangeOutput(CL);
@@ -955,7 +1371,7 @@ namespace AutomationTool
 				int EndOffset = CmdOutput.LastIndexOf(EndStr);
 				if (Offset == 0 && Offset < EndOffset)
 				{
-					Log(TraceEventType.Information, "Change {0} does not exist", CL);
+					CommandUtils.Log(TraceEventType.Information, "Change {0} does not exist", CL);
 					return false;
 				}
 
@@ -966,16 +1382,16 @@ namespace AutomationTool
 
 				if (StatusOffset < 1 || DescOffset < 1 || StatusOffset > DescOffset)
 				{
-					Log(TraceEventType.Error, "Change {0} could not be parsed\n{1}", CL, CmdOutput);
+					CommandUtils.Log(TraceEventType.Error, "Change {0} could not be parsed\n{1}", CL, CmdOutput);
 					return false;
 				}
 
 				string Status = CmdOutput.Substring(StatusOffset + StatusStr.Length, DescOffset - StatusOffset - StatusStr.Length).Trim();
-				Log(TraceEventType.Information, "Change {0} exists ({1})", CL, Status);
+				CommandUtils.Log(TraceEventType.Information, "Change {0} exists ({1})", CL, Status);
 				Pending = (Status == "pending");
 				return true;
 			}
-			Log(TraceEventType.Error, "Change exists failed {0} no output?", CL, CmdOutput);
+			CommandUtils.Log(TraceEventType.Error, "Change exists failed {0} no output?", CL, CmdOutput);
 			return false;
 		}
 
@@ -985,7 +1401,7 @@ namespace AutomationTool
 		/// <param name="CL">Changelist to get the files from.</param>
 		/// <param name="Pending">Whether the changelist is a pending one.</param>
 		/// <returns>List of the files contained in the changelist.</returns>
-		public static List<string> ChangeFiles(int CL, out bool Pending)
+		public List<string> ChangeFiles(int CL, out bool Pending)
 		{
 			CheckP4Enabled();
 			var Result = new List<string>();
@@ -1023,7 +1439,6 @@ namespace AutomationTool
 							string File = CmdOutput.Substring(0, Hash).Trim();
 							CmdOutput = CmdOutput.Substring(Hash);
 
-							Log(TraceEventType.Error, "TEst {0}", File);
 							Result.Add(File);
 						}
 					}
@@ -1040,7 +1455,7 @@ namespace AutomationTool
 		/// Deletes the specified label.
 		/// </summary>
 		/// <param name="LabelName">Label to delete.</param>
-        public static void DeleteLabel(string LabelName, bool AllowSpew = true)
+        public void DeleteLabel(string LabelName, bool AllowSpew = true)
 		{
 			CheckP4Enabled();
 			var CommandLine = "label -d " + LabelName;
@@ -1049,7 +1464,7 @@ namespace AutomationTool
 			string Output;
 			if (!LogP4Output(out Output, CommandLine, null, AllowSpew))
 			{
-				Log(TraceEventType.Information, "Couldn't delete label '{0}'.  It may not have existed in the first place.", LabelName);
+				CommandUtils.Log(TraceEventType.Information, "Couldn't delete label '{0}'.  It may not have existed in the first place.", LabelName);
 			}
 		}
 
@@ -1063,7 +1478,7 @@ namespace AutomationTool
 		/// <param name="Description">Description of the label.</param>
 		/// <param name="Date">Date of the label creation.</param>
 		/// <param name="Time">Time of the label creation</param>
-		public static void CreateLabel(string Name, string Options, string View, string Owner = null, string Description = null, string Date = null, string Time = null)
+		public void CreateLabel(string Name, string Options, string View, string Owner = null, string Description = null, string Date = null, string Time = null)
 		{
 			CheckP4Enabled();
 			var LabelSpec = "Label: " + Name + "\n";
@@ -1081,7 +1496,7 @@ namespace AutomationTool
 			LabelSpec += "View: \n";
 			LabelSpec += " " + View;
 
-			Log(TraceEventType.Information, "Creating Label\n {0}\n", LabelSpec);
+			CommandUtils.Log(TraceEventType.Information, "Creating Label\n {0}\n", LabelSpec);
 			LogP4("label -i", Input: LabelSpec);
 		}
 
@@ -1092,7 +1507,7 @@ namespace AutomationTool
 		/// <param name="LabelName">Name of the label.</param>
 		/// <param name="FilePath">Path to the file.</param>
 		/// <param name="AllowSpew">Whether the command is allowed to spew.</param>
-		public static void Tag(string LabelName, string FilePath, bool AllowSpew = true)
+		public void Tag(string LabelName, string FilePath, bool AllowSpew = true)
 		{
 			CheckP4Enabled();
 			LogP4("tag -l " + LabelName + " " + FilePath, null, AllowSpew);
@@ -1103,7 +1518,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="LabelName">Name of the label.</param>
 		/// <param name="AllowSpew">Whether the command is allowed to spew.</param>
-		public static void LabelSync(string LabelName, bool AllowSpew = true, string FileToLabel = "")
+		public void LabelSync(string LabelName, bool AllowSpew = true, string FileToLabel = "")
 		{
 			CheckP4Enabled();
 			string Quiet = "";
@@ -1127,7 +1542,7 @@ namespace AutomationTool
 		/// <param name="FromLabelName">Source label name.</param>
 		/// <param name="ToLabelName">Target label name.</param>
 		/// <param name="AllowSpew">Whether the command is allowed to spew.</param>
-		public static void LabelToLabelSync(string FromLabelName, string ToLabelName, bool AllowSpew = true)
+		public void LabelToLabelSync(string FromLabelName, string ToLabelName, bool AllowSpew = true)
 		{
 			CheckP4Enabled();
 			string Quiet = "";
@@ -1143,7 +1558,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Name">Name of the label.</param>
 		/// <returns>Whether there is an label with files.</returns>
-		public static bool LabelExistsAndHasFiles(string Name)
+		public bool LabelExistsAndHasFiles(string Name)
 		{
 			CheckP4Enabled();
 			string Output;
@@ -1156,7 +1571,7 @@ namespace AutomationTool
 		/// <param name="Name">Name of the label.</param>
 		/// <param name="Description">Description of the label.</param>
 		/// <returns>Returns whether the label description could be retrieved.</returns>
-		public static bool LabelDescription(string Name, out string Description)
+		public bool LabelDescription(string Name, out string Description)
 		{
 			CheckP4Enabled();
 			string Output;
@@ -1180,15 +1595,15 @@ namespace AutomationTool
 			return false;
 		}
 		/// <summary>
-        /// returns the full name of a label. //depot/UE4/TEST-GUBP-Promotable-OrionGame-CL-198160
+        /// returns the full name of a label. //depot/UE4/TEST-GUBP-Promotable-GameName-CL-CLNUMBER
 		/// </summary>
 		/// <param name="BuildNamePrefix">Label Prefix</param>
-        public static string FullLabelName(string BuildNamePrefix)
+        public string FullLabelName(P4Environment Env, string BuildNamePrefix)
         {
             CheckP4Enabled();
-            var Label = P4Env.LabelPrefix + BuildNamePrefix + "-CL-" + P4Env.ChangelistString;
-            Log("Label prefix {0}", BuildNamePrefix);
-            Log("Full Label name {0}", Label); 
+			var Label = Env.LabelPrefix + BuildNamePrefix + "-CL-" + Env.ChangelistString;
+			CommandUtils.Log("Label prefix {0}", BuildNamePrefix);
+			CommandUtils.Log("Full Label name {0}", Label); 
             return Label;
         }
 
@@ -1196,10 +1611,10 @@ namespace AutomationTool
 		/// Creates a downstream label.
 		/// </summary>
 		/// <param name="BuildNamePrefix">Label Prefix</param>
-		public static void MakeDownstreamLabel(string BuildNamePrefix, List<string> Files = null)
+		public void MakeDownstreamLabel(P4Environment Env, string BuildNamePrefix, List<string> Files = null)
 		{
 			CheckP4Enabled();
-			string DOWNSTREAM_LabelPrefix = GetEnvVar("DOWNSTREAM_LabelPrefix");
+			string DOWNSTREAM_LabelPrefix = CommandUtils.GetEnvVar("DOWNSTREAM_LabelPrefix");
 			if (!String.IsNullOrEmpty(DOWNSTREAM_LabelPrefix))
 			{
 				BuildNamePrefix = DOWNSTREAM_LabelPrefix;
@@ -1210,27 +1625,27 @@ namespace AutomationTool
 			}
 
 			{
-                Log("Making downstream label");
-                var Label = FullLabelName(BuildNamePrefix);
+				CommandUtils.Log("Making downstream label");
+                var Label = FullLabelName(Env, BuildNamePrefix);
 
-                Log("Deleting old label {0} (if any)...", Label);
+				CommandUtils.Log("Deleting old label {0} (if any)...", Label);
                 DeleteLabel(Label, false);
 
-				Log("Creating new label...");
+				CommandUtils.Log("Creating new label...");
 				CreateLabel(
 					Name: Label,
-					Description: "BVT Time " + CmdEnv.TimestampAsString + "  CL " + P4Env.ChangelistString,
+					Description: "BVT Time " + CommandUtils.CmdEnv.TimestampAsString + "  CL " + Env.ChangelistString,
 					Options: "unlocked noautoreload",
-					View: CombinePaths(PathSeparator.Depot, P4Env.BuildRootP4, "...")
+					View: CommandUtils.CombinePaths(PathSeparator.Depot, Env.BuildRootP4, "...")
 					);
 				if (Files == null)
 				{
-					Log("Adding all files to new label {0}...", Label);
+					CommandUtils.Log("Adding all files to new label {0}...", Label);
 					LabelSync(Label, false);
 				}
 				else
 				{
-					Log("Adding build products to new label {0}...", Label);
+					CommandUtils.Log("Adding build products to new label {0}...", Label);
 					foreach (string LabelFile in Files)
 					{
 						LabelSync(Label, false, LabelFile);
@@ -1243,10 +1658,10 @@ namespace AutomationTool
         /// Creates a downstream label.
         /// </summary>
         /// <param name="BuildNamePrefix">Label Prefix</param>
-        public static void MakeDownstreamLabelFromLabel(string BuildNamePrefix, string CopyFromBuildNamePrefix)
+		public void MakeDownstreamLabelFromLabel(P4Environment Env, string BuildNamePrefix, string CopyFromBuildNamePrefix)
         {
             CheckP4Enabled();
-            string DOWNSTREAM_LabelPrefix = GetEnvVar("DOWNSTREAM_LabelPrefix");
+			string DOWNSTREAM_LabelPrefix = CommandUtils.GetEnvVar("DOWNSTREAM_LabelPrefix");
             if (!String.IsNullOrEmpty(DOWNSTREAM_LabelPrefix))
             {
                 BuildNamePrefix = DOWNSTREAM_LabelPrefix;
@@ -1257,20 +1672,20 @@ namespace AutomationTool
             }
 
             {
-                Log("Making downstream label");
-                var Label = FullLabelName(BuildNamePrefix);
+				CommandUtils.Log("Making downstream label");
+                var Label = FullLabelName(Env, BuildNamePrefix);
 
-                Log("Deleting old label {0} (if any)...", Label);
+				CommandUtils.Log("Deleting old label {0} (if any)...", Label);
                 DeleteLabel(Label, false);
 
-                Log("Creating new label...");
+				CommandUtils.Log("Creating new label...");
                 CreateLabel(
                     Name: Label,
-                    Description: "BVT Time " + CmdEnv.TimestampAsString + "  CL " + P4Env.ChangelistString,
+					Description: "BVT Time " + CommandUtils.CmdEnv.TimestampAsString + "  CL " + Env.ChangelistString,
                     Options: "unlocked noautoreload",
-                    View: CombinePaths(PathSeparator.Depot, P4Env.BuildRootP4, "...")
+					View: CommandUtils.CombinePaths(PathSeparator.Depot, Env.BuildRootP4, "...")
                     );
-                LabelToLabelSync(FullLabelName(CopyFromBuildNamePrefix), Label, false);
+                LabelToLabelSync(FullLabelName(Env, CopyFromBuildNamePrefix), Label, false);
             }
         }
 
@@ -1279,7 +1694,7 @@ namespace AutomationTool
         /// </summary>
         /// <param name="DepotFilepath">The full file path in depot naming form</param>
         /// <returns>The file's first reported path on disk or null if no mapping was found</returns>
-        public static string DepotToLocalPath(string DepotFilepath)
+        public string DepotToLocalPath(string DepotFilepath)
         {
             CheckP4Enabled();
             string Output;
@@ -1311,7 +1726,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Filename">Filenam</param>
 		/// <returns>File stats (invalid if the file does not exist in P4)</returns>
-		public static P4FileStat FStat(string Filename)
+		public P4FileStat FStat(string Filename)
 		{
 			CheckP4Enabled();
 			string Output;
@@ -1367,9 +1782,9 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Filename">File to change the attributes of.</param>
 		/// <param name="Attributes">Attributes to set.</param>
-		public static void ChangeFileType(string Filename, P4FileAttributes Attributes, string Changelist = null)
+		public void ChangeFileType(string Filename, P4FileAttributes Attributes, string Changelist = null)
 		{
-			Log("ChangeFileType({0}, {1}, {2})", Filename, Attributes, String.IsNullOrEmpty(Changelist) ? "null" : Changelist);
+			CommandUtils.Log("ChangeFileType({0}, {1}, {2})", Filename, Attributes, String.IsNullOrEmpty(Changelist) ? "null" : Changelist);
 
 			var Stat = FStat(Filename);
 			if (String.IsNullOrEmpty(Changelist))
@@ -1391,7 +1806,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Output">P4 command output (must be a form).</param>
 		/// <returns>Parsed output.</returns>
-		public static CaselessDictionary<string> ParseTaggedP4Output(string Output)
+		public CaselessDictionary<string> ParseTaggedP4Output(string Output)
 		{
 			var Tags = new CaselessDictionary<string>();
 			var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
@@ -1444,12 +1859,13 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="ClientName">Client name</param>
 		/// <returns>True if the client exists.</returns>
-		public static bool DoesClientExist(string ClientName)
+		public bool DoesClientExist(string ClientName)
 		{
 			CheckP4Enabled();
-			Log("Checking if client {0} exists", ClientName);
-			var P4Result = P4(String.Format("-c {0} where //...", ClientName), AllowSpew: false);
-			return P4Result.Output.IndexOf("unknown - use 'client' command", StringComparison.InvariantCultureIgnoreCase) < 0;
+			CommandUtils.Log("Checking if client {0} exists", ClientName);
+
+            var P4Result = P4(String.Format("-c {0} where //...", ClientName), AllowSpew: false, WithClient: false);
+            return P4Result.Output.IndexOf("unknown - use 'client' command", StringComparison.InvariantCultureIgnoreCase) < 0 && P4Result.Output.IndexOf("doesn't exist", StringComparison.InvariantCultureIgnoreCase) < 0;
 		}
 
 		/// <summary>
@@ -1457,11 +1873,11 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="ClientName">Name of the client.</param>
 		/// <returns></returns>
-		public static P4ClientInfo GetClientInfo(string ClientName)
+		public P4ClientInfo GetClientInfo(string ClientName)
 		{
 			CheckP4Enabled();
 
-			Log("Getting info for client {0}", ClientName);
+			CommandUtils.Log("Getting info for client {0}", ClientName);
 			if (!DoesClientExist(ClientName))
 			{
 				return null;
@@ -1486,10 +1902,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="ClientName">Name of the client.</param>
 		/// <returns></returns>
-		public static P4ClientInfo GetClientInfoInternal(string ClientName)
+		public P4ClientInfo GetClientInfoInternal(string ClientName)
 		{
 			P4ClientInfo Info = new P4ClientInfo();
-			var P4Result = CommandUtils.P4(String.Format("client -o {0}", ClientName), AllowSpew: false);
+            var P4Result = P4(String.Format("client -o {0}", ClientName), AllowSpew: false, WithClient: false);
 			if (P4Result == 0)
 			{
 				var Tags = ParseTaggedP4Output(P4Result.Output);
@@ -1498,7 +1914,7 @@ namespace AutomationTool
 				Tags.TryGetValue("Root", out Info.RootPath);
 				if (!String.IsNullOrEmpty(Info.RootPath))
 				{
-					Info.RootPath = ConvertSeparators(PathSeparator.Default, Info.RootPath);
+					Info.RootPath = CommandUtils.ConvertSeparators(PathSeparator.Default, Info.RootPath);
 				}
 				Tags.TryGetValue("Owner", out Info.Owner);
 				string AccessTime;
@@ -1558,14 +1974,14 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="UserName"></param>
 		/// <returns>List of clients owned by the user.</returns>
-		public static P4ClientInfo[] P4GetClientsForUser(string UserName)
+		public P4ClientInfo[] GetClientsForUser(string UserName)
 		{
 			CheckP4Enabled();
 
 			var ClientList = new List<P4ClientInfo>();
 
 			// Get all clients for this user
-			var P4Result = CommandUtils.P4(String.Format("clients -u {0}", UserName), AllowSpew: false);
+            var P4Result = P4(String.Format("clients -u {0}", UserName), AllowSpew: false, WithClient: false);
 			if (P4Result != 0)
 			{
 				throw new AutomationException("p4 clients -u {0} failed.", UserName);
@@ -1584,7 +2000,7 @@ namespace AutomationTool
 					if (Tokens[i] == "Client")
 					{
 						var ClientName = Tokens[++i];
-						Info = CommandUtils.GetClientInfoInternal(ClientName);
+						Info = GetClientInfoInternal(ClientName);
 						break;
 					}
 				}
@@ -1606,7 +2022,7 @@ namespace AutomationTool
         public void DeleteClient(string Name, bool Force = false)
         {
             CheckP4Enabled();
-            LogP4(String.Format("client -d {0} {1}", (Force ? "-f" : ""), Name));
+            LogP4(String.Format("client -d {0} {1}", (Force ? "-f" : ""), Name), WithClient: false);
         }
 
         /// <summary>
@@ -1628,8 +2044,8 @@ namespace AutomationTool
             {
                 SpecInput += "\t" + Mapping.Key + " //" + ClientSpec.Name + Mapping.Value + Environment.NewLine;
             }
-            Log(SpecInput);
-            LogP4("client -i", SpecInput);
+			CommandUtils.Log(SpecInput);
+            LogP4("client -i", SpecInput, WithClient: false);
             return ClientSpec;
         }
 
@@ -1639,11 +2055,11 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CommandLine"></param>
 		/// <returns>List of sub-directories of the specified direcories.</returns>
-		public static List<string> Dirs(string CommandLine)
+		public List<string> Dirs(string CommandLine)
 		{
 			CheckP4Enabled();
 			var DirsCmdLine = String.Format("dirs {0}", CommandLine);
-			var P4Result = CommandUtils.P4(DirsCmdLine, AllowSpew: false);
+			var P4Result = P4(DirsCmdLine, AllowSpew: false);
 			if (P4Result != 0)
 			{
 				throw new AutomationException("{0} failed.", DirsCmdLine);

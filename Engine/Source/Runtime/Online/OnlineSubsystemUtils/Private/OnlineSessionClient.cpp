@@ -47,20 +47,20 @@ int32 UOnlineSessionClient::GetControllerId()
 /**
  * Register all delegates needed to manage online sessions
  */
-void UOnlineSessionClient::RegisterOnlineDelegates()
+void UOnlineSessionClient::RegisterOnlineDelegates(UWorld* InWorld)
 {
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld);
 	if (OnlineSub)
 	{
-		Sessions = OnlineSub->GetSessionInterface();
-		if (Sessions.IsValid())
+		SessionInt = OnlineSub->GetSessionInterface();
+		if (SessionInt.IsValid())
 		{
 			int32 ControllerId = GetControllerId();
 			if (ControllerId != INVALID_CONTROLLERID)
 			{
 				// Always on the lookout for invite acceptance (via actual invite or join from external ui)
 				OnSessionInviteAcceptedDelegate = FOnSessionInviteAcceptedDelegate::CreateUObject(this, &UOnlineSessionClient::OnSessionInviteAccepted);
-				Sessions->AddOnSessionInviteAcceptedDelegate(ControllerId, OnSessionInviteAcceptedDelegate);
+				SessionInt->AddOnSessionInviteAcceptedDelegate(ControllerId, OnSessionInviteAcceptedDelegate);
 			}
 		}
 
@@ -76,17 +76,17 @@ void UOnlineSessionClient::RegisterOnlineDelegates()
 /**
  * Tear down all delegates used to manage online sessions
  */
-void UOnlineSessionClient::ClearOnlineDelegates()
+void UOnlineSessionClient::ClearOnlineDelegates(UWorld* InWorld)
 {
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld);
 	if (OnlineSub)
 	{
-		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
+		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
 
 		int32 ControllerId = GetControllerId();
 		if (ControllerId != INVALID_CONTROLLERID)
 		{
-			Sessions->ClearOnSessionInviteAcceptedDelegate(ControllerId, OnSessionInviteAcceptedDelegate);
+			SessionInt->ClearOnSessionInviteAcceptedDelegate(ControllerId, OnSessionInviteAcceptedDelegate);
 		}
 	}
 }
@@ -109,7 +109,7 @@ void UOnlineSessionClient::OnSessionInviteAccepted(int32 LocalUserNum, bool bWas
 		{
 			bIsFromInvite = true;
 			check(GetControllerId() == LocalUserNum);
-			JoinSession(LocalUserNum, TEXT("Game"), SearchResult);
+			JoinSession(LocalUserNum, GameSessionName, SearchResult);
 		}
 		else
 		{
@@ -127,7 +127,7 @@ void UOnlineSessionClient::OnSessionInviteAccepted(int32 LocalUserNum, bool bWas
 void UOnlineSessionClient::OnEndForJoinSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnEndForJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnEndSessionCompleteDelegate(OnEndForJoinSessionCompleteDelegate);
+	SessionInt->ClearOnEndSessionCompleteDelegate(OnEndForJoinSessionCompleteDelegate);
 	DestroyExistingSession(SessionName, OnDestroyForJoinSessionCompleteDelegate);
 }
 
@@ -139,10 +139,10 @@ void UOnlineSessionClient::OnEndForJoinSessionComplete(FName SessionName, bool b
  */
 void UOnlineSessionClient::EndExistingSession(FName SessionName, FOnEndSessionCompleteDelegate& Delegate)
 {
-	if (Sessions.IsValid())
+	if (SessionInt.IsValid())
 	{
-		Sessions->AddOnEndSessionCompleteDelegate(Delegate);
-		Sessions->EndSession(SessionName);
+		SessionInt->AddOnEndSessionCompleteDelegate(Delegate);
+		SessionInt->EndSession(SessionName);
 	}
 	else
 	{
@@ -159,9 +159,9 @@ void UOnlineSessionClient::EndExistingSession(FName SessionName, FOnEndSessionCo
 void UOnlineSessionClient::OnDestroyForJoinSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnDestroyForJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	if (Sessions.IsValid())
+	if (SessionInt.IsValid())
 	{
-		Sessions->ClearOnDestroySessionCompleteDelegate(OnDestroyForJoinSessionCompleteDelegate);
+		SessionInt->ClearOnDestroySessionCompleteDelegate(OnDestroyForJoinSessionCompleteDelegate);
 	}
 
 	if (bWasSuccessful)
@@ -185,9 +185,9 @@ void UOnlineSessionClient::OnDestroyForJoinSessionComplete(FName SessionName, bo
 void UOnlineSessionClient::OnDestroyForMainMenuComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnDestroyForMainMenuComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	if (Sessions.IsValid())
+	if (SessionInt.IsValid())
 	{
-		Sessions->ClearOnDestroySessionCompleteDelegate(OnDestroyForMainMenuCompleteDelegate);
+		SessionInt->ClearOnDestroySessionCompleteDelegate(OnDestroyForMainMenuCompleteDelegate);
 	}	
 
 	APlayerController* PC = GetPlayerController();
@@ -208,10 +208,10 @@ void UOnlineSessionClient::OnDestroyForMainMenuComplete(FName SessionName, bool 
  */
 void UOnlineSessionClient::DestroyExistingSession(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate)
 {
-	if (Sessions.IsValid())
+	if (SessionInt.IsValid())
 	{
-		Sessions->AddOnDestroySessionCompleteDelegate(Delegate);
-		Sessions->DestroySession(SessionName);
+		SessionInt->AddOnDestroySessionCompleteDelegate(Delegate);
+		SessionInt->DestroySession(SessionName);
 	}
 	else
 	{
@@ -228,12 +228,12 @@ void UOnlineSessionClient::DestroyExistingSession(FName SessionName, FOnDestroyS
 void UOnlineSessionClient::OnJoinSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
+	SessionInt->ClearOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
 
 	if (bWasSuccessful)
 	{
 		FString URL;
-		if (Sessions->GetResolvedConnectString(SessionName, URL))
+		if (SessionInt->GetResolvedConnectString(SessionName, URL))
 		{
 			APlayerController* PC = GetPlayerController();
 			if (PC)
@@ -263,7 +263,7 @@ void UOnlineSessionClient::OnJoinSessionComplete(FName SessionName, bool bWasSuc
 void UOnlineSessionClient::JoinSession(int32 LocalUserNum, FName SessionName, const FOnlineSessionSearchResult& SearchResult)
 {
 	// Clean up existing sessions if applicable
-	EOnlineSessionState::Type SessionState = Sessions->GetSessionState(SessionName);
+	EOnlineSessionState::Type SessionState = SessionInt->GetSessionState(SessionName);
 	if (SessionState != EOnlineSessionState::NoSession)
 	{
 		CachedSessionResult = SearchResult;
@@ -271,8 +271,8 @@ void UOnlineSessionClient::JoinSession(int32 LocalUserNum, FName SessionName, co
 	}
 	else
 	{
-		Sessions->AddOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
-		Sessions->JoinSession(LocalUserNum, SessionName, SearchResult);
+		SessionInt->AddOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
+		SessionInt->JoinSession(LocalUserNum, SessionName, SearchResult);
 	}
 }
 

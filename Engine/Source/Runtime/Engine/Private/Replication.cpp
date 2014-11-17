@@ -23,6 +23,7 @@ void AMatineeActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & Ou
 	DOREPLIFETIME( AMatineeActor, bPaused );
 	DOREPLIFETIME( AMatineeActor, PlayRate );
 	DOREPLIFETIME( AMatineeActor, InterpPosition );
+	DOREPLIFETIME( AMatineeActor, ReplicationForceIsPlaying );
 }
 
 //
@@ -33,6 +34,7 @@ static UInterpData*		SavedInterpData;
 static bool				SavedbIsPlaying;
 static bool				SavedbReversePlayback;
 static float			SavedPosition;
+static uint8			SavedReplicationForceIsPlaying;
 
 float AMatineeActor::GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth)
 {
@@ -58,6 +60,7 @@ void AMatineeActor::PreNetReceive()
  		SavedbIsPlaying = bIsPlaying;
  		SavedPosition = InterpPosition;
 		SavedbReversePlayback = bReversePlayback;
+		SavedReplicationForceIsPlaying = ReplicationForceIsPlaying;
  	}
 }
 
@@ -113,10 +116,15 @@ void AMatineeActor::PostNetReceive()
 			SavedbReversePlayback = Default->bReversePlayback;
 		}
 
+		// Handle replication of flag saying that bIsPlaying really should have replicated as true.
+		if (SavedReplicationForceIsPlaying != ReplicationForceIsPlaying)
+		{
+			bIsPlaying = true;
+		}
+
 		// apply bReversePlayback
 		if (SavedbReversePlayback!= bReversePlayback)
 		{
-			bReversePlayback = SavedbReversePlayback;
 			if (SavedbIsPlaying && bIsPlaying)
 			{
 				// notify actors that something has changed

@@ -85,11 +85,6 @@ public:
 				TargetSettings
 			);
 		}
-
-#if WITH_EDITOR
-		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.RegisterCustomPropertyLayout( TEXT("WindowsTargetSettings"), FOnGetDetailCustomizationInstance::CreateStatic( &FWindowsTargetSettingsDetails::MakeInstance ) );
-#endif
 	}
 
 	virtual void ShutdownModule() OVERRIDE
@@ -115,14 +110,6 @@ public:
 		{
 			TargetSettings = NULL;
 		}
-
-#if WITH_EDITOR
-		if(FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
-		{
-			FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			PropertyModule.UnregisterCustomPropertyLayout( TEXT("WindowsTargetSettings") );
-		}
-#endif
 	}
 
 	// End IModuleInterface interface

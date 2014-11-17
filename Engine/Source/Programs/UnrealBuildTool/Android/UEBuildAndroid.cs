@@ -19,6 +19,11 @@ namespace UnrealBuildTool
 			return ActiveArchitecture;
 		}
 
+        public override bool CanUseXGE()
+        {
+            return false;
+        }
+
 		public override bool HasRequiredSDKsInstalled()
 		{
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");

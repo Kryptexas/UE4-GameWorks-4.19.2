@@ -6,13 +6,8 @@
 class FSocketDragDropOp : public FDragDropOperation, public TSharedFromThis<FSocketDragDropOp>
 {
 public:	
-
-	/** Required by DragAndDrop.h */
-	static FString GetTypeId() 
-	{
-		static FString Type = TEXT("FSocketDragDropOp"); 
-		return Type;
-	}
+	
+	DRAG_DROP_OPERATOR_TYPE(FSocketDragDropOp, FDragDropOperation)
 
 	/** The widget decorator to use */
 	virtual TSharedPtr<SWidget> GetDefaultDecorator() const OVERRIDE
@@ -71,7 +66,6 @@ public:
 		Operation->SocketInfo = InSocketInfo;
 		Operation->bIsAltDrag = bInIsAltDrag;
 		Operation->SetIcon( FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error")) );
-		FSlateApplication::GetDragDropReflector().RegisterOperation<FSocketDragDropOp>(Operation);
 		Operation->Construct();
 		return Operation;
 	}

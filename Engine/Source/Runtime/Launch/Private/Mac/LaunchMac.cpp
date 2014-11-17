@@ -141,7 +141,10 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 - (IBAction)OnShowAboutWindow:(id)Sender
 {
 #if WITH_EDITOR
-	FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).ShowAboutWindow();
+	if (FModuleManager::Get().IsModuleLoaded(TEXT("MainFrame")))
+	{
+		FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame")).ShowAboutWindow();
+	}
 #else
 	[NSApp orderFrontStandardAboutPanel: Sender];
 #endif
@@ -232,12 +235,12 @@ void EngineCrashHandler(const FGenericCrashContext & GenericContext)
 
 @end
 
-int main(int argc, char *argv[])
+INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
-	for (int32 Option = 1; Option < argc; Option++)
+	for (int32 Option = 1; Option < ArgC; Option++)
 	{
 		GSavedCommandLine += TEXT(" ");
-		FString Argument(ANSI_TO_TCHAR(argv[Option]));
+		FString Argument(ArgV[Option]);
 		if (Argument.Contains(TEXT(" ")))
 		{
 			if (Argument.Contains(TEXT("=")))
@@ -255,5 +258,5 @@ int main(int argc, char *argv[])
 		GSavedCommandLine += Argument;
 	}
 
-	return NSApplicationMain(argc, (const char **)argv);
+	return NSApplicationMain(ArgC, (const char **)ArgV);
 }

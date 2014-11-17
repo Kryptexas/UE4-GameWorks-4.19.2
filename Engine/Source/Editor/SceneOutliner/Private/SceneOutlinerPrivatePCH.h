@@ -6,6 +6,7 @@
 #include "TextFilter.h"
 #include "DelegateFilter.h"
 #include "FilterCollection.h"
+#include "ScopedTransaction.h"
 
 #include "SceneOutlinerActorInfoColumn.h"
 #include "SceneOutlinerGutter.h"

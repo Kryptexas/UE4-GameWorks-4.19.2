@@ -233,11 +233,11 @@ void UK2Node_Select::AllocateDefaultPins()
 		{
 			if (EnumEntryFriendlyNames[Idx] != NAME_None)
 			{
-				NewPin->PinFriendlyName = EnumEntryFriendlyNames[Idx].ToString();
+				NewPin->PinFriendlyName = FText::FromName(EnumEntryFriendlyNames[Idx]);
 			}
 			else
 			{
-				NewPin->PinFriendlyName = TEXT("");
+				NewPin->PinFriendlyName = FText::GetEmpty();
 			}
 		}
 	}
@@ -256,9 +256,9 @@ FString UK2Node_Select::GetTooltip() const
 	return TEXT("Return the option at Index, (first option is indexed at 0)");
 }
 
-FString UK2Node_Select::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_Select::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Select");
+	return LOCTEXT("Select", "Select");
 }
 
 void UK2Node_Select::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins)

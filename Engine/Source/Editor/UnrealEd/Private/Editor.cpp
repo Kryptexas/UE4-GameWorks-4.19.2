@@ -19,8 +19,6 @@
 #include "Layers/Layers.h"
 #include "EditorLevelUtils.h"
 
-#include "LinkedObjDrawUtils.h"
-
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "AssetSelection.h"
 #include "FXSystem.h"
@@ -134,12 +132,6 @@ static inline USelection*& PrivateGetSelectedActors()
 	return SSelectedActors;
 };
 
-static inline USelection*& PrivateGetSelectedComponents()
-{
-	static USelection* SSelectedComponents = NULL;
-	return SSelectedComponents;
-};
-
 static inline USelection*& PrivateGetSelectedObjects()
 {
 	static USelection* SSelectedObjects = NULL;
@@ -150,9 +142,6 @@ static void PrivateInitSelectedSets()
 {
 	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
 	PrivateGetSelectedActors()->AddToRoot();
-
-	PrivateGetSelectedComponents() = new( GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
-	PrivateGetSelectedComponents()->AddToRoot();
 
 	PrivateGetSelectedObjects() = new( GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional ) USelection(FPostConstructInitializeProperties());
 	PrivateGetSelectedObjects()->AddToRoot();
@@ -169,41 +158,45 @@ static void PrivateDestroySelectedSets()
 }
 
 UEditorEngine::UEditorEngine(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
+	if (!IsRunningCommandlet())
 	{
-		ConstructorHelpers::FObjectFinder<UTexture2D> BadTexture;
-		ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundTexture;
-		ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundHiTexture;
-		ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCubeMesh;
-		ConstructorHelpers::FObjectFinder<UStaticMesh> EditorSphereMesh;
-		ConstructorHelpers::FObjectFinder<UStaticMesh> EditorPlaneMesh;
-		ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCylinderMesh;
-		ConstructorHelpers::FObjectFinder<UFont> SmallFont;
-		FConstructorStatics()
-			: BadTexture(TEXT("/Engine/EditorResources/Bad"))
-			, BackgroundTexture(TEXT("/Engine/EditorResources/Bkgnd"))
-			, BackgroundHiTexture(TEXT("/Engine/EditorResources/BkgndHi"))
-			, EditorCubeMesh(TEXT("/Engine/EditorMeshes/EditorCube"))
-			, EditorSphereMesh(TEXT("/Engine/EditorMeshes/EditorSphere"))
-			, EditorPlaneMesh(TEXT("/Engine/EditorMeshes/EditorPlane"))
-			, EditorCylinderMesh(TEXT("/Engine/EditorMeshes/EditorCylinder"))
-			, SmallFont(TEXT("/Engine/EditorResources/SmallFont"))
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
 		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
+			ConstructorHelpers::FObjectFinder<UTexture2D> BadTexture;
+			ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundTexture;
+			ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundHiTexture;
+			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCubeMesh;
+			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorSphereMesh;
+			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorPlaneMesh;
+			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCylinderMesh;
+			ConstructorHelpers::FObjectFinder<UFont> SmallFont;
+			FConstructorStatics()
+				: BadTexture(TEXT("/Engine/EditorResources/Bad"))
+				, BackgroundTexture(TEXT("/Engine/EditorResources/Bkgnd"))
+				, BackgroundHiTexture(TEXT("/Engine/EditorResources/BkgndHi"))
+				, EditorCubeMesh(TEXT("/Engine/EditorMeshes/EditorCube"))
+				, EditorSphereMesh(TEXT("/Engine/EditorMeshes/EditorSphere"))
+				, EditorPlaneMesh(TEXT("/Engine/EditorMeshes/EditorPlane"))
+				, EditorCylinderMesh(TEXT("/Engine/EditorMeshes/EditorCylinder"))
+				, SmallFont(TEXT("/Engine/EditorResources/SmallFont"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
 
-	Bad = ConstructorStatics.BadTexture.Object;
-	Bkgnd = ConstructorStatics.BackgroundTexture.Object;
-	BkgndHi = ConstructorStatics.BackgroundHiTexture.Object;
-	EditorCube = ConstructorStatics.EditorCubeMesh.Object;
-	EditorSphere = ConstructorStatics.EditorSphereMesh.Object;
-	EditorPlane = ConstructorStatics.EditorPlaneMesh.Object;
-	EditorCylinder = ConstructorStatics.EditorCylinderMesh.Object;
-	EditorFont = ConstructorStatics.SmallFont.Object;
+		Bad = ConstructorStatics.BadTexture.Object;
+		Bkgnd = ConstructorStatics.BackgroundTexture.Object;
+		BkgndHi = ConstructorStatics.BackgroundHiTexture.Object;
+		EditorCube = ConstructorStatics.EditorCubeMesh.Object;
+		EditorSphere = ConstructorStatics.EditorSphereMesh.Object;
+		EditorPlane = ConstructorStatics.EditorPlaneMesh.Object;
+		EditorCylinder = ConstructorStatics.EditorCylinderMesh.Object;
+		EditorFont = ConstructorStatics.SmallFont.Object;
+	}
+
 	DetailMode = DM_MAX;
 	PlayInEditorViewportIndex = -1;
 	CurrentPlayWorldDestination = -1;
@@ -252,28 +245,6 @@ bool UEditorEngine::IsWorldSettingsSelected()
 FSelectionIterator UEditorEngine::GetSelectedActorIterator() const
 {
 	return FSelectionIterator( *GetSelectedActors() );
-};
-
-
-int32 UEditorEngine::GetSelectedComponentCount() const
-{
-	int32 NumSelectedActors = 0;
-	for(FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
-	{
-		++NumSelectedActors;
-	}
-
-	return NumSelectedActors;
-}
-
-USelection* UEditorEngine::GetSelectedComponents() const
-{
-	return PrivateGetSelectedComponents();
-}
-
-FSelectionIterator UEditorEngine::GetSelectedComponentIterator() const
-{
-	return FSelectionIterator( *GetSelectedComponents() );
 };
 
 USelection* UEditorEngine::GetSelectedObjects() const
@@ -403,7 +374,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	
 	if (FSlateApplication::IsInitialized())
 	{
-		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType((uint32)(GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyType.GetValue()));
+		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType((uint32)(GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue()));
 		FSlateApplication::Get().EnableMenuAnimations(GetDefault<UEditorStyleSettings>()->bEnableWindowAnimations);
 	}
 
@@ -419,7 +390,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	
 	// Set navigation system property indicating whether navigation is supposed to rebuild automatically 
 	FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-	UNavigationSystem::SetNavigationAutoUpdateEnabled(GEditor->GetEditorUserSettings().bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
+	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
 
 	// Allocate temporary model.
 	TempModel = new UModel( FPostConstructInitializeProperties(),NULL, 1 );
@@ -444,9 +415,9 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
 void UEditorEngine::HandleSettingChanged( FName Name )
 {
-	if (Name == FName(TEXT("ColorVisionDeficiencyType")))
+	if (Name == FName(TEXT("ColorVisionDeficiencyPreviewType")))
 	{
-		uint32 DeficiencyType = (uint32)GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyType.GetValue();
+		uint32 DeficiencyType = (uint32)GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue();
 		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType(DeficiencyType);
 
 		GEngine->Exec(NULL, TEXT("RecompileShaders SlateElementPixelShader"));
@@ -537,7 +508,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("PropertyEditor"));
 		FModuleManager::Get().LoadModule(TEXT("EditorStyle"));
 		FModuleManager::Get().LoadModule(TEXT("PackagesDialog"));
-		FModuleManager::Get().LoadModule(TEXT("PreferencesEditor"));
 		FModuleManager::Get().LoadModule(TEXT("AssetRegistry"));
 		FModuleManager::Get().LoadModule(TEXT("DetailCustomizations"));
 		FModuleManager::Get().LoadModule(TEXT("ComponentVisualizers"));
@@ -561,17 +531,14 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 		FModuleManager::Get().LoadModule(TEXT("XmlParser"));
 		FModuleManager::Get().LoadModule(TEXT("UserFeedback"));
 		FModuleManager::Get().LoadModule(TEXT("GameplayTagsEditor"));
+		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
+		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
 
 		if( FParse::Param( FCommandLine::Get(),TEXT( "PListEditor" ) ) )
 		{
 			FModuleManager::Get().LoadModule(TEXT("PListEditor"));
 		}
-
-		if( FParse::Param( FCommandLine::Get(),TEXT( "DeviceProfileEditor" ) ) )
-		{
-			FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
-		}
-
+		
 		//check if we need to load behavior tree editor module (it could be loaded earlier) 
 		bool bBehaviorTreeEditorEnabled = false;
 		GConfig->GetBool(TEXT("BehaviorTreesEd"), TEXT("BehaviorTreeEditorEnabled"), bBehaviorTreeEditorEnabled, GEngineIni);
@@ -587,6 +554,12 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 		}
 
+		bool bSkillSystemEditorEnabled = false;
+		GConfig->GetBool(TEXT("SkillSystemEd"), TEXT("SKillSystemEditorEnabled"), bSkillSystemEditorEnabled, GEngineIni);
+		if (bSkillSystemEditorEnabled)
+		{
+			FModuleManager::Get().LoadModule(TEXT("SkillSystemEditor"));
+		}
 	}
 
 	float BSPTexelScale = 100.0f;
@@ -647,9 +620,6 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			}
 		}
 	}
-
-	// Init fonts used for editor drawing
-	FLinkedObjDrawUtils::InitFonts(this->EditorFont);
 
 	// Used for sorting ActorFactory classes.
 	struct FCompareUActorFactoryByMenuPriority
@@ -868,7 +838,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	bool IsRealtime = false;
 
 	// True if a viewport has realtime audio	// If any realtime audio is enabled in the editor
-	bool bAudioIsRealtime = GEditor->AccessEditorUserSettings().bEnableRealTimeAudio;
+	bool bAudioIsRealtime = GetDefault<ULevelEditorMiscSettings>()->bEnableRealTimeAudio;
 
 	// By default we tick the editor world.  
 	// When in PIE if we are in immersive we do not tick the editor world unless there is a visible editor viewport.
@@ -973,12 +943,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Find out if the editor has focus. Audio should only play if the editor has focus.
 	const bool bHasFocus = FPlatformProcess::IsThisApplicationForeground();
 
-	if (bHasFocus || GEditor->AccessEditorUserSettings().bAllowBackgroundAudio)
+	if (bHasFocus || GetDefault<ULevelEditorMiscSettings>()->bAllowBackgroundAudio)
 	{
 		if (!PlayWorld)
 		{
 			// Adjust the global volume multiplier if the window has focus and there is no pie world or no viewport overriding audio.
-			GVolumeMultiplier = GEditor->AccessEditorUserSettings().EditorVolumeLevel;
+			GVolumeMultiplier = GetDefault<ULevelEditorMiscSettings>()->EditorVolumeLevel;
 		}
 		else
 		{
@@ -1546,28 +1516,28 @@ bool UEditorEngine::IsRealTimeAudioMuted() const
 	{
 		return true;
 	}
-	return EditorUserSettings->bEnableRealTimeAudio ? false : true;
+	return GetDefault<ULevelEditorMiscSettings>()->bEnableRealTimeAudio ? false : true;
 }
 
 void UEditorEngine::MuteRealTimeAudio(bool bMute)
 {
-	AccessEditorUserSettings().bEnableRealTimeAudio = bMute ? false : true;
-	AccessEditorUserSettings().PostEditChange();
+	ULevelEditorMiscSettings* LevelEditorMiscSettings = GetMutableDefault<ULevelEditorMiscSettings>();
+
+	LevelEditorMiscSettings->bEnableRealTimeAudio = bMute ? false : true;
+	LevelEditorMiscSettings->PostEditChange();
 }
 
 float UEditorEngine::GetRealTimeAudioVolume() const
 {
-	if (EditorUserSettings == NULL)
-	{
-		return 0.f;
-	}
-	return EditorUserSettings->EditorVolumeLevel;
+	return GetDefault<ULevelEditorMiscSettings>()->EditorVolumeLevel;
 }
 
 void UEditorEngine::SetRealTimeAudioVolume(float VolumeLevel)
 {
-	AccessEditorUserSettings().EditorVolumeLevel = VolumeLevel;
-	AccessEditorUserSettings().PostEditChange();
+	ULevelEditorMiscSettings* LevelEditorMiscSettings = GetMutableDefault<ULevelEditorMiscSettings>();
+
+	LevelEditorMiscSettings->EditorVolumeLevel = VolumeLevel;
+	LevelEditorMiscSettings->PostEditChange();
 }
 
 bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewportClient, const bool bInAllowNonRealtimeViewportToDraw, bool bLinkedOrthoMovement )
@@ -1759,7 +1729,7 @@ void UEditorEngine::PlayPreviewSound( USoundBase* Sound,  USoundNode* SoundNode 
 void UEditorEngine::PlayEditorSound( const FString& SoundAssetName )
 {
 	// Only play sounds if the user has that feature enabled
-	if( GetEditorUserSettings().bEnableEditorSounds )
+	if( GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds )
 	{
 		USoundBase* Sound = Cast<USoundBase>( StaticFindObject( USoundBase::StaticClass(), NULL, *SoundAssetName ) );
 		if( Sound == NULL )
@@ -2690,12 +2660,10 @@ FString FReimportManager::SanitizeImportFilename(const FString& InPath, const UO
 		const FString	PackagePath	= Package->GetPathName();
 		const FName		MountPoint	= FPackageName::GetPackageMountPoint(PackagePath);
 		const FString	PackageFilename = FPackageName::LongPackageNameToFilename(PackagePath, FPaths::GetExtension(InPath, bIncludeDot));
+		const FString	AbsolutePath = FPaths::ConvertRelativePathToFull(InPath);
 
-		FString	NormalizedPath = InPath;
-		FPaths::NormalizeFilename(NormalizedPath);
-
-		if (( MountPoint == FName("Engine") && NormalizedPath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir()))	) ||
-			( MountPoint == FName("Game")	&& NormalizedPath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::GameContentDir()))	) )
+		if ((MountPoint == FName("Engine") && AbsolutePath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::EngineContentDir()))) ||
+			(MountPoint == FName("Game") &&	AbsolutePath.StartsWith(FPaths::ConvertRelativePathToFull(FPaths::GameDir()))))
 		{
 			FString RelativePath = InPath;
 			FPaths::MakePathRelativeTo(RelativePath, *PackageFilename);
@@ -2705,6 +2673,7 @@ FString FReimportManager::SanitizeImportFilename(const FString& InPath, const UO
 
 	return IFileManager::Get().ConvertToRelativePath(*InPath);
 }
+
 
 FString FReimportManager::ResolveImportFilename(const FString& InRelativePath, const UObject* Obj)
 {
@@ -3975,6 +3944,7 @@ bool UEditorEngine::DetachSelectedActors()
 			OldParentActor->Modify();
 			RootComp->DetachFromParent(true);
 			bDetachOccurred = true;
+			Actor->SetFolderPath(OldParentActor->GetFolderPath());
 		}
 	}
 	return bDetachOccurred;
@@ -4030,18 +4000,6 @@ bool UEditorEngine::CanParentActors( const AActor* ParentActor, const AActor* Ch
 			Arguments.Add(TEXT("StaticActor"), FText::FromString(ChildActor->GetActorLabel()));
 			Arguments.Add(TEXT("DynamicActor"), FText::FromString(ParentActor->GetActorLabel()));
 			*ReasonText = FText::Format( NSLOCTEXT("ActorAttachmentError", "StaticDynamic_ActorAttachmentError", "Cannot attach static actor {StaticActor} to dynamic actor {DynamicActor}."), Arguments);
-		}
-		return false;
-	}
-
-	if (ChildRoot->IsSimulatingPhysics())
-	{
-		if (ReasonText)
-		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("ParentActor"), FText::FromString(ParentActor->GetActorLabel()));
-			Arguments.Add(TEXT("ChildActor"), FText::FromString(ChildActor->GetActorLabel()));
-			*ReasonText = FText::Format( NSLOCTEXT("ActorAttachmentError", "SimulatingPhysics_ActorAttachmentError", "{ParentActor} will not allow {ChildActor} to be attached as a child because child is physics simulated."), Arguments);
 		}
 		return false;
 	}
@@ -4554,7 +4512,7 @@ FString UEditorEngine::GetFriendlyName( const UProperty* Property, UClass* Owner
 		if ( DefaultFriendlyName.Len() == 0 )
 		{
 			const bool bIsBool = Cast<const UBoolProperty>(Property) != NULL;
-			return EngineUtils::SanitizeDisplayName( Property->GetName(), bIsBool );
+			return FName::NameToDisplayString( Property->GetName(), bIsBool );
 		}
 		return DefaultFriendlyName;
 	}
@@ -4716,9 +4674,6 @@ AActor* UEditorEngine::UseActorFactory( UActorFactory* Factory, const FAssetData
 				{
 					Actor->MarkPackageDirty();
 					ULevel::LevelDirtiedEvent.Broadcast();
-
-					// Send notification about a new actor being created
-					GEngine->BroadcastLevelActorsChanged();
 				}
 			}
 			else
@@ -5011,7 +4966,7 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 			USceneComponent* const NewActorRootComponent = NewActor->GetRootComponent();
 			if(NewActorRootComponent)
 			{
-				if(!GEditorModeTools().GetReplaceRespectsScale() || OldActor->GetRootComponent() == NULL )
+				if(!GetDefault<ULevelEditorMiscSettings>()->bReplaceRespectsScale || OldActor->GetRootComponent() == NULL )
 				{
 					NewActorRootComponent->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
 				}
@@ -5062,9 +5017,6 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 	RedrawLevelEditingViewports();
 
 	ULevel::LevelDirtiedEvent.Broadcast();
-
-	// Send notification about actors that may have changed
-	GEngine->BroadcastLevelActorsChanged();
 }
 
 
@@ -5324,9 +5276,6 @@ void UEditorEngine::ConvertLightActors( UClass* ConvertToClass )
 		GEditor->RedrawLevelEditingViewports();
 
 		ULevel::LevelDirtiedEvent.Broadcast();
-
-		// Send notification about actors that may have changed
-		GEngine->BroadcastLevelActorsChanged();
 
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	}
@@ -5771,10 +5720,9 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 						{
 							const bool bIsTransient = !!(Property->PropertyFlags & CPF_Transient);
 							const bool bIsComponentProp = !!(Property->PropertyFlags & (CPF_InstancedReference | CPF_ContainsInstancedReference));
-							const bool bIsReadonly = !!(Property->PropertyFlags & CPF_BlueprintReadOnly);
 							const bool bIsIdentical = Property->Identical_InContainer(ActorToConvert, ClassToReplace->GetDefaultObject());
 
-							if ( !bIsTransient && !bIsIdentical && !bIsComponentProp && !bIsReadonly && Property->GetName() != TEXT("Tag") )
+							if ( !bIsTransient && !bIsIdentical && !bIsComponentProp && Property->GetName() != TEXT("Tag") )
 							{
 								// Copy only if not native, not transient, not identical, and not a component.
 								// Copying components directly here is a bad idea because the next garbage collection will delete the component since we are deleting its outer.  
@@ -5838,10 +5786,7 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 		GEditor->RedrawLevelEditingViewports();
 
 		ULevel::LevelDirtiedEvent.Broadcast();
-
-		// Send notification about actors that may have changed
-		GEngine->BroadcastLevelActorsChanged();
-
+		
 		// Clean up
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 	}
@@ -6007,9 +5952,6 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FVector& L
 	{
 		Actor->MarkPackageDirty();
 		ULevel::LevelDirtiedEvent.Broadcast();
-
-		// Send notification about a new actor being created
-		GEngine->BroadcastLevelActorsChanged();
 	}
 
 	NoteSelectionChange();
@@ -6083,8 +6025,6 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 
 				// Send notification about a new actor being created
 				ULevel::LevelDirtiedEvent.Broadcast();
-
-				GEngine->BroadcastLevelActorsChanged();
 				GEditor->NoteSelectionChange();
 			}
 		}
@@ -6234,7 +6174,13 @@ void UEditorEngine::UpdatePreviewMesh()
 
 void UEditorEngine::CyclePreviewMesh()
 {
-	const int32 StartingPreviewMeshIndex = GUnrealEd->PreviewMeshIndex;
+	const ULevelEditorViewportSettings& ViewportSettings = *GetDefault<ULevelEditorViewportSettings>();
+	if( !ViewportSettings.PreviewMeshes.Num() )
+	{
+		return;
+	}
+
+	const int32 StartingPreviewMeshIndex = FMath::Min(GUnrealEd->PreviewMeshIndex, ViewportSettings.PreviewMeshes.Num() - 1);
 	int32 CurrentPreviewMeshIndex = StartingPreviewMeshIndex;
 	bool bPreviewMeshFound = false;
 
@@ -6244,7 +6190,7 @@ void UEditorEngine::CyclePreviewMesh()
 		CurrentPreviewMeshIndex++;
 
 		// If we reached the max index, start at index zero.
-		if( CurrentPreviewMeshIndex == PreviewMeshNames.Num() )
+		if( CurrentPreviewMeshIndex == ViewportSettings.PreviewMeshes.Num() )
 		{
 			CurrentPreviewMeshIndex = 0;
 		}
@@ -6256,7 +6202,6 @@ void UEditorEngine::CyclePreviewMesh()
 		{
 			// Save off the index so we can reference it later when toggling the preview mesh mode. 
 			GUnrealEd->PreviewMeshIndex = CurrentPreviewMeshIndex;
-			bPreviewMeshFound = true;
 		}
 
 		// Keep doing this until we found another valid mesh, or we cycled through all possible preview meshes. 
@@ -6267,13 +6212,6 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 {
 	bool bMeshLoaded = false;
 
-	// If there are no mesh names loaded, the preview mesh 
-	// names may not have been loaded yet. Try to load them. 
-	if( PreviewMeshNames.Num() == 0 )
-	{
-		GConfig->GetSingleLineArray(TEXT("EditorPreviewMesh"), TEXT("PreviewMeshNames"), PreviewMeshNames, GEditorUserSettingsIni);
-	}
-
 	// Don't register the preview mesh into the PIE world!
 	if(GWorld->IsPlayInEditor())
 	{
@@ -6281,9 +6219,10 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		return false;
 	}
 
-	if( PreviewMeshNames.IsValidIndex(Index) )
+	const ULevelEditorViewportSettings& ViewportSettings = *GetDefault<ULevelEditorViewportSettings>();
+	if( ViewportSettings.PreviewMeshes.IsValidIndex(Index) )
 	{
-		const FString MeshName = PreviewMeshNames[Index];
+		const FStringAssetReference& MeshName = ViewportSettings.PreviewMeshes[Index];
 
 		// If we don't have a preview mesh component in the world yet, create one. 
 		if( !PreviewMeshComp )
@@ -6296,7 +6235,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		}
 
 		// Load the new mesh, if not already loaded. 
-		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>( NULL, *MeshName, NULL, LOAD_None, NULL );
+		UStaticMesh* PreviewMesh = LoadObject<UStaticMesh>( NULL, *MeshName.AssetLongPathname, NULL, LOAD_None, NULL );
 
 		// Swap out the meshes if we loaded or found the given static mesh. 
 		if( PreviewMesh )
@@ -6306,7 +6245,7 @@ bool UEditorEngine::LoadPreviewMesh( int32 Index )
 		}
 		else
 		{
-			UE_LOG(LogEditorViewport, Warning, TEXT("Couldn't load the PreviewMeshNames for the player at index, %d, with the name, %s."), Index, *MeshName );
+			UE_LOG(LogEditorViewport, Warning, TEXT("Couldn't load the PreviewMeshNames for the player at index, %d, with the name, %s."), Index, *MeshName.AssetLongPathname );
 		}
 	}
 	else
@@ -6548,7 +6487,7 @@ FORCEINLINE bool NetworkRemapPath_local(FWorldContext &Context, FString &Str, bo
 
 bool UEditorEngine::NetworkRemapPath( UWorld *InWorld, FString &Str, bool reading)
 {
-	FWorldContext &Context = WorldContextFromWorld(InWorld);
+	FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
 	if (Context.PIEPrefix.IsEmpty() || Context.PIERemapPrefix.IsEmpty())
 	{
 		return false;
@@ -6559,7 +6498,7 @@ bool UEditorEngine::NetworkRemapPath( UWorld *InWorld, FString &Str, bool readin
 
 bool UEditorEngine::NetworkRemapPath( UPendingNetGame *PendingNetGame, FString &Str, bool reading)
 {
-	FWorldContext &Context = WorldContextFromPendingNetGame(PendingNetGame);
+	FWorldContext &Context = GetWorldContextFromPendingNetGameChecked(PendingNetGame);
 	if (Context.PIEPrefix.IsEmpty() || Context.PIERemapPrefix.IsEmpty())
 	{
 		return false;

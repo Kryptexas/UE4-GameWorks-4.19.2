@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "EditorUserSettings.h"
+#include "Transactor.h"
 #include "EditorEngine.generated.h"
 
 //
@@ -93,11 +95,11 @@ struct FCopySelectedInfo
 		{
 			bCanPerformQuickCopy = ( LevelWithSelectedSurface == LevelAllActorsAreIn );
 		}
-		// Else, if either we have selected actors all in one level OR we have 
-		// selected surfaces all in one level, then we can perform a quick copy. 
+		// Else, if either we have only selected actors all in one level OR we have 
+		// only selected surfaces all in one level, then we can perform a quick copy. 
 		else
 		{
-			bCanPerformQuickCopy = (LevelWithSelectedSurface != NULL) || (LevelAllActorsAreIn != NULL);
+			bCanPerformQuickCopy = (LevelWithSelectedSurface != NULL && !bHasSelectedActors) || (LevelAllActorsAreIn != NULL && !bHasSelectedSurfaces);
 		}
 		return bCanPerformQuickCopy;
 	}
@@ -372,10 +374,6 @@ class UNREALED_API UEditorEngine : public UEngine
 	/** Global instance of the game agnostic editor settings */
 	UPROPERTY()
 	class UEditorGameAgnosticSettings* GameAgnosticSettings;
-
-	/** The full paths to meshes used to preview a static mesh in editor. */
-	UPROPERTY()
-	TArray<FString> PreviewMeshNames;
 
 	/** A mesh component used to preview in editor without spawning a static mesh actor. */
 	UPROPERTY(transient)
@@ -1198,7 +1196,6 @@ public:
 	virtual void SelectActor(AActor* Actor, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden=false) {}
 	virtual bool CanSelectActor(AActor* Actor, bool bInSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const { return true; }
 	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) {}
-	virtual void SelectComponent(USceneComponent* SceneComponent, bool InSelected, bool bNotify, bool bSelectEvenIfHidden=false) {}
 
 	/**
 	 * Replaces the components in ActorsToReplace with an primitive component in Replacement
@@ -1577,16 +1574,6 @@ public:
 	class FSelectionIterator GetSelectedActorIterator() const;
 
 
-	/** Returns the number of currently selected components. */
-	int32 GetSelectedComponentCount() const;
-
-	/** Returns the set of selected components. */
-	class USelection* GetSelectedComponents() const;
-
-	/** Returns an FSelectionIterator that iterates over the set of selected components. */
-	class FSelectionIterator GetSelectedComponentIterator() const;
-
-
 	/**
 	 * @return the set of selected non-actor objects.
 	 */
@@ -1912,6 +1899,11 @@ public:
 	float GetGridSize();
 
 	/** 
+	 * @return - if the grid size is part of the 1,2,48,16,.. list or not
+	 */
+	bool IsGridSizePowerOfTwo() const;
+
+	/** 
 	 * Sets the selected positional snap grid setting
 	 *
 	 * @param InIndex - The index of the selected grid setting
@@ -2145,12 +2137,12 @@ public:
 	/** 
 	 * Are we playing on a local PC session?
 	 */
-	bool IsPlayingOnLocalPCSession() const { return bPlayOnLocalPcSession; }
+	bool IsPlayingOnLocalPCSession() const { return bPlayOnLocalPcSession && !bIsPlayWorldQueued; }
 
 	/** 
 	 * Are we playing via the Launcher?
 	 */
-	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher; }
+	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher && !bIsPlayWorldQueued; }
 
 	/**
 	 * Ensures the assets specified are loaded and adds them to the global selection set
@@ -2328,15 +2320,13 @@ private:
 	void BroadcastPostRedo(const FString& RedoContext, UObject* PrimaryObject, bool bRedoSuccess);
 
 	/** Helper function to show undo/redo notifications */
-	void BroadcastUndoRedoNotification(const FText& NotificationText, bool bSuccess);
+	void ShowUndoRedoNotification(const FText& NotificationText, bool bSuccess);
 
 	/**	Broadcasts that the supplied objects have been replaced (map of old object to new object */
 	void BroadcastObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap) { ObjectsReplacedEvent.Broadcast(ReplacementMap); }
 
 	/** Internal helper functions */
 	virtual void PostUndo (bool bSuccess);
-	virtual bool UndoTransactionInternal (bool bForEditor);
-	virtual bool RedoTransactionInternal (bool bForEditor);
 
 	/** Delegate callback: the world origin is going to be moved. */
 	void PreWorldOriginOffset(UWorld* InWorld, const FIntPoint& InSrcOrigin, const FIntPoint& InDstOrigin);
@@ -2366,6 +2356,15 @@ private:
 
 	/** Handles user setting changes. */
 	void HandleSettingChanged( FName Name );
+
+	/** Callback for handling undo and redo transactions before they happen. */
+	void HandleTransactorBeforeRedoUndo( FUndoSessionContext SessionContext );
+
+	/** Callback for finished redo transactions. */
+	void HandleTransactorRedo( FUndoSessionContext SessionContext, bool Succeeded );
+
+	/** Callback for finished undo transactions. */
+	void HandleTransactorUndo( FUndoSessionContext SessionContext, bool Succeeded );
 
 private:
 

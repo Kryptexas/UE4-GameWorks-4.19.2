@@ -23,12 +23,9 @@ DECLARE_CYCLE_STAT(TEXT("CanvasTriItem Time"),STAT_Canvas_TriItemTime,STATGROUP_
 DECLARE_CYCLE_STAT(TEXT("CanvasBorderItem Time"),STAT_Canvas_BorderItemTime,STATGROUP_Canvas);
 
 
-
-
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #include "ObjectTools.h"
-
 #define LOCTEXT_NAMESPACE "CanvasItem"
 
 FCanvasItemTestbed::LineVars FCanvasItemTestbed::TestLine;
@@ -241,7 +238,7 @@ void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas 
 		TriItemTex.Draw( Canvas );
 	}
 }
-#undef LOC_NAMESPACE
+#undef LOCTEXT_NAMESPACE
 
 #endif // WITH_EDITOR
 
@@ -968,5 +965,3 @@ FCanvasNGonItem::FCanvasNGonItem( const FVector2D& InPosition, const FVector2D& 
 	TriangleList.SetNum( InNumSides );
 	SetupPosition( InPosition, InRadius );
 }
-
-#undef LOCTEXT_NAMESPACE 

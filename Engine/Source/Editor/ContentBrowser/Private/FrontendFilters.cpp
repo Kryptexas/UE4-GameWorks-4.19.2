@@ -10,7 +10,8 @@
 // FFrontendFilter_CheckedOut
 /////////////////////////////////////////
 
-FFrontendFilter_CheckedOut::FFrontendFilter_CheckedOut()
+FFrontendFilter_CheckedOut::FFrontendFilter_CheckedOut(TSharedPtr<FFrontendFilterCategory> InCategory) 
+	: FFrontendFilter(InCategory)
 {
 	RequestStatus();
 }
@@ -76,7 +77,8 @@ bool FFrontendFilter_ReplicatedBlueprint::PassesFilter( AssetFilterType InItem )
 // FFrontendFilter_ShowOtherDevelopers
 /////////////////////////////////////////
 
-FFrontendFilter_ShowOtherDevelopers::FFrontendFilter_ShowOtherDevelopers()
+FFrontendFilter_ShowOtherDevelopers::FFrontendFilter_ShowOtherDevelopers(TSharedPtr<FFrontendFilterCategory> InCategory)
+	: FFrontendFilter(InCategory)
 {
 	BaseDeveloperPath = FPackageName::FilenameToLongPackageName(FPaths::GameDevelopersDir());
 	UserDeveloperPath = FPackageName::FilenameToLongPackageName(FPaths::GameUserDeveloperDir());
@@ -125,7 +127,8 @@ bool FFrontendFilter_ShowOtherDevelopers::PassesFilter( AssetFilterType InItem )
 // FFrontendFilter_ShowRedirectors
 /////////////////////////////////////////
 
-FFrontendFilter_ShowRedirectors::FFrontendFilter_ShowRedirectors()
+FFrontendFilter_ShowRedirectors::FFrontendFilter_ShowRedirectors(TSharedPtr<FFrontendFilterCategory> InCategory)
+	: FFrontendFilter(InCategory)
 {
 	bAreRedirectorsInBaseFilter = false;
 	RedirectorClassName = UObjectRedirector::StaticClass()->GetFName();
@@ -133,7 +136,7 @@ FFrontendFilter_ShowRedirectors::FFrontendFilter_ShowRedirectors()
 
 void FFrontendFilter_ShowRedirectors::SetCurrentFilter(const FARFilter& InFilter)
 {
-	bAreRedirectorsInBaseFilter = InFilter.ClassNames.Contains(UObjectRedirector::StaticClass()->GetFName());
+	bAreRedirectorsInBaseFilter = InFilter.ClassNames.Contains(RedirectorClassName);
 }
 
 bool FFrontendFilter_ShowRedirectors::PassesFilter( AssetFilterType InItem ) const
@@ -151,8 +154,9 @@ bool FFrontendFilter_ShowRedirectors::PassesFilter( AssetFilterType InItem ) con
 // FFrontendFilter_InUseByLoadedLevels
 /////////////////////////////////////////
 
-FFrontendFilter_InUseByLoadedLevels::FFrontendFilter_InUseByLoadedLevels()
-	: bIsCurrentlyActive(false)
+FFrontendFilter_InUseByLoadedLevels::FFrontendFilter_InUseByLoadedLevels(TSharedPtr<FFrontendFilterCategory> InCategory) 
+	: FFrontendFilter(InCategory)
+	, bIsCurrentlyActive(false)
 {
 	FEditorDelegates::MapChange.AddRaw(this, &FFrontendFilter_InUseByLoadedLevels::OnEditorMapChange);
 }

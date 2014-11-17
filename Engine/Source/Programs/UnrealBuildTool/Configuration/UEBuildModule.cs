@@ -888,8 +888,8 @@ namespace UnrealBuildTool
 			{
 				// Update project file's set of preprocessor definitions and include paths
 				IntelliSenseGatherer.AddIntelliSensePreprocessorDefinitions( ModuleCompileEnvironment.Config.Definitions );
-				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.SystemIncludePaths );
-				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.IncludePaths );
+				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.SystemIncludePaths, bAddingSystemIncludes: true );
+				IntelliSenseGatherer.AddInteliiSenseIncludePaths( ModuleCompileEnvironment.Config.IncludePaths, bAddingSystemIncludes: false );
 
 				// Bail out.  We don't need to actually compile anything while generating project files.
 				return LinkInputFiles;
@@ -1462,7 +1462,7 @@ namespace UnrealBuildTool
 				RedistLinkEnvironment.Config.OutputFilePath = RedistStaticLibraryPath;
 
 				// Replace the items built so far with the library
-				FileItem RedistLibrary = RedistLinkEnvironment.LinkExecutable(false);
+				RedistLinkEnvironment.LinkExecutable(false);
 				LinkInputFiles.Clear();
 			}
 
@@ -1473,7 +1473,6 @@ namespace UnrealBuildTool
 			// Keep track of this module's public and private UObject source files, so that we can pass those off to UHT if needed
 			{
 				string ModuleSourceFolder = Path.GetFullPath( this.ModuleDirectory );
-				var ModuleClassesSourceFolder = Path.Combine( ModuleSourceFolder, "Classes" );	// @todo uht: Want to deprecate this eventually
 				foreach( var SourceFile in SourceFiles )
 				{
 					// Will always be a cache hit (we did this earlier during Compile())
@@ -1717,96 +1716,103 @@ namespace UnrealBuildTool
 
 		public override void RecursivelyProcessUnboundModules(UEBuildTarget Target, ref Dictionary<string, UEBuildBinary> Binaries, UEBuildBinary ExecutableBinary)
 		{
-			// Make sure this module is bound to a binary
-			if( !bIncludedInTarget )
+			try
 			{
-				throw new BuildException( "Module '{0}' should already have been bound to a binary!", Name );
-			}
-
-			var AllModuleNames = new List<string>();
-			AllModuleNames.AddRange( PrivateDependencyModuleNames );
-			AllModuleNames.AddRange( PublicDependencyModuleNames );
-			AllModuleNames.AddRange( DynamicallyLoadedModuleNames );
-            AllModuleNames.AddRange( PlatformSpecificDynamicallyLoadedModuleNames );
-
-			foreach( var DependencyName in AllModuleNames )
-			{
-				var DependencyModule = Target.FindOrCreateModuleByName(DependencyName);
-
-				// Skip modules that are included with the target (externals)
-				if( !DependencyModule.bIncludedInTarget )
+				// Make sure this module is bound to a binary
+				if( !bIncludedInTarget )
 				{
-					if( !Binaries.ContainsKey( DependencyModule.Name ) )
+					throw new BuildException( "Module '{0}' should already have been bound to a binary!", Name );
+				}
+
+				var AllModuleNames = new List<string>();
+				AllModuleNames.AddRange( PrivateDependencyModuleNames );
+				AllModuleNames.AddRange( PublicDependencyModuleNames );
+				AllModuleNames.AddRange( DynamicallyLoadedModuleNames );
+				AllModuleNames.AddRange( PlatformSpecificDynamicallyLoadedModuleNames );
+
+				foreach( var DependencyName in AllModuleNames )
+				{
+					var DependencyModule = Target.FindOrCreateModuleByName(DependencyName);
+
+					// Skip modules that are included with the target (externals)
+					if( !DependencyModule.bIncludedInTarget )
 					{
-						UEBuildBinary BinaryToBindTo;
-						if (Target.ShouldCompileMonolithic())
+						if( !Binaries.ContainsKey( DependencyModule.Name ) )
 						{
-							// When linking monolithically, any unbound modules will be linked into the main executable
-							BinaryToBindTo = ExecutableBinary;
-						}
-						else
-						{
-							// Is this a Rocket module?
-							bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(DependencyName);
-
-							// Is this a plugin module?
-							var PluginInfo = Plugins.GetPluginInfoForModule( DependencyName );
-
-							string OutputFilePath = Target.MakeBinaryPath(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.Rules.Type, bIsRocketModule, PluginInfo, "");
-
-							// If it's an engine module, output intermediates to the engine intermediates directory. 
-							string IntermediateDirectory = Binary.Config.IntermediateDirectory;
-							if (PluginInfo == null && IntermediateDirectory != Target.EngineIntermediateDirectory && Path.GetFullPath(DependencyModule.ModuleDirectory).StartsWith(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+							UEBuildBinary BinaryToBindTo;
+							if (Target.ShouldCompileMonolithic())
 							{
-								IntermediateDirectory = Target.EngineIntermediateDirectory;
+								// When linking monolithically, any unbound modules will be linked into the main executable
+								BinaryToBindTo = ExecutableBinary;
+							}
+							else
+							{
+								// Is this a Rocket module?
+								bool bIsRocketModule = RulesCompiler.IsRocketProjectModule(DependencyName);
+
+								// Is this a plugin module?
+								var PluginInfo = Plugins.GetPluginInfoForModule( DependencyName );
+
+								string OutputFilePath = Target.MakeBinaryPath(DependencyModule.Name, Target.GetAppName() + "-" + DependencyModule.Name, UEBuildBinaryType.DynamicLinkLibrary, Target.Rules.Type, bIsRocketModule, PluginInfo, "");
+
+								// If it's an engine module, output intermediates to the engine intermediates directory. 
+								string IntermediateDirectory = Binary.Config.IntermediateDirectory;
+								if (PluginInfo == null && IntermediateDirectory != Target.EngineIntermediateDirectory && Path.GetFullPath(DependencyModule.ModuleDirectory).StartsWith(Path.GetFullPath(BuildConfiguration.RelativeEnginePath)))
+								{
+									IntermediateDirectory = Target.EngineIntermediateDirectory;
+								}
+
+								// When using modular linkage, unbound modules will be linked into their own DLL files
+								UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.DynamicLinkLibrary,
+																									InOutputFilePath: OutputFilePath,
+																									InIntermediateDirectory: IntermediateDirectory,
+																									bInAllowExports: true,
+																									InModuleNames: new List<string> { DependencyModule.Name },
+																									InTargetName: Target.GetAppName(),
+																									bInIsCrossTarget: PlatformSpecificDynamicallyLoadedModuleNames.Contains(DependencyName) && !DynamicallyLoadedModuleNames.Contains(DependencyName),
+																									InTargetConfiguration: Target.Configuration,
+																									bInCompileMonolithic: Target.ShouldCompileMonolithic() );
+
+								// Fix up the binary path if this is module specifies an alternate output directory
+								Config.OutputFilePath = DependencyModule.FixupOutputPath(Config.OutputFilePath);
+
+								BinaryToBindTo = new UEBuildBinaryCPP( Target, Config );
 							}
 
-							// When using modular linkage, unbound modules will be linked into their own DLL files
-							UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.DynamicLinkLibrary,
-																								InOutputFilePath: OutputFilePath,
-																								InIntermediateDirectory: IntermediateDirectory,
-																								bInAllowExports: true,
-																								InModuleNames: new List<string> { DependencyModule.Name },
-																								InTargetName: Target.GetAppName(),
-                                                                                                bInIsCrossTarget: PlatformSpecificDynamicallyLoadedModuleNames.Contains(DependencyName) && !DynamicallyLoadedModuleNames.Contains(DependencyName),
-																								InTargetConfiguration: Target.Configuration,
-																								bInCompileMonolithic: Target.ShouldCompileMonolithic() );
+							Binaries[ DependencyModule.Name ] = BinaryToBindTo;
 
-							// Fix up the binary path if this is module specifies an alternate output directory
-							Config.OutputFilePath = DependencyModule.FixupOutputPath(Config.OutputFilePath);
+							// Bind this module
+							DependencyModule.Binary = BinaryToBindTo;
+							DependencyModule.bIncludedInTarget = true;
 
-							BinaryToBindTo = new UEBuildBinaryCPP( Target, Config );
+							// Also add binaries for this module's dependencies
+							DependencyModule.RecursivelyProcessUnboundModules( Target, ref Binaries, ExecutableBinary );
 						}
-
-						Binaries[ DependencyModule.Name ] = BinaryToBindTo;
-
-						// Bind this module
-						DependencyModule.Binary = BinaryToBindTo;
-						DependencyModule.bIncludedInTarget = true;
-
-						// Also add binaries for this module's dependencies
-						DependencyModule.RecursivelyProcessUnboundModules( Target, ref Binaries, ExecutableBinary );
 					}
-				}
 
-				if (Target.ShouldCompileMonolithic() == false)
-				{
-					// Check to see if there is a circular relationship between the module and it's referencer
-					if( DependencyModule.Binary != null )
+					if (Target.ShouldCompileMonolithic() == false)
 					{
-						if( CircularlyReferencedDependentModules.Contains( DependencyName ) )
+						// Check to see if there is a circular relationship between the module and it's referencer
+						if( DependencyModule.Binary != null )
 						{
-							DependencyModule.Binary.SetCreateImportLibrarySeparately( true );
+							if( CircularlyReferencedDependentModules.Contains( DependencyName ) )
+							{
+								DependencyModule.Binary.SetCreateImportLibrarySeparately( true );
+							}
 						}
 					}
 				}
-			}
 
-			// Also make sure module entries are created for any module that is pulled in as an "include path" module.
-			// These modules are never linked in unless they were referenced as an actual dependency of a different module,
-			// but we still need to keep track of them so that we can find their include paths when setting up our
-			// module's include paths.
-			RecursivelyAddIncludePathModules( Target, bPublicIncludesOnly:false );
+				// Also make sure module entries are created for any module that is pulled in as an "include path" module.
+				// These modules are never linked in unless they were referenced as an actual dependency of a different module,
+				// but we still need to keep track of them so that we can find their include paths when setting up our
+				// module's include paths.
+				RecursivelyAddIncludePathModules( Target, bPublicIncludesOnly:false );
+			}
+			catch (System.Exception ex)
+			{
+				throw new ModuleProcessingException(this, ex);
+			}
 		}
 
 

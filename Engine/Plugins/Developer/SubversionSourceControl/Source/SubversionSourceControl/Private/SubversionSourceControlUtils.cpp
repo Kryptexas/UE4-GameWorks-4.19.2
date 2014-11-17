@@ -13,6 +13,16 @@ namespace SubversionSourceControlConstants
 	const int32 MaxFilesPerBatch = 50;
 }
 
+FScopedTempFile::FScopedTempFile(const FText& InText)
+{
+	bIsUnicode = !FCString::IsPureAnsi(*InText.ToString());
+	Filename = FPaths::CreateTempFilename(*FPaths::GameLogDir(), TEXT("SVN-Temp"), TEXT(".txt"));
+	if (!FFileHelper::SaveStringToFile(InText.ToString(), *Filename, bIsUnicode ? FFileHelper::EEncodingOptions::ForceUTF8 : FFileHelper::EEncodingOptions::ForceAnsi))
+	{
+		UE_LOG(LogSourceControl, Error, TEXT("Failed to write to temp file: %s"), *Filename);
+	}
+}
+
 FScopedTempFile::FScopedTempFile(const FString& InText)
 {
 	bIsUnicode = !FCString::IsPureAnsi(*InText);
@@ -325,9 +335,9 @@ static FString GetRepoName(const FString& InFilename, const FString& UserName)
 				continue;
 			}
 
-			FString Root = RootNode->GetContent();
-			const int32 RootLength = Root.Len();
-			if(URL.Left(RootLength) == Root)
+			FString RootStr = RootNode->GetContent();
+			const int32 RootLength = RootStr.Len();
+			if (URL.Left(RootLength) == RootStr)
 			{
 				Result = URL.Right(URL.Len() - RootLength);
 				break;

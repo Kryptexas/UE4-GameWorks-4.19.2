@@ -120,46 +120,7 @@ namespace APIDocTool
 
 		public void Write(UdnManifest Manifest, string Text)
 		{
-			StringBuilder Output = new StringBuilder();
-			for (int Idx = 0; Idx < Text.Length; Idx++)
-			{
-				if (Text[Idx] == '{')
-				{
-					if (Text[Idx + 1] == '{')
-					{
-						Output.Append(Text[++Idx]);
-					}
-					else
-					{
-						int EndIdx = Text.IndexOf('}', Idx + 1);
-						string LinkText = Text.Substring(Idx + 1, EndIdx - Idx - 1);
-						string LinkName = LinkText;
-
-						int LinkNameIdx = LinkText.IndexOf('|');
-						if (LinkNameIdx != -1)
-						{
-							LinkName = LinkText.Substring(LinkNameIdx + 1);
-							LinkText = LinkText.Substring(0, LinkNameIdx);
-						}
-
-						APIPage LinkPage = Manifest.Find(LinkName);
-						if (LinkPage != null)
-						{
-							Output.AppendFormat("[{0}]({1})", LinkText, LinkPage.LinkPath);
-						}
-						else
-						{
-							Output.Append(LinkText);
-						}
-						Idx = EndIdx;
-					}
-				}
-				else
-				{
-					Output.Append(Text[Idx]);
-				}
-			}
-			Write(Output.ToString());
+			Write(Manifest.FormatString(Text));
 		}
 
 		public void WriteLine()
@@ -449,6 +410,28 @@ namespace APIDocTool
 			EnterTag("[PARAMLITERAL:{0}]", Name);
 			WriteLine(Value);
 			LeaveTag("[/PARAMLITERAL]");
+		}
+
+		public void WriteList(IEnumerable<UdnListItem> Items)
+		{
+			// Write the head
+			WriteObject("MemberListHeadBlank");
+
+			// Write the body
+			foreach (UdnListItem Item in Items)
+			{
+				if (Item.Link == null)
+				{
+					WriteObject("MemberListItem", "name", Item.Name, "desc", Item.Description);
+				}
+				else
+				{
+					WriteObject("MemberListItemLinked", "name", Item.Name, "link", "[RELATIVE:" + Item.Link + "]", "desc", Item.Description);
+				}
+			}
+
+			// Write the tail
+			WriteObject("MemberListTail");
 		}
 
 		public void WriteList(string NameColumn, string DescColumn, IEnumerable<UdnListItem> Items)

@@ -25,9 +25,9 @@ void UNiagaraNodeOutputUpdate::AllocateDefaultPins()
 }
 
 
-FString UNiagaraNodeOutputUpdate::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UNiagaraNodeOutputUpdate::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Output");
+	return NSLOCTEXT("NiagaraNode", "Output", "Output");
 }
 
 FLinearColor UNiagaraNodeOutputUpdate::GetNodeTitleColor() const

@@ -3,16 +3,12 @@
 #pragma once
 #include "BTDecorator_Optional.generated.h"
 
-/**
- *  Override result of execution, so parent composite will always move to next child
- */
-
-UCLASS(HideCategories=(Condition))
+UCLASS(HideCategories=(Condition), meta=(DeprecatedNode,DeprecationMessage="Please use Force Success decorator instead."))
 class UBTDecorator_Optional : public UBTDecorator
 {
 	GENERATED_UCLASS_BODY()
 
 protected:
 
-	virtual void OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const;
+	virtual void OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult);
 };

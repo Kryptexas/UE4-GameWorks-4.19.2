@@ -18,14 +18,14 @@ UMaterialGraphNode_Root::UMaterialGraphNode_Root(const class FPostConstructIniti
 {
 }
 
-FString UMaterialGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UMaterialGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FMaterialEditorUtilities::GetOriginalObjectName(this->GetGraph());
+	return FText::FromString(FMaterialEditorUtilities::GetOriginalObjectName(this->GetGraph()));
 }
 
 FLinearColor UMaterialGraphNode_Root::GetNodeTitleColor() const
 {
-	return FLinearColor(1.0f, 0.65f, 0.4f);
+	return GEditor->AccessEditorUserSettings().ResultNodeTitleColor;
 }
 
 FString UMaterialGraphNode_Root::GetTooltip() const

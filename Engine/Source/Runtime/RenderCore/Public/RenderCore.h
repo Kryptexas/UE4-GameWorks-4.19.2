@@ -248,7 +248,7 @@ namespace ERenderThreadIdleTypes
 {
 	enum Type
 	{
-		WaitingForRenderCommands, 
+		WaitingForAllOtherSleep, 
 		WaitingForGPUQuery, 
 		WaitingForGPUPresent, 
 		Num

@@ -13,7 +13,7 @@ UBTDecorator_Loop::UBTDecorator_Loop(const class FPostConstructInitializePropert
 	bAllowAbortChildNodes = false;
 }
 
-void UBTDecorator_Loop::OnNodeActivation(FBehaviorTreeSearchData& SearchData) const
+void UBTDecorator_Loop::OnNodeActivation(FBehaviorTreeSearchData& SearchData)
 {
 	FBTLoopDecoratorMemory* DecoratorMemory = GetNodeMemory<FBTLoopDecoratorMemory>(SearchData);
 	FBTCompositeMemory* ParentMemory = GetParentNode()->GetNodeMemory<FBTCompositeMemory>(SearchData);

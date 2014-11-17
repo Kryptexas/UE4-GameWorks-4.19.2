@@ -36,6 +36,8 @@ public:
 
 	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const OVERRIDE { return EPropertyTableColumnSizeMode::Fill; }
 
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) OVERRIDE {}
+
 	virtual TSharedRef< class IPropertyTable > GetTable() const OVERRIDE { return Table.Pin().ToSharedRef(); }
 
 	virtual float GetWidth() const OVERRIDE { return Width; }
@@ -59,6 +61,9 @@ public:
 
 	virtual void Tick() OVERRIDE {}
 
+	DECLARE_DERIVED_EVENT( FPropertyTableColumn, IPropertyTableColumn::FFrozenStateChanged, FFrozenStateChanged );
+	FFrozenStateChanged* OnFrozenStateChanged() OVERRIDE { return &FrozenStateChanged; }
+
 	// End IPropertyTableColumn Interface
 
 private:
@@ -81,6 +86,8 @@ private:
 
 	/** The width of the column */
 	float Width;
+
+	FFrozenStateChanged FrozenStateChanged;
 };
 
 #undef LOCTEXT_NAMESPACE

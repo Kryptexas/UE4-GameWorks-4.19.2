@@ -49,7 +49,7 @@ void UAudioComponent::OnRegister()
 
 	if ( bVisualizeComponent && SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld() )
 	{
-		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional);
+		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
 
 		UpdateSpriteTexture();
 		SpriteComponent->AttachTo(this);
@@ -58,6 +58,8 @@ void UAudioComponent::OnRegister()
 		SpriteComponent->SpriteInfo.Category = TEXT("Misc");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Misc", "Misc" );
 		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
+		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->bUseInEditorScaling = true;
 
 		SpriteComponent->RegisterComponent();
 	}
@@ -622,6 +624,23 @@ void UAudioComponent::SetUISound(bool bInIsUISound)
 		if (ActiveSound)
 		{
 			ActiveSound->bIsUISound = bIsUISound;
+		}
+	}
+}
+
+void UAudioComponent::AdjustAttenuation(const FAttenuationSettings& InAttenuationSettings)
+{
+	bOverrideAttenuation = true;
+	AttenuationOverrides = InAttenuationSettings;
+
+	// TODO - Audio Threading. This call would be a task
+	FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
+	if (AudioDevice != NULL)
+	{
+		FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
+		if (ActiveSound)
+		{
+			ActiveSound->AttenuationSettings = AttenuationOverrides;
 		}
 	}
 }

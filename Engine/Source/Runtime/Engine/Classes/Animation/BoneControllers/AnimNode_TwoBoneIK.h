@@ -18,14 +18,15 @@ struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IK)
 	FBoneReference IKBone;
 
-	/** Effector Location. **/
+	/** Effector Location. Target Location to reach. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=EndEffector, meta=(PinShownByDefault))
 	FVector EffectorLocation;
 
-	/** Effector Location. **/
+	/** Joint Target Location. Location used to orient Joint bone. **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=JointTarget, meta=(PinShownByDefault))
 	FVector JointTargetLocation;
 
+	/** Limits to use if stretching is allowed. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IK)
 	FVector2D StretchLimits;
 
@@ -33,12 +34,15 @@ struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=EndEffector)
 	FName EffectorSpaceBoneName;
 
+	/** Set end bone to use End Effector rotation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=EndEffector)
 	uint32 bTakeRotationFromEffectorSpace:1;
 
+	/** Keep local rotation of end bone */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=EndEffector)
 	uint32 bMaintainEffectorRelRot:1;
 
+	/** Should stretching be allowed, to be prevent over extension */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=IK)
 	uint32 bAllowStretching:1;
 	
@@ -46,11 +50,11 @@ struct ENGINE_API FAnimNode_TwoBoneIK : public FAnimNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=EndEffector)
 	TEnumAsByte<enum EBoneControlSpace> EffectorLocationSpace;
 
-	/** Reference frame of Effector Location. */
+	/** Reference frame of Joint Target Location. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=JointTarget)
 	TEnumAsByte<enum EBoneControlSpace> JointTargetLocationSpace;
 
-	/** If EffectorLocationSpace is a bone, this is the bone to use. **/
+	/** If JointTargetSpaceBoneName is a bone, this is the bone to use. **/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=JointTarget)
 	FName JointTargetSpaceBoneName;
 

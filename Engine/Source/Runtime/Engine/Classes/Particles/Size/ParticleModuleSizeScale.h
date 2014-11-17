@@ -42,7 +42,8 @@ class UParticleModuleSizeScale : public UParticleModuleSizeBase
 
 	// Begin UParticleModule Interface
 	virtual void CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo ) OVERRIDE;
-	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
+	virtual void Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) OVERRIDE;
+	virtual void Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) OVERRIDE;
 	virtual void SetToSensibleDefaults(UParticleEmitter* Owner) OVERRIDE;
 
 #if WITH_EDITOR

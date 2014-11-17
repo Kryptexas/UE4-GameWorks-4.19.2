@@ -74,6 +74,7 @@
     <Compile Include="APIMemberIndex.cs" />
     <Compile Include="APIPage.cs" />
     <Compile Include="APIEventParameters.cs" />
+    <Compile Include="APIGettingStarted.cs" />
     <Compile Include="APIRecord.cs" />
     <Compile Include="APITypeIndex.cs" />
     <Compile Include="BuildTarget.cs" />

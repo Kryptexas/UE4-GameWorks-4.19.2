@@ -12,7 +12,7 @@
 
 #if PLATFORM_DESKTOP
 
-DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogAnalytics, Display, All);
 
 IMPLEMENT_MODULE( FAnalyticsSwrve, AnalyticsSwrve );
 

@@ -78,9 +78,10 @@ inline bool FAndroidTargetDevice::SupportsFeature( ETargetDeviceFeatures::Type F
 
 	case ETargetDeviceFeatures::Reboot:
 		return true;
-	}
 
-	return false;
+	default:
+		return false;
+	}
 }
 
 

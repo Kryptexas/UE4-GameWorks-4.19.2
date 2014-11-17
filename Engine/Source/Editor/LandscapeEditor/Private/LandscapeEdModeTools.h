@@ -605,14 +605,16 @@ struct FHeightmapAccessor
 		{
 			(*It)->UpdateCachedBounds();
 			(*It)->UpdateComponentToWorld();
-
-			ULandscapeHeightfieldCollisionComponent* NavCollisionComp = (*It)->CollisionComponent.Get();
-			if (NavCollisionComp)
+			
+			// Recreate collision for modified components to update the physical materials
+			ULandscapeHeightfieldCollisionComponent* CollisionComponent = (*It)->CollisionComponent.Get();
+			if (CollisionComponent)
 			{
+				CollisionComponent->RecreateCollision(false);
 				UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
 				if (NavSys)
 				{
-					NavSys->UpdateNavOctree(NavCollisionComp);
+					NavSys->UpdateNavOctree(CollisionComponent);
 				}
 			}
 		}
@@ -824,6 +826,16 @@ struct FAlphamapAccessor
 			if( CollisionComponent )
 			{
 				CollisionComponent->RecreateCollision(false);
+				
+				// We need to trigger navigation mesh build, in case user have painted holes on a landscape
+				if (LayerInfo == ALandscapeProxy::DataLayer)
+				{
+					UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
+					if (NavSys)
+					{
+						NavSys->UpdateNavOctree(CollisionComponent);
+					}
+				}
 			}
 		}
 	}

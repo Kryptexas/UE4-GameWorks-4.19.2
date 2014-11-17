@@ -29,6 +29,7 @@
 #endif
 #ifndef UE_ROCKET
 	#define UE_ROCKET					0
+	#error UBT should always define UE_ROCKET to be 0 or 1
 #endif
 #ifndef UE_GAME
 	#define UE_GAME						0
@@ -162,6 +163,10 @@
 	#define USE_LOGGING_IN_SHIPPING 0
 #endif
 
+#ifndef USE_CHECKS_IN_SHIPPING
+	#define USE_CHECKS_IN_SHIPPING 0
+#endif
+
 /*--------------------------------------------------------------------------------
 	Basic options that by default depend on the build configuration and platform
 
@@ -200,7 +205,7 @@
 		#define NO_LOGGING									0
 	#else
 		#define DO_GUARD_SLOW								0
-		#define DO_CHECK									0
+#define DO_CHECK											USE_CHECKS_IN_SHIPPING
 		#define STATS										0
 		#define ALLOW_DEBUG_FILES							0
 		#define NO_LOGGING									!USE_LOGGING_IN_SHIPPING

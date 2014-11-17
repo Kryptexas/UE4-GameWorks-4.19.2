@@ -3,7 +3,7 @@
 #include "UnrealEd.h"
 
 #include "PListNode.h"
-#include "SPListEditor.h"
+#include "SPlistEditor.h"
 
 /** A default function to return an invalid row widget */
 TSharedRef<ITableRow> GenerateInvalidRow(const TSharedRef<STableViewBase>& OwnerTable, const FText& ErrorMessage)

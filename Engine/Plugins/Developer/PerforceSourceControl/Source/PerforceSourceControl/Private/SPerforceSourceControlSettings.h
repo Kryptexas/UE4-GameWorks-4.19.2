@@ -42,16 +42,19 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
+	/** Get the currently entered password */
+	static FString GetPassword();
+
 private:
 
 	/** Fire off a source control operation to see what workspaces we have */
 	void QueryWorkspaces();
 
-	/** Delegate to get host text from settings */
-	FText GetHostText() const;
+	/** Delegate to get port text from settings */
+	FText GetPortText() const;
 
-	/** Delegate to commit host text to settings */
-	void OnHostTextCommited(const FText& InText, ETextCommit::Type InCommitType) const;
+	/** Delegate to commit port text to settings */
+	void OnPortTextCommited(const FText& InText, ETextCommit::Type InCommitType) const;
 
 	/** Delegate to get user name text from settings */
 	FText GetUserNameText() const;
@@ -64,6 +67,12 @@ private:
 
 	/** Delegate to commit workspace text to settings */
 	void OnWorkspaceTextCommited(const FText& InText, ETextCommit::Type InCommitType) const;
+
+	/** Delegate to get host text from settings */
+	FText GetHostText() const;
+
+	/** Delegate to commit host text to settings */
+	void OnHostTextCommited(const FText& InText, ETextCommit::Type InCommitType) const;
 
 	/** Delegate called when a source control operation has completed */
 	void OnSourceControlOperationComplete(const FSourceControlOperationRef& InOperation, ECommandResult::Type InResult);
@@ -92,6 +101,15 @@ private:
 	/** Delegate that cancels the workspace request in progress */
 	FReply OnCancelWorkspacesRequest();
 
+	/** Get the image to display on the advanced pulldown */
+	const FSlateBrush* GetAdvancedPulldownImage() const;
+
+	/** Get the visibility of the advanced settings */
+	EVisibility GetAdvancedSettingsVisibility() const;
+
+	/** Toggle advanced settings */
+	FReply OnAdvancedSettingsClicked();
+
 private:
 	/** State of the source control operation */
 	ESourceControlOperationState::Type State;
@@ -107,4 +125,13 @@ private:
 
 	/** The source control operation in progress */
 	TSharedPtr<FGetWorkspaces, ESPMode::ThreadSafe> GetWorkspacesOperation;
+
+	/** Pointer to the password text box widget */
+	static TWeakPtr<class SEditableTextBox> PasswordTextBox;
+
+	/** Expander button for advanced settings */
+	TSharedPtr<SButton> ExpanderButton;
+
+	/** Whether to expand advanced settings */
+	bool bAreAdvancedSettingsExpanded;
 };

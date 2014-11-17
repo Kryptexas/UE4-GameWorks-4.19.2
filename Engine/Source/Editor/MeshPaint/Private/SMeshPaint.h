@@ -287,6 +287,30 @@ protected:
 	/** Saves the packages associated with passed in objects */
 	bool SavePackagesForObjects( TArray<UObject*>& InObjects );
 
+	/** Determines whether there are multiple actors selected by the MeshPaintTool */
+	bool HasMultipleActorsSelected() const;
+
+	/** Returns a menu containing the currently selected meshes */
+	TSharedRef<SWidget> GetActorSelectionMenu();
+
+	/** Returns the currently editing actors label */
+	FString GetEditingActorLabel() const;
+
+	/** Called upon the user changing which mesh they wish to act upon */
+	void OnSetEditingActor( TWeakObjectPtr<AActor> InActor );
+
+	/** Determines whether the currently editing mesh has multiple materials */
+	bool HasMultipleMaterialSlots() const;
+
+	/** Returns a menu containing the currently editing meshes materials */
+	TSharedRef<SWidget> GetMaterialSelectionMenu();
+
+	/** Returns the currently editing materials index */
+	FString GetEditingMaterial() const;
+
+	/** Called upon the user changing which material they wish to edit */
+	void OnSetEditingMaterial(int32 NewMaterialIndex);
+
 protected:
 
 	/** Holds the current radio button choice for which color will be set when using the color picker */

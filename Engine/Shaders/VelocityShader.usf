@@ -178,11 +178,6 @@ void MainVertexShader(
 // xy for the instance scale, zw for the camera scale (includes y flip for both scale)
 float4 IndividualVelocityScale;
  
-#if PS4_PROFILE
-#define SLOT0_16_UNORM  1
-#include "PS4/PS4Pragmas.usf"
-#endif
-
 void MainPixelShader(
 	FVelocityInterpsVSToPS Input,
 	float4	PixelPosition	: SV_POSITION,
@@ -206,7 +201,3 @@ void MainPixelShader(
 	OutColor.zw = float2(0, 0);
 }
 
-#if PS4_PROFILE
-#define SLOT_RESET 1
-#include "PS4/PS4Pragmas.usf"
-#endif

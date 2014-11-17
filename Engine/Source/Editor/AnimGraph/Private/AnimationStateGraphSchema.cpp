@@ -30,12 +30,14 @@ void UAnimationStateGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) con
 
 void UAnimationStateGraphSchema::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const
 {
-	DisplayInfo.DisplayName = FText::FromString( Graph.GetName() );
+	DisplayInfo.PlainName = FText::FromString( Graph.GetName() );
 
 	if (const UAnimStateNode* StateNode = Cast<const UAnimStateNode>(Graph.GetOuter()))
 	{
-		DisplayInfo.DisplayName = FText::Format( LOCTEXT("StateNameGraphTitle", "{0} (state)"), FText::FromString( StateNode->GetStateName() ) );
+		DisplayInfo.PlainName = FText::Format( LOCTEXT("StateNameGraphTitle", "{0} (state)"), FText::FromString( StateNode->GetStateName() ) );
 	}
+
+	DisplayInfo.DisplayName = DisplayInfo.PlainName;
 }
 
 #undef LOCTEXT_NAMESPACE

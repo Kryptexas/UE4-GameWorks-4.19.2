@@ -2,17 +2,16 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "ModuleManager.h"
-#include "Online.h"
 #include "TestIdentityInterface.h"
 
-void FTestIdentityInterface::Test(const FOnlineAccountCredentials& InAccountCredentials)
+void FTestIdentityInterface::Test(UWorld* InWorld, const FOnlineAccountCredentials& InAccountCredentials)
 {
 	// Toggle the various tests to run
 	bRunLoginTest = true;
 
 	AccountCredentials = InAccountCredentials;
 
-	OnlineIdentity = Online::GetIdentityInterface(SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
+	OnlineIdentity = Online::GetIdentityInterface(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
 	if (OnlineIdentity.IsValid())
 	{
 		// Add delegates for the various async calls

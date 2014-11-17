@@ -104,7 +104,7 @@ void SPluginsEditor::Construct( const FArguments& Args )
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("PluginSettingsRestartNotice", "Unreal Editor must be restarted for the plugin changes to take effect.").ToString())
+						.Text(LOCTEXT("PluginSettingsRestartNotice", "Unreal Editor must be restarted for the plugin changes to take effect."))
 					]
 
 					+SHorizontalBox::Slot()
@@ -113,7 +113,7 @@ void SPluginsEditor::Construct( const FArguments& Args )
 					.HAlign(HAlign_Right)
 					[
 						SNew(SButton)
-						.Text(LOCTEXT("PluginSettingsRestartEditor", "Restart Now").ToString())
+						.Text(LOCTEXT("PluginSettingsRestartEditor", "Restart Now"))
 						.OnClicked(this, &SPluginsEditor::HandleRestartEditorButtonClicked)
 					]
 				]
@@ -196,7 +196,7 @@ void SPluginsEditor::RefreshBreadcrumbTrail()
 			const auto& Category = *CategoryIt;
 
 			FPluginCategoryBreadcrumbPtr NewBreadcrumb( new FPluginCategoryBreadcrumb( Category ) );
-			BreadcrumbTrail->PushCrumb( Category->GetCategoryName(), NewBreadcrumb );
+			BreadcrumbTrail->PushCrumb( Category->GetCategoryDisplayName(), NewBreadcrumb );
 		}
 	}
 

@@ -95,7 +95,10 @@ static UProperty* GetReplicatedProperty(UClass* CallingClass, UClass* PropClass,
 #define DOREPLIFETIME_CONDITION(c,v,cond) \
 { \
 	static UProperty* sp##v = GetReplicatedProperty(StaticClass(), c::StaticClass(),GET_MEMBER_NAME_CHECKED(c,v)); \
-	OutLifetimeProps.AddUnique( FLifetimeProperty( sp##v->RepIndex, cond ) ); \
+	for ( int32 i = 0; i < sp##v->ArrayDim; i++ )										\
+	{																					\
+		OutLifetimeProps.AddUnique( FLifetimeProperty( sp##v->RepIndex + i, cond ) );	\
+	}																					\
 }
 
 #define DOREPLIFETIME_ACTIVE_OVERRIDE(c,v,active)	\

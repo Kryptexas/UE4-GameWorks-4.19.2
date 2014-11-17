@@ -38,7 +38,8 @@ class UK2Node_TransitionRuleGetter : public UK2Node
 
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual bool ShowPaletteIconOnNode() const OVERRIDE{ return false; }
 	// End of UEdGraphNode interface
@@ -47,6 +48,6 @@ class UK2Node_TransitionRuleGetter : public UK2Node
 	ANIMGRAPH_API UEdGraphPin* GetOutputPin() const;
 
 	// @todo document
-	ANIMGRAPH_API static FString GetFriendlyName(ETransitionGetter::Type TypeID);
+	ANIMGRAPH_API static FText GetFriendlyName(ETransitionGetter::Type TypeID);
 };
 

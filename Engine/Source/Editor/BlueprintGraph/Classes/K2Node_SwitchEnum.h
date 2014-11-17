@@ -26,10 +26,10 @@ class UK2Node_SwitchEnum : public UK2Node_Switch, public INodeDependingOnEnumInt
 	virtual bool ShouldBeReconstructedAfterEnumChanged() const OVERRIDE {return true;}
 	// End of INodeDependingOnEnumInterface
 
-#if WITH_EDITOR
 	// UEdGraphNode interface
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }	
 	// End of UEdGraphNode interface
 
@@ -52,5 +52,4 @@ protected:
 	
 	/** Don't support removing pins from an enum */
 	virtual void RemovePin(UEdGraphPin* TargetPin) OVERRIDE {}
-#endif 
 };

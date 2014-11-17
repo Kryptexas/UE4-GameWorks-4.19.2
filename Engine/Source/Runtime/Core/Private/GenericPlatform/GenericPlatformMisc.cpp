@@ -12,6 +12,8 @@
 #include "ModuleManager.h"
 #include "VarargsHelper.h"
 #include "SecureHash.h"
+#include "Containers/Map.h"
+#include "../../Launch/Resources/Version.h"
 
 #include "UProjectInfo.h"
 
@@ -220,6 +222,11 @@ void FGenericPlatformMisc::LowLevelOutputDebugStringf(const TCHAR *Fmt, ... )
 	);
 }
 
+void FGenericPlatformMisc::SetUTF8Output()
+{
+	// assume that UTF-8 is possible by default anyway
+}
+
 void FGenericPlatformMisc::LocalPrint( const TCHAR* Str )
 {
 #if PLATFORM_USE_LS_SPEC_FOR_WIDECHAR
@@ -362,42 +369,27 @@ const TCHAR* FGenericPlatformMisc::EngineDir()
 	if (EngineDirectory.Len() == 0)
 	{
 		// See if we are a root-level project
-		FString CheckDir = TEXT("../../../Engine/");
+		FString DefaultEngineDir = TEXT("../../../Engine/");
 #if PLATFORM_DESKTOP
 		//@todo. Need to have a define specific for this scenario??
-		if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(CheckDir / TEXT("Binaries"))))
+		if (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(DefaultEngineDir / TEXT("Binaries"))))
 		{
-			EngineDirectory = CheckDir;
+			EngineDirectory = DefaultEngineDir;
 		}
-		else
+		else if (GForeignEngineDir != NULL && FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(FString(GForeignEngineDir) / TEXT("Binaries"))))
 		{
-#ifdef UE_ENGINE_DIRECTORY
-			CheckDir = TEXT( PREPROCESSOR_TO_STRING(UE_ENGINE_DIRECTORY) );
-#endif
-			if ((CheckDir.Len() == 0) || 
-				(FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(CheckDir / TEXT("Binaries"))) == false))
-			{
-				// Try using the registry to find the 'installed' version
-				CheckDir = FRocketSupport::GetInstalledEngineDirectory();
-				if ((CheckDir.Len() != 0) && (FPlatformFileManager::Get().GetPlatformFile().DirectoryExists(*(CheckDir / TEXT("Binaries")))))
-				{
-					EngineDirectory = CheckDir;
-				}
-			}
-			else
-			{
-				EngineDirectory = CheckDir;
-			}
+			EngineDirectory = GForeignEngineDir;
 		}
-#else
-		EngineDirectory = CheckDir;
-#endif
+
 		if (EngineDirectory.Len() == 0)
 		{
 			// Temporary work-around for legacy dependency on ../../../ (re Lightmass)
-			EngineDirectory = TEXT("../../../Engine/");
+			EngineDirectory = DefaultEngineDir;
 			UE_LOG(LogGenericPlatformMisc, Warning, TEXT("Failed to determine engine directory: Defaulting to %s"), *EngineDirectory);
 		}
+#else
+		EngineDirectory = DefaultEngineDir;
+#endif
 	}
 	return *EngineDirectory;
 }
@@ -424,23 +416,8 @@ void GenericPlatformMisc_GetProjectFilePathGameDir(FString& OutGameDir)
 	FString BasePath = FPaths::GetPath(FPaths::GetProjectFilePath());
 	FPaths::NormalizeFilename(BasePath);
 	BasePath = FFileManagerGeneric::DefaultConvertToRelativePath(*BasePath);
-	OutGameDir = FString::Printf(TEXT("%s/"), *BasePath);
-}
-
-void GenericPlatformMisc_GetAppUserGameDir(FString& OutGameDir)
-{
-	// Without a game name, use the application settings directory in rocket
-	FString AppSettingsDir = FPlatformProcess::ApplicationSettingsDir();
-	FPaths::NormalizeFilename(AppSettingsDir);
-	AppSettingsDir = FFileManagerGeneric::DefaultConvertToRelativePath(*AppSettingsDir);
-	if (AppSettingsDir.EndsWith(TEXT("/")) == false)
-	{
-		AppSettingsDir.AppendChar(TEXT('/'));
-	}
-
-	AppSettingsDir += TEXT("Engine/");
-
-	OutGameDir = AppSettingsDir;
+	if(!BasePath.EndsWith("/")) BasePath += TEXT("/");
+	OutGameDir = BasePath;
 }
 
 const TCHAR* FGenericPlatformMisc::GameDir()
@@ -460,15 +437,15 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 	if (GameDir.Len() == 0)
 	{
 		GameDir = OverrideGameDir;
-				}
+	}
 
 	if (GameDir.Len() == 0)
-				{
+	{
 		if (FPlatformProperties::IsProgram())
-			{
-				// monolithic, game-agnostic executables, the ini is in Engine/Config/Platform
-				GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), GGameName);
-			}
+		{
+			// monolithic, game-agnostic executables, the ini is in Engine/Config/Platform
+			GameDir = FString::Printf(TEXT("../../../Engine/Programs/%s/"), GGameName);
+		}
 		else
 		{
 			if (FPaths::IsProjectFilePathSet())
@@ -539,14 +516,13 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 #endif
 				}
 			}
-			else if ( FRocketSupport::IsRocket() ) 
-			{
-				GenericPlatformMisc_GetAppUserGameDir(GameDir);
-			}
 			else
 			{
-				// Not a program, no project file, no game name, not rocket... use the engine dir
-				GameDir = FPaths::EngineDir();
+				// Get a writable engine directory
+				GameDir = FPaths::EngineUserDir();
+				FPaths::NormalizeFilename(GameDir);
+				GameDir = FFileManagerGeneric::DefaultConvertToRelativePath(*GameDir);
+				if(!GameDir.EndsWith(TEXT("/"))) GameDir += TEXT("/");
 			}
 		}
 	}
@@ -685,6 +661,11 @@ void FGenericPlatformMisc::GetValidTargetPlatforms(class TArray<class FString>& 
 	TargetPlatformNames.Add(FPlatformProperties::PlatformName());
 }
 
+const TCHAR* FGenericPlatformMisc::GetDefaultPathSeparator()
+{
+	return TEXT( "/" );
+}
+
 FString FGenericPlatformMisc::GetDefaultLocale()
 {
 #if UE_ENABLE_ICU
@@ -694,3 +675,4 @@ FString FGenericPlatformMisc::GetDefaultLocale()
 	return TEXT("en");
 #endif
 }
+

@@ -8,6 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_ApplyAdditive
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_ApplyAdditive::UAnimGraphNode_ApplyAdditive(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -20,12 +22,12 @@ FLinearColor UAnimGraphNode_ApplyAdditive::GetNodeTitleColor() const
 
 FString UAnimGraphNode_ApplyAdditive::GetTooltip() const
 {
-	return TEXT("Apply additive animation to normal pose");
+	return LOCTEXT("AnimGraphNode_ApplyAdditive_Tooltip", "Apply additive animation to normal pose").ToString();
 }
 
-FString UAnimGraphNode_ApplyAdditive::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_ApplyAdditive::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return TEXT("Apply Additive");
+	return LOCTEXT("AnimGraphNode_ApplyAdditive_Title", "Apply Additive");
 }
 
 FString UAnimGraphNode_ApplyAdditive::GetNodeCategory() const
@@ -33,3 +35,5 @@ FString UAnimGraphNode_ApplyAdditive::GetNodeCategory() const
 	return TEXT("Blends");
 	//@TODO: TEXT("Apply additive to normal pose"), TEXT("Apply additive pose"));
 }
+
+#undef LOCTEXT_NAMESPACE

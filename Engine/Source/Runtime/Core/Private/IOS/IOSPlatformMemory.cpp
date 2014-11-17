@@ -39,8 +39,8 @@ FPlatformMemoryStats FIOSPlatformMemory::GetStats()
 
 	MemoryStats.AvailablePhysical = FreeMem;
 	MemoryStats.AvailableVirtual = 0;
-	MemoryStats.WorkingSetSize = Info.resident_size;
-	MemoryStats.PagefileUsage = Info.virtual_size;
+	MemoryStats.UsedPhysical = Info.resident_size;
+	MemoryStats.UsedVirtual = Info.virtual_size;
 
 	return MemoryStats;
 }

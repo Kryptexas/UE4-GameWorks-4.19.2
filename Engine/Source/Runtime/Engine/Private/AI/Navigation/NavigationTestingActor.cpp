@@ -37,6 +37,7 @@ ANavigationTestingActor::ANavigationTestingActor(const class FPostConstructIniti
 	bShowNodePool = true;
 	bShowBestPath = true;
 	bShowDiffWithPreviousStep = false;
+	bShouldBeVisibleInGame = false;
 	bGatherDetailedInfo = true;
 	OffsetFromCornersDistance = 0.f;
 
@@ -64,6 +65,8 @@ ANavigationTestingActor::~ANavigationTestingActor()
 #if WITH_EDITOR
 void ANavigationTestingActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
+	static const FName NAME_ShouldBeVisibleInGame = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, bShouldBeVisibleInGame);
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	if (PropertyChangedEvent.Property)
@@ -86,6 +89,10 @@ void ANavigationTestingActor::PostEditChangeProperty(FPropertyChangedEvent& Prop
 			FNavLocation NavLoc;
 			bProjectedLocationValid = GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(GetActorLocation(), NavLoc, QueryingExtent, MyNavData);
 			ProjectedLocation = NavLoc.Location;
+		}
+		else if (ChangedPropName == NAME_ShouldBeVisibleInGame)
+		{
+			bHidden = !bShouldBeVisibleInGame;
 		}
 		else if (ChangedCategory == TEXT("Debug"))
 		{
@@ -126,6 +133,8 @@ void ANavigationTestingActor::PostLoad()
 		TickHelper->Owner = this;
 	}
 #endif
+
+	bHidden = !bShouldBeVisibleInGame;
 }
 
 void ANavigationTestingActor::TickMe()
@@ -247,7 +256,7 @@ void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
 	const double StartTime = FPlatformTime::Seconds();
 
 	FPathFindingResult Result;
-	FPathFindingQuery Query(MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(FilterClass));
+	FPathFindingQuery Query(MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(MyNavData, FilterClass));
 	EPathFindingMode::Type Mode = bUseHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
 	Result = NavSys->FindPathSync(NavAgentProps, Query, Mode);
 	bPathExist = Result.IsSuccessful() || Result.IsPartial();

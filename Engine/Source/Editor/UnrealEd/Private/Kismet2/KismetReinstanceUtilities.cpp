@@ -216,6 +216,9 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 	TMap<UClass*, UClass*> OldToNewClassMap;
 	OldToNewClassMap.Add(OldClass, NewClass);
 
+	// Set global flag to let system know we are reconstructing blueprint instances
+	TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
+
 	TArray<UObject*> ObjectsToReplace;
 	for( TObjectIterator<UObject> It; It; ++It )
 	{

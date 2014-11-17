@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "EngineLevelScriptClasses.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 
@@ -16,6 +16,7 @@ AGameMode::AGameMode(const class FPostConstructInitializeProperties& PCIP)
 	)
 {
 	bDelayedStart = false;
+	bNetLoadOnClient = false;
 
 	// One-time initialization
 	PrimaryActorTick.bCanEverTick = true;
@@ -121,22 +122,24 @@ void AGameMode::ForceClearUnpauseDelegates( AActor* PauseActor )
 
 void AGameMode::InitGame( const FString& MapName, const FString& Options, FString& ErrorMessage )
 {
+	UWorld* World = GetWorld();
+
 	// save Options for future use
 	OptionsString = Options;
 
 	UClass* const SessionClass = GetGameSessionClass();
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;
-	GameSession = GetWorld()->SpawnActor<AGameSession>( SessionClass, SpawnInfo );
+	GameSession = World->SpawnActor<AGameSession>( SessionClass, SpawnInfo );
 	GameSession->InitOptions(Options);
 
 	if (GetNetMode() != NM_Standalone)
 	{
 		FOnlineSessionSettings* SessionSettings = NULL;
-		IOnlineSessionPtr Sessions = Online::GetSessionInterface();
-		if (Sessions.IsValid())
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
+		if (SessionInt.IsValid())
 		{
-			SessionSettings = Sessions->GetSessionSettings(GameSessionName);
+			SessionSettings = SessionInt->GetSessionSettings(GameSessionName);
 		}
 
 		if (!SessionSettings && !GameSession->ProcessAutoLogin())
@@ -252,6 +255,9 @@ void AGameMode::PostLogin( APlayerController* NewPlayer )
 
 	// Tell the player to enable voice by default or use the push to talk method
 	NewPlayer->ClientEnableNetworkVoice(!GameSession->RequiresPushToTalk());
+
+	// Notify Blueprints that a new player has logged in.  Calling it here, because this is the first time that the PlayerController can take RPCs
+	K2_PostLogin(NewPlayer);
 }
 
 bool AGameMode::ShouldStartInCinematicMode(bool& OutHidePlayer,bool& OutHideHUD,bool& OutDisableMovement,bool& OutDisableTurning)
@@ -310,10 +316,12 @@ void AGameMode::InitGameState()
 
 AActor* AGameMode::FindPlayerStart( AController* Player, const FString& IncomingName )
 {
+	UWorld* World = GetWorld();
+
 	// if incoming start is specified, then just use it
 	if( !IncomingName.IsEmpty() )
 	{
-		for( FActorIterator It(GetWorld()); It; ++It )
+		for( FActorIterator It(World); It; ++It )
 		{
 			APlayerStart* Start = Cast<APlayerStart>(*It);
 			if ( Start && Start->PlayerStartTag == FName(*IncomingName) )
@@ -326,6 +334,7 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 	// always pick StartSpot at start of match
 	if ( ShouldSpawnAtStartSpot(Player) )
 	{
+		// NULL CHECK MISSING!!!!!
 		return Player->StartSpot.Get();
 	}
 
@@ -337,11 +346,12 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 		UE_LOG(LogGameMode, Log, TEXT("Warning - PATHS NOT DEFINED or NO PLAYERSTART with positive rating"));
 
 		// Search all loaded levels for possible player start object
-		for ( int32 LevelIndex = 0; LevelIndex < GetWorld()->GetNumLevels(); ++LevelIndex )
+		for ( int32 LevelIndex = 0; LevelIndex < World->GetNumLevels(); ++LevelIndex )
 		{
-			ULevel* Level = GetWorld()->GetLevel( LevelIndex );
+			ULevel* Level = World->GetLevel( LevelIndex );
 			for ( int32 ActorIndex = 0; ActorIndex < Level->Actors.Num(); ++ActorIndex )
 			{
+				// BROKEN NOT A NAV OBJECT!!!!!!
 				AActor* NavObject = Level->Actors[ ActorIndex ];
 				if ( NavObject )
 				{
@@ -413,6 +423,8 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 	{
 		return;
 	}
+
+	UE_LOG(LogGameMode, Log, TEXT("RestartPlayer %s"), (NewPlayer && NewPlayer->PlayerState) ? *NewPlayer->PlayerState->PlayerName : TEXT("Unknown"));
 	AActor* StartSpot = FindPlayerStart(NewPlayer);
 
 	// if a start spot wasn't found,
@@ -737,7 +749,7 @@ void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 
 	UE_LOG(LogGameMode, Log, TEXT("ProcessServerTravel: %s"), *URL);
 	UWorld* World = GetWorld(); 
-    check(World);
+	check(World);
 	World->NextURL = URL;
 	ENetMode NetMode = GetNetMode();
 
@@ -761,8 +773,6 @@ void AGameMode::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& Actor
 	// always keep PlayerStates, so that after we restart we can keep players on the same team, etc
 	for (int32 i = 0; i < World->GameState->PlayerArray.Num(); i++)
 	{
-		World->GameState->PlayerArray[i]->bFromPreviousLevel = true;
-		World->GameState->PlayerArray[i]->ForceNetUpdate();
 		ActorList.Add(World->GameState->PlayerArray[i]);
 	}
 
@@ -783,13 +793,14 @@ void AGameMode::SetBandwidthLimit(float AsyncIOBandwidthLimit)
 	GAsyncIOBandwidthLimit = AsyncIOBandwidthLimit;
 }
 
-void AGameMode::InitNewPlayer(AController* NewPlayer, const FString& Options) {}
+void AGameMode::InitNewPlayer(AController* NewPlayer, const TSharedPtr<FUniqueNetId>& UniqueId, const FString& Options)
+{
+}
 
 bool AGameMode::MustSpectate(APlayerController* NewPlayer)
 {
 	return NewPlayer->PlayerState->bOnlySpectator;
 }
-
 
 APlayerController* AGameMode::Login(const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
@@ -810,7 +821,7 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 	}
 
 	// Customize incoming player based on URL options
-	InitNewPlayer(NewPlayer, Options);
+	InitNewPlayer(NewPlayer, UniqueId, Options);
 
 	// Find a start spot.
 	AActor* const StartSpot = FindPlayerStart( NULL, Portal );
@@ -832,7 +843,7 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 	FString InName = ParseOption( Options, TEXT("Name")).Left(20);
 	if( InName.IsEmpty() )
 	{
-		InName=FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayer->PlayerState->PlayerId);
+		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayer->PlayerState->PlayerId);
 	}
 	ChangeName( NewPlayer, InName, false );
 
@@ -850,6 +861,8 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 		NewPlayer->ChangeState(NAME_Spectating);
 		return NewPlayer;
 	}
+
+
 
 	return NewPlayer;
 }
@@ -1112,9 +1125,9 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 
 		if (GetWorld()->StreamingLevels.Num() > 0)
 		{
-	 		// Tell the player controller the current streaming level status
-	 		for (int32 LevelIndex = 0; LevelIndex < GetWorld()->StreamingLevels.Num(); LevelIndex++)
-	 		{
+			// Tell the player controller the current streaming level status
+			for (int32 LevelIndex = 0; LevelIndex < GetWorld()->StreamingLevels.Num(); LevelIndex++)
+			{
 				// streamingServer
 				ULevelStreaming* TheLevel = GetWorld()->StreamingLevels[LevelIndex];
 
@@ -1130,15 +1143,15 @@ void AGameMode::ReplicateStreamingStatus(APlayerController* PC)
 						*GetNameSafe(LoadedLevel),
 						TheLevel->bHasLoadRequestPending);
 
-	 				PC->ClientUpdateLevelStreamingStatus(
-	 					TheLevel->PackageName,
-	 					TheLevel->bShouldBeLoaded,
-	 					TheLevel->bShouldBeVisible,
-	 					TheLevel->bShouldBlockOnLoad,
+					PC->ClientUpdateLevelStreamingStatus(
+						TheLevel->PackageName,
+						TheLevel->bShouldBeLoaded,
+						TheLevel->bShouldBeVisible,
+						TheLevel->bShouldBlockOnLoad,
 						TheLevel->GetLODIndex(GetWorld()));
-	 			}
+				}
 			}
-	 		PC->ClientFlushLevelStreaming();
+			PC->ClientFlushLevelStreaming();
 		}
 
 		// if we're preparing to load different levels using PrepareMapChange() inform the client about that now
@@ -1158,6 +1171,9 @@ void AGameMode::GenericPlayerInitialization(AController* C)
 	APlayerController* PC = Cast<APlayerController>(C);
 	if (PC != NULL)
 	{
+		// Notify the game that we can now be muted and mute others
+		UpdateGameplayMuteList(PC);
+
 		ReplicateStreamingStatus(PC);
 	}
 }
@@ -1292,6 +1308,15 @@ bool AGameMode::PlayerCanRestartGame( APlayerController* aPlayer )
 bool AGameMode::PlayerCanRestart( APlayerController* aPlayer )
 {
 	return true;
+}
+
+void AGameMode::UpdateGameplayMuteList( APlayerController* aPlayer )
+{
+	if (aPlayer)
+	{
+		aPlayer->MuteList.bHasVoiceHandshakeCompleted = true;
+		aPlayer->ClientVoiceHandshakeComplete();
+	}
 }
 
 bool AGameMode::AllowCheats(APlayerController* P)
@@ -1455,10 +1480,9 @@ bool AGameMode::ReadyToStartMatch()
 	return (bWaitingToStartMatch && NumPlayers + NumBots > 0);
 }
 
-void AGameMode::MatineeCancelled() {}
-
-void AGameMode::OnEngineHasLoaded() {}
-
+void AGameMode::MatineeCancelled()
+{
+}
 
 FString AGameMode::StaticGetFullGameClassName(FString const& Str)
 {

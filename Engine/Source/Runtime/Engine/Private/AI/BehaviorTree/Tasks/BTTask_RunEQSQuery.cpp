@@ -14,7 +14,7 @@ UBTTask_RunEQSQuery::UBTTask_RunEQSQuery(const class FPostConstructInitializePro
 	}
 }
 
-EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	AActor* QueryOwner = OwnerComp->GetOwner();
 	if (AController* ControllerOwner = Cast<AController>(QueryOwner))
@@ -38,7 +38,7 @@ EBTNodeResult::Type UBTTask_RunEQSQuery::ExecuteTask(class UBehaviorTreeComponen
 	return EBTNodeResult::Failed;
 }
 
-EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_RunEQSQuery::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	UWorld* MyWorld = OwnerComp->GetWorld();
 	UEnvQueryManager* QueryManager = MyWorld->GetEnvironmentQueryManager();
@@ -103,7 +103,7 @@ void UBTTask_RunEQSQuery::OnQueryFinished(TSharedPtr<struct FEnvQueryResult> Res
 		if (!bSuccess)
 		{
 			UE_VLOG(MyOwner, LogBehaviorTree, Warning, TEXT("Failed to store query result! item:%s key:%s"),
-				*UEnvQueryTypes::GetShortTypeName(Result->ItemType),
+				*UEnvQueryTypes::GetShortTypeName(Result->ItemType).ToString(),
 				*UBehaviorTreeTypes::GetShortTypeName(BlackboardKey.SelectedKeyType));
 		}
 	}

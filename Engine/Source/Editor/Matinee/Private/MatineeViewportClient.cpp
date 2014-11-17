@@ -19,7 +19,6 @@ FMatineeViewportClient::FMatineeViewportClient( class FMatinee* InMatinee )
 
 	// Set defaults for members.  These should be initialized by the owner after construction.
 	bIsDirectorTrackWindow = false;
-	bWantFilterTabs = false;
 	bWantTimeline = false;
 
 	// Scroll bar starts at the top of the list!
@@ -49,6 +48,18 @@ FMatineeViewportClient::FMatineeViewportClient( class FMatinee* InMatinee )
 
 	// Cache the font to use for drawing labels.
 	LabelFont = GEditor->EditorFont;
+	
+	CamLockedIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_View_On.MAT_Groups_View_On"), NULL, LOAD_None, NULL ));	
+	CamUnlockedIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_View_Off.MAT_Groups_View_Off"), NULL, LOAD_None, NULL ));	
+	ForwardEventOnTex = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Right_On.MAT_Groups_Right_On"), NULL, LOAD_None, NULL ));
+	ForwardEventOffTex = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Right_Off.MAT_Groups_Right_Off"), NULL, LOAD_None, NULL ));
+	BackwardEventOnTex = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Left_On.MAT_Groups_Left_On"), NULL, LOAD_None, NULL ));
+	BackwardEventOffTex = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Left_Off.MAT_Groups_Left_Off"), NULL, LOAD_None, NULL ));
+	DisableTrackTex = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/Cascade/CASC_ModuleEnable.CASC_ModuleEnable"), NULL, LOAD_None, NULL ));
+	GraphOnTex = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Graph_On.MAT_Groups_Graph_On"), NULL, LOAD_None, NULL ));
+	GraphOffTex = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Graph_Off.MAT_Groups_Graph_Off"), NULL, LOAD_None, NULL ));
+	TrajectoryOnTex = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Graph_On.MAT_Groups_Graph_On"), NULL, LOAD_None, NULL ));
+	
 }
 
 FMatineeViewportClient::~FMatineeViewportClient()
@@ -155,7 +166,6 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 
 	bool bClickedTrackViewport = false;
 
-	Viewport->InvalidateHitProxy();
 	if( Key == EKeys::LeftMouseButton )
 	{
 		switch( Event )
@@ -518,12 +528,6 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 							InterpEd->BeginMoveMarker();
 							bGrabbingMarker = true;
 						}
-						else if(HitResult->IsA(HMatineeTab::StaticGetType()))
-						{
-							InterpEd->SetSelectedFilter(((HMatineeTab*)HitResult)->Filter);
-
-							Viewport->Invalidate();	
-						}
 						else if(HitResult->IsA(HMatineeTrackDisableTrackBtn::StaticGetType()))
 						{
 							HMatineeTrackDisableTrackBtn* TrackProxy = ((HMatineeTrackDisableTrackBtn*)HitResult);
@@ -600,6 +604,8 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 			break;
 		case IE_DoubleClick:
 			{
+				Viewport->InvalidateHitProxy();
+
 				HHitProxy*	HitResult = Viewport->GetHitProxy(HitX,HitY);
 
 				if(HitResult)
@@ -618,6 +624,8 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 			break;
 		case IE_Released:
 			{
+				Viewport->InvalidateHitProxy();
+
 				if(bBoxSelecting)
 				{
 					const int32 MinX = FMath::Min(BoxStartX, BoxEndX);
@@ -799,7 +807,7 @@ bool FMatineeViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, F
 
 		case IE_Released:
 			{
-				
+				Viewport->InvalidateHitProxy();
 			}
 			break;
 		}
@@ -860,7 +868,7 @@ void FMatineeViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y)
 				NewTime = InterpEd->SnapTimeToNearestFrame( NewTime );
 			}
 
-			InterpEd->SetInterpPosition(NewTime);
+			InterpEd->SetInterpPosition( NewTime, true );
 		}
 		else if(bBoxSelecting)
 		{
@@ -942,8 +950,6 @@ void FMatineeViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y)
 			InterpEd->SyncCurveEdView();
 		}
 	}
-
-	Viewport->Invalidate();
 }
 
 bool FMatineeViewportClient::InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
@@ -1040,7 +1046,6 @@ void FMatineeViewportClient::Tick(float DeltaSeconds)
 		}
 	}
 
-	Viewport->Invalidate();
 	Viewport->Draw();
 
 	//check to see if we need to update the scrollbars due to a size change

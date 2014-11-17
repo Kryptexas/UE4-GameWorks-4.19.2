@@ -94,14 +94,14 @@ void FMainFrameCommands::RegisterCommands()
 
 	ActionList->MapAction( FGenericCommands::Get().Redo, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ExecuteExecCommand, FString( TEXT("TRANSACTION REDO") ) ), FCanExecuteAction::CreateStatic( &FMainFrameActionCallbacks::Redo_CanExecute ) );
 
-	UI_COMMAND( OpenDeviceManager, "Device Manager", "Opens up the device manager app", EUserInterfaceActionType::Check, FInputGesture() );
-	ActionList->MapAction( OpenDeviceManager, 
+	UI_COMMAND( OpenDeviceManagerApp, "Device Manager", "Opens up the device manager app", EUserInterfaceActionType::Check, FInputGesture() );
+	ActionList->MapAction( OpenDeviceManagerApp, 
 												FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::OpenSlateApp, FName( TEXT( "DeviceManager" ) ) ),
 												FCanExecuteAction(),
 												FIsActionChecked::CreateStatic( &FMainFrameActionCallbacks::OpenSlateApp_IsChecked, FName( TEXT( "DeviceManager" ) ) ) );
 
-	UI_COMMAND( OpenSessionManager, "Session Manager", "Opens up the session manager app", EUserInterfaceActionType::Check, FInputGesture() );
-	ActionList->MapAction( OpenSessionManager, 
+	UI_COMMAND( OpenSessionManagerApp, "Session Manager", "Opens up the session manager app", EUserInterfaceActionType::Check, FInputGesture() );
+	ActionList->MapAction( OpenSessionManagerApp, 
 												FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::OpenSlateApp, FName( "SessionFrontend" ) ),
 												FCanExecuteAction(),
 												FIsActionChecked::CreateStatic( &FMainFrameActionCallbacks::OpenSlateApp_IsChecked, FName("SessionFrontend" ) ) );
@@ -127,6 +127,9 @@ void FMainFrameCommands::RegisterCommands()
 	UI_COMMAND( AboutUnrealEd, "About Editor...", "Displays application credits and copyright information", EUserInterfaceActionType::Button, FInputGesture() );
 	ActionList->MapAction( AboutUnrealEd, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::AboutUnrealEd_Execute ) );
 
+	UI_COMMAND( ResetLayout, "Reset Layout...", "Make a backup of your user settings and reset the layout customizations", EUserInterfaceActionType::Button, FInputGesture() );
+	ActionList->MapAction( ResetLayout, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::ResetLayout) );
+
 	UI_COMMAND( SaveLayout, "Save Layout", "Save the layout customizations", EUserInterfaceActionType::Button, FInputGesture() );
 	ActionList->MapAction( SaveLayout, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::SaveLayout) );
 
@@ -136,6 +139,9 @@ void FMainFrameCommands::RegisterCommands()
 		FCanExecuteAction(),
 		FIsActionChecked::CreateStatic( &FMainFrameActionCallbacks::FullScreen_IsChecked )
 	);
+
+	UI_COMMAND(OpenWidgetReflector, "Open Widget Reflector", "Opens the Widget Reflector", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Shift | EModifierKey::Control , EKeys::W));
+	ActionList->MapAction(OpenWidgetReflector, FExecuteAction::CreateStatic(&FMainFrameActionCallbacks::OpenWidgetReflector_Execute));
 
 	FGlobalEditorCommonCommands::MapActions(ActionList);
 }
@@ -491,7 +497,15 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 
 	FString OutFolderName;
 
-	if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(NULL, LOCTEXT("PackageDirectoryDialogTitle", "Package project...").ToString(), PackagingSettings->StagingDirectory.Path, OutFolderName))
+	void* ParentWindowWindowHandle = nullptr;
+	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
+	const TSharedPtr<SWindow>& MainFrameParentWindow = MainFrameModule.GetParentWindow();
+	if ( MainFrameParentWindow.IsValid() && MainFrameParentWindow->GetNativeWindow().IsValid() )
+	{
+		ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
+	}
+	
+	if (!FDesktopPlatformModule::Get()->OpenDirectoryDialog(ParentWindowWindowHandle, LOCTEXT("PackageDirectoryDialogTitle", "Package project...").ToString(), PackagingSettings->StagingDirectory.Path, OutFolderName))
 	{
 		return;
 	}
@@ -583,14 +597,17 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 		OptionalParams += TEXT(" -UseDebugParamForEditorExe");
 	}
 
+	FString Configuration = FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetEnumName(PackagingSettings->BuildConfiguration);
+	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
+
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -allmaps -stage -archive -archivedirectory=\"%s\" -package -%s -clientconfig=%s -ue4exe=%s %s"),
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -allmaps -stage -archive -archivedirectory=\"%s\" -package -%s -clientconfig=%s -ue4exe=%s %s -utf8output"),
 		FRocketSupport::IsRocket() ? TEXT( "-rocket -nocompile" ) : TEXT( "-nocompileeditor" ),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
 		*PackagingSettings->StagingDirectory.Path,
 		*PlatformName,
-		*FindObject<UEnum>(ANY_PACKAGE, TEXT("EProjectPackagingBuildConfigurations"))->GetEnumString(PackagingSettings->BuildConfiguration),
+		*Configuration,
 		*ExecutableName,
 		*OptionalParams
 	);
@@ -649,6 +666,66 @@ void FMainFrameActionCallbacks::SwitchProjectByIndex( int32 ProjectIndex )
 void FMainFrameActionCallbacks::SwitchProject(const FString& GameOrProjectFileName)
 {
 	FUnrealEdMisc::Get().SwitchProject( GameOrProjectFileName );
+}
+
+void FMainFrameActionCallbacks::OpenBackupDirectory( FString BackupFile )
+{
+	FPlatformProcess::LaunchFileInDefaultExternalApplication(*FPaths::GetPath(FPaths::ConvertRelativePathToFull(BackupFile)));
+}
+
+void FMainFrameActionCallbacks::ResetLayout()
+{
+	if(EAppReturnType::Ok != OpenMsgDlgInt(EAppMsgType::OkCancel, LOCTEXT( "ActionRestartMsg", "This action requires the editor to restart; you will be prompted to save any changes. Continue?" ), LOCTEXT( "ResetUILayout_Title", "Reset UI Layout" ) ) )
+	{
+		return;
+	}
+
+	// make a backup
+	GEditor->SaveEditorUserSettings();
+
+	FString BackupUserSettingsIni = FString::Printf(TEXT("%s_Backup.ini"), *FPaths::GetBaseFilename(GEditorUserSettingsIni, false));
+
+	if( COPY_Fail == IFileManager::Get().Copy(*BackupUserSettingsIni, *GEditorUserSettingsIni) )
+	{
+		FMessageLog EditorErrors("EditorErrors");
+		if(!FPaths::FileExists(GEditorUserSettingsIni))
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("FileName"), FText::FromString(GEditorUserSettingsIni));
+			EditorErrors.Warning(FText::Format(LOCTEXT("UnsuccessfulBackup_NoExist_Notification", "Unsuccessful backup! {FileName} does not exist!"), Arguments));
+		}
+		else if(IFileManager::Get().IsReadOnly(*BackupUserSettingsIni))
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("FileName"), FText::FromString(FPaths::ConvertRelativePathToFull(BackupUserSettingsIni)));
+			EditorErrors.Warning(FText::Format(LOCTEXT("UnsuccessfulBackup_ReadOnly_Notification", "Unsuccessful backup! {FileName} is read-only!"), Arguments));
+		}
+		else
+		{
+			// We don't specifically know why it failed, this is a fallback.
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("SourceFileName"), FText::FromString(GEditorUserSettingsIni));
+			Arguments.Add(TEXT("BackupFileName"), FText::FromString(FPaths::ConvertRelativePathToFull(BackupUserSettingsIni)));
+			EditorErrors.Warning(FText::Format(LOCTEXT("UnsuccessfulBackup_Fallback_Notification", "Unsuccessful backup of {SourceFileName} to {BackupFileName}"), Arguments));
+		}
+		EditorErrors.Notify(LOCTEXT("BackupUnsuccessful_Title", "Backup Unsuccessful!"));
+	}
+	else
+	{
+		FNotificationInfo ErrorNotification( FText::GetEmpty() );
+		ErrorNotification.bFireAndForget = true;
+		ErrorNotification.ExpireDuration = 3.0f;
+		ErrorNotification.bUseThrobber = true;
+		ErrorNotification.Hyperlink = FSimpleDelegate::CreateStatic(&FMainFrameActionCallbacks::OpenBackupDirectory, BackupUserSettingsIni);
+		ErrorNotification.HyperlinkText = LOCTEXT("SuccessfulBackup_Notification_Hyperlink", "Open Directory");
+		ErrorNotification.Text = LOCTEXT("SuccessfulBackup_Notification", "Backup Successful!");
+		ErrorNotification.Image = FEditorStyle::GetBrush(TEXT("NotificationList.SuccessImage"));
+		FSlateNotificationManager::Get().AddNotification(ErrorNotification);
+	}
+
+	// reset layout & restart Editor
+	FUnrealEdMisc::Get().AllowSavingLayoutOnClose(false);
+	FUnrealEdMisc::Get().RestartEditor(false);
 }
 
 void FMainFrameActionCallbacks::SaveLayout()
@@ -832,12 +909,17 @@ void FMainFrameActionCallbacks::AboutUnrealEd_Execute()
 
 	if ( ParentWindow.IsValid() )
 	{
-		FSlateApplication::Get().AddWindowAsNativeChild(AboutWindow.ToSharedRef(), ParentWindow.ToSharedRef());
+		FSlateApplication::Get().AddModalWindow(AboutWindow.ToSharedRef(), ParentWindow.ToSharedRef());
 	}
 	else
 	{
 		FSlateApplication::Get().AddWindow(AboutWindow.ToSharedRef());
 	}
+}
+
+void FMainFrameActionCallbacks::OpenWidgetReflector_Execute()
+{
+	FGlobalTabmanager::Get()->InvokeTab(FTabId("WidgetReflector"));
 }
 
 

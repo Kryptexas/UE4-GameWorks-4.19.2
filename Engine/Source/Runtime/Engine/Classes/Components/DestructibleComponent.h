@@ -57,6 +57,12 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=DestructibleComponent)
 	bool bEnableHardSleeping;
 
+	/**
+	 * The minimum size required to treat chunks as Large.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = DestructibleComponent)
+	float LargeChunkThreshold;
+
 #if WITH_EDITORONLY_DATA
 	/** Provide a blueprint interface for setting the destructible mesh */
 	UPROPERTY(Transient, EditAnywhere, BlueprintReadWrite, Category=DestructibleComponent)
@@ -122,7 +128,6 @@ public:
 
 	virtual bool LineTraceComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionQueryParams& Params ) OVERRIDE;
 	virtual bool SweepComponent( FHitResult& OutHit, const FVector Start, const FVector End, const FCollisionShape& CollisionShape, bool bTraceComplex=false) OVERRIDE;
-	virtual bool ShouldTrackOverlaps() const { return true; };
 	// End UPrimitiveComponent interface.
 
 	// Begin SkinnedMeshComponent interface.
@@ -181,15 +186,16 @@ public:
 	FORCEINLINE static int32 BoneIdxToChunkIdx(int32 BoneIdx) { return FMath::Max(BoneIdx - 1, 0); }
 private:
 	/** Collision response used for chunks */
-	FCollisionResponse ChunkCollisionResponse;
+	FCollisionResponse LargeChunkCollisionResponse;
+	FCollisionResponse SmallChunkCollisionResponse;
 #if WITH_PHYSX
 	/** User data wrapper for this component passed to physx */
 	FPhysxUserData PhysxUserData;
 
 	/** User data wrapper for the chunks passed to physx */
 	TArray<FPhysxUserData> PhysxChunkUserData;
-
-	void SetCollisionResponseForActor(const FCollisionResponse& ColResponse, physx::PxRigidDynamic* Actor, int32 ChunkIdx);
+	bool IsChunkLarge(int32 ChunkIdx) const;
+	void SetCollisionResponseForActor(physx::PxRigidDynamic* Actor, int32 ChunkIdx);
 #endif
 };
 

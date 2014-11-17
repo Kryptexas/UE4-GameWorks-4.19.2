@@ -542,6 +542,7 @@ bool UEdGraphSchema_K2::IsAllowableBlueprintVariableType(const class UClass* InC
 			return true;
 		}
 
+
 		const UClass* ParentClass = InClass;
 		while(ParentClass)
 		{
@@ -573,6 +574,25 @@ bool UEdGraphSchema_K2::DoesGraphSupportImpureFunctions(const UEdGraph* InGraph)
 	const bool bAllowImpureFuncs = GraphType != GT_Animation; //@TODO: It's really more nuanced than this (e.g., in a function someone wants to write as pure)
 
 	return bAllowImpureFuncs;
+}
+
+bool UEdGraphSchema_K2::IsPropertyExposedOnSpawn(const UProperty* Property)
+{
+	if (Property)
+	{
+		const bool bMeta = Property->HasMetaData(FBlueprintMetadata::MD_ExposeOnSpawn);
+		const bool bFlag = Property->HasAllPropertyFlags(CPF_ExposeOnSpawn);
+		if (bMeta != bFlag)
+		{
+			UE_LOG(LogBlueprint, Warning
+				, TEXT("ExposeOnSpawn ambiguity. Property '%s', MetaData '%s', Flag '%s'")
+				, *Property->GetFullName()
+				, bMeta ? *GTrue.ToString() : *GFalse.ToString()
+				, bFlag ? *GTrue.ToString() : *GFalse.ToString());
+		}
+		return bMeta || bFlag;
+	}
+	return false;
 }
 
 // if node is a get/set variable and the variable it refers to does not exist
@@ -632,11 +652,17 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 						    LOCTEXT("BreakLinkTo", "Break Link To..."),
 						    LOCTEXT("BreakSpecificLinks", "Break a specific link..."),
 						    FNewMenuDelegate::CreateUObject( (UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::GetBreakLinkToSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
+
+						MenuBuilder->AddSubMenu(
+							LOCTEXT("JumpToConnection", "Jump to Connection..."),
+							LOCTEXT("JumpToSpecificConnection", "Jump to specific connection..."),
+							FNewMenuDelegate::CreateUObject( (UEdGraphSchema_K2*const)this, &UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
 				    }
 				    else
 				    {
 					    ((UEdGraphSchema_K2*const)this)->GetBreakLinkToSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
-				    }
+						((UEdGraphSchema_K2*const)this)->GetJumpToConnectionSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
+					}
 			    }
     
 			    // Conditionally add the var promotion pin if this is an output pin and it's not an exec pin
@@ -739,10 +765,17 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().AssignReferencedActor);
 					}
 
-					// show search for references for variable nodes
+					// Add the goto source code action for native functions
+					if (InGraphNode->IsA(UK2Node_CallFunction::StaticClass()))
+					{
+						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GotoNativeFunctionDefinition);
+					}
+
+					// show search for references for variable nodes and goto source code action
 					if (InGraphNode->IsA(UK2Node_Variable::StaticClass()))
 					{
 						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().FindVariableReferences);
+						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().GotoNativeVariableDefinition);
 					}
 
 					MenuBuilder->AddMenuEntry(FGenericCommands::Get().Rename, NAME_None, LOCTEXT("Rename", "Rename"), LOCTEXT("Rename_Tooltip", "Renames selected function or variable in blueprint.") );
@@ -879,8 +912,8 @@ void UEdGraphSchema_K2::GetBreakLinkToSubMenuActions( class FMenuBuilder& MenuBu
 	for(TArray<class UEdGraphPin*>::TConstIterator Links(InGraphPin->LinkedTo); Links; ++Links)
 	{
 		UEdGraphPin* Pin = *Links;
-		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
-		FText Title = FText::FromString( TitleString );
+		FText Title = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+		FString TitleString = Title.ToString();
 		if ( Pin->PinName != TEXT("") )
 		{
 			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
@@ -911,6 +944,49 @@ void UEdGraphSchema_K2::GetBreakLinkToSubMenuActions( class FMenuBuilder& MenuBu
 
 		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
 			FExecuteAction::CreateUObject((USoundClassGraphSchema*const)this, &USoundClassGraphSchema::BreakSinglePinLink, const_cast< UEdGraphPin* >(InGraphPin), *Links) ) );
+	}
+}
+
+void UEdGraphSchema_K2::GetJumpToConnectionSubMenuActions( class FMenuBuilder& MenuBuilder, UEdGraphPin* InGraphPin )
+{
+	// Make sure we have a unique name for every entry in the list
+	TMap< FString, uint32 > LinkTitleCount;
+
+	// Add all the links we could break from
+	for(auto PinLink : InGraphPin->LinkedTo )
+	{
+		FText Title = PinLink->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView);
+		FString TitleString = Title.ToString();
+		if ( PinLink->PinName != TEXT("") )
+		{
+			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *PinLink->PinName);
+
+			// Add name of connection if possible
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("NodeTitle"), Title );
+			Args.Add( TEXT("PinName"), FText::FromString( PinLink->PinName ) );
+			Title = FText::Format( LOCTEXT("JumpToDescPin", "{NodeTitle} ({PinName})"), Args );
+		}
+
+		uint32 &Count = LinkTitleCount.FindOrAdd( TitleString );
+
+		FText Description;
+		FFormatNamedArguments Args;
+		Args.Add( TEXT("NodeTitle"), Title );
+		Args.Add( TEXT("NumberOfNodes"), Count );
+
+		if ( Count == 0 )
+		{
+			Description = FText::Format( LOCTEXT("JumpDesc", "Jump to {NodeTitle}"), Args );
+		}
+		else
+		{
+			Description = FText::Format( LOCTEXT("JumpDescMulti", "Jump to {NodeTitle} ({NumberOfNodes})"), Args );
+		}
+		++Count;
+
+		MenuBuilder.AddMenuEntry( Description, Description, FSlateIcon(), FUIAction(
+		FExecuteAction::CreateStatic(&FKismetEditorUtilities::BringKismetToFocusAttentionOnObject, Cast<const UObject>(PinLink), false)));
 	}
 }
 
@@ -1273,6 +1349,19 @@ bool UEdGraphSchema_K2::SearchForAutocastFunction(const UEdGraphPin* OutputPin, 
 		if(InputPin->PinType.PinCategory == PC_String)
 		{
 			TargetFunction = TEXT("Conv_TextToString");
+		}
+	}
+	else if ((OutputPin->PinType.PinCategory == PC_Object) && (InputPin->PinType.PinCategory == PC_Object))
+	{
+		UClass const* OutputClass = Cast<UClass const>(OutputPin->PinType.PinSubCategoryObject.Get());
+		bool const bOutputIsInterface = ((OutputClass != NULL) && OutputClass->IsChildOf(UInterface::StaticClass()));
+
+		UClass const* InputClass = Cast<UClass const>(InputPin->PinType.PinSubCategoryObject.Get());
+		bool const bInputIsUObject = ((InputClass != NULL) && (InputClass == UObject::StaticClass()));
+
+		if (bOutputIsInterface && bInputIsUObject)
+		{
+			TargetFunction = TEXT("Conv_InterfaceToObject");
 		}
 	}
 
@@ -1831,7 +1920,7 @@ FString UEdGraphSchema_K2::GetPinDisplayName(const UEdGraphPin* Pin) const
 
 		if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
 		{
-			DisplayName = EngineUtils::SanitizeDisplayName(DisplayName, Pin->PinType.PinCategory == PC_Boolean);
+			DisplayName = FName::NameToDisplayString(DisplayName, Pin->PinType.PinCategory == PC_Boolean);
 		}
 	}
 	return DisplayName;
@@ -2068,50 +2157,7 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 
 FString UEdGraphSchema_K2::TypeToString(const FEdGraphPinType& Type)
 {
-	FString PropertyString;
-
-	if (Type.PinSubCategoryObject != NULL)
-	{
-		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-		if (Type.PinCategory == Schema->PC_Byte)
-		{
-			PropertyString = FString::Printf(TEXT("enum'%s'"), *Type.PinSubCategoryObject->GetName());
-		}
-		else
-		{
-			if( !Type.bIsWeakPointer )
-			{
-				UClass* PSCOAsClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
-				const bool bIsInterface = PSCOAsClass && PSCOAsClass->HasAnyClassFlags(CLASS_Interface);
-
-				FString CategoryDesc = !bIsInterface ? (*Type.PinCategory) : TEXT("interface");
-				PropertyString = FString::Printf(TEXT("%s'%s'"), *CategoryDesc, *Type.PinSubCategoryObject.Get()->GetName());
-			}
-			else
-			{
-				PropertyString = FString::Printf(TEXT("weak_ptr_%s'%s'"), *Type.PinCategory, *Type.PinSubCategoryObject->GetName());
-			}
-		}
-	}
-	else if (Type.PinSubCategory != TEXT(""))
-	{
-		PropertyString = FString::Printf(TEXT("%s'%s'"), *Type.PinCategory, *Type.PinSubCategory);
-	}
-	else
-	{
-		PropertyString = Type.PinCategory;
-	}
-
-	if (Type.bIsArray)
-	{
-		PropertyString = FString::Printf(TEXT("array[%s]"), *PropertyString);
-	}
-	else if (Type.bIsReference)
-	{
-		PropertyString += TEXT(" (by ref)"); 
-	}
-
-	return PropertyString;
+	return TypeToText(Type).ToString();
 }
 
 FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
@@ -2152,6 +2198,70 @@ FString UEdGraphSchema_K2::TypeToString(UProperty* const Property)
 	{
 		return Property->GetClass()->GetName();
 	}
+}
+
+FText UEdGraphSchema_K2::TypeToText(const FEdGraphPinType& Type)
+{
+	FText PropertyText;
+
+	if (Type.PinSubCategoryObject != NULL)
+	{
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		if (Type.PinCategory == Schema->PC_Byte)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("EnumName"), FText::FromString(Type.PinSubCategoryObject->GetName()));
+			PropertyText = FText::Format(LOCTEXT("EnumAsText", "enum'{EnumName}'"), Args);
+		}
+		else
+		{
+			if( !Type.bIsWeakPointer )
+			{
+				UClass* PSCOAsClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
+				const bool bIsInterface = PSCOAsClass && PSCOAsClass->HasAnyClassFlags(CLASS_Interface);
+
+				FText CategoryDesc = !bIsInterface ? FText::FromString(Type.PinCategory) : LOCTEXT("Interface", "interface");
+
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Category"), CategoryDesc);
+				Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategoryObject.Get()->GetName()));
+				PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{Category}'{ObjectName}'"), Args);
+			}
+			else
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("Category"), FText::FromString(Type.PinCategory));
+				Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategoryObject.Get()->GetName()));
+				PropertyText = FText::Format(LOCTEXT("WeakPtrAsText", "weak_ptr_{Category}'{ObjectName}'"), Args);
+			}
+		}
+	}
+	else if (Type.PinSubCategory != TEXT(""))
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Category"), FText::FromString(Type.PinCategory));
+		Args.Add(TEXT("ObjectName"), FText::FromString(Type.PinSubCategory));
+		PropertyText = FText::Format(LOCTEXT("ObjectAsText", "{Category}'{ObjectName}'"), Args);
+	}
+	else
+	{
+		PropertyText = FText::FromString(Type.PinCategory);
+	}
+
+	if (Type.bIsArray)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PropertyTitle"), PropertyText);
+		PropertyText = FText::Format(LOCTEXT("ArrayAsText", "array[{PropertyTitle}]"), Args);
+	}
+	else if (Type.bIsReference)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("PropertyTitle"), PropertyText);
+		PropertyText = FText::Format(LOCTEXT("PropertyByRef", "{PropertyTitle} (by ref)"), Args);
+	}
+
+	return PropertyText;
 }
 
 void UEdGraphSchema_K2::GetVariableTypeTree( TArray< TSharedPtr<FPinTypeTreeInfo> >& TypeTree, bool bAllowExec, bool bAllowWildCard ) const
@@ -2362,6 +2472,37 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 			return IsIndexWildcardCompatible(Output);
 		}
 
+		return true;
+	}
+
+	// Pins representing BLueprint objects and subclass of UObject can match when EditoronlyBP.bAllowClassObjAndBluepirntPinMatching=true (BaseEngine.ini)
+	// It's required for converting all UBlueprint references into UClass.
+	struct FObjClassAndBlueprintHelper
+	{
+	private:
+		bool bAllow;
+	public:
+		FObjClassAndBlueprintHelper() : bAllow(false)
+		{
+			GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bAllowClassObjAndBluepirntPinMatching"), bAllow, GEditorIni);
+		}
+
+		bool Match(const FEdGraphPinType& A, const FEdGraphPinType& B, const UEdGraphSchema_K2& Schema) const
+		{
+			if (bAllow && (B.PinCategory == Schema.PC_Object) && (A.PinCategory == Schema.PC_Class))
+			{
+				const bool bAIsObjectClass = (UObject::StaticClass() == A.PinSubCategoryObject.Get());
+				const UClass* BClass = Cast<UClass>(B.PinSubCategoryObject.Get());
+				const bool bBIsBlueprintObj = BClass && BClass->IsChildOf(UBlueprint::StaticClass());
+				return bAIsObjectClass && bBIsBlueprintObj;
+			}
+			return false;
+		}
+	};
+
+	static FObjClassAndBlueprintHelper MatchHelper;
+	if (MatchHelper.Match(Input, Output, *this) || MatchHelper.Match(Output, Input, *this))
+	{
 		return true;
 	}
 
@@ -2764,6 +2905,13 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 				bCanPromote = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Class);
 			}	
 		}
+		else if ((PinType.PinCategory == PC_Struct) && (PinType.PinSubCategoryObject != NULL))
+		{
+			if (UScriptStruct* Struct = Cast<UScriptStruct>(PinType.PinSubCategoryObject.Get()))
+			{
+				bCanPromote = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Struct);
+			}
+		}
 	}
 	
 	return bCanPromote;
@@ -2772,7 +2920,7 @@ bool UEdGraphSchema_K2::CanPromotePinToVariable( const UEdGraphPin& Pin ) const
 void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const
 {
 	DisplayInfo.DocLink = TEXT("Shared/Editors/BlueprintEditor/GraphTypes");
-	DisplayInfo.DisplayName = FText::FromString( Graph.GetName() ); // Fallback is graph name
+	DisplayInfo.PlainName = FText::FromString( Graph.GetName() ); // Fallback is graph name
 
 	UFunction* Function = NULL;
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(&Graph);
@@ -2789,8 +2937,8 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 		if (Graph.GetFName() == GN_EventGraph)
 		{
 			// localized name for the first event graph
-			DisplayInfo.DisplayName = LOCTEXT("GraphDisplayName_EventGraph", "EventGraph");
-			DisplayInfo.Tooltip = DisplayInfo.DisplayName.ToString();
+			DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_EventGraph", "EventGraph");
+			DisplayInfo.Tooltip = DisplayInfo.PlainName.ToString();
 		}
 		else
 		{
@@ -2801,7 +2949,7 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 	{
 		if ( Graph.GetFName() == FN_UserConstructionScript )
 		{
-			DisplayInfo.DisplayName = LOCTEXT("GraphDisplayName_ConstructionScript", "ConstructionScript");
+			DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_ConstructionScript", "ConstructionScript");
 
 			DisplayInfo.Tooltip = LOCTEXT("GraphTooltip_ConstructionScript", "Function executed when Blueprint is placed or modified.").ToString();
 			DisplayInfo.DocExcerptName = TEXT("ConstructionScript");
@@ -2831,7 +2979,7 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 	}
 	else if (GraphType == GT_Animation)
 	{
-		DisplayInfo.DisplayName = LOCTEXT("GraphDisplayName_AnimGraph", "AnimGraph");
+		DisplayInfo.PlainName = LOCTEXT("GraphDisplayName_AnimGraph", "AnimGraph");
 
 		DisplayInfo.Tooltip = LOCTEXT("GraphTooltip_AnimGraph", "Graph used to blend together different animations.").ToString();
 		DisplayInfo.DocExcerptName = TEXT("AnimGraph");
@@ -2851,8 +2999,17 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 	// Mark transient graphs as obviously so
 	if (Graph.HasAllFlags(RF_Transient))
 	{
-		DisplayInfo.DisplayName = FText::FromString( FString::Printf(TEXT("$$ %s $$"), *DisplayInfo.DisplayName.ToString()) );
+		DisplayInfo.PlainName = FText::FromString( FString::Printf(TEXT("$$ %s $$"), *DisplayInfo.PlainName.ToString()) );
 		DisplayInfo.Notes.Add(TEXT("intermediate build product"));
+	}
+
+	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )
+	{
+		DisplayInfo.DisplayName = FText::FromString(FName::NameToDisplayString( DisplayInfo.PlainName.ToString(), false ));
+	}
+	else
+	{
+		DisplayInfo.DisplayName = DisplayInfo.PlainName;
 	}
 }
 
@@ -2919,7 +3076,10 @@ void UEdGraphSchema_K2::DroppedAssetsOnGraph(const TArray<FAssetData>& Assets, c
 			// Make sure we have an asset type that's registered with the component list
 			if (DestinationComponentType != NULL)
 			{
-				TSharedPtr<FEdGraphSchemaAction_K2AddComponent> Action = FK2ActionMenuBuilder::CreateAddComponentAction(GetTransientPackage(), Blueprint, DestinationComponentType, Asset);
+				UEdGraph* TempOuter = NewObject<UEdGraph>((UObject*)Blueprint);
+				TempOuter->SetFlags(RF_Transient);
+
+				TSharedPtr<FEdGraphSchemaAction_K2AddComponent> Action = FK2ActionMenuBuilder::CreateAddComponentAction(TempOuter, Blueprint, DestinationComponentType, Asset);
 				Action->PerformAction(Graph, NULL, GraphPosition);
 			}
 		}
@@ -3014,89 +3174,269 @@ bool UEdGraphSchema_K2::FadeNodeWhenDraggingOffPin(const UEdGraphNode* Node, con
 	return false;
 }
 
-void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph) const 
+struct FBackwardCompatibilityConversionHelper
 {
-	if (Graph)
+	static bool ConvertNode(
+		UK2Node* OldNode,
+		const FString& BlueprintPinName,
+		UK2Node* NewNode,
+		const FString& ClassPinName,
+		const UEdGraphSchema_K2& Schema,
+		bool bOnlyWithDefaultBlueprint)
 	{
-		TArray<UK2Node_SpawnActor*> SpawnActorNodes;
-		Graph->GetNodesOfClass(SpawnActorNodes);
-		for(auto It = SpawnActorNodes.CreateIterator(); It; ++It)
+		check(OldNode && NewNode);
+		const auto Blueprint = OldNode->GetBlueprint();
+
+		auto Graph = OldNode->GetGraph();
+		if (!Graph)
 		{
-			UK2Node_SpawnActor* const OldSpawnActor = *It;
-			check(OldSpawnActor);
-			UEdGraphPin* OldBlueprintPin = OldSpawnActor->GetBlueprintPin();
-			check(OldBlueprintPin);
+			UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error bp: '%s' node: '%s'. No graph containing the node."),
+				Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+				*OldNode->GetName(),
+				*BlueprintPinName);
+			return false;
+		}
 
-			if ((0 == OldBlueprintPin->LinkedTo.Num()) && (NULL != OldBlueprintPin->DefaultObject))
+		auto OldBlueprintPin = OldNode->FindPin(BlueprintPinName);
+		if (!OldBlueprintPin)
+		{
+			UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error bp: '%s' node: '%s'. No bp pin found '%s'"),
+				Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+				*OldNode->GetName(),
+				*BlueprintPinName);
+			return false;
+		}
+
+		const bool bNondefaultBPConnected = (OldBlueprintPin->LinkedTo.Num() > 0);
+		const bool bNodeUsesDefaultBlueprint = !bNondefaultBPConnected && OldBlueprintPin->DefaultObject;
+		const bool bTryConvert = bNodeUsesDefaultBlueprint || (!bOnlyWithDefaultBlueprint && bNondefaultBPConnected);
+		if (bTryConvert)
+		{
+			// CREATE NEW NODE
+			NewNode->SetFlags(RF_Transactional);
+			Graph->AddNode(NewNode, false, false);
+			NewNode->CreateNewGuid();
+			NewNode->PostPlacedNewNode();
+			NewNode->AllocateDefaultPins();
+			NewNode->NodePosX = OldNode->NodePosX;
+			NewNode->NodePosY = OldNode->NodePosY;
+
+			const auto ClassPin = NewNode->FindPin(ClassPinName);
+			if (!ClassPin)
 			{
-				const auto SpawnActorFromClass = NewObject<UK2Node_SpawnActorFromClass>(Graph);
-				check(SpawnActorFromClass);
-				SpawnActorFromClass->SetFlags(RF_Transactional);
-				Graph->AddNode(SpawnActorFromClass, false, false);
-				SpawnActorFromClass->CreateNewGuid();
-				SpawnActorFromClass->PostPlacedNewNode();
-				SpawnActorFromClass->AllocateDefaultPins();
-				SpawnActorFromClass->NodePosX = OldSpawnActor->NodePosX;
-				SpawnActorFromClass->NodePosY = OldSpawnActor->NodePosY;
+				UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error bp: '%s' node: '%s'. No class pin found '%s'"),
+					Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+					*NewNode->GetName(),
+					*ClassPinName);
+				return false;
+			}
+			auto TargetClass = Cast<UClass>(ClassPin->PinType.PinSubCategoryObject.Get());
+			if (!TargetClass)
+			{
+				UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error bp: '%s' node: '%s'. No class found '%s'"),
+					Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+					*NewNode->GetName(),
+					*ClassPinName);
+				return false;
+			}
 
-				const auto ClassPin = SpawnActorFromClass->GetClassPin();
-				check(ClassPin);
+			// REPLACE BLUEPRINT WITH CLASS
+			if (!bNondefaultBPConnected)
+			{
+				// DEFAULT VALUE
 				const auto UsedBlueprint = Cast<UBlueprint>(OldBlueprintPin->DefaultObject);
-				check(NULL != UsedBlueprint);
+				if (!UsedBlueprint)
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error bp: '%s' node: '%s'. Wrong blueprint default value"),
+						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+						*OldNode->GetName());
+					return false;
+				}
 				ensure(NULL != *UsedBlueprint->GeneratedClass);
-				const auto Blueprint = OldSpawnActor->GetBlueprint();
-				TrySetDefaultObject(*ClassPin, *UsedBlueprint->GeneratedClass);
+				Schema.TrySetDefaultObject(*ClassPin, *UsedBlueprint->GeneratedClass);
 				if (ClassPin->DefaultObject != *UsedBlueprint->GeneratedClass)
 				{
-					FString ErrorStr = IsPinDefaultValid(ClassPin, FString(), *UsedBlueprint->GeneratedClass, FText());
-					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot set class' in blueprint: %s actor bp: %s, reason: %s"),
+					auto ErrorStr = Schema.IsPinDefaultValid(ClassPin, FString(), *UsedBlueprint->GeneratedClass, FText());
+					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot set class' in blueprint: %s node: '%s' actor bp: %s, reason: %s"),
 						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+						*OldNode->GetName(),
 						UsedBlueprint ? *UsedBlueprint->GetName() : TEXT("Unknown"),
 						ErrorStr.IsEmpty() ? TEXT("Unknown") : *ErrorStr);
+					return false;
+				}
+			}
+			else
+			{
+				// LINK
+				auto CastNode = NewObject<UK2Node_ClassDynamicCast>(Graph);
+				CastNode->TargetType = TargetClass;
+				Graph->AddNode(CastNode, false, false);
+				CastNode->CreateNewGuid();
+				CastNode->PostPlacedNewNode();
+				CastNode->AllocateDefaultPins();
+				const int32 OffsetOnGraph = 200;
+				CastNode->NodePosX = OldNode->NodePosX - OffsetOnGraph;
+				CastNode->NodePosY = OldNode->NodePosY;
+
+				auto ExecPin = OldNode->GetExecPin();
+				auto ExecCastPin = CastNode->GetExecPin();
+				check(ExecCastPin);
+				if (!ExecPin || !Schema.MovePinLinks(*ExecPin, *ExecCastPin).CanSafeConnect())
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot connect' in blueprint: %s, pin: %s"),
+						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+						*ExecCastPin->PinName);
+					return false;
 				}
 
-				TArray<UEdGraphPin*> OldPins;
-				OldPins.Add(OldBlueprintPin);
-				for(auto PinIter = SpawnActorFromClass->Pins.CreateIterator(); PinIter; ++PinIter)
+				auto ValidCastPin = CastNode->GetValidCastPin();
+				check(ValidCastPin);
+				if (!Schema.TryCreateConnection(ValidCastPin, ExecPin))
 				{
-					UEdGraphPin* const Pin = *PinIter;
-					check(Pin);
-					if (ClassPin != Pin)
+					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot connect' in blueprint: %s, pin: %s"),
+						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+						*ValidCastPin->PinName);
+					return false;
+				}
+
+				auto CastSourcePin = CastNode->GetCastSourcePin();
+				check(CastSourcePin);
+				if (!Schema.MovePinLinks(*OldBlueprintPin, *CastSourcePin).CanSafeConnect())
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot connect' in blueprint: %s, pin: %s"),
+						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+						*CastSourcePin->PinName);
+					return false;
+				}
+
+				auto CastResultPin = CastNode->GetCastResultPin();
+				check(CastResultPin);
+				if (!Schema.TryCreateConnection(CastResultPin, ClassPin))
+				{
+					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot connect' in blueprint: %s, pin: %s"),
+						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+						*CastResultPin->PinName);
+					return false;
+				}
+			}
+
+			// MOVE OTHER PINS
+			TArray<UEdGraphPin*> OldPins;
+			OldPins.Add(OldBlueprintPin);
+			for (auto PinIter = NewNode->Pins.CreateIterator(); PinIter; ++PinIter)
+			{
+				UEdGraphPin* const Pin = *PinIter;
+				check(Pin);
+				if (ClassPin != Pin)
+				{
+					const auto OldPin = OldNode->FindPin(Pin->PinName);
+					if (NULL != OldPin)
 					{
-						const auto OldPin = OldSpawnActor->FindPin(Pin->PinName);
-						if(NULL != OldPin)
+						OldPins.Add(OldPin);
+						if (!Schema.MovePinLinks(*OldPin, *Pin).CanSafeConnect())
 						{
-							OldPins.Add(OldPin);
-							if(!MovePinLinks(*OldPin, *Pin).CanSafeConnect())
-							{
-								UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot connect' in blueprint: %s actor bp: %s, pin: %s"), 
-									Blueprint ? *Blueprint->GetName() : TEXT("Unknown"), 
-									UsedBlueprint ? *UsedBlueprint->GetName() : TEXT("Unknown"),
-									*Pin->PinName);
-							}
-						}
-						else
-						{
-							UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'missing old pin' in blueprint: %s actor bp: %s"), 
-								Blueprint ? *Blueprint->GetName() : TEXT("Unknown"), 
-								UsedBlueprint ? *UsedBlueprint->GetName() : TEXT("Unknown"),
-								Pin ? *Pin->PinName : TEXT("Unknown"));
+							UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'cannot connect' in blueprint: %s, pin: %s"),
+								Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+								*Pin->PinName);
 						}
 					}
-				}
-				OldSpawnActor->BreakAllNodeLinks();
-				for(auto PinIter = OldSpawnActor->Pins.CreateIterator(); PinIter; ++PinIter)
-				{
-					if(!OldPins.Contains(*PinIter))
+					else
 					{
-						UEdGraphPin* Pin = *PinIter;
-						UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'missing new pin' in blueprint: %s actor bp: %s"), 
-							Blueprint ? *Blueprint->GetName() : TEXT("Unknown"), 
-							UsedBlueprint ? *UsedBlueprint->GetName() : TEXT("Unknown"),
+						UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'missing old pin' in blueprint: %s"),
+							Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
 							Pin ? *Pin->PinName : TEXT("Unknown"));
 					}
 				}
-				Graph->RemoveNode(OldSpawnActor);
+			}
+			OldNode->BreakAllNodeLinks();
+			for (auto PinIter = OldNode->Pins.CreateIterator(); PinIter; ++PinIter)
+			{
+				if (!OldPins.Contains(*PinIter))
+				{
+					UEdGraphPin* Pin = *PinIter;
+					UE_LOG(LogBlueprint, Warning, TEXT("BackwardCompatibilityNodeConversion Error 'missing new pin' in blueprint: %s"),
+						Blueprint ? *Blueprint->GetName() : TEXT("Unknown"),
+						Pin ? *Pin->PinName : TEXT("Unknown"));
+				}
+			}
+			Graph->RemoveNode(OldNode);
+			return true;
+		}
+		return false;
+	}
+
+	struct FFunctionCallParams
+	{
+		const FName OldFuncName;
+		const FName NewFuncName;
+		const FString& BlueprintPinName;
+		const FString& ClassPinName;
+		const UClass* FuncScope;
+
+		FFunctionCallParams(FName InOldFunc, FName InNewFunc, const FString& InBlueprintPinName, const FString& InClassPinName, const UClass* InFuncScope)
+			: OldFuncName(InOldFunc), NewFuncName(InNewFunc), BlueprintPinName(InBlueprintPinName), ClassPinName(InClassPinName), FuncScope(InFuncScope)
+		{
+			check(FuncScope);
+		}
+
+	};
+
+	static void ConvertFunctionCallNodes(const FFunctionCallParams& ConversionParams, TArray<UK2Node_CallFunction*>& Nodes, UEdGraph* Graph, const UEdGraphSchema_K2& Schema, bool bOnlyWithDefaultBlueprint)
+	{
+		const UFunction* OldFunc = ConversionParams.FuncScope->FindFunctionByName(ConversionParams.OldFuncName);
+		check(OldFunc);
+		const UFunction* NewFunc = ConversionParams.FuncScope->FindFunctionByName(ConversionParams.NewFuncName);
+		check(NewFunc);
+
+		for (auto It = Nodes.CreateIterator(); It; ++It)
+		{
+			if (OldFunc == (*It)->GetTargetFunction())
+			{
+				auto NewNode = NewObject<UK2Node_CallFunction>(Graph);
+				NewNode->SetFromFunction(NewFunc);
+				ConvertNode(*It, ConversionParams.BlueprintPinName, NewNode, 
+					ConversionParams.ClassPinName, Schema, bOnlyWithDefaultBlueprint);
+			}
+		}
+	}
+};
+
+void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph, bool bOnlySafeChanges) const 
+{
+	if (Graph)
+	{
+		{
+			static const FString BlueprintPinName(TEXT("Blueprint"));
+			static const FString ClassPinName(TEXT("Class"));
+			TArray<UK2Node_SpawnActor*> SpawnActorNodes;
+			Graph->GetNodesOfClass(SpawnActorNodes);
+			for (auto It = SpawnActorNodes.CreateIterator(); It; ++It)
+			{
+				FBackwardCompatibilityConversionHelper::ConvertNode(
+					*It, BlueprintPinName, NewObject<UK2Node_SpawnActorFromClass>(Graph),
+					ClassPinName, *this, bOnlySafeChanges);
+			}
+		}
+
+		{
+			TArray<UK2Node_CallFunction*> Nodes;
+			Graph->GetNodesOfClass(Nodes);
+			{
+				static const FString BlueprintPinName(TEXT("Pawn"));
+				static const FString ClassPinName(TEXT("PawnClass"));
+				static const FName OldFuncName(GET_FUNCTION_NAME_CHECKED(UKismetAIHelperLibrary, SpawnAI));
+				static const FName NewFuncName(GET_FUNCTION_NAME_CHECKED(UKismetAIHelperLibrary, SpawnAIFromClass));
+				FBackwardCompatibilityConversionHelper::FFunctionCallParams Params(OldFuncName, NewFuncName, BlueprintPinName, ClassPinName, UKismetAIHelperLibrary::StaticClass());
+				FBackwardCompatibilityConversionHelper::ConvertFunctionCallNodes(Params, Nodes, Graph, *this, bOnlySafeChanges);
+			}
+
+			{
+				static const FString BlueprintPinName(TEXT("SaveGameBlueprint"));
+				static const FString ClassPinName(TEXT("SaveGameClass"));
+				static const FName OldFuncName(GET_FUNCTION_NAME_CHECKED(UGameplayStatics, CreateSaveGameObjectFromBlueprint));
+				static const FName NewFuncName(GET_FUNCTION_NAME_CHECKED(UGameplayStatics, CreateSaveGameObject));
+				FBackwardCompatibilityConversionHelper::FFunctionCallParams Params(OldFuncName, NewFuncName, BlueprintPinName, ClassPinName, UGameplayStatics::StaticClass());
+				FBackwardCompatibilityConversionHelper::ConvertFunctionCallNodes(Params, Nodes, Graph, *this, bOnlySafeChanges);
 			}
 		}
 
@@ -3108,6 +3448,12 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph) con
 		{
 			UK2Node_MakeStruct* OldMakeStructNode = *It;
 			check(NULL != OldMakeStructNode);
+
+			// user may have since deleted the struct type
+			if (OldMakeStructNode->StructType == NULL)
+			{
+				continue;
+			}
 
 			// Check to see if the struct has a native make/break that we should try to convert to.
 			if(OldMakeStructNode->StructType->GetBoolMetaData(TEXT("HasNativeMakeBreak")))
@@ -3183,6 +3529,12 @@ void UEdGraphSchema_K2::BackwardCompatibilityNodeConversion(UEdGraph* Graph) con
 		{
 			UK2Node_BreakStruct* OldBreakStructNode = *It;
 			check(NULL != OldBreakStructNode);
+
+			// user may have since deleted the struct type
+			if (OldBreakStructNode->StructType == NULL)
+			{
+				continue;
+			}
 
 			// Check to see if the struct has a native make/break that we should try to convert to.
 			if(OldBreakStructNode->StructType->GetBoolMetaData(TEXT("HasNativeMakeBreak")))
@@ -3415,11 +3767,39 @@ TSharedPtr<FEdGraphSchemaAction> UEdGraphSchema_K2::GetCreateCommentAction() con
 	return TSharedPtr<FEdGraphSchemaAction>(static_cast<FEdGraphSchemaAction*>(new FEdGraphSchemaAction_K2AddComment));
 }
 
+bool UEdGraphSchema_K2::CanDuplicateGraph(UEdGraph* InSourceGraph) const
+{
+	if(GetGraphType(InSourceGraph) == GT_Function)
+	{
+		UBlueprint* SourceBP = FBlueprintEditorUtils::FindBlueprintForGraph(InSourceGraph);
+
+		// Do not duplicate graphs in Blueprint Interfaces
+		if(SourceBP->BlueprintType == BPTYPE_Interface)
+		{
+			return false;
+		}
+
+		// Do not duplicate functions from implemented interfaces
+		if( FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(SourceBP, InSourceGraph->GetFName()) )
+		{
+			return false;
+		}
+
+		// Do not duplicate inherited functions
+		if( FindField<UFunction>(SourceBP->ParentClass, InSourceGraph->GetFName()) )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 UEdGraph* UEdGraphSchema_K2::DuplicateGraph(UEdGraph* GraphToDuplicate) const
 {
 	UEdGraph* NewGraph = NULL;
 
-	if (CanDuplicateGraph())
+	if (CanDuplicateGraph(GraphToDuplicate))
 	{
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(GraphToDuplicate);
 
@@ -3427,7 +3807,7 @@ UEdGraph* UEdGraphSchema_K2::DuplicateGraph(UEdGraph* GraphToDuplicate) const
 
 		if (NewGraph)
 		{
-			FEdGraphUtilities::RenameGraphCloseToName(NewGraph,GraphToDuplicate->GetName());
+			FEdGraphUtilities::RenameGraphCloseToName(NewGraph,GraphToDuplicate->GetFName().GetPlainNameString());
 
 			//Rename the entry node or any further renames will not update the entry node, also fixes a duplicate node issue on compile
 			for (int32 NodeIndex = 0; NodeIndex < NewGraph->Nodes.Num(); ++NodeIndex)

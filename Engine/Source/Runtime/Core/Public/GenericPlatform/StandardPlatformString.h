@@ -25,7 +25,7 @@ struct FStandardPlatformString : public FGenericPlatformString
 		// walk the strings, comparing them case insensitively
 		for (; *String1 || *String2; String1++, String2++)
 		{
-			CharType Char1 = TChar<CharType>::ToUpper(*String1), Char2 = TChar<CharType>::ToUpper(*String2);
+			CharType Char1 = TChar<CharType>::ToLower(*String1), Char2 = TChar<CharType>::ToLower(*String2);
 			if (Char1 != Char2)
 			{
 				return Char1 - Char2;

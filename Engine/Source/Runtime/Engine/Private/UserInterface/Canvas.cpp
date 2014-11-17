@@ -724,6 +724,12 @@ int32 FCanvas::DrawShadowedString( float StartX,float StartY,const TCHAR* Text,c
 	return TextItem.DrawnSize.Y;	
 }
 
+void FCanvas::DrawNGon(const FVector2D& Center, const FColor& Color, int32 NumSides, float Radius)
+{
+	FCanvasNGonItem NGonItem(Center, FVector2D(Radius, Radius), FMath::Clamp(NumSides, 3, 255), Color);
+	DrawItem(NGonItem);
+}
+
 int32 FCanvas::DrawShadowedText( float StartX,float StartY,const FText& Text,class UFont* Font,const FLinearColor& Color, const FLinearColor& ShadowColor )
 {
 	const float Z = 1.0f;
@@ -969,6 +975,13 @@ UCanvas::UCanvas(const class FPostConstructInitializeProperties& PCIP)
 	HmdOrientation = FQuat::Identity;
 	ViewProjectionMatrix = FMatrix::Identity;
 
+	UnsafeSizeX = 0;
+	UnsafeSizeY = 0;
+	SafeZonePadX = 0;
+	SafeZonePadY = 0;
+	CachedDisplayWidth = 0;
+	CachedDisplayHeight = 0;
+
 	// only call once on construction.  Expensive on some platforms (occulus).
 	// Init gets called every frame.	
 	UpdateSafeZoneData();
@@ -981,12 +994,21 @@ void UCanvas::Init(int32 InSizeX, int32 InSizeY, FSceneView* InSceneView)
 	SizeY = InSizeY;
 	UnsafeSizeX = SizeX;
 	UnsafeSizeY = SizeY;
-	SceneView = InSceneView;
+	SceneView = InSceneView;		
+	
 	Update();	
 }
 
 void UCanvas::ApplySafeZoneTransform()
 {
+	// if there is no required safezone padding, then we can bail on the whole operation.
+	// this is also basically punting on a bug we have on PC where GetDisplayMetrics isn't the right thing
+	// to do, as it gives the monitor size, not the window size which we actually want.
+	if (SafeZonePadX == 0 && SafeZonePadY == 0)
+	{
+		return;
+	}
+
 	//The basic idea behind this type of safezone handling is that we shrink the canvas to only the safe size, then we apply a transform
 	//to place the canvas such that the all the safezone space is empty.  Another method that was attempted was to modify OrgXY and ClipXY,
 	//however given the usage of those members inside and OUTSIDE of the canvas system it was deemed not safe at this time.  For example, adding 100
@@ -1044,6 +1066,7 @@ void UCanvas::ApplySafeZoneTransform()
 	//adjust clip to be within new bounds by the same absolute amount.  we aren't trying to preserve ratios at the moment.
 	ClipX = SizeX - OrigClipOffsetX;
 	ClipY = SizeY - OrigClipOffsetY;
+	
 
 
 	Canvas->PushRelativeTransform(FTranslationMatrix(FVector(OrgXPad, OrgYPad, 0)));
@@ -1051,6 +1074,14 @@ void UCanvas::ApplySafeZoneTransform()
 
 void UCanvas::PopSafeZoneTransform()
 {
+	// if there is no required safezone padding, then we can bail on the whole operation.
+	// this is also basically punting on a bug we have on PC where GetDisplayMetrics isn't the right thing
+	// to do, as it gives the monitor size, not the window size which we actually want.
+	if (SafeZonePadX == 0 && SafeZonePadY == 0)
+	{
+		return;
+	}
+
 	Canvas->PopTransform();	
 
 	//put our size and clip back to what they were before applying the safezone.
@@ -1070,7 +1101,7 @@ void UCanvas::UpdateSafeZoneData()
 	{
 		FDisplayMetrics DisplayMetrics;
 		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
-
+	
 		SafeZonePadX = FMath::Ceil(DisplayMetrics.TitleSafePaddingSize.X);
 		SafeZonePadY = FMath::Ceil(DisplayMetrics.TitleSafePaddingSize.Y);
 
@@ -1169,12 +1200,12 @@ void UCanvas::DrawTile( UTexture* Tex, float X, float Y, float Z, float XL, floa
 		// was written using 0..TexSize coordinates, not 0..1, so to make the 0..1 coords
 		// we divide by what the texture was when the script code was written
 		// TEXTURE_TODO: This info is no longer stored outside of the Editor. Needed?
-		float SizeX = Tex->GetSurfaceWidth();
-		float SizeY = Tex->GetSurfaceHeight();
+		float TexSurfaceWidth= Tex->GetSurfaceWidth();
+		float TexSurfaceHeight = Tex->GetSurfaceHeight();
 
 		FCanvasTileItem TileItem( FVector2D( X, Y ), Tex->Resource,  FVector2D( w, h ),  
-			FVector2D( U / SizeX, V / SizeY), 
-			FVector2D( U / SizeX + UL / SizeX * w / XL, V / SizeY + VL / SizeY * h/YL ), 
+			FVector2D(U / TexSurfaceWidth, V / TexSurfaceHeight),
+			FVector2D(U / TexSurfaceWidth + UL / TexSurfaceWidth * w / XL, V / TexSurfaceHeight + VL / TexSurfaceHeight * h / YL),
 			DrawColor );
 		TileItem.BlendMode = FCanvas::BlendToSimpleElementBlend( BlendMode );
 		Canvas->DrawItem( TileItem );	
@@ -1255,16 +1286,16 @@ int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& o
 		if (bCenterTextX || bCenterTextY)
 		{
 			// Center text about DrawX
-			int32 SizeX, SizeY;
-			StringSize(Font, SizeX, SizeY, *WrappedStrings[Idx].Value);
+			int32 StringSizeX, StringSizeY;
+			StringSize(Font, StringSizeX, StringSizeY, *WrappedStrings[Idx].Value);
 
 			if (bCenterTextX)
 			{
-				DrawX = OrgX + X - (SizeX / 2);
+				DrawX = OrgX + X - (StringSizeX / 2);
 			}
 			if (bCenterTextY)
 			{
-				DrawY = OrgY + Y - (SizeY / 2);
+				DrawY = OrgY + Y - (StringSizeY / 2);
 			}
 		}
 

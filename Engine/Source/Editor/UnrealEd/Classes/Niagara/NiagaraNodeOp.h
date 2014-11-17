@@ -14,7 +14,7 @@ class UNiagaraNodeOp : public UNiagaraNode
 
 	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	// End EdGraphNode interface
 

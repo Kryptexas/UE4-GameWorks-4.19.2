@@ -420,6 +420,8 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	int32 WedgeOffset = RawMesh.WedgeIndices.Num();
 	int32 TriangleOffset = RawMesh.FaceMaterialIndices.Num();
 
+	int32 MaxMaterialIndex = 0;
+
 	// Reserve space for attributes.
 	RawMesh.FaceMaterialIndices.AddZeroed(TriangleCount);
 	RawMesh.FaceSmoothingMasks.AddZeroed(TriangleCount);
@@ -650,8 +652,10 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("Error_MaterialIndexInconsistency", "Face material index inconsistency - forcing to 0")));
 			MaterialIndex = 0;
 		}
-		RawMesh.FaceMaterialIndices[DestTriangleIndex] = MaterialIndex;
+	
+		RawMesh.FaceMaterialIndices[DestTriangleIndex] = FMath::Min( MaterialIndex, MAX_MESH_MATERIAL_INDEX );
 	}
+
 
 	// Store the new raw mesh.
 	SrcModel.RawMeshBulkData->SaveRawMesh(RawMesh);
@@ -913,6 +917,12 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		}
 	}
 	FStaticMeshSourceModel& SrcModel = StaticMesh->SourceModels[LODIndex];
+	if( InStaticMesh != NULL && LODIndex > 0 && !SrcModel.RawMeshBulkData->IsEmpty() )
+	{
+		// clear out the old mesh data
+		FRawMesh RawMesh;
+		SrcModel.RawMeshBulkData->SaveRawMesh( RawMesh );
+	}
 	
 	// make sure it has a new lighting guid
 	StaticMesh->LightingGuid = FGuid::NewGuid();
@@ -956,6 +966,12 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 				if (MeshMaterials[MaterialIndex].Name == MeshMaterials[OtherMaterialIndex].Name)
 				{
 					int32 UniqueIndex = MaterialMap[OtherMaterialIndex];
+
+					if( UniqueIndex > MAX_MESH_MATERIAL_INDEX )
+					{
+						UniqueIndex = MAX_MESH_MATERIAL_INDEX;
+					}
+
 					MaterialMap.Add(UniqueIndex);
 					bDoRemap = true;
 					bUnique = false;
@@ -964,12 +980,30 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			}
 			if (bUnique)
 			{
-				MaterialMap.Add(UniqueMaterials.Add(MeshMaterials[MaterialIndex]));
+				int32 UniqueIndex = UniqueMaterials.Add(MeshMaterials[MaterialIndex]);
+
+				if (UniqueIndex > MAX_MESH_MATERIAL_INDEX)
+				{
+					UniqueIndex = MAX_MESH_MATERIAL_INDEX;
+				}
+
+				MaterialMap.Add( UniqueIndex );
 			}
 			else
 			{
 				UE_LOG(LogFbx,Log,TEXT("  remap %d -> %d"), MaterialIndex, MaterialMap[MaterialIndex]);
 			}
+		}
+
+		if (UniqueMaterials.Num() > MAX_MESH_MATERIAL_INDEX)
+		{
+			AddTokenizedErrorMessage(
+				FTokenizedMessage::Create(
+				EMessageSeverity::Warning,
+				FText::Format(LOCTEXT("Error_TooManyMaterials", "StaticMesh has too many({1}) materials. Clamping materials to {0} which may produce unexpected results. Break apart your mesh into multiple pieces to fix this."),
+				FText::AsNumber(MAX_MESH_MATERIAL_INDEX),
+				FText::AsNumber(UniqueMaterials.Num())
+				)));
 		}
 
 		// Sort materials based on _SkinXX in the name.

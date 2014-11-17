@@ -679,8 +679,7 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 
 		if ( NbPoses != Default_NbPoses)
 		{
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_MaterialIndexInconsistency", "The imported scene has no initial binding position (Bind Pose) for the skin. \
-									The plug-in will compute one automatically. However, it may create unexpected results. ")));
+			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, LOCTEXT("FbxSkeletaLMeshimport_SceneMissingBinding", "The imported scene has no initial binding position (Bind Pose) for the skin. The plug-in will compute one automatically. However, it may create unexpected results.")));
 		}
 
 		//
@@ -763,9 +762,8 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 	bool GlobalLinkFoundFlag;
 	FbxVector4 LocalLinkT;
 	FbxQuaternion LocalLinkQ;
+	FbxVector4	LocalLinkS;
 
-	bool NonIdentityScaleFound = false;
-	
 	bool bAnyLinksNotInBindPose = false;
 	FString LinksWithoutBindPoses;
 	int32 NumberOfRoot = 0;
@@ -873,56 +871,16 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 			Matrix = GlobalsPerLink[ParentIndex].Inverse() * GlobalsPerLink[LinkIndex];
 			LocalLinkT = Matrix.GetT();
 			LocalLinkQ = Matrix.GetQ();
+			LocalLinkS = Matrix.GetS();
 		}
 		else	// skeleton root
 		{
 			// for root, this is global coordinate
 			LocalLinkT = GlobalsPerLink[LinkIndex].GetT();
 			LocalLinkQ = GlobalsPerLink[LinkIndex].GetQ();
+			LocalLinkS = GlobalsPerLink[LinkIndex].GetS();
 		}
 		
-		if (ParentIndex != INDEX_NONE)
-		{
-			// Unreal does not directly support non-uniform scale on bones, so
-			// attempt to bake the scale into the local translation for the bones
-			FbxVector4 ParentGlobalLinkS = GlobalsPerLink[ParentIndex].GetS();
-			if ( !ImportOptions->bImportRigidMesh && 
-				((ParentGlobalLinkS[0] > 1.0 + SCALE_TOLERANCE || ParentGlobalLinkS[0] < 1.0 - SCALE_TOLERANCE) || 
-				(ParentGlobalLinkS[1] > 1.0 + SCALE_TOLERANCE || ParentGlobalLinkS[1] < 1.0 - SCALE_TOLERANCE) || 
-				(ParentGlobalLinkS[2] > 1.0 + SCALE_TOLERANCE || ParentGlobalLinkS[2] < 1.0 - SCALE_TOLERANCE)) )
-			{
-				NonIdentityScaleFound = true;
-
-				// Unreal does not support scale in their nodes, so
-				// attempt to bake the scale into the local translation for the bones
-				if (LinkIndex)
-				{
-					FbxAMatrix OriginalGlobalScale;
-					OriginalGlobalScale.SetS(ParentGlobalLinkS);
-
-					FbxAMatrix InvOriginalGlobalScale = OriginalGlobalScale.Inverse();
-
-					// First, remove all scaling from the link's current global matrix
-					FbxAMatrix GlobalMtx_NoScale = GlobalsPerLink[LinkIndex];
-					GlobalMtx_NoScale = InvOriginalGlobalScale * GlobalMtx_NoScale;
-
-					// Now use the scale-less version of the bone's world matrix to convert 
-					// the parent's scale into the bone's local space
-					FbxAMatrix ParentGlobalScale;
-					ParentGlobalScale.SetS(ParentGlobalLinkS);
-
-					FbxAMatrix	Matrix;
-					Matrix = GlobalMtx_NoScale.Inverse() * ParentGlobalScale;
-
-					FbxVector4 NewLocalS = Matrix.GetS();
-
-					LocalLinkT[0] *= ParentGlobalLinkS[0];
-					LocalLinkT[1] *= ParentGlobalLinkS[1];
-					LocalLinkT[2] *= ParentGlobalLinkS[2];
-				}
-			}
-
-		}
 		// set bone
 		VBone& Bone = ImportData.RefBonesBinary[LinkIndex];
 		FString BoneName;
@@ -960,18 +918,14 @@ bool UnFbx::FFbxImporter::ImportBone(TArray<FbxNode*>& NodeArray, FSkeletalMeshI
 			}
 		}
 
-		JointMatrix.Position = Converter.ConvertPos(LocalLinkT);
-		JointMatrix.Orientation = Converter.ConvertRotToQuat(LocalLinkQ);
+		JointMatrix.Transform.SetTranslation(Converter.ConvertPos(LocalLinkT));
+		JointMatrix.Transform.SetRotation(Converter.ConvertRotToQuat(LocalLinkQ));
+		JointMatrix.Transform.SetScale3D(Converter.ConvertScale(LocalLinkS));
 	}
-
 	
 	if(bAnyLinksNotInBindPose)
 	{
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_BonesAreMissingFromBindPose", "Warning: The following bones are missing from the bind pose.  If they are not in the correct orientation after importing, please set the \"Use T0 as ref pose\" option or add them to the bind pose and reimport the skeletal mesh \n\n'{0}'"), FText::FromString(LinksWithoutBindPoses))));
-	}
-	if (NonIdentityScaleFound)
-	{
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_NonIdentityScale", "Warning: A bone or bones with a non-identity scale factor was found for skeleton (skeleton root name: '{0}').\n Unreal does not support scale on bones so the FBX importer will attempt to apply the scale to the bone's translation.  If the results are not as intended, please use identity scale for all skeletons in the original scene."), FText::FromString(SortedLinks[0]->GetName()))));
 	}
 	
 	return true;
@@ -1310,15 +1264,15 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 				{
 					FPhysAssetCreateParams NewBodyData;
 					NewBodyData.Initialize();
-					FText ErrorMessage;
-					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, ErrorMessage);
+					FText CreationErrorMessage;
+					bool bSuccess = FPhysicsAssetUtils::CreateFromSkeletalMesh(NewPhysicsAsset, SkeletalMesh, NewBodyData, CreationErrorMessage);
 					if (!bSuccess)
 					{
-						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, ErrorMessage));
+						AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, CreationErrorMessage));
 						// delete the asset since we could not have create physics asset
 						TArray<UObject*> ObjectsToDelete;
 						ObjectsToDelete.Add(NewPhysicsAsset);
-						ObjectTools::DeleteObjects(ObjectsToDelete);
+						ObjectTools::DeleteObjects(ObjectsToDelete, false);
 					}
 				}
 			}
@@ -1355,7 +1309,7 @@ USkeletalMesh* UnFbx::FFbxImporter::ImportSkeletalMesh(UObject* InParent, TArray
 		if ( !Skeleton->MergeAllBonesToBoneTree( SkeletalMesh ) )
 		{
 			if ( EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, 
-										LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical change has been made\n - i.e. inserting bone between nodes\n Would you like to regenerate Skeleton from this mesh? \n\n ***WARNING: THIS WILL INVALIDATE ALL ANIMATION DATA THAT IS LINKED TO THIS SKELETON***\n") ) ) 
+										LOCTEXT("SkeletonFailed_BoneMerge", "FAILED TO MERGE BONES:\n\n This could happen if significant hierarchical change has been made\n - i.e. inserting bone between nodes\n Would you like to regenerate Skeleton from this mesh? \n\n ***WARNING: THIS WILL REQUIRE RECOMPRESS ALL ANIMATION DATA AND POTENTIALLY INVALIDATE***\n") ) ) 
 				{
 					if ( Skeleton->RecreateBoneTree( SkeletalMesh ) )
 					{

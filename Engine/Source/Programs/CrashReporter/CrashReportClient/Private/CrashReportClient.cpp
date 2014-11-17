@@ -10,6 +10,7 @@
 const TCHAR* GServerIP = TEXT("http://crashreporter.epicgames.com:57005");
 // Must match filename specified in RunMinidumpDiagnostics
 const TCHAR* GDiagnosticsFilename = TEXT("Diagnostics.txt");
+FString GCrashUserId;
 
 #if !CRASH_REPORT_UNATTENDED_ONLY
 
@@ -24,20 +25,30 @@ FCrashReportClient::FCrashReportClient(const FString& Directory)
 {
 	CrashedAppName = ErrorReportFiles.FindCrashedAppName();
 
-	// Rocket builds will not try to analyze the report locally. Reports will be sent to the crash server and analyzed there.
+	// Set global user name ID: will be added to the report
 	if (FRocketSupport::IsRocket())
 	{
-		DiagnosticText = LOCTEXT("NoDiagnoseReportRocket", "We apologize for the inconvenience.\nPlease send this crash report to help improve our software.");
+		// The Epic ID can be looked up from this ID
+		auto DeviceId = FPlatformMisc::GetUniqueDeviceId();
+		GCrashUserId = FString(TEXT("!Id:")) + DeviceId;
+
+		// Rocket builds will not try to analyze the report locally. Reports will be sent to the crash server and analyzed there.
+		DiagnosticText = FText::Format(
+			LOCTEXT("NoDiagnoseReportRocket", "We apologize for the inconvenience.\nPlease send this crash report to help improve our software.\n\n{0}"),
+			FText::FromString(DeviceId)
+		);
+		return;
 	}
-	else
+
+	// Remove periods from internal user names to match AutoReporter user names
+	// The name prefix is read by CrashRepository.AddNewCrash in the website code
+	GCrashUserId = FString(TEXT("!Name:")) + FString(FPlatformProcess::UserName()).Replace(TEXT("."), TEXT(""));
+	if (!ErrorReportFiles.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
 	{
-		if (!ErrorReportFiles.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
-		{
-			auto& Worker = DiagnoseReportTask.GetTask();
-			Worker.DiagnosticText = &DiagnosticText;
-			Worker.ErrorReportFiles = &ErrorReportFiles;
-			DiagnoseReportTask.StartBackgroundTask();
-		}
+		auto& Worker = DiagnoseReportTask.GetTask();
+		Worker.DiagnosticText = &DiagnosticText;
+		Worker.ErrorReportFiles = &ErrorReportFiles;
+		DiagnoseReportTask.StartBackgroundTask();
 	}
 }
 
@@ -145,7 +156,7 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 	bool bCountingDown = AppState == EApplicationState::CountingDown;
 	if (!bCountingDown && AppState != EApplicationState::Closing)
 	{
-		check(false);
+		CRASHREPORTCLIENT_CHECK(false);
 		return false;
 	}
 

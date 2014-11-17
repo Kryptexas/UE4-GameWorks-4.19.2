@@ -177,10 +177,10 @@ private:
 	void OnCrumbClicked(const FSequencerBreadcrumb& Item);
 
 	/** Gets the root movie scene name */
-	FString GetRootMovieSceneName() const;
+	FText GetRootMovieSceneName() const;
 
 	/** Gets the title of the passed in shot section */
-	FString GetShotSectionTitle(UMovieSceneSection* ShotSection) const;
+	FText GetShotSectionTitle(UMovieSceneSection* ShotSection) const;
 
 private:
 	/** Section area widget */

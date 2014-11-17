@@ -38,30 +38,31 @@ void UWorld::UpdateAllReflectionCaptures()
 AReflectionCapture::AReflectionCapture(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	// Structure to hold one-time initialization
-	struct FConstructorStatics
-	{
-		FName NAME_ReflectionCapture;
-		ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalTexture;
-		FConstructorStatics()
-			: NAME_ReflectionCapture(TEXT("ReflectionCapture"))
-			, DecalTexture(TEXT("/Engine/EditorResources/S_ReflActorIcon"))
-		{
-		}
-	};
-	static FConstructorStatics ConstructorStatics;
-
 	CaptureComponent = PCIP.CreateAbstractDefaultSubobject<UReflectionCaptureComponent>(this, TEXT("NewReflectionComponent"));
 
 #if WITH_EDITORONLY_DATA
 	SpriteComponent = PCIP.CreateEditorOnlyDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
-	if (SpriteComponent)
+	if (!IsRunningCommandlet() && (SpriteComponent != nullptr))
 	{
+		// Structure to hold one-time initialization
+		struct FConstructorStatics
+		{
+			FName NAME_ReflectionCapture;
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> DecalTexture;
+			FConstructorStatics()
+				: NAME_ReflectionCapture(TEXT("ReflectionCapture"))
+				, DecalTexture(TEXT("/Engine/EditorResources/S_ReflActorIcon"))
+			{
+			}
+		};
+		static FConstructorStatics ConstructorStatics;
+
 		SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bAbsoluteScale = true;
 		SpriteComponent->BodyInstance.bEnableCollision_DEPRECATED = false;	
 		SpriteComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+		SpriteComponent->bIsScreenSizeScaled = true;
 	}
 #endif // WITH_EDITORONLY_DATA
 	
@@ -193,11 +194,21 @@ APlaneReflectionCapture::APlaneReflectionCapture(const class FPostConstructIniti
 }
 
 // Generate a new guid to force a recache of all reflection derived data
-#define REFLECTIONCAPTURE_FULL_DERIVEDDATA_VER			TEXT("82f35deee55a5ec9956d4897f3d46e5a")
+// Note: changing this will cause saved capture data in maps to be discarded
+// A resave of those maps will be required to guarantee valid reflections when cooking for ES2
+FGuid ReflectionCaptureDDCVer(0x299db8a0, 0x54254535, 0xa088cc40, 0x1ea245eb);
 
 FString FReflectionCaptureFullHDRDerivedData::GetDDCKeyString(const FGuid& StateId)
 {
-	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("REFL_FULL"), REFLECTIONCAPTURE_FULL_DERIVEDDATA_VER, *StateId.ToString());
+	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("REFL_FULL"), *ReflectionCaptureDDCVer.ToString(), *StateId.ToString());
+}
+
+// For temporary backwards compatibility
+#define LEGACY_REFLECTIONCAPTURE_FULL_DERIVEDDATA_VER	TEXT("82f35deee55a5ec9956d4897f3d46e5a")
+
+FString FReflectionCaptureFullHDRDerivedData::GetLegacyDDCKeyString(const FGuid& StateId)
+{
+	return FDerivedDataCacheInterface::BuildCacheKey(TEXT("REFL_FULL"), LEGACY_REFLECTIONCAPTURE_FULL_DERIVEDDATA_VER, *StateId.ToString());
 }
 
 FReflectionCaptureFullHDRDerivedData::~FReflectionCaptureFullHDRDerivedData()
@@ -702,7 +713,6 @@ private:
 
 TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdate;
 TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdateForLoad;
-TArray<UReflectionCaptureComponent*> UReflectionCaptureComponent::ReflectionCapturesToUpdateNewlyCreated;
 
 UReflectionCaptureComponent::UReflectionCaptureComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -760,7 +770,62 @@ void UReflectionCaptureComponent::PostInitProperties()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		ReflectionCapturesToUpdateNewlyCreated.AddUnique(this);
+		ReflectionCapturesToUpdateForLoad.AddUnique(this);
+		bCaptureDirty = true; 
+	}
+}
+
+void UReflectionCaptureComponent::SerializeSourceData(FArchive& Ar)
+{
+	if (Ar.UE4Ver() >= VER_UE4_REFLECTION_DATA_IN_PACKAGES)
+	{
+		if (Ar.IsSaving())
+		{
+			Ar << ReflectionCaptureDDCVer;
+
+			int32 StartOffset = Ar.Tell();
+			Ar << StartOffset;
+
+			bool bValid = FullHDRDerivedData != NULL;
+
+			Ar << bValid;
+
+			if (bValid)
+			{
+				Ar << FullHDRDerivedData->CompressedCapturedData;
+			}
+
+			int32 EndOffset = Ar.Tell();
+			Ar.Seek(StartOffset);
+			Ar << EndOffset;
+			Ar.Seek(EndOffset);
+		}
+		else if (Ar.IsLoading())
+		{
+			FGuid SavedVersion;
+			Ar << SavedVersion;
+
+			int32 EndOffset = 0;
+			Ar << EndOffset;
+
+			if (SavedVersion != ReflectionCaptureDDCVer)
+			{
+				// Guid version of saved source data doesn't match latest, skip the data
+				// The skipping is done so we don't have to maintain legacy serialization code paths when changing the format
+				Ar.Seek(EndOffset);
+			}
+			else
+			{
+				bool bValid = false;
+				Ar << bValid;
+
+				if (bValid)
+				{
+					FullHDRDerivedData = new FReflectionCaptureFullHDRDerivedData();
+					Ar << FullHDRDerivedData->CompressedCapturedData;
+				}
+			}
+		}
 	}
 }
 
@@ -883,6 +948,10 @@ void UReflectionCaptureComponent::Serialize(FArchive& Ar)
 			}
 		}
 	}
+	else
+	{
+		SerializeSourceData(Ar);
+	}
 }
 
 void UReflectionCaptureComponent::PostLoad()
@@ -901,14 +970,19 @@ void UReflectionCaptureComponent::PostLoad()
 			// Attempt to load the full HDR data from the DDC
 			if (!GetDerivedDataCacheRef().GetSynchronous(*FReflectionCaptureFullHDRDerivedData::GetDDCKeyString(StateId), FullHDRDerivedData->CompressedCapturedData))
 			{
-				bDerivedDataDirty = true;
-				delete FullHDRDerivedData;
-				FullHDRDerivedData = NULL;
-
-				if (!FApp::CanEverRender())
+				// Try to load the previous version
+				// This is a temporary measure for backwards compatibility of DDC
+				if (!GetDerivedDataCacheRef().GetSynchronous(*FReflectionCaptureFullHDRDerivedData::GetLegacyDDCKeyString(StateId), FullHDRDerivedData->CompressedCapturedData))
 				{
-					// Warn, especially when running the DDC commandlet to build a DDC for the binary version of UE4.
-					UE_LOG(LogMaterial, Warning, TEXT("Reflection capture was loaded without any valid capture data and will be black.  This can happen if the DDC was not up to date during cooking.  Load the map in the editor once before cooking to fix.  %s."), *GetFullName());
+					bDerivedDataDirty = true;
+					delete FullHDRDerivedData;
+					FullHDRDerivedData = NULL;
+
+					if (!FApp::CanEverRender())
+					{
+						// Warn, especially when running the DDC commandlet to build a DDC for the binary version of UE4.
+						UE_LOG(LogMaterial, Warning, TEXT("Reflection capture was loaded without any valid capture data and will be black.  This can happen if the DDC was not up to date during cooking.  Load the map in the editor once before cooking to fix.  %s."), *GetFullName());
+					}
 				}
 			}
 		}
@@ -952,16 +1026,6 @@ void UReflectionCaptureComponent::PostLoad()
 		delete FullHDRDerivedData;
 		FullHDRDerivedData = NULL;
 	}
-
-	// PostLoad was called, so we can make a proper decision based on visibility of whether or not to update
-	ReflectionCapturesToUpdateNewlyCreated.Remove(this);
-
-	// Add ourselves to the global list of reflection captures that need to be uploaded to the scene or recaptured
-	if (bVisible)
-	{
-		ReflectionCapturesToUpdateForLoad.AddUnique(this);
-		bCaptureDirty = true; 
-	}
 }
 
 void UReflectionCaptureComponent::PreSave() 
@@ -987,7 +1051,7 @@ void UReflectionCaptureComponent::PostDuplicate(bool bDuplicateForPIE)
 	}
 }
 
-void UReflectionCaptureComponent::InvalidateDerivedData()
+void UReflectionCaptureComponent::UpdateDerivedData(FReflectionCaptureFullHDRDerivedData* NewDerivedData)
 {
 	if (FullHDRDerivedData)
 	{
@@ -998,9 +1062,9 @@ void UReflectionCaptureComponent::InvalidateDerivedData()
 		{
 			delete FullHDRDerivedData;
 		});
-
-		FullHDRDerivedData = NULL;
 	}
+
+	FullHDRDerivedData = NewDerivedData;
 }
 
 FReflectionCaptureProxy* UReflectionCaptureComponent::CreateSceneProxy()
@@ -1036,7 +1100,6 @@ void UReflectionCaptureComponent::BeginDestroy()
 	{
 		ReflectionCapturesToUpdate.Remove(this);
 		ReflectionCapturesToUpdateForLoad.Remove(this);
-		ReflectionCapturesToUpdateNewlyCreated.Remove(this);
 	}
 
 	// Have to do this because we can't use GetWorld in BeginDestroy
@@ -1070,7 +1133,7 @@ bool UReflectionCaptureComponent::IsReadyForFinishDestroy()
 
 void UReflectionCaptureComponent::FinishDestroy()
 {
-	InvalidateDerivedData();
+	UpdateDerivedData(NULL);
 
 	if (SM4FullHDRCubemapTexture)
 	{
@@ -1091,7 +1154,7 @@ void UReflectionCaptureComponent::SetCaptureIsDirty()
 { 
 	if (bVisible)
 	{
-		InvalidateDerivedData();
+		UpdateDerivedData(NULL);
 		FPlatformMisc::CreateGuid(StateId);
 		bDerivedDataDirty = true;
 		ReflectionCapturesToUpdate.AddUnique(this);
@@ -1163,23 +1226,23 @@ void UReflectionCaptureComponent::ReadbackFromGPUAndSaveDerivedData(UWorld* Worl
 {
 	if (bDerivedDataDirty && !IsRunningCommandlet())
 	{
-		// Read back full HDR capture data and save it in the DDC
-		//@todo - not Updating DerivedData and setting bDerivedDataDirty to false yet because that would require syncing with the rendering thread
-		// This behavior means that reflection capture derived data will stay dirty (uncached for rendering) until the editor is restarted
-		FReflectionCaptureFullHDRDerivedData TemporaryDerivedData;
+		FReflectionCaptureFullHDRDerivedData* NewDerivedData = new FReflectionCaptureFullHDRDerivedData();
 
 		if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
 		{
-			ReadbackFromSM4Cubemap(SM4FullHDRCubemapTexture, &TemporaryDerivedData);
+			ReadbackFromSM4Cubemap(SM4FullHDRCubemapTexture, NewDerivedData);
 		}
 		else
 		{
-			WorldToUpdate->Scene->GetReflectionCaptureData(this, TemporaryDerivedData);
+			WorldToUpdate->Scene->GetReflectionCaptureData(this, *NewDerivedData);
 		}
 
-		if (TemporaryDerivedData.CompressedCapturedData.Num() > 0)
+		if (NewDerivedData->CompressedCapturedData.Num() > 0)
 		{
-			GetDerivedDataCacheRef().Put(*FReflectionCaptureFullHDRDerivedData::GetDDCKeyString(StateId), TemporaryDerivedData.CompressedCapturedData);
+			GetDerivedDataCacheRef().Put(*FReflectionCaptureFullHDRDerivedData::GetDDCKeyString(StateId), NewDerivedData->CompressedCapturedData);
+
+			// Update our copy in memory
+			UpdateDerivedData(NewDerivedData);
 		}
 	}
 }
@@ -1216,18 +1279,6 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 				WorldCombinedCaptures.Add(CaptureComponent);
 				WorldCapturesToUpdateForLoad.Add(CaptureComponent);
 				ReflectionCapturesToUpdateForLoad.RemoveAt(CaptureIndex);
-			}
-		}
-
-		for (int32 CaptureIndex = ReflectionCapturesToUpdateNewlyCreated.Num() - 1; CaptureIndex >= 0; CaptureIndex--)
-		{
-			UReflectionCaptureComponent* CaptureComponent = ReflectionCapturesToUpdateNewlyCreated[CaptureIndex];
-
-			if (!CaptureComponent->GetOwner() || WorldToUpdate->ContainsActor(CaptureComponent->GetOwner()))
-			{
-				WorldCombinedCaptures.Add(CaptureComponent);
-				WorldCapturesToUpdateForLoad.Add(CaptureComponent);
-				ReflectionCapturesToUpdateNewlyCreated.RemoveAt(CaptureIndex);
 			}
 		}
 

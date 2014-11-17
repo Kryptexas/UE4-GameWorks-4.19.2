@@ -434,7 +434,7 @@ void FDeferredShadingSceneRenderer::RenderLights()
 				}
 			}
 
-			if (GUseTranslucentLightingVolumes)
+			if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 			{
 				if (AttenuationLightStart)
 				{

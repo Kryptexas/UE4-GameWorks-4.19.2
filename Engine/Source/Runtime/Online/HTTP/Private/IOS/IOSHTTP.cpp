@@ -30,7 +30,7 @@ FString FIOSHttpRequest::GetURL()
 {
 	NSString* url = [[Request URL] absoluteString];
 
-	FString URL( ANSI_TO_TCHAR( [ url cStringUsingEncoding:NSASCIIStringEncoding] ) );
+	FString URL(url);
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::GetURL() - %s"), *URL);
 	return URL;
 }
@@ -41,7 +41,7 @@ void FIOSHttpRequest::SetURL(const FString& URL)
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::SetURL() - %s"), *URL);
 	
 	
-	NSURL* url = [NSURL URLWithString:[NSString stringWithCString:TCHAR_TO_ANSI(*URL) encoding:NSASCIIStringEncoding]];
+	NSURL* url = [NSURL URLWithString:[NSString stringWithFString:URL]];
 	[Request setURL:url];
 }
 
@@ -50,7 +50,7 @@ FString FIOSHttpRequest::GetURLParameter(const FString& ParameterName)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::GetURLParameter() - %s"), *ParameterName);
 
-	NSString* ParameterNameStr = [NSString stringWithCString:TCHAR_TO_ANSI(*ParameterName)  encoding:NSASCIIStringEncoding];
+	NSString* ParameterNameStr = [NSString stringWithFString:ParameterName];
 	NSArray* Parameters = [[[Request URL] query] componentsSeparatedByString:@"&"];
 	for (NSString* Parameter in Parameters)
 	{
@@ -58,7 +58,7 @@ FString FIOSHttpRequest::GetURLParameter(const FString& ParameterName)
 		NSString* Key = [KeyValue objectAtIndex:0];
 		if ([Key compare:ParameterNameStr] == NSOrderedSame)
 		{
-			return FString( ANSI_TO_TCHAR([[[KeyValue objectAtIndex:1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding] cStringUsingEncoding:NSASCIIStringEncoding] ) );
+			return FString([[KeyValue objectAtIndex:1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]);
 		}
 	}
 	return FString();
@@ -67,9 +67,9 @@ FString FIOSHttpRequest::GetURLParameter(const FString& ParameterName)
 
 FString FIOSHttpRequest::GetHeader(const FString& HeaderName) 
 {
-	NSString* ConvertedHeaderName = [NSString stringWithCString:TCHAR_TO_ANSI(*HeaderName)  encoding:NSASCIIStringEncoding];
+	NSString* ConvertedHeaderName = [NSString stringWithFString:HeaderName];
 
-	FString Header( ANSI_TO_TCHAR( [ [Request valueForHTTPHeaderField:ConvertedHeaderName] cStringUsingEncoding:NSASCIIStringEncoding] ) );
+	FString Header([Request valueForHTTPHeaderField:ConvertedHeaderName]);
 	
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::GetHeader() - %s"), *Header);
 	return Header;
@@ -79,7 +79,7 @@ FString FIOSHttpRequest::GetHeader(const FString& HeaderName)
 void FIOSHttpRequest::SetHeader(const FString& HeaderName, const FString& HeaderValue) 
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::SetHeader() - %s / %s"), *HeaderName, *HeaderValue );
-	[Request setValue:[NSString stringWithCString:TCHAR_TO_ANSI(*HeaderValue) encoding:NSASCIIStringEncoding] forHTTPHeaderField:[NSString stringWithCString:TCHAR_TO_ANSI(*HeaderName)  encoding:NSASCIIStringEncoding]];
+	[Request setValue:[NSString stringWithFString:HeaderValue] forHTTPHeaderField:[NSString stringWithFString:HeaderName]];
 }
 
 
@@ -91,8 +91,8 @@ TArray<FString> FIOSHttpRequest::GetAllHeaders()
 	Result.Reserve([Headers count]);
 	for (NSString* Key in [Headers allKeys])
 	{
-		FString ConvertedValue( ANSI_TO_TCHAR( [[Headers objectForKey:Key] cStringUsingEncoding:NSASCIIStringEncoding] ) );
-		FString ConvertedKey( ANSI_TO_TCHAR( [Key cStringUsingEncoding:NSASCIIStringEncoding] ) );
+		FString ConvertedValue([Headers objectForKey:Key]);
+		FString ConvertedKey(Key);
 		UE_LOG(LogHttp, Verbose, TEXT("Header= %s, Key= %s"), *ConvertedValue, *ConvertedKey);
 
 		Result.Add( FString::Printf( TEXT("%s: %s"), *ConvertedKey, *ConvertedValue ) );
@@ -148,7 +148,7 @@ void FIOSHttpRequest::SetContentAsString(const FString& ContentString)
 
 FString FIOSHttpRequest::GetVerb()
 {
-	FString ConvertedVerb( ANSI_TO_TCHAR( [[Request HTTPMethod] cStringUsingEncoding:NSASCIIStringEncoding] ) );
+	FString ConvertedVerb([Request HTTPMethod]);
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::GetVerb() - %s"), *ConvertedVerb);
 	return ConvertedVerb;
 }
@@ -157,7 +157,7 @@ FString FIOSHttpRequest::GetVerb()
 void FIOSHttpRequest::SetVerb(const FString& Verb)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::SetVerb() - %s"), *Verb);
-	[Request setHTTPMethod:[NSString stringWithCString:TCHAR_TO_ANSI(*Verb) encoding:NSASCIIStringEncoding]];
+	[Request setHTTPMethod:[NSString stringWithFString:Verb]];
 }
 
 
@@ -166,7 +166,7 @@ bool FIOSHttpRequest::ProcessRequest()
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpRequest::ProcessRequest()"));
 	bool bStarted = false;
 
-	FString Scheme( ANSI_TO_TCHAR( [ [[Request URL] scheme] cStringUsingEncoding:NSASCIIStringEncoding] ) );
+	FString Scheme([[Request URL] scheme]);
 	Scheme = Scheme.ToLower();
 	
 	// Prevent overlapped requests using the same instance
@@ -219,7 +219,7 @@ bool FIOSHttpRequest::StartRequest()
 		[Request setValue:[NSString stringWithFormat:@"%d", GetContentLength()] forHTTPHeaderField:@"Content-Length"];
 	}
 
-	NSString* Tag = [NSString stringWithCString:TCHAR_TO_ANSI(*FString::Printf(TEXT("UE4-%s,UE4Ver(%s)"), FApp::GetGameName(), *GEngineVersion.ToString())) encoding:NSASCIIStringEncoding];
+	NSString* Tag = [NSString stringWithFString:FString::Printf(TEXT("UE4-%s,UE4Ver(%s)"), FApp::GetGameName(), *GEngineVersion.ToString())];
 	[Request addValue:Tag forHTTPHeaderField:@"User-Agent"];
 
 	Response = MakeShareable( new FIOSHttpResponse( *this ) );
@@ -358,8 +358,8 @@ void FIOSHttpRequest::Tick(float DeltaSeconds)
 	self.bIsReady = YES;
 	self.bHadError = YES;
 	UE_LOG(LogHttp, Warning, TEXT("didFailWithError. Http request failed - %s %s: %p"), 
-		*FString(ANSI_TO_TCHAR((const ANSICHAR*)[error localizedDescription])),
-		*FString(ANSI_TO_TCHAR((const ANSICHAR*)[[error userInfo] objectForKey:NSURLErrorFailingURLStringErrorKey])),
+		*FString([error localizedDescription]),
+		*FString([[error userInfo] objectForKey:NSURLErrorFailingURLStringErrorKey]),
 		self);
 	[connection release];
 }
@@ -398,7 +398,7 @@ FIOSHttpResponse::~FIOSHttpResponse()
 FString FIOSHttpResponse::GetURL()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpResponse::GetURL()"));
-	return FString( ANSI_TO_TCHAR( (const ANSICHAR*)[[Request.Request URL] query] ) );
+	return FString([[Request.Request URL] query]);
 }
 
 
@@ -406,7 +406,7 @@ FString FIOSHttpResponse::GetURLParameter(const FString& ParameterName)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpResponse::GetURLParameter()"));
 
-	NSString* ParameterNameStr = [NSString stringWithCString:TCHAR_TO_ANSI(*ParameterName)  encoding:NSASCIIStringEncoding];
+	NSString* ParameterNameStr = [NSString stringWithFString:ParameterName];
 	NSArray* Parameters = [[[Request.Request URL] query] componentsSeparatedByString:@"&"];
 	for (NSString* Parameter in Parameters)
 	{
@@ -414,7 +414,7 @@ FString FIOSHttpResponse::GetURLParameter(const FString& ParameterName)
 		NSString* Key = [KeyValue objectAtIndex:0];
 		if ([Key compare:ParameterNameStr] == NSOrderedSame)
 		{
-			return FString( ANSI_TO_TCHAR([[[KeyValue objectAtIndex:1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding] cStringUsingEncoding:NSASCIIStringEncoding] ) );
+			return FString([[KeyValue objectAtIndex:1] stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]);
 		}
 	}
 	return FString();
@@ -425,8 +425,8 @@ FString FIOSHttpResponse::GetHeader(const FString& HeaderName)
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FIOSHttpResponse::GetHeader()"));
 
-	NSString* ConvertedHeaderName = [NSString stringWithCString:TCHAR_TO_ANSI(*HeaderName)  encoding:NSASCIIStringEncoding];
-	return FString( ANSI_TO_TCHAR( [[[[ResponseWrapper Response] allHeaderFields] objectForKey:ConvertedHeaderName] cStringUsingEncoding:NSASCIIStringEncoding] ) );
+	NSString* ConvertedHeaderName = [NSString stringWithFString:HeaderName];
+	return FString([[[ResponseWrapper Response] allHeaderFields] objectForKey:ConvertedHeaderName]);
 }
 
 
@@ -439,8 +439,8 @@ TArray<FString> FIOSHttpResponse::GetAllHeaders()
 	Result.Reserve([Headers count]);
 	for (NSString* Key in [Headers allKeys])
 	{
-		FString ConvertedValue( ANSI_TO_TCHAR( [[Headers objectForKey:Key] cStringUsingEncoding:NSASCIIStringEncoding] ) );
-		FString ConvertedKey( ANSI_TO_TCHAR( [Key cStringUsingEncoding:NSASCIIStringEncoding] ) );
+		FString ConvertedValue([Headers objectForKey:Key]);
+		FString ConvertedKey(Key);
 		Result.Add( FString::Printf( TEXT("%s: %s"), *ConvertedKey, *ConvertedValue ) );
 	}
 	return Result;

@@ -1203,6 +1203,22 @@ public:
 	};
 	static TMap<FName, FSubobjectRedirect> SubobjectNameRedirects;	
 
+	/** 
+	 * Utility functions to query the object name redirects list for previous names for a class
+	 * @param CurrentClassPath The current name of the class, with a full path
+	 * @param bIsInstance If true, we're an instance, so check instance only maps as well
+	 * @return Names without path of all classes that were redirected to this name. Empty if none found.
+	 */
+	COREUOBJECT_API static TArray<FName> FindPreviousNamesForClass(FString CurrentClassPath, bool bIsInstance);
+
+	/** 
+	 * Utility functions to query the object name redirects list for the current name for a class
+	 * @param OldClassName An old class name, without path
+	 * @param bIsInstance If true, we're an instance, so check instance only maps as well
+	 * @return Current full path of this class. It will be None if no redirect found
+	 */
+	COREUOBJECT_API static FName FindNewNameForClass(FName OldClassName, bool bIsInstance);
+
 private:
 	// Variables used during async linker creation.
 

@@ -27,7 +27,6 @@ public class MeshUtilities : ModuleRules
 		if (UEBuildConfiguration.bCompileSimplygon == true)
 		{
 			AddThirdPartyPrivateDynamicDependencies(Target, "SimplygonMeshReduction");
-			Definitions.Add("WITH_SIMPLYGON=1");
 		}
 	}
 }

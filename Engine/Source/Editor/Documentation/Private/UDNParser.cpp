@@ -216,8 +216,8 @@ bool FUDNParser::LoadLink( const FString& Link, TArray<FString>& ContentLines )
 	FMessageLog UDNParserLog(UDNParseErrorLog);
 
 	const FString SourcePath = FDocumentationLink::ToSourcePath( Link );
-
-	if ( SourcePath.IsEmpty() )
+	
+	if (!FPaths::FileExists(SourcePath))
 	{
 		return false;
 	}
@@ -619,9 +619,9 @@ FUDNLine FUDNParser::ParseLineIntoUDNContent(int32 LineNumber, const FString& Li
 					if (LineConfig.CalculatedExpectedContentStrings() == Contents.Num())
 					{
 						OutputLine.ContentType = LineConfig.OutputLineType;
-						for (int32 i = 0; i < Contents.Num(); ++i)
+						for (const FString Content : Contents)
 						{
-							OutputLine.AdditionalContent.Add(Contents[i]);
+							OutputLine.AdditionalContent.Add(Content);
 						}
 						if (LineConfig.bAcceptTrailingSymbolDumpAsContent)
 						{
@@ -1076,9 +1076,9 @@ bool FUDNParser::ParseSymbols(const FString& Link, const TArray<FString>& Conten
 			switch (Line.ContentType)
 			{
 			case FUDNLine::MetadataAvailability: OutMetadata.Availability = Line.AdditionalContent[0]; break;
-			case FUDNLine::MetadataTitle: OutMetadata.Title = Line.AdditionalContent[0]; break;
-			case FUDNLine::MetadataCrumbs: OutMetadata.Crumbs = Line.AdditionalContent[0]; break;
-			case FUDNLine::MetadataDescription: OutMetadata.Description = Line.AdditionalContent[0]; break;
+			case FUDNLine::MetadataTitle: OutMetadata.Title = FText::FromString(Line.AdditionalContent[0]); break;
+			case FUDNLine::MetadataCrumbs: OutMetadata.Crumbs = FText::FromString(Line.AdditionalContent[0]); break;
+			case FUDNLine::MetadataDescription: OutMetadata.Description = FText::FromString(Line.AdditionalContent[0]); break;
 			}
 		}
 		else

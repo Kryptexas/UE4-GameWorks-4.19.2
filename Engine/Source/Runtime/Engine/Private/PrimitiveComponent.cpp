@@ -193,10 +193,10 @@ void UPrimitiveComponent::RegisterComponentTickFunctions(bool bRegister)
 				PostPhysicsComponentTick.AddPrerequisite(this,PrimaryComponentTick); 
 			}
 
-			// Set a prereq for the post physics tick to happen after physics is finished
+			// Set a prereq for the post physics tick to happen after physics and cloth is finished
 			if(World != NULL)
 			{
-				PostPhysicsComponentTick.AddPrerequisite(World, World->EndPhysicsTickFunction);
+				PostPhysicsComponentTick.AddPrerequisite(World, World->EndClothTickFunction);
 			}
 		}
 	}
@@ -298,6 +298,27 @@ void UPrimitiveComponent::OnAttachmentChanged()
 	{
 		World->Scene->UpdatePrimitiveAttachment(this);
 	}
+}
+
+void UPrimitiveComponent::OnChildAttached(USceneComponent* ChildComponent)
+{
+	Super::OnChildAttached(ChildComponent);
+#if WITH_BODY_WELDING
+	//We want to support attaching physically simulated rigid bodies to create a single rigid body.
+	if (UPrimitiveComponent * PrimitiveChild = Cast<UPrimitiveComponent>(ChildComponent))
+	{
+		//Note that the skeletal mesh case is kind of odd because we're attaching to the root bone
+		FBodyInstance * MyBody = GetBodyInstance();
+		FBodyInstance * TheirBody = PrimitiveChild->GetBodyInstance();
+
+		//We only do the physical weld when actually running the game
+		if (MyBody && TheirBody && IsSimulatingPhysics() && GetWorld() && GetWorld()->IsGameWorld())
+		{
+			FTransform RelativeTM = FTransform(ChildComponent->RelativeRotation, ChildComponent->RelativeLocation, ChildComponent->RelativeScale3D);
+			MyBody->Weld(TheirBody, RelativeTM);
+		}
+	}
+#endif
 }
 
 void UPrimitiveComponent::DestroyRenderState_Concurrent()
@@ -437,7 +458,7 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		// We disregard cull distance volumes in this case as we have no way of handling cull 
 		// distance changes to without refreshing all cull distance volumes. Saving or updating 
 		// any cull distance volume will set the proper value again.
-		if( PropertyName == TEXT("MaxDrawDistance") || PropertyName == TEXT("bAllowCullDistanceVolume") )
+		if( PropertyName == TEXT("LDMaxDrawDistance") || PropertyName == TEXT("bAllowCullDistanceVolume") )
 		{
 			CachedMaxDrawDistance = LDMaxDrawDistance;
 		}
@@ -747,6 +768,11 @@ bool UPrimitiveComponent::ShouldCreatePhysicsState() const
 	}
 #endif
 	return bShouldCreatePhysicsState;
+}
+
+bool UPrimitiveComponent::HasValidPhysicsState() const
+{
+	return BodyInstance.IsValidBodyInstance();
 }
 
 bool UPrimitiveComponent::ShouldRenderSelected() const
@@ -1084,13 +1110,13 @@ const static float PERF_SHOW_MOVECOMPONENT_TAKING_LONG_TIME_AMOUNT = 2.0f; // mo
 static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestHit, FVector const& MovementDirDenormalized, AActor* MovingActor, EMoveComponentFlags MoveFlags)
 {
 	// check "ignore bases" functionality
-	if ( (MoveFlags & MOVECOMP_IgnoreBases) && MovingActor )
+	if ( (MoveFlags & MOVECOMP_IgnoreBases) && MovingActor && TestHit.bBlockingHit )	//we let overlap components go through because their overlap is still needed and will cause beginOverlap/endOverlap events
 	{
 		// ignore if there's a base relationship between moving actor and hit actor
 		AActor const* const HitActor = TestHit.GetActor();
 		if (HitActor)
 		{
-			if ( MovingActor->IsBasedOn(HitActor) || HitActor->IsBasedOn(MovingActor) )
+			if (MovingActor->IsBasedOnActor(HitActor) || HitActor->IsBasedOnActor(MovingActor))
 			{
 				return true;
 			}
@@ -1308,20 +1334,24 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 						}
 						else if (bGenerateOverlapEvents)
 						{
-							// don't process touch events after initial blocking hits
-							if (BlockingHitIndex >= 0 && TestHit.Time > Hits[BlockingHitIndex].Time)
+							UPrimitiveComponent * OverlapComponent = TestHit.Component.Get();
+							if (OverlapComponent && OverlapComponent->bGenerateOverlapEvents)	//only register overlap if both components have set bGenerateOverlapEvents
 							{
-								break;
-							}
+								// don't process touch events after initial blocking hits
+								if (BlockingHitIndex >= 0 && TestHit.Time > Hits[BlockingHitIndex].Time)
+								{
+									break;
+								}
 
-							if (FirstNonInitialOverlapIdx == INDEX_NONE && TestHit.Time > 0.f)
-							{
-								// We are about to add the first non-initial overlap.
-								FirstNonInitialOverlapIdx = PendingOverlaps.Num();
-							}
+								if (FirstNonInitialOverlapIdx == INDEX_NONE && TestHit.Time > 0.f)
+								{
+									// We are about to add the first non-initial overlap.
+									FirstNonInitialOverlapIdx = PendingOverlaps.Num();
+								}
 
-							// cache touches
-							PendingOverlaps.AddUnique(FOverlapInfo(TestHit.Component.Get(), TestHit.Item));
+								// cache touches
+								PendingOverlaps.AddUnique(FOverlapInfo(TestHit.Component.Get(), TestHit.Item));
+							}
 						}
 					}
 				}
@@ -1418,7 +1448,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 		bMoved = InternalSetWorldLocationAndRotation(NewLocation, NewRotation, bSkipPhysicsMove);
 
 		// Handle hit notifications.
-		if( BlockingHit.GetActor() != NULL )
+		if (BlockingHit.bBlockingHit)
 		{
 			if (Actor != NULL)
 			{
@@ -1644,6 +1674,55 @@ bool UPrimitiveComponent::OverlapComponent(const FVector& Pos, const FQuat& Rot,
 	return false;
 }
 
+bool UPrimitiveComponent::ComputePenetration(FMTDResult & OutMTD, const FCollisionShape & CollisionShape, const FVector & Pos, const FQuat & Rot)
+{
+#if WITH_PHYSX
+	UCollision2PGeom GeomStorage0(CollisionShape);
+	PxTransform PGeomPose0 = ConvertToPhysXCapsulePose(FTransform(Rot, Pos));
+	const PxGeometry * PGeom0 = GeomStorage0.GetGeometry();
+
+	check(PGeom0);	//couldn't convert FCollisionShape to PxGeometry - something is wrong
+
+	const PxRigidActor* PRigidBody = BodyInstance.GetPxRigidActor();
+	if (PRigidBody == NULL || PRigidBody->getNbShapes() == 0)
+	{
+		return false;
+	}
+
+	const PxTransform PGlobalPose1 = PRigidBody->getGlobalPose();
+
+	// Get all the shapes from the actor
+	// TODO: we should really pass the shape from the overlap info since doing it this way we do an overlap test twice
+	TArray<PxShape*> PShapes;
+	PShapes.AddZeroed(PRigidBody->getNbShapes());
+	int32 NumTargetShapes = PRigidBody->getShapes(PShapes.GetData(), PShapes.Num());
+
+	for (int32 PShapeIdx = 0; PShapeIdx < PShapes.Num(); ++PShapeIdx)
+	{
+		const PxShape * PShape = PShapes[PShapeIdx];
+		check(PShape);
+
+		// Calc shape global pose
+		PxTransform PGeomPose1 = PGlobalPose1.transform(PShape->getLocalPose());
+		GeometryFromShapeStorage GeomStorage1;
+		PxGeometry * PGeom1 = GetGeometryFromShape(GeomStorage1, PShape, true);
+
+		if (PGeom1)
+		{
+			PxVec3 POutDirection;
+			bool bSuccess = PxGeometryQuery::computePenetration(POutDirection, OutMTD.Distance, *PGeom0, PGeomPose0, *PGeom1, PGeomPose1);
+			if (bSuccess)
+			{
+				OutMTD.Direction = P2UVector(POutDirection);
+				return true;
+			}
+		}
+	}
+#endif
+
+	return false;
+}
+
 bool UPrimitiveComponent::IsOverlappingComponent(UPrimitiveComponent const* OtherComp) const
 {
 	for (int32 i=0; i < OverlappingComponents.Num(); ++i)
@@ -1719,17 +1798,11 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 			AActor* const OtherActor = OtherComp->GetOwner();
 
 			const bool bNotifyActorTouch = bDoNotifies && !IsOverlappingActor(OtherActor);
-			const bool bPerformReflexiveTouch = OtherComp->ShouldTrackOverlaps();
-			const bool bDoReflexiveNotifies = bDoNotifies && bPerformReflexiveTouch && OtherComp->bGenerateOverlapEvents;
 
 			// Perform reflexive touch.
 			OverlappingComponents.Add(OtherOverlap);										// already verified uniqueness above
-
-			if (bPerformReflexiveTouch)
-			{
-				OtherComp->OverlappingComponents.AddUnique(FOverlapInfo(this, INDEX_NONE));		// uniqueness unverified, so addunique
-			}
-
+			OtherComp->OverlappingComponents.AddUnique(FOverlapInfo(this, INDEX_NONE));		// uniqueness unverified, so addunique
+			
 			if (bDoNotifies)
 			{
 				AActor* const MyActor = GetOwner();
@@ -1740,7 +1813,7 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 					OnComponentBeginOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.BodyIndex);
 				}
 
-				if (bDoReflexiveNotifies && !OtherComp->IsPendingKill())
+				if (!OtherComp->IsPendingKill())
 				{
 					OtherComp->OnComponentBeginOverlap.Broadcast(MyActor, this, INDEX_NONE);
 				}
@@ -1754,7 +1827,7 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 						MyActor->ReceiveActorBeginOverlap(OtherActor);
 					}
 
-					if (bDoReflexiveNotifies && IsActorValidToNotify(OtherActor))
+					if (IsActorValidToNotify(OtherActor))
 					{
 						OtherActor->ReceiveActorBeginOverlap(MyActor);
 					}
@@ -1765,7 +1838,7 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 						MyActor->OnActorBeginOverlap.Broadcast(OtherActor);
 					}
 
-					if (bDoReflexiveNotifies && IsActorValidToNotify(OtherActor))
+					if (IsActorValidToNotify(OtherActor))
 					{
 						OtherActor->OnActorBeginOverlap.Broadcast(MyActor);
 					}
@@ -1783,9 +1856,6 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 	AActor* const OtherActor = OtherComp ? OtherComp->GetOwner() : NULL;
 	AActor* const MyActor = GetOwner();
 
-	const bool bPerformReflexiveTouch = OtherComp->ShouldTrackOverlaps();
-	const bool bDoReflexiveNotifies = bDoNotifies && bPerformReflexiveTouch && OtherComp->bGenerateOverlapEvents;
-
 	//	UE_LOG(LogActor, Log, TEXT("END OVERLAP! Self=%s SelfComp=%s, Other=%s, OtherComp=%s"), *GetNameSafe(this), *GetNameSafe(MyComp), *GetNameSafe(OtherActor), *GetNameSafe(OtherComp));
 
 	if ( (OtherActor != NULL) && bDoNotifies && IsOverlappingComponent(OtherOverlap) )
@@ -1795,7 +1865,7 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 			OnComponentEndOverlap.Broadcast(OtherActor, OtherComp, OtherOverlap.BodyIndex);
 		}
 
-		if(bDoReflexiveNotifies && IsPrimCompValidAndAlive(OtherComp))
+		if(IsPrimCompValidAndAlive(OtherComp))
 		{
 			OtherComp->OnComponentEndOverlap.Broadcast(MyActor, this, INDEX_NONE);
 		}
@@ -1809,15 +1879,12 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 
 	if (OtherComp)
 	{
-		if (bPerformReflexiveTouch)
+		int32 OtherOverlapIdx = OtherComp->OverlappingComponents.Find(FOverlapInfo(this, INDEX_NONE));
+		if (OtherOverlapIdx != INDEX_NONE)
 		{
-			int32 OtherOverlapIdx = OtherComp->OverlappingComponents.Find(FOverlapInfo(this, INDEX_NONE));
-			if (OtherOverlapIdx != INDEX_NONE)
-			{
-				OtherComp->OverlappingComponents.RemoveAtSwap(OtherOverlapIdx, 1, false);
-			}
+			OtherComp->OverlappingComponents.RemoveAtSwap(OtherOverlapIdx, 1, false);
 		}
-
+		
 		// if this was the last touch on the other actor, notify that we've untouched the actor as well
 		if (bDoNotifies && !IsOverlappingActor(OtherActor) && MyActor && OtherActor)
 		{			
@@ -1827,7 +1894,7 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 				MyActor->OnActorEndOverlap.Broadcast(OtherActor);
 			}
 
-			if (bDoReflexiveNotifies && IsActorValidToNotify(OtherActor))
+			if (IsActorValidToNotify(OtherActor))
 			{
 				OtherActor->ReceiveActorEndOverlap(MyActor);
 				OtherActor->OnActorEndOverlap.Broadcast(MyActor);
@@ -1944,7 +2011,7 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 
 	// first, dispatch any pending overlaps
-	if (bGenerateOverlapEvents && ShouldTrackOverlaps() && IsCollisionEnabled())
+	if (bGenerateOverlapEvents && IsCollisionEnabled())
 	{
 		// if we haven't begun play, we're still setting things up (e.g. we might be inside one of the construction scripts)
 		// so we don't want to generate overlaps yet.
@@ -1986,10 +2053,10 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 					const FOverlapResult& Result = Overlaps[ResultIdx];
 
 					UPrimitiveComponent const* const HitComp = Result.Component.Get();
-					if (HitComp)
+					if (!Result.bBlockingHit && HitComp  && HitComp->bGenerateOverlapEvents)
 					{
 						AActor* const ResultActor = Result.GetActor();
-						if ( (ResultActor != NULL) && (HitComp != this) && !ResultActor->IsBasedOn(MyActor) && (ResultActor != MyWorld->GetWorldSettings() && ResultActor->bActorInitialized) )
+						if ( (ResultActor != NULL) && (HitComp != this) && !ResultActor->IsAttachedTo(MyActor) && !MyActor->IsAttachedTo(ResultActor) && ResultActor != MyWorld->GetWorldSettings() && ResultActor->bActorInitialized)
 						{
 							NewOverlappingComponents.Add(FOverlapInfo(Result.Component.Get(), Result.ItemIndex));		// don't need to add unique unless the overlap check can return dupes
 						}						
@@ -2068,7 +2135,7 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 	}
 }
 
-bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld * World, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld * World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
 #if WITH_PHYSX
 	PxRigidActor* PRigidActor = BodyInstance.GetPxRigidActor();
@@ -2107,7 +2174,7 @@ bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& O
 			if(PGeom != NULL)
 			{
 				// if object query param isn't valid, it will use trace channel
-				if( GeomOverlapMulti(World, *PGeom, PShapeGlobalPose, Overlaps, GetCollisionObjectType(), Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams) )
+				if (GeomOverlapMulti(World, *PGeom, PShapeGlobalPose, Overlaps, TestChannel, Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams))
 				{
 					bHaveBlockingHit = true;
 				}
@@ -2126,7 +2193,7 @@ void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 {
 	if (bShouldUpdatePhysicsVolume && !IsPendingKill() && GetWorld())
 	{
-		if (bGenerateOverlapEvents && ShouldTrackOverlaps() && IsCollisionEnabled())
+		if (bGenerateOverlapEvents && IsCollisionEnabled())
 		{
 			APhysicsVolume* BestVolume = GetWorld()->GetDefaultPhysicsVolume();
 			int32 BestPriority = BestVolume->Priority;

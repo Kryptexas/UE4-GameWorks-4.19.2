@@ -91,7 +91,7 @@ struct FVertexFactoryInput
 	/** added to the Position */
 	float3	DeltaPosition	: ATTRIBUTE9;	//POSITION1;
 	/** added to the TangentZ and then used to derive new TangentX,TangentY */
-	half3	DeltaTangentZ	: ATTRIBUTE10;	//NORMAL1;
+	half4	DeltaTangentZ	: ATTRIBUTE10;	//NORMAL1;
 #elif GPUSKIN_APEX_CLOTH // exclusive with GPUSKIN_MORPH_BLEND
 	// APEX cloth mesh-mesh mapping data
 	// Barycentric Coordinate Data
@@ -386,11 +386,13 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 	float3 TangentX = TangentBias(Input.TangentX);
 	// normal
 	float4 TangentZ = TangentBias(Input.TangentZ);
-	// normal morph offset
-	float3 DeltaTangentZ = TangentBias(Input.DeltaTangentZ);	
+	// normal morph offset. 
+	// since normal delta can be in the range of (-2, 2), 
+	// we packed twice more with less precision, so scale back up by 2 
+	float3 DeltaTangentZ = TangentBias(Input.DeltaTangentZ)*2;
 
 	// calc new normal by offseting it with the delta
-	Tangents[1] = normalize( float3(TangentZ.x,TangentZ.y,TangentZ.z) + DeltaTangentZ );
+	Tangents[1] = normalize( TangentZ.xyz + Input.DeltaTangentZ.w * DeltaTangentZ);
 	// derive the new tangent by orthonormalizing the new normal against
 	// the base tangent vector (assuming these are normalized)
 	Tangents[0] = normalize( TangentX - (dot(TangentX,Tangents[1]) * Tangents[1]) );
@@ -441,15 +443,15 @@ float3x3 SkinTangents( FVertexFactoryInput Input, FVertexFactoryIntermediates In
 #if GPUSKIN_PASS_THROUGH
 	TangentToLocal[0] = float3(Tangents[0]);
 	TangentToLocal[2] = float3(Tangents[1]);
-#else
+#else	
 	// Note the use of mul(Matrix,Vector), bone matrices are stored transposed
 	// for tighter packing.
 	TangentToLocal[0] = mul( Intermediates.BlendMatrix, float4(Tangents[0],0) );
 	TangentToLocal[2] = mul( Intermediates.BlendMatrix, float4(Tangents[1],0) );
+#endif	// GPUSKIN_PASS_THROUGH
 	// derive the new binormal by getting the cross product of the normal and tangent
 	// and flip vector based on sign of tangent basis determinant
 	TangentToLocal[1] = cross(TangentToLocal[2], TangentToLocal[0]) * TangentZ.w;
-#endif
 	return TangentToLocal;
 }
 

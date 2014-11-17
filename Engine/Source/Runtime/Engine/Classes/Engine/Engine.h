@@ -406,7 +406,7 @@ struct FDropNoteInfo
 
 /** On-screen debug message handling */
 /** Helper struct for tracking on screen messages. */
-USTRUCT(transient)
+USTRUCT()
 struct FScreenMessageString
 {
 	GENERATED_USTRUCT_BODY()
@@ -442,6 +442,18 @@ struct FScreenMessageString
 		}
 	
 };
+
+UENUM()
+namespace EMatineeCaptureType
+{
+	enum Type
+	{
+		AVI		UMETA(DisplayName="AVI Movie"),
+		BMP		UMETA(DisplayName="BMP Image Sequence"),
+		PNG		UMETA(DisplayName="PNG Image Sequence"),
+		JPEG	UMETA(DisplayName="JPEG Image Sequence")
+	};
+}
 
 class IAnalyticsProvider;
 
@@ -832,6 +844,14 @@ public:
 	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultMaterials, meta=(AllowedClasses="Material", DisplayName="Preview Shadows Indicator Material"))
 	FStringAssetReference PreviewShadowsIndicatorMaterialName;
 
+	/** Material that 'fakes' lighting, used for arrows, widgets. */
+	UPROPERTY()
+	class UMaterial* ArrowMaterial;
+
+	/** @todo document */
+	UPROPERTY(globalconfig)
+	FStringAssetReference ArrowMaterialName;
+
 	/** @todo document */
 	UPROPERTY(globalconfig)
 	FLinearColor LightingOnlyBrightness;
@@ -945,14 +965,6 @@ public:
 	UPROPERTY(globalconfig)
 	FStringAssetReference LightMapDensityTextureName;
 
-	/** White noise sound */
-	UPROPERTY()
-	class USoundWave* DefaultSound;
-
-	/** @todo document */
-	UPROPERTY(globalconfig, EditAnywhere, Category=DefaultSounds, meta=(AllowedClasses="SoundWave", DisplayName="Default Sound"))
-	FStringAssetReference DefaultSoundName;
-
 	// Variables.
 
 	/** Engine loop, used for callbacks from the engine module into launch. */
@@ -1015,11 +1027,11 @@ public:
 	uint32 bSmoothFrameRate:1;
 
 	/** Maximum framerate to smooth. Code will try to not go over via waiting.										*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate)
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
 	float MaxSmoothedFrameRate;
 
 	/** Minimum framerate smoothing will kick in.																	*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate)
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
 	float MinSmoothedFrameRate;
 
 	/** 
@@ -1180,7 +1192,7 @@ public:
 	float DisplayGamma;
 
 	/** Minimum desired framerate setting */
-	UPROPERTY(config, EditAnywhere, Category=Framerate)
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
 	float MinDesiredFrameRate;
 
 private:
@@ -1281,17 +1293,13 @@ public:
 	UPROPERTY(transient)
 	FString MatineePackageCaptureName;
 
-	/** The visible levels that should be loaded when the matinee starts */
-	UPROPERTY(transient)
-	FString VisibleLevelsForMatineeCapture;
-
 	/** the fps of the matine that we want to record */
 	UPROPERTY(transient)
 	int32 MatineeCaptureFPS;
 
-	/** The capture type 0 - AVI, 1 - Screen Shots */
+	/** The capture type, e.g. AVI or Screen Shots */
 	UPROPERTY(transient)
-	int32 MatineeCaptureType;
+	TEnumAsByte<EMatineeCaptureType::Type> MatineeCaptureType;
 
 	/** Whether or not to disable texture streaming during matinee movie capture */
 	UPROPERTY(transient)
@@ -1411,12 +1419,13 @@ public:
 
 	virtual bool IsInitialized() const { return bIsInitialized; }
 
-	/** Editor-only event triggered when actors are added or removed from the world, or if the world changes entirely */
-	DECLARE_EVENT( UEngine, FLevelActorsChangedEvent );
-	FLevelActorsChangedEvent& OnLevelActorsChanged() { return LevelActorsChangedEvent; }
+	/** Editor-only event triggered when the actor list of the world has changed */
+	DECLARE_EVENT( UEngine, FLevelActorListChangedEvent );
+	FLevelActorListChangedEvent& OnLevelActorListChanged() { return LevelActorListChangedEvent; }
 
-	/** Called by internal engine systems after level actors have changed to notify other subsystems */
-	void BroadcastLevelActorsChanged() { LevelActorsChangedEvent.Broadcast(); }
+
+	/** Called by internal engine systems after a world's actor list changes in a way not specifiable through other LevelActor__Events to notify other subsystems */
+	void BroadcastLevelActorListChanged() { LevelActorListChangedEvent.Broadcast(); }
 
 	/** Editor-only event triggered when actors are added to the world */
 	DECLARE_EVENT_OneParam( UEngine, FLevelActorAddedEvent, AActor* );
@@ -1445,6 +1454,13 @@ public:
 
 	/** Called by internal engine systems after a level actor has been detached */
 	void BroadcastLevelActorDetached(AActor* InActor, const AActor* InParent) { LevelActorDetachedEvent.Broadcast(InActor, InParent); }
+
+	/** Editor-only event triggered when actors' folders are changed */
+	DECLARE_EVENT_TwoParams( UEngine, FLevelActorFolderChangedEvent, const AActor*, FName );
+	FLevelActorFolderChangedEvent& OnLevelActorFolderChanged() { return LevelActorFolderChangedEvent; }
+
+	/** Called by internal engine systems after a level actor's folder has been changed */
+	void BroadcastLevelActorFolderChanged(const AActor* InActor, FName OldPath) { LevelActorFolderChangedEvent.Broadcast(InActor, OldPath); }
 
 	/** Editor-only event triggered after an actor is moved, rotated or scaled (AActor::PostEditMove) */
 	DECLARE_EVENT_OneParam( UEngine, FOnActorMovedEvent, AActor* );
@@ -1571,7 +1587,7 @@ public:
 	bool HandleTrackParticleRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpParticleRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpParticleFrameRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleDumpAllocsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleDumpAllocatorStats( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleHeapCheckCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleToggleOnscreenDebugMessageDisplayCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleToggleOnscreenDebugMessageSystemCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
@@ -1921,7 +1937,7 @@ public:
 	 * @param	ControllerId	the game pad index of the player to search for
 	 * @return	The player that has the ControllerId specified, or NULL if no players have that ControllerId
 	 */
-	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient * InVewport, int32 ControllerId );
+	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient * InViewport, int32 ControllerId );
 	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, int32 ControllerId );
 
 	void SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID);
@@ -2047,8 +2063,8 @@ protected:
 	FWorldDestroyedEvent		WorldDestroyedEvent;
 private:
 
-	/** Broadcasts whenever actors change. */
-	FLevelActorsChangedEvent LevelActorsChangedEvent;
+	/** Broadcasts whenever a world's actor list changes in a way not specifiable through other LevelActor__Events */
+	FLevelActorListChangedEvent LevelActorListChangedEvent;
 
 	/** Broadcasts whenever an actor is added. */
 	FLevelActorAddedEvent LevelActorAddedEvent;
@@ -2061,6 +2077,9 @@ private:
 
 	/** Broadcasts whenever an actor is detached. */
 	FLevelActorDetachedEvent LevelActorDetachedEvent;
+
+	/** Broadcasts whenever an actor's folder has changed. */
+	FLevelActorFolderChangedEvent LevelActorFolderChangedEvent;
 
 	/** Broadcasts whenever an actor is being renamed */
 	FLevelActorRequestRenameEvent LevelActorRequestRenameEvent;
@@ -2277,14 +2296,20 @@ public:
 
 	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld);
 
-	FWorldContext& WorldContextFromWorld(UWorld * InWorld);
-	FWorldContext& WorldContextFromGameViewport(const UGameViewportClient *InViewport);
-	FWorldContext& WorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
-	FWorldContext& WorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
+	FWorldContext* GetWorldContextFromWorld(UWorld * InWorld);
+	FWorldContext* GetWorldContextFromGameViewport(const UGameViewportClient *InViewport);
+	FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
+	FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
+	FWorldContext* GetWorldContextFromHandle(const int32 WorldContextHandle);
+
+	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
+	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);
+	FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame);	
+	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
+	FWorldContext& GetWorldContextFromHandleChecked(const int32 WorldContextHandle);
 
 	const TArray<FWorldContext>& GetWorldContexts() { return WorldList; }
 
-	FWorldContext& WorldContextFromHandle(int32 WorldContextHandle);
 
 	/** Verify any remaining World(s) are valid after ::LoadMap destroys a world */
 	virtual void VerifyLoadMapWorldCleanup();
@@ -2371,16 +2396,16 @@ public:
 
 	// Public interface for async map change functions
 
-	bool CommitMapChange(UWorld* InWorld) { return CommitMapChange(WorldContextFromWorld(InWorld)); }
-	bool IsReadyForMapChange(UWorld* InWorld) { return IsReadyForMapChange(WorldContextFromWorld(InWorld)); }
-	bool IsPreparingMapChange(UWorld* InWorld) { return IsPreparingMapChange(WorldContextFromWorld(InWorld)); }
-	bool PrepareMapChange(UWorld* InWorld, const TArray<FName>& LevelNames) { return PrepareMapChange(WorldContextFromWorld(InWorld), LevelNames); }
-	void ConditionalCommitMapChange(UWorld* InWorld) { return ConditionalCommitMapChange(WorldContextFromWorld(InWorld)); }
+	bool CommitMapChange(UWorld* InWorld) { return CommitMapChange(GetWorldContextFromWorldChecked(InWorld)); }
+	bool IsReadyForMapChange(UWorld* InWorld) { return IsReadyForMapChange(GetWorldContextFromWorldChecked(InWorld)); }
+	bool IsPreparingMapChange(UWorld* InWorld) { return IsPreparingMapChange(GetWorldContextFromWorldChecked(InWorld)); }
+	bool PrepareMapChange(UWorld* InWorld, const TArray<FName>& LevelNames) { return PrepareMapChange(GetWorldContextFromWorldChecked(InWorld), LevelNames); }
+	void ConditionalCommitMapChange(UWorld* InWorld) { return ConditionalCommitMapChange(GetWorldContextFromWorldChecked(InWorld)); }
 
-	FString GetMapChangeFailureDescription( UWorld *InWorld ) { return GetMapChangeFailureDescription(WorldContextFromWorld(InWorld)); }
+	FString GetMapChangeFailureDescription(UWorld *InWorld) { return GetMapChangeFailureDescription(GetWorldContextFromWorldChecked(InWorld)); }
 
 	/** Cancels pending map change.	 */
-	void CancelPendingMapChange(UWorld *InWorld) { return CancelPendingMapChange(WorldContextFromWorld(InWorld)); }
+	void CancelPendingMapChange(UWorld *InWorld) { return CancelPendingMapChange(GetWorldContextFromWorldChecked(InWorld)); }
 
 	void AddNewPendingStreamingLevel(UWorld *InWorld, FName PackageName, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, int32 LODIndex);
 
@@ -2396,6 +2421,9 @@ public:
 	 */
 	const UGameUserSettings* GetGameUserSettings() const;
 	UGameUserSettings* GetGameUserSettings();
+
+	/** Delegate handler for screenshots */
+	void HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Colors);
 
 private:
 	void CreateGameUserSettings();

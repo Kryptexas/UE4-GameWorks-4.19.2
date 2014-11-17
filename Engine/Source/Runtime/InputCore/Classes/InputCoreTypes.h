@@ -289,6 +289,13 @@ struct INPUTCORE_API EKeys
 	static const FKey RightBracket;
 	static const FKey Quote;
 
+	// Platform Keys
+	// These keys platform specific versions of keys that go by different names.
+	// The delete key is a good example, on Windows Delete is the virtual key for Delete.
+	// On Macs, the Delete key is the virtual key for BackSpace.
+	static const FKey Platform_Delete;
+
+	// Gameplay Keys
 	static const FKey Gamepad_LeftX;
 	static const FKey Gamepad_LeftY;
 	static const FKey Gamepad_RightX;
@@ -340,6 +347,14 @@ struct INPUTCORE_API EKeys
 
 	// PS4-specific
 	static const FKey PS4_Special;
+
+	// Steam Controller Specifit;
+	static const FKey Steam_Touch_0;
+	static const FKey Steam_Touch_1;
+	static const FKey Steam_Touch_2;
+	static const FKey Steam_Touch_3;
+	static const FKey Steam_Back_Left;
+	static const FKey Steam_Back_Right;
 
 	static const FKey Invalid;
 

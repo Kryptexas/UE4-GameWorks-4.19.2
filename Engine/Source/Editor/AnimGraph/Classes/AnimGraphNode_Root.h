@@ -15,7 +15,7 @@ class UAnimGraphNode_Root : public UAnimGraphNode_Base
 	// Begin UEdGraphNode interface.
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
 	virtual bool CanDuplicateNode() const OVERRIDE { return false; }
 	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const OVERRIDE;

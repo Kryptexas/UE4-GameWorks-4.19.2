@@ -28,9 +28,9 @@ void UBehaviorTreeGraphNode_Root::AllocateDefaultPins()
 	CreatePin(EGPD_Output, UBehaviorTreeEditorTypes::PinCategory_SingleComposite, TEXT(""), NULL, false, false, TEXT("In"));
 }
 
-FString UBehaviorTreeGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UBehaviorTreeGraphNode_Root::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString("ROOT");
+	return NSLOCTEXT("BehaviorTreeGraphNode", "Root", "ROOT");
 }
 
 FName UBehaviorTreeGraphNode_Root::GetNameIcon() const

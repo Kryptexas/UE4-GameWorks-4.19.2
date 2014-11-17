@@ -95,7 +95,7 @@ public:
 			.Padding(8.0f, 4.0f, 8.0f, 4.0f)
 			[
 				SNew( STextBlock )
-				.Text( LOCTEXT("MergeSkeletonDlgDescription", "Would you like to add following bones to the skeleton?").ToString())
+				.Text( LOCTEXT("MergeSkeletonDlgDescription", "Would you like to add following bones to the skeleton?"))
 			]
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -131,7 +131,7 @@ public:
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(this, &SDlgMergeSkeleton::ChangeAllOptions, true)
-					.Text(LOCTEXT("SkeletonMergeSelectAll", "Select All").ToString())
+					.Text(LOCTEXT("SkeletonMergeSelectAll", "Select All"))
 				]
 				+SUniformGridPanel::Slot(1,0)
 				[
@@ -139,7 +139,7 @@ public:
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(this, &SDlgMergeSkeleton::ChangeAllOptions, false)
-					.Text(LOCTEXT("SkeletonMergeDeselectAll", "Deselect All").ToString())
+					.Text(LOCTEXT("SkeletonMergeDeselectAll", "Deselect All"))
 				]
 			]
 			+SVerticalBox::Slot()
@@ -163,7 +163,7 @@ public:
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked( this, &SDlgMergeSkeleton::OnButtonClick, FDlgMergeSkeleton::Confirm )
-					.Text(LOCTEXT("SkeletonMergeOk", "OK").ToString())
+					.Text(LOCTEXT("SkeletonMergeOk", "OK"))
 				]
 				+SUniformGridPanel::Slot(1,0)
 				[
@@ -171,7 +171,7 @@ public:
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked( this, &SDlgMergeSkeleton::OnButtonClick, FDlgMergeSkeleton::Cancel )
-					.Text(LOCTEXT("SkeletonMergeCancel", "Cancel").ToString())
+					.Text(LOCTEXT("SkeletonMergeCancel", "Cancel"))
 				]
 			]
 		];
@@ -731,7 +731,7 @@ void FAssetTypeActions_SkeletalMesh::GetLODMenu(class FMenuBuilder& MenuBuilder,
 
 	for(int32 LOD = 0;LOD<=First->LODInfo.Num();++LOD)
 	{
-		const FText Description = FText::Format( LOCTEXT("LOD Number", "LOD {0}"), FText::AsNumber( LOD ) );
+		const FText Description = FText::Format( LOCTEXT("LODLevel", "LOD {0}"), FText::AsNumber( LOD ) );
 		const FText ToolTip = ( LOD == First->LODInfo.Num() ) ? LOCTEXT("NewImportTip", "Import new LOD") : LOCTEXT("ReimportTip", "Reimport over existing LOD");
 
 		MenuBuilder.AddMenuEntry(	Description, 
@@ -857,7 +857,7 @@ void FAssetTypeActions_SkeletalMesh::ExecuteOpenInExternalEditor(TArray<TWeakObj
 			const FString SourceFilePath = FReimportManager::ResolveImportFilename(Object->AssetImportData->SourceFilePath, Object);
 			if ( SourceFilePath.Len() && IFileManager::Get().FileSize( *SourceFilePath ) != INDEX_NONE )
 			{
-				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath );
+				FPlatformProcess::LaunchFileInDefaultExternalApplication( *SourceFilePath, NULL, ELaunchVerb::Edit );
 			}
 		}
 	}

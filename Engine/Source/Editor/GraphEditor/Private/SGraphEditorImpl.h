@@ -141,7 +141,7 @@ protected:
 	virtual void OnGraphChanged( const FEdGraphEditAction& InAction ) OVERRIDE;
 	// End of SGraphEditorInterface
 private:
-	FString GetZoomString() const;
+	FText GetZoomText() const;
 
 	FSlateColor GetZoomTextColorAndOpacity() const;
 

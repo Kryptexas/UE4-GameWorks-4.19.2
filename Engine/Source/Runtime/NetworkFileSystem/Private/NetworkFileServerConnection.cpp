@@ -29,7 +29,13 @@ FNetworkFileServerClientConnection::FNetworkFileServerClientConnection( FSocket*
 		RecompileShadersDelegate = InRecompileShadersDelegate;
 	}
 
-	Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), false, false, 8 * 1024, TPri_AboveNormal);
+#if UE_BUILD_DEBUG
+	// this thread needs more space in debug builds as it tries to log messages and such
+	const static uint32 NetworkFileServerThreadSize = 2 * 1024 * 1024; 
+#else
+	const static uint32 NetworkFileServerThreadSize = 8 * 1024; 
+#endif
+	Thread = FRunnableThread::Create(this, TEXT("FNetworkFileServerClientConnection"), false, false, NetworkFileServerThreadSize, TPri_AboveNormal);
 }
 
 
@@ -160,6 +166,8 @@ void FNetworkFileServerClientConnection::ConvertServerFilenameToClientFilename(F
 #endif
 }
 
+static FCriticalSection SocketCriticalSection;
+
 void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
 {
 	// first part of the payload is always the command
@@ -180,100 +188,104 @@ void FNetworkFileServerClientConnection::ProcessPayload( FArchive& Ar )
 	// process the message!
 	bool bSendUnsolicitedFiles = false;
 
-	switch (Msg)
 	{
-	case NFS_Messages::OpenRead:
-		ProcessOpenFile(Ar, Out, false);
-		break;
+		FScopeLock SocketLock(&SocketCriticalSection);
 
-	case NFS_Messages::OpenWrite:
-		ProcessOpenFile(Ar, Out, true);
-		break;
+		switch (Msg)
+		{
+		case NFS_Messages::OpenRead:
+			ProcessOpenFile(Ar, Out, false);
+			break;
 
-	case NFS_Messages::Read:
-		ProcessReadFile(Ar, Out);
-		break;
+		case NFS_Messages::OpenWrite:
+			ProcessOpenFile(Ar, Out, true);
+			break;
 
-	case NFS_Messages::Write:
-		ProcessWriteFile(Ar, Out);
-		break;
+		case NFS_Messages::Read:
+			ProcessReadFile(Ar, Out);
+			break;
 
-	case NFS_Messages::Seek:
-		ProcessSeekFile(Ar, Out);
-		break;
+		case NFS_Messages::Write:
+			ProcessWriteFile(Ar, Out);
+			break;
 
-	case NFS_Messages::Close:
-		ProcessCloseFile(Ar, Out);
-		break;
+		case NFS_Messages::Seek:
+			ProcessSeekFile(Ar, Out);
+			break;
 
-	case NFS_Messages::MoveFile:
-		ProcessMoveFile(Ar, Out);
-		break;
+		case NFS_Messages::Close:
+			ProcessCloseFile(Ar, Out);
+			break;
 
-	case NFS_Messages::DeleteFile:
-		ProcessDeleteFile(Ar, Out);
-		break;
+		case NFS_Messages::MoveFile:
+			ProcessMoveFile(Ar, Out);
+			break;
 
-	case NFS_Messages::GetFileInfo:
-		ProcessGetFileInfo(Ar, Out);
-		break;
+		case NFS_Messages::DeleteFile:
+			ProcessDeleteFile(Ar, Out);
+			break;
 
-	case NFS_Messages::CopyFile:
-		ProcessCopyFile(Ar, Out);
-		break;
+		case NFS_Messages::GetFileInfo:
+			ProcessGetFileInfo(Ar, Out);
+			break;
 
-	case NFS_Messages::SetTimeStamp:
-		ProcessSetTimeStamp(Ar, Out);
-		break;
+		case NFS_Messages::CopyFile:
+			ProcessCopyFile(Ar, Out);
+			break;
 
-	case NFS_Messages::SetReadOnly:
-		ProcessSetReadOnly(Ar, Out);
-		break;
+		case NFS_Messages::SetTimeStamp:
+			ProcessSetTimeStamp(Ar, Out);
+			break;
 
-	case NFS_Messages::CreateDirectory:
-		ProcessCreateDirectory(Ar, Out);
-		break;
+		case NFS_Messages::SetReadOnly:
+			ProcessSetReadOnly(Ar, Out);
+			break;
 
-	case NFS_Messages::DeleteDirectory:
-		ProcessDeleteDirectory(Ar, Out);
-		break;
+		case NFS_Messages::CreateDirectory:
+			ProcessCreateDirectory(Ar, Out);
+			break;
 
-	case NFS_Messages::DeleteDirectoryRecursively:
-		ProcessDeleteDirectoryRecursively(Ar, Out);
-		break;
+		case NFS_Messages::DeleteDirectory:
+			ProcessDeleteDirectory(Ar, Out);
+			break;
 
-	case NFS_Messages::ToAbsolutePathForRead:
-		ProcessToAbsolutePathForRead(Ar, Out);
-		break;
+		case NFS_Messages::DeleteDirectoryRecursively:
+			ProcessDeleteDirectoryRecursively(Ar, Out);
+			break;
 
-	case NFS_Messages::ToAbsolutePathForWrite:
-		ProcessToAbsolutePathForWrite(Ar, Out);
-		break;
+		case NFS_Messages::ToAbsolutePathForRead:
+			ProcessToAbsolutePathForRead(Ar, Out);
+			break;
 
-	case NFS_Messages::ReportLocalFiles:
-		ProcessReportLocalFiles(Ar, Out);
-		break;
+		case NFS_Messages::ToAbsolutePathForWrite:
+			ProcessToAbsolutePathForWrite(Ar, Out);
+			break;
 
-	case NFS_Messages::GetFileList:
-		ProcessGetFileList(Ar, Out);
-		break;
+		case NFS_Messages::ReportLocalFiles:
+			ProcessReportLocalFiles(Ar, Out);
+			break;
 
-	case NFS_Messages::Heartbeat:
-		ProcessHeartbeat(Ar, Out);
-		break;
+		case NFS_Messages::GetFileList:
+			ProcessGetFileList(Ar, Out);
+			break;
 
-	case NFS_Messages::SyncFile:
-		ProcessSyncFile(Ar, Out);
-		bSendUnsolicitedFiles = true;
-		break;
+		case NFS_Messages::Heartbeat:
+			ProcessHeartbeat(Ar, Out);
+			break;
 
-	case NFS_Messages::RecompileShaders:
-		ProcessRecompileShaders(Ar, Out);
-		break;
+		case NFS_Messages::SyncFile:
+			ProcessSyncFile(Ar, Out);
+			bSendUnsolicitedFiles = true;
+			break;
 
-	default:
+		case NFS_Messages::RecompileShaders:
+			ProcessRecompileShaders(Ar, Out);
+			break;
 
-		UE_LOG(LogFileServer, Error, TEXT("Bad incomming message tag (%d)."), (int32)Msg);
+		default:
+
+			UE_LOG(LogFileServer, Error, TEXT("Bad incomming message tag (%d)."), (int32)Msg);
+		}
 	}
 
 	// send back a reply if the command wrote anything back out
@@ -340,7 +352,7 @@ void FNetworkFileServerClientConnection::ProcessOpenFile( FArchive& In, FArchive
 	}
 
 	TArray<FString> NewUnsolictedFiles;
-	FileRequestDelegate.ExecuteIfBound(Filename, NewUnsolictedFiles);
+	FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 
 	FDateTime ServerTimeStamp = Sandbox->GetTimeStamp(*Filename);
 	int64 ServerFileSize = 0;
@@ -487,7 +499,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileInfo( FArchive& In, FArch
 	if (Info.FileExists)
 	{
 		TArray<FString> NewUnsolictedFiles;
-		FileRequestDelegate.ExecuteIfBound(Filename, NewUnsolictedFiles);
+		FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 	}
 
 	// get the rest of the info
@@ -685,7 +697,7 @@ void FNetworkFileServerClientConnection::ProcessGetFileList( FArchive& In, FArch
 	ConnectedPlatformName = TEXT("");
 	// figure out the best matching target platform for the set of valid ones
 	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-	static const TArray<ITargetPlatform*>& ActiveTargetPlatforms =  TPM.GetActiveTargetPlatforms();
+	static const TArray<ITargetPlatform*>& ActiveTargetPlatforms =  TPM.GetTargetPlatforms();
 	for (int32 TPIndex = 0; TPIndex < TargetPlatformNames.Num(); TPIndex++)
 	{
 		UE_LOG(LogFileServer, Display, TEXT("    Possible Target Platform from client: %s"), *TargetPlatformNames[TPIndex]);
@@ -943,7 +955,7 @@ void FNetworkFileServerClientConnection::ProcessSyncFile( FArchive& In, FArchive
 
 	TArray<FString> NewUnsolictedFiles;
 
-	FileRequestDelegate.ExecuteIfBound(Filename, NewUnsolictedFiles);
+	FileRequestDelegate.ExecuteIfBound(Filename, ConnectedPlatformName, NewUnsolictedFiles);
 
 	for (int32 Index = 0; Index < NewUnsolictedFiles.Num(); Index++)
 	{

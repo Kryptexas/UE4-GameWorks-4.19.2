@@ -90,7 +90,7 @@ void UK2Node_Variable::CreatePinForSelf()
 		else
 		{
 			UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), VariableReference.GetMemberParentClass(this), false, false, K2Schema->PN_Self);
-			TargetPin->PinFriendlyName =  TEXT("Target");
+			TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
 		}
 	}
 	else
@@ -391,11 +391,16 @@ FName UK2Node_Variable::GetCornerIcon() const
 	return Super::GetCornerIcon();
 }
 
-bool UK2Node_Variable::HasExternalBlueprintDependencies() const
+bool UK2Node_Variable::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	UClass* SourceClass = GetVariableSourceClass();
 	UBlueprint* SourceBlueprint = GetBlueprint();
-	return (SourceClass && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint));
+	const bool bResult = (SourceClass && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint));
+	if (bResult && OptionalOutput)
+	{
+		OptionalOutput->Add(SourceClass);
+	}
+	return bResult;
 }
 
 FString UK2Node_Variable::GetDocumentationLink() const

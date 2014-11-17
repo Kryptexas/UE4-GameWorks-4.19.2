@@ -131,6 +131,9 @@ void AActor::RerunConstructionScripts()
 #endif
 	if(bAllowReconstruction)
 	{
+		// Set global flag to let system know we are reconstructing blueprint instances
+		TGuardValue<bool> GuardTemplateNameFlag(GIsReconstructingBlueprintInstances, true);
+
 		// Temporarily suspend the undo buffer; we don't need to record reconstructed component objects into the current transaction
 		ITransaction* CurrentTransaction = GUndo;
 		GUndo = NULL;
@@ -198,6 +201,13 @@ void AActor::RerunConstructionScripts()
 
 		// Reset random streams
 		ResetPropertiesForConstruction();
+
+		// Exchange net roles before running construction scripts
+		UWorld *OwningWorld = GetWorld();
+		if (OwningWorld && !OwningWorld->IsServer())
+		{
+			ExchangeNetRoles(true);
+		}
 
 		// Run the construction scripts
 		OnConstruction(OldTransform);

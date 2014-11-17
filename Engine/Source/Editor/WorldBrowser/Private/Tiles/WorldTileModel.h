@@ -6,6 +6,7 @@ class UWorldTileDetails;
 //
 typedef TArray<TSharedPtr<class FWorldTileModel>> FWorldTileModelList;
 
+
 /**
  * The non-UI presentation logic for a single Level (Tile) in world composition
  */
@@ -20,6 +21,30 @@ public:
 		{
 			return A->GetLongPackageName() < B->GetLongPackageName();
 		}
+	};
+
+	enum EWorldDirections
+	{
+		XNegative,
+		YNegative,
+		XPositive,
+		YPositive
+	};
+
+	/**
+	 * 
+	 */
+	struct FLandscapeImportSettings
+	{
+		ALandscapeProxy*					SourceLandscape;
+		FTransform							LandscapeTransform;
+		int32								ComponentSizeQuads;
+		int32								SectionsPerComponent;
+		int32								QuadsPerSection;
+		int32								SizeX;
+		int32								SizeY;
+		TArray<uint16>						HeightData;
+		TArray<FLandscapeImportLayerInfo>	ImportLayers;
 	};
 	
 	/**
@@ -41,8 +66,6 @@ public:
 	virtual FName GetLongPackageName() const OVERRIDE;
 	virtual void Update() OVERRIDE;
 	virtual void LoadLevel() OVERRIDE;
-	virtual bool IsAlwaysLoaded() const OVERRIDE;
-	virtual void SetAlwaysLoaded(bool bAlwaysLoaded) OVERRIDE;
 	virtual void SetVisible(bool bVisible) OVERRIDE;
 	virtual bool HitTest2D(const FVector2D& Point) const OVERRIDE;
 	virtual FVector2D GetLevelPosition2D() const OVERRIDE;
@@ -50,8 +73,7 @@ public:
 	virtual void OnDrop(const TSharedPtr<FLevelDragDropOp>& Op) OVERRIDE;
 	virtual bool IsGoodToDrop(const TSharedPtr<FLevelDragDropOp>& Op) const OVERRIDE;
 	virtual void GetGridItemTooltipFields(TArray< TPair<TAttribute<FText>, TAttribute<FText>> >& CustomFields) const OVERRIDE;
-	virtual void OnLevelUnloaded() OVERRIDE;
-	virtual void OnLevelAddedToWorld() OVERRIDE;
+	virtual void OnLevelAddedToWorld(ULevel* InLevel) OVERRIDE;
 	virtual void OnLevelRemovedFromWorld() OVERRIDE;
 	virtual void OnParentChanged() OVERRIDE;
 	// FLevelModel interface end
@@ -114,26 +136,21 @@ public:
 	void SortRecursive();
 
 	/** 
-	 * Handler for level async loading completion 
-	 */
-	void AsyncLevelLoadComplete(const FString& PackageName, UPackage* LevelPackage);
-
-	/** 
 	 *	@return associated streaming level object for this tile
 	 *	Creates a new object in case it does not exists in a persistent world
 	 */
-	ULevelStreaming* CreateAssosiatedStreamingLevel();
-	
-	/** Removes associated streaming object from a persistent world */
-	void DestroyAssosiatedStreamingLevel();
+	ULevelStreaming* GetAssosiatedStreamingLevel();
+
+	/**  */
+	bool CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandscape, FIntPoint SourceTileOffset, FWorldTileModel::EWorldDirections InWhere);
+
+	/**  */
+	ALandscapeProxy* ImportLandscape(const FLandscapeImportSettings& Settings);
 
 private:
 	/** Flush world info to package and level objects */
 	void OnLevelInfoUpdated();
 
-	/** Notification about level object being loaded from disk */
-	void OnLevelLoadedFromDisk(ULevel* InLevel);
-	
 	/** Fixup invalid streaming objects inside level */
 	void FixupStreamingObjects();
 
@@ -151,9 +168,6 @@ private:
 	
 	/** Handler for ParentPackageName event from Tile details object  */
 	void OnParentPackageNamePropertyChanged();
-	
-	/** Handler for AlwaysLoaded event from Tile details object  */
-	void OnAlwaysLoadedPropertyChanged();
 	
 	/** Handler for StreamingLevels event from Tile details object  */
 	void OnStreamingLevelsPropertyChanged();

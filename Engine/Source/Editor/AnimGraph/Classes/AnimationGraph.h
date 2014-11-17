@@ -8,8 +8,5 @@ UCLASS(MinimalAPI)
 class UAnimationGraph : public UEdGraph
 {
 	GENERATED_UCLASS_BODY()
-
-#if WITH_EDITOR
-#endif
 };
 

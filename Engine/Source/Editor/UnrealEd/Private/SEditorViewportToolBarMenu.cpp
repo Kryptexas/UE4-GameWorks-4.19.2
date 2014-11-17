@@ -50,9 +50,10 @@ void SEditorViewportToolbarMenu::Construct( const FArguments& Declaration )
 				]
 				+SHorizontalBox::Slot()
 				.FillWidth( 1.0f )
+				.VAlign( VAlign_Center )
 				[
 					SNew( STextBlock )
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
+						.Font( FEditorStyle::GetFontStyle("EditorViewportToolBar.Font") )
 						.Text( Label )
 				];
 		}
@@ -61,7 +62,7 @@ void SEditorViewportToolbarMenu::Construct( const FArguments& Declaration )
 			// Just the label text, no icon
 			ButtonContent = 
 				SNew( STextBlock )
-					.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 9 ) )
+					.Font( FEditorStyle::GetFontStyle("EditorViewportToolBar.Font") )
 					.Text( Label );
 		}
 	}

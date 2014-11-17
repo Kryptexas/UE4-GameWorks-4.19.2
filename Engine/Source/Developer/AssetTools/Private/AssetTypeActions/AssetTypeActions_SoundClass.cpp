@@ -2,7 +2,6 @@
 
 #include "AssetToolsPrivatePCH.h"
 #include "SoundDefinitions.h"
-#include "Editor/UnrealEd/Public/LinkedObjEditor.h"
 #include "Editor/SoundClassEditor/Public/SoundClassEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"

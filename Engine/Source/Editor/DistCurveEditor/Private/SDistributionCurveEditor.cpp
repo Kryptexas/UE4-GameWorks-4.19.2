@@ -373,11 +373,23 @@ void SDistributionCurveEditor::BindCommands()
 
 	UICommandList->MapAction(
 		Commands.ScaleTimes,
-		FExecuteAction::CreateSP(this, &SDistributionCurveEditor::OnScaleTimes));
+		FExecuteAction::CreateSP(this, &SDistributionCurveEditor::OnScaleTimes, ECurveScaleScope::All));
 
 	UICommandList->MapAction(
 		Commands.ScaleValues,
-		FExecuteAction::CreateSP(this, &SDistributionCurveEditor::OnScaleValues));
+		FExecuteAction::CreateSP(this, &SDistributionCurveEditor::OnScaleValues, ECurveScaleScope::All));
+
+	UICommandList->MapAction(
+		Commands.ScaleSingleCurveTimes,
+		FExecuteAction::CreateSP(this, &SDistributionCurveEditor::OnScaleTimes, ECurveScaleScope::Current));
+
+	UICommandList->MapAction(
+		Commands.ScaleSingleCurveValues,
+		FExecuteAction::CreateSP(this, &SDistributionCurveEditor::OnScaleValues, ECurveScaleScope::Current));
+
+	UICommandList->MapAction(
+		Commands.ScaleSingleSubCurveValues,
+		FExecuteAction::CreateSP(this, &SDistributionCurveEditor::OnScaleValues, ECurveScaleScope::CurrentSub));
 
 	UICommandList->MapAction(
 		Commands.FitHorizontally,
@@ -738,15 +750,26 @@ void SDistributionCurveEditor::OnDeleteKeys()
 	Viewport->RefreshViewport();
 }
 
-void SDistributionCurveEditor::OnScaleTimes()
+void SDistributionCurveEditor::OnScaleTimes(ECurveScaleScope::Type Scope)
 {
 	FString DefaultText = FString::Printf(TEXT("%.2f"), 1.0f);
 
+	FText Label;
+	if(Scope == ECurveScaleScope::All)
+	{
+		Label = LOCTEXT("ScaleTimeAll", "Time Scale (All): ");
+	}
+	else if(Scope == ECurveScaleScope::Current || Scope == ECurveScaleScope::CurrentSub)
+	{
+		FCurveEdEntry& Entry = SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[SharedData->RightClickCurveIndex];
+		Label = FText::Format(LOCTEXT("ScaleTime", "Time Scale ({0}): "), FText::FromString(Entry.CurveName));
+	}
+
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(LOCTEXT("ScaleTime", "Time Scale: ").ToString())
+		.Label(Label.ToString())
 		.DefaultText(FText::FromString( DefaultText ))
-		.OnTextCommitted(this, &SDistributionCurveEditor::ScaleTimeCommitted)
+		.OnTextCommitted(this, &SDistributionCurveEditor::ScaleTimeCommitted, Scope)
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
@@ -760,15 +783,31 @@ void SDistributionCurveEditor::OnScaleTimes()
 	TextEntry->FocusDefaultWidget();
 }
 
-void SDistributionCurveEditor::OnScaleValues()
+void SDistributionCurveEditor::OnScaleValues(ECurveScaleScope::Type Scope)
 {
 	FString DefaultText = FString::Printf(TEXT("%.2f"), 1.0f);
 
+	FText Label;
+	if(Scope == ECurveScaleScope::All)
+	{
+		Label = LOCTEXT("ScaleValueAll", "Scale Values (All): ");
+	}
+	else if(Scope == ECurveScaleScope::Current)
+	{
+		FCurveEdEntry& Entry = SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[SharedData->RightClickCurveIndex];
+		Label = FText::Format(LOCTEXT("ScaleValue", "Scale Values ({0}): "), FText::FromString(Entry.CurveName));
+	}
+	else if( Scope == ECurveScaleScope::CurrentSub)
+	{
+		FCurveEdEntry& Entry = SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[SharedData->RightClickCurveIndex];
+		Label = FText::Format(LOCTEXT("ScaleSubValue", "Scale Sub-Value ({0}:{1}): "), FText::FromString(Entry.CurveName), FText::AsNumber(SharedData->RightClickCurveSubIndex));
+	}
+
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(LOCTEXT("ScaleValue", "Scale Value: ").ToString())
+		.Label(Label.ToString())
 		.DefaultText(FText::FromString( DefaultText ))
-		.OnTextCommitted(this, &SDistributionCurveEditor::ScaleValueCommitted)
+		.OnTextCommitted(this, &SDistributionCurveEditor::ScaleValueCommitted, Scope)
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
@@ -998,6 +1037,18 @@ void SDistributionCurveEditor::OpenGeneralMenu()
 		);
 }
 
+void SDistributionCurveEditor::OpenCurveMenu()
+{
+	const FVector2D MouseCursorLocation = FSlateApplication::Get().GetCursorPos();
+
+	FSlateApplication::Get().PushMenu(
+		SharedThis( this ),
+		BuildMenuWidgetCurve(),
+		MouseCursorLocation,
+		FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
+		);
+}
+
 void SDistributionCurveEditor::CloseEntryPopup()
 {
 	if( EntryPopupWindow.IsValid() )
@@ -1056,9 +1107,41 @@ TSharedRef<SWidget> SDistributionCurveEditor::BuildMenuWidgetGeneral()
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;	// Set the menu to automatically close when the user commits to a choice
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, UICommandList);
+
+	MenuBuilder.BeginSection("AllCurvesSection", LOCTEXT("AllCurvesMenuHeader", "All Curves"));
 	{
 		MenuBuilder.AddMenuEntry(FCurveEditorCommands::Get().ScaleTimes);
 		MenuBuilder.AddMenuEntry(FCurveEditorCommands::Get().ScaleValues);
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+TSharedRef<SWidget> SDistributionCurveEditor::BuildMenuWidgetCurve()
+{
+	const bool bShouldCloseWindowAfterMenuSelection = true;	// Set the menu to automatically close when the user commits to a choice
+	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, UICommandList);
+	{
+		MenuBuilder.BeginSection("AllCurvesSection", LOCTEXT("AllCurvesMenuHeader", "All Curves"));
+		{
+			MenuBuilder.AddMenuEntry(FCurveEditorCommands::Get().ScaleTimes);
+			MenuBuilder.AddMenuEntry(FCurveEditorCommands::Get().ScaleValues);
+		}
+		MenuBuilder.EndSection();
+
+		MenuBuilder.BeginSection("CurrentCurveSection", LOCTEXT("CurrentCurveMenuHeader", "Current Curve"));
+		{
+			MenuBuilder.AddMenuEntry(FCurveEditorCommands::Get().ScaleSingleCurveTimes);
+			MenuBuilder.AddMenuEntry(FCurveEditorCommands::Get().ScaleSingleCurveValues);
+		}
+		MenuBuilder.EndSection();
+
+		MenuBuilder.BeginSection("SubCurveSection", LOCTEXT("SubCurveMenuHeader", "Sub-Curve"));
+		{
+			MenuBuilder.AddMenuEntry(FCurveEditorCommands::Get().ScaleSingleSubCurveValues);
+		}
+		MenuBuilder.EndSection();
 	}
 
 	return MenuBuilder.MakeWidget();
@@ -1166,38 +1249,55 @@ void SDistributionCurveEditor::KeyValueCommitted(const FText& CommentText, EText
 	CloseEntryPopup();
 }
 
-void SDistributionCurveEditor::ScaleTimeCommitted(const FText& CommentText, ETextCommit::Type CommitInfo)
+void SDistributionCurveEditor::ScaleTimeCommitted(const FText& CommentText, ETextCommit::Type CommitInfo, ECurveScaleScope::Type Scope)
 {
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
 		float ScaleByValue = atof(TCHAR_TO_ANSI( *CommentText.ToString() ));
 		bool bNotified = NotifyPendingCurveChange(false);
 
-		// Scale the In values by the selected scalar
-		for (int32 CurveIdx = 0; CurveIdx < SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves.Num(); CurveIdx++)
+		struct Local
 		{
-			FCurveEdEntry& Entry = SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[CurveIdx];
-			FCurveEdInterface* EdInterface = UInterpCurveEdSetup::GetCurveEdInterfacePointer(Entry);
-			if(EdInterface)
+			static void ScaleCurveTime(FCurveEdEntry& Entry, float ScaleByValue)
 			{
-				// For each key
-				if (ScaleByValue >= 1.0f)
+				FCurveEdInterface* EdInterface = UInterpCurveEdSetup::GetCurveEdInterfacePointer(Entry);
+				if(EdInterface)
 				{
-					for (int32 KeyIndex = EdInterface->GetNumKeys() - 1; KeyIndex >= 0; KeyIndex--)
+					// For each key
+					if (ScaleByValue >= 1.0f)
 					{
-						float InVal = EdInterface->GetKeyIn(KeyIndex);
-						EdInterface->SetKeyIn(KeyIndex, InVal * ScaleByValue);
+						for (int32 KeyIndex = EdInterface->GetNumKeys() - 1; KeyIndex >= 0; KeyIndex--)
+						{
+							float InVal = EdInterface->GetKeyIn(KeyIndex);
+							EdInterface->SetKeyIn(KeyIndex, InVal * ScaleByValue);
+						}
 					}
-				}
-				else
-				{
-					for (int32 KeyIndex = 0; KeyIndex < EdInterface->GetNumKeys(); KeyIndex++)
+					else
 					{
-						float InVal = EdInterface->GetKeyIn(KeyIndex);
-						EdInterface->SetKeyIn(KeyIndex, InVal * ScaleByValue);
+						for (int32 KeyIndex = 0; KeyIndex < EdInterface->GetNumKeys(); KeyIndex++)
+						{
+							float InVal = EdInterface->GetKeyIn(KeyIndex);
+							EdInterface->SetKeyIn(KeyIndex, InVal * ScaleByValue);
+						}
 					}
 				}
 			}
+		};
+
+		// Scale the In values by the selected scalar
+		if(Scope == ECurveScaleScope::All)
+		{
+			// Scale the In values by the selected scalar
+			for (int32 CurveIdx = 0; CurveIdx < SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves.Num(); CurveIdx++)
+			{
+				Local::ScaleCurveTime(SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[CurveIdx], ScaleByValue);
+			}
+		}
+		else if(Scope == ECurveScaleScope::Current || Scope == ECurveScaleScope::CurrentSub)
+		{
+			// we cant scale times differently for sub-curves, as they share their key times
+			check(SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves.IsValidIndex(SharedData->RightClickCurveIndex));
+			Local::ScaleCurveTime(SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[SharedData->RightClickCurveIndex], ScaleByValue);			
 		}
 
 		if (bNotified && SharedData->NotifyObject)
@@ -1211,31 +1311,67 @@ void SDistributionCurveEditor::ScaleTimeCommitted(const FText& CommentText, ETex
 	CloseEntryPopup();
 }
 
-void SDistributionCurveEditor::ScaleValueCommitted(const FText& CommentText, ETextCommit::Type CommitInfo)
+
+void SDistributionCurveEditor::ScaleValueCommitted(const FText& CommentText, ETextCommit::Type CommitInfo, ECurveScaleScope::Type Scope)
 {
 	if (CommitInfo == ETextCommit::OnEnter)
 	{
 		float ScaleByValue = atof(TCHAR_TO_ANSI( *CommentText.ToString() ));
 		bool bNotified = NotifyPendingCurveChange(false);
 
-		// Scale the In values by the selected scalar
-		for (int32 CurveIdx = 0; CurveIdx < SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves.Num(); CurveIdx++)
+		struct Local
 		{
-			FCurveEdEntry& Entry = SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[CurveIdx];
-			FCurveEdInterface* EdInterface = UInterpCurveEdSetup::GetCurveEdInterfacePointer(Entry);
-			if(EdInterface)
+			static void ScaleCurveValue(FCurveEdEntry& Entry, int32 SubCurve, float ScaleByValue)
 			{
-				// For each sub-curve
-				for (int32 SubIndex = 0; SubIndex < EdInterface->GetNumSubCurves(); SubIndex++)
+				FCurveEdInterface* EdInterface = UInterpCurveEdSetup::GetCurveEdInterfacePointer(Entry);
+				if(EdInterface)
 				{
-					// For each key
-					for (int32 KeyIndex = 0; KeyIndex < EdInterface->GetNumKeys(); KeyIndex++)
+					if(SubCurve != INDEX_NONE)
 					{
-						float OutVal = EdInterface->GetKeyOut(SubIndex, KeyIndex);
-						EdInterface->SetKeyOut(SubIndex, KeyIndex, OutVal * ScaleByValue);
+						check(SubCurve >= 0);
+						check(SubCurve < EdInterface->GetNumSubCurves());
+
+						// For each key
+						for (int32 KeyIndex = 0; KeyIndex < EdInterface->GetNumKeys(); KeyIndex++)
+						{
+							float OutVal = EdInterface->GetKeyOut(SubCurve, KeyIndex);
+							EdInterface->SetKeyOut(SubCurve, KeyIndex, OutVal * ScaleByValue);
+						}
+					}
+					else
+					{
+						// For each sub-curve
+						for (int32 SubIndex = 0; SubIndex < EdInterface->GetNumSubCurves(); SubIndex++)
+						{
+							// For each key
+							for (int32 KeyIndex = 0; KeyIndex < EdInterface->GetNumKeys(); KeyIndex++)
+							{
+								float OutVal = EdInterface->GetKeyOut(SubIndex, KeyIndex);
+								EdInterface->SetKeyOut(SubIndex, KeyIndex, OutVal * ScaleByValue);
+							}
+						}
 					}
 				}
 			}
+		};
+
+		// Scale the In values by the selected scalar
+		if(Scope == ECurveScaleScope::All)
+		{
+			for (int32 CurveIdx = 0; CurveIdx < SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves.Num(); CurveIdx++)
+			{
+				Local::ScaleCurveValue(SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[CurveIdx], INDEX_NONE, ScaleByValue);
+			}
+		}
+		else if(Scope == ECurveScaleScope::Current)
+		{
+			check(SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves.IsValidIndex(SharedData->RightClickCurveIndex));
+			Local::ScaleCurveValue(SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[SharedData->RightClickCurveIndex], INDEX_NONE, ScaleByValue);
+		}
+		else if(Scope == ECurveScaleScope::CurrentSub)
+		{
+			check(SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves.IsValidIndex(SharedData->RightClickCurveIndex));
+			Local::ScaleCurveValue(SharedData->EdSetup->Tabs[SharedData->EdSetup->ActiveTab].Curves[SharedData->RightClickCurveIndex], SharedData->RightClickCurveSubIndex, ScaleByValue);
 		}
 
 		if (bNotified && SharedData->NotifyObject)

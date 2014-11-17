@@ -41,16 +41,15 @@ bool FAudioDevice::Init()
 	// initialize config variables
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("MaxChannels"), MaxChannels, GEngineIni));
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
-	verify(GConfig->GetFloat(TEXT("Audio"), TEXT("LowPassFilterResonance"), LowPassFilterResonance, GEngineIni));
 	
-	FString DefaultBaseSoundMixName;
-	if (GConfig->GetString(TEXT("Audio"), TEXT("DefaultBaseSoundMixName"), DefaultBaseSoundMixName, GEngineIni))
-	{
-		DefaultBaseSoundMix = LoadObject<USoundMix>(NULL, *DefaultBaseSoundMixName);
-	}
-
 	// If this is true, skip the initial startup precache so we can do it later in the flow
 	GConfig->GetBool(TEXT("Audio"), TEXT("DeferStartupPrecache"), bDeferStartupPrecache, GEngineIni);
+
+	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
+	if (DefaultBaseSoundMixName.IsValid())
+	{
+		DefaultBaseSoundMix = LoadObject<USoundMix>(NULL, *DefaultBaseSoundMixName.ToString());
+	}
 
 	GetDefault<USoundGroups>()->Initialize();
 
@@ -82,6 +81,11 @@ bool FAudioDevice::Init()
 	UE_LOG(LogInit, Log, TEXT("FAudioDevice initialized." ));
 
 	return true;
+}
+
+float FAudioDevice::GetLowPassFilterResonance() const
+{
+	return GetDefault<UAudioSettings>()->LowPassFilterResonance;
 }
 
 void FAudioDevice::PrecacheStartupSounds()
@@ -138,6 +142,11 @@ void FAudioDevice::Teardown()
 	}
 	Sources.Empty();
 	FreeSources.Empty();
+}
+
+void FAudioDevice::Suspend(bool bGameTicking)
+{
+	HandlePause( bGameTicking, true );
 }
 
 void FAudioDevice::CountBytes(FArchive& Ar)
@@ -899,11 +908,16 @@ void FAudioDevice::InitSoundSources( void )
 
 void FAudioDevice::SetDefaultBaseSoundMix( USoundMix* SoundMix )
 {
-	if( !SoundMix )
+	if (SoundMix == NULL)
 	{
-		SoundMix = DefaultBaseSoundMix;
+		const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
+		if (DefaultBaseSoundMixName.IsValid())
+		{			
+			SoundMix = LoadObject<USoundMix>(NULL, *DefaultBaseSoundMixName.ToString());
+		}
 	}
 
+	DefaultBaseSoundMix = SoundMix;
 	SetBaseSoundMix(SoundMix);
 }
 
@@ -922,7 +936,7 @@ void FAudioDevice::RemoveSoundMix( USoundMix* SoundMix )
 		// Try setting to global default if base SoundMix has been cleared
 		if( BaseSoundMix == NULL )
 		{
-			SetBaseSoundMix( DefaultBaseSoundMix );
+			SetBaseSoundMix(DefaultBaseSoundMix);
 		}
 	}
 }
@@ -1625,7 +1639,7 @@ void FAudioDevice::DestroyEffect( FSoundSource* Source )
 }
 
 
-void FAudioDevice::HandlePause( bool bGameTicking )
+void FAudioDevice::HandlePause( bool bGameTicking, bool bGlobalPause )
 {
 	// Pause all sounds if transitioning to pause mode.
 	if( !bGameTicking && bGameWasTicking )
@@ -1633,7 +1647,7 @@ void FAudioDevice::HandlePause( bool bGameTicking )
 		for( int32 i = 0; i < Sources.Num(); i++ )
 		{
 			FSoundSource* Source = Sources[ i ];
-			if( Source->IsGameOnly() )
+			if( bGlobalPause || Source->IsGameOnly() )
 			{
 				Source->Pause();
 			}
@@ -1645,7 +1659,7 @@ void FAudioDevice::HandlePause( bool bGameTicking )
 		for( int32 i = 0; i < Sources.Num(); i++ )
 		{
 			FSoundSource* Source = Sources[ i ];
-			if( Source->IsGameOnly() )
+			if( bGlobalPause || Source->IsGameOnly() )
 			{
 				Source->Play();
 			}
@@ -2514,6 +2528,24 @@ void FAudioDevice::StopSoundsForReimport(USoundWave* ReimportedSoundWave, TArray
 				}
 			}
 		}
+	}
+}
+
+void FAudioDevice::OnBeginPIE(const bool bIsSimulating)
+{
+	for (TObjectIterator<USoundNode> It; It; ++It)
+	{
+		USoundNode* SoundNode = *It;
+		SoundNode->OnBeginPIE(bIsSimulating);
+	}
+}
+
+void FAudioDevice::OnEndPIE(const bool bIsSimulating)
+{
+	for (TObjectIterator<USoundNode> It; It; ++It)
+	{
+		USoundNode* SoundNode = *It;
+		SoundNode->OnEndPIE(bIsSimulating);
 	}
 }
 #endif

@@ -5,24 +5,43 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_TwoBoneIK
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_TwoBoneIK::UAnimGraphNode_TwoBoneIK(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 }
 
-FString UAnimGraphNode_TwoBoneIK::GetControllerDescription() const
+FText UAnimGraphNode_TwoBoneIK::GetControllerDescription() const
 {
-	return TEXT("Two Bone IK");
+	return LOCTEXT("TwoBoneIK", "Two Bone IK");
 }
 
 FString UAnimGraphNode_TwoBoneIK::GetTooltip() const
 {
-	return TEXT("The Two Bone IK control applies an inverse kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.");
+	return LOCTEXT("AnimGraphNode_TwoBoneIK_Tooltip", "The Two Bone IK control applies an inverse kinematic (IK) solver to a 3-joint chain, such as the limbs of a character.").ToString();
 }
 
-FString UAnimGraphNode_TwoBoneIK::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_TwoBoneIK::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	FString Result = *GetControllerDescription();
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("ControllerDescription"), GetControllerDescription());
+	Args.Add(TEXT("BoneName"), FText::FromName(Node.IKBone.BoneName));
+
+	if(TitleType == ENodeTitleType::ListView)
+	{
+		return FText::Format(LOCTEXT("AnimGraphNode_IKBone_Title", "{ControllerDescription} - Bone: {BoneName}"), Args);
+	}
+	else
+	{
+		return FText::Format(LOCTEXT("AnimGraphNode_IKBone_Title", "{ControllerDescription}\nBone: {BoneName}"), Args);
+	}
+}
+
+FString UAnimGraphNode_TwoBoneIK::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	FString Result = GetControllerDescription().ToString();
 	Result += (TitleType == ENodeTitleType::ListView) ? TEXT(" - ") : TEXT("\n");
 	Result += FString::Printf(TEXT("Bone: %s"), *Node.IKBone.BoneName.ToString());
 	return Result;
@@ -128,3 +147,6 @@ void UAnimGraphNode_TwoBoneIK::ConvertToComponentSpaceTransform(USkeletalMeshCom
 		break;
 	}
 }
+
+
+#undef LOCTEXT_NAMESPACE

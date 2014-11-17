@@ -9,7 +9,7 @@
 #include "MallocTBB.h"
 #include "MallocAnsi.h"
 #include "GenericPlatformMemoryPoolStats.h"
-
+#include "MemoryMisc.h"
 
 #if !FORCE_ANSI_ALLOCATOR
 #include "MallocBinned.h"
@@ -17,8 +17,9 @@
 
 #include "AllowWindowsPlatformTypes.h"
 #include <Psapi.h>
-#include "HideWindowsPlatformTypes.h"
 #pragma comment(lib, "psapi.lib")
+
+DECLARE_MEMORY_STAT(TEXT("Windows Specific Memory Stat"),	STAT_WindowsSpecificMemoryStat, STATGROUP_MemoryPlatform);
 
 /** Enable this to track down windows allocations not wrapped by our wrappers
 int WindowsAllocHook(int nAllocType, void *pvData,
@@ -48,11 +49,13 @@ void FWindowsPlatformMemory::Init()
 
 
 	const FPlatformMemoryConstants& MemoryConstants = FPlatformMemory::GetConstants();
-	UE_LOG(LogInit, Log, TEXT("Memory total: Physical=%.1fGB (%dGB approx) Pagefile=%.1fGB Virtual=%.1fGB"), 
+	UE_LOG(LogMemory, Log, TEXT("Memory total: Physical=%.1fGB (%dGB approx) Virtual=%.1fGB"), 
 		float(MemoryConstants.TotalPhysical/1024.0/1024.0/1024.0),
 		MemoryConstants.TotalPhysicalGB, 
-		float((MemoryConstants.TotalVirtual-MemoryConstants.TotalPhysical)/1024.0/1024.0/1024.0), 
 		float(MemoryConstants.TotalVirtual/1024.0/1024.0/1024.0) );
+
+	UpdateStats();
+	DumpStats( *GLog );
 }
 
 FMalloc* FWindowsPlatformMemory::BaseAllocator()
@@ -81,8 +84,9 @@ FPlatformMemoryStats FWindowsPlatformMemory::GetStats()
 	 *	GetProcessMemoryInfo
 	 *	PROCESS_MEMORY_COUNTERS
 	 *		WorkingSetSize
-	 *		PagefileUsage
-	 *	
+	 *		UsedVirtual
+	 *		PeakUsedVirtual
+	 *		
 	 *	GetPerformanceInfo
 	 *		PPERFORMANCE_INFORMATION 
 	 *		PageSize
@@ -101,11 +105,25 @@ FPlatformMemoryStats FWindowsPlatformMemory::GetStats()
 	MemoryStats.AvailablePhysical = MemoryStatusEx.ullAvailPhys;
 	MemoryStats.AvailableVirtual = MemoryStatusEx.ullAvailVirtual;
 	
-	MemoryStats.WorkingSetSize = ProcessMemoryCounters.WorkingSetSize;
-	MemoryStats.PeakWorkingSetSize = ProcessMemoryCounters.PeakWorkingSetSize;
-	MemoryStats.PagefileUsage = ProcessMemoryCounters.PagefileUsage;
+	MemoryStats.UsedPhysical = ProcessMemoryCounters.WorkingSetSize;
+	MemoryStats.PeakUsedPhysical = ProcessMemoryCounters.PeakWorkingSetSize;
+	MemoryStats.UsedVirtual = ProcessMemoryCounters.PagefileUsage;
+	MemoryStats.PeakUsedVirtual = ProcessMemoryCounters.PeakPagefileUsage;
 
 	return MemoryStats;
+}
+
+void FWindowsPlatformMemory::GetStatsForMallocProfiler( FGenericMemoryStats& out_Stats )
+{
+#if	STATS
+	FGenericPlatformMemory::GetStatsForMallocProfiler( out_Stats );
+
+	FPlatformMemoryStats Stats = GetStats();
+
+	// Windows specific stats.
+	static const FName NAME_WindowsSpecificMemoryStat   = TEXT("Windows Specific Memory Stat");
+	out_Stats.Add( NAME_WindowsSpecificMemoryStat, Stats.WindowsSpecificMemoryStat );
+#endif // STATS
 }
 
 const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
@@ -132,6 +150,15 @@ const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
 	return MemoryConstants;	
 }
 
+void FWindowsPlatformMemory::UpdateStats()
+{
+	FGenericPlatformMemory::UpdateStats();
+
+	// Windows specific stats.
+	FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
+	SET_MEMORY_STAT(STAT_WindowsSpecificMemoryStat,MemoryStats.WindowsSpecificMemoryStat);
+}
+
 void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )
 {
 	return VirtualAlloc( NULL, Size, MEM_COMMIT, PAGE_READWRITE );
@@ -141,3 +168,130 @@ void FWindowsPlatformMemory::BinnedFreeToOS( void* Ptr )
 {
 	verify(VirtualFree( Ptr, 0, MEM_RELEASE ) != 0);
 }
+
+FPlatformMemory::FSharedMemoryRegion * FWindowsPlatformMemory::MapNamedSharedMemoryRegion(const FString & InName, bool bCreate, uint32 AccessMode, SIZE_T Size)
+{
+	FString Name(TEXT("Global\\"));
+	Name += InName;
+
+	DWORD OpenMappingAccess = FILE_MAP_READ;
+	check(AccessMode != 0);
+	if (AccessMode == FPlatformMemory::ESharedMemoryAccess::Write)
+	{
+		OpenMappingAccess = FILE_MAP_WRITE;
+	}
+	else if (AccessMode == (FPlatformMemory::ESharedMemoryAccess::Write | FPlatformMemory::ESharedMemoryAccess::Read))
+	{
+		OpenMappingAccess = FILE_MAP_ALL_ACCESS;
+	}
+
+	HANDLE Mapping = NULL;
+	if (bCreate)
+	{
+		DWORD CreateMappingAccess = PAGE_READONLY;
+		check(AccessMode != 0);
+		if (AccessMode == FPlatformMemory::ESharedMemoryAccess::Write)
+		{
+			CreateMappingAccess = PAGE_WRITECOPY;
+		}
+		else if (AccessMode == (FPlatformMemory::ESharedMemoryAccess::Write | FPlatformMemory::ESharedMemoryAccess::Read))
+		{
+			CreateMappingAccess = PAGE_READWRITE;
+		}
+
+		DWORD MaxSizeHigh = 
+#if PLATFORM_64BITS
+			(Size >> 32);
+#else
+			0;
+#endif // PLATFORM_64BITS
+
+		DWORD MaxSizeLow = Size
+#if PLATFORM_64BITS
+			& 0xFFFFFFFF
+#endif // PLATFORM_64BITS
+			;
+
+		Mapping = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, CreateMappingAccess, MaxSizeHigh, MaxSizeLow, *Name);
+
+		if (Mapping == NULL)
+		{
+			DWORD ErrNo = GetLastError();
+			UE_LOG(LogHAL, Warning, TEXT("CreateFileMapping(file=INVALID_HANDLE_VALUE, security=NULL, protect=0x%x, MaxSizeHigh=%d, MaxSizeLow=%d, name='%s') failed with GetLastError() = %d"), 
+				CreateMappingAccess, MaxSizeHigh, MaxSizeLow, *Name,
+				ErrNo
+				);
+		}
+	}
+	else
+	{
+		Mapping = OpenFileMapping(OpenMappingAccess, FALSE, *Name);
+
+		if (Mapping == NULL)
+		{
+			DWORD ErrNo = GetLastError();
+			UE_LOG(LogHAL, Warning, TEXT("OpenFileMapping(access=0x%x, inherit=false, name='%s') failed with GetLastError() = %d"), 
+				OpenMappingAccess, *Name,
+				ErrNo
+				);
+		}
+	}
+
+	if (Mapping == NULL)
+	{
+		return NULL;
+	}
+
+	void * Ptr = MapViewOfFile(Mapping, OpenMappingAccess, 0, 0, Size);
+	if (Ptr == NULL)
+	{
+		DWORD ErrNo = GetLastError();
+		UE_LOG(LogHAL, Warning, TEXT("MapViewOfFile(mapping=0x%x, access=0x%x, OffsetHigh=0, OffsetLow=0, NumBytes=%u) failed with GetLastError() = %d"), 
+			Mapping, OpenMappingAccess, Size,
+			ErrNo
+			);
+
+		CloseHandle(Mapping);
+		return NULL;
+	}
+
+	return new FWindowsSharedMemoryRegion(Name, AccessMode, Ptr, Size, Mapping);
+}
+
+bool FWindowsPlatformMemory::UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion)
+{
+	bool bAllSucceeded = true;
+
+	if (MemoryRegion)
+	{
+		FWindowsSharedMemoryRegion * WindowsRegion = static_cast< FWindowsSharedMemoryRegion* >( MemoryRegion );
+
+		if (!UnmapViewOfFile(WindowsRegion->GetAddress()))
+		{
+			bAllSucceeded = false;
+
+			int ErrNo = GetLastError();
+			UE_LOG(LogHAL, Warning, TEXT("UnmapViewOfFile(address=%p) failed with GetLastError() = %d"), 
+				WindowsRegion->GetAddress(),
+				ErrNo
+				);
+		}
+
+		if (!CloseHandle(WindowsRegion->GetMapping()))
+		{
+			bAllSucceeded = false;
+
+			int ErrNo = GetLastError();
+			UE_LOG(LogHAL, Warning, TEXT("CloseHandle(handle=0x%x) failed with GetLastError() = %d"), 
+				WindowsRegion->GetMapping(),
+				ErrNo
+				);
+		}
+
+		// delete the region
+		delete WindowsRegion;
+	}
+
+	return bAllSucceeded;
+}
+#include "HideWindowsPlatformTypes.h"

@@ -32,6 +32,8 @@ public:
 
 	virtual EPropertyTableColumnSizeMode::Type GetSizeMode() const = 0;
 
+	virtual void SetSizeMode(EPropertyTableColumnSizeMode::Type InSizeMode) = 0;
+
 	virtual float GetWidth() const = 0;
 	virtual void SetWidth( float InWidth ) = 0;
 
@@ -48,4 +50,7 @@ public:
 	 * Tick the property column each frame
 	 */
 	virtual void Tick() = 0;
+
+	DECLARE_EVENT_OneParam( IPropertyTableColumn, FFrozenStateChanged, const TSharedRef< IPropertyTableColumn >& );
+	virtual FFrozenStateChanged* OnFrozenStateChanged() = 0;
 };

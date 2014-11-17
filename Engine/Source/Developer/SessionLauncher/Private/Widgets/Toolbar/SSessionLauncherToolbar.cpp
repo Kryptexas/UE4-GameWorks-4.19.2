@@ -36,7 +36,7 @@ void SSessionLauncherToolbar::CreateCommands( )
 	const FSessionLauncherCommands& Commands = FSessionLauncherCommands::Get();
 
 	// Build command
-	CommandList->MapAction(Commands.Build,
+	CommandList->MapAction(Commands.CreateBuild,
 		FExecuteAction::CreateRaw(this, &SSessionLauncherToolbar::HandleBuildActionExecute),
 		FCanExecuteAction::CreateRaw(this, &SSessionLauncherToolbar::HandleActionCanExecute),
 		FIsActionChecked::CreateRaw(this, &SSessionLauncherToolbar::HandleBuildActionIsChecked)
@@ -68,14 +68,14 @@ void SSessionLauncherToolbar::CreateCommands( )
 /* SSessionLauncherTaskSelector implementation
  *****************************************************************************/
 
-TSharedRef<SWidget> SSessionLauncherToolbar::MakeToolbar( const TSharedRef<FUICommandList>& CommandList )
+TSharedRef<SWidget> SSessionLauncherToolbar::MakeToolbar( const TSharedRef<FUICommandList>& InCommandList )
 {
-	FToolBarBuilder ToolBarBuilder(CommandList, FMultiBoxCustomization::None, TSharedPtr<FExtender>(), EOrientation::Orient_Vertical);
+	FToolBarBuilder ToolBarBuilder(InCommandList, FMultiBoxCustomization::None, TSharedPtr<FExtender>(), EOrientation::Orient_Vertical);
 
 	ToolBarBuilder.BeginSection("Tasks");
 	{
 		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().QuickLaunch);
-		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().Build);
+		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().CreateBuild);
 		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().DeployBuild);
 		ToolBarBuilder.AddToolBarButton(FSessionLauncherCommands::Get().AdvancedBuild);
 	}

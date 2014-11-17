@@ -716,7 +716,7 @@ void FLightMapPendingTexture::StartEncoding()
 		Texture->MipGenSettings = TMGS_LeaveExistingMips;
 		int32 NumMips = Texture->Source.GetNumMips();
 		Texture->SRGB = false;
-		Texture->Filter	= GUseBilinearLightmaps ? TF_Linear : TF_Nearest;
+		Texture->Filter	= GUseBilinearLightmaps ? TF_Default : TF_Nearest;
 		Texture->LODGroup = TEXTUREGROUP_Lightmap;
 		Texture->LightmapFlags = ELightMapFlags( LightmapFlags );
 		Texture->CompressionNoAlpha = false;
@@ -814,7 +814,7 @@ void FLightMapPendingTexture::StartEncoding()
 		Texture->MipGenSettings = TMGS_LeaveExistingMips;
 		int32 NumMips = Texture->Source.GetNumMips();
 		Texture->SRGB = 0;
-		Texture->Filter	= GUseBilinearLightmaps ? TF_Linear : TF_Nearest;
+		Texture->Filter	= GUseBilinearLightmaps ? TF_Default : TF_Nearest;
 		Texture->LODGroup = TEXTUREGROUP_Lightmap;
 		Texture->LightmapFlags = ELightMapFlags( LightmapFlags );
 		Texture->CompressionNoAlpha = CoefficientIndex >= LQ_LIGHTMAP_COEF_INDEX;

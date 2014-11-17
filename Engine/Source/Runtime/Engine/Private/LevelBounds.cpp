@@ -2,13 +2,16 @@
 
 #include "EnginePrivate.h"
 
+// Default size of the box (scale)
+static const FVector DefaultLevelSize = FVector(1000.f);
+
 ALevelBounds::ALevelBounds(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	TSubobjectPtr<UBoxComponent> BoxComponent = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("BoxComponent0"));
 	RootComponent = BoxComponent;
 	RootComponent->Mobility = EComponentMobility::Static;
-	RootComponent->RelativeScale3D = FVector(2048.0f);
+	RootComponent->RelativeScale3D = DefaultLevelSize;
 
 	bAutoUpdateBounds = true;
 
@@ -116,6 +119,10 @@ void ALevelBounds::UpdateLevelBounds()
 		FVector LevelSize = LevelBounds.GetSize();
 		
 		SetActorTransform(FTransform(FQuat::Identity, LevelCenter, LevelSize));
+	}
+	else
+	{
+		SetActorTransform(FTransform(FQuat::Identity, FVector::ZeroVector, DefaultLevelSize));
 	}
 	
 	BroadcastLevelBoundsUpdated();

@@ -18,6 +18,7 @@ void FCollisionAnalyzerModule::StartupModule()
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(CollisionAnalyzerModule::CollisionAnalyzerApp, FOnSpawnTab::CreateRaw(this, &FCollisionAnalyzerModule::SpawnCollisionAnalyzerTab))
 		.SetDisplayName(NSLOCTEXT("CollisionAnalyzerModule", "TabTitle", "Collision Analyzer"))
+		.SetTooltipText(NSLOCTEXT("CollisionAnalyzerModule", "TooltipText", "Open the Collision Analyzer tab."))
 		.SetGroup(WorkspaceMenu::GetMenuStructure().GetDeveloperToolsCategory())
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "CollisionAnalyzer.TabIcon"));
 }

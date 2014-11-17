@@ -20,6 +20,10 @@
 // from the paper: We use SOFT Z EXTENT = 1mm to 10cm for our results
 #define SOFT_Z_EXTENT 1
 
+// 0: use more texture lookups avoiding .Gather() lookups
+#define GATHER_OPTIMIZATION (FEATURE_LEVEL >= FEATURE_LEVEL_SM5)
+
+
 // 0:off / 1:on, useful to debug the motionblur algorithm
 #define MOTIONBLUR_TESTCHART 0
 
@@ -147,23 +151,41 @@ void SetupPS(float4 UVAndScreenPos : TEXCOORD0,
 	// high quality 4 samples with blurring
 	float2 UVs[4];
 
-	// no filtering (2x2 kernel) to get no leaking in Depth of Field
-	UVs[0] = UV + PostprocessInput1Size.zw * float2(-0.5f, -0.5f);
-	UVs[1] = UV + PostprocessInput1Size.zw * float2( 0.5f, -0.5f);
-	UVs[2] = UV + PostprocessInput1Size.zw * float2(-0.5f,  0.5f);
-	UVs[3] = UV + PostprocessInput1Size.zw * float2( 0.5f,  0.5f);
+	float2 HalfPixelOffset = PostprocessInput1Size.zw * float2(0.5f, 0.5f);
+
+	// no filtering (2x2 kernel) to get no leaking in Depth of Field, lefttop,righttop,leftbottom,rightbottom
+	UVs[0] = UV + HalfPixelOffset * float2(-1, -1);
+	UVs[1] = UV + HalfPixelOffset * float2( 1, -1);
+	UVs[2] = UV + HalfPixelOffset * float2(-1,  1);
+	UVs[3] = UV + HalfPixelOffset * float2( 1,  1);
 	
 	// detect find objects
 	float4 ObjectMask;
 	float2 VelocitySamples[4];
+
+#if GATHER_OPTIMIZATION
 	{
-		UNROLL for( int i = 0; i < 4; i++ )
-		{
-			VelocitySamples[i] = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UVs[i]).xy;
-			ObjectMask[i] = VelocitySamples[i].x > 0;
-			VelocitySamples[i] = DecodeVelocityFromTexture(VelocitySamples[i]);
-			VelocitySamples[i] = ObjectMask[i] ? VelocitySamples[i] : 0;
-		}
+		// using Gather: xyzw in counter clockwise order starting with the sample to the lower left of the queried location
+		float4 Red = PostprocessInput0.GatherRed(PostprocessInput0Sampler, UV);
+		float4 Green = PostprocessInput0.GatherGreen(PostprocessInput0Sampler, UV);
+
+		VelocitySamples[0] = float2(Red.w, Green.w);
+		VelocitySamples[1] = float2(Red.z, Green.z);
+		VelocitySamples[2] = float2(Red.x, Green.x);
+		VelocitySamples[3] = float2(Red.y, Green.y);
+	}
+#else
+	UNROLL for( int i = 0; i < 4; i++ )
+	{
+		VelocitySamples[i] = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVs[i], 0).xy;
+	}
+#endif
+
+	UNROLL for( int i = 0; i < 4; i++ )
+	{
+		ObjectMask[i] = VelocitySamples[i].x > 0;
+		VelocitySamples[i] = DecodeVelocityFromTexture(VelocitySamples[i]);
+		VelocitySamples[i] = ObjectMask[i] ? VelocitySamples[i] : 0;
 	}
 
 	float AvgObject = dot(ObjectMask, 0.25f);
@@ -174,11 +196,22 @@ void SetupPS(float4 UVAndScreenPos : TEXCOORD0,
 	float InvTotalWeight = 1.0 / ( dot( ObjectMask, 1 ) + 0.000001f );
 
 	float4 SumColorAndDepth = 0;
-	SumColorAndDepth += float4(Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UVs[0]).rgb, Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UVs[0]).r) * ObjectMask.x;
-	SumColorAndDepth += float4(Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UVs[1]).rgb, Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UVs[1]).r) * ObjectMask.y;
-	SumColorAndDepth += float4(Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UVs[2]).rgb, Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UVs[2]).r) * ObjectMask.z;
-	SumColorAndDepth += float4(Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UVs[3]).rgb, Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UVs[3]).r) * ObjectMask.w;
-	
+
+#if GATHER_OPTIMIZATION
+	float4 DepthValues = PostprocessInput2.GatherRed(PostprocessInput2Sampler, UV, 0).r;
+#else
+	float4 DepthValues = float4(
+		PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[2], 0).r,
+		PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[3], 0).r,
+		PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[1], 0).r,
+		PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UVs[0], 0).r);
+#endif
+
+	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[0], 0).rgb, DepthValues.x) * ObjectMask.x;
+	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[1], 0).rgb, DepthValues.y) * ObjectMask.y;
+	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[2], 0).rgb, DepthValues.z) * ObjectMask.z;
+	SumColorAndDepth += float4(PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVs[3], 0).rgb, DepthValues.w) * ObjectMask.w;
+
 	OutColor = SumColorAndDepth * InvTotalWeight;
 
 	// clamp to avoid artifacts from exceeding fp16 through framebuffer blending of multiple very bright lights
@@ -206,15 +239,15 @@ void SetupPS(float4 UVAndScreenPos : TEXCOORD0,
 	}
 
 	// clamp motion vector in a disc from -1 to 1 (the maximum motion vector range)
- 	half Len = dot(TempVelocity.xy, TempVelocity.xy);
- 	FLATTEN if(Len > 1)
- 	{
- 		TempVelocity.xy *= rsqrt(Len);
- 	}
- 	FLATTEN if(Len < 0.01f)
- 	{
- 		TempVelocity = 0;
- 	}
+	half Len = dot(TempVelocity.xy, TempVelocity.xy);
+	FLATTEN if(Len > 1)
+	{
+		TempVelocity.xy *= rsqrt(Len);
+	}
+	FLATTEN if(Len < 0.01f)
+	{
+		TempVelocity = 0;
+	}
 
 	// 0:background, 1:object layer
 	TempVelocity.b = AvgObject > 0.5f;
@@ -251,6 +284,13 @@ uint GetStepCountFromQuality()
 #endif
 }
 
+// This,
+//  - Gets the MainPS pass to low cost under no motion.
+//  - Somewhat cleans up the blur/no blur transition.
+//  - Reduces the motion blur on small motion (where it is not needed).
+//  - Removes the background blur (seems higher quality).
+#define MOTION_BLUR_EARLY_EXIT 1
+
 // motionblur pixel shader
 // input:
 //   0: RGB:scene color, A: depth in half resolution from MotionBlurSetup
@@ -267,7 +307,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	OutColor = 0;
 
 	// RGB:color, A:depth
-	float4 ColorAndDepth = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV);
+	float4 ColorAndDepth = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0);
 
 	// can be moved to VS
 	float3 ScreenVector = mul(float4(ScreenSpacePos, 1, 0), View.ScreenToWorld).xyz;
@@ -320,7 +360,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	// RG: xy motion in normalized_motionblur_velocity, B: object weight 0:background..1:object
 	float3 NormSoftMaskedVelocity;
 	{
-		float4 SoftMaskedTexture = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
+		float4 SoftMaskedTexture = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UV.xy, 0);
 
 		NormSoftMaskedVelocity = SoftMaskedTexture.rgb / (SoftMaskedTexture.a + 1.0f / 255.0f);
 	}
@@ -334,8 +374,16 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	// RGB:weighed Sum, A:weight to compute average color
 	float4 BackgroundColorAccum = ColorAccumStartValue;
 
-	// create background motion layer
+#if MOTION_BLUR_EARLY_EXIT
+	if(true)
+	{
+		BackgroundColorAccum = float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0).rgb, 1);
+	}
+	else
+	{
+#endif
 
+	// create background motion layer
 	UNROLL for(uint i = 0; i < StepCount; ++i)
 	{
 		float delta = (i / (float)(StepCount - 1)) - 0.5f;
@@ -344,16 +392,20 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 
 		FLATTEN if(all(NormalizedView > 0 && NormalizedView < 1))
 		{
-			float ObjectSample = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, LocalUV).b;
+			float ObjectSample = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, LocalUV.xy, 0).b;
 
 			ObjectSample = saturate(ObjectSample * 4);
 
-			float4 ColorSample = float4(Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, LocalUV).rgb, 1);
+			float4 ColorSample = float4(PostprocessInput0.SampleLevel(PostprocessInput0Sampler, LocalUV.xy, 0).rgb, 1);
 
 			BackgroundColorAccum += ColorSample * (1 - ObjectSample);
 		}
 	}
-	
+
+#if MOTION_BLUR_EARLY_EXIT
+	}
+#endif
+
 	// object velocity in half_res_pixel
 	float2 PixelObjectBlurredVelocity;
 	{
@@ -371,15 +423,30 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	// camera and background
 	float2 PixelCombinedVelocity = lerp(PixelBackgroundVelocity, PixelObjectBlurredVelocity, NormSoftMaskedVelocity.b);
 
+#if MOTION_BLUR_EARLY_EXIT
+	float deBlur = dot(PixelCombinedVelocity, PixelCombinedVelocity);
+	deBlur = sqrt(max(deBlur, 1.0/65536.0));
+	deBlur = saturate((deBlur - 2.0) * (1.0/4.0));
+	if(deBlur == 0.0)
+	{
+		OutColor = float4(0.0, 0.0, 0.0, 0.0);
+		return;
+	}
+	else
+	{
+#endif
+
 	{
 		// in pixels
 		float2 X = UV * PostprocessInput0Size.xy;
-		float3 cX = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).rgb;
-		float zX = -Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).w;		// negated as this was in paper
-
+		float4 cXzX = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV.xy, 0);
+		float3 cX = cXzX.rgb;
+		float zX = -cXzX.w;		// negated as this was in paper
+		
 		// in pixels
-		float2 vX = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV).xy;
-		vX = (Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV).b > 0.5f) ? (vX * MotionBlurParameters.zw * ScreenPosToPixel.xy) : PixelBackgroundVelocity;
+		float4 vXvX = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV.xy, 0);
+		float2 vX = vXvX.xy;
+		vX = (vXvX.b > 0.5f) ? (vX * MotionBlurParameters.zw * ScreenPosToPixel.xy) : PixelBackgroundVelocity;
 
 		// to avoid div by 0
 		float Bias = 1.0f;
@@ -409,12 +476,14 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 			{
 				// in pixels
 				float2 Y = LocalUV * PostprocessInput0Size.xy;
-				float3 cY = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, LocalUV).rgb;
-				float zY = -Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, LocalUV).w;		// negated as this was in paper
+				float4 cYzY = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, LocalUV.xy, 0);
+				float3 cY = cYzY.rgb;
+				float zY = -cYzY.w;		// negated as this was in paper
 
 				// in pixels
-				float2 vY = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, LocalUV).xy;
-				vY = (Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, LocalUV).b > 0.5f) ? (vY * MotionBlurParameters.zw * ScreenPosToPixel.xy) : PixelBackgroundVelocity;
+				float4 vYvY = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, LocalUV.xy, 0);
+				float2 vY = vYvY.xy;
+				vY = (vYvY.b > 0.5f) ? (vY * MotionBlurParameters.zw * ScreenPosToPixel.xy) : PixelBackgroundVelocity;
 //				vY = PixelBackgroundVelocity;
 
 				float f = softDepthCompare(zX, zY);
@@ -470,10 +539,18 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 		OutColor.a = saturate( lerp(length(PixelBackgroundVelocity), length(PixelCombinedVelocity), MovingObjectFraction) * 0.25f);
 #endif
 
+#if MOTION_BLUR_EARLY_EXIT
+		OutColor.a = deBlur;
+#endif
+
 		// prepare for the following compositing pass
 		OutColor.rgb *= OutColor.a;
 	}
 	// --------------------------------------
+
+#if MOTION_BLUR_EARLY_EXIT
+	}
+#endif
 
 
 #if MOTION_BLUR_QUALITY == 0
@@ -498,7 +575,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 		float OrientationMask = saturate(dot(normalize(ScreenLocalTilePos), NormalizedDirection) * 6);
 		float DiskMask = saturate((length(PerpDirection) - 1.0f) * 6);
 
-		bool bSelectorOpaque = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, UV).b > 0.5f;
+		bool bSelectorOpaque = PostprocessInput2.SampleLevel(PostprocessInput2Sampler, UV.xy, 0).b > 0.5f;
 
 		float3 LineColor = lerp(float3(1,0,0), float3(0,1,0), OrientationMask); 
 		float3 LineMask = DirectionMask * StrengthMask; 
@@ -515,8 +592,8 @@ void MainRecombinePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV
 {
 	float2 UV = UVAndScreenPos.xy;
 
-	float3 FullResSceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV).rgb;
-	float4 MotionBlurOutput = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV);
+	float3 FullResSceneColor = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UV, 0).rgb;
+	float4 MotionBlurOutput = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UV, 0);
 	
 	float Mask = MotionBlurOutput.a;
 

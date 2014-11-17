@@ -33,6 +33,11 @@ public:
 
 	// Begin ITransportMessages interface
 
+	virtual FName GetDebugName( ) const OVERRIDE
+	{
+		return "UdpMessageTransport";
+	}
+
 	virtual FOnMessageTransportMessageReceived& OnMessageReceived( ) OVERRIDE
 	{
 		return MessageReceivedDelegate;

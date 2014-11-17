@@ -18,9 +18,6 @@ private:
 	/** Whether property should be editable (depends on level load status and level lock status) */
 	bool IsPropertyEditable() const;
 	
-	/** Whether property should be visible (depends on level type: always loaded or not) */
-	EVisibility GetPropertyVisibility() const;
-
 	/** Whether LOD entry property should be visible (depends on LOD entries num) */
 	EVisibility GetLODPropertyVisibility(int LODIndex) const;
 	
@@ -29,7 +26,6 @@ private:
 
 private:
 	TSharedPtr<IPropertyHandle>			NumLODHandle;	
-	TSharedPtr<IPropertyHandle>			AlwaysLoadedHandle;
 	TSharedPtr<IPropertyHandle>			TileEditableHandle;
 	TWeakPtr<FWorldTileCollectionModel>	WorldModel;
 };

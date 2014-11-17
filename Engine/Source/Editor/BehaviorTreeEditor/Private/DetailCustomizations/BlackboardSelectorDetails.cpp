@@ -62,10 +62,14 @@ void FBlackboardSelectorDetails::CacheBlackboardData()
 	MyKeyNameProperty = MyStructProperty->GetChildHandle(TEXT("SelectedKeyName"));
 	MyKeyIDProperty = MyStructProperty->GetChildHandle(TEXT("SelectedKeyID"));
 	MyKeyClassProperty = MyStructProperty->GetChildHandle(TEXT("SelectedKeyType"));
+
+	TSharedPtr<IPropertyHandle> NonesAllowed = MyStructProperty->GetChildHandle(TEXT("bNoneIsAllowedValue"));
+	NonesAllowed->GetValue(bNoneIsAllowedValue);
+	
 	KeyValues.Reset();
 
 	TArray<UBlackboardKeyType*> FilterObjects;
-
+	
 	uint32 NumElements = 0;
 	FPropertyAccess::Result Result = MyFilterProperty->GetNumElements(NumElements);
 	if (Result == FPropertyAccess::Success)
@@ -141,7 +145,16 @@ void FBlackboardSelectorDetails::InitKeyFromProperty()
 		const int32 KeyIdx = KeyValues.IndexOfByKey(KeyNameValue);
 		if (KeyIdx == INDEX_NONE)
 		{
-			OnKeyComboChange(0);
+			if (bNoneIsAllowedValue == false)
+			{
+				OnKeyComboChange(0);
+			}
+			else
+			{
+				MyKeyClassProperty->SetValue((UObject*)NULL);
+				MyKeyIDProperty->SetValue(FBlackboard::InvalidKey);
+				MyKeyNameProperty->SetValue(TEXT("None"));
+			}
 		}
 	}
 }

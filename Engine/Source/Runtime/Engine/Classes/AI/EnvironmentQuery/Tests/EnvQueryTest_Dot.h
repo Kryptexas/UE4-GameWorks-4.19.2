@@ -3,57 +3,23 @@
 #pragma once
 #include "EnvQueryTest_Dot.generated.h"
 
-UENUM()
-namespace EEnvTestDot
-{
-	enum Type
-	{
-		Segment		UMETA(DisplayName="Two Points",ToolTip="Direction from location of one context to another."),
-		Direction	UMETA(DisplayName="Rotation",ToolTip="Context's rotation will be used as a direction."),
-	};
-}
-
 UCLASS(MinimalAPI)
 class UEnvQueryTest_Dot : public UEnvQueryTest
 {
 	GENERATED_UCLASS_BODY()
 
-	/** line A: start context */
-	UPROPERTY(EditDefaultsOnly, Category=Dot, meta=(DisplayName="Line A: From"))
-	TSubclassOf<class UEnvQueryContext> LineAFrom;
-
-	/** line A: finish context */
-	UPROPERTY(EditDefaultsOnly, Category=Dot, meta=(DisplayName="Line A: To"))
-	TSubclassOf<class UEnvQueryContext> LineATo;
-
-	/** line A: direction context */
-	UPROPERTY(EditDefaultsOnly, Category=Dot, meta=(DisplayName="Line A: Rotation"))
-	TSubclassOf<class UEnvQueryContext> LineADirection;
-
-	/** line B: start context */
-	UPROPERTY(EditDefaultsOnly, Category=Dot, meta=(DisplayName="Line B: From"))
-	TSubclassOf<class UEnvQueryContext> LineBFrom;
-
-	/** line B: finish context */
-	UPROPERTY(EditDefaultsOnly, Category=Dot, meta=(DisplayName="Line B: To"))
-	TSubclassOf<class UEnvQueryContext> LineBTo;
-
-	/** line B: direction context */
-	UPROPERTY(EditDefaultsOnly, Category=Dot, meta=(DisplayName="Line B: Rotation"))
-	TSubclassOf<class UEnvQueryContext> LineBDirection;
-
 	/** defines direction of first line used by test */
 	UPROPERTY(EditDefaultsOnly, Category=Dot)
-	TEnumAsByte<EEnvTestDot::Type> LineA;
+	FEnvDirection LineA;
 
 	/** defines direction of second line used by test */
 	UPROPERTY(EditDefaultsOnly, Category=Dot)
-	TEnumAsByte<EEnvTestDot::Type> LineB;
+	FEnvDirection LineB;
 
 	void RunTest(struct FEnvQueryInstance& QueryInstance);
 
 	virtual FString GetDescriptionTitle() const OVERRIDE;
-	virtual FString GetDescriptionDetails() const OVERRIDE;
+	virtual FText GetDescriptionDetails() const OVERRIDE;
 
 protected:
 

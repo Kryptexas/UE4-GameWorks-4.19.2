@@ -13,9 +13,10 @@ void USoundBase::PostInitProperties()
 {
 	Super::PostInitProperties();
 
-	if (DefaultSoundClassName.Len() > 0)
+	const FStringAssetReference DefaultSoundClassName = GetDefault<UAudioSettings>()->DefaultSoundClassName;
+	if (DefaultSoundClassName.IsValid())
 	{
-		SoundClassObject = LoadObject<USoundClass>(NULL, *DefaultSoundClassName);
+		SoundClassObject = LoadObject<USoundClass>(NULL, *DefaultSoundClassName.ToString());
 	}
 }
 

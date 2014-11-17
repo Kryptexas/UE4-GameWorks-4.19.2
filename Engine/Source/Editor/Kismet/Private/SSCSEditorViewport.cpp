@@ -187,6 +187,20 @@ void SSCSEditorViewport::Invalidate()
 	ViewportClient->Invalidate();
 }
 
+void SSCSEditorViewport::EnablePreview(bool bEnable)
+{
+	if(bEnable)
+	{
+		// Restore the previously-saved realtime setting
+		ViewportClient->RestoreRealtime();
+	}
+	else
+	{
+		// Disable and store the current realtime setting. This will bypass real-time rendering in the preview viewport (see UEditorEngine::UpdateSingleViewportClient).
+		ViewportClient->SetRealtime(false, true);
+	}
+}
+
 void SSCSEditorViewport::RequestRefresh(bool bResetCamera, bool bRefreshNow)
 {
 	if(bRefreshNow)

@@ -56,11 +56,9 @@ struct FInstancedStaticMeshMappingInfo
 	class FInstancedLightMap2D*									Lightmap;
 };
 
-/** 
- * A static mesh that can have multiple instances of the same mesh.
- */
-UCLASS(HeaderGroup=Component, ClassGroup=Rendering, meta=(BlueprintSpawnableComponent), MinimalAPI)
-class UInstancedStaticMeshComponent : public UStaticMeshComponent
+/** A component that efficiently renders multiple instances of the same StaticMesh. */
+UCLASS(HeaderGroup=Component, ClassGroup=Rendering, meta=(BlueprintSpawnableComponent))
+class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -99,8 +97,13 @@ class UInstancedStaticMeshComponent : public UStaticMeshComponent
 	int32 InstanceEndCullDistance;
 
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
-	virtual void AddInstance(const FTransform& InstanceTransform);
+	void AddInstance(const FTransform& InstanceTransform);
 
+	virtual bool ShouldCreatePhysicsState() const;
+
+	/** Clear all instances being rendered by this component */
+	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
+	void ClearInstances();
 
 public:
 #if WITH_EDITOR
@@ -132,6 +135,8 @@ public:
 #endif
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const OVERRIDE;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
+
+	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const OVERRIDE;
 	// End UPrimitiveComponent Interface
 
 	//Begin UObject Interface
@@ -143,14 +148,17 @@ public:
 	//End UObject Interface
 
 	/** Check to see if an instance is selected */
-	ENGINE_API bool IsInstanceSelected(int32 InInstanceIndex) const;
+	bool IsInstanceSelected(int32 InInstanceIndex) const;
 
 	/** Select/deselect an instance or group of instances */
-	ENGINE_API void SelectInstance(bool bInSelected, int32 InInstanceIndex, int32 InInstanceCount = 1);
+	void SelectInstance(bool bInSelected, int32 InInstanceIndex, int32 InInstanceCount = 1);
 
 private:
 	/** Initializes the body instance for the specified instance of the static mesh*/
 	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* BodyInstance);
+
+	/** Terminate all body instances owned by this component */
+	void ClearAllInstanceBodies();
 
 	/** Sets up new instance data to sensible defaults, creates physics counterparts if possible */
 	void SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform);

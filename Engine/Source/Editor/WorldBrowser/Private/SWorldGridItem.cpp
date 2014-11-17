@@ -75,8 +75,7 @@ void FGridItemThumbnail::UpdateTextureData(FObjectThumbnail* ObjectThumbnail)
 void FGridItemThumbnail::UpdateThumbnail()
 {
 	// No need images for persistent and always loaded levels
-	if (LevelModel->IsAlwaysLoaded() || 
-		LevelModel->IsPersistent())
+	if (LevelModel->IsPersistent())
 	{
 		return;
 	}

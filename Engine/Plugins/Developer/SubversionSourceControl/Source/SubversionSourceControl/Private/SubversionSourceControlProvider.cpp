@@ -47,29 +47,14 @@ TSharedRef<FSubversionSourceControlState, ESPMode::ThreadSafe> FSubversionSource
 	}
 }
 
-FString FSubversionSourceControlProvider::GetStatusText() const
+FText FSubversionSourceControlProvider::GetStatusText() const
 {
-	FString StatusText = LOCTEXT("ProviderName", "Provider: Subversion").ToString();
-	StatusText += LINE_TERMINATOR;
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("YesOrNo"), IsEnabled() ? LOCTEXT("Yes", "Yes") : LOCTEXT("No", "No") );
-		StatusText += FText::Format(LOCTEXT("EnabledLabel", "Enabled: {YesOrNo}"), Arguments).ToString();
-	}
-	StatusText += LINE_TERMINATOR;
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("Repository"), FText::FromString(GetRepositoryName()) );
-		StatusText += FText::Format(LOCTEXT("RepositoryLabel", "Repository: {Repository}"), Arguments).ToString();
-	}
-	StatusText += LINE_TERMINATOR;
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add( TEXT("UserName"), FText::FromString(GetUserName()) );
-		StatusText += FText::Format(LOCTEXT("UserNameLabel", "User name: {UserName}"), Arguments).ToString();
-	}
+	FFormatNamedArguments Args;
+	Args.Add( TEXT("IsEnabled"), IsEnabled() ? LOCTEXT("Yes", "Yes") : LOCTEXT("No", "No") );
+	Args.Add( TEXT("RepositoryName"), FText::FromString( GetRepositoryName() ) );
+	Args.Add( TEXT("UserName"), FText::FromString( GetUserName() ) );
 
-	return StatusText;
+	return FText::Format( NSLOCTEXT("Status", "Provider: Subversion\nEnabledLabel", "Enabled: {IsEnabled}\nRepository: {RepositoryName}\nUser name: {UserName}"), Args );
 }
 
 bool FSubversionSourceControlProvider::IsEnabled() const
@@ -386,7 +371,7 @@ static void ParseListResults(const TArray<FXmlFile>& ResultsXml, TArray< TShared
 					continue;
 				}
 
-				FString Path = ListNode->GetAttribute(Path);
+				FString DirectoryPath = ListNode->GetAttribute(Path);
 
 				const TArray<FXmlNode*> ListChildren = ListNode->GetChildrenNodes();
 				for(auto EntryIter(ListChildren.CreateConstIterator()); EntryIter; EntryIter++)
@@ -403,8 +388,8 @@ static void ParseListResults(const TArray<FXmlFile>& ResultsXml, TArray< TShared
 						const FXmlNode* NameNode = EntryNode->FindChildNode(Name);
 						if(NameNode != NULL)
 						{
-							FString Name = NameNode->GetContent();
-							if(Name.Len() > 0)
+							FString LabelName = NameNode->GetContent();
+							if (LabelName.Len() > 0)
 							{
 								const FXmlNode* CommitNode = EntryNode->FindChildNode(Commit);
 								if(CommitNode != NULL)
@@ -412,8 +397,8 @@ static void ParseListResults(const TArray<FXmlFile>& ResultsXml, TArray< TShared
 									FString RevisionString = CommitNode->GetAttribute(Revision);
 									if(RevisionString.Len() > 0)
 									{
-										int Revision = FCString::Atoi(*RevisionString);
-										OutLabels.Add( MakeShareable( new FSubversionSourceControlLabel(Name, Path / Name, Revision) ) );
+										int RevisionNum = FCString::Atoi(*RevisionString);
+										OutLabels.Add(MakeShareable(new FSubversionSourceControlLabel(LabelName, DirectoryPath / LabelName, RevisionNum)));
 									}
 								}
 							}

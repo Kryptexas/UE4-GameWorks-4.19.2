@@ -7,6 +7,7 @@
 #include "MatineeModule.h"
 #include "Matinee.h"
 #include "MatineeActions.h"
+#include "MatineeFilterButton.h"
 
 #include "DistCurveEditorModule.h"
 #include "IDistCurveEditor.h"
@@ -73,7 +74,6 @@ IMPLEMENT_HIT_PROXY(HMatineeTimelineBkg,HHitProxy);
 IMPLEMENT_HIT_PROXY(HMatineeNavigatorBackground,HHitProxy);
 IMPLEMENT_HIT_PROXY(HMatineeNavigator,HHitProxy);
 IMPLEMENT_HIT_PROXY(HMatineeMarker,HHitProxy);
-IMPLEMENT_HIT_PROXY(HMatineeTab,HHitProxy);
 
 FName FMatinee::GetToolkitFName() const
 {
@@ -96,12 +96,8 @@ FLinearColor FMatinee::GetWorldCentricTabColorScale() const
 }
 
 static const FName MatineeCurveEdName("Matinee_CurveEditor");
-static const FName MatineePropertyWindowName("Matinee_PropertyWindow");
-
 static const FName MatineeTrackWindowName("Matinee_TrackWindow");
-static const FName MatineeDirectorWindowName("Matinee_DirectorWindow");
-
-
+static const FName MatineePropertyWindowName("Matinee_PropertyWindow");
 
 void FMatinee::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
@@ -109,16 +105,14 @@ void FMatinee::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManag
 
 	const IWorkspaceMenuStructure& MenuStructure = WorkspaceMenu::GetMenuStructure();
 
-	TabManager->RegisterTabSpawner( MatineeCurveEdName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeCurveEdName) )
+	TabManager->RegisterTabSpawner(MatineeCurveEdName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeCurveEdName))
 		.SetDisplayName(NSLOCTEXT("Matinee", "CurveEditorTitle", "Curve Editor"));
+
+	TabManager->RegisterTabSpawner(MatineeTrackWindowName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeTrackWindowName))
+		.SetDisplayName(NSLOCTEXT("Matinee", "TrackViewEditorTitle", "Tracks"));
 
 	TabManager->RegisterTabSpawner( MatineePropertyWindowName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineePropertyWindowName) )
 		.SetDisplayName(NSLOCTEXT("Matinee", "PropertiesEditorTitle", "Details"));
-
-	TabManager->RegisterTabSpawner( MatineeTrackWindowName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeTrackWindowName) )
-		.SetDisplayName(NSLOCTEXT("Matinee", "TrackViewEditorTitle", "Track View"));
-	TabManager->RegisterTabSpawner( MatineeDirectorWindowName, FOnSpawnTab::CreateSP(this, &FMatinee::SpawnTab, MatineeDirectorWindowName) )
-		.SetDisplayName(NSLOCTEXT("Matinee", "DirectorTrackViewEditorTitle", "Director Track View"));
 }
 
 void FMatinee::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
@@ -126,59 +120,151 @@ void FMatinee::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabMan
 	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
 
 	TabManager->UnregisterTabSpawner(MatineeCurveEdName);
-	TabManager->UnregisterTabSpawner(MatineePropertyWindowName);
-
 	TabManager->UnregisterTabSpawner(MatineeTrackWindowName);
-	TabManager->UnregisterTabSpawner(MatineeDirectorWindowName);
+	TabManager->UnregisterTabSpawner(MatineePropertyWindowName);
 }
 
 TSharedRef<SDockTab> FMatinee::SpawnTab( const FSpawnTabArgs& TabSpawnArgs, FName TabIdentifier )
 {
-	if (TabIdentifier == MatineeCurveEdName)
+	if ( TabIdentifier == MatineeCurveEdName )
 	{
-		return SNew(SDockTab)
+		TSharedRef<SDockTab> NewCurveTab = SNew(SDockTab)
 			.Label(NSLOCTEXT("Matinee", "CurveEditorTitle", "Curve Editor"))
-			.TabRole(ETabRole::NomadTab)
-			.Content()
 			[
 				CurveEd.ToSharedRef()
 			];
+
+		CurveEdTab = NewCurveTab;
+
+		return NewCurveTab;
+	}
+	else if ( TabIdentifier == MatineeTrackWindowName )
+	{
+		TSharedRef<SDockTab> Tab = SNew(SDockTab)
+			.Label(NSLOCTEXT("Matinee", "MatineeTrackEditorTitle", "Tracks"))
+			[
+				SNew(SSplitter)
+				.Orientation(Orient_Vertical)
+
+				+ SSplitter::Slot()
+				.Value(1.0f / 3.0f)
+				[
+					DirectorTrackWindow.ToSharedRef()
+				]
+
+				+ SSplitter::Slot()
+				.Value(2.0f / 3.0f)
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					.Padding(0,0,0,2)
+					[
+						SAssignNew(GroupFilterContainer, SBorder)
+						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+						.Padding(2.0f)
+						[
+							BuildGroupFilterToolbar()
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					[
+						TrackWindow.ToSharedRef()
+					]
+				]
+			];
+		DirectorTrackWindow->InterpEdVC->SetParentTab(Tab);
+		TrackWindow->InterpEdVC->SetParentTab(Tab);
+		return Tab;
 	}
 	else if (TabIdentifier == MatineePropertyWindowName)
 	{
 		return SNew(SDockTab)
 			.Label(NSLOCTEXT("Matinee", "PropertiesEditorTitle", "Details"))
-			.Content()
 			[
 				PropertyWindow.ToSharedRef()
 			];
-	}
-	else if (TabIdentifier == MatineeTrackWindowName)
-	{
-		TSharedRef<SDockTab> Tab = SNew(SDockTab)
-			.Label(NSLOCTEXT("Matinee", "MatineeTrackEditorTitle", "Track View"))
-			.Content()
-			[
-				TrackWindow.ToSharedRef()
-			];
-		TrackWindow->InterpEdVC->SetParentTab(Tab);
-		return Tab;
-	}
-	else if (TabIdentifier == MatineeDirectorWindowName)
-	{
-		TSharedRef<SDockTab> Tab = SNew(SDockTab)
-			.Label(NSLOCTEXT("Matinee", "MatineeDirectorEditorTitle", "Director Track View"))
-			.Content()
-			[
-				DirectorTrackWindow.ToSharedRef()
-			];
-		DirectorTrackWindow->InterpEdVC->SetParentTab(Tab);
-		return Tab;
 	}
 	else
 	{
 		ensure(false);
 		return SNew(SDockTab);
+	}
+}
+
+void FMatinee::SetCurveTabVisibility(bool Visible)
+{
+	if ( CurveEdTab.IsValid() && !Visible )
+	{
+		TSharedPtr<SDockTab> PinnedCurveEdTab = CurveEdTab.Pin();
+		PinnedCurveEdTab->RequestCloseTab();
+	}
+	else if ( !CurveEdTab.IsValid() && Visible )
+	{
+		TabManager->InvokeTab(MatineeCurveEdName);
+	}
+}
+
+TSharedRef<SWidget> FMatinee::BuildGroupFilterToolbar()
+{
+	TSharedRef<SHorizontalBox> FilterList = SNew(SHorizontalBox);
+
+	for ( int32 TabIdx=0; TabIdx < IData->DefaultFilters.Num(); TabIdx++ )
+	{
+		UInterpFilter* Filter = IData->DefaultFilters[TabIdx];
+		FilterList->AddSlot()
+		.AutoWidth()
+		.Padding(2, 1)
+		[
+			AddFilterButton(Filter)
+		];
+	}
+
+	// Draw user custom filters last.
+	for ( int32 TabIdx=0; TabIdx < IData->InterpFilters.Num(); TabIdx++ )
+	{
+		UInterpFilter* Filter = IData->InterpFilters[TabIdx];
+		FilterList->AddSlot()
+		.AutoWidth()
+		.Padding(2, 0)
+		[
+			AddFilterButton(Filter)
+		];
+	}
+
+	return FilterList;
+}
+
+TSharedRef<SWidget> FMatinee::AddFilterButton(UInterpFilter* Filter)
+{
+	return SNew(SMatineeFilterButton)
+		.Text(FText::FromString(Filter->Caption))
+		.IsChecked(this, &FMatinee::GetFilterActive, Filter)
+		.OnCheckStateChanged(this, &FMatinee::SetFilterActive, Filter)
+		.OnContextMenuOpening(this, &FMatinee::CreateTabMenu);
+}
+
+void FMatinee::SetFilterActive(ESlateCheckBoxState::Type CheckStatus, UInterpFilter* Filter)
+{
+	if ( CheckStatus == ESlateCheckBoxState::Checked )
+	{
+		SetSelectedFilter(Filter);
+		InvalidateTrackWindowViewports();
+	}
+}
+
+ESlateCheckBoxState::Type FMatinee::GetFilterActive(UInterpFilter* Filter) const
+{
+	if ( IData->SelectedFilter == Filter )
+	{
+		return ESlateCheckBoxState::Checked;
+	}
+	else
+	{
+		return ESlateCheckBoxState::Unchecked;
 	}
 }
 
@@ -224,68 +310,56 @@ void FMatinee::SetAudioRealtimeOverride( bool bAudioIsRealtime ) const
 	}
 }
 
-void FMatinee::OnEnableAspectRatioBars()
+void FMatinee::OnToggleAspectRatioBars()
 {
-	for(int32 i=0; i<GEditor->LevelViewportClients.Num(); i++)
+	if (GCurrentLevelEditingViewportClient)
 	{
-		FLevelEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
-		if (LevelVC)
+		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
 		{
-			if(LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
-			{
-				LevelVC->OverrideSafeFrameDisplay( true, !LevelVC->IsOverridingAspectRatioBarDisplay(), LevelVC->IsOverridingSafeFrameBoxDisplay() );
-			}
+			bool bEnabled = !AreAspectRatioBarsEnabled();
+			GCurrentLevelEditingViewportClient->SetShowAspectRatioBarDisplay(bEnabled);
+
+			GConfig->SetBool(TEXT("Matinee"), TEXT("AspectRatioBars"), bEnabled, GEditorUserSettingsIni);
 		}
 	}
 }
 
-void FMatinee::OnEnableSafeFrames()
+void FMatinee::OnToggleSafeFrames()
 {
-	for(int32 i=0; i<GEditor->LevelViewportClients.Num(); i++)
+	if (GCurrentLevelEditingViewportClient)
 	{
-		FLevelEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
-		if (LevelVC)
+		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
 		{
-			if(LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
-			{
-				LevelVC->OverrideSafeFrameDisplay( true, LevelVC->IsOverridingAspectRatioBarDisplay(), !LevelVC->IsOverridingSafeFrameBoxDisplay() );
-			}
+			bool bEnabled = !IsSafeFrameDisplayEnabled();
+			GCurrentLevelEditingViewportClient->SetShowSafeFrameBoxDisplay(bEnabled);
+
+			GConfig->SetBool(TEXT("Matinee"), TEXT("SafeFrames"), bEnabled, GEditorUserSettingsIni);
 		}
 	}
 }
 
 bool FMatinee::AreAspectRatioBarsEnabled() const
 {
-	for(int32 i=0; i<GEditor->LevelViewportClients.Num(); i++)
+	bool bEnabled = false;
+	if ( !GConfig->GetBool(TEXT("Matinee"), TEXT("AspectRatioBars"), bEnabled, GEditorUserSettingsIni) )
 	{
-		FLevelEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
-		if (LevelVC)
-		{
-			if(LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
-			{
-				return LevelVC->IsOverridingAspectRatioBarDisplay();
-			}
-		}
+		// We enable them by default
+		return true;
 	}
 
-	return false;
+	return bEnabled;
 }
 
 bool FMatinee::IsSafeFrameDisplayEnabled() const
 {
-	for(int32 i=0; i<GEditor->LevelViewportClients.Num(); i++)
+	bool bEnabled = false;
+	if ( !GConfig->GetBool(TEXT("Matinee"), TEXT("SafeFrames"), bEnabled, GEditorUserSettingsIni) )
 	{
-		FLevelEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
-		if (LevelVC)
-		{
-			if(LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
-			{
-				return LevelVC->IsOverridingSafeFrameBoxDisplay();
-			}
-		}
+		// We not enabled by default
+		return false;
 	}
 
-	return false;
+	return bEnabled;
 }
 
 void FMatinee::BuildCurveEditor()
@@ -676,7 +750,6 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// Setup property window
 	BuildPropertyWindow();
 
-
 	// Do not override realtime audio by default
 	SetAudioRealtimeOverride(false);
 
@@ -687,7 +760,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	BuildCurveEditor();
 
 	// Setup docked windows
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Matinee_Layout_v2")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_Matinee_Layout_v4")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -702,35 +775,36 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 			->Split
 			(
 				FTabManager::NewSplitter()
-				->SetOrientation(Orient_Vertical)		
+				->SetOrientation(Orient_Vertical)
 				->SetSizeCoefficient(0.9)
 				->Split
 				(
-					FTabManager::NewStack()
-					->SetSizeCoefficient(0.2)
-					->SetHideTabWell(true)
-					->AddTab(MatineeCurveEdName, ETabState::OpenedTab)
-				)
-				->Split
-				(
-					FTabManager::NewStack()
-					->SetSizeCoefficient(0.2)
-					->SetHideTabWell(true)
-					->AddTab(MatineeDirectorWindowName, ETabState::ClosedTab)
-				)
-				->Split
-				(
-					FTabManager::NewStack()
-					->SetSizeCoefficient(0.3)
-					->SetHideTabWell(true)
-					->AddTab(MatineeTrackWindowName, ETabState::OpenedTab)
-				)
-				->Split
-				(
-					FTabManager::NewStack()
-					->SetSizeCoefficient(0.3)
-					->SetHideTabWell(true)
-					->AddTab(MatineePropertyWindowName, ETabState::OpenedTab)
+					FTabManager::NewSplitter()
+					->SetOrientation(Orient_Horizontal)
+					->SetSizeCoefficient(0.7)
+					->Split
+					(
+						FTabManager::NewSplitter()
+						->SetOrientation(Orient_Vertical)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(1.0f / 3.0f)
+							->AddTab(MatineeCurveEdName, ETabState::OpenedTab)
+						)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(2.0f / 3.0f)
+							->AddTab(MatineeTrackWindowName, ETabState::OpenedTab)
+						)
+					)
+					->Split
+					(
+						FTabManager::NewStack()
+						->SetSizeCoefficient(0.3)
+						->AddTab(MatineePropertyWindowName, ETabState::OpenedTab)
+					)
 				)
 			)
 		);
@@ -758,6 +832,12 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	bFixedTimeStepPlayback = false;
 	bPreferFrameNumbers = true;
 	bShowTimeCursorPosForAllKeys = false;
+
+	// Restore the director timeline setting
+	if ( DirectorTrackWindow.IsValid() && DirectorTrackWindow->InterpEdVC.IsValid() )
+	{
+		GConfig->GetBool(TEXT("Matinee"), TEXT("DirectorTimelineEnabled"), DirectorTrackWindow->InterpEdVC->bWantTimeline, GEditorUserSettingsIni);
+	}
 
 	// Load fixed time step setting
 	GConfig->GetBool( TEXT("Matinee"), TEXT("FixedTimeStepPlayback"), bFixedTimeStepPlayback, GEditorUserSettingsIni );
@@ -856,9 +936,6 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// Make sure any particle replay tracks are filled in with the correct state
 	UpdateParticleReplayTracks();
 
-	// Update visibility of director track window
-	UpdateDirectorTrackWindowVisibility();
-
 	// Now that we've filled in the track window's contents, reconfigure our scroll bar
 	UpdateTrackWindowScrollBars();
 
@@ -911,26 +988,18 @@ void FMatinee::BindCommands()
 
 	ToolkitCommands->MapAction(Commands.AddKey,FExecuteAction::CreateSP(this,&FMatinee::OnMenuAddKey));
 	
-	ToolkitCommands->MapAction(
-		Commands.Play,
-		FExecuteAction::CreateSP(this,&FMatinee::OnMenuPlay,false,true)
-		);
-	ToolkitCommands->MapAction(
-		Commands.PlayLoop,
-		FExecuteAction::CreateSP(this,&FMatinee::OnMenuPlay,true,true)
-		);
-	ToolkitCommands->MapAction(
-		Commands.PlayReverse,
-		FExecuteAction::CreateSP(this,&FMatinee::OnMenuPlay,false,false)
-		);
-	ToolkitCommands->MapAction(Commands.Stop, FExecuteAction::CreateSP(this,&FMatinee::OnMenuStop));
-	//there is no menu UI for this
-	ToolkitCommands->MapAction(Commands.PlayPause, FExecuteAction::CreateSP(this,&FMatinee::OnMenuPause));
+	ToolkitCommands->MapAction( Commands.Play, FExecuteAction::CreateSP(this,&FMatinee::OnMenuPlay, false, true) );
+	ToolkitCommands->MapAction( Commands.PlayLoop, FExecuteAction::CreateSP(this,&FMatinee::OnMenuPlay, true, true) );
+	ToolkitCommands->MapAction( Commands.PlayReverse, FExecuteAction::CreateSP(this,&FMatinee::OnMenuPlay, false, false) );
+	ToolkitCommands->MapAction( Commands.Stop, FExecuteAction::CreateSP(this, &FMatinee::OnMenuStop));
 
-	ToolkitCommands->MapAction(Commands.CreateCameraActor,FExecuteAction::CreateSP(this,&FMatinee::OnCreateCameraActorAtCurrentCameraLocation));
+	//there is no menu UI for this
+	ToolkitCommands->MapAction( Commands.PlayPause, FExecuteAction::CreateSP(this, &FMatinee::OnMenuPause));
+
+	ToolkitCommands->MapAction( Commands.CreateCameraActor,FExecuteAction::CreateSP(this, &FMatinee::OnCreateCameraActorAtCurrentCameraLocation));
 	
-	ToolkitCommands->MapAction( Commands.MatineeUndo, FExecuteAction::CreateSP(this,&FMatinee::OnMenuUndo));
-	ToolkitCommands->MapAction( Commands.MatineeRedo, FExecuteAction::CreateSP(this,&FMatinee::OnMenuRedo));
+	ToolkitCommands->MapAction(FGenericCommands::Get().Undo, FExecuteAction::CreateSP(this, &FMatinee::OnMenuUndo));
+	ToolkitCommands->MapAction(FGenericCommands::Get().Redo, FExecuteAction::CreateSP(this, &FMatinee::OnMenuRedo));
 	
 	ToolkitCommands->MapAction( Commands.ToggleSnap, 
 		FExecuteAction::CreateSP(this,&FMatinee::OnToggleSnap),
@@ -1095,6 +1164,13 @@ void FMatinee::BindCommands()
 	ToolkitCommands->MapAction( Commands.NewSkeletalMeshGroup, FExecuteAction::CreateSP(this, &FMatinee::OnContextNewGroup, FMatineeCommands::EGroupAction::NewSkeletalMeshGroup) );
 	ToolkitCommands->MapAction( Commands.NewLightingGroup, FExecuteAction::CreateSP(this, &FMatinee::OnContextNewGroup, FMatineeCommands::EGroupAction::NewLightingGroup) );
 	ToolkitCommands->MapAction( Commands.NewDirectorGroup, FExecuteAction::CreateSP(this, &FMatinee::OnContextNewGroup, FMatineeCommands::EGroupAction::NewDirectorGroup) );
+
+	// Menu
+	ToolkitCommands->MapAction(Commands.ToggleCurveEditor,
+		FExecuteAction::CreateSP(this, &FMatinee::OnToggleCurveEditor),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FMatinee::IsCurveEditorToggled)
+		);
 	ToolkitCommands->MapAction( Commands.ToggleDirectorTimeline, 
 		FExecuteAction::CreateSP(this, &FMatinee::OnToggleDirectorTimeline),
 		FCanExecuteAction(),
@@ -1196,10 +1272,43 @@ void FMatinee::BindCommands()
  * @param bPlayLoop		Whether or not we should play the looping section.
  * @param bPlayForward	true if we should play forwards, or false for reverse
  */
-void FMatinee::StartPlaying( bool bPlayLoop, bool bPlayForward )
+void FMatinee::StartPlaying(bool bPlayLoop, bool bPlayForward)
+{
+	bLoopingSection = bPlayLoop;
+	//if looping or the marker is already at the end of the section.
+	if ( bLoopingSection )
+	{
+		// If looping - jump to start of looping section.
+		SetInterpPosition(IData->EdSectionStart);
+	}
+
+	// Were we already in the middle of playback?
+	const bool bWasAlreadyPlaying = MatineeActor->bIsPlaying;
+
+	if ( !bWasAlreadyPlaying )
+	{
+		MatineeActor->bReversePlayback = !bPlayForward;
+	}
+	else
+	{
+		// Switch playback directions if we need to
+		if ( MatineeActor->bReversePlayback == bPlayForward )
+		{
+			MatineeActor->ChangePlaybackDirection();
+
+			// Reset our playback start time so fixed time step playback can gate frame rate properly
+			PlaybackStartRealTime = FPlatformTime::Seconds();
+			NumContinuousFixedTimeStepFrames = 0;
+		}
+	}
+
+	ResumePlaying();
+}
+
+void FMatinee::ResumePlaying()
 {
 	// Force audio to play in realtime
-	SetAudioRealtimeOverride( true );
+	SetAudioRealtimeOverride(true);
 
 	//make sure to turn off recording
 	StopRecordingInterpValues();
@@ -1210,27 +1319,57 @@ void FMatinee::StartPlaying( bool bPlayLoop, bool bPlayForward )
 	Opt->bAdjustingKeyframe = false;
 	Opt->bAdjustingGroupKeyframes = false;
 
-	bLoopingSection = bPlayLoop;
-	//if looping or the marker is already at the end of the section.
-	if( bLoopingSection )
-	{
-		// If looping - jump to start of looping section.
-		SetInterpPosition( IData->EdSectionStart );
-	}
-
 	// Start playing if we need to
-	if( !bWasAlreadyPlaying )
+	if ( !bWasAlreadyPlaying )
 	{
+		// If we're at the end we need to restart, but only do this if we're
+		// looping the section
+		if ( bLoopingSection )
+		{
+			if ( MatineeActor->bReversePlayback )
+			{
+				if ( MatineeActor->InterpPosition <= IData->EdSectionStart )
+				{
+					SetInterpPosition(IData->EdSectionEnd);
+				}
+			}
+			else
+			{
+				if ( MatineeActor->InterpPosition >= IData->EdSectionEnd )
+				{
+					SetInterpPosition(IData->EdSectionStart);
+				}
+			}
+		}
+		// If we're not looping, check if we're at the absolute beginning or end and adjust
+		// the position accordingly to begin playing again.
+		else
+		{
+			if ( MatineeActor->bReversePlayback )
+			{
+				if ( MatineeActor->InterpPosition <= 0.0f )
+				{
+					SetInterpPosition(IData->InterpLength);
+				}
+			}
+			else
+			{
+				if ( MatineeActor->InterpPosition >= IData->InterpLength )
+				{
+					SetInterpPosition(0.0f);
+				}
+			}
+		}
+
 		// If 'snap time to frames' or 'fixed time step playback' is turned on, we'll make sure that we
 		// start playback exactly on the closest frame
-		if( bSnapToFrames && ( bSnapTimeToFrames || bFixedTimeStepPlayback ) )
+		if ( bSnapToFrames && ( bSnapTimeToFrames || bFixedTimeStepPlayback ) )
 		{
-			SetInterpPosition( SnapTimeToNearestFrame( MatineeActor->InterpPosition ) );
+			SetInterpPosition(SnapTimeToNearestFrame(MatineeActor->InterpPosition));
 		}
 
 		// Start playing
 		MatineeActor->bIsPlaying = true;
-		MatineeActor->bReversePlayback = !bPlayForward;
 
 		// Remember the real-time that we started playing the sequence
 		PlaybackStartRealTime = FPlatformTime::Seconds();
@@ -1240,22 +1379,10 @@ void FMatinee::StartPlaying( bool bPlayLoop, bool bPlayForward )
 		PreviousCamera = NULL;
 
 		// Switch the Matinee windows to real-time so the track editor and curve editor update during playback
-		TrackWindow->InterpEdVC->SetRealtime( true );
-		if( DirectorTrackWindow->GetVisibility() == EVisibility::Visible )
+		TrackWindow->InterpEdVC->SetRealtime(true);
+		if ( DirectorTrackWindow->GetVisibility() == EVisibility::Visible )
 		{
-			DirectorTrackWindow->InterpEdVC->SetRealtime( true );
-		}
-	}
-	else
-	{
-		// Switch playback directions if we need to
-		if( MatineeActor->bReversePlayback == bPlayForward )
-		{
-			MatineeActor->ChangePlaybackDirection();
-
-			// Reset our playback start time so fixed time step playback can gate frame rate properly
-			PlaybackStartRealTime = FPlatformTime::Seconds();
-			NumContinuousFixedTimeStepFrames = 0;
+			DirectorTrackWindow->InterpEdVC->SetRealtime(true);
 		}
 	}
 
@@ -1391,15 +1518,6 @@ TSharedPtr<SWidget> FMatinee::CreateContextMenu( FViewport *Viewport, const HHit
 		{
 			Menu = CreateKeyMenu();
 		}
-	}
-	else if(HitResult->IsA(HMatineeTab::StaticGetType()))
-	{
-		UInterpFilter* Filter = ((HMatineeTab*)HitResult)->Filter;
-
-		SetSelectedFilter(Filter);
-		Viewport->Invalidate();
-
-		Menu = CreateTabMenu();
 	}
 	else if(HitResult->IsA(HMatineeGroupCollapseBtn::StaticGetType()))
 	{
@@ -1898,9 +2016,6 @@ void FMatinee::OnClose()
 
 			// Turn off 'show camera frustums' flag.
 			LevelVC->EngineShowFlags.CameraFrustums = 0;
-
-			// Disable safe frame overrides
-			LevelVC->OverrideSafeFrameDisplay( false, false, false );
 		}
 	}
 
@@ -1912,7 +2027,6 @@ void FMatinee::OnClose()
 			IData->CurveEdSetup->ChangeCurveColor(*TrackIt, TrackIt.GetGroup()->GroupColor);
 		}
 	}
-
 
 	// Make sure benchmarking mode is disabled (we may have turned it on for 'fixed time step playback')
 	GIsBenchmarking = false;
@@ -1932,7 +2046,6 @@ void FMatinee::OnClose()
 	Opt = NULL;
 	CurveEd = NULL;
 }
-
 
 void FMatinee::DrawTracks3D(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
@@ -2129,35 +2242,35 @@ void FMatinee::DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport*
 		FIntRect SubtitleRegion(FMath::Trunc(SizeX * MinPos.X), FMath::Trunc(SizeY * MinPos.Y), FMath::Trunc(SizeX * MaxPos.X), FMath::Trunc(SizeY * MaxPos.Y));
 		FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( Canvas, SubtitleRegion, ViewportClient->GetWorld()->GetAudioTimeSeconds() );
 	}
-    // Camera Shot Names
-    {
-        TArray<UInterpTrack*> Results;
-        UInterpGroupDirector* DirGroup = IData->FindDirectorGroup();
-        if (DirGroup)
-        {
-            IData->FindTracksByClass( UInterpTrackDirector::StaticClass(), Results );
-            for (int32 i=0; i < Results.Num(); i++)
-            {
-                if (!Results[i]->IsDisabled()) 
-                {
+	// Camera Shot Names
+	{
+		TArray<UInterpTrack*> Results;
+		UInterpGroupDirector* DirGroup = IData->FindDirectorGroup();
+		if (DirGroup)
+		{
+			IData->FindTracksByClass( UInterpTrackDirector::StaticClass(), Results );
+			for (int32 i=0; i < Results.Num(); i++)
+			{
+				if (!Results[i]->IsDisabled()) 
+				{
 					FString Name = Cast<UInterpTrackDirector>(Results[i])->GetViewedCameraShotName(MatineeActor->InterpPosition);
-                    if (Name != TEXT(""))
-                    {
-                        FString ShotNameString = FString::Printf(TEXT("[%s]"),*Name);
-                        int32 XL, YL;
-                        StringSize( GEngine->GetLargeFont(), XL, YL, *ShotNameString );
-                        int32 LeftXPos = 10;
-                        int32 RightXPos = Viewport->GetSizeXY().X - (XL + 10);
-                        int32 BottomYPos = Viewport->GetSizeXY().Y - (YL + 10);
-                        Canvas->DrawShadowedString(  RightXPos, BottomYPos, *ShotNameString, GEngine->GetLargeFont(), FLinearColor::White );
-                        
-                        FString CinemaNameString = FString::Printf(TEXT("[%s]"),*DirGroup->GroupName.ToString());
-                        Canvas->DrawShadowedString( LeftXPos, BottomYPos, *CinemaNameString, GEngine->GetLargeFont(), FLinearColor::White );
-                    }
-                }
-            }
-        }
-    }
+					if (Name != TEXT(""))
+					{
+						FString ShotNameString = FString::Printf(TEXT("[%s]"),*Name);
+						int32 XL, YL;
+						StringSize( GEngine->GetLargeFont(), XL, YL, *ShotNameString );
+						int32 LeftXPos = 10;
+						int32 RightXPos = Viewport->GetSizeXY().X - (XL + 10);
+						int32 BottomYPos = Viewport->GetSizeXY().Y - (YL + 10);
+						Canvas->DrawShadowedString(  RightXPos, BottomYPos, *ShotNameString, GEngine->GetLargeFont(), FLinearColor::White );
+						
+						FString CinemaNameString = FString::Printf(TEXT("[%s]"),*DirGroup->GroupName.ToString());
+						Canvas->DrawShadowedString( LeftXPos, BottomYPos, *CinemaNameString, GEngine->GetLargeFont(), FLinearColor::White );
+					}
+				}
+			}
+		}
+	}
 
 	// Show a notification if we are adjusting a particular keyframe.
 	if(Opt->bAdjustingKeyframe)
@@ -2513,7 +2626,7 @@ void FMatinee::OnObjectsReplaced(const TMap<UObject*,UObject*>& ReplacementMap)
 /**
  * Either shows or hides the director track window by splitting/unsplitting the parent window
  */
-void FMatinee::UpdateDirectorTrackWindowVisibility()
+EVisibility FMatinee::GetDirectorTrackWindowVisibility() const
 {
 	// Do we have a director group?  If so, then the director track window will be implicitly visible!
 	UInterpGroupDirector* DirGroup = IData->FindDirectorGroup();
@@ -2522,10 +2635,11 @@ void FMatinee::UpdateDirectorTrackWindowVisibility()
 	//Show the director tab
 	if (bWantDirectorTrackWindow)
 	{
-		if (TabManager.IsValid())
-		{
-			TabManager->InvokeTab( FTabId(MatineeDirectorWindowName) );
-		}
+		return EVisibility::Visible;
+	}
+	else
+	{
+		return EVisibility::Collapsed;
 	}
 }
 

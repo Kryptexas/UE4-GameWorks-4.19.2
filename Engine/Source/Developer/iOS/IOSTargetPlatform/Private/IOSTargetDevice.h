@@ -55,7 +55,7 @@ public:
 	virtual bool PowerOn() OVERRIDE;
 	virtual bool Reboot(bool bReconnect = false) OVERRIDE;
 	virtual bool Run(const FString& ExecutablePath, const FString& Params, uint32* OutProcessId) OVERRIDE;
-	virtual bool SupportsFeature(ETargetDeviceFeatures::Type InFeature) const;
+	virtual bool SupportsFeature(ETargetDeviceFeatures::Type Feature) const;
 	virtual bool SupportsSdkVersion(const FString& VersionString) const OVERRIDE;
 	virtual bool TerminateProcess(const int32 ProcessId) OVERRIDE;
 	virtual void SetUserCredentials(const FString & UserName, const FString & UserPassword) OVERRIDE;

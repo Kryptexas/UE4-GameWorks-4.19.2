@@ -11,46 +11,67 @@
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-FDragTool_Measure::FDragTool_Measure()
+FDragTool_Measure::FDragTool_Measure(FEditorViewportClient* InViewportClient)
+	: ViewportClient(InViewportClient)
 {
 	bUseSnapping = true;
 	bConvertDelta = false;
 }
 
+void FDragTool_Measure::SetEndWorldPositionFromCursor()
+{
+	FIntPoint MousePos;
+	ViewportClient->Viewport->GetMousePos(MousePos);
+
+	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+		ViewportClient->Viewport,
+		ViewportClient->GetScene(),
+		ViewportClient->EngineShowFlags)
+		.SetRealtimeUpdate(ViewportClient->IsRealtime()));
+
+	FSceneView* View = ViewportClient->CalcSceneView(&ViewFamily);
+
+	End = View->ScreenToWorld(View->PixelToScreen(MousePos.X, MousePos.Y, 0.5f));
+
+	const float GridSize = GEditor->GetGridSize();
+	const FVector GridBase( GridSize, GridSize, GridSize );
+	FSnappingUtils::SnapPointToGrid( End, GridBase );
+}
+
 void FDragTool_Measure::StartDrag(FEditorViewportClient* InViewportClient, const FVector& InStart, const FVector2D& InStartScreen)
 {
 	FDragTool::StartDrag(InViewportClient, InStart, InStartScreen);
+	SetEndWorldPositionFromCursor();
 }
 
 void FDragTool_Measure::AddDelta(const FVector& InDelta)
 {
-	FDragTool::AddDelta(InDelta);
+	SetEndWorldPositionFromCursor();
 }
 
-void FDragTool_Measure::Render3D(const FSceneView* View,FPrimitiveDrawInterface* PDI)
+void FDragTool_Measure::Render(const FSceneView* View, FCanvas* Canvas)
 {
-	PDI->DrawLine( Start, End, FColor(255,255,255), SDPG_Foreground );
-}
-
-void FDragTool_Measure::Render(const FSceneView* View,FCanvas* Canvas)
-{
-	FCanvasLineItem LineItem( Start, End );
-	Canvas->DrawItem( LineItem );
-
-	const int32 dist = FMath::Ceil((End - Start).Size());
-	if( dist == 0 )
+	FVector2D PixelStart;
+	FVector2D PixelEnd;
+	if (View != nullptr && Canvas != nullptr && View->WorldToPixel(Start, PixelStart) && View->WorldToPixel(End, PixelEnd))
 	{
+		FCanvasLineItem LineItem( PixelStart, PixelEnd );
+		Canvas->DrawItem( LineItem );
+
+		const int32 Length = FMath::Ceil((End - Start).Size());
+		if( Length == 0 )
+		{
 			return;
-	}
+		}
 
-
-	const FVector WorldMid = Start + ((End - Start) / 2);
-	FVector2D PixelMid;
-	if(View->ScreenToPixel(View->WorldToScreen(WorldMid),PixelMid))
-	{
-		FString LengthStr = FString::Printf(TEXT("%d"),dist);
-		FCanvasTextItem TextItem( FVector2D( FMath::Floor(PixelMid.X), FMath::Floor(PixelMid.Y) ), FText::FromString( LengthStr ), GEngine->GetSmallFont(), FLinearColor::White );
-		TextItem.bCentreX = true;
-		Canvas->DrawItem( TextItem );
+		const FVector WorldMid = Start + ((End - Start) / 2);
+		FVector2D PixelMid;
+		if (View->WorldToPixel(WorldMid, PixelMid))
+		{
+			FString LengthStr = FString::Printf(TEXT("%d"), Length);
+			FCanvasTextItem TextItem( FVector2D( FMath::Floor(PixelMid.X), FMath::Floor(PixelMid.Y) ), FText::FromString( LengthStr ), GEngine->GetSmallFont(), FLinearColor::White );
+			TextItem.bCentreX = true;
+			Canvas->DrawItem( TextItem );
+		}
 	}
 }

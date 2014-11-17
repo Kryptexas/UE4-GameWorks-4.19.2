@@ -538,10 +538,6 @@ public:
 
 	void CycleWidgetMode (void);
 
-	/** Allow translate/rotate widget */
-	bool GetAllowTranslateRotateZWidget()                 { return GEditor->GetEditorUserSettings().bAllowTranslateRotateZWidget; }
-	void SetAllowTranslateRotateZWidget (const bool bInOnOff) { GEditor->AccessEditorUserSettings().bAllowTranslateRotateZWidget = bInOnOff; }
-
 	/**Save Widget Settings to Ini file*/
 	void SaveWidgetSettings();
 	/**Load Widget Settings from Ini file*/
@@ -650,16 +646,6 @@ public:
 	UNREALED_API FWidget::EWidgetMode GetWidgetMode() const;
 
 	/**
-	 * Sets editor wide usage of replace respecting scale
-	 */
-	void SetReplaceRespectsScale(bool bInReplaceRespectsScale) { GEditor->AccessEditorUserSettings().bReplaceRespectsScale = bInReplaceRespectsScale; }
-	/**
-	 * Gets the current state of editor wide usage of replace respecting scale
-	 * @ return - If true, replace respects scale
-	 */
-	bool GetReplaceRespectsScale(void) const { return GEditor->GetEditorUserSettings().bReplaceRespectsScale; }
-
-	/**
 	 * Gets the current state of script editor usage of show friendly names
 	 * @ return - If true, replace variable names with sanatized ones
 	 */
@@ -669,38 +655,12 @@ public:
 	 * Sets Interp Editor inversion of panning on drag
 	 */
 	void SetInterpPanInvert(bool bInInterpPanInverted) { bInterpPanInverted = bInInterpPanInverted; }
+
 	/**
 	 * Gets the current state of the interp editor panning
 	 * @ return - If true, the interp editor left-right panning is inverted
 	 */
 	bool GetInterpPanInvert(void) const { return bInterpPanInverted; }
-	/**
-	 * Sets clicking BSP surface selecting brush
-	 */
-	void SetClickBSPSelectsBrush(bool bInClickBSPSelectsBrush) { GEditor->AccessEditorUserSettings().bClickBSPSelectsBrush = bInClickBSPSelectsBrush; }
-	/**
-	 * Gets the current state of clicking BSP surface selecting brush
-	 * @ return - If true, the clicking BSP surface selects brush
-	 */
-	bool GetClickBSPSelectsBrush(void) const { return GEditor->GetEditorUserSettings().bClickBSPSelectsBrush; }
-	/**
-	 * Sets BSP auto updating
-	 */
-	void SetBSPAutoUpdate(bool bInBSPAutoUpdate) { GEditor->AccessEditorUserSettings().bBSPAutoUpdate = bInBSPAutoUpdate; }
-	/**
-	 * Gets the current state of BSP auto-updating
-	 * @ return - If true, BSP auto-updating is enabled
-	 */
-	bool GetBSPAutoUpdate(void) const { return GEditor->GetEditorUserSettings().bBSPAutoUpdate; }
-	/**
-	 * Sets Navigation auto updating
-	 */
-	void SetNavigationAutoUpdate(bool bInNavigationAutoUpdate) { GEditor->AccessEditorUserSettings().bNavigationAutoUpdate = bInNavigationAutoUpdate; }
-	/**
-	 * Gets the current state of Navigation auto-updating
-	 * @ return - If true, Navigation auto-updating is enabled
-	 */
-	bool GetNavigationAutoUpdate(void) const { return GEditor->GetEditorUserSettings().bNavigationAutoUpdate; }
 
 	/**
 	 * Sets a bookmark in the levelinfo file, allocating it if necessary.

@@ -145,6 +145,7 @@ public:
 
 	FTimerManager()
 		: InternalTime(0.0)
+		, LastTickedFrame(static_cast<uint64>(-1))
 	{}
 
 

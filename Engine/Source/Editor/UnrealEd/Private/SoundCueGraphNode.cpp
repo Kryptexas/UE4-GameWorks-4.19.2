@@ -8,6 +8,7 @@
 #include "SoundDefinitions.h"
 #include "GraphEditorActions.h"
 #include "SoundCueGraphEditorCommands.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphNode"
 
@@ -43,7 +44,7 @@ void USoundCueGraphNode::PostLoad()
 			{
 				Pin->PinName = CreateUniquePinName(TEXT("Output"));
 			}
-			Pin->PinFriendlyName = TEXT(" ");
+			Pin->PinFriendlyName = FText::FromString(TEXT(" "));
 		}
 	}
 }
@@ -54,19 +55,36 @@ void USoundCueGraphNode::SetSoundNode(USoundNode* InSoundNode)
 	InSoundNode->GraphNode = this;
 }
 
-void USoundCueGraphNode::AddInputPin()
+void USoundCueGraphNode::CreateInputPin()
 {
 	UEdGraphPin* NewPin = CreatePin(EGPD_Input, TEXT("SoundNode"), TEXT(""), NULL, /*bIsArray=*/ false, /*bIsReference=*/ false, SoundNode->GetInputPinName(GetInputCount()));
 	if (NewPin->PinName.IsEmpty())
 	{
 		// Makes sure pin has a name for lookup purposes but user will never see it
 		NewPin->PinName = CreateUniquePinName(TEXT("Input"));
-		NewPin->PinFriendlyName = TEXT(" ");
+		NewPin->PinFriendlyName = FText::FromString(TEXT(" "));
 	}
+}
+
+void USoundCueGraphNode::AddInputPin()
+{
+	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SoundCueEditorAddInput", "Add Sound Cue Input") );
+	Modify();
+	CreateInputPin();
+
+	USoundCue* SoundCue = CastChecked<USoundCueGraph>(GetGraph())->GetSoundCue();
+	SoundCue->CompileSoundNodesFromGraphNodes();
+	SoundCue->MarkPackageDirty();
+
+	// Refresh the current graph, so the pins can be updated
+	GetGraph()->NotifyGraphChanged();
 }
 
 void USoundCueGraphNode::RemoveInputPin(UEdGraphPin* InGraphPin)
 {
+	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SoundCueEditorDeleteInput", "Delete Sound Cue Input") );
+	Modify();
+
 	TArray<class UEdGraphPin*> InputPins;
 	GetInputPins(InputPins);
 
@@ -82,12 +100,19 @@ void USoundCueGraphNode::RemoveInputPin(UEdGraphPin* InGraphPin)
 			break;
 		}
 	}
+
+	USoundCue* SoundCue = CastChecked<USoundCueGraph>(GetGraph())->GetSoundCue();
+	SoundCue->CompileSoundNodesFromGraphNodes();
+	SoundCue->MarkPackageDirty();
+
+	// Refresh the current graph, so the pins can be updated
+	GetGraph()->NotifyGraphChanged();
 }
 
 int32 USoundCueGraphNode::EstimateNodeWidth() const
 {
 	const int32 EstimatedCharWidth = 6;
-	FString NodeTitle = GetNodeTitle(ENodeTitleType::FullTitle);
+	FString NodeTitle = GetNodeTitle(ENodeTitleType::FullTitle).ToString();
 	UFont* Font = GetDefault<UEditorEngine>()->EditorFont;
 	int32 Result = NodeTitle.Len()*EstimatedCharWidth;
 
@@ -99,11 +124,17 @@ int32 USoundCueGraphNode::EstimateNodeWidth() const
 	return Result;
 }
 
-FString USoundCueGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
+bool USoundCueGraphNode::CanAddInputPin() const
+{
+	// Check if adding another input would exceed max child nodes.
+	return SoundNode->ChildNodes.Num() < SoundNode->GetMaxChildNodes();
+}
+
+FText USoundCueGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (SoundNode)
 	{
-		return SoundNode->GetTitle();
+		return FText::FromString(SoundNode->GetTitle());
 	}
 	else
 	{
@@ -158,7 +189,7 @@ void USoundCueGraphNode::CreateInputPins()
 {
 	for (int32 ChildIndex = 0; ChildIndex < SoundNode->ChildNodes.Num(); ++ChildIndex)
 	{
-		AddInputPin();
+		CreateInputPin();
 	}
 }
 
@@ -185,8 +216,7 @@ void USoundCueGraphNode::GetContextMenuActions(const FGraphNodeContextMenuBuilde
 
 		Context.MenuBuilder->BeginSection("SoundCueGraphNodeAddPlaySync");
 		{
-			// See if adding another input would exceed max child nodes.
-			if (SoundNode->ChildNodes.Num() < SoundNode->GetMaxChildNodes())
+			if (CanAddInputPin())
 			{
 				Context.MenuBuilder->AddMenuEntry(FSoundCueGraphEditorCommands::Get().AddInput);
 			}
@@ -211,7 +241,7 @@ FString USoundCueGraphNode::GetTooltip() const
 	}
 	if (Tooltip.Len() == 0)
 	{
-		Tooltip = GetNodeTitle(ENodeTitleType::ListView);
+		Tooltip = GetNodeTitle(ENodeTitleType::ListView).ToString();
 	}
 	return Tooltip;
 }

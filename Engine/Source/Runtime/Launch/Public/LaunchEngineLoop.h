@@ -33,7 +33,7 @@ public:
 	 *
 	 * @return Returns the error level, 0 if successful and > 0 if there were errors
 	 */ 
-	int32 PreInit(int32 ArgC, ANSICHAR* ArgV[], const TCHAR* AdditionalCommandline = NULL);
+	int32 PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCommandline = NULL);
 
 	/**
 	 * Pre-Initialize the main loop - parse command line, sets up GIsEditor, etc.

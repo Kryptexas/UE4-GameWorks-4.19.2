@@ -58,6 +58,11 @@ FString UClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("OBJECT");
 }
 
+bool UClassProperty::SameType(const UProperty* Other) const
+{
+	return Super::SameType(Other) && (MetaClass == ((UClassProperty*)Other)->MetaClass);
+}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UClassProperty, UObjectProperty,
 	{
 		Class->EmitObjectReference( STRUCT_OFFSET( UClassProperty, MetaClass ) );

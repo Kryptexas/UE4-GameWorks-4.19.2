@@ -938,7 +938,7 @@ struct FMath : public FPlatformMath
 	#include "UnrealMathNeon.h"
 #else
 	#define SIMD_ALIGNMENT (4)
-	#include "UnrealMathFpu.h"
+	#include "UnrealMathFPU.h"
 #endif
 
 // 'Cross-platform' vector intrinsics (built on the platform-specific ones defined above)

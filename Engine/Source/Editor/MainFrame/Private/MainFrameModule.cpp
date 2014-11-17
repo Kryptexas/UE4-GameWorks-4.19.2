@@ -225,7 +225,7 @@ TSharedRef<SWidget> FMainFrameModule::MakeDeveloperTools() const
 			{
 				// Query OS for process memory used
 				FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-				StaticLastTotalAllocated = MemoryStats.WorkingSetSize;
+				StaticLastTotalAllocated = MemoryStats.UsedPhysical;
 
 				// Wait 60 queries until we refresh memory again
 				QueriesUntilUpdate = 60;

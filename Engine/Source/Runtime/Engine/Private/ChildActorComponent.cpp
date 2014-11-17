@@ -36,6 +36,7 @@ void UChildActorComponent::CreateChildActor()
 			Params.bNoCollisionFail = true;
 			Params.bDeferConstruction = true; // We defer construction so that we set ParentComponentActor prior to component registration so they appear selected
 			Params.bAllowDuringConstructionScript = true;
+			Params.OverrideLevel = GetOwner()->GetLevel();
 
 			// Spawn actor of desired class
 			FVector Location = GetComponentLocation();
@@ -50,12 +51,12 @@ void UChildActorComponent::CreateChildActor()
 				ChildActor->ParentComponentActor = GetOwner();
 #endif
 
-				// attach new actor to this component
-				ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
-
 				// Parts that we deferred from SpawnActor
 				ChildActor->OnConstruction(ComponentToWorld);
 				ChildActor->PostActorConstruction();
+
+				// attach new actor to this component
+				ChildActor->AttachRootComponentTo(this, NAME_None, EAttachLocation::SnapToTarget);
 			}
 		}
 	}

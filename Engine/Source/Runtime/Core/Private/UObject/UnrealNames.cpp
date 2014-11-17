@@ -234,6 +234,124 @@ FCriticalSection* FName::GetCriticalSection()
 	return CriticalSection;
 }
 
+FString FName::NameToDisplayString( const FString& InDisplayName, const bool bIsBool )
+{
+	// Copy the characters out so that we can modify the string in place
+	const TArray< TCHAR > Chars = InDisplayName.GetCharArray();
+
+	// This is used to indicate that we are in a run of uppercase letter and/or digits.  The code attempts to keep
+	// these characters together as breaking them up often looks silly (i.e. "Draw Scale 3 D" as opposed to "Draw Scale 3D"
+	bool bInARun = false;
+	bool bWasSpace = false;
+	bool bWasOpenParen = false;
+	FString OutDisplayName;
+	for( int32 CharIndex = 0 ; CharIndex < Chars.Num() ; ++CharIndex )
+	{
+		TCHAR ch = Chars[CharIndex];
+
+		bool bLowerCase = FChar::IsLower( ch );
+		bool bUpperCase = FChar::IsUpper( ch );
+		bool bIsDigit = FChar::IsDigit( ch );
+		bool bIsUnderscore = FChar::IsUnderscore( ch );
+
+		// Skip the first character if the property is a bool (they should all start with a lowercase 'b', which we don't want to keep)
+		if( CharIndex == 0 && bIsBool && ch == 'b' )
+		{
+			// Check if next character is uppercase as it may be a user created string that doesn't follow the rules of Unreal variables
+			if (Chars.Num() > 1 && FChar::IsUpper(Chars[1]))
+			{
+				continue;
+			}
+		}
+
+		// If the current character is upper case or a digit, and the previous character wasn't, then we need to insert a space if there wasn't one previously
+		if( (bUpperCase || bIsDigit) && !bInARun && !bWasOpenParen)
+		{
+			if( !bWasSpace && OutDisplayName.Len() > 0 )
+			{
+				OutDisplayName += TEXT( ' ' );
+				bWasSpace = true;
+			}
+			bInARun = true;
+		}
+
+		// A lower case character will break a run of upper case letters and/or digits
+		if( bLowerCase )
+		{
+			bInARun = false;
+		}
+
+		// An underscore denotes a space, so replace it and continue the run
+		if( bIsUnderscore )
+		{
+			ch = TEXT( ' ' );
+			bInARun = true;
+		}
+
+		// If this is the first character in the string, then it will always be upper-case
+		if( OutDisplayName.Len() == 0 )
+		{
+			ch = FChar::ToUpper( ch );
+		}
+		else if( bWasSpace || bWasOpenParen)	// If this is first character after a space, then make sure it is case-correct
+		{
+			// Some words are always forced lowercase
+			const TCHAR* Articles[] =
+			{
+				TEXT( "In" ),
+				TEXT( "As" ),
+				TEXT( "To" ),
+				TEXT( "Or" ),
+				TEXT( "At" ),
+				TEXT( "On" ),
+				TEXT( "If" ),
+				TEXT( "Be" ),
+				TEXT( "By" ),
+				TEXT( "The" ),
+				TEXT( "For" ),
+				TEXT( "And" ),
+				TEXT( "With" ),
+				TEXT( "When" ),
+				TEXT( "From" ),
+			};
+
+			// Search for a word that needs case repaired
+			bool bIsArticle = false;
+			for( int32 CurArticleIndex = 0; CurArticleIndex < ARRAY_COUNT( Articles ); ++CurArticleIndex )
+			{
+				// Make sure the character following the string we're testing is not lowercase (we don't want to match "in" with "instance")
+				const int32 ArticleLength = FCString::Strlen( Articles[ CurArticleIndex ] );
+				if( ( Chars.Num() - CharIndex ) > ArticleLength && !FChar::IsLower( Chars[ CharIndex + ArticleLength ] ) && Chars[ CharIndex + ArticleLength ] != '\0' )
+				{
+					// Does this match the current article?
+					if( FCString::Strncmp( &Chars[ CharIndex ], Articles[ CurArticleIndex ], ArticleLength ) == 0 )
+					{
+						bIsArticle = true;
+						break;
+					}
+				}
+			}
+
+			// Start of a keyword, force to lowercase
+			if( bIsArticle )
+			{
+				ch = FChar::ToLower( ch );				
+			}
+			else	// First character after a space that's not a reserved keyword, make sure it's uppercase
+			{
+				ch = FChar::ToUpper( ch );
+			}
+		}
+
+		bWasSpace = ( ch == TEXT( ' ' ) ? true : false );
+		bWasOpenParen = ( ch == TEXT( '(' ) ? true : false );
+
+		OutDisplayName += ch;
+	}
+
+	return OutDisplayName;
+}
+
 
 // Static variables.
 FNameEntry*						FName::NameHash[ FNameDefs::NameHashBucketCount ];

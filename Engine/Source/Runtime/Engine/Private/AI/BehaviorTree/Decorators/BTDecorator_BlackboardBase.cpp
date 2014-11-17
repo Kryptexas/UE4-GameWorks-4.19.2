@@ -24,28 +24,28 @@ void UBTDecorator_BlackboardBase::InitializeFromAsset(class UBehaviorTree* Asset
 	BlackboardKey.CacheSelectedKey(GetBlackboardAsset());
 }
 
-void UBTDecorator_BlackboardBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTDecorator_BlackboardBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->RegisterObserver(BlackboardKey.SelectedKeyID, BBKeyObserver);
+		BlackboardComp->RegisterObserver(BlackboardKey.GetSelectedKeyID(), BBKeyObserver);
 	}
 }
 
-void UBTDecorator_BlackboardBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTDecorator_BlackboardBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->UnregisterObserver(BlackboardKey.SelectedKeyID, BBKeyObserver);
+		BlackboardComp->UnregisterObserver(BlackboardKey.GetSelectedKeyID(), BBKeyObserver);
 	}
 }
 
 void UBTDecorator_BlackboardBase::OnBlackboardChange(const UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
 {
 	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBehaviorComponent() : NULL;
-	if (BlackboardKey.SelectedKeyID == ChangedKeyID && BehaviorComp)
+	if (BlackboardKey.GetSelectedKeyID() == ChangedKeyID && BehaviorComp)
 	{
 		BehaviorComp->RequestExecution(this);		
 	}

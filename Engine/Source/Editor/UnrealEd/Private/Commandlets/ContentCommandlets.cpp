@@ -513,9 +513,9 @@ int32 UResavePackagesCommandlet::Main( const FString& Params )
 	return 0;
 }
 
-FString UResavePackagesCommandlet::GetChangelistDescription() const
+FText UResavePackagesCommandlet::GetChangelistDescription() const
 {
-	return TEXT("Resave Deprecated Packages");
+	return NSLOCTEXT("ContentCmdlets", "ChangelistDescription", "Resave Deprecated Packages");
 }
 
 

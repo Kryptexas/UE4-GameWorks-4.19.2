@@ -96,7 +96,7 @@ private:
 	void WriteNewTasks();
 
 	/** Used when compiling through workers, launches worker processes if needed. */
-	void LaunchWorkersIfNeeded();
+	bool LaunchWorkersIfNeeded();
 
 	/** Used when compiling through workers, attempts to open the worker output file if the worker is done and read the results. */
 	void ReadAvailableResults();
@@ -200,6 +200,8 @@ private:
 	FString AbsoluteShaderDebugInfoDirectory;
 	/** Name of the shader worker application. */
 	FString ShaderCompileWorkerName;
+	/** Whether the SCW has crashed and we should fall back to calling the compiler dll's directly. */
+	bool bFallBackToDirectCompiles;
 
 	/** 
 	 * Tracks the total time that shader compile workers have been busy since startup.  
@@ -307,7 +309,8 @@ extern void GlobalBeginCompileShader(
 	const TCHAR* FunctionName,
 	FShaderTarget Target,
 	FShaderCompileJob* NewJob,
-	TArray<FShaderCompileJob*>& NewJobs
+	TArray<FShaderCompileJob*>& NewJobs,
+	bool bAllowDevelopmentShaderCompile = true
 	);
 
 /** Implementation of the 'recompileshaders' console command.  Recompiles shaders at runtime based on various criteria. */

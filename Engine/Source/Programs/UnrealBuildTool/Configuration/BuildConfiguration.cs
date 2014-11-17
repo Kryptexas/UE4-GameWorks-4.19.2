@@ -3,6 +3,8 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Xml;
+using System.Reflection;
 
 namespace UnrealBuildTool
 {
@@ -404,6 +406,9 @@ namespace UnrealBuildTool
 
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";
+
+			// Load eventual XML configuration files if they exist to override default values.
+			XmlConfigLoader.Load(typeof(BuildConfiguration));
 		}
 
 		/// <summary>
@@ -431,10 +436,10 @@ namespace UnrealBuildTool
 			}
 
 			// Detailed stats
-			if( bLogDetailedActionStats )
+            if (bLogDetailedActionStats && bAllowXGE)
 			{
-				// Force local execution as we only have stats for local actions.
-				bAllowXGE = false;
+                // Some build machines apparently have this turned on, so if you really want detailed stats, don't run with XGE
+                bLogDetailedActionStats = false;
 			}
 
 			if (UnrealBuildTool.RunningRocket())

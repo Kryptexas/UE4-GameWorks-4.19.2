@@ -265,7 +265,6 @@ namespace
 		FVector EdgePt1;
 	};
 
-	
 	FORCEINLINE bool CheckVisibility(const FPathPointInfo* StartPoint, const FPathPointInfo* EndPoint,  TArray<FNavigationPortalEdge>& PathCorridorEdges, float OffsetDistannce, FPathPointInfo* LastVisiblePoint)
 	{
 		FVector IntersectionPoint = FVector::ZeroVector;
@@ -373,6 +372,12 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 	SCOPE_CYCLE_COUNTER(STAT_Navigation_OffsetFromCorners);
 
 	const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(Owner.Get());
+	if (PathPoints.Num() == 0 || PathPoints.Num() > 100)
+	{
+		// skip it, there is not need to offset that path from performance point of view
+		return;
+	}
+
 #if DEBUG_DRAW_OFFSET
 	GInternalDebugWorld_ = MyOwner->GetWorld();
 	FlushDebugStrings(GInternalDebugWorld_);
@@ -391,7 +396,7 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 	FNavPathPoint* PathPoint = PathPoints.GetTypedData();
 	// it's possible we'll be inserting points into the path, so we need to buffer the result
 	TArray<FPathPointInfo> FirstPassPoints;
-	FirstPassPoints.Reserve(PathPoints.Num() * 2);
+	FirstPassPoints.Reserve(PathPoints.Num() + 2);
 	FirstPassPoints.Add(FPathPointInfo(*PathPoint, FVector::ZeroVector, FVector::ZeroVector));
 	++PathPoint;
 
@@ -444,10 +449,9 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 			const FVector EdgePt1 = Edge->GetPoint((CloserPoint+1)%2);
 			const FVector EdgeDir = EdgePt1 - EdgePt0;
 			const FVector EdgeOffset = EdgeDir.SafeNormal() * ActualOffset;
-			NewPathPoint = EdgePt0 + EdgeOffset;
+			NewPathPoint.Location = EdgePt0 + EdgeOffset;
 			// update NodeRef (could be different if this is n-th pass on the same PathPoint
 			NewPathPoint.NodeRef = Edge->ToRef;
-			NewPathPoint.Flags = PathPoint->Flags;
 			FirstPassPoints.Add(FPathPointInfo(NewPathPoint, EdgePt0, EdgePt1));
 
 			// if we've found a matching edge it's possible there's also another one there using the same edge. 
@@ -479,11 +483,15 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 	{
 		if (FirstPassPoints.Num() < 3 || !MyOwner->bUseBetterOffsetsFromCorners)
 		{
+			FNavPathPoint EndPt = PathPoints.Last();
+
 			PathPoints.Reset();
 			for (int32 Index=0; Index < FirstPassPoints.Num(); ++Index)
 			{
 				PathPoints.Add(FirstPassPoints[Index].Point);
 			}
+
+			PathPoints.Add(EndPt);
 			return;
 		}
 
@@ -498,44 +506,35 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 		int32 TestedPointIndex = 1;
 		int32 LastPointIndex = FirstPassPoints.Num()-1;
 
-		bool bVisible = true; 
-		bool bStop = false; 
-
-		while (!bStop) 
+		const int32 MaxSteps = 200;
+		for (int32 StepsLeft = MaxSteps; StepsLeft >= 0; StepsLeft--)
 		{ 
-			if (StartPointIndex == TestedPointIndex)
+			if (StartPointIndex == TestedPointIndex || StepsLeft == 0)
 			{
+				// something went wrong, or exceeded limit of steps (= went even more wrong)
 				DestinationPathPoints.Reset();
-				bStop = true;
 				break;
 			}
-			if (FNavMeshNodeFlags(FirstPassPoints[StartPointIndex].Point.Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) 
+
+			const FNavMeshNodeFlags LastVisibleFlags(FirstPassPoints[LastVisiblePointIndex].Point.Flags);
+			const FNavMeshNodeFlags StartPointFlags(FirstPassPoints[StartPointIndex].Point.Flags);
+			bool bWantsVisibilityInsert = true;
+
+			if (StartPointFlags.PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) 
 			{
 				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
 				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex+1].Point );
 
 				StartPointIndex++;
-				LastVisiblePointIndex = StartPointIndex ;
+				LastVisiblePointIndex = StartPointIndex;
 				TestedPointIndex = LastVisiblePointIndex + 1;
-
-				if (TestedPointIndex > LastPointIndex) 
-				{ 
-					DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-					DestinationPathPoints.Add( FirstPassPoints[LastPointIndex].Point );
-					bStop = true; 
-					break; 
-				} 
-				continue;
+				
+				// skip inserting new points
+				bWantsVisibilityInsert = false;
 			}
-			else if(FNavMeshNodeFlags(FirstPassPoints[LastVisiblePointIndex].Point.Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION)
-			{
-				bVisible = false;
-			}
-			else if ( FNavMeshNodeFlags(FirstPassPoints[StartPointIndex].Point.Flags).Area != FNavMeshNodeFlags( FirstPassPoints[LastVisiblePointIndex].Point.Flags).Area )
-			{
-				bVisible = false;
-			}
-			else
+			
+			bool bVisible = false; 
+			if (((LastVisibleFlags.PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) == 0) && (StartPointFlags.Area == LastVisibleFlags.Area))
 			{
 				FPathPointInfo LastVisiblePoint;
 				bVisible = CheckVisibility( &FirstPassPoints[StartPointIndex], &FirstPassPoints[TestedPointIndex], PathCorridorEdges, Distance, &LastVisiblePoint );
@@ -552,43 +551,40 @@ void FNavMeshPath::OffsetFromCorners(float Distance)
 						LastVisiblePoint.Point.Flags = FirstPassPoints[LastVisiblePointIndex].Point.Flags;
 						LastVisiblePointIndex = FirstPassPoints.Insert( LastVisiblePoint, StartPointIndex+1 );
 						LastPointIndex = FirstPassPoints.Num()-1;
+
+						// TODO: potential infinite loop - keeps inserting point without visibility
 					}
 				}
 			}
 
-			if (bVisible) 
-			{ 
+			if (bWantsVisibilityInsert)
+			{
+				if (bVisible) 
+				{ 
 #if PATH_OFFSET_KEEP_VISIBLE_POINTS
-				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-				LastVisiblePointIndex = TestedPointIndex;
-				StartPointIndex = LastVisiblePointIndex;
-				TestedPointIndex++;
+					DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
+					LastVisiblePointIndex = TestedPointIndex;
+					StartPointIndex = LastVisiblePointIndex;
+					TestedPointIndex++;
 #else
-				LastVisiblePointIndex = TestedPointIndex;
-				TestedPointIndex++;
+					LastVisiblePointIndex = TestedPointIndex;
+					TestedPointIndex++;
 #endif
-				if (TestedPointIndex > LastPointIndex) 
+				} 
+				else
 				{ 
 					DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-					DestinationPathPoints.Add( FirstPassPoints[LastPointIndex].Point );
-					bStop = true; 
-					break; 
+					StartPointIndex = LastVisiblePointIndex;
+					TestedPointIndex = LastVisiblePointIndex + 1;
 				} 
-				continue; 
-			} 
-			else
+			}
+
+			// if reached end of path, add current and last points to close it and leave loop
+			if (TestedPointIndex > LastPointIndex) 
 			{ 
 				DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-				StartPointIndex = LastVisiblePointIndex;
-				TestedPointIndex = LastVisiblePointIndex + 1;
-
-				if (TestedPointIndex > LastPointIndex) 
-				{ 
-					DestinationPathPoints.Add( FirstPassPoints[StartPointIndex].Point );
-					DestinationPathPoints.Add( FirstPassPoints[LastPointIndex].Point );
-					bStop = true; 
-					break; 
-				} 
+				DestinationPathPoints.Add( FirstPassPoints[LastPointIndex].Point );
+				break; 
 			} 
 		} 
 
@@ -662,12 +658,3 @@ bool FNavMeshPath::ContainsWithSameEnd(const FNavMeshPath* Other) const
 
 	return bAreTheSame;
 }
-
-void FNavMeshPath::PopCorridorEdge()
-{
-	if (PathCorridorEdges.Num() > 0)
-	{
-		PathCorridorEdges.RemoveAtSwap(PathCorridorEdges.Num()-1, 1, false);
-	}
-}
-

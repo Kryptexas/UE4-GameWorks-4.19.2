@@ -65,7 +65,7 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 
 	//Required module names
 	TArray<FString> RequiredModuleNames;
-	GetConfigArray(*SectionName, TEXT("RequiredModuleNames"), ExcludePaths, GatherTextConfigPath);
+	GetConfigArray(*SectionName, TEXT("RequiredModuleNames"), RequiredModuleNames, GatherTextConfigPath);
 
 	// Pre-load all required modules so that UFields from those modules can be guaranteed a chance to have their metadata gathered.
 	for(const FString& RequiredModuleName : RequiredModuleNames)
@@ -73,8 +73,18 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 		FModuleManager::Get().LoadModule(*RequiredModuleName);
 	}
 
+	FGatherParameters Arguments;
+	GetConfigArray(*SectionName, TEXT("InputKeys"), Arguments.InputKeys, GatherTextConfigPath);
+	GetConfigArray(*SectionName, TEXT("OutputNamespaces"), Arguments.OutputNamespaces, GatherTextConfigPath);
+	TArray<FString> OutputKeys;
+	GetConfigArray(*SectionName, TEXT("OutputKeys"), OutputKeys, GatherTextConfigPath);
+	for(const auto& OutputKey : OutputKeys)
+	{
+		Arguments.OutputKeys.Add(FText::FromString(OutputKey));
+	}
+
 	// Execute gather.
-	GatherTextFromUObjects(IncludePaths, ExcludePaths);
+	GatherTextFromUObjects(IncludePaths, ExcludePaths, Arguments);
 
 	// Add any manifest dependencies if they were provided
 	TArray<FString> ManifestDependenciesList;
@@ -89,7 +99,7 @@ int32 UGatherTextFromMetaDataCommandlet::Main( const FString& Params )
 	return 0;
 }
 
-void UGatherTextFromMetaDataCommandlet::GatherTextFromUObjects(const TArray<FString>& IncludePaths, const TArray<FString>& ExcludePaths)
+void UGatherTextFromMetaDataCommandlet::GatherTextFromUObjects(const TArray<FString>& IncludePaths, const TArray<FString>& ExcludePaths, const FGatherParameters& Arguments)
 {
 	for(TObjectIterator<UField> It; It; ++It)
 	{
@@ -101,7 +111,7 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObjects(const TArray<FStr
 		{
 			for(int32 i = 0; i < IncludePaths.Num(); ++i)
 			{
-				if(SourceFilePath.MatchesWildcard(FPaths::RootDir() + IncludePaths[i] + TEXT("*")))
+				if(SourceFilePath.MatchesWildcard(IncludePaths[i]))
 				{
 					return true;
 				}
@@ -130,33 +140,38 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObjects(const TArray<FStr
 			continue;
 		}
 
-		GatherTextFromUObject(*It);
+		GatherTextFromUObject(*It, Arguments);
 	}
 }
 
-void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Field)
+void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Field, const FGatherParameters& Arguments)
 {
-	const int32 MetaDataCount = 3;
-	const FString MetaDataKeys[MetaDataCount] =
-	{	TEXT("ToolTip"),			TEXT("DisplayName"),			TEXT("Category")			};
-	const FString AssociatedNamespaces[MetaDataCount] =
-	{	TEXT("UObjectToolTips"),	TEXT("UObjectDisplayNames"),	TEXT("UObjectCategories")	};
-
 	// Gather for object.
 	{
-		for(int32 i = 0; i < MetaDataCount; ++i)
+		if( !Field->HasMetaData( TEXT("DisplayName") ) )
 		{
-			const FString& MetaDataValue = Field->GetMetaData(*MetaDataKeys[i]);
-			if(!(MetaDataValue.IsEmpty()))
+			Field->SetMetaData( TEXT("DisplayName"), *FName::NameToDisplayString( Field->GetName(), Field->IsA( UBoolProperty::StaticClass() ) ) );
+		}
+
+		for(int32 i = 0; i < Arguments.InputKeys.Num(); ++i)
+		{
+			FFormatNamedArguments PatternArguments;
+			PatternArguments.Add( TEXT("FieldPath"), FText::FromString( Field->GetFullGroupName(true) + TEXT(".") + Field->GetName() ) );
+
+			if( Field->HasMetaData( *Arguments.InputKeys[i] ) )
 			{
-				const FString Namespace = AssociatedNamespaces[i];
-				FLocItem LocItem(MetaDataValue);
-				FContext Context;
-				Context.Key =	MetaDataKeys[i] == TEXT("Category")
-							?	MetaDataValue
-							:	Field->GetFullGroupName(true) + TEXT(".") + Field->GetName();
-				Context.SourceLocation = TEXT("Run-time MetaData");
-				ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);
+				const FString& MetaDataValue = Field->GetMetaData(*Arguments.InputKeys[i]);
+				if( !MetaDataValue.IsEmpty() )
+				{
+					PatternArguments.Add( TEXT("MetaDataValue"), FText::FromString(MetaDataValue) );
+
+					const FString Namespace = Arguments.OutputNamespaces[i];
+					FLocItem LocItem(MetaDataValue);
+					FContext Context;
+					Context.Key = FText::Format(Arguments.OutputKeys[i], PatternArguments).ToString();
+					Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of member %s in %s"), *Arguments.InputKeys[i], *Field->GetName(), *Field->GetFullGroupName(true));
+					ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);
+				}
 			}
 		}
 	}
@@ -169,19 +184,30 @@ void UGatherTextFromMetaDataCommandlet::GatherTextFromUObject(UField* const Fiel
 			const int32 ValueCount = Enum->NumEnums();
 			for(int32 i = 0; i < ValueCount; ++i)
 			{
-				for(int32 j = 0; j < MetaDataCount; ++j)
+				if( !Enum->HasMetaData(TEXT("DisplayName"), i) )
 				{
-					const FString& MetaDataValue = Enum->GetMetaData(*MetaDataKeys[j], i);
-					if(!(MetaDataValue.IsEmpty()))
+					Enum->SetMetaData(TEXT("DisplayName"), *FName::NameToDisplayString(Enum->GetEnumName(i), false), i);
+				}
+
+				for(int32 j = 0; j < Arguments.InputKeys.Num(); ++j)
+				{
+					FFormatNamedArguments PatternArguments;
+					PatternArguments.Add( TEXT("FieldPath"), FText::FromString( Enum->GetFullGroupName(true) + TEXT(".") + Enum->GetName() + TEXT(".") + Enum->GetEnumName(i) ) );
+
+					if( Enum->HasMetaData(*Arguments.InputKeys[j], i) )
 					{
-						const FString Namespace = AssociatedNamespaces[j];
-						FLocItem LocItem(MetaDataValue);
-						FContext Context;
-						Context.Key =	MetaDataKeys[j] == TEXT("Category")
-									?	MetaDataValue
-									:	Enum->GetFullGroupName(true) + TEXT(".") + Enum->GetName() + TEXT(".") + Enum->GetEnumName(i);
-						Context.SourceLocation = TEXT("Run-time MetaData");
-						ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);
+						const FString& MetaDataValue = Enum->GetMetaData(*Arguments.InputKeys[j], i);
+						if( !MetaDataValue.IsEmpty() )
+						{
+							PatternArguments.Add( TEXT("MetaDataValue"), FText::FromString(MetaDataValue) );
+
+							const FString Namespace = Arguments.OutputNamespaces[j];
+							FLocItem LocItem(MetaDataValue);
+							FContext Context;
+							Context.Key = FText::Format(Arguments.OutputKeys[j], PatternArguments).ToString();
+							Context.SourceLocation = FString::Printf(TEXT("From metadata for key %s of enum value %s of enum %s in %s"), *Arguments.InputKeys[j], *Enum->GetEnumName(i), *Enum->GetName(), *Enum->GetFullGroupName(true));
+							ManifestInfo->AddEntry(TEXT("EntryDescription"), Namespace, LocItem, Context);
+						}
 					}
 				}
 			}

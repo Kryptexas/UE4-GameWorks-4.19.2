@@ -68,11 +68,11 @@ PRAGMA_DISABLE_OPTIMIZATION
 		//level selection
 		UI_COMMAND( SelectAllLevels, "Select All Levels", "Selects all levels", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( DeselectAllLevels, "De-select All Levels", "De-selects all levels", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( InvertSelection, "Invert Level Selection", "Inverts level selection", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( InvertLevelSelection, "Invert Level Selection", "Inverts level selection", EUserInterfaceActionType::Button, FInputGesture() );
 		
 		//actors
-		UI_COMMAND( SelectActors, "Select Actors in Levels", "Sets actors in the selected Levels as the viewport's selection", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( DeselectActors, "Deselect Actors in Levels", "Removes the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( SelectLevelActors, "Select Actors in Levels", "Sets actors in the selected Levels as the viewport's selection", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( DeselectLevelActors, "Deselect Actors in Levels", "Removes the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
 
 		//streaming volumes
 		UI_COMMAND( AddStreamingLevelVolumes, "Add Streaming Volumes", "Adds the streaming volumes to the selected levels", EUserInterfaceActionType::Button, FInputGesture() );
@@ -190,14 +190,14 @@ public:
 	TSharedPtr< FUICommandInfo > DeselectAllLevels;
 
 	/** Inverts the level selection within the level browser */
-	TSharedPtr< FUICommandInfo > InvertSelection;
+	TSharedPtr< FUICommandInfo > InvertLevelSelection;
 
 
 	/** Selects the actors in the selected Levels */
-	TSharedPtr< FUICommandInfo > SelectActors;
+	TSharedPtr< FUICommandInfo > SelectLevelActors;
 
 	/** Deselects the actors in the selected Levels */
-	TSharedPtr< FUICommandInfo > DeselectActors;
+	TSharedPtr< FUICommandInfo > DeselectLevelActors;
 
 	/** Add the streaming volumes to the selected levels */
 	TSharedPtr< FUICommandInfo > AddStreamingLevelVolumes;

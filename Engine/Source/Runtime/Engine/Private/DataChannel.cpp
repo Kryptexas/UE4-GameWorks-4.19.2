@@ -54,11 +54,14 @@ void UChannel::SetClosingFlag()
 void UChannel::Close()
 {
 	check(Connection->Channels[ChIndex]==this);
-	if
-	(	!Closing
-	&&	(Connection->State==USOCK_Open || Connection->State==USOCK_Pending) )
+	if ( !Closing && ( Connection->State == USOCK_Open || Connection->State == USOCK_Pending ) )
 	{
-		UE_LOG(LogNetDormancy, Verbose, TEXT("Channel[%d] '%s' Closing. Dormant: %d"), ChIndex, *Describe(), Dormant );
+		if ( ChIndex == 0 )
+		{
+			UE_LOG(LogNet, Log, TEXT("UChannel::Close: Sending CloseBunch. ChIndex == 0. Name: %s"), *GetName());
+		}
+
+		UE_LOG(LogNetDormancy, Verbose, TEXT("UChannel::Close: Sending CloseBunch. ChIndex: %d, Name: %s, Dormant: %d"), ChIndex, *GetName(), Dormant );
 
 		// Send a close notify, and wait for ack.
 		FOutBunch CloseBunch( this, 1 );
@@ -83,7 +86,11 @@ void UChannel::CleanUp()
 	// if this is the control channel, make sure we properly killed the connection
 	if (ChIndex == 0 && !Closing)
 	{
-		UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] from UChannel::Cleanup()"), Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"));
+		UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] [%s] [%s] from UChannel::Cleanup(). ChIndex == 0. Closing connection."), 
+			Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
+			Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
+			Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"));
+
 		Connection->Close();
 	}
 
@@ -247,7 +254,14 @@ bool UChannel::ReceivedSequencedBunch( FInBunch& Bunch )
 		{
 			ensureMsgf(false, TEXT("Close Anomaly %i / %i"), Bunch.ChSequence, InRec->ChSequence );
 		}
-		UE_LOG(LogNetTraffic, Log, TEXT("      Channel %i got close-notify"), ChIndex );
+
+		if ( ChIndex == 0 )
+		{
+			UE_LOG(LogNet, Log, TEXT("UChannel::ReceivedSequencedBunch: Bunch.bClose == true. ChIndex == 0. Calling ConditionalCleanUp.") );
+		}
+
+		UE_LOG(LogNetTraffic, Log, TEXT("UChannel::ReceivedSequencedBunch: Bunch.bClose == true. Calling ConditionalCleanUp. ChIndex: %i"), ChIndex );
+
 		ConditionalCleanUp();
 		return 1;
 	}
@@ -263,7 +277,7 @@ void UChannel::ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck )
 
 		if ( Bunch.IsError() )
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "UChannel::ReceivedRawBunch: Bunch.IsError() after ReceiveNetGUIDBunch" ) );
+			UE_LOG( LogNetTraffic, Error, TEXT( "UChannel::ReceivedRawBunch: Bunch.IsError() after ReceiveNetGUIDBunch. ChIndex: %i" ), ChIndex );
 			return;
 		}
 	}
@@ -925,7 +939,11 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 	if (bNeedsEndianInspection && !CheckEndianess(Bunch))
 	{
 		// Send close bunch and shutdown this connection
-		UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] from CheckEndianess()"), Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"));
+		UE_LOG(LogNet, Warning, TEXT("UControlChannel::ReceivedBunch: NetConnection::Close() [%s] [%s] [%s] from CheckEndianess(). FAILED. Closing connection."),
+			Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
+			Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
+			Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"));
+
 		Connection->Close();
 		return;
 	}
@@ -957,7 +975,11 @@ void UControlChannel::ReceivedBunch( FInBunch& Bunch )
 						// if the client failed to initialize the PlayerController channel, the connection is broken
 						if (ActorChan->Actor == Connection->PlayerController)
 						{
-							UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] from failed to initialize the PlayerController channel"), Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"));
+							UE_LOG(LogNet, Warning, TEXT("UControlChannel::ReceivedBunch: NetConnection::Close() [%s] [%s] [%s] from failed to initialize the PlayerController channel. Closing connection."), 
+								Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
+								Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
+								Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"));
+
 							Connection->Close();
 						}
 						else if (Connection->PlayerController != NULL)
@@ -1200,11 +1222,12 @@ void UActorChannel::SetClosingFlag()
 
 void UActorChannel::Close()
 {
+	UE_LOG(LogNetTraffic, Log, TEXT("UActorChannel::Close: ChIndex: %d, Actor: %s, ActorClass: %s, Name: %s"), ChIndex, Actor ? *Actor->GetPathName() : TEXT("NULL"), ActorClass ? *ActorClass->GetName() : TEXT("NULL"), *GetName() );
+
 	UChannel::Close();
+
 	if (Actor != NULL)
 	{
-		UE_LOG(LogNetTraffic, Log, TEXT("Close[%d]: Actor: %s ActorClass: %s. %s"), ChIndex, Actor ? *Actor->GetPathName() : TEXT("NULL"), ActorClass ? *ActorClass->GetName() : TEXT("NULL"), *GetName() );
-
 		bool bKeepReplicators = false;		// If we keep replicators around, we can use them to determine if the actor changed since it went dormant
 
 		if ( Dormant )
@@ -1257,6 +1280,8 @@ void UActorChannel::CleanupReplicators( const bool bKeepReplicators )
 void UActorChannel::CleanUp()
 {
 	const bool IsServer = (Connection->Driver->ServerConnection == NULL);
+
+	UE_LOG( LogNetTraffic, Log, TEXT( "UActorChannel::CleanUp: Channel: %i, IsServer: %s" ), ChIndex, IsServer ? TEXT( "YES" ) : TEXT( "NO" ) );
 
 	// Remove from hash and stuff.
 	SetClosingFlag();
@@ -1364,7 +1389,7 @@ void UActorChannel::SetChannelActor( AActor* InActor )
 	check( !ReplicationMap.Contains( Actor ) );
 
 	// Create the actor replicator, and store a quick access pointer to it
-	ActorReplicator = &FindOrCreateReplicator( Actor );
+	ActorReplicator = &FindOrCreateReplicator( Actor ).Get();
 
 	// Remove from connection's dormancy lists
 	Connection->DormantActors.Remove( InActor );
@@ -1454,13 +1479,13 @@ void UActorChannel::ReceivedBunch( FInBunch& Bunch )
 	// ----------------------------------------------
 	//	Read chunks of actor content
 	// ----------------------------------------------
-	while ( !Bunch.AtEnd() )
+	while ( !Bunch.AtEnd() && Connection != NULL && Connection->State != USOCK_Closed )
 	{
 		UObject * RepObj = ReadContentBlockHeader( Bunch );
 
 		if ( Bunch.IsError() )
 		{
-			UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: ReadContentBlockHeader FAILED. Bunch.IsError() == TRUE.  Closing connection.") );
+			UE_LOG( LogNet, Error, TEXT( "UActorChannel::ReceivedBunch: ReadContentBlockHeader FAILED. Bunch.IsError() == TRUE.  Closing connection.") );
 			Connection->Close();
 			return;
 		}
@@ -1470,13 +1495,28 @@ void UActorChannel::ReceivedBunch( FInBunch& Bunch )
 			continue;
 		}
 		
-		FObjectReplicator & Replicator = FindOrCreateReplicator( RepObj );
+		TSharedRef< FObjectReplicator > & Replicator = FindOrCreateReplicator( RepObj );
 
-		if ( !Replicator.ReceivedBunch( Bunch, RepFlags ) )
+		bool bHasUnmapped = false;
+
+		if ( !Replicator.Get().ReceivedBunch( Bunch, RepFlags, bHasUnmapped ) )
 		{
 			UE_LOG( LogNet, Error, TEXT( "ReceivedBunch: Replicator.ReceivedBunch failed.  Closing connection.") );
 			Connection->Close();
 			return;
+		}
+
+		// Check to see if the actor was destroyed
+		// If so, don't continue processing packets on this channel, or we'll trigger an error otherwise
+		if ( !Actor )
+		{
+			UE_LOG( LogNet, Log, TEXT( "ReceivedBunch: Actor was destroyed during Replicator.ReceivedBunch processing" ) );
+			break;
+		}
+
+		if ( bHasUnmapped )
+		{
+			Connection->Driver->UnmappedReplicators.Add( Replicator );
 		}
 	}
 	
@@ -1567,7 +1607,15 @@ bool UActorChannel::ReplicateActor()
 
 	// Owned by connection's player?
 	UNetConnection* OwningConnection = Actor->GetNetConnection();
-	RepFlags.bNetOwner = (OwningConnection == Connection) ? true : false;
+	if (OwningConnection == Connection || (OwningConnection != NULL && OwningConnection->IsA(UChildConnection::StaticClass()) && ((UChildConnection*)OwningConnection)->Parent == Connection))
+	{
+		RepFlags.bNetOwner = true;
+	}
+	else
+	{
+		RepFlags.bNetOwner = false;
+	}
+
 
 	// ----------------------------------------------------------
 	// If initial, send init data.
@@ -1751,7 +1799,7 @@ void UActorChannel::Serialize(FArchive& Ar)
 
 void UActorChannel::QueueRemoteFunctionBunch( UObject * CallTarget, UFunction* Func, FOutBunch &Bunch )
 {
-	FindOrCreateReplicator(CallTarget).QueueRemoteFunctionBunch( Func, Bunch );
+	FindOrCreateReplicator(CallTarget).Get().QueueRemoteFunctionBunch( Func, Bunch );
 }
 
 void UActorChannel::BecomeDormant()
@@ -1794,6 +1842,16 @@ void UActorChannel::BeginContentBlock( UObject * Obj, FOutBunch &Bunch )
 	}
 #endif
 
+	// If we are referring to the actor on the channel, we don't need to send anything (except a bit signifying this)
+	const bool IsActor = Obj == Actor;
+
+	Bunch.WriteBit( IsActor ? 1 : 0 );
+
+	if ( IsActor )
+	{
+		return;
+	}
+
 	check(Obj);
 	Bunch << Obj;
 	NET_CHECKSUM(Bunch);
@@ -1825,100 +1883,133 @@ UObject * UActorChannel::ReadContentBlockHeader( FInBunch & Bunch )
 {
 	const bool IsServer = ( Connection->Driver->ServerConnection == NULL );
 
+	if ( Bunch.ReadBit() )
+	{
+		// If this is for the actor on the channel, we don't need to read anything else
+		return Actor;
+	}
+
+	//
+	// We need to handle a sub-object
+	//
+
 	// Note this heavily mirrors what happens in UPackageMapClient::SerializeNewActor
 	FNetworkGUID NetGUID;
-	UObject *RepObj = NULL;
+	UObject * SubObj = NULL;
 
 	// Manually serialize the object so that we can get the NetGUID (in order to assign it if we spawn the object here)
-	Connection->PackageMap->SerializeObject(Bunch, UObject::StaticClass(), RepObj, &NetGUID);
-	NET_CHECKSUM_OR_END(Bunch);
+	Connection->PackageMap->SerializeObject( Bunch, UObject::StaticClass(), SubObj, &NetGUID );
 
-	if ( Bunch.IsError() || Bunch.AtEnd() )
+	NET_CHECKSUM_OR_END( Bunch );
+
+	if ( Bunch.IsError() )
 	{
+		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Bunch.IsError() == true after SerializeObject. SubObj: %s, Actor: %s" ), SubObj ? *SubObj->GetName() : TEXT("Null"), *Actor->GetName() );
 		Bunch.SetError();
 		return NULL;
 	}
 
-	if ( RepObj != NULL && RepObj != Actor && !RepObj->IsIn( Actor ) )
+	if ( Bunch.AtEnd() )
 	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Object %s not in parent actor 1 %s" ), *RepObj->GetName(), *Actor->GetName() );
+		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Bunch.AtEnd() == true after SerializeObject. SubObj: %s, Actor: %s" ), SubObj ? *SubObj->GetName() : TEXT("Null"), *Actor->GetName() );
 		Bunch.SetError();
 		return NULL;
 	}
 
-	// Serialize the class incase we have to spawn it.
+	// Validate existing sub-object
+	if ( SubObj != NULL )
+	{
+		// Sub-objects can't be actors (should just use an actor channel in this case)
+		if ( Cast< AActor >( SubObj ) != NULL )
+		{
+			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object not allowed to be actor type. SubObj: %s, Actor: %s" ), *SubObj->GetName(), *Actor->GetName() );
+			Bunch.SetError();
+			return NULL;
+		}
+
+		// Sub-objects must reside within their actor parents
+		if ( !SubObj->IsIn( Actor ) )
+		{
+			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object not in parent actor 1. SubObj: %s, Actor: %s" ), *SubObj->GetName(), *Actor->GetName() );
+			Bunch.SetError();
+			return NULL;
+		}
+	}
+	else if ( IsServer )
+	{
+		UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Client attempted to create sub-object. Actor: %s" ), *Actor->GetName() );
+		Bunch.SetError();
+		return NULL;
+	}
+
+	// Serialize the class in case we have to spawn it.
 	// Manually serialize the object so that we can get the NetGUID (in order to assign it if we spawn the object here)
 	FNetworkGUID ClassNetGUID;
-	UObject *CastObj = NULL;
-	Connection->PackageMap->SerializeObject(Bunch, UObject::StaticClass(), CastObj, &ClassNetGUID);
+	UObject * SubObjClassObj = NULL;
+	Connection->PackageMap->SerializeObject( Bunch, UObject::StaticClass(), SubObjClassObj, &ClassNetGUID );
 
-	// Delete subobject
+	// Delete sub-object
 	if ( !ClassNetGUID.IsValid() )
 	{
 		if ( IsServer )
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Client attempted to delete subobject %s" ), *Actor->GetName() );
+			UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Client attempted to delete sub-object. Actor: %s" ), *Actor->GetName() );
 			Bunch.SetError();
 			return NULL;
 		}
 
-		if ( RepObj )
+		if ( SubObj )
 		{
-			if ( Cast<AActor>( RepObj ) != NULL )
-			{
-				UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Attempting to delete actor while deleting subobject: %s" ), *Actor->GetName() );
-				Bunch.SetError();
-				return NULL;
-			}
-
-			Actor->OnSubobjectDestroyFromReplication(RepObj);
-			RepObj->MarkPendingKill();
+			Actor->OnSubobjectDestroyFromReplication( SubObj );
+			SubObj->MarkPendingKill();
 		}
 		return NULL;
 	}
 
-	UClass * RepClass = Cast<UClass>(CastObj);
+	UClass * SubObjClass = Cast< UClass >( SubObjClassObj );
 
 	// Valid NetGUID but no class was resolved - this is an error
-	if ( RepClass == NULL )
+	if ( SubObjClass == NULL )
 	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Unable to read subobject class for actor %s" ), *Actor->GetName() );
+		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Unable to read sub-object class. Actor: %s" ), *Actor->GetName() );
 		Bunch.SetError();
 		return NULL;
 	}
 
-	if ( RepClass == UObject::StaticClass() )
+	if ( SubObjClass == UObject::StaticClass() )
 	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: RepClass == UObject::StaticClass() %s" ), *Actor->GetName() );
+		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: SubObjClass == UObject::StaticClass(). Actor: %s" ), *Actor->GetName() );
 		Bunch.SetError();
 		return NULL;
 	}
 
-	if ( !RepObj )
+	if ( SubObjClass->IsChildOf( AActor::StaticClass() ) )
 	{
-		if ( IsServer )
-		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Client attempted to create subobject %s" ), *Actor->GetName() );
-			Bunch.SetError();
-			return NULL;
-		}
-
-		// Construct the class
-		UE_LOG( LogNetTraffic, Log, TEXT( "ReadContentBlockHeader: Instantiating subobject for actor %s. Class: %s" ), *Actor->GetName(), *RepClass->GetName());
-		RepObj = ConstructObject<UObject>(RepClass, Actor);
-		check( RepObj );
-		Actor->OnSubobjectCreatedFromReplication(RepObj);
-		Connection->PackageMap->AssignNetGUID(RepObj, NetGUID);
-	}
-
-	if ( RepObj != Actor && !RepObj->IsIn( Actor ) )
-	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "ReadContentBlockHeader: Object %s not in parent actor 2 %s" ), *RepObj->GetName(), *Actor->GetName() );
+		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object cannot be actor class. Actor: %s" ), *Actor->GetName() );
 		Bunch.SetError();
 		return NULL;
 	}
 
-	return RepObj;
+	if ( SubObj == NULL )
+	{
+		// Construct the sub-object
+		UE_LOG( LogNetTraffic, Log, TEXT( "UActorChannel::ReadContentBlockHeader: Instantiating sub-object. Class: %s, Actor: %s" ), *SubObjClass->GetName(), *Actor->GetName() );
+		SubObj = ConstructObject< UObject >( SubObjClass, Actor );
+		check( SubObj != NULL );
+		Actor->OnSubobjectCreatedFromReplication( SubObj );
+		Connection->PackageMap->AssignNetGUID( SubObj, NetGUID );
+	}
+
+	check( Cast< AActor >( SubObj ) == NULL );
+
+	if ( !SubObj->IsIn( Actor ) )
+	{
+		UE_LOG( LogNetTraffic, Error, TEXT( "UActorChannel::ReadContentBlockHeader: Sub-object is not in parent actor 2. SubObj: %s, Actor: %s" ), *SubObj->GetName(), *Actor->GetName() );
+		Bunch.SetError();
+		return NULL;
+	}
+
+	return SubObj;
 }
 
 FObjectReplicator & UActorChannel::GetActorReplicationData()
@@ -1926,7 +2017,7 @@ FObjectReplicator & UActorChannel::GetActorReplicationData()
 	return ReplicationMap.FindChecked(Actor).Get();
 }
 
-FObjectReplicator & UActorChannel::FindOrCreateReplicator( UObject * Obj )
+TSharedRef< FObjectReplicator > & UActorChannel::FindOrCreateReplicator( UObject * Obj )
 {
 	// First, try to find it on the channel replication map
 	TSharedRef<FObjectReplicator> * ReplicatorRefPtr = ReplicationMap.Find( Obj );
@@ -1956,7 +2047,7 @@ FObjectReplicator & UActorChannel::FindOrCreateReplicator( UObject * Obj )
 		ReplicatorRefPtr->Get().StartReplicating( this );
 	}
 
-	return ReplicatorRefPtr->Get();
+	return *ReplicatorRefPtr;
 }
 
 bool UActorChannel::ObjectHasReplicator(UObject *Obj)
@@ -1993,11 +2084,11 @@ bool UActorChannel::ReplicateSubobject(UObject *Obj, FOutBunch &Bunch, const FRe
 		// This bunch should be reliable and we should always return true
 		// even if the object properties did not diff from the CDO
 		// (this will ensure the content header chunk is sent which is all we care about
-		// to spawnt his on the client).
+		// to spawn this on the client).
 		Bunch.bReliable = true;
 		NewSubobject = true;
 	}
-	bool WroteSomething = FindOrCreateReplicator(Obj).ReplicateProperties(Bunch, RepFlags);
+	bool WroteSomething = FindOrCreateReplicator(Obj).Get().ReplicateProperties(Bunch, RepFlags);
 	if (NewSubobject && !WroteSomething)
 	{
 		BeginContentBlock( Obj, Bunch );

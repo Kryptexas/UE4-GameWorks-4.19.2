@@ -188,11 +188,21 @@ void UField::AddCppProperty( UProperty* Property )
 FText UField::GetDisplayNameText() const
 {
 	FText LocalizedDisplayName;
-	const FString NativeDisplayName = GetMetaData( TEXT("DisplayName") );
 
 	static const FString Namespace = TEXT("UObjectDisplayNames");
 	const FString Key = GetFullGroupName(true) + TEXT(".") + GetName();
-	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedDisplayName )) || *FTextInspector::GetSourceString(LocalizedDisplayName) != NativeDisplayName )
+
+	FString NativeDisplayName;
+	if( HasMetaData( TEXT("DisplayName") ) )
+	{
+		NativeDisplayName = GetMetaData( TEXT("DisplayName") );
+	}
+	else
+	{
+		NativeDisplayName = FName::NameToDisplayString(GetName(), IsA<UBoolProperty>());
+	}
+
+	if ( !( FText::FindText( Namespace, Key, /*OUT*/LocalizedDisplayName, &NativeDisplayName ) ) )
 	{
 		LocalizedDisplayName = FText::FromString(NativeDisplayName );
 	}
@@ -694,8 +704,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			// If this property is not the one we expect (e.g. skipped as it matches the default value), do the brute force search.
 			if( Property == NULL || Property->GetFName() != Tag.Name )
 			{
-				// No need to check redirects on platforms where everything is cooked.
-				if (!FPlatformProperties::RequiresCookedData())
+				// No need to check redirects on platforms where everything is cooked. Always check for save games
+				if (!FPlatformProperties::RequiresCookedData() || Ar.IsSaveGame())
 				{
 					// Look in the redirect table to see if we're searching for a different name
 					static bool bAlreadyInitialized_TaggedPropertyRedirectsMap = false;
@@ -2549,7 +2559,7 @@ FString UClass::GetDescription() const
 #endif
 
 	// Look up the the classes name in the legacy int file and return the class name if there is no match.
-	//Description = Localize( TEXT("Objects"), *GetName(), *(FInternationalization::GetCurrentCulture()->GetName()), true );
+	//Description = Localize( TEXT("Objects"), *GetName(), *(FInternationalization::Get().GetCurrentCulture()->GetName()), true );
 	//if (Description.Len())
 	//{
 	//	return Description;
@@ -3247,15 +3257,29 @@ void UClass::GetHideCategories(TArray<FString>& OutHideCategories) const
 	}
 }
 
-bool UClass::IsCategoryHidden(const TCHAR* InCategory) const
+bool UClass::IsCategoryHidden(const FString& InCategory) const
 {
+	bool bHidden = false;
 	static const FName NAME_HideCategories(TEXT("HideCategories"));
 	if (HasMetaData(NAME_HideCategories))
 	{
 		const FString& HideCategories = GetMetaData(NAME_HideCategories);
-		return !!FCString::StrfindDelim(*HideCategories, InCategory, TEXT(" "));
+		bHidden = !!FCString::StrfindDelim(*HideCategories, *InCategory, TEXT(" "));
+		if (!bHidden)
+		{
+			TArray<FString> SubCategoryList;
+			InCategory.ParseIntoArray(&SubCategoryList, TEXT("|"), true);
+			for (const FString& SubCategory : SubCategoryList)
+			{
+				if (!!FCString::StrfindDelim(*HideCategories, *SubCategory, TEXT(" ")))
+				{
+					bHidden = true;
+					break;
+				}
+			}		
+		}
 	}
-	return false;
+	return bHidden;
 }
 
 void UClass::GetHideFunctions(TArray<FString>& OutHideFunctions) const

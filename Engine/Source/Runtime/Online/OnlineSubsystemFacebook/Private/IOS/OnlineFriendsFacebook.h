@@ -1,11 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
 #pragma once
-
 
 #include "OnlineFriendsInterface.h"
 #include "OnlineSharingFacebook.h"
+#include "OnlineSubsystemFacebookPackage.h"
 #include "OnlinePresenceInterface.h"
 
 /**

@@ -46,6 +46,11 @@ public:
 	}
 
 	// End FAndroidTargetPlatform overrides
+
+	virtual bool SupportedByExtensionsString( const FString& ExtensionsString, const int GLESVersion ) const OVERRIDE
+	{
+		return ExtensionsString.Contains(TEXT("GL_OES_compressed_ETC1_RGB8_texture"));
+	}
 };
 
 

@@ -429,6 +429,15 @@ void FStaticLightingSystem::CalculateVolumeSamples()
 
 			GenerateStratifiedUniformHemisphereSamples(NumThetaSteps, NumPhiSteps, RandomStream, UniformHemisphereSamples, UniformHemisphereSampleUniforms);
 
+			FVector4 CombinedVector(0);
+
+			for (int32 SampleIndex = 0; SampleIndex < UniformHemisphereSamples.Num(); SampleIndex++)
+			{
+				CombinedVector += UniformHemisphereSamples[SampleIndex];
+			}
+
+			float MaxUnoccludedLength = (CombinedVector / UniformHemisphereSamples.Num()).Size3();
+
 			// Calculate incident radiance for each volume lighting sample
 			for (TMap<FGuid,TArray<FVolumeLightingSample> >::TIterator It(VolumeLightingSamples); It; ++It)
 			{
@@ -441,7 +450,7 @@ void FStaticLightingSystem::CalculateVolumeSamples()
 						&& (!PhotonMappingSettings.bUsePhotonMapping || PhotonMappingSettings.bUseFinalGathering))
 					{
 						const bool bDebugSamples = false;
-						CalculateVolumeSampleIncidentRadiance(UniformHemisphereSamples, CurrentSample, RandomStream, MappingContext, bDebugSamples);
+						CalculateVolumeSampleIncidentRadiance(UniformHemisphereSamples, MaxUnoccludedLength, CurrentSample, RandomStream, MappingContext, bDebugSamples);
 					}
 #if ALLOW_LIGHTMAP_SAMPLE_DEBUGGING
 					if (Scene.DebugMapping && DynamicObjectSettings.bVisualizeVolumeLightSamples)

@@ -401,6 +401,11 @@ void FComponentTransformDetails::OnLocationLabelClicked( )
 
 				Object->PreEditChange( AbsoluteLocationProperty );
 
+				if( NotifyHook )
+				{
+					NotifyHook->NotifyPreChange( AbsoluteLocationProperty );
+				}
+
 				RootComponent->bAbsoluteLocation = !RootComponent->bAbsoluteLocation;
 
 				FPropertyChangedEvent PropertyChangedEvent( AbsoluteLocationProperty );
@@ -412,6 +417,11 @@ void FComponentTransformDetails::OnLocationLabelClicked( )
 					uint32 NewValue = RootComponent->bAbsoluteLocation;
 					uint32 OldValue = !NewValue;
 					PropagateTransformPropertyChange(Object, AbsoluteLocationProperty, OldValue, NewValue);
+				}
+
+				if( NotifyHook )
+				{
+					NotifyHook->NotifyPostChange( PropertyChangedEvent, AbsoluteLocationProperty );
 				}
 			}
 		}
@@ -457,6 +467,11 @@ void FComponentTransformDetails::OnRotationLabelClicked( )
 
 				Object->PreEditChange( AbsoluteRotationProperty );
 
+				if( NotifyHook )
+				{
+					NotifyHook->NotifyPreChange( AbsoluteRotationProperty );
+				}
+
 				RootComponent->bAbsoluteRotation = !RootComponent->bAbsoluteRotation;
 
 				FPropertyChangedEvent PropertyChangedEvent( AbsoluteRotationProperty );
@@ -468,6 +483,11 @@ void FComponentTransformDetails::OnRotationLabelClicked( )
 					uint32 NewValue = RootComponent->bAbsoluteRotation;
 					uint32 OldValue = !NewValue;
 					PropagateTransformPropertyChange(Object, AbsoluteRotationProperty, OldValue, NewValue);
+				}
+
+				if( NotifyHook )
+				{
+					NotifyHook->NotifyPostChange( PropertyChangedEvent, AbsoluteRotationProperty );
 				}
 			}
 		}
@@ -512,6 +532,11 @@ void FComponentTransformDetails::OnScaleLabelClicked( )
 
 				Object->PreEditChange( AbsoluteScaleProperty );
 
+				if( NotifyHook )
+				{
+					NotifyHook->NotifyPreChange( AbsoluteScaleProperty );
+				}
+
 				RootComponent->bAbsoluteScale = !RootComponent->bAbsoluteScale;
 
 				FPropertyChangedEvent PropertyChangedEvent( AbsoluteScaleProperty );
@@ -523,6 +548,11 @@ void FComponentTransformDetails::OnScaleLabelClicked( )
 					uint32 NewValue = RootComponent->bAbsoluteScale;
 					uint32 OldValue = !NewValue;
 					PropagateTransformPropertyChange(Object, AbsoluteScaleProperty, OldValue, NewValue);
+				}
+
+				if( NotifyHook )
+				{
+					NotifyHook->NotifyPostChange( PropertyChangedEvent, AbsoluteScaleProperty );
 				}
 			}
 		}

@@ -176,7 +176,7 @@ public:
 				bool bCanPaint = true;
 
 				const ULandscapeComponent* Component = It.Key();
-				const ALandscapeProxy* Proxy = Component->GetLandscapeProxy();
+				const ALandscapeProxy* LandscapeProxy = Component->GetLandscapeProxy();
 				const ULandscapeLayerInfoObject* LayerInfo = EdMode->CurrentToolTarget.LayerInfo.Get();
 
 				if (EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Weightmap &&
@@ -187,7 +187,7 @@ public:
 					{
 						if (EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::ExistingOnly ||
 							(EdMode->UISettings->PaintingRestriction == ELandscapeLayerPaintingRestriction::UseMaxLayers &&
-							Proxy->MaxPaintedLayersPerComponent > 0 && Component->WeightmapLayerAllocations.Num() >= Proxy->MaxPaintedLayersPerComponent))
+							LandscapeProxy->MaxPaintedLayersPerComponent > 0 && Component->WeightmapLayerAllocations.Num() >= LandscapeProxy->MaxPaintedLayersPerComponent))
 						{
 							bCanPaint = false;
 						}
@@ -355,11 +355,11 @@ public:
 				int32 ComponentIndexX = (X >= 0.f) ? X / LandscapeInfo->ComponentSizeQuads : (X + 1) / LandscapeInfo->ComponentSizeQuads - 1;
 				int32 ComponentIndexY = (Y >= 0.f) ? Y / LandscapeInfo->ComponentSizeQuads : (Y + 1) / LandscapeInfo->ComponentSizeQuads - 1;
 				int32 BrushSize = FMath::Max(EdMode->UISettings->BrushComponentSize - 1, 0);
-				for (int Y = -(BrushSize >> 1); Y <= (BrushSize >> 1) + (BrushSize % 2); ++Y)
+				for (int32 YIndex = -(BrushSize >> 1); YIndex <= (BrushSize >> 1) + (BrushSize % 2); ++YIndex)
 				{
-					for (int X = -(BrushSize >> 1); X <= (BrushSize >> 1) + (BrushSize % 2); ++X)
+					for (int32 XIndex = -(BrushSize >> 1); XIndex <= (BrushSize >> 1) + (BrushSize % 2); ++XIndex)
 					{
-						ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint((ComponentIndexX + X), (ComponentIndexY + Y)));
+						ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint((ComponentIndexX + XIndex), (ComponentIndexY + YIndex)));
 						if (Component && FLevelUtils::IsLevelVisible(Component->GetLandscapeProxy()->GetLevel()))
 						{
 							// For MoveToLevel

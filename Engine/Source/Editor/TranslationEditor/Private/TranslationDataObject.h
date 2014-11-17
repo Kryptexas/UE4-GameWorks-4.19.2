@@ -95,4 +95,25 @@ public:
 	/** List of items whose translation is complete */
 	UPROPERTY(Category=Translation, EditAnywhere, EditFixedSize)
 	TArray<FTranslationUnit> Complete;
+
+	/**
+	* Returns an event delegate that is executed when a property has changed.
+	*
+	* @return The delegate.
+	*/
+	DECLARE_EVENT_OneParam(UTranslationDataObject, FTranslationDataPropertyChangedEvent, FName /*PropertyName*/);
+	FTranslationDataPropertyChangedEvent& OnPropertyChanged() { return TranslationDataPropertyChangedEvent; }
+
+protected:
+	/**
+	* Called when a property on this object has been modified externally
+	*
+	* @param PropertyThatChanged the property that was modified
+	*/
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+
+private:
+
+	// Holds an event delegate that is executed when a property has changed.
+	FTranslationDataPropertyChangedEvent TranslationDataPropertyChangedEvent;
 };

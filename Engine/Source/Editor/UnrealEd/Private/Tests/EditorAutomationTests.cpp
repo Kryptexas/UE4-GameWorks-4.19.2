@@ -132,23 +132,6 @@ public:
 		ADD_LATENT_AUTOMATION_COMMAND(FEndPlayMapCommand());
 	}
 
-	static bool CompileBlueprint(const FString& BlueprintName)
-	{
-		UBlueprint* BlueprintObj = Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *BlueprintName));
-		if (!BlueprintObj || !BlueprintObj->ParentClass )
-		{
-			UE_LOG(LogEditorAutomationTests, Error, TEXT("Failed to compile invalid blueprint, or blueprint parent no longer exists."));
-			return false;
-		}
-
-		bool bIsRegeneratingOnLoad = false;
-		bool bSkipGarbageCollection = true;
-		FBlueprintEditorUtils::RefreshAllNodes(BlueprintObj);
-		FKismetEditorUtilities::CompileBlueprint(BlueprintObj, bIsRegeneratingOnLoad, bSkipGarbageCollection);
-
-		return true;
-	}
-
 	static void CollectTestsByClass(UClass * Class, TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) 
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
@@ -272,18 +255,16 @@ bool FTextWrappingAutomationTest::RunTest(const FString& Parameters)
 {
 	struct FTestStruct
 	{
-		static bool TestMethod(const FSlateFontInfo& FontInfo, const float WrapWidth, const int32 ArgumentCount, ...)
+		static bool TestMethod(const FSlateFontInfo& FontInfo, const float WrapWidth, const FString& TestString, const int32 ArgumentCount, ...)
 		{
 			va_list Arguments;
 			va_start(Arguments, ArgumentCount);
 
-			FString TestString;
 			TArray<FString> CorrectLines;
 			for(int32 i = 0; i < ArgumentCount; ++i)
 			{
 				const TCHAR* const Fragment = va_arg(Arguments, const TCHAR* const);
 				CorrectLines.Add(Fragment);
-				TestString += Fragment;
 			}
 
 			va_end(Arguments);
@@ -296,47 +277,43 @@ bool FTextWrappingAutomationTest::RunTest(const FString& Parameters)
 		}
 	};
 
-	FSlateFontInfo FontInfo( TEXT("DroidSansMono"), 10 );
+	const FSlateFontInfo FontInfo = FEditorStyle::GetFontStyle("NormalFont");
 
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const float GlyphWidth = FontMeasureService->Measure( TEXT(" "), FontInfo).X;
+	const float GlyphWidth = FontMeasureService->Measure( TEXT("A"), FontInfo).X;
 
-#define TEST(WrapWidth, ArgumentCount, ...)\
+#define TEST(WrapWidth, TestString, ArgumentCount, ...)\
 	{\
-		if( !FTestStruct::TestMethod(FontInfo, (WrapWidth), (ArgumentCount), __VA_ARGS__) )\
+	if( !FTestStruct::TestMethod(FontInfo, (WrapWidth), (TestString), (ArgumentCount), __VA_ARGS__) )\
 		{\
 			AddError( TEXT("Testing string wrap failed, did not break line where expected.") );\
 		}\
 	}
 
-	TEST( GlyphWidth * 4, 3,	TEXT("AAA "),
-								TEXT("BBB "),
-								TEXT("CCC") );
+	TEST(GlyphWidth * 4, FString(TEXT("AAA    BBB CCC")), 3,   TEXT("AAA"),
+															TEXT("BBB"),
+															TEXT("CCC") );
 
-	TEST( GlyphWidth * 3, 5,	TEXT("AAA"),
-								TEXT(" "),
-								TEXT("BBB"),
-								TEXT(" "),
-								TEXT("CCC") );
+	TEST(GlyphWidth * 3, FString(TEXT("AAA BBB CCC")), 3,   TEXT("AAA"),
+															TEXT("BBB"),
+															TEXT("CCC") );
 
-	TEST( GlyphWidth * 2, 6,	TEXT("AA"),
-								TEXT("A "),
-								TEXT("BB"),
-								TEXT("B "),
-								TEXT("CC"),
-								TEXT("C") );
+	TEST(GlyphWidth * 2, FString(TEXT("AAA BBB CCC")), 6,   TEXT("AA"),
+															TEXT("A"),
+															TEXT("BB"),
+															TEXT("B"),
+															TEXT("CC"),
+															TEXT("C") );
 
-	TEST( GlyphWidth * 1, 11,	TEXT("A"),
-								TEXT("A"),
-								TEXT("A"),
-								TEXT(" "),
-								TEXT("B"),
-								TEXT("B"),
-								TEXT("B"),
-								TEXT(" "),
-								TEXT("C"),
-								TEXT("C"),
-								TEXT("C") );
+	TEST(GlyphWidth * 1, FString(TEXT("AAA BBB CCC")), 9,   TEXT("A"),
+															TEXT("A"),
+															TEXT("A"),
+															TEXT("B"),
+															TEXT("B"),
+															TEXT("B"),
+															TEXT("C"),
+															TEXT("C"),
+															TEXT("C") );
 
 #undef TEST
 
@@ -856,9 +833,15 @@ bool FPIETest::RunTest(const FString& Parameters)
 	check(AutomationTestSettings);
 
 	FString MapName = AutomationTestSettings->AutomationTestmap.FilePath;
-
-	FEditorAutomationTestUtilities::LoadMap(MapName);
-	FEditorAutomationTestUtilities::RunPIE();
+	if (!MapName.IsEmpty())
+	{
+		FEditorAutomationTestUtilities::LoadMap(MapName);
+		FEditorAutomationTestUtilities::RunPIE();
+	}
+	else
+	{
+		UE_LOG(LogEditorAutomationTests, Warning, TEXT("AutomationTestmap not specified. Please set AutomationTestmap filename in ini."));
+	}
 
 	return true;
 }
@@ -908,66 +891,6 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 	FEditorAutomationTestUtilities::LoadMap(MapName);
 
 	return true;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-
-
-/**
- * LoadAllBlueprints
- * Verification unit test to make sure loading all blueprints works
- */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FLoadAllBlueprintsAutomationTest, "Blueprints.Load Blueprints", EAutomationTestFlags::ATF_Editor)
-
-/** 
- * Requests a enumeration of all blueprints to be loaded
- */
-void FLoadAllBlueprintsAutomationTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
-{
-	FEditorAutomationTestUtilities::CollectTestsByClass(UBlueprint::StaticClass(), OutBeautifiedNames, OutTestCommands);
-}
-
-
-/** 
- * Execute the loading of each blueprint
- *
- * @param Parameters - Should specify which blueprint name to load
- * @return	TRUE if the test was successful, FALSE otherwise
- */
-bool FLoadAllBlueprintsAutomationTest::RunTest(const FString& Parameters)
-{
-	UE_LOG(LogEditorAutomationTests, Log, TEXT("Beginning compile test for %s"), *Parameters);
-	bool bSuccess = FEditorAutomationTestUtilities::CompileBlueprint(Parameters);
-
-	return bSuccess;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-/**
- * LoadAllAnimBlueprints
- * Verification unit test to make sure loading all anim blueprints works
- */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FLoadAllAnimBlueprintsAutomationTest, "Blueprints.Load Anims", EAutomationTestFlags::ATF_Editor)
-
-/** 
- * Requests a enumeration of all blueprints to be loaded
- */
-void FLoadAllAnimBlueprintsAutomationTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
-{
-	FEditorAutomationTestUtilities::CollectTestsByClass(UAnimBlueprint::StaticClass(), OutBeautifiedNames, OutTestCommands);
-}
-
-/** 
- * Execute the loading of each blueprint
- *
- * @param Parameters - Should specify which blueprint name to load
- * @return	TRUE if the test was successful, FALSE otherwise
- */
-bool FLoadAllAnimBlueprintsAutomationTest::RunTest(const FString& Parameters)
-{
-	return FEditorAutomationTestUtilities::CompileBlueprint(Parameters);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1900,7 +1823,7 @@ bool FTraceAllTimelinesAutomationTest::RunTest(const FString& BlueprintName)
 				const bool bIsWarningEvent = WarningEventNodes.Contains(Event);
 				const TCHAR SymbolString = bIsBadEvent ? TEXT('-') : (bIsWarningEvent ? TEXT('?') : TEXT('+'));
 				const TCHAR* CosmeticString = bIsCosmeticEvent ? TEXT("Client") : TEXT("Server");
-				FString OutputText = FString::Printf(TEXT("TraceTimeline:   %c %sEvent '%s' -> %s"), SymbolString, CosmeticString, *Event->GetNodeTitle(ENodeTitleType::EditableTitle), *TimelinePtr->TimelineName.ToString());
+				FString OutputText = FString::Printf(TEXT("TraceTimeline:   %c %sEvent '%s' -> %s"), SymbolString, CosmeticString, *Event->GetNodeTitle(ENodeTitleType::EditableTitle).ToString(), *TimelinePtr->TimelineName.ToString());
 
 				if (bIsBadEvent)
 				{

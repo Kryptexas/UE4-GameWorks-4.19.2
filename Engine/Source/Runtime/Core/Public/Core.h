@@ -17,7 +17,7 @@ template<typename T,typename Allocator = FDefaultAllocator> class TArray; // @to
 #include "Timespan.h"							// Time span definition
 #include "DateTime.h"							// Date and time handling
 #include "PlatformIncludes.h"					// Include the main and misc platform headers
-#include "PlatformFileManager.h"				// Platform file manager.
+#include "PlatformFilemanager.h"				// Platform file manager.
 #include "AssertionMacros.h"					// Various assertion macros
 #include "UObject/UnrealNames.h"				// EName definition.
 #include "OutputDevice.h"						// Output devices, logf, debugf, etc
@@ -35,7 +35,6 @@ template<typename T,typename Allocator = FDefaultAllocator> class TArray; // @to
 // Container forward declarations
 #include "Containers/ContainerAllocationPolicies.h"
 
-template<typename ElementType,typename Allocator = FDefaultAllocator> class TBaseArray;
 template<typename T> class TTransArray;
 template<typename KeyType,typename ValueType,bool bInAllowDuplicateKeys> struct TDefaultMapKeyFuncs;
 template<typename KeyType,typename ValueType,typename SetAllocator = FDefaultSetAllocator, typename KeyFuncs = TDefaultMapKeyFuncs<KeyType,ValueType,false> > class TMap;
@@ -136,6 +135,9 @@ extern CORE_API bool GAllowActorScriptExecutionInEditor;
 
 /** Forces use of template names for newly instanced components in a CDO. */
 extern CORE_API bool GCompilingBlueprint;
+
+/** True if we're reconstructing blueprint instances. Should never be true on cooked builds */
+extern CORE_API bool GIsReconstructingBlueprintInstances;
 
 /** Force blueprints to not compile on load */
 extern CORE_API bool GForceDisableBlueprintCompileOnLoad;
@@ -262,6 +264,7 @@ extern CORE_API double GLastTime;
 
 extern CORE_API bool GExitPurge;
 extern CORE_API TCHAR GGameName[64];
+extern CORE_API const TCHAR* GForeignEngineDir;
 
 /** Exec handler for game debugging tool, allowing commands like "editactor" */
 extern CORE_API FExec* GDebugToolExec;
@@ -315,10 +318,6 @@ extern CORE_API uint32 GFrameNumberRenderThread;
 
 /** Threshold for a frame to be considered a hitch (in seconds. */
 extern CORE_API float GHitchThreshold;
-
-
-/** Whether to forcefully enable capturing of stats due to profiler attached */
-extern CORE_API bool GProfilerAttached;
 
 /** Size to break up data into when saving compressed data */
 extern CORE_API int32 GSavingCompressionChunkSize;
@@ -493,24 +492,35 @@ extern CORE_API double GBlueprintCompileTime;
 #endif
 
 
-// Trick to prevent people from using old UE4 types (which are still defined in Windef.h on PC).
-// If old type is really necessary please use the global scope operator to access it (i.e. ::INT).
-// Windows header file includes can be wrapped in #include "AllowWindowsPlatformTypes.h" and
-// #include "HideWindowsPlatformTypes.h"
+/// Trick to prevent people from using old UE4 types (which are still defined in Windef.h on PC).
 namespace DoNotUseOldUE4Type
 {
+	/// Used to cause compile errors through typedefs of unportable types. If unportable types 
+	/// are really necessary please use the global scope operator to access it (i.e. ::&nbsp;INT). 
+	/// Windows header file includes can be wrapped in #include "AllowWindowsPlatformTypes.h" 
+	/// and #include "HideWindowsPlatformTypes.h"
 	class FUnusableType
 	{
 		FUnusableType();
 		~FUnusableType();
 	};
 
+	/// This type is aliased to FUnusableType - use ::int32 instead.
 	typedef FUnusableType INT;
+
+	/// This type is aliased to FUnusableType - use ::uint32 instead.
 	typedef FUnusableType UINT;
+
+	/// This type is aliased to FUnusableType - use ::uint32 instead.
 	typedef FUnusableType DWORD;
+
+	/// This type is aliased to FUnusableType - use float instead.
 	typedef FUnusableType FLOAT;
 
+	/// This value is aliased to FUnusableType - use true instead.
 	typedef FUnusableType TRUE;
+
+	/// This value is aliased to FUnusableType - use false instead.
 	typedef FUnusableType FALSE;
 }
 

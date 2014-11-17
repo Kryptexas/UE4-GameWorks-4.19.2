@@ -2633,7 +2633,7 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(boo
 #endif
 		{
 			int32 BoneIndex = Chunk.BoneMap[SrcSoftVertex->InfluenceBones[InfluenceIndex]];
-			if(InSkelMeshComponent->MasterPoseComponent)
+			if(InSkelMeshComponent->MasterPoseComponent.IsValid())
 			{		
 				check(InSkelMeshComponent->MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
 				BoneIndex = InSkelMeshComponent->MasterBoneMap[BoneIndex];
@@ -2657,7 +2657,7 @@ bool UParticleModuleLocationSkelVertSurface::VertInfluencedByActiveBoneTyped(boo
 		const TGPUSkinVertexBase<bExtraBoneInfluencesT>* SrcRigidVertex = Model.VertexBufferGPUSkin.GetVertexPtr<bExtraBoneInfluencesT>(Chunk.GetRigidVertexBufferIndex()+VertIndex);
 
 		int32 BoneIndex = Chunk.BoneMap[SrcRigidVertex->InfluenceBones[RigidInfluenceIndex]];
-		if(InSkelMeshComponent->MasterPoseComponent)
+		if(InSkelMeshComponent->MasterPoseComponent.IsValid())
 		{
 			check(InSkelMeshComponent->MasterBoneMap.Num() == InSkelMeshComponent->SkeletalMesh->RefSkeleton.GetNum());
 			BoneIndex = InSkelMeshComponent->MasterBoneMap[BoneIndex];

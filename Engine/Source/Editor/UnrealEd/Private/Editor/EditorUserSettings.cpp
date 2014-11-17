@@ -40,6 +40,7 @@ UEditorUserSettings::UEditorUserSettings(const class FPostConstructInitializePro
 	FunctionTerminatorNodeTitleColor = FLinearColor(0.6f, 0.0f, 1.0f, 1.0f);
 	ExecBranchNodeTitleColor = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	ExecSequenceNodeTitleColor= FLinearColor(0.8f, 0.4f, 0.4f, 1.0f);
+	ResultNodeTitleColor = FLinearColor(1.0f, 0.65f, 0.4f, 1.0f);
 
 	// Blueprint debugging visuals
 	TraceAttackColor = FLinearColor(1.0f, 0.05f, 0.0f, 1.0f);
@@ -63,8 +64,6 @@ UEditorUserSettings::UEditorUserSettings(const class FPostConstructInitializePro
 	MaterialQualityLevel = 1;
 
 	BlueprintFavorites = ConstructObject<UBlueprintPaletteFavorites>(UBlueprintPaletteFavorites::StaticClass(), this);
-
-	bAutoApplyLightingEnable = true;
 }
 
 void UEditorUserSettings::PostInitProperties()
@@ -87,22 +86,6 @@ void UEditorUserSettings::PostEditChangeProperty( FPropertyChangedEvent& Propert
 		extern CORE_API uint32 GDistributionType;
 		//GDistributionType == 0 for curves
 		GDistributionType = (bUseCurvesForDistributions) ? 0 : 1;
-	}
-	else if ( Name == FName(TEXT("bAllowTranslateRotateZWidget")) )
-	{
-		if ( bAllowTranslateRotateZWidget )
-		{
-			GEditorModeTools().SetWidgetMode( FWidget::WM_TranslateRotateZ );
-		}
-		else if ( GEditorModeTools().GetWidgetMode() == FWidget::WM_TranslateRotateZ )
-		{
-			GEditorModeTools().SetWidgetMode( FWidget::WM_Translate );
-		}
-	}
-	else if ( Name == FName(TEXT("bNavigationAutoUpdate")) )
-	{
-		FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-		UNavigationSystem::SetNavigationAutoUpdateEnabled(bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
 	}
 
 	GEditor->SaveEditorUserSettings();

@@ -22,16 +22,16 @@ public:
 	}
 
 	/** Option to show grid */
-	TSharedPtr< FUICommandInfo > ShowGrid;
+	TSharedPtr< FUICommandInfo > ToggleGrid;
 
 	/** Option to highlight the origin */
 	TSharedPtr< FUICommandInfo > HighlightOrigin;
 
 	/** Option to show floor */
-	TSharedPtr< FUICommandInfo > ShowFloor;
+	TSharedPtr< FUICommandInfo > ToggleFloor;
 
 	/** Option to show floor */
-	TSharedPtr< FUICommandInfo > ShowSky;
+	TSharedPtr< FUICommandInfo > ToggleSky;
 
 	/** Option to mute audio in the viewport */
 	TSharedPtr< FUICommandInfo > MuteAudio;

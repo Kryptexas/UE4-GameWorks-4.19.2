@@ -10,7 +10,8 @@ class UK2Node_ClearDelegate : public UK2Node_BaseMCDelegate
 
 public:
 	// UEdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	// End of UEdGraphNode interface
 
 	// Begin of UK2Node interface

@@ -7,6 +7,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendSpacePlayer
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_BlendSpacePlayer::UAnimGraphNode_BlendSpacePlayer(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -17,10 +19,39 @@ FString UAnimGraphNode_BlendSpacePlayer::GetTooltip() const
 	return FString::Printf(TEXT("Blendspace Player '%s'"), (Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetPathName()) : TEXT("(None)"));
 }
 
-FString UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	const FString BlendSpaceName((Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetName()) : TEXT("(None)"));
+	const FText BlendSpaceName((Node.BlendSpace != NULL) ? FText::FromString(Node.BlendSpace->GetName()) : LOCTEXT("None", "(None)"));
 	
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+		return FText::Format(LOCTEXT("BlendspacePlayer", "Blendspace Player'{BlendSpaceName}'"), Args);
+	}
+	else
+	{
+		FFormatNamedArguments TitleArgs;
+		TitleArgs.Add(TEXT("BlendSpaceName"), BlendSpaceName);
+		FText Title = FText::Format(LOCTEXT("BlendSpacePlayerFullTitle", "{BlendSpaceName}\nBlendspace Player"), TitleArgs);
+
+		if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Title"), Title);
+			Args.Add(TEXT("SyncGroupName"), FText::FromName(SyncGroup.GroupName));
+			Title = FText::Format(LOCTEXT("BlendSpaceNodeGroupSubtitle", "{Title}\nSync group {SyncGroupName}"), Args);
+		}
+
+		return Title;
+	}
+}
+
+FString UAnimGraphNode_BlendSpacePlayer::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	const FString BlendSpaceName((Node.BlendSpace != NULL) ? *(Node.BlendSpace->GetName()) : TEXT("(None)"));
+
 	if (TitleType == ENodeTitleType::ListView)
 	{
 		return FString::Printf(TEXT("Blendspace Player'%s'"), *BlendSpaceName);
@@ -32,7 +63,7 @@ FString UAnimGraphNode_BlendSpacePlayer::GetNodeTitle(ENodeTitleType::Type Title
 		if ((TitleType == ENodeTitleType::FullTitle) && (SyncGroup.GroupName != NAME_None))
 		{
 			Title += TEXT("\n");
-			Title += FString::Printf(*NSLOCTEXT("A3Nodes", "BlendSpaceNodeGroupSubtitle", "Sync group %s").ToString(), *SyncGroup.GroupName.ToString());
+			Title += FString::Printf(TEXT("Sync group %s"), *SyncGroup.GroupName.ToString());
 		}
 
 		return Title;
@@ -115,4 +146,6 @@ UScriptStruct* UAnimGraphNode_BlendSpacePlayer::GetTimePropertyStruct() const
 {
 	return FAnimNode_BlendSpacePlayer::StaticStruct();
 }
+
+#undef LOCTEXT_NAMESPACE
 

@@ -2,15 +2,14 @@
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "ModuleManager.h"
-#include "Online.h"
 #include "TestEntitlementsInterface.h"
 
-void FTestEntitlementsInterface::Test()
+void FTestEntitlementsInterface::Test(UWorld* InWorld)
 {
-	IOnlineSubsystem* OSS = (IOnlineSubsystem*)IOnlineSubsystem::Get();
+	IOnlineSubsystem* OSS = Online::GetSubsystem(InWorld, SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
 
-	EntitlementsOSS = Online::GetEntitlementsInterface(SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
-	IdentityOSS = Online::GetIdentityInterface(SubsystemName.Len() ? FName(*SubsystemName, FNAME_Find) : NAME_None);
+	EntitlementsOSS = OSS->GetEntitlementsInterface();
+	IdentityOSS = OSS->GetIdentityInterface();
 	if (IdentityOSS.IsValid())
 	{
 		UserId = IdentityOSS->GetUniquePlayerId(LocalUserIdx);

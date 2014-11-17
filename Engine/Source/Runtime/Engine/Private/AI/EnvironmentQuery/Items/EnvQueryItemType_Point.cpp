@@ -5,11 +5,6 @@
 UEnvQueryItemType_Point::UEnvQueryItemType_Point(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	ValueSize = sizeof(FVector);
-
-	if (HasAnyFlags(RF_ClassDefaultObject))
-	{
-		GetLocationDelegate.BindUObject(this, &UEnvQueryItemType_Point::GetPointLocation);
-	}
 }
 
 FVector UEnvQueryItemType_Point::GetValue(const uint8* RawData)
@@ -22,7 +17,7 @@ void UEnvQueryItemType_Point::SetValue(uint8* RawData, const FVector& Value)
 	return SetValueInMemory<FVector>(RawData, Value);
 }
 
-FVector UEnvQueryItemType_Point::GetPointLocation(const uint8* RawData)
+FVector UEnvQueryItemType_Point::GetLocation(const uint8* RawData) const
 {
 	return UEnvQueryItemType_Point::GetValue(RawData);
 }

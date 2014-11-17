@@ -9,12 +9,12 @@ class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 {
 	GENERATED_UCLASS_BODY()
 
-#if WITH_EDITOR
 	static bool CanBeBroken(const UScriptStruct* Struct);
 
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE;
@@ -27,7 +27,5 @@ class UK2Node_BreakStruct : public UK2Node_StructMemberGet
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex) const OVERRIDE;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	// End K2Node interface
-
-#endif //WITH_EDITOR
 };
 

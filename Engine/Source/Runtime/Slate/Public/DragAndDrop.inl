@@ -6,7 +6,7 @@
 template<typename OperationType>
 TSharedPtr<OperationType> FDragDropEvent::GetOperationAs() const
 {
-	if ( FSlateApplication::GetDragDropReflector().CheckEquivalence<OperationType>(TWeakPtr<FDragDropOperation>(Content)) )
+	if (DragDrop::IsTypeMatch<OperationType>(Content))
 	{
 		return StaticCastSharedPtr<OperationType>(Content);
 	}
@@ -24,6 +24,6 @@ namespace DragDrop
 	template <typename OperatorType>
 	bool IsTypeMatch(const TSharedPtr<FDragDropOperation> Operation)
 	{
-		return Operation.IsValid() && FSlateApplication::GetDragDropReflector().CheckEquivalence<OperatorType>(TWeakPtr<FDragDropOperation>(Operation));
+		return Operation.IsValid() && Operation->IsOfType(OperatorType::GetTypeId());
 	}
 }

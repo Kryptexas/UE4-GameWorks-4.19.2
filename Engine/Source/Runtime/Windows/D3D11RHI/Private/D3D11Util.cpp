@@ -17,6 +17,15 @@
 	#define MAKE_D3DHRESULT( code )  MAKE_HRESULT( 1, _FACD3D, code )
 #endif	//MAKE_D3DHRESULT
 
+#if WITH_D3DX_LIBS
+	#ifndef D3DERR_INVALIDCALL
+		#define D3DERR_INVALIDCALL MAKE_D3DHRESULT(2156)
+	#endif//D3DERR_INVALIDCALL
+	#ifndef D3DERR_WASSTILLDRAWING
+		#define D3DERR_WASSTILLDRAWING MAKE_D3DHRESULT(540)
+	#endif//D3DERR_WASSTILLDRAWING
+#endif
+
 static FString GetD3D11DeviceHungErrorString(HRESULT ErrorCode)
 {
 	FString ErrorCodeText;
@@ -158,9 +167,11 @@ void VerifyD3D11Result(HRESULT D3DResult,const ANSICHAR* Code,const ANSICHAR* Fi
 	// this is to track down a rarely happening crash
 	if(D3DResult == E_OUTOFMEMORY)
 	{
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("D3D11RHI", "OutOfMemory", "Out of video memory trying to allocate a rendering resource."));
 #if STATS
 		GetRendererModule().DebugLogOnCrash();
 #endif
+		FPlatformMisc::RequestExit(/*bForce=*/ true);
 	}
 
 	UE_LOG(LogD3D11RHI, Fatal,TEXT("%s failed \n at %s:%u \n with error %s"),ANSI_TO_TCHAR(Code),ANSI_TO_TCHAR(Filename),Line,*ErrorString);

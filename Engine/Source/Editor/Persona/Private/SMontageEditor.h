@@ -60,6 +60,9 @@ public:
 	void RestartPreviewPlayAllSections();
 
 private:
+	/** Minimum distance to make sure branching points are seperated */
+	static const float MinimumBranchPointSeperation;
+
 	/** Pointer to the animation sequence being edited */
 	UAnimMontage* MontageObj;
 

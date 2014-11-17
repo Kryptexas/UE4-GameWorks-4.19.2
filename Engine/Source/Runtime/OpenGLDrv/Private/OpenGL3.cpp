@@ -46,6 +46,24 @@ void FOpenGL3::ProcessExtensions( const FString& ExtensionsString )
 {
 	ProcessQueryGLInt();
 	FOpenGLBase::ProcessExtensions(ExtensionsString);
+	
+	// Test whether the GPU can support volume-texture rendering.
+	// There is no API to query this - you just have to test whether a 3D texture is framebuffer-complete.
+	{
+		GLuint FrameBuffer;
+		glGenFramebuffers(1, &FrameBuffer);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FrameBuffer);
+		GLuint VolumeTexture;
+		glGenTextures(1, &VolumeTexture);
+		glBindTexture(GL_TEXTURE_3D, VolumeTexture);
+		glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA8, 256, 256, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, VolumeTexture, 0);
+		
+		bSupportsVolumeTextureRendering = (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+		
+		glDeleteTextures(1, &VolumeTexture);
+		glDeleteFramebuffers(1, &FrameBuffer);
+	}
 }
 
 #endif

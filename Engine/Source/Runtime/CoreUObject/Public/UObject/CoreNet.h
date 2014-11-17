@@ -219,6 +219,10 @@ class COREUOBJECT_API UPackageMap : public UObject
 	void	SetDebugContextString(FString Str) { DebugContextString = Str; }
 	void	ClearDebugContextString() { DebugContextString.Empty(); }
 
+	void			ResetLoadedUnmappedObject() { bLoadedUnmappedObject = false; }
+	bool			GetLoadedUnmappedObject() const { return bLoadedUnmappedObject; }
+	FNetworkGUID	GetLastUnmappedNetGUID() const { return LastUnmappedNetGUID; }
+
 protected:
 
 	virtual bool IsDynamicObject(const UObject* Object);
@@ -236,6 +240,9 @@ protected:
 	bool	bShouldSerializeUnAckedObjects;
 	bool	bSerializedUnAckedObject;
 	bool	bSerializedCDO;
+
+	bool			bLoadedUnmappedObject;
+	FNetworkGUID	LastUnmappedNetGUID;
 
 	FString	DebugContextString;
 };
@@ -285,13 +292,14 @@ enum ELifetimeCondition
 	COND_None				= 0,		// This property has no condition, and will send anytime it changes
 	COND_InitialOnly		= 1,		// This property will only attempt to send on the initial bunch
 	COND_OwnerOnly			= 2,		// This property will only send to the actor's owner
-	COND_SkipOwner			= 3,		// This property send to every connection EXCEPT the owner
-	COND_SimulatedOnly		= 4,		// This property will only send to simulated actors
-	COND_AutonomousOnly		= 5,		// This property will only send to autonomous actors
-	COND_SimulatedOrPhysics	= 6,		// This property will send to simulated OR bRepPhysics actors
-	COND_InitialOrOwner		= 7,		// This property will send on the initial packet, or to the actors owner
-	COND_Custom				= 8,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
-	COND_Max				= 9,
+	COND_OwnerOrNotNull		= 3,		// This property will only send to the actor's owner (or anyone if it's not NULL for their copy)
+	COND_SkipOwner			= 4,		// This property send to every connection EXCEPT the owner
+	COND_SimulatedOnly		= 5,		// This property will only send to simulated actors
+	COND_AutonomousOnly		= 6,		// This property will only send to autonomous actors
+	COND_SimulatedOrPhysics	= 7,		// This property will send to simulated OR bRepPhysics actors
+	COND_InitialOrOwner		= 8,		// This property will send on the initial packet, or to the actors owner
+	COND_Custom				= 9,		// This property has no particular condition, but wants the ability to toggle on/off via SetCustomIsActiveOverride
+	COND_Max				= 10,
 };
 
 /** FLifetimeProperty

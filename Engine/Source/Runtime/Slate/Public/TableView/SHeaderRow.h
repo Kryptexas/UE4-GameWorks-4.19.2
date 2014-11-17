@@ -32,6 +32,19 @@ namespace EColumnSizeMode
 	};
 };
 
+
+enum class EHeaderComboVisibility
+{
+	/** Always show the drop down at full opacity */
+	Always,
+
+	/** Always show the drop down, but in a ghosted way when not hovered */
+	Ghosted,
+
+	/** Only show the drop down when hovered */
+	OnHover,
+};
+
 /** Callback when sort mode changes */
 DECLARE_DELEGATE_TwoParams( FOnSortModeChanged, const FName&, EColumnSortMode::Type );
 
@@ -59,6 +72,7 @@ public:
 			, _HAlignHeader( HAlign_Fill )
 			, _VAlignHeader( VAlign_Fill )
 			, _HeaderContentPadding()
+			, _HeaderComboVisibility(EHeaderComboVisibility::OnHover)
 			, _MenuContent()
 			, _HAlignCell( HAlign_Fill )
 			, _VAlignCell( VAlign_Fill )
@@ -75,6 +89,7 @@ public:
 			SLATE_ARGUMENT( EHorizontalAlignment, HAlignHeader )
 			SLATE_ARGUMENT( EVerticalAlignment, VAlignHeader )
 			SLATE_ARGUMENT( TOptional< FMargin >, HeaderContentPadding )
+			SLATE_ARGUMENT( EHeaderComboVisibility, HeaderComboVisibility )
 			SLATE_NAMED_SLOT( FArguments, MenuContent )
 
 			SLATE_ARGUMENT( EHorizontalAlignment, HAlignCell )
@@ -96,6 +111,7 @@ public:
 			, HeaderHAlignment( InArgs._HAlignHeader )
 			, HeaderVAlignment( InArgs._VAlignHeader )
 			, HeaderContentPadding( InArgs._HeaderContentPadding )
+			, HeaderComboVisibility (InArgs._HeaderComboVisibility )
 			, CellHAlignment( InArgs._HAlignCell )
 			, CellVAlignment( InArgs._VAlignCell )
 			, SortMode( InArgs._SortMode )
@@ -157,6 +173,7 @@ public:
 		EHorizontalAlignment HeaderHAlignment;
 		EVerticalAlignment HeaderVAlignment;
 		TOptional< FMargin > HeaderContentPadding;
+		EHeaderComboVisibility HeaderComboVisibility;
 
 		EHorizontalAlignment CellHAlignment;
 		EVerticalAlignment CellVAlignment;

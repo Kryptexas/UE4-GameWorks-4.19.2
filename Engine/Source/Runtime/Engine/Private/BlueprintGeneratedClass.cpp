@@ -48,7 +48,8 @@ void UBlueprintGeneratedClass::PostLoad()
 	if (GetLinkerUE4Version() < VER_UE4_CLASS_NOTPLACEABLE_ADDED)
 	{
 		// Make sure the placeable flag is correct for all blueprints
-		if (CastChecked<UBlueprint>(ClassGeneratedBy)->BlueprintType != BPTYPE_MacroLibrary)
+		UBlueprint* Blueprint = Cast<UBlueprint>(ClassGeneratedBy);
+		if (ensure(Blueprint) && Blueprint->BlueprintType != BPTYPE_MacroLibrary)
 		{
 			ClassFlags &= ~CLASS_NotPlaceable;
 		}
@@ -65,26 +66,179 @@ UClass* UBlueprintGeneratedClass::GetAuthoritativeClass()
 }
 
 #if WITH_EDITOR
-void UBlueprintGeneratedClass::ConditionalRecompileClass()
+
+struct FConditionalRecompileClassHepler
 {
-	if( UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy) )
+	enum ENeededAction
 	{
-		if( !FBlueprintEditorUtils::IsDataOnlyBlueprint(GeneratingBP) 
-			&& !FBlueprintEditorUtils::IsInterfaceBlueprint(GeneratingBP)
-			&& (GeneratingBP->SkeletonGeneratedClass != this) )
+		None,
+		StaticLink,
+		Recompile,
+	};
+
+	static bool SameTypeProperties(const UProperty* A, const UProperty* B)
+	{
+		check(A && B);
+		const UClass* ClassA = A->GetClass();
+		const UClass* ClassB = B->GetClass();
+		if (ClassA != ClassB)
+		{
+			return false;
+		}
+
+		if (A->IsA<UObjectPropertyBase>()
+			&&  (CastChecked<UObjectPropertyBase>(A)->PropertyClass != CastChecked<UObjectPropertyBase>(B)->PropertyClass))
+		{
+			return false;
+		}
+
+		if (A->IsA<UClassProperty>() && 
+			(CastChecked<UClassProperty>(A)->MetaClass != CastChecked<UClassProperty>(B)->MetaClass))
+		{
+			return false;
+		}
+		else if (A->IsA<UAssetClassProperty>() && 
+			(CastChecked<UAssetClassProperty>(A)->MetaClass != CastChecked<UAssetClassProperty>(B)->MetaClass))
+		{
+			return false;
+		}
+		else if (A->IsA<UInterfaceProperty>() && 
+			(CastChecked<UInterfaceProperty>(A)->InterfaceClass != CastChecked<UInterfaceProperty>(B)->InterfaceClass))
+		{
+			return false;
+		}
+		else if (A->IsA<UArrayProperty>() && 
+			(!SameTypeProperties(CastChecked<UArrayProperty>(A)->Inner, CastChecked<UArrayProperty>(B)->Inner)))
+		{
+			return false;
+		}
+		else if (A->IsA<UStructProperty>() && 
+			(CastChecked<UStructProperty>(A)->Struct != CastChecked<UStructProperty>(B)->Struct))
+		{
+			return false;
+		}
+		else if (A->IsA<UDelegateProperty>() && 
+			(CastChecked<UDelegateProperty>(A)->SignatureFunction != CastChecked<UDelegateProperty>(B)->SignatureFunction))
+		{
+			return false;
+		}
+		else if (A->IsA<UMulticastDelegateProperty>() && 
+			(CastChecked<UMulticastDelegateProperty>(A)->SignatureFunction != CastChecked<UMulticastDelegateProperty>(B)->SignatureFunction))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool ArePropertiesTheSame(const UProperty* A, const UProperty* B)
+	{
+		if (A == B)
+		{
+			return true;
+		}
+
+		if (!A != !B) //one of properties is null
+		{
+			return false;
+		}
+
+		if (A->GetSize() != B->GetSize())
+		{
+			return false;
+		}
+
+		if (A->GetOffset_ForGC() != B->GetOffset_ForGC())
+		{
+			return false;
+		}
+
+		if (!A->SameType(B))
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool HasTheSameLayoutAsParent(const UStruct* Struct)
+	{
+		bool bResult = false;
+		const UStruct* Parent = Struct ? Struct->GetSuperStruct() : NULL;
+		if (Parent)
+		{
+			const UProperty* Property = Struct->PropertyLink;
+			const UProperty* SuperProperty = Parent->PropertyLink;
+
+			bResult = true;
+			while (bResult)
+			{
+				bResult = ArePropertiesTheSame(Property, SuperProperty);
+				Property = Property ? Property->PropertyLinkNext : NULL;
+				SuperProperty = SuperProperty ? SuperProperty->PropertyLinkNext : NULL;
+				if (Property == SuperProperty)
+				{
+					break;
+				}
+			}
+		}
+		return bResult;
+	}
+
+	static ENeededAction IsConditionalRecompilationNecessary(const UBlueprint* GeneratingBP)
+	{
+		if (FBlueprintEditorUtils::IsInterfaceBlueprint(GeneratingBP))
+		{
+			return ENeededAction::None;
+		}
+
+		if (FBlueprintEditorUtils::IsDataOnlyBlueprint(GeneratingBP))
+		{
+			// If my parent is native, my layout wasn't changed.
+			const UClass* ParentClass = *GeneratingBP->ParentClass;
+			if (ParentClass && ParentClass->HasAllClassFlags(CLASS_Native))
+			{
+				return ENeededAction::None;
+			}
+
+			if (HasTheSameLayoutAsParent(*GeneratingBP->GeneratedClass))
+			{
+				return ENeededAction::StaticLink;
+			}
+			else
+			{
+				UE_LOG(LogBlueprint, Log, TEXT("During ConditionalRecompilation the layout of DataOnly BP should not be changed. It will be handled, but it's bad for performence. Blueprint %s"), *GeneratingBP->GetName());
+			}
+		}
+
+		return ENeededAction::Recompile;
+	}
+};
+
+void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLoaded)
+{
+	UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy);
+	if (GeneratingBP && (GeneratingBP->SkeletonGeneratedClass != this))
+	{
+		const auto NecessaryAction = FConditionalRecompileClassHepler::IsConditionalRecompilationNecessary(GeneratingBP);
+		if (FConditionalRecompileClassHepler::Recompile == NecessaryAction)
 		{
 			const bool bWasRegenerating = GeneratingBP->bIsRegeneratingOnLoad;
 			GeneratingBP->bIsRegeneratingOnLoad = true;
 
 			// Make sure that nodes are up to date, so that we get any updated blueprint signatures
 			FBlueprintEditorUtils::RefreshExternalBlueprintDependencyNodes(GeneratingBP);
-			
-			if(GeneratingBP->Status != BS_Error)
+
+			if (GeneratingBP->Status != BS_Error)
 			{
-				FKismetEditorUtilities::RecompileBlueprintBytecode(GeneratingBP);
+				FKismetEditorUtilities::RecompileBlueprintBytecode(GeneratingBP, ObjLoaded);
 			}
-						
+
 			GeneratingBP->bIsRegeneratingOnLoad = bWasRegenerating;
+		}
+		else if (FConditionalRecompileClassHepler::StaticLink == NecessaryAction)
+		{
+			StaticLink(true);
 		}
 	}
 }

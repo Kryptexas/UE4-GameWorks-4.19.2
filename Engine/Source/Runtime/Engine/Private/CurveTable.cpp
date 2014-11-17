@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "json.h"
+#include "Json.h"
 
 DEFINE_LOG_CATEGORY(LogCurveTable);
 
@@ -346,4 +346,14 @@ bool FCurveTableRowHandle::Eval(float XValue, float* YValue) const
 	}
 
 	return false;
+}
+
+bool FCurveTableRowHandle::operator==(const FCurveTableRowHandle& Other) const
+{
+	return ((Other.CurveTable == CurveTable) && (Other.RowName == RowName));
+}
+
+bool FCurveTableRowHandle::operator!=(const FCurveTableRowHandle& Other) const
+{
+	return ((Other.CurveTable != CurveTable) || (Other.RowName != RowName));
 }

@@ -20,7 +20,7 @@ public:
 	TSharedPtr<FUICommandInfo> PlayCue;
 	
 	/** Stops the currently playing cue/node */
-	TSharedPtr<FUICommandInfo> Stop;
+	TSharedPtr<FUICommandInfo> StopCueNode;
 
 	/** Plays the selected node */
 	TSharedPtr<FUICommandInfo> PlayNode;

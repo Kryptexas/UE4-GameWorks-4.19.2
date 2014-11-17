@@ -332,6 +332,7 @@ FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< IPropertyTable >& 
 	, Id( FName( EName::NAME_None ) )
 	, DisplayName()
 	, PartialPath( FPropertyPath::CreateEmpty() )
+	, SizeMode(EPropertyTableColumnSizeMode::Fill)
 {
 	GenerateColumnId();
 	GenerateColumnDisplayName();
@@ -347,6 +348,7 @@ FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< IPropertyTable >& 
 	, Id( FName( EName::NAME_None ) )
 	, DisplayName()
 	, PartialPath( FPropertyPath::CreateEmpty() )
+	, SizeMode(EPropertyTableColumnSizeMode::Fill)
 {
 	GenerateColumnId();
 	GenerateColumnDisplayName();
@@ -362,6 +364,7 @@ FPropertyTableColumn::FPropertyTableColumn( const TSharedRef< class IPropertyTab
 	, Id( FName( EName::NAME_None ) )
 	, DisplayName()
 	, PartialPath( InPartialPropertyPath )
+	, SizeMode(EPropertyTableColumnSizeMode::Fill)
 {
 	GenerateColumnId();
 }
@@ -457,7 +460,7 @@ void FPropertyTableColumn::GenerateColumnDisplayName()
 						}
 					}
 
-					PropertyName = EngineUtils::SanitizeDisplayName( PropertyName, bIsBoolProperty );
+					PropertyName = FName::NameToDisplayString( PropertyName, bIsBoolProperty );
 				}
 
 				NewName += PropertyName;
@@ -692,6 +695,12 @@ void FPropertyTableColumn::Tick()
 			}
 		}
 	}
+}
+
+void FPropertyTableColumn::SetFrozen(bool InIsFrozen)
+{
+	bIsFrozen = InIsFrozen;
+	FrozenStateChanged.Broadcast( SharedThis(this) );
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -44,7 +44,7 @@ DEFINE_STAT(EKismetCompilerStats_UpdateBlueprintGeneratedClass);
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
 
-FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions)
+FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded)
 	: FGraphCompilerContext(InMessageLog)
 	, Schema(NULL)
 	, Blueprint(SourceSketch)
@@ -52,6 +52,7 @@ FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompil
 	, ConsolidatedEventGraph(NULL)
 	, UbergraphContext(NULL)
 	, CompileOptions(InCompilerOptions)
+	, ObjLoaded(InObjLoaded)
 {
 	MacroRowMaxHeight = 0;
 
@@ -465,9 +466,9 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 			for (FBPVariableMetaDataEntry& Entry : Variable.MetaDataArray)
 			{
 				NewProperty->SetMetaData(Entry.DataKey, *Entry.DataValue);
-
 				if (Entry.DataKey == FBlueprintMetadata::MD_ExposeOnSpawn)
 				{
+					NewProperty->SetPropertyFlags(CPF_ExposeOnSpawn);
 					if (NewProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
 					{
 						MessageLog.Warning(*FString::Printf(*LOCTEXT("ExposeToSpawnButPrivateWarning", "Variable %s is marked as 'Expose on Spawn' but not marked as 'Editable'; please make it 'Editable'").ToString(), *NewProperty->GetName()));
@@ -1013,7 +1014,11 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		// Determine if this is a new function or if it overrides a parent function
 		//@TODO: Does not support multiple overloads for a parent virtual function
-		UFunction* ParentFunction = Blueprint->ParentClass->FindFunctionByName(NewFunctionName);
+		const UObject* ParentBlueprint = Blueprint->ParentClass->ClassGeneratedBy;
+
+		//@TODO: The parent function could be not loaded completely when the parent's blueprint is being regenerated. The condition should be removed once the GenerateBlueprintSkeleton is no longer called from Blueprint.Serialize
+		const bool bDontUseParentFunction = ParentBlueprint && ParentBlueprint->HasAnyFlags(RF_BeingRegenerated) && (EKismetCompileType::SkeletonOnly == CompileOptions.CompileType);
+		UFunction* ParentFunction = (!bDontUseParentFunction) ? Blueprint->ParentClass->FindFunctionByName(NewFunctionName) : NULL;
 
 		const FString NewFunctionNameString = NewFunctionName.ToString();
 		if (CreatedFunctionNames.Contains(NewFunctionNameString))
@@ -1094,6 +1099,8 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			MessageLog.Warning(*LOCTEXT("WrongAccessSpecifier_Error", "Wrong access specifier @@").ToString(), Context.EntryPoint);
 		}
 
+		Context.Function->FunctionFlags |= Context.GetNetFlags();
+
 		// Make sure the function signature is valid if this is an override
 		if (ParentFunction)
 		{
@@ -1112,6 +1119,18 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			if( !bEmptyCase && bDifferentAccessSpecifiers )
 			{
 				MessageLog.Warning(*LOCTEXT("IncompatibleAccessSpecifier_Error", "Access specifier is not compatible the parent function @@").ToString(), Context.EntryPoint);
+			}
+
+			uint32 const ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
+			if (ParentNetFlags != Context.GetNetFlags())
+			{
+				MessageLog.Error(*LOCTEXT("MismatchedNetFlags_Error", "@@ function's net flags don't match parent function's flags").ToString(), Context.EntryPoint);
+				
+				// clear the existing net flags
+				Context.Function->FunctionFlags &= ~(FUNC_NetFuncFlags);
+				// have to replace with the parent's net flags, or this will   
+				// trigger an assert in Link()
+				Context.Function->FunctionFlags |= ParentNetFlags;
 			}
 		}
 
@@ -1330,8 +1349,6 @@ void FKismetCompilerContext::FinishCompilingFunction(FKismetFunctionContext& Con
 	{
 		Function->FunctionFlags |= FUNC_BlueprintEvent;
 	}
-
-	Function->FunctionFlags |= Context.GetNetFlags();
 
 	// Inherit extra flags from the entry node
 	if (Context.EntryPoint)
@@ -2044,9 +2061,11 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	}
 
 	// If this is a customizable event, make sure to copy over the user defined pins
- 	if( SrcEventNode->IsA(UK2Node_CustomEvent::StaticClass()) )
+ 	if (UK2Node_CustomEvent const* SrcCustomEventNode = Cast<UK2Node_CustomEvent const>(SrcEventNode))
  	{
- 		EntryNode->UserDefinedPins = SrcEventNode->UserDefinedPins;
+ 		EntryNode->UserDefinedPins = SrcCustomEventNode->UserDefinedPins;
+		// CustomEvents may inherit net flags (so let's use their GetNetFlags() incase this is an override)
+		StubContext.MarkAsNetFunction(SrcCustomEventNode->GetNetFlags());
  	}
 	EntryNode->AllocateDefaultPins();
 
@@ -2172,27 +2191,30 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 // Expands out nodes that need it
 void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraphExpansions)
 {
-	SCOPE_CYCLE_COUNTER(EKismetCompilerStats_Expansion);
-
-	// Collapse any remaining tunnels or macros
-	ExpandTunnelsAndMacros(Graph);
-
-	for (int32 NodeIndex = 0; NodeIndex < Graph->Nodes.Num(); ++NodeIndex)
+	if (bIsFullCompile)
 	{
-		UK2Node* Node = Cast<UK2Node>(Graph->Nodes[NodeIndex]);
-		if (Node)
+		SCOPE_CYCLE_COUNTER(EKismetCompilerStats_Expansion);
+
+		// Collapse any remaining tunnels or macros
+		ExpandTunnelsAndMacros(Graph);
+
+		for (int32 NodeIndex = 0; NodeIndex < Graph->Nodes.Num(); ++NodeIndex)
 		{
-			Node->ExpandNode(*this, Graph);
+			UK2Node* Node = Cast<UK2Node>(Graph->Nodes[NodeIndex]);
+			if (Node)
+			{
+				Node->ExpandNode(*this, Graph);
+			}
 		}
-	}
 
-	if (bAllowUbergraphExpansions)
-	{
-		// Expand timeline nodes
-		ExpandTimelineNodes(Graph);
+		if (bAllowUbergraphExpansions)
+		{
+			// Expand timeline nodes
+			ExpandTimelineNodes(Graph);
 
-		// Expand PlayMovieScene nodes
-		ExpandPlayMovieSceneNodes(Graph);
+			// Expand PlayMovieScene nodes
+			ExpandPlayMovieSceneNodes(Graph);
+		}
 	}
 }
 
@@ -2827,6 +2849,36 @@ void FKismetCompilerContext::Compile()
 	}
 
 	UObject* OldCDO = NULL;
+
+	int32 OldSkelLinkerIdx = INDEX_NONE;
+	int32 OldGenLinkerIdx = INDEX_NONE;
+	ULinkerLoad* OldLinker = Blueprint->GetLinker();
+
+	if (OldLinker)
+	{
+		// Cache linker addresses so we can fixup linker for old CDO
+		FName GeneratedName, SkeletonName;
+		Blueprint->GetBlueprintCDONames(GeneratedName, SkeletonName);
+
+		for( int32 i = 0; i < OldLinker->ExportMap.Num(); i++ )
+		{
+			FObjectExport& ThisExport = OldLinker->ExportMap[i];
+			if( ThisExport.ObjectName == SkeletonName )
+			{
+				OldSkelLinkerIdx = i;
+			}
+			else if( ThisExport.ObjectName == GeneratedName )
+			{
+				OldGenLinkerIdx = i;
+			}
+
+			if( OldSkelLinkerIdx != INDEX_NONE && OldGenLinkerIdx != INDEX_NONE )
+			{
+				break;
+			}
+		}
+	}
+
 	CleanAndSanitizeClass(TargetClass, OldCDO);
 
 	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
@@ -3018,6 +3070,19 @@ void FKismetCompilerContext::Compile()
 				// Propagate the old CDO's properties to the new
 				if( OldCDO )
 				{
+					if (ObjLoaded)
+					{
+						if (OldLinker && OldGenLinkerIdx != INDEX_NONE)
+						{
+							// If we have a list of objects that are loading, patch our export table. This also fixes up load flags
+							FBlueprintEditorUtils::PatchNewCDOIntoLinker(Blueprint->GeneratedClass->GetDefaultObject(), OldLinker, OldGenLinkerIdx, *ObjLoaded);
+						}
+						else
+						{
+							UE_LOG(LogK2Compiler, Warning, TEXT("Failed to patch linker table for blueprint CDO %s"), *NewCDO->GetName());
+						}
+					}
+
 					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);			
 				}
 

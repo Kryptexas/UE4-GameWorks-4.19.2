@@ -19,10 +19,10 @@ public:
 	SLATE_BEGIN_ARGS( STutorialStageTicker ) {}
 
 	/** The current excerpt to display */
-	SLATE_ATTRIBUTE( FString, CurrentExcerpt )
+	SLATE_ATTRIBUTE( FText, CurrentExcerpt )
 
 	/** The progress string for the current excerpt (e.g. 4/16) */
-	SLATE_ATTRIBUTE( FString, CurrentProgressString )
+	SLATE_ATTRIBUTE( FText, CurrentProgressText )
 
 	SLATE_END_ARGS()
 
@@ -198,7 +198,7 @@ void SIntroTutorials::Construct( const FArguments& Args )
 					[
 						SNew(STutorialStageTicker)
 						.CurrentExcerpt(this, &SIntroTutorials::GetCurrentExcerptTitle)
-						.CurrentProgressString(this, &SIntroTutorials::GetProgressString)
+						.CurrentProgressText(this, &SIntroTutorials::GetProgressText)
 					]
 					+SVerticalBox::Slot()
 					.AutoHeight()
@@ -233,7 +233,7 @@ void SIntroTutorials::Construct( const FArguments& Args )
 						.FillWidth(1.0f)
 						[
 							SNew(STutorialNavigationButton)
-							.ToolTipText(LOCTEXT("PreviousButtonTooltip", "Go back to the previous tutorial page.").ToString())
+							.ToolTipText(LOCTEXT("PreviousButtonTooltip", "Go back to the previous tutorial page."))
 							.OnClicked(this, &SIntroTutorials::OnPreviousClicked)
 							.IsEnabled(this, &SIntroTutorials::OnPreviousIsEnabled)
 							.ImageName("Tutorials.Back")
@@ -246,7 +246,7 @@ void SIntroTutorials::Construct( const FArguments& Args )
 						.FillWidth(1.0f)
 						[
 							SNew(STutorialNavigationButton)
-							.ToolTipText(LOCTEXT("HomeButtonTooltip", "Go back to the tutorial index.").ToString())
+							.ToolTipText(LOCTEXT("HomeButtonTooltip", "Go back to the tutorial index."))
 							.OnClicked(this, &SIntroTutorials::OnHomeClicked)
 							.ImageName("Tutorials.Home")
 							.ImageOnLeft(true)
@@ -257,7 +257,7 @@ void SIntroTutorials::Construct( const FArguments& Args )
 						.FillWidth(1.0f)
 						[
 							SNew(STutorialNavigationButton)
-							.ToolTipText(LOCTEXT("NextButtonTooltip", "Go to the next tutorial page.").ToString())
+							.ToolTipText(LOCTEXT("NextButtonTooltip", "Go to the next tutorial page."))
 							.OnClicked(this, &SIntroTutorials::OnNextClicked)
 							.IsEnabled(this, &SIntroTutorials::OnNextIsEnabled)
 							.ImageName("Tutorials.Next")
@@ -322,12 +322,16 @@ void SIntroTutorials::ChangePage(const FString& Path)
 			// Set window title to current tutorial name
 			if (ParentWindowPtr.IsValid())
 			{
-				ParentWindowPtr.Pin()->SetTitle(FText::FromString(GetCurrentTutorialName()));
+				ParentWindowPtr.Pin()->SetTitle(GetCurrentTutorialName());
 			}
 		}
 		else
 		{
-			FNotificationInfo Info(FText::Format(LOCTEXT("PageOpenFailMessage", "Unable to access tutorial page \"{0}\"."), FText::FromString(Path)));
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("PathToDocumentation"), FText::FromString(Path));
+			const FText Message = FText::Format(LOCTEXT("PageOpenFailMessage", "Unable to access tutorial page \"{PathToDocumentation}\"."), Args);
+
+			FNotificationInfo Info(Message);
 			Info.ExpireDuration = 3.0f;
 			Info.bUseLargeFont = false;
 			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
@@ -431,28 +435,6 @@ void SIntroTutorials::PlayDialogue(UDialogueWave* InDialogueWave)
 	}
 }
 
-void SIntroTutorials::PlaySound(const FString& WavePath)
-{
-	if (GEngine->GetAudioDevice())
-	{
-		// Try FindObject first
-		USoundWave* Wave = FindObject<USoundWave>(ANY_PACKAGE, *WavePath);
-		if(Wave == NULL)
-		{
-			// If not, load it now
-			Wave = LoadObject<USoundWave>(NULL, *WavePath);
-		}
-
-		if (Wave != NULL)
-		{
-			FActiveSound NewActiveSound;
-			NewActiveSound.Sound = Wave;
-			NewActiveSound.bIsUISound = true;
-			GEngine->GetAudioDevice()->AddNewActiveSound(NewActiveSound);
-		}
-	}
-}
-
 void SIntroTutorials::GotoPreviousPage()
 {
 	SetCurrentExcerpt(CurrentExcerptIndex - 1);
@@ -491,8 +473,6 @@ void SIntroTutorials::SetCurrentExcerpt(int32 NewExcerptIdx)
 
 void SIntroTutorials::TriggerCompleted()
 {
-	PlaySound(TEXT("/Engine/Tutorial/Audio/CompleteTrigger.CompleteTrigger"));
-
 	InteractiveTutorials->OnExcerptCompleted( Excerpts[CurrentExcerptIndex].Name );
 
 	GotoNextPage();
@@ -540,12 +520,12 @@ EVisibility SIntroTutorials::GetNavigationVisibility() const
 	return (IsHomeStyle() && (Excerpts.Num() == 1)) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
-FString SIntroTutorials::GetCurrentTutorialName() const
+FText SIntroTutorials::GetCurrentTutorialName() const
 {
 	return CurrentPage->GetTitle();
 }
 
-FString SIntroTutorials::GetTimeRemaining() const
+FText SIntroTutorials::GetTimeRemaining() const
 {
 	if (Excerpts.Num() > 0)
 	{
@@ -553,11 +533,11 @@ FString SIntroTutorials::GetTimeRemaining() const
 		const FString* VariableValue = Excerpts[CurrentExcerptIndex].Variables.Find(VariableName);
 		if(VariableValue != NULL)
 		{
-			return *VariableValue;
+			return FText::FromString(*VariableValue);
 		}
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 EVisibility SIntroTutorials::GetContentVisibility() const
@@ -582,8 +562,6 @@ FReply SIntroTutorials::OnHomeClicked()
 
 FReply SIntroTutorials::OnPreviousClicked()
 {
-	PlaySound(TEXT("/Engine/Tutorial/Audio/PageBack.PageBack"));
-
 	if (IsFirstPage())
 	{
 		return OnHomeClicked();
@@ -600,8 +578,6 @@ bool SIntroTutorials::OnPreviousIsEnabled() const
 
 FReply SIntroTutorials::OnNextClicked()
 {
-	PlaySound(TEXT("/Engine/Tutorial/Audio/PageForward.PageForward"));
-
 	if (IsLastPage())
 	{
 		if(OnGotoNextTutorial.IsBound())
@@ -627,7 +603,17 @@ bool SIntroTutorials::OnNextIsEnabled() const
 	return Excerpts.IsValidIndex(CurrentExcerptIndex) && InteractiveTutorials->CanManuallyAdvanceExcerpt(Excerpts[CurrentExcerptIndex].Name);
 }
 
-FString SIntroTutorials::GetCurrentExcerptTitle() const
+FString SIntroTutorials::GetCurrentExcerptIdentifierName() const
+{
+	if (Excerpts.IsValidIndex(CurrentExcerptIndex))
+	{
+		Excerpts[CurrentExcerptIndex].Name;
+	}
+
+	return FString();
+}
+
+FText SIntroTutorials::GetCurrentExcerptTitle() const
 {
 	if (Excerpts.IsValidIndex(CurrentExcerptIndex))
 	{
@@ -636,7 +622,7 @@ FString SIntroTutorials::GetCurrentExcerptTitle() const
 		const FString* VariableValue = Excerpts[CurrentExcerptIndex].Variables.Find(VariableName);
 		if(VariableValue != NULL)
 		{
-			return *VariableValue;
+			return FText::FromString(*VariableValue);
 		}
 
 		// Then try 'StageTitle<StageNum>'
@@ -644,16 +630,21 @@ FString SIntroTutorials::GetCurrentExcerptTitle() const
 		VariableValue = Excerpts[CurrentExcerptIndex].Variables.Find(VariableName);
 		if(VariableValue != NULL)
 		{
-			return *VariableValue;
+			return FText::FromString(*VariableValue);
 		}
 	}
 
-	return FText::Format(LOCTEXT("GenericStageTitle", "Step {0}"), FText::AsNumber(CurrentExcerptIndex + 1)).ToString();
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("CurrentPageNumber"), CurrentExcerptIndex + 1);
+	return FText::Format(LOCTEXT("GenericStageTitle", "Step {CurrentPageNumber}"), Args);
 }
 
-FString SIntroTutorials::GetProgressString() const
+FText SIntroTutorials::GetProgressText() const
 {
-	return FString::Printf(TEXT("%i/%i"), (CurrentExcerptIndex + 1), Excerpts.Num());
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("CurrentPageNumber"), CurrentExcerptIndex + 1);
+	Args.Add(TEXT("TotalPages"), Excerpts.Num());
+	return FText::Format(LOCTEXT("TutorialProgress", "{CurrentPageNumber}/{TotalPages}"), Args);
 }
 
 TOptional<float> SIntroTutorials::GetProgress() const

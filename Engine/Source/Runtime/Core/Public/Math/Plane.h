@@ -2,16 +2,21 @@
 
 #pragma once
 
+
 /**
  * FPlane.
  * Stores the coeffecients as Ax+By+Cz=D.
  * Note that this is different than many other Plane classes that use Ax+By+Cz+D=0.
  */
-MS_ALIGN(16) class FPlane : public FVector
+MS_ALIGN(16) class FPlane
+	: public FVector
 {
 public:
+
 	// Variables.
 	float W;
+
+public:
 
 	/** Constructor.*/
 	FORCEINLINE FPlane();
@@ -250,6 +255,7 @@ public:
 	{
 		return Ar << (FVector&)P << P.W;
 	}
+
 	/**
 	 * Serializes the vector compressed for e.g. network transmission.
 	 * @param	Ar	Archive to serialize to/ from
@@ -277,39 +283,47 @@ public:
 		bOutSuccess = true;
 		return true;
 	}
-}  GCC_ALIGN(16);
+} GCC_ALIGN(16);
+
 
 FORCEINLINE FPlane::FPlane()
 {}
+
 
 FORCEINLINE FPlane::FPlane( const FPlane& P )
 	:	FVector(P)
 	,	W(P.W)
 {}
 
+
 FORCEINLINE FPlane::FPlane( const FVector4& V )
 	:	FVector(V)
 	,	W(V.W)
 {}
+
 
 FORCEINLINE FPlane::FPlane( float InX, float InY, float InZ, float InW )
 	:	FVector(InX,InY,InZ)
 	,	W(InW)
 {}
 
+
 FORCEINLINE FPlane::FPlane( FVector InNormal, float InW )
 	:	FVector(InNormal), W(InW)
 {}
+
 
 FORCEINLINE FPlane::FPlane( FVector InBase, const FVector &InNormal )
 	:	FVector(InNormal)
 	,	W(InBase | InNormal)
 {}
 
+
 FORCEINLINE FPlane::FPlane( FVector A, FVector B, FVector C )
 	:	FVector( ((B-A)^(C-A)).SafeNormal() )
 	,	W( A | ((B-A)^(C-A)).SafeNormal() )
 {}
+
 
 FORCEINLINE FPlane::FPlane(EForceInit)
 	: FVector(ForceInit), W(0.f)
@@ -321,40 +335,48 @@ FORCEINLINE float FPlane::PlaneDot( const FVector &P ) const
 	return X*P.X + Y*P.Y + Z*P.Z - W;
 }
 
+
 FORCEINLINE FPlane FPlane::Flip() const
 {
 	return FPlane(-X,-Y,-Z,-W);
 }
+
 
 FORCEINLINE bool FPlane::operator==( const FPlane& V ) const
 {
 	return X==V.X && Y==V.Y && Z==V.Z && W==V.W;
 }
 
+
 FORCEINLINE bool FPlane::operator!=( const FPlane& V ) const
 {
 	return X!=V.X || Y!=V.Y || Z!=V.Z || W!=V.W;
 }
+
 
 FORCEINLINE bool FPlane::Equals(const FPlane& V, float Tolerance) const
 {
 	return FMath::Abs(X-V.X) < Tolerance && FMath::Abs(Y-V.Y) < Tolerance && FMath::Abs(Z-V.Z) < Tolerance && FMath::Abs(W-V.W) < Tolerance;
 }
 
+
 FORCEINLINE float FPlane::operator|( const FPlane& V ) const
 {
 	return X*V.X + Y*V.Y + Z*V.Z + W*V.W;
 }
+
 
 FORCEINLINE FPlane FPlane::operator+( const FPlane& V ) const
 {
 	return FPlane( X + V.X, Y + V.Y, Z + V.Z, W + V.W );
 }
 
+
 FORCEINLINE FPlane FPlane::operator-( const FPlane& V ) const
 {
 	return FPlane( X - V.X, Y - V.Y, Z - V.Z, W - V.W );
 }
+
 
 FORCEINLINE FPlane FPlane::operator/( float Scale ) const
 {
@@ -362,15 +384,18 @@ FORCEINLINE FPlane FPlane::operator/( float Scale ) const
 	return FPlane( X * RScale, Y * RScale, Z * RScale, W * RScale );
 }
 
+
 FORCEINLINE FPlane FPlane::operator*( float Scale ) const
 {
 	return FPlane( X * Scale, Y * Scale, Z * Scale, W * Scale );
 }
 
+
 FORCEINLINE FPlane FPlane::operator*( const FPlane& V )
 {
 	return FPlane ( X*V.X,Y*V.Y,Z*V.Z,W*V.W );
 }
+
 
 FORCEINLINE FPlane FPlane::operator+=( const FPlane& V )
 {
@@ -378,11 +403,13 @@ FORCEINLINE FPlane FPlane::operator+=( const FPlane& V )
 	return *this;
 }
 
+
 FORCEINLINE FPlane FPlane::operator-=( const FPlane& V )
 {
 	X -= V.X; Y -= V.Y; Z -= V.Z; W -= V.W;
 	return *this;
 }
+
 
 FORCEINLINE FPlane FPlane::operator*=( float Scale )
 {
@@ -390,11 +417,13 @@ FORCEINLINE FPlane FPlane::operator*=( float Scale )
 	return *this;
 }
 
+
 FORCEINLINE FPlane FPlane::operator*=( const FPlane& V )
 {
 	X *= V.X; Y *= V.Y; Z *= V.Z; W *= V.W;
 	return *this;
 }
+
 
 FORCEINLINE FPlane FPlane::operator/=( float V )
 {
@@ -402,5 +431,6 @@ FORCEINLINE FPlane FPlane::operator/=( float V )
 	X *= RV; Y *= RV; Z *= RV; W *= RV;
 	return *this;
 }
+
 
 template <> struct TIsPODType<FPlane> { enum { Value = true }; };

@@ -241,7 +241,7 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), "Graph.ZoomText" )
-			.Text( this, &SGraphEditorImpl::GetZoomString )
+			.Text( this, &SGraphEditorImpl::GetZoomText )
 			.ColorAndOpacity( this, &SGraphEditorImpl::GetZoomTextColorAndOpacity )
 		]
 
@@ -468,9 +468,9 @@ void SGraphEditorImpl::BreakPinLinks(bool bSendNodeNotification)
 	Schema->BreakPinLinks(*GraphPinForMenu, bSendNodeNotification);
 }
 
-FString SGraphEditorImpl::GetZoomString() const
+FText SGraphEditorImpl::GetZoomText() const
 {
-	return GraphPanel->GetZoomString();
+	return GraphPanel->GetZoomText();
 }
 
 FSlateColor SGraphEditorImpl::GetZoomTextColorAndOpacity() const

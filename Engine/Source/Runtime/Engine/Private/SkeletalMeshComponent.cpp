@@ -35,8 +35,19 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	bGenerateOverlapEvents = false;
 	LineCheckBoundsScale = FVector(1.0f, 1.0f, 1.0f);
 #if WITH_APEX_CLOTHING
+	PreClothTickFunction.TickGroup = TG_PreCloth;
+	PreClothTickFunction.bCanEverTick = true;
+	PreClothTickFunction.bStartWithTickEnabled = true;
 	ClothMaxDistanceScale = 1.0f;
-
+	ClothTeleportMode = FClothingActor::Continuous;
+	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
+	bResetAfterTeleport = true;
+	TeleportDistanceThreshold = 300.0f;
+	TeleportRotationThreshold = 0.0f;// angles in degree, disabled by default
+	// pre-compute cloth teleport thresholds for performance
+	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
+	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
+	bNeedTeleportAndResetOnceMore = false;
 #if WITH_CLOTH_COLLISION_DETECTION
 	ClothingCollisionRevision = 0;
 #endif// #if WITH_CLOTH_COLLISION_DETECTION
@@ -52,6 +63,36 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	PrimaryComponentTick.TickGroup = TG_ParallelAnimWork;
 	PrimaryComponentTick.bRunOnAnyThread = true;	
 #endif
+}
+
+
+void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
+{
+	Super::RegisterComponentTickFunctions(bRegister);
+
+#if WITH_APEX_CLOTHING
+
+	if (bRegister)
+	{
+		if (SetupActorComponentTickFunction(&PreClothTickFunction))
+		{
+			PreClothTickFunction.Target = this;
+			// Set a prereq for the pre cloth tick to happen after physics is finished
+			if (World != NULL)
+			{
+				PreClothTickFunction.AddPrerequisite(World, World->EndPhysicsTickFunction);
+			}
+		}
+	}
+	else
+	{
+		if (PreClothTickFunction.IsTickFunctionRegistered())
+		{
+			PreClothTickFunction.UnRegisterTickFunction();
+		}
+	}
+#endif
+
 }
 
 bool USkeletalMeshComponent::NeedToSpawnAnimScriptInstance(bool bForceInit) const
@@ -218,29 +259,7 @@ void USkeletalMeshComponent::PostPhysicsTick(FPrimitiveComponentPostPhysicsTickF
 {
 	Super::PostPhysicsTick(ThisTickFunction);
 
-	// if physics is disabled on dedicated server, no reason to be here. 
-	if ( !bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer() )
-	{
-		return;
-	}
-
-	if (IsRegistered() && IsSimulatingPhysics())
-	{
-		SyncComponentToRBPhysics();
-	}
-
-	// this used to not run if not rendered, but that causes issues such as bounds not updated
-	// causing it to not rendered, at the end, I think we should blend body positions
-	// for example if you're only simulating, this has to happen all the time
-	// whether looking at it or not, otherwise
-	// @todo better solution is to check if it has moved by changing SyncComponentToRBPhysics to return true if anything modified
-	// and run this if that is true or rendered
-	// that will at least reduce the chance of mismatch
-	// generally if you move your actor position, this has to happen to approximately match their bounds
-	if( Bodies.Num() > 0 && IsRegistered() )
-	{
-		BlendInPhysics();
-	}
+	
 }
 
 #if WITH_EDITOR
@@ -274,21 +293,7 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 
 		if ( PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED( USkeletalMeshComponent, AnimBlueprintGeneratedClass ) )
 		{
-			if (AnimBlueprintGeneratedClass == NULL)
-			{
-				if (AnimationMode == EAnimationMode::AnimationBlueprint)
-				{
-					ClearAnimScriptInstance();
-				}
-			}
-			else
-			{
-				if (NeedToSpawnAnimScriptInstance(false))
-				{
-					AnimScriptInstance = NewObject<UAnimInstance>(this, AnimBlueprintGeneratedClass);
-					AnimScriptInstance->InitializeAnimation();
-				}
-			}
+			InitAnim(false);
 		}
 
 		if(PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED( USkeletalMeshComponent, SkeletalMesh))
@@ -442,7 +447,7 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
 	// If forcing RefPose we can skip updating the skeleton for perf, except if it's using MorphTargets.
-	const bool bSkipBecauseOfRefPose = bForceRefpose && bOldForceRefPose && (MorphTargetCurves.Num() == 0);
+	const bool bSkipBecauseOfRefPose = bForceRefpose && bOldForceRefPose && (MorphTargetCurves.Num() == 0) && ((AnimScriptInstance)? AnimScriptInstance->MorphTargetCurves.Num() == 0 : true);
 
 	// LOD changing should always trigger an update.
 	return (bLODHasChanged || (!bNoSkeletonUpdate && !bSkipBecauseOfRefPose && Super::ShouldUpdateTransform(bLODHasChanged)));
@@ -483,8 +488,6 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 
 	// Update bOldForceRefPose
 	bOldForceRefPose = bForceRefpose;
-
-	TickClothing();
 }
 
 
@@ -795,11 +798,11 @@ void USkeletalMeshComponent::EvaluateAnimation(/*FTransform & ExtractedRootMotio
 
 void USkeletalMeshComponent::UpdateSlaveComponent()
 {
-	check (MasterPoseComponent);
+	check (MasterPoseComponent.IsValid());
 
-	if (MasterPoseComponent->IsA(USkeletalMeshComponent::StaticClass()))
+	if(MasterPoseComponent->IsA(USkeletalMeshComponent::StaticClass()))
 	{
-		USkeletalMeshComponent* MasterSMC= CastChecked<USkeletalMeshComponent>(MasterPoseComponent);
+		USkeletalMeshComponent* MasterSMC= CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
 
 		if ( MasterSMC->AnimScriptInstance )
 		{
@@ -984,11 +987,11 @@ FBoxSphereBounds USkeletalMeshComponent::CalcBounds(const FTransform & LocalToWo
 
 	// if to use MasterPoseComponent's fixed skel bounds, 
 	// send MasterPoseComponent's Root Bone Translation
-	if( MasterPoseComponent && MasterPoseComponent->SkeletalMesh && 
+	if(MasterPoseComponent.IsValid() && MasterPoseComponent->SkeletalMesh &&
 		MasterPoseComponent->bComponentUseFixedSkelBounds &&
 		MasterPoseComponent->IsA((USkeletalMeshComponent::StaticClass())))
 	{
-		USkeletalMeshComponent* BaseComponent = CastChecked<USkeletalMeshComponent>(MasterPoseComponent);
+		USkeletalMeshComponent* BaseComponent = CastChecked<USkeletalMeshComponent>(MasterPoseComponent.Get());
 		RootBoneOffset = BaseComponent->RootBoneTranslation; // Adjust bounds by root bone translation
 	}
 	else
@@ -1576,7 +1579,7 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 }
 
 
-float USkeletalMeshComponent::CalculateMass() const 
+float USkeletalMeshComponent::CalculateMass(FName BoneName)
 {
 	if (bUseSingleBodyPhysics)
 	{
@@ -1586,11 +1589,38 @@ float USkeletalMeshComponent::CalculateMass() const
 	{
 		float Mass = 0.0f;
 
-		for (int32 i=0; i < Bodies.Num(); ++i)
+		if (Bodies.Num())
 		{
-			if (Bodies[i]->BodySetup.IsValid())
+			for (int32 i = 0; i < Bodies.Num(); ++i)
 			{
-				Mass += Bodies[i]->BodySetup->CalculateMass(this);
+				//if bone name is not provided calculate entire mass - otherwise get mass for just the bone
+				if (Bodies[i]->BodySetup.IsValid() && (BoneName == NAME_None || BoneName == Bodies[i]->BodySetup->BoneName))
+				{
+					Mass += Bodies[i]->BodySetup->CalculateMass(this);
+				}
+			}
+		}
+		else	//We want to calculate mass before we've initialized body instances - in this case use physics asset setup
+		{
+			TArray<class UBodySetup*> * BodySetups = NULL;
+			if (PhysicsAssetOverride)
+			{
+				BodySetups = &PhysicsAssetOverride->BodySetup;
+			}
+			else if (UPhysicsAsset * PhysicsAsset = GetPhysicsAsset())
+			{
+				BodySetups = &PhysicsAsset->BodySetup;
+			}
+
+			if (BodySetups)
+			{
+				for (int32 i = 0; i < BodySetups->Num(); ++i)
+				{
+					if ((*BodySetups)[i] && (BoneName == NAME_None || BoneName == (*BodySetups)[i]->BoneName))
+					{
+						Mass += (*BodySetups)[i]->CalculateMass(this);
+					}
+				}
 			}
 		}
 

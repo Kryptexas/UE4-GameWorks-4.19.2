@@ -21,6 +21,7 @@ struct FOpenGL3 : public FOpenGLBase
 	
 	static FORCEINLINE bool SupportsTimestampQueries()			{ return TimestampQueryBits > 0; }
 	static FORCEINLINE bool SupportsSeamlessCubeMap()			{ return bSupportsSeamlessCubemap; }
+	static FORCEINLINE bool SupportsVolumeTextureRendering()	{ return bSupportsVolumeTextureRendering; }
 
 	// Optional
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
@@ -38,7 +39,7 @@ struct FOpenGL3 : public FOpenGLBase
 		glEndQuery( QueryType );
 	}
 
-	static FORCEINLINE void GetQueryObject(GLuint QueryId, EQueryMode QueryMode, uint64* OutResult)
+	static FORCEINLINE void GetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint64* OutResult)
 	{
 		GLenum QueryName = (QueryMode == QM_Result) ? GL_QUERY_RESULT : GL_QUERY_RESULT_AVAILABLE;
 		GLuint64 Result = 0;

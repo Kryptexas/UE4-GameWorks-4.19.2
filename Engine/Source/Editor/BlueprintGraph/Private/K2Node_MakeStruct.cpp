@@ -249,8 +249,17 @@ void UK2Node_MakeStruct::ValidateNodeDuringCompilation(class FCompilerResultsLog
 }
 
 
-FString UK2Node_MakeStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const 
+FText UK2Node_MakeStruct::GetNodeTitle(ENodeTitleType::Type TitleType) const 
 {
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("StructName"), FText::FromString(StructType ? StructType->GetName() : FString()));
+	return FText::Format(LOCTEXT("MakeNodeTitle", "Make {StructName}"), Args);
+}
+
+FString UK2Node_MakeStruct::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const 
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	
 	return FString(TEXT("Make ")) + (StructType ? StructType->GetName() : FString());
 }
 

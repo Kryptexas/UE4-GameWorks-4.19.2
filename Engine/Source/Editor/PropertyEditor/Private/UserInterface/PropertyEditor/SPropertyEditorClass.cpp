@@ -168,7 +168,7 @@ FString SPropertyEditorClass::GetDisplayValueAsString() const
 			return GetClassDisplayName(ObjectValue);
 		}
 
-		return PropertyEditor->GetValueAsString();
+		return FPaths::GetBaseFilename(PropertyEditor->GetValueAsString());
 	}
 
 	return GetClassDisplayName(SelectedClass.Get());

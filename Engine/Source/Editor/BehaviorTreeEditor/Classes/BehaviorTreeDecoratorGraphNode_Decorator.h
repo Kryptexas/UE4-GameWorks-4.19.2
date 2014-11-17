@@ -16,7 +16,7 @@ class UBehaviorTreeDecoratorGraphNode_Decorator : public UBehaviorTreeDecoratorG
 
 	virtual void PostPlacedNewNode() OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 
 	virtual EBTDecoratorLogic::Type GetOperationType() const OVERRIDE;
 

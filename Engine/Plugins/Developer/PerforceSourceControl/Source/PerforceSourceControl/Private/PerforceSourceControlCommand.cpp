@@ -4,6 +4,7 @@
 #include "PerforceSourceControlCommand.h"
 #include "PerforceSourceControlModule.h"
 #include "IPerforceSourceControlWorker.h"
+#include "SPerforceSourceControlSettings.h"
 
 FPerforceSourceControlCommand::FPerforceSourceControlCommand(const TSharedRef<class ISourceControlOperation, ESPMode::ThreadSafe>& InOperation, const TSharedRef<class IPerforceSourceControlWorker, ESPMode::ThreadSafe>& InWorker, const FSourceControlOperationComplete& InOperationCompleteDelegate )
 	: Operation(InOperation)
@@ -19,11 +20,7 @@ FPerforceSourceControlCommand::FPerforceSourceControlCommand(const TSharedRef<cl
 	// grab the providers settings here, so we don't access them once the worker thread is launched
 	check(IsInGameThread());
 	FPerforceSourceControlModule& PerforceSourceControl = FModuleManager::LoadModuleChecked<FPerforceSourceControlModule>( "PerforceSourceControl" );
-	FPerforceSourceControlProvider& Provider = PerforceSourceControl.GetProvider();
-	Port = Provider.GetPort();
-	UserName = Provider.GetUser();
-	ClientSpec = Provider.GetClientSpec();
-	Ticket = Provider.GetTicket();
+	ConnectionInfo = PerforceSourceControl.AccessSettings().GetConnectionInfo();
 }
 
 bool FPerforceSourceControlCommand::DoWork()

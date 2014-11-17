@@ -69,7 +69,6 @@ public:
 	MeshPaintRendering::FMeshPaintDilateShaderParameters ShaderParams;
 };
 
-
 /** Constructor */
 FEdModeMeshPaint::FEdModeMeshPaint() 
 	: FEdMode(),
@@ -394,30 +393,25 @@ bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, F
 	// Change Brush Size - We want to stay consistent with other brush utilities.  Here we model after landscape mode.
 	if ((InEvent == IE_Pressed || InEvent == IE_Repeat) && (InKey == EKeys::LeftBracket || InKey == EKeys::RightBracket) )
 	{
-		float Radius = FMeshPaintSettings::Get().BrushRadius;
-		float MinBrushRadius, MaxBrushRadius;
-		GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);
-		float Diff = 0.05f; 
+		const float BrushRadius = GetBrushRadiiDefault();
 
+		float Diff = 0.05f; 
 		if (InKey == EKeys::LeftBracket)
 		{
 			Diff = -Diff;
 		}
 
-		float NewValue = Radius*(1.f+Diff);
-
+		float NewValue = BrushRadius*(1.f+Diff);
 		if (InKey == EKeys::LeftBracket)
 		{
-			NewValue = FMath::Min(NewValue, Radius - 1.f);
+			NewValue = FMath::Min(NewValue, BrushRadius - 1.f);
 		}
 		else
 		{
-			NewValue = FMath::Max(NewValue, Radius + 1.f);
+			NewValue = FMath::Max(NewValue, BrushRadius + 1.f);
 		}
 
-		NewValue = (int32)FMath::Clamp(NewValue, MinBrushRadius, MaxBrushRadius);
-
-		FMeshPaintSettings::Get().BrushRadius = NewValue;
+		SetBrushRadiiDefault( NewValue );
 
 		bHandled = true;
 	}
@@ -456,7 +450,7 @@ bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, F
 	}
 
 	// When painting we only care about perspective viewports where we are we are allowed to show mode widgets
-	if( !bIsAltDown && !bIsCtrlDown && InViewportClient->IsPerspective() && InViewportClient->EngineShowFlags.ModeWidgets)
+	if( !bIsAltDown && InViewportClient->IsPerspective() && InViewportClient->EngineShowFlags.ModeWidgets)
 	{
 		// Does the user want to paint right now?
 		const bool bUserWantsPaint = bIsLeftButtonDown && !bIsAltDown;
@@ -471,26 +465,46 @@ bool FEdModeMeshPaint::InputKey( FLevelEditorViewportClient* InViewportClient, F
 		else if( !bIsPainting && bUserWantsPaint )
 		{
 			// Re-initialize new tracking only if a new button was pressed, otherwise we continue the previous one.
-			bHandled = true;
-			StartPainting();
+			// First, see if the item we're clicking on is different to the currently selected one.
+			const int32 HitX = InViewport->GetMouseX();
+			const int32 HitY = InViewport->GetMouseY();
+			const HHitProxy* HitProxy = InViewport->GetHitProxy(HitX, HitY);
 
-			// Go ahead and paint immediately
+			if (HitProxy && HitProxy->IsA(HActor::StaticGetType()))
 			{
-				// Compute a world space ray from the screen space mouse coordinates
-				FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( 
-					InViewportClient->Viewport, 
-					InViewportClient->GetScene(),
-					InViewportClient->EngineShowFlags )
-					.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
+				const AActor* ClickedActor = (static_cast<const HActor*>(HitProxy))->Actor;
+				USelection& SelectedActors = *GEditor->GetSelectedActors();
+				if (SelectedActors.IsSelected(ClickedActor))
+				{
+					// Clicked actor is currently selected, start painting.
+					bHandled = true;
+					StartPainting();
 
-				FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
-				FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
+					// Go ahead and paint immediately
+					{
+						// Compute a world space ray from the screen space mouse coordinates
+						FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( 
+							InViewportClient->Viewport, 
+							InViewportClient->GetScene(),
+							InViewportClient->EngineShowFlags )
+							.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
 
-				// Paint!
-				const bool bVisualCueOnly = false;
-				const EMeshPaintAction::Type PaintAction = GetPaintAction(InViewport);
-				const float StrengthScale = 1.0f;
-				DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
+						FSceneView* View = InViewportClient->CalcSceneView( &ViewFamily );
+						FViewportCursorLocation MouseViewportRay( View, (FLevelEditorViewportClient*)InViewport->GetClient(), InViewport->GetMouseX(), InViewport->GetMouseY() );
+
+						// Paint!
+						const bool bVisualCueOnly = false;
+						const EMeshPaintAction::Type PaintAction = GetPaintAction(InViewport);
+						const float StrengthScale = 1.0f;
+						DoPaint( View->ViewMatrices.ViewOrigin, MouseViewportRay.GetOrigin(), MouseViewportRay.GetDirection(), NULL, PaintAction, bVisualCueOnly, StrengthScale, bAnyPaintAbleActorsUnderCursor );
+					}
+				}
+				else
+				{
+					// Otherwise we have clicked on a new actor, not necessarily one which is paintable, but certainly one which is selectable.
+					// Pass the click up to the editor viewport client.
+					bHandled = false;
+				}
 			}
 		}
 
@@ -930,7 +944,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 								const float InStrengthScale,
 								OUT bool& bAnyPaintAbleActorsUnderCursor)
 {
-	const float BrushRadius = FMeshPaintSettings::Get().BrushRadius;
+	const float BrushRadius = GetBrushRadiiDefault();
 
 	// Fire out a ray to see if there is a *selected* static mesh under the mouse cursor.
 	// NOTE: We can't use a GWorld line check for this as that would ignore actors that have collision disabled
@@ -1138,7 +1152,7 @@ void FEdModeMeshPaint::DoPaint( const FVector& InCameraOrigin,
 		FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[ PaintingMeshLODIndex ];
 		
 		// Brush properties
-		const float BrushDepth = FMeshPaintSettings::Get().BrushRadius;	// NOTE: Actually half of the total depth (like a radius)
+		const float BrushDepth = BrushRadius;	// NOTE: Actually half of the total depth (like a radius)
 		const float BrushFalloffAmount = FMeshPaintSettings::Get().BrushFalloffAmount;
 		const FLinearColor BrushColor = ((InPaintAction == EMeshPaintAction::Paint) || (InPaintAction == EMeshPaintAction::Fill))? FMeshPaintSettings::Get().PaintColor : FMeshPaintSettings::Get().EraseColor;
 
@@ -1937,13 +1951,13 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 				{
 					TextureData->PaintRenderTargetTexture = NULL;
 					TextureData->PaintRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
+					TextureData->PaintRenderTargetTexture->bNeedsTwoCopies = true;
 					const bool bForceLinearGamma = true;
 					TextureData->PaintRenderTargetTexture->InitCustomFormat( TextureWidth, TextureHeight, PF_A16B16G16R16, bForceLinearGamma );
 					TextureData->PaintRenderTargetTexture->UpdateResourceImmediate();
 		
 					//Duplicate the texture we are painting and store it in the transient package. This texture is a backup of the data incase we want to revert before commiting.
 					TextureData->PaintingTexture2DDuplicate = (UTexture2D*)StaticDuplicateObject(Texture2D, GetTransientPackage(), *FString::Printf(TEXT("%s_TEMP"), *Texture2D->GetName()));
-
 				}
 				TextureData->PaintRenderTargetTexture->AddressX = Texture2D->AddressX;
 				TextureData->PaintRenderTargetTexture->AddressY = Texture2D->AddressY;
@@ -1960,11 +1974,11 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 					BrushRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
 					const bool bForceLinearGamma = true;
 					BrushRenderTargetTexture->ClearColor = FLinearColor::Black;
+					BrushRenderTargetTexture->bNeedsTwoCopies = true;
 					BrushRenderTargetTexture->InitCustomFormat( BrushTargetTextureWidth, BrushTargetTextureHeight, PF_A16B16G16R16, bForceLinearGamma );
 					BrushRenderTargetTexture->UpdateResourceImmediate();
 					BrushRenderTargetTexture->AddressX = TextureData->PaintRenderTargetTexture->AddressX;
 					BrushRenderTargetTexture->AddressY = TextureData->PaintRenderTargetTexture->AddressY;
-
 				}
 
 				const bool bEnableSeamPainting = FMeshPaintSettings::Get().bEnableSeamPainting;
@@ -1980,6 +1994,7 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 						BrushMaskRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
 						const bool bForceLinearGamma = true;
 						BrushMaskRenderTargetTexture->ClearColor = FLinearColor::Black;
+						BrushMaskRenderTargetTexture->bNeedsTwoCopies = true;
 						BrushMaskRenderTargetTexture->InitCustomFormat( BrushTargetTextureWidth, BrushTargetTextureHeight, PF_B8G8R8A8, bForceLinearGamma );
 						BrushMaskRenderTargetTexture->UpdateResourceImmediate();
 						BrushMaskRenderTargetTexture->AddressX = TextureData->PaintRenderTargetTexture->AddressX;
@@ -1995,11 +2010,11 @@ void FEdModeMeshPaint::StartPaintingTexture( UStaticMeshComponent* InStaticMeshC
 						SeamMaskRenderTargetTexture = CastChecked<UTextureRenderTarget2D>( StaticConstructObject( UTextureRenderTarget2D::StaticClass(), GetTransientPackage(), NAME_None, RF_Transient ) );
 						const bool bForceLinearGamma = true;
 						SeamMaskRenderTargetTexture->ClearColor = FLinearColor::Black;
+						SeamMaskRenderTargetTexture->bNeedsTwoCopies = true;
 						SeamMaskRenderTargetTexture->InitCustomFormat( BrushTargetTextureWidth, BrushTargetTextureHeight, PF_B8G8R8A8, bForceLinearGamma );
 						SeamMaskRenderTargetTexture->UpdateResourceImmediate();
 						SeamMaskRenderTargetTexture->AddressX = TextureData->PaintRenderTargetTexture->AddressX;
 						SeamMaskRenderTargetTexture->AddressY = TextureData->PaintRenderTargetTexture->AddressY;
-
 					}
 					bGenerateSeamMask = true;
 				}
@@ -2222,14 +2237,16 @@ void FEdModeMeshPaint::PaintTexture( const FMeshPaintParameters& InParams,
 		// Vertex color
 		FLinearColor Col0( CurTriangle.TriVertices[ 0 ].X, CurTriangle.TriVertices[ 0 ].Y, CurTriangle.TriVertices[ 0 ].Z );
 		FLinearColor Col1( CurTriangle.TriVertices[ 1 ].X, CurTriangle.TriVertices[ 1 ].Y, CurTriangle.TriVertices[ 1 ].Z );
-		FLinearColor Col2( CurTriangle.TriVertices[ 2 ].X, CurTriangle.TriVertices[ 2 ].Y, CurTriangle.TriVertices[ 2 ].Z );
+		FLinearColor Col2(CurTriangle.TriVertices[2].X, CurTriangle.TriVertices[2].Y, CurTriangle.TriVertices[2].Z);
 
 		// Brush Paint triangle
-		int32 V0 = BrushPaintBatchedElements->AddVertex(Vert0,CurTriangle.TriUVs[ 0 ],Col0,BrushPaintHitProxyId);
-		int32 V1 = BrushPaintBatchedElements->AddVertex(Vert1,CurTriangle.TriUVs[ 1 ],Col1,BrushPaintHitProxyId);
-		int32 V2 = BrushPaintBatchedElements->AddVertex(Vert2,CurTriangle.TriUVs[ 2 ],Col2,BrushPaintHitProxyId);
+		{
+			int32 V0 = BrushPaintBatchedElements->AddVertex(Vert0, CurTriangle.TriUVs[0], Col0, BrushPaintHitProxyId);
+			int32 V1 = BrushPaintBatchedElements->AddVertex(Vert1, CurTriangle.TriUVs[1], Col1, BrushPaintHitProxyId);
+			int32 V2 = BrushPaintBatchedElements->AddVertex(Vert2, CurTriangle.TriUVs[2], Col2, BrushPaintHitProxyId);
 
-		BrushPaintBatchedElements->AddTriangle(V0,V1,V2, MeshPaintBatchedElementParameters, SE_BLEND_Opaque);
+			BrushPaintBatchedElements->AddTriangle(V0, V1, V2, MeshPaintBatchedElementParameters, SE_BLEND_Opaque);
+		}
 
 		// Brush Mask triangle
 		if( bEnableSeamPainting )
@@ -2687,7 +2704,7 @@ void FEdModeMeshPaint::PostUndo()
 /** Returns true if we need to force a render/update through based fill/copy */
 bool FEdModeMeshPaint::IsForceRendered (void) const
 {
-	return (bIsFloodFill || bPushInstanceColorsToMesh);
+	return (bIsFloodFill || bPushInstanceColorsToMesh || bIsPainting);
 }
 
 
@@ -4100,6 +4117,26 @@ bool FEdModeMeshPaint::GetSelectedMeshInfo( int32& OutTotalBaseVertexColorBytes,
 	return ( NumValidMeshes > 0 );
 }
 
+void FEdModeMeshPaint::SetBrushRadiiDefault( float InBrushRadius )
+{
+	float MinBrushRadius, MaxBrushRadius;
+	GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);	
+
+	InBrushRadius = (float)FMath::Clamp(InBrushRadius, MinBrushRadius, MaxBrushRadius);
+	GConfig->SetFloat( TEXT("MeshPaintEdit"), TEXT("DefaultBrushRadius"), InBrushRadius, GEditorUserSettingsIni );
+}
+
+float FEdModeMeshPaint::GetBrushRadiiDefault() const
+{
+	float MinBrushRadius, MaxBrushRadius;
+	GetBrushRadiiLimits(MinBrushRadius, MaxBrushRadius);
+
+	float BrushRadius = 128.f;
+	GConfig->GetFloat( TEXT("MeshPaintEdit"), TEXT("DefaultBrushRadius"), BrushRadius, GEditorUserSettingsIni );
+	BrushRadius = (float)FMath::Clamp(BrushRadius, MinBrushRadius, MaxBrushRadius);
+	return BrushRadius;
+}
+
 void FEdModeMeshPaint::GetBrushRadiiSliderLimits( float& OutMinBrushSliderRadius, float& OutMaxBrushSliderRadius ) const
 {
 	float MinBrushRadius, MaxBrushRadius;
@@ -4107,11 +4144,11 @@ void FEdModeMeshPaint::GetBrushRadiiSliderLimits( float& OutMinBrushSliderRadius
 
 	OutMinBrushSliderRadius = 1.f;
 	GConfig->GetFloat( TEXT("UnrealEd.MeshPaint"), TEXT("MinBrushRadius"), OutMinBrushSliderRadius, GEditorIni );
-	OutMinBrushSliderRadius = (int32)FMath::Clamp(OutMinBrushSliderRadius, MinBrushRadius, MaxBrushRadius);
+	OutMinBrushSliderRadius = (float)FMath::Clamp(OutMinBrushSliderRadius, MinBrushRadius, MaxBrushRadius);
 
-	OutMaxBrushSliderRadius = 128.f;
+	OutMaxBrushSliderRadius = 256.f;
 	GConfig->GetFloat( TEXT("UnrealEd.MeshPaint"), TEXT("MaxBrushRadius"), OutMaxBrushSliderRadius, GEditorIni );
-	OutMaxBrushSliderRadius = (int32)FMath::Clamp(OutMaxBrushSliderRadius, MinBrushRadius, MaxBrushRadius);
+	OutMaxBrushSliderRadius = (float)FMath::Clamp(OutMaxBrushSliderRadius, MinBrushRadius, MaxBrushRadius);
 
 	if ( OutMaxBrushSliderRadius < OutMinBrushSliderRadius )
 	{
@@ -4396,167 +4433,164 @@ void FEdModeMeshPaint::UpdateTexturePaintTargetList()
 {
 	if( bShouldUpdateTextureList && FMeshPaintSettings::Get().ResourceType == EMeshPaintResource::Texture )
 	{
+		CacheActorInfo();
+
 		// We capture the user texture selection before the refresh.  If this texture appears in the
 		//  list after the update we will make it the initial selection.
 		UTexture2D* PreviouslySelectedTexture = GetSelectedTexture();
 
 		TexturePaintTargetList.Empty();
 
-		TArray<UMaterialInterface*> MaterialsInSelection;
 		TArray<FPaintableTexture> TexturesInSelection;
 
-		// Iterate over selected static mesh components
-		TArray<UStaticMeshComponent*> SMComponents = GetValidStaticMeshComponents();
-		for( int32 CurSMIndex = 0; CurSMIndex < SMComponents.Num(); ++CurSMIndex )
+		if ( ActorBeingEdited.IsValid() )
 		{
-			TArray<UMaterialInterface*> UsedMaterials;
-
-			// Currently we only support static mesh actors or dynamic static mesh actors
-			UStaticMeshComponent* StaticMesh = SMComponents[CurSMIndex];
-
-			// Get all the used materials for this StaticMeshComponent
-			StaticMesh->GetUsedMaterials( UsedMaterials );
-
-			// Add the materials this actor uses to the list we maintain for ALL the selected actors, but only if
-			//  it does not appear in the list already.
-			for( int32 UsedIndex = 0; UsedIndex < UsedMaterials.Num(); UsedIndex++)
+			const FMeshSelectedMaterialInfo* MeshData = CurrentlySelectedActorsMaterialInfo.Find(ActorBeingEdited);
+			if ( MeshData != NULL )
 			{
-				if( UsedMaterials[ UsedIndex ] != NULL )
-				{
-					MaterialsInSelection.AddUnique( UsedMaterials[ UsedIndex ] );			
-				}
-			}
-		}
+				// Get the selected material index and selected actor from the cached actor info
+				int32 MaterialIndex = MeshData->SelectedMaterialIndex;
 
-		int32 DefaultIndex = INDEX_NONE;
-		FPaintableTexture PaintableTexture;
-		// Find all the unique textures used in the top material level of the selected actor materials
-		for( int32 MatIndex = 0; MatIndex < MaterialsInSelection.Num(); MatIndex++ )
-		{
-			const UMaterialInterface* Material = MaterialsInSelection[ MatIndex ];
-			const TArray<UMaterialExpression*>& Expressions = Material->GetMaterial()->Expressions;
-
-			// Only grab the textures from the top level of samples
-			for (auto ItExpressions = Expressions.CreateConstIterator(); ItExpressions; ItExpressions++)
-			{
-				UMaterialExpressionTextureBase* TextureBase = Cast<UMaterialExpressionTextureBase>(*ItExpressions);
-				if (TextureBase != NULL && 
-					TextureBase->Texture != NULL && 
-					!TextureBase->Texture->IsNormalMap())
-				{
-					// Default UV channel to index 0. 
-					PaintableTexture = FPaintableTexture(TextureBase->Texture, 0);
-										
-					// Texture Samples can have UV's specified, check the first node for whether it has a custom UV channel set. 
-					// We only check the first as the Mesh paint mode does not support painting with UV's modified in the shader.
-					UMaterialExpressionTextureSample* TextureSample = Cast<UMaterialExpressionTextureSample>(*ItExpressions);
-					if (TextureSample != NULL)
-					{
-						UMaterialExpressionTextureCoordinate* TextureCoords = Cast<UMaterialExpressionTextureCoordinate>(TextureSample->Coordinates.Expression);
-						if (TextureCoords != NULL)
-						{
-							// Store the uv channel, this is set when the texture is selected. 
-							PaintableTexture.UVChannelIndex = TextureCoords->CoordinateIndex;
-						}
-
-						// Handle texture parameter expressions
-						UMaterialExpressionTextureSampleParameter* TextureSampleParameter = Cast<UMaterialExpressionTextureSampleParameter>(TextureSample);
-						if (TextureSampleParameter != NULL)
-						{
-							// Grab the overridden texture if it exists.  
-							Material->GetTextureParameterValue(TextureSampleParameter->ParameterName, PaintableTexture.Texture);
-						}
-					}
-
-					// note that the same texture will be added again if its UV channel differs. 
-					int32 TextureIndex = TexturesInSelection.AddUnique(PaintableTexture);
-
-					// cache the first default index, if there is no previous info this will be used as the selected texture
-					if (DefaultIndex == INDEX_NONE && TextureBase->IsDefaultMeshpaintTexture)
-					{
-						DefaultIndex = TextureIndex;
-					}
-				}
-			}
-		}		
-
-		// Generate the list of target paint textures that will be displaying in the UI
-		for( int32 TexIndex = 0; TexIndex < TexturesInSelection.Num(); TexIndex++ )
-		{
-			UTexture2D* Texture2D = Cast<UTexture2D>( TexturesInSelection[ TexIndex ].Texture );
-			int32 UVChannelIndex = TexturesInSelection[ TexIndex ].UVChannelIndex;
-			// If this is not a UTexture2D we check to see if it is a rendertarget texture
-			if( Texture2D == NULL )
-			{
-				UTextureRenderTarget2D* TextureRenderTarget2D = Cast<UTextureRenderTarget2D>( TexturesInSelection[ TexIndex ].Texture );
-				if( TextureRenderTarget2D )
-				{
-					// Since this is a rendertarget, we lookup the original texture that we overrode during the paint operation
-					Texture2D = GetOriginalTextureFromRenderTarget( TextureRenderTarget2D );
-
-					// Since we looked up a texture via a rendertarget, it is possible that this texture already exists in our list.  If so 
-					//  we will not add it and continue processing other elements.
-					if( Texture2D != NULL && TexturesInSelection.Contains( FPaintableTexture(Texture2D, UVChannelIndex) ) )
-					{
-						continue;
-					}
-				}
-			}
-
-			if( Texture2D != NULL )
-			{
-				// @todo MeshPaint: We rely on filtering out normal maps by name here.  Obviously a user can name a diffuse with _N_ in the name so
-				//   this is not a good option.  We attempted to find all the normal maps from the material above with GetAllNormalParameterNames(),
-				//   but that always seems to return an empty list.  This needs to be revisited.
-	
-				// Some normalmaps in the content will fail checks we do in the if statement below.  So we also check to make sure 
-				//   the name does not end with "_N", and that the following substrings do not appear in the name "_N_" "_N0".
-				FString Texture2DName;
-				Texture2D->GetName(Texture2DName);
-				Texture2DName = Texture2DName.ToUpper();
-
-				// Make sure the texture is not a normalmap, we don't support painting on those at the moment.
-				if( Texture2D->IsNormalMap() == true 
-					|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
-					|| Texture2D->LODGroup == TEXTUREGROUP_CharacterNormalMap
-					|| Texture2D->LODGroup == TEXTUREGROUP_WeaponNormalMap
-					|| Texture2D->LODGroup == TEXTUREGROUP_VehicleNormalMap
-					|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
-					|| Texture2DName.Contains( TEXT("_N0" ))
-					|| Texture2DName.Contains( TEXT("_N_" ))
-					|| Texture2DName.Contains( TEXT("_NORMAL" ))
-					|| (Texture2DName.Right(2)).Contains( TEXT("_N" )) )
-				{
-					continue;
-				}
+				// we only operate on static meshes.
+				AStaticMeshActor* StaticMeshActor = Cast< AStaticMeshActor >( ActorBeingEdited.Get() );
 			
-				// Add the texture to our list
-				new(TexturePaintTargetList) FTextureTargetListInfo(Texture2D, UVChannelIndex);
-
-				// We stored off the user's selection before we began the update.  Since we cleared the list we lost
-				//  that selection info. If the same texture appears in our list after update, we will select it again.
-				if( PreviouslySelectedTexture != NULL && Texture2D == PreviouslySelectedTexture )
+				if ( StaticMeshActor != NULL && StaticMeshActor->StaticMeshComponent != NULL )
 				{
-					TexturePaintTargetList[ TexturePaintTargetList.Num() - 1 ].bIsSelected = true;
+					// We already know the material we are painting on, take it off the static mesh component
+					UMaterialInterface* Material = StaticMeshActor->StaticMeshComponent->GetMaterial(MaterialIndex);
+				
+					if ( Material != NULL )
+					{
+						int32 DefaultIndex = INDEX_NONE;
+						FPaintableTexture PaintableTexture;
+						// Find all the unique textures used in the top material level of the selected actor materials
+		
+						const TArray<UMaterialExpression*>& Expressions = Material->GetMaterial()->Expressions;
+
+						// Only grab the textures from the top level of samples
+						for (auto ItExpressions = Expressions.CreateConstIterator(); ItExpressions; ItExpressions++)
+						{
+							UMaterialExpressionTextureBase* TextureBase = Cast<UMaterialExpressionTextureBase>(*ItExpressions);
+							if (TextureBase != NULL && 
+								TextureBase->Texture != NULL && 
+								!TextureBase->Texture->IsNormalMap())
+							{
+								// Default UV channel to index 0. 
+								PaintableTexture = FPaintableTexture(TextureBase->Texture, 0);
+										
+								// Texture Samples can have UV's specified, check the first node for whether it has a custom UV channel set. 
+								// We only check the first as the Mesh paint mode does not support painting with UV's modified in the shader.
+								UMaterialExpressionTextureSample* TextureSample = Cast<UMaterialExpressionTextureSample>(*ItExpressions);
+								if (TextureSample != NULL)
+								{
+									UMaterialExpressionTextureCoordinate* TextureCoords = Cast<UMaterialExpressionTextureCoordinate>(TextureSample->Coordinates.Expression);
+									if (TextureCoords != NULL)
+									{
+										// Store the uv channel, this is set when the texture is selected. 
+										PaintableTexture.UVChannelIndex = TextureCoords->CoordinateIndex;
+									}
+
+									// Handle texture parameter expressions
+									UMaterialExpressionTextureSampleParameter* TextureSampleParameter = Cast<UMaterialExpressionTextureSampleParameter>(TextureSample);
+									if (TextureSampleParameter != NULL)
+									{
+										// Grab the overridden texture if it exists.  
+										Material->GetTextureParameterValue(TextureSampleParameter->ParameterName, PaintableTexture.Texture);
+									}
+								}
+
+								// note that the same texture will be added again if its UV channel differs. 
+								int32 TextureIndex = TexturesInSelection.AddUnique(PaintableTexture);
+
+								// cache the first default index, if there is no previous info this will be used as the selected texture
+								if (DefaultIndex == INDEX_NONE && TextureBase->IsDefaultMeshpaintTexture)
+								{
+									DefaultIndex = TextureIndex;
+								}
+							}
+						}
+
+						// Generate the list of target paint textures that will be displaying in the UI
+						for( int32 TexIndex = 0; TexIndex < TexturesInSelection.Num(); TexIndex++ )
+						{
+							UTexture2D* Texture2D = Cast<UTexture2D>( TexturesInSelection[ TexIndex ].Texture );
+							int32 UVChannelIndex = TexturesInSelection[ TexIndex ].UVChannelIndex;
+							// If this is not a UTexture2D we check to see if it is a rendertarget texture
+							if( Texture2D == NULL )
+							{
+								UTextureRenderTarget2D* TextureRenderTarget2D = Cast<UTextureRenderTarget2D>( TexturesInSelection[ TexIndex ].Texture );
+								if( TextureRenderTarget2D )
+								{
+									// Since this is a rendertarget, we lookup the original texture that we overrode during the paint operation
+									Texture2D = GetOriginalTextureFromRenderTarget( TextureRenderTarget2D );
+
+									// Since we looked up a texture via a rendertarget, it is possible that this texture already exists in our list.  If so 
+									//  we will not add it and continue processing other elements.
+									if( Texture2D != NULL && TexturesInSelection.Contains( FPaintableTexture(Texture2D, UVChannelIndex) ) )
+									{
+										continue;
+									}
+								}
+							}
+
+							if( Texture2D != NULL )
+							{
+								// @todo MeshPaint: We rely on filtering out normal maps by name here.  Obviously a user can name a diffuse with _N_ in the name so
+								//   this is not a good option.  We attempted to find all the normal maps from the material above with GetAllNormalParameterNames(),
+								//   but that always seems to return an empty list.  This needs to be revisited.
+	
+								// Some normalmaps in the content will fail checks we do in the if statement below.  So we also check to make sure 
+								//   the name does not end with "_N", and that the following substrings do not appear in the name "_N_" "_N0".
+								FString Texture2DName;
+								Texture2D->GetName(Texture2DName);
+								Texture2DName = Texture2DName.ToUpper();
+
+								// Make sure the texture is not a normalmap, we don't support painting on those at the moment.
+								if( Texture2D->IsNormalMap() == true 
+									|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
+									|| Texture2D->LODGroup == TEXTUREGROUP_CharacterNormalMap
+									|| Texture2D->LODGroup == TEXTUREGROUP_WeaponNormalMap
+									|| Texture2D->LODGroup == TEXTUREGROUP_VehicleNormalMap
+									|| Texture2D->LODGroup == TEXTUREGROUP_WorldNormalMap
+									|| Texture2DName.Contains( TEXT("_N0" ))
+									|| Texture2DName.Contains( TEXT("_N_" ))
+									|| Texture2DName.Contains( TEXT("_NORMAL" ))
+									|| (Texture2DName.Right(2)).Contains( TEXT("_N" )) )
+								{
+									continue;
+								}
+			
+								// Add the texture to our list
+								new(TexturePaintTargetList) FTextureTargetListInfo(Texture2D, UVChannelIndex);
+
+								// We stored off the user's selection before we began the update.  Since we cleared the list we lost
+								//  that selection info. If the same texture appears in our list after update, we will select it again.
+								if( PreviouslySelectedTexture != NULL && Texture2D == PreviouslySelectedTexture )
+								{
+									TexturePaintTargetList[ TexturePaintTargetList.Num() - 1 ].bIsSelected = true;
+								}
+							}
+						}
+
+						//if there are no default textures, revert to the old method of just selecting the first texture.
+						if (DefaultIndex == INDEX_NONE)
+						{
+							DefaultIndex = 0;
+						}
+
+						//We refreshed the list, if nothing else is set we default to the first texture that has IsDefaultMeshPaintTexture set.
+						if(TexturePaintTargetList.Num() > 0 && GetSelectedTexture() == NULL)
+						{
+							if (ensure(TexturePaintTargetList.IsValidIndex(DefaultIndex)))
+							{
+								TexturePaintTargetList[DefaultIndex].bIsSelected = true;
+							}
+						}
+					}
 				}
 			}
 		}
-
-		//if there are no default textures, revert to the old method of just selecting the first texture.
-		if (DefaultIndex == INDEX_NONE)
-		{
-			DefaultIndex = 0;
-		}
-
-		//We refreshed the list, if nothing else is set we default to the first texture that has IsDefaultMeshPaintTexture set.
-		if(TexturePaintTargetList.Num() > 0 && GetSelectedTexture() == NULL)
-		{
-			if (ensure(TexturePaintTargetList.IsValidIndex(DefaultIndex)))
-			{
-				TexturePaintTargetList[DefaultIndex].bIsSelected = true;
-			}
-		}
-
+		
 		bShouldUpdateTextureList = false;
 	}
 }
@@ -4873,27 +4907,18 @@ void FEdModeMeshPaint::Tick(FLevelEditorViewportClient* ViewportClient,float Del
 void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 {
 	UTexture2D* SelectedTexture = GetSelectedTexture();
-	if( NULL != SelectedTexture )
+	
+	if ( NULL != SelectedTexture && ActorBeingEdited.IsValid() )
 	{
-		bool bFoundMaterialTextureCombo = false;
-
-		TArray<UStaticMeshComponent*> SMComponents = GetValidStaticMeshComponents();
-
-		//Make sure we have items.
-		if(SMComponents.Num() == 0)
+		const FMeshSelectedMaterialInfo* MeshData = CurrentlySelectedActorsMaterialInfo.Find(ActorBeingEdited);
+		if (MeshData != NULL)
 		{
-			return;
-		}
-
-		// Check all the materials on the mesh to see if the user texture is there
-		int32 MaterialIndex = 0;
-		UMaterialInterface* MaterialToCheck = SMComponents[0]->GetMaterial( MaterialIndex );
-		while( MaterialToCheck != NULL )
-		{
-			bool bIsTextureUsed = DoesMaterialUseTexture(MaterialToCheck, SelectedTexture );
-
-			if( bIsTextureUsed == true)// && bStartedPainting == false )
+			int32 MaterialIndex = MeshData->SelectedMaterialIndex;
+			AStaticMeshActor* StaticMeshActor = Cast< AStaticMeshActor >( ActorBeingEdited.Get() );
+			if (StaticMeshActor != NULL && StaticMeshActor->StaticMeshComponent != NULL)
 			{
+				UMaterialInterface* MaterialToCheck = StaticMeshActor->StaticMeshComponent->GetMaterial(MaterialIndex);
+
 				bool bIsSourceTextureStreamedIn = SelectedTexture->IsFullyStreamedIn();
 
 				if( !bIsSourceTextureStreamedIn )
@@ -4905,138 +4930,95 @@ void FEdModeMeshPaint::DuplicateTextureMaterialCombo()
 
 					// We do a quick sanity check to make sure it is streamed fully streamed in now.
 					bIsSourceTextureStreamedIn = SelectedTexture->IsFullyStreamedIn();
-
 				}
+		
+				UMaterial* NewMaterial = NULL;
 
-				if( bIsSourceTextureStreamedIn )
+				//Duplicate the texture.
+				UTexture2D* NewTexture;
 				{
-					//We found the correct combo, break out and do the duplication.
-					bFoundMaterialTextureCombo = true;
-					break;
-				}
-			}
+					TArray< UObject* > SelectedObjects, OutputObjects;
+					SelectedObjects.Add(SelectedTexture);
+					ObjectTools::DuplicateObjects(SelectedObjects, TEXT(""), TEXT(""), true, &OutputObjects);
 
-			++MaterialIndex;
-			MaterialToCheck = SMComponents[0]->GetMaterial( MaterialIndex );
-		}
-
-		if(bFoundMaterialTextureCombo)
-		{
-			UMaterial* NewMaterial = NULL;
-
-			//Duplicate the texture.
-			UTexture2D* NewTexture;
-			{
-				TArray< UObject* > SelectedObjects, OutputObjects;
-				SelectedObjects.Add(SelectedTexture);
-				ObjectTools::DuplicateObjects(SelectedObjects, TEXT(""), TEXT(""), true, &OutputObjects);
-
-				if(OutputObjects.Num() > 0)
-				{
-					NewTexture = (UTexture2D*)OutputObjects[0];
-
-					TArray<uint8> TexturePixels;
-					SelectedTexture->Source.GetMipData(TexturePixels, 0);					
-					uint8* DestData = NewTexture->Source.LockMip(0);					
-					check(NewTexture->Source.CalcMipSize(0)==TexturePixels.Num()*sizeof(uint8));
-					FMemory::Memcpy(DestData, TexturePixels.GetTypedData(), TexturePixels.Num() * sizeof( uint8 ) );
-					NewTexture->Source.UnlockMip(0);
-					NewTexture->SRGB = SelectedTexture->SRGB;
-					NewTexture->PostEditChange();
-				}
-				else
-				{
-					//The user backed out, end this quietly.
-					return;
-				}
-			}
-
-			// Create the new material instance
-			UMaterialInstanceConstant* NewMaterialInstance = NULL;
-			{
-				UClass* FactoryClass = UMaterialInstanceConstantFactoryNew::StaticClass();
-
-				UMaterialInstanceConstantFactoryNew* Factory = ConstructObject<UMaterialInstanceConstantFactoryNew>(UMaterialInstanceConstantFactoryNew::StaticClass());
-				if ( Factory->ConfigureProperties() )
-				{
-					FString AssetName;
-					FString PackagePath;
-
-					FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
-					AssetToolsModule.Get().CreateUniqueAssetName(MaterialToCheck->GetOutermost()->GetName(), TEXT("_Inst"), PackagePath, AssetName);
-					PackagePath = FPackageName::GetLongPackagePath(MaterialToCheck->GetPathName());
-					NewMaterialInstance = CastChecked<UMaterialInstanceConstant>(AssetToolsModule.Get().CreateAsset(AssetName, PackagePath, UMaterialInstanceConstant::StaticClass(), Factory ));
-				}
-
-				if(!NewMaterialInstance)
-				{
-					//appErrorf(TEXT("Could not duplicate %s"), *MaterialToCheck->GetName());
-					return;
-				}
-				
-				// Make sure we keep it around for editing even if we later ditch it. 
-				NewMaterialInstance->SetFlags(RF_Standalone);
-
-				//We want all uses of this texture to be replaced so go through the entire list.
-				NewMaterialInstance->SetParentEditorOnly( MaterialToCheck );
-				for(int32 IndexMP(0); IndexMP < MP_MAX; ++IndexMP)
-				{
-					TArray<UTexture*> OutTextures;
-					TArray<FName> OutTextureParamNames;
-					MaterialToCheck->GetTexturesInPropertyChain((EMaterialProperty)IndexMP, OutTextures, &OutTextureParamNames, NULL);
-					for(int32 ValueIndex(0); ValueIndex < OutTextureParamNames.Num(); ++ValueIndex)
+					if(OutputObjects.Num() > 0)
 					{
-						UTexture* OutTexture;
-						if(MaterialToCheck->GetTextureParameterValue(OutTextureParamNames[ValueIndex], OutTexture) == true && OutTexture == SelectedTexture)
+						NewTexture = (UTexture2D*)OutputObjects[0];
+
+						TArray<uint8> TexturePixels;
+						SelectedTexture->Source.GetMipData(TexturePixels, 0);					
+						uint8* DestData = NewTexture->Source.LockMip(0);					
+						check(NewTexture->Source.CalcMipSize(0)==TexturePixels.Num()*sizeof(uint8));
+						FMemory::Memcpy(DestData, TexturePixels.GetTypedData(), TexturePixels.Num() * sizeof( uint8 ) );
+						NewTexture->Source.UnlockMip(0);
+						NewTexture->SRGB = SelectedTexture->SRGB;
+						NewTexture->PostEditChange();
+					}
+					else
+					{
+						//The user backed out, end this quietly.
+						return;
+					}
+				}
+
+				// Create the new material instance
+				UMaterialInstanceConstant* NewMaterialInstance = NULL;
+				{
+					UClass* FactoryClass = UMaterialInstanceConstantFactoryNew::StaticClass();
+
+					UMaterialInstanceConstantFactoryNew* Factory = ConstructObject<UMaterialInstanceConstantFactoryNew>(UMaterialInstanceConstantFactoryNew::StaticClass());
+					if ( Factory->ConfigureProperties() )
+					{
+						FString AssetName;
+						FString PackagePath;
+
+						FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+						AssetToolsModule.Get().CreateUniqueAssetName(MaterialToCheck->GetOutermost()->GetName(), TEXT("_Inst"), PackagePath, AssetName);
+						PackagePath = FPackageName::GetLongPackagePath(MaterialToCheck->GetPathName());
+						NewMaterialInstance = CastChecked<UMaterialInstanceConstant>(AssetToolsModule.Get().CreateAsset(AssetName, PackagePath, UMaterialInstanceConstant::StaticClass(), Factory ));
+					}
+
+					if(!NewMaterialInstance)
+					{
+						//appErrorf(TEXT("Could not duplicate %s"), *MaterialToCheck->GetName());
+						return;
+					}
+				
+					// Make sure we keep it around for editing even if we later ditch it. 
+					NewMaterialInstance->SetFlags(RF_Standalone);
+
+					//We want all uses of this texture to be replaced so go through the entire list.
+					NewMaterialInstance->SetParentEditorOnly( MaterialToCheck );
+					for(int32 IndexMP(0); IndexMP < MP_MAX; ++IndexMP)
+					{
+						TArray<UTexture*> OutTextures;
+						TArray<FName> OutTextureParamNames;
+						MaterialToCheck->GetTexturesInPropertyChain((EMaterialProperty)IndexMP, OutTextures, &OutTextureParamNames, NULL);
+						for(int32 ValueIndex(0); ValueIndex < OutTextureParamNames.Num(); ++ValueIndex)
 						{
-							// Bind texture to the material instance
-							NewMaterialInstance->SetTextureParameterValueEditorOnly(OutTextureParamNames[ValueIndex], NewTexture);
+							UTexture* OutTexture;
+							if(MaterialToCheck->GetTextureParameterValue(OutTextureParamNames[ValueIndex], OutTexture) == true && OutTexture == SelectedTexture)
+							{
+								// Bind texture to the material instance
+								NewMaterialInstance->SetTextureParameterValueEditorOnly(OutTextureParamNames[ValueIndex], NewTexture);
+							}
 						}
 					}
+					NewMaterialInstance->MarkPackageDirty();
+					NewMaterialInstance->PostEditChange();
 				}
-				NewMaterialInstance->MarkPackageDirty();
-				NewMaterialInstance->PostEditChange();
+
+				bool bMaterialChanged = false;
+				UStaticMeshComponent* SMComponent = StaticMeshActor->StaticMeshComponent;
+				ClearStaticMeshTextureOverrides(SMComponent);
+
+				SMComponent->SetMaterial(MaterialIndex,NewMaterialInstance);
+				UpdateSettingsForStaticMeshComponent(SMComponent, SelectedTexture, NewTexture);
+
+				SMComponent->MarkPackageDirty();
+			
+				ActorSelectionChangeNotify();
 			}
-
-			bool bMaterialChanged = false;
-
-			// Iterate over selected static mesh components
-			for( int32 CurSMIndex = 0; CurSMIndex < SMComponents.Num(); ++CurSMIndex )
-			{
-				TArray<UMaterialInterface*> UsedMaterials;
-
-				// Currently we only support static mesh actors or dynamic static mesh actors
-				UStaticMeshComponent* StaticMesh = SMComponents[CurSMIndex];
-
-				//Release the old overrides.
-				ClearStaticMeshTextureOverrides(StaticMesh);
-
-				// Get all the used materials for this StaticMeshComponent
-				StaticMesh->GetUsedMaterials( UsedMaterials );
-
-				// Look in the mesh's materials to see which of the selected meshes use this material. 
-				// If it does, change it to the newly created instance.
-				for( int32 UsedIndex = 0; UsedIndex < UsedMaterials.Num(); UsedIndex++)
-				{
-					if( UsedMaterials[ UsedIndex ] ==  MaterialToCheck)
-					{
-						StaticMesh->SetMaterial(UsedIndex, NewMaterialInstance);
-						UpdateSettingsForStaticMeshComponent(StaticMesh, SelectedTexture, NewTexture);
-
-						bMaterialChanged = true;
-					}
-				}
-				
-				if ( bMaterialChanged == true )
-				{
-					// Reset material changed flag
-					bMaterialChanged = false;
-
-					// Make sure we dirty the package so the changes get saved.
-					StaticMesh->MarkPackageDirty();
-				}
-			}
-			ActorSelectionChangeNotify();
 		}
 	}
 }
@@ -5064,6 +5046,89 @@ void FEdModeMeshPaint::CreateNewTexture()
 			GEditor->SyncBrowserToObjects( Objects );
 		}	
 	}	
+}
+
+void FEdModeMeshPaint::SetEditingMesh( TWeakObjectPtr<AActor> InActor )
+{
+	ActorBeingEdited = InActor;
+	bShouldUpdateTextureList = true;
+}
+
+void FEdModeMeshPaint::SetEditingMaterialIndex( int32 SelectedIndex )
+{
+	if (CurrentlySelectedActorsMaterialInfo.Contains(ActorBeingEdited))
+	{
+		CurrentlySelectedActorsMaterialInfo[ActorBeingEdited].SelectedMaterialIndex = SelectedIndex;
+		bShouldUpdateTextureList = true;
+	}
+}
+
+int32 FEdModeMeshPaint::GetEditingMaterialIndex() const
+{
+	if (CurrentlySelectedActorsMaterialInfo.Contains(ActorBeingEdited))
+	{
+		return CurrentlySelectedActorsMaterialInfo[ActorBeingEdited].SelectedMaterialIndex;
+	}
+	return 0;
+}
+
+int32 FEdModeMeshPaint::GetEditingActorsNumberOfMaterials() const
+{
+	if (CurrentlySelectedActorsMaterialInfo.Contains(ActorBeingEdited))
+	{
+		return CurrentlySelectedActorsMaterialInfo[ActorBeingEdited].NumMaterials;
+	}
+	return 0;
+}
+
+void FEdModeMeshPaint::CacheActorInfo()
+{
+	TMap<TWeakObjectPtr<AActor>,FMeshSelectedMaterialInfo> TempMap;
+	TArray<UStaticMeshComponent*> SMComponents = GetValidStaticMeshComponents();
+	for( int32 CurSMIndex = 0; CurSMIndex < SMComponents.Num(); ++CurSMIndex )
+	{
+		TArray<UMaterialInterface*> UsedMaterials;
+
+		// Currently we only support static mesh actors or dynamic static mesh actors
+		UStaticMeshComponent* StaticMesh = SMComponents[CurSMIndex];
+
+		// Get the materials used by the mesh
+		StaticMesh->GetUsedMaterials( UsedMaterials );
+		AActor* CurActor = CastChecked< AActor >(StaticMesh->GetOuter());
+		if (CurActor != NULL)
+		{
+			if (!CurrentlySelectedActorsMaterialInfo.Contains(CurActor))
+			{
+				TempMap.Add(CurActor,FMeshSelectedMaterialInfo(UsedMaterials.Num()));
+			}
+			else
+			{
+				TempMap.Add(CurActor,CurrentlySelectedActorsMaterialInfo[CurActor]);
+			}
+		}
+	}
+
+	CurrentlySelectedActorsMaterialInfo.Empty(TempMap.Num());
+	CurrentlySelectedActorsMaterialInfo.Append(TempMap);
+
+	if ( (!ActorBeingEdited.IsValid() || !CurrentlySelectedActorsMaterialInfo.Contains(ActorBeingEdited)) && CurrentlySelectedActorsMaterialInfo.Num() > 0)
+	{
+		TArray<TWeakObjectPtr<AActor>> Keys;
+		CurrentlySelectedActorsMaterialInfo.GetKeys(Keys);
+		ActorBeingEdited = Keys[0];
+	}
+}
+
+TArray<TWeakObjectPtr<AActor>> FEdModeMeshPaint::GetEditingActors() const
+{
+	TArray<TWeakObjectPtr<AActor>> MeshNames;
+	CurrentlySelectedActorsMaterialInfo.GetKeys(MeshNames);
+	return MeshNames;
+}
+
+TWeakObjectPtr<AActor> FEdModeMeshPaint::GetEditingActor() const
+{
+	return ActorBeingEdited;
 }
 
 

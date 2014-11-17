@@ -31,6 +31,7 @@ private:
 	FDebugDrawDelegate DebugTextDrawingDelegate;
 	TArray<FEQSItemDebugData> DebugItems;
 	TArray<FEQSItemDebugData> FailedDebugItems;
+	// can be 0
 	AActor* ActorOwner;
 	const class IEQSQueryResultSourceInterface* QueryDataSource;
 	bool bUntestedItems;
@@ -39,14 +40,17 @@ private:
 	const FString ViewFlagName;
 
 	static const FVector ItemDrawRadius;
+
+	bool SafeIsActorSelected() const;
 };
 
 UCLASS(HeaderGroup=Component, hidecategories=Object)
-class UEQSRenderingComponent : public UPrimitiveComponent
+class ENGINE_API UEQSRenderingComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
 	FString DrawFlagName;
+	bool bDrawOnlyWhenSelected;
 
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() OVERRIDE;
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const OVERRIDE;

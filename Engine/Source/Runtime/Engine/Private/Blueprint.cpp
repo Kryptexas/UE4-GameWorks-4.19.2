@@ -181,7 +181,11 @@ void UBlueprint::Serialize(FArchive& Ar)
 	{
 		for (UClass* ClassIt = ParentClass; (ClassIt != NULL) && !(ClassIt->HasAnyClassFlags(CLASS_Native)); ClassIt = ClassIt->GetSuperClass())
 		{
-			if (ClassIt->ClassGeneratedBy->HasAnyFlags(RF_NeedLoad))
+			if (!ensure(ClassIt->ClassGeneratedBy != nullptr))
+			{
+				UE_LOG(LogBlueprint, Error, TEXT("Cannot preload parent blueprint from null ClassGeneratedBy field (for '%s')"), *ClassIt->GetName());
+			}
+			else if (ClassIt->ClassGeneratedBy->HasAnyFlags(RF_NeedLoad))
 			{
 				ClassIt->ClassGeneratedBy->GetLinker()->Preload(ClassIt->ClassGeneratedBy);
 			}
@@ -196,6 +200,7 @@ void UBlueprint::Serialize(FArchive& Ar)
 
 		FBlueprintEditorUtils::PreloadMembers(this);
 		FBlueprintEditorUtils::PreloadConstructionScript(this);
+		FBlueprintEditorUtils::RefreshInputDelegatePins(this);
 		FKismetEditorUtilities::GenerateBlueprintSkeleton(this);
 
 		bIsRegeneratingOnLoad = bWasRegen;
@@ -330,7 +335,7 @@ void UBlueprint::PostLoad()
 	}
 
 	// Make sure we have an SCS and ensure it's transactional
-	if( ParentClass && ParentClass->IsChildOf(AActor::StaticClass()) )
+	if( FBlueprintEditorUtils::SupportsConstructionScript(this) )
 	{
 		if(SimpleConstructionScript == NULL)
 		{
@@ -394,7 +399,7 @@ void UBlueprint::PostLoad()
 		{
 			UEdGraph* const Graph = *It;
 			const UEdGraphSchema* Schema = Graph->GetSchema();
-			Schema->BackwardCompatibilityNodeConversion(Graph);
+			Schema->BackwardCompatibilityNodeConversion(Graph, true);
 		}
 	}
 

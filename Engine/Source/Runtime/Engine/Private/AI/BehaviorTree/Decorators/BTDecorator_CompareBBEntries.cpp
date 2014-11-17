@@ -43,7 +43,7 @@ bool UBTDecorator_CompareBBEntries::CalculateRawConditionValue(class UBehaviorTr
 	{
 		//BlackboardComp->GetKeyType
 		const UBlackboardKeyType::CompareResult Result = BlackboardComp->CompareKeyValues(BlackboardKeyA.SelectedKeyType
-			, BlackboardKeyA.SelectedKeyID, BlackboardKeyB.SelectedKeyID);
+			, BlackboardKeyA.GetSelectedKeyID(), BlackboardKeyB.GetSelectedKeyID());
 
 		checkAtCompileTime(int32(UBlackboardKeyType::Equal) == int32(EBlackBoardEntryComparison::Equal)
 			&& int32(UBlackboardKeyType::NotEqual) == int32(EBlackBoardEntryComparison::NotEqual)
@@ -64,30 +64,30 @@ FString UBTDecorator_CompareBBEntries::GetStaticDescription() const
 		, Operator == EBlackBoardEntryComparison::Equal ? TEXT("EQUAL") : TEXT("NOT EQUAL"));
 }
 
-void UBTDecorator_CompareBBEntries::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTDecorator_CompareBBEntries::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->RegisterObserver(BlackboardKeyA.SelectedKeyID, BBKeyObserver);
-		BlackboardComp->RegisterObserver(BlackboardKeyB.SelectedKeyID, BBKeyObserver);
+		BlackboardComp->RegisterObserver(BlackboardKeyA.GetSelectedKeyID(), BBKeyObserver);
+		BlackboardComp->RegisterObserver(BlackboardKeyB.GetSelectedKeyID(), BBKeyObserver);
 	}
 }
 
-void UBTDecorator_CompareBBEntries::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+void UBTDecorator_CompareBBEntries::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
 	if (BlackboardComp)
 	{
-		BlackboardComp->UnregisterObserver(BlackboardKeyA.SelectedKeyID, BBKeyObserver);
-		BlackboardComp->UnregisterObserver(BlackboardKeyB.SelectedKeyID, BBKeyObserver);
+		BlackboardComp->UnregisterObserver(BlackboardKeyA.GetSelectedKeyID(), BBKeyObserver);
+		BlackboardComp->UnregisterObserver(BlackboardKeyB.GetSelectedKeyID(), BBKeyObserver);
 	}
 }
 
 void UBTDecorator_CompareBBEntries::OnBlackboardChange(const UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
 {
 	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBehaviorComponent() : NULL;
-	if (BehaviorComp && (BlackboardKeyA.SelectedKeyID == ChangedKeyID || BlackboardKeyB.SelectedKeyID == ChangedKeyID))
+	if (BehaviorComp && (BlackboardKeyA.GetSelectedKeyID() == ChangedKeyID || BlackboardKeyB.GetSelectedKeyID() == ChangedKeyID))
 	{
 		BehaviorComp->RequestExecution(this);		
 	}

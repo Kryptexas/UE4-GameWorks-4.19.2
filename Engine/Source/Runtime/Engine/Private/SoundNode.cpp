@@ -72,7 +72,7 @@ void USoundNode::InsertChildNode( int32 Index )
 	{
 		ChildNodes.InsertZeroed( Index );
 #if WITH_EDITORONLY_DATA
-		GraphNode->AddInputPin();
+		GraphNode->CreateInputPin();
 #endif //WITH_EDITORONLY_DATA
 	}
 }

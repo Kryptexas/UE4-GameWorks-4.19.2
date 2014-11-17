@@ -7,11 +7,6 @@ float2 InvSize;
 Texture2D		Texture;
 SamplerState	TextureSampler;
 
-#if PS4_PROFILE
-#define SLOT0_32 1
-#include "PS4/PS4Pragmas.usf"
-#endif
-
 void HZBBuildPS(float2 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV[4];
@@ -43,12 +38,6 @@ void HZBBuildPS(float2 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 	OutColor = min( min(Depth.x, Depth.y), min(Depth.z, Depth.w) );
 #endif
 }
-
-#if PS4_PROFILE
-#define SLOT_RESET 1
-#include "PS4/PS4Pragmas.usf"
-#endif
-
 
 Texture2D		HZBTexture;
 SamplerState	HZBSampler;

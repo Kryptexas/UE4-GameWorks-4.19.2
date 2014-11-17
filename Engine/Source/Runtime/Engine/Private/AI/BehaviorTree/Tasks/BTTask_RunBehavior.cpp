@@ -7,7 +7,7 @@ UBTTask_RunBehavior::UBTTask_RunBehavior(const class FPostConstructInitializePro
 	NodeName = "Run Behavior";
 }
 
-EBTNodeResult::Type UBTTask_RunBehavior::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_RunBehavior::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	const bool bPushed = OwnerComp->PushInstance(BehaviorAsset);
 	return bPushed ? EBTNodeResult::InProgress : EBTNodeResult::Failed;

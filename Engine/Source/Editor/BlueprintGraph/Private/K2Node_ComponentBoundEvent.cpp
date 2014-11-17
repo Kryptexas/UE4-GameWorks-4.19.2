@@ -4,13 +4,24 @@
 
 #include "EngineLevelScriptClasses.h"
 
+#define LOCTEXT_NAMESPACE "K2Node"
+
 UK2Node_ComponentBoundEvent::UK2Node_ComponentBoundEvent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 }
 
-FString UK2Node_ComponentBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_ComponentBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
+	Args.Add(TEXT("ComponentPropertyName"), FText::FromName(ComponentPropertyName));
+	return FText::Format(LOCTEXT("ComponentBoundEvent_Title", "{DelegatePropertyName} ({ComponentPropertyName})"), Args);
+}
+
+FString UK2Node_ComponentBoundEvent::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	return FString::Printf(TEXT("%s (%s)"), *DelegatePropertyName.ToString(), *ComponentPropertyName.ToString());
 }
 
@@ -84,3 +95,5 @@ FString UK2Node_ComponentBoundEvent::GetDocumentationExcerptName() const
 {
 	return DelegatePropertyName.ToString();
 }
+
+#undef LOCTEXT_NAMESPACE

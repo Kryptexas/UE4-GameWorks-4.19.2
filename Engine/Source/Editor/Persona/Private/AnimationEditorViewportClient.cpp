@@ -801,6 +801,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		{
 			int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest[0];
 			const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
+			FTransform ReferenceTransform = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
 			FTransform LocalTransform = PreviewSkelMeshComp->LocalAtoms[BoneIndex];
 			FTransform ComponentTransform = PreviewSkelMeshComp->SpaceBases[BoneIndex];
 
@@ -811,6 +812,10 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 			CurYOffset += YL + 2;
 			InfoString = FString::Printf(TEXT("Component :%s"), *ComponentTransform.ToString());
 			Canvas->DrawShadowedString( CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor );
+
+			CurYOffset += YL + 2;
+			InfoString = FString::Printf(TEXT("Reference :%s"), *ReferenceTransform.ToString());
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), TextColor);
 		}
 
 		CurYOffset += YL + 2;
@@ -918,7 +923,8 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 		if ( BoneIndex >= 0 )
 		{
 			//Get the skeleton control manipulating this bone
-			SkelControl = &(PreviewSkelMeshComp->PreviewInstance->SingleBoneController);
+			const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
+			SkelControl = &(PreviewSkelMeshComp->PreviewInstance->ModifyBone(BoneName));
 		}
 
 		if ( SkelControl || SelectedSocket )
@@ -941,20 +947,23 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			// Remove SkelControl's orientation from BoneMatrix, as we need to translate/rotate in the non-SkelControlled space
 			BaseTM = BaseTM.InverseSafe() * CurrentSkelControlTM;
 
-			if (WidgetMode == FWidget::WM_Rotate)
+			const bool bDoRotation    = WidgetMode == FWidget::WM_Rotate    || WidgetMode == FWidget::WM_TranslateRotateZ;
+			const bool bDoTranslation = WidgetMode == FWidget::WM_Translate || WidgetMode == FWidget::WM_TranslateRotateZ;
+
+			if (bDoRotation)
 			{
 				FVector RotAxis;
 				float RotAngle;
-				Rot.Quaternion().ToAxisAndAngle( RotAxis, RotAngle );
+				Rot.Quaternion().ToAxisAndAngle(RotAxis, RotAngle);
 
-				FVector4 BoneSpaceAxis = BaseTM.TransformVector( RotAxis );
+				FVector4 BoneSpaceAxis = BaseTM.TransformVector(RotAxis);
 
 				//Calculate the new delta rotation
-				FQuat DeltaQuat( BoneSpaceAxis, RotAngle );
+				FQuat DeltaQuat(BoneSpaceAxis, RotAngle);
 
-				FRotator NewRotation = ( CurrentSkelControlTM * FTransform( DeltaQuat ) ).Rotator();
+				FRotator NewRotation = (CurrentSkelControlTM * FTransform(DeltaQuat)).Rotator();
 
-				if ( SelectedSocket )
+				if (SelectedSocket)
 				{
 					SelectedSocket->RelativeRotation = NewRotation;
 				}
@@ -963,7 +972,8 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 					SkelControl->Rotation = NewRotation;
 				}
 			}
-			else if (WidgetMode == FWidget::WM_Translate)
+
+			if (bDoTranslation)
 			{
 				FVector4 BoneSpaceOffset = BaseTM.TransformVector(Drag);
 
@@ -976,10 +986,8 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 					SkelControl->Translation += BoneSpaceOffset;
 				}
 			}
-			else if (WidgetMode == FWidget::WM_Scale)
-			{
-				//@TODO: ANIMATION: Add scaling support here
-			}
+
+			//@TODO: ANIMATION: Add scaling support here
 		}
 		else if( WindActor.IsValid() )
 		{
@@ -1017,35 +1025,62 @@ void FAnimationViewportClient::TrackingStarted( const struct FInputEventState& I
 		bool bValidAxis = false;
 		FVector WorldAxisDir;
 
-		if ( PreviewSkelMeshComp->SocketsOfInterest.Num() == 1 && InInputState.IsLeftMouseButtonPressed() && (Widget->GetCurrentAxis() & EAxisList::XYZ) != 0 )
+		if(InInputState.IsLeftMouseButtonPressed() && (Widget->GetCurrentAxis() & EAxisList::XYZ) != 0)
 		{
-			const bool bAltDown = InInputState.IsAltButtonPressed();
-
-			if ( bAltDown && PersonaPtr.IsValid() )
+			if ( PreviewSkelMeshComp->SocketsOfInterest.Num() == 1 )
 			{
-				// Rather than moving/rotating the selected socket, copy it and move the copy instead
-				PersonaPtr.Pin()->DuplicateAndSelectSocket( PreviewSkelMeshComp->SocketsOfInterest[0] );
+				const bool bAltDown = InInputState.IsAltButtonPressed();
+
+				if ( bAltDown && PersonaPtr.IsValid() )
+				{
+					// Rather than moving/rotating the selected socket, copy it and move the copy instead
+					PersonaPtr.Pin()->DuplicateAndSelectSocket( PreviewSkelMeshComp->SocketsOfInterest[0] );
+				}
+
+				// Socket movement is transactional - we want undo/redo and saving of it
+				USkeletalMeshSocket* Socket = PreviewSkelMeshComp->SocketsOfInterest[0].Socket;
+
+				if ( Socket && bInTransaction == false )
+				{
+					if (WidgetMode == FWidget::WM_Rotate )
+					{
+						GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_RotateSocket", "Rotate Socket" ) );
+					}
+					else
+					{
+						GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_TranslateSocket", "Translate Socket" ) );
+					}
+
+					Socket->SetFlags( RF_Transactional );	// Undo doesn't work without this!
+					Socket->Modify();
+					bInTransaction = true;
+				}
 			}
-
-			// Socket movement is transactional - we want undo/redo and saving of it
-			USkeletalMeshSocket* Socket = PreviewSkelMeshComp->SocketsOfInterest[0].Socket;
-
-			if ( Socket && bInTransaction == false )
+			else if( BoneIndex >= 0 )
 			{
-				if (WidgetMode == FWidget::WM_Rotate )
+				if ( bInTransaction == false )
 				{
-					GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_RotateSocket", "Rotate Socket" ) );
-				}
-				else
-				{
-					GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_TranslateSocket", "Translate Socket" ) );
-				}
+					// we also allow undo/redo of bone manipulations
+					if (WidgetMode == FWidget::WM_Rotate )
+					{
+						GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_RotateBone", "Rotate Bone" ) );
+					}
+					else
+					{
+						GEditor->BeginTransaction( LOCTEXT("AnimationEditorViewport_TranslateBone", "Translate Bone" ) );
+					}
 
-				Socket->SetFlags( RF_Transactional );	// Undo doesn't work without this!
-				Socket->Modify();
-				bInTransaction = true;
+					PreviewSkelMeshComp->PreviewInstance->SetFlags( RF_Transactional );	// Undo doesn't work without this!
+					PreviewSkelMeshComp->PreviewInstance->Modify();
+					bInTransaction = true;
+
+					// now modify the bone array
+					const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
+					PreviewSkelMeshComp->PreviewInstance->ModifyBone(BoneName);
+				}
 			}
 		}
+
 
 		bManipulating = true;
 	}
@@ -1069,18 +1104,20 @@ void FAnimationViewportClient::TrackingStopped()
 
 FWidget::EWidgetMode FAnimationViewportClient::GetWidgetMode() const
 {
-	if ((PreviewSkelMeshComp != NULL) && ((PreviewSkelMeshComp->BonesOfInterest.Num() == 1) || (PreviewSkelMeshComp->SocketsOfInterest.Num() == 1)))
+	FWidget::EWidgetMode Mode = FWidget::WM_None;
+	if (!PreviewSkelMeshComp->IsAnimBlueprintInstanced())
 	{
-		return WidgetMode;
+		if ((PreviewSkelMeshComp != NULL) && ((PreviewSkelMeshComp->BonesOfInterest.Num() == 1) || (PreviewSkelMeshComp->SocketsOfInterest.Num() == 1)))
+		{
+			Mode = WidgetMode;
+		}
+		else if (SelectedWindActor.IsValid())
+		{
+			Mode = WidgetMode;
+		}
 	}
-	else if (SelectedWindActor.IsValid())
-	{
-		return WidgetMode;
-	}
-	else
-	{
-		return FWidget::WM_None;
-	}
+
+	return Mode;
 }
 
 FVector FAnimationViewportClient::GetWidgetLocation() const
@@ -1717,7 +1754,7 @@ void FAnimationViewportClient::SetGravityScale( float SliderPos )
 
 	UWorld* World = PersonaPtr.Pin()->PreviewComponent->GetWorld();
 	AWorldSettings* Setting = World->GetWorldSettings();
-	Setting->WorldGravityZ = Setting->DefaultGravityZ*RealGravityScale;
+	Setting->WorldGravityZ = UPhysicsSettings::Get()->DefaultGravityZ*RealGravityScale;
 	Setting->bWorldGravitySet = true;
 }
 

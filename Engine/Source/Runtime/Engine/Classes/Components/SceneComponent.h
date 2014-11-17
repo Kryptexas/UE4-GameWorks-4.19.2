@@ -75,7 +75,7 @@ class ENGINE_API USceneComponent : public UActorComponent
 	uint32 bRequiresCustomLocation:1;
 
 	/** If RelativeLocation should be considered relative to the world, rather than the parent */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Transform)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	uint32 bAbsoluteLocation:1;
 
 private:
@@ -89,15 +89,15 @@ private:
 public:
 
 	/** If RelativeRotation should be considered relative to the world, rather than the parent */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Transform)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	uint32 bAbsoluteRotation:1;
 
 	/** If RelativeScale3D should be considered relative to the world, rather than the parent */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Transform)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	uint32 bAbsoluteScale:1;
 
 	/** Whether to completely draw the primitive; if false, the primitive is not drawn, does not cast a shadow. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_Visibility,  Category = Rendering)
 	uint32 bVisible:1;
 
 	/** Whether to hide the primitive in game, if the primitive is Visible. */
@@ -132,11 +132,11 @@ public:
 	FBoxSphereBounds Bounds;
 
 	/** What we are currently attached to. If valid, RelativeLocation etc. are used relative to this object */
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	class USceneComponent* AttachParent;
 
 	/** Optional socket name on AttachParent that we are attached to. */
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	FName AttachSocketName;
 
 	/** List of child SceneComponents that are attached to us. */
@@ -144,11 +144,11 @@ public:
 	TArray< USceneComponent* > AttachChildren;
 
 	/** Location of this component relative to its parent */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Transform)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, Category = Transform)
 	FVector RelativeLocation;
 
 	/** Rotation of this component relative to its parent */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Transform)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, Category=Transform)
 	FRotator RelativeRotation;
 
 	UPROPERTY()
@@ -163,13 +163,27 @@ private:
 	UPROPERTY()
 	float RelativeScale_DEPRECATED;
 
+	bool NetUpdateTransform;
+
+	USceneComponent *NetOldAttachParent;
+	FName NetOldAttachSocketName;
+
+	UFUNCTION()
+	void OnRep_Transform();
+
+	UFUNCTION()
+	void OnRep_Visibility(bool OldValue);
+
+	virtual void PreNetReceive() OVERRIDE;
+	virtual void PostNetReceive() OVERRIDE;
+
 public:
 
 	/** 
 	 *	Non-uniform scaling of this component relative to its parent. 
 	 *	Note that scaling is always applied in local space (no shearing etc)
 	 */
-	UPROPERTY(BlueprintReadOnly, interp, Category=Transform)
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing=OnRep_Transform, interp, Category=Transform)
 	FVector RelativeScale3D;
 
 	/**

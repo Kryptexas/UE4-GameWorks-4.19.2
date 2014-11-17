@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "../BlueprintNodeHelpers.h"
+#include "BlueprintNodeHelpers.h"
 
 UBTTask_BlueprintBase::UBTTask_BlueprintBase(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
@@ -13,16 +13,13 @@ UBTTask_BlueprintBase::UBTTask_BlueprintBase(const class FPostConstructInitializ
 	bNotifyTick = bImplementsReceiveTick;
 	bShowPropertyDetails = true;
 
-	// no point in waiting, since we don't care about meta data anymore
-	DelayedInitialize();
-}
+	// all blueprint based nodes must create instances
+	bCreateNodeInstance = true;
 
-void UBTTask_BlueprintBase::DelayedInitialize()
-{
-	UClass* StopAtClass = UBTTask_BlueprintBase::StaticClass();
-	BlueprintNodeHelpers::CollectPropertyData(this, StopAtClass, PropertyData);
-
-	PropertyMemorySize = BlueprintNodeHelpers::GetPropertiesMemorySize(PropertyData);
+	if (HasAnyFlags(RF_ClassDefaultObject))
+	{
+		BlueprintNodeHelpers::CollectPropertyData(this, StopAtClass, PropertyData);
+	}
 }
 
 void UBTTask_BlueprintBase::PostInitProperties()
@@ -31,176 +28,100 @@ void UBTTask_BlueprintBase::PostInitProperties()
 	NodeName = BlueprintNodeHelpers::GetNodeName(this);
 }
 
-EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	CurrentCallResult = bImplementsReceiveExecute ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
 	if (bImplementsReceiveExecute)
 	{
-		CurrentCallOwner = OwnerComp;
 		bStoreFinishResult = true;
 
-		// can't use const functions with blueprints
-		UBTTask_BlueprintBase* MyNode = (UBTTask_BlueprintBase*)this;
+		ReceiveExecute(OwnerComp->GetOwner());
 
-		MyNode->CopyPropertiesFromMemory(NodeMemory);
-		MyNode->ReceiveExecute(CurrentCallOwner->GetOwner());
-		CopyPropertiesToMemory(NodeMemory);
-
-		CurrentCallOwner = NULL;
 		bStoreFinishResult = false;
 	}
 
 	return CurrentCallResult;
 }
 
-EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
 {
 	CurrentCallResult = bImplementsReceiveAbort ? EBTNodeResult::InProgress : EBTNodeResult::Aborted;
 	if (bImplementsReceiveAbort)
 	{
-		CurrentCallOwner = OwnerComp;
 		bStoreFinishResult = true;
 
-		// can't use const functions with blueprints
-		UBTTask_BlueprintBase* MyNode = (UBTTask_BlueprintBase*)this;
+		ReceiveAbort(OwnerComp->GetOwner());
 
-		MyNode->CopyPropertiesFromMemory(NodeMemory);
-		MyNode->ReceiveAbort(CurrentCallOwner->GetOwner());
-		CopyPropertiesToMemory(NodeMemory);
-
-		CurrentCallOwner = NULL;
 		bStoreFinishResult = false;
 	}
 
 	return CurrentCallResult;
 }
 
-void UBTTask_BlueprintBase::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) const
+void UBTTask_BlueprintBase::TickTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) 
 {
 	// skip flag, will be handled by bNotifyTick
 
-	// can't use const functions with blueprints
-	UBTTask_BlueprintBase* MyNode = (UBTTask_BlueprintBase*)this;
-	CurrentCallOwner = OwnerComp;
-
-	MyNode->CopyPropertiesFromMemory(NodeMemory);
-	MyNode->ReceiveTick(CurrentCallOwner->GetOwner(), DeltaSeconds);
-	CopyPropertiesToMemory(NodeMemory);
-
-	CurrentCallOwner = NULL;
+	ReceiveTick(OwnerComp->GetOwner(), DeltaSeconds);
 }
 
-void UBTTask_BlueprintBase::FinishExecute(UBTTask_BlueprintBase* NodeOwner, bool bSuccess)
+void UBTTask_BlueprintBase::FinishExecute(bool bSuccess)
 {
-	if (NodeOwner && NodeOwner->CurrentCallOwner)
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	EBTNodeResult::Type NodeResult(bSuccess ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
+
+	if (bStoreFinishResult)
 	{
-		EBTNodeResult::Type NodeResult(bSuccess ? EBTNodeResult::Succeeded : EBTNodeResult::Failed);
-		if (NodeOwner->bStoreFinishResult)
-		{
-			NodeOwner->CurrentCallResult = NodeResult;
-		}
-		else
-		{
-			NodeOwner->FinishLatentTask(NodeOwner->CurrentCallOwner, NodeResult);
-		}
+		CurrentCallResult = NodeResult;
+	}
+	else if (OwnerComp)
+	{
+		FinishLatentTask(OwnerComp, NodeResult);
 	}
 }
 
-void UBTTask_BlueprintBase::FinishAbort(UBTTask_BlueprintBase* NodeOwner)
+void UBTTask_BlueprintBase::FinishAbort()
 {
-	if (NodeOwner && NodeOwner->CurrentCallOwner)
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	EBTNodeResult::Type NodeResult(EBTNodeResult::Aborted);
+
+	if (bStoreFinishResult)
 	{
-		EBTNodeResult::Type NodeResult(EBTNodeResult::Aborted);
-		if (NodeOwner->bStoreFinishResult)
-		{
-			NodeOwner->CurrentCallResult = NodeResult;
-		}
-		else
-		{
-			NodeOwner->FinishLatentAbort(NodeOwner->CurrentCallOwner);
-		}
+		CurrentCallResult = NodeResult;
+	}
+	else if (OwnerComp)
+	{
+		FinishLatentAbort(OwnerComp);
 	}
 }
 
-void UBTTask_BlueprintBase::SetFinishOnMessage(UBTTask_BlueprintBase* NodeOwner, FName MessageName)
+void UBTTask_BlueprintBase::SetFinishOnMessage(FName MessageName)
 {
-	if (NodeOwner && NodeOwner->CurrentCallOwner)
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	if (OwnerComp)
 	{
-		NodeOwner->CurrentCallOwner->RegisterMessageObserver(NodeOwner, MessageName);
+		OwnerComp->RegisterMessageObserver(this, MessageName);
 	}
 }
 
-void UBTTask_BlueprintBase::SetFinishOnMessageWithId(UBTTask_BlueprintBase* NodeOwner, FName MessageName, int32 RequestID)
+void UBTTask_BlueprintBase::SetFinishOnMessageWithId(FName MessageName, int32 RequestID)
 {
-	if (NodeOwner && NodeOwner->CurrentCallOwner)
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	if (OwnerComp)
 	{
-		NodeOwner->CurrentCallOwner->RegisterMessageObserver(NodeOwner, MessageName, RequestID);
-	}
-}
-
-uint16 UBTTask_BlueprintBase::GetInstanceMemorySize() const
-{
-	return Super::GetInstanceMemorySize() + PropertyMemorySize;
-}
-
-void UBTTask_BlueprintBase::CopyPropertiesToMemory(uint8* NodeMemory) const
-{
-	if (PropertyMemorySize > 0)
-	{
-		BlueprintNodeHelpers::CopyPropertiesToContext(PropertyData, (uint8*)this, NodeMemory + Super::GetInstanceMemorySize());
-	}
-}
-
-void UBTTask_BlueprintBase::CopyPropertiesFromMemory(const uint8* NodeMemory)
-{
-	if (PropertyMemorySize > 0)
-	{
-		BlueprintNodeHelpers::CopyPropertiesFromContext(PropertyData, (uint8*)this, (uint8*)NodeMemory + Super::GetInstanceMemorySize());
-	}
-}
-
-void UBTTask_BlueprintBase::StartUsingExternalEvent(AActor* OwningActor)
-{
-	int32 InstanceIdx = INDEX_NONE;
-
-	const bool bFound = BlueprintNodeHelpers::FindNodeOwner(OwningActor, this, CurrentCallOwner, InstanceIdx);
-	if (bFound)
-	{
-		uint8* NodeMemory = CurrentCallOwner->GetNodeMemory(this, InstanceIdx);
-		if (NodeMemory)
-		{
-			CopyPropertiesFromMemory(NodeMemory);
-		}
-	}
-	else
-	{
-		UE_VLOG(OwningActor, LogBehaviorTree, Error, TEXT("Unable to find owning behavior tree for StartUsingExternalEvent!"));
-	}
-}
-
-void UBTTask_BlueprintBase::StopUsingExternalEvent()
-{
-	if (CurrentCallOwner != NULL)
-	{
-		const int32 InstanceIdx = CurrentCallOwner->FindInstanceContainingNode(this);
-		uint8* NodeMemory = CurrentCallOwner->GetNodeMemory(this, InstanceIdx);
-
-		if (NodeMemory)
-		{
-			CopyPropertiesToMemory(NodeMemory);
-		}
-			
-		CurrentCallOwner = NULL;
+		OwnerComp->RegisterMessageObserver(this, MessageName, RequestID);
 	}
 }
 
 FString UBTTask_BlueprintBase::GetStaticDescription() const
 {
 	FString ReturnDesc = Super::GetStaticDescription();
-	if (bShowPropertyDetails)
+
+	UBTTask_BlueprintBase* CDO = (UBTTask_BlueprintBase*)(GetClass()->GetDefaultObject());
+	if (bShowPropertyDetails && CDO)
 	{
 		UClass* StopAtClass = UBTTask_BlueprintBase::StaticClass();
-		FString PropertyDesc = BlueprintNodeHelpers::CollectPropertyDescription(this, StopAtClass, PropertyData);
+		FString PropertyDesc = BlueprintNodeHelpers::CollectPropertyDescription(this, StopAtClass, CDO->PropertyData);
 		if (PropertyDesc.Len())
 		{
 			ReturnDesc += TEXT(":\n\n");
@@ -213,9 +134,9 @@ FString UBTTask_BlueprintBase::GetStaticDescription() const
 
 void UBTTask_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
-	if (PropertyMemorySize > 0)
+	UBTTask_BlueprintBase* CDO = (UBTTask_BlueprintBase*)(GetClass()->GetDefaultObject());
+	if (CDO && CDO->PropertyData.Num())
 	{
-		UClass* StopAtClass = UBTTask_BlueprintBase::StaticClass();
-		BlueprintNodeHelpers::DescribeRuntimeValues(this, StopAtClass, PropertyData, NodeMemory + Super::GetInstanceMemorySize(), Verbosity, Values);
+		BlueprintNodeHelpers::DescribeRuntimeValues(this, CDO->PropertyData, Values);
 	}
 }

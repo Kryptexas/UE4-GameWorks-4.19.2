@@ -96,36 +96,35 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				return RedirectToAction( "" );
 			}
 
-			if( !string.IsNullOrEmpty( CrashesForm["SetStatus"] ) )
+			string FormValue;
+
+			FormValue = CrashesForm["SetStatus"];
+			if (!string.IsNullOrEmpty(FormValue))
 			{
-				CurrentCrash.Status = CrashesForm["SetStatus"];
-				LocalCrashRepository.SetCrashStatus(CurrentCrash.Status, Id.Value);
+				CurrentCrash.Status = FormValue;
+				LocalCrashRepository.SetCrashStatus(FormValue, Id.Value);
 			}
 
-			if( !string.IsNullOrEmpty( CrashesForm["SetFixedIn"] ) )
+			FormValue = CrashesForm["SetFixedIn"];
+			if (!string.IsNullOrEmpty(FormValue))
 			{
-				CurrentCrash.FixedChangeList = CrashesForm["SetFixedIn"];
-				LocalCrashRepository.SetCrashFixedChangeList(CurrentCrash.FixedChangeList, Id.Value);
+				CurrentCrash.FixedChangeList = FormValue;
+				LocalCrashRepository.SetCrashFixedChangeList(FormValue, Id.Value);
 			}
 
-			if( !string.IsNullOrEmpty( CrashesForm["SetTTP"] ) )
+			FormValue = CrashesForm["SetTTP"];
+			if (!string.IsNullOrEmpty(FormValue))
 			{
-				CurrentCrash.TTPID = CrashesForm["SetTTP"];
-				LocalCrashRepository.SetCrashTTPID(CurrentCrash.TTPID, Id.Value);
+				CurrentCrash.TTPID = FormValue;
+				LocalCrashRepository.SetCrashTTPID(FormValue, Id.Value);
 			}
 
-			if( !string.IsNullOrEmpty( CrashesForm["Description"] ) )
+			// Valid to set description to an empty string
+			FormValue = CrashesForm["Description"];
+			if (FormValue != null)
 			{
-				CurrentCrash.Description = CrashesForm["Description"];
-				LocalCrashRepository.SetCrashDescription(CurrentCrash.Description, Id.Value);
-			}
-			else
-			{
-				if( !string.IsNullOrEmpty( CurrentCrash.Description ) && string.IsNullOrEmpty( CrashesForm["Description"] ) )
-				{
-					CurrentCrash.Description = "";
-					LocalCrashRepository.SetCrashDescription(CurrentCrash.Description, Id.Value);
-				}
+				CurrentCrash.Description = FormValue;
+				LocalCrashRepository.SetCrashDescription(FormValue, Id.Value);
 			}
 
 			CurrentCallStack = new CallStackContainer( CurrentCrash );
@@ -143,20 +142,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			LocalCrashRepository.PopulateUserInfo( CurrentCrash );
 
 			return View( "Show", new CrashViewModel { Crash = CurrentCrash, CallStack = CurrentCallStack } );
-		}
-
-		/// <summary>
-		/// Map a machine Guid to a user and machine name.
-		/// </summary>
-		/// <param name="UserName">A user name - typically 'first.last'.</param>
-		/// <param name="MachineName">A machine name - e.g. Z2425</param>
-		/// <param name="MachineGUID">A Guid for the client machine retrieved from the registry.</param>
-		/// <returns>An empty result.</returns>
-		/// <remarks>After mapping the user to the Guid, all machine Guids in crashes that match are updated.</remarks>
-		public ActionResult RegisterPII( string UserName, string MachineName, string MachineGUID )
-		{
-			LocalCrashRepository.AddUserMapping( UserName, MachineName, MachineGUID );
-			return Content( "", "text/xml" );
 		}
 
 		/// <summary>

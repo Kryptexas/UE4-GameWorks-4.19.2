@@ -172,8 +172,6 @@ namespace UnrealBuildTool
 							Log.TraceVerbose("\t\t\t\t{0}", RelativePath);
 							if( !ProjectInfoDictionary.ContainsKey(RelativePath) )
 							{
-								FileInfo ProjFileInfo = new FileInfo(UProjFile);
-
 								DateTime TargetStartTime = DateTime.Now;
 
 								string SourceFolder = Path.Combine(Path.GetDirectoryName(UProjFile), "Source");

@@ -10,7 +10,7 @@ public class ICU : ModuleRules
 		string ICURootPath = UEBuildConfiguration.UEThirdPartyDirectory + "ICU/icu4c-51_2/";
 
 		// Includes
-		PublicIncludePaths.Add(ICURootPath + "include" + "/");
+		PublicSystemIncludePaths.Add(ICURootPath + "include" + "/");
 
 		string PlatformFolderName = Target.Platform.ToString();
 
@@ -62,14 +62,38 @@ public class ICU : ModuleRules
 
 			foreach (string Stem in LibraryNameStems)
 			{
-				string LibraryName = ICURootPath + "Mac/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+				string LibraryName = ICURootPath + "Mac/" + "lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
+				PublicAdditionalLibraries.Add(LibraryName);
+			}
+		}
+		else if (Target.Platform == UnrealTargetPlatform.PS4)
+		{
+			string LibraryNamePrefix = "sicu";
+			string[] LibraryNameStems =
+			{
+				"dt",	// Data
+				"uc",   // Unicode Common
+				"in",	// Internationalization
+				"le",   // Layout Engine
+				"lx",   // Layout Extensions
+				"io"	// Input/Output
+			};
+			string LibraryNamePostfix = (Target.Configuration == UnrealTargetConfiguration.Debug) ?
+				"d" : string.Empty;
+			string LibraryExtension = "lib";
+
+			foreach (string Stem in LibraryNameStems)
+			{
+				string LibraryName = ICURootPath + "PS4/lib/" + LibraryNamePrefix + Stem + LibraryNamePostfix + "." + LibraryExtension;
 				PublicAdditionalLibraries.Add(LibraryName);
 			}
 		}
 
+		// common defines
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32) ||
-			(Target.Platform == UnrealTargetPlatform.Mac))
+			(Target.Platform == UnrealTargetPlatform.Mac ||
+			(Target.Platform == UnrealTargetPlatform.PS4)))
 		{
 			// Definitions
 			Definitions.Add("U_USING_ICU_NAMESPACE=0"); // Disables a using declaration for namespace "icu".
@@ -77,6 +101,12 @@ public class ICU : ModuleRules
 			Definitions.Add("U_NO_DEFAULT_INCLUDE_UTF_HEADERS=1"); // Disables unnecessary inclusion of headers - inclusions are for ease of use.
 			Definitions.Add("UNISTR_FROM_CHAR_EXPLICIT=explicit"); // Makes UnicodeString constructors for ICU character types explicit.
 			Definitions.Add("UNISTR_FROM_STRING_EXPLICIT=explicit"); // Makes UnicodeString constructors for "char"/ICU string types explicit.
+		}
+		
+		if (Target.Platform == UnrealTargetPlatform.PS4)
+		{
+			// Definitions			
+			Definitions.Add(("ICU_NO_USER_DATA_OVERRIDE=1"));
 		}
 	}
 }

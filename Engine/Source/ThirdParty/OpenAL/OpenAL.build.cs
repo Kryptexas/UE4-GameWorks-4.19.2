@@ -8,15 +8,22 @@ public class OpenAL : ModuleRules
 	{
 		Type = ModuleType.External;
 		string version = "1.15.1";
-		if (Target.Platform == UnrealTargetPlatform.HTML5 ) 
+
+		string OpenALPath = UEBuildConfiguration.UEThirdPartyDirectory + "OpenAL/" + version + "/";
+		PublicIncludePaths.Add(OpenALPath + "include");
+        
+		if (Target.Platform == UnrealTargetPlatform.HTML5)
 		{
-            string openAL = UEBuildConfiguration.UEThirdPartyDirectory + "OpenAL/" + version + "/include";
-            PublicIncludePaths.Add(openAL);
 			if (Target.Architecture == "-win32")
 			{
 				// add libs for OpenAL32 
-				PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartyDirectory + "OpenAL/" + version + "/lib/Win32/libOpenAL32.dll.a");
+				PublicAdditionalLibraries.Add(OpenALPath + "lib/Win32/libOpenAL32.dll.a");
 			}
 		}
-	}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PublicLibraryPaths.Add(OpenALPath + "lib/Linux/");
+			PublicAdditionalLibraries.Add("openal");
+		}
+    }
 }

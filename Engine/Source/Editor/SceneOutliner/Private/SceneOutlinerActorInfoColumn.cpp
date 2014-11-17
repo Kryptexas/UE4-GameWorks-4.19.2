@@ -2,6 +2,7 @@
 
 #include "SceneOutlinerPrivatePCH.h"
 #include "SourceCodeNavigation.h"
+#include "SceneOutlinerTreeItems.h"
 
 #define LOCTEXT_NAMESPACE "SceneOutlinerActorInfoColumn"
 
@@ -33,32 +34,28 @@ SHeaderRow::FColumn::FArguments FSceneOutlinerActorInfoColumn::ConstructHeaderRo
 
 	/** Customizable actor data column */
 	return SHeaderRow::Column( GetColumnID() )
+		.HeaderComboVisibility(EHeaderComboVisibility::Ghosted)
+		.MenuContent()
+		[
+			SNew(SBorder)
+			.Padding(FMargin(5))
+			.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+			[
+				SNew(SListView<TSharedPtr<ECustomColumnMode::Type>>)
+				.ListItemsSource(&ModeOptions)
+				.OnGenerateRow( this, &FSceneOutlinerActorInfoColumn::MakeComboButtonItemWidget )
+				.OnSelectionChanged( this, &FSceneOutlinerActorInfoColumn::OnModeChanged )
+			]
+		]
+		.HeaderContent()
 		[
 			SNew( SHorizontalBox )
-			+SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			[
-				SNew( STextBlock )
-				.Text( LOCTEXT("TreeColumn_CustomColumn", "Info") )
-			]
 
 			+SHorizontalBox::Slot()
-			.AutoWidth()
 			.VAlign(VAlign_Center)
 			[
-				// @todo outliner: Alignment and style issues
-				SNew( SComboBox< TSharedPtr< ECustomColumnMode::Type > > )
-				.ContentPadding( FMargin( 0 ) )
-				.ToolTipText( LOCTEXT("CustomColumnModeComboBox_ToolTip", "Choose what type of information to display in this column") )
-				.OptionsSource( &ModeOptions )
-				.OnGenerateWidget( this, &FSceneOutlinerActorInfoColumn::MakeComboButtonItemWidget )
-				.OnSelectionChanged( this, &FSceneOutlinerActorInfoColumn::OnModeChanged )
-				[
-					SNew(STextBlock)
-					.Text( this, &FSceneOutlinerActorInfoColumn::GetSelectedMode )
-				]
-				// Synchronize the initial custom column mode selection
-				.InitiallySelectedItem( ModeOptions[ CurrentMode ] )
+				SNew(STextBlock)
+				.Text( this, &FSceneOutlinerActorInfoColumn::GetSelectedMode )
 			]
 		];
 }
@@ -82,16 +79,16 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 		{
 			static void OnEditBlueprintClicked( TWeakObjectPtr<UBlueprint> InBlueprint, TWeakObjectPtr<AActor> InAsset )
 			{
-				if ( UBlueprint* Blueprint = InBlueprint.Get() )
+				if ( UBlueprint* GeneratedByBlueprint = InBlueprint.Get() )
 				{
 					// Set the object being debugged if given an actor reference (if we don't do this before we edit the object the editor wont know we are debugging something)
 					if ( UObject* Asset = InAsset.Get() )
 					{
-						check( Asset->GetClass()->ClassGeneratedBy == Blueprint );
-						Blueprint->SetObjectBeingDebugged( Asset );
+						check(Asset->GetClass()->ClassGeneratedBy == GeneratedByBlueprint);
+						GeneratedByBlueprint->SetObjectBeingDebugged(Asset);
 					}
 					// Open the blueprint
-					GEditor->EditObject( Blueprint );
+					GEditor->EditObject(GeneratedByBlueprint);
 				}
 			}
 		};
@@ -112,9 +109,9 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 		{
 			struct Local
 			{
-				static void OnEditCodeClicked( FString ClassHeaderPath )
+				static void OnEditCodeClicked( FString InClassHeaderPath )
 				{
-					FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *ClassHeaderPath );
+					FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*InClassHeaderPath);
 					FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
 				}
 			};
@@ -137,40 +134,44 @@ TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructClassHyperlink( co
 		.Visibility( this, &FSceneOutlinerActorInfoColumn::GetColumnDataVisibility, true );
 }
 
-const TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructRowWidget( const TWeakObjectPtr< AActor >&  Actor )
+const TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem )
 {
-	TSharedRef<SHorizontalBox> InfoBox = SNew( SHorizontalBox );
+	if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
+	{
+		const auto Actor = StaticCastSharedRef<SceneOutliner::TOutlinerActorTreeItem>(TreeItem)->Actor;
+		return SNew( SHorizontalBox )
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding( 0.0f, 3.0f, 0.0f, 0.0f )
+			[
+				SNew( SHorizontalBox )
 
-	//.Visibility( [&] () { return CurrentMode != ECustomColumnMode::ActorClass ? EVisibility::Visible : EVisibility::Collapsed; } );
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew( STextBlock )
 
-	InfoBox->AddSlot()
-	.AutoWidth()
-	.Padding( 0.0f, 3.0f, 0.0f, 0.0f )
-	[
-		SNew( SHorizontalBox )
+					// Bind a delegate for custom text for this item's row
+					.Text( this, &FSceneOutlinerActorInfoColumn::GetTextForActor, Actor ) 
 
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew( STextBlock )
+					// Bind our filter text as the highlight string for the text block, so that when the user
+					// starts typing search criteria, this text highlights
+					.HighlightText( SceneOutlinerWeak.Pin().Get(), &ISceneOutliner::GetFilterHighlightText )
 
-			// Bind a delegate for custom text for this item's row
-			.Text( this, &FSceneOutlinerActorInfoColumn::GetTextForActor, Actor )
-			// Bind our filter text as the highlight string for the text block, so that when the user
-			// starts typing search criteria, this text highlights
-			.HighlightText( SceneOutlinerWeak.Pin().Get(), &ISceneOutliner::GetFilterHighlightText )
-			.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
-			.Visibility( this, &FSceneOutlinerActorInfoColumn::GetColumnDataVisibility, false )
-		]
-
-		+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			ConstructClassHyperlink( Actor )
-		]
-	];
-
-	return InfoBox;
+					.ColorAndOpacity( FSlateColor::UseSubduedForeground() )
+					.Visibility( this, &FSceneOutlinerActorInfoColumn::GetColumnDataVisibility, false )
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					ConstructClassHyperlink( Actor )
+				]
+			];
+	}
+	else
+	{
+		return SNullWidget::NullWidget;
+	}
 }
 
 bool FSceneOutlinerActorInfoColumn::ProvidesSearchStrings()
@@ -236,7 +237,7 @@ void FSceneOutlinerActorInfoColumn::SortItems(TArray<TSharedPtr<SceneOutliner::T
 		RootItems.Sort(
 			[=](TSharedPtr<SceneOutliner::TOutlinerTreeItem> A, TSharedPtr<SceneOutliner::TOutlinerTreeItem> B)
 			{
-				return GetTextForActor(A->Actor) < GetTextForActor(B->Actor);
+				return GetTextForItem(A.ToSharedRef()) < GetTextForItem(B.ToSharedRef());
 			}
 		);
 	}
@@ -245,7 +246,7 @@ void FSceneOutlinerActorInfoColumn::SortItems(TArray<TSharedPtr<SceneOutliner::T
 		RootItems.Sort(
 			[=](TSharedPtr<SceneOutliner::TOutlinerTreeItem> A, TSharedPtr<SceneOutliner::TOutlinerTreeItem> B)
 			{
-				return GetTextForActor(A->Actor) > GetTextForActor(B->Actor);
+				return GetTextForItem(A.ToSharedRef()) > GetTextForItem(B.ToSharedRef());
 			}
 		);
 	}
@@ -257,6 +258,7 @@ void FSceneOutlinerActorInfoColumn::OnModeChanged( TSharedPtr< ECustomColumnMode
 
 	// Refresh and refilter the list
 	SceneOutlinerWeak.Pin()->Refresh();
+	FSlateApplication::Get().DismissAllMenus();
 }
 
 EVisibility FSceneOutlinerActorInfoColumn::GetColumnDataVisibility( bool bIsClassHyperlink ) const
@@ -268,6 +270,18 @@ EVisibility FSceneOutlinerActorInfoColumn::GetColumnDataVisibility( bool bIsClas
 	else
 	{
 		return bIsClassHyperlink ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+}
+
+FString FSceneOutlinerActorInfoColumn::GetTextForItem( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) const
+{
+	if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
+	{
+		return GetTextForActor(StaticCastSharedRef<const SceneOutliner::TOutlinerActorTreeItem>(TreeItem)->Actor);
+	}
+	else
+	{
+		return StaticCastSharedRef<const SceneOutliner::TOutlinerFolderTreeItem>(TreeItem)->LeafName.ToString();
 	}
 }
 
@@ -329,6 +343,11 @@ FString FSceneOutlinerActorInfoColumn::GetTextForActor( const TWeakObjectPtr< AA
 
 FText FSceneOutlinerActorInfoColumn::GetSelectedMode() const
 {
+	if (CurrentMode == ECustomColumnMode::None)
+	{
+		return FText();
+	}
+
 	return MakeComboText(CurrentMode);
 }
 
@@ -339,7 +358,7 @@ FText FSceneOutlinerActorInfoColumn::MakeComboText( const ECustomColumnMode::Typ
 	switch( Mode )
 	{
 	case ECustomColumnMode::None:
-		ModeName = LOCTEXT("CustomColumnMode_None", " - ");
+		ModeName = LOCTEXT("CustomColumnMode_None", "None");
 		break;
 
 	case ECustomColumnMode::ActorClass:
@@ -363,7 +382,7 @@ FText FSceneOutlinerActorInfoColumn::MakeComboText( const ECustomColumnMode::Typ
 		break;
 
 	case ECustomColumnMode::UncachedLights:
-		ModeName = LOCTEXT("CustomColumnMode_UncachedLights", "#UncachedLights");
+		ModeName = LOCTEXT("CustomColumnMode_UncachedLights", "# Uncached Lights");
 		break;
 
 	default:
@@ -418,12 +437,15 @@ FText FSceneOutlinerActorInfoColumn::MakeComboToolTipText( const ECustomColumnMo
 }
 
 
-TSharedRef< SWidget > FSceneOutlinerActorInfoColumn::MakeComboButtonItemWidget( TSharedPtr< ECustomColumnMode::Type > Mode )
+TSharedRef< ITableRow > FSceneOutlinerActorInfoColumn::MakeComboButtonItemWidget( TSharedPtr< ECustomColumnMode::Type > Mode, const TSharedRef<STableViewBase>& Owner )
 {
 	return
-		SNew( STextBlock )
-		.Text( MakeComboText( *Mode ) )
-		.ToolTipText( MakeComboToolTipText( *Mode ) );
+		SNew( STableRow< TSharedPtr<ECustomColumnMode::Type> >, Owner )
+		[
+			SNew( STextBlock )
+			.Text( MakeComboText( *Mode ) )
+			.ToolTipText( MakeComboToolTipText( *Mode ) )
+		];
 }
 
 #undef LOCTEXT_NAMESPACE

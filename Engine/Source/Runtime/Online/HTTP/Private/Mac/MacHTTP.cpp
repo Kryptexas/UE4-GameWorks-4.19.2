@@ -376,7 +376,7 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 
 -(void) connectionDidFinishLoading:(NSURLConnection *)connection
 {
-	UE_LOG(LogHttp, Warning, TEXT("connectionDidFinishLoading: %p"), self);
+	UE_LOG(LogHttp, Verbose, TEXT("connectionDidFinishLoading: %p"), self);
 	self.bIsReady = YES;
 }
 
@@ -400,6 +400,8 @@ FMacHttpResponse::FMacHttpResponse(const FMacHttpRequest& InRequest)
 FMacHttpResponse::~FMacHttpResponse()
 {
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpResponse::~FMacHttpResponse()"));
+	[[ResponseWrapper Payload] release];
+	[ResponseWrapper release];
 }
 
 

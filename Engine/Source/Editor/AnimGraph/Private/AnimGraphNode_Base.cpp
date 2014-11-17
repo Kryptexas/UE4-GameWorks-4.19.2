@@ -220,12 +220,13 @@ TSharedPtr<FEdGraphSchemaAction_K2NewNode> UAnimGraphNode_Base::CreateDefaultMen
 	UAnimGraphNode_Base* TemplateNode = NewObject<UAnimGraphNode_Base>(GetTransientPackage(), GetClass());
 
 	FString Category = TemplateNode->GetNodeCategory();
-	FString MenuDesc = TemplateNode->GetNodeTitle(ENodeTitleType::ListView);
+	FText MenuDesc = TemplateNode->GetNodeTitle(ENodeTitleType::ListView);
 	FString Tooltip = TemplateNode->GetTooltip();
 	FString Keywords = TemplateNode->GetKeywords();
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip, 0, Keywords);
 	NodeAction->NodeTemplate = TemplateNode;
+	NodeAction->SearchTitle = TemplateNode->GetNodeSearchTitle();
 
 	return NodeAction;
 }

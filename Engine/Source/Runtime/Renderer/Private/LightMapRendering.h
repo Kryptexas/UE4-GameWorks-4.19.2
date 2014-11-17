@@ -603,6 +603,7 @@ public:
 			IndirectlightingCachePrimitiveScale.Bind(ParameterMap, TEXT("IndirectlightingCachePrimitiveScale"));
 			IndirectlightingCacheMinUV.Bind(ParameterMap, TEXT("IndirectlightingCacheMinUV"));
 			IndirectlightingCacheMaxUV.Bind(ParameterMap, TEXT("IndirectlightingCacheMaxUV"));
+			PointSkyBentNormal.Bind(ParameterMap, TEXT("PointSkyBentNormal"));
 		}
 
 		void Serialize(FArchive& Ar)
@@ -617,6 +618,7 @@ public:
 			Ar << IndirectlightingCachePrimitiveScale;
 			Ar << IndirectlightingCacheMinUV;
 			Ar << IndirectlightingCacheMaxUV;
+			Ar << PointSkyBentNormal;
 		}
 
 		FShaderResourceParameter IndirectLightingCacheTexture0;
@@ -629,6 +631,7 @@ public:
 		FShaderParameter IndirectlightingCachePrimitiveScale;
 		FShaderParameter IndirectlightingCacheMinUV;
 		FShaderParameter IndirectlightingCacheMaxUV;
+		FShaderParameter PointSkyBentNormal;
 	};
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
@@ -696,16 +699,19 @@ public:
 		void Bind(const FShaderParameterMap& ParameterMap)
 		{
 			IndirectLightingSHCoefficients.Bind(ParameterMap, TEXT("IndirectLightingSHCoefficients"));
+			PointSkyBentNormal.Bind(ParameterMap, TEXT("PointSkyBentNormal"));
 			DirectionalLightShadowing.Bind(ParameterMap, TEXT("DirectionalLightShadowing"));
 		}
 
 		void Serialize(FArchive& Ar)
 		{
 			Ar << IndirectLightingSHCoefficients;
+			Ar << PointSkyBentNormal;
 			Ar << DirectionalLightShadowing;
 		}
 
 		FShaderParameter IndirectLightingSHCoefficients;
+		FShaderParameter PointSkyBentNormal;
 		FShaderParameter DirectionalLightShadowing;
 	};
 
@@ -753,17 +759,20 @@ public:
 		void Bind(const FShaderParameterMap& ParameterMap)
 		{
 			IndirectLightingSHCoefficients.Bind(ParameterMap, TEXT("IndirectLightingSHCoefficients"));
+			PointSkyBentNormal.Bind(ParameterMap, TEXT("PointSkyBentNormal"));
 			FSelfShadowedTranslucencyPolicy::PixelParametersType::Bind(ParameterMap);
 		}
 
 		void Serialize(FArchive& Ar)
 		{
 			Ar << IndirectLightingSHCoefficients;
+			Ar << PointSkyBentNormal;
 
 			FSelfShadowedTranslucencyPolicy::PixelParametersType::Serialize(Ar);
 		}
 
 		FShaderParameter IndirectLightingSHCoefficients;
+		FShaderParameter PointSkyBentNormal;
 	};
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)

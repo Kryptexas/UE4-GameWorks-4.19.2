@@ -162,9 +162,17 @@ FString UK2Node_DelegateSet::GetTooltip() const
 	return Tooltip;
 }
 
-FString UK2Node_DelegateSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_DelegateSet::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return FString::Printf(*NSLOCTEXT("K2Node", "Assign_Name", "Assign %s").ToString(), *DelegatePropertyName.ToString());
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("DelegatePropertyName"), FText::FromName(DelegatePropertyName));
+	return FText::Format(NSLOCTEXT("K2Node", "Assign_Name", "Assign {DelegatePropertyName}"), Args);
+}
+
+FString UK2Node_DelegateSet::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
+	return FString::Printf(TEXT("Assign %s"), *DelegatePropertyName.ToString());
 }
 
 UEdGraphPin* UK2Node_DelegateSet::GetDelegateOwner() const

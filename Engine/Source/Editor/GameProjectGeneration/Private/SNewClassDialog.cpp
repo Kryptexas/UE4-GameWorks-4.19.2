@@ -391,7 +391,7 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 		return SNew( STableRow<TSharedPtr<FParentClassItem>>, OwnerTable );
 	}
 
-	const FString ClassName = EngineUtils::SanitizeDisplayName( Class->GetName(), false );
+	const FString ClassName = FName::NameToDisplayString( Class->GetName(), false );
 	FString ClassDescription = Class->GetToolTipText().ToString();
 	int32 NewLineIndex = 0;
 	if (ClassDescription.FindChar('.', NewLineIndex))
@@ -451,10 +451,10 @@ TSharedRef<ITableRow> SNewClassDialog::MakeParentClassListViewWidget(TSharedPtr<
 
 FString SNewClassDialog::GetSelectedParentClassName() const
 {
-	const UClass* ParentClass = GetSelectedParentClass();
-	if ( ParentClass )
+	const UClass* SelectedParentClass = GetSelectedParentClass();
+	if (SelectedParentClass)
 	{
-		return ParentClass->GetName();
+		return SelectedParentClass->GetName();
 	}
 	else
 	{

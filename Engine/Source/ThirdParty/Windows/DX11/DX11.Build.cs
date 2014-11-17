@@ -34,7 +34,7 @@ public class DX11 : ModuleRules
 				"d3d11.lib",
 				"dxguid.lib",
 				"d3dcompiler.lib",
-				(Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d3dx11d.lib" : "d3dx11.lib",
+                (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT) ? "d3dx11d.lib" : "d3dx11.lib",				
 				"dinput8.lib",
 				"X3DAudio.lib",
 				"xapobase.lib",

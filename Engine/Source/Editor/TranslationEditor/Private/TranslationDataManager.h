@@ -11,11 +11,11 @@ class FInternationalizationManifest;
 #include "InternationalizationManifestJsonSerializer.h"
 #include "TranslationDataObject.h"
 
-class FTranslationDataManager
+class FTranslationDataManager : public TSharedFromThis<FTranslationDataManager>
 {
 
 public:
-	FTranslationDataManager( const FName& ProjectName, const FName& TranslationTargetLanguage );
+	FTranslationDataManager( const FString& ManifestFile, const FString& ArchiveFile);
 
 	UTranslationDataObject* GetTranslationDataObject() 
 	{
@@ -24,6 +24,9 @@ public:
 	
 	/** Write the translation data in memory out to .archive file (check out the .archive file first if necessary) */
 	void WriteTranslationData();
+
+	/** Delegate called when a TranslationDataObject property is changed */
+	void HandlePropertyChanged(FName PropertyName);
 
 private:
 	/** Read text file into a JSON file */

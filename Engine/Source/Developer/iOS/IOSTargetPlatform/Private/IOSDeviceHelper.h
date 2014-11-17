@@ -49,8 +49,14 @@ public:
         return DeviceDisconnectedDelegate;
     }
     
+    /**
+     * Installs an ipa on to the device
+     */
+    static bool InstallIPAOnDevice(const FTargetDeviceId& DeviceId, const FString& IPAPath);
+    
 private:
     static void DeviceCallback(void*);
     static void DoDeviceConnect(void*);
     static void DoDeviceDisconnect(void*);
+	static bool MessageTickDelegate(float);
 };

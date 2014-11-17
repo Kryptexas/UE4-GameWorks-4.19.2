@@ -92,7 +92,7 @@ public:
 
 void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresence)
 {
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(*Subsystem));
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(InWorld, FName(*Subsystem));
 	check(OnlineSub); 
 
 	World = InWorld;
@@ -105,8 +105,8 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 	
 	// Cache interfaces
 	Identity = OnlineSub->GetIdentityInterface();
-	Sessions = OnlineSub->GetSessionInterface();
-	check(Sessions.IsValid());
+	SessionInt = OnlineSub->GetSessionInterface();
+	check(SessionInt.IsValid());
 	Friends = OnlineSub->GetFriendsInterface();
 
 	// Define delegates
@@ -143,26 +143,26 @@ void FTestSessionInterface::Test(UWorld* InWorld, bool bTestLAN, bool bIsPresenc
 	{
  		HostSettings = MakeShareable(new TestOnlineGameSettings(bTestLAN, bIsPresence));
 		HostSettings->AddWorldSettings(InWorld);
- 		Sessions->AddOnCreateSessionCompleteDelegate(OnCreateSessionCompleteDelegate);
- 		Sessions->CreateSession(0, TEXT("Game"), *HostSettings);
+ 		SessionInt->AddOnCreateSessionCompleteDelegate(OnCreateSessionCompleteDelegate);
+ 		SessionInt->CreateSession(0, GameSessionName, *HostSettings);
 	}
 	else
 	{
 		SearchSettings = MakeShareable(new TestOnlineSearchSettings(bTestLAN, bIsPresence));
 		TSharedRef<FOnlineSessionSearch> SearchSettingsRef = SearchSettings.ToSharedRef();
 
-		Sessions->AddOnFindSessionsCompleteDelegate(OnFindSessionsCompleteDelegate);
-		Sessions->FindSessions(0, SearchSettingsRef);
+		SessionInt->AddOnFindSessionsCompleteDelegate(OnFindSessionsCompleteDelegate);
+		SessionInt->FindSessions(0, SearchSettingsRef);
 	}
 
 	// Always on the lookout for invite acceptance (via actual invite or join in an external client)
 	OnSessionInviteAcceptedDelegate = FOnSessionInviteAcceptedDelegate::CreateRaw(this, &FTestSessionInterface::OnSessionInviteAccepted);
-	Sessions->AddOnSessionInviteAcceptedDelegate(0, OnSessionInviteAcceptedDelegate);
+	SessionInt->AddOnSessionInviteAcceptedDelegate(0, OnSessionInviteAcceptedDelegate);
 }
 
 void FTestSessionInterface::ClearDelegates()
 {
-	Sessions->ClearOnSessionInviteAcceptedDelegate(0, OnSessionInviteAcceptedDelegate);
+	SessionInt->ClearOnSessionInviteAcceptedDelegate(0, OnSessionInviteAcceptedDelegate);
 	GEngine->OnWorldDestroyed().RemoveAll(this);
 }
 
@@ -191,52 +191,52 @@ void FTestSessionInterface::OnSessionInviteAccepted(int32 LocalUserNum, bool bWa
 
 	if (bWasSuccessful)
 	{
-		JoinSession(LocalUserNum, TEXT("Game"), SearchResult);
+		JoinSession(LocalUserNum, GameSessionName, SearchResult);
 	}
 }
 
 void FTestSessionInterface::OnEndForJoinSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnEndForJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnEndSessionCompleteDelegate(OnEndForJoinSessionCompleteDelegate);
+	SessionInt->ClearOnEndSessionCompleteDelegate(OnEndForJoinSessionCompleteDelegate);
 	DestroyExistingSession(SessionName, OnDestroyForJoinSessionCompleteDelegate);
 }
 
 void FTestSessionInterface::EndExistingSession(FName SessionName, FOnEndSessionCompleteDelegate& Delegate)
 {
-	Sessions->AddOnEndSessionCompleteDelegate(Delegate);
-	Sessions->EndSession(SessionName);
+	SessionInt->AddOnEndSessionCompleteDelegate(Delegate);
+	SessionInt->EndSession(SessionName);
 }
 
 void FTestSessionInterface::OnDestroyForJoinSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnDestroyForJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnDestroySessionCompleteDelegate(OnDestroyForJoinSessionCompleteDelegate);
+	SessionInt->ClearOnDestroySessionCompleteDelegate(OnDestroyForJoinSessionCompleteDelegate);
 	JoinSession(0, SessionName, CachedSessionResult);
 }
 
 void FTestSessionInterface::DestroyExistingSession(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate)
 {
-	Sessions->AddOnDestroySessionCompleteDelegate(Delegate);
-	Sessions->DestroySession(SessionName);
+	SessionInt->AddOnDestroySessionCompleteDelegate(Delegate);
+	SessionInt->DestroySession(SessionName);
 }
 
 void FTestSessionInterface::OnRegisterPlayerComplete(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnRegisterPlayerComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnRegisterPlayersCompleteDelegate(OnRegisterPlayersCompleteDelegate);
+	SessionInt->ClearOnRegisterPlayersCompleteDelegate(OnRegisterPlayersCompleteDelegate);
 }
 
 void FTestSessionInterface::OnUnregisterPlayerComplete(FName SessionName, const TArray< TSharedRef<FUniqueNetId> >& Players, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnUnregisterPlayerComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnUnregisterPlayersCompleteDelegate(OnUnregisterPlayersCompleteDelegate);
+	SessionInt->ClearOnUnregisterPlayersCompleteDelegate(OnUnregisterPlayersCompleteDelegate);
 }
 
 void FTestSessionInterface::JoinSession(int32 LocalUserNum, FName SessionName, const FOnlineSessionSearchResult& SearchResult)
 {
 	// Clean up existing sessions if applicable
-	EOnlineSessionState::Type SessionState = Sessions->GetSessionState(SessionName);
+	EOnlineSessionState::Type SessionState = SessionInt->GetSessionState(SessionName);
 	if (SessionState != EOnlineSessionState::NoSession)
 	{
 		CachedSessionResult = SearchResult;
@@ -244,15 +244,15 @@ void FTestSessionInterface::JoinSession(int32 LocalUserNum, FName SessionName, c
 	}
 	else
 	{
-		Sessions->AddOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
-		Sessions->JoinSession(LocalUserNum, SessionName, SearchResult);
+		SessionInt->AddOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
+		SessionInt->JoinSession(LocalUserNum, SessionName, SearchResult);
 	}
 }
 
 void FTestSessionInterface::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnCreateSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnCreateSessionCompleteDelegate(OnCreateSessionCompleteDelegate);
+	SessionInt->ClearOnCreateSessionCompleteDelegate(OnCreateSessionCompleteDelegate);
 
 	bWasLastCommandSuccessful = bWasSuccessful;
 }
@@ -260,7 +260,7 @@ void FTestSessionInterface::OnCreateSessionComplete(FName SessionName, bool bWas
 void FTestSessionInterface::OnStartSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnStartSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnStartSessionCompleteDelegate(OnStartSessionCompleteDelegate);
+	SessionInt->ClearOnStartSessionCompleteDelegate(OnStartSessionCompleteDelegate);
 
 	bWasLastCommandSuccessful = bWasSuccessful;
 }
@@ -268,7 +268,7 @@ void FTestSessionInterface::OnStartSessionComplete(FName SessionName, bool bWasS
 void FTestSessionInterface::OnEndSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnEndSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnEndSessionCompleteDelegate(OnEndSessionCompleteDelegate);
+	SessionInt->ClearOnEndSessionCompleteDelegate(OnEndSessionCompleteDelegate);
 
 	bWasLastCommandSuccessful = bWasSuccessful;
 }
@@ -276,24 +276,24 @@ void FTestSessionInterface::OnEndSessionComplete(FName SessionName, bool bWasSuc
 void FTestSessionInterface::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnDestroySessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnDestroySessionCompleteDelegate(OnDestroySessionCompleteDelegate);
+	SessionInt->ClearOnDestroySessionCompleteDelegate(OnDestroySessionCompleteDelegate);
 }
 
 void FTestSessionInterface::OnUpdateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnUpdateSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnUpdateSessionCompleteDelegate(OnUpdateSessionCompleteDelegate);
+	SessionInt->ClearOnUpdateSessionCompleteDelegate(OnUpdateSessionCompleteDelegate);
 }
 
 void FTestSessionInterface::OnJoinSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnJoinSessionComplete %s bSuccess: %d"), *SessionName.ToString(), bWasSuccessful);
-	Sessions->ClearOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
+	SessionInt->ClearOnJoinSessionCompleteDelegate(OnJoinSessionCompleteDelegate);
 
 	if (bWasSuccessful)
 	{
 		FString URL;
-		if (World && Sessions->GetResolvedConnectString(SessionName, URL))
+		if (World && SessionInt->GetResolvedConnectString(SessionName, URL))
 		{
 			APlayerController* PC = UGameplayStatics::GetPlayerController(World, 0);
 			if (PC)
@@ -311,12 +311,12 @@ void FTestSessionInterface::OnJoinSessionComplete(FName SessionName, bool bWasSu
 void FTestSessionInterface::OnFindFriendSessionComplete(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnFindFriendSessionComplete LocalUserNum: %d bSuccess: %d"), LocalUserNum, bWasSuccessful);
-	Sessions->ClearOnFindFriendSessionCompleteDelegate(LocalUserNum, OnFindFriendSessionCompleteDelegate);
+	SessionInt->ClearOnFindFriendSessionCompleteDelegate(LocalUserNum, OnFindFriendSessionCompleteDelegate);
 	if (bWasSuccessful)
 	{
 		if (SearchResult.IsValid())
 		{
-			JoinSession(LocalUserNum, TEXT("Game"), SearchResult);
+			JoinSession(LocalUserNum, GameSessionName, SearchResult);
 		}
 		else
 		{
@@ -328,7 +328,7 @@ void FTestSessionInterface::OnFindFriendSessionComplete(int32 LocalUserNum, bool
 void FTestSessionInterface::OnFindSessionsComplete(bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnFindSessionsComplete bSuccess: %d"), bWasSuccessful);
-	Sessions->ClearOnFindSessionsCompleteDelegate(OnFindSessionsCompleteDelegate);
+	SessionInt->ClearOnFindSessionsCompleteDelegate(OnFindSessionsCompleteDelegate);
 
 	UE_LOG(LogOnline, Verbose, TEXT("Num Search Results: %d"), SearchSettings->SearchResults.Num());
 	for (int32 SearchIdx=0; SearchIdx<SearchSettings->SearchResults.Num(); SearchIdx++)
@@ -341,7 +341,7 @@ void FTestSessionInterface::OnFindSessionsComplete(bool bWasSuccessful)
 void FTestSessionInterface::OnCancelFindSessionsComplete(bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("OnCancelFindSessionsComplete bSuccess: %d"), bWasSuccessful);
-	Sessions->ClearOnCancelFindSessionsCompleteDelegate(OnCancelFindSessionsCompleteDelegate);
+	SessionInt->ClearOnCancelFindSessionsCompleteDelegate(OnCancelFindSessionsCompleteDelegate);
 }
 
 bool FTestSessionInterface::Tick(float DeltaTime)
@@ -368,7 +368,7 @@ bool FTestSessionInterface::Tick(float DeltaTime)
 	return true;
 }
 
-bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
+bool FTestSessionInterface::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
 	bool bWasHandled = false;
 
@@ -379,7 +379,7 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 	{
 		// Get optional session name "GAME" otherwise
 		FString Token;
-		FName SessionName = FParse::Value(Cmd, TEXT("Name="), Token) ? FName(*Token) : TEXT("GAME");
+		FName SessionName = FParse::Value(Cmd, TEXT("Name="), Token) ? FName(*Token) : GameSessionName;
 		if (Token.Len() > 0)
 		{
 			Cmd += FCString::Strlen(TEXT("Name=")) + Token.Len();
@@ -391,8 +391,8 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 			{
 				TSharedRef<FOnlineSessionSearch> SearchSettingsRef = SearchSettings.ToSharedRef();
 
-				Sessions->AddOnFindSessionsCompleteDelegate(OnFindSessionsCompleteDelegate);
-				Sessions->FindSessions(LocalUserNum, SearchSettingsRef);
+				SessionInt->AddOnFindSessionsCompleteDelegate(OnFindSessionsCompleteDelegate);
+				SessionInt->FindSessions(LocalUserNum, SearchSettingsRef);
 			}
 			bWasHandled = true;
 		}
@@ -421,8 +421,8 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 						const FOnlineFriend& Friend = *FriendsCache[FriendIdx];
 						if (Friend.GetDisplayName() == FriendNameStr)
 						{
-							Sessions->AddOnFindFriendSessionCompleteDelegate(LocalUserNum, OnFindFriendSessionCompleteDelegate);
-							Sessions->FindFriendSession(LocalUserNum, *Friend.GetUserId());
+							SessionInt->AddOnFindFriendSessionCompleteDelegate(LocalUserNum, OnFindFriendSessionCompleteDelegate);
+							SessionInt->FindFriendSession(LocalUserNum, *Friend.GetUserId());
 							break;
 						}
 					}
@@ -434,8 +434,8 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 				if (FParse::Token(Cmd, FriendIdStr, ARRAY_COUNT(FriendIdStr), true))
 				{
 					TSharedPtr<FUniqueNetId> FriendId = Identity->CreateUniquePlayerId((uint8*)FriendIdStr, FCString::Strlen(FriendIdStr));
-					Sessions->AddOnFindFriendSessionCompleteDelegate(LocalUserNum, OnFindFriendSessionCompleteDelegate);
-					Sessions->FindFriendSession(LocalUserNum, *FriendId);
+					SessionInt->AddOnFindFriendSessionCompleteDelegate(LocalUserNum, OnFindFriendSessionCompleteDelegate);
+					SessionInt->FindFriendSession(LocalUserNum, *FriendId);
 				}
 			}
 			bWasHandled = true;
@@ -450,23 +450,23 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 			HostSettings->bUsesPresence = bTestPresence;
 			HostSettings->AddWorldSettings(InWorld);
 
-			Sessions->AddOnCreateSessionCompleteDelegate(OnCreateSessionCompleteDelegate);
-			Sessions->CreateSession(0, SessionName, *HostSettings);
+			SessionInt->AddOnCreateSessionCompleteDelegate(OnCreateSessionCompleteDelegate);
+			SessionInt->CreateSession(0, SessionName, *HostSettings);
 			bWasHandled = true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("START")))
 		{
-			Sessions->AddOnStartSessionCompleteDelegate(OnStartSessionCompleteDelegate);
-			Sessions->StartSession(SessionName);
+			SessionInt->AddOnStartSessionCompleteDelegate(OnStartSessionCompleteDelegate);
+			SessionInt->StartSession(SessionName);
 			bWasHandled = true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("UPDATE")))
 		{
 			bool bUpdateOnline = FParse::Command(&Cmd, TEXT("ONLINE")) ? true : false;
-			Sessions->AddOnUpdateSessionCompleteDelegate(OnUpdateSessionCompleteDelegate);
+			SessionInt->AddOnUpdateSessionCompleteDelegate(OnUpdateSessionCompleteDelegate);
 			HostSettings->Set(FName(TEXT("UPDATESETTING1")), FString(TEXT("Test1")), EOnlineDataAdvertisementType::ViaOnlineService);
 			HostSettings->Set(FName(TEXT("UPDATESETTING2")), 99, EOnlineDataAdvertisementType::ViaOnlineService);
-			Sessions->UpdateSession(SessionName, *HostSettings, bUpdateOnline);
+			SessionInt->UpdateSession(SessionName, *HostSettings, bUpdateOnline);
 			bWasHandled = true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("END")))
@@ -482,21 +482,21 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 		else if (FParse::Command(&Cmd, TEXT("REGISTER")))
 		{
 			bool bWasInvited = FParse::Command(&Cmd, TEXT("INVITED")) ? true : false;
-			Sessions->AddOnRegisterPlayersCompleteDelegate(OnRegisterPlayersCompleteDelegate);
-			Sessions->RegisterPlayer(SessionName, *UserId, bWasInvited);
+			SessionInt->AddOnRegisterPlayersCompleteDelegate(OnRegisterPlayersCompleteDelegate);
+			SessionInt->RegisterPlayer(SessionName, *UserId, bWasInvited);
 			bWasHandled = true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("UNREGISTER")))
 		{
-			Sessions->AddOnUnregisterPlayersCompleteDelegate(OnUnregisterPlayersCompleteDelegate);
-			Sessions->UnregisterPlayer(SessionName, *UserId);
+			SessionInt->AddOnUnregisterPlayersCompleteDelegate(OnUnregisterPlayersCompleteDelegate);
+			SessionInt->UnregisterPlayer(SessionName, *UserId);
 			bWasHandled = true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("INVITE")))
 		{
 			if (FParse::Command(&Cmd, TEXT("UI")))
 			{
-				IOnlineSubsystem::Get(FName(*Subsystem))->GetExternalUIInterface()->ShowInviteUI(LocalUserNum);
+				Online::GetSubsystem(InWorld, FName(*Subsystem))->GetExternalUIInterface()->ShowInviteUI(LocalUserNum);
 			}
 			else
 			{
@@ -508,7 +508,7 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 						const FOnlineFriend& Friend = *FriendsCache[FriendIdx];
 						if (Friend.GetDisplayName() == FriendNameStr)
 						{
-							Sessions->SendSessionInviteToFriend(LocalUserNum, SessionName, *Friend.GetUserId());
+							SessionInt->SendSessionInviteToFriend(LocalUserNum, SessionName, *Friend.GetUserId());
 							break;
 						}
 					}
@@ -519,13 +519,13 @@ bool FTestSessionInterface::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevi
 		}
 		else if (FParse::Command(&Cmd, TEXT("DUMPSESSIONS")))
 		{
-			Sessions->DumpSessionState();
+			SessionInt->DumpSessionState();
 			bWasHandled = true;
 		}
 		else if (FParse::Command(&Cmd, TEXT("QUIT")))
 		{
 			UE_LOG(LogOnline, Display, TEXT("Destroying TestSession."));
-			Sessions->CancelFindSessions();
+			SessionInt->CancelFindSessions();
 			bWasHandled = true;
 			// Make this last
 			delete this;

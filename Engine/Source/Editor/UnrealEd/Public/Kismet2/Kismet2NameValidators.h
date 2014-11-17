@@ -65,6 +65,9 @@ public:
 	FKismetNameValidator(const class UBlueprint* Blueprint, FName InExistingName = NAME_None);
 	~FKismetNameValidator() {}
 
+	/** Return the name validator maximum string length */
+	static int32 GetMaximumNameLength();
+
 	// Begin FNameValidatorInterface
 	virtual EValidatorResult IsValid( const FString& Name, bool bOriginal = false) OVERRIDE;
 	virtual EValidatorResult IsValid( const FName& Name, bool bOriginal = false) OVERRIDE;

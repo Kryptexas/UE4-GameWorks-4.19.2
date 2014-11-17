@@ -43,7 +43,7 @@ public:
 	static TSharedPtr<FEdGraphSchemaAction_K2AddComponent> CreateAddComponentAction(UObject* TemporaryOuter, const UBlueprint* Blueprint, TSubclassOf<UActorComponent> DestinationComponentType, UObject* Asset);
 
 	/** Utility to create a node creating action */
-	BLUEPRINTGRAPH_API static TSharedPtr<FEdGraphSchemaAction_K2NewNode> AddNewNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& Category, const FString& MenuDesc, const FString& Tooltip, const int32 Grouping = 0, const FString& Keywords = FString());
+	BLUEPRINTGRAPH_API static TSharedPtr<FEdGraphSchemaAction_K2NewNode> AddNewNodeAction(FGraphActionListBuilderBase& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip, const int32 Grouping = 0, const FString& Keywords = FString());
 
 	/** Utility that creates a 'new event' entry based on the function supplied. Can either override that function, or simply use the function as its signature. */
 	BLUEPRINTGRAPH_API static void AddEventForFunction(FGraphActionListBuilderBase& ActionMenuBuilder, class UFunction* Function);

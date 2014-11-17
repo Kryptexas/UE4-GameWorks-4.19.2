@@ -32,6 +32,11 @@ public:
 		return CategoryName;
 	}
 
+	const FText& GetCategoryDisplayName() const
+	{
+		return CategoryDisplayName;
+	}
+
 	/** @return Returns all of this category's sub-categories */
 	const TArray< TSharedPtr< FPluginCategoryTreeItem > >& GetSubCategories() const
 	{
@@ -60,10 +65,11 @@ public:
 public:
 
 	/** Constructor for FPluginCategoryTreeItem */
-	FPluginCategoryTreeItem( const FPluginCategoryTreeItemPtr ParentCategory, const FString& InitCategoryPath, const FString& InitCategoryName )
+	FPluginCategoryTreeItem(const FPluginCategoryTreeItemPtr ParentCategory, const FString& InitCategoryPath, const FString& InitCategoryName, const FText& InitCategoryDisplayName)
 		: ParentCategoryWeak( ParentCategory ),
 		  CategoryPath( InitCategoryPath ),
-		  CategoryName( InitCategoryName )
+		  CategoryName(InitCategoryName),
+		  CategoryDisplayName(InitCategoryDisplayName)
 	{
 	}
 
@@ -78,6 +84,9 @@ private:
 
 	/** Name of the category */
 	FString CategoryName;
+
+	/** Display name of the category */
+	FText CategoryDisplayName;
 
 	/** Child categories */
 	TArray< TSharedPtr< FPluginCategoryTreeItem > > SubCategories;

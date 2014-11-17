@@ -50,7 +50,7 @@ private:
 
 public:
 	/** PlayerState containing replicated information about the player using this controller (only exists for players, not NPCs). */
-	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState)
+	UPROPERTY(editinline, replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Controller")
 	class APlayerState* PlayerState;
 
 protected:

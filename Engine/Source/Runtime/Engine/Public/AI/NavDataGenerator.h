@@ -21,7 +21,7 @@ public:
 	/** 
 	 * Schedules generation call in GameThread
 	 */
-	virtual void TiggerGeneration();
+	virtual void TriggerGeneration();
 	
 	/** determines whether this generator is performing navigation building actions at the moment*/
 	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const { return false; }	

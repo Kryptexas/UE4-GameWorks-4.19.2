@@ -108,18 +108,7 @@ struct FReferencePose
 	 *
 	 * @return Reference to the Archive after serialization.
 	 */
-	friend FArchive& operator<<( FArchive& Ar, FReferencePose & P )
-	{ 
-		Ar << P.PoseName;	
-		Ar << P.ReferencePose;
-#if WITH_EDITORONLY_DATA
-		if (!Ar.IsCooking())
-		{
-			Ar << P.ReferenceMesh;
-		}
-#endif
-		return Ar;
-	}
+	friend FArchive& operator<<(FArchive& Ar, FReferencePose & P);
 };
 
 USTRUCT()
@@ -265,7 +254,7 @@ public:
 	ENGINE_API void AddNewAnimationNotify(FName NewAnimNotifyName);
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
-	ENGINE_API USkeletalMesh* GetPreviewMesh();
+	ENGINE_API USkeletalMesh* GetPreviewMesh(bool bFindIfNotSet=false);
 
 	/** Returns the skeletons preview mesh, loading it if necessary */
 	ENGINE_API void SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty=true);
@@ -522,10 +511,27 @@ protected:
 	 */
 	bool CreateReferenceSkeletonFromMesh(const USkeletalMesh * InSkeletalMesh, const TArray<int32> & RequiredRefBones);
 
-public: 
 #if WITH_EDITOR
+	DECLARE_MULTICAST_DELEGATE( FOnSkeletonHierarchyChangedMulticaster );
+	FOnSkeletonHierarchyChangedMulticaster OnSkeletonHierarchyChanged;
+
+	/** Call this when the skeleton has changed to fix dependent assets */
+	void HandleSkeletonHierarchyChange();
+
+public:
+	typedef FOnSkeletonHierarchyChangedMulticaster::FDelegate FOnSkeletonHierarchyChanged;
+
+	/** Registers a delegate to be called after notification has changed*/
+	ENGINE_API void RegisterOnSkeletonHierarchyChanged(const FOnSkeletonHierarchyChanged& Delegate);
+	ENGINE_API void UnregisterOnSkeletonHierarchyChanged(void * Unregister);
+
+	/** Removes the supplied bones from the skeleton */
+	ENGINE_API void RemoveBonesFromSkeleton(const TArray<FName>& BonesToRemove, bool bRemoveChildBones);
+
 	static const FName AnimNotifyTag;
 	static const TCHAR AnimNotifyTagDeliminator;
 #endif
+private:
+	void RegenerateGuid();
 };
 

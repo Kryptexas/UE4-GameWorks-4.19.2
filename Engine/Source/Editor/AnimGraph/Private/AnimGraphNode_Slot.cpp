@@ -8,6 +8,8 @@
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Slot
 
+#define LOCTEXT_NAMESPACE "A3Nodes"
+
 UAnimGraphNode_Slot::UAnimGraphNode_Slot(const FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -23,8 +25,26 @@ FString UAnimGraphNode_Slot::GetTooltip() const
 	return TEXT("Plays animation from code using AnimMontage");
 }
 
-FString UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UAnimGraphNode_Slot::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	const FText SlotName = (Node.SlotName != NAME_None) ? FText::FromName(Node.SlotName) : LOCTEXT("NoSlotName", "(No slot name)");
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("SlotName"), SlotName);
+
+	if (TitleType == ENodeTitleType::ListView)
+	{
+		return FText::Format(LOCTEXT("SlotNodeListTitle", "Slot '{SlotName}'"), Args);
+	}
+	else
+	{
+		return FText::Format(LOCTEXT("SlotNodeTitle", "{SlotName}\nSlot"), Args);
+	}
+}
+
+FString UAnimGraphNode_Slot::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	// Do not setup this function for localization, intentionally left unlocalized!
 	const FString SlotName = (Node.SlotName != NAME_None) ? Node.SlotName.ToString() : TEXT("(No slot name)");
 
 	if (TitleType == ENodeTitleType::ListView)
@@ -41,3 +61,5 @@ FString UAnimGraphNode_Slot::GetNodeCategory() const
 {
 	return TEXT("Blends");
 }
+
+#undef LOCTEXT_NAMESPACE

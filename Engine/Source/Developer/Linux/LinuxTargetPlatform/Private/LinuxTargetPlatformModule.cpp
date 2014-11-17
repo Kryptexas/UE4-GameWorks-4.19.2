@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	AndroidTargetPlatformModule.cpp: Implements the FAndroidTargetPlatformModule class.
+	LinuxTargetPlatformModule.cpp: Implements the FAndroidTargetPlatformModule class.
 =============================================================================*/
 
 #include "LinuxTargetPlatformPrivatePCH.h"
@@ -13,7 +13,7 @@
 /**
  * Holds the target platform singleton.
  */
-static ITargetPlatform* LinuxTargetSingleton = NULL;
+static ITargetPlatform* Singleton = NULL;
 
 
 /**
@@ -29,7 +29,7 @@ public:
 	 */
 	~FLinuxTargetPlatformModule( )
 	{
-		LinuxTargetSingleton = NULL;
+		Singleton = NULL;
 	}
 
 
@@ -39,12 +39,12 @@ public:
 
 	virtual ITargetPlatform* GetTargetPlatform( ) OVERRIDE
 	{
-		if (LinuxTargetSingleton == NULL)
+		if (Singleton == NULL)
 		{
-			LinuxTargetSingleton = new FLinuxTargetPlatform();
+			Singleton = new TLinuxTargetPlatform<false, false>();
 		}
 		
-		return LinuxTargetSingleton;
+		return Singleton;
 	}
 
 	// End ITargetPlatformModule interface

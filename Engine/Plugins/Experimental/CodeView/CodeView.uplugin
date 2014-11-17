@@ -1,0 +1,20 @@
+{
+    "PluginFileVersion" : 1,
+
+	"FriendlyName" : "Code View",
+	"Version" : 1,
+	"VersionName" : "1.0",
+	"CreatedBy" : "Epic Games, Inc.",
+	"CreatedByURL" : "http://epicgames.com",
+	"MinEngineVersion" : 1993646,
+	"Description" : "Provides an in-editor code view of game classes and structures with direct IDE accessibility",
+	"CategoryPath" : "Editor",
+	
+    "Modules" :
+	[
+		{
+			"Name" : "CodeView",
+			"Type" : "Editor"
+		}
+	]
+}

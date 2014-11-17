@@ -28,6 +28,7 @@ public:
 		SLATE_ARGUMENT( TWeakObjectPtr< UDeviceProfile >, SelectedDeviceProfile )
 		SLATE_EVENT( FOnDeviceProfilePinned, OnDeviceProfilePinned )
 		SLATE_EVENT( FOnDeviceProfileUnpinned, OnDeviceProfileUnpinned )
+		SLATE_EVENT( FOnDeviceProfileViewAlone, OnDeviceProfileViewAlone )
 	SLATE_END_ARGS()
 
 
@@ -53,6 +54,13 @@ public:
 	 */
 	FReply HandleDeviceProfilePinStateChanged();
 
+
+	/**
+	* Handle the view single profile button pressed.
+	*
+	* @return Whether the event was handled
+	*/
+	FReply ViewSingleProfile();
 
 	/**
 	 * Get the image for the pin of this item
@@ -81,8 +89,14 @@ private:
 	// Delegate executed when a profile is pinned
 	FOnDeviceProfilePinned OnDeviceProfilePinned;
 
+	// Delegate executed when requesting that a profile be viewed alone.
+	FOnDeviceProfileViewAlone OnDeviceProfileViewAlone;
+
 	// A reference to the profiles pin button
 	TSharedPtr< SButton > PinProfileButton;
+
+	// A reference to the profiles view button
+	TSharedPtr< SButton > ViewProfileButton;
 
 	// Whether this profile selection is pinned.
 	bool bIsPinned;
@@ -103,13 +117,14 @@ void SDeviceProfileSelectionRow::Construct( const FArguments& InArgs, const TSha
 	// Delegates for pinning/unpinning a device profile
 	OnDeviceProfilePinned = InArgs._OnDeviceProfilePinned;
 	OnDeviceProfileUnpinned = InArgs._OnDeviceProfileUnpinned;
+	OnDeviceProfileViewAlone = InArgs._OnDeviceProfileViewAlone;
 
 	if( bIsPinned )
 	{
 		OnDeviceProfilePinned.ExecuteIfBound( SelectedDeviceProfile );
 	}
 
-	SMultiColumnTableRow< TWeakObjectPtr< UDeviceProfile > >::Construct( SMultiColumnTableRow< TWeakObjectPtr< UDeviceProfile > >::FArguments(), InOwnerTableView );
+	SMultiColumnTableRow< TWeakObjectPtr< UDeviceProfile > >::Construct(SMultiColumnTableRow< TWeakObjectPtr< UDeviceProfile > >::FArguments().Padding(FMargin(0.f,2.f,0.f,0.f)), InOwnerTableView);
 }
 
 
@@ -122,7 +137,7 @@ TSharedRef< SWidget > SDeviceProfileSelectionRow::GenerateWidgetForColumn( const
 		// Draw a pin to show the state of the profile selection
 		ColumnWidget = SAssignNew( PinProfileButton, SButton )
 			.IsFocusable( false )
-			.ToolTipText(NSLOCTEXT("PropertyEditor", "ToggleColumnButtonToolTip", "Toggle Column").ToString())
+			.ToolTipText(LOCTEXT("PinProfileColumnButtonToolTip", "Pin profile to device profile editor table").ToString())
 			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 			.ContentPadding( 0 ) 
 			.HAlign( HAlign_Center )
@@ -138,6 +153,22 @@ TSharedRef< SWidget > SDeviceProfileSelectionRow::GenerateWidgetForColumn( const
 		// Show the device profiles name
 		ColumnWidget = SNew( STextBlock )
 			.Text( this, &SDeviceProfileSelectionRow::GetProfileDisplayName );
+	}
+	else if (ColumnName == TEXT("View"))
+	{
+		ColumnWidget = SAssignNew(ViewProfileButton, SButton)
+			.IsFocusable(false)
+			.ToolTipText(LOCTEXT("ViewSingleProfileColumnButtonToolTip", "View this profile in it's own editor").ToString())
+			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+			.ContentPadding(0)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			.OnClicked(this, &SDeviceProfileSelectionRow::ViewSingleProfile)
+			[
+				SNew(STextBlock)
+				.Text(FText::FromString(TEXT("...")))
+				.Font(FEditorStyle::GetFontStyle("BoldFont"))
+			];
 	}
 
 	return ColumnWidget.ToSharedRef();
@@ -157,6 +188,13 @@ FReply SDeviceProfileSelectionRow::HandleDeviceProfilePinStateChanged()
 		OnDeviceProfileUnpinned.ExecuteIfBound( SelectedDeviceProfile );
 	}
 
+	return FReply::Handled();
+}
+
+
+FReply SDeviceProfileSelectionRow::ViewSingleProfile()
+{
+	OnDeviceProfileViewAlone.ExecuteIfBound( SelectedDeviceProfile );
 	return FReply::Handled();
 }
 
@@ -183,9 +221,9 @@ void SDeviceProfileSelectionPanel::Construct( const FArguments& InArgs, TWeakObj
 	DeviceProfileManager = InDeviceProfileManager;
 
 	// Allocate the delegates for profile selection and profile pinning/unpinning
-	OnDeviceProfileSelectionChanged = InArgs._OnDeviceProfileSelectionChanged;
 	OnDeviceProfilePinned = InArgs._OnDeviceProfilePinned;
 	OnDeviceProfileUnpinned = InArgs._OnDeviceProfileUnpinned;
+	OnDeviceProfileViewAlone = InArgs._OnDeviceProfileViewAlone;
 
 	// Hook up our regen function to keep track of device profile manager changes
 	DeviceProfileManager->OnManagerUpdated().AddRaw( this, &SDeviceProfileSelectionPanel::RegenerateProfileList );
@@ -248,14 +286,8 @@ TSharedRef< ITableRow > SDeviceProfileSelectionPanel::OnGenerateWidgetForDeviceP
 	return SNew( SDeviceProfileSelectionRow, OwnerTable )
 			.SelectedDeviceProfile( InItem )
 			.OnDeviceProfilePinned( OnDeviceProfilePinned )
-			.OnDeviceProfileUnpinned( OnDeviceProfileUnpinned );
-}
-
-
-void SDeviceProfileSelectionPanel::HandleProfileSelectionChanged( TWeakObjectPtr<UDeviceProfile> InItem, ESelectInfo::Type SelectInfo )
-{
-	SelectedProfile = InItem;
-	OnDeviceProfileSelectionChanged.ExecuteIfBound( InItem );
+			.OnDeviceProfileUnpinned( OnDeviceProfileUnpinned )
+			.OnDeviceProfileViewAlone( OnDeviceProfileViewAlone );
 }
 
 
@@ -278,7 +310,6 @@ void SDeviceProfileSelectionPanel::RegenerateProfileList()
 			.ListItemsSource( &DeviceProfiles )
 			.SelectionMode( ESelectionMode::Single )
 			.OnGenerateRow( this, &SDeviceProfileSelectionPanel::OnGenerateWidgetForDeviceProfile )
-			.OnSelectionChanged( this, &SDeviceProfileSelectionPanel::HandleProfileSelectionChanged )
 			.HeaderRow
 			(
 				SNew( SHeaderRow )
@@ -294,6 +325,13 @@ void SDeviceProfileSelectionPanel::RegenerateProfileList()
 				[
 					SNew( STextBlock )
 					.Text( LOCTEXT("NameColumn", "Name" ) )
+				]
+				+SHeaderRow::Column( FName( "View" ) )
+				.FixedWidth( 32.0f )
+				[
+					// The view icon doesn't need a title
+					SNew(STextBlock)
+					.Text(FText::GetEmpty())
 				]
 			)
 		];

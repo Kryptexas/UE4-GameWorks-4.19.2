@@ -46,7 +46,6 @@ public:
 		ObjectClass( NULL ), 
 		bLastUpdateEmpty( false ), 
 		bOpenAckCalled( false ),
-		TempBitWriter( NULL ), 
 		Connection( NULL ),
 		OwningChannel( NULL ),
 		RepState( NULL ),
@@ -69,8 +68,6 @@ public:
 
 	uint32											bLastUpdateEmpty	: 1;	// True if last update (ReplicateActor) produced no replicated properties
 	uint32											bOpenAckCalled		: 1;
-
-	FNetBitWriter *									TempBitWriter;
 
 	UNetConnection *								Connection;					// Connection this replicator was created on
 	class UActorChannel	*							OwningChannel;
@@ -114,7 +111,7 @@ public:
 	bool	ReplicateProperties( FOutBunch & Bunch, FReplicationFlags RepFlags );
 	void	PostSendBunch(FPacketIdRange & PacketRange, uint8 bReliable);
 	
-	bool	ReceivedBunch( FInBunch &Bunch, const FReplicationFlags &RepFlags );
+	bool	ReceivedBunch( FInBunch & Bunch, const FReplicationFlags & RepFlags, bool & bOutHasUnmapped );
 	void	PostReceivedBunch();
 
 	void ForceRefreshUnreliableProperties();
@@ -126,6 +123,8 @@ public:
 	bool ReadyForDormancy(bool debug=false);
 
 	void StartBecomingDormant();
+
+	void UpdateUnmappedObjects( bool & bOutHasMoreUnmapped );
 
 	FORCEINLINE UObject *	GetObject() const { return ObjectPtr.Get(); }
 	FORCEINLINE void		SetObject( UObject * NewObj ) { ObjectPtr = TWeakObjectPtr<UObject>( NewObj ); }

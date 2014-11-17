@@ -61,13 +61,13 @@ bool FOnlineAchievementsNull::WriteAchievements(const FUniqueNetId& PlayerId, FO
 	return true;
 };
 
-bool FOnlineAchievementsNull::ReadAchievements(const FUniqueNetId& PlayerId)
+void FOnlineAchievementsNull::QueryAchievements( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate )
 {
 	if (!ReadAchievementsFromConfig())
 	{
 		// we don't have achievements
-		TriggerOnAchievementsReadDelegates(PlayerId, false);
-		return false;
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
 	}
 
 	FUniqueNetIdString NullId(PlayerId);
@@ -85,17 +85,16 @@ bool FOnlineAchievementsNull::ReadAchievements(const FUniqueNetId& PlayerId)
 		PlayerAchievements.Add(NullId, AchievementsForPlayer);
 	}
 
-	TriggerOnAchievementsReadDelegates(PlayerId, true);
-	return true;
-};
+	Delegate.ExecuteIfBound(PlayerId, true);
+}
 
-bool FOnlineAchievementsNull::ReadAchievementDescriptions(const FUniqueNetId& PlayerId)
+void FOnlineAchievementsNull::QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate )
 {
 	if (!ReadAchievementsFromConfig())
 	{
 		// we don't have achievements
-		TriggerOnAchievementsReadDelegates(PlayerId, false);
-		return false;
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
 	}
 
 	if (AchievementDescriptions.Num() == 0)
@@ -109,16 +108,15 @@ bool FOnlineAchievementsNull::ReadAchievementDescriptions(const FUniqueNetId& Pl
 		check(AchievementDescriptions.Num() > 0);
 	}
 
-	TriggerOnAchievementDescriptionsReadDelegates(PlayerId, true);
-	return true;
-};
+	Delegate.ExecuteIfBound(PlayerId, true);
+}
 
-bool FOnlineAchievementsNull::GetAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement)
+EOnlineCachedResult::Type FOnlineAchievementsNull::GetCachedAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement)
 {
 	if (!ReadAchievementsFromConfig())
 	{
 		// we don't have achievements
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	FUniqueNetIdString NullId(PlayerId);
@@ -126,7 +124,7 @@ bool FOnlineAchievementsNull::GetAchievement(const FUniqueNetId& PlayerId, const
 	if (NULL == PlayerAch)
 	{
 		// achievements haven't been read for a player
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	const int32 AchNum = PlayerAch->Num();
@@ -135,20 +133,20 @@ bool FOnlineAchievementsNull::GetAchievement(const FUniqueNetId& PlayerId, const
 		if ((*PlayerAch)[ AchIdx ].Id == AchievementId)
 		{
 			OutAchievement = (*PlayerAch)[ AchIdx ];
-			return true;
+			return EOnlineCachedResult::Success;
 		}
 	}
 
 	// no such achievement
-	return false;
+	return EOnlineCachedResult::NotFound;
 };
 
-bool FOnlineAchievementsNull::GetAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement> & OutAchievements)
+EOnlineCachedResult::Type FOnlineAchievementsNull::GetCachedAchievements(const FUniqueNetId& PlayerId, TArray<FOnlineAchievement> & OutAchievements)
 {
 	if (!ReadAchievementsFromConfig())
 	{
 		// we don't have achievements
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	FUniqueNetIdString NullId(PlayerId);
@@ -156,36 +154,36 @@ bool FOnlineAchievementsNull::GetAchievements(const FUniqueNetId& PlayerId, TArr
 	if (NULL == PlayerAch)
 	{
 		// achievements haven't been read for a player
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	OutAchievements = *PlayerAch;
-	return true;
+	return EOnlineCachedResult::Success;
 };
 
-bool FOnlineAchievementsNull::GetAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
+EOnlineCachedResult::Type FOnlineAchievementsNull::GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
 {
 	if (!ReadAchievementsFromConfig())
 	{
 		// we don't have achievements
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	if (AchievementDescriptions.Num() == 0 )
 	{
 		// don't have descs
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	FOnlineAchievementDesc * AchDesc = AchievementDescriptions.Find(AchievementId);
 	if (NULL == AchDesc)
 	{
 		// no such achievement
-		return false;
+		return EOnlineCachedResult::NotFound;
 	}
 
 	OutAchievementDesc = *AchDesc;
-	return true;
+	return EOnlineCachedResult::Success;
 };
 
 #if !UE_BUILD_SHIPPING

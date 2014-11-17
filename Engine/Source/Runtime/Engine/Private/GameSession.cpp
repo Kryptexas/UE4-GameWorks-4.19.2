@@ -6,7 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "Online.h"
+#include "OnlineSubsystemUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameSession, Log, All);
 
@@ -60,7 +60,8 @@ void AGameSession::InitOptions( const FString& Options )
 
 bool AGameSession::ProcessAutoLogin()
 {
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
+	UWorld* World = GetWorld();
+	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
 		IdentityInt->AddOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
@@ -80,7 +81,8 @@ bool AGameSession::ProcessAutoLogin()
 
 void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error)
 {
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
+	UWorld* World = GetWorld();
+	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
 		IdentityInt->ClearOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
@@ -90,7 +92,8 @@ void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, cons
 
 void AGameSession::OnLoginChanged(int32 LocalUserNum)
 {
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
+	UWorld* World = GetWorld();
+	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
 		IdentityInt->ClearOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
@@ -119,7 +122,7 @@ FString AGameSession::ApproveLogin(const FString& Options)
 
 	if (AtCapacity(SpectatorOnly == 1))
 	{
-		return TEXT("Engine.GameMessage.MaxedOutMessage");
+		return NSLOCTEXT("NetworkErrors", "ServerAtCapacity", "Server full.").ToString();
 	}
 
 	int32 SplitscreenCount = 0;
@@ -127,7 +130,7 @@ FString AGameSession::ApproveLogin(const FString& Options)
 
 	if (SplitscreenCount > MaxSplitscreensPerConnection)
 	{
-		return FString::Printf(TEXT("A maximum of '%i' splitscreen players are allowed"), MaxSplitscreensPerConnection);
+		return FText::Format(NSLOCTEXT("NetworkErrors", "ServerAtCapacitySS", "A maximum of '{0}' splitscreen players are allowed"), FText::AsNumber(MaxSplitscreensPerConnection)).ToString();
 	}
 
 	return TEXT("");
@@ -169,7 +172,8 @@ void AGameSession::RegisterPlayer(APlayerController* NewPlayer, const TSharedPtr
  */
 void AGameSession::UnregisterPlayer(APlayerController* ExitingPlayer)
 {
-	IOnlineSessionPtr SessionInt = Online::GetSessionInterface();
+	UWorld* World = GetWorld();
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
 	if (SessionInt.IsValid())
 	{
 		if (GetNetMode() != NM_Standalone && 
@@ -208,20 +212,23 @@ void AGameSession::NotifyLogout(APlayerController* PC)
 	UnregisterPlayer(PC);
 }
 
-bool AGameSession::KickPlayer(APlayerController* C, const FString& KickReason)
+bool AGameSession::KickPlayer(APlayerController* C, const FText& KickReason)
 {
 	// Do not kick logged admins
-	if (C != NULL && Cast<UNetConnection>(C->Player)!=NULL )
+	if (C != NULL && Cast<UNetConnection>(C->Player) != NULL)
 	{
 		if (C->GetPawn() != NULL)
 		{
 			C->GetPawn()->Destroy();
 		}
-		C->ClientWasKicked();
+
+		C->ClientWasKicked(KickReason);
+
 		if (C != NULL)
 		{
 			C->Destroy();
 		}
+
 		return true;
 	}
 	return false;
@@ -265,14 +272,10 @@ void AGameSession::DumpSessionState()
 	UE_LOG(LogGameSession, Log, TEXT("  MaxPlayers: %i"), MaxPlayers);
 	UE_LOG(LogGameSession, Log, TEXT("  MaxSpectators: %i"), MaxSpectators);
 
-	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
-	if (OnlineSub)
+	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
+	if (SessionInt.IsValid())
 	{
-		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
-		if (Sessions.IsValid())
-		{
-			Sessions->DumpSessionState();
-		}
+		SessionInt->DumpSessionState();
 	}
 }
 
@@ -289,21 +292,17 @@ void AGameSession::UpdateSessionJoinability(FName InSessionName, bool bPublicSea
 {
 	if (GetNetMode() != NM_Standalone)
 	{
-		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
-		if (OnlineSub)
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(GetWorld());
+		if (SessionInt.IsValid())
 		{
-			IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
-			if (Sessions.IsValid())
+			FOnlineSessionSettings* GameSettings = SessionInt->GetSessionSettings(InSessionName);
+			if (GameSettings != NULL)
 			{
-				FOnlineSessionSettings* GameSettings = Sessions->GetSessionSettings(InSessionName);
-				if (GameSettings != NULL)
-				{
-					GameSettings->bAllowInvites = bAllowInvites;
-					GameSettings->bAllowJoinInProgress = bPublicSearchable;
-					GameSettings->bAllowJoinViaPresence = bJoinViaPresence && !bJoinViaPresenceFriendsOnly;
-					GameSettings->bAllowJoinViaPresenceFriendsOnly = bJoinViaPresenceFriendsOnly;
-					Sessions->UpdateSession(InSessionName, *GameSettings, true);
-				}
+				GameSettings->bAllowInvites = bAllowInvites;
+				GameSettings->bAllowJoinInProgress = bPublicSearchable;
+				GameSettings->bAllowJoinViaPresence = bJoinViaPresence && !bJoinViaPresenceFriendsOnly;
+				GameSettings->bAllowJoinViaPresenceFriendsOnly = bJoinViaPresenceFriendsOnly;
+				SessionInt->UpdateSession(InSessionName, *GameSettings, true);
 			}
 		}
 	}

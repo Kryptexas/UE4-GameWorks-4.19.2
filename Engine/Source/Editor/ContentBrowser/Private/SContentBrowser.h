@@ -58,6 +58,9 @@ public:
 	/** Returns true if this content browser does not accept syncing from an external source */
 	bool IsLocked() const;
 
+	/** Gives keyboard focus to the asset search box */
+	void SetKeyboardFocusOnSearch() const;
+
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
 	virtual FReply OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;

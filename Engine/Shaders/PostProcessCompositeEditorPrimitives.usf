@@ -85,6 +85,13 @@ float4 GetScrColorAt(int2 PixelPos, out float OutDeviceZ)
 
 #endif
 
+	// bring out of premultiplied
+	Ret.rgb /= max(Ret.a, 0.0001f);		
+	// fix gamma
+	Ret.rgb = pow( Ret.rgb, 1.0f / 2.2f );
+	// bring back to premultiplied
+	Ret.rgb *= Ret.a;
+
 	return Ret;
 }
 
@@ -139,7 +146,8 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 */
 
 	// debugging functionality 
-//	OutColor = SrcColor + float4(0,1,0,0) * (1-SrcColor.a);	return;
+//	OutColor = float4(SrcColor.aaa*0.18f,0) + float4(0.13,0.13,0.13,0) * (1-SrcColor.a);	return;
+//	OutColor = float4(SrcColor.rgb,0) + float4(0.13,0.13,0.13,0) * (1-SrcColor.a);	return;
 //	OutColor = SrcColor  / (0.001f+SrcColor.a);	return;
 //	OutColor = SrcColor.a;	return;
 
@@ -167,7 +175,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	float DarkenMask = lerp(LowContrastPatternMask, 1.0f, DepthMask);
 
 	// Dest color has gamma applied so we need to remove it before applying linear color
-	DestColor.rgb = pow( DestColor.rgb, 2.2f );
+//	DestColor.rgb = pow( DestColor.rgb, 2.2f );
 
 	// fade if occluded
 //	OutColor.rgb = lerp(DestColor.rgb, DarkenMask * SrcColor.rgb / max(0.001f, SrcColor.a), SrcColor.a * HiddenMask );
@@ -178,7 +186,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 	OutColor.rgb = DestColor.rgb * (1 - SrcColor.a) + DarkenMask * SrcColor.rgb * HiddenMask;
 
 	// Re-apply gamma corrrection
-	OutColor.rgb = pow( OutColor.rgb, 1/2.2f );
+//	OutColor.rgb = pow( OutColor.rgb, 1/2.2f );
 
 	OutColor.a = 0;
 }

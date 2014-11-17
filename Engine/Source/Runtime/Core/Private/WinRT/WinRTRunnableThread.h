@@ -311,7 +311,6 @@ protected:
 //			ThreadID = (uint32)Thread;
 			ThreadName = InThreadName ? InThreadName : TEXT("Unnamed UE4");
 			SetThreadName( ThreadID, TCHAR_TO_ANSI( *ThreadName ) );
-			FRunnableThread::GetThreadRegistry().Add(ThreadID, this);
 			SetThreadPriority(InThreadPri);
 		}
 

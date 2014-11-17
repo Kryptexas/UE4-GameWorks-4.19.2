@@ -190,6 +190,7 @@ void FProfilerManager::LoadProfilerCapture( const FString& ProfilerCaptureFilepa
 	}
 
 	FProfilerSessionRef ProfilerSession = MakeShareable( new FProfilerSession( ProfilerCaptureFilepath ) );
+	auto Var = ProfilerSession->AsShared();
 	const FGuid ProfilerInstanceID = ProfilerSession->GetInstanceID();
 
 	ProfilerSession->
@@ -207,9 +208,51 @@ void FProfilerManager::LoadProfilerCapture( const FString& ProfilerCaptureFilepa
 	GetProfilerWindow()->ManageEventGraphTab( ProfilerInstanceID, true, ProfilerSession->GetName() );
 }
 
+
+void FProfilerManager::LoadRawStatsFile( const FString& RawStatsFileFileath )
+{
+	// deselect the active session
+	if( ActiveSession.IsValid() )
+	{
+		SessionManager->SelectSession( NULL );
+	}
+	ClearStatsAndInstances();
+
+	TSharedRef<FRawProfilerSession> ProfilerSession = MakeShareable( new FRawProfilerSession( RawStatsFileFileath ) );
+	const FGuid ProfilerInstanceID = ProfilerSession->GetInstanceID();
+	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
+
+	ProfilerSession->PrepareLoading();
+	RequestFilterAndPresetsUpdateEvent.Broadcast();
+	ProfilerSession_OnCaptureFileProcessed( ProfilerInstanceID );
+	TrackDefaultStats();
+
+// 	ProfilerSession->
+// 		SetOnCaptureFileProcessed( FProfilerSession::FCaptureFileProcessedDelegate::CreateSP( this, &FProfilerManager::ProfilerSession_OnCaptureFileProcessed ) );
+
+	ProfilerSessionInstances.Add( ProfilerInstanceID, ProfilerSession );
+
+	SessionInstancesUpdatedEvent.Broadcast();
+	ProfilerType = EProfilerSessionTypes::OfflineRaw;
+
+	GetProfilerWindow()->ManageEventGraphTab( ProfilerInstanceID, true, ProfilerSession->GetName() );
+}
+
+
 bool FProfilerManager::Tick( float DeltaTime )
 {
 	SCOPE_CYCLE_COUNTER(STAT_PM_Tick);
+
+#if	0
+	static int32 NumIdleTicks = 0;
+	NumIdleTicks++;
+	if( NumIdleTicks > 60 )
+	{
+		LoadRawStatsFile( TEXT( "U:/P4EPIC2/UE4/QAGame/Saved/Profiling/UnrealStats/RenderTestMap-Windows-03.19-13.49.04/RenderTestMap-Windows-19-13.52.19.ue4statsraw" ) );
+		return false;
+	}
+#endif // 0
+
 	return true;
 }
 
@@ -473,7 +516,7 @@ bool FProfilerManager::TrackStat( const uint32 StatID )
 					if( bIsStatReady )
 					{
 						const FProfilerStatMetaDataRef MetaData = ProfilerSession->GetMetaData();
-						const FProfilerStat& Stat = MetaData->GetStat( StatID );
+						const FProfilerStat& Stat = MetaData->GetStatByID( StatID );
 						const FProfilerGroup& Group = Stat.OwningGroup();
 
 						TrackedStat->CombinedGraphDataSource->Initialize( Stat.Name().GetPlainNameString(), Group.ID(), Group.Name().GetPlainNameString(), Stat.Type(), ProfilerSession->GetCreationTime() );

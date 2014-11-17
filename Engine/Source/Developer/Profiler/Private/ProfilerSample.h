@@ -295,6 +295,15 @@ public:
 		MutableDurationRef = InDurationMs;
 	}
 
+	void SetStartAndEndMS( double InStartMS, double InEndMS )
+	{
+		double& MutableStartRef = const_cast<double&>(_StartMS);
+		MutableStartRef = InStartMS;
+
+		double& MutableDurationRef = const_cast<double&>(_DurationMS);
+		MutableDurationRef = InEndMS - InStartMS;
+	}
+
 	/** @return end time of this profiler sample, in milliseconds. */
 	const double GetEndMS() const
 	{

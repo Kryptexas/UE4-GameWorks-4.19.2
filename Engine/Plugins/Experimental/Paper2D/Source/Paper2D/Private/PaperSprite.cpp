@@ -24,27 +24,27 @@ struct FTextureReader
 		, Y1(0)
 	{
 		// use the source art if it exists
-		FTextureSource* Source = NULL;
+		FTextureSource* TextureSource = NULL;
 		if ((SourceTexture != NULL) && SourceTexture->Source.IsValid())
 		{
 			switch (SourceTexture->Source.GetFormat())
 			{
 			case TSF_G8:
 			case TSF_BGRA8:
-				Source = &(SourceTexture->Source);
+				TextureSource = &(SourceTexture->Source);
 				break;
 			default:
 				break;
 			};
 		}
 
-		if (Source != NULL)
+		if (TextureSource != NULL)
 		{
-			Source->GetMipData(RawData, 0);
-			Width = Source->GetSizeX();
-			Height = Source->GetSizeY();
-			BytesPerPixel = Source->GetBytesPerPixel();
-			PixelFormat = Source->GetFormat();
+			TextureSource->GetMipData(RawData, 0);
+			Width = TextureSource->GetSizeX();
+			Height = TextureSource->GetSizeY();
+			BytesPerPixel = TextureSource->GetBytesPerPixel();
+			PixelFormat = TextureSource->GetFormat();
 
 			X0 = 0;
 			Y0 = 0;

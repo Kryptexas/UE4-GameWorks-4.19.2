@@ -160,6 +160,8 @@ public:
 	virtual bool IsAspectRatioConstrained() const OVERRIDE;
 	virtual float GetCameraSpeed(int32 SpeedSetting) const OVERRIDE;
 
+	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) OVERRIDE;
+
 	void SetIsCameraCut( bool bInIsCameraCut ) { bEditorCameraCut = bInIsCameraCut; }
 
 	/**
@@ -277,9 +279,6 @@ public:
 
 	void ApplyDeltaToActors( const FVector& InDrag, const FRotator& InRot, const FVector& InScale );
 	void ApplyDeltaToActor( AActor* InActor, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale );
-
-	void ApplyDeltaToComponents( const FVector& InDrag, const FRotator& InRot, const FVector& InScale );
-	void ApplyDeltaToComponent( USceneComponent* InComponent, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale );
 
 	/** Updates the rotate widget with the passed in delta rotation. */
 	void ApplyDeltaToRotateWidget( const FRotator& InRot );
@@ -403,8 +402,10 @@ public:
 	 * @param OutNewActors		 The new actor objects that were created
 	 * @param bOnlyDropOnTarget  Flag that when True, will only attempt a drop on the actor targeted by the Mouse position. Defaults to false.
 	 * @param bCreateDropPreview If true, a drop preview actor will be spawned instead of a normal actor.
+	 * @param bSelectActors		 If true, select the newly dropped actors (defaults: true)
+	 * @param FactoryToUse		 The preferred actor factory to use (optional)
 	 */
-	bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool SelectActor = true, class UActorFactory* FactoryToUse = NULL );
+	bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
 
 	/**
  	 * Sets GWorld to the appropriate world for this client
@@ -461,6 +462,53 @@ public:
 	 */
 	FViewportCursorLocation GetCursorWorldLocationFromMousePos();
 	
+	/** 
+	 * Access the 'active' actor lock. This is the actor locked to the viewport via the viewport menus.
+	 * It is forced to be inactive if Matinee is controlling locking.
+	 * 
+	 * @return  The actor currently locked to the viewport and actively linked to the camera movements.
+	 */
+	TWeakObjectPtr<AActor> GetActiveActorLock() const
+	{
+		if (ActorLockedByMatinee.IsValid())
+		{
+			return TWeakObjectPtr<AActor>();
+		}
+		return ActorLockedToCamera;
+	}
+
+	/** 
+	 * Set the actor lock. This is the actor locked to the viewport via the viewport menus.
+	 */
+	void SetActorLock(AActor* Actor)
+	{
+		return ActorLockedToCamera = Actor;
+	}
+
+	/** 
+	 * Set the actor locked to the viewport by Matinee.
+	 */
+	void SetMatineeActorLock(AActor* Actor)
+	{
+		return ActorLockedByMatinee = Actor;
+	}
+
+	/** 
+	 * Check whether this viewport is locked to the specified actor
+	 */
+	bool IsLockedToActor(AActor* Actor) const
+	{
+		return ActorLockedToCamera.Get() == Actor || ActorLockedByMatinee.Get() == Actor;
+	}
+
+	/** 
+	 * Check whether this viewport is locked to display the matinee view
+	 */
+	bool IsLockedToMatinee() const
+	{
+		return ActorLockedByMatinee.IsValid();
+	}
+
 protected:
 	/** 
 	 * Checks the viewport to see if the given blueprint asset can be dropped on the viewport.
@@ -487,6 +535,7 @@ protected:
 	virtual void PerspectiveCameraMoved() OVERRIDE;
 	virtual bool ShouldLockPitch() const OVERRIDE;
 	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy ) OVERRIDE;
+	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const OVERRIDE;
 
 private:
 	/**
@@ -522,23 +571,29 @@ private:
 	 * @param	DroppedObjects		Array of objects dropped into the viewport
 	 * @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	 * @param	OutNewActors		The list of actors created while dropping
+	 * @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
+	 * @param	FactoryToUse		The preferred actor factory to use (optional)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBackground( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool SelectActor = true, class UActorFactory* FactoryToUse = NULL );
+	bool DropObjectsOnBackground( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
 
 	/**
 	* Called when an asset is dropped upon an existing actor.
 	*
 	* @param	Cursor				Mouse cursor location
 	* @param	DroppedObjects		Array of objects dropped into the viewport
-	* @param	TargetProxy			Hit proxy representing the dropped upon actor
+	* @param	DroppedUponActor	The actor that we are dropping upon
+	* @param	DroppedLocation		The location that we're dropping the objects
 	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	* @param	OutNewActors		The list of actors created while dropping
+	* @param	bUsedHitProxy		Whether or not a hit proxy was used for spawning
+	* @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
+	* @param	FactoryToUse		The preferred actor factory to use (optional)
 	*
 	* @return	true if the drop operation was successfully handled; false otherwise
 	*/
-	bool DropObjectsOnActor( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, struct HActor* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool SelectActor = true, class UActorFactory* FactoryToUse = NULL );
+	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a BSP surface.
@@ -549,10 +604,12 @@ private:
 	 * @param	TargetProxy			Hit proxy representing the dropped upon model
 	 * @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	 * @param	OutNewActors		The list of actors created while dropping
+	 * @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
+	 * @param	FactoryToUse		The preferred actor factory to use (optional)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBSPSurface( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, class HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool SelectActor, UActorFactory* FactoryToUse );
+	bool DropObjectsOnBSPSurface( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, class HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors, UActorFactory* FactoryToUse );
 
 	/**
 	 * Called when an asset is dropped upon a manipulation widget.
@@ -560,7 +617,6 @@ private:
 	 * @param	View				The SceneView for the dropped-in viewport
 	 * @param	Cursor				Mouse cursor location
 	 * @param	DroppedObjects		Array of objects dropped into the viewport
-	 * @param	TargetProxy			Hit proxy representing the dropped upon manipulation widget
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
@@ -571,7 +627,6 @@ private:
 	/** Helper functions for ApplyDeltaTo* functions - modifies scale based on grid settings */
 	void ModifyScale( AActor* InActor, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 	void ValidateScale( const FVector& CurrentScale, const FVector& BoxExtent, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
-
 
 public:
 	/** Static: List of objects we're hovering over */
@@ -585,9 +640,6 @@ public:
 
 	/** Special volume actor visibility settings. Each bit represents a visibility state for a specific volume class. 1 = visible, 0 = hidden */
 	TBitArray<>				VolumeActorVisibility;
-
-	/** When the viewpoint is locked to an actor this references the actor, invalid if not locked (replaces bLockSelectedToCamera) */
-	TWeakObjectPtr<AActor>	ActorLockedToCamera;
 
 	/** The viewport location that is restored when exiting PIE */
 	FVector					LastEditorViewLocation;
@@ -662,4 +714,10 @@ private:
 
 	/** If this view was controlled by another view this/last frame, don't update itself */
 	bool bWasControlledByOtherViewport;
+
+	/** When the viewpoint is locked to an actor this references the actor, invalid if not locked (replaces bLockSelectedToCamera) */
+	TWeakObjectPtr<AActor>	ActorLockedToCamera;
+
+	/** When the viewpoint is locked to an actor (by Matinee) this references the actor, invalid if not locked */
+	TWeakObjectPtr<AActor>	ActorLockedByMatinee;
 };

@@ -27,6 +27,14 @@
 
 #endif // RECAST_ASYNC_REBUILDING
 
+#if WITH_RECAST
+/// Helper for accessing navigation query from different threads
+#define INITIALIZE_NAVQUERY(NavQueryVariable, NumNodes)	dtNavMeshQuery NavQueryVariable##Private;	\
+	dtNavMeshQuery& NavQueryVariable = IsInGameThread() ? RecastNavMeshImpl->SharedNavQuery : NavQueryVariable##Private; \
+	NavQueryVariable.init(RecastNavMeshImpl->DetourNavMesh, NumNodes);
+
+#endif // WITH_RECAST
+
 namespace
 {
 	FORCEINLINE FVector2D TileIndexToXY(int32 GridWidth, int32 Index)
@@ -154,7 +162,10 @@ uint32 FRecastDebugGeometry::GetAllocatedSize() const
 
 void FRecastTickHelper::Tick(float DeltaTime)
 {
-	Owner->TickMe(DeltaTime);
+	if (Owner->IsPendingKill() == false)
+	{
+		Owner->TickMe(DeltaTime);
+	}
 }
 
 TStatId FRecastTickHelper::GetStatId() const 
@@ -204,8 +215,6 @@ struct FRecastNamedFiltersCreator
 static const FRecastNamedFiltersCreator RecastNamedFiltersCreator;
 
 ARecastNavMesh::FNavPolyFlags ARecastNavMesh::NavLinkFlag = RecastNamedFiltersCreator.NavLinkFlag;
-
-FNavigationTypeCreator ARecastNavMesh::Creator(FCreateNavigationDataInstanceDelegate::CreateStatic(&ARecastNavMesh::CreateNavigationInstances));
 
 ARecastNavMesh::ARecastNavMesh(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -369,6 +378,11 @@ void ARecastNavMesh::SortNavigationTiles()
 	TArray<FVector2D> SeedLocations;
 
 	UWorld* CurWorld = GetWorld();
+	if (CurWorld == NULL)
+	{
+		return;
+	}
+
 	for (FConstPlayerControllerIterator PlayerIt = CurWorld->GetPlayerControllerIterator(); PlayerIt; ++PlayerIt)
 	{
 		if (*PlayerIt && (*PlayerIt)->GetPawn() != NULL)
@@ -461,7 +475,6 @@ ANavigationData* ARecastNavMesh::CreateNavigationInstances(UNavigationSystem* Na
 
 	const TArray<FNavDataConfig>* SupportedAgents = &NavSys->SupportedAgents;
 	const int SupportedAgentsCount = SupportedAgents->Num();
-	bool bShouldNotifyEditor = false;
 
 	if (SupportedAgentsCount > 0)
 	{
@@ -485,7 +498,7 @@ ANavigationData* ARecastNavMesh::CreateNavigationInstances(UNavigationSystem* Na
 						continue;
 					}
 
-					if (Nav->IsGeneratedFor(*AgentProps) == true)
+					if (Nav->DoesSupportAgent(*AgentProps) == true)
 					{
 						AlreadyInstantiated[i] = true;
 						++NumberFound;
@@ -506,7 +519,6 @@ ANavigationData* ARecastNavMesh::CreateNavigationInstances(UNavigationSystem* Na
 					if (Instance != NULL)
 					{
 						NavSys->RequestRegistration(Instance);
-						bShouldNotifyEditor = true;
 					}
 				}
 			}
@@ -528,7 +540,6 @@ ANavigationData* ARecastNavMesh::CreateNavigationInstances(UNavigationSystem* Na
 		if (Instance == NULL)
 		{
 			Instance = SpawnInstance(NavSys);
-			bShouldNotifyEditor = true;
 		}
 		else
 		{
@@ -892,7 +903,7 @@ void ARecastNavMesh::FillConfig(FNavDataConfig& Dest)
 	Dest.AgentRadius = AgentRadius;
 }
 
-bool ARecastNavMesh::IsGeneratedFor(const FNavAgentProperties& AgentProps) const
+bool ARecastNavMesh::DoesSupportAgent(const FNavAgentProperties& AgentProps) const
 {
 	return NavDataConfig.IsEquivalent(AgentProps);
 }
@@ -951,6 +962,24 @@ void ARecastNavMesh::GetNavMeshTileXY(int32 TileIndex, int32& OutX, int32& OutY,
 	{
 		SECTION_LOCK_TILES;
 		RecastNavMeshImpl->GetNavMeshTileXY(TileIndex, OutX, OutY, OutLayer);
+	}
+}
+
+void ARecastNavMesh::GetNavMeshTileXY(const FVector& Point, int32& OutX, int32& OutY) const
+{
+	if (RecastNavMeshImpl)
+	{
+		SECTION_LOCK_TILES;
+		RecastNavMeshImpl->GetNavMeshTileXY(Point, OutX, OutY);
+	}
+}
+
+void ARecastNavMesh::GetNavMeshTilesAt(int32 TileX, int32 TileY, TArray<int32>& Indices) const
+{
+	if (RecastNavMeshImpl)
+	{
+		SECTION_LOCK_TILES;
+		RecastNavMeshImpl->GetNavMeshTilesAt(TileX, TileY, Indices);
 	}
 }
 
@@ -1369,6 +1398,37 @@ void ARecastNavMesh::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 	RequestDrawingUpdate();
 }
 
+bool ARecastNavMesh::AdjustLocationWithFilter(const FVector& StartLoc, FVector& OutAdjustedLocation, const FNavigationQueryFilter& Filter) const
+{
+	INITIALIZE_NAVQUERY(NavQuery, Filter.GetMaxSearchNodes());
+
+	const FVector& NavExtent = GetDefaultQueryExtent();
+	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
+
+	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(Filter.GetImplementation()))->GetAsDetourQueryFilter();
+	ensure(QueryFilter);
+
+	FVector RecastStart = Unreal2RecastPoint(StartLoc);
+	FVector RecastAdjustedPoint = Unreal2RecastPoint(StartLoc);
+	NavNodeRef StartPolyID = INVALID_NAVNODEREF;
+	NavQuery.findNearestPoly(&RecastStart.X, Extent, QueryFilter, &StartPolyID, &RecastAdjustedPoint.X);
+
+	if (FVector::DistSquared(RecastStart, RecastAdjustedPoint) < KINDA_SMALL_NUMBER)
+	{
+		OutAdjustedLocation = StartLoc;
+		return false;
+	}
+	else
+	{
+		OutAdjustedLocation = Recast2UnrealPoint(RecastAdjustedPoint);
+		// move it just a bit further - otherwise recast can still pick "wrong" poly when 
+		// later projecting StartLoc (meaning a poly we want to filter out with 
+		// QueryFilter here)
+		OutAdjustedLocation += (OutAdjustedLocation - StartLoc).SafeNormal() * 0.1f;
+		return true;
+	}
+}
+
 FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
 {
 	const ANavigationData* Self = Query.NavData.Get();
@@ -1767,4 +1827,7 @@ const class FRecastQueryFilter* ARecastNavMesh::GetNamedFilter(ERecastNamedFilte
 	return NamedFilters[FilterType];
 }
 
+#undef INITIALIZE_NAVQUERY
+
 #endif	//WITH_RECAST
+

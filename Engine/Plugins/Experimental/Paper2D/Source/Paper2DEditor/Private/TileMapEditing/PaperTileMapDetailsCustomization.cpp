@@ -57,7 +57,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 				.HAlign(HAlign_Center)
 				.OnClicked(this, &FPaperTileMapDetailsCustomization::EnterTileMapEditingMode)
 				.Visibility(this, &FPaperTileMapDetailsCustomization::GetNonEditModeVisibility)
-				.Text( LOCTEXT( "EnterTileMapEditMode", "Enter Edit Mode" ).ToString() )
+				.Text( LOCTEXT( "EnterTileMapEditMode", "Enter Edit Mode" ) )
 //			]
 		]
 	];
@@ -87,7 +87,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
 					.OnClicked(this, &FPaperTileMapDetailsCustomization::AddLayerClicked)
-					.Text( LOCTEXT( "AddLayer", "Add Layer" ).ToString() )
+					.Text( LOCTEXT( "AddLayer", "Add Layer" ) )
 				]
 
 				+SHorizontalBox::Slot()
@@ -99,7 +99,7 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 					.VAlign(VAlign_Center)
 					.HAlign(HAlign_Center)
 					.OnClicked(this, &FPaperTileMapDetailsCustomization::AddCollisionLayerClicked)
-					.Text( LOCTEXT( "AddCollisionLayer", "Add Collision Layer" ).ToString() )
+					.Text( LOCTEXT( "AddCollisionLayer", "Add Collision Layer" ) )
 				]
 			]
 		];

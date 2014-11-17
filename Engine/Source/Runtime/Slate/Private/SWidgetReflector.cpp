@@ -309,6 +309,21 @@ public:
 				SNew( STextBlock )
 				.Text( this, &SReflectorToolTipWidget::GetSizeInfo )
 			]
+
+			// Enabled
+			+ SGridPanel::Slot( 0, 3 )
+			[
+				SNew( STextBlock )
+				.Text( NSLOCTEXT( "WidgetReflector", "Enabled", "Enabled" ) )
+			]
+
+			// Enabled Value
+			+ SGridPanel::Slot( 1, 3 )
+			.Padding( 5, 0, 0, 0 )
+			[
+				SNew( STextBlock )
+				.Text( this, &SReflectorToolTipWidget::GetEnabled )
+			]
 		];
 	}
 
@@ -333,6 +348,14 @@ private:
 
 		return TheWidget.IsValid()
 			? WidgetInfo.Get()->Geometry.ToString()
+			: FString();
+	}
+
+	FString GetEnabled() const
+	{
+		TSharedPtr<SWidget> TheWidget = WidgetInfo.Get()->Widget.Pin();
+		return TheWidget.IsValid()
+			? (TheWidget->IsEnabled() ? "True" : "False")
 			: FString();
 	}
 
@@ -361,34 +384,39 @@ public:
 			.BorderImage( FCoreStyle::Get().GetBrush( "ToolPanel.GroupBorder" ) )
 			[
 				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
+				
+				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
 					SNew(SHorizontalBox)
+					
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					[
 						SNew( STextBlock )
-						. Text( NSLOCTEXT("WidgetReflector", "AppScale", "Application Scale: ").ToString() )
+						.Text( NSLOCTEXT("WidgetReflector", "AppScale", "Application Scale: ").ToString() )
 					]
+
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					[
 						SNew( SSpinBox<float> )
-						. Value(this, &SWidgetReflectorImpl::GetAppScaleValue)
-						. MinValue(0.1f)
-						. MaxValue(3.0f)
-						. Delta(0.01f)
-						. OnValueChanged( this, &SWidgetReflectorImpl::OnAppscaleSliderChanged )
+						.Value(this, &SWidgetReflectorImpl::GetAppScaleValue)
+						.MinValue(0.1f)
+						.MaxValue(3.0f)
+						.Delta(0.01f)
+						.OnValueChanged( this, &SWidgetReflectorImpl::OnAppscaleSliderChanged )
 					]
 				]
-				+SVerticalBox::Slot()
+
+				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
 					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(5)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5)
 					[
 						// Check box that controls LIVE MODE
 						SNew(SCheckBox)
@@ -399,9 +427,10 @@ public:
 							.Text(NSLOCTEXT("WidgetReflector", "ShowFocus", "Show Focus").ToString())
 						]
 					]
-					+SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(5)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5)
 					[
 						// Check box that controls PICKING A WIDGET TO INSPECT
 						SNew(SButton)
@@ -413,7 +442,8 @@ public:
 						]
 					]
 				
-				]			
+				]
+
 				+ SVerticalBox::Slot()
 				.FillHeight(1)
 				[
@@ -433,6 +463,7 @@ public:
 						+ SHeaderRow::Column( "WidgetInfo" ).DefaultLabel( NSLOCTEXT( "WidgetReflector", "WidgetInfo", "Widget Info" ).ToString() ).FillWidth( 0.30 )
 					)
 				]
+
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[

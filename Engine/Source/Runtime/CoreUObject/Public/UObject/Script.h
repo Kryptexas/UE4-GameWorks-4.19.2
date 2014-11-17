@@ -203,11 +203,11 @@ enum EExprToken
 	EX_StructMemberContext	= 0x42, // Context expression to address a property within a struct
 	EX_LetMulticastDelegate	= 0x43, // Assignment to a multi-cast delegate
 	EX_LetDelegate			= 0x44, // Assignment to a delegate
-	//						= 0x45,
-	//						= 0x46,
-	//						= 0x47,
+	//						= 0x45, 
+	//						= 0x46, // CST_ObjectToInterface
+	//						= 0x47, // CST_ObjectToBool
 	EX_LocalOutVariable		= 0x48, // local out (pass by reference) function parameter
-	//						= 0x49,
+	//						= 0x49, // CST_InterfaceToBool
 	EX_DeprecatedOp4A		= 0x4A,
 	EX_InstanceDelegate		= 0x4B,	// const reference to a delegate or normal function object
 	EX_PushExecutionFlow	= 0x4C, // push an address on to the execution flow stack for future execution when a EX_PopExecutionFlow is executed.   Execution continues on normally and doesn't change to the pushed address.
@@ -216,9 +216,9 @@ enum EExprToken
 	EX_PopExecutionFlowIfNot = 0x4F, // continue execution at the last address previously pushed onto the execution flow stack, if the condition is not true.
 	EX_Breakpoint			= 0x50, // Breakpoint.  Only observed in the editor, otherwise it behaves like EX_Nothing.
 	EX_InterfaceContext		= 0x51,	// Call a function through a native interface variable
-	EX_InterfaceCast		= 0x52,	// Converting an object reference to native interface variable
+	EX_ObjToInterfaceCast   = 0x52,	// Converting an object reference to native interface variable
 	EX_EndOfScript			= 0x53, // Last byte in script code
-	//						= 0x54,
+	EX_CrossInterfaceCast	= 0x54, // Converting an interface variable reference to native interface variable
 	//						= 0x55,
 	//						= 0x56,
 	//						= 0x57,

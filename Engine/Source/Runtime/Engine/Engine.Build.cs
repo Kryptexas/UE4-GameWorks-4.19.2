@@ -15,6 +15,7 @@ public class Engine : ModuleRules
 			new string[] {
 				"Developer/DerivedDataCache/Public",
 				"Runtime/Online/OnlineSubsystem/Public",
+				"Runtime/Online/OnlineSubsystemUtils/Public",
                 "Developer/SynthBenchmark/Public",
 			}
 		);
@@ -121,6 +122,7 @@ public class Engine : ModuleRules
 				"Analytics",
 				"AnalyticsET",
 				"OnlineSubsystem", 
+				"OnlineSubsystemUtils"
 			}
 		);
 
@@ -207,6 +209,15 @@ public class Engine : ModuleRules
 				"VorbisFile"
 				);
         }
+
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			AddThirdPartyPrivateStaticDependencies(Target,
+				"UEOgg",
+				"Vorbis",
+				"VorbisFile"
+				);
+		}
 
 		if (UEBuildConfiguration.bCompileRecast)
 		{

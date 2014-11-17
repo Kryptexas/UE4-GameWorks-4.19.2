@@ -174,6 +174,16 @@ bool FEdModeInterpEdit::AllowWidgetMove()
 	}
 }
 
+void FEdModeInterpEdit::ActorSelectionChangeNotify()
+{
+	FEdMode::ActorSelectionChangeNotify();
+
+	if ( InterpEd )
+	{
+		InterpEd->ActorSelectionChange();
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FModeTool_InterpEdit
 //////////////////////////////////////////////////////////////////////////
@@ -202,9 +212,26 @@ bool FModeTool_InterpEdit::MouseMove(FLevelEditorViewportClient* ViewportClient,
 	return 0;
 }
 
-/**
- * @return		true if the key was handled by this editor mode tool.
- */
+bool FModeTool_InterpEdit::InputAxis(FLevelEditorViewportClient* InViewportClient, FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime)
+{
+	// We need to set up a widget axis here to prevent our drag operation being co-opted by box/frustum selection
+	ELevelViewportType ViewportType = InViewportClient->ViewportType;
+	switch(ViewportType)
+	{
+	case LVT_OrthoXY:
+		InViewportClient->SetCurrentWidgetAxis(EAxisList::XY);
+		break;
+	case LVT_OrthoXZ:
+		InViewportClient->SetCurrentWidgetAxis(EAxisList::XZ);
+		break;
+	case LVT_OrthoYZ:
+		InViewportClient->SetCurrentWidgetAxis(EAxisList::YZ);
+		break;
+	}
+
+	return false;
+}
+
 bool FModeTool_InterpEdit::InputKey(FLevelEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event)
 {
 	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
@@ -292,9 +319,13 @@ bool FModeTool_InterpEdit::InputKey(FLevelEditorViewportClient* ViewportClient, 
 	// Handle keys
 	if( Event == IE_Pressed )
 	{
-		if( Key == EKeys::Delete )
+		// Swallow 'Delete' key to avoid deleting stuff when trying to interpolate it!
+		if ( Key == EKeys::Platform_Delete )
 		{
-			// Swallow 'Delete' key to avoid deleting stuff when trying to interpolate it!
+			// Can't delete actors if Matinee is open.
+			const FText ErrorMsg = NSLOCTEXT("UnrealEd", "Error_WrongModeForActorDeletion", "Cannot delete actor while Matinee is open");
+			FNotificationInfo Info(ErrorMsg);
+			FSlateNotificationManager::Get().AddNotification(Info);
 			return true;
 		}
 		else if( mode->InterpEd->ProcessKeyPress( Key, bCtrlDown, bAltDown ) )
@@ -306,9 +337,6 @@ bool FModeTool_InterpEdit::InputKey(FLevelEditorViewportClient* ViewportClient, 
 	return FModeTool::InputKey(ViewportClient, Viewport, Key, Event);
 }
 
-/**
- * @return		true if the delta was handled by this editor mode tool.
- */
 bool FModeTool_InterpEdit::InputDelta(FLevelEditorViewportClient* InViewportClient, FViewport* InViewport, FVector& InDrag, FRotator& InRot, FVector& InScale)
 {
 	check( GEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) );
@@ -323,13 +351,6 @@ bool FModeTool_InterpEdit::InputDelta(FLevelEditorViewportClient* InViewportClie
 	// If we are grabbing a 'handle' on the movement curve, pass that info to Matinee
 	if(bMovingHandle)
 	{
-		//if we're using inverted panning
-		if ((InViewportClient->ViewportType != LVT_Perspective) && InViewportClient->ShouldUseMoveCanvasMovement())
-		{
-			InputDeltaDrag = -InputDeltaDrag;
-		}
-
-
 		mode->InterpEd->Move3DHandle( DragGroup, DragTrackIndex, DragKeyIndex, bDragArriving, InputDeltaDrag * (1.f/CurveHandleScale) );
 
 		return 1;

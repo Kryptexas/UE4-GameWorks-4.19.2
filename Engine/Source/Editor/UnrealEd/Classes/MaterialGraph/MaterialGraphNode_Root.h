@@ -14,7 +14,7 @@ class UMaterialGraphNode_Root : public UMaterialGraphNode_Base
 	class UMaterial* Material;
 
 	// Begin UEdGraphNode interface.
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FLinearColor GetNodeTitleColor() const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }

@@ -1,13 +1,7 @@
 #!/bin/sh
+# Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+#
+# Simple wrapper around GenerateProjectFiles.sh using the
+# .command extension enables it to be run from the OSX Finder.
 
-cd "`dirname "$0"`"
-
-if [ -f ./Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh ]; then
-	pushd ./Engine/Build/BatchFiles/Mac
-	sh ./GenerateLLDBInit.sh
-	sh ./GenerateProjectFiles.sh $@
-	popd
-else
-	echo GenerateProjectFiles ERROR: This script does not appear to be located in the root UE4 directory and must be run from there.
-fi
-
+sh "`dirname "$0"`"/GenerateProjectFiles.sh

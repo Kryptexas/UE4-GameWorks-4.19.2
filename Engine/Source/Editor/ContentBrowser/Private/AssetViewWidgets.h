@@ -111,6 +111,9 @@ public:
 	/** Get the name text to be displayed for this item */
 	FText GetNameText() const;
 
+	/** Delegate handling when an asset is loaded */
+	void HandleAssetLoaded(UObject* InAsset) const;
+
 protected:
 	/** Handles starting a name change */
 	virtual void HandleBeginNameChange( const FText& OriginalText );
@@ -165,6 +168,9 @@ protected:
 
 	/** Whether this item is a folder */
 	bool IsFolder() const;
+
+	/** Set mips to be resident while this (loaded) asset is visible */
+	void SetForceMipLevelsToBeResident(bool bForce) const;
 
 protected:
 
@@ -315,6 +321,9 @@ public:
 
 	SLATE_END_ARGS()
 
+	/** Destructor */
+	~SAssetListItem();
+
 	/** Constructs this widget with InArgs */
 	void Construct( const FArguments& InArgs );
 
@@ -412,6 +421,9 @@ public:
 		SLATE_EVENT( FOnFilesDragDropped, OnFilesDragDropped )
 
 	SLATE_END_ARGS()
+
+	/** Destructor */
+	~SAssetTileItem();
 
 	/** Constructs this widget with InArgs */
 	void Construct( const FArguments& InArgs );

@@ -102,6 +102,23 @@ public:
 		SelectedListItem = ListItem;
 	}
 
+	/**
+	* Used by the listbox to tell its parent what item is selected.
+	*
+	* @param	Item from the listbox to select
+	*/
+	void SetSelectedItem( UObject* Item )
+	{
+		for ( TSharedPtr<FListItem>& ListItem : ListViewItems )
+		{
+			if ( ListItem->GetObject() == Item )
+			{
+				SetSelectedListItem( ListItem.Get() );
+				break;
+			}
+		}
+	}
+
 	/** @return	Return the index of the ConsolidationoOjects array of the actively selected ListItem */
 	int32 GetSelectedListItemIndex();
 
@@ -248,7 +265,7 @@ private:
 // Window/Interface Function...
 TWeakPtr<SConsolidateToolWidget> FConsolidateToolWindow::WidgetInstance;
 
-void FConsolidateToolWindow::AddConsolidationObjects( const TArray<UObject*>& InObjects )
+void FConsolidateToolWindow::AddConsolidationObjects( const TArray<UObject*>& InObjects, UObject* SelectedItem )
 {
 	if (WidgetInstance.IsValid())
 	{
@@ -259,15 +276,21 @@ void FConsolidateToolWindow::AddConsolidationObjects( const TArray<UObject*>& In
 	{
 		//Create a new window
 		TSharedRef<SWindow> NewWindow = SNew(SWindow)
-			.Title(LOCTEXT("Consolidate_Title", "Consolidate Assets"))
+			.Title(LOCTEXT("Consolidate_Title", "Replace References"))
 			.ClientSize( FVector2D(768,300) )
-			.SupportsMinimize(false) .SupportsMaximize(false);
+			.SupportsMinimize(false)
+			.SupportsMaximize(false);
 
 		TSharedRef<SConsolidateToolWidget> NewWidget = 
 			SNew(SConsolidateToolWidget)
 			.ParentWindow(NewWindow);
 
 		NewWidget->AddConsolidationObjects(InObjects);
+
+		if ( SelectedItem )
+		{
+			NewWidget->SetSelectedItem( SelectedItem );
+		}
 
 		NewWindow->SetContent(NewWidget);
 
@@ -382,7 +405,7 @@ void SConsolidateToolWidget::Construct( const FArguments& InArgs )
 				.OnCheckStateChanged( this, &SConsolidateToolWidget::OnSavePackagesCheckStateChanged )
 				[
 					SNew( STextBlock )
-					.Text( LOCTEXT("Consolidate_SaveDirty", "Save dirtied packages") )
+					.Text( LOCTEXT("Consolidate_SaveDirtyAssets", "Save dirtied assets") )
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -870,7 +893,7 @@ FReply SConsolidateToolWidget::OnDragOver( const FGeometry& MyGeometry, const FD
 FReply SConsolidateToolWidget::OnKeyUp( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
 {
 	const FKey Key = InKeyboardEvent.GetKey();
-	if (Key == EKeys::Delete)	
+	if ( Key == EKeys::Platform_Delete )
 	{
 		RemoveSelectedObject();
 		return FReply::Handled();

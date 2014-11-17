@@ -307,12 +307,12 @@ void TSimpVert<T>::FindAdjacentVertsGroup( TSimpVert<T>** adjVerts, int& numVert
 		{
 			for( int j = 0; j < 3; j++ )
 			{
-				TSimpVert* vert = (*i)->verts[j];
-				if( vert->TestFlags( SIMP_MARK1 ) )
+				TSimpVert* simpVert = (*i)->verts[j];
+				if (simpVert->TestFlags(SIMP_MARK1))
 				{
-					adjVerts[ numVerts++ ] = vert;
+					adjVerts[numVerts++] = simpVert;
 				}
-				vert->DisableFlags( SIMP_MARK1 );
+				simpVert->DisableFlags(SIMP_MARK1);
 			}
 		}
 		v = v->next;

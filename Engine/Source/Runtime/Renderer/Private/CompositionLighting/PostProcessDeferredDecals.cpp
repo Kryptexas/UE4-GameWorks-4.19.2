@@ -212,9 +212,9 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 		switch(DecalBlendMode)
 		{
 		case DBM_Translucent:
-			// @todo: Feature Level 10 does not support separate blends modes for each render target. This could result in the 
+			// @todo: Feature Level 10 does not support separate blends modes for each render target. This could result in the
 			// translucent and stain blend modes looking incorrect when running in this mode.
-			if(SMFeatureLevel == ERHIFeatureLevel::SM5)
+			if(GSupportsSeparateRenderTargetBlendState)
 			{
 				if(bHasNormal)
 				{
@@ -250,7 +250,7 @@ void SetDecalBlendState(const ERHIFeatureLevel::Type SMFeatureLevel, uint32 Rend
 			break;
 
 		case DBM_Stain:
-			if(SMFeatureLevel == ERHIFeatureLevel::SM5)
+			if(GSupportsSeparateRenderTargetBlendState)
 			{
 				if(bHasNormal)
 				{
@@ -956,7 +956,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 			}
 
 			const bool bBlendStateChange = DecalData.DecalBlendMode != LastDecalBlendMode;// Has decal mode changed.
-			const bool bDecalNormalChanged = SMFeatureLevel == ERHIFeatureLevel::SM5 && // has normal changed for SM5 stain/translucent decals?
+			const bool bDecalNormalChanged = GSupportsSeparateRenderTargetBlendState && // has normal changed for SM5 stain/translucent decals?
 							(DecalData.DecalBlendMode == DBM_Translucent || DecalData.DecalBlendMode == DBM_Stain) &&
 							(int32)DecalData.bHasNormal != LastDecalHasNormal;
 

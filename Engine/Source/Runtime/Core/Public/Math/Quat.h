@@ -380,6 +380,7 @@ public:
 
 } GCC_ALIGN(16);
 
+
 inline FQuat::FQuat( const FMatrix& M )
 {
 	// If Matrix is NULL, return Identity quaternion. If any of them is 0, you won't be able to construct rotation
@@ -394,7 +395,7 @@ inline FQuat::FQuat( const FMatrix& M )
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Make sure the Rotation part of the Matrix is unit length.
 	// Changed to this (same as RemoveScaling) from RotDeterminant as using two different ways of checking unit length matrix caused inconsistency. 
-	if (!ensure( (FMath::Abs(1.f - M.GetScaledAxis( EAxis::X ).SizeSquared()) <= 0.01f) && (FMath::Abs(1.f - M.GetScaledAxis( EAxis::Y ).SizeSquared()) <= 0.01f) && (FMath::Abs(1.f - M.GetScaledAxis( EAxis::Z ).SizeSquared()) <= 0.01f)))
+	if (!ensure((FMath::Abs(1.f - M.GetScaledAxis(EAxis::X).SizeSquared()) <= KINDA_SMALL_NUMBER) && (FMath::Abs(1.f - M.GetScaledAxis(EAxis::Y).SizeSquared()) <= KINDA_SMALL_NUMBER) && (FMath::Abs(1.f - M.GetScaledAxis(EAxis::Z).SizeSquared()) <= KINDA_SMALL_NUMBER)))
 	{
 		*this = FQuat::Identity;
 		return;
@@ -452,10 +453,12 @@ inline FQuat::FQuat( const FMatrix& M )
 	}
 }
 
+
 FORCEINLINE FQuat::FQuat( const FRotator& R )
 {
 	*this = R.Quaternion();
 }
+
 
 inline FVector FQuat::operator*( const FVector& V ) const
 {
@@ -467,6 +470,7 @@ inline FVector FQuat::operator*( const FVector& V ) const
 
 	return FVector(VR.X, VR.Y, VR.Z);
 }
+
 
 inline FMatrix FQuat::operator*( const FMatrix & M ) const
 {
@@ -570,30 +574,34 @@ inline FRotator FQuat::Rotator() const
 #endif
 }
 
+
 FORCEINLINE FQuat::FQuat()
 {}
+
 
 FORCEINLINE FQuat::FQuat(EForceInit ZeroOrNot)
 	:	X(0), Y(0), Z(0), W(ZeroOrNot == ForceInitToZero ? 0.0f : 1.0f)
 {}
 
+
 FORCEINLINE FQuat::FQuat( float InX, float InY, float InZ, float InA )
 :	X(InX), Y(InY), Z(InZ), W(InA)
 {}
+
 
 FORCEINLINE FQuat::FQuat( const FQuat& Q ) :
 	X(Q.X),
 	Y(Q.Y),
 	Z(Q.Z),
 	W(Q.W)
-{
-}
+{}
 
 
 FORCEINLINE FString FQuat::ToString() const
 {
 	return FString::Printf(TEXT("X=%3.3f Y=%3.3f Z=%3.3f W=%3.3f"), X, Y, Z, W);
 }
+
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 FORCEINLINE FQuat& FQuat::operator=(const FQuat& Other)
@@ -606,6 +614,7 @@ FORCEINLINE FQuat& FQuat::operator=(const FQuat& Other)
 	return *this;
 }
 #endif
+
 
 FORCEINLINE FQuat::FQuat( FVector Axis, float AngleRad )
 {
@@ -625,6 +634,7 @@ FORCEINLINE FQuat FQuat::operator+( const FQuat& Q ) const
 	return FQuat( X + Q.X, Y + Q.Y, Z + Q.Z, W + Q.W );
 }
 
+
 FORCEINLINE FQuat FQuat::operator+=(const FQuat& Q)
 {
 	this->X += Q.X;
@@ -634,16 +644,19 @@ FORCEINLINE FQuat FQuat::operator+=(const FQuat& Q)
 	return *this;
 }
 
+
 FORCEINLINE FQuat FQuat::operator-( const FQuat& Q ) const
 {
 	return FQuat( X - Q.X, Y - Q.Y, Z - Q.Z, W - Q.W );
 }
+
 
 FORCEINLINE bool FQuat::Equals(const FQuat& Q, float Tolerance) const
 {
 	return (FMath::Abs(X-Q.X) < Tolerance && FMath::Abs(Y-Q.Y) < Tolerance && FMath::Abs(Z-Q.Z) < Tolerance && FMath::Abs(W-Q.W) < Tolerance)
 		|| (FMath::Abs(X+Q.X) < Tolerance && FMath::Abs(Y+Q.Y) < Tolerance && FMath::Abs(Z+Q.Z) < Tolerance && FMath::Abs(W+Q.W) < Tolerance);
 }
+
 
 FORCEINLINE FQuat FQuat::operator-=(const FQuat& Q)
 {
@@ -654,12 +667,14 @@ FORCEINLINE FQuat FQuat::operator-=(const FQuat& Q)
 	return *this;
 }
 
+
 FORCEINLINE FQuat FQuat::operator*( const FQuat& Q ) const
 {
 	FQuat Result;
 	VectorQuaternionMultiply(&Result, this, &Q);
 	return Result;
 }
+
 
 FORCEINLINE FQuat FQuat::operator*=(const FQuat& Q)
 {
@@ -675,6 +690,7 @@ FORCEINLINE FQuat FQuat::operator*=(const FQuat& Q)
 	return *this; 
 }
 
+
 FORCEINLINE FQuat FQuat::operator*=( const float Scale )
 {
 	X *= Scale;
@@ -685,30 +701,36 @@ FORCEINLINE FQuat FQuat::operator*=( const float Scale )
 	return *this;
 }
 
+
 FORCEINLINE FQuat FQuat::operator*( const float Scale ) const
 {
 	return FQuat( Scale*X, Scale*Y, Scale*Z, Scale*W);			
 }
-	
+
+
 FORCEINLINE FQuat FQuat::operator/( const float Scale ) const
 {
 	return FQuat( X/Scale, Y/Scale, Z/Scale, W/Scale);			
 }
+
 
 FORCEINLINE bool FQuat::operator==( const FQuat& Q ) const
 {
 	return X==Q.X && Y==Q.Y && Z==Q.Z &&  W==Q.W;
 }
 
+
 FORCEINLINE bool FQuat::operator!=( const FQuat& Q ) const
 {
 	return X!=Q.X || Y!=Q.Y || Z!=Q.Z || W!=Q.W;
 }
 
+
 FORCEINLINE float FQuat::operator|( const FQuat& Q ) const
 {
 	return X*Q.X + Y*Q.Y + Z*Q.Z + W*Q.W;
 }
+
 
 FORCEINLINE void FQuat::Normalize(float Tolerance)
 {
@@ -727,15 +749,18 @@ FORCEINLINE void FQuat::Normalize(float Tolerance)
 	}
 }
 
+
 FORCEINLINE bool FQuat::IsNormalized() const
 {
-	return (FMath::Abs(1.f - SizeSquared()) <= 0.01f);
+	return (FMath::Abs(1.f - SizeSquared()) <= KINDA_SMALL_NUMBER);
 }
+
 
 FORCEINLINE float FQuat::Size() const
 {
 	return FMath::Sqrt(X*X+Y*Y+Z*Z+W*W);
 }
+
 
 FORCEINLINE float FQuat::SizeSquared() const
 {
@@ -749,6 +774,7 @@ FORCEINLINE void FQuat::ToAxisAndAngle(FVector& Axis, float& Angle) const
 	Axis = GetRotationAxis();
 }
 
+
 FORCEINLINE FVector FQuat::GetRotationAxis() const
 {
 	// Ensure we never try to sqrt a neg number
@@ -760,6 +786,7 @@ FORCEINLINE FVector FQuat::GetRotationAxis() const
 
 	return FVector(1.f, 0.f, 0.f);
 }
+
 
 FORCEINLINE FVector FQuat::RotateVector(FVector v) const
 {	
@@ -773,12 +800,14 @@ FORCEINLINE FVector FQuat::RotateVector(FVector v) const
 	return vOut;
 }
 
+
 FORCEINLINE FQuat FQuat::Inverse() const
 {
 	checkSlow(IsNormalized());
 
 	return FQuat(-X, -Y, -Z, W);
 }
+
 
 FORCEINLINE void FQuat::EnforceShortestArcWith(const FQuat& OtherQuat)
 {
@@ -789,27 +818,32 @@ FORCEINLINE void FQuat::EnforceShortestArcWith(const FQuat& OtherQuat)
 	Z *= Bias;
 	W *= Bias;
 }
+
 	
 FORCEINLINE FVector FQuat::GetAxisX() const
 {
 	return RotateVector( FVector(1.f,0.f,0.f) );
 }
 
+
 FORCEINLINE FVector FQuat::GetAxisY() const
 {
 	return RotateVector( FVector(0.f,1.f,0.f) );
 }
+
 
 FORCEINLINE FVector FQuat::GetAxisZ() const
 {
 	return RotateVector( FVector(0.f,0.f,1.f) );
 }
 
+
 FORCEINLINE float FQuat::Error(const FQuat& Q1, const FQuat& Q2)
 {
 	const float cosom = FMath::Abs(Q1.X*Q2.X + Q1.Y*Q2.Y + Q1.Z*Q2.Z + Q1.W*Q2.W);
 	return (FMath::Abs(cosom) < 0.9999999f) ? FMath::Acos(cosom)*(1.f/PI) : 0.0f;
 }
+
 
 FORCEINLINE float FQuat::ErrorAutoNormalize(const FQuat& A, const FQuat& B)
 {
@@ -820,6 +854,7 @@ FORCEINLINE float FQuat::ErrorAutoNormalize(const FQuat& A, const FQuat& B)
 	return FQuat::Error(Q1, Q2);
 }
 
+
 FORCEINLINE FQuat FQuat::FastLerp(const FQuat& A, const FQuat& B, const float Alpha)
 {
 	// To ensure the 'shortest route', we make sure the dot product between the both rotations is positive.
@@ -827,6 +862,7 @@ FORCEINLINE FQuat FQuat::FastLerp(const FQuat& A, const FQuat& B, const float Al
 	const float Bias = FMath::FloatSelect(DotResult, 1.0f, -1.0f);
 	return (B * Alpha) + (A * (Bias * (1.f - Alpha)));
 }
+
 
 FORCEINLINE FQuat FQuat::FastBilerp(const FQuat& P00, const FQuat& P10, const FQuat& P01, const FQuat& P11, float FracX, float FracY)
 {
@@ -837,6 +873,7 @@ FORCEINLINE FQuat FQuat::FastBilerp(const FQuat& P00, const FQuat& P10, const FQ
 					);
 }
 
+
 FORCEINLINE bool FQuat::ContainsNaN() const
 {
 	return    (FMath::IsNaN(X) || !FMath::IsFinite(X) 
@@ -844,5 +881,6 @@ FORCEINLINE bool FQuat::ContainsNaN() const
 			|| FMath::IsNaN(Z) || !FMath::IsFinite(Z) 
 			|| FMath::IsNaN(W) || !FMath::IsFinite(W));
 }
+
 
 template <> struct TIsPODType<FQuat> { enum { Value = true }; };

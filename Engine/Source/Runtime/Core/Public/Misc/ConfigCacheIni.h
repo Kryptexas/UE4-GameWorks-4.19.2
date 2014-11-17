@@ -358,6 +358,13 @@ public:
 		FVector&			Value,
 		const FString&	Filename
 	);
+	bool GetVector4
+	(
+		const TCHAR*		Section,
+		const TCHAR*		Key,
+		FVector4&			Value,
+		const FString&	Filename
+	);
 	bool GetRotator
 	(
 		const TCHAR*		Section,
@@ -426,6 +433,13 @@ public:
 		const TCHAR*		Section,
 		const TCHAR*		Key,
 		FVector				Value,
+		const FString&	Filename
+	);
+	void SetVector4
+	(
+		const TCHAR*		Section,
+		const TCHAR*		Key,
+		const FVector4&		Value,
 		const FString&	Filename
 	);
 	void SetRotator

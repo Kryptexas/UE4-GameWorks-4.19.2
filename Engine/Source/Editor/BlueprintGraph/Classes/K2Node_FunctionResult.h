@@ -9,11 +9,9 @@ class UK2Node_FunctionResult : public UK2Node_FunctionTerminator
 {
 	GENERATED_UCLASS_BODY()
 
-
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual bool CanUserDeleteNode() const OVERRIDE { return false; }
 	// End UEdGraphNode interface
 
@@ -26,6 +24,5 @@ class UK2Node_FunctionResult : public UK2Node_FunctionTerminator
 	// Begin K2Node_FunctionTerminator interface
 	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) OVERRIDE;
 	// End K2Node_FunctionTerminator interface
-#endif
 };
 

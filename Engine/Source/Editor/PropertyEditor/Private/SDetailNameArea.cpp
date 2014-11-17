@@ -210,9 +210,9 @@ void SDetailNameArea::BuildObjectNameAreaSelectionLabel( TSharedRef< SHorizontal
 				{
 					struct Local
 					{
-						static void OnEditCodeClicked( FString ClassHeaderPath )
+						static void OnEditCodeClicked( FString InClassHeaderPath )
 						{
-							FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead( *ClassHeaderPath );
+							FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*InClassHeaderPath);
 							FSourceCodeNavigation::OpenSourceFile( AbsoluteHeaderPath );
 						}
 					};

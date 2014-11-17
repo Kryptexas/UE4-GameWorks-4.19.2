@@ -84,6 +84,15 @@ void UBlackboardComponent::InitializeBlackboard(class UBlackboardData* NewAsset)
 			}
 
 			ValueMemory.AddZeroed(MemoryOffset);
+
+			// initialize memory
+			for (int32 i = 0; i < InitList.Num(); i++)
+			{
+				const FBlackboardEntry* KeyData = BlackboardAsset->GetKey(InitList[i].KeyID);
+				uint8* RawData = GetKeyRawData(InitList[i].KeyID);
+
+				KeyData->KeyType->Initialize(RawData);
+			}
 		}
 		else
 		{
@@ -187,14 +196,23 @@ FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mo
 {
 	FString DebugString = FString::Printf(TEXT("Blackboard (asset: %s)\n"), *GetNameSafe(BlackboardAsset));
 
+	TArray<FString> KeyDesc;
 	uint8 Offset = 0;
 	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
 	{
 		for (int32 i = 0; i < It->Keys.Num(); i++)
 		{
-			DebugString += FString::Printf(TEXT("  %s\n"), *DescribeKeyValue(i + Offset, Mode));
+			KeyDesc.Add(DescribeKeyValue(i + Offset, Mode));
 		}
 		Offset += It->Keys.Num();
+	}
+	
+	KeyDesc.Sort();
+	for (int32 i = 0; i < KeyDesc.Num(); i++)
+	{
+		DebugString += TEXT("  ");
+		DebugString += KeyDesc[i];
+		DebugString += TEXT('\n');
 	}
 
 	if (Mode == EBlackboardDescription::Full && BlackboardAsset)
@@ -257,7 +275,24 @@ FString UBlackboardComponent::DescribeKeyValue(uint8 KeyID, EBlackboardDescripti
 
 void UBlackboardComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
 {
-	Snapshot->StatusString += GetDebugInfoString(EBlackboardDescription::Full);
+	FVisLogEntry::FStatusCategory Category;
+	Category.Category = FString::Printf(TEXT("Blackboard (asset: %s)"), *GetNameSafe(BlackboardAsset));
+
+	for (UBlackboardData* It = BlackboardAsset; It; It = It->Parent)
+	{
+		for (int32 i = 0; i < It->Keys.Num(); i++)
+		{
+			const FBlackboardEntry& Key = It->Keys[i];
+
+			const uint8* ValueData = GetKeyRawData(It->GetFirstKeyID() + i);
+			FString ValueDesc = Key.KeyType ? *(Key.KeyType->DescribeValue(ValueData)) : TEXT("empty");
+
+			Category.Add(Key.EntryName.ToString(), ValueDesc);
+		}
+	}
+
+	Category.Data.Sort();
+	Snapshot->Status.Add(Category);
 }
 
 #endif
@@ -615,6 +650,28 @@ void UBlackboardComponent::SetValueAsVector(uint8 KeyID, const FVector& VectorVa
 	}
 }
 
+void UBlackboardComponent::ClearValueAsVector(const FName& KeyName)
+{
+	const uint8 KeyID = GetKeyID(KeyName);
+	if (GetKeyType(KeyID) == UBlackboardKeyType_Vector::StaticClass())
+	{
+		ClearValueAsVector(KeyID);
+	}
+}
+
+void UBlackboardComponent::ClearValueAsVector(uint8 KeyID)
+{
+	uint8* RawData = GetKeyRawData(KeyID);
+	if (RawData)
+	{
+		const bool bChanged = UBlackboardKeyType_Vector::SetValue(RawData, FAISystem::InvalidLocation);
+		if (bChanged)
+		{
+			NotifyObservers(KeyID);
+		}
+	}
+}
+
 bool UBlackboardComponent::GetLocationFromEntry(const FName& KeyName, FVector& ResultLocation) const
 {
 	const uint8 KeyID = GetKeyID(KeyName);
@@ -630,6 +687,27 @@ bool UBlackboardComponent::GetLocationFromEntry(uint8 KeyID, FVector& ResultLoca
 		{
 			const uint8* ValueData = ValueMemory.GetTypedData() + ValueOffsets[KeyID];
 			return EntryInfo->KeyType->GetLocation(ValueData, ResultLocation);
+		}
+	}
+
+	return false;
+}
+
+bool UBlackboardComponent::GetRotationFromEntry(const FName& KeyName, FRotator& ResultRotation) const
+{
+	const uint8 KeyID = GetKeyID(KeyName);
+	return GetRotationFromEntry(KeyID, ResultRotation);
+}
+
+bool UBlackboardComponent::GetRotationFromEntry(uint8 KeyID, FRotator& ResultRotation) const
+{
+	if (BlackboardAsset && ValueOffsets.IsValidIndex(KeyID))
+	{
+		const FBlackboardEntry* EntryInfo = BlackboardAsset->GetKey(KeyID);
+		if (EntryInfo && EntryInfo->KeyType)
+		{
+			const uint8* ValueData = ValueMemory.GetTypedData() + ValueOffsets[KeyID];
+			return EntryInfo->KeyType->GetRotation(ValueData, ResultRotation);
 		}
 	}
 

@@ -1339,9 +1339,6 @@ static void SendTo( UWorld* InWorld, int32 bSendToFirst )
 			Level->Actors.Add( Lists[i][j] );
 		}
 	}
-
-	// Send notification about actors that may have changed
-	GEngine->BroadcastLevelActorsChanged();
 }
 
 

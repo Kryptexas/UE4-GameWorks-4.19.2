@@ -13,11 +13,8 @@ class UK2Node_Self : public UK2Node
 	UPROPERTY(transient)
 	TSubclassOf<class UObject>  SelfClass;
 
-	
-
-#if WITH_EDITOR
 	// Begin UEdGraphNode interface
-	virtual FString GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
+	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual FString GetKeywords() const OVERRIDE;
 	virtual void AllocateDefaultPins() OVERRIDE;
@@ -28,6 +25,5 @@ class UK2Node_Self : public UK2Node
 	virtual bool DrawNodeAsVariable() const OVERRIDE { return true; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const OVERRIDE;
 	// End K2Node interface
-#endif
 };
 

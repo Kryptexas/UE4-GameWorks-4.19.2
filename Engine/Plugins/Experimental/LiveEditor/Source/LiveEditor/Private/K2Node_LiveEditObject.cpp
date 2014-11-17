@@ -177,17 +177,33 @@ void UK2Node_LiveEditObject::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
-FString UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_LiveEditObject::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEdGraphPin* BaseClassPin = GetBaseClassPin();
 
-	FString SpawnString = NSLOCTEXT("K2Node", "None", "NONE").ToString();
+	FText SpawnString = NSLOCTEXT("K2Node", "None", "NONE");
+	if(BaseClassPin != NULL && BaseClassPin->DefaultObject != NULL )
+	{
+		SpawnString = FText::FromString(BaseClassPin->DefaultObject->GetName());
+	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("SpawnString"), SpawnString);
+	Args.Add(TEXT("ID"), GetUniqueID());
+	return FText::Format(NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject {SpawnString}_{ID}"), Args );
+}
+
+FString UK2Node_LiveEditObject::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
+{
+	UEdGraphPin* BaseClassPin = GetBaseClassPin();
+
+	FString SpawnString = TEXT("NONE");
 	if(BaseClassPin != NULL && BaseClassPin->DefaultObject != NULL )
 	{
 		SpawnString = BaseClassPin->DefaultObject->GetName();
 	}
 
-	return FString::Printf(*NSLOCTEXT("K2Node", "LiveEditObject", "LiveEditObject %s_%d").ToString(), *SpawnString, GetUniqueID());
+	return FString::Printf(TEXT("LiveEditObject %s_%d"), *SpawnString, GetUniqueID());
 }
 
 void UK2Node_LiveEditObject::PinDefaultValueChanged(UEdGraphPin* Pin) 
@@ -345,7 +361,8 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 
 			// Cache these out because we'll connect the sequence to it
 			UEdGraphPin *EventThenPin = EventNode->FindPinChecked( Schema->PN_Then );
-			UEdGraphPin *EventDeltaPin = EventNode->FindPinChecked( FString(TEXT("RawDeltaMIDI")) );
+			UEdGraphPin *EventDeltaPin = EventNode->FindPinChecked( FString(TEXT("Delta")) );
+			UEdGraphPin *EventMidiValuePin = EventNode->FindPinChecked( FString(TEXT("MidiValue")) );
 			UEdGraphPin *EventControlTypePin = EventNode->FindPinChecked( FString(TEXT("ControlType")) );
 
 
@@ -464,6 +481,10 @@ void UK2Node_LiveEditObject::ExpandNode(class FKismetCompilerContext& CompilerCo
 			//link up the PropertyName Pin
 			UEdGraphPin *ModifyVarNodePropertyNamePin = ModifyVarNode->FindPinChecked( TEXT("PropertyName") );
 			ModifyVarNodePropertyNamePin->DefaultValue = SourceVariablePin->DefaultValue;
+
+			//link up the MIDI Value Pin
+			UEdGraphPin *ModifyVarNodeMidiValuePin = ModifyVarNode->FindPinChecked( TEXT("MidiValue") );
+			EventMidiValuePin->MakeLinkTo(ModifyVarNodeMidiValuePin);
 
 			//link up the ControlType Pin
 			UEdGraphPin *ModifyVarNodeControlTypePin = ModifyVarNode->FindPinChecked( TEXT("ControlType") );

@@ -23,12 +23,9 @@ namespace EAIDebugDrawDataView
 		GameView3,
 		GameView4,
 		GameView5,
-		GameView6,
-		GameView7,
-		GameView8,
-		GameView9,
 		NavMesh,
-		EditorDebugAIFlag
+		EditorDebugAIFlag,
+		MAX UMETA(Hidden)
 	};
 }
 
@@ -46,46 +43,13 @@ namespace EDebugComponentMessage
 	};
 }
 
-USTRUCT()
-struct FOffMeshLinkRenderData
+struct ENGINE_API FDebugCategoryView
 {
-	GENERATED_USTRUCT_BODY()
+	FString Desc;
+	TEnumAsByte<EAIDebugDrawDataView::Type> View;
 
-	UPROPERTY()
-	FVector Left;
-
-	UPROPERTY()
-	FVector Right;
-
-	UPROPERTY()
-	uint8	AreaID;
-
-	UPROPERTY()
-	uint8	Direction;
-
-	UPROPERTY()
-	uint8	ValidEnds;
-
-	UPROPERTY()
-	float	Radius;
-
-	UPROPERTY()
-	FColor	Color;
-};
-
-USTRUCT()
-struct FNavMeshRenderData
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	FColor NavMeshColor;
-
-	UPROPERTY()
-	TArray<FVector> CoordBuffer;
-
-	UPROPERTY()
-	TArray<int32> IndexBuffer;
+	FDebugCategoryView() {}
+	FDebugCategoryView(EAIDebugDrawDataView::Type InView, const FString& Description) : Desc(Description), View(InView) {}
 };
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*Owner of debugging component*/, bool /*is being debugged now*/);
@@ -95,7 +59,7 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 {
 	GENERATED_UCLASS_BODY()
 
-	friend class AGameplayDebuggingComponentHUD;
+	friend class AGameplayDebuggingHUDComponent;
 
 	UPROPERTY(Replicated)
 	int32 ActivationCounter;
@@ -125,25 +89,10 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	UPROPERTY(Replicated)
 	FString PathErrorString;
 	/** End path replication data*/
+	
+	UPROPERTY(ReplicatedUsing=OnRep_UpdateNavmesh)
+	TArray<uint8> NavmeshRepData;
 
-	UPROPERTY(ReplicatedUsing=OnRep_MarkRenderStateDirty)
-	FBox NavMeshBoundingBox;
-
-	UPROPERTY(ReplicatedUsing=OnRep_MarkRenderStateDirty)
-	FNavMeshRenderData AllNavMeshAreas[RECAST_MAX_AREAS];
-
-	UPROPERTY(ReplicatedUsing=OnRep_MarkRenderStateDirty)
-	TArray<FVector> NavMeshEdgeVerts;
-
-	UPROPERTY(ReplicatedUsing=OnRep_MarkRenderStateDirty)
-	TArray<FVector> TileEdgeVerts;
-
-	UPROPERTY(ReplicatedUsing=OnRep_MarkRenderStateDirty)
-	TArray<int32> OffMeshSegmentAreas;
-
-	UPROPERTY(ReplicatedUsing=OnRep_MarkRenderStateDirty)
-	TArray<FOffMeshLinkRenderData> OffMeshLinks;
-			
 	/** flags indicating debug channels to draw. Sums up with StaticActiveViews */
 	uint32 ActiveViews;
 
@@ -153,16 +102,18 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	uint32 bDrawEQSFailedItems:1;
 
 	UFUNCTION()
-	virtual void OnRep_MarkRenderStateDirty();
+	virtual void OnRep_UpdateNavmesh();
 
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerReplicateData( EDebugComponentMessage::Type InMessage, EAIDebugDrawDataView::Type DataView );
 
 	UFUNCTION(reliable, server, WithValidation)
-	void ServerCollectNavmeshData();
-	
-	void GatherDataForProxy();
-	void GatherData(struct FNavMeshSceneProxyData*) const;
+	void ServerCollectNavmeshData(FVector_NetQuantize10 TargetLocation);
+
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerDiscardNavmeshData();
+
+	void PrepareNavMeshData(struct FNavMeshSceneProxyData*) const;
 
 	virtual void Activate(bool bReset=false) OVERRIDE;
 	virtual void Deactivate() OVERRIDE;
@@ -184,7 +135,7 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	/** Will broadcast information that this component is (no longer) being "observed" */
 	void SelectForDebugging(bool bNewStatus);
 
-	FORCEINLINE static void ToggleStaticView(EAIDebugDrawDataView::Type View) { StaticActiveViews ^= 1 << View; }
+	static bool ToggleStaticView(EAIDebugDrawDataView::Type View);
 	FORCEINLINE static void SetEnableStaticView(EAIDebugDrawDataView::Type View, bool bEnable) 
 	{
 		if (bEnable)
@@ -237,7 +188,6 @@ protected:
 	void SelectTargetToDebug();
 
 	APlayerController* PlayerOwner;
-	bool bEnabledTargetSelection;
 
 protected:
 	virtual void CollectPathData();
@@ -245,16 +195,18 @@ protected:
 	virtual void CollectBehaviorTreeData();
 	virtual void CollectEQSData();
 
-	virtual FString GetKeyboardDesc();
+	virtual void GetKeyboardDesc(TArray<FDebugCategoryView>& Categories);
 
 	FNavPathWeakPtr CurrentPath;
 
+	uint32 bEnabledTargetSelection : 1;
 	uint32 bIsSelectedForDebugging : 1;
 #if WITH_EDITOR
-	bool bWasSelectedInEditor;
+	uint32 bWasSelectedInEditor : 1;
 #endif
 
-	TSharedPtr<struct FNavMeshSceneProxyData, ESPMode::ThreadSafe>	NavmeshData;
+	/** navmesh data passed to rendering component */
+	TSharedPtr<struct FNavMeshSceneProxyData, ESPMode::ThreadSafe> NavmeshRenderData;
 
 private:
 	/** flags indicating debug channels to draw, statically accessible. Sums up with ActiveViews */

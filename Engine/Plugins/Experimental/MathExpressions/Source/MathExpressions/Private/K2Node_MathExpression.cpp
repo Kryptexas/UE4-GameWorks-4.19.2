@@ -2252,11 +2252,12 @@ void UK2Node_MathExpression::GetMenuEntries(FGraphContextMenuBuilder& ContextMen
 	UK2Node_MathExpression* TemplateNode = NewObject<UK2Node_MathExpression>(GetTransientPackage(), GetClass());
 
 	const FString Category = TEXT("");
-	const FString MenuDesc = TEXT("Add Math Expression...");
+	const FText MenuDesc = FText::FromString(TEXT("Add Math Expression..."));
 	const FString Tooltip = TEXT("Create a new mathematical expression");
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip);
 	NodeAction->NodeTemplate = TemplateNode;
+	NodeAction->SearchTitle = TemplateNode->GetNodeSearchTitle();
 }
 
 TSharedPtr<class INameValidatorInterface> UK2Node_MathExpression::MakeNameValidator() const
@@ -2289,14 +2290,28 @@ void UK2Node_MathExpression::RebuildExpression()
 	}
 }
 
-FString UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
+FText UK2Node_MathExpression::GetNodeTitle(ENodeTitleType::Type TitleType) const
+{
+	FString Result = Expression;
+
+	if (TitleType == ENodeTitleType::FullTitle)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Expression"), FText::FromString(Result));
+		Result = NSLOCTEXT("K2Node", "MathExpressionSecondTitleLine", "{Expression}\nMath Expression").ToString();
+	}
+	
+	return FText::FromString(Result);
+}
+
+FString UK2Node_MathExpression::GetNodeNativeTitle(ENodeTitleType::Type TitleType) const
 {
 	FString Result = Expression;
 
 	if (TitleType == ENodeTitleType::FullTitle)
 	{
 		Result += TEXT("\n");
-		Result += NSLOCTEXT("K2Node", "MathExpressionSecondTitleLine", "Math Expression").ToString();
+		Result += TEXT("Math Expression");
 	}
 
 	return Result;

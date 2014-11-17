@@ -205,6 +205,9 @@ public:
 	/** Invalidates the level's precomputed visibility and frees any memory used by the handler. */
 	ENGINE_API void Invalidate(FSceneInterface* Scene);
 
+	/** Shifts origin of precomputed visibility volume by specified offset */
+	ENGINE_API void ApplyWorldOffset(const FVector& InOffset);
+
 	/** @return the Id */
 	int32 GetId() const { return Id; }
 

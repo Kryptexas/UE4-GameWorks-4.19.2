@@ -9,10 +9,10 @@ class UMaterialExpressionLandscapeLayerWeight : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'ConstBase' if not specified"))
 	FExpressionInput Base;
 
-	UPROPERTY(meta=(RequiredInput = "false"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Ignored if not specified"))
 	FExpressionInput Layer;
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionLandscapeLayerWeight)
@@ -20,6 +20,10 @@ class UMaterialExpressionLandscapeLayerWeight : public UMaterialExpression
 
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionLandscapeLayerWeight)
 	float PreviewWeight;
+
+	/** only used if Base is not hooked up */
+	UPROPERTY(EditAnywhere, Category = MaterialExpressionLandscapeLayerWeight)
+	FVector ConstBase;
 
 	/** GUID that should be unique within the material, this is used for parameter renaming. */
 	UPROPERTY()

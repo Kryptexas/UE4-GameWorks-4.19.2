@@ -241,28 +241,27 @@ public:
 	FOutputDeviceRedirector.
 -----------------------------------------------------------------------------*/
 
+/** The type of lines buffered by secondary threads. */
+struct FBufferedLine
+{
+	const FString Data;
+	const ELogVerbosity::Type Verbosity;
+	const FName Category;
+
+	/** Initialization constructor. */
+	FBufferedLine( const TCHAR* InData, ELogVerbosity::Type InVerbosity, const class FName& InCategory )
+		: Data( InData )
+		, Verbosity( InVerbosity )
+		, Category( InCategory )
+	{}
+};
+
 /**
  * Class used for output redirection to allow logs to show
  */
-class FOutputDeviceRedirector : public FOutputDeviceRedirectorBase
+class CORE_API FOutputDeviceRedirector : public FOutputDevice
 {
 private:
-
-	/** The type of lines buffered by secondary threads. */
-	struct FBufferedLine
-	{
-		const FString Data;
-		const ELogVerbosity::Type Verbosity;
-		const FName Category;
-
-		/** Initialization constructor. */
-		FBufferedLine(const TCHAR* InData, ELogVerbosity::Type InVerbosity, const class FName& InCategory):
-			Data(InData),
-			Verbosity(InVerbosity),
-			Category(InCategory)
-		{}
-	};
-
 	/** A FIFO of lines logged by non-master threads. */
 	TArray<FBufferedLine> BufferedLines;
 
@@ -292,6 +291,11 @@ public:
 
 	/** Initialization constructor. */
 	FOutputDeviceRedirector();
+
+	/**
+	 * Get the GLog singleton
+	 */
+	static FOutputDeviceRedirector* Get();
 
 	/**
 	 * Adds an output device to the chain of redirections.	
@@ -450,6 +454,27 @@ public:
 	}
 };
 
+/** Buffered output device. */
+class FBufferedOutputDevice : public FOutputDevice
+{
+	TArray<FBufferedLine> BufferedLines;
+
+public:
+	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) OVERRIDE
+	{
+		new(BufferedLines)FBufferedLine( InData, Verbosity, Category );
+	}
+
+	/** Pushes buffered lines into the specified output device. */
+	void RedirectTo( class FOutputDevice& Ar )
+	{
+		for( const FBufferedLine& BufferedLine : BufferedLines )
+		{
+			Ar.Serialize( *BufferedLine.Data, BufferedLine.Verbosity, BufferedLine.Category );
+		}
+	}
+};
+
 /*-----------------------------------------------------------------------------
 	FOutputDeviceError subclasses.
 -----------------------------------------------------------------------------*/
@@ -496,6 +521,7 @@ CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogUnrealMatrix, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogContentComparisonCommandlet, Log, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogNetPackageMap, Warning, All);
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogNetSerialization, Warning, All);
+CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogMemory, Log, All);
 
 // Temporary log category, generally you should not check things in that use this
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogTemp, Log, All);

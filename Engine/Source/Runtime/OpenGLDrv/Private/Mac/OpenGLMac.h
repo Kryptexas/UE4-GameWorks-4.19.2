@@ -41,6 +41,33 @@ typedef void (APIENTRYP PFNGLTEXSTORAGE3DPROC) (GLenum target, GLsizei levels, G
 
 struct FMacOpenGL : public FOpenGL3
 {
+	static void MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint *OutResult);
+	static void MacQueryTimestampCounter(GLuint QueryID);
+	static void MacBeginQuery(GLenum QueryType, GLuint QueryId);
+	static void MacEndQuery(GLenum QueryType);
+	static void MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, uint64 *OutResult);
+	
+	static FORCEINLINE void GetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint *OutResult)
+	{
+		MacGetQueryObject(QueryId, QueryMode, OutResult);
+	}
+	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
+	{
+		MacQueryTimestampCounter(QueryID);
+	}
+	static FORCEINLINE void BeginQuery(GLenum QueryType, GLuint QueryId)
+	{
+		MacBeginQuery(QueryType, QueryId);
+	}
+	static FORCEINLINE void EndQuery(GLenum QueryType)
+	{
+		MacEndQuery(QueryType);
+	}
+	static FORCEINLINE void GetQueryObject(GLuint QueryId, EQueryMode QueryMode, uint64 *OutResult)
+	{
+		MacGetQueryObject(QueryId, QueryMode, OutResult);
+	}
+	
 	// A driver bug with Nvidia cards on mac causes rendering with GL_LayerIndex to target different cubemap faces when rendering to mip > 0 to always go to the +X cube face
 	static FORCEINLINE bool SupportsGSRenderTargetLayerSwitchingToMips() { return false; }
 

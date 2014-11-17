@@ -75,8 +75,8 @@ public:
 	 */
 	virtual void Finalize() OVERRIDE
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
+		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
 		if (Session)
 		{
 			Session->SessionState = EOnlineSessionState::Ended;
@@ -88,10 +88,10 @@ public:
 	 */
 	virtual void TriggerDelegates() OVERRIDE
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		if (SessionInterface.IsValid())
+		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
+		if (SessionInt.IsValid())
 		{
-			SessionInterface->TriggerOnEndSessionCompleteDelegates(SessionName, bWasSuccessful);
+			SessionInt->TriggerOnEndSessionCompleteDelegates(SessionName, bWasSuccessful);
 		}
 	}
 };
@@ -140,13 +140,13 @@ public:
 	 */
 	virtual void Finalize() OVERRIDE
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		if (SessionInterface.IsValid())
+		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
+		if (SessionInt.IsValid())
 		{
-			FNamedOnlineSession* Session = SessionInterface->GetNamedSession(SessionName);
+			FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
 			if (Session)
 			{
-				SessionInterface->RemoveNamedSession(SessionName);
+				SessionInt->RemoveNamedSession(SessionName);
 			}
 		}
 	}
@@ -156,10 +156,10 @@ public:
 	 */
 	virtual void TriggerDelegates() OVERRIDE
 	{
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
-		if (SessionInterface.IsValid())
+		IOnlineSessionPtr SessionInt = Subsystem->GetSessionInterface();
+		if (SessionInt.IsValid())
 		{
-			SessionInterface->TriggerOnDestroySessionCompleteDelegates(SessionName, bWasSuccessful);
+			SessionInt->TriggerOnDestroySessionCompleteDelegates(SessionName, bWasSuccessful);
 		}
 	}
 };

@@ -14,6 +14,7 @@
 #include "ProfilerMessages.h"
 #include "Ticker.h"
 #include "StatsData.h"
+#include "StatsFile.h"
 
 
 /* Private includes

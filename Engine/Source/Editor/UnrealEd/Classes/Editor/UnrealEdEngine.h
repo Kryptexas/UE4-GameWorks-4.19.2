@@ -80,9 +80,6 @@ struct FTemplateMapInfo
 };
 
 
-/** Delegate called to get a detail layout for a specific object class */
-DECLARE_DELEGATE_ThreeParams( FOnDrawComponentVisualizer, const UActorComponent*, const FSceneView*, FPrimitiveDrawInterface* );
-
 
 UCLASS(config=Engine, transient)
 class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
@@ -155,8 +152,8 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	/** Mapping of sprite category ids to their matching indices in the sorted sprite categories array */
 	TMap<FName, int32>			SpriteIDToIndexMap;
 
-	/** Map from component class to visualizing function to call */
-	TMap< TWeakObjectPtr<UClass>, FOnDrawComponentVisualizer > ComponentVisualizerMap;
+	/** Map from component class to visualizer object to use */
+	TMap< FName, TSharedPtr<class FComponentVisualizer> > ComponentVisualizerMap;
 
 	// Begin UObject interface.
 	~UUnrealEdEngine();
@@ -173,7 +170,6 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	virtual void SelectActor(AActor* Actor, bool InSelected, bool bNotify, bool bSelectEvenIfHidden=false) OVERRIDE;
 	virtual bool CanSelectActor(AActor* Actor, bool InSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const OVERRIDE;
 	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) OVERRIDE;
-	virtual void SelectComponent(USceneComponent* SceneComponent, bool InSelected, bool bNotify, bool bSelectEvenIfHidden=false) OVERRIDE;
 	virtual void SelectBSPSurf(UModel* InModel, int32 iSurf, bool bSelected, bool bNoteSelectionChange) OVERRIDE;
 	virtual void SelectNone(bool bNoteSelectionChange, bool bDeselectBSPSurfs, bool WarnAboutManyActors=true) OVERRIDE;
 	virtual void NoteSelectionChange() OVERRIDE;
@@ -219,10 +215,10 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	void OnPostWindowsMessage(FViewport* Viewport, uint32 Message);
 
 	/** Register a function to draw extra information when a particular component is selected */
-	void RegisterComponentVisualizer(const UClass* ComponentClass, FOnDrawComponentVisualizer Visualizer);
+	void RegisterComponentVisualizer(FName ComponentClassName, TSharedPtr<class FComponentVisualizer> Visualizer);
 
 	/** Unregister component visualizer function */
-	void UnregisterComponentVisualizer(const UClass* ComponentClass);
+	void UnregisterComponentVisualizer(FName ComponentClassName);
 
 	/** Draw component visualizers for components for selected actors */
 	void DrawComponentVisualizers(const FSceneView* View, FPrimitiveDrawInterface* PDI);
@@ -689,7 +685,6 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	bool HandleDumpSelectionCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleBuildLightingCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleBuildPathsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
-	bool HandleUpdateLandscapeHoleCollisionCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleRestoreLandscapeLayerInfosCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );

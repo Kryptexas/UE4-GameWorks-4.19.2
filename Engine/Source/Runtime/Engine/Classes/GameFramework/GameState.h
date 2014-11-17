@@ -74,6 +74,9 @@ class ENGINE_API AGameState : public AInfo
 	/** Called when the SpectatorClass property is set (at startup for the server, after the variable has been replicated on clients) */
 	virtual void ReceivedSpectatorClass();
 
+	/** Called during seamless travel transition twice (once when the transition map is loaded, once when destination map is loaded) */
+	virtual void SeamlessTravelTransitionCheckpoint(bool bToTransitionMap);
+
 	/** Add PlayerState to the PlayerArray */
 	virtual void AddPlayerState(class APlayerState* PlayerState);
 

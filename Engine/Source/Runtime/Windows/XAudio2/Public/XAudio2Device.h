@@ -68,6 +68,7 @@ enum ESoundFormat
 
 class FXAudio2SoundBuffer;
 class FXAudio2SoundSource;
+class FSpatializationHelper;
 
 /**
  * XAudio2 implementation of an Unreal audio device. Neither use XACT nor X3DAudio.
@@ -140,6 +141,9 @@ protected:
 
 	/** Inverse listener transformation, used for spatialization */
 	FMatrix								InverseTransform;
+
+	// For calculating spatialised volumes
+	static FSpatializationHelper		SpatializationHelper;
 
 	friend class FXAudio2SoundBuffer;
 	friend class FXAudio2SoundSource;

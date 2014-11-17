@@ -232,7 +232,8 @@ void UGameEngine::ConditionallyOverrideSettings( int32& ResolutionX, int32& Reso
 		}
 	}
 
-#if PLATFORM_ANDROID || PLATFORM_IOS
+	// Check the platform to see if we should override the user settings.
+	if (FPlatformProperties::HasFixedResolution())
 	{
 		// Always use the device's actual resolution that has been setup earlier
 		FDisplayMetrics DisplayMetrics;
@@ -243,7 +244,7 @@ void UGameEngine::ConditionallyOverrideSettings( int32& ResolutionX, int32& Reso
 		ResolutionY = DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
 		FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, true);
 	}
-#endif
+
 
 	if (FParse::Param(FCommandLine::Get(),TEXT("Portrait")))
 	{
@@ -579,7 +580,16 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if( FParse::Command( &Cmd,TEXT("EXIT")) || FParse::Command(&Cmd,TEXT("QUIT")))
 	{
-		return HandleExitCommand( Cmd, Ar );
+		if ( FPlatformProperties::SupportsQuit() )
+		{
+			return HandleExitCommand( Cmd, Ar );
+		}
+		else
+		{
+			// ignore command on xbox one and ps4 as it will cause a crash
+			// ttp:321126
+			return true;
+		}
 	}
 	else if( FParse::Command( &Cmd, TEXT("GETMAXTICKRATE") ) )
 	{
@@ -609,7 +619,7 @@ bool UGameEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		// disallow set of actor properties if network game
 		if ((FParse::Command( &Cmd, TEXT("SET")) || FParse::Command( &Cmd, TEXT("SETNOPEC"))))
 		{
-			FWorldContext &Context = WorldContextFromWorld(InWorld);
+			FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
 			if( Context.PendingNetGame != NULL || InWorld->GetNetMode() != NM_Standalone)
 			{
 				return true;
@@ -712,8 +722,7 @@ bool UGameEngine::HandleGetMaxTickRateCommand( const TCHAR* Cmd, FOutputDevice& 
 
 bool UGameEngine::HandleCancelCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
-	FWorldContext &Context = WorldContextFromWorld(InWorld);
-	CancelPending(Context);
+	CancelPending(GetWorldContextFromWorldChecked(InWorld));
 	return true;
 }
 
@@ -808,12 +817,6 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		// Send developers to the support list thread.
 		UE_LOG(LogEngine, Fatal,TEXT("Negative delta time! Please see https://udn.epicgames.com/lists/showpost.php?list=ue3bugs&id=4364"));
 #endif
-	}
-
-	// Tick allocator
-	if( GMalloc != NULL )
-	{
-		GMalloc->Tick( DeltaSeconds );
 	}
 
 	// Tick the module manager
@@ -1028,7 +1031,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Restore original GWorld*. This will go away one day.
 	if (OriginalGWorldContext != INDEX_NONE)
 	{
-		GWorld = WorldContextFromHandle(OriginalGWorldContext).World();
+		GWorld = GetWorldContextFromHandleChecked(OriginalGWorldContext).World();
 	}
 
 	// tell renderer about GWorld->IsPaused(), before rendering
@@ -1069,7 +1072,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 
 		// Start the movie capture if needed
-		if (bCheckForMovieCapture && GEngine->bStartWithMatineeCapture && GEngine->MatineeCaptureType == 0 && GameViewport->Viewport->GetSizeXY() != FIntPoint::ZeroValue )
+		if (bCheckForMovieCapture && GEngine->bStartWithMatineeCapture && GEngine->MatineeCaptureType == EMatineeCaptureType::AVI && GameViewport->Viewport->GetSizeXY() != FIntPoint::ZeroValue )
 		{
 			if (AVIWriter)
 			{

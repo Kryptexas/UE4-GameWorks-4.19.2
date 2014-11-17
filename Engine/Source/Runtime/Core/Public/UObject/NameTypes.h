@@ -701,6 +701,18 @@ public:
 	static FNameEntry*** GetNameTableForDebuggerVisualizers_MT();
 	/** Run autotest on FNames. */
 	static void AutoTest();
+	
+	/**
+	 * Takes a string and breaks it down into a human readable string.
+	 * For example - "bCreateSomeStuff" becomes "Create Some Stuff?" and "DrawScale3D" becomes "Draw Scale 3D".
+	 * 
+	 * @param	InDisplayName	[In, Out] The name to sanitize
+	 * @param	bIsBool				True if the name is a bool
+	 *
+	 * @return	the sanitized version of the display name
+	 */
+	static FString NameToDisplayString( const FString& InDisplayName, const bool bIsBool );
+
 private:
 
 	/** Index into the Names array (used to find String portion of the string/number pair) */

@@ -5,7 +5,7 @@
 #include "Landscape/LandscapeRender.h"
 #include "MeshBuild.h"
 #include "TessellationRendering.h"
-#include "NVTriStrip.h"
+#include "NvTriStrip.h"
 #include "forsythtriangleorderoptimizer.h"
 #include "ThirdParty/nvtesslib/inc/nvtess.h"
 #include "SkeletalMeshTools.h"
@@ -1579,14 +1579,15 @@ static float GetComparisonThreshold(FMeshBuildSettings const& BuildSettings)
 	Static mesh building.
 ------------------------------------------------------------------------------*/
 
-static FStaticMeshBuildVertex BuildStaticMeshVertex(FRawMesh const& RawMesh, int32 WedgeIndex, float BuildScale)
+static FStaticMeshBuildVertex BuildStaticMeshVertex(FRawMesh const& RawMesh, int32 WedgeIndex, FVector BuildScale)
 {
 	FStaticMeshBuildVertex Vertex;
 	Vertex.Position = GetPositionForWedge(RawMesh, WedgeIndex) * BuildScale;
 
-	Vertex.TangentX = RawMesh.WedgeTangentX[WedgeIndex];
-	Vertex.TangentY = RawMesh.WedgeTangentY[WedgeIndex];
-	Vertex.TangentZ = RawMesh.WedgeTangentZ[WedgeIndex];
+	const FMatrix ScaleMatrix = FScaleMatrix( BuildScale ).Inverse().GetTransposed();	
+	Vertex.TangentX = ScaleMatrix.TransformVector(RawMesh.WedgeTangentX[WedgeIndex]).SafeNormal();
+	Vertex.TangentY = ScaleMatrix.TransformVector(RawMesh.WedgeTangentY[WedgeIndex]).SafeNormal();
+	Vertex.TangentZ = ScaleMatrix.TransformVector(RawMesh.WedgeTangentZ[WedgeIndex]).SafeNormal();
 
 	if (RawMesh.WedgeColors.IsValidIndex(WedgeIndex))
 	{
@@ -1646,7 +1647,7 @@ static void BuildStaticMeshVertexAndIndexBuffers(
 	const FRawMesh& RawMesh,
 	const TMultiMap<int32,int32>& OverlappingCorners,
 	float ComparisonThreshold,
-	float BuildScale
+	FVector BuildScale
 	)
 {
 	TMap<int32,int32> FinalVerts;
@@ -1963,7 +1964,8 @@ bool FMeshUtilities::BuildStaticMesh(
 		{
 			MaxMaterialIndex = FMath::Max<int32>(RawMesh.FaceMaterialIndices[FaceIndex],MaxMaterialIndex);
 		}
-		MaxMaterialIndex = FMath::Min(MaxMaterialIndex, 64);
+		MaxMaterialIndex = FMath::Min(MaxMaterialIndex, MAX_MESH_MATERIAL_INDEX);
+
 		while (MaxMaterialIndex >= LODModel.Sections.Num())
 		{
 			FStaticMeshSection* Section = new(LODModel.Sections) FStaticMeshSection();
@@ -1978,7 +1980,7 @@ bool FMeshUtilities::BuildStaticMesh(
 			TArray<int32> TempWedgeMap;
 			TArray<int32>& WedgeMap = (LODIndex == 0 && SourceModels[0].ReductionSettings.PercentTriangles >= 1.0f) ? OutRenderData.WedgeMap : TempWedgeMap;
 			float ComparisonThreshold = GetComparisonThreshold(LODBuildSettings[LODIndex]);
-			BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale );
+			BuildStaticMeshVertexAndIndexBuffers(Vertices, PerSectionIndices, WedgeMap, RawMesh, LODOverlappingCorners[LODIndex], ComparisonThreshold, LODBuildSettings[LODIndex].BuildScale3D );
 			check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());
 			CacheOptimizeVertexAndIndexBuffer(Vertices, PerSectionIndices, WedgeMap);
 			check(WedgeMap.Num() == RawMesh.WedgeIndices.Num());

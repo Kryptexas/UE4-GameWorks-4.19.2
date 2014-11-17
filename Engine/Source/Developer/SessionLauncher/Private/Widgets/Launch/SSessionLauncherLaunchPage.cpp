@@ -162,7 +162,7 @@ void SSessionLauncherLaunchPage::Refresh( )
 		}
 		else
 		{
-			FInternationalization::GetCultureNames(AvailableCultures);
+			FInternationalization::Get().GetCultureNames(AvailableCultures);
 		}
 
 		AvailableMaps = FGameProjectHelper::GetAvailableMaps(SelectedProfile->GetProjectBasePath(), SelectedProfile->SupportsEngineMaps(), true);

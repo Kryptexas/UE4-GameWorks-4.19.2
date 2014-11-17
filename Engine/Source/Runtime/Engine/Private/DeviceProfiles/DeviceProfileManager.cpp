@@ -14,10 +14,14 @@ void UDeviceProfileManager::InitializeCVarsForActiveDeviceProfile()
 	FString DeviceProfileSelectionModule;
 	GConfig->GetString( TEXT("DeviceProfileManager"), TEXT("DeviceProfileSelectionModule"), DeviceProfileSelectionModule, GEngineIni );
 
-	// Load the module we had specified in the ini and Run our logic to select a device profile for this run
-	IDeviceProfileSelectorModule& DPSelectorModule = FModuleManager::LoadModuleChecked<IDeviceProfileSelectorModule>(*DeviceProfileSelectionModule);
-	FString SelectedPlatformDeviceProfileName = DPSelectorModule.GetRuntimeDeviceProfileName();
-	UE_LOG(LogInit, Log, TEXT("Applying CVar settings loaded from the selected device profile: [%s]"), *SelectedPlatformDeviceProfileName);
+	FString SelectedPlatformDeviceProfileName;
+	if ( !DeviceProfileSelectionModule.IsEmpty() )
+	{
+		// Load the module we had specified in the ini and Run our logic to select a device profile for this run
+		IDeviceProfileSelectorModule& DPSelectorModule = FModuleManager::LoadModuleChecked<IDeviceProfileSelectorModule>(*DeviceProfileSelectionModule);
+		SelectedPlatformDeviceProfileName = DPSelectorModule.GetRuntimeDeviceProfileName();
+		UE_LOG(LogInit, Log, TEXT("Applying CVar settings loaded from the selected device profile: [%s]"), *SelectedPlatformDeviceProfileName);
+	}
 
 	// Load the device profile config
 	FConfigCacheIni::LoadGlobalIniFile(DeviceProfileFileName, TEXT("DeviceProfiles"));
@@ -161,14 +165,9 @@ UDeviceProfile* UDeviceProfileManager::CreateProfile( const FString& ProfileName
 
 		if( ObjectTemplate )
 		{
-			DeviceProfile->ClearFlags( RF_AllFlags );
-			DeviceProfile->Rename( *FString::Printf(TEXT("RedundantDeviceProfile_%d"), RenameIndex++), GetTransientPackage());
-			DeviceProfile->SetFlags( RF_PendingKill );
-
-			DeviceProfile = ConstructObject<UDeviceProfile>( UDeviceProfile::StaticClass(), GetTransientPackage(), *ProfileName, RF_Transient|RF_Public, ObjectTemplate);
 			DeviceProfile->BaseProfileName = ObjectTemplate->GetName();
-			DeviceProfile->DeviceType = ProfileType;
 		}
+		DeviceProfile->DeviceType = ProfileType;
 
 		Profiles.Add( DeviceProfile );
 
@@ -220,16 +219,55 @@ void UDeviceProfileManager::LoadProfiles()
 {
 	if( !HasAnyFlags( RF_ClassDefaultObject ) )
 	{
-		InternalLoadProfiles();
+		TArray< FString > DeviceProfileMapArray;
+		GConfig->GetArray(TEXT("DeviceProfiles"), TEXT("DeviceProfileNameAndTypes"), DeviceProfileMapArray, DeviceProfileFileName);
+
+		for (int32 DeviceProfileIndex = 0; DeviceProfileIndex < DeviceProfileMapArray.Num(); ++DeviceProfileIndex)
+		{
+			FString NewDeviceProfileSelectorPlatformName;
+			FString NewDeviceProfileSelectorPlatformType;
+			DeviceProfileMapArray[DeviceProfileIndex].Split(TEXT(","), &NewDeviceProfileSelectorPlatformName, &NewDeviceProfileSelectorPlatformType);
+
+			if (FindObject<UDeviceProfile>(GetTransientPackage(), *NewDeviceProfileSelectorPlatformName) == NULL)
+			{
+				CreateProfile(NewDeviceProfileSelectorPlatformName, NewDeviceProfileSelectorPlatformType);
+			}
+		}
+		ManagerUpdatedDelegate.Broadcast();
 	}
 }
 
 
-void UDeviceProfileManager::SaveProfiles()
+void UDeviceProfileManager::SaveProfiles(bool bSaveToDefaults)
 {
 	if( !HasAnyFlags( RF_ClassDefaultObject ) )
 	{
-		InternalSaveProfiles();
+		if(bSaveToDefaults)
+		{
+			for (int32 DeviceProfileIndex = 0; DeviceProfileIndex < Profiles.Num(); ++DeviceProfileIndex)
+			{
+				UDeviceProfile* CurrentProfile = CastChecked<UDeviceProfile>(Profiles[DeviceProfileIndex]);
+				CurrentProfile->UpdateDefaultConfigFile();
+			}
+		}
+		else
+		{
+			TArray< FString > DeviceProfileMapArray;
+
+			for (int32 DeviceProfileIndex = 0; DeviceProfileIndex < Profiles.Num(); ++DeviceProfileIndex)
+			{
+				UDeviceProfile* CurrentProfile = CastChecked<UDeviceProfile>(Profiles[DeviceProfileIndex]);
+				FString DeviceProfileTypeNameCombo = FString::Printf(TEXT("%s,%s"), *CurrentProfile->GetName(), *CurrentProfile->DeviceType);
+				DeviceProfileMapArray.Add(DeviceProfileTypeNameCombo);
+
+				CurrentProfile->SaveConfig(CPF_Config, *DeviceProfileFileName);
+			}
+
+			GConfig->SetArray(TEXT("DeviceProfiles"), TEXT("DeviceProfileNameAndTypes"), DeviceProfileMapArray, DeviceProfileFileName);
+			GConfig->Flush(false, DeviceProfileFileName);
+		}
+
+		ManagerUpdatedDelegate.Broadcast();
 	}
 }
 
@@ -246,41 +284,33 @@ UDeviceProfile* UDeviceProfileManager::GetActiveProfile() const
 }
 
 
-void UDeviceProfileManager::InternalLoadProfiles()
+void UDeviceProfileManager::GetAllPossibleParentProfiles(const UDeviceProfile* ChildProfile, OUT TArray<UDeviceProfile*>& PossibleParentProfiles)
 {
-	TArray< FString > DeviceProfileMapArray;
-	GConfig->GetArray( TEXT( "DeviceProfiles" ), TEXT( "DeviceProfileNameAndTypes" ), DeviceProfileMapArray, DeviceProfileFileName );
-
-	for( int32 DeviceProfileIndex = 0; DeviceProfileIndex < DeviceProfileMapArray.Num(); ++DeviceProfileIndex)
+	for(auto& NextProfile : Profiles)
 	{
-		FString NewDeviceProfileSelectorPlatformName;
-		FString NewDeviceProfileSelectorPlatformType;
-		DeviceProfileMapArray[DeviceProfileIndex].Split( TEXT(","), &NewDeviceProfileSelectorPlatformName, &NewDeviceProfileSelectorPlatformType);
-
-		if( FindObject<UDeviceProfile>( GetTransientPackage(), *NewDeviceProfileSelectorPlatformName ) == NULL )
+		UDeviceProfile* ParentProfile = CastChecked<UDeviceProfile>(NextProfile);
+		if (ParentProfile->DeviceType == ChildProfile->DeviceType && ParentProfile != ChildProfile)
 		{
-			CreateProfile(NewDeviceProfileSelectorPlatformName, NewDeviceProfileSelectorPlatformType);
+			bool bIsValidPossibleParent = true;
+
+			UDeviceProfile* CurrentAncestor = ParentProfile;
+			while(CurrentAncestor && bIsValidPossibleParent)
+			{
+				if(CurrentAncestor->BaseProfileName == ChildProfile->GetName())
+				{
+					bIsValidPossibleParent = false;
+					break;
+				}
+				else
+				{
+					CurrentAncestor = CurrentAncestor->Parent != nullptr ? CastChecked<UDeviceProfile>(CurrentAncestor->Parent) : NULL;
+				}
+			}
+
+			if(bIsValidPossibleParent)
+			{
+				PossibleParentProfiles.Add(ParentProfile);
+			}
 		}
 	}
-
-
-	ManagerUpdatedDelegate.Broadcast();
-}
-
-
-void UDeviceProfileManager::InternalSaveProfiles()
-{
-	TArray< FString > DeviceProfileMapArray;
-	
-	for(int32 DeviceProfileIndex = 0; DeviceProfileIndex < Profiles.Num(); ++DeviceProfileIndex)
-	{
-		UDeviceProfile* CurrentProfile = CastChecked<UDeviceProfile>( Profiles[DeviceProfileIndex] );
-		FString DeviceProfileTypeNameCombo = FString::Printf( TEXT("%s,%s"), *CurrentProfile->GetName(), *CurrentProfile->DeviceType );
-		DeviceProfileMapArray.Add( DeviceProfileTypeNameCombo );
-
-		CurrentProfile->SaveConfig(CPF_Config, *DeviceProfileFileName);
-	}
-
-	GConfig->SetArray( TEXT( "DeviceProfiles" ), TEXT( "DeviceProfileNameAndTypes" ), DeviceProfileMapArray, DeviceProfileFileName );
-	GConfig->Flush( false, DeviceProfileFileName );
 }

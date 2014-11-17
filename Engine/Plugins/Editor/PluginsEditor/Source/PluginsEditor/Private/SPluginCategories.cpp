@@ -67,9 +67,9 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 		RootPluginCategories.Reset();
 
 		// Add the root level categories
-		TSharedRef<FPluginCategoryTreeItem> BuiltInCategory = MakeShareable( new FPluginCategoryTreeItem( NULL, TEXT( "BuiltIn" ), LOCTEXT( "BuiltInCategoryName", "Built-in" ).ToString() ) );
+		TSharedRef<FPluginCategoryTreeItem> BuiltInCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("BuiltIn"), TEXT("Built-in"), LOCTEXT("BuiltInCategoryName", "Built-in")));
 		RootPluginCategories.Add( BuiltInCategory );
-		TSharedRef<FPluginCategoryTreeItem> InstalledCategory = MakeShareable( new FPluginCategoryTreeItem( NULL, TEXT( "Installed" ), LOCTEXT( "InstalledCategoryName", "Installed" ).ToString() ) );
+		TSharedRef<FPluginCategoryTreeItem> InstalledCategory = MakeShareable(new FPluginCategoryTreeItem(NULL, TEXT("Installed"), TEXT("Installed"), LOCTEXT("InstalledCategoryName", "Installed")));
 		RootPluginCategories.Add( InstalledCategory );
 
 
@@ -129,7 +129,9 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 					{
 						// OK, this is a new category name for us, so add it now!
 						const auto ParentCategory = CategoryForPlugin;
-						FoundCategory = MakeShareable( new FPluginCategoryTreeItem( ParentCategory, ItemCategoryPath, SplitCategory ) );
+
+						//@todo Allow for properly localized category names [3/7/2014 justin.sargent]
+						FoundCategory = MakeShareable(new FPluginCategoryTreeItem(ParentCategory, ItemCategoryPath, SplitCategory, FText::FromString(SplitCategory)));
 						TestCategoryList.Add( FoundCategory );
 					}
 
@@ -152,7 +154,7 @@ void SPluginCategories::RebuildAndFilterCategoryTree()
 			{
 				bool operator()( const FPluginCategoryTreeItemPtr& A, const FPluginCategoryTreeItemPtr& B ) const
 				{
-					return A->GetCategoryName() < B->GetCategoryName();
+					return A->GetCategoryDisplayName().CompareTo( B->GetCategoryDisplayName() ) == -1;
 				}
 
 				static void SortCategoriesRecursively( TArray< FPluginCategoryTreeItemPtr >& Categories )

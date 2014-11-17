@@ -26,5 +26,5 @@ public:
 	ANIMGRAPH_API virtual void Draw( FPrimitiveDrawInterface* PDI, USkeletalMeshComponent * PreviewSkelMeshComp ) const {};
 protected:
 	// Returns the short descriptive name of the controller
-	virtual FString GetControllerDescription() const;
+	virtual FText GetControllerDescription() const;
 };
