@@ -88,7 +88,10 @@ public:
 				check(Compiler.NewClass);
 			}
 
-			GEditor->RedrawAllViewports(true);
+			if (GIsEditor)
+			{
+				GEditor->RedrawAllViewports(true);
+			}
 
 			return FReply::Handled();
 		}
