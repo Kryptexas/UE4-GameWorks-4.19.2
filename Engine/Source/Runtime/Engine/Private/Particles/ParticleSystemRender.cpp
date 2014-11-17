@@ -263,7 +263,7 @@ void ENGINE_API FinishOneFrameParticleStats()
  *
  *	@return	FParticleVertexFactoryBase*	The created VF; NULL if invalid InType
  */
-FParticleVertexFactoryBase* CreateParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel)
+static FParticleVertexFactoryBase* CreateParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel, const FDynamicSpriteEmitterDataBase* ParticleData)
 {
 	FParticleVertexFactoryBase* NewVertexFactory = NULL;
 	switch (InType)
@@ -275,7 +275,7 @@ FParticleVertexFactoryBase* CreateParticleVertexFactory(EParticleVertexFactoryTy
 		NewVertexFactory = new FParticleBeamTrailVertexFactory(PVFT_BeamTrail, InFeatureLevel);
 		break;
 	case PVFT_Mesh:
-		NewVertexFactory = new FMeshParticleVertexFactory(PVFT_Mesh, InFeatureLevel);
+		NewVertexFactory = new FMeshParticleVertexFactory(PVFT_Mesh, InFeatureLevel, ParticleData->GetDynamicVertexStride(InFeatureLevel), ParticleData->GetDynamicParameterVertexStride());
 		break;
 	default:
 		break;
@@ -292,7 +292,7 @@ FParticleOrderPool GParticleOrderPool;
 // Particle vertex factory pool
 FParticleVertexFactoryPool GParticleVertexFactoryPool;
 
-FParticleVertexFactoryBase* FParticleVertexFactoryPool::GetParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel)
+FParticleVertexFactoryBase* FParticleVertexFactoryPool::GetParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel, const FDynamicSpriteEmitterDataBase* ParticleData)
 {
 	SCOPE_CYCLE_COUNTER(STAT_ParticlePoolTime);
 	check(InType < PVFT_MAX);
@@ -302,7 +302,7 @@ FParticleVertexFactoryBase* FParticleVertexFactoryPool::GetParticleVertexFactory
 	if (AvailableFactories.Num() == 0)
 	{
 		// If there are none in the pool, create a new one, add it to the in use list and return it
-		VertexFactory = CreateParticleVertexFactory(InType, InFeatureLevel);
+		VertexFactory = CreateParticleVertexFactory(InType, InFeatureLevel, ParticleData);
 		VertexFactories.Add(VertexFactory);
 	}
 	else
@@ -1563,7 +1563,7 @@ int32 FDynamicSpriteEmitterData::RenderEmitter(FParticleSystemSceneProxy* Proxy,
 
 FParticleVertexFactoryBase* FDynamicSpriteEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	return GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Sprite, InOwnerProxy->GetScene().GetFeatureLevel());
+	return GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Sprite, InOwnerProxy->GetScene().GetFeatureLevel(), this);
 }
 
 void FDynamicSpriteEmitterData::UpdateRenderThreadResourcesEmitter(const FParticleSystemSceneProxy* InOwnerProxy)
@@ -1776,7 +1776,7 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 
 FParticleVertexFactoryBase* FDynamicMeshEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	FParticleVertexFactoryBase* VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Mesh, InOwnerProxy->GetScene().GetFeatureLevel());
+	FParticleVertexFactoryBase* VertexFactory = GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_Mesh, InOwnerProxy->GetScene().GetFeatureLevel(), this);
 	SetupVertexFactory((FMeshParticleVertexFactory*)VertexFactory, StaticMesh->RenderData->LODResources[0]);
 	return VertexFactory;
 }
@@ -1858,6 +1858,7 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 			FDynamicMeshEmitterCollectorResources& CollectorResources = Collector.AllocateOneFrameResource<FDynamicMeshEmitterCollectorResources>();
 			CollectorResources.VertexFactory.SetParticleFactoryType(PVFT_Mesh);
 			CollectorResources.VertexFactory.SetFeatureLevel(FeatureLevel);
+			CollectorResources.VertexFactory.SetStrides(GetDynamicVertexStride(FeatureLevel), GetDynamicParameterVertexStride());
 			CollectorResources.VertexFactory.InitResource();
 			SetupVertexFactory(&CollectorResources.VertexFactory, StaticMesh->RenderData->LODResources[0]);
 
@@ -2876,7 +2877,7 @@ void FDynamicBeam2EmitterData::Init( bool bInSelected )
 
 FParticleVertexFactoryBase* FDynamicBeam2EmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene().GetFeatureLevel()));
+	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene().GetFeatureLevel(), this));
 }
 
 /** Perform the actual work of filling the buffer, often called from another thread 
@@ -5819,7 +5820,7 @@ void FDynamicTrailsEmitterData::Init(bool bInSelected)
 
 FParticleVertexFactoryBase* FDynamicTrailsEmitterData::BuildVertexFactory(const FParticleSystemSceneProxy* InOwnerProxy)
 {
-	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene().GetFeatureLevel()));
+	return (FParticleBeamTrailVertexFactory*)(GParticleVertexFactoryPool.GetParticleVertexFactory(PVFT_BeamTrail, InOwnerProxy->GetScene().GetFeatureLevel(), this));
 }
 
 void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSystemSceneProxy* Proxy, const FSceneView* View, const FSceneViewFamily& ViewFamily, int32 ViewIndex, FMeshElementCollector& Collector) const

@@ -1098,7 +1098,7 @@ public:
 		ClearPoolInternal();
 	}
 
-	FParticleVertexFactoryBase* GetParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel);
+	FParticleVertexFactoryBase* GetParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel, const struct FDynamicSpriteEmitterDataBase* ParticleData);
 
 	bool ReturnParticleVertexFactory(FParticleVertexFactoryBase* InVertexFactory);
 

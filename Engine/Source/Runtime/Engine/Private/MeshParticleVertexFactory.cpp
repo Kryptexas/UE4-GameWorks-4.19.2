@@ -94,6 +94,7 @@ void FMeshParticleVertexFactory::InitRHI()
 		{
 			// Stream 0 - Instance data
 			{
+				checkf(DynamicVertexStride != -1, TEXT("FMeshParticleVertexFactory does not have a valid DynamicVertexStride - likely an empty one was made, but SetStrides was not called"));
 				FVertexStream VertexStream;
 				VertexStream.VertexBuffer = NULL;
 				VertexStream.Stride = 0;
@@ -101,26 +102,28 @@ void FMeshParticleVertexFactory::InitRHI()
 				Streams.Add(VertexStream);
 	
 				// @todo metal: this will need a valid stride when we get to instanced meshes!
-				Elements.Add(FVertexElement(0, Data.TransformComponent[0].Offset, Data.TransformComponent[0].Type, 8, 0xFFFF, Data.TransformComponent[0].bUseInstanceIndex));
-				Elements.Add(FVertexElement(0, Data.TransformComponent[1].Offset, Data.TransformComponent[1].Type, 9, 0xFFFF, Data.TransformComponent[1].bUseInstanceIndex));
-				Elements.Add(FVertexElement(0, Data.TransformComponent[2].Offset, Data.TransformComponent[2].Type, 10, 0xFFFF, Data.TransformComponent[2].bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.TransformComponent[0].Offset, Data.TransformComponent[0].Type, 8, DynamicVertexStride, Data.TransformComponent[0].bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.TransformComponent[1].Offset, Data.TransformComponent[1].Type, 9, DynamicVertexStride, Data.TransformComponent[1].bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.TransformComponent[2].Offset, Data.TransformComponent[2].Type, 10, DynamicVertexStride, Data.TransformComponent[2].bUseInstanceIndex));
 	
-				Elements.Add(FVertexElement(0, Data.SubUVs.Offset, Data.SubUVs.Type, 11, 0, Data.SubUVs.bUseInstanceIndex));
-				Elements.Add(FVertexElement(0, Data.SubUVLerpAndRelTime.Offset, Data.SubUVLerpAndRelTime.Type, 12, 0xFFFF, Data.SubUVLerpAndRelTime.bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.SubUVs.Offset, Data.SubUVs.Type, 11, DynamicVertexStride, Data.SubUVs.bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.SubUVLerpAndRelTime.Offset, Data.SubUVLerpAndRelTime.Type, 12, DynamicVertexStride, Data.SubUVLerpAndRelTime.bUseInstanceIndex));
 	
-				Elements.Add(FVertexElement(0, Data.ParticleColorComponent.Offset, Data.ParticleColorComponent.Type, 14, 0xFFFF, Data.ParticleColorComponent.bUseInstanceIndex));
-				Elements.Add(FVertexElement(0, Data.VelocityComponent.Offset, Data.VelocityComponent.Type, 15, 0xFFFF, Data.VelocityComponent.bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.ParticleColorComponent.Offset, Data.ParticleColorComponent.Type, 14, DynamicVertexStride, Data.ParticleColorComponent.bUseInstanceIndex));
+				Elements.Add(FVertexElement(0, Data.VelocityComponent.Offset, Data.VelocityComponent.Type, 15, DynamicVertexStride, Data.VelocityComponent.bUseInstanceIndex));
 			}
 
 			// Stream 1 - Dynamic parameter
 			{
+				checkf(DynamicParameterVertexStride != -1, TEXT("FMeshParticleVertexFactory does not have a valid DynamicParameterVertexStride - likely an empty one was made, but SetStrides was not called"));
+				
 				FVertexStream VertexStream;
 				VertexStream.VertexBuffer = NULL;
 				VertexStream.Stride = 0;
 				VertexStream.Offset = 0;
 				Streams.Add(VertexStream);
 	
-				Elements.Add(FVertexElement(1, 0, VET_Float4, 13, 0xFFFF, true));
+				Elements.Add(FVertexElement(1, 0, VET_Float4, 13, DynamicParameterVertexStride, true));
 			}
 		}
 
