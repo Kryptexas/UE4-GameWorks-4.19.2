@@ -13,7 +13,7 @@
 #endif
 
 #ifndef XFER
-#if PLATFORM_HTML5
+#ifdef REQUIRES_ALIGNED_INT_ACCESS
 	#define XFER(T) \
 		{ \
 		T Temp; \

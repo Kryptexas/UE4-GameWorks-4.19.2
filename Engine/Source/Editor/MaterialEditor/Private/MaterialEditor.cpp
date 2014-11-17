@@ -3861,31 +3861,34 @@ void FMaterialDevelopmentOverheadStats::Init(UMaterial* InMaterial)
 
 void FMaterialDevelopmentOverheadStats::Update(UMaterial* InMaterial)
 {
-	//Duplicate the material in place (same name).
-	EmptyMaterial = (UMaterial*)StaticDuplicateObject(InMaterial, GetTransientPackage(), TEXT("EmptyMaterial"), ~RF_Standalone, UPreviewMaterial::StaticClass()); 		
-	EmptyMaterial->Expressions.Empty();		
-	
-	EmptyMaterialWithOverhead = (UMaterial*)StaticDuplicateObject(InMaterial, GetTransientPackage(), TEXT("EmptyOverheadMaterial"), ~RF_Standalone, UPreviewMaterial::StaticClass()); 		
-	EmptyMaterialWithOverhead->Expressions.Empty();	
+	//Disabling this as a temp fix until full fix is merged in 4.2
+	return;
 
-	//Disconnect all properties from the expressions
-	for( int32 PropIdx = 0; PropIdx < MP_MAX ; ++PropIdx )
-	{
-		FExpressionInput* ExpInput = EmptyMaterial->GetExpressionInputForProperty((EMaterialProperty)PropIdx);
-		ExpInput->Expression = NULL;	
-		ExpInput = EmptyMaterialWithOverhead->GetExpressionInputForProperty((EMaterialProperty)PropIdx);
-		ExpInput->Expression = NULL;
-	}
-
-	EmptyMaterial->bIsMaterialDevelopmentOverheadStatsMaterial = true;
-
-	EmptyMaterial->bAllowDevelopmentShaderCompile = false;
-	EmptyMaterial->PreEditChange( NULL );
-	EmptyMaterial->PostEditChange();
-
-	EmptyMaterialWithOverhead->bIsMaterialDevelopmentOverheadStatsMaterial = true;
-	EmptyMaterialWithOverhead->PreEditChange( NULL );
-	EmptyMaterialWithOverhead->PostEditChange();
+// 	//Duplicate the material in place (same name).
+// 	EmptyMaterial = (UMaterial*)StaticDuplicateObject(InMaterial, GetTransientPackage(), TEXT("EmptyMaterial"), ~RF_Standalone, UPreviewMaterial::StaticClass()); 		
+// 	EmptyMaterial->Expressions.Empty();		
+// 	
+// 	EmptyMaterialWithOverhead = (UMaterial*)StaticDuplicateObject(InMaterial, GetTransientPackage(), TEXT("EmptyOverheadMaterial"), ~RF_Standalone, UPreviewMaterial::StaticClass()); 		
+// 	EmptyMaterialWithOverhead->Expressions.Empty();	
+// 
+// 	//Disconnect all properties from the expressions
+// 	for( int32 PropIdx = 0; PropIdx < MP_MAX ; ++PropIdx )
+// 	{
+// 		FExpressionInput* ExpInput = EmptyMaterial->GetExpressionInputForProperty((EMaterialProperty)PropIdx);
+// 		ExpInput->Expression = NULL;	
+// 		ExpInput = EmptyMaterialWithOverhead->GetExpressionInputForProperty((EMaterialProperty)PropIdx);
+// 		ExpInput->Expression = NULL;
+// 	}
+// 
+// 	EmptyMaterial->bIsMaterialDevelopmentOverheadStatsMaterial = true;
+// 
+// 	EmptyMaterial->bAllowDevelopmentShaderCompile = false;
+// 	EmptyMaterial->PreEditChange( NULL );
+// 	EmptyMaterial->PostEditChange();
+// 
+// 	EmptyMaterialWithOverhead->bIsMaterialDevelopmentOverheadStatsMaterial = true;
+// 	EmptyMaterialWithOverhead->PreEditChange( NULL );
+// 	EmptyMaterialWithOverhead->PostEditChange();
 }
 
 void FMaterialDevelopmentOverheadStats::AddReferencedObjects(FReferenceCollector& Collector)
@@ -3895,33 +3898,36 @@ void FMaterialDevelopmentOverheadStats::AddReferencedObjects(FReferenceCollector
 }
 
 bool FMaterialDevelopmentOverheadStats::GetOverheadCounts(TArray<int32>& OverheadCounts, ERHIFeatureLevel::Type FeatureLevel)
-{		
-	const FMaterialResource* EmptyMaterialResource = EmptyMaterial ? EmptyMaterial->GetMaterialResource(FeatureLevel) : NULL;
-	const FMaterialResource* EmptyMaterialResourceWithOverhead = EmptyMaterialWithOverhead ? EmptyMaterialWithOverhead->GetMaterialResource(FeatureLevel) : NULL;
-	
-	if( !EmptyMaterialResource || !EmptyMaterialResourceWithOverhead )
-	{
-		return false;
-	}
-		
-	TArray<FString> Descriptions;
-	TArray<int32> InstructionCounts;
-	TArray<FString> OverheadDescriptions;
-	TArray<int32> OverheadInstructionCounts;
+{
+	//Disabling this as a temp fix until full fix is merged in 4.2
+	return false;
 
-	EmptyMaterialResource->GetRepresentativeInstructionCounts(Descriptions, InstructionCounts);
-	EmptyMaterialResourceWithOverhead->GetRepresentativeInstructionCounts(OverheadDescriptions, OverheadInstructionCounts);
-
-	if( InstructionCounts.Num() == 0 || OverheadInstructionCounts.Num() == 0 )
-	{
-		return false;
-	}
-
-	for( int32 i=0 ; i < InstructionCounts.Num() ; ++i )
-	{
-		OverheadCounts.Add( OverheadInstructionCounts[i] - InstructionCounts[i] );
-	}
-	return true;
+// 	const FMaterialResource* EmptyMaterialResource = EmptyMaterial ? EmptyMaterial->GetMaterialResource(FeatureLevel) : NULL;
+// 	const FMaterialResource* EmptyMaterialResourceWithOverhead = EmptyMaterialWithOverhead ? EmptyMaterialWithOverhead->GetMaterialResource(FeatureLevel) : NULL;
+// 	
+// 	if( !EmptyMaterialResource || !EmptyMaterialResourceWithOverhead )
+// 	{
+// 		return false;
+// 	}
+// 		
+// 	TArray<FString> Descriptions;
+// 	TArray<int32> InstructionCounts;
+// 	TArray<FString> OverheadDescriptions;
+// 	TArray<int32> OverheadInstructionCounts;
+// 
+// 	EmptyMaterialResource->GetRepresentativeInstructionCounts(Descriptions, InstructionCounts);
+// 	EmptyMaterialResourceWithOverhead->GetRepresentativeInstructionCounts(OverheadDescriptions, OverheadInstructionCounts);
+// 
+// 	if( InstructionCounts.Num() == 0 || OverheadInstructionCounts.Num() == 0 )
+// 	{
+// 		return false;
+// 	}
+// 
+// 	for( int32 i=0 ; i < InstructionCounts.Num() ; ++i )
+// 	{
+// 		OverheadCounts.Add( OverheadInstructionCounts[i] - InstructionCounts[i] );
+// 	}
+// 	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -272,7 +272,7 @@ namespace AutomationTool
 
 		private static string GetScriptAssemblyFolder()
 		{
-			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", "DotNet", "AutomationScripts");
+			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", "DotNET", "AutomationScripts");
 		}
 
 		#endregion
