@@ -100,7 +100,7 @@ public:
 	FORCEINLINE bool CanEverFly() const { return NavAgentProps.bCanFly; }
 
 	/** @return true if component is allowed to jump */
-	FORCEINLINE bool IsJumpAllowed() const { return NavAgentProps.bCanJump && MovementState.bCanJump; }
+	FORCEINLINE bool IsJumpAllowed() const { return CanEverJump() && MovementState.bCanJump; }
 
 	/** @param bAllowed true if component is allowed to jump */
 	FORCEINLINE void SetJumpAllowed(bool bAllowed) { MovementState.bCanJump = bAllowed; }
