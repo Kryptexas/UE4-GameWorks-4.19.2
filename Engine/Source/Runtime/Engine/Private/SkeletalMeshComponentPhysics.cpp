@@ -4829,6 +4829,19 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 #endif // #if WITH_APEX_CLOTHING
 }
 
+void USkeletalMeshComponent::SetAllMassScale(float InMassScale)
+{
+	// Apply mass scale to each child body
+	for(FBodyInstance* BI : Bodies)
+	{
+		if (BI->IsValidBodyInstance())
+		{
+			BI->SetMassScale(InMassScale);
+		}
+	}
+}
+
+
 float USkeletalMeshComponent::GetMass() const
 {
 	float Mass = 0.0f;

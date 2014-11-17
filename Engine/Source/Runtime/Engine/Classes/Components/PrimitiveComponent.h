@@ -1371,6 +1371,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual float GetAngularDamping() const;
 
+	/** Change the mass scale used to calculate the mass of a single physics body */
+	UFUNCTION(BlueprintCallable, Category="Physics")
+	virtual void SetMassScale(FName BoneName = NAME_None, float InMassScale = 1.f);
+
+	/** Change the mass scale used fo all bodies in this component */
+	UFUNCTION(BlueprintCallable, Category="Physics")
+	virtual void SetAllMassScale(float InMassScale = 1.f);
+
 	/** Returns the mass of this component in kg. */
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual float GetMass() const;

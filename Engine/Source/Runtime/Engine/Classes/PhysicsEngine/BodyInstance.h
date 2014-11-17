@@ -541,6 +541,9 @@ public:
 	/** return true if it uses Collision Profile System. False otherwise*/
 	bool DoesUseCollisionProfile() const;
 
+	/** Modify the mass scale of this body */
+	void SetMassScale(float InMassScale=1.f);
+
 	/** Update instance's mass properties (mass, inertia and center-of-mass offset) based on MassScale, InstanceMassScale and COMNudge. */
 	void UpdateMassProperties();
 

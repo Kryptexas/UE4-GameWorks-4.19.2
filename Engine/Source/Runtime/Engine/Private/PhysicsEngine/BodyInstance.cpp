@@ -513,6 +513,12 @@ bool FBodyInstance::DoesUseCollisionProfile() const
 	return IsValidCollisionProfileName(CollisionProfileName);
 }
 
+void FBodyInstance::SetMassScale(float InMassScale)
+{
+	MassScale = InMassScale;
+	UpdateMassProperties();
+}
+
 void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bUpdatePhysicsFilterData)
 {
 	if (CollisionEnabled != NewType)

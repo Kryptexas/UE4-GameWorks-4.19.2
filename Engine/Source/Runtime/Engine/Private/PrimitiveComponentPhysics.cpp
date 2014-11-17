@@ -397,6 +397,20 @@ float UPrimitiveComponent::GetAngularDamping() const
 	return 0.f;
 }
 
+void UPrimitiveComponent::SetMassScale(FName BoneName, float InMassScale)
+{
+	FBodyInstance* BI = GetBodyInstance(BoneName);
+	if (BI)
+	{
+		BI->SetMassScale(InMassScale);
+	}
+}
+
+void UPrimitiveComponent::SetAllMassScale(float InMassScale)
+{
+	SetMassScale(NAME_None, InMassScale);
+}
+
 float UPrimitiveComponent::GetMass() const
 {
 	FBodyInstance* BI = GetBodyInstance();
