@@ -388,6 +388,18 @@ void AActor::SetTickableWhenPaused(bool bTickableWhenPaused)
 	PrimaryActorTick.bTickEvenWhenPaused = bTickableWhenPaused;
 }
 
+void AActor::SetTickEnabled(bool bEnable)
+{
+	if (CanEverTick())
+	{
+		PrimaryActorTick.SetTickFunctionEnable(bEnable);
+	}
+	else if (bEnable)
+	{
+		UE_LOG(LogActor, Warning, TEXT("Attempting to enable ticking for '%s' when the actor is explicitly prevented from doing so (check CanEverTick)."), *GetName());
+	}
+}
+
 void AActor::AddControllingMatineeActor( AMatineeActor& InMatineeActor )
 {
 	if (RootComponent)
