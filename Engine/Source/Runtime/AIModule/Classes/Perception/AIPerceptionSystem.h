@@ -68,6 +68,8 @@ public:
 	virtual void PostInitProperties() override;
 	/* UObject end */
 
+	FORCEINLINE bool IsSenseInstantiated(const FAISenseID& SenseID) const { return SenseID.IsValid() && Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr; }
+
 	/** Registers listener if not registered */
 	void UpdateListener(UAIPerceptionComponent& Listener);
 	void UnregisterListener(UAIPerceptionComponent& Listener);
@@ -162,7 +164,7 @@ template<typename FSenseClass>
 void UAIPerceptionSystem::RegisterSource(AActor& SourceActor)
 {
 	FAISenseID SenseID = UAISense::GetSenseID<FSenseClass>();
-	if (SenseID.IsValid() == false)
+	if (IsSenseInstantiated(SenseID) == false)
 	{
 		RegisterSenseClass(FSenseClass::StaticClass());
 		SenseID = UAISense::GetSenseID<FSenseClass>();

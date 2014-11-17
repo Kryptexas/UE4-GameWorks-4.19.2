@@ -103,6 +103,7 @@ TStatId UAIPerceptionSystem::GetStatId() const
 
 void UAIPerceptionSystem::RegisterSource(FAISenseID SenseID, AActor& SourceActor)
 {
+	ensure(IsSenseInstantiated(SenseID));
 	SourcesToRegister.Add(FPerceptionSourceRegistration(SenseID, &SourceActor));
 }
 
@@ -113,7 +114,7 @@ void UAIPerceptionSystem::PerformSourceRegistration()
 	for (const auto& PercSource : SourcesToRegister)
 	{
 		AActor* SourceActor = PercSource.Source.Get();
-		if (SourceActor && Senses.IsValidIndex(PercSource.SenseID))
+		if (SourceActor)
 		{
 			Senses[PercSource.SenseID]->RegisterSource(*SourceActor);
 		}
@@ -391,7 +392,13 @@ bool UAIPerceptionSystem::RegisterPerceptionStimuliSource(UObject* WorldContext,
 			UAISystem* AISys = Cast<UAISystem>(World->GetAISystem());
 			if (AISys && AISys->GetPerceptionSystem())
 			{
-				AISys->GetPerceptionSystem()->RegisterSource(UAISense::GetSenseID(Sense), *Target);
+				const FAISenseID SenseID = UAISense::GetSenseID(Sense);
+				if (AISys->GetPerceptionSystem()->IsSenseInstantiated(SenseID) == false)
+				{
+					AISys->GetPerceptionSystem()->RegisterSenseClass(Sense);
+				}
+
+				AISys->GetPerceptionSystem()->RegisterSource(SenseID, *Target);
 				bResult = true;
 			}
 		}

@@ -150,6 +150,7 @@ namespace EAILockSource
  *		typedef X Type; where X is an integer type to be used as ID's internal type
  *		TCounter::Type GetNextAvailableID() - returns next available ID and advances the internal counter
  *		uint32 GetSize() const - returns number of unique IDs created so far
+ *		OnIndexForced(TCounter::Type Index) - called when given Index has been force-used. Counter may need to update "next available ID"
  */
 
 template<typename TCounter>
@@ -162,6 +163,13 @@ protected:
 	{ 
 		static TCounter Counter;
 		return Counter;
+	}
+
+	// back-door for forcing IDs
+	FAINamedID(const FName& InName, typename TCounter::Type InIndex)
+		: Index(InIndex), Name(InName)
+	{
+		GetCounter().OnIndexForced(InIndex);
 	}
 
 public:
@@ -250,6 +258,7 @@ public:
 	FAIBasicCounter() : NextAvailableID(Type(0)) {}
 	Type GetNextAvailableID() { return NextAvailableID++; }
 	uint32 GetSize() const { return uint32(NextAvailableID); }
+	void OnIndexForced(Type ForcedIndex) { NextAvailableID = FMath::Max<Type>(ForcedIndex + 1, NextAvailableID); }
 };
 
 //////////////////////////////////////////////////////////////////////////
