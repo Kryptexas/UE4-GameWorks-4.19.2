@@ -15,7 +15,10 @@ enum EThreadPriority
 	TPri_AboveNormal,
 
 	/** Below normal priority. */
-	TPri_BelowNormal
+	TPri_BelowNormal,
+    
+    /** Highest priority. */
+    TPri_Highest
 };
 
 
