@@ -29,7 +29,7 @@ public:
 			]
 			+ SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Left)
+			.HAlign(HAlign_Fill)
 			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
@@ -41,9 +41,10 @@ public:
 					.Text(ViewModel->GetFriendName())
 				]
 				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Left)
 				.AutoHeight()
 				[
-					SAssignNew(OptionContainer, SHorizontalBox)
+					SAssignNew(OptionContainer, SUniformGridPanel)
 				]
 			]
 		]);
@@ -60,19 +61,22 @@ private:
 
 		for(const auto& FriendAction : Actions)
 		{
-			OptionContainer->AddSlot()
-			.Padding(5)
+			OptionContainer->AddSlot(OptionContainer->GetChildren()->Num(), 0)
 			[
-				SNew(SButton)
-				.OnClicked(this, &SInviteItemImpl::PerformAction, FriendAction)
-				.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
+				SNew(SBox)
+				.Padding(5)
 				[
-					SNew(STextBlock)
-					.ColorAndOpacity(FriendStyle.DefaultFontColor)
-					.Font(FriendStyle.FriendsFontStyle)
-					.Text(EFriendActionType::ToText(FriendAction))
+					SNew(SButton)
+					.OnClicked(this, &SInviteItemImpl::PerformAction, FriendAction)
+					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(FriendStyle.DefaultFontColor)
+						.Font(FriendStyle.FriendsFontStyle)
+						.Text(EFriendActionType::ToText(FriendAction))
+					]
 				]
 			];
 		}
@@ -87,7 +91,7 @@ private:
 private:
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
-	TSharedPtr<SHorizontalBox> OptionContainer;
+	TSharedPtr<SUniformGridPanel> OptionContainer;
 	TSharedPtr<FFriendViewModel> ViewModel;
 };
 
