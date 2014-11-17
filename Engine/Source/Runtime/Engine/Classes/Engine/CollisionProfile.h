@@ -204,6 +204,9 @@ public:
 	/* custom collision profile name that you can modify what you'd like */
 	ENGINE_API static FName CustomCollisionProfileName;
 
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif //WITH_EDITOR
 private:
 
 	/** 

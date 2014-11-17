@@ -705,3 +705,12 @@ ETraceTypeQuery UCollisionProfile::ConvertToTraceType(ECollisionChannel Collisio
 
 	return TraceTypeQuery_MAX;
 }
+
+#if WITH_EDITOR
+void UCollisionProfile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	LoadProfileConfig(false);
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+#endif
