@@ -268,6 +268,8 @@ struct OpenGLContextInfo
 
 extern void OnQueryInvalidation( void );
 
+bool GIsRunningOnIntelCard = false; // @todo: remove once Apple fixes radr://16223045 Changes to the GL separate blend state aren't always respected on Intel cards
+
 struct FPlatformOpenGLDevice
 {
 	NSOpenGLContext*	SharedContext;
@@ -457,6 +459,12 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 	
 	// Attach the context to the view if needed
 	[Context->OpenGLContext setView: Context->OpenGLView];
+
+	FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR)));
+	if (VendorName.Contains(TEXT("Intel ")))
+	{
+		GIsRunningOnIntelCard = true;
+	}
 	
 	return Context;
 }

@@ -1,6 +1,6 @@
 @echo off
 
-pushd ..\..\..\
+pushd "%~dp0..\..\..\"
 set UE_ROOT_DIR=%CD:\=\\%
 set UE_ROOT_DIR_SINGLE_SLASHES=%CD%
 popd
@@ -21,5 +21,5 @@ reg add HKEY_CLASSES_ROOT\Unreal.ProjectFile\shell\run /d "Launch Game"
 reg add HKEY_CLASSES_ROOT\Unreal.ProjectFile\shell\run\command /t REG_SZ /d "\"%UE_ROOT_DIR%\\Engine\\Binaries\\Win64\\UE4Editor.exe\" \"%%1\" -game"
 
 reg add HKEY_CLASSES_ROOT\Unreal.ProjectFile\shell\rungenproj /d "Generate Visual Studio projects"
-reg add HKEY_CLASSES_ROOT\Unreal.ProjectFile\shell\rungenproj\command /t REG_EXPAND_SZ /d "%%comspec%% /c \"%UE_ROOT_DIR_SINGLE_SLASHES%\Engine\Build\BatchFiles\GenerateProjectFiles.bat -project=\"%%1\" -game -engine\""
+reg add HKEY_CLASSES_ROOT\Unreal.ProjectFile\shell\rungenproj\command /t REG_EXPAND_SZ /d "%%comspec%% /s /c \"\"%UE_ROOT_DIR_SINGLE_SLASHES%\Engine\Build\BatchFiles\GenerateProjectFiles.bat\" -project=\"%%1\" -game -engine\""
 
