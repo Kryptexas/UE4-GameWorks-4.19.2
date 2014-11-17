@@ -750,7 +750,7 @@ public class GUBP : BuildCommand
         }
         public override int AgentMemoryRequirement(GUBP bp)
         {
-            if (bp.ParseParam("Launcher") || bp.TimeIndex != 0)
+            if (bp.ParseParam("Launcher") || bp.TimeIndex != 0  && HostPlatform != UnrealTargetPlatform.Mac)
             {
                 return base.AgentMemoryRequirement(bp);
             }
