@@ -84,7 +84,6 @@ void SEditableText::Construct( const FArguments& InArgs )
 	MinDesiredWidth = InArgs._MinDesiredWidth;
 	SelectAllTextOnCommit = InArgs._SelectAllTextOnCommit;
 	VirtualKeyboardType = IsPassword.Get() ? EKeyboardType::Keyboard_Password : InArgs._VirtualKeyboardType;
-	MaxCharacterLength = InArgs._MaxCharacterLength;
 
 	// Map UI commands to delegates which are called when the command should be executed
 	UICommandList->MapAction( FGenericCommands::Get().Undo,
@@ -658,14 +657,6 @@ void SEditableText::TypeChar( const int32 InChar )
 		{
 			bIsCharAllowed = false;
 		}
-		else
-		{
-			int32 MaxLen = MaxCharacterLength.Get();
-			if (MaxLen >= 0 && EditedText.ToString().Len() >= MaxLen)
-			{
-				bIsCharAllowed = false;
-			}
-		}
 	}
 
 	if( bIsCharAllowed )
@@ -1110,11 +1101,7 @@ void SEditableText::PasteTextFromClipboard()
 
 		for( int32 CurCharIndex = 0; CurCharIndex < PastedText.Len(); ++CurCharIndex )
 		{
-			TCHAR CharToType = PastedText.GetCharArray()[ CurCharIndex ];
-			if (CanTypeCharacter(CharToType))
-			{
-				TypeChar(CharToType);
-			}
+			TypeChar( PastedText.GetCharArray()[ CurCharIndex ] );
 		}
 
 		FinishChangingText();

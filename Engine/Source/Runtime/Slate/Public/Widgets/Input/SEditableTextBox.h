@@ -28,7 +28,6 @@ public:
 		, _BackgroundColor()		
 		, _Padding()
 		, _ErrorReporting()
-		, _MaxCharacterLength(-1)
 		{}
 
 		/** The styling of the textbox */
@@ -87,9 +86,6 @@ public:
 
 		/** Provide a alternative mechanism for error reporting. */
 		SLATE_ARGUMENT( TSharedPtr<class IErrorReportingWidget>, ErrorReporting )
-
-		/** The maximum number of characters that can be entered by the user into this text box */
-		SLATE_ATTRIBUTE(int32, MaxCharacterLength)
 
 	SLATE_END_ARGS()
 	

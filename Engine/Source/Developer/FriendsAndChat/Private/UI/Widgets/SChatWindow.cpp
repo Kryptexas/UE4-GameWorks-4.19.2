@@ -149,7 +149,6 @@ public:
 					.OnTextCommitted(this, &SChatWindowImpl::HandleChatEntered)
 					.HintText(LOCTEXT("FriendsListSearch", "Enter to chat"))
 					.Font(FriendStyle.FriendsFontStyle)
-					.MaxCharacterLength(200)
 				]
 			]
 			]
