@@ -6,7 +6,7 @@
 
 class SStructureDetailsView : public SDetailsViewBase, public IStructureDetailsView
 {
-	TSharedPtr<struct FStructOnScope> StructData;
+	TSharedPtr<class FStructOnScope> StructData;
 	TSharedPtr<class FStructurePropertyNode> RootNode;
 	FString CustomName;
 public:

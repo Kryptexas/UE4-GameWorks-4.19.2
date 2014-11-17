@@ -12,6 +12,6 @@ class IStructureDetailsView
 public:
 	virtual TSharedPtr<class SWidget> GetWidget() = 0;
 
-	virtual void SetStructureData(TSharedPtr<struct FStructOnScope> StructData) = 0;
+	virtual void SetStructureData(TSharedPtr<class FStructOnScope> StructData) = 0;
 	virtual FOnFinishedChangingProperties& GetOnFinishedChangingPropertiesDelegate() = 0;
 };
