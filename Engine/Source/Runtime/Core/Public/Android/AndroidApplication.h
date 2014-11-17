@@ -5,7 +5,6 @@
 #include "GenericApplication.h"
 #include "AndroidWindow.h"
 
-
 namespace FAndroidAppEntry
 {
 	void PlatformInit();
@@ -13,11 +12,31 @@ namespace FAndroidAppEntry
 	void DestroyWindow();
 }
 
+struct FPlatformOpenGLContext;
+namespace FAndroidEGL
+{
+	// Back door into more intimate Android OpenGL variables (a.k.a. a hack)
+	FPlatformOpenGLContext*	GetRenderingContext();
+	FPlatformOpenGLContext*	CreateContext();
+	void					MakeCurrent(FPlatformOpenGLContext*);
+	void					ReleaseContext(FPlatformOpenGLContext*);
+	void					SwapBuffers(FPlatformOpenGLContext*);
+	void					SetFlipsEnabled(bool Enabled);
+	void					BindDisplayToContext(FPlatformOpenGLContext*);
+}
+
+
 class FAndroidApplication : public GenericApplication
 {
 public:
 
 	static FAndroidApplication* CreateAndroidApplication();
+
+	// Returns the java environment
+	static void InitializeJavaEnv(JavaVM* VM, jint Version, jobject GlobalThis);
+	static JNIEnv* GetJavaEnv(bool bRequireGlobalThis = true);
+	static jclass FindJavaClass(const char* name);
+	static void DetachJavaEnv();
 
 
 public:	

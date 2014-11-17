@@ -6,6 +6,8 @@
 #include <cpu-features.h>
 #include "ModuleManager.h"
 #include <android/keycodes.h>
+#include <string.h>
+
 #include "AndroidPlatformCrashContext.h"
 #include "MallocCrash.h"
 
@@ -18,6 +20,9 @@ FString FAndroidMisc::AndroidVersion; // version of android we are running eg "4
 FString FAndroidMisc::DeviceMake; // make of the device we are running on eg. "samsung"
 FString FAndroidMisc::DeviceModel; // model of the device we are running on eg "SAMSUNG-SGH-I437"
 FString FAndroidMisc::OSLanguage; // language code the device is set to eg "deu"
+
+// Build/API level we are running.
+int32 FAndroidMisc::AndroidBuildVersion = 0;
 
 GenericApplication* FAndroidMisc::CreateApplication()
 {
@@ -122,9 +127,15 @@ void* FAndroidMisc::GetHardwareWindow()
 
 const TCHAR* FAndroidMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
-	//check if there is android equivalent of hardware's GetLastError() ?
 	check(OutBuffer && BufferCount);
 	*OutBuffer = TEXT('\0');
+	if (Error == 0)
+	{
+		Error = errno;
+	}
+	char ErrorBuffer[1024];
+	strerror_r(Error, ErrorBuffer, 1024);
+	FCString::Strcpy(OutBuffer, BufferCount, UTF8_TO_TCHAR((const ANSICHAR*)ErrorBuffer));
 	return OutBuffer;
 }
 
@@ -619,3 +630,56 @@ uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxM
 	return NumMappings;
 #undef ADDKEYMAP
 }
+
+int32 FAndroidMisc::GetAndroidBuildVersion()
+{
+	if (AndroidBuildVersion > 0)
+	{
+		return AndroidBuildVersion;
+	}
+	if (AndroidBuildVersion <= 0)
+	{
+		JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+		if (nullptr != JEnv)
+		{
+			jclass Class = FAndroidApplication::FindJavaClass("android/os/Build$VERSION");
+			if (nullptr != Class)
+			{
+				JEnv->NewGlobalRef(Class);
+				jfieldID Field = JEnv->GetStaticFieldID(Class, "SDK_INT", "I");
+				if (nullptr != Field)
+				{
+					AndroidBuildVersion = JEnv->GetStaticIntField(Class, Field);
+				}
+				JEnv->DeleteGlobalRef(Class);
+			}
+		}
+	}
+	return AndroidBuildVersion;
+}
+
+#if !UE_BUILD_SHIPPING
+bool FAndroidMisc::IsDebuggerPresent()
+{
+	bool Result = false;
+#if 0
+	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+	if (nullptr != JEnv)
+	{
+		jclass Class = FAndroidApplication::FindJavaClass("android.os.Debug");
+		if (nullptr != Class)
+		{
+			JEnv->NewGlobalRef(Class);
+			// This segfaults for some reason. So this is all disabled for now.
+			jmethodID Method = JEnv->GetStaticMethodID(Class, "isDebuggerConnected", "()Z");
+			if (nullptr != Method)
+			{
+				Result = JEnv->CallStaticBooleanMethod(Class, Method);
+			}
+			JEnv->DeleteGlobalRef(Class);
+		}
+	}
+#endif
+	return Result;
+}
+#endif

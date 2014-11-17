@@ -253,7 +253,7 @@ int32 AndroidMain(struct android_app* state)
 	FPlatformMisc::LowLevelOutputDebugString(L"Entered AndroidMain()");
 
 	// Force the first call to GetJavaEnv() to happen on the game thread, allowing subsequent calls to occur on any thread
-	GetJavaEnv();
+	FAndroidApplication::GetJavaEnv();
 
 	// adjust the file descriptor limits to allow as many open files as possible
 	rlimit cur_fd_limit;
@@ -333,6 +333,11 @@ int32 AndroidMain(struct android_app* state)
 
 	// ready for onCreate to complete
 	GEventHandlerInitialized = true;
+
+	// Initialize file system access (i.e. mount OBBs, etc.).
+	// We need to do this really early for Android so that files in the
+	// OBBs and APK are found.
+	IPlatformFile::GetPlatformPhysical().Initialize(nullptr, FCommandLine::Get());
 
 	// initialize the engine
 	GEngineLoop.PreInit(0, NULL, FCommandLine::Get());

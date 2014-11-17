@@ -5,12 +5,11 @@
 #include "AndroidPlatformCrashContext.h"
 
 #include "AndroidJNI.h"
+#include "AndroidApplication.h"
 #include <Android/asset_manager.h>
 #include <Android/asset_manager_jni.h>
 
 #define JNI_CURRENT_VERSION JNI_VERSION_1_6
-
-#define USE_JNI_HELPER 0
 
 JavaVM* GJavaVM;
 jobject GJavaGlobalThis = NULL;
@@ -21,86 +20,6 @@ static IVirtualKeyboardEntry *VirtualKeyboardWidget = NULL;
 extern FString GFilePathBase;
 extern FString GFontPathBase;
 extern bool GOBBinAPK;
-
-#if USE_JNI_HELPER
-
-//////////////////////////////////////////////////////////////////////////
-// FJNIHelper
-
-// Caches access to the environment, attached to the current thread
-class FJNIHelper : public TThreadSingleton<FJNIHelper>
-{
-public:
-	static JNIEnv* GetEnvironment()
-	{
-		return Get().CachedEnv;
-	}
-
-private:
-	JNIEnv* CachedEnv = NULL;
-
-private:
-	friend class TThreadSingleton<FJNIHelper>;
-
-	FJNIHelper()
-		: CachedEnv(nullptr)
-	{
-		check(GJavaVM);
-		GJavaVM->GetEnv((void **)&CachedEnv, JNI_CURRENT_VERSION);
-
-		const jint AttachResult = GJavaVM->AttachCurrentThread(&CachedEnv, nullptr);
-		if (AttachResult == JNI_ERR)
-		{
-			FPlatformMisc::LowLevelOutputDebugString(TEXT("FJNIHelper failed to attach thread to Java VM!"));
-			check(false);
-		}
-	}
-
-	~FJNIHelper()
-	{
-		check(GJavaVM);
-		const jint DetachResult = GJavaVM->DetachCurrentThread();
-		if (DetachResult == JNI_ERR)
-		{
-			FPlatformMisc::LowLevelOutputDebugString(TEXT("FJNIHelper failed to detach thread from Java VM!"));
-			check(false);
-		}
-
-		CachedEnv = nullptr;
-	}
-};
-
-DECLARE_THREAD_SINGLETON( FJNIHelper );
-
-#endif // USE_JNI_HELPER
-
-JNIEnv* GetJavaEnv(bool bRequireGlobalThis)
-{
-	//@TODO: ANDROID: Remove the other version if the helper works well
-#if USE_JNI_HELPER
-	if (!bRequireGlobalThis || (GJavaGlobalThis != nullptr))
-	{
-		return FJNIHelper::GetEnvironment();
-	}
-	else
-	{
-		return nullptr;
-	}
-#else
-	JNIEnv* Env = NULL;
-	GJavaVM->GetEnv((void **)&Env, JNI_CURRENT_VERSION);
-
-	jint AttachResult = GJavaVM->AttachCurrentThread(&Env, NULL);
-	if (AttachResult == JNI_ERR)
-	{
-		FPlatformMisc::LowLevelOutputDebugString(L"UNIT TEST -- Failed to get the JNI environment!");
-		check(false);
-		return nullptr;
-	}
-
-	return (!bRequireGlobalThis || (GJavaGlobalThis != nullptr)) ? Env : nullptr;
-#endif
-}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -152,7 +71,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 
 void AndroidThunkCpp_KeepScreenOn(bool Enable)
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		// call the java side
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_KeepScreenOn, Enable);
@@ -161,7 +80,7 @@ void AndroidThunkCpp_KeepScreenOn(bool Enable)
 
 void AndroidThunkCpp_Vibrate(int64_t Duration)
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		// call the java side
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_Vibrate, Duration);
@@ -171,7 +90,7 @@ void AndroidThunkCpp_Vibrate(int64_t Duration)
 // Call the Java side code for initializing VR HMD modules
 void AndroidThunkCpp_InitHMDs()
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_InitHMDs);
 	}
@@ -179,7 +98,7 @@ void AndroidThunkCpp_InitHMDs()
 
 void AndroidThunkCpp_ShowConsoleWindow()
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		// figure out all the possible texture formats that are allowed
 		TArray<FString> PossibleTargetPlatforms;
@@ -211,7 +130,7 @@ void AndroidThunkCpp_ShowConsoleWindow()
 
 void AndroidThunkCpp_ShowVirtualKeyboardInput(TSharedPtr<IVirtualKeyboardEntry> TextWidget, int32 InputType, const FString& Label, const FString& Contents)
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		// remember target widget for contents
 		VirtualKeyboardWidget = &(*TextWidget);
@@ -247,7 +166,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(
 
 void AndroidThunkCpp_LaunchURL(const FString& URL)
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		jstring Argument = Env->NewStringUTF(TCHAR_TO_UTF8(*URL));
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_LaunchURL, Argument);
@@ -257,7 +176,7 @@ void AndroidThunkCpp_LaunchURL(const FString& URL)
 
 void AndroidThunkCpp_ResetAchievements()
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ResetAchievements);
 	}
@@ -265,7 +184,7 @@ void AndroidThunkCpp_ResetAchievements()
 
 void AndroidThunkCpp_ShowAdBanner(const FString& AdUnitID, bool bShowOnBottomOfScreen)
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
  	{
 		jstring AdUnitIDArg = Env->NewStringUTF(TCHAR_TO_UTF8(*AdUnitID));
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowAdBanner, AdUnitIDArg, bShowOnBottomOfScreen);
@@ -275,7 +194,7 @@ void AndroidThunkCpp_ShowAdBanner(const FString& AdUnitID, bool bShowOnBottomOfS
 
 void AndroidThunkCpp_HideAdBanner()
 {
- 	if (JNIEnv* Env = GetJavaEnv())
+ 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
  	{
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_HideAdBanner);
  	}
@@ -283,7 +202,7 @@ void AndroidThunkCpp_HideAdBanner()
 
 void AndroidThunkCpp_CloseAdBanner()
 {
- 	if (JNIEnv* Env = GetJavaEnv())
+ 	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
  	{
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_CloseAdBanner);
  	}
@@ -295,16 +214,27 @@ namespace
 	AAssetManager* GAssetManagerRef = NULL;
 }
 
+jobject AndroidJNI_GetJavaAssetManager()
+{
+	if (!GJavaAssetManager)
+	{
+		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
+		{
+			GJavaAssetManager = Env->CallObjectMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GetAssetManager);
+			Env->NewGlobalRef(GJavaAssetManager);
+		}
+	}
+	return GJavaAssetManager;
+}
+
 AAssetManager * AndroidThunkCpp_GetAssetManager()
 {
 	if (!GAssetManagerRef)
 	{
-		if (JNIEnv* Env = GetJavaEnv())
+		if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 		{
-			GJavaAssetManager = Env->CallObjectMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GetAssetManager);
-			Env->NewGlobalRef(GJavaAssetManager);
-			GAssetManagerRef = AAssetManager_fromJava(Env, GJavaAssetManager);
-
+			jobject JavaAssetMgr = AndroidJNI_GetJavaAssetManager();
+			GAssetManagerRef = AAssetManager_fromJava(Env, JavaAssetMgr);
 		}
 	}
 
@@ -313,7 +243,7 @@ AAssetManager * AndroidThunkCpp_GetAssetManager()
 
 void AndroidThunkCpp_Minimize()
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_Minimize);
 	}
@@ -321,7 +251,7 @@ void AndroidThunkCpp_Minimize()
 
 void AndroidThunkCpp_ForceQuit()
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ForceQuit);
 	}
@@ -330,7 +260,7 @@ void AndroidThunkCpp_ForceQuit()
 bool AndroidThunkCpp_IsMusicActive()
 {
 	bool active = false;
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		active = (bool)Env->CallBooleanMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_IsMusicActive);
 	}
@@ -340,7 +270,7 @@ bool AndroidThunkCpp_IsMusicActive()
 
 void AndroidThunkCpp_Iap_SetupIapService(const FString& InProductKey)
 {
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		if (GJavaGlobalThis)
 		{
@@ -360,7 +290,7 @@ bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>& ProductIDs, 
 	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_QueryInAppPurchases");
 	bool bResult = false;
 
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		if (GJavaGlobalThis)
 		{
@@ -401,7 +331,7 @@ bool AndroidThunkCpp_Iap_BeginPurchase(const FString& ProductID, const bool bCon
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_BeginPurchase");
 	bool bResult = false;
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		if (GJavaGlobalThis)
 		{
@@ -424,7 +354,7 @@ bool AndroidThunkCpp_Iap_IsAllowedToMakePurchases()
 {
 	FPlatformMisc::LowLevelOutputDebugString(L"[JNI] - AndroidThunkCpp_Iap_IsAllowedToMakePurchases");
 	bool bResult = false;
-	if (JNIEnv* Env = GetJavaEnv())
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv())
 	{
 		if (GJavaGlobalThis)
 		{
@@ -470,6 +400,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	// if you have problems with stuff being missing esspecially in distribution builds then it could be because proguard is stripping things from java
 	// check proguard-project.txt and see if your stuff is included in the exceptions
 	GJavaVM = InJavaVM;
+	FAndroidApplication::InitializeJavaEnv(GJavaVM, JNI_CURRENT_VERSION, GJavaGlobalThis);
 
 	JDef_GameActivity::ClassID = env->FindClass("com/epicgames/ue4/GameActivity");
 	CHECK_JNI_RESULT( JDef_GameActivity::ClassID );
@@ -576,6 +507,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetGlobalActivity(JNIE
 	if (!GJavaGlobalThis)
 	{
 		GJavaGlobalThis = jenv->NewGlobalRef(thiz);
+		FAndroidApplication::InitializeJavaEnv(GJavaVM, JNI_CURRENT_VERSION, GJavaGlobalThis);
 		if(!GJavaGlobalThis)
 		{
 			FPlatformMisc::LowLevelOutputDebugString(L"Error setting the global GameActivity activity");
@@ -593,4 +525,3 @@ extern "C" bool Java_com_epicgames_ue4_GameActivity_nativeIsShippingBuild(JNIEnv
 	return JNI_FALSE;
 #endif
 }
-

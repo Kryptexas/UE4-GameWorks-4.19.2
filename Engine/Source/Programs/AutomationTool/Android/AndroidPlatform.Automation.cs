@@ -9,6 +9,7 @@ using System.Net.NetworkInformation;
 using System.Threading;
 using AutomationTool;
 using UnrealBuildTool;
+using Ionic.Zip;
 
 public class AndroidPlatform : Platform
 {
@@ -108,6 +109,47 @@ public class AndroidPlatform : Platform
 		string[] GPUArchitectures = UnrealBuildTool.AndroidToolChain.GetAllGPUArchitectures();
 		bool bMakeSeparateApks = UnrealBuildTool.Android.UEDeployAndroid.ShouldMakeSeparateApks();
 
+		// Make sure this setting is sync'd pre-build
+		UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK;
+
+		var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
+
+		string BaseApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, "", "");
+		Log("BaseApkName = {0}", BaseApkName);
+
+		// Create main OBB with entire contents of staging dir. This
+		// includes any PAK files, movie files, etc.
+
+		string LocalObbName = SC.StageDirectory.TrimEnd(new char[] {'/', '\\'})+".obb";
+
+		// Always delete the target OBB file if it exists
+		if (File.Exists(LocalObbName))
+		{
+			File.Delete(LocalObbName);
+		}
+
+		// Now create the OBB as a ZIP archive.
+		Log("Creating {0} from {1}", LocalObbName, SC.StageDirectory);
+		using (ZipFile ObbFile = new ZipFile(LocalObbName))
+		{
+			ObbFile.CompressionMethod = CompressionMethod.None;
+			ObbFile.CompressionLevel = Ionic.Zlib.CompressionLevel.None;
+			int ObbFileCount = 0;
+			ObbFile.AddProgress +=
+				delegate(object sender, AddProgressEventArgs e)
+				{
+					if (e.EventType == ZipProgressEventType.Adding_AfterAddEntry)
+					{
+						ObbFileCount += 1;
+						Log("[{0}/{1}] Adding {2} to OBB",
+							ObbFileCount, e.EntriesTotal,
+							e.CurrentEntry.FileName);
+					}
+				};
+			ObbFile.AddDirectory(SC.StageDirectory+"/"+SC.ShortProjectName, SC.ShortProjectName);
+			ObbFile.Save();
+		}
+
 		foreach (string Architecture in Architectures)
 		{
 			foreach (string GPUArchitecture in GPUArchitectures)
@@ -115,9 +157,6 @@ public class AndroidPlatform : Platform
 				string ApkName = GetFinalApkName(Params, SC.StageExecutables[0], true, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "");
 				string BatchName = GetFinalBatchName(ApkName, Params, bMakeSeparateApks ? Architecture : "", bMakeSeparateApks ? GPUArchitecture : "");
 
-			// packaging just takes a pak file and makes it the .obb
-			UEBuildConfiguration.bOBBinAPK = Params.OBBinAPK; // Make sure this setting is sync'd pre-build
-			var Deploy = UEBuildDeploy.GetBuildDeploy(UnrealTargetPlatform.Android);
 			if (!Params.Prebuilt)
 			{
 				string CookFlavor = SC.FinalCookPlatform.IndexOf("_") > 0 ? SC.FinalCookPlatform.Substring(SC.FinalCookPlatform.IndexOf("_")) : "";
@@ -125,33 +164,17 @@ public class AndroidPlatform : Platform
 				Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
 			}
 
-			// first, look for a .pak file in the staged directory
-			string[] PakFiles = Directory.GetFiles(SC.StageDirectory, "*.pak", SearchOption.AllDirectories);
-
-			bool bHasPakFile = PakFiles.Length >= 1;
-
-			// for now, we only support 1 pak/obb file
-			if (PakFiles.Length > 1)
+			// Create APK specific OBB in case we have a detached OBB.
+			string DeviceObbName = "";
+			string ObbName = "";
+			if (!Params.OBBinAPK)
 			{
-                string ErrorString = String.Format("Can't package for Android with 0 or more than 1 pak file (found {0} pak files in {1})", PakFiles.Length, SC.StageDirectory);
-                ErrorReporter.Error(ErrorString, (int)ErrorCodes.Error_OnlyOneObbFileSupported);
-                throw new AutomationException(ErrorString);
+				DeviceObbName = GetDeviceObbName(ApkName);
+				ObbName = GetFinalObbName(ApkName);
+				CopyFile(LocalObbName, ObbName);
 			}
 
-			string LocalObbName = GetFinalObbName(ApkName);
-			string DeviceObbName = GetDeviceObbName(ApkName);
-
-			// Always delete the target OBB file if it exists
-			if (File.Exists(LocalObbName))
-			{
-				File.Delete(LocalObbName);
-			}
-
-			if (!Params.OBBinAPK && bHasPakFile)
-			{
-				Log("Creating {0} from {1}", LocalObbName, PakFiles[0]);
-				File.Copy(PakFiles[0], LocalObbName);
-			}
+			// Write install batch file(s).
 
 			Log("Writing bat for install with {0}", Params.OBBinAPK ? "OBB in APK" : "OBB separate");
 			string PackageName = GetPackageInfo(ApkName, false);
@@ -168,8 +191,8 @@ public class AndroidPlatform : Platform
 				"%ADB% %DEVICE% shell rm -r %STORAGE%/" + Params.ShortProjectName,
 				"%ADB% %DEVICE% shell rm -r %STORAGE%/UE4Game/UE4CommandLine.txt", // we need to delete the commandline in UE4Game or it will mess up loading
 				"%ADB% %DEVICE% shell rm -r %STORAGE%/obb/" + PackageName,
-				Params.OBBinAPK || !bHasPakFile ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(LocalObbName) + " %STORAGE%/" + DeviceObbName,
-				Params.OBBinAPK || !bHasPakFile ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
+				Params.OBBinAPK ? "" : "%ADB% %DEVICE% push " + Path.GetFileName(ObbName) + " %STORAGE%/" + DeviceObbName,
+				Params.OBBinAPK ? "" : "if \"%ERRORLEVEL%\" NEQ \"0\" goto Error",
 				"goto:eof",
 				":Error",
 				"@echo.",
@@ -346,44 +369,36 @@ public class AndroidPlatform : Platform
 			Deploy.PrepForUATPackageOrDeploy(Params.ShortProjectName, SC.ProjectRoot, SOName, SC.LocalRoot + "/Engine", Params.Distribution, CookFlavor);
 		}
 
-        // check the APK exists
-        if (!File.Exists(ApkName))
-        {
-            ErrorReporter.Error(String.Format("Could not find apk '{0}'", ApkName), (int)ErrorCodes.Error_AppNotFound);
-            throw new AutomationException("Could not find apk '{0}'", ApkName);
-        }
-
 		// now we can use the apk to get more info
 		string PackageName = GetPackageInfo(ApkName, false);
 
-        // try uninstalling an old app with the same identifier.
-        string UninstallCommandline = AdbCommand + "uninstall " + PackageName;
-        int SuccessCode = 0;
-        RunAndLog(CmdEnv, CmdEnv.CmdExe, UninstallCommandline, out SuccessCode);
+		// try uninstalling an old app with the same identifier.
+		string UninstallCommandline = AdbCommand + "uninstall " + PackageName;
+		RunAndLog(CmdEnv, CmdEnv.CmdExe, UninstallCommandline);
 
 		// install the apk
-        SuccessCode = 0;
+		int SuccessCode = 0;
 		string InstallCommandline = AdbCommand + "install \"" + ApkName + "\"";
-        string InstallOutput = RunAndLog(CmdEnv, CmdEnv.CmdExe, InstallCommandline, out SuccessCode);
-        int FailureIndex = InstallOutput.IndexOf("Failure"); 
+		string InstallOutput = RunAndLog(CmdEnv, CmdEnv.CmdExe, InstallCommandline, out SuccessCode);
+		int FailureIndex = InstallOutput.IndexOf("Failure"); 
 
-        // adb install doesn't always return an error code on failure, and instead prints "Failure", followed by an error code.
-        if (SuccessCode != 0 || FailureIndex != -1)
-        {
-            string ErrorMessage = String.Format("Installation of apk '{0}' failed", ApkName);
-            if (FailureIndex != -1)
-            {
-                string FailureString = InstallOutput.Substring(FailureIndex + 7).Trim();
-                if (FailureString != "")
-                {
-                    ErrorMessage += ": " + FailureString;
-                }
-            }
+		// adb install doesn't always return an error code on failure, and instead prints "Failure", followed by an error code.
+		if (SuccessCode != 0 || FailureIndex != -1)
+		{
+			string ErrorMessage = String.Format("Installation of apk '{0}' failed", ApkName);
+			if (FailureIndex != -1)
+			{
+				string FailureString = InstallOutput.Substring(FailureIndex + 7).Trim();
+				if (FailureString != "")
+				{
+					ErrorMessage += ": " + FailureString;
+				}
+			}
 
-            ErrorReporter.Error(ErrorMessage, (int)ErrorCodes.Error_AppInstallFailed);
-            throw new AutomationException(ErrorMessage);
-        }
-
+			ErrorReporter.Error(ErrorMessage, (int)ErrorCodes.Error_AppInstallFailed);
+			throw new AutomationException(ErrorMessage);
+		}
+		
 		// update the ue4commandline.txt
 		// update and deploy ue4commandline.txt
 		// always delete the existing commandline text file, so it doesn't reuse an old one

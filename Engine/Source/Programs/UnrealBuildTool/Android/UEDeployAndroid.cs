@@ -641,37 +641,27 @@ namespace UnrealBuildTool.Android
 				DeleteDirectory(UE4BuildPath, "dexedLibs");
 			}
 
-			// If we are packaging for Amazon then we need to copy the PAK files to the correct location
-			// Currently we'll just support 1 of 'em
+			// If we are packaging for Amazon then we need to copy the OBB file to the correct location
+			Log.TraceInformation("UEBuildConfiguration.bOBBinAPK = {0}", UEBuildConfiguration.bOBBinAPK);
 			if (UEBuildConfiguration.bOBBinAPK)
 			{
-				string PAKFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + "/" + ProjectName + "/Content/Paks";
-				Console.WriteLine("Pak location {0}", PAKFileLocation);
-				string PAKFileDestination = UE4BuildPath + "/assets";
-				Console.WriteLine("Pak destination location {0}", PAKFileDestination);
-				if (Directory.Exists(PAKFileLocation))
+				string ObbFileLocation = ProjectDirectory + "/Saved/StagedBuilds/Android" + CookFlavor + ".obb";
+				Console.WriteLine("Obb location {0}", ObbFileLocation);
+				string ObbFileDestination = UE4BuildPath + "/assets";
+				Console.WriteLine("Obb destination location {0}", ObbFileDestination);
+				if (File.Exists(ObbFileLocation))
 				{
 					Directory.CreateDirectory(UE4BuildPath);
-					Directory.CreateDirectory(PAKFileDestination);
-					Console.WriteLine("PAK file exists...");
-					var PakFiles = Directory.EnumerateFiles(PAKFileLocation, "*.pak", SearchOption.TopDirectoryOnly);
-					foreach (var Name in PakFiles)
+					Directory.CreateDirectory(ObbFileDestination);
+					Console.WriteLine("Obb file exists...");
+					var DestFileName = Path.Combine(ObbFileDestination, Path.GetFileName(ObbFileLocation) + ".png"); // Need a rename to turn off compression
+					var SrcFileName = ObbFileLocation;
+					if (!File.Exists(DestFileName) || File.GetLastWriteTimeUtc(DestFileName) < File.GetLastWriteTimeUtc(SrcFileName))
 					{
-						Console.WriteLine("Found file {0}", Name);
-					}
-
-					if (PakFiles.Count() > 0)
-					{
-						var DestFileName = Path.Combine(PAKFileDestination, Path.GetFileName(PakFiles.ElementAt(0)) + ".png"); // Need a rename to turn off compression
-						var SrcFileName = PakFiles.ElementAt(0);
-						if (!File.Exists(DestFileName) || File.GetLastWriteTimeUtc(DestFileName) < File.GetLastWriteTimeUtc(SrcFileName))
-						{
-							Console.WriteLine("Copying {0} to {1}", SrcFileName, DestFileName);
-							File.Copy(SrcFileName, DestFileName);
-						}
+						Console.WriteLine("Copying {0} to {1}", SrcFileName, DestFileName);
+						File.Copy(SrcFileName, DestFileName);
 					}
 				}
-				// Do we want to kill the OBB here or not???
 			}
 
 			//Copy build files to the intermediate folder in this order (later overrides earlier):

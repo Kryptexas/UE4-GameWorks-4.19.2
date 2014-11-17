@@ -80,7 +80,7 @@ public class GameActivity extends NativeActivity
 {
 	public static Logger Log = new Logger("UE4");
 	
-	GameActivity _activity;
+	static GameActivity _activity;
 
 	// Console
 	AlertDialog consoleAlert;
@@ -125,6 +125,11 @@ public class GameActivity extends NativeActivity
 	/** Unique ID to identify Google Play Services error dialog */
 	private static final int PLAY_SERVICES_DIALOG_ID = 1;
 
+	/** Access singleton activity for game. **/
+	public static GameActivity Get()
+	{
+		return _activity;
+	}
 	private StoreHelper IapStoreHelper;
 
 	@Override
