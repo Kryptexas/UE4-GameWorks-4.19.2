@@ -372,7 +372,7 @@ void UCharacterMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUp
 	bDeferUpdateMoveComponent = false;
 	DeferredUpdatedMoveComponent = NULL;
 
-	if (UpdatedComponent != NULL && UpdatedComponent->OnComponentBeginOverlap.IsBound() && bEnablePhysicsInteraction)
+	if (UpdatedComponent != NULL && UpdatedComponent->OnComponentBeginOverlap.IsBound())
 	{
 		UpdatedComponent->OnComponentBeginOverlap.RemoveDynamic(this, &UCharacterMovementComponent::CapsuleTouched);
 	}
@@ -6188,7 +6188,10 @@ void UCharacterMovementComponent::ClientAckGoodMove_Implementation(float TimeSta
 
 void UCharacterMovementComponent::CapsuleTouched( AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult )
 {
-	check(bEnablePhysicsInteraction);
+	if (!bEnablePhysicsInteraction)
+	{
+		return;
+	}
 
 	if (OtherComp != NULL && OtherComp->IsAnySimulatingPhysics())
 	{
