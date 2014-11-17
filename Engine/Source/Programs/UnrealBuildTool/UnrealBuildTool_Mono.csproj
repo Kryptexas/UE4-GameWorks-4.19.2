@@ -162,6 +162,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Windows\UEBuildWindows.cs" />
+    <Compile Include="Windows\VCEnvironment.cs" />
     <Compile Include="Windows\VCToolChain.cs" />
     <Compile Include="Windows\WindowsProjectGenerator.cs" />
     <Compile Include="Mac\MacToolChain.cs" />
