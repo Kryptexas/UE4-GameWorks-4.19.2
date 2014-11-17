@@ -2,6 +2,7 @@
 
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Damage.h"
+#include "Perception/AISenseEvent_Damage.h"
 
 //----------------------------------------------------------------------//
 // 

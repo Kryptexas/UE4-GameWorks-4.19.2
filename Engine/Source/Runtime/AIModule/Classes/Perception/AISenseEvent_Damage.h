@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Perception/AISenseEvent.h"
+#include "Perception/AISense_Damage.h"
 #include "AISenseEvent_Damage.generated.h"
 
 UCLASS()

@@ -180,7 +180,7 @@ public:
 	}
 
 	FAINamedID()
-		: Index(TCounter::Type(-1)), Name(TEXT("Invalid"))
+		: Index(typename TCounter::Type(-1)), Name(TEXT("Invalid"))
 	{}
 
 	operator typename TCounter::Type() const { return Index; }
@@ -223,7 +223,7 @@ public:
 	}
 
 	FAIGenericID()
-		: Index(TCounter::Type(-1))
+		: Index(typename TCounter::Type(-1))
 	{}
 
 	static FAIGenericID GetNextID() { return FAIGenericID(GetCounter().GetNextAvailableID()); }

@@ -74,8 +74,8 @@ public:
 	template<typename FEventClass>
 	void OnEvent(const FEventClass& Event)
 	{
-		check(Senses[UAISense::GetSenseID<FEventClass::FSenseClass>()]);
-		((typename FEventClass::FSenseClass*)Senses[UAISense::GetSenseID<FEventClass::FSenseClass>()])->RegisterEvent(Event);
+		check(Senses[UAISense::GetSenseID<typename FEventClass::FSenseClass>()]);
+		((typename FEventClass::FSenseClass*)Senses[UAISense::GetSenseID<typename FEventClass::FSenseClass>()])->RegisterEvent(Event);
 	}
 
 	template<typename FEventClass>

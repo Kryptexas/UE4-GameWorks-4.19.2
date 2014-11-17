@@ -4,6 +4,7 @@
 #include "Perception/AISenseEvent.h"
 #include "Perception/AISenseEvent_Hearing.h"
 #include "Perception/AISenseEvent_Damage.h"
+#include "Perception/AISense_Damage.h"
 
 //----------------------------------------------------------------------//
 // UAISenseEvent_Hearing

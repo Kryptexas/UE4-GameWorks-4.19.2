@@ -2,6 +2,8 @@
 
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Hearing.h"
+#include "Perception/AISenseConfig_Hearing.h"
+#include "Perception/AISenseEvent_Hearing.h"
 
 //----------------------------------------------------------------------//
 // FAINoiseEvent
