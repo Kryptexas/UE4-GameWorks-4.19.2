@@ -5,8 +5,7 @@
 APlayerStart::APlayerStart(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	CapsuleComponent->InitCapsuleRadius(40.0f);
-	CapsuleComponent->InitCapsuleHalfHeight(92.0f);
+	CapsuleComponent->InitCapsuleSize(40.0f, 92.0f);
 
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
@@ -35,6 +34,7 @@ APlayerStart::APlayerStart(const class FPostConstructInitializeProperties& PCIP)
 		if (GoodSprite)
 		{
 			GoodSprite->Sprite = ConstructorStatics.PlayerStartTextureObject.Get();
+			GoodSprite->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			GoodSprite->SpriteInfo.Category = ConstructorStatics.ID_PlayerStart;
 			GoodSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_PlayerStart;
 		}

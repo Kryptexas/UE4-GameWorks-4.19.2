@@ -15,7 +15,7 @@
 DEFINE_LOG_CATEGORY(LogTexture);
 
 #if STATS
-DECLARE_STATS_GROUP(TEXT("TextureGroup"),STATGROUP_TextureGroup);
+DECLARE_STATS_GROUP(TEXT("Texture Group"), STATGROUP_TextureGroup, STATCAT_Advanced);
 
 // Declare the stats for each Texture Group.
 #define DECLARETEXTUREGROUPSTAT(Group) DECLARE_MEMORY_STAT(TEXT(#Group),STAT_##Group,STATGROUP_TextureGroup);
@@ -286,8 +286,10 @@ void UTexture::PostLoad()
 
 	if( !IsTemplate() )
 	{
+#if WITH_EDITORONLY_DATA
 		// Update cached LOD bias.
-		CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( this );
+		UpdateCachedLODBias();
+#endif // #if WITH_EDITORONLY_DATA
 
 		// The texture will be cached by the cubemap it is contained within on consoles.
 		UTextureCube* CubeMap = Cast<UTextureCube>(GetOuter());
@@ -307,7 +309,7 @@ void UTexture::BeginDestroy()
 		// Send the rendering thread a release message for the texture's resource.
 		BeginReleaseResource(Resource);
 		Resource->ReleaseFence.BeginFence();
-		// Keep track that we alrady kicked off the async release.
+		// Keep track that we already kicked off the async release.
 		bAsyncResourceReleaseHasBeenStarted = true;
 	}
 }
@@ -324,7 +326,7 @@ bool UTexture::IsReadyForFinishDestroy()
 			// Send the rendering thread a release message for the texture's resource.
 			BeginReleaseResource(Resource);
 			Resource->ReleaseFence.BeginFence();
-			// Keep track that we alrady kicked off the async release.
+			// Keep track that we already kicked off the async release.
 			bAsyncResourceReleaseHasBeenStarted = true;
 		}
 		// Only allow FinishDestroy to be called once the texture resource has finished its rendering thread cleanup.
@@ -348,6 +350,10 @@ void UTexture::FinishDestroy()
 		delete Resource;
 		Resource = NULL;
 	}
+
+	CleanupCachedRunningPlatformData();
+	CleanupCachedCookedPlatformData();
+
 }
 
 void UTexture::PreSave()
@@ -430,27 +436,29 @@ UEnum* UTexture::GetPixelFormatEnum()
 
 bool UTexture::ForceUpdateTextureStreaming()
 {
-	if ( GStreamingManager )
+	if (!IStreamingManager::HasShutdown())
 	{
 		// Make sure textures can be streamed out so that we can unload current mips.
 		static auto CVarOnlyStreamInTextures = IConsoleManager::Get().FindConsoleVariable(TEXT("r.OnlyStreamInTextures"));
 		const bool bOldOnlyStreamInTextures = CVarOnlyStreamInTextures->GetInt() != 0;
 		CVarOnlyStreamInTextures->Set(false);
 
+#if WITH_EDITORONLY_DATA
 		for( TObjectIterator<UTexture2D> It; It; ++It )
 		{
 			UTexture* Texture = *It;
 
 			// Update cached LOD bias.
-			Texture->CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( Texture );
+			Texture->UpdateCachedLODBias();
 		}
+#endif // #if WITH_EDITORONLY_DATA
 
 		// Make sure we iterate over all textures by setting it to high value.
-		GStreamingManager->SetNumIterationsForNextFrame( 100 );
+		IStreamingManager::Get().SetNumIterationsForNextFrame( 100 );
 		// Update resource streaming with updated texture LOD bias/ max texture mip count.
-		GStreamingManager->UpdateResourceStreaming( 0 );
+		IStreamingManager::Get().UpdateResourceStreaming( 0 );
 		// Block till requests are finished.
-		GStreamingManager->BlockTillAllRequestsFinished();
+		IStreamingManager::Get().BlockTillAllRequestsFinished();
 
 		// Restore streaming out of textures.
 		CVarOnlyStreamInTextures->Set(bOldOnlyStreamInTextures);
@@ -581,57 +589,35 @@ void FTextureLODSettings::ReadEntry( int32 GroupId, const TCHAR* GroupName, cons
 	}
 }
 
-int32 FTextureLODSettings::CalculateLODBias( UTexture* Texture, bool bIncTextureBias ) const
+int32 FTextureLODSettings::CalculateLODBias( const UTexture* Texture, bool bIncTextureMips ) const
 {	
-	// Find LOD group.
 	check( Texture );
-	const FTextureLODGroup& LODGroup = TextureLODGroups[Texture->LODGroup];
-
-	// Calculate maximum number of miplevels.
-	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::Trunc( FMath::Max( Texture->GetSurfaceWidth(), Texture->GetSurfaceHeight() ) ) );
-
-	// Calculate LOD bias.
-	int32 UsedLODBias		= Texture->NumCinematicMipLevels + LODGroup.LODBias + (bIncTextureBias ? Texture->LODBias : 0);
-	int32 MinLOD			= LODGroup.MinLODMipCount;
-	int32 MaxLOD			= LODGroup.MaxLODMipCount;
-	int32 WantedMaxLOD	= FMath::Clamp( TextureMaxLOD - UsedLODBias, MinLOD, MaxLOD );
-	WantedMaxLOD		= FMath::Clamp( WantedMaxLOD, 0, TextureMaxLOD );
-	UsedLODBias			= TextureMaxLOD - WantedMaxLOD;
-
-	return UsedLODBias;
+	TextureMipGenSettings MipGenSetting = TMGS_MAX;
+#if WITH_EDITORONLY_DATA
+	MipGenSetting = Texture->MipGenSettings;
+#endif // #if WITH_EDITORONLY_DATA
+	return CalculateLODBias(Texture->GetSurfaceWidth(), Texture->GetSurfaceHeight(), Texture->LODGroup, (bIncTextureMips ? Texture->LODBias : 0), (bIncTextureMips ? Texture->NumCinematicMipLevels : 0), MipGenSetting);
 }
 
-/**
-	* Calculates and returns the LOD bias based on the information provided.
-	*
-	* @param	Width						Width of the texture
-	* @param	Height						Height of the texture
-	* @param	LODGroup					Which LOD group the texture belongs to
-	* @param	LODBias						LOD bias to include in the calculation
-	* @param	NumCinematicMipLevels		The texture cinematic mip levels to include in the calculation
-	* @return	LOD bias
-	*/
 int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LODGroup, int32 LODBias, int32 NumCinematicMipLevels, TextureMipGenSettings InMipGenSetting ) const
 {	
 	// Find LOD group.
 	const FTextureLODGroup& LODGroupInfo = TextureLODGroups[LODGroup];
 
 	// Test to see if we have no mip generation as in which case the LOD bias will be ignored
-
 	const TextureMipGenSettings FinalMipGenSetting = (InMipGenSetting == TMGS_FromTextureGroup) ? LODGroupInfo.MipGenSettings : InMipGenSetting;
-
 	if ( FinalMipGenSetting == TMGS_NoMipmaps )
 	{
 		return 0;
 	}
 
 	// Calculate maximum number of miplevels.
-	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::Trunc( FMath::Max( Width, Height ) ) );
+	int32 TextureMaxLOD	= FMath::CeilLogTwo( FMath::TruncToInt( FMath::Max( Width, Height ) ) );
 
 	// Calculate LOD bias.
-	int32 UsedLODBias		= LODGroupInfo.LODBias + LODBias + NumCinematicMipLevels;
-	int32 MinLOD			= LODGroupInfo.MinLODMipCount;
-	int32 MaxLOD			= LODGroupInfo.MaxLODMipCount;
+	int32 UsedLODBias	= LODGroupInfo.LODBias + LODBias + NumCinematicMipLevels;
+	int32 MinLOD		= LODGroupInfo.MinLODMipCount;
+	int32 MaxLOD		= LODGroupInfo.MaxLODMipCount;
 	int32 WantedMaxLOD	= FMath::Clamp( TextureMaxLOD - UsedLODBias, MinLOD, MaxLOD );
 	WantedMaxLOD		= FMath::Clamp( WantedMaxLOD, 0, TextureMaxLOD );
 	UsedLODBias			= TextureMaxLOD - WantedMaxLOD;
@@ -644,8 +630,8 @@ int32 FTextureLODSettings::CalculateLODBias( int32 Width, int32 Height, int32 LO
 */
 void FTextureLODSettings::ComputeInGameMaxResolution(int32 LODBias, UTexture &Texture, uint32 &OutSizeX, uint32 &OutSizeY) const
 {
-	uint32 ImportedSizeX = FMath::Trunc(Texture.GetSurfaceWidth());
-	uint32 ImportedSizeY = FMath::Trunc(Texture.GetSurfaceHeight());
+	uint32 ImportedSizeX = FMath::TruncToInt(Texture.GetSurfaceWidth());
+	uint32 ImportedSizeY = FMath::TruncToInt(Texture.GetSurfaceHeight());
 	
 	const FTextureLODGroup& LODGroup = GetTextureLODGroup((TextureGroup)Texture.LODGroup);
 

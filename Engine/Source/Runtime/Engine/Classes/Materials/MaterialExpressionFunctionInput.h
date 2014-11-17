@@ -19,7 +19,7 @@ enum EFunctionInputType
 	FunctionInput_MAX,
 };
 
-UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
+UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionFunctionInput : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

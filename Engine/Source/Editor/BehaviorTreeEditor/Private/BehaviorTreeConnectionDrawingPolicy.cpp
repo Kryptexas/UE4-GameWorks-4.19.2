@@ -198,7 +198,7 @@ void FBehaviorTreeConnectionDrawingPolicy::DrawConnection(int32 LayerId, const F
 
 		float Time = (FPlatformTime::Seconds() - GStartTime);
 		const float BubbleOffset = FMath::Fmod(Time * BubbleSpeed, BubbleSpacing);
-		const int32 NumBubbles = FMath::Ceil(SplineLength/BubbleSpacing);
+		const int32 NumBubbles = FMath::CeilToInt(SplineLength/BubbleSpacing);
 		for (int32 i = 0; i < NumBubbles; ++i)
 		{
 			const float Distance = ((float)i * BubbleSpacing) + BubbleOffset;

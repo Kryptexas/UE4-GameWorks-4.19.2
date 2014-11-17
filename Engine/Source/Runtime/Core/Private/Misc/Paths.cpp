@@ -87,6 +87,11 @@ FString FPaths::GameContentDir()
 	return FPaths::GameDir() + TEXT("Content/");
 }
 
+FString FPaths::GameConfigDir()
+{
+	return FPaths::GameDir() + TEXT("Config/");
+}
+
 FString FPaths::GameSavedDir()
 {
 	return GameUserDir() + TEXT("Saved/");
@@ -265,14 +270,14 @@ const TArray<FString>& FPaths::GetPropertyNameLocalizationPaths()
 		}
 		else
 		{
-			Results.AddUnique(TEXT("../../../Engine/Content/Localization/Editor/PropertyNames")); // Hardcoded convention.
+			Results.AddUnique(TEXT("../../../Engine/Content/Localization/PropertyNames")); // Hardcoded convention.
 		}
 	}
 
 	return Results;
 }
 
-const TArray<FString>& FPaths::GetToolTipLocalizationPaths()
+const TArray<FString>& FPaths::GetToolTipLocalizationPaths() 
 {
 	static TArray<FString> Results;
 	static bool HasInitialized = false;
@@ -290,7 +295,7 @@ const TArray<FString>& FPaths::GetToolTipLocalizationPaths()
 		}
 		else
 		{
-			Results.AddUnique(TEXT("../../../Engine/Content/Localization/Editor/ToolTips")); // Hardcoded convention.
+			Results.AddUnique(TEXT("../../../Engine/Content/Localization/ToolTips")); // Hardcoded convention.
 		}
 	}
 
@@ -772,19 +777,97 @@ FString FPaths::CreateTempFilename( const TCHAR* Path, const TCHAR* Prefix, cons
 	FString UniqueFilename;
 	do
 	{
-		const int32 PathLen = FCString::Strlen( Path );
-		if( PathLen > 0 && Path[ PathLen - 1 ] != TEXT('/') )
-		{
-			UniqueFilename = FString::Printf( TEXT("%s/%s%s%s"), Path, Prefix, *FGuid::NewGuid().ToString(), Extension );
-		}
-		else
-		{
-			UniqueFilename = FString::Printf( TEXT("%s/%s%s%s"), Path, Prefix, *FGuid::NewGuid().ToString(), Extension );
-		}
+		UniqueFilename = FPaths::Combine(Path, *FString::Printf(TEXT("%s%s%s"), Prefix, *FGuid::NewGuid().ToString(), Extension));
 	}
-	while( IFileManager::Get().FileSize( *UniqueFilename ) >= 0 );
+	while (IFileManager::Get().FileSize(*UniqueFilename) >= 0);
 	
 	return UniqueFilename;
+}
+
+bool FPaths::ValidatePath( const FString& InPath, FText* OutReason )
+{
+	// Windows has the most restricted file system, and since we're cross platform, we have to respect the limitations of the lowest common denominator
+	// # isn't legal. Used for revision specifiers in P4/SVN, and also not allowed on Windows anyway
+	// @ isn't legal. Used for revision/label specifiers in P4/SVN
+	// ^ isn't legal. While the file-system won't complain about this character, Visual Studio will				
+	static const FString RestrictedChars = "/?:&\\*\"<>|%#@^";
+	static const FString RestrictedNames[] = {	"CON", "PRN", "AUX", "CLOCK$", "NUL", 
+												"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", 
+												"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
+
+	FString Standardized = InPath;
+	NormalizeFilename(Standardized);
+	CollapseRelativeDirectories(Standardized);
+	RemoveDuplicateSlashes(Standardized);
+
+	// The loop below requires that the path not end with a /
+	if(Standardized.EndsWith(TEXT("/")))
+	{
+		Standardized = Standardized.LeftChop(1);
+	}
+
+	// Walk each part of the path looking for name errors
+	for(int32 StartPos = 0, EndPos = Standardized.Find(TEXT("/")); ; 
+		StartPos = EndPos + 1, EndPos = Standardized.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, StartPos)
+		)
+	{
+		const bool bIsLastPart = EndPos == INDEX_NONE;
+		const FString PathPart = Standardized.Mid(StartPos, (bIsLastPart) ? MAX_int32 : EndPos - StartPos);
+
+		// If this is the first part of the path, it's possible for it to be a drive name and is allowed to contain a colon
+		if(StartPos == 0 && IsDrive(PathPart))
+		{
+			if(bIsLastPart)
+			{
+				break;
+			}
+			continue;
+		}
+
+		// Check for invalid characters
+		TCHAR CharString[] = { '\0', '\0' };
+		FString MatchedInvalidChars;
+		for(const TCHAR* InvalidCharacters = *RestrictedChars; *InvalidCharacters; ++InvalidCharacters)
+		{
+			CharString[0] = *InvalidCharacters;
+			if(PathPart.Contains(CharString))
+			{
+				MatchedInvalidChars += *InvalidCharacters;
+			}
+		}
+		if(MatchedInvalidChars.Len())
+		{
+			if(OutReason)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("IllegalPathCharacters"), FText::FromString(MatchedInvalidChars));
+				*OutReason = FText::Format(NSLOCTEXT("Core", "PathContainsInvalidCharacters", "Path may not contain the following characters: {IllegalPathCharacters}"), Args);
+			}
+			return false;
+		}
+
+		// Check for reserved names
+		for(const FString& RestrictedName : RestrictedNames)
+		{
+			if(PathPart.Equals(RestrictedName, ESearchCase::IgnoreCase))
+			{
+				if(OutReason)
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("RestrictedName"), FText::FromString(RestrictedName));
+					*OutReason = FText::Format(NSLOCTEXT("Core", "PathContainsRestrictedName", "Path may not contain a restricted name: {RestrictedName}"), Args);
+				}
+				return false;
+			}
+		}
+
+		if(bIsLastPart)
+		{
+			break;
+		}
+	}
+
+	return true;
 }
 
 void FPaths::Split( const FString& InPath, FString& PathPart, FString& FilenamePart, FString& ExtensionPart )
@@ -796,25 +879,29 @@ void FPaths::Split( const FString& InPath, FString& PathPart, FString& FilenameP
 
 const FString& FPaths::GetRelativePathToRoot()
 {
-	static FString RelativePathToRoot;
-
-	// initialize static paths if needed
-	if (RelativePathToRoot.Len() == 0)
+	struct FRelativePathInitializer
 	{
-		FString RootDirectory = FPaths::RootDir();
-		FString BaseDirectory = FPlatformProcess::BaseDir();
+		FString RelativePathToRoot;
 
-		// this is how to go from the base dir back to the root
-		RelativePathToRoot = RootDirectory;
-		FPaths::MakePathRelativeTo(RelativePathToRoot, *BaseDirectory);
-
-		// Ensure that the path ends w/ '/'
-		if ((RelativePathToRoot.Len() > 0) && (RelativePathToRoot.EndsWith(TEXT("/")) == false) && (RelativePathToRoot.EndsWith(TEXT("\\")) == false))
+		FRelativePathInitializer()
 		{
-			RelativePathToRoot += TEXT("/");
+			FString RootDirectory = FPaths::RootDir();
+			FString BaseDirectory = FPlatformProcess::BaseDir();
+
+			// this is how to go from the base dir back to the root
+			RelativePathToRoot = RootDirectory;
+			FPaths::MakePathRelativeTo(RelativePathToRoot, *BaseDirectory);
+
+			// Ensure that the path ends w/ '/'
+			if ((RelativePathToRoot.Len() > 0) && (RelativePathToRoot.EndsWith(TEXT("/")) == false) && (RelativePathToRoot.EndsWith(TEXT("\\")) == false))
+			{
+				RelativePathToRoot += TEXT("/");
+			}
 		}
-	}
-	return RelativePathToRoot;
+	};
+
+	static FRelativePathInitializer StaticInstance;
+	return StaticInstance.RelativePathToRoot;
 }
 
 void FPaths::CombineInternal(FString& OutPath, const TCHAR** Pathes, int32 NumPathes)
@@ -836,3 +923,4 @@ void FPaths::CombineInternal(FString& OutPath, const TCHAR** Pathes, int32 NumPa
 		OutPath /= Pathes[i];
 	}
 }
+

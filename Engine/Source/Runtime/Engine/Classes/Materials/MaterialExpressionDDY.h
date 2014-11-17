@@ -5,7 +5,7 @@
 #include "MaterialExpressionDDY.generated.h"
 
 
-UCLASS(HeaderGroup=Material)
+UCLASS()
 class UMaterialExpressionDDY : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

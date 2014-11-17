@@ -4,7 +4,7 @@
 #include "InteractiveTutorials.h"
 #include "InteractivityData.h"
 #include "K2Node_TutorialExcerptComplete.h"
-#include "IntroTutorials.generated.inl"
+
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/UnrealEd/Public/Toolkits/AssetEditorManager.h"
 #include "Editor/PlacementMode/Public/IPlacementModeModule.h"
@@ -30,7 +30,7 @@ void FInteractiveTutorials::SetupEditorHooks()
 	USelection::SelectionChangedEvent.AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FOnSelectionChanged, FBaseTriggerDelegate::OnSelectionChanged>);
 	USelection::SelectObjectEvent.AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FOnSelectObject, FBaseTriggerDelegate::OnSelectObject>);
 
-	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP( this, &FInteractiveTutorials::OnDelegateTriggered<FObjectPropertyChangedTrigger, FBaseTriggerDelegate::ObjectPropertyChanged> ) );
+	FCoreDelegates::OnObjectPropertyChanged.AddSP( this, &FInteractiveTutorials::OnDelegateTriggered<FObjectPropertyChangedTrigger, FBaseTriggerDelegate::ObjectPropertyChanged> );
 
 	FAssetEditorManager::Get().OnAssetEditorRequestedOpen().AddSP(this, &FInteractiveTutorials::OnDelegateTriggered<FAssetEditorRequestedOpenTrigger, FBaseTriggerDelegate::AssetEditorRequestedOpen>);
 

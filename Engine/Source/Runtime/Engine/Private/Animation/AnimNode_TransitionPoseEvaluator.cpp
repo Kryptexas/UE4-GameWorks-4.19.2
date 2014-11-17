@@ -50,6 +50,14 @@ void FAnimNode_TransitionPoseEvaluator::Evaluate(FPoseContext& Output)
 	}
 }
 
+void FAnimNode_TransitionPoseEvaluator::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	
+	DebugLine += FString::Printf(TEXT("(Cached Frames Remaining: %i)"), CacheFramesRemaining);
+	DebugData.AddDebugItem(DebugLine);
+}
+
 bool FAnimNode_TransitionPoseEvaluator::InputNodeNeedsUpdate() const
 {
 	// EM_Standard mode always updates and EM_DelayedFreeze mode only updates if there are cache frames remaining

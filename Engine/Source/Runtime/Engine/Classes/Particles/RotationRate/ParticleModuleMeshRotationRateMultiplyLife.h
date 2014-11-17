@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleMeshRotationRateMultiplyLife.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Mesh Rotation Rate * Life"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Mesh Rotation Rate * Life"))
 class UParticleModuleMeshRotationRateMultiplyLife : public UParticleModuleRotationRateBase
 {
 	GENERATED_UCLASS_BODY()

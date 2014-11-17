@@ -182,7 +182,7 @@ void MainPS(
 #endif
 	Data.Roughness = GetMaterialRoughness(MaterialParameters);
 	Data.SubsurfaceColor = GetMaterialSubsurfaceColor(MaterialParameters);
-	Data.LowGlossIndirectSpecular = 0;
+	Data.IndirectIrradiance = 0;
 	Data.PrecomputedShadowFactors = 0;
 	Data.GBufferAO = GetMaterialAmbientOcclusion(MaterialParameters);
 	Data.Opacity = Opacity;

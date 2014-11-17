@@ -1057,9 +1057,12 @@ void DrawDashedLine(FPrimitiveDrawInterface* PDI, const FVector& Start, const FV
 {
 	FVector LineDir = End - Start;
 	float LineLeft = (End - Start).Size();
-	LineDir /= LineLeft;
+	if (LineLeft)
+	{
+		LineDir /= LineLeft;
+	}
 
-	const int32 nLines = FMath::Ceil(LineLeft / (DashSize*2));
+	const int32 nLines = FMath::CeilToInt(LineLeft / (DashSize*2));
 	PDI->AddReserveLines(DepthPriority, nLines, DepthBias != 0);
 
 	const FVector Dash = (DashSize * LineDir);
@@ -1227,7 +1230,7 @@ int32 DrawRichMesh(
 			BaseColor = LevelColor;
 		}
 
-		if(Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
+		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
 		{
 			// If the material is mesh-modifying, we cannot rely on substitution
 			const FOverrideSelectionColorMaterialRenderProxy WireframeMaterialInstance(
@@ -1396,7 +1399,7 @@ int32 DrawRichMesh(
 		if(EngineShowFlags.MeshEdges)
 		{
 			// Draw the mesh's edges in blue, on top of the base geometry.
-			if(Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
+			if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->MaterialModifiesMeshPosition())
 			{
 				const FSceneView* View = PDI->View;
 
@@ -1444,11 +1447,11 @@ void ClampUVs(FVector2D* UVs, int32 NumUVs)
 
 	if (MinU < -FudgeFactor || MinU > (1.0f+FudgeFactor))
 	{
-		Bias.X = FMath::Floor(MinU);
+		Bias.X = FMath::FloorToFloat(MinU);
 	}
 	if (MinV < -FudgeFactor || MinV > (1.0f+FudgeFactor))
 	{
-		Bias.Y = FMath::Floor(MinV);
+		Bias.Y = FMath::FloorToFloat(MinV);
 	}
 
 	for (int32 i = 0; i < NumUVs; i++)

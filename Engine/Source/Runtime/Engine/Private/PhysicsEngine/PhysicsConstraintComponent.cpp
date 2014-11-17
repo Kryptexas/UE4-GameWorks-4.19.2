@@ -88,7 +88,7 @@ FTransform UPhysicsConstraintComponent::GetBodyTransformInternal(EConstraintFram
 
 	// Skeletal case
 	USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(PrimComp);
-	if(SkelComp != NULL && !SkelComp->bUseSingleBodyPhysics)
+	if(SkelComp != NULL)
 	{
 		int32 BoneIndex = SkelComp->GetBoneIndex(InBoneName);
 		if(BoneIndex != INDEX_NONE)
@@ -113,7 +113,7 @@ FBox UPhysicsConstraintComponent::GetBodyBoxInternal(EConstraintFrame::Type Fram
 
 	// Skeletal case
 	USkeletalMeshComponent* SkelComp = Cast<USkeletalMeshComponent>(PrimComp);
-	if(SkelComp != NULL && !SkelComp->bUseSingleBodyPhysics)
+	if(SkelComp != NULL)
 	{
 		UPhysicsAsset * const PhysicsAsset = SkelComp->GetPhysicsAsset();
 		if (PhysicsAsset)

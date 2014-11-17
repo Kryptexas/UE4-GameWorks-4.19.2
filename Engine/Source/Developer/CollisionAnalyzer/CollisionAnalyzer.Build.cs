@@ -12,10 +12,11 @@ public class CollisionAnalyzer : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"Engine",
 				"WorkspaceMenuStructure",
 			}
-			);
+		);
 	}
 }

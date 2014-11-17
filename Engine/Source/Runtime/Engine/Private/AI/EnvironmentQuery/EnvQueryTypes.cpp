@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 
 #define LOCTEXT_NAMESPACE "EnvQueryGenerator"
+float UEnvQueryTypes::SkippedItemValue = -FLT_MAX;
 
 AActor* FEnvQueryResult::GetItemAsActor(int32 Index) const
 {

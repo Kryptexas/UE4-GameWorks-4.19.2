@@ -374,6 +374,12 @@ public:
 	ID3D11Texture2D* GetResource() const { return (ID3D11Texture2D*)FD3D11TextureBase::GetResource(); }
 	bool IsCubemap() const { return bCubemap; }
 
+	/** FRHITexture override.  See FRHITexture::GetNativeResource() */
+	virtual void* GetNativeResource() const OVERRIDE
+	{ 
+		return GetResource();
+	}
+
 	// IRefCountedObject interface.
 	virtual uint32 AddRef() const
 	{

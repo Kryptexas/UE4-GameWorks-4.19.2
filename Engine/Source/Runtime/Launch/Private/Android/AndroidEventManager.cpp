@@ -163,6 +163,8 @@ void FAppEventManager::HandleWindowCreated(void* InWindow)
 
 		rc = pthread_mutex_unlock(&MainMutex);
 		check(rc == 0);
+
+		EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CREATED, InWindow );
 	}
 }
 
@@ -214,7 +216,7 @@ void FAppEventManager::ExecWindowChanged()
 
 	if(GEngine && GEngine->GameViewport && GEngine->GameViewport->ViewportFrame)
 	{
-		GEngine->GameViewport->ViewportFrame->ResizeFrame(ScreenRect.Right, ScreenRect.Bottom, true);
+		GEngine->GameViewport->ViewportFrame->ResizeFrame(ScreenRect.Right, ScreenRect.Bottom, EWindowMode::Fullscreen);
 	}
 }
 

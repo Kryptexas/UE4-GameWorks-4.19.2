@@ -2,23 +2,37 @@
 
 #include "ProfilerPrivatePCH.h"
 
+// @TODO yrx 2014-04-18 Move SProfilerWindow later
 #define LOCTEXT_NAMESPACE "SProfilerGraphPanel"
 
 SProfilerGraphPanel::SProfilerGraphPanel()
-	: NumDataPoints( 0 )
+	: bLockMiniViewState( false )
+	, NumDataPoints( 0 )
 	, NumVisiblePoints( 0 )
 	, GraphOffset( 0 )
-{
-}
+	, ViewMode( EProfilerViewMode::InvalidOrMax )
+{}
 
 SProfilerGraphPanel::~SProfilerGraphPanel()
 {
 	// Remove ourselves from the profiler manager.
-	if( FProfilerManager::Get().IsValid() )
+	auto ProfilerManager = FProfilerManager::Get();
+	if( ProfilerManager.IsValid() )
 	{
-		FProfilerManager::Get()->OnTrackedStatChanged().RemoveAll(this);
-		FProfilerManager::Get()->OnSessionInstancesUpdated().RemoveAll(this);
+		ProfilerManager->OnTrackedStatChanged().RemoveAll( this );
+		ProfilerManager->OnSessionInstancesUpdated().RemoveAll( this );
+		ProfilerManager->OnViewModeChanged().RemoveAll( this );
+
+		DataGraph->OnSelectionChangedForIndex().RemoveAll( ProfilerManager.Get() );
+
+		if( ProfilerMiniView.Pin().IsValid() )
+		{
+			ProfilerMiniView.Pin()->OnSelectionBoxChanged().RemoveAll( this );
+		}
 	}
+
+	ThreadView->OnViewPositionXChanged().RemoveAll( this );
+	ThreadView->OnViewPositionYChanged().RemoveAll( this );
 }
 
 void SProfilerGraphPanel::Construct( const FArguments& InArgs )
@@ -26,37 +40,69 @@ void SProfilerGraphPanel::Construct( const FArguments& InArgs )
 	ChildSlot
 	[
 		SNew( SBorder )
-		.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+		.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
 		.Padding( 2.0f )
 		[
-			SNew( SVerticalBox )
+			SNew( SHorizontalBox )
 
-			+SVerticalBox::Slot()
-			.FillHeight(1.0f)
+			+ SHorizontalBox::Slot()
+			.FillWidth( 1.0f )
 			[
-				SAssignNew(DataGraph,SDataGraph)
-				.OnGraphOffsetChanged( this, &SProfilerGraphPanel::DataGraph_OnGraphOffsetChanged )
-				.OnViewModeChanged( this, &SProfilerGraphPanel::DataGraph_OnViewModeChanged )
+				SNew( SVerticalBox )
+
+				// At this moment only one widget of these two can be visible at once.
+				//
+				// DataGraph
+				+SVerticalBox::Slot()
+				.FillHeight( 1.0f )
+				[
+					SAssignNew( DataGraph, SDataGraph )
+					.OnGraphOffsetChanged( this, &SProfilerGraphPanel::OnDataGraphGraphOffsetChanged )
+				]
+
+				// ThreadView
+				+ SVerticalBox::Slot()
+				.FillHeight( 1.0f )
+				[
+					SAssignNew( ThreadView, SProfilerThreadView )
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SAssignNew( HorizontalScrollBar, SScrollBar )
+					.Orientation( Orient_Horizontal )
+					.AlwaysShowScrollbar( true )
+					.Visibility( EVisibility::Visible )
+					.Thickness( FVector2D( 8.0f, 8.0f ) )
+					.OnUserScrolled( this, &SProfilerGraphPanel::HorizontalScrollBar_OnUserScrolled )
+				]
 			]
 
-			+SVerticalBox::Slot()
-			.AutoHeight()
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
 			[
-				SAssignNew(ScrollBar,SScrollBar)
-				.Orientation( Orient_Horizontal	 )
+				SAssignNew( VerticalScrollBar, SScrollBar )
+				.Orientation( Orient_Vertical )
 				.AlwaysShowScrollbar( true )
 				.Visibility( EVisibility::Visible )
-				.Thickness( FVector2D(8.0f,8.0f) )
-				.OnUserScrolled( this, &SProfilerGraphPanel::ScrollBar_OnUserScrolled )
+				.Thickness( FVector2D( 8.0f, 8.0f ) )
+				.OnUserScrolled( this, &SProfilerGraphPanel::VerticalScrollBar_OnUserScrolled )
 			]
-		]	
+		]
 	];
 
-	ScrollBar->SetState( 0.0f, 1.0f );
+	HorizontalScrollBar->SetState( 0.0f, 1.0f );
+	VerticalScrollBar->SetState( 0.0f, 1.0f );
 
 	// Register ourselves with the profiler manager.
 	FProfilerManager::Get()->OnTrackedStatChanged().AddSP( this, &SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged );
-	FProfilerManager::Get()->OnSessionInstancesUpdated().AddSP( this, &SProfilerGraphPanel::ProfilerManager_OnSessionInstancesUpdated );
+	FProfilerManager::Get()->OnViewModeChanged().AddSP( this, &SProfilerGraphPanel::ProfilerManager_OnViewModeChanged );
+
+	DataGraph->OnSelectionChangedForIndex().AddSP( FProfilerManager::Get().ToSharedRef(), &FProfilerManager::DataGraph_OnSelectionChangedForIndex );
+
+	ThreadView->OnViewPositionXChanged().AddSP( this, &SProfilerGraphPanel::ThreadView_OnViewPositionXChanged );
+	ThreadView->OnViewPositionYChanged().AddSP( this, &SProfilerGraphPanel::ThreadView_OnViewPositionYChanged );
 }
 
 
@@ -65,16 +111,41 @@ void SProfilerGraphPanel::Tick( const FGeometry& AllottedGeometry, const double 
 	UpdateInternals();
 }
 
-void SProfilerGraphPanel::ScrollBar_OnUserScrolled( float ScrollOffset )
+void SProfilerGraphPanel::HorizontalScrollBar_OnUserScrolled( float ScrollOffset )
 {
-	const float ThumbSizeFraction = FMath::Min( (float)NumVisiblePoints / (float)NumDataPoints, 1.0f );
-	ScrollOffset = FMath::Min( ScrollOffset, 1.0f-ThumbSizeFraction );
- 
-	ScrollBar->SetState( ScrollOffset, ThumbSizeFraction );
- 
-	GraphOffset = FMath::Trunc( ScrollOffset * NumDataPoints );
-	DataGraph->ScrollTo( GraphOffset );
+	if( ViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		const float ThumbSizeFraction = FMath::Min( (float)NumVisiblePoints / (float)NumDataPoints, 1.0f );
+		ScrollOffset = FMath::Min( ScrollOffset, 1.0f - ThumbSizeFraction );
+
+		HorizontalScrollBar->SetState( ScrollOffset, ThumbSizeFraction );
+
+		GraphOffset = FMath::TruncToInt( ScrollOffset * NumDataPoints );
+		DataGraph->ScrollTo( GraphOffset );
+
+		ProfilerMiniView.Pin()->MoveWithoutZoomSelectionBox( GraphOffset, GraphOffset + NumVisiblePoints );
+	}
+	else if( ViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		ThreadView->SetPositionXToByScrollBar( ScrollOffset );
+	}
 }
+
+
+void SProfilerGraphPanel::VerticalScrollBar_OnUserScrolled( float ScrollOffset )
+{
+	// @TODO yrx 2014-04-24 Broadcast?
+	if( ViewMode == EProfilerViewMode::LineIndexBased )
+	{
+
+	}
+	else if( ViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		// @TODO yrx 2014-04-23 
+		ThreadView->SetPositonYTo( ScrollOffset );
+	}
+}
+
 
 void SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged( const FTrackedStat& TrackedStat, bool bIsTracked )
 {
@@ -88,42 +159,118 @@ void SProfilerGraphPanel::ProfilerManager_OnTrackedStatChanged( const FTrackedSt
 	}
 }
 
-void SProfilerGraphPanel::ProfilerManager_OnSessionInstancesUpdated()
-{
-
-}
-
-void SProfilerGraphPanel::DataGraph_OnGraphOffsetChanged( int InGraphOffset )
+void SProfilerGraphPanel::OnDataGraphGraphOffsetChanged( int32 InGraphOffset )
 {
 	GraphOffset = InGraphOffset;
-	const float ThumbSizeFraction = FMath::Min( (float)NumVisiblePoints / (float)NumDataPoints, 1.0f );
-	const float OffsetFraction = (float)GraphOffset / (float)NumDataPoints;
-	ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
+	SetScrollBarState();
+	ProfilerMiniView.Pin()->MoveWithoutZoomSelectionBox( InGraphOffset, InGraphOffset + NumVisiblePoints );
 }
 
-void SProfilerGraphPanel::DataGraph_OnViewModeChanged( EDataGraphViewModes::Type ViewMode )
+void SProfilerGraphPanel::MiniView_OnSelectionBoxChanged( int32 FrameStart, int32 FrameEnd )
 {
-	UpdateInternals();
+	if( ViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		GraphOffset = FrameStart;
+		SetScrollBarState();
+		DataGraph->ScrollTo( GraphOffset );
+	}
+	else if( ViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		TGuardValue<bool> LockedMiniViewState( bLockMiniViewState, true );
+		// Update thread-view state.
+		ThreadView->SetFrameRange( FrameStart, FrameEnd );
+	}
 }
+
+void SProfilerGraphPanel::ThreadView_OnViewPositionXChanged( double FrameStartMS, double FrameEndMS, double MaxEndTimeMS, int32 FrameStart, int32 FrameEnd )
+{
+	const double MinStartTimeMS = 0.0f;
+	const double TotalRangeMS = MaxEndTimeMS - MinStartTimeMS;
+	const double ThisFrameRangeMS = FrameEndMS - FrameStartMS;
+
+	const double ThumbSizeFraction = ThisFrameRangeMS / TotalRangeMS;
+	const double OffsetFraction = FrameStartMS / MaxEndTimeMS;
+
+	// Update horizontal scroll bar state.
+	HorizontalScrollBar->SetState( (float)OffsetFraction, (float)ThumbSizeFraction );
+
+	if( !bLockMiniViewState )
+	{
+		// Update profiler mini-view state.
+		ProfilerMiniView.Pin()->MoveAndZoomSelectionBox( FrameStart, FrameEnd );
+	}
+}
+
+void SProfilerGraphPanel::ThreadView_OnViewPositionYChanged( double PosStartY, double PosYEnd, double MaxPosY )
+{
+	const double MinPosY = 0.0f;
+	const double TotalRangeY = MaxPosY - MinPosY;
+	const double ThisRangeY = PosYEnd - PosStartY;
+
+	const double ThumbSizeFraction = ThisRangeY / TotalRangeY;
+	const double OffsetFraction = PosStartY / MaxPosY;
+
+	VerticalScrollBar->SetState( (float)OffsetFraction, (float)ThumbSizeFraction );
+}
+
+void SProfilerGraphPanel::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+{
+	if( NewViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		VerticalScrollBar->SetVisibility( EVisibility::Collapsed );
+		VerticalScrollBar->SetEnabled( false );
+
+		DataGraph->SetVisibility( EVisibility::Visible );
+		DataGraph->SetEnabled( true );
+		ThreadView->SetVisibility( EVisibility::Collapsed );
+		ThreadView->SetEnabled( false );
+	}
+	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		VerticalScrollBar->SetVisibility( EVisibility::Visible );
+		VerticalScrollBar->SetEnabled( true );
+
+		DataGraph->SetVisibility( EVisibility::Collapsed );
+		DataGraph->SetEnabled( false );
+		ThreadView->SetVisibility( EVisibility::Visible );
+		ThreadView->SetEnabled( true );
+	}
+
+	ViewMode = NewViewMode;
+}
+
 
 void SProfilerGraphPanel::UpdateInternals()
 {
-	NumVisiblePoints = DataGraph->GetNumVisiblePoints();
-	NumDataPoints = DataGraph->GetNumDataPoints();
+	if( ViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		NumVisiblePoints = DataGraph->GetNumVisiblePoints();
+		NumDataPoints = DataGraph->GetNumDataPoints();
 
+		SetScrollBarState();
+		ProfilerMiniView.Pin()->MoveWithoutZoomSelectionBox( GraphOffset, GraphOffset + NumVisiblePoints );
+
+		if( FProfilerManager::Get()->IsLivePreview() )
+		{
+			// Scroll to the end.
+			HorizontalScrollBar_OnUserScrolled( 1.0f );
+		}
+	}
+	else if( ViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		// @TODO yrx 2014-04-23 
+	}
+}
+
+void SProfilerGraphPanel::SetScrollBarState()
+{
 	// Note that the maximum offset is 1.0-ThumbSizeFraction.
 	// If the user can view 1/3 of the items in a single page, the maximum offset will be ~0.667f
 	const float ThumbSizeFraction = FMath::Min( (float)NumVisiblePoints / (float)NumDataPoints, 1.0f );
 	const float OffsetFraction = (float)GraphOffset / (float)NumDataPoints;
-		
-	const float Distance = ScrollBar->DistanceFromBottom();
-	ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
-	 
-	if( FProfilerManager::Get()->IsLivePreview() )
-	{
-		// Scroll to the end.
-		ScrollBar_OnUserScrolled(1.0f);
-	}
+	HorizontalScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
 }
+
+
 
 #undef LOCTEXT_NAMESPACE

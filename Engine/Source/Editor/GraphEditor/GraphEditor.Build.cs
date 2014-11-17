@@ -15,7 +15,6 @@ public class GraphEditor : ModuleRules
 				"Editor/GraphEditor/Private/KismetPins",
 				"Editor/GraphEditor/Private/MaterialNodes",
 				"Editor/GraphEditor/Private/MaterialPins",
-				"Editor/GraphEditor/Private/NoRedist",
 				"Editor/GraphEditor/Private/SoundNodes",
 			}
 		);
@@ -33,6 +32,7 @@ public class GraphEditor : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"AssetRegistry",
@@ -43,7 +43,7 @@ public class GraphEditor : ModuleRules
 				"RenderCore",
 				"RHI"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -51,6 +51,6 @@ public class GraphEditor : ModuleRules
 				"Documentation",
 				"EditorWidgets"
 			}
-			);
+		);
 	}
 }

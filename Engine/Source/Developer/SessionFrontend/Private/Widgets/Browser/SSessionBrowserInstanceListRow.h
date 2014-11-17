@@ -7,6 +7,9 @@
 #pragma once
 
 
+#define LOCTEXT_NAMESPACE "SSessionBrowserInstanceListRow"
+
+
 /**
  * Delegate type for changed instance check box state changes.
  *
@@ -28,7 +31,6 @@ public:
 		SLATE_ARGUMENT(ISessionInstanceInfoPtr, InstanceInfo)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -43,7 +45,6 @@ public:
 		SMultiColumnTableRow<ISessionInstanceInfoPtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 	}
 
-
 public:
 
 	/**
@@ -55,43 +56,15 @@ public:
 	 */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) OVERRIDE
 	{
-		if (ColumnName == "Icons")
-		{
-			return SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(1.0)
-				[
-					SNew(SImage)
-						.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *InstanceInfo->GetPlatformName())))
-				]
-
-			+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(1.0)
-				[
-					SNew(SImage)
-						.Image(this, &SSessionBrowserInstanceListRow::HandleGetInstanceIcon)
-				];
-		}
-		else if (ColumnName == "Instance")
+		if (ColumnName == "Device")
 		{
 			return SNew(SBox)
-				.Padding(FMargin(4.0f, 1.0f, 4.0f, 0.0f))
-				.HAlign(HAlign_Left)
+				.Padding(FMargin(4.0f, 0.0f))
+				.VAlign(VAlign_Center)
 				[
-					SNew(SBorder)
-						.BorderBackgroundColor(this, &SSessionBrowserInstanceListRow::HandleBorderGetBackgroundColor)
-						.BorderImage(this, &SSessionBrowserInstanceListRow::HandleBorderGetBrush)
-						.ColorAndOpacity(FLinearColor(0.25f, 0.25f, 0.25f))
-						.Padding(FMargin(6.0, 4.0))
-						.VAlign(VAlign_Center)
-						[
-							SNew(STextBlock)
-								.Font(FEditorStyle::GetFontStyle("BoldFont"))
-								.Text(InstanceInfo->GetInstanceName())							
-						]
+					SNew(STextBlock)
+						.ColorAndOpacity(this, &SSessionBrowserInstanceListRow::HandleTextColorAndOpacity)
+						.Text(this, &SSessionBrowserInstanceListRow::HandleDeviceColumnText)
 				];
 		}
 		else if (ColumnName == "Level")
@@ -101,25 +74,91 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-						.ColorAndOpacity(this, &SSessionBrowserInstanceListRow::HandleGetColorAndOpacity)
-						.Text(this, &SSessionBrowserInstanceListRow::HandleGetLevelText)
+						.ColorAndOpacity(this, &SSessionBrowserInstanceListRow::HandleTextColorAndOpacity)
+						.Text(this, &SSessionBrowserInstanceListRow::HandleLevelColumnText)
+				];
+		}
+		else if (ColumnName == "Name")
+		{
+			return SNew(SBox)
+				.Padding(FMargin(1.0f, 1.0f, 4.0f, 0.0f))
+				.HAlign(HAlign_Left)
+				[
+					SNew(SBorder)
+						.BorderBackgroundColor(this, &SSessionBrowserInstanceListRow::HandleInstanceBorderBackgroundColor)
+						.BorderImage(this, &SSessionBrowserInstanceListRow::HandleInstanceBorderBrush)
+						.ColorAndOpacity(FLinearColor(0.25f, 0.25f, 0.25f))
+						.Padding(FMargin(6.0f, 4.0f))
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+								.Font(FEditorStyle::GetFontStyle("BoldFont"))
+								.Text(InstanceInfo->GetInstanceName())							
+						]
+				];
+		}
+		else if (ColumnName == "Platform")
+		{
+			return SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew(SImage)
+						.Image(FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Platform_%s"), *InstanceInfo->GetPlatformName())))
+				]
+
+			+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.Padding(4.0f, 0.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString(InstanceInfo->GetPlatformName()))
+				];
+		}
+		else if (ColumnName == "Status")
+		{
+			return SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f))
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+						.ColorAndOpacity(this, &SSessionBrowserInstanceListRow::HandleTextColorAndOpacity)
+						.Text(this, &SSessionBrowserInstanceListRow::HandleStatusColumnText)
+				];
+		}
+		else if (ColumnName == "Type")
+		{
+			return SNew(SBox)
+				.Padding(FMargin(4.0f, 0.0f))
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString(InstanceInfo->GetInstanceType()))
 				];
 		}
 
 		return SNullWidget::NullWidget;
 	}
 
-
 private:
 
+	// Callback for getting the text in the 'Device' column.
+	FText HandleDeviceColumnText( ) const
+	{
+		return FText::FromString(InstanceInfo->GetDeviceName());
+	}
+
 	// Callback for getting the border color for this row.
-	FSlateColor HandleBorderGetBackgroundColor( ) const
+	FSlateColor HandleInstanceBorderBackgroundColor( ) const
 	{
 		return FLinearColor((GetTypeHash(InstanceInfo->GetInstanceId()) & 0xff) * 360.0 / 256.0, 0.8, 0.3, 1.0).HSVToLinearRGB();
 	}
 
 	// Callback for getting the border brush for this row.
-	const FSlateBrush* HandleBorderGetBrush( ) const
+	const FSlateBrush* HandleInstanceBorderBrush( ) const
 	{
 		if (FDateTime::UtcNow() - InstanceInfo->GetLastUpdateTime() < FTimespan::FromSeconds(10.0))
 		{
@@ -129,8 +168,25 @@ private:
 		return FEditorStyle::GetBrush("ErrorReporting.EmptyBox");
 	}
 
+	// Callback for getting the instance's current level.
+	FString HandleLevelColumnText( ) const
+	{
+		return InstanceInfo->GetCurrentLevel();
+	}
+
+	// Callback for getting the text in the 'Status' column.
+	FText HandleStatusColumnText( ) const
+	{
+		if (FDateTime::UtcNow() - InstanceInfo->GetLastUpdateTime() < FTimespan::FromSeconds(10.0))
+		{
+			return LOCTEXT("StatusRunning", "Running");
+		}
+
+		return LOCTEXT("StatusTimedOut", "Timed Out");
+	}
+
 	// Callback for getting the foreground text color.
-	FSlateColor HandleGetColorAndOpacity( ) const
+	FSlateColor HandleTextColorAndOpacity( ) const
 	{
 		if (FDateTime::UtcNow() - InstanceInfo->GetLastUpdateTime() < FTimespan::FromSeconds(10.0))
 		{
@@ -140,19 +196,6 @@ private:
 		return FSlateColor::UseSubduedForeground();
 	}
 
-	// Callback for getting the instance type icon.
-	const FSlateBrush* HandleGetInstanceIcon( ) const
-	{
-		return FEditorStyle::GetBrush(*FString::Printf(TEXT("Launcher.Instance_%s"), *InstanceInfo->GetInstanceType()));
-	}
-
-	// Callback for getting the instance's current level.
-	FString HandleGetLevelText( ) const
-	{
-		return InstanceInfo->GetCurrentLevel();
-	}
-
-
 private:
 
 	// Holds a reference to the instance info that is displayed in this row.
@@ -161,3 +204,6 @@ private:
 	// Holds a delegate to be invoked when the check box state changed.
 	FOnCheckStateChanged OnCheckStateChanged;
 };
+
+
+#undef LOCTEXT_NAMESPACE

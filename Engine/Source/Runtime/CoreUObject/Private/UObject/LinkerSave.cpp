@@ -41,9 +41,6 @@ ULinkerSave::ULinkerSave( const class FPostConstructInitializeProperties& PCIP, 
 		ArIsSaving				= 1;
 		ArIsPersistent			= 1;
 		ArForceByteSwapping		= bForceByteSwapping;
-	
-		// Allocate indices.
-		NameIndices  .AddZeroed( FName::GetMaxNames() );
 	}
 }
 
@@ -76,8 +73,6 @@ ULinkerSave::ULinkerSave(const class FPostConstructInitializeProperties& PCIP, U
 		ArIsSaving				= 1;
 		ArIsPersistent			= 1;
 		ArForceByteSwapping		= bForceByteSwapping;
-
-		NameIndices  .AddZeroed( FName::GetMaxNames() );
 	}
 }
 /**
@@ -99,10 +94,16 @@ void ULinkerSave::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-// FArchive interface.
-int32 ULinkerSave::MapName( const FName* Name ) const
+int32 ULinkerSave::MapName(const FName& Name) const
 {
-	return NameIndices[Name->GetIndex()];
+	const int32* IndexPtr = NameIndices.Find(Name.GetIndex());
+
+	if (IndexPtr)
+	{
+		return *IndexPtr;
+	}
+
+	return 0;
 }
 
 FPackageIndex ULinkerSave::MapObject( const UObject* Object ) const

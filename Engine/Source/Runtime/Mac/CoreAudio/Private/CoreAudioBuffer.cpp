@@ -77,7 +77,7 @@ int32 FCoreAudioSoundBuffer::GetSize( void )
 			break;
 			
 		case SoundFormat_PCMRT:
-			TotalSize = (DecompressionState ? DecompressionState->SrcBufferDataSize : 0) + ( MONO_PCM_BUFFER_SIZE * 2 * NumChannels );
+			TotalSize = (DecompressionState ? DecompressionState->GetSourceBufferSize() : 0) + ( MONO_PCM_BUFFER_SIZE * 2 * NumChannels );
 			break;
 	}
 	
@@ -146,8 +146,8 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateQueuedBuffer( FCoreAudioDevi
 	
 	// Prime the first two buffers and prepare the decompression
 	FSoundQualityInfo QualityInfo = { 0 };
-	
-	Buffer->DecompressionState = new FVorbisAudioInfo();
+
+	Buffer->DecompressionState = CoreAudioDevice->CreateCompressedAudioInfo(Wave);
 	
 	Wave->InitAudioResource( CoreAudioDevice->GetRuntimeFormat() );
 	
@@ -244,18 +244,13 @@ FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreatePreviewBuffer( FCoreAudioDev
 FCoreAudioSoundBuffer* FCoreAudioSoundBuffer::CreateNativeBuffer( FCoreAudioDevice* CoreAudioDevice, USoundWave* Wave )
 {
 	// Check to see if thread has finished decompressing on the other thread
-	if( Wave->VorbisDecompressor != NULL )
+	if( Wave->AudioDecompressor != NULL )
 	{
-		if( !Wave->VorbisDecompressor->IsDone() )
-		{
-			// Don't play this sound just yet
-			UE_LOG(LogAudio, Log, TEXT( "Waiting for sound to decompress: %s" ), *Wave->GetName() );
-			return( NULL );
-		}
+		Wave->AudioDecompressor->EnsureCompletion();
 		
 		// Remove the decompressor
-		delete Wave->VorbisDecompressor;
-		Wave->VorbisDecompressor = NULL;
+		delete Wave->AudioDecompressor;
+		Wave->AudioDecompressor = NULL;
 	}
 	
 	// Create new buffer.

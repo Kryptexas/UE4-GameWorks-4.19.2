@@ -18,6 +18,8 @@
 /*-----------------------------------------------------------------------------
 	Dependencies
 -----------------------------------------------------------------------------*/
+
+#include "Messaging.h"
 #include "ProfilerClient.h"
 
 /*-----------------------------------------------------------------------------
@@ -27,6 +29,8 @@
 // TODO: Remove dependencies between generic profiler code and profiler ui code
 
 // Common headers and managers.
+#include "ProfilerStream.h"
+
 #include "ProfilerSample.h"
 #include "ProfilerFPSAnalyzer.h"
 #include "ProfilerDataProvider.h"
@@ -40,6 +44,8 @@
 #include "SFiltersAndPresets.h"
 #include "SEventGraph.h"
 #include "SDataGraph.h"
+#include "SProfilerMiniView.h"
+#include "SProfilerThreadView.h"
 #include "SProfilerGraphPanel.h"
 #include "SProfilerFPSChartPanel.h"
 #include "SProfilerWindow.h"

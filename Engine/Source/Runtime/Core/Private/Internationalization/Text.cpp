@@ -222,7 +222,8 @@ FText FText::TrimTrailing( const FText& InText )
 FText FText::TrimPrecedingAndTrailing( const FText& InText )
 {
 	FString TrimmedString = InText.ToString();
-	TrimmedString.Trim().TrimTrailing();
+	TrimmedString.Trim();
+	TrimmedString.TrimTrailing();
 
 	FText NewText = FText( MoveTemp( TrimmedString ) );
 

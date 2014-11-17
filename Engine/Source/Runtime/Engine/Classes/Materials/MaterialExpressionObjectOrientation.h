@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionObjectOrientation.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionObjectOrientation : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

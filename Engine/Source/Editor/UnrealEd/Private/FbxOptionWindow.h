@@ -13,12 +13,14 @@ public:
 		, _WidgetWindow()
 		, _FullPath()
 		, _ForcedImportType()
+		, _IsObjFormat(false)
 		{}
 
 		SLATE_ARGUMENT( UFbxImportUI*, ImportUI )
 		SLATE_ARGUMENT( TSharedPtr<SWindow>, WidgetWindow )
 		SLATE_ARGUMENT( FString, FullPath )
 		SLATE_ARGUMENT( TOptional<EFBXImportType>, ForcedImportType )
+		SLATE_ARGUMENT( bool, IsObjFormat )
 	SLATE_END_ARGS()
 
 public:
@@ -81,19 +83,6 @@ public:
 	{}
 		
 private:
-	UFbxImportUI*	ImportUI;
-	bool			bShouldImport;
-	bool			bShouldImportAll;
-	bool			bReimport;
-	FString			ErrorMessage;
-	SVerticalBox::FSlot* CustomBox;
-	TWeakPtr< SWindow > WidgetWindow;
-	TSharedPtr< SButton > ImportButton;
-	TArray<FName> StaticMeshLODGroupNames;
-	TArray<FText> StaticMeshLODGroupDisplayNames;
-	TArray< TSharedPtr<FString> > StaticMeshLODGroups;
-	TArray< TSharedPtr<EFBXNormalImportMethod> > NormalImportOptions;
-
 	// sub options
 	TSharedRef<SWidget> ConstructStaticMeshBasic();
 	TSharedRef<SWidget> ConstructStaticMeshAdvanced();
@@ -143,17 +132,17 @@ private:
 	TSharedRef<SWidget> MakeSkeletonPickerMenu();
 	void OnAssetSelectedFromSkeletonPicker(const FAssetData& AssetData);
 	TSharedPtr<SComboButton> SkeletonPickerComboButton;
-	FString GetSkeletonDisplay() const;
+	FText GetSkeletonDisplay() const;
 
 	TSharedRef<SWidget> MakePhysicsAssetPickerMenu();
 	void OnAssetSelectedFromPhysicsAssetPicker(const FAssetData& AssetData);
 	TSharedPtr<SComboButton> PhysicsAssetPickerComboButton;
-	FString GetPhysicsAssetDisplay() const;
+	FText GetPhysicsAssetDisplay() const;
 
 	TSharedRef<SWidget> OnGenerateWidgetForComboItem( TSharedPtr<EFBXNormalImportMethod> ImportMethod );
 	void OnNormalImportMethodChanged( TSharedPtr<EFBXNormalImportMethod> NewMethod, ESelectInfo::Type SelectionType );
-	FString OnGenerateTextForImportMethod( EFBXNormalImportMethod ImportMethod ) const;
-	FString OnGenerateToolTipForImportMethod( EFBXNormalImportMethod ImportMethod ) const;
+	FText OnGenerateTextForImportMethod( EFBXNormalImportMethod ImportMethod ) const;
+	FText OnGenerateToolTipForImportMethod( EFBXNormalImportMethod ImportMethod ) const;
 
 	FText GetAnimationName() const { return FText::FromString( ImportUI->AnimationName ); }
 	FString GetAnimationRangeStart() const { return FString::FromInt(ImportUI->AnimSequenceImportData->StartFrame); }
@@ -162,4 +151,19 @@ private:
 	bool CanImport() const;
 	bool ShouldShowPhysicsAssetPicker() const;
 	EFBXNormalImportMethod GetCurrentNormalImportMethod() const;
+
+private:
+	UFbxImportUI*	ImportUI;
+	FString			ErrorMessage;
+	SVerticalBox::FSlot* CustomBox;
+	TWeakPtr< SWindow > WidgetWindow;
+	TSharedPtr< SButton > ImportButton;
+	TArray<FName> StaticMeshLODGroupNames;
+	TArray<FText> StaticMeshLODGroupDisplayNames;
+	TArray< TSharedPtr<FString> > StaticMeshLODGroups;
+	TArray< TSharedPtr<EFBXNormalImportMethod> > NormalImportOptions;
+	bool			bShouldImport;
+	bool			bShouldImportAll;
+	bool			bForceImportType;
+	bool			bIsObjFormat;
 };

@@ -347,16 +347,16 @@ void FComponentAssetBrokerage::InitializeMap()
 	{
 		bInitializedBuiltinMap = true;
 
-		RegisterBroker(MakeShareable(new FStaticMeshComponentBroker), UStaticMeshComponent::StaticClass(), true);
-		RegisterBroker(MakeShareable(new FSkeletalMeshComponentBroker), USkeletalMeshComponent::StaticClass(), true);
-		RegisterBroker(MakeShareable(new FDestructableMeshComponentBroker), UDestructibleComponent::StaticClass(), false);
-		RegisterBroker(MakeShareable(new FParticleSystemComponentBroker), UParticleSystemComponent::StaticClass(), true);
-		RegisterBroker(MakeShareable(new FAudioComponentBroker), UAudioComponent::StaticClass(), true);
-		//RegisterBroker(MakeShareable(new FChildActorComponentBroker), UChildActorComponent::StaticClass(), true);
+		RegisterBroker(MakeShareable(new FStaticMeshComponentBroker), UStaticMeshComponent::StaticClass(), true, true);
+		RegisterBroker(MakeShareable(new FSkeletalMeshComponentBroker), USkeletalMeshComponent::StaticClass(), true, true);
+		RegisterBroker(MakeShareable(new FDestructableMeshComponentBroker), UDestructibleComponent::StaticClass(), false, true);
+		RegisterBroker(MakeShareable(new FParticleSystemComponentBroker), UParticleSystemComponent::StaticClass(), true, true);
+		RegisterBroker(MakeShareable(new FAudioComponentBroker), UAudioComponent::StaticClass(), true, true);
+		RegisterBroker(MakeShareable(new FChildActorComponentBroker), UChildActorComponent::StaticClass(), true, false);
 	}
 }
 
-void FComponentAssetBrokerage::RegisterBroker(TSharedPtr<IComponentAssetBroker> Broker, TSubclassOf<UActorComponent> InComponentClass, bool bSetAsPrimary)
+void FComponentAssetBrokerage::RegisterBroker(TSharedPtr<IComponentAssetBroker> Broker, TSubclassOf<UActorComponent> InComponentClass, bool bSetAsPrimary, bool bMapCompnentForAssets)
 {
 	InitializeMap();
 
@@ -368,16 +368,26 @@ void FComponentAssetBrokerage::RegisterBroker(TSharedPtr<IComponentAssetBroker> 
 	checkf(!ComponentToBrokerMap.Contains(InComponentClass), TEXT("Component class already has a registered broker; you have to chain them yourself."));
 	ComponentToBrokerMap.Add(InComponentClass, Broker);
 
-	FComponentClassList& ValidComponentTypes = AssetToComponentClassMap.FindOrAdd(AssetClass);
 	if (bSetAsPrimary)
 	{
-		ValidComponentTypes.Insert(InComponentClass, 0);
 		AssetToBrokerMap.FindOrAdd(AssetClass).Insert(Broker, 0);
 	}
 	else
 	{
-		ValidComponentTypes.Add(InComponentClass);
 		AssetToBrokerMap.FindOrAdd(AssetClass).Add(Broker);
+	}
+
+	if (bMapCompnentForAssets)
+	{
+		FComponentClassList& ValidComponentTypes = AssetToComponentClassMap.FindOrAdd(AssetClass);
+		if (bSetAsPrimary)
+		{
+			ValidComponentTypes.Insert(InComponentClass, 0);
+		}
+		else 
+		{
+			ValidComponentTypes.Add(InComponentClass);
+		}
 	}
 }
 

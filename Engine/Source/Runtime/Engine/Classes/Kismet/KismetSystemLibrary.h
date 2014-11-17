@@ -31,7 +31,16 @@ namespace EMoveComponentAction
 	};
 }
 
-UCLASS(HeaderGroup=KismetLibrary,MinimalAPI)
+USTRUCT()
+struct FGenericStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	int32 Data;
+};
+
+UCLASS(MinimalAPI)
 class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -246,13 +255,29 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static void K2_UnPauseTimer(UObject* Object, FString FunctionName);
 
 	/**
-	 * Returns true is a timer is active for the given delegate, false otherwise.
+	 * Returns true is a timer exists and is active for the given delegate, false otherwise.
 	 * @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
 	 * @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
 	 */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "IsTimerActive", DefaultToSelf = "Object"), Category="Utilities|Time")
 	static bool K2_IsTimerActive(UObject* Object, FString FunctionName);
 
+	/**
+	* Returns true is a timer exists and is paused for the given delegate, false otherwise.
+	* @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
+	* @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
+	*/
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "IsTimerPaused", DefaultToSelf = "Object"), Category = "Utilities|Time")
+	static bool K2_IsTimerPaused(UObject* Object, FString FunctionName);
+
+	/**
+	* Returns true is a timer for the given delegate exists, false otherwise.
+	* @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
+	* @param FunctionName	Delegate function name. Can be a K2 function or a Custom Event.
+	*/
+	UFUNCTION(BlueprintPure, meta = (FriendlyName = "TimerExists", DefaultToSelf = "Object"), Category = "Utilities|Time")
+	static bool K2_TimerExists(UObject* Object, FString FunctionName);
+	
 	/**
 	 * Returns elapsed time for the given delegate (time since current countdown iteration began).
 	 * @param Object		Object that implements the delegate function. Defaults to self (this blueprint)
@@ -319,6 +344,32 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	/** Set a TRANSFORM property by name */
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true"))
 	static void SetTransformPropertyByName(UObject* Object, FName PropertyName, const FTransform& Value);
+
+	/** Set a custom structure property by name */
+	UFUNCTION(BlueprintCallable, CustomThunk, meta = (BlueprintInternalUseOnly = "true", CustomStructureParam = "Value"))
+	static void SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value);
+
+	/** Based on UKismetArrayLibrary::execSetArrayPropertyByName */
+	DECLARE_FUNCTION(execSetStructurePropertyByName)
+	{
+		P_GET_OBJECT(UObject, OwnerObject);
+		P_GET_PROPERTY(UNameProperty, StructPropertyName);
+
+		Stack.StepCompiledIn<UStructProperty>(NULL);
+		void* SrcStructAddr = Stack.MostRecentPropertyAddress;
+
+		P_FINISH;
+
+		if (OwnerObject != NULL)
+		{
+			UStructProperty* StructProp = FindField<UStructProperty>(OwnerObject->GetClass(), StructPropertyName);
+			if (StructProp != NULL)
+			{
+				void* Dest = StructProp->ContainerPtrToValuePtr<void>(OwnerObject);
+				StructProp->CopyValuesInternal(Dest, SrcStructAddr, 1);
+			}
+		}
+	}
 
 	// --- Collision functions ------------------------------
 
@@ -479,13 +530,12 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	
 	/**
 	 * Does a collision trace along the given line and returns all hits encountered up to and including the first blocking hit.
-	 * along the given line and returns the first blocking hit encountered.
-	 * This trace finds the objects that RESPONDS to the given TraceChannel
+	 * This trace finds the objects that RESPOND to the given TraceChannel
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
 	 * @param End			End of line segment.
-	 * @param TraceChannel	
+	 * @param TraceChannel	The channel to trace
 	 * @param bTraceComplex	True to test against complex collision, false to test against simplified collision.
 	 * @param OutHit		Properties of the trace hit.
 	 * @return				True if there was a hit, false otherwise.
@@ -510,7 +560,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Sweeps a sphere along the given line and returns all hits encountered up to and including the first blocking hit.
-	 * This trace finds the objects that RESPONDS to the given TraceChannel
+	 * This trace finds the objects that RESPOND to the given TraceChannel
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -526,7 +576,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	
 	/**
 	 * Sweeps a capsule along the given line and returns the first blocking hit encountered.
-	 * This trace finds the objects that RESPONDS to the given TraceChannel
+	 * This trace finds the objects that RESPOND to the given TraceChannel
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -543,7 +593,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Sweeps a capsule along the given line and returns all hits encountered up to and including the first blocking hit.
-	 * This trace finds the objects that RESPONDS to the given TraceChannel
+	 * This trace finds the objects that RESPOND to the given TraceChannel
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -560,7 +610,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Does a collision trace along the given line and returns the first hit encountered.
-	 * This finds objects with all Movement Channel of ObjectTypes. 
+	 * This only finds objects that are of a type specified by ObjectTypes.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -575,8 +625,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	
 	/**
 	 * Does a collision trace along the given line and returns all hits encountered.
-	 * along the given line and returns the first blocking hit encountered.
-	 * This finds objects with all Movement Channel of ObjectTypes. 
+	 * This only finds objects that are of a type specified by ObjectTypes.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -591,7 +640,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Sweeps a sphere along the given line and returns the first hit encountered.
-	 * This finds objects with all Movement Channel of ObjectTypes. 
+	 * This only finds objects that are of a type specified by ObjectTypes.
 	 * 
 	 * @param Start			Start of line segment.
 	 * @param End			End of line segment.
@@ -606,7 +655,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Sweeps a sphere along the given line and returns all hits encountered.
-	 * This finds objects with all Movement Channel of ObjectTypes. 
+	 * This only finds objects that are of a type specified by ObjectTypes.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -622,7 +671,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	
 	/**
 	 * Sweeps a capsule along the given line and returns the first hit encountered.
-	 * This finds objects with all Movement Channel of ObjectTypes. 
+	 * This only finds objects that are of a type specified by ObjectTypes.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -639,7 +688,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Sweeps a capsule along the given line and returns all hits encountered.
-	 * This finds objects with all Movement Channel of ObjectTypes. 
+	 * This only finds objects that are of a type specified by ObjectTypes.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -656,7 +705,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Does a collision trace along the given line and returns the first blocking hit encountered.
-	 * This trace finds the objects that RESPONDS to the given TraceChannel
+	 * This trace finds the objects that RESPOND to the given TraceChannel
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -671,8 +720,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	
 	/**
 	 * Does a collision trace along the given line and returns all hits encountered up to and including the first blocking hit.
-	 * along the given line and returns the first blocking hit encountered.
-	 * This trace finds the objects that RESPONDS to the given TraceChannel
+	 * This trace finds the objects that RESPOND to the given TraceChannel
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -752,7 +800,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Does a collision trace along the given line and returns the first hit encountered.
-	 * This finds objects with all Movement Channel of ObjectsToTrace. 
+	 * This finds objects belonging to the channels specified in the ObjectsToTrace input.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -767,8 +815,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	
 	/**
 	 * Does a collision trace along the given line and returns all hits encountered.
-	 * along the given line and returns the first blocking hit encountered.
-	 * This finds objects with all Movement Channel of ObjectsToTrace. 
+	 * This finds objects belonging to the channels specified in the ObjectsToTrace input.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -783,7 +830,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Sweeps a sphere along the given line and returns the first hit encountered.
-	 * This finds objects with all Movement Channel of ObjectsToTrace. 
+	 * This finds objects belonging to the channels specified in the ObjectsToTrace input.
 	 * 
 	 * @param Start			Start of line segment.
 	 * @param End			End of line segment.
@@ -798,7 +845,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Sweeps a sphere along the given line and returns all hits encountered.
-	 * This finds objects with all Movement Channel of ObjectsToTrace. 
+	 * This finds objects belonging to the channels specified in the ObjectsToTrace input.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -814,7 +861,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	
 	/**
 	 * Sweeps a capsule along the given line and returns the first hit encountered.
-	 * This finds objects with all Movement Channel of ObjectsToTrace. 
+	 * This finds objects belonging to the channels specified in the ObjectsToTrace input.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -831,7 +878,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * Sweeps a capsule along the given line and returns all hits encountered.
-	 * This finds objects with all Movement Channel of ObjectsToTrace. 
+	 * This finds objects belonging to the channels specified in the ObjectsToTrace input.
 	 * 
 	 * @param WorldContext	World context
 	 * @param Start			Start of line segment.
@@ -997,8 +1044,16 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	static void EXPERIMENTAL_CloseAdBanner();
 
 	/**
-	 * Displays the built-in iOS leaderboard GUI (iOS only; this function will be renamed or moved in a future release)
-	*/
+	 * Displays the built-in leaderboard GUI (iOS and Android only; this function may be renamed or moved in a future release)
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
-	static void EXPERIMENTAL_ShowGameCenterLeaderboard(const FString& CategoryName);
+	static void ShowPlatformSpecificLeaderboardScreen(const FString& CategoryName);
+
+	/**
+	 * Displays the built-in achievements GUI (iOS and Android only; this function may be renamed or moved in a future release)
+	 *
+	 * @param SpecificPlayer Specific player's achievements to show. May not be supported on all platforms. If null, defaults to the player with ControllerId 0
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
+	static void ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer);
 };

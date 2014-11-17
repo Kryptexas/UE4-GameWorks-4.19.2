@@ -29,15 +29,15 @@ public:
 	/**
 	 * Creates and initializes a new message context.
 	 *
-	 * @param InMessage - The message payload.
-	 * @param InTypeInfo - The message's type information.
-	 * @param InAttachment - The binary data to attach to the message.
-	 * @param InSender - The sender's address.
-	 * @param InRecipients - The message recipients.
-	 * @param InScope - The message scope.
-	 * @param InTimeSent - The time at which the message was sent.
-	 * @param InExpiration - The message's expiration time.
-	 * @param InSenderThread - The name of the thread from which the message was sent.
+	 * @param InMessage The message payload.
+	 * @param InTypeInfo The message's type information.
+	 * @param InAttachment The binary data to attach to the message.
+	 * @param InSender The sender's address.
+	 * @param InRecipients The message recipients.
+	 * @param InScope The message scope.
+	 * @param InTimeSent The time at which the message was sent.
+	 * @param InExpiration The message's expiration time.
+	 * @param InSenderThread The name of the thread from which the message was sent.
 	 */
 	FMessageContext( void* InMessage, UScriptStruct* InTypeInfo, const IMessageAttachmentPtr& InAttachment, const FMessageAddress& InSender, const TArray<FMessageAddress>& InRecipients, EMessageScope::Type InScope, const FDateTime& InTimeSent, const FDateTime& InExpiration, ENamedThreads::Type InSenderThread )
 		: Attachment(InAttachment)
@@ -54,12 +54,12 @@ public:
 	/**
 	 * Creates and initializes a new message from an existing message context.
 	 *
-	 * @param InContext - The context to initialize from.
-	 * @param InForwarder - The forwarder's address.
-	 * @param NewRecipients - The message recipients.
-	 * @param NewScope - The forwarding scope.
-	 * @param InTimeForwarded - The time at which the message was forwarded.
-	 * @param InSenderThread - The name of the thread from which the message was sent.
+	 * @param InContext The context to initialize from.
+	 * @param InForwarder The forwarder's address.
+	 * @param NewRecipients The message recipients.
+	 * @param NewScope The forwarding scope.
+	 * @param InTimeForwarded The time at which the message was forwarded.
+	 * @param InSenderThread The name of the thread from which the message was sent.
 	 */
 	FMessageContext( const IMessageContextRef& InContext, const FMessageAddress& InForwarder, const TArray<FMessageAddress>& NewRecipients, EMessageScope::Type NewScope, const FDateTime& InTimeForwarded, ENamedThreads::Type InSenderThread )
 		: Attachment(nullptr)

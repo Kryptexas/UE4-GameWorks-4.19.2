@@ -8,7 +8,7 @@
 #include <GameKit/GKAchievementDescription.h>
 
 
-FOnlineAchievementsIOS::FOnlineAchievementsIOS( class FOnlineSubsystemIOS* InSubsystem )
+FOnlineAchievementsIOS::FOnlineAchievementsIOS(class FOnlineSubsystemIOS* InSubsystem)
 {
 	UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::FOnlineAchievementsIOS()"));
 	IOSSubsystem = InSubsystem;
@@ -16,40 +16,50 @@ FOnlineAchievementsIOS::FOnlineAchievementsIOS( class FOnlineSubsystemIOS* InSub
 
 void FOnlineAchievementsIOS::QueryAchievements(const FUniqueNetId & PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
+	// Make a copy of the delegate so it won't be a reference inside the FIOSAsyncTask
+	FOnQueryAchievementsCompleteDelegate CopiedDelegate = Delegate;
+
 	dispatch_async(dispatch_get_main_queue(), ^
 	{
 	[GKAchievement loadAchievementsWithCompletionHandler: ^(NSArray *loadedAchievements, NSError *error)
 		{
-			bool bSuccess = error == NULL;
+			bool bSuccess = (error == NULL);
 			UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::loadAchievementsWithCompletionHandler - %d"), bSuccess);
 
-			if( bSuccess )
+			if (bSuccess)
 			{
-				UE_LOG(LogOnline, Display, TEXT("Loaded %d achievements"), [loadedAchievements count]);
-				Achievements.Empty();
-
-				for( int32 AchievementIdx = 0; AchievementIdx < [loadedAchievements count]; AchievementIdx++ )
+				// Write the achievements back to our Achievements array
+				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 				{
-					GKAchievement* LoadedAchievement = [loadedAchievements objectAtIndex:AchievementIdx];
-					UE_LOG(LogOnline, Display, TEXT("Loaded achievement: %s"), *FString(LoadedAchievement.identifier));
-					
-					Achievements.AddZeroed();
-					FOnlineAchievement& OnlineAchievement = Achievements[AchievementIdx];
-					OnlineAchievement.Id = LoadedAchievement.identifier;
-					OnlineAchievement.Progress = LoadedAchievement.percentComplete;
-				}
+					UE_LOG(LogOnline, Display, TEXT("Loaded %d achievements"), [loadedAchievements count]);
+					Achievements.Empty();
+
+					for( int32 AchievementIdx = 0; AchievementIdx < [loadedAchievements count]; AchievementIdx++ )
+					{
+						GKAchievement* LoadedAchievement = [loadedAchievements objectAtIndex : AchievementIdx];
+						UE_LOG(LogOnline, Display, TEXT("Loaded achievement: %s"), *FString(LoadedAchievement.identifier));
+
+						Achievements.AddZeroed();
+						FOnlineAchievement& OnlineAchievement = Achievements[AchievementIdx];
+						OnlineAchievement.Id = LoadedAchievement.identifier;
+						OnlineAchievement.Progress = LoadedAchievement.percentComplete;
+					}
+
+					CopiedDelegate.ExecuteIfBound(PlayerId, true);
+					return true;
+				}];
 			}
 			else
 			{
-				UE_LOG(LogOnline, Display, TEXT("Failed to load achievements with error [%d]"), [error code]);
-			}
+				UE_LOG(LogOnline, Warning, TEXT("Failed to load achievements with error [%d]"), [error code]);
 
-			// Report back to the game thread whether this succeeded.
-			[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
-			{
-				Delegate.ExecuteIfBound(PlayerId, bSuccess);
-				return true;
-			}];
+				// Report back to the game thread this failed.
+				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+				{
+					CopiedDelegate.ExecuteIfBound(PlayerId, false);
+					return true;
+				}];
+			}
 		}
 	];
 	});
@@ -57,56 +67,68 @@ void FOnlineAchievementsIOS::QueryAchievements(const FUniqueNetId & PlayerId, co
 
 void FOnlineAchievementsIOS::QueryAchievementDescriptions(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate)
 {
+	FOnQueryAchievementsCompleteDelegate CopiedDelegate = Delegate;
+
 	dispatch_async(dispatch_get_main_queue(), ^
 	{
 		[GKAchievementDescription loadAchievementDescriptionsWithCompletionHandler : ^ (NSArray *descriptions, NSError *error)
 		{
-			bool bSuccess = error == NULL;
+			bool bSuccess = (error == NULL);
 			UE_LOG(LogOnline, Display, TEXT("FOnlineSubsystemIOS::loadAchievementDescriptionsWithCompletionHandler - %d"), bSuccess);
 
 			if (bSuccess)
-			{
-				AchievementDescriptions.Empty();
-
-				for (GKAchievementDescription* desc in descriptions)
+			{				
+				// Report back to the game thread whether this succeeded.
+				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 				{
-					FString Id(desc.identifier);
+					AchievementDescriptions.Empty();
 
-					FOnlineAchievementDesc OnlineAchievementDesc;
-					OnlineAchievementDesc.Title = FText::FromString(desc.title);
-					OnlineAchievementDesc.LockedDesc = FText::FromString(desc.unachievedDescription);
-					OnlineAchievementDesc.UnlockedDesc = FText::FromString(desc.achievedDescription);
-					OnlineAchievementDesc.bIsHidden = desc.hidden;
+					for (GKAchievementDescription* desc in descriptions)
+					{
+						FString Id(desc.identifier);
 
-					UE_LOG(LogOnline, Display, TEXT("============================================"));
-					UE_LOG(LogOnline, Display, TEXT("Loaded achievement id: %s"), *Id);
-					UE_LOG(LogOnline, Display, TEXT("Loaded achievement title: %s"), *OnlineAchievementDesc.Title.ToString());
-					UE_LOG(LogOnline, Display, TEXT("Loaded achievement locked desc: %s"), *OnlineAchievementDesc.LockedDesc.ToString());
-					UE_LOG(LogOnline, Display, TEXT("Loaded achievement unlocked desc: %s"), *OnlineAchievementDesc.UnlockedDesc.ToString());
-					UE_LOG(LogOnline, Display, TEXT("Loaded achievement hidden: %d"), OnlineAchievementDesc.bIsHidden);
-					UE_LOG(LogOnline, Display, TEXT("============================================"));
+						FOnlineAchievementDesc OnlineAchievementDesc;
+						OnlineAchievementDesc.Title = FText::FromString(desc.title);
+						OnlineAchievementDesc.LockedDesc = FText::FromString(desc.unachievedDescription);
+						OnlineAchievementDesc.UnlockedDesc = FText::FromString(desc.achievedDescription);
+						OnlineAchievementDesc.bIsHidden = desc.hidden;
 
-					AchievementDescriptions.Add(Id, OnlineAchievementDesc);
-				}
+						UE_LOG(LogOnline, Display, TEXT("============================================"));
+						UE_LOG(LogOnline, Display, TEXT("Loaded achievement id: %s"), *Id);
+						UE_LOG(LogOnline, Display, TEXT("Loaded achievement title: %s"), *OnlineAchievementDesc.Title.ToString());
+						UE_LOG(LogOnline, Display, TEXT("Loaded achievement locked desc: %s"), *OnlineAchievementDesc.LockedDesc.ToString());
+						UE_LOG(LogOnline, Display, TEXT("Loaded achievement unlocked desc: %s"), *OnlineAchievementDesc.UnlockedDesc.ToString());
+						UE_LOG(LogOnline, Display, TEXT("Loaded achievement hidden: %d"), OnlineAchievementDesc.bIsHidden);
+						UE_LOG(LogOnline, Display, TEXT("============================================"));
+
+						AchievementDescriptions.Add(Id, OnlineAchievementDesc);
+					}
+
+					CopiedDelegate.ExecuteIfBound(PlayerId, true);
+					return true;
+				}];
 			}
 			else
 			{
-				UE_LOG(LogOnline, Display, TEXT("Failed to load achievement descriptionss with error [%d]"), [error code]);
-			}
+				UE_LOG(LogOnline, Warning, TEXT("Failed to load achievement descriptions with error [%d]"), [error code]);
 
-			// Report back to the game thread whether this succeeded.
-			[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
-			{
-				Delegate.ExecuteIfBound(PlayerId, bSuccess);
-				return true;
-			}];
+				// Report the failure back to the game thread
+				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+				{
+					CopiedDelegate.ExecuteIfBound(PlayerId, false);
+					return true;
+				}];
+			}
 		}];
 	});
 }
 
 
-bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& InWriteObject)
+void FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& InWriteObject, const FOnAchievementsWrittenDelegate& Delegate)
 {
+	// Make a copy of the delegate so it won't be a reference inside the FIOSAsyncTask
+	FOnAchievementsWrittenDelegate CopiedDelegate = Delegate;
+
 	// Hold a reference to the write object for the completion handler to write to.
 	FOnlineAchievementsWriteRef WriteObject = InWriteObject;
 	WriteObject->WriteState = EOnlineAsyncTaskState::InProgress;
@@ -121,9 +143,11 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 		const FVariantData& Stat = It.Value();
 
 		// Create an achievement object which should be reported to the server.
-		NSString* AchievementID = [NSString stringWithFString:NormalizeAchievementName(It.Key().ToString())];
+		const FString AchievementName(It.Key().ToString());
+		NSString* AchievementID = [NSString stringWithFString:AchievementName];
 		
 		GKAchievement* Achievement = [[[GKAchievement alloc] initWithIdentifier:AchievementID] autorelease];
+		Achievement.showsCompletionBanner = YES;
 
 		// Setup the percentage complete with the value we are writing from the variant type
 		switch (Stat.GetType())
@@ -155,7 +179,7 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 	}
 
 	// flush the achievements to the server
-	if( [UnreportedAchievements count] > 0 )
+	if ([UnreportedAchievements count] > 0)
 	{
 		dispatch_async(dispatch_get_main_queue(), ^
 		{
@@ -166,11 +190,11 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 					for (GKAchievement* achievement in UnreportedAchievements)
 					{
 						FString AchievementId(achievement.identifier);
-						UE_LOG(LogOnline, Display, TEXT("Successfully reported achievement: %s, isComplete:%d"), *AchievementId, [achievement isCompleted] ? 1 : 0);
+						UE_LOG(LogOnline, Display, TEXT("Successfully reported achievement: %s, isCompleted:%d"), *AchievementId, [achievement isCompleted] ? 1 : 0);
 
+						// Report any completed achievements to the game thread
 						if ([achievement isCompleted])
 						{
-							// Report back to the game thread whether this succeeded.
 							[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 							{
 								TriggerOnAchievementUnlockedDelegates(PlayerId, AchievementId);
@@ -181,19 +205,19 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 				}
 				else
 				{
-					UE_LOG(LogOnline, Display, TEXT("Failed to report achievements with error[%d]"), [Error code]);
+					UE_LOG(LogOnline, Warning, TEXT("Failed to report achievements with error[%d]"), [Error code]);
 				}
 
 				// Release any handle of the achievements back to the IOS gc
 				[UnreportedAchievements release];
 
 				// Report whether this succeeded or not back to whoever is listening.
-				WriteObject->WriteState = Error == nil ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
+				WriteObject->WriteState = (Error == nil) ? EOnlineAsyncTaskState::Done : EOnlineAsyncTaskState::Failed;
+
 				// Report back to the game thread whether this succeeded.
-				
 				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 				{
-					TriggerOnAchievementsWrittenDelegates(PlayerId, Error == nil);
+					CopiedDelegate.ExecuteIfBound(PlayerId, Error == nil);
 					return true;
 				}];
 			}
@@ -203,19 +227,17 @@ bool FOnlineAchievementsIOS::WriteAchievements(const FUniqueNetId& PlayerId, FOn
 	else
 	{
 		UE_LOG(LogOnline, Warning, TEXT("No achievements were written to be flushed"));
-		TriggerOnAchievementsWrittenDelegates( PlayerId, false );
 		WriteObject->WriteState = EOnlineAsyncTaskState::Failed;
+		CopiedDelegate.ExecuteIfBound(PlayerId, false);
 	}
-
-	return WriteObject->WriteState != EOnlineAsyncTaskState::Failed;
 }
 
 
 EOnlineCachedResult::Type FOnlineAchievementsIOS::GetCachedAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement)
 {
-	for( int32 AchievementIdx = 0; AchievementIdx < Achievements.Num(); AchievementIdx++ )
+	for (int32 AchievementIdx = 0; AchievementIdx < Achievements.Num(); AchievementIdx++)
 	{
-		if( Achievements[AchievementIdx].Id == AchievementId )
+		if (Achievements[AchievementIdx].Id == AchievementId)
 		{
 			OutAchievement = Achievements[AchievementIdx];
 			return EOnlineCachedResult::Success;
@@ -232,35 +254,46 @@ EOnlineCachedResult::Type FOnlineAchievementsIOS::GetCachedAchievements(const FU
 	OutAchievements = Achievements;
 
 	// did we have them cached?
-	return OutAchievements.Num() > 0 ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
+	return (OutAchievements.Num() > 0) ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
 }
-
 
 EOnlineCachedResult::Type FOnlineAchievementsIOS::GetCachedAchievementDescription(const FString& AchievementId, FOnlineAchievementDesc& OutAchievementDesc)
 {
-	FOnlineAchievementDesc* FoundDesc = AchievementDescriptions.Find( AchievementId );
-	if( FoundDesc != NULL )
+	if (FOnlineAchievementDesc* FoundDesc = AchievementDescriptions.Find(AchievementId))
 	{
 		OutAchievementDesc = *FoundDesc;
+		return EOnlineCachedResult::Success;
 	}
-	return ( FoundDesc != NULL ) ? EOnlineCachedResult::Success : EOnlineCachedResult::NotFound;
-}
-
-
-FString FOnlineAchievementsIOS::NormalizeAchievementName( const FString& InAchievementId )
-{
-	FString Id = InAchievementId;
-	if( Id.Find( TEXT(".") ) == INDEX_NONE )
+	else
 	{
-		Id = FString::Printf( TEXT("grp.%s"), *InAchievementId );
+		return EOnlineCachedResult::NotFound;
 	}
-	return Id;
 }
 
 #if !UE_BUILD_SHIPPING
 bool FOnlineAchievementsIOS::ResetAchievements( const FUniqueNetId& PlayerId )
 {
-	check(!TEXT("ResetAchievements has not been implemented for IOS"));
-	return false;
+	dispatch_async(dispatch_get_main_queue(), ^
+	{
+		[GKAchievement resetAchievementsWithCompletionHandler : ^(NSError *error)
+		{
+			bool bSuccess = error == NULL;
+			UE_LOG(LogOnline, Display, TEXT("FOnlineAchievementsIOS::ResetAchievements - %d"), bSuccess ? 1 : 0);
+
+			if (bSuccess)
+			{
+				// Wipe out the achievement descriptions back on the game thread.
+				[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+				{
+					Achievements.Empty();
+					AchievementDescriptions.Empty();
+					return true;
+				}];
+			}
+		}
+		];
+	});
+
+	return true;
 };
 #endif // !UE_BUILD_SHIPPING

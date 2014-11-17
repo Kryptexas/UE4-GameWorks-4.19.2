@@ -90,9 +90,14 @@ FDateTime GetDate(const FString& InDateString);
 void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsXml, const FString& UserName, FHistoryOutput& OutHistory);
 
 /**
+ * Parse the xml results of an 'svn info' command
+ */
+void ParseInfoResults(const TArray<FXmlFile>& ResultsXml, FString& OutRepoRoot);
+
+/**
  * Parse the xml results of an 'svn status' command
  */
-void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString>& InErrorMessages, const FString& InUserName, TArray<FSubversionSourceControlState>& OutStates);
+void ParseStatusResults(const TArray<FXmlFile>& ResultsXml, const TArray<FString>& InErrorMessages, const FString& InUserName, const FString& InWorkingCopyRoot, TArray<FSubversionSourceControlState>& OutStates);
 
 /**
  * Helper function for various commands to update cached states.

@@ -167,7 +167,7 @@ public:
 	 *	@return						if true then at least one actor can be assigned; 
 	 *								If false, either Invalid actors were discovered or all actors are already assigned
 	 */
-	bool CanAssignActors( const TArray< TWeakObjectPtr<AActor> > Actors, FString& OutMessage ) const;
+	bool CanAssignActors(const TArray< TWeakObjectPtr<AActor> > Actors, FText& OutMessage) const;
 
 	/**
 	 *	Returns whether the specified actor can be assigned to the Level
@@ -177,7 +177,7 @@ public:
 	 *	@return						if true then at least one actor can be assigned; 
 	 *								If false, either the Actor is Invalid or already assigned
 	 */
-	bool CanAssignActor( const TWeakObjectPtr<AActor> Actor, FString& OutMessage ) const;
+	bool CanAssignActor(const TWeakObjectPtr<AActor> Actor, FText& OutMessage) const;
 	
 	/**
 	 *	Appends all of the actors associated with this Level to the specified list

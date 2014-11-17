@@ -81,6 +81,9 @@ public:
 	 */
 	void OnSearchBoxTextChanged( const FText& InSearchText );
 
+	/** Callback when the user commits the text in the searchbox */
+	void OnSearchBoxTextCommitted(const FText& NewText, ETextCommit::Type CommitInfo);
+
 	void OnAddComponentSelectionChanged( FComponentClassComboEntryPtr InItem, ESelectInfo::Type SelectInfo );
 
 	TSharedRef<ITableRow> GenerateAddComponentRow( FComponentClassComboEntryPtr Entry, const TSharedRef<STableViewBase> &OwnerTable ) const;
@@ -109,4 +112,7 @@ private:
 
 	/** The component list control - part of the combo drop down */
 	TSharedPtr< SListView<FComponentClassComboEntryPtr> > ComponentClassListView;
+
+	/** Cached selection index used to skip over unselectable items */
+	int32 PrevSelectedIndex;
 };

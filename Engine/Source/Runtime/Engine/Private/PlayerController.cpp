@@ -3,16 +3,13 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
-#include "EngineKismetLibraryClasses.h"
 #include "SoundDefinitions.h"
-#include "EngineUserInterfaceClasses.h"
-#include "EngineInterpolationClasses.h"
-#include "EngineLevelScriptClasses.h"
 #include "OnlineSubsystemUtils.h"
 #include "IHeadMountedDisplay.h"
 #include "IForceFeedbackSystem.h"
 #include "Slate.h"
 #include "GameFramework/TouchInterface.h"
+#include "DisplayDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerController, Log, All);
 
@@ -74,12 +71,23 @@ UNetConnection* APlayerController::GetNetConnection()
 
 bool APlayerController::IsLocalController() const
 {
+	if (Player == NULL)
+	{
+		UE_LOG(LogPlayerController, Warning, TEXT("Calling IsLocalController() while Player is NULL is undefined!"));
+	}
+
+	ENetMode NetMode = GetNetMode();
+	if (NetMode == NM_DedicatedServer)
+	{
+		return false;
+	}
+
 	if (Super::IsLocalController())
 	{
 		return true;
 	}
 
-	if (GetNetMode() == NM_Client)
+	if (NetMode == NM_Client)
 	{
 		// Clients only receive their own PC. We are not ROLE_AutonomousProxy until after PostInitializeComponents so we can't check that.
 		return true;
@@ -257,9 +265,9 @@ bool APlayerController::ServerUpdateLevelVisibility_Validate(FName PackageName, 
 
 void APlayerController::ClientAddTextureStreamingLoc_Implementation(FVector InLoc, float Duration, bool bOverrideLocation )
 {
-	if (GStreamingManager != NULL)
+	if (!IStreamingManager::HasShutdown())
 	{
-		GStreamingManager->AddViewSlaveLocation(InLoc, 1.0f, bOverrideLocation, Duration);
+		IStreamingManager::Get().AddViewSlaveLocation(InLoc, 1.0f, bOverrideLocation, Duration);
 	}
 }
 
@@ -384,39 +392,27 @@ void APlayerController::ServerNotifyLoadedWorld_Implementation(FName WorldPackag
 
 	UWorld* CurWorld = GetWorld();
 
-	// Only valid for calling, for PC's that have seamlessly traveled
-	if (CurWorld != NULL && CurWorld->IsServer() && SeamlessTravelCount > 0)
+	// Only valid for calling, for PC's in the process of seamless traveling
+	// NOTE: SeamlessTravelCount tracks client seamless travel, through the serverside gameplay code; this should not be replaced.
+	if (CurWorld != NULL && CurWorld->IsServer() && SeamlessTravelCount > 0 && LastCompletedSeamlessTravelCount < SeamlessTravelCount)
 	{
-		// Ensure this PC has not already completed seamless travel
-		if (LastSeamlessTravelCount == SeamlessTravelCount)
+		// Update our info on what world the client is in
+		UNetConnection* const Connection = Cast<UNetConnection>(Player);
+
+		if (Connection != NULL)
 		{
-			// Client sent too many ServerNotifyLoadedWorld RPC's, this is very suspicious, the client is most likely hacking
-			UE_LOG(LogPlayerController, Warning, TEXT("APlayerController::ServerNotifyLoadedWorld_Implementation: Client attempting to travel to same world twice!"));
-
-			// FIXME: Close the connection?  We need to resolve what to do when we know for certain a client is cheating.
-
-			return;	
+			Connection->ClientWorldPackageName = WorldPackageName;
+			Connection->PackageMap->SetLocked(false);
 		}
-		else
+
+		// if both the server and this client have completed the transition, handle it
+		FSeamlessTravelHandler& SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld(CurWorld);
+		AGameMode* CurGameMode = CurWorld->GetAuthGameMode();
+
+		if (!SeamlessTravelHandler.IsInTransition() && WorldPackageName == CurWorld->GetOutermost()->GetFName() && CurGameMode != NULL)
 		{
-			// Update our info on what world the client is in
-			UNetConnection* const Connection = Cast<UNetConnection>(Player);
-
-			if (Connection != NULL)
-			{
-				Connection->ClientWorldPackageName = WorldPackageName;
-				Connection->PackageMap->SetLocked(false);
-			}
-
-			// if both the server and this client have completed the transition, handle it
-			FSeamlessTravelHandler& SeamlessTravelHandler = GEngine->SeamlessTravelHandlerForWorld(CurWorld);
-			AGameMode* CurGameMode = CurWorld->GetAuthGameMode();
-
-			if (!SeamlessTravelHandler.IsInTransition() && WorldPackageName == CurWorld->GetOutermost()->GetFName() && CurGameMode != NULL)
-			{
-				AController* TravelPlayer = this;
-				CurGameMode->HandleSeamlessTravelPlayer(TravelPlayer);
-			}
+			AController* TravelPlayer = this;
+			CurGameMode->HandleSeamlessTravelPlayer(TravelPlayer);
 		}
 	}
 }
@@ -653,11 +649,14 @@ void APlayerController::Possess(APawn* PawnToPossess)
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
+	if (!IsPendingKill() && GetNetMode() != NM_DedicatedServer)
 	{
-		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
-		DebuggingController->RegisterComponent();
-		DebuggingController->InitializeComponent();
+		if (!DebuggingController)
+		{
+			DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+			DebuggingController->RegisterComponent();
+			DebuggingController->InitBasicFuncionality();
+		}
 	}
 #endif
 }
@@ -681,7 +680,7 @@ void APlayerController::ReceivedPlayer()
 	{
 		if (GetSpectatorPawn() == NULL)
 		{
-			SetSpectatorPawn(SpawnSpectatorPawn());
+			BeginSpectatingState();
 		}
 	}
 }
@@ -803,7 +802,17 @@ void APlayerController::PostInitializeComponents()
 	AddCheats();
 
 	bPlayerIsWaiting = true;
-	ChangeState(NAME_Spectating);
+	StateName = NAME_Spectating; // Don't use ChangeState, because we want to defer spawning the SpectatorPawn until the Player is received
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (!IsPendingKill() && DebuggingController == NULL && GetNetMode() != NM_DedicatedServer)
+	{
+		DebuggingController = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+		DebuggingController->RegisterComponent();
+		DebuggingController->InitializeComponent();
+	}
+#endif
+
 }
 
 bool APlayerController::ServerShortTimeout_Validate()
@@ -900,17 +909,17 @@ void APlayerController::CreateTouchInterface()
 	// do we want to show virtual joysticks?
 	if (LocalPlayer && LocalPlayer->ViewportClient && SVirtualJoystick::ShouldDisplayTouchInterface())
 	{
-		// create the joystick 
-		VirtualJoystick = SNew(SVirtualJoystick);
-
-		// add it to the player's viewport
-		LocalPlayer->ViewportClient->AddViewportWidgetContent(VirtualJoystick.ToSharedRef());
-
 		// load what the game wants to show at startup
 		FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
 
 		if (DefaultTouchInterfaceName.IsValid())
 		{
+			// create the joystick 
+			VirtualJoystick = SNew(SVirtualJoystick);
+
+			// add it to the player's viewport
+			LocalPlayer->ViewportClient->AddViewportWidgetContent(VirtualJoystick.ToSharedRef());
+
 			// activate this interface if we have it
 			UTouchInterface* DefaultTouchInterface = LoadObject<UTouchInterface>(NULL, *DefaultTouchInterfaceName.ToString());
 			if (DefaultTouchInterface != NULL)
@@ -1170,6 +1179,19 @@ void APlayerController::ClientTeamMessage_Implementation( APlayerState* SenderPl
 	if( Player != NULL && CastChecked<ULocalPlayer>(Player)->ViewportClient->ViewportConsole )
 	{
 		CastChecked<ULocalPlayer>(Player)->ViewportClient->ViewportConsole->OutputText( SMod );
+	}
+}
+
+bool APlayerController::ServerToggleAILogging_Validate()
+{
+	return true;
+}
+
+void APlayerController::ServerToggleAILogging_Implementation()
+{
+	if (CheatManager)
+	{
+		CheatManager->ServerToggleAILogging();
 	}
 }
 
@@ -1687,37 +1709,47 @@ bool APlayerController::GetHitResultUnderFingerForObjects(ETouchIndex::Type Fing
 	return bHit;
 }
 
-void APlayerController::DeprojectMousePositionToWorld(FVector & WorldPosition, FVector & WorldDirection) const
+void APlayerController::DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL)
+	{
+		FVector2D ScreenPosition = LocalPlayer->ViewportClient->GetMousePosition();
+		DeprojectScreenPositionToWorld(ScreenPosition.X, ScreenPosition.Y, WorldLocation, WorldDirection);
+	}
+}
+
+void APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 
 	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
 	{
-		FVector2D ScreenPosition = LocalPlayer->ViewportClient->GetMousePosition();
-
 		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
+		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 			LocalPlayer->ViewportClient->Viewport,
 			GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags )
-			.SetRealtimeUpdate(true) );
+			LocalPlayer->ViewportClient->EngineShowFlags)
+			.SetRealtimeUpdate(true));
 
 		// Calculate a view where the player is to update the streaming from the players start location
 		FVector ViewLocation;
 		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
+		FSceneView* SceneView = LocalPlayer->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport);
 
 		if (SceneView)
 		{
-			SceneView->DeprojectFVector2D(ScreenPosition, WorldPosition, WorldDirection);
+			const FVector2D ScreenPosition(ScreenX, ScreenY);
+			SceneView->DeprojectFVector2D(ScreenPosition, WorldLocation, WorldDirection);
 		}
 	}
 }
 
+
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
 	// Early out if we clicked on a HUD hitbox
-	if( GetHUD() != NULL && GetHUD()->AnyCurrentHitBoxHits() )
+	if( GetHUD() != NULL && GetHUD()->GetHitBoxAtCoordinates(ScreenPosition, true) )
 	{
 		return false;
 	}
@@ -1755,7 +1787,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ETraceTypeQuery TraceChannel, bool bTraceComplex, FHitResult& HitResult) const
 {
 	// Early out if we clicked on a HUD hitbox
-	if( GetHUD() != NULL && GetHUD()->AnyCurrentHitBoxHits() )
+	if (GetHUD() != NULL && GetHUD()->GetHitBoxAtCoordinates(ScreenPosition, true))
 	{
 		return false;
 	}
@@ -1793,7 +1825,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, bool bTraceComplex, FHitResult& HitResult) const
 {
 	// Early out if we clicked on a HUD hitbox
-	if( GetHUD() != NULL && GetHUD()->AnyCurrentHitBoxHits() )
+	if (GetHUD() != NULL && GetHUD()->GetHitBoxAtCoordinates(ScreenPosition, true))
 	{
 		return false;
 	}
@@ -1920,6 +1952,14 @@ void APlayerController::PlayerTick( float DeltaTime )
 	}
 }
 
+void APlayerController::FlushPressedKeys()
+{
+	if (PlayerInput)
+	{
+		PlayerInput->FlushPressedKeys();
+	}
+}
+
 bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
 {
 	bool bResult = false;
@@ -1931,6 +1971,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 		// TODO: Allow click key(s?) to be defined
 		if (bEnableClickEvents && Key == EKeys::LeftMouseButton)
 		{
+			const FVector2D MousePosition = CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition();
 			UPrimitiveComponent* ClickedPrimitive = NULL;
 			if (bEnableMouseOverEvents)
 			{
@@ -1938,11 +1979,8 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 			}
 			else
 			{
-				FVector2D MouseLocation;
-				GetInputMouseDelta(MouseLocation.X, MouseLocation.Y);
-
 				FHitResult HitResult;
-				const bool bHit = GetHitResultAtScreenPosition(CastChecked<ULocalPlayer>(Player)->ViewportClient->GetMousePosition(), CurrentClickTraceChannel, true, HitResult);
+				const bool bHit = GetHitResultAtScreenPosition(MousePosition, CurrentClickTraceChannel, true, HitResult);
 				if (bHit)
 				{
 					ClickedPrimitive = HitResult.Component.Get();
@@ -1950,7 +1988,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 			}
 			if( GetHUD() )
 			{
-				if( GetHUD()->UpdateAndDispatchHitBoxClickEvents(EventType) )
+				if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(MousePosition, EventType, false))
 				{
 					ClickedPrimitive = NULL;
 				}
@@ -1961,6 +1999,7 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 				switch(EventType)
 				{
 				case IE_Pressed:
+				case IE_DoubleClick:
 					ClickedPrimitive->DispatchOnClicked();
 					break;
 
@@ -1972,6 +2011,18 @@ bool APlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDe
 
 			bResult = true;
 		}
+	}
+
+	return bResult;
+}
+
+bool APlayerController::InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad)
+{
+	bool bResult = false;
+	
+	if (PlayerInput)
+	{
+		bResult = PlayerInput->InputAxis(Key, Delta, DeltaTime, NumSamples, bGamepad);
 	}
 
 	return bResult;
@@ -1994,6 +2045,17 @@ bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const F
 
 			UPrimitiveComponent* PreviousComponent = CurrentTouchablePrimitives[Handle].Get();
 			UPrimitiveComponent* CurrentComponent = (bHit ? HitResult.Component.Get() : NULL);
+
+			if (GetHUD())
+			{
+				if (Type == ETouchType::Began || Type == ETouchType::Ended)
+				{
+					if (GetHUD()->UpdateAndDispatchHitBoxClickEvents(TouchLocation, (Type == ETouchType::Began ? EInputEvent::IE_Pressed : EInputEvent::IE_Released), true))
+					{
+						CurrentComponent = NULL;
+					}
+				}
+			}
 
 			switch(Type)
 			{
@@ -2044,6 +2106,18 @@ bool APlayerController::InputTouch(uint32 Handle, ETouchType::Type Type, const F
 	return bResult;
 }
 
+bool APlayerController::InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration)
+{
+	bool bResult = false;
+
+	if (PlayerInput)
+	{
+		bResult = PlayerInput->InputMotion(Tilt, RotationRate, Gravity, Acceleration);
+	}
+
+	return bResult;
+}
+
 bool APlayerController::ShouldShowMouseCursor() const
 {
 	return bShowMouseCursor;
@@ -2074,6 +2148,11 @@ void APlayerController::SetupInputComponent()
 	{
 		InputComponent->bBlockInput = bBlockInput;
 		UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
+	}
+
+	if (GetNetMode() != NM_DedicatedServer && InputComponent && DebuggingController)
+	{
+		DebuggingController->BindActivationKeys();
 	}
 }
 
@@ -2541,7 +2620,7 @@ void APlayerController::ClientIgnoreLookInput_Implementation(bool bIgnore)
 }
 
 
-void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
@@ -2550,7 +2629,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 	Canvas->DrawText(RenderFont, FString::Printf(TEXT("STATE %s"), *GetStateName().ToString()), 4.0f, YPos );
 	YPos += YL;
 
-	if (DebugDisplay.Contains(NAME_Camera))
+	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
 		if (PlayerCameraManager != NULL)
 		{
@@ -2565,7 +2644,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 			YPos += YL;
 		}
 	}
-	if ( DebugDisplay.Contains(NAME_Input) )
+	if ( DebugDisplay.IsDisplayOn(NAME_Input) )
 	{
 		TArray<UInputComponent*> InputStack;
 		BuildInputStack(InputStack);
@@ -2600,7 +2679,7 @@ void APlayerController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>&
 			YPos += YL;
 		}
 	}
-	if ( DebugDisplay.Contains("ForceFeedback"))
+	if ( DebugDisplay.IsDisplayOn("ForceFeedback"))
 	{
 		Canvas->SetDrawColor(255, 255, 255);
 		Canvas->DrawText(RenderFont, FString::Printf(TEXT("Force Feedback - LL: %.2f LS: %.2f RL: %.2f RS: %.2f"), ForceFeedbackValues.LeftLarge, ForceFeedbackValues.LeftSmall, ForceFeedbackValues.RightLarge, ForceFeedbackValues.RightSmall), 4.0f, YPos);
@@ -3183,7 +3262,7 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 	}
 }
 
-void APlayerController::ClientPlayCameraShake_Implementation( TSubclassOf<class UCameraShake> Shake, float Scale, ECameraAnimPlaySpace PlaySpace, FRotator UserPlaySpaceRot )
+void APlayerController::ClientPlayCameraShake_Implementation( TSubclassOf<class UCameraShake> Shake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot )
 {
 	if (PlayerCameraManager != NULL)
 	{
@@ -3201,15 +3280,11 @@ void APlayerController::ClientStopCameraShake_Implementation( TSubclassOf<class 
 
 void APlayerController::ClientPlayCameraAnim_Implementation( UCameraAnim* AnimToPlay, float Scale, float Rate,
 						float BlendInTime, float BlendOutTime, bool bLoop,
-						bool bRandomStartTime, ECameraAnimPlaySpace Space, FRotator CustomPlaySpace )
+						bool bRandomStartTime, ECameraAnimPlaySpace::Type Space, FRotator CustomPlaySpace )
 {
 	if (PlayerCameraManager != NULL)
 	{
-		UCameraAnimInst* AnimInst = PlayerCameraManager->PlayCameraAnim(AnimToPlay, Rate, Scale, BlendInTime, BlendOutTime, bLoop, bRandomStartTime);
-		if (AnimInst != NULL && Space != CAPS_CameraLocal)
-		{
-			AnimInst->SetPlaySpace(Space, CustomPlaySpace);
-		}
+		PlayerCameraManager->PlayCameraAnim(AnimToPlay, Rate, Scale, BlendInTime, BlendOutTime, bLoop, bRandomStartTime, 0.f, Space, CustomPlaySpace);
 	}
 }
 
@@ -3217,7 +3292,7 @@ void APlayerController::ClientStopCameraAnim_Implementation(UCameraAnim* AnimToS
 {
 	if (PlayerCameraManager != NULL)
 	{
-		PlayerCameraManager->StopAllCameraAnimsByType(AnimToStop);
+		PlayerCameraManager->StopAllInstancesOfCameraAnim(AnimToStop);
 	}
 }
 
@@ -3240,7 +3315,7 @@ void APlayerController::ReceivedSpectatorClass(TSubclassOf<AGameMode> SpectatorC
 	{
 		if (GetSpectatorPawn() == NULL)
 		{
-			SetSpectatorPawn(SpawnSpectatorPawn());
+			BeginSpectatingState();
 		}
 	}
 }
@@ -3419,7 +3494,19 @@ bool APlayerController::IsNetRelevantFor(APlayerController* RealViewer, AActor* 
 	return ( this==RealViewer );
 }
 
-void APlayerController::ClientTravel_Implementation(const FString& URL, ETravelType TravelType, bool bSeamless, FGuid MapPackageGuid)
+void APlayerController::ClientTravel(const FString& URL, ETravelType TravelType, bool bSeamless, FGuid MapPackageGuid)
+{
+	// Keep track of seamless travel serverside
+	if (bSeamless && TravelType == TRAVEL_Relative)
+	{
+		SeamlessTravelCount++;
+	}
+
+	// Now pass on to the RPC
+	ClientTravelInternal(URL, TravelType, bSeamless, MapPackageGuid);
+}
+
+void APlayerController::ClientTravelInternal_Implementation(const FString& URL, ETravelType TravelType, bool bSeamless, FGuid MapPackageGuid)
 {
 	UWorld* World = GetWorld();
 
@@ -3530,6 +3617,8 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 				SpawnedSpectator->PossessedBy(this);
 				SpawnedSpectator->PawnClientRestart();
 				SpawnedSpectator->SetActorTickEnabled(true);
+
+				UE_LOG(LogPlayerController, Log, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
 			}
 			else
 			{
@@ -3538,7 +3627,8 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 		}
 		else
 		{
-			UE_LOG(LogPlayerController, Warning, TEXT("NULL GameState when trying to spawn spectator!"));
+			// This normally happens on clients if the Player is replicated but the GameState has not yet.
+			UE_LOG(LogPlayerController, Log, TEXT("NULL GameState when trying to spawn spectator!"));
 		}
 	}
 
@@ -3707,6 +3797,10 @@ bool APlayerController::PopInputComponent(UInputComponent* InputComponent)
 			for (FInputAxisKeyBinding& AxisKeyBinding : InputComponent->AxisKeyBindings)
 			{
 				AxisKeyBinding.AxisValue = 0.f;
+			}
+			for (FInputVectorAxisBinding& VectorAxisBinding : InputComponent->VectorAxisBindings)
+			{
+				VectorAxisBinding.AxisValue = FVector::ZeroVector;
 			}
 
 			return true;

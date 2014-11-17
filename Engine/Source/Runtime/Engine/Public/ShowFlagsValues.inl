@@ -1,9 +1,9 @@
 // usage
 //
 // General purpose showflag (always variable):
-// SHOWFLAG_ALWAYS_ACCESSIBLE( <showflag name>, <showflag group>, <LOCTEXT stuff>)
+// SHOWFLAG_ALWAYS_ACCESSIBLE( <showflag name>, <showflag group>, <Localized TEXT stuff>)
 // Fixed in shipping builds:
-// SHOWFLAG_FIXED_IN_SHIPPING( <showflag name>, <fixed bool>, <showflag group>, <LOCTEXT stuff>)
+// SHOWFLAG_FIXED_IN_SHIPPING( <showflag name>, <fixed bool>, <showflag group>, <Localized TEXT stuff>)
 
 #ifndef SHOWFLAG_ALWAYS_ACCESSIBLE
 #error SHOWFLAG_ALWAYS_ACCESSIBLE macro is undefined.
@@ -53,7 +53,13 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(ReflectionOverride, SFG_Hidden, LOCTEXT("ReflectionOv
 /** needed for VMI_VisualizeBuffer, Whether to enable the buffer visualization mode. */
 SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeBuffer, SFG_Hidden, LOCTEXT("VisualizeBufferSF", "Buffer Visualization"))
 /** Allows to disable all direct lighting (does not affect indirect light) */
-SHOWFLAG_ALWAYS_ACCESSIBLE(DirectLighting, SFG_LightingComponents, LOCTEXT("DirectLightingSF", "Direct Lighting"))
+SHOWFLAG_FIXED_IN_SHIPPING(DirectLighting, 1, SFG_LightingComponents, LOCTEXT("DirectLightingSF", "Direct Lighting"))
+/** Allows to disable lighting from Directional Lights */
+SHOWFLAG_FIXED_IN_SHIPPING(DirectionalLights, 1, SFG_LightingComponents, LOCTEXT("DirectionalLightsSF", "Directional Lights"))
+/** Allows to disable lighting from Point Lights */
+SHOWFLAG_FIXED_IN_SHIPPING(PointLights, 1, SFG_LightingComponents, LOCTEXT("PointLightsSF", "Point Lights"))
+/** Allows to disable lighting from Spot Lights */
+SHOWFLAG_FIXED_IN_SHIPPING(SpotLights, 1, SFG_LightingComponents, LOCTEXT("SpotLightsSF", "Spot Lights"))
 /** Color correction after tone mapping */
 SHOWFLAG_ALWAYS_ACCESSIBLE(ColorGrading, SFG_PostProcess, LOCTEXT("ColorGradingSF", "Color Grading"))
 /** Visualize vector fields. */
@@ -245,7 +251,7 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(PrecomputedVisibility, SFG_Advanced, LOCTEXT("Precomp
 /** Contribution from sky light */
 SHOWFLAG_ALWAYS_ACCESSIBLE(SkyLighting, SFG_LightingComponents, LOCTEXT("SkyLightingSF", "Sky Lighting"))
 /** Visualize Light Propagation Volume, for developer (by default off): */
-SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeLPV, SFG_Visualize, LOCTEXT("LpvLightingOnlySF", "LPV Lighting Only"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeLPV, SFG_Visualize, LOCTEXT("VisualizeLPVSF", "Visualize Light Propagation Volume"))
 /** Visualize preview shadow indicator */
 SHOWFLAG_ALWAYS_ACCESSIBLE(PreviewShadowsIndicator, SFG_Visualize, LOCTEXT("PreviewShadowIndicatorSF", "Preview Shadows Indicator"))
 /** Visualize precomputed visibilty cells */
@@ -253,7 +259,9 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(PrecomputedVisibilityCells, SFG_Visualize, LOCTEXT("P
 /** Visualize volume lighting samples used for GI on dynamic objects */
 SHOWFLAG_ALWAYS_ACCESSIBLE(VolumeLightingSamples, SFG_Visualize, LOCTEXT("VolumeLightingSamplesSF", "Volume Lighting Samples"))
 /** needed for VMI_LpvLightingViewMode, Whether to show only LPV lighting*/
-SHOWFLAG_ALWAYS_ACCESSIBLE(LpvLightingOnly, SFG_Hidden, LOCTEXT("VisualizeLPVSF", "Visualize LPV"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(LpvLightingOnly, SFG_Hidden, LOCTEXT("VisualizeLPVSF_ViewMode", "Visualize LPV"))
+/** Render Paper2D sprites */
+SHOWFLAG_ALWAYS_ACCESSIBLE(Paper2DSprites, SFG_Advanced, LOCTEXT("Paper2DSpritesSF", "Paper 2D Sprites"))
 
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

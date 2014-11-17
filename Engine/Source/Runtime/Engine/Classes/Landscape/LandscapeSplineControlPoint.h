@@ -36,7 +36,7 @@ struct FLandscapeSplineConnection
 	ENGINE_API struct FLandscapeSplineSegmentConnection& GetFarConnection() const;
 };
 
-UCLASS(HeaderGroup=Terrain,Within=LandscapeSplinesComponent,autoExpandCategories=LandscapeSplineControlPoint,MinimalAPI)
+UCLASS(Within=LandscapeSplinesComponent,autoExpandCategories=LandscapeSplineControlPoint,MinimalAPI)
 class ULandscapeSplineControlPoint : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -174,4 +174,6 @@ public:
 	void UnregisterComponents();
 
 	virtual bool OwnsComponent(const class UControlPointMeshComponent* ControlPointMeshComponent) const;
+
+	friend class FEdModeLandscape;
 };

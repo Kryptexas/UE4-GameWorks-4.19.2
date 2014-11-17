@@ -137,7 +137,7 @@ bool UParticleModuleSpawn::GenerateLODModuleValues(UParticleModule* SourceModule
 			// Don't drop below 1...
 			if (Burst->Count > 0)
 			{
-				Burst->Count = FMath::Trunc(SourceBurst->Count * (Percentage / 100.0f));
+				Burst->Count = FMath::TruncToInt(SourceBurst->Count * (Percentage / 100.0f));
 				if (Burst->Count == 0)
 				{
 					Burst->Count = 1;
@@ -357,7 +357,7 @@ bool UParticleModuleSpawnPerUnit::GetSpawnAmount(FParticleEmitterInstance* Owner
 
 			// Calculate number of particles to emit
 			float NewLeftover = (TravelDistance + LeftoverTravel) * ParticlesPerUnit;
-			Number = FMath::Floor(NewLeftover);
+			Number = FMath::FloorToInt(NewLeftover);
 			float InvDeltaTime = (DeltaTime > 0.0f) ? 1.0f / DeltaTime : 0.0f;
 			Rate = Number * InvDeltaTime;
 			NewTravelLeftover = (TravelDistance + LeftoverTravel) - (Number * UnitScalar);

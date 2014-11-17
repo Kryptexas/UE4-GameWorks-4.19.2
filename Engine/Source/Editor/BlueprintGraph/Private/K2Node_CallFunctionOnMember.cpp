@@ -101,7 +101,7 @@ void UK2Node_CallFunctionOnMember::ExpandNode(class FKismetCompilerContext& Comp
 				UEdGraphPin* DestPin = CallFuncNode->FindPin(SrcPin->PinName);
 				if(DestPin != NULL)
 				{
-					CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SrcPin, *DestPin), this); // Source node is assumed to be owner...
+					CompilerContext.MovePinLinksToIntermediate(*SrcPin, *DestPin); // Source node is assumed to be owner...
 				}
 			}
 		}

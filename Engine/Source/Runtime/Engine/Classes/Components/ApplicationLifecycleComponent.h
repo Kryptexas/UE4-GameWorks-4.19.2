@@ -5,7 +5,7 @@
 
 #include "ApplicationLifecycleComponent.generated.h"
 
-UCLASS(HeaderGroup=Component, ClassGroup=Utility, HideCategories=(Activation, "Components|Activation", Collision), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Utility, HideCategories=(Activation, "Components|Activation", Collision), meta=(BlueprintSpawnableComponent))
 class ENGINE_API UApplicationLifecycleComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

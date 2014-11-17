@@ -31,15 +31,21 @@ namespace K2ActionCategories
 	static FString const AxisValuesSubCategory   = LOCTEXT("ActionValuesCategory", "Axis Values").ToString();
 	static FString const AxisEventsSubCategory   = LOCTEXT("AxisEventsCategory",   "Axis Events").ToString();
 	static FString const KeyEventsSubCategory    = LOCTEXT("KeyEventsCategory",    "Key Events").ToString();
+	static FString const KeyValuesSubCategory    = LOCTEXT("KeyValuesCategory", "Key Values").ToString();
 	static FString const GamepadEventsSubCategory = LOCTEXT("GamepadEventsCategory", "Gamepad Events").ToString();
+	static FString const GamepadValuesSubCategory = LOCTEXT("GamepadValuesCategory", "Gamepad Values").ToString();
 	static FString const MouseEventsSubCategory = LOCTEXT("MouseEventsCategory", "Mouse Events").ToString();
+	static FString const MouseValuesSubCategory = LOCTEXT("MouseValuesCategory", "Mouse Values").ToString();
 
 	static FString const ActionEventsCategory = InputCategory + SubCategoryDelim + ActionEventsSubCategory;
 	static FString const AxisCategory         = InputCategory + SubCategoryDelim + AxisValuesSubCategory;
 	static FString const AxisEventCategory    = InputCategory + SubCategoryDelim + AxisEventsSubCategory;
 	static FString const KeyEventsCategory    = InputCategory + SubCategoryDelim + KeyEventsSubCategory;
+	static FString const KeyValuesCategory    = InputCategory + SubCategoryDelim + KeyValuesSubCategory;
 	static FString const GamepadEventsCategory = InputCategory + SubCategoryDelim + GamepadEventsSubCategory;
+	static FString const GamepadValuesCategory = InputCategory + SubCategoryDelim + GamepadValuesSubCategory;
 	static FString const MouseEventsCategory = InputCategory + SubCategoryDelim + MouseEventsSubCategory;
+	static FString const MouseValuesCategory = InputCategory + SubCategoryDelim + MouseValuesSubCategory;
 	static FString const TouchEventsCategory = InputCategory;
 
 
@@ -153,24 +159,10 @@ static void GetInputNodes(FGraphActionListBuilderBase& ActionMenuBuilder, const 
 
 				const bool bGamepad = Key.IsGamepadKey();
 				const bool bMouse = Key.IsMouseButton();
-				const FString& KeyCategory = (bGamepad ? K2ActionCategories::GamepadEventsCategory : (bMouse ? K2ActionCategories::MouseEventsCategory : K2ActionCategories::KeyEventsCategory));
+				const FString& KeyEventCategory = (bGamepad ? K2ActionCategories::GamepadEventsCategory : (bMouse ? K2ActionCategories::MouseEventsCategory : K2ActionCategories::KeyEventsCategory));
 
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, KeyCategory, KeyName, KeyName.ToString());
-
-				if (Key.IsAxis())
-				{
-					UK2Node_InputAxisKeyEvent* InputKeyAxisNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputAxisKeyEvent>();
-					InputKeyAxisNode->Initialize(Key);
-					Action->NodeTemplate = InputKeyAxisNode;
-					Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
-				}
-				else
-				{
-					UK2Node_InputKey* InputKeyNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputKey>();
-					InputKeyNode->InputKey = Key;
-					Action->NodeTemplate = InputKeyNode;
-					Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
-				}
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, KeyEventCategory, KeyName, KeyName.ToString());
+				TSharedPtr<FEdGraphSchemaAction_K2NewNode> GetAction;
 
 				if (bGamepad)
 				{
@@ -183,6 +175,42 @@ static void GetInputNodes(FGraphActionListBuilderBase& ActionMenuBuilder, const 
 				else
 				{
 					Action->Keywords = TEXT("Input Key InputKey Keyboard");
+				}
+
+				if (Key.IsFloatAxis())
+				{
+					UK2Node_InputAxisKeyEvent* InputKeyAxisNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputAxisKeyEvent>();
+					InputKeyAxisNode->Initialize(Key);
+					Action->NodeTemplate = InputKeyAxisNode;
+					Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
+
+					const FString& KeyValuesCategory = (bGamepad ? K2ActionCategories::GamepadValuesCategory : (bMouse ? K2ActionCategories::MouseValuesCategory : K2ActionCategories::KeyValuesCategory));
+					GetAction = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, KeyValuesCategory, KeyName, KeyName.ToString());
+					UK2Node_GetInputAxisKeyValue* GetInputAxisKeyValue = ActionMenuBuilder.CreateTemplateNode<UK2Node_GetInputAxisKeyValue>();
+					GetInputAxisKeyValue->Initialize(Key);
+					GetAction->NodeTemplate = GetInputAxisKeyValue;
+					GetAction->Keywords = Action->Keywords;
+				}
+				else if (Key.IsVectorAxis())
+				{
+					UK2Node_InputVectorAxisEvent* InputVectorAxisNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputVectorAxisEvent>();
+					InputVectorAxisNode->Initialize(Key);
+					Action->NodeTemplate = InputVectorAxisNode;
+					Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
+
+					const FString& KeyValuesCategory = (bGamepad ? K2ActionCategories::GamepadValuesCategory : (bMouse ? K2ActionCategories::MouseValuesCategory : K2ActionCategories::KeyValuesCategory));
+					GetAction = FK2ActionMenuBuilder::AddNewNodeAction(ActionMenuBuilder, KeyValuesCategory, KeyName, KeyName.ToString());
+					UK2Node_GetInputVectorAxisValue* GetInputVectorAxisValue = ActionMenuBuilder.CreateTemplateNode<UK2Node_GetInputVectorAxisValue>();
+					GetInputVectorAxisValue->Initialize(Key);
+					GetAction->NodeTemplate = GetInputVectorAxisValue;
+					GetAction->Keywords = Action->Keywords;
+				}
+				else
+				{
+					UK2Node_InputKey* InputKeyNode = ActionMenuBuilder.CreateTemplateNode<UK2Node_InputKey>();
+					InputKeyNode->InputKey = Key;
+					Action->NodeTemplate = InputKeyNode;
+					Action->SearchTitle = Action->NodeTemplate->GetNodeSearchTitle();
 				}
 			}
 		}
@@ -243,11 +271,11 @@ static void GetCommentAction(UBlueprint const* BlueprintIn, FGraphActionListBuil
 }
 
 /** */
-static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuBuilder, bool bNumEnum, bool bForEach, bool bCastFromByte, UEnum* OnlyEnum = NULL)
+static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuBuilder, bool bNumEnum, bool bForEach, bool bCastFromByte, bool bLiteralByte, UEnum* OnlyEnum = NULL)
 {
 	struct FGetEnumUtilitiesNodes
 	{
-		static void Get(FBlueprintGraphActionListBuilder& InContextMenuBuilder, bool bInNumEnum, bool bInForEach, bool bInCastFromByte, UEnum* Enum, const FString& Category)
+		static void Get(FBlueprintGraphActionListBuilder& InContextMenuBuilder, bool bInNumEnum, bool bInForEach, bool bInCastFromByte, bool bLiteralByte, UEnum* Enum, const FString& Category)
 		{
 			const bool bIsBlueprintType = UEdGraphSchema_K2::IsAllowableBlueprintVariableType(Enum);
 			if (bIsBlueprintType)
@@ -285,13 +313,23 @@ static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuB
 					Action->NodeTemplate = NodeTemplate;
 					Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 				}
+
+				if (bLiteralByte)
+				{
+					UK2Node_EnumLiteral* EnumTemplate = InContextMenuBuilder.CreateTemplateNode<UK2Node_EnumLiteral>();
+					EnumTemplate->Enum = Enum;
+					UK2Node* NodeTemplate = EnumTemplate;
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(
+						InContextMenuBuilder, Category, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+					Action->NodeTemplate = NodeTemplate;
+				}
 			}
 		}
 	};
 
 	if (OnlyEnum)
 	{
-		FGetEnumUtilitiesNodes::Get(ContextMenuBuilder, bNumEnum, bForEach, bCastFromByte, OnlyEnum, K2ActionCategories::EnumCategory);
+		FGetEnumUtilitiesNodes::Get(ContextMenuBuilder, bNumEnum, bForEach, bCastFromByte, bLiteralByte, OnlyEnum, K2ActionCategories::EnumCategory);
 	}
 	else
 	{
@@ -299,7 +337,7 @@ static void GetEnumUtilitiesNodes(FBlueprintGraphActionListBuilder& ContextMenuB
 		{
 			if (UEnum* CurrentEnum = *EnumIt)
 			{
-				FGetEnumUtilitiesNodes::Get(ContextMenuBuilder, bNumEnum, bForEach, bCastFromByte, CurrentEnum, K2ActionCategories::EnumCategory);
+				FGetEnumUtilitiesNodes::Get(ContextMenuBuilder, bNumEnum, bForEach, bCastFromByte, bLiteralByte, CurrentEnum, K2ActionCategories::EnumCategory);
 			}
 		}
 	}
@@ -919,24 +957,14 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 
 			for (TArray<FEdGraphPinType>::TIterator TypeIt(TemporaryTypes); TypeIt; ++TypeIt)
 			{
-				// For function graphs, supply the menu options for named local variables, otherwise supply the un-named local variables
-				UK2Node* NodeTemplate;
-				if(GraphType == GT_Function)
+				// Add a standard version of the local
 				{
-					UK2Node_LocalVariable* LocalVariableNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_LocalVariable>();
-					LocalVariableNodeTemplate->VariableType = *TypeIt;
-					NodeTemplate = LocalVariableNodeTemplate;
+					UK2Node_TemporaryVariable* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_TemporaryVariable>();
+					NodeTemplate->VariableType = *TypeIt;
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
+					Action->NodeTemplate = NodeTemplate;
+					Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 				}
-				else
-				{
-					UK2Node_TemporaryVariable* TemporaryVariableNodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_TemporaryVariable>();
-					TemporaryVariableNodeTemplate->VariableType = *TypeIt;
-					NodeTemplate = TemporaryVariableNodeTemplate;
-				}
-
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::MacroToolsCategory, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-				Action->NodeTemplate = NodeTemplate;
-				Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 			}
 
 			// Add in bool and int persistent pin types
@@ -982,30 +1010,9 @@ void FK2ActionMenuBuilder::GetContextAllowedNodeTypes(FBlueprintGraphActionListB
 			SelectionAction->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 		}
 
-		if (GraphType == GT_Ubergraph && bAllowEvents && !bIsConstructionScript && bAllowImpureFuncs)
-		{
-			for ( TObjectIterator<UClass> it; it; ++it )
-			{
-				UClass* CurrentInterface = *it;
-				if (CurrentInterface->HasAnyClassFlags(CLASS_Abstract))
-				{
-					continue;
-				}
-
-				if (CurrentInterface->IsChildOf( UK2Node_BaseAsyncTask::StaticClass() ))
-				{
-					UK2Node* NodeTemplate = NewObject<UK2Node_BaseAsyncTask>(ContextMenuBuilder.OwnerOfTemporaries, CurrentInterface);
-					FString CategoryName = FString::Printf( TEXT("%s|%s"), *K2ActionCategories::GenericFunctionCategory, *CurrentInterface->GetDefaultObject<UK2Node_BaseAsyncTask>()->GetCategoryName());
-					TSharedPtr<FEdGraphSchemaAction_K2NewNode> SelectionAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, CategoryName, NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-					SelectionAction->NodeTemplate = NodeTemplate;
-					SelectionAction->SearchTitle = NodeTemplate->GetNodeSearchTitle();
-				}
-			}
-		}
-
 		FEditorDelegates::OnBlueprintContextMenuCreated.Broadcast(ContextMenuBuilder);
 
-		GetEnumUtilitiesNodes(ContextMenuBuilder, true, true, true);
+		GetEnumUtilitiesNodes(ContextMenuBuilder, true, true, true, true);
 	}
 }
 
@@ -1016,7 +1023,7 @@ struct FClassDynamicCastHelper
 	static bool CanCastToClass(const UClass* TestClass, const UEdGraphSchema_K2* K2Schema)
 	{
 		check(TestClass && K2Schema);
-		const bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+		const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 		const bool bProperClass = TestClass->HasAnyFlags(RF_Public) && !TestClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists);
 		const bool bAllowedByBPComms = K2Schema->bAllowBlueprintComms || !TestClass->ClassGeneratedBy;
 		return !bIsSkeletonClass && bProperClass && bAllowedByBPComms;
@@ -1134,7 +1141,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 			GetAllInterfaceMessageActions(ContextMenuBuilder);		
 		}
-		else if (FromPin.PinType.PinCategory == K2Schema->PC_Object)
+		else if ((FromPin.PinType.PinCategory == K2Schema->PC_Object) || (FromPin.PinType.PinCategory == K2Schema->PC_Interface))
 		{
 			// For Object types, look for functions we can call on that object
 			UClass* PinClass = Cast<UClass>(FromPin.PinType.PinSubCategoryObject.Get());
@@ -1208,7 +1215,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 					for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 					{
 						UClass* TestClass = *ClassIt;
-						bool bIsSkeletonClass = TestClass->HasAnyFlags(RF_Transient) && TestClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+						bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 
 						if (TestClass->HasAnyFlags(RF_Public) && !bIsSkeletonClass && !TestClass->HasAnyClassFlags(CLASS_Deprecated|CLASS_NewerVersionExists) && (K2Schema->bAllowBlueprintComms || !TestClass->ClassGeneratedBy))
 						{
@@ -1313,7 +1320,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 				Action->NodeTemplate = NodeTemplate;
 				Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
 
-				UFunction* Signature = Cast<UFunction>(FromPin.PinType.PinSubCategoryObject.Get());
+				UFunction* Signature = FMemberReference::ResolveSimpleMemberReference<UFunction>(FromPin.PinType.PinSubCategoryMemberReference);
 				const bool bSupportsEventGraphs = (Blueprint && FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint));
 				const bool bAllowEvents = (GraphType == GT_Ubergraph);
 				if(Signature && bSupportsEventGraphs && bAllowEvents)
@@ -1329,7 +1336,7 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 
 		if ((FromPin.Direction == EGPD_Input) && (FromPin.PinType.PinCategory == K2Schema->PC_Int))
 		{
-			GetEnumUtilitiesNodes(ContextMenuBuilder, true, false, false);
+			GetEnumUtilitiesNodes(ContextMenuBuilder, true, false, false, true);
 		}
 		else if(FromPin.PinType.PinCategory == K2Schema->PC_Text)
 		{
@@ -1347,17 +1354,12 @@ void FK2ActionMenuBuilder::GetPinAllowedNodeTypes(FBlueprintGraphActionListBuild
 			}
 			if (FromPin.Direction == EGPD_Input)
 			{
-				GetEnumUtilitiesNodes(ContextMenuBuilder, false, true, true, Enum);
+				GetEnumUtilitiesNodes(ContextMenuBuilder, false, true, true, false, Enum);
 			}
 		}
-
-		// Assignment statement for local variables
-		if(FromPin.GetOwningNode()->IsA(UK2Node_TemporaryVariable::StaticClass()))
+		else if ((FromPin.PinType.PinCategory == K2Schema->PC_Byte) && !Enum && FromPin.Direction == EGPD_Input)
 		{
-			UK2Node* NodeTemplate = ContextMenuBuilder.CreateTemplateNode<UK2Node_AssignmentStatement>();
-			TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, TEXT(""), NodeTemplate->GetNodeTitle(ENodeTitleType::ListView), NodeTemplate->GetTooltip(), 0, NodeTemplate->GetKeywords());
-			Action->NodeTemplate = NodeTemplate;
-			Action->SearchTitle = NodeTemplate->GetNodeSearchTitle();
+			GetEnumUtilitiesNodes(ContextMenuBuilder, false, false, false, true);
 		}
 	}
 }
@@ -1426,8 +1428,12 @@ void FK2ActionMenuBuilder::GetFuncNodesForClass(FGraphActionListBuilderBase& Lis
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass* TestClass = *ClassIt;
-			if (TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) &&
-				CanUseLibraryFunctionsForScope(TestClass, OwnerClass))
+			const bool bTransient = (GetTransientPackage() == TestClass->GetOutermost());
+			const UClass* AuthoritativeOwnerClass = OwnerClass ? const_cast<UClass*>(OwnerClass)->GetAuthoritativeClass() : NULL;
+			const bool bCanShowInOwnerClass = !AuthoritativeOwnerClass || !TestClass->IsChildOf(AuthoritativeOwnerClass);
+			const bool bIsProperFucntionLibrary = TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) && CanUseLibraryFunctionsForScope(TestClass, OwnerClass);
+			const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
+			if (bCanShowInOwnerClass && bIsProperFucntionLibrary && !bTransient && !bIsSkeletonClass)
 			{
 				GetFuncNodesForClass(ListBuilder, TestClass, OwnerClass, DestGraph, FunctionTypes, BaseCategory, TargetInfo);
 			}
@@ -1747,13 +1753,76 @@ void FK2ActionMenuBuilder::GetVariableGettersSettersForClass(FBlueprintGraphActi
 		}
 	}
 
+	// Add any local variables to the list as well
+	UEdGraph* FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(ContextMenuBuilder.CurrentGraph);
+	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+	FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
+	if(FunctionEntryNodes.Num() == 1)
+	{
+		// Setting them without the property, cannot guarantee that properties in the UFunction are valid as local variables
+		for(auto& LocalVariable : FunctionEntryNodes[0]->LocalVariables)
+		{
+			bool bTypesMatchForRead = !bRequireDesiredPinType;
+			bool bTypesMatchForWrite = !bRequireDesiredPinType;
+			if (bRequireDesiredPinType)
+			{
+				// reading (property out -> pin in)
+				bTypesMatchForRead = K2Schema->ArePinTypesCompatible(LocalVariable.VarType, DesiredPinType, Class);
+
+				// writing (pin out -> property in)
+				// Always allow exec pins to write
+				bTypesMatchForWrite = DesiredPinType.PinCategory == K2Schema->PC_Exec || K2Schema->ArePinTypesCompatible(DesiredPinType, LocalVariable.VarType, Class);
+			}
+
+			FString Category = LocalVariable.Category.ToString();
+			FString PropertyTooltip;
+			if(LocalVariable.HasMetaData(TEXT("tooltip")))
+			{
+				PropertyTooltip = LocalVariable.GetMetaData(TEXT("tooltip"));
+			}
+			FString FullCategoryName = K2ActionCategories::VariablesCategory;
+			if(Category.IsEmpty() == false)
+			{
+				FullCategoryName += K2ActionCategories::SubCategoryDelim;
+				FullCategoryName += Category;
+			}
+
+			const FString PropertyDescription = GetDefault<UEditorStyleSettings>()->bShowFriendlyNames ? LocalVariable.FriendlyName : LocalVariable.VarName.ToString();
+			const bool bCanRead = bWantGetters && bTypesMatchForRead;
+			const bool bCanWrite = bWantSetters && bTypesMatchForWrite;
+			{
+				// Variable getters and setters
+				if (bCanRead)
+				{
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> ReadVar = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FullCategoryName, FText::FromString(GetString + PropertyDescription), PropertyTooltip);
+
+					UK2Node_VariableGet* VarGetNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_VariableGet>();
+					VarGetNode->VariableReference.SetLocalMember(LocalVariable.VarName, FunctionGraph->GetName(), LocalVariable.VarGuid);
+					ReadVar->NodeTemplate = VarGetNode;
+					ReadVar->SearchTitle = ReadVar->NodeTemplate->GetNodeSearchTitle();
+				}
+
+				if (bCanWrite)
+				{
+					TSharedPtr<FEdGraphSchemaAction_K2NewNode> WriteVar = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, FullCategoryName, FText::FromString(SetString + PropertyDescription), PropertyTooltip);
+
+					UK2Node_VariableSet* VarSetNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_VariableSet>();
+					VarSetNode->VariableReference.SetLocalMember(LocalVariable.VarName, FunctionGraph->GetName(), LocalVariable.VarGuid);
+					WriteVar->NodeTemplate = VarSetNode;
+					WriteVar->SearchTitle = WriteVar->NodeTemplate->GetNodeSearchTitle();
+				}
+			}
+		}
+	}
+
 	if (bWantDelegates)
 	{
 		GetEventDispatcherNodesForClass(ContextMenuBuilder,Class, bSelfContext);
 	}
 
 	// Add in self-context variable getter, if needed
-	if( bSelfContext && bWantGetters )
+	const bool bSelfIsAllowed = !Class->IsChildOf(UBlueprintFunctionLibrary::StaticClass());
+	if (bSelfContext && bWantGetters && bSelfIsAllowed)
 	{
 		TSharedPtr<FEdGraphSchemaAction_K2NewNode> SelfVar = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::VariablesCategory, FText::FromString(SelfString), SelfTooltip);
 
@@ -2453,8 +2522,9 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass* TestClass = *ClassIt;
+			const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(TestClass);
 			if (TestClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass()) &&
-				CanUseLibraryFunctionsForScope(OwnerClass, TestClass))
+				CanUseLibraryFunctionsForScope(OwnerClass, TestClass) && !bIsSkeletonClass)
 			{
 				GetFuncNodesWithPinType(ContextMenuBuilder, TestClass, OwnerClass, DesiredPinType, bWantOutput, bPureOnly);
 			}

@@ -12,6 +12,8 @@
 /** Max number of controller buttons.  Must be < 256*/
 #define MAX_NUM_CONTROLLER_BUTTONS 26
 
+DECLARE_LOG_CATEGORY_EXTERN(LogSteamController, Log, All);
+
 /**
  * Interface class for XInput devices (xbox 360 controller)                 
  */

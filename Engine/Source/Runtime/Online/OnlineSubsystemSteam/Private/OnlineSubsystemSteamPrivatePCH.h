@@ -5,7 +5,10 @@
 #include "Engine.h"
 #include "OnlineSubsystemSteamModule.h"
 #include "OnlineSubsystemModule.h"
+#include "OnlineSubsystemUtils.h"
+#include "OnlineSubsystemUtilsClasses.h"
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemUtils.h"
 #include "SocketSubsystem.h"
 
 #include "ModuleManager.h"
@@ -13,7 +16,7 @@
 #define INVALID_INDEX -1
 
 /** Name of the current Steam SDK version in use (matches directory name) */
-#define STEAM_SDK_VER TEXT("Steamv128")
+#define STEAM_SDK_VER TEXT("Steamv129")
 
 /** FName declaration of Steam subsystem */
 #define STEAM_SUBSYSTEM FName(TEXT("STEAM"))

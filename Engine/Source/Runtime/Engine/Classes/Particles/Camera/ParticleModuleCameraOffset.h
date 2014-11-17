@@ -10,13 +10,13 @@
 UENUM()
 enum EParticleCameraOffsetUpdateMethod
 {
-	EPCOUM_DirectSet,
-	EPCOUM_Additive,
-	EPCOUM_Scalar,
+	EPCOUM_DirectSet UMETA(DisplayName="Direct Set"),
+	EPCOUM_Additive UMETA(DisplayName="Additive"),
+	EPCOUM_Scalar UMETA(DisplayName="Scalar"),
 	EPCOUM_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Camera Offset"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Camera Offset"))
 class UParticleModuleCameraOffset : public UParticleModuleCameraBase
 {
 	GENERATED_UCLASS_BODY()
@@ -57,6 +57,4 @@ class UParticleModuleCameraOffset : public UParticleModuleCameraBase
 	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) OVERRIDE;
 	//End UParticleModule Interface
 };
-
-
 

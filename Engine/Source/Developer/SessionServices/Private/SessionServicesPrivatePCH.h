@@ -6,13 +6,14 @@
 
 #pragma once
 
+#include "SessionServices.h"
+
 
 /* Dependencies
  *****************************************************************************/
 
-#include "../Public/SessionServices.h"
-
 #include "EngineMessages.h"
+#include "Messaging.h"
 #include "SessionMessages.h"
 #include "Ticker.h"
 

@@ -1282,7 +1282,7 @@ public:
 	TMap<FGuid, FUniformBufferRHIRef> ParameterCollections;
 
 	/** Initialization constructor. */
-	FScene(UWorld* InWorld,bool bInRequiresHitProxies,bool bInIsEditorScene);
+	FScene(UWorld* InWorld, bool bInRequiresHitProxies,bool bInIsEditorScene, ERHIFeatureLevel::Type InFeatureLevel);
 
 	virtual ~FScene();
 
@@ -1307,7 +1307,7 @@ public:
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponent2D* CaptureComponent);
 	virtual void UpdateSceneCaptureContents(class USceneCaptureComponentCube* CaptureComponent);
 	virtual void AllocateReflectionCaptures(const TArray<UReflectionCaptureComponent*>& NewCaptures);
-	virtual void UpdateSkyCaptureContents(USkyLightComponent* CaptureComponent);
+	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap);
 	virtual void AddPrecomputedLightVolume(const class FPrecomputedLightVolume* Volume);
 	virtual void RemovePrecomputedLightVolume(const class FPrecomputedLightVolume* Volume);
 	virtual void UpdateLightTransform(ULightComponent* Light);
@@ -1429,6 +1429,8 @@ public:
 
 	virtual bool IsEditorScene() const OVERRIDE { return bIsEditorScene; }
 
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() const OVERRIDE { return FeatureLevel; }
+
 private:
 
 	/**
@@ -1539,20 +1541,11 @@ private:
 	 * Note: This is tracked on the game thread!
 	 */
 	bool bHasSkyLight;
-};
 
-/**
- * Computes the LOD to render for the list of static meshes.
- * @param List of static meshes.
- * @param The squared distance to the primitive.
- * @param Squared scale to apply to the squared max draw distance.
- * @param ForcedLODLevel from "r.ForceLOD"
- */
-int8 ComputeLODForMeshes(
-	const TIndirectArray<class FStaticMesh>& StaticMeshes,
-	float DistanceSquared,
-	float MaxDrawDistanceScaleSquared,
-	int32 ForcedLODLevel
-	);
+	/** 
+	 * Feature level that this scene should render using
+	 */
+	ERHIFeatureLevel::Type FeatureLevel;
+};
 
 #endif // __SCENEPRIVATE_H__

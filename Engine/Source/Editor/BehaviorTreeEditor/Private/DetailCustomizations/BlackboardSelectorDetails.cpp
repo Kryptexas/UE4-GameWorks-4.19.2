@@ -1,7 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "../BehaviorTreeEditorPrivatePCH.h"
+#include "BehaviorTreeEditorPrivatePCH.h"
 #include "BlackboardSelectorDetails.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "BlackboardSelectorDetails"
 
@@ -14,9 +15,12 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlackboardSelectorDetails::CustomizeStructHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IStructCustomizationUtils& StructCustomizationUtils )
 {
 	MyStructProperty = StructPropertyHandle;
+	PropUtils = StructCustomizationUtils.GetPropertyUtilities().Get();
+
 	CacheBlackboardData();
 	
-	HeaderRow.NameContent()
+	HeaderRow.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FBlackboardSelectorDetails::IsEditingEnabled)))
+		.NameContent()
 		[
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
@@ -25,7 +29,7 @@ void FBlackboardSelectorDetails::CustomizeStructHeader( TSharedRef<class IProper
 			SNew(SComboButton)
 			.OnGetMenuContent(this, &FBlackboardSelectorDetails::OnGetKeyContent)
  			.ContentPadding(FMargin( 2.0f, 2.0f ))
-			.IsEnabled_Static(&FBehaviorTreeDebugger::IsPIENotSimulating)
+			.IsEnabled(this, &FBlackboardSelectorDetails::IsEditingEnabled)
 			.ButtonContent()
 			[
 				SNew(STextBlock) 
@@ -197,6 +201,11 @@ void FBlackboardSelectorDetails::OnKeyComboChange(int32 Index)
 			MyKeyNameProperty->SetValue(KeyValues[Index]);
 		}
 	}
+}
+
+bool FBlackboardSelectorDetails::IsEditingEnabled() const
+{
+	return FBehaviorTreeDebugger::IsPIENotSimulating() && PropUtils->IsPropertyEditingEnabled();
 }
 
 #undef LOCTEXT_NAMESPACE

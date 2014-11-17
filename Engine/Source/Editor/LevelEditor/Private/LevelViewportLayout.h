@@ -60,6 +60,13 @@ public:
 	 */
 	bool IsLevelViewportVisible( const class SLevelViewport& InViewport ) const;
 
+	/**
+	* Checks to see if the specified level viewport supports maximizing one pane
+	*
+	* @return true if the viewport supports maximizing
+	*/
+	bool IsMaximizeSupported() const { return bIsMaximizeSupported; }
+
 	/** 
 	 * Checks to see if the specified level viewport is maximized
 	 *
@@ -203,6 +210,9 @@ protected:
 
 	/** Temporarily set to true while we are querying layout metrics and want all widgets to be visible */
 	bool bIsQueryingLayoutMetrics;
+
+	/** True if the layout supports maximizing one viewport, false if the feature is disabled  */
+	bool bIsMaximizeSupported;
 
 	/** True if we're currently maximized */
 	bool bIsMaximized;

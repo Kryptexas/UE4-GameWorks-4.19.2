@@ -93,9 +93,11 @@ void FSlateOpenGLShader::CompileShader( const FString& Filename, GLenum ShaderTy
 	ANSICHAR* Chars[2] = {0};
 	// pass the #define along to the shader
 #if PLATFORM_USES_ES2
-	Chars[0] = (ANSICHAR*)"#define PLATFORM_USES_ES2 1\n";
+	Chars[0] = (ANSICHAR*)"#define PLATFORM_USES_ES2 1\n\n#define PLATFORM_LINUX 0\n";
+#elif PLATFORM_LINUX
+	Chars[0] = (ANSICHAR*)"#version 150\n\n#define PLATFORM_USES_ES2 0\n\n#define PLATFORM_LINUX 1\n";
 #else
-	Chars[0] = (ANSICHAR*)"#version 120\n\n#define PLATFORM_USES_ES2 0\n";
+	Chars[0] = (ANSICHAR*)"#version 120\n\n#define PLATFORM_USES_ES2 0\n\n#define PLATFORM_LINUX 0\n";
 #endif
 	Chars[1] = new ANSICHAR[Source.Len()+1];
 	FCStringAnsi::Strcpy(Chars[1], Source.Len() + 1, TCHAR_TO_ANSI(*Source));

@@ -30,6 +30,7 @@ public class Matinee : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
                 "InputCore",
 				"LevelEditor",
@@ -37,7 +38,8 @@ public class Matinee : ModuleRules
 				"UnrealEd",
 				"RenderCore",
 				"AssetRegistry",
-                "ContentBrowser"
+				"ContentBrowser",
+				"BlueprintGraph"
 			}
 			);
 

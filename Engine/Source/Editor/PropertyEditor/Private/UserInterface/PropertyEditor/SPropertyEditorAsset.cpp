@@ -201,7 +201,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		.Padding( 2.0f, 0.0f )
 		.VAlign(VAlign_Center)
 		[
-			PropertyCustomizationHelpers::MakeInteractiveActorPicker( FOnGetAllowedClasses::CreateSP(this, &SPropertyEditorAsset::OnGetAllowedClasses), FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected ) )
+			PropertyCustomizationHelpers::MakeInteractiveActorPicker( FOnGetAllowedClasses::CreateSP(this, &SPropertyEditorAsset::OnGetAllowedClasses), FOnShouldFilterActor(), FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected ) )
 		];
 	}
 
@@ -271,7 +271,7 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 
 	if(bIsActor)
 	{
-		TSharedPtr<TFilterCollection<const AActor* const> > ActorFilters = MakeShareable( new TFilterCollection< const AActor* const >() );
+		TSharedPtr<SceneOutliner::FOutlinerFilters> ActorFilters = MakeShareable( new SceneOutliner::FOutlinerFilters );
 		ActorFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateSP( this, &SPropertyEditorAsset::IsFilteredActor ) ) ) );
 
 		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object), bAllowClear, ActorFilters, FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ), FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) );
@@ -384,7 +384,15 @@ void SPropertyEditorAsset::SetValue( const UObject* InObject )
 
 FPropertyAccess::Result SPropertyEditorAsset::GetValue( FObjectOrAssetData& OutValue ) const
 {
+	// Potentially accessing the value while garbage collecting or saving the package could trigger a crash.
+	// so we fail to get the value when that is occuring.
+	if ( GIsSavingPackage || GIsGarbageCollecting )
+	{
+		return FPropertyAccess::Fail;
+	}
+
 	FPropertyAccess::Result Result = FPropertyAccess::Fail;
+
 	if( PropertyEditor.IsValid() && PropertyEditor->GetPropertyHandle()->IsValidHandle() )
 	{
 		UObject* Object = NULL;

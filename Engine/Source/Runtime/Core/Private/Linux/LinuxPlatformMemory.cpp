@@ -94,7 +94,7 @@ class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 			break;
 	}
 
-	wprintf(TEXT("Using %ls.\n"), Allocator ? Allocator->GetDescriptiveName() : TEXT("NULL allocator! We will probably crash right away"));
+	printf("Using %ls.\n", Allocator ? Allocator->GetDescriptiveName() : TEXT("NULL allocator! We will probably crash right away"));
 
 	return Allocator;
 }

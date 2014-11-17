@@ -137,7 +137,7 @@ struct FRootMotionMovementParams
 };
 
 
-UCLASS(HeaderGroup=Component, dependson=(UNetworkPredictionInterface))
+UCLASS(dependson=(UNetworkPredictionInterface))
 class ENGINE_API UCharacterMovementComponent : public UPawnMovementComponent, public INetworkPredictionInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -202,12 +202,10 @@ public:
 	uint8 CustomMovementMode;
 
 	/** Save Base location to check in UpdateBasedMovement() whether base moved in the last frame, and therefore pawn needs an update. */
-	UPROPERTY()
 	FVector OldBaseLocation;
 
 	/** Save Base rotation to check in UpdateBasedMovement() whether base moved in the last frame, and therefore pawn needs an update. */
-	UPROPERTY()
-	FRotator OldBaseRotation;
+	FQuat OldBaseQuat;
 
 	/** Custom gravity scale. Gravity is multiplied by this amount for the character. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
@@ -245,7 +243,7 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	FRotator RotationRate;
 
-	/** If true, rotate the Character toward the Controller's desired rotation, using RotationRate as the rate of rotation change. */
+	/** If true, smoothly rotate the Character toward the Controller's desired rotation, using RotationRate as the rate of rotation change. Overridden by OrientRotationToMovement. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bUseControllerDesiredRotation:1;
 
@@ -383,6 +381,10 @@ protected:
 	UPROPERTY()
 	FVector Acceleration;
 
+	/** Accumulated momentum added this tick */
+	UPROPERTY()
+	FVector PendingMomentumToApply;
+
 	/**
 	 * Modifier to applied to values such as acceleration and max speed due to analog input.
 	 */
@@ -460,7 +462,7 @@ public:
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bImpartBaseVelocityZ:1;
 
-	/** If true, impart the base actor's angular velocity when falling off it (which includes jumping).
+	/** If true, impart the base component's tangential components of angular velocity when jumping or falling off it.
 	  * Only those components of the velocity allowed by the separate component settings (bImpartBaseVelocity[XYZ]) will be applied. */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite)
 	uint32 bImpartBaseAngularVelocity:1;
@@ -513,6 +515,15 @@ public:
 	 */
 	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	uint32 bAlwaysCheckFloor:1;
+
+	/**
+	 * Performs floor checks as if the character is using a box collider.
+	 * This avoids the situation where characters slowly slide down a ledge (as their capsule 'balances' on the edge).
+	 * Note that sweep checks perfomed using the box collision are axis-aligned and use a bounding box that tightly 
+	 * encloses the capsule.
+	 */
+	UPROPERTY(Category="Character Movement", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
+	uint32 bUseFlatBaseForFloorChecks:1;
 
 	/** Used to prevent reentry of JumpOff() */
 	UPROPERTY()
@@ -585,6 +596,10 @@ public:
 	UPROPERTY()
 	FVector PendingLaunchVelocity;
 
+	/** Change avoidance state and registers in RVO manager if needed */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	void SetAvoidanceEnabled(bool bEnable);
+
 	/** Get the Character that owns UpdatedComponent. */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	class ACharacter* GetCharacterOwner() const;
@@ -625,6 +640,8 @@ public:
 	virtual bool IsSwimming() const OVERRIDE;
 	virtual bool IsFlying() const OVERRIDE;
 	virtual float GetGravityZ() const OVERRIDE;
+	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff) OVERRIDE;
+	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange) OVERRIDE;
 	//END UMovementComponent Interface
 
 	//BEGIN UNavMovementComponent Interface
@@ -654,10 +671,12 @@ public:
 	/** Transition from walking to falling */
 	virtual void StartFalling(int32 Iterations, float remainingTime, float timeTick, const FVector& Delta, const FVector& subLoc);
 
-	/** Whether pawn should go into falling mode when starting down a steep decline.
-	 *  @returns false to provide traditional default behavior
-	  */
-	virtual bool ShouldCatchAir(const FVector& OldFloor, const FVector& Floor);
+	/**
+	 * Whether Character should go into falling mode when walking and changing position, based on an old and new floor result (both of which are considered walkable).
+	 * Default implementation always returns false.
+	 * @return true if Character should start falling
+	 */
+	virtual bool ShouldCatchAir(const FFindFloorResult& OldFloor, const FFindFloorResult& NewFloor);
 
 	/** Adjust distance from floor, trying to maintain a slight offset from the floor when walking (based on CurrentFloor). */
 	virtual void AdjustFloorHeight();
@@ -753,7 +772,7 @@ public:
 	virtual float GetModifiedMaxAcceleration() const;
 
 	/** @return Current acceleration, computed from input vector each update. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement", meta=(Keywords="Acceleration GetAcceleration"))
 	FVector GetCurrentAcceleration() const;
 
 	/** @return Modifier [0..1] which affects max speed, based on the magnitude of the input vector. */
@@ -792,6 +811,9 @@ public:
 	/** Applies repulsion force to all touched components */
 	void ApplyRepulsionForce(float DeltaTime);
 	
+	/** Applies momentum accumulated through Addmomentum() */
+	void ApplyAccumulatedMomentum(float DeltaSeconds);	
+
 	/** 
 	 * Handle start swimming functionality
 	 * @param OldLocation - Location on last tick
@@ -878,18 +900,26 @@ public:
 	/** @Return MovementMode string */
 	virtual FString GetMovementName();
 
-	/** Add velocity based on imparted momentum */
-	virtual void AddMomentum( FVector const& Momentum, FVector const& LocationToApplyMomentum, bool bMassIndependent );
+	/** 
+	 * Add velocity based on imparted momentum. Momentum is accumulated each tick and applied together
+	 * so multiple calls to this function will accumulate.
+	 * Note that changing the momentum of characters like this can change the movement mode
+	 * 
+	 * @param	Momentum			Momentum to apply.
+	 * @param	bMassIndependent	Whether or not the momentum should be divided by mass before application.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
+	virtual void AddMomentum( FVector InMomentum, bool bMassIndependent = false );
 
 	/**
 	 * Draw important variables on canvas.  Character will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
 	 *
 	 * @param Canvas - Canvas to draw on
-	 * @param DebugDisplay - List of names specifying what debug info to display
+	 * @param DebugDisplay - Contains information about what debug data to display
 	 * @param YL - Height of the current font
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos);
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
 	/** Check if swimming pawn just ran into edge of the pool and should jump out. */
 	virtual bool CheckWaterJump(FVector CheckPoint, FVector& WallNormal);
@@ -909,8 +939,8 @@ public:
 	float GetValidPerchRadius() const;
 
 	/** Return true if the hit result should be considered a walkable surface for the character. */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual bool IsWalkable(const FHitResult& Hit) const;
-
 
 	/** Get the max angle in degrees of a walkable surface for the character. */
 	FORCEINLINE float GetWalkableFloorAngle() const { return WalkableFloorAngle; }
@@ -1128,7 +1158,7 @@ public:
 	virtual float GetNetworkSafeRandomAngleDegrees() const;
 
 	//--------------------------------
-	// INetworkPredictable implementation
+	// INetworkPredictionInterface implementation
 
 	//--------------------------------
 	// Server hook
@@ -1299,6 +1329,7 @@ public:
 	float TimeStamp;    // Time of this move.
 	float DeltaTime;    // amount of time for this move
 	float CustomTimeDilation;
+	float JumpKeyHoldTime;
 	uint8 MovementMode;	// packed movement mode
 
 	// Information at the start of the move

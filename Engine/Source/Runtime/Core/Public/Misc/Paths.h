@@ -97,6 +97,13 @@ public:
 	static FString GameContentDir();
 
 	/**
+	* Returns the directory the root configuration files are located.
+	*
+	* @return root config directory
+	*/
+	static FString GameConfigDir();
+
+	/**
 	 * Returns the saved directory of the current game by looking at the global
 	 * GGameName variable. 
 	 *
@@ -379,6 +386,15 @@ public:
 	 * @param Extension - file extension ('.' required!)
 	 */
 	static FString CreateTempFilename( const TCHAR* Path, const TCHAR* Prefix = TEXT(""), const TCHAR* Extension = TEXT(".tmp") );
+
+	/** 
+	 * Validates that the parts that make up the path contain no invalid characters as dictated by the operating system
+	 * Note that this is a different set of restrictions to those imposed by FPackageName
+	 *
+	 * @param InPath - path to validate
+	 * @param OutReason - optional parameter to fill with the failure reason
+	 */
+	static bool ValidatePath( const FString& InPath, FText* OutReason = nullptr );
 
 	/**
 	 * Parses a fully qualified or relative filename into its components (filename, path, extension).

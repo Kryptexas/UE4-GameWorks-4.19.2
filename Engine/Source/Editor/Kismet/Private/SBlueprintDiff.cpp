@@ -403,7 +403,7 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 		.VAlign(VAlign_Center)
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff").ToString())
+			.Text(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
 		];
 
 	this->ChildSlot
@@ -441,7 +441,7 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 										[
 											SNew(SImage)
 											.Image(this, &SBlueprintDiff::GetLockViewImage)
-											.ToolTipText(LOCTEXT("BPDifLock", "Lock the blueprint views?").ToString())
+											.ToolTipText(LOCTEXT("BPDifLock", "Lock the blueprint views?"))
 										]
 									]
 									+SVerticalBox::Slot()
@@ -458,11 +458,11 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 												.BorderImage(FEditorStyle::GetBrush("PropertyWindow.CategoryBackground"))
 												.Padding(FMargin(2.0f))
 												.ForegroundColor(FEditorStyle::GetColor("PropertyWindow.CategoryForeground"))
-												.ToolTipText(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff").ToString())
+												.ToolTipText(LOCTEXT("BlueprintDifGraphsToolTip", "Select Graph to Diff"))
 												.HAlign(HAlign_Center)
 												[
 													SNew(STextBlock)
-													.Text(LOCTEXT("BlueprintDifGraphs", "Graphs").ToString())
+													.Text(LOCTEXT("BlueprintDifGraphs", "Graphs"))
 												]
 											]
 											+SVerticalBox::Slot()
@@ -491,7 +491,7 @@ void SBlueprintDiff::Construct( const FArguments& InArgs)
 										.Content()
 										[
 											SNew(STextBlock)
-											.Text(LOCTEXT("DifBlueprintDefaultsToolTip", "Diff Blueprint Defaults").ToString())
+											.Text(LOCTEXT("DifBlueprintDefaultsToolTip", "Diff Blueprint Defaults"))
 										]
 									]
 									+SVerticalBox::Slot()
@@ -660,7 +660,7 @@ void SBlueprintDiff::FDiffPanel::GeneratePanel(UEdGraph* Graph, UEdGraph* GraphT
 								.HAlign(HAlign_Center)
 								.VAlign(VAlign_Center)
 								[
-									SNew(STextBlock).Text( LOCTEXT("BPDifPanelNoGraphTip", "Graph does not exist in this revision").ToString())
+									SNew(STextBlock).Text( LOCTEXT("BPDifPanelNoGraphTip", "Graph does not exist in this revision"))
 								];
 	if(Graph)
 	{

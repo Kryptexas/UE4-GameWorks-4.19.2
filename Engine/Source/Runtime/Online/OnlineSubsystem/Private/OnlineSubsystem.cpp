@@ -2,6 +2,7 @@
 
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineSessionInterface.h"
+#include "OnlineIdentityInterface.h"
 #include "NboSerializer.h"
 
 DEFINE_LOG_CATEGORY(LogOnline);

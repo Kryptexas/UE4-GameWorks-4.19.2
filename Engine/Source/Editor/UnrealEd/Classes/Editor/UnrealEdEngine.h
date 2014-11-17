@@ -79,8 +79,6 @@ struct FTemplateMapInfo
 	}
 };
 
-
-
 UCLASS(config=Engine, transient)
 class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 {
@@ -139,6 +137,10 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	/** List of info for all known template maps */
 	UPROPERTY(config)
 	TArray<FTemplateMapInfo> TemplateMapInfos;
+
+	/** Cooker server incase we want to cook ont he side while editing... */
+	UPROPERTY()
+	class UCookOnTheFlyServer* CookServer;
 
 	/** A mapping of packages to their checkout notify state.  This map only contains dirty packages.  Once packages become clean again, they are removed from the map.*/
 	TMap<TWeakObjectPtr<UPackage>, uint8>	PackageToNotifyState;
@@ -685,7 +687,6 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	bool HandleDumpSelectionCommand( const TCHAR* Str, FOutputDevice& Ar );
 	bool HandleBuildLightingCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleBuildPathsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
-	bool HandleRestoreLandscapeLayerInfosCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleConvertMatineesCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );

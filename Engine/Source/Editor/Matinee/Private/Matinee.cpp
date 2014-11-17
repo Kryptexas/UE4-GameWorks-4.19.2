@@ -13,12 +13,11 @@
 #include "IDistCurveEditor.h"
 
 #include "MatineeClasses.h"
-#include "Matinee.generated.inl"
+
 
 #include "CameraController.h"
 #include "MatineeConstants.h"
 
-#include "EngineInterpolationClasses.h"
 #include "SubtitleManager.h"
 #include "InterpolationHitProxy.h"
 
@@ -2029,7 +2028,7 @@ void FMatinee::OnClose()
 	}
 
 	// Make sure benchmarking mode is disabled (we may have turned it on for 'fixed time step playback')
-	GIsBenchmarking = false;
+	FApp::SetBenchmarking(false);
 
 	// Update UI to reflect any change in realtime status
 	FEditorSupportDelegates::UpdateUI.Broadcast();
@@ -2239,7 +2238,7 @@ void FMatinee::DrawModeHUD(FLevelEditorViewportClient* ViewportClient,FViewport*
 		// Draw subtitles (toggle is handled internally)
 		FVector2D MinPos(0.f, 0.f);
 		FVector2D MaxPos(1.f, .9f);
-		FIntRect SubtitleRegion(FMath::Trunc(SizeX * MinPos.X), FMath::Trunc(SizeY * MinPos.Y), FMath::Trunc(SizeX * MaxPos.X), FMath::Trunc(SizeY * MaxPos.Y));
+		FIntRect SubtitleRegion(FMath::TruncToInt(SizeX * MinPos.X), FMath::TruncToInt(SizeY * MinPos.Y), FMath::TruncToInt(SizeX * MaxPos.X), FMath::TruncToInt(SizeY * MaxPos.Y));
 		FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( Canvas, SubtitleRegion, ViewportClient->GetWorld()->GetAudioTimeSeconds() );
 	}
 	// Camera Shot Names

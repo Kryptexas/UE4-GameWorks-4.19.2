@@ -30,7 +30,7 @@ public:
 			// Create a term to store the locally created delegate that we'll use to add to the MC delegate
 			FBPTerminal* DelegateTerm = new (Context.IsEventGraph() ? Context.EventGraphLocals : Context.Locals) FBPTerminal();
 			DelegateTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Delegate;
-			DelegateTerm->Type.PinSubCategoryObject = DelegateNode->GetDelegateSignature();
+			FMemberReference::FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature(), DelegateTerm->Type.PinSubCategoryMemberReference);
 			DelegateTerm->Source = Node;
 			DelegateTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_TempBindingDelegate");
 			DelegateTerm->bIsLocal = true;
@@ -241,9 +241,11 @@ UK2Node::ERedirectType UK2Node_DelegateSet::DoPinsMatchForReconstruction(const U
 	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(GetSchema());
 	if ((ERedirectType::ERedirectType_None == OrginalResult) && K2Schema && NewPin && OldPin)
 	{
+		bool const bOldPinIsObj = (OldPin->PinType.PinCategory == K2Schema->PC_Object) || (OldPin->PinType.PinCategory == K2Schema->PC_Interface);
+		bool const bNewPinIsObj = (OldPin->PinType.PinCategory == K2Schema->PC_Object) || (OldPin->PinType.PinCategory == K2Schema->PC_Interface);
+
 		if ((NewPin->Direction == EGPD_Input && OldPin->Direction == EGPD_Input) &&
-			(OldPin->PinType.PinCategory == K2Schema->PC_Object) &&
-			(NewPin->PinType.PinCategory == K2Schema->PC_Object))
+			bOldPinIsObj && bNewPinIsObj)
 		{
 			return ERedirectType_Name;
 		}
@@ -287,7 +289,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 						// Hook up the exec pin specially, since it has a different name on the dynamic delegate node
 						UEdGraphPin* OldExecPin = FindPin(Schema->PN_DelegateEntry);
 						check(OldExecPin);
-						CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OldExecPin, *CurrentPin), this);
+						CompilerContext.MovePinLinksToIntermediate(*OldExecPin, *CurrentPin);
 					}
 					else if( CurrentPin->PinName != UK2Node_Event::DelegateOutputName )
 					{
@@ -300,7 +302,7 @@ void UK2Node_DelegateSet::ExpandNode(class FKismetCompilerContext& CompilerConte
 							return;
 						}
 
-						CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OldPin, *CurrentPin), this);
+						CompilerContext.MovePinLinksToIntermediate(*OldPin, *CurrentPin);
 					}
 				}
 			}

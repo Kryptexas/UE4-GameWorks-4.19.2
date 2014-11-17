@@ -9,16 +9,27 @@ public class DeviceProfileServices : ModuleRules
 	{
 		PrivateIncludePaths.Add("Editor/DeviceProfileServices/Private");
 
-		PrivateDependencyModuleNames.AddRange(
+		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
-				"CoreUObject", // @todo Mac: for some reason it's needed to link in debug on Mac
 				"Engine",
-				"UnrealEd",
-				"TargetDeviceServices",
 			}
 		);
 
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				
+				"CoreUObject",
+				"TargetPlatform",
+				"UnrealEd",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"TargetDeviceServices",
+			}
+		);
 	}
 }
 

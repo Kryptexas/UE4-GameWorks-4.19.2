@@ -36,7 +36,7 @@ void FTestSharingInterface::Test(UWorld* InWorld, bool bWithImage)
 	SharingInterface = OnlineSub->GetSharingInterface();
 	check(SharingInterface.IsValid());
 
-	TestStatusUpdate.Message = TEXT("This is a test post for UE4 Facebook support!!");
+	TestStatusUpdate.Message = FString::Printf(TEXT("This is a test post for UE4 Sharing support! Date = %s"), *FDateTime::Now().ToString());
 	TestStatusUpdate.PostPrivacy = EOnlineStatusUpdatePrivacy::OnlyMe;
 	if( bWithImage )
 	{
@@ -125,7 +125,7 @@ void FTestSharingInterface::RequestPermissionsToReadNewsFeed()
 
 void FTestSharingInterface::OnReadFeedPermissionsUpdated(int32 LocalUserNum, bool bWasSuccessful)
 {
-	UE_LOG(LogOnline, Display, TEXT("FOnlineSharingFacebook::OnReadFeedPermissionsUpdated() - %d"), bWasSuccessful);
+	UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface::OnReadFeedPermissionsUpdated() - %d"), bWasSuccessful);
 	SharingInterface->ClearOnRequestNewReadPermissionsCompleteDelegate(LocalUserNum, RequestPermissionsToReadFeedDelegate);
 
 	if( ++ResponsesReceived == MAX_LOCAL_PLAYERS )
@@ -154,9 +154,29 @@ void FTestSharingInterface::OnNewsFeedRead(int32 LocalPlayer, bool bWasSuccessfu
 {
 	UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface::OnNewsFeedRead[PlayerIdx:%i - Successful:%i]"), LocalPlayer, bWasSuccessful);
 
+	if (bWasSuccessful)
+	{
+		// Get the 1st cached post
+		FOnlineStatusUpdate FirstReadStatusUpdate;
+		SharingInterface->GetCachedNewsFeed(LocalPlayer, 0, FirstReadStatusUpdate);
+		UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface first read update: %s"), *FirstReadStatusUpdate.Message);
+
+		// Get all the cached posts
+		TArray<FOnlineStatusUpdate> AllReadStatusUpdates;
+		SharingInterface->GetCachedNewsFeeds(LocalPlayer, AllReadStatusUpdates);
+		UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface number of read updates: %d"), AllReadStatusUpdates.Num());
+
+		for (int Idx = 0; Idx < AllReadStatusUpdates.Num(); ++Idx)
+		{
+			const FOnlineStatusUpdate& StatusUpdate = AllReadStatusUpdates[Idx];
+			UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface status update [%d]: %s"), Idx, *StatusUpdate.Message);
+		}
+	}
+
 	SharingInterface->ClearOnReadNewsFeedCompleteDelegate(LocalPlayer, OnNewsFeedReadDelegate);
 	if( ++ResponsesReceived == MAX_LOCAL_PLAYERS )
 	{
+		UE_LOG(LogOnline, Display, TEXT("FTestSharingInterface TESTS COMPLETED"), LocalPlayer, bWasSuccessful);
 		delete this;
 	}
 }

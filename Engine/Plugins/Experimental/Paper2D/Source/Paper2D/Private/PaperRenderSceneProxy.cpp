@@ -3,6 +3,8 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperRenderSceneProxy.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "Rendering/PaperBatchManager.h"
+#include "Rendering/PaperBatchSceneProxy.h"
 
 static FPackedNormal PackedNormalX(FVector(1.0f, 0.0f, 0.0f));
 static FPackedNormal PackedNormalY(FVector(0.0f, 1.0f, 0.0f));
@@ -96,7 +98,7 @@ public:
 /**
  * A material render proxy which overrides a named texture parameter.
  */
-class FTextureOverrideRenderProxy : public FMaterialRenderProxy
+class FTextureOverrideRenderProxy : public FDynamicPrimitiveResource, public FMaterialRenderProxy
 {
 public:
 	const FMaterialRenderProxy* const Parent;
@@ -110,10 +112,23 @@ public:
 		, TextureParameterName(InParameterName)
 	{}
 
-	// FMaterialRenderProxy interface.
-	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const OVERRIDE
+	virtual ~FTextureOverrideRenderProxy()
 	{
-		return Parent->GetMaterial(FeatureLevel);
+	}
+
+	// FDynamicPrimitiveResource interface.
+	virtual void InitPrimitiveResource()
+	{
+	}
+	virtual void ReleasePrimitiveResource()
+	{
+		delete this;
+	}
+
+	// FMaterialRenderProxy interface.
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type InFeatureLevel) const OVERRIDE
+	{
+		return Parent->GetMaterial(InFeatureLevel);
 	}
 
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const OVERRIDE
@@ -148,12 +163,24 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	, Material(NULL)
 	, Owner(InComponent->GetOwner())
 	, SourceSprite(NULL)
+	, WireframeColor(FLinearColor::White)
+	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
 {
 	if (const UPaperRenderComponent* RenderComp = Cast<const UPaperRenderComponent>(InComponent))
 	{
-		Material = RenderComp->TestMaterial;
-		
+		WireframeColor = RenderComp->GetWireframeColor();
+
 		SourceSprite = RenderComp->SourceSprite; //@TODO: This is totally not threadsafe, and won't keep up to date if the actor's sprite changes, etc....
+		if (SourceSprite)
+		{
+			Material = SourceSprite->GetDefaultMaterial();
+		}
+		
+		if (RenderComp->MaterialOverride)
+		{
+			Material = RenderComp->MaterialOverride;
+		}
+
 		if (Material)
 		{
 			MaterialRelevance = Material->GetRelevance();
@@ -161,8 +188,32 @@ FPaperRenderSceneProxy::FPaperRenderSceneProxy(const UPrimitiveComponent* InComp
 	}
 }
 
+FPaperRenderSceneProxy::~FPaperRenderSceneProxy()
+{
+#if TEST_BATCHING
+	if (FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene()))
+	{
+		Batcher->UnregisterManagedProxy(this);
+	}
+#endif
+}
+
+void FPaperRenderSceneProxy::CreateRenderThreadResources()
+{
+#if TEST_BATCHING
+	if (FPaperBatchSceneProxy* Batcher = FPaperBatchManager::GetBatcher(GetScene()))
+	{
+		Batcher->RegisterManagedProxy(this);
+	}
+#endif
+}
+
 void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_PaperRenderSceneProxy_DrawDynamicElements);
+
+	checkSlow(IsInRenderingThread());
+
 	if (SourceSprite != NULL)//const UPaperRenderComponent* TypedFoo = Cast<const UPaperRenderComponent>(OwnerComponent))
 	{
 		// Show 2D physics
@@ -191,39 +242,8 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 
 					const FColoredMaterialRenderProxy CollisionMaterialInstance(
 						LevelColorationMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-						FColor(0, 255, 128, 255)//TypedFoo->GetWireframeColor()
+						WireframeColor
 						);
-
-					//@TODO:
-// 					FColor UStaticMeshComponent::GetWireframeColor() const
-// 					{
-// 						if(bOverrideWireframeColor)
-// 						{
-// 							return WireframeColorOverride;
-// 						}
-// 						else
-// 						{
-// 							if(Mobility == EComponentMobility::Static)
-// 							{
-// 								return FColor(0, 255, 255, 255);
-// 							}
-// 							else if(Mobility == EComponentMobility::Stationary)
-// 							{
-// 								return FColor(128, 128, 255, 255);
-// 							}
-// 							else // Movable
-// 							{
-// 								if(BodyInstance.bSimulatePhysics)
-// 								{
-// 									return FColor(0, 255, 128, 255);
-// 								}
-// 								else
-// 								{
-// 									return FColor(255, 0, 255, 255);
-// 								}
-// 							}
-// 						}
-// 					}
 
 					// Draw the static mesh's body setup.
 
@@ -249,16 +269,13 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-//	if (View->Family->EngineShowFlags.StaticMeshes)
+	if (View->Family->EngineShowFlags.Paper2DSprites)
 	{
 		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), (Owner == NULL) || IsSelected());
 	}
 #endif
 
 	// Set the selection/hover color from the current engine setting.
-	// The color is multiplied by 10 because this value is normally expected to be blended
-	// additively, this is not how the sprites work and therefore need an extra boost
-	// to appear the same color as previously.
 	FLinearColor OverrideColor;
 	bool bUseOverrideColor = false;
 
@@ -269,21 +286,25 @@ void FPaperRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, c
 		OverrideColor = GetSelectionColor(FLinearColor::White, bShowAsSelected, IsHovered());
 	}
 
-	//@TODO: Figure out how to show selection highlight better (maybe outline?)
 	bUseOverrideColor = false;
 
 	// Sprites of locked actors draw in red.
 	//FLinearColor LevelColorToUse = IsSelected() ? ColorToUse : (FLinearColor)LevelColor;
 	//FLinearColor PropertyColorToUse = PropertyColor;
 
-	if (Material != NULL)
-	{
-		DrawDynamicElements_RichMesh(PDI, View, bUseOverrideColor, OverrideColor);
-	}
+#if TEST_BATCHING
+#else
+	DrawDynamicElements_RichMesh(PDI, View, bUseOverrideColor, OverrideColor);
+#endif
 }
 
 void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bUseOverrideColor, const FLinearColor& OverrideColor)
 {
+	if (Material == nullptr)
+	{
+		return;
+	}
+
 	const uint8 DPG = GetDepthPriorityGroup(View);
 	
 	static TGlobalResource<FPaperSpriteVertexFactory> GPaperSpriteVertexFactory;
@@ -305,7 +326,7 @@ void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfac
 			{
 				const FVector4& SourceVert = Record.RenderVerts[SVI];
 
-				const FVector Pos((PaperAxisX * SourceVert.X) + (PaperAxisY * SourceVert.Y));
+				const FVector Pos((PaperAxisX * SourceVert.X) + (PaperAxisY * SourceVert.Y) + EffectiveOrigin);
 				const FVector2D UV(SourceVert.Z, SourceVert.W);
 
 				new (Vertices) FPaperSpriteVertex(Pos, UV, SpriteColor);
@@ -328,9 +349,12 @@ void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfac
 
 
 			FMaterialRenderProxy* ParentMaterialProxy = Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(), IsHovered());
-			FTextureOverrideRenderProxy TextureOverrideMaterialProxy(ParentMaterialProxy, Record.Texture, TEXT("SpriteTexture"));
 
-			Mesh.MaterialRenderProxy = &TextureOverrideMaterialProxy;
+			// Create a texture override material proxy and register it as a dynamic resource so that it won't be deleted until the rendering thread has finished with it
+			FTextureOverrideRenderProxy* TextureOverrideMaterialProxy = new FTextureOverrideRenderProxy(ParentMaterialProxy, Record.Texture, TEXT("SpriteTexture"));
+			PDI->RegisterDynamicResource( TextureOverrideMaterialProxy );
+
+			Mesh.MaterialRenderProxy = TextureOverrideMaterialProxy;
 			Mesh.LCI = NULL;
 			Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative() ? true : false;
 			Mesh.CastShadow = false;
@@ -349,15 +373,17 @@ void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfac
 			BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
 			BatchElement.NumPrimitives = Vertices.Num() / 3;
 
+			const bool bIsWireframeView = View->Family->EngineShowFlags.Wireframe;
+
 			DrawRichMesh(
 				PDI, 
 				Mesh,
-				FLinearColor(1.0f, 0.0f, 0.0f),//WireframeColor
+				WireframeColor,
 				FLinearColor(1.0f, 1.0f, 1.0f),//LevelColor,
 				FLinearColor(1.0f, 1.0f, 1.0f),//PropertyColor,
 				this,
 				IsSelected(),
-				false//bIsWireframe
+				bIsWireframeView
 				);
 		}
 	}
@@ -365,34 +391,59 @@ void FPaperRenderSceneProxy::DrawDynamicElements_RichMesh(FPrimitiveDrawInterfac
 
 FPrimitiveViewRelevance FPaperRenderSceneProxy::GetViewRelevance(const FSceneView* View)
 {
-	const bool bVisible = View->Family->EngineShowFlags.BillboardSprites || View->Family->EngineShowFlags.Game;
+	checkSlow(IsInRenderingThread());
 
 	FPrimitiveViewRelevance Result;
-	Result.bDrawRelevance = bVisible;//IsShown(View);
-	//Result.bOpaqueRelevance = Material != NULL) ? Material-> true;
-	//Result.bTranslucentRelevance = true;
+	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Paper2DSprites;
+	Result.bRenderCustomDepth = ShouldRenderCustomDepth();
+	Result.bRenderInMainPass = ShouldRenderInMainPass();
+
 	Result.bShadowRelevance = IsShadowCast(View);
 
+	MaterialRelevance.SetPrimitiveViewRelevance(Result);
 
-	//@TODO: Avoid this in some runtime cases where it's not necessary
+#undef SUPPORT_EXTRA_RENDERING
+#define SUPPORT_EXTRA_RENDERING !(UE_BUILD_SHIPPING || UE_BUILD_TEST) || WITH_EDITOR
+	
+
+#if SUPPORT_EXTRA_RENDERING
+	bool bDrawSimpleCollision = false;
+	bool bDrawComplexCollision = false;
+	const bool bInCollisionView = IsCollisionView(View, bDrawSimpleCollision, bDrawComplexCollision);
+#endif
+
 	Result.bDynamicRelevance = true;
-	// bStaticRelevance
 
-	if (Material != NULL)
+// 	if (
+// #if SUPPORT_EXTRA_RENDERING
+// 		IsRichView(View) ||
+// 		View->Family->EngineShowFlags.Collision ||
+// 		bInCollisionView ||
+// 		View->Family->EngineShowFlags.Bounds ||
+// #endif
+// 		// Force down dynamic rendering path if invalid lightmap settings, so we can apply an error material in DrawRichMesh
+// 		(HasStaticLighting() && !HasValidSettingsForStaticLighting()) ||
+// 		HasViewDependentDPG()
+// #if WITH_EDITOR
+// 		//only check these in the editor
+// 		|| IsSelected() || IsHovered()
+// #endif
+// 		)
+// 	{
+//		Result.bDynamicRelevance = true;
+// 	}
+// 	else
+// 	{
+// 		Result.bStaticRelevance = true;
+// 	}
+
+	if (!View->Family->EngineShowFlags.Materials
+#if SUPPORT_EXTRA_RENDERING
+		|| bInCollisionView
+#endif
+		)
 	{
-		FMaterialRelevance ConcurrentMaterialRelevance = Material->GetRelevance_Concurrent();
-
-		ConcurrentMaterialRelevance.SetPrimitiveViewRelevance(Result);
-
-// 		if (!View->Family->EngineShowFlags.Materials)
-// 		{
-// 			Result.bOpaqueRelevance = true;
-// 		}
-	}
-	else
-	{
-		Result.bOpaqueRelevance = false;
-		Result.bNormalTranslucencyRelevance = true;
+		Result.bOpaqueRelevance = true;
 	}
 
 	return Result;
@@ -419,4 +470,27 @@ void FPaperRenderSceneProxy::SetDrawCall_RenderThread(const FSpriteDrawCallRecor
 
 	FSpriteDrawCallRecord& Record = *new (BatchedSprites) FSpriteDrawCallRecord;
 	Record = NewDynamicData;
+}
+
+bool FPaperRenderSceneProxy::IsCollisionView(const FSceneView* View, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const
+{
+	bDrawSimpleCollision = false;
+	bDrawComplexCollision = false;
+
+	// If in a 'collision view' and collision is enabled
+	const bool bInCollisionView = View->Family->EngineShowFlags.CollisionVisibility || View->Family->EngineShowFlags.CollisionPawn;
+	if (bInCollisionView && IsCollisionEnabled())
+	{
+		// See if we have a response to the interested channel
+		bool bHasResponse = View->Family->EngineShowFlags.CollisionPawn && (CollisionResponse.GetResponse(ECC_Pawn) != ECR_Ignore);
+		bHasResponse |= View->Family->EngineShowFlags.CollisionVisibility && (CollisionResponse.GetResponse(ECC_Visibility) != ECR_Ignore);
+
+		if (bHasResponse)
+		{
+			bDrawComplexCollision = View->Family->EngineShowFlags.CollisionVisibility;
+			bDrawSimpleCollision = View->Family->EngineShowFlags.CollisionPawn;
+		}
+	}
+
+	return bInCollisionView;
 }

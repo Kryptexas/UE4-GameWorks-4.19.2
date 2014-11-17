@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
-#include "EngineInterpolationClasses.h"
 
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"
@@ -17,6 +15,7 @@
 
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
+DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -293,15 +292,15 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
 		}
 	}
 
-    // allow HMDs to override fov
-    if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
-    {
-        float HmdFov = GEngine->HMDDevice->GetFieldOfViewInRadians();
-        if (HmdFov > 0)
-        {
-            OutViewInfo.FOV = HmdFov;
-        }
-    }
+	// allow HMDs to override fov
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+	{
+		float HmdFov = GEngine->HMDDevice->GetFieldOfViewInRadians();
+		if (HmdFov > 0)
+		{
+			OutViewInfo.FOV = HmdFov;
+		}
+	}
 }
 
 FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily, 
@@ -371,9 +370,10 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	ViewInitOptions.LODDistanceFactor = PlayerController->LocalPlayerCachedLODDistanceFactor;
 	ViewInitOptions.StereoPass = StereoPass;
 	ViewInitOptions.WorldToMetersScale = PlayerController->GetWorldSettings()->WorldToMeters;
+	ViewInitOptions.CursorPos = Viewport->HasMouseCapture() ? FIntPoint(-1, -1) : FIntPoint(Viewport->GetMouseX(), Viewport->GetMouseY());
 	PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);
 
-	FSceneView* View = new FSceneView(ViewInitOptions);
+	FSceneView* const View = new FSceneView(ViewInitOptions);
 	
 	View->ViewLocation = OutViewLocation;
 	View->ViewRotation = OutViewRotation;
@@ -387,6 +387,19 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 
 	{
 		View->StartFinalPostprocessSettings(OutViewLocation);
+
+		// CameraAnim override
+		if (PlayerController && PlayerController->PlayerCameraManager)
+		{
+			TArray<FPostProcessSettings> const* CameraAnimPPSettings;
+			TArray<float> const* CameraAnimPPBlendWeights;
+			PlayerController->PlayerCameraManager->GetCachedPostProcessBlends(CameraAnimPPSettings, CameraAnimPPBlendWeights);
+			
+			for (int32 PPIdx = 0; PPIdx < CameraAnimPPBlendWeights->Num(); ++PPIdx)
+			{
+				View->OverridePostProcessSettings( (*CameraAnimPPSettings)[PPIdx], (*CameraAnimPPBlendWeights)[PPIdx]);
+			}
+		}
 
 		//	CAMERA OVERRIDE
 		//	NOTE: Matinee works through this channel
@@ -568,10 +581,10 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 		return false;
 	}
 
-	int32 X = FMath::Trunc(Origin.X * Viewport->GetSizeXY().X);
-	int32 Y = FMath::Trunc(Origin.Y * Viewport->GetSizeXY().Y);
-	uint32 SizeX = FMath::Trunc(Size.X * Viewport->GetSizeXY().X);
-	uint32 SizeY = FMath::Trunc(Size.Y * Viewport->GetSizeXY().Y);
+	int32 X = FMath::TruncToInt(Origin.X * Viewport->GetSizeXY().X);
+	int32 Y = FMath::TruncToInt(Origin.Y * Viewport->GetSizeXY().Y);
+	uint32 SizeX = FMath::TruncToInt(Size.X * Viewport->GetSizeXY().X);
+	uint32 SizeY = FMath::TruncToInt(Size.Y * Viewport->GetSizeXY().Y);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -618,11 +631,11 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	// scale distances for cull distance purposes by the ratio of our current FOV to the default FOV
 	PlayerController->LocalPlayerCachedLODDistanceFactor = ViewInfo.FOV / FMath::Max<float>(0.01f, (PlayerController->PlayerCameraManager != NULL) ? PlayerController->PlayerCameraManager->DefaultFOV : 90.f);
 	
-    FVector StereoViewLocation = ViewInfo.Location;
-    if (GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL)
-    {
-        GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
-    }
+	FVector StereoViewLocation = ViewInfo.Location;
+	if (GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL)
+	{
+		GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
+	}
 
 	// Create the view matrix
 	ProjectionData.ViewMatrix = FTranslationMatrix(-StereoViewLocation);
@@ -783,7 +796,19 @@ bool ULocalPlayer::HandlePauseCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWor
 {
 	Super::Exec(InWorld, TEXT("Pause"),Ar);
 
-	FSlateApplication::Get().ResetToDefaultInputSettings();
+	if (!InWorld->IsPaused())
+	{
+		if (ViewportClient && ViewportClient->Viewport)
+		{
+			ViewportClient->Viewport->CaptureJoystickInput(true);
+			ViewportClient->Viewport->CaptureMouse(true);
+		}
+	}
+	else
+	{
+		FSlateApplication::Get().ResetToDefaultInputSettings();
+	}
+	
 
 	return true;
 }
@@ -919,12 +944,12 @@ bool ULocalPlayer::HandleToggleDrawEventsCommand( const TCHAR* Cmd, FOutputDevic
 	if( GEmitDrawEvents )
 	{
 		GEmitDrawEvents = false;
-		UE_LOG(LogPlayerManagement, Warning, TEXT("Draw events are now DISABLED"));
+		UE_LOG(LogEngine, Warning, TEXT("Draw events are now DISABLED"));
 	}
 	else
 	{
 		GEmitDrawEvents = true;
-		UE_LOG(LogPlayerManagement, Warning, TEXT("Draw events are now ENABLED"));
+		UE_LOG(LogEngine, Warning, TEXT("Draw events are now ENABLED"));
 	}
 #endif
 	return true;

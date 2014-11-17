@@ -22,8 +22,8 @@ void FSlateOpenGLViewport::Initialize( TSharedRef<SWindow> InWindow, const FSlat
 
 	FSlateRect FullScreenSize = InWindow->GetFullScreenInfo();
 
-	const int Width = FMath::Trunc(FullScreenSize.Right - FullScreenSize.Left);
-	const int Height = FMath::Trunc(FullScreenSize.Bottom - FullScreenSize.Top);
+	const int Width = FMath::TruncToInt(FullScreenSize.Right - FullScreenSize.Left);
+	const int Height = FMath::TruncToInt(FullScreenSize.Bottom - FullScreenSize.Top);
 
 	// iOS should always be fullscreen and at the origin
 	InWindow->SetCachedSize( FVector2D(Width, Height) );
@@ -88,8 +88,8 @@ void FSlateOpenGLViewport::Resize( int Width, int Height, bool bInFullscreen )
 			Swap<float>(Frame.size.width, Frame.size.height);
 		}
 
-		ViewportWidth = FMath::Trunc(Frame.size.width * Scale);
-		ViewportHeight = FMath::Trunc(Frame.size.height * Scale);
+		ViewportWidth = FMath::TruncToInt(Frame.size.width * Scale);
+		ViewportHeight = FMath::TruncToInt(Frame.size.height * Scale);
 	}
 
 	View.frame = CGRectMake(0, 0, ViewportWidth, ViewportHeight);

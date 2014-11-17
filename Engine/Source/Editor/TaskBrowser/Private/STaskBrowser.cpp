@@ -562,7 +562,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 						.IsEnabled_Raw( this, &STaskBrowser::GetMarkCompleteEnabled )
 						.OnClicked( this, &STaskBrowser::OnMarkCompleteClicked )
 						[
-							SNew(STextBlock) .Text( LOCTEXT("MarkComplete", "Mark Complete...").ToString() )
+							SNew(STextBlock) .Text( LOCTEXT("MarkComplete", "Mark Complete...") )
 						]
 					]
 					+SHorizontalBox::Slot()
@@ -575,7 +575,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 						.VAlign(VAlign_Center)
 						.OnClicked( this, &STaskBrowser::OnRefreshViewClicked )
 						[
-							SNew(STextBlock) .Text( LOCTEXT("RefreshView", "Refresh View").ToString() )
+							SNew(STextBlock) .Text( LOCTEXT("RefreshView", "Refresh View") )
 						]
 					]
 					+SHorizontalBox::Slot()
@@ -584,7 +584,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 					.HAlign(HAlign_Center)
 					.VAlign(VAlign_Center)
 					[
-						SNew(STextBlock) .Text( LOCTEXT("DatabaseFilter", "Database filter").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("DatabaseFilter", "Database filter") )
 					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -604,7 +604,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 					.AutoWidth()
 					.Padding( SmallPadding )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("Display", "Display").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("Display", "Display") )
 					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -616,7 +616,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 					.AutoWidth()
 					.Padding( SmallPadding )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("OpenOnly", "Open only").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("OpenOnly", "Open only") )
 					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -628,7 +628,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 					.AutoWidth()
 					.Padding( SmallPadding )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("AssignedToMe", "Assigned to me").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("AssignedToMe", "Assigned to me") )
 					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -640,7 +640,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 					.AutoWidth()
 					.Padding( SmallPadding )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("CreatedByMe", "Created by me").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("CreatedByMe", "Created by me") )
 					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
@@ -652,7 +652,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 					.AutoWidth()
 					.Padding( SmallPadding )
 					[
-						SNew(STextBlock) .Text( LOCTEXT("CurrentMap", "Current map").ToString() )
+						SNew(STextBlock) .Text( LOCTEXT("CurrentMap", "Current map") )
 					]
 				]
 				+SVerticalBox::Slot()
@@ -770,7 +770,7 @@ void STaskBrowser::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				.OnClicked( this, &STaskBrowser::OnSettingsClicked )
 				[
-					SNew(STextBlock) .Text( LOCTEXT("Settings", "Settings...").ToString() )
+					SNew(STextBlock) .Text( LOCTEXT("Settings", "Settings...") )
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -1043,7 +1043,7 @@ FReply STaskBrowser::OnConnectClicked()
 	return FReply::Handled();
 }
 
-FString STaskBrowser::GetConnectText() const
+FText STaskBrowser::GetConnectText() const
 {
 	switch( TaskDataManager->GetConnectionStatus() )
 	{
@@ -1051,9 +1051,9 @@ FString STaskBrowser::GetConnectText() const
 	case ETaskDataManagerStatus::ReadyToConnect:
 	case ETaskDataManagerStatus::ConnectionFailed:
 	case ETaskDataManagerStatus::Disconnecting:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ConnectButtonLabel", "Connect" ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ConnectButtonLabel", "Connect" );
 	default:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_DisconnectButtonLabel", "Disconnect" ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_DisconnectButtonLabel", "Disconnect" );
 	}
 }
 
@@ -1064,30 +1064,30 @@ FReply STaskBrowser::OnSettingsClicked()
 	return FReply::Handled();
 }
 
-FString STaskBrowser::GetStatusText() const
+FText STaskBrowser::GetStatusText() const
 {
 	switch( TaskDataManager->GetGUIStatus() )
 	{
 	case ETaskDataManagerStatus::ReadyToConnect:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_ReadyToConnect", "Not connected.  Click the Connect button to login to the task database." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_ReadyToConnect", "Not connected.  Click the Connect button to login to the task database." );
 	case ETaskDataManagerStatus::Connecting:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_Connecting", "Connecting to server and logging in..." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_Connecting", "Connecting to server and logging in..." );
 	case ETaskDataManagerStatus::Connected:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_Connected", "Connected to the task database." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_Connected", "Connected to the task database." );
 	case ETaskDataManagerStatus::ConnectionFailed:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_ConnectionFailed", "Failed to connect to the task database.  Click the Connect button to try again." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_ConnectionFailed", "Failed to connect to the task database.  Click the Connect button to try again." );
 	case ETaskDataManagerStatus::Disconnecting:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_Disconnecting", "Disconnecting..." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_Disconnecting", "Disconnecting..." );
 	case ETaskDataManagerStatus::QueryingFilters:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_QueryingFilters", "Retrieving filters..." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_QueryingFilters", "Retrieving filters..." );
 	case ETaskDataManagerStatus::QueryingTasks:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_QueryingTasks", "Retrieving task list from server..." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_QueryingTasks", "Retrieving task list from server..." );
 	case ETaskDataManagerStatus::QueryingTaskDetails:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_QueryingTaskDetails", "Retrieving task information..." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_QueryingTaskDetails", "Retrieving task information..." );
 	case ETaskDataManagerStatus::MarkingTaskComplete:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_MarkingTaskComplete", "Marking task as fixed..." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_MarkingTaskComplete", "Marking task as fixed..." );
 	default:
-		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_FailedToInit", "Failed to initialize.  No task database providers are available." ).ToString();
+		return NSLOCTEXT("UnrealEd", "TaskBrowser_ServerStatus_FailedToInit", "Failed to initialize.  No task database providers are available." );
 	}
 }
 

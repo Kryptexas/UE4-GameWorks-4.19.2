@@ -155,8 +155,8 @@ public:
 	/** Size of PCM data in physical memory */
 	int32							PCMDataSize;
 	
-	/** Wrapper to handle the decompression of vorbis code */
-	class FVorbisAudioInfo*		DecompressionState;
+	/** Wrapper to handle the decompression of audio codecs */
+	class ICompressedAudioInfo*		DecompressionState;
 	/** Cumulative channels from all streams */
 	int32							NumChannels;
 	/** Resource ID of associated USoundWave */
@@ -359,6 +359,10 @@ class FCoreAudioDevice : public FAudioDevice
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;
 	}
+
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
 
 	FORCEINLINE uint32 CalculateMatrixElement( uint32 InputNum, uint32 OutputNum )
 	{

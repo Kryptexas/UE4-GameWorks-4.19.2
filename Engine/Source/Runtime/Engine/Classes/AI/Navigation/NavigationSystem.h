@@ -463,12 +463,14 @@ protected:
 struct ENGINE_API FPathFindingQuery
 {
 	TWeakObjectPtr<const class ANavigationData> NavData;
+	TWeakObjectPtr<const UObject> Owner;
 	FVector StartLocation;
 	FVector EndLocation;
 	TSharedPtr<const FNavigationQueryFilter> QueryFilter;
-	
+
 	FPathFindingQuery()
 		: NavData(NULL)
+		, Owner(NULL)
 		, StartLocation(FVector::ZeroVector)
 		, EndLocation(FVector::ZeroVector)
 	{
@@ -476,7 +478,7 @@ struct ENGINE_API FPathFindingQuery
 
 	FPathFindingQuery(const FPathFindingQuery& Source);
 
-	FPathFindingQuery(const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL);
+	FPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter = NULL);
 };
 
 struct FAsyncPathFindingQuery : public FPathFindingQuery
@@ -491,7 +493,7 @@ struct FAsyncPathFindingQuery : public FPathFindingQuery
 	{
 	}
 
-	FAsyncPathFindingQuery(const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter);
+	FAsyncPathFindingQuery(const UObject* InOwner, const class ANavigationData* InNavData, const FVector& Start, const FVector& End, const FNavPathQueryDelegate& Delegate, TSharedPtr<const FNavigationQueryFilter> SourceQueryFilter);
 	FAsyncPathFindingQuery(const FPathFindingQuery& Query, const FNavPathQueryDelegate& Delegate, const EPathFindingMode::Type QueryMode);
 	
 protected:
@@ -514,7 +516,7 @@ struct FNavigationSystemExec: public FSelfRegisteringExec
 	// End FExec Interface
 };
 
-UCLASS(Within=World, config=Engine)
+UCLASS(Within=World, config=Engine, defaultconfig)
 class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -767,6 +769,8 @@ public:
 	/** checks if navigation/navmesh is dirty and needs to be rebuilt */
 	bool IsNavigationDirty();
 
+	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box);
+
 	//----------------------------------------------------------------------//
 	// Bookkeeping 
 	//----------------------------------------------------------------------//
@@ -889,9 +893,9 @@ public:
 	void CleanUp();
 
 	/** 
-	 *	Called when owner-UWorld begins play. 
+	 *	Called when owner-UWorld initializes actors
 	 */
-	virtual void OnBeginPlay();
+	virtual void OnInitializeActors();
 
 	/** */
 	virtual void OnWorldInitDone(NavigationSystem::EMode Mode);

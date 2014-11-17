@@ -6,7 +6,6 @@
 #include "Core.h"
 #include "Slate.h"
 #include "Attribute.h"
-#include "PrimitiveTypes.h"
 #include "EditorStyle.h"
 
 #endif // __MessageLogPrivatePCH_h__

@@ -7,12 +7,12 @@
 UENUM()
 enum ELocationSkelVertSurfaceSource
 {
-	VERTSURFACESOURCE_Vert,
-	VERTSURFACESOURCE_Surface,
+	VERTSURFACESOURCE_Vert UMETA(DisplayName="Verticies"),
+	VERTSURFACESOURCE_Surface UMETA(DisplayName="Surfaces"),
 	VERTSURFACESOURCE_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Skel Vert/Surf Location"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Skel Vert/Surf Location"))
 class UParticleModuleLocationSkelVertSurface : public UParticleModuleLocationBase
 {
 	GENERATED_UCLASS_BODY()

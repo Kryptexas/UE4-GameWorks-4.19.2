@@ -8,7 +8,11 @@
 #include "RenderCore.h"
 
 #ifndef D3D11_WITH_DWMAPI
+#if WINVER > 0x502		// Windows XP doesn't support DWM
 	#define D3D11_WITH_DWMAPI	1
+#else
+	#define D3D11_WITH_DWMAPI	0
+#endif
 #endif
 
 #if D3D11_WITH_DWMAPI
@@ -511,10 +515,7 @@ void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bo
 
 	if(bPresent)
 	{
-		uint32 IdleStart = FPlatformTime::Cycles();
 		Viewport->Present(bLockToVsync);
-		GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
-		GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 	}
 
 	// Don't wait on the GPU when using SLI, let the driver determine how many frames behind the GPU should be allowed to get

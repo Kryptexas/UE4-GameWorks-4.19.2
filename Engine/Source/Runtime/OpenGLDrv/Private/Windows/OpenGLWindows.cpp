@@ -42,6 +42,8 @@ struct FPlatformOpenGLContext
 	int32 SyncInterval;
 	GLuint	ViewportFramebuffer;
 	GLuint	VertexArrayObject;	// one has to be generated and set for each context (OpenGL 3.2 Core requirements)
+	GLuint	BackBufferResource;
+	GLenum	BackBufferTarget;
 };
 
 class FScopeContext
@@ -173,7 +175,8 @@ static void PlatformCreateDummyGLWindow(FPlatformOpenGLContext* OutContext)
 
 static bool PlatformOpenGL3()
 {
-	return FParse::Param(FCommandLine::Get(),TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
+	// OpenGL3 is our default platform for Windows XP
+	return FWindowsPlatformMisc::VerifyWindowsMajorVersion(6) == false || FParse::Param(FCommandLine::Get(),TEXT("opengl")) || FParse::Param(FCommandLine::Get(),TEXT("opengl3"));
 }
 static bool PlatformOpenGL4()
 {
@@ -251,13 +254,14 @@ struct FPlatformOpenGLDevice
 {
 	FPlatformOpenGLContext	SharedContext;
 	FPlatformOpenGLContext	RenderingContext;
-	int32					NumUsedContexts;
+	TArray<FPlatformOpenGLContext*>	ViewportContexts;
+	bool					TargetDirty;
 
 	/** Guards against operating on viewport contexts from more than one thread at the same time. */
 	FCriticalSection*		ContextUsageGuard;
 
 	FPlatformOpenGLDevice()
-		: NumUsedContexts(0)
+		: TargetDirty(true)
 	{
 		extern void InitDebugContext();
 		ContextUsageGuard = new FCriticalSection;
@@ -277,6 +281,7 @@ struct FPlatformOpenGLDevice
 			glGenVertexArrays(1,&SharedContext.VertexArrayObject);
 			glBindVertexArray(SharedContext.VertexArrayObject);
 			InitDefaultGLContextState();
+			glGenFramebuffers(1, &SharedContext.ViewportFramebuffer);
 		}
 
 		PlatformCreateDummyGLWindow(&RenderingContext);
@@ -288,6 +293,7 @@ struct FPlatformOpenGLDevice
 			glGenVertexArrays(1,&RenderingContext.VertexArrayObject);
 			glBindVertexArray(RenderingContext.VertexArrayObject);
 			InitDefaultGLContextState();
+			glGenFramebuffers(1, &RenderingContext.ViewportFramebuffer);
 		}
 
 		ContextMakeCurrent(SharedContext.DeviceContext, SharedContext.OpenGLContext);
@@ -295,7 +301,7 @@ struct FPlatformOpenGLDevice
 
 	~FPlatformOpenGLDevice()
 	{
-		check(NumUsedContexts==0);
+		check(ViewportContexts.Num()==0);
 
 		ContextMakeCurrent(NULL,NULL);
 
@@ -324,6 +330,8 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 {
 	check(InWindowHandle);
 
+	Device->TargetDirty = true;
+
 	FPlatformOpenGLContext* Context = new FPlatformOpenGLContext;
 	Context->WindowHandle = (HWND)InWindowHandle;
 	Context->bReleaseWindowOnDestroy = false;
@@ -340,7 +348,10 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 	{
 		FScopeContext Scope(Context);
 		InitDefaultGLContextState();
+		glGenFramebuffers(1, &Context->ViewportFramebuffer);
 	}
+
+	Device->ViewportContexts.Add(Context);
 	return Context;
 }
 
@@ -350,6 +361,9 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 void PlatformReleaseOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGLContext* Context)
 {
 	check(Context && Context->OpenGLContext);
+
+	Device->ViewportContexts.RemoveSingle(Context);
+	Device->TargetDirty = true;
 
 	{
 		FScopeLock ScopeLock(Device->ContextUsageGuard);
@@ -404,11 +418,27 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 
 	FScopeLock ScopeLock(Device->ContextUsageGuard);
 	{
-		FScopeContext ScopeContext(Context);
+		FPlatformOpenGLContext TempContext = *Context;
+		if (Device->ViewportContexts.Num() == 1)
+		{
+			TempContext.OpenGLContext = Device->RenderingContext.OpenGLContext;
+			TempContext.ViewportFramebuffer = Device->RenderingContext.ViewportFramebuffer;
+		}
+		FScopeContext ScopeContext(&TempContext);
 
+		if (Device->ViewportContexts.Num() == 1 && Device->TargetDirty)
+		{
+			glBindFramebuffer(GL_FRAMEBUFFER, TempContext.ViewportFramebuffer);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, Context->BackBufferTarget, Context->BackBufferResource, 0);
+
+			FOpenGL::CheckFrameBuffer();
+			Device->TargetDirty = false;
+		}
+
+		glDisable(GL_FRAMEBUFFER_SRGB);
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		glDrawBuffer(GL_BACK);
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer);
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, TempContext.ViewportFramebuffer);
 		glReadBuffer(GL_COLOR_ATTACHMENT0);
 
 		glBlitFramebuffer(
@@ -417,11 +447,10 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 			GL_COLOR_BUFFER_BIT,
 			GL_NEAREST
 		);
+		glEnable(GL_FRAMEBUFFER_SRGB);
 
 		if (bPresent)
 		{
-			uint32 IdleStart = FPlatformTime::Cycles();
-
 			int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
 			if (wglSwapIntervalEXT_ProcAddress && Context->SyncInterval != RealSyncInterval)
 			{
@@ -432,9 +461,6 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 			::SwapBuffers(Context->DeviceContext);
 			REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
 //			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
-
-			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
-			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 		}
 	}
 }
@@ -457,7 +483,15 @@ void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)
 	{
 		glFlush();
 	}
-	ContextMakeCurrent(Device->RenderingContext.DeviceContext, Device->RenderingContext.OpenGLContext);
+	if (Device->ViewportContexts.Num() == 1)
+	{
+		// use the HDC of the window, to reduce context swap overhead
+		ContextMakeCurrent(Device->ViewportContexts[0]->DeviceContext, Device->RenderingContext.OpenGLContext);
+	}
+	else
+	{
+		ContextMakeCurrent(Device->RenderingContext.DeviceContext, Device->RenderingContext.OpenGLContext);
+	}
 }
 
 void PlatformSharedContextSetup(FPlatformOpenGLDevice* Device)
@@ -514,16 +548,16 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 		ChangeDisplaySettings(NULL, 0);
 	}
 
+	Device->TargetDirty = true;
+	Context->BackBufferResource = BackBufferResource;
+	Context->BackBufferTarget = BackBufferTarget;
+
 	//SetWindowLong(Context->WindowHandle, GWL_STYLE, WindowStyle);
 	//SetWindowLong(Context->WindowHandle, GWL_EXSTYLE, WindowStyleEx);
 
 		{
 			FScopeContext ScopeContext(Context);
 
-			if (Context->ViewportFramebuffer == 0)
-			{
-				glGenFramebuffers(1, &Context->ViewportFramebuffer);
-			}
 			glBindFramebuffer(GL_FRAMEBUFFER, Context->ViewportFramebuffer);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, BackBufferTarget, BackBufferResource, 0);
 #if UE_BUILD_DEBUG

@@ -3,11 +3,18 @@
 #include "UnrealEd.h"
 
 #include "LatentActions.h"
-#include "EngineLevelScriptClasses.h"
 #include "Kismet2/CompilerResultsLog.h"
 
 #include "Editor/KismetCompiler/Public/KismetCompilerModule.h"
 #include "AnimGraphDefinitions.h"
+#include "AnimGraphNode_StateMachineBase.h"
+#include "AnimStateNode.h"
+#include "AnimStateNodeBase.h"
+#include "AnimStateTransitionNode.h"
+#include "AnimationTransitionSchema.h"
+#include "AnimationGraph.h"
+#include "AnimationGraphSchema.h"
+#include "AnimationStateMachineGraph.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -21,6 +28,7 @@
 #include "DefaultValueHelper.h"
 #include "ObjectEditorUtils.h"
 #include "ToolkitManager.h"
+#include "Runtime/Engine/Classes/Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "Blueprint"
 
@@ -194,40 +202,47 @@ static void RenameVariableReferences(UBlueprint* Blueprint, UClass* VariableClas
 	Blueprint->GetAllGraphs(AllGraphs);
 
 	// Update any graph nodes that reference the old variable name to instead reference the new name
-	for (TArray<UEdGraph*>::TConstIterator GraphIt(AllGraphs); GraphIt; ++GraphIt)
+	for(UEdGraph* CurrentGraph : AllGraphs)
 	{
-		const UEdGraph* CurrentGraph = *GraphIt;
-
-		TArray<UK2Node_Variable*> GraphNodes;
-		CurrentGraph->GetNodesOfClass(GraphNodes);
-
-		for (TArray<UK2Node_Variable*>::TConstIterator NodeIt(GraphNodes); NodeIt; ++NodeIt)
+		for(UEdGraphNode* GraphNode : CurrentGraph->Nodes)
 		{
-			UK2Node_Variable* CurrentNode = *NodeIt;
-
-			UClass* NodeRefClass = CurrentNode->VariableReference.GetMemberParentClass(Blueprint->GeneratedClass);
-			if (!NodeRefClass->IsChildOf(VariableClass))
+			if(UK2Node_Variable* const VariableNode = Cast<UK2Node_Variable>(GraphNode))
 			{
+				UClass* const NodeRefClass = VariableNode->VariableReference.GetMemberParentClass(Blueprint->GeneratedClass);
+				if(NodeRefClass && NodeRefClass->IsChildOf(VariableClass) && OldVarName == VariableNode->GetVarName())
+				{
+					VariableNode->Modify();
+
+					if(VariableNode->VariableReference.IsLocalScope())
+					{
+						VariableNode->VariableReference.SetLocalMember(NewVarName, VariableNode->VariableReference.GetMemberScopeName(), VariableNode->VariableReference.GetMemberGuid());
+					}
+					else if(VariableNode->VariableReference.IsSelfContext())
+					{
+						VariableNode->VariableReference.SetSelfMember(NewVarName);
+					}
+					else
+					{
+						VariableNode->VariableReference.SetExternalMember(NewVarName, NodeRefClass);
+					}
+
+					if(UEdGraphPin* const Pin = VariableNode->FindPin(OldVarName.ToString()))
+					{
+						Pin->Modify();
+						Pin->PinName = NewVarName.ToString();
+					}
+				}
 				continue;
 			}
-
-			if (OldVarName == CurrentNode->GetVarName())
+			
+			if(UK2Node_ComponentBoundEvent* const ComponentBoundEventNode = Cast<UK2Node_ComponentBoundEvent>(GraphNode))
 			{
-				CurrentNode->Modify();
-				if (CurrentNode->VariableReference.IsSelfContext())
+				if(OldVarName == ComponentBoundEventNode->ComponentPropertyName)
 				{
-					CurrentNode->VariableReference.SetSelfMember(NewVarName);
+					ComponentBoundEventNode->Modify();
+					ComponentBoundEventNode->ComponentPropertyName = NewVarName;
 				}
-				else
-				{
-					CurrentNode->VariableReference.SetExternalMember(NewVarName, NodeRefClass);
-				}
-
-				if (UEdGraphPin* Pin = CurrentNode->FindPin(OldVarName.ToString()))
-				{
-					Pin->Modify();
-					Pin->PinName = NewVarName.ToString();
-				}
+				continue;
 			}
 		}
 	}
@@ -575,6 +590,18 @@ struct FRegenerationHelper
 		}
 	}
 
+	static UBlueprint* GetGeneratingBlueprint(const UObject* Obj)
+	{
+		const UBlueprintGeneratedClass* BPGC = NULL;
+		while (!BPGC && Obj)
+		{
+			BPGC = Cast<const UBlueprintGeneratedClass>(Obj);
+			Obj = Obj->GetOuter();
+		}
+
+		return UBlueprint::GetBlueprintFromClass(BPGC);
+	}
+
 	static void ProcessHierarchy(UStruct* Struct, TSet<UStruct*>& Dependencies)
 	{
 		if (Struct)
@@ -587,25 +614,13 @@ struct FRegenerationHelper
 
 				const UBlueprint* BP = GetGeneratingBlueprint(Struct);
 				const bool bProcessBPGClass = BP && !BP->bHasBeenRegenerated;
-				const bool bProcessUserDefinedStruct = false; //TODO: Struct->IsA<UUserDefinedStruct>();
+				const bool bProcessUserDefinedStruct = Struct->IsA<UUserDefinedStruct>();
 				if (bProcessBPGClass || bProcessUserDefinedStruct)
 				{
 					PreloadAndLinkIfNecessary(Struct);
 				}
 			}
 		}
-	}
-
-	static UBlueprint* GetGeneratingBlueprint(const UObject* Obj)
-	{
-		const UBlueprintGeneratedClass* BPGC = NULL;
-		while (!BPGC && Obj)
-		{
-			BPGC = Cast<const UBlueprintGeneratedClass>(Obj);
-			Obj = Obj->GetOuter();
-		}
-
-		return UBlueprint::GetBlueprintFromClass(BPGC);
 	}
 
 	static void PreloadMacroSources(TSet<UBlueprint*>& MacroSources)
@@ -664,8 +679,7 @@ struct FRegenerationHelper
 					}
 
 					LocalDependentStructures.Empty(LocalDependentStructures.Max());
-					//TODO: uncomment when UDStructures are ready
-					//Node->HasExternalUserDefinedStructDependencies(&LocalDependentStructures);
+					Node->HasExternalUserDefinedStructDependencies(&LocalDependentStructures);
 					for (auto Struct : LocalDependentStructures)
 					{
 						ProcessHierarchy(Struct, Dependencies);
@@ -690,26 +704,211 @@ struct FRegenerationHelper
 	}
 };
 
-void FBlueprintEditorUtils::RefreshInputDelegatePins(UBlueprint* Blueprint)
+struct FEditoronlyBlueprintHelper
 {
-	TArray<UEdGraph*> Graphs;
-	Blueprint->GetAllGraphs(Graphs);
-	for (auto Graph : Graphs)
+	static bool IsUnwantedType(const FEdGraphPinType& Type)
 	{
-		if (!FBlueprintEditorUtils::IsGraphIntermediate(Graph))
+		if (const UClass* BPClass = Cast<const UClass>(Type.PinSubCategoryObject.Get()))
 		{
-			TArray<UK2Node_BaseMCDelegate*> Nodes;
-			Graph->GetNodesOfClass(Nodes);
-			for (auto Node : Nodes)
+			if (BPClass->IsChildOf(UBlueprint::StaticClass()))
 			{
-				if (auto DelegatePin = Node->GetDelegatePin())
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	static bool IsUnwantedDefaultObject(const UObject* Obj)
+	{
+		return Obj && Obj->IsA<UBlueprint>();
+	}
+
+	static void ChangePinType(FEdGraphPinType& Type)
+	{
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+		Type.PinCategory = Schema->PC_Class;
+		Type.PinSubCategoryObject = UObject::StaticClass();
+	}
+
+	static bool ShouldBeFixed(const UBlueprint* Blueprint, bool bLogWhy)
+	{
+		check(Blueprint);
+		//any blueprint variable
+		for (const auto& VarDesc : Blueprint->NewVariables)
+		{
+			if (IsUnwantedType(VarDesc.VarType))
+			{
+				if (bLogWhy)
 				{
-					DelegatePin->PinType.PinSubCategoryObject = Node->GetDelegateSignature();
+					UE_LOG(LogBlueprint, Warning, TEXT("FEditoronlyBlueprintHelper::ShouldBeFixed"));
+				}
+				return true;
+			}
+		}
+
+		//anything on graph
+		TArray<UEdGraph*> Graphs;
+		Blueprint->GetAllGraphs(Graphs);
+		for (const auto Graph : Graphs)
+		{
+			TArray<UK2Node*> Nodes;
+			Graph->GetNodesOfClass(Nodes);
+			for (const auto Node : Nodes)
+			{
+				for (const auto Pin : Node->Pins)
+				{
+					if (Pin && (IsUnwantedType(Pin->PinType) || IsUnwantedDefaultObject(Pin->DefaultObject)))
+					{
+						if (bLogWhy)
+						{
+							UE_LOG(LogBlueprint, Warning, TEXT("FEditoronlyBlueprintHelper::ShouldBeFixed"));
+						}
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
+
+	static void HandleEditablePinNode(UK2Node_EditablePinBase* Node)
+	{
+		check(Node);
+
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+		for (auto UserPinInfo : Node->UserDefinedPins)
+		{
+			if (UserPinInfo.IsValid() && IsUnwantedType(UserPinInfo->PinType))
+			{
+				UserPinInfo->PinType.PinCategory = Schema->PC_Class;
+				UserPinInfo->PinType.PinSubCategoryObject = UObject::StaticClass();
+
+				UserPinInfo->PinDefaultValue.Empty();
+			}
+		}
+
+		for (auto Pin : Node->Pins)
+		{
+			if (IsUnwantedType(Pin->PinType))
+			{
+				ChangePinType(Pin->PinType);
+
+				if (Pin->DefaultObject)
+				{
+					UBlueprint* DefaultBlueprint = Cast<UBlueprint>(Pin->DefaultObject);
+					Pin->DefaultObject = DefaultBlueprint ? *DefaultBlueprint->GeneratedClass : NULL;
+				}
+			}
+
+		}
+	}
+
+	static void HandleTemporaryVariableNode(UK2Node_TemporaryVariable* Node)
+	{
+		check(Node);
+
+		auto Pin = Node->GetVariablePin();
+		if (Pin && IsUnwantedType(Pin->PinType))
+		{
+			ChangePinType(Pin->PinType);
+			
+			if (Pin->DefaultObject)
+			{
+				UBlueprint* DefaultBlueprint = Cast<UBlueprint>(Pin->DefaultObject);
+				Pin->DefaultObject = DefaultBlueprint ? *DefaultBlueprint->GeneratedClass : NULL;
+			}
+		}
+
+		if (IsUnwantedType(Node->VariableType))
+		{
+			ChangePinType(Node->VariableType);
+		}
+	}
+
+	static void HandleDefaultObjects(UK2Node* Node)
+	{
+		if (Node)
+		{
+			for (auto Pin : Node->Pins)
+			{
+				if (Pin && IsUnwantedDefaultObject(Pin->DefaultObject))
+				{
+					const UBlueprint* DefaultBlueprint = Cast<const UBlueprint>(Pin->DefaultObject);
+					if (DefaultBlueprint)
+					{
+						Pin->DefaultObject = *DefaultBlueprint->GeneratedClass;
+					}
 				}
 			}
 		}
 	}
-}
+
+	static bool ChangeBlueprint(UBlueprint* Blueprint)
+	{
+		if (ShouldBeFixed(Blueprint, false))
+		{
+			UE_LOG(LogBlueprint, Log, TEXT("Bluepirnt references will be removed from '%s'"), *Blueprint->GetName());
+
+			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+
+			//any native function call with blueprint parameter
+			TArray<UEdGraph*> Graphs;
+			Blueprint->GetAllGraphs(Graphs);
+			for (const auto Graph : Graphs)
+			{
+				Schema->BackwardCompatibilityNodeConversion(Graph, false);
+			}
+
+			//any blueprint pin (function/event/macro parameter
+			for (const auto Graph : Graphs)
+			{
+				{
+					TArray<UK2Node_EditablePinBase*> EditablePinNodes;
+					Graph->GetNodesOfClass(EditablePinNodes);
+					for (const auto Node : EditablePinNodes)
+					{
+						HandleEditablePinNode(Node);
+					}
+				}
+
+				{
+					TArray<UK2Node_TemporaryVariable*> TempVariablesNodes;
+					Graph->GetNodesOfClass(TempVariablesNodes);
+					for (const auto Node : TempVariablesNodes)
+					{
+						HandleTemporaryVariableNode(Node);
+					}
+				}
+			}
+
+			// change variables
+			for (auto& VarDesc : Blueprint->NewVariables)
+			{
+				if (IsUnwantedType(VarDesc.VarType))
+				{
+					ChangePinType(VarDesc.VarType);
+				}
+			}
+
+			for (const auto Graph : Graphs)
+			{
+				TArray<UK2Node*> Nodes;
+				Graph->GetNodesOfClass(Nodes);
+				for (const auto Node : Nodes)
+				{
+					HandleDefaultObjects(Node);
+				}
+			}
+
+			return true;
+		}
+		return false;
+	}
+};
 
 UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded)
 {
@@ -792,7 +991,25 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 		// Make sure all used external classes/functions/structures/macros/etc are loaded and linked
 		FRegenerationHelper::LinkExternalDependencies(Blueprint);
-		FBlueprintEditorUtils::RefreshInputDelegatePins(Blueprint);
+
+		FKismetEditorUtilities::GenerateBlueprintSkeleton(Blueprint);
+
+		struct FReplaceBlueprintWithClassHelper
+		{
+			bool bShouldReplace;
+
+			FReplaceBlueprintWithClassHelper() : bShouldReplace(false)
+			{
+				GConfig->GetBool(TEXT("EditoronlyBP"), TEXT("bReplaceBlueprintWithClass"), bShouldReplace, GEditorIni);
+			}
+		};
+		static FReplaceBlueprintWithClassHelper ReplaceBlueprintWithClassHelper;
+		const bool bReplaceBlueprintWithClass = ReplaceBlueprintWithClassHelper.bShouldReplace;
+
+		if (bReplaceBlueprintWithClass)
+		{
+			FEditoronlyBlueprintHelper::ChangeBlueprint(Blueprint);
+		}
 
 		if( bHasCode )
 		{
@@ -837,6 +1054,11 @@ UClass* FBlueprintEditorUtils::RegenerateBlueprintClass(UBlueprint* Blueprint, U
 
 			// Flag data only blueprints as being up-to-date
 			Blueprint->Status = BS_UpToDate;
+		}
+
+		if (bReplaceBlueprintWithClass)
+		{
+			FEditoronlyBlueprintHelper::ShouldBeFixed(Blueprint, true);
 		}
 		
 		// Patch the new CDOs to the old indices in the linker
@@ -1133,8 +1355,6 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 			UEditorEngine::CopyPropertiesForUnrelatedObjects(OldCDO, NewCDO);
 		}
 
-		Blueprint->UserDefinedStructures.Empty();
-
 		// And compile again to make sure they go into the generated class, get cleaned up, etc...
 		FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
 
@@ -1165,7 +1385,7 @@ void FBlueprintEditorUtils::UpdateDelegatesInBlueprint(UBlueprint* Blueprint)
 			Graph->GetNodesOfClass(CreateDelegateNodes);
 			for (auto NodeIt = CreateDelegateNodes.CreateIterator(); NodeIt; ++NodeIt)
 			{
-				(*NodeIt)->HandleAnyChangeInner();
+				(*NodeIt)->HandleAnyChangeWithoutNotifying();
 			}
 
 			TArray<UK2Node_Event*> EventNodes;
@@ -1238,7 +1458,7 @@ UBlueprint* FBlueprintEditorUtils::FindBlueprintForNodeChecked(const UEdGraphNod
 // Helper function to get the blueprint that ultimately owns a graph.
 UBlueprint* FBlueprintEditorUtils::FindBlueprintForGraph(const UEdGraph* Graph)
 {
-	for (UObject* TestOuter = Graph->GetOuter(); TestOuter; TestOuter = TestOuter->GetOuter())
+	for (UObject* TestOuter = Graph ? Graph->GetOuter() : NULL; TestOuter; TestOuter = TestOuter->GetOuter())
 	{
 		if (UBlueprint* Result = Cast<UBlueprint>(TestOuter))
 		{
@@ -1324,35 +1544,6 @@ UEdGraph* FBlueprintEditorUtils::CreateNewGraph(UObject* ParentScope, const FNam
 		NewGraph->Rename(*(GraphName.ToString()), ParentScope, REN_DoNotDirty | REN_ForceNoResetLoaders);
 	}
 	return NewGraph;
-}
-
-
-void FBlueprintEditorUtils::AddFunctionGraph(UBlueprint* Blueprint, class UEdGraph* Graph, bool bIsUserCreated, UClass* SignatureFromClass)
-{
-	// Give the schema a chance to fill out any required nodes (like the entry node or results node)
-	const UEdGraphSchema* Schema = Graph->GetSchema();
-	const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(Graph->GetSchema());
-
-	Schema->CreateDefaultNodesForGraph(*Graph);
-
-	if (K2Schema != NULL)
-	{
-		K2Schema->CreateFunctionGraphTerminators(*Graph, SignatureFromClass);
-
-		if (bIsUserCreated)
-		{
-			// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
-			K2Schema->AddExtraFunctionFlags(Graph, (FUNC_BlueprintCallable|FUNC_BlueprintEvent|FUNC_Public));
-			K2Schema->MarkFunctionEntryAsEditable(Graph, true);
-		}
-	}
-
-	Blueprint->FunctionGraphs.Add(Graph);
-
-	// Potentially adjust variable names for any child blueprints
-	ValidateBlueprintChildVariables(Blueprint, Graph->GetFName());
-
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
 UFunction* FBlueprintEditorUtils::FindFunctionInImplementedInterfaces(const UBlueprint* Blueprint, const FName& FunctionName, bool * bOutInvalidInterface )
@@ -1699,7 +1890,7 @@ void FBlueprintEditorUtils::RemoveNode(UBlueprint* Blueprint, UEdGraphNode* Node
 	}
 }
 
-UEdGraph* FBlueprintEditorUtils::GetTopLevelGraph(UEdGraph* InGraph)
+UEdGraph* FBlueprintEditorUtils::GetTopLevelGraph(const UEdGraph* InGraph)
 {
 	UEdGraph* GraphToTest = const_cast<UEdGraph*>(InGraph);
 
@@ -1738,6 +1929,7 @@ UK2Node_Event* FBlueprintEditorUtils::FindOverrideForFunction(const UBlueprint* 
 	return NULL;
 }
 
+// returns if Blueprint depends on TestBlueprint
 bool FBlueprintEditorUtils::IsBlueprintDependentOn(UBlueprint const* Blueprint, UBlueprint const* TestBlueprint)
 {
 	if ( Blueprint && (Blueprint != TestBlueprint) )
@@ -1826,9 +2018,9 @@ void FBlueprintEditorUtils::GetDependentBlueprints(UBlueprint* Blueprint, TArray
 
 	//@TODO PRETEST MERGE:  Swap this when main is merged to pretest!
 #if 0
- 	TArray<UObject*> AllBlueprints;
- 	bool const bIncludeDerivedClasses = true;
- 	GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, bIncludeDerivedClasses );
+	TArray<UObject*> AllBlueprints;
+	bool const bIncludeDerivedClasses = true;
+	GetObjectsOfClass(UBlueprint::StaticClass(), AllBlueprints, bIncludeDerivedClasses );
 
 	for ( auto ObjIt = AllBlueprints.CreateConstIterator(); ObjIt; ++ObjIt )
 #else
@@ -1972,7 +2164,8 @@ bool FBlueprintEditorUtils::SupportsConstructionScript(const UBlueprint* Bluepri
 			!FBlueprintEditorUtils::IsBlueprintConst(Blueprint) && 
 			!FBlueprintEditorUtils::IsLevelScriptBlueprint(Blueprint) && 
 			FBlueprintEditorUtils::IsActorBased(Blueprint)) &&
-			!(Blueprint->BlueprintType == BPTYPE_MacroLibrary);
+			!(Blueprint->BlueprintType == BPTYPE_MacroLibrary) &&
+			!(Blueprint->BlueprintType == BPTYPE_FunctionLibrary);
 }
 
 UEdGraph* FBlueprintEditorUtils::FindUserConstructionScript(const UBlueprint* Blueprint)
@@ -2017,8 +2210,12 @@ bool FBlueprintEditorUtils::DoesBlueprintContainField(const UBlueprint* Blueprin
 	// Get the class of the field
 	if(TestField)
 	{
-		UClass* TestClass = CastChecked<UClass>(TestField->GetOuter());
-		return FBlueprintEditorUtils::DoesBlueprintDeriveFrom(Blueprint, TestClass);
+		// Local properties do not have a UClass outer but are also not a part of the Blueprint
+		UClass* TestClass = Cast<UClass>(TestField->GetOuter());
+		if(TestClass)
+		{
+			return FBlueprintEditorUtils::DoesBlueprintDeriveFrom(Blueprint, TestClass);
+		}
 	}
 	return false;
 }
@@ -2026,7 +2223,8 @@ bool FBlueprintEditorUtils::DoesBlueprintContainField(const UBlueprint* Blueprin
 bool FBlueprintEditorUtils::DoesSupportOverridingFunctions(const UBlueprint* Blueprint)
 {
 	return Blueprint->BlueprintType != BPTYPE_MacroLibrary 
-		&& Blueprint->BlueprintType != BPTYPE_Interface;
+		&& Blueprint->BlueprintType != BPTYPE_Interface
+		&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;
 }
 
 bool FBlueprintEditorUtils::DoesSupportTimelines(const UBlueprint* Blueprint)
@@ -2044,9 +2242,10 @@ bool FBlueprintEditorUtils::DoesSupportEventGraphs(const UBlueprint* Blueprint)
 /** Returns whether or not the blueprint supports implementing interfaces */
 bool FBlueprintEditorUtils::DoesSupportImplementingInterfaces(const UBlueprint* Blueprint)
 {
-	return Blueprint->BlueprintType != BPTYPE_MacroLibrary 
-		&& Blueprint->BlueprintType != BPTYPE_Interface 
-		&& Blueprint->BlueprintType != BPTYPE_LevelScript;
+	return Blueprint->BlueprintType != BPTYPE_MacroLibrary
+		&& Blueprint->BlueprintType != BPTYPE_Interface
+		&& Blueprint->BlueprintType != BPTYPE_LevelScript
+		&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;
 }
 
 // Returns a descriptive name of the type of blueprint passed in
@@ -2064,6 +2263,7 @@ FString FBlueprintEditorUtils::GetBlueprintTypeDescription(const UBlueprint* Blu
 	case BPTYPE_Interface:
 		BlueprintTypeString = LOCTEXT("BlueprintType_Interface", "Interface").ToString();
 		break;
+	case BPTYPE_FunctionLibrary:
 	case BPTYPE_Normal:
 	case BPTYPE_Const:
 		BlueprintTypeString = Blueprint->GetClass()->GetName();
@@ -2351,7 +2551,15 @@ void FBlueprintEditorUtils::SetBlueprintVariableMetaData(UBlueprint* Blueprint, 
 			//Not a Timeline is this a SCS Node?
 			const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint,VarName);
 
-			if (SCS_NodeIndex != INDEX_NONE)
+			if (SCS_NodeIndex == INDEX_NONE)
+			{
+				// Check to see if it is a local variable
+				if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, VarName))
+				{
+					LocalVariable->SetMetaData(MetaDataKey, *MetaDataValue);
+				}
+			}
+			else
 			{
 				Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex]->SetMetaData(MetaDataKey, MetaDataValue);
 			}
@@ -2390,7 +2598,20 @@ bool FBlueprintEditorUtils::GetBlueprintVariableMetaData(UBlueprint* Blueprint, 
 			//Not a Timeline is this a SCS Node?
 			const int32 SCS_NodeIndex = FBlueprintEditorUtils::FindSCS_Node(Blueprint,VarName);
 
-			if (SCS_NodeIndex != INDEX_NONE)
+			if (SCS_NodeIndex == INDEX_NONE)
+			{
+				// Check to see if it is a local variable
+				if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, VarName))
+				{
+					int32 EntryIndex = LocalVariable->FindMetaDataEntryIndexForKey(MetaDataKey);
+					if (EntryIndex != INDEX_NONE)
+					{
+						OutMetaDataValue = LocalVariable->GetMetaData(MetaDataKey);
+						return true;
+					}
+				}
+			}
+			else
 			{
 				USCS_Node& Desc = *Blueprint->SimpleConstructionScript->GetAllNodes()[SCS_NodeIndex];
 
@@ -2501,6 +2722,20 @@ void FBlueprintEditorUtils::SetBlueprintVariableCategory(UBlueprint* Blueprint, 
 			}
 		}
 	}
+	else
+	{
+		// Check to see if it is a local variable
+		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, VarName))
+		{
+			LocalVariable->SetMetaData(TEXT("Category"), *SetCategory.ToString());
+			LocalVariable->Category = SetCategory;
+
+			if (bDontRecompile == false)
+			{
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			}
+		}
+	}
 }
 
 FName FBlueprintEditorUtils::GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName)
@@ -2511,6 +2746,14 @@ FName FBlueprintEditorUtils::GetBlueprintVariableCategory(UBlueprint* Blueprint,
 	if(TargetProperty != NULL)
 	{
 		CategoryName = FObjectEditorUtils::GetCategoryFName(TargetProperty);
+	}
+	else
+	{
+		// Check to see if it is a local variable
+		if(FBPVariableDescription* LocalVariable = FindLocalVariable(Blueprint, VarName))
+		{
+			return LocalVariable->Category;
+		}
 	}
 
 	if(CategoryName == NAME_None && Blueprint->SimpleConstructionScript != NULL)
@@ -2644,6 +2887,18 @@ void FBlueprintEditorUtils::GetHiddenPinsForFunction(UBlueprint const* CallingCo
 	}
 }
 
+bool FBlueprintEditorUtils::IsPinTypeValid(const FEdGraphPinType& Type)
+{
+	if (const auto UDStruct = Cast<const UUserDefinedStruct>(Type.PinSubCategoryObject.Get()))
+	{
+		if (EUserDefinedStructureStatus::UDSS_UpToDate != UDStruct->Status)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 // Gets the visible class variable list.  This includes both variables introduced here and in all superclasses.
 void FBlueprintEditorUtils::GetClassVariableList(const UBlueprint* Blueprint, TArray<FName>& VisibleVariables, bool bIncludePrivateVars) 
 {
@@ -2731,11 +2986,17 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 	{
 		NewVar.PropertyFlags |= CPF_BlueprintAssignable | CPF_BlueprintCallable;
 	}
-	else if (NewVarType.PinCategory == K2Schema->PC_Object)
+	else if ((NewVarType.PinCategory == K2Schema->PC_Object) || (NewVarType.PinCategory == K2Schema->PC_Interface))
 	{
+		if (NewVar.VarType.PinSubCategory == K2Schema->PSC_Self)
+		{
+			NewVar.VarType.PinSubCategory.Empty();
+			NewVar.VarType.PinSubCategoryObject = *Blueprint->GeneratedClass;
+		}
+
 		// if it's a PC_Object, then it should have an associated UClass object
-		check(NewVarType.PinSubCategoryObject.IsValid());
-		const UClass* ClassObject = Cast<UClass>(NewVarType.PinSubCategoryObject.Get());
+		check(NewVar.VarType.PinSubCategoryObject.IsValid());
+		const UClass* ClassObject = Cast<UClass>(NewVar.VarType.PinSubCategoryObject.Get());
 		check(ClassObject != NULL);
 
 		if (ClassObject->IsChildOf(AActor::StaticClass()))
@@ -2747,6 +3008,11 @@ bool FBlueprintEditorUtils::AddMemberVariable(UBlueprint* Blueprint, const FName
 	}
 	NewVar.Category = K2Schema->VR_DefaultCategory;
 	NewVar.DefaultValue = DefaultValue;
+
+	// user created variables should be none of these things
+	NewVar.VarType.bIsConst       = false;
+	NewVar.VarType.bIsWeakPointer = false;
+	NewVar.VarType.bIsReference   = false;
 
 	Blueprint->NewVariables.Add(NewVar);
 
@@ -2952,7 +3218,7 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 				// Destroy all our nodes, because the pin types could be incorrect now (as will the links)
 				RemoveVariableNodes(Blueprint, VariableName);
 
-				if (NewPinType.PinCategory == K2Schema->PC_Object)
+				if ((NewPinType.PinCategory == K2Schema->PC_Object) || (NewPinType.PinCategory == K2Schema->PC_Interface))
 				{
 					// if it's a PC_Object, then it should have an associated UClass object
 					check(NewPinType.PinSubCategoryObject.IsValid());
@@ -2979,6 +3245,168 @@ void FBlueprintEditorUtils::ChangeMemberVariableType(UBlueprint* Blueprint, cons
 
 				// And recompile
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+			}
+		}
+	}
+}
+
+void FBlueprintEditorUtils::RemoveLocalVariable(UBlueprint* InBlueprint, const FName& InVarName)
+{
+	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+	GetAllNodesOfClass<UK2Node_FunctionEntry>(InBlueprint, FunctionEntryNodes);
+
+	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	{
+		for( int32 VarIdx = 0; VarIdx < FunctionEntry->LocalVariables.Num(); ++VarIdx )
+		{
+			if(FunctionEntry->LocalVariables[VarIdx].VarName == InVarName)
+			{
+				FunctionEntry->LocalVariables.RemoveAt(VarIdx);
+				FBlueprintEditorUtils::RemoveVariableNodes(InBlueprint, InVarName);
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+
+				// No other local variables will match, we are done
+				return;
+			}
+		}
+	}
+}
+
+void FBlueprintEditorUtils::RenameLocalVariable(UBlueprint* InBlueprint, const FName& InOldName, const FName& InNewName)
+{
+	if ((InOldName != InNewName) && (InNewName != NAME_None))
+	{
+		FBPVariableDescription* LocalVariable = FindLocalVariable(InBlueprint, InOldName);
+		
+		if(LocalVariable)
+		{
+			const FScopedTransaction Transaction( LOCTEXT("RenameVariable", "Rename Local Variable") );
+			InBlueprint->Modify();
+
+			// Update the name
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			LocalVariable->VarName = InNewName;
+			LocalVariable->FriendlyName = FName::NameToDisplayString( InNewName.ToString(), (LocalVariable->VarType.PinCategory == K2Schema->PC_Boolean) ? true : false );
+
+			// Update any existing references to the old name
+			FBlueprintEditorUtils::ReplaceVariableReferences(InBlueprint, InOldName, InNewName);
+
+			// Validate child blueprints and adjust variable names to avoid a potential name collision
+			FBlueprintEditorUtils::ValidateBlueprintChildVariables(InBlueprint, InNewName);
+			
+			// And recompile
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+		}
+	}
+}
+
+FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(UBlueprint* InBlueprint, const FName& InVariableName)
+{
+	// Search through all function entry nodes for a local variable with the passed name
+	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+	GetAllNodesOfClass<UK2Node_FunctionEntry>(InBlueprint, FunctionEntryNodes);
+
+	FBPVariableDescription* ReturnVariable = NULL;
+
+	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	{
+		for( FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+		{
+			if(InVariableName == Variable.VarName)
+			{
+				ReturnVariable = &Variable;
+				break;
+			}
+		}
+
+		if(ReturnVariable)
+		{
+			break;
+		}
+	}
+
+	return ReturnVariable;
+}
+
+FName FBlueprintEditorUtils::FindLocalVariableNameByGuid(UBlueprint* InBlueprint, const FGuid& InVariableGuid)
+{
+	// Search through all function entry nodes for a local variable with the passed Guid
+	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+	GetAllNodesOfClass<UK2Node_FunctionEntry>(InBlueprint, FunctionEntryNodes);
+
+	FName ReturnVariableName = NAME_None;
+	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	{
+		for( FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+		{
+			if(Variable.VarGuid == InVariableGuid)
+			{
+				ReturnVariableName = Variable.VarName;
+				break;
+			}
+		}
+
+		if(ReturnVariableName != NAME_None)
+		{
+			break;
+		}
+	}
+
+	return ReturnVariableName;
+}
+
+FGuid FBlueprintEditorUtils::FindLocalVariableGuidByName(UBlueprint* InBlueprint, const FName InVariableName)
+{
+	// Search through all function entry nodes for a local variable with the passed name
+	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+	GetAllNodesOfClass<UK2Node_FunctionEntry>(InBlueprint, FunctionEntryNodes);
+
+	FGuid ReturnGuid;
+	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	{
+		for( FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+		{
+			if(Variable.VarName == InVariableName)
+			{
+				ReturnGuid = Variable.VarGuid;
+				break;
+			}
+		}
+
+		if(ReturnGuid.IsValid())
+		{
+			break;
+		}
+	}
+
+	return ReturnGuid;
+}
+
+void FBlueprintEditorUtils::ChangeLocalVariableType(UBlueprint* InBlueprint, const FName& InVariableName, const FEdGraphPinType& NewPinType)
+{
+	if (InVariableName != NAME_None)
+	{
+		FString ActionCategory;
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		FBPVariableDescription* VariablePtr = FindLocalVariable(InBlueprint, InVariableName);
+
+		if(VariablePtr)
+		{
+			FBPVariableDescription& Variable = *VariablePtr;
+
+			// Update the variable type only if it is different
+			if (Variable.VarName == InVariableName && Variable.VarType != NewPinType)
+			{
+				const FScopedTransaction Transaction( LOCTEXT("ChangeLocalVariableType", "Change Local Variable Type") );
+				InBlueprint->Modify();
+
+				Variable.VarType = NewPinType;
+
+				// Destroy all our nodes, because the pin types could be incorrect now (as will the links)
+				RemoveVariableNodes(InBlueprint, InVariableName);
+
+				// And recompile
+				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
 			}
 		}
 	}
@@ -3643,15 +4071,15 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 				// If the event is loaded and is not a custom event
 				if(!EventNode->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad) && EventNode->bOverrideFunction)
 				{
-					if(Blueprint->GeneratedClass)
+					const bool bEventNodeUsedByInterface = ImplementedInterfaceClasses.Contains(EventNode->EventSignatureClass);
+					if (Blueprint->GeneratedClass && !bEventNodeUsedByInterface)
 					{
 						// See if the generated class implements an event with the given function signature
 						const UFunction* TargetFunction = Blueprint->GeneratedClass->FindFunctionByName(EventNode->EventSignatureName);
-						if(TargetFunction || EventGraphNames.Contains(EventNode->EventSignatureName))
+						if (TargetFunction || EventGraphNames.Contains(EventNode->EventSignatureName))
 						{
 							// The generated class implements the event but the function signature is not up-to-date
-							if(!Blueprint->GeneratedClass->IsChildOf(EventNode->EventSignatureClass)
-								&& !ImplementedInterfaceClasses.Contains(EventNode->EventSignatureClass))
+							if (!Blueprint->GeneratedClass->IsChildOf(EventNode->EventSignatureClass))
 							{
 								FFormatNamedArguments Args;
 								Args.Add(TEXT("NodeTitle"), EventNode->GetNodeTitle(ENodeTitleType::ListView));
@@ -3771,13 +4199,19 @@ static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescriptio
 			// destroy the old event node (this will also break all pin links and remove it from the graph)
 			EventNode->DestroyNode();
 
-			// have to rename so it doesn't conflict with the graph we're about to add
-			CustomEventNode->RenameCustomEventCloseToName();
+			if (InterfaceFunction)
+			{
+				// have to rename so it doesn't conflict with the graph we're about to add
+				CustomEventNode->RenameCustomEventCloseToName();
+			}
 			EventGraph->Nodes.Add(CustomEventNode);
 
 			// warn the user that their old functionality won't work (it's now connected 
 			// to a custom node that isn't triggered anywhere)
-			FText WarningMessageText = LOCTEXT("InterfaceEventNodeReplaced_Warn", "'%s' was promoted from an event to a function - it has been replaced by a custom event, which won't trigger unless you call it manually.");
+			FText WarningMessageText = InterfaceFunction ?
+				LOCTEXT("InterfaceEventNodeReplaced_Warn", "'%s' was promoted from an event to a function - it has been replaced by a custom event, which won't trigger unless you call it manually.") :
+				LOCTEXT("InterfaceEventRemovedNodeReplaced_Warn", "'%s' was removed from its interface - it has been replaced by a custom event, which won't trigger unless you call it manually.");
+
 			Blueprint->Message_Warn(FString::Printf(*WarningMessageText.ToString(), *FunctionName.ToString()));
 		}
 
@@ -4134,11 +4568,20 @@ FName FBlueprintEditorUtils::FindUniqueKismetName(const UBlueprint* InBlueprint,
 {
 	int32 Count = 0;
 	FString KismetName;
+	FString BaseName = InBaseName;
 
-	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(InBlueprint));
+	TSharedPtr<FKismetNameValidator> NameValidator = MakeShareable(new FKismetNameValidator(InBlueprint));
 	while(NameValidator->IsValid(KismetName) != EValidatorResult::Ok)
 	{
-		KismetName = FString::Printf(TEXT("%s_%d"), *InBaseName, Count);
+		// Calculate the number of digits in the number, adding 2 (1 extra to correctly count digits, another to account for the '_' that will be added to the name
+		int32 CountLength = Count > 0? (int32)log((double)Count) + 2 : 2;
+
+		// If the length of the final string will be too long, cut off the end so we can fit the number
+		if(CountLength + BaseName.Len() > NameValidator->GetMaximumNameLength())
+		{
+			BaseName = BaseName.Left(NameValidator->GetMaximumNameLength() - CountLength);
+		}
+		KismetName = FString::Printf(TEXT("%s_%d"), *BaseName, Count);
 		Count++;
 	}
 
@@ -4438,8 +4881,7 @@ bool FBlueprintEditorUtils::FixLevelScriptActorBindings(ALevelScriptActor* Level
 
 					// Create the delegate, and add it if it doesn't already exist
 					FScriptDelegate Delegate;
-					Delegate.SetFunctionName(TargetFunction);
-					Delegate.SetObject(LevelScriptActor);
+					Delegate.BindUFunction(LevelScriptActor, TargetFunction);
 					TargetDelegate->AddUnique(Delegate);
 				}
 				else
@@ -4770,20 +5212,21 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintParentClassPicker( 
 		{
 			// Don't allow conversion outside of the Actor hierarchy
 			Filter->AllowedChildrenOfClasses.Add( AActor::StaticClass() );
+
+			// Don't allow non-LevelScriptActor->LevelScriptActor conversion
+			Filter->DisallowedChildrenOfClasses.Add( ALevelScriptActor::StaticClass() );
 		}
 	}
-
-	if(!bIsLevelScriptActor)
-	{
-		// Don't allow non-LevelScriptActor->LevelScriptActor conversion
-		Filter->DisallowedChildrenOfClasses.Add( ALevelScriptActor::StaticClass() );
-	}
-
-	if (bIsAnimBlueprint)
+	else if (bIsAnimBlueprint)
 	{
 		// If it's an anim blueprint, do not allow conversion to non anim
 		Filter->AllowedChildrenOfClasses.Add( UAnimInstance::StaticClass() );
 	}
+	else
+	{
+		Filter->DisallowedChildrenOfClasses.Add( AActor::StaticClass() );
+	}
+
 
 	for( auto BlueprintIter = Blueprints.CreateConstIterator(); BlueprintIter; ++BlueprintIter )
 	{
@@ -4943,8 +5386,8 @@ void FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances()
 				for (int32 iSelected = 0; iSelected < Selected->Num() ; iSelected++)
 				{
 					AActor* ObjectAsActor = Cast<AActor>( Selected->GetSelectedObject( iSelected ) );
-
-					if ((ObjectAsActor != NULL) && (ObjectAsActor->GetWorld() != NULL) && (ObjectAsActor->GetWorld()->WorldType != EWorldType::Preview))
+					UWorld* ActorWorld = ObjectAsActor ? ObjectAsActor->GetWorld() : NULL;
+					if ((ActorWorld != NULL) && (ActorWorld->WorldType != EWorldType::Preview) && (ActorWorld->WorldType != EWorldType::Inactive))
 					{
 						if( IsObjectADebugCandidate(ObjectAsActor, EachBlueprint, true/*bInDisallowDerivedBlueprints*/ ) == true )
 						{
@@ -4970,7 +5413,8 @@ void FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances()
 				for (TObjectIterator<UObject> It; It; ++It)
 				{
 					AActor* ObjectAsActor = Cast<AActor>( *It );
-					if( ObjectAsActor && ( ObjectAsActor->GetWorld() ) && ( ObjectAsActor->GetWorld()->WorldType != EWorldType::Preview) )
+					UWorld* ActorWorld = ObjectAsActor ? ObjectAsActor->GetWorld() : NULL;
+					if( ActorWorld && ( ActorWorld->WorldType != EWorldType::Preview) && ActorWorld->WorldType != EWorldType::Inactive )
 					{
 						if( IsObjectADebugCandidate(ObjectAsActor, EachBlueprint, true/*bInDisallowDerivedBlueprints*/ ) == true )
 						{
@@ -5327,6 +5771,95 @@ bool FBlueprintEditorUtils::IsPaletteActionReadOnly(TSharedPtr<FEdGraphSchemaAct
 	return bIsReadOnly;
 }
 
+struct FUberGraphHelper
+{
+	static void GetAll(const UBlueprint* Blueprint, TArray<UEdGraph*>& OutGraphs)
+	{
+		for (const auto UberGraph : Blueprint->UbergraphPages)
+		{
+			OutGraphs.Add(UberGraph);
+			UberGraph->GetAllChildrenGraphs(OutGraphs);
+		}
+	}
+};
+
+FName FBlueprintEditorUtils::GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid)
+{
+	TArray<UBlueprint*> Blueprints;
+	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
+
+	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+	{
+		UBlueprint* Blueprint = Blueprints[BPIndex];
+		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
+		{
+			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
+			if (FunctionGraph && FunctionGraph->GraphGuid == FunctionGuid)
+			{
+				return FunctionGraph->GetFName();
+			}
+		}
+
+		//FUNCTIONS BASED ON CUSTOM EVENTS:
+		TArray<UEdGraph*> UberGraphs;
+		FUberGraphHelper::GetAll(Blueprint, UberGraphs);
+		for (const auto UberGraph : UberGraphs)
+		{
+			TArray<UK2Node_CustomEvent*> CustomEvents;
+			UberGraph->GetNodesOfClass(CustomEvents);
+			for (const auto CustomEvent : CustomEvents)
+			{
+				if (!CustomEvent->bOverrideFunction && (CustomEvent->NodeGuid == FunctionGuid))
+				{
+					ensure(CustomEvent->CustomFunctionName != NAME_None);
+					return CustomEvent->CustomFunctionName;
+				}
+			}
+		}
+	}
+
+	return NAME_None;
+}
+
+bool FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid)
+{
+	TArray<UBlueprint*> Blueprints;
+	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
+
+	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+	{
+		UBlueprint* Blueprint = Blueprints[BPIndex];
+		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
+		{
+			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
+			if (FunctionGraph && FunctionGraph->GetFName() == FunctionName)
+			{
+				FunctionGuid = FunctionGraph->GraphGuid;
+				return true;
+			}
+		}
+
+		TArray<UEdGraph*> UberGraphs;
+		FUberGraphHelper::GetAll(Blueprint, UberGraphs);
+		for (const auto UberGraph : UberGraphs)
+		{
+			TArray<UK2Node_CustomEvent*> CustomEvents;
+			UberGraph->GetNodesOfClass(CustomEvents);
+			for (const auto CustomEvent : CustomEvents)
+			{
+				if (!CustomEvent->bOverrideFunction && (CustomEvent->CustomFunctionName == FunctionName))
+				{
+					ensure(CustomEvent->CustomFunctionName != NAME_None);
+					ensure(CustomEvent->NodeGuid.IsValid());
+					FunctionGuid = CustomEvent->NodeGuid;
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
 
 #undef LOCTEXT_NAMESPACE
 

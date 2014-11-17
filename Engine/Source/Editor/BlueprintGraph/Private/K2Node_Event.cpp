@@ -572,13 +572,13 @@ void UK2Node_Event::ExpandNode(class FKismetCompilerContext& CompilerContext, UE
 
 			UK2Node_CreateDelegate* CreateDelegateNode = CompilerContext.SpawnIntermediateNode<UK2Node_CreateDelegate>(this, SourceGraph);
 			CreateDelegateNode->AllocateDefaultPins();
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OrgDelegatePin, *CreateDelegateNode->GetDelegateOutPin()), this);
+			CompilerContext.MovePinLinksToIntermediate(*OrgDelegatePin, *CreateDelegateNode->GetDelegateOutPin());
 			Schema->TryCreateConnection(SelfNode->FindPinChecked(Schema->PN_Self), CreateDelegateNode->GetObjectInPin());
-			CreateDelegateNode->SelectedFunctionName = FunctionName;
-			CreateDelegateNode->HandleAnyChangeInner();
-			if(CreateDelegateNode->SelectedFunctionName != FunctionName)
+			CreateDelegateNode->SetFunction(FunctionName);
+			CreateDelegateNode->HandleAnyChangeWithoutNotifying();
+			if (CreateDelegateNode->GetFunctionName() != FunctionName)
 			{
-				CreateDelegateNode->SelectedFunctionName = FunctionName;
+				CreateDelegateNode->SetFunction(FunctionName);
 				CompilerContext.MessageLog.Warning(*FString::Printf(*LOCTEXT("EventDelegateError", "Invalid delegate connection @@. Try recompile.").ToString()), OrgDelegatePin);
 			}
 		}

@@ -231,6 +231,11 @@ public:
 			FlagsString += TEXT(" UAV");
 		}
 
+		if(LocalFlags & TexCreate_FastVRAM)
+		{
+			FlagsString += TEXT(" VRam");
+		}
+
 		FString ArrayString;
 
 		if(IsArray())
@@ -261,6 +266,9 @@ public:
 	{
 		// Usually we don't want to propagate MSAA samples.
 		NumSamples = 1;
+
+		// Remove UAV flag for rendertargets that don't need it (some formats are incompatible)
+		TargetableFlags &= (~TexCreate_UAV);
 	}
 
 	/** In pixels, (0,0) if not set, (x,0) for cube maps, todo: make 3d int vector for volume textures */
@@ -339,7 +347,10 @@ struct IPooledRenderTarget : public IRefCountedObject
 	virtual const FPooledRenderTargetDesc& GetDesc() const = 0;
 	/** @param InName must not be 0 */
 	virtual void SetDebugName(const TCHAR *InName) = 0;
-	/** Only for debugging purpose */
+	/**
+	 * Only for debugging purpose
+	 * @return in bytes
+	 **/
 	virtual uint32 ComputeMemorySize() const = 0;
 	/** Get the low level internals (texture/surface) */
 	inline FSceneRenderTargetItem& GetRenderTargetItem() { return RenderTargetItem; }
@@ -373,7 +384,7 @@ public:
 	 * @param World - An optional world to associate with the scene.
 	 * @param bInRequiresHitProxies - Indicates that hit proxies should be rendered in the scene.
 	 */
-	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies) = 0;
+	virtual FSceneInterface* AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel) = 0;
 	
 	virtual void RemoveScene(FSceneInterface* Scene) = 0;
 

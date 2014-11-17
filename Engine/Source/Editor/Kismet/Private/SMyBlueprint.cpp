@@ -30,6 +30,7 @@
 #include "SBlueprintEditorToolbar.h"
 
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "ObjectEditorUtils.h"
 #include "AssetToolsModule.h"
 #include "Editor/GraphEditor/Private/GraphActionNode.h"
@@ -49,8 +50,6 @@ void FMyBlueprintCommands::RegisterCommands()
 	UI_COMMAND( ImplementFunction, "Implement Function", "Implements this overridable function as a new function.", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( FindEntry, "Find References", "Searches for all references of this function or variable.", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND(DeleteEntry, "Delete", "Deletes this function or variable from this blueprint.", EUserInterfaceActionType::Button, FInputGesture(EKeys::Platform_Delete));
-	UI_COMMAND( FindUserDefinedEnumInContentBrowser, "Find in Content Browser...", "Find user defined enum in content browser...", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( AddNewUserDefinedEnum, "Create Enum Asset", "Create new user defined enum asset", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( GotoNativeVarDefinition, "Goto Code Definition", "Goto the native code definition of this variable", EUserInterfaceActionType::Button, FInputGesture() );
 }
 
@@ -164,12 +163,6 @@ void SMyBlueprint::Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor
 		FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindEntry),
 		FCanExecuteAction(),
 		FIsActionButtonVisible::CreateSP(this, &SMyBlueprint::CanFindEntry) );
-
-	InBlueprintEditor.Pin()->GetToolkitCommands()->MapAction( FMyBlueprintCommands::Get().FindUserDefinedEnumInContentBrowser,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::OnFindUserDefinedEnumInContentBrowser) );
-
-	InBlueprintEditor.Pin()->GetToolkitCommands()->MapAction( FMyBlueprintCommands::Get().AddNewUserDefinedEnum,
-		FExecuteAction::CreateSP(this, &SMyBlueprint::AddNewUserDefinedEnum) );
 	
 	ToolKitCommandList->MapAction( FMyBlueprintCommands::Get().DeleteEntry,
 		FExecuteAction::CreateSP(this, &SMyBlueprint::OnDeleteEntry),
@@ -341,6 +334,9 @@ FText SMyBlueprint::OnGetSectionTitle( int32 InSectionID )
 		break;	
 	case NodeSectionID::LOCAL_VARIABLE:
 		SeperatorTitle = NSLOCTEXT("GraphActionNode", "LocalVariables", "Local Variables");
+		break;	
+	case NodeSectionID::USER_STRUCT:
+		SeperatorTitle = NSLOCTEXT("GraphActionNode", "Userstructs", "User Structs");
 		break;	
 	default:
 	case NodeSectionID::NONE:
@@ -551,7 +547,9 @@ void SMyBlueprint::GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId
 
 void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions) const
 {
-	if(UEdGraph* EdGraph = BlueprintEditorPtr.Pin()->GetFocusedGraph())
+	// We want to pull local variables from the top level function graphs
+	UEdGraph* EdGraph = FBlueprintEditorUtils::GetTopLevelGraph(BlueprintEditorPtr.Pin()->GetFocusedGraph());
+	if( EdGraph )
 	{
 		// grab the parent graph's name
 		UEdGraphSchema const* Schema = EdGraph->GetSchema();
@@ -559,19 +557,26 @@ void SMyBlueprint::GetLocalVariables(FGraphActionListBuilderBase& OutAllActions)
 		Schema->GetGraphDisplayInformation(*EdGraph, EdGraphDisplayInfo);
 		FText const EdGraphDisplayName = EdGraphDisplayInfo.DisplayName;
 
-		TArray<UK2Node_LocalVariable*> LocalVariableNodes;
-		EdGraph->GetNodesOfClass<UK2Node_LocalVariable>(LocalVariableNodes);
+		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+		EdGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
 
+		// Search in all FunctionEntry nodes for their local variables
 		FString ActionCategory;
-		for (UK2Node_LocalVariable* const LocalVariable : LocalVariableNodes)
+		for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
 		{
-			FString const Tooltip = LocalVariable->GetTooltip();
-			FText const Description = LocalVariable->GetNodeTitle(ENodeTitleType::EditableTitle);
+			for( const FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+			{
+				FString Category = Variable.Category.ToString();
+				if (Variable.Category == GetDefault<UEdGraphSchema_K2>()->VR_DefaultCategory)
+				{
+					Category = FString();
+				}
 
-			TSharedPtr<FEdGraphSchemaAction_K2TargetNode> TargetNodeAction = MakeShareable(new FEdGraphSchemaAction_K2TargetNode(ActionCategory, Description, Tooltip, 0));
-			TargetNodeAction->NodeTemplate = LocalVariable;
-			TargetNodeAction->SearchTitle = TargetNodeAction->NodeTemplate->GetNodeSearchTitle();
-			OutAllActions.AddAction(TargetNodeAction);
+				TSharedPtr<FEdGraphSchemaAction_K2LocalVar> NewVarAction = MakeShareable(new FEdGraphSchemaAction_K2LocalVar(Category, FText::FromName(Variable.VarName), TEXT(""), 0));
+				UFunction* Func = FindField<UFunction>(BlueprintEditorPtr.Pin()->GetBlueprintObj()->SkeletonGeneratedClass, *EdGraph->GetName());
+				NewVarAction->SetVariableInfo(Variable.VarName, Func);
+				OutAllActions.AddAction(NewVarAction);
+			}
 		}
 	}
 }
@@ -583,11 +588,6 @@ EVisibility SMyBlueprint::GetLocalActionsListVisibility() const
 		return EVisibility::Visible;
 	}
 	return EVisibility::Collapsed;
-}
-
-static FString UserDefinedEnumCategoryNameStr()
-{
-	return LOCTEXT("UserDefinedEnumCategory", "User defined enums").ToString();
 }
 
 void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
@@ -837,73 +837,6 @@ void SMyBlueprint::CollectAllActions(FGraphActionListBuilderBase& OutAllActions)
 		GetChildGraphs(Graph, OutAllActions);
 		GetChildEvents(Graph, NewFuncAction->SectionID, OutAllActions);
 	}
-
-	TArray<UUserDefinedEnum*> UserDefinedEnumUserInBlueprint;
-	for ( int32 GraphActionIndex = 0; GraphActionIndex < OutAllActions.GetNumActions(); GraphActionIndex++ )
-	{
-		FGraphActionListBuilderBase::ActionGroup& CurrentGraphAction = OutAllActions.GetAction(GraphActionIndex);
-		for(auto ActionIter = CurrentGraphAction.Actions.CreateIterator(); ActionIter; ActionIter++)
-		{
-			TSharedPtr<FEdGraphSchemaAction> Action = *ActionIter;
-			if(Action.IsValid())
-			{
-				if(FEdGraphSchemaAction_K2Var::StaticGetTypeId() == Action->GetTypeId())
-				{
-					FEdGraphSchemaAction_K2Var* VarAction = (FEdGraphSchemaAction_K2Var*)Action.Get();
-					if(UByteProperty* ByteProperty = Cast<UByteProperty>(VarAction->GetProperty()))
-					{
-						if(UUserDefinedEnum* UserDefinedEnum =  Cast<UUserDefinedEnum>(ByteProperty->GetIntPropertyEnum()))
-						{
-							UserDefinedEnumUserInBlueprint.AddUnique(UserDefinedEnum);
-						}
-					}
-				}
-				else if(FEdGraphSchemaAction_K2Graph::StaticGetTypeId() == Action->GetTypeId())
-				{
-					FEdGraphSchemaAction_K2Graph* GraphAction = (FEdGraphSchemaAction_K2Graph*)Action.Get();
-					if(GraphAction->EdGraph)
-					{
-						for(auto NodeIter = GraphAction->EdGraph->Nodes.CreateIterator(); NodeIter; NodeIter++)
-						{
-							if(UEdGraphNode* Node = *NodeIter)
-							{
-								for(auto PinIter = Node->Pins.CreateIterator(); PinIter; PinIter++)
-								{
-									if(UEdGraphPin* Pin = *PinIter)
-									{
-										if(UUserDefinedEnum* UserDefinedEnum =  Cast<UUserDefinedEnum>(Pin->PinType.PinSubCategoryObject.Get()))
-										{
-											UserDefinedEnumUserInBlueprint.AddUnique(UserDefinedEnum);
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	for(auto EnumWeakIter = EnumsAddedToBlueprint.CreateIterator(); EnumWeakIter; EnumWeakIter++)
-	{
-		if(EnumWeakIter->IsValid())
-		{
-			UserDefinedEnumUserInBlueprint.AddUnique(EnumWeakIter->Get());
-		}
-	}
-	for(auto EnumIter = UserDefinedEnumUserInBlueprint.CreateIterator(); EnumIter; EnumIter++)
-	{
-		if(UEnum* Enum = *EnumIter)
-		{
-			const FText EnumNameStr = FText::FromString(Enum->GetName());
-			TSharedPtr<FEdGraphSchemaAction_K2Enum> NewEnumAction = MakeShareable(new FEdGraphSchemaAction_K2Enum( 
-				UserDefinedEnumCategoryNameStr(), EnumNameStr, EnumNameStr.ToString(), -1));
-			NewEnumAction->Enum = Enum;
-			NewEnumAction->SectionID = NodeSectionID::USER_ENUM;
-			OutAllActions.AddAction(NewEnumAction);
-		}
-	}
 }
 
 ESlateCheckBoxState::Type SMyBlueprint::OnUserVarsCheckState() const
@@ -970,6 +903,22 @@ FReply SMyBlueprint::OnActionDragged( const TArray< TSharedPtr<FEdGraphSchemaAct
 				const bool bIsCtrlDown = MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown();
 				
 				TSharedRef<FKismetVariableDragDropAction> DragOperation = FKismetDelegateDragDropAction::New( SharedThis( this ), DelegateAction->GetDelegateName(), VarClass, AnalyticsDelegate);
+				DragOperation->SetAltDrag(bIsAltDown);
+				DragOperation->SetCtrlDrag(bIsCtrlDown);
+				return FReply::Handled().BeginDragDrop(DragOperation);
+			}
+		}
+		else if( InAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2LocalVar* VarAction = (FEdGraphSchemaAction_K2LocalVar*)InAction.Get();
+
+			UStruct* VariableScope = VarAction->GetVariableScope();
+			if(VariableScope != NULL)
+			{
+				const bool bIsAltDown = MouseEvent.IsAltDown();
+				const bool bIsCtrlDown = MouseEvent.IsLeftControlDown() || MouseEvent.IsRightControlDown();
+
+				TSharedRef<FKismetVariableDragDropAction> DragOperation = FKismetVariableDragDropAction::New(VarAction->GetVariableName(), VariableScope, AnalyticsDelegate);
 				DragOperation->SetAltDrag(bIsAltDown);
 				DragOperation->SetCtrlDrag(bIsCtrlDown);
 				return FReply::Handled().BeginDragDrop(DragOperation);
@@ -1073,6 +1022,15 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 
 			Inspector->ShowDetailsForSingleObject(VarAction->GetProperty(), Options);
 		}
+		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2LocalVar* VarAction = (FEdGraphSchemaAction_K2LocalVar*)InAction.Get();
+
+			SKismetInspector::FShowDetailsOptions Options(VarAction->GetVariableName().ToString());
+			Options.bHideFilterArea = true;
+
+			Inspector->ShowDetailsForSingleObject(VarAction->GetProperty(), Options);
+		}
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId())
 		{
 			FEdGraphSchemaAction_K2Enum* EnumAction = (FEdGraphSchemaAction_K2Enum*)InAction.Get();
@@ -1081,6 +1039,15 @@ void SMyBlueprint::OnActionSelected( const TArray< TSharedPtr<FEdGraphSchemaActi
 			Options.bForceRefresh = true;
 
 			Inspector->ShowDetailsForSingleObject(EnumAction->Enum, Options);
+		}
+		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId())
+		{
+			FEdGraphSchemaAction_K2Struct* StructAction = (FEdGraphSchemaAction_K2Struct*)InAction.Get();
+
+			SKismetInspector::FShowDetailsOptions Options(StructAction->GetPathName().ToString());
+			Options.bForceRefresh = true;
+
+			Inspector->ShowDetailsForSingleObject(StructAction->Struct, Options);
 		}
 		else if (InAction->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId())
 		{
@@ -1179,6 +1146,12 @@ FEdGraphSchemaAction_K2Enum* SMyBlueprint::SelectionAsEnum() const
 	return SelectionAsType<FEdGraphSchemaAction_K2Enum>( GraphActionMenu );
 }
 
+
+FEdGraphSchemaAction_K2Struct* SMyBlueprint::SelectionAsStruct() const
+{
+	return SelectionAsType<FEdGraphSchemaAction_K2Struct>( GraphActionMenu );
+}
+
 FEdGraphSchemaAction_K2Graph* SMyBlueprint::SelectionAsGraph() const
 {
 	return SelectionAsType<FEdGraphSchemaAction_K2Graph>( GraphActionMenu );
@@ -1189,19 +1162,12 @@ FEdGraphSchemaAction_K2Var* SMyBlueprint::SelectionAsVar() const
 	return SelectionAsType<FEdGraphSchemaAction_K2Var>( GraphActionMenu );
 }
 
-UK2Node_LocalVariable* SMyBlueprint::SelectionAsLocalVar() const
+FEdGraphSchemaAction_K2LocalVar* SMyBlueprint::SelectionAsLocalVar() const
 {
-	FEdGraphSchemaAction_K2TargetNode* TargetNode = NULL;
-	if (LocalGraphActionMenu.IsValid())
+	if(LocalGraphActionMenu.IsValid())
 	{
-		TargetNode = SelectionAsType<FEdGraphSchemaAction_K2TargetNode>( LocalGraphActionMenu );
+		return SelectionAsType<FEdGraphSchemaAction_K2LocalVar>( LocalGraphActionMenu );
 	}
-
-	if(TargetNode && TargetNode->NodeTemplate)
-	{
-		return Cast<UK2Node_LocalVariable>(TargetNode->NodeTemplate);
-	}
-
 	return NULL;
 }
 
@@ -1222,7 +1188,7 @@ bool SMyBlueprint::SelectionIsCategory() const
 
 bool SMyBlueprint::SelectionHasContextMenu() const
 {
-	return SelectionAsGraph() || SelectionAsVar() || SelectionIsCategory() || SelectionAsDelegate() || SelectionAsEnum() || SelectionAsEvent() || SelectionAsLocalVar();
+	return SelectionAsGraph() || SelectionAsVar() || SelectionIsCategory() || SelectionAsDelegate() || SelectionAsEnum() || SelectionAsEvent() || SelectionAsLocalVar() || SelectionAsStruct();
 }
 
 void SMyBlueprint::GetSelectedItemsForContextMenu(TArray<FComponentEventConstructionData>& OutSelectedItems) const
@@ -1253,11 +1219,6 @@ TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 	// Check if the selected action is valid for a context menu
 	if (SelectionHasContextMenu())
 	{
-		if(SelectionAsEnum())
-		{
-			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().FindUserDefinedEnumInContentBrowser);
-		}
-
 		MenuBuilder.BeginSection("BasicOperations");
 		{
 			MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().OpenGraph);
@@ -1308,71 +1269,9 @@ TSharedPtr<SWidget> SMyBlueprint::OnContextMenuOpening()
 			MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().AddNewDelegate);
 		}
 		MenuBuilder.EndSection();
-
-		if(BlueprintEditorPtr.IsValid())
-		{
-			UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
-			if(Blueprint && (EBlueprintType::BPTYPE_LevelScript != Blueprint->BlueprintType))
-			{
-				MenuBuilder.AddMenuSeparator();
-				MenuBuilder.AddMenuEntry(FMyBlueprintCommands::Get().AddNewUserDefinedEnum);
-			}
-		}
 	}
 
 	return MenuBuilder.MakeWidget();
-}
-
-void SMyBlueprint::OnFindUserDefinedEnumInContentBrowser() const
-{
-	if (FEdGraphSchemaAction_K2Enum* GraphAction = SelectionAsEnum())
-	{
-		UUserDefinedEnum* Enum = Cast<UUserDefinedEnum>(GraphAction->Enum);
-		if(Enum && Enum->IsAsset())
-		{
-			TArray<UObject*> ObjectsToSync;
-				ObjectsToSync.Add(Enum);
-				GEditor->SyncBrowserToObjects( ObjectsToSync );
-		}
-	}
-}
-
-void SMyBlueprint::AddNewUserDefinedEnum()
-{
-	UBlueprint* Blueprint = GetBlueprintObj();
-	if (Blueprint)
-	{
-		static FName AssetToolsModuleName = FName("AssetTools");
-		FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>(AssetToolsModuleName);
-
-		FString AssetName;
-		FString PackagePath;
-		AssetToolsModule.Get().CreateUniqueAssetName(Blueprint->GetOutermost()->GetName(), TEXT("_Enum"), PackagePath, AssetName);
-
-		UUserDefinedEnum* Enum = NULL;
-		if (!AssetName.IsEmpty())
-		{
-			UEnumFactory* Factory = ConstructObject<UEnumFactory>(UEnumFactory::StaticClass());
-			if (Factory && Factory->ConfigureProperties())
-			{
-				PackagePath = FPackageName::GetLongPackagePath(Blueprint->GetPathName());
-				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(AssetName, PackagePath, UUserDefinedEnum::StaticClass(), Factory );
-				Enum = Cast<UUserDefinedEnum>(NewAsset);
-			}
-		}
-
-		if (Enum)
-		{
-			EnumsAddedToBlueprint.Add(Enum);
-			Refresh();
-			if (GraphActionMenu.IsValid())
-			{
-				GraphActionMenu->ExpandCategory(UserDefinedEnumCategoryNameStr());
-				GraphActionMenu->SelectItemByName(FName(*Enum->GetPathName()),ESelectInfo::OnMouseClick);
-				GraphActionMenu->OnRequestRenameOnActionNode();
-			}
-		}
-	}
 }
 
 bool SMyBlueprint::CanOpenGraph() const
@@ -1491,6 +1390,10 @@ void SMyBlueprint::OnFindEntry()
 	{
 		SearchTerm = VarAction->GetVariableName().ToString();
 	}
+	else if (FEdGraphSchemaAction_K2LocalVar* LocalVarAction = SelectionAsLocalVar())
+	{
+		SearchTerm = LocalVarAction->GetVariableName().ToString();
+	}
 	else if (FEdGraphSchemaAction_K2Delegate* DelegateAction = SelectionAsDelegate())
 	{
 		SearchTerm = DelegateAction->GetDelegateName().ToString();
@@ -1498,6 +1401,10 @@ void SMyBlueprint::OnFindEntry()
 	else if (FEdGraphSchemaAction_K2Enum* EnumAction = SelectionAsEnum())
 	{
 		SearchTerm = EnumAction->Enum->GetName();
+	}
+	else if (FEdGraphSchemaAction_K2Struct* StructAction = SelectionAsStruct())
+	{
+		BlueprintEditorPtr.Pin()->SummonSearchUI(true, StructAction->Struct->GetName());
 	}
 	else if (FEdGraphSchemaAction_K2Event* EventAction = SelectionAsEvent())
 	{
@@ -1607,20 +1514,44 @@ void SMyBlueprint::OnDeleteEntry()
 		GetBlueprintObj()->Modify();
 		FBlueprintEditorUtils::RemoveMemberVariable(GetBlueprintObj(), VarAction->GetVariableName());
 	}
+	else if ( FEdGraphSchemaAction_K2LocalVar* LocalVarAction = SelectionAsLocalVar() )
+	{
+		if(FBlueprintEditorUtils::IsVariableUsed(GetBlueprintObj(), LocalVarAction->GetVariableName()))
+		{
+			FText ConfirmDelete = FText::Format(LOCTEXT( "ConfirmDeleteLocalVariableInUse",
+				"Local Variable {0} is in use! Do you really want to delete it?"),
+				FText::FromName( LocalVarAction->GetVariableName() ) );
+
+			// Warn the user that this may result in data loss
+			FSuppressableWarningDialog::FSetupInfo Info( ConfirmDelete, LOCTEXT("DeleteVar", "Delete Variable"), "DeleteVariableInUse_Warning" );
+			Info.ConfirmText = LOCTEXT( "DeleteVariable_Yes", "Yes");
+			Info.CancelText = LOCTEXT( "DeleteVariable_No", "No");	
+
+			FSuppressableWarningDialog DeleteVariableInUse( Info );
+			if ( DeleteVariableInUse.ShowModal() == FSuppressableWarningDialog::Cancel )
+			{
+				return;
+			}
+		}
+
+		const FScopedTransaction Transaction( LOCTEXT( "RemoveLocalVariable", "Remove Local Variable" ) );
+
+		GetBlueprintObj()->Modify();
+
+		UEdGraph* FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(BlueprintEditorPtr.Pin()->GetFocusedGraph());
+		TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+		FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(FunctionEntryNodes);
+		check(FunctionEntryNodes.Num() == 1);
+		FunctionEntryNodes[0]->Modify();
+
+		FBlueprintEditorUtils::RemoveLocalVariable(GetBlueprintObj(), LocalVarAction->GetVariableName());
+	}
 	else if (FEdGraphSchemaAction_K2Event* EventAction = SelectionAsEvent())
 	{
 		const FScopedTransaction Transaction(LOCTEXT( "RemoveEventNode", "Remove EventNode"));
 
 		GetBlueprintObj()->Modify();
 		FBlueprintEditorUtils::RemoveNode(GetBlueprintObj(), EventAction->NodeTemplate);
-	}
-	else if (UK2Node_LocalVariable* LocalVariable = SelectionAsLocalVar())
-	{
-		const FScopedTransaction Transaction( LOCTEXT( "RemoveLocalVariable", "Remove Local Variable" ) );
-
-		LocalVariable->GetGraph()->Modify();
-
-		LocalVariable->DestroyNode();
 	}
 	else if ( SelectionIsCategory() )
 	{
@@ -1688,9 +1619,9 @@ bool SMyBlueprint::CanDeleteEntry() const
 	{
 		return EventAction->NodeTemplate != NULL;
 	}
-	else if (UK2Node_LocalVariable* LocalVariable = SelectionAsLocalVar())
+	else if (FEdGraphSchemaAction_K2LocalVar* LocalVariable = SelectionAsLocalVar())
 	{
-		return LocalVariable != NULL;
+		return true;
 	}
 	else if (SelectionIsCategory())
 	{

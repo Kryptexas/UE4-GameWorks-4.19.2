@@ -11,7 +11,7 @@
 #include "SLevelViewport.h"
 #include "LevelViewportTabContent.h"
 #include "AssetSelection.h"
-#include "LevelViewportContextMenu.h"
+#include "LevelEditorContextMenu.h"
 #include "LevelEditorToolBar.h"
 #include "ScopedTransaction.h"
 #include "SLevelEditorToolBox.h"
@@ -32,6 +32,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/Sequencer/Public/ISequencerModule.h"
 #include "Editor/StatsViewer/Public/StatsViewerModule.h"
+#include "Editor/UMGEditor/Public/UMGEditorModule.h"
 #include "EditorModes.h"
 #include "STutorialWrapper.h"
 #include "IDocumentation.h"
@@ -630,7 +631,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 					// Only extend the menu if we have actors selected
 					if (GEditor->GetSelectedActors()->Num())
 					{
-						FLevelViewportContextMenu::FillMenu(MenuBuilder, WeakLevelEditor, TSharedPtr<FExtender>());
+						FLevelEditorContextMenu::FillMenu(MenuBuilder, WeakLevelEditor, LevelEditorMenuContext::NonViewport, TSharedPtr<FExtender>());
 					}
 				}, WeakLevelEditor)
 			);
@@ -697,12 +698,7 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 			.Icon( FEditorStyle::GetBrush( "LevelEditor.Tabs.WorldBrowser" ) )
 			.Label( NSLOCTEXT("LevelEditor", "WorldBrowserTabTitle", "World Browser") )
 			[
-				SNew(SBorder)
-				.Padding( 0 )
-				.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-				[
-					WorldBrowserModule.CreateWorldBrowser()
-				]
+				WorldBrowserModule.CreateWorldBrowser()
 			];
 	}
 	else if( TabIdentifier == TEXT("Sequencer") && FParse::Param(FCommandLine::Get(), TEXT("sequencer")) )
@@ -1411,7 +1407,7 @@ void SLevelEditor::OnLayoutHasChanged()
 
 void SLevelEditor::SummonLevelViewportContextMenu()
 {
-	FLevelViewportContextMenu::SummonMenu( SharedThis( this ) );
+	FLevelEditorContextMenu::SummonMenu( SharedThis( this ), LevelEditorMenuContext::Viewport );
 }
 
 

@@ -31,42 +31,6 @@ struct FRecompileRequest
 	bool bComplete;
 };
 
-////////////////////////////////////////////////////////////////
-/// Cook on the fly prototype
-///////////////////////////////////////////////////////////////
-
-template<typename Type>
-struct FThreadSafeArray
-{
-	FCriticalSection	SynchronizationObject;
-	TArray<Type>		Items;
-
-	void Enqueue(const Type& Item)
-	{
-		FScopeLock ScopeLock(&SynchronizationObject);
-		Items.Add(Item);
-	}
-	bool Dequeue(Type* Result)
-	{
-		FScopeLock ScopeLock(&SynchronizationObject);
-		if (Items.Num())
-		{
-			*Result = Items[0];
-			Items.RemoveAt(0);
-			return true;
-		}
-		return false;
-	}
-	void DequeueAll(TArray<Type>& Results)
-	{
-		FScopeLock ScopeLock(&SynchronizationObject);
-		Results += Items;
-		Items.Empty();
-	}
-};
-
-FThreadSafeArray<FRecompileRequest*> RecompileRequests;
-
 /* Static functions
  *****************************************************************************/
 
@@ -95,115 +59,43 @@ UCookCommandlet::UCookCommandlet( const class FPostConstructInitializeProperties
 /* UCookCommandlet interface
  *****************************************************************************/
 
-struct FFilePlatformRequest
+bool UCookCommandlet::CookOnTheFly( FGuid InstanceId, int32 Timeout, bool bForceClose )
 {
-public:
-	FFilePlatformRequest() { }
-	FFilePlatformRequest( const FString &InFilename, const FString &InPlatformname ) : Filename( FPaths::ConvertRelativePathToFull( InFilename) ), Platformname( InPlatformname ) 
+	UCookOnTheFlyServer *CookOnTheFlyServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
+
+	struct FScopeRootObject
 	{
-		// FPaths::ConvertRelativePathToFull(InFilename);
-	}
-
-	FString Filename;
-	FString Platformname;
-
-	bool IsValid()  const
-	{
-		return Filename.Len() > 0;
-	}
-
-	void Clear()
-	{
-
-		Filename = TEXT("");
-		Platformname = TEXT("");
-	}
-
-	bool operator ==( const FFilePlatformRequest &InFileRequest ) const
-	{
-		if ( InFileRequest.Filename == Filename )
+		UObject *Object;
+		FScopeRootObject( UObject *InObject ) : Object( InObject )
 		{
-			if ( InFileRequest.Platformname == Platformname )
-				return true;
+			Object->AddToRoot();
 		}
+
+		~FScopeRootObject()
+		{
+			Object->RemoveFromRoot();
+		}
+	};
+
+	// make sure that the cookonthefly server doesn't get cleaned up while we are garbage collecting below :)
+	FScopeRootObject S(CookOnTheFlyServer);
+
+	CookOnTheFlyServer->Initialize( bCompressed, bIterativeCooking, bSkipEditorContent );
+
+	bool BindAnyPort = InstanceId.IsValid();
+
+	if ( CookOnTheFlyServer->StartNetworkFileServer(BindAnyPort) == false )
+	{
 		return false;
 	}
 
-	
-};
-uint32 GetTypeHash(const FFilePlatformRequest &Key)
-{
-	return GetTypeHash( Key.Filename ) ^ GetTypeHash( Key.Platformname );
-}
-
-FThreadSafeArray<FFilePlatformRequest> ThreadSafeFilenameArray;
-FThreadSafeArray<FFilePlatformRequest> UnsolicitedCookedPackages;
-
-
-
-
-struct FThreadSafeFilenameSet
-{
-	FCriticalSection	SynchronizationObject;
-	TSet<FFilePlatformRequest> FilesProcessed;
-
-	void Add(const FFilePlatformRequest &Filename)
+	if ( InstanceId.IsValid() )
 	{
-		FScopeLock ScopeLock(&SynchronizationObject);
-		check(Filename.IsValid());
-		FilesProcessed.Add(Filename);
-	}
-	bool Exists(const FFilePlatformRequest &Filename)
-	{
-		FScopeLock ScopeLock(&SynchronizationObject);
-		return FilesProcessed.Contains(Filename);
-	}
-};
-
-FThreadSafeFilenameSet ThreadSafeFilenameSet;
-
-
-bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForceClose )
-{
-	//GetDerivedDataCacheRef().WaitForQuiescence(false);
-
-	// start the listening thread
-	FFileRequestDelegate FileRequestDelegate(FFileRequestDelegate::CreateUObject(this, &UCookCommandlet::HandleNetworkFileServerFileRequest));
-	FRecompileShadersDelegate RecompileShadersDelegate(FRecompileShadersDelegate::CreateUObject(this, &UCookCommandlet::HandleNetworkFileServerRecompileShaders));
-
-	INetworkFileServer* NetworkFileServer = FModuleManager::LoadModuleChecked<INetworkFileSystemModule>("NetworkFileSystem")
-		.CreateNetworkFileServer(BindAnyPort ? 0 : -1, &FileRequestDelegate, &RecompileShadersDelegate);
-
-	TArray<TSharedPtr<FInternetAddr> > AddressList;
-
-	if ((NetworkFileServer == NULL) || !NetworkFileServer->GetAddressList(AddressList))
-	{
-		UE_LOG(LogCookCommandlet, Error, TEXT("Failed to create network file server"));
-
-		return false;
-	}
-
-	// broadcast our presence
-	if (InstanceId.IsValid())
-	{
-		TArray<FString> AddressStringList;
-
-		for (int32 AddressIndex = 0; AddressIndex < AddressList.Num(); ++AddressIndex)
+		if ( CookOnTheFlyServer->BroadcastFileserverPresence(InstanceId) == false )
 		{
-			AddressStringList.Add(AddressList[AddressIndex]->ToString(true));
+			return false;
 		}
-
-		FMessageEndpointPtr MessageEndpoint = FMessageEndpoint::Builder("UCookCommandlet").Build();
-
-		if (MessageEndpoint.IsValid())
-		{
-			MessageEndpoint->Publish(new FFileServerReady(AddressStringList, InstanceId), EMessageScope::Network);
-		}		
 	}
-
-	// loop while waiting for requests
-	GIsRequestingExit = false;
-
 
 	// Garbage collection should happen when either
 	//	1. We have cooked a map
@@ -212,248 +104,109 @@ bool UCookCommandlet::CookOnTheFly( bool BindAnyPort, int32 Timeout, bool bForce
 	//		b. we have been idle for 20 seconds.
 	bool bShouldGC = true;
 
-	bool bCookedAMapSinceLastGC = false;
-
+	// megamoth
+	uint32 NonMapPackageCountSinceLastGC = 0;
+	
 	const int32 PackagesPerGC = 50;
-	int32 NonMapPackageCountSinceLastGC = 0;
-
+	
 	const double IdleTimeToGC = 20.0;
 	double LastCookActionTime = FPlatformTime::Seconds();
 
 	FDateTime LastConnectionTime = FDateTime::UtcNow();
 	bool bHadConnection = false;
 
+	bool bCookedAMapSinceLastGC = false;
 	while (!GIsRequestingExit)
 	{
-		FFilePlatformRequest ToBuild;
+		uint32 TickResults = 0;
+		static const float CookOnTheSideTimeSlice = 10.0f;
+		TickResults = CookOnTheFlyServer->TickCookOnTheSide(CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC);
 
-		while (!GIsRequestingExit)
+		bCookedAMapSinceLastGC |= TickResults & UCookOnTheFlyServer::COSR_CookedMap;
+		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
 		{
-			// This is all the target platforms which we needed to process requests for this iteration
-			// we use this in the unsolicited packages processing below
-			TArray<FString> AllTargetPlatformNames;
+			LastCookActionTime = FPlatformTime::Seconds();
+		}
 
 
-			while (ToBuild.IsValid() && !GIsRequestingExit)
+		while ( (CookOnTheFlyServer->HasCookRequests() == false) && !GIsRequestingExit)
+		{
+				
 			{
-				bool bWasUpToDate = false;
-				TArray<FString> TargetPlatformNames;
-				if( ToBuild.Platformname.Len() )
+				if (NonMapPackageCountSinceLastGC > 0)
 				{
-					TargetPlatformNames.Add( ToBuild.Platformname );
+					// We should GC if we have packages to collect and we've been idle for some time.
+					bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
+						((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
 				}
 
-				FString Name = FPackageName::FilenameToLongPackageName(*ToBuild.Filename);
-				if (!ThreadSafeFilenameSet.Exists(ToBuild))
+				// delay the gc until we process some unsolicited packages
+				if ( bCookedAMapSinceLastGC && (CookOnTheFlyServer->HasUnsolicitedCookRequests() == false) )
 				{
-					UPackage* Package = LoadPackage( NULL, *ToBuild.Filename, LOAD_None );
-
-					if( Package == NULL )
-					{
-						UE_LOG(LogCookCommandlet, Error, TEXT("Error loading %s!"), *ToBuild.Filename );
-					}
-					else
-					{
-						if( SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bWasUpToDate, TargetPlatformNames) )
-						{
-							// Update flags used to determine garbage collection.
-							if (Package->ContainsMap())
-							{
-								bCookedAMapSinceLastGC = true;
-							}
-							else
-							{
-								NonMapPackageCountSinceLastGC++;
-								LastCookActionTime = FPlatformTime::Seconds();
-							}
-						}
-
-						//@todo ResetLoaders outside of this (ie when Package is NULL) causes problems w/ default materials
-						if (Package->HasAnyFlags(RF_RootSet) == false)
-						{
-							ResetLoaders(Package);
-						}
-					}
-				}
-
-				for ( int Index = 0; Index < TargetPlatformNames.Num(); ++Index )
-				{
-					AllTargetPlatformNames.AddUnique(TargetPlatformNames[Index]);
-
-					FFilePlatformRequest FileRequest( ToBuild.Filename, TargetPlatformNames[Index]);
-					
-					ThreadSafeFilenameSet.Add( FileRequest );
-				}
-
-
-				ToBuild.Clear();
-
-				ThreadSafeFilenameArray.Dequeue(&ToBuild);
-			}
-
-			TArray<UObject *> ObjectsInOuter;
-			GetObjectsWithOuter(NULL, ObjectsInOuter, false);
-			for( int32 Index = 0; Index < ObjectsInOuter.Num() && !GIsRequestingExit; Index++ )
-			{
-				UPackage* Package = Cast<UPackage>(ObjectsInOuter[Index]);
-
-				if (Package)
-				{
-					FString Name = Package->GetPathName();
-					FString PackageFilename(GetPackageFilename(Package));
-					FPaths::MakeStandardFilename(PackageFilename);
-
-					const FString FullPath = FPaths::ConvertRelativePathToFull(PackageFilename);
-
-					bool AlreadyCooked = true;
-					for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
-					{
-						if ( !ThreadSafeFilenameSet.Exists(FFilePlatformRequest(FullPath, AllTargetPlatformNames[Index])) )
-						{
-							AlreadyCooked = false;
-							break;
-						}
-					}
-					if ( !AlreadyCooked )
-					{
-						bool bUnsolicitedWasUpdateToDate = false;
-
-						if (SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async, bUnsolicitedWasUpdateToDate, AllTargetPlatformNames))
-						{
-							
-
-							if ((FPaths::FileExists(PackageFilename) == true) &&
-								(PackageFilename.Len() > 0) && 
-								(bUnsolicitedWasUpdateToDate == false))
-							{
-								UE_LOG(LogCookCommandlet, Display, TEXT("UnsolicitedCookedPackages: %s"), *PackageFilename);
-
-								for ( int Index = 0; Index < AllTargetPlatformNames.Num(); ++Index )
-								{
-									const FFilePlatformRequest Request( FullPath, AllTargetPlatformNames[Index] );
-									UnsolicitedCookedPackages.Enqueue( Request );
-									ThreadSafeFilenameSet.Add( Request );
-
-									UE_LOG( LogCookCommandlet, Display, TEXT("Unsolicited saved package %s.%s"), *Request.Filename, *Request.Platformname );
-								}
-							}
-
-							// Update flags used to determine garbage collection.
-							if (Package->ContainsMap())
-							{
-								bCookedAMapSinceLastGC = true;
-							}
-							else
-							{
-								NonMapPackageCountSinceLastGC++;
-								LastCookActionTime = FPlatformTime::Seconds();
-							}
-						}
-					}
-
-					ToBuild.Clear();
-
-					ThreadSafeFilenameArray.Dequeue(&ToBuild);
-
-					if (ToBuild.IsValid())
-					{
-						break;
-					}
-				}
-			}
-
-			while (!ToBuild.IsValid() && !GIsRequestingExit)
-			{
-				ToBuild.Clear();
-
-				ThreadSafeFilenameArray.Dequeue(&ToBuild);
-
-				if (!ToBuild.IsValid())
-				{
-					if (NonMapPackageCountSinceLastGC > 0)
-					{
-						// We should GC if we have packages to collect and we've been idle for some time.
-						bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
-							((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
-					}
+					UE_LOG( LogCookCommandlet, Display, TEXT("Delaying map gc because we have unsolicited cook requests") );
 					bShouldGC |= bCookedAMapSinceLastGC;
-
-					if (bShouldGC)
-					{
-						bShouldGC = false;
-						bCookedAMapSinceLastGC = false;
-						NonMapPackageCountSinceLastGC = 0;
-
-						UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
-
-						CollectGarbage( RF_Native );
-					}
-					else
-					{
-						// try to pull off a request
-						FRecompileRequest* Request = NULL;
-
-						RecompileRequests.Dequeue(&Request);
-
-						// process it
-						if (Request)
-						{
-							HandleNetworkFileServerRecompileShaders(Request->RecompileData);
-						
-							// all done! other thread can unblock now
-							Request->bComplete = true;
-						}
-
-						FPlatformProcess::Sleep(0.0f);
-					}
 				}
 
-				// update task graph
-				FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
-
-				// execute deferred commands
-				for (int32 DeferredCommandsIndex = 0; DeferredCommandsIndex<GEngine->DeferredCommands.Num(); ++DeferredCommandsIndex)
+				if (bShouldGC)
 				{
-					GEngine->Exec( GWorld, *GEngine->DeferredCommands[DeferredCommandsIndex], *GLog);
+					bShouldGC = false;
+					bCookedAMapSinceLastGC = false;
+					NonMapPackageCountSinceLastGC = 0;
+
+					UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
+
+					CollectGarbage( RF_Native );
+				}
+				else
+				{
+					CookOnTheFlyServer->TickRecompileShaderRequests();
+
+					FPlatformProcess::Sleep(0.0f);
+				}
+			}
+
+			// update task graph
+			FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+
+			// execute deferred commands
+			for (int32 DeferredCommandsIndex = 0; DeferredCommandsIndex<GEngine->DeferredCommands.Num(); ++DeferredCommandsIndex)
+			{
+				GEngine->Exec( GWorld, *GEngine->DeferredCommands[DeferredCommandsIndex], *GLog);
+			}
+
+			GEngine->DeferredCommands.Empty();
+
+			// handle server timeout
+			if (InstanceId.IsValid() || bForceClose)
+			{
+				if (CookOnTheFlyServer->NumConnections() > 0)
+				{
+					bHadConnection = true;
+					LastConnectionTime = FDateTime::UtcNow();
 				}
 
-				GEngine->DeferredCommands.Empty();
-
-				// handle server timeout
-				if (InstanceId.IsValid() || bForceClose)
+				if ((FDateTime::UtcNow() - LastConnectionTime) > FTimespan::FromSeconds(Timeout))
 				{
-					if (NetworkFileServer->NumConnections() > 0)
+					uint32 Result = FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "FileServerIdle", "The file server did not receive any connections in the past 3 minutes. Would you like to shut it down?"));
+
+					if (Result == EAppReturnType::No && !bForceClose)
 					{
-						bHadConnection = true;
 						LastConnectionTime = FDateTime::UtcNow();
 					}
-
-					if ((FDateTime::UtcNow() - LastConnectionTime) > FTimespan::FromSeconds(Timeout))
-					{
-						uint32 Result = FMessageDialog::Open(EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "FileServerIdle", "The file server did not receive any connections in the past 3 minutes. Would you like to shut it down?"));
-
-						if (Result == EAppReturnType::No && !bForceClose)
-						{
-							LastConnectionTime = FDateTime::UtcNow();
-						}
-						else
-						{
-							GIsRequestingExit = true;
-						}
-					}
-					else if (bHadConnection && NetworkFileServer->NumConnections() == 0 && bForceClose) // immediately shut down if we previously had a connection and now do not
+					else
 					{
 						GIsRequestingExit = true;
 					}
+				}
+				else if (bHadConnection && (CookOnTheFlyServer->NumConnections() == 0) && bForceClose) // immediately shut down if we previously had a connection and now do not
+				{
+					GIsRequestingExit = true;
 				}
 			}
 		}
 	}
 
-	// shutdown the server
-	NetworkFileServer->Shutdown();
-	delete NetworkFileServer;
-
+	CookOnTheFlyServer->EndNetworkFileServer();
 	return true;
 }
 
@@ -497,7 +250,7 @@ bool UCookCommandlet::ShouldCook(const FString& InFileName, const FString &InPla
 
 		if (GetPackageTimestamp(FPaths::GetBaseFilename(PkgFilename, false), DependentTimeStamp) == false)
 		{
-			UE_LOG(LogCookCommandlet, Display, TEXT("Failed to find depedency timestamp for: %s"), *PkgFilename);
+			UE_LOG(LogCookCommandlet, Display, TEXT("Failed to find dependency timestamp for: %s"), *PkgFilename);
 		}
 	}
 
@@ -569,7 +322,7 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 
 			if (GetPackageTimestamp(FPaths::GetBaseFilename(PkgFilename, false), DependentTimeStamp) == false)
 			{
-				UE_LOG(LogCookCommandlet, Display, TEXT("Failed to find depedency timestamp for: %s"), *PkgFilename);
+				UE_LOG(LogCookCommandlet, Display, TEXT("Failed to find dependency timestamp for: %s"), *PkgFilename);
 			}
 		}
 
@@ -682,9 +435,15 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 				if (World)
 				{
 					World->PersistentLevel->OwningWorld = World;
+					if ( !World->bIsWorldInitialized)
+					{
+						// we need to initialize the world - at least need physics scene since BP construction script runs during cooking, otherwise trace won't work
+						World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).AllowAudioPlayback(false).CreatePhysicsScene(true).CreateWorldComposition(false));
+					}
 				}
 
-				if( PlatFilename.Len() >= PLATFORM_MAX_FILEPATH_LENGTH )
+				const FString FullFilename = FPaths::ConvertRelativePathToFull( PlatFilename );
+				if( FullFilename.Len() >= PLATFORM_MAX_FILEPATH_LENGTH )
 				{
 					UE_LOG( LogCookCommandlet, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
 					bSavedCorrectly = false;
@@ -747,40 +506,14 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		}
 	}
 
-	ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
-	const TArray<ITargetPlatform*>& Platforms = TPM.GetActiveTargetPlatforms();
-	if (TPM.RestrictFormatsToRuntimeOnly())
-	{
-		UE_LOG(LogCookCommandlet, Fatal, TEXT("You must provide a TargetPlatform argument to cook."));
-	}
 
-	// Local sandbox file wrapper. This will be used to handle path conversions,
-	// but will not be used to actually write/read files so we can safely
-	// use [Platform] token in the sandbox directory name and then replace it
-	// with the actual platform name.
-	SandboxFile = new FSandboxPlatformFile(false);
-	
-	// Output directory override.	
-	FString OutputDirectory = GetOutputDirectoryOverride();
-
-	// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
-	SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=%s"), *OutputDirectory));
-
-	CleanSandbox(Platforms);
-
-	// allow the game to fill out the asset registry, as well as get a list of objects to always cook
-	TArray<FString> FilesInPath;
-	FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPath);
-
-	// always generate the asset registry before starting to cook, for either method
-	GenerateAssetRegistry(Platforms);
-
-	if (bCookOnTheFly)
+	if ( bCookOnTheFly )
 	{
 		// parse instance identifier
 		FString InstanceIdString;
 		bool bForceClose = Switches.Contains(TEXT("FORCECLOSE"));
 
+		FGuid InstanceId;
 		if (FParse::Value(*Params, TEXT("InstanceId="), InstanceIdString))
 		{
 			if (!FGuid::Parse(InstanceIdString, InstanceId))
@@ -794,16 +527,39 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		{
 			Timeout = 180;
 		}
-		if (!CookOnTheFly(InstanceId.IsValid(), Timeout, bForceClose))
-		{
-			return -1;
-		}
+
+		CookOnTheFly( InstanceId, Timeout, bForceClose);
 	}
 	else
 	{
-		Cook(Platforms, FilesInPath);
-	}
+		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+		const TArray<ITargetPlatform*>& Platforms = TPM.GetActiveTargetPlatforms();
+	
+		// Local sandbox file wrapper. This will be used to handle path conversions,
+		// but will not be used to actually write/read files so we can safely
+		// use [Platform] token in the sandbox directory name and then replace it
+		// with the actual platform name.
+		SandboxFile = new FSandboxPlatformFile(false);
+	
+		// Output directory override.	
+		FString OutputDirectory = GetOutputDirectoryOverride();
 
+		// Use SandboxFile to do path conversion to properly handle sandbox paths (outside of standard paths in particular).
+		SandboxFile->Initialize(&FPlatformFileManager::Get().GetPlatformFile(), *FString::Printf(TEXT("-sandbox=%s"), *OutputDirectory));
+
+		CleanSandbox(Platforms);
+
+		// allow the game to fill out the asset registry, as well as get a list of objects to always cook
+		TArray<FString> FilesInPath;
+		FGameDelegates::Get().GetCookModificationDelegate().ExecuteIfBound(FilesInPath);
+
+		// always generate the asset registry before starting to cook, for either method
+		GenerateAssetRegistry(Platforms);
+
+		Cook(Platforms, FilesInPath);
+
+	}
+	
 	return 0;
 }
 
@@ -954,7 +710,19 @@ void UCookCommandlet::SaveGlobalShaderMapFiles(const TArray<ITargetPlatform*>& P
 		RecompileData.ShaderPlatform = -1;
 		RecompileData.ModifiedFiles = &Files;
 		RecompileData.MeshMaterialMaps = NULL;
-		HandleNetworkFileServerRecompileShaders(RecompileData);
+
+		check( IsInGameThread() );
+
+		FString OutputDir = GetOutputDirectory(RecompileData.PlatformName);
+
+		RecompileShadersForRemote
+			(RecompileData.PlatformName, 
+			RecompileData.ShaderPlatform == -1 ? SP_NumPlatforms : (EShaderPlatform)RecompileData.ShaderPlatform,
+			OutputDir, 
+			RecompileData.MaterialsToLoad, 
+			RecompileData.SerializedShaderResources, 
+			RecompileData.MeshMaterialMaps, 
+			RecompileData.ModifiedFiles);
 	}
 }
 
@@ -1111,22 +879,48 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 		FConfigCacheIni::LoadLocalIniFile(PlatformEngineIni, TEXT("Engine"), true, *Platforms[Index]->IniPlatformName());
 
 		// get the server and game default maps and cook them
+		TArray<FString> DefaultMaps;
 		FString Obj;
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GameDefaultMap"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			DefaultMaps.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			DefaultMaps.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultGameMode"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			DefaultMaps.AddUnique(Obj);
 		}
 		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GlobalDefaultServerGameMode"), Obj))
 		{
-			FilesInPath.AddUnique(Obj);
+			DefaultMaps.AddUnique(Obj);
+		}
+
+		for (FString DefaultMap : DefaultMaps)
+		{
+			// Check if this map is related to world composition
+			if (UWorldComposition::CollectTilesToCook(DefaultMap, FilesInPath))
+			{
+				// Entry has been handled by world composition, no further processing required
+				continue;
+			}
+
+			FilesInPath.AddUnique(DefaultMap);
+		}
+	}
+
+	// make sure we cook any extra assets for the default touch interface
+	// @todo need a better approach to cooking assets which are dynamically loaded by engine code based on settings
+	FConfigFile InputIni;
+	FString InterfaceFile;
+	FConfigCacheIni::LoadLocalIniFile(InputIni, TEXT("Input"), true);
+	if (InputIni.GetString(TEXT("/Script/Engine.InputSettings"), TEXT("DefaultTouchInterface"), InterfaceFile))
+	{
+		if (InterfaceFile != TEXT("None") && InterfaceFile != TEXT(""))
+		{
+			FilesInPath.AddUnique(InterfaceFile);
 		}
 	}
 
@@ -1385,80 +1179,3 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 }
 
 
-/* UCookCommandlet callbacks
- *****************************************************************************/
-
-void UCookCommandlet::HandleNetworkFileServerFileRequest( const FString& Filename, const FString &Platformname, TArray<FString>& UnsolicitedFiles )
-{
-	bool bIsCookable = FPackageName::IsPackageExtension(*FPaths::GetExtension(Filename, true));
-
-	if (!bIsCookable)
-	{
-		TArray<FFilePlatformRequest> FileRequests;
-		UnsolicitedCookedPackages.DequeueAll(FileRequests);
-		for ( int Index=  0; Index < FileRequests.Num(); ++Index)
-		{
-			UnsolicitedFiles.Add( FileRequests[Index].Filename);
-		}
-		UPackage::WaitForAsyncFileWrites();
-		return;
-	}
-
-	FFilePlatformRequest FileRequest( Filename, Platformname );
-	ThreadSafeFilenameArray.Enqueue(FileRequest);
-
-	do
-	{
-		FPlatformProcess::Sleep(0.0f);
-	}
-	while (!ThreadSafeFilenameSet.Exists(FileRequest));
-
-	TArray<FFilePlatformRequest> FileRequests;
-	UnsolicitedCookedPackages.DequeueAll(FileRequests);
-	for ( int Index=  0; Index < FileRequests.Num(); ++Index)
-	{
-		UnsolicitedFiles.Add( FileRequests[Index].Filename);
-	}
-	
-	UPackage::WaitForAsyncFileWrites();
-}
-
-
-void UCookCommandlet::HandleNetworkFileServerRecompileShaders(const FShaderRecompileData& RecompileData)
-{
-	// if we aren't in the game thread, we need to push this over to the game thread and wait for it to finish
-	if (!IsInGameThread())
-	{
-		UE_LOG(LogCookCommandlet, Display, TEXT("Got a recompile request on non-game thread"));
-
-		// make a new request
-		FRecompileRequest* Request = new FRecompileRequest;
-		Request->RecompileData = RecompileData;
-		Request->bComplete = false;
-
-		// push the request for the game thread to process
-		RecompileRequests.Enqueue(Request);
-
-		// wait for it to complete (the game thread will pull it out of the TArray, but I will delete it)
-		while (!Request->bComplete)
-		{
-			FPlatformProcess::Sleep(0);
-		}
-		delete Request;
-		UE_LOG(LogCookCommandlet, Display, TEXT("Completed recompile..."));
-
-		// at this point, we are done on the game thread, and ModifiedFiles will have been filled out
-		return;
-	}
-
-	FString OutputDir = GetOutputDirectory(RecompileData.PlatformName);
-
-	RecompileShadersForRemote
-		(RecompileData.PlatformName, 
-		RecompileData.ShaderPlatform == -1 ? SP_NumPlatforms : (EShaderPlatform)RecompileData.ShaderPlatform,
-		OutputDir, 
-		RecompileData.MaterialsToLoad, 
-		RecompileData.SerializedShaderResources, 
-		RecompileData.MeshMaterialMaps, 
-		RecompileData.ModifiedFiles);
-}

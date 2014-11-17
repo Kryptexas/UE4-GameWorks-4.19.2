@@ -183,7 +183,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentOnInputTouchEndSignature
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentBeginTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FComponentEndTouchOverSignature, ETouchIndex::Type, FingerIndex, UPrimitiveComponent*, TouchedComponent );
 
-UCLASS(dependson=(UScene, ULightComponent, UEngineTypes), HeaderGroup=Component, abstract, HideCategories=(Mobility))
+UCLASS(dependson=(UScene, ULightComponent, UEngineTypes), abstract, HideCategories=(Mobility))
 class ENGINE_API UPrimitiveComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -628,35 +628,35 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentEndOverlapSignature OnComponentEndOverlap;
 
-	/** Called when the mouse cursor is moved over this component when this mouse interface is enabled and mouse over events are enabled */
+	/** Called when the mouse cursor is moved over this component and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FComponentBeginCursorOverSignature OnBeginCursorOver;
 		 
-	/** Called when the mouse cursor is moved off this component when this mouse interface is enabled and mouse over events are enabled */
+	/** Called when the mouse cursor is moved off this component and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FComponentEndCursorOverSignature OnEndCursorOver;
 
-	/** Called when the left mouse button is clicked while the mouse is over this component when the mouse interface is enabled and click events are enabled */
+	/** Called when the left mouse button is clicked while the mouse is over this component and click events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FComponentOnClickedSignature OnClicked;
 
-	/** Called when the left mouse button is released while the mouse is over this component when the mouse interface is enabled and click events are enabled */
+	/** Called when the left mouse button is released while the mouse is over this component click events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FComponentOnReleasedSignature OnReleased;
 		 
-	/** Called when a touch input is received over this component when and click events are enabled */
+	/** Called when a touch input is received over this component when touch events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentOnInputTouchBeginSignature OnInputTouchBegin;
 
-	/** Called when a touch input is received over this component when and click events are enabled */
+	/** Called when a touch input is released over this component when touch events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentOnInputTouchEndSignature OnInputTouchEnd;
 
-	/** Called when a finger is moved over this component when this mouse interface is enabled and touch over events are enabled */
+	/** Called when a finger is moved over this component when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentBeginTouchOverSignature OnInputTouchEnter;
 
-	/** Called when a finger is moved off this component when this mouse interface is enabled and touch over events are enabled */
+	/** Called when a finger is moved off this component when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FComponentEndTouchOverSignature OnInputTouchLeave;
 
@@ -1166,7 +1166,8 @@ public:
 	// End UObject interface.
 
 	//Begin USceneComponent Interface
-	virtual bool MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit=NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags ) OVERRIDE;
+	virtual void SetRelativeScale3D(FVector NewScale3D) OVERRIDE FINAL;
+	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) OVERRIDE;
 	virtual bool IsWorldGeometry() const OVERRIDE;
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const OVERRIDE;
 	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const OVERRIDE;
@@ -1359,8 +1360,9 @@ public:
 	/** 
 	 *	Changes the current PhysMaterialOverride for this component. 
 	 *	Note that if physics is already running on this component, this will _not_ alter its mass/inertia etc,  
-	 *	it will only change its surface properties like friction and the damping.
+	 *	it will only change its surface properties like friction.
 	 */
+	UFUNCTION(BlueprintCallable, Category="Physics", meta=(FriendlyName="Set PhysicalMaterial Override"))
 	virtual void SetPhysMaterialOverride(class UPhysicalMaterial* NewPhysMaterial);
 
 	/** 

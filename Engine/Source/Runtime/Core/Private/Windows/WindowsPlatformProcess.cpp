@@ -13,6 +13,10 @@
 	#include <LM.h>
 	#include <tlhelp32.h>
 
+#if WINVER == 0x0502
+	#include <Psapi.h>
+#endif
+
 	namespace ProcessConstants
 	{
 		uint32 WIN_STD_INPUT_HANDLE = STD_INPUT_HANDLE;
@@ -23,6 +27,10 @@
 
 #include "HideWindowsPlatformTypes.h"
 #include "WindowsPlatformMisc.h"
+
+#if WINVER == 0x0502
+	#pragma comment(lib, "psapi.lib")
+#endif
 
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
@@ -45,7 +53,7 @@ FString FWindowsPlatformProcess::GenerateApplicationPath( const FString& AppName
 	FString PlatformName = GetBinariesSubdirectory();
 	FString ExecutablePath = FString::Printf(TEXT("..\\%s\\%s"), *PlatformName, *AppName);
 
-	if (BuildConfiguration != EBuildConfigurations::Development)
+	if (BuildConfiguration != EBuildConfigurations::Development && BuildConfiguration != EBuildConfigurations::DebugGame)
 	{
 		ExecutablePath += FString::Printf(TEXT("-%s-%s"), *PlatformName, EBuildConfigurations::ToString(BuildConfiguration));
 	}
@@ -234,7 +242,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 {
 	//UE_LOG(LogWindows, Log,  TEXT("CreateProc %s %s"), URL, Parms );
 
-	FString CommandLine = FString::Printf(TEXT("%s %s"), URL, Parms);
+	FString CommandLine = FString::Printf(TEXT("\"%s\" %s"), URL, Parms);
 
 	PROCESS_INFORMATION ProcInfo;
 	SECURITY_ATTRIBUTES Attr;
@@ -430,6 +438,31 @@ bool FWindowsPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 	return false;
 }
 
+FString FWindowsPlatformProcess::GetApplicationName( uint32 ProcessId )
+{
+	FString Output = TEXT("");
+	HANDLE ProcessHandle = OpenProcess(PROCESS_QUERY_INFORMATION, false, ProcessId);
+	if (ProcessHandle != NULL)
+	{
+		const int32 ProcessNameBufferSize = 4096;
+		TCHAR ProcessNameBuffer[ProcessNameBufferSize];
+		
+		int32 InOutSize = ProcessNameBufferSize;
+		checkAtCompileTime(sizeof(::DWORD) == sizeof(int32), "DWORD size doesn't match int32.  Is it the future or the past?");
+
+#if WINVER == 0x0502
+		GetProcessImageFileName(ProcessHandle, ProcessNameBuffer, InOutSize);
+#else
+		QueryFullProcessImageName(ProcessHandle, 0, ProcessNameBuffer, (PDWORD)(&InOutSize));
+#endif
+
+		Output = ProcessNameBuffer;
+	}
+
+	return Output;
+}
+
+
 bool FWindowsPlatformProcess::IsThisApplicationForeground()
 {
 	uint32 ForegroundProcess;
@@ -517,6 +550,11 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 	}
 	else
 	{
+		// if CreateProcess failed, we should return a useful error code, which GetLastError will have
+		if (OutReturnCode)
+		{
+			*OutReturnCode = GetLastError();
+		}
 		if (bRedirectOutput)
 		{
 			for (int32 PipeIndex = 0; PipeIndex < MaxPipeCount; ++PipeIndex)
@@ -1063,6 +1101,12 @@ bool FWindowsPlatformProcess::DeleteInterprocessSynchObject(FSemaphore * Object)
 	delete WinSem;
 
 	return bSucceeded;
+}
+
+bool FWindowsPlatformProcess::Daemonize()
+{
+	// TODO: implement
+	return true;
 }
 
 #include "HideWindowsPlatformTypes.h"

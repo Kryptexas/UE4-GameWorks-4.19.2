@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleSubUVMovie.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, hidecategories=SubUV, meta=(DisplayName = "SubUV Movie"))
+UCLASS(editinlinenew, hidecategories=Object, hidecategories=SubUV, meta=(DisplayName = "SubUV Movie"))
 class UParticleModuleSubUVMovie : public UParticleModuleSubUV
 {
 	GENERATED_UCLASS_BODY()

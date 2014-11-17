@@ -108,6 +108,7 @@ void FRCPassPostProcessEyeAdaptation::Process(FRenderingCompositePassContext& Co
 		DestSize.X, DestSize.Y,
 		DestSize,
 		DestSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(EyeAdaptation->GetRenderTargetItem().TargetableTexture, EyeAdaptation->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
@@ -125,7 +126,7 @@ void FRCPassPostProcessEyeAdaptation::ComputeEyeAdaptationParamsValue(const FVie
 	float LocalOverrideExposure = FLT_MAX;
 
 	// Eye adaptation is disabled except for highend right now because the histogram is not computed.
-	if(!EngineShowFlags.EyeAdaptation || GRHIFeatureLevel != ERHIFeatureLevel::SM5)
+	if (!EngineShowFlags.EyeAdaptation || View.GetFeatureLevel() != ERHIFeatureLevel::SM5)
 	{
 		LocalOverrideExposure = 0;
 	}

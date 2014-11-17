@@ -279,13 +279,14 @@ void GlobalSetProperty( const TCHAR* Value, UClass* Class, UProperty* Property, 
  * @todo: Move stats code into core?
  *
  * @param DeltaTime	Time in seconds since last call
+ * @param AsyncLoadingTime Time in seconds to use for async loading limit
  */
-void StaticTick( float DeltaTime )
+void StaticTick( float DeltaTime, float AsyncLoadingTime )
 {
 	check(!IsLoading());
 
 	// Spend a bit of time (pre)loading packages - currently 5 ms.
-	ProcessAsyncLoading( true, 0.005f );
+	ProcessAsyncLoading(true, false, AsyncLoadingTime);
 
 	// Check natives.
 	extern int32 GNativeDuplicate;
@@ -450,6 +451,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 	{
 		UE_LOG(LogUObjectGlobals, Fatal, TEXT("%s"), TEXT("Attempted to create a package named 'None'") );
 	}
+
 	return Result;
 }
 
@@ -546,7 +548,16 @@ bool ResolveName( UObject*& InPackage, FString& InName, bool Create, bool Throw 
 		{
 			if( Create )
 			{
-				InPackage = CreatePackage( InPackage, *PartialName );
+				if (!ScriptPackageName)
+				{
+					InPackage = LoadPackage(Cast<UPackage>(InPackage), *PartialName, 0);
+				}
+				if (!InPackage)
+				{
+					InPackage = CreatePackage(InPackage, *PartialName);
+				}
+
+				check(InPackage);
 			}
 			else
 			{
@@ -630,6 +641,8 @@ bool ParseObject( const TCHAR* Stream, const TCHAR* Match, UClass* Class, UObjec
  */
 UObject* StaticLoadObject(UClass* ObjectClass, UObject* InOuter, const TCHAR* InName, const TCHAR* Filename, uint32 LoadFlags, UPackageMap* Sandbox, bool bAllowObjectReconciliation )
 {
+	//UE_CLOG(GIsRoutingPostLoad, LogUObjectGlobals, Fatal, TEXT("Calling StaticLoadObject during PostLoad is forbidden."));
+
 	SCOPE_CYCLE_COUNTER(STAT_LoadObject);
 	check(ObjectClass);
 	check(InName);
@@ -805,7 +818,6 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 		{
 			Linker->LoadAllObjects();
 		}
-		
 #if WITH_EDITOR
 		// Add a LoadContext string to the endload function in the form of: "<FileToLoad> Package"
 		EndLoad( GIsEditor ? *FPaths::GetBaseFilename(FileToLoad) : NULL );
@@ -878,7 +890,8 @@ UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPackageName, uint32
 	}
 	// Mark package as loaded.
 	Result->SetFlags(RF_WasLoaded);
-	return Cast<UPackage>(Result);
+
+	return Result;
 }
 
 /**
@@ -1088,25 +1101,24 @@ void EndLoad(const TCHAR* LoadContext)
 					}
 				}
 
-				// set this so that we can perform certain operations in which are only safe once all objects have been de-serialized.
-				GIsRoutingPostLoad = true;
-
-				// Postload objects.
-				for( int32 i=0; i<ObjLoaded.Num(); i++ )
 				{
+					// set this so that we can perform certain operations in which are only safe once all objects have been de-serialized.
+					TGuardValue<bool> GuardIsRoutingPostLoad(GIsRoutingPostLoad, true);
+
+					// Postload objects.
+					for(int32 i = 0; i < ObjLoaded.Num(); i++)
+					{
 #if WITH_EDITOR
-					if ( bAllowStatusUpdate )
+						if(bAllowStatusUpdate)
 						{
-						UpdateObjectLoadingStatusMessage( LoadContext, StartTime );
-					}
+							UpdateObjectLoadingStatusMessage(LoadContext, StartTime);
+						}
 #endif
-					UObject* Obj = ObjLoaded[i];
-					check(Obj);
-					Obj->ConditionalPostLoad();
+						UObject* Obj = ObjLoaded[i];
+						check(Obj);
+						Obj->ConditionalPostLoad();
+					}
 				}
-
-				GIsRoutingPostLoad = false;
-
 #if WITH_EDITOR
 				// Send global notification for each object that was loaded.
 				// Useful for updating UI such as ContentBrowser's loaded status.

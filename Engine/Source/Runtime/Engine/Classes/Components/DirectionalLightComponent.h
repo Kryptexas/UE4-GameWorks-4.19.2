@@ -7,7 +7,7 @@
 /**
  * A light component that has parallel rays. Will provide a uniform lighting across any affected surface (eg. The Sun). This will affect all objects in the defined light-mass importance volume.
  */
-UCLASS(HeaderGroup=Light, ClassGroup=Lights, hidecategories=(Object, LightProfiles), dependson=UEngineTypes, editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
+UCLASS(ClassGroup=Lights, hidecategories=(Object, LightProfiles), dependson=UEngineTypes, editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UDirectionalLightComponent : public ULightComponent
 {
 	GENERATED_UCLASS_BODY()

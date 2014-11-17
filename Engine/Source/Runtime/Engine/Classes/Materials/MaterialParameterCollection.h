@@ -51,7 +51,7 @@ struct FCollectionVectorParameter : public FCollectionParameterBase
  * Asset class that contains a list of parameter names and their default values. 
  * Any number of materials can reference these parameters and get new values when the parameter values are changed.
  */
-UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
+UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialParameterCollection : public UObject
 {
 	GENERATED_UCLASS_BODY()

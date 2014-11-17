@@ -109,7 +109,7 @@ public:
 /**
  *	Used to create fogging effects such as clouds.
  */
-UCLASS(HeaderGroup=Component, ClassGroup=Rendering, collapsecategories, hidecategories=(Object, Mobility, Activation, "Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
+UCLASS(ClassGroup=Rendering, collapsecategories, hidecategories=(Object, Mobility, Activation, "Components|Activation"), editinlinenew, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UAtmosphericFogComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -149,6 +149,10 @@ class UAtmosphericFogComponent : public USceneComponent
 	/** Start Distance. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, interp, Category=Atmosphere)
 	float StartDistance;
+
+	/** Distance offset, in km (to handle large distance) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, interp, Category = Atmosphere)
+	float SunDiscScale;
 
 	/** Default light brightness. Used when there is no sunlight placed in the level. Unit is lumens */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, interp, Category=Lighting)

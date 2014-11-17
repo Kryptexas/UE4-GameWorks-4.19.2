@@ -36,6 +36,7 @@ ATriggerBase::ATriggerBase(const class FPostConstructInitializeProperties& PCIP)
 	if (SpriteComponent)
 	{
 		SpriteComponent->Sprite = ConstructorStatics.TriggerTextureObject.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = false;
 		SpriteComponent->AlwaysLoadOnClient = false;
 		SpriteComponent->AlwaysLoadOnServer = false;

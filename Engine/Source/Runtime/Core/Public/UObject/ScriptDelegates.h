@@ -6,8 +6,8 @@
 
 #pragma once
 
-
 #include "WeakObjectPtrTemplates.h"
+
 
 /**
  * Script delegate base class
@@ -15,17 +15,16 @@
 template <typename TWeakPtr = FWeakObjectPtr>
 class TScriptDelegate
 {
-
 public:
 
 	/** Constructor */
 	TScriptDelegate() 
-		: Object( NULL ),
+		: Object( nullptr ),
 		  FunctionName( NAME_None )
-	{
-	}
+	{ }
 
 private:
+
 	template <class UObjectTemplate>
 	inline bool IsBound_Internal() const
 	{
@@ -33,7 +32,7 @@ private:
 		{
 			if (UObject* ObjectPtr = Object.Get())
 			{
-				return ((UObjectTemplate*)ObjectPtr)->FindFunction(FunctionName) != NULL;
+				return ((UObjectTemplate*)ObjectPtr)->FindFunction(FunctionName) != nullptr;
 			}
 		}
 
@@ -41,6 +40,19 @@ private:
 	}
 
 public:
+
+	/**
+	 * Binds a UFunction to this delegate.
+	 *
+	 * @param InObject The object to call the function on.
+	 * @param InFunctionName The name of the function to call.
+	 */
+	void BindUFunction( class UObject* InObject, const FName& InFunctionName )
+	{
+		Object = InObject;
+		FunctionName = InFunctionName;
+	}
+
 	/** 
 	 * Checks to see if the user object bound to this delegate is still valid
 	 *
@@ -58,7 +70,7 @@ public:
 	 */
 	inline bool IsBoundToObject(void const* InUserObject) const
 	{
-		return InUserObject && (InUserObject == GetObject());
+		return InUserObject && (InUserObject == GetUObject());
 	}
 
 	/** 
@@ -76,7 +88,7 @@ public:
 	 */
 	void Unbind()
 	{
-		Object = NULL;
+		Object = nullptr;
 		FunctionName = NAME_None;
 	}
 
@@ -98,11 +110,10 @@ public:
 	{
 		if( IsBound() )
 		{
-			return ((UObjectTemplate*)GetObject())->GetPathName() + TEXT(".") + GetFunctionName().ToString();
+			return ((UObjectTemplate*)GetUObject())->GetPathName() + TEXT(".") + GetFunctionName().ToString();
 		}
 		return TEXT( "<Unbound>" );
 	}
-
 
 	/** Delegate serialization */
 	friend FArchive& operator<<( FArchive& Ar, TScriptDelegate& D )
@@ -110,7 +121,6 @@ public:
 		Ar << D.Object << D.FunctionName;
 		return Ar;
 	}
-
 
 	/** Comparison operators */
 	FORCEINLINE bool operator==( const TScriptDelegate& Other ) const
@@ -129,51 +139,27 @@ public:
 		FunctionName = Other.FunctionName;
 	}
 
-	/**
-	 * Sets the object name.  Usually, you should never call this yourself.  Use BindDynamic() instead!
-	*
-	 * @param	InObject	New object
-	*/
-	void SetObject( class UObject* InObject )
-	{
-		Object = InObject;
-	}
-
-
-	/**
-	 * Sets the function name.  Usually, you should never call this yourself.  Use BindDynamic() instead!
-	 *
-	 * @param	InFunctionName	New function name
-	 */
-	void SetFunctionName( const FName InFunctionName )
-	{
-		FunctionName = InFunctionName;
-	}
-
-
 	/** 
 	 * Gets the object bound to this delegate
 	 *
 	 * @return	The object
 	 */
-	class UObject* GetObject()
+	class UObject* GetUObject()
 	{
 		// Downcast UObjectBase to UObject
 		return static_cast< UObject* >( Object.Get() );
 	}
-
 
 	/**
 	 * Gets the object bound to this delegate (const)
 	 *
 	 * @return	The object
 	 */
-	const class UObject* GetObject() const
+	const class UObject* GetUObject() const
 	{
 		// Downcast UObjectBase to UObject
 		return static_cast< const UObject* >( Object.Get() );
 	}
-
 
 	/**
 	 * Gets the name of the function to call on the bound object
@@ -184,7 +170,6 @@ public:
 	{
 		return FunctionName;
 	}
-
 
 	/**
 	 * Executes a delegate by calling the named function on the object bound to the delegate.  You should
@@ -216,7 +201,7 @@ public:
 
 protected:
 
-	/** The object bound to this delegate, or NULL if no object is bound */
+	/** The object bound to this delegate, or nullptr if no object is bound */
 	TWeakPtr Object;
 
 	/** Name of the function to call on the bound object */
@@ -225,6 +210,7 @@ protected:
 	// 
 	friend class FCallDelegateHelper;
 };
+
 
 template<typename TWeakPtr> struct TIsZeroConstructType<TScriptDelegate<TWeakPtr> > { enum { Value = TIsZeroConstructType<TWeakPtr>::Value }; };
 
@@ -235,16 +221,14 @@ template<typename TWeakPtr> struct TIsZeroConstructType<TScriptDelegate<TWeakPtr
 template <typename TWeakPtr = FWeakObjectPtr>
 class TMulticastScriptDelegate
 {
-
 public:
 
 	/**
 	 * Default constructor
 	 */
-	inline TMulticastScriptDelegate()
-	{
-	}
+	inline TMulticastScriptDelegate() { }
 
+public:
 
 	/**
 	 * Checks to see if any functions are bound to this multi-cast delegate
@@ -255,7 +239,6 @@ public:
 	{
 		return InvocationList.Num() > 0;
 	}
-
 
 	/**
 	 * Checks whether a function delegate is already a member of this multi-cast delegate's invocation list
@@ -313,7 +296,6 @@ public:
 		CompactInvocationList();
 	}
 
-
 	/**
 	 * Removes all functions from this delegate's invocation list
 	 */
@@ -321,7 +303,6 @@ public:
 	{
 		InvocationList.Empty();
 	}
-
 
 	/**
 	 * Converts this delegate to a string representation
@@ -348,7 +329,6 @@ public:
 		return TEXT( "<Unbound>" );
 	}
 
-
 	/** Multi-cast delegate serialization */
 	friend FArchive& operator<<( FArchive& Ar, TMulticastScriptDelegate<TWeakPtr>& D )
 	{
@@ -368,7 +348,6 @@ public:
 
 		return Ar;
 	}
-
 
 	/**
 	 * Executes a multi-cast delegate by calling all functions on objects bound to the delegate.  Always
@@ -413,15 +392,14 @@ public:
 		TArray< UObject* > OutputList;
 		for( typename FInvocationList::TIterator CurDelegate( InvocationList ); CurDelegate; ++CurDelegate )
 		{
-			UObject* CurObject = CurDelegate->GetObject();
-			if( CurObject != NULL )
+			UObject* CurObject = CurDelegate->GetUObject();
+			if( CurObject != nullptr )
 			{
 				OutputList.Add( CurObject );
 			}
 		}
 		return OutputList;
 	}
-
 
 protected:
 
@@ -455,7 +433,6 @@ protected:
 		InvocationList.AddUnique( InDelegate );
 	}
 
-
 	/**
 	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).  Note that the
 	 * order of the delegates may not be preserved!
@@ -477,7 +454,6 @@ protected:
 		}
 	}
 
-
 	/** Cleans up any delegates in our invocation list that have expired (performance is O(N)) */
 	void CompactInvocationList() const
 	{
@@ -491,7 +467,6 @@ protected:
 		}
 	}
 
-
 protected:
 
 	/** Ordered list functions to invoke when the Broadcast function is called */
@@ -504,5 +479,6 @@ protected:
 	// 
 	friend class FCallDelegateHelper;
 };
+
 
 template<typename TWeakPtr> struct TIsZeroConstructType<TMulticastScriptDelegate<TWeakPtr> > { enum { Value = TIsZeroConstructType<TWeakPtr>::Value }; };

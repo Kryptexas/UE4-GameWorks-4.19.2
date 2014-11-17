@@ -124,10 +124,10 @@ const uint8* FSceneViewState::GetPrecomputedVisibilityData(FViewInfo& View, cons
 		// Calculate the bucket that ViewOrigin falls into
 		// Cells are hashed into buckets to reduce search time
 		const float FloatOffsetX = (View.ViewMatrices.ViewOrigin.X - Handler.PrecomputedVisibilityCellBucketOriginXY.X) / Handler.PrecomputedVisibilityCellSizeXY;
-		// FMath::Trunc rounds toward 0, we want to always round down
-		const int32 BucketIndexX = FMath::Abs((FMath::Trunc(FloatOffsetX) - (FloatOffsetX < 0.0f ? 1 : 0)) / Handler.PrecomputedVisibilityCellBucketSizeXY % Handler.PrecomputedVisibilityNumCellBuckets);
+		// FMath::TruncToInt rounds toward 0, we want to always round down
+		const int32 BucketIndexX = FMath::Abs((FMath::TruncToInt(FloatOffsetX) - (FloatOffsetX < 0.0f ? 1 : 0)) / Handler.PrecomputedVisibilityCellBucketSizeXY % Handler.PrecomputedVisibilityNumCellBuckets);
 		const float FloatOffsetY = (View.ViewMatrices.ViewOrigin.Y -Handler.PrecomputedVisibilityCellBucketOriginXY.Y) / Handler.PrecomputedVisibilityCellSizeXY;
-		const int32 BucketIndexY = FMath::Abs((FMath::Trunc(FloatOffsetY) - (FloatOffsetY < 0.0f ? 1 : 0)) / Handler.PrecomputedVisibilityCellBucketSizeXY % Handler.PrecomputedVisibilityNumCellBuckets);
+		const int32 BucketIndexY = FMath::Abs((FMath::TruncToInt(FloatOffsetY) - (FloatOffsetY < 0.0f ? 1 : 0)) / Handler.PrecomputedVisibilityCellBucketSizeXY % Handler.PrecomputedVisibilityNumCellBuckets);
 		const int32 PrecomputedVisibilityBucketIndex = BucketIndexY * Handler.PrecomputedVisibilityCellBucketSizeXY + BucketIndexX;
 
 		check(PrecomputedVisibilityBucketIndex < Handler.PrecomputedVisibilityCellBuckets.Num());
@@ -763,6 +763,7 @@ void FHZBOcclusionTester::Submit( const FViewInfo& View )
 			SizeX, SizeY,
 			FIntPoint( SizeX, SizeY ),
 			FIntPoint( SizeX, SizeY ),
+			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 
@@ -815,7 +816,7 @@ public:
 		const FVector2D InvSize( 1.0f / Size.X, 1.0f / Size.Y );
 		SetShaderValue( ShaderRHI, InvSizeParameter, InvSize );
 		
-		SceneTextureParameters.Set( ShaderRHI );
+		SceneTextureParameters.Set( ShaderRHI, View );
 	}
 
 	void SetParameters( const FSceneView& View, const FIntPoint& Size, FShaderResourceViewRHIParamRef ShaderResourceView )
@@ -904,6 +905,7 @@ void BuildHZB( const FViewInfo& View )
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			HZBSize,
 			GSceneRenderTargets.GetBufferSizeXY(),
+			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 
@@ -934,6 +936,7 @@ void BuildHZB( const FViewInfo& View )
 			SrcSize.X, SrcSize.Y,
 			DstSize,
 			SrcSize,
+			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
 		RHICopyToResolveTarget( HZBRenderTarget.TargetableTexture, HZBRenderTarget.ShaderResourceTexture, false, FResolveParams(FResolveRect(), CubeFace_PosX, MipIndex) );
@@ -967,10 +970,10 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests()
 
 		if (bUseDownsampledDepth)
 		{
-			const uint32 DownsampledX = FMath::Trunc(View.ViewRect.Min.X / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledY = FMath::Trunc(View.ViewRect.Min.Y / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledSizeX = FMath::Trunc(View.ViewRect.Width() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledSizeY = FMath::Trunc(View.ViewRect.Height() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
+			const uint32 DownsampledX = FMath::TruncToInt(View.ViewRect.Min.X / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
+			const uint32 DownsampledY = FMath::TruncToInt(View.ViewRect.Min.Y / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
+			const uint32 DownsampledSizeX = FMath::TruncToInt(View.ViewRect.Width() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
+			const uint32 DownsampledSizeY = FMath::TruncToInt(View.ViewRect.Height() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
 
 			// Setup the viewport for rendering to the downsampled depth buffer
 			RHISetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);

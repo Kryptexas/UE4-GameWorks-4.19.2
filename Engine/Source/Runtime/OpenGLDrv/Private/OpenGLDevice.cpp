@@ -65,10 +65,10 @@ void OnPixelBufferDeletion( GLuint PixelBufferResource )
 	PrivateOpenGLDevicePtr->OnPixelBufferDeletion( PixelBufferResource );
 }
 
-void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw )
+void OnUniformBufferDeletion( GLuint UniformBufferResource, uint32 AllocatedSize, bool bStreamDraw, uint32 Offset, uint8* Pointer )
 {
 	check(PrivateOpenGLDevicePtr);
-	PrivateOpenGLDevicePtr->OnUniformBufferDeletion( UniformBufferResource, AllocatedSize, bStreamDraw );
+	PrivateOpenGLDevicePtr->OnUniformBufferDeletion( UniformBufferResource, AllocatedSize, bStreamDraw, Offset, Pointer );
 }
 
 void CachedBindArrayBuffer( GLuint Buffer )
@@ -385,7 +385,7 @@ void InitDebugContext()
 #ifdef GL_ARB_debug_output
 	if (glDebugMessageCallbackARB)
 	{
-		glDebugMessageCallbackARB(OpenGLDebugMessageCallbackARB, /*UserParam=*/ NULL);
+		glDebugMessageCallbackARB(GLDEBUGPROCARB(OpenGLDebugMessageCallbackARB), /*UserParam=*/ NULL);
 		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
 	}
 #endif // GL_ARB_debug_output
@@ -422,9 +422,22 @@ static void InitRHICapabilitiesForGL()
 
 	GTexturePoolSize = 0;
 	GPoolSizeVRAMPercentage = 0;
+#if PLATFORM_WINDOWS
+	if ( GReadTexturePoolSizeFromIni )
+	{
+		int32 PoolSize;
+		GConfig->GetInt(TEXT("TextureStreaming"), TEXT("PoolSize"), PoolSize, GEngineIni);
+
+		GTexturePoolSize = int64(PoolSize) * 1024 * 1024;
+	}
+	else
+	{
+		GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );
+	}
+#endif
 
 	// GL vendor and version information.
-#ifndef __clang__
+#ifndef __GNUC__
 	#define LOG_GL_STRING(StringEnum) UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#StringEnum) ## TEXT(": %s"), ANSI_TO_TCHAR((const ANSICHAR*)glGetString(StringEnum)))
 #else
 	#define LOG_GL_STRING(StringEnum) UE_LOG(LogRHI, Log, TEXT("  " #StringEnum ": %s"), ANSI_TO_TCHAR((const ANSICHAR*)glGetString(StringEnum)))
@@ -509,39 +522,38 @@ static void InitRHICapabilitiesForGL()
 	FOpenGL::InitDebugContext();
 
 	// Log and get various limits.
-#ifndef __clang__
-	#define LOG_AND_GET_GL_INT(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Value_##IntEnum)
+#ifndef __GNUC__
+	#define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Value_##IntEnum)
 #else
-	#undef LOG_AND_GET_GL_INT
-	#define LOG_AND_GET_GL_INT(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Value_##IntEnum)
+	#define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum);} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Value_##IntEnum)
 #endif
-	LOG_AND_GET_GL_INT(GL_MAX_TEXTURE_SIZE,0);
-	LOG_AND_GET_GL_INT(GL_MAX_CUBE_MAP_TEXTURE_SIZE,0);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_TEXTURE_SIZE, 0);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_CUBE_MAP_TEXTURE_SIZE, 0);
 #if GL_MAX_ARRAY_TEXTURE_LAYERS
-	LOG_AND_GET_GL_INT(GL_MAX_ARRAY_TEXTURE_LAYERS,0);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_ARRAY_TEXTURE_LAYERS, 0);
 #endif
 #if GL_MAX_3D_TEXTURE_SIZE
-	LOG_AND_GET_GL_INT(GL_MAX_3D_TEXTURE_SIZE,0);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_3D_TEXTURE_SIZE, 0);
 #endif 
-	LOG_AND_GET_GL_INT(GL_MAX_RENDERBUFFER_SIZE,0);
-	LOG_AND_GET_GL_INT(GL_MAX_TEXTURE_IMAGE_UNITS,0);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_RENDERBUFFER_SIZE, 0);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_TEXTURE_IMAGE_UNITS, 0);
 	if (FOpenGL::SupportsDrawBuffers())
 	{
-		LOG_AND_GET_GL_INT(GL_MAX_DRAW_BUFFERS,1);
+		LOG_AND_GET_GL_INT_TEMP(GL_MAX_DRAW_BUFFERS, 1);
 	}
-	LOG_AND_GET_GL_INT(GL_MAX_COLOR_ATTACHMENTS,1);
-	LOG_AND_GET_GL_INT(GL_MAX_SAMPLES,1);
-	LOG_AND_GET_GL_INT(GL_MAX_COLOR_TEXTURE_SAMPLES,1);
-	LOG_AND_GET_GL_INT(GL_MAX_DEPTH_TEXTURE_SAMPLES,1);
-	LOG_AND_GET_GL_INT(GL_MAX_INTEGER_SAMPLES,1);
-	LOG_AND_GET_GL_INT(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS,0);
-	LOG_AND_GET_GL_INT(GL_MAX_VERTEX_ATTRIBS,0);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_COLOR_ATTACHMENTS, 1);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_SAMPLES, 1);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_COLOR_TEXTURE_SAMPLES, 1);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_DEPTH_TEXTURE_SAMPLES, 1);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_INTEGER_SAMPLES, 1);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0);
+	LOG_AND_GET_GL_INT_TEMP(GL_MAX_VERTEX_ATTRIBS, 0);
 	if( FOpenGL::SupportsTextureFilterAnisotropic())
 	{
-		LOG_AND_GET_GL_INT(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT,0);
+		LOG_AND_GET_GL_INT_TEMP(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, 0);
 		GMaxOpenGLTextureFilterAnisotropic = Value_GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT;
 	}
-#undef LOG_AND_GET_GL_INT
+#undef LOG_AND_GET_GL_INT_TEMP
 
 	GMaxOpenGLColorSamples = Value_GL_MAX_COLOR_TEXTURE_SAMPLES;
 	GMaxOpenGLDepthSamples = Value_GL_MAX_DEPTH_TEXTURE_SAMPLES;
@@ -586,13 +598,18 @@ static void InitRHICapabilitiesForGL()
 #endif
 
 	// Set capabilities.
-	// NV_MS 12/04/2012: Mac should default to 3.2 core, windows creates 3.2/4.3 context based on command line
 	const GLint MajorVersion = FOpenGL::GetMajorVersion();
 	const GLint MinorVersion = FOpenGL::GetMinorVersion();
 
 	// Shader platform & RHI feature level
-	GRHIFeatureLevel = FOpenGL::GetFeatureLevel();
+	SetMaxRHIFeatureLevel(FOpenGL::GetFeatureLevel());
 	GRHIShaderPlatform = FOpenGL::GetShaderPlatform();
+
+	FString FeatureLevelName;
+	GetFeatureLevelName(GRHIFeatureLevel, FeatureLevelName);
+	FString ShaderPlatformName = LegacyShaderPlatformToShaderFormat(GRHIShaderPlatform).ToString();
+
+	UE_LOG(LogRHI, Log, TEXT("OpenGL MajorVersion = %d, MinorVersion = %d, ShaderPlatform = %s, FeatureLevel = %s"), MajorVersion, MinorVersion, *ShaderPlatformName, *FeatureLevelName);
 
 	GMaxTextureMipCount = FMath::CeilLogTwo(Value_GL_MAX_TEXTURE_SIZE) + 1;
 	GMaxTextureMipCount = FMath::Min<int32>(MAX_TEXTURE_MIP_COUNT, GMaxTextureMipCount);
@@ -629,7 +646,7 @@ static void InitRHICapabilitiesForGL()
 	GProjectionSignY = 1.0f;
 
 	// Disable texture streaming on ES2 unless we have the GL_APPLE_copy_texture_levels extension
-	if(GRHIFeatureLevel == ERHIFeatureLevel::ES2 && !FOpenGL::SupportsCopyTextureLevels() )
+	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2 && !FOpenGL::SupportsCopyTextureLevels())
 	{
 		GRHISupportsTextureStreaming = false;
 	}
@@ -658,7 +675,7 @@ static void InitRHICapabilitiesForGL()
 	SetupTextureFormat( PF_R16G16B16A16_UINT,	FOpenGLTextureFormat(GL_RGBA16UI,						GL_NONE,									GL_RGBA,				GL_UNSIGNED_SHORT,					false));
 	SetupTextureFormat( PF_R16G16B16A16_SINT,	FOpenGLTextureFormat(GL_RGBA16I,						GL_NONE,									GL_RGBA,				GL_SHORT,							false));
 	SetupTextureFormat( PF_R5G6B5_UNORM,		FOpenGLTextureFormat());
-#if PLATFORM_DESKTOP
+#if PLATFORM_DESKTOP || PLATFORM_ANDROIDGL4
 	SetupTextureFormat( PF_B8G8R8A8,			FOpenGLTextureFormat(GL_RGBA8,							GL_SRGB8_ALPHA8,							GL_BGRA,				GL_UNSIGNED_INT_8_8_8_8_REV,		false));
 	SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_R8,								GL_SRGB8,									GL_RED,					GL_UNSIGNED_BYTE,					false));
 	SetupTextureFormat( PF_G16,					FOpenGLTextureFormat(GL_R16,							GL_R16,										GL_RED,					GL_UNSIGNED_SHORT,					false)); // Not supported for rendering.
@@ -696,28 +713,28 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_LUMINANCE,		GL_LUMINANCE,		GL_LUMINANCE8_EXT,			GL_LUMINANCE8_EXT,							GL_LUMINANCE,			GL_UNSIGNED_BYTE,					false));
 		SetupTextureFormat( PF_A8,					FOpenGLTextureFormat(GL_ALPHA,			GL_ALPHA,			GL_ALPHA8_EXT,				GL_ALPHA8_EXT,								GL_ALPHA,				GL_UNSIGNED_BYTE,					false));
 	#else
-		SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_LUMINANCE,		GL_LUMINANCE,		GL_LUMINANCE,				GL_LUMINANCE,								GL_LUMINANCE,			GL_UNSIGNED_BYTE,					false));
+		SetupTextureFormat( PF_G8,					FOpenGLTextureFormat(GL_LUMINANCE,		GL_LUMINANCE,		GL_LUMINANCE,				GL_LUMINANCE	,							GL_LUMINANCE,			GL_UNSIGNED_BYTE,					false));
 		SetupTextureFormat( PF_A8,					FOpenGLTextureFormat(GL_ALPHA,			GL_ALPHA,			GL_ALPHA,					GL_ALPHA,									GL_ALPHA,				GL_UNSIGNED_BYTE,					false));
 	#endif
 	if (GSupportsRenderTargetFormat_PF_FloatRGBA)
 	{
 		if (FOpenGL::SupportsTextureHalfFloat())
 		{
-#if PLATFORM_ANDROID
+#if PLATFORM_ANDROID && !PLATFORM_ANDROIDGL4
 			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,			GL_RGBA,			GL_RGBA16F_EXT,				GL_RGBA16F_EXT,								GL_RGBA,				GL_HALF_FLOAT_OES,					false));
 #else
-			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,			GL_RGBA,			GL_RGBA,					GL_HALF_FLOAT_OES,					false));
+			SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat(GL_RGBA,							GL_RGBA,									GL_RGBA,				GL_HALF_FLOAT_OES,					false));
 #endif
 		}
 	}
 	if (FOpenGL::SupportsPackedDepthStencil())
 	{
-		SetupTextureFormat( PF_DepthStencil,	FOpenGLTextureFormat(GL_DEPTH_STENCIL_OES,	GL_NONE,			GL_DEPTH_STENCIL_OES,		GL_UNSIGNED_INT_24_8_OES,			false));
+		SetupTextureFormat( PF_DepthStencil,	FOpenGLTextureFormat(GL_DEPTH_STENCIL_OES,				GL_NONE,									GL_DEPTH_STENCIL_OES,	GL_UNSIGNED_INT_24_8_OES,			false));
 	}
 	else
 	{
 		// @todo android: This is cheating by not setting a stencil anywhere, need that! And Shield is still rendering black scene
-		SetupTextureFormat( PF_DepthStencil,	FOpenGLTextureFormat(GL_DEPTH_COMPONENT,	GL_NONE,			GL_DEPTH_COMPONENT,			GL_UNSIGNED_INT,					false));
+		SetupTextureFormat( PF_DepthStencil,	FOpenGLTextureFormat(GL_DEPTH_COMPONENT,				GL_NONE,									GL_DEPTH_COMPONENT,		GL_UNSIGNED_INT,					false));
 	}
 #endif
 
@@ -789,18 +806,6 @@ FOpenGLDynamicRHI::FOpenGLDynamicRHI()
 
 extern void DestroyShadersAndPrograms();
 
-FOpenGLDynamicRHI::~FOpenGLDynamicRHI()
-{
-	check(IsInGameThread() && IsInRenderingThread()); // require that the render thread has been shut down
-
-	Cleanup();
-
-	DestroyShadersAndPrograms();
-	PlatformDestroyOpenGLDevice(PlatformDevice);
-
-	PrivateOpenGLDevicePtr = NULL;
-}
-
 void FOpenGLDynamicRHI::Init()
 {
 	check(!GIsRHIInitialized);
@@ -826,6 +831,33 @@ void FOpenGLDynamicRHI::Init()
 		ResourceIt->InitRHI();
 	}
 
+#if PLATFORM_WINDOWS
+
+	extern int64 GOpenGLDedicatedVideoMemory;
+	extern int64 GOpenGLTotalGraphicsMemory;
+
+	GOpenGLDedicatedVideoMemory = FOpenGL::GetVideoMemorySize();
+
+	if ( GOpenGLDedicatedVideoMemory != 0)
+	{
+		GOpenGLTotalGraphicsMemory = GOpenGLDedicatedVideoMemory;
+
+		if ( GPoolSizeVRAMPercentage > 0 )
+		{
+			float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(GOpenGLTotalGraphicsMemory);
+
+			// Truncate GTexturePoolSize to MB (but still counted in bytes)
+			GTexturePoolSize = int64(FGenericPlatformMath::TruncToInt(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
+
+			UE_LOG(LogRHI, Log, TEXT("Texture pool is %llu MB (%d%% of %llu MB)"),
+				GTexturePoolSize / 1024 / 1024,
+				GPoolSizeVRAMPercentage,
+				GOpenGLTotalGraphicsMemory / 1024 / 1024);
+		}
+	}
+
+#endif
+
 	// Flush here since we might be switching to a different context/thread for rendering
 	glFlush();
 
@@ -838,6 +870,18 @@ void FOpenGLDynamicRHI::Init()
 
 	// Set the RHI initialized flag.
 	GIsRHIInitialized = true;
+}
+
+void FOpenGLDynamicRHI::Shutdown()
+{
+	check(IsInGameThread() && IsInRenderingThread()); // require that the render thread has been shut down
+
+	Cleanup();
+
+	DestroyShadersAndPrograms();
+	PlatformDestroyOpenGLDevice(PlatformDevice);
+
+	PrivateOpenGLDevicePtr = NULL;
 }
 
 void FOpenGLDynamicRHI::Cleanup()

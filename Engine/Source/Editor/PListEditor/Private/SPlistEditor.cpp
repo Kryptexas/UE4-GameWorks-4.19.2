@@ -61,7 +61,7 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 							[
 								SNew(SExpandableArea)
 								.InitiallyCollapsed(true)
-								.AreaTitle(LOCTEXT("PListMenuTitle", "File").ToString())
+								.AreaTitle(LOCTEXT("PListMenuTitle", "File"))
 								.BodyContent()
 								[
 									SNew(SHorizontalBox)
@@ -73,8 +73,8 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 									.HAlign(HAlign_Left)
 									[
 										SNew(SButton)
-										.Text(LOCTEXT("PListNew", "New").ToString())
-										.ToolTipText(LOCTEXT("PListNewToolTip", "Create a new plist file").ToString())
+										.Text(LOCTEXT("PListNew", "New"))
+										.ToolTipText(LOCTEXT("PListNewToolTip", "Create a new plist file"))
 										.OnClicked(this, &SPListEditorPanel::OnNewClicked)
 									]
 
@@ -85,8 +85,8 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 									.HAlign(HAlign_Left)
 									[
 										SNew(SButton)
-										.Text(LOCTEXT("PListOpen", "Open...").ToString())
-										.ToolTipText(LOCTEXT("PListOpenToolTip", "Open an existing plist file").ToString())
+										.Text(LOCTEXT("PListOpen", "Open..."))
+										.ToolTipText(LOCTEXT("PListOpenToolTip", "Open an existing plist file"))
 										.OnClicked(this, &SPListEditorPanel::OnOpenClicked)
 									]
 
@@ -97,8 +97,8 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 									.HAlign(HAlign_Left)
 									[
 										SNew(SButton)
-										.Text(LOCTEXT("PListSave", "Save").ToString())
-										.ToolTipText(LOCTEXT("PListSaveToolTip", "Save current working plist").ToString())
+										.Text(LOCTEXT("PListSave", "Save"))
+										.ToolTipText(LOCTEXT("PListSaveToolTip", "Save current working plist"))
 										.OnClicked(this, &SPListEditorPanel::OnSaveClicked)
 									]
 
@@ -109,8 +109,8 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 									.HAlign(HAlign_Left)
 									[
 										SNew(SButton)
-										.Text(LOCTEXT("PListSaveAs", "Save As...").ToString())
-										.ToolTipText(LOCTEXT("PListSaveAsToolTip", "Save current working plist with a specified filename").ToString())
+										.Text(LOCTEXT("PListSaveAs", "Save As..."))
+										.ToolTipText(LOCTEXT("PListSaveAsToolTip", "Save current working plist with a specified filename"))
 										.OnClicked(this, &SPListEditorPanel::OnSaveAsClicked)
 									]
 								]
@@ -141,8 +141,8 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 							//.HAlign(HAlign_Left)
 							//[
 							//	SAssignNew(RemoveSelectedButton, SButton)
-							//	.Text(LOCTEXT("PListRemoveSelected", "Remove Selected Rows").ToString())
-							//	.ToolTipText(LOCTEXT("PListRemoveSelectedToolTip", "Removes the selected rows from the plist below").ToString())
+							//	.Text(LOCTEXT("PListRemoveSelected", "Remove Selected Rows"))
+							//	.ToolTipText(LOCTEXT("PListRemoveSelectedToolTip", "Removes the selected rows from the plist below"))
 							//	.OnClicked(this, &SPListEditorPanel::OnDeleteSelectedClicked)
 							//	.IsEnabled(false)
 							//]
@@ -179,7 +179,7 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 						.HeaderContentPadding(FMargin(6))
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("PListKeySectionTitle", "Key").ToString())
+							.Text(LOCTEXT("PListKeySectionTitle", "Key"))
 						]
 
 						+ SHeaderRow::Column(FName(TEXT("PListValueTypeColumn")))
@@ -187,7 +187,7 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 						.HeaderContentPadding(FMargin(6))
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("PListValueTypeSectionTitle", "Value Type").ToString())
+							.Text(LOCTEXT("PListValueTypeSectionTitle", "Value Type"))
 						]
 
 						+ SHeaderRow::Column(FName(TEXT("PListValueColumn")))
@@ -195,7 +195,7 @@ void SPListEditorPanel::Construct( const FArguments& InArgs )
 						.HeaderContentPadding(FMargin(6))
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("PListValueSectionTitle", "Value").ToString())
+							.Text(LOCTEXT("PListValueSectionTitle", "Value"))
 						]
 					)
 				]
@@ -906,13 +906,12 @@ FReply SPListEditorPanel::OnOpenClicked()
 			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
-		FString Title = LOCTEXT("PListOpenDialogTitle", "Open").ToString();
 		//FString DefaultPath = FPaths::GameDir() + TEXT("Build/IOS/");
 		//FString DefaultFile = FString(GGameName) + TEXT("-Info.plist");
 		FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 		DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,
-			Title,
+			LOCTEXT("PListOpenDialogTitle", "Open").ToString(),
 			InOutLastPath,
 			TEXT(""),
 			FileTypes,
@@ -1030,11 +1029,10 @@ bool SPListEditorPanel::PromptSave()
 					ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
 				}
 			
-				FString Title = LOCTEXT("PListSaveDialogTitle", "Save").ToString();
 				FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 				DesktopPlatform->SaveFileDialog(
 					ParentWindowWindowHandle,
-					Title,
+					LOCTEXT("PListSaveDialogTitle", "Save").ToString(),
 					InOutLastPath,
 					TEXT(""),
 					FileTypes,
@@ -1177,11 +1175,10 @@ FReply SPListEditorPanel::OnSaveClicked()
 				ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
 			}
 			
-			FString Title = LOCTEXT("PListSaveDialogTitle", "Save").ToString();
 			FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 			DesktopPlatform->SaveFileDialog(
 				ParentWindowWindowHandle,
-				Title,
+				LOCTEXT("PListSaveDialogTitle", "Save").ToString(),
 				InOutLastPath,
 				TEXT(""),
 				FileTypes,
@@ -1292,11 +1289,10 @@ FReply SPListEditorPanel::OnSaveAsClicked()
 			ParentWindowWindowHandle = MainFrameParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 			
-		FString Title = LOCTEXT("PListSaveAsDialogTitle", "Save As").ToString();
 		FString FileTypes = TEXT("Property List (*.plist)|*.plist|All Files (*.*)|*.*");
 		DesktopPlatform->SaveFileDialog(
 			ParentWindowWindowHandle,
-			Title,
+			LOCTEXT("PListSaveAsDialogTitle", "Save As").ToString(),
 			InOutLastPath,
 			TEXT(""),
 			FileTypes,

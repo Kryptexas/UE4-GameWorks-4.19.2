@@ -1,5 +1,5 @@
 // Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
-
+#pragma once
 #include "EnvQueryItemType_Direction.generated.h"
 
 UCLASS()
@@ -19,4 +19,5 @@ class ENGINE_API UEnvQueryItemType_Direction : public UEnvQueryItemType_VectorBa
 	static void SetContextHelper(struct FEnvQueryContextData& ContextData, const TArray<FRotator>& MultipleRotations);
 
 	virtual FRotator GetRotation(const uint8* RawData) const OVERRIDE;
+	virtual FString GetDescription(const uint8* RawData) const OVERRIDE;
 };

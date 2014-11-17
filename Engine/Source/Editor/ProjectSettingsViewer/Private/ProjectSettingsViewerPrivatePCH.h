@@ -11,7 +11,6 @@
  *****************************************************************************/
 
 #include "Engine.h"
-#include "EngineUserInterfaceClasses.h"
 #include "EngineSettings.h"
 #include "ModuleManager.h"
 #include "SettingsEditor.h"

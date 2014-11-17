@@ -20,25 +20,6 @@
 #include <mach-o/dyld.h>
 #include <libproc.h>
 
-/** Width of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorWidth = 0;
-/** Height of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorHeight = 0;
-/** Rectangle of the work area on the primary monitor (excluding taskbar, etc) in "virtual screen coordinates" (pixels). */
-CORE_API RECT GPrimaryMonitorWorkRect;
-/** Virtual screen rectangle including all monitors. */
-CORE_API RECT GVirtualScreenRect;
-
-
-/** Settings for the game Window */
-CORE_API NSWindow *GGameWindow = NULL;
-CORE_API int32 GGameWindowPosX = 0;
-CORE_API int32 GGameWindowPosY = 0;
-CORE_API int32 GGameWindowWidth = 100;
-CORE_API int32 GGameWindowHeight = 100;
-
-CORE_API NSWindow* GExtendedAlertWindow = NULL;
-CORE_API NSWindow* GEULAWindow = NULL;
 
 /**
  * Information that cannot be obtained during a signal-handler is initialised here.
@@ -185,56 +166,6 @@ struct MacApplicationInfo
 };
 static MacApplicationInfo GMacAppInfo;
 
-void FMacPlatformMisc::PlatformPreInit()
-{
-#if WITH_ENGINE
-	SCOPED_AUTORELEASE_POOL;
-
-	NSArray* AllScreens = [NSScreen screens];
-	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
-
-	NSRect ScreenFrame = [PrimaryScreen frame];
-	NSRect VisibleFrame = [PrimaryScreen visibleFrame];
-
-	// Get the total screen size of the primary monitor.
-	GPrimaryMonitorWidth = ScreenFrame.size.width;
-	GPrimaryMonitorHeight = ScreenFrame.size.height;
-
-	GVirtualScreenRect.left = 0;
-	GVirtualScreenRect.top = 0;
-	GVirtualScreenRect.right = 0;
-	GVirtualScreenRect.bottom = 0;
-
-	for( int32 Index = 0; Index < [AllScreens count]; Index++ )
-	{
-		NSScreen* Screen = (NSScreen*)[AllScreens objectAtIndex: Index];
-		NSRect DisplayFrame = [Screen frame];
-		if(DisplayFrame.origin.x != ScreenFrame.origin.x)
-		{
-			GVirtualScreenRect.right += DisplayFrame.size.width;
-		}
-		else
-		{
-			GVirtualScreenRect.right = FMath::Max(GVirtualScreenRect.right, (int)DisplayFrame.size.width);
-		}
-		if(DisplayFrame.origin.y != ScreenFrame.origin.y)
-		{
-			GVirtualScreenRect.bottom += DisplayFrame.size.height;
-		}
-		else
-		{
-			GVirtualScreenRect.bottom = FMath::Max(GVirtualScreenRect.bottom, (int)DisplayFrame.size.height);
-		}
-	}
-
-	// Get the screen rect of the primary monitor, exclusing taskbar etc.
-	GPrimaryMonitorWorkRect.left = VisibleFrame.origin.x;
-	GPrimaryMonitorWorkRect.right = VisibleFrame.origin.x + VisibleFrame.size.width;
-	GPrimaryMonitorWorkRect.top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
-	GPrimaryMonitorWorkRect.bottom = ScreenFrame.size.height - VisibleFrame.origin.y;
-#endif		// WITH_ENGINE
-}
-
 void FMacPlatformMisc::PlatformInit()
 {
 	// Increase the maximum number of simultaneously open files
@@ -265,16 +196,6 @@ void FMacPlatformMisc::PlatformInit()
 		UE_LOG(LogInit, Warning, TEXT("Failed to change open file limit, UE4 may be unstable."));
 	}
 
-	// Randomize.
-    if( GIsBenchmarking )
-	{
-		srand( 0 );
-	}
-    else
-	{
-		srand( (unsigned)time( NULL ) );
-	}
-
 	// Identity.
 	UE_LOG(LogInit, Log, TEXT("Computer: %s"), FPlatformProcess::ComputerName() );
 	UE_LOG(LogInit, Log, TEXT("User: %s"), FPlatformProcess::UserName() );
@@ -288,59 +209,14 @@ void FMacPlatformMisc::PlatformInit()
 	GMacAppInfo.Init();
 }
 
-
-#if WITH_ENGINE
-void FMacPlatformMisc::PlatformPostInit()
-{
-	if ( FApp::IsGame() )
-	{
-		SCOPED_AUTORELEASE_POOL;
-
-		// Obtain width and height of primary monitor.
-		int32 ScreenWidth  = GPrimaryMonitorWidth;
-		int32 ScreenHeight = GPrimaryMonitorHeight;
-		int32 WindowWidth  = ScreenWidth / 2;
-		int32 WindowHeight = ScreenHeight / 2;
-		int32 WindowPosX = (ScreenWidth - WindowWidth ) / 2;
-		int32 WindowPosY = (ScreenHeight - WindowHeight ) / 2;
-
-		const FString Name = FApp::GetGameName();
-
-		NSRect ViewRect = NSMakeRect(WindowPosX, WindowPosY, WindowWidth, WindowHeight);
-
-		GGameWindow = [[NSWindow alloc] initWithContentRect: ViewRect
-									styleMask: (NSTitledWindowMask | NSClosableWindowMask | NSMiniaturizableWindowMask | NSResizableWindowMask)
-									  backing: NSBackingStoreBuffered
-										defer: NO];
-
-		if( GGameWindow )
-		{
-			[GGameWindow setAcceptsMouseMovedEvents: YES];
-			[GGameWindow setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary];
-			[GGameWindow setOpaque: YES];
-
-			CFStringRef CFName = FPlatformString::TCHARToCFString( *Name );
-			[GGameWindow setTitle: ( NSString *)CFName];
-			CFRelease( CFName );
-		}
-		verify( GGameWindow );
-	}
-}
-
-#endif		// WITH_ENGINE
-
-/**
- * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
- * Vista in the presence of a group policy for password protected screen saver.
- */
 void FMacPlatformMisc::PreventScreenSaver()
 {
-	CGEventRef LocationEvent = CGEventCreate( NULL );
-	CGPoint MouseLocation = CGEventGetLocation( LocationEvent );
-	CFRelease( LocationEvent );
-	CGEventRef MouseMoveCommand = CGEventCreateMouseEvent( NULL, kCGEventMouseMoved, MouseLocation, 0 );
-	CGEventPost( kCGHIDEventTap, MouseMoveCommand );
-	CFRelease( MouseMoveCommand );
+	CGEventRef LocationEvent = CGEventCreate(NULL);
+	CGPoint MouseLocation = CGEventGetLocation(LocationEvent);
+	CFRelease(LocationEvent);
+	CGEventRef MouseMoveCommand = CGEventCreateMouseEvent(NULL, kCGEventMouseMoved, MouseLocation, 0);
+	CGEventPost(kCGHIDEventTap, MouseMoveCommand);
+	CFRelease(MouseMoveCommand);
 }
 
 GenericApplication* FMacPlatformMisc::CreateApplication()
@@ -627,6 +503,39 @@ void FMacPlatformMisc::PumpMessages( bool bFromMainLoop )
 
 			[NSApp sendEvent: Event];
 		}
+
+		const bool HasFocus = [NSApp isActive];
+
+		// If editor thread doesn't have the focus, don't suck up too much CPU time.
+		if( GIsEditor )
+		{
+			static bool HadFocus=1;
+			if( HadFocus && !HasFocus )
+			{
+				// Drop our priority to speed up whatever is in the foreground.
+				struct sched_param Sched;
+				FMemory::Memzero(&Sched, sizeof(struct sched_param));
+				Sched.sched_priority = 5;
+				pthread_setschedparam(pthread_self(), SCHED_RR, &Sched);
+			}
+			else if( HasFocus && !HadFocus )
+			{
+				// Boost our priority back to normal.
+				struct sched_param Sched;
+				FMemory::Memzero(&Sched, sizeof(struct sched_param));
+				Sched.sched_priority = 15;
+				pthread_setschedparam(pthread_self(), SCHED_RR, &Sched);
+			}
+			if( !HasFocus )
+			{
+				// Sleep for a bit to not eat up all CPU time.
+				FPlatformProcess::Sleep(0.005f);
+			}
+			HadFocus = HasFocus;
+		}
+
+		// if app is active, allow sound, otherwise silence it
+		GVolumeMultiplier = HasFocus ? 1.0f : 0.0f;
 	}
 }
 
@@ -778,172 +687,178 @@ void FMacPlatformMisc::CreateGuid(FGuid& Result)
 	Result = GUID;
 }
 
-static int32 ShowExtendedAlertWindow( EAppMsgType::Type MsgType, NSString* Text, NSString* Caption )
+EAppReturnType::Type FMacPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption)
 {
 	SCOPED_AUTORELEASE_POOL;
-
-	checkf(GExtendedAlertWindow);
-
-	// Update window contents
-	NSArray* SubViews = [[GExtendedAlertWindow contentView] subviews];
-	for (NSView* SubView in SubViews)
-	{
-		if ([SubView isMemberOfClass:[NSTextField class]])
-		{
-			// Set the caption and message text
-			NSTextField* TextField = (NSTextField*)SubView;
-			if ([[TextField stringValue] isEqualToString: @"Caption"])
-			{
-				[TextField setStringValue: Caption];
-			}
-			else if ([[TextField stringValue] isEqualToString: @"Message"])
-			{
-				[TextField setStringValue: Text];
-			}
-		}
-		else if (MsgType == EAppMsgType::YesNoYesAllNoAll && [SubView isMemberOfClass:[NSButton class]])
-		{
-			// Remove Cancel button if it's not needed
-			NSButton* Button = (NSButton*)SubView;
-			if ([[Button title] isEqualToString: @"Cancel"])
-			{
-				[SubView setHidden: true];
-			}
-		}
-	}
-
-	// UE4AppDelegate's OnAlertWindowButtonPress will close the window and set the correct return code
-	return [NSApp runModalForWindow: GExtendedAlertWindow];
-}
-
-EAppReturnType::Type FMacPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
-{
-	SCOPED_AUTORELEASE_POOL;
-
-	NSString* CocoaText = (NSString*)FPlatformString::TCHARToCFString(Text);
-	NSString* CocoaCaption = (NSString*)FPlatformString::TCHARToCFString(Caption);
 
 	EAppReturnType::Type RetValue = EAppReturnType::Cancel;
 	NSInteger Result;
 
-	if(MacApplication)
+	if (MacApplication)
 	{
 		MacApplication->UseMouseCaptureWindow(false);
 	}
-	
+
+	NSAlert* AlertPanel = [NSAlert new];
+	[AlertPanel setInformativeText:FString(Text).GetNSString()];
+	[AlertPanel setMessageText:FString(Caption).GetNSString()];
+
 	switch (MsgType)
 	{
-	case EAppMsgType::YesNo:
-		Result = NSRunAlertPanel(CocoaCaption, CocoaText, @"Yes", @"No", NULL);
-		if (Result == NSAlertDefaultReturn)
-		{
-			RetValue = EAppReturnType::Yes;
-		}
-		else if (Result == NSAlertAlternateReturn)
-		{
-			RetValue = EAppReturnType::No;
-		}
-		break;
-	case EAppMsgType::OkCancel:
-		// return 1 for Ok, 0 for Cancel
-		Result = NSRunAlertPanel(CocoaCaption, CocoaText, @"OK", @"Cancel", NULL);
-		if (Result == NSAlertDefaultReturn)
-		{
+		case EAppMsgType::Ok:
+			[AlertPanel addButtonWithTitle:@"OK"];
+			[AlertPanel runModal];
 			RetValue = EAppReturnType::Ok;
-		}
-		else if (Result == NSAlertAlternateReturn)
-		{
-			RetValue = EAppReturnType::Cancel;
-		}
-		break;
-	case EAppMsgType::YesNoCancel:
-		// return 0 for Yes, 1 for No, 2 for Cancel
-		Result = NSRunAlertPanel(CocoaCaption, CocoaText, @"Yes", @"No", @"Cancel");
-		if (Result == NSAlertDefaultReturn)
-		{
-			RetValue = EAppReturnType::Yes;
-		}
-		else if (Result == NSAlertAlternateReturn)
-		{
-			RetValue = EAppReturnType::No;
-		}
-		else
-		{
-			RetValue = EAppReturnType::Cancel;
-		}
-		break;
-	case EAppMsgType::CancelRetryContinue:
-		// return 0 for Cancel, 1 for Retry, 2 for Continue
-		Result = NSRunAlertPanel(CocoaCaption, CocoaText, @"Continue", @"Retry", @"Cancel");
-		if (Result == NSAlertDefaultReturn)
-		{
-			RetValue = EAppReturnType::Continue;
-		}
-		else if (Result == NSAlertAlternateReturn)
-		{
-			RetValue = EAppReturnType::Retry;
-		}
-		else
-		{
-			RetValue = EAppReturnType::Cancel;
-		}
-		break;
-	case EAppMsgType::YesNoYesAllNoAll:
-		// return 0 for No, 1 for Yes, 2 for YesToAll, 3 for NoToAll
-		Result = ShowExtendedAlertWindow(MsgType, CocoaText, CocoaCaption);
-		if (Result == 0)
-		{
-			RetValue = EAppReturnType::No;
-		}
-		else if (Result == 1)
-		{
-			RetValue = EAppReturnType::Yes;
-		}
-		else if (Result == 2)
-		{
-			RetValue = EAppReturnType::YesAll;
-		}
-		else
-		{
-			RetValue = EAppReturnType::NoAll;
-		}
-		break;
-	case EAppMsgType::YesNoYesAllNoAllCancel:
-		// return 0 for No, 1 for Yes, 2 for YesToAll, 3 for NoToAll, 4 for Cancel
-		Result = ShowExtendedAlertWindow(MsgType, CocoaText, CocoaCaption);
-		if (Result == 0)
-		{
-			RetValue = EAppReturnType::No;
-		}
-		else if (Result == 1)
-		{
-			RetValue = EAppReturnType::Yes;
-		}
-		else if (Result == 2)
-		{
-			RetValue = EAppReturnType::YesAll;
-		}
-		else if (Result == 3)
-		{
-			RetValue = EAppReturnType::NoAll;
-		}
-		else
-		{
-			RetValue = EAppReturnType::Cancel;
-		}
-		break;
-	default:
-		NSRunAlertPanel(CocoaCaption, CocoaText, @"OK", NULL, NULL);
-		break;
+			break;
+
+		case EAppMsgType::YesNo:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			break;
+
+		case EAppMsgType::OkCancel:
+			[AlertPanel addButtonWithTitle:@"OK"];
+			[AlertPanel addButtonWithTitle:@"Cancel"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Ok;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::Cancel;
+			}
+			break;
+
+		case EAppMsgType::YesNoCancel:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			[AlertPanel addButtonWithTitle:@"Cancel"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			else
+			{
+				RetValue = EAppReturnType::Cancel;
+			}
+			break;
+
+		case EAppMsgType::CancelRetryContinue:
+			[AlertPanel addButtonWithTitle:@"Continue"];
+			[AlertPanel addButtonWithTitle:@"Retry"];
+			[AlertPanel addButtonWithTitle:@"Cancel"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Continue;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::Retry;
+			}
+			else
+			{
+				RetValue = EAppReturnType::Cancel;
+			}
+			break;
+
+		case EAppMsgType::YesNoYesAllNoAll:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			[AlertPanel addButtonWithTitle:@"Yes to all"];
+			[AlertPanel addButtonWithTitle:@"No to all"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			else if (Result == NSAlertThirdButtonReturn)
+			{
+				RetValue = EAppReturnType::YesAll;
+			}
+			else
+			{
+				RetValue = EAppReturnType::NoAll;
+			}
+			break;
+
+		case EAppMsgType::YesNoYesAllNoAllCancel:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			[AlertPanel addButtonWithTitle:@"Yes to all"];
+			[AlertPanel addButtonWithTitle:@"No to all"];
+			[AlertPanel addButtonWithTitle:@"Cancel"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			else if (Result == NSAlertThirdButtonReturn)
+			{
+				RetValue = EAppReturnType::YesAll;
+			}
+			else if (Result == NSAlertThirdButtonReturn + 1)
+			{
+				RetValue = EAppReturnType::NoAll;
+			}
+			else
+			{
+				RetValue = EAppReturnType::Cancel;
+			}
+			break;
+
+		case EAppMsgType::YesNoYesAll:
+			[AlertPanel addButtonWithTitle:@"Yes"];
+			[AlertPanel addButtonWithTitle:@"No"];
+			[AlertPanel addButtonWithTitle:@"Yes to all"];
+			Result = [AlertPanel runModal];
+			if (Result == NSAlertFirstButtonReturn)
+			{
+				RetValue = EAppReturnType::Yes;
+			}
+			else if (Result == NSAlertSecondButtonReturn)
+			{
+				RetValue = EAppReturnType::No;
+			}
+			else
+			{
+				RetValue = EAppReturnType::YesAll;
+			}
+			break;
+
+		default:
+			break;
 	}
-	
-	if(MacApplication)
+
+	[AlertPanel release];
+
+	if (MacApplication)
 	{
 		MacApplication->UseMouseCaptureWindow(true);
 	}
-
-	CFRelease((CFStringRef)CocoaCaption);
-	CFRelease((CFStringRef)CocoaText);
 
 	return RetValue;
 }
@@ -1105,6 +1020,11 @@ FString FMacPlatformMisc::GetDefaultLocale()
 	FPlatformString::CFStringToTCHAR(countryCodeStr, countryCode);
 
 	return FString::Printf(TEXT("%s_%s"), langCode, countryCode);
+}
+
+FText FMacPlatformMisc::GetFileManagerName()
+{
+	return NSLOCTEXT("MacPlatform", "FileManagerName", "Finder");
 }
 
 /** Global pointer to crash handler */

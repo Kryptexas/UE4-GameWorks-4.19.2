@@ -23,18 +23,20 @@ public:
 				.Content()
 				[			
 					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
+					
+					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					[
 						SNew( SImage )
 						.Image( ClassIcon )
 					]
-					+SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(STextBlock) 
-							.Text( ClassesToDrop[0]->GetName() )
-						]
+					
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock) 
+						.Text( ClassesToDrop[0]->GetName() )
+					]
 				];
 		}
 
@@ -43,12 +45,12 @@ public:
 			.Content()
 			[			
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
+				+ SHorizontalBox::Slot()
 				.AutoWidth()
-					[
-						SNew(STextBlock) 
-						.Text( ClassesToDrop[0]->GetName() )
-					]
+				[
+					SNew(STextBlock) 
+					.Text( ClassesToDrop[0]->GetName() )
+				]
 			];
 	}
 
@@ -59,6 +61,10 @@ public:
 		Operation->Construct();
 		return Operation;
 	}
+
+protected:
+	/** Adding hint text to all drag drop operations that drop locations could set, and the decorator could report. */
+	FText HintText;
 };
 
 struct FClassPackageData
@@ -90,7 +96,7 @@ public:
 			.Content()
 			[			
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
+				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				[
 					SNew(STextBlock) 

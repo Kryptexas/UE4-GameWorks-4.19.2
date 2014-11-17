@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
-#include "EngineKismetLibraryClasses.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 #include "FXSystem.h"
@@ -15,6 +13,7 @@
 #include "SceneViewExtension.h"
 #include "IHeadMountedDisplay.h"
 #include "SVirtualJoystick.h"
+#include "SceneViewport.h"
 
 #include "HighResScreenshot.h"
 
@@ -30,6 +29,12 @@ extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
 
 /** Delegate called at the end of the frame when a screenshot is captured */
 FOnScreenshotCaptured UGameViewportClient::ScreenshotCapturedDelegate;
+
+/** A list of all the stat names which are enabled for this viewport (static so they persist between runs) */
+TArray<FString> UGameViewportClient::EnabledStats;
+
+/** Those sound stat flags which are enabled on this viewport */
+FViewportClient::ESoundShowFlags::Type UGameViewportClient::SoundShowFlags = FViewportClient::ESoundShowFlags::Disabled;
 
 DEFINE_STAT(STAT_UIDrawingTime);
 
@@ -49,7 +54,7 @@ public:
 		if ( GShowDebugSelectedLightmap && GDebugSelectedComponent && GDebugSelectedLightmap )
 		{
 			float Radius = GDebugSelectedComponent->Bounds.SphereRadius;
-			int32 Sides = FMath::Clamp<int32>( FMath::Trunc(Radius*Radius*4.0f*PI/(80.0f*80.0f)), 8, 200 );
+			int32 Sides = FMath::Clamp<int32>( FMath::TruncToInt(Radius*Radius*4.0f*PI/(80.0f*80.0f)), 8, 200 );
 			DrawWireSphere( PDI, GDebugSelectedComponent->Bounds.Origin, FColor(255,130,0), GDebugSelectedComponent->Bounds.SphereRadius, Sides, SDPG_Foreground );
 		}
 #endif
@@ -97,6 +102,35 @@ UGameViewportClient::UGameViewportClient(const class FPostConstructInitializePro
 
 	MaxSplitscreenPlayers = 4;
 	bSuppressTransitionMessage = false;
+
+	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+	{
+		StatUnitData = new FStatUnitData();
+		StatHitchesData = new FStatHitchesData();
+		FCoreDelegates::StatCheckEnabled.AddUObject(this, &UGameViewportClient::HandleViewportStatCheckEnabled);
+		FCoreDelegates::StatEnabled.AddUObject(this, &UGameViewportClient::HandleViewportStatEnabled);
+		FCoreDelegates::StatDisabled.AddUObject(this, &UGameViewportClient::HandleViewportStatDisabled);
+		FCoreDelegates::StatDisableAll.AddUObject(this, &UGameViewportClient::HandleViewportStatDisableAll);
+	}
+}
+
+
+UGameViewportClient::~UGameViewportClient()
+{
+	FCoreDelegates::StatCheckEnabled.RemoveAll(this);
+	FCoreDelegates::StatEnabled.RemoveAll(this);
+	FCoreDelegates::StatDisabled.RemoveAll(this);
+	FCoreDelegates::StatDisableAll.RemoveAll(this);
+	if (StatHitchesData)
+	{
+		delete StatHitchesData;
+		StatHitchesData = NULL;
+	}
+	if (StatUnitData)
+	{
+		delete StatUnitData;
+		StatUnitData = NULL;
+	}
 }
 
 
@@ -106,11 +140,22 @@ void UGameViewportClient::PostInitProperties()
 	EngineShowFlags = FEngineShowFlags(ESFIM_Game);
 }
 
+void UGameViewportClient::BeginDestroy()
+{
+	RemoveAllViewportWidgets();
+	Super::BeginDestroy();
+}
+
 
 void UGameViewportClient::DetachViewportClient()
 {
 	ViewportConsole = NULL;
 	RemoveFromRoot();
+}
+
+FSceneViewport* UGameViewportClient::GetGameViewport()
+{
+	return static_cast<FSceneViewport*>(Viewport);
 }
 
 
@@ -197,9 +242,9 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 		if (!bResult)
 		{
 			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(this, ControllerId);
-			if (TargetPlayer && TargetPlayer->PlayerController && TargetPlayer->PlayerController->PlayerInput)
+			if (TargetPlayer && TargetPlayer->PlayerController)
 			{
-				bResult = TargetPlayer->PlayerController->PlayerInput->InputAxis(Key, Delta, DeltaTime, NumSamples, bGamepad);
+				bResult = TargetPlayer->PlayerController->InputAxis(Key, Delta, DeltaTime, NumSamples, bGamepad);
 			}
 		}
 
@@ -265,27 +310,50 @@ bool UGameViewportClient::InputMotion(FViewport* InViewport, int32 ControllerId,
 	bool bResult = false;
 
 	ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(this, ControllerId);
-	if (TargetPlayer && TargetPlayer->PlayerController && TargetPlayer->PlayerController->PlayerInput)
+	if (TargetPlayer && TargetPlayer->PlayerController)
 	{
-		bResult = TargetPlayer->PlayerController->PlayerInput->InputMotion(Tilt, RotationRate, Gravity, Acceleration);
+		bResult = TargetPlayer->PlayerController->InputMotion(Tilt, RotationRate, Gravity, Acceleration);
 	}
 
 	return bResult;
 }
 
-void UGameViewportClient::MouseEnter(FViewport* Viewport, int32 x, int32 y)
+void UGameViewportClient::SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport)
 {
-	Super::MouseEnter(Viewport, x, y);
-
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
+	{
+		FSlateApplication::Get().SetGameIsFakingTouchEvents(!bInIsSimulateInEditorViewport);
+	}
+
+	for (ULocalPlayer* LocalPlayer : GetOuterUEngine()->GetGamePlayers(this))
+	{
+		if (LocalPlayer->PlayerController)
+		{
+			if (bInIsSimulateInEditorViewport)
+			{
+				LocalPlayer->PlayerController->CleanupGameViewport();
+			}
+			else
+			{
+				LocalPlayer->PlayerController->CreateTouchInterface();
+			}
+		}
+	}
+}
+
+void UGameViewportClient::MouseEnter(FViewport* InViewport, int32 x, int32 y)
+{
+	Super::MouseEnter(InViewport, x, y);
+
+	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
 }
 
-void UGameViewportClient::MouseLeave(FViewport* Viewport)
+void UGameViewportClient::MouseLeave(FViewport* InViewport)
 {
-	Super::MouseLeave(Viewport);
+	Super::MouseLeave(InViewport);
 
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
@@ -325,7 +393,7 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 		}
 		else if (GetWorld() && GetWorld()->GetFirstPlayerController())
 		{
-			bRequired = GetWorld()->GetFirstPlayerController() ->ShouldShowMouseCursor();
+			bRequired = GetWorld()->GetFirstPlayerController()->ShouldShowMouseCursor();
 		}
 	}
 
@@ -399,8 +467,8 @@ void UGameViewportClient::SetDropDetail(float DeltaSeconds)
 		const float FrameRate	= FrameTime > 0 ? 1 / FrameTime : 0;
 
 		// Drop detail if framerate is below threshold.
-		GetWorld()->bDropDetail		= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate, 1.f, 100.f) && !GIsBenchmarking && !GUseFixedTimeStep;
-		GetWorld()->bAggressiveLOD	= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate - 5.f, 1.f, 100.f) && !GIsBenchmarking && !GUseFixedTimeStep;
+		GetWorld()->bDropDetail		= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate, 1.f, 100.f) && !FApp::IsBenchmarking() && !FApp::UseFixedTimeStep();
+		GetWorld()->bAggressiveLOD	= FrameRate < FMath::Clamp(GEngine->MinDesiredFrameRate - 5.f, 1.f, 100.f) && !FApp::IsBenchmarking() && !FApp::UseFixedTimeStep();
 
 		// this is slick way to be able to do something based on the frametime and whether we are bound by one thing or another
 #if 0 
@@ -583,16 +651,16 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		EngineShowFlags)
 		.SetRealtimeUpdate(true));
 
-    // Allow HMD to modify the view later, just before rendering
-    if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
-    {
-        ISceneViewExtension* HmdViewExt = GEngine->HMDDevice->GetViewExtension();
-        if (HmdViewExt)
-        {
-            ViewFamily.ViewExtensions.Add(HmdViewExt);
-            HmdViewExt->ModifyShowFlags(ViewFamily.EngineShowFlags);
-        }
-    }
+	// Allow HMD to modify the view later, just before rendering
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+	{
+		ISceneViewExtension* HmdViewExt = GEngine->HMDDevice->GetViewExtension();
+		if (HmdViewExt)
+		{
+			ViewFamily.ViewExtensions.Add(HmdViewExt);
+			HmdViewExt->ModifyShowFlags(ViewFamily.EngineShowFlags);
+		}
+	}
 
 
 	ESplitScreenType::Type SplitScreenConfig = GetCurrentSplitscreenConfiguration();
@@ -670,6 +738,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 						View->CurrentBufferVisualizationMode = CurrentBufferVisualizationMode;
 
+						View->CameraConstrainedViewRect = View->UnscaledViewRect;
+
 						// If this is the primary drawing pass, update things that depend on the view location
 						if( i == 0 )
 						{
@@ -681,9 +751,9 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 							// Update the listener.
 							if (AudioDevice != NULL)
 							{
-		 						FVector Location;
- 								FVector ProjFront;
- 								FVector ProjRight;
+								FVector Location;
+								FVector ProjFront;
+								FVector ProjRight;
 								PlayerController->GetAudioListenerPosition(/*out*/ Location, /*out*/ ProjFront, /*out*/ ProjRight);
 
 								FTransform ListenerTransform(FRotationMatrix::MakeFromXY(ProjFront, ProjRight));
@@ -709,7 +779,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 						}
 						
 						// Add view information for resource streaming.
-						GStreamingManager->AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
+						IStreamingManager::Get().AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
 						GetWorld()->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
 					}
 				}
@@ -746,7 +816,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			MinY = FMath::Min<uint32>(UpscaledViewRect.Min.Y, MinY);
 			MaxX = FMath::Max<uint32>(UpscaledViewRect.Max.X, MaxX);
 			MaxY = FMath::Max<uint32>(UpscaledViewRect.Max.Y, MaxY);
-			TotalArea += FMath::Trunc(UpscaledViewRect.Width()) * FMath::Trunc(UpscaledViewRect.Height());
+			TotalArea += FMath::TruncToInt(UpscaledViewRect.Width()) * FMath::TruncToInt(UpscaledViewRect.Height());
 		}
 
 		// To draw black borders around the rendered image (prevents artifacts from post processing passes that read outside of the image e.g. PostProcessAA)
@@ -826,7 +896,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 					if (View != NULL)
 					{
 						// rendering to directly to viewport target
-						FVector CanvasOrigin(FMath::Trunc(View->UnscaledViewRect.Min.X), FMath::Trunc(View->UnscaledViewRect.Min.Y), 0.f);
+						FVector CanvasOrigin(FMath::TruncToFloat(View->UnscaledViewRect.Min.X), FMath::TruncToInt(View->UnscaledViewRect.Min.Y), 0.f);
 												
 						CanvasObject->Init(View->UnscaledViewRect.Width(), View->UnscaledViewRect.Height(), View);
 
@@ -874,7 +944,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 							uint32 SizeX = SceneCanvas->GetRenderTarget()->GetSizeXY().X;
 							uint32 SizeY = SceneCanvas->GetRenderTarget()->GetSizeXY().Y;
-							FIntRect SubtitleRegion(FMath::Trunc(SizeX * MinPos.X), FMath::Trunc(SizeY * MinPos.Y), FMath::Trunc(SizeX * MaxPos.X), FMath::Trunc(SizeY * MaxPos.Y));
+							FIntRect SubtitleRegion(FMath::TruncToInt(SizeX * MinPos.X), FMath::TruncToInt(SizeY * MinPos.Y), FMath::TruncToInt(SizeX * MaxPos.X), FMath::TruncToInt(SizeY * MaxPos.Y));
 							// We need a world to do this
 							FSubtitleManager::GetSubtitleManager()->DisplaySubtitles( SceneCanvas, SubtitleRegion, GetWorld()->GetAudioTimeSeconds() );
 						}
@@ -966,7 +1036,7 @@ void UGameViewportClient::ProcessScreenShots(FViewport* InViewport)
 		if (!GIsDumpingMovie && (FScreenshotRequest::ShouldShowUI() && WindowPtr.IsValid()))
 		{
 			TSharedRef<SWindow> WindowRef = WindowPtr.ToSharedRef();
-			FSlateApplication::Get().RedrawWindowForScreenshot( WindowRef );
+			FSlateApplication::Get().ForceRedrawWindow(WindowRef);
 		}
 
 		if (GetViewportScreenShot(InViewport, Bitmap))
@@ -1044,9 +1114,9 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
 		APlayerController* PlayerController = *Iterator;
-		if (PlayerController && PlayerController->PlayerInput)
+		if (PlayerController)
 		{
-			PlayerController->PlayerInput->FlushPressedKeys();
+			PlayerController->FlushPressedKeys();
 		}
 	}
 }
@@ -1055,7 +1125,7 @@ void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
 	InViewport->CaptureJoystickInput(true);
 
-	if (GetDefault<UInputSettings>()->bUseMouseForTouch)
+	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
@@ -1115,9 +1185,30 @@ ULocalPlayer* UGameViewportClient::CreatePlayer(int32 ControllerId, FString& Out
 	ULocalPlayer* NewPlayer = NULL;
 	int32 InsertIndex = INDEX_NONE;
 
-	if (GetOuterUEngine()->GetNumGamePlayers(this) < MaxSplitscreenPlayers)
+	if (GetOuterUEngine()->GetLocalPlayerFromControllerId(this, ControllerId) != NULL)
 	{
-		NewPlayer = CastChecked<ULocalPlayer>(StaticConstructObject(GetOuterUEngine()->LocalPlayerClass, GetOuter()));	
+		OutError = FString::Printf(TEXT("A local player already exists for controller ID %d,"), ControllerId);
+	}
+	else if (GetOuterUEngine()->GetNumGamePlayers(this) < MaxSplitscreenPlayers)
+	{
+		// If the controller ID is not specified then find the first available
+		if (ControllerId < 0)
+		{
+			for (ControllerId = 0; ControllerId < MaxSplitscreenPlayers; ++ControllerId)
+			{
+				if (GetOuterUEngine()->GetLocalPlayerFromControllerId(this, ControllerId) == NULL)
+				{
+					break;
+				}
+			}
+			check(ControllerId < MaxSplitscreenPlayers);
+		}
+		else if (ControllerId >= MaxSplitscreenPlayers)
+		{
+			UE_LOG(LogPlayerManagement, Warning, TEXT("Controller ID (%d) is unlikely to map to any physical device, so this player will not receive input"), ControllerId);
+		}
+
+		NewPlayer = CastChecked<ULocalPlayer>(StaticConstructObject(GetOuterUEngine()->LocalPlayerClass, GetOuter()));
 		InsertIndex = AddLocalPlayer(NewPlayer, ControllerId);
 		if ( bSpawnActor && InsertIndex != INDEX_NONE )
 		{
@@ -1199,6 +1290,10 @@ void UGameViewportClient::DebugCreatePlayer(int32 ControllerId)
 #if !UE_BUILD_SHIPPING
 	FString Error;
 	CreatePlayer(ControllerId, Error, true);
+	if (Error.Len() > 0)
+	{
+		UE_LOG(LogPlayerManagement, Error, TEXT("Failed to DebugCreatePlayer: %s"), *Error);
+	}
 #endif
 }
 
@@ -1855,10 +1950,6 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	{
 		return true;
 	}
-	else if( GColorList.Exec( InWorld, Cmd,Ar) )
-	{
-		return true;
-	}
 	else
 	{
 		return false;
@@ -2267,7 +2358,7 @@ bool UGameViewportClient::HandlePreCacheCommand( const TCHAR* Cmd, FOutputDevice
 	return true;
 }
 
-bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, bool bRequestingFullScreen)
+bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, EWindowMode::Type WindowMode)
 {
 	if (Viewport == NULL || ViewportFrame == NULL)
 	{
@@ -2280,7 +2371,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, b
 	{
 		UGameUserSettings* UserSettings = GameEngine->GetGameUserSettings();
 
-		UserSettings->SetFullscreenMode(bRequestingFullScreen ? EWindowMode::Fullscreen : EWindowMode::Windowed);
+		UserSettings->SetFullscreenMode(WindowMode);
 
 		if (Dimensions)
 		{
@@ -2300,7 +2391,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, b
 			NewY = Dimensions->Y;
 		}
 	
-		FSystemResolution::RequestResolutionChange(NewX, NewY, bRequestingFullScreen);
+		FSystemResolution::RequestResolutionChange(NewX, NewY, WindowMode);
 	}
 
 	return true;
@@ -2308,7 +2399,7 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, b
 
 bool UGameViewportClient::HandleToggleFullscreenCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	return SetDisplayConfiguration(NULL, !Viewport->IsFullscreen() );
+	return SetDisplayConfiguration(NULL, Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen);
 }
 
 bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& Ar )
@@ -2319,19 +2410,27 @@ bool UGameViewportClient::HandleSetResCommand( const TCHAR* Cmd, FOutputDevice& 
 		const TCHAR* CmdTemp = FCString::Strchr(Cmd,'x') ? FCString::Strchr(Cmd,'x')+1 : FCString::Strchr(Cmd,'X') ? FCString::Strchr(Cmd,'X')+1 : TEXT("");
 		int32 Y=FCString::Atoi(CmdTemp);
 		Cmd = CmdTemp;
-		bool bFullscreen = Viewport->IsFullscreen();
+		EWindowMode::Type WindowMode = Viewport->IsFullscreen() ? EWindowMode::Fullscreen : EWindowMode::Windowed;
 		if(FCString::Strchr(Cmd,'w') || FCString::Strchr(Cmd,'W'))
 		{
-			bFullscreen = false;
+			if(FCString::Strchr(Cmd, 'f') || FCString::Strchr(Cmd, 'F'))
+			{
+				WindowMode = EWindowMode::WindowedFullscreen;
+			}
+			else
+			{
+				WindowMode = EWindowMode::Windowed;
+			}
+			
 		}
 		else if(FCString::Strchr(Cmd,'f') || FCString::Strchr(Cmd,'F'))
 		{
-			bFullscreen = true;
+			WindowMode = EWindowMode::Fullscreen;
 		}
 		if( X && Y )
 		{
 			FIntPoint Dims = FIntPoint(X,Y);
-			return SetDisplayConfiguration(&Dims, bFullscreen );
+			return SetDisplayConfiguration(&Dims, WindowMode);
 		}
 	}
 	return true;
@@ -2672,3 +2771,45 @@ bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHU
 
 	return true;
 }
+
+void UGameViewportClient::HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled)
+{
+	// Check to see which viewports have this enabled (current, non-current)
+	const bool bEnabled = IsStatEnabled(InName);
+	if (GStatProcessingViewportClient == this && GEngine->GameViewport == this)
+	{
+		bOutCurrentEnabled = bEnabled;
+	}
+	else
+	{
+		bOutOthersEnabled |= bEnabled;
+	}
+}
+
+void UGameViewportClient::HandleViewportStatEnabled(const TCHAR* InName)
+{
+	// Just enable this on the active viewport
+	if (GStatProcessingViewportClient == this && GEngine->GameViewport == this)
+	{
+		SetStatEnabled(InName, true);
+	}
+}
+
+void UGameViewportClient::HandleViewportStatDisabled(const TCHAR* InName)
+{
+	// Just disable this on the active viewport
+	if (GStatProcessingViewportClient == this && GEngine->GameViewport == this)
+	{
+		SetStatEnabled(InName, false);
+	}
+}
+
+void UGameViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport)
+{
+	// Disable all on either all or the current viewport (depending on the flag)
+	if (bInAnyViewport || (GStatProcessingViewportClient == this && GEngine->GameViewport == this))
+	{
+		SetStatEnabled(NULL, false, true);
+	}
+}
+

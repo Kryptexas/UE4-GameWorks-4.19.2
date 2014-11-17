@@ -5,6 +5,7 @@
 UBlackboardKeyType_Vector::UBlackboardKeyType_Vector(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	ValueSize = sizeof(FVector);
+	SupportedOp = EBlackboardKeyOperation::Basic;
 }
 
 FVector UBlackboardKeyType_Vector::GetValue(const uint8* RawData)
@@ -29,13 +30,19 @@ bool UBlackboardKeyType_Vector::GetLocation(const uint8* RawData, FVector& Locat
 	return FAISystem::IsValidLocation(Location);
 }
 
-int32 UBlackboardKeyType_Vector::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
-{
-	return GetValueFromMemory<FVector>(MemoryBlockA).Equals(GetValueFromMemory<FVector>(MemoryBlockB))
-		? UBlackboardKeyType::Equal : UBlackboardKeyType::NotEqual;
-}
-
 void UBlackboardKeyType_Vector::Initialize(uint8* RawData) const
 {
 	SetValue(RawData, FAISystem::InvalidLocation);
+}
+
+EBlackboardCompare::Type UBlackboardKeyType_Vector::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
+{
+	return GetValueFromMemory<FVector>(MemoryBlockA).Equals(GetValueFromMemory<FVector>(MemoryBlockB))
+		? EBlackboardCompare::Equal : EBlackboardCompare::NotEqual;
+}
+
+bool UBlackboardKeyType_Vector::TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const
+{
+	const FVector Location = GetValue(MemoryBlock);
+	return (Op == EBasicKeyOperation::Set) ? FAISystem::IsValidLocation(Location) : !FAISystem::IsValidLocation(Location);
 }

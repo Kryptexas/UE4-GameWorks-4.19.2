@@ -228,6 +228,8 @@ public:
 	void Advance(float DeltaTime, struct FRootMotionMovementParams & OutRootMotionParams);
 
 	FName GetCurrentSection() const;
+	FName GetNextSection() const;
+
 	// reference has to be managed manually
 	void AddReferencedObjects( FReferenceCollector& Collector );
 private:

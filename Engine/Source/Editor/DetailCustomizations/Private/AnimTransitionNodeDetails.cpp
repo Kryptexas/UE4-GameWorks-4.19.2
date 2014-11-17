@@ -2,8 +2,12 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 
+#include "AnimationTransitionGraph.h"
 #include "AnimGraphDefinitions.h"
-
+#include "AnimGraphNode_TransitionResult.h"
+#include "AnimStateConduitNode.h"
+#include "AnimStateNodeBase.h"
+#include "AnimStateTransitionNode.h"
 #include "AnimTransitionNodeDetails.h"
 #include "KismetEditorUtilities.h"
 #include "SKismetLinearExpression.h"
@@ -134,7 +138,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 				.HAlign(HAlign_Right)
 				.OnClicked(this, &FAnimTransitionNodeDetails::OnClickEditBlendGraph)
 				.Visibility( this, &FAnimTransitionNodeDetails::GetBlendGraphButtonVisibility )
-				.Text(LOCTEXT("EditBlendGraph", "Edit Blend Graph").ToString())
+				.Text(LOCTEXT("EditBlendGraph", "Edit Blend Graph"))
 			]
 		];
 

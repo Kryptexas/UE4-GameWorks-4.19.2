@@ -172,7 +172,7 @@ void BuildStaticLighting(const FGuid& SceneGuid, int32 NumThreads, bool bDumpTex
 	GStatistics.ImportTimeStart = FPlatformTime::Seconds();
 	NSwarm::FSwarmInterface::Initialize(*(FString(FPlatformProcess::BaseDir()) + TEXT("..\\DotNET\\SwarmInterface.dll")));
 	check(&NSwarm::FSwarmInterface::Get() != NULL);
-	GSwarm = new FLightmassSwarm( NSwarm::FSwarmInterface::Get(), SceneGuid, FMath::Trunc(GNumTasksPerThreadPrefetch*NumThreads) );
+	GSwarm = new FLightmassSwarm( NSwarm::FSwarmInterface::Get(), SceneGuid, FMath::TruncToInt(GNumTasksPerThreadPrefetch*NumThreads) );
 	GSwarm->SendMessage( NSwarm::FTimingMessage( NSwarm::PROGSTATE_BeginJob, -1 ) );
 
 	FLightmassImporter Importer( GSwarm );

@@ -86,11 +86,19 @@ struct FNodeInitializationData
 };
 
 static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
-	uint8 TreeDepth, TArray<FNodeInitializationData>& InitList,
+	uint8 TreeDepth, uint16& ExecutionIndex, TArray<FNodeInitializationData>& InitList,
 	class UBehaviorTree* TreeAsset, UObject* NodeOuter)
 {
-	InitList.Add(FNodeInitializationData(NodeOb, ParentNode, InitList.Num(), TreeDepth, NodeOb->GetInstanceMemorySize(), NodeOb->GetSpecialMemorySize()));
+	// special case: subtrees
+	UBTTask_RunBehavior* SubtreeTask = Cast<UBTTask_RunBehavior>(NodeOb);
+	if (SubtreeTask)
+	{
+		ExecutionIndex += SubtreeTask->GetInjectedNodesCount();
+	}
+
+	InitList.Add(FNodeInitializationData(NodeOb, ParentNode, ExecutionIndex, TreeDepth, NodeOb->GetInstanceMemorySize(), NodeOb->GetSpecialMemorySize()));
 	NodeOb->InitializeFromAsset(TreeAsset);
+	ExecutionIndex++;
 
 	UBTCompositeNode* CompositeOb = Cast<UBTCompositeNode>(NodeOb);
 	if (CompositeOb)
@@ -100,10 +108,11 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 			UBTService* Service = Cast<UBTService>(StaticDuplicateObject(CompositeOb->Services[i], NodeOuter, TEXT("None")));;
 			CompositeOb->Services[i] = Service;
 
-			InitList.Add(FNodeInitializationData(Service, CompositeOb, InitList.Num(), TreeDepth,
+			InitList.Add(FNodeInitializationData(Service, CompositeOb, ExecutionIndex, TreeDepth,
 				Service->GetInstanceMemorySize(), Service->GetSpecialMemorySize()));
 
 			Service->InitializeFromAsset(TreeAsset);
+			ExecutionIndex++;
 		}
 
 		for (int32 i = 0; i < CompositeOb->Children.Num(); i++)
@@ -114,11 +123,12 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 				UBTDecorator* Decorator = Cast<UBTDecorator>(StaticDuplicateObject(ChildInfo.Decorators[j], NodeOuter, TEXT("None")));
 				ChildInfo.Decorators[j] = Decorator;
 
-				InitList.Add(FNodeInitializationData(Decorator, CompositeOb, InitList.Num(), TreeDepth,
+				InitList.Add(FNodeInitializationData(Decorator, CompositeOb, ExecutionIndex, TreeDepth,
 					Decorator->GetInstanceMemorySize(), Decorator->GetSpecialMemorySize()));
 
 				Decorator->InitializeFromAsset(TreeAsset);
 				Decorator->InitializeDecorator(i);
+				ExecutionIndex++;
 			}
 
 			UBTNode* ChildNode = NULL;
@@ -136,7 +146,7 @@ static void InitializeNodeHelper(UBTCompositeNode* ParentNode, UBTNode* NodeOb,
 
 			if (ChildNode)
 			{
-				InitializeNodeHelper(CompositeOb, ChildNode, TreeDepth + 1, InitList, TreeAsset, NodeOuter);
+				InitializeNodeHelper(CompositeOb, ChildNode, TreeDepth + 1, ExecutionIndex, InitList, TreeAsset, NodeOuter);
 			}
 		}
 
@@ -166,7 +176,8 @@ bool UBehaviorTreeManager::LoadTree(class UBehaviorTree* Asset, UBTCompositeNode
 		TemplateInfo.Template = Cast<UBTCompositeNode>(StaticDuplicateObject(Asset->RootNode, this, TEXT("None")));
 
 		TArray<FNodeInitializationData> InitList;
-		InitializeNodeHelper(NULL, TemplateInfo.Template, 0, InitList, Asset, this);
+		uint16 ExecutionIndex = 0;
+		InitializeNodeHelper(NULL, TemplateInfo.Template, 0, ExecutionIndex, InitList, Asset, this);
 
 #if USE_BEHAVIORTREE_DEBUGGER
 		// fill in information about next nodes in execution index, before sorting memory offsets
@@ -197,4 +208,26 @@ bool UBehaviorTreeManager::LoadTree(class UBehaviorTree* Asset, UBTCompositeNode
 	}
 
 	return false;
+}
+
+void UBehaviorTreeManager::InitializeMemoryHelper(const TArray<UBTDecorator*>& Nodes, TArray<uint16>& MemoryOffsets, int32& MemorySize)
+{
+	TArray<FNodeInitializationData> InitList;
+	for (int32 i = 0; i < Nodes.Num(); i++)
+	{
+		InitList.Add(FNodeInitializationData(Nodes[i], NULL, 0, 0, Nodes[i]->GetInstanceMemorySize(), Nodes[i]->GetSpecialMemorySize()));
+	}
+
+	InitList.Sort(FNodeInitializationData::FMemorySort());
+
+	uint16 MemoryOffset = 0;
+	MemoryOffsets.AddZeroed(Nodes.Num());
+
+	for (int32 i = 0; i < InitList.Num(); i++)
+	{
+		MemoryOffsets[i] = InitList[i].SpecialDataSize + MemoryOffset;
+		MemoryOffset += InitList[i].DataSize;
+	}
+
+	MemorySize = MemoryOffset;
 }

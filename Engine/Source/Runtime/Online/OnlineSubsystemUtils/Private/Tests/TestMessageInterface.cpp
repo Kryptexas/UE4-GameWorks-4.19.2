@@ -7,6 +7,31 @@
 #include "ModuleManager.h"
 #include "TestMessageInterface.h"
 
+struct TestAttribute
+{
+	FString Name;
+	FVariantData Value;
+
+	TestAttribute (const FString &InName, const FVariantData &InValue) :
+		Name(InName),
+		Value(InValue)
+	{
+	}
+};
+
+static TestAttribute TestAttributeList [] =
+{
+	TestAttribute("INTValue", FVariantData(512)),
+	TestAttribute("FLOATValue", FVariantData(512.0f)),
+	TestAttribute("QWORDValue", FVariantData((uint64)512)),
+	TestAttribute("DOUBLEValue", FVariantData(512000.0)),
+	TestAttribute("STRINGValue", FVariantData(TEXT("This Is A Test!")))
+};
+
+static uint8 BLOBTestValue [] = 
+{
+	0xde, 0xad, 0xbe, 0xef, 0xfa, 0xde, 0xbe, 0xad
+};
 
 FTestMessageInterface::FTestMessageInterface(const FString& InSubsystem)
 	: OnlineSub(NULL)
@@ -84,14 +109,17 @@ void FTestMessageInterface::StartNextTest()
 		{
 			FOnlineMessagePayload TestPayload;
 
-			TestPayload.SetAttribute(TEXT("INTValue"), FVariantData(512)); 
- 			TestPayload.SetAttribute(TEXT("FLOATValue"), FVariantData(512.0f)); 
- 			TestPayload.SetAttribute(TEXT("QWORDValue"), FVariantData((uint64)512)); 
- 			TestPayload.SetAttribute(TEXT("DOUBLEValue"), FVariantData(512000.0)); 
- 			TestPayload.SetAttribute(TEXT("STRINGValue"), FVariantData(TEXT("This Is A Test!"))); 
+			int AttributeCount = sizeof(TestAttributeList)/sizeof(TestAttribute);
+			for (int i = 0; i < AttributeCount; ++i)
+			{
+				TestPayload.SetAttribute(TestAttributeList[i].Name, TestAttributeList[i].Value);
+			}
 
 			TArray<uint8> TestData;
-			TestData.Add((uint8)200);
+			for (int i = 0; i < sizeof(BLOBTestValue); ++i)
+			{
+				TestData.Add(BLOBTestValue[i]);
+			}
  			TestPayload.SetAttribute(TEXT("BLOBValue"), FVariantData(TestData));
 
 			OnlineSub->GetMessageInterface()->SendMessage(0, Recipients, TEXT("TestType"), TestPayload);
@@ -180,6 +208,74 @@ void FTestMessageInterface::OnReadMessageComplete(int32 LocalPlayer, bool bWasSu
 {
 	UE_LOG(LogOnline, Log,
 		TEXT("ReadMessage() for player (%d) was success=%d"), LocalPlayer, bWasSuccessful);
+
+	// Dump the message content back out
+	if (bWasSuccessful)
+	{
+		TSharedPtr<class FOnlineMessage> Message = OnlineSub->GetMessageInterface()->GetMessage(LocalPlayer, MessageId);
+
+		int AttributeCount = sizeof(TestAttributeList)/sizeof(TestAttribute);
+		for (int i = 0; i < AttributeCount; ++i)
+		{
+			FVariantData Value;
+			if (Message->Payload.GetAttribute(TestAttributeList[i].Name, Value))
+			{
+				if (Value != TestAttributeList[i].Value)
+				{
+					UE_LOG(LogOnline, Log,
+						TEXT("Attribute %s is the wrong value in the received message payload"), *TestAttributeList[i].Name);
+				}
+				else
+				{
+					UE_LOG(LogOnline, Log,
+						TEXT("Attribute %s MATCHED in the received message payload"), *TestAttributeList[i].Name);
+				}
+			}
+			else
+			{
+				UE_LOG(LogOnline, Log,
+					TEXT("Attribute %s is missing from the received message payload"), *TestAttributeList[i].Name);
+			}
+		}
+
+		{
+			FVariantData BLOBValue;
+			if (Message->Payload.GetAttribute(TEXT("BLOBValue"), BLOBValue))
+			{
+				TArray<uint8> TestData;
+				BLOBValue.GetValue(TestData);
+				if (TestData.Num() != sizeof(BLOBTestValue))
+				{
+					UE_LOG(LogOnline, Log,
+						TEXT("Attribute BLOBValue is the wrong size in the received message payload"));
+				}
+				else
+				{
+					bool bIsDataGood = true;
+					for (int i = 0; i < sizeof(BLOBTestValue); ++i)
+					{
+						if (TestData[i] != BLOBTestValue[i])
+						{
+							UE_LOG(LogOnline, Log,
+								TEXT("Attribute BLOBValue contains the wrong data at position %d in the received message payload"), i);
+							bIsDataGood = false;
+							break;
+						}
+					}
+
+					if (bIsDataGood)
+					{
+						UE_LOG(LogOnline, Log,
+							TEXT("Attribute BLOBValue MATCHED in the received message payload"));
+					}
+				}
+			}
+			else
+			{
+				UE_LOG(LogOnline, Log, TEXT("Attribute BLOBValue is missing from the received message payload"));
+			}
+		}
+	}
 
 	// done with this part of the test if no more messages to download
 	MessagesToRead.RemoveAt(0);

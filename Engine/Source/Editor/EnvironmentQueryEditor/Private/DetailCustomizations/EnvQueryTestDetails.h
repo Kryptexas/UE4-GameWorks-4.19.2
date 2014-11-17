@@ -26,6 +26,7 @@ protected:
 	FString GetWeightModifierInfo() const;
 	EVisibility GetFloatFilterVisibility() const;
 	EVisibility GetBoolFilterVisibility() const;
+	EVisibility GetDiscardFailedVisibility() const;
 
 	/** cached names of conditions */
 	struct FStringIntPair

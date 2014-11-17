@@ -35,7 +35,7 @@ struct FJsonStructWriteState
 };
 
 
-// @todo gmp - refactor this and SlateStyleSerializer into generic UStruct serializer
+// @todo gmp: refactor this and SlateStyleSerializer into generic UStruct serializer
 namespace Obsolete
 {
 	// Finds the class for the given stack state.

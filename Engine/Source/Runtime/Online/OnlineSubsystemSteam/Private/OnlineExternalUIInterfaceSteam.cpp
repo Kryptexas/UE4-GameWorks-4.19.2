@@ -53,6 +53,11 @@ bool FOnlineExternalUISteam::ShowAchievementsUI(int32 LocalUserNum)
 	return true;
 }
 
+bool FOnlineExternalUISteam::ShowLeaderboardUI(const FString& LeaderboardName)
+{
+	return false;
+}
+
 bool FOnlineExternalUISteam::ShowWebURL(const FString& WebURL)
 {
 	if (!WebURL.StartsWith(TEXT("https://")))
@@ -67,9 +72,10 @@ bool FOnlineExternalUISteam::ShowWebURL(const FString& WebURL)
 	return true;
 }
 
-void FOnlineExternalUISteam::ShowProfileUI( const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate )
+bool FOnlineExternalUISteam::ShowProfileUI( const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate )
 {
 	//@todo
+	return false;
 }
 
 

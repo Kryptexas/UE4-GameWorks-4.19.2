@@ -643,7 +643,7 @@ void FAnimationRuntime::GetKeyIndicesFromTime(int32 & OutKeyIndex1, int32 & OutK
 	const float KeyPos = ((float)NumKeys * Time) / SequenceLength;
 
 	// Find the integer part (ensuring within range) and that gives us the 'starting' key index.
-	const int32 KeyIndex1 = FMath::Clamp<int32>( FMath::Floor(KeyPos), 0, NumFrames-1 );  // @todo should be changed to FMath::Trunc
+	const int32 KeyIndex1 = FMath::Clamp<int32>( FMath::FloorToInt(KeyPos), 0, NumFrames-1 );  // @todo should be changed to FMath::TruncToInt
 
 	// The alpha (fractional part) is then just the remainder.
 	const float Alpha = KeyPos - (float)KeyIndex1;
@@ -881,17 +881,19 @@ void FAnimationRuntime::BlendMeshPosesPerBoneWeights(
 		{
 			BlendAtom = BaseAtom;
 			BlendAtom.BlendWith(TargetAtom, BlendWeight);
+
 			// blend rotation in mesh space
 			BlendRotations[BoneIndex] = FQuat::FastLerp(SourceRotations[BoneIndex], TargetRotations[BoneIndex], BlendWeight);
+			
+			// Fast lerp produces un-normalized quaternions, re-normalize.
+			BlendRotations[BoneIndex].Normalize();
 		}
 
 		OutPose.Bones[BoneIndex] = BlendAtom;
 		if (ParentIndex!=INDEX_NONE)
 		{
-			BlendRotations[BoneIndex].Normalize();
-			FQuat LocalBlendQuat = BlendRotations[ParentIndex].Inverse()*BlendRotations[BoneIndex];
+			FQuat const LocalBlendQuat = BlendRotations[ParentIndex].Inverse() * BlendRotations[BoneIndex];
 			OutPose.Bones[BoneIndex].SetRotation(LocalBlendQuat);
-			OutPose.Bones[BoneIndex].NormalizeRotation();
 		}
 	}
 }
@@ -939,7 +941,7 @@ void FAnimationRuntime::UpdateDesiredBoneWeight(const TArray<FPerBoneBlendWeight
 	// in the future, cache this outside
 	ensure (TargetBoneBlendWeights.Num() == SrcBoneBlendWeights.Num());
 
-	FMemory::Memset( TargetBoneBlendWeights.GetTypedData(), 0, TargetBoneBlendWeights.Num());
+	FMemory::Memset(TargetBoneBlendWeights.GetTypedData(), 0, TargetBoneBlendWeights.Num() * sizeof(FPerBoneBlendWeight));
 
 	// go through skeleton tree requiredboneindices
 	const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();

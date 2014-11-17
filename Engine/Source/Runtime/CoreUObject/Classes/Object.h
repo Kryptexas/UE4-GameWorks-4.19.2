@@ -27,12 +27,12 @@ namespace EAxis
 UENUM()
 enum EInterpCurveMode
 {
-	CIM_Linear,
-	CIM_CurveAuto,
-	CIM_Constant,
-	CIM_CurveUser,
-	CIM_CurveBreak,
-	CIM_CurveAutoClamped,
+	CIM_Linear UMETA(DisplayName="Linear"),
+	CIM_CurveAuto UMETA(DisplayName="Curve Auto"),
+	CIM_Constant UMETA(DisplayName="Constant"),
+	CIM_CurveUser UMETA(DisplayName="Curve User"),
+	CIM_CurveBreak UMETA(DisplayName="Curve Break"),
+	CIM_CurveAutoClamped UMETA(DisplayName="Curve Auto Clamped"),
 	CIM_MAX,
 };
 
@@ -677,6 +677,78 @@ struct FFallbackStruct
 {
 };
 
+UENUM()
+namespace ERangeBoundTypes
+{
+	/**
+	* Enumerates the valid types of range bounds.
+	*/
+	enum Type
+	{
+		/**
+		* The range excludes the bound.
+		*/
+		Exclusive,
+
+		/**
+		* The range includes the bound.
+		*/
+		Inclusive,
+
+		/**
+		* The bound is open.
+		*/
+		Open
+	};
+}
+
+// A float range bound
+
+USTRUCT(noexport)
+struct FFloatRangeBound
+{
+	UPROPERTY(EditAnywhere, Category=Range)
+	TEnumAsByte<ERangeBoundTypes::Type> Type;
+
+	UPROPERTY(EditAnywhere, Category=Range)
+	float Value;
+};
+
+// A float range
+
+USTRUCT(noexport)
+struct FFloatRange
+{
+	UPROPERTY(EditAnywhere, Category=Range)
+	FFloatRangeBound LowerBound;
+
+	UPROPERTY(EditAnywhere, Category=Range)
+	FFloatRangeBound UpperBound;
+};
+
+// An int32 range bound
+
+USTRUCT(noexport)
+struct FInt32RangeBound
+{
+	UPROPERTY(EditAnywhere, Category = Range)
+	TEnumAsByte<ERangeBoundTypes::Type> Type;
+
+	UPROPERTY(EditAnywhere, Category = Range)
+	int32 Value;
+};
+
+// An int32 range
+
+USTRUCT(noexport)
+struct FInt32Range
+{
+	UPROPERTY(EditAnywhere, Category = Range)
+	FInt32RangeBound LowerBound;
+
+	UPROPERTY(EditAnywhere, Category = Range)
+	FInt32RangeBound UpperBound;
+};
 
 //=============================================================================
 // Object: The base class all objects.

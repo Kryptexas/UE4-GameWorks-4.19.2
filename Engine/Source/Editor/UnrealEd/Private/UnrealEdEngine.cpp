@@ -92,6 +92,17 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		PropertyModule.RegisterCustomPropertyLayout("GameMapsSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FGameMapsSettingsCustomization::MakeInstance));
 		PropertyModule.RegisterCustomPropertyLayout("LevelEditorPlaySettings", FOnGetDetailCustomizationInstance::CreateStatic(&FLevelEditorPlaySettingsCustomization::MakeInstance));
 	}
+
+	bool bCookOnTheSide = FParse::Param( FCommandLine::Get(),TEXT("COOKONTHESIDE"));
+	if ( bCookOnTheSide )
+	{
+		CookServer = ConstructObject<UCookOnTheFlyServer>( UCookOnTheFlyServer::StaticClass() );
+		CookServer->Initialize( false, false, false, true, true );
+		CookServer->StartNetworkFileServer( false );
+
+		FCoreDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
+		FCoreDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
+	}
 }
 
 void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSortedSpriteInfo) const
@@ -191,6 +202,12 @@ UUnrealEdEngine::~UUnrealEdEngine()
 
 void UUnrealEdEngine::FinishDestroy()
 {
+	if( CookServer)
+	{
+		FCoreDelegates::OnObjectPropertyChanged.RemoveAll( CookServer );
+		FCoreDelegates::OnObjectModified.RemoveAll( CookServer );
+	}
+
 	if(PackageAutoSaver.Get())
 	{
 		// We've finished shutting down, so disable the auto-save restore

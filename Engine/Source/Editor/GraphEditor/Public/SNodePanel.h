@@ -252,8 +252,14 @@ public:
 	class SNode : public SBorder
 	{
 	public:
-		/** @param NewPosition  The Node should be relocated to this position in the graph panel */
-		virtual void MoveTo(const FVector2D& NewPosition)
+
+		typedef TSet<TWeakPtr<SNodePanel::SNode>> FNodeSet;
+
+		/**
+		* @param NewPosition	The Node should be relocated to this position in the graph panel
+		* @param NodeFilter		Set of nodes to prevent movement on, after moving successfully a node is added to this set.
+		*/
+		virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter )
 		{
 		}
 

@@ -9,4 +9,3 @@
 #include "Engine.h"
 #include "ParticleHelper.h"
 #include "ParticleEmitterInstances.h"
-#include "EngineParticleClasses.h"

@@ -6,21 +6,32 @@ namespace UnrealBuildTool.Rules
 	{
 		public UdpMessaging(TargetInfo Target)
 		{
-			PrivateDependencyModuleNames.AddRange(
+			PublicDependencyModuleNames.AddRange(
 				new string[]
 				{
+					"Networking",
+				}
+			); 
+
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
 					"Core",
 					"CoreUObject",
-					"Messaging",
-					"Networking",
-					"Settings",
 					"Sockets",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Messaging",
+					"Settings",
 				}
 			);
 
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"UdpMessaging/Private",
+					"UdpMessaging/Private/Shared",
 					"UdpMessaging/Private/Transport",
 					"UdpMessaging/Private/Transport/Tests",
 					"UdpMessaging/Private/Tunnel",

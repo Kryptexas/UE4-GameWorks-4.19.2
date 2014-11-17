@@ -193,40 +193,34 @@ void UAnimSingleNodeInstance::NativeInitializeAnimation()
 
 void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 {
-	float NewDeltaTime = DeltaTimeX;
-	if (bReverse)
-	{
-		NewDeltaTime = -NewDeltaTime;
-	}
-
+	float NewPlayRate = PlayRate;
 	UAnimSequence* PreviewBasePose = NULL;
 
-	if (!bPlaying)
+	if (bPlaying == false)
 	{
-		// if not playing, make DeltaTime to be 0.f;
-		// we still have to tick when NewDeltaTime == 0.f for retrieving curve datas
-		// -i.e. Morph Target Curves
-		// if we need an optimization, we can just grab curve separate, but for now this is better for consistency
-		NewDeltaTime = 0.f;
+		// we still have to tick animation when bPlaying is false because 
+		NewPlayRate = 0.f;
 	}
 
 	if(CurrentAsset != NULL)
 	{
+		FAnimGroupInstance* SyncGroup;
 		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset))
 		{
-			BlendSpaceAdvanceImmediate(BlendSpace, BlendSpaceInput, BlendSampleData, BlendFilter, bLooping, PlayRate, NewDeltaTime, CurrentTime);
+			FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			MakeBlendSpaceTickRecord(TickRecord, BlendSpace, BlendSpaceInput, BlendSampleData, BlendFilter, bLooping, NewPlayRate, 1.f, /*inout*/ CurrentTime);
 #if WITH_EDITORONLY_DATA
 			PreviewBasePose = BlendSpace->PreviewBasePose;
 #endif
 		}
 		else if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
 		{
-			SequenceAdvanceImmediate(Sequence, bLooping, PlayRate, NewDeltaTime, CurrentTime);
-
+			FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			MakeSequenceTickRecord(TickRecord, Sequence, bLooping, NewPlayRate, 1.f, /*inout*/ CurrentTime);
 			// if it's not looping, just set play to be false when reached to end
 			if (!bLooping)
 			{
-				if ((bReverse && CurrentTime <= 0.f) || (!bReverse && CurrentTime >= Sequence->SequenceLength))
+				if ((NewPlayRate < 0.f && CurrentTime <= 0.f) || (NewPlayRate > 0.f && CurrentTime >= Sequence->SequenceLength))
 				{
 					SetPlaying(false);
 				}
@@ -234,12 +228,12 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 		}
 		else if(UAnimComposite* Composite = Cast<UAnimComposite>(CurrentAsset))
 		{
-			SequenceAdvanceImmediate(Composite, bLooping, PlayRate, NewDeltaTime, CurrentTime);
-
+			FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			MakeSequenceTickRecord(TickRecord, Composite, bLooping, NewPlayRate, 1.f, /*inout*/ CurrentTime);
 			// if it's not looping, just set play to be false when reached to end
 			if (!bLooping)
 			{
-				if ((bReverse && CurrentTime <= 0.f) || (!bReverse && CurrentTime >= Composite->SequenceLength))
+				if ((NewPlayRate < 0.f && CurrentTime <= 0.f) || (NewPlayRate > 0.f && CurrentTime >= Composite->SequenceLength))
 				{
 					SetPlaying(false);
 				}
@@ -270,14 +264,14 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 	}
 	else if(CurrentVertexAnim != NULL)
 	{
-		float MoveDelta = NewDeltaTime * PlayRate;
+		float MoveDelta = DeltaTimeX * NewPlayRate;
 		FAnimationRuntime::AdvanceTime(bLooping, MoveDelta, CurrentTime, CurrentVertexAnim->GetAnimLength());
 	}
 
 #if WITH_EDITORONLY_DATA
 	if(PreviewBasePose)
 	{
-		float MoveDelta = NewDeltaTime * PlayRate;
+		float MoveDelta = DeltaTimeX * NewPlayRate;
 		const bool bIsPreviewPoseLooping = true;
 
 		FAnimationRuntime::AdvanceTime(bIsPreviewPoseLooping, MoveDelta, PreviewPoseCurrentTime, PreviewBasePose->SequenceLength);
@@ -467,6 +461,14 @@ void UAnimSingleNodeInstance::SetPlayRate(float InPlayRate)
 void UAnimSingleNodeInstance::SetReverse(bool bInReverse)
 {
 	bReverse = bInReverse;
+	if (bInReverse)
+	{
+		PlayRate = -FMath::Abs(PlayRate);
+	}
+	else
+	{
+		PlayRate = FMath::Abs(PlayRate);
+	}
 
 // reverse support is a bit tricky for montage
 // since we don't have delegate when it reached to the beginning

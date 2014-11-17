@@ -7,7 +7,7 @@
 #include "LevelEditorActions.h"
 #include "LevelEditorModesActions.h"
 #include "AssetSelection.h"
-#include "LevelViewportContextMenu.h"
+#include "LevelEditorContextMenu.h"
 #include "SLevelViewport.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Developer/MessageLog/Public/MessageLogModule.h"
@@ -15,6 +15,7 @@
 #include "LevelViewportActions.h"
 #include "GlobalEditorCommonCommands.h"
 #include "IUserFeedbackModule.h"
+#include "SlateReflector.h"
 
 // @todo Editor: remove this circular dependency
 #include "Editor/MainFrame/Public/Interfaces/IMainFrameModule.h"
@@ -90,7 +91,6 @@ TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 				.AutoWidth()
 				[
 					SNew(SBox)
-					.Padding( FMargin( 0, 1, 20, 0 ) )
 					.Visibility( EVisibility::HitTestInvisible )
 					[
 						SNew( STextBlock )
@@ -102,6 +102,8 @@ TSharedRef<SDockTab> SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 
 				+SHorizontalBox::Slot()
 				.AutoWidth()
+				.Padding(16.0f, 0.0f, 0.0f, 0.0f)
+				.VAlign(VAlign_Center)
 				[
 					UserFeedbackWidget
 				]
@@ -142,7 +144,7 @@ void FLevelEditorModule::StartupModule()
 	FGlobalTabmanager::Get()->RegisterTabSpawner("LevelEditor", FOnSpawnTab::CreateStatic( &SpawnLevelEditor ) )
 		.SetDisplayName( NSLOCTEXT("LevelEditor", "LevelEditorTab", "Level Editor") );
 
-	FSlateApplication::Get().RegisterWidgetReflectorTabSpawner( MenuStructure.GetDeveloperToolsCategory() );
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(MenuStructure.GetDeveloperToolsCategory());
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.RegisterLogListing("BuildAndSubmitErrors", LOCTEXT("BuildAndSubmitErrors", "Build and Submit Errors"));
@@ -187,11 +189,13 @@ void FLevelEditorModule::ShutdownModule()
 	if ( FSlateApplication::IsInitialized() )
 	{
 		FGlobalTabmanager::Get()->UnregisterTabSpawner("LevelEditor");
-		FSlateApplication::Get().UnregisterWidgetReflectorTabSpawner();
+		FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").UnregisterTabSpawner();
 	}	
 
 	FLevelEditorCommands::Unregister();
 	FLevelEditorModesCommands::Unregister();
+	FEditorViewportCommands::Unregister();
+	FLevelViewportCommands::Unregister();
 }
 
 void FLevelEditorModule::PreUnloadCallback()
@@ -373,7 +377,7 @@ void FLevelEditorModule::StartImmersivePlayInEditorSession()
 				ActiveLevelViewport->MakeImmersive( bWantImmersive, bAllowAnimation );
 				FVector2D WindowSize = Window->GetSizeInScreen();
 				// Set the initial size of the viewport to be the size of the window. This must be done because Slate has not ticked yet so the viewport will have no initial size
-				ActiveLevelViewport->GetActiveViewport()->SetInitialSize( FIntPoint( FMath::Trunc( WindowSize.X ), FMath::Trunc( WindowSize.Y ) ) );
+				ActiveLevelViewport->GetActiveViewport()->SetInitialSize( FIntPoint( FMath::TruncToInt( WindowSize.X ), FMath::TruncToInt( WindowSize.Y ) ) );
 			}
 
 			// Launch PIE
@@ -747,6 +751,11 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	ActionList.MapAction(
 		Commands.AttachSelectedActors,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::AttachSelectedActors )
+		);
+
+	ActionList.MapAction(
+		Commands.AttachActorIteractive,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::AttachActorIteractive )
 		);
 
 	ActionList.MapAction(
@@ -1504,6 +1513,16 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::SetMaterialQualityLevel, (EMaterialQualityLevel::Type)EMaterialQualityLevel::High ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateStatic( &FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked, (EMaterialQualityLevel::Type)EMaterialQualityLevel::High ) );
+
+
+	for (int32 i = 0; i < ERHIFeatureLevel::Num; ++i)
+	{
+		ActionList.MapAction(
+			Commands.FeatureLevelPreview[i],
+			FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SetFeatureLevelPreview, (ERHIFeatureLevel::Type)i),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateStatic(&FLevelEditorActionCallbacks::IsFeatureLevelPreviewChecked, (ERHIFeatureLevel::Type)i));
+	}
 }
 	
 #undef LOCTEXT_NAMESPACE

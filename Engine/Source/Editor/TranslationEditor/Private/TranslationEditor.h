@@ -5,6 +5,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "ITranslationEditor.h"
 #include "CustomFontColumn.h"
+#include "TranslationUnit.h"
 
 class TRANSLATIONEDITOR_API FTranslationEditor :  public ITranslationEditor
 {
@@ -14,15 +15,18 @@ public:
 	/**
 	 *	Creates a new FTranslationEditor and calls Initialize
 	 */
-	static TSharedRef< FTranslationEditor > Create( TSharedRef< FTranslationDataManager > DataManager, const FString& ProjectName, const FString& TranslationTargetLanguage )
+	static TSharedRef< FTranslationEditor > Create(TSharedRef< FTranslationDataManager > DataManager, const FString& InManifestFile, const FString& InArchiveFile)
 	{
-		TSharedRef< FTranslationEditor > TranslationEditor = MakeShareable( new FTranslationEditor( DataManager, ProjectName, TranslationTargetLanguage ) );
+		TSharedRef< FTranslationEditor > TranslationEditor = MakeShareable(new FTranslationEditor(DataManager, InManifestFile, InArchiveFile));
 
 		// Some stuff that needs to use the "this" pointer is done in Initialize (because it can't be done in the constructor)
 		TranslationEditor->Initialize();
 
-		// Set up a property changed event to trigger a write of the translation data when TranslationDataObject property changes
-		DataManager->GetTranslationDataObject()->OnPropertyChanged().Add(UTranslationDataObject::FTranslationDataPropertyChangedEvent::FDelegate::CreateSP(DataManager, &FTranslationDataManager::HandlePropertyChanged));
+		for (UTranslationUnit* TranslationUnit : DataManager->GetAllTranslationsArray())
+		{
+			// Set up a property changed event to trigger a write of the translation data when TranslationUnit property changes
+			TranslationUnit->OnPropertyChanged().AddSP(DataManager, &FTranslationDataManager::HandlePropertyChanged);
+		}
 
 		return TranslationEditor;
 	}
@@ -39,7 +43,7 @@ public:
 	 * @param	InitToolkitHost			When Mode is WorldCentric, this is the level editor instance to spawn this editor within
 	 * @param	ObjectToEdit			The object to edit
 	 */
-	void InitTranslationEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UTranslationDataObject* TranslationDataToEdit );
+	void InitTranslationEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost );
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const OVERRIDE;
@@ -55,8 +59,7 @@ protected:
 private:
 
 	FTranslationEditor(TSharedRef< FTranslationDataManager > InDataManager, const FString& InManifestFile, const FString& InArchiveFile )
-	: TranslationData(NULL)
-	, DataManager(InDataManager)
+	:  DataManager(InDataManager)
 	, SourceFont(FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ))
 	, TranslationTargetFont(FEditorStyle::GetFontStyle( PropertyTableConstants::NormalFontStyle ))
 	, SourceColumn(MakeShareable(new FCustomFontColumn(SourceFont)))
@@ -66,8 +69,8 @@ private:
 				.Font(TranslationTargetFont))
 	, NamespaceTextBlock(SNew(STextBlock)
 				.Text(FText::FromString("")))
-	, ProjectName(FPaths::GetBaseFilename(InManifestFile))
-	, TranslationTargetLanguage(FPaths::GetBaseFilename(FPaths::GetPath(InArchiveFile)))
+	, ManifestFilePath(InManifestFile)
+	, ArchiveFilePath(InArchiveFile)
 	{}
 
 	/** Does some things we can't do in the constructor because we can't get a SharedRef to "this" there */ 
@@ -85,6 +88,10 @@ private:
 	TSharedRef<SDockTab> SpawnTab_Context( const FSpawnTabArgs& Args );
 	/**	Spawns the history tab */
 	TSharedRef<SDockTab> SpawnTab_History( const FSpawnTabArgs& Args );
+	/**	Spawns the search tab */
+	TSharedRef<SDockTab> SpawnTab_Search( const FSpawnTabArgs& Args );
+	/**	Spawns the Changed on Import tab */
+	TSharedRef<SDockTab> SpawnTab_ChangedOnImport(const FSpawnTabArgs& Args);
 
 	/** Map actions for the UI_COMMANDS */
 	void MapActions();
@@ -131,10 +138,43 @@ private:
 	void RefreshUI();
 
 	/** Update content when a new translation unit selection is made */
-	void UpdateTranslationUnitSelection();
+	void UpdateTranslationUnitSelection(TSet<TSharedRef<IPropertyTableRow>>& SelectedRows);
+
+	/** Update content when a new translation unit selection is made in the Untranslated PropertyTable */
+	void UpdateUntranslatedSelection();
+
+	/** Update content when a new translation unit selection is made in the Needs Review PropertyTable */
+	void UpdateNeedsReviewSelection();
+
+	/** Update content when a new translation unit selection is made in the Completed PropertyTable */
+	void UpdateCompletedSelection();
+
+	/** Update content when a new translation unit selection is made in the Search PropertyTable */
+	void UpdateSearchSelection();
+
+	/** Update content when a new translation unit selection is made in the ChangedOnImport PropertyTable */
+	void UpdateChangedOnImportSelection();
 
 	/** Update content when a new context selection is made */
 	void UpdateContextSelection();
+
+	/** Called when "Preview in Editor" is clicked for this asset */
+	void PreviewAllTranslationsInEditor_Execute();
+
+	/** Called when "Export to .PO" is clicked for this asset */
+	void ExportToPortableObjectFormat_Execute();
+
+	/** Called when "Import from .PO" is clicked for this asset */
+	void ImportFromPortableObjectFormat_Execute();
+
+	/** Open the search tab */
+	void OpenSearchTab_Execute();
+
+	/** Called when the filter text in the SearchBox is changed */
+	void OnFilterTextChanged(const FText& InFilterText);
+
+	/** Called when text is committed to the SearchBox */
+	void OnFilterTextCommitted(const FText& InFilterText, ETextCommit::Type CommitInfo);
 
 	/**	The tab id for the untranslated tab */
 	static const FName UntranslatedTabId;
@@ -148,6 +188,10 @@ private:
 	static const FName ContextTabId;
 	/**	The tab id for the history tab */
 	static const FName HistoryTabId;
+	/**	The tab id for the search tab */
+	static const FName SearchTabId;
+	/**	The tab id for the changed on import tab */
+	static const FName ChangedOnImportTabId;
 
 	/** The Untranslated Tab */
 	TWeakPtr<SDockTab> UntranslatedTab;
@@ -155,15 +199,18 @@ private:
 	TWeakPtr<SDockTab> ReviewTab;
 	/** The Review Tab */
 	TWeakPtr<SDockTab> CompletedTab;
+	/** The Search Tab */
+	TWeakPtr<SDockTab> SearchTab;
+	/** The Changed On Import Tab */
+	TWeakPtr<SDockTab> ChangedOnImportTab;
 
-	/** UObject containing our translation information */
-	UTranslationDataObject* TranslationData;
+	/** Search box for searching the source and translation strings */
+	TSharedPtr<SSearchBox> SearchBox;
+	/** Current search filter */
+	FString CurrentSearchFilter;
 
 	/** Manages the reading and writing of data to file */
 	TSharedRef< FTranslationDataManager > DataManager;
-
-	/** Array of Objects for the Property Table */
-	TArray<UObject*>  PropertyTableObjects;
 
 	/** The table of untranslated items */
 	TSharedPtr< class IPropertyTable > UntranslatedPropertyTable;
@@ -175,6 +222,10 @@ private:
 	TSharedPtr< class IPropertyTable > ContextPropertyTable;
 	/** The table of previous revision information */
 	TSharedPtr< class IPropertyTable > HistoryPropertyTable;
+	/** The table of search results */
+	TSharedPtr< class IPropertyTable > SearchPropertyTable;
+	/** The table of changed on import results */
+	TSharedPtr< class IPropertyTable > ChangedOnImportPropertyTable;
 
 	/** The slate widget table of untranslated items */
 	TSharedPtr< class IPropertyTableWidgetHandle > UntranslatedPropertyTableWidgetHandle;
@@ -186,6 +237,10 @@ private:
 	TSharedPtr< class IPropertyTableWidgetHandle > ContextPropertyTableWidgetHandle;
 	/** The slate widget table of previous revision information */
 	TSharedPtr< class IPropertyTableWidgetHandle > HistoryPropertyTableWidgetHandle;
+	/** The slate widget table of search results */
+	TSharedPtr< class IPropertyTableWidgetHandle > SearchPropertyTableWidgetHandle;
+	/** The slate widget table of translations that changed on import */
+	TSharedPtr< class IPropertyTableWidgetHandle > ChangedOnImportPropertyTableWidgetHandle;
 
 	/** Font to use for the source language */
 	FSlateFontInfo SourceFont;
@@ -203,7 +258,12 @@ private:
 	TSharedRef<STextBlock> NamespaceTextBlock;
 
 	/** Name of the project we are translating for */
-	FString ProjectName;
+	FString ManifestFilePath;
 	/** Name of the language we are translating to */
-	FString TranslationTargetLanguage;
+	FString ArchiveFilePath;
+
+	/** Used to remember the location of the file the user last exported to */
+	FString LastExportFilePath;
+	/** Used to remember the location of the file the user last imported */
+	FString LastImportFilePath;
 };

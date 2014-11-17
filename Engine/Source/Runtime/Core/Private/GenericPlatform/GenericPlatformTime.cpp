@@ -117,31 +117,31 @@ FString FGenericPlatformTime::PrettyTime( double Seconds )
 {
 	if ( Seconds < 1.0 )
 	{
-		return FString::Printf( TEXT("%d ms"), FMath::Trunc(Seconds*1000) );
+		return FString::Printf( TEXT("%d ms"), FMath::TruncToInt(Seconds*1000) );
 	}
 	else if ( Seconds < 10.0 )
 	{
-		int32 Sec = FMath::Trunc(Seconds);
-		int32 Ms = FMath::Trunc(Seconds*1000) - Sec*1000;
+		int32 Sec = FMath::TruncToInt(Seconds);
+		int32 Ms = FMath::TruncToInt(Seconds*1000) - Sec*1000;
 		return FString::Printf( TEXT("%d.%02d sec"), Sec, Ms/10 );
 	}
 	else if ( Seconds < 60.0 )
 	{
-		int32 Sec = FMath::Trunc(Seconds);
-		int32 Ms = FMath::Trunc(Seconds*1000) - Sec*1000;
+		int32 Sec = FMath::TruncToInt(Seconds);
+		int32 Ms = FMath::TruncToInt(Seconds*1000) - Sec*1000;
 		return FString::Printf( TEXT("%d.%d sec"), Sec, Ms/100 );
 	}
 	else if ( Seconds < 60.0*60.0 )
 	{
-		int32 Min = FMath::Trunc(Seconds/60.0);
-		int32 Sec = FMath::Trunc(Seconds) - Min*60;
+		int32 Min = FMath::TruncToInt(Seconds/60.0);
+		int32 Sec = FMath::TruncToInt(Seconds) - Min*60;
 		return FString::Printf( TEXT("%d:%02d min"), Min, Sec );
 	}
 	else
 	{
-		int32 Hr = FMath::Trunc(Seconds/3600.0);
-		int32 Min = FMath::Trunc((Seconds - Hr*3600)/60.0);
-		int32 Sec = FMath::Trunc(Seconds - Hr*3600 - Min*60);
+		int32 Hr = FMath::TruncToInt(Seconds/3600.0);
+		int32 Min = FMath::TruncToInt((Seconds - Hr*3600)/60.0);
+		int32 Sec = FMath::TruncToInt(Seconds - Hr*3600 - Min*60);
 		return FString::Printf( TEXT("%d:%02d:%02d hours"), Hr, Min, Sec );
 	}
 }

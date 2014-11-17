@@ -10,10 +10,8 @@
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
 #include "NavigationPathBuilder.h"
-#include "EngineInterpolationClasses.h"
-#include "EngineKismetLibraryClasses.h"
 #include "ParticleDefinitions.h"
-#include "EngineComponentClasses.h"
+#include "DisplayDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
@@ -131,11 +129,24 @@ void APawn::PawnStartFire(uint8 FireModeNum) {}
 class UGameplayDebuggingComponent* APawn::GetDebugComponent(bool bCreateIfNotFound)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (DebugComponent == NULL && bCreateIfNotFound)
+	if (DebugComponent == NULL)
 	{
-		DebugComponent = ConstructObject<UGameplayDebuggingComponent>(GameplayDebuggingComponentClass, this, UGameplayDebuggingComponent::DefaultComponentName);
-		DebugComponent->RegisterComponent();
-		DebugComponent->SetIsReplicated(true);
+		//let's see if we have it replicated but DebugComponent variable is not 
+		TArray<UGameplayDebuggingComponent*> Components;
+		GetComponents(Components);
+		if (Components.Num() > 0)
+		{
+			DebugComponent = Components[0];
+		}
+
+		if (DebugComponent == NULL && bCreateIfNotFound && GetNetMode() < NM_Client)
+		{
+			UE_VLOG(GetOwner(), LogGDT, Log, TEXT("APawn: Creating GDT Component for Pawn: '%s'"), *GetName());
+			DebugComponent = ConstructObject<UGameplayDebuggingComponent>(GameplayDebuggingComponentClass, this, UGameplayDebuggingComponent::DefaultComponentName);
+			DebugComponent->SetIsReplicated(true);
+			DebugComponent->Activate();
+			DebugComponent->RegisterComponent();
+		}
 	}
 	return DebugComponent;
 #else
@@ -309,10 +320,12 @@ void APawn::SpawnDefaultController()
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.bNoCollisionFail = true;
 		SpawnInfo.OverrideLevel = GetLevel();
-		Controller = GetWorld()->SpawnActor<AController>( AIControllerClass, GetActorLocation(), GetActorRotation(), SpawnInfo );
-		if ( Controller != NULL )
+		AController* NewController = GetWorld()->SpawnActor<AController>(AIControllerClass, GetActorLocation(), GetActorRotation(), SpawnInfo);
+		if (NewController != NULL)
 		{
-			Controller->Possess( this );
+			// if successful will result in setting this->Controller 
+			// as part of possession mechanics
+			NewController->Possess(this);
 		}
 	}
 }
@@ -649,7 +662,7 @@ FString APawn::GetHumanReadableName() const
 }
 
 
-void APawn::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void APawn::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 // 	for (FTouchingComponentsMap::TIterator It(TouchingComponents); It; ++It)
 // 	{
@@ -678,7 +691,7 @@ void APawn::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDispla
 	Canvas->SetDrawColor(255,255,255);
 
 
-	if (DebugDisplay.Contains(NAME_Camera))
+	if (DebugDisplay.IsDisplayOn(NAME_Camera))
 	{
 		Canvas->DrawText(RenderFont, FString::Printf(TEXT("BaseEyeHeight %f"), BaseEyeHeight), 4.0f, YPos);
 		YPos += YL;

@@ -54,7 +54,7 @@ namespace UnrealVS
 	{
 		/** Constants */
 
-		private const string VersionString = "v1.29";
+		private const string VersionString = "v1.30";
 		private const string UnrealSolutionFileNamePrefix = "UE4";
 		private const string ExtensionName = "UnrealVS";
 		private const string CommandLineOptionKey = ExtensionName + "CommandLineMRU";
@@ -223,22 +223,45 @@ namespace UnrealVS
 			// Create the project menu quick builder
 			QuickBuilder = new QuickBuild();
 
-			// Create a "ticker" on a background thread that ticks the package on the UI thread
-			Ticker = new Thread(TickAsyncMain);
-			Ticker.Priority = ThreadPriority.Lowest;
-			Ticker.Start();
-
 			// Call parent implementation
 			base.Initialize();
+
+			if (DTE.Solution.IsOpen)
+			{
+				StartTicker();
+			}
 		}
 
+		private void StartTicker()
+		{
+			// Create a "ticker" on a background thread that ticks the package on the UI thread
+			Interlocked.Exchange(ref bCancelTicker, 0);
+			Ticker = new Thread(TickAsyncMain);
+			Ticker.Priority = ThreadPriority.Lowest;
+			Ticker.Start();			
+		}
+
+		private void StopTicker()
+		{
+			if (bCancelTicker == 0)
+			{
+				Interlocked.Exchange(ref bCancelTicker, 1);
+			}
+		}
+
+		/// <summary>
+		/// Tick loop on worker thread
+		/// </summary>
 		private void TickAsyncMain()
 		{
 			try
 			{
-				while (bCancelTicker == 0)
+				while (true)
 				{
-					ThreadHelper.Generic.Invoke(Tick);
+					if (bCancelTicker != 0) return; 
+					ThreadHelper.Generic.BeginInvoke(Tick);
+
+					if (bCancelTicker != 0) return; 
 					Thread.Sleep(TickPeriod);
 				}
 			}
@@ -247,25 +270,26 @@ namespace UnrealVS
 			}
 		}
 
+		/// <summary>
+		/// Tick function on main UI thread
+		/// </summary>
 		private void Tick()
 		{
-			if (bCancelTicker == 0)
-			{
-				BatchBuilder.Tick();
-			}
+			BatchBuilder.Tick();
 		}
 
 		/// IDispose pattern lets us clean up our stuff!
 		protected override void Dispose( bool disposing )
 		{
-			// Shutdown the "ticker"
-			Interlocked.Increment(ref bCancelTicker);
-			if (!Ticker.Join(TickPeriod + TickPeriod))
+			if (Ticker != null && Ticker.IsAlive)
 			{
-				Ticker.Abort();
-				Ticker.Join();
+				Thread.Sleep(TickPeriod + TickPeriod);
+				if (Ticker.IsAlive)
+				{
+					Logging.WriteLine("WARNING: Force aborting Ticker thread");
+					Ticker.Abort();
+				}
 			}
-			Ticker = null;
 
 			base.Dispose(disposing);
 
@@ -528,6 +552,8 @@ namespace UnrealVS
 		{
 			UpdateUnrealLoadedStatus();
 
+			StartTicker();
+
             if (OnSolutionOpened != null)
             {
                 OnSolutionOpened();
@@ -552,6 +578,8 @@ namespace UnrealVS
 
 		int IVsSolutionEvents.OnBeforeCloseSolution( object pUnkReserved )
 		{
+			StopTicker();
+
             if (OnSolutionClosing != null)
             {
                 OnSolutionClosing();
@@ -572,6 +600,11 @@ namespace UnrealVS
 
 		int IVsSolutionEvents.OnQueryCloseSolution( object pUnkReserved, ref int pfCancel )
 		{
+			if (BatchBuilder.IsBusy)
+			{
+				pfCancel = 1;
+			}
+
 			return VSConstants.S_OK;
 		}
 

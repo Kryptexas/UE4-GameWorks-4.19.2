@@ -584,7 +584,7 @@ struct FApexClothPhysToRenderVertData
 {
 	/**
 	\brief xyz : Barycentric coordinates of the graphical vertex relative to the simulated triangle.
-	       w : distance from the mesh
+		   w : distance from the mesh
 
 	\note PX_MAX_F32 values represent invalid coordinates.
 	*/
@@ -773,7 +773,7 @@ struct FSkelMeshChunk
 	*/
 	FORCEINLINE bool HasApexClothData() const
 	{
-        return (ApexClothMappingData.Num() > 0);
+		return (ApexClothMappingData.Num() > 0);
 	}
 
 	FORCEINLINE void SetClothSubmeshIndex(int16 AssetIndex, int16 AssetSubmeshIndex)
@@ -847,8 +847,8 @@ struct FSkelMeshSection
 	/** This Section can be disabled for cloth simulation and corresponding Cloth Section will be enabled*/
 	bool bDisabled;
 	/** Corresponding Section Index will be enabled when this section is disabled 
-	    because corresponding cloth section will be showed instead of this
-	    or disabled section index when this section is enabled for cloth simulation
+		because corresponding cloth section will be showed instead of this
+		or disabled section index when this section is enabled for cloth simulation
 	*/
 	int16 CorrespondClothSectionIndex;
 
@@ -863,12 +863,12 @@ struct FSkelMeshSection
 		, TriangleSorting(0)
 		, bSelected(false)
 		, bDisabled(false)
-		,CorrespondClothSectionIndex(-1)
-		,bEnableClothLOD(true)
+		, CorrespondClothSectionIndex(-1)
+		, bEnableClothLOD(true)
 	{}
 
 	// Serialization.
-	friend FArchive& operator<<(FArchive& Ar,FSkelMeshSection& S);
+	friend FArchive& operator<<(FArchive& Ar, FSkelMeshSection& S);
 };
 template <> struct TIsPODType<FSkelMeshSection> { enum { Value = true }; };
 
@@ -2000,7 +2000,7 @@ public:
 				return true;
 			}
 		}
-        return false;
+		return false;
 	}
 
 	int32 GetApexClothCunkIndex(TArray<int32>& ChunkIndices) const
@@ -2128,7 +2128,10 @@ public:
 	FSkeletalMeshSceneProxy(const USkinnedMeshComponent* Component, FSkeletalMeshResource* InSkelMeshResource);
 
 	// FPrimitiveSceneProxy interface.
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) OVERRIDE;
+#if WITH_EDITOR
+	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) OVERRIDE;
+#endif
+	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) OVERRIDE;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) OVERRIDE;
 	virtual bool CanBeOccluded() const OVERRIDE;
 	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE;
@@ -2197,22 +2200,27 @@ protected:
 	/** info for section element in an LOD */
 	struct FSectionElementInfo
 	{
-		/*
-		FSectionElementInfo() 
-		:	Material(NULL)
-		,	bEnableShadowCasting(true)
-		{}
-		*/
 		FSectionElementInfo(UMaterialInterface* InMaterial, bool bInEnableShadowCasting, int32 InUseMaterialIndex)
-		:	Material( InMaterial )
-		,	bEnableShadowCasting( bInEnableShadowCasting )
-		,	UseMaterialIndex( InUseMaterialIndex )
+		: Material( InMaterial )
+		, bEnableShadowCasting( bInEnableShadowCasting )
+		, UseMaterialIndex( InUseMaterialIndex )
+#if WITH_EDITOR
+		, HitProxy(NULL)
+#endif
 		{}
+		
 		UMaterialInterface* Material;
+		
 		/** Whether shadow casting is enabled for this section. */
 		bool bEnableShadowCasting;
+		
 		/** Index into the materials array of the skel mesh or the component after LOD mapping */
 		int32 UseMaterialIndex;
+
+#if WITH_EDITOR
+		/** The editor needs to be able to individual sub-mesh hit detection, so we store a hit proxy on each mesh. */
+		HHitProxy* HitProxy;
+#endif
 	};
 
 	/** Section elements for a particular LOD */

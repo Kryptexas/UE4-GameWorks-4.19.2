@@ -22,10 +22,10 @@ public:
 	/**
 	 * Creates and initializes a new inbound message info.
 	 *
-	 * @param MessageSize - The total size of the message in bytes.
-	 * @param SegmentCount - The total number of segments that need to be received for this message.
-	 * @param InSequence - The message sequence number.
-	 * @param InSender - The IPv4 endpoint of the sender.
+	 * @param MessageSize The total size of the message in bytes.
+	 * @param SegmentCount The total number of segments that need to be received for this message.
+	 * @param InSequence The message sequence number.
+	 * @param InSender The IPv4 endpoint of the sender.
 	 */
 	FReassembledUdpMessage(int32 MessageSize, int32 SegmentCount, uint64 InSequence, const FIPv4Endpoint& InSender)
 		: PendingSegments(true, SegmentCount)
@@ -40,8 +40,7 @@ public:
 	/**
 	 * Virtual destructor.
 	 */
-	virtual ~FReassembledUdpMessage( )
-	{ }
+	virtual ~FReassembledUdpMessage( ) { }
 
 public:
 
@@ -118,10 +117,10 @@ public:
 	/**
 	 * Reassembles a segment into the specified message.
 	 *
-	 * @param SegmentNumber - The number of the message segment.
-	 * @param SegmentOffset - The segment's offset within the message.
-	 * @param SegmentData - The segment data.
-	 * @param CurrentTime - The current time.
+	 * @param SegmentNumber The number of the message segment.
+	 * @param SegmentOffset The segment's offset within the message.
+	 * @param SegmentData The segment data.
+	 * @param CurrentTime The current time.
 	 */
 	void Reassemble(int32 SegmentNumber, int32 SegmentOffset, const TArray<uint8>& SegmentData, const FDateTime& CurrentTime)
 	{

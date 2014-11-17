@@ -11,6 +11,45 @@
 
 #define GL_CHECK(x)		x; do { GLint Err = glGetError(); if (Err != 0) {FPlatformMisc::LowLevelOutputDebugStringf(TEXT("(%s:%d) GL_CHECK Failed '%s'! %d (%x)\n"), ANSI_TO_TCHAR(__FILE__), __LINE__, ANSI_TO_TCHAR( #x ), Err, Err); check(!Err);}} while (0)
 
+#ifndef __GNUC__
+	#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) \
+		do \
+		{ \
+			Dest = Default; \
+			extern bool GDisableOpenGLDebugOutput; \
+			GDisableOpenGLDebugOutput = true; \
+			glGetIntegerv(IntEnum, &Dest); \
+			GDisableOpenGLDebugOutput = false; \
+			\
+			UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Dest); \
+		} \
+		while (0)
+#else
+	#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) \
+		do \
+		{ \
+			Dest = Default; \
+			extern bool GDisableOpenGLDebugOutput; \
+			GDisableOpenGLDebugOutput = true; \
+			glGetIntegerv(IntEnum, &Dest); \
+			GDisableOpenGLDebugOutput = false; \
+			UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Dest); \
+		} \
+		while (0)
+#endif
+
+#define GET_GL_INT(IntEnum, Default, Dest) \
+	do \
+	{ \
+		Dest = Default; \
+		extern bool GDisableOpenGLDebugOutput; \
+		GDisableOpenGLDebugOutput = true; \
+		glGetIntegerv(IntEnum, &Dest); \
+		GDisableOpenGLDebugOutput = false; \
+		} \
+	while (0)
+
+
 /**
  * The OpenGL RHI stats.
  */
@@ -35,6 +74,11 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Uniform buffer pool cleanup time"),STAT_OpenGLUn
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Uniform buffer pool memory"),STAT_OpenGLFreeUniformBufferMemory,STATGROUP_OpenGLRHI, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Emulated Uniform buffer time"), STAT_OpenGLEmulatedUniformBufferTime,STATGROUP_OpenGLRHI, );
 DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("Uniform buffer pool num free"),STAT_OpenGLNumFreeUniformBuffers,STATGROUP_OpenGLRHI, );
+
+#if OPENGLRHI_DETAILED_STATS
+DECLARE_CYCLE_STAT_EXTERN(TEXT("PrawPrimitive Time"),STAT_OpenGLDrawPrimitiveTime,STATGROUP_OpenGLRHI, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("PrawPrimitiveUP Time"),STAT_OpenGLDrawPrimitiveUPTime,STATGROUP_OpenGLRHI, );
+#endif
 
 enum EOpenGLCurrentContext
 {
@@ -266,7 +310,7 @@ inline uint32 FindMaxMipmapLevel(uint32 Width, uint32 Height, uint32 Depth)
 	return FindMaxMipmapLevel((Width > Height) ? Width : Height, Depth);
 }
 
-inline void FindPrimitiveType(uint32 InPrimitiveType, uint32 InNumPrimitives, GLenum &DrawMode, GLsizei &NumElements, GLint &PatchSize)
+inline void FindPrimitiveType(uint32 InPrimitiveType, bool bUsingTessellation, uint32 InNumPrimitives, GLenum &DrawMode, GLsizei &NumElements, GLint &PatchSize)
 {
 	DrawMode = GL_TRIANGLES;
 	NumElements = InNumPrimitives;
@@ -275,18 +319,30 @@ inline void FindPrimitiveType(uint32 InPrimitiveType, uint32 InNumPrimitives, GL
 	switch (InPrimitiveType)
 	{
 	case PT_TriangleList:
-		DrawMode = GL_TRIANGLES;
-		NumElements = InNumPrimitives * 3;
+		if (bUsingTessellation) // see GetD3D11PrimitiveType
+		{ 
+			DrawMode = GL_PATCHES;
+			PatchSize = 3;
+			NumElements = InNumPrimitives * PatchSize;
+		}
+		else
+		{
+			DrawMode = GL_TRIANGLES;
+			NumElements = InNumPrimitives * 3;
+		}
 		break;
 	case PT_TriangleStrip:
+		check(!bUsingTessellation);
 		DrawMode = GL_TRIANGLE_STRIP;
 		NumElements = InNumPrimitives + 2;
 		break;
 	case PT_LineList:
+		check(!bUsingTessellation);
 		DrawMode = GL_LINES;
 		NumElements = InNumPrimitives * 2;
 		break;
 	case PT_PointList:
+		check(!bUsingTessellation);
 		DrawMode = GL_POINTS;
 		NumElements = InNumPrimitives;
 		break;
@@ -324,7 +380,7 @@ inline void FindPrimitiveType(uint32 InPrimitiveType, uint32 InNumPrimitives, GL
 	case PT_32_ControlPointPatchList:
 		DrawMode = GL_PATCHES;
 		PatchSize = InPrimitiveType - uint32(PT_1_ControlPointPatchList) + 1;
-		NumElements = InNumPrimitives / PatchSize;
+		NumElements = InNumPrimitives * PatchSize;
 		break;
 	default:
 		UE_LOG(LogRHI, Fatal,TEXT("Unsupported primitive type %u"), InPrimitiveType);

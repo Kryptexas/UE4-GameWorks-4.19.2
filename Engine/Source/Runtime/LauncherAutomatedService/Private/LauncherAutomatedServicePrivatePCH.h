@@ -9,6 +9,7 @@
 #include "LauncherServices.h"
 #include "TargetDeviceServices.h"
 #include "Messaging.h"
+#include "TargetPlatform.h"
 #include "Ticker.h"
 #include "AutomationController.h"
 

@@ -13,7 +13,6 @@ USoundWave::USoundWave(const class FPostConstructInitializeProperties& PCIP)
 	Volume = 1.0;
 	Pitch = 1.0;
 	CompressionQuality = 40;
-	bLoopableSound = true;
 }
 
 SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
@@ -314,14 +313,10 @@ void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	static FName CompressionQualityFName = FName( TEXT( "CompressionQuality" ) );
-	static FName LoopableSoundFName = FName( TEXT( "bLoopableSound" ) );
 
 	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
 	// Regenerate on save any compressed sound formats
-	if( PropertyThatChanged &&
-		( PropertyThatChanged->GetFName() == CompressionQualityFName
-		|| PropertyThatChanged->GetFName() == LoopableSoundFName
-		) )
+	if ( PropertyThatChanged && PropertyThatChanged->GetFName() == CompressionQualityFName )
 	{
 		InvalidateCompressedData();
 		MarkPackageDirty();
@@ -359,7 +354,7 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 	// Create a new wave instance and associate with the ActiveSound
 	FWaveInstance* WaveInstance = new FWaveInstance( &ActiveSound );
 	WaveInstance->WaveInstanceHash = WaveInstanceHash;
-	ActiveSound.WaveInstances.Add( WaveInstance );
+	ActiveSound.WaveInstances.Add( WaveInstanceHash, WaveInstance );
 
 	// Add in the subtitle if they exist
 	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
@@ -387,7 +382,7 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 bool USoundWave::IsReadyForFinishDestroy()
 {
 	// Wait till vorbis decompression finishes before deleting resource.
-	return( ( VorbisDecompressor == NULL ) || VorbisDecompressor->IsDone() );
+	return( ( AudioDecompressor == NULL ) || AudioDecompressor->IsDone() );
 }
 
 
@@ -400,7 +395,7 @@ void USoundWave::FinishDestroy()
 
 void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances )
 {
-	FWaveInstance* WaveInstance = ActiveSound.FindWaveInstance( this, NodeWaveInstanceHash);
+	FWaveInstance* WaveInstance = ActiveSound.FindWaveInstance(NodeWaveInstanceHash);
 
 	// Create a new WaveInstance if this SoundWave doesn't already have one associated with it.
 	if( WaveInstance == NULL )
@@ -437,6 +432,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->bApplyRadioFilter = ActiveSound.bApplyRadioFilter;
 		WaveInstance->StartTime = ParseParams.StartTime;
 		WaveInstance->UserIndex = ActiveSound.UserIndex;
+		WaveInstance->OmniRadius = ParseParams.OmniRadius;
 
 		bool bAlwaysPlay = false;
 

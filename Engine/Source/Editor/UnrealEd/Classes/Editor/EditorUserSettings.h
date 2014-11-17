@@ -106,6 +106,10 @@ class UEditorUserSettings : public UObject
 	UPROPERTY()
 	FLinearColor ObjectPinTypeColor;
 
+	/** Interface pin type color */
+	UPROPERTY()
+	FLinearColor InterfacePinTypeColor;
+
 	/** String pin type color */
 	UPROPERTY()
 	FLinearColor StringPinTypeColor;
@@ -272,17 +276,6 @@ class UEditorUserSettings : public UObject
 	class UBlueprintPaletteFavorites* BlueprintFavorites;
 
 public:
-
-	/**
-	 * Scene Outliner settings
-	 */
-	/** True when the Scene Outliner is only displaying selected Actors */
-	UPROPERTY(config)
-	uint32 bShowOnlySelectedActors:1;
-
-	/** True when the Scene Outliner is hiding temporary/run-time Actors */
-	UPROPERTY(config)
-	uint32 bHideTemporaryActors:1;
 
 	UPROPERTY(config)
 	int32 MaterialQualityLevel;

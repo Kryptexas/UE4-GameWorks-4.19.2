@@ -115,7 +115,6 @@ bool FSocketBSD::HasPendingConnection(bool& bHasPendingConnection)
 
 bool FSocketBSD::HasPendingData(uint32& PendingDataSize)
 {
-	bool bHasSucceeded = false;
 	PendingDataSize = 0;
 
 	// make sure socket has no error state
@@ -123,14 +122,14 @@ bool FSocketBSD::HasPendingData(uint32& PendingDataSize)
 	{
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL
 		// See if there is any pending data on the read socket
-		if(ioctlsocket(Socket, FIONREAD, (u_long*)(&PendingDataSize)) == 0)
+		if (ioctlsocket(Socket, FIONREAD, (u_long*)(&PendingDataSize)) == 0)
 #endif
 		{
-			bHasSucceeded = true;
+			return (PendingDataSize > 0);
 		}
 	}
 
-	return bHasSucceeded;
+	return false;
 }
 
 

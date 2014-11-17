@@ -211,6 +211,8 @@ public:
 
 	TSharedPtr< FUICommandInfo > AttachSelectedActors;
 
+	TSharedPtr< FUICommandInfo > AttachActorIteractive;
+
 	TSharedPtr< FUICommandInfo > CreateNewOutlinerFolder;
 
 	TSharedPtr< FUICommandInfo > HoldToEnableVertexSnapping;
@@ -534,6 +536,8 @@ public:
 	TSharedPtr< FUICommandInfo > MaterialQualityLevel_Low;
 	TSharedPtr< FUICommandInfo > MaterialQualityLevel_High;
 
+	TSharedPtr< FUICommandInfo > FeatureLevelPreview[ERHIFeatureLevel::Num];
+	
 	///**
 	// * Mode Commands                   
 	// */
@@ -713,6 +717,8 @@ public:
 	static void AttachToSocketSelection(FName SocketName, AActor* ParentActorPtr);
 	static void SetMaterialQualityLevel( EMaterialQualityLevel::Type NewQualityLevel );
 	static bool IsMaterialQualityLevelChecked( EMaterialQualityLevel::Type TestQualityLevel );
+	static void SetFeatureLevelPreview(ERHIFeatureLevel::Type InFeatureLevel);
+	static bool IsFeatureLevelPreviewChecked(ERHIFeatureLevel::Type InFeatureLevel);
 	
 	/**
 	 * Called when the Scene Stats button is clicked.  Invokes the Primitive Stats dialog.
@@ -754,6 +760,12 @@ public:
 
 	/** Called when attach selected actors is pressed */
 	static void AttachSelectedActors();
+
+	/** Called when the actor picker needs to be used to select a new parent actor */
+	static void AttachActorIteractive();
+
+	/** @return true if the selected actor can be attached to the given parent actor */
+	static bool IsAttachableActor( const AActor* const ParentActor );
 
 	/** Called when create new outliner folder is clicked */
 	static void CreateNewOutlinerFolder_Clicked();

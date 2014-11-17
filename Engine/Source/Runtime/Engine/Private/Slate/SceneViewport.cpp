@@ -5,18 +5,18 @@
 #include "Slate.h"
 #include "Slate/SlateTextures.h"
 #include "Slate/SceneViewport.h"
-#include "EngineUserInterfaceClasses.h"
 #include "DebugCanvas.h"
 
 #include "IHeadMountedDisplay.h"
 
 extern int32 GetBoundFullScreenModeCVar();
-extern EWindowMode::Type GetWindowModeType(bool bFullscreen);
+extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
 FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget )
 	: FViewport( InViewportClient )
 	, CurrentReplyState( FReply::Unhandled() )
-	, PreCaptureMousePos( -1, -1 )
+	, CachedMousePos(-1, -1)
+	, PreCaptureMousePos(-1, -1)
 	, SoftwareCursorPosition( 0, 0 )
 	, bIsSoftwareCursorVisible( false )
 	, SlateRenderTargetHandle( NULL )
@@ -30,6 +30,7 @@ FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SV
 	, bUseSeparateRenderTarget( InViewportWidget.IsValid() ? !InViewportWidget->ShouldRenderDirectly() : true )
 	, bIsResizing( false )
 	, bPlayInEditorGetsMouseControl( true )
+	, bPlayInEditorIsSimulate( false )
 {
 	bIsSlateViewport = true;
 }
@@ -126,7 +127,7 @@ void FSceneViewport::Destroy()
 {
 	ViewportClient = NULL;
 
-	UpdateViewportRHI( true, 0, 0, false );
+	UpdateViewportRHI( true, 0, 0, EWindowMode::Windowed );
 }
 
 int32 FSceneViewport::GetMouseX() const
@@ -157,6 +158,7 @@ void FSceneViewport::SetMouse( int32 X, int32 Y )
 {
 	FVector2D AbsolutePos = CachedGeometry.LocalToAbsolute(FVector2D(X, Y));
 	FSlateApplication::Get().SetCursorPos( AbsolutePos );
+	CachedMousePos = FIntPoint(X, Y);
 }
 
 void FSceneViewport::UpdateCachedMousePos( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
@@ -243,24 +245,23 @@ void FSceneViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const FS
 	FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
 	/** Check to see if the viewport should be resized */
-	FIntPoint DrawSize = FIntPoint( FMath::Trunc( AllottedGeometry.GetDrawSize().X ), FMath::Trunc( AllottedGeometry.GetDrawSize().Y ) );
+	FIntPoint DrawSize = FIntPoint( FMath::TruncToInt( AllottedGeometry.GetDrawSize().X ), FMath::TruncToInt( AllottedGeometry.GetDrawSize().Y ) );
 	if( GetSizeXY() != DrawSize )
 	{
 		TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef() );
 
 		check(Window.IsValid());
-		const bool bFullscreen = Window->GetWindowMode() != EWindowMode::Windowed;
-		ResizeViewport( FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), bFullscreen, 0, 0 );
+		ResizeViewport(FMath::Max(0, DrawSize.X), FMath::Max(0, DrawSize.Y), Window->GetWindowMode(), 0, 0);
 	}	
 	
 	// Cannot pass negative canvas positions
 	float CanvasMinX = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.X);
 	float CanvasMinY = FMath::Max(0.0f, AllottedGeometry.AbsolutePosition.Y);
 	FIntRect CanvasRect(
-		FMath::Trunc( CanvasMinX ),
-		FMath::Trunc( CanvasMinY ),
-		FMath::Trunc( CanvasMinX + AllottedGeometry.Size.X * AllottedGeometry.Scale ), 
-		FMath::Trunc( CanvasMinY + AllottedGeometry.Size.Y * AllottedGeometry.Scale ) );
+		FMath::TruncToInt( CanvasMinX ),
+		FMath::TruncToInt( CanvasMinY ),
+		FMath::TruncToInt( CanvasMinX + AllottedGeometry.Size.X * AllottedGeometry.Scale ), 
+		FMath::TruncToInt( CanvasMinY + AllottedGeometry.Size.Y * AllottedGeometry.Scale ) );
 
 
 	DebugCanvasDrawer->BeginRenderingCanvas( CanvasRect );
@@ -385,6 +386,11 @@ void FSceneViewport::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEv
 void FSceneViewport::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
 	ViewportClient->MouseLeave( this );
+	
+	if ( IsPlayInEditorViewport() )
+	{
+		CachedMousePos = FIntPoint(-1, -1);
+	}
 }
 
 FReply FSceneViewport::OnMouseMove( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
@@ -530,7 +536,7 @@ FReply FSceneViewport::OnControllerAnalogValueChanged( const FGeometry& MyGeomet
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputAxis( this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), ControllerEvent.GetEffectingButton() == EKeys::Gamepad_RightY ? -ControllerEvent.GetAnalogValue() : ControllerEvent.GetAnalogValue(), GDeltaTime, 1, true  ) )
+		if (!ViewportClient->InputAxis(this, ControllerEvent.GetUserIndex(), ControllerEvent.GetEffectingButton(), ControllerEvent.GetEffectingButton() == EKeys::Gamepad_RightY ? -ControllerEvent.GetAnalogValue() : ControllerEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, true))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
@@ -793,7 +799,7 @@ FSlateShaderResource* FSceneViewport::GetViewportRenderTargetTexture() const
 	return SlateRenderTargetHandle; 
 }
 
-void FSceneViewport::ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool bNewFullscreen,int32 InPosX, int32 InPosY )
+void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
 {
 	// Resizing the window directly is only supported in the game
 	if( FApp::IsGame() && NewSizeX > 0 && NewSizeY > 0 )
@@ -804,17 +810,17 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool bNewFullsc
 		if( WindowToResize.IsValid() )
 		{
 			int32 CVarValue = GetBoundFullScreenModeCVar();
-			EWindowMode::Type WindowMode = GetWindowModeType(bNewFullscreen);
-			const bool bIsCurrentlyFullscreen = IsFullscreen();
-
+			EWindowMode::Type DesiredWindowMode = GetWindowModeType(NewWindowMode);
+			
 			// Avoid resizing if nothing changes.
-			bool bNeedsResize = SizeX != NewSizeX || SizeY != NewSizeY || bNewFullscreen != bIsFullscreen || WindowMode != WindowToResize->GetWindowMode();
+			bool bNeedsResize = SizeX != NewSizeX || SizeY != NewSizeY || NewWindowMode != DesiredWindowMode || DesiredWindowMode != WindowToResize->GetWindowMode();
 
 			if (bNeedsResize)
 			{
 				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
 				{
-					if (bNewFullscreen && bNeedsResize)
+					// Resize & move only if moving to a fullscreen mode
+					if (NewWindowMode != EWindowMode::Windowed)
 					{
 						FSlateRect PreFullScreenRect = WindowToResize->GetRectInScreen();
 
@@ -829,11 +835,11 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool bNewFullsc
 				}
 
 				// Toggle fullscreen and resize
-				WindowToResize->SetWindowMode(WindowMode);
+				WindowToResize->SetWindowMode(DesiredWindowMode);
 
 				if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
 				{
-					if (!bNewFullscreen)
+					if (NewWindowMode == EWindowMode::Windowed)
 					{
 						FSlateRect PreFullScreenRect;
 						GEngine->HMDDevice->PopPreFullScreenRect(PreFullScreenRect);
@@ -845,10 +851,10 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool bNewFullsc
 						}
 					}
 
-					if(bNewFullscreen != bIsCurrentlyFullscreen)
+					if (NewWindowMode != WindowMode)
 					{
 						// Only notify the HMD if we've actually changed modes
-						GEngine->HMDDevice->OnScreenModeChange(bNewFullscreen);
+						GEngine->HMDDevice->OnScreenModeChange(NewWindowMode);
 					}
 				}
 
@@ -857,7 +863,7 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool bNewFullsc
 				int32 NewWindowSizeX = NewSizeX;
 				int32 NewWindowSizeY = NewSizeY;
 
-				if(WindowMode != EWindowMode::Windowed && CVarValue != 0)
+				if (DesiredWindowMode != EWindowMode::Windowed && CVarValue != 0)
 				{
 					FSlateRect Rect = WindowToResize->GetFullScreenInfo();
 
@@ -871,21 +877,21 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool bNewFullsc
 
 				WindowToResize->Resize( FVector2D(NewWindowSizeX, NewWindowSizeY) );
 
-				ResizeViewport(NewWindowSizeX, NewWindowSizeY, bNewFullscreen, InPosX, InPosY);
+				ResizeViewport(NewWindowSizeX, NewWindowSizeY, NewWindowMode, InPosX, InPosY);
 			}
 			UCanvas::UpdateAllCanvasSafeZoneData();
 		}		
 	}
 }
 
-void FSceneViewport::ResizeViewport( uint32 NewSizeX, uint32 NewSizeY,bool NewFullscreen,int32 InPosX, int32 InPosY )
+void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
 {
 	// Do not resize if the viewport is an invalid size or our UI should be responsive
 	if( NewSizeX > 0 && NewSizeY > 0 && FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 	{
 		bIsResizing = true;
 
-		UpdateViewportRHI( false, NewSizeX, NewSizeY, NewFullscreen );
+		UpdateViewportRHI(false, NewSizeX, NewSizeY, NewWindowMode);
 
 		if (ViewportClient)
 		{
@@ -931,7 +937,7 @@ FCanvas* FSceneViewport::GetDebugCanvas()
 	return DebugCanvasDrawer->GetGameThreadDebugCanvas();
 }
 
-void FSceneViewport::UpdateViewportRHI( bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,bool bNewIsFullscreen )
+void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode)
 {
 	// Make sure we're not in the middle of streaming textures.
 	(*GFlushStreamingFunc)();
@@ -943,7 +949,7 @@ void FSceneViewport::UpdateViewportRHI( bool bDestroyed,uint32 NewSizeX,uint32 N
 		// This is done AFTER the command flush done by UpdateViewportRHI, to avoid disrupting rendering thread accesses to the old viewport size.
 		SizeX = NewSizeX;
 		SizeY = NewSizeY;
-		bIsFullscreen = bNewIsFullscreen;
+		WindowMode = NewWindowMode;
 
 		// Release the viewport's resources.
 		BeginReleaseResource(this);
@@ -1058,11 +1064,31 @@ void FSceneViewport::OnPlayWorldViewportSwapped( const FSceneViewport& OtherView
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		UpdateViewportRHI( false, OtherViewport.GetSizeXY().X, OtherViewport.GetSizeXY().Y, false );
+		UpdateViewportRHI( false, OtherViewport.GetSizeXY().X, OtherViewport.GetSizeXY().Y, EWindowMode::Windowed );
 
 		// Invalidate, then redraw immediately so the user isn't left looking at an empty black viewport
 		// as they continue to resize the window.
 		Invalidate();
+	}
+
+	// Play world viewports should transfer active stats so it doesn't appear like a seperate viewport
+	SwapStatCommands(OtherViewport);
+}
+
+
+void FSceneViewport::SwapStatCommands( const FSceneViewport& OtherViewport )
+{
+	FViewportClient* ClientA = GetClient();
+	FViewportClient* ClientB = OtherViewport.GetClient();
+	check(ClientA && ClientB);
+	// Only swap if both viewports have stats
+	const TArray<FString>* StatsA = ClientA->GetEnabledStats();
+	const TArray<FString>* StatsB = ClientB->GetEnabledStats();
+	if (StatsA && StatsB)
+	{
+		const TArray<FString> StatsCopy = *StatsA;
+		ClientA->SetEnabledStats(*StatsB);
+		ClientB->SetEnabledStats(StatsCopy);
 	}
 }
 

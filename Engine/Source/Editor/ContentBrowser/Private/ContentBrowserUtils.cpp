@@ -12,8 +12,11 @@
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
-// Keep a map of all the paths that have custom colors, so updating the color in one location updates them all
-static TMap< FString, TSharedPtr< FLinearColor > > PathColors;
+namespace ContentBrowserUtils
+{
+	// Keep a map of all the paths that have custom colors, so updating the color in one location updates them all
+	static TMap< FString, TSharedPtr< FLinearColor > > PathColors;
+}
 
 class SContentBrowserPopup : public SCompoundWidget
 {
@@ -1225,11 +1228,9 @@ FLinearColor ContentBrowserUtils::GetDefaultColor()
 
 FText ContentBrowserUtils::GetExploreFolderText()
 {
-#if PLATFORM_MAC
-	return LOCTEXT("Mac_ShowInFinder", "Show In Finder");
-#else
-	return LOCTEXT("Win_ShowInExplorer", "Show In Explorer");
-#endif
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("FileManagerName"), FPlatformMisc::GetFileManagerName());
+	return FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -161,7 +161,9 @@ USpotLightComponent::USpotLightComponent(const class FPostConstructInitializePro
 		static ConstructorHelpers::FObjectFinder<UTexture2D> DynamicTexture(TEXT("/Engine/EditorResources/LightIcons/S_LightSpotMove"));
 
 		StaticEditorTexture = StaticTexture.Object;
+		StaticEditorTextureScale = 0.5f;
 		DynamicEditorTexture = DynamicTexture.Object;
+		DynamicEditorTextureScale = 0.5f;
 	}
 #endif
 

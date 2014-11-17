@@ -68,7 +68,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Lock", "Lock").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Lock", "Lock") )
 				]
 
 			/** Level color column */
@@ -77,7 +77,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Color", "Color").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Color", "Color") )
 				]
 
 			/** Level visibility column */
@@ -86,7 +86,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Visibility", "Visibility").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Visibility", "Visibility") )
 				]
 
 			/** Level kismet column */
@@ -95,12 +95,12 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Kismet", "Open the level blueprint for this Level").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Kismet", "Open the level blueprint for this Level") )
 				]
 
 			/** LevelName label column */
 			+ SHeaderRow::Column( LevelsView::ColumnID_LevelLabel )
-				.DefaultLabel( LOCTEXT("Column_LevelNameLabel", "Level").ToString() )
+				.DefaultLabel( LOCTEXT("Column_LevelNameLabel", "Level") )
 				.FillWidth( 0.45f )
 
 			/** Level SCC status column */
@@ -109,7 +109,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "SCCStatus", "Status in Source Control").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "SCCStatus", "Status in Source Control") )
 				]
 
 			/** Level save column */
@@ -118,7 +118,7 @@ public:
 				.HeaderContent()
 				[
 					SNew(STextBlock)
-						.ToolTipText( NSLOCTEXT("LevelsView", "Save", "Save this Level").ToString() )
+						.ToolTipText( NSLOCTEXT("LevelsView", "Save", "Save this Level") )
 				];
 
 		ChildSlot
@@ -217,13 +217,11 @@ protected:
 	 */
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if (DragActorOp.IsValid())
 		{
-			return;
+			DragActorOp->ResetToDefaultToolTip();
 		}
-
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-		DragActorOp->ResetToDefaultToolTip();
 	}
 
 	//@todo: add actor drag + drop support
@@ -237,13 +235,14 @@ protected:
 	 */
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if (!DragActorOp.IsValid())
 		{
 			return FReply::Unhandled();
 		}
 
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-		DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, LOCTEXT("OnDragOver", "Add Actors to New Level").ToString() );
+		DragActorOp->SetToolTip( FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric, LOCTEXT("OnDragOver", "Add Actors to New Level") );
 
 		// We leave the event unhandled so the children of the ListView get a chance to grab the drag/drop
 		return FReply::Unhandled();
@@ -260,14 +259,8 @@ protected:
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )	
-		{
-			return FReply::Unhandled();
-		}
-
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );		
-
-		return FReply::Handled();
+		const bool bIsValidDrop = DragDropEvent.GetOperationAs<FActorDragDropGraphEdOp>().IsValid();
+		return bIsValidDrop ? FReply::Handled() : FReply::Unhandled();
 	}
 
 
@@ -367,8 +360,8 @@ private:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text( LOCTEXT("Column_ActorCountLabel", "Actors").ToString() )
-						.ToolTipText( LOCTEXT("Column_ActorCountLabel", "Actors").ToString() )
+						.Text( LOCTEXT("Column_ActorCountLabel", "Actors") )
+						.ToolTipText( LOCTEXT("Column_ActorCountLabel", "Actors") )
 					]
 				], InsertColumnIndex);
 			++InsertColumnIndex;
@@ -396,8 +389,8 @@ private:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text( LOCTEXT("Column_LightmassSizeLabel", "Lightmass Size (MB)").ToString() )
-						.ToolTipText( LOCTEXT("Column_LightmassSizeLabel", "Lightmass Size (MB)").ToString() )
+						.Text( LOCTEXT("Column_LightmassSizeLabel", "Lightmass Size (MB)") )
+						.ToolTipText( LOCTEXT("Column_LightmassSizeLabel", "Lightmass Size (MB)") )
 					]
 				], InsertColumnIndex);
 			++InsertColumnIndex;
@@ -425,8 +418,8 @@ private:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text( LOCTEXT("Column_FileSizeLabel", "File Size (MB)").ToString() )
-						.ToolTipText( LOCTEXT("Column_FileSizeLabel", "File Size (MB)").ToString() )
+						.Text( LOCTEXT("Column_FileSizeLabel", "File Size (MB)") )
+						.ToolTipText( LOCTEXT("Column_FileSizeLabel", "File Size (MB)") )
 					]
 				], InsertColumnIndex);
 			++InsertColumnIndex;
@@ -454,7 +447,7 @@ private:
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text( LOCTEXT("Column_EditorOffsetLabel", "Editor Offset").ToString() )
+						.Text( LOCTEXT("Column_EditorOffsetLabel", "Editor Offset") )
 					]
 				], InsertColumnIndex);
 			++InsertColumnIndex;

@@ -14,6 +14,7 @@
  *****************************************************************************/
 
 #include "AutomationMessages.h"
+#include "Messaging.h"
 #include "UnrealEdMessages.h"
 
 

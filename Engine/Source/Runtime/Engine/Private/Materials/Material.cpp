@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineMaterialClasses.h"
 #include "MaterialShader.h"
 #include "MaterialInstance.h"
 #include "UObjectAnnotation.h"
@@ -32,6 +31,8 @@ bool FMaterialsWithDirtyUsageFlags::IsUsageFlagDirty(EMaterialUsage UsageFlag)
 FUObjectAnnotationSparseBool GMaterialsThatNeedSamplerFixup;
 FUObjectAnnotationSparseBool GMaterialsThatNeedPhysicalConversion;
 FUObjectAnnotationSparse<FMaterialsWithDirtyUsageFlags,true> GMaterialsWithDirtyUsageFlags;
+FUObjectAnnotationSparseBool GMaterialsThatNeedExpressionsFlipped;
+FUObjectAnnotationSparseBool GMaterialsThatNeedCoordinateCheck;
 
 #endif // #if WITH_EDITOR
 
@@ -348,36 +349,6 @@ void UMaterialInterface::AssertDefaultMaterialsPostLoaded()
 
 void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMaterialResource*>>& PlatformMaterialResourcesToSave, FArchive& Ar, FMaterialResource* OutMaterialResourcesLoaded[][ERHIFeatureLevel::Num])
 {
-
-	/*if ( Ar.IsLoading() || (Ar.IsCooking() == false) )
-	{
-		// shouldn't ever load into this saved material resources array
-		// if we are not cooking then SerializeInlineShaderMaps will ignore the SavedMaterialResources array
-		TArray<FMaterialResource*> SavedMaterialResources;
-		SerializeInlineShaderMaps( SavedMaterialResources, Ar, MaterialResources );
-		check( SavedMaterialResources.Num() == 0);
-	}
-	else if ( Ar.IsSaving() )
-	{
-		check( Ar.IsCooking() );
-		const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find(Ar.CookingTarget());
-		// check( CachedMaterialResourcesForPlatform != NULL || (!HasAnyMarks( OBJECTMARK_TagExp ))  );
-		if ( CachedMaterialResourcesForPlatform != NULL )
-		{
-			SerializeInlineShaderMaps(*CachedMaterialResourcesForPlatform, Ar, MaterialResources);
-		}
-		else
-		{
-			// if we are saving to a linker and we are cooking then we should have definatly have had a cached material for the target platform (see UPackage::SavePackage() -> UObject::BeginCacheResourceForPlatform
-			//  if this check is triggering most likely because some object didn't have BeginCacheResourceForPlatform called from SavePackage OR
-			//  the archive isn't actually saving and GetLinker is returning a valid value for some other reason
-			check( Ar.GetLinker() == NULL );
-		}
-
-	}*/
-
-
-
 	if (Ar.IsSaving())
 	{
 		int32 NumResourcesToSave = 0;
@@ -517,7 +488,7 @@ UMaterial::UMaterial(const class FPostConstructInitializeProperties& PCIP)
 	MaterialDecalResponse = MDR_ColorNormalRoughness;
 
 	bAllowDevelopmentShaderCompile = true;
-	bIsMaterialDevelopmentOverheadStatsMaterial = false;
+	bIsMaterialEditorStatsMaterial = false;
 
 #if WITH_EDITORONLY_DATA
 	MaterialGraph = NULL;
@@ -603,7 +574,7 @@ void UMaterial::OverrideTexture( const UTexture* InTextureToOverride, UTexture* 
 #if WITH_EDITOR
 	bool bShouldRecacheMaterialExpressions = false;
 	const bool bES2Preview = false;
-	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = {GRHIFeatureLevel,ERHIFeatureLevel::ES2};
+	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
 	int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
 	
 	for (int32 i = 0; i < NumFeatureLevelsToUpdate; ++i)
@@ -1332,6 +1303,13 @@ EBlendMode UMaterial::GetBlendModeFromString(const TCHAR* InBlendModeStr)
 	return BLEND_Opaque;
 }
 
+static FAutoConsoleVariable GCompileMaterialsForShaderFormatCVar(
+	TEXT("r.CompileMaterialsForShaderFormat"),
+	TEXT(""),
+	TEXT("When enabled, compile materials for this shader format in addition to those for the running platform.\n")
+	TEXT("Note that these shaders are compiled and immediately tossed. This is only useful when directly inspecting output via r.DebugDumpShaderInfo.")
+	);
+
 void UMaterial::CacheResourceShadersForRendering(bool bRegenerateId)
 {
 	if (bRegenerateId)
@@ -1357,6 +1335,23 @@ void UMaterial::CacheResourceShadersForRendering(bool bRegenerateId)
 			ResourcesToCache.Reset();
 			ResourcesToCache.Add(MaterialResources[ActiveQualityLevel][FeatureLevel]);
 			CacheShadersForResources(ShaderPlatform, ResourcesToCache, true);
+		}
+
+		FString AdditionalFormatToCache = GCompileMaterialsForShaderFormatCVar->GetString();
+		if (!AdditionalFormatToCache.IsEmpty())
+		{
+			EShaderPlatform AdditionalPlatform = ShaderFormatToLegacyShaderPlatform(FName(*AdditionalFormatToCache));
+			if (AdditionalPlatform != SP_NumPlatforms)
+			{
+				ResourcesToCache.Reset();
+				CacheResourceShadersForCooking(AdditionalPlatform,ResourcesToCache);
+				for (int32 i = 0; i < ResourcesToCache.Num(); ++i)
+				{
+					FMaterialResource* Resource = ResourcesToCache[i];
+					delete Resource;
+				}
+				ResourcesToCache.Reset();
+			}
 		}
 
 		RecacheUniformExpressions();
@@ -1598,38 +1593,7 @@ void UMaterial::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
-
 		SerializeInlineShaderMaps( CachedMaterialResourcesForCooking, Ar, MaterialResources );
-
-
-
-		/*if ( Ar.IsLoading() || (Ar.IsCooking() == false) )
-		{
-			// shouldn't ever load into this saved material resources array
-			// if we are not cooking then SerializeInlineShaderMaps will ignore the SavedMaterialResources array
-			TArray<FMaterialResource*> SavedMaterialResources;
-			SerializeInlineShaderMaps( SavedMaterialResources, Ar, MaterialResources );
-			check( SavedMaterialResources.Num() == 0);
-		}
-		else if ( Ar.IsSaving() )
-		{
-			check( Ar.IsCooking() );
-			const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find(Ar.CookingTarget());
-			// check( CachedMaterialResourcesForPlatform != NULL || (!HasAnyMarks( OBJECTMARK_TagExp ))  );
-			if ( CachedMaterialResourcesForPlatform != NULL )
-			{
-				SerializeInlineShaderMaps(*CachedMaterialResourcesForPlatform, Ar, MaterialResources);
-			}
-			else
-			{
-				// if we are saving to a linker and we are cooking then we should have definatly have had a cached material for the target platform (see UPackage::SavePackage() -> UObject::BeginCacheResourceForPlatform
-				//  if this check is triggering most likely because some object didn't have BeginCacheResourceForPlatform called from SavePackage OR
-				//  the archive isn't actually saving and GetLinker is returning a valid value for some other reason
-				check( Ar.GetLinker() == NULL );
-			}
-			
-		}*/
-		
 	}
 	else
 	{
@@ -1643,6 +1607,15 @@ void UMaterial::Serialize(FArchive& Ar)
 	if ( Ar.UE4Ver() < VER_UE4_PHYSICAL_MATERIAL_MODEL )
 	{
 		GMaterialsThatNeedPhysicalConversion.Set( this );
+	}
+
+	if (Ar.UE4Ver() < VER_UE4_FLIP_MATERIAL_COORDS)
+	{
+		GMaterialsThatNeedExpressionsFlipped.Set(this);
+	}
+	else if (Ar.UE4Ver() < VER_UE4_FIX_MATERIAL_COORDS)
+	{
+		GMaterialsThatNeedCoordinateCheck.Set(this);
 	}
 #endif // #if WITH_EDITOR
 
@@ -1856,6 +1829,11 @@ void UMaterial::PostLoad()
 		AssertDefaultMaterialsPostLoaded();
 	}	
 
+	if ( GIsEditor && GetOuter() == GetTransientPackage() && FCString::Strstr(*GetName(), TEXT("MEStatsMaterial_")))
+	{
+		bIsMaterialEditorStatsMaterial = true;
+	}
+
 	// Ensure expressions have been postloaded before we use them for compiling
 	// Any UObjects used by material compilation must be postloaded here
 	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
@@ -1978,27 +1956,21 @@ void UMaterial::PostLoad()
 	{
 		SCOPE_SECONDS_COUNTER(MaterialLoadTime);
 
-		TArray<ITargetPlatform*> Platforms;
+		// enable caching in postload for derived data cache commandlet and cook by the book
 		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-		if (!TPM || TPM->RestrictFormatsToRuntimeOnly())
+		if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false))
 		{
-			// for now a runtime format and a cook format are very different, we don't put any formats here
-		}
-		else
-		{
-			Platforms = TPM->GetActiveTargetPlatforms();
-		}
-
-
-		if (Platforms.Num())
-		{
+			ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+			TArray<ITargetPlatform*> Platforms = TPM->GetActiveTargetPlatforms();
 			// Cache for all the shader formats that the cooking target requires
 			for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)
 			{
 				BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
 			}
 		}
-		if (FApp::CanEverRender()) 
+
+		//Don't compile shaders in post load for dev overhead materials.
+		if (FApp::CanEverRender() && !bIsMaterialEditorStatsMaterial)
 		{
 			CacheResourceShadersForRendering(false);
 		}
@@ -2018,19 +1990,33 @@ void UMaterial::PostLoad()
 			DefaultMaterialInstances[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale());
 		}
 	}
+
+#if WITH_EDITOR
+	if (GMaterialsThatNeedExpressionsFlipped.Get(this))
+	{
+		GMaterialsThatNeedExpressionsFlipped.Clear(this);
+		FlipExpressionPositions(Expressions, EditorComments, true, this);
+	}
+	else if (GMaterialsThatNeedCoordinateCheck.Get(this))
+	{
+		GMaterialsThatNeedCoordinateCheck.Clear(this);
+		if (HasFlippedCoordinates())
+		{
+			FlipExpressionPositions(Expressions, EditorComments, false, this);
+		}
+	}
+#endif // #if WITH_EDITOR
 }
 
 void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
 {
 	TArray<FName> DesiredShaderFormats;
-	TargetPlatform->GetShaderFormats( DesiredShaderFormats );
+	TargetPlatform->GetAllTargetedShaderFormats(DesiredShaderFormats);
 
 	TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
 
 	if ( CachedMaterialResourcesForPlatform == NULL )
 	{
-		check( CachedMaterialResourcesForPlatform == NULL );
-
 		CachedMaterialResourcesForCooking.Add( TargetPlatform );
 		CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
 
@@ -2221,7 +2207,7 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		// Ensure that any components with static elements using this material are reregistered so changes
 		// are propagated to them. The preview material is only applied to the preview mesh component,
 		// and that reregister is handled by the material editor.
-		if( !bIsPreviewMaterial && !bIsMaterialDevelopmentOverheadStatsMaterial )
+		if (!bIsPreviewMaterial && !bIsMaterialEditorStatsMaterial)
 		{
 			FGlobalComponentReregisterContext RecreateComponents;
 		}
@@ -2419,6 +2405,9 @@ void UMaterial::UpdateExpressionDynamicParameterNames(UMaterialExpression* Expre
 				{
 					CheckParam->ParamNames[NameIndex] = DynParam->ParamNames[NameIndex];
 				}
+#if WITH_EDITORONLY_DATA
+				CheckParam->GraphNode->ReconstructNode();
+#endif // WITH_EDITORONLY_DATA
 			}
 		}
 	}
@@ -3521,3 +3510,56 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty)const
 	}
 	return Active;
 }
+
+#if WITH_EDITORONLY_DATA
+void UMaterial::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, bool bScaleCoords, UMaterial* InMaterial)
+{
+	// Rough estimate of average increase in node size for the new editor
+	const float PosScaling = bScaleCoords ? 1.25f : 1.0f;
+
+	if (InMaterial)
+	{
+		InMaterial->EditorX = -InMaterial->EditorX;
+	}
+	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
+	{
+		UMaterialExpression* Expression = Expressions[ExpressionIndex];
+		Expression->MaterialExpressionEditorX = -Expression->MaterialExpressionEditorX * PosScaling;
+		Expression->MaterialExpressionEditorY *= PosScaling;
+	}
+	for (int32 ExpressionIndex = 0; ExpressionIndex < Comments.Num(); ExpressionIndex++)
+	{
+		UMaterialExpressionComment* Comment = Comments[ExpressionIndex];
+		Comment->MaterialExpressionEditorX = -Comment->MaterialExpressionEditorX * PosScaling - Comment->SizeX;
+		Comment->MaterialExpressionEditorY *= PosScaling;
+		Comment->SizeX *= PosScaling;
+		Comment->SizeY *= PosScaling;
+	}
+}
+
+bool UMaterial::HasFlippedCoordinates()
+{
+	uint32 ReversedInputCount = 0;
+	uint32 StandardInputCount = 0;
+
+	// Check inputs to see if they are right of the root node
+	for (int32 InputIndex = 0; InputIndex < MP_MAX; InputIndex++)
+	{
+		FExpressionInput* Input = GetExpressionInputForProperty((EMaterialProperty)InputIndex);
+		if (Input->Expression)
+		{
+			if (Input->Expression->MaterialExpressionEditorX > EditorX)
+			{
+				++ReversedInputCount;
+			}
+			else
+			{
+				++StandardInputCount;
+			}
+		}
+	}
+
+	// Can't be sure coords are flipped if most are set out correctly
+	return ReversedInputCount > StandardInputCount;
+}
+#endif //WITH_EDITORONLY_DATA

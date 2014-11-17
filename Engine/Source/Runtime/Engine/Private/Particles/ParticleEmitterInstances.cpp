@@ -6,7 +6,6 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "EngineMaterialClasses.h"
 #include "LevelUtils.h"
 #include "FXSystem.h"
 
@@ -963,6 +962,45 @@ FBox FParticleEmitterInstance::GetBoundingBox()
 	return ParticleBoundingBox;
 }
 
+int32 FParticleEmitterInstance::GetOrbitPayloadOffset()
+{
+	UParticleLODLevel* LODLevel = GetCurrentLODLevelChecked();
+
+	int32 OrbitOffsetValue = -1;
+	if (LODLevel->OrbitModules.Num() > 0)
+	{
+		UParticleLODLevel* HighestLODLevel = SpriteTemplate->LODLevels[0];
+		check(HighestLODLevel);
+
+		UParticleModuleOrbit* OrbitModule = HighestLODLevel->OrbitModules[LODLevel->OrbitModules.Num() - 1];
+		if (OrbitModule)
+		{
+			uint32* OrbitOffsetIndex = ModuleOffsetMap.Find(OrbitModule);
+			if (OrbitOffsetIndex)
+			{
+				OrbitOffsetValue = *OrbitOffsetIndex;
+			}
+		}
+	}
+	return OrbitOffsetValue;
+}
+
+FVector FParticleEmitterInstance::GetParticleLocationWithOrbitOffset(FBaseParticle* Particle)
+{
+	int32 OrbitOffsetValue = GetOrbitPayloadOffset();
+	if (OrbitOffsetValue == -1)
+	{
+		return Particle->Location;
+	}
+	else
+	{
+		int32 CurrentOffset = OrbitOffsetValue;
+		const uint8* ParticleBase = (const uint8*)Particle;
+		PARTICLE_ELEMENT(FOrbitChainModuleInstancePayload, OrbitPayload);
+		return Particle->Location + OrbitPayload.Offset;
+	}
+}
+
 /**
  *	Update the bounding box for the emitter
  *
@@ -1006,19 +1044,7 @@ void FParticleEmitterInstance::UpdateBoundingBox(float DeltaTime)
 		}
 
 		// Store off the orbit offset, if there is one
-		int32 OrbitOffsetValue = -1;
-		if (LODLevel->OrbitModules.Num() > 0)
-		{
-			UParticleModuleOrbit* OrbitModule = HighestLODLevel->OrbitModules[LODLevel->OrbitModules.Num() - 1];
-			if (OrbitModule)
-			{
-				uint32* OrbitOffsetIndex = ModuleOffsetMap.Find(OrbitModule);
-				if (OrbitOffsetIndex)
-				{
-					OrbitOffsetValue = *OrbitOffsetIndex;
-				}
-			}
-		}
+		int32 OrbitOffsetValue = GetOrbitPayloadOffset();
 
 		// For each particle, offset the box appropriately 
 		FVector MinVal(HALF_WORLD_MAX);
@@ -1132,19 +1158,7 @@ void FParticleEmitterInstance::ForceUpdateBoundingBox()
 		ParticleBoundingBox.Init();
 
 		// Store off the orbit offset, if there is one
-		int32 OrbitOffsetValue = -1;
-		if (LODLevel->OrbitModules.Num() > 0)
-		{
-			UParticleModuleOrbit* OrbitModule = HighestLODLevel->OrbitModules[LODLevel->OrbitModules.Num() - 1];
-			if (OrbitModule)
-			{
-				uint32* OrbitOffsetIndex = ModuleOffsetMap.Find(OrbitModule);
-				if (OrbitOffsetIndex)
-				{
-					OrbitOffsetValue = *OrbitOffsetIndex;
-				}
-			}
-		}
+		int32 OrbitOffsetValue = GetOrbitPayloadOffset();
 
 		const bool bUseLocalSpace = LODLevel->RequiredModule->bUseLocalSpace;
 
@@ -1357,11 +1371,11 @@ float FParticleEmitterInstance::GetCurrentBurstRateOffset(float& DeltaTime, int3
 							int32 Count = BurstEntry->Count;
 							if (BurstEntry->CountLow > -1)
 							{
-								Count = BurstEntry->CountLow + FMath::Round(FMath::SRand() * (float)(BurstEntry->Count - BurstEntry->CountLow));
+								Count = BurstEntry->CountLow + FMath::RoundToInt(FMath::SRand() * (float)(BurstEntry->Count - BurstEntry->CountLow));
 							}
 							// Take in to account scale.
 							float Scale = LODLevel->SpawnModule->BurstScale.GetValue(EmitterTime, Component);
-							Count = FMath::Ceil(Count * Scale);
+							Count = FMath::CeilToInt(Count * Scale);
 							SpawnRateInc += Count / DeltaTime;
 							Burst += Count;
 							LocalBurstFired.Fired[BurstIdx] = true;
@@ -1741,7 +1755,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		if (DetailMode != DM_High)
 		{
 			SpawnRate = FMath::Max<float>(0.0f, SpawnRate * SpriteTemplate->MediumDetailSpawnRateScale);
-			BurstCount = FMath::Ceil(BurstCount * SpriteTemplate->MediumDetailSpawnRateScale);
+			BurstCount = FMath::CeilToInt(BurstCount * SpriteTemplate->MediumDetailSpawnRateScale);
 		}
 	}
 	else
@@ -1758,7 +1772,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		float SafetyLeftover = OldLeftover;
 		// Ensure continuous spawning... lots of fiddling.
 		float	NewLeftover = OldLeftover + DeltaTime * SpawnRate;
-		int32		Number		= FMath::Floor(NewLeftover);
+		int32		Number		= FMath::FloorToInt(NewLeftover);
 		float	Increment	= (SpawnRate > 0.0f) ? (1.f / SpawnRate) : 0.0f;
 		float	StartTime	= DeltaTime + OldLeftover * Increment - Increment;
 		NewLeftover			= NewLeftover - Number;
@@ -1780,11 +1794,11 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		{
 			if (DeltaTime < PeakActiveParticleUpdateDelta)
 			{
-				bProcessSpawn = Resize(NewCount + FMath::Trunc(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1));
+				bProcessSpawn = Resize(NewCount + FMath::TruncToInt(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1));
 			}
 			else
 			{
-				bProcessSpawn = Resize((NewCount + FMath::Trunc(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1)), false);
+				bProcessSpawn = Resize((NewCount + FMath::TruncToInt(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1)), false);
 			}
 		}
 
@@ -1935,11 +1949,11 @@ void FParticleEmitterInstance::ForceSpawn(float DeltaTime, int32 InSpawnCount, i
 		{
 			if (DeltaTime < PeakActiveParticleUpdateDelta)
 			{
-				bProcessSpawn = Resize(NewCount + FMath::Trunc(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1));
+				bProcessSpawn = Resize(NewCount + FMath::TruncToInt(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1));
 			}
 			else
 			{
-				bProcessSpawn = Resize((NewCount + FMath::Trunc(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1)), false);
+				bProcessSpawn = Resize((NewCount + FMath::TruncToInt(FMath::Sqrt(FMath::Sqrt((float)NewCount)) + 1)), false);
 			}
 		}
 

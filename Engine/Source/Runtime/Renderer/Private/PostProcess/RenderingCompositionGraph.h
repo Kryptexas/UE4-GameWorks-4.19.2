@@ -170,6 +170,8 @@ struct FRenderingCompositePassContext
 		return ViewPortRect.Min != ViewPortRect.Max;
 	}
 
+	ERHIFeatureLevel::Type GetFeatureLevel() const;
+
 	FRenderingCompositePass* Root;
 
 	FRenderingCompositionGraph Graph;
@@ -230,7 +232,7 @@ struct FRenderingCompositePass
 	 * Allows access to dump filename for a given output
 	 * @return Filename for output dump
 	 */
-	virtual const TCHAR* GetOutputDumpFilename(EPassOutputId OutputId) const = 0;
+	virtual const FString& GetOutputDumpFilename(EPassOutputId OutputId) = 0;
 
 	/**
 	 * Allows setting of a dump filename for a given output
@@ -461,10 +463,10 @@ struct TRenderingCompositePassBase :public FRenderingCompositePass
 		return 0;
 	}
 
-	virtual const TCHAR* GetOutputDumpFilename(EPassOutputId OutputId) const
+	virtual const FString& GetOutputDumpFilename(EPassOutputId OutputId)
 	{
 		check (OutputId < OutputCount);
-		return *PassOutputDumpFilenames[OutputId];
+		return PassOutputDumpFilenames[OutputId];
 	}
 
 	virtual void SetOutputDumpFilename(EPassOutputId OutputId, const TCHAR* Filename)
@@ -624,6 +626,8 @@ public:
 				// Pass doesn't have more inputs
 				break;
 			}
+
+			const auto FeatureLevel = Context.GetFeatureLevel();
 
 			FRenderingCompositeOutput* Input = OutputRef->GetOutput();
 

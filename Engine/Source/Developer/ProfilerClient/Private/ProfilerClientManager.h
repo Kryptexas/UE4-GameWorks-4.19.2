@@ -52,9 +52,6 @@ struct FServiceConnection
 	/** Provides an FName to GroupId mapping */
 	TMap<FName, int32> GroupNameArray;
 
-	/** Provides an FName to ThreadId mapping */
-	TMap<FName, int32> ThreadNameArray;
-
 	/** Provides the long stat name to StatId mapping. */
 	TMap<FName,int32> LongNameToStatID;
 

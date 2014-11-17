@@ -339,6 +339,9 @@ class UAnimSequenceBase : public UAnimationAsset
 	virtual EAnimEventTriggerOffsets::Type CalculateOffsetForNotify(float NotifyDisplayTime) const;
 
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
+	
+	// Get a pointer to the data for a given Anim Notify
+	ENGINE_API uint8* FindNotifyPropertyData(int32 NotifyIndex, UArrayProperty*& ArrayProperty);
 
 #endif	//WITH_EDITORONLY_DATA
 

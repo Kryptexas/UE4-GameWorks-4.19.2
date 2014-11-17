@@ -14,7 +14,7 @@ public class StandaloneRenderer : ModuleRules
 				"CoreUObject",
 				"ImageWrapper",
 				"InputCore",
-				"Slate",
+				"SlateCore",
 			}
 			);
 

@@ -181,6 +181,9 @@ public:
 	/** @return whether all the currently selected levels are editable */
 	bool AreAllSelectedLevelsEditable() const;
 
+	/** @return whether all the currently selected levels are editable and not persistent */
+	bool AreAllSelectedLevelsEditableAndNotPersistent() const;
+
 	/** @return whether all the currently selected levels are editable and visible*/
 	bool AreAllSelectedLevelsEditableAndVisible() const;
 
@@ -510,4 +513,35 @@ struct FUnmodifiableObject
 private:
 	UObject*		ImmuneObject;
 	bool			bTransient;
+};
+
+/**  */
+struct FTiledLandscapeImportSettings
+{
+	FTiledLandscapeImportSettings()
+		: Scale3D(100.f,100.f,100.f)
+		, ComponentsNum(8)
+		, QuadsPerSection(63)
+		, SectionsPerComponent(1)
+		, TilesCoordinatesOffset(0,0)
+		, TileResolution(1009)
+	{}
+	
+	FVector				Scale3D;
+	int32				ComponentsNum;
+	int32				QuadsPerSection;
+	int32				SectionsPerComponent;
+
+	TArray<FString>		HeightmapFileList;
+	TArray<FIntPoint>	TileCoordinates;
+	FIntPoint			TilesCoordinatesOffset;	
+	int32				TileResolution;	
+
+
+	TWeakObjectPtr<UMaterialInterface>	LandscapeMaterial;
+	
+	TArray<FName>						LandscapeLayerNameList;
+	// list of weightmap files per each layer
+	TArray<TArray<FString>>				WeightmapFileList;
+
 };

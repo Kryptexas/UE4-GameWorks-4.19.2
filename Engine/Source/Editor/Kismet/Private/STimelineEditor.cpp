@@ -11,6 +11,8 @@
 #include "STimelineEditor.h"
 #include "PackageTools.h"
 #include "AssetRegistryModule.h"
+#include "AssetToolsModule.h"
+#include "DlgPickAssetPath.h"
 
 #define LOCTEXT_NAMESPACE "STimelineEditor"
 
@@ -36,88 +38,6 @@ namespace TimelineEditorHelpers
 		}
 		return NAME_None;
 	}
-}
-//////////////////////////////////////////////////////////////////////////
-// SCurveAssetWidget Implementation
-
-void SCurveAssetWidget::Construct(const FArguments& InArgs)
-{
-	VisibleText = InArgs._VisibleText;
-	OnCreateCurve = InArgs._OnCreateCurve;
-	OnTextChanged = InArgs._OnTextChanged;
-
-	this->ChildSlot
-		.HAlign(HAlign_Center)
-		.VAlign(VAlign_Center)
-		[
-			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				//Background image
-				SNew(SBorder)
-				.BorderImage( FEditorStyle::GetBrush( "Graph.Node.Body" ) )
-				.Padding(0)
-				[
-					SNew(SVerticalBox)
-					+SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(FMargin(4,4,4,4))
-						[
-							//Path label text
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-								.AutoWidth()
-								.HAlign(HAlign_Left)
-								.VAlign(VAlign_Center)
-								.Padding(4)
-								[
-									SNew(STextBlock)
-									.Text( LOCTEXT( "AssetPath", "Path:" ).ToString() )
-								]
-
-							//Editable text
-							+SHorizontalBox::Slot()
-								.FillWidth(1.0f)
-								.Padding(4)
-								[
-									SAssignNew(WidgetWithDefaultFocus, SEditableTextBox)
-									.Text(FText::FromString( VisibleText.Get() ))
-									.MinDesiredWidth(400)
-									.OnTextChanged(this, &SCurveAssetWidget::OnEditableTextChanged)
-								]
-						]
-
-					+SVerticalBox::Slot()
-						.AutoHeight()
-						[
-							//Create button
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-							.FillWidth(1.0f)
-							.HAlign(HAlign_Right)
-							.Padding(4)
-							[
-								SNew(SButton)
-								.HAlign(HAlign_Center)
-								.Text( LOCTEXT( "CreateAssetButton", "Create External Curve" ).ToString() )
-								.OnClicked(this, &SCurveAssetWidget::OnCreateButtonClicked)
-							]
-						]
-				]
-			]
-		];
-}
-
-FReply SCurveAssetWidget::OnCreateButtonClicked( )
-{
-	OnCreateCurve.ExecuteIfBound();
-	return FReply::Handled();
-}
-
-void SCurveAssetWidget::OnEditableTextChanged( const FText& NewString )
-{
-	OnTextChanged.ExecuteIfBound(NewString);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -248,7 +168,7 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.OnClicked(this, &STimelineEdTrack::OnClickUse)
 							.ContentPadding(1.f)
-							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Use", "Use External Curve").ToString())
+							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Use", "Use External Curve"))
 							[
 								SNew(SImage)
 								.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Use")) )
@@ -264,7 +184,7 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.OnClicked(this, &STimelineEdTrack::OnClickBrowse)
 							.ContentPadding(0)
-							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Browse", "Browse External Curve").ToString())
+							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Browse", "Browse External Curve"))
 							[
 								SNew(SImage)
 								.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Browse")) )
@@ -280,7 +200,7 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 							.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
 							.OnClicked(this, &STimelineEdTrack::OnClickClear)
 							.ContentPadding(1.f)
-							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Clear", "Convert to Internal Curve").ToString())
+							.ToolTipText(NSLOCTEXT("TimelineEdTrack", "TimelineEdTrack_Clear", "Convert to Internal Curve"))
 							[
 								SNew(SImage)
 								.Image( FEditorStyle::GetBrush(TEXT("PropertyWindow.Button_Clear")) )
@@ -328,53 +248,23 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void STimelineEdTrack::InitCurveAssetPath()
+FString STimelineEdTrack::CreateUniqueCurveAssetPathName()
 {
 	//Default path
-	SaveCurveAssetPath = FString(TEXT( "/Game/Unsorted" ));
-
-	//Get the currently selected 
-	GEditor->GetContentBrowserAssetTreePath( SaveCurveAssetPath );
+	FString BasePath = FString(TEXT( "/Game/Unsorted" ));
 
 	TSharedRef<STimelineEditor> TimelineRef = TimelineEdPtr.Pin().ToSharedRef();
 
 	//Get curve name from editable text box
-	SaveCurveAssetPath += FString(TEXT("/")) + TimelineEditorHelpers::GetTrackNameFromTimeline(TimelineEdPtr.Pin()->GetTimeline(), Track) .ToString();
-}
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 
+	// Create a unique asset name so the user can instantly hit OK if they want to create the new asset
+	FString AssetName = TimelineEditorHelpers::GetTrackNameFromTimeline(TimelineEdPtr.Pin()->GetTimeline(), Track).ToString();
+	FString PackageName;
+	BasePath = BasePath + TEXT("/") + AssetName;
+	AssetToolsModule.Get().CreateUniqueAssetName(BasePath, TEXT(""), PackageName, AssetName);
 
-TSharedRef<SWidget> STimelineEdTrack::CreateCurveAssetWidget()
-{
-	//set default asset path
-	InitCurveAssetPath();
-
-	return ( SNew( SCurveAssetWidget )
-		.VisibleText(this, &STimelineEdTrack::GetSaveCurvePath)
-		.OnCreateCurve(this, &STimelineEdTrack::OnCreateButtonClicked )
-		.OnTextChanged( this, &STimelineEdTrack::SetSaveCurvePath ));
-}
-
-void STimelineEdTrack::OnCreateExternalCurve()
-{
-	TSharedRef<SWidget> CurveWidget = CreateCurveAssetWidget();
-
-	// Show dialog to create external curve
-	AssetCreationWindow = FSlateApplication::Get().PushMenu(
-		SharedThis( this ),
-		CurveWidget,
-		FSlateApplication::Get().GetCursorPos(),
-		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup)
-		);
-}
-
-void STimelineEdTrack::SetSaveCurvePath(const FText& NewStr)
-{
-	SaveCurveAssetPath = NewStr.ToString();
-}
-
-FString STimelineEdTrack::GetSaveCurvePath() const
-{
-	return SaveCurveAssetPath;
+	return PackageName;
 }
 
 void STimelineEdTrack::OnCloseCreateCurveWindow()
@@ -388,7 +278,7 @@ void STimelineEdTrack::OnCloseCreateCurveWindow()
 	}
 }
 
-void STimelineEdTrack::OnCreateButtonClicked()
+void STimelineEdTrack::OnCreateExternalCurve()
 {
 	UCurveBase* NewCurveAsset = CreateCurveAsset();
 	if( NewCurveAsset )
@@ -633,120 +523,95 @@ UCurveBase* STimelineEdTrack::CreateCurveAsset()
 
 	if( TrackWidget.IsValid() )
 	{
-		FString Package(SaveCurveAssetPath);
-		FString Name	= FPackageName::GetLongPackageAssetName(Package);
-		FString Group(TEXT(""));
+		TSharedRef<SDlgPickAssetPath> NewLayerDlg = 
+			SNew(SDlgPickAssetPath)
+			.Title(LOCTEXT("CreateExternalCurve", "Create External Curve"))
+			.DefaultAssetPath(FText::FromString(CreateUniqueCurveAssetPathName()));
 
-		FText Reason;
-		if (!FName(*Name).IsValidObjectName( Reason )
-			||	!FPackageName::IsValidLongPackageName( Package, false, &Reason ) )
+		if (NewLayerDlg->ShowModal() != EAppReturnType::Cancel)
 		{
-			FMessageDialog::Open( EAppMsgType::Ok, Reason );
-			return NULL;
-		}
+			FString PackageName = NewLayerDlg->GetFullAssetPath().ToString();
+			FName AssetName = FName(*NewLayerDlg->GetAssetName().ToString());
 
-		// Find (or create!) the desired package for this object
-		UPackage* Pkg = CreatePackage(NULL,*SaveCurveAssetPath);
-		UPackage* OutermostPkg = Pkg->GetOutermost();
-
-		TArray<UPackage*> TopLevelPackages;
-		TopLevelPackages.Add( OutermostPkg );
-		if( !PackageTools::HandleFullyLoadingPackages( TopLevelPackages, NSLOCTEXT("UnrealEd", "CreateANewObject", "Create a new object") ) )
-		{
-			// User aborted.
-			return NULL;
-		}
-
-		// We need to test again after fully loading.
-		if (!FName(*Name).IsValidObjectName( Reason )
-			||	!FPackageName::IsValidLongPackageName( Package, false, &Reason ) )
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, Reason );
-			return NULL;
-		}
-
-		if( false == PromptUserIfExistingObject(Name, Package, Group, Pkg))
-		{
-			return NULL;
-		}
-
-		//Get the curve class type
-		TSubclassOf<UCurveBase> CurveType;
-		if( Track->TrackType == FTimelineEdTrack::TT_Event || Track->TrackType == FTimelineEdTrack::TT_FloatInterp )
-		{
-			CurveType = UCurveFloat::StaticClass();
-		}
-		else if( Track->TrackType == FTimelineEdTrack::TT_LinearColorInterp )
-		{
-			CurveType = UCurveLinearColor::StaticClass();
-		}
-		else 
-		{
-			CurveType = UCurveVector::StaticClass();
-		}
-
-		//Create curve object
-		FName AssetName = *Name;
-		UObject* NewObj = TrackWidget->CreateCurveObject( CurveType, Pkg, AssetName );
-		if( NewObj )
-		{
-			//Copy curve data from current curve to newly create curve
-			if(  Track->TrackType == FTimelineEdTrack::TT_Event || Track->TrackType == FTimelineEdTrack::TT_FloatInterp )
+			UPackage* Package = CreatePackage(NULL, *PackageName);
+			
+			//Get the curve class type
+			TSubclassOf<UCurveBase> CurveType;
+			if( Track->TrackType == FTimelineEdTrack::TT_Event || Track->TrackType == FTimelineEdTrack::TT_FloatInterp )
 			{
-				UCurveFloat* DestCurve = CastChecked<UCurveFloat>(NewObj);
-
-				AssetCurve = DestCurve;
-				UCurveFloat* SourceCurve = CastChecked<UCurveFloat>(CurveBasePtr);
-
-				if( SourceCurve && DestCurve )
-				{
-					CopyCurveData( &SourceCurve->FloatCurve, &DestCurve->FloatCurve );
-				}
-
-				DestCurve->bIsEventCurve = ( Track->TrackType == FTimelineEdTrack::TT_Event ) ? true : false;
+				CurveType = UCurveFloat::StaticClass();
 			}
-			else if( Track->TrackType == FTimelineEdTrack::TT_VectorInterp)
+			else if( Track->TrackType == FTimelineEdTrack::TT_LinearColorInterp )
 			{
-				UCurveVector* DestCurve = Cast<UCurveVector>(NewObj);
+				CurveType = UCurveLinearColor::StaticClass();
+			}
+			else 
+			{
+				CurveType = UCurveVector::StaticClass();
+			}
 
-				AssetCurve = DestCurve;
-				UCurveVector* SrcCurve = CastChecked<UCurveVector>(CurveBasePtr);
-
-				if( SrcCurve && DestCurve )
+			//Create curve object
+			UObject* NewObj = TrackWidget->CreateCurveObject( CurveType, Package, AssetName );
+			if( NewObj )
+			{
+				//Copy curve data from current curve to newly create curve
+				if(  Track->TrackType == FTimelineEdTrack::TT_Event || Track->TrackType == FTimelineEdTrack::TT_FloatInterp )
 				{
-					for( int32 i=0; i<3; i++ )
+					UCurveFloat* DestCurve = CastChecked<UCurveFloat>(NewObj);
+
+					AssetCurve = DestCurve;
+					UCurveFloat* SourceCurve = CastChecked<UCurveFloat>(CurveBasePtr);
+
+					if( SourceCurve && DestCurve )
 					{
-						CopyCurveData( &SrcCurve->FloatCurves[i], &DestCurve->FloatCurves[i] );
+						CopyCurveData( &SourceCurve->FloatCurve, &DestCurve->FloatCurve );
+					}
+
+					DestCurve->bIsEventCurve = ( Track->TrackType == FTimelineEdTrack::TT_Event ) ? true : false;
+				}
+				else if( Track->TrackType == FTimelineEdTrack::TT_VectorInterp)
+				{
+					UCurveVector* DestCurve = Cast<UCurveVector>(NewObj);
+
+					AssetCurve = DestCurve;
+					UCurveVector* SrcCurve = CastChecked<UCurveVector>(CurveBasePtr);
+
+					if( SrcCurve && DestCurve )
+					{
+						for( int32 i=0; i<3; i++ )
+						{
+							CopyCurveData( &SrcCurve->FloatCurves[i], &DestCurve->FloatCurves[i] );
+						}
 					}
 				}
-			}
-			else if( Track->TrackType == FTimelineEdTrack::TT_LinearColorInterp)
-			{
-				UCurveLinearColor* DestCurve = Cast<UCurveLinearColor>(NewObj);
-
-				AssetCurve = DestCurve;
-				UCurveLinearColor* SrcCurve = CastChecked<UCurveLinearColor>(CurveBasePtr);
-
-				if( SrcCurve && DestCurve )
+				else if( Track->TrackType == FTimelineEdTrack::TT_LinearColorInterp)
 				{
-					for( int32 i=0; i<4; i++ )
+					UCurveLinearColor* DestCurve = Cast<UCurveLinearColor>(NewObj);
+
+					AssetCurve = DestCurve;
+					UCurveLinearColor* SrcCurve = CastChecked<UCurveLinearColor>(CurveBasePtr);
+
+					if( SrcCurve && DestCurve )
 					{
-						CopyCurveData( &SrcCurve->FloatCurves[i], &DestCurve->FloatCurves[i] );
+						for( int32 i=0; i<4; i++ )
+						{
+							CopyCurveData( &SrcCurve->FloatCurves[i], &DestCurve->FloatCurves[i] );
+						}
 					}
 				}
+
+				// Set the new objects as the sole selection.
+				USelection* SelectionSet = GEditor->GetSelectedObjects();
+				SelectionSet->DeselectAll();
+				SelectionSet->Select( NewObj );
+
+				// Notify the asset registry
+				FAssetRegistryModule::AssetCreated(NewObj);
+
+				// Mark the package dirty...
+				Package->GetOutermost()->MarkPackageDirty();
+				return AssetCurve;
 			}
-
-			// Set the new objects as the sole selection.
-			USelection* SelectionSet = GEditor->GetSelectedObjects();
-			SelectionSet->DeselectAll();
-			SelectionSet->Select( NewObj );
-
-			// Notify the asset registry
-			FAssetRegistryModule::AssetCreated(NewObj);
-
-			// Mark the package dirty...
-			OutermostPkg->MarkPackageDirty();
-			return AssetCurve;
 		}
 	}
 
@@ -769,7 +634,7 @@ void STimelineEdTrack::CopyCurveData( const FRichCurve* SrcCurve, FRichCurve* De
 
 void STimelineEdTrack::ResetExternalCurveInfo( )
 {
-	ExternalCurveName = FString( TEXT("None") );
+	ExternalCurveName = FString( TEXT( "None" ) );
 	ExternalCurvePath = FString( TEXT( "None" ) );
 }
 
@@ -784,7 +649,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 	Kismet2Ptr = InKismet2;
 	TimelineObj = NULL;
 
-	NominalTimelineDesiredHeight = 100.0f;
+	NominalTimelineDesiredHeight = 300.0f;
 	TimelineDesiredSize = FVector2D(128.0f, NominalTimelineDesiredHeight);
 
 	// Leave these uninitialized at first.  We'll zoom to fit the tracks which will set the correct values
@@ -848,7 +713,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddFloatTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddFloatTrack", "Add Float Track" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddFloatTrack", "Add Float Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_FloatInterp )
 			]
 			+SHorizontalBox::Slot()
@@ -862,7 +727,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddVectorTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddVectorTrack", "Add Vector Track" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddVectorTrack", "Add Vector Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_VectorInterp )
 			]
 			+SHorizontalBox::Slot()
@@ -876,7 +741,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddEventTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddEventTrack", "Add Event Track" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddEventTrack", "Add Event Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_Event )
 			]
 			+SHorizontalBox::Slot()
@@ -890,7 +755,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddColorTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddColorTrack", "Add Color Track" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddColorTrack", "Add Color Track" ) )
 				.OnClicked( this, &STimelineEditor::CreateNewTrack, FTimelineEdTrack::TT_LinearColorInterp )
 			]
 			+SHorizontalBox::Slot()
@@ -904,7 +769,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("TimelineEditor.AddCurveAssetTrack"))
 				]
-				.ToolTipText( LOCTEXT( "AddExternalAsset", "Add Selected Curve Asset" ).ToString() )
+				.ToolTipText( LOCTEXT( "AddExternalAsset", "Add Selected Curve Asset" ) )
 				.IsEnabled( this, &STimelineEditor::IsCurveAssetSelected )
 				.OnClicked( this, &STimelineEditor::CreateNewTrackFromAsset )
 			]
@@ -915,7 +780,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 			[
 				// Length label
 				SNew(STextBlock)
-				.Text( LOCTEXT( "Length", "Length" ).ToString() )
+				.Text( LOCTEXT( "Length", "Length" ) )
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -937,7 +802,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.IsChecked( this, &STimelineEditor::IsUseLastKeyframeChecked )
 				.OnCheckStateChanged( this, &STimelineEditor::OnUseLastKeyframeChanged )
 				[
-					SNew(STextBlock) .Text( LOCTEXT( "UseLastKeyframe", "Use Last Keyframe?" ).ToString() )
+					SNew(STextBlock) .Text( LOCTEXT( "UseLastKeyframe", "Use Last Keyframe?" ) )
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -949,7 +814,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.IsChecked( this, &STimelineEditor::IsAutoPlayChecked )
 				.OnCheckStateChanged( this, &STimelineEditor::OnAutoPlayChanged )
 				[
-					SNew(STextBlock) .Text( LOCTEXT( "AutoPlay", "AutoPlay" ).ToString() )
+					SNew(STextBlock) .Text( LOCTEXT( "AutoPlay", "AutoPlay" ) )
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -961,7 +826,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.IsChecked( this, &STimelineEditor::IsLoopChecked )
 				.OnCheckStateChanged( this, &STimelineEditor::OnLoopChanged )
 				[
-					SNew(STextBlock) .Text( LOCTEXT( "Loop", "Loop" ).ToString() )
+					SNew(STextBlock) .Text( LOCTEXT( "Loop", "Loop" ) )
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -973,7 +838,7 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 				.IsChecked( this, &STimelineEditor::IsReplicatedChecked )
 				.OnCheckStateChanged( this, &STimelineEditor::OnReplicatedChanged )
 				[
-					SNew(STextBlock) .Text( LOCTEXT( "Replicated", "Replicated" ).ToString() )
+					SNew(STextBlock) .Text( LOCTEXT( "Replicated", "Replicated" ) )
 				]
 			]
 		]
@@ -999,15 +864,15 @@ void STimelineEditor::Construct(const FArguments& InArgs, TSharedPtr<FBlueprintE
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-FString STimelineEditor::GetTimelineName() const
+FText STimelineEditor::GetTimelineName() const
 {
 	if(TimelineObj != NULL)
 	{
-		return UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineObj->GetFName());
+		return FText::FromString(UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineObj->GetFName()));
 	}
 	else
 	{
-		return LOCTEXT( "NoTimeline", "No Timeline" ).ToString();
+		return LOCTEXT( "NoTimeline", "No Timeline" );
 	}
 }
 

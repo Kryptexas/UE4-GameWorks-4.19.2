@@ -8,4 +8,4 @@ DECLARE_DELEGATE_RetVal( const TArray< TWeakObjectPtr<AActor> >&, FGetSelectedAc
 DECLARE_MULTICAST_DELEGATE_TwoParams(FExtendActorDetails, class IDetailLayoutBuilder&, const FGetSelectedActors&);
 
 /** Delegate that is invoked to extend the actor details view */
-DETAILCUSTOMIZATIONS_API FExtendActorDetails OnExtendActorDetails;
+extern DETAILCUSTOMIZATIONS_API FExtendActorDetails OnExtendActorDetails;

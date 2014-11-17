@@ -260,7 +260,7 @@ FReply SAssetPicker::OnKeyDown(const FGeometry& MyGeometry, const FKeyboardEvent
 	else if (InKeyboardEvent.GetKey() == EKeys::Enter)
 	{
 		TArray<FAssetData> SelectionSet = AssetViewPtr->GetSelectedAssets();
-		HandleAssetsActivated(SelectionSet, EAssetTypeActivationMethod::EnterPressed);
+		HandleAssetsActivated(SelectionSet, EAssetTypeActivationMethod::Opened);
 
 		return FReply::Handled();
 	}
@@ -297,7 +297,7 @@ void SAssetPicker::OnSearchBoxCommitted(const FText& InSearchText, ETextCommit::
 			AssetViewPtr->AdjustActiveSelection(1);
 			SelectionSet = AssetViewPtr->GetSelectedAssets();
 		}
-		HandleAssetsActivated(SelectionSet, EAssetTypeActivationMethod::EnterPressed);
+		HandleAssetsActivated(SelectionSet, EAssetTypeActivationMethod::Opened);
 	}
 }
 
@@ -328,7 +328,7 @@ void SAssetPicker::HandleAssetsActivated(const TArray<FAssetData>& ActivatedAsse
 			OnAssetDoubleClicked.ExecuteIfBound(ActivatedAssets[0]);
 		}
 	}
-	else if (ActivationMethod == EAssetTypeActivationMethod::EnterPressed)
+	else if (ActivationMethod == EAssetTypeActivationMethod::Opened)
 	{
 		OnAssetEnterPressed.ExecuteIfBound(ActivatedAssets);
 	}

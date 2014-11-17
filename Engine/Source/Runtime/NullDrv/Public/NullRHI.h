@@ -16,6 +16,7 @@ public:
 
 	// FDynamicRHI interface.
 	virtual void Init();
+	virtual void Shutdown();
 
 	// Implement the dynamic RHI interface using the null implementations defined in RHIMethods.h
 	#define DEFINE_RHIMETHOD(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation) \

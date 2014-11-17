@@ -15,6 +15,7 @@ class CodeSurgery : BuildCommand
 
         var Wildcards = new List<string>() { "*.h", "*.cpp", "*.inl" };
 
+        // @todo: Add support for STATCAT_
         var DeclareStrings = new List<string>() { "DECLARE_CYCLE_STAT", "DECLARE_FLOAT_COUNTER_STAT", "DECLARE_DWORD_COUNTER_STAT", "DECLARE_FLOAT_ACCUMULATOR_STAT", "DECLARE_DWORD_ACCUMULATOR_STAT", "DECLARE_MEMORY_STAT", "DECLARE_MEMORY_STAT_POOL", "DECLARE_STATS_GROUP" };
 
         DirectoryInfo DirInfo = new DirectoryInfo(CmdEnv.LocalRoot);

@@ -16,7 +16,7 @@ public class ContentBrowser : ModuleRules
 				"SourceControlWindows",
                 "ReferenceViewer"
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -25,6 +25,7 @@ public class ContentBrowser : ModuleRules
                 "InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl",
 				"SourceControlWindows",
@@ -32,7 +33,7 @@ public class ContentBrowser : ModuleRules
 				"UnrealEd",
 				"EditorWidgets"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -43,6 +44,6 @@ public class ContentBrowser : ModuleRules
 				"EditorWidgets",
                 "ReferenceViewer"
 			}
-			);
+		);
 	}
 }

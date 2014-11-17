@@ -4,8 +4,6 @@
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
-#include "SUserDefinedStructureEditor.h"
-
 /////////////////////////////////////////////////////
 // FLocalKismetCallbacks
 
@@ -112,32 +110,6 @@ public:
 };
 
 /////////////////////////////////////////////////////
-// FUserDefinedStructureEditorSummoner
-
-struct FUserDefinedStructureEditorSummoner : public FWorkflowTabFactory
-{
-public:
-	FUserDefinedStructureEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
-		: FWorkflowTabFactory(FBlueprintEditorTabs::UserDefinedStructureID, InHostingApp)
-	{
-		TabLabel = LOCTEXT("BlueprintUserDefinedStructureTabTitle", "User Defined Structure");
-		TabIcon = FEditorStyle::GetBrush("LevelEditor.Tabs.Details");
-
-		bIsSingleton = true;
-
-		ViewMenuDescription = LOCTEXT("UserDefinedStructureEditorView", "Structures");
-		ViewMenuTooltip = LOCTEXT("UserDefinedStructureEditorView_ToolTip", "Shows the user defined structures editor view");
-	}
-
-	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const OVERRIDE
-	{
-		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
-
-		return BlueprintEditorPtr->GetUserDefinedStructureEditor();
-	}
-};
-
-/////////////////////////////////////////////////////
 // FGraphTabHistory
 
 struct FGraphTabHistory : public FGenericTabHistory
@@ -230,7 +202,12 @@ public:
 		GraphEditor->GetViewLocation(ViewLocation, ZoomAmount);
 
 		UEdGraph* Graph = FTabPayload_UObject::CastChecked<UEdGraph>(Payload);
-		BlueprintEditorPtr.Pin()->GetBlueprintObj()->LastEditedDocuments.Add(FEditedDocumentInfo(Graph, ViewLocation, ZoomAmount));
+
+		if(BlueprintEditorPtr.Pin()->IsGraphInCurrentBlueprint(Graph))
+		{
+			// Don't save references to external graphs.
+			BlueprintEditorPtr.Pin()->GetBlueprintObj()->LastEditedDocuments.Add(FEditedDocumentInfo(Graph, ViewLocation, ZoomAmount));
+		}
 	}
 
 //	virtual void OnTabClosed(TSharedRef<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const OVERRIDE

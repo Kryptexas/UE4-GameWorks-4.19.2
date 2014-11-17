@@ -29,7 +29,7 @@
 #include "SceneOutlinerTreeItems.h"
 
 static const FName LevelEditorName("LevelEditor");
-
+#pragma optimize("", off)
 
 #define LOCTEXT_NAMESPACE "LevelViewport"
 
@@ -73,12 +73,15 @@ SLevelViewport::~SLevelViewport()
 	}
 	PreviewActors( TArray< AActor* >() );
 
+	FLevelViewportCommands::NewStatCommandDelegate.RemoveAll(this);
 
 	FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( LevelEditorName );
 	LevelEditor.OnRedrawLevelEditingViewports().RemoveAll( this );
 	LevelEditor.OnActorSelectionChanged().RemoveAll( this );
 	LevelEditor.OnMapChanged().RemoveAll( this );
 	LevelEditor.OnRedrawLevelEditingViewports().RemoveAll( this );
+	GEngine->OnLevelActorDeleted().RemoveAll( this );
+
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll( this );
 
 	// If this viewport has a high res screenshot window attached to it, close it
@@ -283,8 +286,16 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 		LevelViewportClient->SetAllowMatineePreview(true);
 	}
 	LevelViewportClient->SetRealtime(ViewportInstanceSettings.bIsRealtime);
-	LevelViewportClient->SetShowFPS(ViewportInstanceSettings.bShowFPS);
 	LevelViewportClient->SetShowStats(ViewportInstanceSettings.bShowStats);
+	if (ViewportInstanceSettings.bShowFPS_DEPRECATED)
+	{
+		GetMutableDefault<ULevelEditorViewportSettings>()->bSaveEngineStats = true;
+		ViewportInstanceSettings.EnabledStats.AddUnique(TEXT("FPS"));
+	}
+	if (GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
+	{
+		GEngine->SetEngineStats(GetWorld(), LevelViewportClient.Get(), ViewportInstanceSettings.EnabledStats, true);
+	}
 	LevelViewportClient->VisibilityDelegate.BindSP( this, &SLevelViewport::IsVisible );
 	LevelViewportClient->ImmersiveDelegate.BindSP( this, &SLevelViewport::IsImmersive );
 	LevelViewportClient->bDrawBaseInfo = true;
@@ -376,34 +387,38 @@ bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragD
 	bool bValidDrag = false;
 	TArray<FAssetData> SelectedAssetDatas;
 
-	if ( DragDrop::IsTypeMatch<FClassDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr< FDragDropOperation > Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		auto Operation = StaticCastSharedPtr<FClassDragDropOp>( DragDropEvent.GetOperation() );
+		return false;
+	}
+
+	if (Operation->IsOfType<FClassDragDropOp>())
+	{
+		auto ClassOperation = StaticCastSharedPtr<FClassDragDropOp>( Operation );
 
 		bValidDrag = true;
 
-		for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < Operation->ClassesToDrop.Num(); ++DroppedAssetIdx)
+		for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < ClassOperation->ClassesToDrop.Num(); ++DroppedAssetIdx)
 		{
-			new(SelectedAssetDatas) FAssetData(Operation->ClassesToDrop[DroppedAssetIdx].Get());
+			new(SelectedAssetDatas)FAssetData(ClassOperation->ClassesToDrop[DroppedAssetIdx].Get());
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FUnloadedClassDragDropOp>(DragDropEvent.GetOperation()) )
-	{
-		TSharedPtr<FUnloadedClassDragDropOp> DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>( DragDropEvent.GetOperation() );
-
-		bValidDrag = true;
-	}
-	else if ( DragDrop::IsTypeMatch<FExportTextDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FUnloadedClassDragDropOp>())
 	{
 		bValidDrag = true;
 	}
-	else if ( DragDrop::IsTypeMatch<FBrushBuilderDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FExportTextDragDropOp>())
+	{
+		bValidDrag = true;
+	}
+	else if (Operation->IsOfType<FBrushBuilderDragDropOp>())
 	{
 		bValidDrag = true;
 
-		auto Operation = StaticCastSharedPtr<FBrushBuilderDragDropOp>( DragDropEvent.GetOperation() );
+		auto BrushOperation = StaticCastSharedPtr<FBrushBuilderDragDropOp>( Operation );
 
-		new(SelectedAssetDatas) FAssetData(Operation->GetBrushBuilder().Get());
+		new(SelectedAssetDatas) FAssetData(BrushOperation->GetBrushBuilder().Get());
 	}
 	else
 	{
@@ -433,21 +448,45 @@ bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragD
 	if (LevelViewportClient->UpdateDropPreviewActors(CachedOnDropLocalMousePos.X, CachedOnDropLocalMousePos.Y, DroppedObjects, bDroppedObjectsVisible))
 	{
 		// if dragged actors were hidden, show decorator
-		DragDropEvent.GetOperation()->SetDecoratorVisibility(! bDroppedObjectsVisible);
+		Operation->SetDecoratorVisibility(! bDroppedObjectsVisible);
 	}
 
-	DragDropEvent.GetOperation()->SetCursorOverride(TOptional<EMouseCursor::Type>());
+	Operation->SetCursorOverride(TOptional<EMouseCursor::Type>());
+
+	FText HintText;
 
 	// Determine if we can drop the assets
 	for ( auto InfoIt = SelectedAssetDatas.CreateConstIterator(); InfoIt; ++InfoIt )
 	{
 		const FAssetData& AssetData = *InfoIt;
-		if ( AssetData.IsValid() && !LevelViewportClient->CanDropObjectsAtCoordinates( CachedOnDropLocalMousePos.X, CachedOnDropLocalMousePos.Y, AssetData ) )
+
+		// Ignore invalid assets
+		if ( !AssetData.IsValid() )
+		{
+			continue;
+		}
+		
+		FDropQuery DropResult = LevelViewportClient->CanDropObjectsAtCoordinates(CachedOnDropLocalMousePos.X, CachedOnDropLocalMousePos.Y, AssetData);
+		
+		if ( !DropResult.bCanDrop )
 		{
 			// At least one of the assets can't be dropped.
-			DragDropEvent.GetOperation()->SetCursorOverride(EMouseCursor::SlashedCircle);
+			Operation->SetCursorOverride(EMouseCursor::SlashedCircle);
 			return false;
 		}
+		else
+		{
+			if ( HintText.IsEmpty() )
+			{
+				HintText = DropResult.HintText;
+			}
+		}
+	}
+
+	if ( Operation->IsOfType<FAssetDragDropOp>() )
+	{
+		auto AssetOperation = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+		AssetOperation->SetToolTip(HintText, NULL);
 	}
 
 	return bValidDrag;
@@ -469,18 +508,24 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 	bool bValidDrop = false;
 	UActorFactory* ActorFactory = NULL;
 
-	if ( DragDrop::IsTypeMatch<FClassDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr< FDragDropOperation > Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
 	{
-		auto Operation = StaticCastSharedPtr<FClassDragDropOp>( DragDropEvent.GetOperation() );
+		return false;
+	}
+
+	if (Operation->IsOfType<FClassDragDropOp>())
+	{
+		auto ClassOperation = StaticCastSharedPtr<FClassDragDropOp>( Operation );
 
 		DroppedObjects.Empty();
 
 		// Check if the asset is loaded, used to see if the context menu should be available
 		bAllAssetWereLoaded = true;
 
-		for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < Operation->ClassesToDrop.Num(); ++DroppedAssetIdx)
+		for (int32 DroppedAssetIdx = 0; DroppedAssetIdx < ClassOperation->ClassesToDrop.Num(); ++DroppedAssetIdx)
 		{
-			UObject* Object = Operation->ClassesToDrop[DroppedAssetIdx].Get();
+			UObject* Object = ClassOperation->ClassesToDrop[DroppedAssetIdx].Get();
 
 			if(Object)
 			{
@@ -494,9 +539,9 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 
 		bValidDrop = true;
 	}
-	else if ( DragDrop::IsTypeMatch<FUnloadedClassDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FUnloadedClassDragDropOp>())
 	{
-		TSharedPtr<FUnloadedClassDragDropOp> DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FUnloadedClassDragDropOp> DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>( Operation );
 
 		DroppedObjects.Empty();
 
@@ -544,12 +589,12 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 			}
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		bValidDrop = true;
 		DroppedObjects.Empty();
 
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
 
 		ActorFactory = DragDropOp->ActorFactory.Get();
 
@@ -571,7 +616,7 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 	}
 	// OLE drops are blocking which causes problem when positioning and maintaining the drop preview
 	// Drop preview is disabled when dragging from external sources
-	else if ( !bCreateDropPreview && DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	else if ( !bCreateDropPreview && Operation->IsOfType<FExternalDragOperation>() )
 	{
 		bValidDrop = true;
 		DroppedObjects.Empty();
@@ -594,11 +639,11 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 			}
 		}
 	}
-	else if ( DragDrop::IsTypeMatch<FExportTextDragDropOp>(DragDropEvent.GetOperation()) )
+	else if ( Operation->IsOfType<FExportTextDragDropOp>() )
 	{
 		bValidDrop = true;
 
-		TSharedPtr<FExportTextDragDropOp> DragDropOp = StaticCastSharedPtr<FExportTextDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FExportTextDragDropOp> DragDropOp = StaticCastSharedPtr<FExportTextDragDropOp>( Operation );
 
 		// Check if the asset is loaded, used to see if the context menu should be available
 		bAllAssetWereLoaded = true;
@@ -609,12 +654,12 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 		NewContainer->ExportText = DragDropOp->ActorExportText;
 		DroppedObjects.Add(NewContainer);
 	}
-	else if ( DragDrop::IsTypeMatch<FBrushBuilderDragDropOp>(DragDropEvent.GetOperation()) )
+	else if ( Operation->IsOfType<FBrushBuilderDragDropOp>() )
 	{
 		bValidDrop = true;
 		DroppedObjects.Empty();
 
-		TSharedPtr<FBrushBuilderDragDropOp> DragDropOp = StaticCastSharedPtr<FBrushBuilderDragDropOp>( DragDropEvent.GetOperation() );
+		TSharedPtr<FBrushBuilderDragDropOp> DragDropOp = StaticCastSharedPtr<FBrushBuilderDragDropOp>( Operation );
 
 		if(DragDropOp->GetBrushBuilder().IsValid())
 		{
@@ -720,6 +765,12 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 	// Update actor preview viewports, if we have any
 	UpdateActorPreviewViewports();
+
+#if STATS
+	// Check to see if there are any new stat group which need registering with the viewports
+	extern CORE_API void CheckForRegisteredStatGroups();
+	CheckForRegisteredStatGroups();
+#endif
 }
 
 
@@ -778,6 +829,11 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChange
 	{
 		if( MapChangeType == EMapChangeType::LoadMap )
 		{
+			if (World->EditorViews[LevelViewportClient->ViewportType].CamOrthoZoom == 0.0f)
+			{
+				World->EditorViews[LevelViewportClient->ViewportType].CamOrthoZoom = DEFAULT_ORTHOZOOM;
+			}
+
 			LevelViewportClient->SetInitialViewTransform(
 				World->EditorViews[LevelViewportClient->ViewportType].CamPosition,
 				World->EditorViews[LevelViewportClient->ViewportType].CamRotation,
@@ -845,7 +901,7 @@ void FLevelViewportDropContextMenuImpl::FillDropAddReplaceActorMenu( bool bRepla
 				{
 					FUIAction Action( FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ReplaceActors_Clicked, MenuItem.FactoryToUse, MenuItem.AssetData ) );
 	
-					FText MenuEntryName = FText::Format( NSLOCTEXT("FLevelViewportContextMenuImpl", "ReplaceActorMenuFormat", "Replace with {0}"), MenuItem.FactoryToUse->GetDisplayName() );
+					FText MenuEntryName = FText::Format( NSLOCTEXT("LevelEditor", "ReplaceActorMenuFormat", "Replace with {0}"), MenuItem.FactoryToUse->GetDisplayName() );
 					if ( MenuItem.AssetData.IsValid() )
 					{
 						MenuEntryName = FText::Format( NSLOCTEXT("LevelEditor", "ReplaceActorUsingAssetMenuFormat", "Replace with {0}: {1}"), 
@@ -1014,6 +1070,12 @@ void SLevelViewport::BindViewCommands( FUICommandList& CommandList )
 		);
 
 	CommandList.MapAction(
+		ViewportActions.ViewportConfig_OnePane,
+		FExecuteAction::CreateSP(this, &SLevelViewport::OnSetViewportConfiguration, LevelViewportConfigurationNames::OnePane),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SLevelViewport::IsViewportConfigurationSet, LevelViewportConfigurationNames::OnePane));
+
+	CommandList.MapAction(
 		ViewportActions.ViewportConfig_TwoPanesH,
 		FExecuteAction::CreateSP( this, &SLevelViewport::OnSetViewportConfiguration, LevelViewportConfigurationNames::TwoPanesHoriz ),
 		FCanExecuteAction(),
@@ -1119,11 +1181,11 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 		// Map 'Show All' and 'Hide All' commands
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().ShowAllVolumes,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, 1 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, true ) );
 
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().HideAllVolumes,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, 0 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllVolumeActors, false ) );
 
 		// Get all known volume classes
 		TArray< UClass* > VolumeClasses;
@@ -1144,11 +1206,11 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 		// Map 'Show All' and 'Hide All' commands
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().ShowAllLayers,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, 1 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, true ) );
 
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().HideAllLayers,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, 0 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllLayers, false ) );
 	}
 
 	// Show Sprite Categories
@@ -1156,11 +1218,11 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 		// Map 'Show All' and 'Hide All' commands
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().ShowAllSprites,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, 1 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, true ) );
 
 		CommandList.MapAction(
 			FLevelViewportCommands::Get().HideAllSprites,
-			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, 0 ) );
+			FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllSpriteCategories, false ) );
 
 		// Bind each show flag to the same delegate.  We use the delegate payload system to figure out what show flag we are dealing with
 		for( int32 CategoryIndex = 0; CategoryIndex < GUnrealEd->SpriteIDToIndexMap.Num(); ++CategoryIndex )
@@ -1172,6 +1234,27 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 				FIsActionChecked::CreateSP( this, &SLevelViewport::IsSpriteCategoryVisible, CategoryIndex ) );
 		}
 	}
+
+	// Show Stat Categories
+	{
+		// Map 'Hide All' command
+		CommandList.MapAction(
+			FLevelViewportCommands::Get().HideAllStats,
+			FExecuteAction::CreateSP(this, &SLevelViewport::OnToggleAllStatCommands, false));
+
+		for (auto StatCatIt = FLevelViewportCommands::Get().ShowStatCatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
+		{
+			const TArray< FLevelViewportCommands::FShowMenuCommand >& ShowStatCommands = StatCatIt.Value();
+			for (int32 StatIndex = 0; StatIndex < ShowStatCommands.Num(); ++StatIndex)
+			{
+				const FLevelViewportCommands::FShowMenuCommand& StatCommand = ShowStatCommands[StatIndex];
+				BindStatCommand(StatCommand.ShowMenuItem, StatCommand.LabelOverride.ToString());
+			}
+		}
+
+		// Bind a listener here for any additional stat commands that get registered later.
+		FLevelViewportCommands::NewStatCommandDelegate.AddRaw(this, &SLevelViewport::BindStatCommand);
+	}
 }
 
 void SLevelViewport::BindDropCommands( FUICommandList& CommandList )
@@ -1179,6 +1262,16 @@ void SLevelViewport::BindDropCommands( FUICommandList& CommandList )
 	CommandList.MapAction( 
 		FLevelViewportCommands::Get().ApplyMaterialToActor,
 		FExecuteAction::CreateSP( this, &SLevelViewport::OnApplyMaterialToViewportTarget ) );
+}
+
+
+void SLevelViewport::BindStatCommand(const TSharedPtr<FUICommandInfo> InMenuItem, const FString& InCommandName)
+{
+	CommandList->MapAction(
+		InMenuItem,
+		FExecuteAction::CreateSP(this, &SLevelViewport::ToggleStatCommand, InCommandName),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SLevelViewport::IsStatCommandVisible, InCommandName));
 }
 
 const FSlateBrush* SLevelViewport::OnGetViewportBorderBrush() const
@@ -1260,8 +1353,15 @@ EVisibility SLevelViewport::GetToolBarVisibility() const
 
 EVisibility SLevelViewport::GetMaximizeToggleVisibility() const
 {
+	bool bIsMaximizeSupported = false;
+	TSharedPtr<FLevelViewportLayout> LayoutPinned = ParentLayout.Pin();
+	if (LayoutPinned.IsValid())
+	{
+		bIsMaximizeSupported = LayoutPinned->IsMaximizeSupported();
+	}
+
 	// Do not show the maximize/minimize toggle when in immersive mode
-	return IsImmersive() ? EVisibility::Collapsed : EVisibility::Visible;
+	return (!bIsMaximizeSupported || IsImmersive()) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
 EVisibility SLevelViewport::GetCloseImmersiveButtonVisibility() const
@@ -1408,6 +1508,8 @@ void SLevelViewport::OnCreateCameraActor()
 		return;
 	}
 
+	const FScopedTransaction Transaction(NSLOCTEXT("LevelViewport", "CreateCameraHere", "Create Camera Here"));
+
 	// Set new camera to match viewport
 	ACameraActor* pNewCamera = ViewportClient->GetWorld()->SpawnActor<ACameraActor>();
 	pNewCamera->SetActorLocation( ViewportClient->GetViewLocation(), false );
@@ -1490,10 +1592,10 @@ void SLevelViewport::ToggleShowFlag( uint32 EngineShowFlagIndex )
 	LevelViewportClient->Invalidate();
 }
 
-void SLevelViewport::OnToggleAllVolumeActors( int32 Visible )
+void SLevelViewport::OnToggleAllVolumeActors( bool bVisible )
 {
 	// Reinitialize the volume actor visibility flags to the new state.  All volumes should be visible if "Show All" was selected and hidden if it was not selected.
-	LevelViewportClient->VolumeActorVisibility.Init( !!Visible, LevelViewportClient->VolumeActorVisibility.Num() );
+	LevelViewportClient->VolumeActorVisibility.Init( bVisible, LevelViewportClient->VolumeActorVisibility.Num() );
 
 	// Update visibility based on the new state
 	// All volume actor types should be taken since the user clicked on show or hide all to get here
@@ -1522,9 +1624,9 @@ bool SLevelViewport::IsVolumeVisible( int32 VolumeID ) const
 }
 
 /** Called when a user selects show or hide all from the layers visibility menu. **/
-void SLevelViewport::OnToggleAllLayers( int32 Visible )
+void SLevelViewport::OnToggleAllLayers( bool bVisible )
 {	
-	if ( Visible )
+	if (bVisible)
 	{
 		// clear all hidden layers
 		LevelViewportClient->ViewHiddenLayers.Empty();
@@ -1579,9 +1681,9 @@ void SLevelViewport::OnFocusViewportToSelection()
 }
 
 /** Called when the user selects show or hide all from the sprite sub-menu. **/
-void SLevelViewport::OnToggleAllSpriteCategories( int32 Visible )
+void SLevelViewport::OnToggleAllSpriteCategories( bool bVisible )
 {
-	LevelViewportClient->SetAllSpriteCategoryVisibility( !!Visible );
+	LevelViewportClient->SetAllSpriteCategoryVisibility( bVisible );
 	LevelViewportClient->Invalidate();
 }
 
@@ -1596,6 +1698,24 @@ void SLevelViewport::ToggleSpriteCategory( int32 CategoryID )
 bool SLevelViewport::IsSpriteCategoryVisible( int32 CategoryID ) const
 {
 	return LevelViewportClient->GetSpriteCategoryVisibility( CategoryID );
+}
+
+void SLevelViewport::OnToggleAllStatCommands( bool bVisible )
+{
+	check(bVisible == 0);
+	// If it's in the array, it's visible so just toggle it again
+	const TArray<FString>* EnabledStats = LevelViewportClient->GetEnabledStats();
+	check(EnabledStats);
+	while (EnabledStats->Num() > 0)
+	{
+		const FString& CommandName = EnabledStats->Last();
+		ToggleStatCommand(CommandName);
+	}
+}
+
+void SLevelViewport::ToggleStatCommand(FString CommandName)
+{
+	GEngine->ExecEngineStat(GetWorld(), LevelViewportClient.Get(), *CommandName);
 }
 
 bool SLevelViewport::IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const
@@ -1652,8 +1772,25 @@ void SLevelViewport::SaveConfig(const FString& ConfigName)
 	ViewportInstanceSettings.ExposureSettings = LevelViewportClient->ExposureSettings;
 	ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
 	ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
-	ViewportInstanceSettings.bShowFPS = LevelViewportClient->ShouldShowFPS();
 	ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
+	if (GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
+	{
+		const TArray<FString>* EnabledStats = NULL;
+
+		// If the selected viewport is currently hosting a PIE session, we need to make sure we copy to stats from the active viewport
+		// Note: This happens if you close the editor while it's running because SwapStatCommands gets called after the config save when shutting down.
+		if (IsPlayInEditorViewportActive())
+		{
+			EnabledStats = ActiveViewport->GetClient()->GetEnabledStats();
+		}
+		else
+		{
+			EnabledStats = LevelViewportClient->GetEnabledStats();
+		}
+
+		check(EnabledStats);
+		ViewportInstanceSettings.EnabledStats = *EnabledStats;
+	}
 	GetMutableDefault<ULevelEditorViewportSettings>()->SetViewportInstanceSettings(ConfigName, ViewportInstanceSettings);
 }
 
@@ -1698,7 +1835,7 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 			// Default to Lit for a perspective viewport
 			ViewportInstanceSettings.PerspViewModeIndex = VMI_Lit;
 		}
- 	}
+	}
 
 	if(!GConfig->GetInt(*IniSection, *(ConfigKey+TEXT(".OrthoViewModeIndex")), (int32&)ViewportInstanceSettings.OrthoViewModeIndex, GEditorUserSettingsIni))
 	{
@@ -1723,8 +1860,8 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 	}
 
 	GConfig->GetBool(*IniSection, *(ConfigKey + TEXT(".bIsRealtime")), ViewportInstanceSettings.bIsRealtime, GEditorUserSettingsIni);
-	GConfig->GetBool(*IniSection, *(ConfigKey + TEXT(".bWantFPS")), ViewportInstanceSettings.bShowFPS, GEditorUserSettingsIni);
 	GConfig->GetBool(*IniSection, *(ConfigKey + TEXT(".bWantStats")), ViewportInstanceSettings.bShowStats, GEditorUserSettingsIni);
+	GConfig->GetBool(*IniSection, *(ConfigKey + TEXT(".bWantFPS")), ViewportInstanceSettings.bShowFPS_DEPRECATED, GEditorUserSettingsIni);
 	GConfig->GetFloat(*IniSection, *(ConfigKey + TEXT(".FOVAngle")), ViewportInstanceSettings.FOVAngle, GEditorUserSettingsIni);
 
 	return ViewportInstanceSettings;
@@ -2004,8 +2141,11 @@ void  SLevelViewport::OnToggleMaximizeMode()
 
 FReply SLevelViewport::OnToggleMaximize()
 {
-	if( ParentLayout.IsValid() ) 
+	TSharedPtr<FLevelViewportLayout> ParentLayoutPinned = ParentLayout.Pin();
+	if (ParentLayoutPinned.IsValid() && ParentLayoutPinned->IsMaximizeSupported())
 	{
+		OnFloatingButtonClicked();
+
 		bool bWantImmersive = IsImmersive();
 		bool bWantMaximize = IsMaximized();
 
@@ -2022,7 +2162,7 @@ FReply SLevelViewport::OnToggleMaximize()
 		// We always want to animate in response to user-interactive toggling of maximized state
 		const bool bAllowAnimation = true;
 
-		ParentLayout.Pin()->RequestMaximizeViewport( SharedThis( this ), bWantMaximize, bWantImmersive, bAllowAnimation );
+		ParentLayoutPinned->RequestMaximizeViewport(SharedThis(this), bWantMaximize, bWantImmersive, bAllowAnimation);
 	}
 	return FReply::Handled();
 }
@@ -2821,7 +2961,7 @@ bool SLevelViewport::IsViewportConfigurationSet(FName ConfigurationName) const
 	return false;
 }
 
-void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient )
+void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, const bool bInSimulateInEditor )
 {
 	check( !HasPlayInEditorViewport() );
 
@@ -2846,6 +2986,7 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient )
 
 	// Whether to start with the game taking mouse control or leaving it shown in the editor
 	ActiveViewport->SetPlayInEditorGetsMouseControl(GetDefault<ULevelEditorPlaySettings>()->GameGetsMouseControl);
+	ActiveViewport->SetPlayInEditorIsSimulate(bInSimulateInEditor);
 	
 	ActiveViewport->OnPlayWorldViewportSwapped( *InactiveViewport );
 
@@ -3013,6 +3154,8 @@ void SLevelViewport::EndPlayInEditorSession()
 
 	if( IsPlayInEditorViewportActive() )
 	{
+		ActiveViewport->OnPlayWorldViewportSwapped(*InactiveViewport);
+
 		// Play in editor viewport was active, swap back to our level editor viewport
 		ActiveViewport->SetViewportClient( NULL );
 
@@ -3020,6 +3163,7 @@ void SLevelViewport::EndPlayInEditorSession()
 		check( ActiveViewport.IsUnique() );
 
 		ActiveViewport = InactiveViewport;
+	
 		// Ensure our active viewport is for level editing
 		check( ActiveViewport->GetClient() == LevelViewportClient.Get() );
 
@@ -3117,6 +3261,7 @@ void SLevelViewport::SwapViewportsForPlayInEditor()
 	// Resize the viewport to be the same size the previously active viewport
 	// When starting in immersive mode its possible that the viewport has not been resized yet
 	ActiveViewport->OnPlayWorldViewportSwapped( *InactiveViewport );
+
 	InactiveViewportWidgetEditorContent = ViewportWidget->GetContent();
 	ViewportWidget->SetViewportInterface( ActiveViewport.ToSharedRef() );
 
@@ -3259,6 +3404,12 @@ void SLevelViewport::TakeHighResScreenShot()
 	{
 		LevelViewportClient->TakeHighResScreenShot();
 	}
+}
+
+void SLevelViewport::OnFloatingButtonClicked()
+{
+	// if one of the viewports floating buttons has been clicked, update the global viewport ptr
+	LevelViewportClient->SetLastKeyViewport();
 }
 
 #undef LOCTEXT_NAMESPACE

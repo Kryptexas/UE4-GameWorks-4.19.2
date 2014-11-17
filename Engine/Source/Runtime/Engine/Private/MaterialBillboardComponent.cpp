@@ -274,4 +274,6 @@ void UMaterialBillboardComponent::AddElement(
 	Element->BaseSizeX = BaseSizeX;
 	Element->BaseSizeY = BaseSizeY;
 	Element->DistanceToSizeCurve = DistanceToSizeCurve;
+
+	MarkRenderStateDirty();
 }

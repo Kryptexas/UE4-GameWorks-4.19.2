@@ -43,6 +43,7 @@ FAssetTools::FAssetTools()
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DialogueVoice) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_DialogueWave) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Enum) );
+	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Struct) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_Font) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_ForceFeedbackEffect) );
 	RegisterAssetTypeActions( MakeShareable(new FAssetTypeActions_InstancedFoliageSettings) );
@@ -919,10 +920,21 @@ FString FAssetTools::DumpAssetToTempFile(UObject* Asset) const
 	}
 }
 
-bool FAssetTools::CreateDiffProcess(const FString& DiffCommand, const FString& DiffArgs) const
+FString WrapArgument(const FString& Argument)
 {
+	// Wrap the passed in argument so it changes from Argument to "Argument"
+	return FString::Printf(TEXT("%s%s%s"),	(Argument.StartsWith("\"")) ? "": "\"",
+											*Argument,
+											(Argument.EndsWith("\"")) ? "": "\"");
+}
+
+bool FAssetTools::CreateDiffProcess(const FString& DiffCommand,  const FString& OldTextFilename,  const FString& NewTextFilename, const FString& DiffArgs) const
+{
+	// Construct Arguments
+	FString Arguments = FString::Printf( TEXT("%s %s %s"),*WrapArgument(OldTextFilename), *WrapArgument(NewTextFilename), *DiffArgs );
+
 	// Fire process
-	if (!FPlatformProcess::CreateProc(*DiffCommand, *DiffArgs, true, false, false, NULL, 0, NULL, NULL).IsValid())
+	if (!FPlatformProcess::CreateProc(*DiffCommand, *Arguments, true, false, false, NULL, 0, NULL, NULL).IsValid())
 	{
 		//failed to work, put up error msg
 		FNotificationInfo Info( FText::Format( NSLOCTEXT("AssetTools", "DifFail", "Diff Failed: Could not launch external process '{0}'."), FText::FromString( DiffCommand ) ) );
@@ -1324,7 +1336,7 @@ void FAssetTools::MigratePackages_ReportConfirmed(TArray<FString> ConfirmedPacka
 			if(ISourceControlModule::Get().IsEnabled())
 			{
 				ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-				if(!SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), SuccessfullyCopiedFiles))
+				if(SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), SuccessfullyCopiedFiles) == ECommandResult::Failed)
 				{
 					for(auto FileIt(SuccessfullyCopiedFiles.CreateConstIterator()); FileIt; FileIt++)
 					{

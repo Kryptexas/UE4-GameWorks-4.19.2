@@ -31,6 +31,7 @@ public class Launch : ModuleRules
 				"SandboxFile",
 				"ShaderCore",
 				"Slate",
+				"SlateCore",
 				"Sockets",
 			}
 		);
@@ -70,7 +71,7 @@ public class Launch : ModuleRules
 
 		if (UEBuildConfiguration.bCompileAgainstEngine)
 		{
-			PublicDependencyModuleNames.Add("Messaging");
+			PrivateIncludePathModuleNames.Add("Messaging");
 			PublicDependencyModuleNames.Add("SessionServices");
 			PrivateIncludePaths.Add("Developer/DerivedDataCache/Public");
 
@@ -93,6 +94,7 @@ public class Launch : ModuleRules
 				new string[] {
 					"SourceControl",
 					"UnrealEd",
+					"DesktopPlatform"
 				}
 			);
 
@@ -109,7 +111,8 @@ public class Launch : ModuleRules
 					"ModuleUI",
 					"OutputLog",
 					"TextureCompressor",
-					"MeshUtilities"
+					"MeshUtilities",
+					"SourceCodeAccess"
 				}
 			);
 
@@ -128,11 +131,6 @@ public class Launch : ModuleRules
 		{
 			DynamicallyLoadedModuleNames.Add("D3D11RHI");
 			DynamicallyLoadedModuleNames.Add("XAudio2");
-
-			if (UEBuildConfiguration.bBuildEditor == true)
-			{
-				DynamicallyLoadedModuleNames.Add("VSAccessor");
-			}
 		}
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -166,7 +164,7 @@ public class Launch : ModuleRules
 			DynamicallyLoadedModuleNames.Add("OpenGLDrv");
 		}
 
-		if ((Target.Platform == UnrealTargetPlatform.Linux))
+        if ((Target.Platform == UnrealTargetPlatform.Linux) && (Target.Type != TargetRules.TargetType.Server))
 		{
 			PrivateDependencyModuleNames.Add("ALAudio");
 		}

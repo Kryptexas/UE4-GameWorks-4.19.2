@@ -298,6 +298,15 @@ void FColorVertexBuffer::operator=(const FColorVertexBuffer &Other)
 	VertexData = NULL;
 }
 
+void FColorVertexBuffer::GetVertexColors( TArray<FColor>& OutColors )
+{
+	if( VertexData != NULL && NumVertices > 0 )
+	{
+		OutColors.Init( NumVertices );
+
+		FMemory::Memcpy( OutColors.GetData(), VertexData->GetDataPointer(), NumVertices * VertexData->GetStride() ) ;
+	}
+}
 
 /** Load from raw color array */
 void FColorVertexBuffer::InitFromColorArray( const FColor *InColors, const uint32 Count, const uint32 Stride )

@@ -304,13 +304,13 @@ public:
 	// MetaData 
 
 	/**
-	 * Get (after possibly creating) a metadata object for this package
+	 * Gets (after possibly creating) a metadata object for this package
 	 *
 	 * @param	bAllowLoadObject				Can load an object to find it's UMetaData if not currently loaded.
 	 *
 	 * @return A valid UMetaData pointer for all objects in this package
 	 */
-	class UMetaData* GetMetaData(const bool bAllowLoadObject = true);
+	class UMetaData* GetMetaData();
 
 	/**
 	 * Save one specific object (along with any objects it references contained within the same Outer) into an Unreal package.

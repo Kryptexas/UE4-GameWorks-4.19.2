@@ -200,6 +200,9 @@ class ENGINE_API UCheatManager : public UObject
 	UFUNCTION(exec)
 	virtual void ToggleAILogging();
 
+	UFUNCTION(reliable, server, WithValidation)
+	virtual void ServerToggleAILogging();
+
 	/** makes various AI logging categories verbose */
 	UFUNCTION(exec)
 	virtual void AILoggingVerbose();
@@ -280,6 +283,10 @@ class ENGINE_API UCheatManager : public UObject
 	/** This will create a BugItGo string for us.  Nice for calling form c++ where you just want the string and no Screenshots **/
 	UFUNCTION(exec)
 	virtual void BugItStringCreator(FVector ViewLocation, FRotator ViewRotation, FString& GoString, FString& LocString);
+
+	/** This will force a flush of the output log to file*/
+	UFUNCTION(exec)
+	virtual void FlushLog();
 
 	/** Logs the current location in bugit format without taking screenshot and further routing. */
 	UFUNCTION(exec)

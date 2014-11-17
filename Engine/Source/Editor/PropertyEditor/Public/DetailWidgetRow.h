@@ -68,6 +68,8 @@ public:
 		, VisibilityAttr( EVisibility::Visible )
 		, IsEnabledAttr( true )
 		, FilterTextString()
+		, CopyMenuAction()
+		, PasteMenuAction()
 	{
 	}
 	
@@ -132,6 +134,24 @@ public:
 	}
 
 	/**
+	 * Sets a custom copy action to take when copying the data from this row
+	 */
+	FDetailWidgetRow& CopyAction( const FUIAction& InCopyAction )
+	{
+		CopyMenuAction = InCopyAction;
+		return *this;
+	}
+
+	/**
+	 * Sets a custom paste action to take when copying the data from this row
+	 */
+	FDetailWidgetRow& PasteAction( const FUIAction& InPasteAction  )
+	{
+		PasteMenuAction = InPasteAction;
+		return *this;
+	}
+
+	/**
 	 * @return true if the row has columns, false if it spans the entire row
 	 */
 	bool HasColumns() const
@@ -147,6 +167,12 @@ public:
 		return WholeRowWidget.Widget != SNullWidget::NullWidget || HasColumns();
 	}
 
+	/** @return true if a custom copy/paste is bound on this row */
+	bool IsCopyPasteBound() const
+	{
+		return CopyMenuAction.ExecuteAction.IsBound() && PasteMenuAction.ExecuteAction.IsBound();
+	}
+
 public:
 	/** Name column content */
 	FDetailWidgetDecl NameWidget;
@@ -160,5 +186,9 @@ public:
 	TAttribute<bool> IsEnabledAttr;
 	/** String to filter with */
 	FString FilterTextString;
+	/** Action for coping data on this row */
+	FUIAction CopyMenuAction;
+	/** Action for pasting data on this row */
+	FUIAction PasteMenuAction;
 };
 

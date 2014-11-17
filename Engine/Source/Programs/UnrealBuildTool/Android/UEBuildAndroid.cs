@@ -11,12 +11,18 @@ namespace UnrealBuildTool
 {
 	class AndroidPlatform : UEBuildPlatform
 	{
+		/// <summary>
+		/// Android settings.
+		/// </summary>
+		public static string AndroidArchitecture = "-armv7";
+		public static string AndroidNdkApiTarget = "latest";
+		public static string AndroidSdkApiTarget = "latest";
+
 		// The current architecture - affects everything about how UBT operates on Android
-		private static string ActiveArchitecture = Utils.GetStringEnvironmentVariable("ue.AndroidArchitecture", "-armv7");
 		public override string GetActiveArchitecture()
 		{
 			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-			return ActiveArchitecture;
+			return AndroidArchitecture;
 		}
 
         public override bool CanUseXGE()
@@ -24,14 +30,14 @@ namespace UnrealBuildTool
             return false;
         }
 
-		public override bool HasRequiredSDKsInstalled()
+		public override SDKStatus HasRequiredSDKsInstalled()
 		{
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
 
 			// we don't have an NDKROOT specified
 			if (String.IsNullOrEmpty(NDKPath))
 			{
-				return false;
+				return SDKStatus.Invalid;
 			}
 
 			NDKPath = NDKPath.Replace("\"", "");
@@ -39,15 +45,15 @@ namespace UnrealBuildTool
 			// can't find llvm-3.3 or llvm-3.1 in the toolchains
 			if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) && !Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
 			{
-				return false;
+				return SDKStatus.Invalid;
 			}
 
-			return true;
+			return SDKStatus.Valid;
 		}
 
 		public override void RegisterBuildPlatform()
 		{
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == true))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
 			{
 				bool bRegisterBuildPlatform = true;
 
@@ -237,6 +243,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_EDITOR=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("USE_NULL_RHI=0");
+			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 
 			if (InBuildTarget.GlobalCompileEnvironment.Config.TargetArchitecture == "-armv7")
 			{

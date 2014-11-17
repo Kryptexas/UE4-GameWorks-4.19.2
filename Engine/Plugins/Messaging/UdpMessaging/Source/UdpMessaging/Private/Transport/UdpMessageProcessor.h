@@ -100,9 +100,9 @@ public:
 	/**
 	 * Creates and initializes a new message processor.
 	 *
-	 * @param InSocket - The network socket used to transport messages.
-	 * @param InNodeId - The local node identifier (used to detect the unicast endpoint).
-	 * @param InMulticastEndpoint - The multicast group endpoint to transport messages to.
+	 * @param InSocket The network socket used to transport messages.
+	 * @param InNodeId The local node identifier (used to detect the unicast endpoint).
+	 * @param InMulticastEndpoint The multicast group endpoint to transport messages to.
 	 */
 	FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint );
 
@@ -116,8 +116,8 @@ public:
 	/**
 	 * Queues up an inbound message segment.
 	 *
-	 * @param Data - The segment data.
-	 * @param Sender - The sender's network endpoint.
+	 * @param Data The segment data.
+	 * @param Sender The sender's network endpoint.
 	 *
 	 * @return true if the segment was queued up, false otherwise.
 	 */
@@ -126,8 +126,8 @@ public:
 	/**
 	 * Queues up an outbound message.
 	 *
-	 * @param Data - The message data to send.
-	 * @param Recipient - The recipient's IPv4 endpoint.
+	 * @param Data The message data to send.
+	 * @param Recipient The recipient's IPv4 endpoint.
 	 *
 	 * @return true if the message was queued up, false otherwise.
 	 */
@@ -143,7 +143,7 @@ public:
 	/**
 	 * Returns a delegate that is executed when a channel has closed or timed out.
 	 *
-	 * @param Delegate - The delegate to set.
+	 * @param Delegate The delegate to set.
 	 */
 	FOnMessageTransportNodeLost& OnNodeLost( )
 	{
@@ -153,7 +153,7 @@ public:
 	/**
 	 * Returns a delegate that is executed when message data has been received.
 	 *
-	 * @param Delegate - The delegate to set.
+	 * @param Delegate The delegate to set.
 	 */
 	FOnMessageTransportMessageReceived& OnMessageReceived( )
 	{
@@ -179,8 +179,8 @@ protected:
 	/**
 	 * Acknowledges receipt of a message.
 	 *
-	 * @param MessageId - The identifier of the message to acknowledge.
-	 * @param NodeInfo - Details for the node to send the acknowledgment to.
+	 * @param MessageId The identifier of the message to acknowledge.
+	 * @param NodeInfo Details for the node to send the acknowledgment to.
 	 *
 	 * @todo gmp: batch multiple of these into a single message
 	 */
@@ -206,9 +206,9 @@ protected:
 	/**
 	 * Filters the specified message segment.
 	 *
-	 * @param Header - The segment header.
-	 * @param Data - The segment data.
-	 * @param Sender - The segment sender.
+	 * @param Header The segment header.
+	 * @param Data The segment data.
+	 * @param Sender The segment sender.
 	 *
 	 * @return true if the segment passed the filter, false otherwise.
 	 */
@@ -217,72 +217,72 @@ protected:
 	/**
 	 * Processes an Abort segment.
 	 *
-	 * @param Segment - The segment to process.
-	 * @param NodeInfo - Details for the node that sent the segment.
+	 * @param Segment The segment to process.
+	 * @param NodeInfo Details for the node that sent the segment.
 	 */
 	void ProcessAbortSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
 
 	/**
 	 * Processes a Success segment.
 	 *
-	 * @param Segment - The segment to process.
-	 * @param NodeInfo - Details for the node that sent the segment.
+	 * @param Segment The segment to process.
+	 * @param NodeInfo Details for the node that sent the segment.
 	 */
 	void ProcessAcknowledgeSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
 
 	/**
 	 * Processes a Bye segment.
 	 *
-	 * @param Segment - The segment to process.
-	 * @param NodeInfo - Details for the node that sent the segment.
+	 * @param Segment The segment to process.
+	 * @param NodeInfo Details for the node that sent the segment.
 	 */
 	void ProcessByeSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
 
 	/**
 	 * Processes a Ping segment.
 	 *
-	 * @param Segment - The segment to process.
-	 * @param NodeInfo - Details for the node that sent the segment.
+	 * @param Segment The segment to process.
+	 * @param NodeInfo Details for the node that sent the segment.
 	 */
 	void ProcessDataSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
 
 	/**
 	 * Processes a Hello segment.
 	 *
-	 * @param Segment - The segment to process.
-	 * @param NodeInfo - Details for the node that sent the segment.
+	 * @param Segment The segment to process.
+	 * @param NodeInfo Details for the node that sent the segment.
 	 */
 	void ProcessHelloSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
 
 	/**
 	 * Processes a Ping segment.
 	 *
-	 * @param Segment - The segment to process.
-	 * @param NodeInfo - Details for the node that sent the segment.
+	 * @param Segment The segment to process.
+	 * @param NodeInfo Details for the node that sent the segment.
 	 */
 	void ProcessRetransmitSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
 
 	/**
 	 * Processes a Timeout segment.
 	 *
-	 * @param Segment - The segment to process.
-	 * @param NodeInfo - Details for the node that sent the segment.
+	 * @param Segment The segment to process.
+	 * @param NodeInfo Details for the node that sent the segment.
 	 */
 	void ProcessTimeoutSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
 
 	/**
 	 * Processes an unknown segment type.
 	 *
-	 * @param Segment - The segment to process.
-	 * @param NodeInfo - Details for the node that sent the segment.
-	 * @param SegmentType - The segment type.
+	 * @param Segment The segment to process.
+	 * @param NodeInfo Details for the node that sent the segment.
+	 * @param SegmentType The segment type.
 	 */
 	void ProcessUnknownSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo, uint8 SegmentType );
 
 	/**
 	 * Removes the specified node from the list of known remote endpoints.
 	 *
-	 * @param NodeId - The identifier of the node to remove.
+	 * @param NodeId The identifier of the node to remove.
 	 */
 	void RemoveKnownNode( const FGuid& NodeId );
 
@@ -294,7 +294,7 @@ protected:
 	/**
 	 * Updates all segmenters of the specified node.
 	 *
-	 * @param NodeInfo - Details for the node to update.
+	 * @param NodeInfo Details for the node to update.
 	 */
 	void UpdateSegmenters( FNodeInfo& NodeInfo );
 

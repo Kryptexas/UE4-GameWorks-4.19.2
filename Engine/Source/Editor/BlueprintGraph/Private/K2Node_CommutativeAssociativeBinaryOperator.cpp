@@ -288,12 +288,12 @@ void UK2Node_CommutativeAssociativeBinaryOperator::ExpandNode(FKismetCompilerCon
 			else
 			{
 				// handle first created node (SrcFirstInput is skipped, and has no own node).
-				Schema->MovePinLinks(*SrcFirstInput, *NewOperatorInputA);
+				CompilerContext.MovePinLinksToIntermediate(*SrcFirstInput, *NewOperatorInputA);
 			}
 
 			UEdGraphPin* NewOperatorInputB = NewOperator->GetInputPin(1);
 			check(NewOperatorInputB);
-			Schema->MovePinLinks(*CurrentPin, *NewOperatorInputB);
+			CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *NewOperatorInputB);
 
 			LastOutPin = NewOperator->FindOutPin();
 			check(LastOutPin);
@@ -301,7 +301,7 @@ void UK2Node_CommutativeAssociativeBinaryOperator::ExpandNode(FKismetCompilerCon
 
 		UEdGraphPin* TrueOutPin = FindOutPin();
 		check(TrueOutPin);
-		Schema->MovePinLinks(*TrueOutPin, *LastOutPin);
+		CompilerContext.MovePinLinksToIntermediate(*TrueOutPin, *LastOutPin);
 
 		BreakAllNodeLinks();
 	}

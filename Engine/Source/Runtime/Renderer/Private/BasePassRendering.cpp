@@ -184,7 +184,8 @@ public:
 				Parameters.TextureMode,
 				Parameters.LightingModel != MLM_Unlit && Scene && Scene->SkyLight,
 				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog()
-				)
+				),
+			Scene->GetFeatureLevel()
 			);
 	}
 };
@@ -192,7 +193,7 @@ public:
 void FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* StaticMesh)
 {
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = StaticMesh->MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Don't composite static meshes
@@ -209,7 +210,8 @@ void FBasePassOpaqueDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMes
 				false,
 				bEditorCompositeDepthTest,
 				ESceneRenderTargetsMode::DontSet),
-			FDrawBasePassStaticMeshAction(Scene,StaticMesh)
+			FDrawBasePassStaticMeshAction(Scene,StaticMesh),
+			Scene->GetFeatureLevel()
 			);
 	}
 }
@@ -279,7 +281,7 @@ public:
 			LightMapPolicy,
 			Parameters.BlendMode,
 			Parameters.TextureMode,
-			Scene && Scene->SkyLight && bIsLitMaterial,
+			Scene && Scene->SkyLight && !Scene->SkyLight->bHasStaticLighting && bIsLitMaterial,
 			IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog()) && View.Family->EngineShowFlags.Atmosphere,
 			View.Family->EngineShowFlags.ShaderComplexity,
 			false,
@@ -287,7 +289,7 @@ public:
 			);
 		DrawingPolicy.DrawShared(
 			&View,
-			DrawingPolicy.CreateBoundShaderState()
+			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
 
 		for( int32 BatchElementIndex = 0, Num = Parameters.Mesh.Elements.Num(); BatchElementIndex < Num; BatchElementIndex++ )
@@ -324,7 +326,7 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 	)
 {
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only draw opaque materials.
@@ -343,7 +345,8 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 				View,
 				bBackFace,
 				HitProxyId
-				)
+				),
+			View.GetFeatureLevel()
 			);
 		return true;
 	}

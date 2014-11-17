@@ -41,22 +41,9 @@ void LoadFBxLibraries()
 #if PLATFORM_WINDOWS && _MSC_VER == 1700 && FBX_DELAY_LOAD
 	#if PLATFORM_64BITS
 		FString RootFBxPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/FBx/Win64/");
-
-		#if UE_BUILD_DEBUG && !defined(NDEBUG)	// Use !defined(NDEBUG) to check to see if we actually are linking with Debug third party libraries (bDebugBuildsActuallyUseDebugCRT)
-			FBxHandle = LoadLibraryW(*(RootFBxPath + "fbxsdk-2013.3d.dll"));
-		#else
-			FBxHandle = LoadLibraryW(*(RootFBxPath + "fbxsdk-2013.3.dll"));
-		#endif
-
+		FBxHandle = LoadLibraryW(*(RootFBxPath + "libfbxsdk.dll"));
 	#else
-		FString RootFBxPath = FPaths::EngineDir() * TEXT("Binaries/ThirdParty/FBx/Win32/");
-
-		#if UE_BUILD_DEBUG && !defined(NDEBUG)	// Use !defined(NDEBUG) to check to see if we actually are linking with Debug third party libraries (bDebugBuildsActuallyUseDebugCRT)
-			FBxHandle = LoadLibraryW(*(RootFBxPath + "fbxsdk-2013.3d.dll"));
-		#else
-			FBxHandle = LoadLibraryW(*(RootFBxPath + "fbxsdk-2013.3.dll"));
-		#endif
-
+		checkAtCompileTime( false, TEXT("FBX importing currently not supported in 32 bit versions") );
 	#endif // PLATFORM_64BITS
 #endif // PLATFORM_WINDOWS && _MSC_VER == 1700
 

@@ -14,8 +14,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	public partial class Bugg
 	{
 		/// <summary></summary>
-		public EntitySet<Crash> BuggCrashes { get; set; }
-		/// <summary></summary>
 		public int CrashesInTimeFrame { get; set; }
 		/// <summary></summary>
 		public string SourceContext { get; set; }
@@ -26,12 +24,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns></returns>
 		public EntitySet<Crash> GetCrashes()
 		{
-			if( BuggCrashes == null )
-			{
-				BuggCrashes = Crashes;
-			}
-
-			int CrashCount = BuggCrashes.Count;
+			int CrashCount = Crashes.Count;
 			if( NumberOfCrashes != CrashCount )
 			{
 				NumberOfCrashes = CrashCount;
@@ -39,12 +32,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				if( NumberOfCrashes > 0 )
 				{
 					BuggRepository LocalBuggRepository = new BuggRepository();
-					LocalBuggRepository.UpdateBuggData( this, BuggCrashes );
+					LocalBuggRepository.UpdateBuggData( this, Crashes );
 				}
 			}
 
 			// Just fill the CallStackContainers
-			foreach( Crash CurrentCrash in BuggCrashes )
+			foreach( Crash CurrentCrash in Crashes )
 			{
 				if( CurrentCrash.CallStackContainer == null )
 				{
@@ -57,7 +50,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				}
 			}
 
-			return BuggCrashes;
+			return Crashes;
 		}
 
 		/// <summary>
@@ -85,10 +78,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			get
 			{
-				if( CrashesCache == null )
+				if (CrashesCache == null)
 				{
-					CrashesCache = new EntitySet<Crash>( OnCrashesAdd, OnCrashesRemove );
-					CrashesCache.SetSource( Buggs_Crashes.Select( CrashInstance => CrashInstance.Crash ) );
+					CrashesCache = new EntitySet<Crash>(OnCrashesAdd, OnCrashesRemove);
+					CrashesCache.SetSource(Buggs_Crashes.Select(CrashInstance => CrashInstance.Crash));
 				}
 				return CrashesCache;
 			}

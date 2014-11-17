@@ -4,7 +4,7 @@
 #pragma once
 #include "WindDirectionalSourceComponent.generated.h"
 
-UCLASS(HeaderGroup=Component, collapsecategories, hidecategories=(Object, Mobility), editinlinenew)
+UCLASS(collapsecategories, hidecategories=(Object, Mobility), editinlinenew)
 class UWindDirectionalSourceComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()

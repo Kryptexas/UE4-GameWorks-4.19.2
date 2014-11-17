@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionStaticComponentMaskParameter.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionStaticComponentMaskParameter : public UMaterialExpressionParameter
 {
 	GENERATED_UCLASS_BODY()

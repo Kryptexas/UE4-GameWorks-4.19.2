@@ -10,28 +10,29 @@ namespace UnrealBuildTool
 {
 	class HTML5Platform : UEBuildPlatform
 	{
+		public static string HTML5Architecture = "";
+
 		// The current architecture - affects everything about how UBT operates on HTML5
-		private static string ActiveArchitecture = Utils.GetStringEnvironmentVariable("ue.HTML5Architecture", "");//"-win32");
 		public override string GetActiveArchitecture()
 		{
 			// by default, use an empty architecture (which is really just a modifier to the platform for some paths/names)
-			return ActiveArchitecture;
+			return HTML5Architecture;
 		}
 
 		// F5 should always try to run the Win32 version
 		public override string ModifyNMakeOutput(string ExeName)
 		{
 			// nmake Run should always run the win32 version
-			return Path.ChangeExtension(ExeName, ".exe");
+			return Path.ChangeExtension(ExeName+GetActiveArchitecture(), ".exe");
 		}
 
 		/**
 		 *	Whether the required external SDKs are installed for this platform
 		 */
-		public override bool HasRequiredSDKsInstalled()
+		public override SDKStatus HasRequiredSDKsInstalled()
 		{
 			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
-			return string.IsNullOrEmpty(BaseSDKPath) == false;
+			return (string.IsNullOrEmpty(BaseSDKPath) == false) ? SDKStatus.Valid : SDKStatus.Invalid;
 		}
 
         public override bool CanUseXGE()
@@ -51,7 +52,7 @@ namespace UnrealBuildTool
 			}
 
 			// Make sure the SDK is installed
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == true))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
 			{
 				bool bRegisterBuildPlatform = true;
 
@@ -255,49 +256,25 @@ namespace UnrealBuildTool
 				if (InModule.ToString() == "Core")
 				{
 					InModule.AddPublicIncludePath("Runtime/Core/Public/HTML5");
-                    InModule.AddPublicDependencyModule("zlib");
+					InModule.AddPublicDependencyModule("zlib");
 				}
 				else if (InModule.ToString() == "Engine")
 				{
 					InModule.AddPrivateDependencyModule("zlib");
 					InModule.AddPrivateDependencyModule("UElibPNG");
-                    InModule.AddPublicDependencyModule("UEOgg");
-                    InModule.AddPublicDependencyModule("Vorbis");
+					InModule.AddPublicDependencyModule("UEOgg");
+					InModule.AddPublicDependencyModule("Vorbis");
 				}
 			}
-			else if (Target.Platform == UnrealTargetPlatform.Win64)
+			else if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac )
 			{
-                bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
-				if (!UEBuildConfiguration.bBuildRequiresCookedData)
+				if ( (!UEBuildConfiguration.bBuildRequiresCookedData
+					&& InModule.ToString() == "Engine"
+					&& UEBuildConfiguration.bBuildDeveloperTools)
+					|| UEBuildConfiguration.bForceBuildTargetPlatforms)
 				{
-					if (InModule.ToString() == "Engine")
-					{
-						if (UEBuildConfiguration.bBuildDeveloperTools)
-						{
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
-						}
-					}
-					else if (InModule.ToString() == "TargetPlatform")
-					{
-                        bBuildShaderFormats = true;
-// 							if (UEBuildConfiguration.bBuildDeveloperTools)
-// 							{
-                        // 								InModule.AddPlatformSpecificDynamicallyLoadedModule("AT9AudioFormat");
-                        // 								InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TextureFormat");
-// 							}
-					}
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
 				}
-
-				// allow standalone tools to use target platform modules, without needing Engine
-				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-				{
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
-				}
-
-                if (bBuildShaderFormats)
-                {
-                    // InModule.AddDynamicallyLoadedModule("HTML5ShaderFormat");
-                }
 			}
 		}
 

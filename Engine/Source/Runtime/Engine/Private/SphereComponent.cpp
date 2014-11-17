@@ -25,7 +25,7 @@ void USphereComponent::CalcBoundingCylinder(float& CylinderRadius, float& Cylind
 
 void USphereComponent::UpdateBodySetup()
 {
-	if( ShapeBodySetup == NULL )
+	if (ShapeBodySetup == NULL || ShapeBodySetup->IsPendingKill())
 	{
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;

@@ -53,4 +53,7 @@ protected:
 	virtual bool IsValidToEvaluate(const USkeleton * Skeleton, const FBoneContainer & RequiredBones) { return false; }
 	// initialize any bone references you have
 	virtual void InitializeBoneReferences(const FBoneContainer & RequiredBones){};
+
+	/** Allow base to add info to the node debug output */
+	void AddDebugNodeData(FString& OutDebugData);
 };

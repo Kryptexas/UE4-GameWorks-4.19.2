@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "DesktopPlatformPrivatePCH.h"
+#include "FeedbackContextMarkup.h"
+#include "WindowsNativeFeedbackContext.h"
 
 #include "AllowWindowsPlatformTypes.h"
 	#include <commdlg.h>
@@ -13,6 +15,8 @@
 #define LOCTEXT_NAMESPACE "DesktopPlatform"
 #define MAX_FILETYPES_STR 4096
 #define MAX_FILENAME_STR 65536 // This buffer has to be big enough to contain the names of all the selected files as well as the null characters between them and the null character at the end
+
+static const TCHAR *InstallationsSubKey = TEXT("SOFTWARE\\Epic Games\\Unreal Engine\\Builds");
 
 bool FDesktopPlatformWindows::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath, const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames)
 {
@@ -349,6 +353,28 @@ bool FDesktopPlatformWindows::FileDialogShared(bool bSave, const void* ParentWin
 	return bSuccess;
 }
 
+bool FDesktopPlatformWindows::RegisterEngineInstallation(const FString &RootDir, FString &OutIdentifier)
+{
+	bool bRes = false;
+	if(IsValidRootDirectory(RootDir))
+	{
+		HKEY hRootKey;
+		if(RegCreateKeyEx(HKEY_CURRENT_USER, InstallationsSubKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hRootKey, NULL) == ERROR_SUCCESS)
+		{
+			FString NewIdentifier = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphensInBraces);
+			LRESULT SetResult = RegSetValueEx(hRootKey, *NewIdentifier, 0, REG_SZ, (const BYTE*)*RootDir, (RootDir.Len() + 1) * sizeof(TCHAR));
+			RegCloseKey(hRootKey);
+
+			if(SetResult == ERROR_SUCCESS)
+			{
+				OutIdentifier = NewIdentifier;
+				bRes = true;
+			}
+		}
+	}
+	return bRes;
+}
+
 void FDesktopPlatformWindows::EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations)
 {
 	// Enumerate the binary installations
@@ -356,7 +382,7 @@ void FDesktopPlatformWindows::EnumerateEngineInstallations(TMap<FString, FString
 
 	// Enumerate the per-user installations
 	HKEY hKey;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, TEXT("SOFTWARE\\Epic Games\\Unreal Engine\\Builds"), 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, InstallationsSubKey, 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
 	{
 		// Enumerate all the installations
 		for (::DWORD Index = 0;; Index++)
@@ -440,6 +466,30 @@ bool FDesktopPlatformWindows::UpdateFileAssociations()
 	}
 
 	return true;
+}
+
+bool FDesktopPlatformWindows::RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn)
+{
+	// Get the path to UBT
+	FString UnrealBuildToolPath = RootDir / TEXT("Engine/Binaries/DotNET/UnrealBuildTool.exe");
+	if(IFileManager::Get().FileSize(*UnrealBuildToolPath) < 0)
+	{
+		Warn->Logf(ELogVerbosity::Error, TEXT("Couldn't find UnrealBuildTool at '%s'"), *UnrealBuildToolPath);
+		return false;
+	}
+
+	// Write the output
+	Warn->Logf(TEXT("Running %s %s"), *UnrealBuildToolPath, *Arguments);
+
+	// Spawn UBT
+	int32 ExitCode = 0;
+	return FFeedbackContextMarkup::PipeProcessOutput(Description, UnrealBuildToolPath, Arguments, Warn, &ExitCode) && ExitCode == 0;
+}
+
+FFeedbackContext* FDesktopPlatformWindows::GetNativeFeedbackContext()
+{
+	static FWindowsNativeFeedbackContext FeedbackContext;
+	return &FeedbackContext;
 }
 
 void FDesktopPlatformWindows::GetRequiredRegistrySettings(TIndirectArray<FRegistryRootedKey> &RootedKeys)

@@ -13,8 +13,8 @@ void MainVS(
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	OutPosition = InPosition;
-	OutScreenPosition = InPosition;
+	DrawRectangle(InPosition,  OutPosition);
+	OutScreenPosition = OutPosition;
 }
 
 void MainPS(

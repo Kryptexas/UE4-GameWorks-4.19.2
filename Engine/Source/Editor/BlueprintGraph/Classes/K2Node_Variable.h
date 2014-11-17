@@ -2,7 +2,18 @@
 
 
 #pragma once
+#include "K2Node.h"
 #include "K2Node_Variable.generated.h"
+
+UENUM()
+namespace ESelfContextInfo
+{
+	enum Type
+	{
+		Unspecified,
+		NotSelfContext,
+	};
+}
 
 UCLASS(MinimalAPI, abstract)
 class UK2Node_Variable : public UK2Node
@@ -12,6 +23,9 @@ class UK2Node_Variable : public UK2Node
 	/** Reference to variable we want to set/get */
 	UPROPERTY()
 	FMemberReference	VariableReference;
+
+	UPROPERTY()
+	TEnumAsByte<ESelfContextInfo::Type> SelfContextInfo;
 
 protected:
 	/** Class that this variable is defined in. Should be NULL if bSelfContext is true.  */
@@ -101,18 +115,18 @@ public:
 	BLUEPRINTGRAPH_API UEdGraphPin* GetValuePin() const;
 
 	/** Validates there are no errors in the node */
-	void CheckForErrors(const UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog);
+	void CheckForErrors(const class UEdGraphSchema_K2* Schema, class FCompilerResultsLog& MessageLog);
 
 	/**
 	 * Utility method intended to serve as a choke point for various slate 
 	 * widgets to grab an icon from (for a specified variable).
 	 * 
-	 * @param  VarClass		The class that owns the variable in question.
+	 * @param  VarScope		The scope that owns the variable in question.
 	 * @param  VarName		The name of the variable you're querying for.
 	 * @param  IconColorOut	A color out, further discerning the variable's type.
 	 * @return A icon representing the specified variable's type.
 	 */
-	BLUEPRINTGRAPH_API static FName GetVariableIconAndColor(UClass* VarClass, FName VarName, FLinearColor& IconColorOut);
+	BLUEPRINTGRAPH_API static FName GetVariableIconAndColor(UStruct* VarScope, FName VarName, FLinearColor& IconColorOut);
 
 	/**
 	 * Utility method intended to serve as a choke point for various slate 

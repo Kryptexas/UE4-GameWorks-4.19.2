@@ -189,7 +189,7 @@ private:
 	void OnAssetLoaded( UObject* Asset );
 
 	/** Handler for when an asset is loaded */
-	void OnObjectPropertyChanged( UObject* Asset );
+	void OnObjectPropertyChanged( UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent );
 
 private:
 	/** Information about a thumbnail */

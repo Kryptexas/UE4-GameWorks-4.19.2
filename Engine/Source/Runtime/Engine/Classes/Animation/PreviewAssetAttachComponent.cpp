@@ -7,7 +7,7 @@ void FPreviewAssetAttachContainer::AddAttachedObject( UObject* AttachObject, FNa
 {
 	FPreviewAttachedObjectPair Pair;
 	Pair.AttachedTo = AttachPointName;
-	Pair.Object = AttachObject;
+	Pair.SetAttachedObject(AttachObject);
 	AttachedObjects.Add( Pair );
 }
 
@@ -17,7 +17,7 @@ void FPreviewAssetAttachContainer::RemoveAttachedObject( UObject* ObjectToRemove
 	{
 		FPreviewAttachedObjectPair& Pair = AttachedObjects[i];
 
-		if( Pair.Object == ObjectToRemove && Pair.AttachedTo == AttachName )
+		if( Pair.GetAttachedObject() == ObjectToRemove && Pair.AttachedTo == AttachName )
 		{
 			AttachedObjects.RemoveAtSwap( i, 1, false );
 			break;
@@ -31,7 +31,7 @@ UObject* FPreviewAssetAttachContainer::GetAttachedObjectByAttachName( FName Atta
 	{
 		if( AttachedObjects[i].AttachedTo == AttachName )
 		{
-			return AttachedObjects[i].Object;
+			return AttachedObjects[i].GetAttachedObject();
 		}
 	}
 	return NULL;
@@ -65,4 +65,30 @@ TIterator FPreviewAssetAttachContainer::CreateIterator()
 void FPreviewAssetAttachContainer::RemoveAtSwap( int32 Index, int32 Count /* = 1 */, bool bAllowShrinking /*=true */ )
 {
 	AttachedObjects.RemoveAtSwap( Index, Count, bAllowShrinking );
+}
+
+void FPreviewAssetAttachContainer::SaveAttachedObjectsFromDeprecatedProperties()
+{
+	for (FPreviewAttachedObjectPair& Pair : AttachedObjects)
+	{
+		Pair.SaveAttachedObjectFromDeprecatedProperty();
+	}
+}
+
+int32 FPreviewAssetAttachContainer::ValidatePreviewAttachedObjects()
+{
+	int32 NumBrokenAssets = 0;
+
+	for (int32 i = AttachedObjects.Num() - 1; i >= 0; --i)
+	{
+		FPreviewAttachedObjectPair& PreviewAttachedObject = AttachedObjects[i];
+
+		if (!PreviewAttachedObject.GetAttachedObject())
+		{
+			AttachedObjects.RemoveAtSwap(i);
+			++NumBrokenAssets;
+		}
+	}
+
+	return NumBrokenAssets;
 }

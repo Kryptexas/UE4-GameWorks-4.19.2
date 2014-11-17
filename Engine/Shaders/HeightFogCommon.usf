@@ -15,10 +15,10 @@ float4 DirectionalInscatteringColor;
 float DirectionalInscatteringStartDistance;
 
 /** FogDensity * exp2(-FogHeightFalloff * (CameraWorldPosition.z - FogHeight)) in x, FogHeightFalloff in y, CosTerminatorAngle in z, StartDistance in w. */
-static float4 ExponentialFogParameters = SharedFogParameter0;
+static const float4 ExponentialFogParameters = SharedFogParameter0;
 /** Color to use. */
-static float3 ExponentialFogColor = SharedFogParameter1.xyz;
-static float MinFogOpacity = SharedFogParameter1.w;
+static const float3 ExponentialFogColor = SharedFogParameter1.xyz;
+static const float MinFogOpacity = SharedFogParameter1.w;
 
 half4 GetExponentialHeightFog(float3 WorldPosition, float3 InCameraPosition)
 {

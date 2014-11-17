@@ -17,45 +17,6 @@ FProject::FProject( const FProjectInfo& InitProjectInfo )
 {
 }
 
-bool FProject::VerifyProjectCanBeLoaded( bool bPromptIfSavedWithNewerVersionOfEngine, FText& OutFailureReason )
-{
-	// Verify we can load this project
-	const bool bPackageFileVersionIsValid = (ProjectInfo.PackageFileUE4Version == INDEX_NONE) || (ProjectInfo.PackageFileUE4Version <= GPackageFileUE4Version);
-	const bool bPackageFileLicenseeVersionIsValid = (ProjectInfo.PackageFileLicenseeUE4Version == INDEX_NONE) || (ProjectInfo.PackageFileLicenseeUE4Version <= GPackageFileLicenseeUE4Version);
-	if (!bPackageFileVersionIsValid || !bPackageFileLicenseeVersionIsValid)
-	{
-		EAppReturnType::Type Response = EAppReturnType::No;
-
-		if ( bPromptIfSavedWithNewerVersionOfEngine )
-		{
-			// The project was made with a newer version of the engine. We do not support forward compatibility in content.
-			const FText WarningMessage = FText::Format( LOCTEXT("NewerEngineVersionWarning", "'{0}' was saved with a newer version of the engine. Some content may not load properly. Would you like to attempt to load this project anyway?"), FText::FromString(*ProjectInfo.LoadedFromFile));
-			Response = FMessageDialog::Open(EAppMsgType::YesNo, WarningMessage);
-		}
-
-		if (Response == EAppReturnType::No)
-		{
-			OutFailureReason = FText::Format( LOCTEXT("NewerEngineVersion", "'{0}' was saved with a newer version of the engine."), FText::FromString(*ProjectInfo.LoadedFromFile));
-			return false;
-		}
-	}
-
-	// Older projects did not specify a module list. In these projects, the only assumed module was one named after the game, loaded in the default phase.
-	if ( ProjectInfo.FileVersion < VER_PROJECT_FILE_PLUGIN_UNIFICATION )
-	{
-		// Assuming that a module is needed to be loaded if a source folder exists
-		const FString BinariesFolder = FPaths::Combine( *FPaths::GetPath(ProjectInfo.LoadedFromFile), TEXT("Binaries"), FPlatformProcess::GetBinariesSubdirectory() );
-		if ( IFileManager::Get().DirectoryExists(*BinariesFolder) )
-		{
-			FProjectOrPluginInfo::FModuleInfo MainGameModule;
-			MainGameModule.Name = FName(*ProjectInfo.Name);
-			ProjectInfo.Modules.Add(MainGameModule);
-		}
-	}
-
-	return true;
-}
-
 bool FProject::IsSignedSampleProject(const FString& FilePath) const
 {
 	return ProjectInfo.EpicSampleNameHash == GetTypeHash(FPaths::GetCleanFilename(FilePath));
@@ -94,14 +55,10 @@ bool FProjectManager::LoadProjectFile( const FString& InProjectFile )
 	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
 	if ( NewProject->LoadFromFile(InProjectFile, FailureReason) )
 	{
-		const bool bPromptIfSavedWithNewerVersionOfEngine = true;
-		if ( NewProject->VerifyProjectCanBeLoaded(bPromptIfSavedWithNewerVersionOfEngine, FailureReason) )
-		{
-			// Load successful. Set the loaded project file pointer.
-			CurrentlyLoadedProject = NewProject;
+		// Load successful. Set the loaded project file pointer.
+		CurrentlyLoadedProject = NewProject;
 
-			return true;
-		}
+		return true;
 	}
 	
 #if PLATFORM_IOS
@@ -170,6 +127,11 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 	}
 
 	return bSuccess;
+}
+
+bool FProjectManager::AreProjectModulesUpToDate()
+{
+	return !CurrentlyLoadedProject.IsValid() || CurrentlyLoadedProject->AreModulesUpToDate();
 }
 
 const FString& FProjectManager::GetAutoLoadProjectFileName()
@@ -278,12 +240,6 @@ bool FProjectManager::SignSampleProject(const FString& FilePath, const FString& 
 		return false;
 	}
 
-	const bool bPromptIfSavedWithNewerVersionOfEngine = false;
-	if ( !NewProject->VerifyProjectCanBeLoaded(bPromptIfSavedWithNewerVersionOfEngine, OutFailReason) )
-	{
-		return false;
-	}
-
 	NewProject->SignSampleProject(FilePath, Category);
 
 	const FString& FileContents = NewProject->SerializeToJSON();
@@ -298,7 +254,7 @@ bool FProjectManager::SignSampleProject(const FString& FilePath, const FString& 
 	}
 }
 
-bool FProjectManager::QueryStatusForProject(const FString& FilePath, const FString& EngineIdentifier, FProjectStatus& OutProjectStatus) const
+bool FProjectManager::QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const
 {
 	TSharedRef<FProject> NewProject = MakeShareable( new FProject() );
 	FText FailReason;
@@ -307,18 +263,13 @@ bool FProjectManager::QueryStatusForProject(const FString& FilePath, const FStri
 		return false;
 	}
 
-	const bool bPromptIfSavedWithNewerVersionOfEngine = false;
-	if ( !NewProject->VerifyProjectCanBeLoaded(bPromptIfSavedWithNewerVersionOfEngine, FailReason) )
-	{
-		return false;
-	}
-
 	const FProjectInfo& ProjectInfo = NewProject->GetProjectInfo();
 	OutProjectStatus.Name = ProjectInfo.Name;
 	OutProjectStatus.Description = ProjectInfo.Description;
 	OutProjectStatus.Category = ProjectInfo.Category;
+	OutProjectStatus.bCodeBasedProject = ProjectInfo.Modules.Num() > 0;
 	OutProjectStatus.bSignedSampleProject = NewProject->IsSignedSampleProject(FilePath);
-	OutProjectStatus.bUpToDate = NewProject->IsUpToDate(EngineIdentifier);
+	OutProjectStatus.bRequiresUpdate = NewProject->RequiresUpdate();
 
 	return true;
 }

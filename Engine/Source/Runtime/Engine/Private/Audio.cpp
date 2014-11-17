@@ -7,7 +7,6 @@
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
 #include "AudioEffect.h"
-#include "EngineSplineClasses.h"
 #include "Net/UnrealNetwork.h"
 #include "TargetPlatform.h"
 #include "EngineAnalytics.h"
@@ -35,6 +34,7 @@ DEFINE_STAT(STAT_VorbisDecompressTime);
 DEFINE_STAT(STAT_VorbisPrepareDecompressionTime);
 DEFINE_STAT(STAT_AudioDecompressTime);
 DEFINE_STAT(STAT_AudioPrepareDecompressionTime);
+DEFINE_STAT(STAT_OpusDecompressTime);
 
 DEFINE_STAT(STAT_AudioUpdateEffects);
 DEFINE_STAT(STAT_AudioUpdateSources);

@@ -36,6 +36,8 @@ void FAssetDeleteModel::AddObjectToDelete( UObject* InObject )
 {
 	PendingDeletes.Add(MakeShareable(new FPendingDelete(InObject)));
 
+	PrepareToDelete(InObject);
+
 	SetState(StartScanning);
 }
 
@@ -358,6 +360,54 @@ int32 FAssetDeleteModel::GetDeletedObjectCount() const
 	return ObjectsDeleted;
 }
 
+void FAssetDeleteModel::PrepareToDelete(UObject* InObject)
+{
+	if ( InObject->IsA<UObjectRedirector>() )
+	{
+		// Add all redirectors found in this package to the redirectors to delete list.
+		// All redirectors in this package should be fixed up.
+		UPackage* RedirectorPackage = InObject->GetOutermost();
+		TArray<UObject*> AssetsInRedirectorPackage;
+		
+		GetObjectsWithOuter(RedirectorPackage, AssetsInRedirectorPackage, /*bIncludeNestedObjects=*/false);
+		UMetaData* PackageMetaData = NULL;
+		bool bContainsAtLeastOneOtherAsset = false;
+
+		for ( auto ObjIt = AssetsInRedirectorPackage.CreateConstIterator(); ObjIt; ++ObjIt )
+		{
+			if ( UObjectRedirector* Redirector = Cast<UObjectRedirector>(*ObjIt) )
+			{
+				Redirector->RemoveFromRoot();
+			}
+			else if ( UMetaData* MetaData = Cast<UMetaData>(*ObjIt) )
+			{
+				PackageMetaData = MetaData;
+			}
+			else
+			{
+				bContainsAtLeastOneOtherAsset = true;
+			}
+		}
+
+		if ( !bContainsAtLeastOneOtherAsset )
+		{
+			RedirectorPackage->RemoveFromRoot();
+			ULinkerLoad* Linker = ULinkerLoad::FindExistingLinkerForPackage(RedirectorPackage);
+			if ( Linker )
+			{
+				Linker->RemoveFromRoot();
+			}
+
+			// @todo we shouldnt be worrying about metadata objects here, ObjectTools::CleanUpAfterSuccessfulDelete should
+			if ( PackageMetaData )
+			{
+				PackageMetaData->RemoveFromRoot();
+				PendingDeletes.AddUnique(MakeShareable(new FPendingDelete(PackageMetaData)));
+			}
+		}
+	}
+}
+
 // FPendingDelete
 //-----------------------------------------------------------------
 
@@ -460,18 +510,23 @@ void FPendingDelete::CheckForReferences()
 	bIsReferencedInMemoryByUndo = false;
 	if ( bIsReferencedInMemory )
 	{
-		// determine whether the transaction buffer is the only thing holding a reference to the object
+		FReferencerInformationList ReferencesExcludingUndo;
+		// determine whether the transaction buffer is holding a reference to the object
 		// and if so, offer the user the option to reset the transaction buffer.
 		GEditor->Trans->DisableObjectSerialization();
-		bIsReferencedInMemory = IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, true, &MemoryReferences);
+		IsReferenced(Object, GARBAGE_COLLECTION_KEEPFLAGS, true, &ReferencesExcludingUndo);
 		GEditor->Trans->EnableObjectSerialization();
-
 		// only ref to this object is the transaction buffer - set a flag so we know we need to clear the undo stack
-		if ( !bIsReferencedInMemory )
+		if ( MemoryReferences.InternalReferences.Num() > ReferencesExcludingUndo.InternalReferences.Num() )
 		{
 			bIsReferencedInMemoryByUndo = true;
 		}
 	}
+}
+
+bool FPendingDelete::operator == ( const FPendingDelete& Other ) const
+{
+	return Object == Other.Object;
 }
 
 #undef LOCTEXT_NAMESPACE

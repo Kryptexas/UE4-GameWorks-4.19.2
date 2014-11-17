@@ -48,7 +48,7 @@ public:
 	 *
 	 * @param SectionName - The name of the section to get.
 	 *
-	 * @return The settings section, or NULL if it doesn't exist.
+	 * @return The settings section, or nullptr if it doesn't exist.
 	 */
 	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const = 0;
 

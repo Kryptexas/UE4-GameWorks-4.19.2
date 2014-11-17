@@ -506,7 +506,7 @@ FORCEINLINE float FRotator::NormalizeAxis(float Angle)
 FORCEINLINE uint8 FRotator::CompressAxisToByte(float Angle)
 {
 	// map [0->360) to [0->256) and mask off any winding
-	return FMath::Round(Angle * 256.f / 360.f) & 0xFF;
+	return FMath::RoundToInt(Angle * 256.f / 360.f) & 0xFF;
 }
 
 FORCEINLINE float FRotator::DecompressAxisFromByte(uint16 Angle)
@@ -518,7 +518,7 @@ FORCEINLINE float FRotator::DecompressAxisFromByte(uint16 Angle)
 FORCEINLINE uint16 FRotator::CompressAxisToShort(float Angle)
 {
 	// map [0->360) to [0->65536) and mask off any winding
-	return FMath::Round(Angle * 65536.f / 360.f) & 0xFFFF;
+	return FMath::RoundToInt(Angle * 65536.f / 360.f) & 0xFFFF;
 }
 
 

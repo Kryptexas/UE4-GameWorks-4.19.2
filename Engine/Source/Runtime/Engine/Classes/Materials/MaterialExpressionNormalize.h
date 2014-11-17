@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionNormalize.generated.h"
 
-UCLASS(HeaderGroup=Material, MinimalAPI)
+UCLASS(MinimalAPI)
 class UMaterialExpressionNormalize : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

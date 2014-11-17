@@ -76,6 +76,9 @@ public:
 	/** Creates a new SCS node using the given class to create the component template */
 	ENGINE_API USCS_Node* CreateNode(class UClass* NewComponentClass, FName NewComponentVariableName = NAME_None);
 
+	/** Creates a new SCS node using the given component template instance */
+	ENGINE_API USCS_Node* CreateNode(UActorComponent* NewComponentTemplate, FName NewComponentVariableName = NAME_None);
+
 	/** Ensures that all nodes in the SCS have valid names for compilation/replication */
 	ENGINE_API void ValidateNodeVariableNames(class FCompilerResultsLog& MessageLog);
 

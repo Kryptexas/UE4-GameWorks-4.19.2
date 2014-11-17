@@ -73,9 +73,10 @@ void RHIInit(bool bHasEditorToken)
 
 void RHIExit()
 {
-	if ( !GUsingNullRHI )
+	if ( !GUsingNullRHI && GDynamicRHI != NULL )
 	{
 		// Destruct the dynamic RHI.
+		GDynamicRHI->Shutdown();
 		delete GDynamicRHI;
 		GDynamicRHI = NULL;
 	}

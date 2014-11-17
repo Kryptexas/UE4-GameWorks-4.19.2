@@ -85,6 +85,21 @@ void FLandscapeEditorDetailCustomization_MiscTools::CustomizeDetails(IDetailLayo
 				.OnClicked_Static(&FLandscapeEditorDetailCustomization_MiscTools::OnApplySelectedSplinesButtonClicked)
 			]
 		];
+		ToolsCategory.AddCustomRow("Use Auto Rotate Control Point")
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(0, 6, 0, 0)
+			[
+				SNew(SCheckBox)
+				.OnCheckStateChanged(this, &FLandscapeEditorDetailCustomization_MiscTools::OnbUseAutoRotateControlPointChanged)
+				.IsChecked(this, &FLandscapeEditorDetailCustomization_MiscTools::GetbUseAutoRotateControlPoint)
+				.Content()
+				[
+					SNew(STextBlock).Text(LOCTEXT("Spline.bUseAutoRotateControlPoint.Selected", "Use Auto Rotate Control Point"))
+				]
+			]
+		];
 	}
 
 
@@ -222,6 +237,25 @@ FReply FLandscapeEditorDetailCustomization_MiscTools::OnApplySelectedSplinesButt
 	}
 
 	return FReply::Handled();
+}
+
+void FLandscapeEditorDetailCustomization_MiscTools::OnbUseAutoRotateControlPointChanged(ESlateCheckBoxState::Type NewState)
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode)
+	{
+		LandscapeEdMode->SetbUseAutoRotateOnJoin(NewState == ESlateCheckBoxState::Checked);
+	}
+}
+
+ESlateCheckBoxState::Type FLandscapeEditorDetailCustomization_MiscTools::GetbUseAutoRotateControlPoint() const
+{
+	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
+	if (LandscapeEdMode)
+	{
+		return LandscapeEdMode->GetbUseAutoRotateOnJoin() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	}
+	return ESlateCheckBoxState::Unchecked;
 }
 
 FReply FLandscapeEditorDetailCustomization_MiscTools::OnApplyRampButtonClicked()

@@ -8,56 +8,46 @@ AFunctionalTest::AFunctionalTest( const class FPostConstructInitializeProperties
 	, TimesUpResult(EFunctionalTestResult::Failed)
 	, TimeLimit(DefaultTimeLimit)
 	, TimesUpMessage( NSLOCTEXT("FunctionalTest", "DefaultTimesUpMessage", "Time's up!") )
+	, bIsEnabled(true)
 	, bIsRunning(false)
 	, TimeLeft(0.f)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	
+	SpriteComponent = PCIP.CreateDefaultSubobject<UBillboardComponent>(this, TEXT("Sprite"));
+	if (SpriteComponent)
+	{
+		SpriteComponent->bHiddenInGame = false;
+		SpriteComponent->AlwaysLoadOnClient = false;
+		SpriteComponent->AlwaysLoadOnServer = false;
 #if WITH_EDITORONLY_DATA
-	UTexture2D* SpriteTexture = nullptr;
-	
-	if (!IsRunningCommandlet())
-	{
-		struct FConstructorStatics
+
+		if (!IsRunningCommandlet())
 		{
-			ConstructorHelpers::FObjectFinderOptional<UTexture2D> Texture;
-
-			FConstructorStatics()
-				: Texture(TEXT("/Engine/EditorResources/S_FTest"))
+			struct FConstructorStatics
 			{
-			}
-		};
-		static FConstructorStatics ConstructorStatics;
-		SpriteTexture = ConstructorStatics.Texture.Get();
-	}
+				ConstructorHelpers::FObjectFinderOptional<UTexture2D> Texture;
+				FName ID_FTests;
+				FText NAME_FTests;
 
-	if (HasAnyFlags(RF_ClassDefaultObject) == false)
-	{
-		if (SpriteTexture != NULL)
-		{
-			SpriteComponent = NewNamedObject<UBillboardComponent>(this, TEXT("Sprite"));
+				FConstructorStatics()
+					: Texture(TEXT("/Engine/EditorResources/S_FTest"))
+					, ID_FTests(TEXT("FTests"))
+					, NAME_FTests(NSLOCTEXT( "SpriteCategory", "FTests", "FTests" ))
+				{
+				}
+			};
+			static FConstructorStatics ConstructorStatics;
 
-			if (SpriteComponent != NULL)
-			{
-				SpriteComponent->Sprite = SpriteTexture;
-				SpriteComponent->bHiddenInGame = true;
-				SpriteComponent->bVisible = true;
-				SpriteComponent->AlwaysLoadOnClient = false;
-				SpriteComponent->AlwaysLoadOnServer = false;
-
-				//SpriteComponent->AttachParent = RootComponent;
-				SpriteComponent->SetAbsolute(false, false, true);
-
-				RootComponent = SpriteComponent;
-			}
+			SpriteComponent->Sprite = ConstructorStatics.Texture.Get();
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_FTests;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_FTests;
 		}
-	
-		RenderComp = NewNamedObject<UFuncTestRenderingComponent>(this, TEXT("FTestRenderComp"));		
-		RenderComp->PostPhysicsComponentTick.bCanEverTick = false;
-		RenderComp->AttachParent = RootComponent;
+
+#endif
+		RootComponent = SpriteComponent;
 	}
-#endif // WITH_EDITORONLY_DATA
 }
 
 void AFunctionalTest::Tick(float DeltaSeconds)
@@ -79,8 +69,10 @@ void AFunctionalTest::Tick(float DeltaSeconds)
 	}
 }
 
-void AFunctionalTest::StartTest()
+bool AFunctionalTest::StartTest()
 {
+	FailureMessage = TEXT("");
+
 	if (TimeLimit > 0)
 	{
 		TimeLeft = TimeLimit;
@@ -90,6 +82,8 @@ void AFunctionalTest::StartTest()
 	bIsRunning = true;
 	
 	OnTestStart.Broadcast();
+
+	return true;
 }
 
 void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestResult, const FString& Message)
@@ -117,6 +111,7 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 		, *GetActorLabel()
 		, *ResultText.ToString()
 		, Message.IsEmpty() == false ? *Message : TEXT("Test finished") );
+	const FString AdditionalDetails = GetAdditionalTestFinishedMessage(TestResult);
 
 	AutoDestroyActors.Reset();
 
@@ -143,12 +138,18 @@ void AFunctionalTest::FinishTest(TEnumAsByte<EFunctionalTestResult::Type> TestRe
 	}
 
 	FMessageLog("FunctionalTestingLog").Message(MessageLogSeverity, FText::FromString(GetActorLabel()))
-		->AddToken( FTextToken::Create( ResultText ) )
-		->AddToken( FTextToken::Create( Message.IsEmpty() == false ? FText::FromString(Message) : NSLOCTEXT("FunctionalTest", "FinishedTest", "Test finished") ) );
+		->AddToken(FTextToken::Create(ResultText))
+		->AddToken(FTextToken::Create(FText::FromString(Message)))
+		->AddToken(FTextToken::Create(FText::FromString(AdditionalDetails)))
+		->AddToken(FTextToken::Create(FText::FromString(FailureMessage)));
 
 	TestFinishedObserver.ExecuteIfBound(this);
 }
 
+void AFunctionalTest::CleanUp()
+{
+	FailureMessage = TEXT("");
+}
 
 //@todo add "warning" level here
 void AFunctionalTest::LogMessage(const FString& Message)

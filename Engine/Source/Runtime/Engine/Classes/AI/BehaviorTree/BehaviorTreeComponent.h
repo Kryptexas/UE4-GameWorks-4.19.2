@@ -26,7 +26,7 @@ struct FBTNodeExecutionInfo
 	FBTNodeExecutionInfo() : ExecuteNode(NULL) { }
 };
 
-UCLASS(HeaderGroup=Component)
+UCLASS()
 class ENGINE_API UBehaviorTreeComponent : public UBrainComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -36,7 +36,7 @@ class ENGINE_API UBehaviorTreeComponent : public UBrainComponent
 protected:
 	virtual void StopLogic(const FString& Reason) OVERRIDE;
 	virtual void PauseLogic(const FString& Reason) OVERRIDE;
-	virtual void ResumeLogic(const FString& Reason) OVERRIDE;
+	virtual EAILogicResuming::Type ResumeLogic(const FString& Reason) OVERRIDE;
 
 	/** indicates instance has been initialized to work with specific BT asset */
 	bool TreeHasBeenStarted() const;
@@ -71,7 +71,7 @@ public:
 
 	/** setup message observer for given task */
 	void RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType);
-	void RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType, int32 MessageID);
+	void RegisterMessageObserver(const class UBTTaskNode* TaskNode, FName MessageType, FAIRequestID MessageID);
 	
 	/** remove message observers registered with task */
 	void UnregisterMessageObserversFrom(const class UBTTaskNode* TaskNode);
@@ -87,7 +87,6 @@ public:
 	void UnregisterAuxNodesUpTo(const struct FBTNodeIndex& Index);
 
 	/** BEGIN UActorComponent overrides */
-	virtual void InitializeComponent() OVERRIDE;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
 	/** END UActorComponent overrides */
 
@@ -111,13 +110,7 @@ public:
 
 	/** @return active node */
 	const class UBTNode* GetActiveNode() const;
-
-	/** @return blackboard used with this component */
-	class UBlackboardComponent* GetBlackboardComponent();
-
-	/** @return blackboard used with this component */
-	const class UBlackboardComponent* GetBlackboardComponent() const;
-
+	
 	/** get index of active instance on stack */
 	uint16 GetActiveInstanceIdx() const;
 
@@ -129,6 +122,9 @@ public:
 
 	/** @return true if active node is one of child nodes of given one */
 	bool IsExecutingBranch(const class UBTNode* Node, int32 ChildIndex = -1) const;
+
+	/** @return true if aux node is currently active */
+	bool IsAuxNodeActive(const class UBTAuxiliaryNode* AuxNode) const;
 
 	/** @return status of speficied task */
 	EBTTaskStatus::Type GetTaskStatus(const class UBTTaskNode* TaskNode) const;
@@ -142,11 +138,6 @@ public:
 #endif
 
 protected:
-
-	/** blackboard component */
-	UPROPERTY(transient)
-	class UBlackboardComponent* BlackboardComp;
-
 	/** stack of behavior tree instances */
 	TArray<struct FBehaviorTreeInstance> InstanceStack;
 
@@ -195,11 +186,12 @@ protected:
 	/** if set, execution requests will be postponed */
 	uint8 bIsPaused : 1;
 
-	/** push behavior tree instance on execution stack */
+	/** push behavior tree instance on execution stack
+	 *	@NOTE: should never be called out-side of BT execution, meaning only BT tasks can push another BT instance! */
 	bool PushInstance(class UBehaviorTree* TreeAsset);
 
 	/** add unique Id of newly created subtree to KnownInstances list and return its index */
-	uint8 UpdateInstanceId(class UBehaviorTree* TreeAsset);
+	uint8 UpdateInstanceId(class UBehaviorTree* TreeAsset, const class UBTNode* OriginNode, int32 OriginInstanceIdx);
 
 	/** find next task to execute */
 	UBTTaskNode* FindNextTask(class UBTCompositeNode* ParentNode, uint16 ParentInstanceIdx, EBTNodeResult::Type LastResult);
@@ -208,10 +200,10 @@ protected:
 	void OnTreeFinished();
 
 	/** apply pending node updates from SearchData */
-	void ApplySearchData(int32 UpToIdx = -1);
+	void ApplySearchData(class UBTNode* NewActiveNode, int32 UpToIdx = -1);
 
 	/** apply updates from specific list */
-	void ApplySearchUpdates(const TArray<struct FBehaviorTreeSearchUpdate>& UpdateList, int32 UpToIdx, bool bPostUpdate = false);
+	void ApplySearchUpdates(const TArray<struct FBehaviorTreeSearchUpdate>& UpdateList, int32 UpToIdx, int32 NewNodeExecutionIndex, bool bPostUpdate = false);
 
 	/** abort currently executed task */
 	void AbortCurrentTask();
@@ -267,16 +259,6 @@ FORCEINLINE class UBehaviorTree* UBehaviorTreeComponent::GetCurrentTree() const
 FORCEINLINE class UBehaviorTree* UBehaviorTreeComponent::GetRootTree() const
 {
 	return InstanceStack.Num() ? KnownInstances[InstanceStack[0].InstanceIdIndex].TreeAsset : NULL;
-}
-
-FORCEINLINE class UBlackboardComponent* UBehaviorTreeComponent::GetBlackboardComponent()
-{
-	return BlackboardComp;
-}
-
-FORCEINLINE const class UBlackboardComponent* UBehaviorTreeComponent::GetBlackboardComponent() const
-{
-	return BlackboardComp;
 }
 
 FORCEINLINE const class UBTNode* UBehaviorTreeComponent::GetActiveNode() const

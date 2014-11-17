@@ -57,7 +57,7 @@ TSharedRef<SWidget> SPhATPreviewViewportToolBar::GenerateViewMenu() const
 		ViewMenuBuilder.AddMenuEntry(Actions.ShowSkeleton);
 		ViewMenuBuilder.AddMenuEntry(Actions.DrawGroundBox);
 		ViewMenuBuilder.AddMenuEntry(Actions.InstanceProperties);
-		ViewMenuBuilder.AddMenuEntry(Actions.ShowFixedBodies);
+		ViewMenuBuilder.AddMenuEntry(Actions.ShowKinematicBodies);
 		ViewMenuBuilder.AddMenuEntry(Actions.ToggleGraphicsHierarchy);
 		ViewMenuBuilder.AddMenuEntry(Actions.ToggleBoneInfuences);
 		ViewMenuBuilder.AddMenuEntry(Actions.ToggleMassProperties);

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemSteamPackage.h"
 
 /** Forward declarations of all interface classes */
@@ -20,7 +21,7 @@ typedef TSharedPtr<class FOnlineAchievementsSteam, ESPMode::ThreadSafe> FOnlineA
  *	OnlineSubsystemSteam - Implementation of the online subsystem for STEAM services
  */
 class ONLINESUBSYSTEMSTEAM_API FOnlineSubsystemSteam : 
-	public IOnlineSubsystem, 
+	public FOnlineSubsystemImpl, 
 	public FTickerObjectBase
 {
 protected:
@@ -82,6 +83,26 @@ protected:
 PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
+	FOnlineSubsystemSteam(FName InInstanceName) :
+		FOnlineSubsystemImpl(InInstanceName),
+		bSteamworksClientInitialized(false),
+		bSteamworksGameServerInitialized(false),
+		SteamAppID(0),
+		GameServerSteamPort(0),
+		GameServerGamePort(0),
+		GameServerQueryPort(0),
+		SessionInterface(NULL),
+		IdentityInterface(NULL),
+		FriendInterface(NULL),
+		SharedCloudInterface(NULL),
+		UserCloudInterface(NULL),
+		LeaderboardsInterface(NULL),
+		VoiceInterface(NULL),
+		ExternalUIInterface(NULL),
+		OnlineAsyncTaskThreadRunnable(NULL),
+		OnlineAsyncTaskThread(NULL)
+	{}
+
 	FOnlineSubsystemSteam() : 
 		bSteamworksClientInitialized(false),
 		bSteamworksGameServerInitialized(false),
@@ -174,11 +195,6 @@ PACKAGE_SCOPE:
 	 */
 	void ClearUserCloudFiles();
 
-	/**
-	 *	@return true if the specified Id is considered a local player, false otherwise
-	 */
-	bool IsLocalPlayer(const FUniqueNetId& UniqueId) const;
-
 	/** 
 	 * **INTERNAL** 
 	 * Get the interface for accessing leaderboards/stats
@@ -213,6 +229,7 @@ public:
 	virtual IOnlineUserPtr GetUserInterface() const OVERRIDE;
 	virtual IOnlineMessagePtr GetMessageInterface() const OVERRIDE;
 	virtual IOnlinePresencePtr GetPresenceInterface() const OVERRIDE;
+	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const OVERRIDE;
 	virtual bool Init() OVERRIDE;
 	virtual bool Shutdown() OVERRIDE;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) OVERRIDE;

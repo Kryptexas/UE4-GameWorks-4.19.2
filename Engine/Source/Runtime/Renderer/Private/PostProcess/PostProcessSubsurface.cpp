@@ -171,6 +171,7 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 	}
 
 	// Draw a quad mapping scene color to the view's render target
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	DrawRectangle(
 		DestRect.Min.X, DestRect.Min.Y,
 		DestRect.Width(), DestRect.Height(),
@@ -178,6 +179,7 @@ void FRCPassPostProcessSubsurfaceSetup::Process(FRenderingCompositePassContext& 
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -330,6 +332,8 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+
 	if(Pass == 0)
 	{
 		SCOPED_DRAW_EVENT(SubsurfacePass0, DEC_SCENE_ITEMS);
@@ -344,6 +348,7 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 			SrcRect.Width(), SrcRect.Height(),
 			DestSize,
 			SrcSize,
+			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
 		RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -371,6 +376,7 @@ void FRCPassPostProcessSubsurface::Process(FRenderingCompositePassContext& Conte
 			SrcRect.Width(), SrcRect.Height(),
 			DestSize,
 			SrcSize,
+			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
 		RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

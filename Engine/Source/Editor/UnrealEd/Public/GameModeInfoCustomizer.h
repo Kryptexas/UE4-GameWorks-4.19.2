@@ -44,10 +44,12 @@ public:
 		// Find the metaclass of this property
 		UClass* MetaClass = UObject::StaticClass();
 		const UClass* GameModeClass = GetCurrentGameModeClass();
+		bool bAllowNone = false;
 		if (GameModeClass != NULL)
 		{
 			UClassProperty* ClassProp = FindFieldChecked<UClassProperty>(GameModeClass, DefaultClassPropertyName);
 			MetaClass = ClassProp->MetaClass;
+			bAllowNone = !(ClassProp->PropertyFlags & CPF_NoClear);
 		}
 
 		TAttribute<bool> CanBrowseAtrribute = TAttribute<bool>::Create( TAttribute<bool>::FGetter::CreateSP( this, &FGameModeInfoCustomizer::CanBrowseDefaultClass, DefaultClassPropertyName) ) ;
@@ -66,7 +68,7 @@ public:
 			.AutoWidth()
 			[
 				SNew(SClassPropertyEntryBox)
-				.AllowNone(false)
+				.AllowNone(bAllowNone)
 				.MetaClass(MetaClass)
 				.IsEnabled(this, &FGameModeInfoCustomizer::AllowModifyGameMode)
 				.SelectedClass(this, &FGameModeInfoCustomizer::OnGetDefaultClass, DefaultClassPropertyName)
@@ -126,18 +128,27 @@ public:
 				.SelectedClass(this, &FGameModeInfoCustomizer::GetCurrentGameModeClass)
 				.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::SetCurrentGameModeClass))
 			]
+
 			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding( 2.0f, 1.0f, 2.0f, 0.0f )
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.ContentPadding(FMargin(2.0f,0.0f))
+				.OnClicked(this, &FGameModeInfoCustomizer::OnClickNewGameMode)
+				.ToolTipText(LOCTEXT("NewGameMode_ToolTip", "Create a new Game Mode"))
+				[
+					SNew( STextBlock )
+					.Text(LOCTEXT("NewGameMode", "New.."))
+					.Font( IDetailLayoutBuilder::GetDetailFont() )
+				]
+			]
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				PropertyCustomizationHelpers::MakeBrowseButton(FSimpleDelegate::CreateSP(this, &FGameModeInfoCustomizer::OnBrowseGameModeClicked), FText(), CanBrowseAtrribute)
-			]
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.Text(LOCTEXT("NewGameMode", "New.."))
-				.ContentPadding( FMargin(4.f, 0.f) )
-				.OnClicked(this, &FGameModeInfoCustomizer::OnClickNewGameMode)
 			]
 		];
 
@@ -163,7 +174,10 @@ public:
 			return NULL;
 		}
 
-		const UClass* GameModeClass = FindObject<UClass>(ANY_PACKAGE, *ClassName);
+		FString StrippedClassName = ClassName;
+		ConstructorHelpers::StripObjectClass(StrippedClassName);
+
+		const UClass* GameModeClass = FindObject<UClass>(ANY_PACKAGE, *StrippedClassName);
 		if (!GameModeClass)
 		{
 			GameModeClass = LoadObject<UClass>(NULL, *ClassName);
@@ -208,7 +222,7 @@ public:
 	void OnSetDefaultClass(const UClass* NewDefaultClass, FName ClassPropertyName)
 	{
 		const UClass* GameModeClass = GetCurrentGameModeClass();
-		if (GameModeClass != NULL && NewDefaultClass != NULL && AllowModifyGameMode())
+		if (GameModeClass != NULL && AllowModifyGameMode())
 		{
 			UClassProperty* ClassProp = FindFieldChecked<UClassProperty>(GameModeClass, ClassPropertyName);
 			const UClass** DefaultClassPtr = ClassProp->ContainerPtrToValuePtr<const UClass*>(GetCurrentGameModeCDO());
@@ -221,33 +235,40 @@ public:
 
 	bool CanBrowseDefaultClass(FName ClassPropertyName) const
 	{
-		return (OnGetDefaultClass(ClassPropertyName) != NULL);
+		return CanSyncToClass(OnGetDefaultClass(ClassPropertyName));
 	}
 
 	void OnBrowseDefaultClassClicked(FName ClassPropertyName)
 	{
-		UClass* Class = const_cast<UClass*>( OnGetDefaultClass(ClassPropertyName) );
-		if(Class != NULL)
-		{
-			TArray<UObject*> SyncObjects;
-			SyncObjects.Add(Class);
-			GEditor->SyncBrowserToObjects(SyncObjects);
-		}
+		SyncBrowserToClass(OnGetDefaultClass(ClassPropertyName));
 	}
 
 	bool CanBrowseGameMode() const
 	{
-		return (GetCurrentGameModeClass() != NULL);
+		return CanSyncToClass(GetCurrentGameModeClass());
 	}
 
 	void OnBrowseGameModeClicked()
 	{
-		UClass* Class = const_cast<UClass*>( GetCurrentGameModeClass() );
-		if (Class != NULL)
+		SyncBrowserToClass(GetCurrentGameModeClass());
+	}
+
+	bool CanSyncToClass(const UClass* Class) const
+	{
+		return (Class != NULL && Class->ClassGeneratedBy != NULL);
+	}
+
+	void SyncBrowserToClass(const UClass* Class)
+	{
+		if (CanSyncToClass(Class))
 		{
-			TArray<UObject*> SyncObjects;
-			SyncObjects.Add(Class);
-			GEditor->SyncBrowserToObjects(SyncObjects);
+			UBlueprint* Blueprint = Cast<UBlueprint>(Class->ClassGeneratedBy);
+			if (ensure(Blueprint != NULL))
+			{
+				TArray<UObject*> SyncObjects;
+				SyncObjects.Add(Blueprint);
+				GEditor->SyncBrowserToObjects(SyncObjects);
+			}
 		}
 	}
 

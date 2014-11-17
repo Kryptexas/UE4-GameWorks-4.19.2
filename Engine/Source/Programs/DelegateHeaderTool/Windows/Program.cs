@@ -123,7 +123,10 @@ namespace DelegateHeaderTool
 			var DefineTemplateArgs = new StringBuilder( "#define FUNC_TEMPLATE_ARGS " );
 			var DefineHasParams = String.Format( "#define FUNC_HAS_PARAMS {0}", CallParameterCount > 0 ? 1 : 0 );
 			var DefineParamList = new StringBuilder( "#define FUNC_PARAM_LIST" );
+			var DefineParamMembers = new StringBuilder( "#define FUNC_PARAM_MEMBERS" );
 			var DefineParamPassThru = new StringBuilder( "#define FUNC_PARAM_PASSTHRU" );
+			var DefineParamParmsPassIn = new StringBuilder( "#define FUNC_PARAM_PARMS_PASSIN" );
+			var DefineParamInitializerList = new StringBuilder( "#define FUNC_PARAM_INITIALIZER_LIST" );
 			var DefineIsVoid = String.Format( "#define FUNC_IS_VOID {0}", bSupportsRetVal ? 0 : 1 );
 			var DefineDeclareDelegate = new StringBuilder( "#define DECLARE_DELEGATE" );
             var DefineDeclareMulticastDelegate = new StringBuilder("#define DECLARE_MULTICAST_DELEGATE");
@@ -209,9 +212,14 @@ namespace DelegateHeaderTool
 				{
 					DefineParamList.Append( "," );
 					DefineParamPassThru.Append( "," );
+					DefineParamParmsPassIn.Append( "," );
+					DefineParamInitializerList.Append(",");
 				}
 				DefineParamList.AppendFormat( " Param{0}Type InParam{0}", CallParameterIndex );
+				DefineParamMembers.AppendFormat(" Param{0}Type Param{0};", CallParameterIndex);
 				DefineParamPassThru.AppendFormat( " InParam{0}", CallParameterIndex );
+				DefineParamParmsPassIn.AppendFormat(" Parms.Param{0}", CallParameterIndex);
+				DefineParamInitializerList.AppendFormat(" Param{0}( InParam{0} )", CallParameterIndex);
 
 				DefineDeclareDelegate.AppendFormat( ", Param{0}Type", CallParameterIndex );
                 DefineDeclareMulticastDelegate.AppendFormat(", Param{0}Type", CallParameterIndex);
@@ -320,7 +328,10 @@ namespace DelegateHeaderTool
 			Output.WriteLine( DefineTemplateArgs );
 			Output.WriteLine( DefineHasParams );
 			Output.WriteLine( DefineParamList );
+			Output.WriteLine( DefineParamMembers );
 			Output.WriteLine( DefineParamPassThru );
+			Output.WriteLine( DefineParamParmsPassIn );
+			Output.WriteLine( DefineParamInitializerList );
 			Output.WriteLine( DefineIsVoid );
 			Output.WriteLine( "#include \"DelegateInstanceInterfaceImpl.inl\"" );
 
@@ -459,7 +470,10 @@ namespace DelegateHeaderTool
             Output.WriteLine( "#undef FUNC_TEMPLATE_ARGS" );
             Output.WriteLine( "#undef FUNC_HAS_PARAMS" );
             Output.WriteLine( "#undef FUNC_PARAM_LIST" );
+			Output.WriteLine( "#undef FUNC_PARAM_MEMBERS" );
             Output.WriteLine( "#undef FUNC_PARAM_PASSTHRU" );
+			Output.WriteLine( "#undef FUNC_PARAM_PARMS_PASSIN" );
+			Output.WriteLine( "#undef FUNC_PARAM_INITIALIZER_LIST" );
             Output.WriteLine( "#undef FUNC_IS_VOID" );
         }
 

@@ -15,19 +15,4 @@ UK2Node_LeaderboardQuery::UK2Node_LeaderboardQuery(const FPostConstructInitializ
 	ProxyClass = ULeaderboardQueryCallbackProxy::StaticClass();
 }
 
-FString UK2Node_LeaderboardQuery::GetTooltip() const
-{
-	return LOCTEXT("K2Node_LeaderboardQuery_Tooltip", "Queries a leaderboard for an integer value").ToString();
-}
-
-FText UK2Node_LeaderboardQuery::GetNodeTitle(ENodeTitleType::Type TitleType) const
-{
-	return LOCTEXT("ReadLeaderboardInteger", "Read Leaderboard Integer");
-}
-
-FString UK2Node_LeaderboardQuery::GetCategoryName()
-{
-	return TEXT("Online|Leaderboard");
-}
-
 #undef LOCTEXT_NAMESPACE

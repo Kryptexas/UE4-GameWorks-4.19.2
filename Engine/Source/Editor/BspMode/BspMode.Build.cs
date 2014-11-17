@@ -13,16 +13,17 @@ public class BspMode : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
-				"LevelEditor"
+				"LevelEditor",
 			}
-			);
+		);
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
 				"PropertyEditor",
-                "LevelEditor"
+                "LevelEditor",
 			}
         );
 	}

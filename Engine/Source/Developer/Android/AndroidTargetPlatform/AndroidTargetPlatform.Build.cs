@@ -13,10 +13,7 @@ public class AndroidTargetPlatform : ModuleRules
 			{
 				"Core",
 				"CoreUObject",
-				"Sockets",
 				"TargetPlatform",
-				"Messaging",
-				"TargetDeviceServices",
 				"AndroidDeviceDetection",
 			}
 		);

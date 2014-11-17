@@ -22,6 +22,9 @@ struct FClientData
 
 	/** Current frame of data sent */
 	int64 CurrentFrame;
+
+	/** Stats metadata size. */
+	int32 MetadataSize;
 #endif
 };
 
@@ -54,10 +57,6 @@ public:
 	virtual void SendData(FProfilerCountAccumulator& Data) OVERRIDE;
 
 	virtual void SendData(FProfilerCycleGraph& Data) OVERRIDE;
-
-	virtual void AddStatDescription(FStatDescription& Data) OVERRIDE;
-
-	virtual void AddGroupDescription(FStatGroupDescription& Data) OVERRIDE;
 
 	virtual bool IsCapturing() const OVERRIDE
 	{ 

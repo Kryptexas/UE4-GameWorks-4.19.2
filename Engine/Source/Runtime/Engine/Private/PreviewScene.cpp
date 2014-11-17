@@ -28,7 +28,7 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 										.RequiresHitProxies(false)
 										.ShouldSimulatePhysics(CVS.bShouldSimulatePhysics)
 										.SetTransactional(CVS.bTransactional));
-	PreviewWorld->BeginPlay(FURL());
+	PreviewWorld->InitializeActorsForPlay(FURL());
 
 	GetScene()->UpdateDynamicSkyLight(FLinearColor::White * CVS.SkyBrightness, FLinearColor::Black);
 

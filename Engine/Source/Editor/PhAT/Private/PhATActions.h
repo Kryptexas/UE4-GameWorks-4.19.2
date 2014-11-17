@@ -46,7 +46,7 @@ public:
 	TSharedPtr<FUICommandInfo> ConstraintRenderingMode_None;
 	TSharedPtr<FUICommandInfo> ConstraintRenderingMode_AllPositions;
 	TSharedPtr<FUICommandInfo> ConstraintRenderingMode_AllLimits;
-	TSharedPtr<FUICommandInfo> ShowFixedBodies;
+	TSharedPtr<FUICommandInfo> ShowKinematicBodies;
 	TSharedPtr<FUICommandInfo> DrawGroundBox;
 	TSharedPtr<FUICommandInfo> ToggleGraphicsHierarchy;
 	TSharedPtr<FUICommandInfo> ToggleBoneInfuences;
@@ -69,11 +69,11 @@ public:
 	TSharedPtr<FUICommandInfo> DeleteConstraint;
 	TSharedPtr<FUICommandInfo> PlayAnimation;
 	TSharedPtr<FUICommandInfo> ShowSkeleton;
-	TSharedPtr<FUICommandInfo> MakeBodyFixed;
-	TSharedPtr<FUICommandInfo> MakeBodyUnfixed;
+	TSharedPtr<FUICommandInfo> MakeBodyKinematic;
+	TSharedPtr<FUICommandInfo> MakeBodySimulated;
 	TSharedPtr<FUICommandInfo> MakeBodyDefault;
-	TSharedPtr<FUICommandInfo> FixAllBodiesBelow;
-	TSharedPtr<FUICommandInfo> UnfixAllBodiesBelow;
+	TSharedPtr<FUICommandInfo> KinematicAllBodiesBelow;
+	TSharedPtr<FUICommandInfo> SimulatedAllBodiesBelow;
 	TSharedPtr<FUICommandInfo> MakeAllBodiesBelowDefault;
 	TSharedPtr<FUICommandInfo> DeleteBody;
 	TSharedPtr<FUICommandInfo> DeleteAllBodiesBelow;

@@ -28,7 +28,9 @@ FCoreDelegates::FOnHandleSystemError FCoreDelegates::OnHandleSystemError;
 FCoreDelegates::FOnPreObjectPropertyChanged FCoreDelegates::OnPreObjectPropertyChanged;
 FCoreDelegates::FOnObjectPropertyChanged FCoreDelegates::OnObjectPropertyChanged;
 FCoreDelegates::FOnActorLabelChanged FCoreDelegates::OnActorLabelChanged;
+
 #if WITH_EDITOR
+	FCoreDelegates::FOnObjectModified  FCoreDelegates::OnObjectModified;
 	FCoreDelegates::FOnAssetLoaded FCoreDelegates::OnAssetLoaded;
 	FSimpleMulticastDelegate FCoreDelegates::PreModal;
 	FSimpleMulticastDelegate FCoreDelegates::PostModal;
@@ -61,4 +63,7 @@ FCoreDelegates::FApplicationLifetimeDelegate FCoreDelegates::ApplicationWillEnte
 FCoreDelegates::FApplicationLifetimeDelegate FCoreDelegates::ApplicationHasEnteredForegroundDelegate;
 FCoreDelegates::FApplicationLifetimeDelegate FCoreDelegates::ApplicationWillTerminateDelegate; 
 
-FSimpleMulticastDelegate FCoreDelegates::StatsEnabled;
+FCoreDelegates::FStatCheckEnabled FCoreDelegates::StatCheckEnabled;
+FCoreDelegates::FStatEnabled FCoreDelegates::StatEnabled;
+FCoreDelegates::FStatDisabled FCoreDelegates::StatDisabled;
+FCoreDelegates::FStatDisableAll FCoreDelegates::StatDisableAll;

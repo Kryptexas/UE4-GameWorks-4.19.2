@@ -10,6 +10,7 @@
 #include "TickableObjectRenderThread.h"
 #include "ExceptionHandling.h"
 #include "TaskGraphInterfaces.h"
+#include "StatsData.h"
 
 //
 // Globals
@@ -34,8 +35,6 @@ FString GRenderingThreadError;
  * If the rendering thread crashes, it sets this variable to false.
  */
 volatile bool GIsRenderingThreadHealthy = true;
-
-RENDERCORE_API bool GGameThreadWantsToSuspendRendering = false;
 
 /** Whether the rendering thread is suspended (not even processing the tickables) */
 volatile int32 GIsRenderingThreadSuspended = 0;
@@ -192,9 +191,7 @@ void TickRenderingTickables()
 	{
 		return;
 	}
-
-	uint32 ObjectsThatResumedRendering = 0;
-
+	
 	// tick any rendering thread tickables
 	for (int32 ObjectIndex = 0; ObjectIndex < FTickableObjectRenderThread::RenderingThreadTickableObjects.Num(); ObjectIndex++)
 	{
@@ -202,22 +199,12 @@ void TickRenderingTickables()
 		// make sure it wants to be ticked and the rendering thread isn't suspended
 		if (TickableObject->IsTickable())
 		{
-			if (GGameThreadWantsToSuspendRendering && TickableObject->NeedsRenderingResumedForRenderingThreadTick())
-			{
-				ObjectsThatResumedRendering++;
-			}
 			STAT(FScopeCycleCounter(TickableObject->GetStatId());)
 			TickableObject->Tick(DeltaSeconds);
 		}
 	}
 	// update the last time we ticked
 	LastTickTime = CurTime;
-
-	// if no ticked objects resumed rendering, make sure we're suspended if game thread wants us to be
-	if (ObjectsThatResumedRendering == 0 && GGameThreadWantsToSuspendRendering)
-	{
-		// Nothing to do?
-	}
 }
 
 /** Accumulates how many cycles the renderthread has been idle. It's defined in RenderingThread.cpp. */
@@ -240,6 +227,9 @@ void RenderingThreadMain( FEvent* TaskGraphBoundSyncEvent )
 	{
 		TaskGraphBoundSyncEvent->Trigger();
 	}
+
+	// set the thread back to real time mode
+	FPlatformProcess::SetRealTimeMode();
 
 	check(GIsThreadedRendering);
 	FTaskGraphInterface::Get().ProcessThreadUntilRequestReturn(ENamedThreads::RenderThread);
@@ -265,7 +255,7 @@ void RenderingThreadTick(int64 StatsFrame, int32 MasterDisableChangeTagStartFram
 	{
 		Frame = -StatsFrame; // mark this as a bad frame
 	}
-	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", TEXT(""), EStatDataType::ST_int64, true, false);
+	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
 	FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventRenderThread, Frame);
 	if( IsInActualRenderingThread() )
 	{
@@ -347,11 +337,11 @@ public:
 		{
 			RenderingThreadMain( TaskGraphBoundSyncEvent );
 		}
-		GRenderThreadId = 0;
 #if STATS
 		FThreadStats::ExplicitFlush();
 		FThreadStats::Shutdown();
-#endif
+#endif		
+		GRenderThreadId = 0;
 
 		return 0;
 	}
@@ -451,6 +441,11 @@ struct FConsoleRenderThreadPropagation : public IConsoleThreadPropagation
 
 };
 
+static FString BuildRenderingThreadName( uint32 ThreadIndex )
+{
+	return FString::Printf( TEXT( "%s %u" ), *FName( NAME_RenderThread ).GetPlainNameString(), ThreadIndex );
+}
+
 void StartRenderingThread()
 {
 	static uint32 ThreadCount = 0;
@@ -464,7 +459,7 @@ void StartRenderingThread()
 
 	EThreadPriority RenderingThreadPrio = TPri_Normal;
 
-	GRenderingThread = FRunnableThread::Create(GRenderingThreadRunnable, *FString::Printf(TEXT("RenderingThread %d"), ThreadCount), 0, 0, 0, RenderingThreadPrio);
+	GRenderingThread = FRunnableThread::Create( GRenderingThreadRunnable, *BuildRenderingThreadName( ThreadCount ), 0, 0, 0, RenderingThreadPrio );
 
 	// Wait for render thread to have taskgraph bound before we dispatch any tasks for it.
 	((FRenderingThread*)GRenderingThreadRunnable)->TaskGraphBoundSyncEvent->Wait();
@@ -527,11 +522,11 @@ void StopRenderingThread()
 
 			FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(ENamedThreads::RenderThread);
 
-			// Busy wait while Kismet debugging, to avoid opportunistic execution of game thread tasks
+			// Busy wait while BP debugging, to avoid opportunistic execution of game thread tasks
 			// If the game thread is already executing tasks, then we have no choice but to spin
-			if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread) ) 
+			if (GIntraFrameDebuggingGameThread || FTaskGraphInterface::Get().IsThreadProcessingTasks(ENamedThreads::GameThread)) 
 			{
-				while ((QuitTask.GetReference() != NULL) && QuitTask->IsComplete())
+				while ((QuitTask.GetReference() != nullptr) && !QuitTask->IsComplete())
 				{
 					FPlatformProcess::Sleep(0.0f);
 				}

@@ -253,7 +253,7 @@ namespace UnrealBuildTool
 		/** List of "shared" precompiled header environments, potentially shared between modules */
 		public readonly List<PrecompileHeaderEnvironment> SharedPCHEnvironments = new List<PrecompileHeaderEnvironment>();
 
-		/** @Hack: UnrealHeaderTool should not list CoreUObject.generated.inl as a dependency */
+		// Whether or not UHT is being built
 		public bool bHackHeaderGenerator;
 
 		/** Default constructor. */

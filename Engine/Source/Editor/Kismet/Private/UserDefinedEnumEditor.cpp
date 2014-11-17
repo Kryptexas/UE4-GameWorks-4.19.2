@@ -155,7 +155,7 @@ void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 				.HAlign(HAlign_Right)
 				[
 					SNew(SButton)
-					.Text(LOCTEXT("FunctionNewInputArg", "New").ToString())
+					.Text(LOCTEXT("FunctionNewInputArg", "New"))
 					.OnClicked(this, &FEnumDetails::OnAddNewEnumerator)
 				]
 			];
@@ -164,12 +164,12 @@ void FEnumDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 		InputsCategory.AddCustomBuilder( Layout.ToSharedRef() );
 	}
 
-	FEnumEditorUtils::FEnumEditorManager::Get().AddEnumListener(this);
+	FEnumEditorUtils::FEnumEditorManager::Get().AddListener(this);
 }
 
 FEnumDetails::~FEnumDetails()
 {
-	FEnumEditorUtils::FEnumEditorManager::Get().RemoveEnumListener(this);
+	FEnumEditorUtils::FEnumEditorManager::Get().RemoveListener(this);
 }
 
 void FEnumDetails::OnForceRefresh()
@@ -180,7 +180,7 @@ void FEnumDetails::OnForceRefresh()
 	}
 }
 
-void FEnumDetails::OnEnumChanged(const class UUserDefinedEnum* Enum)
+void FEnumDetails::OnChanged(const class UUserDefinedEnum* Enum)
 {
 	if (Enum && (TargetEnum.Get() == Enum))
 	{
@@ -346,15 +346,15 @@ bool FUserDefinedEnumIndexLayout::IsValidEnumeratorDisplayName(const FText& NewT
 
 	const FString NewName = NewText.ToString();
 	bool bUnchangedName = (NewName == FEnumEditorUtils::GetEnumeratorDisplayName(TargetEnum.Get(), EnumeratorIndex));
-	FString ErrorMsg;
+	FText ErrorMsg;
 	if (NewText.IsEmpty())
 	{
-		ErrorMsg = LOCTEXT("NameMissingError", "You must provide a name.").ToString();
+		ErrorMsg = LOCTEXT("NameMissingError", "You must provide a name.");
 		bValidName = false;
 	}
 	else if (!bUnchangedName && !FEnumEditorUtils::IsEnumeratorDisplayNameValid(TargetEnum.Get(), NewName))
 	{
-		ErrorMsg = FText::Format(LOCTEXT("NameInUseError", "'{0}' is already in use."), FText::FromString( NewName)).ToString();
+		ErrorMsg = FText::Format(LOCTEXT("NameInUseError", "'{0}' is already in use."), NewText);
 		bValidName = false;
 	}
 

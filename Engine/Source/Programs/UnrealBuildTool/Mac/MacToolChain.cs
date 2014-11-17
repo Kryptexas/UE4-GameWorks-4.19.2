@@ -211,9 +211,9 @@ namespace UnrealBuildTool
 			{
 				Result += " -framework " + Framework;
 			}
-			foreach (string Framework in LinkEnvironment.Config.AdditionalFrameworks)
+			foreach (UEBuildFramework Framework in LinkEnvironment.Config.AdditionalFrameworks)
 			{
-				Result += " -framework " + Framework;
+				Result += " -framework " + Framework.FrameworkName;
 			}
 			foreach (string Framework in LinkEnvironment.Config.WeakFrameworks)
 			{
@@ -852,6 +852,11 @@ namespace UnrealBuildTool
 						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/{1}.icns\" \"{2}.app/Contents/Resources/{1}.icns\"", EngineSourcePath, IconName, ExeName);
 					}
 
+					if (ExeName.StartsWith("UE4Editor"))
+					{
+						AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/UProject.icns\" \"{1}.app/Contents/Resources/UProject.icns\"", EngineSourcePath, ExeName);
+					}
+
 					string InfoPlistFile = EngineSourcePath + "/Programs/" + GameName + "/Resources/Mac/Info.plist";
 					if (!File.Exists(InfoPlistFile))
 					{
@@ -866,7 +871,6 @@ namespace UnrealBuildTool
 						}
 					}
 					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}\" \"{1}.app/Contents/Info.plist\"", InfoPlistFile, ExeName);
-					AppendMacLine(CreateAppBundleScript, "cp -f \"{0}/Runtime/Launch/Resources/Mac/OpenXcodeAtFileAndLine.applescript\" \"{1}.app/Contents/Resources/OpenXcodeAtFileAndLine.applescript\"", EngineSourcePath, ExeName);
 
 					// Fix contents of Info.plist
 					AppendMacLine(CreateAppBundleScript, "sed -i \"\" \"s/\\${0}/{1}/g\" \"{1}.app/Contents/Info.plist\"", "{EXECUTABLE_NAME}", ExeName);
@@ -910,9 +914,8 @@ namespace UnrealBuildTool
 
 					// copy over some needed files
 					// @todo mac: Make a QueueDirectoryForBatchUpload
-					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/OpenXcodeAtFileAndLine.applescript")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/UE4.icns")));
-					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/Rocket.icns")));
+					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/UProject.icns")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/Info.plist")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/English.lproj/InfoPlist.strings")));
 					QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath("../../Engine/Source/Runtime/Launch/Resources/Mac/English.lproj/MainMenu.xib")));
@@ -1001,7 +1004,7 @@ namespace UnrealBuildTool
 			GenDebugAction.CommandPath = "sh";
 
 			// note that the source and dest are switched from a copy command
-			GenDebugAction.CommandArguments = string.Format("-c '{0}usr/bin/xcrun dsymutil {1} -o {2}; cd {2}/..; zip -r -y -1 {3}.dSYM.zip {3}.dSYM'",
+			GenDebugAction.CommandArguments = string.Format("-c '{0}usr/bin/xcrun dsymutil {1} -o {2}'",
 				DeveloperDir,
 				MachOBinary.AbsolutePath,
 				FullDestPathRoot,
@@ -1136,13 +1139,17 @@ namespace UnrealBuildTool
 				Manifest.AddFileName(BundleContentsDirectory + "Info.plist");
 				Manifest.AddFileName(BundleContentsDirectory + "PkgInfo");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/UE4.icns");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/OpenXcodeAtFileAndLine.applescript");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/English.lproj/InfoPlist.strings");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/English.lproj/MainMenu.nib");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/MacOS/RadioEffectUnit");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/English.lproj/Localizable.strings");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Resources/RadioEffectUnit.rsrc");
 				Manifest.AddFileName(BundleContentsDirectory + "Resources/RadioEffectUnit.component/Contents/Info.plist");
+
+				if (Binary.Config.TargetName.StartsWith("UE4Editor"))
+				{
+					Manifest.AddFileName(BundleContentsDirectory + "Resources/UProject.icns");
+				}
 			}
 		}
 

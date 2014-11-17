@@ -5,6 +5,7 @@
 #include "OnlineSubsystemTypes.h"
 #include "OnlineKeyValuePair.h"
 #include "OnlineSubsystemPackage.h"
+#include "OnlineSubsystemSessionSettings.h"
 
 /** Setting describing the name of the current map (value is FString) */
 #define SETTING_MAPNAME FName(TEXT("MAPNAME"))
@@ -432,6 +433,10 @@ public:
 #define SEARCH_PRESENCE FName(TEXT("PRESENCESEARCH"))
 /** Search for a match with min player availability (value is int) */
 #define SEARCH_MINSLOTSAVAILABLE FName(TEXT("MINSLOTSAVAILABLE"))
+/** User ID to search for session of */
+#define SEARCH_USER FName(TEXT("SEARCHUSER"))
+/** Keywords to match in session search */
+#define SEARCH_KEYWORDS FName(TEXT("SEARCHKEYWORDS"))
 
 /** 
  * Encapsulation of a search for sessions request.

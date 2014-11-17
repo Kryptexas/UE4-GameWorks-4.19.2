@@ -116,8 +116,8 @@ public:
 					UEdGraphPin* OtherPin = MyPin->LinkedTo[j];
 					if( OtherPin )
 					{
-						UEdGraphNode* OtherNode = OtherPin->GetOwningNode();
-						if (!VisitedNodes.Contains(OtherNode))
+						UEdGraphNode* OtherNode = OtherPin->GetOwningNodeUnchecked();
+						if (OtherNode && !VisitedNodes.Contains(OtherNode))
 						{
 							TraverseNodes(OtherNode);
 						}

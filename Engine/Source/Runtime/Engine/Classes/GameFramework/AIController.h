@@ -15,7 +15,7 @@
 #include "AI/Navigation/PathFollowingComponent.h"
 #include "AIController.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FAIMoveCompletedSignature, int32, RequestID, EPathFollowingResult::Type, Result );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAIMoveCompletedSignature, FAIRequestID, RequestID, EPathFollowingResult::Type, Result);
 
 namespace FAISystem
 {
@@ -27,6 +27,7 @@ namespace FAISystem
 	}
 }
 
+UENUM()
 namespace EAIRequestPriority
 {
 	enum Type
@@ -36,11 +37,15 @@ namespace EAIRequestPriority
 		HardScript, // actions LDs really want AI to perform
 		Reaction,	// actions being result of game-world mechanics, like hit reactions, death, falling, etc. In general things not depending on what AI's thinking
 		Ultimate,	// ultimate priority, to be used with caution, makes AI perform given action regardless of anything else (for example disabled reactions)
-	};
 
-	static const int32 Lowest = Logic;
-	static const int32 MAX = Ultimate + 1;
+		MAX UMETA(Hidden)
+	};
 }
+
+namespace EAIRequestPriority
+{
+	static const int32 Lowest = Logic;
+};
 
 namespace EAIFocusPriority
 {
@@ -105,6 +110,9 @@ public:
 	UPROPERTY()
 	class UBrainComponent* BrainComponent;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "AI")
+	void OnPossess(class APawn* PossessedPawn);
+
 	/** Makes AI go toward specified Goal actor (destination will be continuously updated)
 	 *  @param AcceptanceRadius - finish move if pawn gets close enough
 	 *  @param bStopOnOverlap - add pawn's radius to AcceptanceRadius
@@ -138,20 +146,25 @@ public:
 	 *  @param CustomData - game specific data, that will be passed to pawn's movement component
 	 *  @return RequestID, or 0 when failed
 	 */
-	virtual uint32 RequestMove(FNavPathSharedPtr Path, class AActor* Goal = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr CustomData = NULL);
+	virtual FAIRequestID RequestMove(FNavPathSharedPtr Path, class AActor* Goal = NULL, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bStopOnOverlap = true, FCustomMoveSharedPtr CustomData = NULL);
 
-	/** Aborts the move AI is currently performing */
-	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
-	virtual void StopMovement();
+	/** if AI is currently moving due to request given by RequestToPause, then the move will be paused */
+	bool PauseMove(FAIRequestID RequestToPause);
+
+	/** resumes last AI-performed, paused request provided it's ID was equivalent to RequestToResume */
+	bool ResumeMove(FAIRequestID RequestToResume);
+
+	/** Aborts the move the controller is currently performing */
+	virtual void StopMovement() OVERRIDE;
 
 	/** Called on completing current movement request */
-	virtual void OnMoveCompleted(uint32 RequestID, EPathFollowingResult::Type Result);
+	virtual void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result);
 
 	/** Returns the Move Request ID for the current move */
-	FORCEINLINE uint32 GetCurrentMoveRequestID() const { return PathFollowingComponent.IsValid() ? PathFollowingComponent->GetCurrentRequestId() : INVALID_MOVEREQUESTID; }
+	FORCEINLINE FAIRequestID GetCurrentMoveRequestID() const { return PathFollowingComponent.IsValid() ? PathFollowingComponent->GetCurrentRequestId() : FAIRequestID::InvalidRequest; }
 
 	/** Blueprint notification that we've completed the current movement request */
-	UPROPERTY(BlueprintAssignable, meta=(FriendlyName="MoveCompleted"))
+	UPROPERTY(BlueprintAssignable, meta=(DisplayName="MoveCompleted"))
 	FAIMoveCompletedSignature ReceiveMoveCompleted;
 
 	/** @returns path to actor Goal (can be incomplete if async pathfinding is used) */
@@ -183,9 +196,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI")
 	virtual bool RunBehaviorTree(class UBehaviorTree* BTAsset);
 
+	/** makes AI use specified BB asset */
+	UFUNCTION(BlueprintCallable, Category = "AI")
+	virtual bool UseBlackboard(class UBlackboardData* BlackboardAsset);
+
 	/** Retrieve the final position that controller should be looking at. */
 	UFUNCTION(BlueprintCallable, Category="AI")
-	virtual FVector GetFocalPoint();
+	virtual FVector GetFocalPoint() const;
 
 	FORCEINLINE FVector GetFocalPoint(EAIFocusPriority::Type Priority) const {  return FocusInformation.Priorities.IsValidIndex(Priority) ? *FocusInformation.Priorities[Priority].Position : FAISystem::InvalidLocation; }
 
@@ -228,7 +245,7 @@ public:
 
 	// Begin AController Interface
 	virtual void Possess(class APawn* InPawn) OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 
 #if ENABLE_VISUAL_LOG
 	virtual void GrabDebugSnapshot(struct FVisLogEntry* Snapshot) const OVERRIDE;
@@ -257,8 +274,9 @@ public:
 	/* Set Focus actor for given priority, will set FocalPoint as a result. */
 	virtual void SetFocus(AActor* NewFocus, uint8 InPriority=EAIFocusPriority::Gameplay);
 
-	/** Clears Focus for given priority, will also clear FocalPoint as a result */
-	virtual void ClearFocus(uint8 InPriority=EAIFocusPriority::Gameplay);
+	/** Clears Focus for given priority, will also clear FocalPoint as a result
+	 *	@param InPriority focus priority to clear. If you don't know what to use you probably mean EAIFocusPriority::Gameplay*/
+	virtual void ClearFocus(uint8 InPriority);
 
 	virtual FString GetDebugIcon() const {return FString();}
 

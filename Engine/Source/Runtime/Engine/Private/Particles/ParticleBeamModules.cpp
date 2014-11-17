@@ -356,7 +356,7 @@ void UParticleModuleTypeDataBeam2::Update(FParticleEmitterInstance* Owner, int32
 					// Determine the steps and step size
 					BeamData->StepSize		= FullMagnitude / InterpolationCount;
 					BeamData->TravelRatio	= TrueMagnitude / FullMagnitude;
-					BeamData->Steps			= FMath::Floor(BeamData->TravelRatio * InterpolationCount);
+					BeamData->Steps			= FMath::FloorToInt(BeamData->TravelRatio * InterpolationCount);
 					// Readjust the travel ratio
 					BeamData->TravelRatio	= (TrueMagnitude - (BeamData->StepSize * BeamData->Steps)) / BeamData->StepSize;
 				}
@@ -378,7 +378,7 @@ void UParticleModuleTypeDataBeam2::Update(FParticleEmitterInstance* Owner, int32
 				{
 					// The noise points are based on distance...
 					// Determine the number of points to drop.
-					int32 Count = FMath::Trunc(FullMagnitude / BeamNoise->FrequencyDistance);
+					int32 Count = FMath::TruncToInt(FullMagnitude / BeamNoise->FrequencyDistance);
 					Count = FMath::Min<int32>(Count, Freq);
 					BeamData->StepSize		= FullMagnitude / (Count + 1);
 					BeamData->Steps			= Count;
@@ -409,12 +409,12 @@ void UParticleModuleTypeDataBeam2::Update(FParticleEmitterInstance* Owner, int32
 
 				if (BeamNoise->FrequencyDistance > 0.0f)
 				{
-					int32 Count = FMath::Trunc(FullMagnitude / BeamNoise->FrequencyDistance);
+					int32 Count = FMath::TruncToInt(FullMagnitude / BeamNoise->FrequencyDistance);
 					Count = FMath::Min<int32>(Count, Freq);
 					BeamData->StepSize		= FullMagnitude / (Count + 1);
 					// Determine the partial trail amount and the steps taken
 					BeamData->TravelRatio	= TrueMagnitude / FullMagnitude;
-					BeamData->Steps			= FMath::Floor(BeamData->TravelRatio * (Count + 1));
+					BeamData->Steps			= FMath::FloorToInt(BeamData->TravelRatio * (Count + 1));
 					// Lock the steps to the frequency
 					if (BeamData->Steps > Count)
 					{
@@ -445,7 +445,7 @@ void UParticleModuleTypeDataBeam2::Update(FParticleEmitterInstance* Owner, int32
 					BeamData->StepSize		= FullMagnitude / (Freq + 1);
 					// Determine the partial trail amount and the steps taken
 					BeamData->TravelRatio	= TrueMagnitude / FullMagnitude;
-					BeamData->Steps			= FMath::Floor(BeamData->TravelRatio * (Freq + 1));
+					BeamData->Steps			= FMath::FloorToInt(BeamData->TravelRatio * (Freq + 1));
 					// Lock the steps to the frequency
 					if (BeamData->Steps > Freq)
 					{
@@ -552,7 +552,7 @@ void UParticleModuleTypeDataBeam2::Update(FParticleEmitterInstance* Owner, int32
 				{
 					//@todo.SAS. Fix this!
 					// When the data fills in (vertices), it is incorrect.
-					BeamData->TriangleCount	+= FMath::Floor(BeamData->TravelRatio * NoiseTess) * 2;
+					BeamData->TriangleCount	+= FMath::FloorToInt(BeamData->TravelRatio * NoiseTess) * 2;
 				}
 			}
 		}
@@ -581,7 +581,7 @@ void UParticleModuleTypeDataBeam2::Update(FParticleEmitterInstance* Owner, int32
 				{
 					//@todo.SAS. Fix this!
 					// When the data fills in (vertices), it is incorrect.
-//					BeamData->TriangleCount	+= FMath::Floor(BeamData->TravelRatio * NoiseTess) * 2;
+//					BeamData->TriangleCount	+= FMath::FloorToInt(BeamData->TravelRatio * NoiseTess) * 2;
 				}
 			}
 		}
@@ -1305,7 +1305,7 @@ void UParticleModuleBeamNoise::Spawn(FParticleEmitterInstance* Owner, int32 Offs
 	int32 CalcFreq = Frequency;
 	if (Frequency_LowRange > 0)
 	{
-		CalcFreq = FMath::Trunc((FMath::SRand() * (Frequency - Frequency_LowRange)) + Frequency_LowRange);
+		CalcFreq = FMath::TruncToInt((FMath::SRand() * (Frequency - Frequency_LowRange)) + Frequency_LowRange);
 	}
 	BEAM2_TYPEDATA_SETFREQUENCY(BeamData->Lock_Max_NumNoisePoints, CalcFreq);
 	

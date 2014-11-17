@@ -423,14 +423,20 @@ namespace PackageTools
 	}
 
 
-	/**
-	 * Helper function that attempts to unlaod the specified top-level packages.
-	 *
-	 * @param	PackagesToUnload	the list of packages that should be unloaded
-	 *
-	 * @return	true if the set of loaded packages was changed
-	 */
 	bool UnloadPackages( const TArray<UPackage*>& TopLevelPackages )
+	{
+		FText ErrorMessage;
+		bool bResult = UnloadPackages(TopLevelPackages, ErrorMessage);
+		if(!ErrorMessage.IsEmpty())
+		{
+			FMessageDialog::Open( EAppMsgType::Ok, ErrorMessage );
+		}
+
+		return bResult;
+	}
+
+
+	bool UnloadPackages( const TArray<UPackage*>& TopLevelPackages, FText& OutErrorMessage )
 	{
 		bool bResult = false;
 
@@ -468,8 +474,7 @@ namespace PackageTools
 			FFormatNamedArguments Args;
 			Args.Add( TEXT("DirtyPackages"),FText::FromString( DirtyPackagesList ) );
 
-			const FText Message = FText::Format( NSLOCTEXT("UnrealEd", "UnloadDirtyPackagesList", "The following assets have been modified and cannot be unloaded:{DirtyPackages}\nSaving these assets will allow them to be unloaded."), Args );
-			FMessageDialog::Open( EAppMsgType::Ok, Message );
+			OutErrorMessage = FText::Format( NSLOCTEXT("UnrealEd", "UnloadDirtyPackagesList", "The following assets have been modified and cannot be unloaded:{DirtyPackages}\nSaving these assets will allow them to be unloaded."), Args );
 		}
 
 		if ( PackagesToUnload.Num() > 0 )

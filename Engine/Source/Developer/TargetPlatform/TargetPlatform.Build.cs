@@ -36,6 +36,7 @@ public class TargetPlatform : ModuleRules
 				{
 					DynamicallyLoadedModuleNames.Add("AudioFormatADPCM"); // For IOS cooking
 					DynamicallyLoadedModuleNames.Add("AudioFormatOgg");
+					DynamicallyLoadedModuleNames.Add("AudioFormatOpus"); 
 				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Mac)

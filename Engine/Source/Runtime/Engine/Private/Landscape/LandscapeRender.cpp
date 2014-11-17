@@ -6,7 +6,6 @@ LandscapeRender.cpp: New terrain rendering
 
 #include "EnginePrivate.h"
 #include "ShaderParameters.h"
-#include "EngineTerrainClasses.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeEdit.h"
 #include "LevelUtils.h"
@@ -16,6 +15,7 @@ IMPLEMENT_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters,TEXT("Landscap
 
 #define LANDSCAPE_LOD_DISTANCE_FACTOR 2.f
 #define LANDSCAPE_MAX_COMPONENT_SIZE 255
+#define LANDSCAPE_LOD_SQUARE_ROOT_FACTOR 1.5f
 
 /*------------------------------------------------------------------------------
 	Forsyth algorithm for cache optimizing index buffers.
@@ -545,6 +545,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 ,	LevelColor(1.f, 1.f, 1.f)
 ,	ForcedLOD(InComponent->ForcedLOD)
 ,	LODBias(InComponent->LODBias)
+,	LODFalloff(InComponent->GetLandscapeProxy()->LODFalloff)
 {
 	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
 	{
@@ -586,9 +587,23 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 		MaxLOD = FMath::Min<int32>(MaxLOD, InComponent->GetLandscapeProxy()->MaxLODLevel);
 	}
 
-	LODDistance = FMath::Sqrt(2.f * FMath::Square((float)SubsectionSizeQuads)) * LANDSCAPE_LOD_DISTANCE_FACTOR / InComponent->GetLandscapeProxy()->LODDistanceFactor; // vary in 0...1
+	float LODDistanceFactor;
+	switch (LODFalloff)
+	{
+		case ELandscapeLODFalloff::SquareRoot:
+			LODDistanceFactor = FMath::Square(FMath::Min(LANDSCAPE_LOD_SQUARE_ROOT_FACTOR * InComponent->GetLandscapeProxy()->LODDistanceFactor, MAX_LANDSCAPE_LOD_DISTANCE_FACTOR));
+			break;
+		case ELandscapeLODFalloff::Linear:
+		default:
+			LODDistanceFactor = InComponent->GetLandscapeProxy()->LODDistanceFactor;
+			break;
+	}
+
+	LODDistance = FMath::Sqrt(2.f * FMath::Square((float)SubsectionSizeQuads)) * LANDSCAPE_LOD_DISTANCE_FACTOR / LODDistanceFactor; // vary in 0...1
 	DistDiff = -FMath::Sqrt(2.f * FMath::Square(0.5f*(float)SubsectionSizeQuads));
-	LODDistanceFactor = InComponent->GetLandscapeProxy()->LODDistanceFactor * 0.33f;
+	// This value is used for shader. I made some modification to LOD transition looks better than plain transition
+	// Used for LODBias.xy values in shader
+	PrecomputedLODFactor = FMath::Min(LODDistanceFactor, 3.f) * 0.33f; 
 
 	if (InComponent->StaticLightingResolution > 0.f)
 	{
@@ -661,16 +676,12 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 			BatchElementParams->SubX = SubX;
 			BatchElementParams->SubY = SubY;
 
-			BatchElement->MinVertexIndex = 0;
-			BatchElement->MaxVertexIndex = SubsectionSizeVerts * FMath::Square(NumSubsections);
-
 #if WITH_EDITOR
 			FMeshBatchElement* ToolBatchElement = (SubX==0 && SubY==0) ? DynamicMeshTools.Elements.GetTypedData() : new(DynamicMeshTools.Elements) FMeshBatchElement;
 			*ToolBatchElement = *BatchElement;
 #endif
 		}
 	}
-
 }
 
 void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
@@ -1050,7 +1061,9 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 
 	for( int32 LOD = FirstLOD; LOD <= LastLOD; LOD++ )
 	{
-		if( ForcedLOD < 0 && NumSubsections > 1 )
+		int32 LodSubsectionSizeVerts = SubsectionSizeVerts >> LOD;
+
+		if (ForcedLOD < 0 && NumSubsections > 1)
 		{
 			// Per-subsection batch elements
 			for( int32 SubY=0;SubY<NumSubsections;SubY++ )
@@ -1071,10 +1084,10 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 					BatchElementParams->CurrentLOD = LOD;
 
 					BatchElement->IndexBuffer = SharedBuffers->IndexBuffers[LOD];
-					BatchElement->NumPrimitives = FMath::Square(((SubsectionSizeVerts >> LOD) - 1)) * 2;
+					BatchElement->NumPrimitives = FMath::Square((LodSubsectionSizeVerts-1)) * 2;
 					BatchElement->FirstIndex = (SubX + SubY * NumSubsections) * BatchElement->NumPrimitives * 3;
-					BatchElement->MinVertexIndex = 0;
-					BatchElement->MaxVertexIndex = SubsectionSizeVerts * FMath::Square(NumSubsections);
+					BatchElement->MinVertexIndex = SharedBuffers->IndexRanges[LOD].MinIndex[SubX][SubY];
+					BatchElement->MaxVertexIndex = SharedBuffers->IndexRanges[LOD].MaxIndex[SubX][SubY];
 				}
 			}
 		}
@@ -1101,13 +1114,13 @@ void FLandscapeComponentSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInter
 			BatchElement->IndexBuffer = SharedBuffers->IndexBuffers[LOD];
 		}
 
-		BatchElement->NumPrimitives = FMath::Square(((SubsectionSizeVerts >> LOD) - 1)) * FMath::Square(NumSubsections) * 2;
+		BatchElement->NumPrimitives = FMath::Square((LodSubsectionSizeVerts-1)) * FMath::Square(NumSubsections) * 2;
 		BatchElement->FirstIndex = 0;
-		BatchElement->MinVertexIndex = 0;
-		BatchElement->MaxVertexIndex = SubsectionSizeVerts * FMath::Square(NumSubsections);
+		BatchElement->MinVertexIndex = SharedBuffers->IndexRanges[LOD].MinIndexFull;
+		BatchElement->MaxVertexIndex = SharedBuffers->IndexRanges[LOD].MaxIndexFull;
 	}
 
-	PDI->DrawMesh(MeshBatch,0,FLT_MAX);				
+	PDI->DrawMesh(MeshBatch, FLT_MAX);
 }
 
 uint64 FLandscapeVertexFactory::GetStaticBatchElementVisibility( const class FSceneView& View, const struct FMeshBatch* Batch ) const
@@ -1198,7 +1211,7 @@ int32 FLandscapeComponentSceneProxy::CalcLODForSubsectionNoForced(const class FS
 	if (View.Family->LandscapeLODOverride >= 0)
 	{
 		float fLOD = FMath::Clamp<float>(View.Family->LandscapeLODOverride, FMath::Max<int32>(LODBias, MinLOD), FMath::Min<int32>(MaxLOD, MaxLOD + LODBias));
-		return FMath::Floor(fLOD);
+		return FMath::FloorToInt(fLOD);
 	}
 #endif
 
@@ -1208,16 +1221,43 @@ int32 FLandscapeComponentSceneProxy::CalcLODForSubsectionNoForced(const class FS
 		FVector2D CurrentCameraLocalPos = CameraLocalPos - FVector2D(SubX * SubsectionSizeQuads,SubY * SubsectionSizeQuads);
 		float ComponentDistance = FVector2D(CurrentCameraLocalPos-ComponentPosition).Size() + DistDiff;
 		// Clamp calculated distance based LOD with LODBiased values
-		float fLOD = FMath::Clamp<float>( ComponentDistance / LODDistance, FMath::Max<int32>(LODBias, MinLOD), FMath::Min<int32>(MaxLOD, MaxLOD+LODBias) );
-		return FMath::Floor( fLOD );
+		float fLOD;
+		switch (LODFalloff)
+		{
+			case ELandscapeLODFalloff::SquareRoot:
+				fLOD = FMath::Sqrt(ComponentDistance / LODDistance);
+				break;
+			default:
+			case ELandscapeLODFalloff::Linear:
+				fLOD = ComponentDistance / LODDistance;
+				break;
+		}
+		// Clamping based on LODBias
+		fLOD = FMath::Clamp<float>(fLOD, FMath::Max<int32>(LODBias, MinLOD), FMath::Min<int32>(MaxLOD, MaxLOD + LODBias));
+
+		return FMath::FloorToInt( fLOD );
 	}
 	else
 	{
 		float Scale = 1.0f / (View.ViewRect.Width() * View.ViewMatrices.ProjMatrix.M[0][0]);
 
 		// The "/ 5.0f" is totally arbitrary
-		float fLOD = FMath::Clamp<float>(FMath::Sqrt(Scale / 5.0f), FMath::Max<int32>(LODBias, MinLOD), FMath::Min<int32>(MaxLOD, MaxLOD + LODBias));
-		return FMath::Floor(fLOD);
+		float fLOD;
+		switch (LODFalloff)
+		{
+			case ELandscapeLODFalloff::SquareRoot:
+				fLOD = FMath::Sqrt(FMath::Sqrt(Scale / 5.0f));
+				break;
+			default:
+			case ELandscapeLODFalloff::Linear:
+				fLOD = Scale / 5.0f;
+				break;
+		}
+
+		// Clamping based on LODBias
+		fLOD = FMath::Clamp<float>(fLOD, FMath::Max<int32>(LODBias, MinLOD), FMath::Min<int32>(MaxLOD, MaxLOD + LODBias));
+
+		return FMath::FloorToInt(fLOD);
 	}
 }
 
@@ -1239,6 +1279,7 @@ void FLandscapeComponentSceneProxy::CalcLODParamsForSubsection(const class FScen
 	FVector2D CurrentCameraLocalPos = CameraLocalPos - FVector2D(SubX * SubsectionSizeQuads,SubY * SubsectionSizeQuads);
 
 	float ComponentDistance = FVector2D(CurrentCameraLocalPos - ComponentPosition).Size() + DistDiff;
+
 	OutDistLOD = ComponentDistance / LODDistance;
 
 	int32 FirstLOD = FMath::Max<int32>(LODBias, 0);
@@ -1249,12 +1290,34 @@ void FLandscapeComponentSceneProxy::CalcLODParamsForSubsection(const class FScen
 	}
 	else
 	{
-		OutfLOD = FMath::Clamp<float>(OutDistLOD, FirstLOD, LastLOD);
+		switch (LODFalloff)
+		{
+		case ELandscapeLODFalloff::SquareRoot:
+			OutfLOD = FMath::Sqrt(OutDistLOD);
+			break;
+		default:
+		case ELandscapeLODFalloff::Linear:
+			OutfLOD = OutDistLOD;
+			break;
+		}
+
+		OutfLOD = FMath::Clamp<float>(OutfLOD, FirstLOD, LastLOD);
 	}
 
 	for (int32 Idx = 0; Idx < LANDSCAPE_NEIGHBOR_NUM; ++Idx)
 	{
 		float ComponentDistance = FVector2D(CurrentCameraLocalPos-NeighborPosition[Idx]).Size() + DistDiff;
+		float fLOD;
+		switch (LODFalloff)
+		{
+			case ELandscapeLODFalloff::SquareRoot:
+				fLOD = FMath::Sqrt(ComponentDistance / LODDistance);
+				break;
+			default:
+			case ELandscapeLODFalloff::Linear:
+				fLOD = ComponentDistance / LODDistance;
+				break;
+		}
 
 		if (NumSubsections > 1 
 			&& ((SubX == 0 && Idx == 2) 
@@ -1263,12 +1326,12 @@ void FLandscapeComponentSceneProxy::CalcLODParamsForSubsection(const class FScen
 			|| (SubY == NumSubsections-1 && Idx == 0)) )
 		{
 			// Clamp calculated distance based LOD with LODBiased values
-			OutNeighborLODs[Idx] = ForcedLOD >= 0 ? ForcedLOD : FMath::Clamp<float>( ComponentDistance / LODDistance, FirstLOD, LastLOD );
+			OutNeighborLODs[Idx] = ForcedLOD >= 0 ? ForcedLOD : FMath::Clamp<float>( fLOD, FirstLOD, LastLOD);
 		}
 		else
 		{
 			// Neighbor LODBias are saved in BYTE, so need to convert to range [-128:127]
-			OutNeighborLODs[Idx] = ForcedNeighborLOD[Idx] != 255 ? ForcedNeighborLOD[Idx] : FMath::Clamp<float>( ComponentDistance / LODDistance, FMath::Max<float>(NeighborLODBias[Idx]-128, 0.f), FMath::Min<float>(MaxLOD, MaxLOD+NeighborLODBias[Idx]-128) );
+			OutNeighborLODs[Idx] = ForcedNeighborLOD[Idx] != 255 ? ForcedNeighborLOD[Idx] : FMath::Clamp<float>(fLOD, FMath::Max<float>(NeighborLODBias[Idx] - 128, 0.f), FMath::Min<float>(MaxLOD, MaxLOD + NeighborLODBias[Idx] - 128));
 		}
 
 		OutNeighborLODs[Idx] = FMath::Max<float>(OutfLOD, OutNeighborLODs[Idx]);
@@ -1313,9 +1376,13 @@ void FLandscapeComponentSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 				BatchElement.IndexBuffer = SharedBuffers->IndexBuffers[CurrentLOD];
 			}
 
-			int32 NumPrimitives = FMath::Square(((SubsectionSizeVerts >> CurrentLOD) - 1)) * 2;
+			int32 LodSubsectionSizeVerts = (SubsectionSizeVerts >> CurrentLOD);
+
+			int32 NumPrimitives = FMath::Square((LodSubsectionSizeVerts - 1)) * 2;
 			BatchElement.NumPrimitives = NumPrimitives;
 			BatchElement.FirstIndex = (SubX + SubY * NumSubsections) * NumPrimitives * 3;
+			BatchElement.MinVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MinIndex[SubX][SubY];
+			BatchElement.MaxVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MaxIndex[SubX][SubY];
 
 #if WITH_EDITOR
 			// Tools never use tessellation
@@ -1324,6 +1391,8 @@ void FLandscapeComponentSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface*
 			BatchElementTools.IndexBuffer = SharedBuffers->IndexBuffers[CurrentLOD];
 			BatchElementTools.NumPrimitives = NumPrimitives;
 			BatchElementTools.FirstIndex = BatchElement.FirstIndex;
+			BatchElementTools.MinVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MinIndex[SubX][SubY];
+			BatchElementTools.MaxVertexIndex = SharedBuffers->IndexRanges[CurrentLOD].MaxIndex[SubX][SubY];
 #endif
 		}
 	}
@@ -1529,95 +1598,216 @@ void FLandscapeVertexBuffer::InitRHI()
 }
 
 //
-// FLandscapeVertexBuffer
+// FLandscapeSharedBuffers
 //
 
 template <typename INDEX_TYPE>
-class FLandscapeIndexBuffer : public FRawStaticIndexBuffer16or32<INDEX_TYPE>
+void FLandscapeSharedBuffers::CreateIndexBuffers()
 {
-public:
-	FLandscapeIndexBuffer(int32 ThisLODSubsectionSizeQuads, int32 NumSubsections, int32 FullLODSubsectionSizeVerts)
-	:	FRawStaticIndexBuffer16or32<INDEX_TYPE>(false)
+	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
 	{
-		TArray<INDEX_TYPE> NewIndices;
-		NewIndices.Empty(ThisLODSubsectionSizeQuads*ThisLODSubsectionSizeQuads*6);
-
-		for( int32 SubY=0;SubY<NumSubsections;SubY++ )
+		if (!bVertexScoresComputed)
 		{
-			for( int32 SubX=0;SubX<NumSubsections;SubX++ )
+			bVertexScoresComputed = ComputeVertexScores();
+		}
+	}
+
+	TMap<uint64, INDEX_TYPE> VertexMap;
+	INDEX_TYPE VertexCount = 0;
+	int32 SubsectionSizeQuads = SubsectionSizeVerts - 1;
+
+	// Layout index buffer to determine best vertex order
+	int32 MaxLOD = NumIndexBuffers - 1;
+	for (int32 Mip = MaxLOD; Mip >= 0; Mip--)
+	{
+		int32 LodSubsectionSizeQuads = (SubsectionSizeVerts >> Mip) - 1;
+
+		TArray<INDEX_TYPE> NewIndices;
+		int32 ExpectedNumIndices = FMath::Square(NumSubsections) * FMath::Square(LodSubsectionSizeQuads) * 6;
+		NewIndices.Empty(ExpectedNumIndices);
+
+		int32& MaxIndexFull = IndexRanges[Mip].MaxIndexFull;
+		int32& MinIndexFull = IndexRanges[Mip].MinIndexFull;
+		MaxIndexFull = 0;
+		MinIndexFull = MAX_int32;
+
+		if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+		{
+			// ES2 version
+			float MipRatio = (float)SubsectionSizeQuads / (float)LodSubsectionSizeQuads; // Morph current MIP to base MIP
+
+			for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 			{
-				int32 SubOffset = (SubX + SubY * NumSubsections) * FMath::Square(FullLODSubsectionSizeVerts);
-				TArray<INDEX_TYPE> SubIndices;
-
-				for( int32 y=0;y<ThisLODSubsectionSizeQuads;y++ )
+				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
 				{
-					for( int32 x=0;x<ThisLODSubsectionSizeQuads;x++ )
+					TArray<INDEX_TYPE> SubIndices;
+					SubIndices.Empty(FMath::Square(LodSubsectionSizeQuads) * 6);
+
+					int32& MaxIndex = IndexRanges[Mip].MaxIndex[SubX][SubY];
+					int32& MinIndex = IndexRanges[Mip].MinIndex[SubX][SubY];
+					MaxIndex = 0;
+					MinIndex = MAX_int32;
+
+					for (int32 y = 0; y < LodSubsectionSizeQuads; y++)
 					{
-						int32 x0 = x;
-						int32 y0 = y;
-						int32 x1 = x + 1;
-						int32 y1 = y + 1;
-
-						if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+						for (int32 x = 0; x < LodSubsectionSizeQuads; x++)
 						{
-							float MipRatio = (float)(FullLODSubsectionSizeVerts-1) / (float)ThisLODSubsectionSizeQuads; // Morph current MIP to base MIP
-							x0 = FMath::Round( (float)x0 * MipRatio );
-							y0 = FMath::Round( (float)y0 * MipRatio );
-							x1 = FMath::Round( (float)x1 * MipRatio );
-							y1 = FMath::Round( (float)y1 * MipRatio );
+							int32 x0 = FMath::RoundToInt((float)x * MipRatio);
+							int32 y0 = FMath::RoundToInt((float)y * MipRatio);
+							int32 x1 = FMath::RoundToInt((float)(x + 1) * MipRatio);
+							int32 y1 = FMath::RoundToInt((float)(y + 1) * MipRatio);
 
-							SubIndices.Add( x0 + y0 * FullLODSubsectionSizeVerts + SubOffset );
-							SubIndices.Add( x1 + y1 * FullLODSubsectionSizeVerts + SubOffset );
-							SubIndices.Add( x1 + y0 * FullLODSubsectionSizeVerts + SubOffset );
+							FLandscapeVertexRef V00(x0, y0, SubX, SubY);
+							FLandscapeVertexRef V10(x1, y0, SubX, SubY);
+							FLandscapeVertexRef V11(x1, y1, SubX, SubY);
+							FLandscapeVertexRef V01(x0, y1, SubX, SubY);
 
-							SubIndices.Add( x0 + y0 * FullLODSubsectionSizeVerts + SubOffset );
-							SubIndices.Add( x0 + y1 * FullLODSubsectionSizeVerts + SubOffset );
-							SubIndices.Add( x1 + y1 * FullLODSubsectionSizeVerts + SubOffset );
+							uint64 Key00 = V00.MakeKey();
+							uint64 Key10 = V10.MakeKey();
+							uint64 Key11 = V11.MakeKey();
+							uint64 Key01 = V01.MakeKey();
+							
+							INDEX_TYPE i00;
+							INDEX_TYPE i10;
+							INDEX_TYPE i11;
+							INDEX_TYPE i01;
+
+							INDEX_TYPE* KeyPtr = VertexMap.Find(Key00);
+							if (KeyPtr == NULL)
+							{
+								i00 = VertexCount++;
+								VertexMap.Add(Key00, i00);
+							}
+							else
+							{
+								i00 = *KeyPtr;
+							}
+
+							KeyPtr = VertexMap.Find(Key10);
+							if (KeyPtr == NULL)
+							{
+								i10 = VertexCount++;
+								VertexMap.Add(Key10, i10);
+							}
+							else
+							{
+								i10 = *KeyPtr;
+							}
+							
+							KeyPtr = VertexMap.Find(Key11);
+							if (KeyPtr == NULL)
+							{
+								i11 = VertexCount++;
+								VertexMap.Add(Key11, i11);
+							}
+							else
+							{
+								i11 = *KeyPtr;
+							}
+
+							KeyPtr = VertexMap.Find(Key01);
+							if (KeyPtr == NULL)
+							{
+								i01 = VertexCount++;
+								VertexMap.Add(Key01, i01);
+							}
+							else
+							{
+								i01 = *KeyPtr;
+							}
+
+							// Update the min/max index ranges
+							MaxIndex = FMath::Max<int32>(MaxIndex, i00);
+							MinIndex = FMath::Min<int32>(MinIndex, i00);
+							MaxIndex = FMath::Max<int32>(MaxIndex, i10);
+							MinIndex = FMath::Min<int32>(MinIndex, i10);
+							MaxIndex = FMath::Max<int32>(MaxIndex, i11);
+							MinIndex = FMath::Min<int32>(MinIndex, i11);
+							MaxIndex = FMath::Max<int32>(MaxIndex, i01);
+							MinIndex = FMath::Min<int32>(MinIndex, i01);
+
+							SubIndices.Add(i00);
+							SubIndices.Add(i11);
+							SubIndices.Add(i10);
+
+							SubIndices.Add(i00);
+							SubIndices.Add(i01);
+							SubIndices.Add(i11);
 						}
-						else
-						{
-							NewIndices.Add( x0 + y0 * FullLODSubsectionSizeVerts + SubOffset );
-							NewIndices.Add( x1 + y1 * FullLODSubsectionSizeVerts + SubOffset );
-							NewIndices.Add( x1 + y0 * FullLODSubsectionSizeVerts + SubOffset );
-
-							NewIndices.Add( x0 + y0 * FullLODSubsectionSizeVerts + SubOffset );
-							NewIndices.Add( x0 + y1 * FullLODSubsectionSizeVerts + SubOffset );
-							NewIndices.Add( x1 + y1 * FullLODSubsectionSizeVerts + SubOffset );
-						}
-
-						check( x1 + y1 * FullLODSubsectionSizeVerts + SubOffset <= (uint32)((INDEX_TYPE)(~(INDEX_TYPE)0)) );
 					}
-				}
 
-				if (GRHIFeatureLevel == ERHIFeatureLevel::ES2) // Post-transform vertex cache optimize only for ES2
-				{
-					if (!bVertexScoresComputed)
-					{
-						bVertexScoresComputed = ComputeVertexScores();
-					}
+					// update min/max for full subsection
+					MaxIndexFull = FMath::Max<int32>(MaxIndexFull, MaxIndex);
+					MinIndexFull = FMath::Min<int32>(MinIndexFull, MinIndex);
+
 					TArray<INDEX_TYPE> NewSubIndices;
 					::OptimizeFaces<INDEX_TYPE>(SubIndices, NewSubIndices, 32);
 					NewIndices.Append(NewSubIndices);
 				}
 			}
 		}
+		else
+		{
+			// non-ES2 version
+			for (int32 SubY = 0; SubY < NumSubsections; SubY++)
+			{
+				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
+				{
+					int32 SubOffset = (SubX + SubY * NumSubsections) * FMath::Square(SubsectionSizeVerts);
 
-		this->AssignNewBuffer(NewIndices);
+					int32& MaxIndex = IndexRanges[Mip].MaxIndex[SubX][SubY];
+					int32& MinIndex = IndexRanges[Mip].MinIndex[SubX][SubY];
+					MaxIndex = 0;
+					MinIndex = MAX_int32;
 
-		this->InitResource();
+					for (int32 y = 0; y < LodSubsectionSizeQuads; y++)
+					{
+						for (int32 x = 0; x < LodSubsectionSizeQuads; x++)
+						{
+							INDEX_TYPE i00 = (x+0) + (y+0) * SubsectionSizeVerts + SubOffset;
+							INDEX_TYPE i10 = (x+1) + (y+0) * SubsectionSizeVerts + SubOffset;
+							INDEX_TYPE i11 = (x+1) + (y+1) * SubsectionSizeVerts + SubOffset;
+							INDEX_TYPE i01 = (x+0) + (y+1) * SubsectionSizeVerts + SubOffset;
+
+							NewIndices.Add(i00);
+							NewIndices.Add(i11);
+							NewIndices.Add(i10);
+
+							NewIndices.Add(i00);
+							NewIndices.Add(i01);
+							NewIndices.Add(i11);
+
+							// Update the min/max index ranges
+							MaxIndex = FMath::Max<int32>(MaxIndex, i00);
+							MinIndex = FMath::Min<int32>(MinIndex, i00);
+							MaxIndex = FMath::Max<int32>(MaxIndex, i10);
+							MinIndex = FMath::Min<int32>(MinIndex, i10);
+							MaxIndex = FMath::Max<int32>(MaxIndex, i11);
+							MinIndex = FMath::Min<int32>(MinIndex, i11);
+							MaxIndex = FMath::Max<int32>(MaxIndex, i01);
+							MinIndex = FMath::Min<int32>(MinIndex, i01);
+						}
+					}
+
+					// update min/max for full subsection
+					MaxIndexFull = FMath::Max<int32>(MaxIndexFull, MaxIndex);
+					MinIndexFull = FMath::Min<int32>(MinIndexFull, MinIndex);
+				}
+			}
+
+			check(MinIndexFull <= (uint32)((INDEX_TYPE)(~(INDEX_TYPE)0)));
+			check(NewIndices.Num() == ExpectedNumIndices);
+		}
+
+		// Create and init new index buffer with index data
+		auto IndexBuffer = new FRawStaticIndexBuffer16or32<INDEX_TYPE>(false);
+		IndexBuffer->AssignNewBuffer(NewIndices);
+		IndexBuffer->InitResource();
+
+		IndexBuffers[Mip] = IndexBuffer;
 	}
+}
 
-	/** Destructor. */
-	virtual ~FLandscapeIndexBuffer()
-	{
-		this->ReleaseResource();
-	}
-};
-
-
-//
-// FLandscapeSharedBuffers
-//
 FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32 InSubsectionSizeQuads, int32 InNumSubsections)
 :	SharedBuffersKey(InSharedBuffersKey)
 ,	NumIndexBuffers(FMath::CeilLogTwo(InSubsectionSizeQuads+1))
@@ -1632,21 +1822,16 @@ FLandscapeSharedBuffers::FLandscapeSharedBuffers(int32 InSharedBuffersKey, int32
 		VertexBuffer = new FLandscapeVertexBuffer(SubsectionSizeVerts, NumSubsections);
 	}
 	IndexBuffers = new FIndexBuffer*[NumIndexBuffers];
+	IndexRanges = new FLandscapeIndexRanges[NumIndexBuffers]();
 
 	// See if we need to use 16 or 32-bit index buffers
 	if( FMath::Square(SubsectionSizeVerts) * FMath::Square(NumSubsections) > 65535 )
 	{
-		for( int32 i=0;i<NumIndexBuffers;i++ )
-		{
-			IndexBuffers[i] = new FLandscapeIndexBuffer<uint32>((SubsectionSizeVerts>>i)-1, NumSubsections, SubsectionSizeVerts);
-		}
+		CreateIndexBuffers<uint32>();
 	}
 	else
 	{
-		for( int32 i=0;i<NumIndexBuffers;i++ )
-		{
-			IndexBuffers[i] = new FLandscapeIndexBuffer<uint16>((SubsectionSizeVerts>>i)-1, NumSubsections, SubsectionSizeVerts);
-		}
+		CreateIndexBuffers<uint16>();
 	}
 }
 
@@ -1658,9 +1843,12 @@ FLandscapeSharedBuffers::~FLandscapeSharedBuffers()
 	}
 	for( int32 i=0;i<NumIndexBuffers;i++ )
 	{
+		IndexBuffers[i]->ReleaseResource();
 		delete IndexBuffers[i];
 	}
 	delete[] IndexBuffers;
+	delete[] IndexRanges;
+
 	if (AdjacencyIndexBuffers)
 	{
 		if (AdjacencyIndexBuffers->Release() == 0)
@@ -1820,8 +2008,8 @@ public:
 		if( LodBiasParameter.IsBound() )
 		{
 			FVector4 LodBias(
-				SceneProxy->LODDistanceFactor,
-				1.f / ( 1.f - SceneProxy->LODDistanceFactor ),
+				SceneProxy->PrecomputedLODFactor,
+				1.f / (1.f - SceneProxy->PrecomputedLODFactor),
 				SceneProxy->HeightmapTexture->GetNumMips() - FMath::Min(SceneProxy->HeightmapTexture->ResidentMips, SceneProxy->HeightmapTexture->RequestedMips),
 				0.f // Reserved
 				);
@@ -1924,8 +2112,8 @@ public:
 		if( LodBiasParameter.IsBound() )
 		{
 			FVector4 LodBias(
-				SceneProxy->LODDistanceFactor,
-				1.f / ( 1.f - SceneProxy->LODDistanceFactor ),
+				SceneProxy->PrecomputedLODFactor,
+				1.f / (1.f - SceneProxy->PrecomputedLODFactor),
 				SceneProxy->HeightmapTexture->GetNumMips() - FMath::Min(SceneProxy->HeightmapTexture->ResidentMips, SceneProxy->HeightmapTexture->RequestedMips),
 				SceneProxy->XYOffsetmapTexture->GetNumMips() - FMath::Min(SceneProxy->XYOffsetmapTexture->ResidentMips, SceneProxy->XYOffsetmapTexture->RequestedMips)
 				);
@@ -2240,8 +2428,19 @@ void ULandscapeComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrimit
 
 void ALandscapeProxy::ChangeLODDistanceFactor(float InLODDistanceFactor)
 {
-	LODDistanceFactor = FMath::Clamp<float>(InLODDistanceFactor, 0.1f, 3.f);
-	
+	LODDistanceFactor = FMath::Clamp<float>(InLODDistanceFactor, 0.1f, MAX_LANDSCAPE_LOD_DISTANCE_FACTOR);
+	float LODFactor;
+	switch (LODFalloff)
+	{
+		case ELandscapeLODFalloff::SquareRoot:
+			LODFactor = FMath::Square(FMath::Min(LANDSCAPE_LOD_SQUARE_ROOT_FACTOR * LODDistanceFactor, MAX_LANDSCAPE_LOD_DISTANCE_FACTOR));
+			break;
+		default:
+		case ELandscapeLODFalloff::Linear:
+			LODFactor = LODDistanceFactor;
+			break;
+	}
+
 	if (LandscapeComponents.Num())
 	{
 		int32 CompNum = LandscapeComponents.Num();
@@ -2255,7 +2454,7 @@ void ALandscapeProxy::ChangeLODDistanceFactor(float InLODDistanceFactor)
 			LandscapeChangeLODDistanceFactorCommand,
 			FLandscapeComponentSceneProxy**, Proxies, Proxies,
 			int32, CompNum, CompNum,
-			FVector2D, InLODDistanceFactors, FVector2D(FMath::Sqrt(2.f * FMath::Square((float)SubsectionSizeQuads)) * LANDSCAPE_LOD_DISTANCE_FACTOR / LODDistanceFactor, LODDistanceFactor * 0.33f),
+			FVector2D, InLODDistanceFactors, FVector2D(FMath::Sqrt(2.f * FMath::Square((float)SubsectionSizeQuads)) * LANDSCAPE_LOD_DISTANCE_FACTOR / LODFactor, FMath::Min(LODFactor, 3.f) * 0.33f),
 		{
 			for (int32 Idx = 0; Idx < CompNum; ++Idx)
 			{
@@ -2270,5 +2469,5 @@ void ALandscapeProxy::ChangeLODDistanceFactor(float InLODDistanceFactor)
 void FLandscapeComponentSceneProxy::ChangeLODDistanceFactor_RenderThread(FVector2D InLODDistanceFactors)
 {
 	LODDistance = InLODDistanceFactors.X;
-	LODDistanceFactor = InLODDistanceFactors.Y;
+	PrecomputedLODFactor = InLODDistanceFactors.Y;
 }

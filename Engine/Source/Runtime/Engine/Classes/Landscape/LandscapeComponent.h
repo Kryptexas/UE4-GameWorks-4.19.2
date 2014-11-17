@@ -2,7 +2,8 @@
 
 #pragma once
 #include "LandscapeLayerInfoObject.h"
-
+#include "LightMap.h"
+#include "ShadowMap.h"
 #include "LandscapeComponent.generated.h"
 
 class FLandscapeComponentDerivedData
@@ -35,6 +36,26 @@ public:
 
 	/* Serializer */
 	friend FArchive& operator<<(FArchive& Ar, FLandscapeComponentDerivedData& Data);
+};
+
+/* Used to uniquely reference a landscape vertex in a component, and generate a key suitable for a TMap. */
+struct FLandscapeVertexRef
+{
+	FLandscapeVertexRef(int16 InX, int16 InY, int8 InSubX, int8 InSubY)
+	: X(InX)
+	, Y(InY)
+	, SubX(InSubX)
+	, SubY(InSubY)
+	{}
+	int16 X;
+	int16 Y;
+	int8 SubX;
+	int8 SubY;
+
+	uint64 MakeKey() const
+	{
+		return (uint64)X << 32 | (uint64)Y << 16 | (uint64)SubX << 8 | (uint64)SubY;
+	}
 };
 
 /** Stores information about which weightmap texture and channel each layer is stored */
@@ -80,7 +101,7 @@ struct FWeightmapLayerAllocationInfo
 	}
 };
 
-UCLASS(HeaderGroup=Terrain, hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), MinimalAPI)
+UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement, Rendering, PrimitiveComponent, Object, Transform), showcategories=("Rendering|Material"), MinimalAPI)
 class ULandscapeComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -176,11 +197,6 @@ public:
 	/** StaticLightingResolution overriding per component, default value 0 means no overriding */
 	UPROPERTY(EditAnywhere, Category=LandscapeComponent)
 	float StaticLightingResolution;
-
-#if WITH_EDITORONLY_DATA
-	UPROPERTY(transient)
-	uint32 bNeedPostUndo:1;
-#endif // WITH_EDITORONLY_DATA
 
 	/** Forced LOD level to use when rendering */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LandscapeComponent)

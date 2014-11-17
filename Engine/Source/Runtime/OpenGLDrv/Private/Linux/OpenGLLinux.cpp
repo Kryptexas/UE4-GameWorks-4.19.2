@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "OpenGLDrvPrivate.h"
+#include "ds_extensions.h"
 
 /*------------------------------------------------------------------------------
 	OpenGL function pointers.
@@ -107,6 +108,12 @@ static void _PlatformCreateDummyGLWindow( FPlatformOpenGLContext *OutContext )
 
 	OutContext->hWnd					= h_wnd;
 	OutContext->bReleaseWindowOnDestroy	= true;
+
+	int CacheRet = DSEXT_CacheX11Info(h_wnd);
+	if (EDSExtSuccess != CacheRet)
+	{
+		UE_LOG(LogRHI, Error, TEXT("Could not cache X11 info, DSExt error: %d"), CacheRet);
+	}
 }
 
 /**
@@ -350,8 +357,6 @@ void PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 
 		if ( bPresent )
 		{
-			uint32 IdleStart = FPlatformTime::Cycles();
-
 			int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
 
 			if ( Context->SyncInterval != RealSyncInterval)
@@ -367,10 +372,7 @@ void PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 			SDL_GL_SwapWindow( Context->hWnd );
 
 			REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
-			//			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
-
-			GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
-			GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
+//			INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 		}
 	}
 }

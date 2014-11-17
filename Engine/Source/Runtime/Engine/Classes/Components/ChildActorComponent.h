@@ -5,7 +5,7 @@
 #include "ChildActorComponent.generated.h"
 
 /** A component that spawns an Actor when registered, and destroys it when unregistered.*/
-UCLASS(HeaderGroup=Component, ClassGroup=Utility, hidecategories=(Object,LOD,Physics,Lighting,TextureStreaming,Activation,"Components|Activation",Collision), meta=(BlueprintSpawnableComponent), MinimalAPI)
+UCLASS(ClassGroup=Utility, hidecategories=(Object,LOD,Physics,Lighting,TextureStreaming,Activation,"Components|Activation",Collision), meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UChildActorComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -15,7 +15,7 @@ class UChildActorComponent : public USceneComponent
 	TSubclassOf<AActor>	ChildActorClass;
 
 	/** The actor that we spawned and own */
-	UPROPERTY(BlueprintReadOnly, Category=ChildActorComponent, DuplicateTransient)
+	UPROPERTY(BlueprintReadOnly, Category = ChildActorComponent, TextExportTransient)
 	AActor*	ChildActor;
 
 	// Begin ActorComponent interface.

@@ -36,8 +36,8 @@ void UParticleSystemThumbnailRenderer::GetThumbnailSize(UObject* Object, float Z
 			(PSys->ThumbnailImage) || 
 			(NoImage))
 		{
-			OutWidth = FMath::Trunc(1024 * Zoom);
-			OutHeight = FMath::Trunc(1024 * Zoom);
+			OutWidth = FMath::TruncToInt(1024 * Zoom);
+			OutHeight = FMath::TruncToInt(1024 * Zoom);
 		}
 		else
 		{
@@ -67,7 +67,7 @@ void UParticleSystemThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, u
 
 				ThumbnailScene->SetParticleSystem(ParticleSystem);
 				FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( RenderTarget, ThumbnailScene->GetScene(), FEngineShowFlags(ESFIM_Game))
-					.SetWorldTimes(GCurrentTime - GStartTime,GDeltaTime,GCurrentTime - GStartTime) );
+					.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime));
 			
 				ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
 				ViewFamily.EngineShowFlags.MotionBlur = 0;

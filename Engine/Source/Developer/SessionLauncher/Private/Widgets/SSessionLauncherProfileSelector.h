@@ -58,7 +58,7 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-						.Text(LOCTEXT("ProfileComboBoxLabel", "Profile:").ToString())
+						.Text(LOCTEXT("ProfileComboBoxLabel", "Profile:"))
 				]
 
 			+ SHorizontalBox::Slot()
@@ -69,8 +69,8 @@ public:
 					SAssignNew(ProfileComboBox, SEditableComboBox<ILauncherProfilePtr>)
 						.InitiallySelectedItem(Model->GetSelectedProfile())
 						.OptionsSource(&Model->GetProfileManager()->GetAllProfiles())
-						.AddButtonToolTip(LOCTEXT("AddProfileButtonToolTip", "Add a new profile").ToString())
-						.RemoveButtonToolTip(LOCTEXT("DeleteProfileButtonToolTip", "Delete the selected profile").ToString())
+						.AddButtonToolTip(LOCTEXT("AddProfileButtonToolTip", "Add a new profile"))
+						.RemoveButtonToolTip(LOCTEXT("DeleteProfileButtonToolTip", "Delete the selected profile"))
 						.OnAddClicked(this, &SSessionLauncherProfileSelector::HandleProfileComboBoxAddClicked)
 						.OnGenerateWidget(this, &SSessionLauncherProfileSelector::HandleProfileComboBoxGenerateWidget)
 						.OnGetEditableText(this, &SSessionLauncherProfileSelector::HandleProfileComboBoxGetEditableText)

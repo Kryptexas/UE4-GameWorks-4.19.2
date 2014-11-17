@@ -5,8 +5,6 @@
 =============================================================================*/
 
 #include "NewsFeedPrivatePCH.h"
-#include "NewsFeed.generated.inl"
-
 
 /* UNewsFeedSettings interface
  *****************************************************************************/

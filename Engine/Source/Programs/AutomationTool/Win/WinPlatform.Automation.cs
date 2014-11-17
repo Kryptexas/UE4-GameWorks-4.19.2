@@ -67,7 +67,7 @@ public abstract class BaseWinPlatform : Platform
 
         if (Params.bUsesSteam)
         {
-			string SteamVersion = "Steamv128";
+			string SteamVersion = "Steamv129";
 
 			// Check that the TPS directory exists. We don't distribute binaries for Steam in Rocket.
 			if (Directory.Exists(CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion)))

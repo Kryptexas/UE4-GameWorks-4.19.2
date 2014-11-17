@@ -176,7 +176,7 @@ void SAdditionalMeshesEditor::Construct(const FArguments& InArgs, TSharedPtr<FPe
 				.OnGetMenuContent(this, &SAdditionalMeshesEditor::MakeAssetPickerMenu)
 				.ButtonContent()
 				[
-					SNew(STextBlock) .Text(LOCTEXT("AdditionalMeshesAddButtonLabel", "Add Mesh").ToString())
+					SNew(STextBlock) .Text(LOCTEXT("AdditionalMeshesAddButtonLabel", "Add Mesh"))
 				]
 			]
 			+SHorizontalBox::Slot()
@@ -184,7 +184,7 @@ void SAdditionalMeshesEditor::Construct(const FArguments& InArgs, TSharedPtr<FPe
 			[
 				SNew(SButton)
 				.OnClicked(this, &SAdditionalMeshesEditor::OnClearAllClicked)
-				.Text(LOCTEXT("AdditionalMeshesClearButtonLabel", "Clear All").ToString())
+				.Text(LOCTEXT("AdditionalMeshesClearButtonLabel", "Clear All"))
 			]
 		]
 		+SVerticalBox::Slot()

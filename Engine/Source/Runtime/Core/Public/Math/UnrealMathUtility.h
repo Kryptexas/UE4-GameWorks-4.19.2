@@ -8,6 +8,11 @@
 
 //#define IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 
+// Assert on non finite numbers. Used to track NaNs.
+#ifndef ENABLE_NAN_DIAGNOSTIC
+	#define ENABLE_NAN_DIAGNOSTIC 0
+#endif
+
 /*-----------------------------------------------------------------------------
 	Definitions.
 -----------------------------------------------------------------------------*/
@@ -85,7 +90,7 @@ struct FMath : public FPlatformMath
 	static FORCEINLINE int32 RandHelper(int32 A)
 	{
 		// RAND_MAX+1 give interval [0..A) with even distribution.
-		return A>0 ? Trunc(Rand()/(float)((uint32)RAND_MAX+1) * A) : 0;
+		return A>0 ? TruncToInt(Rand()/(float)((uint32)RAND_MAX+1) * A) : 0;
 	}
 
 	/** Helper function for rand implementations. Returns a random number >= Min and <= Max */
@@ -226,7 +231,7 @@ struct FMath : public FPlatformMath
 		if( Grid==0.f )	return Location;
 		else			
 		{
-			return Floor((Location + 0.5*Grid)/Grid)*Grid;
+			return FloorToFloat((Location + 0.5*Grid)/Grid)*Grid;
 		}
 	}
 
@@ -236,7 +241,7 @@ struct FMath : public FPlatformMath
 		if( Grid==0.0 )	return Location;
 		else			
 		{
-			return FloorDouble((Location + 0.5*Grid)/Grid)*Grid;
+			return FloorToDouble((Location + 0.5*Grid)/Grid)*Grid;
 		}
 	}
 
@@ -544,6 +549,22 @@ struct FMath : public FPlatformMath
 	 */
 	template< class U > static FQuat CubicInterp( const FQuat& P0, const FQuat& T0, const FQuat& P1, const FQuat& T1, const U& A);
 
+	/*
+	 *	Cubic Catmull-Rom Spline interpolation. Based on http://www.cemyuksel.com/research/catmullrom_param/catmullrom.pdf 
+	 *	Curves are guaranteed to pass through the control points and are easily chained together.
+	 *	Equation supports abitrary parameterization. eg. Uniform=0,1,2,3 ; chordal= |Pn - Pn-1| ; centripetal = |Pn - Pn-1|^0.5
+	 *	P0 - The control point preceding the interpolation range.
+	 *	P1 - The control point starting the interpolation range.
+	 *	P2 - The control point ending the interpolation range.
+	 *	P3 - The control point following the interpolation range.
+	 *	T0-3 - The interpolation parameters for the corresponding control points.		
+	 *	T - The interpolation factor in the range 0 to 1. 0 returns P1. 1 returns P2.
+	 */
+	template< class U > static U CubicCRSplineInterp(const U& P0, const U& P1, const U& P2, const U& P3, const float T0, const float T1, const float T2, const float T3, const float T);
+
+	/* Same as CubicCRSplineInterp but with additional saftey checks. If the checks fail P1 is returned. **/
+	template< class U > static U CubicCRSplineInterpSafe(const U& P0, const U& P1, const U& P2, const U& P3, const float T0, const float T1, const float T2, const float T3, const float T);
+	
 	// Special-case interpolation
 
 	/** Interpolate a normal vector Current to Target, by interpolating the angle between those vectors with constant step. */

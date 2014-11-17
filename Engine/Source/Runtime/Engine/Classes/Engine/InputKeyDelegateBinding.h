@@ -4,7 +4,7 @@
 #include "InputKeyDelegateBinding.generated.h"
 
 USTRUCT()
-struct ENGINE_API FBlueprintInputKeyDelegateBinding
+struct ENGINE_API FBlueprintInputKeyDelegateBinding : public FBlueprintInputDelegateBinding
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -15,22 +15,11 @@ struct ENGINE_API FBlueprintInputKeyDelegateBinding
 	TEnumAsByte<EInputEvent> InputKeyEvent;
 
 	UPROPERTY()
-	uint32 bConsumeInput:1;
-
-	UPROPERTY()
-	uint32 bExecuteWhenPaused:1;
-
-	UPROPERTY()
-	uint32 bOverrideParentBinding:1;
-
-	UPROPERTY()
 	FName FunctionNameToBind;
 
 	FBlueprintInputKeyDelegateBinding()
-		: InputKeyEvent(IE_Pressed)
-		, bConsumeInput(true)
-		, bExecuteWhenPaused(false)
-		, bOverrideParentBinding(true)
+		: FBlueprintInputDelegateBinding()
+		, InputKeyEvent(IE_Pressed)
 		, FunctionNameToBind(NAME_None)
 	{
 	}

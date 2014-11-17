@@ -73,7 +73,7 @@ private:
 	void OnResolutionMultiplierSliderChanged( float NewValue )
 	{
 		Config.ResolutionMultiplierScale = NewValue;
-		Config.ResolutionMultiplier = FMath::Round(FMath::Lerp(FHighResScreenshotConfig::MinResolutionMultipler, FHighResScreenshotConfig::MaxResolutionMultipler, NewValue));
+		Config.ResolutionMultiplier = FMath::RoundToFloat(FMath::Lerp(FHighResScreenshotConfig::MinResolutionMultipler, FHighResScreenshotConfig::MaxResolutionMultipler, NewValue));
 	}
 
 	void OnMaskEnabledChanged( ESlateCheckBoxState::Type NewValue )

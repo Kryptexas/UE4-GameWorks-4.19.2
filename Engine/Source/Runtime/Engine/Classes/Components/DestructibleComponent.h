@@ -37,7 +37,7 @@ struct FDestructibleChunkInfo
  *
  *	The USkeletalMesh pointer in the base class (SkinnedMeshComponent) MUST be a DestructibleMesh
  */
-UCLASS(HeaderGroup=Component, ClassGroup=Physics, hidecategories=(Object,Mesh,"Components|SkinnedMesh",Mirroring,Activation,"Components|Activation"), config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Physics, hidecategories=(Object,Mesh,"Components|SkinnedMesh",Mirroring,Activation,"Components|Activation"), config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -71,7 +71,7 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 
 #if WITH_PHYSX
 	/** Per chunk info */
-	TArray<FDestructibleChunkInfo> ChunkInfos;
+	TIndirectArray<FDestructibleChunkInfo> ChunkInfos;
 #endif // WITH_PHYSX 
 
 #if WITH_EDITOR
@@ -139,7 +139,7 @@ public:
 
 
 	// Begin DestructibleComponent interface.
-	
+#if WITH_APEX
 	struct FFakeBodyInstanceState
 	{
 		physx::PxRigidActor* ActorSync;
@@ -147,7 +147,6 @@ public:
 		int32 InstanceIndex;
 	};
 
-#if WITH_APEX
 	/** Changes the body instance to have the specified actor and instance id. */
 	void SetupFakeBodyInstance(physx::PxRigidActor* NewRigidActor, int32 InstanceIdx, FFakeBodyInstanceState* PrevState = NULL);
 	
@@ -193,7 +192,7 @@ private:
 	FPhysxUserData PhysxUserData;
 
 	/** User data wrapper for the chunks passed to physx */
-	TArray<FPhysxUserData> PhysxChunkUserData;
+	TIndirectArray<FPhysxUserData> PhysxChunkUserData;
 	bool IsChunkLarge(int32 ChunkIdx) const;
 	void SetCollisionResponseForActor(physx::PxRigidDynamic* Actor, int32 ChunkIdx);
 #endif

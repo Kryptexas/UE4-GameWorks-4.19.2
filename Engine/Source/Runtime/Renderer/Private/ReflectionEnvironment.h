@@ -13,5 +13,5 @@
  */
 static const int32 GMaxNumReflectionCaptures = 341;
 
-extern bool IsReflectionEnvironmentAvailable();
+extern bool IsReflectionEnvironmentAvailable(ERHIFeatureLevel::Type InFeatureLevel);
 extern bool IsReflectionCaptureAvailable();

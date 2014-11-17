@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 
 DEFINE_LOG_CATEGORY(LogInput);
 
@@ -30,7 +29,6 @@ UPlayerInput::UPlayerInput(const class FPostConstructInitializeProperties& PCIP)
 	SetFlags(RF_Transactional);
 	MouseSamplingTotal = +0.0083f;
 	MouseSamples = 1;
-	bEnableFOVScaling = true;
 }
 
 void UPlayerInput::PostInitProperties()
@@ -64,7 +62,8 @@ void UPlayerInput::FlushPressedKeys()
 
 			for ( int32 KeyIndex = 0; KeyIndex < PressedKeys.Num(); KeyIndex++ )
 			{
-				InputKey(PressedKeys[KeyIndex], IE_Released, 0);
+				FKey& Key = PressedKeys[KeyIndex];
+				InputKey(Key, IE_Released, 0, Key.IsGamepadKey());
 			}
 		}
 	}
@@ -274,21 +273,18 @@ float UPlayerInput::GetMouseSensitivity()
 	return 1.0f;
 }
 
-void UPlayerInput::SetMouseSensitivity(float F)
+void UPlayerInput::SetMouseSensitivity(const float Sensitivity)
 {
-	ConditionalInitAxisProperties();
-
-	FInputAxisProperties* const XAxisProps = AxisProperties.Find(EKeys::MouseX);
-	if (XAxisProps)
+	for (FInputAxisConfigEntry& AxisConfigEntry : AxisConfig)
 	{
-		XAxisProps->Sensitivity = F;
+		const FKey AxisKey = AxisConfigEntry.AxisKeyName;
+		if (AxisKey == EKeys::MouseX || AxisKey == EKeys::MouseY)
+		{
+			AxisConfigEntry.AxisProperties.Sensitivity = Sensitivity;
+		}
 	}
 
-	FInputAxisProperties* const YAxisProps = AxisProperties.Find(EKeys::MouseY);
-	if (YAxisProps)
-	{
-		YAxisProps->Sensitivity = F;
-	}
+	AxisProperties.Empty();
 }
 
 void UPlayerInput::SetMouseSensitivityToDefault()
@@ -328,7 +324,7 @@ void UPlayerInput::InvertAxis(const FName AxisName)
 		FAxisKeyDetails* KeyDetails = AxisKeyMap.Find(AxisName);
 		if (KeyDetails)
 		{
-			bInverted = KeyDetails->bInverted = !KeyDetails->bInverted;
+			bInverted = (KeyDetails->bInverted = !KeyDetails->bInverted);
 		}
 		if (bInverted)
 		{
@@ -469,6 +465,7 @@ void UPlayerInput::ForceRebuildingKeyMaps(const bool bRestoreDefaults)
 {
 	if (bRestoreDefaults)
 	{
+		AxisConfig = GetDefault<UInputSettings>()->AxisConfig;
 		AxisMappings = GetDefault<UInputSettings>()->AxisMappings;
 		ActionMappings = GetDefault<UInputSettings>()->ActionMappings;
 	}
@@ -758,7 +755,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		{
 		 	// calculate sampling time
 		 	// make sure not first non-zero sample
-		 	if ( SmoothedMouse[0] > 0 )
+		 	if ( SmoothedMouse[0] != 0 )
 		 	{
 		 		// not first non-zero
 		 		MouseSamplingTotal += DeltaTime;
@@ -788,7 +785,19 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 		{
 		}
 	};
+	struct FVectorAxisDelegateDetails
+	{
+		FInputVectorAxisUnifiedDelegate Delegate;
+		FVector Value;
+
+		FVectorAxisDelegateDetails(const FInputVectorAxisUnifiedDelegate& InDelegate, const FVector InValue)
+			: Delegate(InDelegate)
+			, Value(InValue)
+		{
+		}
+	};
 	TArray<FAxisDelegateDetails> AxisDelegates;
+	TArray<FVectorAxisDelegateDetails> VectorAxisDelegates;
 	TArray<FDelegateDispatchDetails> NonAxisDelegates;
 	struct FDelegateDispatchDetailsSorter
 	{
@@ -907,20 +916,16 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 			}
 
 			// Run though game axis bindings and accumulate axis values
-			for (int32 AxisIndex=0; AxisIndex<IC->AxisBindings.Num(); ++AxisIndex)
+			for (FInputAxisBinding& AB : IC->AxisBindings)
 			{
-				FInputAxisBinding& AB = IC->AxisBindings[AxisIndex];
-
 				AB.AxisValue = DetermineAxisValue(AB, bGamePaused, KeysToConsume);
 				if (AB.AxisDelegate.IsBound())
 				{
 					AxisDelegates.Add(FAxisDelegateDetails(AB.AxisDelegate, AB.AxisValue));
 				}
 			}
-			for (int32 AxisIndex = 0; AxisIndex < IC->AxisKeyBindings.Num(); ++AxisIndex)
+			for (FInputAxisKeyBinding& AxisKeyBinding : IC->AxisKeyBindings)
 			{
-				FInputAxisKeyBinding& AxisKeyBinding = IC->AxisKeyBindings[AxisIndex];
-
 				if (!IsKeyConsumed(AxisKeyBinding.AxisKey))
 				{
 					if (!bGamePaused || AxisKeyBinding.bExecuteWhenPaused)
@@ -941,6 +946,30 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 				if (AxisKeyBinding.AxisDelegate.IsBound())
 				{
 					AxisDelegates.Add(FAxisDelegateDetails(AxisKeyBinding.AxisDelegate, AxisKeyBinding.AxisValue));
+				}
+			}
+			for (FInputVectorAxisBinding& VectorAxisBinding : IC->VectorAxisBindings)
+			{
+				if (!IsKeyConsumed(VectorAxisBinding.AxisKey))
+				{
+					if (!bGamePaused || VectorAxisBinding.bExecuteWhenPaused)
+					{
+						VectorAxisBinding.AxisValue = GetVectorKeyValue(VectorAxisBinding.AxisKey);
+					}
+					else
+					{
+						VectorAxisBinding.AxisValue = FVector::ZeroVector;
+					}
+
+					if (VectorAxisBinding.bConsumeInput)
+					{
+						KeysToConsume.AddUnique(VectorAxisBinding.AxisKey);
+					}
+				}
+
+				if (VectorAxisBinding.AxisDelegate.IsBound())
+				{
+					VectorAxisDelegates.Add(FVectorAxisDelegateDetails(VectorAxisBinding.AxisDelegate, VectorAxisBinding.AxisValue));
 				}
 			}
 
@@ -974,6 +1003,10 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 			{
 				AxisKeyBinding.AxisValue = 0.f;
 			}
+			for (FInputVectorAxisBinding& VectorAxisBinding : IC->VectorAxisBindings)
+			{
+				VectorAxisBinding.AxisValue = FVector::ZeroVector;
+			}
 		}
 	}
 
@@ -996,6 +1029,13 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 	}
 	// Now dispatch delegates for summed axes
 	for (const FAxisDelegateDetails& Details : AxisDelegates)
+	{
+		if (Details.Delegate.IsBound())
+		{
+			Details.Delegate.Execute(Details.Value);
+		}
+	}
+	for (const FVectorAxisDelegateDetails& Details : VectorAxisDelegates)
 	{
 		if (Details.Delegate.IsBound())
 		{
@@ -1045,7 +1085,7 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 	float DetectedMouseSampleHz = MouseSamples / MouseSamplingTotal;
 
 	// actual num samples should be either this or this+1
-	int32 ExpectedNumSamplesThisFrame = FMath::Trunc(DeltaTime * DetectedMouseSampleHz);
+	int32 ExpectedNumSamplesThisFrame = FMath::TruncToInt(DeltaTime * DetectedMouseSampleHz);
 
 	if (DeltaTime < 0.25f)
 	{
@@ -1098,7 +1138,7 @@ float UPlayerInput::SmoothMouse(float aMouse, float DeltaTime, uint8& SampleCoun
 	return aMouse;
 }
 
-void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	if (Canvas)
 	{
@@ -1119,7 +1159,7 @@ void UPlayerInput::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& Debu
 
 			if ( KeyState->bDown || (KeyState->Value.X != 0.f) )
 			{
-				if (!Key.IsAxis())
+				if (!Key.IsFloatAxis())
 				{
 					Str += FString::Printf(TEXT(" time: %.2f"), World->TimeSince(KeyState->LastUpDownTransitionTime));
 				}
@@ -1279,9 +1319,11 @@ float UPlayerInput::MassageAxisInput(FKey Key, float RawValue, float DeltaTime)
 	// special handling for mouse input
 	if ( (Key == EKeys::MouseX) || (Key == EKeys::MouseY) )
 	{
+		const UInputSettings* DefaultInputSettings = GetDefault<UInputSettings>();
+
 		// Take FOV into account (lower FOV == less sensitivity).
 		APlayerController const* const PlayerController = GetOuterAPlayerController();
-		float const FOVScale = (bEnableFOVScaling && PlayerController->PlayerCameraManager) ? (0.01111f*PlayerController->PlayerCameraManager->GetFOVAngle()) : 1.0f;
+		float const FOVScale = (DefaultInputSettings->bEnableFOVScaling && PlayerController->PlayerCameraManager) ? (DefaultInputSettings->FOVScale*PlayerController->PlayerCameraManager->GetFOVAngle()) : 1.0f;
 		NewVal *= FOVScale;
 
 		// debug
@@ -1295,7 +1337,7 @@ float UPlayerInput::MassageAxisInput(FKey Key, float RawValue, float DeltaTime)
 		}
 
 		// mouse smoothing 
-		if (GetDefault<UInputSettings>()->bEnableMouseSmoothing)
+		if (DefaultInputSettings->bEnableMouseSmoothing)
 		{
 			FKeyState* const KeyState = KeyStateMap.Find(Key);
 			if (KeyState)
@@ -1373,7 +1415,7 @@ void UPlayerInput::ConditionalInitAxisProperties()
 	if ( AxisProperties.Num() == 0 )
 	{
 		// move stuff from config structure to our runtime structure
-		for (const FInputAxisConfigEntry& AxisConfigEntry : GetDefault<UInputSettings>()->AxisConfig)
+		for (const FInputAxisConfigEntry& AxisConfigEntry : AxisConfig)
 		{
 			const FKey AxisKey = AxisConfigEntry.AxisKeyName;
 			if (AxisKey.IsValid())

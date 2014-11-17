@@ -237,7 +237,7 @@ void SAnimDifferentAssetBeingPreviewedWarning::Construct(const FArguments& InArg
 		[
 			SNew(STextBlock)
 			.Font(BoldFont)
-			.Text(LOCTEXT("AssetPreviewMismatch", "Currently previewing\nanother asset").ToString())
+			.Text(LOCTEXT("AssetPreviewMismatch", "Currently previewing\nanother asset"))
 		]
 	];
 }

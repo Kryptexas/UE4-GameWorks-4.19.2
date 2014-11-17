@@ -20,9 +20,9 @@ UNavMovementComponent::UNavMovementComponent(const class FPostConstructInitializ
 {
 }
 
-FBasedPosition UNavMovementComponent::GetActorLocationBased() const
+FBasedPosition UNavMovementComponent::GetActorFeetLocationBased() const
 {
-	return FBasedPosition(NULL, GetActorLocation());
+	return FBasedPosition(NULL, GetActorFeetLocation());
 }
 
 void UNavMovementComponent::RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed)

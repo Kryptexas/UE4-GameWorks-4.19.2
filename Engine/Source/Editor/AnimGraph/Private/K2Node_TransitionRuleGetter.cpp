@@ -2,9 +2,10 @@
 
 
 #include "AnimGraphPrivatePCH.h"
-
+#include "K2Node_TransitionRuleGetter.h"
 #include "BlueprintUtilities.h"
-
+#include "AnimGraphNode_Base.h"
+#include "AnimStateNode.h"
 /////////////////////////////////////////////////////
 // UK2Node_TransitionRuleGetter
 

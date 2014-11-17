@@ -73,7 +73,7 @@ void SPropertyMenuActorPicker::Construct( const FArguments& InArgs )
 
 		FSceneOutlinerInitializationOptions InitOptions;
 		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-		InitOptions.ActorFilters = ActorFilters;
+		InitOptions.Filters = ActorFilters;
 		InitOptions.bFocusSearchBoxWhenOpened = true;
 		
 		MenuContent =

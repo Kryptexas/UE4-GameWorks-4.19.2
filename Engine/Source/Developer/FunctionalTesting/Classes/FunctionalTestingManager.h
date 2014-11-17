@@ -18,24 +18,28 @@ class UFunctionalTestingManager : public UBlueprintFunctionLibrary
 	UPROPERTY(BlueprintAssignable)
 	FFunctionalTestEventSignature OnSetupTests;
 	
-	UFUNCTION(BlueprintCallable, Category="Development")	
-	/** Triggers in sequence all functional tests found on the level.*/
-	void RunAllTestsOnMap(bool bNewLog, bool bRunLooped);
-
-	UFUNCTION(BlueprintPure, Category="Development", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext") )
-	static UFunctionalTestingManager* CreateFTestManager(UObject* WorldContext);
-	
+	UFUNCTION(BlueprintCallable, Category="FunctionalTesting", meta=(HidePin="WorldContext", DefaultToSelf="WorldContext" ) )
+	/** Triggers in sequence all functional tests found on the level.
+	 *	@return true if any tests have been triggered */
+	static bool RunAllFunctionalTests(UObject* WorldContext, bool bNewLog=true, bool bRunLooped=false, bool bWaitForNavigationBuildFinish=true);
+		
 	bool IsRunning() const { return bIsRunning; }
 	bool IsLooped() const { return bLooped; }
 	void SetLooped(const bool bNewLooped) { bLooped = bNewLooped; }
 
+	void TickMe(float DeltaTime);
+
 private:
 	void LogMessage(const FString& MessageString, TSharedPtr<IMessageLogListing> LogListing = NULL);
-
+	
 protected:
+	static UFunctionalTestingManager* GetManager(UObject* WorldContext);
+
+	void TriggerFirstValidTest();
 	void SetUpTests();
 
 	void OnTestDone(class AFunctionalTest* FTest);
+	void OnEndPIE(const bool bIsSimulating);
 
 	bool RunFirstValidTest();
 
@@ -43,5 +47,7 @@ protected:
 	
 	bool bIsRunning;
 	bool bLooped;
+	bool bWaitForNavigationBuildFinish;
+	bool bInitialDelayApplied;
 	uint32 CurrentIteration;
 };

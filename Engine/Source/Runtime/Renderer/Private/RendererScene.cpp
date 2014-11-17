@@ -7,7 +7,6 @@
 #include "RendererPrivate.h"
 #include "ScenePrivate.h"
 #include "ShaderCompiler.h"
-#include "EngineDecalClasses.h"
 
 
 // Enable this define to do slow checks for components being added to the wrong
@@ -140,7 +139,7 @@ FORCEINLINE static void VerifyProperPIEScene(UPrimitiveComponent* Component, UWo
 #endif
 }
 
-FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene)
+FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScene, ERHIFeatureLevel::Type InFeatureLevel)
 :	World(InWorld)
 ,	FXSystem(NULL)
 ,	bStaticDrawListsMobileHDR(false)
@@ -163,6 +162,7 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 ,	LowerDynamicSkylightColor(FLinearColor::Black)
 ,	NumVisibleLights(0)
 ,	bHasSkyLight(false)
+,	FeatureLevel(InFeatureLevel)
 {
 	check(World);
 
@@ -1360,12 +1360,6 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindLeaf2Roll, SH_LEAF_2_ROLL_MAX_SCALE);
 				SET_SPEEDTREE_TABLE_FLOAT4V(WindFrondRipple, SH_FROND_RIPPLE_TIME);
 
-				// @todo This needs to be broken out into its own constant buffer so it can change per instance
-				// Right now smooth SpeedTree LOD only works with the LOD distances set on the UStaticMesh
-				UniformParameters.LodInfo.Set((float)StaticMesh->RenderData->LODResources.Num(), 
-												1.0f / StaticMesh->RenderData->LODDistance[StaticMesh->RenderData->LODResources.Num() - 1], 
-												0.0f, 0.0f);
-
 				//BeginSetUniformBufferContents(WindComputation->UniformBuffer, UniformParameters);
 				WindComputation->UniformBuffer.SetContents(UniformParameters);
 			}
@@ -1472,7 +1466,7 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(const FMaterialsToUpd
 	for (TSet<FMaterialRenderProxy*>::TConstIterator It(FMaterialRenderProxy::GetMaterialRenderProxyMap()); It; ++It)
 	{
 		FMaterialRenderProxy* MaterialProxy = *It;
-		FMaterial* Material = MaterialProxy->GetMaterialNoFallback(GRHIFeatureLevel);
+		FMaterial* Material = MaterialProxy->GetMaterialNoFallback(FeatureLevel);
 
 		if (Material && MaterialsToUpdate.Contains(Material))
 		{
@@ -1481,11 +1475,11 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(const FMaterialsToUpd
 			MaterialProxy->CacheUniformExpressions();
 			bFoundAnyInitializedMaterials = true;
 
-			const FMaterial& MaterialForRendering = *MaterialProxy->GetMaterial(GRHIFeatureLevel);
+			const FMaterial& MaterialForRendering = *MaterialProxy->GetMaterial(FeatureLevel);
 			check(MaterialForRendering.GetRenderingThreadShaderMap());
 
-			check(!MaterialProxy->UniformExpressionCache[GRHIFeatureLevel].bUpToDate 
-				|| MaterialProxy->UniformExpressionCache[GRHIFeatureLevel].CachedUniformExpressionShaderMap == MaterialForRendering.GetRenderingThreadShaderMap());
+			check(!MaterialProxy->UniformExpressionCache[FeatureLevel].bUpToDate
+				|| MaterialProxy->UniformExpressionCache[FeatureLevel].CachedUniformExpressionShaderMap == MaterialForRendering.GetRenderingThreadShaderMap());
 
 			check(MaterialForRendering.GetRenderingThreadShaderMap()->IsValidForRendering());
 		}
@@ -1772,7 +1766,7 @@ static void DumpDrawListStats()
 }
 
 static FAutoConsoleCommand GDumpDrawListStatsCmd(
-	TEXT("R.DumpDrawListStats"),
+	TEXT("r.DumpDrawListStats"),
 	TEXT("Dumps static mesh draw list statistics for all scenes associated with ")
 	TEXT("world objects."),
 	FConsoleCommandDelegate::CreateStatic(&DumpDrawListStats)
@@ -2033,14 +2027,14 @@ private:
 	class FFXSystemInterface* FXSystem;
 };
 
-FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresHitProxies)
+FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresHitProxies, ERHIFeatureLevel::Type InFeatureLevel)
 {
 	check(IsInGameThread());
 
 	// Create a full fledged scene if we have something to render.
 	if( GIsClient && !IsRunningCommandlet() && !GUsingNullRHI )
 	{
-		FScene* NewScene = new FScene(World,bInRequiresHitProxies,GIsEditor && !World->IsGameWorld());
+		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && !World->IsGameWorld(), InFeatureLevel);
 		AllocatedScenes.Add(NewScene);
 		return NewScene;
 	}
@@ -2251,11 +2245,11 @@ void FMotionBlurInfoData::RestoreForPausedMotionBlur()
 	}
 }
 
-void FMotionBlurInfoData::UpdateMotionBlurCache()
+void FMotionBlurInfoData::UpdateMotionBlurCache(FScene* InScene)
 {
 	check(IsInRenderingThread());
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+	if (InScene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		if(bShouldClearMotionBlurInfo)
 		{

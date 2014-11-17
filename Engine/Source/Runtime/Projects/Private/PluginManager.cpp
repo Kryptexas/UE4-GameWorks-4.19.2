@@ -363,9 +363,34 @@ bool FPluginManager::IsPluginModule( const FName ModuleName ) const
 	return ( ModulePluginMap.Find( ModuleName ) != NULL );
 }
 
+bool FPluginManager::AreEnabledPluginModulesUpToDate()
+{
+	if (!bEarliestPhaseProcessed)
+	{
+		EnablePluginsThatAreConfiguredToBeEnabled();
+		RegisterEnabledPluginMountPoints();
+		bEarliestPhaseProcessed = true;
+	}
+
+	for (TArray< TSharedRef< FPlugin > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
+	{
+		const TSharedRef< FPlugin > &Plugin = *Iter;
+		if (Plugin->IsEnabled() && !Plugin->AreModulesUpToDate())
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 void FPluginManager::GetPluginsConfiguredToBeEnabled(TArray<FString>& OutPluginNames) const
 {
+#if !IS_PROGRAM
 	GConfig->GetArray( TEXT("Plugins"), TEXT("EnabledPlugins"), OutPluginNames, GEngineIni );
+#else
+	GConfig->GetArray(TEXT("Plugins"), TEXT("ProgramEnabledPlugins"), OutPluginNames, GEngineIni);
+#endif
 }
 
 void FPluginManager::ConfigurePluginToBeEnabled(const FString& PluginName, bool bEnabled)

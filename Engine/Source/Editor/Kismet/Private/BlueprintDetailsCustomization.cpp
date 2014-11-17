@@ -5,9 +5,9 @@
 #include "BlueprintUtilities.h"
 #include "ScopedTransaction.h"
 #include "GraphEditor.h"
-
+#include "PropertyRestriction.h"
 #include "BlueprintEditor.h"
-
+#include "BlueprintEditorModes.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 
 #include "SKismetInspector.h"
@@ -61,11 +61,12 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Text(LOCTEXT("BlueprintVarActionDetails_VariableNameLabel", "Variable Name").ToString())
+		.Text(LOCTEXT("BlueprintVarActionDetails_VariableNameLabel", "Variable Name"))
 		.ToolTip(VarNameTooltip)
 		.Font(IDetailLayoutBuilder::GetDetailFont())
 	]
 	.ValueContent()
+	.MaxDesiredWidth(250.0f)
 	[
 		SAssignNew(VarNameEditableTextBox, SEditableTextBox)
 		.Text(this, &FBlueprintVarActionDetails::OnGetVarName)
@@ -435,23 +436,23 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		}
 	}
 
-	// Add in default value editing for properties that can be edited
+	// Add in default value editing for properties that can be edited, local properties cannot be edited
 	UBlueprint* Blueprint = GetBlueprintObj();
-	if ((Blueprint != NULL) && (Blueprint->GeneratedClass != NULL))
+	if ((Blueprint != NULL) && (Blueprint->GeneratedClass != NULL) && !IsALocalVariable(VariableProperty))
 	{
 		if (VariableProperty != NULL)
 		{
-			const UProperty* OryginalProperty = FindField<UProperty>(Blueprint->GeneratedClass, VariableProperty->GetFName());
-			if (OryginalProperty == NULL)
+			const UProperty* OriginalProperty = FindField<UProperty>(Blueprint->GeneratedClass, VariableProperty->GetFName());
+			if (OriginalProperty == NULL)
 			{
 				// Prevent editing the default value of a skeleton property
 				VariableProperty = NULL;
 			}
-			else  if (auto StructProperty = Cast<const UStructProperty>(OryginalProperty))
+			else  if (auto StructProperty = Cast<const UStructProperty>(OriginalProperty))
 			{
 				// Prevent editing the default value of a stale struct
-				auto BGStruct = Cast<const UBlueprintGeneratedStruct>(StructProperty->Struct);
-				if (BGStruct && (EBlueprintStructureStatus::BSS_UpToDate != BGStruct->Status))
+				auto BGStruct = Cast<const UUserDefinedStruct>(StructProperty->Struct);
+				if (BGStruct && (EUserDefinedStructureStatus::UDSS_UpToDate != BGStruct->Status))
 				{
 					VariableProperty = NULL;
 				}
@@ -462,7 +463,6 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		UClass* VariableClass = (VariableProperty != NULL) ? VariableProperty->GetTypedOuter<UClass>() : NULL;
 
 		FText ErrorMessage;
-		const FString TooltipStr = LOCTEXT("DefaultValue_Tooltip", "Edit the default value of this variable.").ToString();
 		IDetailCategoryBuilder& DefaultValueCategory = DetailLayout.EditCategory(TEXT("DefaultValueCategory"), LOCTEXT("DefaultValueCategoryHeading", "Default Value").ToString());
 
 		if (VariableProperty == NULL)
@@ -505,8 +505,8 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			DefaultValueCategory.AddCustomRow( TEXT("Error") )
 			[
 				SNew(STextBlock)
-				.ToolTipText(ErrorMessage.ToString())
-				.Text(ErrorMessage.ToString())
+				.ToolTipText(ErrorMessage)
+				.Text(ErrorMessage)
 				.Font(DetailFontInfo)
 			];
 		}
@@ -627,8 +627,17 @@ bool FBlueprintVarActionDetails::IsAComponentVariable(UProperty* VariablePropert
 
 bool FBlueprintVarActionDetails::IsABlueprintVariable(UProperty* VariableProperty) const
 {
-	UClass* VarSourceClass = VariableProperty ? CastChecked<UClass>(VariableProperty->GetOuter()) : NULL;
-	return (VarSourceClass->ClassGeneratedBy != NULL);
+	UClass* VarSourceClass = VariableProperty ? Cast<UClass>(VariableProperty->GetOuter()) : NULL;
+	if(VarSourceClass)
+	{
+		return (VarSourceClass->ClassGeneratedBy != NULL);
+	}
+	return false;
+}
+
+bool FBlueprintVarActionDetails::IsALocalVariable(UProperty* VariableProperty) const
+{
+	return Cast<UFunction>(VariableProperty->GetOuter()) != NULL;
 }
 
 bool FBlueprintVarActionDetails::GetVariableNameChangeEnabled() const
@@ -661,6 +670,10 @@ bool FBlueprintVarActionDetails::GetVariableNameChangeEnabled() const
 					break;
 				}
 			}
+		}
+		else if(IsALocalVariable(VariableProperty))
+		{
+			bIsReadOnly = false;
 		}
 	}
 
@@ -718,7 +731,7 @@ void FBlueprintVarActionDetails::OnVarNameChanged(const FText& InNewText)
 
 void FBlueprintVarActionDetails::OnVarNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit)
 {
-	if(InTextCommit == ETextCommit::OnEnter && !bIsVarNameInvalid)
+	if((InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus) && !bIsVarNameInvalid)
 	{
 		const FScopedTransaction Transaction( LOCTEXT( "RenameVariable", "Rename Variable" ) );
 
@@ -741,6 +754,10 @@ void FBlueprintVarActionDetails::OnVarNameCommitted(const FText& InNewText, ETex
 		if (bIsTimeline)
 		{
 			FBlueprintEditorUtils::RenameTimeline(GetBlueprintObj(), GetVariableName(), NewVarName);
+		}
+		else if(IsALocalVariable(VariableProperty))
+		{
+			FBlueprintEditorUtils::RenameLocalVariable(GetBlueprintObj(), GetVariableName(), NewVarName);
 		}
 		else
 		{
@@ -773,8 +790,35 @@ bool FBlueprintVarActionDetails::GetVariableTypeChangeEnabled() const
 				break;
 			}
 		}
+		
 		bool bIsAVarInThisBlueprint = FBlueprintEditorUtils::FindNewVariableIndex(GetBlueprintObj(), VarAction->GetVariableName()) != INDEX_NONE;
 		return !bNodesPendingDeletion && bIsAVarInThisBlueprint;
+	}
+
+	FEdGraphSchemaAction_K2LocalVar* LocalVarAction = MyBlueprintSelectionAsLocalVar();
+	if (LocalVarAction)
+	{
+		TArray<UK2Node_Variable*> VariableNodes;
+		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
+
+		bool bNodesPendingDeletion = false;
+		for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt )
+		{
+			UK2Node_Variable* CurrentNode = *NodeIt;
+			if (LocalVarAction->GetVariableName() == CurrentNode->GetVarName())
+			{
+				bNodesPendingDeletion = true;
+				break;
+			}
+		}
+
+		bool bIsAVarInThisBlueprint = FBlueprintEditorUtils::FindLocalVariable(GetBlueprintObj(), LocalVarAction->GetVariableName()) != NULL;
+		return !bNodesPendingDeletion && bIsAVarInThisBlueprint;
+	}
+	FEdGraphSchemaAction_K2LocalVar* VarLocalAction = MyBlueprintSelectionAsLocalVar();
+	if(VarLocalAction)
+	{
+		return true;
 	}
 	return false;
 }
@@ -782,13 +826,17 @@ bool FBlueprintVarActionDetails::GetVariableTypeChangeEnabled() const
 bool FBlueprintVarActionDetails::GetVariableCategoryChangeEnabled() const
 {
 	UProperty* VariableProp = SelectionAsProperty();
-
 	if(VariableProp)
 	{
-		UClass* VarSourceClass = CastChecked<UClass>(VariableProp->GetOuter());
-
-		// If the variable's source class is the same as the current blueprint's class then it was created in this blueprint and it's category can be changed.
-		return VarSourceClass == GetBlueprintObj()->SkeletonGeneratedClass;
+		if(UClass* VarSourceClass = Cast<UClass>(VariableProp->GetOuter()))
+		{
+			// If the variable's source class is the same as the current blueprint's class then it was created in this blueprint and it's category can be changed.
+			return VarSourceClass == GetBlueprintObj()->SkeletonGeneratedClass;
+		}
+		else if(IsALocalVariable(VariableProp))
+		{
+			return true;
+		}
 	}
 
 	return false;
@@ -810,13 +858,28 @@ FEdGraphPinType FBlueprintVarActionDetails::OnGetVarType() const
 
 void FBlueprintVarActionDetails::OnVarTypeChanged(const FEdGraphPinType& NewPinType)
 {
-	FName VarName = GetVariableName();
-	if (VarName != NAME_None)
+	if (FBlueprintEditorUtils::IsPinTypeValid(NewPinType))
 	{
-		FBlueprintEditorUtils::ChangeMemberVariableType(GetBlueprintObj(), VarName, NewPinType);
+		FName VarName = GetVariableName();
 
-		// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
-		MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
+		if (VarName != NAME_None)
+		{
+			FBlueprintEditorUtils::ChangeMemberVariableType(GetBlueprintObj(), VarName, NewPinType);
+			// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
+			MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
+
+			FEdGraphSchemaAction_K2Var* VarAction = MyBlueprintSelectionAsVar();
+			if(VarAction)
+			{
+				FBlueprintEditorUtils::ChangeMemberVariableType(GetBlueprintObj(), VarName, NewPinType);
+			}
+
+			FEdGraphSchemaAction_K2LocalVar* VarLocalAction = MyBlueprintSelectionAsLocalVar();
+			if(VarLocalAction)
+			{
+				FBlueprintEditorUtils::ChangeLocalVariableType(GetBlueprintObj(), VarName, NewPinType);
+			}
+		}
 	}
 }
 
@@ -877,6 +940,26 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 			}
 		}
 	}
+
+	// Search through all function entry nodes for local variables to pull their categories
+	TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+	FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_FunctionEntry>(Blueprint, FunctionEntryNodes);
+
+	for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
+	{
+		for( FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
+		{
+			bool bNewCategory = true;
+			for (int32 j = 0; j < CategorySource.Num() && bNewCategory; ++j)
+			{
+				bNewCategory &= *CategorySource[j].Get() != Variable.Category.ToString();
+			}
+			if (bNewCategory)
+			{
+				CategorySource.Add(MakeShareable(new FString(Variable.Category.ToString())));
+			}
+		}
+	}
 }
 
 UK2Node_Variable* FBlueprintVarActionDetails::EdGraphSelectionAsVar() const
@@ -909,25 +992,15 @@ UProperty* FBlueprintVarActionDetails::SelectionAsProperty() const
 	{
 		return VarAction->GetProperty();
 	}
+	FEdGraphSchemaAction_K2LocalVar* LocalVarAction = MyBlueprintSelectionAsLocalVar();
+	if(LocalVarAction)
+	{
+		return LocalVarAction->GetProperty();
+	}
 	UK2Node_Variable* GraphVar = EdGraphSelectionAsVar();
 	if(GraphVar)
 	{
 		return GraphVar->GetPropertyForVariable();
-	}
-	return NULL;
-}
-
-UClass* FBlueprintVarActionDetails::SelectionAsClass() const
-{
-	FEdGraphSchemaAction_K2Var* VarAction = MyBlueprintSelectionAsVar();
-	if(VarAction)
-	{
-		return VarAction->GetVariableClass();
-	}
-	UK2Node_Variable* GraphVar = EdGraphSelectionAsVar();
-	if(GraphVar)
-	{
-		return GraphVar->GetClass();
 	}
 	return NULL;
 }
@@ -938,6 +1011,11 @@ FName FBlueprintVarActionDetails::GetVariableName() const
 	if(VarAction)
 	{
 		return VarAction->GetVariableName();
+	}
+	FEdGraphSchemaAction_K2LocalVar* LocalVarAction = MyBlueprintSelectionAsLocalVar();
+	if(LocalVarAction)
+	{
+		return LocalVarAction->GetVariableName();
 	}
 	UK2Node_Variable* GraphVar = EdGraphSelectionAsVar();
 	if(GraphVar)
@@ -1202,7 +1280,7 @@ void FBlueprintVarActionDetails::OnExposedToMatineeChanged(ESlateCheckBoxState::
 EVisibility FBlueprintVarActionDetails::ExposeToMatineeVisibility() const
 {
 	UProperty* VariableProperty = SelectionAsProperty();
-	if (VariableProperty)
+	if (VariableProperty && !IsALocalVariable(VariableProperty))
 	{
 		const bool bIsInteger = VariableProperty->IsA(UIntProperty::StaticClass());
 		const bool bIsNonEnumByte = (VariableProperty->IsA(UByteProperty::StaticClass()) && Cast<const UByteProperty>(VariableProperty)->Enum == NULL);
@@ -1332,7 +1410,7 @@ void FBlueprintVarActionDetails::OnChangeReplication(TSharedPtr<FString> ItemSel
 				if (!FuncGraph)
 				{
 					FuncGraph = FBlueprintEditorUtils::CreateNewGraph(GetBlueprintObj(), FName(*NewFuncName), UEdGraph::StaticClass(), UEdGraphSchema_K2::StaticClass());
-					FBlueprintEditorUtils::AddFunctionGraph(GetBlueprintObj(), FuncGraph, false, NULL);
+					FBlueprintEditorUtils::AddFunctionGraph<UClass>(GetBlueprintObj(), FuncGraph, false, NULL);
 				}
 
 				if (FuncGraph)
@@ -1475,233 +1553,12 @@ EVisibility FBlueprintVarActionDetails::IsTooltipEditVisible() const
 	UProperty* VariableProperty = SelectionAsProperty();
 	if (VariableProperty)
 	{
-		if (IsABlueprintVariable(VariableProperty) && !IsAComponentVariable(VariableProperty))
+		if (IsABlueprintVariable(VariableProperty) && !IsAComponentVariable(VariableProperty) || IsALocalVariable(VariableProperty))
 		{
 			return EVisibility::Visible;
 		}
 	}
 	return EVisibility::Collapsed;
-}
-
-// Local Variable Detail Customization
-BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-	void FBlueprintLocalVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
-{
-	FName VarName =	GetVariableName();
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
-
-	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Local Variable", LOCTEXT("LocalVariableDetailsCategory", "Local Variable").ToString());
-	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
-
-	Category.AddCustomRow( TEXT("Variable Name") )
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintVarActionDetails_VariableNameLabel", "Variable Name").ToString())
-			.Font(IDetailLayoutBuilder::GetDetailFont())
-		]
-	.ValueContent()
-		[
-			SAssignNew(VarNameEditableTextBox, SEditableTextBox)
-			.Text(this, &FBlueprintLocalVarActionDetails::OnGetVarName)
-			.OnTextChanged(this, &FBlueprintLocalVarActionDetails::OnLocalVarNameChanged)
-			.OnTextCommitted(this, &FBlueprintLocalVarActionDetails::OnLocalVarNameCommitted)
-			.Font(IDetailLayoutBuilder::GetDetailFont())
-		];
-	Category.AddCustomRow( TEXT("Variable Type") )
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Text( LOCTEXT("VariableTypeLabel", "Variable Type") )
-			.Font( DetailFontInfo )
-		]
-	.ValueContent()
-		[
-			SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableTypeTree))
-			.TargetPinType(this, &FBlueprintLocalVarActionDetails::OnGetVarType)
-			.OnPinTypeChanged(this, &FBlueprintLocalVarActionDetails::OnVarTypeChanged)
-			.IsEnabled(this, &FBlueprintLocalVarActionDetails::GetVariableTypeChangeEnabled)
-			.Schema(Schema)
-			.bAllowExec(false)
-			.Font( DetailFontInfo )
-		];
-	Category.AddCustomRow( TEXT("Tooltip") )
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Text( LOCTEXT("IsVariableToolTipLabel", "Tooltip") )
-			.Font( DetailFontInfo )
-		]
-	.ValueContent()
-		[
-			SNew(SEditableTextBox)
-			.Text( this, &FBlueprintLocalVarActionDetails::OnGetTooltipText )
-			.OnTextCommitted( this, &FBlueprintLocalVarActionDetails::OnTooltipTextCommitted )
-			.Font( DetailFontInfo )
-		];
-}
-END_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
-	UK2Node_LocalVariable* FBlueprintLocalVarActionDetails::EdGraphSelectionAsLocalVar() const
-{
-	TWeakPtr<FBlueprintEditor> BlueprintEditor = MyBlueprint.Pin()->GetBlueprintEditor();
-
-	if( BlueprintEditor.IsValid() )
-	{
-		/** Get the currently selected set of nodes */
-		TSet<UObject*> Objects = BlueprintEditor.Pin()->GetSelectedNodes();
-
-		if (Objects.Num() == 1)
-		{
-			TSet<UObject*>::TIterator Iter(Objects);
-			UObject* Object = *Iter;
-
-			if (Object && Object->IsA<UK2Node_LocalVariable>())
-			{
-				return Cast<UK2Node_LocalVariable>(Object);
-			}
-		}
-	}
-	return NULL;
-}
-
-UK2Node_LocalVariable* FBlueprintLocalVarActionDetails::GetDetailsSelection() const
-{
-	UK2Node_LocalVariable* LocalVar = nullptr;
-
-	// Check if the selection is from the MyBlueprints window
-	LocalVar = MyBlueprintSelectionAsLocalVar();
-	if(LocalVar)
-	{
-		return LocalVar;
-	}
-
-	// Check if the selection is in the graph
-	LocalVar = EdGraphSelectionAsLocalVar();
-	if(LocalVar)
-	{
-		return LocalVar;
-	}
-
-	return nullptr;
-}
-
-void FBlueprintLocalVarActionDetails::OnLocalVarNameChanged(const FText& InNewText)
-{
-	bIsVarNameInvalid = true;
-
-	UK2Node_LocalVariable* LocalVar = GetDetailsSelection();
-
-	TSharedPtr<INameValidatorInterface> NameValidator = LocalVar->MakeNameValidator();
-
-	EValidatorResult ValidatorResult = NameValidator->IsValid(InNewText.ToString());
-	if(ValidatorResult == EValidatorResult::AlreadyInUse)
-	{
-		VarNameEditableTextBox->SetError(FText::Format(LOCTEXT("RenameFailed_InUse", "{0} is in use by another variable or function!"), InNewText));
-	}
-	else if(ValidatorResult == EValidatorResult::EmptyName)
-	{
-		VarNameEditableTextBox->SetError(LOCTEXT("RenameFailed_LeftBlank", "Names cannot be left blank!"));
-	}
-	else if(ValidatorResult == EValidatorResult::TooLong)
-	{
-		VarNameEditableTextBox->SetError(LOCTEXT("RenameFailed_NameTooLong", "Names must have fewer than 100 characters!"));
-	}
-	else
-	{
-		bIsVarNameInvalid = false;
-		VarNameEditableTextBox->SetError(FText::GetEmpty());
-	}
-}
-
-void FBlueprintLocalVarActionDetails::OnLocalVarNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit)
-{
-	if(InTextCommit == ETextCommit::OnEnter && !bIsVarNameInvalid)
-	{
-		const FScopedTransaction Transaction( LOCTEXT( "RenameLocalVariable", "Rename Local Variable" ) );
-
-		FName NewVarName = FName(*InNewText.ToString());
-
-		auto LocalVar = GetDetailsSelection();
-		LocalVar->Modify();
-		LocalVar->CustomVariableName = NewVarName;
-
-		check(MyBlueprint.IsValid());
-		MyBlueprint.Pin()->Refresh();
-		MyBlueprint.Pin()->SelectItemByName(NewVarName, ESelectInfo::OnMouseClick);
-	}
-
-	bIsVarNameInvalid = false;
-	VarNameEditableTextBox->SetError(FText::GetEmpty());
-}
-
-FName FBlueprintLocalVarActionDetails::GetVariableName() const
-{
-	UK2Node_LocalVariable* LocalVar = GetDetailsSelection();
-	if(LocalVar)
-	{
-		return LocalVar->CustomVariableName;
-	}
-	return NAME_None;
-}
-
-FText FBlueprintLocalVarActionDetails::OnGetVarName() const
-{
-	return FText::FromName(GetVariableName());
-}
-
-FEdGraphPinType FBlueprintLocalVarActionDetails::OnGetVarType() const
-{
-	UK2Node_LocalVariable* LocalVar = GetDetailsSelection();
-	if(LocalVar)
-	{
-		return LocalVar->VariableType;
-	}
-	return FEdGraphPinType();
-}
-
-void FBlueprintLocalVarActionDetails::OnVarTypeChanged(const FEdGraphPinType& NewPinType)
-{
-	UK2Node_LocalVariable* LocalVar = GetDetailsSelection();
-	if(LocalVar)
-	{
-		LocalVar->ChangeVariableType(NewPinType);
-
-		// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
-		MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
-	}
-}
-
-bool FBlueprintLocalVarActionDetails::GetVariableTypeChangeEnabled() const
-{
-	UK2Node_LocalVariable* VarAction = GetDetailsSelection();
-	if (VarAction)
-	{
-		if(VarAction->GetVariablePin()->LinkedTo.Num() != 0)
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-FText FBlueprintLocalVarActionDetails::OnGetTooltipText() const
-{
-	UK2Node_LocalVariable* VarAction = GetDetailsSelection();
-	if (VarAction && !VarAction->VariableTooltip.IsEmpty())
-	{
-		return FText::FromString(VarAction->GetTooltip());
-	}
-	return FText::GetEmpty();
-}
-
-void FBlueprintLocalVarActionDetails::OnTooltipTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
-{
-	UK2Node_LocalVariable* VarAction = GetDetailsSelection();
-	if (VarAction)
-	{
-		VarAction->VariableTooltip = NewText;
-	}
 }
 
 static FDetailWidgetRow& AddRow( TArray<TSharedRef<FDetailWidgetRow> >& OutChildRows )
@@ -1984,7 +1841,7 @@ void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ESlateCheckBoxState::
 
 void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinType)
 {
-	if (ParamItemPtr.IsValid())
+	if (ParamItemPtr.IsValid() && FBlueprintEditorUtils::IsPinTypeValid(PinType))
 	{
 		ParamItemPtr.Pin()->PinType = PinType;
 		if (GraphActionDetailsPtr.IsValid())
@@ -2017,7 +1874,7 @@ FText FBlueprintGraphArgumentLayout::OnGetArgDefaultValueText() const
 
 void FBlueprintGraphArgumentLayout::OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
 {
-	if (!NewText.IsEmpty() && !ShouldPinBeReadOnly() && (InTextCommit == ETextCommit::OnEnter) && ParamItemPtr.IsValid())
+	if (!NewText.IsEmpty() && !ShouldPinBeReadOnly() && (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus) && ParamItemPtr.IsValid())
 	{
 		bool bSuccess = TargetNode->ModifyUserDefinedPinDefaultValue(ParamItemPtr.Pin(), NewText.ToString());
 		
@@ -3606,6 +3463,7 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 	{
 		FunctionResultNode->Modify();
 		FEdGraphPinType PinType = MyBlueprint.Pin()->GetLastFunctionPinTypeUsed();
+		PinType.bIsReference = false;
 
 		// Make sure that if this is an exec node we are allowed one.
 		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
@@ -3980,7 +3838,8 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		const bool bIsInterfaceBP = FBlueprintEditorUtils::IsInterfaceBlueprint(Blueprint);
 		const bool bIsMacroLibrary = Blueprint->BlueprintType == BPTYPE_MacroLibrary;
 		const bool bIsLevelScriptBP = FBlueprintEditorUtils::IsLevelScriptBlueprint(Blueprint);
-		const bool bSupportsInterfaces = !bIsLevelScriptBP && !bIsInterfaceBP && !bIsMacroLibrary;
+		const bool bIsFunctionLibrary = Blueprint->BlueprintType == BPTYPE_FunctionLibrary;
+		const bool bSupportsInterfaces = !bIsLevelScriptBP && !bIsInterfaceBP && !bIsMacroLibrary && !bIsFunctionLibrary;
 
 		if (bSupportsInterfaces)
 		{
@@ -4164,7 +4023,7 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 				.AutoWidth()
 				[
 					SNew( STextBlock )
-						.Text( LOCTEXT("ScriptingEvents_Label", "Add Event").ToString()  )
+						.Text( LOCTEXT("ScriptingEvents_Label", "Add Event")  )
 						.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 			]
@@ -4472,9 +4331,9 @@ FText FBlueprintComponentDetails::GetSocketName() const
 
 	if (CachedNodePtr->GetSCSNode() != NULL)
 	{
-		return FText::FromString(CachedNodePtr->GetSCSNode()->AttachToName.ToString());
+		return FText::FromName(CachedNodePtr->GetSCSNode()->AttachToName);
 	}
-	return FText();
+	return FText::GetEmpty();
 }
 
 void FBlueprintComponentDetails::OnBrowseSocket()
@@ -4655,6 +4514,47 @@ void FBlueprintGraphNodeDetails::OnNameCommitted(const FText& InNewText, ETextCo
 	if( BlueprintEditorPtr.IsValid() && GraphNodePtr.IsValid() )
 	{
 		BlueprintEditorPtr.Pin()->OnNodeTitleCommitted( InNewText, InTextCommit, GraphNodePtr.Get() );
+	}
+}
+
+TSharedRef<IDetailCustomization> FChildActorComponentDetails::MakeInstance(TWeakPtr<FBlueprintEditor> BlueprintEditorPtrIn)
+{
+	return MakeShareable(new FChildActorComponentDetails(BlueprintEditorPtrIn));
+}
+
+FChildActorComponentDetails::FChildActorComponentDetails(TWeakPtr<FBlueprintEditor> BlueprintEditorPtrIn)
+	: BlueprintEditorPtr(BlueprintEditorPtrIn)
+{
+}
+
+void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
+{
+	TSharedPtr<IPropertyHandle> ActorClassProperty = DetailBuilder.GetProperty("ChildActorClass");
+	if (ActorClassProperty->IsValidHandle())
+	{
+		if (BlueprintEditorPtr.IsValid())
+		{
+			// only restrict for the components view (you can successfully add 
+			// a self child component in the execution graphs)
+			if (BlueprintEditorPtr.Pin()->GetCurrentMode() == FBlueprintEditorApplicationModes::BlueprintComponentsMode)
+			{
+				if (UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj())
+				{
+					FText RestrictReason = LOCTEXT("NoSelfChildActors", "Cannot append a child-actor of this blueprint type (could cause infinite recursion).");
+					TSharedPtr<FPropertyRestriction> ClassRestriction = MakeShareable(new FPropertyRestriction(RestrictReason));
+
+					ClassRestriction->AddValue(Blueprint->GetName());
+					ClassRestriction->AddValue(Blueprint->GetPathName());
+					if (Blueprint->GeneratedClass)
+					{
+						ClassRestriction->AddValue(Blueprint->GeneratedClass->GetName());
+						ClassRestriction->AddValue(Blueprint->GeneratedClass->GetPathName());
+					}
+
+					ActorClassProperty->AddRestriction(ClassRestriction.ToSharedRef());
+				}
+			}
+		}
 	}
 }
 

@@ -51,6 +51,7 @@ void UK2Node_Variable::Serialize(FArchive& Ar)
 
 void UK2Node_Variable::SetFromProperty(const UProperty* Property, bool bSelfContext)
 {
+	SelfContextInfo = bSelfContext ? ESelfContextInfo::Unspecified : ESelfContextInfo::NotSelfContext;
 	VariableReference.SetFromField<UProperty>(Property, bSelfContext);
 }
 
@@ -82,15 +83,21 @@ void UK2Node_Variable::CreatePinForSelf()
 	// Create the self pin
 	if (!K2Schema->FindSelfPin(*this, EGPD_Input))
 	{
-		if (VariableReference.IsSelfContext())
+		// Do not create a self pin for locally scoped variables
+		if( !VariableReference.IsLocalScope() )
 		{
-			UEdGraphPin* SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
-			SelfPin->bHidden = true; // don't show in 'self' context
-		}
-		else
-		{
-			UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), VariableReference.GetMemberParentClass(this), false, false, K2Schema->PN_Self);
-			TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+			if (VariableReference.IsSelfContext() && (ESelfContextInfo::NotSelfContext != SelfContextInfo))
+			{
+				UEdGraphPin* SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, K2Schema->PSC_Self, NULL, false, false, K2Schema->PN_Self);
+				SelfPin->bHidden = true; // don't show in 'self' context
+			}
+			else
+			{
+				UClass* MemberParentClass = VariableReference.GetMemberParentClass(this);
+				UClass* AuthoritativeClass = MemberParentClass ? MemberParentClass->GetAuthoritativeClass() : NULL;
+				UEdGraphPin* TargetPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), AuthoritativeClass, false, false, K2Schema->PN_Self);
+				TargetPin->PinFriendlyName =  LOCTEXT("Target", "Target");
+			}
 		}
 	}
 	else
@@ -161,35 +168,42 @@ UK2Node::ERedirectType UK2Node_Variable::DoPinsMatchForReconstruction( const UEd
 	{
 		return Super::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
 	}
-	else if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
+
+	const bool bCanMatchSelfs = ((OldPin->PinName == K2Schema->PN_Self) == (NewPin->PinName == K2Schema->PN_Self));
+	const bool bTheSameDirection = (NewPin->Direction == OldPin->Direction);
+	if (bCanMatchSelfs && bTheSameDirection)
 	{
-		return ERedirectType_Name;
-	}
-	else if( (OldPin->PinName == NewPin->PinName) && (NewPin->PinType.PinCategory == K2Schema->PC_Object) && (NewPin->PinType.PinSubCategoryObject == NULL))
-	{
-		// Special Case:  If we had a pin match, and the class isn't loaded yet because of a cyclic dependency, temporarily cast away the const, and fix up.
-		// @TODO:  Fix this up to be less hacky
-		UBlueprintGeneratedClass* TypeClass = Cast<UBlueprintGeneratedClass>(OldPin->PinType.PinSubCategoryObject.Get());
-		if(TypeClass && TypeClass->ClassGeneratedBy && TypeClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated))
+		if (K2Schema->ArePinTypesCompatible(NewPin->PinType, OldPin->PinType))
 		{
-			UEdGraphPin* NonConstNewPin = (UEdGraphPin*)NewPin;
-			NonConstNewPin->PinType.PinSubCategoryObject = OldPin->PinType.PinSubCategoryObject.Get();
 			return ERedirectType_Name;
 		}
+		else if ((OldPin->PinName == NewPin->PinName) && ((NewPin->PinType.PinCategory == K2Schema->PC_Object) ||
+			(NewPin->PinType.PinCategory == K2Schema->PC_Interface)) && (NewPin->PinType.PinSubCategoryObject == NULL))
+		{
+			// Special Case:  If we had a pin match, and the class isn't loaded yet because of a cyclic dependency, temporarily cast away the const, and fix up.
+			// @TODO:  Fix this up to be less hacky
+			UBlueprintGeneratedClass* TypeClass = Cast<UBlueprintGeneratedClass>(OldPin->PinType.PinSubCategoryObject.Get());
+			if (TypeClass && TypeClass->ClassGeneratedBy && TypeClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated))
+			{
+				UEdGraphPin* NonConstNewPin = (UEdGraphPin*)NewPin;
+				NonConstNewPin->PinType.PinSubCategoryObject = OldPin->PinType.PinSubCategoryObject.Get();
+				return ERedirectType_Name;
+			}
+		}
+		else
+		{
+			// Special Case:  If we're migrating from old blueprint references to class references, allow pins to be reconnected if coerced
+			const UClass* PSCOClass = Cast<UClass>(OldPin->PinType.PinSubCategoryObject.Get());
+			const bool bOldIsBlueprint = PSCOClass && PSCOClass->IsChildOf(UBlueprint::StaticClass());
+			const bool bNewIsClass = (NewPin->PinType.PinCategory == K2Schema->PC_Class);
+			if (bNewIsClass && bOldIsBlueprint)
+			{
+				UEdGraphPin* OldPinNonConst = (UEdGraphPin*)OldPin;
+				OldPinNonConst->PinName = NewPin->PinName;
+				return ERedirectType_Name;
+			}
+		}
 	}
- 	else
- 	{
-		// Special Case:  If we're migrating from old blueprint references to class references, allow pins to be reconnected if coerced
-		const UClass* PSCOClass = Cast<UClass>(OldPin->PinType.PinSubCategoryObject.Get());
- 		const bool bOldIsBlueprint = PSCOClass && PSCOClass->IsChildOf(UBlueprint::StaticClass());
- 		const bool bNewIsClass = (NewPin->PinType.PinCategory == K2Schema->PC_Class);
- 		if(bNewIsClass && bOldIsBlueprint)
- 		{
- 			UEdGraphPin* OldPinNonConst = (UEdGraphPin*)OldPin;
- 			OldPinNonConst->PinName = NewPin->PinName;
-			return ERedirectType_Name;
- 		}
- 	}
 
 	return ERedirectType_None;
 }
@@ -236,7 +250,9 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 	Super::ValidateNodeDuringCompilation(MessageLog);
 
 	UProperty* VariableProperty = GetPropertyForVariable();
-	if (VariableProperty == NULL)
+
+	// Local variables do not exist until much later in the compilation than this function can provide
+	if (VariableProperty == NULL && !VariableReference.IsLocalScope())
 	{
 		MessageLog.Warning(*FString::Printf(*LOCTEXT("VariableNotFound", "Unable to find variable with name '%s' for @@").ToString(), *VariableReference.GetMemberName().ToString()), this);
 	}
@@ -244,7 +260,18 @@ void UK2Node_Variable::ValidateNodeDuringCompilation(class FCompilerResultsLog& 
 
 FName UK2Node_Variable::GetPaletteIcon(FLinearColor& ColorOut) const
 {
-	return GetVariableIconAndColor(GetVariableSourceClass(), GetVarName(), ColorOut);
+	FName ReturnIconName;
+
+	if(VariableReference.IsLocalScope())
+	{
+		ReturnIconName = GetVariableIconAndColor(VariableReference.GetMemberScope(this), GetVarName(), ColorOut);
+	}
+	else
+	{
+		ReturnIconName = GetVariableIconAndColor(GetVariableSourceClass(), GetVarName(), ColorOut);
+	}
+
+	return ReturnIconName;
 }
 
 FName UK2Node_Variable::GetVarIconFromPinType(FEdGraphPinType& InPinType, FLinearColor& IconColorOut)
@@ -291,13 +318,13 @@ FText UK2Node_Variable::GetToolTipHeading() const
 	return Heading;
 }
 
-FName UK2Node_Variable::GetVariableIconAndColor(UClass* VarClass, FName VarName, FLinearColor& IconColorOut)
+FName UK2Node_Variable::GetVariableIconAndColor(UStruct* VarScope, FName VarName, FLinearColor& IconColorOut)
 {
 	FName IconBrush = TEXT("Kismet.AllClasses.VariableIcon");
 
-	if(VarClass != NULL)
+	if(VarScope != NULL)
 	{
-		UProperty* Property = FindField<UProperty>(VarClass, VarName);
+		UProperty* Property = FindField<UProperty>(VarScope, VarName);
 		if(Property != NULL)
 		{
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -400,7 +427,7 @@ bool UK2Node_Variable::HasExternalBlueprintDependencies(TArray<class UStruct*>* 
 	{
 		OptionalOutput->Add(SourceClass);
 	}
-	return bResult;
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
 FString UK2Node_Variable::GetDocumentationLink() const

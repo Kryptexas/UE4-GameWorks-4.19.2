@@ -56,3 +56,19 @@ void FAnimNode_SequencePlayer::Evaluate(FPoseContext& Output)
 		Output.ResetToRefPose();
 	}
 }
+
+void FAnimNode_SequencePlayer::OverrideAsset(UAnimationAsset* NewAsset)
+{
+	if(UAnimSequenceBase* AnimSequence = Cast<UAnimSequenceBase>(NewAsset))
+	{
+		Sequence = AnimSequence;
+	}
+}
+
+void FAnimNode_SequencePlayer::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	
+	DebugLine += FString::Printf(TEXT("('%s' Play Time: %.3f)"), *Sequence->GetName(), InternalTimeAccumulator);
+	DebugData.AddDebugItem(DebugLine, true);
+}

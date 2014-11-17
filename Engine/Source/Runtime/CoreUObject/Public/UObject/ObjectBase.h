@@ -43,6 +43,7 @@ enum ELoadFlags
 	LOAD_NoRedirects				= 0x00010000,	// Never follow redirects when loading objects; redirected loads will fail
 	LOAD_ForDiff					= 0x00020000,	// Loading for diffing.
 	LOAD_NoSeekFreeLinkerDetatch	= 0x00040000,	// Do not detach linkers for this package when seek-free loading
+	LOAD_PackageForPIE				= 0x00080000,   // This package is being loaded for PIE, it must be flagged as such immediately
 };
 
 //
@@ -268,6 +269,7 @@ typedef uint64 EClassCastFlags;
 #define CASTCLASS_UInt16Property				DECLARE_UINT64(0x0000000080000000)
 #define CASTCLASS_UDoubleProperty				DECLARE_UINT64(0x0000000100000000)
 #define CASTCLASS_UAssetClassProperty			DECLARE_UINT64(0x0000000200000000)
+#define CASTCLASS_UAttributeProperty			DECLARE_UINT64(0x0000000400000000)
 
 #define CASTCLASS_AllFlags						DECLARE_UINT64(0xFFFFFFFFFFFFFFFF)
 
@@ -718,7 +720,7 @@ namespace UP
 		/// Property should always be reset to the default value during any type of duplication (copy/paste, binary duplication, etc.)
 		DuplicateTransient,
 
-		/// Property should always be reset to the default value during any type of duplication (copy/paste, binary duplication, etc.)
+		/// Property should always be reset to the default value unless it's being duplicated for a PIE session
 		NonPIETransient,
 
 		/// Value is copied out after function call. Only valid on function param declaration.

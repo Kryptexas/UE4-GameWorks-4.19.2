@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleEventReceiverKillParticles.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "EventReceiver Kill All"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "EventReceiver Kill All"))
 class UParticleModuleEventReceiverKillParticles : public UParticleModuleEventReceiverBase
 {
 	GENERATED_UCLASS_BODY()

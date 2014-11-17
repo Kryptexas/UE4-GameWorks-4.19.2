@@ -30,9 +30,8 @@
 #endif
 
 #if WITH_APEX
-
 #ifndef WITH_SUBSTEPPING
-	#define WITH_SUBSTEPPING (1 && WITH_APEX)
+	#define WITH_SUBSTEPPING 1
 #endif
 
 #ifndef WITH_APEX_CLOTHING
@@ -351,7 +350,7 @@ DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Skel Verts GPU Skin"),STAT_GPUSkinVertic
 DECLARE_CYCLE_STAT_EXTERN(TEXT("GameEngine Tick"),STAT_GameEngineTick,STATGROUP_Engine, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("GameViewport Tick"),STAT_GameViewportTick,STATGROUP_Engine, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("RedrawViewports"),STAT_RedrawViewports,STATGROUP_Engine, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Level Streaming"),STAT_UpdateLevelStreaming,STATGROUP_Engine, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Level Streaming"),STAT_UpdateLevelStreaming,STATGROUP_Engine, ENGINE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("RHI Game Tick"),STAT_RHITickTime,STATGROUP_Engine, ENGINE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Debug Hitch"),STAT_IntentionalHitch,STATGROUP_Engine, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Platform Message Time"),STAT_PlatformMessageTime,STATGROUP_Engine, ENGINE_API);
@@ -602,7 +601,6 @@ struct FURL;
 #include "RenderUtils.h"					// Render utility classes.
 #include "Distributions.h"					// Distributions
 #include "PhysxUserData.h"
-#include "EngineSceneClasses.h"
 #include "EngineClasses.h"					// All actor classes.
 #include "VisualLog.h"
 #include "MaterialShared.h"					// Shared material definitions.
@@ -615,10 +613,7 @@ struct FURL;
 #include "LightMap.h"						// Light-maps.
 #include "ShadowMap.h"
 #include "Model.h"							// Model class.
-#include "EngineComponentClasses.h"
-#include "EngineMaterialClasses.h"
-#include "EngineStaticMeshClasses.h"
-#include "EngineNavigationClasses.h"
+
 #include "AI/NavDataGenerator.h"
 #include "AI/NavLinkRenderingProxy.h"
 #include "AI/NavigationModifier.h"
@@ -626,16 +621,8 @@ struct FURL;
 #include "StaticMeshResources.h"			// Static meshes.
 #include "AnimTree.h"						// Animation.
 #include "SkeletalMeshTypes.h"				// Skeletal animated mesh.
-#include "EngineSkeletalMeshClasses.h"
-#include "EngineLightClasses.h"
 #include "Animation/SkeletalMeshActor.h"
 #include "Interpolation.h"					// Matinee.
-#include "EngineInterpolationClasses.h"
-#include "EnginePawnClasses.h"
-#include "EngineReplicationInfoClasses.h"
-#include "EngineGameEngineClasses.h"		// Main Unreal engine declarations
-#include "EngineTerrainClasses.h"
-#include "EngineNetworkClasses.h"
 #include "ContentStreaming.h"				// Content streaming class definitions.
 #include "LightingBuildOptions.h"			// Definition of lighting build option struct.
 #include "PixelFormat.h"
@@ -650,8 +637,6 @@ struct FURL;
 #include "TimerManager.h"					// Game play timers
 #include "EngineService.h"
 #include "AI/NavigationSystemHelpers.h"
-#include "EngineAnimationNodeClasses.h"
-#include "EngineNavigationClasses.h"
 #include "HardwareInfo.h"
 
 /** Implements the engine module. */

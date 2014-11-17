@@ -130,17 +130,18 @@ static FAutoConsoleVariableRef CVarLightingCacheUnbuiltPreviewAllocationSize(
 	ECVF_ReadOnly
 	);
 
-bool IsIndirectLightingCacheAllowed() 
+bool IsIndirectLightingCacheAllowed(ERHIFeatureLevel::Type InFeatureLevel) 
 {
 	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
 	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnRenderThread() != 0);
 
-	return GIndirectLightingCache != 0 && (GSupportsVolumeTextureRendering || GRHIFeatureLevel == ERHIFeatureLevel::ES2) && bAllowStaticLighting;
+	return GIndirectLightingCache != 0 && bAllowStaticLighting;
 }
 
-bool CanIndirectLightingCacheUseVolumeTexture()
+bool CanIndirectLightingCacheUseVolumeTexture(ERHIFeatureLevel::Type InFeatureLevel)
 {
-	return GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	// @todo Mac OS X/OpenGL: For OpenGL devices which don't support volume-texture rendering we need to use the simpler point indirect lighting shaders.
+	return GRHIFeatureLevel >= ERHIFeatureLevel::SM3 && GSupportsVolumeTextureRendering;
 }
 
 FIndirectLightingCache::FIndirectLightingCache()
@@ -152,7 +153,7 @@ FIndirectLightingCache::FIndirectLightingCache()
 
 void FIndirectLightingCache::InitDynamicRHI()
 {
-	if (CanIndirectLightingCacheUseVolumeTexture())
+	if (CanIndirectLightingCacheUseVolumeTexture(GRHIFeatureLevel))
 	{
 		uint32 Flags = TexCreate_ShaderResource | TexCreate_NoTiling;
 
@@ -217,9 +218,9 @@ void FIndirectLightingCache::CalculateBlockPositionAndSize(const FBoxSphereBound
 	RoundedBoundsSize.Z = FMath::LogX(BoundSizeRoundUpBase, Bounds.BoxExtent.Z * 2);
 
 	// Round up to the next integer exponent to provide stability even when Bounds.BoxExtent is changing
-	RoundedBoundsSize.X = FMath::Pow(BoundSizeRoundUpBase, FMath::Trunc(RoundedBoundsSize.X) + 1);
-	RoundedBoundsSize.Y = FMath::Pow(BoundSizeRoundUpBase, FMath::Trunc(RoundedBoundsSize.Y) + 1);
-	RoundedBoundsSize.Z = FMath::Pow(BoundSizeRoundUpBase, FMath::Trunc(RoundedBoundsSize.Z) + 1);
+	RoundedBoundsSize.X = FMath::Pow(BoundSizeRoundUpBase, FMath::TruncToInt(RoundedBoundsSize.X) + 1);
+	RoundedBoundsSize.Y = FMath::Pow(BoundSizeRoundUpBase, FMath::TruncToInt(RoundedBoundsSize.Y) + 1);
+	RoundedBoundsSize.Z = FMath::Pow(BoundSizeRoundUpBase, FMath::TruncToInt(RoundedBoundsSize.Z) + 1);
 
 	// For single sample allocations, use an effective texel size of 5 for snapping
 	const int32 EffectiveTexelSize = TexelSize > 2 ? TexelSize : 5;
@@ -233,9 +234,9 @@ void FIndirectLightingCache::CalculateBlockPositionAndSize(const FBoxSphereBound
 	const FVector BoundsMin = Bounds.Origin - Bounds.BoxExtent;
 
 	FVector SnappedMin;
-	SnappedMin.X = CellSize.X * FMath::Floor(BoundsMin.X / CellSize.X);
-	SnappedMin.Y = CellSize.Y * FMath::Floor(BoundsMin.Y / CellSize.Y);
-	SnappedMin.Z = CellSize.Z * FMath::Floor(BoundsMin.Z / CellSize.Z);
+	SnappedMin.X = CellSize.X * FMath::FloorToFloat(BoundsMin.X / CellSize.X);
+	SnappedMin.Y = CellSize.Y * FMath::FloorToFloat(BoundsMin.Y / CellSize.Y);
+	SnappedMin.Z = CellSize.Z * FMath::FloorToFloat(BoundsMin.Z / CellSize.Z);
 
 	if (TexelSize > 2)
 	{
@@ -260,6 +261,20 @@ void FIndirectLightingCache::CalculateBlockScaleAndAdd(FIntVector InTexelMin, in
 	if (AllocationTexelSize > 2)
 	{
 		const float UVSize = AllocationTexelSize / (float)CacheSize;
+
+		// need to remove 0
+		if (InSize.X == 0.f)
+		{
+			InSize.X = 0.01f;
+		}
+		if(InSize.Y == 0.f)
+		{
+			InSize.Y = 0.01f;
+		}
+		if(InSize.Z == 0.f)
+		{
+			InSize.Z = 0.01f;
+		}
 
 		// Setup a scale and add to convert from world space position to volume texture UV
 		OutScale = FVector(UVSize) / InSize;
@@ -329,7 +344,7 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::FindPrimitiveAllocatio
 
 void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview)
 {
-	if (IsIndirectLightingCacheAllowed())
+	if (IsIndirectLightingCacheAllowed(Scene->GetFeatureLevel()))
 	{
 		bool bAnyViewAllowsIndirectLightingCache = false;
 
@@ -593,7 +608,7 @@ void FIndirectLightingCache::UpdateBlock(FScene* Scene, FViewInfo* DebugDrawingV
 	float DirectionalShadowing = 1;
 	FVector SkyBentNormal(0, 0, 1);
 
-	if (CanIndirectLightingCacheUseVolumeTexture() && BlockInfo.Allocation->bOpaqueRelevance)
+	if (CanIndirectLightingCacheUseVolumeTexture(Scene->GetFeatureLevel()) && BlockInfo.Allocation->bOpaqueRelevance)
 	{
 		static TArray<float> AccumulatedWeight;
 		AccumulatedWeight.Reset(NumSamplesPerBlock);
@@ -764,9 +779,9 @@ void FIndirectLightingCache::InterpolateBlock(
 
 			// Number of cells to increment by for query blocks
 			FIntVector NumStepCells;
-			NumStepCells.X = FMath::Max(1, FMath::Floor(WorldTargetSize / WorldCellSize.X));
-			NumStepCells.Y = FMath::Max(1, FMath::Floor(WorldTargetSize / WorldCellSize.Y));
-			NumStepCells.Z = FMath::Max(1, FMath::Floor(WorldTargetSize / WorldCellSize.Z));
+			NumStepCells.X = FMath::Max(1, FMath::FloorToInt(WorldTargetSize / WorldCellSize.X));
+			NumStepCells.Y = FMath::Max(1, FMath::FloorToInt(WorldTargetSize / WorldCellSize.Y));
+			NumStepCells.Z = FMath::Max(1, FMath::FloorToInt(WorldTargetSize / WorldCellSize.Z));
 			FIntVector NumQueryStepCells(0, 0, 0);
 
 			// World space size to increment by for query blocks

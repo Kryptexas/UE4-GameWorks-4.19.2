@@ -6,7 +6,6 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
-#include "EngineInterpolationClasses.h"
 #include "InterpolationHitProxy.h"
 
 #include "Editor/Matinee/Public/MatineeModule.h"

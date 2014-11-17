@@ -23,7 +23,6 @@ public:
 
 	// End ISerializeMessages interface
 
-
 protected:
 
 	/**
@@ -35,9 +34,9 @@ protected:
 	/**
 	 * Serializes a structure.
 	 *
-	 * @param Data - The structured data to serialize.
-	 * @param TypeInfo - The data's type information.
-	 * @param Writer - The Json writer to write to.
+	 * @param Data The structured data to serialize.
+	 * @param TypeInfo The data's type information.
+	 * @param Writer The Json writer to write to.
 	 */
 	bool SerializeStruct( const void* Data, UStruct& TypeInfo, const TSharedRef<TJsonWriter<UCS2CHAR> >& Writer );
 };

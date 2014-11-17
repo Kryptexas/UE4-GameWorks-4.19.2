@@ -39,6 +39,7 @@ public:
 	float RHeight;
 	float StartDistance;
 	float DistanceOffset;
+	float SunDiscScale;
 	FLinearColor DefaultSunColor;
 	FVector DefaultSunDirection;
 	uint32 RenderFlag;
@@ -69,7 +70,7 @@ public:
 private:
 	/** Atmosphere pre-computation related functions */
 	FIntPoint GetTextureSize();
-	inline void DrawQuad(const FIntRect& ViewRect);
+	inline void DrawQuad(const FIntRect& ViewRect, FShader* VertexShader);
 	void GetLayerValue(int Layer, float& AtmosphereR, FVector4& DhdH);
 	void RenderAtmosphereShaders(const FViewInfo& View, const FIntRect& ViewRect);
 	void PrecomputeAtmosphereData(const FViewInfo* View, FSceneViewFamily& ViewFamily);

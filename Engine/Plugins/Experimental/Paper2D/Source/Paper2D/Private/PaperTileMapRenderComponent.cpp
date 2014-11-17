@@ -91,7 +91,7 @@ UBodySetup* UPaperTileMapRenderComponent::GetBodySetup()
 
 void UPaperTileMapRenderComponent::UpdateBodySetup()
 {
-	if (ShapeBodySetup == NULL)
+	if (ShapeBodySetup == NULL || ShapeBodySetup->IsPendingKill())
 	{
 		ShapeBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ShapeBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
@@ -102,6 +102,11 @@ void UPaperTileMapRenderComponent::UpdateBodySetup()
 	{
 		TileLayers[LayerIndex]->AugmentBodySetup(ShapeBodySetup);
 	}
+}
+
+const UObject* UPaperTileMapRenderComponent::AdditionalStatObject() const
+{
+	return DefaultLayerTileSet;
 }
 
 #undef LOCTEXT_NAMESPACE

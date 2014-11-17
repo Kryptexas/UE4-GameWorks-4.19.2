@@ -654,7 +654,7 @@ TOptional<int32> FLandscapeEditorDetailCustomization_NewLandscape::GetMaxLandsca
 	{
 		// Max size is either whole components below 8192 verts, or 32 components
 		const int32 QuadsPerComponent = (LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection);
-		//return (float)(FMath::Min(32, FMath::Floor(8191 / QuadsPerComponent)) * QuadsPerComponent);
+		//return (float)(FMath::Min(32, FMath::FloorToInt(8191 / QuadsPerComponent)) * QuadsPerComponent);
 		return (8191 / QuadsPerComponent) * QuadsPerComponent + 1;
 	}
 
@@ -740,8 +740,6 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 		}
 
 		TArray<FLandscapeImportLayerInfo> LayerInfos;
-		TArray<TArray<uint8> > LayerDatas;
-		TArray<uint8*> LayerDataPointers;
 
 		if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
 		{
@@ -750,18 +748,16 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 
 			const TArray<FLandscapeImportLayer>& ImportLandscapeLayersList = LandscapeEdMode->UISettings->ImportLandscape_Layers;
 			LayerInfos.Reserve(ImportLandscapeLayersList.Num());
-			LayerDatas.Reserve(ImportLandscapeLayersList.Num());
-			LayerDataPointers.Reserve(ImportLandscapeLayersList.Num());
-
+		
 			// Fill in LayerInfos array and allocate data
 			for (int32 LayerIdx = 0; LayerIdx < ImportLandscapeLayersList.Num(); LayerIdx++)
 			{
-				const FLandscapeImportLayerInfo& ImportLayer = ImportLandscapeLayersList[LayerIdx];
+				LayerInfos.Add(ImportLandscapeLayersList[LayerIdx]); //slicing is fine here
+				FLandscapeImportLayerInfo& ImportLayer = LayerInfos.Last();
 
 				if (ImportLayer.LayerInfo != NULL && ImportLayer.SourceFilePath != "")
 				{
-					TArray<uint8>& LayerData = *new(LayerDatas) TArray<uint8>();
-					FFileHelper::LoadFileToArray(LayerData, *ImportLayer.SourceFilePath, FILEREAD_Silent);
+					FFileHelper::LoadFileToArray(ImportLayer.LayerData, *ImportLayer.SourceFilePath, FILEREAD_Silent);
 
 					if (ImportLayer.SourceFilePath.EndsWith(".png"))
 					{
@@ -769,24 +765,21 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 						IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
 
 						const TArray<uint8>* RawData = NULL;
-						if (ImageWrapper->SetCompressed(LayerData.GetData(), LayerData.Num()) &&
+						if (ImageWrapper->SetCompressed(ImportLayer.LayerData.GetData(), ImportLayer.LayerData.Num()) &&
 							ImageWrapper->GetRaw(ERGBFormat::Gray, 8, RawData))
 						{
-							LayerData = *RawData; // agh I want to use MoveTemp() here
+							ImportLayer.LayerData = *RawData; // agh I want to use MoveTemp() here
 						}
 						else
 						{
-							LayerData.Empty();
+							ImportLayer.LayerData.Empty();
 						}
 					}
 
-					if (LayerData.Num() == ImportSizeX * ImportSizeY)
+					// Remove invalid raw weightmap data
+					if (ImportLayer.LayerData.Num() != (ImportSizeX * ImportSizeY))
 					{
-						LayerInfos.Add(ImportLayer);
-					}
-					else
-					{
-						LayerDatas.RemoveAt(LayerDatas.Num()-1);
+						ImportLayer.LayerData.Empty();
 					}
 				}
 			}
@@ -803,25 +796,24 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 					-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
 
 				// Layers
-				for (int32 LayerIdx = 0; LayerIdx < LayerDatas.Num(); LayerIdx++)
+				for (int32 LayerIdx = 0; LayerIdx < LayerInfos.Num(); LayerIdx++)
 				{
-					TArray<uint8>& ImportLayerData = LayerDatas[LayerIdx];
-
-					ImportLayerData = LandscapeEditorUtils::ExpandData(ImportLayerData,
-						0, 0, ImportSizeX - 1, ImportSizeY - 1,
-						-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
-
-					LayerDataPointers.Add(ImportLayerData.GetData());
+					TArray<uint8>& ImportLayerData = LayerInfos[LayerIdx].LayerData;
+					if (ImportLayerData.Num())
+					{
+						ImportLayerData = LandscapeEditorUtils::ExpandData(ImportLayerData,
+							0, 0, ImportSizeX - 1, ImportSizeY - 1,
+							-OffsetX, -OffsetY, SizeX - OffsetX - 1, SizeY - OffsetY - 1);
+					}
 				}
 			}
 
 			LandscapeEdMode->UISettings->ClearImportLandscapeData();
 		}
 
-
 		const float ComponentSize = QuadsPerComponent;
 		const FVector Offset = FTransform(LandscapeEdMode->UISettings->NewLandscape_Rotation, FVector::ZeroVector, LandscapeEdMode->UISettings->NewLandscape_Scale).TransformVector(FVector(-ComponentCountX * ComponentSize / 2, -ComponentCountY * ComponentSize / 2, 0));
-		ALandscape* Landscape = GWorld->SpawnActor<ALandscape>(LandscapeEdMode->UISettings->NewLandscape_Location + Offset, LandscapeEdMode->UISettings->NewLandscape_Rotation);
+		ALandscape* Landscape = LandscapeEdMode->GetWorld()->SpawnActor<ALandscape>(LandscapeEdMode->UISettings->NewLandscape_Location + Offset, LandscapeEdMode->UISettings->NewLandscape_Rotation);
 
 		//if (LandscapeEdMode->NewLandscapePreviewMode == ENewLandscapePreviewMode::ImportLandscape)
 		{
@@ -829,7 +821,7 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnCreateButtonClicked()
 		}
 
 		Landscape->SetActorRelativeScale3D(LandscapeEdMode->UISettings->NewLandscape_Scale);
-		Landscape->Import(FGuid::NewGuid(), SizeX, SizeY, QuadsPerComponent, LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent, LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection, Data.GetData(), NULL, LayerInfos, LayerInfos.Num() > 0 ? LayerDataPointers.GetTypedData() : NULL);
+		Landscape->Import(FGuid::NewGuid(), SizeX, SizeY, QuadsPerComponent, LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent, LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection, Data.GetData(), NULL, LayerInfos);
 
 		// automatically calculate a lighting LOD that won't crash lightmass (hopefully)
 		// < 2048x2048 -> LOD0
@@ -893,8 +885,8 @@ FReply FLandscapeEditorDetailCustomization_NewLandscape::OnFillWorldButtonClicke
 		NewLandscapeLocation.Y = 0;
 
 		const int32 QuadsPerComponent = LandscapeEdMode->UISettings->NewLandscape_SectionsPerComponent * LandscapeEdMode->UISettings->NewLandscape_QuadsPerSection;
-		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = FMath::Ceil(WORLD_MAX / QuadsPerComponent / LandscapeEdMode->UISettings->NewLandscape_Scale.X);
-		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = FMath::Ceil(WORLD_MAX / QuadsPerComponent / LandscapeEdMode->UISettings->NewLandscape_Scale.Y);
+		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.X = FMath::CeilToInt(WORLD_MAX / QuadsPerComponent / LandscapeEdMode->UISettings->NewLandscape_Scale.X);
+		LandscapeEdMode->UISettings->NewLandscape_ComponentCount.Y = FMath::CeilToInt(WORLD_MAX / QuadsPerComponent / LandscapeEdMode->UISettings->NewLandscape_Scale.Y);
 		LandscapeEdMode->UISettings->NewLandscape_ClampSize();
 	}
 
@@ -1083,7 +1075,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::OnImportHeightmapFilename
 					// Find all possible heightmap sizes, up to 8192 width/height
 					int32 InsertIndex = 0;
 					const int32 MinWidth = FMath::DivideAndRoundUp(ImportFileSize, (int64)8192);
-					const int32 MaxWidth = FMath::Trunc(FMath::Sqrt(ImportFileSize));
+					const int32 MaxWidth = FMath::TruncToInt(FMath::Sqrt(ImportFileSize));
 					for (int32 Width = MinWidth; Width <= MaxWidth; Width++)
 					{
 						if (ImportFileSize % Width == 0)

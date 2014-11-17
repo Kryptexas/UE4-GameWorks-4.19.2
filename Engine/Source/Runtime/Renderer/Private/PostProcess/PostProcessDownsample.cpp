@@ -212,11 +212,13 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 
 	// check if we have to clear the whole surface.
 	// Otherwise perform the clear when the dest rectangle has been computed.
-	if (bHasMultipleQuads || GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	if (bHasMultipleQuads || Context.View.GetFeatureLevel() == ERHIFeatureLevel::ES2)
 	{
 		RHIClear(true, FLinearColor(0, 0, 0, 0), false, 1.0f, false, 0, FIntRect());
 		bHasCleared = true;
 	}
+
+	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(GetGlobalShaderMap());
 
 	switch (RectSource)
 	{
@@ -239,13 +241,14 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 				SrcRect.Width(), SrcRect.Height(),
 				DestSize,
 				SrcSize,
+				*VertexShader,
 				EDRF_UseTriangleOptimization);
 		}
 		break;
 		case EPostProcessRectSource::GBS_UIBlurRects:
 		{
 			static auto* ICVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("UI.BlurRadius"));
-			int32 IntegerKernelRadius = FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius(ICVar->GetValueOnRenderThread());
+			int32 IntegerKernelRadius = FRCPassPostProcessWeightedSampleSum::GetIntegerKernelRadius(Context.View.GetFeatureLevel(), ICVar->GetValueOnRenderThread());
 
 			// Add Downsample's own inflation (PS linear+HW filter) to maximum required by Gaussian blur
 			InflateSize += IntegerKernelRadius;
@@ -280,6 +283,7 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 					SrcRect.Width(), SrcRect.Height(),
 					DestSize,
 					SrcSize,
+					*VertexShader,
 					EDRF_UseTriangleOptimization);
 			}
 		}

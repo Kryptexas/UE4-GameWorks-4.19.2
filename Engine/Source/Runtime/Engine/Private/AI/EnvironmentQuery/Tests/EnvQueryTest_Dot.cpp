@@ -47,7 +47,7 @@ void UEnvQueryTest_Dot::RunTest(struct FEnvQueryInstance& QueryInstance)
 	}
 
 	// loop through all items
-	for (FEnvQueryInstance::ItemIterator It(QueryInstance); It; ++It)
+	for (FEnvQueryInstance::ItemIterator It(this, QueryInstance); It; ++It)
 	{
 		// update lines for contexts using current item
 		if (bUpdateLineAPerItem || bUpdateLineBPerItem)

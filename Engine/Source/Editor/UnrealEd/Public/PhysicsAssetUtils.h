@@ -6,7 +6,8 @@
 enum EPhysAssetFitGeomType
 {
 	EFG_Box,
-	EFG_SphylSphere,
+	EFG_Sphyl,
+	EFG_Sphere,
 	EFG_SingleConvexHull,
 	EFG_MultiConvexHull
 };
@@ -64,14 +65,6 @@ namespace FPhysicsAssetUtils
 	 * - update collision disable table for any pairs including 'add body'
 	 */
 	UNREALED_API void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyIndex, USkeletalMeshComponent* SkelComp);
-
-	/** Find all the constraints that are connected to a particular body.
-	 * 
-	 * @param	PhysAsset		The PhysicsAsset to find the constraints for
-	 * @param	BodyIndex		The index of the body to find the constraints for
-	 * @param	Constraints		Returns the found constraints
-	 **/
-	UNREALED_API void BodyFindConstraints(UPhysicsAsset* PhysAsset, int32 BodyIndex, TArray<int32>& Constraints);
 
 	/**
 	 * Creates a new constraint

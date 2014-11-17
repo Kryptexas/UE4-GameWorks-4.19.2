@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GenericApplication.h"
+#include "HTML5Window.h"
 
 /**
  * HTML5-specific application implementation.
@@ -27,6 +28,7 @@ public:
 	virtual void GetDisplayMetrics( FDisplayMetrics& OutDesktopMetrics ) const OVERRIDE;
 
 
+	TSharedRef< FGenericWindow > MakeWindow();
 private:
 
 	FHTML5Application();
@@ -35,4 +37,5 @@ private:
 private:
 
 	TSharedPtr< class FHTML5InputInterface > InputInterface;
+	TSharedRef< class FGenericWindow > ApplicationWindow;
 };

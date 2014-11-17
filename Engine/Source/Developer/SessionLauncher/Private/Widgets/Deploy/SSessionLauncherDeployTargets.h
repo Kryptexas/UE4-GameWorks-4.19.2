@@ -84,7 +84,7 @@ private:
 	bool HandleDeviceListRowIsEnabled( ITargetDeviceProxyPtr DeviceProxy ) const;
 
 	// Callback for getting the tool tip text of a device proxy list row.
-	FString HandleDeviceListRowToolTipText( ITargetDeviceProxyPtr DeviceProxy ) const;
+	FText HandleDeviceListRowToolTipText( ITargetDeviceProxyPtr DeviceProxy ) const;
 
 	// Callback for generating a row in the device list view.
 	TSharedRef<ITableRow> HandleDeviceProxyListViewGenerateRow( ITargetDeviceProxyPtr InItem, const TSharedRef<STableViewBase>& OwnerTable ) const;
@@ -102,7 +102,7 @@ private:
 	EVisibility HandleNoDevicesBoxVisibility( ) const;
 
 	// Callback for getting the text in the 'no devices' text block.
-	FString HandleNoDevicesTextBlockText( ) const;
+	FText HandleNoDevicesTextBlockText( ) const;
 
 	// Callback for changing the selected profile in the profile manager.
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );

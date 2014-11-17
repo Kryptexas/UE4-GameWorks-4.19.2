@@ -30,6 +30,17 @@ struct FBoxSphereBounds
 
 public:
 
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		checkf(!Origin.ContainsNaN(), TEXT("Origin contains NaN: %s"), *Origin.ToString());
+		checkf(!BoxExtent.ContainsNaN(), TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
+		checkf(!FMath::IsNaN(SphereRadius) && FMath::IsFinite(SphereRadius), TEXT("SphereRadius contains NaN: %f"), SphereRadius);
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
+
 	/**
 	 * Default constructor.
 	 */
@@ -44,7 +55,9 @@ public:
 		: Origin(ForceInit)
 		, BoxExtent(ForceInit)
 		, SphereRadius(0.f)
-	{ }
+	{
+		DiagnosticCheckNaN();
+	}
 
 	/**
 	 * Creates and initializes a new instance from the specified parameters.
@@ -57,7 +70,9 @@ public:
 		: Origin(InOrigin)
 		, BoxExtent(InBoxExtent)
 		, SphereRadius(InSphereRadius)
-	{ }
+	{
+		DiagnosticCheckNaN();
+	}
 
 	/**
 	 * Creates and initializes a new instance from the given Box and Sphere.
@@ -68,8 +83,9 @@ public:
 	FBoxSphereBounds( const FBox& Box, const FSphere& Sphere )
 	{
 		Box.GetCenterAndExtents(Origin,BoxExtent);
-
 		SphereRadius = FMath::Min(BoxExtent.Size(), (Sphere.Center - Origin).Size() + Sphere.W);
+
+		DiagnosticCheckNaN();
 	}
 	
 	/**
@@ -82,8 +98,9 @@ public:
 	FBoxSphereBounds( const FBox& Box )
 	{
 		Box.GetCenterAndExtents(Origin,BoxExtent);
-
 		SphereRadius = BoxExtent.Size();
+
+		DiagnosticCheckNaN();
 	}
 
 	/**
@@ -94,6 +111,8 @@ public:
 		Origin = Sphere.Center;
 		BoxExtent = FVector(Sphere.W);
 		SphereRadius = Sphere.W;
+
+		DiagnosticCheckNaN();
 	}
 
 	/**
@@ -228,6 +247,7 @@ public:
 		FBoxSphereBounds Result(BoundingBox);
 
 		Result.SphereRadius = FMath::Min(Result.SphereRadius,FMath::Max((A.Origin - Result.Origin).Size() + A.SphereRadius,(B.Origin - Result.Origin).Size() + B.SphereRadius));
+		Result.DiagnosticCheckNaN();
 
 		return Result;
 	}
@@ -272,6 +292,8 @@ FORCEINLINE FBoxSphereBounds::FBoxSphereBounds( const FVector* Points, uint32 Nu
 	{
 		SphereRadius = FMath::Max(SphereRadius,(Points[PointIndex] - Origin).Size());
 	}
+
+	DiagnosticCheckNaN();
 }
 
 
@@ -288,6 +310,7 @@ FORCEINLINE FBoxSphereBounds FBoxSphereBounds::operator+( const FBoxSphereBounds
 	FBoxSphereBounds Result(BoundingBox);
 
 	Result.SphereRadius = FMath::Min(Result.SphereRadius, FMath::Max((Origin - Result.Origin).Size() + SphereRadius, (Other.Origin - Result.Origin).Size() + Other.SphereRadius));
+	Result.DiagnosticCheckNaN();
 
 	return Result;
 }

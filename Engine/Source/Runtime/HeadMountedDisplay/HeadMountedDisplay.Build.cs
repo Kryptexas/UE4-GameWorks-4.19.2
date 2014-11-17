@@ -10,8 +10,17 @@ public class HeadMountedDisplay : ModuleRules
 			new string[] {
 				"Runtime/HeadMountedDisplay/Public"
 			}
-			);
-		PrivateDependencyModuleNames.AddRange( new string[] { "Core", "CoreUObject", "Engine", "Slate" } );
+		);
+
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"Slate",
+				"SlateCore",
+			}
+		);
 
         PCHUsage = PCHUsageMode.NoSharedPCHs;
 	}

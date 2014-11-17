@@ -46,6 +46,7 @@ ANavigationObjectBase::ANavigationObjectBase(const class FPostConstructInitializ
 		if (GoodSprite)
 		{
 			GoodSprite->Sprite = ConstructorStatics.NavigationTextureObject.Get();
+			GoodSprite->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			GoodSprite->bHiddenInGame = true;
 			GoodSprite->SpriteInfo.Category = ConstructorStatics.ID_Navigation;
 			GoodSprite->SpriteInfo.DisplayName = ConstructorStatics.NAME_Navigation;

@@ -3,7 +3,7 @@
 #pragma once
 #include "NavigationComponent.generated.h"
 
-UCLASS(HeaderGroup=Component, dependson=(UNavAgentInterface, UNavPathObserverInterface, UNavigationSystem), config=Engine)
+UCLASS(dependson=(UNavAgentInterface, UNavPathObserverInterface, UNavigationSystem), config=Engine)
 class ENGINE_API UNavigationComponent : public UActorComponent, public INavigationPathGenerator
 {
 	GENERATED_UCLASS_BODY()
@@ -125,6 +125,10 @@ class ENGINE_API UNavigationComponent : public UActorComponent, public INavigati
 		}
 	}
 
+	FORCEINLINE FVector GetQueryExtent() const { return NavigationQueryExtent; }
+
+	void SwapCurrentMoveGoal(const AActor* NewGoalActor);
+
 	//----------------------------------------------------------------------//
 	// misc
 	//----------------------------------------------------------------------//
@@ -137,6 +141,11 @@ class ENGINE_API UNavigationComponent : public UActorComponent, public INavigati
 
 	/** Find new path when it gets invalidated (e.g. runtime navmesh rebuild) */
 	void SetRepathWhenInvalid(bool bEnabled);
+
+	/** Set timeout for repathing */
+	void SuspendPathRepathingFor(float SuspentionInterval);
+
+	bool IsRepathingSuspended() const { return TimeToUnlockRepathing > KINDA_SMALL_NUMBER; }
 
 	UFUNCTION()
 	virtual void OnNavDataRegistered(class ANavigationData* NavData);
@@ -171,6 +180,9 @@ protected:
 	/** associated path following component */
 	UPROPERTY(transient)
 	class UPathFollowingComponent* PathFollowComp;
+
+	/** default query extent to use. It's a sum of navigation data's default query extent and nav agent's size */
+	mutable FVector NavigationQueryExtent;
 
 	/** Shared path - there can be multiple users of one path instance. No not modify it, unless you know what you're doing */
 	FNavPathSharedPtr Path;
@@ -239,8 +251,14 @@ protected:
 	};
 	FDeferredRepath RepathData;
 
+	/**  It allows to suspend path repathing for some time */
+	float TimeToUnlockRepathing;
+
 	/** asks NavigationSystem for NavigationData appropriate for self and caches it in MyNavData */
 	class ANavigationData* PickNavData() const;
+
+	/** called as part of PickNavData to update NavigationQueryExtent */
+	virtual void CacheNavQueryExtent() const;
 
 	/** Generates simple path in straight line without using navigation data. */
 	bool GenerateSimplePath(const FVector& GoalLocation);

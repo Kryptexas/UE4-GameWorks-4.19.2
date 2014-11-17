@@ -69,7 +69,7 @@ public:
 	 */
 	virtual bool GetWholeSceneProjectedShadowInitializer(const FSceneViewFamily& ViewFamily, TArray<FWholeSceneProjectedShadowInitializer, TInlineAllocator<6> >& OutInitializers) const
 	{
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 
+		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4
 			&& GAllowPointLightCubemapShadows != 0)
 		{
 			FWholeSceneProjectedShadowInitializer& OutInitializer = *new(OutInitializers) FWholeSceneProjectedShadowInitializer;
@@ -106,7 +106,9 @@ UPointLightComponent::UPointLightComponent(const class FPostConstructInitializeP
 		static ConstructorHelpers::FObjectFinder<UTexture2D> DynamicTexture(TEXT("/Engine/EditorResources/LightIcons/S_LightPointMove"));
 
 		StaticEditorTexture = StaticTexture.Object;
+		StaticEditorTextureScale = 0.5f;
 		DynamicEditorTexture = DynamicTexture.Object;
+		DynamicEditorTextureScale = 0.5f;
 	}
 #endif
 

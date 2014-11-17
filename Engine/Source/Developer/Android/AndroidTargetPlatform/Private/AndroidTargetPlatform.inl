@@ -64,13 +64,6 @@ inline ITargetDevicePtr FAndroidTargetPlatform::GetDefaultDevice( ) const
 }
 
 
-inline bool FAndroidTargetPlatform::GetBuildArtifacts( const FString& ProjectPath, EBuildTargets::Type BuildTarget, EBuildConfigurations::Type BuildConfiguration, ETargetPlatformBuildArtifacts::Type Artifacts, TMap<FString, FString>& OutFiles, TArray<FString>& OutMissingFiles ) const
-{
-	//@todo android: implement build artifacts gathering
-	return false;
-}
-
-
 inline ITargetDevicePtr FAndroidTargetPlatform::GetDevice( const FTargetDeviceId& DeviceId )
 {
 	if (DeviceId.GetPlatformName() == PlatformName())
@@ -168,10 +161,16 @@ bool FAndroidTargetPlatform::SupportsFeature( ETargetPlatformFeatures::Type Feat
 
 #if WITH_ENGINE
 
-inline void FAndroidTargetPlatform::GetShaderFormats( TArray<FName>& OutFormats ) const
+inline void FAndroidTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
 	static FName NAME_OPENGL_ES2(TEXT("GLSL_ES2"));
 	OutFormats.AddUnique(NAME_OPENGL_ES2);
+}
+
+
+inline void FAndroidTargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const
+{
+	GetAllPossibleShaderFormats(OutFormats);
 }
 
 

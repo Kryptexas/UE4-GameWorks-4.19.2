@@ -10,9 +10,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogSequencerTools, Log, All);
 FSequencerObjectChangeListener::FSequencerObjectChangeListener( TSharedRef<ISequencer> InSequencer )
 	: Sequencer( InSequencer )
 {
-	FCoreDelegates::OnPreObjectPropertyChanged.Add( FCoreDelegates::FOnPreObjectPropertyChanged::FDelegate::CreateRaw( this, &FSequencerObjectChangeListener::OnObjectPreEditChange ) );
-	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw( this, &FSequencerObjectChangeListener::OnObjectPostEditChange ) );
-	//GEditor->OnPreActorMoved.Add( FOnObjectPropertyChanged::FDelegate::CreateRaw( this, &FSequencerObjectChangeListener::OnActorPreEditMove ) );
+	FCoreDelegates::OnPreObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPreEditChange);
+	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FSequencerObjectChangeListener::OnObjectPostEditChange);
+	//GEditor->OnPreActorMoved.AddRaw(this, &FSequencerObjectChangeListener::OnActorPreEditMove);
 	GEditor->OnActorMoved().AddRaw( this, &FSequencerObjectChangeListener::OnActorPostEditMove );
 }
 
@@ -76,7 +76,7 @@ void FSequencerObjectChangeListener::OnObjectPreEditChange( UObject* Object )
 	}
 }
 
-void FSequencerObjectChangeListener::OnObjectPostEditChange( UObject* Object )
+void FSequencerObjectChangeListener::OnObjectPostEditChange( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent )
 {
 	if( Object )
 	{
@@ -121,7 +121,8 @@ void FSequencerObjectChangeListener::OnActorPostEditMove( AActor* Actor )
 {
 	// @todo sequencer actors: Currently this only fires on a "final" move.  For our purposes we probably
 	// want to get an update every single movement, even while dragging an object.
-	OnObjectPostEditChange( Actor );
+	FPropertyChangedEvent PropertyChangedEvent(nullptr);
+	OnObjectPostEditChange( Actor, PropertyChangedEvent );
 }
 
 void FSequencerObjectChangeListener::TriggerAllPropertiesChanged(UObject* Object)

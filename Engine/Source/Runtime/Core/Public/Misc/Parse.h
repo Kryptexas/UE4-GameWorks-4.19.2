@@ -99,6 +99,6 @@ struct CORE_API FParse
 	/** Parses a resolution in the form 1920x1080. */
 	static bool Resolution( const TCHAR* InResolution, uint32& OutX, uint32& OutY );
 
-	/** Parses a resolution in the form 1920x1080<f|w>. Same as above, but also attempts to process a fullscreen/windowed flag from the end */
-	static bool Resolution( const TCHAR* InResolution, uint32& OutX, uint32& OutY, bool& OutFullScreen );
+	/** Parses a resolution in the form 1920x1080<f|w|wf>. Same as above, but also attempts to process a fullscreen/windowed flag from the end */
+	static bool Resolution(const TCHAR* InResolution, uint32& OutX, uint32& OutY, int32& OutWindowMode);
 };

@@ -27,4 +27,5 @@ class UBehaviorTreeDecoratorGraphNode : public UEdGraphNode
 
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const OVERRIDE;
 
+	virtual bool CanUserDeleteNode() const OVERRIDE;
 };

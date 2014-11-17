@@ -98,7 +98,7 @@ void SAnimationCompressionPanel::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(0,0)
 				[
 					SNew(SButton)
-					.Text(LOCTEXT("AnimCompressionApply", "Apply").ToString())
+					.Text(LOCTEXT("AnimCompressionApply", "Apply"))
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(this, &SAnimationCompressionPanel::ApplyClicked)

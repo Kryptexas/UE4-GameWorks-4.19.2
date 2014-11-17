@@ -130,8 +130,8 @@ void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, co
 	DXGI_SWAP_CHAIN_DESC SwapChainDesc;
 	FMemory::Memzero(&SwapChainDesc, sizeof(SwapChainDesc) );
 	SwapChainDesc.BufferCount = 1;
-	SwapChainDesc.BufferDesc.Width = FMath::Trunc(WindowSize.X);
-	SwapChainDesc.BufferDesc.Height = FMath::Trunc(WindowSize.Y);
+	SwapChainDesc.BufferDesc.Width = FMath::TruncToInt(WindowSize.X);
+	SwapChainDesc.BufferDesc.Height = FMath::TruncToInt(WindowSize.Y);
 	SwapChainDesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 	SwapChainDesc.BufferDesc.RefreshRate.Numerator = 0;
 	SwapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
@@ -160,8 +160,8 @@ void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, co
 	Hr = DXGIFactory->CreateSwapChain(DXGIDevice.GetReference(), &SwapChainDesc, Viewport.D3DSwapChain.GetInitReference() );
 	check( SUCCEEDED(Hr) );
 
-	uint32 Width = FMath::Trunc(WindowSize.X);
-	uint32 Height = FMath::Trunc(WindowSize.Y);
+	uint32 Width = FMath::TruncToInt(WindowSize.X);
+	uint32 Height = FMath::TruncToInt(WindowSize.Y);
 
 	Viewport.ViewportInfo.MaxDepth = 1.0f;
 	Viewport.ViewportInfo.MinDepth = 0.0f;

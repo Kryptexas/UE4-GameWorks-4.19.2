@@ -4,7 +4,7 @@
 #pragma once
 #include "LandscapeMeshCollisionComponent.generated.h"
 
-UCLASS(HeaderGroup=Terrain)
+UCLASS()
 class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionComponent
 {
 	GENERATED_UCLASS_BODY()

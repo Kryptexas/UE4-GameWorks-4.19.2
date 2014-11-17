@@ -368,7 +368,9 @@ void FOculusRiftHMD::ApplyHmdRotation(APlayerController* PC, FRotator& ViewRotat
 
 #if !UE_BUILD_SHIPPING
 	if (bDrawTrackingCameraFrustum)
-		DrawDebugTrackingCameraFrustum(PC->GetPawnOrSpectator()->GetPawnViewLocation());
+	{
+		DrawDebugTrackingCameraFrustum(PC->GetWorld(), PC->GetPawnOrSpectator()->GetPawnViewLocation());
+	}
 #endif
 }
 
@@ -406,12 +408,14 @@ void FOculusRiftHMD::UpdatePlayerCameraRotation(APlayerCameraManager* Camera, st
 
 #if !UE_BUILD_SHIPPING
 	if (bDrawTrackingCameraFrustum)
-		DrawDebugTrackingCameraFrustum(POV.Location);
+	{
+		DrawDebugTrackingCameraFrustum(Camera->GetWorld(), POV.Location);
+	}
 #endif
 }
 
 #if !UE_BUILD_SHIPPING
-void FOculusRiftHMD::DrawDebugTrackingCameraFrustum(const FVector& ViewLocation)
+void FOculusRiftHMD::DrawDebugTrackingCameraFrustum(UWorld* World, const FVector& ViewLocation)
 {
 	const FColor c = (HasValidTrackingPosition() ? FColor::Green : FColor::Red);
 	FVector origin;
@@ -420,7 +424,7 @@ void FOculusRiftHMD::DrawDebugTrackingCameraFrustum(const FVector& ViewLocation)
 	GetPositionalTrackingCameraProperties(origin, rotation, hfovDeg, vfovDeg, cameraDist, nearPlane, farPlane);
 
 	// Level line
-	//DrawDebugLine(GWorld, ViewLocation, FVector(ViewLocation.X + 1000, ViewLocation.Y, ViewLocation.Z), FColor::Blue);
+	//DrawDebugLine(World, ViewLocation, FVector(ViewLocation.X + 1000, ViewLocation.Y, ViewLocation.Z), FColor::Blue);
 
 	const float hfov = Math<float>::DegreeToRadFactor * hfovDeg * 0.5f;
 	const float vfov = Math<float>::DegreeToRadFactor * vfovDeg * 0.5f;
@@ -440,19 +444,19 @@ void FOculusRiftHMD::DrawDebugTrackingCameraFrustum(const FVector& ViewLocation)
 	coneBase4 = m.TransformPosition(coneBase4);
 
 	// draw a point at the camera pos
-	DrawDebugPoint(GWorld, coneTop, 5, c);
+	DrawDebugPoint(World, coneTop, 5, c);
 
 	// draw main pyramid, from top to base
-	DrawDebugLine(GWorld, coneTop, coneBase1, c);
-	DrawDebugLine(GWorld, coneTop, coneBase2, c);
-	DrawDebugLine(GWorld, coneTop, coneBase3, c);
-	DrawDebugLine(GWorld, coneTop, coneBase4, c);
+	DrawDebugLine(World, coneTop, coneBase1, c);
+	DrawDebugLine(World, coneTop, coneBase2, c);
+	DrawDebugLine(World, coneTop, coneBase3, c);
+	DrawDebugLine(World, coneTop, coneBase4, c);
 											  
 	// draw base (far plane)				  
-	DrawDebugLine(GWorld, coneBase1, coneBase2, c);
-	DrawDebugLine(GWorld, coneBase2, coneBase3, c);
-	DrawDebugLine(GWorld, coneBase3, coneBase4, c);
-	DrawDebugLine(GWorld, coneBase4, coneBase1, c);
+	DrawDebugLine(World, coneBase1, coneBase2, c);
+	DrawDebugLine(World, coneBase2, coneBase3, c);
+	DrawDebugLine(World, coneBase3, coneBase4, c);
+	DrawDebugLine(World, coneBase4, coneBase1, c);
 
 	// draw near plane
 	FVector coneNear1(-nearPlane, nearPlane * FMath::Tan(hfov), nearPlane * FMath::Tan(vfov));
@@ -463,16 +467,16 @@ void FOculusRiftHMD::DrawDebugTrackingCameraFrustum(const FVector& ViewLocation)
 	coneNear2 = m.TransformPosition(coneNear2);
 	coneNear3 = m.TransformPosition(coneNear3);
 	coneNear4 = m.TransformPosition(coneNear4);
-	DrawDebugLine(GWorld, coneNear1, coneNear2, c);
-	DrawDebugLine(GWorld, coneNear2, coneNear3, c);
-	DrawDebugLine(GWorld, coneNear3, coneNear4, c);
-	DrawDebugLine(GWorld, coneNear4, coneNear1, c);
+	DrawDebugLine(World, coneNear1, coneNear2, c);
+	DrawDebugLine(World, coneNear2, coneNear3, c);
+	DrawDebugLine(World, coneNear3, coneNear4, c);
+	DrawDebugLine(World, coneNear4, coneNear1, c);
 
 	// center line
 	FVector centerLine(-cameraDist, 0, 0);
 	centerLine = m.TransformPosition(centerLine);
-	DrawDebugLine(GWorld, coneTop, centerLine, FColor::Yellow);
-	DrawDebugPoint(GWorld, centerLine, 5, FColor::Yellow);
+	DrawDebugLine(World, coneTop, centerLine, FColor::Yellow);
+	DrawDebugPoint(World, centerLine, 5, FColor::Yellow);
 }
 #endif // #if !UE_BUILD_SHIPPING
 
@@ -819,6 +823,12 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 		if (FParse::Command(&Cmd, TEXT("RESET")) && pHMD)
 		{
 			pHMD->GetDeviceInfo(&DeviceInfo);
+#if PLATFORM_MAC // @TODO Workaround broken Oculus SDK 25 - it reports 0,0 for display origin, even though it isn't.
+			CGDirectDisplayID DisplayId = (CGDirectDisplayID)DeviceInfo.DisplayId;
+			CGRect DisplayBounds = CGDisplayBounds(DisplayId);
+			DeviceInfo.DesktopX = DisplayBounds.origin.x;
+			DeviceInfo.DesktopY = DisplayBounds.origin.y;
+#endif
 			UpdateStereoRenderingParams();
 			return true;
 		}
@@ -1084,9 +1094,9 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 	return false;
 }
 
-void FOculusRiftHMD::OnScreenModeChange(bool bFullScreenNow)
+void FOculusRiftHMD::OnScreenModeChange(EWindowMode::Type WindowMode)
 {
-	EnableStereo(bFullScreenNow);
+	EnableStereo(WindowMode != EWindowMode::Windowed);
 	UpdateStereoRenderingParams();
 }
 
@@ -1341,7 +1351,7 @@ void FOculusRiftHMD::PushViewportCanvas(EStereoscopicPass StereoPass, FCanvas *I
 {
 	if (StereoPass != eSSP_FULL)
 	{
-		int32 SideSizeX = FMath::Trunc(InViewport->GetSizeXY().X * 0.5);
+		int32 SideSizeX = FMath::TruncToInt(InViewport->GetSizeXY().X * 0.5);
 
 		// !AB: temporarily assuming all canvases are at Z = 1.0f and calculating
 		// stereo disparity right here. Stereo disparity should be calculated for each
@@ -1608,6 +1618,12 @@ void FOculusRiftHMD::Startup()
 
 		// Assuming we've successfully grabbed the device, read the configuration data from it, which we'll use for projection
 		pHMD->GetDeviceInfo(&DeviceInfo);
+#if PLATFORM_MAC // @TODO Workaround broken Oculus SDK 25 - it reports 0,0 for display origin, even though it isn't.
+		CGDirectDisplayID DisplayId = (CGDirectDisplayID)DeviceInfo.DisplayId;
+		CGRect DisplayBounds = CGDisplayBounds(DisplayId);
+		DeviceInfo.DesktopX = DisplayBounds.origin.x;
+		DeviceInfo.DesktopY = DisplayBounds.origin.y;
+#endif
 	}
 
 #if !UE_BUILD_SHIPPING
@@ -2145,6 +2161,12 @@ void  FOculusMessageHandler::Tick(float)
                 {
                     OVR::HMDInfo info;
                     desc.Handle.GetDeviceInfo(&info);
+#if PLATFORM_MAC // @TODO Workaround broken Oculus SDK 25 - it reports 0,0 for display origin, even though it isn't.
+					CGDirectDisplayID DisplayId = (CGDirectDisplayID)info.DisplayId;
+					CGRect DisplayBounds = CGDisplayBounds(DisplayId);
+					info.DesktopX = DisplayBounds.origin.x;
+					info.DesktopY = DisplayBounds.origin.y;
+#endif
                     // if strlen(info.DisplayDeviceName) == 0 then
                     // this HMD is 'fake' (created using sensor).
                     if (strlen(info.DisplayDeviceName) > 0 && (!pPlugin->pHMD || !info.IsSameDisplay(pPlugin->DeviceInfo)))

@@ -8,6 +8,7 @@
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
 #include "ParticleDefinitions.h"
+#include "DisplayDebugHelpers.h"
 
 #include "MessageLog.h"
 
@@ -494,6 +495,325 @@ bool UAnimInstance::NativeEvaluateAnimation(FPoseContext& Output)
 	return false;
 }
 
+void OutputCurveMap(TMap<FName, float>& CurveMap, UCanvas* Canvas, UFont* RenderFont, float Indent, float& YPos, FFontRenderInfo RenderInfo, float& YL)
+{
+	TArray<FName> Names;
+	CurveMap.GetKeys(Names);
+	Names.Sort();
+	for (FName CurveName : Names)
+	{
+		FString CurveEntry = FString::Printf(TEXT("%s: %.3f"), *CurveName.ToString(), CurveMap[CurveName]);
+		Canvas->DrawText(RenderFont, CurveEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YPos += YL;
+	}
+}
+
+void OutputTickRecords(const TArray<FAnimTickRecord>& Records, UCanvas* Canvas, float Indent, const int32 HighlightIndex, FLinearColor TextColor, FLinearColor HighlightColor, FLinearColor InactiveColor, UFont* RenderFont, float& YPos, FFontRenderInfo RenderInfo, float& YL, bool bFullBlendspaceDisplay)
+{
+	for (int32 PlayerIndex = 0; PlayerIndex < Records.Num(); ++PlayerIndex)
+	{
+		const FAnimTickRecord& Player = Records[PlayerIndex];
+
+		Canvas->SetLinearDrawColor((PlayerIndex == HighlightIndex) ? HighlightColor : TextColor);
+
+		FString PlayerEntry = FString::Printf(TEXT("%i) %s (%s) W:%.1f%%"), PlayerIndex, *Player.SourceAsset->GetName(), *Player.SourceAsset->GetClass()->GetName(), Player.EffectiveBlendWeight*100.f);
+		Canvas->DrawText(RenderFont, PlayerEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YPos += YL;
+
+		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(Player.SourceAsset))
+		{
+			if (bFullBlendspaceDisplay && Player.BlendSampleDataCache && Player.BlendSampleDataCache->Num() > 0)
+			{
+				TArray<FBlendSampleData> SampleData = *Player.BlendSampleDataCache;
+				SampleData.Sort([](const FBlendSampleData& L, const FBlendSampleData& R) { return L.SampleDataIndex < R.SampleDataIndex; });
+
+				FIndenter BlendspaceIndent(Indent);
+				FString BlendspaceHeader = FString::Printf(TEXT("Blendspace Input (%.2f, %.2f, %.2f)"), Player.BlendSpacePosition.X, Player.BlendSpacePosition.Y, Player.BlendSpacePosition.Z);
+				Canvas->DrawText(RenderFont, BlendspaceHeader, Indent, YPos, 1.f, 1.f, RenderInfo);
+				YPos += YL;
+
+				const TArray<FBlendSample>& BlendSamples = BlendSpace->GetBlendSamples();
+
+				int32 WeightedSampleIndex = 0;
+
+				for (int32 SampleIndex = 0; SampleIndex < BlendSamples.Num(); ++SampleIndex)
+				{
+					const FBlendSample& BlendSample = BlendSamples[SampleIndex];
+
+					float Weight = 0.f;
+					for (; WeightedSampleIndex < SampleData.Num(); ++WeightedSampleIndex)
+					{
+						FBlendSampleData& WeightedSample = SampleData[WeightedSampleIndex];
+						if (WeightedSample.SampleDataIndex == SampleIndex)
+						{
+							Weight += WeightedSample.GetWeight();
+						}
+						else if (WeightedSample.SampleDataIndex > SampleIndex)
+						{
+							break;
+						}
+					}
+
+					FIndenter SampleIndent(Indent);
+
+					Canvas->SetLinearDrawColor((Weight > 0.f) ? TextColor : InactiveColor);
+
+					FString SampleEntry = FString::Printf(TEXT("%s W:%.1f%%"), *BlendSample.Animation->GetName(), Weight*100.f);
+					Canvas->DrawText(RenderFont, SampleEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
+					YPos += YL;
+				}
+			}
+		}
+	}
+}
+
+void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
+{
+	float Indent = 0.f;
+
+	UFont* RenderFont = GEngine->GetSmallFont();
+
+	FLinearColor TextYellow(0.86f, 0.69f, 0.f);
+	FLinearColor TextWhite(0.9f, 0.9f, 0.9f);
+	FLinearColor ActiveColor(0.1f, 0.6f, 0.1f);
+	FLinearColor InactiveColor(0.2f, 0.2f, 0.2f);
+	FLinearColor PoseSourceColor(0.5f, 0.25f, 0.5f);
+
+	Canvas->SetLinearDrawColor(TextYellow);
+
+	static FName CAT_SyncGroups(TEXT("SyncGroups"));
+	static FName CAT_Montages(TEXT("Montages"));
+	static FName CAT_Graph(TEXT("Graph"));
+	static FName CAT_Curves(TEXT("Curves"));
+	static FName CAT_Notifies(TEXT("Notifies"));
+	static FName CAT_FullAnimGraph(TEXT("FullGraph"));
+	static FName CAT_FullBlendspaceDisplay(TEXT("FullBlendspaceDisplay"));
+
+	const bool bShowSyncGroups = DebugDisplay.IsCategoryToggledOn(CAT_SyncGroups, true);
+	const bool bShowMontages = DebugDisplay.IsCategoryToggledOn(CAT_Montages, true);
+	const bool bShowGraph = DebugDisplay.IsCategoryToggledOn(CAT_Graph, true);
+	const bool bShowCurves = DebugDisplay.IsCategoryToggledOn(CAT_Curves, true);
+	const bool bShowNotifies = DebugDisplay.IsCategoryToggledOn(CAT_Notifies, true);
+	const bool bFullGraph = DebugDisplay.IsCategoryToggledOn(CAT_FullAnimGraph, false);
+	const bool bFullBlendspaceDisplay = DebugDisplay.IsCategoryToggledOn(CAT_FullBlendspaceDisplay, true);
+
+	FFontRenderInfo RenderInfo;
+	RenderInfo.bEnableShadow = true;
+
+	YPos += YL;
+
+	Canvas->SetLinearDrawColor(TextYellow);
+
+	FString Heading = FString::Printf(TEXT("Animation: %s"), *GetName());
+	Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+	YPos += YL;
+	if (bShowSyncGroups)
+	{
+		FIndenter AnimIndent(Indent);
+
+		//Display Sync Groups
+		Heading = FString::Printf(TEXT("SyncGroups: %i"), SyncGroups.Num());
+		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YPos += YL;
+
+		for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
+		{
+			FIndenter GroupIndent(Indent);
+			FAnimGroupInstance& SyncGroup = SyncGroups[GroupIndex];
+
+			Canvas->SetLinearDrawColor(TextYellow);
+
+			FString GroupLabel = FString::Printf(TEXT("Group %i - Players %i"), GroupIndex, SyncGroup.ActivePlayers.Num());
+			Canvas->DrawText(RenderFont, GroupLabel, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YPos += YL;
+
+			if (SyncGroup.ActivePlayers.Num() > 0)
+			{
+				const int32 GroupLeaderIndex = FMath::Max(SyncGroup.GroupLeaderIndex, 0);
+				OutputTickRecords(SyncGroup.ActivePlayers, Canvas, Indent, GroupLeaderIndex, TextWhite, ActiveColor, InactiveColor, RenderFont, YPos, RenderInfo, YL, bFullBlendspaceDisplay);
+			}
+		}
+
+		Canvas->SetLinearDrawColor(TextYellow);
+
+		Heading = FString::Printf(TEXT("Ungrouped: %i"), UngroupedActivePlayers.Num());
+		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YPos += YL;
+
+		Canvas->SetLinearDrawColor(TextWhite);
+
+		OutputTickRecords(UngroupedActivePlayers, Canvas, Indent, -1, TextWhite, ActiveColor, InactiveColor, RenderFont, YPos, RenderInfo, YL, bFullBlendspaceDisplay);
+	}
+
+	if (bShowMontages)
+	{
+		Canvas->SetLinearDrawColor(TextYellow);
+
+		Heading = FString::Printf(TEXT("Montages: %i"), MontageInstances.Num());
+		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YPos += YL;
+
+		FAnimMontageInstance* ActiveMontageInstance = GetActiveMontageInstance();
+
+		for (int32 MontageIndex = 0; MontageIndex < MontageInstances.Num(); ++MontageIndex)
+		{
+			FIndenter PlayerIndent(Indent);
+
+			FAnimMontageInstance* MontageInstance = MontageInstances[MontageIndex];
+
+			Canvas->SetLinearDrawColor((MontageInstance == ActiveMontageInstance) ? ActiveColor : TextWhite);
+
+			FString MontageEntry = FString::Printf(TEXT("%i) %s Sec: %s W:%.3f DW:%.3f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), *MontageInstance->GetNextSection().ToString(), MontageInstance->Weight, MontageInstance->DesiredWeight);
+			Canvas->DrawText(RenderFont, MontageEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YPos += YL;
+		}
+	}
+
+	if (bShowNotifies)
+	{
+		Canvas->SetLinearDrawColor(TextYellow);
+
+		Heading = FString::Printf(TEXT("Active Notify States: %i"), ActiveAnimNotifyState.Num());
+		Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+		YPos += YL;
+
+		Canvas->SetLinearDrawColor(TextWhite);
+
+		for (int32 NotifyIndex = 0; NotifyIndex < ActiveAnimNotifyState.Num(); ++NotifyIndex)
+		{
+			FIndenter NotifyIndent(Indent);
+
+			const FAnimNotifyEvent* NotifyState = ActiveAnimNotifyState[NotifyIndex];
+
+			FString NotifyEntry = FString::Printf(TEXT("%i) %s Class: %s Dur:%.3f"), NotifyIndex, *NotifyState->NotifyName.ToString(), *NotifyState->NotifyStateClass->GetName(), NotifyState->Duration);
+			Canvas->DrawText(RenderFont, NotifyEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YPos += YL;
+		}
+	}
+
+	if (bShowCurves)
+	{
+		Canvas->SetLinearDrawColor(TextYellow);
+
+		Canvas->DrawText(RenderFont, TEXT("Curves"), Indent, YPos, 1.f, 1.f, RenderInfo);
+		YPos += YL;
+
+		{
+			FIndenter CurveIndent(Indent);
+
+			Heading = FString::Printf(TEXT("Morph Curves: %i"), MorphTargetCurves.Num());
+			Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YPos += YL;
+
+			Canvas->SetLinearDrawColor(TextWhite);
+
+			{
+				FIndenter MorphCurveIndent(Indent);
+				OutputCurveMap(MorphTargetCurves, Canvas, RenderFont, Indent, YPos, RenderInfo, YL);
+			}
+
+			Canvas->SetLinearDrawColor(TextYellow);
+
+			Heading = FString::Printf(TEXT("Material Curves: %i"), MaterialParameterCurves.Num());
+			Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YPos += YL;
+
+			Canvas->SetLinearDrawColor(TextWhite);
+
+			{
+				FIndenter MaterialCurveIndent(Indent);
+				OutputCurveMap(MaterialParameterCurves, Canvas, RenderFont, Indent, YPos, RenderInfo, YL);
+			}
+
+			Canvas->SetLinearDrawColor(TextYellow);
+
+			Heading = FString::Printf(TEXT("Event Curves: %i"), EventCurves.Num());
+			Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
+			YPos += YL;
+
+			Canvas->SetLinearDrawColor(TextWhite);
+
+			{
+				FIndenter EventCurveIndent(Indent);
+				OutputCurveMap(EventCurves, Canvas, RenderFont, Indent, YPos, RenderInfo, YL);
+			}
+		}
+	}
+
+	if (bShowGraph)
+	{
+		Canvas->SetLinearDrawColor(TextYellow);
+
+		YPos += YL;
+		Canvas->DrawText(RenderFont, TEXT("Anim Node Tree"), Indent, YPos, 1.f, 1.f, RenderInfo);
+
+		const float NodeIndent = 8.f;
+		const float LineIndent = 4.f;
+		const float AttachLineLength = NodeIndent - LineIndent;
+
+		YPos += YL;
+		FIndenter AnimNodeTreeIndent(Indent);
+
+		FNodeDebugData NodeDebugData(this);
+		RootNode->GatherDebugData(NodeDebugData);
+
+		TArray<FNodeDebugData::FFlattenedDebugData> FlattenedData = NodeDebugData.GetFlattenedDebugData();
+
+		TArray<float> VerticalLineStarts; // Index represents indent level, track the current starting point for that 
+
+		int32 HalfStep = int32(YL / 2);
+		int32 PrevChainID = -1;
+
+		for (FNodeDebugData::FFlattenedDebugData& Line : FlattenedData)
+		{
+			if (!Line.IsOnActiveBranch() && !bFullGraph)
+			{
+				continue;
+			}
+			float CurrIndent = Indent + (Line.Indent * NodeIndent);
+			float CurrLineYBase = YPos + YL;
+
+			if (PrevChainID != Line.ChainID)
+			{
+				YPos += HalfStep; // Extra spacing to delimit different chains, CurrLineYBase now 
+				// roughly represents middle of text line, so we can use it for line drawing
+
+				//Handle line drawing
+				int32 VerticalLineIndex = Line.Indent - 1;
+				if (VerticalLineStarts.IsValidIndex(VerticalLineIndex))
+				{
+					float VerticalLineStartY = VerticalLineStarts[VerticalLineIndex];
+					VerticalLineStarts[VerticalLineIndex] = CurrLineYBase;
+
+					float EndX = CurrIndent;
+					float StartX = EndX - AttachLineLength;
+
+					//horizontal line to node
+					DrawDebugCanvas2DLine(Canvas, FVector(StartX, CurrLineYBase, 0.f), FVector(EndX, CurrLineYBase, 0.f), ActiveColor);
+
+					//vertical line
+					DrawDebugCanvas2DLine(Canvas, FVector(StartX, VerticalLineStartY, 0.f), FVector(StartX, CurrLineYBase, 0.f), ActiveColor);
+				}
+
+				CurrLineYBase += HalfStep; // move CurrYLineBase back to base of line
+			}
+
+			// Update our base position for subsequent line drawing
+			if (!VerticalLineStarts.IsValidIndex(Line.Indent))
+			{
+				VerticalLineStarts.AddZeroed(Line.Indent + 1 - VerticalLineStarts.Num());
+			}
+			VerticalLineStarts[Line.Indent] = CurrLineYBase;
+
+			PrevChainID = Line.ChainID;
+			FLinearColor ItemColor = Line.bPoseSource ? PoseSourceColor : ActiveColor;
+			Canvas->SetLinearDrawColor(Line.IsOnActiveBranch() ? ItemColor : InactiveColor);
+			Canvas->DrawText(RenderFont, Line.DebugLine, CurrIndent, YPos, 1.f, 1.f, RenderInfo);
+			YPos += YL;
+		}
+	}
+}
+
 void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose, bool bIsLooping)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
@@ -506,7 +826,7 @@ void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TA
 		/*out*/ Pose.Bones);
 }
 
-void UAnimInstance::BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose& RotationOffsetPose/* mesh space rotation only additive **/, float Alpha, struct FA2Pose& Pose /** local space blended pose **/)
+void UAnimInstance::BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose const & RotationOffsetPose/* mesh space rotation only additive **/, float Alpha, struct FA2Pose& Pose /** local space blended pose **/)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimNativeBlendPoses);
 
@@ -546,7 +866,7 @@ void UAnimInstance::BlendRotationOffset(const struct FA2Pose& BasePose/* local s
 		for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
 		{
 			int32 BoneIndex = RequiredBoneIndices[I];
-			FTransform & Additive = RotationOffsetPose.Bones[BoneIndex];
+			
 			FTransform & Result = BlendedPose.Bones[BoneIndex];
 
 			// We want Base pose (local Pose)
@@ -555,6 +875,8 @@ void UAnimInstance::BlendRotationOffset(const struct FA2Pose& BasePose/* local s
 			// set result rotation to be mesh space rotation, so that it applys to mesh space rotation
 			Result.SetRotation(MeshBasePose.Bones[BoneIndex].GetRotation());
 
+			// @fixme laurent - we should make a read only version so we can avoid the copy.
+			FTransform Additive = RotationOffsetPose.Bones[BoneIndex];
 			FTransform::BlendFromIdentityAndAccumulate(Result, Additive, VBlendWeight);
 		}
 
@@ -750,21 +1072,9 @@ void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 			continue;
 		}
 
-		// This checking-for-blueprint class is a hack to allow the old UAnimNotify_* notifies to work for a little longer until they are all removed.
-		// Once done, we can remove passing the UAnimNotify to the custom event notifies (since they cant contain custom/user data anyways).
-		// The "is blue print class" can just become a "is notify != null".
-		bool bIsBlueprintNotify = false;
-		if( AnimNotifyEvent->Notify != NULL)
+		if(AnimNotifyEvent->Notify != NULL)
 		{
-			if( !AnimNotifies[Index]->Notify->GetClass()->HasAllClassFlags(CLASS_Native) )
-			{
-				bIsBlueprintNotify = true;
-			}
-		}
-
-		if( bIsBlueprintNotify )
-		{
-			// Blueprint notify: just call Notify. UAnimNotify will forward this to the blueprintable event which will do the work.
+			// Implemented notify: just call Notify. UAnimNotify will forward this to the event which will do the work.
 			AnimNotifyEvent->Notify->Notify(SkelMeshComp, Cast<UAnimSequence>(AnimNotifyEvent->Notify->GetOuter()));
 		}
 		else if( AnimNotifyEvent->NotifyName != NAME_None )
@@ -825,46 +1135,29 @@ void UAnimInstance::AnimNotify_Sound(UAnimNotify* AnimNotify)
 	AnimNotify->Notify(GetSkelMeshComponent(), NULL);
 }
 
-bool UAnimInstance::NeedToTickChildren(FName SlotNodeName, float SlotNodeWeight)
-{
-	// if additive, we'll still need to tick children
-	// or if slot weight is less than dominant
-	if (SlotNodeWeight > ZERO_ANIMWEIGHT_THRESH)
-	{
-		for (int32 I = 0; I < MontageInstances.Num(); ++I)
-		{
-			FAnimMontageInstance* MontageInstance = MontageInstances[I];
-
-			// if a montage is additive, it needs the input ticked/evaluated to be able to add on to it
-			if (MontageInstance->Montage->IsValidSlot(SlotNodeName) && MontageInstance->Montage->IsValidAdditive())
-			{
-				return true;
-			}
-		}
-
-		return (SlotNodeWeight < (1-ZERO_ANIMWEIGHT_THRESH));
-	}
-
-	return true;
-}
-
 //to debug montage weight
 #define DEBUGMONTAGEWEIGHT 0
 
-float UAnimInstance::GetSlotWeight(FName SlotNodeName)
+void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float & out_SlotNodeWeight, float & out_SourceWeight) const
 {
-	float TotalSum = 0.f;
+	float NodeTotalWeight = 0.f;
+	float NonAdditiveTotalWeight = 0.f;
+
 #if DEBUGMONTAGEWEIGHT
 	float TotalDesiredWeight = 0.f;
 #endif
 	// first get all the montage instance weight this slot node has
-	for (int32 I = 0; I < MontageInstances.Num(); ++I)
+	for (int32 Index = 0; Index < MontageInstances.Num(); Index++)
 	{
-		FAnimMontageInstance* MontageInstance = MontageInstances[I];
-
+		FAnimMontageInstance const * const MontageInstance = MontageInstances[Index];
 		if (MontageInstance && MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName))
 		{
-			TotalSum += MontageInstance->Weight;
+			NodeTotalWeight += MontageInstance->Weight;
+			if( !MontageInstance->Montage->IsValidAdditive() )
+			{
+				NonAdditiveTotalWeight += MontageInstance->Weight;
+			}
+
 #if DEBUGMONTAGEWEIGHT			
 			TotalDesiredWeight += MontageInstance->DesiredWeight;
 #endif			
@@ -874,18 +1167,21 @@ float UAnimInstance::GetSlotWeight(FName SlotNodeName)
 	// this can happen when it's blending in OR when newer animation comes in with shorter blendtime
 	// say #1 animation was blending out time with current blendtime 1.0 #2 animation was blending in with 1.0 (old) but got blend out with new blendtime 0.2f
 	// #3 animation was blending in with the new blendtime 0.2f, you'll have sum of #1, 2, 3 exceeds 1.f
-	if (TotalSum > 1.f + ZERO_ANIMWEIGHT_THRESH)
+	if (NodeTotalWeight > (1.f + ZERO_ANIMWEIGHT_THRESH))
 	{
-		// first get all the montage instance weight this slot node has
-		for (int32 I=0; I<MontageInstances.Num(); ++I)
+		// Re-normalize instance weights.
+		for (int32 Index = 0; Index < MontageInstances.Num(); Index++)
 		{
-			FAnimMontageInstance * MontageInstance = MontageInstances[I];
-
+			FAnimMontageInstance * MontageInstance = MontageInstances[Index];
 			if (MontageInstance && MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName))
 			{
-				MontageInstance->Weight/=TotalSum;
+				MontageInstance->Weight /= NodeTotalWeight;
 			}
 		} 
+
+		// Re-normalize totals
+		NonAdditiveTotalWeight /= NodeTotalWeight;
+		NodeTotalWeight = 1.f;
 	}
 #if DEBUGMONTAGEWEIGHT
 	else if (TotalDesiredWeight == 1.f && TotalSum < 1.f - ZERO_ANIMWEIGHT_THRESH)
@@ -897,130 +1193,146 @@ float UAnimInstance::GetSlotWeight(FName SlotNodeName)
 	}
 #endif
 
-	return FMath::Clamp<float>(TotalSum, 0.f, 1.f);
+	out_SlotNodeWeight = NodeTotalWeight;
+	out_SourceWeight = 1.f - NonAdditiveTotalWeight;
 }
 
 void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourcePose, FA2Pose & BlendedPose, float SlotNodeWeight)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
-	if ( SlotNodeWeight > ZERO_ANIMWEIGHT_THRESH )
-	{
-		// final output of slot pose
-		FA2Pose SlotPose;
-		SlotPose.Bones.AddUninitialized(SourcePose.Bones.Num());
-
-		/// blend helper variables
-		TArray<FA2Pose>						MontagePoses;
-		TArray<float>						MontageWeights;
-		TArray<FAnimMontageInstance *>		ValidMontageInstances;
-
-		// first pass we go through collect weights and valid montages. 
-		for (auto Iter = MontageInstances.CreateConstIterator(); Iter; ++Iter)
-		{
-			FAnimMontageInstance * MontageInstance = (*Iter);
-
-			// @todo make this struct?
-			if (MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName))
-			{
-				int32 NewIndex = MontageWeights.AddUninitialized(1);
-				MontagePoses.AddZeroed(1);
-				ValidMontageInstances.Add(MontageInstance);
-
-				MontagePoses[NewIndex].Bones.AddUninitialized(BlendedPose.Bones.Num());
-				MontageWeights[NewIndex] = MontageInstance->Weight;
-			}
-		}
-
-		// clean up the MontageWeights to see if they're not summing up correctly
-		float TotalSum = 0.f;
-		for (int32 I=0; I<MontageWeights.Num(); ++I)
-		{
-			// normalize I
-			TotalSum += MontageWeights[I];
-		}
-
-		// if it has any valid weight
-		if ( TotalSum > ZERO_ANIMWEIGHT_THRESH )
-		{
-			// but not 1.f. If 1.f it's useless
-			if (FMath::IsNearlyEqual(TotalSum, 1.f) == false)
-			{
-				for (int32 I=0; I<MontageWeights.Num(); ++I)
-				{
-					// normalize I
-					MontageWeights[I] /= TotalSum;
-				}
-			}
-		}
-		else
-		{
-			FAnimationRuntime::FillWithRefPose(BlendedPose.Bones, RequiredBones);
-			// nothing else to do here, there is no weight
-			return;
-		}
-
-		// if not, something went wrong. It should have something
-		check (ValidMontageInstances.Num() > 0);
-
-		// second pass, we fill up MontagePoses with valid data to be full pose
-		for (int32 I=0; I<ValidMontageInstances.Num(); ++I)
-		{
-			FAnimMontageInstance * MontageInstance = ValidMontageInstances[I];
-			const FAnimTrack * AnimTrack = MontageInstance->Montage->GetAnimationData(SlotNodeName);
-
-			// find out if this is additive animation
-			EAdditiveAnimationType AdditiveAnimType = AAT_None;
-			if (AnimTrack->IsAdditive())
-			{
-				AdditiveAnimType = AnimTrack->IsRotationOffsetAdditive()? AAT_RotationOffsetMeshSpace : AAT_LocalSpaceBase;
-			}
-
-			// get the pose data, temporarily use SlotPose
-			FAnimExtractContext ExtractionContext(MontageInstance->Position, false, MontageInstance->Montage->bEnableRootMotionTranslation, MontageInstance->Montage->bEnableRootMotionRotation, MontageInstance->Montage->RootMotionRootLock);
-			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, RequiredBones, SlotPose.Bones, ExtractionContext);
-
-			// if additive, we should blend with source to make it fullbody
-			if (AdditiveAnimType == AAT_LocalSpaceBase)
-			{
-				ApplyAdditiveSequence(SourcePose,SlotPose,MontageWeights[I],MontagePoses[I]);
-			}
-			else if (AdditiveAnimType == AAT_RotationOffsetMeshSpace)
-			{
-				BlendRotationOffset(SourcePose,SlotPose,MontageWeights[I],MontagePoses[I]);
-			}
-			else 
-			{
-				CopyPose(SlotPose, MontagePoses[I]);
-			}
-		}
-	
-		// allocate for blending
-		FTransformArrayA2** BlendingPoses = new FTransformArrayA2*[MontagePoses.Num()];
-
-		for (int32 I=0; I<MontagePoses.Num(); ++I)
-		{
-			BlendingPoses[I] = &MontagePoses[I].Bones;
-		}
-		// now time to blend all montages
-		FAnimationRuntime::BlendPosesTogether(MontagePoses.Num(), (const FTransformArrayA2**)BlendingPoses, (const float*)MontageWeights.GetData(), RequiredBones, SlotPose.Bones);
-
-		// clean up memory
-		delete[] BlendingPoses;
-
-		// now blend with Source
-		if ( SlotNodeWeight > 1-ZERO_ANIMWEIGHT_THRESH )
-		{
-			BlendedPose = SlotPose;
-		}
-		else
-		{
-			// normal non-additive animations
-			BlendSequences(SourcePose, SlotPose, SlotNodeWeight, BlendedPose);
-		}
-	}
-	else
+	if (SlotNodeWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
 		BlendedPose = SourcePose;
+		return;
+	}
+
+	// Split our data into additive and non additive.
+	TArray<FSlotEvaluationPose> AdditivePoses;
+	TArray<FSlotEvaluationPose> NonAdditivePoses;
+
+	// first pass we go through collect weights and valid montages. 
+	float TotalWeight = 0.f;
+	float NonAdditiveWeight = 0.f;
+	for (auto Iter = MontageInstances.CreateConstIterator(); Iter; ++Iter)
+	{
+		FAnimMontageInstance * MontageInstance = (*Iter);
+		if (MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName) && (MontageInstance->Weight > ZERO_ANIMWEIGHT_THRESH))
+		{
+			FAnimTrack const * const AnimTrack = MontageInstance->Montage->GetAnimationData(SlotNodeName);
+
+			// Find out additive type for pose.
+			EAdditiveAnimationType const AdditiveAnimType = AnimTrack->IsAdditive() 
+				? (AnimTrack->IsRotationOffsetAdditive() ? AAT_RotationOffsetMeshSpace : AAT_LocalSpaceBase)
+				: AAT_None;
+
+			FSlotEvaluationPose NewPose(MontageInstance, MontageInstance->Weight, AdditiveAnimType);
+			
+			// Bone array has to be allocated prior to calling GetPoseFromAnimTrack
+			NewPose.Pose.Bones.AddUninitialized(RequiredBones.GetNumBones());
+
+			// Extract pose from Track
+			UAnimMontage const * const MontageAsset = MontageInstance->Montage;
+			FAnimExtractContext ExtractionContext(MontageInstance->Position, false, MontageAsset->bEnableRootMotionTranslation, MontageAsset->bEnableRootMotionRotation, MontageAsset->RootMotionRootLock);
+			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, RequiredBones, NewPose.Pose.Bones, ExtractionContext);
+
+			TotalWeight += MontageInstance->Weight;
+			if (AdditiveAnimType == AAT_None)
+			{
+				NonAdditiveWeight += MontageInstance->Weight;
+				NonAdditivePoses.Add(NewPose);
+			}
+			else
+			{
+				AdditivePoses.Add(NewPose);
+			}
+		}
+	}
+
+	// nothing else to do here, there is no weight
+	if (TotalWeight <= ZERO_ANIMWEIGHT_THRESH)
+	{
+		BlendedPose = SourcePose;
+		return;
+	}
+	// Make sure weights don't exceed 1.f, otherwise re-normalize.
+	else if (TotalWeight > (1.f + ZERO_ANIMWEIGHT_THRESH))
+	{
+		// Re-normalize additive poses
+		for (int32 Index = 0; Index < AdditivePoses.Num(); Index++)
+		{
+			AdditivePoses[Index].Weight /= TotalWeight;
+		}
+		// Re-normalize non-additive poses
+		for (int32 Index = 0; Index < NonAdditivePoses.Num(); Index++)
+		{
+			NonAdditivePoses[Index].Weight /= TotalWeight;
+		}
+		// Re-normalize totals.
+		NonAdditiveWeight /= TotalWeight;
+		TotalWeight = 1.f;
+	}
+
+	// Make sure we have at least one montage here.
+	check((AdditivePoses.Num() > 0) || (NonAdditivePoses.Num() > 0));
+
+	// Second pass, blend non additive poses together
+	{
+		// If we're only playing additive animations, just copy source for base pose.
+		if (NonAdditivePoses.Num() == 0)
+		{
+			BlendedPose = SourcePose;
+		}
+		// Otherwise we need to blend non additive poses together
+		else
+		{
+			// allocate for blending
+			// If source has any weight, add it to the blend array.
+			float const SourceWeight = FMath::Clamp<float>(1.f - NonAdditiveWeight, 0.f, 1.f);
+			int32 const NumPoses = NonAdditivePoses.Num() + ((SourceWeight > ZERO_ANIMWEIGHT_THRESH) ? 1 : 0);
+
+			FTransformArrayA2 const ** BlendingPoses = new FTransformArrayA2 const *[NumPoses];
+			TArray<float> BlendWeights;
+			BlendWeights.AddUninitialized(NumPoses);
+			for (int32 Index = 0; Index < NonAdditivePoses.Num(); Index++)
+			{
+				BlendingPoses[Index] = &NonAdditivePoses[Index].Pose.Bones;
+				BlendWeights[Index] = NonAdditivePoses[Index].Weight;
+			}
+
+			if (SourceWeight > ZERO_ANIMWEIGHT_THRESH)
+			{
+				int32 const SourceIndex = BlendWeights.Num() - 1;
+				BlendingPoses[SourceIndex] = &SourcePose.Bones;
+				BlendWeights[SourceIndex] = SourceWeight;
+			}
+
+			// now time to blend all montages
+			FAnimationRuntime::BlendPosesTogether(BlendWeights.Num(), (const FTransformArrayA2**)BlendingPoses, (const float*)BlendWeights.GetData(), RequiredBones, BlendedPose.Bones);
+
+			// clean up memory
+			delete[] BlendingPoses;
+		}
+	}
+
+	// Third pass, layer on weighted additive poses.
+	{
+		for (int32 Index = 0; Index < AdditivePoses.Num(); Index++)
+		{
+			FSlotEvaluationPose const & AdditivePose = AdditivePoses[Index];
+			// if additive, we should blend with source to make it full body
+			if (AdditivePose.AdditiveType == AAT_LocalSpaceBase)
+			{
+				ApplyAdditiveSequence(BlendedPose, AdditivePose.Pose, AdditivePose.Weight, BlendedPose);
+			}
+			else if (AdditivePose.AdditiveType == AAT_RotationOffsetMeshSpace)
+			{
+				BlendRotationOffset(BlendedPose, AdditivePose.Pose, AdditivePose.Weight, BlendedPose);
+			}
+			else
+			{
+				check(false);
+			}
+		}
 	}
 }
 
@@ -1062,7 +1374,7 @@ void UAnimInstance::ClearSlotNodeWeights()
 bool UAnimInstance::IsActiveSlotNode(FName SlotNodeName) const
 {
 	const float * SlotNodeWeight = ActiveSlotWeights.Find(SlotNodeName);
-	return ( SlotNodeWeight && *SlotNodeWeight > ZERO_ANIMWEIGHT_THRESH );
+	return ( SlotNodeWeight && (*SlotNodeWeight > ZERO_ANIMWEIGHT_THRESH) );
 }
 
 float UAnimInstance::GetCurveValue(FName CurveName)

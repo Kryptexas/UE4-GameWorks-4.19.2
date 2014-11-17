@@ -34,6 +34,13 @@ void FAnimNode_ConvertComponentToLocalSpace::Evaluate(FPoseContext & Output)
 	InputCSPose.Pose.ConvertToLocalPoses(Output.Pose);
 }
 
+void FAnimNode_ConvertComponentToLocalSpace::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugData.AddDebugItem(DebugLine);
+	ComponentPose.GatherDebugData(DebugData);
+}
+
 /////////////////////////////////////////////////////
 // FAnimNode_ConvertLocalToComponentSpace
 
@@ -54,6 +61,13 @@ void FAnimNode_ConvertLocalToComponentSpace::CacheBones(const FAnimationCacheBon
 void FAnimNode_ConvertLocalToComponentSpace::Update(const FAnimationUpdateContext& Context)
 {
 	LocalPose.Update(Context);
+}
+
+void FAnimNode_ConvertLocalToComponentSpace::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugData.AddDebugItem(DebugLine);
+	LocalPose.GatherDebugData(DebugData);
 }
 
 void FAnimNode_ConvertLocalToComponentSpace::EvaluateComponentSpace(FComponentSpacePoseContext & OutputCSPose)

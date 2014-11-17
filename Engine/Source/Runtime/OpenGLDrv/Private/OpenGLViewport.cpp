@@ -116,8 +116,6 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 
 	FOpenGLTexture2D* BackBuffer = Viewport->GetBackBuffer();
 
-	uint32 IdleStart = FPlatformTime::Cycles();
-
 	PlatformBlitToViewport(PlatformDevice,
 		Viewport->OpenGLContext,
 		BackBuffer->GetSizeX(),
@@ -126,6 +124,9 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 		bLockToVsync,
 		RHIOpenGLConsoleVariables::SyncInterval
 	);
+
+	// Always consider the Framebuffer in the rendering context dirty after the blit
+	RenderingContextState.Framebuffer = -1;
 
 	DrawingViewport = NULL;
 
@@ -156,8 +157,6 @@ void FOpenGLDynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,b
 			GInputLatencyTimer.RenderThreadTrigger = false;
 		}
 	}
-
-	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
 
 	if (bRevertToSharedContextAfterDrawingViewport)
 	{

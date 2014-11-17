@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "UdpMessagingPrivatePCH.h"
-#include "UdpMessaging.generated.inl"
+
 
 
 UUdpMessagingSettings::UUdpMessagingSettings( const class FPostConstructInitializeProperties& PCIP )

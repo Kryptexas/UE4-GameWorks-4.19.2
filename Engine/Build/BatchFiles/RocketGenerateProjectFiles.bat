@@ -23,8 +23,13 @@ if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
 
 rem ## Check for Visual Studio 2013
-if "%VS120COMNTOOLS%" == "" goto NoVisualStudio2013Environment
-call "%VS120COMNTOOLS%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+
+pushd %~dp0
+call GetVSComnToolsPath 12
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 

@@ -16,7 +16,7 @@ public:
 	virtual TSharedRef<SWidget> CreateProfilerWindow( const ISessionManagerRef& InSessionManager, const TSharedRef<SDockTab>& ConstructUnderMajorTab ) OVERRIDE
 	{
 		ProfilerManager = FProfilerManager::Initialize( InSessionManager );
-		TSharedRef<SProfilerWindow> ProfilerWindow = SNew(SProfilerWindow, InSessionManager);
+		TSharedRef<SProfilerWindow> ProfilerWindow = SNew(SProfilerWindow);
 		FProfilerManager::Get()->AssignProfilerWindow( ProfilerWindow );
 		// Register OnTabClosed to handle profiler manager shutdown.
 		ConstructUnderMajorTab->SetOnTabClosed( SDockTab::FOnTabClosedCallback::CreateRaw(this, &FProfilerModule::Shutdown) );

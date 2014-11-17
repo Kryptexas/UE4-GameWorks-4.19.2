@@ -19,8 +19,8 @@ class ULeaderboardQueryCallbackProxy : public UObject
 	UPROPERTY(BlueprintAssignable)
 	FLeaderboardQueryResult OnFailure;
 
-	// Called to perform the query internally
-	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true"))
+	// Queries a leaderboard for an integer value
+	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", FriendlyName="Read Leaderboard Integer"), Category="Online|Leaderboard")
 	static ULeaderboardQueryCallbackProxy* CreateProxyObjectForIntQuery(class APlayerController* PlayerController, FName StatName);
 
 public:

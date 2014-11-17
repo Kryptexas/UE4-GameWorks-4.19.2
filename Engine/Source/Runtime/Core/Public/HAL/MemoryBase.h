@@ -173,27 +173,27 @@ protected:
 	/** Atomically increment total malloc calls. */
 	FORCEINLINE void IncrementTotalMallocCalls()
 	{
-		FPlatformAtomics::InterlockedIncrement( (volatile int64*)&FMalloc::TotalMallocCalls );
+		FPlatformAtomics::InterlockedIncrement( (volatile int32*)&FMalloc::TotalMallocCalls );
 	}
 
 	/** Atomically increment total free calls. */
 	FORCEINLINE void IncrementTotalFreeCalls()
 	{
-		FPlatformAtomics::InterlockedIncrement( (volatile int64*)&FMalloc::TotalFreeCalls );
+		FPlatformAtomics::InterlockedIncrement( (volatile int32*)&FMalloc::TotalFreeCalls );
 	}
 
 	/** Atomically increment total realloc calls. */
 	FORCEINLINE void IncrementTotalReallocCalls()
 	{
-		FPlatformAtomics::InterlockedIncrement( (volatile int64*)&FMalloc::TotalReallocCalls );
+		FPlatformAtomics::InterlockedIncrement( (volatile int32*)&FMalloc::TotalReallocCalls );
 	}
 
 	/** Total number of calls Malloc, if implemented by derived class. */
-	static uint64 TotalMallocCalls;
+	static uint32 TotalMallocCalls;
 	/** Total number of calls Malloc, if implemented by derived class. */
-	static uint64 TotalFreeCalls;
+	static uint32 TotalFreeCalls;
 	/** Total number of calls Malloc, if implemented by derived class. */
-	static uint64 TotalReallocCalls;
+	static uint32 TotalReallocCalls;
 };
 
 #endif

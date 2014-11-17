@@ -115,7 +115,7 @@ void SMaterialPalette::Construct(const FArguments& InArgs, TWeakPtr<FMaterialEdi
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("Category", "Category: ").ToString())
+					.Text(LOCTEXT("Category", "Category: "))
 				]
 
 				// Combo button to select a class

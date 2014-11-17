@@ -2,7 +2,7 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintGraphModule.h"
-#include "BlueprintGraph.generated.inl"
+
 
 IMPLEMENT_MODULE( FBlueprintGraphModule, BlueprintGraph );
 

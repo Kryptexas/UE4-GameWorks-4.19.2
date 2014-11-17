@@ -140,6 +140,20 @@ void UBTDecorator_BlueprintBase::FinishConditionCheck(bool bAllowExecution)
 	CurrentCallResult = bAllowExecution;
 }
 
+bool UBTDecorator_BlueprintBase::IsDecoratorExecutionActive() const
+{
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	const bool bIsActive = OwnerComp->IsExecutingBranch(GetMyNode(), GetChildIndex());
+	return bIsActive;
+}
+
+bool UBTDecorator_BlueprintBase::IsDecoratorObserverActive() const
+{
+	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
+	const bool bIsActive = OwnerComp->IsAuxNodeActive(this);
+	return bIsActive;
+}
+
 FString UBTDecorator_BlueprintBase::GetStaticDescription() const
 {
 	FString ReturnDesc = Super::GetStaticDescription();
@@ -170,7 +184,7 @@ void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const class UBehaviorTree
 
 void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent* Blackboard, uint8 ChangedKeyID)
 {
-	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBehaviorComponent() : NULL;
+	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBrainComponent() : NULL;
 	if (BehaviorComp)
 	{
 		BehaviorComp->RequestExecution(this);		

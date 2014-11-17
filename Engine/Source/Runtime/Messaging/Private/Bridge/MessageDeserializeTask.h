@@ -17,9 +17,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * InMessageTypeInfo - The message's type information (may be nullptr if the type information hasn't been discovered yet).
-	 * @param InSerializer - The serializer to use.
-	 * @param InThread - The name of the thread to deserialize the message on.
+	 * InMessageTypeInfo The message's type information (may be nullptr if the type information hasn't been discovered yet).
+	 * @param InSerializer The serializer to use.
+	 * @param InThread The name of the thread to deserialize the message on.
 	 */
 	FMessageDeserializeTask( TWeakObjectPtr<UScriptStruct> InMessageTypeInfo, ISerializeMessagesRef InSerializer, ENamedThreads::Type InThread )
 		: MessageTypeInfoPtr(InMessageTypeInfo)
@@ -32,8 +32,8 @@ public:
 	/**
 	 * Performs the actual task.
 	 *
-	 * @param CurrentThread - The thread that this task is executing on.
-	 * @param MyCompletionGraphEvent - The completion event.
+	 * @param CurrentThread The thread that this task is executing on.
+	 * @param MyCompletionGraphEvent The completion event.
 	 *
 	 * @todo gmp: implement asynchronous message deserialization
 	 */
@@ -71,7 +71,7 @@ public:
 	 *
 	 * @return Stats identifier.
 	 */
-	static TStatId GetStatId( );
+	TStatId GetStatId() const;
 
 	/**
 	 * Gets the mode for tracking subsequent tasks.
@@ -81,16 +81,6 @@ public:
 	static ESubsequentsMode::Type GetSubsequentsMode( ) 
 	{ 
 		return ESubsequentsMode::TrackSubsequents; 
-	}
-
-	/**
-	 * Gets the name of this task.
-	 *
-	 * @return Task name.
-	 */
-	static const TCHAR* GetTaskName( )
-	{
-		return TEXT("FMessageDeserializeTask");
 	}
 
 private:

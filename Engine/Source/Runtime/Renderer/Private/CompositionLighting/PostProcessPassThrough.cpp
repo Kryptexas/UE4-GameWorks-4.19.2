@@ -132,6 +132,7 @@ void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Cont
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 
@@ -154,6 +155,7 @@ FPooledRenderTargetDesc FRCPassPostProcessPassThrough::ComputeOutputDesc(EPassOu
 		}
 	}
 
+	Ret.Reset();
 	Ret.DebugName = TEXT("PassThrough");
 
 	return Ret;

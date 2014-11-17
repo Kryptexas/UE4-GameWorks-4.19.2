@@ -6,7 +6,7 @@
 /**
  * A Material Function is a collection of material expressions that can be reused in different materials
  */
-UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
+UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialFunction : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -59,6 +59,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif // WITH_EDITOR
+	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual void PostLoad() OVERRIDE;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const OVERRIDE;
 	// End UObject interface.
@@ -84,6 +85,11 @@ public:
 	ENGINE_API UMaterial* GetPreviewMaterial();
 
 	void UpdateInputOutputTypes();
+
+	/**
+	 * Checks whether a Material Function is arranged in the old style, with inputs flowing from right to left
+	 */
+	bool HasFlippedCoordinates() const;
 
 	UPROPERTY(AssetRegistrySearchable)
 	uint32 CombinedInputTypes;

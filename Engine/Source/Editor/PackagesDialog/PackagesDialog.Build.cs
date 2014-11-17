@@ -15,11 +15,12 @@ public class PackagesDialog : ModuleRules
 				"Engine", 
                 "InputCore",
 				"Slate", 
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"SourceControl"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.Add("AssetTools");
 	}

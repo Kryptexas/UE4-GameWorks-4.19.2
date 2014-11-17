@@ -14,7 +14,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
-	static void PlatformPostInit();
 	static class GenericApplication* CreateApplication();
 	static void SetGracefulTerminationHandler();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
@@ -47,7 +46,6 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static void CreateGuid(class FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static void PreventScreenSaver();
-	static void ShowGameWindow( void* StaticWndProc );
 	static bool CommandLineCommands();
 	static bool Is64bitOperatingSystem();
 	static bool IsValidAbsolutePathFormat(const FString& Path);
@@ -176,6 +174,16 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static bool QueryRegKey( const HKEY InKey, const TCHAR* InSubKey, const TCHAR* InValueName, FString& OutData );
 
 	/**
+	 * Gets Visual Studio common tools path.
+	 *
+	 * @param Version Version of VS to get (11 - 2012, 12 - 2013).
+	 * @param OutData Output parameter with common tools path.
+	 *
+	 * @return Returns if succeeded.
+	 */
+	static bool GetVSComnTools(int32 Version, FString& OutData);
+
+	/**
 	 * Returns the size of the cache line in bytes.
 	 *
 	 * @return The cache line size.
@@ -187,6 +195,8 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	*/
 	static const TCHAR* GetDefaultPathSeparator();
 
+	/** @return Get the name of the platform specific file manager (Explorer) */
+	static FText GetFileManagerName();
 };
 
 typedef FWindowsPlatformMisc FPlatformMisc;

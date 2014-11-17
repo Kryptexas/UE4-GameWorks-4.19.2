@@ -78,7 +78,7 @@ protected:
 	void HandleSelection(bool bIsSelected, bool bUpdateNodesUnderComment = false) const;
 
 	/** called when user is moving the comment node */
-	virtual void MoveTo(const FVector2D& NewPosition) OVERRIDE;
+	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter ) OVERRIDE;
 
 private:
 

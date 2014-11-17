@@ -24,7 +24,7 @@ void FFPSAnalyzer::AddSample( float FPSSample )
 	Samples.Add(FPSSample);
 
 	float DeltaSeconds = 1.0f / FPSSample;
-	int32 Index = FPlatformMath::Floor(FPSSample / Interval);
+	int32 Index = FPlatformMath::FloorToInt(FPSSample / Interval);
 	Index = Index >= Histogram.Num() ? Histogram.Num()-1 : Index;
 	Histogram[Index].Count++;
 	Histogram[Index].CummulativeTime += DeltaSeconds;
@@ -59,7 +59,7 @@ int32 FFPSAnalyzer::GetTotalCount()
 
 int32 FFPSAnalyzer::GetCount(float InMinVal, float InMaxVal)
 {
-	int32 Index = FPlatformMath::Floor(InMinVal / Interval);
+	int32 Index = FPlatformMath::FloorToInt(InMinVal / Interval);
 	Index = Index >= Histogram.Num() ? Histogram.Num()-1 : Index;
 	return Histogram[Index].Count;
 }

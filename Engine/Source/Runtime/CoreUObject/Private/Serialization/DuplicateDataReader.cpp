@@ -67,11 +67,6 @@ FArchive& FDuplicateDataReader::operator<<( FAssetPtr& AssetPtr)
 	FStringAssetReference ID;
 	Ar << ID;
 
-	if (Ar.GetPortFlags()&PPF_DuplicateForPIE)
-	{
-		// Remap unique ID if necessary
-		ID = ID.FixupForPIE();
-	}
 	AssetPtr = ID;
 	return Ar;
 }

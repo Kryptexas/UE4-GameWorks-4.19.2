@@ -540,12 +540,7 @@ public:
 		Task.release();
 	}
 
-	static const TCHAR* GetTaskName()
-	{
-		return TEXT("FPhysXTask"); // @TODO Use Task.getName()
-	}
-
-	FORCEINLINE static TStatId GetStatId()
+	FORCEINLINE TStatId GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FPhysXTask, STATGROUP_TaskGraphTasks);
 	}
@@ -708,6 +703,11 @@ void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageE
 	UDestructibleComponent* DestructibleComponent = Cast<UDestructibleComponent>(FPhysxUserData::Get<UPrimitiveComponent>(damageEvent.destructible->userData));
 	check(DestructibleComponent);
 
+	if (DestructibleComponent->IsPendingKill())	//don't notify if object is being destroyed
+	{
+		return;
+	}
+
 #if WITH_SUBSTEPPING
 	if (UPhysicsSettings::Get()->bSubstepping)
 	{
@@ -744,7 +744,7 @@ void FPhysxSharedData::Add( PxBase* Obj )
 {
 	if(Obj) 
 	{ 
-		SharedObjects->add(*Obj); 
+		SharedObjects->add(*Obj, (PxSerialObjectId)Obj);
 	}
 }
 

@@ -3,6 +3,8 @@
 #include "GraphEditorCommon.h"
 #include "AnimGraphDefinitions.h"
 #include "SGraphNodeAnimationResult.h"
+#include "EdGraph/EdGraphNode.h"
+#include "AnimGraphNode_base.h"
 
 /////////////////////////////////////////////////////
 // SGraphNodeAnimationResult

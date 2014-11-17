@@ -5,7 +5,12 @@
 =============================================================================*/
 
 #include "AnimGraphPrivatePCH.h"
-
+#include "AnimStateTransitionNode.h"
+#include "AnimationTransitionGraph.h"
+#include "AnimationTransitionSchema.h"
+#include "AnimationCustomTransitionGraph.h"
+#include "AnimationCustomTransitionSchema.h"
+#include "AnimGraphNode_TransitionResult.h"
 #include "EdGraphUtilities.h"
 #include "Kismet2/Kismet2NameValidators.h"
 

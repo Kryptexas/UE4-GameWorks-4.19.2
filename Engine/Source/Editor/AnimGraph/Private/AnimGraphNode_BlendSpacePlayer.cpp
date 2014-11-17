@@ -3,6 +3,7 @@
 #include "AnimGraphPrivatePCH.h"
 #include "GraphEditorActions.h"
 #include "CompilerResultsLog.h"
+#include "AnimGraphNode_BlendSpacePlayer.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendSpacePlayer

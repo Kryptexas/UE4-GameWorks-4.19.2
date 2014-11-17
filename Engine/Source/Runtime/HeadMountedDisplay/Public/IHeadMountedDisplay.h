@@ -1,8 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2012 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "StereoRendering.h"
+
+// depending on your kit and SDK, you may want to use this.
+// new distortion handling still in development.
+#define NEW_MORPHEUS_DISTORTION 0
 
 /**
  * The family of HMD device.  Register a new class of device here if you need to branch code for PostProcessing until 
@@ -11,13 +15,15 @@ namespace EHMDDeviceType
 {
 	enum Type
 	{
-		DT_OculusRift
+		DT_OculusRift,
+		DT_Morpheus
 	};
 }
 
 /**
  * HMD device interface
  */
+
 class HEADMOUNTEDDISPLAY_API IHeadMountedDisplay : public IModuleInterface, public IStereoRendering
 {
 
@@ -45,6 +51,15 @@ public:
 		size_t  MonitorId;
 		int		DesktopX, DesktopY;
 		int		ResolutionX, ResolutionY;
+
+		MonitorInfo() : MonitorId(0)
+			, DesktopX(0)
+			, DesktopY(0)
+			, ResolutionX(0)
+			, ResolutionY(0)
+		{
+		}
+
 	};
 
     /**
@@ -70,7 +85,7 @@ public:
 	/**
 	 * If the HMD supports positional tracking via a camera, this returns the frustum properties (all in game-world space) of the tracking camera.
 	 */
-	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;
+	virtual void	GetPositionalTrackingCameraProperties(FVector& OutOrigin, FRotator& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const = 0;	
 
 	/**
 	 * Accessors to modify the interpupillary distance (meters)
@@ -142,7 +157,7 @@ public:
 	/**
 	 * A callback that is called when screen mode is changed (fullscreen <-> window). 
 	 */
-	virtual void OnScreenModeChange(bool bFullScreenNow) = 0;
+	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) = 0;
 
 	/** Returns true if positional tracking enabled and working. */
 	virtual bool IsPositionalTrackingEnabled() const = 0;
@@ -156,7 +171,7 @@ public:
 	/**
 	 * Acquires color info for latency tester rendering. Returns true if rendering should be performed.
 	 */
-	virtual bool GetLatencyTesterColor_RenderThread(FColor& color, const FSceneView& view) =  0;
+	virtual bool GetLatencyTesterColor_RenderThread(FColor& Color, const FSceneView& View) {return false;}
 
 	/**
 	 * Returns true, if head tracking is allowed. Most common case: it returns true when GEngine->IsStereoscopic3D() is true,
@@ -191,6 +206,24 @@ public:
 	 * any drawing occurs. It is called at the beginning of UGameViewportClient::Draw() method.
 	 */
 	virtual void UpdateScreenSettings(const FViewport* InViewport) = 0;
+
+	/** 
+	 * Additional optional distorion rendering parameters
+	 * @todo:  Once we can move shaders into plugins, remove these!
+	 */	
+#if NEW_MORPHEUS_DISTORTION
+	virtual FTexture* GetDistortionTextureLeft() const {return NULL;}
+	virtual FTexture* GetDistortionTextureRight() const {return NULL;}
+	virtual FVector2D GetTextureOffsetLeft() const {return FVector2D::ZeroVector;}
+	virtual FVector2D GetTextureOffsetRight() const {return FVector2D::ZeroVector;}
+	virtual FVector2D GetTextureScaleLeft() const {return FVector2D::ZeroVector;}
+	virtual FVector2D GetTextureScaleRight() const {return FVector2D::ZeroVector;}
+#else
+	virtual void GetImageTranslation(float& x, float& y) const {}
+	virtual void GetDistortionCenterOffset(float& x, float& y) const {}
+	virtual const FTexture*  GetDistortionTexture() {return NULL;}	
+#endif
+
 private:
 	/** Stores the dimensions of the window before we moved into fullscreen mode, so they can be restored */
 	FSlateRect PreFullScreenRect;

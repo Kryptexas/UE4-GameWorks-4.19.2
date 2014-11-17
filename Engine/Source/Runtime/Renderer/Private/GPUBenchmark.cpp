@@ -146,6 +146,7 @@ void RunBenchmarkShader(const FSceneView& View, TRefCountPtr<IPooledRenderTarget
 			GBenchmarkResolution, GBenchmarkResolution,
 			FIntPoint(GBenchmarkResolution, GBenchmarkResolution),
 			FIntPoint(GBenchmarkResolution, GBenchmarkResolution),
+			*VertexShader,
 			EDRF_Default);
 	}
 }

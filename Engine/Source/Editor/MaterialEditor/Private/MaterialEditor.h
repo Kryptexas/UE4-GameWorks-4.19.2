@@ -17,7 +17,7 @@ public:
 	{
 		// Register this FMaterial derivative with AddEditorLoadedMaterialResource since it does not have a corresponding UMaterialInterface
 		FMaterial::AddEditorLoadedMaterialResource(this);
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	FMatExpressionPreview(UMaterialExpression* InExpression)
@@ -29,7 +29,7 @@ public:
 
 		check(InExpression->Material && InExpression->Material->Expressions.Contains(InExpression));
 		InExpression->Material->AppendReferencedTextures(ReferencedTextures);
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	~FMatExpressionPreview()
@@ -175,30 +175,6 @@ struct FMaterialInfo
 };
 
 /**
-This class allows for the display of stats on the overhead introduce into shaders because they have been compiled for development.
-It compiles two empty materials with the same set up as the current preview material. One with the development overhead and one without.
-The difference in instruction counts between the two is reported to the user as the development overhead.
-*/
-class FMaterialDevelopmentOverheadStats
-{
-public:
-	FMaterialDevelopmentOverheadStats()
-		: EmptyMaterialWithOverhead(NULL)
-		, EmptyMaterial(NULL)
-	{
-
-	}
-	void Init( UMaterial* InMaterial );
-	void Update( UMaterial* InMaterial );
-	bool GetOverheadCounts( TArray<int32>& OverheadCounts, ERHIFeatureLevel::Type FeatureLevel  );
-	void AddReferencedObjects( FReferenceCollector& Collector );
-
-private:
-	UMaterial* EmptyMaterialWithOverhead;
-	UMaterial* EmptyMaterial;
-};
-
-/**
  * Material Editor class
  */
 class FMaterialEditor : public IMaterialEditor, public FGCObject, public FTickableGameObject, public FEditorUndoClient, public FNotifyHook
@@ -325,11 +301,11 @@ public:
 	/** Pushes the PreviewMesh assigned the the material instance to the thumbnail info */
 	static void UpdateThumbnailInfoPreviewMesh(UMaterialInterface* MatInterface);
 
-	/** Callback for when the canvas search next and previous are used */
-	void OnSearch(SSearchBox::SearchDirection Direction);
-
 	/** Sets the expression to be previewed. */
 	void SetPreviewExpression(UMaterialExpression* NewPreviewExpression);
+
+	/** Pan the view to center on a particular node */
+	void JumpToNode(const UEdGraphNode* Node);
 
 	// IMaterial Editor Interface
 	virtual UMaterialExpression* CreateNewMaterialExpression(UClass* NewExpressionClass, const FVector2D& NodePos, bool bAutoSelect, bool bAutoAssignResource) OVERRIDE;
@@ -343,8 +319,10 @@ public:
 	virtual void PasteNodesHere(const FVector2D& Location) OVERRIDE;
 	virtual int32 GetNumberOfSelectedNodes() const OVERRIDE;
 	virtual FMaterialRenderProxy* GetExpressionPreview(UMaterialExpression* InExpression) OVERRIDE;
-	virtual void UpdateSearch( bool bQueryChanged ) OVERRIDE;
-	
+
+
+	void UpdateStatsMaterials();
+
 public:
 	/** Set to true when modifications have been made to the material */
 	bool bMaterialDirty;
@@ -361,8 +339,8 @@ public:
 	/** The material applied to the preview mesh when previewing an expression. */
 	UMaterial* ExpressionPreviewMaterial;
 
-	/** An helper class containing empty materials to calculate editor overhead on this material. */
-	FMaterialDevelopmentOverheadStats MaterialDevelopmentOverheadStats;
+	/** An empty copy of the preview material. Allows displaying of stats about the built in cost of the current material. */
+	UMaterial* EmptyMaterial;
 
 	/** The expression currently being previewed.  This is NULL when not in expression preview mode. */
 	UMaterialExpression* PreviewExpression;
@@ -468,12 +446,6 @@ private:
 public:
 
 private:
-	/** Called when the graph search box changes text */
-	void OnGraphSearchChanged( const FText& InFilterText );
-
-	/** Called when the graph search text is committed */
-	void OnGraphSearchCommitted(const FText& NewTypeInValue, ETextCommit::Type CommitInfo);
-	
 	/**
 	 * Load editor settings from disk (docking state, window pos/size, option state, etc).
 	 */
@@ -518,6 +490,11 @@ private:
 	/** Command for the stats button */
 	void ToggleStats();
 	bool IsToggleStatsChecked() const;
+	void ToggleReleaseStats();
+	bool IsToggleReleaseStatsChecked() const;
+	void ToggleBuiltinStats();
+	bool IsToggleBuiltinStatsChecked() const;
+
 	/** Mobile stats button. */
 	void ToggleMobileStats();
 	bool IsToggleMobileStatsChecked() const;
@@ -537,8 +514,12 @@ private:
 	void OnSelectUpsteamNodes();
 	/** Command to force a refresh of all previews (triggered by space bar) */
 	void OnForceRefreshPreviews();
-	/* Create comment node on graph */
+	/** Create comment node on graph */
 	void OnCreateComment();
+	/** Create ComponentMask node on graph */
+	void OnCreateComponentMaskNode();
+	/** Bring up the search tab */
+	void OnFindInMaterial();
 
 	/** Callback from the Asset Registry when an asset is renamed. */
 	void RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName);
@@ -579,11 +560,6 @@ private:
 	 */
 	FMatExpressionPreview* GetExpressionPreview(UMaterialExpression* MaterialExpression, bool& bNewlyCreated);
 
-	/**
-	  * Moves the shows the selected result in the viewport
-	  */
-	void ShowSearchResult();
-
 	/** Pointer to the object that the current color picker is working on. Can be NULL and stale. */
 	TWeakObjectPtr<UObject> ColorPickerObject;
 
@@ -615,15 +591,6 @@ private:
 	/** Adds the selected expression to the favorites list. */
 	void AddSelectedExpressionToFavorites();
 
-	/**
-	 * Flip the X coordinates of a material's expressions when loading and saving -
-	 * Remove this once new material editor is active and materials are saved inverted.
-	 *
-	 * @param	Expressions	Array of material expressions
-	 * @param	Comments	Array of material expression comments
-	 */
-	void FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, UMaterial* Material = NULL);
-
 private:
 	TSharedRef<SDockTab> SpawnTab_Preview(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_GraphCanvas(const FSpawnTabArgs& Args);
@@ -631,6 +598,7 @@ private:
 	TSharedRef<SDockTab> SpawnTab_HLSLCode(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Palette(const FSpawnTabArgs& Args);
 	TSharedRef<SDockTab> SpawnTab_Stats(const FSpawnTabArgs& Args);
+	TSharedRef<SDockTab> SpawnTab_Find(const FSpawnTabArgs& Args);
 private:
 	/** List of open tool panels; used to ensure only one exists at any one time */
 	TMap< FName, TWeakPtr<class SDockableTab> > SpawnedToolPanels;
@@ -659,14 +627,8 @@ private:
 	TSharedPtr<class SWidget> Stats;
 	TSharedPtr<class IMessageLogListing> StatsListing;
 
-	/** Current search query */
-	FString SearchQuery;
-
-	/** Array of expressions matching the current search terms. */
-	TArray<UMaterialExpression*> SearchResults;
-
-	/** Index in the above array of the currently selected search result */
-	int32 SelectedSearchResult;
+	/** Find results log as well as the search filter */
+	TSharedPtr<class SFindInMaterial> FindResults;
 
 	/** The current transaction. */
 	FScopedTransaction* ScopedTransaction;
@@ -689,6 +651,9 @@ private:
 	/** If true, show material stats like number of shader instructions. */
 	bool bShowStats;
 
+	/** If true, show stats for an empty material. Helps artists to judge the cost of their changes to the graph. */
+	bool bShowBuiltinStats;
+
 	/** If true, show material stats and errors for mobile. */
 	bool bShowMobileStats;
 
@@ -702,4 +667,5 @@ private:
 	static const FName HLSLCodeTabId;	
 	static const FName PaletteTabId;
 	static const FName StatsTabId;
+	static const FName FindTabId;
 };

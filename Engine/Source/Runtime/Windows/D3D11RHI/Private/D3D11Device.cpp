@@ -83,17 +83,17 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	// ES2 feature level emulation in D3D11
 	if (FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2")))
 	{
-		GRHIFeatureLevel = ERHIFeatureLevel::ES2;
+		SetMaxRHIFeatureLevel(ERHIFeatureLevel::ES2);
 		GRHIShaderPlatform = SP_PCD3D_ES2;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_11_0)
 	{
-		GRHIFeatureLevel = ERHIFeatureLevel::SM5;
+		SetMaxRHIFeatureLevel(ERHIFeatureLevel::SM5);
 		GRHIShaderPlatform = SP_PCD3D_SM5;
 	}
 	else if(FeatureLevel == D3D_FEATURE_LEVEL_10_0)
 	{
-		GRHIFeatureLevel = ERHIFeatureLevel::SM4;
+		SetMaxRHIFeatureLevel(ERHIFeatureLevel::SM4);
 		GRHIShaderPlatform = SP_PCD3D_SM4;
 	}
 
@@ -189,7 +189,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 	DynamicIB = new FD3D11DynamicBuffer(this,D3D11_BIND_INDEX_BUFFER,DynamicIBSizes);
 }
 
-FD3D11DynamicRHI::~FD3D11DynamicRHI()
+void FD3D11DynamicRHI::Shutdown()
 {
 	check(IsInGameThread() && IsInRenderingThread());  // require that the render thread has been shut down
 
@@ -304,7 +304,7 @@ void FD3D11DynamicRHI::RHIGetSupportedResolution( uint32 &Width, uint32 &Height 
 void FD3D11DynamicRHI::GetBestSupportedMSAASetting( DXGI_FORMAT PlatformFormat, uint32 MSAACount, uint32& OutBestMSAACount, uint32& OutMSAAQualityLevels )
 {
 	//  We disable MSAA for Feature level 10
-	if(GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+	if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
 	{
 		OutBestMSAACount = 1;
 		OutMSAAQualityLevels = 0;
@@ -337,6 +337,24 @@ uint32 FD3D11DynamicRHI::GetMaxMSAAQuality(uint32 SampleCount)
 	return 0xffffffff;
 }
 
+void FD3D11DynamicRHI::SetupAfterDeviceCreation()
+{
+	// without that the first RHIClear would get a scissor rect of (0,0)-(0,0) which means we get a draw call clear 
+	RHISetScissorRect(false, 0, 0, 0, 0);
+
+	UpdateMSAASettings();
+
+	if (GRHISupportsAsyncTextureCreation)
+	{
+		UE_LOG(LogD3D11RHI,Log,TEXT("Async texture creation enabled"));
+	}
+	else
+	{
+		UE_LOG(LogD3D11RHI,Log,TEXT("Async texture creation disabled: %s"),
+			D3D11RHI_ShouldAllowAsyncResourceCreation() ? TEXT("no driver support") : TEXT("disabled by user"));
+	}
+}
+
 void FD3D11DynamicRHI::UpdateMSAASettings()
 {	
 	check(DX_MAX_MSAA_COUNT == 8);
@@ -354,7 +372,6 @@ void FD3D11DynamicRHI::UpdateMSAASettings()
 	AvailableMSAAQualities[7] = 0xffffffff;
 	AvailableMSAAQualities[8] = 0;
 }
-
 
 void FD3D11DynamicRHI::CleanupD3DDevice()
 {

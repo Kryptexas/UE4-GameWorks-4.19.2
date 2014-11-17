@@ -53,11 +53,8 @@ ULandscapeComponent::ULandscapeComponent(const class FPostConstructInitializePro
 	bAllowCullDistanceVolume = false;
 	CollisionMipLevel = 0;
 	StaticLightingResolution = 0.f; // Default value 0 means no overriding
-#if WITH_EDITORONLY_DATA
-	bNeedPostUndo = false;
-#endif // WITH_EDITORONLY_DATA
-	HeightmapScaleBias = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 
+	HeightmapScaleBias = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 	WeightmapScaleBias = FVector4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	bBoundsChangeTriggersStreamingDataRebuild = true;
@@ -423,34 +420,6 @@ void ULandscapeComponent::PostLoad()
 ALandscape::ALandscape(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-#if WITH_EDITORONLY_DATA
-	if ((SpriteComponent != NULL) && !IsRunningCommandlet())
-	{
-		// Structure to hold one-time initialization
-		struct FConstructorStatics
-		{
-			ConstructorHelpers::FObjectFinderOptional<UTexture2D> TerrainTexture;
-			FName ID_Landscape;
-			FText NAME_Landscape;
-			FConstructorStatics()
-				: TerrainTexture(TEXT("/Engine/EditorResources/S_Terrain.S_Terrain"))
-				, ID_Landscape(TEXT("Landscape"))
-				, NAME_Landscape(NSLOCTEXT( "SpriteCategory", "Landscape", "Landscape" ))
-
-			{
-			}
-		};
-		static FConstructorStatics ConstructorStatics;
-
-		SpriteComponent->Sprite = ConstructorStatics.TerrainTexture.Get();
-		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Landscape;
-		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Landscape;
-	}
-#endif // WITH_EDITORONLY_DATA
-
-	bHidden = false;
-	StaticLightingResolution = 1.0f;
-	StreamingDistanceMultiplier = 1.0f;
 	bIsProxy = false;
 
 #if WITH_EDITORONLY_DATA
@@ -466,35 +435,21 @@ ALandscape* ALandscape::GetLandscapeActor()
 ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	PrimaryActorTick.bCanEverTick = false;
+	bReplicates = false;
+	NetUpdateFrequency = 10.0f;
+	bHidden = false;
+	bReplicateMovement = false;
+	bCanBeDamaged = false;
+		
 	TSubobjectPtr<USceneComponent> SceneComponent = PCIP.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = SceneComponent;
 	RootComponent->RelativeScale3D = FVector(128.0f, 128.0f, 256.0f); // Old default scale, preserved for compatibility. See ULandscapeEditorObject::NewLandscape_Scale
 	RootComponent->Mobility = EComponentMobility::Static;
 	LandscapeSectionOffset = FIntPoint::ZeroValue;
 	
-#if WITH_EDITORONLY_DATA
-	if (!IsRunningCommandlet() && (SpriteComponent != NULL))
-	{
-		// Structure to hold one-time initialization
-		struct FConstructorStatics
-		{
-			ConstructorHelpers::FObjectFinderOptional<UTexture2D> TerrainTexture;
-			FConstructorStatics()
-				: TerrainTexture(TEXT("Texture2D'/Engine/EditorResources/S_Terrain.S_Terrain'"))
-			{
-			}
-		};
-		static FConstructorStatics ConstructorStatics;
-
-		SpriteComponent->Sprite = ConstructorStatics.TerrainTexture.Get();
-		SpriteComponent->AttachParent = RootComponent;
-		SpriteComponent->bAbsoluteScale = true;
-	}
-#endif
-
 	StaticLightingResolution = 1.0f;
 	StreamingDistanceMultiplier = 1.0f;
-	bHidden = false;
 	bIsProxy = true;
 	MaxLODLevel = -1;
 #if WITH_EDITORONLY_DATA
@@ -502,6 +457,7 @@ ALandscapeProxy::ALandscapeProxy(const class FPostConstructInitializeProperties&
 	bIsMovingToLevel = false;
 #endif // WITH_EDITORONLY_DATA
 	LODDistanceFactor = 1.0f;
+	LODFalloff = ELandscapeLODFalloff::Linear;
 	bCastStaticShadow = true;
 	bUsedForNavigation = true;
 	CollisionThickness = 16;
@@ -910,32 +866,34 @@ void ALandscapeProxy::AddReferencedObjects(UObject* InThis, FReferenceCollector&
 void ALandscapeProxy::PreEditUndo()
 {
 	Super::PreEditUndo();
-	if (GIsEditor)
+
+	// PostEditUndo doesn't get called when undoing a create action
+	// and PreEditUndo doesn't get called when undoing a delete action
+	// so this code needs to be in both!
+	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
-		// Remove all layer info for this Proxy
-		ULandscapeInfo* LandscapeInfo = GetLandscapeInfo(false);
-		if (LandscapeInfo)
-		{
-			LandscapeInfo->UpdateLayerInfoMap(this, true);
-		}
+		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
 	}
 }
 
 void ALandscapeProxy::PostEditUndo()
 {
 	Super::PostEditUndo();
+
 	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 	{
-		// defer LandscapeInfo setup
 		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
-		GEngine->DeferredCommands.AddUnique(TEXT("RestoreLandscapeLayerInfos"));
 	}
 }
 
 void ULandscapeInfo::PostEditUndo()
 {
 	Super::PostEditUndo();
-	ULandscapeInfo::RecreateLandscapeInfo(CastChecked<UWorld>(GetOuter()), true);
+
+	if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
+	{
+		GEngine->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
+	}
 }
 
 FName FLandscapeInfoLayerSettings::GetLayerName() const
@@ -1261,11 +1219,6 @@ void ALandscapeProxy::PostLoad()
 void ALandscape::Destroyed()
 {
 	Super::Destroyed();
-
-	if (SplineComponent)
-	{
-		SplineComponent->ModifySplines();
-	}
 }
 
 void ALandscapeProxy::Destroyed()
@@ -1275,6 +1228,11 @@ void ALandscapeProxy::Destroyed()
 	if (GIsEditor)
 	{
 		ULandscapeInfo::RecreateLandscapeInfo(GetWorld(), false);
+	}
+
+	if (SplineComponent)
+	{
+		SplineComponent->ModifySplines();
 	}
 }
 #endif
@@ -1299,6 +1257,8 @@ void ALandscapeProxy::GetSharedProperties(ALandscapeProxy* Landscape)
 		SubsectionSizeQuads = Landscape->SubsectionSizeQuads;
 		MaxLODLevel = Landscape->MaxLODLevel;
 		LODDistanceFactor = Landscape->LODDistanceFactor;
+		LODFalloff = Landscape->LODFalloff;
+		CollisionMipLevel = Landscape->CollisionMipLevel;
 		if (!LandscapeMaterial)
 		{
 			LandscapeMaterial = Landscape->LandscapeMaterial;
@@ -1398,9 +1358,9 @@ UMaterialInterface* ALandscapeProxy::GetLandscapeMaterial() const
 
 UMaterialInterface* ALandscapeProxy::GetLandscapeHoleMaterial() const
 {
-	if (LandscapeMaterial)
+	if (LandscapeHoleMaterial)
 	{
-		return LandscapeMaterial;
+		return LandscapeHoleMaterial;
 	}
 	else if (LandscapeActor)
 	{
@@ -1627,6 +1587,21 @@ void ULandscapeInfo::RegisterActorComponent(ULandscapeComponent* Component, bool
 		// Show MapCheck window
 		FMessageLog("MapCheck").Open( EMessageSeverity::Warning );
 	}
+
+	// Update Selected Components/Regions
+#if WITH_EDITOR
+	if (Component->EditToolRenderData != NULL && Component->EditToolRenderData->SelectedType)
+	{
+		if (Component->EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_COMPONENT)
+		{
+			SelectedComponents.Add(Component);
+		}
+		else if (Component->EditToolRenderData->SelectedType & FLandscapeEditToolRenderData::ST_REGION)
+		{
+			SelectedRegionComponents.Add(Component);
+		}
+	}
+#endif
 }
 	
 void ULandscapeInfo::UnregisterActorComponent(ULandscapeComponent* Component)
@@ -1771,8 +1746,8 @@ void ULandscapeInfo::RecreateLandscapeInfo(UWorld* InWorld, bool bMapCheck)
 				FVector	DrawScale = FirstVisibleLandscape->GetRootComponent()->RelativeScale3D;
 				
 				FIntPoint QuadsSpaceOffset; 
-				QuadsSpaceOffset.X = Offset.X/DrawScale.X;
-				QuadsSpaceOffset.Y = Offset.Y/DrawScale.Y;
+				QuadsSpaceOffset.X = FMath::RoundToInt(Offset.X/DrawScale.X);
+				QuadsSpaceOffset.Y = FMath::RoundToInt(Offset.Y/DrawScale.Y);
 				Proxy->SetAbsoluteSectionBase(QuadsSpaceOffset);
 			}
 
@@ -1838,7 +1813,7 @@ void ULandscapeComponent::PostDuplicate(bool bDuplicateForPIE)
 }
 
 // Generate a new guid to force a recache of all landscape derived data
-#define LANDSCAPE_FULL_DERIVEDDATA_VER			TEXT("d17ce2a02ccc11e3aa6e0800200c9a66")
+#define LANDSCAPE_FULL_DERIVEDDATA_VER			TEXT("28f0da4d085e48a680482c9835907e2f")
 
 FString FLandscapeComponentDerivedData::GetDDCKeyString(const FGuid& StateId)
 {

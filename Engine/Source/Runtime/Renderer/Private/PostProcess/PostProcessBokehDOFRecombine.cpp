@@ -110,16 +110,35 @@ void FRCPassPostProcessBokehDOFRecombine::SetShader(const FRenderingCompositePas
 
 void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(BokehDOFRecombine, DEC_SCENE_ITEMS);
+	uint32 Method = 2;
 
-	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input1);
+	if(GetInput(ePId_Input1)->GetPass())
+	{
+		if(GetInput(ePId_Input2)->GetPass())
+		{
+			Method = 3;
+		}
+		else
+		{
+			Method = 1;
+		}
+	}
+	else
+	{
+		check(GetInput(ePId_Input2)->GetPass());
+	}
+
+	SCOPED_DRAW_EVENTF(BokehDOFRecombine, DEC_SCENE_ITEMS, TEXT("BokehDOFRecombine#%d"), Method);
+
+	const FPooledRenderTargetDesc* InputDesc0 = GetInputDesc(ePId_Input0);
+	const FPooledRenderTargetDesc* InputDesc1 = GetInputDesc(ePId_Input1);
 	
 	const FSceneView& View = Context.View;
 
-	FIntPoint TexSize = InputDesc ? InputDesc->Extent : GSceneRenderTargets.SceneColor->GetDesc().Extent;
+	FIntPoint TexSize = InputDesc1 ? InputDesc1->Extent : InputDesc0->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = GSceneRenderTargets.SceneColor->GetDesc().Extent.X / TexSize.X;
+	uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / TexSize.X;
 
 	FIntRect HalfResViewRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes);
 
@@ -138,23 +157,16 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	if(GetInput(ePId_Input1)->GetPass())
+	switch(Method)
 	{
-		if(GetInput(ePId_Input2)->GetPass())
-		{
-			SetShader<3>(Context);
-		}
-		else
-		{
-			SetShader<1>(Context);
-		}
+		case 1: SetShader<1>(Context); break;
+		case 2: SetShader<2>(Context); break;
+		case 3: SetShader<3>(Context); break;
+		default:
+			check(0);
 	}
-	else
-	{
-		check(GetInput(ePId_Input2)->GetPass());
 
-		SetShader<2>(Context);
-	}
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle(
@@ -164,6 +176,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 		HalfResViewRect.Width(), HalfResViewRect.Height(),
 		View.ViewRect.Size(),
 		TexSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

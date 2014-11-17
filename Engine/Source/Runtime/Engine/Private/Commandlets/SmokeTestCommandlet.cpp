@@ -36,11 +36,11 @@ bool FRunServer::RunTest(const FString& Parameters)
 	// own commandlet
 	if( GEngine && IsRunningDedicatedServer() )
 	{
-		// Update GCurrentTime/ GDeltaTime while taking into account max tick rate.
+		// Update FApp::CurrentTime / FApp::DeltaTime while taking into account max tick rate.
 		GEngine->UpdateTimeAndHandleMaxTickRate();
 
 		// Tick the engine.
-		GEngine->Tick( GDeltaTime, false );
+		GEngine->Tick( FApp::GetDeltaTime(), false );
 	}
 
 	return true;

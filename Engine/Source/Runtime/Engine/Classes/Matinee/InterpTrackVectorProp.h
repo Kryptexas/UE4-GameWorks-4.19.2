@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackVectorProp.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Vector Property Track" ) )
+UCLASS(MinimalAPI, meta=( DisplayName = "Vector Property Track" ) )
 class UInterpTrackVectorProp : public UInterpTrackVectorBase
 {
 	GENERATED_UCLASS_BODY()

@@ -88,7 +88,7 @@ void SFriendsList::Construct( const FArguments& InArgs )
 					[
 						SNew( STextBlock )
 						.Font( FriendStyle.FriendsFontStyle )
-						.Text( LOCTEXT("FriendsList", "Friends").ToString() )
+						.Text( LOCTEXT("FriendsList", "Friends") )
 					]
 				]
 				+SHorizontalBox::Slot()
@@ -103,7 +103,7 @@ void SFriendsList::Construct( const FArguments& InArgs )
 					[
 						SNew(STextBlock)
 						.Font(FriendStyle.FriendsFontStyle)
-						.Text(LOCTEXT("RecentPlayers", "Recent").ToString())
+						.Text(LOCTEXT("RecentPlayers", "Recent"))
 					]
 				]
 				+SHorizontalBox::Slot()
@@ -118,7 +118,7 @@ void SFriendsList::Construct( const FArguments& InArgs )
 					[
 						SNew( STextBlock )
 						.Font( FriendStyle.FriendsFontStyle )
-						.Text( LOCTEXT("FriendRequest", "Requests").ToString() )
+						.Text( LOCTEXT("FriendRequest", "Requests") )
 					]
 				]
 			]
@@ -293,10 +293,11 @@ void SFriendsList::RefreshFriendsList()
 	}
 }
 
-FString SFriendsList::GetListCountText() const
+FText SFriendsList::GetListCountText() const
 {
-	static const FString ListCount = LOCTEXT( "FriendList_Title", "Friends:1 " ).ToString();
-	return ListCount + FString::Printf( TEXT( "%d" ), FFriendsAndChatManager::Get()->GetFriendCount() );
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("NumberOfFriends"), FFriendsAndChatManager::Get()->GetFriendCount());
+	return FText::Format(LOCTEXT( "FriendList_Title", "FRIENDS : {NumberOfFriends}" ), Args);
 }
 
 FReply SFriendsList::SearchFriend_OnClicked()

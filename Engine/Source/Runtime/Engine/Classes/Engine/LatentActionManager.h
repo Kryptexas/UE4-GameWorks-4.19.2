@@ -106,6 +106,15 @@ public:
 	}
 
 	/** 
+	 * Removes all actions for given object. 
+	 * It the latent actions are being currently handled (so the function is called inside a ProcessLatentActions functions scope) 
+	 * there is no guarantee, that the action will be removed before its execution.
+	 *
+	 * @param		InOject		Specific object
+	 */	
+	void RemoveActionsForObject(TWeakObjectPtr<UObject> InObject);
+
+	/** 
 	 * Adds a new action to the action list under a given UUID 
 	 */
 	void AddNewAction(UObject* InActionObject, int32 UUID, FPendingLatentAction* NewAction)
@@ -166,5 +175,8 @@ protected:
 protected:
 	/** list of objects we have processed the latent action list for this frame. */	
 	TSet<UObject*> ProcessedThisFrame;
+
+	/** For listed objects all actions will be removed */
+	TArray<TWeakObjectPtr<UObject>> ObjectsToRemove;
 };
 

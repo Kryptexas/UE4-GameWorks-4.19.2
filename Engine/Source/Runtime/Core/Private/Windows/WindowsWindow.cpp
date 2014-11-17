@@ -50,10 +50,10 @@ void FWindowsWindow::Initialize( FWindowsApplication* const Application, const T
 	const float WidthInitial = Definition->WidthDesiredOnScreen;
 	const float HeightInitial = Definition->HeightDesiredOnScreen;
 
-	int32 X = FMath::Trunc( XInitialRect );
-	int32 Y = FMath::Trunc( YInitialRect );
-	int32 ClientWidth = FMath::Trunc( WidthInitial );
-	int32 ClientHeight = FMath::Trunc( HeightInitial );
+	int32 X = FMath::TruncToInt( XInitialRect );
+	int32 Y = FMath::TruncToInt( YInitialRect );
+	int32 ClientWidth = FMath::TruncToInt( WidthInitial );
+	int32 ClientHeight = FMath::TruncToInt( HeightInitial );
 	int32 WindowWidth = ClientWidth;
 	int32 WindowHeight = ClientHeight;
 
@@ -598,7 +598,7 @@ void FWindowsWindow::SetWindowFocus()
  */
 void FWindowsWindow::SetOpacity( const float InOpacity )
 {
-	SetLayeredWindowAttributes( HWnd, 0, FMath::Trunc( InOpacity * 255.0f ), LWA_ALPHA );
+	SetLayeredWindowAttributes( HWnd, 0, FMath::TruncToInt( InOpacity * 255.0f ), LWA_ALPHA );
 }
 
 /**

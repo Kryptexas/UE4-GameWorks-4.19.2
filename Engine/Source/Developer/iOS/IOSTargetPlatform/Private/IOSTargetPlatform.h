@@ -42,14 +42,14 @@ public:
 
 	// Begin ITargetPlatform interface
 
+	virtual void EnableDeviceCheck(bool OnOff) OVERRIDE;
+
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const OVERRIDE;
 
 	virtual ECompressionFlags GetBaseCompressionMethod() const OVERRIDE
 	{
 		return COMPRESS_ZLIB;
 	}
-
-	virtual bool GetBuildArtifacts( const FString& ProjectPath, EBuildTargets::Type BuildTarget, EBuildConfigurations::Type BuildConfiguration, ETargetPlatformBuildArtifacts::Type Artifacts, TMap<FString, FString>& OutFiles, TArray<FString>& OutMissingFiles ) const OVERRIDE;
 
 	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const OVERRIDE
 	{
@@ -91,7 +91,9 @@ public:
 		OutFormats.Add(FName(TEXT("EncodedHDR")));
 	}
 
-	virtual void GetShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
+
+	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE;
 
 	virtual const class FStaticMeshLODSettings& GetStaticMeshLODSettings( ) const OVERRIDE
 	{

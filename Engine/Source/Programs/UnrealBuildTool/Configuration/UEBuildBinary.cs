@@ -475,10 +475,10 @@ namespace UnrealBuildTool
 			var BinaryDependencies = new List<UEBuildBinary>();
 			var LinkEnvironmentVisitedModules = new Dictionary<UEBuildModule, bool>();
 
-			// @Hack: This to prevent UHT from listing CoreUObject.generated.inl as its dependency.
+			// @Hack: This to prevent UHT from listing CoreUObject.generated.cpp as its dependency.
 			// We flag the compile environment when we build UHT so that we don't need to check
 			// this for each file when generating their dependencies.
-			BinaryCompileEnvironment.bHackHeaderGenerator = ModuleNames.Contains("UnrealHeaderTool");
+			BinaryCompileEnvironment.bHackHeaderGenerator = (Target.GetAppName() == "UnrealHeaderTool");
 
 			// Set the original file name macro; used in PCLaunch.rc to set the binary metadata fields.
 			var OriginalFilename = !String.IsNullOrEmpty(Config.OriginalOutputFilePath) ?

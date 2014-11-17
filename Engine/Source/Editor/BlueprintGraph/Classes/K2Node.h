@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-
+#include "EdGraph/EdGraphNode.h"
 #include "K2Node.generated.h"
 
 /** Helper struct to allow us to redirect properties and functions through renames and additionally between classes if necessary */
@@ -13,6 +12,16 @@ struct FFieldRemapInfo
 
 	/** The new name of the field's outer class if different from its original location, or NAME_None if it hasn't moved */
 	FName FieldClass;
+
+	bool operator==(const FFieldRemapInfo& Other) const
+	{
+		return FieldName == Other.FieldName && FieldClass == Other.FieldClass;
+	}
+
+	friend uint32 GetTypeHash(const FFieldRemapInfo& RemapInfo)
+	{
+		return GetTypeHash(RemapInfo.FieldName) + GetTypeHash(RemapInfo.FieldClass) * 23;
+	}
 
 	FFieldRemapInfo()
 		: FieldName(NAME_None)
@@ -50,6 +59,9 @@ struct FOptionalPinFromProperty
 	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
 	FString PropertyFriendlyName;
 
+	UPROPERTY(EditAnywhere, Category=Hi, BlueprintReadOnly)
+	FText PropertyTooltip;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Hi)
 	bool bShowPin;
 
@@ -60,11 +72,12 @@ struct FOptionalPinFromProperty
 	{
 	}
 	
-	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName)
+	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName, const FText& InTooltip)
 		: PropertyName(InPropertyName)
+		, PropertyFriendlyName(InFriendlyName)
+		, PropertyTooltip(InTooltip)
 		, bShowPin(bInShowPin)
 		, bCanToggleVisibility(bInCanToggleVisibility)
-		, PropertyFriendlyName(InFriendlyName)
 	{
 	}
 };
@@ -134,6 +147,12 @@ class UK2Node : public UEdGraphNode
 	 * If OptionalOutput isn't null, it should be filled with the known dependencies objects (Classes, Functions, etc).
 	 */
 	virtual bool HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const { return false; }
+
+	/**
+	* Returns whether or not this node has dependencies on an external user-defined structure
+	* If OptionalOutput isn't null, it should be filled with the known dependencies structures.
+	*/
+	virtual bool HasExternalUserDefinedStructDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const { return false; }
 
 	/** Returns whether this node can have breakpoints placed on it in the debugger */
 	virtual bool CanPlaceBreakpoints() const { return !IsNodePure(); }
@@ -221,9 +240,10 @@ class UK2Node : public UEdGraphNode
 	 *
 	 * @param	InitialScope	The scope the field was initially defined in.  The function will search up into parent scopes to attempt to find remappings
 	 * @param	InitialName		The name of the field to attempt to find a redirector for
+	 * @param	bInitialScopeMustBeOwnerOfField		if true the InitialScope must be Child of the field's owner
 	 * @return	The remapped field, if one exists
 	 */
-	BLUEPRINTGRAPH_API static UField* FindRemappedField(UClass* InitialScope, FName InitialName);
+	BLUEPRINTGRAPH_API static UField* FindRemappedField(UClass* InitialScope, FName InitialName, bool bInitialScopeMustBeOwnerOfField = false);
 
 	// Renames an existing pin on the node.
 	BLUEPRINTGRAPH_API virtual ERenamePinResult RenameUserDefinedPin(const FString& OldName, const FString& NewName, bool bTest = false);
@@ -258,7 +278,7 @@ protected:
 	/** 
 	 * A mapping from old property and function names to new ones.  Get primed from INI files, and should contain entries for properties, functions, and delegates that get moved, so they can be fixed up
 	 */
-	static TMap<FName, FFieldRemapInfo> FieldRedirectMap;
+	static TMap<FFieldRemapInfo, FFieldRemapInfo> FieldRedirectMap;
 	/** 
 	 * A mapping from old pin name to new pin name for each K2 node.  Get primed from INI files, and should contain entries for node class, and old param name and new param name
 	 */
@@ -328,11 +348,6 @@ protected:
 			ReferencedObject->GetLinker()->Preload(ReferencedObject);
 		}
 	}
-
-	// removes removed pins and adjusts array indices of remained pins
-	void RemovePinsFromOldPins(TArray<UEdGraphPin*>& OldPins, int32 RemovedArrayIndex);
-
-	int32 RemovedPinArrayIndex;
 };
 
 
@@ -345,6 +360,10 @@ protected:
 	/** Class that this member is defined in. Should be NULL if bSelfContext is true.  */
 	UPROPERTY()
 	mutable TSubclassOf<class UObject> MemberParentClass;
+
+	/** Class that this member is defined in. Should be NULL if bSelfContext is true.  */
+	UPROPERTY()
+	mutable FString MemberScope;
 
 	/** Name of variable */
 	UPROPERTY()
@@ -382,7 +401,6 @@ public:
 		}
 	}
 
-
 	template<class TFieldType>
 	void SetFromField(const UField* InField, const UK2Node* SelfNode)
 	{
@@ -418,6 +436,12 @@ public:
 	/** Set up this reference to a 'self' member name */
 	BLUEPRINTGRAPH_API void SetSelfMember(FName InMemberName);
 
+	/** Set up this reference to a 'self' member name, scoped to a struct */
+	BLUEPRINTGRAPH_API void SetLocalMember(FName InMemberName, UStruct* InScope, const FGuid InMemberGuid);
+
+	/** Set up this reference to a 'self' member name, scoped to a struct name */
+	BLUEPRINTGRAPH_API void SetLocalMember(FName InMemberName, FString InScopeName, const FGuid InMemberGuid);
+
 	/** Only intended for backwards compat! */
 	BLUEPRINTGRAPH_API void SetDirect(const FName InMemberName, const FGuid InMemberGuid, TSubclassOf<class UObject> InMemberParentClass, bool bIsConsideredSelfContext);
 
@@ -441,9 +465,21 @@ public:
 		return bSelfContext;
 	}
 
+	/** Returns if this is a local scope. */
+	bool IsLocalScope() const
+	{
+		return !MemberScope.IsEmpty();
+	}
 private:
 	/** Util to get the generated class from a node. */
 	BLUEPRINTGRAPH_API static UClass* GetBlueprintClassFromNode(const UK2Node* Node);
+
+	/**
+	 * Refreshes a local variable reference name if it has changed
+	 *
+	 * @param InSelfScope		Scope to lookup the variable in, to see if it has changed
+	 */
+	BLUEPRINTGRAPH_API FName RefreshLocalVariableName(UClass* InSelfScope) const;
 
 protected:
 	/** Only intended for backwards compat! */
@@ -459,7 +495,26 @@ public:
 	/** Get the class that owns this member */
 	UClass* GetMemberParentClass(UClass* SelfScope) const
 	{
-		return bSelfContext ? SelfScope : (UClass*)MemberParentClass;
+		// Local variables with a MemberScope act much the same as being SelfContext, their parent class is SelfScope.
+		return (bSelfContext || !MemberScope.IsEmpty())? SelfScope : (UClass*)MemberParentClass;
+	}
+
+	/** Get the scope of this member, using a node to derive the class */
+	UStruct* GetMemberScope(const UK2Node* SelfNode) const
+	{
+		return GetMemberScope( GetBlueprintClassFromNode(SelfNode) );
+	}
+
+	/** Get the scope of this member */
+	UStruct* GetMemberScope(UClass* InMemberParentClass) const
+	{
+		return FindField<UStruct>(InMemberParentClass, *MemberScope);
+	}
+
+	/** Get the name of the scope of this member */
+	FString GetMemberScopeName() const
+	{
+		return MemberScope;
 	}
 
 	/** 
@@ -477,42 +532,63 @@ public:
 			UE_LOG(LogBlueprint, Warning, TEXT("FMemberReference::ResolveMember (%s) bSelfContext == true, but no scope supplied!"), *MemberName.ToString() );
 		}
 
-		// Look for remapped member
-		UClass* TargetScope = bSelfContext ? SelfScope : (UClass*)MemberParentClass;
-		if( TargetScope != NULL &&  !GIsSavingPackage )
+		// Check if the member reference is function scoped
+		if(IsLocalScope())
 		{
-			ReturnField = Cast<TFieldType>(UK2Node::FindRemappedField(TargetScope, MemberName));
-		}
+			UStruct* MemberScopeStruct = FindField<UStruct>(SelfScope, *MemberScope);
 
-		if(ReturnField != NULL)
-		{
-			// Fix up this struct, we found a redirect
-			MemberName = ReturnField->GetFName();
-			MemberParentClass = Cast<UClass>(ReturnField->GetOuter());
-
-			MemberGuid.Invalidate();
-			UBlueprint::GetGuidFromClassByFieldName<TFieldType>(TargetScope, MemberName, MemberGuid);
-
-			// Re-evaluate self-ness against the redirect if we were given a valid SelfScope
-			if(MemberParentClass != NULL && SelfScope != NULL)
-			{
-				SetGivenSelfScope(MemberName, MemberGuid, MemberParentClass, SelfScope);
-			}
-		}
-		else if(TargetScope != NULL)
-		{
 			// Find in target scope
-			ReturnField = FindField<TFieldType>(TargetScope, MemberName);
+			ReturnField = FindField<TFieldType>(MemberScopeStruct, MemberName);
 
-			// If we have a GUID find the reference variable and make sure the name is up to date and find the field again
-			// For now only variable references will have valid GUIDs.  Will have to deal with finding other names subsequently
-			if (ReturnField == NULL && MemberGuid.IsValid())
+			if(ReturnField == NULL)
 			{
-				const FName RenamedMemberName = UBlueprint::GetFieldNameFromClassByGuid<TFieldType>(TargetScope, MemberGuid);
+				// If the property was not found, refresh the local variable name and try again
+				const FName RenamedMemberName = RefreshLocalVariableName(SelfScope);
 				if (RenamedMemberName != NAME_None)
 				{
-					MemberName = RenamedMemberName;
-					ReturnField = FindField<TFieldType>(TargetScope, MemberName);
+					ReturnField = FindField<TFieldType>(MemberScopeStruct, MemberName);
+				}
+			}
+		}
+		else
+		{
+			// Look for remapped member
+			UClass* TargetScope = bSelfContext ? SelfScope : (UClass*)MemberParentClass;
+			if( TargetScope != NULL &&  !GIsSavingPackage )
+			{
+				ReturnField = Cast<TFieldType>(UK2Node::FindRemappedField(TargetScope, MemberName, true));
+			}
+
+			if(ReturnField != NULL)
+			{
+				// Fix up this struct, we found a redirect
+				MemberName = ReturnField->GetFName();
+				MemberParentClass = Cast<UClass>(ReturnField->GetOuter());
+
+				MemberGuid.Invalidate();
+				UBlueprint::GetGuidFromClassByFieldName<TFieldType>(TargetScope, MemberName, MemberGuid);
+
+				// Re-evaluate self-ness against the redirect if we were given a valid SelfScope
+				if(MemberParentClass != NULL && SelfScope != NULL)
+				{
+					SetGivenSelfScope(MemberName, MemberGuid, MemberParentClass, SelfScope);
+				}
+			}
+			else if(TargetScope != NULL)
+			{
+				// Find in target scope
+				ReturnField = FindField<TFieldType>(TargetScope, MemberName);
+
+				// If we have a GUID find the reference variable and make sure the name is up to date and find the field again
+				// For now only variable references will have valid GUIDs.  Will have to deal with finding other names subsequently
+				if (ReturnField == NULL && MemberGuid.IsValid())
+				{
+					const FName RenamedMemberName = UBlueprint::GetFieldNameFromClassByGuid<TFieldType>(TargetScope, MemberGuid);
+					if (RenamedMemberName != NAME_None)
+					{
+						MemberName = RenamedMemberName;
+						ReturnField = FindField<TFieldType>(TargetScope, MemberName);
+					}
 				}
 			}
 		}
@@ -535,5 +611,29 @@ public:
 	TFieldType* ResolveMember(const UK2Node* SelfNode) const
 	{
 		return ResolveMember<TFieldType>( GetBlueprintClassFromNode(SelfNode) );
+	}
+
+	template<class TFieldType>
+	static void FillSimpleMemberReference(const UField* InField, FSimpleMemberReference& OutReference)
+	{
+		OutReference.Reset();
+
+		if (InField)
+		{
+			FMemberReference TempMemberReference;
+			TempMemberReference.SetFromField<TFieldType>(InField, false);
+
+			OutReference.MemberName = TempMemberReference.MemberName;
+			OutReference.MemberParentClass = TempMemberReference.MemberParentClass;
+			OutReference.MemberGuid = TempMemberReference.MemberGuid;
+		}
+	}
+
+	template<class TFieldType>
+	static TFieldType* ResolveSimpleMemberReference(const FSimpleMemberReference& Reference)
+	{
+		FMemberReference TempMemberReference;
+		TempMemberReference.SetDirect(Reference.MemberName, Reference.MemberGuid, Reference.MemberParentClass, false);
+		return TempMemberReference.ResolveMember<TFieldType>((UClass*)NULL);
 	}
 };

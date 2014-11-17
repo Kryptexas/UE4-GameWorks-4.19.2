@@ -27,3 +27,24 @@ void FAnimNode_MeshSpaceRefPose::EvaluateComponentSpace(FComponentSpacePoseConte
 {
 	Output.ResetToRefPose();
 }
+
+/** Helper for enum output... */
+#ifndef CASE_ENUM_TO_TEXT
+#define CASE_ENUM_TO_TEXT(txt) case txt: return TEXT(#txt);
+#endif
+
+const TCHAR* GetRefPostTypeText(ERefPoseType RefPose)
+{
+	switch (RefPose)
+	{
+		FOREACH_ENUM_EREFPOSETYPE(CASE_ENUM_TO_TEXT)
+	}
+	return TEXT("Unknown Ref Pose Type");
+}
+
+void FAnimNode_RefPose::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugLine += FString::Printf(TEXT("(Ref Pose Type: %s)"), GetRefPostTypeText(RefPoseType));
+	DebugData.AddDebugItem(DebugLine, true);
+}

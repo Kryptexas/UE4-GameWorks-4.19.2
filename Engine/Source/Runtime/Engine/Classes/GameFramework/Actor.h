@@ -4,10 +4,25 @@
 
 #include "Runtime/Engine/Classes/Engine/LatentActionManager.h"
 #include "Runtime/Engine/Classes/Camera/CameraTypes.h"
+
+UENUM(BlueprintType)
+namespace EEndPlayReason
+{
+	enum Type
+	{
+		ActorDestroyed,		// When the Actor is explicitly destroyed
+		LevelTransition,	// When the world is being unloaded for a level transition
+		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
+		RemovedFromWorld,	// When the level it is a member of is streamed out
+	};
+
+}
+
 #include "Actor.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogActor, Log, Warning);
  
+
 // Delegate signatures
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FTakeAnyDamageSignature, float, Damage, const class UDamageType*, DamageType, class AController*, InstigatedBy, class AActor*, DamageCauser );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_EightParams( FTakePointDamageSignature, float, Damage, class AController*, InstigatedBy, FVector, HitLocation, class UPrimitiveComponent*, FHitComponent, FName, BoneName, FVector, ShotFromDirection, const class UDamageType*, DamageType, class AActor*, DamageCauser );
@@ -24,7 +39,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorOnInputTouchEndSignature, ETo
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorBeginTouchOverSignature, ETouchIndex::Type, FingerIndex );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorEndTouchOverSignature, ETouchIndex::Type, FingerIndex );
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE( FActorDestroyedSignature );
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorDestroyedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorEndPlaySignature, EEndPlayReason::Type, EndPlayReason);
 
 DECLARE_DELEGATE_FourParams(FMakeNoiseDelegate, class AActor*, float, class APawn*, const FVector&);
 
@@ -108,6 +124,7 @@ public:
 		return bInterpolateSkippedFrames;
 	}
 };
+
 
 /**
  * Base class for an object that can be placed or spawned in a level. Actors may contain a collection of Components, and support network replication.
@@ -484,7 +501,7 @@ public:
 	uint32 bIgnoresOriginShifting:1;
 	
 	/** Array of tags that can be used for grouping and categorizing. Can also be accessed from scripting */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Actor)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Tags)
 	TArray<FName> Tags;
 
 	/** Bitflag to represent which views this actor is hidden in, via per-view layer visibility */
@@ -510,35 +527,35 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FActorEndOverlapSignature OnActorEndOverlap;
 
-	/** Called when the mouse cursor is moved over this actor when this mouse interface is enabled and mouse over events are enabled */
+	/** Called when the mouse cursor is moved over this actor and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FActorBeginCursorOverSignature OnBeginCursorOver;
 
-	/** Called when the mouse cursor is moved off this actor when this mouse interface is enabled and mouse over events are enabled */
+	/** Called when the mouse cursor is moved off this actor and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FActorEndCursorOverSignature OnEndCursorOver;
 
-	/** Called when the left mouse button is clicked while the mouse is over this actor when the mouse interface is enabled and click events are enabled */
+	/** Called when the left mouse button is clicked while the mouse is over this actor and click events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FActorOnClickedSignature OnClicked;
 
-	/** Called when the left mouse button is released while the mouse is over this actor when the mouse interface is enabled and click events are enabled */
+	/** Called when the left mouse button is released while the mouse is over this actor and click events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
 	FActorOnReleasedSignature OnReleased;
 
-	/** Called when a touch input is received over this actor when and click events are enabled */
+	/** Called when a touch input is received over this actor when touch events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FActorOnInputTouchBeginSignature OnInputTouchBegin;
 		
-	/** Called when a touch input is received over this component when and click events are enabled */
+	/** Called when a touch input is received over this component when touch events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FActorOnInputTouchEndSignature OnInputTouchEnd;
 
-	/** Called when a finger is moved over this actor when this mouse interface is enabled and touch over events are enabled */
+	/** Called when a finger is moved over this actor when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FActorBeginTouchOverSignature OnInputTouchEnter;
 
-	/** Called when a finger is moved off this actor when this mouse interface is enabled and touch over events are enabled */
+	/** Called when a finger is moved off this actor when touch over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Touch Input")
 	FActorEndTouchOverSignature OnInputTouchLeave;
 
@@ -546,7 +563,8 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FActorHitSignature OnActorHit;
 
-	/** List of replicated components. Built at runtime */
+	/** List of replicated components, cooked builds won't rebuild this array */
+	UPROPERTY()
 	TArray< TWeakObjectPtr<class UActorComponent> >	ReplicatedComponents;
 
 	/** Called on client when Instigator is replicated (only if bReplicateInstigator is true) */
@@ -569,6 +587,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisName", ToolTip="Gets the value of the input axis if input is enabled for this actor"))
 	float GetInputAxisValue(const FName InputAxisName) const;
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey", ToolTip="Gets the value of the input axis key if input is enabled for this actor"))
+	float GetInputAxisKeyValue(const FKey InputAxisKey) const;
+
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey", ToolTip="Gets the value of the input axis key if input is enabled for this actor"))
+	FVector GetInputVectorAxisValue(const FKey InputAxisKey) const;
 
 	/** Returns the instigator for this actor, or NULL if there is none. */
 	UFUNCTION(BlueprintCallable, meta=(BlueprintProtected = "true"), Category="Game|Damage")
@@ -594,11 +618,11 @@ public:
 	class UClass* GetActorClass() const;
 
 	/** Get the actor to world transform */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorTransform"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorTransform"), Category="Utilities|Transformation")
 	FTransform GetTransform() const;
 
 	/** Returns location of the RootComponent of this Actor*/
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorLocation"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorLocation"), Category="Utilities|Transformation")
 	FVector K2_GetActorLocation() const;
 
 	/** 
@@ -607,23 +631,23 @@ public:
 	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
 	 *	@return	Whether the location was successfully set if not swept, or whether movement occurred if swept.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetActorLocation"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetActorLocation"), Category="Utilities|Transformation")
 	bool K2_SetActorLocation(FVector NewLocation, bool bSweep=false);
 
 	/** Returns rotation of the RootComponent of this Actor */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorRotation"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetActorRotation"), Category="Utilities|Transformation")
 	FRotator K2_GetActorRotation() const;
 
 	/** Get the forward (X) vector (length 1.0) from this Actor, in world space.  */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	FVector GetActorForwardVector() const;
 
 	/** Get the up (Z) vector (length 1.0) from this Actor, in world space.  */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	FVector GetActorUpVector() const;
 
 	/** Get the right (Y) vector (length 1.0) from this Actor, in world space.  */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	FVector GetActorRightVector() const;
 
 	/**
@@ -634,11 +658,11 @@ public:
 	void GetActorBounds(bool bOnlyCollidingComponents, FVector& Origin, FVector& BoxExtent) const;
 
 	/** Returns the RootComponent of this Actor */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetRootComponent"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetRootComponent"), Category="Utilities|Transformation")
 	class USceneComponent* K2_GetRootComponent() const;
 
 	/** Returns velocity (in cm/s (Unreal Units/second) of the rootcomponent if it is either using physics or has an associated MovementComponent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	virtual FVector GetVelocity() const;
 
 	/** 
@@ -654,7 +678,7 @@ public:
 	 *	@param	NewRotation	The new rotation for the Actor.
 	 *	@return	Whether the rotation was successfully set.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	bool SetActorRotation(FRotator NewRotation);
 
 	/** 
@@ -664,50 +688,50 @@ public:
 	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
 	 *	@return	Whether the rotation was successfully set.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	bool SetActorLocationAndRotation(const FVector& NewLocation, FRotator NewRotation, bool bSweep=false);
 
 	/** Set the Actor's world-space scale. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorScale3D(const FVector& NewScale3D);
 
 	/** Returns the distance from this Actor to OtherActor. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	float GetDistanceTo(AActor* OtherActor);
 
 	/** Returns the distance from this Actor to OtherActor, ignoring Z. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	float GetHorizontalDistanceTo(AActor* OtherActor);
 
 	/** Returns the distance from this Actor to OtherActor, ignoring XY. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	float GetVerticalDistanceTo(AActor* OtherActor);
 
 	/** Returns the dot product from this Actor to OtherActor. Returns -2.0 on failure. Returns 0.0 for coincidental actors. */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	float GetDotProductTo(AActor* OtherActor);
 
 	/** Returns the dot product from this Actor to OtherActor, ignoring Z. Returns -2.0 on failure. Returns 0.0 for coincidental actors. */
-	UFUNCTION(BlueprintCallable, Category = "Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	float GetHorizontalDotProductTo(AActor* OtherActor);
 
 	/** 
 	 *	Set the Actors transform to the specified one.
 	 *	@param bSweep		Should we sweep to the destination location. If true, will stop short of the target if blocked by something.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	bool SetActorTransform(const FTransform& NewTransform, bool bSweep=false);
 
 	/** Adds a delta to the location of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddActorLocalOffset(FVector DeltaLocation, bool bSweep=false);
 
 	/** Adds a delta to the rotation of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddActorLocalRotation(FRotator DeltaRotation, bool bSweep=false);
 
 	/** Adds a delta to the transform of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddActorLocalTransform(const FTransform& NewTransform, bool bSweep=false);
 
 	/**
@@ -715,7 +739,7 @@ public:
 	 * @param NewRelativeLocation	New relative location to set the actor's RootComponent to
 	 * @param bSweep				Should we sweep to the destination location. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep=false);
 
 	/**
@@ -723,7 +747,7 @@ public:
 	 * @param NewRelativeRotation		New relative rotation to set the actor's RootComponent to
 	 * @param bSweep					Should we sweep to the destination rotation. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep=false);
 
 	/**
@@ -731,14 +755,14 @@ public:
 	 * @param NewRelativeTransform		New relative transform to set the actor's RootComponent to
 	 * @param bSweep					Should we sweep to the destination transform. If true, will stop short of the target if blocked by something
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep=false);
 
 	/**
 	 * Set the actor's RootComponent to the specified relative scale 3d
 	 * @param NewRelativeScale	New scale to set the actor's RootComponent to
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetActorRelativeScale3D(FVector NewRelativeScale);
 
 	/**
@@ -780,7 +804,7 @@ public:
 	 *  Attaches the RootComponent of this Actor to the supplied component, optionally at a named socket. It is not valid to call this on components that are not Registered. 
 	 *   @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToComponent", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToComponent", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Transformation")
 	void AttachRootComponentTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset);
 
 	/**
@@ -789,21 +813,21 @@ public:
 	 * @param InSocketName				Socket name to attach to, if any
 	 * @param AttachLocationType	Type of attachment, AbsoluteWorld to keep its world position, RelativeOffset to keep the object's relative offset and SnapTo to snap to the new parent.
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToActor", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "AttachActorToActor", AttachLocationType="KeepRelativeOffset"), Category="Utilities|Transformation")
 	void AttachRootComponentToActor(AActor* InParentActor, FName InSocketName = NAME_None, EAttachLocation::Type AttachLocationType = EAttachLocation::KeepRelativeOffset);
 
 	/** 
 	 *  Snap the RootComponent of this Actor to the supplied Actor's root component, optionally at a named socket. It is not valid to call this on components that are not Registered. 
 	 *  If InSocketName == NAME_None, it will attach to origin of the InParentActor. 
 	 */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachRootComponentTo with EAttachLocation::SnapToTarget option instead", FriendlyName = "SnapActorTo"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachRootComponentTo with EAttachLocation::SnapToTarget option instead", FriendlyName = "SnapActorTo"), Category="Utilities|Transformation")
 	void SnapRootComponentTo(AActor* InParentActor, FName InSocketName = NAME_None);
 
 	/** 
 	 *  Detaches the RootComponent of this Actor from any SceneComponent it is currently attached to. 
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same
 	 */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "DetachActorFromActor"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "DetachActorFromActor"), Category="Utilities|Transformation")
 	void DetachRootComponentFromParent(bool bMaintainWorldPosition = true);
 
 	/** 
@@ -986,17 +1010,24 @@ public:
 	 */
 	bool Destroy(bool bNetForce = false, bool bShouldModifyLevel = true );
 
-	/** Event to notify blueprints this actor is about to be deleted. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", FriendlyName = "Destroyed"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (Keywords = "delete", FriendlyName = "Destroyed"))
 	virtual void ReceiveDestroyed();
 
 	/** Called when the actor is destroyed. */
 	UPROPERTY(BlueprintAssignable)
 	FActorDestroyedSignature OnDestroyed;
-	
 
+
+	/** Event to notify blueprints this actor is about to be deleted. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", FriendlyName = "End Play"))
+	virtual void ReceiveEndPlay(EEndPlayReason::Type EndPlayReason);
+
+	/** Called when the actor is destroyed. */
+	UPROPERTY(BlueprintAssignable)
+	FActorEndPlaySignature OnEndPlay;
+	
 	// Begin UObject Interface
-	virtual void CheckActorComponents() OVERRIDE;
+	virtual bool CheckDefaultSubobjects(bool bForceCheck = false) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) OVERRIDE;
 	virtual void ProcessEvent( UFunction* Function, void* Parameters ) OVERRIDE;
@@ -1384,7 +1415,8 @@ public:
 	/** Set the owner for this Actor */
 	void SetOwner( AActor* NewOwner );
 
-	AActor* GetOwner() const { return Owner; }
+	UFUNCTION(BlueprintCallable, Category=Actor)
+	AActor* GetOwner() const;
 
 	/**
 	 * This will check to see if the Actor is still in the world.  It will check things like
@@ -1574,7 +1606,7 @@ public:
 	 * @param DestRotation The target rotation at the destination
 	 * @return true if the actor has been successfully moved, or false if it couldn't fit.
 	 */
-	UFUNCTION(BlueprintCallable, meta=( FriendlyName="Teleport", Keywords = "Move Position" ), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=( FriendlyName="Teleport", Keywords = "Move Position" ), Category="Utilities|Transformation")
 	bool K2_TeleportTo( FVector DestLocation, FRotator DestRotation );
 
 	/** Called from TeleportTo() when teleport succeeds */
@@ -1617,8 +1649,8 @@ public:
 	/**	Do anything needed to clear out cross level references; Called from ULevel::PreSave	 */
 	virtual void ClearCrossLevelReferences();
 	
-	/** Called when this actor is in a level which is being removed from the world (e.g. my level is getting UWorld::RemoveFromWorld called on it) */
-	virtual void OnRemoveFromWorld();
+	/** Called whenever this actor is being removed from a level */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 	/** iterates up the Base chain to see whether or not this Actor is based on the given Actor
 	 * @param Other the Actor to test for
@@ -1697,6 +1729,11 @@ protected:
 
 	/** Runs UserConstructionScript, delays component registration until it's complete. */
 	void ProcessUserConstructionScript();
+
+	/**
+	* Checks components for validity, implemented in AActor
+	*/
+	bool CheckActorComponents();
 
 public:
 
@@ -1885,8 +1922,12 @@ public:
 	bool IsNetStartupActor() const;
 
 	/** Searches components array and returns first encountered array by type. */
-	virtual UActorComponent* FindComponentByClass(const UClass* Class) const;
+	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const;
 	
+	/** Script exposed version of FindComponentByClass */
+	UFUNCTION()
+	virtual UActorComponent* GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass);
+
 	/** Templatized version for syntactic nicety. */
 	template<class T>
 	T* FindComponentByClass() const
@@ -1902,20 +1943,46 @@ public:
 		static_assert(CanConvertPointerFromTo<T, UActorComponent>::Result, "'T' template parameter to GetComponents must be derived from ActorComponent");
 
 		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
-		TArray<UObject*> ChildObjects;
-		GetObjectsWithOuter(this, ChildObjects, false, RF_PendingKill);
 
-		OutComponents.Reset(ChildObjects.Num());
+		OutComponents.Reset(OwnedComponents.Num());
 
-		for (UObject* Child : ChildObjects)
+		for (UActorComponent* OwnedComponent : OwnedComponents)
 		{
-			T* const Component = Cast<T>(Child);
+			T* Component = Cast<T>(OwnedComponent);
 			if (Component)
 			{
 				OutComponents.Add(Component);
 			}
 		}
 	}
+
+	// UActorComponent specialization to avoid unnecessary casts
+	void GetComponents(TArray<UActorComponent*>& OutComponents) const
+	{
+		SCOPE_CYCLE_COUNTER(STAT_GetComponentsTime);
+
+		OutComponents.Reset(OwnedComponents.Num());
+
+		for (UActorComponent* Component : OwnedComponents)
+		{
+			if (Component)
+			{
+				OutComponents.Add(Component);
+			}
+		}
+	}
+
+	void AddOwnedComponent(UActorComponent* Component);
+	void RemoveOwnedComponent(UActorComponent* Component);
+#if DO_CHECK
+	bool OwnsComponent(UActorComponent* Component) const;
+#endif
+
+private:
+	UPROPERTY(transient, duplicatetransient)
+	TArray<UActorComponent*> OwnedComponents;
+
+	void ResetOwnedComponents();
 
 public:
 	//=============================================================================
@@ -1937,11 +2004,11 @@ public:
 	 * Draw important Actor variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
 	 *
 	 * @param Canvas - Canvas to draw on
-	 * @param DebugDisplay - List of names specifying what debug info to display
+	 * @param DebugDisplay - Contains information about what debug data to display
 	 * @param YL - Height of the current font
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos);
+	virtual void DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
 	/** Retrieves actor's name used for logging, or string "NULL" if Actor == NULL */
 	static FString GetDebugName(const AActor* Actor) { return Actor ? Actor->GetName() : TEXT("NULL"); }

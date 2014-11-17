@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
-DECLARE_STATS_GROUP_VERBOSE(TEXT("LinkerLoad"),STATGROUP_LinkerLoad);
+DECLARE_STATS_GROUP_VERBOSE(TEXT("Linker Load"), STATGROUP_LinkerLoad, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT(TEXT("Linker Preload"),STAT_LinkerPreload,STATGROUP_LinkerLoad);
 DECLARE_CYCLE_STAT(TEXT("Linker Precache"),STAT_LinkerPrecache,STATGROUP_LinkerLoad);
@@ -336,7 +336,7 @@ ULinkerLoad* ULinkerLoad::CreateLinker( UPackage* Parent, const TCHAR* Filename,
 	{
 		FSerializedPackageLinkerGuard Guard;	
 		GSerializedPackageLinker = Linker;
-		if (Linker->Tick( 0.f, false ) == LINKER_Failed)
+		if (Linker->Tick( 0.f, false, false ) == LINKER_Failed)
 		{
 			return NULL;
 		}
@@ -454,10 +454,11 @@ ULinkerLoad* ULinkerLoad::CreateLinkerAsync( UPackage* Parent, const TCHAR* File
  *
  * @param	InTimeLimit		Soft time limit to use if bInUseTimeLimit is true
  * @param	bInUseTimeLimit	Whether to use a (soft) timelimit
+ * @param	bInUseFullTimeLimit	Whether to use the entire time limit, even if blocked on I/O
  * 
  * @return	true if linker has finished creation, false if it is still in flight
  */
-ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTimeLimit )
+ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTimeLimit, bool bInUseFullTimeLimit )
 {
 	ELinkerStatus Status = LINKER_Loaded;
 
@@ -467,6 +468,7 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 		TickStartTime		= FPlatformTime::Seconds();
 		bTimeLimitExceeded	= false;
 		bUseTimeLimit		= bInUseTimeLimit;
+		bUseFullTimeLimit	= bInUseFullTimeLimit;
 		TimeLimit			= InTimeLimit;
 
 		do
@@ -551,8 +553,10 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 				Status = FinalizeCreation();
 			}
 		}
-		// Loop till we are done if no time limit is specified.
-		while( !bUseTimeLimit && Status == LINKER_TimedOut );
+		// Loop till we are done if no time limit is specified, or loop until the real time limit is up if we want to use full time
+		while (Status == LINKER_TimedOut && 
+			(!bUseTimeLimit || (bUseFullTimeLimit && !IsTimeLimitExceeded(TEXT("Checking Full Timer"))))
+			);
 	}
 
 	// Return whether we completed or not.
@@ -677,9 +681,12 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::CreateLoader()
 			}
 			else
 			{
-				FFormatNamedArguments Args;
-				Args.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
-				GWarn->StatusUpdate( 0, ULinkerDefs::TotalProgressSteps, FText::Format( NSLOCTEXT("Core", "Loading", "Loading file: {CleanFilename}..."), Args ) );
+				if ( GIsSlowTask )
+				{
+					FFormatNamedArguments Args;
+					Args.Add( TEXT("CleanFilename"), FText::FromString( CleanFilename ) );
+					GWarn->StatusUpdate( 0, ULinkerDefs::TotalProgressSteps, FText::Format( NSLOCTEXT("Core", "Loading", "Loading file: {CleanFilename}..."), Args ) );
+				}
 			}
 			GWarn->PushStatus();
 		}
@@ -2414,6 +2421,51 @@ bool ULinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 	return false;
 }
 
+UObject* ULinkerLoad::CreateExportAndPreload(int32 ExportIndex, bool bForcePreload /* = false */)
+{
+	UObject *Object = CreateExport(ExportIndex);
+	if (Object && (bForcePreload || (Cast<UClass>(Object) != NULL) || Object->IsTemplate() || (Cast<UObjectRedirector>(Object) != NULL)))
+	{
+		Preload(Object);
+	}
+
+	return Object;
+}
+
+int32 ULinkerLoad::LoadMetaDataFromExportMap(bool bForcePreload/* = false */)
+{
+	int32 MetaDataIndex = INDEX_NONE;
+
+	// Try to find MetaData and load it first as other objects can depend on it.
+	for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
+	{
+		if (ExportMap[ExportIndex].ObjectName == NAME_PackageMetaData)
+		{
+			CreateExportAndPreload(ExportIndex, bForcePreload);
+			MetaDataIndex = ExportIndex;
+			break;
+		}
+	}
+
+	// If not found then try to use old name and rename.
+	if (MetaDataIndex == INDEX_NONE)
+	{
+		for (int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
+		{
+			if (ExportMap[ExportIndex].ObjectName == *UMetaData::StaticClass()->GetName())
+			{
+				UObject* Object = CreateExportAndPreload(ExportIndex, bForcePreload);
+				Object->Rename(*FName(NAME_PackageMetaData).ToString(), NULL, REN_ForceNoResetLoaders);
+
+				MetaDataIndex = ExportIndex;
+				break;
+			}
+		}
+	}
+
+	return MetaDataIndex;
+}
+
 /**
  * Loads all objects in package.
  *
@@ -2430,13 +2482,22 @@ void ULinkerLoad::LoadAllObjects( bool bForcePreload )
 	bool bAllowedToShowStatusUpdate = (LoadFlags & ( LOAD_Quiet | LOAD_SeekFree ) ) == 0;
 	double StartTime = FPlatformTime::Seconds();
 
-	for( int32 i=0; i< ExportMap.Num(); i++ )
+	// MetaData object index in this package.
+	int32 MetaDataIndex = INDEX_NONE;
+
+	if(!FPlatformProperties::RequiresCookedData())
 	{
-		UObject* Object = CreateExport( i );
-		if( Object && (bForcePreload || (Cast<UClass>(Object) != NULL) || Object->IsTemplate() || (Cast<UObjectRedirector>(Object) != NULL)) )
+		MetaDataIndex = LoadMetaDataFromExportMap(bForcePreload);
+	}
+
+	for(int32 ExportIndex = 0; ExportIndex < ExportMap.Num(); ++ExportIndex)
+	{
+		if(ExportIndex == MetaDataIndex)
 		{
-			Preload( Object );
+			continue;
 		}
+
+		CreateExportAndPreload(ExportIndex, bForcePreload);
 	}
 
 	// Mark package as having been fully loaded.
@@ -2999,6 +3060,8 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 		// Try to find existing object first in case we're a forced export to be able to reconcile. Also do it for the
 		// case of async loading as we cannot in-place replace objects.
 
+		UObject* ActualObjectWithTheName = StaticFindObjectFastInternal(NULL, ThisParent, Export.ObjectName, true);
+
 		if(	(FApp::IsGame() && !GIsEditor && !IsRunningCommandlet()) 
 		||	GIsAsyncLoading 
 		||	Export.bForcedExport 
@@ -3008,8 +3071,11 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 			// Find object after making sure it isn't already set. This would be bad as the code below NULLs it in a certain
 			// case, which if it had been set would cause a linker detach mismatch.
 			check( Export.Object == NULL );
-			Export.Object = StaticFindObjectFastInternal( LoadClass, ThisParent, Export.ObjectName, true, false, RF_NoFlags );
-		
+			if (ActualObjectWithTheName && (ActualObjectWithTheName->GetClass() == LoadClass))
+			{
+				Export.Object = ActualObjectWithTheName;
+			}
+
 			// Object is found in memory.
 			if( Export.Object )
 			{
@@ -3061,6 +3127,12 @@ UObject* ULinkerLoad::CreateExport( int32 Index )
 
 		// Create the export object, marking it with the appropriate flags to
 		// indicate that the object's data still needs to be loaded.
+		if (ActualObjectWithTheName && (ActualObjectWithTheName->GetClass() != LoadClass))
+		{
+			UE_LOG(LogLinker, Error, TEXT("Failed import: class '%s' name '%s' outer '%s'. There is another object (of '%s' class) at the path."),
+				*LoadClass->GetName(), *Export.ObjectName.ToString(), *ThisParent->GetName(), *ActualObjectWithTheName->GetClass()->GetName());
+			return NULL;
+		}
 
 		EObjectFlags ObjectLoadFlags = Export.ObjectFlags;
 		// if we are loading objects just to verify an object reference during script compilation,

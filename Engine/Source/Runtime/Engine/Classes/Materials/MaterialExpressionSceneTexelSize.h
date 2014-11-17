@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionSceneTexelSize.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSceneTexelSize : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

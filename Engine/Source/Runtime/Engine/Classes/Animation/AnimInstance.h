@@ -25,6 +25,18 @@ enum EBoneControlSpace
 	BCS_MAX,
 };
 
+/** Enum for specifying the source of a bone's rotation. */
+UENUM()
+enum EBoneRotationSource
+{
+	/** Don't change rotation at all. */
+	BRS_KeepComponentSpaceRotation UMETA(DisplayName = "No Change (Preserve Existing Component Space Rotation)"),
+	/** Keep forward direction vector relative to the parent bone. */
+	BRS_KeepLocalSpaceRotation UMETA(DisplayName = "Maintain Local Rotation Relative to Parent"),
+	/** Copy rotation of target to bone. */
+	BRS_CopyFromTarget UMETA(DisplayName = "Copy Target Rotation"),
+};
+
 USTRUCT()
 struct FA2Pose
 {
@@ -167,6 +179,39 @@ struct FPerBoneBlendWeights
 
 };
 
+/** Helper struct for Slot node pose evaluation. */
+USTRUCT()
+struct FSlotEvaluationPose
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Type of additive for pose */
+	UPROPERTY()
+	TEnumAsByte<EAdditiveAnimationType> AdditiveType;
+
+	/** Weight of pose */
+	UPROPERTY()
+	float Weight;
+
+	/** Pose */
+	UPROPERTY()
+	FA2Pose Pose;
+
+	/** Pointer to Montage Instance */
+	FAnimMontageInstance * MontageInstance;
+	
+	FSlotEvaluationPose()
+	{
+	}
+
+	FSlotEvaluationPose(FAnimMontageInstance * InMontageInstance, float InWeight, EAdditiveAnimationType InAdditiveType)
+		: AdditiveType(InAdditiveType)
+		, Weight(InWeight)
+		, MontageInstance(InMontageInstance)
+	{
+	}
+};
+
 UCLASS(transient, Blueprintable, hideCategories=AnimInstance, DependsOn(UAnimStateMachineTypes), BlueprintType)
 class ENGINE_API UAnimInstance : public UObject
 {
@@ -217,11 +262,10 @@ public:
 	void BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose, bool bIsLooping);
 
 	// skeletal control related functions
-	void BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose& RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FA2Pose& Pose /** local space blended pose **/);
+	void BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose const & RotationOffsetPose/* mesh space rotation only additive **/, float Alpha/*0 means no additive, 1 means whole additive */, struct FA2Pose& Pose /** local space blended pose **/);
 
 	// slotnode interfaces
-	bool NeedToTickChildren(FName SlotNodeName, float SlotNodeWeight);
-	float GetSlotWeight(FName SlotNodeName);
+	void GetSlotWeight(FName const & SlotNodeName, float & out_SlotNodeWeight, float & out_SourceWeight) const;
 	void SlotEvaluatePose(FName SlotNodeName, const struct FA2Pose & SourcePose, struct FA2Pose & BlendedPose, float SlotNodeWeight);
 
 	// slot node run-time functions
@@ -282,7 +326,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void Montage_JumpToSectionsEnd(FName SectionName);
 
-	/** Changes the next section in the montage to a different one. */
+	/** Relink new next section AFTER SectionNameToChange in run-time
+	 *	You can link section order the way you like in editor, but in run-time if you'd like to change it dynamically, 
+	 *	use this function to relink the next section
+	 *	For example, you can have Start->Loop->Loop->Loop.... but when you want it to end, you can relink
+	 *	next section of Loop to be End to finish the montage, in which case, it stops looping by Loop->End. 
+	 
+	 * @param SectionNameToChange : This should be the name of the Montage Section after which you want to insert a new next section
+	 * @param NextSection	: new next section 
+	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	void Montage_SetNextSection(FName SectionNameToChange, FName NextSection);
 
@@ -390,6 +442,9 @@ public:
 	// @return true if this function is implemented, false otherwise.
 	// Note: the node graph will not be evaluated if this function returns true
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output);
+
+	// Debug output for this anim instance 
+	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 public:
 
 	/** Temporary array of bone indices required this frame. Should be subset of Skeleton and Mesh's RequiredBones */
@@ -482,6 +537,9 @@ public:
 	/** Get Current Active Montage in this AnimInstance **/
 	UAnimMontage * GetCurrentActiveMontage();
 
+	/** Get Currently active montage instace **/
+	FAnimMontageInstance* GetActiveMontageInstance();
+
 protected:
 	/** Update weight of montages  **/
 	virtual void Montage_UpdateWeight(float DeltaSeconds);
@@ -489,8 +547,6 @@ protected:
 	virtual void Montage_Advance(float DeltaSeconds);
 	/** Stop all montages that are active **/
 	void StopAllMontages(float BlendOut);
-	/** Get Currently active montage instace **/
-	FAnimMontageInstance* GetActiveMontageInstance();
 	/** Called by blueprint functions that modify the montages current position. */
 	void OnMontagePositionChanged(FAnimMontageInstance* MontageInstance, FName ToSectionName);
 

@@ -11,7 +11,7 @@ class ENGINE_API UEnvQuery : public UObject
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
-	/** Graph for Behavior Tree */
+	/** Graph for query */
 	UPROPERTY()
 	class UEdGraph*	EdGraph;
 #endif

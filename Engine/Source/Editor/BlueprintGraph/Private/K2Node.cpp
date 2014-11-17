@@ -15,7 +15,6 @@ static const uint32 MaxArrayPinTooltipLineCount = 10;
 UK2Node::UK2Node(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	RemovedPinArrayIndex = INDEX_NONE;
 }
 
 FText UK2Node::GetToolTipHeading() const
@@ -64,7 +63,8 @@ bool UK2Node::CreatePinsForFunctionEntryExit(const UFunction* Function, bool bFo
 
 			UEdGraphPin* Pin = CreatePin(Direction, TEXT(""), TEXT(""), NULL, false, false, Param->GetName());
 			const bool bPinGood = K2Schema->ConvertPropertyToPinType(Param, /*out*/ Pin->PinType);
-
+			K2Schema->SetPinDefaultValueBasedOnType(Pin);
+			
 			bAllPinsGood = bAllPinsGood && bPinGood;
 		}
 	}
@@ -251,63 +251,13 @@ void UK2Node::PostReconstructNode()
 						}
 					}
 				}
-			}
-		}
-	}
-}
-
-void UK2Node::RemovePinsFromOldPins(TArray<UEdGraphPin*>& OldPins, int32 RemovedArrayIndex)
-{
-	TArray<FString> RemovedPropertyNames;
-	TArray<FString> NewPinNames;
-
-	// Store new pin names to compare with old pin names
-	for(int32 NewPinIndx=0; NewPinIndx < Pins.Num(); NewPinIndx++)
-	{
-		NewPinNames.Add(Pins[NewPinIndx]->PinName);
-	}
-
-	// don't know which pins are removed yet so find removed pins comparing NewPins and OldPins
-	for(int32 OldPinIdx=0; OldPinIdx < OldPins.Num(); OldPinIdx++)
-	{
-		FString& OldPinName = OldPins[OldPinIdx]->PinName;
-		if(!NewPinNames.Contains(OldPinName))
-		{
-			int32 UnderscoreIndex = OldPinName.Find(TEXT("_"));
-			if (UnderscoreIndex != INDEX_NONE)
-			{
-				FString PropertyName = OldPinName.Left(UnderscoreIndex);
-				RemovedPropertyNames.Add(PropertyName);
-			}
-		}
-	}
-
-	for(int32 PinIdx=0; PinIdx < OldPins.Num(); PinIdx++)
-	{
-		// Separate the pin name into property name and index
-		FString PropertyName;
-		int32 ArrayIndex = -1;
-		FString& OldPinName = OldPins[PinIdx]->PinName;
-
-		int32 UnderscoreIndex = OldPinName.Find(TEXT("_"));
-		if (UnderscoreIndex != INDEX_NONE)
-		{
-			PropertyName = OldPinName.Left(UnderscoreIndex);
-			ArrayIndex = FCString::Atoi(*(OldPinName.Mid(UnderscoreIndex + 1)));
-
-			if(RemovedPropertyNames.Contains(PropertyName))
-			{
-				// if array index is matched, removes pins 
-				// and if array index is greater than removed index, decrease index
-				if(ArrayIndex == RemovedArrayIndex)
+				else if (PinCategory == Schema->PC_Object)
 				{
-					OldPins.RemoveAt(PinIdx);
-					--PinIdx;
-				}
-				else
-				if(ArrayIndex > RemovedArrayIndex)
-				{
-					OldPinName = FString::Printf(TEXT("%s_%d"), *PropertyName, ArrayIndex-1);
+					UClass const* PinClass = Cast<UClass const>(CurrentPin->PinType.PinSubCategoryObject.Get());
+					if ((PinClass != nullptr) && PinClass->IsChildOf(UInterface::StaticClass()))
+					{
+						CurrentPin->PinType.PinCategory = Schema->PC_Interface;
+					}
 				}
 			}
 		}
@@ -316,9 +266,6 @@ void UK2Node::RemovePinsFromOldPins(TArray<UEdGraphPin*>& OldPins, int32 Removed
 
 void UK2Node::ReconstructNode()
 {
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("NodeTitle"), GetNodeTitle(ENodeTitleType::FullTitle));
-
 	Modify();
 
 	UBlueprint* Blueprint = GetBlueprint();
@@ -332,7 +279,7 @@ void UK2Node::ReconstructNode()
 		{
 			UEdGraphPin* OtherPin = LinkedToCopy[LinkIdx];
 			// If we are linked to a pin that its owner doesn't know about, break that link
-			if ((OtherPin == NULL) || !OtherPin->GetOwningNode()->Pins.Contains(OtherPin))
+			if ((OtherPin == NULL) || !OtherPin->GetOwningNodeUnchecked() || !OtherPin->GetOwningNode()->Pins.Contains(OtherPin))
 			{
 				Pin->LinkedTo.Remove(OtherPin);
 			}
@@ -345,15 +292,6 @@ void UK2Node::ReconstructNode()
 
 	// Recreate the new pins
 	ReallocatePinsDuringReconstruction(OldPins);
-
-	// Delete Pins by removed pin info 
-	if(RemovedPinArrayIndex != INDEX_NONE)
-	{
-		RemovePinsFromOldPins(OldPins, RemovedPinArrayIndex);
-		// Clears removed pin info to avoid to remove multiple times
-		// @TODO : Considering receiving RemovedPinArrayIndex as an argument of ReconstructNode()
-		RemovedPinArrayIndex = INDEX_NONE;
-	}
 
 	bool bDestroyOldPins = true;
 
@@ -562,10 +500,7 @@ void UK2Node::ReconstructSinglePin(UEdGraphPin* NewPin, UEdGraphPin* OldPin, ERe
 		}
 	}
 
-	// Try to preserve the object name of the old pin to reduce clutter in diffs
-	FString OldPinName = OldPin->GetName();
 	OldPin->Rename(NULL, GetTransientPackage(), (REN_DontCreateRedirectors|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None)));
-	NewPin->Rename(*OldPinName, NewPin->GetOuter(), (REN_DontCreateRedirectors|(Blueprint->bIsRegeneratingOnLoad ? REN_ForceNoResetLoaders : REN_None)));
 }
 
 bool UK2Node::HasValidBlueprint() const
@@ -593,7 +528,7 @@ FLinearColor UK2Node::GetNodeTitleColor() const
 }
 
 
-TMap<FName, FFieldRemapInfo> UK2Node::FieldRedirectMap;
+TMap<FFieldRemapInfo, FFieldRemapInfo> UK2Node::FieldRedirectMap;
 TMultiMap<UClass*, FParamRemapInfo> UK2Node::ParamRedirectMap;
 
 bool UK2Node::bFieldRedirectMapInitialized = false;
@@ -606,8 +541,11 @@ bool UK2Node::FindReplacementFieldName(UClass* Class, FName FieldName, FFieldRem
 	// Reset the property remap info
 	RemapInfo = FFieldRemapInfo();
 
-	FString FullOldField = FString::Printf(TEXT("%s.%s"), *Class->GetName(), *FieldName.ToString());
-	FFieldRemapInfo* NewFieldInfoPtr = FieldRedirectMap.Find(FName(*FullOldField));
+	FFieldRemapInfo OldField;
+	OldField.FieldClass = Class->GetFName();
+	OldField.FieldName = FieldName;
+
+	FFieldRemapInfo* NewFieldInfoPtr = FieldRedirectMap.Find(OldField);
 	if (NewFieldInfoPtr != NULL)
 	{
 		RemapInfo = *NewFieldInfoPtr;
@@ -630,30 +568,51 @@ void UK2Node::InitFieldRedirectMap()
 			{
 				if (It.Key() == TEXT("K2FieldRedirects"))
 				{
-					FName OldFieldName = NAME_None;
+					FString OldFieldPathString;
 					FString NewFieldPathString;
 
-					FParse::Value( *It.Value(), TEXT("OldFieldName="), OldFieldName );
+					FParse::Value( *It.Value(), TEXT("OldFieldName="), OldFieldPathString );
 					FParse::Value( *It.Value(), TEXT("NewFieldName="), NewFieldPathString );
 
 					// Handle both cases of just a field being renamed (just one FName), as well as a class and field name (ClassName.FieldName)
-					TArray<FString> NewFieldPath;
-					NewFieldPathString.ParseIntoArray(&NewFieldPath, TEXT("."), true);
-
-					FFieldRemapInfo FieldRemap;
-					if( NewFieldPath.Num() == 1 )
+					FFieldRemapInfo OldFieldRemap;
 					{
-						// Only the new property name is specified
-						FieldRemap.FieldName = FName(*NewFieldPath[0]);
-					}
-					else if( NewFieldPath.Num() == 2 )
-					{
-						// Property name and new class are specified
-						FieldRemap.FieldClass = FName(*NewFieldPath[0]);
-						FieldRemap.FieldName = FName(*NewFieldPath[1]);
+						TArray<FString> OldFieldPath;
+						OldFieldPathString.ParseIntoArray(&OldFieldPath, TEXT("."), true);
+
+						if (OldFieldPath.Num() == 1)
+						{
+							// Only the new property name is specified
+							OldFieldRemap.FieldName = FName(*OldFieldPath[0]);
+						}
+						else if (OldFieldPath.Num() == 2)
+						{
+							// Property name and new class are specified
+							OldFieldRemap.FieldClass = FName(*OldFieldPath[0]);
+							OldFieldRemap.FieldName = FName(*OldFieldPath[1]);
+						}
 					}
 
-					FieldRedirectMap.Add(OldFieldName, FieldRemap);
+					// Handle both cases of just a field being renamed (just one FName), as well as a class and field name (ClassName.FieldName)
+					FFieldRemapInfo NewFieldRemap;
+					{
+						TArray<FString> NewFieldPath;
+						NewFieldPathString.ParseIntoArray(&NewFieldPath, TEXT("."), true);
+
+						if( NewFieldPath.Num() == 1 )
+						{
+							// Only the new property name is specified
+							NewFieldRemap.FieldName = FName(*NewFieldPath[0]);
+						}
+						else if( NewFieldPath.Num() == 2 )
+						{
+							// Property name and new class are specified
+							NewFieldRemap.FieldClass = FName(*NewFieldPath[0]);
+							NewFieldRemap.FieldName = FName(*NewFieldPath[1]);
+						}
+					}
+
+					FieldRedirectMap.Add(OldFieldRemap, NewFieldRemap);
 				}			
 				if (It.Key() == TEXT("K2ParamRedirects"))
 				{
@@ -724,7 +683,7 @@ void UK2Node::InitFieldRedirectMap()
 	}
 }
 
-UField* UK2Node::FindRemappedField(UClass* InitialScope, FName InitialName)
+UField* UK2Node::FindRemappedField(UClass* InitialScope, FName InitialName, bool bInitialScopeMustBeOwnerOfField)
 {
 	FFieldRemapInfo NewFieldInfo;
 
@@ -744,6 +703,12 @@ UField* UK2Node::FindRemappedField(UClass* InitialScope, FName InitialName)
 		TestRemapClass = TestRemapClass->GetSuperClass();
 	}
 
+	// In the case of a bifurcation of a variable (e.g. moved from a parent into certain children), verify that we don't also define the variable in the current scope first
+	if( bFoundReplacement && (FindField<UField>(InitialScope, InitialName) != nullptr))
+	{
+		bFoundReplacement = false;		
+	}
+
 	if( bFoundReplacement )
 	{
 		const FName NewFieldName = NewFieldInfo.FieldName;
@@ -753,8 +718,15 @@ UField* UK2Node::FindRemappedField(UClass* InitialScope, FName InitialName)
 		UField* NewField = FindField<UField>(SearchClass, NewFieldInfo.FieldName);
 		if( NewField != NULL )
 		{
-			UE_LOG(LogBlueprint, Log, TEXT("UK2Node:  Fixed up old field '%s' to new name '%s' on class '%s'."), *InitialName.ToString(), *NewFieldInfo.FieldName.ToString(), *SearchClass->GetName());
-			return NewField;
+			if (bInitialScopeMustBeOwnerOfField && !InitialScope->IsChildOf(SearchClass))
+			{
+				UE_LOG(LogBlueprint, Log, TEXT("UK2Node:  Unable to update field. Remapped field '%s' in not owned by given scope. Scope: '%s', Owner: '%s'."), *InitialName.ToString(), *InitialScope->GetName(), *NewFieldInfo.FieldClass.ToString());
+			}
+			else
+			{
+				UE_LOG(LogBlueprint, Log, TEXT("UK2Node:  Fixed up old field '%s' to new name '%s' on class '%s'."), *InitialName.ToString(), *NewFieldInfo.FieldName.ToString(), *SearchClass->GetName());
+				return NewField;
+			}
 		}
 		else if (SearchClass != NULL)
 		{
@@ -837,8 +809,8 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 		{
 			FOptionalPinFromProperty* Record = new (Properties) FOptionalPinFromProperty;
 			Record->PropertyName = TestProperty->GetFName();
-			const FString FriendlyName = TestProperty->GetMetaData(TEXT("FriendlyName"));
-			Record->PropertyFriendlyName = FriendlyName.IsEmpty() ? Record->PropertyName.ToString() : FriendlyName;
+			Record->PropertyFriendlyName = UEditorEngine::GetFriendlyName(TestProperty, SourceStruct);
+			Record->PropertyTooltip = TestProperty->GetToolTipText();
 
 			// Get the defaults
 			GetRecordDefaults(TestProperty, *Record);
@@ -890,6 +862,7 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 							const FString PinName = PinFriendlyName.ToString();
 							NewPin = TargetNode->CreatePin(Direction, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray, PinType.bIsReference, PinName);
 							NewPin->PinFriendlyName = PinFriendlyName;
+							Schema->ConstructBasicPinTooltip(*NewPin, TEXT("\n") + PropertyEntry.PropertyTooltip.ToString(), NewPin->PinToolTip);
 
 							// Allow the derived class to customize the created pin
 							CustomizePinData(NewPin, PropertyEntry.PropertyName, Index, InnerProperty);
@@ -922,6 +895,7 @@ void FOptionalPinManager::CreateVisiblePins(TArray<FOptionalPinFromProperty>& Pr
 						const FString PinName = PropertyEntry.PropertyName.ToString();
 						NewPin = TargetNode->CreatePin(Direction, PinType.PinCategory, PinType.PinSubCategory, PinType.PinSubCategoryObject.Get(), PinType.bIsArray, PinType.bIsReference, PinName);
 						NewPin->PinFriendlyName = PropertyEntry.PropertyFriendlyName.IsEmpty() ? FText::FromString(PinName) : FText::FromString(PropertyEntry.PropertyFriendlyName);
+						Schema->ConstructBasicPinTooltip(*NewPin, TEXT("\n") + PropertyEntry.PropertyTooltip.ToString(), NewPin->PinToolTip);
 
 						// Allow the derived class to customize the created pin
 						CustomizePinData(NewPin, PropertyEntry.PropertyName, INDEX_NONE, OuterProperty);
@@ -1113,6 +1087,7 @@ void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class U
 {
 	MemberName = InMemberName;
 	MemberParentClass = InMemberParentClass;
+	MemberScope.Empty();
 	bSelfContext = false;
 }
 
@@ -1120,6 +1095,7 @@ void FMemberReference::SetSelfMember(FName InMemberName)
 {
 	MemberName = InMemberName;
 	MemberParentClass = NULL;
+	MemberScope.Empty();
 	bSelfContext = true;
 }
 
@@ -1129,6 +1105,7 @@ void FMemberReference::SetDirect(const FName InMemberName, const FGuid InMemberG
 	MemberGuid = InMemberGuid;
 	bSelfContext = bIsConsideredSelfContext;
 	MemberParentClass = InMemberParentClass;
+	MemberScope.Empty();
 }
 
 void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid InMemberGuid, TSubclassOf<class UObject> InMemberParentClass, TSubclassOf<class UObject> SelfScope) const
@@ -1136,12 +1113,25 @@ void FMemberReference::SetGivenSelfScope(const FName InMemberName, const FGuid I
 	MemberName = InMemberName;
 	MemberGuid = InMemberGuid;
 	MemberParentClass = InMemberParentClass;
+	MemberScope.Empty();
 	bSelfContext = (SelfScope->IsChildOf(InMemberParentClass)) || (SelfScope->ClassGeneratedBy == InMemberParentClass->ClassGeneratedBy);
 
 	if (bSelfContext)
 	{
 		MemberParentClass = NULL;
 	}
+}
+
+void FMemberReference::SetLocalMember(FName InMemberName, UStruct* InScope, const FGuid InMemberGuid)
+{
+	SetLocalMember(InMemberName, InScope->GetName(), InMemberGuid);
+}
+
+void FMemberReference::SetLocalMember(FName InMemberName, FString InScopeName, const FGuid InMemberGuid)
+{
+	MemberName = InMemberName;
+	MemberScope = InScopeName;
+	MemberGuid = InMemberGuid;
 }
 
 void FMemberReference::InvalidateSelfScope()
@@ -1160,6 +1150,24 @@ UClass* FMemberReference::GetBlueprintClassFromNode(const UK2Node* Node)
 		BPClass =  Node->GetBlueprint()->SkeletonGeneratedClass;
 	}
 	return BPClass;
+}
+
+FName FMemberReference::RefreshLocalVariableName(UClass* InSelfScope) const
+{
+	TArray<UBlueprint*> Blueprints;
+	UBlueprint::GetBlueprintHierarchyFromClass(InSelfScope, Blueprints);
+
+	FName RenamedMemberName = NAME_None;
+	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
+	{
+		RenamedMemberName = FBlueprintEditorUtils::FindLocalVariableNameByGuid(Blueprints[BPIndex], MemberGuid);
+		if (RenamedMemberName != NAME_None)
+		{
+			MemberName = RenamedMemberName;
+			break;
+		}
+	}
+	return RenamedMemberName;
 }
 
 #undef LOCTEXT_NAMESPACE

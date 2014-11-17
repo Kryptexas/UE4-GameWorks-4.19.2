@@ -284,7 +284,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 					}
 				}
 
-				TargetRowIndex = FMath::Clamp(Section->GetRowIndex() + FMath::Floor(LocalMousePos.Y / TrackHeight),
+				TargetRowIndex = FMath::Clamp(Section->GetRowIndex() + FMath::FloorToInt(LocalMousePos.Y / TrackHeight),
 					0, MaxRowIndex + 1);
 			}
 		}

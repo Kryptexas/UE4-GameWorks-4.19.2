@@ -66,6 +66,10 @@
 	static FFeedbackContextEditor UnrealEdWarn;
 #endif	// WITH_EDITOR
 
+#if UE_EDITOR
+	#include "DesktopPlatformModule.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "LaunchEngineLoop"
 
 #if PLATFORM_WINDOWS
@@ -106,8 +110,63 @@ private:
 	bool bAllowLogVerbosity;
 };
 
+// Exits the game/editor if any of the specified phrases appears in the log output
+class FOutputDeviceTestExit : public FOutputDevice
+{
+	TArray<FString> ExitPhrases;
+public:
+	FOutputDeviceTestExit(const TArray<FString>& InExitPhrases)
+		: ExitPhrases(InExitPhrases)
+	{
+	}
+	virtual ~FOutputDeviceTestExit()
+	{
+	}
+	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) OVERRIDE
+	{
+		if (!GIsRequestingExit)
+		{
+			for (auto& Phrase : ExitPhrases)
+			{
+				if (FCString::Stristr(V, *Phrase) && !FCString::Stristr(V, TEXT("-testexit=")))
+				{
+#if WITH_ENGINE
+					if (GEngine != NULL)
+					{
+						if (GIsEditor)
+						{
+							GEngine->DeferredCommands.Add(TEXT("CLOSE_SLATE_MAINFRAME"));					
+						}
+						else
+						{
+							GEngine->Exec(NULL, TEXT("QUIT"));
+						}
+					}
+#else
+					FPlatformMisc::RequestExit(true);
+#endif
+					break;
+				}
+			}
+		}
+	}
+};
+
 static TScopedPointer<FOutputDeviceConsole>	GScopedLogConsole;
 static TScopedPointer<FOutputDeviceStdOutput> GScopedStdOut;
+static TScopedPointer<FOutputDeviceTestExit> GScopedTestExit;
+
+/**
+ * Initializes std out device and adds it to GLog
+ **/
+void InitializeStdOutDevice()
+{
+	// Check if something is trying to initialize std out device twice.
+	check(!GScopedStdOut.IsValid());
+
+	GScopedStdOut = new FOutputDeviceStdOutput();
+	GLog->AddOutputDevice(GScopedStdOut.GetOwnedPointer());
+}
 
 bool ParseGameProjectFromCommandLine(const TCHAR* InCmdLine, FString& OutProjectFilePath, FString& OutGameName)
 {
@@ -506,9 +565,28 @@ int32 FEngineLoop::PreInit(int32 ArgC, TCHAR* ArgV[], const TCHAR* AdditionalCom
 }
 
 #if WITH_ENGINE
-bool IsServerDelegateForOSS()
+bool IsServerDelegateForOSS(FName WorldContextHandle)
 {
-	return IsRunningDedicatedServer() || (GEngine && (GEngine->GetNetModeForOnlineSubsystems() == NM_DedicatedServer || GEngine->GetNetModeForOnlineSubsystems() == NM_ListenServer));
+	if (IsRunningDedicatedServer())
+	{
+		return true;
+	}
+
+	UWorld* World = NULL;
+	if (WorldContextHandle != NAME_None)
+	{
+		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(WorldContextHandle);
+		check(WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE);
+		World = WorldContext.World();
+	}
+	else
+	{
+		UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
+		World = GameEngine->GetGameWorld();
+	}
+
+	ENetMode NetMode = World ? World->GetNetMode() : NM_Standalone;
+	return (NetMode == NM_ListenServer || NetMode == NM_DedicatedServer);
 }
 #endif
 
@@ -549,6 +627,28 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// also realize that command lines can be pulled from the network at a slightly later time.
 	FCommandLine::Set(CmdLine); 
 
+	// Initialize std out device as early as possible if requested in the command line
+	if (FParse::Param(FCommandLine::Get(), TEXT("stdout")))
+	{
+		InitializeStdOutDevice();
+	}
+
+#if !UE_BUILD_SHIPPING
+	if (FPlatformProperties::SupportsQuit())
+	{
+		FString ExitPhrases;
+		if (FParse::Value(FCommandLine::Get(), TEXT("testexit="), ExitPhrases))
+		{
+			TArray<FString> ExitPhrasesList;
+			if (ExitPhrases.ParseIntoArray(&ExitPhrasesList, TEXT("+"), true) > 0)
+			{
+				GScopedTestExit = new FOutputDeviceTestExit(ExitPhrasesList);
+				GLog->AddOutputDevice(GScopedTestExit.GetOwnedPointer());
+			}
+		}
+	}
+#endif // !UE_BUILD_SHIPPING
+
 	// Set GGameName, based on the command line
 	if (LaunchSetGameName(CmdLine) == false)
 	{
@@ -570,8 +670,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				UE_LOG(LogInit, Display, TEXT("Project file not found: %s"), *ProjPath);
 				UE_LOG(LogInit, Display, TEXT("\tAttempting to find via project info helper."));
 				// Use the uprojectdirs
-				FUProjectInfoHelper::FillProjectInfo();
-				FString GameProjectFile = FUProjectInfoHelper::GetProjectForGame(GGameName);
+				FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(GGameName, FPlatformProcess::BaseDir());
 				if (GameProjectFile.IsEmpty() == false)
 				{
 					UE_LOG(LogInit, Display, TEXT("\tFound project file %s."), *GameProjectFile);
@@ -670,7 +769,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	const bool bFirstTokenIsGameName = (FApp::HasGameName() && Token == GGameName);
 	const bool bFirstTokenIsGameProjectFilePath = (FPaths::IsProjectFilePathSet() && Token.Replace(TEXT("\\"), TEXT("/")) == FPaths::GetProjectFilePath());
-	const bool bFirstTokenIsGameProjectFileShortName = (FPaths::IsProjectFilePathSet() && Token.Replace(TEXT("\\"), TEXT("/")) == FPaths::GetCleanFilename(FPaths::GetProjectFilePath()));
+	const bool bFirstTokenIsGameProjectFileShortName = (FPaths::IsProjectFilePathSet() && Token == FPaths::GetCleanFilename(FPaths::GetProjectFilePath()));
 
 	if (bFirstTokenIsGameName || bFirstTokenIsGameProjectFilePath || bFirstTokenIsGameProjectFileShortName)
 	{
@@ -756,13 +855,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 #if !UE_BUILD_SHIPPING
 	// Benchmarking.
-	GIsBenchmarking	= FParse::Param(FCommandLine::Get(),TEXT("BENCHMARK"));
+	FApp::SetBenchmarking(FParse::Param(FCommandLine::Get(),TEXT("BENCHMARK")));
 #else
-	GIsBenchmarking = false;
+	FApp::SetBenchmarking(false);
 #endif // !UE_BUILD_SHIPPING
 
 	// Initialize random number generator.
-	if( GIsBenchmarking || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )
+	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )
 	{
 		FMath::RandInit( 0 );
 		FMath::SRandInit( 0 );
@@ -888,7 +987,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	LoadPreInitModules();
 
-	AppInit();
+	// Start the application
+	if(!AppInit())
+	{
+		return 1;
+	}
 	
 #if WITH_ENGINE
 	// Initialize system settings before anyone tries to use it...
@@ -1012,6 +1115,13 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		bIsSeekFreeDedicatedServer = FPlatformProperties::RequiresCookedData();
 	}
 
+	// If std out device hasn't been initialized yet (there was no -stdout param in the command line) and
+	// we meet all the criteria, initialize it now.
+	if (!GScopedStdOut.IsValid() && !bHasEditorToken && !bIsRegularClient && !IsRunningDedicatedServer())
+	{
+		InitializeStdOutDevice();
+	}
+
 	// Initialize the RHI.
 	RHIInit(bHasEditorToken);
 
@@ -1065,7 +1175,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	EndInitTextLocalization();
 
-	GStreamingManager = new FStreamingManagerCollection();
+	IStreamingManager::Get();
 
 	if (FPlatformProcess::SupportsMultithreading() && !IsRunningDedicatedServer() && (bIsRegularClient || bHasEditorToken))
 	{
@@ -1197,12 +1307,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	MarkObjectsToDisregardForGC(); 
 	GUObjectArray.CloseDisregardForGC();
-
-	if (FParse::Param(FCommandLine::Get(), TEXT("stdout")) || (!bHasEditorToken && !bIsRegularClient && !IsRunningDedicatedServer()))
-	{
-		GScopedStdOut = new FOutputDeviceStdOutput(); 
-		GLog->AddOutputDevice( GScopedStdOut.GetOwnedPointer() );
-	}
 
 #if WITH_ENGINE
 	SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
@@ -1448,7 +1552,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	// Don't update INI files if benchmarking or -noini
-	if( GIsBenchmarking || FParse::Param(FCommandLine::Get(),TEXT("NOINI")))
+	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("NOINI")))
 	{
 		GConfig->Detach( GEngineIni );
 		GConfig->Detach( GInputIni );
@@ -1472,8 +1576,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
+
+#else
+	EndInitTextLocalization();
 #endif
-	
+
 	//run automation smoke tests now that everything is setup to run
 	FAutomationTestFramework::GetInstance().RunSmokeTests();
 	
@@ -1593,6 +1700,9 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule(TEXT("EnvironmentQueryEditor"));
 	}
 
+	// We need this for blueprint projects that have online functionality.
+	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
+
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 	return bSuccess;
@@ -1632,7 +1742,7 @@ bool FEngineLoop::LoadStartupModules()
 void FEngineLoop::InitTime()
 {
 	// Init variables used for benchmarking and ticking.
-	GCurrentTime				= FPlatformTime::Seconds();
+	FApp::SetCurrentTime(FPlatformTime::Seconds());
 	MaxFrameCounter				= 0;
 	MaxTickTime					= 0;
 	TotalTickTime				= 0;
@@ -1643,12 +1753,12 @@ void FEngineLoop::InitTime()
 	FParse::Value(FCommandLine::Get(),TEXT("SECONDS="),FloatMaxTickTime);
 	MaxTickTime					= FloatMaxTickTime;
 
-	// look of a version of seconds that only is applied if GIsBenchmarking is set. This makes it easier on
+	// look of a version of seconds that only is applied if FApp::IsBenchmarking() is set. This makes it easier on
 	// say, iOS, where we have a toggle setting to enable benchmarking, but don't want to have to make user
 	// also disable the seconds setting as well. -seconds= will exit the app after time even if benchmarking
 	// is not enabled
 	// NOTE: This will override -seconds= if it's specified
-	if (GIsBenchmarking)
+	if (FApp::IsBenchmarking())
 	{
 		if (FParse::Value(FCommandLine::Get(),TEXT("BENCHMARKSECONDS="),FloatMaxTickTime) && FloatMaxTickTime)
 		{
@@ -1662,16 +1772,13 @@ void FEngineLoop::InitTime()
 	if( FixedFPS > 0 )
 	{
 		GEngine->MatineeCaptureFPS = (int32)FixedFPS;
-		GFixedDeltaTime = 1 / FixedFPS;
+		FApp::SetFixedDeltaTime(1 / FixedFPS);
 	}
-
-	// Whether we want to use a fixed time step or not.
-	GUseFixedTimeStep = FParse::Param( FCommandLine::Get(), TEXT( "UseFixedTimeStep" ) );
 
 #endif // !UE_BUILD_SHIPPING
 
-	// convert FloatMaxTickTime into number of frames (using 1 / GFixedDeltaTime to convert fps to seconds )
-	MaxFrameCounter				= FMath::Trunc( MaxTickTime / GFixedDeltaTime );
+	// convert FloatMaxTickTime into number of frames (using 1 / FApp::GetFixedDeltaTime() to convert fps to seconds )
+	MaxFrameCounter = FMath::TruncToInt(MaxTickTime / FApp::GetFixedDeltaTime());
 }
 
 void FlushStatsFrame(bool bDiscardCallstack)
@@ -1694,7 +1801,7 @@ void FlushStatsFrame(bool bDiscardCallstack)
 	{
 		Frame = -StatsFrame; // mark this as a bad frame
 	}
-	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", TEXT(""), EStatDataType::ST_int64, true, false);
+	static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
 	FThreadStats::AddMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, Frame); // we need to flush here if we aren't collecting stats to make sure the meta data is up to date
 	if (FPlatformProperties::IsServerOnly())
 	{
@@ -1802,10 +1909,10 @@ void FEngineLoop::Exit()
 	FlushAsyncLoading();
 
 	// Block till all outstanding resource streaming requests are fulfilled.
-	if (GStreamingManager != NULL)
+	if (!IStreamingManager::HasShutdown())
 	{
 		UTexture2D::CancelPendingTextureStreaming();
-		GStreamingManager->BlockTillAllRequestsFinished();
+		IStreamingManager::Get().BlockTillAllRequestsFinished();
 	}
 
 #if WITH_ENGINE
@@ -1862,8 +1969,7 @@ void FEngineLoop::Exit()
 
 	FTaskGraphInterface::Shutdown();
 
-	delete GStreamingManager;
-	GStreamingManager	= NULL;
+	IStreamingManager::Shutdown();
 
 	FIOSystem::Shutdown();
 }
@@ -1921,17 +2027,17 @@ void FEngineLoop::Tick()
 		GLog->FlushThreadedLogs();
 
 		// Exit if frame limit is reached in benchmark mode.
-		if( (GIsBenchmarking && MaxFrameCounter && (GFrameCounter > MaxFrameCounter))
+		if( (FApp::IsBenchmarking() && MaxFrameCounter && (GFrameCounter > MaxFrameCounter))
 			// or time limit is reached if set.
 			|| (MaxTickTime && (TotalTickTime > MaxTickTime)) )
 		{
 			FPlatformMisc::RequestExit(0);
 		}
 
-		// Set GCurrentTime, GDeltaTime and potentially wait to enforce max tick rate.
+		// Set FApp::CurrentTime, FApp::DeltaTime and potentially wait to enforce max tick rate.
 		GEngine->UpdateTimeAndHandleMaxTickRate();
 
-		GEngine->TickFPSChart( GDeltaTime );
+		GEngine->TickFPSChart( FApp::GetDeltaTime() );
 
 		// Update platform memory and memory allocator stats.
 		FPlatformMemory::UpdateStats();
@@ -1980,7 +2086,7 @@ void FEngineLoop::Tick()
 			FSlateApplication::Get().PollGameDeviceState();
 		}
 
-		GEngine->Tick( GDeltaTime, bIdleMode );
+		GEngine->Tick( FApp::GetDeltaTime(), bIdleMode );
 
 		if (GShaderCompilingManager)
 		{
@@ -1995,6 +2101,12 @@ void FEngineLoop::Tick()
 			// Tick Slate application
 			FSlateApplication::Get().Tick();
 		}
+
+#if STATS
+		// Clear any stat group notifications we have pending just incase they weren't claimed during FSlateApplication::Get().Tick
+		extern CORE_API void ClearPendingStatGroups();
+		ClearPendingStatGroups();
+#endif
 
 #if WITH_EDITOR
 		if( GIsEditor )
@@ -2022,7 +2134,7 @@ void FEngineLoop::Tick()
 #if WITH_ENGINE
 			SCOPE_CYCLE_COUNTER(STAT_RHITickTime);
 #endif
-			RHITick( GDeltaTime ); // Update RHI.
+			RHITick( FApp::GetDeltaTime() ); // Update RHI.
 		}
 
 		// Increment global frame counter. Once for each engine tick.
@@ -2031,7 +2143,7 @@ void FEngineLoop::Tick()
 		// Disregard first few ticks for total tick time as it includes loading and such.
 		if( GFrameCounter > 6 )
 		{
-			TotalTickTime+=GDeltaTime;
+			TotalTickTime+=FApp::GetDeltaTime();
 		}
 
 
@@ -2058,7 +2170,7 @@ void FEngineLoop::Tick()
 			// Delete the objects which were enqueued for deferred cleanup before the previous frame.
 			delete PreviousPendingCleanupObjects;
 
-			FTicker::GetCoreTicker().Tick(GDeltaTime);
+			FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
 
 			FSingleThreadManager::Get().Tick();
 
@@ -2126,7 +2238,7 @@ void FEngineLoop::OnSuspending(_In_ Platform::Object^ Sender, _In_ Windows::Appl
 /* FEngineLoop static interface
  *****************************************************************************/
 
-void FEngineLoop::AppInit( )
+bool FEngineLoop::AppInit( )
 {
 	// Output devices.
 	GError = FPlatformOutputDevices::GetError();
@@ -2203,6 +2315,39 @@ void FEngineLoop::AppInit( )
 	// init config system
 	FConfigCacheIni::InitializeConfigSystem();
 
+	// Check whether the project or any of its plugins are missing or are out of date
+#if UE_EDITOR
+	if(!GIsBuildMachine && FPaths::IsProjectFilePathSet())
+	{
+		if(!IProjectManager::Get().AreProjectModulesUpToDate() || !IPluginManager::Get().AreEnabledPluginModulesUpToDate())
+		{
+			int32 Result = FPlatformMisc::MessageBoxExt(EAppMsgType::YesNoCancel, TEXT("Project modules are missing or out of date. Would you like to recompile them?"), TEXT("Question"));
+			if(Result == EAppReturnType::Yes)
+			{
+				FFeedbackContext *Context = FDesktopPlatformModule::Get()->GetNativeFeedbackContext();
+
+				// Try to compile it
+				Context->BeginSlowTask(FText::FromString(TEXT("Project is out of date, recompiling...")), true, true);
+				bool bCompileResult = FDesktopPlatformModule::Get()->CompileGameProject(FPaths::RootDir(), FPaths::GetProjectFilePath(), Context);
+				Context->EndSlowTask();
+
+				// Check it succeeded
+				if(!bCompileResult || !IProjectManager::Get().AreProjectModulesUpToDate() || !IPluginManager::Get().AreEnabledPluginModulesUpToDate())
+				{
+					if(FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, TEXT("Game code couldn't be compiled. Continue trying to start anyway?"), TEXT("Error")) == EAppReturnType::No)
+					{
+						return false;
+					}
+				}
+			}
+			else if(Result == EAppReturnType::Cancel)
+			{
+				return false;
+			}
+		}
+	}
+#endif
+
 	// Load "pre-init" plugin modules
 	if (IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostConfigInit))
 	{
@@ -2214,47 +2359,6 @@ void FEngineLoop::AppInit( )
 
 	// after the above has run we now have the REQUIRED set of engine .INIs  (all of the other .INIs)
 	// that are gotten from .h files' config() are not requires and are dynamically loaded when the .u files are loaded
-
-	FInternationalization& I18N = FInternationalization::Get();
-
-	// Set culture according to configuration now that configs are available.
-#if ENABLE_LOC_TESTING
-	if( FCommandLine::IsInitialized() && FParse::Param(FCommandLine::Get(), TEXT("LEET")) )
-	{
-		I18N.SetCurrentCulture(TEXT("LEET"));
-	}
-	else
-#endif
-	{
-		FString CultureName;
-#if !UE_BUILD_SHIPPING
-		// Use culture override specified on commandline.
-		if (FParse::Value(FCommandLine::Get(), TEXT("CULTURE="), CultureName))
-		{
-			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ command-line option".), *CultureName);
-		}
-		else
-#endif // !UE_BUILD_SHIPPING
-#if WITH_EDITOR
-		// See if we've been provided a culture override in the editor
-		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, GEditorGameAgnosticIni ))
-		{
-			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ editor configuration."), *CultureName);
-		}
-		else
-#endif // WITH_EDITOR
-		// Use culture specified in engine configuration.
-		if(GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), CultureName, GEngineIni ))
-		{
-			//UE_LOG(LogInit, Log, TEXT("Overriding culture %s w/ engine configuration."), *CultureName);
-		}
-		else
-		{
-			CultureName = I18N.GetDefaultCulture()->GetName();
-		}
-
-		I18N.SetCurrentCulture(CultureName);
-	}
 
 #if !UE_BUILD_SHIPPING
 	// Prompt the user for remote debugging?
@@ -2394,27 +2498,14 @@ void FEngineLoop::AppInit( )
 	check(sizeof(bool) == 1);
 	check(sizeof(float) == 4);
 	check(sizeof(double) == 8);
-	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion);
-
-	// Culture.
-	TCHAR CookerCulture[8];
-	
-	if (FParse::Value(FCommandLine::Get(), TEXT("CULTUREFORCOOKING="), CookerCulture, ARRAY_COUNT(CookerCulture)))
-	{
-		FInternationalization::Get().SetCurrentCulture( CookerCulture );
-
-		// Write the culture passed in if first install...
-		if (FParse::Param(FCommandLine::Get(), TEXT("firstinstall")))
-		{
-			GConfig->SetString(TEXT("Internationalization"), TEXT("Culture"), CookerCulture, GEngineIni);
-		}
-	}
+	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion || GEngineVersion.IsLicenseeVersion());
 
 	// Init list of common colors.
 	GColorList.CreateColorMap();
 
 	// Init other systems.
 	FCoreDelegates::OnInit.Broadcast();
+	return true;
 }
 
 
@@ -2444,6 +2535,13 @@ void FEngineLoop::AppPreExit( )
 	{
 		GThreadPool->Destroy();
 	}
+
+#if WITH_ENGINE
+	if ( GShaderCompilingManager )
+	{
+		GShaderCompilingManager->Shutdown();
+	}
+#endif
 }
 
 
@@ -2463,7 +2561,7 @@ void FEngineLoop::AppExit( )
 		GLog->TearDown();
 	}
 
-	FInternationalization::Get().Terminate();
+	FInternationalization::TearDown();
 }
 
 #undef LOCTEXT_NAMESPACE

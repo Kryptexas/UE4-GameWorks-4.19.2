@@ -1458,8 +1458,8 @@ bool SBlendSpaceGridWidget::GetMinMaxFromGridPos(FVector GridPos, FVector2D & Wi
 	FVector NormalizedGridPos = NormalizeGridPos(GridDim, GridPos);
 	FVector Multiplier = NormalizedGridPos/InvGridSize;
 	FVector GridMin, GridMax;
-	GridMin.X = InvGridSize.X * FGenericPlatformMath::Trunc(Multiplier.X);
-	GridMin.Y = InvGridSize.Y * FGenericPlatformMath::Trunc(Multiplier.Y);
+	GridMin.X = InvGridSize.X * FGenericPlatformMath::TruncToFloat(Multiplier.X);
+	GridMin.Y = InvGridSize.Y * FGenericPlatformMath::TruncToFloat(Multiplier.Y);
 	GridMin.Z = 0.f;
 
 	GridMax = GridMin + InvGridSize;

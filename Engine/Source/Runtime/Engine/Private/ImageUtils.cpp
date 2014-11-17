@@ -43,16 +43,16 @@ void FImageUtils::ImageResize(int32 SrcWidth, int32 SrcHeight, const TArray<FCol
 			float EndY = SrcY + StepSizeY;
 			
 			// Generate a rectangular region of pixels and then find the average color of the region.
-			int32 PosY = FMath::Trunc(SrcY+0.5f);
+			int32 PosY = FMath::TruncToInt(SrcY+0.5f);
 			PosY = FMath::Clamp<int32>(PosY, 0, (SrcHeight - 1));
 
-			int32 PosX = FMath::Trunc(SrcX+0.5f);
+			int32 PosX = FMath::TruncToInt(SrcX+0.5f);
 			PosX = FMath::Clamp<int32>(PosX, 0, (SrcWidth - 1));
 
-			int32 EndPosY = FMath::Trunc(EndY+0.5f);
+			int32 EndPosY = FMath::TruncToInt(EndY+0.5f);
 			EndPosY = FMath::Clamp<int32>(EndPosY, 0, (SrcHeight - 1));
 
-			int32 EndPosX = FMath::Trunc(EndX+0.5f);
+			int32 EndPosX = FMath::TruncToInt(EndX+0.5f);
 			EndPosX = FMath::Clamp<int32>(EndPosX, 0, (SrcWidth - 1));
 
 			FColor FinalColor;
@@ -90,9 +90,9 @@ void FImageUtils::ImageResize(int32 SrcWidth, int32 SrcHeight, const TArray<FCol
 					}
 				}
 				StepColor /= (float)PixelCount;
-				uint8 FinalR = FMath::Clamp(FMath::Trunc(StepColor.X), 0, 255);
-				uint8 FinalG = FMath::Clamp(FMath::Trunc(StepColor.Y), 0, 255);
-				uint8 FinalB = FMath::Clamp(FMath::Trunc(StepColor.Z), 0, 255);
+				uint8 FinalR = FMath::Clamp(FMath::TruncToInt(StepColor.X), 0, 255);
+				uint8 FinalG = FMath::Clamp(FMath::TruncToInt(StepColor.Y), 0, 255);
+				uint8 FinalB = FMath::Clamp(FMath::TruncToInt(StepColor.Z), 0, 255);
 				FinalColor = FColor(FinalR, FinalG, FinalB);
 			}
 
@@ -185,8 +185,8 @@ void FImageUtils::CropAndScaleImage( int32 SrcWidth, int32 SrcHeight, int32 Desi
 	}
 
 	// Store crop width and height as ints for convenience
-	int32 CropWidth = FMath::Floor(MaxWidth);
-	int32 CropHeight = FMath::Floor(MaxHeight);
+	int32 CropWidth = FMath::FloorToInt(MaxWidth);
+	int32 CropHeight = FMath::FloorToInt(MaxHeight);
 
 	// Array holding the cropped image
 	TArray<FColor> CroppedData;

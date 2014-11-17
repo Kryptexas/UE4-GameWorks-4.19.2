@@ -83,6 +83,7 @@ struct FObjectAndNameAsStringProxyArchive : public FNameAsStringProxyArchive
  */
 class FObjectWriter : public FMemoryWriter
 {
+
 public:
 	FObjectWriter(UObject* Obj, TArray<uint8>& InBytes, bool bIgnoreClassRef = false, bool bIgnoreArchetypeRef = false, bool bDoDelta = true)
 		: FMemoryWriter(InBytes)

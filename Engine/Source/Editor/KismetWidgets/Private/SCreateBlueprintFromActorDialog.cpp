@@ -60,6 +60,7 @@ void SCreateBlueprintFromActorDialog::Construct( const FArguments& InArgs, TShar
 		{
 			ActorInstanceLabel += Actor->GetActorLabel();
 			ActorInstanceLabel += TEXT( "_" );
+			break; // We don't want any huge names, see ttp332350
 		}
 	}
 	if( ActorInstanceLabel.IsEmpty() )

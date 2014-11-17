@@ -58,50 +58,11 @@ class FProfilerAggregatedStat;
 
 #define DEBUG_PROFILER_PERFORMANCE 0
 
-typedef TKeyValuePair<double,uint32> FTotalTimeAndCount;
-
-#if	DEBUG_PROFILER_PERFORMANCE == 1
-
-struct FProfilerScopedLogTime
-{
-	FProfilerScopedLogTime( const TCHAR* InStatName, FTotalTimeAndCount* InGlobal = nullptr )
-		: StartTime( FPlatformTime::Seconds() )
-		, StatName( InStatName )
-		, Global( InGlobal )
-	{}
-
-	~FProfilerScopedLogTime()
-	{
-		const double ScopedTime = FPlatformTime::Seconds() - StartTime;
-		if( Global )
-		{
-			Global->Key += ScopedTime;
-			Global->Value ++;
-
-			const double Average = Global->Key / (double)Global->Value;
-			UE_LOG( Profiler, Log, TEXT("%32s - %6.3f ms - Total %6.2f s / %5u / %6.3f ms"), *StatName, ScopedTime*1000.0f, Global->Key, Global->Value, Average*1000.0f );
-		}
-		else
-		{
-			UE_LOG( Profiler, Log, TEXT("%32s - %6.3f ms - No Total"), *StatName, ScopedTime*1000.0f );
-		}
-	}
-
-protected:
-	const double StartTime;
-	const FString StatName;
-	FTotalTimeAndCount* Global;
-};
-
+#if DEBUG_PROFILER_PERFORMANCE==1
+#define PROFILER_SCOPE_LOG_TIME(arg0,arg1) SCOPE_LOG_TIME(arg0,arg1)
 #else
-
-struct FProfilerScopedLogTime
-{
-	FProfilerScopedLogTime( const TCHAR* InStatName, FTotalTimeAndCount* InGlobal = nullptr )
-	{}
-};
-
-#endif // DEBUG_PROFILER_PERFORMANCE
+#define PROFILER_SCOPE_LOG_TIME(arg0,arg1)
+#endif
 
 /** Time spent on graph drawing. */
 DECLARE_CYCLE_STAT_EXTERN( TEXT("DataGraphOnPaint"),	STAT_DG_OnPaint,			STATGROUP_Profiler, );
@@ -152,5 +113,57 @@ public:
 			Result = FString(TEXT("...")) + Result.Right(Limit);
 		}
 		return Result;
+	}
+};
+
+/** Implements binary search for the various cases. */
+class FBinaryFindIndex
+{
+public:
+	template<class T>
+	static int32 LessEqual( const TArray<T>& Array, const T& Item, const int32 FirstIndex = 0, const int32 LastIndex = INDEX_NONE )
+	{
+		const int32 LocalLastIndex = LastIndex == INDEX_NONE ? Array.Num() : LastIndex;
+		int32 Lenght = LocalLastIndex - FirstIndex;
+		int32 Middle = Lenght / 2;
+		int32 Offset = FirstIndex;
+
+		while( Middle > 0 )
+		{
+			Middle = Lenght / 2;
+			if( Array[Offset + Middle] <= Item )
+			{
+				Offset += Middle;
+			}
+			Lenght -= Middle;
+		}
+		return Offset;
+	}
+
+	template<class T>
+	static int32 GreaterEqual( const TArray<T>& Array, const T& Item, const int32 FirstIndex = 0, const int32 LastIndex = INDEX_NONE )
+	{
+		const int32 LocalLastIndex = LastIndex == INDEX_NONE ? Array.Num() : LastIndex;
+		int32 Lenght = LocalLastIndex - FirstIndex;
+		int32 Middle = Lenght / 2;
+		int32 Offset = FirstIndex;
+		int32 Edge = 0;
+
+		while( Middle > 0 )
+		{
+			Middle = Lenght / 2;
+			if( Array[Offset + Middle] >= Item )
+			{
+				Edge = 0;
+			}
+			else
+			{
+				Edge = 1;
+				Offset += Middle;		
+			}
+
+			Lenght -= Middle;
+		}
+		return Offset+Edge;
 	}
 };

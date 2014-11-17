@@ -69,7 +69,7 @@ struct FGeomSelection
 	}
 };
 
-UCLASS(hidecategories=(Object, Collision, Display, Rendering, Physics, Input), MinimalAPI, NotBlueprintable, ConversionRoot)
+UCLASS(hidecategories=(Object, Collision, Display, Rendering, Physics, Input), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, NotBlueprintable, ConversionRoot)
 class ABrush : public AActor
 {
 	GENERATED_UCLASS_BODY()

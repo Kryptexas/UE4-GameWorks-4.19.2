@@ -152,6 +152,9 @@
 #ifndef PLATFORM_HAS_BSD_SOCKETS
 	#define PLATFORM_HAS_BSD_SOCKETS			1
 #endif
+#ifndef PLATFORM_HAS_BSD_IPV6_SOCKETS
+	#define PLATFORM_HAS_BSD_IPV6_SOCKETS			0
+#endif
 #ifndef PLATFORM_USE_PTHREADS
 	#define PLATFORM_USE_PTHREADS				1
 #endif
@@ -539,7 +542,8 @@ typedef FPlatformTypes::UPTRINT UPTRINT;	///< An unsigned integer the same size 
 typedef FPlatformTypes::PTRINT PTRINT;		///< A signed integer the same size as a pointer
 typedef FPlatformTypes::SIZE_T SIZE_T;		///< A signed integer the same size as a pointer
 
-typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL; ///< The type of the NULL constant.
+typedef FPlatformTypes::TYPE_OF_NULL	TYPE_OF_NULL;	///< The type of the NULL constant.
+typedef FPlatformTypes::TYPE_OF_NULLPTR	TYPE_OF_NULLPTR; ///< The type of the C++ nullptr keyword.
 
 //------------------------------------------------------------------
 // Test the global types

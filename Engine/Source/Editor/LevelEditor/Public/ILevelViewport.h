@@ -14,7 +14,7 @@ public:
 	 *
 	 * @param PlayClient	The client to swap with the editor client
 	 */
-	virtual void StartPlayInEditorSession( class UGameViewportClient* PlayClient ) = 0;
+	virtual void StartPlayInEditorSession( class UGameViewportClient* PlayClient, const bool bInSimulateInEditor ) = 0;
 
 	/**
 	 * Ends a currently active play in editor session in this viewport

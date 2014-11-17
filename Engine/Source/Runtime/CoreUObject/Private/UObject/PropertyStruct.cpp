@@ -38,6 +38,8 @@ void UStructProperty::LinkInternal(FArchive& Ar)
 	// Preload is required here in order to load the value of Struct->PropertiesSize
 	Ar.Preload(Struct);
 	checkSlow(Struct);
+	Struct->RecursivelyPreload();
+	
 	ElementSize = Align(Struct->PropertiesSize, Struct->GetMinAlignment());
 	if (Struct->StructFlags & STRUCT_IsPlainOldData) // if there is nothing to construct or the struct is known to be memcpy-able, then allow memcpy
 	{
@@ -153,11 +155,19 @@ bool UStructProperty::NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Da
 void UStructProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
+
+	static UScriptStruct* FallbackStruct = GetFallbackStruct();
+	
+	if (Ar.IsPersistent() && Ar.GetLinker() && Ar.IsLoading() && !Struct)
+	{
+		// It's necessary to solve circular dependency problems, when serializing the Struct causes linking of the Property.
+		Struct = FallbackStruct;
+	}
+
 	Ar << Struct;
 #if WITH_EDITOR
 	if (Ar.IsPersistent() && Ar.GetLinker())
 	{
-		UScriptStruct* FallbackStruct = GetFallbackStruct();
 		if (!Struct && Ar.IsLoading())
 		{
 			UE_LOG(LogProperty, Error, TEXT("UStructProperty::Serialize Loading: Property '%s'. Unknown structure."), *GetFullName());
@@ -169,6 +179,14 @@ void UStructProperty::Serialize( FArchive& Ar )
 		}
 	}
 #endif // WITH_EDITOR
+	if (Struct)
+	{
+		Struct->RecursivelyPreload();
+	}
+	else
+	{
+		ensure(true);
+	}
 }
 void UStructProperty::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
@@ -309,10 +327,10 @@ const TCHAR* UStructProperty::ImportText_Internal( const TCHAR* InBuffer, void* 
 				SkipWhitespace(Buffer);
 				if (*Buffer == TCHAR('\"'))
 				{
-					while (*Buffer && *Buffer != TCHAR('\"') && *Buffer != TCHAR('\n') && *Buffer != TCHAR('\r'))
+					do
 					{
 						Buffer++;
-					}
+					} while (*Buffer && *Buffer != TCHAR('\"') && *Buffer != TCHAR('\n') && *Buffer != TCHAR('\r'));
 
 					if (*Buffer != TCHAR('\"'))
 					{
@@ -437,4 +455,3 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UStructProperty, UProperty,
 		Class->EmitObjectReference( STRUCT_OFFSET( UStructProperty, Struct ) );
 	}
 );
-

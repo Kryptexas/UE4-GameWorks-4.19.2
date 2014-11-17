@@ -370,7 +370,7 @@ void FShotSection::CalculateThumbnailWidthAndResize()
 	if (OutThumbnailWidth != ThumbnailWidth)
 	{
 		ThumbnailWidth = OutThumbnailWidth;
-		InternalViewportScene->UpdateViewportRHI( false, ThumbnailWidth, AnimatableShotToolConstants::DirectorTrackHeight, false );
+		InternalViewportScene->UpdateViewportRHI( false, ThumbnailWidth, AnimatableShotToolConstants::DirectorTrackHeight, EWindowMode::Windowed );
 	}
 }
 

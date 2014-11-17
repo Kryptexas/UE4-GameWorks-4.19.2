@@ -59,7 +59,7 @@ public:
 #endif	//WITH_EDITOR
 
 protected:
-	void GetHeightmapData(int32 InLOD);
+	void GetHeightmapData(int32 InLOD, int32 GeometryLOD);
 
 	/** Fills in the static lighting vertex data for the Landscape vertex. */
 	void GetStaticLightingVertex(int32 VertexIndex, FStaticLightingVertex& OutVertex) const;
@@ -80,7 +80,13 @@ protected:
 	float UVFactor;
 
 	friend class FLightmassExporter;
-};
 
+#if WITH_EDITOR
+public:
+	// Cache data for Landscape upscaling data
+	ENGINE_API static TMap<FIntPoint, FColor> LandscapeUpscaleHeightDataCache;
+	ENGINE_API static TMap<FIntPoint, FColor> LandscapeUpscaleXYOffsetDataCache;
+#endif
+};
 
 #endif // _LANDSCAPELIGHT_H

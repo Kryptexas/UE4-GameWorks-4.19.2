@@ -9,7 +9,7 @@
 void FPhysAssetCreateParams::Initialize()
 {
 	MinBoneSize = 5.0f;
-	GeomType = EFG_SphylSphere;
+	GeomType = EFG_Sphyl;
 	VertWeight = EVW_DominantWeight;
 	bAlignDownBone = true;
 	bCreateJoints = true;
@@ -247,7 +247,6 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 
 	// Calculate orientation of to use for collision primitive.
 	FMatrix ElemTM;
-	bool bSphyl;
 
 	if(Params.bAlignDownBone)
 	{
@@ -269,26 +268,21 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 				FVector XAxis, YAxis;
 				ZAxis.FindBestAxisVectors( YAxis, XAxis );
 
-				ElemTM = FMatrix( XAxis, YAxis, ZAxis, FVector(0) );
-
-				bSphyl = true;			
+				ElemTM = FMatrix( XAxis, YAxis, ZAxis, FVector(0) );	
 			}
 			else
 			{
 				ElemTM = FMatrix::Identity;
-				bSphyl = false;
 			}
 		}
 		else
 		{
 			ElemTM = FMatrix::Identity;
-			bSphyl = false;
 		}
 	}
 	else
 	{
 		ElemTM = FMatrix::Identity;
-		bSphyl = false;
 	}
 
 	// Get the (Unreal scale) bounding box for this bone using the rotation.
@@ -327,6 +321,14 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 		be->X = BoxExtent.X * 2.0f * 1.01f; // Side Lengths (add 1% to avoid graphics glitches)
 		be->Y = BoxExtent.Y * 2.0f * 1.01f;
 		be->Z = BoxExtent.Z * 2.0f * 1.01f;	
+	}
+	else if (Params.GeomType == EFG_Sphere)
+	{
+		int32 sx = bs->AggGeom.SphereElems.AddZeroed();
+		FKSphereElem* se = &bs->AggGeom.SphereElems[sx];
+
+		se->Center = ElemTM.GetOrigin();
+		se->Radius = BoxExtent.GetMax() * 1.01f;
 	}
 	// Deal with creating a single convex hull
 	else if (Params.GeomType == EFG_SingleConvexHull)
@@ -406,24 +408,13 @@ void CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 	}
 	else
 	{
-		if(bSphyl)
-		{
-			int32 sx = bs->AggGeom.SphylElems.AddZeroed();
-			FKSphylElem* se = &bs->AggGeom.SphylElems[sx];
+		int32 sx = bs->AggGeom.SphylElems.AddZeroed();
+		FKSphylElem* se = &bs->AggGeom.SphylElems[sx];
 
-			se->SetTransform( FTransform( ElemTM ) );
+		se->SetTransform( FTransform( ElemTM ) );
 
-			se->Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
-			se->Length = BoxExtent.Z * 1.01f;
-		}
-		else
-		{
-			int32 sx = bs->AggGeom.SphereElems.AddZeroed();
-			FKSphereElem* se = &bs->AggGeom.SphereElems[sx];
-
-			se->Center = ElemTM.GetOrigin();
-			se->Radius = BoxExtent.GetMax() * 1.01f;
-		}
+		se->Radius = FMath::Max(BoxExtent.X, BoxExtent.Y) * 1.01f;
+		se->Length = BoxExtent.Z * 1.01f;
 	}
 }
 
@@ -524,7 +515,7 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 	// Then deal with any constraints.
 
 	TArray<int32>	Body2Constraints;
-	BodyFindConstraints(PhysAsset, AddBodyIndex, Body2Constraints);
+	PhysAsset->BodyFindConstraints(AddBodyIndex, Body2Constraints);
 
 	while( Body2Constraints.Num() > 0 )
 	{
@@ -561,25 +552,11 @@ void WeldBodies(UPhysicsAsset* PhysAsset, int32 BaseBodyIndex, int32 AddBodyInde
 		}
 
 		// See if we have any more constraints to body2.
-		BodyFindConstraints(PhysAsset, AddBodyIndex, Body2Constraints);
+		PhysAsset->BodyFindConstraints(AddBodyIndex, Body2Constraints);
 	}
 
 	// Finally remove the body
 	DestroyBody(PhysAsset, AddBodyIndex);
-}
-
-void BodyFindConstraints(UPhysicsAsset* PhysAsset, int32 BodyIndex, TArray<int32>& Constraints)
-{
-	Constraints.Empty();
-	FName bodyName = PhysAsset->BodySetup[BodyIndex]->BoneName;
-
-	for(int32 i=0; i<PhysAsset->ConstraintSetup.Num(); i++)
-	{
-		if( PhysAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone1 == bodyName || PhysAsset->ConstraintSetup[i]->DefaultInstance.ConstraintBone2 == bodyName )
-		{
-			Constraints.Add(i);
-		}
-	}
 }
 
 int32 CreateNewConstraint(UPhysicsAsset* PhysAsset, FName InConstraintName, UPhysicsConstraintTemplate* InConstraintSetup)
@@ -671,12 +648,12 @@ void DestroyBody(UPhysicsAsset* PhysAsset, int32 bodyIndex)
 	// Now remove any constraints that were attached to this body.
 	// This is a bit yuck and slow...
 	TArray<int32> Constraints;
-	BodyFindConstraints(PhysAsset, bodyIndex, Constraints);
+	PhysAsset->BodyFindConstraints(bodyIndex, Constraints);
 
 	while(Constraints.Num() > 0)
 	{
 		DestroyConstraint( PhysAsset, Constraints[0] );
-		BodyFindConstraints(PhysAsset, bodyIndex, Constraints);
+		PhysAsset->BodyFindConstraints(bodyIndex, Constraints);
 	}
 
 	// Remove pointer from array. Actual objects will be garbage collected.

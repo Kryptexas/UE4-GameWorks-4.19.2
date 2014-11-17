@@ -89,6 +89,7 @@
 /Engine/Source/ThirdParty/Recast/**
 /Engine/Source/ThirdParty/SDL/**
 /Engine/Source/ThirdParty/SDL2/**
+/Engine/Source/ThirdParty/Steamworks/**
 /Engine/Source/ThirdParty/Vorbis/**
 /Engine/Source/ThirdParty/Windows/DirectX/**
 /Engine/Source/ThirdParty/zlib/**

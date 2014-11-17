@@ -67,6 +67,30 @@ public:
 	virtual FPropertyAccess::Result GetValueAsFormattedString( FString& OutValue ) const = 0;
 
 	/**
+	 * Gets the value formatted as a string, possibly using an alternate form more suitable for display in the UI
+	 *
+	 * @param OutValue	String where the value is stored.  Remains unchanged if the value could not be set
+	 * @return The result of attempting to get the value
+	 */
+	virtual FPropertyAccess::Result GetValueAsDisplayString( FString& OutValue ) const = 0;
+
+	/**
+	 * Gets the value formatted as a string, as Text.
+	 *
+	 * @param OutValue	Text where the value is stored.  Remains unchanged if the value could not be set
+	 * @return The result of attempting to get the value
+	 */
+	virtual FPropertyAccess::Result GetValueAsFormattedText( FText& OutValue ) const = 0;
+
+	/**
+	 * Gets the value formatted as a string, as Text, possibly using an alternate form more suitable for display in the UI
+	 *
+	 * @param OutValue	Text where the value is stored.  Remains unchanged if the value could not be set
+	 * @return The result of attempting to get the value
+	 */
+	virtual FPropertyAccess::Result GetValueAsDisplayText( FText& OutValue ) const = 0;
+
+	/**
 	 * Sets the value formatted as a string.
 	 *
 	 * @param OutValue	String where the value is stored.  Is unchanged if the value could not be set

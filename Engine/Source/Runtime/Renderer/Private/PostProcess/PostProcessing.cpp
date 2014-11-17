@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessing.cpp: The center for all post processing activities.
@@ -45,6 +45,10 @@
 #include "PostProcessUIBlur.h"
 #include "HighResScreenshot.h"
 
+#include "PostProcessMorpheus.h"
+#include "IHeadMountedDisplay.h"
+
+
 /** The global center for all post processing activities. */
 FPostProcessing GPostProcessing;
 
@@ -65,7 +69,7 @@ FPostprocessContext::FPostprocessContext(class FRenderingCompositionGraph& InGra
 	: Graph(InGraph)
 	, View(InView)
 {
-	SceneColor = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.SceneColor));
+	SceneColor = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GetSceneColor()));
 	SceneDepth = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.SceneDepthZ));
 	GBufferA = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessInput(GSceneRenderTargets.GBufferA));
 
@@ -455,7 +459,7 @@ static void AddTemporalAA( FPostprocessContext& Context, FRenderingCompositeOutp
 	else
 	{
 		// No history so use current as history
-		HistoryInput = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessInput( GSceneRenderTargets.SceneColor ) );
+		HistoryInput = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessInput( GSceneRenderTargets.GetSceneColor() ) );
 	}
 
 	FRenderingCompositePass* TemporalAAPass = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessTemporalAA );
@@ -705,6 +709,9 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 	bool bSimpleDynamicLighting = IsSimpleDynamicLightingEnabled();
 
+	const auto FeatureLevel = View.GetFeatureLevel();
+
+	GRenderTargetPool.AddPhaseEvent(TEXT("PostProcessing"));
 
 	// This page: https://udn.epicgames.com/Three/RenderingOverview#Rendering%20state%20defaults 
 	// describes what state a pass can expect and to what state it need to be set back.
@@ -750,7 +757,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 		
 		// add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ---------
 
-		if( View.Family->EngineShowFlags.PostProcessing && GRHIFeatureLevel >= ERHIFeatureLevel::SM4 )
+		if (View.Family->EngineShowFlags.PostProcessing && FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			// Screen Space Subsurface Scattering
 			{
@@ -927,7 +934,6 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 				bool bHistogramNeeded = View.Family->EngineShowFlags.VisualizeHDR;
 
 				if(View.Family->EngineShowFlags.EyeAdaptation
-					&& View.FinalPostProcessSettings.AutoExposureMinBrightness <= View.FinalPostProcessSettings.AutoExposureMaxBrightness
 					&& !View.bIsSceneCapture) // Eye adaption is not available for scene captures.
 				{
 					bHistogramNeeded = true;
@@ -938,7 +944,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 					bHistogramNeeded = false;
 				}
 
-				if(!GIsHighResScreenshot && bHistogramNeeded && GRHIFeatureLevel == ERHIFeatureLevel::SM5 && StereoPass != eSSP_RIGHT_EYE)
+				if (!GIsHighResScreenshot && bHistogramNeeded && FeatureLevel >= ERHIFeatureLevel::SM5 && StereoPass != eSSP_RIGHT_EYE)
 				{
 					Histogram = AddPostProcessHistogram(Context, SceneColorHalfRes);
 				}
@@ -963,7 +969,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 			HDRColor = Context.FinalOutput;
 
-			if(bAllowTonemapper && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+			if(bAllowTonemapper && FeatureLevel >= ERHIFeatureLevel::SM4)
 			{
 				FRenderingCompositeOutputRef CombinedLUT;
 
@@ -997,7 +1003,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 				VisualizeNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
 				// PassThrough is needed to upscale the half res texture
-				FPooledRenderTargetDesc Desc = GSceneRenderTargets.SceneColor->GetDesc();
+				FPooledRenderTargetDesc Desc = GSceneRenderTargets.GetSceneColor()->GetDesc();
 				Desc.Format = PF_B8G8R8A8;
 				FRenderingCompositePass* NullPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessPassThrough(Desc));
 				NullPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(VisualizeNode));
@@ -1017,14 +1023,14 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 		if(View.Family->EngineShowFlags.StationaryLightOverlap)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->StationaryLightOverlapColors));
-			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
 		if(View.Family->EngineShowFlags.ShaderComplexity)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeComplexity(GEngine->ShaderComplexityColors));
-			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.SceneColor));
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 
@@ -1060,15 +1066,29 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 		AddGBufferVisualization(Context, SeparateTranslucency);
 
 		bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
-
 		if (bStereoRenderingAndHMD)
 		{
-			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
-			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
-			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+			FRenderingCompositePass* Node = NULL;
+			const EHMDDeviceType::Type DeviceType = GEngine->HMDDevice->GetHMDDeviceType();
+			if(DeviceType == EHMDDeviceType::DT_OculusRift)
+			{
+				Node = Context.Graph.RegisterPass(new FRCPassPostProcessHMD());
+			}
+#if HAS_MORPHEUS
+			else if(DeviceType == EHMDDeviceType::DT_Morpheus)
+			{
+				Node = Context.Graph.RegisterPass(new FRCPassPostProcessMorpheus());
+			}
+#endif
+			
+			if(Node)
+			{
+				Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+				Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+			}
 		}
 
-		if(View.Family->EngineShowFlags.VisualizeHDR && GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		if(View.Family->EngineShowFlags.VisualizeHDR && FeatureLevel >= ERHIFeatureLevel::SM5)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessVisualizeHDR());
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -1079,7 +1099,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 		AddUIBlur(Context);
 
-		if(View.Family->EngineShowFlags.TestImage && GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+		if(View.Family->EngineShowFlags.TestImage && FeatureLevel >= ERHIFeatureLevel::SM5)
 		{
 			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessTestImage());
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -1114,6 +1134,7 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 			// todo: this should come from View.Family->RenderTarget
 			Desc.Format = PF_B8G8R8A8;
 			Desc.NumMips = 1;
+			Desc.DebugName = TEXT("FinalPostProcessColor");
 
 			GRenderTargetPool.CreateUntrackedElement(Desc, Temp, Item);
 
@@ -1124,6 +1145,15 @@ void FPostProcessing::Process(const FViewInfo& View, TRefCountPtr<IPooledRenderT
 
 			CompositeContext.Process(TEXT("PostProcessing"));
 		}
+	}
+
+	GRenderTargetPool.AddPhaseEvent(TEXT("AfterPostprocessing"));
+
+	// todo: We should move this to after lighting, but we also have to fix lookups in post process materials reading from it.
+	// We only release the GBuffers after the last view was processed (SplitScreen)
+	if(View.Family->Views[View.Family->Views.Num() - 1] == &View)
+	{
+		GSceneRenderTargets.FreeGBufferTargets();
 	}
 }
 

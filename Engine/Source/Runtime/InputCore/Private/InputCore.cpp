@@ -4,7 +4,5 @@
 #include "InputCoreModule.h"
 #include "ModuleManager.h"
 
-#include "InputCore.generated.inl"
-
 
 IMPLEMENT_MODULE( FInputCoreModule, InputCore );

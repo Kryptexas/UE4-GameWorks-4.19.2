@@ -103,6 +103,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsPackedDepthStencil()				{ return bSupportsPackedDepthStencil; }
 	static FORCEINLINE bool SupportsTextureCubeLodEXT()					{ return bSupportsTextureCubeLodEXT; }
 	static FORCEINLINE bool SupportsShaderTextureLod()					{ return bSupportsShaderTextureLod; }
+	static FORCEINLINE bool SupportsShaderTextureCubeLod()				{ return bSupportsShaderTextureCubeLod; }
 	static FORCEINLINE bool SupportsCopyTextureLevels()					{ return bSupportsCopyTextureLevels; }
 
 	// On iOS both glMapBufferOES() and glBufferSubData() for immediate vertex and index data
@@ -408,6 +409,9 @@ protected:
 	/** GL_EXT_shader_texture_lod */
 	static bool bSupportsShaderTextureLod;
 
+	/** textureCubeLod */
+	static bool bSupportsShaderTextureCubeLod;
+
 	/** GL_APPLE_copy_texture_levels */
 	static bool bSupportsCopyTextureLevels;
 
@@ -645,6 +649,9 @@ protected:
 #endif
 #ifndef GL_FRAMEBUFFER_SRGB
 #define GL_FRAMEBUFFER_SRGB 0x8DB9
+#endif
+#ifndef GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT
+#define GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT 0x8A34
 #endif
 #define GL_RG8I 0x8237
 #define GL_RG8UI 0x8238

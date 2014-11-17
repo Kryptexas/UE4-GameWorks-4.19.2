@@ -723,9 +723,9 @@ bool WritePackedVector(FVector Value, FArchive& Ar)	// Note Value is intended to
 	Value *= ScaleFactor;
 
 	// Do basically FVector::SerializeCompressed
-	int32 IntX	= FMath::Round(Value.X);
-	int32 IntY	= FMath::Round(Value.Y);
-	int32 IntZ	= FMath::Round(Value.Z);
+	int32 IntX	= FMath::RoundToInt(Value.X);
+	int32 IntY	= FMath::RoundToInt(Value.Y);
+	int32 IntZ	= FMath::RoundToInt(Value.Z);
 			
 	uint32 Bits	= FMath::Clamp<uint32>( FMath::CeilLogTwo( 1 + FMath::Max3( FMath::Abs(IntX), FMath::Abs(IntY), FMath::Abs(IntZ) ) ), 1, MaxBitsPerComponent ) - 1;
 
@@ -814,13 +814,13 @@ bool WriteFixedCompressedFloat(const float Value, FArchive& Ar)
 	{
 		// We have to scale this down, scale needs to be a float:
 		const float scale = (float)MaxBitValue / (float)MaxValue;
-		ScaledValue = FMath::Trunc(scale * Value);
+		ScaledValue = FMath::TruncToInt(scale * Value);
 	}
 	else
 	{
 		// We will scale up to get extra precision. But keep is a whole number preserve whole values
 		enum { scale = MaxBitValue / MaxValue };
-		ScaledValue = FMath::Round( scale * Value );
+		ScaledValue = FMath::RoundToInt( scale * Value );
 	}
 
 	uint32 Delta = static_cast<uint32>(ScaledValue + Bias);

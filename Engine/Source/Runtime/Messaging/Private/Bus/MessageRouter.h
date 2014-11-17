@@ -30,8 +30,8 @@ public:
 	/**
 	 * Adds a message interceptor.
 	 *
-	 * @param Interceptor - The interceptor to add.
-	 * @param MessageType - The type of messages to intercept.
+	 * @param Interceptor The interceptor to add.
+	 * @param MessageType The type of messages to intercept.
 	 */
 	FORCEINLINE void AddInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
 	{
@@ -41,8 +41,8 @@ public:
 	/**
 	 * Adds a recipient.
 	 *
-	 * @param Address - The address of the recipient to add.
-	 * @param Recipient - The recipient.
+	 * @param Address The address of the recipient to add.
+	 * @param Recipient The recipient.
 	 */
 	FORCEINLINE void AddRecipient( const FMessageAddress& Address, const IReceiveMessagesRef& Recipient )
 	{
@@ -52,7 +52,7 @@ public:
 	/**
 	 * Adds a subscription.
 	 *
-	 * @param Subscription - The subscription to add.
+	 * @param Subscription The subscription to add.
 	 */
 	FORCEINLINE void AddSubscription( const IMessageSubscriptionRef& Subscription )
 	{
@@ -72,8 +72,8 @@ public:
 	/**
 	 * Removes a message interceptor.
 	 *
-	 * @param Interceptor - The interceptor to remove.
-	 * @param MessageType - The type of messages to stop intercepting.
+	 * @param Interceptor The interceptor to remove.
+	 * @param MessageType The type of messages to stop intercepting.
 	 */
 	FORCEINLINE void RemoveInterceptor( const IInterceptMessagesRef& Interceptor, const FName& MessageType )
 	{
@@ -83,7 +83,7 @@ public:
 	/**
 	 * Removes a recipient.
 	 *
-	 * @param Address - The address of the recipient to remove.
+	 * @param Address The address of the recipient to remove.
 	 */
 	FORCEINLINE void RemoveRecipient( const FMessageAddress& Address )
 	{
@@ -93,8 +93,8 @@ public:
 	/**
 	 * Removes a subscription.
 	 *
-	 * @param Subscriber - The subscriber to stop routing messages to.
-	 * @param MessageType - The type of message to unsubscribe from (NAME_None = all types).
+	 * @param Subscriber The subscriber to stop routing messages to.
+	 * @param MessageType The type of message to unsubscribe from (NAME_None = all types).
 	 */
 	FORCEINLINE void RemoveSubscription( const IReceiveMessagesRef& Subscriber, const FName& MessageType )
 	{
@@ -104,7 +104,7 @@ public:
 	/**
 	 * Routes a message to the specified recipients.
 	 *
-	 * @param Context - The context of the message to route.
+	 * @param Context The context of the message to route.
 	 */
 	FORCEINLINE void RouteMessage( const IMessageContextRef& Context )
 	{
@@ -138,7 +138,7 @@ protected:
 	/**
 	 * Queues up a router command.
 	 *
-	 * @param Command - The command to queue up.
+	 * @param Command The command to queue up.
 	 *
 	 * @return true if the command was enqueued, false otherwise.
 	 */
@@ -157,17 +157,17 @@ protected:
 	/**
 	 * Filters a collection of subscriptions using the given message context.
 	 *
-	 * @param Subscriptions - The subscriptions to filter.
-	 * @param Context - The message context to filter by.
-	 * @param Sender - The message sender (may be nullptr if the sender has no subscriptions).
-	 * @param OutRecipients - Will hold the collection of recipients.
+	 * @param Subscriptions The subscriptions to filter.
+	 * @param Context The message context to filter by.
+	 * @param Sender The message sender (may be nullptr if the sender has no subscriptions).
+	 * @param OutRecipients Will hold the collection of recipients.
 	 */
 	void FilterSubscriptions( TArray<IMessageSubscriptionPtr>& Subscriptions, const IMessageContextRef& Context, TArray<IReceiveMessagesPtr>& OutRecipients );
 
 	/**
 	 * Dispatches a single message to its recipients.
 	 *
-	 * @param Message - The message to dispatch.
+	 * @param Message The message to dispatch.
 	 */
 	void DispatchMessage( const IMessageContextRef& Message );
 

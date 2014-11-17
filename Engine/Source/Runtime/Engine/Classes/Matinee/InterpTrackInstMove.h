@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstMove.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, MinimalAPI)
+UCLASS(MinimalAPI)
 class UInterpTrackInstMove : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

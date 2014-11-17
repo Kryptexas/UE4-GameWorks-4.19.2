@@ -18,6 +18,13 @@ class KISMET_API IUserDefinedEnumEditor : public FAssetEditorToolkit
 };
 
 /**
+ * Enum editor public interface
+ */
+class KISMET_API IUserDefinedStructureEditor : public FAssetEditorToolkit
+{
+};
+
+/**
  * Blueprint editor public interface
  */
 class KISMET_API IBlueprintEditor : public FWorkflowCentricApplication
@@ -91,6 +98,17 @@ public:
 	 * @return	Interface to the new Enum editor
 	 */
 	virtual TSharedRef<IUserDefinedEnumEditor> CreateUserDefinedEnumEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UUserDefinedEnum* UDEnum);
+
+	/**
+	 * Creates an instance of a Structure editor object.
+	 *
+	 * @param	Mode					Mode that this editor should operate in
+	 * @param	InitToolkitHost			When Mode is WorldCentric, this is the level editor instance to spawn this editor within
+	 * @param	UDEnum					The user-defined structure to start editing
+	 *
+	 * @return	Interface to the new Struct editor
+	 */
+	virtual TSharedRef<IUserDefinedStructureEditor> CreateUserDefinedStructEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UUserDefinedStruct* UDStruct);
 
 	/** Gets the extensibility managers for outside entities to extend blueprint editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() {return MenuExtensibilityManager;}

@@ -44,25 +44,6 @@
  */
 #define WITH_FIREWALL_SUPPORT	0
 
-/** Width of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorWidth = 0;
-/** Height of the primary monitor, in pixels. */
-CORE_API int32 GPrimaryMonitorHeight = 0;
-/** Rectangle of the work area on the primary monitor (excluding taskbar, etc) in "virtual screen coordinates" (pixels). */
-CORE_API RECT GPrimaryMonitorWorkRect;
-/** Virtual screen rectangle including all monitors. */
-CORE_API RECT GVirtualScreenRect;
-
-
-/** Settings for the game Window */
-CORE_API HWND GGameWindow = NULL;
-CORE_API bool GGameWindowUsingStartupWindowProc = false;	// Whether the game is using the startup window procedure
-CORE_API uint32 GGameWindowStyle = 0;
-CORE_API int32 GGameWindowPosX = 0;
-CORE_API int32 GGameWindowPosY = 0;
-CORE_API int32 GGameWindowWidth = 100;
-CORE_API int32 GGameWindowHeight = 100;
-
 extern "C"
 {
 	CORE_API HINSTANCE hInstance = NULL;
@@ -161,30 +142,12 @@ void FWindowsPlatformMisc::PlatformPreInit()
 	// Use our own handler for pure virtuals being called.
 	DefaultPureCallHandler = _set_purecall_handler( PureCallHandler );
 
-	// Check Windows version.
-	OSVERSIONINFOEX OsVersionInfo = { 0 };
-	OsVersionInfo.dwOSVersionInfoSize = sizeof( OSVERSIONINFOEX );
-	GetVersionEx( ( LPOSVERSIONINFO )&OsVersionInfo );
-
 	const int32 MinResolution[] = {640,480};
 	if ( ::GetSystemMetrics(SM_CXSCREEN) < MinResolution[0] || ::GetSystemMetrics(SM_CYSCREEN) < MinResolution[1] )
 	{
 		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("Launch", "Error_ResolutionTooLow", "The current resolution is too low to run this game.") );
 		FPlatformMisc::RequestExit( false );
 	}
-
-#if WITH_ENGINE
-	// Get the total screen size of the primary monitor.
-	GPrimaryMonitorWidth = ::GetSystemMetrics( SM_CXSCREEN );
-	GPrimaryMonitorHeight = ::GetSystemMetrics( SM_CYSCREEN );
-	GVirtualScreenRect.left = ::GetSystemMetrics( SM_XVIRTUALSCREEN );
-	GVirtualScreenRect.top = ::GetSystemMetrics( SM_YVIRTUALSCREEN );
-	GVirtualScreenRect.right = ::GetSystemMetrics( SM_CXVIRTUALSCREEN ) + GVirtualScreenRect.left;
-	GVirtualScreenRect.bottom = ::GetSystemMetrics( SM_CYVIRTUALSCREEN ) + GVirtualScreenRect.top;
-
-	// Get the screen rect of the primary monitor, exclusing taskbar etc.
-	SystemParametersInfo( SPI_GETWORKAREA, 0, &GPrimaryMonitorWorkRect, 0 );
-#endif		// WITH_ENGINE
 
 	// initialize the file SHA hash mapping
 	InitSHAHashes();
@@ -197,16 +160,6 @@ void FWindowsPlatformMisc::PlatformInit()
 	// Work around bug in the VS 2013 math libraries in 64bit on certain windows versions. http://connect.microsoft.com/VisualStudio/feedback/details/811093 has details, remove this when runtime libraries are fixed
 	_set_FMA3_enable(0);
 #endif
-
-	// Randomize.
-	if( GIsBenchmarking )
-	{
-		srand( 0 );
-	}
-	else
-	{
-		srand( (unsigned)time( NULL ) );
-	}
 
 	// Set granularity of sleep and such to 1 ms.
 	timeBeginPeriod( 1 );
@@ -227,41 +180,6 @@ void FWindowsPlatformMisc::PlatformInit()
 }
 
 
-#if WITH_ENGINE
-/**
- * Temporary window procedure for the game window during startup.
- * It gets replaced later on with SetWindowLong().
- */
-LRESULT CALLBACK StartupWindowProc(HWND hWnd, uint32 Message, WPARAM wParam, LPARAM lParam)
-{
-	switch (Message)
-	{
-		// Prevent power management
-		case WM_POWERBROADCAST:
-		{
-			switch( wParam )
-			{
-				case PBT_APMQUERYSUSPEND:
-				case PBT_APMQUERYSTANDBY:
-					return BROADCAST_QUERY_DENY;
-			}
-		}
-	}
-
-	return DefWindowProc(hWnd, Message, wParam, lParam);
-}
-
-void FWindowsPlatformMisc::PlatformPostInit()
-{
-
-}
-
-#endif		// WITH_ENGINE
-
-/**
- * Prevents screen-saver from kicking in by moving the mouse by 0 pixels. This works even on
- * Vista in the presence of a group policy for password protected screen saver.
- */
 void FWindowsPlatformMisc::PreventScreenSaver()
 {
 	INPUT Input = { 0 };
@@ -1117,47 +1035,6 @@ EAppReturnType::Type FWindowsPlatformMisc::MessageBoxExt( EAppMsgType::Type MsgT
 	return EAppReturnType::Cancel;
 }
 
-#if WITH_ENGINE
-void FWindowsPlatformMisc::ShowGameWindow( void* StaticWndProc )
-{
-	if ( FPlatformProperties::SupportsWindowedMode() && GGameWindow && GGameWindowUsingStartupWindowProc )
-	{
-		// Convert position from screen coordinates to workspace coordinates.
-		HMONITOR Monitor = MonitorFromWindow(GGameWindow, MONITOR_DEFAULTTOPRIMARY);
-		MONITORINFO MonitorInfo;
-		MonitorInfo.cbSize = sizeof(MONITORINFO);
-		GetMonitorInfo( Monitor, &MonitorInfo );
-		int32 PosX = GGameWindowPosX - MonitorInfo.rcWork.left;
-		int32 PosY = GGameWindowPosY - MonitorInfo.rcWork.top;
-
-		// Clear out old messages using the old StartupWindowProc
-		WinPumpMessages();
-
-		SetWindowLong(GGameWindow, GWL_STYLE, GGameWindowStyle);
-		SetWindowLongPtr(GGameWindow, GWLP_WNDPROC, (LONG_PTR)StaticWndProc);
-		GGameWindowUsingStartupWindowProc = false;
-
-		// Restore the minimized window to the correct position, size and styles.
-		WINDOWPLACEMENT Placement;
-		FMemory::Memzero(&Placement, sizeof(WINDOWPLACEMENT));
-		Placement.length					= sizeof(WINDOWPLACEMENT);
-		GetWindowPlacement(GGameWindow, &Placement);
-		Placement.flags						= 0;
-		Placement.showCmd					= SW_SHOWNORMAL;	// Restores the minimized window (SW_SHOW won't do that)
-		Placement.rcNormalPosition.left		= PosX;
-		Placement.rcNormalPosition.right	= PosX + GGameWindowWidth;
-		Placement.rcNormalPosition.top		= PosY;
-		Placement.rcNormalPosition.bottom	= PosY + GGameWindowHeight;
-		SetWindowPlacement(GGameWindow, &Placement);
-		UpdateWindow(GGameWindow);
-
-		// Pump the messages using the new (correct) WindowProc
-		WinPumpMessages();
-	}
-}
-#endif		// WITH_ENGINE
-
-
 static bool HandleGameExplorerIntegration()
 {
 	if (FPlatformProperties::SupportsWindowedMode())
@@ -1597,7 +1474,11 @@ int32 FWindowsPlatformMisc::NumberOfCoresIncludingHyperthreads()
 
 void FWindowsPlatformMisc::LoadPreInitModules()
 {
-	FModuleManager::Get().LoadModule(TEXT("D3D11RHI"));
+	// D3D11 is not supported on WinXP, so in this case we use the OpenGL RHI
+	if(FWindowsPlatformMisc::VerifyWindowsMajorVersion(6))
+	{
+		FModuleManager::Get().LoadModule(TEXT("D3D11RHI"));
+	}
 	FModuleManager::Get().LoadModule(TEXT("OpenGLDrv"));
 }
 
@@ -1607,7 +1488,7 @@ void FWindowsPlatformMisc::LoadStartupModules()
 	FModuleManager::Get().LoadModule(TEXT("HeadMountedDisplay"));
 
 #if WITH_EDITOR
-	FModuleManager::Get().LoadModule(TEXT("VSAccessor"));
+	FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
 #endif	//WITH_EDITOR
 }
 
@@ -1732,41 +1613,93 @@ FLinearColor FWindowsPlatformMisc::GetScreenPixelColor(const FVector2D& InScreen
 	return ScreenColor;
 }
 
-bool FWindowsPlatformMisc::HasCPUIDInstruction()
+/**
+* Class that caches __cpuid queried data.
+*/
+class FCPUIDQueriedData
 {
-#if PLATFORM_SEH_EXCEPTIONS_DISABLED
-	return false;
-#else
-	__try
+public:
+	FCPUIDQueriedData()
+		: bHasCPUIDInstruction(CheckForCPUIDInstruction()), Vendor(), CPUInfo(0), CacheLineSize(1)
 	{
-		int Args[4];
-		__cpuid(Args, 0);
-	}
-	__except (EXCEPTION_EXECUTE_HANDLER)
-	{
-		return false;
-	}
-	return true;
-#endif
-}
-
-FString FWindowsPlatformMisc::GetCPUVendor()
-{
-	union
-	{
-		char Buffer[12+1];
-		struct
+		if(bHasCPUIDInstruction)
 		{
-			int dw0;
-			int dw1;
-			int dw2;
-		} Dw;
-	} VendorResult;
-	
+			Vendor = QueryCPUVendor();
+			CPUInfo = QueryCPUInfo();
+			CacheLineSize = QueryCacheLineSize();
+		}
+	}
 
-	FString Vendor;
-	if (HasCPUIDInstruction())
+	/** 
+	 * Checks if this CPU supports __cpuid instruction.
+	 *
+	 * @returns True if this CPU supports __cpuid instruction. False otherwise.
+	 */
+	static bool HasCPUIDInstruction() { return CPUIDStaticCache.bHasCPUIDInstruction; }
+
+	/**
+	 * Gets pre-cached CPU vendor name.
+	 *
+	 * @returns CPU vendor name.
+	 */
+	static const FString& GetVendor() { return CPUIDStaticCache.Vendor; }
+
+	/**
+	 * Gets __cpuid CPU info.
+	 *
+	 * @returns CPU info unsigned int queried using __cpuid.
+	 */
+	static uint32 GetCPUInfo() { return CPUIDStaticCache.CPUInfo; }
+
+	/** 
+	 * Gets cache line size.
+	 *
+	 * @returns Cache line size.
+	 */
+	static int32 GetCacheLineSize() { return CPUIDStaticCache.CacheLineSize; }
+
+private:
+	/**
+	 * Checks if __cpuid instruction is present on current machine.
+	 *
+	 * @returns True if this CPU supports __cpuid instruction. False otherwise.
+	 */
+	static bool CheckForCPUIDInstruction()
 	{
+#if PLATFORM_SEH_EXCEPTIONS_DISABLED
+		return false;
+#else
+		__try
+		{
+			int Args[4];
+			__cpuid(Args, 0);
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return false;
+		}
+		return true;
+#endif
+	}
+
+	/**
+	 * Queries Vendor name using __cpuid instruction.
+	 *
+	 * @returns CPU vendor name.
+	 */
+	static FString QueryCPUVendor()
+	{
+		union
+		{
+			char Buffer[12 + 1];
+			struct
+			{
+				int dw0;
+				int dw1;
+				int dw2;
+			} Dw;
+		} VendorResult;
+
 		int Args[4];
 		__cpuid(Args, 0);
 
@@ -1775,22 +1708,81 @@ FString FWindowsPlatformMisc::GetCPUVendor()
 		VendorResult.Dw.dw2 = Args[2];
 		VendorResult.Buffer[12] = 0;
 
-		Vendor = ANSI_TO_TCHAR(VendorResult.Buffer);
+		return ANSI_TO_TCHAR(VendorResult.Buffer);
 	}
-	return Vendor;
-}
 
-uint32 FWindowsPlatformMisc::GetCPUInfo()
-{
-	uint32 Info = 0;
-	if (HasCPUIDInstruction())
+	/**
+	 * Queries CPU info using __cpuid instruction.
+	 *
+	 * @returns CPU info unsigned int queried using __cpuid.
+	 */
+	static uint32 QueryCPUInfo()
 	{
+		uint32 Info = 0;
+
 		int Args[4];
 		__cpuid(Args, 1);
 
 		Info = Args[0];
+
+		return Info;
 	}
-	return Info;
+
+	/**
+	 * Queries cache line size using __cpuid instruction.
+	 *
+	 * @returns Cache line size.
+	 */
+	static int32 QueryCacheLineSize()
+	{
+		int32 Result = 1;
+
+		int Args[4];
+		__cpuid(Args, 0x80000006);
+
+		Result = Args[2] & 0xFF;
+		check(Result && !(Result & (Result - 1))); // assumed to be a power of two
+
+		return Result;
+	}
+
+	/** Static field with pre-cached __cpuid data. */
+	static FCPUIDQueriedData CPUIDStaticCache;
+
+	/** If machine has CPUID instruction. */
+	bool bHasCPUIDInstruction;
+
+	/** Vendor of the CPU. */
+	FString Vendor;
+
+	/** CPU info from __cpuid. */
+	uint32 CPUInfo;
+
+	/** CPU cache line size. */
+	int32 CacheLineSize;
+};
+
+/** Static initialization of data to pre-cache __cpuid queries. */
+FCPUIDQueriedData FCPUIDQueriedData::CPUIDStaticCache;
+
+bool FWindowsPlatformMisc::HasCPUIDInstruction()
+{
+	return FCPUIDQueriedData::HasCPUIDInstruction();
+}
+
+FString FWindowsPlatformMisc::GetCPUVendor()
+{
+	return FCPUIDQueriedData::GetVendor();
+}
+
+uint32 FWindowsPlatformMisc::GetCPUInfo()
+{
+	return FCPUIDQueriedData::GetCPUInfo();
+}
+
+int32 FWindowsPlatformMisc::GetCacheLineSize()
+{
+	return FCPUIDQueriedData::GetCacheLineSize();
 }
 
 bool FWindowsPlatformMisc::GetRegistryString(const FString& InRegistryKey, const FString& InValueName, bool bPerUserSetting, FString& OutValue)
@@ -1839,18 +1831,36 @@ bool FWindowsPlatformMisc::QueryRegKey( const HKEY InKey, const TCHAR* InSubKey,
 	return bSuccess;
 }
 
-int32 FWindowsPlatformMisc::GetCacheLineSize()
+bool FWindowsPlatformMisc::GetVSComnTools(int32 Version, FString& OutData)
 {
-	int32 Result = 1;
-	if (HasCPUIDInstruction())
-	{
-		int Args[4];
-		__cpuid(Args, 0x80000006);
+	checkf(11 <= Version && Version <= 12, L"Not supported Visual Studio version.");
 
-		Result = Args[2] & 0xFF;
-		check(Result && !(Result & (Result - 1))); // assumed to be a power of two
+	const TCHAR* PossibleRegPaths[] = {
+		L"Wow6432Node\\Microsoft\\VisualStudio",	// Non-express VS2013 on 64-bit machine.
+		L"Microsoft\\VisualStudio",					// Non-express VS2013 on 32-bit machine.
+		L"Wow6432Node\\Microsoft\\WDExpress",		// Express VS2013 on 64-bit machine.
+		L"Microsoft\\WDExpress"						// Express VS2013 on 32-bit machine.
+	};
+
+	bool bResult = false;
+	FString IDEPath;
+
+	for (int32 Index = 0; Index < sizeof(PossibleRegPaths) / sizeof(const TCHAR *); ++Index)
+	{
+		bResult = QueryRegKey(HKEY_LOCAL_MACHINE, *FString::Printf(L"SOFTWARE\\%s\\%d.0", PossibleRegPaths[Index], Version), L"InstallDir", IDEPath);
+
+		if (bResult)
+		{
+			break;
+		}
 	}
-	return Result;
+	
+	if(bResult)
+	{
+		OutData = FPaths::ConvertRelativePathToFull(FPaths::Combine(*IDEPath, L"..", L"Tools"));
+	}
+
+	return bResult;
 }
 
 const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
@@ -1858,3 +1868,7 @@ const TCHAR* FWindowsPlatformMisc::GetDefaultPathSeparator()
 	return TEXT( "\\" );
 }
 
+FText FWindowsPlatformMisc::GetFileManagerName()
+{
+	return NSLOCTEXT("WindowsPlatform", "FileManagerName", "Explorer");
+}

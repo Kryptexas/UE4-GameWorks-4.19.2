@@ -28,6 +28,7 @@ private:
 	void OnCopyProperty();
 	void OnPasteProperty();
 	bool CanPasteProperty() const;
+	const FSlateBrush* GetBorderImage() const;
 private:
 	/** Customization for this widget */
 	FDetailLayoutCustomization* Customization;

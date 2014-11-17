@@ -12,7 +12,7 @@ public class BlueprintGraph : ModuleRules
                 "Editor/BlueprintGraph/Private",
                 "Editor/KismetCompiler/Public",
             }
-            );
+		);
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] { 
@@ -23,7 +23,7 @@ public class BlueprintGraph : ModuleRules
 				"Slate",
                 "EditorStyle",
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange( 
 			new string[] {
@@ -31,8 +31,9 @@ public class BlueprintGraph : ModuleRules
                 "KismetCompiler",
 				"UnrealEd",
                 "GraphEditor",
+				"SlateCore",
 			}
-			);
+		);
 
 		CircularlyReferencedDependentModules.AddRange(
             new string[] {
@@ -40,7 +41,6 @@ public class BlueprintGraph : ModuleRules
                 "UnrealEd",
                 "GraphEditor",
             }
-            ); 
-
+		); 
 	}
 }

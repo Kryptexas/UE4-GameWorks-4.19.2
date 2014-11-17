@@ -109,7 +109,7 @@ void FEpicSurvey::Initialize()
 	{
 		InitializeTitleCloud();
 
-		if ( GConfig->GetInt(TEXT("EpicSurvey"),TEXT("NotificationDelayTime"), SurveyNotificationDelayTime, GEngineIni) )
+		if ( GConfig->GetInt(TEXT("EpicSurvey"),TEXT("NotificationDelayTime"), SurveyNotificationDelayTime, GEditorIni) )
 		{
 			// if the Notification is 0, then it will be displayed during SetActiveSurvey
 			if( SurveyNotificationDelayTime > 0 )
@@ -120,15 +120,15 @@ void FEpicSurvey::Initialize()
 			}
 		}
 
-		GConfig->GetInt(TEXT("EpicSurvey"),TEXT("PulseDuration"), SurveyPulseDuration, GEngineIni);
+		GConfig->GetInt(TEXT("EpicSurvey"),TEXT("PulseDuration"), SurveyPulseDuration, GEditorIni);
 	
-		if ( GConfig->GetInt(TEXT("EpicSurvey"),TEXT("PulseTimeInterval"), SurveyPulseTimeInterval, GEngineIni) )
+		if ( GConfig->GetInt(TEXT("EpicSurvey"),TEXT("PulseTimeInterval"), SurveyPulseTimeInterval, GEditorIni) )
 		{
 			StartPulseSurveyIconDelegate.BindRaw( this, &FEpicSurvey::StartPulseSurveyIcon );
 			EndPulseSurveyIconDelegate.BindRaw( this, &FEpicSurvey::EndPulseSurveyIcon );
 		}
 
-		GConfig->GetFloat(TEXT("EpicSurvey"),TEXT("SurveyNotificationDuration"), SurveyNotificationDuration, GEngineIni);
+		GConfig->GetFloat(TEXT("EpicSurvey"),TEXT("SurveyNotificationDuration"), SurveyNotificationDuration, GEditorIni);
 	}
 
 	if ( TitleCloud.IsValid() )
@@ -164,12 +164,12 @@ void FEpicSurvey::InitializeTitleCloud()
 	};
 
 	FString SourceType;
-	if ( GConfig->GetString(TEXT("EpicSurvey"),TEXT("Source"), SourceType, GEngineIni) && !SourceType.IsEmpty() )
+	if ( GConfig->GetString(TEXT("EpicSurvey"),TEXT("Source"), SourceType, GEditorIni) && !SourceType.IsEmpty() )
 	{
 		if ( SourceType == TEXT("CDN") )
 		{
 			FString CdnUrl;
-			if ( GConfig->GetString(TEXT("EpicSurvey"),TEXT("CdnUrl"), CdnUrl, GEngineIni) && !CdnUrl.IsEmpty() )
+			if ( GConfig->GetString(TEXT("EpicSurvey"),TEXT("CdnUrl"), CdnUrl, GEditorIni) && !CdnUrl.IsEmpty() )
 			{
 				if ( !CultureString.IsEmpty() )
 				{
@@ -186,7 +186,7 @@ void FEpicSurvey::InitializeTitleCloud()
 		else if ( SourceType == TEXT("LOCAL") )
 		{
 			FString EngineContentRelativeDirectory;
-			if ( GConfig->GetString(TEXT("EpicSurvey"),TEXT("EngineContentRelativeDirectory"), EngineContentRelativeDirectory, GEngineIni) && !EngineContentRelativeDirectory.IsEmpty() )
+			if ( GConfig->GetString(TEXT("EpicSurvey"),TEXT("EngineContentRelativeDirectory"), EngineContentRelativeDirectory, GEditorIni) && !EngineContentRelativeDirectory.IsEmpty() )
 			{
 				FString RootDirectory = FPaths::Combine( FPlatformProcess::BaseDir(), *FPaths::EngineContentDir(), *EngineContentRelativeDirectory );
 				if ( !CultureString.IsEmpty() )

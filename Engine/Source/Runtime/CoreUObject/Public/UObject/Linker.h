@@ -1248,6 +1248,8 @@ private:
 	bool					bTimeLimitExceeded;
 	/** Whether to use a time limit for async linker creation.																*/
 	bool					bUseTimeLimit;
+	/** Whether to use the full time limit, even if we're blocked on I/O													*/
+	bool					bUseFullTimeLimit;
 	/** Call count of IsTimeLimitExceeded.																					*/
 	int32					IsTimeLimitExceededCallCount;
 	/** Current time limit to use if bUseTimeLimit is true.																	*/
@@ -1338,7 +1340,7 @@ public:
 	 *
 	 * @return true if initialized, false if pending.
 	 */
-	bool HasFinishedInitializtion() const
+	bool HasFinishedInitialization() const
 	{
         return bHasFinishedInitialization;
 	}
@@ -1518,6 +1520,29 @@ public:
 private:
 
 	UObject* CreateExport( int32 Index );
+
+	/**
+	 * Creates export and preload if requested.
+	 *
+	 * @param Index Index of the export in export map.
+	 * @param bForcePreload Whether to explicitly call Preload (serialize)
+	 *        right away instead of being called from EndLoad().
+	 *
+	 * @return Created object.
+	 */
+	UObject* CreateExportAndPreload(int32 ExportIndex, bool bForcePreload = false);
+
+	/** 
+	 * Looks for and loads meta data object from export map.
+	 *
+	 * @param bForcePreload Whether to explicitly call Preload (serialize)
+	 *        right away instead of being called from EndLoad().
+	 * 
+	 * @return If found returns index of meta data object in the export map,
+	 *         INDEX_NONE otherwise.
+	 */
+	int32 LoadMetaDataFromExportMap(bool bForcePreload = false);
+
 	UObject* CreateImport( int32 Index );
 	UObject* IndexToObject( FPackageIndex Index );
 
@@ -1620,10 +1645,11 @@ private:
 	 *
 	 * @param	InTimeLimit		Soft time limit to use if bInUseTimeLimit is true
 	 * @param	bInUseTimeLimit	Whether to use a (soft) timelimit
+	 * @param	bInUseFullTimeLimit	Whether to use the entire time limit, even if blocked on I/O
 	 * 
 	 * @return	true if linker has finished creation, false if it is still in flight
 	 */
-	ELinkerStatus Tick( float InTimeLimit, bool bInUseTimeLimit );
+	ELinkerStatus Tick( float InTimeLimit, bool bInUseTimeLimit, bool bInUseFullTimeLimit);
 
 	/**
 	 * Private constructor, passing arguments through from CreateLinker.
@@ -1748,7 +1774,7 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	TMap<UObject *,FPackageIndex> ObjectIndicesMap;
 
 	/** Index array - location of the name in the NameMap array for each FName is stored in the NameIndices array using the FName's Index */
-	TArray<int32> NameIndices;
+	TMap<int32, int32> NameIndices;
 
 	/** List of bulkdata that needs to be stored at the end of the file */
 	struct FBulkDataStorageInfo
@@ -1771,12 +1797,16 @@ class ULinkerSave : public ULinker, public FArchiveUObject
 	ULinkerSave( const class FPostConstructInitializeProperties& PCIP, UPackage* InParent, bool bForceByteSwapping, bool bInSaveUnversioned = false );
 	void BeginDestroy();
 
-	int32 MapName( const FName* Name ) const;
-	FPackageIndex MapObject( const UObject* Object ) const;
+	/** Returns the appropriate name index for the source name, or 0 if not found in NameIndices */
+	int32 MapName(const FName& Name) const;
+
+	/** Returns the appropriate package index for the source object, or default value if not found in ObjectIndicesMap */
+	FPackageIndex MapObject(const UObject* Object) const;
+
 	// FArchive interface.
-	FArchive& operator<<( FName& InName )
+	FArchive& operator<<(FName& InName)
 	{
-		int32 Save = NameIndices[InName.GetIndex()];
+		int32 Save = MapName(InName);
 		int32 Number = InName.GetNumber();
 		FArchive& Ar = *this;
 		return Ar << Save << Number;

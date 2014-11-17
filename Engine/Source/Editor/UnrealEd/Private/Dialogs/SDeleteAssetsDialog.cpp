@@ -582,6 +582,11 @@ FReply SDeleteAssetsDialog::ForceDelete()
 {
 	ParentWindow.Get()->RequestDestroyWindow();
 
+	if( DeleteModel->IsAnythingReferencedInMemoryByUndo() )
+	{
+		GEditor->Trans->Reset( LOCTEXT("DeleteSelectedItem", "Delete Selected Item") );
+	}
+
 	DeleteModel->DoForceDelete();
 
 	return FReply::Handled();
@@ -685,7 +690,7 @@ FText SDeleteAssetsDialog::GetReferencingAssetsEmptyText() const
 void SDeleteAssetsDialog::OnAssetsActivated(const TArray<FAssetData>& ActivatedAssets, EAssetTypeActivationMethod::Type ActivationMethod)
 {
 	// Open a simple asset editor for all assets which do not have asset type actions if activating with enter or double click
-	if ( ActivationMethod == EAssetTypeActivationMethod::DoubleClicked || ActivationMethod == EAssetTypeActivationMethod::EnterPressed )
+	if ( ActivationMethod == EAssetTypeActivationMethod::DoubleClicked || ActivationMethod == EAssetTypeActivationMethod::Opened )
 	{
 		ParentWindow.Get()->RequestDestroyWindow();
 

@@ -287,10 +287,13 @@ void FSourceControlModule::QueueStatusUpdate(const FString& InFilename)
 	if(IsEnabled())
 	{
 		TSharedPtr<ISourceControlState, ESPMode::ThreadSafe> SourceControlState = GetProvider().GetState(InFilename, EStateCacheUsage::Use);
-		FTimespan TimeSinceLastUpdate = FDateTime::Now() - SourceControlState->GetTimeStamp();
-		if(TimeSinceLastUpdate > SourceControlConstants::StateRefreshInterval)
+		if(SourceControlState.IsValid())
 		{
-			PendingStatusUpdateFiles.AddUnique(InFilename);
+			FTimespan TimeSinceLastUpdate = FDateTime::Now() - SourceControlState->GetTimeStamp();
+			if(TimeSinceLastUpdate > SourceControlConstants::StateRefreshInterval)
+			{
+				PendingStatusUpdateFiles.AddUnique(InFilename);
+			}
 		}
 	}
 }

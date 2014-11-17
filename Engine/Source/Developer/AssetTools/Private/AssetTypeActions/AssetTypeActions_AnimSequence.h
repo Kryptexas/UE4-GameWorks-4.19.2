@@ -24,6 +24,9 @@ private:
 	/** Handler for when OpenInExternalEditor is selected */
 	void ExecuteOpenInExternalEditor(TArray<TWeakObjectPtr<UAnimSequence>> Objects);
 
+	/** Handler for when OpenInExternalEditor is selected */
+	void ExecuteReimportWithNewSource(TArray<TWeakObjectPtr<UAnimSequence>> Objects);
+
 	/** Returns true to allow execution of source file commands */
 	bool CanExecuteSourceCommands(TArray<TWeakObjectPtr<UAnimSequence>> Objects) const;
 
@@ -41,4 +44,7 @@ private:
 
 	/** Creates animation assets of the supplied class */
 	void CreateAnimationAssets(const TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences, TSubclassOf<UAnimationAsset> AssetClass, UFactory* AssetFactory, const FString& InSuffix, FOnConfigureFactory OnConfigureFactory) const;
+
+	void FillSourceMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UAnimSequence>> Sequences) const;
+	void FillCreateMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UAnimSequence>> Sequences) const;
 };

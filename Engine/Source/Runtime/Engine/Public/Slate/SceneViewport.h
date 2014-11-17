@@ -126,6 +126,13 @@ public:
 	void OnPlayWorldViewportSwapped( const FSceneViewport& OtherViewport );
 
 	/**
+	 * Swaps the active stats with another viewports
+	 *
+	 * @param OtherViewport	The previously active viewport
+	 */
+	void SwapStatCommands(const FSceneViewport& OtherViewport);
+
+	/**
 	 * Indicate that the viewport should be block for vsync.
 	 */
 	virtual void SetRequiresVsync(bool bShouldVsync) OVERRIDE { bRequiresVsync = bShouldVsync; }
@@ -140,9 +147,9 @@ public:
 	 *
 	 * @param NewSizeX		The new width of the viewport
 	 * @param NewSizeY		The new height of the viewport
-	 * @param bFullscreen	True if the viewport should be fullscreen
+	 * @param NewWindowMode	 What window mode should the viewport be resized to
 	 */
-	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,bool bNewFullscreen,int32 InPosX, int32 InPosY ) OVERRIDE;
+	virtual void ResizeFrame(uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY ) OVERRIDE;
 
 	/**
 	 *	Sets the Viewport resize delegate.
@@ -156,13 +163,22 @@ public:
 	* Sets whether a PIE viewport takes mouse control on startup.
 	* @param bGetsMouseControl Takes control if true, or not if false. 
 	*/
-	void SetPlayInEditorGetsMouseControl( bool bGetsMouseControl )
+	void SetPlayInEditorGetsMouseControl(const bool bGetsMouseControl)
 	{
 		bPlayInEditorGetsMouseControl = bGetsMouseControl;
 	}
 
+	void SetPlayInEditorIsSimulate(const bool bIsSimulate)
+	{
+		bPlayInEditorIsSimulate = bIsSimulate;
+	}
+	bool GetPlayInEditorIsSimulate() const
+	{
+		return bPlayInEditorIsSimulate;
+	}
+
 	/** Updates the viewport RHI with a new size and fullscreen flag */
-	virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,bool bNewIsFullscreen) OVERRIDE;
+	virtual void UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode) OVERRIDE;
 
 	/** ISlateViewport interface */
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const OVERRIDE;
@@ -213,9 +229,9 @@ private:
 	 *
 	 * @param NewSizeX		 The new width of the viewport
 	 * @param NewSizeY		 The new height of the viewport
-	 * @param bNewFullscreen True if the viewport should be fullscreen
+	 * @param NewWindowMode	 What window mode should the viewport be resized to
 	 */
-	virtual void ResizeViewport( uint32 NewSizeX,uint32 NewSizeY,bool bNewFullscreen,int32 InPosX, int32 InPosY );
+	virtual void ResizeViewport( uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode,int32 InPosX, int32 InPosY );
 
 
 	/**
@@ -255,7 +271,7 @@ private:
 	FReply CurrentReplyState;
 	/** A mapping of key names to their pressed state */
 	TMap<FKey,bool> KeyStateMap;
-	/** The last known mouse position in local space */
+	/** The last known mouse position in local space, -1, -1 if unknown */
 	FIntPoint CachedMousePos;
 	/** The last known geometry info */
 	FGeometry CachedGeometry;
@@ -289,6 +305,8 @@ private:
 	FOnSceneViewportResize OnSceneViewportResizeDel;
 	/** Whether a PIE viewport should take mouse control on startup */
 	bool bPlayInEditorGetsMouseControl;
+	/** Whether the PIE viewport is currently in simulate in editor mode */
+	bool bPlayInEditorIsSimulate;
 };
 
 

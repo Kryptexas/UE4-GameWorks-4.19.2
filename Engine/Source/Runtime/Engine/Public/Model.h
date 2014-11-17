@@ -497,6 +497,7 @@ public:
 	ENGINE_API void ModifySelectedSurfs( bool UpdateMaster );
 	void ModifyAllSurfs( bool UpdateMaster );
 	ENGINE_API void ModifySurf( int32 InIndex, bool UpdateMaster );
+	ENGINE_API bool HasSelectedSurfaces() const;
 #endif
 
 	ENGINE_API float FindNearestVertex

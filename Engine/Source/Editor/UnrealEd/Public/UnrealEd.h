@@ -11,8 +11,6 @@
 
 #include "Engine.h"
 
-#include "EngineUserInterfaceClasses.h"
-
 #include "Slate.h"
 #include "EditorStyle.h"
 

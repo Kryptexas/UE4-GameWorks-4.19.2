@@ -73,8 +73,8 @@ public:
 							// all platforms hyper-link
 							SNew(SHyperlink)
 								.OnNavigate(this, &SSessionLauncherCookedPlatforms::HandleAllPlatformsHyperlinkNavigate, true)
-								.Text(LOCTEXT("AllPlatformsHyperlinkLabel", "All").ToString())
-								.ToolTipText(LOCTEXT("AllPlatformsButtonTooltip", "Select all available platforms.").ToString())
+								.Text(LOCTEXT("AllPlatformsHyperlinkLabel", "All"))
+								.ToolTipText(LOCTEXT("AllPlatformsButtonTooltip", "Select all available platforms."))
 								.Visibility(this, &SSessionLauncherCookedPlatforms::HandleAllPlatformsHyperlinkVisibility)									
 						]
 
@@ -84,8 +84,8 @@ public:
 							// no platforms hyper-link
 							SNew(SHyperlink)
 								.OnNavigate(this, &SSessionLauncherCookedPlatforms::HandleAllPlatformsHyperlinkNavigate, false)
-								.Text(LOCTEXT("NoPlatformsHyperlinkLabel", "None").ToString())
-								.ToolTipText(LOCTEXT("NoPlatformsHyperlinkTooltip", "Deselect all platforms.").ToString())
+								.Text(LOCTEXT("NoPlatformsHyperlinkLabel", "None"))
+								.ToolTipText(LOCTEXT("NoPlatformsHyperlinkTooltip", "Deselect all platforms."))
 								.Visibility(this, &SSessionLauncherCookedPlatforms::HandleAllPlatformsHyperlinkVisibility)									
 						]
 				]
@@ -134,7 +134,7 @@ protected:
 
 		return SNew(STextBlock)
 			.ColorAndOpacity(FLinearColor::Red)
-			.Text(LOCTEXT("NoPlatformsFoundErrorText", "Error: No platforms found.").ToString());
+			.Text(LOCTEXT("NoPlatformsFoundErrorText", "Error: No platforms found."));
 	}
 
 

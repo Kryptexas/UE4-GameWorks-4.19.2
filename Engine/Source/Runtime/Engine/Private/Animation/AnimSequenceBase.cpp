@@ -461,6 +461,36 @@ void UAnimSequenceBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags)
 	}
 }
 
+uint8* UAnimSequenceBase::FindNotifyPropertyData(int32 NotifyIndex, UArrayProperty*& ArrayProperty)
+{
+	// initialize to NULL
+	ArrayProperty = NULL;
+
+	if(Notifies.IsValidIndex(NotifyIndex))
+	{
+		// find Notifies property start point
+		UProperty* Property = FindField<UProperty>(GetClass(), TEXT("Notifies"));
+
+		// found it and if it is array
+		if(Property && Property->IsA(UArrayProperty::StaticClass()))
+		{
+			// find Property Value from UObject we got
+			uint8* PropertyValue = Property->ContainerPtrToValuePtr<uint8>(this);
+
+			// it is array, so now get ArrayHelper and find the raw ptr of the data
+			ArrayProperty = CastChecked<UArrayProperty>(Property);
+			FScriptArrayHelper ArrayHelper(ArrayProperty, PropertyValue);
+
+			if(ArrayProperty->Inner && NotifyIndex < ArrayHelper.Num())
+			{
+				//Get property data based on selected index
+				return ArrayHelper.GetRawPtr(NotifyIndex);
+			}
+		}
+	}
+	return NULL;
+}
+
 #endif	//WITH_EDITOR
 
 

@@ -90,7 +90,7 @@ class ENGINE_API UCameraShake : public UObject
 
 	/** 
 	 *  true to only allow a single instance of this shake to play at any given time. 
-	 *  Subsequents attempts to play this shake will simply restart the timer.
+	 *  Subsequent attempts to play this shake will simply restart the timer.
 	 */
 	UPROPERTY(EditAnywhere, Category=CameraShake)
 	uint32 bSingleInstance:1;

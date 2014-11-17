@@ -4,6 +4,8 @@
 #include "Slate.h"
 #include "Kismet2NameValidators.h"
 #include "AnimGraphDefinitions.h"
+#include "AnimStateTransitionNode.h"
+#include "AnimationStateMachineGraph.h"
 #include "KismetEditorUtilities.h"
 #include "KismetDebugUtilities.h"
 #include "BlueprintEditorUtils.h"
@@ -92,7 +94,6 @@ FKismetNameValidator::FKismetNameValidator(const class UBlueprint* Blueprint, FN
 	FBlueprintEditorUtils::GetClassVariableList(BlueprintObject, Names, true);
 	FBlueprintEditorUtils::GetAllGraphNames(BlueprintObject, Names);
 	FBlueprintEditorUtils::GetSCSVariableNameList(Blueprint, Names);
-	FStructureEditorUtils::GetAllStructureNames(Blueprint, Names);
 	FBlueprintEditorUtils::GetImplementingBlueprintsFunctionNameList(Blueprint, Names);
 }
 
@@ -140,13 +141,22 @@ EValidatorResult FKismetNameValidator::IsValid(const FName& Name, bool /* bOrigi
 
 		if(ValidatorResult == EValidatorResult::Ok)
 		{
-			TArray<UK2Node_LocalVariable*> EventNodes;
-			FBlueprintEditorUtils::GetAllNodesOfClass(BlueprintObject, EventNodes);
-			for (UK2Node_LocalVariable* LocalVariable : EventNodes)
+			// Search through all functions for their local variables and prevent duplicate names
+			TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+			FBlueprintEditorUtils::GetAllNodesOfClass(BlueprintObject, FunctionEntryNodes);
+			for (UK2Node_FunctionEntry* const FunctionEntry : FunctionEntryNodes)
 			{
-				if(LocalVariable->CustomVariableName == Name)
+				for( const FBPVariableDescription& Variable : FunctionEntry->LocalVariables )
 				{
-					ValidatorResult = EValidatorResult::AlreadyInUse;
+					if(Variable.VarName == Name)
+					{
+						ValidatorResult = EValidatorResult::AlreadyInUse;
+						break;
+					}
+				}
+
+				if(ValidatorResult != EValidatorResult::Ok)
+				{
 					break;
 				}
 			}

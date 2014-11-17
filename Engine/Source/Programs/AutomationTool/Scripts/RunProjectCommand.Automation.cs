@@ -60,7 +60,7 @@ public partial class Project : CommandUtils
 	{
 		return GlobalCommandLine.Installed ? 
 			CmdEnv.LogFolder : 
-			CombinePaths(Path.GetTempPath(), CmdEnv.LocalRoot.Replace("/", "+").Replace("\\", "+").Replace(":", "+"), "Logs");
+			CombinePaths(Path.GetTempPath(), CommandUtils.EscapePath(CmdEnv.LocalRoot), "Logs");
 	}
 
 	/// <summary>

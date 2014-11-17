@@ -87,7 +87,7 @@ struct FActorDestructionInfo
 };
 
 
-UCLASS(HeaderGroup=Network, dependson=UEngineTypes, Abstract, customConstructor, transient, MinimalAPI, config=Engine)
+UCLASS(dependson=UEngineTypes, Abstract, customConstructor, transient, MinimalAPI, config=Engine)
 class UNetDriver : public UObject, public FExec
 {
 	GENERATED_UCLASS_BODY()
@@ -122,7 +122,7 @@ public:
 	UPROPERTY(Config)
 	int32 MaxClientRate;
 
-	/** @todo document */
+	/** Amount of time a server will wait before traveling to next map, gives clients time to receive final RPCs on existing level @see NextSwitchCountdown */
 	UPROPERTY(Config)
 	float ServerTravelPause;
 

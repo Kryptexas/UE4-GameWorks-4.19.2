@@ -185,7 +185,7 @@ private:
 	/** 
 	 * Returns the text for the scaling label, determined by the value of bUseRelativeScaling
 	 */
-	FString GetScalingLabel() const;
+	FText GetScalingLabel() const;
 
 	/** 
 	 * Called with a value has been committed by one of the custom pan combobuttons

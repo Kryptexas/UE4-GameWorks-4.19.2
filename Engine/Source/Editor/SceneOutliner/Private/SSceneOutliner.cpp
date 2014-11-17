@@ -13,6 +13,7 @@
 
 #include "LevelUtils.h"
 #include "ActorEditorUtils.h"
+#include "SceneOutlinerFilterHelpers.h"
 #include "SceneOutlinerFilters.h"
 
 #include "EditorActorFolders.h"
@@ -26,6 +27,30 @@ DEFINE_LOG_CATEGORY_STATIC(LogSceneOutliner, Log, All);
 
 namespace SceneOutliner
 {
+
+	/** Recursively set the selection of all actor descendants of the specified folder */
+	void SelectDescedantActors(TSharedRef<TOutlinerFolderTreeItem> FolderItem, bool bSelected)
+	{
+		for (const auto& WeakChild : FolderItem->ChildItems)
+		{
+			auto ChildItem = WeakChild.Pin();
+			if (ChildItem.IsValid())
+			{
+				if (ChildItem->Type == TOutlinerTreeItem::Actor)
+				{
+					if (AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(ChildItem)->Actor.Get())
+					{
+						GEditor->SelectActor(Actor, true, /*bNotify=*/false);
+					}
+				}
+				else
+				{
+					SelectDescedantActors(StaticCastSharedPtr<TOutlinerFolderTreeItem>(ChildItem).ToSharedRef(), bSelected);
+				}
+			}
+		}
+	}
+
 	/** Gets the label for a tree item */
 	FText GetLabelForItem( const TSharedRef<TOutlinerTreeItem> TreeItem )
 	{
@@ -40,6 +65,20 @@ namespace SceneOutliner
 		}
 	}
 
+	/** Get label as a string, much faster than as a FText */
+	FString GetLabelForItemAsString(const TSharedRef<TOutlinerTreeItem> TreeItem)
+	{
+		if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
+		{
+			const AActor* Actor = StaticCastSharedRef<const SceneOutliner::TOutlinerActorTreeItem>(TreeItem)->Actor.Get();
+			return Actor ? Actor->GetActorLabel() : LOCTEXT("ActorLabelForMissingActor", "(Deleted Actor)").ToString();
+		}
+		else
+		{
+			return StaticCastSharedRef<const SceneOutliner::TOutlinerFolderTreeItem>(TreeItem)->LeafName.ToString();
+		}
+	}
+
 	namespace Helpers
 	{
 		/** Sorts tree items alphabetically */
@@ -51,7 +90,7 @@ namespace SceneOutliner
 				{
 					return A->Type == TOutlinerTreeItem::Folder;
 				}
-				return GetLabelForItem(A.ToSharedRef()).ToString() < GetLabelForItem(B.ToSharedRef()).ToString();
+				return GetLabelForItemAsString(A.ToSharedRef()) < GetLabelForItemAsString(B.ToSharedRef());
 			}
 		};
 		struct FSortByActorDescending
@@ -62,7 +101,7 @@ namespace SceneOutliner
 				{
 					return A->Type != TOutlinerTreeItem::Folder;
 				}
-				return GetLabelForItem(A.ToSharedRef()).ToString() > GetLabelForItem(B.ToSharedRef()).ToString();
+				return GetLabelForItemAsString(A.ToSharedRef()) > GetLabelForItemAsString(B.ToSharedRef());
 			}
 		};
 	}
@@ -128,23 +167,17 @@ namespace SceneOutliner
 
 		//Setup the FilterCollection
 		//We use the filter collection provide, otherwise we create our own
-		if (InInitOptions.ActorFilters.IsValid())
-		{
-			CustomFilters = InInitOptions.ActorFilters;
-		}
-		else
-		{
-			CustomFilters = MakeShareable( new ActorFilterCollection() );
-		}
+		Filters = InInitOptions.Filters.IsValid() ? InInitOptions.Filters : MakeShareable(new FOutlinerFilters);
 	
 		SearchBoxFilter->OnChanged().AddSP( this, &SSceneOutliner::FullRefresh );
-		CustomFilters->OnChanged().AddSP( this, &SSceneOutliner::FullRefresh );
+		Filters->OnChanged().AddSP( this, &SSceneOutliner::FullRefresh );
 
 		//Apply custom filters based on global preferences
 		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
 			ApplyShowOnlySelectedFilter( IsShowingOnlySelected() );
 			ApplyHideTemporaryActorsFilter( IsHidingTemporaryActors() );
+			ApplyShowOnlyCurrentLevelFilter( IsShowingOnlyCurrentLevel() );
 		}
 
 
@@ -165,7 +198,8 @@ namespace SceneOutliner
 		if (InInitOptions.Mode == ESceneOutlinerMode::ActorBrowsing)
 		{
 			// Set up the gutter if we're in actor browsing mode
-			Gutter = MakeShareable(new FSceneOutlinerGutter());
+
+			Gutter = MakeShareable(new FSceneOutlinerGutter(FOnSetItemVisibility::CreateSP(this, &SSceneOutliner::OnSetItemVisibility)));
 			HeaderRowWidget->AddColumn(
 				Gutter->ConstructHeaderRowColumn()
 				.FixedWidth(16.f)
@@ -263,7 +297,7 @@ namespace SceneOutliner
 			[
 				SNew( STextBlock )
 				.Visibility( this, &SSceneOutliner::GetEmptyLabelVisibility )
-				.Text( LOCTEXT( "EmptyLabel", "Empty" ).ToString() )
+				.Text( LOCTEXT( "EmptyLabel", "Empty" ) )
 				.ColorAndOpacity( FLinearColor( 0.4f, 1.0f, 0.4f ) )
 			]
 
@@ -353,7 +387,7 @@ namespace SceneOutliner
 						.Padding(2, 0, 0, 0)
 						.VAlign(VAlign_Center)
 						[
-							SNew(STextBlock).Text( LOCTEXT("ViewButton", "View Options").ToString() )
+							SNew(STextBlock).Text( LOCTEXT("ViewButton", "View Options") )
 						]
 					]
 				]
@@ -398,7 +432,7 @@ namespace SceneOutliner
 		GEditor->RegisterForUndo( this );
 
 		// Register to be notified when properties are edited
-		FCoreDelegates::OnActorLabelChanged.Add( FCoreDelegates::FOnActorLabelChanged::FDelegate::CreateRaw(this, &SSceneOutliner::OnActorLabelChanged) );
+		FCoreDelegates::OnActorLabelChanged.AddRaw(this, &SSceneOutliner::OnActorLabelChanged);
 
 		auto& Folders = FActorFolders::Get();
 		Folders.OnFolderCreate.AddSP(this, &SSceneOutliner::OnBroadcastFolderCreate);
@@ -418,12 +452,12 @@ namespace SceneOutliner
 		GEditor->UnregisterForUndo( this );
 
 		SearchBoxFilter->OnChanged().RemoveAll( this );
-		CustomFilters->OnChanged().RemoveAll( this );
+		Filters->OnChanged().RemoveAll( this );
 		
 		FWorldDelegates::LevelAddedToWorld.RemoveAll( this );
 		FWorldDelegates::LevelRemovedFromWorld.RemoveAll( this );
 
-		FCoreDelegates::OnActorLabelChanged.Remove( FCoreDelegates::FOnActorLabelChanged::FDelegate::CreateRaw(this, &SSceneOutliner::OnActorLabelChanged) );
+		FCoreDelegates::OnActorLabelChanged.RemoveAll(this);
 
 		auto& Folders = FActorFolders::Get();
 		Folders.OnFolderCreate.RemoveAll(this);
@@ -481,6 +515,19 @@ namespace SceneOutliner
 				NAME_None,
 				EUserInterfaceActionType::ToggleButton
 			);
+
+			MenuBuilder.AddMenuEntry(
+				LOCTEXT("ToggleShowOnlyCurrentLevel", "Only in Current Level"),
+				LOCTEXT("ToggleShowOnlyCurrentLevelToolTip", "When enabled, only shows Actors that are in the Current Level."),
+				FSlateIcon(),
+				FUIAction(
+				FExecuteAction::CreateSP( this, &SSceneOutliner::ToggleShowOnlyCurrentLevel ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SSceneOutliner::IsShowingOnlyCurrentLevel )
+				),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
 		}
 		MenuBuilder.EndSection();
 
@@ -489,11 +536,15 @@ namespace SceneOutliner
 
 
 	/** FILTERS */
+
+	// Show Only Selected
 	void SSceneOutliner::ToggleShowOnlySelected()
 	{
 		const bool bEnableFlag = !IsShowingOnlySelected();
-		GEditor->AccessEditorUserSettings().bShowOnlySelectedActors = bEnableFlag;
-		GEditor->AccessEditorUserSettings().PostEditChange();
+
+		USceneOutlinerSettings* Settings = GetMutableDefault<USceneOutlinerSettings>();
+		Settings->bShowOnlySelectedActors = bEnableFlag;
+		Settings->PostEditChange();
 
 		ApplyShowOnlySelectedFilter(bEnableFlag);
 	}
@@ -506,26 +557,30 @@ namespace SceneOutliner
 
 		if ( bShowOnlySelected )
 		{			
-			CustomFilters->Add( SelectedActorFilter );
+			Filters->Add( SelectedActorFilter );
 		}
 		else
 		{
-			CustomFilters->Remove( SelectedActorFilter );
+			Filters->Remove( SelectedActorFilter );
 		}
 	}
 	bool SSceneOutliner::IsShowingOnlySelected() const
 	{
-		return (GEditor->AccessEditorUserSettings().bShowOnlySelectedActors);
+		return GetDefault<USceneOutlinerSettings>()->bShowOnlySelectedActors;
 	}
 
+	// Hide Temporary Actors
 	void SSceneOutliner::ToggleHideTemporaryActors()
 	{
 		const bool bEnableFlag = !IsHidingTemporaryActors();
-		GEditor->AccessEditorUserSettings().bHideTemporaryActors = bEnableFlag;
-		GEditor->AccessEditorUserSettings().PostEditChange();
+
+		USceneOutlinerSettings* Settings = GetMutableDefault<USceneOutlinerSettings>();
+		Settings->bHideTemporaryActors = bEnableFlag;
+		Settings->PostEditChange();
 
 		ApplyHideTemporaryActorsFilter(bEnableFlag);
 	}
+
 	void SSceneOutliner::ApplyHideTemporaryActorsFilter(bool bHideTemporaryActors)
 	{
 		if ( !HideTemporaryActorsFilter.IsValid() )
@@ -533,19 +588,53 @@ namespace SceneOutliner
 			HideTemporaryActorsFilter = SceneOutlinerFilters::CreateHideTemporaryActorsFilter();
 		}
 
+		sizeof(TSharedPtr<TDelegateFilter<const AActor*const>>);
 		if ( bHideTemporaryActors )
 		{			
-			CustomFilters->Add( HideTemporaryActorsFilter );
+			Filters->Add( HideTemporaryActorsFilter );
 		}
 		else
 		{
-			CustomFilters->Remove( HideTemporaryActorsFilter );
+			Filters->Remove( HideTemporaryActorsFilter );
 		}
 	}
 	bool SSceneOutliner::IsHidingTemporaryActors() const
 	{
-		return (GEditor->AccessEditorUserSettings().bHideTemporaryActors);
+		return GetDefault<USceneOutlinerSettings>()->bHideTemporaryActors;
 	}
+
+	// Show Only Actors In Current Level
+	void SSceneOutliner::ToggleShowOnlyCurrentLevel()
+	{
+		const bool bEnableFlag = !IsShowingOnlyCurrentLevel();
+
+		USceneOutlinerSettings* Settings = GetMutableDefault<USceneOutlinerSettings>();
+		Settings->bShowOnlyActorsInCurrentLevel = bEnableFlag;
+		Settings->PostEditChange();
+
+		ApplyShowOnlyCurrentLevelFilter(bEnableFlag);
+	}
+	void SSceneOutliner::ApplyShowOnlyCurrentLevelFilter(bool bShowOnlyActorsInCurrentLevel)
+	{
+		if ( !ShowOnlyActorsInCurrentLevelFilter.IsValid() )
+		{
+			ShowOnlyActorsInCurrentLevelFilter = SceneOutlinerFilters::CreateIsInCurrentLevelFilter();
+		}
+
+		if ( bShowOnlyActorsInCurrentLevel )
+		{			
+			Filters->Add( ShowOnlyActorsInCurrentLevelFilter );
+		}
+		else
+		{
+			Filters->Remove( ShowOnlyActorsInCurrentLevelFilter );
+		}
+	}
+	bool SSceneOutliner::IsShowingOnlyCurrentLevel() const
+	{
+		return GetDefault<USceneOutlinerSettings>()->bShowOnlyActorsInCurrentLevel;
+	}
+
 	/** END FILTERS */
 
 
@@ -921,7 +1010,7 @@ namespace SceneOutliner
 		}
 
 		AActor* Actor = InActorItem->Actor.Get();
-		if (!IsActorDisplayable(Actor) || !CustomFilters->PassesAllFilters(Actor))
+		if (!IsActorDisplayable(Actor) || !Filters->PassesAllFilters(Actor))
 		{
 			return false;
 		}
@@ -989,7 +1078,7 @@ namespace SceneOutliner
 
 	bool SSceneOutliner::AddFolderToTree(TSharedRef<TOutlinerFolderTreeItem> InFolderItem, bool bIgnoreSearchFilter)
 	{
-		if (!InitOptions.bShowParentTree)
+		if (!InitOptions.bShowParentTree || !Filters->PassesAllFilters(InFolderItem->Path))
 		{
 			return false;
 		}
@@ -1059,110 +1148,6 @@ namespace SceneOutliner
 		}
 	}
 
-	// Helper function which returns whether a folder is a child of another.
-	// Note that a folder is defined to not be a child of itself.
-	bool DoesFolderContainFolder(FName ParentFolder, FName ChildFolder)
-	{
-		FString Path = ChildFolder.ToString();
-		FString ParentFolderAsString = ParentFolder.ToString();
-
-		do 
-		{
-			Path = FPaths::GetPath(Path);
-
-		} while (!Path.IsEmpty() && Path != ParentFolderAsString);
-
-		return !Path.IsEmpty();
-	}
-
-	// Helper function which returns whether an actor is a child of a folder.
-	bool DoesFolderContainActor(FName ParentFolder, const AActor* ChildActor)
-	{
-		if (ChildActor != nullptr)
-		{
-			const FName ActorFolder = ChildActor->GetFolderPath();
-			if (!ActorFolder.IsNone())
-			{
-				return (ActorFolder == ParentFolder || DoesFolderContainFolder(ParentFolder, ActorFolder));
-			}
-		}
-
-		return false;
-	}
-
-	// Helper function which returns whether an actor is a child of another.
-	// Note that an actor is defined to not be a child of itself.
-	bool IsActorParentOfActor(const AActor* ParentActor, const AActor* ChildActor)
-	{
-		const AActor* Actor = ChildActor;
-
-		if (Actor != nullptr)
-		{
-			do
-			{
-				Actor = Actor->GetAttachParentActor();
-
-			} while (Actor != nullptr && Actor != ParentActor);
-		}
-
-		return (Actor != nullptr);
-	}
-
-	bool SSceneOutliner::HasExpandedChildren(const AActor* ParentActor, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const
-	{
-		// Iterate through all parent actors, determining whether any of them are within the subtree of the
-		// parent actor, and if so, whether they are expanded.
-		for (const auto* ParentToTest : ParentActors)
-		{
-			if (ParentToTest != ParentActor)
-			{
-				if (IsActorParentOfActor(ParentActor, ParentToTest))
-				{
-					if (!ExpansionStateInfo.CollapsedItems.Contains(ParentToTest))
-					{
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
-	}
-
-	bool SSceneOutliner::HasExpandedChildren(FName ParentFolder, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const
-	{
-		// Iterate through all parent actors, determining whether any of them are within the subtree of the
-		// parent actor, and if so, whether they are expanded.
-		for (const auto* ParentToTest : ParentActors)
-		{
-			if (DoesFolderContainActor(ParentFolder, ParentToTest))
-			{
-				if (!ExpansionStateInfo.CollapsedItems.Contains(ParentToTest))
-				{
-					return true;
-				}
-			}
-		}
-
-		// If there were no expanded parent actors in this folder subtree, do the same check, this time with other
-		// folders.
-		for (const auto& Item : FolderToTreeItemMap)
-		{
-			if (Item.Key != ParentFolder)
-			{
-				if (DoesFolderContainFolder(ParentFolder, Item.Key))
-				{
-					if (!ExpansionStateInfo.CollapsedFolders.Contains(Item.Key))
-					{
-						return true;
-					}
-				}
-			}
-		}
-
-		return false;
-	}
-
 	void SSceneOutliner::GetParentsExpansionState(FParentsExpansionState& ExpansionStateInfo) const
 	{
 		for (const auto& Item : ActorToTreeItemMap)
@@ -1190,12 +1175,6 @@ namespace SceneOutliner
 			const auto& Item = ActorToTreeItemMap.FindChecked(Actor);
 			const bool bShouldExpand = !ExpansionStateInfo.CollapsedItems.Contains(Actor);
 			OutlinerTreeView->SetItemExpansion(Item, bShouldExpand);
-
-			// If the actor was just collapsed, this will force it to notice any expanded children nonetheless
-			if (!bShouldExpand && HasExpandedChildren(Actor, ParentActors, ExpansionStateInfo))
-			{
-				OutlinerTreeView->RefreshItemExpansion(Item);
-			}
 		}
 
 		for (const auto& Item : FolderToTreeItemMap)
@@ -1203,12 +1182,6 @@ namespace SceneOutliner
 			// Expand folder according to the previous state
 			const bool bShouldExpand = !ExpansionStateInfo.CollapsedFolders.Contains(Item.Key);
 			OutlinerTreeView->SetItemExpansion(Item.Value, bShouldExpand);
-
-			// If the folder was just collapsed, this will force it to notice any expanded children nonetheless
-			if (!bShouldExpand && HasExpandedChildren(Item.Key, ParentActors, ExpansionStateInfo))
-			{
-				OutlinerTreeView->RefreshItemExpansion(Item.Value);
-			}
 		}
 	}
 
@@ -1288,7 +1261,7 @@ namespace SceneOutliner
 			{
 				TSharedPtr<FDragDropOperation> DragDropOp = FSlateApplication::Get().GetDragDroppingContent();
 
-				if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropOp))	
+				if (DragDropOp->IsOfType<FActorDragDropGraphEdOp>())
 				{
 					TSharedPtr<FActorDragDropGraphEdOp> DragDropActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropOp);
 
@@ -1606,13 +1579,15 @@ namespace SceneOutliner
 
 	bool SSceneOutliner::OnVerifyItemLabelChanged( const FText& InLabel, FText& OutErrorMessage, FOutlinerTreeItemPtr TreeItem )
 	{
-		if( InLabel.IsEmpty() )
+		FText TrimmedLabel = FText::TrimPrecedingAndTrailing(InLabel);
+
+		if (TrimmedLabel.IsEmpty())
 		{
 			OutErrorMessage = LOCTEXT( "RenameFailed_LeftBlank", "Names cannot be left blank" );
 			return false;
 		}
 
-		if(InLabel.ToString().Len() >= NAME_SIZE)
+		if (TrimmedLabel.ToString().Len() >= NAME_SIZE)
 		{
 			FFormatNamedArguments Arguments;
 			Arguments.Add( TEXT("CharCount"), NAME_SIZE );
@@ -1620,7 +1595,7 @@ namespace SceneOutliner
 			return false;
 		}
 
-		FString LabelString = InLabel.ToString();
+		FString LabelString = TrimmedLabel.ToString();
 		if (TreeItem->Type == TOutlinerTreeItem::Folder)
 		{
 			auto FolderTreeItem = StaticCastSharedPtr<TOutlinerFolderTreeItem>(TreeItem);
@@ -1649,7 +1624,7 @@ namespace SceneOutliner
 
 			if (FolderToTreeItemMap.Find(NewPath))
 			{
-				OutErrorMessage = LOCTEXT("RenameFailed_AlreadyExists", "This folder already exists");
+				OutErrorMessage = LOCTEXT("RenameFailed_AlreadyExists", "A folder with this name already exists at this level");
 				return false;
 			}
 		}
@@ -1667,7 +1642,19 @@ namespace SceneOutliner
 		OutlinerTreeView->SetItemExpansion(*ActorToTreeItemMap.Find(Actor), true);
 	}
 
-	/** Open a context menu for this scene outliner */
+	TArray<TSharedRef<TOutlinerFolderTreeItem>> SSceneOutliner::GetSelectedFolders() const
+	{
+		TArray<TSharedRef<TOutlinerFolderTreeItem>> Folders;
+		for (auto& Item : OutlinerTreeView->GetSelectedItems())
+		{
+			if (Item->Type == TOutlinerTreeItem::Folder)
+			{
+				Folders.Add(StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item).ToSharedRef());
+			}
+		}
+		return Folders;
+	}
+
 	TSharedPtr<SWidget> SSceneOutliner::OnOpenContextMenu() const
 	{
 		TArray<AActor*> SelectedActors;
@@ -1686,17 +1673,19 @@ namespace SceneOutliner
 		return TSharedPtr<SWidget>();
 	}
 
-	TSharedPtr<SWidget> SSceneOutliner::BuildDefaultContextMenu()  const
+	TSharedPtr<SWidget> SSceneOutliner::BuildDefaultContextMenu() const
 	{
 		// Build up the menu
 		const bool bCloseAfterSelection = true;
 		FMenuBuilder MenuBuilder(bCloseAfterSelection, TSharedPtr<FUICommandList>(), InitOptions.DefaultMenuExtender);
 
-		TSharedPtr<TOutlinerFolderTreeItem> ParentFolder;
 		auto SelectedItems = OutlinerTreeView->GetSelectedItems();
-		if (SelectedItems.Num() == 1 && SelectedItems[0]->Type == TOutlinerTreeItem::Folder)
+		auto SelectedFolders = GetSelectedFolders();
+
+		TSharedPtr<TOutlinerFolderTreeItem> ParentFolder;
+		if (SelectedFolders.Num() == 1)
 		{
-			ParentFolder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(SelectedItems[0]);
+			ParentFolder = SelectedFolders[0];
 		}
 
 		const FSlateIcon NewFolderIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.NewFolderIcon");
@@ -1711,7 +1700,11 @@ namespace SceneOutliner
 		}
 		MenuBuilder.EndSection();
 
-		if (SelectedItems.Num() != 0)
+		if (SelectedItems.Num() == 0)
+		{
+			MenuBuilder.AddMenuEntry(LOCTEXT("CreateFolder", "Create Folder"), FText(), NewFolderIcon, FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder)));
+		}
+		else
 		{
 			MenuBuilder.BeginSection("SelectionSection", LOCTEXT("OutlinerSelection", "Current Outliner Selection"));
 			{
@@ -1719,11 +1712,16 @@ namespace SceneOutliner
 					LOCTEXT("MoveActorsToFolder", "Move To Folder"),
 					LOCTEXT("MoveActorsToFolder_Tooltip", "Move selection to a folder"),
 					FNewMenuDelegate::CreateSP(this,  &SSceneOutliner::FillFoldersSubMenu));
+
+				// If we've only got folders selected, show the selection sub menu
+				if (SelectedFolders.Num() == SelectedItems.Num())
+				{
+					MenuBuilder.AddSubMenu(
+						LOCTEXT("SelectSubmenu", "Select"),
+						LOCTEXT("SelectSubmenu_Tooltip", "Select the contents of the current selection"),
+						FNewMenuDelegate::CreateSP(this, &SSceneOutliner::FillSelectionSubMenu));
+				}
 			}
-		}
-		else
-		{
-			MenuBuilder.AddMenuEntry(LOCTEXT("CreateFolder", "Create Folder"), FText(), NewFolderIcon, FUIAction(FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder)));
 		}
 
 		return MenuBuilder.MakeWidget();
@@ -1731,25 +1729,7 @@ namespace SceneOutliner
 
 	void SSceneOutliner::FillFoldersSubMenu(FMenuBuilder& MenuBuilder) const
 	{
-		// Build up the menu
-		FSceneOutlinerInitializationOptions InitOptions;
-		InitOptions.bShowHeaderRow = false;
-		InitOptions.bFocusSearchBoxWhenOpened = true;
-		InitOptions.bOnlyShowFolders = true;
-
-		// Actor selector to allow the user to choose a folder
-		FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>( "SceneOutliner" );
-		TSharedRef< SWidget > MiniSceneOutliner =
-			SNew( SVerticalBox )
-			+SVerticalBox::Slot()
-			.MaxHeight(400.0f)
-			[
-				SNew( SceneOutliner::SSceneOutliner, InitOptions )
-				.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
-				.OnItemPickedDelegate(FOnSceneOutlinerItemPicked::CreateSP(this, &SSceneOutliner::MoveSelectionTo))
-			];
-
-		MenuBuilder.AddMenuEntry(LOCTEXT( "CreateNew", "Create New" ), LOCTEXT( "MoveToRoot_ToolTip", "Move to a new folder" ),
+		MenuBuilder.AddMenuEntry(LOCTEXT( "CreateNew", "Create New" ), LOCTEXT( "CreateNew_ToolTip", "Move to a new folder" ),
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.NewFolderIcon"), FExecuteAction::CreateSP(this, &SSceneOutliner::CreateFolder));
 
 		if (OutlinerTreeView->ValidateMoveSelectionTo(FName()))
@@ -1758,10 +1738,154 @@ namespace SceneOutliner
 				FSlateIcon(FEditorStyle::GetStyleSetName(), "SceneOutliner.MoveToRoot"), FExecuteAction::CreateSP(this, &SSceneOutliner::MoveSelectionTo, FName()));
 		}
 
-		// Existing folders - it would be good to filter out the existing selected folders from this mini-outliner, but that's currently not possible
-		MenuBuilder.BeginSection(FName(), LOCTEXT("ExistingFolders", "Existing:"));
-		MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), false);
-		MenuBuilder.EndSection();
+		AddMoveToFolderOutliner(MenuBuilder);
+	}
+
+	void SSceneOutliner::AddMoveToFolderOutliner(FMenuBuilder& MenuBuilder) const
+	{
+		// We don't show this if there is no world (unusual) or if there aren't any folders in the world
+		const int32 NumFoldersInWorld = FActorFolders::Get().GetFoldersForWorld(*RepresentingWorld).Num();
+		if (!RepresentingWorld || !NumFoldersInWorld)
+		{
+			return;
+		}
+
+		// Add a mini scene outliner for choosing an existing folder
+		FSceneOutlinerInitializationOptions InitOptions;
+		InitOptions.bShowHeaderRow = false;
+		InitOptions.bFocusSearchBoxWhenOpened = true;
+		InitOptions.bOnlyShowFolders = true;
+			
+		{
+			// Don't show any folders that are a child of any of the selected folders
+
+			// We use a pointer here to save copying the whole array for every invocation of the filter delegate
+			TSharedRef<TSet<FName>> ExcludedParents(new TSet<FName>());
+			for (const auto& Item : OutlinerTreeView->GetSelectedItems())
+			{
+				if (Item->Type == TOutlinerTreeItem::Folder)
+				{
+					// Can't move the folder into its current parent (it already exists)
+					const auto Folder = StaticCastSharedPtr<TOutlinerFolderTreeItem>(Item);
+					const FName ParentPath = Folder->GetParentPath();
+					ExcludedParents->Add(ParentPath.IsNone() ? Folder->Path : ParentPath);
+				}
+				else if (AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(Item)->Actor.Get())
+				{
+					// We exclude actor parent folders if they don't have any sub folders
+					const FName& Folder = Actor->GetFolderPath();
+					if (ExcludedParents->Contains(Folder))
+					{
+						continue;
+					}
+
+					auto HasSubFolders = [](TWeakPtr<TOutlinerTreeItem> WeakItem){
+						auto Item = WeakItem.Pin();
+						return Item.IsValid() && Item->Type == TOutlinerTreeItem::Folder;
+					};
+
+					auto* ParentFolder = FolderToTreeItemMap.Find(Folder);
+					if (ParentFolder && !(*ParentFolder)->ChildItems.ContainsByPredicate(HasSubFolders))
+					{
+						ExcludedParents->Add(Folder);
+					}
+				}
+			}
+
+			if (ExcludedParents->Num())
+			{
+				// Add a filter if necessary
+				auto FilterOutChildFolders = [](FName Path, TSharedRef<TSet<FName>> ExcludedParents){
+					for (const auto& Parent : *ExcludedParents)
+					{
+						if (Path == Parent || FActorFolders::PathIsChildOf(Path.ToString(), Parent.ToString()))
+						{
+							return false;
+						}
+					}
+
+					return true;
+				};
+
+				InitOptions.Filters->AddFilterPredicate(SceneOutliner::FFolderFilterPredicate::CreateStatic(FilterOutChildFolders, ExcludedParents));
+			}
+
+			// Actor selector to allow the user to choose a folder
+			FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
+			TSharedRef< SWidget > MiniSceneOutliner =
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.MaxHeight(400.0f)
+				[
+					SNew(SceneOutliner::SSceneOutliner, InitOptions)
+					.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
+					.OnItemPickedDelegate(FOnSceneOutlinerItemPicked::CreateSP(this, &SSceneOutliner::MoveSelectionTo))
+				];
+
+			MenuBuilder.BeginSection(FName(), LOCTEXT("ExistingFolders", "Existing:"));
+			MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), false);
+			MenuBuilder.EndSection();
+		}
+	}
+
+	void SSceneOutliner::FillSelectionSubMenu(FMenuBuilder& MenuBuilder) const
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT( "AddChildrenToSelection", "Immediate Children" ),
+			LOCTEXT( "AddChildrenToSelection_ToolTip", "Select all immediate children of the selected folders" ),
+			FSlateIcon(),
+			FExecuteAction::CreateSP(this, &SSceneOutliner::SelectFoldersImmediateChildren));
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT( "AddDescendantsToSelection", "All Descendants" ),
+			LOCTEXT( "AddDescendantsToSelection_ToolTip", "Select all descendants of the selected folders" ),
+			FSlateIcon(),
+			FExecuteAction::CreateSP(this, &SSceneOutliner::SelectFoldersDescendants));
+	}
+
+	void SSceneOutliner::SelectFoldersImmediateChildren() const
+	{
+		auto SelectedFolders = GetSelectedFolders();
+		if (SelectedFolders.Num())
+		{
+			// We'll batch selection changes instead by using BeginBatchSelectOperation()
+			GEditor->GetSelectedActors()->BeginBatchSelectOperation();
+
+			for (const auto& Folder : SelectedFolders)
+			{
+				for (const auto& WeakChild : Folder->ChildItems)
+				{
+					auto ChildItem = WeakChild.Pin();
+					if (ChildItem.IsValid() && ChildItem->Type == TOutlinerTreeItem::Actor)
+					{
+						if (AActor* Actor = StaticCastSharedPtr<TOutlinerActorTreeItem>(ChildItem)->Actor.Get())
+						{
+							GEditor->SelectActor(Actor, true, /*bNotify=*/false);
+						}
+					}
+				}
+			}
+
+			GEditor->GetSelectedActors()->EndBatchSelectOperation();
+			GEditor->NoteSelectionChange();
+		}
+	}
+
+	void SSceneOutliner::SelectFoldersDescendants() const
+	{
+		auto SelectedFolders = GetSelectedFolders();
+		if (SelectedFolders.Num())
+		{
+			// We'll batch selection changes instead by using BeginBatchSelectOperation()
+			GEditor->GetSelectedActors()->BeginBatchSelectOperation();
+
+			for (const auto& Folder : SelectedFolders)
+			{
+				SelectDescedantActors(Folder, true);
+			}
+
+			GEditor->GetSelectedActors()->EndBatchSelectOperation();
+			GEditor->NoteSelectionChange();
+		}
 	}
 
 	FName SSceneOutliner::MoveFolderTo(TSharedRef<TOutlinerFolderTreeItem> Folder, FName NewParent)
@@ -1796,8 +1920,15 @@ namespace SceneOutliner
 	{
 		FSlateApplication::Get().DismissAllMenus();
 
-		if (!OutlinerTreeView->ValidateMoveSelectionTo(NewParent))
+		FText ValidationText;
+		if (!OutlinerTreeView->ValidateMoveSelectionTo(NewParent, &ValidationText))
 		{
+			FNotificationInfo Info(ValidationText);
+			Info.ExpireDuration = 3.0f;
+			Info.bUseLargeFont = false;
+			Info.bFireAndForget = true;
+			Info.bUseSuccessFailIcons = true;
+			FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Fail);
 			return;
 		}
 
@@ -2129,8 +2260,13 @@ namespace SceneOutliner
 	}
 
 
-	void SSceneOutliner::OnOutlinerTreeSelectionChanged( FOutlinerTreeItemPtr TreeItem, ESelectInfo::Type /*SelectInfo*/ )
+	void SSceneOutliner::OnOutlinerTreeSelectionChanged( FOutlinerTreeItemPtr TreeItem, ESelectInfo::Type SelectInfo )
 	{
+		if (SelectInfo == ESelectInfo::Direct)
+		{
+			return;
+		}
+
 		if( InitOptions.Mode == ESceneOutlinerMode::ActorPicker )
 		{
 			// In actor picking mode, we check to see if we have a selected actor, and if so, fire
@@ -2148,7 +2284,7 @@ namespace SceneOutliner
 						// Only fire the callback if this actor actually passes our required filters.  It's possible that
 						// some actors displayed are parent actors which don't actually match the requested criteria.
 						if( IsActorDisplayable( FirstSelectedActor ) && 
-							CustomFilters->PassesAllFilters( FirstSelectedActor ) &&
+							Filters->PassesAllFilters( FirstSelectedActor ) &&
 							SearchBoxFilter->PassesFilter( *FirstItem ) )
 						{
 							// Signal that an actor was selected
@@ -2590,6 +2726,24 @@ namespace SceneOutliner
 		}
 	}
 
+	void SSceneOutliner::OnSetItemVisibility(FOutlinerTreeItemRef Item, bool bIsVisible)
+	{
+		// We operate on all the selected items if the specified item is selected
+		if (OutlinerTreeView->IsItemSelected(Item))
+		{
+			for (auto& TreeItem : OutlinerTreeView->GetSelectedItems())
+			{
+				TreeItem->SetIsVisible(bIsVisible);
+			}
+		}
+		else
+		{
+			Item->SetIsVisible(bIsVisible);
+		}
+
+		GEditor->RedrawAllViewports();
+	}
+
 	void SSceneOutliner::OnFilterTextChanged( const FText& InFilterText )
 	{
 		SearchBoxFilter->SetRawFilterText( InFilterText );
@@ -2617,7 +2771,7 @@ namespace SceneOutliner
 						// pending kill), in which case we don't want to try to select it
 						if( IsActorDisplayable( Actor ) )
 						{
-							if( CustomFilters->PassesAllFilters( Actor ) && SearchBoxFilter->PassesFilter( *ActorIt.Value() ) )
+							if( Filters->PassesAllFilters( Actor ) && SearchBoxFilter->PassesFilter( *ActorIt.Value() ) )
 							{
 								ActorsToSelect.Add( Actor );
 							}
@@ -2867,9 +3021,10 @@ namespace SceneOutliner
 						}
 					}
 
-					if (GUnrealEd->CanDeleteSelectedActors( GWorld, true, false ))
+					UWorld* World = GWorld;
+					if (GUnrealEd->CanDeleteSelectedActors( World, true, false ))
 					{
-						GEditor->edactDeleteSelected( GWorld );
+						GEditor->edactDeleteSelected( World );
 					}
 				}
 

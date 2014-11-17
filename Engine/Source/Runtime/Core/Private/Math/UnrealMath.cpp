@@ -13,6 +13,7 @@ DEFINE_LOG_CATEGORY(LogUnrealMath);
 
 CORE_API const FVector FVector::ZeroVector(0.0f, 0.0f, 0.0f);
 CORE_API const FVector FVector::UpVector(0.0f, 0.0f, 1.0f);
+CORE_API const FVector FVector::ForwardVector(1.0f, 0.0f, 0.0f);
 CORE_API const FVector2D FVector2D::ZeroVector(0.0f, 0.0f);
 CORE_API const FVector2D FVector2D::UnitVector(1.0f, 1.0f);
 CORE_API const FRotator FRotator::ZeroRotator(0.f,0.f,0.f);
@@ -1921,15 +1922,16 @@ CORE_API FRotator FMath::RInterpTo( const FRotator& Current, const FRotator& Tar
 
 	const float DeltaInterpSpeed = InterpSpeed * DeltaTime;
 
-	// Delta Move, Clamp so we do not over shoot.
-	const FRotator DeltaMove = (Target - Current).GetNormalized() * FMath::Clamp<float>(DeltaInterpSpeed, 0.f, 1.f);
-
+	const FRotator Delta = (Target - Current).GetNormalized();
+	
 	// If steps are too small, just return Target and assume we have reached our destination.
-	if( DeltaMove.IsNearlyZero() )
+	if (Delta.IsNearlyZero())
 	{
 		return Target;
 	}
 
+	// Delta Move, Clamp so we do not over shoot.
+	const FRotator DeltaMove = Delta * FMath::Clamp<float>(DeltaInterpSpeed, 0.f, 1.f);
 	return (Current + DeltaMove).GetNormalized();
 }
 

@@ -5,7 +5,7 @@
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"
 
-#define OCULUS_RIFT_SUPPORTED_PLATFORMS PLATFORM_WINDOWS
+#define OCULUS_RIFT_SUPPORTED_PLATFORMS PLATFORM_WINDOWS || PLATFORM_MAC
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 

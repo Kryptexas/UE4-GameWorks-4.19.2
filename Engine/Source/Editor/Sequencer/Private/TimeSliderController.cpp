@@ -136,7 +136,7 @@ void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDraw
 	// For slightly larger halfway tick mark
 	const int32 HalfDivider = Divider / 2;
 	// Find out where to start from
-	int32 OffsetNum = FMath::Floor(RangeToScreen.ViewInput.GetLowerBoundValue() / Spacing);
+	int32 OffsetNum = FMath::FloorToInt(RangeToScreen.ViewInput.GetLowerBoundValue() / Spacing);
 	
 	FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 8 );
 
@@ -257,7 +257,7 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 		DrawTicks( OutDrawElements, RangeToScreen, Args );
 
 		const float HandleSize = 13.0f;
-		float HalfSize = FMath::Trunc(HandleSize/2.0f);
+		float HalfSize = FMath::TruncToFloat(HandleSize/2.0f);
 
 		// Draw the scrub handle
 		const float XPos = RangeToScreen.InputToLocalX( TimeSliderArgs.ScrubPosition.Get() );
@@ -521,7 +521,7 @@ int32 FSequencerTimeSliderController::OnPaintSectionView( const FGeometry& Allot
 		TArray<FVector2D> LinePoints;
 		LinePoints.AddUninitialized(2);
 		LinePoints[0] = FVector2D( 1.0f, 0.0f );
-		LinePoints[1] = FVector2D( 1.0f, FMath::Round( AllottedGeometry.Size.Y ) );
+		LinePoints[1] = FVector2D( 1.0f, FMath::RoundToFloat( AllottedGeometry.Size.Y ) );
 
 		FSlateDrawElement::MakeLines(
 			OutDrawElements,

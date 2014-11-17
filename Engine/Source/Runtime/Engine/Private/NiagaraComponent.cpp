@@ -154,7 +154,7 @@ private:
 		FMaterialRenderProxy* MaterialRenderProxy = Material->GetRenderProxy(IsSelected(),IsHovered());
 
 		if (DynamicVertexAllocation.IsValid()
-			&& (bIsWireframe || !PDI->IsMaterialIgnored(MaterialRenderProxy)))
+			&& (bIsWireframe || !PDI->IsMaterialIgnored(MaterialRenderProxy, View->GetFeatureLevel())))
 		{
 			FMeshBatch MeshBatch;
 			MeshBatch.VertexFactory = &VertexFactory;
@@ -395,7 +395,7 @@ private:
 	int32 CalcNumToSpawn(float DeltaSeconds)
 	{
 		float FloatNumToSpawn = SpawnRemainder + (DeltaSeconds * SpawnRate);
-		int32 NumToSpawn = FMath::Floor(FloatNumToSpawn);
+		int32 NumToSpawn = FMath::FloorToInt(FloatNumToSpawn);
 		SpawnRemainder = FloatNumToSpawn - NumToSpawn;
 		return NumToSpawn;
 	}

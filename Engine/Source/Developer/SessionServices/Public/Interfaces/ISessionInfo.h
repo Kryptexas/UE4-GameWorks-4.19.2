@@ -99,7 +99,6 @@ public:
 	 */
 	virtual void Terminate( ) = 0;
 
-
 public:
 
 	/**
@@ -115,7 +114,6 @@ public:
 	 * @return The delegate.
 	 */
 	virtual FOnSessionLogReceived& OnLogReceived( ) = 0;
-
 
 public:
 

@@ -6,7 +6,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineInterpolationClasses.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);
 
@@ -171,6 +170,9 @@ UCharacterMovementComponent::UCharacterMovementComponent(const class FPostConstr
 	AvoidanceGroup.bGroup0 = true;
 	GroupsToAvoid.Packed = 0xFFFFFFFF;
 	GroupsToIgnore.Packed = 0;
+
+	OldBaseQuat = FQuat::Identity;
+	OldBaseLocation = FVector::ZeroVector;
 }
 
 void UCharacterMovementComponent::PostLoad()
@@ -363,31 +365,15 @@ FVector UCharacterMovementComponent::GetImpartedMovementBaseVelocity() const
 	if (CharacterOwner)
 	{
 		UPrimitiveComponent* MovementBase = CharacterOwner->GetMovementBase();
-		if (MovementBase != NULL && (MovementBase->Mobility == EComponentMobility::Movable))
+		if (MovementBaseUtility::IsDynamicBase(MovementBase))
 		{
-			FVector BaseVelocity = MovementBase->GetComponentVelocity();
-			if (BaseVelocity.IsZero() && MovementBase->GetOwner())
-			{
-				// Component might be moved manually (not by simulated physics or a movement component), see if the root component of the actor has a velocity.
-				BaseVelocity = MovementBase->GetOwner()->GetVelocity();
-			}
-
-			// Fall back to physics velocity.
-			if (BaseVelocity.IsZero() && MovementBase->GetBodyInstance())
-			{
-				BaseVelocity = MovementBase->GetBodyInstance()->GetUnrealWorldVelocity();
-			}
-
+			FVector BaseVelocity = MovementBaseUtility::GetMovementBaseVelocity(MovementBase);
+			
 			if (bImpartBaseAngularVelocity)
 			{
-				const FVector BaseAngVel = MovementBase->GetPhysicsAngularVelocity();
-				if (!BaseAngVel.IsZero())
-				{
-					const FVector CharacterBasePosition = (UpdatedComponent->GetComponentLocation() - FVector(0.f, 0.f, CharacterOwner->CapsuleComponent->GetScaledCapsuleHalfHeight()));
-					const FVector RadialDistanceToBase = CharacterBasePosition - MovementBase->GetComponentLocation();
-					const FVector BaseLinearVelFromAngularVel = FMath::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
-					BaseVelocity += BaseLinearVelFromAngularVel;
-				}
+				const FVector CharacterBasePosition = (UpdatedComponent->GetComponentLocation() - FVector(0.f, 0.f, CharacterOwner->CapsuleComponent->GetScaledCapsuleHalfHeight()));
+				const FVector BaseTangentialVel = MovementBaseUtility::GetMovementBaseTangentialVelocity(MovementBase, CharacterBasePosition);
+				BaseVelocity += BaseTangentialVel;
 			}
 
 			if (bImpartBaseVelocityX)
@@ -968,7 +954,7 @@ void UCharacterMovementComponent::SimulateMovement(float DeltaSeconds)
 	{
 		return;
 	}
-	
+
 	Acceleration = Velocity.SafeNormal();	// Not currently used for simulated movement
 	AnalogInputModifier = 1.0f;				// Not currently used for simulated movement
 
@@ -1062,20 +1048,19 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 	// Ignore collision with bases during these movements.
 	TGuardValue<EMoveComponentFlags> ScopedFlagRestore(MoveComponentFlags, MoveComponentFlags | MOVECOMP_IgnoreBases);
 
-	FRotator ReducedRotation(0,0,0);
-	const bool bRotationChanged = (OldBaseRotation != MovementBase->GetComponentRotation());
+	FQuat DeltaQuat = FQuat::Identity;
+	const bool bRotationChanged = !OldBaseQuat.Equals(MovementBase->GetComponentQuat());
 	if( bRotationChanged )
 	{
-		//@hack - Angles used to need to be reduced for sine and cosine table lookup, maybe remove this
-		ReducedRotation = MovementBase->GetComponentRotation() - OldBaseRotation;
+		DeltaQuat = OldBaseQuat * MovementBase->GetComponentQuat().Inverse();
 	}
 
 	// only if base moved
 	if ( bRotationChanged || (OldBaseLocation != MovementBase->GetComponentLocation()) )
 	{
 		// Calculate new transform matrix of base actor (ignoring scale).
-		const FRotationTranslationMatrix OldLocalToWorld(OldBaseRotation, OldBaseLocation);
-		const FRotationTranslationMatrix NewLocalToWorld(MovementBase->GetComponentRotation(), MovementBase->GetComponentLocation());
+		const FQuatRotationTranslationMatrix OldLocalToWorld(OldBaseQuat, OldBaseLocation);
+		const FQuatRotationTranslationMatrix NewLocalToWorld(MovementBase->GetComponentQuat(), MovementBase->GetComponentLocation());
 
 		FVector RotMotion(0.f);
 		if( CharacterOwner->IsMatineeControlled() )
@@ -1087,30 +1072,37 @@ void UCharacterMovementComponent::UpdateBasedMovement(float DeltaSeconds)
 		}
 		else
 		{
-			FRotator finalRotation = CharacterOwner->GetActorRotation() + ReducedRotation;
-			FRotator PawnOldRotation = CharacterOwner->GetActorRotation();
-			CharacterOwner->FaceRotation(finalRotation, 0.f);
-			finalRotation = CharacterOwner->GetActorRotation();
+			FQuat FinalQuat = DeltaQuat * CharacterOwner->GetActorQuat();
+			FQuat PawnOldQuat = CharacterOwner->GetActorQuat();
+			CharacterOwner->FaceRotation(FinalQuat.Rotator(), 0.f);
+			FinalQuat = CharacterOwner->GetActorQuat();
 
 			if( bRotationChanged )
 			{
-				//@hack - Angles used to need to be reduced for sine and cosine table lookup, maybe remove this
-				FRotator PawnReducedRotation = finalRotation - PawnOldRotation;
-				UpdateBasedRotation(finalRotation, PawnReducedRotation);
+				const FQuat PawnDeltaRotation = PawnOldQuat * FinalQuat.Inverse();
+				FRotator FinalRotation = FinalQuat.Rotator();
+				UpdateBasedRotation(FinalRotation, PawnDeltaRotation.Rotator());
+				FinalQuat = FinalRotation.Quaternion();
 			}
-			FVector const LocalPos = OldLocalToWorld.InverseTransformPosition(CharacterOwner->GetActorLocation());
-			FVector const NewWorldPos = ConstrainLocationToPlane(NewLocalToWorld.TransformPosition(LocalPos));
+
+			// We need to offset the base of the character here, not its origin, so offset by half height
+			float HalfHeight, Radius;
+			CharacterOwner->CapsuleComponent->GetScaledCapsuleSize(Radius, HalfHeight);
+
+			FVector const BaseOffset(0.0f, 0.0f, HalfHeight);
+			FVector const LocalBasePos = OldLocalToWorld.InverseTransformPosition(CharacterOwner->GetActorLocation() - BaseOffset);
+			FVector const NewWorldPos = ConstrainLocationToPlane(NewLocalToWorld.TransformPosition(LocalBasePos) + BaseOffset);
 			FVector const Delta = ConstrainDirectionToPlane(NewWorldPos - CharacterOwner->GetActorLocation());
 
 			// move attached actor
 			if (bFastAttachedMove)
 			{
 				// we're trusting no other obstacle can prevent the move here
-				UpdatedComponent->SetWorldLocationAndRotation(NewWorldPos, finalRotation, false);
+				UpdatedComponent->SetWorldLocationAndRotation(NewWorldPos, FinalQuat.Rotator(), false);
 			}
 			else
 			{
-				MoveUpdatedComponent( Delta, finalRotation, true );
+				MoveUpdatedComponent( Delta, FinalQuat.Rotator(), true );
 			}
 		}
 	}
@@ -1170,6 +1162,8 @@ void UCharacterMovementComponent::PerformMovement(float DeltaSeconds)
 	FScopedMovementUpdate ScopedMovementUpdate(UpdatedComponent, bEnableScopedMovementUpdates ? EScopedUpdate::DeferredUpdates : EScopedUpdate::ImmediateUpdates);
 
 	UpdateBasedMovement(DeltaSeconds);
+
+	ApplyAccumulatedMomentum(DeltaSeconds);
 
 	FVector OldVelocity = Velocity;
 	FVector OldLocation = CharacterOwner->GetActorLocation();
@@ -1319,8 +1313,8 @@ void UCharacterMovementComponent::SaveBaseLocation()
 		OldBaseLocation = MovementBase->GetComponentLocation();
 		CharacterOwner->RelativeMovement.Location = CharacterOwner->GetActorLocation() - OldBaseLocation;
 
-		OldBaseRotation = MovementBase->GetComponentRotation();
-		CharacterOwner->RelativeMovement.Rotation = (FRotationMatrix(CharacterOwner->GetActorRotation()) * FRotationMatrix(OldBaseRotation).GetTransposed()).Rotator();
+		OldBaseQuat = MovementBase->GetComponentQuat();
+		CharacterOwner->RelativeMovement.Rotation = (FRotationMatrix(CharacterOwner->GetActorRotation()) * FQuatRotationTranslationMatrix(OldBaseQuat, FVector::ZeroVector).GetTransposed()).Rotator();
 	}
 }
 
@@ -1860,7 +1854,7 @@ void UCharacterMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 			ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 	
 			// Don't allow braking to lower us below max speed if we started above it.
-			if (bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed))
+			if (FVector::DotProduct(Acceleration, OldVelocity) > 0.0f && bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed))
 			{
 				Velocity = SafeNormalPrecise(OldVelocity) * MaxSpeed;
 			}
@@ -1991,18 +1985,18 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (bShowDebug)
 			{
-				DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + Velocity, FColor(0,0,255), true, 0.5f, SDPG_MAX);
+				DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + Velocity, FColor(0,0,255), true, 0.5f, SDPG_MAX);
 			}
 #endif
 		}
 		else
 		{
-			FNavAvoidanceData currentData;
-			currentData.Init(AvoidanceManager, GetActorLocation(),
+			FNavAvoidanceData CurrentData;
+			CurrentData.Init(AvoidanceManager, GetActorFeetLocation(),
 				OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight(),
 				Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
 
-			FVector NewVelocity = AvoidanceManager->GetAvoidanceVelocityIgnoringUID(currentData, AvoidanceManager->DeltaTimeToPredict, AvoidanceUID);
+			FVector NewVelocity = AvoidanceManager->GetAvoidanceVelocityIgnoringUID(CurrentData, AvoidanceManager->DeltaTimeToPredict, AvoidanceUID);
 			if (bUseRVOPostProcess)
 			{
 				PostProcessAvoidanceVelocity(NewVelocity);
@@ -2016,7 +2010,7 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				if (bShowDebug)
 				{
-					DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + Velocity, FColor(255,0,0), true, 0.05f, SDPG_MAX, 10.0f);
+					DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + Velocity, FColor(255,0,0), true, 0.05f, SDPG_MAX, 10.0f);
 				}
 #endif
 			}
@@ -2033,7 +2027,7 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 			}
 		}
 		//RickH - We might do better to do this later in our update
-		AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorLocation(),
+		AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorFeetLocation(),
 			OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight() * 2.0f,
 			Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
 
@@ -2042,13 +2036,13 @@ void UCharacterMovementComponent::CalcAvoidanceVelocity(float DeltaTime)
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	else if (bShowDebug)
 	{
-		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + Velocity, FColor(255,255,0), true, 0.05f, SDPG_MAX);
+		DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + Velocity, FColor(255,255,0), true, 0.05f, SDPG_MAX);
 	}
 
 	if (bShowDebug)
 	{
 		FVector UpLine(0,0,500);
-		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + UpLine, (AvoidanceLockTimer > 0.01f) ? FColor(255,0,0) : FColor(0,0,255), true, 0.05f, SDPG_MAX, 5.0f);
+		DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + UpLine, (AvoidanceLockTimer > 0.01f) ? FColor(255,0,0) : FColor(0,0,255), true, 0.05f, SDPG_MAX, 5.0f);
 	}
 #endif
 }
@@ -2072,7 +2066,7 @@ void UCharacterMovementComponent::UpdateDefaultAvoidance()
 	{
 		if (UCapsuleComponent *OurCapsule = GetCharacterOwner()->CapsuleComponent.Get())
 		{
-			AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorLocation(),
+			AvoidanceManager->UpdateRVO(AvoidanceUID, GetActorFeetLocation(),
 				OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight() * 2.0f,
 				Velocity, AvoidanceWeight, AvoidanceGroup.Packed, GroupsToAvoid.Packed, GroupsToIgnore.Packed);
 
@@ -2100,7 +2094,7 @@ void UCharacterMovementComponent::NotifyBumpedPawn(APawn* BumpedPawn)
 	const bool bShowDebug = Avoidance && Avoidance->IsDebugEnabled(AvoidanceUID);
 	if (bShowDebug)
 	{
-		DrawDebugLine(GetWorld(), GetActorLocation(), GetActorLocation() + FVector(0,0,500), (AvoidanceLockTimer > 0) ? FColor(255,64,64) : FColor(64,64,255), true, 2.0f, SDPG_MAX, 20.0f);
+		DrawDebugLine(GetWorld(), GetActorFeetLocation(), GetActorFeetLocation() + FVector(0,0,500), (AvoidanceLockTimer > 0) ? FColor(255,64,64) : FColor(64,64,255), true, 2.0f, SDPG_MAX, 20.0f);
 	}
 #endif
 
@@ -2418,7 +2412,19 @@ void UCharacterMovementComponent::PhysFalling(float deltaTime, int32 Iterations)
 				InitCollisionParams(CapsuleQuery, ResponseParam);
 				const FVector PawnLocation = CharacterOwner->GetActorLocation();
 				const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
-				const bool bHit = GetWorld()->SweepSingle( Result, PawnLocation, PawnLocation + TestWalk, FQuat::Identity, CollisionChannel, GetPawnCapsuleCollisionShape(SHRINK_None), CapsuleQuery, ResponseParam );
+
+				bool bHit = false;
+				const FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
+				if(bUseFlatBaseForFloorChecks)
+				{
+					const FCollisionShape BoxShape = FCollisionShape::MakeBox(FVector(CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleHalfHeight()));
+					GetWorld()->SweepSingle( Result, PawnLocation, PawnLocation + TestWalk, FQuat::Identity, CollisionChannel, BoxShape, CapsuleQuery, ResponseParam );
+				}
+				else
+				{
+					GetWorld()->SweepSingle( Result, PawnLocation, PawnLocation + TestWalk, FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleQuery, ResponseParam );
+				}
+
 				if (bHit)
 				{
 					// Only matters if we can't walk there
@@ -2699,7 +2705,12 @@ bool UCharacterMovementComponent::CheckFall(FHitResult &Hit, FVector Delta, FVec
 
 	if (bMustJump || CanWalkOffLedges())
 	{
-		StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
+		CharacterOwner->OnWalkingOffLedge();
+		if (IsMovingOnGround())
+		{
+			// If still walking, then fall. If not, assume the user set a different mode they want to keep.
+			StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
+		}
 		return true;
 	}
 	return false;
@@ -3005,27 +3016,19 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 			// Validate the floor check
 			if (CurrentFloor.IsWalkableFloor())
 			{
-				const bool bBaseChanged = (CurrentFloor.HitResult.Component != CharacterOwner->GetMovementBase());
-				if (bBaseChanged || CurrentFloor.FloorDist > MAX_FLOOR_DIST)
+				if (ShouldCatchAir(OldFloor, CurrentFloor))
 				{
-					if ( ShouldCatchAir(OldFloor.HitResult.ImpactNormal, CurrentFloor.HitResult.ImpactNormal) )
+					CharacterOwner->OnWalkingOffLedge();
+					if (IsMovingOnGround())
 					{
+						// If still walking, then fall. If not, assume the user set a different mode they want to keep.
 						StartFalling(Iterations, remainingTime, timeTick, Delta, subLoc);
-						return;
 					}
-					else
-					{
-						AdjustFloorHeight();
-						if (bBaseChanged)
-						{
-							SetBase(CurrentFloor.HitResult.Component.Get());
-						}
-					}
+					return;
 				}
-				else if (CurrentFloor.FloorDist < MIN_FLOOR_DIST)
-				{
-					AdjustFloorHeight();
-				}
+
+				AdjustFloorHeight();
+				SetBase(CurrentFloor.HitResult.Component.Get());
 			}
 			else if (CurrentFloor.HitResult.bStartPenetrating && remainingTime <= 0.f)
 			{
@@ -3055,6 +3058,12 @@ void UCharacterMovementComponent::PhysWalking(float deltaTime, int32 Iterations)
 				bCheckedFall = true;
 			}
 		}
+
+		// If we didn't move at all this iteration then abort (since future iterations will also be stuck).
+		if (CharacterOwner->GetActorLocation() == subLoc)
+		{
+			break;
+		}
 	}
 
 	// Allow overlap events and such to change physics state and velocity
@@ -3080,7 +3089,7 @@ void UCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterations)
 }
 
 
-bool UCharacterMovementComponent::ShouldCatchAir(const FVector& OldFloor, const FVector& Floor)
+bool UCharacterMovementComponent::ShouldCatchAir(const FFindFloorResult& OldFloor, const FFindFloorResult& NewFloor)
 {
 	return false;
 }
@@ -3438,12 +3447,12 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 	return false;
 }
 
-void UCharacterMovementComponent::AddMomentum( FVector const& Momentum, FVector const& LocationToApplyMomentum, bool bMassIndependent )
+void UCharacterMovementComponent::AddMomentum( FVector InMomentum, bool bMassIndependent )
 {
-	if (HasValidData() && !Momentum.IsZero())
+	if (HasValidData() && !InMomentum.IsZero())
 	{
 		// handle scaling by mass
-		FVector FinalMomentum = Momentum;
+		FVector FinalMomentum = InMomentum;
 		if ( !bMassIndependent)
 		{
 			if (Mass > SMALL_NUMBER)
@@ -3456,18 +3465,7 @@ void UCharacterMovementComponent::AddMomentum( FVector const& Momentum, FVector 
 			}
 		}
 
-		if ( IsMovingOnGround() && FinalMomentum.Z > 0.f )
-		{
-			SetMovementMode(MOVE_Falling);
-		}
-
-		if ( (Velocity.Z > GetDefault<UCharacterMovementComponent>(GetClass())->JumpZVelocity) && (FinalMomentum.Z > 0.f) )
-		{
-			// limit Z momentum added if already going up faster than jump (to avoid blowing character way up into the sky)
-			FinalMomentum.Z *= 0.5f;
-		}
-
-		Velocity += FinalMomentum;
+		PendingMomentumToApply += FinalMomentum;
 	}
 }
 
@@ -3653,7 +3651,15 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 		FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(SweepRadius, PawnHalfHeight - ShrinkHeight);
 
 		FHitResult Hit(1.f);
-		bBlockingHit = GetWorld()->SweepSingle(Hit, CapsuleLocation, CapsuleLocation + FVector(0.f,0.f,-TraceDist), FQuat::Identity, CollisionChannel, CapsuleShape, QueryParams, ResponseParam);
+		if(bUseFlatBaseForFloorChecks)
+		{
+			const FCollisionShape BoxShape = FCollisionShape::MakeBox(FVector(CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleHalfHeight()));
+			bBlockingHit = GetWorld()->SweepSingle(Hit, CapsuleLocation, CapsuleLocation + FVector(0.f,0.f,-TraceDist), FQuat::Identity, CollisionChannel, BoxShape, QueryParams, ResponseParam);
+		}
+		else
+		{
+			bBlockingHit = GetWorld()->SweepSingle(Hit, CapsuleLocation, CapsuleLocation + FVector(0.f,0.f,-TraceDist), FQuat::Identity, CollisionChannel, CapsuleShape, QueryParams, ResponseParam);
+		}
 
 		if (bBlockingHit)
 		{
@@ -3666,7 +3672,17 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 				TraceDist = SweepDistance + ShrinkHeight;
 				CapsuleShape.Capsule.Radius = FMath::Max(0.f, CapsuleShape.Capsule.Radius - SWEEP_EDGE_REJECT_DISTANCE - KINDA_SMALL_NUMBER);
 				CapsuleShape.Capsule.HalfHeight = FMath::Max(PawnHalfHeight - ShrinkHeight, 0.1f);
-				bBlockingHit = GetWorld()->SweepSingle(Hit, CapsuleLocation, CapsuleLocation + FVector(0.f,0.f,-TraceDist), FQuat::Identity, CollisionChannel, CapsuleShape, QueryParams, ResponseParam);
+				Hit.Reset(1.f, false);
+
+				if(bUseFlatBaseForFloorChecks)
+				{
+					const FCollisionShape BoxShape = FCollisionShape::MakeBox(FVector(CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleRadius(), CapsuleShape.GetCapsuleHalfHeight()));
+					bBlockingHit = GetWorld()->SweepSingle(Hit, CapsuleLocation, CapsuleLocation + FVector(0.f,0.f,-TraceDist), FQuat::Identity, CollisionChannel, BoxShape, QueryParams, ResponseParam);
+				}
+				else
+				{
+					bBlockingHit = GetWorld()->SweepSingle(Hit, CapsuleLocation, CapsuleLocation + FVector(0.f,0.f,-TraceDist), FQuat::Identity, CollisionChannel, CapsuleShape, QueryParams, ResponseParam);
+				}
 			}
 
 			// Reduce hit distance by ShrinkHeight because we shrank the capsule for the trace.
@@ -3846,26 +3862,24 @@ bool UCharacterMovementComponent::IsValidLandingSpot(const FVector& CapsuleLocat
 		return false;
 	}
 
-	// This can happen when landing on upward moving geometry
-	if (Hit.bStartPenetrating)
+	// Skip some checks if penetrating. Penetration will be handled by the FindFloor call (using a smaller capsule)
+	if (!Hit.bStartPenetrating)
 	{
-		return true;
-	}
+		float PawnRadius, PawnHalfHeight;
+		CharacterOwner->CapsuleComponent->GetScaledCapsuleSize(PawnRadius, PawnHalfHeight);
 
-	float PawnRadius, PawnHalfHeight;
-	CharacterOwner->CapsuleComponent->GetScaledCapsuleSize(PawnRadius, PawnHalfHeight);
+		// Reject hits that are above our lower hemisphere (can happen when sliding down a vertical surface).
+		const float LowerHemisphereZ = Hit.Location.Z - PawnHalfHeight + PawnRadius;
+		if (Hit.ImpactPoint.Z >= LowerHemisphereZ)
+		{
+			return false;
+		}
 
-	// Reject hits that are above our lower hemisphere (can happen when sliding down a vertical surface).
-	const float LowerHemisphereZ = Hit.Location.Z - PawnHalfHeight + PawnRadius;
-	if (Hit.ImpactPoint.Z >= LowerHemisphereZ)
-	{
-		return false;
-	}
-
-	// Reject hits that are barely on the cusp of the radius of the capsule
-	if (!IsWithinEdgeTolerance(Hit.Location, Hit.ImpactPoint, PawnRadius))
-	{
-		return false;
+		// Reject hits that are barely on the cusp of the radius of the capsule
+		if (!IsWithinEdgeTolerance(Hit.Location, Hit.ImpactPoint, PawnRadius))
+		{
+			return false;
+		}
 	}
 
 	FFindFloorResult FloorResult;
@@ -4288,7 +4302,7 @@ FString UCharacterMovementComponent::GetMovementName()
 	return TEXT("Unknown");
 }
 
-void UCharacterMovementComponent::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void UCharacterMovementComponent::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	if ( CharacterOwner == NULL )
 	{
@@ -4420,7 +4434,7 @@ void UCharacterMovementComponent::SmoothClientPosition(float DeltaSeconds)
 
 		if (CharacterOwner->Mesh)
 		{
-			const FVector NewRelTranslation = CharacterOwner->ActorToWorld().InverseTransformVector(ClientData->MeshTranslationOffset + CharacterOwner->GetBaseTranslationOffset());
+			const FVector NewRelTranslation = CharacterOwner->ActorToWorld().InverseTransformVectorNoScale(ClientData->MeshTranslationOffset + CharacterOwner->GetBaseTranslationOffset());
 			CharacterOwner->Mesh->SetRelativeLocation(NewRelTranslation);
 		}
 	}
@@ -4689,8 +4703,16 @@ void UCharacterMovementComponent::ReplicateMoveToServer(float DeltaTime, const F
 			// Now that we have reverted to the old position, prepare a new move from that position,
 			// using our current velocity, acceleration, and rotation, but applied over the combined time from the old and new move.
 
-			SaveBaseLocation();
 			NewMove->DeltaTime += ClientData->PendingMove->DeltaTime;
+			
+			if (PC)
+			{
+				// We reverted position to that at the start of the pending move (above), however some code paths expect rotation to be set correctly
+				// before character movement occurs (via FaceRotation), so try that now. The bOrientRotationToMovement path happens later as part of PerformMovement() and PhysicsRotation().
+				CharacterOwner->FaceRotation(PC->GetControlRotation(), NewMove->DeltaTime);
+			}
+
+			SaveBaseLocation();
 			NewMove->SetInitialPosition(CharacterOwner);
 
 			// Remove pending move from move list. It would have to be the last move on the list.
@@ -5438,6 +5460,20 @@ void UCharacterMovementComponent::SetGroupsToIgnore(int32 GroupFlags)
 	GroupsToIgnore.SetFlagsDirectly(GroupFlags);
 }
 
+void UCharacterMovementComponent::SetAvoidanceEnabled(bool bEnable)
+{
+	if (bUseRVOAvoidance != bEnable)
+	{
+		bUseRVOAvoidance = bEnable;
+
+		UAvoidanceManager* AvoidanceManager = GetWorld()->GetAvoidanceManager();
+		if (AvoidanceManager && bEnable && AvoidanceUID == 0)
+		{
+			AvoidanceManager->RegisterMovementComponent(this, AvoidanceWeight);
+		}
+	}
+}
+
 void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
 {
 	FCollisionQueryParams QueryParams;
@@ -5526,6 +5562,46 @@ void UCharacterMovementComponent::ApplyRepulsionForce( float DeltaTime )
 			}
 		}
 	}
+}
+
+void UCharacterMovementComponent::ApplyAccumulatedMomentum(float DeltaSeconds)
+{
+	// check to see if applied momentum is enough to overcome gravity
+	if ( IsMovingOnGround() && (PendingMomentumToApply.Z + (GetGravityZ() * DeltaSeconds) > SMALL_NUMBER) )
+	{
+		SetMovementMode(MOVE_Falling);
+	}
+
+	Velocity += PendingMomentumToApply;
+
+	PendingMomentumToApply = FVector::ZeroVector;
+}
+
+void UCharacterMovementComponent::AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff)
+{
+	AddRadialImpulse(Origin, Radius, Strength, Falloff, true);
+}
+ 
+void UCharacterMovementComponent::AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange)
+{
+	FVector Delta = UpdatedComponent->GetComponentLocation() - Origin;
+	const float DeltaMagnitude = Delta.Size();
+
+	// Do nothing if outside radius
+	if(DeltaMagnitude > Radius)
+	{
+		return;
+	}
+
+	Delta = Delta.SafeNormal();
+
+	float ImpulseMagnitude = Strength;
+	if (Falloff == RIF_Linear && Radius > 0.0f)
+	{
+		ImpulseMagnitude *= (1.0f - (DeltaMagnitude / Radius));
+	}
+
+	AddMomentum(Delta * ImpulseMagnitude, bVelChange);
 }
 
 FNetworkPredictionData_Client_Character::FNetworkPredictionData_Client_Character()
@@ -5712,6 +5788,7 @@ void FSavedMove_Character::Clear()
 	TimeStamp = 0.f;
 	DeltaTime = 0.f;
 	CustomTimeDilation = 1.0f;
+	JumpKeyHoldTime = 0.0f;
 	MovementMode = 0;
 
 	StartLocation = FVector::ZeroVector;
@@ -5746,10 +5823,11 @@ void FSavedMove_Character::SetMoveFor(ACharacter* Character, float InDeltaTime, 
 	Acceleration = NewAccel;
 
 	bPressedJump = Character->bPressedJump;
+	JumpKeyHoldTime = Character->JumpKeyHoldTime;
 	bWantsToCrouch = Character->CharacterMovement->bWantsToCrouch;
 	bForceMaxAccel = Character->CharacterMovement->bForceMaxAccel;
 	MovementMode = Character->CharacterMovement->PackNetworkMovementMode();
-	
+
 	TimeStamp = ClientData.CurrentTimeStamp;
 }
 
@@ -5893,6 +5971,7 @@ void FSavedMove_Character::PrepMoveFor(ACharacter* Character)
 	}
 
 	Character->CharacterMovement->bForceMaxAccel = bForceMaxAccel;
+	Character->JumpKeyHoldTime = JumpKeyHoldTime;
 }
 
 

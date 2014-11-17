@@ -43,7 +43,9 @@ FMacApplication::FMacApplication()
 	, CurrentModifierFlags( 0 )
 {
 	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
-	
+
+	[NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event){AddPendingEvent(Event);}];
+
 	TextInputMethodSystem = MakeShareable( new FMacTextInputMethodSystem );
 	if(!TextInputMethodSystem->Initialize())
 	{
@@ -187,7 +189,7 @@ void FMacApplication::ProcessDeferredEvents( const float TimeDelta )
 	}
 }
 
-void FMacApplication::HandleExternallyChangedModifier(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode)
+void FMacApplication::HandleModifierChange(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode)
 {
 	bool CurrentPressed = (CurrentModifierFlags & FlagsShift) != 0;
 	bool NewPressed = (NewModifierFlags & FlagsShift) != 0;
@@ -220,7 +222,7 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 
 	FSlateCocoaWindow* NativeWindow = FindEventWindow( Event );
 	TSharedPtr< FMacWindow > CurrentEventWindow = FindWindowByNSWindow( Windows, NativeWindow );
-	if( !CurrentEventWindow.IsValid() && LastEventWindow.IsValid() )
+	if( NativeWindow && !CurrentEventWindow.IsValid() && LastEventWindow.IsValid() )
 	{
 		CurrentEventWindow = LastEventWindow;
 		NativeWindow = CurrentEventWindow->GetWindowHandle();
@@ -235,24 +237,20 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 	{
 		return;
 	}
-	
-	// Mission Control (aka Expose, Spaces) can silently steal focus and modify the modifier flags,
-	// without posting any events, leaving our input caching very confused as the key states won't match.
-	// We should only need to capture the modifiers, because they must go down first, we shouldn't get messages for the
-	// other keys.
-	if( ( EventType != NSFlagsChanged || [Event keyCode] == 0 ) && CurrentModifierFlags != [Event modifierFlags] )
+
+	if( CurrentModifierFlags != [Event modifierFlags] )
 	{
 		NSUInteger ModifierFlags = [Event modifierFlags];
 		
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<4), 7, MMK_RightCommand);
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<3), 6, MMK_LeftCommand);
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<1), 0, MMK_LeftShift);
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<16), 8, MMK_CapsLock);
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<5), 4, MMK_LeftAlt);
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<0), 2, MMK_LeftControl);
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<2), 1, MMK_RightShift);
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<6), 5, MMK_RightAlt);
-		HandleExternallyChangedModifier(CurrentEventWindow, ModifierFlags, (1<<13), 3, MMK_RightControl);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<4), 7, MMK_RightCommand);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<3), 6, MMK_LeftCommand);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<1), 0, MMK_LeftShift);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<16), 8, MMK_CapsLock);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<5), 4, MMK_LeftAlt);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<0), 2, MMK_LeftControl);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<2), 1, MMK_RightShift);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<6), 5, MMK_RightAlt);
+		HandleModifierChange(CurrentEventWindow, ModifierFlags, (1<<13), 3, MMK_RightControl);
 		
 		CurrentModifierFlags = ModifierFlags;
 	}
@@ -276,8 +274,8 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 			// its position based on mouse move delta
 			if( DraggedWindow )
 			{
-				const int32 X = FMath::Trunc(CurrentEventWindow->PositionX + [Event deltaX]);
-				const int32 Y = FMath::Trunc(CurrentEventWindow->PositionY + [Event deltaY]);
+				const int32 X = FMath::TruncToInt(CurrentEventWindow->PositionX + [Event deltaX]);
+				const int32 Y = FMath::TruncToInt(CurrentEventWindow->PositionY + [Event deltaY]);
 				if( CurrentEventWindow.IsValid() )
 				{
 					MessageHandler->OnMovedWindow( CurrentEventWindow.ToSharedRef(), X, Y );
@@ -327,8 +325,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 				}
 				else
 				{
-					// Call this here or else the cursor gets stuck in place after returning from high precision mode
-					CGAssociateMouseAndMouseCursorPosition( true );
 					FVector2D CurrentPosition = MacCursor->GetPosition();
 					if( MacCursor->UpdateCursorClipping( CurrentPosition ) )
 					{
@@ -562,54 +558,6 @@ void FMacApplication::ProcessEvent( NSEvent* Event )
 			}
 			break;
 		}
-
-		case NSFlagsChanged:
-		{
-			const uint32 KeyCode = [Event keyCode];
-			const uint32 Flags = [Event modifierFlags];
-			CurrentModifierFlags = Flags;
-			uint32 TranslatedCode = 0;
-
-			if( KeyCode >= 54 && KeyCode <= 62 )
-			{
-				bool Pressed = false;
-				uint32 Shift = 0;
-
-				switch( KeyCode )
-				{
-					case 54:	Pressed = ( ( Flags & (1<<4) ) != 0 );	Shift = 7;	TranslatedCode = MMK_RightCommand;	break; // right cmd
-					case 55:	Pressed = ( ( Flags & (1<<3) ) != 0 );	Shift = 6;	TranslatedCode = MMK_LeftCommand;	break; // left cmd
-					case 56:	Pressed = ( ( Flags & (1<<1) ) != 0 );	Shift = 0;	TranslatedCode = MMK_LeftShift;		break; // left shift
-					case 57:	Pressed = ( ( Flags & (1<<16)) != 0 );	Shift = 8;	TranslatedCode = MMK_CapsLock;		break; // caps lock
-					case 58:	Pressed = ( ( Flags & (1<<5) ) != 0 );	Shift = 4;	TranslatedCode = MMK_LeftAlt;		break; // left alt
-					case 59:	Pressed = ( ( Flags & (1<<0) ) != 0 );	Shift = 2;	TranslatedCode = MMK_LeftControl;	break; // left ctrl
-					case 60:	Pressed = ( ( Flags & (1<<2) ) != 0 );	Shift = 1;	TranslatedCode = MMK_RightShift;	break; // right shift
-					case 61:	Pressed = ( ( Flags & (1<<6) ) != 0 );	Shift = 5;	TranslatedCode = MMK_RightAlt;		break; // right alt
-					case 62:	Pressed = ( ( Flags & (1<<13) ) != 0 );	Shift = 3;	TranslatedCode = MMK_RightControl;	break; // right ctrl
-					default:
-						check(0);
-						break;
-				}
-
-				if( Pressed )
-				{
-					ModifierKeysFlags |= 1 << Shift;
-					if( CurrentEventWindow.IsValid() )
-					{
-						MessageHandler->OnKeyDown( TranslatedCode, 0, false );
-					}
-				}
-				else
-				{
-					ModifierKeysFlags &= ~(1 << Shift);
-					if( CurrentEventWindow.IsValid() )
-					{
-						MessageHandler->OnKeyUp( TranslatedCode, 0, false );
-					}
-				}
-			}
-			break;
-		}
 	}
 }
 
@@ -636,6 +584,16 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 	}
 
 	FSlateCocoaWindow* EventWindow = (FSlateCocoaWindow*)[Event window];
+
+	if ([Event type] == NSMouseMoved)
+	{
+		// Ignore windows owned by other applications
+		NSInteger WindowNumber = [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0];
+		if ([NSApp windowWithWindowNumber:WindowNumber] == NULL)
+		{
+			return NULL;
+		}
+	}
 
 	if( IsMouseEvent )
 	{
@@ -718,7 +676,6 @@ FSlateCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 void FMacApplication::PollGameDeviceState( const float TimeDelta )
 {
 	// Poll game device state and send new events
-	HIDInput->Tick( TimeDelta );
 	HIDInput->SendControllerEvents();
 }
 
@@ -804,8 +761,7 @@ void FMacApplication::SetHighPrecisionMouseMode( const bool Enable, const TShare
 {
 	bUsingHighPrecisionMouseInput = Enable;
 	HighPrecisionMousePos = static_cast<FMacCursor*>( Cursor.Get() )->GetPosition();
-	
-	CGAssociateMouseAndMouseCursorPosition( !Enable );
+	static_cast<FMacCursor*>( Cursor.Get() )->AssociateMouseAndCursorPosition( !Enable );
 }
 
 FModifierKeysState FMacApplication::GetModifierKeys() const
@@ -828,12 +784,16 @@ FPlatformRect FMacApplication::GetWorkArea( const FPlatformRect& CurrentWindow )
 
 	NSScreen* Screen = FindScreenByPoint( CurrentWindow.Left, CurrentWindow.Top );
 
-	const int32 ScreenHeight = FMath::Trunc([Screen frame].size.height);
+	const int32 ScreenHeight = FMath::TruncToInt([Screen frame].size.height);
 	const NSRect VisibleFrame = [Screen visibleFrame];
+	
+	NSArray* AllScreens = [NSScreen screens];
+	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
+	NSRect PrimaryFrame = [PrimaryScreen frame];
 
 	FPlatformRect WorkArea;
 	WorkArea.Left = VisibleFrame.origin.x;
-	WorkArea.Top = ScreenHeight - VisibleFrame.size.height - VisibleFrame.origin.y;
+	WorkArea.Top = (PrimaryFrame.origin.y + PrimaryFrame.size.height) - (VisibleFrame.origin.y + VisibleFrame.size.height);
 	WorkArea.Right = WorkArea.Left + VisibleFrame.size.width;
 	WorkArea.Bottom = WorkArea.Top + VisibleFrame.size.height;
 
@@ -875,15 +835,10 @@ void FMacApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) co
 	OutDisplayMetrics.PrimaryDisplayHeight = ScreenFrame.size.height;
 
 	// Virtual desktop area
-	OutDisplayMetrics.VirtualDisplayRect.Left = 0;
-	OutDisplayMetrics.VirtualDisplayRect.Top = 0;
-	OutDisplayMetrics.VirtualDisplayRect.Right = 0;
-	OutDisplayMetrics.VirtualDisplayRect.Bottom = 0;
-
 	NSRect WholeWorkspace = {0};
-	for(NSScreen* Screen in AllScreens)
+	for (NSScreen* Screen in AllScreens)
 	{
-		if(Screen)
+		if (Screen)
 		{
 			WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
 		}
@@ -897,7 +852,7 @@ void FMacApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) co
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = VisibleFrame.origin.x;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = ScreenFrame.size.height - (VisibleFrame.origin.y + VisibleFrame.size.height);
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = VisibleFrame.origin.x + VisibleFrame.size.width;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = ScreenFrame.size.height - VisibleFrame.origin.y;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top + VisibleFrame.size.height;
 }
 
 void FMacApplication::OnDragEnter( FSlateCocoaWindow* Window, void *InPasteboard )
@@ -1032,8 +987,8 @@ void FMacApplication::OnWindowDidResize( FSlateCocoaWindow* Window )
 		if([Window windowMode] != EWindowMode::Windowed)
 		{
 			// Grab current monitor data for sizing
-			Width = FMath::Trunc([[Window screen] frame].size.width);
-			Height = FMath::Trunc([[Window screen] frame].size.height);
+			Width = FMath::TruncToInt([[Window screen] frame].size.width);
+			Height = FMath::TruncToInt([[Window screen] frame].size.height);
 		}
 		
 		MessageHandler->OnSizeChanged( EventWindow.ToSharedRef(), Width, Height );
@@ -1130,8 +1085,8 @@ TCHAR FMacApplication::ConvertChar(TCHAR Character)
 
 TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode)
 {
-	// Keys like F1-F12, enter or backspace do not need translation
-	bool bNeedsTranslation = (CharCode < NSOpenStepUnicodeReservedBase || CharCode > 0xF8FF) && CharCode != 0x7F;
+	// Keys like F1-F12 or Enter do not need translation
+	bool bNeedsTranslation = CharCode < NSOpenStepUnicodeReservedBase || CharCode > 0xF8FF;
 	if( bNeedsTranslation )
 	{
 		// For non-numpad keys, the key code depends on the keyboard layout, so find out what was pressed by converting the key code to a Latin character
@@ -1161,7 +1116,7 @@ TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode)
 		}
 	}
 	// Private use range should not be returned
-	else if(CharCode >= NSOpenStepUnicodeReservedBase && CharCode <= 0xF8FF)
+	else
 	{
 		CharCode = 0;
 	}
@@ -1180,108 +1135,6 @@ TSharedPtr<FMacWindow> FMacApplication::GetKeyWindow()
 }
 
 #if WITH_EDITOR
-bool FMacApplication::SupportsSourceAccess() const 
-{
-	return true;
-}
-
-void FMacApplication::GotoLineInSource(const FString& FileAndLineNumber)
-{
-	FString FullPath, LineNumberWithColumnString;
-	if (FileAndLineNumber.Split(TEXT("|"), &FullPath, &LineNumberWithColumnString))
-	{
-		FString LineNumberString;
-		FString ColumnNumberString;
-		if ( !LineNumberWithColumnString.Split(TEXT(":"), &LineNumberString, &ColumnNumberString, ESearchCase::CaseSensitive, ESearchDir::FromEnd) )
-		{
-			// The column was not in the string
-			LineNumberString = LineNumberWithColumnString;
-			ColumnNumberString = TEXT("");
-		}
-		
-		int32 LineNumber = FCString::Strtoi(*LineNumberString, NULL, 10);
-		int32 ColumnNumber = FCString::Strtoi(*ColumnNumberString, NULL, 10);
-
-		if ( FModuleManager::Get().IsSolutionFilePresent() )
-		{
-			FString ProjPath = FPaths::ConvertRelativePathToFull(FModuleManager::Get().GetSolutionFilepath());
-			CFStringRef ProjPathString = FPlatformString::TCHARToCFString(*ProjPath);
-			NSString* ProjectPath = [(NSString*)ProjPathString stringByDeletingLastPathComponent];
-			[[NSWorkspace sharedWorkspace] openFile:ProjectPath withApplication:@"Xcode" andDeactivate:YES];
-		}
-		
-		bool ExecutionSucceeded = false;
-		
-		NSAppleScript* AppleScript = nil;
-		NSURL* PathURL = [[NSBundle mainBundle] URLForResource:@"OpenXcodeAtFileAndLine" withExtension:@"applescript"];
-		
-		NSDictionary* AppleScriptCreationError = nil;
-		AppleScript = [[NSAppleScript alloc] initWithContentsOfURL:PathURL error:&AppleScriptCreationError];
-		
-		if (!AppleScriptCreationError)
-		{
-			int PID = [[NSProcessInfo processInfo] processIdentifier];
-			NSAppleEventDescriptor* ThisApplication = [NSAppleEventDescriptor descriptorWithDescriptorType:typeKernelProcessID bytes:&PID length:sizeof(PID)];
-			
-			NSAppleEventDescriptor* ContainerEvent = [NSAppleEventDescriptor appleEventWithEventClass:'ascr' eventID:'psbr' targetDescriptor:ThisApplication returnID:kAutoGenerateReturnID transactionID:kAnyTransactionID];
-			
-			[ContainerEvent setParamDescriptor:[NSAppleEventDescriptor descriptorWithString:@"OpenXcodeAtFileAndLine"] forKeyword:'snam'];
-			
-			{
-				NSAppleEventDescriptor* Arguments = [[NSAppleEventDescriptor alloc] initListDescriptor];
-
-				CFStringRef FileString = FPlatformString::TCHARToCFString(*FullPath);
-				NSString* Path = (NSString*)FileString;
-				
-				if([Path isAbsolutePath] == NO)
-				{
-					NSString* CurDir = [[NSFileManager defaultManager] currentDirectoryPath];
-					NSString* ResolvedPath = [[NSString stringWithFormat:@"%@/%@", CurDir, Path] stringByResolvingSymlinksInPath];
-					if([[NSFileManager defaultManager] fileExistsAtPath:ResolvedPath])
-					{
-						Path = ResolvedPath;
-					}
-					else // If it doesn't exist, supply only the filename, we'll use Open Quickly to try and find it from Xcode
-					{
-						Path = [Path lastPathComponent];
-					}
-				}
-				
-				[Arguments insertDescriptor:[NSAppleEventDescriptor descriptorWithString:Path] atIndex:([Arguments numberOfItems] + 1)];
-				CFRelease(FileString);
-				
-				CFStringRef LineString = FPlatformString::TCHARToCFString(*LineNumberString);
-				if(LineString)
-				{
-					[Arguments insertDescriptor:[NSAppleEventDescriptor descriptorWithString:(NSString*)LineString] atIndex:([Arguments numberOfItems] + 1)];
-					CFRelease(LineString);
-				}
-				else
-				{
-					[Arguments insertDescriptor:[NSAppleEventDescriptor descriptorWithString:@"1"] atIndex:([Arguments numberOfItems] + 1)];
-				}
-				
-				[ContainerEvent setParamDescriptor:Arguments forKeyword:keyDirectObject];
-				[Arguments release];
-			}
-			
-			NSDictionary* ExecutionError = nil;
-			[AppleScript executeAppleEvent:ContainerEvent error:&ExecutionError];
-			if(ExecutionError == nil)
-			{
-				ExecutionSucceeded = true;
-			}
-		}
-		
-		[AppleScript release];
-		
-		// Fallback to trivial implementation when something goes wrong (like not having permission for UI scripting)
-		if(ExecutionSucceeded == false)
-		{
-			FPlatformProcess::LaunchFileInDefaultExternalApplication(*FullPath);
-		}
-	}
-}
 
 void FMacApplication::RecordUsage(EGestureEvent::Type Gesture)
 {

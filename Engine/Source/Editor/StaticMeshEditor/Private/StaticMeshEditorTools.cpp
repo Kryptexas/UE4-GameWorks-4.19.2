@@ -10,6 +10,7 @@
 #include "PropertyCustomizationHelpers.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "FbxMeshUtils.h"
+#include "SVectorInputBox.h"
 
 const int32 DefaultHullCount = 4;
 const int32 DefaultVertsPerHull = 12;
@@ -98,7 +99,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text( LOCTEXT("MaxNumHulls_ConvexDecomp", "Max Hulls").ToString() )
+				.Text( LOCTEXT("MaxNumHulls_ConvexDecomp", "Max Hulls") )
 			]
 
 			+SHorizontalBox::Slot()
@@ -123,7 +124,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text( LOCTEXT("MaxHullVerts_ConvexDecomp", "Max Hull Verts").ToString() )
+				.Text( LOCTEXT("MaxHullVerts_ConvexDecomp", "Max Hull Verts") )
 			]
 
 			+SHorizontalBox::Slot()
@@ -148,7 +149,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.Padding(8.0f, 0.0f, 8.0f, 0.0f)
 			[
 				SNew(SButton)
-				.Text( LOCTEXT("Apply_ConvexDecomp", "Apply").ToString() )
+				.Text( LOCTEXT("Apply_ConvexDecomp", "Apply") )
 				.OnClicked(this, &SConvexDecomposition::OnApplyDecomp)
 			]
 
@@ -157,7 +158,7 @@ void SConvexDecomposition::Construct(const FArguments& InArgs)
 			.Padding(8.0f, 0.0f, 8.0f, 0.0f)
 			[
 				SNew(SButton)
-				.Text( LOCTEXT("Defaults_ConvexDecomp", "Defaults").ToString() )
+				.Text( LOCTEXT("Defaults_ConvexDecomp", "Defaults") )
 				.OnClicked(this, &SConvexDecomposition::OnDefaults)
 			]
 		]
@@ -261,7 +262,7 @@ void FMeshBuildSettingsLayout::GenerateHeaderRowContent( FDetailWidgetRow& NodeR
 	NodeRow.NameContent()
 	[
 		SNew( STextBlock )
-		.Text( LOCTEXT("MeshBuildSettings", "Build Settings").ToString() )
+		.Text( LOCTEXT("MeshBuildSettings", "Build Settings") )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 	];
 }
@@ -274,7 +275,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals").ToString())
+			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals"))
 		
 		]
 		.ValueContent()
@@ -291,7 +292,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RecomputeTangents", "Recompute Tangents").ToString())
+			.Text(LOCTEXT("RecomputeTangents", "Recompute Tangents"))
 		]
 		.ValueContent()
 		[
@@ -307,7 +308,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RemoveDegenerates", "Remove Degenerates").ToString())
+			.Text(LOCTEXT("RemoveDegenerates", "Remove Degenerates"))
 		]
 		.ValueContent()
 		[
@@ -323,7 +324,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs").ToString())
+			.Text(LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs"))
 		]
 		.ValueContent()
 		[
@@ -339,63 +340,22 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		[
 			SNew(STextBlock)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
-			.Text(LOCTEXT("BuildScale", "Build Scale").ToString())
+			.Text(LOCTEXT("BuildScale", "Build Scale"))
 			.ToolTipText( LOCTEXT("BuildScale_ToolTip", "The local scale applied when building the mesh") )
 		]
 		.ValueContent()
+		.MinDesiredWidth(125.0f * 3.0f)
+		.MaxDesiredWidth(125.0f * 3.0f)
 		[
-			SNew( SVerticalBox )
-			+SVerticalBox::Slot()
-			.Padding( FMargin(0.0f, 1.0f, 0.0f, 6.0f ) )
-			[
-				SNew(SNumericEntryBox<float>)
-				.AllowSpin(true)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.MinValue(0.0f)
-				.MaxValue(TOptional<float>())
-				.MaxSliderValue(TOptional<float>())
-				.MinSliderValue(TOptional<float>())
-				.Value( this, &FMeshBuildSettingsLayout::GetBuildScaleX)
-				.OnValueChanged(this, &FMeshBuildSettingsLayout::OnBuildScaleXChanged)
-				.Label()
-				[
-					SNumericEntryBox<float>::BuildLabel( LOCTEXT("BuildScaleX_Label", "X"), FLinearColor::White, SNumericEntryBox<float>::RedLabelBackgroundColor )
-				]
-			]
-			+SVerticalBox::Slot()
-			.Padding( FMargin(0.0f, 1.0f, 0.0f, 6.0f ) )
-			[
-				SNew(SNumericEntryBox<float>)
-				.AllowSpin(true)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.MinValue(0.0f)
-				.MaxValue(TOptional<float>())
-				.MaxSliderValue(TOptional<float>())
-				.MinSliderValue(TOptional<float>())
-				.Value( this, &FMeshBuildSettingsLayout::GetBuildScaleY)
-				.OnValueChanged(this, &FMeshBuildSettingsLayout::OnBuildScaleYChanged)
-				.Label()
-				[
-					SNumericEntryBox<float>::BuildLabel( LOCTEXT("BuildScaleY_Label", "Y"), FLinearColor::White, SNumericEntryBox<float>::GreenLabelBackgroundColor )
-				]
-			]
-			+SVerticalBox::Slot()
-			.Padding( FMargin(0.0f, 1.0f, 0.0f, 2.0f ) )
-			[
-				SNew(SNumericEntryBox<float>)
-				.AllowSpin(true)
-				.Font(IDetailLayoutBuilder::GetDetailFont())
-				.MinValue(0.0f)
-				.MaxValue(TOptional<float>())
-				.MaxSliderValue(TOptional<float>())
-				.MinSliderValue(TOptional<float>())
-				.Value( this, &FMeshBuildSettingsLayout::GetBuildScaleZ)
-				.OnValueChanged(this, &FMeshBuildSettingsLayout::OnBuildScaleZChanged)
-				.Label()
-				[
-					SNumericEntryBox<float>::BuildLabel( LOCTEXT("BuildScaleZ_Label", "Z"), FLinearColor::White, SNumericEntryBox<float>::BlueLabelBackgroundColor )
-				]
-			]
+			SNew(SVectorInputBox)
+			.X(this, &FMeshBuildSettingsLayout::GetBuildScaleX)
+			.Y(this, &FMeshBuildSettingsLayout::GetBuildScaleY)
+			.Z(this, &FMeshBuildSettingsLayout::GetBuildScaleZ)
+			.bColorAxisLabels(false)
+			.OnXCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleXChanged)
+			.OnYCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleYChanged)
+			.OnZCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleZChanged)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 	}
 		
@@ -409,7 +369,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.IsEnabled(ParentLODSettings.Pin().ToSharedRef(), &FLevelOfDetailSettingsLayout::IsApplyNeeded)
 			[
 				SNew( STextBlock )
-				.Text(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+				.Text(LOCTEXT("ApplyChanges", "Apply Changes"))
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
 		];
@@ -485,19 +445,28 @@ void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState:
 	BuildSettings.bUseFullPrecisionUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
 }
 
-void FMeshBuildSettingsLayout::OnBuildScaleXChanged( float NewScaleX )
+void FMeshBuildSettingsLayout::OnBuildScaleXChanged( float NewScaleX, ETextCommit::Type TextCommitType )
 {
-	BuildSettings.BuildScale3D.X = NewScaleX;
+	if (!FMath::IsNearlyEqual(NewScaleX, 0.0f))
+	{
+		BuildSettings.BuildScale3D.X = NewScaleX;
+	}
 }
 
-void FMeshBuildSettingsLayout::OnBuildScaleYChanged( float NewScaleY )
+void FMeshBuildSettingsLayout::OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType )
 {
-	BuildSettings.BuildScale3D.Y = NewScaleY;
+	if (!FMath::IsNearlyEqual(NewScaleY, 0.0f))
+	{
+		BuildSettings.BuildScale3D.Y = NewScaleY;
+	}
 }
 
-void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ )
+void FMeshBuildSettingsLayout::OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType )
 {
-	BuildSettings.BuildScale3D.Z = NewScaleZ;
+	if (!FMath::IsNearlyEqual(NewScaleZ, 0.0f))
+	{
+		BuildSettings.BuildScale3D.Z = NewScaleZ;
+	}
 }
 
 FMeshReductionSettingsLayout::FMeshReductionSettingsLayout( TSharedRef<FLevelOfDetailSettingsLayout> InParentLODSettings )
@@ -515,7 +484,7 @@ void FMeshReductionSettingsLayout::GenerateHeaderRowContent( FDetailWidgetRow& N
 	NodeRow.NameContent()
 	[
 		SNew( STextBlock )
-		.Text( LOCTEXT("MeshReductionSettings", "Reduction Settings").ToString() )
+		.Text( LOCTEXT("MeshReductionSettings", "Reduction Settings") )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 	];
 }
@@ -530,7 +499,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("PercentTriangles", "Percent Triangles").ToString())
+			.Text(LOCTEXT("PercentTriangles", "Percent Triangles"))
 		]
 		.ValueContent()
 		[
@@ -550,7 +519,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("MaxDeviation", "Max Deviation").ToString())
+			.Text(LOCTEXT("MaxDeviation", "Max Deviation"))
 		]
 		.ValueContent()
 		[
@@ -570,7 +539,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew( STextBlock )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text( LOCTEXT("Silhouette_MeshSimplification", "Silhouette").ToString() )
+			.Text( LOCTEXT("Silhouette_MeshSimplification", "Silhouette") )
 		]
 		.ValueContent()
 		[
@@ -590,7 +559,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew( STextBlock )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text( LOCTEXT("Texture_MeshSimplification", "Texture").ToString() )
+			.Text( LOCTEXT("Texture_MeshSimplification", "Texture") )
 		]
 		.ValueContent()
 		[
@@ -610,7 +579,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew( STextBlock )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text( LOCTEXT("Shading_MeshSimplification", "Shading").ToString() )
+			.Text( LOCTEXT("Shading_MeshSimplification", "Shading") )
 		]
 		.ValueContent()
 		[
@@ -630,7 +599,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("WeldingThreshold", "Welding Threshold").ToString())
+			.Text(LOCTEXT("WeldingThreshold", "Welding Threshold"))
 		]
 		.ValueContent()
 		[
@@ -649,7 +618,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals").ToString())
+			.Text(LOCTEXT("RecomputeNormals", "Recompute Normals"))
 
 		]
 		.ValueContent()
@@ -666,7 +635,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("HardEdgeAngle", "Hard Edge Angle").ToString())
+			.Text(LOCTEXT("HardEdgeAngle", "Hard Edge Angle"))
 		]
 		.ValueContent()
 		[
@@ -690,7 +659,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 				.IsEnabled(ParentLODSettings.Pin().ToSharedRef(), &FLevelOfDetailSettingsLayout::IsApplyNeeded)
 				[
 					SNew( STextBlock )
-					.Text(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+					.Text(LOCTEXT("ApplyChanges", "Apply Changes"))
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 			];
@@ -866,12 +835,12 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateNameWidgetsForMaterial
 		SNew(SCheckBox)
 		.IsChecked(this, &FMeshSectionSettingsLayout::IsSectionSelected, SlotIndex)
 		.OnCheckStateChanged(this, &FMeshSectionSettingsLayout::OnSectionSelectedChanged, SlotIndex)
-		.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport").ToString())
+		.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
 		[
 			SNew(STextBlock)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.ColorAndOpacity( FLinearColor( 0.4f, 0.4f, 0.4f, 1.0f) )
-			.Text(LOCTEXT("Highlight", "Highlight").ToString())
+			.Text(LOCTEXT("Highlight", "Highlight"))
 
 		];
 }
@@ -888,7 +857,7 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateWidgetsForMaterial(UMa
 			[
 				SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-					.Text(LOCTEXT("CastShadow", "Cast Shadow").ToString())
+					.Text(LOCTEXT("CastShadow", "Cast Shadow"))
 			]
 		]
 		+SVerticalBox::Slot()
@@ -901,7 +870,7 @@ TSharedRef<SWidget> FMeshSectionSettingsLayout::OnGenerateWidgetsForMaterial(UMa
 			[
 				SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-					.Text(LOCTEXT("EnableCollision", "Enable Collision").ToString())
+					.Text(LOCTEXT("EnableCollision", "Enable Collision"))
 			]
 		];
 }
@@ -1011,10 +980,11 @@ FLevelOfDetailSettingsLayout::FLevelOfDetailSettingsLayout( FStaticMeshEditor& I
 
 	for (int32 i = 0; i < MAX_STATIC_MESH_LODS; ++i)
 	{
-		LODDistances[i] = 0.0f;
 		bBuildSettingsExpanded[i] = false;
 		bReductionSettingsExpanded[i] = false;
 		bSectionSettingsExpanded[i] = (i == 0);
+
+		LODScreenSizes[i] = 0.0f;
 	}
 
 	LODCount = StaticMeshEditor.GetStaticMesh()->GetNumLODs();
@@ -1043,7 +1013,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.Text(LOCTEXT("LODGroup", "LOD Group").ToString())
+		.Text(LOCTEXT("LODGroup", "LOD Group"))
 	]
 	.ValueContent()
 	[
@@ -1059,7 +1029,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("LODImport", "LOD Import").ToString())
+			.Text(LOCTEXT("LODImport", "LOD Import"))
 		]
 	.ValueContent()
 		[
@@ -1077,7 +1047,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.Text(LOCTEXT("NumberOfLODs", "Number of LODs").ToString())
+		.Text(LOCTEXT("NumberOfLODs", "Number of LODs"))
 	]
 	.ValueContent()
 	[
@@ -1098,7 +1068,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.Text(LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances").ToString())
+		.Text(LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances"))
 	]
 	.ValueContent()
 	[
@@ -1116,7 +1086,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 		.IsEnabled(this, &FLevelOfDetailSettingsLayout::IsApplyNeeded)
 		[
 			SNew( STextBlock )
-			.Text(LOCTEXT("ApplyChanges", "Apply Changes").ToString())
+			.Text(LOCTEXT("ApplyChanges", "Apply Changes"))
 			.Font( DetailBuilder.GetDetailFont() )
 		]
 	];
@@ -1128,7 +1098,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	[
 		SNew(STextBlock)
 		.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-		.Text(LOCTEXT("AllowedPixelError", "Auto Distance Error").ToString())
+		.Text(LOCTEXT("AllowedPixelError", "Auto Distance Error"))
 	]
 	.ValueContent()
 	[
@@ -1179,7 +1149,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 					BuildSettingsWidgets[LODIndex]->UpdateSettings(SrcModel.BuildSettings);
 				}
 
-				LODDistances[LODIndex] = SrcModel.LODDistance;
+				LODScreenSizes[LODIndex] = SrcModel.ScreenSize;
 			}
 			else if (LODIndex > 0)
 			{
@@ -1191,17 +1161,17 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 					ReductionSettingsWidgets[LODIndex]->UpdateSettings(ReductionSettings);
 				}
 
-				if (LODDistances[LODIndex] <= LODDistances[LODIndex-1])
+				if(LODScreenSizes[LODIndex] >= LODScreenSizes[LODIndex-1])
 				{
-					const float DefaultLODDistance = 1000.0f;
-					LODDistances[LODIndex] = LODDistances[LODIndex-1] + DefaultLODDistance;
+					const float DefaultScreenSizeDifference = 0.01f;
+					LODScreenSizes[LODIndex] = LODScreenSizes[LODIndex-1] - DefaultScreenSizeDifference;
 				}
 			}
 
 			FString CategoryName = FString(TEXT("LOD"));
 			CategoryName.AppendInt( LODIndex );
 
-			FString LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD {0}"), FText::AsNumber( LODIndex ) ).ToString();
+			FString LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) ).ToString();
 
 			IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory( *CategoryName, LODLevelString, ECategoryPriority::Important );
 
@@ -1212,12 +1182,12 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 				[
 					SNew( SHorizontalBox )
 					+ SHorizontalBox::Slot()
-					.Padding( FMargin( 5.0f, 0.0f ) )
+					.Padding(FMargin(5.0f, 0.0f))
 					.AutoWidth()
 					[
 						SNew(STextBlock)
 						.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-						.Text(this, &FLevelOfDetailSettingsLayout::GetLODDistanceTitle, LODIndex)
+						.Text(this, &FLevelOfDetailSettingsLayout::GetLODScreenSizeTitle, LODIndex)
 						.Visibility( LODIndex > 0 ? EVisibility::Visible : EVisibility::Collapsed )
 					]
 					+ SHorizontalBox::Slot()
@@ -1243,28 +1213,25 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			SectionSettingsWidgets[ LODIndex ] = MakeShareable( new FMeshSectionSettingsLayout( StaticMeshEditor, LODIndex ) );
 			SectionSettingsWidgets[ LODIndex ]->AddToCategory( LODCategory );
 
-			if (LODIndex > 0)
-			{
-				LODCategory.AddCustomRow( LOCTEXT("Distance", "Distance").ToString() )
-				.NameContent()
-				[
-					SNew(STextBlock)
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-					.Text(LOCTEXT("Distance", "Distance").ToString())
-				]
-				.ValueContent()
-				[
-					SNew(SSpinBox<float>)
-					.Font( IDetailLayoutBuilder::GetDetailFont() )
-					.MinValue(0.0f)
-					.MaxValue(WORLD_MAX)
-					.SliderExponent(2.0f)
-					.Value(this, &FLevelOfDetailSettingsLayout::GetLODDistance, LODIndex)
-					.OnValueChanged(this, &FLevelOfDetailSettingsLayout::OnLODDistanceChanged, LODIndex)
-					.OnValueCommitted(this, &FLevelOfDetailSettingsLayout::OnLODDistanceCommitted, LODIndex)
-					.IsEnabled(this, &FLevelOfDetailSettingsLayout::CanChangeLODDistance)
-				];
-			}
+			LODCategory.AddCustomRow(( LOCTEXT("ScreenSizeRow", "ScreenSize").ToString()))
+			.NameContent()
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.Text(LOCTEXT("ScreenSizeName", "Screen Size"))
+			]
+			.ValueContent()
+			[
+				SNew(SSpinBox<float>)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.MinValue(0.0f)
+				.MaxValue(WORLD_MAX)
+				.SliderExponent(2.0f)
+				.Value(this, &FLevelOfDetailSettingsLayout::GetLODScreenSize, LODIndex)
+				.OnValueChanged(this, &FLevelOfDetailSettingsLayout::OnLODScreenSizeChanged, LODIndex)
+				.OnValueCommitted(this, &FLevelOfDetailSettingsLayout::OnLODScreenSizeCommitted, LODIndex)
+				.IsEnabled(this, &FLevelOfDetailSettingsLayout::CanChangeLODScreenSize)
+			];
 
 			if (BuildSettingsWidgets[LODIndex].IsValid())
 			{
@@ -1291,62 +1258,58 @@ int32 FLevelOfDetailSettingsLayout::GetLODCount() const
 	return LODCount;
 }
 
-float FLevelOfDetailSettingsLayout::GetLODDistance(int32 LODIndex) const
+float FLevelOfDetailSettingsLayout::GetLODScreenSize( int32 LODIndex ) const
 {
-	check(LODIndex > 0 && LODIndex < MAX_STATIC_MESH_LODS);
-	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	float Distance = LODDistances[FMath::Clamp<int32>(LODIndex,0,MAX_STATIC_MESH_LODS-1)];
-	if (StaticMesh->bAutoComputeLODDistance)
+	check(LODIndex < MAX_STATIC_MESH_LODS);
+	UStaticMesh* Mesh = StaticMeshEditor.GetStaticMesh();
+	float ScreenSize = LODScreenSizes[FMath::Clamp(LODIndex, 0, MAX_STATIC_MESH_LODS-1)];
+	if(Mesh->bAutoComputeLODScreenSize)
 	{
-		Distance = StaticMesh->RenderData->LODDistance[LODIndex];
-		if (Distance == FLT_MAX)
-		{
-			Distance = 0.0f;
-		}
+		ScreenSize = Mesh->RenderData->ScreenSize[LODIndex];
 	}
-	else if (StaticMesh->SourceModels.IsValidIndex(LODIndex))
+	else if(Mesh->SourceModels.IsValidIndex(LODIndex))
 	{
-		Distance = StaticMesh->SourceModels[LODIndex].LODDistance;
+		ScreenSize = Mesh->SourceModels[LODIndex].ScreenSize;
 	}
-	return Distance;
+	return ScreenSize;
 }
 
-FText FLevelOfDetailSettingsLayout::GetLODDistanceTitle(int32 LODIndex) const
+FText FLevelOfDetailSettingsLayout::GetLODScreenSizeTitle( int32 LODIndex ) const
 {
-	return FText::Format( LOCTEXT("Distance_MeshSimplification", "Distance: {0}"), FText::AsNumber( LODIndex > 0 ? GetLODDistance( LODIndex ) : 0.0f ) );
+	return FText::Format( LOCTEXT("ScreenSize_MeshSimplification", "Screen Size: {0}"), FText::AsNumber(GetLODScreenSize(LODIndex)));
 }
 
-bool FLevelOfDetailSettingsLayout::CanChangeLODDistance() const
+bool FLevelOfDetailSettingsLayout::CanChangeLODScreenSize() const
 {
 	return !IsAutoLODEnabled();
 }
 
-void FLevelOfDetailSettingsLayout::OnLODDistanceChanged(float NewValue, int32 LODIndex)
+void FLevelOfDetailSettingsLayout::OnLODScreenSizeChanged( float NewValue, int32 LODIndex )
 {
-	check(LODIndex > 0 && LODIndex < MAX_STATIC_MESH_LODS);
+	check(LODIndex < MAX_STATIC_MESH_LODS);
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	if (!StaticMesh->bAutoComputeLODDistance)
+	if (!StaticMesh->bAutoComputeLODScreenSize)
 	{
 		// First propagate any changes from the source models to our local scratch.
 		for (int32 i = 0; i < StaticMesh->SourceModels.Num(); ++i)
 		{
-			LODDistances[i] = StaticMesh->SourceModels[i].LODDistance;
+			LODScreenSizes[i] = StaticMesh->SourceModels[i].ScreenSize;
 		}
 
-		// Update LOD distances for all further LODs.
-		float Delta = NewValue - LODDistances[LODIndex];
-		LODDistances[LODIndex] = NewValue;
+		// Update Display factors for further LODs
+		float Delta = NewValue - LODScreenSizes[LODIndex];
+		LODScreenSizes[LODIndex] = NewValue;
 		for (int32 i = LODIndex + 1; i < MAX_STATIC_MESH_LODS; ++i)
 		{
-			LODDistances[i] += Delta;
+			LODScreenSizes[i] += Delta;
 		}
 
-		// Enforce that LODs don't swap in before the previous LOD.
-		const float MinLODDistance = 100.0f;
+		// Make sure we aren't trying to ovelap or have more than one LOD for a value
+		const float MinimumDifferenceInScreenSize = 0.01f;
 		for (int32 i = 1; i < MAX_STATIC_MESH_LODS; ++i)
 		{
-			float MinDistance = LODDistances[i-1] + MinLODDistance;
-			LODDistances[i] = FMath::Max(LODDistances[i], MinDistance);
+			float MaxValue = FMath::Clamp(LODScreenSizes[i-1] - MinimumDifferenceInScreenSize, 0.0f, 1.0f);
+			LODScreenSizes[i] = FMath::Min(LODScreenSizes[i], MaxValue);
 		}
 
 		// Push changes immediately.
@@ -1354,12 +1317,12 @@ void FLevelOfDetailSettingsLayout::OnLODDistanceChanged(float NewValue, int32 LO
 		{
 			if (StaticMesh->SourceModels.IsValidIndex(i))
 			{
-				StaticMesh->SourceModels[i].LODDistance = LODDistances[i];
+				StaticMesh->SourceModels[i].ScreenSize = LODScreenSizes[i];
 			}
 			if (StaticMesh->RenderData
 				&& StaticMesh->RenderData->LODResources.IsValidIndex(i))
 			{
-				StaticMesh->RenderData->LODDistance[i] = LODDistances[i];
+				StaticMesh->RenderData->ScreenSize[i] = LODScreenSizes[i];
 			}
 		}
 
@@ -1373,9 +1336,9 @@ void FLevelOfDetailSettingsLayout::OnLODDistanceChanged(float NewValue, int32 LO
 	}
 }
 
-void FLevelOfDetailSettingsLayout::OnLODDistanceCommitted(float NewValue, ETextCommit::Type CommitType, int32 LODIndex)
+void FLevelOfDetailSettingsLayout::OnLODScreenSizeCommitted( float NewValue, ETextCommit::Type CommitType, int32 LODIndex )
 {
-	OnLODDistanceChanged(NewValue, LODIndex);
+	OnLODScreenSizeChanged(NewValue, LODIndex);
 }
 
 void FLevelOfDetailSettingsLayout::UpdateLODNames()
@@ -1445,7 +1408,7 @@ void FLevelOfDetailSettingsLayout::OnLODGroupChanged(TSharedPtr<FString> NewValu
 			{
 				StaticMesh->SourceModels[LODIndex].ReductionSettings = GroupSettings.GetDefaultSettings(LODIndex);
 			}
-			StaticMesh->bAutoComputeLODDistance = true;
+			StaticMesh->bAutoComputeLODScreenSize = true;
 			StaticMesh->LightMapResolution = GroupSettings.GetDefaultLightMapResolution();
 		}
 		StaticMesh->PostEditChange();
@@ -1457,7 +1420,7 @@ bool FLevelOfDetailSettingsLayout::IsAutoLODEnabled() const
 {
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 	check(StaticMesh);
-	return StaticMesh->bAutoComputeLODDistance;
+	return StaticMesh->bAutoComputeLODScreenSize;
 }
 
 ESlateCheckBoxState::Type FLevelOfDetailSettingsLayout::IsAutoLODChecked() const
@@ -1470,16 +1433,16 @@ void FLevelOfDetailSettingsLayout::OnAutoLODChanged(ESlateCheckBoxState::Type Ne
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 	check(StaticMesh);
 	StaticMesh->Modify();
-	StaticMesh->bAutoComputeLODDistance = (NewState == ESlateCheckBoxState::Checked) ? true : false;
-	if (!StaticMesh->bAutoComputeLODDistance)
+	StaticMesh->bAutoComputeLODScreenSize = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	if (!StaticMesh->bAutoComputeLODScreenSize)
 	{
 		if (StaticMesh->SourceModels.IsValidIndex(0))
 		{
-			StaticMesh->SourceModels[0].LODDistance = 0.0f;
+			StaticMesh->SourceModels[0].ScreenSize = 1.0f;
 		}
 		for (int32 LODIndex = 1; LODIndex < StaticMesh->SourceModels.Num(); ++LODIndex)
 		{
-			StaticMesh->SourceModels[LODIndex].LODDistance = StaticMesh->RenderData->LODDistance[LODIndex];
+			StaticMesh->SourceModels[LODIndex].ScreenSize = StaticMesh->RenderData->ScreenSize[LODIndex];
 		}
 	}
 	StaticMesh->PostEditChange();
@@ -1587,16 +1550,19 @@ void FLevelOfDetailSettingsLayout::ApplyChanges()
 
 		if (LODIndex == 0)
 		{
-			SrcModel.LODDistance = 0.0f;
+			SrcModel.ScreenSize = 1.0f;
 		}
 		else
 		{
-			SrcModel.LODDistance = LODDistances[LODIndex];
+			SrcModel.ScreenSize = LODScreenSizes[LODIndex];
 			FStaticMeshSourceModel& PrevModel = StaticMesh->SourceModels[LODIndex-1];
-			if (SrcModel.LODDistance <= PrevModel.LODDistance)
+			if(SrcModel.ScreenSize >= PrevModel.ScreenSize)
 			{
-				const float DefaultLODDistance = 1000.0f;
-				SrcModel.LODDistance = PrevModel.LODDistance + DefaultLODDistance;
+				const float DefaultScreenSizeDifference = 0.01f;
+				LODScreenSizes[LODIndex] = LODScreenSizes[LODIndex-1] - DefaultScreenSizeDifference;
+
+				// Make sure there are no incorrectly overlapping values
+				SrcModel.ScreenSize = 1.0f - 0.01f * LODIndex;
 			}
 		}
 	}
@@ -1657,7 +1623,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 			.AutoHeight()
 			[
 				SNew(STextBlock)
-					.Text( LOCTEXT("CreationMode", "Creation Mode").ToString() )
+					.Text( LOCTEXT("CreationMode", "Creation Mode") )
 			]
 
 			+SVerticalBox::Slot()
@@ -1676,7 +1642,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 						.OnCheckStateChanged( this, &SGenerateUniqueUVs::OnCreationModeChanged, CreateNew )
 						[
 							SNew(STextBlock)
-								.Text( LOCTEXT("CreateNew", "Create New").ToString() )
+								.Text( LOCTEXT("CreateNew", "Create New") )
 						]
 				]
 
@@ -1690,7 +1656,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 						.OnCheckStateChanged( this, &SGenerateUniqueUVs::OnCreationModeChanged, UseChannel0 )
 						[
 							SNew(STextBlock)
-								.Text( LOCTEXT("LayoutUsing0Channel", "Layout using 0 channel").ToString() )
+								.Text( LOCTEXT("LayoutUsing0Channel", "Layout using 0 channel") )
 						]
 				]
 			]
@@ -1705,7 +1671,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 					.FillWidth(3.0f)
 				[
 					SNew(STextBlock)
-						.Text( LOCTEXT("UVChannelSaveSelection", "UV channel to save results to:").ToString() )
+						.Text( LOCTEXT("UVChannelSaveSelection", "UV channel to save results to:") )
 				]
 
 				+SHorizontalBox::Slot()
@@ -1724,7 +1690,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 				.Padding( 0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(STextBlock)
-					.Text( LOCTEXT("SelectGenerationMethod", "Select Generation Method").ToString() )
+					.Text( LOCTEXT("SelectGenerationMethod", "Select Generation Method") )
 					.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
 			]
 
@@ -1744,7 +1710,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
 					[
 						SNew(STextBlock)
-							.Text( LOCTEXT("LimitMaxStretching", "Limit maximum stretching").ToString() )
+							.Text( LOCTEXT("LimitMaxStretching", "Limit maximum stretching") )
 					]
 				]
 
@@ -1778,7 +1744,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
 					[
 						SNew(STextBlock)
-							.Text( LOCTEXT("LimitMaxCharts", "Limit maximum number of charts").ToString() )
+							.Text( LOCTEXT("LimitMaxCharts", "Limit maximum number of charts") )
 					]
 				]
 
@@ -1806,7 +1772,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 					.FillWidth(3.0f)
 				[
 					SNew(STextBlock)
-						.Text( LOCTEXT("LimitChartSpacing", "Limit spacing between charts:").ToString() )
+						.Text( LOCTEXT("LimitChartSpacing", "Limit spacing between charts:") )
 						.IsEnabled(this, &SGenerateUniqueUVs::IsCreateNew)
 				]
 
@@ -1830,7 +1796,7 @@ void SGenerateUniqueUVs::Construct(const FArguments& InArgs)
 				.Padding( 0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(SButton)
-					.Text( LOCTEXT("Apply", "Apply").ToString() )
+					.Text( LOCTEXT("Apply", "Apply") )
 					.OnClicked( this, &SGenerateUniqueUVs::OnApply )
 			]
 		];

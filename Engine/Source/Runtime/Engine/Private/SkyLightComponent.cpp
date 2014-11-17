@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineLightClasses.h"
 #if WITH_EDITOR
 #include "ObjectEditorUtils.h"
 #endif
@@ -72,6 +71,7 @@ FSkyLightSceneProxy::FSkyLightSceneProxy(const USkyLightComponent* InLightCompon
 	, SkyDistanceThreshold(InLightComponent->SkyDistanceThreshold)
 	, bCastShadows(InLightComponent->CastShadows)
 	, bPrecomputedLightingIsValid(InLightComponent->bPrecomputedLightingIsValid)
+	, bHasStaticLighting(InLightComponent->HasStaticLighting())
 	, LightColor(FLinearColor(InLightComponent->LightColor) * InLightComponent->Intensity)
 	, IrradianceEnvironmentMap(InLightComponent->IrradianceEnvironmentMap)
 {
@@ -85,7 +85,9 @@ USkyLightComponent::USkyLightComponent(const class FPostConstructInitializePrope
 	{
 		static ConstructorHelpers::FObjectFinder<UTexture2D> StaticTexture(TEXT("/Engine/EditorResources/LightIcons/SkyLight"));
 		StaticEditorTexture = StaticTexture.Object;
+		StaticEditorTextureScale = 1.0f;
 		DynamicEditorTexture = StaticTexture.Object;
+		DynamicEditorTextureScale = 1.0f;
 	}
 #endif
 
@@ -195,8 +197,11 @@ void USkyLightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 {
 	const FName CategoryName = FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property);
 
-	// Other options not supported yet
-	Mobility = EComponentMobility::Stationary;
+	// Movable not supported yet
+	if (Mobility == EComponentMobility::Movable)
+	{
+		Mobility = EComponentMobility::Stationary;
+	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -373,13 +378,27 @@ void USkyLightComponent::UpdateSkyCaptureContents(UWorld* WorldToUpdate)
 						CaptureComponent->MarkRenderStateDirty();
 					}
 
-					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent);
+					WorldToUpdate->Scene->UpdateSkyCaptureContents(CaptureComponent, false, CaptureComponent->ProcessedSkyTexture, CaptureComponent->IrradianceEnvironmentMap);
+
+					CaptureComponent->MarkRenderStateDirty();
 				}
 
 				// Only remove queued update requests if we processed it for the right world
 				SkyCapturesToUpdate.RemoveAt(CaptureIndex);
 			}
 		}
+	}
+}
+
+void USkyLightComponent::CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& OutIrradianceMap) const
+{
+	OutIrradianceMap = FSHVectorRGB3();
+
+	if (GetScene())
+	{
+		// Capture emissive scene lighting only for the lighting build
+		// This is necessary to avoid a feedback loop with the last lighting build results
+		GetScene()->UpdateSkyCaptureContents(this, true, NULL, OutIrradianceMap);
 	}
 }
 
@@ -417,23 +436,37 @@ void USkyLightComponent::RecaptureSky()
 ASkyLight::ASkyLight(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	LightComponent = PCIP.CreateDefaultSubobject<USkyLightComponent>(this, TEXT("SkyLightComponent0"));
+	RootComponent = LightComponent;
+
+#if WITH_EDITORONLY_DATA
+	if (!IsRunningCommandlet())
+	{
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
+			ConstructorHelpers::FObjectFinderOptional<UTexture2D> SkyLightTextureObject;
 		FName ID_Sky;
 		FText NAME_Sky;
 
 		FConstructorStatics()
-			: ID_Sky(TEXT("Sky"))
+				: SkyLightTextureObject(TEXT("/Engine/EditorResources/LightIcons/SkyLight"))
+				, ID_Sky(TEXT("Sky"))
 			, NAME_Sky(NSLOCTEXT( "SpriteCategory", "Sky", "Sky" ))
 		{
 		}
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	LightComponent = PCIP.CreateDefaultSubobject<USkyLightComponent>(this, TEXT("SkyLightComponent0"));
-	RootComponent = LightComponent;
-
+		if (SpriteComponent)
+		{
+			SpriteComponent->Sprite = ConstructorStatics.SkyLightTextureObject.Get();
+			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Sky;
+			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Sky;
+			SpriteComponent->AttachParent = LightComponent;
+		}
+	}
+#endif // WITH_EDITORONLY_DATA
 }
 
 void ASkyLight::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const

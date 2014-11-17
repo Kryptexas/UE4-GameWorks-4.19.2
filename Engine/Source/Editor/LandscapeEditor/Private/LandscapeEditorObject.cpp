@@ -398,7 +398,7 @@ void ULandscapeEditorObject::GuessGizmoImportSize()
 
 			// Guess dimensions from filesize
 			// Keep searching for the most squarelike size
-			for (int32 w = FMath::Trunc(FMath::Sqrt((float)GizmoFileSize)); w > 0; w--)
+			for (int32 w = FMath::TruncToInt(FMath::Sqrt((float)GizmoFileSize)); w > 0; w--)
 			{
 				if (GizmoFileSize % w == 0)
 				{

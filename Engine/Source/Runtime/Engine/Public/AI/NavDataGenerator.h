@@ -29,9 +29,6 @@ public:
 	/** Called when world is loaded and all actors are initialized - to be used for post-load steps like data validating */
 	virtual void OnWorldInitDone(bool bAllowedToRebuild) {}	
 
-	/** called from owner's BeginPlay function */
-	virtual void OnPostBeginPlay() {}
-
 	virtual void OnNavigationBuildingLocked() {}
 
 	/** Lets Generator know that building navigation is now allowed. 

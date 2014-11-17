@@ -12,7 +12,7 @@ public class ClassViewer : ModuleRules
 				"EditorWidgets",
                 "PropertyEditor"
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -21,12 +21,13 @@ public class ClassViewer : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"PropertyEditor",
 				"GameProjectGeneration"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -34,6 +35,6 @@ public class ClassViewer : ModuleRules
 				"EditorWidgets",
 				"PropertyEditor"
 			}
-			);
+		);
 	}
 }

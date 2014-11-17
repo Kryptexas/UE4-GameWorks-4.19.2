@@ -4,9 +4,6 @@
 #include "ModuleManager.h"
 #include "StringAssetReference.h"
 #include "StringClassReference.h"
-#if USE_COMPILED_IN_NATIVES
-#include "CoreUObject.generated.inl"
-#endif
 
 // CoreUObject module. Handles UObject system pre-init (registers init function with Core callbacks).
 class FCoreUObjectModule : public FDefaultModuleImpl

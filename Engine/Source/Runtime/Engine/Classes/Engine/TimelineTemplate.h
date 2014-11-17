@@ -198,7 +198,7 @@ class UTimelineTemplate : public UObject
 	ENGINE_API FName GetTrackPropertyName(const FName TrackName) const;
 
 	/* Create a new unique name for a curve */
-	ENGINE_API static FString MakeUniqueCurveName(UObject* Obj);
+	ENGINE_API static FString MakeUniqueCurveName(UObject* Obj, UObject* InOuter);
 
 	ENGINE_API static FString TimelineTemplateNameToVariableName(FName Name);
 	ENGINE_API static FString TimelineVariableNameToTemplateName(FName Name);

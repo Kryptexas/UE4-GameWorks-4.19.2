@@ -8,6 +8,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogCollisionProfile, Warning, All)
 #define MAX_CUSTOMIZABLE_COLLISIONCHANNEL	ECC_GameTraceChannel18
 #define IS_VALID_COLLISIONCHANNEL(x) ((x)> ECC_Destructible && (x) < ECC_OverlapAll_Deprecated)
 
+// do not chnage this name. This value is serialize to other object, if you change, it will mess up serialization, you'll need to fix up name by versioning
+FName UCollisionProfile::CustomCollisionProfileName = FName(TEXT("Custom"));
+
 //////////////////////////////////////////////////////////////////////////
 FCollisionResponseTemplate::FCollisionResponseTemplate()
 	: CollisionEnabled(ECollisionEnabled::NoCollision)
@@ -33,6 +36,7 @@ ENGINE_API const FName UCollisionProfile::BlockAll_ProfileName = FName(TEXT("Blo
 ENGINE_API const FName UCollisionProfile::PhysicsActor_ProfileName = FName(TEXT("PhysicsActor"));
 ENGINE_API const FName UCollisionProfile::BlockAllDynamic_ProfileName = FName(TEXT("BlockAllDynamic"));
 ENGINE_API const FName UCollisionProfile::Pawn_ProfileName = FName(TEXT("Pawn"));
+ENGINE_API const FName UCollisionProfile::Vehicle_ProfileName = FName(TEXT("Vehicle"));
 
 UCollisionProfile::UCollisionProfile(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -67,7 +71,8 @@ bool UCollisionProfile::GetProfileTemplate(FName ProfileName, struct FCollisionR
 
 bool UCollisionProfile::CheckRedirect(FName ProfileName, FBodyInstance & BodyInstance, struct FCollisionResponseTemplate & Template) const
 {
-	if ( ProfileName != NAME_None )
+	// make sure we're not setting invalid collision profile name
+	if ( FBodyInstance::IsValidCollisionProfileName(ProfileName) )
 	{
 		const FName * NewName = ProfileRedirectsMap.Find(ProfileName);
 		if ( NewName )
@@ -205,6 +210,16 @@ void UCollisionProfile::LoadProfileConfig(bool bForceInit)
 	// read "EngineTraceChanne" and "GameTraceChanne" and set meta data
 	FConfigSection* Configs = GConfig->GetSectionPrivate( TEXT("/Script/Engine.CollisionProfile"), false, true, GEngineIni );
 
+	// before any op, verify if profiles contains invalid name - such as Custom profile name - remove all of them
+	for (auto Iter=Profiles.CreateConstIterator(); Iter; ++Iter)
+	{
+		// make sure it doens't have any 
+		if (Iter->Name == CustomCollisionProfileName)
+		{
+			UE_LOG(LogCollisionProfile, Error, TEXT("Profiles contain invalid name : %s is reserved for internal use"), *CustomCollisionProfileName.ToString());
+			Profiles.RemoveAt(Iter.GetIndex());
+		}
+	}
 	// 1. First loads all meta data for custom channels
 	// this can be used in #2, so had to fix up first
 
@@ -630,4 +645,42 @@ ECollisionChannel UCollisionProfile::ConvertToCollisionChannel(bool TraceType, i
 
 	// invalid
 	return ECC_MAX;
+}
+
+EObjectTypeQuery UCollisionProfile::ConvertToObjectType(ECollisionChannel CollisionChannel) const
+{
+	if (CollisionChannel < ECC_MAX)
+	{
+		int32 ObjectTypeIndex = 0;
+		for(const auto& MappedCollisionChannel : ObjectTypeMapping)
+		{
+			if(MappedCollisionChannel == CollisionChannel)
+			{
+				return (EObjectTypeQuery)ObjectTypeIndex;
+			}
+
+			ObjectTypeIndex++;
+		}
+	}
+
+	return ObjectTypeQuery_MAX;
+}
+
+ETraceTypeQuery UCollisionProfile::ConvertToTraceType(ECollisionChannel CollisionChannel) const
+{
+	if (CollisionChannel < ECC_MAX)
+	{
+		int32 TraceTypeIndex = 0;
+		for(const auto& MappedCollisionChannel : TraceTypeMapping)
+		{
+			if(MappedCollisionChannel == CollisionChannel)
+			{
+				return (ETraceTypeQuery)TraceTypeIndex;
+			}
+
+			TraceTypeIndex++;
+		}
+	}
+
+	return TraceTypeQuery_MAX;
 }

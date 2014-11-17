@@ -18,6 +18,7 @@ public class SceneOutliner : ModuleRules
 				"Engine", 
 				"InputCore",
 				"Slate", 
+				"SlateCore",
 				"EditorStyle",
 				"UnrealEd",
 			}

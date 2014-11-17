@@ -23,8 +23,8 @@ typedef TCHAR* PTCHAR;
 #include "HideWindowsPlatformTypes.h"
 
 #include "CaptureSource.h"
+#include "SlateCore.h"
 
-#include "Renderer.h"
 
 #define g_wszCapture    L"Capture Filter"
 

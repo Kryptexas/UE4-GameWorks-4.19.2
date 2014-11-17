@@ -48,7 +48,7 @@ void FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin(TSharedRef<IPr
 		case FPropertyAccess::MultipleValues:
 			ChildrenBuilder.AddChildContent( TEXT("") ) 
 			[
-				 SNew(STextBlock).Text(LOCTEXT("OnlyWorksInSingleSelectMode", "Multiple types selected").ToString())
+				 SNew(STextBlock).Text(LOCTEXT("OnlyWorksInSingleSelectMode", "Multiple types selected"))
 			];
 			return;
 		case FPropertyAccess::Fail:

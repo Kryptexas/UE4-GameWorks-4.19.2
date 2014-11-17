@@ -11,6 +11,7 @@
 
 static const FName ColumnId_MorphTargetNameLabel( "MorphTargetName" );
 static const FName ColumnID_MorphTargetWeightLabel( "Weight" );
+static const FName ColumnID_MorphTargetVertCountLabel( "NumberOfVerts" );
 
 //////////////////////////////////////////////////////////////////////////
 // SMorphTargetListRow
@@ -103,7 +104,7 @@ TSharedRef< SWidget > SMorphTargetListRow::GenerateWidgetForColumn( const FName&
 				.HighlightText( MorphTargetViewer->GetFilterText() )
 			];
 	}
-	else
+	else if ( ColumnName == ColumnID_MorphTargetWeightLabel )
 	{
 		// Encase the SSpinbox in an SVertical box so we can apply padding. Setting ItemHeight on the containing SListView has no effect :-(
 		return
@@ -120,6 +121,28 @@ TSharedRef< SWidget > SMorphTargetListRow::GenerateWidgetForColumn( const FName&
 				.Value( this, &SMorphTargetListRow::GetWeight )
 				.OnValueChanged( this, &SMorphTargetListRow::OnMorphTargetWeightChanged )
 			];
+	}
+	else
+	{
+		return
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(4.0f, 4.0f)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Right)
+					[
+						SNew(STextBlock)
+						.Text(FString::FromInt(Item->NumberOfVerts))
+						.HighlightText(MorphTargetViewer->GetFilterText())
+					]
+				];
 	}
 }
 
@@ -210,6 +233,9 @@ void SMorphTargetViewer::Construct(const FArguments& InArgs)
 
 				+ SHeaderRow::Column( ColumnID_MorphTargetWeightLabel )
 				.DefaultLabel( LOCTEXT( "MorphTargetWeightLabel", "Weight" ).ToString() )
+
+				+ SHeaderRow::Column(ColumnID_MorphTargetVertCountLabel)
+				.DefaultLabel(LOCTEXT("MorphTargetVertCountLabel", "Vert Count").ToString())
 			)
 		]
 	];
@@ -284,7 +310,9 @@ void SMorphTargetViewer::CreateMorphTargetList( const FString& SearchText )
 				continue; // Skip items that don't match our filter
 			}
 
-			TSharedRef<FDisplayedMorphTargetInfo> Info = FDisplayedMorphTargetInfo::Make( MorphTargets[I]->GetFName() );
+			int32 NumberOfVerts = (MorphTargets[I]->MorphLODModels.Num() > 0)? MorphTargets[I]->MorphLODModels[0].Vertices.Num() : 0;
+
+			TSharedRef<FDisplayedMorphTargetInfo> Info = FDisplayedMorphTargetInfo::Make( MorphTargets[I]->GetFName(), NumberOfVerts);
 			if(MeshComponent)
 			{
 				float *CurveValPtr = MeshComponent->MorphTargetCurves.Find( MorphTargets[I]->GetFName() );

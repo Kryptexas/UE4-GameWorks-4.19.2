@@ -11,7 +11,7 @@
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
-#include "Developer/Windows/VSAccessor/Public/VSAccessorModule.h"
+#include "Developer/SourceCodeAccess/Public/ISourceCodeAccessModule.h"
 #endif
 
 // Allow Windows Platform types in the entire file.
@@ -202,8 +202,8 @@ void FWindowsApplication::SetHighPrecisionMouseMode( const bool Enable, const TS
 bool FWindowsApplication::TryCalculatePopupWindowPosition( const FPlatformRect& InAnchor, const FVector2D& InSize, const EPopUpOrientation::Type Orientation, /*OUT*/ FVector2D* const CalculatedPopUpPosition ) const
 {
 #if(_WIN32_WINNT >= 0x0601) 
-	POINT AnchorPoint = { FMath::Trunc(InAnchor.Left), FMath::Trunc(InAnchor.Top) };
-	SIZE WindowSize = { FMath::Trunc(InSize.X), FMath::Trunc(InSize.Y) };
+	POINT AnchorPoint = { FMath::TruncToInt(InAnchor.Left), FMath::TruncToInt(InAnchor.Top) };
+	SIZE WindowSize = { FMath::TruncToInt(InSize.X), FMath::TruncToInt(InSize.Y) };
 
 	RECT WindowPos;
 	::CalculatePopupWindowPosition( &AnchorPoint, &WindowSize, TPM_CENTERALIGN | TPM_VCENTERALIGN, NULL, &WindowPos );
@@ -414,14 +414,14 @@ void FWindowsApplication::GetDisplayMetrics( FDisplayMetrics& OutDisplayMetrics 
 	SystemParametersInfo( SPI_GETWORKAREA, 0, &WorkAreaRect, 0 );
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Left = WorkAreaRect.left;
 	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Top = WorkAreaRect.top;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = 1.0f + WorkAreaRect.right;
-	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = 1.0f + WorkAreaRect.bottom;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Right = WorkAreaRect.right;
+	OutDisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom = WorkAreaRect.bottom;
 
 	// Virtual desktop area
 	OutDisplayMetrics.VirtualDisplayRect.Left = ::GetSystemMetrics( SM_XVIRTUALSCREEN );
 	OutDisplayMetrics.VirtualDisplayRect.Top = ::GetSystemMetrics( SM_YVIRTUALSCREEN );
-	OutDisplayMetrics.VirtualDisplayRect.Right = 1.0f + ::GetSystemMetrics( SM_CXVIRTUALSCREEN );
-	OutDisplayMetrics.VirtualDisplayRect.Bottom = 1.0f + ::GetSystemMetrics( SM_CYVIRTUALSCREEN );
+	OutDisplayMetrics.VirtualDisplayRect.Right = OutDisplayMetrics.VirtualDisplayRect.Left + ::GetSystemMetrics( SM_CXVIRTUALSCREEN );
+	OutDisplayMetrics.VirtualDisplayRect.Bottom = OutDisplayMetrics.VirtualDisplayRect.Top + ::GetSystemMetrics( SM_CYVIRTUALSCREEN );
 
 	// Get connected monitor information
 	GetMonitorInfo(OutDisplayMetrics.MonitorInfo);
@@ -709,9 +709,17 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 					if ( CurrentNativeEventWindow->IsRegularWindow() )
 					{
 						EWindowZone::Type Zone;
-						// Assumes this is not allowed to leave Slate or touch rendering
+					
+						if( MessageHandler->ShouldProcessUserInputMessages( CurrentNativeEventWindowPtr ) )
 						{
+							// Assumes this is not allowed to leave Slate or touch rendering
 							Zone = MessageHandler->GetWindowZoneForPoint( CurrentNativeEventWindow, LocalMouseX, LocalMouseY );
+						}
+						else
+						{
+							// Default to client area so that we are able to see the feedback effect when attempting to click on a non-modal window when a modal window is active
+							// Any other window zones could have side effects and NotInWindow prevents the feedback effect.
+							Zone = EWindowZone::ClientArea;
 						}
 
 						static const LRESULT Results[] = {HTNOWHERE, HTTOPLEFT, HTTOP, HTTOPRIGHT, HTLEFT, HTCLIENT,
@@ -934,7 +942,10 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 		case WM_IME_ENDCOMPOSITION:
 		case WM_IME_CHAR:
 			{
-				TextInputMethodSystem->ProcessMessage(hwnd, msg, wParam, lParam);
+				if(TextInputMethodSystem.IsValid())
+				{
+					TextInputMethodSystem->ProcessMessage(hwnd, msg, wParam, lParam);
+				}
 				return 0;
 			}
 			break;
@@ -1584,7 +1595,6 @@ HRESULT FWindowsApplication::OnOLEDragEnter( const HWND HWnd, const FDragDropOLE
 			break;
 		case FDragDropOLEData::None:
 		default:
-			ensureMsgf(0, TEXT("Unhandled drag/drop OLE data type: %d"), OLEData.Type);
 			break;
 	}
 
@@ -1628,34 +1638,5 @@ HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData&
 
 	return 0;
 }
-
-#if WITH_EDITOR
-bool FWindowsApplication::SupportsSourceAccess() const 
-{
-	return true;
-}
-
-void FWindowsApplication::GotoLineInSource(const FString& FileAndLineNumber)
-{
-	FString FullPath, LineNumberWithColumnString;
-	if (FileAndLineNumber.Split(TEXT("|"), &FullPath, &LineNumberWithColumnString))
-	{
-		FString LineNumberString;
-		FString ColumnNumberString;
-		if ( !LineNumberWithColumnString.Split(TEXT(":"), &LineNumberString, &ColumnNumberString, ESearchCase::CaseSensitive, ESearchDir::FromEnd) )
-		{
-			// The column was not in the string
-			LineNumberString = LineNumberWithColumnString;
-			ColumnNumberString = TEXT("");
-		}
-		
-		int32 LineNumber = FCString::Strtoi(*LineNumberString, NULL, 10);
-		int32 ColumnNumber = FCString::Strtoi(*ColumnNumberString, NULL, 10);
-
-		FVSAccessorModule& VSAccessorModule = FModuleManager::LoadModuleChecked<FVSAccessorModule>(TEXT("VSAccessor"));
-		VSAccessorModule.OpenVisualStudioFileAtLine(FullPath, LineNumber, ColumnNumber);
-	}
-}
-#endif
 
 #include "HideWindowsPlatformTypes.h"

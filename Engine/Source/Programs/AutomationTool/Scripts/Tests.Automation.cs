@@ -15,6 +15,7 @@ using UnrealBuildTool;
 
 [Help("Tests P4 functionality. Runs 'p4 info'.")]
 [RequireP4]
+[DoesNotNeedP4CL]
 class TestP4_Info : BuildCommand
 {
 	public override void ExecuteBuild()
@@ -28,6 +29,250 @@ class TestP4_Info : BuildCommand
 			throw new AutomationException("p4 info failed: {0}", Result.Output);
 		}
 	}
+}
+
+[Help("GitPullRequest")]
+[Help("Dir=", "Directory of the Git repo.")]
+[Help("PR=", "PR # to shelve, can use a range PR=5-25")]
+[RequireP4]
+class GitPullRequest : BuildCommand
+{
+	/// URL to our UnrealEngine repository on GitHub
+	static readonly string GitRepositoryURL = "https://github.com/EpicGames/UnrealEngine.git";
+
+    string FindExeFromPath(string ExeName, string ExpectedPathSubstring = null)
+    {
+        if (File.Exists(ExeName))
+        {
+            return Path.GetFullPath(ExeName);
+        }
+
+        foreach (string BasePath in Environment.GetEnvironmentVariable("PATH").Split(';'))
+        {
+            var FullPath = Path.Combine(BasePath, ExeName);
+            if (ExpectedPathSubstring == null || FullPath.IndexOf(ExpectedPathSubstring, StringComparison.InvariantCultureIgnoreCase) != -1)
+            {
+                if (File.Exists(FullPath))
+                {
+                    return FullPath;
+                }
+            }
+        }
+
+        return null;
+    }
+    string RunGit(string GitCommandLine)
+    {
+        string GitExePath = FindExeFromPath("Git.exe", "PortableGit");
+        if (GitExePath == null)
+        {
+            throw new AutomationException("Unable to find Git.exe in the system path under a 'PortableGit' subdirectory.  Make sure the GitHub client is installed, and you are running this script from within a GitHub Command Shell.  We want to make sure we're using the correct version of Git, in case multiple versions are on the computer, which is why we check for a PortableGit folder that the GitHub Shell uses.");
+        }
+
+        Log("Running {0} {1}", GitExePath, GitCommandLine);
+
+        ProcessResult Result = Run(App: GitExePath, CommandLine: GitCommandLine, Options: (ERunOptions.NoLoggingOfRunCommand | ERunOptions.AllowSpew | ERunOptions.AppMustExist));
+        if (Result > 0 || Result < 0)
+        {
+            throw new AutomationException(String.Format("Command failed (Result:{2}): {0} {1}", GitExePath, GitCommandLine, Result.ExitCode));
+        }
+
+        // Return the results (sans leading and trailing whitespace)
+        return Result.Output.Trim();
+    }
+
+    void ExecuteInner(string Dir, int PR)
+    {
+        string PRNum = PR.ToString();
+
+		// Discard any old changes we may have committed
+        RunGit("reset --hard");
+
+		// show-ref is just a double check that the PR exists
+        var Refs = RunGit("show-ref");
+        if (!Refs.Contains("refs/remotes/origin/pr/" + PRNum))
+        {
+            throw new AutomationException("This is not among the refs: refs/remotes/origin/pr/{0}", PRNum);
+        }
+        RunGit(String.Format("fetch origin refs/pull/{0}/head:pr/{1}", PRNum, PRNum));
+        RunGit(String.Format("checkout pr/{0} --", PRNum));
+
+		// after the fetch we do git log --Author... to figure out the P4 branch and CL
+		// the -1 limits it to the first one with the right author
+		var Base = RunGit(String.Format("log --author=TimSweeney --author=UnrealBot -1 pr/{0} --", PRNum));
+        string LookFor = "(";
+        if (!Base.Contains(LookFor))
+        {
+            throw new AutomationException("Unrecognized commit.");
+        }
+        Base = Base.Substring(Base.IndexOf(LookFor) + LookFor.Length);
+        string Depot = null;
+        if (Base.StartsWith("4."))
+        {
+            Depot = "//depot/UE4-Releases/4." + Base.Substring(2, 1);
+        }
+        else if (Base.StartsWith("Main"))
+        {
+            Depot = "//depot/UE4";
+        }
+        else
+        {
+            throw new AutomationException("Unrecognized branch.");
+        }
+        Log("Depot {0}", Depot);
+        if (!Base.Contains(")"))
+        {
+            throw new AutomationException("Unrecognized commit2.");
+        }
+        Base = Base.Substring(0, Base.IndexOf(")"));
+        if (!Base.Contains(" "))
+        {
+            throw new AutomationException("Unrecognized commit3.");
+        }
+        Base = Base.Substring(Base.LastIndexOf(" "));
+        Log("CL String {0}", Base);
+        int CL = int.Parse(Base);
+        Log("CL int {0}", CL);
+        if (CL < 2000000)
+        {
+            throw new AutomationException("Unrecognized commit3.");
+        }
+
+        P4ClientInfo NewClient = P4.GetClientInfo(P4Env.Client);
+
+        foreach (var p in NewClient.View)
+        {
+            Log("{0} = {1}", p.Key, p.Value);
+        }
+
+        string TestClient = P4Env.User + "_" + Environment.MachineName + "_PullRequests_" + Depot.Replace("/", "_");
+        NewClient.Owner = P4Env.User;
+        NewClient.Host = Environment.MachineName;
+        NewClient.RootPath = Dir;
+        NewClient.Name = TestClient;
+        NewClient.View = new List<KeyValuePair<string, string>>();
+        NewClient.View.Add(new KeyValuePair<string, string>(Depot + "/...", "/..."));
+        if (!P4.DoesClientExist(TestClient))
+        {
+            P4.CreateClient(NewClient);
+        }
+
+        var P4Sub = new P4Connection(P4Env.User, TestClient, P4Env.P4Port);
+
+        P4Sub.Sync(String.Format("-f -k -q {0}/...@{1}", Depot, CL));
+
+        var Change = P4Sub.CreateChange(null, String.Format("GitHub pull request #{0}", PRNum));
+        P4Sub.ReconcileNoDeletes(Change, CombinePaths(Dir, "Engine", "..."));
+        P4Sub.Shelve(Change);
+        P4Sub.Revert(Change, "-k //...");
+    }
+
+    public override void ExecuteBuild()
+    {
+        var Dir = ParseParamValue("Dir");
+        if (String.IsNullOrEmpty(Dir))
+        {
+			// No Git repo directory was specified, so we'll choose a directory automatically
+			Dir = Path.GetFullPath( Path.Combine( CmdEnv.LocalRoot, "Engine", "Intermediate", "PullRequestGitRepo" ) );
+        }
+
+        var PRNum = ParseParamValue("PR");
+        if (String.IsNullOrEmpty(PRNum))
+        {
+            throw new AutomationException("Must Provide PR arg, the number of the PR, or a range.");
+        }
+        int PRMin;
+        int PRMax;
+
+        if (PRNum.Contains("-"))
+        {
+            var Nums = PRNum.Split("-".ToCharArray());
+            PRMin = int.Parse(Nums[0]);
+            PRMax = int.Parse(Nums[1]);
+        }
+        else
+        {
+            PRMin = int.Parse(PRNum);
+            PRMax = PRMin;
+        }
+        var Failures = new List<string>();
+
+
+		// Setup Git repo
+		{
+			if( ParseParam( "Clean" ) )
+			{ 
+				Console.WriteLine( "Cleaning temporary Git repository folder... " );
+
+				// Wipe the Git repo directory
+				if( !InternalUtils.SafeDeleteDirectory( Dir ) )
+				{
+					throw new AutomationException("Unable to clean out temporary Git repo directory: " + Dir );
+				}
+			}
+
+			// Change directory to the Git repository
+			bool bRepoAlreadyExists = InternalUtils.SafeDirectoryExists( Dir );
+			if( !bRepoAlreadyExists )
+			{ 
+				InternalUtils.SafeCreateDirectory( Dir );
+			}
+			PushDir( Dir );
+
+			if( !bRepoAlreadyExists )
+			{ 
+				// Don't init Git if we didn't clean, because the old repo is probably still there.
+
+				// Create the Git repository
+				RunGit( "init" );
+			}
+
+			// Make sure that creating the repository worked OK
+			RunGit( "status" );
+
+			// Check to see if we already have a remote origin setup
+			{ 
+				string Result = RunGit( "remote -v" );
+				if( Result == "origin" )
+				{
+					// OK, we already have an origin but no remote is associated with it.  We'll do that now.
+					RunGit( "remote set-url origin " + GitRepositoryURL );
+				}
+				else if( Result.IndexOf( GitRepositoryURL, StringComparison.InvariantCultureIgnoreCase ) != -1 )
+				{
+					// Origin is already setup!  Nothing to do.
+				}
+				else
+				{
+					// No origin is set, so let's add it!
+					RunGit( "remote add origin " + GitRepositoryURL );
+				}
+			}
+
+			// Fetch all of the remote branches/tags into our local index.  This is needed so that we can figure out
+			// which branches exist already.
+			RunGit( "fetch" );
+		}
+
+        for (int PR = PRMin; PR <= PRMax; PR++)
+        {
+            try
+            {
+                ExecuteInner(Dir, PR);
+            }
+            catch(Exception Ex)
+            {
+                Log(" Exception was {0}", LogUtils.FormatException(Ex));
+                Failures.Add(String.Format("PR {0} Failed with {1}", PR, LogUtils.FormatException(Ex)));
+            }
+        }
+        PopDir();
+
+        foreach (var Failed in Failures)
+        {
+            Log("{0}", Failed);
+        }
+    }
 }
 
 [Help("Throws an automation exception.")]
@@ -1491,6 +1736,27 @@ class TestBlame : BuildCommand
 	}
 }
 
+[Help("Test P4 changes.")]
+[RequireP4]
+[DoesNotNeedP4CL]
+class TestChanges : BuildCommand
+{
+    public override void ExecuteBuild()
+    {
+        var CommandParam = ParseParamValue("CommandParam", "//depot/UE4-LauncherReleases/*/Source/...@2061085,2061287 //depot/UE4-LauncherReleases/*/Build/...@2061085,2061287");
+        
+        List<P4Connection.ChangeRecord> ChangeRecords;
+        if (!P4.Changes(out ChangeRecords, CommandParam, true, true, LongComment: true))
+        {
+            throw new AutomationException("failed");
+        }
+        foreach (var Record in ChangeRecords)
+        {
+            Log("{0} {1} {2}", Record.CL, Record.UserEmail, Record.Summary);
+        }
+    }
+}
+
 [Help("Spawns a process to test if UAT kills it automatically.")]
 class TestKillAll : BuildCommand
 {
@@ -1500,9 +1766,34 @@ class TestKillAll : BuildCommand
 
 		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
 		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
-		string CmdLine = " ../../../Samples/HoverShip/HoverShip.uproject -game -forcelogflush -log -abslog=" + ClientLogFile;
+		string CmdLine = " ../../../Samples/Sandbox/HoverShip/HoverShip.uproject -game -forcelogflush -log -abslog=" + ClientLogFile;
 
 		Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
-		Thread.Sleep(1000);
+		Thread.Sleep(10000);
+	}
+}
+
+[Help("Spawns a process to test if it can be killed.")]
+class TestStopProcess : BuildCommand
+{
+	public override void ExecuteBuild()
+	{
+		Log("*********************** TestStopProcess");
+
+		string Exe = CombinePaths(CmdEnv.LocalRoot, "Engine", "Binaries", "Win64", "UE4Editor.exe");
+		string ClientLogFile = CombinePaths(CmdEnv.LogFolder, "HoverGameRun");
+		string CmdLine = " ../../../Samples/Sandbox/HoverShip/HoverShip.uproject -game -forcelogflush -log -ddc=noshared -abslog=" + ClientLogFile;
+
+		for (int Attempt = 0; Attempt < 5; ++Attempt)
+		{
+			Log("Attempt: {0}", Attempt);
+			var Proc = Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
+			Thread.Sleep(10000);
+			Proc.StopProcess();
+		}
+
+		Log("One final attempt to test KillAll");
+		Run(Exe, CmdLine, null, ERunOptions.AllowSpew | ERunOptions.NoWaitForExit | ERunOptions.AppMustExist | ERunOptions.NoStdOutRedirect);
+		Thread.Sleep(10000);
 	}
 }

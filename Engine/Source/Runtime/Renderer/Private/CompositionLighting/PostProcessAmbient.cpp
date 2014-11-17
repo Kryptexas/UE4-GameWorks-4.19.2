@@ -49,7 +49,7 @@ public:
 		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 		DeferredParameters.Set(ShaderRHI, Context.View);
 		CubemapShaderParameters.SetParameters(ShaderRHI, Entry);
-		SetTextureParameter( ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
+		SetTextureParameter(ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
 	}
 	
 	// FShader interface.
@@ -75,7 +75,7 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 	FIntRect DestRect = View.ViewRect;
 	FIntPoint DestSize = DestRect.Size();
 
-	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.SceneColor->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
@@ -116,7 +116,8 @@ void FRCPassPostProcessAmbient::Process(FRenderingCompositePassContext& Context)
 			View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 			View.ViewRect.Width(), View.ViewRect.Height(),
 			View.ViewRect.Size(),
-			GSceneRenderTargets.SceneColor->GetDesc().Extent,
+			GSceneRenderTargets.GetBufferSizeXY(),
+			*VertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 

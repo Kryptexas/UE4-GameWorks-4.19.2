@@ -185,7 +185,7 @@ namespace UnrealBuildTool
 		public List<string> PublicFrameworks = new List<string>();
 
 		/// List of addition frameworks - typically used for External (third party) modules on Mac and iOS
-		public List<string> PublicAdditionalFrameworks = new List<string>();
+		public List<UEBuildFramework> PublicAdditionalFrameworks = new List<UEBuildFramework>();
 
 		/// For builds that execute on a remote machine (e.g. iOS), this list contains additional files that
 		/// need to be copied over in order for the app to link successfully.  Source/header files and PCHs are
@@ -303,7 +303,7 @@ namespace UnrealBuildTool
         public bool bUsesSteam;
 
 		/// <summary>
-		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is alway used)
+		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is always used)
 		/// </summary>
 		public bool bUsesSlate = true;
 
@@ -437,10 +437,14 @@ namespace UnrealBuildTool
 		/// <returns>true if successful, false if not</returns>
 		public virtual bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 		{
-			if ((Type == TargetType.Program) || IsEditorType(Type))
+			if(Type == TargetType.Program)
 			{
 				// By default, all programs are desktop only.
 				return UnrealBuildTool.GetAllDesktopPlatforms(ref OutPlatforms, false);
+			}
+			else if(IsEditorType(Type))
+			{
+				return UnrealBuildTool.GetAllEditorPlatforms(ref OutPlatforms, false);
 			}
 			else if (TargetRules.IsGameType(Type))
 			{
@@ -453,12 +457,6 @@ namespace UnrealBuildTool
 
 		public bool SupportsPlatform(UnrealTargetPlatform InPlatform)
 		{
-			// Win32 is not supported by the editor.
-			if (IsEditorType(Type) && InPlatform == UnrealTargetPlatform.Win32)
-			{
-				return false;
-			}
-
 			List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
 			if (GetSupportedPlatforms(ref SupportedPlatforms) == true)
 			{
@@ -548,11 +546,13 @@ namespace UnrealBuildTool
         }
         /// <summary>
         /// Return true if this target should always be built with the tools. Usually programs like unrealpak.
+        /// <param name="SeparateNode">If this is set to true, the program will get its own node</param>
         /// </summary>
         /// <returns>true if this target should always be built with the base editor.</returns>
-        public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly)
+        public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode)
         {
             bInternalToolOnly = false;
+            SeparateNode = false;
             return false;
         }
         /// <summary>
@@ -607,6 +607,14 @@ namespace UnrealBuildTool
         {
             return new List<UnrealTargetConfiguration>{UnrealTargetConfiguration.Development};
         }
+        /// <summary>
+        /// Return a list of configs for target platforms for formal builds
+        /// </summary>
+        /// <returns>a list of configs for a target platforms for the monolithic</returns>        
+        public virtual List<UnrealTargetConfiguration> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
+        {
+            return new List<UnrealTargetConfiguration>();
+        }
 
         /// <summary>
         /// Return true if this target should be included in a promotion and indicate shared or not
@@ -618,6 +626,7 @@ namespace UnrealBuildTool
             public bool bSeparateGamePromotion = false;
             public bool bTestWithShared = false;
             public bool bIsMassive = false;
+            public bool bCustomWorkflowForPromotion = false;
         }
         public virtual GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
         {
@@ -638,6 +647,14 @@ namespace UnrealBuildTool
             return new Dictionary<string, List<UnrealTargetPlatform>>();
         }
         /// <summary>
+        /// Return a list of the non-code projects to make formal builds for
+        /// </summary>
+        /// <returns>a list of the non-code projects to build cook and test</returns>
+        public virtual Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>> GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly()
+        {
+            return new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
+        }
+        /// <summary>
         /// Return a list of "test name", "UAT command" pairs for testing the editor
         /// </summary>
         public virtual Dictionary<string, string> GUBP_GetEditorTests_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
@@ -652,15 +669,19 @@ namespace UnrealBuildTool
         }
         /// <summary>
         /// Allow the platform to setup emails for the GUBP for folks that care about node failures relating to this platform
+		/// Obsolete. Included to avoid breaking existing projects.
         /// </summary>
         /// <param name="Branch">p4 root of the branch we are running</param>
+		[Obsolete]
         public virtual string GUBP_GetGameFailureEMails_EditorTypeOnly(string Branch)
         {
             return "";
         }
         /// <summary>
         /// Allow the Game to set up emails for Promotable and Promotion
+		/// Obsolete. Included to avoid breaking existing projects.
         /// </summary>
+		[Obsolete]
         public virtual string GUBP_GetPromotionEMails_EditorTypeOnly(string Branch)
         {
             return "";
@@ -1215,9 +1236,9 @@ namespace UnrealBuildTool
 					// Disable shared PCHs for game modules by default
 					if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
 					{
-						// Engine/Source and Engine/Plugins are considered 'Engine' code...
+						// Note that bIsEngineModule includes Engine/Plugins, so Engine/Plugins will use shared PCHs.
 						var IsProgramTarget = Target.Type != null && Target.Type == TargetRules.TargetType.Program;
-						if (bIsEngineModule || Plugins.IsPluginModule(ModuleName) || IsProgramTarget )
+						if (bIsEngineModule || IsProgramTarget)
 						{
 							// Engine module or plugin module -- allow shared PCHs
 							RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;

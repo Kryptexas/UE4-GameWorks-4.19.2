@@ -57,7 +57,7 @@ struct FInstancedStaticMeshMappingInfo
 };
 
 /** A component that efficiently renders multiple instances of the same StaticMesh. */
-UCLASS(HeaderGroup=Component, ClassGroup=Rendering, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Rendering, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 {
 	GENERATED_UCLASS_BODY()

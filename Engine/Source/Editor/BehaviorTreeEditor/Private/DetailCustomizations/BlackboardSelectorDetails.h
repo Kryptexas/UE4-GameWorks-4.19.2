@@ -24,6 +24,7 @@ private:
 	void OnKeyComboChange(int32 Index);
 	TSharedRef<SWidget> OnGetKeyContent() const;
 	FString GetCurrentKeyDesc() const;
+	bool IsEditingEnabled() const;
 
 	TSharedPtr<IPropertyHandle> MyStructProperty;
 	TSharedPtr<IPropertyHandle> MyKeyNameProperty;
@@ -37,4 +38,7 @@ private:
 
 	/** cached blackboard asset */
 	TWeakObjectPtr<class UBlackboardData> CachedBlackboardAsset;
+
+	/** property utils */
+	class IPropertyUtilities* PropUtils;
 };

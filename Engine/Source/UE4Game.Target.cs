@@ -49,10 +49,12 @@ public class UE4GameTarget : TargetRules
 			{
 				OutExtraModuleNames.Add("OnlineSubsystemFacebook");
 				OutExtraModuleNames.Add("OnlineSubsystemIOS");
+				OutExtraModuleNames.Add("IOSAdvertising");
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Android)
 			{
-				// @todo Rocket: Add Android online subsystem
+				// @todo android: Add Android online subsystem
+				OutExtraModuleNames.Add("AndroidAdvertising");
 			}
 		}
 	}
@@ -88,10 +90,10 @@ public class UE4GameTarget : TargetRules
         {
             return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.IOS };
         }
-        return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Win32, UnrealTargetPlatform.IOS, UnrealTargetPlatform.XboxOne, UnrealTargetPlatform.PS4, UnrealTargetPlatform.Android };
+        return new List<UnrealTargetPlatform> { HostPlatform, UnrealTargetPlatform.Win32, UnrealTargetPlatform.IOS, UnrealTargetPlatform.XboxOne, UnrealTargetPlatform.PS4, UnrealTargetPlatform.Android, UnrealTargetPlatform.Linux };
     }
     public override List<UnrealTargetConfiguration> GUBP_GetConfigs_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
     {
-        return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping };
+        return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development, UnrealTargetConfiguration.Shipping, UnrealTargetConfiguration.Test };
     }
 }

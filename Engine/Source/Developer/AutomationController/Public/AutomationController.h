@@ -12,7 +12,6 @@
 
 #include "Core.h"
 #include "ModuleManager.h"
-#include "Messaging.h"
 #include "IFilter.h"
 #include "TextFilter.h"
 #include "FilterCollection.h"

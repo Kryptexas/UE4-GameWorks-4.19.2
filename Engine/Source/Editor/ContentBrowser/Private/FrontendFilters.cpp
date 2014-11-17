@@ -13,7 +13,7 @@
 FFrontendFilter_CheckedOut::FFrontendFilter_CheckedOut(TSharedPtr<FFrontendFilterCategory> InCategory) 
 	: FFrontendFilter(InCategory)
 {
-	RequestStatus();
+	
 }
 
 void FFrontendFilter_CheckedOut::ActiveStateChanged(bool bActive)
@@ -38,7 +38,7 @@ void FFrontendFilter_CheckedOut::RequestStatus()
 		// Request the opened files at filter construction time to make sure checked out files have the correct state for the filter
 		TSharedRef<FUpdateStatus, ESPMode::ThreadSafe> UpdateStatusOperation = ISourceControlOperation::Create<FUpdateStatus>();
 		UpdateStatusOperation->SetGetOpenedOnly(true);
-		SourceControlProvider.Execute(UpdateStatusOperation, EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateRaw(this, &FFrontendFilter_CheckedOut::SourceControlOperationComplete) );
+		SourceControlProvider.Execute(UpdateStatusOperation, EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateSP(this, &FFrontendFilter_CheckedOut::SourceControlOperationComplete) );
 	}
 }
 

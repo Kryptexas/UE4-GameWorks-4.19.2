@@ -7,16 +7,15 @@
 #pragma once
 
 
-/* Dependencies
+/* Public Dependencies
  *****************************************************************************/
 
 #include "CoreUObject.h"
 #include "ModuleManager.h"
-#include "Networking.h"
 #include "TaskGraphInterfaces.h"
 
 
-/* Interfaces
+/* Public Interfaces
  *****************************************************************************/
 
 #include "IMessageAttachment.h"
@@ -35,12 +34,10 @@
 #include "ISerializeMessages.h"
 #include "ITransportMessages.h"
 #include "IMessageBridge.h"
-#include "IMessageTunnelConnection.h"
-#include "IMessageTunnel.h"
 #include "IMessagingModule.h"
 
 
-/* Common
+/* Public Common
  *****************************************************************************/
 
 #include "FileMessageAttachment.h"

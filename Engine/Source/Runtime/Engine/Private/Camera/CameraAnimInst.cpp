@@ -13,7 +13,7 @@ UCameraAnimInst::UCameraAnimInst(const class FPostConstructInitializeProperties&
 	bAutoReleaseWhenFinished = true;
 	PlayRate = 1.0f;
 	TransientScaleModifier = 1.0f;
-	PlaySpace = CAPS_CameraLocal;
+	PlaySpace = ECameraAnimPlaySpace::CameraLocal;
 
 	InterpGroupInst = PCIP.CreateDefaultSubobject<UInterpGroupInst>(this, TEXT("InterpGroupInst0"));
 }
@@ -131,8 +131,26 @@ void UCameraAnimInst::Update(float NewRate, float NewScale, float NewBlendInTime
 	bFinished = false;
 }
 
+void UCameraAnimInst::SetDuration(float NewDuration)
+{
+	// setting a new duration will reset the play timer back to 0 but maintain current playback position
+	// if blending out, stop it and blend back in to reverse it so it's smooth
+	if (bBlendingOut)
+	{
+		bBlendingOut = false;
+		CurBlendOutTime = 0.f;
 
-void UCameraAnimInst::Play(class UCameraAnim* Anim, class AActor* CamActor, float InRate, float InScale, float InBlendInTime, float InBlendOutTime, bool bInLooping, bool bRandomStartTime, float Duration)
+		// stop any blendout and reverse it to a blendin
+		bBlendingIn = true;
+		CurBlendInTime = BlendInTime * (1.f - CurBlendOutTime / BlendOutTime);
+	}
+
+	RemainingTime = (NewDuration > 0.f) ? (NewDuration - BlendOutTime) : 0.f;
+	bFinished = false;
+}
+
+
+void UCameraAnimInst::Play(UCameraAnim* Anim, class AActor* CamActor, float InRate, float InScale, float InBlendInTime, float InBlendOutTime, bool bInLooping, bool bRandomStartTime, float Duration)
 {
 	if (Anim && Anim->CameraInterpGroup)
 	{
@@ -156,7 +174,6 @@ void UCameraAnimInst::Play(class UCameraAnim* Anim, class AActor* CamActor, floa
 		RemainingTime = (Duration > 0.f) ? (Duration - BlendOutTime) : 0.f;
 
 		// init the interpgroup
-
 		if ( CamActor->IsA(ACameraActor::StaticClass()) )
 		{
 			// ensure CameraActor is zeroed, so RelativeToInitial anims get proper InitialTM
@@ -175,7 +192,28 @@ void UCameraAnimInst::Play(class UCameraAnim* Anim, class AActor* CamActor, floa
 				// only 1 move track per group, so we can bail here
 				break;					
 			}
-		}	
+		}
+
+		// store initial transform so we can treat camera movements as offsets relative to the initial anim key
+		if (MoveTrack && MoveInst)
+		{
+			FRotator OutRot;
+			FVector OutLoc;
+			MoveTrack->GetKeyTransformAtTime(MoveInst, 0.f, OutLoc, OutRot);
+			InitialCamToWorld = FTransform(OutRot, OutLoc);		// @todo, store inverted since that's how we use it?
+
+			// find FOV track if it exists, else just use the fov saved in the anim
+			InitialFOV = Anim->BaseFOV;
+			for (int32 Idx = 0; Idx < InterpGroupInst->TrackInst.Num(); ++Idx)
+			{
+				UInterpTrackFloatProp* const FloatTrack = Cast<UInterpTrackFloatProp>(CamAnim->CameraInterpGroup->InterpTracks[Idx]);
+				if ( FloatTrack && (FloatTrack->PropertyName == TEXT("CameraComponent.FieldOfView")) )
+				{
+					InitialFOV = FloatTrack->EvalSub(0, 0.f);
+				}
+			}
+
+		}
 	}
 }
 
@@ -204,9 +242,9 @@ void UCameraAnimInst::ApplyTransientScaling(float Scalar)
 	TransientScaleModifier *= Scalar;
 }
 
-void UCameraAnimInst::SetPlaySpace(ECameraAnimPlaySpace NewSpace, FRotator UserPlaySpace)
+void UCameraAnimInst::SetPlaySpace(ECameraAnimPlaySpace::Type NewSpace, FRotator UserPlaySpace)
 {
 	PlaySpace = NewSpace;
-	UserPlaySpaceMatrix = (PlaySpace == CAPS_UserDefined) ? FRotationMatrix(UserPlaySpace) : FMatrix::Identity;
+	UserPlaySpaceMatrix = (PlaySpace == ECameraAnimPlaySpace::UserDefined) ? FRotationMatrix(UserPlaySpace) : FMatrix::Identity;
 }
 

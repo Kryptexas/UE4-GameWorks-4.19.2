@@ -30,27 +30,27 @@ struct FVehicleDifferential4WData
 	TEnumAsByte<EVehicleDifferential4W::Type> DifferentialType;
 	
 	/** Ratio of torque split between front and rear (>0.5 means more to front, <0.5 means more to rear, works only with 4W type) */
-	UPROPERTY(EditAnywhere, Category=Setup)
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float FrontRearSplit;
 
 	/** Ratio of torque split between front-left and front-right (>0.5 means more to front-left, <0.5 means more to front-right, works only with 4W and LimitedSlip_FrontDrive) */
-	UPROPERTY(EditAnywhere, Category=Setup)
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float FrontLeftRightSplit;
 
 	/** Ratio of torque split between rear-left and rear-right (>0.5 means more to rear-left, <0.5 means more to rear-right, works only with 4W and LimitedSlip_RearDrive) */
-	UPROPERTY(EditAnywhere, Category=Setup)
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float RearLeftRightSplit;
 	
 	/** Maximum allowed ratio of average front wheel rotation speed and rear wheel rotation speeds (range: 1..inf, works only with LimitedSlip_4W) */
-	UPROPERTY(EditAnywhere, Category=Setup)
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "1.0", UIMin = "1.0"))
 	float CentreBias;
 
 	/** Maximum allowed ratio of front-left and front-right wheel rotation speeds (range: 1..inf, works only with LimitedSlip_4W, LimitedSlip_FrontDrive) */
-	UPROPERTY(EditAnywhere, Category=Setup)
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "1.0", UIMin = "1.0"))
 	float FrontBias;
 
 	/** Maximum allowed ratio of rear-left and rear-right wheel rotation speeds (range: 1..inf, works only with LimitedSlip_4W, LimitedSlip_FrontDrive) */
-	UPROPERTY(EditAnywhere, Category=Setup)
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "1.0", UIMin = "1.0"))
 	float RearBias;
 };
 
@@ -59,131 +59,125 @@ struct FVehicleEngineData
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Moment of inertia of the engine around the axis of rotation. */
-	UPROPERTY(EditAnywhere, Category=Setup)
+	/** Torque (Nm) at a given RPM*/
+	UPROPERTY(EditAnywhere, Category = Setup)
+	FRuntimeFloatCurve TorqueCurve;
+
+	/** Maximum revolutions per minute of the engine */
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float MaxRPM;
+
+	/** Moment of inertia of the engine around the axis of rotation (Kgm^2). */
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float MOI;
 
-	/** Maximum torque available to apply to the engine (kg m^2 s^-2). */ 
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float PeakTorque;
-
-	/** Maximum rotation speed of the engine (radians per second: rad s^-1) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float MaxOmega;
-
-	/** Damping rate of engine when full throttle is applied */
-	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
+	/** Damping rate of engine when full throttle is applied (Kgm^2/s) */
+	UPROPERTY(EditAnywhere, Category = Setup, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float DampingRateFullThrottle;
 
-	/** Damping rate of engine in at zero throttle when the clutch is engaged */
-	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
+	/** Damping rate of engine in at zero throttle when the clutch is engaged (Kgm^2/s)*/
+	UPROPERTY(EditAnywhere, Category = Setup, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float DampingRateZeroThrottleClutchEngaged;
 
-	/** Damping rate of engine in at zero throttle when the clutch is disengaged (in neutral gear) */
-	UPROPERTY(EditAnywhere, Category=Setup, AdvancedDisplay)
+	/** Damping rate of engine in at zero throttle when the clutch is disengaged (in neutral gear) (Kgm^2/s)*/
+	UPROPERTY(EditAnywhere, Category = Setup, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float DampingRateZeroThrottleClutchDisengaged;
+
+	/** Find the peak torque produced by the TorqueCurve */
+	float FindPeakTorque() const;
 };
+
 
 USTRUCT()
 struct FVehicleGearData
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Time it takes to switch gear (seconds) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float GearSwitchTime;
+	/** Determines the amount of torque multiplication*/
+	UPROPERTY(EditAnywhere, Category = Setup)
+	float Ratio;
 
-	/** Reverse gear ratio */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float ReverseGearRatio;
+	/** Value of engineRevs/maxEngineRevs that is low enough to gear down*/
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"), Category = Setup)
+	float DownRatio;
+
+	/** Value of engineRevs/maxEngineRevs that is high enough to gear up*/
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"), Category = Setup)
+	float UpRatio;
+};
+
+USTRUCT()
+struct FVehicleTransmissionData
+{
+	GENERATED_USTRUCT_BODY()
+	/** Whether to use automatic transmission */
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta=(FriendlyName = "Automatic Transmission"))
+	bool bUseGearAutoBox;
+
+	/** Time it takes to switch gears (seconds) */
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float GearSwitchTime;
+	
+	/** Minimum time it takes the automatic transmission to initiate a gear change (seconds)*/
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (editcondition = "bUseGearAutoBox", ClampMin = "0.0", UIMin="0.0"))
+	float GearAutoBoxLatency;
+
+	/** The final gear ratio multiplies the transmission gear ratios.*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
+	float FinalRatio;
 
 	/** Forward gear ratios (up to 30) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	TArray<float> ForwardGearRatios;
+	UPROPERTY(EditAnywhere, Category = Setup, AdvancedDisplay)
+	TArray<FVehicleGearData> ForwardGears;
 
-	/** Gear ratio multiplier */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float RatioMultiplier;
-};
+	/** Reverse gear ratio */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup)
+	float ReverseGearRatio;
 
-USTRUCT()
-struct FGearUpDownRatio
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Value of engineRevs/maxEngineRevs that is high enough to increment gear (range 0..1) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float UpRatio;
-
-	/** Value of engineRevs/maxEngineRevs that is low enough to decrement gear (range 0..1) */
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float DownRatio;
-};
-
-USTRUCT()
-struct FVehicleAutoBoxData
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Value of engineRevs/maxEngineRevs for auto gear change (range 0..1) */ 
-	UPROPERTY(EditAnywhere, Category=Setup, EditFixedSize)
-	TArray<FGearUpDownRatio> ForwardGearAutoBox;
-
-	/** Value of engineRevs/maxEngineRevs that is high enough to increment gear (range 0..1) */ 
-	UPROPERTY(EditAnywhere, Category=Setup)
+	/** Value of engineRevs/maxEngineRevs that is high enough to increment gear*/
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = Setup, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float NeutralGearUpRatio;
 
-	/** Latency time is the minimum time that must pass between each gear change that is initiated by the autobox */ 
-	UPROPERTY(EditAnywhere, Category=Setup)
-	float GearAutoBoxLatency;
+	/** Strength of clutch (Kgm^2/s)*/
+	UPROPERTY(EditAnywhere, Category = Setup, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ClutchStrength;
 };
 
-UCLASS(HeaderGroup=Component)
+UCLASS()
 class ENGINE_API UWheeledVehicleMovementComponent4W : public UWheeledVehicleMovementComponent
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Engine */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup)
+	UPROPERTY(EditAnywhere, Category = MechanicalSetup)
 	FVehicleEngineData EngineSetup;
 
 	/** Differential */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category = MechanicalSetup)
 	FVehicleDifferential4WData DifferentialSetup;
 
-	/** Gears */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	FVehicleGearData GearSetup;
-	
-	/** Automatic gear switching */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	FVehicleAutoBoxData AutoBoxSetup;
+	/** Transmission data */
+	UPROPERTY(EditAnywhere, Category = MechanicalSetup)
+	FVehicleTransmissionData TransmissionSetup;
 
-	/** Should use auto gear switching by default? */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup)
-	bool bUseGearAutoBox;
-
-	/** Strength of clutch */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	float ClutchStrength;
+	/** Maximum steering versus forward speed (km/h) */
+	UPROPERTY(EditAnywhere, Category = SteeringSetup)
+	FRuntimeFloatCurve SteeringCurve;
 
 	/** Accuracy of Ackermann steer calculation (range: 0..1) */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, Category = SteeringSetup, AdvancedDisplay, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
 	float AckermannAccuracy;
 
-	/** Max speed value in steering curve */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup)
-	float MaxSteeringSpeed;
 
-	/** Steering strength defined for speed in normalized range [0 .. 1] */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
-	TArray<FFloatPair> SteeringCurve;
+	virtual void Serialize(FArchive & Ar) OVERRIDE;
+	virtual void ComputeConstants() OVERRIDE;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+#endif
 
 protected:
 
 #if WITH_PHYSX
-
-	float SteeringMap[8*2];
 
 	/** Allocate and setup the PhysX vehicle */
 	virtual void SetupVehicle() OVERRIDE;
@@ -192,19 +186,13 @@ protected:
 
 #endif // WITH_PHYSX
 
-	/** Compute throttle input */
-	virtual float CalcThrottleInput() OVERRIDE;
-
 	/** update simulation data: engine */
 	void UpdateEngineSetup(const FVehicleEngineData& NewEngineSetup);
 
 	/** update simulation data: differential */
 	void UpdateDifferentialSetup(const FVehicleDifferential4WData& NewDifferentialSetup);
 
-	/** update simulation data: gears */
-	void UpdateGearSetup(const FVehicleGearData& NewGearSetup);
-
-	/** update simulation data: auto box */
-	void UpdateAutoBoxSetup(const FVehicleAutoBoxData& NewAutoBoxSetup);
+	/** update simulation data: transmission */
+	void UpdateTransmissionSetup(const FVehicleTransmissionData& NewGearSetup);
 };
 

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Xml;
 
 namespace UnrealBuildTool
@@ -108,44 +110,165 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Loads BuildConfiguration from XML into memory.
+		/// Class that stores information about possible BuildConfiguration.xml
+		/// location and its name that will be displayed in IDE.
 		/// </summary>
-		private static void LoadData()
+		public class XmlConfigLocation
 		{
-			var ConfigXmlFileName = "BuildConfiguration.xml";
-			var UE4EnginePath = new FileInfo(Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..")).FullName;
+			/// <summary>
+			/// Returns location of the BuildConfiguration.xml.
+			/// </summary>
+			/// <returns>Location of the BuildConfiguration.xml.</returns>
+			private static string GetConfigLocation(IEnumerable<string> PossibleLocations, out bool bExists)
+			{
+				if(PossibleLocations.Count() == 0)
+				{
+					throw new ArgumentException("Empty possible locations", "PossibleLocations");
+				}
 
+				const string ConfigXmlFileName = "BuildConfiguration.xml";
+
+				// Filter out non-existing
+				var ExistingLocations = new List<string>();
+
+				foreach(var PossibleLocation in PossibleLocations)
+				{
+					var FilePath = Path.Combine(PossibleLocation, ConfigXmlFileName);
+
+					if(File.Exists(FilePath))
+					{
+						ExistingLocations.Add(FilePath);
+					}
+				}
+
+				if(ExistingLocations.Count == 0)
+				{
+					bExists = false;
+					return Path.Combine(PossibleLocations.First(), ConfigXmlFileName);
+				}
+
+				bExists = true;
+
+				if(ExistingLocations.Count == 1)
+				{
+					return ExistingLocations.First();
+				}
+
+				// Choose most recently used from existing.
+				return ExistingLocations.OrderBy(Location => File.GetLastWriteTime(Location)).Last();
+			}
+
+			// Possible location of the config file in the file system.
+			public string FSLocation { get; private set; }
+
+			// IDE folder name that will contain this location if file will be found.
+			public string IDEFolderName { get; private set; }
+
+			// Tells if UBT has to create a template config file if it does not exist in the location.
+			public bool bCreateIfDoesNotExist { get; private set; }
+
+			// Tells if config file exists in this location.
+			public bool bExists { get; private set; }
+
+			public XmlConfigLocation(string[] FSLocations, string IDEFolderName, bool bCreateIfDoesNotExist = false)
+			{
+				bool bExists;
+
+				this.FSLocation = GetConfigLocation(FSLocations, out bExists);
+				this.IDEFolderName = IDEFolderName;
+				this.bCreateIfDoesNotExist = bCreateIfDoesNotExist;
+				this.bExists = bExists;
+			}
+
+			public XmlConfigLocation(string FSLocation, string IDEFolderName, bool bCreateIfDoesNotExist = false)
+				: this(new string[] { FSLocation }, IDEFolderName, bCreateIfDoesNotExist)
+			{
+			}
+		}
+
+		public static readonly XmlConfigLocation[] ConfigLocationHierarchy;
+
+		static XmlConfigLoader()
+		{
 			/*
 			 *	There are four possible location for this file:
 			 *		a. UE4/Engine/Programs/UnrealBuildTool
-			 *		b. UE4/Engine/Programs/NoRedist/UnrealBuildTool
+			 *		b. UE4/Engine/Programs/NotForLicensees/UnrealBuildTool
 			 *		c. UE4/Engine/Saved/UnrealBuildTool
-			 *		d. My Documnets/Unreal Engine/UnrealBuildTool
+			 *		d. <AppData or My Documnets>/Unreal Engine/UnrealBuildTool -- the location is
+			 *		   chosen by existence and if both exist most recently used.
 			 *
 			 *	The UBT is looking for it in all four places in the given order and
 			 *	overrides already read data with the loaded ones, hence d. has the
 			 *	priority. Not defined classes and fields are left alone.
 			 */
 
-			var ConfigLocationHierarchy = new string[]
+			var UE4EnginePath = new FileInfo(Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..")).FullName;
+
+			ConfigLocationHierarchy = new XmlConfigLocation[]
 			{
-				Path.Combine(UE4EnginePath, "Programs", "UnrealBuildTool"),
-				Path.Combine(UE4EnginePath, "Programs", "NoRedist", "UnrealBuildTool"),
-				Path.Combine(UE4EnginePath, "Saved", "UnrealBuildTool"),
-				Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool")
+				new XmlConfigLocation(Path.Combine(UE4EnginePath, "Programs", "UnrealBuildTool"), "Default"),
+				new XmlConfigLocation(Path.Combine(UE4EnginePath, "Programs", "NotForLicensees", "UnrealBuildTool"), "NotForLicensees"),
+				new XmlConfigLocation(Path.Combine(UE4EnginePath, "Saved", "UnrealBuildTool"), "User", true),
+				new XmlConfigLocation(new string[] {
+					Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "UnrealBuildTool"),
+					Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool")
+				}, "Global", true)
 			};
+		}
+
+		/// <summary>
+		/// Loads BuildConfiguration from XML into memory.
+		/// </summary>
+		private static void LoadData()
+		{
+			foreach (var PossibleConfigLocation in ConfigLocationHierarchy)
+			{
+				if(!PossibleConfigLocation.bExists)
+				{
+					continue;
+				}
+
+				Load(PossibleConfigLocation.FSLocation);
+			}
 
 			foreach (var PossibleConfigLocation in ConfigLocationHierarchy)
 			{
-				var FilePath = Path.Combine(PossibleConfigLocation, ConfigXmlFileName);
-
-				if (File.Exists(FilePath))
+				if(!PossibleConfigLocation.bCreateIfDoesNotExist || PossibleConfigLocation.bExists)
 				{
-					Load(FilePath);
+					continue;
 				}
+
+				CreateUserXmlConfigTemplate(PossibleConfigLocation.FSLocation);
 			}
 		}
 
+
+		/// <summary>
+		/// Creates template file in one of the user locations if it not
+		/// </summary>
+		/// <param name="Location">Location of the xml config file to create.</param>
+		private static void CreateUserXmlConfigTemplate(string Location)
+		{
+			try
+			{
+				Directory.CreateDirectory(Path.GetDirectoryName(Location));
+
+				var FilePath = Path.Combine(Location);
+
+				const string TemplateContent =
+					"<Configuration>\n" +
+					"	<BuildConfiguration>\n" +
+					"	</BuildConfiguration>\n" +
+					"</Configuration>\n";
+
+				File.WriteAllText(FilePath, TemplateContent);
+			}
+			catch (Exception)
+			{
+				// Ignore quietly.
+			}
+		}
 		/// <summary>
 		/// Sets values of this class with values from given XML file.
 		/// </summary>
@@ -163,7 +286,8 @@ namespace UnrealBuildTool
 
 				if(ClassType == null)
 				{
-					throw new BuildException("XmlConfig Loading: class '{0}' doesn't exist.", XmlClass.Name);
+					Log.TraceVerbose("XmlConfig Loading: class '{0}' doesn't exist.", XmlClass.Name);
+					continue;
 				}
 
 				XmlConfigLoaderClassData ClassData;
@@ -220,31 +344,85 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				// Getting TryParse method for FieldType which is required,
-				// if it doesn't exists for complex type, author should add
-				// one. The signature should be:
-				// static bool TryParse(string Input, out T value),
-				// where T is containing type.
-				var TryParseMethod = FieldType.GetMethod("TryParse", new Type[] { typeof(System.String), FieldType.MakeByRefType() });
-
-				if (TryParseMethod == null)
-				{
-					throw new BuildException("BuildConfiguration Loading: Parsing of the type {0} is not supported.", FieldType.Name);
-				}
-
 				// Declaring parameters array used by TryParse method.
 				// Second parameter is "out", so you have to just
 				// assign placeholder null to it.
-				var Parameters = new object[] { Text, null };
-				if (!(bool)TryParseMethod.Invoke(null, Parameters))
+				object ParsedValue;
+				if (!TryParse(FieldType, Text, out ParsedValue))
 				{
 					throw new BuildException("BuildConfiguration Loading: Parsing {0} value from \"{1}\" failed.", FieldType.Name, Text);
 				}
 
 				// If Invoke returned true, the second object of the
 				// parameters array is set to the parsed value.
-				return Parameters[1];
+				return ParsedValue;
 			}
+		}
+
+		/// <summary>
+		/// Emulates TryParse behavior on custom type. If the type implements
+		/// Parse(string, IFormatProvider) or Parse(string) static method uses
+		/// one of them to parse with preference of the one with format
+		/// provider (but passes invariant culture).
+		/// </summary>
+		/// <param name="ParsingType">Type to parse.</param>
+		/// <param name="UnparsedValue">String representation of the value.</param>
+		/// <param name="ParsedValue">Output parsed value.</param>
+		/// <returns>True if parsing succeeded. False otherwise.</returns>
+		private static bool TryParse(Type ParsingType, string UnparsedValue, out object ParsedValue)
+		{
+			// Getting Parse method for FieldType which is required,
+			// if it doesn't exists for complex type, author should add
+			// one. The signature should be one of:
+			//     static T Parse(string Input, IFormatProvider Provider) or
+			//     static T Parse(string Input)
+			// where T is containing type.
+			// The one with format provider is preferred and invoked with
+			// InvariantCulture.
+
+			bool bWithCulture = true;
+			var ParseMethod = ParsingType.GetMethod("Parse", new Type[] { typeof(System.String), typeof(IFormatProvider) });
+
+			if(ParseMethod == null)
+			{
+				ParseMethod = ParsingType.GetMethod("Parse", new Type[] { typeof(System.String) });
+				bWithCulture = false;
+			}
+
+			if (ParseMethod == null)
+			{
+				throw new BuildException("BuildConfiguration Loading: Parsing of the type {0} is not supported.", ParsingType.Name);
+			}
+
+			var ParametersList = new List<object> { UnparsedValue };
+
+			if(bWithCulture)
+			{
+				ParametersList.Add(CultureInfo.InvariantCulture);
+			}
+
+			try
+			{
+				ParsedValue = ParseMethod.Invoke(null, ParametersList.ToArray());
+			}
+			catch(Exception e)
+			{
+				if(e is TargetInvocationException &&
+					(
+						e.InnerException is ArgumentNullException ||
+						e.InnerException is FormatException ||
+						e.InnerException is OverflowException
+					)
+				)
+				{
+					ParsedValue = null;
+					return false;
+				}
+
+				throw;
+			}
+
+			return true;
 		}
 
 		// Map to store class data in.

@@ -171,7 +171,7 @@ public:
 	void SetParameters(const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& LightShaftOcclusion)
 	{
 		FGlobalShader::SetParameters(GetPixelShader(), View);
-		SceneTextureParameters.Set(GetPixelShader());
+		SceneTextureParameters.Set(GetPixelShader(), View);
 		AtmosphereTextureParameters.Set(GetPixelShader(), View);
 
 		if (OcclusionTextureParameter.IsBound())
@@ -390,7 +390,7 @@ void SetAtmosphericFogShaders(FScene* Scene, const FViewInfo& View, TRefCountPtr
 void FDeferredShadingSceneRenderer::RenderAtmosphere(FLightShaftsOutput LightShaftsOutput)
 {
 	// Atmospheric fog?
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && Scene->HasAtmosphericFog())
+	if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4 && Scene->HasAtmosphericFog())
 	{
 		SCOPED_DRAW_EVENT(Fog, DEC_SCENE_ITEMS);
 
@@ -1049,7 +1049,7 @@ FIntPoint FAtmosphericFogSceneInfo::GetTextureSize()
 	return AtmosphereTextures->AtmosphereTransmittance->GetDesc().Extent;
 }
 
-void FAtmosphericFogSceneInfo::DrawQuad(const FIntRect& ViewRect)
+void FAtmosphericFogSceneInfo::DrawQuad(const FIntRect& ViewRect, FShader* VertexShader)
 {
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
@@ -1059,6 +1059,7 @@ void FAtmosphericFogSceneInfo::DrawQuad(const FIntRect& ViewRect)
 		ViewRect.Width(), ViewRect.Height(),
 		ViewRect.Size(),
 		ViewRect.Size(),
+		VertexShader,
 		EDRF_UseTriangleOptimization);
 }
 
@@ -1091,7 +1092,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 			static FGlobalBoundShaderState BoundShaderState;
 			SetGlobalBoundShaderState( BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 			PixelShader->SetParameters(View);
-			DrawQuad(ViewRect);
+			DrawQuad(ViewRect, *VertexShader);
 
 			RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, true, FResolveParams() );
 		}
@@ -1109,7 +1110,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 
 			PixelShader->SetParameters(AtmosphereTextures);
 
-			DrawQuad(ViewRect);
+			DrawQuad(ViewRect, *VertexShader);
 
 			RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, true, FResolveParams() );
 		}
@@ -1136,7 +1137,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 				GetLayerValue(Layer, r, DhdH);
 				GeometryShader->SetParameters(Layer);
 				PixelShader->SetParameters(View, r, DhdH, AtmosphereTextures);
-				DrawQuad(ViewRect);
+				DrawQuad(ViewRect, *VertexShader);
 
 				if (Atmosphere3DTextureIndex == Component->PrecomputeParams.InscatterAltitudeSampleNum - 1)
 				{
@@ -1176,7 +1177,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 				GetLayerValue(Layer, r, DhdH);
 				GeometryShader->SetParameters(Layer);
 				PixelShader->SetParameters(View, r, DhdH, Layer, AtmosphereTextures);
-				DrawQuad(ViewRect);
+				DrawQuad(ViewRect, *VertexShader);
 
 				if (Atmosphere3DTextureIndex == Component->PrecomputeParams.InscatterAltitudeSampleNum - 1)
 				{
@@ -1204,7 +1205,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 				GetLayerValue(Layer, r, DhdH);
 				GeometryShader->SetParameters(Layer);
 				PixelShader->SetParameters(View, r, DhdH, AtmoshpereOrder == 2 ? 1.f : 0.f, AtmosphereTextures);
-				DrawQuad(ViewRect);
+				DrawQuad(ViewRect, *VertexShader);
 
 				if (Atmosphere3DTextureIndex == Component->PrecomputeParams.InscatterAltitudeSampleNum - 1)
 				{
@@ -1226,7 +1227,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 
 			PixelShader->SetParameters(View, AtmoshpereOrder == 2 ? 1.f : 0.f, AtmosphereTextures);
 
-			DrawQuad(ViewRect);
+			DrawQuad(ViewRect, *VertexShader);
 
 			RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, true, FResolveParams() );
 		}
@@ -1251,7 +1252,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 				GetLayerValue(Layer, r, DhdH);
 				GeometryShader->SetParameters(Layer);
 				PixelShader->SetParameters(View, r, DhdH, AtmoshpereOrder == 2 ? 1.f : 0.f, AtmosphereTextures);
-				DrawQuad(ViewRect);
+				DrawQuad(ViewRect, *VertexShader);
 
 				if (Atmosphere3DTextureIndex == Component->PrecomputeParams.InscatterAltitudeSampleNum - 1)
 				{
@@ -1275,7 +1276,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 
 			PixelShader->SetParameters(AtmosphereTextures);
 
-			DrawQuad(ViewRect);
+			DrawQuad(ViewRect, *VertexShader);
 
 			RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, true, FResolveParams() );
 
@@ -1304,7 +1305,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 				GetLayerValue(Layer, r, DhdH);
 				GeometryShader->SetParameters(Layer);
 				PixelShader->SetParameters(View, r, DhdH, Layer, AtmosphereTextures);
-				DrawQuad(ViewRect);
+				DrawQuad(ViewRect, *VertexShader);
 
 				if (Atmosphere3DTextureIndex == Component->PrecomputeParams.InscatterAltitudeSampleNum - 1)
 				{
@@ -1335,7 +1336,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 				GetLayerValue(Layer, r, DhdH);
 				GeometryShader->SetParameters(Layer);
 				PixelShader->SetParameters(r, DhdH, Layer, AtmosphereTextures);
-				DrawQuad(ViewRect);
+				DrawQuad(ViewRect, *VertexShader);
 
 				if (Atmosphere3DTextureIndex == Component->PrecomputeParams.InscatterAltitudeSampleNum - 1)
 				{
@@ -1363,7 +1364,7 @@ void FAtmosphericFogSceneInfo::RenderAtmosphereShaders(const FViewInfo& View, co
 				GetLayerValue(Layer, r, DhdH);
 				GeometryShader->SetParameters(Layer);
 				PixelShader->SetParameters(r, DhdH, Layer, AtmosphereTextures);
-				DrawQuad(ViewRect);
+				DrawQuad(ViewRect, *VertexShader);
 
 				if (Atmosphere3DTextureIndex == Component->PrecomputeParams.InscatterAltitudeSampleNum - 1)
 				{
@@ -1555,6 +1556,7 @@ FAtmosphericFogSceneInfo::FAtmosphericFogSceneInfo(UAtmosphericFogComponent* InC
 	, RHeight(InComponent->PrecomputeParams.DensityHeight * InComponent->PrecomputeParams.DensityHeight * InComponent->PrecomputeParams.DensityHeight * 64.f)
 	, StartDistance(InComponent->StartDistance)
 	, DistanceOffset(InComponent->DistanceOffset)
+	, SunDiscScale(InComponent->SunDiscScale)
 	, RenderFlag(EAtmosphereRenderFlag::E_EnableAll)
 	, InscatterAltitudeSampleNum(InComponent->PrecomputeParams.InscatterAltitudeSampleNum)
 #if WITH_EDITOR

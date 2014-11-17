@@ -13,10 +13,10 @@ struct ENGINE_API FEnvQueryRequest
 	FEnvQueryRequest() : QueryTemplate(NULL), Owner(NULL), World(NULL) {}
 
 	// basic constructor: owner will be taken from finish delegate bindings
-	FEnvQueryRequest(class UEnvQuery* Query) : QueryTemplate(Query), Owner(NULL), World(NULL) {}
+	FEnvQueryRequest(const class UEnvQuery* Query) : QueryTemplate(Query), Owner(NULL), World(NULL) {}
 
 	// use when owner is different from finish delegate binding
-	FEnvQueryRequest(class UEnvQuery* Query, UObject* RequestOwner) : QueryTemplate(Query), Owner(RequestOwner), World(NULL) {}
+	FEnvQueryRequest(const class UEnvQuery* Query, UObject* RequestOwner) : QueryTemplate(Query), Owner(RequestOwner), World(NULL) {}
 
 	// set named params
 	FORCEINLINE FEnvQueryRequest& SetFloatParam(FName ParamName, float Value) { NamedParams.Add(ParamName, Value); return *this; }
@@ -44,7 +44,7 @@ protected:
 
 	/** query to run */
 	UPROPERTY()
-	class UEnvQuery* QueryTemplate;
+	const class UEnvQuery* QueryTemplate;
 
 	/** querier */
 	UPROPERTY()
@@ -70,7 +70,7 @@ struct FEnvQueryInstanceCache
 	struct FEnvQueryInstance Instance;
 };
 
-#if WITH_EDITOR
+#if USE_EQS_DEBUGGER
 struct ENGINE_API FEQSDebugger
 {
 	void StoreQuery(TSharedPtr<FEnvQueryInstance>& Query);
@@ -81,7 +81,7 @@ protected:
 	// maps owner to performed queries
 	TMap<const UObject*, TSharedPtr<FEnvQueryInstance> > StoredQueries;
 };
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 
 UCLASS()
 class ENGINE_API UEnvQueryManager : public UObject, public FTickableGameObject
@@ -122,14 +122,17 @@ class ENGINE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	/** list of all known item types */
 	static TArray<TSubclassOf<UEnvQueryItemType> > RegisteredItemTypes;
 
-#if WITH_EDITOR
+	static UEnvQueryManager* GetCurrent(class UWorld* World);
+	static UEnvQueryManager* GetCurrent(class UObject* WorldContextObject);
+
+#if USE_EQS_DEBUGGER
 	static void NotifyAssetUpdate(UEnvQuery* Query);
 
 	FEQSDebugger& GetDebugger() { return EQSDebugger; }
 
 protected:
 	FEQSDebugger EQSDebugger;
-#endif // WITH_EDITOR
+#endif // USE_EQS_DEBUGGER
 
 protected:
 
@@ -143,7 +146,7 @@ protected:
 	int32 NextQueryID;
 
 	/** create new instance, using cached data is possible */
-	TSharedPtr<struct FEnvQueryInstance> CreateQueryInstance(class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode);
+	TSharedPtr<struct FEnvQueryInstance> CreateQueryInstance(const class UEnvQuery* Template, EEnvQueryRunMode::Type RunMode);
 
 private:
 

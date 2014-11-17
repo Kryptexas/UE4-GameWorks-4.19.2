@@ -258,7 +258,7 @@ namespace ObjectTools
 	 *
 	 * @param	ObjectsDeletedSuccessfully		The list of objects that were recently deleted but not yet cleaned up
 	 */
-	UNREALED_API void CleanupAfterSuccessfulDelete ( const TArray<UPackage*>& ObjectsDeletedSuccessfully );
+	UNREALED_API void CleanupAfterSuccessfulDelete ( const TArray<UPackage*>& ObjectsDeletedSuccessfully, bool bPerformReferenceCheck = true );
 
 	/**
 	 * Deletes the list of objects

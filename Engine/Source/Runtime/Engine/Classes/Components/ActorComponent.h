@@ -3,9 +3,10 @@
 #pragma once
 
 #include "ComponentInstanceDataCache.h"
+#include "Engine/EngineTypes.h"
 #include "ActorComponent.generated.h"
 
-UCLASS(DefaultToInstanced, HeaderGroup=Component, abstract, hidecategories=(ComponentReplication))
+UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))
 class ENGINE_API UActorComponent : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -134,6 +135,9 @@ public:
 
 	/** Returns whether replication is enabled or not. */
 	bool GetIsReplicated() const;
+
+	/** Allows a component to replicate other subobject on the actor  */
+	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags);
 
 	virtual bool GetComponentClassCanReplicate() const;
 
@@ -388,10 +392,10 @@ public:
 	virtual void OnActorEnableCollisionChanged() {}
 
 	/** 
-		Give a readable name for this component, including asset name if applicable 
-		By default this appends a space plus AdditionalStatObject()
-	**/
-	virtual FString GetReadableName();
+	 * Returns a readable name for this component, including the asset name if applicable 
+	 * By default this appends a space plus AdditionalStatObject()
+	 */
+	virtual FString GetReadableName() const;
 
 	/** Give a readable name for this component, including asset name if applicable */
 	virtual UObject const* AdditionalStatObject() const
@@ -417,6 +421,7 @@ public:
 	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) OVERRIDE;
 	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) OVERRIDE;
 	virtual void PostInitProperties() OVERRIDE;
+	virtual void PostRename(UObject* OldOuter, const FName OldName) OVERRIDE;
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) OVERRIDE;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;

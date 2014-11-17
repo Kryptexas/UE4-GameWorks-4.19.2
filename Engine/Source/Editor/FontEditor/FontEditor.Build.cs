@@ -14,6 +14,7 @@ public class FontEditor : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 			}

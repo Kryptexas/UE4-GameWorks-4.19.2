@@ -43,10 +43,16 @@ FString SGraphTitleBar::GetTitleExtra() const
 {
 	check(EdGraphObj != NULL);
 
-	const bool bEditable = (EdGraphObj->bEditable) && (Kismet2Ptr.Pin()->InEditingMode());
-	return (bEditable)
-		? TEXT("")
-		: TEXT(" (READ-ONLY)");
+	FString ExtraText = Kismet2Ptr.Pin()->GetGraphDecorationString(EdGraphObj);
+
+	const bool bEditable = (Kismet2Ptr.Pin()->IsEditable(EdGraphObj));
+
+	if(!bEditable)
+	{
+		ExtraText += TEXT(" (READ-ONLY)");
+	}
+
+	return ExtraText;
 }
 
 

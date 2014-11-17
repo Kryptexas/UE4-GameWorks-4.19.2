@@ -627,15 +627,14 @@ public:
 	{
 		if (FEngineAnalytics::IsAvailable() )
 		{
-			return 
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.Padding(FMargin(0, 0, 10, 2))
+			return SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 10.0f, 0.0f)
 				.VAlign(VAlign_Center)
 				[
 					SNew(SUserFeedbackButtonWidget).Context(Context)
 				];
-
 		}	
 		else
 		{

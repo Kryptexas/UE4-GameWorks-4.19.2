@@ -99,7 +99,7 @@ struct FRWBufferByteAddress
 	void Initialize( uint32 InNumBytes, uint32 AdditionalUsage = 0 )
 	{
 		NumBytes = InNumBytes;
-		check( GRHIFeatureLevel == ERHIFeatureLevel::SM5 );
+		check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
 		check( NumBytes % 4 == 0 );
 		Buffer = RHICreateStructuredBuffer(4, NumBytes, NULL, BUF_UnorderedAccess | BUF_ShaderResource | BUF_ByteAddressBuffer | AdditionalUsage );
 		UAV = RHICreateUnorderedAccessView(Buffer, false, false );

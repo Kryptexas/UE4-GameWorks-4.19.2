@@ -8,8 +8,33 @@
 #include "../../../Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
+#include "AnimationGraphSchema.h"
+#include "AnimStateNode.h"
+#include "AnimStateConduitNode.h"
+#include "AnimStateEntryNode.h"
+#include "AnimStateTransitionNode.h"
+#include "AnimationCustomTransitionGraph.h"
+#include "AnimationStateGraph.h"
+#include "AnimationStateMachineGraph.h"
+#include "AnimationStateMachineSchema.h"
+#include "AnimationTransitionGraph.h"
+#include "AnimGraphNode_Base.h"
+#include "AnimGraphNode_CustomTransitionResult.h"
+#include "AnimGraphNode_Root.h"
+#include "AnimGraphNode_UseCachedPose.h"
+#include "AnimGraphNode_StateMachineBase.h"
+#include "AnimGraphNode_StateResult.h"
+#include "AnimGraphNode_SaveCachedPose.h"
+#include "AnimGraphNode_TransitionPoseEvaluator.h"
+#include "AnimGraphNode_TransitionResult.h"
+#include "K2Node_TransitionRuleGetter.h"
 
 #define LOCTEXT_NAMESPACE "AnimBlueprintCompiler"
+
+//
+// Forward declarations.
+//
+class UAnimStateNodeBase;
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -205,7 +230,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 	}
 
 	// Make sure the visual node has a runtime node template
-	UScriptStruct* NodeType = VisualAnimNode->GetFNodeType();
+	const UScriptStruct* NodeType = VisualAnimNode->GetFNodeType();
 	if (NodeType == NULL)
 	{
 		MessageLog.Error(TEXT("@@ has no animation node member"), VisualAnimNode);
@@ -249,6 +274,7 @@ void FAnimBlueprintCompiler::ProcessAnimationNode(UAnimGraphNode_Base* VisualAni
 
 	// Register the slightly more permanent debug information
 	NewAnimBlueprintClass->GetAnimBlueprintDebugData().NodePropertyToIndexMap.Add(TrueSourceObject, AllocatedIndex);
+	NewAnimBlueprintClass->GetAnimBlueprintDebugData().NodeGuidToIndexMap.Add(TrueSourceObject->NodeGuid, AllocatedIndex);
 	NewAnimBlueprintClass->GetDebugData().RegisterClassPropertyAssociation(TrueSourceObject, NewProperty);
 
 	// Node-specific compilation that requires compiler state info
@@ -899,7 +925,46 @@ void FAnimBlueprintCompiler::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 
 	if (bIsDerivedAnimBlueprint)
 	{
-		// Skip any work related to an anim graph, it's all done by the parent class
+		// If we are a derived animation graph; apply any stored overrides.
+		// Restore values from the root blueprint to catch values where the override has been removed.
+		UAnimBlueprint* RootAnimBP = UAnimBlueprint::FindRootAnimBlueprint(AnimBlueprint);
+		UAnimBlueprintGeneratedClass* RootAnimClass = RootAnimBP->GetAnimBlueprintGeneratedClass();
+		UObject* RootDefaultObject = RootAnimClass->GetDefaultObject();
+
+		for (TFieldIterator<UProperty> It(RootAnimClass) ; It; ++It)
+		{
+			UProperty* RootProp = *It;
+
+			if (UStructProperty* RootStructProp = Cast<UStructProperty>(RootProp))
+			{
+				if (RootStructProp->Struct->IsChildOf(FAnimNode_Base::StaticStruct()))
+				{
+					UStructProperty* ChildStructProp = FindField<UStructProperty>(NewAnimBlueprintClass, *RootStructProp->GetName());
+					check(ChildStructProp);
+					uint8* SourcePtr = RootStructProp->ContainerPtrToValuePtr<uint8>(RootDefaultObject);
+					uint8* DestPtr = ChildStructProp->ContainerPtrToValuePtr<uint8>(DefaultObject);
+					check(SourcePtr && DestPtr);
+					RootStructProp->CopyCompleteValue(DestPtr, SourcePtr);
+				}
+			}
+		}
+
+		// Patch the overridden values into the CDO
+
+		TArray<FAnimParentNodeAssetOverride*> AssetOverrides;
+		AnimBlueprint->GetAssetOverrides(AssetOverrides);
+		for (FAnimParentNodeAssetOverride* Override : AssetOverrides)
+		{
+			if (Override->NewAsset)
+			{
+				FAnimNode_Base* BaseNode = NewAnimBlueprintClass->GetPropertyInstance<FAnimNode_Base>(DefaultObject, Override->ParentNodeGuid, EPropertySearchMode::Hierarchy);
+				if (BaseNode)
+				{
+					BaseNode->OverrideAsset(Override->NewAsset);
+				}
+			}
+		}
+
 		return;
 	}
 
@@ -914,7 +979,7 @@ void FAnimBlueprintCompiler::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 
 		if (UAnimGraphNode_Base* VisualAnimNode = AllocatedNodePropertiesToNodes.FindRef(TargetProperty))
 		{
-			UStructProperty* SourceNodeProperty = VisualAnimNode->GetFNodeProperty();
+			const UStructProperty* SourceNodeProperty = VisualAnimNode->GetFNodeProperty();
 			check(SourceNodeProperty != NULL);
 			check(CastChecked<UStructProperty>(TargetProperty)->Struct == SourceNodeProperty->Struct);
 

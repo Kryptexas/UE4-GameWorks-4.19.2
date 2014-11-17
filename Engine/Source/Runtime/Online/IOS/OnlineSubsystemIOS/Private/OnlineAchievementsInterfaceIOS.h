@@ -27,7 +27,7 @@ private:
 public:
 
 	// Begin IOnlineAchievements interface
-	virtual bool WriteAchievements( const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject ) OVERRIDE;
+	virtual void WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate = FOnAchievementsWrittenDelegate()) OVERRIDE;
 	virtual void QueryAchievements(const FUniqueNetId & PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate = FOnQueryAchievementsCompleteDelegate()) OVERRIDE;
 	virtual void QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate = FOnQueryAchievementsCompleteDelegate() ) OVERRIDE;
 	virtual EOnlineCachedResult::Type GetCachedAchievement(const FUniqueNetId& PlayerId, const FString& AchievementId, FOnlineAchievement& OutAchievement) OVERRIDE;
@@ -50,19 +50,7 @@ public:
 	/**
 	 * Default destructor
 	 */
-	virtual ~FOnlineAchievementsIOS(){}
-
-
-private:
-
-	/**
-	 * Convert the name of the achievement to one which is valid with game center. I.e. grp.InAchievementName
-	 *
-	 * @param InAchievementName - The name we will check matches the game center requirements
-	 *
-	 * @return The name in a game center compatible format.
-	 */
-	FString NormalizeAchievementName( const FString& InAchievementName );
+	virtual ~FOnlineAchievementsIOS() {}
 };
 
 typedef TSharedPtr<FOnlineAchievementsIOS, ESPMode::ThreadSafe> FOnlineAchievementsIOSPtr;

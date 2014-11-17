@@ -36,7 +36,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FVertex
 
 FOpenGLShaderResourceView::~FOpenGLShaderResourceView()
 {
-	if (Resource)
+	if (Resource && OwnsResource)
 	{
 		OpenGLRHI->InvalidateTextureResourceInCache( Resource );
 		glDeleteTextures(1, &Resource);

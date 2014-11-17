@@ -11,11 +11,14 @@
 #include "FileHelpers.h"
 #include "ContentBrowserModule.h"
 #include "ObjectTools.h"
+#include "KismetEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
 #define MAX_THUMBNAIL_SIZE 4096
 #define MAX_CLASS_NAME_LENGTH 32 // Enforce a reasonable class name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
+
+#define MAX_PROJECTED_COOKING_PATH 165
 
 const double SAssetView::FQuickJumpData::JumpDelaySeconds = 0.6;
 
@@ -77,11 +80,11 @@ void SAssetView::Construct( const FArguments& InArgs )
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP( this, &SAssetView::OnCollectionRenamed );
 
 	// Listen for when assets are loaded or changed to update item data
-	FCoreDelegates::OnAssetLoaded.Add(FCoreDelegates::FOnAssetLoaded::FDelegate::CreateSP(this, &SAssetView::OnAssetLoaded));
-	FCoreDelegates::OnObjectPropertyChanged.Add(FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP(this, &SAssetView::OnObjectPropertyChanged));
+	FCoreDelegates::OnAssetLoaded.AddSP(this, &SAssetView::OnAssetLoaded);
+	FCoreDelegates::OnObjectPropertyChanged.AddSP(this, &SAssetView::OnObjectPropertyChanged);
 
 	// Listen for when view settings are changed
-	UContentBrowserSettings::OnSettingChanged().Add(UContentBrowserSettings::FSettingChangedEvent::FDelegate::CreateSP(this, &SAssetView::HandleSettingChanged));
+	UContentBrowserSettings::OnSettingChanged().AddSP(this, &SAssetView::HandleSettingChanged);
 
 	// Get desktop metrics
 	FDisplayMetrics DisplayMetrics;
@@ -1030,19 +1033,18 @@ void SAssetView::ProcessQueriedItems( const double TickStartTime )
 
 void SAssetView::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr< FAssetDragDropOp > DragAssetOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+	if( DragAssetOp.IsValid() )
 	{
-		TSharedPtr< FAssetDragDropOp > DragAssetOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
 		DragAssetOp->ResetToDefaultToolTip();
 	}
 }
 
 FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+	TSharedPtr< FExternalDragOperation > DragDropOp = DragDropEvent.GetOperationAs< FExternalDragOperation >();
+	if ( DragDropOp.IsValid() )
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
-
 		if ( DragDropOp->HasFiles() )
 		{
 			return FReply::Handled();
@@ -1054,10 +1056,9 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 		if ( AssetDatas.Num() > 0 )
 		{
-			if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
+			TSharedPtr< FAssetDragDropOp > DragAssetOp = DragDropEvent.GetOperationAs< FAssetDragDropOp >();
+			if( DragAssetOp.IsValid() )
 			{
-				TSharedPtr< FAssetDragDropOp > DragAssetOp = StaticCastSharedPtr< FAssetDragDropOp >( DragDropEvent.GetOperation() );	
-
 				TArray< FName > ObjectPaths;
 				FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
 				CollectionManagerModule.Get().GetObjectsInCollection( SourcesData.Collections[0].Name, SourcesData.Collections[0].Type, ObjectPaths );
@@ -1074,7 +1075,7 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 				if ( IsValidDrop )
 				{
-					DragAssetOp->SetToolTip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))) ;
+					DragAssetOp->SetToolTip( NSLOCTEXT( "AssetView", "OnDragOverCollection", "Add to Collection" ), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"))) ;
 				}
 			}
 
@@ -1090,10 +1091,9 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 	// Handle drag drop for import
 	if ( IsAssetPathSelected() )
 	{
-		if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+		if (DragDropOp.IsValid())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
-
 			if ( DragDropOp->HasFiles() )
 			{
 				FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
@@ -1149,28 +1149,6 @@ FReply SAssetView::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent&
 		{
 			return FReply::Handled();
 		}
-	}
-
-	if ( InKeyboardEvent.GetKey() == EKeys::Enter )
-	{
-		TArray<FAssetData> SelectedAssets = GetSelectedAssets();
-		TArray<FString> SelectedFolders = GetSelectedFolders();
-		if(SelectedAssets.Num() > 0 && SelectedFolders.Num() == 0)
-		{
-			OnAssetsActivated.ExecuteIfBound( SelectedAssets, EAssetTypeActivationMethod::EnterPressed );
-		}
-		else if(SelectedAssets.Num() == 0 && SelectedFolders.Num() > 0)
-		{
-			OnPathSelected.ExecuteIfBound(SelectedFolders[0]);
-		}
-
-		return FReply::Handled();
-	}
-	else if ( InKeyboardEvent.GetKey() == EKeys::SpaceBar )
-	{
-		OnAssetsActivated.ExecuteIfBound( GetSelectedAssets(), EAssetTypeActivationMethod::SpacePressed );
-
-		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();
@@ -1356,7 +1334,7 @@ void SAssetView::RefreshSourceItems()
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			// Don't offer skeleton classes
-			bool bIsSkeletonClass = ClassIt->HasAnyFlags(RF_Transient) && ClassIt->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+			bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(*ClassIt);
 
 			if ( !ClassIt->HasAllClassFlags(CLASS_NotPlaceable) &&
 				!ClassIt->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) &&
@@ -1941,7 +1919,7 @@ void SAssetView::OnAssetLoaded(UObject* Asset)
 	}
 }
 
-void SAssetView::OnObjectPropertyChanged(UObject* Asset)
+void SAssetView::OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if ( Asset != NULL )
 	{
@@ -2453,6 +2431,25 @@ void SAssetView::RequestScrollIntoView(const TSharedPtr<FAssetViewItem>& Item)
 		case EAssetViewType::Tile: TileView->RequestScrollIntoView(Item); break;
 		case EAssetViewType::Column: ColumnView->RequestScrollIntoView(Item); break;
 	}
+}
+
+void SAssetView::OnOpenAssetsOrFolders()
+{
+	TArray<FAssetData> SelectedAssets = GetSelectedAssets();
+	TArray<FString> SelectedFolders = GetSelectedFolders();
+	if (SelectedAssets.Num() > 0 && SelectedFolders.Num() == 0)
+	{
+		OnAssetsActivated.ExecuteIfBound(SelectedAssets, EAssetTypeActivationMethod::Opened);
+	}
+	else if (SelectedAssets.Num() == 0 && SelectedFolders.Num() > 0)
+	{
+		OnPathSelected.ExecuteIfBound(SelectedFolders[0]);
+	}
+}
+
+void SAssetView::OnPreviewAssets()
+{
+	OnAssetsActivated.ExecuteIfBound(GetSelectedAssets(), EAssetTypeActivationMethod::Previewed);
 }
 
 void SAssetView::ClearSelection()
@@ -3136,12 +3133,38 @@ bool SAssetView::AssetVerifyRenameCommit(const TSharedPtr<FAssetViewItem>& Item,
 			return false;
 		}
 
+		// The following checks are done mostly to prevent / alleviate the problems that "long" paths are causing with the BuildFarm and cooked builds.
+		// The BuildFarm buildmachines use a verbose path to encode extra information to provide more information when things fail, however
+		// this makes the path limitation (260 chars on Windows) a problem. It doubles up the GGameName and does the cooking in another
+		// sub-folder, one of the "saved/sandboxes", with folder duplication.
+
+		// Get the SubPath containing folders without the "game name" folder itself
+		const FString GameNameStr(GGameName);
+		FString SubPath = FPaths::GameDir();
+		FPaths::NormalizeDirectoryName(SubPath);
+		SubPath = SubPath.Replace(*(FString(TEXT("../../../")) + GameNameStr), TEXT(""));
+		FPaths::RemoveDuplicateSlashes(SubPath);
+
+		// Calculate the maximum path length this will generate when doing a cooked build.
+		const int32 PathCalcLen = SubPath.Len() + (2 * GameNameStr.Len()) + (NewPackageName + FPackageName::GetAssetPackageExtension()).Len();
+		if ( PathCalcLen >= MAX_PROJECTED_COOKING_PATH )
+		{
+			// The projected length of the path for cooking is too long
+			OutErrorMessage = FText::Format( LOCTEXT("AssetCookingPathTooLong", 
+				"The path to the asset is too long for cooking, the maximum is '{0}' characters.\nPlease choose a shorter name for the asset or create it in a shallower folder structure with shorter folder names."),
+				FText::FromString(FString::Printf(TEXT("%d"), MAX_PROJECTED_COOKING_PATH)) );
+			// Return false to indicate that the user should enter a new name
+			return false;
+		}
+
 		// Make sure we are not creating an path that is too long for the OS
-		if ( ObjectPathStr.Len() > PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH )
+		const FString RelativePathFilename = FPackageName::LongPackageNameToFilename(NewPackageName, FPackageName::GetAssetPackageExtension());	// full relative path with name + extension
+		const FString FullPath = FPaths::ConvertRelativePathToFull(RelativePathFilename);	// path to file on disk
+		if ( ObjectPathStr.Len() > (PLATFORM_MAX_FILEPATH_LENGTH - MAX_CLASS_NAME_LENGTH) || FullPath.Len() > PLATFORM_MAX_FILEPATH_LENGTH )
 		{
 			// The full path for the asset is too long
 			OutErrorMessage = FText::Format( LOCTEXT("AssetPathTooLong", 
-				"The full path for the asset is too deep, the maximum is '{0}'. Please choose a shorter name for the asset or create it in a shallower folder structure."), 
+				"The full path for the asset is too deep, the maximum is '{0}'. \nPlease choose a shorter name for the asset or create it in a shallower folder structure."), 
 				FText::FromString(FString::Printf(TEXT("%d"), PLATFORM_MAX_FILEPATH_LENGTH)) );
 			// Return false to indicate that the user should enter a new name
 			return false;
@@ -3555,7 +3578,7 @@ FText SAssetView::GetAssetShowWarningText() const
 	{
 		DropText = LOCTEXT( "DragAssetsHere", "Drag and drop assets here to add them to the collection." );
 	}
-	else
+	else if ( OnGetAssetContextMenu.IsBound() )
 	{
 		DropText = LOCTEXT( "DropFilesOrRightClick", "Drop files here or right click to create content." );
 	}

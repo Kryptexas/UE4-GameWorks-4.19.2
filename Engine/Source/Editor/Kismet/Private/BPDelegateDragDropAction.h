@@ -21,11 +21,11 @@ public:
 
 	bool IsValid() const;
 	
-	static TSharedRef<FKismetDelegateDragDropAction> New( TSharedRef< SWidget > Owner, FName InVariableName, UClass* InClass, FNodeCreationAnalytic AnalyticCallback)
+	static TSharedRef<FKismetDelegateDragDropAction> New( TSharedRef< SWidget > Owner, FName InVariableName, UStruct* InSource, FNodeCreationAnalytic AnalyticCallback)
 	{
 		TSharedRef<FKismetDelegateDragDropAction> Operation = MakeShareable(new FKismetDelegateDragDropAction( Owner ) );
 		Operation->VariableName = InVariableName;
-		Operation->VariableSourceClass = InClass;
+		Operation->VariableSource = InSource;
 		Operation->AnalyticCallback = AnalyticCallback;
 		Operation->Construct();
 		return Operation;

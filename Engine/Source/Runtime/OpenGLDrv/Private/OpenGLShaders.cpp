@@ -3,7 +3,7 @@
 /*=============================================================================
 	OpenGLShaders.cpp: OpenGL shader RHI implementation.
 =============================================================================*/
-
+ 
 #include "OpenGLDrvPrivate.h"
 #include "Shader.h"
 #include "GlobalShader.h"
@@ -149,6 +149,45 @@ static const TCHAR* ShaderNameFromShaderType(GLenum ShaderType)
 // ============================================================================================================================
 
 
+static ANSICHAR* SkipShaderExtensionText(ANSICHAR* ShaderCode)
+{
+	char* ExtensionEnd = ShaderCode;
+	for (;;)
+	{
+		// See if we have an extension
+		char* Find = (char*)strstr(ExtensionEnd, "#extension");
+		if (Find)
+		{
+			// Skip to the end of the line
+			Find = (char*)strstr(Find, "\n");
+			if (Find == NULL)
+			{
+				// Abort if there is no end of line
+				return ShaderCode;
+			}
+			ExtensionEnd = Find;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (ExtensionEnd != ShaderCode)
+	{
+		// terminate the extension part of the shader code
+		*ExtensionEnd = '\0';
+		return ExtensionEnd + 1;
+	}
+	else
+	{
+		return NULL;
+	}
+}
+
+// ============================================================================================================================
+
+
 static void ReplaceShaderSubstring(ANSICHAR* ShaderCode, const ANSICHAR* OldString, const ANSICHAR* NewString)
 {
 	char* Curr = ShaderCode;
@@ -158,9 +197,10 @@ static void ReplaceShaderSubstring(ANSICHAR* ShaderCode, const ANSICHAR* OldStri
 		Curr = Substr;
 		if (Substr)
 		{
-			strcpy(Substr, NewString);
-			Curr += strlen(NewString);
-			for (size_t index = 0; index < strlen(OldString)-strlen(NewString); ++index)
+			size_t NewStringLength = strlen(NewString);
+			FCStringAnsi::Strcpy(Substr, strlen(Substr), NewString);
+			Curr += NewStringLength;
+			for (size_t index = 0; index < strlen(OldString) - NewStringLength; ++index)
 			{
 				*Curr = ' ';
 				++Curr;
@@ -192,8 +232,8 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		|| (TypeEnum == GL_FRAGMENT_SHADER && Header.FrequencyMarker != 0x5053)
 		|| (TypeEnum == GL_GEOMETRY_SHADER && Header.FrequencyMarker != 0x4753)
 		|| (TypeEnum == GL_COMPUTE_SHADER && Header.FrequencyMarker != 0x4353 && FOpenGL::SupportsComputeShaders())
-		|| (TypeEnum == GL_TESS_CONTROL_SHADER && Header.FrequencyMarker != 0x4853 && FOpenGL::SupportsComputeShaders()) /* hull shader*/
-		|| (TypeEnum == GL_TESS_EVALUATION_SHADER && Header.FrequencyMarker != 0x4453 && FOpenGL::SupportsComputeShaders()) /* domain shader*/
+		|| (TypeEnum == GL_TESS_CONTROL_SHADER && Header.FrequencyMarker != 0x4853 && FOpenGL::SupportsTessellation()) /* hull shader*/
+		|| (TypeEnum == GL_TESS_EVALUATION_SHADER && Header.FrequencyMarker != 0x4453 && FOpenGL::SupportsTessellation()) /* domain shader*/
 		)
 	{
 		UE_LOG(LogRHI,Fatal,
@@ -266,6 +306,19 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 			strcpy(VersionString, "#version 100");
 			strcat(VersionString, "\n");
 		}
+
+		//remove "#version 100" line,  if found in existing GlslCode. 
+		ANSICHAR* VersionCodePointer = const_cast<ANSICHAR*>(GlslCode);
+		VersionCodePointer = strstr(VersionCodePointer, "#version 100");
+		if(VersionCodePointer != NULL)
+		{
+			for(int index=0; index < 12; index++)
+			{
+				VersionCodePointer[index] = ' ';
+			}
+		}
+
+		const ANSICHAR* ExtensionString = "";
 		
 		//This #define fixes compiler errors on Android (which doesnt seem to support textureCubeLodEXT)
 		const ANSICHAR* Prologue = NULL; 
@@ -286,7 +339,8 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 			} 
 			else if (TypeEnum == GL_FRAGMENT_SHADER)
 			{
-				Prologue = "#define texture2D texture				\n"
+				Prologue = "\n"
+					"#define texture2D texture				\n"
 					"#define texture2DProj textureProj		\n"
 					"#define texture2DLod textureLod			\n"
 					"#define texture2DProjLod textureProjLod \n"
@@ -294,12 +348,21 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 					"#define textureCubeLod textureLod		\n"
 					"#define textureCubeLodEXT textureLod	\n"
 					"\n"
-					"out vec4 gl_FragColor;";
+					"#define gl_FragColor out_FragColor	\n"
+					"out mediump vec4 out_FragColor;";
+
+				// See if we need to skip any #extension string
+				ANSICHAR* Temp = SkipShaderExtensionText(const_cast<ANSICHAR*>(GlslCode));
+				if (Temp)
+				{
+					ExtensionString = GlslCode;
+					GlslCode = Temp;
+				}
 
 				ReplaceShaderSubstring(const_cast<ANSICHAR*>(GlslCode), "varying", "in");
 			}
 		}
-		else if(!FOpenGL::SupportsShaderTextureLod())
+		else if(!FOpenGL::SupportsShaderTextureLod() || !FOpenGL::SupportsShaderTextureCubeLod())
 		{
 			Prologue = "#define textureCubeLodEXT(a, b, c) textureCube(a, b) \n";
 		}
@@ -311,20 +374,10 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 		{
 			Prologue = "";
 		}
-		//remove "#version 100" line,  if found in existing GlslCode. 
-		ANSICHAR* VersionCodePointer = const_cast<ANSICHAR*>(GlslCode);
-		VersionCodePointer = strstr(VersionCodePointer, "#version 100");
-		if(VersionCodePointer != NULL)
-		{
-			for(int index=0; index < 12; index++)
-			{
-				VersionCodePointer[index] = ' ';
-			}
-		}
 		//Assemble the source strings into an array to pass into the compiler.
-		const GLchar* ShaderSourceStrings[3] = { VersionString, Prologue, GlslCode };
-		const GLint ShaderSourceLen[3] = { (GLint)(strlen(VersionString)), (GLint)(strlen(Prologue)), (GLint)(strlen(GlslCode)) };
-		glShaderSource(Resource, 3, (const GLchar**)&ShaderSourceStrings, ShaderSourceLen);		
+		const GLchar* ShaderSourceStrings[4] = { VersionString, ExtensionString, Prologue, GlslCode };
+		const GLint ShaderSourceLen[4] = { (GLint)(strlen(VersionString)), (GLint)(strlen(ExtensionString)), (GLint)(strlen(Prologue)), (GLint)(strlen(GlslCode)) };
+		glShaderSource(Resource, 4, (const GLchar**)&ShaderSourceStrings, ShaderSourceLen);		
 		glCompileShader(Resource);
 #else
 		glShaderSource(Resource, 1, (const GLchar**)&GlslCode, &GlslCodeLength);
@@ -426,11 +479,17 @@ void FOpenGLDynamicRHI::BindUniformBufferBase(FOpenGLContextState& ContextState,
 	for (int32 BufferIndex = 0; BufferIndex < NumUniformBuffers; ++BufferIndex)
 	{
 		GLuint Buffer;
+		uint32 Offset = 0;
+		uint32 Size = ZERO_FILLED_DUMMY_UNIFORM_BUFFER_SIZE;
 		int32 BindIndex = FirstUniformBuffer + BufferIndex;
 		if (BoundUniformBuffers[BufferIndex])
 		{
 			FRHIUniformBuffer* UB = BoundUniformBuffers[BufferIndex];
 			Buffer = ((FOpenGLUniformBuffer*)UB)->Resource;
+			Size = ((FOpenGLUniformBuffer*)UB)->GetSize();
+#if SUBALLOCATED_CONSTANT_BUFFER
+			Offset = ((FOpenGLUniformBuffer*)UB)->Offset;
+#endif
 		}
 		else
 		{
@@ -449,11 +508,12 @@ void FOpenGLDynamicRHI::BindUniformBufferBase(FOpenGLContextState& ContextState,
 			Buffer = PendingState.ZeroFilledDummyUniformBuffer;
 		}
 
-		if (ForceUpdate || ContextState.UniformBuffers[BindIndex] != Buffer)
+		if (ForceUpdate || ContextState.UniformBuffers[BindIndex] != Buffer || ContextState.UniformBufferOffsets[BindIndex] != Offset )
 		{
-			FOpenGL::BindBufferBase(GL_UNIFORM_BUFFER, BindIndex, Buffer);
+			FOpenGL::BindBufferRange(GL_UNIFORM_BUFFER, BindIndex, Buffer, Offset, Size);
 			ContextState.UniformBuffers[BindIndex] = Buffer;
-			ContextState.UniformBufferBound = Buffer;	// yes, calling glBindBufferBase also changes uniform buffer binding.
+			ContextState.UniformBufferOffsets[BindIndex] = Offset;
+			ContextState.UniformBufferBound = Buffer;	// yes, calling glBindBufferRange also changes uniform buffer binding.
 		}
 	}
 }
@@ -530,12 +590,14 @@ public:
 	FStagePackedUniformInfo	StagePackedUniformInfo[OGL_NUM_SHADER_STAGES];
 
 	GLuint		Program;
+	bool		bUsingTessellation;
+
 	TBitArray<>	TextureStageNeeds;
 	TBitArray<>	UAVStageNeeds;
 	int32		MaxTextureStage;
 
 	FOpenGLLinkedProgram()
-	: Program(0), MaxTextureStage(-1)
+	: Program(0), bUsingTessellation(false), MaxTextureStage(-1)
 	{
 		TextureStageNeeds.Init( false, FOpenGL::GetMaxCombinedTextureImageUnits() );
 		UAVStageNeeds.Init( false, OGL_MAX_COMPUTE_STAGE_UAV_UNITS );
@@ -859,7 +921,7 @@ static void VerifyUniformLayout(const TCHAR* UniformName, const UniformData& GLS
 				FString BaseTypeName;
 				switch(Member.GetBaseType())
 				{
-					case UBMT_STRUCT:  BaseTypeName = TEXT("struct"); 
+					case UBMT_STRUCT:  BaseTypeName = TEXT("struct"); break;
 					case UBMT_BOOL:    BaseTypeName = TEXT("bool"); break;
 					case UBMT_INT32:   BaseTypeName = TEXT("int"); break;
 					case UBMT_UINT32:  BaseTypeName = TEXT("uint"); break;
@@ -958,7 +1020,7 @@ static void VerifyUniformBufferLayouts(GLuint Program)
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_VERTEX_SHADER, &ReferencedByVS);
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_FRAGMENT_SHADER, &ReferencedByPS);
 			glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_GEOMETRY_SHADER, &ReferencedByGS);
-			if(GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
+			if (GRHIFeatureLevel >= ERHIFeatureLevel::SM5)
 			{
 				glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_CONTROL_SHADER, &ReferencedByHS);
 				glGetActiveUniformBlockiv(Program, BlockIndex, GL_UNIFORM_BLOCK_REFERENCED_BY_TESS_EVALUATION_SHADER, &ReferencedByDS);
@@ -1144,6 +1206,7 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 	FOpenGLLinkedProgram* LinkedProgram = new FOpenGLLinkedProgram;
 	LinkedProgram->Config = Config;
 	LinkedProgram->Program = Program;
+	LinkedProgram->bUsingTessellation = Config.Shaders[OGL_SHADER_STAGE_HULL].Resource && Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource;
 
 	glUseProgram(Program);
 
@@ -1293,14 +1356,14 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 			Config.Shaders[OGL_SHADER_STAGE_GEOMETRY].Resource = GeometryShader->Resource;
 		}
 
-		if ( FOpenGL::SupportsComputeShaders() )
+		if ( FOpenGL::SupportsTessellation())
 		{
 			if ( HullShader)
 			{
 				Config.Shaders[OGL_SHADER_STAGE_HULL].Bindings = HullShader->Bindings;
 				Config.Shaders[OGL_SHADER_STAGE_HULL].Resource = HullShader->Resource;
 			}
-			if (FOpenGL::SupportsComputeShaders() && DomainShader)
+			if ( DomainShader)
 			{
 				Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Bindings = DomainShader->Bindings;
 				Config.Shaders[OGL_SHADER_STAGE_DOMAIN].Resource = DomainShader->Resource;
@@ -1355,7 +1418,7 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 #endif
 					GeometryShader->bSuccessfullyCompiled = VerifyCompiledShader(GeometryShader->Resource, GlslCode);
 				}
-				if ( FOpenGL::SupportsComputeShaders() )
+				if ( FOpenGL::SupportsTessellation() )
 				{
 					if (HullShader && !HullShader->bSuccessfullyCompiled)
 					{
@@ -1398,7 +1461,7 @@ FBoundShaderStateRHIRef FOpenGLDynamicRHI::RHICreateBoundShaderState(
 					{
 						UE_LOG(LogRHI,Error,TEXT("Geometry Shader:\n%s"),ANSI_TO_TCHAR(GeometryShader->GlslCode.GetTypedData()));
 					}
-					if ( FOpenGL::SupportsComputeShaders() )
+					if ( FOpenGL::SupportsTessellation() )
 					{
 						if (HullShader && HullShader->bSuccessfullyCompiled)
 						{
@@ -1460,6 +1523,7 @@ void FOpenGLDynamicRHI::BindPendingShaderState( FOpenGLContextState& ContextStat
 	{
 		glUseProgram(PendingProgram);
 		ContextState.Program = PendingProgram;
+		ContextState.bUsingTessellation = PendingState.BoundShaderState->LinkedProgram->bUsingTessellation;
 		MarkShaderParameterCachesDirty(PendingState.ShaderParameters, false);
 		//Disable the forced rebinding to reduce driver overhead
 #if 0
@@ -1469,44 +1533,50 @@ void FOpenGLDynamicRHI::BindPendingShaderState( FOpenGLContextState& ContextStat
 
 	if (!IsES2Platform(GRHIShaderPlatform))
 	{
-		BindUniformBufferBase(ContextState, PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers,
+		const int32 VertexShaderNumUniformBuffers   = PendingState.BoundShaderState->VertexShader   ? PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers : 0;
+		const int32 PixelShaderNumUniformBuffers    = PendingState.BoundShaderState->PixelShader    ? PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers : 0;
+		const int32 GeometryShaderNumUniformBuffers = PendingState.BoundShaderState->GeometryShader ? PendingState.BoundShaderState->GeometryShader->Bindings.NumUniformBuffers : 0;
+		const int32 HullShaderNumUniformBuffers     = PendingState.BoundShaderState->HullShader     ? PendingState.BoundShaderState->HullShader->Bindings.NumUniformBuffers : 0;
+		const int32 DomainShaderNumUniformBuffers   = PendingState.BoundShaderState->DomainShader   ? PendingState.BoundShaderState->DomainShader->Bindings.NumUniformBuffers : 0;
+
+		BindUniformBufferBase(ContextState, VertexShaderNumUniformBuffers,
 			PendingState.BoundShaderState->VertexShader->BoundUniformBuffers, OGL_FIRST_UNIFORM_BUFFER, ForceUniformBindingUpdate);
 
-		BindUniformBufferBase(ContextState, PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers,
+		BindUniformBufferBase(ContextState, PixelShaderNumUniformBuffers,
 			PendingState.BoundShaderState->PixelShader->BoundUniformBuffers,
-			OGL_FIRST_UNIFORM_BUFFER + PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers,
+			OGL_FIRST_UNIFORM_BUFFER + VertexShaderNumUniformBuffers,
 			ForceUniformBindingUpdate);
 
 		if (PendingState.BoundShaderState->GeometryShader)
 		{
 			BindUniformBufferBase(ContextState,
-				PendingState.BoundShaderState->GeometryShader->Bindings.NumUniformBuffers,
+				GeometryShaderNumUniformBuffers,
 				PendingState.BoundShaderState->GeometryShader->BoundUniformBuffers,
-				OGL_FIRST_UNIFORM_BUFFER + PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers,
+				OGL_FIRST_UNIFORM_BUFFER + VertexShaderNumUniformBuffers +
+				PixelShaderNumUniformBuffers,
 				ForceUniformBindingUpdate);
 		}
 
 		if (PendingState.BoundShaderState->HullShader)
 		{
 			BindUniformBufferBase(ContextState,
-				PendingState.BoundShaderState->HullShader->Bindings.NumUniformBuffers,
+				HullShaderNumUniformBuffers,
 				PendingState.BoundShaderState->HullShader->BoundUniformBuffers,
-				OGL_FIRST_UNIFORM_BUFFER + PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->GeometryShader->Bindings.NumUniformBuffers,
+				OGL_FIRST_UNIFORM_BUFFER + VertexShaderNumUniformBuffers +
+				PixelShaderNumUniformBuffers +
+				GeometryShaderNumUniformBuffers,
 				ForceUniformBindingUpdate);
 		}
 
 		if (PendingState.BoundShaderState->DomainShader)
 		{
 			BindUniformBufferBase(ContextState,
-				PendingState.BoundShaderState->DomainShader->Bindings.NumUniformBuffers,
+				DomainShaderNumUniformBuffers,
 				PendingState.BoundShaderState->DomainShader->BoundUniformBuffers,
-				OGL_FIRST_UNIFORM_BUFFER + PendingState.BoundShaderState->VertexShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->PixelShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->GeometryShader->Bindings.NumUniformBuffers +
-				PendingState.BoundShaderState->HullShader->Bindings.NumUniformBuffers,
+				OGL_FIRST_UNIFORM_BUFFER + VertexShaderNumUniformBuffers +
+				PixelShaderNumUniformBuffers + 
+				GeometryShaderNumUniformBuffers +
+				HullShaderNumUniformBuffers,
 				ForceUniformBindingUpdate);
 		}
 	}
@@ -1618,6 +1688,9 @@ void FOpenGLShaderParameterCache::InitializeResources(int32 UniformArraySize)
 {
 	check(GlobalUniformArraySize == -1);
 
+	// Uniform arrays have to be multiples of float4s.
+	UniformArraySize = Align(UniformArraySize,SizeOfFloat4);
+
 	PackedGlobalUniforms[0] = (uint8*)FMemory::Malloc(UniformArraySize * OGL_PACKED_TYPEINDEX_MAX);
 	PackedUniformsScratch[0] = (uint8*)FMemory::Malloc(UniformArraySize * OGL_PACKED_TYPEINDEX_MAX);
 
@@ -1633,7 +1706,7 @@ void FOpenGLShaderParameterCache::InitializeResources(int32 UniformArraySize)
 	for (int32 ArrayIndex = 0; ArrayIndex < OGL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
-		PackedGlobalUniformDirty[ArrayIndex].HighVector = UniformArraySize;
+		PackedGlobalUniformDirty[ArrayIndex].HighVector = UniformArraySize / SizeOfFloat4;
 	}
 }
 
@@ -1660,7 +1733,7 @@ void FOpenGLShaderParameterCache::MarkAllDirty()
 	for (int32 ArrayIndex = 0; ArrayIndex < OGL_PACKED_TYPEINDEX_MAX; ++ArrayIndex)
 	{
 		PackedGlobalUniformDirty[ArrayIndex].LowVector = 0;
-		PackedGlobalUniformDirty[ArrayIndex].HighVector = GlobalUniformArraySize;
+		PackedGlobalUniformDirty[ArrayIndex].HighVector = GlobalUniformArraySize / SizeOfFloat4;
 	}
 }
 
@@ -1710,10 +1783,14 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 		const int32 NumVectors = PackedArrays[PackedUniform].Size / BytesPerRegister;
 		GLint Location = UniformInfo.Location;
 		const void* UniformData = PackedGlobalUniforms[ArrayIndex];
-		if (PackedGlobalUniformDirty[ArrayIndex].HighVector > PackedGlobalUniformDirty[ArrayIndex].LowVector)
+
+		// This has to be >=. If LowVector == HighVector it means that particular vector was written to.
+		if (PackedGlobalUniformDirty[ArrayIndex].HighVector >= PackedGlobalUniformDirty[ArrayIndex].LowVector)
 		{
 			const uint32 StartVector = PackedGlobalUniformDirty[ArrayIndex].LowVector;
-			uint32 NumDirtyVectors = PackedGlobalUniformDirty[ArrayIndex].HighVector - StartVector;
+			// The number of dirty vectors is the index of the highest vector written minus the first plus one.
+			// The plus one is important so that we upload the highest vector written.
+			uint32 NumDirtyVectors = PackedGlobalUniformDirty[ArrayIndex].HighVector - StartVector + 1;
 			NumDirtyVectors = FMath::Min(NumDirtyVectors, NumVectors - StartVector);
 			check(NumDirtyVectors);
 			UniformData = (uint8*)UniformData + PackedGlobalUniformDirty[ArrayIndex].LowVector * SizeOfFloat4;
@@ -1765,6 +1842,8 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 				const FOpenGLUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
 				if (Info.SourceUBIndex == BufferIndex)
 				{
+					check((Info.SourceOffsetInFloats + Info.SizeInFloats) * sizeof(float) <= (uint32)GlobalUniformArraySize);
+
 					float* RESTRICT ScratchMem = (float*)PackedGlobalUniforms[Info.DestUBTypeIndex];
 					ScratchMem += Info.DestOffsetInFloats;
 					FMemory::Memcpy(ScratchMem, SourceData + Info.SourceOffsetInFloats, Info.SizeInFloats * sizeof(float));

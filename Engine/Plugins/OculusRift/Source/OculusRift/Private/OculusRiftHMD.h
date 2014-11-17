@@ -42,7 +42,7 @@ public:
 
 	virtual class ISceneViewExtension* GetViewExtension() OVERRIDE;
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
-	virtual void OnScreenModeChange(bool bFullScreenNow) OVERRIDE;
+	virtual void OnScreenModeChange(EWindowMode::Type WindowMode) OVERRIDE;
 
 	/** IStereoRendering interface */
 	virtual bool IsStereoEnabled() const OVERRIDE;
@@ -210,7 +210,7 @@ private:
 	void		  SetHeadModel(const OVR::Vector3d&);
 
 #if !UE_BUILD_SHIPPING
-	void DrawDebugTrackingCameraFrustum(const FVector& ViewLocation);
+	void DrawDebugTrackingCameraFrustum(class UWorld* InWorld, const FVector& ViewLocation);
 #endif // #if !UE_BUILD_SHIPPING
 
 private: // data

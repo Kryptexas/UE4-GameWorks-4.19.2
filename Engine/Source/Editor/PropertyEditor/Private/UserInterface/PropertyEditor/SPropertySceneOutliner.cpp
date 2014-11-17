@@ -51,14 +51,11 @@ FReply SPropertySceneOutliner::OnClicked()
 
 TSharedRef<SWidget> SPropertySceneOutliner::OnGenerateSceneOutliner()
 {
-	TSharedPtr<TFilterCollection<const AActor* const> > ActorFilters = NULL;
-	OnGetActorFilters.ExecuteIfBound( ActorFilters );
-
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::Get().LoadModuleChecked<FSceneOutlinerModule>(TEXT("SceneOutliner"));
 
 	FSceneOutlinerInitializationOptions InitOptions;
 	InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-	InitOptions.ActorFilters = ActorFilters;
+	OnGetActorFilters.ExecuteIfBound( InitOptions.Filters );
 
 	TSharedRef<SWidget> MenuContent = 
 		SNew(SBox)

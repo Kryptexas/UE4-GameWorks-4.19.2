@@ -146,7 +146,7 @@ FClassNetCache* UPackageMap::GetClassNetCache( UClass* Class )
 			if( SupportsObject(Field ) )
 			{
 				int32 ThisIndex      = Result->GetMaxIndex();
- 				new(Result->Fields)FFieldNetCache( Field, ThisIndex );
+				new(Result->Fields)FFieldNetCache( Field, ThisIndex );
 			}
 		}
 

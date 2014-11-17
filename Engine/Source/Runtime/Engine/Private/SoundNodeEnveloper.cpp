@@ -117,9 +117,9 @@ void USoundNodeEnveloper::ParseNodes( FAudioDevice* AudioDevice, const UPTRINT N
 
 	FSoundParseParameters UpdatedParams = ParseParams;
 
-	UpdatedParams.Volume *= VolumeCurve.Eval(PlayTime) * UsedVolumeModulation;
+	UpdatedParams.Volume *= VolumeCurve.GetRichCurve()->Eval(PlayTime) * UsedVolumeModulation;
 
-	UpdatedParams.Pitch *= PitchCurve.Eval(PlayTime) * UsedPitchModulation;
+	UpdatedParams.Pitch *= PitchCurve.GetRichCurve()->Eval(PlayTime) * UsedPitchModulation;
 
 	Super::ParseNodes(AudioDevice, NodeWaveInstanceHash, ActiveSound, UpdatedParams, WaveInstances);
 }

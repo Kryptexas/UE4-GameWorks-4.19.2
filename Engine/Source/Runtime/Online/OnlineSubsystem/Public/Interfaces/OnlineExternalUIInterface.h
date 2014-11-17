@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "OnlineSubsystemTypes.h"
 #include "OnlineDelegateMacros.h"
 
 /**
@@ -72,6 +73,15 @@ public:
 	virtual bool ShowAchievementsUI(int32 LocalUserNum) = 0;
 
 	/**
+	 *	Displays the UI that shows a specific leaderboard
+	 *
+	 * @param LeaderboardName the name of the leaderboard to show
+	 *
+	 * @return true if it was able to show the UI, false if it failed
+	 */
+	virtual bool ShowLeaderboardUI(const FString& LeaderboardName) = 0;
+
+	/**
 	 *	Displays a web page in the external UI
 	 *
 	 * @param WebURL fully formed web address (http://www.google.com)
@@ -88,8 +98,10 @@ public:
 	 *
 	 * @param Requestor The user requesting the profile.
 	 * @param Requestee The user for whom to show the profile.
+	 *
+	 * @return true if it was able to show the UI, false if it failed
 	 */
-	virtual void ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) = 0;
+	virtual bool ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) = 0;
 
 	/**
 	 * Delegate called when the external UI is opened or closed

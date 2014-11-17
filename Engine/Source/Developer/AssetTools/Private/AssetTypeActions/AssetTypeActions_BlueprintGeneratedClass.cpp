@@ -148,7 +148,7 @@ void FAssetTypeActions_BlueprintGeneratedClass::ExecuteNewDerivedBlueprint(TWeak
 		if ( ensure(Package) )
 		{
 			// Create and init a new Blueprint
-			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetClass, Package, FName(*Name), BPTYPE_Normal, UBlueprint::StaticClass());
+			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetClass, Package, FName(*Name), BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
 			if(NewBP)
 			{
 				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
@@ -217,10 +217,8 @@ void FAssetTypeActions_BlueprintGeneratedClass::OpenInDefaults( class UBlueprint
 	FString NewTextFilename = DumpAssetToTempFile(NewBlueprint->GeneratedClass->GetDefaultObject());
 	FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
 
-	// args are just 2 temp filenames
-	FString DiffArgs = FString::Printf(TEXT("%s %s"), *OldTextFilename, *NewTextFilename);
-
-	CreateDiffProcess(DiffCommand, DiffArgs);
+	FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
 }
 
 #undef LOCTEXT_NAMESPACE

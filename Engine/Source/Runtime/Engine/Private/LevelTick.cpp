@@ -8,8 +8,6 @@
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 
-#include "EngineUserInterfaceClasses.h"
-#include "EngineDecalClasses.h"
 #include "ParticleDefinitions.h"
 //#include "SoundDefinitions.h"
 #include "FXSystem.h"
@@ -178,7 +176,7 @@ void FDetailedTickStats::EndObject( UObject* Object, float DeltaTime, bool bForS
 		{
 			GCCallBackRegistered = true;
 			// register callback so that we can avoid finding the wrong stats for new objects reusing memory that used to be associated with a different object
-			FCoreDelegates::PreGarbageCollect.Add(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FDetailedTickStats::OnPreGarbageCollect));
+			FCoreDelegates::PreGarbageCollect.AddRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
 		}
 
 		FTickStats NewTickStats;
@@ -215,7 +213,7 @@ void FDetailedTickStats::DumpStats()
 	bool bShouldDump = false;
 	
 	// Dump request due to interval.
-	if( GCurrentTime > (LastTimeOfLogDump + TimeBetweenLogDumps) )
+	if( FApp::GetCurrentTime() > (LastTimeOfLogDump + TimeBetweenLogDumps) )
 	{
 		bShouldDump = true;
 	}
@@ -237,9 +235,9 @@ void FDetailedTickStats::DumpStats()
 
 	// Only dump every TimeBetweenLogDumps seconds.
 	if( bShouldDump 
-	&& ((GCurrentTime - LastTimeOfLogDump) > MinTimeBetweenLogDumps) )
+	&& ((FApp::GetCurrentTime() - LastTimeOfLogDump) > MinTimeBetweenLogDumps) )
 	{
-		LastTimeOfLogDump = GCurrentTime;
+		LastTimeOfLogDump = FApp::GetCurrentTime();
 
 		// Array of stats, used for sorting.
 		TArray<FTickStats> SortedTickStats;
@@ -784,12 +782,7 @@ void UWorld::SendAllEndOfFrameUpdates(FGraphEventArray* OutCompletion)
 				: Components(InComponents)
 			{
 			}
-
-			static const TCHAR* GetTaskName()
-			{
-				return TEXT("DoRenderthreadUpdatesTask");
-			}
-			FORCEINLINE static TStatId GetStatId()
+			FORCEINLINE TStatId GetStatId() const
 			{
 				RETURN_QUICK_DECLARE_CYCLE_STAT(DoRenderthreadUpdatesTask, STATGROUP_TaskGraphTasks);
 			}
@@ -1069,10 +1062,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		TickType = LEVELTICK_ViewportsOnly;
 	}
 
-	// give the async loading code more time if we're performing a high priority load
-	if (Info->bHighPriorityLoading || Info->bHighPriorityLoadingLocal)
+	// give the async loading code more time if we're performing a high priority load or are in seamless travel
+	if (Info->bHighPriorityLoading || Info->bHighPriorityLoadingLocal || IsInSeamlessTravel())
 	{
-		ProcessAsyncLoading(true, 0.02f);
+		// Force it to use the entire time slice, even if blocked on I/O
+		ProcessAsyncLoading(true, true, GEngine->PriorityAsyncLoadingExtraTime / 1000.0f);
 	}
 
 	// Translate world origin if requested
@@ -1116,6 +1110,9 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 		SCOPE_CYCLE_COUNTER(STAT_TickTime);
 		RunTickGroup(TG_PrePhysics);
+        bInTick = false;
+        EnsureCollisionTreeIsBuilt();
+        bInTick = true;
 #if EXPERIMENTAL_PARALLEL_CODE
 		{			
 			RunTickGroup(TG_ParallelAnimWork);			
@@ -1128,6 +1125,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		RunTickGroup(TG_DuringPhysics, false); // No wait here, we should run until idle though. We don't care if all of the async ticks are done before we start running post-phys stuff
 		TickGroup = TG_EndPhysics; // set this here so the current tick group is correct during collision notifies, though I am not sure it matters. 'cause of the false up there^^^
 		RunTickGroup(TG_EndPhysics); 
+		PhysicsScene->DeferredCommandHandler.Flush();
 		RunTickGroup(TG_PreCloth);
 		RunTickGroup(TG_StartCloth);
 		RunTickGroup(TG_EndCloth);

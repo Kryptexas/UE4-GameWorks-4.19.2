@@ -32,7 +32,7 @@ public abstract class BaseLinuxPlatform : Platform
 
         // assume that we always have to deploy Steam (FIXME: should be automatic)
 		{
-			string SteamVersion = "Steamv128";
+			string SteamVersion = "Steamv129";
 
 			// Check if the Steam directory exists. We need it for Steam controller support, so we include it whenever we can.
 			if (Directory.Exists(CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/Steamworks/" + SteamVersion)))
@@ -47,6 +47,9 @@ public abstract class BaseLinuxPlatform : Platform
         {
             SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/OpenAL/", SC.PlatformDir), "libopenal.so.1", false, null, CombinePaths("Engine/Binaries", SC.PlatformDir));
         }
+
+        SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.ProjectRoot, "Content/Splash"), "Splash.bmp", false, null, null, true);
+        SC.StageFiles(StagedFileType.NonUFS, CombinePaths(SC.LocalRoot, "Engine/Content/Localization"), "*.dat", true, null, null, false, !Params.Pak);
 
         List<string> Exes = GetExecutableNames(SC);
 
@@ -82,16 +85,27 @@ public abstract class BaseLinuxPlatform : Platform
                 throw new AutomationException("Can't stage the exe {0} because it doesn't start with {1} or {2}", Exe, CombinePaths(SC.RuntimeProjectRootDir, "Binaries", SC.PlatformDir), CombinePaths(SC.RuntimeRootDir, "Engine/Binaries", SC.PlatformDir));
             }
         }
-
-        SC.StageFiles(StagedFileType.NonUFS, SC.ProjectRoot, SC.ShortProjectName + ".png", false, null, SC.RelativeProjectRootForStage);
     }
 
 	public override string GetCookPlatform(bool bDedicatedServer, bool bIsClientOnly, string CookFlavor)
 	{
-        const string ClientCookPlatform = "Linux";
+        const string NoEditorCookPlatform = "LinuxNoEditor";
         const string ServerCookPlatform = "LinuxServer";
-        return bDedicatedServer ? ServerCookPlatform : ClientCookPlatform;
-	}
+        const string ClientCookPlatform = "LinuxClient";
+
+        if (bDedicatedServer)
+        {
+            return ServerCookPlatform;
+        }
+        else if (bIsClientOnly)
+        {
+            return ClientCookPlatform;
+        }
+        else
+        {
+            return NoEditorCookPlatform;
+        }
+    }
 
     /// <summary>
     /// return true if we need to change the case of filenames outside of pak files
@@ -99,7 +113,7 @@ public abstract class BaseLinuxPlatform : Platform
     /// <returns></returns>
     public override bool DeployLowerCaseFilenames(bool bUFSFile)
     {
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -117,8 +131,8 @@ public abstract class BaseLinuxPlatform : Platform
 
             List<string> Exes = GetExecutableNames(SC);
 
-            string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage.ToLower(), "binaries", SC.PlatformDir.ToLower(), Path.GetFileName(Exes[0]).ToLower()).Replace("\\", "/");
-            string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage.ToLower(), SC.ShortProjectName.ToLower() + ".png").Replace("\\", "/");
+            string binPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage, "Binaries", SC.PlatformDir, Path.GetFileName(Exes[0])).Replace("\\", "/");
+            string iconPath = CombinePaths(GetCookPlatform(Params.DedicatedServer, false, ""), SC.RelativeProjectRootForStage, SC.ShortProjectName + ".png").Replace("\\", "/");
 
             string DesiredGLVersion = "4.3";
 
@@ -147,7 +161,7 @@ EOF
 
 # Set permissions
 chmod 755 $HOME/{3}
-chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName.ToLower(), SC.ShortProjectName, binPath, (Params.Pak ? " -pak" : ""), iconPath);
+chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.ShortProjectName, binPath, (Params.Pak ? " -pak" : ""), iconPath);
             // End Bash Shell Script
 
             string scriptFile = Path.GetTempFileName();
@@ -278,10 +292,6 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName.ToLo
         {
             throw new AutomationException("must specify device for Linux target (-serverdevice=<ip>)");
         }
-    }
-    public override string GUBP_GetPlatformFailureEMails(string Branch)
-    {
-        return "Dmitry.Rekman[epic]";
     }
     public override List<string> GetDebugFileExtentions()
     {

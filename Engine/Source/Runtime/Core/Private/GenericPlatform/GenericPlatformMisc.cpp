@@ -466,8 +466,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to find game directory: %s\n"), *GameDir);
 
 						// Use the uprojectdirs
-						FUProjectInfoHelper::FillProjectInfo();
-						FString GameProjectFile = FUProjectInfoHelper::GetProjectForGame(GGameName);
+						FString GameProjectFile = FUProjectDictionary::GetDefault().GetRelativeProjectPathForGame(GGameName, FPlatformProcess::BaseDir());
 						if (GameProjectFile.IsEmpty() == false)
 						{
 							// We found a project folder for the game
@@ -676,3 +675,7 @@ FString FGenericPlatformMisc::GetDefaultLocale()
 #endif
 }
 
+FText FGenericPlatformMisc::GetFileManagerName()
+{
+	return NSLOCTEXT("GenericPlatform", "FileManagerName", "File Manager");
+}

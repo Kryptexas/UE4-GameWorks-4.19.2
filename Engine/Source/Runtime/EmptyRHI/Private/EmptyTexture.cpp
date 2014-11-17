@@ -138,6 +138,10 @@ FTexture3DRHIRef FEmptyDynamicRHI::RHICreateTexture3D(uint32 SizeX, uint32 SizeY
 	return new FEmptyTexture3D((EPixelFormat)Format, SizeX, SizeY, SizeZ, NumMips, Flags, BulkData);
 }
 
+void FEmptyDynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo)
+{
+}
+
 void FEmptyDynamicRHI::RHIGenerateMips(FTextureRHIParamRef SourceSurfaceRHI)
 {
 

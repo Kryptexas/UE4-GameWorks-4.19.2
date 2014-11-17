@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GenericPlatformMemoryPoolStats.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogContentStreaming, Log, All);
 
@@ -75,23 +76,20 @@ double GStreamingDynamicPrimitivesTime = 0.0;
 	Globals.
 -----------------------------------------------------------------------------*/
 
-/** Global streaming manager */
-ENGINE_API FStreamingManagerCollection* GStreamingManager;
-
 /** Collection of views that need to be taken into account for streaming. */
-TArray<FStreamingViewInfo> FStreamingManagerBase::CurrentViewInfos;
+TArray<FStreamingViewInfo> IStreamingManager::CurrentViewInfos;
 
 /** Pending views. Emptied every frame. */
-TArray<FStreamingViewInfo> FStreamingManagerBase::PendingViewInfos;
+TArray<FStreamingViewInfo> IStreamingManager::PendingViewInfos;
 
 /** Views that stick around for a while. Override views are ignored if no movie is playing. */
-TArray<FStreamingViewInfo> FStreamingManagerBase::LastingViewInfos;
+TArray<FStreamingViewInfo> IStreamingManager::LastingViewInfos;
 
 /** Collection of view locations that will be added at the next call to AddViewInformation. */
-TArray<FStreamingManagerBase::FSlaveLocation> FStreamingManagerBase::SlaveLocations;
+TArray<IStreamingManager::FSlaveLocation> IStreamingManager::SlaveLocations;
 
 /** Set when Tick() has been called. The first time a new view is added, it will clear out all old views. */
-bool FStreamingManagerBase::bPendingRemoveViews = false;
+bool IStreamingManager::bPendingRemoveViews = false;
 
 /** The lightmap used by the currently selected component (toggledebugcamera), if it's a static mesh component. */
 extern ENGINE_API FLightMap2D* GDebugSelectedLightmap;
@@ -164,7 +162,7 @@ float ENGINE_API GNegativeOneOneTable[2] = {-1.0f,1.0f};
 void FlushResourceStreaming()
 {
 	RETURN_IF_EXIT_REQUESTED;
-	GStreamingManager->BlockTillAllRequestsFinished();
+	IStreamingManager::Get().BlockTillAllRequestsFinished();
 }
 
 /**
@@ -222,6 +220,7 @@ struct FStreamingTexture
 	{
 		Texture = InTexture;
 		WantedMips = InTexture->ResidentMips;
+		DynamicScreenSize = 0.0f;
 		MipCount = InTexture->GetNumMips();
 		STAT( PerfectWantedMips = InTexture->ResidentMips );
 		STAT( MostResidentMips = InTexture->ResidentMips );
@@ -258,7 +257,7 @@ struct FStreamingTexture
 		MaxAllowedMips = MipCount;	//FMath::Max(Texture->ResidentMips, Texture->RequestedMips);
 		STAT( MaxAllowedOptimalMips = MaxAllowedMips );
 		STAT( MostResidentMips = FMath::Max(MostResidentMips, Texture->ResidentMips) );
-		LastRenderTime = (GCurrentTime > Texture->Resource->LastRenderTime) ? float( GCurrentTime - Texture->Resource->LastRenderTime ) : 0.0f;
+		LastRenderTime = (FApp::GetCurrentTime() > Texture->Resource->LastRenderTime) ? float( FApp::GetCurrentTime() - Texture->Resource->LastRenderTime ) : 0.0f;
 		MinDistance = MAX_STREAMINGDISTANCE;
 		bForceFullyLoad = Texture->ShouldMipLevelsBeForcedResident() || (ForceLoadRefCount > 0);
 		TextureLODBias = Texture->GetCachedLODBias();
@@ -420,7 +419,7 @@ struct FStreamingTexture
 	/** If non-zero, the most recent time an instance location was removed for this texture. */
 	double			InstanceRemovedTimestamp;
 
-	/** Set to GCurrentTime every time LastRenderTimeRefCount is modified. */
+	/** Set to FApp::GetCurrentTime() every time LastRenderTimeRefCount is modified. */
 	double			LastRenderTimeRefCountTimestamp;
 	/** Current number of instances that need LRT heuristics for this texture. */
 	int32			LastRenderTimeRefCount;
@@ -497,7 +496,7 @@ FFloatMipLevel FFloatMipLevel::FromScreenSizeInTexels(float ScreenSizeInTexels)
 	FFloatMipLevel Ret;
 
 	// int
-//	Ret.MipLevel = 1 + FMath::CeilLogTwo( FMath::Trunc(ScreenSizeInTexels) );
+//	Ret.MipLevel = 1 + FMath::CeilLogTwo( FMath::TruncToInt(ScreenSizeInTexels) );
 	// float
 	Ret.MipLevel = 1.0f + FMath::Log2(ScreenSizeInTexels);
 
@@ -793,7 +792,7 @@ struct FTextureStreamingStats
 	,	SizeY( InTexture2D->GetSizeY() )
 	,	NumMips( InTexture2D->GetNumMips() )
 	,	LODBias( InTexture2D->GetCachedLODBias() )
-	,	LastRenderTime( FMath::Clamp( InTexture2D->Resource ? (GCurrentTime - InTexture2D->Resource->LastRenderTime) : 1000000.0, 0.0, 1000000.0) )
+	,	LastRenderTime( FMath::Clamp( InTexture2D->Resource ? (FApp::GetCurrentTime() - InTexture2D->Resource->LastRenderTime) : 1000000.0, 0.0, 1000000.0) )
 	,	StreamType( InType )
 	,	ResidentMips( InResidentMips )
 	,	WantedMips( InWantedMips )
@@ -817,7 +816,7 @@ struct FTextureStreamingStats
 	int32		NumMips;
 	/** Mirror of UTexture2D::GetCachedLODBias() */
 	int32		LODBias;
-	/** How many seconds since it was last rendered: GCurrentTime - UTexture2D::Resource->LastRenderTime */
+	/** How many seconds since it was last rendered: FApp::GetCurrentTime() - UTexture2D::Resource->LastRenderTime */
 	float		LastRenderTime;
 	/** What streaming heuristics were primarily used for this texture. */
 	ETextureStreamingType	StreamType;
@@ -905,11 +904,13 @@ struct FStreamingContext
 			// set total size for the pool (used to available)
 			SET_MEMORY_STAT(STAT_TexturePoolAllocatedSize, (int32)AllocatedMemorySize);
 			SET_MEMORY_STAT(STAT_TexturePoolSize, (int32)Stats.TexturePoolSize);
+			SET_MEMORY_STAT(MCR_TexturePool, (int32)Stats.TexturePoolSize);
 		}
 		else
 		{
 			SET_MEMORY_STAT(STAT_TexturePoolAllocatedSize,0);
 			SET_MEMORY_STAT(STAT_TexturePoolSize, 0);
+			SET_MEMORY_STAT(MCR_TexturePool, 0);
 		}
 	}
 
@@ -1200,8 +1201,33 @@ private:
 
 
 /*-----------------------------------------------------------------------------
-	FStreamingManagerBase implementation.
+	IStreamingManager implementation.
 -----------------------------------------------------------------------------*/
+
+static FStreamingManagerCollection* StreamingManagerCollection = NULL;
+
+FStreamingManagerCollection& IStreamingManager::Get()
+{
+	if (StreamingManagerCollection == NULL)
+	{
+		StreamingManagerCollection = new FStreamingManagerCollection();
+	}
+	return *StreamingManagerCollection;
+}
+
+void IStreamingManager::Shutdown()
+{
+	if (StreamingManagerCollection != NULL)
+	{
+		delete StreamingManagerCollection;
+		StreamingManagerCollection = (FStreamingManagerCollection*)-1;//Force Error if manager used after shutdown
+	}
+}
+
+bool IStreamingManager::HasShutdown()
+{
+	return StreamingManagerCollection == (FStreamingManagerCollection*)-1;
+}
 
 /**
  * Adds the passed in view information to the static array.
@@ -1215,7 +1241,7 @@ private:
  * @param Duration				How long the streaming system should keep checking this location (in seconds). 0 means just for the next Tick.
  * @param InActorToBoost		Optional pointer to an actor who's textures should have their streaming priority boosted
  */
-void FStreamingManagerBase::AddViewInfoToArray( TArray<FStreamingViewInfo> &ViewInfos, const FVector& ViewOrigin, float ScreenSize, float FOVScreenSize, float BoostFactor, bool bOverrideLocation, float Duration, TWeakObjectPtr<AActor> InActorToBoost )
+void IStreamingManager::AddViewInfoToArray( TArray<FStreamingViewInfo> &ViewInfos, const FVector& ViewOrigin, float ScreenSize, float FOVScreenSize, float BoostFactor, bool bOverrideLocation, float Duration, TWeakObjectPtr<AActor> InActorToBoost )
 {
 	// Check for duplicates and existing overrides.
 	bool bShouldAddView = true;
@@ -1247,7 +1273,7 @@ void FStreamingManagerBase::AddViewInfoToArray( TArray<FStreamingViewInfo> &View
  * @param ViewInfos				[in/out] Array to remove the view from
  * @param ViewOrigin			View origin
  */
-void FStreamingManagerBase::RemoveViewInfoFromArray( TArray<FStreamingViewInfo> &ViewInfos, const FVector& ViewOrigin )
+void IStreamingManager::RemoveViewInfoFromArray( TArray<FStreamingViewInfo> &ViewInfos, const FVector& ViewOrigin )
 {
 	for ( int32 ViewIndex=0; ViewIndex < ViewInfos.Num(); ++ViewIndex )
 	{
@@ -1269,7 +1295,7 @@ TArray<FStreamingViewInfo> GPrevViewLocations;
  *
  * @param DeltaTime		Time since last call in seconds
  */
-void FStreamingManagerBase::SetupViewInfos( float DeltaTime )
+void IStreamingManager::SetupViewInfos( float DeltaTime )
 {
 	// Reset CurrentViewInfos
 	CurrentViewInfos.Empty( PendingViewInfos.Num() + LastingViewInfos.Num() + SlaveLocations.Num() );
@@ -1424,32 +1450,40 @@ void FStreamingManagerBase::SetupViewInfos( float DeltaTime )
  * @param Duration				How long the streaming system should keep checking this location (in seconds). 0 means just for the next Tick.
  * @param InActorToBoost		Optional pointer to an actor who's textures should have their streaming priority boosted
  */
-void FStreamingManagerBase::AddViewInformation( const FVector& ViewOrigin, float ScreenSize, float FOVScreenSize, float BoostFactor/*=1.0f*/, bool bOverrideLocation/*=false*/, float Duration/*=0.0f*/, TWeakObjectPtr<AActor> InActorToBoost /*=NULL*/ )
+void IStreamingManager::AddViewInformation( const FVector& ViewOrigin, float ScreenSize, float FOVScreenSize, float BoostFactor/*=1.0f*/, bool bOverrideLocation/*=false*/, float Duration/*=0.0f*/, TWeakObjectPtr<AActor> InActorToBoost /*=NULL*/ )
 {
-	BoostFactor *= CVarStreamingBoost.GetValueOnGameThread();
-
-	if ( bPendingRemoveViews )
+	// Is this a reasonable location?
+	if ( FMath::Abs(ViewOrigin.X) < (1.0e+20f) && FMath::Abs(ViewOrigin.Y) < (1.0e+20f) && FMath::Abs(ViewOrigin.Z) < (1.0e+20f) )
 	{
-		bPendingRemoveViews = false;
+		BoostFactor *= CVarStreamingBoost.GetValueOnGameThread();
 
-		// Remove out-dated override views and empty the PendingViewInfos/SlaveLocation arrays to be populated again during next frame.
-		RemoveStreamingViews( RemoveStreamingViews_Normal );
-	}
+		if ( bPendingRemoveViews )
+		{
+			bPendingRemoveViews = false;
 
-	// Remove a lasting location if we're given the same location again but with 0 duration.
-	if ( Duration <= 0.0f )
-	{
-		RemoveViewInfoFromArray( LastingViewInfos, ViewOrigin );
-	}
+			// Remove out-dated override views and empty the PendingViewInfos/SlaveLocation arrays to be populated again during next frame.
+			RemoveStreamingViews( RemoveStreamingViews_Normal );
+		}
 
-	// Should we remember this location for a while?
-	if ( Duration > 0.0f )
-	{
-		AddViewInfoToArray( LastingViewInfos, ViewOrigin, ScreenSize, FOVScreenSize, BoostFactor, bOverrideLocation, Duration, InActorToBoost );
+		// Remove a lasting location if we're given the same location again but with 0 duration.
+		if ( Duration <= 0.0f )
+		{
+			RemoveViewInfoFromArray( LastingViewInfos, ViewOrigin );
+		}
+
+		// Should we remember this location for a while?
+		if ( Duration > 0.0f )
+		{
+			AddViewInfoToArray( LastingViewInfos, ViewOrigin, ScreenSize, FOVScreenSize, BoostFactor, bOverrideLocation, Duration, InActorToBoost );
+		}
+		else
+		{
+			AddViewInfoToArray( PendingViewInfos, ViewOrigin, ScreenSize, FOVScreenSize, BoostFactor, bOverrideLocation, 0.0f, InActorToBoost );
+		}
 	}
 	else
 	{
-		AddViewInfoToArray( PendingViewInfos, ViewOrigin, ScreenSize, FOVScreenSize, BoostFactor, bOverrideLocation, 0.0f, InActorToBoost );
+		int SetDebugBreakpointHere = 0;
 	}
 }
 
@@ -1462,7 +1496,7 @@ void FStreamingManagerBase::AddViewInformation( const FVector& ViewOrigin, float
  * @param bOverrideLocation		Whether this is an override location, which forces the streaming system to ignore all other locations
  * @param Duration				How long the streaming system should keep checking this location (in seconds). 0 means just for the next Tick.
  */
-void FStreamingManagerBase::AddViewSlaveLocation( const FVector& SlaveLocation, float BoostFactor/*=1.0f*/, bool bOverrideLocation/*=false*/, float Duration/*=0.0f*/ )
+void IStreamingManager::AddViewSlaveLocation( const FVector& SlaveLocation, float BoostFactor/*=1.0f*/, bool bOverrideLocation/*=false*/, float Duration/*=0.0f*/ )
 {
 	BoostFactor *= CVarStreamingBoost.GetValueOnGameThread();
 
@@ -1482,7 +1516,7 @@ void FStreamingManagerBase::AddViewSlaveLocation( const FVector& SlaveLocation, 
  *
  * @param RemovalType	What types of views to remove (all or just the normal views)
  */
-void FStreamingManagerBase::RemoveStreamingViews( ERemoveStreamingViews RemovalType )
+void IStreamingManager::RemoveStreamingViews( ERemoveStreamingViews RemovalType )
 {
 	PendingViewInfos.Empty();
 	SlaveLocations.Empty();
@@ -1498,11 +1532,11 @@ void FStreamingManagerBase::RemoveStreamingViews( ERemoveStreamingViews RemovalT
  * @param DeltaTime				Time since last call in seconds
  * @param bProcessEverything	[opt] If true, process all resources with no throttling limits
  */
-void FStreamingManagerBase::Tick( float DeltaTime, bool bProcessEverything/*=false*/ )
+void IStreamingManager::Tick( float DeltaTime, bool bProcessEverything/*=false*/ )
 {
 	UpdateResourceStreaming( DeltaTime, bProcessEverything );
 
-	// Trigger a call to bPendingRemoveViews( Normal ) next time we add a view.
+	// Trigger a call to RemoveStreamingViews( RemoveStreamingViews_Normal ) next time a view is added.
 	bPendingRemoveViews = true;
 }
 
@@ -1550,7 +1584,7 @@ void FStreamingManagerCollection::Tick( float DeltaTime, bool bProcessEverything
 {
 	AddOrRemoveTextureStreamingManagerIfNeeded();
 
-	FStreamingManagerBase::Tick(DeltaTime, bProcessEverything);
+	IStreamingManager::Tick(DeltaTime, bProcessEverything);
 }
 
 /**
@@ -1578,7 +1612,7 @@ void FStreamingManagerCollection::UpdateResourceStreaming( float DeltaTime, bool
 			// Route to streaming managers.
 			for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 			{
-				FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+				IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 				StreamingManager->UpdateResourceStreaming( DeltaTime, bProcessEverything );
 			}
 		}
@@ -1619,25 +1653,6 @@ int32 FStreamingManagerCollection::StreamAllResources( float TimeLimit/*=0.0f*/ 
 }
 
 /**
- * Updates streaming for an individual texture, taking into account all view infos.
- *
- * @param Texture	Texture to update
- */
-void FStreamingManagerCollection::UpdateIndividualResource( UTexture2D* Texture )
-{
-	// only allow this if its not disabled
-	if (DisableResourceStreamingCount == 0)
-	{
-		// Route to streaming managers.
-		for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
-		{
-			FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
-			StreamingManager->UpdateIndividualResource( Texture );
-		}
-	}
-}
-
-/**
  * Blocks till all pending requests are fulfilled.
  *
  * @param TimeLimit		Optional time limit for processing, in seconds. Specifying 0 means infinite time limit.
@@ -1651,7 +1666,7 @@ int32 FStreamingManagerCollection::BlockTillAllRequestsFinished( float TimeLimit
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		NumPendingRequests += StreamingManager->BlockTillAllRequestsFinished( TimeLimit, bLogResults );
 	}
 
@@ -1666,7 +1681,7 @@ int32 FStreamingManagerCollection::GetNumWantingResources() const
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		NumWantingResources += StreamingManager->GetNumWantingResources();
 	}
 
@@ -1686,7 +1701,7 @@ int32 FStreamingManagerCollection::GetNumWantingResourcesID() const
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		NumWantingResourcesCounter = FMath::Min( NumWantingResourcesCounter, StreamingManager->GetNumWantingResourcesID() );
 	}
 
@@ -1701,7 +1716,7 @@ void FStreamingManagerCollection::CancelForcedResources()
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->CancelForcedResources();
 	}
 }
@@ -1714,14 +1729,25 @@ void FStreamingManagerCollection::NotifyLevelChange()
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->NotifyLevelChange();
 	}
+}
+
+bool FStreamingManagerCollection::IsStreamingEnabled() const
+{
+	return DisableResourceStreamingCount == 0;
 }
 
 bool FStreamingManagerCollection::IsTextureStreamingEnabled() const
 {
 	return TextureStreamingManager != 0;
+}
+
+ITextureStreamingManager& FStreamingManagerCollection::GetTextureStreamingManager() const
+{
+	check(TextureStreamingManager != 0);
+	return *TextureStreamingManager;
 }
 
 /** Don't stream world resources for the next NumFrames. */
@@ -1730,22 +1756,8 @@ void FStreamingManagerCollection::SetDisregardWorldResourcesForFrames(int32 NumF
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->SetDisregardWorldResourcesForFrames(NumFrames);
-	}
-}
-
-/**
- * Temporarily boosts the streaming distance factor by the specified number.
- * This factor is automatically reset to 1.0 after it's been used for mip-calculations.
- */
-void FStreamingManagerCollection::BoostTextures( AActor* Actor, float BoostFactor )
-{
-	// Route to streaming managers.
-	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
-	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
-		StreamingManager->BoostTextures(Actor, BoostFactor);
 	}
 }
 
@@ -1754,7 +1766,7 @@ void FStreamingManagerCollection::BoostTextures( AActor* Actor, float BoostFacto
  *
  * @param StreamingManager	Streaming manager to add
  */
-void FStreamingManagerCollection::AddStreamingManager( FStreamingManagerBase* StreamingManager )
+void FStreamingManagerCollection::AddStreamingManager( IStreamingManager* StreamingManager )
 {
 	StreamingManagers.Add( StreamingManager );
 }
@@ -1764,7 +1776,7 @@ void FStreamingManagerCollection::AddStreamingManager( FStreamingManagerBase* St
  *
  * @param StreamingManager	Streaming manager to remove
  */
-void FStreamingManagerCollection::RemoveStreamingManager( FStreamingManagerBase* StreamingManager )
+void FStreamingManagerCollection::RemoveStreamingManager( IStreamingManager* StreamingManager )
 {
 	StreamingManagers.Remove( StreamingManager );
 }
@@ -1791,25 +1803,6 @@ void FStreamingManagerCollection::EnableResourceStreaming()
 }
 
 /**
- *	Try to stream out texture mip-levels to free up more memory.
- *	@param RequiredMemorySize	- Required minimum available texture memory
- *	@return						- Whether it succeeded or not
- **/
-bool FStreamingManagerCollection::StreamOutTextureData( int32 RequiredMemorySize )
-{
-	// Route to streaming managers.
-	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
-	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
-		if ( StreamingManager->StreamOutTextureData( RequiredMemorySize ) )
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-/**
  * Allows the streaming manager to process exec commands.
  *
  * @param Cmd	Exec command
@@ -1821,39 +1814,13 @@ bool FStreamingManagerCollection::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutp
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		if ( StreamingManager->Exec( InWorld, Cmd, Ar ) )
 		{
 			return true;
 		}
 	}
 	return false;
-}
-
-/**
- * Adds a new texture to the streaming manager.
- */
-void FStreamingManagerCollection::AddStreamingTexture( UTexture2D* Texture )
-{
-	// Route to streaming managers.
-	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
-	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
-		StreamingManager->AddStreamingTexture( Texture );
-	}
-}
-
-/**
- * Removes a texture from the streaming manager.
- */
-void FStreamingManagerCollection::RemoveStreamingTexture( UTexture2D* Texture )
-{
-	// Route to streaming managers.
-	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
-	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
-		StreamingManager->RemoveStreamingTexture( Texture );
-	}
 }
 
 /** Adds a ULevel to the streaming manager. */
@@ -1885,7 +1852,7 @@ void FStreamingManagerCollection::RemoveLevel( ULevel* Level )
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->RemoveLevel( Level );
 	}
 }
@@ -1902,7 +1869,7 @@ void FStreamingManagerCollection::AddPreparedLevel( class ULevel* Level )
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->AddPreparedLevel( Level );
 	}
 }
@@ -1915,7 +1882,7 @@ void FStreamingManagerCollection::NotifyActorSpawned( AActor* Actor )
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->NotifyActorSpawned( Actor );
 	}
 	STAT( GStreamingDynamicPrimitivesTime += FPlatformTime::Seconds() - StartTime );
@@ -1929,7 +1896,7 @@ void FStreamingManagerCollection::NotifyActorDestroyed( AActor* Actor )
 	// Route to streaming managers.
 	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+		IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 		StreamingManager->NotifyActorDestroyed( Actor );
 	}
 	STAT( GStreamingDynamicPrimitivesTime += FPlatformTime::Seconds() - StartTime );
@@ -1950,7 +1917,7 @@ void FStreamingManagerCollection::NotifyPrimitiveAttached( const UPrimitiveCompo
 	{
 		for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 		{
-			FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+			IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 			StreamingManager->NotifyPrimitiveAttached( Primitive, DynamicType );
 		}
 	}
@@ -1968,7 +1935,7 @@ void FStreamingManagerCollection::NotifyPrimitiveDetached( const UPrimitiveCompo
 		// Route to streaming managers.
 		for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 		{
-			FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+			IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 			StreamingManager->NotifyPrimitiveDetached( Primitive );
 		}
 	}
@@ -1989,26 +1956,11 @@ void FStreamingManagerCollection::NotifyPrimitiveUpdated( const UPrimitiveCompon
 		// Route to streaming managers.
 		for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
 		{
-			FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
+			IStreamingManager* StreamingManager = StreamingManagers[ManagerIndex];
 			StreamingManager->NotifyPrimitiveUpdated( Primitive );
 		}
 	}
 	STAT( GStreamingDynamicPrimitivesTime += FPlatformTime::Seconds() - StartTime );
-}
-
-/** Returns true if this is a streaming resource that is managed by the streaming manager. */
-bool FStreamingManagerCollection::IsManagedStreamingResource( const UTexture2D* Texture2D )
-{
-	// Route to streaming managers.
-	for( int32 ManagerIndex=0; ManagerIndex<StreamingManagers.Num(); ManagerIndex++ )
-	{
-		FStreamingManagerBase* StreamingManager = StreamingManagers[ManagerIndex];
-		if ( StreamingManager->IsManagedStreamingResource( Texture2D ) )
-		{
-			return true;
-		}
-	}
-	return false;
 }
 
 void FStreamingManagerCollection::AddOrRemoveTextureStreamingManagerIfNeeded(bool bIsInit)
@@ -2809,7 +2761,7 @@ void FStreamingManagerTexture::RemoveLevel( ULevel* Level )
 			if ( Texture2D && IsManagedStreamingTexture( Texture2D ) )
 			{
 				FStreamingTexture& StreamingTexture = GetStreamingTexture( Texture2D );
-				StreamingTexture.InstanceRemovedTimestamp = GCurrentTime;
+				StreamingTexture.InstanceRemovedTimestamp = FApp::GetCurrentTime();
 			}
 		}
 
@@ -3055,7 +3007,7 @@ void FStreamingManagerTexture::SetInstanceRemovedTimestamp( FSpawnedPrimitiveDat
 		if ( Texture2D && IsManagedStreamingTexture(Texture2D) )
 		{
 			FStreamingTexture& StreamingTexture = GetStreamingTexture( Texture2D );
-			StreamingTexture.InstanceRemovedTimestamp = GCurrentTime;
+			StreamingTexture.InstanceRemovedTimestamp = FApp::GetCurrentTime();
 		}
 	}
 }
@@ -3120,7 +3072,7 @@ void FStreamingManagerTexture::NotifyTimedPrimitiveAttached( const UPrimitiveCom
 				// Note: Doesn't have to be cycle-perfect for thread safety.
 				FStreamingTexture& StreamingTexture = GetStreamingTexture( Texture2D );
 				StreamingTexture.LastRenderTimeRefCount++;
-				StreamingTexture.LastRenderTimeRefCountTimestamp = GCurrentTime;
+				StreamingTexture.LastRenderTimeRefCountTimestamp = FApp::GetCurrentTime();
 			}
 		}
 	}
@@ -3153,7 +3105,7 @@ void FStreamingManagerTexture::NotifyTimedPrimitiveDetached( const UPrimitiveCom
 				if ( StreamingTexture.LastRenderTimeRefCount > 0 )
 				{
 					StreamingTexture.LastRenderTimeRefCount--;
-					StreamingTexture.LastRenderTimeRefCountTimestamp = GCurrentTime;
+					StreamingTexture.LastRenderTimeRefCountTimestamp = FApp::GetCurrentTime();
 				}
 			}
 		}
@@ -3179,11 +3131,14 @@ bool FStreamingManagerTexture::IsManagedStreamingTexture( const UTexture2D* Text
  *
  * @param Texture	Texture to update
  */
-void FStreamingManagerTexture::UpdateIndividualResource( UTexture2D* Texture )
+void FStreamingManagerTexture::UpdateIndividualTexture( UTexture2D* Texture )
 {
-	IndividualStreamingTexture = Texture;
-	UpdateResourceStreaming( 0.0f );
-	IndividualStreamingTexture = NULL;
+	if (IStreamingManager::Get().IsStreamingEnabled())
+	{
+		IndividualStreamingTexture = Texture;
+		UpdateResourceStreaming( 0.0f );
+		IndividualStreamingTexture = NULL;
+	}
 }
 
 /**
@@ -3710,12 +3665,12 @@ void FStreamingManagerTexture::CheckUserSettings()
 				int64 TotalGraphicsMemory = Stats.TotalGraphicsMemory;
 				if ( GCurrentRendertargetMemorySize > 0 )
 				{
-					TotalGraphicsMemory -= GCurrentRendertargetMemorySize;
+					TotalGraphicsMemory -= int64(GCurrentRendertargetMemorySize) * 1024;
 				}
 				float PoolSize = float(GPoolSizeVRAMPercentage) * 0.01f * float(TotalGraphicsMemory);
 
 				// Truncate the pool size to MB (but still count in bytes)
-				TexturePoolSize = int64(FGenericPlatformMath::TruncFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
+				TexturePoolSize = int64(FGenericPlatformMath::TruncToFloat(PoolSize / 1024.0f / 1024.0f)) * 1024 * 1024;
 			}
 			else
 			{
@@ -3731,14 +3686,14 @@ void FStreamingManagerTexture::CheckUserSettings()
 		// Only adjust the pool size once every 10 seconds, but immediately in some other cases.
 		if ( PoolSizeSetting != PreviousPoolSizeSetting ||
 			 TexturePoolSize > GTexturePoolSize ||
-			 (GCurrentTime - PreviousPoolSizeTimestamp) > 10.0 )
+			 (FApp::GetCurrentTime() - PreviousPoolSizeTimestamp) > 10.0 )
 		{
 			if ( TexturePoolSize != GTexturePoolSize )
 			{
 				UE_LOG(LogContentStreaming,Log,TEXT("Texture pool size now %d MB"), int(TexturePoolSize/1024/1024));
 			}
 			PreviousPoolSizeSetting = PoolSizeSetting;
-			PreviousPoolSizeTimestamp = GCurrentTime;
+			PreviousPoolSizeTimestamp = FApp::GetCurrentTime();
 			GTexturePoolSize = TexturePoolSize;
 		}
 	}
@@ -4127,7 +4082,7 @@ void FStreamingManagerTexture::CalcWantedMips( FStreamingTexture& StreamingTextu
 		}
 
 		bool bShouldAlsoUseLastRenderTime = false;
-		if ( StreamingTexture.LastRenderTimeRefCount > 0 || (GCurrentTime - StreamingTexture.LastRenderTimeRefCountTimestamp) < 91.0 )
+		if ( StreamingTexture.LastRenderTimeRefCount > 0 || (FApp::GetCurrentTime() - StreamingTexture.LastRenderTimeRefCountTimestamp) < 91.0 )
 		{
 			bShouldAlsoUseLastRenderTime = true;
 
@@ -4188,7 +4143,7 @@ FFloatMipLevel FStreamingManagerTexture::GetWantedMipsForOrphanedTexture( FStrea
 	FFloatMipLevel WantedMips;
 
 	// Did we recently remove instance locations for this texture?
-	const float TimeSinceInstanceWasRemoved = float(GCurrentTime - StreamingTexture.InstanceRemovedTimestamp);
+	const float TimeSinceInstanceWasRemoved = float(FApp::GetCurrentTime() - StreamingTexture.InstanceRemovedTimestamp);
 
 	// Was it less than 91 seconds ago?
 	if ( TimeSinceInstanceWasRemoved < 91.0f )
@@ -4627,7 +4582,7 @@ bool FStreamingManagerTexture::HandleStreamOutCommand( const TCHAR* Cmd, FOutput
 	int32 FreeMB = (Parameter.Len() > 0) ? FCString::Atoi(*Parameter) : 0;
 	if ( FreeMB > 0 )
 	{
-		bool bSucceeded = GStreamingManager->StreamOutTextureData( FreeMB * 1024 * 1024 );
+		bool bSucceeded = StreamOutTextureData( FreeMB * 1024 * 1024 );
 		Ar.Logf( TEXT("Tried to stream out %d MB of texture data: %s"), FreeMB, bSucceeded ? TEXT("Succeeded") : TEXT("Failed") );
 	}
 	else
@@ -4846,6 +4801,7 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
 		FTextureGroupStats& Stat = TextureGroupStats[Texture->LODGroup];
 		FTextureGroupStats& Waste = TextureGroupWaste[Texture->LODGroup];
 		UTexture2D* Texture2D = Cast<UTexture2D>(Texture);
+		uint32 TextureAlign = 0;
 		if ( Texture2D && Texture2D->StreamingIndex >= 0 )
 		{
 			FStreamingTexture& StreamingTexture = GetStreamingTexture( Texture2D );
@@ -4853,9 +4809,13 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
 			Stat.CurrentTextureSize += StreamingTexture.GetSize( StreamingTexture.ResidentMips );
 			Stat.WantedTextureSize += StreamingTexture.GetSize( StreamingTexture.WantedMips );
 			Stat.MaxTextureSize += StreamingTexture.GetSize( StreamingTexture.MaxAllowedMips );
-			int32 WasteCurrent = StreamingTexture.GetSize( StreamingTexture.ResidentMips ) - CalcTextureSize( Texture2D->GetSizeX(), Texture2D->GetSizeY(), Texture2D->GetPixelFormat(), StreamingTexture.ResidentMips );
-			int32 WasteWanted = StreamingTexture.GetSize( StreamingTexture.WantedMips ) - CalcTextureSize( Texture2D->GetSizeX(), Texture2D->GetSizeY(), Texture2D->GetPixelFormat(), StreamingTexture.WantedMips );
-			int32 WasteMaxSize = StreamingTexture.GetSize( StreamingTexture.MaxAllowedMips ) - CalcTextureSize( Texture2D->GetSizeX(), Texture2D->GetSizeY(), Texture2D->GetPixelFormat(), StreamingTexture.MaxAllowedMips );
+			
+			int32 WasteCurrent = StreamingTexture.GetSize( StreamingTexture.ResidentMips ) - RHICalcTexture2DPlatformSize(Texture2D->GetSizeX(), Texture2D->GetSizeY(), Texture2D->GetPixelFormat(), StreamingTexture.ResidentMips, 1, 0, TextureAlign);			
+
+			int32 WasteWanted = StreamingTexture.GetSize( StreamingTexture.WantedMips ) - RHICalcTexture2DPlatformSize(Texture2D->GetSizeX(), Texture2D->GetSizeY(), Texture2D->GetPixelFormat(), StreamingTexture.WantedMips, 1, 0, TextureAlign);			
+
+			int32 WasteMaxSize = StreamingTexture.GetSize( StreamingTexture.MaxAllowedMips ) - RHICalcTexture2DPlatformSize(Texture2D->GetSizeX(), Texture2D->GetSizeY(), Texture2D->GetPixelFormat(), StreamingTexture.MaxAllowedMips, 1, 0, TextureAlign);			
+
 			Waste.NumTextures++;
 			Waste.CurrentTextureSize += FMath::Max(WasteCurrent,0);
 			Waste.WantedTextureSize += FMath::Max(WasteWanted,0);
@@ -4868,8 +4828,9 @@ void FStreamingManagerTexture::DumpTextureGroupStats( bool bDetailedStats )
 			Stat.NumNonStreamingTextures++;
 			Stat.NonStreamingSize += TextureSize;
 			if ( Texture2D && Texture2D->Resource )
-			{
-				int32 WastedSize = TextureSize - CalcTextureSize( Texture2D->GetSizeX(), Texture2D->GetSizeY(), Texture2D->GetPixelFormat(), Texture2D->GetNumMips() );
+			{				
+				int32 WastedSize = TextureSize - RHICalcTexture2DPlatformSize(Texture2D->GetSizeX(), Texture2D->GetSizeY(), Texture2D->GetPixelFormat(), Texture2D->GetNumMips(), 1, 0, TextureAlign);				
+
 				Waste.NumNonStreamingTextures++;
 				Waste.NonStreamingSize += FMath::Max(WastedSize, 0);
 			}
@@ -5336,7 +5297,7 @@ FFloatMipLevel FStreamingHandlerTextureStatic::GetWantedMips( FStreamingManagerT
 
 								if (MinLODValue <= 0)
 								{
-									WantedMipCount = FMath::Max(WantedMipCount, FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips - 13 - FMath::Floor(MinLODValue)));
+									WantedMipCount = FMath::Max(WantedMipCount, FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips - 13 - FMath::FloorToInt(MinLODValue)));
 									if (WantedMipCount >= FFloatMipLevel::FromMipLevel(StreamingTexture.MaxAllowedMips))
 									{
 										MinDistance = 1.0f;
@@ -5522,7 +5483,7 @@ FFloatMipLevel FStreamingHandlerTextureLastRender::GetWantedMips( FStreamingMana
 {
 	FFloatMipLevel Ret;
 
-	float SecondsSinceLastRender = StreamingTexture.LastRenderTime;	//(GCurrentTime - Texture->Resource->LastRenderTime);;
+	float SecondsSinceLastRender = StreamingTexture.LastRenderTime;	//(FApp::GetCurrentTime() - Texture->Resource->LastRenderTime);;
 	StreamingTexture.bUsesLastRenderHeuristics = true;
 
 	if( SecondsSinceLastRender < 45.0f && GStreamWithTimeFactor )

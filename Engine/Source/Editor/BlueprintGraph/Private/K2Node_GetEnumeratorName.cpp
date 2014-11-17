@@ -139,7 +139,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 		UEdGraphPin* OrgReturnPin = FindPinChecked(Schema->PN_ReturnValue);
 		UEdGraphPin* NewReturnPin = CallGetName->GetReturnValuePin();
 		check(NULL != NewReturnPin);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OrgReturnPin, *NewReturnPin), this);
+		CompilerContext.MovePinLinksToIntermediate(*OrgReturnPin, *NewReturnPin);
 
 		//ENUM PIN
 		UEdGraphPin* EnumPin = CallGetName->FindPinChecked(TEXT("Enum"));
@@ -150,7 +150,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 		UEdGraphPin* OrgInputPin = FindPinChecked(EnumeratorPinName);
 		UEdGraphPin* IndexPin = CallGetName->FindPinChecked(TEXT("EnumeratorIndex"));
 		check(EGPD_Input == IndexPin->Direction && Schema->PC_Byte == IndexPin->PinType.PinCategory);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OrgInputPin, *IndexPin), this);
+		CompilerContext.MovePinLinksToIntermediate(*OrgInputPin, *IndexPin);
 
 		if (!IndexPin->LinkedTo.Num())
 		{

@@ -173,10 +173,8 @@ void UAnimPreviewInstance::MontagePreview_SetReverse(bool bInReverse)
 
 	if (FAnimMontageInstance * CurMontageInstance = GetActiveMontageInstance())
 	{
-		if (bReverse == (CurMontageInstance->PlayRate > 0.f))
-		{
-			CurMontageInstance->PlayRate *= -1.f;
-		}
+		// copy the current playrate
+		CurMontageInstance->PlayRate = PlayRate;
 	}
 }
 
@@ -308,7 +306,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToStart()
 		{
 			MontagePreview_Restart();
 		}
-		if (bReverse)
+		if (PlayRate < 0.f)
 		{
 			Montage_JumpToSectionsEnd(Montage->GetSectionName(SectionIdx));
 		}
@@ -338,7 +336,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToEnd()
 		{
 			MontagePreview_Restart();
 		}
-		if (bReverse)
+		if (PlayRate < 0.f)
 		{
 			Montage_JumpToSection(Montage->GetSectionName(MontagePreview_FindLastSection(SectionIdx)));
 		}
@@ -368,7 +366,7 @@ void UAnimPreviewInstance::MontagePreview_JumpToPreviewStart()
 		{
 			MontagePreview_Restart();
 		}
-		Montage_JumpToSection(Montage->GetSectionName(! bReverse? SectionIdx : MontagePreview_FindLastSection(SectionIdx)));
+		Montage_JumpToSection(Montage->GetSectionName(PlayRate > 0.f? SectionIdx : MontagePreview_FindLastSection(SectionIdx)));
 		if (! bWasPlaying)
 		{
 			MontagePreview_SetPlaying(false);
@@ -416,7 +414,7 @@ void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx)
 			PreviewFromSection = MontagePreviewStartSectionIdx;
 		}
 		MontagePreviewType = EMPT_Normal;
-		Montage_Play(Montage, (bReverse? -1.0f : 1.0f) * PlayRate);
+		Montage_Play(Montage, PlayRate);
 		MontagePreview_SetLoopNormal(bLooping, FromSectionIdx);
 		Montage_JumpToSection(Montage->GetSectionName(PreviewFromSection));
 		MontagePreview_RemoveBlendOut();
@@ -430,7 +428,7 @@ void UAnimPreviewInstance::MontagePreview_PreviewAllSections()
 	if (Montage && Montage->SequenceLength > 0.f)
 	{
 		MontagePreviewType = EMPT_AllSections;
-		Montage_Play(Montage, (bReverse? -1.0f : 1.0f) * PlayRate);
+		Montage_Play(Montage, PlayRate);
 		MontagePreview_SetLoopAllSections(bLooping);
 		MontagePreview_JumpToPreviewStart();
 		MontagePreview_RemoveBlendOut();

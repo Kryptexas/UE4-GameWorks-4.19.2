@@ -395,7 +395,7 @@ namespace iPhonePackager
 			}
 			else if (AssemblyName.ToLowerInvariant() == "ionic.zip.reduced")
 			{
-				AssemblyName = Path.GetFullPath(@"..\..\ThirdParty\Ionic\" + AssemblyName + ".dll");
+				AssemblyName = Path.GetFullPath(@"..\" + AssemblyName + ".dll");
 
 				Debug.WriteLineIf(System.Diagnostics.Debugger.IsAttached, "Loading assembly: " + AssemblyName);
 
@@ -496,6 +496,7 @@ namespace iPhonePackager
 				}
 
 				Log("Executing iPhonePackager " + String.Join(" ", args));
+				Log("CWD: " + Directory.GetCurrentDirectory());
 
 				// Ensure shipping configuration for final distributions
 				if (Config.bForDistribution && (GameConfiguration != "Shipping"))

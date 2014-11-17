@@ -15,7 +15,13 @@
 #include <float.h>
 #include <string.h>
 
+// Platform specific compiler pre-setup, must be included before everything else
+#if PLATFORM_WINDOWS
+#include "Windows/WindowsPlatformCompilerPreSetup.h"
+#endif
+
 // Generic versions of the platform abstractions
+#include "GenericPlatform/GenericPlatformCompilerSetup.h"
 #include "GenericPlatform/GenericPlatformMemory.h"
 #include "GenericPlatform/GenericPlatformString.h"
 #include "GenericPlatform/GenericPlatformMisc.h"

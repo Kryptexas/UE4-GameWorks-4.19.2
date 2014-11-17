@@ -7,12 +7,22 @@ public class MacTargetPlatform : ModuleRules
 	public MacTargetPlatform(TargetInfo Target)
 	{
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
 				"CoreUObject",
-				"Settings",
 				"TargetPlatform"
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
+			}
+		);
+
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				"Developer/MacTargetPlatform/Classes"
 			}
 		);
 
@@ -21,12 +31,5 @@ public class MacTargetPlatform : ModuleRules
 			PrivateDependencyModuleNames.Add("Engine");
 			PrivateIncludePathModuleNames.Add("TextureCompressor");
 		}
-
-		PrivateIncludePaths.AddRange(
-			new string[]
-			{
-				"Developer/MacTargetPlatform/Classes"
-			}
-		);
 	}
 }

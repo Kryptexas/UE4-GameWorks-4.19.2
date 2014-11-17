@@ -356,6 +356,7 @@ ALandscapeGizmoActor::ALandscapeGizmoActor(const class FPostConstructInitializeP
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.DecalActorIconTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Misc;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Misc;
@@ -770,8 +771,8 @@ void ALandscapeGizmoActiveActor::SampleData(int32 SizeX, int32 SizeY)
 			{
 				float TexX = X * SizeX / TexSizeX;
 				float TexY = Y * SizeY / TexSizeY;
-				int32 LX = FMath::Floor(TexX);
-				int32 LY = FMath::Floor(TexY);
+				int32 LX = FMath::FloorToInt(TexX);
+				int32 LY = FMath::FloorToInt(TexY);
 
 				float FracX = TexX - LX;
 				float FracY = TexY - LY;

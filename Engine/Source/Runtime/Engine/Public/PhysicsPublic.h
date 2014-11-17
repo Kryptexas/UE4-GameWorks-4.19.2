@@ -362,16 +362,16 @@ public:
 	void TermBody(FBodyInstance * BodyInstance);
 
 	/** Adds a force to a body - We need to go through scene to support substepping */
-	void AddForce(FBodyInstance * BodyInstance, const FVector & Force);
+	void AddForce(FBodyInstance * BodyInstance, const FVector & Force, bool bAllowSubstepping);
 
 	/** Adds a force to a body at a specific position - We need to go through scene to support substepping */
-	void AddForceAtPosition(FBodyInstance * BodyInstance, const FVector & Force, const FVector & Position);
+	void AddForceAtPosition(FBodyInstance * BodyInstance, const FVector & Force, const FVector & Position, bool bAllowSubstepping);
 
 	/** Adds torque to a body - We need to go through scene to support substepping */
-	void AddTorque(FBodyInstance * BodyInstance, const FVector & Torque);
+	void AddTorque(FBodyInstance * BodyInstance, const FVector & Torque, bool bAllowSubstepping);
 
 	/** Sets a Kinematic actor's target position - We need to do this here to support substepping*/
-	void SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTM);
+	void SetKinematicTarget(FBodyInstance * BodyInstance, const FTransform & TargetTM, bool bAllowSubstepping);
 
 	/** Gets the collision disable table */
 	const TMap<uint32, TMap<struct FRigidBodyIndexPair, bool> *> & GetCollisionDisableTableLookup()
@@ -391,6 +391,9 @@ public:
 	void DeferredDestructibleDamageNotify(const NxApexDamageEventReportData& damageEvent);
 #endif
 #endif
+
+	/** DeferredCommandHandler - this is mainly used for scene specific APEX calls that need to be deferred */
+	FPhysCommandHandler DeferredCommandHandler;
 
 private:
 	/** Initialize a scene of the given type.  Must only be called once for each scene type. */
@@ -444,6 +447,18 @@ private:
 	/** Map from SkeletalMeshComponent UniqueID to a pointer to the collision disable table inside its PhysicsAsset */
 	TMap< uint32, TMap<struct FRigidBodyIndexPair, bool>* >		CollisionDisableTableLookup;
 };
+
+/**
+* Return true if we should be running in single threaded mode, ala dedicated server
+**/
+FORCEINLINE bool PhysSingleThreadedMode()
+{
+	if (IsRunningDedicatedServer() || FPlatformMisc::NumberOfCores() < 3 || !FPlatformProcess::SupportsMultithreading())
+	{
+		return true;
+	}
+	return false;
+}
 
 #if WITH_PHYSX
 /** Struct used for passing info to the PhysX shader */

@@ -11,12 +11,15 @@ void SGraphNodeMaterialComment::Construct(const FArguments& InArgs, class UMater
 	this->CommentNode = InNode;
 }
 
-void SGraphNodeMaterialComment::MoveTo(const FVector2D& NewPosition)
+void SGraphNodeMaterialComment::MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter)
 {
-	SGraphNodeComment::MoveTo(NewPosition);
+	if( !NodeFilter.Find( SharedThis( this ) ))
+	{
+		SGraphNodeComment::MoveTo(NewPosition, NodeFilter);
 
-	CommentNode->MaterialExpressionComment->MaterialExpressionEditorX = CommentNode->NodePosX;
-	CommentNode->MaterialExpressionComment->MaterialExpressionEditorY = CommentNode->NodePosY;
-	CommentNode->MaterialExpressionComment->MarkPackageDirty();
-	CommentNode->MaterialDirtyDelegate.ExecuteIfBound();
+		CommentNode->MaterialExpressionComment->MaterialExpressionEditorX = CommentNode->NodePosX;
+		CommentNode->MaterialExpressionComment->MaterialExpressionEditorY = CommentNode->NodePosY;
+		CommentNode->MaterialExpressionComment->MarkPackageDirty();
+		CommentNode->MaterialDirtyDelegate.ExecuteIfBound();
+	}
 }

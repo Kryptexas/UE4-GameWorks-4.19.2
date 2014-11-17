@@ -72,9 +72,9 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InName - The endpoint's name (for debugging purposes).
-	 * @param InBus - The message bus to attach this endpoint to.
-	 * @param InHandlers - The collection of message handlers to register.
+	 * @param InName The endpoint's name (for debugging purposes).
+	 * @param InBus The message bus to attach this endpoint to.
+	 * @param InHandlers The collection of message handlers to register.
 	 */
 	FMessageEndpoint( const FName& InName, const IMessageBusRef& InBus, const TArray<IMessageHandlerPtr>& InHandlers )
 		: Address(FGuid::NewGuid())
@@ -167,7 +167,7 @@ public:
 	 * code includes time consuming operations, because it will block the message router,
 	 * causing no other messages to be delivered in the meantime.
 	 *
-	 * @param NamedThread - The name of the thread to receive messages on.
+	 * @param NamedThread The name of the thread to receive messages on.
 	 */
 	void SetRecipientThread( ENamedThreads::Type NamedThread )
 	{
@@ -182,8 +182,8 @@ public:
 	 * The message is effectively delivered again to this endpoint after the
 	 * original sent time plus the time delay have elapsed.
 	 *
-	 * @param Message - The context of the message to defer.
-	 * @param Delay - The time delay.
+	 * @param Message The context of the message to defer.
+	 * @param Delay The time delay.
 	 */
 	void Defer( const IMessageContextRef& Context, const FTimespan& Delay )
 	{
@@ -200,10 +200,10 @@ public:
 	 *
 	 * Messages can only be forwarded to endpoints within the same process.
 	 *
-	 * @param Context - The context of the message to forward.
-	 * @param Recipients - The list of message recipients to forward the message to.
-	 * @param ForwardingScope - The scope of the forwarded message.
-	 * @param Delay - The time delay.
+	 * @param Context The context of the message to forward.
+	 * @param Recipients The list of message recipients to forward the message to.
+	 * @param ForwardingScope The scope of the forwarded message.
+	 * @param Delay The time delay.
 	 */
 	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope, const FTimespan& Delay )
 	{
@@ -218,12 +218,12 @@ public:
 	/**
 	 * Publishes a message to all subscribed recipients within the specified scope.
 	 *
-	 * @param Message - The message to publish.
-	 * @param TypeInfo - The message's type information.
-	 * @param Scope - The message scope.
-	 * @param Fields - The message content.
-	 * @param Delay - The delay after which to publish the message.
-	 * @param Expiration - The time at which the message expires.
+	 * @param Message The message to publish.
+	 * @param TypeInfo The message's type information.
+	 * @param Scope The message scope.
+	 * @param Fields The message content.
+	 * @param Delay The delay after which to publish the message.
+	 * @param Expiration The time at which the message expires.
 	 */
 	void Publish( void* Message, UScriptStruct* TypeInfo, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration )
 	{
@@ -238,12 +238,12 @@ public:
 	/**
 	 * Sends a message to the specified list of recipients.
 	 *
-	 * @param Message - The message to send.
-	 * @param TypeInfo - The message's type information.
-	 * @param Attachment - An optional binary data attachment.
-	 * @param Recipients - The message recipients.
-	 * @param Delay - The delay after which to send the message.
-	 * @param Expiration - The time at which the message expires.
+	 * @param Message The message to send.
+	 * @param TypeInfo The message's type information.
+	 * @param Attachment An optional binary data attachment.
+	 * @param Recipients The message recipients.
+	 * @param Delay The delay after which to send the message.
+	 * @param Expiration The time at which the message expires.
 	 */
 	void Send( void* Message, UScriptStruct* TypeInfo, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration )
 	{
@@ -258,8 +258,8 @@ public:
 	/**
 	 * Subscribes a message handler.
 	 *
-	 * @param MessageType - The type name of the messages to subscribe to.
-	 * @param ScopeRange - The range of message scopes to include in the subscription.
+	 * @param MessageType The type name of the messages to subscribe to.
+	 * @param ScopeRange The range of message scopes to include in the subscription.
 	 */
 	void Subscribe( const FName& MessageType, const FMessageScopeRange& ScopeRange )
 	{
@@ -274,7 +274,7 @@ public:
 	/**
 	 * Unsubscribes this endpoint from the specified message type.
 	 *
-	 * @param MessageType - The type of message to unsubscribe (NAME_All = all types).
+	 * @param MessageType The type of message to unsubscribe (NAME_All = all types).
 	 *
 	 * @see Subscribe
 	 */
@@ -381,7 +381,7 @@ public:
 	 * been enabled and no matching message handler handled it. The inbox is disabled by default and
 	 * must be enabled using the EnableInbox() method.
 	 *
-	 * @param OutContext - Will hold the context of the received message.
+	 * @param OutContext Will hold the context of the received message.
 	 *
 	 * @return true if a message was received, false if the inbox was empty.
 	 *
@@ -481,9 +481,9 @@ public:
 	 *
 	 * Messages can only be forwarded to endpoints within the same process.
 	 *
-	 * @param Context - The context of the message to forward.
-	 * @param Recipient - The address of the recipient to forward the message to.
-	 * @param ForwardingScope - The scope of the forwarded message.
+	 * @param Context The context of the message to forward.
+	 * @param Recipient The address of the recipient to forward the message to.
+	 * @param ForwardingScope The scope of the forwarded message.
 	 */
 	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, EMessageScope::Type ForwardingScope )
 	{
@@ -495,10 +495,10 @@ public:
 	 *
 	 * Messages can only be forwarded to endpoints within the same process.
 	 *
-	 * @param Context - The context of the message to forward.
-	 * @param Recipient - The address of the recipient to forward the message to.
-	 * @param ForwardingScope - The scope of the forwarded message.
-	 * @param Delay - The delay after which to publish the message.
+	 * @param Context The context of the message to forward.
+	 * @param Recipient The address of the recipient to forward the message to.
+	 * @param ForwardingScope The scope of the forwarded message.
+	 * @param Delay The delay after which to publish the message.
 	 */
 	void Forward( const IMessageContextRef& Context, const FMessageAddress& Recipient, EMessageScope::Type ForwardingScope, const FTimespan& Delay )
 	{
@@ -510,9 +510,9 @@ public:
 	 *
 	 * Messages can only be forwarded to endpoints within the same process.
 	 *
-	 * @param Context - The context of the message to forward.
-	 * @param Recipients - The list of message recipients to forward the message to.
-	 * @param ForwardingScope - The scope of the forwarded message.
+	 * @param Context The context of the message to forward.
+	 * @param Recipients The list of message recipients to forward the message to.
+	 * @param ForwardingScope The scope of the forwarded message.
 	 */
 	void Forward( const IMessageContextRef& Context, const TArray<FMessageAddress>& Recipients, EMessageScope::Type ForwardingScope )
 	{
@@ -522,7 +522,7 @@ public:
 	/**
 	 * Immediately publishes a message to all subscribed recipients.
 	 *
-	 * @param Message - The message to publish.
+	 * @param Message The message to publish.
 	 */
 	template<typename MessageType>
 	void Publish( MessageType* Message )
@@ -533,8 +533,8 @@ public:
 	/**
 	 * Immediately pa message to all subscribed recipients within the specified scope.
 	 *
-	 * @param Message - The message to publish.
-	 * @param Scope - The message scope.
+	 * @param Message The message to publish.
+	 * @param Scope The message scope.
 	 */
 	template<typename MessageType>
 	void Publish( MessageType* Message, EMessageScope::Type Scope )
@@ -545,8 +545,8 @@ public:
 	/**
 	 * Publishes a message to all subscribed recipients after a given delay.
 	 *
-	 * @param Message - The message to publish.
-	 * @param Delay - The delay after which to publish the message.
+	 * @param Message The message to publish.
+	 * @param Delay The delay after which to publish the message.
 	 */
 	template<typename MessageType>
 	void Publish( MessageType* Message, const FTimespan& Delay )
@@ -557,9 +557,9 @@ public:
 	/**
 	 * Publishes a message to all subscribed recipients within the specified scope after a given delay.
 	 *
-	 * @param Message - The message to publish.
-	 * @param Scope - The message scope.
-	 * @param Delay - The delay after which to publish the message.
+	 * @param Message The message to publish.
+	 * @param Scope The message scope.
+	 * @param Delay The delay after which to publish the message.
 	 */
 	template<typename MessageType>
 	void Publish( MessageType* Message, EMessageScope::Type Scope, const FTimespan& Delay )
@@ -570,11 +570,11 @@ public:
 	/**
 	 * Publishes a message to all subscribed recipients within the specified scope.
 	 *
-	 * @param Message - The message to publish.
-	 * @param Scope - The message scope.
-	 * @param Fields - The message content.
-	 * @param Delay - The delay after which to publish the message.
-	 * @param Expiration - The time at which the message expires.
+	 * @param Message The message to publish.
+	 * @param Scope The message scope.
+	 * @param Fields The message content.
+	 * @param Delay The delay after which to publish the message.
+	 * @param Expiration The time at which the message expires.
 	 */
 	template<typename MessageType>
 	void Publish( MessageType* Message, EMessageScope::Type Scope, const FTimespan& Delay, const FDateTime& Expiration )
@@ -585,9 +585,9 @@ public:
 	/**
 	 * Immediately sends a message to the specified recipient.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Recipient - The message recipient.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Recipient The message recipient.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient )
@@ -598,10 +598,10 @@ public:
 	/**
 	 * Sends a message to the specified recipient after a given delay.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Recipient - The message recipient.
-	 * @param Delay - The delay after which to send the message.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Recipient The message recipient.
+	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay )
@@ -612,11 +612,11 @@ public:
 	/**
 	 * Sends a message with fields and expiration to the specified recipient after a given delay.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Recipient - The message recipient.
-	 * @param Expiration - The time at which the message expires.
-	 * @param Delay - The delay after which to send the message.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Recipient The message recipient.
+	 * @param Expiration The time at which the message expires.
+	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const FMessageAddress& Recipient, const FTimespan& Delay, const FDateTime& Expiration )
@@ -627,10 +627,10 @@ public:
 	/**
 	 * Sends a message with fields and attachment to the specified recipient.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Attachment - An optional binary data attachment.
-	 * @param Recipient - The message recipient.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Attachment An optional binary data attachment.
+	 * @param Recipient The message recipient.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const IMessageAttachmentPtr& Attachment, const FMessageAddress& Recipient )
@@ -641,12 +641,12 @@ public:
 	/**
 	 * Sends a message with fields, attachment and expiration to the specified recipient after a given delay.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Attachment - An optional binary data attachment.
-	 * @param Recipient - The message recipient.
-	 * @param Expiration - The time at which the message expires.
-	 * @param Delay - The delay after which to send the message.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Attachment An optional binary data attachment.
+	 * @param Recipient The message recipient.
+	 * @param Expiration The time at which the message expires.
+	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const IMessageAttachmentPtr& Attachment, const FMessageAddress& Recipient, const FDateTime& Expiration, const FTimespan& Delay )
@@ -657,9 +657,9 @@ public:
 	/**
 	 * Immediately sends a message to the specified list of recipients.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Recipients - The message recipients.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Recipients The message recipients.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const TArray<FMessageAddress>& Recipients )
@@ -670,10 +670,10 @@ public:
 	/**
 	 * Sends a message to the specified list of recipients after a given delay after a given delay.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Recipients - The message recipients.
-	 * @param Delay - The delay after which to send the message.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Recipients The message recipients.
+	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay )
@@ -684,11 +684,11 @@ public:
 	/**
 	 * Sends a message with fields and attachment to the specified list of recipients after a given delay.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Attachment - An optional binary data attachment.
-	 * @param Recipients - The message recipients.
-	 * @param Delay - The delay after which to send the message.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Attachment An optional binary data attachment.
+	 * @param Recipients The message recipients.
+	 * @param Delay The delay after which to send the message.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay )
@@ -699,12 +699,12 @@ public:
 	/**
 	 * Sends a message to the specified list of recipients.
 	 *
-	 * @param MessageType - The type of message to send.
-	 * @param Message - The message to send.
-	 * @param Attachment - An optional binary data attachment.
-	 * @param Recipients - The message recipients.
-	 * @param Delay - The delay after which to send the message.
-	 * @param Expiration - The time at which the message expires.
+	 * @param MessageType The type of message to send.
+	 * @param Message The message to send.
+	 * @param Attachment An optional binary data attachment.
+	 * @param Recipients The message recipients.
+	 * @param Delay The delay after which to send the message.
+	 * @param Expiration The time at which the message expires.
 	 */
 	template<typename MessageType>
 	void Send( MessageType* Message, const IMessageAttachmentPtr& Attachment, const TArray<FMessageAddress>& Recipients, const FTimespan& Delay, const FDateTime& Expiration )
@@ -717,10 +717,10 @@ public:
 	 *
 	 * The default message scope is all messages excluding loopback messages.
 	 *
-	 * @param HandlerType - The type of the class handling the message.
-	 * @param MessageType - The type of messages to subscribe to.
-	 * @param Handler - The class handling the messages.
-	 * @param HandlerFunc - The class function handling the messages.
+	 * @param HandlerType The type of the class handling the message.
+	 * @param MessageType The type of messages to subscribe to.
+	 * @param Handler The class handling the messages.
+	 * @param HandlerFunc The class function handling the messages.
 	 */
 	template<class MessageType>
 	void Subscribe( )
@@ -731,11 +731,11 @@ public:
 	/**
 	 * Template method to subscribe the message endpoint to the specified type and scope of messages.
 	 *
-	 * @param HandlerType - The type of the class handling the message.
-	 * @param MessageType - The type of messages to subscribe to.
-	 * @param Handler - The class handling the messages.
-	 * @param HandlerFunc - The class function handling the messages.
-	 * @param ScopeRange - The range of message scopes to include in the subscription.
+	 * @param HandlerType The type of the class handling the message.
+	 * @param MessageType The type of messages to subscribe to.
+	 * @param Handler The class handling the messages.
+	 * @param HandlerFunc The class function handling the messages.
+	 * @param ScopeRange The range of message scopes to include in the subscription.
 	 */
 	template<class MessageType>
 	void Subscribe( const FMessageScopeRange& ScopeRange )
@@ -756,7 +756,7 @@ public:
 	/**
 	 * Template method to unsubscribe the endpoint from the specified message type.
 	 *
-	 * @param MessageType - The type of message to unsubscribe (NAME_All = all types).
+	 * @param MessageType The type of message to unsubscribe (NAME_All = all types).
 	 *
 	 * @see Subscribe
 	 */
@@ -780,7 +780,7 @@ public:
 	 * Note: When calling this function make sure that no other object is holding on to
 	 * the endpoint, or otherwise the caller may get blocked forever.
 	 *
-	 * @param Endpoint - The message endpoint to release.
+	 * @param Endpoint The message endpoint to release.
 	 */
 	static void SafeRelease( FMessageEndpointPtr& Endpoint )
 	{
@@ -809,7 +809,7 @@ protected:
 	/**
 	 * Forwards the given message context to matching message handlers.
 	 *
-	 * @param Context - The context of the message to handle.
+	 * @param Context The context of the message to handle.
 	 */
 	void ProcessMessage( const IMessageContextRef& Context )
 	{

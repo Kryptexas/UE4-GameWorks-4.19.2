@@ -4,7 +4,7 @@
 
 #include "ControlPointMeshComponent.generated.h"
 
-UCLASS(HeaderGroup=Terrain, MinimalAPI)
+UCLASS(MinimalAPI)
 class UControlPointMeshComponent : public UStaticMeshComponent
 {
 	GENERATED_UCLASS_BODY()

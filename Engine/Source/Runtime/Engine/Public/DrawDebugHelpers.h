@@ -52,6 +52,17 @@ ENGINE_API void DrawDebugFloatHistory(UWorld const & WorldRef, FDebugFloatHistor
 ENGINE_API void DrawDebugFloatHistory(UWorld const & WorldRef, FDebugFloatHistory const & FloatHistory, FVector const & DrawLocation, FVector2D const & DrawSize, FColor const & DrawColor, bool const & bPersistent = false, float const & LifeTime = -1.f, uint8 const & DepthPriority = 0);
 
 /**
+ * Draws a 2D line on a canvas
+ *
+ * @param	Canvas		The Canvas to draw on
+ * @param	Start		The start of the line in screen space
+ * @param	End			The end of the line in screen space
+ * @param	LineColor	The color to use for the line
+ */
+
+ENGINE_API void DrawDebugCanvas2DLine(UCanvas* Canvas, const FVector& Start, const FVector& End, const FLinearColor& LineColor);
+
+/**
  * Draws a line on a canvas.
  *
  * @param	Canvas		The Canvas to draw on.

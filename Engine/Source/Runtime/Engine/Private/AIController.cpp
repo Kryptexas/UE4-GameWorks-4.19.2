@@ -4,7 +4,7 @@
 #include "NavigationPathBuilder.h"
 #include "VisualLog.h"
 #include "../Classes/Kismet/GameplayStatics.h"
-
+#include "DisplayDebugHelpers.h"
 
 bool AAIController::bAIIgnorePlayers = false;
 
@@ -53,12 +53,12 @@ void AAIController::Reset()
 	}
 }
 
-void AAIController::DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void AAIController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
 	static FName NAME_AI = FName(TEXT("AI"));
-	if (DebugDisplay.Contains(NAME_AI))
+	if (DebugDisplay.IsDisplayOn(NAME_AI))
 	{
 		if (PathFollowingComponent)
 		{
@@ -80,7 +80,12 @@ void AAIController::GrabDebugSnapshot(FVisLogEntry* Snapshot) const
 	FVisLogEntry::FStatusCategory MyCategory;
 	MyCategory.Category = TEXT("AI Contoller");
 	MyCategory.Add(TEXT("Pawn"), GetNameSafe(GetPawn()));
-	MyCategory.Add(TEXT("Focus"), GetDebugName(GetFocusActor()));
+	AActor* FocusActor = GetFocusActor();
+	MyCategory.Add(TEXT("Focus"), GetDebugName(FocusActor));
+	if (FocusActor == NULL)
+	{
+		MyCategory.Add(TEXT("Focus Location"), GetFocalPoint().ToString());
+	}
 	Snapshot->Status.Add(MyCategory);
 
 	if (GetPawn())
@@ -143,7 +148,7 @@ void AAIController::SetFocalPoint( FVector FP, bool bOffsetFromBase, uint8 InPri
 	Focusitem.Actor = NULL;
 }
 
-FVector AAIController::GetFocalPoint()
+FVector AAIController::GetFocalPoint() const
 {
 	FBasedPosition FinalFocus;
 	// find focus with highest priority
@@ -379,12 +384,19 @@ void AAIController::Possess(APawn* InPawn)
 		return;
 	}
 	
-	UpdateNavigationComponents();
+	// no point in doing navigation setup if pawn has no movement component
+	const UPawnMovementComponent* MovementComp = InPawn->GetMovementComponent();
+	if (MovementComp != NULL)
+	{
+		UpdateNavigationComponents();
+	}
 
 	if (bWantsPlayerState)
 	{
 		ChangeState(NAME_Playing);
 	}
+
+	OnPossess(InPawn);
 }
 
 void AAIController::InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp)
@@ -408,7 +420,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 			UE_VLOG(this, LogNavigation, Log, TEXT("MoveToActor: already at goal!"));
 			PathFollowingComponent->SetLastMoveAtGoal(true);
 
-			OnMoveCompleted(0, EPathFollowingResult::Success);
+			OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
 			Result = EPathFollowingRequestResult::AlreadyAtGoal;
 		}
 		else 
@@ -419,7 +431,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 				bAllowStrafe = bCanStrafe;
 
 				const uint32 RequestID = RequestMove(Path, Goal, AcceptanceRadius, bStopOnOverlap);
-				Result = (RequestID != INVALID_MOVEREQUESTID) ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
+				Result = (RequestID != FAIRequestID::InvalidRequest) ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
 			}
 		}
 	}
@@ -431,7 +443,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(class AActor* Goal,
 			PathFollowingComponent->SetLastMoveAtGoal(false);
 		}
 
-		OnMoveCompleted(INVALID_MOVEREQUESTID, EPathFollowingResult::Invalid);
+		OnMoveCompleted(FAIRequestID::InvalidRequest, EPathFollowingResult::Invalid);
 	}
 
 	return Result;
@@ -460,7 +472,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	FVector GoalLocation = Dest;
 
 	// fail if projection to navigation is required but it either failed or there's not navigation component
-	if (bCanRequestMove && bProjectDestinationToNavigation && (NavComponent == NULL || !NavComponent->ProjectPointToNavigation(Dest, GoalLocation)))
+	if (bCanRequestMove && bProjectDestinationToNavigation && (NavComponent.Get() == NULL || !NavComponent->ProjectPointToNavigation(Dest, GoalLocation)))
 	{
 		UE_VLOG_LOCATION(this, Dest, 30.f, FLinearColor::Red, TEXT("AAIController::MoveToLocation failed to project destination location to navmesh"));
 		bCanRequestMove = false;
@@ -471,7 +483,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 		UE_VLOG(this, LogNavigation, Log, TEXT("MoveToLocation: already at goal!"));
 		PathFollowingComponent->SetLastMoveAtGoal(true);
 
-		OnMoveCompleted(0, EPathFollowingResult::Success);
+		OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
 		Result = EPathFollowingRequestResult::AlreadyAtGoal;
 		bCanRequestMove = false;
 	}
@@ -483,8 +495,8 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 		{
 			bAllowStrafe = bCanStrafe;
 
-			const uint32 RequestID = RequestMove(Path, NULL, AcceptanceRadius, bStopOnOverlap);
-			Result = (RequestID != INVALID_MOVEREQUESTID) ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
+			const FAIRequestID RequestID = RequestMove(Path, NULL, AcceptanceRadius, bStopOnOverlap);
+			Result = RequestID.IsValid() ? EPathFollowingRequestResult::RequestSuccessful : EPathFollowingRequestResult::Failed;
 		}
 	}
 
@@ -495,15 +507,15 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 			PathFollowingComponent->SetLastMoveAtGoal(false);
 		}
 
-		OnMoveCompleted(INVALID_MOVEREQUESTID, EPathFollowingResult::Invalid);
+		OnMoveCompleted(FAIRequestID::InvalidRequest, EPathFollowingResult::Invalid);
 	}
 
 	return Result;
 }
 
-uint32 AAIController::RequestMove(FNavPathSharedPtr Path, class AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, FCustomMoveSharedPtr CustomData)
+FAIRequestID AAIController::RequestMove(FNavPathSharedPtr Path, class AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, FCustomMoveSharedPtr CustomData)
 {
-	uint32 RequestID = INVALID_MOVEREQUESTID;
+	uint32 RequestID = FAIRequestID::InvalidRequest;
 	if (PathFollowingComponent)
 	{
 		RequestID = PathFollowingComponent->RequestMove(Path, Goal, AcceptanceRadius, bStopOnOverlap, CustomData);
@@ -512,9 +524,29 @@ uint32 AAIController::RequestMove(FNavPathSharedPtr Path, class AActor* Goal, fl
 	return RequestID;
 }
 
+bool AAIController::PauseMove(FAIRequestID RequestToPause)
+{
+	if (PathFollowingComponent != NULL && RequestToPause.IsEquivalent(PathFollowingComponent->GetCurrentRequestId()))
+	{
+		PathFollowingComponent->PauseMove(RequestToPause);
+		return true;
+	}
+	return false;
+}
+
+bool AAIController::ResumeMove(FAIRequestID RequestToResume)
+{
+	if (PathFollowingComponent != NULL && RequestToResume.IsEquivalent(PathFollowingComponent->GetCurrentRequestId()))
+	{
+		PathFollowingComponent->ResumeMove(RequestToResume);
+		return true;
+	}
+	return false;
+}
+
 void AAIController::StopMovement()
 {
-	UE_VLOG(this, LogNavigation, Log, TEXT("%s STOP MOVEMENT"), *GetNameSafe(GetPawn()) );
+	UE_VLOG(this, LogNavigation, Log, TEXT("AAIController::StopMovement: %s STOP MOVEMENT"), *GetNameSafe(GetPawn()) );
 	PathFollowingComponent->AbortMove(TEXT("StopMovement"));
 }
 
@@ -553,7 +585,7 @@ EPathFollowingStatus::Type AAIController::GetMoveStatus() const
 
 bool AAIController::HasPartialPath() const
 {
-	return (PathFollowingComponent != NULL) && (PathFollowingComponent->HasPartialPath());
+	return (PathFollowingComponent.Get() != NULL) && (PathFollowingComponent->HasPartialPath());
 }
 
 FVector AAIController::GetImmediateMoveDestination() const
@@ -569,7 +601,7 @@ void AAIController::SetMoveBlockDetection(bool bEnable)
 	}
 }
 
-void AAIController::OnMoveCompleted(uint32 RequestID, EPathFollowingResult::Type Result)
+void AAIController::OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type Result)
 {
 	ReceiveMoveCompleted.Broadcast(RequestID, Result);
 }
@@ -594,28 +626,8 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	UBlackboardComponent* BlackboardComp = NULL;
 	if (BTAsset->BlackboardAsset)
 	{
+		bSuccess = UseBlackboard(BTAsset->BlackboardAsset);
 		BlackboardComp = FindComponentByClass<UBlackboardComponent>();
-		if (BlackboardComp == NULL)
-		{
-			BlackboardComp = ConstructObject<UBlackboardComponent>(UBlackboardComponent::StaticClass(), this, TEXT("BlackboardComponent"));
-			if (BlackboardComp != NULL)
-			{
-				BlackboardComp->InitializeBlackboard(BTAsset->BlackboardAsset);
-				
-				BlackboardComp->RegisterComponent();
-				bShouldInitializeBlackboard = true;
-			}
-		}
-		else if (BlackboardComp->GetBlackboardAsset() == NULL)
-		{
-			BlackboardComp->InitializeBlackboard(BTAsset->BlackboardAsset);
-		}
-		else if (BlackboardComp->GetBlackboardAsset() != BTAsset->BlackboardAsset)
-		{
-			bSuccess = false;
-			UE_VLOG(this, LogBehaviorTree, Log, TEXT("RunBehaviorTree: BTAsset %s requires blackboard %s while already has %s instantiated"),
-				*GetNameSafe(BTAsset), *GetNameSafe(BTAsset->BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()) );
-		}
 	}
 	
 	if (bSuccess)
@@ -636,14 +648,6 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 			}
 		}
 
-		if (bShouldInitializeBlackboard && BlackboardComp && BlackboardComp->bWantsInitializeComponent)
-		{
-			// make sure that newly created component is initialized before running BT
-			// both blackboard and BT to must exist before calling it!
-
-			BlackboardComp->InitializeComponent();
-		}
-
 		check(BTComp != NULL);
 		BTComp->StartTree(BTAsset, EBTExecutionMode::Looped);
 	}
@@ -651,6 +655,41 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	return bSuccess;
 }
 
+bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset)
+{
+	if (BlackboardAsset == NULL)
+	{
+		UE_VLOG(this, LogBehaviorTree, Log, TEXT("UseBlackboard: trying to use NULL Blackboard asset. Ignoring"));
+		return false;
+	}
+
+	bool bSuccess = true;
+	UBlackboardComponent* BlackboardComp = FindComponentByClass<UBlackboardComponent>();
+
+	if (BlackboardComp == NULL)
+	{
+		BlackboardComp = ConstructObject<UBlackboardComponent>(UBlackboardComponent::StaticClass(), this, TEXT("BlackboardComponent"));
+		if (BlackboardComp != NULL)
+		{
+			BlackboardComp->InitializeBlackboard(BlackboardAsset);
+			BlackboardComp->RegisterComponent();
+			BlackboardComp->InitializeComponent();
+		}
+
+	}
+	else if (BlackboardComp->GetBlackboardAsset() == NULL)
+	{
+		BlackboardComp->InitializeBlackboard(BlackboardAsset);
+	}
+	else if (BlackboardComp->GetBlackboardAsset() != BlackboardAsset)
+	{
+		UE_VLOG(this, LogBehaviorTree, Log, TEXT("UseBlackboard: requested blackboard %s while already has %s instantiated. Forcing new BB.")
+			, *GetNameSafe(BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()));
+		BlackboardComp->InitializeBlackboard(BlackboardAsset);
+	}
+
+	return bSuccess;
+}
 
 bool AAIController::SuggestTossVelocity(FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bPreferHighArc, float CollisionRadius, bool bOnlyTraceUp)
 {

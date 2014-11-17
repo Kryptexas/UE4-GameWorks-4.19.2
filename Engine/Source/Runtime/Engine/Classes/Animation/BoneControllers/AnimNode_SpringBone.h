@@ -61,6 +61,7 @@ public:
 	virtual void Initialize(const FAnimationInitializeContext& Context) OVERRIDE;
 	virtual void CacheBones(const FAnimationCacheBonesContext & Context) OVERRIDE;
 	virtual void Update(const FAnimationUpdateContext& Context) OVERRIDE;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
 	// End of FAnimNode_Base interface
 
 	// FAnimNode_SkeletalControlBase interface

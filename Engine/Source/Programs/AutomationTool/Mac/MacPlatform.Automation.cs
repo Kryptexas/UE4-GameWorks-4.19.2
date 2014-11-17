@@ -117,19 +117,39 @@ public class MacPlatform : Platform
 		Directory.CreateDirectory(CombinePaths(TargetPath, ExeName.StartsWith("UE4Game") ? "Engine" : SC.ShortProjectName, "Binaries", "Mac"));
 	}
 
+	public override ProcessResult RunClient(ERunOptions ClientRunFlags, string ClientApp, string ClientCmdLine, ProjectParams Params)
+	{
+		if (!File.Exists(ClientApp))
+		{
+			if (Directory.Exists(ClientApp + ".app"))
+			{
+				ClientApp += ".app/Contents/MacOS/" + Path.GetFileName(ClientApp);
+			}
+			else
+			{
+				Int32 BaseDirLen = Params.BaseStageDirectory.Length;
+				string StageSubDir = ClientApp.Substring(BaseDirLen, ClientApp.IndexOf("/", BaseDirLen + 1) - BaseDirLen);
+				ClientApp = CombinePaths(Params.BaseStageDirectory, StageSubDir, Params.ShortProjectName + ".app/Contents/MacOS/" + Params.ShortProjectName);
+			}
+		}
+
+		PushDir(Path.GetDirectoryName(ClientApp));
+		// Always start client process and don't wait for exit.
+		ProcessResult ClientProcess = Run(ClientApp, ClientCmdLine, null, ClientRunFlags | ERunOptions.NoWaitForExit);
+		PopDir();
+
+		return ClientProcess;
+	}
+
 	public override bool IsSupported { get { return true; } }
 
-	public override bool ShouldUseManifestForUBTBuilds()
+    public override bool ShouldUseManifestForUBTBuilds(string AddArgs)
 	{
 		// don't use the manifest to set up build products if we are compiling Mac under Windows and we aren't going to copy anything back to the PC
 		bool bIsBuildingRemotely = UnrealBuildTool.ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac;
-		bool bUseManifest = !bIsBuildingRemotely || UnrealBuildTool.Utils.GetEnvironmentVariable("ue.bCopyAppBundleBackToDevice", false);
+        bool bUseManifest = !bIsBuildingRemotely || AddArgs.IndexOf("-CopyAppBundleBackToDevice", StringComparison.InvariantCultureIgnoreCase) > 0;
 		return bUseManifest;
 	}
-    public override string GUBP_GetPlatformFailureEMails(string Branch)
-    {
-        return "Michael.Trepka[epic]";
-    }
     public override List<string> GetDebugFileExtentions()
     {
         return new List<string> {".dsym"};

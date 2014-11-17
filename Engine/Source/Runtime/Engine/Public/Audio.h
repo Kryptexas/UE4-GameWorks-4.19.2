@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #pragma once
+#include "Sound/SoundClass.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAudio, Warning, All);
 
@@ -72,9 +73,10 @@ DECLARE_CYCLE_STAT_EXTERN( TEXT( "Source Create" ), STAT_AudioSourceCreateTime, 
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Submit Buffers" ), STAT_AudioSubmitBuffersTime, STATGROUP_Audio , ENGINE_API);
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Audio" ), STAT_AudioDecompressTime, STATGROUP_Audio , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Vorbis" ), STAT_VorbisDecompressTime, STATGROUP_Audio , );
-DECLARE_CYCLE_STAT_EXTERN( TEXT( "Prepare Vorbis Decompression" ), STAT_AudioPrepareDecompressionTime, STATGROUP_Audio , );
-DECLARE_CYCLE_STAT_EXTERN( TEXT( "Prepare Audio Decompression" ), STAT_VorbisPrepareDecompressionTime, STATGROUP_Audio , );
+DECLARE_CYCLE_STAT_EXTERN( TEXT( "Prepare Audio Decompression" ), STAT_AudioPrepareDecompressionTime, STATGROUP_Audio , );
+DECLARE_CYCLE_STAT_EXTERN( TEXT( "Prepare Vorbis Decompression" ), STAT_VorbisPrepareDecompressionTime, STATGROUP_Audio , );
 DECLARE_CYCLE_STAT_EXTERN( TEXT( "Finding Nearest Location" ), STAT_AudioFindNearestLocation, STATGROUP_Audio , );
+DECLARE_CYCLE_STAT_EXTERN( TEXT( "Decompress Opus" ), STAT_OpusDecompressTime, STATGROUP_Audio , );
 
 /**
  * Channel definitions for multistream waves
@@ -97,6 +99,8 @@ enum EAudioSpeakers
 
 // Forward declarations.
 class UAudioComponent;
+class USoundNode;
+struct FWaveInstance;
 struct FReverbSettings;
 struct FSampleLoop;
 
@@ -147,7 +151,7 @@ private:
  * Structure encapsulating all information required to play a USoundWave on a channel/source. This is required
  * as a single USoundWave object can be used in multiple active cues or multiple times in the same cue.
  */
-struct FWaveInstance
+struct ENGINE_API FWaveInstance
 {
 	/** Static helper to create good unique type hashes */
 	static uint32 TypeHashCounter;
@@ -219,6 +223,8 @@ struct FWaveInstance
 	FVector				Velocity;
 	/** Current location */
 	FVector				Location;
+	/** At what distance we start transforming into omnidirectional soundsource */
+	float				OmniRadius;
 	/** Cached type hash */
 	uint32				TypeHash;
 	/** Hash value for finding the wave instance based on the path through the cue to get to it */
@@ -242,7 +248,7 @@ struct FWaveInstance
 	/**
 	 * Notifies the wave instance that the current playback buffer has finished.
 	 */
-	ENGINE_API void NotifyFinished( const bool bStopped = false );
+	void NotifyFinished( const bool bStopped = false );
 
 	/**
 	 * Friend archive function used for serialization.
@@ -252,10 +258,10 @@ struct FWaveInstance
 	/**
 	 * Function used by the GC.
 	 */
-	ENGINE_API void AddReferencedObjects( FReferenceCollector& Collector );
+	void AddReferencedObjects( FReferenceCollector& Collector );
 
 	/** Returns the actual volume the wave instance will play at */
-	ENGINE_API float GetActualVolume() const;
+	float GetActualVolume() const;
 };
 
 inline uint32 GetTypeHash( FWaveInstance* A ) { return A->TypeHash; }

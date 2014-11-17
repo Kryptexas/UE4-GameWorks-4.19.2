@@ -400,6 +400,9 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
+/**
+ * Defines a curve of interpolated points to evaluate over a given range
+ */
 UCLASS(abstract,MinimalAPI)
 class UCurveBase : public UObject, public FCurveOwnerInterface
 {

@@ -16,34 +16,13 @@ struct FEnumEditorUtilsHelper
 
 //////////////////////////////////////////////////////////////////////////
 // FEnumEditorManager
-FEnumEditorUtils::FEnumEditorManager::FEnumEditorManager()
+FEnumEditorUtils::FEnumEditorManager::FEnumEditorManager() : FListenerManager<UUserDefinedEnum>()
 {}
 
 FEnumEditorUtils::FEnumEditorManager& FEnumEditorUtils::FEnumEditorManager::Get()
 {
 	static TSharedRef< FEnumEditorManager > EnumEditorManager( new FEnumEditorManager() );
 	return *EnumEditorManager;
-}
-
-void FEnumEditorUtils::FEnumEditorManager::AddEnumListener(FEnumEditorUtils::INotifyOnEnumChanged* EnumListener)
-{
-	if (EnumListener)
-	{
-		Listeners.Add(EnumListener);
-	}
-}
-
-void FEnumEditorUtils::FEnumEditorManager::RemoveEnumListener(FEnumEditorUtils::INotifyOnEnumChanged* EnumListener)
-{
-	Listeners.Remove(EnumListener);
-}
-
-void FEnumEditorUtils::FEnumEditorManager::OnEnumChanged(const UUserDefinedEnum* Enum)
-{
-	for (auto Iter = Listeners.CreateIterator(); Iter; ++Iter)
-	{
-		(*Iter)->OnEnumChanged(Enum);
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -313,7 +292,7 @@ void FEnumEditorUtils::BroadcastChanges(const UUserDefinedEnum* Enum, const TArr
 		(*It)->BroadcastChanged();
 	}
 
-	FEnumEditorManager::Get().OnEnumChanged(Enum);
+	FEnumEditorManager::Get().OnChanged(Enum);
 }
 
 int32 FEnumEditorUtils::ResolveEnumerator(const UEnum* Enum, FArchive& Ar, int32 EnumeratorIndex)

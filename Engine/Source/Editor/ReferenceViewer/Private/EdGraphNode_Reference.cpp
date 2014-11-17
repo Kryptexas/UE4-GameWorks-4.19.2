@@ -141,7 +141,7 @@ void UEdGraphNode_Reference::CacheAssetData(const FAssetData& AssetData)
 					const bool bIsMapPackage = FPlatformFileManager::Get().GetPlatformFile().FileExists(*PotentiallyMapFilename);
 					if ( bIsMapPackage )
 					{
-						CachedAssetData.AssetClass = FName(TEXT("Map"));
+						CachedAssetData.AssetClass = FName(TEXT("World"));
 					}
 				}
 			}

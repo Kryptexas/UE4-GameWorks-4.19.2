@@ -143,7 +143,7 @@ public:
 		TArray<FString> Files;
 		TArray< TSharedRef<ISourceControlState, ESPMode::ThreadSafe> > States;
 		Files.Add(InFile);
-		if(GetState(Files, States, InStateCacheUsage))
+		if(GetState(Files, States, InStateCacheUsage) == ECommandResult::Succeeded)
 		{
 			TSharedRef<ISourceControlState, ESPMode::ThreadSafe> State = States[0];
 			return State;

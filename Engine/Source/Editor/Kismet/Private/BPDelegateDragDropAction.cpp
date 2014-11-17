@@ -138,9 +138,9 @@ FReply FKismetDelegateDragDropAction::DroppedOnPanel(const TSharedRef< SWidget >
 
 bool FKismetDelegateDragDropAction::IsValid() const
 {
-	return VariableSourceClass.IsValid() &&
+	return VariableSource.IsValid() &&
 		(VariableName != NAME_None) &&
-		(NULL != FindField<UMulticastDelegateProperty>(VariableSourceClass.Get(), VariableName));
+		(NULL != FindField<UMulticastDelegateProperty>(VariableSource.Get(), VariableName));
 }
 
 #undef LOCTEXT_NAMESPACE

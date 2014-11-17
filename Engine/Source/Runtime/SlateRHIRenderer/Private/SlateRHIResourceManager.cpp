@@ -16,6 +16,7 @@ FSlateRHIResourceManager::FDynamicTextureResource::FDynamicTextureResource( FSla
 	, Proxy( new FSlateShaderResourceProxy )
 	, RHIRefTexture( ExistingTexture != NULL ? ExistingTexture : new FSlateTexture2DRHIRef(NULL,0,0) )
 {
+	Proxy->Resource = RHIRefTexture;
 }
 
 FSlateRHIResourceManager::FDynamicTextureResource::~FDynamicTextureResource()
@@ -393,8 +394,6 @@ TSharedRef< FSlateRHIResourceManager::FDynamicTextureResource > FSlateRHIResourc
 
 		}
 
-		TextureResource->Proxy->Resource = TextureResource->RHIRefTexture;
-
 		// Initialize and link the rendering resource
 		TextureResource->RHIRefTexture->InitResource();
 	})
@@ -435,7 +434,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetDynamicTextureResource( 
 				{
 					DynamicTextureResource->RHIRefTexture->SetRHIRef( InFTexture->TextureRHI->GetTexture2D(), InFTexture->GetSizeX(), InFTexture->GetSizeY() );
 					// Let the streaming manager know we are using this texture now
-					InFTexture->LastRenderTime = GCurrentTime;
+					InFTexture->LastRenderTime = FApp::GetCurrentTime();
 				});
 
 				AccessedUTextures.Add( TextureResource );

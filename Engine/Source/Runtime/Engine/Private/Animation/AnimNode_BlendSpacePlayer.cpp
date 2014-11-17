@@ -75,3 +75,24 @@ void FAnimNode_BlendSpacePlayer::Evaluate(FPoseContext& Output)
 		Output.ResetToRefPose();
 	}
 }
+
+void FAnimNode_BlendSpacePlayer::OverrideAsset(UAnimationAsset* NewAsset)
+{
+	if(UBlendSpaceBase* NewBlendSpace = Cast<UBlendSpaceBase>(NewAsset))
+	{
+		BlendSpace = NewBlendSpace;
+	}
+}
+
+void FAnimNode_BlendSpacePlayer::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	if (BlendSpace)
+	{
+		DebugLine += FString::Printf(TEXT("('%s' Play Time: %.3f)"), *BlendSpace->GetName(), InternalTimeAccumulator);
+
+		DebugData.AddDebugItem(DebugLine, true);
+
+		//BlendSpace->GetBlendSamples();
+	}
+}

@@ -19,40 +19,48 @@ struct CORE_API FWindowsPlatformAtomics
 		return (int32)::InterlockedIncrement((LPLONG)Value);
 	}
 
+#if WINVER >= 0x0600 // Interlock...64 functions are only available from Vista onwards
 	static FORCEINLINE int64 InterlockedIncrement( volatile int64* Value )
 	{
 		return (int64)::InterlockedIncrement64((LONGLONG*)Value);
 	}
+#endif
 
 	static FORCEINLINE int32 InterlockedDecrement( volatile int32* Value )
 	{
 		return (int32)::InterlockedDecrement((LPLONG)Value);
 	}
 
+#if WINVER >= 0x0600	// Interlock...64 functions are only available from Vista onwards
 	static FORCEINLINE int64 InterlockedDecrement( volatile int64* Value )
 	{
 		return (int64)::InterlockedDecrement64((LONGLONG*)Value);
 	}
+#endif
 
 	static FORCEINLINE int32 InterlockedAdd( volatile int32* Value, int32 Amount )
 	{
 		return (int32)::InterlockedExchangeAdd((LPLONG)Value, (LONG)Amount);
 	}
 
+#if WINVER >= 0x0600	// Interlock...64 functions are only available from Vista onwards
 	static FORCEINLINE int64 InterlockedAdd( volatile int64* Value, int64 Amount )
 	{
 		return (int64)::InterlockedExchangeAdd64((LONGLONG*)Value, (LONGLONG)Amount);
 	}
+#endif
 
 	static FORCEINLINE int32 InterlockedExchange( volatile int32* Value, int32 Exchange )
 	{
 		return (int32)::InterlockedExchange((LPLONG)Value, (LONG)Exchange);
 	}
 
+#if WINVER >= 0x0600	// Interlock...64 functions are only available from Vista onwards
 	static FORCEINLINE int64 InterlockedExchange( volatile int64* Value, int64 Exchange )
 	{
 		return (int64)::InterlockedExchange64((LONGLONG*)Value, (LONGLONG)Exchange);
 	}
+#endif
 
 	static FORCEINLINE void* InterlockedExchangePtr( void** Dest, void* Exchange )
 	{
@@ -63,7 +71,7 @@ struct CORE_API FWindowsPlatformAtomics
 		}
 #endif
 
-#if PLATFORM_64BITS
+#if WINVER >= 0x0600	// Interlock...64 functions are only available from Vista onwards
 		return ::InterlockedExchangePointer(Dest, Exchange);
 #else
 		return (void*)::InterlockedExchange((PLONG)(Dest), (LONG)(Exchange));
@@ -75,7 +83,7 @@ struct CORE_API FWindowsPlatformAtomics
 		return (int32)::InterlockedCompareExchange((LPLONG)Dest, (LONG)Exchange, (LONG)Comparand);
 	}
 
-#if PLATFORM_64BITS		// This function is not possible on 32-bit architectures
+#if WINVER >= 0x0600	// Interlock...64 functions are only available from Vista onwards
 	static FORCEINLINE int64 InterlockedCompareExchange( volatile int64* Dest, int64 Exchange, int64 Comparand )
 	{
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

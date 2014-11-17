@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "VehicleWheel.h"
 #include "WheeledVehicleMovementComponent.generated.h"
 
 #if WITH_PHYSX
@@ -86,46 +87,20 @@ struct FWheelSetup
 
 	// The wheel class to use
 	UPROPERTY(EditAnywhere, Category=WheelSetup)
-	TSubclassOf<class UVehicleWheel> WheelClass;
+	TSubclassOf<UVehicleWheel> WheelClass;
 
 	// Bone name on mesh to create wheel at
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
+	UPROPERTY(EditAnywhere, Category=WheelSetup)
 	FName BoneName;
 
 	// Additional offset to give the wheels for this axle.
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
+	UPROPERTY(EditAnywhere, Category=WheelSetup)
 	FVector AdditionalOffset;
 
-	// steer angle in degrees for this wheel
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float SteerAngle;
-
-	// max brake torque for this wheel
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float MaxBrakeTorque;
-
-	/** Max handbreak brake torque for this wheel. A handbrake should have a stronger brake torque
-		than the break. This will be ignored for wheels that are not affected by the handbrake. */
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float MaxHandBrakeTorque;
-
-	// damping rate for this wheel
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float DampingRate;
-
-	// mass of this wheel
-	UPROPERTY(EditAnywhere, Category=WheelsSetup)
-	float Mass;
-
 	FWheelSetup()
-		: WheelClass(NULL)
+		: WheelClass(UVehicleWheel::StaticClass())
 		, BoneName(NAME_None)
 		, AdditionalOffset(0.0f)
-		, SteerAngle(70.0f)
-		, MaxBrakeTorque(1500 * 100 * 100)
-		, MaxHandBrakeTorque(0.0f)
-		, DampingRate(0.25f * 100.f * 100.f)
-		, Mass(20.f)
 	{
 	}
 };
@@ -156,15 +131,6 @@ struct FReplicatedVehicleState
 	int32 CurrentGear;
 };
 
-static inline bool NEQ(const FReplicatedVehicleState& A, const FReplicatedVehicleState& B, UPackageMap* Map, UActorChannel* Channel)
-{
-	return (A.SteeringInput != B.SteeringInput) ||
-		(A.ThrottleInput != B.ThrottleInput) ||
-		(A.BrakeInput != B.BrakeInput) ||
-		(A.HandbrakeInput != B.HandbrakeInput) ||
-		(A.CurrentGear != B.CurrentGear);
-}
-
 USTRUCT()
 struct FVehicleInputRate
 {
@@ -191,25 +157,10 @@ struct FVehicleInputRate
 	}
 };
 
-// Temporary until curve editing in
-USTRUCT()
-struct FFloatPair
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, Category=FloatPair)
-	float InVal;
-
-	UPROPERTY(EditAnywhere, Category=FloatPair)
-	float OutVal;
-};
-
-void ConvertCurve( const TArray<FFloatPair>& Pairs, struct FRichCurve& OutCurve );
-
 /**
  * Component to handle the vehicle simulation for an actor.
  */
-UCLASS(Abstract, HeaderGroup=Component, dependson=UCurveBase, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
+UCLASS(Abstract, dependson=UCurveBase, hidecategories=(PlanarMovement, "Components|Movement|Planar", Activation, "Components|Activation"))
 class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -220,8 +171,39 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 
 	/** Mass to set the vehicle chassis to. It's much easier to tweak vehicle settings when
 	 * the mass doesn't change due to tweaks with the physics asset. [kg] */
-	UPROPERTY(EditAnywhere, Category=VehicleSetup)
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float Mass;
+
+	/** DragCoefficient of the vehicle chassis. */
+	UPROPERTY(EditAnywhere, Category = VehicleSetup)
+	float DragCoefficient;
+
+	/** Chassis width used for drag force computation (cm)*/
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float ChassisWidth;
+
+	/** Chassis height used for drag force computation (cm)*/
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float ChassisHeight;
+
+	// Drag area in cm^2
+	UPROPERTY(transient)
+	float DragArea;
+
+	// Estimated mad speed for engine
+	UPROPERTY(transient)
+	float EstimatedMaxEngineSpeed;
+
+	// Max RPM for engine
+	UPROPERTY(transient)
+	float MaxEngineRPM;
+
+	// Debug drag magnitude last applied
+	UPROPERTY(transient)
+	float DebugDragMagnitude;
+
+	/** When vehicle is created we want to compute some helper data like drag area, etc.... Derived classes should use this to properly compute things like engine RPM */
+	virtual void ComputeConstants();
 
 	/** Override center of mass offset, makes tweaking easier [uu] */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
@@ -236,8 +218,16 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	float MinNormalizedTireLoad;
 
 	/** Clamp normalized tire load to this value */
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, AdvancedDisplay)
+	float MinNormalizedTireLoadFiltered;
+
+	/** Clamp normalized tire load to this value */
 	UPROPERTY(EditAnywhere, Category=VehicleSetup, AdvancedDisplay)
 	float MaxNormalizedTireLoad;
+
+	/** Clamp normalized tire load to this value */
+	UPROPERTY(EditAnywhere, Category = VehicleSetup, AdvancedDisplay)
+	float MaxNormalizedTireLoadFiltered;
 
 	// Our instanced wheels
 	UPROPERTY(transient, duplicatetransient, BlueprintReadOnly, Category=Vehicle)
@@ -246,6 +236,9 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	// The value of PhysXVehicleManager::VehicleSetupTag when this vehicle created its physics state.
 	// Used to recreate the physics if the blueprint changes.
 	uint32 VehicleSetupTag;
+
+	bool CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const;
+	float GetMaxSpringForce() const;
 
 #if WITH_PHYSX
 
@@ -265,6 +258,12 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	/** Tick this vehicle sim right before input is sent to the vehicle system  */
 	virtual void TickVehicle( float DeltaTime );
 
+	/** Updates the vehicle tuning and other state such as user input. */
+	virtual void PreTick(float DeltaTime);
+
+	/** Updates the forces of drag acting on the vehicle */
+	virtual void UpdateDrag( float DeltaTime );
+
 	/** Used to create any physics engine information for this component */
 	virtual void CreatePhysicsState() OVERRIDE;
 
@@ -280,6 +279,9 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 
 	/** Draw debug lines for the wheels and suspension */
 	virtual void DrawDebugLines();
+
+	/** Skeletal mesh needs some special handling in the vehicle case */
+	virtual void FixupSkeletalMesh();
 
 #if WITH_EDITOR
 	/** Respond to a property change in editor */
@@ -323,6 +325,10 @@ class ENGINE_API UWheeledVehicleMovementComponent : public UPawnMovementComponen
 	/** Get current engine's rotation speed */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
 	float GetEngineRotationSpeed() const;
+
+	/** Get current engine's max rotation speed */
+	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
+	float GetEngineMaxRotationSpeed() const;
 
 	/** Get current gear */
 	UFUNCTION(BlueprintCallable, Category="Game|Components|WheeledVehicleMovement")
@@ -385,9 +391,13 @@ protected:
 	UPROPERTY(EditAnywhere, Category=VehicleInput)
 	float IdleBrakeInput;
 
-	// Auto-brake when absolute vehicle forward speed is less than this
+	// Auto-brake when absolute vehicle forward speed is less than this (cm/s)
 	UPROPERTY(EditAnywhere, Category=VehicleInput)
 	float StopThreshold;
+
+	// Auto-brake when vehicle forward speed is opposite of player input by at least this much (cm/s)
+	UPROPERTY(EditAnywhere, Category = VehicleInput)
+	float WrongDirectionThreshold;
 
 	// Rate at which input throttle can rise and fall
 	UPROPERTY(EditAnywhere, Category=VehicleInput, AdvancedDisplay)
@@ -467,4 +477,41 @@ protected:
 	class USkinnedMeshComponent* GetMesh();
 
 #endif // WITH_PHYSX
+	
+
 };
+
+//some helper functions for converting units
+
+//rev per minute to rad/s
+inline float RPMToOmega(float RPM)
+{
+	return RPM * PI / 30.f;
+}
+
+//rad/s to rev per minute
+inline float OmegaToRPM(float Omega)
+{
+	return Omega * 30.f / PI;
+}
+
+//km/h to cm/s
+inline float KmHToCmS(float KmH)
+{
+	return KmH * 100000.f / 3600.f;
+}
+
+inline float CmSToKmH(float CmS)
+{
+	return CmS * 3600.f / 100000.f;
+}
+
+inline float M2ToCm2(float M2)
+{
+	return M2 * 100.f * 100.f;
+}
+
+inline float Cm2ToM2(float Cm2)
+{
+	return Cm2 / (100.f * 100.f);
+}

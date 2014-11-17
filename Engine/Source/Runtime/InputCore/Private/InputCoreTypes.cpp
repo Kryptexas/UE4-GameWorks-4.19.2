@@ -15,9 +15,6 @@ const FKey EKeys::MouseY("MouseY");
 const FKey EKeys::MouseScrollUp("MouseScrollUp");
 const FKey EKeys::MouseScrollDown("MouseScrollDown");
 
-//@const FKey EKeys::todo Slate: Unify MouseScrollUp, Down("todo Slate: Unify MouseScrollUp, Down"); Spin.  The viewport clients use Up and Down and slate uses Spin
-const FKey EKeys::MouseWheelSpin("MouseWheelSpin");
-
 const FKey EKeys::LeftMouseButton("LeftMouseButton");
 const FKey EKeys::RightMouseButton("RightMouseButton");
 const FKey EKeys::MiddleMouseButton("MiddleMouseButton");
@@ -212,6 +209,13 @@ const FKey EKeys::Gesture_Flick("Gesture_Flick");
 // PS4-specific
 const FKey EKeys::PS4_Special("PS4_Special");
 
+// Xbox One global speech commands
+const FKey EKeys::Global_Menu("Global_Menu");
+const FKey EKeys::Global_View("Global_View");
+const FKey EKeys::Global_Pause("Global_Pause");
+const FKey EKeys::Global_Play("Global_Play");
+const FKey EKeys::Global_Back("Global_Back");
+
 const FKey EKeys::Invalid(NAME_None);
 
 bool EKeys::bInitialized = false;
@@ -222,20 +226,17 @@ void EKeys::Initialize()
 	if (bInitialized) return;
 	bInitialized = true;
 
-	AddKey(FKeyDetails(EKeys::MouseX, LOCTEXT("MouseX", "Mouse X"), FKeyDetails::Axis | FKeyDetails::MouseButton));
-	AddKey(FKeyDetails(EKeys::MouseY, LOCTEXT("MouseY", "Mouse Y"), FKeyDetails::Axis | FKeyDetails::MouseButton));
+	AddKey(FKeyDetails(EKeys::MouseX, LOCTEXT("MouseX", "Mouse X"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton));
+	AddKey(FKeyDetails(EKeys::MouseY, LOCTEXT("MouseY", "Mouse Y"), FKeyDetails::FloatAxis | FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MouseScrollUp, LOCTEXT("MouseScrollUp", "Mouse Wheel Up"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MouseScrollDown, LOCTEXT("MouseScrollDown", "Mouse Wheel Down"), FKeyDetails::MouseButton));
-
-	//@todo Slate: Unify MouseScrollUp, Down, Spin.  The viewport clients use Up and Down and slate uses Spin
-	AddKey(FKeyDetails(EKeys::MouseWheelSpin, LOCTEXT("MouseWheelSpin", "Mouse Wheel Spin"), FKeyDetails::NotBlueprintBindableKey | FKeyDetails::MouseButton));
 
 	AddKey(FKeyDetails(EKeys::LeftMouseButton, LOCTEXT("LeftMouseButton", "Left Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::RightMouseButton, LOCTEXT("RightMouseButton", "Right Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::MiddleMouseButton, LOCTEXT("MiddleMouseButton", "Middle Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::ThumbMouseButton, LOCTEXT("ThumbMouseButton", "Thumb Mouse Button"), FKeyDetails::MouseButton));
 	AddKey(FKeyDetails(EKeys::ThumbMouseButton2, LOCTEXT("ThumbMouseButton2", "Thumb Mouse Button 2"), FKeyDetails::MouseButton));
-	
+    
 	AddKey(FKeyDetails(EKeys::Tab, LOCTEXT("Tab", "Tab")));
 	AddKey(FKeyDetails(EKeys::Enter, LOCTEXT("Enter", "Enter")));
 	AddKey(FKeyDetails(EKeys::Pause, LOCTEXT("Pause", "Pause")));
@@ -254,13 +255,13 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Down, LOCTEXT("Down", "Down")));
 
 	AddKey(FKeyDetails(EKeys::Insert, LOCTEXT("Insert", "Insert")));
-	
+    
 #if PLATFORM_MAC
-	AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("Delete", "Delete")));
-	AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("ForwardDelete", "Fn+Delete")));
+    AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("Delete", "Delete")));
+    AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("ForwardDelete", "Fn+Delete")));
 #else
-	AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("BackSpace", "Backspace")));
-	AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("Delete", "Delete")));
+    AddKey(FKeyDetails(EKeys::BackSpace, LOCTEXT("BackSpace", "Backspace")));
+    AddKey(FKeyDetails(EKeys::Delete, LOCTEXT("Delete", "Delete")));
 #endif
 
 	AddKey(FKeyDetails(EKeys::Zero, FText::FromString("0")));
@@ -356,13 +357,10 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Quote, LOCTEXT("Quote", "'")));
 
 	// Setup Gamepad keys
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftX, LOCTEXT("Gamepad_LeftX", "Gamepad Left X"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftY, LOCTEXT("Gamepad_LeftY", "Gamepad Left Y"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightX, LOCTEXT("Gamepad_RightX", "Gamepad Right X"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightY, LOCTEXT("Gamepad_RightY", "Gamepad Right Y"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftTriggerAxis, LOCTEXT("Gamepad_LeftTriggerAxis", "Gamepad Left Trigger Axis"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightTriggerAxis, LOCTEXT("Gamepad_RightTriggerAxis", "Gamepad Right Trigger Axis"), FKeyDetails::GamepadKey | FKeyDetails::Axis));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftX, LOCTEXT("Gamepad_LeftX", "Gamepad Left X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftY, LOCTEXT("Gamepad_LeftY", "Gamepad Left Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightX, LOCTEXT("Gamepad_RightX", "Gamepad Right X"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightY, LOCTEXT("Gamepad_RightY", "Gamepad Right Y"), FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
 
 	AddKey(FKeyDetails(EKeys::Gamepad_LeftThumbstick, LOCTEXT("Gamepad_LeftThumbstick", "Gamepad Left Thumbstick"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Gamepad_RightThumbstick, LOCTEXT("Gamepad_RightThumbstick", "Gamepad Right Thumbstick"), FKeyDetails::GamepadKey));
@@ -370,11 +368,6 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Gamepad_DPad_Down, LOCTEXT("Gamepad_DPad_Down", "Gamepad DPad Down"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Gamepad_DPad_Right, LOCTEXT("Gamepad_DPad_Right", "Gamepad DPad Right"), FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Gamepad_DPad_Left, LOCTEXT("Gamepad_DPad_Left", "Gamepad DPad Left"), FKeyDetails::GamepadKey));
-
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftShoulder, LOCTEXT("Gamepad_LeftShoulder", "Gamepad Left Shoulder"), FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightShoulder, LOCTEXT("Gamepad_RightShoulder", "Gamepad Right Shoulder"), FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_LeftTrigger, LOCTEXT("Gamepad_LeftTrigger", "Gamepad Left Trigger"), FKeyDetails::GamepadKey));
-	AddKey(FKeyDetails(EKeys::Gamepad_RightTrigger, LOCTEXT("Gamepad_RightTrigger", "Gamepad Right Trigger"), FKeyDetails::GamepadKey));
 
 	// Virtual key codes used for input axis button press/release emulation
 	AddKey(FKeyDetails(EKeys::Gamepad_LeftStick_Up, LOCTEXT("Gamepad_LeftStick_Up", "Gamepad Left Stick Up"), FKeyDetails::GamepadKey));
@@ -396,11 +389,19 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Left, GetKeyNameDelegate, FKeyDetails::GamepadKey));
 	AddKey(FKeyDetails(EKeys::Gamepad_FaceButton_Top, GetKeyNameDelegate, FKeyDetails::GamepadKey));
 
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftTriggerAxis, GetKeyNameDelegate, FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightTriggerAxis, GetKeyNameDelegate, FKeyDetails::GamepadKey | FKeyDetails::FloatAxis));
+
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftShoulder, GetKeyNameDelegate, FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightShoulder, GetKeyNameDelegate, FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_LeftTrigger, GetKeyNameDelegate, FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Gamepad_RightTrigger, GetKeyNameDelegate, FKeyDetails::GamepadKey));
+
 	// Vector axes (FVector, not float)
-	AddKey(FKeyDetails(EKeys::Tilt, LOCTEXT("Tilt", "Tilt"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::RotationRate, LOCTEXT("RotationRate", "Rotation Rate"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::Gravity, LOCTEXT("Gravity", "Gravity"), FKeyDetails::NotBlueprintBindableKey));
-	AddKey(FKeyDetails(EKeys::Acceleration, LOCTEXT("Acceleration", "Acceleration"), FKeyDetails::NotBlueprintBindableKey));
+	AddKey(FKeyDetails(EKeys::Tilt, LOCTEXT("Tilt", "Tilt"), FKeyDetails::VectorAxis));
+	AddKey(FKeyDetails(EKeys::RotationRate, LOCTEXT("RotationRate", "Rotation Rate"), FKeyDetails::VectorAxis));
+	AddKey(FKeyDetails(EKeys::Gravity, LOCTEXT("Gravity", "Gravity"), FKeyDetails::VectorAxis));
+	AddKey(FKeyDetails(EKeys::Acceleration, LOCTEXT("Acceleration", "Acceleration"), FKeyDetails::VectorAxis));
 
 	// Fingers
 	AddKey(FKeyDetails(EKeys::TouchKeys[ETouchIndex::Touch1], LOCTEXT("Touch1", "Touch 1"), FKeyDetails::NotBlueprintBindableKey));
@@ -424,6 +425,13 @@ void EKeys::Initialize()
 
 	// PS4-specific
 	AddKey(FKeyDetails(EKeys::PS4_Special, LOCTEXT("PS4_Special", "PS4_Special"), FKeyDetails::NotBlueprintBindableKey));
+
+	// Xbox One global speech commands
+	AddKey(FKeyDetails(EKeys::Global_Menu, LOCTEXT("Global_Menu", "Global Menu"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Global_View, LOCTEXT("Global_View", "Global View"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Global_Pause, LOCTEXT("Global_Pause", "Global Pause"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Global_Play, LOCTEXT("Global_Play", "Global Play"), FKeyDetails::GamepadKey));
+	AddKey(FKeyDetails(EKeys::Global_Back, LOCTEXT("Global_Back", "Global Back"), FKeyDetails::GamepadKey));
 }
 
 void EKeys::AddKey(const FKeyDetails& KeyDetails)
@@ -480,6 +488,30 @@ FText EKeys::GetGamepadDisplayName(const FKey Key)
 		{
 			return LOCTEXT("PS4_Gamepad_Special_Right", "Gamepad Options");
 		}
+		else if (Key == EKeys::Gamepad_LeftShoulder)
+		{
+			return LOCTEXT("PS4_Gamepad_LeftShoulder", "Gamepad L1");
+		}
+		else if (Key == EKeys::Gamepad_RightShoulder)
+		{
+			return LOCTEXT("PS4_Gamepad_RightShoulder", "Gamepad R1");
+		}
+		else if (Key == EKeys::Gamepad_LeftTrigger)
+		{
+			return LOCTEXT("PS4_Gamepad_LeftTrigger", "Gamepad L2");
+		}
+		else if (Key == EKeys::Gamepad_RightTrigger)
+		{
+			return LOCTEXT("PS4_Gamepad_RightTrigger", "Gamepad R2");
+		}
+		else if (Key == EKeys::Gamepad_LeftTriggerAxis)
+		{
+			return LOCTEXT("PS4_Gamepad_LeftTriggerAxis", "Gamepad L2 Axis");
+		}
+		else if (Key == EKeys::Gamepad_RightTriggerAxis)
+		{
+			return LOCTEXT("PS4_Gamepad_RightTriggerAxis", "Gamepad R2 Axis");
+		}
 		break;
 
 	case EConsoleForGamepadLabels::XBoxOne:
@@ -507,6 +539,30 @@ FText EKeys::GetGamepadDisplayName(const FKey Key)
 		{
 			return LOCTEXT("XBoxOne_Gamepad_Special_Right", "Gamepad Start");
 		}
+		else if (Key == EKeys::Gamepad_LeftShoulder)
+		{
+			return LOCTEXT("Gamepad_LeftShoulder", "Gamepad Left Shoulder");
+		}
+		else if (Key == EKeys::Gamepad_RightShoulder)
+		{
+			return LOCTEXT("Gamepad_RightShoulder", "Gamepad Right Shoulder");
+		}
+		else if (Key == EKeys::Gamepad_LeftTrigger)
+		{
+			return LOCTEXT("Gamepad_LeftTrigger", "Gamepad Left Trigger");
+		}
+		else if (Key == EKeys::Gamepad_RightTrigger)
+		{
+			return LOCTEXT("Gamepad_RightTrigger", "Gamepad Right Trigger");
+		}
+		else if (Key == EKeys::Gamepad_LeftTriggerAxis)
+		{
+			return LOCTEXT("Gamepad_LeftTriggerAxis", "Gamepad Left Trigger Axis");
+		}
+		else if (Key == EKeys::Gamepad_RightTriggerAxis)
+		{
+			return LOCTEXT("Gamepad_RightTriggerAxis", "Gamepad Right Trigger Axis");
+		}
 		break;
 
 	default:
@@ -533,6 +589,30 @@ FText EKeys::GetGamepadDisplayName(const FKey Key)
 		else if (Key == EKeys::Gamepad_Special_Right)
 		{
 			return LOCTEXT("Gamepad_Special_Right", "Gamepad Special Right");
+		}
+		else if (Key == EKeys::Gamepad_LeftShoulder)
+		{
+			return LOCTEXT("Gamepad_LeftShoulder", "Gamepad Left Shoulder");
+		}
+		else if (Key == EKeys::Gamepad_RightShoulder)
+		{
+			return LOCTEXT("Gamepad_RightShoulder", "Gamepad Right Shoulder");
+		}
+		else if (Key == EKeys::Gamepad_LeftTrigger)
+		{
+			return LOCTEXT("Gamepad_LeftTrigger", "Gamepad Left Trigger");
+		}
+		else if (Key == EKeys::Gamepad_RightTrigger)
+		{
+			return LOCTEXT("Gamepad_RightTrigger", "Gamepad Right Trigger");
+		}
+		else if (Key == EKeys::Gamepad_LeftTriggerAxis)
+		{
+			return LOCTEXT("Gamepad_LeftTriggerAxis", "Gamepad Left Trigger Axis");
+		}
+		else if (Key == EKeys::Gamepad_RightTriggerAxis)
+		{
+			return LOCTEXT("Gamepad_RightTriggerAxis", "Gamepad Right Trigger Axis");
 		}
 		break;
 	}
@@ -574,10 +654,16 @@ bool FKey::IsMouseButton() const
 	return (KeyDetails.IsValid() ? KeyDetails->IsMouseButton() : false);
 }
 
-bool FKey::IsAxis() const
+bool FKey::IsFloatAxis() const
 {
 	ConditionalLookupKeyDetails();
-	return (KeyDetails.IsValid() ? KeyDetails->IsAxis() : false);
+	return (KeyDetails.IsValid() ? KeyDetails->IsFloatAxis() : false);
+}
+
+bool FKey::IsVectorAxis() const
+{
+	ConditionalLookupKeyDetails();
+	return (KeyDetails.IsValid() ? KeyDetails->IsVectorAxis() : false);
 }
 
 bool FKey::IsBindableInBlueprints() const
@@ -713,6 +799,12 @@ FKey FInputKeyManager::GetKeyFromCodes( const uint16 KeyCode, const uint16 CharC
 		KeyPtr = KeyMapCharToEnum.Find(CharCode);
 	}
 	return KeyPtr ? *KeyPtr : EKeys::Invalid;
+}
+
+void FInputKeyManager::GetCodesFromKey(const FKey Key, const uint16*& KeyCode, const uint16*& CharCode) const
+{
+	KeyCode = KeyMapCharToEnum.FindKey(Key);
+	CharCode = KeyMapVirtualToEnum.FindKey(Key);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -356,7 +356,7 @@ private:
  * Events can be triggered at keyframes along the timeline. 
  * floats, vectors an colors are interpolated between keyframes along the timeline.
  */
-UCLASS(HeaderGroup=Component, MinimalAPI)
+UCLASS(MinimalAPI)
 class UTimelineComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()

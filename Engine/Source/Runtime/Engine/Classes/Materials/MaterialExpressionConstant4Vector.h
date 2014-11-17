@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionConstant4Vector.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionConstant4Vector : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
@@ -32,6 +32,7 @@ class UMaterialExpressionConstant4Vector : public UMaterialExpression
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) OVERRIDE;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const OVERRIDE;
 #if WITH_EDITOR
+	virtual FString GetDescription() const OVERRIDE;
 	virtual uint32 GetOutputType(int32 OutputIndex) OVERRIDE {return MCT_Float4;}
 #endif // WITH_EDITOR
 	// End UMaterialExpression Interface

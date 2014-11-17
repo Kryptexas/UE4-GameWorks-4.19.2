@@ -5,6 +5,7 @@
 #include "EdGraphCompilerUtilities.h"
 #include "UnrealEd.h"
 #include "Editor.h"
+#include "KismetCompiledFunctionContext.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerUtilities

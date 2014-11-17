@@ -37,6 +37,7 @@ AAtmosphericFog::AAtmosphericFog(const class FPostConstructInitializeProperties&
 		if (SpriteComponent)
 		{
 			SpriteComponent->Sprite = ConstructorStatics.FogTextureObject.Get();
+			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Fog;
 			SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Fog;
 			SpriteComponent->AttachParent = AtmosphericFogComponent;
@@ -89,6 +90,7 @@ UAtmosphericFogComponent::UAtmosphericFogComponent(const class FPostConstructIni
 	DensityOffset = 0.f;
 	DistanceScale = 1.f;
 	AltitudeScale = 1.f;
+	SunDiscScale = 1.f;
 	StartDistance = 15000;
 	DistanceOffset = 0.f;
 	GroundOffset = -100000.f; // -1 km in default distance scale, 100K UU
@@ -505,6 +507,7 @@ void UAtmosphericFogComponent::PostEditChangeProperty(FPropertyChangedEvent& Pro
 		DensityOffset = FMath::Clamp(DensityOffset, -1.0f, 1.f);
 		DistanceScale = FMath::Clamp(DistanceScale, 0.1f, 1000.f);
 		AltitudeScale = FMath::Clamp(AltitudeScale, 0.1f, 1000.f);
+		SunDiscScale = FMath::Clamp(SunDiscScale, 0.1f, 1000.f);
 		GroundOffset = FMath::Clamp(GroundOffset, (float)-WORLD_MAX, (float)WORLD_MAX);
 		StartDistance = FMath::Clamp(StartDistance, 100.f, (float)WORLD_MAX);
 	}

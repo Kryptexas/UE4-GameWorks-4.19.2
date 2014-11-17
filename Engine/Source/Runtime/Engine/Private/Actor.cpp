@@ -4,16 +4,21 @@
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
-#include "EngineNavigationClasses.h"
-#include "EngineKismetLibraryClasses.h"
 #include "LatentActions.h"
 #include "MessageLog.h"
 #include "Net/UnrealNetwork.h"
+#include "DisplayDebugHelpers.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogActor, Log, All);
 DEFINE_LOG_CATEGORY(LogActor);
 
 DEFINE_STAT(STAT_GetComponentsTime);
+
+#if UE_BUILD_SHIPPING
+#define DEBUG_CALLSPACE(Format, ...)
+#else
+#define DEBUG_CALLSPACE(Format, ...) UE_LOG(LogNet, VeryVerbose, Format, __VA_ARGS__);
+#endif
 
 #define LOCTEXT_NAMESPACE "Actor"
 
@@ -185,11 +190,22 @@ FString FActorTickFunction::DiagnosticMessage()
 	return Target->GetFullName() + TEXT("[TickActor]");
 }
 
+bool AActor::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+{
+	bool Result = true;
+	if (CanCheckDefaultSubObjects(bForceCheck, Result))
+	{
+		Result = Super::CheckDefaultSubobjects(bForceCheck);
+		Result = Result && CheckActorComponents();
+	}
+	return Result;
+}
 
-void AActor::CheckActorComponents()
+bool AActor::CheckActorComponents()
 {
 	DEFINE_LOG_CATEGORY_STATIC(LogCheckComponents, Warning, All);
 
+	bool bResult = true;
 	TArray<UActorComponent*> Components;
 	GetComponents(Components);
 
@@ -207,6 +223,7 @@ void AActor::CheckActorComponents()
 		if (Inner->IsTemplate() && !IsTemplate())
 		{
 			UE_LOG(LogCheckComponents, Error, TEXT("Component is a template but I am not. Me = %s, Component = %s"), *this->GetFullName(), *Inner->GetFullName());
+			bResult = false;
 		}
 		UObject* Archetype = Inner->GetArchetype();
 		if (Archetype != Inner->GetClass()->GetDefaultObject())
@@ -214,6 +231,7 @@ void AActor::CheckActorComponents()
 			if (Archetype != GetClass()->GetDefaultSubobjectByName(Inner->GetFName()))
 			{
 				UE_LOG(LogCheckComponents, Error, TEXT("Component archetype is not the CDO nor a default subobject of my class. Me = %s, Component = %s, Archetype = %s"), *this->GetFullName(), *Inner->GetFullName(), *Archetype->GetFullName());
+				bResult = false;
 			}
 		}
 	}
@@ -227,6 +245,7 @@ void AActor::CheckActorComponents()
 		if (Inner->GetOuter() != this)
 		{
 			UE_LOG(LogCheckComponents, Error, TEXT("SerializedComponent does not have me as an outer. Me = %s, Component = %s"), *this->GetFullName(), *Inner->GetFullName());
+			bResult = false;
 		}
 		if (Inner->IsPendingKill())
 		{
@@ -235,6 +254,7 @@ void AActor::CheckActorComponents()
 		if (Inner->IsTemplate() && !IsTemplate())
 		{
 			UE_LOG(LogCheckComponents, Error, TEXT("SerializedComponent is a template but I am not. Me = %s, Component = %s"), *this->GetFullName(), *Inner->GetFullName());
+			bResult = false;
 		}
 		UObject* Archetype = Inner->GetArchetype();
 		if (Archetype != Inner->GetClass()->GetDefaultObject())
@@ -242,7 +262,25 @@ void AActor::CheckActorComponents()
 			if (Archetype != GetClass()->GetDefaultSubobjectByName(Inner->GetFName()))
 			{
 				UE_LOG(LogCheckComponents, Error, TEXT("SerializedComponent archetype is not the CDO nor a default subobject of my class. Me = %s, Component = %s, Archetype = %s"), *this->GetFullName(), *Inner->GetFullName(), *Archetype->GetFullName());
+				bResult = false;
 			}
+		}
+	}
+	return bResult;
+}
+
+void AActor::ResetOwnedComponents()
+{
+	TArray<UObject*> Children;
+	OwnedComponents.Empty();
+	GetObjectsWithOuter(this, Children, true, RF_PendingKill);
+
+	for (UObject* Child : Children)
+	{
+		UActorComponent* Component = Cast<UActorComponent>(Child);
+		if (Component)
+		{
+			OwnedComponents.Add(Component);
 		}
 	}
 }
@@ -252,6 +290,14 @@ void AActor::PostInitProperties()
 	Super::PostInitProperties();
 	RegisterAllActorTickFunctions(true,false); // component will be handled when they are registered
 	RemoteRole = (bReplicates ? ROLE_SimulatedProxy : ROLE_None);
+
+	// Make sure the OwnedComponents list correct.  
+	// Under some circumstances sub-object instancing can result in bogus/duplicate entries.
+	// This is not necessary for CDOs
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		ResetOwnedComponents();
+	}
 }
 
 UWorld* AActor::GetWorld() const
@@ -299,7 +345,7 @@ bool AActor::TeleportTo( const FVector& DestLocation, const FRotator& DestRotati
 	}
 
 	// Can't move non-movable actors during play
-	if( (RootComponent->Mobility == EComponentMobility::Static) && GetWorld()->HasBegunPlay() )
+	if( (RootComponent->Mobility == EComponentMobility::Static) && GetWorld()->AreActorsInitialized() )
 	{
 		return false;
 	}
@@ -526,6 +572,8 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 	Super::PostLoadSubobjects(OuterInstanceGraph);
 
+	ResetOwnedComponents();
+
 	if (RootComponent && bHadRoot && OldRoot != RootComponent)
 	{
 		UE_LOG(LogActor, Log, TEXT("Root component has changed, relocating new root component to old position %s->%s"), *OldRoot->GetFullName(), *GetRootComponent()->GetFullName());
@@ -549,7 +597,7 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 
 void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 {
-	if( ((GetWorld() && (GetWorld()->HasBegunPlay() || GAllowActorScriptExecutionInEditor)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
+	if( ((GetWorld() && (GetWorld()->AreActorsInitialized() || GAllowActorScriptExecutionInEditor)) || HasAnyFlags(RF_ClassDefaultObject)) && !GIsGarbageCollecting )
 	{
 		Super::ProcessEvent(Function, Parameters);
 	}
@@ -632,10 +680,18 @@ bool AActor::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags 
 	if (NewOuter)
 	{
 		RegisterAllActorTickFunctions(false, true); // unregister all tick functions
+		UnregisterAllComponents();
 	}
+
 	bool bSuccess = Super::Rename( InName, NewOuter, Flags );
-	if (NewOuter)
+
+	if (NewOuter && NewOuter->IsA<ULevel>())
 	{
+		UWorld* World = NewOuter->GetWorld();
+		if (World && World->bIsWorldInitialized)
+		{
+			RegisterAllComponents();
+		}
 		RegisterAllActorTickFunctions(true, true); // register all tick functions
 	}
 	return bSuccess;
@@ -1082,6 +1138,11 @@ void AActor::SetOwner( AActor *NewOwner )
 	}
 }
 
+AActor* AActor::GetOwner() const
+{ 
+	return Owner; 
+}
+
 void AActor::AttachRootComponentTo(USceneComponent* InParent, FName InSocketName, EAttachLocation::Type AttachLocationType /*= EAttachLocation::KeepRelativeOffset */)
 {
 	if(RootComponent && InParent)
@@ -1460,13 +1521,19 @@ void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 Cine
 void AActor::OnRep_Instigator() {}
 
 
-void AActor::OnRemoveFromWorld()
+void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	bActorInitialized = false;
+	// Dispatch the blueprint events
+	ReceiveEndPlay(EndPlayReason);
+	OnEndPlay.Broadcast(EndPlayReason);
 
-	SetNavigationRelevancy(false);
-
-	GetWorld()->RemoveNetworkActor( this );
+	// Behaviors specific to an actor being unloaded due to a streaming level removal
+	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
+	{
+		bActorInitialized = false;
+		SetNavigationRelevancy(false);
+		GetWorld()->RemoveNetworkActor(this);
+	}
 }
 
 FVector AActor::GetPlacementExtent() const
@@ -1527,9 +1594,13 @@ FTransform AActor::GetTransform() const
 
 void AActor::Destroyed()
 {
+	if (bActorInitialized)
+	{
+		EndPlay(EEndPlayReason::ActorDestroyed);
+	}
 	ReceiveDestroyed();
 	OnDestroyed.Broadcast();
-	GetWorld()->RemoveNetworkActor( this );
+	GetWorld()->RemoveNetworkActor(this);
 }
 
 void AActor::TornOff() {}
@@ -1712,7 +1783,7 @@ FString AActor::GetHumanReadableName() const
 	return GetName();
 }
 
-void AActor::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Canvas->SetDrawColor(255,0,0);
 
@@ -1730,7 +1801,7 @@ void AActor::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, fl
 
 	Canvas->SetDrawColor(255,255,255);
 
-	if( DebugDisplay.Contains(TEXT("net")) )
+	if( DebugDisplay.IsDisplayOn(TEXT("net")) )
 	{
 		if( GetNetMode() != NM_Standalone )
 		{
@@ -1749,13 +1820,13 @@ void AActor::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, fl
 	Canvas->DrawText(RenderFont, FString::Printf(TEXT("Location: %s Rotation: %s"), *GetActorLocation().ToString(), *GetActorRotation().ToString()), 4.0f, YPos);
 	YPos += YL;
 
-	if( DebugDisplay.Contains(TEXT("physics")) )
+	if( DebugDisplay.IsDisplayOn(TEXT("physics")) )
 	{
 		Canvas->DrawText(RenderFont,FString::Printf(TEXT("Velocity: %s Speed: %f Speed2D: %f"), *GetVelocity().ToString(), GetVelocity().Size(), GetVelocity().Size2D()), 4.0f, YPos);
 		YPos += YL;
 	}
 
-	if( DebugDisplay.Contains(TEXT("collision")) )
+	if( DebugDisplay.IsDisplayOn(TEXT("collision")) )
 	{
 		Canvas->DrawColor.B = 0;
 		float MyRadius, MyHeight;
@@ -1795,6 +1866,36 @@ void AActor::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, fl
 	Canvas->DrawText( RenderFont,FString::Printf(TEXT(" Instigator: %s Owner: %s"), (Instigator ? *Instigator->GetName() : TEXT("None")),
 		(Owner ? *Owner->GetName() : TEXT("None"))), 4,YPos);
 	YPos += YL;
+
+	static FName NAME_Animation(TEXT("Animation"));
+	static FName NAME_Bones = FName(TEXT("Bones"));
+	if (DebugDisplay.IsDisplayOn(NAME_Animation) || DebugDisplay.IsDisplayOn(NAME_Bones))
+	{
+		TArray<USkeletalMeshComponent*> Components;
+		GetComponents(Components);
+
+		if (DebugDisplay.IsDisplayOn(NAME_Animation))
+		{
+			for (USkeletalMeshComponent* Comp : Components)
+			{
+				UAnimInstance* AnimInstance = Comp->GetAnimInstance();
+				if (AnimInstance)
+				{
+					AnimInstance->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
+				}
+			}
+		}
+
+		static FName NAME_3DBones = FName(TEXT("3DBones"));
+		if (DebugDisplay.IsDisplayOn(NAME_Bones))
+		{
+			bool bSimpleBones = !DebugDisplay.IsCategoryToggledOn(NAME_3DBones, false);
+			for (USkeletalMeshComponent* Comp : Components)
+			{
+				Comp->DebugDrawBones(Canvas, bSimpleBones);
+			}
+		}
+	}
 }
 
 void AActor::OutsideWorldBounds()
@@ -1888,20 +1989,56 @@ enum ECollisionResponse AActor::GetComponentsCollisionResponseToChannel(enum ECo
 	return OutResponse;
 };
 
-UActorComponent* AActor::FindComponentByClass(const UClass* Class) const
+void AActor::AddOwnedComponent(UActorComponent* Component)
 {
-	TArray<UObject*> ChildObjects;
-	GetObjectsWithOuter(this, ChildObjects, false, RF_PendingKill);
+	OwnedComponents.AddUnique(Component);
+}
 
-	for (UObject* Child : ChildObjects)
+void AActor::RemoveOwnedComponent(UActorComponent* Component)
+{
+	if (OwnedComponents.RemoveSwap(Component) == 0)
 	{
-		if ( Child->IsA(Class) )
+		// If we didn't remove something we expected to then it probably got NULL through the
+		// property system so take the time to pull them out now
+		OwnedComponents.RemoveSwap(NULL);
+	}
+}
+
+#if DO_CHECK
+bool AActor::OwnsComponent(UActorComponent* Component) const
+{
+	return OwnedComponents.Contains(Component);
+}
+#endif
+
+UActorComponent* AActor::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
+{
+	UActorComponent* FoundComponent = NULL;
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (Component && Component->IsA(ComponentClass))
 		{
-			return (UActorComponent*) Child;
+			FoundComponent = Component;
+			break;
 		}
 	}
 
-	return NULL;
+	return FoundComponent;
+}
+
+UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> ComponentClass)
+{
+	UActorComponent* FoundComponent = NULL;
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (Component && Component->IsA(ComponentClass))
+		{
+			FoundComponent = Component;
+			break;
+		}
+	}
+
+	return FoundComponent;
 }
 
 void AActor::DisableComponentsSimulatePhysics()
@@ -1963,7 +2100,10 @@ void AActor::SetNavigationRelevancy(const bool bNewRelevancy)
 	{
 		// @TODO if this starts failing I'll remodel the way things get registered 
 		// with NavOctree.
-		ensure(IsInGameThread() && "Tell Mieszko this one failed!");
+		if(IsInGameThread() == false)
+		{
+			UE_LOG(LogNavigation, Fatal, TEXT("AActor::SetNavigationRelevancy called outside of GameThread for %s"), *GetFullName());
+		}
 		
 		bNavigationRelevant = bNewRelevancy;
 		UWorld* MyWorld = GetWorld();
@@ -1971,6 +2111,8 @@ void AActor::SetNavigationRelevancy(const bool bNewRelevancy)
 		{
 			if (bNewRelevancy == true)
 			{
+				UE_LOG(LogNavigation, Verbose, TEXT("AActor::SetNavigationRelevancy registering new relevant actor %s"), *GetFullName());
+
 				MyWorld->GetNavigationSystem()->RegisterNavigationRelevantActor(this);
 			}
 			else
@@ -2010,7 +2152,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 	// This should be the same sequence for deferred or nondeferred spawning.
 
 	// It's not safe to call UWorld accessor functions till the world info has been spawned.
-	bool const bBegunPlay = GetWorld() && GetWorld()->HasBegunPlay();
+	bool const bActorsInitialized = GetWorld() && GetWorld()->AreActorsInitialized();
 
 	CreationTime = GetWorld()->GetTimeSeconds();
 
@@ -2038,7 +2180,7 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 
 #if WITH_EDITOR
 	// When placing actors in the editor, init any random streams 
-	if (!bBegunPlay)
+	if (!bActorsInitialized)
 	{
 		SeedAllRandomStreams();
 	}
@@ -2064,9 +2206,9 @@ void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& S
 
 void AActor::PostActorConstruction()
 {
-	bool const bWorldBegunPlay = GetWorld() && GetWorld()->HasBegunPlay();
+	bool const bActorsInitialized = GetWorld() && GetWorld()->AreActorsInitialized();
 
-	if (bWorldBegunPlay)
+	if (bActorsInitialized)
 	{
 		PreInitializeComponents();
 	}
@@ -2077,7 +2219,7 @@ void AActor::PostActorConstruction()
 	// If this is dynamically spawned replicted actor, defer calls to BeginPlay and UpdateOverlaps until replicated properties are deserialized
 	bool deferBeginPlayAndUpdateOverlaps = (bExchangedRoles && RemoteRole == ROLE_Authority);
 
-	if (bWorldBegunPlay)
+	if (bActorsInitialized)
 	{
 		// Call InitializeComponent on components
 		InitializeComponents();
@@ -2088,7 +2230,7 @@ void AActor::PostActorConstruction()
 			UE_LOG(LogActor, Fatal, TEXT("%s failed to route PostInitializeComponents.  Please call Super::PostInitializeComponents() in your <className>::PostInitializeComponents() function. "), *GetFullName() );
 		}
 
-		if (GetWorld()->bMatchStarted && !deferBeginPlayAndUpdateOverlaps)
+		if (GetWorld()->HasBegunPlay() && !deferBeginPlayAndUpdateOverlaps)
 		{
 			BeginPlay();
 		}
@@ -2110,7 +2252,7 @@ void AActor::PostActorConstruction()
 	}
 
 	// Notify the texture streaming manager about the new actor.
-	GStreamingManager->NotifyActorSpawned(this);
+	IStreamingManager::Get().NotifyActorSpawned(this);
 }
 
 void AActor::SetReplicates(bool bInReplicates)
@@ -2165,8 +2307,7 @@ void AActor::PostNetInit()
 	}
 	check(RemoteRole == ROLE_Authority);
 
-	AGameState *GameState = GetWorld()->GameState;
-	if (GameState && GameState->bMatchHasBegun)
+	if (GetWorld() && GetWorld()->HasBegunPlay())
 	{
 		BeginPlay();
 	}
@@ -2253,7 +2394,29 @@ float AActor::GetInputAxisValue(const FName InputAxisName) const
 	return Value;
 }
 
+float AActor::GetInputAxisKeyValue(const FKey InputAxisKey) const
+{
+	float Value = 0.f;
 
+	if (InputComponent)
+	{
+		Value = InputComponent->GetAxisKeyValue(InputAxisKey);
+	}
+
+	return Value;
+}
+
+FVector AActor::GetInputVectorAxisValue(const FKey InputAxisKey) const
+{
+	FVector Value;
+
+	if (InputComponent)
+	{
+		Value = InputComponent->GetVectorAxisValue(InputAxisKey);
+	}
+
+	return Value;
+}
 
 bool AActor::SetActorLocation(const FVector& NewLocation, bool bSweep)
 {
@@ -2547,12 +2710,14 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	if ((Function->FunctionFlags & FUNC_Static))
 	{
 		// Call local
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Local1: %s"), *Function->GetName());
 		return FunctionCallspace::Local;
 	}
 
 	if (GAllowActorScriptExecutionInEditor)
 	{
 		// Call local
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Local2: %s"), *Function->GetName());
 		return FunctionCallspace::Local;
 	}
 
@@ -2560,6 +2725,7 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	if (!World)
 	{
 		// Call local
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Local3: %s"), *Function->GetName());
 		return FunctionCallspace::Local;
 	}
 
@@ -2570,12 +2736,14 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	{
 		// Never call remote on a pending kill actor. 
 		// We can call it local or absorb it depending on authority/role check above.
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace: IsPendingKill %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 		return Callspace;
 	}
 
 	if (Function->FunctionFlags & FUNC_NetRequest)
 	{
 		// Call remote
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace NetRequest: %s"), *Function->GetName());
 		return FunctionCallspace::Remote;
 	}	
 	
@@ -2584,10 +2752,12 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 		if (Function->RPCId > 0)
 		{
 			// Call local
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace NetResponse Local: %s"), *Function->GetName());
 			return FunctionCallspace::Local;
 		}
 
 		// Shouldn't happen, so skip call
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace NetResponse Absorbed: %s"), *Function->GetName());
 		return FunctionCallspace::Absorbed;
 	}
 
@@ -2598,6 +2768,7 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 		if (Role < ROLE_Authority && (Function->FunctionFlags & FUNC_NetServer))
 		{
 			// Don't let clients call server functions (in edge cases where NetMode is standalone (net driver is null))
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace No Authority Server Call Absorbed: %s"), *Function->GetName());
 			return FunctionCallspace::Absorbed;
 		}
 
@@ -2608,11 +2779,14 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	// Dedicated servers don't care about "cosmetic" functions.
 	if (NetMode == NM_DedicatedServer && Function->HasAllFunctionFlags(FUNC_BlueprintCosmetic))
 	{
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Blueprint Cosmetic Absorbed: %s"), *Function->GetName());
 		return FunctionCallspace::Absorbed;
 	}
 
 	if (!(Function->FunctionFlags & FUNC_Net))
 	{
+		// Not a network function
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Not Net: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 		return Callspace;
 	}
 	
@@ -2631,13 +2805,17 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 			// Server should execute locally and call remotely
 			if (RemoteRole != ROLE_None)
 			{
+				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Multicast: %s"), *Function->GetName());
 				return (FunctionCallspace::Local | FunctionCallspace::Remote);
 			}
+
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Multicast NoRemoteRole: %s"), *Function->GetName());
 			return FunctionCallspace::Local;
 		}
 		else
 		{
-			// Client should only execute locally iff it is allowed to (function is not KismetAuthorittyOnly)
+			// Client should only execute locally iff it is allowed to (function is not KismetAuthorityOnly)
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Multicast Client: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 			return Callspace;
 		}
 	}
@@ -2646,12 +2824,14 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	if (bIsServer && !(Function->FunctionFlags & FUNC_NetClient))
 	{
 		// don't replicate
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Server calling Server function: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 		return Callspace;
 	}
 	// if we aren't the server, and it's not a send-to-server function,
 	if (!bIsServer && !(Function->FunctionFlags & FUNC_NetServer))
 	{
 		// don't replicate
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client calling Client function: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 		return Callspace;
 	}
 
@@ -2665,17 +2845,23 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 			if (ClientPlayer == NULL)
 			{
 				// No owning player, we must absorb
+				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client NonOwner absorbed %s"), *Function->GetName());
 				return FunctionCallspace::Absorbed;
 			}
 			else if (Cast<ULocalPlayer>(ClientPlayer) != NULL)
 			{
 				// This is a local player, call locally
+				DEBUG_CALLSPACE(TEXT("GetFunctionCallspace Client local function: %s %s"), *Function->GetName(), FunctionCallspace::ToString(Callspace));
 				return Callspace;
 			}
 		}
 		else if (!NetConnection->Driver || !NetConnection->Driver->World)
 		{
 			// NetDriver does not have a world, most likely shutting down
+			DEBUG_CALLSPACE(TEXT("GetFunctionCallspace NetConnection with no driver or world absorbed: %s %s %s"),
+				*Function->GetName(), 
+				NetConnection->Driver ? *NetConnection->Driver->GetName() : TEXT("NoNetDriver"),
+				NetConnection->Driver && NetConnection->Driver->World ? *NetConnection->Driver->World->GetName() : TEXT("NoWorld"));
 			return FunctionCallspace::Absorbed;
 		}
 
@@ -2687,13 +2873,15 @@ int32 AActor::GetFunctionCallspace( UFunction* Function, void* Parameters, FFram
 	{
 		if (!bIsServer)
 		{
-			UE_LOG(LogNet, Warning,  TEXT("Client is absorbing remote function %s on actor %s because RemoteRole is ROLE_None"), *Function->GetName(), *GetName() );
+			UE_LOG(LogNet, Warning, TEXT("Client is absorbing remote function %s on actor %s because RemoteRole is ROLE_None"), *Function->GetName(), *GetName() );
 		}
 
+		DEBUG_CALLSPACE(TEXT("GetFunctionCallspace RemoteRole None absorbed %s"), *Function->GetName());
 		return FunctionCallspace::Absorbed;
 	}
 
 	// Call remotely
+	DEBUG_CALLSPACE(TEXT("GetFunctionCallspace RemoteRole Remote %s"), *Function->GetName());
 	return FunctionCallspace::Remote;
 }
 
@@ -2813,7 +3001,7 @@ void AActor::RegisterAllComponents()
 	GetComponents(SceneComponents);
 
 	for(int32 CompIdx=0; CompIdx < SceneComponents.Num(); CompIdx++)
-		{
+	{
 		USceneComponent* SceneComp = SceneComponents[CompIdx];
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			AActor* CompOwner = SceneComp->GetOwner();

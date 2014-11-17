@@ -8,7 +8,7 @@
 
 #include "ParticleModuleAccelerationConstant.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=(Object, Acceleration), meta=(DisplayName = "Const Acceleration"))
+UCLASS(editinlinenew, hidecategories=(Object, Acceleration), meta=(DisplayName = "Const Acceleration"))
 class UParticleModuleAccelerationConstant : public UParticleModuleAccelerationBase
 {
 	GENERATED_UCLASS_BODY()

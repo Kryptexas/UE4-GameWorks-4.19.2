@@ -5,6 +5,7 @@
 	#include "SCrashReportClient.h"
 	#include "CrashReportClient.h"
 	#include "CrashReportClientStyle.h"
+	#include "SlateReflector.h"
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 #include "CrashReportClientUnattended.h"
 #include "RequiredProgramMainCPPInclude.h"
@@ -122,7 +123,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 				SNew(SWindow)
 				.ClientSize(FVector2D(800, 600))
 				[
-					FSlateApplication::Get().GetWidgetReflector()
+					FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").GetWidgetReflector()
 				]);
 		}
 

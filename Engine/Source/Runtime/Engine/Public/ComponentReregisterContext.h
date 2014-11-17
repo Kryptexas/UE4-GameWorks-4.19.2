@@ -62,7 +62,7 @@ protected:
 			const UPrimitiveComponent* Primitive = Cast<const UPrimitiveComponent>(InComponent);
 			if ( Primitive )
 			{
-				GStreamingManager->NotifyPrimitiveUpdated( Primitive );
+				IStreamingManager::Get().NotifyPrimitiveUpdated( Primitive );
 			}
 		}
 	}

@@ -25,15 +25,14 @@ namespace UnrealBuildTool.Rules
                     "Core",
                     "CoreUObject",
 					"Engine",
-                    "Sockets",
-                    "Networking"
 				}
 				);
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					// ... add private dependencies that you statically link with here ...
+					"Networking",
+                    "Sockets",
 				}
 				);
 

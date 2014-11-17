@@ -5,10 +5,10 @@
  */
 
 #pragma once
+#include "Components/SceneComponent.h"
 #include "MovementComponent.generated.h"
 
-
-UCLASS(HeaderGroup=Component, ClassGroup=Movement, abstract, BlueprintType)
+UCLASS(ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -187,17 +187,21 @@ public:
 	/**
 	 * Compute a vector to slide along a surface, given an attempted move, time, and normal.
 	 * @param Delta:	Attempted move.
-	 * @param Time:		Amount of move to apply, usually between 0 and 1.
-	 * @param Normal:	Normal opposed to movement. May not equal Hit.Normal.
-	 * @param Hit:		Hit result of the move that resulted in the slide.
+	 * @param Time:		Amount of move to apply (between 0 and 1).
+	 * @param Normal:	Normal opposed to movement. Not necessarily equal to Hit.Normal.
+	 * @param Hit:		HitResult of the move that resulted in the slide.
 	 */
 	virtual FVector ComputeSlideVector(const FVector& Delta, const float Time, const FVector& Normal, const FHitResult& Hit) const;
 
 	/**
-	 * Slide smoothly along a surface, and slide away from multiple impacts using TwoWallAdjust if necessary. Calls HandleImpact for the first surface hit, if requested.
-	 * Uses SafeMoveUpdatedComponent for movement, and ComputeSlideVector to determine the slide direction.
-	 * @param bHandleImpact - Whether to call HandleImpact on each hit.
-	 * @return The percent of the Time value actually applied to movement (between 0 and 1). 0 if no movement occurred, non-zero if movement occurred (in which case Hit.Time is the result of the last move).
+	 * Slide smoothly along a surface, and slide away from multiple impacts using TwoWallAdjust if necessary. Calls HandleImpact for each surface hit, if requested.
+	 * Uses SafeMoveUpdatedComponent() for movement, and ComputeSlideVector() to determine the slide direction.
+	 * @param Delta:	Attempted movement vector.
+	 * @param Time:		Percent of Delta to apply (between 0 and 1). Usually equal to the remaining time after a collision: (1.0 - Hit.Time).
+	 * @param Normal:	Normal opposing movement, along which we will slide.
+	 * @param Hit:		[In] HitResult of the attempted move that resulted in the impact triggering the slide. [Out] HitResult of last attempted move.
+	 * @param bHandleImpact:	Whether to call HandleImpact on each hit.
+	 * @return The percentage of requested distance (Delta * Percent) actually applied (between 0 and 1). 0 if no movement occurred, non-zero if movement occurred.
 	 */
 	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult &Hit, bool bHandleImpact = false);
 
@@ -209,6 +213,25 @@ public:
 	 * @return Result in Delta that is the direction to move when contacting two surfaces.
 	 */
 	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const;
+
+	/**
+	 * Adds force from radial force components.
+	 * @param	Origin		The origin of the force
+	 * @param	Radius		The radius in which the force will be applied
+	 * @param	Strength	The strength of the force
+	 * @param	Falloff		The falloff from the force's origin
+	 */
+	virtual void AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff);
+
+	/**
+	 * Adds impulse from radial force components.
+	 * @param	Origin		The origin of the force
+	 * @param	Radius		The radius in which the force will be applied
+	 * @param	Strength	The strength of the force
+	 * @param	Falloff		The falloff from the force's origin
+	 * @param	bVelChange	If true, the Strength is taken as a change in velocity instead of an impulse (ie. mass will have no affect).
+	 */
+	virtual void AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange);
 
 	/**
 	 * Sets the normal of the plane that constrains movement, if plane constraint is enabled.

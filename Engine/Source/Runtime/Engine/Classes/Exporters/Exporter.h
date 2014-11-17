@@ -62,6 +62,8 @@ class UExporter : public UObject
 	ENGINE_API virtual void Serialize( FArchive& Ar ) OVERRIDE;
 	// End UObject interface.
 
+	// Returns whether this exporter supports the specific object
+	ENGINE_API virtual bool SupportsObject(UObject* Object) const;
 
 	/**
 	 * Export object to text

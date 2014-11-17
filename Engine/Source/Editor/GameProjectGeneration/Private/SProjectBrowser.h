@@ -44,6 +44,21 @@ protected:
 	/** Creates a row in the template list */
 	TSharedRef<ITableRow> MakeProjectViewWidget( TSharedPtr<FProjectItem> ProjectItem, const TSharedRef<STableViewBase>& OwnerTable );
 
+	/** Create a tooltip for the given project item */
+	TSharedRef<SToolTip> MakeProjectToolTip( TSharedPtr<FProjectItem> ProjectItem ) const;
+
+	/** Add information to the tooltip for this project item */
+	void AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox, const FText& Key, const FText& Value) const;
+
+	/** Get the context menu to use for the selected project item */
+	TSharedPtr<SWidget> OnGetContextMenuContent() const;
+
+	/** Handler for when find in explorer is selected */
+	void ExecuteFindInExplorer() const;
+
+	/** Handler to check to see if a find in explorer command is allowed */
+	bool CanExecuteFindInExplorer() const;	
+
 	/** Gets the image to display for the specified template */
 	const FSlateBrush* GetProjectItemImage( TWeakPtr<FProjectItem> ProjectItem ) const;
 
@@ -54,7 +69,7 @@ protected:
 	FText GetSelectedProjectName( ) const;
 
 	/** Populates ProjectItemsSource with projects found on disk */
-	void FindProjects( bool bAllowProjectCreate );
+	FReply FindProjects( );
 
 	/** Adds the specified project to the specified category. Creates a new category if necessary. */
 	void AddProjectToCategory( const TSharedRef<FProjectItem>& ProjectItem, const FText& ProjectCategory );
@@ -67,6 +82,16 @@ protected:
 
 	/** Populate the list of filtered project categories */
 	void PopulateFilteredProjectCategories();
+	
+	/**
+	 * Called after a key is pressed when this widget has keyboard focus (this event bubbles if not handled)
+	 *
+	 * @param MyGeometry The Geometry of the widget receiving the event
+	 * @param  InKeyboardEvent  Keyboard event
+	 *
+	 * @return  Returns whether the event was handled, along with other possible actions
+	 */
+	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent ) OVERRIDE;
 
 private:
 
@@ -105,7 +130,6 @@ private:
 	FText GetItemHighlightText() const;
 
 private:
-
 	// Holds the collection of project categories.
 	TArray<TSharedRef<FProjectCategory> > ProjectCategories;
 
@@ -126,6 +150,8 @@ private:
 
 	bool bHasProjectFiles;
 
+	/** True if this UI will enable the creation of new projects, false otherwise */
+	bool bAllowProjectCreate;
 private:
 
 	// Holds a delegate that is executed when the new project screen is being requested.

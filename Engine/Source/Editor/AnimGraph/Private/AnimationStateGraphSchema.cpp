@@ -5,7 +5,10 @@
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
 #include "AssetData.h"
-
+#include "AnimationStateGraphSchema.h"
+#include "AnimationStateGraph.h"
+#include "AnimStateNode.h"
+#include "AnimGraphNode_StateResult.h"
 #define LOCTEXT_NAMESPACE "AnimationStateGraphSchema"
 
 

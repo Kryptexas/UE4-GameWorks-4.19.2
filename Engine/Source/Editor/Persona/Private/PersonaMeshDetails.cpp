@@ -100,11 +100,11 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterial(
 		SNew(SCheckBox)
 		.IsChecked(this, &FPersonaMeshDetails::IsSectionSelected, SlotIndex)
 		.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionSelectedChanged, SlotIndex)
-		.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport").ToString())
+		.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
 		[
 			SNew(STextBlock)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
-			.Text(LOCTEXT("Highlight", "Highlight").ToString())
+			.Text(LOCTEXT("Highlight", "Highlight"))
 			.ColorAndOpacity( FLinearColor( 0.4f, 0.4f, 0.4f, 1.0f) )
 		];
 }
@@ -137,7 +137,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 			[
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-				.Text(LOCTEXT("Cast Shadows", "Cast Shadows").ToString())
+				.Text(LOCTEXT("Cast Shadows", "Cast Shadows"))
 			]
 		]
 
@@ -166,7 +166,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 			[
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-				.Text(LOCTEXT("PersonaDeleteMaterialLabel", "Delete").ToString())
+				.Text(LOCTEXT("PersonaDeleteMaterialLabel", "Delete"))
 			]
 	]
 
@@ -185,7 +185,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("Clothing", "Clothing").ToString())
+				.Text(LOCTEXT("Clothing", "Clothing"))
 			]
 
 			+SHorizontalBox::Slot()
@@ -195,7 +195,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 				SAssignNew(ClothingComboBoxes[SlotIndex], STextComboBox)
 				.ContentPadding(FMargin(6.0f, 2.0f))
 				.OptionsSource(&ClothingComboStrings)
-				.ToolTipText(LOCTEXT("SectionsComboBoxToolTip", "Select the clothing asset and submesh to use as clothing for this section").ToString())
+				.ToolTipText(LOCTEXT("SectionsComboBoxToolTip", "Select the clothing asset and submesh to use as clothing for this section"))
 				.OnSelectionChanged(this, &FPersonaMeshDetails::HandleSectionsComboBoxSelectionChanged, SlotIndex)
 			]
 		]
@@ -212,8 +212,8 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 			[
 				SNew( STextBlock )
 				.Font(FEditorStyle::GetFontStyle("StaticMeshEditor.NormalFont"))
-				.Text( LOCTEXT("EnableClothLODCheckBox", "Enable Clothing LOD").ToString() )
-				.ToolTipText( LOCTEXT("UseLODTooltip", "If enabled, clothing data will be used for each LOD if there is a corresponding APEX clothing LOD available. If disabled, clothing data will only be used when LOD 0 is rendered.").ToString() )
+				.Text( LOCTEXT("EnableClothLODCheckBox", "Enable Clothing LOD") )
+				.ToolTipText( LOCTEXT("UseLODTooltip", "If enabled, clothing data will be used for each LOD if there is a corresponding APEX clothing LOD available. If disabled, clothing data will only be used when LOD 0 is rendered.") )
 			]
 		];
 
@@ -370,8 +370,8 @@ void FPersonaMeshDetails::CustomizeClothingProperties(IDetailLayoutBuilder& Deta
 		[
 			SNew(SButton)
 			.OnClicked(this, &FPersonaMeshDetails::OnOpenClothingFileClicked, &DetailLayout)
-			.Text(LOCTEXT("AddAPEXClothingFile", "Add APEX clothing file...").ToString())
-			.ToolTipText(LOCTEXT("AddAPEXClothingFileTip", "Select a new APEX clothing file and add it to the skeletal mesh.").ToString())
+			.Text(LOCTEXT("AddAPEXClothingFile", "Add APEX clothing file..."))
+			.ToolTipText(LOCTEXT("AddAPEXClothingFileTip", "Select a new APEX clothing file and add it to the skeletal mesh."))
 		]
 	];
 }
@@ -397,13 +397,13 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 		.AutoWidth()
 		[
 			SNew( SButton )
-			.Text( LOCTEXT("ReimportButtonLabel", "Reimport").ToString() )
+			.Text( LOCTEXT("ReimportButtonLabel", "Reimport") )
 			.OnClicked( this, &FPersonaMeshDetails::OnReimportApexFileClicked, ElementIndex )
 			.IsFocusable( false )
 			.ContentPadding(0)
 			.ForegroundColor( FSlateColor::UseForeground() )
 			.ButtonColorAndOpacity(FLinearColor(1.0f,1.0f,1.0f,0.0f))
-			.ToolTipText(LOCTEXT("ReimportApexFileTip", "Reimport this APEX asset").ToString())
+			.ToolTipText(LOCTEXT("ReimportApexFileTip", "Reimport this APEX asset"))
 			[ 
 				SNew( SImage )
 				.Image( FEditorStyle::GetBrush("Persona.ReimportAsset") )
@@ -418,13 +418,13 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 		.AutoWidth()
 		[
 			SNew( SButton )
-			.Text( LOCTEXT("ClearButtonLabel", "Remove").ToString() )
+			.Text( LOCTEXT("ClearButtonLabel", "Remove") )
 			.OnClicked( this, &FPersonaMeshDetails::OnRemoveApexFileClicked, ElementIndex, DetailLayout )
 			.IsFocusable( false )
 			.ContentPadding(0)
 			.ForegroundColor( FSlateColor::UseForeground() )
 			.ButtonColorAndOpacity(FLinearColor(1.0f,1.0f,1.0f,0.0f))
-			.ToolTipText(LOCTEXT("RemoveApexFileTip", "Remove this APEX asset").ToString())
+			.ToolTipText(LOCTEXT("RemoveApexFileTip", "Remove this APEX asset"))
 			[ 
 				SNew( SImage )
 				.Image( FEditorStyle::GetBrush("PropertyWindow.Button_Clear") )
@@ -446,7 +446,7 @@ void FPersonaMeshDetails::OnGenerateElementForClothingAsset( TSharedRef<IPropert
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Text(LOCTEXT("APEXDetails", "APEX Details").ToString())
+		.Text(LOCTEXT("APEXDetails", "APEX Details"))
 		.Font(DetailFontInfo)
 	]
 	.ValueContent()
@@ -474,7 +474,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("Removing", "Removing...").ToString())
+				.Text(LOCTEXT("Removing", "Removing..."))
 			];
 
 		return Grid;
@@ -490,7 +490,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 		[
 			SNew(STextBlock)
 			.Font(DetailFontInfo)
-			.Text(FString::Printf(*LOCTEXT("LODIndex", "LOD %d").ToString(), LODIndex))			
+			.Text(FText::Format(LOCTEXT("LODIndex", "LOD {0}"), FText::AsNumber(LODIndex)))			
 		];
 
 		RowNumber++;
@@ -504,7 +504,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("SubmeshIndex", "Submesh").ToString())
+				.Text(LOCTEXT("SubmeshIndex", "Submesh"))
 			];
 
 			Grid->AddSlot(1, RowNumber) 
@@ -512,7 +512,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("SimulVertexCount", "Simul Verts").ToString())
+				.Text(LOCTEXT("SimulVertexCount", "Simul Verts"))
 			];
 
 			Grid->AddSlot(2, RowNumber) 
@@ -520,7 +520,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("RenderVertexCount", "Render Verts").ToString())
+				.Text(LOCTEXT("RenderVertexCount", "Render Verts"))
 			];
 
 			Grid->AddSlot(3, RowNumber)
@@ -528,7 +528,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("FixedVertexCount", "Fixed Verts").ToString())
+				.Text(LOCTEXT("FixedVertexCount", "Fixed Verts"))
 			];
 
 			Grid->AddSlot(4, RowNumber)
@@ -536,7 +536,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("TriangleCount", "Triangles").ToString())
+				.Text(LOCTEXT("TriangleCount", "Triangles"))
 			];
 
 			RowNumber++;
@@ -606,7 +606,7 @@ TSharedRef<SUniformGridPanel> FPersonaMeshDetails::MakeApexDetailsWidget(int32 A
 			[
 				SNew(STextBlock)
 				.Font(DetailFontInfo)
-				.Text(LOCTEXT("FailedGetSubmeshInfo", "Failed to get sub-mesh Info").ToString())
+				.Text(LOCTEXT("FailedGetSubmeshInfo", "Failed to get sub-mesh Info"))
 			];
 
 			RowNumber++;

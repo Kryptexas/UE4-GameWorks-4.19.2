@@ -20,6 +20,9 @@ FDeferredAndroidMessage FAndroidInputInterface::DeferredMessages[MAX_DEFERRED_ME
 int32 FAndroidInputInterface::DeferredMessageQueueLastEntryIndex = 0;
 int32 FAndroidInputInterface::DeferredMessageQueueDroppedCount   = 0;
 
+TArray<FAndroidInputInterface::MotionData> FAndroidInputInterface::MotionDataStack
+	= TArray<FAndroidInputInterface::MotionData>();
+
 
 TSharedRef< FAndroidInputInterface > FAndroidInputInterface::Create(  const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 {
@@ -165,6 +168,16 @@ void FAndroidInputInterface::SendControllerEvents()
 		OldControllerState = NewControllerState;
 	}
 
+	for (int i = 0; i < FAndroidInputInterface::MotionDataStack.Num(); ++i)
+	{
+		MotionData motion_data = FAndroidInputInterface::MotionDataStack[i];
+
+		MessageHandler->OnMotionDetected(
+			motion_data.Tilt, motion_data.RotationRate,
+			motion_data.Gravity, motion_data.Acceleration,
+			0);
+	}
+
 	for (int32 MessageIndex = 0; MessageIndex < FMath::Min(DeferredMessageQueueLastEntryIndex, MAX_DEFERRED_MESSAGE_QUEUE_SIZE); ++MessageIndex)
 	{
 		const FDeferredAndroidMessage& DeferredMessage = DeferredMessages[MessageIndex];
@@ -194,6 +207,8 @@ void FAndroidInputInterface::SendControllerEvents()
 	DeferredMessageQueueLastEntryIndex = 0;
 
 	FAndroidInputInterface::TouchInputStack.Empty(0);
+
+	FAndroidInputInterface::MotionDataStack.Empty();
 }
 
 void FAndroidInputInterface::QueueTouchInput(TArray<TouchInput> InTouchEvents)
@@ -272,4 +287,12 @@ void FAndroidInputInterface::DeferMessage(const FDeferredAndroidMessage& Deferre
 		return;
 	}
 	DeferredMessages[Index] = DeferredMessage;
+}
+
+void FAndroidInputInterface::QueueMotionData(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration)
+{
+	FScopeLock Lock(&TouchInputCriticalSection);
+
+	FAndroidInputInterface::MotionDataStack.Push(
+		MotionData { Tilt, RotationRate, Gravity, Acceleration });
 }

@@ -10,12 +10,18 @@ public class SwarmInterface : ModuleRules
 			new string[] {
 				"Editor/SwarmInterface/Public"
 			}
-			);
-		PublicDependencyModuleNames.AddRange( new string[] { "Core", "CoreUObject" } );
+		);
+
+		PublicDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"CoreUObject",
+			}
+		);
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			PublicDependencyModuleNames.AddRange( new string[] { "Messaging" } );
+			PrivateIncludePathModuleNames.Add("Messaging");
 		}
 	}
 }

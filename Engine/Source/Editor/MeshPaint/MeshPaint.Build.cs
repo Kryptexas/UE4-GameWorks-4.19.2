@@ -19,6 +19,7 @@ public class MeshPaint : ModuleRules
                 "RHI",
                 "ShaderCore",
                 "Slate",
+				"SlateCore",
                 "EditorStyle",
                 "UnrealEd",
                 "RawMesh",

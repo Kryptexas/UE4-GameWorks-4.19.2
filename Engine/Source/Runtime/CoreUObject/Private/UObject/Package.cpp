@@ -90,52 +90,27 @@ void UPackage::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collec
 }
 
 /**
- * Get (after possibly creating) a metadata object for this package
- *
- * @param	bAllowLoadObject				Can load an object to find it's UMetaData if not currently loaded.
+ * Gets (after possibly creating) a metadata object for this package
  *
  * @return A valid UMetaData pointer for all objects in this package
  */
-UMetaData* UPackage::GetMetaData(const bool bAllowLoadObject)
+UMetaData* UPackage::GetMetaData()
 {
+	checkf(!FPlatformProperties::RequiresCookedData(), TEXT("MetaData is only allowed in the Editor."));
+
+	// If there is no MetaData, try to find it.
 	if (MetaData == NULL)
 	{
-		// first try to load it
-		if ( (PackageFlags&(PKG_Compiling|PKG_ContainsMap|PKG_CompiledIn)) == 0 && this != GetTransientPackage())
-		{
-			// Try to find before loading, meta data may already exists and we want to avoid calling LoadAllObjects again.
-			MetaData = Cast<UMetaData>(StaticFindObjectFast(UMetaData::StaticClass(), this, FName(NAME_PackageMetaData)));
-			if (MetaData == NULL && bAllowLoadObject)
-			{
-				MetaData = LoadObject<UMetaData>(this, *FName(NAME_PackageMetaData).ToString(), NULL, LOAD_NoWarn|LOAD_Quiet, NULL);
-				if (MetaData == NULL)
-				{
-					// Check old name, and rename if applicable
-					MetaData = LoadObject<UMetaData>(this, *UMetaData::StaticClass()->GetName(), NULL, LOAD_NoWarn|LOAD_Quiet, NULL);
-					if (MetaData)
-					{				
-						MetaData->Rename(*FName(NAME_PackageMetaData).ToString(), NULL, REN_ForceNoResetLoaders);
-					}
-				}
-			}
-		}
+		MetaData = Cast<UMetaData>(StaticFindObjectFast(UMetaData::StaticClass(), this, FName(NAME_PackageMetaData)));
 
-		// if it wasn't found, then create it
-		if (MetaData == NULL)
+		// If MetaData is NULL then it wasn't loaded by linker, so we have to create it.
+		if(MetaData == NULL)
 		{
-			// make a metadata object, but only allow it to be loaded in the editor
 			MetaData = ConstructObject<UMetaData>(UMetaData::StaticClass(), this, NAME_PackageMetaData, RF_Standalone);
 		}
-		check(MetaData);
 	}
 
-	if (MetaData && MetaData->HasAllFlags(RF_NeedLoad) && bAllowLoadObject)
-	{
-		if (auto Linker = MetaData->GetLinker())
-		{
-			Linker->Preload(MetaData);
-		}
-	}
+	check(MetaData);
 
 	return MetaData;
 }

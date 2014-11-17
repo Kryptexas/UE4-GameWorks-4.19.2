@@ -26,6 +26,23 @@ void FKCHandler_VariableSet::RegisterNets(FKismetFunctionContext& Context, UEdGr
 		{
 			CompilerContext.MessageLog.Warning(*LOCTEXT("BlueprintReadOnlyOrPrivate_Error", "The property is mark as BlueprintReadOnly or Private. It cannot be modifed in the blueprint. @@").ToString(), Node);
 		}
+
+		// Report an error that the local variable could not be found
+		if(SetterNode->VariableReference.IsLocalScope() && SetterNode->GetPropertyForVariable() == NULL)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("VariableName"), FText::FromName(SetterNode->VariableReference.GetMemberName()));
+
+			if(SetterNode->VariableReference.GetMemberScopeName() != Context.Function->GetName())
+			{
+				Args.Add(TEXT("ScopeName"), FText::FromString(SetterNode->VariableReference.GetMemberScopeName()));
+				CompilerContext.MessageLog.Warning(*FText::Format(LOCTEXT("LocalVariableNotFoundInScope_Error", "Unable to find local variable with name '{VariableName}' for @@, scope expected: @@, scope found: {ScopeName}"), Args).ToString(), Node, Node->GetGraph());
+			}
+			else
+			{
+				CompilerContext.MessageLog.Warning(*FText::Format(LOCTEXT("LocalVariableNotFound_Error", "Unable to find local variable with name '{VariableName}' for @@"), Args).ToString(), Node);
+			}
+		}
 	}
 
 	for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)

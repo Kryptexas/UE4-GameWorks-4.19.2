@@ -57,6 +57,25 @@
 #endif
 
 //
+// Interface for run-time gpu perf counters.
+//
+
+DEFINE_RHIMETHOD_2(
+	void,RHIGpuTimeBegin,
+	uint32,Hash,
+	bool,bCompute,
+	return,return;
+	);
+
+DEFINE_RHIMETHOD_2(
+	void,RHIGpuTimeEnd,
+	uint32,Hash,
+	bool,bCompute,
+	return,return;
+	);
+
+
+//
 // RHI resource management functions.
 //
 
@@ -346,6 +365,66 @@ DEFINE_RHIMETHOD_2(
 	);
 
 /**
+ * Computes the total size of a 2D texture with the specified parameters.
+ *
+ * @param SizeX - width of the texture to compute
+ * @param SizeY - height of the texture to compute
+ * @param Format - EPixelFormat texture format
+ * @param NumMips - number of mips to compute or 0 for full mip pyramid
+ * @param NumSamples - number of MSAA samples, usually 1
+ * @param Flags - ETextureCreateFlags creation flags
+ * @param OutAlign - Alignment required for this texture.  Output parameter.
+ */
+DEFINE_RHIMETHOD_7(
+	uint64,	RHICalcTexture2DPlatformSize,
+	uint32, SizeX,
+	uint32, SizeY,	
+	uint8, Format,
+	uint32, NumMips,
+	uint32, NumSamples,
+	uint32, Flags,
+	uint32&, OutAlign,
+	return, OutAlign = 0; return 0);
+
+/**
+* Computes the total size of a 3D texture with the specified parameters.
+* @param SizeX - width of the texture to create
+* @param SizeY - height of the texture to create
+* @param SizeZ - depth of the texture to create
+* @param Format - EPixelFormat texture format
+* @param NumMips - number of mips to generate or 0 for full mip pyramid
+* @param Flags - ETextureCreateFlags creation flags
+* @param OutAlign - Alignment required for this texture.  Output parameter.
+*/
+DEFINE_RHIMETHOD_7(
+	uint64,RHICalcTexture3DPlatformSize,
+	uint32,SizeX,
+	uint32,SizeY,
+	uint32,SizeZ,
+	uint8,Format,
+	uint32,NumMips,
+	uint32,Flags,	
+	uint32&, OutAlign,
+	return, OutAlign = 0; return 0);
+
+/**
+* Computes the total size of a cube texture with the specified parameters.
+* @param Size - width/height of the texture to create
+* @param Format - EPixelFormat texture format
+* @param NumMips - number of mips to generate or 0 for full mip pyramid
+* @param Flags - ETextureCreateFlags creation flags
+* @param OutAlign - Alignment required for this texture.  Output parameter.
+*/
+DEFINE_RHIMETHOD_5(
+	uint64,RHICalcTextureCubePlatformSize,
+	uint32,Size,
+	uint8,Format,
+	uint32,NumMips,
+	uint32,Flags,	
+	uint32&, OutAlign,
+	return, OutAlign = 0; return 0);
+
+/**
  * Retrieves texture memory stats.
  * safe to call on the main thread
  */
@@ -480,6 +559,16 @@ DEFINE_RHIMETHOD_7(
 	);
 
 /**
+ * @param Ref may be 0
+ */
+DEFINE_RHIMETHOD_2(
+	void,RHIGetResourceInfo,
+	FTextureRHIParamRef,Ref,
+	FRHIResourceInfo&,OutInfo,
+	return,return;
+	);
+
+/**
 * Creates a shader resource view for a 2d texture, viewing only a single
 * mip level. Useful when rendering to one mip while sampling from another.
 */
@@ -490,7 +579,7 @@ DEFINE_RHIMETHOD_2(
 	return,return new FRHIShaderResourceView();
 	);
 
-/**
+/**FRHIResourceInfo
 * Creates a shader resource view for a 2d texture, with a different
 * format from the original.  Useful when sampling stencil.
 */
@@ -501,7 +590,7 @@ DEFINE_RHIMETHOD_4(
 	uint8, NumMipLevels,
 	uint8, Format,		
 	return,return new FRHIShaderResourceView();
-);
+	);
 
 /**
 * Generates mip maps for a texture.
@@ -724,6 +813,7 @@ DEFINE_RHIMETHOD_5(
 		FResourceBulkDataInterface*,BulkData,
 		return,return new FRHITextureCube(Size,NumMips,(EPixelFormat)Format,Flags);
 	);
+
 
 /**
 * Locks an RHI texture's mip-map for read/write operations on the CPU
@@ -1589,5 +1679,20 @@ DEFINE_RHIMETHOD_2(
 	void,RHIVirtualTextureSetFirstMipVisible,
 	FTexture2DRHIParamRef,Texture,
 	uint32,FirstMip,
+	,
+	);
+
+/**
+ * Enabled/Disables Depth Bounds Testing with the given min/max depth.
+ * @param bEnable	Enable(non-zero)/disable(zero) the depth bounds test
+ * @param MinDepth	The minimum depth for depth bounds test
+ * @param MaxDepth	The maximum depth for depth bounds test.
+ *					The valid values for fMinDepth and fMaxDepth are such that 0 <= fMinDepth <= fMaxDepth <= 1
+ */
+DEFINE_RHIMETHOD_3(
+	void,RHIEnableDepthBoundsTest,
+	bool,bEnable,
+	float,MinDepth,
+	float,MaxDepth,
 	,
 	);

@@ -161,11 +161,11 @@ void MainPixelShader(
 	CalcMaterialParameters(MaterialParameters, bIsFrontFace, float4(0,0,.00001f,1));
 	GetMaterialCoverageAndClipping(MaterialParameters);
 
-	float2 LightMapUV;
+	float2 LightMapUV,LightMapUV1;
 #if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP
-	LightMapUV = GetLightMapCoordinate(FactoryInterpolants).xy;
+	GetLightMapCoordinates(FactoryInterpolants,LightMapUV,LightMapUV1);
 #else
-	LightMapUV = float2(0.1,0.1);
+	LightMapUV = LightMapUV1 = float2(0.1,0.1);
 #endif
 
 	// Area of parallelogram, in world space units.

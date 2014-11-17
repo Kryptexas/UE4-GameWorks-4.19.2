@@ -54,13 +54,15 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(class UBehaviorTreeCompon
 			MyMemory->MainTaskResult = NodeResult;
 			MyMemory->bMainTaskIsActive = false;
 
-			OwnerComp->UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask, OwnerComp->GetActiveInstanceIdx());
+			const int32 MyInstanceIdx = OwnerComp->FindInstanceContainingNode(this);
+
+			OwnerComp->UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask, MyInstanceIdx);
 			if (NodeResult != EBTNodeResult::Aborted)
 			{
 				// check if subtree should be aborted when task finished with success/failed result
 				if (FinishMode == EBTParallelMode::AbortBackground)
 				{
-					OwnerComp->RequestExecution((UBTCompositeNode*)this, OwnerComp->GetActiveInstanceIdx(),
+					OwnerComp->RequestExecution((UBTCompositeNode*)this, MyInstanceIdx,
 						Children[EBTParallelChild::MainTask].ChildTask, EBTParallelChild::MainTask,
 						NodeResult);
 				}
@@ -93,13 +95,18 @@ void UBTComposite_SimpleParallel::NotifyNodeDeactivation(struct FBehaviorTreeSea
 	SearchData.AddUniqueUpdate(FBehaviorTreeSearchUpdate(Children[EBTParallelChild::MainTask].ChildTask, ActiveInstanceIdx, EBTNodeUpdateMode::Remove));
 
 	// remove all active nodes from background tree
-	const FBTNodeIndex FirstBackgroundIndex(ActiveInstanceIdx, GetChildExecutionIndex(EBTParallelChild::MainTask) + 1);
+	const FBTNodeIndex FirstBackgroundIndex(ActiveInstanceIdx, GetChildExecutionIndex(EBTParallelChild::BackgroundTree, EBTChildIndex::FirstNode));
 	SearchData.OwnerComp->UnregisterAuxNodesUpTo(FirstBackgroundIndex);
 }
 
 uint16 UBTComposite_SimpleParallel::GetInstanceMemorySize() const
 {
 	return sizeof(FBTParallelMemory);
+}
+
+bool UBTComposite_SimpleParallel::CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
+{
+	return (ChildIdx != EBTParallelChild::MainTask);
 }
 
 FString UBTComposite_SimpleParallel::DescribeFinishMode(EBTParallelMode::Type Mode)

@@ -183,8 +183,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						.Content()
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("VisLogDrawLogsPath", "Draw Log\'s path").ToString())
-							.ToolTipText(LOCTEXT("VisLogDrawLogsPathTooltip", "Toggle whether path of composed of log entries\' locations").ToString())
+							.Text(LOCTEXT("VisLogDrawLogsPath", "Draw Log\'s path"))
+							.ToolTipText(LOCTEXT("VisLogDrawLogsPathTooltip", "Toggle whether path of composed of log entries\' locations"))
 						]
 					]
 					+SVerticalBox::Slot()
@@ -196,8 +196,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						.Content()
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("VisLogIgnoreTrivialLogs", "Ignore trivial logs").ToString())
-							.ToolTipText(LOCTEXT("VisLogIgnoreTrivialLogsTooltip", "Whether to show trivial logs, i.e. the ones with only one entry.").ToString())
+							.Text(LOCTEXT("VisLogIgnoreTrivialLogs", "Ignore trivial logs"))
+							.ToolTipText(LOCTEXT("VisLogIgnoreTrivialLogsTooltip", "Whether to show trivial logs, i.e. the ones with only one entry."))
 						]
 					]
 				]
@@ -224,7 +224,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 						.HeaderRow(
 																																																																																				SNew(SHeaderRow)
 							// ID
-							+SHeaderRow::Column(*NAME_LogName.ToString())
+							+SHeaderRow::Column(NAME_LogName)
 							.SortMode(this, &SLogVisualizer::GetLogsSortMode)
 							.OnSort(this, &SLogVisualizer::OnSortByChanged)
 							.HAlignCell(HAlign_Left)
@@ -237,7 +237,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 								.Padding(0.0, 2.0)
 								[
 									SNew(STextBlock)
-									.Text(LOCTEXT("VisLogName", "Log Subject").ToString())
+									.Text(LOCTEXT("VisLogName", "Log Subject"))
 								]
 								+SHorizontalBox::Slot()
 								.AutoWidth()
@@ -250,7 +250,7 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 									.RevertTextOnEscape(true)
 								]
 							]
-							+SHeaderRow::Column(*NAME_LogTimeSpan.ToString())
+							+SHeaderRow::Column(NAME_LogTimeSpan)
 							/*.OnSort(this, &SLogVisualizer::OnSortByChanged)*/
 							.VAlignCell(VAlign_Center)
 							[
@@ -259,8 +259,8 @@ void SLogVisualizer::Construct(const FArguments& InArgs, FLogVisualizer* InLogVi
 								.AutoHeight()
 								[
 									SNew(STextBlock)
-									.Text(LOCTEXT("VisLogTimeSpan", "Overview").ToString())
-									.ToolTipText(LOCTEXT("VisLogTimeSpanTooltip", "Mouse-over to see timestamp, click to show log entry").ToString())
+									.Text(LOCTEXT("VisLogTimeSpan", "Overview"))
+									.ToolTipText(LOCTEXT("VisLogTimeSpanTooltip", "Mouse-over to see timestamp, click to show log entry"))
 								]
 							]
 						)
@@ -404,13 +404,14 @@ int32 SLogVisualizer::GetCurrentVisibleLogEntryIndex(const TArray<TSharedPtr<FVi
 	if (LogVisualizer->Logs.IsValidIndex(SelectedLogIndex))
 	{
 		TSharedPtr<FActorsVisLog> Log = LogVisualizer->Logs[SelectedLogIndex];
-		check(Log.IsValid());
-
-		for (int32 i = 0; i < InVisibleEntries.Num(); ++i)
+		if (Log.IsValid() && Log->Entries.IsValidIndex(LogEntryIndex))
 		{
-			if (InVisibleEntries[i] == Log->Entries[LogEntryIndex])
+			for (int32 Index = 0; Index < InVisibleEntries.Num(); ++Index)
 			{
-				return i;
+				if (InVisibleEntries[Index] == Log->Entries[LogEntryIndex])
+				{
+					return Index;
+				}
 			}
 		}
 	}
@@ -1268,6 +1269,8 @@ FReply SLogVisualizer::OnLoad()
 		}
 	}
 
+	DoFullUpdate();
+
 	return FReply::Handled();
 }
 
@@ -1441,25 +1444,6 @@ EColumnSortMode::Type SLogVisualizer::GetLogsSortMode() const
 	return (SortBy == ELogsSortMode::ByName) ? EColumnSortMode::Ascending : EColumnSortMode::None;
 }
 
-namespace LogVisualizerJson
-{
-	typedef TCHAR CharType;
-
-	typedef TJsonWriter< CharType, TPrettyJsonPrintPolicy<CharType> > FPrettyJsonStringWriter;
-	typedef TJsonWriterFactory< CharType, TPrettyJsonPrintPolicy<CharType> > FPrettyJsonStringWriterFactory;
-
-	typedef TJsonWriterFactory< CharType, TCondensedJsonPrintPolicy<CharType> > FCondensedJsonStringWriterFactory;
-	typedef TJsonWriter< CharType, TCondensedJsonPrintPolicy<CharType> > FCondensedJsonStringWriter;
-
-	typedef FCondensedJsonStringWriter FStringWriter;
-	typedef FCondensedJsonStringWriterFactory FStringWriterFactory;
-
-	typedef TJsonReader<CharType> FJsonReader;
-	typedef TJsonReaderFactory<CharType> FJsonReaderFactory;
-
-	static const FString TAG_LOGS = TEXT("Logs");
-}
-
 void SLogVisualizer::LoadFiles(TArray<FString>& OpenFilenames)
 {
 	for (int FilenameIndex = 0; FilenameIndex < OpenFilenames.Num(); ++FilenameIndex)
@@ -1468,19 +1452,9 @@ void SLogVisualizer::LoadFiles(TArray<FString>& OpenFilenames)
 		if (FileAr != NULL)
 		{
 			TSharedPtr<FJsonObject> Object;
-			bool bReadIn = true;
+			TSharedRef<TJsonReader<UCS2CHAR> > Reader = TJsonReader<UCS2CHAR>::Create(FileAr);
 
-			{
-				TSharedRef< LogVisualizerJson::FJsonReader > Reader = LogVisualizerJson::FJsonReaderFactory::Create(FileAr);
-				if (FJsonSerializer::Deserialize( Reader, Object ) == false)
-				{
-					// try a plain char reader
-					TSharedRef< TJsonReader<char> > NewReader = TJsonReaderFactory<char>::Create(FileAr);
-					bReadIn = FJsonSerializer::Deserialize( NewReader, Object );
-				}
-			}
-
-			if (bReadIn)
+			if (FJsonSerializer::Deserialize(Reader, Object))
 			{
 				TArray< TSharedPtr<FJsonValue> > JsonLogs = Object->GetArrayField(LogVisualizerJson::TAG_LOGS);
 				for (int32 LogIndex = 0; LogIndex < JsonLogs.Num(); ++LogIndex)
@@ -1532,7 +1506,7 @@ void SLogVisualizer::SaveSelectedLogs(FString& Filename)
 		FArchive* FileAr = IFileManager::Get().CreateFileWriter(*Filename);
 		if (FileAr != NULL)
 		{
-			TSharedRef< LogVisualizerJson::FStringWriter > Writer = LogVisualizerJson::FStringWriterFactory::Create(FileAr);
+			TSharedRef<TJsonWriter<UCS2CHAR> > Writer = TJsonWriter<UCS2CHAR>::Create(FileAr);
 			FJsonSerializer::Serialize( Object.ToSharedRef(), Writer );		
 			FileAr->Close();
 		}

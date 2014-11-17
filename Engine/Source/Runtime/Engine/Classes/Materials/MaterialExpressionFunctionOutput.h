@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionFunctionOutput.generated.h"
 
-UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
+UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionFunctionOutput : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

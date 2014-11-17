@@ -6,7 +6,7 @@
 #include "ModuleInterface.h"
 
 /**
- * Content browser module
+ * Game Project Generation module
  */
 class FGameProjectGenerationModule : public IModuleInterface
 {
@@ -51,7 +51,7 @@ public:
 	virtual void CheckForOutOfDateGameProjectFile();
 
 	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
-	virtual bool UpdateGameProject(const FString &EngineIdentifier);
+	virtual bool UpdateGameProject(const FString& EngineIdentifier);
 
 	/** Updates the current code project */
 	virtual bool UpdateCodeProject(FText& OutFailReason);
@@ -61,6 +61,9 @@ public:
 
 	/** Update code resource files */
 	virtual bool UpdateCodeResourceFiles(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
+
+	/** Warn the user if the project filename is invalid in case they renamed it outside the editor */
+	virtual void CheckAndWarnProjectFilenameValid();
 
 private:
 	FAddCodeToProjectDialogOpenedEvent AddCodeToProjectDialogOpenedEvent;

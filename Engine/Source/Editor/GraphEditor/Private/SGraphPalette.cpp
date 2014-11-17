@@ -53,10 +53,10 @@ void SGraphPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetForActi
 
 FReply SGraphPaletteItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if (GraphDropOp.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> GrapDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
-		GrapDropOp->DroppedOnAction( ActionPtr.Pin().ToSharedRef() );
+		GraphDropOp->DroppedOnAction(ActionPtr.Pin().ToSharedRef());
 		return FReply::Handled();
 	}
 	return FReply::Unhandled();
@@ -64,18 +64,18 @@ FReply SGraphPaletteItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEv
 
 void SGraphPaletteItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if (GraphDropOp.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 		GraphDropOp->SetHoveredAction( ActionPtr.Pin() );
 	}
 }
 
 void SGraphPaletteItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if (GraphDropOp.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 		GraphDropOp->SetHoveredAction( NULL );
 	}
 }

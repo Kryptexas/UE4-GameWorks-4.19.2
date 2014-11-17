@@ -42,6 +42,7 @@ private:
 	virtual void Initialize() OVERRIDE;
 	virtual void BindCommands() OVERRIDE;
 	virtual void OnLevelsCollectionChanged() OVERRIDE;
+	virtual void OnLevelsSelectionChanged() OVERRIDE;
 	/** FLevelCollection interface end */
 	
 public:

@@ -18,11 +18,20 @@ DEFINE_LOG_CATEGORY(LogAttributeComponent);
 UAttributeComponent::UAttributeComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	bWantsInitializeComponent = true;
+
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true; // FIXME! Just temp until timer manager figured out
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	ActiveGameplayEffects.Owner = this;
+
+	SetIsReplicated(true);
+}
+
+UAttributeComponent::~UAttributeComponent()
+{
+	ActiveGameplayEffects.PreDestroy();
 }
 
 UAttributeSet* UAttributeComponent::InitStats(TSubclassOf<class UAttributeSet> Attributes, const UDataTable* DataTable)
@@ -160,11 +169,11 @@ float UAttributeComponent::GetNumericAttribute(const FGameplayAttribute &Attribu
 }
 
 /** This is a helper function used in automated testing, I'm not sure how useful it will be to gamecode or blueprints */
-FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget(UGameplayEffect *GameplayEffect, UAttributeComponent *Target, float Level, FModifierQualifier BaseQualifier) const
+FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAttributeComponent *Target, float Level, FModifierQualifier BaseQualifier)
 {
 	check(GameplayEffect);
 
-	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level)), GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Level, GetCurveDataOverride());
 	Spec.Def = GameplayEffect;
 	Spec.InstigatorStack.AddInstigator(GetOwner());
 	
@@ -172,15 +181,15 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget
 }
 
 /** Helper function since we can't have default/optional values for FModifierQualifier in K2 function */
-FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+FActiveGameplayEffectHandle UAttributeComponent::K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
 {
 	return ApplyGameplayEffectToSelf(GameplayEffect, Level, Instigator);
 }
 
 /** This is a helper function - it seems like this will be useful as a blueprint interface at the least, but Level parameter may need to be expanded */
-FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
+FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier)
 {
-	FGameplayEffectSpec	Spec(GameplayEffect, TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(Level)), GetCurveDataOverride());
+	FGameplayEffectSpec	Spec(GameplayEffect, GetOwner(), Level, GetCurveDataOverride());
 	Spec.Def = GameplayEffect;
 	Spec.InstigatorStack.AddInstigator(Instigator);
 
@@ -200,7 +209,12 @@ int32 UAttributeComponent::GetNumActiveGameplayEffect() const
 bool UAttributeComponent::IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const
 {
 	return ActiveGameplayEffects.IsGameplayEffectActive(InHandle);
+}
 
+bool UAttributeComponent::HasAnyTags(FGameplayTagContainer &Tags)
+{
+	// Fixme: we could aggregate our current tags into a map to avoid this type of iteration
+	return ActiveGameplayEffects.HasAnyTags(Tags);
 }
 
 void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
@@ -215,7 +229,7 @@ void UAttributeComponent::TEMP_ApplyActiveGameplayEffects()
 	}
 }
 
-FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAttributeComponent *Target, FModifierQualifier BaseQualifier) const
+FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &Spec, UAttributeComponent *Target, FModifierQualifier BaseQualifier)
 {
 	// Apply outgoing Effects to the Spec.
 	ActiveGameplayEffects.ApplyActiveEffectsTo(Spec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::OutgoingGE));
@@ -236,14 +250,7 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 		float Duration = Spec.GetDuration();
 		if (Duration != UGameplayEffect::INSTANT_APPLICATION)
 		{
-			float GameTime = GetWorld()->GetTimeSeconds();
-			// if we have a game state use the ElapsedTime so client server time replication is more accurate else use the time seconds of the game world.
-			if (GetWorld()->GetGameState<AGameState>())
-			{
-				GameTime = GetWorld()->GetGameState<AGameState>()->ElapsedTime;
-			}
-
-			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec, GameTime);
+			FActiveGameplayEffect &NewActiveEffect = ActiveGameplayEffects.CreateNewActiveGameplayEffect(Spec);
 			MyHandle = NewActiveEffect.Handle;
 			OurCopyOfSpec = &NewActiveEffect.Spec;
 
@@ -272,12 +279,15 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 		// have other modifiers. THOSE modifiers may or may not be copies of whatever.
 		//
 		// In theory, we don't modify 2nd order modifiers after they are 'attached'
-		// Long complex chains can be created but we never say 'Modify a GE that is moding another GE'
+		// Long complex chains can be created but we never say 'Modify a GE that is modding another GE'
 		OurCopyOfSpec->MakeUnique();
 	}
 
 	// Now that we have our own copy, apply our GEs that modify IncomingGEs
 	ActiveGameplayEffects.ApplyActiveEffectsTo(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).Type(EGameplayMod::IncomingGE).IgnoreHandle(MyHandle));
+
+	// todo: apply some better logic to this so that we don't recalculate stacking effects as often
+	ActiveGameplayEffects.bNeedToRecalculateStacks = true;
 	
 	// Now that we have the final version of this effect, actually apply it if its going to be hanging around
 	if (Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION )
@@ -292,20 +302,30 @@ FActiveGameplayEffectHandle UAttributeComponent::ApplyGameplayEffectSpecToSelf(c
 	if (bInvokeGameplayCueApplied)
 	{
 		// We both added and activated the GameplayCue here.
-		// On the client, who will invoke the gameplaycue from an OnRep, he will need to look at the StartTime to determine
+		// On the client, who will invoke the gameplay cue from an OnRep, he will need to look at the StartTime to determine
 		// if the Cue was actually added+activated or just added (due to relevancy)
 
-		// Fixme: what if we wanted to scale Cue magnitde based on damage? E.g, scale an cue effect when the GE is buffed?
+		// Fixme: what if we wanted to scale Cue magnitude based on damage? E.g, scale an cue effect when the GE is buffed?
 		InvokeGameplayCueAdded(*OurCopyOfSpec);
 		InvokeGameplayCueActivated(*OurCopyOfSpec);
 	}
 	
 	// Execute the GE at least once (if instant, this will execute once and be done. If persistent, it was added to ActiveGameplayEffects above)
 	
-	// Execute if this is an instant application effect or if it is a periodic effect (this would be the first execution of a repeating effect)
-	if (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION || Spec.GetPeriod() != UGameplayEffect::NO_PERIOD)
+	// Execute if this is an instant application effect
+	if (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION)
 	{
 		ExecuteGameplayEffect(*OurCopyOfSpec, FModifierQualifier(BaseQualifier).IgnoreHandle(MyHandle));
+	}
+
+	if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD && Spec.TargetEffectSpecs.Num() > 0)
+	{
+		SKILL_LOG(Warning, TEXT("%s is periodic but also applies GameplayEffects to its target. GameplayEffects will only be applied once, not every period."), *Spec.Def->GetPathName());
+	}
+	// todo: this is ignoring the returned handles, should we put them into a TArray and return all of the handles?
+	for (const TSharedRef<FGameplayEffectSpec> TargetSpec : Spec.TargetEffectSpecs)
+	{
+		ApplyGameplayEffectSpecToSelf(TargetSpec.Get(), BaseQualifier);
 	}
 
 	return MyHandle;
@@ -324,8 +344,8 @@ void UAttributeComponent::ExecutePeriodicEffect(FActiveGameplayEffectHandle	Hand
 
 void UAttributeComponent::ExecuteGameplayEffect(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext)
 {
-	// Should only ever execute effects that are instant applicatin or periodic application
-	// Effects with no period and that arent instant application should never be executed
+	// Should only ever execute effects that are instant application or periodic application
+	// Effects with no period and that aren't instant application should never be executed
 	check( (Spec.GetDuration() == UGameplayEffect::INSTANT_APPLICATION || Spec.GetPeriod() != UGameplayEffect::NO_PERIOD) );
 	
 	ActiveGameplayEffects.ExecuteActiveEffectsFrom(Spec, QualifierContext);
@@ -344,10 +364,6 @@ float UAttributeComponent::GetGameplayEffectDuration(FActiveGameplayEffectHandle
 float UAttributeComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const
 {
 	return ActiveGameplayEffects.GetGameplayEffectMagnitude(Handle, Attribute);
-}
-void UAttributeComponent::RegisterAttributeModifyCallback(FGameplayAttribute Attribute, FOnGameplayAttributeEffectExecuted Delegate)
-{
-	return ActiveGameplayEffects.RegisterAttributeModifyCallback(Attribute, Delegate);
 }
 
 void UAttributeComponent::InvokeGameplayCueExecute(const FGameplayEffectSpec &Spec)
@@ -438,6 +454,21 @@ void UAttributeComponent::OnRep_GameplayEffects()
 
 }
 
+void UAttributeComponent::AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant)
+{
+	ActiveGameplayEffects.AddDependancyToAttribute(Attribute, InDependant);
+}
+
+bool UAttributeComponent::CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator)
+{
+	return ActiveGameplayEffects.CanApplyAttributeModifiers(GameplayEffect, Level, Instigator);
+}
+
+TArray<float> UAttributeComponent::GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const
+{
+	return ActiveGameplayEffects.GetActiveEffectsTimeRemaining(Query);
+}
+
 // ---------------------------------------------------------------------------------------
 
 void UAttributeComponent::PrintAllGameplayEffects() const
@@ -459,7 +490,7 @@ void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
 void FActiveGameplayEffect::PrintAll() const
 {
 	SKILL_LOG(Log, TEXT("Handle: %s"), *Handle.ToString());
-	SKILL_LOG(Log, TEXT("StartTime: %.2f"), StartTime);
+	SKILL_LOG(Log, TEXT("StartWorldTime: %.2f"), StartWorldTime);
 	SKILL_LOG(Log, TEXT("NextExecuteTime: %.2f"), NextExecuteTime);
 	Spec.PrintAll();
 }
@@ -490,7 +521,6 @@ void FModifierSpec::PrintAll() const
 	SKILL_LOG(Log, TEXT("ModifierOp: %s"), *EGameplayModOpToString(Info.ModifierOp));
 	SKILL_LOG(Log, TEXT("EffectType: %s"), *EGameplayModEffectToString(Info.EffectType));
 	SKILL_LOG(Log, TEXT("RequiredTags: %s"), *Info.RequiredTags.ToString());
-	SKILL_LOG(Log, TEXT("PassedTags: %s"), *Info.PassedTags.ToString());
 	SKILL_LOG(Log, TEXT("OwnedTags: %s"), *Info.OwnedTags.ToString());
 	SKILL_LOG(Log, TEXT("(Base) Magnitude: %s"), *Info.Magnitude.ToSimpleString());
 
@@ -591,6 +621,7 @@ void UAttributeComponent::TEMP_TimerTestCallback(int32 x)
 
 void UAttributeComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsTick);
 	SKILL_LOG_SCOPE(TEXT("Ticking %s"), *GetName());
 
 	// This should be tmep until timer manager stuff is figured out

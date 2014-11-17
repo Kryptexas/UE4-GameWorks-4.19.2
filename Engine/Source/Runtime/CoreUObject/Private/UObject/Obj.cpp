@@ -57,8 +57,8 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 	FMetaDataUtilities::FMoveMetadataHelperContext MoveMetaData(this, true);
 #endif //WITH_EDITOR
 
-	// Check that we are not renaming a within object into an Outer of the wrong type.
-	if( NewOuter && !NewOuter->IsA(GetClass()->ClassWithin) )	
+	// Check that we are not renaming a within object into an Outer of the wrong type, unless we're renaming the CDO of a Blueprint.
+	if( NewOuter && !NewOuter->IsA(GetClass()->ClassWithin) && !HasAnyFlags(RF_ClassDefaultObject))	
 	{
 		UE_LOG(LogObj, Fatal, TEXT("Cannot rename %s into Outer %s as it is not of type %s"), 
 			*GetFullName(), 
@@ -164,7 +164,7 @@ bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags
 		Redirector->DestinationObject = this;
 	}
 
-	PostRename();
+	PostRename(OldOuter, OldName);
 
 	return true;
 }
@@ -207,7 +207,7 @@ void UObject::PostEditChange(void)
 
 void UObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	FCoreDelegates::OnObjectPropertyChanged.Broadcast(this);
+	FCoreDelegates::OnObjectPropertyChanged.Broadcast(this, PropertyChangedEvent);
 }
 
 
@@ -701,6 +701,9 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 			MarkPackageDirty();
 		}
 	}
+#if WITH_EDITOR
+	FCoreDelegates::OnObjectModified.Broadcast(this);
+#endif
 	return bSavedToTransactionBuffer;
 }
 
@@ -740,13 +743,10 @@ void UObject::Serialize( FArchive& Ar )
 	if( (!Ar.IsLoading() && !Ar.IsSaving() && !Ar.IsObjectReferenceCollector()) )
 	{
 		Ar << LoadName;
-		// We don't want to have the following potentially be clobbered by GC code.
-		Ar.AllowEliminatingReferences( false );
 		if(!Ar.IsIgnoringOuterRef())
 		{
 			Ar << LoadOuter;
 		}
-		Ar.AllowEliminatingReferences( true );
 		if ( !Ar.IsIgnoringClassRef() )
 		{
 			Ar << Class;
@@ -964,19 +964,29 @@ DEFINE_LOG_CATEGORY_STATIC(LogCheckSubobjects, Fatal, All);
 		UE_LOG(LogCheckSubobjects, Log, TEXT("CompCheck %s failed."), TEXT(#Pred)); \
 	} 
 
-bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+bool UObject::CanCheckDefaultSubObjects(bool bForceCheck, bool& bResult)
 {
+	bool bCanCheck = true;
+	bResult = true;
 	if (!this)
 	{
-		return false; // these aren't in a suitable spot in their lifetime for testing
+		bResult = false; // these aren't in a suitable spot in their lifetime for testing
+		bCanCheck = false;
 	}
 	if (HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad | RF_NeedPostLoadSubobjects | RF_Unreachable | RF_PendingKill) || GIsDuplicatingClassForReinstancing)
 	{
-		return true; // these aren't in a suitable spot in their lifetime for testing
+		bResult = true; // these aren't in a suitable spot in their lifetime for testing
+		bCanCheck = false;
 	}
-	bool Result = true;
 	// If errors are suppressed, we will not take the time to run this test unless forced to.
-	if (bForceCheck || UE_LOG_ACTIVE(LogCheckSubobjects, Error))
+	bCanCheck = bCanCheck && (bForceCheck || UE_LOG_ACTIVE(LogCheckSubobjects, Error));
+	return bCanCheck;
+}
+
+bool UObject::CheckDefaultSubobjects(bool bForceCheck /*= false*/)
+{
+	bool Result = true;	
+	if (CanCheckDefaultSubObjects(bForceCheck, Result))
 	{
 		CompCheck(this);
 		UClass* Class = GetClass();
@@ -1527,17 +1537,6 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 		return;
 	}
 
-	if (GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
-	{
-		// no INI file specified - save to corresponding Default INI
-		if ((InFilename == NULL) && (Config == GConfig))
-		{
-			UpdateDefaultConfigFile();
-
-			return;
-		}
-	}
-
 	uint32 PropagationFlags = UE4::LCPF_None;
 
 	const FString Filename
@@ -1545,6 +1544,11 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 	=	InFilename
 		? InFilename
 		: GetConfigFilename(this);
+
+	// Determine whether the file we are writing is a default file config.
+	const bool bIsADefaultIniWrite = !Filename.Contains(FPaths::GameSavedDir())
+		&& !Filename.Contains(FPaths::EngineSavedDir())
+		&& FPaths::GetBaseFilename(Filename).StartsWith(TEXT("Default"));
 
 	const bool bPerObject = UsesPerObjectConfig(this);
 	FString Section;
@@ -1619,13 +1623,16 @@ void UObject::SaveConfig( uint64 Flags, const TCHAR* InFilename, FConfigCacheIni
 					FConfigSection* Sec = Config->GetSectionPrivate( *Section, 1, 0, *PropFileName );
 					check(Sec);
 					Sec->Remove( *Key );
-				
+
+					// Default ini's require the array syntax to be applied to the property name
+					FString CompleteKey = FString::Printf(TEXT("%s%s"), bIsADefaultIniWrite ? TEXT("+") : TEXT(""), *Key);
+
 					FScriptArrayHelper_InContainer ArrayHelper(Array, this);
 					for( int32 i=0; i<ArrayHelper.Num(); i++ )
 					{
 						FString	Buffer;
 						Array->Inner->ExportTextItem( Buffer, ArrayHelper.GetRawPtr(i), ArrayHelper.GetRawPtr(i), this, PortFlags );
-						Sec->Add( *Key, *Buffer );
+						Sec->Add(*CompleteKey, *Buffer);
 					}
 				}
 				else if( Property->Identical_InContainer(this, SuperClassDefaultObject) )

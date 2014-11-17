@@ -8,6 +8,10 @@
 
 #include "PhysicsSettings.generated.h"
 
+
+/**
+ * Structure that represents the name of physical surfaces.
+ */
 USTRUCT()
 struct FPhysicalSurfaceName
 {
@@ -28,8 +32,13 @@ struct FPhysicalSurfaceName
 	{}
 };
 
-UCLASS(config=Engine)
-class ENGINE_API UPhysicsSettings: public UObject
+
+/**
+ * Implements project settings for the physics sub-system.
+ */
+UCLASS(config=Engine, defaultconfig)
+class ENGINE_API UPhysicsSettings
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -40,7 +49,6 @@ class ENGINE_API UPhysicsSettings: public UObject
 	/**Enables the use of an async scene */
 	UPROPERTY(config, EditAnywhere, AdvancedDisplay, Category=Simulation)
 	bool bEnableAsyncScene;
-
 
 	/**Max Physics Delta Time to be clamped. */
 	UPROPERTY(config, EditAnywhere, meta=(ClampMin="0.0013", UIMin = "0.0013", ClampMax="1.0", UIMax="1.0"), Category=Framerate)
@@ -75,14 +83,18 @@ class ENGINE_API UPhysicsSettings: public UObject
 	TArray<FPhysicalSurfaceName> PhysicalSurfaces;
 
 public:
+
 	static UPhysicsSettings * Get() { return CastChecked<UPhysicsSettings>(UPhysicsSettings::StaticClass()->GetDefaultObject()); }
 
-	virtual void	PostInitProperties() OVERRIDE;
+	virtual void PostInitProperties() OVERRIDE;
 
 #if WITH_EDITOR
+
 	virtual bool CanEditChange( const UProperty* Property ) const OVERRIDE;
+
 	/** Load Material Type data from INI file **/
 	/** this changes displayname meta data. That means we won't need it outside of editor*/
 	void LoadSurfaceType();
+
 #endif // WITH_EDITOR
 };

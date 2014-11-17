@@ -26,6 +26,8 @@ class FALAudioDevice;
 #pragma pack (pop)
 #endif 
 
+DECLARE_LOG_CATEGORY_EXTERN(LogALAudio, Log, All);
+
 /**
  * OpenAL implementation of FSoundBuffer, containing the wave data and format information.
  */
@@ -229,10 +231,14 @@ public:
 	 */
 	virtual void FreeResource( USoundWave* SoundWave );
 
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
+
 	void FindProcs( bool AllowExt );
 
 	// Error checking.
-	bool alError( const TCHAR* Text, bool Log = 1 );
+	bool alError( const TCHAR* Text, bool Log = true );
 
 protected:
 

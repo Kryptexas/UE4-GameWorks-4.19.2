@@ -106,7 +106,7 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 		}
 
 		// Extend the endpoint of the rect to get the actual line
-		FIntRect BoxRect( FIntPoint( FMath::Max( 0.0f, Start.X ), FMath::Max( 0.0f, Start.Y ) ), FIntPoint( FMath::Min(ViewportSizeX, FMath::Trunc(End.X+1)), FMath::Min( ViewportSizeY, FMath::Trunc(End.Y+1) ) ) );
+		FIntRect BoxRect( FIntPoint( FMath::Max( 0.0f, Start.X ), FMath::Max( 0.0f, Start.Y ) ), FIntPoint( FMath::Min(ViewportSizeX, FMath::TruncToInt(End.X+1)), FMath::Min( ViewportSizeY, FMath::TruncToInt(End.Y+1) ) ) );
 
 		const TArray<FColor>& RawHitProxyData = ViewportClient->Viewport->GetRawHitProxyData(BoxRect);
 

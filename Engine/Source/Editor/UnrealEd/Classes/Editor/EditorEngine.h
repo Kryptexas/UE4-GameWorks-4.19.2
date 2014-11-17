@@ -4,6 +4,7 @@
 
 #include "EditorUserSettings.h"
 #include "Transactor.h"
+#include "../Settings/LevelEditorPlaySettings.h"
 #include "EditorEngine.generated.h"
 
 //
@@ -50,6 +51,62 @@ struct FSlatePlayInEditorInfo
 	FSlatePlayInEditorInfo()
 	: SlatePlayInEditorWindow(NULL), DestinationSlateViewport(NULL)
 	{}
+};
+
+/**
+ * Data structure for storing PIE login credentials
+ */
+USTRUCT()
+struct FPIELoginInfo
+{
+public:
+
+	GENERATED_USTRUCT_BODY()
+
+	/** Type of account. Needed to identity the auth method to use (epic, internal, facebook, etc) */
+	UPROPERTY()
+	FString Type;
+	/** Id of the user logging in (email, display name, facebook id, etc) */
+	UPROPERTY()
+	FString Id;
+	/** Credentials of the user logging in (password or auth token) */
+	UPROPERTY()
+	FString Token;
+};
+
+/**
+ * Holds various data to pass to the post login delegate for PIE logins
+ */
+struct FPieLoginStruct
+{
+	/** World context handle for this login */
+	FName WorldContextHandle;
+	/** Setting index for window positioning */
+	int32 SettingsIndex;
+	/** X location for window positioning */
+	int32 NextX;
+	/** Y location for window positioning */
+	int32 NextY;
+	/** Will this instance run as a server */
+	bool bIsServer;
+	/** Passthrough condition of blueprint compilation*/
+	bool bAnyBlueprintErrors;
+	/** Passthrough condition of spectator mode */
+	bool bStartInSpectatorMode;
+	/** Passthrough start time of PIE */
+	double PIEStartTime;
+
+	FPieLoginStruct() :
+		WorldContextHandle(NAME_None),
+		SettingsIndex(0),
+		NextX(0),
+		NextY(0),
+		bIsServer(false),
+		bAnyBlueprintErrors(false),
+		bStartInSpectatorMode(false),
+		PIEStartTime(0)
+	{
+	}
 };
 
 USTRUCT()
@@ -326,8 +383,16 @@ class UNREALED_API UEditorEngine : public UEngine
 	UPROPERTY(config)
 	int32 BuildPlayDevice;
 
+	/** Enabled online PIE */
+	UPROPERTY(config)
+	bool bOnlinePIEEnabled;
+
+	/** Logins available for use when running PIE instances */
+	UPROPERTY(config)
+	TArray<FPIELoginInfo> PIELogins;
+
 	/** Maps world contexts to their slate data */
-	TMap<int32, FSlatePlayInEditorInfo>	SlatePlayInEditorMap;
+	TMap<FName, FSlatePlayInEditorInfo>	SlatePlayInEditorMap;
 
 	/** Viewport the next PlaySession was requested to happen on */
 	TWeakPtr<class ILevelViewport>		RequestedDestinationSlateViewport;
@@ -432,9 +497,6 @@ public:
 
 	/** List of level editor viewport clients for level specific actions */
 	TArray<class FLevelEditorViewportClient*> LevelViewportClients;
-
-	/** Stores the class hierarchy generated from the make commandlet*/
-	class FEditorClassHierarchy*			EditorClassHierarchy;
 
 	/** Annotation to track which PIE/SIE (PlayWorld) UObjects have counterparts in the EditorWorld **/
 	class FUObjectAnnotationSparseBool ObjectsThatExistInEditorWorld;
@@ -614,7 +676,6 @@ public:
 	 * @return - Whether a NON-realtime viewport has updated in this call.  Used to help time-slice canvas redraws
 	 */
 	bool UpdateSingleViewportClient(FEditorViewportClient* InViewportClient, const bool bInAllowNonRealtimeViewportToDraw, bool bLinkedOrthoMovement );
-
 
 	/** Used for generating status bar text */
 	enum EMousePositionType
@@ -1565,9 +1626,6 @@ public:
 	/** Function to return list of assets currently selected in content browser (loaded/not loaded) */
 	void GetContentBrowserSelections( TArray<UClass*>& Selection ) const;
 
-	/** Function to fetch the currently selected asset tree path in content browser*/
-	void GetContentBrowserAssetTreePath( FString& SelectedPath ) const;
-
 	/**
 	 * Returns an FSelectionIterator that iterates over the set of selected actors.
 	 */
@@ -2120,7 +2178,7 @@ public:
 	 *
 	 * @return	the friendly name for the property.  localized first, then metadata, then the property's name.
 	 */
-	static FString GetFriendlyName( const UProperty* Property, UClass* OwnerClass = NULL );
+	static FString GetFriendlyName( const UProperty* Property, UStruct* OwnerClass = NULL );
 
 	/**
 	 * Register a client tool to receive undo events 
@@ -2143,6 +2201,12 @@ public:
 	 * Are we playing via the Launcher?
 	 */
 	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher && !bIsPlayWorldQueued; }
+
+	/** @return true if the editor is able to launch PIE with online platform support */
+	bool SupportsOnlinePIE() const;
+
+    /** @return true if there are active PIE instances logged into an online platform */
+	bool IsPlayingWithOnlinePIE() const { return NumOnlinePIEInstances > 0; }
 
 	/**
 	 * Ensures the assets specified are loaded and adds them to the global selection set
@@ -2227,8 +2291,45 @@ private:
 
 	UWorld* CreatePIEWorldFromEntry(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName);
 
+	/**
+	 * Login PIE instances with the online platform before actually creating any PIE worlds
+	 *
+	 * @param bAnyBlueprintErrors passthrough value of blueprint errors encountered during PIE creation
+	 * @param bStartInSpectatorMode passthrough value if it is expected that PIE will start in spectator mode
+	 * @param PIEStartTime passthrough value of the time that PIE was initiated by the user
+	 */
+	virtual void LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpectatorMode, double PIEStartTime);
+
+	/**
+	 * Delegate called as each PIE instance login is complete, continues creating the PIE world for a single instance
+	 * 
+	 * @param LocalUserNum local user id, for PIE is going to be 0 (there is no splitscreen)
+	 * @param bWasSuccessful was the login successful
+	 * @param UserId userid of the logged in account
+	 * @param ErrorString descriptive error when applicable
+	 * @param DataStruct data required to continue PIE creation, set at login time
+	 */
+	virtual void OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct);
+
+	/**
+	 * Continue the creation of a single PIE world after a login was successful
+	 *
+	 * @param PieWorldContext world context for this PIE instance
+	 * @param PlayNetMode mode to create this PIE world in (as server, client, etc)
+	 * @param DataStruct data required to continue PIE creation, set at login time
+	 */
+	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
+
+	/**
+	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required
+	 *
+	 * @param bAnyBlueprintErrors passthrough value of blueprint errors encountered during PIE creation
+	 * @param bStartInSpectatorMode passthrough value if it is expected that PIE will start in spectator mode
+	 */
+	void SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bStartInSpectatorMode);
+
 	/** Common init shared by CreatePIEWorldByDuplication and CreatePIEWorldBySavingToTemp */
-	void	PostCreatePIEWorld(UWorld *InWorld);
+	void PostCreatePIEWorld(UWorld *InWorld);
 
 	/**
 	 * Toggles PIE to SIE or vice-versa
@@ -2434,7 +2535,10 @@ private:
 
 	virtual void VerifyLoadMapWorldCleanup() OVERRIDE;
 
-	FPIEInstanceWindowSwitch PIEInstanceWIndowSwitchDelegate;
+	FPIEInstanceWindowSwitch PIEInstanceWindowSwitchDelegate;
+
+	/** Number of currently running instances logged into an online platform */
+	int32 NumOnlinePIEInstances;
 
 protected:
 
@@ -2447,6 +2551,12 @@ protected:
 
 	/** Called when Matinee is opened */
 	virtual void OnOpenMatinee(){};
+
+	/** Invalidate all viewport client hit proxies immediately */
+	void InvalidateAllViewportClientHitProxies();
+
+	/** Destroy any online subsystems generated by PIE */
+	void CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers);
 };
 
 

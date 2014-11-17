@@ -9,6 +9,8 @@
 #include "HeaderParser.h"
 #include "ClassMaps.h"
 #include "Manifest.h"
+#include "StringUtils.h"
+#include "IScriptGeneratorPluginInterface.h"
 
 /////////////////////////////////////////////////////
 // Globals
@@ -25,28 +27,6 @@ static const bool bMultiLineUPROPERTY = true;
 static UClass* GenerateCodeForHeader(UObject* InParent, const TCHAR* Name, EObjectFlags Flags, const TCHAR* Buffer, int32& OutClassDeclLine);
 
 FCompilerMetadataManager* GScriptHelper = NULL;
-
-/////////////////////////////////////////////////////
-// FClassPackageComparator
-
-class FClassPackageComparator
-{
-	UPackage* Package;
-
-public:
-
-	FClassPackageComparator( UPackage* InPackage )
-	: Package(InPackage)
-	{
-	}
-
-	bool IsValidClass( const class FClassTree* Node ) const
-	{
-		UClass* Cls = Node->GetClass();
-		return Cls == UObject::StaticClass() || Cls->GetOuter() == Package;
-	}
-};
-
 
 /** C++ name lookup helper */
 FNameLookupCPP* NameLookupCPP;
@@ -197,7 +177,7 @@ bool MakeCommandlet_FindPackageLocation(const TCHAR* InPackage, FString& OutLoca
 {
 	// Mapping of processed packages to their locations
 	// An empty location string means it was processed but not found
-	static TMap<FString, FManifest::FModule*> CheckedPackageList;
+	static TMap<FString, FManifestModule*> CheckedPackageList;
 
 	FString CheckPackage(InPackage);
 
@@ -205,7 +185,7 @@ bool MakeCommandlet_FindPackageLocation(const TCHAR* InPackage, FString& OutLoca
 
 	if (!ModuleInfoPtr)
 	{
-		auto* ModuleInfoPtr2 = GManifest.Modules.FindByPredicate([&](FManifest::FModule& Module) { return Module.Name == CheckPackage; });
+		auto* ModuleInfoPtr2 = GManifest.Modules.FindByPredicate([&](FManifestModule& Module) { return Module.Name == CheckPackage; });
 		if (ModuleInfoPtr2 && IFileManager::Get().DirectoryExists(*ModuleInfoPtr2->BaseDirectory))
 		{
 			ModuleInfoPtr = ModuleInfoPtr2;
@@ -734,6 +714,10 @@ FString FNativeClassHeaderGenerator::PropertyNew(FString& Meta, UProperty* Prop,
 		UFunction *TargetFunction = MulticastDelegateProperty->SignatureFunction;
 		ExtraArgs = FString::Printf(TEXT(", %s"), *GetSingletonName(TargetFunction));
 	}
+	else if( UAttributeProperty* AttributeProperty = Cast<UAttributeProperty>(Prop) )
+	{
+		ExtraArgs = FString::Printf(TEXT(", sizeof(TAttribute<%s>)"), *AttributeProperty->Inner->GetCPPType() );
+	}
 
 	FString Constructor = FString::Printf(TEXT("new(%s, TEXT(\"%s\"), RF_Public|RF_Transient|RF_Native) U%s(%s, 0x%016llx%s);"),
 		*OuterString,
@@ -841,11 +825,18 @@ void FNativeClassHeaderGenerator::OutputProperty(FString& Meta, FOutputDevice& O
 		OutputDevice.Log(*PropertyNew(Meta, Prop, OuterString, PropMacroOuterClass, TEXT(""), Spaces, *SourceStruct));
 	}
 	UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Prop);
+	UAttributeProperty* AttributeProperty = Cast<UAttributeProperty>(Prop);
 	if (ArrayProperty)
 	{
 		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
 		FString PropMacroOuterArray = TEXT("FPostConstructInitializeProperties(), EC_CppProperty, 0");
 		OutputDevice.Log(*PropertyNew(Meta, ArrayProperty->Inner, InnerOuterString, PropMacroOuterArray, TEXT("_Inner"), Spaces));
+	}
+	else if(AttributeProperty)
+	{
+		FString InnerOuterString = FString::Printf(TEXT("NewProp_%s"), *Prop->GetName());
+		FString PropMacroOuterAttrib = TEXT("FPostConstructInitializeProperties(), EC_CppProperty, 0");
+		OutputDevice.Log(*PropertyNew(Meta, AttributeProperty->Inner, InnerOuterString, PropMacroOuterAttrib, TEXT("_Inner"), Spaces));
 	}
 }
 
@@ -899,10 +890,16 @@ static void FindNoExportStructs(TArray<UScriptStruct*>& Structs, UStruct* Start)
 		{
 			UStructProperty* InnerStruct = Cast<UStructProperty>(*ItInner);
 			UArrayProperty* InnerArray = Cast<UArrayProperty>(*ItInner);
+			UAttributeProperty* InnerAttribute = Cast<UAttributeProperty>(*ItInner);
 			if (InnerArray)
 			{
 				InnerStruct = Cast<UStructProperty>(InnerArray->Inner);
 			}
+			else if(InnerAttribute)
+			{
+				InnerStruct = Cast<UStructProperty>(InnerAttribute->Inner);
+			}
+
 			if (InnerStruct)
 			{
 				FindNoExportStructs(Structs, InnerStruct->Struct);
@@ -1777,8 +1774,8 @@ int32 FindByIndirectName( const TArray<T>& Array, const FName& Name )
 void FNativeClassHeaderGenerator::ExportClassHeader( UClass* Class )
 {
 	TArray<UClass*> DependencyChain;
-	VisitedMap.Empty( Classes.Num() );
-	ExportClassHeaderRecursive( Class, DependencyChain, false );
+	TSet<const UClass*>	VisitedSet;
+	ExportClassHeaderRecursive(Class, DependencyChain, VisitedSet, false);
 }
 
 
@@ -2009,7 +2006,10 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( UClass* Class, bool 
 			LINE_TERMINATOR);
 		GeneratedHeaderTextWithCopyright.Log(*GeneratedHeaderText);
 
-		SaveHeaderIfChanged(*ClassHeaderPath, *GeneratedHeaderTextWithCopyright);
+		auto ClassHeaderInfo = GClassGeneratedFileMap.Find(Class);
+		check(ClassHeaderInfo != NULL);
+		ClassHeaderInfo->GeneratedFilename = ClassHeaderPath;
+		ClassHeaderInfo->bHasChanged = SaveHeaderIfChanged(*ClassHeaderPath, *GeneratedHeaderTextWithCopyright);
 
 		check(SourceFilename.EndsWith(TEXT(".h")));
 
@@ -2025,20 +2025,23 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( UClass* Class, bool 
 			NewFileName = GManifest.RootBuildPath / NewFileName;
 		}
 
-		// Keep track of all of the UObject headers for this module, in the same order that we digest them in
-		// @todo uht: We're wrapping these includes in checks for header guards, ONLY because most existing UObject headers are missing '#pragma once'
-		ListOfAllUObjectHeaderIncludes.Logf(
+		auto IncludeStr = FString::Printf(
 			TEXT("#ifndef %s_%s_generated_h")													LINE_TERMINATOR
 			TEXT("    #include \"%s\"")															LINE_TERMINATOR
 			TEXT("#endif")																		LINE_TERMINATOR,
 			*API, *CurrentClass->GetName(), *NewFileName );
+
+		// Keep track of all of the UObject headers for this module, in the same order that we digest them in
+		// @todo uht: We're wrapping these includes in checks for header guards, ONLY because most existing UObject headers are missing '#pragma once'
+		ListOfAllUObjectHeaderIncludes                .Logf(TEXT("%s"), *IncludeStr);
+		ListOfPublicClassesUObjectHeaderModuleIncludes.Logf(TEXT("%s"), *IncludeStr);
 
 		// For the 'Classes' mega-header, only include legacy UObjects classes from the 'Classes' folder.  Private and Public classes are
 		// not included here -- you should include those yourself if you need them!
 		const bool bIsPublicClassesHeader = GPublicClassSet.Contains( Class );
 		if( bIsPublicClassesHeader )
 		{
-			ListOfPublicClassesUObjectHeaderIncludes.Logf(TEXT("#include \"%s\"\r\n"), *NewFileName);
+			ListOfPublicClassesUObjectHeaderGroupIncludes.Logf(TEXT("#include \"%s\"\r\n"), *NewFileName);
 		}
 	}
 
@@ -2046,44 +2049,24 @@ void FNativeClassHeaderGenerator::ExportClassHeaderWrapper( UClass* Class, bool 
 	EnumForeachText.Empty();
 }
 
-/**
- * Appends the header definition for an inheritance hierarchy of classes to the header.
- *
- * @param	Class					The class to be exported.
- * @param	DependencyChain			Used for finding errors. Must be empty before the first call.
- * @param	bCheckDependenciesOnly	Whether we should just keep checking for dependency errors, without exporting anything.
- */
-void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( UClass* Class, TArray<UClass*>& DependencyChain, bool bCheckDependenciesOnly )
+void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( UClass* Class, TArray<UClass*>& DependencyChain, TSet<const UClass*>& VisitedSet, bool bCheckDependenciesOnly )
 {
 	bool bIsExportClass   = GClassStrippedHeaderTextMap.Contains(Class) && Class->HasAnyClassFlags(CLASS_Native|CLASS_Temporary) && !Class->HasAnyClassFlags(CLASS_NoExport);
-	bool bIsCorrectHeader = GClassHeaderFilenameMap.FindRef(Class) == ClassHeaderFilename && Class->GetOuter() == Package;
+	bool bIsCorrectHeader = Class->GetOuter() == Package;
 
 	// Check for circular header dependencies between export classes.
 	if ( bIsExportClass )
 	{
-		if ( bIsCorrectHeader == false )
+		if ( !bIsCorrectHeader )
 		{
 			if ( DependencyChain.Num() == 0 )
 			{
 				// The first export class we found doesn't belong in this header: No need to keep exporting along this dependency path.
 				return;
 			}
-			else
-			{
-				// From now on, we're not going to export anything. Instead, we're going to check that no deeper dependency tries to export to this header file.
-				bCheckDependenciesOnly = true;
-			}
-		}
-		else if ( bCheckDependenciesOnly && !ClassHeaderFilename.IsEmpty() )
-		{
-			FString DependencyChainString;
-			for ( int32 DependencyIndex=0; DependencyIndex < DependencyChain.Num(); DependencyIndex++ )
-			{
-				UClass* DependencyClass = DependencyChain[DependencyIndex];
-				DependencyChainString += DependencyClass->GetName() + TEXT(" -> ");
-			}
-			DependencyChainString += Class->GetName();
-			UE_LOG(LogCompile, Warning, TEXT("Circular header dependency detected (%s), while exporting %s!"), *DependencyChainString, *(FPackageName::GetShortName(Package) + ClassHeaderFilename + TEXT("Classes.h")) );
+
+			// From now on, we're not going to export anything. Instead, we're going to check that no deeper dependency tries to export to this header file.
+			bCheckDependenciesOnly = true;
 		}
 	}
 
@@ -2094,14 +2077,14 @@ void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( UClass* Class, TAr
 	}
 
 	// Check for circular dependencies.
-	bool* bVisited = VisitedMap.Find( Class );
-	if ( bVisited && *bVisited == true )
+	if (VisitedSet.Contains(Class))
 	{
 		UE_LOG(LogCompile, Error, TEXT("Circular dependency detected for class %s!"), *Class->GetName() );
 		return;
 	}
+
 	// Temporarily mark the Class as VISITED. Make sure to clear this flag before returning!
-	VisitedMap.Add( Class, true );
+	VisitedSet.Add(Class);
 
 	if ( bIsExportClass )
 	{
@@ -2111,38 +2094,33 @@ void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( UClass* Class, TAr
 	// Export the super class first.
 	if (UClass* SuperClass = Class->GetSuperClass())
 	{
-		ExportClassHeaderRecursive(SuperClass, DependencyChain, bCheckDependenciesOnly);
+		ExportClassHeaderRecursive(SuperClass, DependencyChain, VisitedSet, bCheckDependenciesOnly);
 	}
 
 	// Export all classes we depend on.
-	for( auto It = GClassDependentOnMap.FindOrAdd(Class)->CreateConstIterator(); It; ++It )
+	for (const FName& DependencyClassName : *GClassDependentOnMap.FindOrAdd(Class))
 	{
-		const FName& DependencyClassName = *It;
-
 		// By this point, all classes should have been validated so we can strip the given class name when searching.		
-		FString DependencyClassNameStripped(DependencyClassName.ToString());
+		FString DependencyClassNameStripped = DependencyClassName.ToString();
 
 		// Handle #include directives as 'dependson' (allowing them to fail).
 		const bool bClassNameFromHeader = FHeaderParser::DependentClassNameFromHeader(*DependencyClassNameStripped, DependencyClassNameStripped);
-		DependencyClassNameStripped = FHeaderParser::GetClassNameWithPrefixRemoved( DependencyClassNameStripped );
+		DependencyClassNameStripped = GetClassNameWithPrefixRemoved( DependencyClassNameStripped );
 
-		int32 ClassIndex = FindByIndirectName( Classes, *DependencyClassNameStripped );
-		UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *DependencyClassNameStripped);
 		// Only export the class if it's in Classes array (it may be in another package).
-		UClass* DependsOnClass = (ClassIndex != INDEX_NONE) ? FoundClass : NULL;
+		UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *DependencyClassNameStripped);
 		if (FoundClass == NULL)
 		{
 			// Try again with temporary class name. This may be struct only header.
-			DependencyClassNameStripped = FHeaderParser::GetClassNameWithoutPrefix(DependencyClassName.ToString());
+			DependencyClassNameStripped = GetClassNameWithoutPrefix(DependencyClassName.ToString());
 			DependencyClassNameStripped = FHeaderParser::GenerateTemporaryClassName(*DependencyClassNameStripped);
-			ClassIndex = FindByIndirectName( Classes, *DependencyClassNameStripped );
-			FoundClass = FindObject<UClass>(ANY_PACKAGE, *DependencyClassNameStripped);
-			DependsOnClass = (ClassIndex != INDEX_NONE) ? FoundClass : NULL;
+			FoundClass                  = FindObject<UClass>(ANY_PACKAGE, *DependencyClassNameStripped);
 		}
 
-		if (DependsOnClass)
+		int32 ClassIndex = FindByIndirectName( Classes, *DependencyClassNameStripped );
+		if (UClass* DependsOnClass = (ClassIndex != INDEX_NONE) ? FoundClass : NULL)
 		{
-			ExportClassHeaderRecursive(DependsOnClass, DependencyChain, bCheckDependenciesOnly);
+			ExportClassHeaderRecursive(DependsOnClass, DependencyChain, VisitedSet, bCheckDependenciesOnly);
 		}
 		else if ( !FoundClass && !bClassNameFromHeader )
 		{
@@ -2162,10 +2140,10 @@ void FNativeClassHeaderGenerator::ExportClassHeaderRecursive( UClass* Class, TAr
 	}
 
 	// We're done visiting this Class.
-	VisitedMap.Add( Class, false );
+	VisitedSet.Remove( Class );
 	if ( bIsExportClass )
 	{
-		DependencyChain.RemoveAtSwap( DependencyChain.Num() - 1 );
+		DependencyChain.Pop();
 	}
 }
 
@@ -2637,16 +2615,19 @@ void ExportProtoDeclaration(FOutputDevice& Out, const FString& MessageName, TFie
 		{
 			bool bIsRepeated = false;
 			UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
-			if (ArrayProperty != NULL)
+			UAttributeProperty* AttributeProperty = Cast<UAttributeProperty>(Property);
+			if (ArrayProperty != NULL || AttributeProperty != NULL)
 			{
-				UClass* InnerPropClass = ArrayProperty->Inner->GetClass();
+				UProperty* Inner = ArrayProperty ? ArrayProperty->Inner : AttributeProperty->Inner;
+
+				UClass* InnerPropClass = Inner->GetClass();
 				if (InnerPropClass != UInterfaceProperty::StaticClass() && InnerPropClass != UObjectProperty::StaticClass())
 				{
 					FString InnerExtendedTypeText;
-					FString InnerTypeText = ArrayProperty->Inner->GetCPPType(&InnerExtendedTypeText, CPPF_None);
+					FString InnerTypeText = Inner->GetCPPType(&InnerExtendedTypeText, CPPF_None);
 					TypeText = InnerTypeText;
 					ExtendedTypeText = InnerExtendedTypeText;
-					Property = ArrayProperty->Inner;
+					Property = Inner;
 					bIsRepeated = true;
 				}
 				else
@@ -2807,6 +2788,7 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 		ToMCPTypeMappings.Add(TEXT("bool"), TEXT("boolean"));
 		ToMCPTypeMappings.Add(TEXT("double"), TEXT("double"));
 		ToMCPTypeMappings.Add(TEXT("float"), TEXT("float"));
+		ToMCPTypeMappings.Add(TEXT("byte"), TEXT("byte"));
 
 		ToAnnotationMappings.Add(TEXT("FString"), TEXT("@NotBlankOrNull"));
 
@@ -2880,8 +2862,18 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 			}
 			else
 			{
-				MCPTypeName = ToMCPTypeMappings.Find(VariableTypeName);
-				AnnotationName = ToAnnotationMappings.Find(VariableTypeName);
+				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
+				if (ByteProperty != NULL && ByteProperty->Enum != NULL)
+				{
+					// treat enums like strings because that's how they'll be exported in JSON
+					MCPTypeName = ToMCPTypeMappings.Find(TEXT("FString"));
+					AnnotationName = ToAnnotationMappings.Find(TEXT("FString"));
+				}
+				else
+				{
+					MCPTypeName = ToMCPTypeMappings.Find(VariableTypeName);
+					AnnotationName = ToAnnotationMappings.Find(VariableTypeName);
+				}
 			}
 
 			if (AnnotationName != NULL && !AnnotationName->IsEmpty())
@@ -2900,7 +2892,7 @@ void ExportMCPDeclaration(FOutputDevice& Out, const FString& MessageName, TField
 			}
 			else
 			{
-				FError::Throwf(TEXT("ExportMCPDeclaration - Unhandled property mapping '%s': %s"), *PropClass->GetName(), *Property->GetPathName());
+				FError::Throwf(TEXT("ExportMCPDeclaration - Unhandled property mapping '%s' (%s): %s"), *PropClass->GetName(), *VariableTypeName, *Property->GetPathName());
 			}
 		}
 		else
@@ -3072,7 +3064,8 @@ void FNativeClassHeaderGenerator::ExportEventParms( const TArray<UFunction*>& In
 				Cast<UStrProperty>(Prop) ||
 				Cast<UTextProperty>(Prop) ||
 				Cast<UArrayProperty>(Prop) ||
-				Cast<UInterfaceProperty>(Prop)
+				Cast<UInterfaceProperty>(Prop) ||
+				Cast<UAttributeProperty>(Prop)
 				)
 			{
 				bNeedsOutput = false;
@@ -3144,7 +3137,8 @@ FString FNativeClassHeaderGenerator::GetNullParameterValue( UProperty* Prop, boo
 	}
 	else if ( PropClass == UArrayProperty::StaticClass()
 		||    PropClass == UDelegateProperty::StaticClass()
-		||    PropClass == UMulticastDelegateProperty::StaticClass() )
+		||    PropClass == UMulticastDelegateProperty::StaticClass()
+		||    PropClass == UAttributeProperty::StaticClass() )
 	{
 		FString Type, ExtendedType;
 		Type = Prop->GetCPPType(&ExtendedType,CPPF_OptionalValue);
@@ -3673,9 +3667,14 @@ void FNativeClassHeaderGenerator::ApplyAlternatePropertyExportText( UProperty* P
 	if ( ObjectProp == NULL )
 	{
 		UArrayProperty* ArrayProp = Cast<UArrayProperty>(Prop);
+		UAttributeProperty* AttributeProp = Cast<UAttributeProperty>(Prop);
 		if ( ArrayProp != NULL )
 		{
 			ObjectProp = Cast<UObjectProperty>(ArrayProp->Inner);
+		}
+		else if( AttributeProp != NULL )
+		{
+			ObjectProp = Cast<UObjectProperty>(AttributeProp->Inner);
 		}
 	}
 	if ( ObjectProp != NULL && PropData && PropData->Token.ExportInfo.Len() > 0)
@@ -3688,9 +3687,14 @@ void FNativeClassHeaderGenerator::ApplyAlternatePropertyExportText( UProperty* P
 	if ( StructProp == NULL )
 	{
 		UArrayProperty* ArrayProp = Cast<UArrayProperty>(Prop);
+		UAttributeProperty* AttributeProp = Cast<UAttributeProperty>(Prop);
 		if ( ArrayProp != NULL )
 		{
 			StructProp = Cast<UStructProperty>(ArrayProp->Inner);
+		}
+		else if (AttributeProp != NULL)
+		{
+			StructProp = Cast<UStructProperty>(AttributeProp->Inner);
 		}
 	}
 
@@ -3806,79 +3810,19 @@ bool FNativeClassHeaderGenerator::FindInterDependencyRecursive( TMap<const FStri
 	return false;
 }
 
-/**
- * Finds a dependency chain between two class header files.
- * Wrapper around FindDependencyChainRecursive().
- *
- * @param	Class				A class to scan for a dependency chain between the two headers.
- * @param	Header1				First class header filename.
- * @param	Header2				Second class header filename.
- * @param	DependencyChain		[out] Receives dependency chain, if found.
- * @return	true if a dependency chain was found and filled in.
- */
-bool FNativeClassHeaderGenerator::FindDependencyChain( const UClass* Class, const FString& Header1, const FString& Header2, TArray<const UClass*>& DependencyChain )
+bool IsExportOrTemporaryClass(FClass* Class)
 {
-	DependencyChain.Empty();
-	return FindDependencyChainRecursive( Class, Header1, Header2, false, DependencyChain );
-}
+	bool bIsExportClass = Class->HasAnyClassFlags(CLASS_Native) && !Class->HasAnyClassFlags(CLASS_NoExport | CLASS_Intrinsic | CLASS_Temporary);
+	bool bIsTemporaryClass = Class->HasAnyClassFlags(CLASS_Temporary);
 
-/**
- * Finds a dependency chain between two class header files.
- *
- * @param	Class				A class to scan for a dependency chain between the two headers.
- * @param	Header1				First class header filename.
- * @param	Header2				Second class header filename.
- * @param	bChainStarted		Whether Header1 has been found and we've started to fill in DependencyChain. Must be false to begin with.
- * @param	DependencyChain		[out] Receives dependency chain, if found. Must be empty before the call.
- * @return	true if a dependency chain was found and filled in.
- */
-bool FNativeClassHeaderGenerator::FindDependencyChainRecursive( const UClass* Class, const FString& Header1, const FString& Header2, bool bChainStarted, TArray<const UClass*>& DependencyChain )
-{
-	bool bIsExportClass = Class->HasAnyClassFlags(CLASS_Native) && !Class->HasAnyClassFlags(CLASS_NoExport|CLASS_Intrinsic|CLASS_Temporary);
-	if ( bIsExportClass )
-	{
-		auto HeaderFilename = GClassHeaderFilenameMap.FindRef(Class);
-
-		bChainStarted = bChainStarted || HeaderFilename == Header1;
-
-		if ( bChainStarted )
-		{
-			DependencyChain.Add( Class );
-			if ( HeaderFilename == Header2 )
-			{
-				return true;
-			}
-		}
-	}
-
-	UClass* SuperClass = Class->GetSuperClass();
-	if ( SuperClass && SuperClass->GetOuter() == Class->GetOuter() && FindDependencyChainRecursive( SuperClass, Header1, Header2, bChainStarted, DependencyChain ) )
-	{
-		return true;
-	}
-
-	for (TArray<FImplementedInterface>::TConstIterator It(Class->Interfaces); It; ++It)
-	{
-		UClass* InterfaceClass = It->Class;
-		if ( InterfaceClass->GetOuter() == Class->GetOuter() && FindDependencyChainRecursive( InterfaceClass, Header1, Header2, bChainStarted, DependencyChain ) )
-		{
-			return true;
-		}
-	}
-
-	if ( bIsExportClass && bChainStarted )
-	{
-		DependencyChain.RemoveAtSwap( DependencyChain.Num() - 1 );
-	}
-	return false;
+	return bIsExportClass || bIsTemporaryClass;
 }
 
 // Constructor.
-FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, FClassTree& inClassTree, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths )
+FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths )
 	: CurrentClass                          (NULL)
 	, API                                   (FPackageName::GetShortName(InPackage).ToUpper())
 	, Package                               (InPackage)
-	, ClassTree                             (inClassTree)
 	, bIsExportingForOffsetDeterminationOnly(false)
 	, bAllowSaveExportedHeaders             (InAllowSaveExportedHeaders)
 	, bFailIfGeneratedCodeChanges           (false)
@@ -3893,8 +3837,7 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 
 	// Tag native classes in this package for export.
 
-	Classes.Add(UObject::StaticClass());
-	ClassTree.GetChildClasses(Classes, FDefaultComparator(), true);
+	Classes = AllClasses.GetClassesInPackage();
 
 	TMap<FName,UClass*> ClassNameMap;
 	for ( int32 ClassIndex = 0; ClassIndex < Classes.Num(); ClassIndex++ )
@@ -3902,187 +3845,36 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 		ClassNameMap.Add(Classes[ClassIndex]->GetFName(), Classes[ClassIndex]);
 	}
 
-	class UnsortedHeaderFilenamesType
-	{
-	public:
-		FString* AddUnique(const FString& Str)
-		{
-			for (auto It = Data.CreateConstIterator(); It; ++It)
-			{
-				auto& Ptr = *It;
-
-				if (*Ptr == Str)
-					return &*Ptr;
-			}
-
-			return Data[Data.Add(MakeUnique<FString>(Str))].Get();
-		}
-
-		TArray<TUniquePtr<FString>> Data;
-	};
-
-	UnsortedHeaderFilenamesType UnsortedHeaderFilenames;
-	TArray<const FString*>      HeaderFilenames; // These reference the strings stored in UnsortedHeaderFilenames
-
-	bool bCircularDependencyDetected = false;
- 	{
-	 	TMap<const FString*, HeaderDependents> HeaderDependencyMap;
-		TArray<UClass*> ClassesInPackage;
-
-		ClassesInPackage.Add(UObject::StaticClass());
-		ClassTree.GetChildClasses(ClassesInPackage, FClassPackageComparator(Package), true);
-		for (auto ClassIt = ClassesInPackage.CreateConstIterator(); ClassIt; ++ClassIt)
-		{
-			UClass* Cls = *ClassIt;
-
-			auto ClsHeaderFilename = GClassHeaderFilenameMap.FindRef(Cls);
-
-			bool bIsExportClass = Cls->HasAnyClassFlags(CLASS_Native) && !Cls->HasAnyClassFlags(CLASS_NoExport|CLASS_Intrinsic|CLASS_Temporary);
-			if ( bIsExportClass )
-			{
-				auto* HeaderFilename = UnsortedHeaderFilenames.AddUnique(ClsHeaderFilename);
-				auto& Dependencies   = HeaderDependencyMap.FindOrAdd(HeaderFilename);
-
-				// Add the super class' header as a dependency if it's different.
-				UClass* SuperClass = Cls->GetSuperClass();
-				bool bIsDependentExportClass = SuperClass && SuperClass->HasAnyClassFlags(CLASS_Native) && !SuperClass->HasAnyClassFlags(CLASS_NoExport|CLASS_Intrinsic|CLASS_Temporary);
-				if ( bIsDependentExportClass && SuperClass->GetOuter() == Cls->GetOuter() )
-				{
-					auto SuperClassHeaderFilename = GClassHeaderFilenameMap.FindRef(SuperClass);
-					if ( SuperClassHeaderFilename != ClsHeaderFilename )
-					{
-						auto* DependentHeaderFilename = UnsortedHeaderFilenames.AddUnique(SuperClassHeaderFilename);
-						Dependencies.AddUnique(DependentHeaderFilename);
-					}
-				}
-
-				// Add base interface headers as dependencies, if they're different.
-				for (TArray<FImplementedInterface>::TIterator It(Cls->Interfaces); It; ++It)
-				{
-					UClass* InterfaceClass = It->Class;
-					bool bIsDependentExportClass = InterfaceClass->HasAnyClassFlags(CLASS_Native) && !InterfaceClass->HasAnyClassFlags(CLASS_NoExport|CLASS_Intrinsic|CLASS_Temporary);
-					if ( bIsDependentExportClass && InterfaceClass->GetOuter() == Cls->GetOuter() )
-					{
-						auto InterfaceClassHeaderFilename = GClassHeaderFilenameMap.FindRef(InterfaceClass);
-						if ( InterfaceClassHeaderFilename != ClsHeaderFilename )
-						{
-							auto* DependentHeaderFilename = UnsortedHeaderFilenames.AddUnique(InterfaceClassHeaderFilename);
-							Dependencies.AddUnique(DependentHeaderFilename);
-						}
-					}
-				}
-			}
-			else if (Cls->HasAnyClassFlags(CLASS_Temporary))
-			{
-				// Struct only headers can generate header groups too so make sure their added too.
-				auto* HeaderFilename = UnsortedHeaderFilenames.AddUnique(ClsHeaderFilename);
-				HeaderDependencyMap.FindOrAdd(HeaderFilename);
-			}
-		}
-		bCircularDependencyDetected = !SortHeaderDependencyMap(HeaderDependencyMap, HeaderFilenames);
-		if (bCircularDependencyDetected)
-		{
-			// Find one circular path (though there may be multiple).
-			for (auto HeaderIt = HeaderDependencyMap.CreateConstIterator(); HeaderIt; ++HeaderIt)
-			{
-				const FString* Header = HeaderIt->Key;
-
-				const FString* ClassHeaderFilename1;
-				const FString* ClassHeaderFilename2;
-				if (!FindInterDependency(HeaderDependencyMap, Header, ClassHeaderFilename1, ClassHeaderFilename2))
-					continue;
-
-				TArray<const UClass*> DependencyChain1, DependencyChain2;
-				for (auto ClassIt = ClassesInPackage.CreateConstIterator(); ClassIt; ++ClassIt)
-				{
-					UClass* Class = *ClassIt;
-
-					FindDependencyChain( Class, *ClassHeaderFilename1, *ClassHeaderFilename2, DependencyChain1 );
-
-					if (DependencyChain1.Num())
-						break;
-				}
-
-				for (auto ClassIt = ClassesInPackage.CreateConstIterator(); ClassIt; ++ClassIt)
-				{
-					UClass* Class = *ClassIt;
-
-					FindDependencyChain( Class, *ClassHeaderFilename2, *ClassHeaderFilename1, DependencyChain2 );
-
-					if (DependencyChain2.Num())
-						break;
-				}
-
-				if (!DependencyChain1.Num() || !DependencyChain2.Num())
-					continue;
-
-				FString DependencyChainString1;
-				for (auto DependencyIt = DependencyChain1.CreateConstIterator(); DependencyIt; ++DependencyIt)
-				{
-					auto Dependency = *DependencyIt;
-
-					if (!DependencyChainString1.IsEmpty())
-					{
-						DependencyChainString1 += TEXT(" -> ");
-					}
-
-					DependencyChainString1 += Dependency->GetName();
-				}
-
-				FString DependencyChainString2;
-				for (auto DependencyIt = DependencyChain2.CreateConstIterator(); DependencyIt; ++DependencyIt)
-				{
-					auto Dependency = *DependencyIt;
-
-					if (!DependencyChainString1.IsEmpty())
-					{
-						DependencyChainString2 += TEXT(" -> ");
-					}
-
-					DependencyChainString2 += Dependency->GetName();
-				}
-
-				UE_LOG(LogCompile, Error, TEXT("Header interdependency: %s <-> %s (%s and %s)."),
-					*(PackageName + *ClassHeaderFilename1 + TEXT("Classes.h")),
-					*(PackageName + *ClassHeaderFilename2 + TEXT("Classes.h")),
-					*DependencyChainString1,
-					*DependencyChainString2 );
-				break;
-			}
-			UE_LOG(LogCompile, Error, TEXT("Interdependent headers detected - aborting!") );
-		}
-	}
-
+	bool bPackageHasAnyExportOrTemporaryClasses = AllClasses.GetClassesInPackage(Package).ContainsByPredicate(IsExportOrTemporaryClass);
 	bool bHasNamesForExport = false;
 	TempHeaderPaths.Empty();
 	PackageHeaderPaths.Empty();
-	// Reset header generation output strings
-	GeneratedPackageCPP.Empty();
-	GeneratedProtoText.Empty();
-	GeneratedMCPText.Empty();
-	CrossModuleGeneratedFunctionDeclarations.Empty();
-	UniqueCrossModuleReferences.Empty();
-	GeneratedFunctionDeclarations.Empty();
-	GeneratedFunctionBodyTextSplit.Empty();
-	
-	for (auto It = HeaderFilenames.CreateConstIterator(); !bCircularDependencyDetected && It; ++It)
-	{
-		ClassHeaderFilename = **It;
 
+	// Reset header generation output strings
+	GeneratedPackageCPP                           .Empty();
+	GeneratedProtoText                            .Empty();
+	GeneratedMCPText                              .Empty();
+	CrossModuleGeneratedFunctionDeclarations      .Empty();
+	UniqueCrossModuleReferences                   .Empty();
+	GeneratedFunctionDeclarations                 .Empty();
+	GeneratedFunctionBodyTextSplit                .Empty();
+	ListOfPublicClassesUObjectHeaderModuleIncludes.Empty();
+
+	if (bPackageHasAnyExportOrTemporaryClasses)
+	{
 		FString PkgDir;
 		FString GeneratedIncludeDirectory;
 		if (MakeCommandlet_FindPackageLocation(*PackageName, PkgDir, GeneratedIncludeDirectory) == false)
 		{
 			UE_LOG(LogCompile, Error, TEXT("Failed to find path for package %s"), *PackageName);
 		}
-		ClassesHeaderPath = GeneratedIncludeDirectory / PackageName + ClassHeaderFilename + TEXT("Classes.h");
+		FString ClassesHeaderName = PackageName + TEXT("Classes.h");
+		ClassesHeaderPath = GeneratedIncludeDirectory / ClassesHeaderName;
 
 		int32 ClassCount = 0;
-		for( int32 ClassIndex = 0; ClassIndex < Classes.Num(); ClassIndex++ )
+		for (UClass* Class : Classes)
 		{
-			UClass* Class = Classes[ClassIndex];
-
-			if( Class->GetOuter()==Package && Class->HasAnyClassFlags(CLASS_Native|CLASS_Temporary) && GClassHeaderFilenameMap.FindRef(Class) == ClassHeaderFilename )
+			if( Class->GetOuter()==Package && Class->HasAnyClassFlags(CLASS_Native|CLASS_Temporary))
 			{
 				if (GClassStrippedHeaderTextMap.Contains(Class) && !Class->HasAnyClassFlags(CLASS_NoExport))
 				{
@@ -4101,79 +3893,69 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 			}
 		}
 
-		if( ClassCount == 0 )
+		if (ClassCount != 0)
 		{
-			continue;
-		}
+			ClassesHeaders.Add(ClassesHeaderName);
 
-		CurrentClass = NULL;
-		ListOfPublicClassesUObjectHeaderIncludes.Empty();
-		ListOfAllUObjectHeaderIncludes.Empty();
-		OriginalHeader.Empty();
-		PreHeaderText.Empty();
+			CurrentClass = NULL;
+			ListOfPublicClassesUObjectHeaderGroupIncludes.Empty();
+			ListOfAllUObjectHeaderIncludes.Empty();
+			OriginalHeader.Empty();
+			PreHeaderText.Empty();
 
-		// Load the original header file into memory
-		FFileHelper::LoadFileToString(OriginalHeader,*ClassesHeaderPath);
-		
-		UE_LOG(LogCompile, Log,  TEXT("Autogenerating C++ header: %s"), *ClassHeaderFilename );
+			// Load the original header file into memory
+			FFileHelper::LoadFileToString(OriginalHeader, *ClassesHeaderPath);
 
-		// Write the classes and enums header prefixes.
+			// Write the classes and enums header prefixes.
 
-		PreHeaderText.Logf(
-			TEXT("// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.\r\n")
-			TEXT("/*===========================================================================\r\n")
-			TEXT("    C++ class boilerplate exported from UnrealHeaderTool.\r\n")
-			TEXT("    This is automatically generated by the tools.\r\n")
-			TEXT("    DO NOT modify this manually! Edit the corresponding .h files instead!\r\n")
-			TEXT("===========================================================================*/\r\n")
-			TEXT("#pragma once\r\n")
-			TEXT("\r\n")
-			);
+			PreHeaderText.Logf(
+				TEXT("// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.\r\n")
+				TEXT("/*===========================================================================\r\n")
+				TEXT("    C++ class boilerplate exported from UnrealHeaderTool.\r\n")
+				TEXT("    This is automatically generated by the tools.\r\n")
+				TEXT("    DO NOT modify this manually! Edit the corresponding .h files instead!\r\n")
+				TEXT("===========================================================================*/\r\n")
+				TEXT("#pragma once\r\n")
+				TEXT("\r\n")
+				);
 
-		// if a global auto-include file exists, generate a line to have that file included
-		FString GlobalAutoIncludeFilename = PackageName + ClassHeaderFilename + TEXT("GlobalIncludes.h");
-		const FString StandardHeaderFileLocation = PkgDir / TEXT("Public");
-		if ( IFileManager::Get().FileSize(*(StandardHeaderFileLocation / GlobalAutoIncludeFilename)) > 0 )
-		{
-			PreHeaderText.Logf(TEXT("#include \"%s\"\r\n\r\n"), *GlobalAutoIncludeFilename);
-		}
-
-		FString HeaderAPI = API;
-		if( ClassHeaderFilename.Len() > 0 )
-		{
-			HeaderAPI = HeaderAPI + TEXT("_") + ClassHeaderFilename.ToUpper();
-		}
-
-		// Export an include line for each header
-		for ( int32 ClassIndex = 0; ClassIndex < Classes.Num(); ClassIndex++ )
-		{
-			UClass* Class = Classes[ClassIndex];
-			if ( GClassHeaderFilenameMap.FindRef(Class) == ClassHeaderFilename && Class->GetOuter() == Package )
+			// if a global auto-include file exists, generate a line to have that file included
+			FString GlobalAutoIncludeFilename = PackageName + TEXT("GlobalIncludes.h");
+			const FString StandardHeaderFileLocation = PkgDir / TEXT("Public");
+			if (IFileManager::Get().FileSize(*(StandardHeaderFileLocation / GlobalAutoIncludeFilename)) > 0)
 			{
-				ExportClassHeader(Class);
+				PreHeaderText.Logf(TEXT("#include \"%s\"\r\n\r\n"), *GlobalAutoIncludeFilename);
 			}
-		}
-		
-		ListOfPublicClassesUObjectHeaderIncludes.Logf( TEXT("\r\n") );
-		
-		// build the full header file out of its pieces
-		const FString FullClassesHeader = FString::Printf(
-			TEXT("%s\r\n%s"),
-			*PreHeaderText, 
-			*ListOfPublicClassesUObjectHeaderIncludes
-		);
 
-		// Save the classes header if it has changed.
-		SaveHeaderIfChanged(*ClassesHeaderPath,*FullClassesHeader);
+			// Export an include line for each header
+			for (UClass* Class : Classes)
+			{
+				if (Class->GetOuter() == Package)
+				{
+					ExportClassHeader(Class);
+				}
+			}
+
+			ListOfPublicClassesUObjectHeaderGroupIncludes.Logf(TEXT("\r\n"));
+
+			// build the full header file out of its pieces
+			const FString FullClassesHeader = FString::Printf(
+				TEXT("%s\r\n%s"),
+				*PreHeaderText,
+				*ListOfPublicClassesUObjectHeaderGroupIncludes
+				);
+
+			// Save the classes header if it has changed.
+			SaveHeaderIfChanged(*ClassesHeaderPath, *FullClassesHeader);
+		}
 	}
 
-	if (HeaderFilenames.Num() == 0)
+	if (!bPackageHasAnyExportOrTemporaryClasses)
 	{
 		// If no headers are generated, check if there's any no export classes that need to have the inl file generated.
-		for ( int32 ClassIndex = 0; ClassIndex < Classes.Num(); ClassIndex++ )
+		for (UClass* Class : Classes)
 		{
-			UClass* Class = Classes[ClassIndex];
-			if ( Class->GetOuter() == Package && !Class->HasAnyClassFlags(CLASS_Intrinsic|CLASS_Temporary) )
+			if (Class->GetOuter() == Package && !Class->HasAnyClassFlags(CLASS_Intrinsic | CLASS_Temporary))
 			{
 				ExportClassHeader(Class);
 			}
@@ -4183,11 +3965,8 @@ FNativeClassHeaderGenerator::FNativeClassHeaderGenerator( UPackage* InPackage, F
 	// now export the names for the functions in this package
 	// notice we always export this file (as opposed to only exporting if we have any marked names)
 	// because there would be no way to know when the file was created otherwise
-	if (!bCircularDependencyDetected)
-	{
-		// Export ..generated.cpp
-		ExportGeneratedCPP();
-	}
+	// Export .generated.cpp
+	ExportGeneratedCPP();
 
 	ExportGeneratedProto();
 
@@ -4204,28 +3983,24 @@ void FNativeClassHeaderGenerator::DeleteUnusedGeneratedHeaders()
 {
 	TArray<FString> AllIntermediateFolders;
 
-	for (auto It = PackageHeaderPaths.CreateConstIterator(); It; ++It)
+	for (const auto& PackageHeader : PackageHeaderPaths)
 	{
-		const FString IntermediatePath = FPaths::GetPath(*It);
+		const FString IntermediatePath = FPaths::GetPath(PackageHeader);
 
 		if (AllIntermediateFolders.Contains(IntermediatePath))
-		{
 			continue;
-		}
 
 		AllIntermediateFolders.Add( IntermediatePath );
 
 		TArray<FString> AllHeaders;
 		IFileManager::Get().FindFiles( AllHeaders, *(IntermediatePath / TEXT("*.generated.h")), true, false );
 
-		for (auto It = AllHeaders.CreateConstIterator(); It; ++It)
+		for (const auto& Header : AllHeaders)
 		{
-			const FString HeaderPath = IntermediatePath / *It;
+			const FString HeaderPath = IntermediatePath / Header;
 
 			if (PackageHeaderPaths.Contains(HeaderPath))
-			{
 				continue;
-			}
 
 			// Check intrinsic classes. Get the class name from file name by removing .generated.h.
 			const FString HeaderFilename = FPaths::GetBaseFilename(HeaderPath);
@@ -4239,6 +4014,12 @@ void FNativeClassHeaderGenerator::DeleteUnusedGeneratedHeaders()
 		}
 	}
 }
+
+/**
+ * Dirty hack global variable to allow different result codes passed through
+ * exceptions. Needs to be fixed in future versions of UHT.
+ */
+ECompilationResult::Type GCompilationResult = ECompilationResult::OtherCompilationError;
 
 bool FNativeClassHeaderGenerator::SaveHeaderIfChanged(const TCHAR* HeaderPath, const TCHAR* InNewHeaderContents)
 {
@@ -4274,7 +4055,7 @@ bool FNativeClassHeaderGenerator::SaveHeaderIfChanged(const TCHAR* HeaderPath, c
 
 	if (bWriteContents || bVerifyContents)
 	{
-		FString Ref = FString(FPaths::GameSavedDir()) / TEXT("ReferenceGeneratedCode") / FPaths::GetCleanFilename(HeaderPath);
+		FString Ref    = FString(FPaths::GameSavedDir()) / TEXT("ReferenceGeneratedCode") / FPaths::GetCleanFilename(HeaderPath);
 		FString Verify = FString(FPaths::GameSavedDir()) / TEXT("VerifyGeneratedCode") / FPaths::GetCleanFilename(HeaderPath);
 
 		if (bWriteContents)
@@ -4334,6 +4115,8 @@ bool FNativeClassHeaderGenerator::SaveHeaderIfChanged(const TCHAR* HeaderPath, c
 		{
 			FString ConflictPath = FString(HeaderPath) + TEXT(".conflict");
 			FFileHelper::SaveStringToFile(NewHeaderContents, *ConflictPath);
+
+			GCompilationResult = ECompilationResult::FailedDueToHeaderChange;
 			FError::Throwf(TEXT("ERROR: '%s': Changes to generated code are not allowed - conflicts written to '%s'"), HeaderPath, *ConflictPath);
 		}
 
@@ -4470,14 +4253,16 @@ void FNativeClassHeaderGenerator::ExportGeneratedMCP()
 
 /**
  * Exports C++ definitions for boilerplate that was generated for a package.
- * They are exported to a file using the name <PackageName>.generated.inl
+ * They are exported to a file using the name <PackageName>.generated.cpp
  * @param ReferencedNames list of function names to export.
  */
 void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 {
 	FStringOutputDevice GeneratedCPPPreamble;
+	FStringOutputDevice GeneratedCPPClassesIncludes;
 	FStringOutputDevice GeneratedCPPEpilogue;
 	FStringOutputDevice GeneratedCPPText;
+	FStringOutputDevice GeneratedINLText;
 
 	TArray<FStringOutputDevice> GeneratedCPPFiles;
 
@@ -4493,8 +4278,45 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 																								LINE_TERMINATOR
 		);
 
-	// Include all the UObject headers for this module first, in the same order that we digested them
-	GeneratedCPPText.Logf( *ListOfAllUObjectHeaderIncludes );
+	FString DeprecationMessage = TEXT(".generated.inl files have been deprecated - please remove the associated #include from your code");
+	GeneratedINLText.Logf(
+		TEXT("#ifdef _MSC_VER")										LINE_TERMINATOR
+		TEXT("    #pragma message(__FILE__\"(9): warning : %s\")")	LINE_TERMINATOR
+		TEXT("#else")												LINE_TERMINATOR
+		TEXT("    #pragma message(\"%s\")")							LINE_TERMINATOR
+		TEXT("#endif")												LINE_TERMINATOR
+																	LINE_TERMINATOR,
+		*DeprecationMessage,
+		*DeprecationMessage
+	);
+
+	FString ModulePCHInclude;
+
+	const auto* ModuleInfo = GPackageToManifestModuleMap.FindChecked(Package);
+	if (ModuleInfo->PCH.Len())
+	{
+		FString PCH = ModuleInfo->PCH;
+		if(bUseRelativePaths)
+		{
+			// When building Rocket, we need relative paths in the generated headers so that they can be installed to any directory.
+			FPaths::MakePathRelativeTo(PCH, *ModuleInfo->GeneratedCPPFilenameBase);
+			PCH.ReplaceInline(TEXT("\\"), TEXT("/"));
+		}
+		// ...we cannot rebase paths relative to the install directory. It may be on a different drive.
+		else if (FPaths::MakePathRelativeTo(PCH, *GManifest.RootLocalPath))
+		{
+			PCH = GManifest.RootBuildPath / PCH;
+		}
+
+		ModulePCHInclude = FString::Printf(TEXT("#include \"%s\"") LINE_TERMINATOR, *PCH);
+	}
+
+	// Write out the ordered class dependencies into a single header that we can easily include
+	FString DepHeaderPathname = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".dep.h");
+	SaveHeaderIfChanged(*DepHeaderPathname, *(GeneratedCPPPreamble + ListOfPublicClassesUObjectHeaderModuleIncludes));
+
+	// Write out our include to the .dep.h file
+	GeneratedCPPClassesIncludes.Logf(TEXT("#include \"%s\"") LINE_TERMINATOR, *FPaths::GetCleanFilename(DepHeaderPathname));
 
 	GeneratedCPPText.Log(*GeneratedPackageCPP);
 	// Add all names marked for export to a list (for sorting)
@@ -4517,11 +4339,6 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	
 	FString PkgName = FPackageName::GetShortName(Package);
 	FString PkgDir;
-	FString GeneratedIncludeDirectory;
-	if (MakeCommandlet_FindPackageLocation(*PkgName, PkgDir, GeneratedIncludeDirectory) == false)
-	{
-		UE_LOG(LogCompile, Error, TEXT("Failed to find path for package %s"), *PkgName);
-	}
 	if (GeneratedFunctionDeclarations.Len() || CrossModuleGeneratedFunctionDeclarations.Len())
 	{
 		ExportGeneratedPackageInitCode(Package);
@@ -4529,7 +4346,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 
 	TArray<FString> NumberedHeaderNames;
 
-	// Generate each of the .generated.inl files
+	// Generate each of the .generated.cpp files
 	for( int32 FileIdx=0;FileIdx<GeneratedFunctionBodyTextSplit.Num();FileIdx++ )
 	{
 		FStringOutputDevice FileText;
@@ -4553,14 +4370,12 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 			FileText.Logf(TEXT("#endif\r\n"));
 		}
 
-		FString HeaderName = GeneratedCPPFilenameBase + (GeneratedFunctionBodyTextSplit.Num() > 1 ? *FString::Printf(TEXT(".%d.inl"),FileIdx+1) : TEXT(".inl"));
-		FString HeaderPath = GeneratedIncludeDirectory / HeaderName;
-		
-		SaveHeaderIfChanged(*HeaderPath, *(GeneratedCPPPreamble + FileText + GeneratedCPPEpilogue));
+		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + (GeneratedFunctionBodyTextSplit.Num() > 1 ? *FString::Printf(TEXT(".%d.cpp"), FileIdx + 1) : TEXT(".cpp"));
+		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + FileText + GeneratedCPPEpilogue));
 
 		if (GeneratedFunctionBodyTextSplit.Num() > 1)
 		{
-			NumberedHeaderNames.Add(HeaderName);
+			NumberedHeaderNames.Add(FPaths::GetCleanFilename(CppPath));
 		}
 	}
 
@@ -4573,9 +4388,12 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 			FileText.Logf(TEXT("#include \"%s\"") LINE_TERMINATOR, *NumberedHeaderNames[i]);
 		}
 
-		FString HeaderPath = GeneratedIncludeDirectory / GeneratedCPPFilenameBase + TEXT(".inl");
-		SaveHeaderIfChanged(*HeaderPath, *(GeneratedCPPPreamble + FileText + GeneratedCPPEpilogue));
+		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".cpp");
+		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + FileText + GeneratedCPPEpilogue));
 	}
+
+	FString InlPath = ModuleInfo->GeneratedCPPFilenameBase + TEXT(".inl");
+	SaveHeaderIfChanged(*InlPath, *(GeneratedCPPPreamble + GeneratedINLText));
 
 	if( FParse::Param( FCommandLine::Get(), TEXT("GenerateConstructors") ) && AllConstructors.Len())
 	{
@@ -4587,10 +4405,59 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	}
 }
 
+/** Get all script plugins based on ini setting */
+void GetScriptPlugins(TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+{
+	TArray<FString> ScriptPluginNames;
+	GConfig->GetArray(TEXT("Plugins"), TEXT("ScriptPlugins"), ScriptPluginNames, GEngineIni);
+	for (auto& PluginName : ScriptPluginNames)
+	{
+		auto GeneratorInterface = FModuleManager::LoadModulePtr<IScriptGeneratorPluginInterface>(*PluginName);
+		if (GeneratorInterface)
+		{
+			ScriptPlugins.Add(GeneratorInterface);
+		}
+	}
 
-int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
+	// Check if we can use these plugins and initialize them
+	for (int32 PluginIndex = ScriptPlugins.Num() - 1; PluginIndex >= 0; --PluginIndex)
+	{
+		auto ScriptGenerator = ScriptPlugins[PluginIndex];
+		bool bSupportedPlugin = ScriptGenerator->SupportsTarget(GManifest.TargetName);
+		if (bSupportedPlugin)
+		{
+			// Find the right output direcotry for this plugin base on its target (Engine-side) plugin name.
+			FString GeneratedCodeModule = ScriptGenerator->GetGeneratedCodeModuleName();
+			FString OutputDirectory;
+			for (const auto& Module : GManifest.Modules)
+			{
+				if (Module.Name == GeneratedCodeModule)
+				{
+					OutputDirectory = Module.GeneratedIncludeDirectory;
+				}
+			}
+			if (!OutputDirectory.IsEmpty())
+			{
+				ScriptGenerator->Initialize(GManifest.RootLocalPath, GManifest.RootBuildPath, OutputDirectory);
+			}
+			else
+			{
+				// Can't use this plugin
+				UE_LOG(LogCompile, Log, TEXT("Unable to determine output directory for %s. Cannot export script glue."), *GeneratedCodeModule);
+				bSupportedPlugin = false;				
+			}
+		}
+		if (!bSupportedPlugin)
+		{
+			ScriptPlugins.RemoveAt(PluginIndex);
+		}
+	}
+}
+
+ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 {
 	check(GIsUCCMakeStandaloneHeaderGenerator);
+	ECompilationResult::Type Result = ECompilationResult::Succeeded;
 	
 	if ( !FParse::Param( FCommandLine::Get(), TEXT("IgnoreWarnings")) )
 	{
@@ -4607,7 +4474,7 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 	catch (const TCHAR* Ex)
 	{
 		UE_LOG(LogCompile, Error, TEXT("Failed to load manifest file '%s': %s"), *ModuleInfoFilename, Ex);
-		return 3;
+		return GCompilationResult;
 	}
 
 	NameLookupCPP = new FNameLookupCPP();
@@ -4616,179 +4483,191 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 	GScriptHelper = ScriptHelper;
 
 	// Load classes for editing.
-	bool Success = true;
 	int32 NumFailures = 0;
 
 	// Three passes.  1) Public 'Classes' headers (legacy)  2) Public headers   3) Private headers
-	for( int32 PassIndex = 0; PassIndex < 3; ++PassIndex )
+	enum EHeaderFolderTypes
 	{
-		enum
-		{
-			PublicClassesHeaders,
-			PublicHeaders,
-			PrivateHeaders,
-		} CurrentlyProcessing;
-		{
-			switch( PassIndex )
-			{
-				case 0:
-				default:
-					CurrentlyProcessing = PublicClassesHeaders;
-					break;
+		PublicClassesHeaders = 0,
+		PublicHeaders = 1,
+		PrivateHeaders,
 
-				case 1:
-					CurrentlyProcessing = PublicHeaders;
-					break;
+		FolderType_Count
+	};
 
-				case 2:
-					CurrentlyProcessing = PrivateHeaders;
-					break;
-			};
+	for (const auto& Module : GManifest.Modules)
+	{
+		if (Result != ECompilationResult::Succeeded)
+		{
+			break;
 		}
 
-		for (const auto& Module : GManifest.Modules)
+		UPackage* Package = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false));
+		if (Package == NULL)
 		{
-			if (!Success)
-				break;
+			Package = CreatePackage(NULL, *Module.LongPackageName);
+		}
+		// Set some package flags for indicating that this package contains script
+		// NOTE: We do this even if we didn't have to create the package, because CoreUObject is compiled into UnrealHeaderTool and we still
+		//       want to make sure our flags get set
+		Package->PackageFlags |= PKG_ContainsScript;
+		Package->PackageFlags &= ~(PKG_ClientOptional | PKG_ServerSideOnly);
+		Package->PackageFlags |= PKG_Compiling;
+
+		GPackageToManifestModuleMap.Add(Package, &Module);
+
+		for (int32 PassIndex = 0; PassIndex < FolderType_Count && Result == ECompilationResult::Succeeded; ++PassIndex)
+		{
+			EHeaderFolderTypes CurrentlyProcessing = (EHeaderFolderTypes)PassIndex;
 
 			// We'll make an ordered list of all UObject headers we care about.
-			TArray<FString> UObjectHeaders;
-			if( CurrentlyProcessing == PublicClassesHeaders )
-			{
-				UObjectHeaders = Module.PublicUObjectClassesHeaders;
-			}
 			// @todo uht: Ideally 'dependson' would not be allowed from public -> private, or NOT at all for new style headers
-			else if( CurrentlyProcessing == PublicHeaders )
+			const TArray<FString>& UObjectHeaders =
+				(CurrentlyProcessing == PublicClassesHeaders) ? Module.PublicUObjectClassesHeaders :
+				(CurrentlyProcessing == PublicHeaders       ) ? Module.PublicUObjectHeaders        :
+				                                                Module.PrivateUObjectHeaders;
+			if (!UObjectHeaders.Num())
+				continue;
+
+			for (const FString& Filename : UObjectHeaders)
 			{
-				// Append the public headers
-				UObjectHeaders = Module.PublicUObjectHeaders;
-			}
-			else
-			{
-				// Append the private headers
-				UObjectHeaders = Module.PrivateUObjectHeaders;
-			}
-			if( UObjectHeaders.Num() > 0 )
-			{
-				UPackage* Package = Cast<UPackage>( StaticFindObjectFast( UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false ) );
-				if( Package == NULL )
+				// Best faith effort at a useful line number for errors occurring during this initial pre-parsing
+				int32 ClassDeclLine = -1;
+
+			#if !PLATFORM_EXCEPTIONS_DISABLED
+				try
+			#endif
 				{
-					Package = CreatePackage( NULL, *Module.LongPackageName );
-				}
+					// Import class.
+					const FString ClassName      = FPaths::GetBaseFilename(Filename);
+					const FString FullModulePath = FPaths::ConvertRelativePathToFull(ModuleInfoPath, Filename);
 
-				// Set some package flags for indicating that this package contains script
-				// NOTE: We do this even if we didn't have to create the package, because CoreUObject is compiled into UnrealHeaderTool and we still
-				//       want to make sure our flags get set
-				Package->PackageFlags |= PKG_ContainsScript;
-				Package->PackageFlags &= ~(PKG_ClientOptional|PKG_ServerSideOnly);
-				Package->PackageFlags |= PKG_Compiling;
-
-				for (const FString& Filename : UObjectHeaders)
-				{
-					// Best faith effort at a useful line number for errors occurring during this initial pre-parsing
-					int32 ClassDeclLine = -1;
-
-				#if !PLATFORM_EXCEPTIONS_DISABLED
-					try
-				#endif
+					FString HeaderFile;
+					if (!FFileHelper::LoadFileToString(HeaderFile, *FullModulePath))
 					{
-						// Import class.
-						const FString ClassName      = FPaths::GetBaseFilename(Filename);
-						const FString FullModulePath = FPaths::ConvertRelativePathToFull(ModuleInfoPath, Filename);
+						FError::Throwf(TEXT( "UnrealHeaderTool was unable to load source file '%s'"), *FullModulePath);
+					}
 
-						FString HeaderFile;
-						if (!FFileHelper::LoadFileToString(HeaderFile, *FullModulePath))
-							FError::Throwf(TEXT( "UnrealHeaderTool was unable to load source file '%s'"), *FullModulePath);
+					UClass* ResultClass = GenerateCodeForHeader(Package, *ClassName, RF_Public|RF_Standalone, *HeaderFile, ClassDeclLine);
+					GClassSourceFileMap.Add(ResultClass, Filename);
+					GClassGeneratedFileMap.Add(ResultClass, FClassHeaderInfo(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Filename)));
 
-						UClass* ResultClass = GenerateCodeForHeader(Package, *ClassName, RF_Public|RF_Standalone, *HeaderFile, ClassDeclLine);
-						GClassSourceFileMap.Add(ResultClass, Filename);
+					if( CurrentlyProcessing == PublicClassesHeaders )
+					{
+						GPublicClassSet.Add(ResultClass);
+					}
 
-						if( CurrentlyProcessing == PublicClassesHeaders )
+					// Save metadata for the class path, both for it's include path and relative to the module base directory
+					if(FullModulePath.StartsWith(Module.BaseDirectory))
+					{
+						// Get the path relative to the module directory
+						const TCHAR *ModuleRelativePath = *FullModulePath + Module.BaseDirectory.Len();
+						GClassModuleRelativePathMap.Add(ResultClass, ModuleRelativePath);
+
+						// Calculate the include path
+						const TCHAR *IncludePath = ModuleRelativePath;
+
+						// Walk over the first potential slash
+						if(*IncludePath == '/')
 						{
-							GPublicClassSet.Add(ResultClass);
+							IncludePath++;
 						}
 
-						// Save metadata for the class path, both for it's include path and relative to the module base directory
-						if(FullModulePath.StartsWith(Module.BaseDirectory))
+						// Does this module path start with a known include path location? If so, we can cut that part out of the include path
+						static const TCHAR PublicFolderName[]  = TEXT("Public/");
+						static const TCHAR PrivateFolderName[] = TEXT("Private/");
+						static const TCHAR ClassesFolderName[] = TEXT("Classes/");
+						if(FCString::Strnicmp(IncludePath, PublicFolderName, ARRAY_COUNT(PublicFolderName) - 1) == 0)
 						{
-							// Get the path relative to the module directory
-							const TCHAR *ModuleRelativePath = *FullModulePath + Module.BaseDirectory.Len();
-							GClassModuleRelativePathMap.Add(ResultClass, ModuleRelativePath);
+							IncludePath += (ARRAY_COUNT(PublicFolderName) - 1);
+						}
+						else if(FCString::Strnicmp(IncludePath, PrivateFolderName, ARRAY_COUNT(PrivateFolderName) - 1) == 0)
+						{
+							IncludePath += (ARRAY_COUNT(PrivateFolderName) - 1);
+						}
+						else if(FCString::Strnicmp(IncludePath, ClassesFolderName, ARRAY_COUNT(ClassesFolderName) - 1) == 0)
+						{
+							IncludePath += (ARRAY_COUNT(ClassesFolderName) - 1);
+						}
 
-							// Add the include path
-							const TCHAR *IncludePath = ModuleRelativePath;
-							if(*IncludePath == '/')
-							{
-								IncludePath++;
-							}
-							while(*IncludePath != 0 && *IncludePath != '/')
-							{
-								IncludePath++;
-							}
-							if(*IncludePath == '/' && *(IncludePath + 1) != 0)
-							{
-								GClassIncludePathMap.Add(ResultClass, IncludePath + 1);
-							}
+						// Add the include path
+						if(*IncludePath != 0)
+						{
+							GClassIncludePathMap.Add(ResultClass, IncludePath);
 						}
 					}
-				#if !PLATFORM_EXCEPTIONS_DISABLED
-					catch( TCHAR* ErrorMsg )
-					{
-						TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
-
-						FString Prefix;
-						if (ClassDeclLine != -1)
-						{
-							const FString AbsFilename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Filename);
-							Prefix = FString::Printf(TEXT("%s(%i): "), *AbsFilename, ClassDeclLine);
-						}
-
-						FString FormattedErrorMessage = FString::Printf(TEXT("%sError: %s\r\n"), *Prefix, ErrorMsg);
-
-						UE_LOG(LogCompile, Log, TEXT("%s"), *FormattedErrorMessage);
-						GWarn->Log(ELogVerbosity::Error, FormattedErrorMessage);
-
-						++NumFailures;
-					}
-				#endif
 				}
+			#if !PLATFORM_EXCEPTIONS_DISABLED
+				catch( TCHAR* ErrorMsg )
+				{
+					TGuardValue<ELogTimes::Type> DisableLogTimes(GPrintLogTimes, ELogTimes::None);
 
-				Success = NumFailures == 0;
+					FString Prefix;
+					if (ClassDeclLine != -1)
+					{
+						const FString AbsFilename = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Filename);
+						Prefix = FString::Printf(TEXT("%s(%i): "), *AbsFilename, ClassDeclLine);
+					}
+
+					FString FormattedErrorMessage = FString::Printf(TEXT("%sError: %s\r\n"), *Prefix, ErrorMsg);
+					Result = GCompilationResult;
+
+					UE_LOG(LogCompile, Log, TEXT("%s"), *FormattedErrorMessage);
+					GWarn->Log(ELogVerbosity::Error, FormattedErrorMessage);
+
+					++NumFailures;
+				}
+			#endif
+			}
+			if (Result == ECompilationResult::Succeeded && NumFailures != 0)
+			{
+				Result = ECompilationResult::OtherCompilationError;
 			}
 		}
 	}
 
 
 	// Save generated headers
-	if ( Success )
+	if ( Result == ECompilationResult::Succeeded )
 	{
 		// Verify that all script declared superclasses exist.
-		for( TObjectIterator<UClass> ItC; ItC; ++ItC )
+		for (const UClass* ScriptClass : TObjectRange<UClass>())
 		{
-			const UClass* ScriptClass      = *ItC;
 			const UClass* ScriptSuperClass = ScriptClass->GetSuperClass();
 
 			if (ScriptSuperClass && !ScriptSuperClass->HasAnyClassFlags(CLASS_Intrinsic) && GClassStrippedHeaderTextMap.Contains(ScriptClass) && !GClassStrippedHeaderTextMap.Contains(ScriptSuperClass))
 			{
 				UE_LOG(LogCompile, Error, TEXT("Superclass %s of class %s not found"), *ScriptSuperClass->GetName(), *ScriptClass->GetName());
-				Success = false;
+				Result = ECompilationResult::OtherCompilationError;
 				++NumFailures;
 			}
 		}
 
-		if (Success)
+		if (Result == ECompilationResult::Succeeded)
 		{
+			TArray<IScriptGeneratorPluginInterface*> ScriptPlugins;
+			// Can only export scripts for game targets
+			if (GManifest.IsGameTarget)
+			{				
+				GetScriptPlugins(ScriptPlugins);
+			}
+
 			for (const auto& Module : GManifest.Modules)
 			{
-				if (UPackage* Package = Cast<UPackage>( StaticFindObjectFast( UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false ) ))
+				if (UPackage* Package = Cast<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), NULL, FName(*Module.LongPackageName), false, false)))
 				{
-					Success = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths);
-					if (!Success)
+					Result = FHeaderParser::ParseAllHeadersInside(GWarn, Package, Module.SaveExportedHeaders, GManifest.UseRelativePaths, ScriptPlugins);
+					if (Result != ECompilationResult::Succeeded)
 					{
 						++NumFailures;
 						break;
 					}
 				}
+			}
+
+			for (auto ScriptGenerator : ScriptPlugins)
+			{
+				ScriptGenerator->FinishExport();
 			}
 		}
 	}
@@ -4825,8 +4704,13 @@ int32 UnrealHeaderTool_Main(const FString& ModuleInfoFilename)
 	ScriptHelper = NULL;
 
 	GIsRequestingExit = true;
+
+	if(Result == ECompilationResult::Succeeded && NumFailures > 0)
+	{
+		return ECompilationResult::OtherCompilationError;
+	}
 	
-	return NumFailures > 0 ? 4 : 0;
+	return Result;
 }
 
 UClass* GenerateCodeForHeader
@@ -4862,13 +4746,13 @@ UClass* GenerateCodeForHeader
 		bNonClassHeader = true;
 	}
 
-	FString ClassNameStripped = FHeaderParser::GetClassNameWithPrefixRemoved( *ClassName );
+	FString ClassNameStripped = GetClassNameWithPrefixRemoved( *ClassName );
 
 	// Ensure the base class has any valid prefix and exists as a valid class. Checking for the 'correct' prefix will occur during compilation
 	FString BaseClassNameStripped;
 	if (!BaseClassName.IsEmpty())
 	{
-		BaseClassNameStripped = FHeaderParser::GetClassNameWithPrefixRemoved(BaseClassName);
+		BaseClassNameStripped = GetClassNameWithPrefixRemoved(BaseClassName);
 		if( !FHeaderParser::ClassNameHasValidPrefix(BaseClassName, BaseClassNameStripped) )
 			FError::Throwf(TEXT("No prefix or invalid identifier for base class %s.\nClass names must match Unreal prefix specifications (e.g., \"UObject\" or \"AActor\")"), *BaseClassName );
 

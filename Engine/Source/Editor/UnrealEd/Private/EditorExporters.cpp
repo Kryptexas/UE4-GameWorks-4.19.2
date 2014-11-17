@@ -6,8 +6,6 @@
 
 #include "UnrealEd.h"
 #include "SoundDefinitions.h"
-#include "EngineMaterialClasses.h"
-#include "EngineFoliageClasses.h"
 #include "Landscape/LandscapeDataAccess.h"
 #include "Kismet2/DebuggerCommands.h"
 #include "MaterialCompiler.h"
@@ -64,6 +62,17 @@ USoundExporterWAV::USoundExporterWAV(const class FPostConstructInitializePropert
 
 }
 
+bool USoundExporterWAV::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		USoundWave* SoundWave = CastChecked<USoundWave>(Object);
+		bSupportsObject = (SoundWave->NumChannels <= 2);
+	}
+	return bSupportsObject;
+}
+
 bool USoundExporterWAV::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
 	USoundWave* Sound = CastChecked<USoundWave>( Object );
@@ -88,12 +97,23 @@ USoundExporterOGG::USoundExporterOGG(const class FPostConstructInitializePropert
 
 }
 
+bool USoundExporterOGG::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		USoundWave* SoundWave = CastChecked<USoundWave>(Object);
+		bSupportsObject = (SoundWave->GetCompressedData("OGG") != NULL);
+	}
+	return bSupportsObject;
+}
+
+
 bool USoundExporterOGG::ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex, uint32 PortFlags )
 {
 	USoundWave* Sound = CastChecked<USoundWave>( Object );
 
-	static FName NAME_OGG(TEXT("OGG"));
-	FByteBulkData* Bulk = Sound->GetCompressedData(NAME_OGG);
+	FByteBulkData* Bulk = Sound->GetCompressedData("OGG");
 	if (Bulk)
 	{
 		Ar.Serialize(Bulk->Lock(LOCK_READ_ONLY), Bulk->GetBulkDataSize());
@@ -116,6 +136,17 @@ USoundSurroundExporterWAV::USoundSurroundExporterWAV(const class FPostConstructI
 	FormatExtension.Add(TEXT("WAV"));
 	FormatDescription.Add(TEXT("Multichannel Sound"));
 
+}
+
+bool USoundSurroundExporterWAV::SupportsObject(UObject* Object) const
+{
+	bool bSupportsObject = false;
+	if (Super::SupportsObject(Object))
+	{
+		USoundWave* SoundWave = CastChecked<USoundWave>(Object);
+		bSupportsObject = (SoundWave->NumChannels > 2);
+	}
+	return bSupportsObject;
 }
 
 int32 USoundSurroundExporterWAV::GetFileCount( void ) const
@@ -664,7 +695,7 @@ public:
 	FExportMaterialProxy()
 	: FMaterial()
 	{
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	FExportMaterialProxy(UMaterialInterface* InMaterialInterface, EMaterialProperty InPropertyToCompile)
@@ -672,7 +703,7 @@ public:
 	, MaterialInterface(InMaterialInterface)
 	, PropertyToCompile(InPropertyToCompile)
 	{
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 		Material = InMaterialInterface->GetMaterial();
 		Material->AppendReferencedTextures(ReferencedTextures);
 		FPlatformMisc::CreateGuid(Id);
@@ -2524,7 +2555,7 @@ namespace MaterialExportUtils
 		RHIBeginScene();
 		{
 			// Create a canvas for the render target and clear it to black
-			FCanvas Canvas(RTResource, NULL, GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime );
+			FCanvas Canvas(RTResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
 			Canvas.Clear(FLinearColor::Black);
 			FCanvasTileItem TileItem(FVector2D(0.0f, 0.0f), MaterialProxy, FVector2D(InRenderTarget->SizeX, InRenderTarget->SizeY));
 			TileItem.bFreezeTime = true;
@@ -2670,7 +2701,7 @@ namespace MaterialExportUtils
 
 				FSceneViewFamilyContext ViewFamily(
 					FSceneViewFamily::ConstructionValues(RenderTargetResource, Scene, FEngineShowFlags(ESFIM_Game))
-						.SetWorldTimes(GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime)
+						.SetWorldTimes(FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime)
 					);
 
 				ViewFamily.EngineShowFlags.DisableAdvancedFeatures();
@@ -2720,7 +2751,7 @@ namespace MaterialExportUtils
 					}
 				}
 			
-				FCanvas Canvas(RenderTargetResource, NULL, GCurrentTime - GStartTime, GDeltaTime, GCurrentTime - GStartTime);
+				FCanvas Canvas(RenderTargetResource, NULL, FApp::GetCurrentTime() - GStartTime, FApp::GetDeltaTime(), FApp::GetCurrentTime() - GStartTime);
 				Canvas.Clear(FLinearColor::Black);
 				GetRendererModule().BeginRenderingViewFamily(&Canvas, &ViewFamily);
 

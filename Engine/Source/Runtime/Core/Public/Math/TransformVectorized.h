@@ -7,8 +7,6 @@
 /** This returns Quaternion Inverse of X **/
 #define MAKE_QUATINV_VECTORREGISTER(X) VectorMultiply(GlobalVectorConstants::QINV_SIGN_MASK, X)
 
-
-
 /** 
  * FTransform class for Quat/Translation/Scale.
  */
@@ -34,23 +32,23 @@ public:
 	 */
 	static CORE_API const FTransform Identity;
 
-#if TRANSFORM_TRACK_NAN_ISSUES
-	void DiagnosticCheckNaN_Scale3D() const
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN_Scale3D() const
 	{
-		ensure( !VectorContainsNaNOrInfinite(Scale3D) );
+		checkf(!VectorContainsNaNOrInfinite(Scale3D), TEXT("FTransform Vectorized Scale3D contains NaN"));
 	}
 
-	void DiagnosticCheckNaN_Translate() const
+	FORCEINLINE void DiagnosticCheckNaN_Translate() const
 	{
-		ensure( !VectorContainsNaNOrInfinite(Translation) );
+		checkf(!VectorContainsNaNOrInfinite(Translation), TEXT("FTransform Vectorized Translation contains NaN"));
 	}
 
-	void DiagnosticCheckNaN_Rotate() const
+	FORCEINLINE void DiagnosticCheckNaN_Rotate() const
 	{
-		ensure( !VectorContainsNaNOrInfinite(Rotation) );
+		checkf(!VectorContainsNaNOrInfinite(Rotation), TEXT("FTransform Vectorized Rotation contains NaN"));
 	}
 
-	void DiagnosticCheckNaN_All() const
+	FORCEINLINE void DiagnosticCheckNaN_All() const
 	{
 		DiagnosticCheckNaN_Scale3D();
 		DiagnosticCheckNaN_Rotate();

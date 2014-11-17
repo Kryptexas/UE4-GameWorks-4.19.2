@@ -61,13 +61,13 @@ void FBodyInstanceCustomization::CustomizeStructChildren( TSharedRef<class IProp
 	// need to find profile name
 	FName ProfileName;
 	TSharedPtr< FString > DisplayName = CollisionProfileComboList[0];
-	//bDisplayAdvancedCollisionSettings = true;
+	bool bDisplayAdvancedCollisionSettings = true;
 
 	// if I have valid profile name
-	if (CollisionProfileNameHandle->GetValue(ProfileName) ==  FPropertyAccess::Result::Success && ProfileName!=NAME_None)
+	if (CollisionProfileNameHandle->GetValue(ProfileName) ==  FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) )
 	{
 		DisplayName = GetProfileString(ProfileName);
-		//bDisplayAdvancedCollisionSettings = false;
+		bDisplayAdvancedCollisionSettings = false;
 	}
 
 	const FString PresetsDocLink = TEXT("Shared/Collision");
@@ -123,6 +123,7 @@ void FBodyInstanceCustomization::CustomizeStructChildren( TSharedRef<class IProp
 		]
 	];
 
+	CollisionGroup.ToggleExpansion(bDisplayAdvancedCollisionSettings);
 	// now create custom set up
 	CreateCustomCollisionSetup( StructPropertyHandle, CollisionGroup );
 }
@@ -690,7 +691,7 @@ void FBodyInstanceCustomization::OnCollisionProfileChanged( TSharedPtr<FString> 
 			CollisionGroup->ToggleExpansion( true );
 		}
 		// if none of them found, clear it
-		FName Name=NAME_None;
+		FName Name=UCollisionProfile::CustomCollisionProfileName;
 		ensure ( CollisionProfileNameHandle->SetValue(Name) ==  FPropertyAccess::Result::Success );
 	}
 }
@@ -700,7 +701,7 @@ void FBodyInstanceCustomization::UpdateCollisionProfile()
 	FName ProfileName;
 
 	// if I have valid profile name
-	if (CollisionProfileNameHandle->GetValue(ProfileName) ==  FPropertyAccess::Result::Success && ProfileName!=NAME_None)
+	if (CollisionProfileNameHandle->GetValue(ProfileName) ==  FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) )
 	{
 		int32 NumProfiles = CollisionProfile->GetNumOfProfiles();
 		for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
@@ -788,7 +789,7 @@ EVisibility FBodyInstanceCustomization::ShouldShowResetToDefaultResponse(int32 V
 bool FBodyInstanceCustomization::ShouldEnableCustomCollisionSetup() const
 {
 	FName ProfileName;
-	if (CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::Success && ProfileName == NAME_None)
+	if (CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::Success && FBodyInstance::IsValidCollisionProfileName(ProfileName) == false)
 	{
 		return true;
 	}

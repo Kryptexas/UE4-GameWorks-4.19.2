@@ -15,6 +15,7 @@ public class DetailCustomizations : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"EditorWidgets",
@@ -32,22 +33,24 @@ public class DetailCustomizations : ModuleRules
 				"GameProjectGeneration",
 				"MoviePlayer",
 				"SourceControl",
-                "InternationalizationSettings"
+                "InternationalizationSettings",
+				"SourceCodeAccess",
+				"RHI"
 			}
-			);
+		);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
 				"LandscapeEditor",
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
 				"Layers"
 			}
-			);
+		);
 	}
 }

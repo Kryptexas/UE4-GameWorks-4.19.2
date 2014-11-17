@@ -8,6 +8,8 @@ const FName UBrainComponent::AIMessage_MoveFinished = TEXT("MoveFinished");
 const FName UBrainComponent::AIMessage_RepathFailed = TEXT("RepathFailed");
 const FName UBrainComponent::AIMessage_QueryFinished = TEXT("QueryFinished");
 
+DEFINE_LOG_CATEGORY(LogBrain);
+
 //////////////////////////////////////////////////////////////////////////
 // Messages
 
@@ -54,10 +56,7 @@ void FAIMessage::Send(UBrainComponent* BrainComp, const FAIMessage& Message)
 {
 	if (BrainComp)
 	{
-		for (int32 i = 0; i < BrainComp->MessageObservers.Num(); i++)
-		{
-			BrainComp->MessageObservers[i]->OnMessage(Message);
-		}
+		BrainComp->HandleMessage(Message);
 	}
 }
 
@@ -79,7 +78,7 @@ FAIMessageObserverHandle FAIMessageObserver::Create(AController* Controller, FNa
 	return Create(BrainComp, MessageType, Delegate);
 }
 
-FAIMessageObserverHandle FAIMessageObserver::Create(AController* Controller, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate)
+FAIMessageObserverHandle FAIMessageObserver::Create(AController* Controller, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate)
 {
 	UBrainComponent* BrainComp = FindBrainComponentHelper(Controller);
 	return Create(BrainComp, MessageType, MessageID, Delegate);
@@ -91,7 +90,7 @@ FAIMessageObserverHandle FAIMessageObserver::Create(APawn* Pawn, FName MessageTy
 	return Create(BrainComp, MessageType, Delegate);
 }
 
-FAIMessageObserverHandle FAIMessageObserver::Create(APawn* Pawn, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate)
+FAIMessageObserverHandle FAIMessageObserver::Create(APawn* Pawn, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate)
 {
 	UBrainComponent* BrainComp = FindBrainComponentHelper(Pawn);
 	return Create(BrainComp, MessageType, MessageID, Delegate);
@@ -114,7 +113,7 @@ FAIMessageObserverHandle FAIMessageObserver::Create(UBrainComponent* BrainComp, 
 	return ObserverHandle;
 }
 
-FAIMessageObserverHandle FAIMessageObserver::Create(UBrainComponent* BrainComp, FName MessageType, int32 MessageID, FOnAIMessage const& Delegate)
+FAIMessageObserverHandle FAIMessageObserver::Create(UBrainComponent* BrainComp, FName MessageType, FAIRequestID MessageID, FOnAIMessage const& Delegate)
 {
 	FAIMessageObserverHandle ObserverHandle;
 	if (BrainComp)
@@ -154,9 +153,9 @@ void FAIMessageObserver::Unregister()
 
 void FAIMessageObserver::OnMessage(const FAIMessage& Message)
 {
-	if (Message.Message == MessageType)
+	if (Message.MessageName == MessageType)
 	{
-		if (!bFilterByID || Message.MessageID == MessageID)
+		if (!bFilterByID || Message.RequestID.IsEquivalent(MessageID))
 		{
 			ObserverDelegate.ExecuteIfBound(Owner.Get(), Message);
 		}
@@ -169,7 +168,7 @@ FString FAIMessageObserver::DescribeObservedMessage() const
 	if (bFilterByID)
 	{
 		Description.AppendChar(TEXT(':'));
-		Description.AppendInt(MessageID);
+		Description.AppendInt(MessageID.GetID());
 	}
 
 	return Description;
@@ -181,12 +180,31 @@ FString FAIMessageObserver::DescribeObservedMessage() const
 UBrainComponent::UBrainComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	bDoLogicRestartOnUnlock = false;
 }
 
 #if ENABLE_VISUAL_LOG
 void UBrainComponent::DescribeSelfToVisLog(struct FVisLogEntry* Snapshot) const
 {
+	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAILockSource"));
 
+	if (IsPendingKill())
+	{
+		return;
+	}
+
+	FVisLogEntry::FStatusCategory StatusCategory;
+	StatusCategory.Category = FString::Printf(TEXT("Resource lock: %s"), *ResourceLock.GetLockSourceName());
+	for (int32 LockLevel = 0; LockLevel < int32(EAILockSource::MAX); ++LockLevel)
+	{
+		StatusCategory.Add(*SourceEnum->GetEnumName(LockLevel), ResourceLock.Locks[LockLevel] ? TEXT("Locked") : TEXT("Unlocked"));		
+	}
+	Snapshot->Status.Add(StatusCategory);
+
+	if (BlackboardComp)
+	{
+		BlackboardComp->DescribeSelfToVisLog(Snapshot);
+	}
 }
 #endif // ENABLE_VISUAL_LOG
 
@@ -219,4 +237,68 @@ void UBrainComponent::ForceUnlockResource()
 bool UBrainComponent::IsResourceLocked() const
 {
 	return ResourceLock.IsLocked();
+}
+
+void UBrainComponent::InitializeComponent()
+{
+	Super::InitializeComponent();
+
+	// cache blackboard component if owner has one
+	BlackboardComp = GetOwner()->FindComponentByClass<UBlackboardComponent>();
+	if (BlackboardComp)
+	{
+		BlackboardComp->CacheBrainComponent(this);
+	}
+}
+
+void UBrainComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+{
+	if (MessagesToProcess.Num() > 0)
+	{
+		for (auto Message : MessagesToProcess)
+		{
+			for (int32 i = 0; i < MessageObservers.Num(); i++)
+			{
+				MessageObservers[i]->OnMessage(Message);
+			}
+		}
+		MessagesToProcess.Reset();
+	}
+}
+
+void UBrainComponent::CacheBlackboardComponent(UBlackboardComponent* BBComp)
+{
+	if (BBComp)
+	{
+		BlackboardComp = BBComp;
+	}
+}
+
+void UBrainComponent::HandleMessage(const FAIMessage& Message)
+{
+	MessagesToProcess.Add(Message);
+}
+
+void UBrainComponent::RequestLogicRestartOnUnlock()
+{
+	if (IsResourceLocked())
+	{
+		UE_VLOG(GetOwner(), LogBrain, Log, TEXT("Scheduling Logic Restart on next braing unlocking"));
+		bDoLogicRestartOnUnlock = true;
+	}
+}
+
+EAILogicResuming::Type UBrainComponent::ResumeLogic(const FString& Reason)
+{
+	UE_VLOG(GetOwner(), LogBrain, Log, TEXT("Execution updates: RESUMED (%s)"), *Reason);
+
+	if (bDoLogicRestartOnUnlock == true)
+	{
+		bDoLogicRestartOnUnlock = false;
+		RestartLogic();
+		// let child implementations not to continue
+		return EAILogicResuming::RestartedInstead;
+	}
+
+	return EAILogicResuming::Continue;
 }

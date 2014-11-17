@@ -7,7 +7,7 @@
 #pragma once
 #include "CameraActor.generated.h"
 
-UCLASS(ClassGroup=Common, hideCategories=(Input, Rendering), MinimalAPI, Blueprintable)
+UCLASS(ClassGroup=Common, hideCategories=(Input, Rendering), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI, Blueprintable)
 class ACameraActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -16,6 +16,9 @@ public:
 	// The camera component for this camera
 	UPROPERTY(Category=CameraActor, VisibleAnywhere, BlueprintReadOnly)
 	TSubobjectPtr<class UCameraComponent> CameraComponent;
+
+	/** If this CameraActor is being used to preview a CameraAnim in the editor, this is the anim being previewed. */
+	TWeakObjectPtr<class UCameraAnim> PreviewedCameraAnim;
 
 private:
 	UPROPERTY()
@@ -37,5 +40,10 @@ public:
 	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	ENGINE_API virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) OVERRIDE;
+
+#if WITH_EDITOR
+	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+#endif
 	// End UObject interface
+	
 };

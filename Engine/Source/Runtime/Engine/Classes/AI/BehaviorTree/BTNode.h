@@ -84,6 +84,15 @@ class ENGINE_API UBTNode : public UObject
 	/** @return depth in tree */
 	uint8 GetTreeDepth() const;
 
+	/** sets bIsInjected flag, do NOT call this function unless you really know what you are doing! */
+	void MarkInjectedNode();
+
+	/** @return true if node was injected by subtree */
+	bool IsInjected() const;
+
+	/** sets bCreateNodeInstance flag, do NOT call this function on already pushed tree instance! */
+	void ForceInstancing(bool bEnable);
+
 	/** @return true if node wants to be instanced */
 	bool HasInstance() const;
 
@@ -143,6 +152,9 @@ protected:
 
 	/** set automatically for node instances */
 	uint8 bIsInstanced : 1;
+
+	/** if set, node is injected by subtree */
+	uint8 bIsInjected : 1;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -183,6 +195,24 @@ FORCEINLINE uint16 UBTNode::GetMemoryOffset() const
 FORCEINLINE uint8 UBTNode::GetTreeDepth() const
 {
 	return TreeDepth;
+}
+
+FORCEINLINE void UBTNode::MarkInjectedNode()
+{
+	bIsInjected = true;
+}
+
+FORCEINLINE bool UBTNode::IsInjected() const
+{
+	return bIsInjected;
+}
+
+FORCEINLINE void UBTNode::ForceInstancing(bool bEnable)
+{
+	// allow only in not initialized trees, side effect: root node always blocked
+	check(ParentNode == NULL);
+
+	bCreateNodeInstance = bEnable;
 }
 
 FORCEINLINE bool UBTNode::HasInstance() const

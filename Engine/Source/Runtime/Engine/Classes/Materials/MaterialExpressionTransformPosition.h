@@ -12,7 +12,7 @@ enum EMaterialPositionTransformSource
 	TRANSFORMPOSSOURCE_MAX,
 };
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTransformPosition : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

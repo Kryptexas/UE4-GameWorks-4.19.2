@@ -5,9 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 #include "TileRendering.h"
-#include "EngineMaterialClasses.h"
 #include "RHIStaticStates.h"
 #include "WordWrapper.h"
 
@@ -91,6 +89,10 @@ void FCanvas::SetBaseTransform(const FMatrix& Transform)
 
 FMatrix FCanvas::CalcBaseTransform2D(uint32 ViewSizeX, uint32 ViewSizeY)
 {
+	// Guard against division by zero.
+	ViewSizeX = FMath::Max<uint32>(ViewSizeX, 1.f);
+	ViewSizeY = FMath::Max<uint32>(ViewSizeY, 1.f);
+
 	return AdjustProjectionMatrixForRHI(
 		FTranslationMatrix(FVector(-GPixelCenterOffset,-GPixelCenterOffset,0)) *
 		FMatrix(
@@ -754,8 +756,8 @@ ENGINE_API void StringSize(UFont* Font,int32& XL,int32& YL,const TCHAR* Text)
 	// this functionality has been moved to a static function in UIString
 	FTextSizingParameters Parameters(Font,1.f,1.f);
 	UCanvas::CanvasStringSize(Parameters, Text);
-	XL = FMath::Trunc(Parameters.DrawXL);
-	YL = FMath::Trunc(Parameters.DrawYL);
+	XL = FMath::TruncToInt(Parameters.DrawXL);
+	YL = FMath::TruncToInt(Parameters.DrawYL);
 }
 
 /**
@@ -1102,8 +1104,8 @@ void UCanvas::UpdateSafeZoneData()
 		FDisplayMetrics DisplayMetrics;
 		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
 	
-		SafeZonePadX = FMath::Ceil(DisplayMetrics.TitleSafePaddingSize.X);
-		SafeZonePadY = FMath::Ceil(DisplayMetrics.TitleSafePaddingSize.Y);
+		SafeZonePadX = FMath::CeilToInt(DisplayMetrics.TitleSafePaddingSize.X);
+		SafeZonePadY = FMath::CeilToInt(DisplayMetrics.TitleSafePaddingSize.Y);
 
 		CachedDisplayWidth = DisplayMetrics.PrimaryDisplayWidth;
 		CachedDisplayHeight = DisplayMetrics.PrimaryDisplayHeight;
@@ -1120,7 +1122,7 @@ void UCanvas::UpdateAllCanvasSafeZoneData()
 
 void UCanvas::Update()
 {
-	// Call UnrealScript to reset.
+	// Reset canvas params.
 	Reset();
 
 	// Copy size parameters from viewport.
@@ -1139,7 +1141,7 @@ void UCanvas::SetLinearDrawColor(FLinearColor InColor, float OpacityOverride)
 
 	if( OpacityOverride != -1 )
 	{
-		DrawColor.A = FMath::Clamp(FMath::Trunc(OpacityOverride * 255.0f),0,255);
+		DrawColor.A = FMath::Clamp(FMath::TruncToInt(OpacityOverride * 255.0f),0,255);
 	}
 }
 
@@ -1182,7 +1184,7 @@ ESimpleElementBlendMode FCanvas::BlendToSimpleElementBlend(EBlendMode BlendMode)
 }
 
 
-void UCanvas::DrawTile( UTexture* Tex, float X, float Y, float Z, float XL, float YL, float U, float V, float UL, float VL, EBlendMode BlendMode )
+void UCanvas::DrawTile( UTexture* Tex, float X, float Y, float XL, float YL, float U, float V, float UL, float VL, EBlendMode BlendMode )
 {
 	if ( !Tex ) 
 	{
@@ -1222,8 +1224,8 @@ void UCanvas::ClippedStrLen( UFont* Font, float ScaleX, float ScaleY, int32& XL,
 		FTextSizingParameters Parameters(Font,ScaleX,ScaleY);
 		CanvasStringSize(Parameters, Text);
 
-		XL = FMath::Trunc(Parameters.DrawXL);
-		YL = FMath::Trunc(Parameters.DrawYL);
+		XL = FMath::TruncToInt(Parameters.DrawXL);
+		YL = FMath::TruncToInt(Parameters.DrawYL);
 	}
 }
 
@@ -1236,23 +1238,29 @@ void VARARGS UCanvas::WrappedStrLenf( UFont* Font, float ScaleX, float ScaleY, i
 	WrappedPrint( false, 0.0f, 0.0f, XL, YL, Font, ScaleX, ScaleY, false, false, Text, Info ); 
 }
 
-float UCanvas::DrawText(UFont* InFont, const FString& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
+float UCanvas::DrawText(UFont* InFont, const FText& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
 {
 	ensure(InFont);
-	int32		XL		= 0;
-	int32		YL		= 0; 
+	int32		XL = 0;
+	int32		YL = 0;
 	// need this call in any case to update YL and XL - one of them will be needed anyway
-	WrappedPrint(RenderInfo.bClipText == false, X, Y, XL, YL, InFont, XScale, YScale, bCenterX, bCenterY, *InText, RenderInfo);
+	WrappedPrint(RenderInfo.bClipText == false, X, Y, XL, YL, InFont, XScale, YScale, bCenterX, bCenterY, *InText.ToString(), RenderInfo);
 
 	if (RenderInfo.bClipText)
 	{
-		FCanvasTextItem TextItem( FVector2D( FMath::Trunc(OrgX + X), FMath::Trunc(OrgY + Y) ), FText::FromString( InText ), InFont, DrawColor );
-		TextItem.Scale = FVector2D( XScale, YScale ), 
-		TextItem.BlendMode = SE_BLEND_Translucent;
+		FCanvasTextItem TextItem(FVector2D(FMath::TruncToFloat(OrgX + X), FMath::TruncToFloat(OrgY + Y)), InText, InFont, DrawColor);
+		TextItem.Scale = FVector2D(XScale, YScale),
+			TextItem.BlendMode = SE_BLEND_Translucent;
 		TextItem.FontRenderInfo = RenderInfo;
-		Canvas->DrawItem( TextItem );	
+		Canvas->DrawItem(TextItem);
 	}
+
 	return (float)YL;
+}
+
+float UCanvas::DrawText(UFont* InFont, const FString& InText, float X, float Y, float XScale, float YScale, const FFontRenderInfo& RenderInfo)
+{
+	return DrawText(InFont, FText::FromString(InText), X, Y, XScale, YScale, RenderInfo);
 }
 
 int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& out_YL, UFont* Font, float ScaleX, float ScaleY, bool bCenterTextX, bool bCenterTextY, const TCHAR* Text, const FFontRenderInfo& RenderInfo) 
@@ -1319,8 +1327,8 @@ int32 UCanvas::WrappedPrint(bool Draw, float X, float Y, int32& out_XL, int32& o
 		YL += Font->GetMaxCharHeight() * ScaleY;
 	}
 
-	out_XL = FMath::Trunc(XL);
-	out_YL = FMath::Trunc(YL);
+	out_XL = FMath::TruncToInt(XL);
+	out_YL = FMath::TruncToInt(YL);
 	return WrappedStrings.Num();
 }
 
@@ -1363,6 +1371,7 @@ FVector UCanvas::Project( FVector Location )
 
 	if (SceneView != NULL)
 	{
+		Location.DiagnosticCheckNaN();
 		V = SceneView->Project(Location);
 	}
 
@@ -1497,9 +1506,9 @@ void UCanvas::DrawScaledIcon(FCanvasIcon Icon, float X, float Y, FVector Scale)
 		{
 			Icon.VL = Icon.Texture->GetSurfaceHeight();
 		}
-		const float Z = 0.1f;
+
 		// and draw the texture
-		DrawTile(Icon.Texture, X, Y, Z, FMath::Abs(Icon.UL) * Scale.X, FMath::Abs(Icon.VL) * Scale.Y, Icon.U, Icon.V, Icon.UL, Icon.VL);
+		DrawTile(Icon.Texture, X, Y, FMath::Abs(Icon.UL) * Scale.X, FMath::Abs(Icon.VL) * Scale.Y, Icon.U, Icon.V, Icon.UL, Icon.VL);
 	}
 }
 
@@ -1522,9 +1531,8 @@ void UCanvas::DrawIcon(FCanvasIcon Icon, float X, float Y, float Scale)
 			Icon.VL = Icon.Texture->GetSurfaceHeight();
 		}
 		
-		const float Z = 0.1f;
 		// and draw the texture
-		DrawTile(Icon.Texture, X, Y, Z, FMath::Abs(Icon.UL) * Scale, FMath::Abs(Icon.VL) * Scale, Icon.U, Icon.V, Icon.UL, Icon.VL );
+		DrawTile(Icon.Texture, X, Y, FMath::Abs(Icon.UL) * Scale, FMath::Abs(Icon.VL) * Scale, Icon.U, Icon.V, Icon.UL, Icon.VL );
 	}
 }
 

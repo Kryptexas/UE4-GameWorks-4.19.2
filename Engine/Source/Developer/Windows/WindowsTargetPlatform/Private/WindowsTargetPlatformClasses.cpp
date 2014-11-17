@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "WindowsTargetPlatformPrivatePCH.h"
-#include "WindowsTargetPlatform.generated.inl"
+
 
 
 /* UWindowsTargetSettings structors

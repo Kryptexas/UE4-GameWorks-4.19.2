@@ -82,6 +82,20 @@ public:
 		return CommandLine;
 	}
 
+	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	{
+		// disable the device check
+		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
+		return true;
+	}
+
+	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	{
+		// disable the device check
+		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
+		return true;
+	}
+
 private:
 
 	// Holds a pointer to the device proxy to deploy to.
@@ -141,9 +155,13 @@ public:
 		}
 
 		FString Platform = TEXT("Win64");
-		if (TargetPlatform.PlatformName() == TEXT("LinuxServer"))
+		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor"))
 		{
 			Platform = TEXT("Linux");
+		}
+		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		{
+			Platform = TEXT("Win64");
 		}
 		CommandLine = FString::Printf(TEXT(" -noclient -server -deploy -skipstage -serverplatform=%s -stagingdirectory=\"%s\" -cmdline=\"%s -InstanceName=\"Deployer (%s)\" -Messaging\""),
 			*Platform,
@@ -255,6 +273,20 @@ public:
 		return CommandLine;
 	}
 
+	virtual bool PreExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	{
+		// disable the device check
+		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(false);
+		return true;
+	}
+
+	virtual bool PostExecute(FLauncherTaskChainState& ChainState) OVERRIDE
+	{
+		// disable the device check
+		const_cast<ITargetPlatform&>(TargetPlatform).EnableDeviceCheck(true);
+		return true;
+	}
+
 private:
 
 	// Holds a pointer to the device proxy to deploy to.
@@ -311,9 +343,13 @@ public:
 		}
 
 		FString Platform = TEXT("Win64");
-		if (TargetPlatform.PlatformName() == TEXT("LinuxServer"))
+		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor"))
 		{
 			Platform = TEXT("Linux");
+		}
+		else if (TargetPlatform.PlatformName() == TEXT("WindowsServer") || TargetPlatform.PlatformName() == TEXT("WindowsNoEditor") || TargetPlatform.PlatformName() == TEXT("Windows"))
+		{
+			Platform = TEXT("Win64");
 		}
 		CommandLine = FString::Printf(TEXT(" -noclient -server -deploy -skipstage -serverplatform=%s -stagingdirectory=\"%s\" -cmdline=\"%s -InstanceName=\"Deployer (%s)\" -Messaging\""),
 			*Platform,

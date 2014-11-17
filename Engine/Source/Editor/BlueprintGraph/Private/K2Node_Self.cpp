@@ -61,3 +61,15 @@ FNodeHandlingFunctor* UK2Node_Self::CreateNodeHandler(FKismetCompilerContext& Co
 {
 	return new FKCHandler_Self(CompilerContext);
 }
+
+void UK2Node_Self::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+	const UBlueprint* Blueprint = GetBlueprint();
+	const UClass* MyClass = SelfClass ? SelfClass : (Blueprint ? Blueprint->GeneratedClass : NULL);
+	const bool bValidClass = !MyClass || !MyClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass());
+	if (!bValidClass)
+	{
+		MessageLog.Warning(*NSLOCTEXT("K2Node", "InvalidSelfNode", "Self node @@ cannot be used in static library.").ToString(), this);
+	}
+}

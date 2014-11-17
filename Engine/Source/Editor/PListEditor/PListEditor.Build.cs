@@ -7,30 +7,28 @@ public class PListEditor : ModuleRules
 	public PListEditor( TargetInfo Target )
 	{
 		PrivateDependencyModuleNames.AddRange(
-			new string[] 
-			{ 
-				"Core", 
-				"CoreUObject", 
-				"Engine", 
+			new string[] { 
+				"Core",
+				"CoreUObject",
+				"Engine",
                 "InputCore",
-				"Slate", 
+				"Slate",
+				"SlateCore",
                 "EditorStyle",
-				"UnrealEd", 
+				"UnrealEd",
 				"DesktopPlatform",
-				"XmlParser"
+				"XmlParser",
 			}
 		);
 
 		PrivateIncludePathModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"MainFrame",
 			}
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"MainFrame",
 			}
 		);

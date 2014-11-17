@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AnimGraphNode_SkeletalControlBase.h"
 #include "AnimGraphNode_TwoBoneIK.generated.h"
 
 UCLASS(MinimalAPI)

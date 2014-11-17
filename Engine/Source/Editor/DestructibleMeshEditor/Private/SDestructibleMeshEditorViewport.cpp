@@ -416,7 +416,7 @@ void FDestructibleMeshEditorViewportClient::ImportFBXChunks()
 			FlushRenderingCommands();
 
 			UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
-			if (FFbxImporter->ImportFromFile(*ImportFilename))
+			if (FFbxImporter->ImportFromFile( *ImportFilename, FPaths::GetExtension( ImportFilename ) ) )
 			{
 				TArray<FbxNode*> FbxMeshArray;
 				FFbxImporter->FillFbxMeshArray(FFbxImporter->Scene->GetRootNode(), FbxMeshArray, FFbxImporter);

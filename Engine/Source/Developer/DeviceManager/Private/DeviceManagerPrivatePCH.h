@@ -13,6 +13,7 @@
  *****************************************************************************/
 
 #include "ModuleManager.h"
+#include "TargetPlatform.h"
 
 
 /* Private includes

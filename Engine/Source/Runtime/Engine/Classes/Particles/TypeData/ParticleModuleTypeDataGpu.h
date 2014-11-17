@@ -165,11 +165,19 @@ struct FGPUSpriteEmitterInfo
 	UPROPERTY()
 	uint32 bEnableCollision : 1;
 
-	/** Dynamic color scale from the ScaleColorOverLife module. */
+	/** Dynamic color scale from the ColorOverLife module. */
+	UPROPERTY()
+	FRawDistributionVector DynamicColor;
+
+	/** Dynamic alpha scale from the ColorOverLife module. */
+	UPROPERTY()
+	FRawDistributionFloat DynamicAlpha;
+
+	/** Dynamic color scale from the ColorScaleOverLife module. */
 	UPROPERTY()
 	FRawDistributionVector DynamicColorScale;
 
-	/* Dynamic alpha scale from the ScaleColorOverLife module.**/
+	/** Dynamic alpha scale from the ColorScaleOverLife module. */
 	UPROPERTY()
 	FRawDistributionFloat DynamicAlphaScale;
 
@@ -377,7 +385,7 @@ struct FGPUSpriteResourceData
 
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "GPU Sprites"))
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "GPU Sprites"))
 class UParticleModuleTypeDataGpu : public UParticleModuleTypeDataBase
 {
 	GENERATED_UCLASS_BODY()

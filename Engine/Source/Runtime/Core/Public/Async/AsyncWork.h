@@ -33,13 +33,9 @@
 		}
 	};
 
-	start an example job at low priority
+	start an example job
 
 	(new FAutoDeleteAsyncTask<ExampleAutoDeleteAsyncTask>(5)->StartBackgroundTask();
-
-	start an example job at high priority
-
-	(new FAutoDeleteAsyncTask<ExampleAutoDeleteAsyncTask>(5)->StartHiPriorityTask();
 
 	do an example job now, on this thread
 
@@ -215,7 +211,7 @@ public:
 		}
 	};
 
-	start an example job at low priority
+	start an example job
 
 	FAutoDeleteAsyncTask<ExampleAutoDeleteAsyncTask> MyTask(5);
 	

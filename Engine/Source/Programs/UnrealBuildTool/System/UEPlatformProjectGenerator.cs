@@ -82,6 +82,20 @@ namespace UnrealBuildTool
 			return true;
 		}
 
+		/// <summary>
+		/// Allow various platform project generators to generate any special project properties if required
+		/// </summary>
+		/// <param name="InPlatform"></param>
+		/// <returns></returns>
+		public static bool GenerateGamePlatformSpecificProperties(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration Configuration, TargetRules.TargetType TargetType, StringBuilder VCProjectFileContent, string RootDirectory, string TargetFilePath)
+		{
+			if (ProjectGeneratorDictionary.ContainsKey(InPlatform) == true)
+			{
+				ProjectGeneratorDictionary[InPlatform].GenerateGameProperties(Configuration, VCProjectFileContent, TargetType, RootDirectory, TargetFilePath); ;
+			}
+			return true;
+		}
+
 		public static bool PlatformRequiresVSUserFileGeneration(List<UnrealTargetPlatform> InPlatforms, List<UnrealTargetConfiguration> InConfigurations)
 		{
 			bool bRequiresVSUserFileGeneration = false;
@@ -103,6 +117,11 @@ namespace UnrealBuildTool
 
 		public virtual void GenerateGameProjectStub(ProjectFileGenerator InGenerator, string InTargetName, string InTargetFilepath, TargetRules InTargetRules,
 			List<UnrealTargetPlatform> InPlatforms, List<UnrealTargetConfiguration> InConfigurations)
+		{
+			// Do nothing
+		}
+
+		public virtual void GenerateGameProperties(UnrealTargetConfiguration Configuration, StringBuilder VCProjectFileContent, TargetRules.TargetType TargetType, string RootDirectory, string TargetFilePath)
 		{
 			// Do nothing
 		}

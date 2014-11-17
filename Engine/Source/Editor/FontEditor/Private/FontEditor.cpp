@@ -104,7 +104,7 @@ void FFontEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& Tab
 
 FFontEditor::~FFontEditor()
 {
-	FAssetEditorToolkit::OnPostReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	UEditorEngine* Editor = (UEditorEngine*)GEngine;
 	if (Editor != NULL)
@@ -116,7 +116,7 @@ FFontEditor::~FFontEditor()
 
 void FFontEditor::InitFontEditor(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit)
 {
-	FAssetEditorToolkit::OnPostReimport().AddRaw(this, &FFontEditor::OnPostReimport);
+	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FFontEditor::OnPostReimport);
 
 	// Register to be notified when an object is reimported.
 	GEditor->OnObjectReimported().AddSP(this, &FFontEditor::OnObjectReimported);

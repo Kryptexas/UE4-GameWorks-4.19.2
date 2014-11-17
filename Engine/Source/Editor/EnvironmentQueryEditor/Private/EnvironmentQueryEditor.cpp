@@ -564,8 +564,9 @@ void FEnvironmentQueryEditor::PasteNodesHere(const FVector2D& Location)
 
 	// Undo/Redo support
 	const FScopedTransaction Transaction( FGenericCommands::Get().Paste->GetDescription() );
-	UEdGraph* EdGraph = CurrentGraphEditor->GetCurrentGraph();
+	UEnvironmentQueryGraph* EdGraph = Cast<UEnvironmentQueryGraph>(CurrentGraphEditor->GetCurrentGraph());
 	EdGraph->Modify();
+	EdGraph->LockUpdates();
 
 	// Find currently selected option to paste all new tests into
 	UEnvironmentQueryGraphNode_Option* SelectedOption = NULL;
@@ -686,6 +687,7 @@ void FEnvironmentQueryEditor::PasteNodesHere(const FVector2D& Location)
 	}
 
 	// Update UI
+	EdGraph->UnlockUpdates();
 	CurrentGraphEditor->NotifyGraphChanged();
 
 	Query->PostEditChange();

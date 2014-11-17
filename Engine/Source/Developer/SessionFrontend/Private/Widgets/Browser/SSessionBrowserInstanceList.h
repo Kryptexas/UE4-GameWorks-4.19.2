@@ -22,7 +22,6 @@ public:
 		SLATE_ATTRIBUTE(ESelectionMode::Type, SelectionMode)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -36,7 +35,6 @@ public:
 			SessionManager->OnSelectedSessionChanged().RemoveAll(this);
 		}
 	}
-
 
 public:
 	
@@ -63,23 +61,28 @@ public:
 				(
 					SNew(SHeaderRow)
 
-					+ SHeaderRow::Column("Icons")
-						.DefaultLabel(LOCTEXT("InstanceListStatusColumnHeader", " ").ToString())
-						.FixedWidth(56.0f)
-
-					+ SHeaderRow::Column("Instance")
+					+ SHeaderRow::Column("Name")
 						.DefaultLabel(LOCTEXT("InstanceListNameColumnHeader", "Instance").ToString())
-/*
-					+ SHeaderRow::Column("Level")
-						.DefaultLabel(LOCTEXT("InstanceListLevelColumnHeader", "Current Level").ToString())*/
 
+					+ SHeaderRow::Column("Type")
+						.DefaultLabel(LOCTEXT("InstanceListTypeColumnHeader", "Type").ToString())
+
+					+ SHeaderRow::Column("Device")
+						.DefaultLabel(LOCTEXT("InstanceListDeviceColumnHeader", "Device").ToString())
+
+					+ SHeaderRow::Column("Platform")
+						.DefaultLabel(LOCTEXT("InstanceListPlatformColumnHeader", "Platform").ToString())
+
+					+ SHeaderRow::Column("Status")
+						.DefaultLabel(LOCTEXT("InstanceListStatusColumnHeader", "Status").ToString())
+						.HAlignCell(HAlign_Right)
+						.HAlignHeader(HAlign_Right)
 				)
 		];
 
 		SessionManager->OnInstanceSelectionChanged().AddSP(this, &SSessionInstanceList::HandleSessionManagerInstanceSelectionChanged);
 		SessionManager->OnSelectedSessionChanged().AddSP(this, &SSessionInstanceList::HandleSessionManagerSelectedSessionChanged);
 	}
-
 
 protected:
 
@@ -111,24 +114,19 @@ protected:
 		}
 	}
 
-
 private:
 
 	// Handles getting the tool tip text for an instance.
-	FString HandleInstanceGetToolTipText( ISessionInstanceInfoPtr Instance ) const
+	FText HandleInstanceGetToolTipText( ISessionInstanceInfoPtr Instance ) const
 	{
-		FString ToolTipText;
+		FTextBuilder ToolTipTextBuilder;
 
-		ToolTipText += LOCTEXT("InstanceToolTipInstanceType", "Instance Type: ").ToString() + Instance->GetInstanceType() + LINE_TERMINATOR;
-		ToolTipText += LOCTEXT("InstanceToolTipPlatform", "Platform: ").ToString() + Instance->GetPlatformName() + LINE_TERMINATOR;
-		ToolTipText += LOCTEXT("InstanceToolTipBuildDate", "Build Date: ").ToString() + Instance->GetBuildDate() + LINE_TERMINATOR;
-		ToolTipText += LOCTEXT("InstanceToolTipEngineVersion", "Engine Version: ").ToString() + FString::FromInt(Instance->GetEngineVersion()) + LINE_TERMINATOR;
-		ToolTipText += LOCTEXT("InstanceToolTipConsoleBuild", "Console Build: ").ToString() + (Instance->IsConsole() ? TEXT("true") : TEXT("false")) + LINE_TERMINATOR;
-		ToolTipText += LOCTEXT("InstanceToolTipDeviceName", "Device Name: ").ToString() + Instance->GetDeviceName() + LINE_TERMINATOR;
-		ToolTipText += LOCTEXT("InstanceToolTipUserName", "Owner: ").ToString() + Instance->GetOwnerSession()->GetSessionOwner() + LINE_TERMINATOR;
-		ToolTipText += LOCTEXT("InstanceToolTipInstanceId", "ID:").ToString() + Instance->GetInstanceId().ToString(EGuidFormats::DigitsWithHyphensInBraces);
+		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipBuildDate", "Build Date: {0}"), FText::FromString(Instance->GetBuildDate()));
+		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipConsoleBuild", "Console Build: {0}"), Instance->IsConsole() ? LOCTEXT("LabelYes", "Yes") : LOCTEXT("LabelNo", "No"));
+		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipEngineVersion", "Engine Version: {0}"), FText::FromString(FString::FromInt(Instance->GetEngineVersion())));
+		ToolTipTextBuilder.AppendLineFormat(LOCTEXT("InstanceToolTipInstanceId", "Instance ID: {0}"), FText::FromString(Instance->GetInstanceId().ToString(EGuidFormats::DigitsWithHyphensInBraces)));
 
-		return ToolTipText;
+		return ToolTipTextBuilder.ToText();
 	}
 
 	// Handles creating a row widget for the instance list view.
@@ -168,7 +166,6 @@ private:
 	{
 		UpdateList();
 	}
-
 
 private:
 

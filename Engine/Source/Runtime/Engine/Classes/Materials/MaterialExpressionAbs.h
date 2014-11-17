@@ -8,7 +8,7 @@
 #pragma once
 #include "MaterialExpressionAbs.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionAbs : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

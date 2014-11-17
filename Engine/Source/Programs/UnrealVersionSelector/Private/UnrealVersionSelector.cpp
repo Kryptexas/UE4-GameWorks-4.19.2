@@ -5,6 +5,8 @@
 
 IMPLEMENT_APPLICATION(UnrealVersionSelector, "UnrealVersionSelector")
 
+bool GenerateProjectFiles(const FString& ProjectFileName);
+
 bool RegisterCurrentEngineDirectory()
 {
 	// Prompt for registering this directory
@@ -21,11 +23,8 @@ bool RegisterCurrentEngineDirectory()
 	FString Identifier;
 	if (!FDesktopPlatformModule::Get()->GetEngineIdentifierFromRootDir(EngineRootDir, Identifier))
 	{
-		if(!FPlatformInstallation::RegisterEngineInstallation(EngineRootDir, Identifier))
-		{
-			FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't add engine installation."), TEXT("Error"));
-			return false;
-		}
+		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't add engine installation."), TEXT("Error"));
+		return false;
 	}
 
 	// If the launcher isn't installed, set up the file associations
@@ -57,7 +56,7 @@ bool UpdateFileAssociations()
 	return true;
 }
 
-bool SwitchVersion(const FString &ProjectFileName)
+bool SwitchVersion(const FString& ProjectFileName)
 {
 	// Get the current identifier
 	FString Identifier;
@@ -76,17 +75,24 @@ bool SwitchVersion(const FString &ProjectFileName)
 		return false;
 	}
 
-	// Notify the user that it's been changed
-	return true;
+	// If it's a content-only project, we're done
+	FProjectStatus ProjectStatus;
+	if(IProjectManager::Get().QueryStatusForProject(ProjectFileName, ProjectStatus) && !ProjectStatus.bCodeBasedProject)
+	{
+		return true;
+	}
+
+	// Generate project files
+	return GenerateProjectFiles(ProjectFileName);
 }
 
-bool GetEngineRootDirForProject(const FString &ProjectFileName, FString &OutRootDir)
+bool GetEngineRootDirForProject(const FString& ProjectFileName, FString& OutRootDir)
 {
 	FString Identifier;
 	return FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFileName, Identifier) && FDesktopPlatformModule::Get()->GetEngineRootDirFromIdentifier(Identifier, OutRootDir);
 }
 
-bool GetValidatedEngineRootDir(const FString &ProjectFileName, FString &OutRootDir)
+bool GetValidatedEngineRootDir(const FString& ProjectFileName, FString& OutRootDir)
 {
 	// Get the engine directory for this project
 	if (!GetEngineRootDirForProject(ProjectFileName, OutRootDir))
@@ -107,7 +113,7 @@ bool GetValidatedEngineRootDir(const FString &ProjectFileName, FString &OutRootD
 	return true;
 }
 
-bool LaunchEditor(const FString &ProjectFileName, const FString &Arguments)
+bool LaunchEditor(const FString& ProjectFileName, const FString& Arguments)
 {
 	// Get the engine root directory
 	FString RootDir;
@@ -126,8 +132,10 @@ bool LaunchEditor(const FString &ProjectFileName, const FString &Arguments)
 	return true;
 }
 
-bool GenerateProjectFiles(const FString &ProjectFileName)
+bool GenerateProjectFiles(const FString& ProjectFileName)
 {
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+
 	// Get the engine root directory
 	FString RootDir;
 	if (!GetValidatedEngineRootDir(ProjectFileName, RootDir))
@@ -142,17 +150,27 @@ bool GenerateProjectFiles(const FString &ProjectFileName)
 		Arguments += TEXT(" -engine");
 	}
 
-	// Launch the editor
-	if (!FPlatformInstallation::GenerateProjectFiles(RootDir, FString::Printf(TEXT("\"%s\" %s"), *ProjectFileName, *Arguments)))
+	// Start capturing the log output
+	FStringOutputDevice LogCapture;
+	LogCapture.SetAutoEmitLineTerminator(true);
+	GLog->AddOutputDevice(&LogCapture);
+
+	// Generate project files
+	FFeedbackContext* Warn = DesktopPlatform->GetNativeFeedbackContext();
+	bool bResult = DesktopPlatform->GenerateProjectFiles(RootDir, ProjectFileName, Warn);
+	GLog->RemoveOutputDevice(&LogCapture);
+
+	// Display an error dialog if we failed
+	if(!bResult)
 	{
-		FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Failed to launch editor"), TEXT("Error"));
+		FPlatformInstallation::ErrorDialog(TEXT("Failed to generate project files."), LogCapture);
 		return false;
 	}
 
 	return true;
 }
 
-int Main(const TArray<FString> &Arguments)
+int Main(const TArray<FString>& Arguments)
 {
 	bool bRes = false;
 	if (Arguments.Num() == 0)
@@ -178,7 +196,7 @@ int Main(const TArray<FString> &Arguments)
 	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/game"))
 	{
 		// Play a game using the editor executable
-		bRes = LaunchEditor(Arguments[1], L"/game");
+		bRes = LaunchEditor(Arguments[1], L"-game");
 	}
 	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/projectfiles"))
 	{
@@ -201,7 +219,7 @@ int Main(const TArray<FString> &Arguments)
 	int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int ShowCmd)
 	{
 		int ArgC;
-		LPWSTR *ArgV = ::CommandLineToArgvW(GetCommandLine(), &ArgC);
+		LPWSTR* ArgV = ::CommandLineToArgvW(GetCommandLine(), &ArgC);
 
 		FCommandLine::Set(TEXT(""));
 
@@ -218,7 +236,7 @@ int Main(const TArray<FString> &Arguments)
 
 #else
 
-	int main(int ArgC, const char *ArgV[])
+	int main(int ArgC, const char* ArgV[])
 	{
 		FCommandLine::Set(TEXT(""));
 		

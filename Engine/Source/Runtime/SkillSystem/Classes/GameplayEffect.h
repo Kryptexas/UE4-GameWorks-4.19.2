@@ -22,15 +22,20 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnAttributeGameplayEffectSpecExected, co
 	#define SKILL_AGG_DEBUG( Format, ... ) NULL
 #endif
 
+class UGameplayEffect;
+
 UENUM(BlueprintType)
 namespace EGameplayModOp
 {
 	enum Type
-	{
-		Override = 0		UMETA(DisplayName="Override"),
-		Additive			UMETA(DisplayName="Add"),
+	{		
+		// Numeric
+		Additive = 0		UMETA(DisplayName="Add"),
 		Multiplicitive		UMETA(DisplayName="Multiply"),
 		Division			UMETA(DisplayName="Divide"),
+
+		// Other
+		Override 			UMETA(DisplayName="Override"),	// This should always be the first non numeric ModOp
 		Callback			UMETA(DisplayName="Custom"),
 
 		// This must always be at the end
@@ -49,7 +54,7 @@ namespace EGameplayMod
 		Attribute = 0,		// Modifies this Attributes
 		OutgoingGE,			// Modifies Outgoing Gameplay Effects (that modify this Attribute)
 		IncomingGE,			// Modifies Incoming Gameplay Effects (that modify this Attribute)
-		ActiveGE,
+		ActiveGE,			// Modifies currently active Gameplay Effects
 
 		// This must always be at the end
 		Max					UMETA(DisplayName="Invalid")
@@ -68,6 +73,7 @@ namespace EGameplayModEffect
 		Duration			= 0x02,		// Modifies duration of a GameplayEffect
 		ChanceApplyTarget	= 0x04,		// Modifies chance to apply GameplayEffect to target
 		ChanceApplyEffect	= 0x08,		// Modifies chance to apply GameplayEffect to GameplayEffect
+		LinkedGameplayEffect= 0x10,		// Adds a linked GameplayEffect to a GameplayEffect
 
 		// This must always be at the end
 		All					= 0xFF		UMETA(DisplayName="Invalid")
@@ -90,6 +96,22 @@ namespace EGameplayEffectCopyPolicy
 	};
 }
 
+UENUM(BlueprintType)
+namespace EGameplayEffectStackingPolicy
+{
+	enum Type
+	{
+		Unlimited = 0		UMETA(DisplayName = "NoRule"),
+		Highest				UMETA(DisplayName = "Strongest"),
+		Lowest				UMETA(DisplayName = "Weakest"),
+		Replaces			UMETA(DisplayName = "MostRecent"),
+		Callback			UMETA(DisplayName = "Custom"),
+
+		// This must always be at the end
+		Max					UMETA(DisplayName = "Invalid")
+	};
+}
+
 FString EGameplayModOpToString( int32 Type );
 
 FString EGameplayModToString( int32 Type );
@@ -98,6 +120,8 @@ FString EGameplayModEffectToString( int32 Type );
 
 FString EGameplayEffectCopyPolicyToString(int32 Type);
 
+FString EGameplayEffectStackingPolicyToString(int32 Type);
+
 USTRUCT()
 struct FGameplayModifierCallbacks
 {
@@ -105,6 +129,39 @@ struct FGameplayModifierCallbacks
 
 	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
 	TArray<TSubclassOf<class UGameplayEffectExtension> >	ExtensionClasses;
+};
+
+USTRUCT()
+struct FGameplayEffectStackingCallbacks
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = GEStack)
+	TArray<TSubclassOf<class UGameplayEffectStackingExtension> >	ExtensionClasses;
+};
+
+/**
+* Defines how A GameplayEffect levels
+*	Normally, GameplayEffect levels are specified when they are created.
+*	They can also be tied to their instigators attribute.
+*		For example, a Damage apply GameplayEffect that 'levels' based on the PhysicalDamage attribute
+*/
+USTRUCT()
+struct SKILLSYSTEM_API FGameplayEffectLevelDef
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** When true, whatever creates of owns this will pass in a level. E.g, level is not intrinsic to this definition. */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayEffectLevel)
+	bool InheritLevelFromOwner;
+
+	/** If set, the gameplay effects level will be tied to this attribute on the instigator */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayEffectLevel, meta = (FilterMetaTag="HideFromLevelInfos"))
+	FGameplayAttribute	Attribute;
+
+	/** If true, take snapshot of attribute level when the gameplay effect is initialized. Otherwise, the level of the gameplay effect will update as the attribute it is tied to updates */
+	UPROPERTY(EditDefaultsOnly, Category = GameplayEffectLevel)
+	bool TakeSnapshotOnInit;
 };
 
 /**
@@ -122,6 +179,7 @@ struct SKILLSYSTEM_API FGameplayModifierInfo
 		: ModifierType( EGameplayMod::Attribute )
 		, ModifierOp( EGameplayModOp::Additive )
 		, EffectType( EGameplayModEffect::Magnitude )
+		, TargetEffect( NULL )
 	{
 
 	}
@@ -145,6 +203,10 @@ struct SKILLSYSTEM_API FGameplayModifierInfo
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	TEnumAsByte<EGameplayModEffect::Type> EffectType;
 
+	/** If we are linking a gameplay effect to another effect, this is the effect to link */
+	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
+	UGameplayEffect* TargetEffect;
+
 	// The thing I modify requires these tags
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagContainer RequiredTags;
@@ -152,13 +214,13 @@ struct SKILLSYSTEM_API FGameplayModifierInfo
 	// The thing I modify must not have any of these tags
 	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
 	FGameplayTagContainer IgnoreTags;
-
-	// These tags I pass on to whatever I modify
-	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
-	FGameplayTagContainer PassedTags;
-
+	
+	/** This modifiers tags. These tags are passed to any other modifiers that this modifies. */
 	UPROPERTY(EditDefaultsOnly, Category=GameplayModifier)
 	FGameplayTagContainer OwnedTags;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = GameplayEffect)
+	FGameplayEffectLevelDef	LevelInfo;
 
 	FString ToSimpleString() const
 	{
@@ -232,7 +294,7 @@ public:
 	/** Constant specifying that the combat effect has no period and doesn't check for over time application */
 	static const float NO_PERIOD;
 	
-	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect, meta=(GameplayAttribute="True"))
+	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect)
 	FScalableFloat	Duration;
 
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect)
@@ -241,29 +303,31 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=GameplayEffect)
 	TArray<FGameplayModifierInfo> Modifiers;
 
-	/** Description of this combat effect. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Display)
-	FText Description;
-
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category=GameplayEffect)
+	FGameplayEffectLevelDef	LevelInfo;
+		
 	// "I can only be applied to targets that have these tags"
 	// "I can only exist on CE buckets on targets that have these tags":
 	
 	/** Container of gameplay tags that have to be present on the target for the effect to be applied */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=GameplayEffect)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Application)
 	FGameplayTagContainer ApplicationRequiredTargetTags;
-
 
 	// "I can only be applied if my instigator has these tags"
 
 	/** Container of gameplay tags that have to be present on the instigator for the effect to be applied */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=ApplicationInstigatorTags)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Application)
 	FGameplayTagContainer ApplicationRequiredInstigatorTags;
 
-	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect, meta=(GameplayAttribute="True"))
+	UPROPERTY(EditDefaultsOnly, Category=Application, meta=(GameplayAttribute="True"))
 	FScalableFloat	ChanceToApplyToTarget;
 
-	UPROPERTY(EditDefaultsOnly, Category=GameplayEffect, meta=(GameplayAttribute="True"))
+	UPROPERTY(EditDefaultsOnly, Category = Application, meta = (GameplayAttribute = "True"))
 	FScalableFloat	ChanceToApplyToGameplayEffect;
+
+	// other gameplay effects  that will be applied to the target of this effect
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	TArray<UGameplayEffect*> TargetEffects;
 
 	// Modify duration of CEs
 
@@ -290,18 +354,18 @@ public:
 	FGameplayTagContainer GameplayEffectTags;
 
 	// "In order to affect another GE, they must have ALL of these tags"
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=GameplayEffect)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
 	FGameplayTagContainer GameplayEffectRequiredTags;
 	
 	// "In order to affect another GE, they must NOT have ANY of these tags"
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=GameplayEffect)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
 	FGameplayTagContainer GameplayEffectIgnoreTags;
 
 	/** Can this GameplayEffect modify the input parameter, based on tags  */
 	bool AreGameplayEffectTagRequirementsSatisfied(const UGameplayEffect *GameplayEffectToBeModified) const
 	{
-		bool HasRequired = GameplayEffectToBeModified->OwnedTagsContainer.HasAllTags(GameplayEffectRequiredTags);
-		bool HasIgnored = GameplayEffectToBeModified->OwnedTagsContainer.Num() > 0 && GameplayEffectToBeModified->OwnedTagsContainer.HasAnyTag(GameplayEffectIgnoreTags);
+		bool HasRequired = GameplayEffectToBeModified->GameplayEffectTags.HasAllTags(GameplayEffectRequiredTags);
+		bool HasIgnored = GameplayEffectIgnoreTags.Num() > 0 && GameplayEffectToBeModified->GameplayEffectTags.HasAnyTag(GameplayEffectIgnoreTags);
 
 		return HasRequired && !HasIgnored;
 	}
@@ -325,11 +389,11 @@ public:
 	}
 
 	/** Container of "owned" gameplay tags that are applied to actor with this effect applied to them */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=OwnedTags)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
 	FGameplayTagContainer OwnedTagsContainer;
 
 	/** Container of gameplay tags to be cleared upon effect application; Any active effects with these tags that can be cleared, will be */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=ClearTags)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Tags)
 	FGameplayTagContainer ClearTagsContainer;
 	
 	// Used to quickly tell if a GameplayEffect modifies another GameplayEffect (or a set of attributes)
@@ -340,19 +404,31 @@ public:
 
 	// -----------------------------------------------
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Advanced)
 	TEnumAsByte<EGameplayEffectCopyPolicy::Type>	CopyPolicy;
 
 	// ----------------------------------------------
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = GameplayEffect)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Display)
 	TArray<FGameplayEffectCue>	GameplayCues;
+
+	/** Description of this combat effect. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Display)
+	FText Description;
+
+	// ----------------------------------------------
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
+	TEnumAsByte<EGameplayEffectStackingPolicy::Type>	StackingPolicy;
+
+	UPROPERTY(EditDefaultsOnly, Category = Stacking)
+	TSubclassOf<class UGameplayEffectStackingExtension> StackingExtension;
 };
 
 /**
 * This handle is required for things outside of FActiveGameplayEffectsContainer to refer to a specific active GameplayEffect
 *	For example if a skill needs to create an active effect and then destroy that specific effect that it created, it has to do so
-*	through a handle. a pointer or index into the active list is not suffecient.
+*	through a handle. a pointer or index into the active list is not sufficient.
 */
 USTRUCT(BlueprintType)
 struct FActiveGameplayEffectHandle
@@ -404,50 +480,83 @@ private:
 
 /**
  * FGameplayEffectLevelSpec
- *	Level Specification. For now, this is just a flat ConstantLevel. We would like to support dynamic level spec: e.g, tieing a Level to a callback delegate.
- *	This could be used to tie a GameplayEffects power level to an attribute value, etc. 
+ *	Level Specification. This can be a static, constant level specified on creation or it can be dynamically tied to a source's attribute value.
+ *	For example, a GameplayEffect could be made whose level is tied to its instigators PhysicalDamage or Intelligence attribute.
  */
-USTRUCT()
+
 struct FGameplayEffectLevelSpec
 {
-	GENERATED_USTRUCT_BODY()
-
 	static const float INVALID_LEVEL;
 
 	FGameplayEffectLevelSpec()
 		:ConstantLevel(INVALID_LEVEL)
+		,CachedLevel(INVALID_LEVEL)
 	{
 	}
 
-	FGameplayEffectLevelSpec(float InLevel)
+	FGameplayEffectLevelSpec(float InLevel, const FGameplayEffectLevelDef &Def, class AActor *InSource)
 		: ConstantLevel(InLevel)
+		, CachedLevel(InLevel)
+		, Source(InSource)
 	{
+		if (Def.Attribute.GetUProperty() != NULL)
+		{
+			Attribute = Def.Attribute;
+		}
+
+		if (Def.TakeSnapshotOnInit)
+		{
+			SnapshotLevel();
+		}
 	}
 
+	void ApplyNewDef(const FGameplayEffectLevelDef &Def, TSharedPtr<FGameplayEffectLevelSpec> &OutSharedPtr) const
+	{
+		if (Def.InheritLevelFromOwner)
+		{
+			return;
+		}
+
+		check(OutSharedPtr.IsValid());
+		if (Def.Attribute != OutSharedPtr->Attribute)
+		{
+			// In def levels off something different
+			// make a new level spec
+			OutSharedPtr = TSharedPtr<FGameplayEffectLevelSpec>(new FGameplayEffectLevelSpec(INVALID_LEVEL, Def, Source.Get()));
+		}
+	}
+
+	/** Dynamic simply means the level may change. It is not constant. */
+	bool IsDynamic() const
+	{
+		return ConstantLevel == INVALID_LEVEL && Attribute.GetUProperty() != NULL;
+	}
+
+	/** Valid means we have some meaningful data. If we have an INVALID_LEVEL constant value and are not tied to a dynamic property, then we are invalid. */
 	bool IsValid() const
 	{
-		return (ConstantLevel != INVALID_LEVEL);
+		return ConstantLevel != INVALID_LEVEL || Attribute.GetUProperty() != NULL;
 	}
 
-	float GetLevel() const
-	{
-		check(IsValid());
-		return ConstantLevel;
-	}
+	float GetLevel() const;
 
 	void SnapshotLevel()
 	{
 		// This should snapshot the current level (if dynamic/delegate) and save off its value so that it doesn't change
+		ConstantLevel = GetLevel();
+		Source = NULL;
 	}
+
+	void RegisterLevelDependancy(TWeakPtr<struct FAggregator> OwningAggregator);
 
 	void PrintAll() const;
 
-	UPROPERTY(EditDefaultsOnly, Category=ComabtEffectLevel)
-	float	ConstantLevel;
+	mutable float ConstantLevel;	// Final/constant level. Once this is set we are locked at the given level.
+	mutable float CachedLevel;		// Last read value. Needed in case we lose our source, we use the last known level.
 
-	// Not supported yet, but this will be awesome!
-	// UPROPERTY(EditDefaultsOnly, Category=ComabtEffectLevel)
-	// FAttributeProperty	Property;
+	TWeakObjectPtr<class AActor>	Source;
+
+	FGameplayAttribute	Attribute;
 };
 
 /**
@@ -514,8 +623,11 @@ struct FGameplayEffectInstigatorContext
  *		the buff expires on the source, the applied DOT is still buffed.
  *
  */
+USTRUCT()
 struct FAggregatorRef
 {
+	GENERATED_USTRUCT_BODY()
+
 	friend struct FAggregatorRef;
 
 	FAggregatorRef()
@@ -571,13 +683,27 @@ struct FAggregatorRef
 	/** Become a hard reference to a new copy of what we are reference AND make new copies/hard refs of the complete modifier chain in our FAggregator */
 	void MakeUniqueDeep();
 
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);	
+
 	FString ToString() const;
 	void PrintAll() const;
+
+	UPROPERTY()
+	int32	Foo;
 
 private:
 
 	TSharedPtr<struct FAggregator>	SharedPtr;
 	TWeakPtr<struct FAggregator> WeakPtr;
+};
+
+template<>
+struct TStructOpsTypeTraits< FAggregatorRef > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true
+	};
 };
 
 /**
@@ -598,6 +724,11 @@ struct FGameplayModifierData
 	{
 		Magnitude = Info.Magnitude.MakeFinalizedCopy(CurveData);
 		Tags = Info.OwnedTags;
+
+		// Fixme: this is static data, should be a reference
+		RequireTags = Info.RequiredTags;
+		IgnoreTags = Info.IgnoreTags;
+
 		if (Info.Callbacks.ExtensionClasses.Num() > 0)
 		{
 			Callbacks = &Info.Callbacks;
@@ -611,15 +742,11 @@ struct FGameplayModifierData
 		Callbacks = NULL;
 	}
 
-	FGameplayModifierData(float InMagnitude, const FGameplayModifierCallbacks * InCallbacks, const FGameplayTagContainer *InTags = NULL)
+	FGameplayModifierData(float InMagnitude, const FGameplayModifierCallbacks * InCallbacks)
 	{
 		// Magnitude will be fixed at this value
 		Magnitude.SetValue(InMagnitude);
 		Callbacks = InCallbacks;
-		if (InTags)
-		{
-			Tags = *InTags;
-		}
 	}
 
 	// That magnitude that we modify by
@@ -627,6 +754,9 @@ struct FGameplayModifierData
 
 	// The tags I have
 	FGameplayTagContainer Tags;
+	
+	FGameplayTagContainer RequireTags;
+	FGameplayTagContainer IgnoreTags;
 
 	// Callback information for custom logic pre/post evaluation
 	const FGameplayModifierCallbacks * Callbacks;
@@ -700,6 +830,7 @@ struct FAggregator : public TSharedFromThis<FAggregator>
 	virtual ~FAggregator();
 
 	FAggregator & MarkDirty();
+	void CleaerAllDependancies();
 
 	const FGameplayModifierEvaluatedData& Evaluate() const;
 
@@ -714,6 +845,8 @@ struct FAggregator : public TSharedFromThis<FAggregator>
 
 	void AddDependantAggregator(TWeakPtr<FAggregator> InDependant);
 
+	void RegisterLevelDependancies();
+
 	TSharedPtr<FGameplayEffectLevelSpec> Level;
 	FActiveGameplayEffectHandle	ActiveHandle;	// Handle to owning active effect. Will be null in many cases.
 
@@ -727,6 +860,8 @@ struct FAggregator : public TSharedFromThis<FAggregator>
 	void PrintAll() const;
 	void RefreshDependencies();
 	void MakeUniqueDeep();
+
+	void SetFromNetSerialize(float NetSerialize);
 
 	// ----------------------------------------------------------------------------
 	// This is data only used in debugging/tracking where aggregator's came from
@@ -887,31 +1022,27 @@ private:
 };
 
 /**
- * Modifier Speciication
+ * Modifier Specification
  *	-Const data (FGameplayModifierInfo) tells us what we modify, what we can modify
  *	-Mutable Aggregated data tells us how we modify (magnitude).
  *  
- * Modifiers can be modified. A modifier spec holds these modifications along with a refrence to the const data about the modifier.
+ * Modifiers can be modified. A modifier spec holds these modifications along with a reference to the const data about the modifier.
  * 
  */
 struct FModifierSpec
 {
-	FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData)
-		: Info(InInfo)
-		, Aggregator(new FAggregator(FGameplayModifierData(InInfo, CurveData), InLevel,  SKILL_AGG_DEBUG(TEXT("FModifierSpec: %s "), *InInfo.ToSimpleString() )))
-	{
-	}
+	FModifierSpec(const FGameplayModifierInfo &InInfo, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData, AActor *Owner = NULL, float Level = 0.f);
 
 	// Hard Ref to what we modify, this stuff is const and never changes
 	const FGameplayModifierInfo &Info;
 	
 	FAggregatorRef Aggregator;
 
+	TSharedPtr<FGameplayEffectSpec> TargetEffectSpec;
+
 	bool CanModifyInContext(const FModifierQualifier &QualifierContext) const;
 	// returns true if this GameplayEffect can modify Other, false otherwise
 	bool CanModifyModifier(FModifierSpec &Other, const FModifierQualifier &QualifierContext) const;
-	// returns true if this GameplayEffect can modify Ref, false otherwise
-	bool CanModifyAggregator(FAggregatorRef Ref, const FModifierQualifier &QualifierContext) const;
 	
 	void ApplyModTo(FModifierSpec &Other, bool TakeSnapshot) const;
 	void ExecuteModOn(FModifierSpec &Other) const;
@@ -924,10 +1055,6 @@ struct FModifierSpec
 	// Can this GameplayEffect modify the input parameter, based on tags
 	// Returns true if it can modify the input parameter, false otherwise
 	bool AreTagRequirementsSatisfied(const FModifierSpec &ModifierToBeModified) const;
-
-	// Can this GameplayEffect modify the input parameter, based on tags
-	// Returns true if it can modify the input parameter, false otherwise
-	bool AreTagRequirementsSatisfied(const FAggregatorRef &AggregatorToBeModified) const;
 
 	void PrintAll() const;
 };
@@ -950,21 +1077,15 @@ struct FGameplayEffectSpec
 		: ModifierLevel( TSharedPtr< FGameplayEffectLevelSpec >( new FGameplayEffectLevelSpec() ) )
 		, Duration(new FAggregator(FGameplayModifierEvaluatedData(0.f, NULL, FActiveGameplayEffectHandle()), SKILL_AGG_DEBUG(TEXT("Uninitialized Duration"))))
 		, Period(new FAggregator(FGameplayModifierEvaluatedData(0.f, NULL, FActiveGameplayEffectHandle()), SKILL_AGG_DEBUG(TEXT("Uninitialized Period"))))
+		, StackedAttribName(NAME_None)
 	{
 		// If we initialize a GameplayEffectSpec with no level object passed in.
 	}
 
-	FGameplayEffectSpec( UGameplayEffect * InDef, TSharedPtr<FGameplayEffectLevelSpec> InLevel, const FGlobalCurveDataOverride *CurveData )
-		: Def(InDef)
-		, ModifierLevel(InLevel)
-		, Duration(new FAggregator(InDef->Duration.MakeFinalizedCopy(CurveData), InLevel, SKILL_AGG_DEBUG(TEXT("%s Duration"), *InDef->GetName())))
-		, Period(new FAggregator(InDef->Period.MakeFinalizedCopy(CurveData), InLevel, SKILL_AGG_DEBUG(TEXT("%s Period"), *InDef->GetName())))
-	{
-		InitModifiers(CurveData);
-	}
+	FGameplayEffectSpec( const UGameplayEffect *InDef, AActor *Owner, float Level, const FGlobalCurveDataOverride *CurveData );
 	
 	UPROPERTY()
-	UGameplayEffect * Def;
+	const UGameplayEffect * Def;
 
 	// Replicated	
 	TSharedPtr< FGameplayEffectLevelSpec > ModifierLevel;
@@ -974,9 +1095,20 @@ struct FGameplayEffectSpec
 
 	float GetDuration() const;
 	float GetPeriod() const;
+	EGameplayEffectStackingPolicy::Type GetStackingType() const;
+	float GetMagnitude(const FGameplayAttribute &Attribute) const;
 
+	// other effects that need to be applied to the target if this effect is successful
+	TArray< TSharedRef< FGameplayEffectSpec > > TargetEffectSpecs;
+
+	UPROPERTY()
 	FAggregatorRef	Duration;
+
 	FAggregatorRef	Period;
+
+	// How this combines with other gameplay effects
+	EGameplayEffectStackingPolicy::Type StackingPolicy;
+	FName StackedAttribName;
 
 	// The spec needs to own these FModifierSpecs so that other people can keep TSharedPtr to it.
 	// The stuff in this array is OWNED by this spec
@@ -985,12 +1117,10 @@ struct FGameplayEffectSpec
 
 	void MakeUnique();
 
-	void InitModifiers(const FGlobalCurveDataOverride *CurveData);
+	void InitModifiers(const FGlobalCurveDataOverride *CurveData, AActor *Owner, float Level);
 
-	int32 ApplyModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
+	int32 ApplyModifiersFrom(FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
 	int32 ExecuteModifiersFrom(const FGameplayEffectSpec &InSpec, const FModifierQualifier &QualifierContext);
-
-	int32 ApplyModifiersToAggregators(const FModifierSpec &InMod, FAggregatorRef &MyMod, const FModifierQualifier &QualifierContext, bool ShouldSnapshot);
 
 	bool ShouldApplyAsSnapshot(const FModifierQualifier &QualifierContext) const;
 
@@ -1019,22 +1149,24 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	GENERATED_USTRUCT_BODY()
 
 	FActiveGameplayEffect()
-		: StartTime(0.f)
+		: StartGameStateTime(0)
+		, StartWorldTime(0.f)
 		, NextExecuteTime(0.f)
 	{
 	}
 
-	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentTime = 0.f)
+	FActiveGameplayEffect(FActiveGameplayEffectHandle InHandle, const FGameplayEffectSpec &InSpec, float CurrentWorldTime, int32 InStartGameStateTime)
 		: Handle(InHandle)
 		, Spec(InSpec)
-		, StartTime(CurrentTime)
+		, StartGameStateTime(InStartGameStateTime)
+		, StartWorldTime(CurrentWorldTime)
 		, NextExecuteTime(0.f)
 	{
 		// Init NextExecuteTime if necessary
 		float Period = GetPeriod();
 		if (Period != UGameplayEffect::NO_PERIOD)
 		{
-			NextExecuteTime = CurrentTime + Period;
+			NextExecuteTime = CurrentWorldTime + SMALL_NUMBER;
 		}
 
 		for (FModifierSpec &Mod : Spec.Modifiers)
@@ -1050,7 +1182,10 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 
 	/** Game time this started */
 	UPROPERTY()
-	float StartTime;
+	int32 StartGameStateTime;
+
+	UPROPERTY(NotReplicated)
+	float StartWorldTime;
 
 	UPROPERTY(NotReplicated)
 	float NextExecuteTime;
@@ -1075,6 +1210,63 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
 	void PreReplicatedRemove(const struct FActiveGameplayEffectsContainer &InArray);
 	void PostReplicatedAdd(const struct FActiveGameplayEffectsContainer &InArray);
 	void PostReplicatedChange(const struct FActiveGameplayEffectsContainer &InArray) { }
+
+	bool operator==(const FActiveGameplayEffect& Other)
+	{
+		return Handle == Other.Handle;
+	}
+};
+
+
+USTRUCT()
+struct FActiveGameplayEffectData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FActiveGameplayEffectData()
+		: Handle()
+		, Duration(0.f)
+		, Magnitude(0.f)
+	{
+	}
+
+	FActiveGameplayEffectData(const FActiveGameplayEffectHandle InHandle, const float InDuration, const float InMagnitude)
+		: Handle(InHandle)
+		, Duration(InDuration)
+		, Magnitude(InMagnitude)
+	{
+	}
+
+	UPROPERTY()
+	FActiveGameplayEffectHandle	Handle;
+
+	UPROPERTY()
+	float	Duration;
+
+	UPROPERTY()
+	float	Magnitude;
+};
+
+/** Generic querying data structure for active GameplayEffects. Lets us ask things like:
+ *		-Give me duration/magnitude of active gameplay effects with these tags
+ *		-
+ */
+USTRUCT()
+struct FActiveGameplayEffectQuery
+{
+	GENERATED_USTRUCT_BODY()
+
+	FActiveGameplayEffectQuery()
+		: TagContainer(NULL)
+	{
+	}
+
+	FActiveGameplayEffectQuery(const FGameplayTagContainer * InTagContainer)
+		: TagContainer(InTagContainer)
+	{
+	}
+
+	const FGameplayTagContainer *	TagContainer;
 };
 
 /**
@@ -1082,7 +1274,7 @@ struct FActiveGameplayEffect : public FFastArraySerializerItem
  *	-Bucket of ActiveGameplayEffects
  *	-Needed for FFastArraySerialization
  *  
- * This should only be used by UAttributeComponent. All of this could just live in UAttributeComponent except that we need a distinc USTRUCT to implement FFastArraySerializer.
+ * This should only be used by UAttributeComponent. All of this could just live in UAttributeComponent except that we need a distinct USTRUCT to implement FFastArraySerializer.
  *
  */
 USTRUCT()
@@ -1090,18 +1282,22 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 {
 	GENERATED_USTRUCT_BODY();
 
+	FActiveGameplayEffectsContainer() : bNeedToRecalculateStacks(false) {};
+
 	UPROPERTY()
-	TArray<FActiveGameplayEffect >	GameplayEffects;
+	TArray< FActiveGameplayEffect >	GameplayEffects;
 	
-	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec, float GameTimeSeconds);
+	FActiveGameplayEffect & CreateNewActiveGameplayEffect(const FGameplayEffectSpec &Spec);
 
-	void ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext) const;
+	void ApplyActiveEffectsTo(OUT FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 
-	void ApplySpecToActiveEffectsAndAttributes(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
+	void ApplySpecToActiveEffectsAndAttributes(FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 		
 	void ExecuteActiveEffectsFrom(const FGameplayEffectSpec &Spec, const FModifierQualifier &QualifierContext);
 	
 	bool ExecuteGameplayEffect(FActiveGameplayEffectHandle Handle);	// This should not be outward facing to the skill system API, should only be called by the owning attribute component
+
+	void AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant);
 
 	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
 	
@@ -1109,9 +1305,9 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
 
+	// returns true if the handle points to an effect in this container that is not a stacking effect or an effect in this container that does stack and is applied by the current stacking rules
+	// returns false if the handle points to an effect that is not in this container or is not applied because of the current stacking rules
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle Handle) const;
-
-	void RegisterAttributeModifyCallback(FGameplayAttribute Attribute, FOnGameplayAttributeEffectExecuted Delegate);
 
 	void PrintAllGameplayEffects() const;
 
@@ -1128,20 +1324,34 @@ struct FActiveGameplayEffectsContainer : public FFastArraySerializer
 
 	void TEMP_TickActiveEffects(float DeltaSeconds);
 
+	// recalculates all of the stacks in the current container
+	void RecalculateStacking();
+
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)
 	{
 		return FastArrayDeltaSerialize<FActiveGameplayEffect>(GameplayEffects, DeltaParms, *this);
 	}
 
+	void PreDestroy();
+
+	bool bNeedToRecalculateStacks;
+
+	bool HasAnyTags(FGameplayTagContainer &Tags);
+
+	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+	
+	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
+
+	int32 GetGameStateTime() const;
+	float GetWorldTime() const;
+
 private:
+
+	FAggregatorRef & FindOrCreateAttributeAggregator(FGameplayAttribute Attribute);
 
 	FActiveGameplayEffectHandle LastAssignedHandle;
 
 	TMap<FGameplayAttribute, FAggregatorRef> OngoingPropertyEffects;
-
-	// Fixme: at the least, these two maps should be combined and a new structure should be made.
-	// alternatively it may make sence to put the 'pre execute' delegate at the FAggregator level instead.
-	TMap<FGameplayAttribute, FOnGameplayAttributeEffectExecuted> PropertyExecutionCallbacks;
 
 	bool IsNetAuthority() const;
 };

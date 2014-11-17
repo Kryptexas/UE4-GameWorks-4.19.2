@@ -270,6 +270,14 @@ public:
 class FLandscapeSharedBuffers : public FRefCountedObject
 {
 public:
+	struct FLandscapeIndexRanges
+	{
+		int32 MinIndex[LANDSCAPE_MAX_SUBSECTION_NUM][LANDSCAPE_MAX_SUBSECTION_NUM];
+		int32 MaxIndex[LANDSCAPE_MAX_SUBSECTION_NUM][LANDSCAPE_MAX_SUBSECTION_NUM];
+		int32 MinIndexFull;
+		int32 MaxIndexFull;
+	};
+
 	int32 SharedBuffersKey;
 	int32 NumIndexBuffers;
 	int32 SubsectionSizeVerts;
@@ -278,9 +286,14 @@ public:
 	FLandscapeVertexFactory* VertexFactory;
 	FLandscapeVertexBuffer* VertexBuffer;
 	FIndexBuffer** IndexBuffers;
+	FLandscapeIndexRanges* IndexRanges;
 	FLandscapeSharedAdjacencyIndexBuffer* AdjacencyIndexBuffers;
 
 	FLandscapeSharedBuffers(int32 SharedBuffersKey, int32 SubsectionSizeQuads, int32 NumSubsections);
+
+	template <typename INDEX_TYPE>
+	void CreateIndexBuffers();
+
 	virtual ~FLandscapeSharedBuffers();
 };
 
@@ -392,9 +405,9 @@ protected:
 	// Storage for static draw list batch params
 	TArray<FLandscapeBatchElementParams> StaticBatchParamArray;
 
-	// Precomputed
+	// Precomputed values
 	float					LODDistance;
-	float					LODDistanceFactor;
+	float					PrecomputedLODFactor;
 	float					DistDiff;
 
 	FVector4 WeightmapScaleBias;
@@ -438,6 +451,8 @@ protected:
 	int32					LODBias;
 	uint8					ForcedNeighborLOD[LANDSCAPE_NEIGHBOR_NUM];
 	uint8					NeighborLODBias[LANDSCAPE_NEIGHBOR_NUM];
+
+	enum ELandscapeLODFalloff::Type LODFalloff;
 
 	TUniformBuffer<FLandscapeUniformShaderParameters> LandscapeUniformShaderParameters;
 

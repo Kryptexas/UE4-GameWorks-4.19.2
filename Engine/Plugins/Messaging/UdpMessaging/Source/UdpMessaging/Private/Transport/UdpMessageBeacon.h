@@ -20,9 +20,9 @@ public:
 	/** 
 	 * Creates and initializes a new Hello sender.
 	 *
-	 * @param InSocket - The network socket used to send Hello segments.
-	 * @param InSocketId - The network socket identifier (used to detect unicast endpoint).
-	 * @param InMulticastEndpoint - The multicast group endpoint to transport messages to.
+	 * @param InSocket The network socket used to send Hello segments.
+	 * @param InSocketId The network socket identifier (used to detect unicast endpoint).
+	 * @param InMulticastEndpoint The multicast group endpoint to transport messages to.
 	 */
 	FUdpMessageBeacon(FSocket* InSocket, const FGuid& InSocketId, const FIPv4Endpoint& InMulticastEndpoint);
 
@@ -46,7 +46,7 @@ public:
 	/**
 	 * Sets the number of known IP endpoints.
 	 *
-	 * @param EndpointCount - The current number of known endpoints.
+	 * @param EndpointCount The current number of known endpoints.
 	 */
 	void SetEndpointCount(int32 EndpointCount);
 
@@ -69,7 +69,7 @@ protected:
 	/**
 	 * Sends the specified segment.
 	 *
-	 * @param SegmentType - The type of segment to send (Hello or Bye).
+	 * @param SegmentType The type of segment to send (Hello or Bye).
 	 */
 	void SendSegment(EUdpMessageSegments::Type SegmentType);
 

@@ -114,7 +114,7 @@ FReply SDeviceProfileSourceControl::HandleCheckoutButtonPressed()
 	{
 		TArray<FString> FilesToBeCheckedOut;
 		FilesToBeCheckedOut.Add(AbsoluteConfigFilePath);
-		if(!SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut))
+		if(SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut) == ECommandResult::Failed)
 		{
 			ErrorMessage = LOCTEXT("FailedToCheckOutConfigFileError", "Error: Failed to check out the configuration file.");
 		}

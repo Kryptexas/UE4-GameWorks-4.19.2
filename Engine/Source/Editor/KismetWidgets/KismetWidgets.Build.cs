@@ -15,24 +15,25 @@ public class KismetWidgets : ModuleRules
                 "InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"BlueprintGraph",
 			}
-			);
+		);
 
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
 				"ContentBrowser",
                 "AssetTools",
 			}
-            );
+		);
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
 			    "ContentBrowser",
                 "AssetTools",
 			}
-            );
+		);
 	}
 }

@@ -899,6 +899,12 @@ namespace ClickHandlers
 				}
 				Model->ModifySurf( iSurf, false );
 				Surf.PolyFlags ^= PF_Selected;
+
+				// If there are no surfaces selected now, deselect the actor
+				if (!Model->HasSelectedSurfaces())
+				{
+					GEditor->SelectActor(Surf.Actor, false, true);
+				}
 			}
 			GEditor->NoteSelectionChange();
 		}

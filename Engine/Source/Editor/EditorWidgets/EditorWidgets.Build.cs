@@ -15,10 +15,11 @@ public class EditorWidgets : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.Add("AssetRegistry");
 	}

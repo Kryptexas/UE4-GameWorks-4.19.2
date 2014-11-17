@@ -702,7 +702,7 @@ float FTextureAlphaToDistanceField::FBuildDistanceFieldTask::CalcSignedDistanceT
 		// on the edge.
 		if ( bFoundClosest && RequiredRadius >= InScanRadius )
 		{
-			RequiredRadius = FMath::Ceil( FMath::Sqrt(RingSize*RingSize*2) );
+			RequiredRadius = FMath::CeilToInt( FMath::Sqrt(RingSize*RingSize*2) );
 			RequiredRadius = FMath::Min(RequiredRadius, InScanRadius);
 		}
 	}
@@ -1003,7 +1003,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 
 	for( int32 Page = 0; Page < NumResolutions; ++Page )
 	{
-		int32 nHeight = -FMath::Round( ResHeights[Page] * LogicalPPIYRatio );
+		int32 nHeight = -FMath::RoundToInt( ResHeights[Page] * LogicalPPIYRatio );
 		
 		// scale font height to generate high res bitmap based on scale factor
 		// this high res bitmap is later used to generate the downsampled distance field
@@ -1236,8 +1236,8 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 			{
 				
 				// Make X and Y positions a multiple of the scale factor.
-				CharWidth = FMath::Round(CharWidth / static_cast<float>(ImportOptions->Data.DistanceFieldScaleFactor)) * ImportOptions->Data.DistanceFieldScaleFactor;
-				CharHeight = FMath::Round(CharHeight / static_cast<float>(ImportOptions->Data.DistanceFieldScaleFactor)) * ImportOptions->Data.DistanceFieldScaleFactor;
+				CharWidth = FMath::RoundToInt(CharWidth / static_cast<float>(ImportOptions->Data.DistanceFieldScaleFactor)) * ImportOptions->Data.DistanceFieldScaleFactor;
+				CharHeight = FMath::RoundToInt(CharHeight / static_cast<float>(ImportOptions->Data.DistanceFieldScaleFactor)) * ImportOptions->Data.DistanceFieldScaleFactor;
 			}
 
 			// If the character is bigger than our texture size, then this isn't going to work!  The user
@@ -1294,10 +1294,10 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 			// scale character offset UVs back down based on scale factor
 			if (ImportOptions->Data.bUseDistanceFieldAlpha)
 			{
-				FontX = FMath::Round(FontX / (float)ImportOptions->Data.DistanceFieldScaleFactor);
-				FontY = FMath::Round(FontY / (float)ImportOptions->Data.DistanceFieldScaleFactor);
-				FontWidth = FMath::Round(FontWidth / (float)ImportOptions->Data.DistanceFieldScaleFactor);
-				FontHeight = FMath::Round(FontHeight / (float)ImportOptions->Data.DistanceFieldScaleFactor);
+				FontX = FMath::RoundToInt(FontX / (float)ImportOptions->Data.DistanceFieldScaleFactor);
+				FontY = FMath::RoundToInt(FontY / (float)ImportOptions->Data.DistanceFieldScaleFactor);
+				FontWidth = FMath::RoundToInt(FontWidth / (float)ImportOptions->Data.DistanceFieldScaleFactor);
+				FontHeight = FMath::RoundToInt(FontHeight / (float)ImportOptions->Data.DistanceFieldScaleFactor);
 			}
 			NewCharacterRef.StartU =
 				FMath::Clamp<int32>( FontX - ImportOptions->Data.ExtendBoxLeft,
@@ -1837,7 +1837,7 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 
 	for( int32 Page = 0; Page < NumResolutions; ++Page )
 	{
-		int32 Height = FMath::Round( ResHeights[Page] );
+		int32 Height = FMath::RoundToInt( ResHeights[Page] );
 		
 		// scale font height to generate high res bitmap based on scale factor
 		// this high res bitmap is later used to generate the downsampled distance field
@@ -1956,8 +1956,8 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 			{
 				
 				// Make X and Y positions a multiple of the scale factor.
-				CharWidth = FMath::Round(CharWidth / static_cast<float>(ImportOptions->Data.DistanceFieldScaleFactor)) * ImportOptions->Data.DistanceFieldScaleFactor;
-				CharHeight = FMath::Round(CharHeight / static_cast<float>(ImportOptions->Data.DistanceFieldScaleFactor)) * ImportOptions->Data.DistanceFieldScaleFactor;
+				CharWidth = FMath::RoundToInt(CharWidth / static_cast<float>(ImportOptions->Data.DistanceFieldScaleFactor)) * ImportOptions->Data.DistanceFieldScaleFactor;
+				CharHeight = FMath::RoundToInt(CharHeight / static_cast<float>(ImportOptions->Data.DistanceFieldScaleFactor)) * ImportOptions->Data.DistanceFieldScaleFactor;
 			}
 
 			// If the character is bigger than our texture size, then this isn't going to work!  The user
@@ -2007,10 +2007,10 @@ bool UTrueTypeFontFactory::CreateFontTexture(
 			// scale character offset UVs back down based on scale factor
 			if (ImportOptions->Data.bUseDistanceFieldAlpha)
 			{
-				FontX = FMath::Round(FontX / (float)ImportOptions->Data.DistanceFieldScaleFactor);
-				FontY = FMath::Round(FontY / (float)ImportOptions->Data.DistanceFieldScaleFactor);
-				FontWidth = FMath::Round(FontWidth / (float)ImportOptions->Data.DistanceFieldScaleFactor);
-				FontHeight = FMath::Round(FontHeight / (float)ImportOptions->Data.DistanceFieldScaleFactor);
+				FontX = FMath::RoundToInt(FontX / (float)ImportOptions->Data.DistanceFieldScaleFactor);
+				FontY = FMath::RoundToInt(FontY / (float)ImportOptions->Data.DistanceFieldScaleFactor);
+				FontWidth = FMath::RoundToInt(FontWidth / (float)ImportOptions->Data.DistanceFieldScaleFactor);
+				FontHeight = FMath::RoundToInt(FontHeight / (float)ImportOptions->Data.DistanceFieldScaleFactor);
 			}
 			NewCharacterRef.StartU =
 				FMath::Clamp<int32>( FontX - ImportOptions->Data.ExtendBoxLeft,

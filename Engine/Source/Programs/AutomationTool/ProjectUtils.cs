@@ -168,6 +168,13 @@ namespace AutomationTool
 				}
 			}
 
+			// check to see if the uproject loads modules, only if we haven't already determined it is a code based project
+			if (!Properties.bIsCodeBasedProject)
+			{
+				string uprojectStr = File.ReadAllText(RawProjectPath);
+				Properties.bIsCodeBasedProject = uprojectStr.Contains("\"Modules\"");
+			}
+
 			return Properties;
 		}
 
@@ -204,6 +211,23 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// Gets the location where all rules assemblies should go
+		/// </summary>
+		private static string GetRulesAssemblyFolder()
+		{
+			string RulesFolder;
+			if (GlobalCommandLine.Installed.IsSet)
+			{
+				RulesFolder = CommandUtils.CombinePaths(Path.GetTempPath(), "UAT", CommandUtils.EscapePath(CommandUtils.CmdEnv.LocalRoot), "Rules"); 
+			}
+			else
+			{
+				RulesFolder = CommandUtils.CombinePaths(CommandUtils.CmdEnv.EngineSavedFolder, "Rules");
+			}
+			return RulesFolder;
+		}
+
+		/// <summary>
 		/// Finds all targets for the project.
 		/// </summary>
 		/// <param name="Properties">Project properties.</param>
@@ -215,11 +239,12 @@ namespace AutomationTool
 			string FullProjectPath = null;
 
 			var GameFolders = new List<string>();
+			var RulesFolder = GetRulesAssemblyFolder();
 			if (!String.IsNullOrEmpty(Properties.RawProjectPath))
 			{
 				CommandUtils.Log("Looking for targets for project {0}", Properties.RawProjectPath);
 
-				TargetsDllFilename = CommandUtils.CombinePaths(Path.GetTempPath(), String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
+				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
 
 				FullProjectPath = CommandUtils.GetDirectoryName(Properties.RawProjectPath);
 				GameFolders.Add(FullProjectPath);
@@ -227,7 +252,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				TargetsDllFilename = CommandUtils.CombinePaths(Path.GetTempPath(), String.Format("UATRules{0}.dll", "_BaseEngine_"));
+				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", "_BaseEngine_"));
 			}
 			RulesCompiler.SetAssemblyNameAndGameFolders(TargetsDllFilename, GameFolders);
 
@@ -383,6 +408,19 @@ namespace AutomationTool
 			}
 			return Name;
 		}
+
+		/// <summary>
+		/// Performs initial cleanup of target rules folder
+		/// </summary>
+		public static void CleanupFolders()
+		{
+			CommandUtils.Log("Cleaning up project rules folder");
+			var RulesFolder = GetRulesAssemblyFolder();
+			if (CommandUtils.DirectoryExists(RulesFolder))
+			{
+				CommandUtils.DeleteDirectoryContents(RulesFolder);
+			}
+		}
 	}
 
     public class BranchInfo
@@ -473,12 +511,19 @@ namespace AutomationTool
 
                         }
                     }
-                }
-                CommandUtils.Log("      Programs {0}:", Properties.Programs.Count);
-                foreach (var ThisTarget in Properties.Programs)
-                {
-                    CommandUtils.Log("        TargetName          : " + ThisTarget.TargetName);
-                    CommandUtils.Log("          Build With Editor  : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
+                    CommandUtils.Log("      Programs {0}:", Properties.Programs.Count);
+                    foreach (var ThisTarget in Properties.Programs)
+                    {
+                        bool bInternalToolOnly;
+                        bool SeparateNode;
+                        bool Tool = ThisTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalToolOnly, out SeparateNode);
+
+                        CommandUtils.Log("            TargetName                    : " + ThisTarget.TargetName);
+                        CommandUtils.Log("              Build With Editor           : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
+                        CommandUtils.Log("              Build With Tools            : " + (Tool && !bInternalToolOnly ? "YES" : "NO"));
+                        CommandUtils.Log("              Build With Internal Tools   : " + (Tool && bInternalToolOnly ? "YES" : "NO"));
+                        CommandUtils.Log("              Separate Node               : " + (Tool && SeparateNode ? "YES" : "NO"));
+                    }
                 }
             }
         };
@@ -508,6 +553,10 @@ namespace AutomationTool
                         BaseEngineProject.FilePath = UProject.FilePath;
                     }
                 }
+            }
+            if (String.IsNullOrEmpty(BaseEngineProject.FilePath))
+            {
+                throw new AutomationException("All branches must have the blank project /Samples/SampleGames/BlankProject");
             }
 
             CommandUtils.Log("  Base Engine:");
@@ -542,6 +591,20 @@ namespace AutomationTool
                 }
             }
             return null;
+        }
+        public SingleTargetProperties FindProgram(string ProgramName)
+        {
+            foreach (var Proj in BaseEngineProject.Properties.Programs)
+            {
+                if (Proj.TargetName.Equals(ProgramName, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return Proj;
+                }
+            }
+            SingleTargetProperties Result;
+            Result.TargetName = ProgramName;
+            Result.Rules = null;
+            return Result;
         }
     };
 

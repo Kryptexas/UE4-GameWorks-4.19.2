@@ -1,6 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #include "PersonaPrivatePCH.h"
 #include "AnimGraphDefinitions.h"
+#include "AnimPreviewInstance.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Persona.h"
 #include "SAnimationScrubPanel.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"

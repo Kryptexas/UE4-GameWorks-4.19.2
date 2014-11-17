@@ -9,19 +9,24 @@ public class IOSPlatformEditor : ModuleRules
 		BinariesSubFolder = "IOS";
 
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
 				"CoreUObject",
 				"InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
 				"EditorStyle",
 				"PropertyEditor",
 				"SharedSettingsWidgets",
-				"Settings",
 				"SourceControl",
 				"IOSRuntimeSettings",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
 			}
 		);
 

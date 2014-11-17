@@ -139,6 +139,9 @@ void FDirectoryWatchRequestWindows::EndWatchRequest()
 #else
 			CancelIo(DirectoryHandle);
 #endif
+			// Wait for cancel operation to finish before closing the handle
+			WaitForSingleObjectEx(DirectoryHandle, 1000, true);
+			
 			::CloseHandle(DirectoryHandle);
 			DirectoryHandle = INVALID_HANDLE_VALUE;
 		}

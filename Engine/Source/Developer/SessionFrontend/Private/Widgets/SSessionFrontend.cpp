@@ -63,14 +63,14 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
-				->SetOrientation(Orient_Horizontal)
+				->SetOrientation(Orient_Vertical)
 				->Split
 				(
 					// session browser
 					FTabManager::NewStack()
 						->AddTab(SessionBrowserTabId, ETabState::OpenedTab)
 						->SetHideTabWell(true)
-						->SetSizeCoefficient(0.25f)
+						->SetSizeCoefficient(0.15f)
 				)
 				->Split
 				(
@@ -80,7 +80,7 @@ void SSessionFrontend::Construct( const FArguments& InArgs, const TSharedRef<SDo
 						->AddTab(AutomationTabId, ETabState::OpenedTab)
 						->AddTab(SessionScreenTabId, ETabState::ClosedTab)
 						->AddTab(ProfilerTabId, ETabState::OpenedTab)
-						->SetSizeCoefficient(0.75f)
+						->SetSizeCoefficient(0.85f)
 						->SetForegroundTab(SessionConsoleTabId)
 				)							
 		);

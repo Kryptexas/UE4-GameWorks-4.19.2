@@ -10,15 +10,6 @@
 
 #define LOCTEXT_NAMESPACE "SProfilerWindow"
 
-/** Contains names of all widgets used in the profiler window. */
-namespace FNames
-{
-	static const FName GraphView = FName("GraphViewTab");
-	static const FName SentinelView = FName("SentinelViewTab");
-	static const FName FiltersAndPresets = FName("FilterAndPreset");
-	static const FName EventGraphView = FName("EventGraphView");
-}
-
 static FText GetTextForNotification( const EProfilerNotificationTypes::Type NotificatonType, const ELoadingProgressStates::Type ProgressState, const FString& Filename, const float ProgressPercent = 0.0f )
 {
 	FText Result;
@@ -87,13 +78,17 @@ SProfilerWindow::SProfilerWindow()
 {}
 
 SProfilerWindow::~SProfilerWindow()
-{}
+{
+	// Remove ourselves from the profiler manager.
+	if( FProfilerManager::Get().IsValid() )
+	{
+		FProfilerManager::Get()->OnViewModeChanged().RemoveAll( this );
+	}
+}
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManagerRef& InSessionManager )
+void SProfilerWindow::Construct( const FArguments& InArgs )
 {
-	SessionManager = InSessionManager;
-
 	// TODO: Cleanup overlay code.
 	ChildSlot
 		[
@@ -126,15 +121,44 @@ void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManager
 					.Size( FVector2D( 2.0f, 2.0f ) )
 				]
 
+				/** Profiler Mini-view. */
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SBox)
+					.HeightOverride( 48.0f )
+					[
+						SNew( SHorizontalBox )
+						.IsEnabled( this, &SProfilerWindow::IsProfilerEnabled )
+
+						+ SHorizontalBox::Slot()
+						.FillWidth( 1.0f )
+						.Padding( 0.0f )
+						.HAlign( HAlign_Fill )
+						.VAlign( VAlign_Fill )
+						[
+							SAssignNew( ProfilerMiniView, SProfilerMiniView )
+						]
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew( SSpacer )
+					.Size( FVector2D( 2.0f, 2.0f ) )
+				]
+
 				+SVerticalBox::Slot()
 				.FillHeight( 1.0f )
 				.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 				[
-					SNew(SHorizontalBox)
+					SNew( SHorizontalBox )
 					.IsEnabled( this, &SProfilerWindow::IsProfilerEnabled )
 
 					+SHorizontalBox::Slot()
 					.AutoWidth()
+					.Expose( FiltersAndPresetsSlot )
 					[
 						SNew(SBox)
 						.WidthOverride( 256.0f )
@@ -174,7 +198,7 @@ void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManager
 							+SVerticalBox::Slot()
 							.FillHeight( 1.0f )
 							[
-								SNew(SFiltersAndPresets)
+								SAssignNew( FiltersAndPresets, SFiltersAndPresets )
 							]
 						]
 					]
@@ -250,7 +274,7 @@ void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManager
 				.Visibility( this, &SProfilerWindow::IsSessionOverlayVissible )
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("SelectSessionOverlayText", "Please select a session from the Session Browser or load a saved capture.").ToString())
+					.Text(LOCTEXT("SelectSessionOverlayText", "Please select a session from the Session Browser or load a saved capture."))
 				]
 			]
 
@@ -270,8 +294,11 @@ void SProfilerWindow::Construct( const FArguments& InArgs, const ISessionManager
 			.Expose( OverlaySettingsSlot )
 		];
 
-	GraphPanel->GetMainDataGraph()->OnSelectionChangedForIndex().AddSP( FProfilerManager::Get().Get(), &FProfilerManager::DataGraph_OnSelectionChangedForIndex );
+	ProfilerMiniView->OnSelectionBoxChanged().AddSP( GraphPanel.ToSharedRef(), &SProfilerGraphPanel::MiniView_OnSelectionBoxChanged );
+	FProfilerManager::Get()->OnViewModeChanged().AddSP( this, &SProfilerWindow::ProfilerManager_OnViewModeChanged );
+	GraphPanel->ProfilerMiniView = ProfilerMiniView;
 }
+
 void SProfilerWindow::ManageEventGraphTab( const FGuid ProfilerInstanceID, const bool bCreateFakeTab, const FString TabName )
 {
 	// TODO: Add support for multiple instances.
@@ -345,6 +372,7 @@ EVisibility SProfilerWindow::IsSessionOverlayVissible() const
 
 	return EVisibility::Visible;
 }
+
 
 bool SProfilerWindow::IsProfilerEnabled() const
 {
@@ -455,10 +483,9 @@ FReply SProfilerWindow::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardE
 
 FReply SProfilerWindow::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+	if(DragDropOp.IsValid())
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(DragDropEvent.GetOperation());
-
 		if( DragDropOp->HasFiles() )
 		{
 			const TArray<FString>& Files = DragDropOp->GetFiles();
@@ -483,10 +510,9 @@ FReply SProfilerWindow::OnDragOver( const FGeometry& MyGeometry, const FDragDrop
 
 FReply SProfilerWindow::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FExternalDragOperation> DragDropOp = DragDropEvent.GetOperationAs<FExternalDragOperation>();
+	if(DragDropOp.IsValid())
 	{
-		TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(DragDropEvent.GetOperation());
-
 		if( DragDropOp->HasFiles() )
 		{
 			// For now, only allow a single file.
@@ -537,6 +563,30 @@ void SProfilerWindow::CloseProfilerSettings()
 		SNullWidget::NullWidget
 	];
 	MainContentPanel->SetEnabled( true );
+}
+
+void SProfilerWindow::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+{
+	if( NewViewMode == EProfilerViewMode::LineIndexBased )
+	{
+		EventGraphPanel->SetVisibility( EVisibility::Visible );
+		EventGraphPanel->SetEnabled( true );
+
+		(*FiltersAndPresetsSlot)
+		[
+			FiltersAndPresets.ToSharedRef()
+		];
+	}
+	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
+	{
+		EventGraphPanel->SetVisibility( EVisibility::Collapsed );
+		EventGraphPanel->SetEnabled( false );
+
+		(*FiltersAndPresetsSlot)
+		[
+			SNullWidget::NullWidget
+		];
+	}
 }
 
 

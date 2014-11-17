@@ -73,7 +73,7 @@ public:
 	/**
 	 * Gets the number of payload bytes actually sent to the socket.
 	 */
-	uint64 GetBytesSent( )
+	int32 GetBytesSent()
 	{
 		return BytesSent;
 	}
@@ -192,7 +192,7 @@ public:
 					break;
 				}
 
-				FPlatformAtomics::InterlockedAdd(&BytesSent, (int64)Data.Num());
+				FPlatformAtomics::InterlockedAdd(&BytesSent, Data.Num());
 			}
 
 			delete LocalEventToRestart; // block here if we don't have any data
@@ -235,7 +235,7 @@ protected:
 private:
 
 	// Holds the total number of payload bytes sent to the socket.
-	int64 BytesSent;
+	int32 BytesSent;
 
 	// Holds an event to trigger when bandwidth has freed up.
 	FScopedEvent* EventToRestart;

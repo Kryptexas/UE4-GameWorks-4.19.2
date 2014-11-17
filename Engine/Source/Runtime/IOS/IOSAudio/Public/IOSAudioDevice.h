@@ -189,8 +189,8 @@ public:
 	AudioUnit GetMixerUnit() const { return MixerUnit; }
 
 	/** Thread context management */
-	static void ResumeContext();
-	static void SuspendContext();
+	virtual void ResumeContext();
+	virtual void SuspendContext();
 	
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar = *GLog ) OVERRIDE;
 

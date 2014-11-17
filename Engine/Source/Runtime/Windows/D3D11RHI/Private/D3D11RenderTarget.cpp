@@ -480,7 +480,7 @@ struct FD3DFloat16
 
 		Result.Components.Sign = Components.Sign;
 		Result.Components.Exponent = Components.Exponent - 15 + 127; // Stored exponents are biased by half their range.
-		Result.Components.Mantissa = FMath::Min<uint32>(FMath::Floor((float)Components.Mantissa / 1024.0f * 8388608.0f),(1 << 23) - 1);
+		Result.Components.Mantissa = FMath::Min<uint32>(FMath::FloorToInt((float)Components.Mantissa / 1024.0f * 8388608.0f),(1 << 23) - 1);
 
 		return Result.Float;
 	}
@@ -508,13 +508,13 @@ struct FD3DFloatR11G11B10
 
 		Result[0].Components.Sign = 0;
 		Result[0].Components.Exponent = R_Exponent - 15 + 127;
-		Result[0].Components.Mantissa = FMath::Min<uint32>(FMath::Floor((float)R_Mantissa / 32.0f * 8388608.0f),(1 << 23) - 1);
+		Result[0].Components.Mantissa = FMath::Min<uint32>(FMath::FloorToInt((float)R_Mantissa / 32.0f * 8388608.0f),(1 << 23) - 1);
 		Result[1].Components.Sign = 0;
 		Result[1].Components.Exponent = G_Exponent - 15 + 127;
-		Result[1].Components.Mantissa = FMath::Min<uint32>(FMath::Floor((float)G_Mantissa / 64.0f * 8388608.0f),(1 << 23) - 1);
+		Result[1].Components.Mantissa = FMath::Min<uint32>(FMath::FloorToInt((float)G_Mantissa / 64.0f * 8388608.0f),(1 << 23) - 1);
 		Result[2].Components.Sign = 0;
 		Result[2].Components.Exponent = B_Exponent - 15 + 127;
-		Result[2].Components.Mantissa = FMath::Min<uint32>(FMath::Floor((float)B_Mantissa / 64.0f * 8388608.0f),(1 << 23) - 1);
+		Result[2].Components.Mantissa = FMath::Min<uint32>(FMath::FloorToInt((float)B_Mantissa / 64.0f * 8388608.0f),(1 << 23) - 1);
 
 		return FLinearColor(Result[0].Float, Result[1].Float, Result[2].Float);
 	}
@@ -592,6 +592,7 @@ TRefCountPtr<ID3D11Texture2D> FD3D11DynamicRHI::GetStagingTexture(FTextureRHIPar
 
 	// create a temp 2d texture to copy render target to
 	D3D11_TEXTURE2D_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	Desc.Width = SizeX;
 	Desc.Height = SizeY;
 	Desc.MipLevels = 1;
@@ -1026,6 +1027,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FTextureRHIParamRef TextureRHI,FIn
 
 	// Create a non-MSAA render target to resolve individual samples of the source surface to.
 	D3D11_TEXTURE2D_DESC NonMSAADesc;
+	ZeroMemory( &NonMSAADesc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	NonMSAADesc.Width = SizeX;
 	NonMSAADesc.Height = SizeY;
 	NonMSAADesc.MipLevels = 1;
@@ -1054,6 +1056,7 @@ void FD3D11DynamicRHI::ReadSurfaceDataMSAARaw(FTextureRHIParamRef TextureRHI,FIn
 	// Create a CPU-accessible staging texture to copy the resolved sample data to.
 	TRefCountPtr<ID3D11Texture2D> StagingTexture2D;
 	D3D11_TEXTURE2D_DESC StagingDesc;
+	ZeroMemory( &StagingDesc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	StagingDesc.Width = SizeX;
 	StagingDesc.Height = SizeY;
 	StagingDesc.MipLevels = 1;
@@ -1191,6 +1194,7 @@ void FD3D11DynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,FI
 
 	// create a temp 2d texture to copy render target to
 	D3D11_TEXTURE2D_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	Desc.Width = SizeX;
 	Desc.Height = SizeY;
 	Desc.MipLevels = 1;
@@ -1266,6 +1270,7 @@ void FD3D11DynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI,
 
 	// create a temp 2d texture to copy render target to
 	D3D11_TEXTURE3D_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_TEXTURE3D_DESC ) );
 	Desc.Width = SizeX;
 	Desc.Height = SizeY;
 	Desc.Depth = SizeZ;

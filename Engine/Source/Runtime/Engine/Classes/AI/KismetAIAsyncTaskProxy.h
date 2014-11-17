@@ -17,7 +17,7 @@ class UKismetAIAsyncTaskProxy : public UObject
 
 public:
 	UFUNCTION()
-	void OnMoveCompleted(int32 RequestID, EPathFollowingResult::Type MovementResult);
+	void OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type MovementResult);
 
 	void OnNoPath();
 
@@ -26,5 +26,5 @@ public:
 	// End UObject interface
 
 	TWeakObjectPtr<class AAIController> AIController;
-	int32 MoveRequestId;
+	FAIRequestID MoveRequestId;
 };

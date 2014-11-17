@@ -287,15 +287,6 @@ namespace AutomationTool
             return new List<string>();
         }
 
-
-        /// <summary>
-        /// Allow the platform to setup emails for the GUBP for folks that care about node failures relating to this platform
-        /// </summary>
-        /// <param name="Branch">p4 root of the branch we are running</param>
-        public virtual string GUBP_GetPlatformFailureEMails(string Branch)
-        {
-            return "";
-        }
 		/// <summary>
 		/// UnrealTargetPlatform type for this platform.
 		/// </summary>
@@ -364,7 +355,7 @@ namespace AutomationTool
 
 		}
 
-		public virtual bool ShouldUseManifestForUBTBuilds()
+		public virtual bool ShouldUseManifestForUBTBuilds(string AddArgs)
 		{
 			return true;
 		}

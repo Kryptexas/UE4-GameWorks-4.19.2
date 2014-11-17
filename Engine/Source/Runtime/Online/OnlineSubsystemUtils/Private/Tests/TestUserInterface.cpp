@@ -45,6 +45,15 @@ void FTestUserInterface::Test(UWorld* InWorld, const TArray<FString>& InUserIds)
 			}
 		}
 
+		// Include our own user so we have at least one UserId to query for
+		{
+			TSharedPtr<FUniqueNetId> UserId = OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0);
+			if (QueryUserIds.Contains(UserId.ToSharedRef()) == false)
+			{
+				QueryUserIds.Add(UserId.ToSharedRef());
+			}
+		}
+
 		// kick off next test
 		StartNextTest();
 	}
@@ -85,23 +94,30 @@ void FTestUserInterface::OnQueryUserInfoComplete(int32 LocalPlayer, bool bWasSuc
 	UE_LOG(LogOnline, Log,
 		TEXT("GetUserInterface() for player (%d) was success=%d"), LocalPlayer, bWasSuccessful);
 
-	for (int32 UserIdx=0; UserIdx < UserIds.Num(); UserIdx++)
+	if (bWasSuccessful)
 	{
-		TSharedPtr<FOnlineUser> User = OnlineSub->GetUserInterface()->GetUserInfo(LocalPlayer, *UserIds[UserIdx]);
-		if (User.IsValid())
+		for (int32 UserIdx=0; UserIdx < UserIds.Num(); UserIdx++)
 		{
-			UE_LOG(LogOnline, Log,
-				TEXT("PlayerId=%s found"), *UserIds[UserIdx]->ToDebugString());
-			UE_LOG(LogOnline, Log,
-				TEXT("	DisplayName=%s"), *User->GetDisplayName());
-			UE_LOG(LogOnline, Log,
-				TEXT("	RealName=%s"), *User->GetRealName());
+			TSharedPtr<FOnlineUser> User = OnlineSub->GetUserInterface()->GetUserInfo(LocalPlayer, *UserIds[UserIdx]);
+			if (User.IsValid())
+			{
+				UE_LOG(LogOnline, Log,
+					TEXT("PlayerId=%s found"), *UserIds[UserIdx]->ToDebugString());
+				UE_LOG(LogOnline, Log,
+					TEXT("	DisplayName=%s"), *User->GetDisplayName());
+				UE_LOG(LogOnline, Log,
+					TEXT("	RealName=%s"), *User->GetRealName());
+			}
+			else
+			{
+				UE_LOG(LogOnline, Log,
+					TEXT("PlayerId=%s not found"), *UserIds[UserIdx]->ToDebugString());
+			}
 		}
-		else
-		{
-			UE_LOG(LogOnline, Log,
-				TEXT("PlayerId=%s not found"), *UserIds[UserIdx]->ToDebugString());
-		}
+	}
+	else
+	{
+		UE_LOG(LogOnline, Error, TEXT("GetUserInterface() failure. Error = %s"), *ErrorStr);
 	}
 
 	// done

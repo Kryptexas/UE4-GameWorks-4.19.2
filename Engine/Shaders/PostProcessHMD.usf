@@ -42,6 +42,20 @@ float2 HMDWarp(float2 in01)
 }
 #endif
 
+
+// vertex shader entry point
+void MainVS(
+	in float4 InPosition : ATTRIBUTE0,
+	in float2 InTexCoord : ATTRIBUTE1,
+	out float4 OutTexCoord : TEXCOORD0,
+	out float4 OutPosition : SV_POSITION
+	)
+{
+	OutPosition = InPosition;
+	OutTexCoord = float4(InTexCoord, InPosition.xy);
+}
+
+
 void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
     float2 InUV = UVAndScreenPos.xy;

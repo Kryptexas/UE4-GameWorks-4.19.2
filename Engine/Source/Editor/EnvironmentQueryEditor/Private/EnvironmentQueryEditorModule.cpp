@@ -11,7 +11,7 @@
 #include "Toolkits/ToolkitManager.h"
 #include "SGraphNode_EnvironmentQuery.h"
 #include "EdGraphUtilities.h"
-#include "EnvironmentQueryEditor.generated.inl"
+
 
 IMPLEMENT_MODULE( FEnvironmentQueryEditorModule, EnvironmentQueryEditor );
 DEFINE_LOG_CATEGORY(LogEnvironmentQueryEditor);

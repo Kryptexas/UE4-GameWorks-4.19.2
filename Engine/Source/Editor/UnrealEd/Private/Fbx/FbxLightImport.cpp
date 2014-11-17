@@ -7,7 +7,6 @@
 #include "UnrealEd.h"
 #include "Factories.h"
 #include "Engine.h"
-#include "EngineMaterialClasses.h"
 #include "FbxImporter.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFbxLightImport, Log, All);

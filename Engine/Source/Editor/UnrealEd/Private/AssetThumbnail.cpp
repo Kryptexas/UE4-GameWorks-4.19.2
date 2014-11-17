@@ -685,14 +685,14 @@ FAssetThumbnailPool::FAssetThumbnailPool( uint32 InNumInPool, const TAttribute<b
 	, MaxFrameTimeAllowance( InMaxFrameTimeAllowance )
 	, MaxRealTimeThumbnailsPerFrame( InMaxRealTimeThumbnailsPerFrame )
 {
-	FCoreDelegates::OnObjectPropertyChanged.Add(FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FAssetThumbnailPool::OnObjectPropertyChanged));
-	FCoreDelegates::OnAssetLoaded.Add(FCoreDelegates::FOnAssetLoaded::FDelegate::CreateRaw(this, &FAssetThumbnailPool::OnAssetLoaded));
+	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &FAssetThumbnailPool::OnObjectPropertyChanged);
+	FCoreDelegates::OnAssetLoaded.AddRaw(this, &FAssetThumbnailPool::OnAssetLoaded);
 }
 
 FAssetThumbnailPool::~FAssetThumbnailPool()
 {
-	FCoreDelegates::OnObjectPropertyChanged.Remove(FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FAssetThumbnailPool::OnObjectPropertyChanged));
-	FCoreDelegates::OnAssetLoaded.Remove(FCoreDelegates::FOnAssetLoaded::FDelegate::CreateRaw(this, &FAssetThumbnailPool::OnAssetLoaded));
+	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
+	FCoreDelegates::OnAssetLoaded.RemoveAll(this);
 
 	// Release all the texture resources
 	ReleaseResources();
@@ -1208,7 +1208,7 @@ void FAssetThumbnailPool::OnAssetLoaded( UObject* Asset )
 	}
 }
 
-void FAssetThumbnailPool::OnObjectPropertyChanged( UObject* ObjectBeingModified )
+void FAssetThumbnailPool::OnObjectPropertyChanged( UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent )
 {
 	if ( ObjectBeingModified->HasAnyFlags(RF_ClassDefaultObject) && ObjectBeingModified->GetClass()->ClassGeneratedBy != NULL )
 	{

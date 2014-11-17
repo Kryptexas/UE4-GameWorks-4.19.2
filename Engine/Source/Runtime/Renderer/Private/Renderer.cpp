@@ -39,17 +39,26 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 	FViewInfo View(&SceneView);
 	View.InitRHIResources();
 
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);	
+	const auto FeatureLevel = View.GetFeatureLevel();
+
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel);
 
 	//get the blend mode of the material
 	const EBlendMode MaterialBlendMode = Material->GetBlendMode();
 
-	if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3 && !GUsingNullRHI)
+	if (!GUsingNullRHI)
 	{
 		// handle translucent material blend modes
 		if (IsTranslucentBlendMode(MaterialBlendMode))
 		{
-			FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+			if (FeatureLevel >= ERHIFeatureLevel::SM3)
+			{
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+			}
+			else
+			{
+				FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(View, FTranslucencyForwardShadingDrawingPolicyFactory::ContextType(), Mesh, false, false, NULL, HitProxyId);
+			}
 		}
 		// handle opaque materials
 		else
@@ -64,7 +73,14 @@ void FRendererModule::DrawTileMesh(const FSceneView& SceneView, const FMeshBatch
 			}
 			else
 			{
-				FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+				if (FeatureLevel >= ERHIFeatureLevel::SM3)
+				{
+					FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassOpaqueDrawingPolicyFactory::ContextType(false, ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+				}
+				else
+				{
+					FBasePassForwardOpaqueDrawingPolicyFactory::DrawDynamicMesh(View, FBasePassForwardOpaqueDrawingPolicyFactory::ContextType(ESceneRenderTargetsMode::SetTextures), Mesh, false, false, NULL, HitProxyId);
+				}
 			}
 		}	
 	}
@@ -92,8 +108,8 @@ void FRendererModule::DebugLogOnCrash()
 		{
 			void Thread()
 			{
-				GEngine->Exec(GWorld, TEXT("Mem FromReport"), *GLog);
-				GEngine->Exec(GWorld, TEXT("rhi.DumpMemory"), *GLog);
+				GEngine->Exec(NULL, TEXT("Mem FromReport"), *GLog);
+				GEngine->Exec(NULL, TEXT("rhi.DumpMemory"), *GLog);
 			}
 		} Test;
 
@@ -111,7 +127,28 @@ void FRendererModule::GPUBenchmark(FSynthBenchmarkResults& InOut, uint32 WorkSca
 	check(IsInGameThread());
 
 	FSceneViewInitOptions ViewInitOptions;
-	ViewInitOptions.SetViewRectangle(FIntRect(0, 0, 1, 1));
+	FIntRect ViewRect(0, 0, 1, 1);
+
+	FBox LevelBox(FVector(-WORLD_MAX), FVector(+WORLD_MAX));
+	ViewInitOptions.SetViewRectangle(ViewRect);
+
+	// Initialize Projection Matrix and ViewMatrix since FSceneView initialization is doing some math on them.
+	// Otherwise it trips NaN checks.
+	const FVector ViewPoint = LevelBox.GetCenter();
+	ViewInitOptions.ViewMatrix = FMatrix(
+		FPlane(1, 0, 0, 0),
+		FPlane(0, -1, 0, 0),
+		FPlane(0, 0, -1, 0),
+		FPlane(-ViewPoint.X, ViewPoint.Y, 0, 1));
+
+	const float ZOffset = WORLD_MAX;
+	ViewInitOptions.ProjectionMatrix = FReversedZOrthoMatrix(
+		LevelBox.GetSize().X / 2.f,
+		LevelBox.GetSize().Y / 2.f,
+		0.5f / ZOffset,
+		ZOffset
+		);
+
 	FSceneView DummyView(ViewInitOptions);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(

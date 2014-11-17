@@ -8,7 +8,7 @@
 #pragma once
 #include "BoxReflectionCapture.generated.h"
 
-UCLASS(hidecategories=(Collision, Attachment, Actor), HeaderGroup=Decal, MinimalAPI)
+UCLASS(hidecategories=(Collision, Attachment, Actor), MinimalAPI)
 class ABoxReflectionCapture : public AReflectionCapture
 {
 	GENERATED_UCLASS_BODY()

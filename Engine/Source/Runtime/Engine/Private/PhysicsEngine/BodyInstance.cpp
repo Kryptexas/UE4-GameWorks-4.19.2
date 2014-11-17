@@ -182,6 +182,43 @@ void FCollisionResponse::UpdateResponseContainerFromArray()
 	}
 }
 ////////////////////////////////////////////////////////////////////////////
+
+FBodyInstance::FBodyInstance()
+: InstanceBodyIndex(INDEX_NONE)
+, Scale3D(1.0)
+, SceneIndexSync(0)
+, SceneIndexAsync(0)
+, bEnableCollision_DEPRECATED(true)
+, CollisionProfileName(UCollisionProfile::CustomCollisionProfileName)
+, CollisionEnabled(ECollisionEnabled::QueryAndPhysics)
+, ObjectType(ECC_WorldStatic)
+, bUseCCD(false)
+, bNotifyRigidBodyCollision(false)
+, bSimulatePhysics(false)
+, bStartAwake(true)
+, bEnableGravity(true)
+, bUseAsyncScene(false)
+, bUpdateMassWhenScaleChanges(false)
+, bOverrideWalkableSlopeOnInstance(false)
+, PhysMaterialOverride(NULL)
+, COMNudge(ForceInit)
+, SleepFamily(SF_Normal)
+, MassScale(1.f)
+, AngularDamping(0.0)
+, LinearDamping(0.01)
+, MaxAngularVelocity(400.f)
+, PhysicsBlendWeight(0.f)
+, PositionSolverIterationCount(8)
+, VelocitySolverIterationCount(1)
+#if WITH_PHYSX
+, RigidActorSync(NULL)
+, RigidActorAsync(NULL)
+, BodyAggregate(NULL)
+, PhysxUserData(this)
+#endif	//WITH_PHYSX
+{
+}
+
 FArchive& operator<<(FArchive& Ar,FBodyInstance& BodyInst)
 {
 	if (!Ar.IsLoading() && !Ar.IsSaving())
@@ -337,10 +374,7 @@ void FBodyInstance::UpdatePhysicalMaterials()
 
 void FBodyInstance::InvalidateCollisionProfileName()
 {
-	if ( CollisionProfileName != NAME_None )
-	{
-		CollisionProfileName = NAME_None;
-	}
+	CollisionProfileName = UCollisionProfile::CustomCollisionProfileName;
 }
 
 ECollisionResponse FBodyInstance::GetResponseToChannel(ECollisionChannel Channel) const
@@ -403,6 +437,10 @@ FName FBodyInstance::GetCollisionProfileName() const
 	return CollisionProfileName;
 }
 
+bool FBodyInstance::DoesUseCollisionProfile() const
+{
+	return IsValidCollisionProfileName(CollisionProfileName);
+}
 
 void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bUpdatePhysicsFilterData)
 {
@@ -463,7 +501,7 @@ void FBodyInstance::UpdatePhysicsFilterData()
 	// Get skelmeshcomp ID
 	uint32 SkelMeshCompID = 0;
 	USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(OwnerComponent.Get());
-	if(SkelMeshComp != NULL && !SkelMeshComp->bUseSingleBodyPhysics)
+	if(SkelMeshComp != NULL)
 	{
 		SkelMeshCompID = SkelMeshComp->GetUniqueID();
 
@@ -716,19 +754,27 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		SkelMeshComp = Cast<USkeletalMeshComponent>(OwnerComponent.Get());
 
 		// if not dedicated and if set up is done to use physics, enable flag on
-		if (BodySetup->PhysicsType == PhysType_Unfixed)
+		if (BodySetup->PhysicsType == PhysType_Simulated || BodySetup->PhysicsType == PhysType_Default)
 		{
 			bool bEnableSimulation = (SkelMeshComp && IsRunningDedicatedServer())? SkelMeshComp->bEnablePhysicsOnDedicatedServer: true;
+			bEnableSimulation &= ((BodySetup->PhysicsType == PhysType_Simulated) || (SkelMeshComp->BodyInstance.bSimulatePhysics));	//if unfixed enable. If default look at parent
 			if ( bEnableSimulation )
 			{
 				// set simulate to true if using physics
 				bSimulatePhysics = true;
-				PhysicsBlendWeight = 1.f;
+				if (BodySetup->PhysicsType == PhysType_Simulated)
+				{
+					PhysicsBlendWeight = 1.f;
+				}
+				
 			}
 	 		else
 	 		{
 	 			bSimulatePhysics = false;
-	 			PhysicsBlendWeight = 0.f;
+				if (BodySetup->PhysicsType == PhysType_Simulated)
+				{
+					PhysicsBlendWeight = 0.f;
+				}
 	 		}
 		}
 	}
@@ -992,7 +1038,7 @@ void TermBodyHelper(int32 & SceneIndex, PxRigidActor *& PRigidActor, FBodyInstan
 		{
 			//When DestructibleMesh is used we create fake BodyInstances. In this case the RigidActor is set, but InitBody is never called.
 			//The RigidActor is released by the destructible component, but it's still up to us to NULL out the pointer
-			checkSlow(FPhysxUserData::Get<FDestructibleChunkInfo>(PRigidActor->userData));	//Make sure we are really a destructible
+			checkSlow(!PRigidActor->userData || FPhysxUserData::Get<FDestructibleChunkInfo>(PRigidActor->userData));	//Make sure we are really a destructible. Note you CAN get a case when userData is NULL, for example when trying to attach a destructible to another.
 			PRigidActor = NULL;
 		}
 	}
@@ -1069,8 +1115,25 @@ void FBodyInstance::Weld(FBodyInstance * TheirBody, const FTransform & RelativeT
 }
 #endif
 
+float AdjustForSmallThreshold(float NewVal, float OldVal)
+{
+	float Threshold = 0.1f;
+	float Delta = NewVal - OldVal;
+	if (Delta < 0 && FMath::Abs(NewVal) < Threshold)	//getting smaller and passed threshold so flip sign
+	{
+		return -Threshold;
+	}
+	else if (Delta > 0 && FMath::Abs(NewVal) < Threshold)	//getting bigger and passed small threshold so flip sign
+	{
+		return Threshold;
+	}
+
+	return NewVal;
+}
+
 bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 {
+	FVector InScale3DAdjusted = inScale3D;
 #if WITH_PHYSX
 	if (BodySetup == NULL || GetPxRigidActor() == NULL)
 	{
@@ -1090,16 +1153,36 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 	ensure ( !Scale3D.ContainsNaN() && !inScale3D.ContainsNaN() );
 #endif
 	FVector OldScale3D = Scale3D;
-
-	if (OldScale3D.IsNearlyZero())
+	
+	//We don't want to go smaller than KINDA_SMALL_NUMBER
+	//But we still want to be able to cross the negative threshold to flip the scale
+	InScale3DAdjusted.X = AdjustForSmallThreshold(inScale3D.X, OldScale3D.X);
+	InScale3DAdjusted.Y = AdjustForSmallThreshold(inScale3D.Y, OldScale3D.Y);
+	InScale3DAdjusted.Z = AdjustForSmallThreshold(inScale3D.Z, OldScale3D.Z);
+	
+	if (FMath::Abs(OldScale3D.X) < 0.1f)
 	{
-		// min scale
-		OldScale3D = FVector(0.1f);
+		OldScale3D.X = 0.1f;
+	}
+
+	if (FMath::Abs(OldScale3D.Y) < 0.1f)
+	{
+		OldScale3D.Y = 0.1f;
+	}
+	
+	if (FMath::Abs(OldScale3D.Z) < 0.1f)
+	{
+		OldScale3D.Z = 0.1f;
 	}
 
 	// Determine if applied scaling is uniform. If it isn't, only convex geometry will be copied over
-	float	NewUniScale = inScale3D.GetMin()/OldScale3D.GetMin(); // total scale includes inversing old scale and applying new scale
+	float	NewUniScale = InScale3DAdjusted.GetMin() / OldScale3D.GetMin(); // total scale includes inversing old scale and applying new scale
 	float	NewUniScaleAbs = FMath::Abs(NewUniScale);
+	FVector NewScale3D = InScale3DAdjusted;
+	NewScale3D.X /= OldScale3D.X;
+	NewScale3D.Y /= OldScale3D.Y;
+	NewScale3D.Z /= OldScale3D.Z;
+	FVector NewScale3DAbs = NewScale3D.GetAbs();
 
 	// Is the target a static actor
 	// Not used
@@ -1170,7 +1253,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 			}
 			else
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(inScale3D.ToString()), FText::FromString(GetBodyDebugName())));
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
 			}
 		}
 		else if (GeomType == PxGeometryType::eBOX)
@@ -1179,10 +1262,12 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 			PShape->getBoxGeometry(PBoxGeom);
 			SCENE_UNLOCK_READ(PScene);
 
-			PBoxGeom.halfExtents.x *= NewUniScaleAbs;
-			PBoxGeom.halfExtents.y *= NewUniScaleAbs;
-			PBoxGeom.halfExtents.z *= NewUniScaleAbs;
-			PLocalPose.p *= NewUniScale;
+			PBoxGeom.halfExtents.x *= NewScale3DAbs.X;
+			PBoxGeom.halfExtents.y *= NewScale3DAbs.Y;
+			PBoxGeom.halfExtents.z *= NewScale3DAbs.Z;
+			PLocalPose.p.x *= NewScale3D.X;
+			PLocalPose.p.y *= NewScale3D.Y;
+			PLocalPose.p.z *= NewScale3D.Z;
 
 			if (PBoxGeom.isValid())
 			{
@@ -1193,7 +1278,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 			}
 			else
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(inScale3D.ToString()), FText::FromString(GetBodyDebugName())));
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
 			}
 		}
 		else if (GeomType == PxGeometryType::eCAPSULE)
@@ -1202,9 +1287,12 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 			PShape->getCapsuleGeometry(PCapsuleGeom);
 			SCENE_UNLOCK_READ(PScene);
 
-			PCapsuleGeom.halfHeight *= NewUniScaleAbs;
-			PCapsuleGeom.radius *= NewUniScaleAbs;
-			PLocalPose.p *= NewUniScale;
+			PCapsuleGeom.halfHeight *= NewScale3DAbs.Z;
+			PCapsuleGeom.radius *= FMath::Max(NewScale3DAbs.X, NewScale3DAbs.Y);
+
+			PLocalPose.p.x *= NewScale3D.X;
+			PLocalPose.p.y *= NewScale3D.Y;
+			PLocalPose.p.z *= NewScale3D.Z;
 
 			if(PCapsuleGeom.isValid())
 			{
@@ -1215,7 +1303,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 			}
 			else
 			{
-				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(inScale3D.ToString()), FText::FromString(GetBodyDebugName())));
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
 			}
 		}
 		else if (GeomType == PxGeometryType::eCONVEXMESH)
@@ -1235,7 +1323,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 				if(ConvexElem->ConvexMesh == PConvexGeom.convexMesh)
 				{
 					// Please note that this one we don't inverse old scale, but just set new one
-					FVector NewScale3D = inScale3D; 
+					FVector NewScale3D = InScale3DAdjusted;
 					FVector Scale3DAbs(FMath::Abs(NewScale3D.X), FMath::Abs(NewScale3D.Y), FMath::Abs(NewScale3D.Z)); // magnitude of scale (sign removed)
 
 					PxTransform PNewLocalPose;
@@ -1257,7 +1345,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 					}
 					else
 					{
-						FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(inScale3D.ToString()), FText::FromString(GetBodyDebugName())));
+						FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
 					}
 					break;
 				}
@@ -1273,7 +1361,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 			if(BodySetup->TriMesh != NULL || BodySetup->TriMeshNegX != NULL)
 			{
 				// Please note that this one we don't inverse old scale, but just set new one
-				FVector NewScale3D = inScale3D; 
+				FVector NewScale3D = InScale3DAdjusted;
 				FVector Scale3DAbs(FMath::Abs(NewScale3D.X), FMath::Abs(NewScale3D.Y), FMath::Abs(NewScale3D.Z)); // magnitude of scale (sign removed)
 
 				PxTransform PNewLocalPose;
@@ -1300,7 +1388,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 					}
 					else
 					{
-						FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(inScale3D.ToString()), FText::FromString(GetBodyDebugName())));
+						FMessageLog("PIE").Warning(FText::Format(LOCTEXT("PhysicsInvalidScale", "Scale ''{0}'' is not valid on object '{1}'."), FText::FromString(InScale3DAdjusted.ToString()), FText::FromString(GetBodyDebugName())));
 					}
 				}
 			}
@@ -1315,7 +1403,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 	// if success, overwrite old Scale3D, otherwise, just don't do it. It will have invalid scale next time
 	if ( bSuccess )
 	{
-		Scale3D = inScale3D;
+		Scale3D = InScale3DAdjusted;
 
 		// update mass if required
 		if (bUpdateMassWhenScaleChanges)
@@ -1330,7 +1418,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector & inScale3D)
 #endif
 }
 
-void FBodyInstance::UpdateInstanceSimulatePhysics()
+void FBodyInstance::UpdateInstanceSimulatePhysics(bool bIgnoreParent)
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
@@ -1355,12 +1443,14 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 		{
 			PhysicsBlendWeight = 0.f;
 		}
+
+		bSimulatePhysics = bUseSimulate;
 	}
 #endif
 }
 
 
-void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending)
+void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending, bool bIgnoreOwner)
 {
 #if WITH_PHYSX
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1400,19 +1490,19 @@ void FBodyInstance::SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhy
 		}
 	}
 
-	UpdateInstanceSimulatePhysics();
+	UpdateInstanceSimulatePhysics(bIgnoreOwner);
 }
 
-bool FBodyInstance::IsInstanceSimulatingPhysics()
+bool FBodyInstance::IsInstanceSimulatingPhysics(bool bIgnoreOwner)
 {
 	// if I'm simulating or owner is simulating
-	return ShouldInstanceSimulatingPhysics() && IsValidBodyInstance();
+	return ShouldInstanceSimulatingPhysics(bIgnoreOwner) && IsValidBodyInstance();
 }
 
-bool FBodyInstance::ShouldInstanceSimulatingPhysics()
+bool FBodyInstance::ShouldInstanceSimulatingPhysics(bool bIgnoreOwner)
 {
 	// if I'm simulating or owner is simulating
-	if ( BodySetup.IsValid() && BodySetup.Get()->PhysicsType == PhysType_Default )
+	if (BodySetup.IsValid() && BodySetup.Get()->PhysicsType == PhysType_Default && !bIgnoreOwner)
 	{
 		// if derive from owner, and owner is simulating, this should simulate
 		if (OwnerComponent != NULL && OwnerComponent->BodyInstance.bSimulatePhysics)
@@ -1500,8 +1590,13 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 	}
 
 	const PxTransform PNewPose = U2PTransform(NewTransform);
-	check(PNewPose.isValid());
 
+	if (!PNewPose.isValid())
+	{
+		UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::SetBodyTransform: Trying to set new transform with bad data [p=(%f,%f,%f) q=(%f,%f,%f,%f)]"), PNewPose.p.x, PNewPose.p.y, PNewPose.p.z, PNewPose.q.x, PNewPose.q.y, PNewPose.q.z, PNewPose.q.w);
+		return;
+	}
+	
 	SCENE_LOCK_WRITE(RigidActor->getScene());
 	// SIMULATED & KINEMATIC
 	if(PRigidDynamic)
@@ -1511,7 +1606,7 @@ void FBodyInstance::SetBodyTransform(const FTransform& NewTransform, bool bTelep
 		{
 			const PxScene * PScene = PRigidDynamic->getScene();
 			FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-			PhysScene->SetKinematicTarget(this, NewTransform);
+			PhysScene->SetKinematicTarget(this, NewTransform, true);
 		}
 		// Otherwise, set global pose
 		else
@@ -2017,7 +2112,7 @@ void FBodyInstance::SetMaxAngularVelocity(float NewMaxAngVel, bool bAddToCurrent
 }
 
 
-void FBodyInstance::AddForce(const FVector& Force)
+void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
@@ -2025,13 +2120,13 @@ void FBodyInstance::AddForce(const FVector& Force)
 	{
 		const PxScene * PScene = PRigidDynamic->getScene();
 		FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-		PhysScene->AddForce(this, Force);
+		PhysScene->AddForce(this, Force, bAllowSubstepping);
 		
 	}
 #endif // WITH_PHYSX
 }
 
-void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Position)
+void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
@@ -2039,12 +2134,12 @@ void FBodyInstance::AddForceAtPosition(const FVector& Force, const FVector& Posi
 	{
 		const PxScene * PScene = PRigidDynamic->getScene();
 		FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-		PhysScene->AddForceAtPosition(this, Force, Position);
+		PhysScene->AddForceAtPosition(this, Force, Position, bAllowSubstepping);
 	}
 #endif // WITH_PHYSX
 }
 
-void FBodyInstance::AddTorque(const FVector& Torque)
+void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
 	PxRigidDynamic* PRigidDynamic = GetPxRigidDynamic();
@@ -2052,7 +2147,7 @@ void FBodyInstance::AddTorque(const FVector& Torque)
 	{
 		const PxScene * PScene = PRigidDynamic->getScene();
 		FPhysScene * PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-		PhysScene->AddTorque(this, Torque);
+		PhysScene->AddTorque(this, Torque, bAllowSubstepping);
 	}
 #endif // WITH_PHYSX
 }
@@ -2437,6 +2532,11 @@ bool FBodyInstance::Overlap(const PxGeometry& PGeom, const PxTransform&  ShapePo
 #endif //WITH_PHYSX
 
 
+bool FBodyInstance::IsValidCollisionProfileName(FName InCollisionProfileName)
+{
+	return (InCollisionProfileName != NAME_None && InCollisionProfileName != UCollisionProfile::CustomCollisionProfileName);
+}
+
 void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 {
 	if ( bVerifyProfile )
@@ -2446,7 +2546,7 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 		// if same, then keep the profile name
 		// if not same, that means it has been modified from default
 		// leave it as it is, and clear profile name
-		if ( CollisionProfileName != NAME_None )
+		if ( IsValidCollisionProfileName(CollisionProfileName) )
 		{
 			FCollisionResponseTemplate Template;
 			if ( UCollisionProfile::Get()->GetProfileTemplate(CollisionProfileName, Template) ) 
@@ -2455,31 +2555,31 @@ void FBodyInstance::LoadProfileData(bool bVerifyProfile)
 				// so that means it will have valid ResponsetoChannels value, so this is okay to access. 
 				if (Template.IsEqual(CollisionEnabled, ObjectType, CollisionResponses.GetResponseContainer()) == false)
 				{
-					CollisionProfileName = NAME_None;
+					InvalidateCollisionProfileName(); 
 				}
 			}
 			else
 			{
 				UE_LOG(LogPhysics, Warning, TEXT("COLLISION PROFILE [%s] is not found"), *CollisionProfileName.ToString());
 				// if not nothing to do
-				CollisionProfileName = NAME_None;
+				InvalidateCollisionProfileName(); 
 			}
 		}
 
 	}
 	else
 	{
-		if ( CollisionProfileName != NAME_None )
+		if ( IsValidCollisionProfileName(CollisionProfileName) )
 		{
 			if ( UCollisionProfile::Get()->ReadConfig(CollisionProfileName, *this) == false)
 			{
 				// clear the name
-				CollisionProfileName = NAME_None;
+				InvalidateCollisionProfileName();
 			}
 		}
 
 		// no profile, so it just needs to update container from array data
-		if ( CollisionProfileName == NAME_None)
+		if ( DoesUseCollisionProfile() == false )
 		{
 			CollisionResponses.UpdateResponseContainerFromArray();
 		}
@@ -2511,6 +2611,15 @@ void FBodyInstance::FixupData(class UObject * Loader)
 	check (Loader);
 
 	int32 const UE4Version = Loader->GetLinkerUE4Version();
+
+	if (UE4Version < VER_UE4_ADD_CUSTOMPROFILENAME_CHANGE)
+	{
+		if (CollisionProfileName == NAME_None)
+		{
+			CollisionProfileName = UCollisionProfile::CustomCollisionProfileName;
+		}
+	}
+
 	if(UE4Version < VER_UE4_CHANGE_BENABLECOLLISION_TO_COLLISIONENABLED)
 	{
 		UpdateFromDeprecatedEnableCollision();
@@ -2528,7 +2637,7 @@ void FBodyInstance::FixupData(class UObject * Loader)
 	LoadProfileData(bNeedToVerifyProfile);
 
 	// if profile isn't set, then fix up channel responses
-	if( CollisionProfileName == NAME_None )
+	if( CollisionProfileName == UCollisionProfile::CustomCollisionProfileName ) 
 	{
 		if (UE4Version >= VER_UE4_SAVE_COLLISIONRESPONSE_PER_CHANNEL)
 		{

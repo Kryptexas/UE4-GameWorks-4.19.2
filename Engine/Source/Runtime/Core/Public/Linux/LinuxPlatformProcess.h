@@ -131,17 +131,20 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
 	static const TCHAR* ComputerName();
 	static const TCHAR* BaseDir();
+	static FString GetApplicationName( uint32 ProcessId );
 	static bool SetProcessLimits(EProcessResource::Type Resource, uint64 Limit);
 	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
 	static void ClosePipe( void* ReadPipe, void* WritePipe );
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
 	static class FRunnableThread* CreateRunnableThread();
-	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite );
+	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
+	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite);
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
+	static bool Daemonize();
 };
 
 typedef FLinuxPlatformProcess FPlatformProcess;

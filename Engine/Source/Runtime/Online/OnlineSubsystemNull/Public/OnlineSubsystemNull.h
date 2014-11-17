@@ -3,6 +3,8 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
+#include "OnlineSubsystemNullPackage.h"
 
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineSessionNull, ESPMode::ThreadSafe> FOnlineSessionNullPtr;
@@ -10,7 +12,7 @@ typedef TSharedPtr<class FOnlineProfileNull, ESPMode::ThreadSafe> FOnlineProfile
 typedef TSharedPtr<class FOnlineFriendsNull, ESPMode::ThreadSafe> FOnlineFriendsNullPtr;
 typedef TSharedPtr<class FOnlineUserCloudNull, ESPMode::ThreadSafe> FOnlineUserCloudNullPtr;
 typedef TSharedPtr<class FOnlineLeaderboardsNull, ESPMode::ThreadSafe> FOnlineLeaderboardsNullPtr;
-typedef TSharedPtr<class FOnlineVoiceNull, ESPMode::ThreadSafe> FOnlineVoiceNullPtr;
+typedef TSharedPtr<class FOnlineVoiceImpl, ESPMode::ThreadSafe> FOnlineVoiceImplPtr;
 typedef TSharedPtr<class FOnlineExternalUINull, ESPMode::ThreadSafe> FOnlineExternalUINullPtr;
 typedef TSharedPtr<class FOnlineIdentityNull, ESPMode::ThreadSafe> FOnlineIdentityNullPtr;
 typedef TSharedPtr<class FOnlineAchievementsNull, ESPMode::ThreadSafe> FOnlineAchievementsNullPtr;
@@ -19,7 +21,7 @@ typedef TSharedPtr<class FOnlineAchievementsNull, ESPMode::ThreadSafe> FOnlineAc
  *	OnlineSubsystemNull - Implementation of the online subsystem for Null services
  */
 class ONLINESUBSYSTEMNULL_API FOnlineSubsystemNull : 
-	public IOnlineSubsystem,
+	public FOnlineSubsystemImpl,
 	public FTickerObjectBase
 {
 
@@ -70,19 +72,34 @@ public:
 PACKAGE_SCOPE:
 
 	/** Only the factory makes instances */
-	FOnlineSubsystemNull()
-		: SessionInterface(NULL)
-		, LeaderboardsInterface(NULL)
-		, IdentityInterface(NULL)
-		, AchievementsInterface(NULL)
-		, OnlineAsyncTaskThreadRunnable(NULL)
-		, OnlineAsyncTaskThread(NULL)
+	FOnlineSubsystemNull(FName InInstanceName) :
+		FOnlineSubsystemImpl(InInstanceName),
+		SessionInterface(NULL),
+		VoiceInterface(NULL),
+		LeaderboardsInterface(NULL),
+		IdentityInterface(NULL),
+		AchievementsInterface(NULL),
+		OnlineAsyncTaskThreadRunnable(NULL),
+		OnlineAsyncTaskThread(NULL)
+	{}
+
+	FOnlineSubsystemNull() :
+		SessionInterface(NULL),
+		VoiceInterface(NULL),
+		LeaderboardsInterface(NULL),
+		IdentityInterface(NULL),
+		AchievementsInterface(NULL),
+		OnlineAsyncTaskThreadRunnable(NULL),
+		OnlineAsyncTaskThread(NULL)
 	{}
 
 private:
 
 	/** Interface to the session services */
 	FOnlineSessionNullPtr SessionInterface;
+
+	/** Interface for voice communication */
+	FOnlineVoiceImplPtr VoiceInterface;
 
 	/** Interface to the leaderboard services */
 	FOnlineLeaderboardsNullPtr LeaderboardsInterface;

@@ -61,19 +61,26 @@ namespace SceneOutliner
 			return;
 		}
 
-		if (DragDrop::IsTypeMatch<FFolderActorDragDropOp>(Operation))
+		if (Operation->IsOfType<FFolderActorDragDropOp>())
 		{
 			DraggedFolders = &StaticCastSharedPtr<FFolderActorDragDropOp>(Operation)->Folders;
 		}
-		else if (DragDrop::IsTypeMatch<FFolderDragDropOp>(Operation))
+		else if (Operation->IsOfType<FFolderDragDropOp>())
 		{
 			DraggedFolders = &StaticCastSharedPtr<FFolderDragDropOp>(Operation)->Folders;
 		}
 
-		if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(Operation))
+		if (Operation->IsOfType<FActorDragDropGraphEdOp>())
 		{
 			DraggedActors = &StaticCastSharedPtr<FActorDragDropGraphEdOp>(Operation)->Actors;
 		}
+	}
+
+	/** Check to see if the specified drag drop operation is relevant to the scene outliner */
+	bool IsDropOperationApplicable(TSharedPtr<FDragDropOperation> Operation)
+	{
+		// We're only interested in actor drags and folder drags
+		return Operation.IsValid() && (Operation->IsOfType<FActorDragDropGraphEdOp>() || Operation->IsOfType<FFolderDragDropOp>());
 	}
 
 	/** Compute validation information for dropping folder(s) onto another folder */
@@ -114,18 +121,8 @@ namespace SceneOutliner
 					// The folder already exists
 					FFormatNamedArguments Args;
 					Args.Add(TEXT("DragName"), FText::FromString(LeafName));
-					if (DstFolderPath.IsEmpty())
-					{
-
-						return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric,
-							FText::Format(LOCTEXT("FolderAlreadyExistsRoot", "\"{DragName}\" already exists in root"), Args));
-					}
-					else
-					{
-						Args.Add(TEXT("DropPath"), FText::FromString(DstFolderPath));
-						return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric,
-							FText::Format(LOCTEXT("FolderAlreadyExists", "\"{DragName}\" already exists in \"{DropPath}\""), Args));
-					}
+					return FDragValidationInfo(FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric,
+						FText::Format(LOCTEXT("FolderAlreadyExistsRoot", "A folder called \"{DragName}\" already exists at this level"), Args));
 				}
 				else if (DragFolderPath == DstFolderPath || DstFolderPath.StartsWith(DragFolderPath + "/"))
 				{
@@ -298,7 +295,7 @@ namespace SceneOutliner
 				for (const auto& WeakActor : *DraggedActors)
 				{
 					AActor* DragActor = WeakActor.Get();
-					if (DragActor && DragActor->GetFolderPath() == DropFolder->Path)
+					if (DragActor && !DragActor->GetAttachParentActor() && DragActor->GetFolderPath() == DropFolder->Path)
 					{
 						Args.Add(TEXT("SourceName"), FText::FromString(DragActor->GetActorLabel()));
 						const FText Text = FText::Format(LOCTEXT("MoveToFolderAlreadyAssigned", "{SourceName} is already assigned to {DestName}"), Args);
@@ -384,7 +381,7 @@ namespace SceneOutliner
 		}
 	}
 
-	bool SOutlinerTreeView::ValidateMoveSelectionTo(FName NewParent)
+	bool SOutlinerTreeView::ValidateMoveSelectionTo(FName NewParent, FText* OutValidationText)
 	{
 		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
 		if (!SceneOutlinerPtr.IsValid())
@@ -421,6 +418,10 @@ namespace SceneOutliner
 			}
 		}
 
+		if (OutValidationText)
+		{
+			*OutValidationText = ValidationInfo.ValidationText;
+		}
 		return ValidationInfo.IsValid();
 	}
 
@@ -429,19 +430,19 @@ namespace SceneOutliner
 		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
 		if (!SceneOutlinerPtr.IsValid())
 		{
-			return FReply::Handled();
+			return FReply::Unhandled();
 		}
 
 
-		if (DragDrop::IsTypeMatch<FDecoratedDragDropOp>(DragDropEvent.GetOperation()))
+		TSharedPtr<FDecoratedDragDropOp> DecoratedDragOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+		if (DecoratedDragOp.IsValid())
 		{
 			const FDragValidationInfo ValidationInfo = ValidateRootDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent);
 
 			if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric || ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_IncompatibleGeneric)
 			{
 				// Generic messages can go through the decorated drag/drop operation base class
-				auto DecoratedDragOp = StaticCastSharedPtr<FDecoratedDragDropOp>(DragDropEvent.GetOperation());
-				DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText.ToString();
+				DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText;
 				if (ValidationInfo.TooltipType == FActorDragDropGraphEdOp::ToolTip_CompatibleGeneric)
 				{
 					DecoratedDragOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK"));
@@ -450,16 +451,18 @@ namespace SceneOutliner
 				{
 					DecoratedDragOp->CurrentIconBrush = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 				}
+				return FReply::Handled();
 			}
-			else if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()))
+			else if (DecoratedDragOp->IsOfType<FActorDragDropGraphEdOp>())
 			{
 				// Display actor specific messages
-				auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
-				ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText.ToString());
+				auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DecoratedDragOp);
+				ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
+				return FReply::Handled();
 			}
 		}
 
-		return FReply::Handled();
+		return FReply::Unhandled();
 	}
 	
 	void SOutlinerTreeView::OnDragLeave(const FDragDropEvent& DragDropEvent)
@@ -481,16 +484,15 @@ namespace SceneOutliner
 	FReply SOutlinerTreeView::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 	{
 		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
-		if (!SceneOutlinerPtr.IsValid() ||  !SceneOutlinerPtr->GetInitOptions().bShowParentTree)
-		{
-			// We only allowing dropping to perform attachments when displaying the actors in their parent/child hierarchy
-			return FReply::Unhandled();
-		}
 
-		// Only allow dropping objects when in actor browsing mode
-		if (SceneOutlinerPtr->GetInitOptions().Mode != ESceneOutlinerMode::ActorBrowsing )
+		// Don't handle this if we're not showing a hierarchy, not in browsing mode, or the drop operation is not applicable
+		if (!SceneOutlinerPtr.IsValid() ||
+			!SceneOutlinerPtr->GetInitOptions().bShowParentTree ||
+			SceneOutlinerPtr->GetInitOptions().Mode != ESceneOutlinerMode::ActorBrowsing ||
+			!IsDropOperationApplicable(DragDropEvent.GetOperation())
+			)
 		{
-			return FReply::Handled();
+			return FReply::Unhandled();
 		}
 
 		// Validate now to make sure we don't doing anything we shouldn't
@@ -536,10 +538,14 @@ namespace SceneOutliner
 	FReply SSceneOutlinerTreeRow::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 	{
 		auto SceneOutlinerPtr = SceneOutlinerWeak.Pin();
-		if (!SceneOutlinerPtr.IsValid() ||  !SceneOutlinerPtr->GetInitOptions().bShowParentTree)
+
+		// Don't handle this if we're not showing a hierarchy, not in browsing mode, or the drop operation is not applicable
+		if (!SceneOutlinerPtr.IsValid() ||
+			!SceneOutlinerPtr->GetInitOptions().bShowParentTree ||
+			SceneOutlinerPtr->GetInitOptions().Mode != ESceneOutlinerMode::ActorBrowsing ||
+			!IsDropOperationApplicable(DragDropEvent.GetOperation())
+			)
 		{
-			// We only allowing dropping to perform attachments when displaying the actors
-			// in their parent/child hierarchy
 			return FReply::Unhandled();
 		}
 
@@ -547,6 +553,7 @@ namespace SceneOutliner
 		const FDragValidationInfo ValidationInfo = ValidateDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent, Item.ToSharedRef());
 		if (!ValidationInfo.IsValid())
 		{
+			// Return handled here to stop anything else trying to handle it - the operation is invalid as far as we're concerned
 			return FReply::Handled();
 		}
 
@@ -651,15 +658,17 @@ namespace SceneOutliner
 		// Perform the validation and update the tooltip if necessary
 		const FDragValidationInfo ValidationInfo = ValidateDragDropEvent(SceneOutlinerPtr.ToSharedRef(), DragDropEvent, Item.ToSharedRef());
 
-		if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()))
+		TSharedPtr<FActorDragDropGraphEdOp> ActorDragOp = DragDropEvent.GetOperationAs<FActorDragDropGraphEdOp>();
+		if (ActorDragOp.IsValid())
 		{
-			auto ActorDragOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
-			ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText.ToString());
+			ActorDragOp->SetToolTip(ValidationInfo.TooltipType, ValidationInfo.ValidationText);
+			return;
 		}
-		else if (DragDrop::IsTypeMatch<FDecoratedDragDropOp>(DragDropEvent.GetOperation()))
+
+		TSharedPtr<FDecoratedDragDropOp> DecoratedDragOp = DragDropEvent.GetOperationAs<FDecoratedDragDropOp>();
+		if (DecoratedDragOp.IsValid())
 		{
-			auto DecoratedDragOp = StaticCastSharedPtr<FDecoratedDragDropOp>(DragDropEvent.GetOperation());
-			DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText.ToString();
+			DecoratedDragOp->CurrentHoverText = ValidationInfo.ValidationText;
 			DecoratedDragOp->CurrentIconBrush = ValidationInfo.IsValid() ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));
 		}
 	}
@@ -674,7 +683,7 @@ namespace SceneOutliner
 
 			// Attach each child
 			bool bAttached = false;
-			for(int32 i=0; i<ChildrenPtrs.Num(); i++)
+			for(int32 i = 0; i < ChildrenPtrs.Num(); i++)
 			{
 				AActor* ChildActor = ChildrenPtrs[i].Get();
 				if (GEditor->CanParentActors(ParentActor, ChildActor))
@@ -682,7 +691,6 @@ namespace SceneOutliner
 					GEditor->ParentActors(ParentActor, ChildActor, SocketName);
 					bAttached = true;
 				}
-
 			}
 
 			// refresh the tree, and ensure parent is expanded so we can still see the child if we attached something

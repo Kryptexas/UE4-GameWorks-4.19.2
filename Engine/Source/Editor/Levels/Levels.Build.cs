@@ -10,7 +10,7 @@ public class Levels : ModuleRules
 			new string[] {
 				"AssetTools"
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -19,6 +19,7 @@ public class Levels : ModuleRules
                 "InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
 				"LevelEditor",
@@ -28,7 +29,7 @@ public class Levels : ModuleRules
                 "SourceControl",
 				"SourceControlWindows",
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -36,6 +37,6 @@ public class Levels : ModuleRules
 				"PropertyEditor",
 				"SceneOutliner"
 			}
-			);
+		);
 	}
 }

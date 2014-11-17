@@ -17,24 +17,30 @@ class UCylinderBuilder : public UEditorBrushBuilder
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Distance from base to tip of cylinder */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float Z;
 
+	/** Radius of cylinder */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float OuterRadius;
 
-	UPROPERTY(EditAnywhere, Category=BrushSettings)
+	/** Radius of inner cylinder (when hollow) */
+	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(EditCondition="Hollow"))
 	float InnerRadius;
 
+	/** How many sides this cylinder should have */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "3", ClampMax = "500"))
 	int32 Sides;
 
 	UPROPERTY()
 	FName GroupName;
 
+	/** Whether to align the brush to a face */
 	UPROPERTY(EditAnywhere, Category=BrushSettings)
 	uint32 AlignToSide:1;
 
+	/** Whether this is a hollow or solid cylinder */
 	UPROPERTY(EditAnywhere, Category=BrushSettings)
 	uint32 Hollow:1;
 

@@ -5,7 +5,7 @@
 /**
  * The pending deleted object.
  */
-struct FPendingDelete
+struct FPendingDelete : TSharedFromThis<FPendingDelete>
 {
 public:
 	FPendingDelete( UObject* InObject );
@@ -33,6 +33,9 @@ public:
 
 	/** Sets if the pending delete is internal, and need not be shown to the user. */
 	void IsInternal(bool Value) { bIsInternal = Value; }
+
+	/** Support comparing for unique insertions */
+	bool operator == ( const FPendingDelete& Other ) const;
 
 	/** The on disk references to this object */
 	TArray<FName> DiskReferences;
@@ -168,6 +171,8 @@ public:
 	}
 
 private:
+	void PrepareToDelete(UObject* InObject);
+
 	/** Sets the current state of the model. */
 	void SetState( EState NewState );
 

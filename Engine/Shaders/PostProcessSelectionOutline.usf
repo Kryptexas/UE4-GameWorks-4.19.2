@@ -81,8 +81,8 @@ FPixelInfo GetPixelInfo(int2 PixelPos, int SampleID, int OffsetX, int OffsetY, f
 	// outline even between multiple selected objects (best usability)
 	Ret.ObjectId = Stencil;
 
-#if COMPILER_GLSL == 1
-	// Stencil read in opengl is not supported yet
+#if COMPILER_GLSL == 1 && !GL4_PROFILE
+	// Stencil read in opengl is not supported on older versions
 	Ret.ObjectId = Ret.bObjectMask ? 2 : 0;
 #endif
 

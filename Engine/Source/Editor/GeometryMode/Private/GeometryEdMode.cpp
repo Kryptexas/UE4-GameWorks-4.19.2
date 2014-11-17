@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryModePrivatePCH.h"
-#include "GeometryMode.generated.inl"
+
 
 IMPLEMENT_MODULE( FGeometryModeModule, GeometryMode );
 

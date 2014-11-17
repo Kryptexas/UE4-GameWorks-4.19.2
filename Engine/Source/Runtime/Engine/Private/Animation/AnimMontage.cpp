@@ -830,6 +830,22 @@ FName FAnimMontageInstance::GetCurrentSection() const
 	return NAME_None;
 }
 
+FName FAnimMontageInstance::GetNextSection() const
+{
+	if (Montage)
+	{
+		float CurrentPosition;
+		const int32 CurrentSectionIndex = Montage->GetAnimCompositeSectionIndexFromPos(Position, CurrentPosition);
+		if (Montage->IsValidSectionIndex(CurrentSectionIndex))
+		{
+			FCompositeSection& CurrentSection = Montage->GetAnimCompositeSection(CurrentSectionIndex);
+			return CurrentSection.NextSectionName;
+		}
+	}
+
+	return NAME_None;
+}
+
 bool FAnimMontageInstance::ChangePositionToSection(FName SectionName, bool bEndOfSection)
 {
 	const int32 SectionID = Montage->GetSectionIndex(SectionName);

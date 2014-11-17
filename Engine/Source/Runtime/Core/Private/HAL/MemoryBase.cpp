@@ -9,15 +9,15 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Free calls"),				STAT_FreeCalls,STATGROUP_Memor
 DECLARE_DWORD_COUNTER_STAT(TEXT("Realloc calls"),			STAT_ReallocCalls,STATGROUP_MemoryAllocator);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Total Allocator calls"),	STAT_TotalAllocatorCalls,STATGROUP_MemoryAllocator);
 
-uint64 FMalloc::TotalMallocCalls = 0;
-uint64 FMalloc::TotalFreeCalls = 0;
-uint64 FMalloc::TotalReallocCalls = 0;
+uint32 FMalloc::TotalMallocCalls = 0;
+uint32 FMalloc::TotalFreeCalls = 0;
+uint32 FMalloc::TotalReallocCalls = 0;
 
 struct FCurrentFrameCalls
 {
-	uint64 LastMallocCalls;
-	uint64 LastReallocCalls;
-	uint64 LastFreeCalls;
+	uint32 LastMallocCalls;
+	uint32 LastReallocCalls;
+	uint32 LastFreeCalls;
 	
 	uint32 MallocCalls;
 	uint32 ReallocCalls;

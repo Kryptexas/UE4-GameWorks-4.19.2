@@ -6,6 +6,12 @@
 
 #pragma once
 
+#include "Components/SceneComponent.h"
+//
+// Forward declarations.
+//
+class UInstancedStaticMeshComponent;
+
 /**
  * Flags stored with each instance
  */
@@ -238,7 +244,7 @@ private:
 
 	uint64 MakeKey( const FVector& Location )
 	{
-		return  MakeKey( FMath::Floor(Location.X) >> HashCellBits, FMath::Floor(Location.Y) >> HashCellBits );
+		return  MakeKey( FMath::FloorToInt(Location.X) >> HashCellBits, FMath::FloorToInt(Location.Y) >> HashCellBits );
 	}
 
 	// Locality map
@@ -268,10 +274,10 @@ public:
 
 	void GetInstancesOverlappingBox( const FBox& InBox, TSet<int32>& OutInstanceIndices )
 	{
-		int32 MinX = FMath::Floor(InBox.Min.X) >> HashCellBits;
-		int32 MinY = FMath::Floor(InBox.Min.Y) >> HashCellBits;
-		int32 MaxX = FMath::Floor(InBox.Max.X) >> HashCellBits;
-		int32 MaxY = FMath::Floor(InBox.Max.Y) >> HashCellBits;
+		int32 MinX = FMath::FloorToInt(InBox.Min.X) >> HashCellBits;
+		int32 MinY = FMath::FloorToInt(InBox.Min.Y) >> HashCellBits;
+		int32 MaxX = FMath::FloorToInt(InBox.Max.X) >> HashCellBits;
+		int32 MaxY = FMath::FloorToInt(InBox.Max.Y) >> HashCellBits;
 
 		for( int32 y=MinY;y<=MaxY;y++ )
 		{

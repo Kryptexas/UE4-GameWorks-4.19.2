@@ -10,30 +10,72 @@ namespace UnrealBuildTool.Linux
 {
     class LinuxPlatform : UEBuildPlatform
     {
+        /** This is the SDK version we support */
+        static private string ExpectedSDKVersion = "v3_clang-3.3_ld-2.24_glibc-2.12.2";
+
+        /** Platform name (embeds architecture for now) */
+        static private string TargetPlatformName = "Linux_x64";
+
+        /** 
+         * Whether platform supports switching SDKs during runtime
+         * 
+         * @return true if supports
+         */
+        public override bool PlatformSupportsSDKSwitching()
+        {
+            return true;
+        }
+
+        /** 
+         * Returns platform-specific name used in SDK repository
+         * 
+         * @return path to SDK Repository
+         */
+        public override string GetSDKTargetPlatformName()
+        {
+            return TargetPlatformName;
+        }
+
+        /** 
+         * Returns SDK string as required by the platform 
+         * 
+         * @return Valid SDK string
+         */
+        public override string GetRequiredSDKString()
+        {
+            return ExpectedSDKVersion;
+        }
+
         /**
          *	Whether the required external SDKs are installed for this platform
          */
-        public override bool HasRequiredSDKsInstalled()
+        public override SDKStatus HasRequiredSDKsInstalled()
         {
             if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
             {
-                return true;
+                return SDKStatus.Valid;
+            }
+
+            // attempt to switch SDKs
+            if (base.HasRequiredSDKsInstalled() == SDKStatus.Valid)
+            {
+                return SDKStatus.Valid;
             }
 
             string BaseLinuxPath = Environment.GetEnvironmentVariable("LINUX_ROOT");
 
             // we don't have an LINUX_ROOT specified
             if (String.IsNullOrEmpty(BaseLinuxPath))
-                return false;
+                return SDKStatus.Invalid;
 
             // paths to our toolchains
             BaseLinuxPath = BaseLinuxPath.Replace("\"", "");
             string ClangPath = Path.Combine(BaseLinuxPath, @"bin\Clang++.exe");
             
             if (File.Exists(ClangPath))
-                return true;
+                return SDKStatus.Valid;
 
-            return false;
+            return SDKStatus.Invalid;
         }
 
         /**
@@ -47,7 +89,7 @@ namespace UnrealBuildTool.Linux
 				return;
 			}
 
-            if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == true))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid))
             {
                 bool bRegisterBuildPlatform = true;
 
@@ -148,6 +190,7 @@ namespace UnrealBuildTool.Linux
         {
             // increase Unity size to avoid too long command lines
             BuildConfiguration.NumIncludedBytesPerUnityCPP = 1024 * 1024;
+            UEBuildConfiguration.bCompileICU = true;
         }
 
         /**
@@ -243,6 +286,7 @@ namespace UnrealBuildTool.Linux
                         if (UEBuildConfiguration.bBuildDeveloperTools)
                         {
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
+                            InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
                         }
                     }
@@ -252,6 +296,7 @@ namespace UnrealBuildTool.Linux
                 if (UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
+                    InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
                     InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
                 }
             }

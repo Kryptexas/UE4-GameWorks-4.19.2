@@ -44,7 +44,7 @@ void DumpSession(const FOnlineSession* Session)
 	{
 		UE_LOG(LogOnline, Verbose, TEXT("dumping Session: "));
 		UE_LOG(LogOnline, Verbose, TEXT("	OwningPlayerName: %s"), *Session->OwningUserName);	
-		UE_LOG(LogOnline, Verbose, TEXT("	OwningPlayerId: %s"), *Session->OwningUserId->ToDebugString());
+		UE_LOG(LogOnline, Verbose, TEXT("	OwningPlayerId: %s"), Session->OwningUserId.IsValid() ? *Session->OwningUserId->ToDebugString() : TEXT("") );
 		UE_LOG(LogOnline, Verbose, TEXT("	NumOpenPrivateConnections: %d"), Session->NumOpenPrivateConnections);	
 		UE_LOG(LogOnline, Verbose, TEXT("	NumOpenPublicConnections: %d"), Session->NumOpenPublicConnections);	
 		UE_LOG(LogOnline, Verbose, TEXT("	SessionInfo: %s"), Session->SessionInfo.IsValid() ? *Session->SessionInfo->ToDebugString() : TEXT("NULL"));

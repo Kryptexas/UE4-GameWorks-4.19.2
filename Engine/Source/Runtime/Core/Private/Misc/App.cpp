@@ -16,7 +16,12 @@ FGuid FApp::SessionId = FGuid::NewGuid();
 FString FApp::SessionName = FString();
 FString FApp::SessionOwner = FString();
 bool FApp::Standalone = true;
-
+bool FApp::bIsBenchmarking = false;
+double FApp::FixedDeltaTime = 1 / 30.0;
+bool FApp::bUseFixedTimeStep = false;
+double FApp::CurrentTime = 0.0;
+double FApp::LastTime = 0.0;
+double FApp::DeltaTime = 1 / 30.0;
 
 /* FApp static interface
  *****************************************************************************/
@@ -26,6 +31,25 @@ FString FApp::GetBranchName( )
 	return FString(TEXT(BRANCH_NAME));
 }
 
+EBuildConfigurations::Type FApp::GetBuildConfiguration()
+{
+#if UE_BUILD_DEBUG
+	return EBuildConfigurations::Debug;
+
+#elif UE_BUILD_DEVELOPMENT
+	static bool bUsingDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+	return bUsingDebugGame ? EBuildConfigurations::DebugGame : EBuildConfigurations::Development;
+
+#elif UE_BUILD_SHIPPING || UI_BUILD_SHIPPING_EDITOR
+	return EBuildConfigurations::Shipping;
+
+#elif UE_BUILD_TEST
+	return EBuildConfigurations::Test;
+
+#else
+	return EBuildConfigurations::Unknown;
+#endif
+}
 
 FString FApp::GetBuildDate( )
 {

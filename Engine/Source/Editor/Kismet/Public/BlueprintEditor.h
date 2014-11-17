@@ -192,7 +192,6 @@ public:
 	TSharedRef<class SSCSEditor> GetSCSEditor() const {return SCSEditor.ToSharedRef();}
 	TSharedPtr<class SSCSEditorViewport> GetSCSViewport() const {return SCSViewport;}
 	TSharedPtr<class SMyBlueprint> GetMyBlueprintWidget() const {return MyBlueprintWidget;}
-	TSharedRef<class SUserDefinedStructureEditor> GetUserDefinedStructureEditor() const {return UserDefinedStructureEditor.ToSharedRef();}
 	AActor* GetPreviewActor() const;
 
 	TSharedPtr<class FBlueprintEditorToolbar> GetToolbarBuilder() {return Toolbar;}
@@ -226,6 +225,9 @@ public:
 	// Request a save of the edited object state
 	// This is used to delay it by one frame when triggered by a tab being closed, so it can finish closing before remembering the new state
 	void RequestSaveEditedObjectState();
+
+	/** Returns whether a graph is editable or not */
+	virtual bool IsEditable(UEdGraph* InGraph) const;
 
 	/** Returns true if in editing mode */
 	bool InEditingMode() const;
@@ -284,8 +286,15 @@ public:
 	 */
 	static const FSlateBrush* GetGlyphForGraph(const UEdGraph* Graph, bool bInLargeIcon = false);
 
-	
-	static FSlateBrush const* GetVarIconAndColor(UClass* VarClass, FName VarName, FSlateColor& IconColorOut);
+	/**
+	 * Util for finding a glyph and color for a variable.
+	 *
+	 * @param VarScope			Scope to find the variable in
+	 * @param VarName			Name of variable
+	 * @param IconColorOut		The resulting color for the glyph
+	 * @return					The resulting glyph brush
+	 */
+	static FSlateBrush const* GetVarIconAndColor(UStruct* VarScope, FName VarName, FSlateColor& IconColorOut);
 
 	/** Overridable function for determining if the current mode can script */
 	virtual bool IsInAScriptingMode() const;
@@ -455,6 +464,12 @@ public:
 	/** Called when a node's title is committed for a rename */
 	void OnNodeTitleCommitted(const FText& NewText, ETextCommit::Type CommitInfo, UEdGraphNode* NodeBeingChanged);
 
+	/** Called by a graph title bar to get any extra information the editor would like to display */
+	virtual FString GetGraphDecorationString(UEdGraph* InGraph) const;
+
+	/** Checks to see if the provided graph is contained within the current blueprint */
+	bool IsGraphInCurrentBlueprint(UEdGraph* InGraph) const;
+
 protected:
 	
 	// Zooming to fit the entire graph
@@ -478,7 +493,7 @@ protected:
 	virtual void PostRegenerateMenusAndToolbars() OVERRIDE;
 
 	/** Returns the name of the Blueprint's parent class */
-	FString GetParentClassName() const;
+	FText GetParentClassNameText() const;
 
 	/** Handler for "Find parent class in CB" button */
 	FReply OnFindParentClassInContentBrowserClicked();
@@ -769,15 +784,15 @@ protected:
 	/**Load macro & function blueprint libraries from asset registry*/
 	void LoadLibrariesFromAssetRegistry();
 
-	/**Load user-defined enums from asset registry */
-	void LoadUserDefinedEnumsFromAssetRegistry();
-
 	// Begin FEditorUndoClient Interface
 	virtual void	PostUndo(bool bSuccess) OVERRIDE;
 	virtual void	PostRedo(bool bSuccess) OVERRIDE;
 	// End of FEditorUndoClient
 
 	virtual void AnalyticsTrackNewNode( FName NodeClass, FName NodeType ) OVERRIDE;
+
+	/** Get graph appearance */
+	virtual FGraphAppearanceInfo GetGraphAppearance() const;
 
 private:
 
@@ -792,9 +807,6 @@ private:
 
 	/** Helper to move focused graph when clicking on graph breadcrumb */
 	void OnChangeBreadCrumbGraph( class UEdGraph* InGraph);
-
-	/** Get graph appearance */
-	FGraphAppearanceInfo GetGraphAppearance() const;
 
 	/** Function to check whether the give graph is a subgraph */
 	static bool IsASubGraph( const class UEdGraph* GraphPtr );
@@ -821,6 +833,9 @@ private:
 	 */
 	bool IsEditingAnimGraph() const;
 
+	/** Returns whether the currently focused graph is editable or not */
+	bool IsFocusedGraphEditable() const;
+
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
 
@@ -841,16 +856,16 @@ protected:
 	TWeakPtr<FDocumentTabFactory> GraphEditorTabFactoryPtr;
 
 	/** User-defined enumerators to keep loaded */
-	TArray<TWeakObjectPtr<UUserDefinedEnum>> UserDefinedEnumerators;
+	TSet<TWeakObjectPtr<UUserDefinedEnum>> UserDefinedEnumerators;
+
+	/** User-defined structures to keep loaded */
+	TSet<TWeakObjectPtr<UUserDefinedStruct>> UserDefinedStructures;
 	
 	/** Macro/function libraries to keep loaded */
 	TArray<UBlueprint*> StandardLibraries;
 
 	/** SCS editor */
 	TSharedPtr<class SSCSEditor> SCSEditor;
-
-	/** SCS editor */
-	TSharedPtr<class SUserDefinedStructureEditor> UserDefinedStructureEditor;
 
 	/** Viewport widget */
 	TSharedPtr<class SSCSEditorViewport> SCSViewport;

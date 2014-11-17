@@ -129,6 +129,11 @@ class UK2Node_EditablePinBase : public UK2Node
 	BLUEPRINTGRAPH_API virtual bool ModifyUserDefinedPinDefaultValue(TSharedPtr<FUserPinInfo> PinInfo, const FString& NewDefaultValue);
 
 	/**
+	 * Creates function pins that are user defined based on a function signature.
+	 */
+	BLUEPRINTGRAPH_API virtual bool CreateUserDefinedPinsForFunctionEntryExit(const UFunction* Function, bool bForFunctionEntry);
+
+	/**
 	 * Can this node have execution wires added or removed?
 	 */
 	virtual bool CanModifyExecutionWires() { return false; }

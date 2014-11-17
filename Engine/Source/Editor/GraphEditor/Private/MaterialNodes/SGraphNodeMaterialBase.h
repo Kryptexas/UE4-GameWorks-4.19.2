@@ -68,7 +68,7 @@ public:
 	// End of SGraphNode interface
 
 	// SNodePanel::SNode interface
-	virtual void MoveTo(const FVector2D& NewPosition) OVERRIDE;
+	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter) OVERRIDE;
 	// End of SNodePanel::SNode interface
 
 	UMaterialGraphNode* GetMaterialGraphNode() const {return MaterialNode;}

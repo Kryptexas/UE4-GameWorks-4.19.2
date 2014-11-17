@@ -268,6 +268,8 @@ void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 	}
 	
 	// Draw a quad mapping scene color to the view's render target
+	TShaderMapRef<FFXAAVS> VertexShader(GetGlobalShaderMap());
+
 	DrawRectangle(
 		DestRect.Min.X, DestRect.Min.Y,
 		DestRect.Width(), DestRect.Height(),
@@ -275,6 +277,7 @@ void FRCPassPostProcessAA::Process(FRenderingCompositePassContext& Context)
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
+		*VertexShader,
 		EDRF_Default);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

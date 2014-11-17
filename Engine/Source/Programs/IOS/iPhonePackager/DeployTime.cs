@@ -139,7 +139,7 @@ namespace iPhonePackager
 
 						if (File.Exists(GamePath))
 						{
-							if (!String.IsNullOrEmpty(Config.DeviceId))
+							if (!String.IsNullOrEmpty(Config.DeviceId) && !Config.DeviceId.Contains("All_iOS_On"))
 							{
 								DeploymentHelper.Get().DeviceId = Config.DeviceId;
 							}

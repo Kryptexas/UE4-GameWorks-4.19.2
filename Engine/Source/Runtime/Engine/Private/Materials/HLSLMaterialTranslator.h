@@ -349,6 +349,36 @@ public:
 
 			check(FunctionStack.Num() == 1);
 
+			if (Chunk[MP_WorldPositionOffset] == -1)
+			{
+				MaterialCompilationOutput.bModifiesMeshPosition = false;
+			}
+			else
+			{
+				int32 WPOFreq = (int32)GetMaterialPropertyShaderFrequency(MP_WorldPositionOffset);
+				FShaderCodeChunk& WPOChunk = CodeChunks[MP_WorldPositionOffset][WPOFreq][Chunk[MP_WorldPositionOffset]];
+				FMaterialRenderContext DummyContext( NULL, *Material, NULL );
+
+				// Determine whether the world position offset is used. 
+				// If the output chunk has a uniform expression, it is constant, and GetNumberValue returns the default property value then WPO isn't used.
+				MaterialCompilationOutput.bModifiesMeshPosition = true;
+				if( WPOChunk.UniformExpression && WPOChunk.UniformExpression->IsConstant() )
+				{
+					float DummyFloat;
+					FColor DummyColor;
+					FVector DefaultVector;
+					GetDefaultForMaterialProperty(MP_WorldPositionOffset, DummyFloat,DummyColor,DefaultVector);
+
+					FLinearColor WPOValue;
+					WPOChunk.UniformExpression->GetNumberValue(DummyContext, WPOValue);
+					if( FVector(WPOValue) == DefaultVector)
+					{
+						MaterialCompilationOutput.bModifiesMeshPosition = false;
+					}
+				}
+			}
+
+
 			if (Material->GetBlendMode() == BLEND_Modulate && Material->GetLightingModel() != MLM_Unlit && !Material->IsUsedWithDeferredDecal())
 			{
 				Errorf(TEXT("Dynamically lit translucency is not supported for BLEND_Modulate materials."));
@@ -368,9 +398,18 @@ public:
 				Errorf(TEXT("Only transparent or postprocess materials can read from scene depth."));
 			}
 
-			if (MaterialCompilationOutput.bUsesSceneColor && Material->GetMaterialDomain() != MD_PostProcess && !IsTranslucentBlendMode(Material->GetBlendMode()))
+			if (MaterialCompilationOutput.bUsesSceneColor && Material->GetMaterialDomain() != MD_PostProcess)
 			{
-				Errorf(TEXT("Only transparent or postprocess materials can read from scene color."));
+				if (!IsTranslucentBlendMode(Material->GetBlendMode()))
+				{
+					Errorf(TEXT("Only transparent or postprocess materials can read from scene color."));
+				}
+				else if (!Material->IsSeparateTranslucencyEnabled())
+				{
+					// rendering without separate translucency could mean the scenecolor surface
+					// may be set simultaneously as both source texture and destination target. (error)
+					Errorf(TEXT("Cannot read from scene color whilst separate translucency is disabled."));
+				}
 			}
 
 			if (Material->IsLightFunction() && Material->GetBlendMode() != BLEND_Opaque)
@@ -394,7 +433,7 @@ public:
 				{
 					if (Material->GetBlendMode() == BLEND_Opaque || Material->GetBlendMode() == BLEND_Masked)
 					{
-						// In opaque pass, none the the textures are available
+						// In opaque pass, none of the textures are available
 						Errorf(TEXT("SceneTexture expressions cannot be used in opaque materials"));
 					}
 					else if (bNeedsSceneTexturePostProcessInputs)
@@ -1825,7 +1864,7 @@ protected:
 			// be exactly the same as the offset one, so there is no point bringing in the extra code.
 			// Also, we can't access the full offset world position in anything other than the pixel shader, because it won't have
 			// been calculated yet
-			bool bNonOffsetWorldPositionAvailable = Material->MaterialModifiesMeshPosition() && ShaderFrequency == SF_Pixel;
+			bool bNonOffsetWorldPositionAvailable = Material->MaterialMayModifyMeshPosition() && ShaderFrequency == SF_Pixel;
 
 			switch (WorldPositionIncludedOffsets)
 			{
@@ -2164,9 +2203,11 @@ protected:
 		}
 		
 		MaterialCompilationOutput.bNeedsSceneTextures = true;
-		bNeedsSceneTexturePostProcessInputs = ((InSceneTextureId >= PPI_PostProcessInput0 && InSceneTextureId <= PPI_PostProcessInput6) || InSceneTextureId == PPI_SceneColor);
+		bNeedsSceneTexturePostProcessInputs = bNeedsSceneTexturePostProcessInputs || ((InSceneTextureId >= PPI_PostProcessInput0 && InSceneTextureId <= PPI_PostProcessInput6) || InSceneTextureId == PPI_SceneColor);
 
 		ESceneTextureId SceneTextureId = (ESceneTextureId)InSceneTextureId;
+
+		MaterialCompilationOutput.bUsesSceneColor |= SceneTextureId == PPI_SceneColor;
 
 		FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(Parameters.ScreenPosition).xy)"));
 		FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);

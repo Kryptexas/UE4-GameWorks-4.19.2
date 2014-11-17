@@ -137,13 +137,16 @@ void FLayerViewModel::RenameTo( const FName& NewLayerName )
 }
 
 
-bool FLayerViewModel::CanAssignActors( const TArray< TWeakObjectPtr<AActor> > Actors, FString& OutMessage ) const
+bool FLayerViewModel::CanAssignActors( const TArray< TWeakObjectPtr<AActor> > Actors, FText& OutMessage ) const
 {
 	if( !Layer.IsValid() )
 	{
-		OutMessage = LOCTEXT("InvalidLayer", "Invalid Layer").ToString();
+		OutMessage = LOCTEXT("InvalidLayer", "Invalid Layer");
 		return false;
 	}
+
+	FFormatNamedArguments LayerArgs;
+	LayerArgs.Add(TEXT("LayerName"), FText::FromName(Layer->LayerName));
 
 	bool bHasValidActorToAssign = false;
 	int32 bAlreadyAssignedActors = 0;
@@ -152,13 +155,16 @@ bool FLayerViewModel::CanAssignActors( const TArray< TWeakObjectPtr<AActor> > Ac
 		TWeakObjectPtr< AActor > Actor = *ActorIt;
 		if( !Actor.IsValid() )
 		{
-			OutMessage = FString::Printf( *LOCTEXT("InvalidActors", "Cannot add invalid Actors to %s").ToString(), *Layer->LayerName.ToString() );
+			OutMessage = FText::Format(LOCTEXT("InvalidActors", "Cannot add invalid Actors to {LayerName}"), LayerArgs);
 			return false;
 		}
 
+		FFormatNamedArguments ActorArgs;
+		ActorArgs.Add(TEXT("ActorName"), FText::FromName(Actor->GetFName()));
+
 		if( !WorldLayers->IsActorValidForLayer( Actor ) )
 		{
-			OutMessage = FString::Printf( *LOCTEXT("InvalidLayers", "Actor '%s' cannot be associated with Layers").ToString(), *Actor->GetFName().ToString() );
+			OutMessage = FText::Format(LOCTEXT("InvalidLayers", "Actor '{ActorName}' cannot be associated with Layers"), ActorArgs);
 			return false;
 		}
 
@@ -174,48 +180,53 @@ bool FLayerViewModel::CanAssignActors( const TArray< TWeakObjectPtr<AActor> > Ac
 
 	if( bAlreadyAssignedActors == Actors.Num() )
 	{
-		OutMessage = FString::Printf( *LOCTEXT("AlreadyAssignedActors", "All Actors already assigned to %s").ToString(), *Layer->LayerName.ToString() );
+		OutMessage = FText::Format(LOCTEXT("AlreadyAssignedActors", "All Actors already assigned to {LayerName}"), LayerArgs);
 		return false;
 	}
 
 	if( bHasValidActorToAssign )
 	{
-		OutMessage = FString::Printf( *LOCTEXT("AssignActors", "Assign Actors to %s").ToString(), *Layer->LayerName.ToString() );
+		OutMessage = FText::Format(LOCTEXT("AssignActors", "Assign Actors to {LayerName}"), LayerArgs);
 		return true;
 	}
 
-	OutMessage.Empty();
+	OutMessage = FText::GetEmpty();
 	return false;
 }
 
 
-bool FLayerViewModel::CanAssignActor( const TWeakObjectPtr<AActor> Actor, FString& OutMessage ) const
+bool FLayerViewModel::CanAssignActor( const TWeakObjectPtr<AActor> Actor, FText& OutMessage ) const
 {
 	if( !Layer.IsValid() )
 	{
-		OutMessage = LOCTEXT("InvalidLayer", "Invalid Layer").ToString();
+		OutMessage = LOCTEXT("InvalidLayer", "Invalid Layer");
 		return false;
 	}
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("LayerName"), FText::FromName(Layer->LayerName));
 
 	if( !Actor.IsValid() )
 	{
-		OutMessage = FString::Printf( *LOCTEXT("InvalidActor", "Cannot add invalid Actors to %s").ToString(), *Layer->LayerName.ToString() );
+		OutMessage = FText::Format(LOCTEXT("InvalidActor", "Cannot add invalid Actors to {LayerName}"), Args);
 		return false;
 	}
 
+	Args.Add(TEXT("ActorName"), FText::FromName(Actor->GetFName()));
+
 	if( !WorldLayers->IsActorValidForLayer( Actor ) )
 	{
-		OutMessage = FString::Printf(* LOCTEXT("InvalidLayers", "Actor '%s' cannot be associated with Layers").ToString(), *Actor->GetFName().ToString() );
+		OutMessage = FText::Format(LOCTEXT("InvalidLayers", "Actor '{ActorName}' cannot be associated with Layers"), Args);
 		return false;
 	}
 
 	if( Actor->Layers.Contains( Layer->LayerName )  )
 	{
-		OutMessage = FString::Printf( *LOCTEXT("AlreadyAssignedActor", "Already assigned to %s").ToString(), *Layer->LayerName.ToString() );
+		OutMessage = FText::Format(LOCTEXT("AlreadyAssignedActor", "Already assigned to {LayerName}"), Args);
 		return false;
 	}
 
-	OutMessage = FString::Printf( *LOCTEXT("AssignActor", "Assign to %s").ToString(), *Layer->LayerName.ToString() );
+	OutMessage = FText::Format(LOCTEXT("AssignActor", "Assign to {LayerName}"), Args);
 	return true;
 }
 

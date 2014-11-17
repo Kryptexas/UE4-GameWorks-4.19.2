@@ -65,7 +65,7 @@ struct FFunctionExpressionOutput
 
 };
 
-UCLASS(HeaderGroup=Material, hidecategories=object, MinimalAPI)
+UCLASS(hidecategories=object, MinimalAPI)
 class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
@@ -99,6 +99,7 @@ class UMaterialExpressionMaterialFunctionCall : public UMaterialExpression
 	virtual FString GetInputName(int32 InputIndex) const OVERRIDE;
 	virtual bool IsInputConnectionRequired(int32 InputIndex) const OVERRIDE;
 #if WITH_EDITOR
+	virtual FString GetDescription() const OVERRIDE;
 	virtual void GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip) OVERRIDE;
 	virtual void GetExpressionToolTip(TArray<FString>& OutToolTip) OVERRIDE;
 #endif

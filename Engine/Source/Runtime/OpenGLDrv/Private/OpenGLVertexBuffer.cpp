@@ -29,7 +29,7 @@ void* FOpenGLDynamicRHI::RHILockVertexBuffer(FVertexBufferRHIParamRef VertexBuff
 
 	VERIFY_GL_SCOPE();
 	DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer,VertexBuffer);
-	if( VertexBuffer->GetUsage() & BUF_ZeroStride )
+	if( !(FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) && VertexBuffer->GetUsage() & BUF_ZeroStride )
 	{
 		check( Offset + Size <= VertexBuffer->GetSize() );
 		// We assume we are only using the first elements from the VB, so we can later on read this memory and create an expanded version of this zero stride buffer
@@ -46,7 +46,7 @@ void FOpenGLDynamicRHI::RHIUnlockVertexBuffer(FVertexBufferRHIParamRef VertexBuf
 {
 	VERIFY_GL_SCOPE();
 	DYNAMIC_CAST_OPENGLRESOURCE(VertexBuffer,VertexBuffer);
-	if( !( VertexBuffer->GetUsage() & BUF_ZeroStride ) )
+	if( (FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB) || !( VertexBuffer->GetUsage() & BUF_ZeroStride ) )
 	{
 		VertexBuffer->Unlock();
 	}

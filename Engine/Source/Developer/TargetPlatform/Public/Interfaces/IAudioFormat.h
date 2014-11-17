@@ -19,11 +19,6 @@ struct FSoundQualityInfo
 	int32 Quality;
 
 	/**
-	 * Holds a flag indicating Whether to do the additional processing required for looping sounds.
-	 */
-	int32 bLoopableSound;
-
-	/**
 	 * Holds the number of distinct audio channels.
 	 */
 	uint32 NumChannels;
@@ -120,7 +115,6 @@ public:
 	 * @return The size of the compressed audio, or 0 on failure.
 	 */
 	virtual int32 Recompress( FName Format, const TArray<uint8>& SrcBuffer, FSoundQualityInfo& QualityInfo, TArray<uint8>& OutBuffer ) const = 0;
-
 
 public:
 

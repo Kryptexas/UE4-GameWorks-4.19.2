@@ -94,6 +94,14 @@ JNIEnv* GetJavaEnv(bool bRequireGlobalThis)
 jclass JDef_GameActivity::ClassID;
 jmethodID JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow;
 jmethodID JDef_GameActivity::AndroidThunkJava_LaunchURL;
+jmethodID JDef_GameActivity::AndroidThunkJava_ShowLeaderboard;
+jmethodID JDef_GameActivity::AndroidThunkJava_ShowAchievements;
+jmethodID JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue;
+jmethodID JDef_GameActivity::AndroidThunkJava_GooglePlayConnect;
+jmethodID JDef_GameActivity::AndroidThunkJava_WriteAchievement;
+jmethodID JDef_GameActivity::AndroidThunkJava_ShowAdBanner;
+jmethodID JDef_GameActivity::AndroidThunkJava_HideAdBanner;
+jmethodID JDef_GameActivity::AndroidThunkJava_CloseAdBanner;
 
 DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
@@ -161,6 +169,79 @@ void AndroidThunkCpp_LaunchURL(const FString& URL)
 	}
 }
 
+void AndroidThunkCpp_ShowLeaderboard(const FString& CategoryName)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		jstring Argument = Env->NewStringUTF(TCHAR_TO_UTF8(*CategoryName));
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowLeaderboard, Argument);
+		Env->DeleteLocalRef(Argument);
+	}
+}
+
+void AndroidThunkCpp_ShowAchievements()
+{
+ 	if (JNIEnv* Env = GetJavaEnv())
+ 	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowAchievements);
+ 	}
+}
+
+void AndroidThunkCpp_WriteLeaderboardValue(const FString& LeaderboardName, int64_t Value)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		jstring LeaderboardNameArg = Env->NewStringUTF(TCHAR_TO_UTF8(*LeaderboardName));
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue, LeaderboardNameArg, Value);
+		Env->DeleteLocalRef(LeaderboardNameArg);
+	}
+}
+
+void AndroidThunkCpp_GooglePlayConnect()
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_GooglePlayConnect);
+	}
+}
+
+void AndroidThunkCpp_WriteAchievement(const FString& AchievementID, float PercentComplete)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+	{
+		jstring AchievementIDArg = Env->NewStringUTF(TCHAR_TO_UTF8(*AchievementID));
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_WriteAchievement, AchievementIDArg, PercentComplete);
+		Env->DeleteLocalRef(AchievementIDArg);
+	}
+}
+
+void AndroidThunkCpp_ShowAdBanner(const FString& AdUnitID, bool bShowOnBottomOfScreen)
+{
+	if (JNIEnv* Env = GetJavaEnv())
+ 	{
+		jstring AdUnitIDArg = Env->NewStringUTF(TCHAR_TO_UTF8(*AdUnitID));
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_ShowAdBanner, AdUnitIDArg, bShowOnBottomOfScreen);
+		Env->DeleteLocalRef(AdUnitIDArg);
+ 	}
+}
+
+void AndroidThunkCpp_HideAdBanner()
+{
+ 	if (JNIEnv* Env = GetJavaEnv())
+ 	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_HideAdBanner);
+ 	}
+}
+
+void AndroidThunkCpp_CloseAdBanner()
+{
+ 	if (JNIEnv* Env = GetJavaEnv())
+ 	{
+		Env->CallVoidMethod(GJavaGlobalThis, JDef_GameActivity::AndroidThunkJava_CloseAdBanner);
+ 	}
+}
+
+
 //The JNI_OnLoad function is triggered by loading the game library from 
 //the Java source file.
 //	static
@@ -184,6 +265,14 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 
 	JDef_GameActivity::AndroidThunkJava_ShowConsoleWindow = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowConsoleWindow", "(Ljava/lang/String;)V");
 	JDef_GameActivity::AndroidThunkJava_LaunchURL = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_LaunchURL", "(Ljava/lang/String;)V");
+	JDef_GameActivity::AndroidThunkJava_ShowLeaderboard = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowLeaderboard", "(Ljava/lang/String;)V");
+	JDef_GameActivity::AndroidThunkJava_ShowAchievements = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAchievements", "()V");
+	JDef_GameActivity::AndroidThunkJava_WriteLeaderboardValue = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteLeaderboardValue", "(Ljava/lang/String;J)V");
+	JDef_GameActivity::AndroidThunkJava_GooglePlayConnect = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_GooglePlayConnect", "()V");
+	JDef_GameActivity::AndroidThunkJava_WriteAchievement = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_WriteAchievement", "(Ljava/lang/String;F)V");
+	JDef_GameActivity::AndroidThunkJava_ShowAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_ShowAdBanner", "(Ljava/lang/String;Z)V");
+	JDef_GameActivity::AndroidThunkJava_HideAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_HideAdBanner", "()V");
+	JDef_GameActivity::AndroidThunkJava_CloseAdBanner = env->GetMethodID(JDef_GameActivity::ClassID, "AndroidThunkJava_CloseAdBanner", "()V");
 
 	// hook signals
 #if UE_BUILD_DEBUG

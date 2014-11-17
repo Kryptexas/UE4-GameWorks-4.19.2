@@ -6,8 +6,10 @@
 
 #pragma once
 
+#include "UdpMessaging.h"
 
-/* Dependencies
+
+/* Private Dependencies
  *****************************************************************************/
 
 #include "Core.h"
@@ -19,7 +21,7 @@
 #include "SocketSubsystem.h"
 
 
-/* Constants
+/* Private Constants
  *****************************************************************************/
 
 /**

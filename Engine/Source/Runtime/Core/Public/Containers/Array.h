@@ -374,9 +374,14 @@ public:
 		CopyToEmpty(Other);
 	}
 
-	TArray(const TArray<ElementType,Allocator>& Other)
+	TArray(const TArray& Other)
 	{
 		CopyToEmpty(Other);
+	}
+
+	TArray(const TArray& Other, int32 ExtraSlack)
+	{
+		CopyToEmpty(Other, ExtraSlack);
 	}
 
 	template<typename OtherAllocator>
@@ -412,9 +417,17 @@ private:
 	}
 
 	template <typename ArrayType>
-	static FORCEINLINE typename TEnableIf<!TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray)
+	static FORCEINLINE typename TEnableIf<TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray, int32 ExtraSlack)
 	{
-		ToArray.CopyToEmpty(FromArray);
+		MoveOrCopy(ToArray, FromArray);
+
+		ToArray.Reserve(ToArray.ArrayNum + ExtraSlack);
+	}
+
+	template <typename ArrayType>
+	static FORCEINLINE typename TEnableIf<!TContainerTraits<ArrayType>::MoveWillEmptyContainer>::Type MoveOrCopy(ArrayType& ToArray, ArrayType& FromArray, int32 ExtraSlack = 0)
+	{
+		ToArray.CopyToEmpty(FromArray, ExtraSlack);
 	}
 
 public:
@@ -425,6 +438,11 @@ public:
 	TArray(TArray<ElementType,Allocator>&& Other)
 	{
 		MoveOrCopy(*this, Other);
+	}
+
+	TArray(TArray<ElementType,Allocator>&& Other, int32 ExtraSlack)
+	{
+		MoveOrCopy(*this, Other, ExtraSlack);
 	}
 
 	TArray& operator=(TArray<ElementType,Allocator>&& Other)
@@ -997,6 +1015,26 @@ public:
 		}
 	}
 
+	/**
+	* Same as empty, but doesn't change memory allocations, unless the new size is larger than
+	* the current array. It calls the destructors on held items if needed and then zeros the ArrayNum.
+	*
+	* @param NewSize the expected usage size
+	*/
+	void Reset( int32 NewSize = 0 )
+	{
+		// If we have space to hold the excepted size, then don't reallocate
+		if( NewSize <= ArrayMax )
+		{
+			DestructItems( GetTypedData(), ArrayNum );
+			ArrayNum = 0;
+		}
+		else
+		{
+			Empty( NewSize );
+		}
+	}
+
 	void Empty( int32 Slack=0 )
 	{
 		DestructItems(GetTypedData(), ArrayNum);
@@ -1378,26 +1416,6 @@ public:
 	}
 
 	/**
-	 * Same as empty, but doesn't change memory allocations, unless the new size is larger than
-	 * the current array. It calls the destructors on held items if needed and then zeros the ArrayNum.
-	 *
-	 * @param NewSize the expected usage size
-	 */
-	void Reset(int32 NewSize = 0)
-	{
-		// If we have space to hold the excepted size, then don't reallocate
-		if (NewSize <= ArrayMax)
-		{
-			DestructItems(GetTypedData(), ArrayNum);
-			ArrayNum = 0;
-		}
-		else
-		{
-			Empty(NewSize);
-		}
-	}
-
-	/**
 	 * Searches for the first entry of the specified type, will only work
 	 * with TArray<UObject*>.  Optionally return the item's index, and can
 	 * specify the start index.
@@ -1490,15 +1508,17 @@ private:
 	 * @param Source the source array to copy
 	 */
 	template<typename OtherAllocator>
-	void CopyToEmpty(const TArray<ElementType,OtherAllocator>& Source)
+	void CopyToEmpty(const TArray<ElementType,OtherAllocator>& Source, int32 ExtraSlack = 0)
 	{
+		check(ExtraSlack >= 0);
+
 		int32 SourceCount = Source.Num();
-		AllocatorInstance.ResizeAllocation(0, SourceCount, sizeof(ElementType));
+		AllocatorInstance.ResizeAllocation(0, SourceCount + ExtraSlack, sizeof(ElementType));
 
 		CopyConstructItems(GetTypedData(), Source.GetTypedData(), SourceCount);
 
 		ArrayNum = SourceCount;
-		ArrayMax = SourceCount;
+		ArrayMax = SourceCount + ExtraSlack;
 	}
 
 protected:
@@ -2099,6 +2119,7 @@ public:
 	}
 	void Reset(int32 NewSize = 0)
 	{
+		DestructAndFreeItems();
 		Array.Reset(NewSize);
 	}
 
@@ -2204,16 +2225,7 @@ public:
 	}
 	void Empty( int32 Slack=0 )
 	{
-		T** Element = GetTypedData();
-		for (int32 i = Array.Num(); i; --i)
-		{
-			// We need a typedef here because VC won't compile the destructor call below if T itself has a member called T
-			typedef T IndirectArrayDestructElementType;
-
-			(*Element)->IndirectArrayDestructElementType::~IndirectArrayDestructElementType();
-			FMemory::Free(*Element);
-			++Element;
-		}
+		DestructAndFreeItems();
 		Array.Empty( Slack );
 	}
 	FORCEINLINE int32 Add(T* Item)
@@ -2267,6 +2279,20 @@ public:
 	}
 
 private:
+	void DestructAndFreeItems()
+	{
+		T** Element = GetTypedData();
+		for( int32 i = Array.Num(); i; --i )
+		{
+			// We need a typedef here because VC won't compile the destructor call below if T itself has a member called T
+			typedef T IndirectArrayDestructElementType;
+
+			(*Element)->IndirectArrayDestructElementType::~IndirectArrayDestructElementType();
+			FMemory::Free( *Element );
+			++Element;
+		}
+	}
+
 	/**
 	 * DO NOT USE DIRECTLY
 	 * STL-like iterators to enable range-based for loop support.

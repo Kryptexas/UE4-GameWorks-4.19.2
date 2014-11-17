@@ -15,7 +15,7 @@ UMeshComponent::UMeshComponent(const class FPostConstructInitializeProperties& P
 void UMeshComponent::BeginDestroy()
 {
 	// Notify the streaming system.
-	GStreamingManager->NotifyPrimitiveDetached( this );
+	IStreamingManager::Get().NotifyPrimitiveDetached( this );
 
 	Super::BeginDestroy();
 }
@@ -77,7 +77,7 @@ void UMeshComponent::PrestreamTextures( float Seconds, bool bPrioritizeCharacter
 	// If requested, tell the streaming system to only process character textures for 30 frames.
 	if ( bPrioritizeCharacterTextures )
 	{
-		GStreamingManager->SetDisregardWorldResourcesForFrames( 30 );
+		IStreamingManager::Get().SetDisregardWorldResourcesForFrames( 30 );
 	}
 
 	int32 NumElements = GetNumMaterials();

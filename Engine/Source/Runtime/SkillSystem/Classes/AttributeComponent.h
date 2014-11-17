@@ -21,10 +21,16 @@ struct SKILLSYSTEM_API FAttributeDefaults
 /** 
  * 
  */
-UCLASS(HeaderGroup=Component, ClassGroup=SkillSystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=SkillSystem, hidecategories=(Object,LOD,Lighting,Transform,Sockets,TextureStreaming), editinlinenew, meta=(BlueprintSpawnableComponent))
 class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
+
+	friend FGameplayEffectSpec;
+
+	virtual ~UAttributeComponent();
+
+	virtual void InitializeComponent() OVERRIDE;
 
 	template <class T >
 	T*	GetSet()
@@ -59,44 +65,61 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 	// --------------------------------------------
 	// Primary outward facing API for other systems:
 	// --------------------------------------------
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &GameplayEffect, UAttributeComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier()) const;
+	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(OUT FGameplayEffectSpec &GameplayEffect, UAttributeComponent *Target, FModifierQualifier BaseQualifier = FModifierQualifier());
 	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToSelf(const FGameplayEffectSpec &GameplayEffect, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
-	bool	RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
+	bool RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle);
 
-	float	GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
+	float GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const;
+
+	float GetGameplayEffectDuration() const;
 
 	// Not happy with this interface but don't see a better way yet. How should outside code (UI, etc) ask things like 'how much is this gameplay effect modifying my damage by'
 	// (most likely we want to catch this on the backend - when damage is applied we can get a full dump/history of how the number got to where it is. But still we may need polling methods like below (how much would my damage be)
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	float GetGameplayEffectMagnitudeByTag(FActiveGameplayEffectHandle InHandle, FName GameplayTag) const;
 
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects)
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	bool IsGameplayEffectActive(FActiveGameplayEffectHandle InHandle) const;
 
+	// Tags
+	UFUNCTION(BlueprintCallable, Category=GameplayEffects)
+	bool HasAnyTags(FGameplayTagContainer &Tags);
+	
 
 	// --------------------------------------------
 	// Possibly useful but not primary API functions:
 	// --------------------------------------------
 
-	FActiveGameplayEffectHandle ApplyGameplayEffectSpecToTarget(UGameplayEffect *GameplayEffect, UAttributeComponent *Target, float Level = 1.f, FModifierQualifier BaseQualifier = FModifierQualifier()) const;
+	FActiveGameplayEffectHandle ApplyGameplayEffectToTarget(UGameplayEffect *GameplayEffect, UAttributeComponent *Target, float Level = FGameplayEffectLevelSpec::INVALID_LEVEL, FModifierQualifier BaseQualifier = FModifierQualifier());
 
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = GameplayEffects, meta=(FriendlyName = "ApplyGameplayEffectToSelf"))
-	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+	FActiveGameplayEffectHandle K2_ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
 	
-	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier = FModifierQualifier() );
+	FActiveGameplayEffectHandle ApplyGameplayEffectToSelf(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator, FModifierQualifier BaseQualifier = FModifierQualifier() );
 
 	int32 GetNumActiveGameplayEffect() const;
+
+	void AddDependancyToAttribute(FGameplayAttribute Attribute, const TWeakPtr<FAggregator> InDependant);
+
+	/** Tests if all modifiers in this GameplayEffect will leave the attribute > 0.f */
+	bool CanApplyAttributeModifiers(const UGameplayEffect *GameplayEffect, float Level, AActor *Instigator);
+
+	// Generic 'Get expected mangitude (list) if I was to apply this outoging or incoming'
+
+	// Get duration or magnitude (list) of active effects
+	//		-Get duration of CD
+	//		-Get magnitude + duration of a movespeed buff
+
+	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 
 	// --------------------------------------------
 	// Temp / Debug
 	// --------------------------------------------
-
-	void RegisterAttributeModifyCallback(FGameplayAttribute Attribute, FOnGameplayAttributeEffectExecuted Delegate);
 
 	void TEMP_ApplyActiveGameplayEffects();
 	
@@ -114,6 +137,55 @@ class SKILLSYSTEM_API UAttributeComponent : public UActorComponent
 			GlobalCurveDataOverride.Overrides.Push(OverrideTable);
 		}
 	}
+
+	// ----------------------------------------------------------------------------------------------------------------
+	//
+	//	GameplayAbilities
+	//	
+	//	Should this be its own component? What should this do?
+	//		-Load/initialize instanced subobjects
+	//		-Bind to input component (maybe? where would weapons fit in?)
+	//		
+	//
+	// ----------------------------------------------------------------------------------------------------------------
+
+	/** Creates instances of the abilities that we need but doesn't necessarily  */
+	void InitializeAbilities(class UGameplayAbilitySet *Set);
+
+	/** Binds the InputComponent directly to the abilities. This is a convenience for some games. Other games may have abilities on weapons or who need some game logic to decide what ability a button press should go to. */
+	void BindInputComponentToAbilities(UInputComponent *InputComponent, UGameplayAbilitySet *AbilitySet);
+
+	UPROPERTY()
+	TArray<class UGameplayAbility *>	InstancedAbilities;
+
+	/** All abilities, including those that are shared/non instanced. */
+	UPROPERTY(BlueprintReadOnly, Category="Abilities")
+	TArray<class UGameplayAbility *>	AllAbilities;
+
+	/** This is probably temp for testing. We want to think a bit more on the API for outside stuff activating abilities */
+	UFUNCTION(BlueprintCallable, Category="Abilities")
+	bool	ActivateAbility(int32 AbilityIdx);
+
+	// There needs to be a concept of an animating ability. Only one may exist at a time. New requestrs can be queued up, overridden, or ignored.
+
+	UPROPERTY()
+	class UGameplayAbility *	AnimatingAbility;
+
+	void	MontageBranchPoint_AbilityDecisionStop();
+
+	void	MontageBranchPoint_AbilityDecisionStart();
+
+	// --- Ability RPCs
+
+	UFUNCTION(Server, WithValidation, Reliable)
+	void	ServerTryActivateAbility(class UGameplayAbility * AbilityToActivate);
+
+	UFUNCTION(Client, Reliable)
+	void	ClientActivateAbilityFailed(class UGameplayAbility * AbilityToActivate);
+
+	UFUNCTION(Client, Reliable)
+	void	ClientActivateAbilitySucceed(class UGameplayAbility * AbilityToActivate);
+	
 
 private:
 

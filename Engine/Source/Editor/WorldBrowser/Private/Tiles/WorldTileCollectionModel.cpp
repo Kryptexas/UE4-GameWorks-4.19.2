@@ -13,6 +13,7 @@
 #include "WorldTileDetails.h"
 #include "WorldTileDetailsCustomization.h"
 #include "WorldTileCollectionModel.h"
+#include "STiledLandscapeImportDlg.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -376,9 +377,8 @@ void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& MenuBuilder) co
 		}
 		MenuBuilder.EndSection();
 	}
-
-	if (AreAnyLevelsSelected() && 
-		StaticCastSharedPtr<FWorldTileModel>(SelectedLevelsList[0])->IsLandscapeBased())
+	
+	if (AreAnySelectedLevelsEditable())
 	{
 		MenuBuilder.BeginSection("Menu_Layers");
 		{
@@ -426,6 +426,7 @@ void FWorldTileCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilde
 	InMenuBuilder.BeginSection("LevelsAddLevel");
 	{
 		InMenuBuilder.AddMenuEntry( Commands.World_CreateEmptyLevel );
+		InMenuBuilder.AddMenuEntry( Commands.ImportTiledLandscape );
 	}
 	InMenuBuilder.EndSection();
 }
@@ -551,6 +552,9 @@ void FWorldTileCollectionModel::BindCommands()
 
 
 	// Landscape operations
+	ActionList.MapAction(Commands.ImportTiledLandscape,
+		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::ImportTiledLandscape_Executed));
+
 	ActionList.MapAction(Commands.AddLandscapeLevelXNegative,
 		FExecuteAction::CreateSP(this, &FWorldTileCollectionModel::AddLandscapeProxy_Executed, FWorldTileModel::XNegative),
 		FCanExecuteAction::CreateSP(this, &FWorldTileCollectionModel::CanAddLandscapeProxy, FWorldTileModel::XNegative));
@@ -1224,9 +1228,211 @@ void FWorldTileCollectionModel::AddLandscapeProxy_Executed(FWorldTileModel::EWor
 		ALandscapeProxy* SourceLandscape = LandscapeTileModel->GetLandcape();
 		FIntPoint SourceTileOffset = LandscapeTileModel->GetAbsoluteLevelPosition();
 
-		NewLevelModel->SetVisible(false);
+		NewLevelModel->Shelve();
 		NewLevelModel->CreateAdjacentLandscapeProxy(SourceLandscape, SourceTileOffset, InWhere);
 		ShowLevels(Levels);
+	}
+}
+
+template<typename DataType>
+static bool ReadRawFile(TArray<DataType>& Result, const TCHAR* Filename, uint32 Flags = 0)
+{
+	auto Reader = TScopedPointer<FArchive>(IFileManager::Get().CreateFileReader(Filename, Flags));
+	if (!Reader)
+	{
+		if (!(Flags & FILEREAD_Silent))
+		{
+			UE_LOG(LogStreaming, Warning, TEXT("Failed to read file '%s' error."), Filename);
+		}
+		return 0;
+	}
+	Result.Reset();
+	Result.AddUninitialized(Reader->TotalSize()/Result.GetTypeSize());
+	Reader->Serialize(Result.GetTypedData(), Result.Num()*Result.GetTypeSize());
+	return Reader->Close();
+}
+
+static ULandscapeLayerInfoObject* GetandscapeLayerInfoObject(FName LayerName, FString ContentPath)
+{
+	// Build default layer object name and package name
+	FString LayerObjectName = FString::Printf(TEXT("%s_LayerInfo"), *LayerName.ToString());
+	FString Path = ContentPath + TEXT("_sharedassets/");
+	if (Path.StartsWith("/Temp/"))
+	{
+		Path = FString("/Game/") + Path.RightChop(FString("/Temp/").Len());
+	}
+	
+	FString PackageName = Path + LayerObjectName;
+	UPackage* Package = FindPackage(nullptr, *PackageName);
+	if (Package == nullptr)
+	{
+		Package = CreatePackage(nullptr, *PackageName);
+	}
+
+	ULandscapeLayerInfoObject* LayerInfo = FindObject<ULandscapeLayerInfoObject>(Package, *LayerObjectName);
+	if (LayerInfo == nullptr)
+	{
+		LayerInfo = ConstructObject<ULandscapeLayerInfoObject>(ULandscapeLayerInfoObject::StaticClass(), Package, FName(*LayerObjectName), RF_Public | RF_Standalone | RF_Transactional);
+		// Notify the asset registry
+		FAssetRegistryModule::AssetCreated(LayerInfo);
+		// Mark the package dirty...
+		Package->MarkPackageDirty();
+		//
+		TArray<UPackage*> PackagesToSave; 
+		PackagesToSave.Add(Package);
+		FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
+	}
+		
+	LayerInfo->LayerName = LayerName;
+	return LayerInfo;
+}
+
+void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
+{
+	/** Create the window to host widget */
+	TSharedRef<SWindow> ImportWidnow = SNew(SWindow)
+											.Title(LOCTEXT("TiledLandcapeImport_DialogTitle", "Import Tiled Heightmap"))
+											.SizingRule( ESizingRule::Autosized )
+											.SupportsMinimize(false) 
+											.SupportsMaximize(false);
+
+	/** Set the content of the window */
+	TSharedRef<STiledLandcapeImportDlg> ImportDialog = SNew(STiledLandcapeImportDlg, ImportWidnow);
+	ImportWidnow->SetContent(ImportDialog);
+
+	/** Show the dialog window as a modal window */
+	Editor->EditorAddModalWindow(ImportWidnow);
+
+	const FTiledLandscapeImportSettings& ImportSettings = ImportDialog->GetImportSettings();
+		
+	if (ImportSettings.HeightmapFileList.Num())
+	{
+		// Default path for imported landscape tiles
+		// Use tile prefix as a folder name under world root
+		FString WorldRootPath = FPackageName::LongPackageNameToFilename(GetWorld()->WorldComposition->GetWorldRoot());
+		// Extract tile prefix
+		FString FolderName = FPaths::GetBaseFilename(ImportSettings.HeightmapFileList[0]);
+		int32 PrefixEnd = FolderName.Find(TEXT("_x"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		FolderName = FolderName.Left(PrefixEnd);
+		WorldRootPath+= FolderName;
+		WorldRootPath+= TEXT("/");
+
+		GWarn->BeginSlowTask(LOCTEXT("ImportingLandscapeTilesBegin", "Importing landscape tiles"), true);
+		
+		// Shared GUID used between landscape proxies
+		FGuid LandscapeGuid;
+
+		// Import tiles
+		int32 TileIndex = 0;
+		for (const FString& Filename : ImportSettings.HeightmapFileList)
+		{
+			FString TileName = FPaths::GetBaseFilename(Filename);
+			FVector TileScale = ImportSettings.Scale3D;
+
+			GWarn->StatusUpdate(TileIndex, ImportSettings.HeightmapFileList.Num(), FText::Format(LOCTEXT("ImportingLandscapeTiles", "Importing landscape tiles: {0}"), FText::FromString(TileName)));
+			
+			FWorldTileModel::FLandscapeImportSettings TileImportSettings = {};
+			TileImportSettings.LandscapeGuid		= LandscapeGuid;
+			TileImportSettings.LandscapeMaterial	= ImportSettings.LandscapeMaterial.Get();
+			TileImportSettings.ComponentSizeQuads	= ImportSettings.QuadsPerSection*ImportSettings.SectionsPerComponent;
+			TileImportSettings.QuadsPerSection		= ImportSettings.QuadsPerSection;
+			TileImportSettings.SectionsPerComponent = ImportSettings.SectionsPerComponent;
+			TileImportSettings.SizeX				= ImportSettings.TileResolution;
+			TileImportSettings.SizeY				= ImportSettings.TileResolution;
+			TileImportSettings.HeightmapFilename	= Filename;
+			TileImportSettings.LandscapeTransform.SetScale3D(TileScale);
+
+			// Setup weightmaps for each layer
+			for (int32 LayerIdx = 0; LayerIdx < ImportSettings.LandscapeLayerNameList.Num(); ++LayerIdx)
+			{
+				FName LayerName = ImportSettings.LandscapeLayerNameList[LayerIdx];
+				
+				TileImportSettings.ImportLayers.Add(FLandscapeImportLayerInfo(LayerName));
+				FLandscapeImportLayerInfo& LayerImportInfo = TileImportSettings.ImportLayers.Last();
+
+				if (ImportSettings.WeightmapFileList[LayerIdx].IsValidIndex(TileIndex))
+				{
+					LayerImportInfo.SourceFilePath = ImportSettings.WeightmapFileList[LayerIdx][TileIndex];
+					ReadRawFile(LayerImportInfo.LayerData, *LayerImportInfo.SourceFilePath, FILEREAD_Silent);
+					LayerImportInfo.LayerInfo = GetandscapeLayerInfoObject(LayerImportInfo.LayerName, GetWorld()->GetOutermost()->GetName());
+					LayerImportInfo.LayerInfo->bNoWeightBlend = false; //option ?
+				}
+			}
+						
+			if (ReadRawFile(TileImportSettings.HeightData, *Filename, FILEREAD_Silent))
+			{
+				FString MapFileName = WorldRootPath + TileName + FPackageName::GetMapPackageExtension();
+				// Create a new world - so we can 'borrow' its level
+				UWorld* NewWorld = UWorld::CreateWorld(EWorldType::None, false);
+				check(NewWorld);
+								
+				bool bSaved = FEditorFileUtils::SaveLevel(NewWorld->PersistentLevel, *MapFileName);
+				if (bSaved)
+				{
+					// update levels list so we can find a new level in our world model
+					PopulateLevelsList();
+					TSharedPtr<FWorldTileModel> NewTileModel = StaticCastSharedPtr<FWorldTileModel>(FindLevelModel(NewWorld->GetOutermost()->GetFName()));
+					// Hide level, so we do not depend on a current world origin
+					NewTileModel->Shelve();
+					
+					// Create landscape (actor/proxy) in a new level
+					ALandscapeProxy* NewLandscape = NewTileModel->ImportLandscape(TileImportSettings);
+
+					// Use first created landscape as a landscape actor and all next tiles as landscape proxies 
+					if (!LandscapeGuid.IsValid())
+					{
+						LandscapeGuid = NewLandscape->GetLandscapeGuid();
+					}
+
+					if (NewLandscape)
+					{
+						// update shared LandscapeInfo objects with new layers
+						ULandscapeInfo* LandscapeInfo = NewLandscape->GetLandscapeInfo(true);
+						LandscapeInfo->UpdateLayerInfoMap(NewLandscape);
+						for (const FLandscapeImportLayerInfo& LayerImportInfo : TileImportSettings.ImportLayers)
+						{
+							if (LayerImportInfo.LayerInfo)
+							{
+								NewLandscape->EditorLayerSettings.Add(FLandscapeEditorLayerSettings(LayerImportInfo.LayerInfo, LayerImportInfo.SourceFilePath));
+								int32 LayerInfoIndex = LandscapeInfo->GetLayerInfoIndex(LayerImportInfo.LayerInfo->LayerName);
+								if (ensure(LayerInfoIndex != INDEX_NONE))
+								{
+									FLandscapeInfoLayerSettings& LayerSettings = LandscapeInfo->Layers[LayerInfoIndex];
+									LayerSettings.LayerInfoObj = LayerImportInfo.LayerInfo;
+								}
+							}
+						}
+						
+						// Set landscape actor location at min corner of bounding rect, so it will be centered around origin
+						FIntRect NewLandscapeRect = NewLandscape->GetBoundingRect();
+						float WidthX = NewLandscapeRect.Width()*TileScale.X;
+						float WidthY = NewLandscapeRect.Height()*TileScale.Y;
+						NewLandscape->SetActorLocation(-FVector(WidthX, WidthY, 0.f)*0.5f);
+						
+						// Set bounds of a tile
+						NewTileModel->TileDetails->Bounds = NewLandscape->GetComponentsBoundingBox();
+
+						// Calculate this tile offset from world origin
+						FIntPoint TileCoordinates = ImportSettings.TileCoordinates[TileIndex] + ImportSettings.TilesCoordinatesOffset;
+						FIntPoint TileOffset = FIntPoint(TileCoordinates.X*WidthX, TileCoordinates.Y*WidthY);
+						
+						// Place level tile at correct position in the world
+						NewTileModel->SetLevelPosition(TileOffset);
+					
+						// Save level with a landscape
+						FEditorFileUtils::SaveLevel(NewWorld->PersistentLevel, *MapFileName);
+					}
+					
+					// Destroy the new world we created and collect the garbage
+					NewWorld->DestroyWorld(false);
+					CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+				}
+			}
+
+			TileIndex++;
+		}
+
+		GWarn->EndSlowTask();
 	}
 }
 

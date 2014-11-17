@@ -30,7 +30,7 @@ struct FEventTrackKey
 
 };
 
-UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Event Track" ) )
+UCLASS(MinimalAPI, meta=( DisplayName = "Event Track" ) )
 class UInterpTrackEvent : public UInterpTrack
 {
 	GENERATED_UCLASS_BODY()

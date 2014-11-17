@@ -317,7 +317,7 @@ public:
 	/**
 	 * Ticks the tracer.
 	 *
-	 * @param DeltaTime - The time in seconds since the last tick.
+	 * @param DeltaTime The time in seconds since the last tick.
 	 *
 	 * @return true if any events were processed.
 	 */
@@ -328,7 +328,7 @@ public:
 	/**
 	 * Gets the list of known message endpoints.
 	 *
-	 * @param OutEndpoints - Will contain the list of endpoints.
+	 * @param OutEndpoints Will contain the list of endpoints.
 	 *
 	 * @return The number of endpoints returned.
 	 */
@@ -344,8 +344,8 @@ public:
 	/**
 	 * Gets the list of known message types filtered by name.
 	 *
-	 * @param NameFilter - The name substring to filter with.
-	 * @param OutTypes - Will contain the list of message types.
+	 * @param NameFilter The name substring to filter with.
+	 * @param OutTypes Will contain the list of message types.
 	 *
 	 * @return The number of message types returned.
 	 */

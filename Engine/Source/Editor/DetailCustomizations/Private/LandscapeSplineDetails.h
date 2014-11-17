@@ -15,4 +15,6 @@ private:
 	class FEdModeLandscape* GetEditorMode() const;
 	FReply OnSelectConnectedControlPointsButtonClicked();
 	FReply OnSelectConnectedSegmentsButtonClicked();
+	FReply OnMoveToCurrentLevelButtonClicked();
+	bool IsMoveToCurrentLevelButtonEnabled() const;
 };

@@ -10,7 +10,7 @@
 // Behavior tree debugger in editor
 #define USE_BEHAVIORTREE_DEBUGGER	(1 && WITH_EDITORONLY_DATA)
 
-DECLARE_STATS_GROUP(TEXT("BehaviorTree"),STATGROUP_AIBehaviorTree);
+DECLARE_STATS_GROUP(TEXT("Behavior Tree"), STATGROUP_AIBehaviorTree, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick"),STAT_AI_BehaviorTree_Tick,STATGROUP_AIBehaviorTree, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_BehaviorTree_LoadTime,STATGROUP_AIBehaviorTree, );
@@ -94,8 +94,9 @@ namespace EBTNodeUpdateMode
 	// keep in sync with DescribeNodeUpdateMode()
 	enum Type
 	{
-		Add,
-		Remove,
+		Add,				// add node
+		AddForLowerPri,		// add node only when new task has lower priority
+		Remove,				// remove node
 	};
 }
 
@@ -211,6 +212,8 @@ struct FBehaviorTreeInstanceId
 	/** index of first node instance (BehaviorTreeComponent.NodeInstances) */
 	int32 FirstNodeInstance;
 
+	FBehaviorTreeInstanceId() :	TreeAsset(0), FirstNodeInstance(-1) {}
+
 	bool operator==(const FBehaviorTreeInstanceId& Other) const
 	{
 		return (TreeAsset == Other.TreeAsset) && (Path == Other.Path);
@@ -261,6 +264,9 @@ struct FBehaviorTreeInstance
 
 	/** initialize memory and create node instances */
 	void Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
+
+	/** update injected nodes */
+	void InjectNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
 
 	/** cleanup node instances */
 	void Cleanup(class UBehaviorTreeComponent* OwnerComp);

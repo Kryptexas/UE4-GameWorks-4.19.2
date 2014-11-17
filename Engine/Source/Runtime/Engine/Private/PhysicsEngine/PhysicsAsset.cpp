@@ -308,3 +308,18 @@ void UPhysicsAsset::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) con
 
 	Super::GetAssetRegistryTags(OutTags);
 }
+
+
+void UPhysicsAsset::BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constraints)
+{
+	Constraints.Empty();
+	FName BodyName = BodySetup[BodyIndex]->BoneName;
+
+	for(int32 ConIdx=0; ConIdx<ConstraintSetup.Num(); ConIdx++)
+	{
+		if( ConstraintSetup[ConIdx]->DefaultInstance.ConstraintBone1 == BodyName || ConstraintSetup[ConIdx]->DefaultInstance.ConstraintBone2 == BodyName )
+		{
+			Constraints.Add(ConIdx);
+		}
+	}
+}

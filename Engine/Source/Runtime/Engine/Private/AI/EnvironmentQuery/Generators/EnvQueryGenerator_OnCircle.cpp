@@ -100,7 +100,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	const float CircumferenceLength = 2.f * PI * RadiusValue;
 	const float ArcAnglePercentage = Angle.Value / 360.f;
 	const float ArcLength = CircumferenceLength * ArcAnglePercentage;
-	const int32 StepsCount = FMath::Ceil(ArcLength / ItemSpace) + 1;
+	const int32 StepsCount = FMath::CeilToInt(ArcLength / ItemSpace) + 1;
 	const float AngleStep = AngleDegree / (StepsCount - 1);
 
 	FVector StartDirection = CalcDirection(QueryInstance);
@@ -145,11 +145,14 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	if (TraceData.TraceMode == EEnvQueryTrace::Navigation)
 	{
 #if WITH_RECAST
-		TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavMesh, TraceData.NavigationFilter);
-
-		for (int32 Step = 0; Step < StepsCount; ++Step)
+		if (NavMesh != NULL)
 		{
-			NavMesh->Raycast(CenterLocation, ItemCandidates[Step], ItemCandidates[Step], NavigationFilter);
+			TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavMesh, TraceData.NavigationFilter);
+
+			for (int32 Step = 0; Step < StepsCount; ++Step)
+			{
+				NavMesh->Raycast(CenterLocation, ItemCandidates[Step], ItemCandidates[Step], NavigationFilter);
+			}
 		}
 #endif
 	}
@@ -255,7 +258,7 @@ FText UEnvQueryGenerator_OnCircle::GetDescriptionDetails() const
 		FFormatNamedArguments ProjArgs;
 		ProjArgs.Add(TEXT("Description"), Desc);
 		ProjArgs.Add(TEXT("ProjectionDescription"), ProjDesc);
-		Desc = FText::Format(LOCTEXT("DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
+		Desc = FText::Format(LOCTEXT("OnCircle_DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
 	}
 
 	return Desc;

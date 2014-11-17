@@ -8,8 +8,6 @@
 #include "Net/UnrealNetwork.h"
 #include "ConfigCacheIni.h"
 #include "NavigationPathBuilder.h"
-#include "EngineUserInterfaceClasses.h"
-#include "EngineInterpolationClasses.h"
 
 DEFINE_LOG_CATEGORY(LogPath);
 
@@ -445,7 +443,7 @@ void AController::GetActorEyesViewPoint( FVector& out_Location, FRotator& out_Ro
 }
 
 
-void AController::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void AController::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	UFont* RenderFont = GEngine->GetSmallFont();
 	if ( Pawn == NULL )
@@ -591,6 +589,17 @@ void AController::InitNavigationControl(UNavigationComponent*& PathFindingComp, 
 	if (bInitPathFollowing)
 	{
 		PathFollowingComp->InitializeComponent();
+	}
+}
+
+void AController::StopMovement()
+{
+	UE_VLOG(this, LogNavigation, Log, TEXT("AController::StopMovement: %s STOP MOVEMENT"), *GetNameSafe(GetPawn()));
+
+	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
+	if (PathFollowingComp != NULL)
+	{
+		PathFollowingComp->AbortMove(TEXT("StopMovement"));
 	}
 }
 

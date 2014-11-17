@@ -13,6 +13,7 @@ public class ModuleUI : ModuleRules
                 "InputCore",
 				"Projects",
 				"Slate",
+				"SlateCore",
 				"Engine"
 			}
 		);

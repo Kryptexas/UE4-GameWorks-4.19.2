@@ -7,6 +7,7 @@
 FSlateOpenGLVertexBuffer::FSlateOpenGLVertexBuffer( uint32 InStride )
 	: BufferSize(0)
 	, Stride(InStride)
+	, BufferID(0)
 {
 	check( InStride > 0 );
 }

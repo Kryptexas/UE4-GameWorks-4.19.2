@@ -733,6 +733,17 @@ SEventGraph::SEventGraph()
 	: CurrentStateIndex( 0 )
 {}
 
+
+SEventGraph::~SEventGraph()
+{
+	// Remove ourselves from the profiler manager.
+	if( FProfilerManager::Get().IsValid() )
+	{
+		FProfilerManager::Get()->OnViewModeChanged().RemoveAll( this );
+	}
+}
+
+
 /*-----------------------------------------------------------------------------
 	Event graph construction related functions
 -----------------------------------------------------------------------------*/
@@ -804,7 +815,7 @@ void SEventGraph::Construct( const FArguments& InArgs )
 		+SVerticalBox::Slot()
 		.AutoHeight()
 		[		
-			SNew(SBox)
+			SAssignNew(FunctionDetailsBox,SBox)
 			.HeightOverride( 224.0f )
 			[
 				SNew( SBorder )
@@ -911,6 +922,8 @@ void SEventGraph::Construct( const FArguments& InArgs )
 
 	InitializeAndShowHeaderColumns();
 	BindCommands();
+
+	FProfilerManager::Get()->OnViewModeChanged().AddSP( this, &SEventGraph::ProfilerManager_OnViewModeChanged );
 }
 
 TSharedRef<SWidget> SEventGraph::GetToggleButtonForEventGraphType( const EEventGraphTypes::Type EventGraphType, const FName BrushName )
@@ -1004,7 +1017,7 @@ TSharedRef<SWidget> SEventGraph::GetWidgetForEventGraphTypes()
 		.Padding( 2.0f )
 		[	
 			SNew(STextBlock)
-			.Text( LOCTEXT("Toolbar_Type","Type").ToString() )
+			.Text( LOCTEXT("Toolbar_Type","Type") )
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.CaptionBold") )
 		]
 
@@ -1058,7 +1071,7 @@ TSharedRef<SWidget> SEventGraph::GetWidgetForEventGraphViewModes()
 		.Padding( 2.0f )
 		[	
 			SNew(STextBlock)
-			.Text( LOCTEXT("Toolbar_ViewMode","View mode").ToString() )
+			.Text( LOCTEXT("Toolbar_ViewMode","View mode") )
 			.TextStyle( FEditorStyle::Get(), TEXT("Profiler.CaptionBold") )
 		]
 
@@ -1477,7 +1490,7 @@ static EEventCompareOps::Type EColumnSortModeToEventCompareOp( const EColumnSort
 
 void SEventGraph::SortEvents()
 {
-	FProfilerScopedLogTime Log(TEXT("SEventGraph::SortEvents"));
+	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::SortEvents" ), );
 
 	if( ColumnBeingSorted != NAME_None )
 	{
@@ -1573,15 +1586,15 @@ TSharedPtr<SWidget> SEventGraph::EventGraph_GetMenuContent() const
 
 // 		MenuBuilder.AddMenuEntry
 // 		( 
-// 			LOCTEXT("ContextMenu_Root_Reset", "Reset To Default").ToString(), 
-// 			LOCTEXT("ContextMenu_Root_Reset_Desc", "Resets the root options and removes from the history").ToString(), 
+// 			LOCTEXT("ContextMenu_Root_Reset", "Reset To Default"), 
+// 			LOCTEXT("ContextMenu_Root_Reset_Desc", "Resets the root options and removes from the history"), 
 // 			TEXT("Profiler.Misc.ResetToDefault"), ResetRoot_Custom(), NAME_None, EUserInterfaceActionType::Button 
 // 		);
 	}
 	//MenuBuilder.EndSection();
 
 	// Culling menu
-	//MenuBuilder.BeginSection("Culling", LOCTEXT("ContextMenu_Culling","Culling").ToString() );
+	//MenuBuilder.BeginSection("Culling", LOCTEXT("ContextMenu_Culling","Culling") );
 	{
 		FText CullingDesc;
 		
@@ -2903,7 +2916,7 @@ TSharedRef<SHorizontalBox> SEventGraph::GetContentForEvent( FEventGraphSamplePtr
 
 void SEventGraph::SetNewEventGraphState( const FEventGraphDataRef AverageEventGraph, const FEventGraphDataRef MaximumEventGraph, bool bInitial )
 {
-	FProfilerScopedLogTime UEG( TEXT("SEventGraph::UpdateEventGraph") );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::UpdateEventGraph" ), );
 
 	// Store current operation.
 	SaveCurrentEventGraphState();
@@ -2928,7 +2941,7 @@ FText SEventGraph::HistoryBack_GetToolTipText() const
 	// TODO: Add a nicer custom tooltip.
 	if( HistoryBack_IsEnabled() )
 	{
-		return FText::Format( LOCTEXT("HistoryBack_Tooltip", "Back to {0}"), FText::FromString( EventGraphStatesHistory[CurrentStateIndex-1]->GetFullDescription() ) );
+		return FText::Format( LOCTEXT("HistoryBack_Tooltip", "Back to {0}"), EventGraphStatesHistory[CurrentStateIndex-1]->GetFullDescription() );
 	}
 
 	return FText::GetEmpty();
@@ -2950,7 +2963,7 @@ FText SEventGraph::HistoryForward_GetToolTipText() const
 	// TODO: Add a nicer custom tooltip.
 	if( HistoryForward_IsEnabled() )
 	{
-		return FText::Format( LOCTEXT("HistoryForward_Tooltip", "Forward to {0}"), FText::FromString( EventGraphStatesHistory[CurrentStateIndex+1]->GetFullDescription() ) );
+		return FText::Format( LOCTEXT("HistoryForward_Tooltip", "Forward to {0}"), EventGraphStatesHistory[CurrentStateIndex+1]->GetFullDescription() );
 	}
 
 	return FText::GetEmpty();
@@ -2975,7 +2988,7 @@ TSharedRef<SWidget> SEventGraph::HistoryList_GetMenuContent() const
 		const FEventGraphStateRef StateRef = EventGraphStatesHistory[StateIndex];
 		MenuBuilder.AddMenuEntry
 		(
-			FText::FromString( StateRef->GetFullDescription() ),
+			StateRef->GetFullDescription(),
 			FText(),
 			FSlateIcon(),
 			HistoryList_GoTo_Custom( StateIndex ),
@@ -3177,7 +3190,7 @@ bool SEventGraph::ClearHistory_CanExecute() const
 
 void SEventGraph::FilterOutByProperty_Execute( const FEventGraphSamplePtr EventPtr, const FName PropertyName, const bool bReset )
 {
-	FProfilerScopedLogTime FilterOutByProperty(TEXT("SEventGraph::FilterOutByProperty_Execute"));
+	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::FilterOutByProperty_Execute" ), );
 
 	// Store current operation.
 	SaveCurrentEventGraphState();
@@ -3201,7 +3214,7 @@ bool SEventGraph::FilterOutByProperty_CanExecute( const FEventGraphSamplePtr Eve
 
 void SEventGraph::CullByProperty_Execute( const FEventGraphSamplePtr EventPtr, const FName PropertyName, const bool bReset )
 {
-	FProfilerScopedLogTime CullByProperty(TEXT("SEventGraph::CullByProperty_Execute"));
+	PROFILER_SCOPE_LOG_TIME( TEXT( "SEventGraph::CullByProperty_Execute" ), );
 
 	// Store current operation.
 	SaveCurrentEventGraphState();
@@ -3346,6 +3359,20 @@ bool SEventGraph::SelectAllFrames_CanExecute() const
 	return IsEventGraphStatesHistoryValid();
 }
 
+void SEventGraph::ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode )
+{
+// 	if( NewViewMode == EProfilerViewMode::LineIndexBased )
+// 	{
+// 		FunctionDetailsBox->SetVisibility( EVisibility::Visible );
+// 		FunctionDetailsBox->SetEnabled( true );
+// 	}
+// 	else if( NewViewMode == EProfilerViewMode::ThreadViewTimeBased )
+// 	{
+// 		FunctionDetailsBox->SetVisibility( EVisibility::Collapsed );
+// 		FunctionDetailsBox->SetEnabled( false );
+// 	}
+}
+
 #undef LOCTEXT_NAMESPACE
 
 /*-----------------------------------------------------------------------------
@@ -3354,63 +3381,72 @@ bool SEventGraph::SelectAllFrames_CanExecute() const
 
 #define LOCTEXT_NAMESPACE "FEventGraphState"
 
-FString SEventGraph::FEventGraphState::GetFullDescription() const
+FText SEventGraph::FEventGraphState::GetFullDescription() const
 {
-	FString Result = FString::Printf( *LOCTEXT("FullDesc","Event graph with range {%i,%i} contains %i frame(s)").ToString(), 
-		GetEventGraph()->GetFrameStartIndex(), 
-		GetEventGraph()->GetFrameEndIndex(), 
-		GetNumFrames() );
+	FTextBuilder Builder;
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("FrameStartIndex"), GetEventGraph()->GetFrameStartIndex());
+	Args.Add(TEXT("FrameEndIndex"), GetEventGraph()->GetFrameEndIndex());
+	Args.Add(TEXT("NumberOfFrames"), GetNumFrames());
+	Builder.AppendLineFormat(LOCTEXT("FullDesc", "Event graph with range ({FrameStartIndex},{FrameEndIndex}) contains {NumberOfFrames} frame(s)"), Args);
+
+	Builder.Indent();
 
 	if( IsRooted() )
 	{
-		Result += LINE_TERMINATOR;
-		Result += TEXT("  ");
-		Result += GetRootedDesc();
+		Builder.AppendLine(GetRootedDesc());
 	}
 
 	if( IsCulled() )
 	{
-		Result += LINE_TERMINATOR;
-		Result += TEXT("  ");
-		Result += GetCullingDesc();
+		Builder.AppendLine(GetCullingDesc());
 	}
 
 	if( IsFiltered() )
 	{
-		Result += LINE_TERMINATOR;
-		Result += TEXT("  ");
-		Result += GetFilteringDesc();
+		Builder.AppendLine(GetFilteringDesc());
 	}
 
-	return Result;
+	return Builder.ToText();
 }
 
-FString SEventGraph::FEventGraphState::GetRootedDesc() const
+FText SEventGraph::FEventGraphState::GetRootedDesc() const
 {
 	const int32 NumFakeRoots = FakeRoot->GetChildren().Num();
-	const FString Result = FString::Printf( *LOCTEXT("RootedDesc","Rooted: %s").ToString(), NumFakeRoots == 1 ? *FakeRoot->GetChildren()[0]->_StatName.GetPlainNameString() : TEXT("Multiple") );
-	return Result;
+
+	if (NumFakeRoots == 1)
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("StatName"), FText::FromName(FakeRoot->GetChildren()[0]->_StatName));
+		return FText::Format(LOCTEXT("RootedDesc_SingleChild", "Rooted: {StatName}"), Args);
+	}
+
+	return LOCTEXT("RootedDesc_MultipleChildren", "Rooted: Multiple");
 }
 
-FString SEventGraph::FEventGraphState::GetCullingDesc() const
+FText SEventGraph::FEventGraphState::GetCullingDesc() const
 {
-	const FString Result = FString::Printf( *LOCTEXT("CulledDesc","Culled: %s %s").ToString(), 
-		*CullPropertyName.GetPlainNameString(), 
-		*CullEventPtr->GetFormattedValue(FEventGraphSample::GetEventPropertyByName(CullPropertyName).Index) );
-	return Result;
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("CulledPropertyName"), FText::FromName(CullPropertyName));
+	Args.Add(TEXT("EventName"), FText::FromString(CullEventPtr->GetFormattedValue(FEventGraphSample::GetEventPropertyByName(CullPropertyName).Index)));
+
+	return FText::Format(LOCTEXT("CulledDesc", "Culled: {CulledPropertyName} {EventName}"), Args);
 }
 
-FString SEventGraph::FEventGraphState::GetFilteringDesc() const
+FText SEventGraph::FEventGraphState::GetFilteringDesc() const
 {
-	const FString Result = FString::Printf( *LOCTEXT("FilteredDesc","Filtered: %s %s").ToString(), 
-		*FilterPropertyName.GetPlainNameString(), 
-		*FilterEventPtr->GetFormattedValue(FEventGraphSample::GetEventPropertyByName(FilterPropertyName).Index) );
-	return Result;
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("FilterPropertyName"), FText::FromName(FilterPropertyName));
+	Args.Add(TEXT("EventName"), FText::FromString(FilterEventPtr->GetFormattedValue(FEventGraphSample::GetEventPropertyByName(FilterPropertyName).Index)));
+
+	return FText::Format(LOCTEXT("FilteredDesc", "Filtered: {FilterPropertyName} {EventName}"), Args);
 }
 
-FString SEventGraph::FEventGraphState::GetHistoryDesc() const
+FText SEventGraph::FEventGraphState::GetHistoryDesc() const
 {
-	FString Result(LOCTEXT("DefaultDesc","Default state").ToString());
+	FText Result = LOCTEXT("DefaultDesc", "Default state");
+
 	if( HistoryType == EEventHistoryTypes::Rooted )
 	{
 		Result = GetRootedDesc();
@@ -3423,6 +3459,7 @@ FString SEventGraph::FEventGraphState::GetHistoryDesc() const
 	{
 		Result = GetFilteringDesc();
 	}
+
 	return Result;
 }
 

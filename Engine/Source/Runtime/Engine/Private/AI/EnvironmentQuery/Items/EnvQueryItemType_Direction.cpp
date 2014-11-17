@@ -32,6 +32,12 @@ FRotator UEnvQueryItemType_Direction::GetRotation(const uint8* RawData) const
 	return UEnvQueryItemType_Direction::GetValueRot(RawData);
 }
 
+FString UEnvQueryItemType_Direction::GetDescription(const uint8* RawData) const
+{
+	FRotator Rot = GetRotation(RawData);
+	return FString::Printf(TEXT("(P=%.0f,Y=%.0f,R=%.0f)"), Rot.Pitch, Rot.Yaw, Rot.Roll);
+}
+
 void UEnvQueryItemType_Direction::SetContextHelper(struct FEnvQueryContextData& ContextData, const FVector& SingleDirection)
 {
 	ContextData.ValueType = UEnvQueryItemType_Direction::StaticClass();

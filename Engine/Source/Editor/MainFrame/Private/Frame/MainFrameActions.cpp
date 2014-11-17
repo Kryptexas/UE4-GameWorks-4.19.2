@@ -486,6 +486,13 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 		}
 	}
 
+#if PLATFORM_WINDOWS
+	if (bProjectHasCode && FRocketSupport::IsRocket() && PlatformName == TEXT("IOS"))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("PackagingNotWorkingMessage", "Sorry, packaging is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
+		return;
+	}
+#endif
 
 	UProjectPackagingSettings* PackagingSettings = Cast<UProjectPackagingSettings>(UProjectPackagingSettings::StaticClass()->GetDefaultObject());
 
@@ -545,6 +552,10 @@ void FMainFrameActionCallbacks::PackageProject( const FString InPlatformName, co
 	else if (PlatformName == "MacNoEditor")
 	{
 		OptionalParams += TEXT(" -targetplatform=Mac");
+	}
+	else if (PlatformName == "LinuxNoEditor")
+	{
+		OptionalParams += TEXT(" -targetplatform=Linux");
 	}
 
 	// only build if the project has code that might need to be built
@@ -1040,8 +1051,7 @@ public:
 
 	static ESubsequentsMode::Type GetSubsequentsMode() { return ESubsequentsMode::TrackSubsequents; }
 	ENamedThreads::Type GetDesiredThread( ) { return ENamedThreads::GameThread; }
-	static const TCHAR* GetTaskName( ) { return TEXT("FMainFrameActionsNotificationTask"); }
-	FORCEINLINE static TStatId GetStatId()
+	FORCEINLINE TStatId GetStatId() const
 	{
 		RETURN_QUICK_DECLARE_CYCLE_STAT(FMainFrameActionsNotificationTask, STATGROUP_TaskGraphTasks);
 	}

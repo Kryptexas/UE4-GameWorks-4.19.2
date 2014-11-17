@@ -20,14 +20,14 @@ bool FOnlineAchievementsNull::ReadAchievementsFromConfig()
 	return Config.ReadAchievements(Achievements);
 }
 
-bool FOnlineAchievementsNull::WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject)
+void FOnlineAchievementsNull::WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate)
 {
 	if (!ReadAchievementsFromConfig())
 	{
 		// we don't have achievements
-		TriggerOnAchievementsWrittenDelegates(PlayerId, false);
 		WriteObject->WriteState = EOnlineAsyncTaskState::Failed;
-		return false;
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
 	}
 
 	FUniqueNetIdString NullId(PlayerId);
@@ -35,9 +35,9 @@ bool FOnlineAchievementsNull::WriteAchievements(const FUniqueNetId& PlayerId, FO
 	if (NULL == PlayerAch)
 	{
 		// achievements haven't been read for a player
-		TriggerOnAchievementsWrittenDelegates(PlayerId, false);
 		WriteObject->WriteState = EOnlineAsyncTaskState::Failed;
-		return false;
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
 	}
 
 	// treat each achievement as unlocked
@@ -56,9 +56,7 @@ bool FOnlineAchievementsNull::WriteAchievements(const FUniqueNetId& PlayerId, FO
 	}
 
 	WriteObject->WriteState = EOnlineAsyncTaskState::Done;
-	TriggerOnAchievementsWrittenDelegates(PlayerId, true);
-
-	return true;
+	Delegate.ExecuteIfBound(PlayerId, true);
 };
 
 void FOnlineAchievementsNull::QueryAchievements( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate )

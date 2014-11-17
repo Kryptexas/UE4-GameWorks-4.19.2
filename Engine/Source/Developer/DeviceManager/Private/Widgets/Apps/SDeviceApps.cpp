@@ -59,13 +59,13 @@ void SDeviceApps::Construct( const FArguments& InArgs, const FDeviceManagerModel
 										SNew(SHeaderRow)
 
 										+ SHeaderRow::Column("Name")
-											.DefaultLabel(LOCTEXT("AppListNameColumnHeader", "Name").ToString())
+											.DefaultLabel(LOCTEXT("AppListNameColumnHeader", "Name"))
 
 										+ SHeaderRow::Column("Date")
-											.DefaultLabel(LOCTEXT("AppListDeploymentDateColumnHeader", "Date deployed").ToString())
+											.DefaultLabel(LOCTEXT("AppListDeploymentDateColumnHeader", "Date deployed"))
 
 										+ SHeaderRow::Column("Owner")
-											.DefaultLabel(LOCTEXT("AppListOwnerColumnHeader", "Deployed by").ToString())
+											.DefaultLabel(LOCTEXT("AppListOwnerColumnHeader", "Deployed by"))
 									)
 							]
 					]
@@ -81,7 +81,7 @@ void SDeviceApps::Construct( const FArguments& InArgs, const FDeviceManagerModel
 					.Visibility(this, &SDeviceApps::HandleSelectDeviceOverlayVisibility)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a device from the Device Browser").ToString())
+							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a device from the Device Browser"))
 					]
 			]
 	];

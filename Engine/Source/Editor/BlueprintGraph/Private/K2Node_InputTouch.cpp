@@ -162,12 +162,12 @@ void UK2Node_InputTouch::ExpandNode(FKismetCompilerContext& CompilerContext, UEd
 			Schema->TryCreateConnection(TouchReleasedLocationInitialize->GetThenPin(), TouchReleasedFingerInitialize->GetExecPin());
 
 			// Move the original event connections to the then pin of the finger index assign
-			Schema->MovePinLinks(*GetPressedPin(), *TouchPressedFingerInitialize->GetThenPin());
-			Schema->MovePinLinks(*GetReleasedPin(), *TouchReleasedFingerInitialize->GetThenPin());
+			CompilerContext.MovePinLinksToIntermediate(*GetPressedPin(), *TouchPressedFingerInitialize->GetThenPin());
+			CompilerContext.MovePinLinksToIntermediate(*GetReleasedPin(), *TouchReleasedFingerInitialize->GetThenPin());
 
 			// Move the original event variable connections to the intermediate nodes
-			Schema->MovePinLinks(*GetLocationPin(), *TouchLocationVar->GetVariablePin());
-			Schema->MovePinLinks(*GetFingerIndexPin(), *TouchFingerVar->GetVariablePin());
+			CompilerContext.MovePinLinksToIntermediate(*GetLocationPin(), *TouchLocationVar->GetVariablePin());
+			CompilerContext.MovePinLinksToIntermediate(*GetFingerIndexPin(), *TouchFingerVar->GetVariablePin());
 		}
 		else
 		{
@@ -197,9 +197,9 @@ void UK2Node_InputTouch::ExpandNode(FKismetCompilerContext& CompilerContext, UEd
 				InputTouchEvent->bInternalEvent = true;
 				InputTouchEvent->AllocateDefaultPins();
 
-				Schema->MovePinLinks(*InputTouchPin, *Schema->FindExecutionPin(*InputTouchEvent, EGPD_Output));
-				Schema->MovePinLinks(*GetLocationPin(), *InputTouchEvent->FindPin(TEXT("Location")));
-				Schema->MovePinLinks(*GetFingerIndexPin(), *InputTouchEvent->FindPin(TEXT("FingerIndex")));
+				CompilerContext.MovePinLinksToIntermediate(*InputTouchPin, *Schema->FindExecutionPin(*InputTouchEvent, EGPD_Output));
+				CompilerContext.MovePinLinksToIntermediate(*GetLocationPin(), *InputTouchEvent->FindPin(TEXT("Location")));
+				CompilerContext.MovePinLinksToIntermediate(*GetFingerIndexPin(), *InputTouchEvent->FindPin(TEXT("FingerIndex")));
 			}
 		}
 	}

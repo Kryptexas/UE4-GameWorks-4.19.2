@@ -1137,6 +1137,13 @@ namespace AutomationTool
 					ProgramTarget = TargetData.TargetName;
 				}
 			}
+			else if (!this.Build)
+			{
+				var ShortName = ProjectUtils.GetShortProjectName(RawProjectPath);
+				GameTarget = ShortName;
+				EditorTarget = ShortName + "Editor";
+				ServerTarget = ShortName + "Server";
+			}
 			else
 			{
 				throw new AutomationException("{0} does not look like uproject file but no targets have been found!", RawProjectPath);

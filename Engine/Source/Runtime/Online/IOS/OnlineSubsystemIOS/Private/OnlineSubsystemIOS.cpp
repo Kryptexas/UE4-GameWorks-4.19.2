@@ -46,7 +46,7 @@ IOnlineVoicePtr FOnlineSubsystemIOS::GetVoiceInterface() const
 
 IOnlineExternalUIPtr FOnlineSubsystemIOS::GetExternalUIInterface() const
 {
-	return NULL;
+	return ExternalUIInterface;
 }
 
 
@@ -135,6 +135,7 @@ bool FOnlineSubsystemIOS::Init()
 		LeaderboardsInterface = MakeShareable(new FOnlineLeaderboardsIOS(this));
 		StoreInterface = MakeShareable(new FOnlineStoreInterfaceIOS());
 		AchievementsInterface = MakeShareable(new FOnlineAchievementsIOS(this));
+		ExternalUIInterface = MakeShareable(new FOnlineExternalUIIOS());
 	}
 
 	return bSuccessfullyStartedUp;

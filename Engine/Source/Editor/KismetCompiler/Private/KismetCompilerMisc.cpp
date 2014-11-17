@@ -153,14 +153,14 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	}
 	else if (PinCategory == Schema->PC_Delegate)
 	{
-		const UFunction* SignatureFunction = Cast<const UFunction>(PinSubCategoryObject);
+		const UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference);
 		const UDelegateProperty* PropertyDelegate = Cast<const UDelegateProperty>(TestProperty);
 		bTypeMismatch = !(SignatureFunction 
 			&& PropertyDelegate 
 			&& PropertyDelegate->SignatureFunction 
 			&& PropertyDelegate->SignatureFunction->IsSignatureCompatibleWith(SignatureFunction));
 	}
-	else if (PinCategory == Schema->PC_Object)
+	else if ((PinCategory == Schema->PC_Object) || (PinCategory == Schema->PC_Interface))
 	{
 		const UClass* ObjectType = (PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<const UClass>(PinSubCategoryObject);
 
@@ -223,11 +223,24 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 			if (StructProperty != NULL)
 			{
 				DesiredSubType = StructProperty->Struct->GetName();
-				bSubtypeMismatch = bTypeMismatch = (StructType != StructProperty->Struct);
+				bool bMatchingStructs = (StructType == StructProperty->Struct);
+				if (auto UserDefinedStructFromProperty = Cast<const UUserDefinedStruct>(StructProperty->Struct))
+				{
+					bMatchingStructs |= (UserDefinedStructFromProperty->PrimaryStruct.Get() == StructType);
+				}
+				bSubtypeMismatch = bTypeMismatch = !bMatchingStructs;
 			}
 			else
 			{
 				bTypeMismatch = true;
+			}
+
+			if (OwningFunction && bTypeMismatch)
+			{
+				if (UK2Node_CallFunction::IsStructureWildcardProperty(OwningFunction, SourcePin->PinName))
+				{
+					bSubtypeMismatch = bTypeMismatch = false;
+				}
 			}
 		}
 	}
@@ -536,7 +549,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 
 	//@TODO: Nasty string if-else tree
-	if (Type.PinCategory == Schema->PC_Object)
+	if ((Type.PinCategory == Schema->PC_Object) || (Type.PinCategory == Schema->PC_Interface))
 	{
 		UClass* SubType = (Type.PinSubCategory == Schema->PSC_Self) ? SelfClass : Cast<UClass>(Type.PinSubCategoryObject.Get());
 
@@ -608,7 +621,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 	else if (Type.PinCategory == Schema->PC_Delegate)
 	{
-		if (UFunction* SignatureFunction = Cast<UFunction>(Type.PinSubCategoryObject.Get()))
+		if (UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference))
 		{
 			UDelegateProperty* NewPropertyDelegate = NewNamedObject<UDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 			NewPropertyDelegate->SignatureFunction = SignatureFunction;
@@ -617,7 +630,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 	else if (Type.PinCategory == Schema->PC_MCDelegate)
 	{
-		UFunction* const SignatureFunction = Cast<UFunction>(Type.PinSubCategoryObject.Get());
+		UFunction* const SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference);
 		UMulticastDelegateProperty* NewPropertyDelegate = NewNamedObject<UMulticastDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 		NewPropertyDelegate->SignatureFunction = SignatureFunction;
 		NewProperty = NewPropertyDelegate;
@@ -702,6 +715,12 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 			Term->bIsConst = true;
 		}
 
+		// Check if the property is a local variable and mark it so
+		if( SearchScope == Context.Function && BoundProperty->GetOuter() == Context.Function)
+		{
+			Term->bIsLocal = true;
+		}
+
 		// Resolve the context term
 		if (SelfPin != NULL)
 		{
@@ -728,7 +747,7 @@ FBlueprintCompiledStatement& FNodeHandlingFunctor::GenerateSimpleThenGoto(FKisme
 
 	FBlueprintCompiledStatement& GotoStatement = Context.AppendStatementForNode(&Node);
 	GotoStatement.Type = KCST_UnconditionalGoto;
-	Context.GotoFixupRequestMap.Add(&GotoStatement, TargetNode);
+	Context.GotoFixupRequestMap.Add(&GotoStatement, ThenExecPin);
 
 	return GotoStatement;
 }
@@ -848,18 +867,25 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, NewClass(InNewClass)
 	, MessageLog(InMessageLog)
 	, Schema(InSchema)
-	, UUIDCounter(1024)
 	, bIsUbergraph(false)
 	, bCannotBeCalledFromOtherKismet(false)
 	, NetFlags(0)
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
-	, bCreateDebugData(true)
+	// only need debug-data when running in the editor app:
+	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
 	, SourceEventFromStubGraph(NULL)
 {
 	NetNameMap = new FNetNameMapping();
 	bAllocatedNetNameMap = true;
+
+	// Prevent debug generation when cooking or running other commandlets
+	// Compile-on-load will recreate it if the editor is run
+	if (IsRunningCommandlet())
+	{
+		bCreateDebugData = false;
+	}
 }
 
 FKismetFunctionContext::~FKismetFunctionContext()
@@ -887,6 +913,12 @@ void FKismetFunctionContext::SetExternalNetNameMap(FNetNameMapping* NewMap)
 	bAllocatedNetNameMap = false;
 
 	NetNameMap = NewMap;
+}
+
+int32 FKismetFunctionContext::GetContextUniqueID()
+{
+	static int32 UUIDCounter = 1;
+	return UUIDCounter++;
 }
 
 #undef LOCTEXT_NAMESPACE

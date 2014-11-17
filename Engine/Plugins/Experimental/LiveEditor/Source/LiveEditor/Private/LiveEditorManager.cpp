@@ -625,7 +625,7 @@ void FLiveEditorManager::CreateLiveEditorWorld()
 										.CreateNavigation(false)
 										.ShouldSimulatePhysics(false)
 										.SetTransactional(bTransactional));
-	LiveEditorWorld->BeginPlay(FURL());
+	LiveEditorWorld->InitializeActorsForPlay(FURL());
 }
 
 

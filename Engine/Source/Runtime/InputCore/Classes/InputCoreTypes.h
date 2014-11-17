@@ -32,7 +32,8 @@ struct INPUTCORE_API FKey
 	bool IsModifierKey() const;
 	bool IsGamepadKey() const;
 	bool IsMouseButton() const;
-	bool IsAxis() const;
+	bool IsFloatAxis() const;
+	bool IsVectorAxis() const;
 	bool IsBindableInBlueprints() const;
 	FText GetDisplayName() const;
 	FString ToString() const;
@@ -79,10 +80,11 @@ struct INPUTCORE_API FKeyDetails
 	enum EKeyFlags
 	{
 		GamepadKey				= 0x01,
-		ModifierKey				= 0x02,
-		NotBlueprintBindableKey	= 0x04,
-		Axis					= 0x08,
-		MouseButton				= 0x10,
+		MouseButton				= 0x02,
+		ModifierKey				= 0x04,
+		NotBlueprintBindableKey	= 0x08,
+		FloatAxis				= 0x10,
+		VectorAxis				= 0x20,
 
 		NoFlags                 = 0,
 	};
@@ -93,9 +95,18 @@ struct INPUTCORE_API FKeyDetails
 		, bIsModifierKey((InKeyFlags & EKeyFlags::ModifierKey) != 0)
 		, bIsGamepadKey((InKeyFlags & EKeyFlags::GamepadKey) != 0)
 		, bIsMouseButton((InKeyFlags & EKeyFlags::MouseButton) != 0)
-		, bIsAxis((InKeyFlags & EKeyFlags::Axis) != 0)
 		, bIsBindableInBlueprints((~InKeyFlags & EKeyFlags::NotBlueprintBindableKey) != 0)
+		, AxisType(EInputAxisType::None)
 	{
+		if ((InKeyFlags & EKeyFlags::FloatAxis) != 0)
+		{
+			ensure((InKeyFlags & EKeyFlags::VectorAxis) == 0);
+			AxisType = EInputAxisType::Float;
+		}
+		else if ((InKeyFlags & EKeyFlags::VectorAxis) != 0)
+		{
+			AxisType = EInputAxisType::Vector;
+		}
 	}
 
 	FKeyDetails(const FKey InKey, const FGetKeyDisplayNameSignature InGetDisplayNameDelegate, const uint8 InKeyFlags = 0)
@@ -104,20 +115,37 @@ struct INPUTCORE_API FKeyDetails
 		, bIsModifierKey((InKeyFlags & EKeyFlags::ModifierKey) != 0)
 		, bIsGamepadKey((InKeyFlags & EKeyFlags::GamepadKey) != 0)
 		, bIsMouseButton((InKeyFlags & EKeyFlags::MouseButton) != 0)
-		, bIsAxis((InKeyFlags & EKeyFlags::Axis) != 0)
 		, bIsBindableInBlueprints((~InKeyFlags & EKeyFlags::NotBlueprintBindableKey) != 0)
+		, AxisType(EInputAxisType::None)
 	{
+		if ((InKeyFlags & EKeyFlags::FloatAxis) != 0)
+		{
+			ensure((InKeyFlags & EKeyFlags::VectorAxis) == 0);
+			AxisType = EInputAxisType::Float;
+		}
+		else if ((InKeyFlags & EKeyFlags::VectorAxis) != 0)
+		{
+			AxisType = EInputAxisType::Vector;
+		}
 	}
 
 	bool IsModifierKey() const { return bIsModifierKey != 0; }
 	bool IsGamepadKey() const { return bIsGamepadKey != 0; }
 	bool IsMouseButton() const { return bIsMouseButton != 0; }
-	bool IsAxis() const { return bIsAxis != 0; }
+	bool IsFloatAxis() const { return AxisType == EInputAxisType::Float; }
+	bool IsVectorAxis() const { return AxisType == EInputAxisType::Vector; }
 	bool IsBindableInBlueprints() const { return bIsBindableInBlueprints != 0; }
 	FText GetDisplayName() const;
 	const FKey& GetKey() const { return Key; }
 
 private:
+
+	enum class EInputAxisType : uint8
+	{
+		None,
+		Float,
+		Vector
+	};
 
 	FKey  Key;
 	
@@ -127,8 +155,9 @@ private:
 	int32 bIsModifierKey:1;
 	int32 bIsGamepadKey:1;
 	int32 bIsMouseButton:1;
-	int32 bIsAxis:1;
 	int32 bIsBindableInBlueprints:1;
+	EInputAxisType AxisType;
+
 };
 
 UENUM(BlueprintType)
@@ -165,9 +194,6 @@ struct INPUTCORE_API EKeys
 	static const FKey MouseY;
 	static const FKey MouseScrollUp;
 	static const FKey MouseScrollDown;
-
-	//@static const FKey todo Slate: Unify MouseScrollUp, Down; Spin.  The viewport clients use Up and Down and slate uses Spin
-	static const FKey MouseWheelSpin;
 
 	static const FKey LeftMouseButton;
 	static const FKey RightMouseButton;
@@ -356,6 +382,13 @@ struct INPUTCORE_API EKeys
 	static const FKey Steam_Back_Left;
 	static const FKey Steam_Back_Right;
 
+	// Xbox One global speech commands
+	static const FKey Global_Menu;
+	static const FKey Global_View;
+	static const FKey Global_Pause;
+	static const FKey Global_Play;
+	static const FKey Global_Back;
+
 	static const FKey Invalid;
 
 	static const int32 NUM_TOUCH_KEYS = 10;
@@ -371,7 +404,7 @@ struct INPUTCORE_API EKeys
 	// These exist for backwards compatibility reasons only
 	static bool IsModifierKey(FKey Key) { return Key.IsModifierKey(); }
 	static bool IsGamepadKey(FKey Key) { return Key.IsGamepadKey(); }
-	static bool IsAxis(FKey Key) { return Key.IsAxis(); }
+	static bool IsAxis(FKey Key) { return Key.IsFloatAxis(); }
 	static bool IsBindableInBlueprints(const FKey Key) { return Key.IsBindableInBlueprints(); }
 	static void SetConsoleForGamepadLabels(const EConsoleForGamepadLabels::Type Console) { ConsoleForGamepadLabels = Console; }
 
@@ -406,7 +439,7 @@ struct INPUTCORE_API FInputKeyManager
 public:
 	static FInputKeyManager& Get();
 
-	const uint16* GetKeyCodeFromKey( FKey Key ) const;
+	void GetCodesFromKey(const FKey Key, const uint16*& KeyCode, const uint16*& CharCode) const;
 
 	/**
 	 * Retrieves the key mapped to the specified character code.

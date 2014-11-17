@@ -6,7 +6,7 @@
 /**
  *	Used to capture a 'snapshot' of the scene from a 6 planes and feed it to a render target.
  */
-UCLASS(hidecategories = (Collision, Object, Physics, SceneComponent), ClassGroup=Rendering, HeaderGroup = Decal, MinimalAPI, editinlinenew, meta = (BlueprintSpawnableComponent))
+UCLASS(hidecategories = (Collision, Object, Physics, SceneComponent), ClassGroup=Rendering, MinimalAPI, editinlinenew, meta = (BlueprintSpawnableComponent))
 class USceneCaptureComponentCube : public USceneCaptureComponent
 {
 	GENERATED_UCLASS_BODY()

@@ -143,10 +143,6 @@ public:
 	/** Prints to log all colors information. */
 	void LogColors();
 
-	
-	// Begin FExec Interface
-	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE;
-	// End FExec Interface
 protected:
 	void InitializeColor( const TCHAR* ColorName, const FColor* ColorPtr, int32& CurrentIndex );
 

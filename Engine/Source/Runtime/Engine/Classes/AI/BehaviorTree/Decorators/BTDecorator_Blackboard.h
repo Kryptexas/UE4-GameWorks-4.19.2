@@ -1,68 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "../Blackboard/BlackboardKeyType.h"
 #include "BTDecorator_Blackboard.generated.h"
 
 /**
- *  Decorator for accessing blackboard
- *
- *  Allowed types and their operations:
- *  - object:	set, not set
- *  - class:	set, not set
- *  - enum:		equal, not equal, less, less or equal, greater, greater or equal
- *  - int:		equal, not equal, less, less or equal, greater, greater or equal
- *  - float:	equal, not equal, less, less or equal, greater, greater or equal
- *  - bool:		set, not set
- *  - string:	equal, not equal, contain, not contain
- *  - name:		equal, not equal, contain, not contain
- *  - vector:	set, not set
+ *  Decorator for accessing blackboard values
  */
-
-UENUM()
-namespace EBasicKeyOperation
-{
-	enum Type
-	{
-		Set				UMETA(DisplayName="Is Set"),
-		NotSet			UMETA(DisplayName="Is Not Set"),
-	};
-}
-
-UENUM()
-namespace EArithmeticKeyOperation
-{
-	enum Type
-	{
-		Equal			UMETA(DisplayName="Is Equal To"),
-		NotEqual		UMETA(DisplayName="Is Not Equal To"),
-		Less			UMETA(DisplayName="Is Less Than"),
-		LessOrEqual		UMETA(DisplayName="Is Less Or Equal To"),
-		Greater			UMETA(DisplayName="Is Greater Than"),
-		GreaterOrEqual	UMETA(DisplayName="Is Greater Or Equal To"),
-	};
-}
-
-UENUM()
-namespace ETextKeyOperation
-{
-	enum Type
-	{
-		Equal			UMETA(DisplayName="Is Equal To"),
-		NotEqual		UMETA(DisplayName="Is Not Equal To"),
-		Contain			UMETA(DisplayName="Contains"),
-		NotContain		UMETA(DisplayName="Not Contains"),
-	};
-}
-
-UENUM()
-namespace EBTBlackboardRestart
-{
-	enum Type
-	{
-		ValueChange		UMETA(DisplayName="On Value Change" , ToolTip="Restart on every change of observed blackboard value"),
-		ResultChange	UMETA(DisplayName="On Result Change" , ToolTip="Restart only when result of evaluated condition is changed"),
-	};
-}
 
 UCLASS(HideCategories=(Condition))
 class ENGINE_API UBTDecorator_Blackboard : public UBTDecorator_BlackboardBase
@@ -95,10 +39,6 @@ protected:
 	/** operation type */
 	UPROPERTY()
 	uint8 OperationType;
-
-	/** when observer can try to request abort? */
-	UPROPERTY(Category=FlowControl, EditAnywhere)
-	TEnumAsByte<EBTBlackboardRestart::Type> NotifyObserver;
 
 #if WITH_EDITORONLY_DATA
 

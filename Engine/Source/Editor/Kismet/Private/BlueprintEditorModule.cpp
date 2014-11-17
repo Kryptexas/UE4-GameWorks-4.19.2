@@ -14,6 +14,7 @@
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "UObjectToken.h"
 #include "InstancedStaticMeshSCSEditorCustomization.h"
+#include "UserDefinedStructureEditor.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -170,6 +171,13 @@ TSharedRef<IUserDefinedEnumEditor> FBlueprintEditorModule::CreateUserDefinedEnum
 	TSharedRef<FUserDefinedEnumEditor> UserDefinedEnumEditor(new FUserDefinedEnumEditor());
 	UserDefinedEnumEditor->InitEditor(Mode, InitToolkitHost, UDEnum);
 	return UserDefinedEnumEditor;
+}
+
+TSharedRef<IUserDefinedStructureEditor> FBlueprintEditorModule::CreateUserDefinedStructEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UUserDefinedStruct* UDStruct)
+{
+	TSharedRef<FUserDefinedStructureEditor> UserDefinedStructureEditor(new FUserDefinedStructureEditor());
+	UserDefinedStructureEditor->InitEditor(Mode, InitToolkitHost, UDStruct);
+	return UserDefinedStructureEditor;
 }
 
 void FBlueprintEditorModule::RegisterSCSEditorCustomization(const FName& InComponentName, FSCSEditorCustomizationBuilder InCustomizationBuilder)

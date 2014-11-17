@@ -24,7 +24,6 @@ public:
 		SLATE_ARGUMENT(ISessionInfoPtr, SessionInfo)
 	SLATE_END_ARGS()
 
-
 public:
 
 	/**
@@ -37,9 +36,8 @@ public:
 		HighlightText = InArgs._HighlightText;
 		SessionInfo = InArgs._SessionInfo;
 
-		SMultiColumnTableRow<ISessionInfoPtr>::Construct(FSuperRowType::FArguments(), InOwnerTableView);
+		SMultiColumnTableRow<ISessionInfoPtr>::Construct(FSuperRowType::FArguments().Style(FEditorStyle::Get(), "TableView.Row"), InOwnerTableView);
 	}
-
 
 public:
 
@@ -54,29 +52,47 @@ public:
 	{
 		if (ColumnName == "Name")
 		{
-			return SNew(SBox)
-				.Padding(FMargin(4.0f, 0.0f))
-				.VAlign(VAlign_Center)
+			return SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(8.0f, 0.0f, 0.0f, 0.0f)
 				[
 					SNew(STextBlock)
+						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14))
 						.HighlightText(HighlightText)
 						.Text(this, &SSessionBrowserSessionListRow::HandleGetSessionName)
+				]
+
+			+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(8.0f, 0.0f)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						[
+							SNew(STextBlock)
+								.Text(SessionInfo->GetSessionOwner())
+						]
+
+					+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Right)
+						[
+							SNew(STextBlock)
+								.Text(LOCTEXT("adsf", "1 Instance(s)"))
+						]
 				];
 		}
-		else if (ColumnName == "Owner")
+		else if (ColumnName == "Selection")
 		{
-			return SNew(SBox)
-				.Padding(FMargin(4.0f, 0.0f))
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock)
-						.Text(SessionInfo->GetSessionOwner())
-				];
+			return SNew(SColorBlock)
+				.Color(FLinearColor::Gray);
 		}
 		
 		return SNullWidget::NullWidget;
 	}
-
 
 protected:
 
@@ -116,7 +132,6 @@ protected:
 
 		return LOCTEXT("UnnamedSessionText", "Unnamed Session").ToString();
 	}
-
 
 private:
 

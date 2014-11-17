@@ -58,8 +58,11 @@ public:
 	/** Swaps two arguments by index */
 	BLUEPRINTGRAPH_API void SwapArguments(int32 InIndexA, int32 InIndexB);
 
+	/** returns Format pin */
+	BLUEPRINTGRAPH_API UEdGraphPin* GetFormatPin() const;
+
 	/** Returns TRUE if the arguments are allowed to be edited */
-	bool CanEditArguments() const { return FormatPin->LinkedTo.Num() > 0; }
+	bool CanEditArguments() const { return GetFormatPin()->LinkedTo.Num() > 0; }
 
 	/**
 	 * Finds an argument pin by name, checking strings in a strict, case sensitive fashion
@@ -79,7 +82,7 @@ private:
 	TArray<FText> PinNames;
 
 	/** The "Format" input pin, always available on the node */
-	UEdGraphPin* FormatPin;
+	UEdGraphPin* CachedFormatPin;
 
 	/** Tooltip text for this node. */
 	FString NodeTooltip;

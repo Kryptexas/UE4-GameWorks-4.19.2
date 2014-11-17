@@ -30,6 +30,7 @@
 #include "SNodePanel.h"
 #include "MaterialEditorUtilities.h"
 #include "SMaterialPalette.h"
+#include "FindInMaterial.h"
 
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 
@@ -43,6 +44,7 @@ const FName FMaterialEditor::PropertiesTabId( TEXT( "MaterialEditor_MaterialProp
 const FName FMaterialEditor::HLSLCodeTabId( TEXT( "MaterialEditor_HLSLCode" ) );
 const FName FMaterialEditor::PaletteTabId( TEXT( "MaterialEditor_Palette" ) );
 const FName FMaterialEditor::StatsTabId( TEXT( "MaterialEditor_Stats" ) );
+const FName FMaterialEditor::FindTabId( TEXT( "MaterialEditor_Find" ) );
 
 ///////////////////////////
 // FMatExpressionPreview //
@@ -136,6 +138,10 @@ void FMaterialEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& T
 		.SetDisplayName( LOCTEXT("StatsTab", "Stats") )
 		.SetGroup( MenuStructure.GetAssetEditorCategory() );
 	
+	TabManager->RegisterTabSpawner(FindTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_Find))
+		.SetDisplayName(LOCTEXT("FindTab", "Find Results"))
+		.SetGroup(MenuStructure.GetAssetEditorCategory());
+
 	TabManager->RegisterTabSpawner( HLSLCodeTabId, FOnSpawnTab::CreateSP(this, &FMaterialEditor::SpawnTab_HLSLCode) )
 		.SetDisplayName( LOCTEXT("HLSLCodeTab", "HLSL Code") )
 		.SetGroup( MenuStructure.GetAssetEditorCategory() );
@@ -151,6 +157,7 @@ void FMaterialEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>&
 	TabManager->UnregisterTabSpawner( PropertiesTabId );
 	TabManager->UnregisterTabSpawner( PaletteTabId );
 	TabManager->UnregisterTabSpawner( StatsTabId );
+	TabManager->UnregisterTabSpawner( FindTabId );
 	TabManager->UnregisterTabSpawner( HLSLCodeTabId );
 }
 
@@ -178,8 +185,6 @@ void FMaterialEditor::InitEditorForMaterial(UMaterial* InMaterial)
 			Material->Expressions.RemoveAt(ExpressionIndex);
 		}
 	}
-
-	MaterialDevelopmentOverheadStats.Init(Material);
 }
 
 void FMaterialEditor::InitEditorForMaterialFunction(UMaterialFunction* InMaterialFunction)
@@ -264,7 +269,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 
 	BindCommands();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v4")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_MaterialEditor_Layout_v5")
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -309,6 +314,7 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 					FTabManager::NewStack()
 					->SetSizeCoefficient( 0.20f )
 					->AddTab( StatsTabId, ETabState::ClosedTab )
+					->AddTab( FindTabId, ETabState::ClosedTab )
 				)
 				
 			)
@@ -417,8 +423,6 @@ void FMaterialEditor::InitMaterialEditor( const EToolkitMode::Type Mode, const T
 		}
 	}
 
-	// TODO: Remove this once Expressions are saved as flipped
-	FlipExpressionPositions(Material->Expressions, Material->EditorComments, Material);
 	Material->MaterialGraph->RebuildGraph();
 	RecenterEditor();
 	ForceRefreshExpressionPreviews();
@@ -430,6 +434,7 @@ FMaterialEditor::FMaterialEditor()
 	, Material(NULL)
 	, OriginalMaterial(NULL)
 	, ExpressionPreviewMaterial(NULL)
+	, EmptyMaterial(NULL)
 	, PreviewExpression(NULL)
 	, MaterialFunction(NULL)
 	, OriginalMaterialObject(NULL)
@@ -439,6 +444,7 @@ FMaterialEditor::FMaterialEditor()
 	, bHideUnusedConnectors(false)
 	, bIsRealtime(false)
 	, bShowStats(true)
+	, bShowBuiltinStats(false)
 	, bShowMobileStats(false)
 {
 }
@@ -547,6 +553,9 @@ void FMaterialEditor::CreateInternalWidgets()
 			MessageLogModule.CreateLogListingWidget( StatsListing.ToSharedRef() )
 		];
 
+	FindResults =
+		SNew(SFindInMaterial, SharedThis(this));
+
 	CodeViewUtility =
 		SNew(SVerticalBox)
 		// Copy Button
@@ -561,8 +570,8 @@ void FMaterialEditor::CreateInternalWidgets()
 			.HAlign(HAlign_Left)
 			[
 				SNew(SButton)
-				.Text( LOCTEXT("CopyHLSLButton", "Copy").ToString() )
-				.ToolTipText( LOCTEXT("CopyHLSLButtonToolTip", "Copies all HLSL code to the clipboard.").ToString() )
+				.Text( LOCTEXT("CopyHLSLButton", "Copy") )
+				.ToolTipText( LOCTEXT("CopyHLSLButtonToolTip", "Copies all HLSL code to the clipboard.") )
 				.ContentPadding(3)
 				.OnClicked(this, &FMaterialEditor::CopyCodeViewTextToClipboard)
 			]
@@ -652,7 +661,7 @@ void FMaterialEditor::ExtendToolbar()
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> Searchbox)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder)
 		{
 			ToolbarBuilder.BeginSection("Apply");
 			{
@@ -660,6 +669,12 @@ void FMaterialEditor::ExtendToolbar()
 			}
 			ToolbarBuilder.EndSection();
 	
+			ToolbarBuilder.BeginSection("Search");
+			{
+				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().FindInMaterial);
+			}
+			ToolbarBuilder.EndSection();
+
 			ToolbarBuilder.BeginSection("Graph");
 			{
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().CameraHome);
@@ -668,13 +683,9 @@ void FMaterialEditor::ExtendToolbar()
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleRealtimeExpressions);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().AlwaysRefreshAllPreviews);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleMaterialStats);
+				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleReleaseStats);
+				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleBuiltinStats);
 				ToolbarBuilder.AddToolBarButton(FMaterialEditorCommands::Get().ToggleMobileStats);
-			}
-			ToolbarBuilder.EndSection();
-	
-			ToolbarBuilder.BeginSection("Search");
-			{
-				ToolbarBuilder.AddWidget(Searchbox);
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -682,28 +693,11 @@ void FMaterialEditor::ExtendToolbar()
 
 	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
 
-	float SearchWidth = 200.f;
-	TSharedRef<SHorizontalBox> Searchbox = SNew(SHorizontalBox);
-	TSharedRef<SWidget> SearchWidget = Searchbox;
-
-	Searchbox->AddSlot()
-	.MaxWidth(SearchWidth)
-	.FillWidth(1.f)
-	.VAlign(VAlign_Bottom)
-	[
-		SNew( SSearchBox )
-		.ToolTipText( LOCTEXT("GraphSearchHint", "Type here to search expressions in the graph").ToString() )
-		.OnTextChanged( this, &FMaterialEditor::OnGraphSearchChanged )
-		.OnTextCommitted( this, &FMaterialEditor::OnGraphSearchCommitted )
-		.OnSearch( this, &FMaterialEditor::OnSearch )
-		.MinDesiredWidth(SearchWidth)
-	];
-
 	ToolbarExtender->AddToolBarExtension(
 		"Asset",
 		EExtensionHook::After,
 		GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar, SearchWidget )
+		FToolBarExtensionDelegate::CreateStatic( &Local::FillToolbar )
 		);
 	
 	AddToolbarExtender(ToolbarExtender);
@@ -920,7 +914,7 @@ void FMaterialEditor::RecenterEditor()
 
 	if (FocusNode)
 	{
-		GraphEditor->JumpToNode(FocusNode, false);
+		JumpToNode(FocusNode);
 	}
 	else
 	{
@@ -970,9 +964,9 @@ void FMaterialEditor::LoadEditorSettings()
 {
 	EditorOptions = ConstructObject<UMaterialEditorOptions>( UMaterialEditorOptions::StaticClass() );
 	
-	if (EditorOptions->bHideUnusedConnectors) { OnShowConnectors(); }
-	if (EditorOptions->bAlwaysRefreshAllPreviews) { OnAlwaysRefreshAllPreviews(); }
-	if (EditorOptions->bRealtimeExpressionViewport) { ToggleRealTimeExpressions(); }
+	if (EditorOptions->bHideUnusedConnectors) {OnShowConnectors();}
+	if (EditorOptions->bAlwaysRefreshAllPreviews) {OnAlwaysRefreshAllPreviews();}
+	if (EditorOptions->bRealtimeExpressionViewport) {ToggleRealTimeExpressions();}
 
 	if ( Viewport.IsValid() )
 	{
@@ -987,6 +981,16 @@ void FMaterialEditor::LoadEditorSettings()
 	if (EditorOptions->bShowMobileStats)
 	{
 		ToggleMobileStats();
+	}
+
+	if (EditorOptions->bReleaseStats)
+	{
+		ToggleReleaseStats();
+	}
+
+	if (EditorOptions->bShowBuiltinStats)
+	{
+		ToggleBuiltinStats();
 	}
 
 	// Primitive type
@@ -1009,27 +1013,13 @@ void FMaterialEditor::SaveEditorSettings()
 		EditorOptions->bShowBackground				= Viewport->IsTogglePreviewBackgroundChecked();
 		EditorOptions->bRealtimeMaterialViewport	= Viewport->IsRealtime();
 		EditorOptions->bShowMobileStats				= bShowMobileStats;
-		EditorOptions->bHideUnusedConnectors = !IsOnShowConnectorsChecked();
-		EditorOptions->bAlwaysRefreshAllPreviews = IsOnAlwaysRefreshAllPreviews();
-		EditorOptions->bRealtimeExpressionViewport = IsToggleRealTimeExpressionsChecked();
+		EditorOptions->bHideUnusedConnectors		= !IsOnShowConnectorsChecked();
+		EditorOptions->bAlwaysRefreshAllPreviews	= IsOnAlwaysRefreshAllPreviews();
+		EditorOptions->bRealtimeExpressionViewport	= IsToggleRealTimeExpressionsChecked();
 		EditorOptions->SaveConfig();
 	}
 
 	GConfig->SetInt(TEXT("MaterialEditor"), TEXT("PrimType"), Viewport->PreviewPrimType, GEditorUserSettingsIni);
-}
-
-void FMaterialEditor::OnGraphSearchChanged( const FText& InFilterText )
-{
-	SearchQuery = InFilterText.ToString();
-	UpdateSearch(true);
-}
-
-void FMaterialEditor::OnGraphSearchCommitted(const FText& NewTypeInValue, ETextCommit::Type CommitInfo)
-{
-	if (CommitInfo ==  ETextCommit::OnEnter)
-	{
-		OnSearch( SSearchBox::Next );
-	}
 }
 
 FString FMaterialEditor::GetCodeViewText() const
@@ -1060,7 +1050,7 @@ void FMaterialEditor::RegenerateCodeView()
 	}
 
 	FString MarkupSource;
-	if( Material->GetMaterialResource(GRHIFeatureLevel)->GetMaterialExpressionSource( MarkupSource, ExpressionCodeMap) )
+	if (Material->GetMaterialResource(GRHIFeatureLevel)->GetMaterialExpressionSource(MarkupSource, ExpressionCodeMap))
 	{
 		// Remove line-feeds and leave just CRs so the character counts match the selection ranges.
 		MarkupSource.ReplaceInline(TEXT("\r"), TEXT(""));
@@ -1124,11 +1114,12 @@ void FMaterialEditor::UpdatePreviewMaterial( )
 		Material->PreEditChange( NULL );
 		Material->PostEditChange();
 
+		UpdateStatsMaterials();
+
 		// Null out the expression preview material so they can be GC'ed
 		ExpressionPreviewMaterial = NULL;
 	}
 
-	MaterialDevelopmentOverheadStats.Update(Material);
 
 	// Reregister all components that use the preview material, since UMaterial::PEC does not reregister components using a bIsPreviewMaterial=true material
 	RefreshPreviewViewport();
@@ -1236,9 +1227,6 @@ void FMaterialEditor::UpdateOriginalMaterial()
 		// Restore the thumbnail info
 		MaterialFunction->ParentFunction->ThumbnailInfo = OriginalThumbnailInfo;
 		MaterialFunction->ThumbnailInfo = ThumbnailInfo;
-
-		// TODO: Remove this once Expressions are saved as flipped
-		FlipExpressionPositions(MaterialFunction->ParentFunction->FunctionExpressions, MaterialFunction->ParentFunction->FunctionEditorComments);
 
 		// Restore RF_Standalone on the original material function, as it had been removed from the preview material so that it could be GC'd.
 		MaterialFunction->ParentFunction->SetFlags( RF_Standalone );
@@ -1368,9 +1356,6 @@ void FMaterialEditor::UpdateOriginalMaterial()
 			OriginalMaterial->ThumbnailInfo = OriginalThumbnailInfo;
 			Material->ThumbnailInfo = ThumbnailInfo;
 
-			// TODO: Remove this once Expressions are saved as flipped
-			FlipExpressionPositions(OriginalMaterial->Expressions, OriginalMaterial->EditorComments, OriginalMaterial);
-
 			// Change the original material object to the new original material
 			OriginalMaterialObject = OriginalMaterial;
 
@@ -1480,23 +1465,37 @@ void FMaterialEditor::UpdateMaterialInfoList(bool bForceDisplay)
 				// Display any errors and messages in the upper left corner of the viewport.
 				TArray<FString> Descriptions;
 				TArray<int32> InstructionCounts;
+				TArray<FString> EmptyDescriptions;
+				TArray<int32> EmptyInstructionCounts;
+
 				MaterialResource->GetRepresentativeInstructionCounts(Descriptions, InstructionCounts);
 
-				TArray<int32> OverheadCounts;
-				bool bDoOverheadCount = false;//MaterialDevelopmentOverheadStats.GetOverheadCounts(OverheadCounts, FeatureLevel);
-				bDoOverheadCount = bDoOverheadCount && OverheadCounts.Num() > 0 && InstructionCounts.Num() > 0;
-				check(!bDoOverheadCount || OverheadCounts.Num() == InstructionCounts.Num());
+				bool bBuiltinStats = false;
+				const FMaterialResource* EmptyMaterialResource = EmptyMaterial ? EmptyMaterial->GetMaterialResource(FeatureLevel) : NULL;
+				if (bShowBuiltinStats && bStatsFromPreviewMaterial && EmptyMaterialResource && InstructionCounts.Num() > 0)
+				{
+					EmptyMaterialResource->GetRepresentativeInstructionCounts(EmptyDescriptions, EmptyInstructionCounts);
+
+					if (EmptyInstructionCounts.Num() > 0)
+					{
+						//The instruction counts should match. If not, the preview material has been changed without the EmptyMaterial being updated to match.
+						if (ensure(InstructionCounts.Num() == EmptyInstructionCounts.Num()))
+						{
+							bBuiltinStats = true;
+						}
+					}
+				}
 
 				for (int32 InstructionIndex = 0; InstructionIndex < Descriptions.Num(); InstructionIndex++)
 				{
-					FString InstructionCountString = FString::Printf(TEXT("%s: %u instructions"),*Descriptions[InstructionIndex],InstructionCounts[InstructionIndex]);
-					if(bDoOverheadCount)
+					FString InstructionCountString = FString::Printf(TEXT("%s: %u instructions"),*Descriptions[InstructionIndex], InstructionCounts[InstructionIndex]);
+					if (bBuiltinStats)
 					{
-						InstructionCountString += FString::Printf( TEXT(" - Dev Overhead: %u"), OverheadCounts[InstructionIndex] );
+						InstructionCountString += FString::Printf(TEXT(" - Built-in instructions: %u"), EmptyInstructionCounts[InstructionIndex]);
 					}
 					TempMaterialInfoList.Add(MakeShareable(new FMaterialInfo(InstructionCountString, FLinearColor::Yellow)));
-					TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create( EMessageSeverity::Info );
-					Line->AddToken( FTextToken::Create( FText::FromString( InstructionCountString ) ) );
+					TSharedRef<FTokenizedMessage> Line = FTokenizedMessage::Create(EMessageSeverity::Info);
+					Line->AddToken(FTextToken::Create(FText::FromString(InstructionCountString)));
 					Messages.Add(Line);
 				}
 
@@ -1588,7 +1587,6 @@ void FMaterialEditor::UpdateGraphNodeStates()
 			MaterialNode->bIsPreviewExpression = (PreviewExpression == MaterialNode->MaterialExpression);
 			MaterialNode->bIsErrorExpression = (ErrorMaterialResource->GetErrorExpressions().Find(MaterialNode->MaterialExpression) != INDEX_NONE)
 												|| (ErrorMaterialResourceES2 && ErrorMaterialResourceES2->GetErrorExpressions().Find(MaterialNode->MaterialExpression) != INDEX_NONE);
-			MaterialNode->bIsCurrentSearchResult = (SelectedSearchResult >= 0 && SelectedSearchResult < SearchResults.Num() && SearchResults[SelectedSearchResult] == MaterialNode->MaterialExpression);
 
 			if (MaterialNode->bIsErrorExpression && !MaterialNode->bHasCompilerMessage)
 			{
@@ -1619,7 +1617,7 @@ void FMaterialEditor::AddReferencedObjects( FReferenceCollector& Collector )
 	Collector.AddReferencedObject( OriginalMaterial );
 	Collector.AddReferencedObject( MaterialFunction );
 	Collector.AddReferencedObject( ExpressionPreviewMaterial );
-	MaterialDevelopmentOverheadStats.AddReferencedObjects( Collector );
+	Collector.AddReferencedObject( EmptyMaterial );
 }
 
 void FMaterialEditor::BindCommands()
@@ -1680,6 +1678,18 @@ void FMaterialEditor::BindCommands()
 		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleStatsChecked));
 
 	ToolkitCommands->MapAction(
+		Commands.ToggleReleaseStats,
+		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleReleaseStats),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleReleaseStatsChecked));
+
+	ToolkitCommands->MapAction(
+		Commands.ToggleBuiltinStats,
+		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleBuiltinStats),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FMaterialEditor::IsToggleBuiltinStatsChecked));
+
+	ToolkitCommands->MapAction(
 		Commands.ToggleMobileStats,
 		FExecuteAction::CreateSP(this, &FMaterialEditor::ToggleMobileStats),
 		FCanExecuteAction(),
@@ -1736,6 +1746,10 @@ void FMaterialEditor::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.ForceRefreshPreviews,
 		FExecuteAction::CreateSP(this, &FMaterialEditor::OnForceRefreshPreviews));
+
+	ToolkitCommands->MapAction(
+		Commands.FindInMaterial,
+		FExecuteAction::CreateSP(this, &FMaterialEditor::OnFindInMaterial));
 }
 
 void FMaterialEditor::OnApply()
@@ -1802,6 +1816,35 @@ bool FMaterialEditor::IsToggleStatsChecked() const
 	return bShowStats == true;
 }
 
+void FMaterialEditor::ToggleReleaseStats()
+{
+	Material->bAllowDevelopmentShaderCompile = !Material->bAllowDevelopmentShaderCompile;
+	UpdatePreviewMaterial();
+}
+
+bool FMaterialEditor::IsToggleReleaseStatsChecked() const
+{
+	return !Material->bAllowDevelopmentShaderCompile;
+}
+
+void FMaterialEditor::ToggleBuiltinStats()
+{
+	bShowBuiltinStats = !bShowBuiltinStats;
+
+	if (bShowBuiltinStats && !bStatsFromPreviewMaterial)
+	{
+		//Have to be start using the preview material for stats.
+		UpdatePreviewMaterial();
+	}
+
+	UpdateStatsMaterials();
+}
+
+bool FMaterialEditor::IsToggleBuiltinStatsChecked() const
+{
+	return bShowBuiltinStats;
+}
+
 void FMaterialEditor::ToggleMobileStats()
 {
 	// Toggle the showing of material stats each time the user presses the show stats button
@@ -1821,6 +1864,7 @@ void FMaterialEditor::ToggleMobileStats()
 				OriginalMaterial->ForceRecompileForRendering();
 			}
 		}
+		UpdateStatsMaterials();
 		RefreshPreviewViewport();
 	}
 	UpdateMaterialInfoList(bShowMobileStats);
@@ -2243,6 +2287,17 @@ void FMaterialEditor::OnCreateComment()
 	CreateNewMaterialExpressionComment(GraphEditor->GetPasteLocation());
 }
 
+void FMaterialEditor::OnCreateComponentMaskNode()
+{
+	CreateNewMaterialExpression(UMaterialExpressionComponentMask::StaticClass(), GraphEditor->GetPasteLocation(), true, false);
+}
+
+void FMaterialEditor::OnFindInMaterial()
+{
+	TabManager->InvokeTab(FindTabId);
+	FindResults->FocusForUse();
+}
+
 void FMaterialEditor::RenameAssetFromRegistry(const FAssetData& InAddedAssetData, const FString& InNewName)
 {
 	// Grab the asset class, it will be checked for being a material function.
@@ -2261,6 +2316,7 @@ void FMaterialEditor::OnMaterialUsageFlagsChanged(UMaterial* MaterialThatChanged
 	{
 		bool bNeedsRecompile = false;
 		Material->SetMaterialUsage(bNeedsRecompile, Flag, MaterialThatChanged->GetUsageByFlag(Flag));
+		UpdateStatsMaterials();
 	}
 }
 
@@ -2366,28 +2422,21 @@ TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Stats(const FSpawnTabArgs& Args)
 	return SpawnedTab;
 }
 
-void FMaterialEditor::OnSearch(SSearchBox::SearchDirection Direction)
+TSharedRef<SDockTab> FMaterialEditor::SpawnTab_Find(const FSpawnTabArgs& Args)
 {
-	if (SearchQuery.Len() > 0)
-	{
-		if (Direction == SSearchBox::Previous)
-		{
-			SelectedSearchResult--;
-			if( SelectedSearchResult < 0 )
-			{
-				SelectedSearchResult = FMath::Max<int32>(SearchResults.Num()-1,0);
-			}
-		}
-		else
-		{
-			SelectedSearchResult++;
-			if( SelectedSearchResult >= SearchResults.Num() )
-			{
-				SelectedSearchResult = 0;
-			}
-		}
-		ShowSearchResult();
-	}
+	check(Args.GetTabId() == FindTabId);
+
+	TSharedRef<SDockTab> SpawnedTab = SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("Kismet.Tabs.FindResults"))
+		.Label(LOCTEXT("MaterialFindTitle", "Find Results"))
+		[
+			SNew(STutorialWrapper, TEXT("MaterialFind"))
+			[
+				FindResults.ToSharedRef()
+			]
+		];
+
+	return SpawnedTab;
 }
 
 void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpression)
@@ -2443,6 +2492,11 @@ void FMaterialEditor::SetPreviewExpression(UMaterialExpression* NewPreviewExpres
 		// Recompile the preview material
 		UpdatePreviewMaterial();
 	}
+}
+
+void FMaterialEditor::JumpToNode(const UEdGraphNode* Node)
+{
+	GraphEditor->JumpToNode(Node, false);
 }
 
 UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExpressionClass, const FVector2D& NodePos, bool bAutoSelect, bool bAutoAssignResource)
@@ -2598,7 +2652,6 @@ UMaterialExpression* FMaterialEditor::CreateNewMaterialExpression(UClass* NewExp
 	}
 
 	RegenerateCodeView();
-	UpdateSearch(false);
 
 	// Update the current preview material.
 	UpdatePreviewMaterial();
@@ -2771,7 +2824,6 @@ void FMaterialEditor::DeleteNodes(const TArray<UEdGraphNode*>& NodesToDelete)
 				SetPreviewMaterial( Material );
 			}
 			RegenerateCodeView();
-			UpdateSearch(false);
 		}
 		UpdatePreviewMaterial();
 		Material->MarkPackageDirty();
@@ -3065,8 +3117,6 @@ void FMaterialEditor::UndoGraphAction()
 		Material->BuildEditorParameterList();
 	}
 
-	UpdateSearch(false);
-
 	// Update the current preview material.
 	UpdatePreviewMaterial();
 
@@ -3101,8 +3151,6 @@ void FMaterialEditor::PostUndo(bool bSuccess)
 	GraphEditor->ClearSelectionSet();
 
 	Material->BuildEditorParameterList();
-
-	UpdateSearch(false);
 
 	// Update the current preview material.
 	UpdatePreviewMaterial();
@@ -3175,8 +3223,6 @@ void FMaterialEditor::NotifyPostChange( const FPropertyChangedEvent& PropertyCha
 			RefreshExpressionPreviews();
 			RegenerateCodeView();
 		}
-
-		UpdateSearch(false);
 	}
 
 	delete ScopedTransaction;
@@ -3295,100 +3341,6 @@ FMatExpressionPreview* FMaterialEditor::GetExpressionPreview(UMaterialExpression
 	}
 
 	return NULL;
-}
-
-void FMaterialEditor::UpdateSearch( bool bQueryChanged )
-{
-	SearchResults.Empty();
-
-	if (SearchQuery.Len() == 0)
-	{
-		if (bQueryChanged)
-		{
-			// We just cleared the search
-			SelectedSearchResult = 0;
-		}
-	}
-	else
-	{
-		// Search expressions
-		for (int32 Index = 0; Index < Material->Expressions.Num(); Index++)
-		{
-			if (Material->Expressions[Index]->MatchesSearchQuery(*SearchQuery))
-			{
-				SearchResults.Add(Material->Expressions[Index]);
-			}
-		}
-
-		// Search comments
-		for (int32 Index = 0; Index < Material->EditorComments.Num(); Index++)
-		{
-			if (Material->EditorComments[Index]->MatchesSearchQuery(*SearchQuery))
-			{
-				SearchResults.Add(Material->EditorComments[Index]);
-			}
-		}
-
-		// Comparison function used to sort search results
-		struct FCompareUMaterialExpressionByPos
-		{
-			FORCEINLINE bool operator()( const UMaterialExpression& A, const UMaterialExpression& B ) const
-			{
-				// Divide into grid cells and step horizontally and then vertically.
-				int32 AGridX = A.MaterialExpressionEditorX / 100;
-				int32 AGridY = A.MaterialExpressionEditorY / 100;
-				int32 BGridX = B.MaterialExpressionEditorX / 100;
-				int32 BGridY = B.MaterialExpressionEditorY / 100;
-
-				if( AGridY < BGridY )
-				{
-					return true;
-				}
-				else
-					if( AGridY > BGridY )
-					{
-						return false;
-					}
-					else
-					{
-						return AGridX < BGridX;
-					}
-			}
-		};
-
-		SearchResults.Sort( FCompareUMaterialExpressionByPos() );
-
-		if( bQueryChanged )
-		{
-			// This is a new query rather than a material change, so navigate to first search result.
-			SelectedSearchResult = 0;
-			
-			if( SearchResults.Num() > 0 )
-			{
-				ShowSearchResult();
-			}
-		}
-		else
-		{
-			if( SelectedSearchResult < 0 || SelectedSearchResult >= SearchResults.Num() )
-			{
-				SelectedSearchResult = 0;
-			}
-		}
-	}
-}
-
-void FMaterialEditor::ShowSearchResult()
-{
-	if( SelectedSearchResult >= 0 && SelectedSearchResult < SearchResults.Num() )
-	{
-		UMaterialExpression* Expression = SearchResults[SelectedSearchResult];
-
-		// Select the selected search item
-		GraphEditor->ClearSelectionSet();
-		GraphEditor->SetNodeSelection(Expression->GraphNode, true);
-		GraphEditor->JumpToNode(Expression->GraphNode, false);
-	}
 }
 
 void FMaterialEditor::PreColorPickerCommit(FLinearColor LinearColor)
@@ -3518,6 +3470,10 @@ TSharedRef<SGraphEditor> FMaterialEditor::CreateGraphEditorWidget()
 
 		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().ForceRefreshPreviews,
 			FExecuteAction::CreateSP(this, &FMaterialEditor::OnForceRefreshPreviews)
+			);
+
+		GraphEditorCommands->MapAction( FMaterialEditorCommands::Get().CreateComponentMaskNode,
+			FExecuteAction::CreateSP(this, &FMaterialEditor::OnCreateComponentMaskNode)
 			);
 	}
 
@@ -3836,98 +3792,28 @@ FReply FMaterialEditor::OnSpawnGraphNodeByShortcut(FInputGesture InGesture, cons
 	return FReply::Unhandled();
 }
 
-void FMaterialEditor::FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, UMaterial* InMaterial)
+void FMaterialEditor::UpdateStatsMaterials()
 {
-	if (InMaterial)
-	{
-		InMaterial->EditorX = -InMaterial->EditorX;
+	if (bShowBuiltinStats && bStatsFromPreviewMaterial)
+	{	
+		UMaterial* StatsMaterial = Material;
+		FString EmptyMaterialName = FString(TEXT("MEStatsMaterial_Empty_")) + Material->GetName();
+		EmptyMaterial = (UMaterial*)StaticDuplicateObject(Material, GetTransientPackage(), *EmptyMaterialName, ~RF_Standalone, UPreviewMaterial::StaticClass());
+
+		EmptyMaterial->SetFeatureLevelToCompile(ERHIFeatureLevel::ES2, bShowMobileStats);
+
+		EmptyMaterial->Expressions.Empty();
+
+		//Disconnect all properties from the expressions
+		for (int32 PropIdx = 0; PropIdx < MP_MAX; ++PropIdx)
+		{
+			FExpressionInput* ExpInput = EmptyMaterial->GetExpressionInputForProperty((EMaterialProperty)PropIdx);
+			ExpInput->Expression = NULL;
+		}
+		EmptyMaterial->bAllowDevelopmentShaderCompile = Material->bAllowDevelopmentShaderCompile;
+		EmptyMaterial->PreEditChange(NULL);
+		EmptyMaterial->PostEditChange();
 	}
-	for (int32 ExpressionIndex = 0; ExpressionIndex < Expressions.Num(); ExpressionIndex++)
-	{
-		UMaterialExpression* Expression = Expressions[ExpressionIndex];
-		Expression->MaterialExpressionEditorX = -Expression->MaterialExpressionEditorX;
-	}
-	for (int32 ExpressionIndex = 0; ExpressionIndex < Comments.Num(); ExpressionIndex++)
-	{
-		UMaterialExpressionComment* Comment = Comments[ExpressionIndex];
-		Comment->MaterialExpressionEditorX = -Comment->MaterialExpressionEditorX - Comment->SizeX;
-	}
-}
-
-void FMaterialDevelopmentOverheadStats::Init(UMaterial* InMaterial)
-{
-	Update(InMaterial);
-}
-
-void FMaterialDevelopmentOverheadStats::Update(UMaterial* InMaterial)
-{
-	//Disabling this as a temp fix until full fix is merged in 4.2
-	return;
-
-// 	//Duplicate the material in place (same name).
-// 	EmptyMaterial = (UMaterial*)StaticDuplicateObject(InMaterial, GetTransientPackage(), TEXT("EmptyMaterial"), ~RF_Standalone, UPreviewMaterial::StaticClass()); 		
-// 	EmptyMaterial->Expressions.Empty();		
-// 	
-// 	EmptyMaterialWithOverhead = (UMaterial*)StaticDuplicateObject(InMaterial, GetTransientPackage(), TEXT("EmptyOverheadMaterial"), ~RF_Standalone, UPreviewMaterial::StaticClass()); 		
-// 	EmptyMaterialWithOverhead->Expressions.Empty();	
-// 
-// 	//Disconnect all properties from the expressions
-// 	for( int32 PropIdx = 0; PropIdx < MP_MAX ; ++PropIdx )
-// 	{
-// 		FExpressionInput* ExpInput = EmptyMaterial->GetExpressionInputForProperty((EMaterialProperty)PropIdx);
-// 		ExpInput->Expression = NULL;	
-// 		ExpInput = EmptyMaterialWithOverhead->GetExpressionInputForProperty((EMaterialProperty)PropIdx);
-// 		ExpInput->Expression = NULL;
-// 	}
-// 
-// 	EmptyMaterial->bIsMaterialDevelopmentOverheadStatsMaterial = true;
-// 
-// 	EmptyMaterial->bAllowDevelopmentShaderCompile = false;
-// 	EmptyMaterial->PreEditChange( NULL );
-// 	EmptyMaterial->PostEditChange();
-// 
-// 	EmptyMaterialWithOverhead->bIsMaterialDevelopmentOverheadStatsMaterial = true;
-// 	EmptyMaterialWithOverhead->PreEditChange( NULL );
-// 	EmptyMaterialWithOverhead->PostEditChange();
-}
-
-void FMaterialDevelopmentOverheadStats::AddReferencedObjects(FReferenceCollector& Collector)
-{
- 	Collector.AddReferencedObject(EmptyMaterial);
- 	Collector.AddReferencedObject(EmptyMaterialWithOverhead);
-}
-
-bool FMaterialDevelopmentOverheadStats::GetOverheadCounts(TArray<int32>& OverheadCounts, ERHIFeatureLevel::Type FeatureLevel)
-{
-	//Disabling this as a temp fix until full fix is merged in 4.2
-	return false;
-
-// 	const FMaterialResource* EmptyMaterialResource = EmptyMaterial ? EmptyMaterial->GetMaterialResource(FeatureLevel) : NULL;
-// 	const FMaterialResource* EmptyMaterialResourceWithOverhead = EmptyMaterialWithOverhead ? EmptyMaterialWithOverhead->GetMaterialResource(FeatureLevel) : NULL;
-// 	
-// 	if( !EmptyMaterialResource || !EmptyMaterialResourceWithOverhead )
-// 	{
-// 		return false;
-// 	}
-// 		
-// 	TArray<FString> Descriptions;
-// 	TArray<int32> InstructionCounts;
-// 	TArray<FString> OverheadDescriptions;
-// 	TArray<int32> OverheadInstructionCounts;
-// 
-// 	EmptyMaterialResource->GetRepresentativeInstructionCounts(Descriptions, InstructionCounts);
-// 	EmptyMaterialResourceWithOverhead->GetRepresentativeInstructionCounts(OverheadDescriptions, OverheadInstructionCounts);
-// 
-// 	if( InstructionCounts.Num() == 0 || OverheadInstructionCounts.Num() == 0 )
-// 	{
-// 		return false;
-// 	}
-// 
-// 	for( int32 i=0 ; i < InstructionCounts.Num() ; ++i )
-// 	{
-// 		OverheadCounts.Add( OverheadInstructionCounts[i] - InstructionCounts[i] );
-// 	}
-// 	return true;
 }
 
 #undef LOCTEXT_NAMESPACE

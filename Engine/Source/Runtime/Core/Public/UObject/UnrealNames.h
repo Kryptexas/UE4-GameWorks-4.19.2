@@ -57,6 +57,7 @@ REGISTER_NAME(23,Int64Property)
 REGISTER_NAME(25,Int16Property)
 REGISTER_NAME(26,Int8Property)
 REGISTER_NAME(27,AssetSubclassOfProperty)
+REGISTER_NAME(28,AttributeProperty)
 
 // Special packages.
 REGISTER_NAME(30,Core)
@@ -146,6 +147,7 @@ REGISTER_NAME(247,OtherChildren)
 REGISTER_NAME(248,Location)
 REGISTER_NAME(249,Rotation)
 REGISTER_NAME(250,BSP)
+REGISTER_NAME(251,EditorGameAgnostic)
 
 // Online
 REGISTER_NAME(280,DGram)

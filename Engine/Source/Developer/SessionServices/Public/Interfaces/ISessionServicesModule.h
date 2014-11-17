@@ -29,7 +29,6 @@ public:
 	 */
 	virtual ISessionServiceRef GetSessionService( ) = 0;
 
-
 public:
 
 	/**

@@ -13,7 +13,7 @@ KISMETCOMPILER_API DECLARE_LOG_CATEGORY_EXTERN(LogK2Compiler, Log, All);
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
 
-class FKismetCompilerContext : public FGraphCompilerContext
+class KISMETCOMPILER_API FKismetCompilerContext : public FGraphCompilerContext
 {
 protected:
 	typedef FGraphCompilerContext Super;
@@ -113,10 +113,29 @@ public:
 		return Result;
 	}
 
-	KISMETCOMPILER_API UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false);
+	/**
+	 * Moves pin links over from the source-pin to the specified intermediate, 
+	 * and validates the result (additionally logs a redirect from the 
+	 * intermediate-pin back to the source so we can back trace for debugging, etc.)
+	 * 
+	 * @param  SourcePin		The pin you want disconnected.
+	 * @param  IntermediatePin	The pin you want the SourcePin's links moved to.
+	 * @return The result from calling the schema's MovePinLinks().
+	 */
+	FPinConnectionResponse MovePinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
 
-	/** Checks a connection response, and errors if it didn't succeed */
-	KISMETCOMPILER_API void CheckConnectionResponse(const FPinConnectionResponse &Response, const UEdGraphNode *Node);
+	/**
+	 * Copies pin links over from the source-pin to the specified intermediate, 
+	 * and validates the result (additionally logs a redirect from the 
+	 * intermediate-pin back to the source so we can back trace for debugging, etc.)
+	 * 
+	 * @param  SourcePin		The pin whose links you want copied.
+	 * @param  IntermediatePin	The pin you want the SourcePin's links copied to.
+	 * @return The result from calling the schema's CopyPinLinks().
+	 */
+	FPinConnectionResponse CopyPinLinksToIntermediate(UEdGraphPin& SourcePin, UEdGraphPin& IntermediatePin);
+
+	UK2Node_TemporaryVariable* SpawnInternalVariable(UEdGraphNode* SourceNode, FString Category, FString SubCategory = TEXT(""), UObject* SubcategoryObject = NULL, bool bIsArray = false);
 
 protected:
 	virtual UEdGraphSchema_K2* CreateSchema();
@@ -135,6 +154,13 @@ protected:
 	 * @param OldCDO			Reference to the old CDO of the class, so we can copy the properties from it to the new class's CDO
 	 */
 	virtual void CleanAndSanitizeClass(UBlueprintGeneratedClass* ClassToClean, UObject*& OldCDO);
+
+	/** 
+	 * Checks a connection response, and errors if it didn't succeed (not public, 
+	 * users should be using MovePinLinksToIntermediate/CopyPinLinksToIntermediate 
+	 * instead of wrapping their own with this).
+	 */
+	void CheckConnectionResponse(const FPinConnectionResponse &Response, const UEdGraphNode *Node);
 
 protected:
 	// FGraphCompilerContext interface
@@ -156,7 +182,7 @@ protected:
 
 	// Advances the macro position tracking
 	void AdvanceMacroPlacement(int32 Width, int32 Height);
-	KISMETCOMPILER_API void AutoAssignNodePosition(UEdGraphNode* Node);
+	void AutoAssignNodePosition(UEdGraphNode* Node);
 	void CreateCommentBlockAroundNodes(const TArray<UEdGraphNode*>& Nodes, UObject* SourceObject, UEdGraph* TargetGraph, FString CommentText, FLinearColor CommentColor, int32& Out_OffsetX, int32& Out_OffsetY);
 
 	/** Creates a class variable */
@@ -176,6 +202,9 @@ protected:
 
 	/** Creates the properties on a function that store the function parameters, results, and local variables */
 	void CreateLocalVariablesForFunction(FKismetFunctionContext& Context);
+
+	/** Creates user defined local variables for function */
+	void CreateUserDefinedLocalVariablesForFunction(FKismetFunctionContext& Context, UField**& PropertyStorageLocation);
 
 	/** Adds a default value entry into the DefaultPropertyValueMap for the property specified */
 	void SetPropertyDefaultValue(const UProperty* PropertyToSet, FString& Value);
@@ -212,6 +241,9 @@ protected:
 	 * Creates a list of functions to compile
 	 */
 	virtual void CreateFunctionList();
+
+	/** Creates a new function context and adds it to the function list to be processed. */
+	FKismetFunctionContext* CreateFunctionContext();
 
 	/**
 	 * Merges macros/subgraphs into the graph and validates it, creating a function list entry if it's reasonable.
@@ -318,6 +350,9 @@ protected:
 
 	/** Ensures that all function graphs have valid names for compilation/replication */
 	void ValidateFunctionGraphNames();
+
+	/** Validates the generated class */
+	virtual bool ValidateGeneratedClass(UBlueprintGeneratedClass* Class);
 
 private:
 	/**

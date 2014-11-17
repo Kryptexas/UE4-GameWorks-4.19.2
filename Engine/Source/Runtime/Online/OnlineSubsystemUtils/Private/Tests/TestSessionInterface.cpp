@@ -8,7 +8,6 @@
 #include "ModuleManager.h"
 
 #include "Engine.h"
-#include "EngineKismetLibraryClasses.h"
 
 /**
  *	Example of a hosted session
@@ -176,7 +175,7 @@ void FTestSessionInterface::WorldDestroyed( UWorld* InWorld )
 
 void FTestSessionInterface::OnReadFriendsListComplete(int32 LocalUserNum, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr)
 {
-	UE_LOG(LogOnline, Verbose, TEXT("OnReadFriendsListComplete LocalUserNum: %d bSuccess: %d. "), LocalUserNum, bWasSuccessful, *ErrorStr);
+	UE_LOG(LogOnline, Verbose, TEXT("OnReadFriendsListComplete LocalUserNum: %d bSuccess: %d %s"), LocalUserNum, bWasSuccessful, *ErrorStr);
 	Friends->ClearOnReadFriendsListCompleteDelegate(0, OnReadFriendsListCompleteDelegate);
 	if (bWasSuccessful)
 	{

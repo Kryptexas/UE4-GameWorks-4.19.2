@@ -10,10 +10,11 @@ public class SubversionSourceControl : ModuleRules
             new string[] {
 				"Core",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl",
 				"XmlParser",
 		    }
-            );
+		);
 	}
 }

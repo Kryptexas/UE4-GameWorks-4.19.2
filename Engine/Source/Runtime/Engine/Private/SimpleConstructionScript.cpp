@@ -136,7 +136,12 @@ void USimpleConstructionScript::PostLoad()
 #if WITH_EDITOR
 	// Get the Blueprint that owns the SCS
 	UBlueprint* Blueprint = GetBlueprint();
-	check(Blueprint != NULL);
+	if (!Blueprint)
+	{
+		// sometimes the PostLoad can be called, after the object was trashed, we dont want this
+		UE_LOG(LogBlueprint, Warning, TEXT("USimpleConstructionScript::PostLoad() '%s' cannot find its owner blueprint"), *GetName());
+		return;
+	}
 
 	// Fix up any uninitialized category names
 	for (NodeIndex=0; NodeIndex < Nodes.Num(); ++NodeIndex)
@@ -600,25 +605,35 @@ USCS_Node* USimpleConstructionScript::CreateNode(UClass* NewComponentClass, FNam
 	check(NewComponentClass->IsChildOf(UActorComponent::StaticClass()));
 
 	ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
-	UActorComponent* NewTemplate = ConstructObject<UActorComponent>(NewComponentClass, Blueprint->GeneratedClass);
-	NewTemplate->SetFlags(RF_ArchetypeObject|RF_Transactional);
+	UActorComponent* NewComponentTemplate = ConstructObject<UActorComponent>(NewComponentClass, Blueprint->GeneratedClass);
+	NewComponentTemplate->SetFlags(RF_ArchetypeObject|RF_Transactional);
 
-	// Create a node for the script, and save a pointer to the template.
-	USCS_Node* NewNode = NewObject<USCS_Node>(this);
-	NewNode->SetFlags(RF_Transactional);
-	NewNode->ComponentTemplate = NewTemplate;
+	return CreateNode(NewComponentTemplate, NewComponentVariableName);
+}
 
-	// Get a list of names currently in use.
-	TArray<FName> CurrentNames;
-	NewNode->GenerateListOfExistingNames( CurrentNames );
+USCS_Node* USimpleConstructionScript::CreateNode(UActorComponent* NewComponentTemplate, FName NewComponentVariableName)
+{
+	if(NewComponentTemplate)
+	{
+		// Create a node for the script, and save a pointer to the template.
+		USCS_Node* NewNode = NewObject<USCS_Node>(this);
+		NewNode->SetFlags(RF_Transactional);
+		NewNode->ComponentTemplate = NewComponentTemplate;
 
-	// Now create a name for the new component.
-	NewNode->VariableName = NewNode->GenerateNewComponentName( CurrentNames, NewComponentVariableName );
+		// Get a list of names currently in use.
+		TArray<FName> CurrentNames;
+		NewNode->GenerateListOfExistingNames( CurrentNames );
 
-	// Note: This should match up with UEdGraphSchema_K2::VR_DefaultCategory
-	NewNode->CategoryName = TEXT("Default");
+		// Now create a name for the new component.
+		NewNode->VariableName = NewNode->GenerateNewComponentName( CurrentNames, NewComponentVariableName );
 
-	return NewNode;
+		// Note: This should match up with UEdGraphSchema_K2::VR_DefaultCategory
+		NewNode->CategoryName = TEXT("Default");
+
+		return NewNode;
+	}
+
+	return NULL;
 }
 
 void USimpleConstructionScript::ValidateNodeVariableNames(FCompilerResultsLog& MessageLog)

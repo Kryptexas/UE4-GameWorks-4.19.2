@@ -5,16 +5,26 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineLevelScriptClasses.h"
 #include "OnlineSubsystemUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
+
+namespace MatchState
+{
+	const FName EnteringMap = FName(TEXT("EnteringMap"));
+	const FName WaitingToStart = FName(TEXT("WaitingToStart"));
+	const FName InProgress = FName(TEXT("InProgress"));
+	const FName WaitingPostMatch = FName(TEXT("WaitingPostMatch"));
+	const FName LeavingMap = FName(TEXT("LeavingMap"));
+	const FName Aborted = FName(TEXT("Aborted"));
+}
 
 AGameMode::AGameMode(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP
 		.DoNotCreateDefaultSubobject(TEXT("Sprite"))
 	)
 {
+	bStartPlayersAsSpectators = false;
 	bDelayedStart = false;
 	bNetLoadOnClient = false;
 
@@ -22,7 +32,7 @@ AGameMode::AGameMode(const class FPostConstructInitializeProperties& PCIP)
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	HUDClass = AHUD::StaticClass();
-	bWaitingToStartMatch = false;
+	MatchState = MatchState::EnteringMap;
 	bPauseable = true;
 	DefaultPawnClass = ADefaultPawn::StaticClass();
 	PlayerControllerClass = APlayerController::StaticClass();
@@ -34,13 +44,11 @@ AGameMode::AGameMode(const class FPostConstructInitializeProperties& PCIP)
 	MinRespawnDelay = 1.0f;
 }
 
-
 FString AGameMode::GetNetworkNumber()
 {
 	UNetDriver* NetDriver = GetWorld()->GetNetDriver();
 	return NetDriver ? NetDriver->LowLevelGetNetworkNumber() : FString(TEXT(""));
 }
-
 
 void AGameMode::SwapPlayerControllers(APlayerController* OldPC, APlayerController* NewPC)
 {
@@ -120,7 +128,7 @@ void AGameMode::ForceClearUnpauseDelegates( AActor* PauseActor )
 	}
 }
 
-void AGameMode::InitGame( const FString& MapName, const FString& Options, FString& ErrorMessage )
+void AGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	UWorld* World = GetWorld();
 
@@ -130,7 +138,7 @@ void AGameMode::InitGame( const FString& MapName, const FString& Options, FStrin
 	UClass* const SessionClass = GetGameSessionClass();
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;
-	GameSession = World->SpawnActor<AGameSession>( SessionClass, SpawnInfo );
+	GameSession = World->SpawnActor<AGameSession>(SessionClass, SpawnInfo);
 	GameSession->InitOptions(Options);
 
 	if (GetNetMode() != NM_Standalone)
@@ -147,6 +155,8 @@ void AGameMode::InitGame( const FString& MapName, const FString& Options, FStrin
 			GameSession->RegisterServer();
 		}
 	}
+
+	SetMatchState(MatchState::EnteringMap);
 }
 
 bool AGameMode::SetPause(APlayerController* PC, FCanUnpause CanUnpauseDelegate)
@@ -174,11 +184,10 @@ void AGameMode::RestartGame()
 {
 	if ( GameSession->CanRestartGame() )
 	{
-		if (bGameRestarted)
+		if (GetMatchState() == MatchState::LeavingMap)
 		{
 			return;
 		}
-		bGameRestarted = true;
 
 		GetWorld()->ServerTravel("?Restart",GetTravelType());
 	}
@@ -321,10 +330,10 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 	// if incoming start is specified, then just use it
 	if( !IncomingName.IsEmpty() )
 	{
-		for( FActorIterator It(World); It; ++It )
+		for (TActorIterator<APlayerStart> It(World); It; ++It)
 		{
-			APlayerStart* Start = Cast<APlayerStart>(*It);
-			if ( Start && Start->PlayerStartTag == FName(*IncomingName) )
+			APlayerStart* Start = *It;
+			if (Start && Start->PlayerStartTag == FName(*IncomingName))
 			{
 				return Start;
 			}
@@ -334,7 +343,6 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 	// always pick StartSpot at start of match
 	if ( ShouldSpawnAtStartSpot(Player) )
 	{
-		// NULL CHECK MISSING!!!!!
 		return Player->StartSpot.Get();
 	}
 
@@ -395,31 +403,9 @@ void AGameMode::PreInitializeComponents()
 	InitGameState();
 }
 
-void AGameMode::PostInitializeComponents()
-{
-	Super::PostInitializeComponents();
-
-	bWaitingToStartMatch = true;
-	bMatchIsInProgress = false;
-
-	if(GameSession != NULL)
-	{
-		GameSession->StartPendingMatch();
-	}
-
-	// validate default classes
-// 	check(DefaultPawnClass && DefaultPawnClass->IsChildOf(APawn::StaticClass()));
-// 	check(PlayerControllerClass && PlayerControllerClass->IsChildOf(APlayerController::StaticClass()));
-// 	check(SpectatorClass && SpectatorClass->IsChildOf(ASpectatorPawn::StaticClass()));
-// 	check(EngineMessageClass && EngineMessageClass->IsChildOf(UEngineMessage::StaticClass()));
-// 	check(GameStateClass && GameStateClass->IsChildOf(AGameState::StaticClass()));
-// 	check(PlayerStateClass && PlayerStateClass->IsChildOf(APlayerState::StaticClass()));
-}
-
-
 void AGameMode::RestartPlayer(AController* NewPlayer)
 {
-	if ( bWaitingToStartMatch || NewPlayer == NULL || NewPlayer->IsPendingKillPending() )
+	if ( NewPlayer == NULL || NewPlayer->IsPendingKillPending() )
 	{
 		return;
 	}
@@ -444,13 +430,13 @@ void AGameMode::RestartPlayer(AController* NewPlayer)
 		}
 	}
 	// try to create a pawn to use of the default class for this player
-	if (NewPlayer->GetPawn() == NULL)
+	if (NewPlayer->GetPawn() == NULL && GetDefaultPawnClassForController(NewPlayer) != NULL)
 	{
 		NewPlayer->SetPawn(SpawnDefaultPawnFor(NewPlayer, StartSpot));
 	}
+
 	if (NewPlayer->GetPawn() == NULL)
 	{
-		UE_LOG(LogGameMode, Warning, TEXT("failed to spawn player at %s"), *StartSpot->GetName());
 		NewPlayer->FailedToSpawnPawn();
 	}
 	else
@@ -494,46 +480,93 @@ void AGameMode::InitStartSpot(AActor* StartSpot, AController* NewPlayer)
 {
 }
 
+void AGameMode::StartPlay()
+{
+	if (MatchState == MatchState::EnteringMap)
+	{
+		SetMatchState(MatchState::WaitingToStart);
+	}
+
+	// Check to see if we should immediately transfer to match start
+	if (MatchState == MatchState::WaitingToStart && ReadyToStartMatch())
+	{
+		StartMatch();
+	}
+}
+
+void AGameMode::HandleMatchIsWaitingToStart()
+{
+	if (GameSession != NULL)
+	{
+		GameSession->HandleMatchIsWaitingToStart();
+	}
+
+	// Calls begin play on actors, unless we're about to transition to match start
+
+	if (!ReadyToStartMatch())
+	{
+		GetWorldSettings()->NotifyBeginPlay();
+	}
+}
+
+bool AGameMode::ReadyToStartMatch()
+{
+	// If bDelayed Start is set, wait for a manual match start
+	if (bDelayedStart)
+	{
+		return false;
+	}
+
+	// By default start when we have > 0 players
+	if (GetMatchState() == MatchState::WaitingToStart)
+	{
+		if (NumPlayers + NumBots > 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void AGameMode::StartMatch()
 {
-	/**
-	 * Tells all of the currently connected clients to register with arbitration.
-	 * The clients will call back to the server once they have done so, which
-	 * will tell this state to see if it is time for the server to register with
-	 * arbitration.
-	 */
-	if (!bMatchIsInProgress && GameSession->HandleStartMatch())
+	if (HasMatchStarted())
+	{
+		// Already started
+		return;
+	}
+
+	//Let the game session override the StartMatch function, in case it wants to wait for arbitration
+
+	if (GameSession->HandleStartMatchRequest())
 	{
 		return;
 	}
 
-	if (bWaitingToStartMatch)
-	{
-		GameSession->EndPendingMatch();
-	}
+	SetMatchState(MatchState::InProgress);
+}
 
-	bWaitingToStartMatch = false;
+void AGameMode::HandleMatchHasStarted()
+{
+	GameSession->HandleMatchHasStarted();
 
 	// start human players first
 	for( FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator )
 	{
 		APlayerController* PlayerController = *Iterator;
-		if( ( PlayerController->GetPawn() == NULL) && PlayerController->CanRestartPlayer() )
+		if ((PlayerController->GetPawn() == NULL) && PlayerCanRestart(PlayerController))
 		{
 			RestartPlayer(PlayerController);
 		}
 	}
 
-	// Notify all clients that the match has begun
-	if(GetWorld()->GameState != NULL)
-	{
-		GetWorld()->GameState->StartMatch();
-	}
-
 	// Make sure level streaming is up to date before triggering NotifyMatchStarted
 	GetWorld()->FlushLevelStreaming();
 
-	// fire off any level startup events
+	// First fire BeginPlay, if we haven't already in waiting to start match
+	GetWorldSettings()->NotifyBeginPlay();
+
+	// Then fire off match started
 	GetWorldSettings()->NotifyMatchStarted();
 
 	// if passed in bug info, send player to right location
@@ -555,6 +588,136 @@ void AGameMode::StartMatch()
 	}
 }
 
+bool AGameMode::ReadyToEndMatch()
+{
+	// By default don't explicitly end match
+	return false;
+}
+
+void AGameMode::EndMatch()
+{
+	if (!IsMatchInProgress())
+	{
+		return;
+	}
+
+	SetMatchState(MatchState::WaitingPostMatch);
+}
+
+void AGameMode::HandleMatchHasEnded()
+{
+	GameSession->HandleMatchHasEnded();
+}
+
+void AGameMode::StartToLeaveMap()
+{
+	SetMatchState(MatchState::LeavingMap);
+}
+
+void AGameMode::HandleLeavingMap()
+{
+
+}
+
+void AGameMode::AbortMatch()
+{
+	SetMatchState(MatchState::Aborted);
+}
+
+void AGameMode::HandleMatchAborted()
+{
+
+}
+
+bool AGameMode::HasMatchStarted() const
+{
+	if (GetMatchState() == MatchState::EnteringMap || GetMatchState() == MatchState::WaitingToStart)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool AGameMode::IsMatchInProgress() const
+{
+	if (GetMatchState() == MatchState::InProgress)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool AGameMode::HasMatchEnded() const
+{
+	if (GetMatchState() == MatchState::WaitingPostMatch || GetMatchState() == MatchState::LeavingMap)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void AGameMode::SetMatchState(FName NewState)
+{
+	if (MatchState == NewState)
+	{
+		return;
+	}
+
+	MatchState = NewState;
+
+	// Call change callbacks
+
+	if (MatchState == MatchState::WaitingToStart)
+	{
+		HandleMatchIsWaitingToStart();
+	}
+	else if (MatchState == MatchState::InProgress)
+	{
+		HandleMatchHasStarted();
+	}
+	else if (MatchState == MatchState::WaitingPostMatch)
+	{
+		HandleMatchHasEnded();
+	}
+	else if (MatchState == MatchState::LeavingMap)
+	{
+		HandleLeavingMap();
+	}
+	else if (MatchState == MatchState::Aborted)
+	{
+		HandleMatchAborted();
+	}
+
+	if (GameState)
+	{
+		GameState->SetMatchState(NewState);
+	}
+}
+
+void AGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (GetMatchState() == MatchState::WaitingToStart)
+	{
+		// Check to see if we should start the match
+		if (ReadyToStartMatch())
+		{
+			StartMatch();
+		}
+	}
+	if (GetMatchState() == MatchState::InProgress)
+	{
+		// Check to see if we should start the match
+		if (ReadyToEndMatch())
+		{
+			EndMatch();
+		}
+	}
+}
 
 void AGameMode::ResetLevel()
 {
@@ -657,7 +820,7 @@ void AGameMode::HandleSeamlessTravelPlayer(AController*& C)
 	if (PC != NULL)
 	{
 		// Track the last completed seamless travel for the player
-		PC->LastSeamlessTravelCount = PC->SeamlessTravelCount;
+		PC->LastCompletedSeamlessTravelCount = PC->SeamlessTravelCount;
 
 		PC->CleanUpAudioComponents();
 
@@ -680,23 +843,19 @@ void AGameMode::HandleSeamlessTravelPlayer(AController*& C)
 			PC->bPlayerIsWaiting = true;
 			PC->ChangeState(NAME_Spectating);
 		}
-
-		// tell client what hud class to use
-		PC->ClientSetHUD(HUDClass);
 	}
 	else
 	{
 		NumBots++;
 	}
 
-	GenericPlayerInitialization(C);
-
-	// RestartPlayer if match has started. This fixes bugs if the seamless travel player loads slow and
-	// the server calls StartMatch before he loads.
-	if (!bWaitingToStartMatch && PC)
+	if (PC)
 	{
-		RestartPlayer(PC);
+		// This handles setting hud, and may spawn the player pawn if the game is in progress
+		StartNewPlayer(PC);
 	}
+
+	GenericPlayerInitialization(C);
 
 	UE_LOG(LogGameMode, Log, TEXT("<< GameMode::HandleSeamlessTravelPlayer: %s"), *C->GetName());
 }
@@ -710,7 +869,7 @@ void AGameMode::SetSeamlessTravelViewTarget(APlayerController* PC)
 void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 {
 #if WITH_SERVER_CODE
-	bLevelChange = true;
+	StartToLeaveMap();
 
 	// force an old style load screen if the server has been up for a long time so that TimeSeconds doesn't overflow and break everything
 	bool bSeamless = (bUseSeamlessTravel && GetWorld()->TimeSeconds < 172800.0f); // 172800 seconds == 48 hours
@@ -802,7 +961,7 @@ bool AGameMode::MustSpectate(APlayerController* NewPlayer)
 	return NewPlayer->PlayerState->bOnlySpectator;
 }
 
-APlayerController* AGameMode::Login(const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
+APlayerController* AGameMode::Login(UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
 	ErrorMessage = GameSession->ApproveLogin(Options);
 	if ( !ErrorMessage.IsEmpty() )
@@ -810,10 +969,10 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 		return NULL;
 	}
 
-	APlayerController* NewPlayer = SpawnPlayerController(FVector::ZeroVector, FRotator::ZeroRotator);
+	APlayerController* NewPlayerController = SpawnPlayerController(FVector::ZeroVector, FRotator::ZeroRotator);
 
 	// Handle spawn failure.
-	if( NewPlayer == NULL)
+	if( NewPlayerController == NULL)
 	{
 		UE_LOG(LogGameMode, Log, TEXT("Couldn't spawn player controller of class %s"), PlayerControllerClass ? *PlayerControllerClass->GetName() : TEXT("NULL"));
 		ErrorMessage = FString::Printf(TEXT("Failed to spawn player controller"));
@@ -821,7 +980,7 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 	}
 
 	// Customize incoming player based on URL options
-	InitNewPlayer(NewPlayer, UniqueId, Options);
+	InitNewPlayer(NewPlayerController, UniqueId, Options);
 
 	// Find a start spot.
 	AActor* const StartSpot = FindPlayerStart( NULL, Portal );
@@ -833,42 +992,33 @@ APlayerController* AGameMode::Login(const FString& Portal, const FString& Option
 
 	FRotator InitialControllerRot = StartSpot->GetActorRotation();
 	InitialControllerRot.Roll = 0.f;
-	NewPlayer->SetInitialLocationAndRotation(StartSpot->GetActorLocation(), InitialControllerRot);
-	NewPlayer->StartSpot = StartSpot;
+	NewPlayerController->SetInitialLocationAndRotation(StartSpot->GetActorLocation(), InitialControllerRot);
+	NewPlayerController->StartSpot = StartSpot;
 
 	// Register the player with the session
-	GameSession->RegisterPlayer(NewPlayer, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
+	GameSession->RegisterPlayer(NewPlayerController, UniqueId, HasOption(Options, TEXT("bIsFromInvite")));
 	
 	// Init player's name
 	FString InName = ParseOption( Options, TEXT("Name")).Left(20);
 	if( InName.IsEmpty() )
 	{
-		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayer->PlayerState->PlayerId);
+		InName = FString::Printf(TEXT("%s%i"), *DefaultPlayerName, NewPlayerController->PlayerState->PlayerId);
 	}
-	ChangeName( NewPlayer, InName, false );
+	ChangeName( NewPlayerController, InName, false );
 
 	// Set up spectating
 	bool bSpectator = FCString::Stricmp(*ParseOption( Options, TEXT("SpectatorOnly") ), TEXT("1")) == 0;
-	if ( bSpectator || MustSpectate(NewPlayer) )
+	if ( bSpectator || MustSpectate(NewPlayerController) )
 	{
-		NewPlayer->StartSpectatingOnly();
-		return NewPlayer;
+		NewPlayerController->StartSpectatingOnly();
+		return NewPlayerController;
 	}
 
-	if (bDelayedStart)
-	{
-		NewPlayer->bPlayerIsWaiting = true;
-		NewPlayer->ChangeState(NAME_Spectating);
-		return NewPlayer;
-	}
-
-
-
-	return NewPlayer;
+	return NewPlayerController;
 }
 
 
-void AGameMode::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void AGameMode::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Canvas->SetDrawColor(255,255,255);
 }
@@ -885,8 +1035,6 @@ bool AGameMode::ShouldReset(AActor* ActorToReset)
 {
 	return true;
 }
-
-void AGameMode::GameEnding() {}
 
 void AGameMode::PlayerSwitchedToSpectatorOnly(APlayerController* PC)
 {
@@ -1183,28 +1331,32 @@ void AGameMode::StartNewPlayer(APlayerController* NewPlayer)
 	// tell client what hud class to use
 	NewPlayer->ClientSetHUD(HUDClass);
 
-	if (!bDelayedStart)
+	// If players should start as spectators, leave them in the spectator state
+	if (!bStartPlayersAsSpectators && !NewPlayer->PlayerState->bOnlySpectator)
 	{
-		// start match, or let player enter, immediately
-		if ( bWaitingToStartMatch )
-		{
-			StartMatch();
-		}
-		else
+		// If match is in progress, start the player
+		if (IsMatchInProgress())
 		{
 			RestartPlayer(NewPlayer);
-		}
 
-		if (NewPlayer->GetPawn() != NULL)
+			if (NewPlayer->GetPawn() != NULL)
+			{
+				NewPlayer->GetPawn()->ClientSetRotation(NewPlayer->GetPawn()->GetActorRotation());
+			}
+		}
+		// Check to see if we should start right away, avoids a one frame lag in single player games
+		else if (GetMatchState() == MatchState::WaitingToStart)
 		{
-			NewPlayer->GetPawn()->ClientSetRotation(NewPlayer->GetPawn()->GetActorRotation());
+			// Check to see if we should start the match
+			if (ReadyToStartMatch())
+			{
+				StartMatch();
+			}
 		}
 	}
 }
 
 void AGameMode::PreExit() {}
-
-
 
 bool AGameMode::CanSpectate( APlayerController* Viewer, APlayerState* ViewTarget )
 {
@@ -1257,12 +1409,6 @@ void AGameMode::BroadcastLocalized( AActor* Sender, TSubclassOf<ULocalMessage> M
 	}
 }
 
-void AGameMode::PerformEndGameHandling()
-{
-	GameState->EndGame();
-	GameSession->EndGame();
-}
-
 bool AGameMode::ShouldSpawnAtStartSpot(AController* Player)
 {
 	return ( Player != NULL && Player->StartSpot != NULL );
@@ -1280,34 +1426,58 @@ void AGameMode::RemovePlayerStart(APlayerStart* RemovedPlayerStart)
 
 AActor* AGameMode::ChoosePlayerStart( AController* Player )
 {
-	// Find first player start
+	// Choose a player start
 	APlayerStart* FoundPlayerStart = NULL;
+	APawn* PawnToFit = DefaultPawnClass ? DefaultPawnClass->GetDefaultObject<APawn>() : NULL;
+	TArray<APlayerStart*> UnOccupiedStartPoints;
+	TArray<APlayerStart*> OccupiedStartPoints;
 	for (int32 PlayerStartIndex = 0; PlayerStartIndex < PlayerStarts.Num(); ++PlayerStartIndex)
 	{
 		APlayerStart* PlayerStart = PlayerStarts[PlayerStartIndex];
 
-		if( Cast<APlayerStartPIE>( PlayerStart ) != NULL )
+		if (Cast<APlayerStartPIE>( PlayerStart ) != NULL )
 		{
 			// Always prefer the first "Play from Here" PlayerStart, if we find one while in PIE mode
 			FoundPlayerStart = PlayerStart;
 			break;
 		}
-		else if( PlayerStart != NULL && FoundPlayerStart == NULL )
+		else if (PlayerStart != NULL)
 		{
-			FoundPlayerStart = PlayerStart;
+			FVector ActorLocation = PlayerStart->GetActorLocation();
+			const FRotator ActorRotation = PlayerStart->GetActorRotation();
+			if (!GetWorld()->EncroachingBlockingGeometry(PawnToFit, ActorLocation, ActorRotation))
+			{
+				UnOccupiedStartPoints.Add(PlayerStart);
+			}
+			else if (GetWorld()->FindTeleportSpot(PawnToFit, ActorLocation, ActorRotation))
+			{
+				OccupiedStartPoints.Add(PlayerStart);
+			}
+		}
+	}
+	if (FoundPlayerStart == NULL)
+	{
+		if (UnOccupiedStartPoints.Num() > 0)
+		{
+			FoundPlayerStart = UnOccupiedStartPoints[FMath::RandRange(0, UnOccupiedStartPoints.Num() - 1)];
+		}
+		else if (OccupiedStartPoints.Num() > 0)
+		{
+			FoundPlayerStart = OccupiedStartPoints[FMath::RandRange(0, OccupiedStartPoints.Num() - 1)];
 		}
 	}
 	return FoundPlayerStart;
 }
 
-bool AGameMode::PlayerCanRestartGame( APlayerController* aPlayer )
+bool AGameMode::PlayerCanRestart( APlayerController* Player )
 {
-	return true;
-}
+	if (!IsMatchInProgress() || Player == NULL || Player->IsPendingKillPending())
+	{
+		return false;
+	}
 
-bool AGameMode::PlayerCanRestart( APlayerController* aPlayer )
-{
-	return true;
+	// Ask the player controller if it's ready to restart as well
+	return Player->CanRestartPlayer();
 }
 
 void AGameMode::UpdateGameplayMuteList( APlayerController* aPlayer )
@@ -1468,16 +1638,6 @@ void AGameMode::PostSeamlessTravel()
 			}
 		}
 	}
-
-	if ( ReadyToStartMatch() )
-	{
-		StartMatch();
-	}
-}
-
-bool AGameMode::ReadyToStartMatch()
-{
-	return (bWaitingToStartMatch && NumPlayers + NumBots > 0);
 }
 
 void AGameMode::MatineeCancelled()

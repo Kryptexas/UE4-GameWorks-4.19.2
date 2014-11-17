@@ -1,11 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
+#include "AnimGraphNode_SequencePlayer.h"
 
 #include "CompilerResultsLog.h"
 #include "GraphEditorActions.h"
 #include "AssetRegistryModule.h"
-
+#include "AnimationGraphSchema.h"
 #define LOCTEXT_NAMESPACE "A3Nodes"
 
 /////////////////////////////////////////////////////
@@ -83,8 +84,9 @@ FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType
 	{
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("Title"), Title);
+		Args.Add(TEXT("SyncGroup"), FText::FromName(SyncGroup.GroupName));
 
-		Title = FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {Title}"), Args);
+		Title = FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {SyncGroup}"), Args);
 	}
 
 	return Title;

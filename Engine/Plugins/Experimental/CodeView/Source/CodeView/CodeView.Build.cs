@@ -16,16 +16,17 @@ namespace UnrealBuildTool.Rules
 					"Engine",
 					"UnrealEd",
 					"EditorStyle",
-					"PropertyEditor"
+					"PropertyEditor",
 				}
-				);
+			);
 
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					"DetailCustomizations"
+					"DetailCustomizations",
+					"SlateCore",
 				}
-				);
+			);
 		}
 	}
 }

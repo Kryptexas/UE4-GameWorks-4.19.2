@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "Audio.h"
 #include "AudioComponent.generated.h"
 
 /** called when we finish playing audio, either because it played to completion or because a Stop() call turned it off early */
@@ -66,6 +67,7 @@ struct FSoundParseParameters
 	float HighFrequencyGain;
 
 	float StartTime;
+	float OmniRadius;
 
 	uint32 bUseSpatialization:1;
 	uint32 bLooping:1;
@@ -78,6 +80,7 @@ struct FSoundParseParameters
 		, Pitch(1.f)
 		, HighFrequencyGain(1.f)
 		, StartTime(-1.f)
+		, OmniRadius(0.0f)
 		, bUseSpatialization(false)
 		, bLooping(false)
 	{
@@ -87,7 +90,7 @@ struct FSoundParseParameters
 /**
  * Used to provide objects with audio.
  */
-UCLASS(HeaderGroup=Component, ClassGroup=(Audio, Common), hidecategories=(Object, ActorComponent, Physics, Rendering, Mobility, LOD), ShowCategories=Trigger, dependson=(AReverbVolume, UEngineTypes, USoundAttenuation), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Audio, Common), hidecategories=(Object, ActorComponent, Physics, Rendering, Mobility, LOD), ShowCategories=Trigger, dependson=(AReverbVolume, UEngineTypes, USoundAttenuation), meta=(BlueprintSpawnableComponent))
 class ENGINE_API UAudioComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -151,10 +154,10 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Modulation)
 	float HighFrequencyGainMultiplier;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(EditCondition="!bOverrideAttenuation"))
 	class USoundAttenuation* AttenuationSettings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation, meta=(EditCondition="bOverrideAttenuation"))
 	struct FAttenuationSettings AttenuationOverrides;
 
 	/** while playing, this component will check for occlusion from its closest listener every this many seconds */

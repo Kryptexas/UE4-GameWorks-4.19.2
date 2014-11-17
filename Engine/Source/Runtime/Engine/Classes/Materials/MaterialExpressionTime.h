@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionTime.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionTime : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

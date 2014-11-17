@@ -12,27 +12,34 @@ class UConeBuilder : public UEditorBrushBuilder
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Distance from base to tip of cone */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float Z;
 
-	UPROPERTY(EditAnywhere, Category=BrushSettings)
+	/** Distance from base to the tip of inner cone (when hollow) */
+	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(EditCondition="Hollow"))
 	float CapZ;
 
+	/** Radius of cone */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float OuterRadius;
 
-	UPROPERTY(EditAnywhere, Category=BrushSettings)
+	/** Radius of inner cone (when hollow) */
+	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(EditCondition="Hollow"))
 	float InnerRadius;
 
+	/** How many sides this cone should have */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "3", ClampMax = "500"))
 	int32 Sides;
 
 	UPROPERTY()
 	FName GroupName;
 
+	/** Whether to align the brush to a face */
 	UPROPERTY(EditAnywhere, Category=BrushSettings)
 	uint32 AlignToSide:1;
 
+	/** Whether this is a hollow or solid cone */
 	UPROPERTY(EditAnywhere, Category=BrushSettings)
 	uint32 Hollow:1;
 

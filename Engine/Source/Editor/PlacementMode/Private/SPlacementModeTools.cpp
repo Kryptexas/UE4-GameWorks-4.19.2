@@ -7,6 +7,7 @@
 #include "SPlacementModeTools.h"
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "IBspModeModule.h"
+#include "KismetEditorUtilities.h"
 
 #include "STutorialWrapper.h"
 
@@ -721,7 +722,7 @@ void SPlacementModeTools::RefreshVolumes()
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		// Don't offer skeleton classes
-		bool bIsSkeletonClass = ClassIt->HasAnyFlags( RF_Transient ) && ClassIt->HasAnyClassFlags( CLASS_CompiledFromBlueprint );
+		bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(*ClassIt);
 
 		if ( !ClassIt->HasAllClassFlags( CLASS_NotPlaceable ) &&
 			 !ClassIt->HasAnyClassFlags( CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists ) &&
@@ -774,7 +775,7 @@ void SPlacementModeTools::RebuildPlaceableClassWidgetCache()
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
 		// Don't offer skeleton classes
-		bool bIsSkeletonClass = ClassIt->HasAnyFlags(RF_Transient) && ClassIt->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
+		bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(*ClassIt);
 
 		if ( !ClassIt->HasAllClassFlags(CLASS_NotPlaceable) &&
 			!ClassIt->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) &&

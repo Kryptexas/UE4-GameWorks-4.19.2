@@ -12,13 +12,13 @@
 UENUM()
 enum ETrailsRenderAxisOption
 {
-	Trails_CameraUp,
-	Trails_SourceUp,
-	Trails_WorldUp,
+	Trails_CameraUp UMETA(DisplayName="Camera Up"),
+	Trails_SourceUp UMETA(DisplayName="Source Up"),
+	Trails_WorldUp UMETA(DisplayName="World Up"),
 	Trails_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Ribbon Data"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Ribbon Data"))
 class UParticleModuleTypeDataRibbon : public UParticleModuleTypeDataBase
 {
 	GENERATED_UCLASS_BODY()
@@ -131,7 +131,7 @@ class UParticleModuleTypeDataRibbon : public UParticleModuleTypeDataBase
 
 	/** 
 	 *	The distance step size for tessellation.
-	 *	# Tessellation Points = Trunc((Distance Between Spawned Particles) / DistanceTessellationStepSize))
+	 *	# Tessellation Points = TruncToInt((Distance Between Spawned Particles) / DistanceTessellationStepSize))
 	 */
 	UPROPERTY(EditAnywhere, Category=Rendering)
 	float DistanceTessellationStepSize;

@@ -8,9 +8,16 @@ public class SlateViewer : ModuleRules
 	{
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 
-		PrivateIncludePathModuleNames.AddRange(new string[] { "Slate" });
-
-		PrivateDependencyModuleNames.AddRange(new string[] { "Core", "Slate", "StandaloneRenderer", "Projects" });
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"Core",
+				"Projects",
+				"Slate",
+				"SlateCore",
+				"SlateReflector",
+				"StandaloneRenderer",
+			}
+		);
 
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
 

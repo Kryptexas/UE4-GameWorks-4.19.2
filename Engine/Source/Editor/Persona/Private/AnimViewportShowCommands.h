@@ -99,8 +99,22 @@ public:
 	*/
 	TSharedPtr< FUICommandInfo > EnableCollisionWithAttachedClothChildren;
 
+	/** Show all sections which means the original state */
+	TSharedPtr< FUICommandInfo > ShowAllSections;
 	/** Show only clothing mapped sections */
 	TSharedPtr< FUICommandInfo > ShowOnlyClothSections;
+	/** Show all except clothing mapped sections */
+	TSharedPtr< FUICommandInfo > HideOnlyClothSections;
+
+	/** Show max distances of simulation vertices */
+	TSharedPtr< FUICommandInfo > ShowClothMaxDistances;
+
+	TSharedPtr< FUICommandInfo > ShowClothBackstop;
+
+	/** Show simulation mesh's wire frame */
+	TSharedPtr< FUICommandInfo > ShowClothPhysicalMeshWire;
+
+	TSharedPtr< FUICommandInfo > ShowClothFixedVertices;	
 #endif// #if WITH_APEX_CLOTHING
 
 public:

@@ -81,7 +81,7 @@ enum ESkyLightSourceType
 	SLS_MAX,
 };
 
-UCLASS(HeaderGroup=Component, ClassGroup=Lights, HideCategories=(Trigger,Activation,"Components|Activation",Physics), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Lights, HideCategories=(Trigger,Activation,"Components|Activation",Physics), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USkyLightComponent : public ULightComponentBase
 {
 	GENERATED_UCLASS_BODY()
@@ -127,6 +127,9 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 
 	/** Called each tick to recapture and queued sky captures. */
 	static void UpdateSkyCaptureContents(UWorld* WorldToUpdate);
+
+	/** Computes an irradiance environment map using only emissive contribution from the sky light. */
+	void CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& OutIrradianceMap) const;
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|SkyLight")
 	void SetBrightness(float NewBrightness);

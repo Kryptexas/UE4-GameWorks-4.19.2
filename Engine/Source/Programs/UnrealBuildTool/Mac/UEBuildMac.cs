@@ -16,6 +16,11 @@ namespace UnrealBuildTool
             return false;
         }
 
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDKStatus.Valid;
+		}
+
 		/**
 		 *	Register the platform with the UEBuildPlatform class
 		 */
@@ -95,8 +100,11 @@ namespace UnrealBuildTool
 				// allow standalone tools to use target platform modules, without needing Engine
 				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
 				{
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
 					InModule.AddDynamicallyLoadedModule("MacTargetPlatform");
 					InModule.AddDynamicallyLoadedModule("MacNoEditorTargetPlatform");
+					InModule.AddDynamicallyLoadedModule("MacClientTargetPlatform");
+					InModule.AddDynamicallyLoadedModule("MacServerTargetPlatform");
 				}
 
                 if (bBuildShaderFormats)

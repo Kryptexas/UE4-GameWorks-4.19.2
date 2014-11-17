@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineMaterialClasses.h"
 #include "PixelFormat.h"
 #include "ShaderCompiler.h"
 #include "MaterialCompiler.h"
@@ -319,6 +318,10 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 	}
 
 	Ar << bNeedsSceneTextures;
+
+	Ar << bUsesEyeAdaptation;
+
+	Ar << bModifiesMeshPosition;
 }
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -452,7 +455,17 @@ bool FMaterial::UsesEyeAdaptation() const
 
 bool FMaterial::MaterialModifiesMeshPosition() const 
 { 
-	return HasVertexPositionOffsetConnected() || GetTessellationMode() != MTM_NoTessellation;
+	FMaterialShaderMap* ShaderMap = IsInRenderingThread() ? RenderingThreadShaderMap : GameThreadShaderMap.GetReference();
+	bool bUsesWPO = ShaderMap ? ShaderMap->ModifiesMeshPosition() : false;
+
+	return bUsesWPO || GetTessellationMode() != MTM_NoTessellation;
+}
+
+bool FMaterial::MaterialMayModifyMeshPosition() const
+{
+	// Conservative estimate when called before material translation has occurred. 
+    // This function is only intended for use in deciding whether or not shader permutations are required.
+	return HasVertexPositionOffsetConnected() || HasMaterialAttributesConnected() || GetTessellationMode() != MTM_NoTessellation;
 }
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 
@@ -658,7 +671,8 @@ bool FMaterialResource::IsLightFunction() const { return Material->MaterialDomai
 bool FMaterialResource::IsUsedWithEditorCompositing() const { return Material->bUsedWithEditorCompositing; }
 bool FMaterialResource::IsUsedWithDeferredDecal() const { return Material->MaterialDomain == MD_DeferredDecal; }
 bool FMaterialResource::IsSpecialEngineMaterial() const { return Material->bUsedAsSpecialEngineMaterial; }
-bool FMaterialResource::HasVertexPositionOffsetConnected() const { return Material->WorldPositionOffset.Expression != NULL; }
+bool FMaterialResource::HasVertexPositionOffsetConnected() const { return !Material->bUseMaterialAttributes && Material->WorldPositionOffset.Expression != NULL; }
+bool FMaterialResource::HasMaterialAttributesConnected() const { return Material->bUseMaterialAttributes && Material->MaterialAttributes.Expression != NULL; }
 FString FMaterialResource::GetBaseMaterialPathName() const { return Material->GetPathName(); }
 
 bool FMaterialResource::IsUsedWithSkeletalMesh() const
@@ -858,73 +872,12 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 	TArray<FString> ShaderTypeNames;
 	TArray<FString> ShaderTypeDescriptions;
 
-	static auto* MobileHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	bool bMobileHDR = MobileHDR && MobileHDR->GetValueOnAnyThread() == 1;
-
 	//when adding a shader type here be sure to update FPreviewMaterial::ShouldCache()
 	//so the shader type will get compiled with preview materials
 	const FMaterialShaderMap* MaterialShaderMap = GetGameThreadShaderMap();
 	if (MaterialShaderMap && MaterialShaderMap->IsCompilationFinalized())
 	{
-		if (GetFeatureLevel() > ERHIFeatureLevel::ES2)
-		{
-			if (GetLightingModel() == MLM_Unlit)
-			{
-				//unlit materials are never lightmapped
-				new (ShaderTypeNames) FString(TEXT("TBasePassPSFNoLightMapPolicy"));
-				new (ShaderTypeDescriptions) FString(TEXT("Base pass shader without light map"));
-			}
-			else
-			{
-				if (IsUsedWithStaticLighting())
-				{
-					//lit materials are usually lightmapped
-					new (ShaderTypeNames) FString(TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ"));
-					new (ShaderTypeDescriptions) FString(TEXT("Base pass shader with static lighting"));
-				}
-
-				//also show a dynamically lit shader
-				new (ShaderTypeNames) FString(TEXT("TBasePassPSFNoLightMapPolicy"));
-				new (ShaderTypeDescriptions) FString(TEXT("Base pass shader with only dynamic lighting"));
-
-				if (IsTranslucentBlendMode(GetBlendMode()))
-				{
-					new (ShaderTypeNames) FString(TEXT("TBasePassPSFSelfShadowedTranslucencyPolicy"));
-					new (ShaderTypeDescriptions) FString(TEXT("Base pass shader for self shadowed translucency"));
-				}
-			}
-			
-			new (ShaderTypeNames) FString(TEXT("TBasePassVSFNoLightMapPolicy"));
-			new (ShaderTypeDescriptions) FString(TEXT("Vertex shader"));
-		}
-		else
-		{
-			const TCHAR* ShaderSuffix = bMobileHDR ? TEXT("HDRLinear64") : TEXT("LDRGamma32");
-			const TCHAR* DescSuffix = bMobileHDR ? TEXT(" (HDR)") : TEXT(" (LDR)");
-
-			if (GetLightingModel() == MLM_Unlit)
-			{
-				//unlit materials are never lightmapped
-				new (ShaderTypeNames) FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy%s"),ShaderSuffix));
-				new (ShaderTypeDescriptions) FString(FString::Printf(TEXT("Mobile base pass shader without light map%s"),DescSuffix));
-			}
-			else
-			{
-				if (IsUsedWithStaticLighting())
-				{
-					//lit materials are usually lightmapped
-					new (ShaderTypeNames) FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicyLQ%s"),ShaderSuffix));
-					new (ShaderTypeDescriptions) FString(FString::Printf(TEXT("Mobile base pass shader with static lighting%s"),DescSuffix));
-				}
-
-				//also show a dynamically lit shader
-				new (ShaderTypeNames) FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy%s"),ShaderSuffix));
-				new (ShaderTypeDescriptions) FString(FString::Printf(TEXT("Mobile base pass shader with only dynamic lighting%s"),DescSuffix));
-			}
-			
-			new (ShaderTypeNames) FString(FString::Printf(TEXT("TBasePassForForwardShadingVSFNoLightMapPolicy%s"),ShaderSuffix));
-			new (ShaderTypeDescriptions) FString(FString::Printf(TEXT("Mobile base pass vertex shader%s"),DescSuffix));
-		}
+		GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNames, ShaderTypeDescriptions);
 
 		const FMeshMaterialShaderMap* MeshShaderMap = MaterialShaderMap->GetMeshShaderMap(&FLocalVertexFactory::StaticType);
 		if (MeshShaderMap)
@@ -950,6 +903,76 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 	}
 
 	check(Descriptions.Num() == InstructionCounts.Num());
+}
+
+void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FString> &ShaderTypeNames, TArray<FString> &ShaderTypeDescriptions) const
+{
+	static auto* MobileHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
+	bool bMobileHDR = MobileHDR && MobileHDR->GetValueOnAnyThread() == 1;
+
+	if (GetFeatureLevel() > ERHIFeatureLevel::ES2)
+	{
+		if (GetLightingModel() == MLM_Unlit)
+		{
+			//unlit materials are never lightmapped
+			new (ShaderTypeNames)FString(TEXT("TBasePassPSFNoLightMapPolicy"));
+			new (ShaderTypeDescriptions)FString(TEXT("Base pass shader without light map"));
+		}
+		else
+		{
+			if (IsUsedWithStaticLighting())
+			{
+				//lit materials are usually lightmapped
+				new (ShaderTypeNames)FString(TEXT("TBasePassPSTDistanceFieldShadowsAndLightMapPolicyHQ"));
+				new (ShaderTypeDescriptions)FString(TEXT("Base pass shader with static lighting"));
+			}
+
+			//also show a dynamically lit shader
+			new (ShaderTypeNames)FString(TEXT("TBasePassPSFNoLightMapPolicy"));
+			new (ShaderTypeDescriptions)FString(TEXT("Base pass shader with only dynamic lighting"));
+
+			if (IsTranslucentBlendMode(GetBlendMode()))
+			{
+				new (ShaderTypeNames)FString(TEXT("TBasePassPSFSelfShadowedTranslucencyPolicy"));
+				new (ShaderTypeDescriptions)FString(TEXT("Base pass shader for self shadowed translucency"));
+			}
+		}
+
+		new (ShaderTypeNames)FString(TEXT("TBasePassVSFNoLightMapPolicy"));
+		new (ShaderTypeDescriptions)FString(TEXT("Vertex shader"));
+	}
+	else
+	{
+		const TCHAR* ShaderSuffix = bMobileHDR ? TEXT("HDRLinear64") : TEXT("LDRGamma32");
+		const TCHAR* DescSuffix = bMobileHDR ? TEXT(" (HDR)") : TEXT(" (LDR)");
+
+		if (GetLightingModel() == MLM_Unlit)
+		{
+			//unlit materials are never lightmapped
+			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy%s"), ShaderSuffix));
+			new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader without light map%s"), DescSuffix));
+		}
+		else
+		{
+			if (IsUsedWithStaticLighting())
+			{
+				//lit materials are usually lightmapped
+				new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTLightMapPolicyLQ%s"), ShaderSuffix));
+				new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with static lighting%s"), DescSuffix));
+
+				// + distance field shadows
+				new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicyLQ%s"), ShaderSuffix));
+				new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with distance field shadows%s"), DescSuffix));
+			}
+
+			//also show a dynamically lit shader
+			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy%s"), ShaderSuffix));
+			new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with only dynamic lighting%s"), DescSuffix));
+		}
+
+		new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingVSFNoLightMapPolicy%s"), ShaderSuffix));
+		new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass vertex shader%s"), DescSuffix));
+	}
 }
 
 SIZE_T FMaterialResource::GetResourceSizeInclusive()
@@ -1918,6 +1941,18 @@ FMaterialUpdateContext::FMaterialUpdateContext(uint32 Options, EShaderPlatform I
 	ShaderPlatform = InShaderPlatform;
 }
 
+void FMaterialUpdateContext::AddMaterial(UMaterial* Material)
+{
+	UpdatedMaterials.Add(Material);
+	UpdatedMaterialInterfaces.Add(Material);
+}
+
+void FMaterialUpdateContext::AddMaterialInstance(UMaterialInstance* Instance)
+{
+	UpdatedMaterials.Add(Instance->GetMaterial());
+	UpdatedMaterialInterfaces.Add(Instance);
+}
+
 FMaterialUpdateContext::~FMaterialUpdateContext()
 {
 	double StartTime = FPlatformTime::Seconds();
@@ -1970,7 +2005,15 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 
 		if (UpdatedMaterials.Contains(BaseMaterial))
 		{
-			InstancesToUpdate.Add(CurrentMaterialInstance);
+			// Check to see if this instance is dependent on any of the material interfaces we directly updated.
+			for (auto InterfaceIt = UpdatedMaterialInterfaces.CreateConstIterator(); InterfaceIt; ++InterfaceIt)
+			{
+				if (CurrentMaterialInstance->IsDependent(*InterfaceIt))
+				{
+					InstancesToUpdate.Add(CurrentMaterialInstance);
+					break;
+				}
+			}
 		}
 	}
 
@@ -2028,10 +2071,11 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 	}
 
 	double EndTime = FPlatformTime::Seconds();
-	UE_LOG(LogMaterial,Log,
-		TEXT("%f seconds spent updating %d materials, %d instances, %d with static permutations."),
-		(float)(EndTime-StartTime),
+	UE_LOG(LogMaterial, Log,
+		TEXT("%f seconds spent updating %d materials, %d interfaces, %d instances, %d with static permutations."),
+		(float)(EndTime - StartTime),
 		UpdatedMaterials.Num(),
+		UpdatedMaterialInterfaces.Num(),
 		InstancesToUpdate.Num(),
 		NumInstancesWithStaticPermutations
 		);

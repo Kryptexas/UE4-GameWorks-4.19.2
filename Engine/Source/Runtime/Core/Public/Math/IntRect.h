@@ -275,6 +275,12 @@ public:
 	 */
 	int32 Width( ) const;
 
+	/**
+	 * Returns true if the rectangle is 0 x 0.
+	 *
+	 * @return true if the rectangle is 0 x 0.
+	 */
+	bool IsEmpty() const;
 
 public:
 
@@ -318,7 +324,7 @@ FORCEINLINE FIntRect FIntRect::Scale( float Fraction ) const
 	FVector2D Min2D = FVector2D(Min.X, Min.Y) * Fraction;
 	FVector2D Max2D = FVector2D(Max.X, Max.Y) * Fraction;
 
-	return FIntRect(FMath::Floor(Min2D.X), FMath::Floor(Min2D.Y), FMath::Ceil(Max2D.X), FMath::Ceil(Max2D.Y));
+	return FIntRect(FMath::FloorToInt(Min2D.X), FMath::FloorToInt(Min2D.Y), FMath::CeilToInt(Max2D.X), FMath::CeilToInt(Max2D.Y));
 }
 
 
@@ -535,4 +541,9 @@ FORCEINLINE FString FIntRect::ToString( ) const
 FORCEINLINE int32 FIntRect::Width( ) const
 {
 	return Max.X-Min.X;
+}
+
+FORCEINLINE bool FIntRect::IsEmpty() const
+{
+	return Width() == 0 && Height() == 0;
 }

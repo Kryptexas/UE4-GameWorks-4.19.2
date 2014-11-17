@@ -12,9 +12,10 @@ public class GammaUI : ModuleRules
 				"CoreUObject", // @todo Mac: for some reason it's needed to link in debug on Mac
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "InputCore",
                 "EditorStyle"
 			}
-			);
+		);
 	}
 }

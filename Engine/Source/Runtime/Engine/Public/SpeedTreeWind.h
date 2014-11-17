@@ -300,7 +300,7 @@ protected:
 					float		m_afBranchWindAnchor[3];
 					float		m_fMaxBranchLevel1Length;
 
-	MS_ALIGN(16)	float		m_afShaderTable[NUM_SHADER_VALUES];
+	MS_ALIGN(16)	float		m_afShaderTable[NUM_SHADER_VALUES] GCC_ALIGN(16);
 };
 
 

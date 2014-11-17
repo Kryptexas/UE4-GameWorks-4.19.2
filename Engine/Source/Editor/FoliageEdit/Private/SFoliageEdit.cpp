@@ -106,7 +106,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 							.Visibility( this, &SFoliageEdit::GetVisibility_Radius )
-							.Text(LOCTEXT("BrushSize", "Brush Size").ToString())
+							.Text(LOCTEXT("BrushSize", "Brush Size"))
 					]
 					+SHorizontalBox::Slot()
 						.FillWidth(2.0f)
@@ -134,7 +134,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 							.Visibility( this, &SFoliageEdit::GetVisibility_PaintDensity )
-							.Text(LOCTEXT("PaintDensity", "Paint Density").ToString())
+							.Text(LOCTEXT("PaintDensity", "Paint Density"))
 					]
 					+SHorizontalBox::Slot()
 						.FillWidth(2.0f)
@@ -161,7 +161,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 							.Visibility( this, &SFoliageEdit::GetVisibility_EraseDensity )
-							.Text(LOCTEXT("EraseDensity", "Erase Density").ToString())
+							.Text(LOCTEXT("EraseDensity", "Erase Density"))
 					]
 					+SHorizontalBox::Slot()
 						.FillWidth(2.0f)
@@ -183,7 +183,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 				[
 					SNew(STextBlock)
 						.Visibility( this, &SFoliageEdit::GetVisibility_Filters )
-						.Text(LOCTEXT("Filter", "Filter").ToString())
+						.Text(LOCTEXT("Filter", "Filter"))
 				]
 
 				+SVerticalBox::Slot()
@@ -202,7 +202,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 							.IsChecked( this, &SFoliageEdit::GetCheckState_Landscape )
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("Landscape", "Landscape").ToString())
+									.Text(LOCTEXT("Landscape", "Landscape"))
 							]
 					]
 				
@@ -215,7 +215,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 							.IsChecked( this, &SFoliageEdit::GetCheckState_StaticMesh )
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("StaticMeshes", "Static Meshes").ToString())
+									.Text(LOCTEXT("StaticMeshes", "Static Meshes"))
 							]
 					]
 
@@ -227,7 +227,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 							.IsChecked( this, &SFoliageEdit::GetCheckState_BSP )
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("BSP", "BSP").ToString())
+									.Text(LOCTEXT("BSP", "BSP"))
 							]
 					]
 				]
@@ -238,7 +238,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 					SNew(SHeaderRow)
 
 					+SHeaderRow::Column(TEXT("Meshes"))
-						.DefaultLabel(LOCTEXT("Meshes", "Meshes").ToString())
+						.DefaultLabel(LOCTEXT("Meshes", "Meshes"))
 				]
 
 				+SVerticalBox::Slot()
@@ -284,7 +284,7 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 								[
 									SNew(STextBlock)
 										.Visibility( this, &SFoliageEdit::GetVisibility_EmptyListText )
-										.Text( LOCTEXT("EmptyFoliageListMessage", "Drag static meshes from the content browser into this area.").ToString() )	
+										.Text( LOCTEXT("EmptyFoliageListMessage", "Drag static meshes from the content browser into this area.") )	
 								]
 
 								+SHorizontalBox::Slot()

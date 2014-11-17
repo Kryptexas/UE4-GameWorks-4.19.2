@@ -9,6 +9,10 @@
 
 #include "CollisionProfile.generated.h"
 
+
+/**
+ * Structure for collision response templates.
+ */
 USTRUCT()
 struct ENGINE_API FCollisionResponseTemplate
 {
@@ -52,6 +56,10 @@ struct ENGINE_API FCollisionResponseTemplate
 	void CreateCustomResponsesFromResponseContainers();
 };
 
+
+/**
+ * Structure for custom channel setup information.
+ */
 USTRUCT()
 struct FCustomChannelSetup
 {
@@ -89,8 +97,10 @@ struct FCustomChannelSetup
 	}
 };
 
+
 /**
- * This is used only when customize profile
+ * Structure for custom profiles.
+ *
  * if you'd like to just add custom channels, not changing anything else engine defined
  * if you'd like to override all about profile, please use 
  * +Profiles=(Name=NameOfProfileYouLikeToOverwrite,....)
@@ -108,8 +118,13 @@ struct ENGINE_API FCustomProfile
 	TArray<FResponseChannel>	CustomResponses;
 };
 
-UCLASS(abstract, config=Engine, MinimalAPI)
-class UCollisionProfile : public UObject
+
+/**
+ * Implements a collision profile for the collision sub-system.
+ */
+UCLASS(abstract, config=Engine, defaultconfig, MinimalAPI)
+class UCollisionProfile
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -137,6 +152,7 @@ public:
 	static ENGINE_API const FName PhysicsActor_ProfileName;
 	static ENGINE_API const FName BlockAllDynamic_ProfileName;
 	static ENGINE_API const FName Pawn_ProfileName;
+	static ENGINE_API const FName Vehicle_ProfileName;
 
 	/** Accessor and initializer **/
 	ENGINE_API static UCollisionProfile * Get();
@@ -169,6 +185,22 @@ public:
 
 	/** Convert ObjectType or TraceType to CollisionChannel */
 	ECollisionChannel ConvertToCollisionChannel(bool TraceType, int32 Index) const;
+
+	/** 
+	 * Convert collision channel to ObjectTypeQuery. Note: performs a search of object types.
+	 * @return ObjectTypeQuery_MAX if the conversion was not possible 
+	 */
+	EObjectTypeQuery ConvertToObjectType(ECollisionChannel CollisionChannel) const;
+
+	/** 
+	 * Convert collision channel to TraceTypeQuery. Note: performs a search of object types.
+	 * @return TraceTypeQuery_MAX if the conversion was not possible 
+	 */
+	ETraceTypeQuery ConvertToTraceType(ECollisionChannel CollisionChannel) const;
+
+	/* custom collision profile name that you can modify what you'd like */
+	ENGINE_API static FName CustomCollisionProfileName;
+
 private:
 
 	/** 
@@ -223,4 +255,3 @@ private:
 
 	friend class FCollisionProfileDetails;
 };
-

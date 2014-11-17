@@ -394,7 +394,7 @@ FEventGraphData::FEventGraphData( const FProfilerSessionRef& InProfilerSession, 
 	, ProfilerSessionPtr( InProfilerSession )
 {
 	static FTotalTimeAndCount Current(0.0f, 0);
-	FProfilerScopedLogTime ScopedLog( TEXT("FEventGraphData::FEventGraphData"), &Current );
+	PROFILER_SCOPE_LOG_TIME( TEXT( "FEventGraphData::FEventGraphData" ), &Current );
 
 	Description = FString::Printf( TEXT("%s: %i"), *InProfilerSession->GetShortName(), InFrameIndex );
 

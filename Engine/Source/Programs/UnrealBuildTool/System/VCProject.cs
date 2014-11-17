@@ -183,7 +183,7 @@ namespace UnrealBuildTool
 				return false;
 			}
 
-			if (BuildPlatform.HasRequiredSDKsInstalled() == false)
+			if (BuildPlatform.HasRequiredSDKsInstalled() != UEBuildPlatform.SDKStatus.Valid)
 			{
 				return false;
 			}
@@ -416,7 +416,7 @@ namespace UnrealBuildTool
 							continue;
 						}
 						UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform, true);
-						if ((BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == true))
+						if ((BuildPlatform != null) && (BuildPlatform.HasRequiredSDKsInstalled() == UEBuildPlatform.SDKStatus.Valid))
 						{
 							// Now go through all of the target types for this project
 							if( ProjectTargets.Count == 0 )
@@ -513,14 +513,8 @@ namespace UnrealBuildTool
 
 			// Source folders and files
 			{
-				VCFiltersFileContent.Append(
-					"	<ItemGroup>" + ProjectFileGenerator.NewLine );
+				var LocalAliasedFiles = new List<AliasedFile>(AliasedFiles);
 
-				VCProjectFileContent.Append(
-					"	<ItemGroup>" + ProjectFileGenerator.NewLine );
-
-				// Add all file directories to the filters file as solution filters
-				var FilterDirectories = new HashSet<string>();
 				foreach( var CurFile in SourceFiles )
 				{
 					// We want all source file and directory paths in the project files to be relative to the project file's
@@ -538,102 +532,36 @@ namespace UnrealBuildTool
 						FilterRelativeSourceDirectory = Path.GetDirectoryName( Utils.MakePathRelativeTo( CurFile.FilePath, CurFile.RelativeBaseFolder ) );
 					}
 
+					LocalAliasedFiles.Add(new AliasedFile(ProjectRelativeSourceFile, FilterRelativeSourceDirectory));
+				}
+
+				VCFiltersFileContent.Append(
+					"	<ItemGroup>" + ProjectFileGenerator.NewLine);
+
+				VCProjectFileContent.Append(
+					"	<ItemGroup>" + ProjectFileGenerator.NewLine);
+
+				// Add all file directories to the filters file as solution filters
+				var FilterDirectories = new HashSet<string>();
+				foreach (var AliasedFile in LocalAliasedFiles)
+				{
 					// No need to add the root directory relative to the project (it would just be an empty string!)
-					if( !String.IsNullOrWhiteSpace( FilterRelativeSourceDirectory ) )
+					if (!String.IsNullOrWhiteSpace(AliasedFile.ProjectPath))
 					{
-						// We only want each directory to appear once in the filters file
-						var PathRemaining = Utils.CleanDirectorySeparators( FilterRelativeSourceDirectory );
-						if( !FilterDirectories.Contains( PathRemaining ) )
-						{
-							// Make sure all subdirectories leading up to this directory each have their own filter, too!
-							var AllDirectoriesInPath = new List<string>();
-							var PathSoFar = "";
-							for( ; ; )
-							{
-								if( PathRemaining.Length > 0 )
-								{
-									var SlashIndex = PathRemaining.IndexOf( Path.DirectorySeparatorChar );
-									string SplitDirectory;
-									if( SlashIndex != -1 )
-									{
-										SplitDirectory = PathRemaining.Substring( 0, SlashIndex );
-										PathRemaining = PathRemaining.Substring( SplitDirectory.Length + 1 );
-									}
-									else
-									{
-										SplitDirectory = PathRemaining;
-										PathRemaining = "";
-									}
-									if( !String.IsNullOrEmpty( PathSoFar ) )
-									{
-										PathSoFar += Path.DirectorySeparatorChar;
-									}
-									PathSoFar += SplitDirectory;
-
-									AllDirectoriesInPath.Add( PathSoFar );
-								}
-								else
-								{
-									break;
-								}
-							}
-
-							foreach( var LeadingDirectory in AllDirectoriesInPath )
-							{
-								if( !FilterDirectories.Contains( LeadingDirectory ) )
-								{
-									FilterDirectories.Add( LeadingDirectory );
-
-									// Generate a unique GUID for this folder
-									// NOTE: When saving generated project files, we ignore differences in GUIDs if every other part of the file
-									//       matches identically with the pre-existing file
-									var FilterGUID = Guid.NewGuid().ToString( "B" ).ToUpperInvariant();
-
-									VCFiltersFileContent.Append(
-										"		<Filter Include=\"" + LeadingDirectory + "\">" + ProjectFileGenerator.NewLine +
-										"			<UniqueIdentifier>" + FilterGUID + "</UniqueIdentifier>" + ProjectFileGenerator.NewLine +
-										"		</Filter>" + ProjectFileGenerator.NewLine);
-
-									FiltersFileIsNeeded = true;
-								}
-							}
-						}
+						FiltersFileIsNeeded = EnsureFilterPathExists(AliasedFile.ProjectPath, VCFiltersFileContent, FilterDirectories);
 					}
 
-
-					// What type of file is this?
-					string VCFileType;
-					if( CurFile.FilePath.EndsWith( ".h", StringComparison.InvariantCultureIgnoreCase ) ||
-						CurFile.FilePath.EndsWith( ".inl", StringComparison.InvariantCultureIgnoreCase ) )
-					{
-						VCFileType = "ClInclude";
-					}
-					else if( CurFile.FilePath.EndsWith( ".cpp", StringComparison.InvariantCultureIgnoreCase ) )
-					{
-						VCFileType = "ClCompile";
-					}
-					else if( CurFile.FilePath.EndsWith( ".rc", StringComparison.InvariantCultureIgnoreCase ) )
-					{
-						VCFileType = "ResourceCompile";
-					}
-					else if( CurFile.FilePath.EndsWith( ".manifest", StringComparison.InvariantCultureIgnoreCase ) )
-					{
-						VCFileType = "Manifest";
-					}
-					else
-					{
-						VCFileType = "None";
-					}
+					var VCFileType = GetVCFileType(AliasedFile.FileSystemPath);
 
 					VCProjectFileContent.Append(
-						"		<" + VCFileType + " Include=\"" + ProjectRelativeSourceFile + "\" />" + ProjectFileGenerator.NewLine);
+						"		<" + VCFileType + " Include=\"" + AliasedFile.FileSystemPath + "\" />" + ProjectFileGenerator.NewLine);
 
-					if( !String.IsNullOrWhiteSpace( FilterRelativeSourceDirectory ) )
+					if (!String.IsNullOrWhiteSpace(AliasedFile.ProjectPath))
 					{
 						VCFiltersFileContent.Append(
-							"		<" + VCFileType + " Include=\"" + ProjectRelativeSourceFile + "\">" + ProjectFileGenerator.NewLine +
-							"			<Filter>" + FilterRelativeSourceDirectory + "</Filter>" + ProjectFileGenerator.NewLine +
-							"		</" + VCFileType + " >" + ProjectFileGenerator.NewLine );
+							"		<" + VCFileType + " Include=\"" + AliasedFile.FileSystemPath + "\">" + ProjectFileGenerator.NewLine +
+							"			<Filter>" + Utils.CleanDirectorySeparators(AliasedFile.ProjectPath) + "</Filter>" + ProjectFileGenerator.NewLine +
+							"		</" + VCFileType + " >" + ProjectFileGenerator.NewLine);
 
 						FiltersFileIsNeeded = true;
 					}
@@ -641,7 +569,7 @@ namespace UnrealBuildTool
 					{
 						// No need to specify the root directory relative to the project (it would just be an empty string!)
 						VCFiltersFileContent.Append(
-							"		<" + VCFileType + " Include=\"" + ProjectRelativeSourceFile + "\" />" + ProjectFileGenerator.NewLine);
+							"		<" + VCFileType + " Include=\"" + AliasedFile.FileSystemPath + "\" />" + ProjectFileGenerator.NewLine);
 					}
 				}
 
@@ -862,6 +790,100 @@ namespace UnrealBuildTool
 			return bSuccess;
 		}
 
+		private static bool EnsureFilterPathExists(string FilterRelativeSourceDirectory, StringBuilder VCFiltersFileContent, HashSet<string> FilterDirectories)
+		{
+			// We only want each directory to appear once in the filters file
+			var PathRemaining = Utils.CleanDirectorySeparators( FilterRelativeSourceDirectory );
+			var FiltersFileIsNeeded = false;
+			if( !FilterDirectories.Contains( PathRemaining ) )
+			{
+				// Make sure all subdirectories leading up to this directory each have their own filter, too!
+				var AllDirectoriesInPath = new List<string>();
+				var PathSoFar = "";
+				for( ; ; )
+				{
+					if( PathRemaining.Length > 0 )
+					{
+						var SlashIndex = PathRemaining.IndexOf( Path.DirectorySeparatorChar );
+						string SplitDirectory;
+						if( SlashIndex != -1 )
+						{
+							SplitDirectory = PathRemaining.Substring( 0, SlashIndex );
+							PathRemaining = PathRemaining.Substring( SplitDirectory.Length + 1 );
+						}
+						else
+						{
+							SplitDirectory = PathRemaining;
+							PathRemaining = "";
+						}
+						if( !String.IsNullOrEmpty( PathSoFar ) )
+						{
+							PathSoFar += Path.DirectorySeparatorChar;
+						}
+						PathSoFar += SplitDirectory;
+
+						AllDirectoriesInPath.Add( PathSoFar );
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				foreach( var LeadingDirectory in AllDirectoriesInPath )
+				{
+					if( !FilterDirectories.Contains( LeadingDirectory ) )
+					{
+						FilterDirectories.Add( LeadingDirectory );
+
+						// Generate a unique GUID for this folder
+						// NOTE: When saving generated project files, we ignore differences in GUIDs if every other part of the file
+						//       matches identically with the pre-existing file
+						var FilterGUID = Guid.NewGuid().ToString( "B" ).ToUpperInvariant();
+
+						VCFiltersFileContent.Append(
+							"		<Filter Include=\"" + LeadingDirectory + "\">" + ProjectFileGenerator.NewLine +
+							"			<UniqueIdentifier>" + FilterGUID + "</UniqueIdentifier>" + ProjectFileGenerator.NewLine +
+							"		</Filter>" + ProjectFileGenerator.NewLine);
+
+						FiltersFileIsNeeded = true;
+					}
+				}
+			}
+
+			return FiltersFileIsNeeded;
+		}
+
+		/// <summary>
+		/// Returns the VCFileType element name based on the file path.
+		/// </summary>
+		/// <param name="Path">The path of the file to return type for.</param>
+		/// <returns>Name of the element in MSBuild project file for this file.</returns>
+		private string GetVCFileType(string Path)
+		{
+			// What type of file is this?
+			if (Path.EndsWith(".h", StringComparison.InvariantCultureIgnoreCase) ||
+				Path.EndsWith(".inl", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return "ClInclude";
+			}
+			else if (Path.EndsWith(".cpp", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return "ClCompile";
+			}
+			else if (Path.EndsWith(".rc", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return "ResourceCompile";
+			}
+			else if (Path.EndsWith(".manifest", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return "Manifest";
+			}
+			else
+			{
+				return "None";
+			}
+		}
 
 		// Anonymous function that writes project configuration data
 		private void WriteConfiguration(string ProjectName, UnrealTargetConfiguration Configuration, UnrealTargetPlatform Platform, string TargetFilePath, TargetRules TargetRulesObject, StringBuilder VCProjectFileContent, StringBuilder VCUserFileContent)
@@ -983,15 +1005,11 @@ namespace UnrealBuildTool
 						VCProjectFileContent.Append(PathStrings);
 					}
 
-					// Force specification of TargetName on XboxOne so that the manifest can identify the correct executable to the debugger.
-					if (Platform == UnrealTargetPlatform.XboxOne)
+					if (TargetRules.IsGameType(TargetRulesObject.Type) &&
+						(TargetRules.IsEditorType(TargetRulesObject.Type) == false))
 					{
-						VCProjectFileContent.Append("		<TargetName>" + Utils.GetFilenameWithoutAnyExtensions( TargetFilePath ));
-						if (Configuration != UnrealTargetConfiguration.Development)
-						{
-							VCProjectFileContent.Append(UBTConfigurationName);
-						}
-						VCProjectFileContent.Append("</TargetName>" + ProjectFileGenerator.NewLine);
+						// Allow platforms to add any special properties they require... like aumid override for Xbox One
+						UEPlatformProjectGenerator.GenerateGamePlatformSpecificProperties(Platform, Configuration, TargetRulesObject.Type, VCProjectFileContent, RootDirectory, TargetFilePath);
 					}
 
 					// This is the standard UE4 based project NMake build line:

@@ -42,7 +42,7 @@ public:
 
 	void SetPackedSkyBentNormal(FVector InSkyBentNormal)
 	{
-		PackedSkyBentNormal = FColor(FMath::Trunc((InSkyBentNormal.X * .5f + .5f) * 255.0f), FMath::Trunc((InSkyBentNormal.Y * .5f + .5f) * 255.0f), FMath::Trunc((InSkyBentNormal.Z * .5f + .5f) * 255.0f));
+		PackedSkyBentNormal = FColor(FMath::TruncToInt((InSkyBentNormal.X * .5f + .5f) * 255.0f), FMath::TruncToInt((InSkyBentNormal.Y * .5f + .5f) * 255.0f), FMath::TruncToInt((InSkyBentNormal.Z * .5f + .5f) * 255.0f));
 	}
 
 	inline FVector GetSkyBentNormalUnpacked() const

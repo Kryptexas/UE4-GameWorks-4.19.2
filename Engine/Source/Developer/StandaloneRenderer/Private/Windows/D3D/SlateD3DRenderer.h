@@ -4,7 +4,6 @@
 #ifndef _SLATERENDERRD3D_H__
 #define _SLATERENDERRD3D_H__
 
-#include "Renderer.h"
 
 class FSlateD3DTextureManager;
 class FSlateD3D11RenderingPolicy;

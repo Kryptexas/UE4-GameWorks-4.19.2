@@ -73,10 +73,6 @@ public:
 	void UseMouseCaptureWindow( bool bUseMouseCaptureWindow );
 
 #if WITH_EDITOR
-	virtual bool SupportsSourceAccess() const OVERRIDE;
-
-	virtual void GotoLineInSource(const FString& FileAndLineNumber) OVERRIDE;
-
     virtual void SendAnalytics(IAnalyticsProvider* Provider) OVERRIDE;
 #endif
 
@@ -116,7 +112,7 @@ private:
 
 	void UpdateMouseCaptureWindow( FSlateCocoaWindow* TargetWindow );
 
-	void HandleExternallyChangedModifier(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
+	void HandleModifierChange(TSharedPtr< FMacWindow > CurrentEventWindow, NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
 #if WITH_EDITOR
 	void RecordUsage(EGestureEvent::Type Gesture);

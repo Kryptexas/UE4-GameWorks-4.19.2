@@ -79,4 +79,8 @@ private:
 
 	/** Assigns a skeleton to the mesh */
 	void AssignSkeletonToMesh(USkeletalMesh* SkelMesh) const;
+
+	void FillSourceMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
+	void FillSkeletonMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
+	void FillCreateMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<USkeletalMesh>> Meshes) const;
 };

@@ -5,8 +5,6 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "EngineTerrainClasses.h"
-#include "EngineFoliageClasses.h"
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeDataAccess.h"
@@ -394,16 +392,16 @@ void FEdModeLandscape::Enter()
 			// Restore Sampled Data if exist...
 			if (CurrentGizmoActor->CachedScaleXY > 0.f)
 			{
-				int32 SizeX = FMath::Ceil(CurrentGizmoActor->CachedWidth  / CurrentGizmoActor->CachedScaleXY);
-				int32 SizeY = FMath::Ceil(CurrentGizmoActor->CachedHeight / CurrentGizmoActor->CachedScaleXY);
+				int32 SizeX = FMath::CeilToInt(CurrentGizmoActor->CachedWidth  / CurrentGizmoActor->CachedScaleXY);
+				int32 SizeY = FMath::CeilToInt(CurrentGizmoActor->CachedHeight / CurrentGizmoActor->CachedScaleXY);
 				for (int32 Y = 0; Y < CurrentGizmoActor->SampleSizeY; ++Y)
 				{
 					for (int32 X = 0; X < CurrentGizmoActor->SampleSizeX; ++X)
 					{
 						float TexX = X * SizeX / CurrentGizmoActor->SampleSizeX;
 						float TexY = Y * SizeY / CurrentGizmoActor->SampleSizeY;
-						int32 LX = FMath::Floor(TexX);
-						int32 LY = FMath::Floor(TexY);
+						int32 LX = FMath::FloorToInt(TexX);
+						int32 LY = FMath::FloorToInt(TexY);
 
 						float FracX = TexX - LX;
 						float FracY = TexY - LY;
@@ -1385,7 +1383,7 @@ bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient,
 			case ELandscapeEdge::X_Negative_Y_Positive:
 				{
 					const int32 InitialComponentCountX = UISettings->NewLandscape_ComponentCount.X;
-					const int32 Delta = FMath::Round(HitLocation.X + (float)InitialComponentCountX / 2);
+					const int32 Delta = FMath::RoundToInt(HitLocation.X + (float)InitialComponentCountX / 2);
 					UISettings->NewLandscape_ComponentCount.X = InitialComponentCountX - Delta;
 					UISettings->NewLandscape_ClampSize();
 					const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.X - InitialComponentCountX;
@@ -1397,7 +1395,7 @@ bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient,
 			case ELandscapeEdge::X_Positive_Y_Positive:
 				{
 					const int32 InitialComponentCountX = UISettings->NewLandscape_ComponentCount.X;
-					int32 Delta = FMath::Round(HitLocation.X - (float)InitialComponentCountX / 2);
+					int32 Delta = FMath::RoundToInt(HitLocation.X - (float)InitialComponentCountX / 2);
 					UISettings->NewLandscape_ComponentCount.X = InitialComponentCountX + Delta;
 					UISettings->NewLandscape_ClampSize();
 					const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.X - InitialComponentCountX;
@@ -1413,7 +1411,7 @@ bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient,
 			case ELandscapeEdge::X_Positive_Y_Negative:
 				{
 					const int32 InitialComponentCountY = UISettings->NewLandscape_ComponentCount.Y;
-					int32 Delta = FMath::Round(HitLocation.Y + (float)InitialComponentCountY / 2);
+					int32 Delta = FMath::RoundToInt(HitLocation.Y + (float)InitialComponentCountY / 2);
 					UISettings->NewLandscape_ComponentCount.Y = InitialComponentCountY - Delta;
 					UISettings->NewLandscape_ClampSize();
 					const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.Y - InitialComponentCountY;
@@ -1425,7 +1423,7 @@ bool FEdModeLandscape::InputDelta( FLevelEditorViewportClient* InViewportClient,
 			case ELandscapeEdge::X_Positive_Y_Positive:
 				{
 					const int32 InitialComponentCountY = UISettings->NewLandscape_ComponentCount.Y;
-					int32 Delta = FMath::Round(HitLocation.Y - (float)InitialComponentCountY / 2);
+					int32 Delta = FMath::RoundToInt(HitLocation.Y - (float)InitialComponentCountY / 2);
 					UISettings->NewLandscape_ComponentCount.Y = InitialComponentCountY + Delta;
 					UISettings->NewLandscape_ClampSize();
 					const int32 ActualDelta = UISettings->NewLandscape_ComponentCount.Y - InitialComponentCountY;
@@ -2463,8 +2461,6 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
 			TArray<uint16> HeightData;
 			TArray<FLandscapeImportLayerInfo> ImportLayerInfos;
-			TArray<TArray<uint8>, TInlineAllocator<8>> LayerDataArrays;
-			TArray<uint8*> LayerDataPtrs;
 			FVector LandscapeOffset = FVector::ZeroVector;
 			float LandscapeScaleFactor = 1.0f;
 
@@ -2483,18 +2479,15 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 				{
 					if (LayerSettings.LayerInfoObj != NULL)
 					{
-						TArray<uint8>* LayerData = new(LayerDataArrays)(TArray<uint8>);
-						LayerData->AddZeroed(OldVertsX * OldVertsY * sizeof(uint8));
-
+						auto ImportLayerInfo = new(ImportLayerInfos) FLandscapeImportLayerInfo(LayerSettings);
+						ImportLayerInfo->LayerData.AddZeroed(OldVertsX * OldVertsY * sizeof(uint8));
+						
 						TMinX = OldMinX; TMinY = OldMinY; TMaxX = OldMaxX; TMaxY = OldMaxY;
-						LandscapeEdit.GetWeightData(LayerSettings.LayerInfoObj, TMinX, TMinY, TMaxX, TMaxY, LayerData->GetData(), 0);
+						LandscapeEdit.GetWeightData(LayerSettings.LayerInfoObj, TMinX, TMinY, TMaxX, TMaxY, ImportLayerInfo->LayerData.GetData(), 0);
 
-						*LayerData = LandscapeEditorUtils::ResampleData(*LayerData,
+						ImportLayerInfo->LayerData = LandscapeEditorUtils::ResampleData(ImportLayerInfo->LayerData,
 							OldVertsX, OldVertsY,
 							NewVertsX, NewVertsY);
-
-						new(ImportLayerInfos) FLandscapeImportLayerInfo(LayerSettings);
-						LayerDataPtrs.Add(LayerData->GetData());
 					}
 				}
 
@@ -2528,18 +2521,15 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 				{
 					if (LayerSettings.LayerInfoObj != NULL)
 					{
-						TArray<uint8>* LayerData = new(LayerDataArrays)(TArray<uint8>);
-						LayerData->AddZeroed(NewVertsX * NewVertsY * sizeof(uint8));
+						auto ImportLayerInfo = new(ImportLayerInfos) FLandscapeImportLayerInfo(LayerSettings);
+						ImportLayerInfo->LayerData.AddZeroed(NewVertsX * NewVertsY * sizeof(uint8));
 
 						TMinX = RequestedMinX; TMinY = RequestedMinY; TMaxX = RequestedMaxX; TMaxY = RequestedMaxY;
-						LandscapeEdit.GetWeightData(LayerSettings.LayerInfoObj, TMinX, TMinY, TMaxX, TMaxY, LayerData->GetData(), 0);
+						LandscapeEdit.GetWeightData(LayerSettings.LayerInfoObj, TMinX, TMinY, TMaxX, TMaxY, ImportLayerInfo->LayerData.GetData(), 0);
 
-						*LayerData = LandscapeEditorUtils::ExpandData(*LayerData,
+						ImportLayerInfo->LayerData = LandscapeEditorUtils::ExpandData(ImportLayerInfo->LayerData,
 							RequestedMinX, RequestedMinY, RequestedMaxX, RequestedMaxY,
 							NewMinX, NewMinY, NewMaxX, NewMaxY);
-
-						new(ImportLayerInfos) FLandscapeImportLayerInfo(LayerSettings);
-						LayerDataPtrs.Add(LayerData->GetData());
 					}
 				}
 
@@ -2554,7 +2544,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 
 			Landscape->LandscapeMaterial = OldLandscapeProxy->LandscapeMaterial;
 			Landscape->CollisionMipLevel = OldLandscapeProxy->CollisionMipLevel;
-			Landscape->Import(FGuid::NewGuid(), NewVertsX, NewVertsY, NumSubsections*SubsectionSizeQuads, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos, LayerDataPtrs.Num() ? LayerDataPtrs.GetData() : NULL);
+			Landscape->Import(FGuid::NewGuid(), NewVertsX, NewVertsY, NumSubsections*SubsectionSizeQuads, NumSubsections, SubsectionSizeQuads, HeightData.GetData(), *OldLandscapeProxy->ReimportHeightmapFilePath, ImportLayerInfos);
 
 			Landscape->MaxLODLevel                 = OldLandscapeProxy->MaxLODLevel;
 			Landscape->ExportLOD                   = OldLandscapeProxy->ExportLOD;
@@ -2568,7 +2558,7 @@ ALandscape* FEdModeLandscape::ChangeComponentSetting(int32 NumComponentsX, int32
 			Landscape->LightmassSettings           = OldLandscapeProxy->LightmassSettings;
 			Landscape->CollisionThickness          = OldLandscapeProxy->CollisionThickness;
 			Landscape->BodyInstance.SetCollisionProfileName(OldLandscapeProxy->BodyInstance.GetCollisionProfileName());
-			if (Landscape->BodyInstance.GetCollisionProfileName() == NAME_None)
+			if (Landscape->BodyInstance.DoesUseCollisionProfile() == false)
 			{
 				Landscape->BodyInstance.SetCollisionEnabled(OldLandscapeProxy->BodyInstance.GetCollisionEnabled());
 				Landscape->BodyInstance.SetObjectType(OldLandscapeProxy->BodyInstance.GetObjectType());

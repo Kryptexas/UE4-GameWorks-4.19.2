@@ -72,7 +72,7 @@ struct FPurchaseInfo
 
 };
 
-UCLASS(HeaderGroup=PlatformInterface)
+UCLASS()
 class UMicroTransactionBase : public UPlatformInterfaceBase
 {
 	GENERATED_UCLASS_BODY()

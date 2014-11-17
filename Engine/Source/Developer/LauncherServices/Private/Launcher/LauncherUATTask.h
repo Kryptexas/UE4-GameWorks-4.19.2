@@ -55,7 +55,7 @@ protected:
 
 		// switch server and no editor platforms to the proper type
 		FString Platform = TargetPlatform.PlatformName();
-		if (TargetPlatform.PlatformName() == TEXT("LinuxServer"))
+		if (TargetPlatform.PlatformName() == TEXT("LinuxServer") || TargetPlatform.PlatformName() == TEXT("LinuxNoEditor"))
 		{
 			Platform = TEXT("Linux");
 		}

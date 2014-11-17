@@ -2,8 +2,6 @@
 
 #include "UnrealEd.h"
 #include "AssetSelection.h"
-#include "EngineLightClasses.h"
-#include "EngineDecalClasses.h"
 #include "ScopedTransaction.h"
 
 #include "LevelUtils.h"
@@ -432,9 +430,16 @@ namespace AssetUtil
 	TArray<FAssetData> ExtractAssetDataFromDrag( const FDragDropEvent &DragDropEvent )
 	{
 		TArray<FAssetData> DroppedAssetData;
-		if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (!Operation.IsValid())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
+			return DroppedAssetData;
+		}
+
+		if (Operation->IsOfType<FExternalDragOperation>())
+		{
+			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(Operation);
 			if ( DragDropOp->HasText() )
 			{
 				TArray<FString> DroppedAssetStrings;
@@ -454,9 +459,9 @@ namespace AssetUtil
 				}
 			}
 		}
-		else if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetDragDropOp>())
 		{
-			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
+			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( Operation );
 			DroppedAssetData.Append( DragDropOp->AssetData );
 		}
 
@@ -664,10 +669,11 @@ bool FActorFactoryAssetProxy::IsActorValidForMaterialApplication( AActor* Target
 *
 * @param	TargetActor		the actor to apply the material to
 * @param	MaterialToApply	the material to apply to the actor
+* @param    OptionalMaterialSlot the material slot to apply to.
 *
 * @return	true if the material was successfully applied to the actor
 */
-bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMaterialInterface* MaterialToApply )
+bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMaterialInterface* MaterialToApply, int32 OptionalMaterialSlot )
 {
 	bool bResult = false;
 
@@ -685,7 +691,6 @@ bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMateri
 		}
 		else
 		{
-
 			TArray<UActorComponent*> EditableComponents;
 			FActorEditorUtils::GetEditableComponents( TargetActor, EditableComponents );
 
@@ -737,10 +742,21 @@ bool FActorFactoryAssetProxy::ApplyMaterialToActor( AActor* TargetActor, UMateri
 						{
 							const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "DropTarget_UndoSetActorMaterial", "Assign Material (Drag and Drop)") );
 							FoundMeshComponent->Modify();
-							for( int32 CurMaterialIndex = 0; CurMaterialIndex < MaterialCount; ++CurMaterialIndex )
+
+							// If the material slot is -1 then apply the material to every slot.
+							if ( OptionalMaterialSlot == -1 )
 							{
-								FoundMeshComponent->SetMaterial( CurMaterialIndex, MaterialToApply );
+								for ( int32 CurMaterialIndex = 0; CurMaterialIndex < MaterialCount; ++CurMaterialIndex )
+								{
+									FoundMeshComponent->SetMaterial(CurMaterialIndex, MaterialToApply);
+								}
 							}
+							else
+							{
+								check(OptionalMaterialSlot < MaterialCount);
+								FoundMeshComponent->SetMaterial(OptionalMaterialSlot, MaterialToApply);
+							}
+
 							TargetActor->MarkComponentsRenderStateDirty();
 							bResult = true;
 						}

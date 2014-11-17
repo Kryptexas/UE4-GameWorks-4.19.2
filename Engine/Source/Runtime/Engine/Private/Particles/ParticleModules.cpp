@@ -638,13 +638,13 @@ uint32 UParticleModule::PrepRandomSeedInstancePayload(FParticleEmitterInstance* 
 			{
 				if (InRandSeedInfo.bInstanceSeedIsIndex == false)
 				{
-					InRandSeedPayload->RandomStream.Initialize(FMath::Round(SeedValue));
+					InRandSeedPayload->RandomStream.Initialize(FMath::RoundToInt(SeedValue));
 				}
 				else
 				{
 					if (InRandSeedInfo.RandomSeeds.Num() > 0)
 					{
-						int32 Index = FMath::Min<int32>((InRandSeedInfo.RandomSeeds.Num() - 1), FMath::Trunc(SeedValue));
+						int32 Index = FMath::Min<int32>((InRandSeedInfo.RandomSeeds.Num() - 1), FMath::TruncToInt(SeedValue));
 						InRandSeedPayload->RandomStream.Initialize(InRandSeedInfo.RandomSeeds[Index]);
 						return 0;
 					}
@@ -1970,7 +1970,7 @@ float UParticleModuleSubUV::DetermineImageIndex(FParticleEmitterInstance* Owner,
 
 		if (InterpMethod == PSUVIM_Linear)
 		{
-			ImageIndex = FMath::TruncFloat(ImageIndex);
+			ImageIndex = FMath::TruncToFloat(ImageIndex);
 		}
 	}
 	else if ((InterpMethod == PSUVIM_Random) || (InterpMethod == PSUVIM_Random_Blend))
@@ -1980,13 +1980,13 @@ float UParticleModuleSubUV::DetermineImageIndex(FParticleEmitterInstance* Owner,
 			(SubUVPayload.RandomImageTime == 0.0f))
 		{
 			const float RandomNumber = FMath::SRand();
-			ImageIndex = FMath::Trunc(RandomNumber * TotalSubImages);
+			ImageIndex = FMath::TruncToInt(RandomNumber * TotalSubImages);
 			SubUVPayload.RandomImageTime	= Particle->RelativeTime;
 		}
 
 		if (InterpMethod == PSUVIM_Random)
 		{
-			ImageIndex = FMath::TruncFloat(ImageIndex);
+			ImageIndex = FMath::TruncToFloat(ImageIndex);
 		}
 	}
 	else
@@ -2118,7 +2118,7 @@ void UParticleModuleSubUVMovie::Spawn(FParticleEmitterInstance* Owner, int32 Off
 			}
 			else if (StartingFrame == 0)
 			{
-				MoviePayload.Time = FMath::Trunc(FMath::SRand() * (iTotalSubImages-1));
+				MoviePayload.Time = FMath::TruncToFloat(FMath::SRand() * (iTotalSubImages-1));
 			}
 
 			// Update the payload
@@ -2159,7 +2159,7 @@ float UParticleModuleSubUVMovie::DetermineImageIndex(FParticleEmitterInstance* O
 	float ImageIndex = MoviePayload.Time * UserSetFrameRate;
 	if (InterpMethod != PSUVIM_Linear_Blend)
 	{
-		ImageIndex = FMath::TruncFloat(ImageIndex);
+		ImageIndex = FMath::TruncToFloat(ImageIndex);
 	}
 	return ImageIndex;
 }
@@ -3136,7 +3136,7 @@ void UParticleModuleKillBox::Update(FParticleEmitterInstance* Owner, int32 Offse
 
 	BEGIN_UPDATE_LOOP;
 	{
-		FVector Position = Particle.Location;
+		FVector Position = Particle.Location + Owner->PositionOffsetThisTick;
 
 		if (LODLevel->RequiredModule->bUseLocalSpace)
 		{
@@ -3750,7 +3750,7 @@ void UParticleModuleAttractorParticle::Spawn(FParticleEmitterInstance* Owner, in
 			switch (SelectionMethod)
 			{
 			case EAPSM_Random:
-				LastSelIndex		= FMath::Trunc(FMath::SRand() * AttractorEmitterInst->ActiveParticles);
+				LastSelIndex		= FMath::TruncToInt(FMath::SRand() * AttractorEmitterInst->ActiveParticles);
 				Data.SourceIndex	= LastSelIndex;
 				break;
 			case EAPSM_Sequential:
@@ -3918,6 +3918,14 @@ UParticleModuleAttractorPoint::UParticleModuleAttractorPoint(const class FPostCo
 	bAffectBaseVelocity = false;
 	bOverrideVelocity = false;
 	bSupported3DDrawMode = true;
+
+	Positive_X = true;
+	Positive_Y = true;
+	Positive_Z = true;
+
+	Negative_X = true;
+	Negative_Y = true;
+	Negative_Z = true;
 }
 
 void UParticleModuleAttractorPoint::InitializeDefaults()
@@ -3991,6 +3999,9 @@ void UParticleModuleAttractorPoint::Update(FParticleEmitterInstance* Owner, int3
 
 	AttractorRange *= ScaleSize;
 
+	FVector MinNormalizedDir(Negative_X ? -1.0f : 0.0f, Negative_Y ? -1.0f : 0.0f, Negative_Z ? -1.0f : 0.0f);
+	FVector MaxNormalizedDir(Positive_X ? +1.0f : 0.0f, Positive_Y ? +1.0f : 0.0f, Positive_Z ? +1.0f : 0.0f);
+
 	BEGIN_UPDATE_LOOP;
 		// If the particle is within range...
 		FVector Dir = AttractorPosition - Particle.Location;
@@ -4022,8 +4033,17 @@ void UParticleModuleAttractorPoint::Update(FParticleEmitterInstance* Owner, int3
 				AttractorStrength *= ScaleSize;
 			}
 
-			// Adjust the VELOCITY of the particle based on the attractor... 
 			Dir.Normalize();
+
+			// If the strength is negative, flip direction before clamping.
+			if (AttractorStrength < 0.0f)
+			{
+				Dir = -Dir;
+				AttractorStrength = -AttractorStrength;
+			}
+
+			// Adjust the VELOCITY of the particle based on the attractor...
+			Dir = ClampVector(Dir,MinNormalizedDir,MaxNormalizedDir);
     		Particle.Velocity	+= Dir * AttractorStrength * DeltaTime;
 			if (bAffectBaseVelocity)
 			{
@@ -4452,6 +4472,9 @@ void UParticleModuleTypeDataGpu::Build( FParticleEmitterBuildInfo& EmitterBuildI
 
 	ResourceData.PivotOffset = EmitterBuildInfo.PivotOffset;
 
+    // Store color and scale when using particle parameters.
+	EmitterInfo.DynamicColor = EmitterBuildInfo.DynamicColor;
+	EmitterInfo.DynamicAlpha= EmitterBuildInfo.DynamicAlpha;
 	EmitterInfo.DynamicColorScale = EmitterBuildInfo.DynamicColorScale;
 	EmitterInfo.DynamicAlphaScale = EmitterBuildInfo.DynamicAlphaScale;
 

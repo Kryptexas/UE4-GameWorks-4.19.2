@@ -49,7 +49,7 @@ public:
 	{
 		ISettingsViewer** Viewer = ContainerNamesToViewers.Find(ContainerName);
 
-		if (Viewer != NULL)
+		if (Viewer != nullptr)
 		{
 			(*Viewer)->ShowSettings(CategoryName, SectionName);
 		}

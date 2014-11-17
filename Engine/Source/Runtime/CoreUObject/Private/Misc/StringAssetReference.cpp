@@ -28,6 +28,13 @@ bool FStringAssetReference::Serialize(FArchive& Ar)
 		FCoreDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
 	}
 #endif // WITH_EDITOR
+
+	if (Ar.IsLoading() && (Ar.GetPortFlags()&PPF_DuplicateForPIE))
+	{
+		// Remap unique ID if necessary
+		FixupForPIE();
+	}
+
 	return true;
 }
 bool FStringAssetReference::operator==(FStringAssetReference const& Other) const
@@ -97,6 +104,12 @@ bool FStringAssetReference::SerializeFromMismatchedTag(struct FPropertyTag const
 		{
 			AssetLongPathname = FString();
 		}
+#if WITH_EDITOR
+		if (Ar.IsLoading() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceLoaded.IsBound())
+		{
+			FCoreDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
+		}
+#endif // WITH_EDITOR
 		return true;
 	}
 	else if( Tag.Type == NAME_StrProperty )
@@ -105,30 +118,15 @@ bool FStringAssetReference::SerializeFromMismatchedTag(struct FPropertyTag const
 		Ar << String;
 
 		AssetLongPathname = String;
+#if WITH_EDITOR
+		if (Ar.IsLoading() && Ar.IsPersistent() && FCoreDelegates::StringAssetReferenceLoaded.IsBound())
+		{
+			FCoreDelegates::StringAssetReferenceLoaded.Execute(AssetLongPathname);
+		}
+#endif // WITH_EDITOR
 		return true;
 	}
 	return false;
-}
-
-FStringAssetReference FStringAssetReference::FixupForPIE() const
-{
-	FStringAssetReference Temp(*this);
-	if (FPlatformProperties::HasEditorOnlyData() && IsValid())
-	{
-		FString Path = ToString();
-		const FString ShortPackageOuterAndName = FPackageName::GetLongPackageAssetName(Path);
-
-		if (!ShortPackageOuterAndName.StartsWith(PLAYWORLD_PACKAGE_PREFIX) && Path.Contains("TheWorld:"))
-		{
-			check(GPlayInEditorID != -1);
-
-			// Need to prepend PIE prefix, as we're in PIE and this is a level actor
-			Path = FString::Printf(TEXT("%s/%s_%d_%s"), *FPackageName::GetLongPackagePath(Path), PLAYWORLD_PACKAGE_PREFIX, GPlayInEditorID, *ShortPackageOuterAndName);
-			Temp.AssetLongPathname = Path;
-		}
-	}
-
-	return Temp;
 }
 
 UObject *FStringAssetReference::ResolveObject() const
@@ -160,4 +158,45 @@ FStringAssetReference FStringAssetReference::GetOrCreateIDForObject(const class 
 	return FStringAssetReference(Object);
 }
 
+void FStringAssetReference::SetPackageNamesBeingDuplicatedForPIE(const TArray<FString>& InPackageNamesBeingDuplicatedForPIE)
+{
+	PackageNamesBeingDuplicatedForPIE = InPackageNamesBeingDuplicatedForPIE;
+}
+
+void FStringAssetReference::ClearPackageNamesBeingDuplicatedForPIE()
+{
+	PackageNamesBeingDuplicatedForPIE.Empty();
+}
+
+void FStringAssetReference::FixupForPIE()
+{
+	if (FPlatformProperties::HasEditorOnlyData() && IsValid())
+	{
+		FString Path = ToString();
+
+		// Determine if this reference has already been fixed up for PIE
+		const FString ShortPackageOuterAndName = FPackageName::GetLongPackageAssetName(Path);
+		if (!ShortPackageOuterAndName.StartsWith(PLAYWORLD_PACKAGE_PREFIX))
+		{
+			check(GPlayInEditorID != -1);
+
+			const FString PIEPath = FString::Printf(TEXT("%s/%s_%d_%s"), *FPackageName::GetLongPackagePath(Path), PLAYWORLD_PACKAGE_PREFIX, GPlayInEditorID, *ShortPackageOuterAndName);
+
+			// Determine if this refers to a package that is being duplicated for PIE
+			for (auto PackageNameIt = PackageNamesBeingDuplicatedForPIE.CreateConstIterator(); PackageNameIt; ++PackageNameIt)
+			{
+				const FString PathPrefix = (*PackageNameIt) + TEXT(".");
+				if (PIEPath.StartsWith(PathPrefix))
+				{
+					// Need to prepend PIE prefix, as we're in PIE and this refers to an object in a PIE package
+					AssetLongPathname = PIEPath;
+
+					break;
+				}
+			}
+		}
+	}
+}
+
 int32 FStringAssetReference::CurrentTag = 1;
+TArray<FString> FStringAssetReference::PackageNamesBeingDuplicatedForPIE;

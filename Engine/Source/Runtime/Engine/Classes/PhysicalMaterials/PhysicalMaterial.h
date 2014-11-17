@@ -54,7 +54,7 @@ class ENGINE_API UPhysicalMaterial : public UObject
 	// Object properties.
 	//
 	
-	/** Used with the shape of the object to calculate its mass properties. The higher the number, the heavier the object. g per cubic uu. */
+	/** Used with the shape of the object to calculate its mass properties. The higher the number, the heavier the object. g per cubic cm. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PhysicalMaterial)
 	float Density;
 

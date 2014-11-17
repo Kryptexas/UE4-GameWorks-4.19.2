@@ -25,9 +25,9 @@ public:
 	}
 	FForwardCopySceneAlphaPS() {}
 
-	void SetParameters()
+	void SetParameters(const FSceneView& View)
 	{
-		SceneTextureParameters.Set(GetPixelShader());
+		SceneTextureParameters.Set(GetPixelShader(), View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -45,7 +45,7 @@ IMPLEMENT_SHADER_TYPE(,FForwardCopySceneAlphaPS,TEXT("TranslucentLightingShaders
 
 FGlobalBoundShaderState ForwardCopySceneAlphaBoundShaderState;
 
-void FForwardShadingSceneRenderer::CopySceneAlpha(void)
+void FForwardShadingSceneRenderer::CopySceneAlpha(const FSceneView& View)
 {
 	SCOPED_DRAW_EVENTF(EventCopy, DEC_SCENE_ITEMS, TEXT("CopySceneAlpha"));
 	RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
@@ -65,7 +65,7 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(void)
 	TShaderMapRef<FForwardCopySceneAlphaPS> PixelShader(GetGlobalShaderMap());
 	SetGlobalBoundShaderState(ForwardCopySceneAlphaBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
 
-	PixelShader->SetParameters();
+	PixelShader->SetParameters(View);
 
 	DrawRectangle( 
 		0, 0, 
@@ -74,6 +74,7 @@ void FForwardShadingSceneRenderer::CopySceneAlpha(void)
 		X, Y,
 		FIntPoint(X, Y),
 		GSceneRenderTargets.GetBufferSizeXY(),
+		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
 	GSceneRenderTargets.FinishRenderingSceneAlphaCopy();
@@ -138,7 +139,7 @@ public:
 
 		DrawingPolicy.DrawShared(
 			&View,
-			DrawingPolicy.CreateBoundShaderState()
+			DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel())
 			);
 
 		for (int32 BatchElementIndex = 0; BatchElementIndex<Parameters.Mesh.Elements.Num(); BatchElementIndex++)
@@ -173,7 +174,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawDynamicMesh(
 	bool bDirty = false;
 
 	// Determine the mesh's material and blend mode.
-	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = Mesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 	const EBlendMode BlendMode = Material->GetBlendMode();
 
 	// Only render translucent materials.
@@ -214,7 +215,7 @@ bool FTranslucencyForwardShadingDrawingPolicyFactory::DrawStaticMesh(
 	)
 {
 	bool bDirty = false;
-	const FMaterial* Material = StaticMesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+	const FMaterial* Material = StaticMesh.MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 
 	bDirty |= DrawDynamicMesh(
 		View,
@@ -302,13 +303,6 @@ void FForwardShadingSceneRenderer::RenderTranslucency()
 		const bool bGammaSpace = !IsMobileHDR();
 		const bool bLinearHDR64 = !bGammaSpace && !IsMobileHDR32bpp();
 
-		// Copy the view so emulation of framebuffer fetch works for alpha=depth.
-		// Possible optimization: this copy shouldn't be needed unless something uses fetch of depth.
-		if(bLinearHDR64 && GSupportsRenderTargetFormat_PF_FloatRGBA && (GSupportsShaderFramebufferFetch == false) && (!IsPCPlatform(GRHIShaderPlatform)))
-		{
-			//CopySceneAlpha();
-		}
-
 		SCOPED_DRAW_EVENT(Translucency, DEC_SCENE_ITEMS);
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -316,6 +310,16 @@ void FForwardShadingSceneRenderer::RenderTranslucency()
 			SCOPED_CONDITIONAL_DRAW_EVENTF(EventView, Views.Num() > 1, DEC_SCENE_ITEMS, TEXT("View%d"), ViewIndex);
 
 			const FViewInfo& View = Views[ViewIndex];
+
+			#if PLATFORM_HTML5
+			// Copy the view so emulation of framebuffer fetch works for alpha=depth.
+			// Possible optimization: this copy shouldn't be needed unless something uses fetch of depth.
+			if(bLinearHDR64 && GSupportsRenderTargetFormat_PF_FloatRGBA && (GSupportsShaderFramebufferFetch == false) && (!IsPCPlatform(GRHIShaderPlatform)))
+			{
+				CopySceneAlpha(View);
+			}
+			#endif 
+
 
 			if (!bGammaSpace)
 			{

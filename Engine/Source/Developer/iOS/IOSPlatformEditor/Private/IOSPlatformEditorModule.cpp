@@ -28,8 +28,8 @@ class FIOSPlatformEditorModule : public IModuleInterface
 			SettingsModule->RegisterSettings("Project", "Platforms", "iOS",
 				LOCTEXT("RuntimeSettingsName", "iOS"),
 				LOCTEXT("RuntimeSettingsDescription", "Settings and resources for the iOS platform"),
-				TWeakObjectPtr<UObject>(GetMutableDefault<UIOSRuntimeSettings>())
-				);
+				GetMutableDefault<UIOSRuntimeSettings>()
+			);
 		}
 	}
 

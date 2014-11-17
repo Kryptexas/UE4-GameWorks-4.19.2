@@ -2,7 +2,6 @@
 
 #include "BlueprintGraphPrivatePCH.h"
 
-#include "EngineLevelScriptClasses.h"
 #include "KismetCompiler.h"
 #include "EventEntryHandler.h"
 
@@ -65,8 +64,7 @@ void UK2Node_ActorBoundEvent::DestroyNode()
 			{
 				// Create a delegate of the correct signature to remove
 				FScriptDelegate Delegate;
-				Delegate.SetFunctionName(CustomFunctionName);
-				Delegate.SetObject(LSA);
+				Delegate.BindUFunction(LSA, CustomFunctionName);
 				
 				// Attempt to remove it from the target's MC delegate
 				FMulticastScriptDelegate* TargetDelegate = GetTargetDelegate();

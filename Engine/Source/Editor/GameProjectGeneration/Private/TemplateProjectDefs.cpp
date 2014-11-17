@@ -3,6 +3,45 @@
 
 #include "GameProjectGenerationPrivatePCH.h"
 
+namespace
+{
+
+FText GetLocalizedText(const TArray<FLocalizedTemplateString>& LocalizedStrings)
+{
+	const FString DefaultCultureISOLanguageName = "en";
+	const FString CurrentCultureISOLanguageName = FInternationalization::Get().GetCurrentCulture()->GetTwoLetterISOLanguageName();
+	FText FallbackText;
+
+	for ( const FLocalizedTemplateString& LocalizedString : LocalizedStrings )
+	{
+		if ( LocalizedString.Language == CurrentCultureISOLanguageName )
+		{
+			return FText::FromString(LocalizedString.Text);
+		}
+
+		if ( LocalizedString.Language == DefaultCultureISOLanguageName )
+		{
+			FallbackText = FText::FromString(LocalizedString.Text);
+		}
+	}
+
+	// Did we find an English fallback?
+	if ( !FallbackText.IsEmpty() )
+	{
+		return FallbackText;
+	}
+
+	// We failed to find English, see if we have any translations available to use
+	if ( LocalizedStrings.Num() )
+	{
+		return FText::FromString(LocalizedStrings[0].Text);
+	}
+
+	return FText();
+}
+
+}
+
 UTemplateProjectDefs::UTemplateProjectDefs(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
@@ -45,32 +84,12 @@ void UTemplateProjectDefs::FixupStrings(const FString& TemplateName, const FStri
 
 FText UTemplateProjectDefs::GetDisplayNameText()
 {
-	const TSharedRef< FCulture > CurrentCulture = FInternationalization::Get().GetCurrentCulture();
-	for ( auto NameIt = LocalizedDisplayNames.CreateConstIterator(); NameIt; ++NameIt )
-	{
-		const FLocalizedTemplateString& Name = *NameIt;
-		if ( Name.Language == CurrentCulture->GetTwoLetterISOLanguageName() )
-		{
-			return FText::FromString(Name.Text);
-		}
-	}
-
-	return FText();
+	return GetLocalizedText(LocalizedDisplayNames);
 }
 
 FText UTemplateProjectDefs::GetLocalizedDescription()
 {
-	const TSharedRef< FCulture >  CurrentCulture = FInternationalization::Get().GetCurrentCulture();
-	for ( auto DescriptionIt = LocalizedDescriptions.CreateConstIterator(); DescriptionIt; ++DescriptionIt )
-	{
-		const FLocalizedTemplateString& Description = *DescriptionIt;
-		if ( Description.Language == CurrentCulture->GetTwoLetterISOLanguageName() )
-		{
-			return FText::FromString(Description.Text);
-		}
-	}
-
-	return FText();
+	return GetLocalizedText(LocalizedDescriptions);
 }
 
 void UTemplateProjectDefs::FixString(FString& InOutStringToFix, const FString& TemplateName, const FString& ProjectName)

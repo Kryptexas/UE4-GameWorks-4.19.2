@@ -95,7 +95,7 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "General", "AutomationTest",
 			LOCTEXT("AutomationSettingsName", "Automation"),
 			LOCTEXT("AutomationSettingsDescription", "Set up automation test assets."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UAutomationTestSettings>())
+			GetMutableDefault<UAutomationTestSettings>()
 		);
 
 		// input bindings
@@ -115,9 +115,9 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "General", "Internationalization",
 			LOCTEXT("InternationalizationSettingsModelName", "Region & Language"),
 			LOCTEXT("InternationalizationSettingsModelDescription", "Configure the editor's behavior to use a language and fit a region's culture."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UInternationalizationSettingsModel>()),
+			GetMutableDefault<UInternationalizationSettingsModel>(),
 			RegionAndLanguageDelegates
-			);
+		);
 
 		SettingsModule.RegisterSettings("Editor", "General", "InputBindings",
 			LOCTEXT("InputBindingsSettingsName", "Keyboard Shortcuts"),
@@ -130,7 +130,7 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "General", "LoadingSaving",
 			LOCTEXT("LoadingSavingSettingsName", "Loading & Saving"),
 			LOCTEXT("LoadingSavingSettingsDescription", "Change how the Editor loads and saves files."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UEditorLoadingSavingSettings>()),
+			GetMutableDefault<UEditorLoadingSavingSettings>(),
 			UserSettingsDelegates
 		);
 
@@ -141,7 +141,7 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "General", "UserSettings",
 			LOCTEXT("UserSettingsName", "Miscellaneous"),
 			LOCTEXT("UserSettingsDescription", "Customize the behavior, look and feel of the editor."),
-			TWeakObjectPtr<UObject>(&GEditor->AccessEditorUserSettings()),
+			&GEditor->AccessEditorUserSettings(),
 			UserSettingsDelegates
 		);
 
@@ -149,7 +149,7 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "General", "Experimental",
 			LOCTEXT("ExperimentalettingsName", "Experimental"),
 			LOCTEXT("ExperimentalSettingsDescription", "Enable and configure experimental Editor features."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UEditorExperimentalSettings>())
+			GetMutableDefault<UEditorExperimentalSettings>()
 		);
 	}
 
@@ -162,21 +162,21 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "LevelEditor", "PlayIn",
 			LOCTEXT("LevelEditorPlaySettingsName", "Play"),
 			LOCTEXT("LevelEditorPlaySettingsDescription", "Set up window sizes and other options for the Play In Editor (PIE) feature."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<ULevelEditorPlaySettings>())
+			GetMutableDefault<ULevelEditorPlaySettings>()
 		);
 
 		// view port settings
 		SettingsModule.RegisterSettings("Editor", "LevelEditor", "Viewport",
 			LOCTEXT("LevelEditorViewportSettingsName", "Viewports"),
 			LOCTEXT("LevelEditorViewportSettingsDescription", "Configure the look and feel of the Level Editor view ports."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<ULevelEditorViewportSettings>())
+			GetMutableDefault<ULevelEditorViewportSettings>()
 		);
 
 		// miscellaneous settings
 		SettingsModule.RegisterSettings("Editor", "LevelEditor", "Misc",
 			LOCTEXT("LevelEditorMiscSettingsName", "Miscellaneous"),
 			LOCTEXT("LevelEditorMiscSettingsDescription", "Configure miscellaneous settings for the Level Editor."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<ULevelEditorMiscSettings>())
+			GetMutableDefault<ULevelEditorMiscSettings>()
 		);
 	}
 
@@ -189,14 +189,14 @@ protected:
 		SettingsModule.RegisterSettings("Editor", "ContentEditors", "ContentBrowser",
 			LOCTEXT("ContentEditorsContentBrowserSettingsName", "Content Browser"),
 			LOCTEXT("ContentEditorsContentBrowserSettingsDescription", "Change the behavior of the Content Browser."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UContentBrowserSettings>())
+			GetMutableDefault<UContentBrowserSettings>()
 		);
 
 		// destructable mesh editor
 /*		SettingsModule.RegisterSettings("Editor", "ContentEditors", "DestructableMeshEditor",
 			LOCTEXT("ContentEditorsDestructableMeshEditorSettingsName", "Destructable Mesh Editor"),
 			LOCTEXT("ContentEditorsDestructableMeshEditorSettingsDescription", "Change the behavior of the Destructable Mesh Editor."),
-			TWeakObjectPtr<UObject>(GetMutableDefault<UDestructableMeshEditorSettings>())
+			GetMutableDefault<UDestructableMeshEditorSettings>()
 		);*/
 	}
 

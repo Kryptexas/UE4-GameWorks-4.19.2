@@ -9,7 +9,7 @@
 
 #include "MaterialExpressionParticleSize.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleSize : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

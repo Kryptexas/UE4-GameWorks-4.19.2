@@ -495,20 +495,6 @@ public:
 	virtual void SendData(FProfilerCycleGraph& Data) = 0;
 
 	/**
-	 * Specifies the stat description
-	 *
-	 * @param Desc - description of the statistic
-	 */
-	virtual void AddStatDescription(FStatDescription& Data) = 0;
-
-	/**
-	 * Specifies the group description
-	 *
-	 * @param Desc - description of the group
-	 */
-	virtual void AddGroupDescription(FStatGroupDescription& Data) = 0;
-
-	/**
 	 * Determines if we are capturing data for clients
 	 */
 	virtual bool IsCapturing() const = 0;

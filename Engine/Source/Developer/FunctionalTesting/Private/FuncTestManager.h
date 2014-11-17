@@ -9,11 +9,13 @@ class FFuncTestManager : public IFuncTestManager, public TSharedFromThis<FFuncTe
 public:
 		
 	/** Triggers in sequence all functional tests found on the level.*/
-	virtual void RunAllTestsOnMap(bool bClearLog, bool bRunLooped);
+	virtual void RunAllTestsOnMap(bool bClearLog, bool bRunLooped) OVERRIDE;
 	
-	virtual bool IsRunning() const;
+	virtual bool IsRunning() const OVERRIDE;
 	
-	virtual void SetScript(class UFunctionalTestingManager* NewScript);
+	virtual void SetScript(class UFunctionalTestingManager* NewScript) OVERRIDE;
+
+	virtual class UFunctionalTestingManager* GetCurrentScript() OVERRIDE { return TestScript.Get(); }
 
 	virtual void SetLooping(const bool bLoop);
 

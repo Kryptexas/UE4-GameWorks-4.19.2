@@ -12,7 +12,8 @@ namespace UnrealBuildTool.Rules
 					"CoreUObject",		// @todo Mac: for some reason CoreUObject and Engine are needed to link in debug on Mac
                     "InputCore",
 					"Engine",
-					"Slate"
+					"Slate",
+					"SlateCore",
 				}
 			);
 			

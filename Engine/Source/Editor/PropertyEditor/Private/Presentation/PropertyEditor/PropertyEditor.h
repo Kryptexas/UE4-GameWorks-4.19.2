@@ -1,8 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "IFilter.h"
-#include "FilterCollection.h"
+#include "Editor/SceneOutliner/Public/SceneOutlinerFilters.h"
 
 class FPropertyNode;
 class IPropertyUtilities;
@@ -15,8 +14,14 @@ public:
 	/** @return The String containing the value of the property */
 	FString GetValueAsString() const;
 
+	/** @return The String containing the value of the property, possibly using an alternate form more suitable for display in the UI */
+	FString GetValueAsDisplayString() const;
+
 	/** @return The String containing the value of the property as Text */
 	FText GetValueAsText() const;
+
+	/** @return The String containing the value of the property as Text, possibly using an alternate form more suitable for display in the UI */
+	FText GetValueAsDisplayText() const;
 
 	bool PropertyIsA(const UClass* Class) const;
 
@@ -83,7 +88,7 @@ public:
 	void OnGetClassesForAssetPicker( TArray<const UClass*>& OutClasses );
 	void OnAssetSelected( const FAssetData& AssetData );
 	void OnActorSelected( AActor* InActor );
-	void OnGetActorFiltersForSceneOutliner( TSharedPtr<TFilterCollection<const AActor* const> >& OutFilters );
+	void OnGetActorFiltersForSceneOutliner( TSharedPtr<SceneOutliner::FOutlinerFilters>& OutFilters );
 
 	/**	In an ideal world we wouldn't expose these */
 	TSharedRef< FPropertyNode > GetPropertyNode() const;

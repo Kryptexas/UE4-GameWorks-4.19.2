@@ -315,10 +315,6 @@ FProfilerServiceManager::FProfilerServiceManager()
 	NewMetaData.SecondsPerCycle = FPlatformTime::GetSecondsPerCycle();
 	PingDelegate = FTickerDelegate::CreateRaw(this, &FProfilerServiceManager::HandlePing);
 	DataFrame.Frame = 0;
-
-	MetaData.ThreadDescriptions.FindOrAdd(GGameThreadId) = FName(NAME_GameThread).GetPlainNameString();
-
-	UpdateMetaData();
 }
 
 
@@ -388,23 +384,9 @@ void FProfilerServiceManager::StopCapture()
 #endif
 }
 
-
-void FProfilerServiceManager::AddStatDescription(FStatDescription& Data)
-{
-	MetaData.StatDescriptions.FindOrAdd(Data.ID) = Data;
-	NewMetaData.StatDescriptions.FindOrAdd(Data.ID) = Data;
-}
-
-
-void FProfilerServiceManager::AddGroupDescription(FStatGroupDescription& Data)
-{
-	MetaData.GroupDescriptions.FindOrAdd(Data.ID) = Data;
-	NewMetaData.GroupDescriptions.FindOrAdd(Data.ID) = Data;
-}
-
-
 void FProfilerServiceManager::UpdateMetaData()
 {
+	// @TODO yrx 2014-04-13 Obsolete, remove later.
 	// update the thread descriptions only if there has been a change
 	int32 OldCount = FRunnableThread::GetThreadRegistry().GetThreadCount();
 	if (FRunnableThread::GetThreadRegistry().IsUpdated())
@@ -447,9 +429,6 @@ void FProfilerServiceManager::SendMetaData(const FMessageAddress& client)
 
 void FProfilerServiceManager::StartFrame(uint32 FrameNumber, double FrameStart)
 {
-	// update the threads
-	UpdateMetaData();
-
 	// send data to the clients
 	if (DataFrame.Frame > 0)
 	{
@@ -541,6 +520,7 @@ IProfilerServiceManagerPtr FProfilerServiceManager::CreateSharedServiceManager()
 void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddress, const bool bRequestedPreviewState )
 {
 #if STATS
+	const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	FClientData* Client = ClientData.Find( ClientAddress );
 	if( Client )
 	{
@@ -553,15 +533,15 @@ void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddr
 				// enable stat capture
 				if (PreviewClients.Num() == 0)
 				{
-					FStatsThreadState::GetLocalState().NewFrameDelegate.AddRaw(this, &FProfilerServiceManager::HandleNewFrame);
+					Stats.NewFrameDelegate.AddRaw( this, &FProfilerServiceManager::HandleNewFrame );
 					StatsMasterEnableAdd();
 				}
 				PreviewClients.Add(ClientAddress);
 				Client->Preview = true;
 				if (MessageEndpoint.IsValid())
 				{
-					Client->CurrentFrame = FStatsThreadState::GetLocalState().CurrentGameFrame;
-					MessageEndpoint->Send(new FProfilerServicePreviewAck(InstanceId, FStatsThreadState::GetLocalState().CurrentGameFrame), ClientAddress);
+					Client->CurrentFrame = Stats.CurrentGameFrame;
+					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId, Stats.CurrentGameFrame ), ClientAddress );
 				}
 				SendMetaData(ClientAddress);
 			}
@@ -574,7 +554,7 @@ void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddr
 				if (PreviewClients.Num() == 0)
 				{
 					// disable stat capture
-					FStatsThreadState::GetLocalState().NewFrameDelegate.RemoveRaw(this, &FProfilerServiceManager::HandleNewFrame);
+					Stats.NewFrameDelegate.RemoveRaw( this, &FProfilerServiceManager::HandleNewFrame );
 					StatsMasterEnableAdd();
 				}
 			}
@@ -705,7 +685,8 @@ void FProfilerServiceManager::HandleServiceFileChunkMessage( const FProfilerServ
 void FProfilerServiceManager::HandleServiceSubscribeMessage( const FProfilerServiceSubscribe& Message, const IMessageContextRef& Context )
 {
 #if STATS
-	if (Message.SessionId == SessionId && Message.InstanceId == InstanceId && !ClientData.Contains(Context->GetSender()))
+	const FMessageAddress& MsgAddress = Context->GetSender();
+	if( Message.SessionId == SessionId && Message.InstanceId == InstanceId && !ClientData.Contains( MsgAddress ) )
 	{
 		UE_LOG(LogProfile, Log, TEXT("Added a client" ));
 
@@ -715,10 +696,13 @@ void FProfilerServiceManager::HandleServiceSubscribeMessage( const FProfilerServ
 		Data.StatsWriteFile.WriteHeader();
 
 		// add to the client list
-		ClientData.Add(Context->GetSender(), Data);
+		ClientData.Add( MsgAddress, Data );
 		// send authorized and stat descriptions
-		const TArray<uint8>& OutData = ClientData.Find(Context->GetSender())->StatsWriteFile.GetOutData();
-		MessageEndpoint->Send(new FProfilerServiceAuthorize2(SessionId, InstanceId, OutData), Context->GetSender());
+		const TArray<uint8>& OutData = ClientData.Find( MsgAddress )->StatsWriteFile.GetOutData();
+		MessageEndpoint->Send( new FProfilerServiceAuthorize2( SessionId, InstanceId, OutData ), MsgAddress );
+
+		const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+		ClientData.Find( MsgAddress )->MetadataSize = Stats.ShortNameToLongName.Num();
 
 		// initiate the ping callback
 		if (ClientData.Num() == 1)
@@ -761,15 +745,28 @@ void FProfilerServiceManager::HandleNewFrame(int64 Frame)
 	// package it up and send to the clients
 	if (MessageEndpoint.IsValid())
 	{
+		const FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+		const int32 CurrentMetadataSize = Stats.ShortNameToLongName.Num();
+
 		// update preview clients with the current data
 		for (auto It = PreviewClients.CreateConstIterator(); It; ++It)
 		{
 			FClientData& Client = *ClientData.Find(*It);
+
 			while(Client.CurrentFrame < Frame)
 			{
 				Client.CurrentFrame++;
 				Client.StatsWriteFile.ResetData();
-				Client.StatsWriteFile.WriteFrame( Client.CurrentFrame );
+
+				bool bNeedFullMetadata = false;
+				if( Client.MetadataSize < CurrentMetadataSize )
+				{
+					// Write the whole metadata.
+					bNeedFullMetadata = true;
+					Client.MetadataSize = CurrentMetadataSize;
+				}
+
+				Client.StatsWriteFile.WriteFrame( Client.CurrentFrame, bNeedFullMetadata );
 				MessageEndpoint->Send( new FProfilerServiceData2( InstanceId, Client.CurrentFrame, Client.StatsWriteFile.GetOutData() ), PreviewClients );
 			}
 		}

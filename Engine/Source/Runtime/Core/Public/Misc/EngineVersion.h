@@ -44,7 +44,10 @@ public:
 	void Set(uint16 InMajor, uint16 InMinor, uint16 InPatch, uint32 InChangelist, const FString &InBranch);
 
 	/** Returns the changelist number corresponding to this version. */
-	uint32 GetChangelist() const;
+	uint32 GetChangelist() const;	
+
+	/** Checks if the changelist number represents licensee changelist number. */
+	bool IsLicenseeVersion() const;
 
 	/** Clears the object. */
 	void Empty();
@@ -80,7 +83,7 @@ private:
 	/** Patch version number. */
 	uint16 Patch;
 
-	/** Changelist number. This is used to arbitrate when Major/Minor/Patch version numbers match. */
+	/** Changelist number. This is used to arbitrate when Major/Minor/Patch version numbers match. Use GetChangelist() instead of using this member directly. */
 	uint32 Changelist;
 
 	/** Branch name. */

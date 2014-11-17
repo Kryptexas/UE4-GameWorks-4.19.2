@@ -14,6 +14,7 @@
 #include "StatsData.h"
 #include "StatsFile.h"
 #include "EditorStyle.h"
+#include "SlateReflector.h"
 
 
 IMPLEMENT_APPLICATION(UnrealFrontend, "UnrealFrontend");
@@ -369,7 +370,7 @@ void RunUI()
 	FModuleManager::Get().LoadModule("SettingsEditor");
 
 	// Create developer tools menu with widget reflector.
-	FSlateApplication::Get().RegisterWidgetReflectorTabSpawner(WorkspaceMenu::DeveloperTools);
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(WorkspaceMenu::DeveloperTools);
 
 	// check to see if want the widget reflector
 	const bool bAllowDebugTools = FParse::Param(FCommandLine::Get(), TEXT("DebugTools"));

@@ -414,5 +414,5 @@ FORCEINLINE int32 FIntPoint::SizeSquared() const
 
 FORCEINLINE FString FIntPoint::ToString( ) const
 {
-	return FString::Printf(TEXT("X=%3.3f Y=%3.3f"), X, Y);
+	return FString::Printf(TEXT("X=%d Y=%d"), X, Y);
 }

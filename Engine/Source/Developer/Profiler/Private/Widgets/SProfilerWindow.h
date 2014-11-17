@@ -36,11 +36,8 @@ public:
 	
 	/**
 	 * Constructs this widget.
-	 *
-	 * @param InArgs					- the Slate argument list
-	 * @param InSessionManager			- the session manager to use
 	 */
-	void Construct( const FArguments& InArgs, const ISessionManagerRef& InSessionManager );
+	void Construct( const FArguments& InArgs );
 
 	void ManageEventGraphTab( const FGuid ProfilerInstanceID, const bool bCreateFakeTab, const FString TabName );
 	void UpdateEventGraph( const FGuid ProfilerInstanceID, const FEventGraphDataRef AverageEventGraph, const FEventGraphDataRef MaximumEventGraph, bool bInitial );
@@ -60,6 +57,8 @@ protected:
 	void SendingServiceSideCapture_Cancel( const FString Filename );
 
 	void SendingServiceSideCapture_Load( const FString Filename );
+
+	void ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode );
 
 private:
 	/**
@@ -95,11 +94,13 @@ private:
 	/** Holds all widgets for the profiler window like menu bar, toolbar and tabs. */
 	TSharedPtr<SVerticalBox> MainContentPanel;
 
+public:
 	/** Holds all event graphs. */
 	TSharedPtr<SVerticalBox> EventGraphPanel;
 
-	/** Holds the session manager. */
-	ISessionManagerPtr SessionManager;
+	/** Holds the filter and presets widget/slot. */
+	SHorizontalBox::FSlot* FiltersAndPresetsSlot;
+	TSharedPtr<SFiltersAndPresets> FiltersAndPresets;
 
 	/** Widget for the panel which contains all graphs and event graphs. */
 	TSharedPtr<SProfilerGraphPanel> GraphPanel;
@@ -115,4 +116,7 @@ private:
 
 	/** Active event graphs, one event graph for each profiler instance, stored as FGuid -> SEventGraph. */
 	TMap< FGuid, TSharedRef<class SEventGraph> > ActiveEventGraphs;
+
+
+	TSharedPtr<SProfilerMiniView> ProfilerMiniView;
 };

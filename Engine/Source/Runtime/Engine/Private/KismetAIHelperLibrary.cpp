@@ -1,16 +1,15 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineKismetLibraryClasses.h"
 
 UKismetAIAsyncTaskProxy::UKismetAIAsyncTaskProxy(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 }
 
-void UKismetAIAsyncTaskProxy::OnMoveCompleted(int32 RequestID, EPathFollowingResult::Type MovementResult)
+void UKismetAIAsyncTaskProxy::OnMoveCompleted(FAIRequestID RequestID, EPathFollowingResult::Type MovementResult)
 {
-	if (RequestID == MoveRequestId && AIController.IsValid())
+	if (RequestID.IsEquivalent(MoveRequestId) && AIController.IsValid())
 	{
 		if (!AIController->IsPendingKill() && AIController->ReceiveMoveCompleted.IsBound())
 		{
@@ -86,31 +85,27 @@ APawn* UKismetAIHelperLibrary::SpawnAIFromClass(class UObject* WorldContextObjec
 	APawn* NewPawn = NULL;
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (World && *PawnClass && BehaviorTree)
+	if (World && *PawnClass)
 	{
 		FActorSpawnParameters ActorSpawnParams;
 		ActorSpawnParams.bNoCollisionFail = bNoCollisionFail;
 		NewPawn = World->SpawnActor<APawn>(*PawnClass, Location, Rotation, ActorSpawnParams);
 
-		ActorSpawnParams.bNoCollisionFail = true;
-
 		if (NewPawn != NULL)
 		{
 			if (NewPawn->Controller == NULL)
-			{
-				AAIController* NewController = World->SpawnActor<AAIController>(AAIController::StaticClass(), ActorSpawnParams);
-
-				if (NewController)
-				{
-					NewController->Possess(NewPawn);
-				}
+			{	// NOTE: SpawnDefaultController ALSO calls Possess() to possess the pawn (if a controller is successfully spawned).
+				NewPawn->SpawnDefaultController();
 			}
 
-			AAIController* AIController = Cast<AAIController>(NewPawn->Controller);
-
-			if (AIController != NULL)
+			if (BehaviorTree != NULL)
 			{
-				AIController->RunBehaviorTree(BehaviorTree);
+				AAIController* AIController = Cast<AAIController>(NewPawn->Controller);
+
+				if (AIController != NULL)
+				{
+					AIController->RunBehaviorTree(BehaviorTree);
+				}
 			}
 		}
 	}

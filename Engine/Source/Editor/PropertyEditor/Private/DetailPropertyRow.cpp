@@ -35,7 +35,7 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 		if (!PropertyEditorHelpers::IsStaticArray(*PropertyNodeRef) && StructProperty && StructProperty->Struct)
 		{
 			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			FOnGetStructCustomizationInstance StructLayoutInstanceDelegate = PropertyEditorModule.GetStructCustomizaton(StructProperty->Struct->GetFName());
+			FOnGetStructCustomizationInstance StructLayoutInstanceDelegate = PropertyEditorModule.GetStructCustomizaton(StructProperty->Struct);
 			if (StructLayoutInstanceDelegate.IsBound())
 			{
 				if (PropertyHandle->IsValidHandle())
@@ -156,6 +156,17 @@ TSharedPtr<FAssetThumbnailPool> FDetailPropertyRow::GetThumbnailPool() const
 	return ParentCategoryPinned.IsValid() ? ParentCategoryPinned->GetParentLayout().GetThumbnailPool() : NULL;
 }
 
+TSharedPtr<IPropertyUtilities> FDetailPropertyRow::GetPropertyUtilities() const
+{
+	TSharedPtr<FDetailCategoryImpl> ParentCategoryPinned = ParentCategory.Pin();
+	if (ParentCategoryPinned.IsValid())
+	{
+		return ParentCategoryPinned->GetParentLayout().GetPropertyUtilities();
+	}
+	
+	return NULL;
+}
+
 FDetailWidgetRow FDetailPropertyRow::GetWidgetRow()
 {
 	if( HasColumns() )
@@ -183,6 +194,12 @@ void FDetailPropertyRow::OnItemNodeInitialized( TSharedRef<FDetailCategoryImpl> 
 		CustomPropertyWidget = MakeShareable(new FDetailWidgetRow);
 
 		CustomStructInterface->CustomizeStructHeader(PropertyHandle.ToSharedRef(), *CustomPropertyWidget, *this);
+
+		// set initial value of enabled attribute to settings from struct customization
+		if (CustomPropertyWidget->IsEnabledAttr.IsBound())
+		{
+			CustomIsEnabledAttrib = CustomPropertyWidget->IsEnabledAttr;
+		}
 	}
 
 	if( bShowCustomPropertyChildren && CustomStructInterface.IsValid() )
@@ -265,25 +282,23 @@ bool FDetailPropertyRow::HasEditCondition() const
 
 bool FDetailPropertyRow::GetEnabledState() const
 {
-	if( IsParentEnabled.IsBound() )
+	bool Result = IsParentEnabled.Get();
+
+	if( HasEditCondition() ) 
 	{
-		return IsParentEnabled.Get();
-	}
-	else if( HasEditCondition() ) 
-	{
-		if( PropertyEditor.IsValid() && PropertyEditor->HasEditCondition() )
+		if (CustomEditCondition.IsValid())
 		{
-			return PropertyEditor->IsEditConditionMet();
+			Result = Result && CustomEditCondition->EditConditionValue.Get();
 		}
 		else
 		{
-			return CustomEditCondition->EditConditionValue.Get();
+			Result = Result && PropertyEditor->IsEditConditionMet();
 		}
 	}
-	else
-	{
-		return CustomIsEnabledAttrib.Get();
-	}
+	
+	Result = Result && CustomIsEnabledAttrib.Get();
+
+	return Result;
 }
 
 void FDetailPropertyRow::MakeNameWidget( FDetailWidgetRow& Row, const TSharedPtr<FDetailWidgetRow> InCustomRow ) const

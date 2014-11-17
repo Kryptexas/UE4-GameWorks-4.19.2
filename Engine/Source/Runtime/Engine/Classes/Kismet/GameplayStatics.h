@@ -5,6 +5,10 @@
 #include "../Sound/DialogueTypes.h"
 #include "GameplayStatics.generated.h"
 
+//
+// Forward declarations.
+//
+class USaveGame;
 struct FDialogueContext;
 
 UENUM()
@@ -18,7 +22,7 @@ namespace ESuggestProjVelocityTraceOption
 	};
 }
 
-UCLASS(HeaderGroup=KismetLibrary)
+UCLASS()
 class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
@@ -40,7 +44,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	// --- Actor functions ------------------------------
 
 	/** Find the average location (centroid) of an array of Actors */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	static FVector GetActorArrayAverageLocation(const TArray<AActor*>& Actors);
 
 	/** Bind the bounds of an array of Actors */
@@ -82,6 +86,13 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/** Returns the player's camera manager for the specified player index */
 	UFUNCTION(BlueprintPure, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject"))
 	static class APlayerCameraManager* GetPlayerCameraManager(UObject* WorldContextObject, int32 PlayerIndex);
+
+	/** Create a new player for this game.  
+	 *  @param ControllerId		The ID of the controller that the should control the newly created player.  A value of -1 specifies to use the next available ID
+	 *  @param bSpawnPawn		Whether a pawn should be spawned immediately. If false a pawn will not be created until transition to the next map.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game", meta=(HidePin="WorldContextObject", DefaultToSelf="WorldContextObject", ControllerId="-1", bSpawnPawn="true", AdvancedDisplay="2"))
+	static class APlayerController* CreatePlayer(UObject* WorldContextObject, int32 ControllerId, bool bSpawnPawn = true);
 
 	// --- Level Streaming functions ------------------------
 	
@@ -364,7 +375,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param HitComponent
 	 * @param HitBoneName
 	 */
-	UFUNCTION(BlueprintPure, Category="Collision")
+	UFUNCTION(BlueprintPure, Category = "Collision", meta=(NativeBreakFunc))
 	static void BreakHitResult(const struct FHitResult& Hit, FVector& Location, FVector& Normal, FVector& ImpactPoint, FVector& ImpactNormal, class UPhysicalMaterial*& PhysMat, class AActor*& HitActor, class UPrimitiveComponent*& HitComponent, FName& HitBoneName);
 
 	/** Returns the EPhysicalSurface type of the given Hit. 
@@ -442,6 +453,10 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Game", meta=(Enable="true"))
 	static void EnableLiveStreaming(bool Enable);
 
+	/** Returns the string name of the current platform, to perform different behavior based on platorm */
+	UFUNCTION(BlueprintCallable, Category="Game")
+	static FString GetPlatformName();
+
 	/**
 	 * Calculates an launch velocity for a projectile to hit a specified point.
 	 * @param TossVelocity		(output) Result launch velocity.
@@ -460,5 +475,6 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 
 	/** Native version, has more options than the Blueprint version. */
 	static bool SuggestProjectileVelocity(UObject* WorldContextObject, FVector& TossVelocity, FVector StartLocation, FVector EndLocation, float TossSpeed, bool bHighArc=false, float CollisionRadius = 0.f, float OverrideGravityZ = 0, ESuggestProjVelocityTraceOption::Type TraceOption = ESuggestProjVelocityTraceOption::TraceFullPath, bool bDrawDebug=false);
+
 };
 

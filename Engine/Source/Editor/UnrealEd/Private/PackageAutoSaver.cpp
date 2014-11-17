@@ -349,7 +349,7 @@ int32 FPackageAutoSaver::GetTimeTillAutoSave(const bool bIgnoreCanAutoSave) cons
 	int32 Result = -1;
 	if (bIgnoreCanAutoSave || CanAutoSave())
 	{
-		Result = FMath::Ceil(GetDefault<UEditorLoadingSavingSettings>()->AutoSaveTimeMinutes * 60.0f - AutoSaveCount);
+		Result = FMath::CeilToInt(GetDefault<UEditorLoadingSavingSettings>()->AutoSaveTimeMinutes * 60.0f - AutoSaveCount);
 	}
 
 	return Result;

@@ -71,15 +71,15 @@ void FNavigationPath::DebugDraw(const ANavigationData* NavData, FColor PathColor
 
 bool FNavigationPath::ContainsNode(NavNodeRef NodeRef) const
 {
-	for (int32 i = 0; i < PathPoints.Num(); i++)
+	for (int32 Index = 0; Index < PathPoints.Num(); Index++)
 	{
-		if (PathPoints[i].NodeRef == NodeRef)
+		if (PathPoints[Index].NodeRef == NodeRef)
 		{
 			return true;
 		}
 	}
 
-	return false;
+	return ShortcutNodeRefs.Find(NodeRef) != INDEX_NONE;
 }
 
 float FNavigationPath::GetLengthFromPosition(FVector SegmentStart, uint32 NextPathPointIndex) const

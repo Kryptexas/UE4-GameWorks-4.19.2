@@ -48,6 +48,11 @@ public:
 		return bIsClassPlaceable;
 	}
 
+	void IsClassPlaceable(bool bInIsClassPlaceable)
+	{
+		bIsClassPlaceable = bInIsClassPlaceable;
+	}
+
 	bool IsRestricted() const;
 
 private:

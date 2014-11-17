@@ -312,13 +312,14 @@ public:
 	FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel,int32 InChosenAdapter);
 
 	/** Destructor */
-	virtual ~FD3D11DynamicRHI();
+	virtual ~FD3D11DynamicRHI() {}
 
 	/** If it hasn't been initialized yet, initializes the D3D device. */
 	virtual void InitD3DDevice();
 
 	// FDynamicRHI interface.
 	virtual void Init() OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual void PushEvent(const TCHAR* Name) OVERRIDE { GPUProfilingData.PushEvent(Name); }
 	virtual void PopEvent() OVERRIDE { GPUProfilingData.PopEvent(); }
 
@@ -481,7 +482,8 @@ protected:
 	int32 ChosenAdapter;
 
 	template<typename BaseResourceType>
-	TD3D11Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool CubeTexture,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData = NULL);
+	TD3D11Texture2D<BaseResourceType>* CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool CubeTexture,uint8 Format,
+		uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData = NULL);
 
 	FD3D11Texture3D* CreateD3D11Texture3D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,uint8 Format,uint32 NumMips,uint32 Flags,FResourceBulkDataInterface* BulkData);
 
@@ -504,7 +506,11 @@ protected:
 	 */
 	void GetBestSupportedMSAASetting( DXGI_FORMAT PlatformFormat, uint32 MSAACount, uint32& OutBestMSAACount, uint32& OutMSAAQualityLevels );
 
-	// called when the device gets initialized
+	// shared code for different D3D11 devices (e.g. PC DirectX11 and XboxOne) called
+	// after device creation and GRHISupportsAsyncTextureCreation was set and before resource init
+	void SetupAfterDeviceCreation();
+
+	// called by SetupAfterDeviceCreation() when the device gets initialized
 	void UpdateMSAASettings();
 
 	// @return 0xffffffff if not not supported
@@ -714,25 +720,25 @@ public:
 	/**
 	 *	IMPORTANT: This function CAN modify the TextureDesc!
 	 */
-	virtual bool AllocTexture2D(D3D11_TEXTURE2D_DESC& TextureDesc)
+	virtual FVRamAllocation AllocTexture2D(D3D11_TEXTURE2D_DESC& TextureDesc)
 	{
-		return false;
+		return FVRamAllocation();
 	}
 
 	/**
 	 *	IMPORTANT: This function CAN modify the TextureDesc!
 	 */
-	virtual bool AllocTexture3D(D3D11_TEXTURE3D_DESC& TextureDesc)
+	virtual FVRamAllocation AllocTexture3D(D3D11_TEXTURE3D_DESC& TextureDesc)
 	{
-		return false;
+		return FVRamAllocation();
 	}
 
 	/**
 	 *	IMPORTANT: This function CAN modify the BufferDesc!
 	 */
-	virtual bool AllocUAVBuffer(D3D11_BUFFER_DESC& BufferDesc)
+	virtual FVRamAllocation AllocUAVBuffer(D3D11_BUFFER_DESC& BufferDesc)
 	{
-		return false;
+		return FVRamAllocation();
 	}
 
 	template< typename t_A, typename t_B >

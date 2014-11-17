@@ -707,12 +707,17 @@ namespace UnrealBuildTool
 		/// <returns>Clean filename.</returns>
 		public static string GetFilenameWithoutAnyExtensions(string Filename)
 		{
-			do
+			Filename = Path.GetFileName(Filename);
+
+			var DotIndex = Filename.IndexOf('.');
+			if (DotIndex == -1)
 			{
-				Filename = Path.GetFileNameWithoutExtension(Filename);
+				return Filename; // No need to copy string
 			}
-			while (Filename.IndexOf('.') >= 0);
-			return Filename;
+			else
+			{
+				return Filename.Substring(0, DotIndex);
+			}
 		}
 
 		/// <summary>
@@ -778,6 +783,60 @@ namespace UnrealBuildTool
 
 
 		/// <summary>
+		/// Correctly collapses any ../ or ./ entries in a path.
+		/// </summary>
+		/// <param name="InPath">The path to be collapsed</param>
+		/// <returns>true if the path could be collapsed, false otherwise.</returns>
+		public static bool CollapseRelativeDirectories(ref string InPath)
+		{
+			string ParentDir       = "/..";
+			int    ParentDirLength = ParentDir.Length;
+
+			for (;;)
+			{
+				// An empty path is finished
+				if (string.IsNullOrEmpty(InPath))
+					break;
+
+				// Consider empty paths or paths which start with .. or /.. as invalid
+				if (InPath.StartsWith("..") || InPath.StartsWith(ParentDir))
+					return false;
+
+				// If there are no "/.."s left then we're done
+				int Index = InPath.IndexOf(ParentDir);
+				if (Index == -1)
+					break;
+
+				int PreviousSeparatorIndex = Index;
+				for (;;)
+				{
+					// Find the previous slash
+					PreviousSeparatorIndex = Math.Max(0, InPath.LastIndexOf("/", PreviousSeparatorIndex - 1));
+
+					// Stop if we've hit the start of the string
+					if (PreviousSeparatorIndex == 0)
+						break;
+
+					// Stop if we've found a directory that isn't "/./"
+					if ((Index - PreviousSeparatorIndex) > 1 && (InPath[PreviousSeparatorIndex + 1] != '.' || InPath[PreviousSeparatorIndex + 2] != '/'))
+						break;
+				}
+
+				// If we're attempting to remove the drive letter, that's illegal
+				int Colon = InPath.IndexOf(":", PreviousSeparatorIndex);
+				if (Colon >= 0 && Colon < Index)
+					return false;
+
+				InPath = InPath.Substring(0, PreviousSeparatorIndex) + InPath.Substring(Index + ParentDirLength);
+			}
+
+			InPath = InPath.Replace("./", "");
+
+			return true;
+		}
+
+
+		/// <summary>
 		/// Finds the Engine Version from ObjVersion.cpp.
 		/// </summary>
 		/// <remarks>
@@ -824,6 +883,60 @@ namespace UnrealBuildTool
 		internal static string GetExecutingAssemblyDirectory()
 		{
 			return Path.GetDirectoryName(GetExecutingAssemblyLocation());
+		}
+	}
+
+	/// <summary>
+	/// Class to display an incrementing progress percentage. Handles progress markup and direct console output.
+	/// </summary>
+	public class ProgressWriter : IDisposable
+	{
+		public static bool bWriteMarkup = false;
+
+		bool bWriteToConsole;
+		string Message;
+		int NumCharsToBackspaceOver;
+
+		public ProgressWriter(string InMessage, bool bInWriteToConsole)
+		{
+			Message = InMessage;
+			bWriteToConsole = bInWriteToConsole;
+			if (!bWriteMarkup && bWriteToConsole)
+			{
+				Console.Write(Message + " ");
+			}
+			Write(0, 100);
+		}
+
+		public void Dispose()
+		{
+			if (!bWriteMarkup && bWriteToConsole)
+			{
+				Console.WriteLine();
+			}
+		}
+
+		public void Write(int Numerator, int Denominator)
+		{
+			float ProgressValue = Denominator > 0 ? ((float)Numerator / (float)Denominator) : 1.0f;
+			string ProgressString = String.Format("{0}%", Math.Round(ProgressValue * 100.0f));
+
+			if (bWriteMarkup)
+			{
+				Log.WriteLine(TraceEventType.Information, "@progress '{0}' {1}", Message, ProgressString);
+			}
+			else if (bWriteToConsole)
+			{
+				// Backspace over previous progress value
+				while (NumCharsToBackspaceOver-- > 0)
+				{
+					Console.Write("\b");
+				}
+
+				// Display updated progress string and keep track of how long it was
+				NumCharsToBackspaceOver = ProgressString.Length;
+				Console.Write(ProgressString);
+			}
 		}
 	}
 

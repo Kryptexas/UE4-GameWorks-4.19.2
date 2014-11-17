@@ -12,6 +12,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// </summary>
 	public class BuggsViewModel
 	{
+		/// <summary>Tooltip for "Crash Groups" tab</summary>
+		public const string Tooltip = "Collections of crashes that have the exact same callstack.";
+
 		/// <summary>A container of sorted Buggs.</summary>
 		public IEnumerable<Bugg> Results { get; set; }
 		/// <summary>Information to paginate the list of Buggs.</summary>

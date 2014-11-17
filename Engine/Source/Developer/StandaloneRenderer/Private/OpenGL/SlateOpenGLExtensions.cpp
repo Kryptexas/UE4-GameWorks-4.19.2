@@ -58,6 +58,11 @@ PFNGLGETATTRIBLOCATIONPROC			glGetAttribLocation			= NULL;
 
 PFNWGLCREATECONTEXTATTRIBSARBPROC	wglCreateContextAttribsARB	= NULL;
 
+#elif PLATFORM_LINUX
+
+#define DEFINE_GL_ENTRYPOINTS(Type,Func) Type Func = NULL;
+ENUM_GL_ENTRYPOINTS(DEFINE_GL_ENTRYPOINTS);
+
 #endif
 
 bool bOpenGLExtensionsLoaded;
@@ -115,6 +120,9 @@ void LoadOpenGLExtensions()
 		glGetAttachedShaders		=(PFNGLGETATTACHEDSHADERSPROC)		wglGetProcAddress("glGetAttachedShaders");
 		glGetAttribLocation			=(PFNGLGETATTRIBLOCATIONPROC)		wglGetProcAddress("glGetAttribLocation");
 	}
+#elif PLATFORM_LINUX
+#define GET_GL_ENTRYPOINTS(Type,Func) Func = (Type)SDL_GL_GetProcAddress(#Func);
+	ENUM_GL_ENTRYPOINTS(GET_GL_ENTRYPOINTS);
 #endif
 	// If extensions are needed for your platform add support for them here 
 }

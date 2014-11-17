@@ -9,7 +9,6 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessing.h"
 #include "PostProcessDeferredDecals.h"
-#include "EngineDecalClasses.h"
 #include "ScreenRendering.h"
 
 static TAutoConsoleVariable<float> CVarStencilSizeThreshold(
@@ -126,11 +125,11 @@ struct FTransientDecalRenderData
 	const FDeferredDecalProxy* DecalProxy;
 	bool bHasNormal;
 
-	FTransientDecalRenderData(FDeferredDecalProxy* InDecalProxy)
+	FTransientDecalRenderData(const FScene& InScene, FDeferredDecalProxy* InDecalProxy)
 		: DecalProxy(InDecalProxy)
 	{
 		MaterialProxy = InDecalProxy->DecalMaterial->GetRenderProxy(InDecalProxy->bOwnerSelected);
-		MaterialResource = MaterialProxy->GetMaterial(GRHIFeatureLevel);
+		MaterialResource = MaterialProxy->GetMaterial(InScene.GetFeatureLevel());
 		bHasNormal = MaterialResource->HasNormalConnected();
 		DecalBlendMode = ComputeFinalDecalBlendMode((EDecalBlendMode)MaterialResource->GetDecalBlendMode(), bHasNormal);
 		check(MaterialProxy && MaterialResource);
@@ -371,6 +370,7 @@ void StencilDecalMask(const FSceneView& View)
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
 		GSceneRenderTargets.GetBufferSizeXY(),
+		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 }
 
@@ -469,7 +469,7 @@ public:
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(GRHIFeatureLevel), View, true, ESceneRenderTargetsMode::SetTextures);
+		FMaterialShader::SetParameters(ShaderRHI, MaterialProxy, *MaterialProxy->GetMaterial(View.GetFeatureLevel()), View, true, ESceneRenderTargetsMode::SetTextures);
 
 		FTransform ComponentTrans = DecalProxy.ComponentTrans;
 
@@ -741,13 +741,13 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 		{
 			// could be optimized
 			RHISetRenderTarget(GSceneRenderTargets.DBufferA->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
-			RHIClear(true, FLinearColor::FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
+			RHIClear(true, FLinearColor(0, 0, 0, 1), false, 0, false, 0, FIntRect());
 			RHISetRenderTarget(GSceneRenderTargets.DBufferB->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
 			// todo: some hardware would like to have 0 or 1 for faster clear, we chose 128/255 to represent 0 (8 bit cannot represent 0.5f)
-			RHIClear(true, FLinearColor::FLinearColor(128.0f/255.0f, 128.0f/255.0f, 128.0f/255.0f, 1), false, 0, false, 0, FIntRect());
+			RHIClear(true, FLinearColor(128.0f/255.0f, 128.0f/255.0f, 128.0f/255.0f, 1), false, 0, false, 0, FIntRect());
 			RHISetRenderTarget(GSceneRenderTargets.DBufferC->GetRenderTargetItem().TargetableTexture, FTextureRHIParamRef());
 			// R:roughness, G:roughness opacity
-			RHIClear(true, FLinearColor::FLinearColor(0, 1, 0, 1), false, 0, false, 0, FIntRect());
+			RHIClear(true, FLinearColor(0, 1, 0, 1), false, 0, false, 0, FIntRect());
 		}
 	}
 
@@ -806,7 +806,7 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 
 		if (bIsShown)
 		{
-			FTransientDecalRenderData Data(DecalProxy);
+			FTransientDecalRenderData Data(Scene, DecalProxy);
 
 			uint32 DecalRenderStage = ComputeRenderStage(Data.DecalBlendMode);
 

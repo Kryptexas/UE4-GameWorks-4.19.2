@@ -14,16 +14,16 @@ public class NiagaraEditor : ModuleRules
                 "InputCore",
 				"RenderCore",
 				"Slate", 
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd", 
 				"GraphEditor", 
 				"VectorVM"
 			}
-			);
+		);
 
 		PublicIncludePathModuleNames.Add("LevelEditor");
 
 		DynamicallyLoadedModuleNames.Add("WorkspaceMenuStructure");
-
 	}
 }

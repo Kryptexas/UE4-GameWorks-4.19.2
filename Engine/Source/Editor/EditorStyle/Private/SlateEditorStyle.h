@@ -28,7 +28,7 @@ public:
 			SettingsModule->RegisterSettings( "Editor", "General", "Appearance",
 				NSLOCTEXT("EditorStyle", "Appearance_UserSettingsName", "Appearance"),
 				NSLOCTEXT("EditorStyle", "Appearance_UserSettingsDescription", "Customize the look of the editor."),
-				TWeakObjectPtr<UObject>( Settings.Get() )
+				Settings
 			);
 		}
 #endif
@@ -66,6 +66,7 @@ public:
 		void SetupWindowStyles();
 		void SetupDockingStyles();
 		void SetupTutorialStyles();
+		void SetupTranslationEditorStyles();
 		void SetupPropertyEditorStyles();
 		void SetupProfilerStyle();
 		void SetupGraphEditorStyles();
@@ -79,7 +80,7 @@ public:
 		void SetupSourceControlStyles();
 		void SetupAutomationStyles();
 
-		void SettingsChanged( UObject* ChangedObject );
+		void SettingsChanged( UObject* ChangedObject, FPropertyChangedEvent& PropertyChangedEvent );
 		void SyncSettings();
 
 		const FVector2D Icon7x16;

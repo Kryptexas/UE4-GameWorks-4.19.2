@@ -68,7 +68,7 @@ void SSessionLauncherDeployTargets::Construct( const FArguments& InArgs, const F
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("SelectDeviceGroupText", "Select or create a new device group to continue.").ToString())
+					.Text(LOCTEXT("SelectDeviceGroupText", "Select or create a new device group to continue."))
 				]
 		]
 
@@ -89,7 +89,7 @@ void SSessionLauncherDeployTargets::Construct( const FArguments& InArgs, const F
 				.VAlign((VAlign_Center))
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("ShowLabel", "Show:").ToString())
+					.Text(LOCTEXT("ShowLabel", "Show:"))
 				]
 
 				+ SHorizontalBox::Slot()
@@ -103,7 +103,7 @@ void SSessionLauncherDeployTargets::Construct( const FArguments& InArgs, const F
 						.Style(FEditorStyle::Get(), "RadioButton")
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("AllDevicesCheckBoxText", "All available devices").ToString())
+							.Text(LOCTEXT("AllDevicesCheckBoxText", "All available devices"))
 						]
 					]
 
@@ -118,7 +118,7 @@ void SSessionLauncherDeployTargets::Construct( const FArguments& InArgs, const F
 						.Style(FEditorStyle::Get(), "RadioButton")
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("GroupDevicesCheckBoxText", "Devices in this group").ToString())
+							.Text(LOCTEXT("GroupDevicesCheckBoxText", "Devices in this group"))
 						]
 					]
 			]
@@ -136,23 +136,23 @@ void SSessionLauncherDeployTargets::Construct( const FArguments& InArgs, const F
 					SNew(SHeaderRow)
 
 					+ SHeaderRow::Column("CheckBox")
-					.DefaultLabel(LOCTEXT("DeviceListCheckboxColumnHeader", " ").ToString())
+					.DefaultLabel(LOCTEXT("DeviceListCheckboxColumnHeader", " "))
 					.FixedWidth(24.0f)
 
 					+ SHeaderRow::Column("Device")
-					.DefaultLabel(LOCTEXT("DeviceListDeviceColumnHeader", "Device").ToString())
+					.DefaultLabel(LOCTEXT("DeviceListDeviceColumnHeader", "Device"))
 					.FillWidth(0.35f)
 
 					+ SHeaderRow::Column("Platform")
-					.DefaultLabel(LOCTEXT("DeviceListPlatformColumnHeader", "Platform").ToString())
+					.DefaultLabel(LOCTEXT("DeviceListPlatformColumnHeader", "Platform"))
 					.FillWidth(0.3f)
 
 					+ SHeaderRow::Column("Host")
-					.DefaultLabel(LOCTEXT("DeviceListHostColumnHeader", "Host").ToString())
+					.DefaultLabel(LOCTEXT("DeviceListHostColumnHeader", "Host"))
 					.FillWidth(0.3f)
 
 					+ SHeaderRow::Column("Owner")
-					.DefaultLabel(LOCTEXT("DeviceListOwnerColumnHeader", "Owner").ToString())
+					.DefaultLabel(LOCTEXT("DeviceListOwnerColumnHeader", "Owner"))
 					.FillWidth(0.35f)
 					)
 					.ListItemsSource(&DeviceProxyList)
@@ -207,23 +207,23 @@ void SSessionLauncherDeployTargets::Construct( const FArguments& InArgs, const F
 						SNew(SHeaderRow)
 
 						+ SHeaderRow::Column("CheckBox")
-						.DefaultLabel(LOCTEXT("DeviceListCheckboxColumnHeader", " ").ToString())
+						.DefaultLabel(LOCTEXT("DeviceListCheckboxColumnHeader", " "))
 						.FixedWidth(24.0f)
 
 						+ SHeaderRow::Column("Device")
-						.DefaultLabel(LOCTEXT("DeviceListDeviceColumnHeader", "Device").ToString())
+						.DefaultLabel(LOCTEXT("DeviceListDeviceColumnHeader", "Device"))
 						.FillWidth(0.35f)
 
 						+ SHeaderRow::Column("Platform")
-						.DefaultLabel(LOCTEXT("DeviceListPlatformColumnHeader", "Platform").ToString())
+						.DefaultLabel(LOCTEXT("DeviceListPlatformColumnHeader", "Platform"))
 						.FillWidth(0.3f)
 
 						+ SHeaderRow::Column("Host")
-						.DefaultLabel(LOCTEXT("DeviceListHostColumnHeader", "Host").ToString())
+						.DefaultLabel(LOCTEXT("DeviceListHostColumnHeader", "Host"))
 						.FillWidth(0.3f)
 
 						+ SHeaderRow::Column("Owner")
-						.DefaultLabel(LOCTEXT("DeviceListOwnerColumnHeader", "Owner").ToString())
+						.DefaultLabel(LOCTEXT("DeviceListOwnerColumnHeader", "Owner"))
 						.FillWidth(0.35f)
 						)
 						.ListItemsSource(&DeviceProxyList)
@@ -354,21 +354,14 @@ bool SSessionLauncherDeployTargets::HandleDeviceListRowIsEnabled( ITargetDeviceP
 }
 
 
-FString SSessionLauncherDeployTargets::HandleDeviceListRowToolTipText( ITargetDeviceProxyPtr DeviceProxy ) const
+FText SSessionLauncherDeployTargets::HandleDeviceListRowToolTipText( ITargetDeviceProxyPtr DeviceProxy ) const
 {
-	FString ToolTipText;
+	FTextBuilder Builder;
+	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipName", "Name: {0}"), FText::FromString(DeviceProxy->GetName()));
+	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipPlatform", "Platform: {0}"), FText::FromString(DeviceProxy->GetPlatformName()));
+	Builder.AppendLineFormat(LOCTEXT("DeviceListRowToolTipDeviceId", "Device ID: {0}"), FText::FromString(DeviceProxy->GetDeviceId()));
 
-	ToolTipText += LOCTEXT("DeviceListRowToolTipName", "Name: ").ToString() + DeviceProxy->GetName() + LINE_TERMINATOR;
-	ToolTipText += LOCTEXT("DeviceListRowToolTipPlatform", "Platform: ").ToString() + DeviceProxy->GetPlatformName() + LINE_TERMINATOR;
-	ToolTipText += LOCTEXT("DeviceListRowToolTipDeviceId", "Device ID: ").ToString() + DeviceProxy->GetDeviceId();
-/*	ToolTipText += LOCTEXT("DeviceListRowToolTipDeviceType", "Device Type: ").ToString() + DeviceProxy->GetType() + LINE_TERMINATOR;
-	ToolTipText += LOCTEXT("DeviceListRowToolTipMake", "Make: ").ToString() + DeviceProxy->GetMake() + LINE_TERMINATOR;
-	ToolTipText += LOCTEXT("DeviceListRowToolTipModel", "Model: ").ToString() + DeviceProxy->GetModel() + LINE_TERMINATOR;
-	ToolTipText += LOCTEXT("DeviceListRowToolTipHostName", "Host Name: ").ToString() + DeviceProxy->GetHostName() + LINE_TERMINATOR;
-	ToolTipText += LOCTEXT("DeviceListRowToolTipHostUser", "Host User: ").ToString() + DeviceProxy->GetHostUser() + LINE_TERMINATOR;
-	ToolTipText += LOCTEXT("DeviceListRowToolTipStatus", "Connected: ").ToString() + (DeviceProxy->IsConnected() ? *(GYes.ToString()) : *(GNo.ToString()));*/
-
-	return ToolTipText;
+	return Builder.ToText();
 }
 
 
@@ -429,21 +422,21 @@ EVisibility SSessionLauncherDeployTargets::HandleNoDevicesBoxVisibility( ) const
 }
 
 
-FString SSessionLauncherDeployTargets::HandleNoDevicesTextBlockText( ) const
+FText SSessionLauncherDeployTargets::HandleNoDevicesTextBlockText( ) const
 {
 	if (DeviceProxyList.Num() == 0)
 	{
 		if (ShowDevicesChoice == EShowDevicesChoices::ShowAllDevices)
 		{
-			return LOCTEXT("NoDevicesText", "No available devices were detected.").ToString();
+			return LOCTEXT("NoDevicesText", "No available devices were detected.");
 		}
 		else if (ShowDevicesChoice == EShowDevicesChoices::ShowGroupDevices)
 		{
-			return LOCTEXT("EmptyGroupText", "There are no devices in this group.").ToString();
+			return LOCTEXT("EmptyGroupText", "There are no devices in this group.");
 		}
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 

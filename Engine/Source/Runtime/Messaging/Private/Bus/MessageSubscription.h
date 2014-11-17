@@ -22,10 +22,10 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InSubscriber - The message subscriber.
-	 * @param InMessageType - The type of messages to subscribe to.
-	 * @param InReceivingThread - The thread on which to receive messages on.
-	 * @param InScopeRange - The message scope range to subscribe to.
+	 * @param InSubscriber The message subscriber.
+	 * @param InMessageType The type of messages to subscribe to.
+	 * @param InReceivingThread The thread on which to receive messages on.
+	 * @param InScopeRange The message scope range to subscribe to.
 	 */
 	FMessageSubscription( const IReceiveMessagesRef& InSubscriber, const FName& InMessageType, const FMessageScopeRange& InScopeRange )
 		: Enabled(true)

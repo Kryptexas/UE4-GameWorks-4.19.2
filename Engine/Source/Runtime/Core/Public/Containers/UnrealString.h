@@ -45,15 +45,10 @@ public:
 #if PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS
 
 	FString() = default;
-	FString( const FString& ) = default;
-	FString& operator=( const FString& ) = default;
-
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FString( FString&& ) = default;
-		FString& operator=( FString&& ) = default;
-
-	#endif
+	FString(FString&&) = default;
+	FString(const FString&) = default;
+	FString& operator=(FString&&) = default;
+	FString& operator=(const FString&) = default;
 
 #else
 
@@ -61,34 +56,27 @@ public:
 	{
 	}
 
-	FORCEINLINE FString( const FString& Other )
+	FORCEINLINE FString(FString&& Other)
+		: Data(MoveTemp(Other.Data))
 	{
-		Data = Other.Data;
 	}
 
-	FORCEINLINE FString& operator=( const FString& Other )
+	FORCEINLINE FString(const FString& Other)
+		: Data(Other.Data)
 	{
-		if (this != &Other)
-		{
-			Data = Other.Data;
-		}
+	}
+
+	FORCEINLINE FString& operator=(FString&& Other)
+	{
+		Data = MoveTemp(Other.Data);
 		return *this;
 	}
 
-	#if PLATFORM_COMPILER_HAS_RVALUE_REFERENCES
-
-		FORCEINLINE FString(FString&& Other)
-			: Data(MoveTemp(Other.Data))
-		{
-		}
-
-		FORCEINLINE FString& operator=(FString&& Other)
-		{
-			Data = MoveTemp(Other.Data);
-			return *this;
-		}
-
-	#endif
+	FORCEINLINE FString& operator=(const FString& Other)
+	{
+		Data = Other.Data;
+		return *this;
+	}
 
 #endif
 
@@ -98,15 +86,20 @@ public:
 	 * @param Other the other string to create a new copy from
 	 * @param ExtraSlack number of extra characters to add to the end of the other string in this string
 	 */
-	FORCEINLINE FString( const FString& Other, int32 ExtraSlack)
+	FORCEINLINE FString(const FString& Other, int32 ExtraSlack)
+		: Data(Other.Data, ExtraSlack + ((Other.Data.Num() || !ExtraSlack) ? 0 : 1)) // Add 1 if the source string array is empty and we want some slack, because we'll need to include a null terminator which is currently missing
 	{
-		Data.Empty(Other.Data.Num() + ExtraSlack);
+	}
 
-		if( Other.Data.Num() )
-		{
-			Data.AddUninitialized(Other.Data.Num());
-			FMemory::Memcpy( Data.GetData(), Other.Data.GetData(), Data.Num() * sizeof(TCHAR) );
-		}
+	/**
+	 * Create a copy of the Other string with extra space for characters at the end of the string
+	 *
+	 * @param Other the other string to create a new copy from
+	 * @param ExtraSlack number of extra characters to add to the end of the other string in this string
+	 */
+	FORCEINLINE FString(FString&& Other, int32 ExtraSlack)
+		: Data(MoveTemp(Other.Data), ExtraSlack + ((Other.Data.Num() || !ExtraSlack) ? 0 : 1)) // Add 1 if the source string array is empty and we want some slack, because we'll need to include a null terminator which is currently missing
+	{
 	}
 
 	/**
@@ -248,8 +241,9 @@ public:
 	 */
 	FORCEINLINE void CheckInvariants() const
 	{
-		checkSlow(Data.Num() >= 0);
-		checkSlow(!Data.Num() || !(Data[Data.Num()-1]));
+		int32 Num = Data.Num();
+		checkSlow(Num >= 0);
+		checkSlow(!Num || !Data.GetTypedData()[Num - 1]);
 		checkSlow(Data.GetSlack() >= 0);
 	}
 
@@ -323,6 +317,35 @@ public:
 #endif
 
 	/**
+	 * Appends an array of characters to the string.  
+	 *
+	 * @param Array A pointer to the start of an array of characters to append.  This array need not be null-terminated, and null characters are not treated specially.
+	 * @param Count The number of characters to copy from Array.
+	 */
+	FORCEINLINE void AppendChars(const TCHAR* Array, int32 Count)
+	{
+		check(Count >= 0);
+
+		if (!Count)
+			return;
+
+		checkSlow(Array);
+
+		int32 Index = Data.Num();
+
+		// Reserve enough space - including an extra gap for a null terminator if we don't already have a string allocated
+		Data.AddUninitialized(Count + (Index ? 0 : 1));
+
+		TCHAR* EndPtr = Data.GetTypedData() + Index - (Index ? 1 : 0);
+
+		// Copy characters to end of string, overwriting null terminator if we already have one
+		CopyAssignItems(EndPtr, Array, Count);
+
+		// (Re-)establish the null terminator
+		*(EndPtr + Count) = 0;
+	}
+
+	/**
 	 * Concatenate this with given string
 	 * 
 	 * @param Str array of TCHAR to be concatenated onto the end of this
@@ -333,20 +356,8 @@ public:
 		checkSlow(Str);
 		CheckInvariants();
 
-		if( Str && *Str )
-		{
-			int32 Index = Data.Num();
-			int32 NumAdd = FCString::Strlen(Str)+1;
-			int32 NumCopy = NumAdd;
+		AppendChars(Str, FCString::Strlen(Str));
 
-			if (Data.Num())
-			{
-				NumAdd--;
-				Index--;
-			}
-			Data.AddUninitialized( NumAdd );
-			FMemory::Memcpy( &Data[Index], Str, NumCopy * sizeof(TCHAR) );
-		}
 		return *this;
 	}
 
@@ -402,19 +413,19 @@ public:
 	}
 
 	/**
-	* Removes the text from the start of the string if it exists.
-	*
-	* @param InPrefix the prefix to search for at the start of the string to remove.
-	* @return true if the prefix was removed, otherwise false.
-	*/
+	 * Removes the text from the start of the string if it exists.
+	 *
+	 * @param InPrefix the prefix to search for at the start of the string to remove.
+	 * @return true if the prefix was removed, otherwise false.
+	 */
 	bool RemoveFromStart( const FString& InPrefix, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase );
 
 	/**
-	* Removes the text from the end of the string if it exists.
-	*
-	* @param InSuffix the suffix to search for at the end of the string to remove.
-	* @return true if the suffix was removed, otherwise false.
-	*/
+	 * Removes the text from the end of the string if it exists.
+	 *
+	 * @param InSuffix the suffix to search for at the end of the string to remove.
+	 * @return true if the suffix was removed, otherwise false.
+	 */
 	bool RemoveFromEnd( const FString& InSuffix, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase );
 
 	/**
@@ -428,95 +439,211 @@ public:
 		CheckInvariants();
 		Str.CheckInvariants();
 
-		if( Str.Len() )
-		{
-			int32 Index = Data.Num();
-			int32 NumAdd = Str.Data.Num();
-			
-			if (Data.Num())
-			{
-				NumAdd--;
-				Index--;
-			}
-			
-			Data.AddUninitialized( NumAdd );
+		AppendChars(Str.Data.GetTypedData(), Str.Len());
 
-			FMemory::Memcpy( &Data[Index], Str.Data.GetData(), Str.Data.Num() * sizeof(TCHAR) );
-		}
 		return *this;
 	}
 
 	/**
-	 * Concatenate this with given char
+	 * Concatenates an FString with a TCHAR.
 	 * 
-	 * @param inChar other Char to be concatenated onto the end of this string
-	 * @return reference to this
+	 * @param Lhs The FString on the left-hand-side of the expression.
+	 * @param Rhs The char on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
 	 */
-	FORCEINLINE FString operator+( const TCHAR InChar ) const
+	FORCEINLINE friend FString operator+(const FString& Lhs, TCHAR Rhs)
 	{
-		CheckInvariants();
-		return FString(*this, 2) += InChar; // may have an extra character of "slack"
+		Lhs.CheckInvariants();
+
+		FString Result(Lhs, 1);
+		Result += Rhs;
+
+		return Result;
 	}
 
-
 	/**
-	 * Concatenate this with given string
+	 * Concatenates an FString with a TCHAR.
 	 * 
-	 * @param Str array of TCHAR to be concatenated onto the end of this
-	 * @return new FString
+	 * @param Lhs The FString on the left-hand-side of the expression.
+	 * @param Rhs The char on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
 	 */
-	FORCEINLINE FString operator+( const TCHAR* Str ) const
+	FORCEINLINE friend FString operator+(FString&& Lhs, TCHAR Rhs)
 	{
-		checkSlow(Str);
-		CheckInvariants();
+		Lhs.CheckInvariants();
 
-		if( Str && *Str )
-		{
-			int32 Index = Data.Num();
-			int32 NumAdd = FCString::Strlen(Str)+1;
-			int32 NumCopy = NumAdd;
-			if (Data.Num())
-			{
-				NumAdd--;
-				Index--;
-			}
-			
-			FString Ret( *this, NumAdd ) ; 
-			Ret.Data.AddUninitialized( NumAdd );
-			FMemory::Memcpy( &(Ret)[Index], Str, NumCopy * sizeof(TCHAR) );
-			return Ret;
-		}
-		return *this;
+		FString Result(MoveTemp(Lhs), 1);
+		Result += Rhs;
+
+		return Result;
 	}
 
-
-	/**
-	 * Concatenate this with given string
-	 * 
-	 * @param Str other FString to be concatenated onto the end of this
-	 * @return new FString
-	 */
-	FORCEINLINE FString operator+( const FString& Str ) const
+private:
+	template <typename LhsType, typename RhsType>
+	FORCEINLINE static FString ConcatFStrings(typename TIdentity<LhsType>::Type Lhs, typename TIdentity<RhsType>::Type Rhs)
 	{
-		CheckInvariants();
-		Str.CheckInvariants();
+		Lhs.CheckInvariants();
+		Rhs.CheckInvariants();
+
+		if (Lhs.IsEmpty())
+			return MoveTemp(Rhs);
+
+		int32 RhsLen = Rhs.Len();
+
+		FString Result(MoveTemp(Lhs), RhsLen);
+		Result.AppendChars(Rhs.Data.GetTypedData(), RhsLen);
 		
-		if( Str.Data.Num() )
-		{
-			int32 Index = Data.Num();
-			int32 NumAdd = Str.Data.Num();
-			if (Data.Num())
-			{
-				NumAdd--;
-				Index--;
-			}
-			
-			FString ret( *this, NumAdd ) ; 
-			ret.Data.AddUninitialized( NumAdd );
-			FMemory::Memcpy( &(ret)[Index], Str.Data.GetData(), Str.Data.Num() * sizeof(TCHAR) );
-			return ret;
-		}
-		return *this;
+		return Result;
+	}
+
+	template <typename RhsType>
+	FORCEINLINE static FString ConcatTCHARsToFString(const TCHAR* Lhs, typename TIdentity<RhsType>::Type Rhs)
+	{
+		checkSlow(Lhs);
+		Rhs.CheckInvariants();
+
+		if (!Lhs || !*Lhs)
+			return MoveTemp(Rhs);
+
+		int32 LhsLen = FCString::Strlen(Lhs);
+		int32 RhsLen = Rhs.Len();
+
+		// This is not entirely optimal, as if the Rhs is an rvalue and has enough slack space to hold Lhs, then
+		// the memory could be reused here without constructing a new object.  However, until there is proof otherwise,
+		// I believe this will be relatively rare and isn't worth making the code a lot more complex right now.
+		FString Result;
+		Result.Data.AddUninitialized(LhsLen + RhsLen + 1);
+
+		TCHAR* ResultData = Result.Data.GetTypedData();
+		CopyAssignItems(ResultData, Lhs, LhsLen);
+		CopyAssignItems(ResultData + LhsLen, Rhs.Data.GetTypedData(), RhsLen);
+		*(ResultData + LhsLen + RhsLen) = 0;
+		
+		return Result;
+	}
+
+	template <typename LhsType>
+	FORCEINLINE static FString ConcatFStringToTCHARs(typename TIdentity<LhsType>::Type Lhs, const TCHAR* Rhs)
+	{
+		Lhs.CheckInvariants();
+		checkSlow(Rhs);
+
+		if (!Rhs || !*Rhs)
+			return MoveTemp(Lhs);
+
+		int32 RhsLen = FCString::Strlen(Rhs);
+
+		FString Result(MoveTemp(Lhs), RhsLen);
+		Result.AppendChars(Rhs, RhsLen);
+		
+		return Result;
+	}
+
+public:
+	/**
+	 * Concatenate two FStrings.
+	 * 
+	 * @param Lhs The FString on the left-hand-side of the expression.
+	 * @param Rhs The FString on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
+	 */
+	FORCEINLINE friend FString operator+(const FString& Lhs, const FString& Rhs)
+	{
+		return ConcatFStrings<const FString&, const FString&>(Lhs, Rhs);
+	}
+
+	/**
+	 * Concatenate two FStrings.
+	 * 
+	 * @param Lhs The FString on the left-hand-side of the expression.
+	 * @param Rhs The FString on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
+	 */
+	FORCEINLINE friend FString operator+(FString&& Lhs, const FString& Rhs)
+	{
+		return ConcatFStrings<FString&&, const FString&>(MoveTemp(Lhs), Rhs);
+	}
+
+	/**
+	 * Concatenate two FStrings.
+	 * 
+	 * @param Lhs The FString on the left-hand-side of the expression.
+	 * @param Rhs The FString on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
+	 */
+	FORCEINLINE friend FString operator+(const FString& Lhs, FString&& Rhs)
+	{
+		return ConcatFStrings<const FString&, FString&&>(Lhs, MoveTemp(Rhs));
+	}
+
+	/**
+	 * Concatenate two FStrings.
+	 * 
+	 * @param Lhs The FString on the left-hand-side of the expression.
+	 * @param Rhs The FString on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
+	 */
+	FORCEINLINE friend FString operator+(FString&& Lhs, FString&& Rhs)
+	{
+		return ConcatFStrings<FString&&, FString&&>(MoveTemp(Lhs), MoveTemp(Rhs));
+	}
+
+	/**
+	 * Concatenates a TCHAR array to an FString.
+	 * 
+	 * @param Lhs The TCHAR array on the left-hand-side of the expression.
+	 * @param Rhs The FString on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
+	 */
+	FORCEINLINE friend FString operator+(const TCHAR* Lhs, const FString& Rhs)
+	{
+		return ConcatTCHARsToFString<const FString&>(Lhs, Rhs);
+	}
+
+	/**
+	 * Concatenates a TCHAR array to an FString.
+	 * 
+	 * @param Lhs The TCHAR array on the left-hand-side of the expression.
+	 * @param Rhs The FString on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
+	 */
+	FORCEINLINE friend FString operator+(const TCHAR* Lhs, FString&& Rhs)
+	{
+		return ConcatTCHARsToFString<FString&&>(Lhs, MoveTemp(Rhs));
+	}
+
+	/**
+	 * Concatenates an FString to a TCHAR array.
+	 * 
+	 * @param Lhs The FString on the left-hand-side of the expression.
+	 * @param Rhs The TCHAR array on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
+	 */
+	FORCEINLINE friend FString operator+(const FString& Lhs, const TCHAR* Rhs)
+	{
+		return ConcatFStringToTCHARs<const FString&>(Lhs, Rhs);
+	}
+
+	/**
+	 * Concatenates an FString to a TCHAR array.
+	 * 
+	 * @param Lhs The FString on the left-hand-side of the expression.
+	 * @param Rhs The TCHAR array on the right-hand-side of the expression.
+	 *
+	 * @return The concatenated string.
+	 */
+	FORCEINLINE friend FString operator+(FString&& Lhs, const TCHAR* Rhs)
+	{
+		return ConcatFStringToTCHARs<FString&&>(MoveTemp(Lhs), Rhs);
 	}
 
 	/**

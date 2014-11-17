@@ -11,6 +11,7 @@ public class ExternalImagePicker : ModuleRules
             {
 				"Core",
                 "Slate",
+				"SlateCore",
 				"DesktopPlatform",
 				"ImageWrapper",
 				"EditorStyle",

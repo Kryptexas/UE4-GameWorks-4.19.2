@@ -9,6 +9,7 @@
 #include "../Engine/GameViewportClient.h"
 #include "SceneManagement.h"
 #include "ForceFeedbackEffect.h"
+#include "OnlineReplStructs.h"
 #include "PlayerController.generated.h"
 
 /** delegate used to override default viewport audio listener position calculated from camera */
@@ -26,7 +27,7 @@ DECLARE_DELEGATE_ThreeParams(FGetAudioListenerPos, FVector& /*Location*/, FVecto
  */
 //=============================================================================
 
-UCLASS(config=Game, BlueprintType, Blueprintable, DependsOn=UOnlineReplStructs)
+UCLASS(config=Game, BlueprintType, Blueprintable)
 class ENGINE_API APlayerController : public AController
 {
 	GENERATED_UCLASS_BODY()
@@ -162,11 +163,11 @@ class ENGINE_API APlayerController : public AController
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface)
 	uint32 bShowMouseCursor:1;
 
-	/** Whether actor/component click and touch events should be generated. */
+	/** Whether actor/component click events should be generated. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface)
 	uint32 bEnableClickEvents:1;
 
-	/** Whether actor/component click and touch events should be generated. */
+	/** Whether actor/component touch events should be generated. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=MouseInterface)
 	uint32 bEnableTouchEvents:1;
 
@@ -317,6 +318,10 @@ public:
 	/** Convert current mouse 2D position to World Space 3D position and direction. **/
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(FriendlyName="ConvertMouseLocationToWorldSpace"))
 	void DeprojectMousePositionToWorld(FVector & WorldLocation, FVector & WorldDirection) const;
+
+	/** Convert current mouse 2D position to World Space 3D position and direction. **/
+	UFUNCTION(BlueprintCallable, Category = "Game|Player", meta = (FriendlyName = "ConvertScreenLocationToWorldSpace"))
+	void DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector & WorldLocation, FVector & WorldDirection) const;
 
 	/**
 	  * Updates the rotation of player, based on ControlRotation after RotationInput has been applied.
@@ -529,7 +534,7 @@ public:
 	 * @param CustomPlaySpace - Matrix used when Space = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client)
-	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale = 0, float Rate = 0, float BlendInTime = 0, float BlendOutTime = 0, bool bLoop = false, bool bRandomStartTime = false, enum ECameraAnimPlaySpace Space = ECameraAnimPlaySpace(0), FRotator CustomPlaySpace = FRotator::ZeroRotator);
+	void ClientPlayCameraAnim(class UCameraAnim* AnimToPlay, float Scale=0, float Rate=0, float BlendInTime=0, float BlendOutTime=0, bool bLoop=false, bool bRandomStartTime=false, enum ECameraAnimPlaySpace::Type Space=ECameraAnimPlaySpace::CameraLocal, FRotator CustomPlaySpace=FRotator::ZeroRotator);
 
 	/** 
 	 * Play Camera Shake 
@@ -539,7 +544,7 @@ public:
 	 * @param UserPlaySpaceRot - Matrix used when PlaySpace = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
-	void ClientPlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale = 0, enum ECameraAnimPlaySpace PlaySpace = CAPS_CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
+	void ClientPlayCameraShake(TSubclassOf<class UCameraShake> Shake, float Scale = 0, ECameraAnimPlaySpace::Type PlaySpace = ECameraAnimPlaySpace::CameraLocal, FRotator UserPlaySpaceRot = FRotator::ZeroRotator);
 
 	/**
 	 * Play sound client-side (so only the client will hear it)
@@ -676,16 +681,31 @@ public:
 	void ClientStopForceFeedback(class UForceFeedbackEffect* ForceFeedbackEffect, FName Tag);
 
 	/**
-	 * Travel to a different map or IP address.  Calls the PreClientTravel event before doing anything.
-	 * @param	URL				a string containing the mapname (or IP address) to travel to, along with option key/value pairs
-	 * @param	TravelType 		specifies whether the client should append URL options used in previous travels; if true is specified
+	 * Travel to a different map or IP address. Calls the PreClientTravel event before doing anything.
+	 * NOTE: This is implemented as a locally executed wrapper for ClientTravelInternal, to avoid API compatability breakage
+	 *
+	 * @param URL				A string containing the mapname (or IP address) to travel to, along with option key/value pairs
+	 * @param TravelType 		specifies whether the client should append URL options used in previous travels; if true is specified
 	 *							for the bSeamlesss parameter, this value must be TRAVEL_Relative.
-	 * @param	bSeamless		indicates whether to use seamless travel (requires TravelType of TRAVEL_Relative)
-	 * @param	MapPackageGuid	the GUID of the map package to travel to - this is used to find the file when it has been autodownloaded,
+	 * @param bSeamless			Indicates whether to use seamless travel (requires TravelType of TRAVEL_Relative)
+	 * @param MapPackageGuid	The GUID of the map package to travel to - this is used to find the file when it has been autodownloaded,
+	 * 							so it is only needed for clients
+	 */
+	UFUNCTION()
+	void ClientTravel(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid());
+
+	/**
+	 * Internal clientside implementation of ClientTravel - use ClientTravel to call this
+	 *
+	 * @param URL				A string containing the mapname (or IP address) to travel to, along with option key/value pairs
+	 * @param TravelType 		specifies whether the client should append URL options used in previous travels; if true is specified
+	 *							for the bSeamlesss parameter, this value must be TRAVEL_Relative.
+	 * @param bSeamless			Indicates whether to use seamless travel (requires TravelType of TRAVEL_Relative)
+	 * @param MapPackageGuid	The GUID of the map package to travel to - this is used to find the file when it has been autodownloaded,
 	 * 							so it is only needed for clients
 	 */
 	UFUNCTION(reliable, client)
-	void ClientTravel(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid());
+	void ClientTravelInternal(const FString& URL, enum ETravelType TravelType, bool bSeamless = false, FGuid MapPackageGuid = FGuid());
 
 	/**
 	 * Replicated Update streaming status
@@ -795,6 +815,10 @@ public:
 	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerReplicateMessageToAIDebugView(class APawn* InPawn, uint32 InMessage, uint32 DataView = 0);
+
+	/** Used by UGameplayDebuggingControllerComponent to replicate messages for AI debugging in network games. */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerToggleAILogging();
 
 	/** Add Pitch (look up) input */
 	UFUNCTION(BlueprintCallable, Category="Game|Player", meta=(Keywords="up down"))
@@ -927,8 +951,12 @@ public:
 	/** Removes given inputcomponent from the input stack (regardless of if it's the top, actually). */
 	bool PopInputComponent(UInputComponent* Input);
 
-	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad);
-	bool InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex);
+	virtual void FlushPressedKeys();
+
+	virtual bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad);
+	virtual bool InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex);
+	virtual bool InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
+	virtual bool InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
 
 	/** Associate a new UPlayer with this PlayerController. */
 	virtual void SetPlayer(UPlayer* Player);
@@ -964,7 +992,7 @@ public:
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) OVERRIDE;
 	virtual class UPlayer* GetNetOwningPlayer() OVERRIDE;
 	virtual class UNetConnection* GetNetConnection() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void PostInitializeComponents() OVERRIDE;
 	virtual void EnableInput(class APlayerController* PlayerController) OVERRIDE;
 	virtual void DisableInput(class APlayerController* PlayerController) OVERRIDE;
@@ -1094,7 +1122,7 @@ public:
 	 */
 	virtual void ViewAPlayer(int32 dir);
 
-	/** @return true if game allows this player to spawn */
+	/** @return true if this controller thinks it's able to restart. Called from GameMode::PlayerCanRestart */
 	virtual bool CanRestartPlayer();
 
 	/**
@@ -1283,5 +1311,5 @@ public:
 
 	/** The value of SeamlessTravelCount, upon the last call to GameMode::HandleSeamlessTravelPlayer; used to detect seamless travel */
 	UPROPERTY()
-	uint16		LastSeamlessTravelCount;
+	uint16		LastCompletedSeamlessTravelCount;
 };

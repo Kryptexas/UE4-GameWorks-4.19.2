@@ -73,6 +73,9 @@ public:
 #endif
 
 		TargetSettings = ConstructObject<UWindowsTargetSettings>(UWindowsTargetSettings::StaticClass(), GetTransientPackage(), "WindowsTargetSettings", RF_Standalone);
+		
+		// We need to manually load the config properties here, as this module is loaded before the UObject system is setup to do this
+		GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetSettings->TargetedRHIs, GEngineIni);
 		TargetSettings->AddToRoot();
 
 		ISettingsModule* SettingsModule = ISettingsModule::Get();

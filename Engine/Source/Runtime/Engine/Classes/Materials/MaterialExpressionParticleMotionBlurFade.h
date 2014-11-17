@@ -9,7 +9,7 @@
 
 #include "MaterialExpressionParticleMotionBlurFade.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleMotionBlurFade : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

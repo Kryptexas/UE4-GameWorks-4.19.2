@@ -112,12 +112,6 @@ void FAssetTypeActions_AnimBlueprint::OpenAssetEditor( const TArray<UObject*>& I
 	}
 }
 
-bool FAssetTypeActions_AnimBlueprint::CanCreateNewDerivedBlueprint() const
-{
-	// Animation blueprints cannot create derived blueprints.
-	return false;
-}
-
 void FAssetTypeActions_AnimBlueprint::ExecuteFindSkeleton(TArray<TWeakObjectPtr<UAnimBlueprint>> Objects)
 {
 	TArray<UObject*> ObjectsToSync;

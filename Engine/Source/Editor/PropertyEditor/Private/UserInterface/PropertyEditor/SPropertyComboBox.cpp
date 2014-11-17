@@ -20,7 +20,7 @@ void SPropertyComboBox::Construct( const FArguments& InArgs )
 	{
 		if(*ComboItemList[ItemIndex].Get() == VisibleText)
 		{
-			SetToolTipText(*ToolTipList[ItemIndex]);
+			SetToolTipText(TAttribute<FString>(*ToolTipList[ItemIndex]));
 			InitiallySelectedItem = ComboItemList[ItemIndex];
 			break;
 		}
@@ -36,6 +36,7 @@ void SPropertyComboBox::Construct( const FArguments& InArgs )
 		.OptionsSource(&ComboItemList)
 		.OnGenerateWidget(this, &SPropertyComboBox::OnGenerateComboWidget)
 		.OnSelectionChanged(this, &SPropertyComboBox::OnSelectionChangedInternal)
+		.OnComboBoxOpening(InArgs._OnComboBoxOpening)
 		.InitiallySelectedItem(InitiallySelectedItem)
 		);
 }
@@ -55,7 +56,7 @@ void SPropertyComboBox::SetSelectedItem( const FString& InSelectedItem )
 	{
 		if(*ComboItemList[ItemIndex].Get() == InSelectedItem)
 		{
-			SetToolTipText(*ToolTipList[ItemIndex]);
+			SetToolTipText(TAttribute<FString>(*ToolTipList[ItemIndex]));
 
 			SComboBox< TSharedPtr<FString> >::SetSelectedItem(ComboItemList[ItemIndex]);
 			return;

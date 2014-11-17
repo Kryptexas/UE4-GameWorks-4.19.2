@@ -53,7 +53,7 @@ TSharedPtr<FFbxImporter> FFbxImporter::StaticInstance;
 
 
 
-FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bForceImportType, EFBXImportType ImportType )
+FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImportUI* ImportUI, bool bShowOptionDialog, const FString& FullPath, bool& OutOperationCanceled, bool& bOutImportAll, bool bIsObjFormat, bool bForceImportType, EFBXImportType ImportType )
 {
 	OutOperationCanceled = false;
 
@@ -101,6 +101,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			.WidgetWindow(Window)
 			.FullPath(FullPath)
 			.ForcedImportType( bForceImportType ? TOptional<EFBXImportType>( ImportType ) : TOptional<EFBXImportType>() )
+			.IsObjFormat( bIsObjFormat )
 		);
 
 		// @todo: we can make this slow as showing progress bar later
@@ -197,9 +198,30 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bPreserveLocalTransform = ImportUI->bPreserveLocalTransform;
 }
 
-//-------------------------------------------------------------------------
-//
-//-------------------------------------------------------------------------
+void FImportedMaterialData::AddImportedMaterial( FbxSurfaceMaterial& FbxMaterial, UMaterialInterface& UnrealMaterial )
+{
+	FbxToUnrealMaterialMap.Add( &FbxMaterial, &UnrealMaterial );
+	ImportedMaterialNames.Add( *UnrealMaterial.GetPathName() );
+}
+
+bool FImportedMaterialData::IsUnique( FbxSurfaceMaterial& FbxMaterial, FName ImportedMaterialName ) const
+{
+	UMaterialInterface* FoundMaterial = GetUnrealMaterial( FbxMaterial );
+
+	return FoundMaterial != NULL || ImportedMaterialNames.Contains( ImportedMaterialName );
+}
+
+UMaterialInterface* FImportedMaterialData::GetUnrealMaterial( const FbxSurfaceMaterial& FbxMaterial ) const
+{
+	return FbxToUnrealMaterialMap.FindRef( &FbxMaterial ).Get();
+}
+
+void FImportedMaterialData::Clear()
+{
+	FbxToUnrealMaterialMap.Empty();
+	ImportedMaterialNames.Empty();
+}
+
 FFbxImporter::FFbxImporter()
 	: bFirstMesh(true)
 	, Importer( NULL )
@@ -233,8 +255,6 @@ FFbxImporter::~FFbxImporter()
 {
 	CleanUp();
 }
-
-const float FFbxImporter::SCALE_TOLERANCE = 0.000001;
 
 //-------------------------------------------------------------------------
 //
@@ -291,6 +311,8 @@ void FFbxImporter::ReleaseScene()
 		Scene = NULL;
 	}
 	
+	ImportedMaterialData.Clear();
+
 	// reset
 	CollisionModels.Clear();
 	CurPhase = NOTSTARTED;
@@ -485,9 +507,9 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 		
 		// TODO: display multiple anim stack
 		SceneInfo.TakeName = NULL;
-		for( int32 AnimStackIndex = 0; AnimStackIndex < Scene->GetSrcObjectCount(FbxAnimStack::ClassId); AnimStackIndex++ )
+		for (int32 AnimStackIndex = 0; AnimStackIndex < Scene->GetSrcObjectCount<FbxAnimStack>(); AnimStackIndex++)
 		{
-			FbxAnimStack* CurAnimStack = FbxCast<FbxAnimStack>(Scene->GetSrcObject(FbxAnimStack::ClassId, 0));
+			FbxAnimStack* CurAnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
 			// TODO: skip empty anim stack
 			const char* AnimStackName = CurAnimStack->GetName();
 			SceneInfo.TakeName = new char[FCStringAnsi::Strlen(AnimStackName) + 1];
@@ -540,13 +562,15 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 
 	if( !bImportStatus )  // Problem with the file to be imported
 	{
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Error, LOCTEXT("Error_FBXInitializationFailed", "Call to FbxImporter::Initialize() failed.")));
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FBXError", "Error returned: {0}"),
-							FText::FromString(Importer->GetLastErrorString()))));
+		UE_LOG(LogFbx, Error,TEXT("Call to FbxImporter::Initialize() failed."));
+		UE_LOG(LogFbx, Warning, TEXT("Error returned: %s"), ANSI_TO_TCHAR(Importer->GetStatus().GetErrorString()));
 
-		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FBXVersion", "FBX version number for this FBX SDK is {0}.{1}.{2}"),
-							FText::FromString(FString::FromInt(SDKMajor)), FText::FromString(FString::FromInt(SDKMinor)), FText::FromString(FString::FromInt(SDKRevision)))));
-	
+		if (Importer->GetStatus().GetCode() == FbxStatus::eInvalidFileVersion )
+		{
+			UE_LOG(LogFbx, Warning, TEXT("FBX version number for this FBX SDK is %d.%d.%d"),
+				SDKMajor, SDKMinor, SDKRevision);
+		}
+
 		return false;
 	}
 
@@ -571,8 +595,7 @@ bool FFbxImporter::OpenFile(FString Filename, bool bParseStatistics, bool bForSc
 			const FText WarningText = FText::Format(
 				NSLOCTEXT("UnrealEd", "Warning_OutOfDateFBX", "An out of date FBX has been detected.\nImporting different versions of FBX files than the SDK version can cause undesirable results.\n\nFile Version: {0}\nSDK Version: {1}" ),
 				FText::FromString(FileVerStr), FText::FromString(SDKVerStr) );
-			
-			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, WarningText));
+
 		}
 	}
 
@@ -627,7 +650,7 @@ bool FFbxImporter::ImportFile(FString Filename)
 	}
 	else
 	{
-		ErrorMessage = ANSI_TO_TCHAR(Importer->GetLastErrorString());
+		ErrorMessage = ANSI_TO_TCHAR(Importer->GetStatus().GetErrorString());
 		AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("FbxSkeletaLMeshimport_TriangulatingFailed", "FBX Scene Loading Failed : '{0}'"), FText::FromString(ErrorMessage))));
 		CleanUp();
 		Result = false;
@@ -643,13 +666,10 @@ bool FFbxImporter::ImportFile(FString Filename)
 //-------------------------------------------------------------------------
 //
 //-------------------------------------------------------------------------
-bool FFbxImporter::ImportFromFile(const TCHAR* Filename)
+bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type)
 {
 	bool Result = true;
-	// Converts the FBX data to Z-up, X-forward, Y-left.  Unreal is the same except with Y-right, 
-	// but the conversion to left-handed coordinates is not working properly
-	FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector)-FbxAxisSystem::eParityOdd;
-	const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
+
 
 	switch (CurPhase)
 	{
@@ -667,23 +687,34 @@ bool FFbxImporter::ImportFromFile(const TCHAR* Filename)
 			break;
 		}
 	case IMPORTED:
-		// convert axis to Z-up
-		FbxRootNodeUtility::RemoveAllFbxRoots( Scene );
-		UnrealZUp.ConvertScene( Scene );
+		{
+			static const FString Obj(TEXT("obj"));
 
-		// Convert the scene's units to what is used in this program, if needed.
-		// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
-		// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
-		//if( FbxScene->GetGlobalSettings().GetSystemUnit().GetScaleFactor() != 1.0 )
-		//{
-		//	KFbxSystemUnit::cm.ConvertScene( FbxScene );
-		//}
+			// The imported axis system is unknown for obj files
+			if( !Type.Equals( Obj, ESearchCase::IgnoreCase ) )
+			{
+				FbxAxisSystem::EFrontVector FrontVector = (FbxAxisSystem::EFrontVector) - FbxAxisSystem::eParityOdd;
+				const FbxAxisSystem UnrealZUp(FbxAxisSystem::eZAxis, FrontVector, FbxAxisSystem::eRightHanded);
 
+				if( Scene->GetGlobalSettings().GetAxisSystem() != UnrealZUp )
+				{
+					// Converts the FBX data to Z-up, X-forward, Y-left.  Unreal is the same except with Y-right, 
+					// but the conversion to left-handed coordinates is not working properly
 
-		// convert name to unreal-supported format
-		// actually, crashes...
-		//KFbxSceneRenamer renamer(FbxScene);
-		//renamer.ResolveNameClashing(false,false,true,true,true,KString(),"TestBen",false,false);
+					// convert axis to Z-up
+					FbxRootNodeUtility::RemoveAllFbxRoots(Scene);
+					UnrealZUp.ConvertScene(Scene);
+				}
+			}
+
+			// Convert the scene's units to what is used in this program, if needed.
+			// The base unit used in both FBX and Unreal is centimeters.  So unless the units 
+			// are already in centimeters (ie: scalefactor 1.0) then it needs to be converted
+			//if( FbxScene->GetGlobalSettings().GetSystemUnit().GetScaleFactor() != 1.0 )
+			//{
+			//	KFbxSystemUnit::cm.ConvertScene( FbxScene );
+			//}
+		}
 		
 	default:
 		break;
@@ -801,7 +832,7 @@ FbxAMatrix FFbxImporter::ComputeTotalMatrix(FbxNode* Node)
 	Geometry.SetS(Scaling);
 
 	//For Single Matrix situation, obtain transfrom matrix from eDESTINATION_SET, which include pivot offsets and pre/post rotations.
-	FbxAMatrix& GlobalTransform = Scene->GetEvaluator()->GetNodeGlobalTransform(Node);
+	FbxAMatrix& GlobalTransform = Scene->GetAnimationEvaluator()->GetNodeGlobalTransform(Node);
 	
 	FbxAMatrix TotalMatrix;
 	TotalMatrix = GlobalTransform * Geometry;

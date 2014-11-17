@@ -4,6 +4,7 @@
 
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
+#include "AnimGraphNode_BlendListByBool.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendListByBool

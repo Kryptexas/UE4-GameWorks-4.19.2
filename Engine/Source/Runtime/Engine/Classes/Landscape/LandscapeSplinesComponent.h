@@ -4,7 +4,7 @@
 #pragma once
 #include "LandscapeSplinesComponent.generated.h"
 
-UCLASS(HeaderGroup=Terrain,MinimalAPI)
+UCLASS(MinimalAPI)
 class ULandscapeSplinesComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -39,6 +39,7 @@ class ULandscapeSplinesComponent : public UPrimitiveComponent
 
 
 public:
+	void CheckSplinesValid();
 	bool ModifySplines(bool bAlwaysMarkDirty = true);
 
 #if WITH_EDITOR
@@ -46,6 +47,7 @@ public:
 #endif
 
 	// Begin UObject Interface
+	virtual void PostLoad() OVERRIDE;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif // WITH_EDITOR

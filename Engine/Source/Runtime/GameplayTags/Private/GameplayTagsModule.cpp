@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsModulePrivatePCH.h"
-#include "GameplayTags.generated.inl"
+
 
 
 class FGameplayTagsModule : public IGameplayTagsModule

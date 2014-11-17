@@ -117,7 +117,30 @@ FString UBTDecorator::GetStaticDescription() const
 	return FString::Printf(TEXT("%s%s"), *AdditionalDesc, *UBehaviorTreeTypes::GetShortTypeName(this));
 }
 
-void UBTDecorator::ValidateFlowAbortMode()
+bool UBTDecorator::IsFlowAbortModeValid() const
+{
+#if WITH_EDITOR
+	if (GetParentNode() == NULL ||
+		(GetParentNode()->CanAbortLowerPriority() == false && GetParentNode()->CanAbortSelf() == false))
+	{
+		return (FlowAbortMode == EBTFlowAbortMode::None);
+	}
+
+	if (GetParentNode()->CanAbortLowerPriority() == false)
+	{
+		return (FlowAbortMode == EBTFlowAbortMode::None || FlowAbortMode == EBTFlowAbortMode::Self);
+	}
+
+	if (GetParentNode()->CanAbortSelf() == false)
+	{
+		return (FlowAbortMode == EBTFlowAbortMode::None || FlowAbortMode == EBTFlowAbortMode::LowerPriority);
+	}
+#endif
+
+	return true;
+}
+
+void UBTDecorator::UpdateFlowAbortMode()
 {
 #if WITH_EDITOR
 	if (GetParentNode() == NULL)

@@ -11,16 +11,18 @@
 #include "EngineBuildSettings.h"
 
 #include "DesktopPlatformModule.h"
+#include "TargetPlatform.h"
 
 #define LOCTEXT_NAMESPACE "GameProjectUtils"
 
 #define MAX_PROJECT_PATH_BUFFER_SPACE 130 // Leave a reasonable buffer of additional characters to account for files created in the content directory during or after project generation
-#define MAX_PROJECT_NAME_LENGTH 22 // Enforce a reasonable project name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
+#define MAX_PROJECT_NAME_LENGTH 20 // Enforce a reasonable project name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
 checkAtCompileTime(PLATFORM_MAX_FILEPATH_LENGTH - MAX_PROJECT_PATH_BUFFER_SPACE > 0, filesystem_path_shorter_than_project_creation_buffer_space);
 
 #define MAX_CLASS_NAME_LENGTH 32 // Enforce a reasonable class name length so the path is not too long for PLATFORM_MAX_FILEPATH_LENGTH
 
 TWeakPtr<SNotificationItem> GameProjectUtils::UpdateGameProjectNotification = NULL;
+TWeakPtr<SNotificationItem> GameProjectUtils::WarningProjectNameNotification = NULL;
 
 bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile, FText& OutFailReason)
 {
@@ -83,12 +85,14 @@ bool GameProjectUtils::IsValidProjectFileForCreation(const FString& ProjectFile,
 		return false;
 	}
 
-	FString IllegalPathCharacters;
-	if ( !ProjectPathContainsOnlyLegalCharacters(FPaths::GetPath(ProjectFile), IllegalPathCharacters) )
+	if (NameContainsUnderscoreAndXB1Installed(BaseProjectFile))
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("IllegalPathCharacters"), FText::FromString( IllegalPathCharacters ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectNameContainsIllegalCharacters", "Project names may not contain the following characters: {IllegalPathCharacters}" ), Args );
+		OutFailReason = LOCTEXT( "ProjectNameContainsIllegalCharactersOnXB1", "Project names may not contain an underscore when the Xbox One XDK is installed." );
+		return false;
+	}
+
+	if ( !FPaths::ValidatePath(FPaths::GetPath(ProjectFile), &OutFailReason) )
+	{
 		return false;
 	}
 
@@ -141,14 +145,6 @@ bool GameProjectUtils::OpenProject(const FString& ProjectFile, FText& OutFailRea
 		return false;
 	}
 
-	if ( BaseProjectFile.Len() > MAX_PROJECT_NAME_LENGTH )
-	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("MaxProjectNameLength"), MAX_PROJECT_NAME_LENGTH );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectNameTooLong", "Project names must not be longer than {MaxProjectNameLength} characters." ), Args );
-		return false;
-	}
-
 	const int32 MaxProjectPathLength = PLATFORM_MAX_FILEPATH_LENGTH - MAX_PROJECT_PATH_BUFFER_SPACE;
 	if ( FPaths::GetBaseFilename(ProjectFile, false).Len() > MaxProjectPathLength )
 	{
@@ -175,12 +171,14 @@ bool GameProjectUtils::OpenProject(const FString& ProjectFile, FText& OutFailRea
 		return false;
 	}
 
-	FString IllegalPathCharacters;
-	if ( !ProjectPathContainsOnlyLegalCharacters(FPaths::GetPath(ProjectFile), IllegalPathCharacters) )
+	if (NameContainsUnderscoreAndXB1Installed(BaseProjectFile))
 	{
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("IllegalPathCharacters"), FText::FromString( IllegalPathCharacters ) );
-		OutFailReason = FText::Format( LOCTEXT( "ProjectPathContainsIllegalCharacters", "A projects path may not contain the following characters: {IllegalPathCharacters}" ), Args );
+		OutFailReason = LOCTEXT( "ProjectNameContainsIllegalCharactersOnXB1", "Project names may not contain an underscore when the Xbox One XDK is installed." );
+		return false;
+	}
+
+	if ( !FPaths::ValidatePath(FPaths::GetPath(ProjectFile), &OutFailReason) )
+	{
 		return false;
 	}
 
@@ -379,11 +377,11 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 	if ( !LoadedProjectFilePath.IsEmpty() )
 	{
 		FProjectStatus ProjectStatus;
-		if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
+		if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus))
 		{
-			if ( !ProjectStatus.bUpToDate )
+			if ( ProjectStatus.bRequiresUpdate )
 			{
-				const FText UpdateProjectText = LOCTEXT("UpdateProjectFilePrompt", "Update project to open in this version of the editor by default?");
+				const FText UpdateProjectText = LOCTEXT("UpdateProjectFilePrompt", "Project file is saved in an older format. Would you like to update it?");
 				const FText UpdateProjectConfirmText = LOCTEXT("UpdateProjectFileConfirm", "Update");
 				const FText UpdateProjectCancelText = LOCTEXT("UpdateProjectFileCancel", "Not Now");
 
@@ -413,34 +411,69 @@ void GameProjectUtils::CheckForOutOfDateGameProjectFile()
 	}
 }
 
+void GameProjectUtils::CheckAndWarnProjectFilenameValid()
+{
+	const FString& LoadedProjectFilePath = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
+	if ( !LoadedProjectFilePath.IsEmpty() )
+	{
+		const FString BaseProjectFile = FPaths::GetBaseFilename(LoadedProjectFilePath);
+		if ( BaseProjectFile.Len() > MAX_PROJECT_NAME_LENGTH )
+		{
+			FFormatNamedArguments Args;
+			Args.Add( TEXT("MaxProjectNameLength"), MAX_PROJECT_NAME_LENGTH );
+			const FText WarningReason = FText::Format( LOCTEXT( "WarnProjectNameTooLong", "Project names must not be longer than {MaxProjectNameLength} characters.\nYou might have problems saving or modifying a project with a longer name." ), Args );
+			const FText WarningReasonOkText = LOCTEXT("WarningReasonOkText", "Ok");
+
+			FNotificationInfo Info(WarningReason);
+			Info.bFireAndForget = false;
+			Info.bUseLargeFont = false;
+			Info.bUseThrobber = false;
+			Info.bUseSuccessFailIcons = false;
+			Info.FadeOutDuration = 3.f;
+			Info.ButtonDetails.Add(FNotificationButtonInfo(WarningReasonOkText, FText(), FSimpleDelegate::CreateStatic(&GameProjectUtils::OnWarningReasonOk)));
+
+			if (WarningProjectNameNotification.IsValid())
+			{
+				WarningProjectNameNotification.Pin()->ExpireAndFadeout();
+				WarningProjectNameNotification.Reset();
+			}
+
+			WarningProjectNameNotification = FSlateNotificationManager::Get().AddNotification(Info);
+
+			if (WarningProjectNameNotification.IsValid())
+			{
+				WarningProjectNameNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+			}
+		}
+	}
+}
+
+void GameProjectUtils::OnWarningReasonOk()
+{
+	if ( WarningProjectNameNotification.IsValid() )
+	{
+		WarningProjectNameNotification.Pin()->SetCompletionState(SNotificationItem::CS_None);
+		WarningProjectNameNotification.Pin()->ExpireAndFadeout();
+		WarningProjectNameNotification.Reset();
+	}
+}
+
 bool GameProjectUtils::UpdateGameProject(const FString& EngineIdentifier)
 {
 	const FString& ProjectFilename = FPaths::IsProjectFilePathSet() ? FPaths::GetProjectFilePath() : FString();
 	if ( !ProjectFilename.IsEmpty() )
 	{
-		FProjectStatus ProjectStatus;
-		if ( IProjectManager::Get().QueryStatusForProject(ProjectFilename, EngineIdentifier, ProjectStatus) )
+		FText FailReason;
+		bool bWasCheckedOut = false;
+		if ( !UpdateGameProjectFile(ProjectFilename, EngineIdentifier, NULL, bWasCheckedOut, FailReason) )
 		{
-			if ( ProjectStatus.bUpToDate )
-			{
-				// The project was already up to date.
-				UE_LOG(LogGameProjectGeneration, Log, TEXT("%s is already up to date."), *ProjectFilename );
-			}
-			else
-			{
-				FText FailReason;
-				bool bWasCheckedOut = false;
-				if ( !UpdateGameProjectFile(ProjectFilename, EngineIdentifier, NULL, bWasCheckedOut, FailReason) )
-				{
-					// The user chose to update, but the update failed. Notify the user.
-					UE_LOG(LogGameProjectGeneration, Error, TEXT("%s failed to update. %s"), *ProjectFilename, *FailReason.ToString() );
-					return false;
-				}
-
-				// The project was updated successfully.
-				UE_LOG(LogGameProjectGeneration, Log, TEXT("%s was successfully updated."), *ProjectFilename );
-			}
+			// The user chose to update, but the update failed. Notify the user.
+			UE_LOG(LogGameProjectGeneration, Error, TEXT("%s failed to update. %s"), *ProjectFilename, *FailReason.ToString() );
+			return false;
 		}
+
+		// The project was updated successfully.
+		UE_LOG(LogGameProjectGeneration, Log, TEXT("%s was successfully updated."), *ProjectFilename );
 	}
 
 	return true;
@@ -533,9 +566,9 @@ bool GameProjectUtils::IsValidClassNameForCreation(const FString& NewClassName, 
 	return true;
 }
 
-bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
-	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, ParentClass, OutHeaderFilePath, OutCppFilePath, OutFailReason);
+	const bool bAddCodeSuccessful = AddCodeToProject_Internal(NewClassName, NewClassPath, ParentClass, OutHeaderFilePath, OutCppFilePath, OutFailReason);
 
 	if( FEngineAnalytics::IsAvailable() )
 	{
@@ -1057,47 +1090,29 @@ bool GameProjectUtils::NameContainsOnlyLegalCharacters(const FString& TestName, 
 	return !bContainsIllegalCharacters;
 }
 
-bool GameProjectUtils::ProjectPathContainsOnlyLegalCharacters(const FString& ProjectFilePath, FString& OutIllegalCharacters)
+bool GameProjectUtils::NameContainsUnderscoreAndXB1Installed(const FString& TestName)
 {
 	bool bContainsIllegalCharacters = false;
 
-	// set of characters not allowed in paths (Windows limitations)
-	FString AllIllegalCharacters = TEXT("<>\"|?*");
-
-	// Add lower-32 characters (illegal on windows)
-	for ( TCHAR IllegalChar = 0; IllegalChar < 32; IllegalChar++ )
+	// Only allow alphanumeric characters in the project name
+	for ( int32 CharIdx = 0 ; CharIdx < TestName.Len() ; ++CharIdx )
 	{
-		AllIllegalCharacters += IllegalChar;
-	}
-
-	// @ characters are not legal. Used for revision/label specifiers in P4/SVN.
-	AllIllegalCharacters += TEXT("@");					
-	// # characters are not legal. Used for revision specifiers in P4/SVN.
-	AllIllegalCharacters += TEXT("#");					
-	// ^ characters are not legal. While the filesystem wont complain about this character, visual studio will.
-	AllIllegalCharacters += TEXT("^");					
-
-#if PLATFORM_MAC
-	// : characters are illegal on Mac OSX (but we need to allow them on Windows!)
-	AllIllegalCharacters += TEXT(":");
-#endif
-
-	for ( int32 CharIdx = 0; CharIdx < AllIllegalCharacters.Len() ; ++CharIdx )
-	{
-		const FString& Char = AllIllegalCharacters.Mid( CharIdx, 1 );
-
-		if ( ProjectFilePath.Contains( Char ) )
+		const FString& Char = TestName.Mid( CharIdx, 1 );
+		if ( Char == TEXT("_") )
 		{
-			if ( !OutIllegalCharacters.Contains( Char ) )
+			const ITargetPlatform* Platform = GetTargetPlatformManager()->FindTargetPlatform(TEXT("XboxOne"));
+			if (Platform)
 			{
-				OutIllegalCharacters += Char;
+				FString NotInstalledDocLink;
+				if (Platform->IsSdkInstalled(true, NotInstalledDocLink))
+				{
+					bContainsIllegalCharacters = true;
+				}
 			}
-
-			bContainsIllegalCharacters = true;
 		}
 	}
 
-	return !bContainsIllegalCharacters;
+	return bContainsIllegalCharacters;
 }
 
 bool GameProjectUtils::ProjectFileExists(const FString& ProjectFile)
@@ -1435,6 +1450,234 @@ bool GameProjectUtils::IsStarterContentAvailableForNewProjects()
 	GetStarterContentFiles(StarterContentFiles);
 
 	return (StarterContentFiles.Num() > 0);
+}
+
+FString GameProjectUtils::GetSourceRootPath(const bool bIncludeModuleName)
+{
+	FString SourceDir = FPaths::GameSourceDir();
+
+	if(bIncludeModuleName)
+	{
+		// Assuming the game name is the same as the primary game module name
+		const FString ModuleName = FApp::GetGameName();
+		SourceDir /= ModuleName;
+	}
+
+	SourceDir /= "";
+
+	return FPaths::ConvertRelativePathToFull(SourceDir);
+}
+
+bool GameProjectUtils::IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, FText* const OutFailReason)
+{
+	FString RootPath = GetSourceRootPath(bIncludeModuleName);
+
+	// Only allow partial module name matches if we already have code; the first class added to a project *must* be for the game module
+	const bool bHasCodeFiles = GameProjectUtils::ProjectHasCodeFiles();
+	if(bIncludeModuleName && bHasCodeFiles)
+	{
+		// If we're including the module name, then we want to allow variations of it, eg) MyModule, MyModuleEditor, MyModuleClient
+		// Those variations are valid, so we trim the last / from the path so that the StartsWith check below allows these variations
+		RootPath = RootPath.LeftChop(1); // Trim trailing /
+	}
+
+	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
+
+	// Validate the path contains no invalid characters
+	if(!FPaths::ValidatePath(AbsoluteInPath, OutFailReason))
+	{
+		return false;
+	}
+
+	if(!AbsoluteInPath.StartsWith(RootPath))
+	{
+		if(OutFailReason)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("RootSourcePath"), FText::FromString(GetSourceRootPath(bIncludeModuleName)));
+			const FText FormatString = (bIncludeModuleName)
+				? LOCTEXT("SourcePathInvalidModuleRoot", "All source code must exist within a valid module folder in the projects source path, e.g. {RootSourcePath}")
+				: LOCTEXT("SourcePathInvalidRoot", "All source code must exist within the projects source path: {RootSourcePath}");
+			*OutFailReason = FText::Format( FormatString, Args );
+		}
+		return false;
+	}
+
+	return true;
+}
+
+bool GameProjectUtils::CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason)
+{
+	const FString AbsoluteInPath = FPaths::ConvertRelativePathToFull(InPath) / ""; // Ensure trailing /
+	OutHeaderPath = AbsoluteInPath;
+	OutSourcePath = AbsoluteInPath;
+	OutModuleName.Empty();
+
+	if(!IsValidSourcePath(InPath, true/*bIncludeModuleName*/, OutFailReason))
+	{
+		return false;
+	}
+
+	// We've validated that this path includes a partial match for our module (eg, MyModule, MyModuleEditor, MyModuleClient)
+	// so extract the actual name of the module from the path so that we can generate the internal folder names correctly
+	const FString BaseRootPath = GetSourceRootPath(false/*bIncludeModuleName*/);
+	const int32 ModuleNameStartIndex = BaseRootPath.Len();
+	const int32 ModuleNameEndIndex = AbsoluteInPath.Find(TEXT("/"), ESearchCase::IgnoreCase, ESearchDir::FromStart, ModuleNameStartIndex);
+	check(ModuleNameEndIndex != INDEX_NONE); // this should never happen since AbsoluteInPath ends in a /, and we verified it started with BaseRootPath in IsValidSourcePath
+	OutModuleName = AbsoluteInPath.Mid(ModuleNameStartIndex, ModuleNameEndIndex - ModuleNameStartIndex);
+
+	const FString RootPath = BaseRootPath / OutModuleName / ""; // Ensure trailing /
+	const FString ClassesPath = RootPath / "Classes" / "";		// Ensure trailing /
+	const FString PublicPath = RootPath / "Public" / "";		// Ensure trailing /
+	const FString PrivatePath = RootPath / "Private" / "";		// Ensure trailing /
+
+	// The root path must exist; we will allow the creation of sub-folders, but not the module root!
+	// We ignore this check if the project doesn't already have source code in it, as the module folder won't yet have been created
+	const bool bHasCodeFiles = GameProjectUtils::ProjectHasCodeFiles();
+	if(!IFileManager::Get().DirectoryExists(*RootPath) && bHasCodeFiles)
+	{
+		if(OutFailReason)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ModuleSourcePath"), FText::FromString(RootPath));
+			*OutFailReason = FText::Format(LOCTEXT("SourcePathMissingModuleRoot", "The specified module path does not exist on disk: {ModuleSourcePath}"), Args);
+		}
+		return false;
+	}
+
+	// If either the Public or Private path exists, and we're in the root, force the header/source file to use one of these folders
+	const bool bPublicPathExists = IFileManager::Get().DirectoryExists(*PublicPath);
+	const bool bPrivatePathExists = IFileManager::Get().DirectoryExists(*PrivatePath);
+	const bool bForceInternalPath = AbsoluteInPath == RootPath && (bPublicPathExists || bPrivatePathExists);
+
+	// The rules for placing header files are as follows:
+	// 1) If InPath is the source root, check to see if there is a Public folder within it, and if so, place the header there
+	// 2) Otherwise, just place the header at InPath (the default set above)
+	if(AbsoluteInPath == RootPath)
+	{
+		OutHeaderPath = (bPublicPathExists || bForceInternalPath) ? PublicPath : AbsoluteInPath;
+	}
+
+	// The rules for placing source files are as follows:
+	// 1) If InPath is the source root, check to see if there is a Private folder within it, and if so, place the source file there
+	// 2) If InPath is contained within the Public or Classes folder of this module, place it in the equivalent path in the Private folder
+	// 3) Otherwise, just place the source file at InPath (the default set above)
+	if(AbsoluteInPath == RootPath)
+	{
+		OutSourcePath = (bPrivatePathExists || bForceInternalPath) ? PrivatePath : AbsoluteInPath;
+	}
+	else if(AbsoluteInPath.StartsWith(ClassesPath))
+	{
+		OutSourcePath = AbsoluteInPath.Replace(*ClassesPath, *PrivatePath);
+	}
+	else if(AbsoluteInPath.StartsWith(PublicPath))
+	{
+		OutSourcePath = AbsoluteInPath.Replace(*PublicPath, *PrivatePath);
+	}
+
+	return !OutHeaderPath.IsEmpty() && !OutSourcePath.IsEmpty();
+}
+
+bool GameProjectUtils::DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile )
+{
+	IPlatformFile &PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	// Get the directory part of the project name
+	FString OldDirectoryName = FPaths::GetPath(InProjectFile);
+	FPaths::NormalizeDirectoryName(OldDirectoryName);
+	FString NewDirectoryName = OldDirectoryName;
+
+	// Strip off any previous version number from the project name
+	for(int32 LastSpace; NewDirectoryName.FindLastChar(' ', LastSpace); )
+	{
+		const TCHAR *End = *NewDirectoryName + LastSpace + 1;
+		if(End[0] != '4' || End[1] != '.' || !FChar::IsDigit(End[2]))
+		{
+			break;
+		}
+
+		End += 3;
+
+		while(FChar::IsDigit(*End))
+		{
+			End++;
+		}
+
+		if(*End != 0)
+		{
+			break;
+		}
+
+		NewDirectoryName = NewDirectoryName.Left(LastSpace).TrimTrailing();
+	}
+
+	// Append the new version number
+	NewDirectoryName += FString::Printf(TEXT(" %s"), *GEngineVersion.ToString(EVersionComponent::Minor));
+
+	// Find a directory name that doesn't exist
+	FString BaseDirectoryName = NewDirectoryName;
+	for(int32 Idx = 2; IFileManager::Get().DirectoryExists(*NewDirectoryName); Idx++)
+	{
+		NewDirectoryName = FString::Printf(TEXT("%s - %d"), *BaseDirectoryName, Idx);
+	}
+
+	// Find all the root directory names
+	TArray<FString> RootDirectoryNames;
+	IFileManager::Get().FindFiles(RootDirectoryNames, *(OldDirectoryName / TEXT("*")), false, true);
+
+	// Find all the source directories
+	TArray<FString> SourceDirectories;
+	SourceDirectories.Add(OldDirectoryName);
+	for(int32 Idx = 0; Idx < RootDirectoryNames.Num(); Idx++)
+	{
+		if(RootDirectoryNames[Idx] != TEXT("Binaries") && RootDirectoryNames[Idx] != TEXT("Intermediate") && RootDirectoryNames[Idx] != TEXT("Saved"))
+		{
+			FString SourceDirectory = OldDirectoryName / RootDirectoryNames[Idx];
+			SourceDirectories.Add(SourceDirectory);
+			IFileManager::Get().FindFilesRecursive(SourceDirectories, *SourceDirectory, TEXT("*"), false, true, false);
+		}
+	}
+
+	// Find all the source files
+	TArray<FString> SourceFiles;
+	for(int32 Idx = 0; Idx < SourceDirectories.Num(); Idx++)
+	{
+		TArray<FString> SourceNames;
+		IFileManager::Get().FindFiles(SourceNames, *(SourceDirectories[Idx] / TEXT("*")), true, false);
+
+		for(int32 NameIdx = 0; NameIdx < SourceNames.Num(); NameIdx++)
+		{
+			SourceFiles.Add(SourceDirectories[Idx] / SourceNames[NameIdx]);
+		}
+	}
+
+	// Copy everything
+	bool bCopySucceeded = true;
+	GWarn->BeginSlowTask(LOCTEXT("CreatingCopyOfProject", "Creating copy of project..."), true);
+	for(int32 Idx = 0; Idx < SourceDirectories.Num() && bCopySucceeded; Idx++)
+	{
+		FString TargetDirectory = NewDirectoryName + SourceDirectories[Idx].Mid(OldDirectoryName.Len());
+		bCopySucceeded = PlatformFile.CreateDirectory(*TargetDirectory);
+		GWarn->UpdateProgress(Idx + 1, SourceDirectories.Num() + SourceFiles.Num());
+	}
+	for(int32 Idx = 0; Idx < SourceFiles.Num() && bCopySucceeded; Idx++)
+	{
+		FString TargetFile = NewDirectoryName + SourceFiles[Idx].Mid(OldDirectoryName.Len());
+		bCopySucceeded = PlatformFile.CopyFile(*TargetFile, *SourceFiles[Idx]);
+		GWarn->UpdateProgress(SourceDirectories.Num() + Idx + 1, SourceDirectories.Num() + SourceFiles.Num());
+	}
+	GWarn->EndSlowTask();
+
+	// Wipe the directory if we couldn't update
+	if(!bCopySucceeded)
+	{
+		PlatformFile.DeleteDirectoryRecursively(*NewDirectoryName);
+		return false;
+	}
+
+	// Otherwise fixup the output project filename
+	OutNewProjectFile = NewDirectoryName / FPaths::GetCleanFilename(InProjectFile);
+	return true;
 }
 
 bool GameProjectUtils::ReadTemplateFile(const FString& TemplateFileName, FString& OutFileContents, FText& OutFailReason)
@@ -1921,7 +2164,7 @@ bool GameProjectUtils::ProjectHasCodeFiles()
 	return GameProjectUtils::GetProjectCodeFileCount() > 0;
 }
 
-bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
+bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason)
 {
 	if ( !ParentClass )
 	{
@@ -1940,19 +2183,27 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		return false;
 	}
 
+	FString ModuleName;
+	FString NewHeaderPath;
+	FString NewCppPath;
+	if ( !CalculateSourcePaths(NewClassPath, ModuleName, NewHeaderPath, NewCppPath, &OutFailReason) )
+	{
+		return false;
+	}
+
 	const bool bAllowNewSlowTask = true;
 	FStatusMessageContext SlowTaskMessage( LOCTEXT( "AddingCodeToProject", "Adding code to project..." ), bAllowNewSlowTask );
-
-	const FString SourceDir = FPaths::GameSourceDir().LeftChop(1); // Trim the trailing /
-
-	// Assuming the game name is the same as the primary game module name
-	const FString ModuleName = FApp::GetGameName();
-	const FString ModulePath = SourceDir / ModuleName;
 
 	// If the project does not already contain code, add the primary game module
 	TArray<FString> CreatedFiles;
 	if ( !ProjectHasCodeFiles() )
 	{
+		// We always add the basic source code to the root directory, not the potential sub-directory provided by NewClassPath
+		const FString SourceDir = FPaths::GameSourceDir().LeftChop(1); // Trim the trailing /
+
+		// Assuming the game name is the same as the primary game module name
+		const FString ModuleName = FApp::GetGameName();
+
 		TArray<FString> StartupModuleNames;
 		if ( GenerateBasicSourceCode(SourceDir, ModuleName, StartupModuleNames, CreatedFiles, OutFailReason) )
 		{
@@ -1967,7 +2218,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 
 	// Class Header File
 	FString SyncLocation;
-	const FString NewHeaderFilename = ModulePath / NewClassName + TEXT(".h");
+	const FString NewHeaderFilename = NewHeaderPath / NewClassName + TEXT(".h");
 	{
 		if ( GenerateClassHeaderFile(NewHeaderFilename, ParentClass, TArray<FString>(), TEXT(""), TEXT(""), SyncLocation, OutFailReason) )
 		{
@@ -1975,22 +2226,22 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 		}
 		else
 		{
-			DeleteCreatedFiles(SourceDir, CreatedFiles);
+			DeleteCreatedFiles(NewHeaderPath, CreatedFiles);
 			return false;
 		}
 	}
 
 	// Class CPP file
-	const FString NewCPPFilename = ModulePath / NewClassName + TEXT(".cpp");
+	const FString NewCppFilename = NewCppPath / NewClassName + TEXT(".cpp");
 	{
 		const FString PrefixedClassName = FString(ParentClass->GetPrefixCPP()) + NewClassName;
-		if ( GenerateClassCPPFile(NewCPPFilename, ModuleName, PrefixedClassName, TArray<FString>(), TArray<FString>(), TEXT(""), OutFailReason) )
+		if ( GenerateClassCPPFile(NewCppFilename, ModuleName, PrefixedClassName, TArray<FString>(), TArray<FString>(), TEXT(""), OutFailReason) )
 		{
-			CreatedFiles.Add(NewCPPFilename);
+			CreatedFiles.Add(NewCppFilename);
 		}
 		else
 		{
-			DeleteCreatedFiles(SourceDir, CreatedFiles);
+			DeleteCreatedFiles(NewCppPath, CreatedFiles);
 			return false;
 		}
 	}
@@ -2016,7 +2267,7 @@ bool GameProjectUtils::AddCodeToProject_Internal(const FString& NewClassName, co
 	}
 
 	OutHeaderFilePath = NewHeaderFilename;
-	OutCppFilePath = NewCPPFilename;
+	OutCppFilePath = NewCppFilename;
 
 	return true;
 }

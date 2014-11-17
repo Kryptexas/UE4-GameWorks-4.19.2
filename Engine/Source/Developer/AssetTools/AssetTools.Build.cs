@@ -16,13 +16,14 @@ public class AssetTools : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl",
 				"TextureEditor",
 				"UnrealEd",
 				"Kismet"
 			}
-			);
+		);
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
@@ -41,7 +42,7 @@ public class AssetTools : ModuleRules
 				"SoundClassEditor",
 				"SourceControl"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -61,7 +62,6 @@ public class AssetTools : ModuleRules
 				"SoundCueEditor",
 				"SoundClassEditor"
 			}
-			);
-
+		);
 	}
 }

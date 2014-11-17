@@ -2,6 +2,7 @@
 
 
 #pragma once
+#include "AnimGraphNode_Base.h"
 #include "AnimGraphNode_RotateRootBone.generated.h"
 
 UCLASS(MinimalAPI)

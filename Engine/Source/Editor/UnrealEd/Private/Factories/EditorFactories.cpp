@@ -7,15 +7,11 @@
 #include "UnrealEd.h"
 #include "Factories.h"
 #include "SoundDefinitions.h"
-#include "EngineParticleClasses.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/KismetEditorUtilities.h"
-#include "EngineInterpolationClasses.h"
-#include "EngineFoliageClasses.h"
 #include "BmpImageSupport.h"
 #include "ScopedTransaction.h"
 #include "BusyCursor.h"
-#include "EngineMaterialClasses.h"
 #include "BSPOps.h"
 #include "LevelUtils.h"
 #include "ObjectTools.h"
@@ -33,10 +29,10 @@
 #include "ContentBrowserModule.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
-#include "EngineLevelScriptClasses.h"		// So we can filter out ALevelScriptActors
 #include "SClassPickerDialog.h"
 #include "MessageLog.h"
 #include "EnumEditorUtils.h"
+#include "StructureEditorUtils.h"
 
 #if PLATFORM_WINDOWS
 // Needed for DDS support.
@@ -946,9 +942,10 @@ UObject* UPackageFactory::FactoryCreateText( UClass* Class, UObject* InParent, F
 
 	UPackage* TopLevelPackage = NULL;
 	UPackage* RootMapPackage = NULL;
-	if (GWorld)
+	UWorld* World = GWorld;
+	if (World)
 	{
-		RootMapPackage = GWorld->GetOutermost();
+		RootMapPackage = World->GetOutermost();
 	}
 
 	if (RootMapPackage)
@@ -4740,10 +4737,10 @@ class FHDRExportHelper
 			int32 Exponent;
 			const float Scale	 = frexp(Primary, &Exponent) / Primary * 255.f;
 
-			ReturnColor.R = FMath::Clamp(FMath::Trunc((R* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.G = FMath::Clamp(FMath::Trunc((G* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.B = FMath::Clamp(FMath::Trunc((B* Scale) + Rand.GetFraction()), 0, 255);
-			ReturnColor.A = FMath::Clamp(FMath::Trunc(Exponent), -128, 127) + 128;
+			ReturnColor.R = FMath::Clamp(FMath::TruncToInt((R* Scale) + Rand.GetFraction()), 0, 255);
+			ReturnColor.G = FMath::Clamp(FMath::TruncToInt((G* Scale) + Rand.GetFraction()), 0, 255);
+			ReturnColor.B = FMath::Clamp(FMath::TruncToInt((B* Scale) + Rand.GetFraction()), 0, 255);
+			ReturnColor.A = FMath::Clamp(FMath::TruncToInt(Exponent), -128, 127) + 128;
 		}
 
 		return ReturnColor;
@@ -5651,9 +5648,9 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	{
 		const FString Filename = FReimportManager::ResolveImportFilename(ImportData->SourceFilePath, Mesh);
 		const FString FileExtension = FPaths::GetExtension(Filename);
-		const bool bIsFBX = FCString::Stricmp(*FileExtension, TEXT("FBX")) == 0;
+		const bool bIsValidFile = FileExtension.Equals( TEXT("fbx"), ESearchCase::IgnoreCase ) || FileExtension.Equals( "obj",  ESearchCase::IgnoreCase );
 
-		if ( !bIsFBX )
+		if ( !bIsValidFile )
 		{
 			return EReimportResult::Failed;
 		}
@@ -5676,7 +5673,7 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 
 		CurrentFilename = Filename;
 
-		if ( FFbxImporter->ImportFromFile( *Filename ) )
+		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
 		{
 			if (FFbxImporter->ReimportStaticMesh(Mesh, ImportData))
 			{
@@ -5830,7 +5827,7 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 		}
 		CurrentFilename = Filename;
 
-		if ( FFbxImporter->ImportFromFile( *Filename ) )
+		if ( FFbxImporter->ImportFromFile( *Filename, FPaths::GetExtension( Filename ) ) )
 		{
 			if ( FFbxImporter->ReimportSkeletalMesh(SkeletalMesh, ImportData) )
 			{
@@ -6112,7 +6109,7 @@ UObject* UBlueprintGeneratedClassFactory::FactoryCreateNew(UClass* Class, UObjec
 	}
 	else
 	{
-		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_Normal, UBlueprint::StaticClass());
+		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass());
 	}
 }
 
@@ -6201,7 +6198,7 @@ UObject* UBlueprintFactory::FactoryCreateNew(UClass* Class, UObject* InParent, F
 	}
 	else
 	{
-		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_Normal, UBlueprint::StaticClass(), CallingContext);
+		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), CallingContext);
 	}
 }
 
@@ -6254,10 +6251,69 @@ UObject* UBlueprintMacroFactory::FactoryCreateNew(UClass* Class, UObject* InPare
 	}
 	else
 	{
-		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_MacroLibrary, UBlueprint::StaticClass(), CallingContext);
+		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_MacroLibrary, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), CallingContext);
 	}
 }
 
+/*------------------------------------------------------------------------------
+BlueprintFunctionLibraryFactory implementation.
+------------------------------------------------------------------------------*/
+UBlueprintFunctionLibraryFactory::UBlueprintFunctionLibraryFactory(const class FPostConstructInitializeProperties& PCIP)
+: Super(PCIP)
+{
+	struct FCanCreateNewHelper
+	{
+		bool bCanCreateNew;
+		FCanCreateNewHelper() : bCanCreateNew(false)
+		{
+			GConfig->GetBool(TEXT("CustomBlueprintFunctionLibrary"), TEXT("bCanCreateNew"), bCanCreateNew, GEditorIni);
+		}
+	};
+	static const FCanCreateNewHelper Helper;
+	bCreateNew = Helper.bCanCreateNew;
+	bEditAfterNew = true;
+	SupportedClass = UBlueprint::StaticClass();
+	ParentClass = UBlueprintFunctionLibrary::StaticClass();
+}
+
+FText UBlueprintFunctionLibraryFactory::GetDisplayName() const
+{
+	return LOCTEXT("BlueprintFunctionLibraryFactoryDescription", "Blueprint Function Library");
+}
+
+FName UBlueprintFunctionLibraryFactory::GetNewAssetThumbnailOverride() const
+{
+	return TEXT("ClassThumbnail.BlueprintFunctionLibrary");
+}
+
+uint32 UBlueprintFunctionLibraryFactory::GetMenuCategories() const
+{
+	// Force this factory into the misc category, since it does not belong in the top menu
+	return EAssetTypeCategories::Misc;
+}
+
+UObject* UBlueprintFunctionLibraryFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn, FName CallingContext)
+{
+	// Make sure we are trying to factory a blueprint, then create and init one
+	check(Class->IsChildOf(UBlueprint::StaticClass()));
+
+	if (ParentClass != UBlueprintFunctionLibrary::StaticClass())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ClassName"), (ParentClass != NULL) ? FText::FromString(ParentClass->GetName()) : LOCTEXT("Null", "(null)"));
+		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("CannotCreateBlueprintFromClass", "Cannot create a blueprint based on the class '{0}'."), Args));
+		return NULL;
+	}
+	else
+	{
+		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_FunctionLibrary, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), CallingContext);
+	}
+}
+
+bool UBlueprintFunctionLibraryFactory::ConfigureProperties()
+{
+	return true;
+}
 
 /*------------------------------------------------------------------------------
 	UBlueprintInterfaceFactory implementation.
@@ -6304,7 +6360,7 @@ UObject* UBlueprintInterfaceFactory::FactoryCreateNew(UClass* Class, UObject* In
 	}
 	else
 	{
-		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_Interface, UBlueprint::StaticClass(), CallingContext);
+		return FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BPTYPE_Interface, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), CallingContext);
 	}
 }
 
@@ -6995,6 +7051,23 @@ UObject* UEnumFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName 
 	}
 
 	return FEnumEditorUtils::CreateUserDefinedEnum(InParent, Name, Flags);
+}
+
+/*------------------------------------------------------------------------------
+	UStructureFactory implementation.
+------------------------------------------------------------------------------*/
+UStructureFactory::UStructureFactory(const class FPostConstructInitializeProperties& PCIP)
+	: Super(PCIP)
+{
+	SupportedClass = UUserDefinedStruct::StaticClass();
+	bCreateNew = FStructureEditorUtils::UserDefinedStructEnabled();
+	bEditAfterNew = true;
+}
+
+UObject* UStructureFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	ensure(UUserDefinedStruct::StaticClass() == Class);
+	return FStructureEditorUtils::CreateUserDefinedStruct(InParent, Name, Flags);
 }
 
 /*-----------------------------------------------------------------------------

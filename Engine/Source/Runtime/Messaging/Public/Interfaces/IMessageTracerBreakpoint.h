@@ -35,7 +35,7 @@ public:
 	/**
 	 * Checks whether the tracer should break on the given message.
 	 *
-	 * @param Context - The message to break on.
+	 * @param Context The message to break on.
 	 *
 	 * @return true if the tracer should break, false otherwise.
 	 */

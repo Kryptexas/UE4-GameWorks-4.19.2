@@ -115,7 +115,7 @@ bool FVoiceEngineImpl::Init(int32 MaxLocalTalkers, int32 MaxRemoteTalkers)
 {
 	bool bSuccess = false;
 
-	if (!IsRunningDedicatedServer())
+	if (!OnlineSubsystem->IsDedicated())
 	{
 		bool bHasVoiceEnabled = false;
 		if (GConfig->GetBool(TEXT("OnlineSubsystem"),TEXT("bHasVoiceEnabled"), bHasVoiceEnabled, GEngineIni) && bHasVoiceEnabled)
@@ -365,7 +365,7 @@ uint32 FVoiceEngineImpl::SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerI
 		QueuedData->AudioComponent = CreateVoiceAudioComponent(VOICE_SAMPLE_RATE);
 		if (QueuedData->AudioComponent)
 		{
-			QueuedData->AudioComponent->OnAudioFinishedNative.Add(FOnAudioFinishedNative::FDelegate::CreateRaw(this, &FVoiceEngineImpl::OnAudioFinished));
+			QueuedData->AudioComponent->OnAudioFinishedNative.AddRaw(this, &FVoiceEngineImpl::OnAudioFinished);
 			QueuedData->AudioComponent->Play();
 		}
 	}

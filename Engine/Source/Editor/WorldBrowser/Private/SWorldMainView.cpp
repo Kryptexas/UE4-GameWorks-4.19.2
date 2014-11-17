@@ -57,7 +57,8 @@ void SWorldMainView::Construct( const FArguments& InArgs )
 		.AutoHeight()
 		[
 			SAssignNew(MainMenuHolder, SBorder)
-			.BorderImage(FEditorStyle::GetBrush("NoBrush"))
+			.Padding(0)
+			.BorderImage(FEditorStyle::GetBrush(TEXT("NoBrush")))
 		]
 
 		// Create parent widget for all world browser views
@@ -65,8 +66,8 @@ void SWorldMainView::Construct( const FArguments& InArgs )
 		.FillHeight(1.0f)
 		[
 			SAssignNew(ContentParent, SBorder)
-			.Padding(5)
-			.BorderImage(FEditorStyle::GetBrush("NoBrush"))
+			.Padding(0)
+			.BorderImage(FEditorStyle::GetBrush(TEXT("NoBrush")))
 		]
 	];
 	
@@ -281,7 +282,6 @@ TSharedRef<SWidget> SWorldMainView::ConstructCenterPane()
 {
 	return 	
 		SNew(SVerticalBox)
-		.Visibility(this, &SWorldMainView::GetGridViewVisibility)
 
 		// Layers list
 		+SVerticalBox::Slot()
@@ -321,15 +321,12 @@ TSharedRef<SWidget> SWorldMainView::ConstructCenterPane()
 						+SHorizontalBox::Slot()
 						.AutoWidth()
 						[
-							SNew(SImage)
-							.Image(FEditorStyle::GetBrush( "WorldBrowser.WorldViewScale" ))
+							SNullWidget::NullWidget
 						]
 						+SHorizontalBox::Slot()
 						.Padding(5,0,0,0)
 						[
-							SNew(STextBlock)
-							.TextStyle( FEditorStyle::Get(), "WorldBrowser.StatusBarText" )
-							.Text(this, &SWorldMainView::GetZoomText)
+							SNullWidget::NullWidget
 						]
 							
 						// World origin position
@@ -446,13 +443,40 @@ TSharedRef<SWidget> SWorldMainView::CreateContentViews()
 {
 	TSharedPtr<SSplitter> ViewSplitter;
 	SAssignNew(ViewSplitter, SSplitter);
-	
-	// Hierarchy view
+
+	// Left side
 	ViewSplitter->AddSlot()
 	.Value(0.3f)
 	[
-		SNew(SWorldLevelsTreeView)
-		.InWorldModel(WorldModel)
+		SNew(SSplitter)
+		.Orientation(Orient_Vertical)
+
+		// Hierarchy view
+		+SSplitter::Slot()
+		.Value(0.7f)
+		[
+			SNew(SBorder)
+			.Padding(FMargin(0,3,0,0))
+			.BorderImage(FEditorStyle::GetBrush(TEXT("ToolPanel.GroupBorder")))
+			[
+				SNew(SWorldLevelsTreeView)
+				.InWorldModel(WorldModel)
+			]
+		]
+			
+		// Details view
+		+SSplitter::Slot()
+		.Value(0.3f)
+		[
+			SNew(SBorder)
+			.Padding(FMargin(0,0,0,0))
+			.BorderImage(FEditorStyle::GetBrush(TEXT("ToolPanel.GroupBorder")))
+			.Visibility(this, &SWorldMainView::GetDetailsViewVisibility)
+			[
+				SNew(SWorldDetailsView)
+				.InWorldModel(WorldModel)
+			]
+		]
 	];
 
 	// Grid view
@@ -461,19 +485,16 @@ TSharedRef<SWidget> SWorldMainView::CreateContentViews()
 		ViewSplitter->AddSlot()
 		.Value(0.7f)
 		[
-			ConstructCenterPane()
+			SNew(SBorder)
+			.Padding(FMargin(0,3,0,0))
+			.BorderImage(FEditorStyle::GetBrush(TEXT("ToolPanel.GroupBorder")))
+			.Visibility(this, &SWorldMainView::GetGridViewVisibility)
+			[
+				ConstructCenterPane()
+			]
 		];
 	}
-
-	// Details view
-	ViewSplitter->AddSlot()
-	.Value(0.2f)
-	[
-		SNew(SWorldDetailsView)
-		.Visibility(this, &SWorldMainView::GetDetailsViewVisibility)
-		.InWorldModel(WorldModel)
-	];
-
+	
 	return ViewSplitter.ToSharedRef();
 }
 
@@ -583,7 +604,7 @@ FString SWorldMainView::GetCurrentLevelText() const
 FString SWorldMainView::GetMouseLocationText() const
 {
 	FVector2D MouseLocation = LevelsGridView->GetMouseWorldLocation();
-	return FString::Printf(TEXT("%d, %d"), FMath::Round(MouseLocation.X), FMath::Round(MouseLocation.Y));
+	return FString::Printf(TEXT("%d, %d"), FMath::RoundToInt(MouseLocation.X), FMath::RoundToInt(MouseLocation.Y));
 }
 
 FString	SWorldMainView::GetMarqueeSelectionSizeText() const
@@ -591,7 +612,7 @@ FString	SWorldMainView::GetMarqueeSelectionSizeText() const
 	FVector2D MarqueeSize = LevelsGridView->GetMarqueeWorldSize();
 	if (MarqueeSize.Size() > 0)
 	{
-		return FString::Printf(TEXT("%d x %d"), FMath::Round(MarqueeSize.X), FMath::Round(MarqueeSize.Y));
+		return FString::Printf(TEXT("%d x %d"), FMath::RoundToInt(MarqueeSize.X), FMath::RoundToInt(MarqueeSize.Y));
 	}
 	else
 	{

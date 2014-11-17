@@ -136,6 +136,11 @@ static FString GetD3D11TextureFlagString(uint32 TextureFlags)
 		TextureFormatText += TEXT("D3D11_BIND_SHADER_RESOURCE ");
 	}
 
+	if (TextureFlags & D3D11_BIND_UNORDERED_ACCESS)
+	{
+		TextureFormatText += TEXT("D3D11_BIND_UNORDERED_ACCESS ");
+	}
+
 	return TextureFormatText;
 }
 
@@ -167,7 +172,10 @@ void VerifyD3D11Result(HRESULT D3DResult,const ANSICHAR* Code,const ANSICHAR* Fi
 	// this is to track down a rarely happening crash
 	if(D3DResult == E_OUTOFMEMORY)
 	{
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("D3D11RHI", "OutOfMemory", "Out of video memory trying to allocate a rendering resource."));
+		if (IsInGameThread())
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("D3D11RHI", "OutOfMemory", "Out of video memory trying to allocate a rendering resource."));
+		}
 #if STATS
 		GetRendererModule().DebugLogOnCrash();
 #endif
@@ -287,6 +295,7 @@ FD3D11DynamicBuffer::~FD3D11DynamicBuffer()
 void FD3D11DynamicBuffer::InitRHI()
 {
 	D3D11_BUFFER_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_BUFFER_DESC ) );
 	Desc.Usage = D3D11_USAGE_DYNAMIC;
 	Desc.BindFlags = BindFlags;
 	Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -327,6 +336,7 @@ void* FD3D11DynamicBuffer::Lock(uint32 Size)
 
 		TRefCountPtr<ID3D11Buffer> Buffer;
 		D3D11_BUFFER_DESC Desc;
+		ZeroMemory( &Desc, sizeof( D3D11_BUFFER_DESC ) );
 		Desc.Usage = D3D11_USAGE_DYNAMIC;
 		Desc.BindFlags = BindFlags;
 		Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -341,7 +351,7 @@ void* FD3D11DynamicBuffer::Lock(uint32 Size)
 
 	LockedBufferIndex = BufferIndex;
 	D3D11_MAPPED_SUBRESOURCE MappedSubresource;
-	D3DRHI->GetDeviceContext()->Map(Buffers[BufferIndex],0,D3D11_MAP_WRITE_DISCARD,0,&MappedSubresource);
+	VERIFYD3D11RESULT( D3DRHI->GetDeviceContext()->Map( Buffers[BufferIndex],0,D3D11_MAP_WRITE_DISCARD,0,&MappedSubresource ) );
 	return MappedSubresource.pData;
 }
 

@@ -5,7 +5,7 @@
 #pragma once
 #include "ChildConnection.generated.h"
 
-UCLASS(HeaderGroup=Network, MinimalAPI,transient,config=Engine)
+UCLASS(MinimalAPI,transient,config=Engine)
 class UChildConnection : public UNetConnection
 {
 	GENERATED_UCLASS_BODY()
@@ -33,9 +33,9 @@ class UChildConnection : public UNetConnection
 	{
 	}
 
-	virtual void InitOut() OVERRIDE
+	virtual void InitSendBuffer() OVERRIDE
 	{
-		Parent->InitOut();
+		Parent->InitSendBuffer();
 	}
 
 	virtual void AssertValid() OVERRIDE

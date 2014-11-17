@@ -43,18 +43,23 @@ namespace UnrealVS
 
 		public StartupProjectSelector()
 		{
+			_bIsSolutionOpened = UnrealVSPackage.Instance.DTE.Solution.IsOpen;
+
 			// Create the handlers for our commands
 			{
 				// StartupProjectCombo
 				var StartupProjectComboCommandId = new CommandID( GuidList.UnrealVSCmdSet, StartupProjectComboId );
-				StartupProjectComboCommand = new OleMenuCommand( StartupProjectComboHandler, StartupProjectComboCommandId );
-				StartupProjectComboCommand.BeforeQueryStatus += (sender, args) => { StartupProjectComboCommand.Enabled = _bIsSolutionOpened; };
+				var StartupProjectComboCommand = new OleMenuCommand(StartupProjectComboHandler, StartupProjectComboCommandId);
+				StartupProjectComboCommand.BeforeQueryStatus += (sender, args) => StartupProjectComboCommand.Enabled = _bIsSolutionOpened;
 				UnrealVSPackage.Instance.MenuCommandService.AddCommand( StartupProjectComboCommand );
 
 				// StartupProjectComboList
 				var StartupProjectComboListCommandId = new CommandID( GuidList.UnrealVSCmdSet, StartupProjectComboListId );
-				var StartupProjectComboListCommand = new OleMenuCommand( StartupProjectComboListHandler, StartupProjectComboListCommandId );
+				var StartupProjectComboListCommand = new OleMenuCommand(StartupProjectComboListHandler, StartupProjectComboListCommandId);
+				StartupProjectComboListCommand.BeforeQueryStatus += (sender, args) => StartupProjectComboListCommand.Enabled = _bIsSolutionOpened;
 				UnrealVSPackage.Instance.MenuCommandService.AddCommand( StartupProjectComboListCommand );
+
+				StartupProjectComboCommands = new[] { StartupProjectComboCommand, StartupProjectComboListCommand };
 			} 
 
 			// Register for events that we care about
@@ -64,6 +69,7 @@ namespace UnrealVS
 				{
 					Logging.WriteLine("Opened solution " + UnrealVSPackage.Instance.DTE.Solution.FullName);
 					_bIsSolutionOpened = true;
+					UpdateStartupProjectCombo();
 					UpdateStartupProjectList(Utils.GetAllProjectsFromDTE());
 				};
 			UnrealVSPackage.Instance.OnSolutionClosing +=
@@ -71,6 +77,7 @@ namespace UnrealVS
 				{
 					Logging.WriteLine("Closing solution");
 					_bIsSolutionOpened = false;
+					UpdateStartupProjectCombo();
 					_CachedStartupProjects.Clear();
 				};
 			UnrealVSPackage.Instance.OnProjectOpened +=
@@ -190,16 +197,9 @@ namespace UnrealVS
 		/// </summary>
 		private void UpdateStartupProjectCombo()
 		{
-			// Switch to this project!
-			IVsHierarchy ProjectHierarchy;
-			UnrealVSPackage.Instance.SolutionBuildManager.get_StartupProject( out ProjectHierarchy );
-			if( ProjectHierarchy != null )
+			foreach(var Command in StartupProjectComboCommands)
 			{
-				StartupProjectComboCommand.Enabled = true;
-			}
-			else
-			{
-				StartupProjectComboCommand.Enabled = false;
+				Command.Enabled = _bIsSolutionOpened;
 			}
 		}
 
@@ -275,8 +275,8 @@ namespace UnrealVS
 			Marshal.GetNativeVariantForObject(CachedStartupProjectNames, OleArgs.OutValue);
 		}
 
-		/// Combo control for our startup project selector
-		OleMenuCommand StartupProjectComboCommand;
+		/// Combo control and list commands for our startup project selector
+		readonly OleMenuCommand[] StartupProjectComboCommands;
 
 		/// Keep track of whether a solution is opened
 		bool _bIsSolutionOpened;

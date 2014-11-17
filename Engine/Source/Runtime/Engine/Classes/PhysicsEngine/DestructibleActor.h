@@ -8,7 +8,7 @@
 
 class UDestructibleComponent;
 
-UCLASS(MinimalAPI, hidecategories=(Input))
+UCLASS(MinimalAPI, hidecategories=(Input), showcategories=("Input|MouseInput", "Input|TouchInput"))
 class ADestructibleActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

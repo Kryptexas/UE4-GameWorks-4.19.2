@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
-#include "EngineKismetLibraryClasses.h"
-#include "EngineLevelScriptClasses.h"
 
 #include "CallFunctionHandler.h"
 
@@ -152,6 +150,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		// Parameter info to be stored, and assigned to all function call statements generated below
 		FBPTerminal* LHSTerm = NULL;
 		TArray<FBPTerminal*> RHSTerms;
+		UEdGraphPin* ThenExecPin = NULL;
 		UEdGraphNode* LatentTargetNode = NULL;
 		int32 LatentTargetParamIndex = INDEX_NONE;
 
@@ -224,7 +223,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 								if (PinMatch == LatentInfoPin)
 								{
 									// Record the (latent) output impulse from this node
-									UEdGraphPin* ThenExecPin = CompilerContext.GetSchema()->FindExecutionPin(*Node, EGPD_Output);
+									ThenExecPin = CompilerContext.GetSchema()->FindExecutionPin(*Node, EGPD_Output);
 
 									if( (ThenExecPin != NULL) && (ThenExecPin->LinkedTo.Num() > 0) )
 									{
@@ -331,8 +330,10 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					// Fixup ubergraph calls
 					if (pSrcEventNode != NULL)
 					{
+						UEdGraphPin* ExecOut = CompilerContext.GetSchema()->FindExecutionPin(**pSrcEventNode, EGPD_Output);
+
 						check(CompilerContext.UbergraphContext);
-						CompilerContext.UbergraphContext->GotoFixupRequestMap.Add(&Statement, *pSrcEventNode);
+						CompilerContext.UbergraphContext->GotoFixupRequestMap.Add(&Statement, ExecOut);
 						Statement.UbergraphCallIndex = 0;
 					}
 				}
@@ -343,7 +344,7 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 					{
 						check(LatentTargetParamIndex != INDEX_NONE);
 						Statement.UbergraphCallIndex = LatentTargetParamIndex;
-						Context.GotoFixupRequestMap.Add(&Statement, LatentTargetNode);
+						Context.GotoFixupRequestMap.Add(&Statement, ThenExecPin);
 					}
 				}
 
@@ -448,12 +449,14 @@ UClass* FKCHandler_CallFunction::GetTrueCallingClass(FKismetFunctionContext& Con
 {
 	if (SelfPin != NULL)
 	{
+		UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
+
 		// TODO: here FBlueprintCompiledStatement::GetScopeFromPinType should be called, but since FEdGraphPinType::PinSubCategory is not always initialized properly that function works wrong
 		// return Cast<UClass>(Context.GetScopeFromPinType(SelfPin->PinType, Context.NewClass));
 		FEdGraphPinType& Type = SelfPin->PinType;
-		if ((Type.PinCategory == CompilerContext.GetSchema()->PC_Object) || (Type.PinCategory == CompilerContext.GetSchema()->PC_Class))
+		if ((Type.PinCategory == K2Schema->PC_Object) || (Type.PinCategory == K2Schema->PC_Class) || (Type.PinCategory == K2Schema->PC_Interface))
 		{
-			if (!Type.PinSubCategory.IsEmpty() && (Type.PinSubCategory != CompilerContext.GetSchema()->PSC_Self))
+			if (!Type.PinSubCategory.IsEmpty() && (Type.PinSubCategory != K2Schema->PSC_Self))
 			{
 				return Cast<UClass>(Type.PinSubCategoryObject.Get());
 			}
@@ -516,13 +519,15 @@ void FKCHandler_CallFunction::RegisterNets(FKismetFunctionContext& Context, UEdG
 			UEdGraphPin* Pin = (*It);
 			const bool bIsConnected = (Pin->LinkedTo.Num() != 0);
 
+			UEdGraphSchema_K2 const* K2Schema = CompilerContext.GetSchema();
+
 			// if this pin could use a default (it doesn't have a connection or default of its own)
 			if (!bIsConnected && (Pin->DefaultObject == NULL))
 			{
 				if (DefaultToSelfParamNames.Contains(Pin->PinName))
 				{
 					ensure(Pin->PinType.PinSubCategoryObject != NULL);
-					ensure(Pin->PinType.PinCategory == CompilerContext.GetSchema()->PC_Object);
+					ensure((Pin->PinType.PinCategory == K2Schema->PC_Object) || (Pin->PinType.PinCategory == K2Schema->PC_Interface));
 
 					FBPTerminal* Term = Context.RegisterLiteral(Pin);
 					Term->Type.PinSubCategory = CompilerContext.GetSchema()->PN_Self;
@@ -640,6 +645,8 @@ void FKCHandler_CallFunction::Transform(FKismetFunctionContext& Context, UEdGrap
 
 			if ((NewInPin != NULL) && (NewOutPin != NULL))
 			{
+				CompilerContext.MessageLog.NotifyIntermediateObjectCreation(NewOutPin, OldOutPin);
+
 				while (OldOutPin->LinkedTo.Num() > 0)
 				{
 					UEdGraphPin* LinkedPin = OldOutPin->LinkedTo[0];

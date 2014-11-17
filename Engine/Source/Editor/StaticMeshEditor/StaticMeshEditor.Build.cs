@@ -15,7 +15,7 @@ public class StaticMeshEditor : ModuleRules
 				"MeshUtilities",				
                 "PropertyEditor"
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -24,6 +24,7 @@ public class StaticMeshEditor : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"ShaderCore",
 				"RenderCore",
@@ -34,7 +35,7 @@ public class StaticMeshEditor : ModuleRules
                 "PropertyEditor",
 				"MeshUtilities",
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -46,7 +47,7 @@ public class StaticMeshEditor : ModuleRules
 				"MeshUtilities",
 				"TargetPlatform",
 			}
-			);
+		);
 
 		SetupModulePhysXAPEXSupport(Target);
 	}

@@ -1447,7 +1447,8 @@ static void ComputeTangents(
 static void ComputeStreamingTextureFactors(
 	float* OutStreamingTextureFactors,
 	float* OutMaxStreamingTextureFactor,
-	const FRawMesh& Mesh
+	const FRawMesh& Mesh,
+	const FVector& BuildScale
 	)
 {
 	int32 NumTexCoords = ComputeNumTexCoords(Mesh, MAX_STATIC_TEXCOORDS);
@@ -1460,9 +1461,9 @@ static void ComputeStreamingTextureFactors(
 		int32 Wedge1 = FaceIndex * 3 + 1;
 		int32 Wedge2 = FaceIndex * 3 + 2;
 
-		const FVector& Pos0 = Mesh.GetWedgePosition(Wedge0);
-		const FVector& Pos1 = Mesh.GetWedgePosition(Wedge1);
-		const FVector& Pos2 = Mesh.GetWedgePosition(Wedge2);
+		const FVector& Pos0 = Mesh.GetWedgePosition(Wedge0) * BuildScale;
+		const FVector& Pos1 = Mesh.GetWedgePosition(Wedge1) * BuildScale;
+		const FVector& Pos2 = Mesh.GetWedgePosition(Wedge2) * BuildScale;
 		float	L1	= (Pos0 - Pos1).Size(),
 				L2	= (Pos0 - Pos2).Size();
 
@@ -1497,7 +1498,7 @@ static void ComputeStreamingTextureFactors(
 			// Disregard upper 75% of texel ratios.
 			// This is to ignore backfacing surfaces or other non-visible surfaces that tend to map a small number of texels to a large surface.
 			TexelRatios[UVIndex].Sort( TGreater<float>() );
-			float TexelRatio = TexelRatios[UVIndex][ FMath::Trunc(TexelRatios[UVIndex].Num() * 0.75f) ];
+			float TexelRatio = TexelRatios[UVIndex][ FMath::TruncToInt(TexelRatios[UVIndex].Num() * 0.75f) ];
 			OutStreamingTextureFactors[UVIndex] = TexelRatio;
 		}
 	}
@@ -2035,7 +2036,8 @@ bool FMeshUtilities::BuildStaticMesh(
 			ComputeStreamingTextureFactors(
 				OutRenderData.StreamingTextureFactors,
 				&OutRenderData.MaxStreamingTextureFactor,
-				RawMesh
+				RawMesh,
+				LODBuildSettings[LODIndex].BuildScale3D
 				);
 		}
 
@@ -2898,7 +2900,7 @@ public:
 		SortedLightmaps.Sort([](TPair<int32, uint32> L, TPair<int32, uint32> R) { return R.Value < L.Value; });
 		
 		// Try to pack, increasing atlas resolution with each step
-		uint32 PackedSize = FMath::RoundUpToPowerOfTwo(FMath::Round(FMath::Sqrt(TotalArea)));
+		uint32 PackedSize = FMath::RoundUpToPowerOfTwo(FMath::RoundToInt(FMath::Sqrt(TotalArea)));
 		for (int32 i = 0; i < 10; ++i) // 2 iterations should be enough >.<
 		{
 			PackedLightmapAtlas = new FLightmapAtlas(PackedSize);

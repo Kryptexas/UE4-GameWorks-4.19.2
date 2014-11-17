@@ -284,6 +284,20 @@ void FPhATSharedData::RefreshPhysicsAssetChange(const UPhysicsAsset * InPhysAsse
 			}
 		}
 
+		for (FObjectIterator Iter(UWheeledVehicleMovementComponent::StaticClass()); Iter; ++Iter)
+		{
+			UWheeledVehicleMovementComponent * WheeledVehicleMovementComponent = Cast<UWheeledVehicleMovementComponent>(*Iter);
+			if (USkeletalMeshComponent * SkeltalMeshComponent = Cast<USkeletalMeshComponent>(WheeledVehicleMovementComponent->UpdatedComponent))
+			{
+				if (SkeltalMeshComponent->GetPhysicsAsset() == InPhysAsset)
+				{
+					//Need to recreate car data
+					WheeledVehicleMovementComponent->RecreatePhysicsState();
+				}
+
+			}
+		}
+
 		FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 		// since we recreate physicsstate, a lot of transient state data will be gone
 		// so have to turn simulation off again. 
@@ -694,7 +708,7 @@ bool FPhATSharedData::WeldSelectedBodies(bool bWeld /* = true */)
 
 		// .. and any constraints of the 'child' body..
 		TArray<int32>	Constraints;
-		FPhysicsAssetUtils::BodyFindConstraints(PhysicsAsset, ChildBodyIndex, Constraints);
+		PhysicsAsset->BodyFindConstraints(ChildBodyIndex, Constraints);
 
 		for (int32 i = 0; i <Constraints.Num(); ++i)
 		{
@@ -1043,7 +1057,7 @@ void FPhATSharedData::DeleteBody(int32 DelBodyIndex, bool bRefreshComponent)
 
 	// .. and any constraints to the body.
 	TArray<int32>	Constraints;
-	FPhysicsAssetUtils::BodyFindConstraints(PhysicsAsset, DelBodyIndex, Constraints);
+	PhysicsAsset->BodyFindConstraints(DelBodyIndex, Constraints);
 
 	for (int32 i = 0; i <Constraints.Num(); ++i)
 	{
@@ -1082,56 +1096,65 @@ void FPhATSharedData::DeleteCurrentPrim()
 
 	//We will first get all the bodysetups we're interested in. The number of duplicates each bodysetup has tells us how many geoms are being deleted
 	//We need to do this first because deleting will modify our selection
-	TArray<FSelection> BodySelections;
+	TMap<UBodySetup *, TArray<FSelection>> BodySelectionMap;
 	TArray<UBodySetup*> BodySetups;
 	for(int32 i=0; i<SelectedBodies.Num(); ++i)
 	{
 		UBodySetup* BodySetup = PhysicsAsset->BodySetup[SelectedBodies[i].Index];
-		BodySetups.Add(BodySetup);
-		BodySelections.Add(SelectedBodies[i]);
+		BodySelectionMap.FindOrAdd(BodySetup).Add(SelectedBodies[i]);
 	}
 
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "DeletePrimitive", "Delete Primitive") );
 
-	TArray<UBodySetup*> ToDelete;
-	for(int32 i=0; i<BodySetups.Num(); ++i)
+	for (TMap<UBodySetup*, TArray<FSelection> >::TConstIterator It(BodySelectionMap); It; ++It)
 	{
-		const FSelection & SelectedBody = BodySelections[i];
-		UBodySetup * BodySetup = BodySetups[i];
-		int32 BodyIndex = PhysicsAsset->FindBodyIndex(BodySetup->BoneName);
+		UBodySetup * BodySetup = It.Key();
+		const TArray<FSelection> & SelectedPrimitives = It.Value();
 
-		BodySetup->Modify();
+		int32 SphereDeletedCount = 0;
+		int32 BoxDeletedCount = 0;
+		int32 SphylDeletedCount = 0;
+		int32 ConvexDeletedCount = 0;
 
-		if (SelectedBody.PrimitiveType == KPT_Sphere)
+		for (int32 i = 0; i < SelectedPrimitives.Num(); ++i)
 		{
-			BodySetup->AggGeom.SphereElems.RemoveAt(SelectedBody.PrimitiveIndex);
-		}
-		else if (SelectedBody.PrimitiveType == KPT_Box)
-		{
-			BodySetup->AggGeom.BoxElems.RemoveAt(SelectedBody.PrimitiveIndex);
-		}
-		else if (SelectedBody.PrimitiveType == KPT_Sphyl)
-		{
-			BodySetup->AggGeom.SphylElems.RemoveAt(SelectedBody.PrimitiveIndex);
-		}
-		else if (SelectedBody.PrimitiveType == KPT_Convex)
-		{
-			BodySetup->AggGeom.ConvexElems.RemoveAt(SelectedBody.PrimitiveIndex);
-			// Need to invalidate GUID in this case as cooked data must be updated
-			BodySetup->InvalidatePhysicsData();
-		}
+			const FSelection & SelectedBody = SelectedPrimitives[i];
+			int32 BodyIndex = PhysicsAsset->FindBodyIndex(BodySetup->BoneName);
 
-		// If this bone has no more geometry - remove it totally.
-		if (BodySetup->AggGeom.GetElementCount() == 0)
-		{	
-			if(BodyIndex != INDEX_NONE)
+			BodySetup->Modify();
+
+			if (SelectedBody.PrimitiveType == KPT_Sphere)
 			{
-				DeleteBody(BodyIndex, false);
+				BodySetup->AggGeom.SphereElems.RemoveAt(SelectedBody.PrimitiveIndex - (SphereDeletedCount++));
+			}
+			else if (SelectedBody.PrimitiveType == KPT_Box)
+			{
+				BodySetup->AggGeom.BoxElems.RemoveAt(SelectedBody.PrimitiveIndex - (BoxDeletedCount++));
+			}
+			else if (SelectedBody.PrimitiveType == KPT_Sphyl)
+			{
+				BodySetup->AggGeom.SphylElems.RemoveAt(SelectedBody.PrimitiveIndex - (SphylDeletedCount++));
+			}
+			else if (SelectedBody.PrimitiveType == KPT_Convex)
+			{
+				BodySetup->AggGeom.ConvexElems.RemoveAt(SelectedBody.PrimitiveIndex - (ConvexDeletedCount++));
+				// Need to invalidate GUID in this case as cooked data must be updated
+				BodySetup->InvalidatePhysicsData();
 			}
 
-			if(CopiedBodySetup == BodySetup)
+			// If this bone has no more geometry - remove it totally.
+			if (BodySetup->AggGeom.GetElementCount() == 0)
 			{
-				CopiedBodySetup = NULL;
+				check(i == SelectedPrimitives.Num() - 1);	//we should really only delete on last prim - only reason this is even in for loop is because of API needing body index
+				if (BodyIndex != INDEX_NONE)
+				{
+					DeleteBody(BodyIndex, false);
+				}
+
+				if (CopiedBodySetup == BodySetup)
+				{
+					CopiedBodySetup = NULL;
+				}
 			}
 		}
 	}

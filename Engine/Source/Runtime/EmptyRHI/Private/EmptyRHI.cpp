@@ -114,16 +114,14 @@ FEmptyDynamicRHI::FEmptyDynamicRHI()
 	GIsRHIInitialized = true;
 }
 
-FEmptyDynamicRHI::~FEmptyDynamicRHI()
-{
-	check(IsInGameThread() && IsInRenderingThread());
-
-}
-
-
 void FEmptyDynamicRHI::Init()
 {
 
+}
+
+void FEmptyDynamicRHI::Shutdown()
+{
+	check(IsInGameThread() && IsInRenderingThread());
 }
 
 void FEmptyDynamicRHI::RHIBeginFrame()

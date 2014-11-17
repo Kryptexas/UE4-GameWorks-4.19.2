@@ -484,15 +484,6 @@ public:
 		return false;
 	}
 
-	/*
-	 *	Shows the intial game window in the proper position and size.
-	 *	It also changes the window proc from StartupWindowProc to
-	 *	UWindowsClient::StaticWndProc.
-	 *	This function doesn't have any effect if called a second time.
-	 */
-	static void ShowGameWindow( void* StaticWndProc )
-	{
-	}
 	/**
 	 * Handles Game Explorer, Firewall and FirstInstall commands, typically from the installer
 	 * @returns false if the game cannot continue.
@@ -661,6 +652,9 @@ public:
 	{
 		return false;
 	}
+
+	/** @return Get the name of the platform specific file manager (eg, Explorer on Windows, Finder on OS X) */
+	static FText GetFileManagerName();
 
 	/**
 	 * Sample the displayed pixel color from anywhere on the screen using the OS

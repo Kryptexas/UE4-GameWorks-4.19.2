@@ -15,7 +15,38 @@
 #include "KismetNodes/KismetNodeInfoContext.h"
 #include "GraphDiffControl.h"
 
+#include "AnimationGraphSchema.h"
+#include "AnimationStateMachineSchema.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogGraphPanel, Log, All);
+
+
+SGraphPanel::FGraphPinHandle::FGraphPinHandle(UEdGraphPin* InPin)
+{
+	if (auto* Node = InPin->GetOwningNode())
+	{
+		PinName = InPin->PinName;
+		NodeGuid = Node->NodeGuid;
+	}
+}
+
+TSharedPtr<SGraphPin> SGraphPanel::FGraphPinHandle::FindInGraphPanel(const SGraphPanel& InPanel) const
+{
+	// First off, find the node
+	TSharedPtr<SGraphNode> GraphNode = InPanel.GetNodeWidgetFromGuid(NodeGuid);
+	if (GraphNode.IsValid())
+	{
+		UEdGraphNode* Node = GraphNode->GetNodeObj();
+		UEdGraphPin* Pin = Node->FindPin(PinName);
+
+		if (Pin)
+		{
+			return GraphNode->FindWidgetForPin(Pin);
+		}
+	}
+
+	return TSharedPtr<SGraphPin>();
+}
 
 /**
  * Construct a widget
@@ -238,7 +269,7 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 					const bool bNodeIsDifferent = (!GraphObjToDiff || NodeMatch.Diff());
 
 					/* When dragging off a pin, we want to duck the alpha of some nodes */
-					TSharedPtr< SGraphPin > OnlyStartPin = (1 == PreviewConnectorFromPins.Num()) ? PreviewConnectorFromPins[0] : TSharedPtr< SGraphPin >();
+					TSharedPtr< SGraphPin > OnlyStartPin = (1 == PreviewConnectorFromPins.Num()) ? PreviewConnectorFromPins[0].FindInGraphPanel(*this) : TSharedPtr< SGraphPin >();
 					const bool bNodeIsNotUsableInCurrentContext = Schema->FadeNodeWhenDraggingOffPin(NodeObj, OnlyStartPin.IsValid() ? OnlyStartPin.Get()->GetPinObj() : NULL);
 					const FWidgetStyle& NodeStyleToUse = (bNodeIsDifferent && !bNodeIsNotUsableInCurrentContext)? InWidgetStyle : FadedStyle;
 
@@ -323,7 +354,17 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 				}
 			}
 		}
-		ConnectionDrawingPolicy->SetHoveredPins(CurrentHoveredPins, PreviewConnectorFromPins, TimeSinceMouseEnteredPin);
+
+		TArray<TSharedPtr<SGraphPin>> OverridePins;
+		for (const FGraphPinHandle& Handle : PreviewConnectorFromPins)
+		{
+			TSharedPtr<SGraphPin> Pin = Handle.FindInGraphPanel(*this);
+			if (Pin.IsValid())
+			{
+				OverridePins.Add(Pin);
+			}
+		}
+		ConnectionDrawingPolicy->SetHoveredPins(CurrentHoveredPins, OverridePins, TimeSinceMouseEnteredPin);
 		ConnectionDrawingPolicy->SetMarkedPin(MarkedPin);
 
 		// Get the set of pins for all children and synthesize geometry for culled out pins so lines can be drawn to them.
@@ -370,9 +411,13 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 		// Draw preview connections (only connected on one end)
 		if (PreviewConnectorFromPins.Num() > 0)
 		{
-			for (TArray< TSharedPtr<SGraphPin> >::TConstIterator StartPinIterator(PreviewConnectorFromPins); StartPinIterator; ++StartPinIterator)
+			for (const FGraphPinHandle& Handle : PreviewConnectorFromPins)
 			{
-				TSharedPtr< SGraphPin > CurrentStartPin = *StartPinIterator;
+				TSharedPtr< SGraphPin > CurrentStartPin = Handle.FindInGraphPanel(*this);
+				if (!CurrentStartPin.IsValid())
+				{
+					continue;
+				}
 				const FArrangedWidget* PinGeometry = PinGeometries.Find( CurrentStartPin.ToSharedRef() );
 
 				if (PinGeometry != NULL)
@@ -414,14 +459,26 @@ int32 SGraphPanel::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect&
 	++MaxLayerId;
 	PaintSurroundSunkenShadow(FEditorStyle::GetBrush(TEXT("Graph.Shadow")), AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayerId);
 
-	// Draw a surrounding indicator when PIE is active, to make it clear that the graph is read-only, etc...
+	const FSlateBrush* BorderBrush = nullptr;
 	if (bShowPIENotification && (GEditor->bIsSimulatingInEditor || GEditor->PlayWorld != NULL))
 	{
+		// Draw a surrounding indicator when PIE is active, to make it clear that the graph is read-only, etc...
+		BorderBrush = FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor"));
+	}
+	else if (!IsEditable.Get())
+	{
+		// Draw a different border when we're not simulating but the graph is read-only
+		BorderBrush = FEditorStyle::GetBrush(TEXT("Graph.ReadOnlyBorder"));
+	}
+
+	if (BorderBrush)
+	{
+		// Actually draw the border
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			MaxLayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor")),
+			BorderBrush,
 			MyClippingRect
 			);
 	}
@@ -449,7 +506,8 @@ void SGraphPanel::UpdateSelectedNodesPositions (FVector2D PositionIncrement)
 		if (pWidget != NULL)
 		{
 			SNode& Widget = pWidget->Get();
-			Widget.MoveTo(Widget.GetPosition() + PositionIncrement);
+			SNode::FNodeSet NodeFilter;
+			Widget.MoveTo(Widget.GetPosition() + PositionIncrement, NodeFilter);
 		}
 	}
 }
@@ -587,8 +645,8 @@ TSharedPtr<SWidget> SGraphPanel::OnSummonContextMenu(const FGeometry& MyGeometry
 
 bool SGraphPanel::OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
-	const bool bIsMakingConnection = (PreviewConnectorFromPins.Num() > 0) && PreviewConnectorFromPins[0].IsValid() && IsEditable.Get();
-	if (bIsMakingConnection)
+	TSharedPtr<SGraphPin> PreviewConnectionPin = PreviewConnectorFromPins.Num() > 0 ? PreviewConnectorFromPins[0].FindInGraphPanel(*this) : nullptr;
+	if (PreviewConnectionPin.IsValid() && IsEditable.Get())
 	{
 		TSet< TSharedRef<SWidget> > AllConnectors;
 		for (int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex)
@@ -610,10 +668,10 @@ bool SGraphPanel::OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FP
 			{
 				SGraphPin& TargetPin = static_cast<SGraphPin&>( PinWidgetGeometry.Widget.Get() );
 
-				if (PreviewConnectorFromPins[0]->TryHandlePinConnection(TargetPin))
+				if (PreviewConnectionPin->TryHandlePinConnection(TargetPin))
 				{
 					NodeList.Add(TargetPin.GetPinObj()->GetOwningNode());
-					NodeList.Add(PreviewConnectorFromPins[0]->GetPinObj()->GetOwningNode());
+					NodeList.Add(PreviewConnectionPin->GetPinObj()->GetOwningNode());
 				}
 				bHandledDrop = true;
 			}
@@ -632,48 +690,57 @@ bool SGraphPanel::OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FP
 
 void SGraphPanel::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if (DragConnectionOp.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 		DragConnectionOp->SetHoveredGraph( SharedThis(this) );
 	}
 }
 
 void SGraphPanel::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+	if (DragConnectionOp.IsValid())
 	{
-		TSharedPtr<FGraphEditorDragDropAction> DragConnectionOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 		DragConnectionOp->SetHoveredGraph( TSharedPtr<SGraphPanel>(NULL) );
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else
 	{
-		TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
-		AssetOp->ResetToDefaultToolTip();
+		TSharedPtr<FAssetDragDropOp> AssetOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+		if (AssetOp.IsValid())
+		{
+			AssetOp->ResetToDefaultToolTip();
+		}
 	}
 }
 
 FReply SGraphPanel::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return FReply::Unhandled();
+	}
+
+	if( Operation->IsOfType<FGraphEditorDragDropAction>() )
 	{
 		PreviewConnectorEndpoint = MyGeometry.AbsoluteToLocal( DragDropEvent.GetScreenSpacePosition() );
 		return FReply::Handled();
 	}
-	else if(DragDrop::IsTypeMatch<FExternalDragOperation>( DragDropEvent.GetOperation() ) )
+	else if (Operation->IsOfType<FExternalDragOperation>())
 	{
 		return AssetUtil::CanHandleAssetDrag(DragDropEvent);
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	else if (Operation->IsOfType<FAssetDragDropOp>())
 	{
 		if(GraphObj != NULL && GraphObj->GetSchema())
 		{
-			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(DragDropEvent.GetOperation());
+			TSharedPtr<FAssetDragDropOp> AssetOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 			bool bOkIcon = false;
 			FString TooltipText;
 			GraphObj->GetSchema()->GetAssetsGraphHoverMessage(AssetOp->AssetData, GraphObj, TooltipText, bOkIcon);
 			const FSlateBrush* TooltipIcon = bOkIcon ? FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) : FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.Error"));;
-			AssetOp->SetToolTip(TooltipText, TooltipIcon);
+			AssetOp->SetToolTip(FText::FromString(TooltipText), TooltipIcon);
 		}
 		return FReply::Handled();
 	} 
@@ -689,22 +756,28 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 
 	FSlateApplication::Get().SetKeyboardFocus(AsShared(), EKeyboardFocusCause::SetDirectly);
 
-	if (DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()))
+	TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+	if (!Operation.IsValid())
+	{
+		return FReply::Unhandled();
+	}
+
+	if (Operation->IsOfType<FGraphEditorDragDropAction>())
 	{
 		check(GraphObj);
-		TSharedPtr<FGraphEditorDragDropAction> DragConn = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
+		TSharedPtr<FGraphEditorDragDropAction> DragConn = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
 		return DragConn->DroppedOnPanel( SharedThis( this ), DragDropEvent.GetScreenSpacePosition(), NodeAddPosition, *GraphObj);
 	}
-	else if (DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation()))
+	else if (Operation->IsOfType<FActorDragDropGraphEdOp>())
 	{
-		TSharedPtr<FActorDragDropGraphEdOp> ActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FActorDragDropGraphEdOp> ActorOp = StaticCastSharedPtr<FActorDragDropGraphEdOp>(Operation);
 		OnDropActor.ExecuteIfBound(ActorOp->Actors, GraphObj, NodeAddPosition);
 		return FReply::Handled();
 	}
 
-	else if (DragDrop::IsTypeMatch<FLevelDragDropOp>(DragDropEvent.GetOperation()))
+	else if (Operation->IsOfType<FLevelDragDropOp>())
 	{
-		TSharedPtr<FLevelDragDropOp> LevelOp = StaticCastSharedPtr<FLevelDragDropOp>(DragDropEvent.GetOperation());
+		TSharedPtr<FLevelDragDropOp> LevelOp = StaticCastSharedPtr<FLevelDragDropOp>(Operation);
 		OnDropStreamingLevel.ExecuteIfBound(LevelOp->StreamingLevelsToDrop, GraphObj, NodeAddPosition);
 		return FReply::Handled();
 	}
@@ -727,7 +800,10 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 
 void SGraphPanel::OnBeginMakingConnection( const TSharedRef<SGraphPin>& InOriginatingPin )
 {
-	PreviewConnectorFromPins.Add(InOriginatingPin);
+	if (auto* PinObj = InOriginatingPin->GetPinObj())
+	{
+		PreviewConnectorFromPins.Add(PinObj);
+	}
 }
 
 void SGraphPanel::OnStopMakingConnection(bool bForceStop)
@@ -751,6 +827,11 @@ void SGraphPanel::AddGraphNode( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
 	GraphNode->SetOwner( SharedThis(this) );
 
 	const UEdGraphNode* Node = GraphNode->GetNodeObj();
+	if (Node)
+	{
+		NodeGuidMap.Add(Node->NodeGuid, GraphNode);
+	}
+
 	if (Node && Node->IsA( UEdGraphNode_Comment::StaticClass()))
 	{
 		SNodePanel::AddGraphNodeToBack(NodeToAdd);
@@ -763,6 +844,7 @@ void SGraphPanel::AddGraphNode( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
 
 void SGraphPanel::RemoveAllNodes()
 {
+	NodeGuidMap.Empty();
 	CurrentHoveredPins.Empty();
 	SNodePanel::RemoveAllNodes();
 }
@@ -841,6 +923,11 @@ void SGraphPanel::AddNode (UEdGraphNode* Node)
 	{
 		NewNode->UpdateGraphNode();
 	}
+}
+
+TSharedPtr<SGraphNode> SGraphPanel::GetNodeWidgetFromGuid(FGuid Guid) const
+{
+	return NodeGuidMap.FindRef(Guid).Pin();
 }
 
 void SGraphPanel::Update()

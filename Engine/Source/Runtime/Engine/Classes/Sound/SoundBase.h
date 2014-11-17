@@ -25,29 +25,28 @@ namespace EMaxConcurrentResolutionRule
 	};
 }
 
-UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, MinimalAPI, BlueprintType)
-class USoundBase : public UObject
+UCLASS(config=Engine, hidecategories=Object, abstract, editinlinenew, BlueprintType)
+class ENGINE_API USoundBase : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 	UPROPERTY()
 	FName SoundClass_DEPRECATED;
 
-	/** Sound group this sound cue belongs to */
+	/** Sound class this sound belongs to */
 	UPROPERTY(EditAnywhere, Category=Sound, meta=(DisplayName = "Sound Class"))
 	USoundClass* SoundClassObject;
 
-	/** For debugging purpose only . */
-	UPROPERTY(EditAnywhere, Category=Sound)
+	/** When "stat sounds -debug" has been specified, draw this sound's attenuation shape when the sound is audible. For debugging purpose only. */
+	UPROPERTY(EditAnywhere, Category=Playback)
 	uint32 bDebug:1;
 
 	/** If we try to play a new version of this sound when at the max concurrent count how should it be resolved. */
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditAnywhere, Category=Playback)
 	TEnumAsByte<EMaxConcurrentResolutionRule::Type> MaxConcurrentResolutionRule;
 
-
 	/** Maximum number of times this sound can be played concurrently. */
-	UPROPERTY(EditAnywhere, Category=Sound)
+	UPROPERTY(EditAnywhere, Category=Playback)
 	int32 MaxConcurrentPlayCount;
 
 	/** Duration of sound in seconds. */
@@ -75,12 +74,12 @@ public:
 	/**
 	 * Checks to see if a location is audible
 	 */
-	ENGINE_API bool IsAudible( const FVector& SourceLocation, const FVector& ListenerLocation, AActor* SourceActor, bool& bIsOccluded, bool bCheckOcclusion );
+	bool IsAudible( const FVector& SourceLocation, const FVector& ListenerLocation, AActor* SourceActor, bool& bIsOccluded, bool bCheckOcclusion );
 
 	/** 
 	 * Does a simple range check to all listeners to test hearability
 	 */
-	ENGINE_API bool IsAudibleSimple( const FVector Location );
+	bool IsAudibleSimple( const FVector Location );
 
 	/** 
 	 * Returns the farthest distance at which the sound could be heard
@@ -98,6 +97,6 @@ public:
 	/** 
 	 * Parses the Sound to generate the WaveInstances to play
 	 */
-	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& AudioComponent, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) { }
+	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) { }
 };
 

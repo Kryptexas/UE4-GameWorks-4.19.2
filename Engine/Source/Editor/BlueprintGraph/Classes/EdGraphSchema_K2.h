@@ -1,8 +1,42 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "EdGraph/EdGraphSchema.h"
 #include "EdGraphSchema_K2.generated.h"
+
+/** Reference to an structure (only used in 'docked' palette) */
+USTRUCT()
+struct BLUEPRINTGRAPH_API FEdGraphSchemaAction_K2Struct : public FEdGraphSchemaAction
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Simple type info
+	static FString StaticGetTypeId() {static FString Type = TEXT("FEdGraphSchemaAction_K2Struct"); return Type;}
+	virtual FString GetTypeId() const OVERRIDE { return StaticGetTypeId(); } 
+
+	UStruct* Struct;
+
+	void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
+	{
+		if( Struct )
+		{
+			Collector.AddReferencedObject(Struct);
+		}
+	}
+
+	FName GetPathName() const
+	{
+		return Struct ? FName(*Struct->GetPathName()) : NAME_None;
+	}
+
+	FEdGraphSchemaAction_K2Struct() 
+		: FEdGraphSchemaAction()
+	{}
+
+	FEdGraphSchemaAction_K2Struct (const FString& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
+		: FEdGraphSchemaAction(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
+	{}
+};
 
 // Constants used for metadata, etc... in blueprints
 struct BLUEPRINTGRAPH_API FBlueprintMetadata
@@ -43,6 +77,9 @@ public:
 
 	// [FunctionMetadata] Indicates that the function should be drawn as a compact node with the specified body title
 	static const FName MD_CompactNodeTitle;
+	
+	// [FunctionMetadata] Indicates that the function should be drawn with this title over the function name
+	static const FName MD_FriendlyName;
 
 	//    property metadata
 
@@ -173,13 +210,16 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	FString PC_Name;
 
 	UPROPERTY()
-	FString PC_Delegate;    // SubCategoryObject is the UFunction of the delegate signature
+	FString PC_Delegate;	// SubCategoryObject is the UFunction of the delegate signature
 
 	UPROPERTY()
-	FString PC_MCDelegate;  // SubCategoryObject is the UFunction of the delegate signature
+	FString PC_MCDelegate;	// SubCategoryObject is the UFunction of the delegate signature
 
 	UPROPERTY()
-	FString PC_Object;    // SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+	FString PC_Object;		// SubCategoryObject is the Class of the object passed thru this pin, or SubCategory can be 'self'. The DefaultValue string should always be empty, use DefaultObject.
+
+	UPROPERTY()
+	FString PC_Interface;	// SubCategoryObject is the Class of the object passed thru this pin.
 
 	UPROPERTY()
 	FString PC_String;
@@ -191,9 +231,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
 
 	UPROPERTY()
-	FString PC_Wildcard;    // Special matching rules are imposed by the node itself
-
-	// PC_Interface - not implemented yet
+	FString PC_Wildcard;  // Special matching rules are imposed by the node itself
 
 	// Common PinType.PinSubCategory values
 	UPROPERTY()
@@ -304,10 +342,15 @@ public:
 		}
 
 		void Init(const FString& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly);
-	public:
+	
+	private:
 		/** The pin type corresponding to the schema type */
 		FEdGraphPinType PinType;
 
+		/** Asset Reference, used when PinType.PinSubCategoryObject is not loaded yet */
+		FStringAssetReference SubCategoryObjectAssetReference;
+
+	public:
 		/** The children of this pin type */
 		TArray< TSharedPtr<FPinTypeTreeInfo> > Children;
 
@@ -315,30 +358,38 @@ public:
 		bool bReadOnly;
 
 		/** Friendly display name of pin type; also used to see if it has subtypes */
-		FString FriendlyCategoryName;
+		FString FriendlyName;
 
 		/** Text for regular tooltip */
 		FString Tooltip;
 
 	public:
-		FPinTypeTreeInfo(const FString& FriendlyCategoryName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
+		const FEdGraphPinType& GetPinType(bool bForceLoadedSubCategoryObject);
+		void SetPinSubTypeCategory(const FString& SubCategory)
+		{
+			PinType.PinSubCategory = SubCategory;
+		}
+
+		FPinTypeTreeInfo(const FString& FriendlyName, const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
 		FPinTypeTreeInfo(const FString& CategoryName, const UEdGraphSchema_K2* Schema, const FString& InTooltip, bool bInReadOnly = false);
 		FPinTypeTreeInfo(const FString& CategoryName, UObject* SubCategoryObject, const FString& InTooltip, bool bInReadOnly = false);
+		FPinTypeTreeInfo(const FString& CategoryName, const FStringAssetReference& SubCategoryObject, const FString& InTooltip, bool bInReadOnly = false);
 
 		FPinTypeTreeInfo(TSharedPtr<FPinTypeTreeInfo> InInfo)
 		{
 			PinType = InInfo->PinType;
 			bReadOnly = InInfo->bReadOnly;
-			FriendlyCategoryName = InInfo->FriendlyCategoryName;
+			FriendlyName = InInfo->FriendlyName;
 			Tooltip = InInfo->Tooltip;
+			SubCategoryObjectAssetReference = InInfo->SubCategoryObjectAssetReference;
 		}
 		
 		/** Returns a succinct menu description of this type */
 		FString GetDescription() const
 		{
-			if((PinType.PinCategory != FriendlyCategoryName) && !FriendlyCategoryName.IsEmpty())
+			if ((PinType.PinCategory != FriendlyName) && !FriendlyName.IsEmpty())
 			{
-				return FriendlyCategoryName;
+				return FriendlyName;
 			}
 			else if( PinType.PinSubCategoryObject.IsValid() )
 			{
@@ -433,11 +484,7 @@ public:
 	 * @param	TestEdGraph		Graph to test
 	 * @return	true if this is a construction script
 	 */
-	inline bool IsConstructionScript(const UEdGraph* TestEdGraph) const
-	{
-		const FName GraphName = TestEdGraph->GetFName();
-		return (GraphName == FN_UserConstructionScript);
-	}
+	bool IsConstructionScript(const UEdGraph* TestEdGraph) const;
 
 	/**
 	 * Checks to see if the specified graph is a composite graph
@@ -618,7 +665,7 @@ public:
 	/** Can this function be overridden by kismet (either placed as event or new function graph created) */
 	static bool CanKismetOverrideFunction(const UFunction* Function);
 
-	/** returns friendly signiture name if possible or Removes any mangling to get the unmangled signiture name of the function */
+	/** returns friendly signiture name if possible or Removes any mangling to get the unmangled signature name of the function */
 	static FString GetFriendlySignitureName(const UFunction* Function);
 
 	static bool IsAllowableBlueprintVariableType(const class UEnum* InEnum);
@@ -678,6 +725,14 @@ public:
 	 * @param	ContextClass	If specified, the graph terminators will use this class to search for context for signatures (i.e. interface functions)
 	 */
 	virtual void CreateFunctionGraphTerminators(UEdGraph& Graph, UClass* Class) const;
+
+	/** 
+	 * Populate new function graph with entry and possibly return node
+	 * 
+	 * @param	Graph			Graph to add the function terminators to
+	 * @param	FunctionSignature	The function signature to mimic when creating the inputs and outputs for the function.
+	 */
+	virtual void CreateFunctionGraphTerminators(UEdGraph& Graph, UFunction* FunctionSignature) const;
 
 	/**
 	 * Converts a pin type into a fully qualified string (e.g., object'ObjectName').

@@ -195,6 +195,28 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	 * Test if in-game bounds are as big as preview bounds
 	 */
 	UNREALED_API bool CheckIfBoundsAreCorrrect();
+
+#if WITH_EDITOR
+	//TODO - This is a really poor way to post errors to the user. Work out a better way.
+	struct FAnimNotifyErrors
+	{
+		FAnimNotifyErrors(UObject* InSourceNotify)
+		: SourceNotify(InSourceNotify)
+		{}
+		UObject* SourceNotify;
+		TArray<FString> Errors;
+	};
+	TArray<FAnimNotifyErrors> AnimNotifyErrors;
+	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify);
+	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify);
+#endif
+
+#if WITH_APEX_CLOTHING
+	/** toggle visibility between cloth sections and non-cloth sections */
+	UNREALED_API void ShowOnlyClothSections(bool bShow, int32 LODIndex);
+	/** Restore all section visibilities to original states for all LODs */
+	UNREALED_API void RestoreClothSectionsVisibility();
+#endif //#if WITH_APEX_CLOTHING
 };
 
 

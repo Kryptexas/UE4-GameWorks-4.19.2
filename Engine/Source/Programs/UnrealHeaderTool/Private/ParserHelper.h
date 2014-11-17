@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 
-#include "ClassTree.h"
 #include "ClassMaps.h"
 
 #pragma once
@@ -126,6 +125,8 @@ public:
 
 	EPointerType::Type PointerType;
 
+	/** Is the property a TAttribute */
+	bool bIsAttribute;
 public:
 	/** @name Constructors */
 	//@{
@@ -141,6 +142,7 @@ public:
 	, RepNotifyName      (NAME_None)
 	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
+	, bIsAttribute		 (false)
 	{
 	}
 
@@ -156,6 +158,7 @@ public:
 	, RepNotifyName      (NAME_None)
 	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
+	, bIsAttribute		 (false)
 	{
 	}
 
@@ -171,6 +174,7 @@ public:
 	, RepNotifyName      (NAME_None)
 	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
+	, bIsAttribute		 (false)
 	{
 		// if this is an interface class, we use the UInterfaceProperty class instead of UObjectProperty
 		if ( InClass->HasAnyClassFlags(CLASS_Interface) )
@@ -229,6 +233,7 @@ public:
 	, RepNotifyName      (NAME_None)
 	, ReferenceType      (InRefType)
 	, PointerType        (EPointerType::None)
+	, bIsAttribute		 (false)
 	{
 	}
 
@@ -236,6 +241,7 @@ public:
 	: PropertyExportFlags(PROPEXPORT_Public)
 	, DelegateName       (NAME_None)
 	, RepNotifyName      (NAME_None)
+	, bIsAttribute		 (false)
 	{
 		checkSlow(Property);
 
@@ -252,6 +258,12 @@ public:
 			PropagateFlags = Property->PropertyFlags & CPF_ParmFlags;
 			Property = CastChecked<UArrayProperty>(Property)->Inner;
 			ClassOfProperty = Property->GetClass();
+		}
+		else if( ClassOfProperty == UAttributeProperty::StaticClass() )
+		{
+			Property = CastChecked<UAttributeProperty>(Property)->Inner;
+			ClassOfProperty = Property->GetClass();
+			bIsAttribute = true;
 		}
 
 		if( ClassOfProperty==UByteProperty::StaticClass() )
@@ -832,12 +844,12 @@ public:
 			I = Byte;
 			return 1;
 		}
-		else if( TokenType==TOKEN_Const && Type==CPT_Float && Float==FMath::Trunc(Float))
+		else if( TokenType==TOKEN_Const && Type==CPT_Float && Float==FMath::TruncToInt(Float))
 		{
 			I = (int32) Float;
 			return 1;
 		}
-		else if( TokenType==TOKEN_Const && Type==CPT_Double && Float==FMath::Trunc(Double))
+		else if (TokenType == TOKEN_Const && Type == CPT_Double && Float == FMath::TruncToInt(Double))
 		{
 			I = (int32) Double;
 			return 1;

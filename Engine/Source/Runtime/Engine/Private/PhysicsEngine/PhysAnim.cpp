@@ -86,8 +86,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 		// need to update back to physX so that physX knows where it was after blending
 		bool bUpdatePhysics = false;
 		FBodyInstance* BodyInstance = NULL;
-		// if this is true fixed bones haven't been updated, so we can't blend between. 
-		bool bShouldSkipFixedBones = KinematicBonesUpdateType == EKinematicBonesUpdateToPhysics::SkipFixedAndSimulatingBones;
+
 		// If so - get its world space matrix and its parents world space matrix and calc relative atom.
 		if(BodyIndex != INDEX_NONE )
 		{	
@@ -106,14 +105,9 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 			}
 #endif
 			BodyInstance = Bodies[BodyIndex];
-			UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodyIndex];
-			// since we don't copy back to physics, we shouldn't blend fixed bones here if this set up is used
-			// if you'd like to use fixed bones to blend use SkipSimulatingBones
-			// you can simulate fixed bones by setting it to instance, but that case, please use SkipSimulating Bones. 
-			bool bSkipFixedBones =  bShouldSkipFixedBones
-				&& (BodySetup? BodySetup->PhysicsType == PhysType_Fixed : false);
 
-			if(!bSkipFixedBones && BodyInstance->IsValidBodyInstance())
+			//if simulated body copy back and blend with animation
+			if(BodyInstance->IsInstanceSimulatingPhysics(true))
 			{
 				FTransform PhysTM = BodyInstance->GetUnrealWorldTransform();
 
@@ -197,11 +191,6 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 
 bool USkeletalMeshComponent::ShouldBlendPhysicsBones()
 {
-	if (bUseSingleBodyPhysics)
-	{
-		return false;
-	}
-
 	for (int32 BodyIndex = 0; BodyIndex < Bodies.Num(); ++BodyIndex)
 	{
 		if (Bodies[BodyIndex]->PhysicsBlendWeight > 0.f)
@@ -250,7 +239,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 	// - but if we just update physics bone without update current pose, it will have stale data
 	// If desired, pass the animation data to the physics joints so they can be used by motors.
 	// See if we are going to need to update kinematics
-	const bool bUpdateKinematics = (!bUseSingleBodyPhysics && KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
+	const bool bUpdateKinematics = (KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
 
 	// If desired, update physics bodies associated with skeletal mesh component to match.
 	if( !bUpdateKinematics )
@@ -301,20 +290,14 @@ void USkeletalMeshComponent::UpdateKinematicBonesToPhysics(bool bTeleport)
 		}
 #endif
 
-		// see if we should check fixed bones or not
-		bool bShouldSkipFixedBones = KinematicBonesUpdateType == EKinematicBonesUpdateToPhysics::SkipFixedAndSimulatingBones;
-
 		// Iterate over each body
 		for(int32 i = 0; i < Bodies.Num(); i++)
 		{
 			// If we have a physics body, and its kinematic...
 			FBodyInstance* BodyInst = Bodies[i];
 			check(BodyInst);
-			// special flag to check to see if we should update fixed bones or not
-			bool bSkipFixedBones =  bShouldSkipFixedBones
-				&& (BodyInst->BodySetup.IsValid()? BodyInst->BodySetup.Get()->PhysicsType == PhysType_Fixed : false);
 
-			if(!bSkipFixedBones && BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics())
+			if (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics(true))
 			{
 				// Find the graphics bone index that corresponds to this physics body.
 				FName const BodyName = PhysicsAsset->BodySetup[i]->BoneName;

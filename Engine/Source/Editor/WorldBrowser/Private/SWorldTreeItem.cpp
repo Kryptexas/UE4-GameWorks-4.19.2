@@ -16,15 +16,15 @@ void SWorldTreeItem::Construct(const FArguments& InArgs, TSharedRef<STableViewBa
 	IsItemExpanded = InArgs._IsItemExpanded;
 	HighlightText = InArgs._HighlightText;
 
-	MapPackageLoaded = FEditorStyle::GetBrush("WorldBrowser.LevelLoaded");
-	MapPackageUnloaded = FEditorStyle::GetBrush("WorldBrowser.LevelUnloaded");
-	MapPackagePending = FEditorStyle::GetBrush("WorldBrowser.LevelPending");
+	StreamingLevelAlwaysLoadedBrush = FEditorStyle::GetBrush("WorldBrowser.LevelStreamingAlwaysLoaded");
+	StreamingLevelKismetBrush = FEditorStyle::GetBrush("WorldBrowser.LevelStreamingKismet");
 
 	SMultiColumnTableRow<TSharedPtr<FLevelModel>>::Construct(
 		FSuperRowType::FArguments()
 			.OnDragDetected(this, &SWorldTreeItem::OnItemDragDetected), 
 		OwnerTableView
 	);
+
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -43,6 +43,18 @@ TSharedRef< SWidget > SWorldTreeItem::GenerateWidgetForColumn( const FName & Col
 				SNew(SExpanderArrow, SharedThis(this))
 			]
 			
+			+SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew(SBox)
+				.WidthOverride(7) // in case brush for this item is empty
+				[
+					SNew(SImage)
+					.Image(this, &SWorldTreeItem::GetLevelIconBrush)
+				]
+			]
+
 			+SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
@@ -229,16 +241,6 @@ FReply SWorldTreeItem::OnOpenKismet()
 	return FReply::Handled();
 }
 
-const FSlateBrush* SWorldTreeItem::GetLevelImage() const
-{
-	if (LevelModel->IsLoaded())
-	{
-		return MapPackageLoaded;
-	}
-
-	return LevelModel->IsLoading() ? MapPackagePending : MapPackageUnloaded;
-}
-
 FReply SWorldTreeItem::OnItemDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	if (MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton))
@@ -332,6 +334,22 @@ FSlateColor SWorldTreeItem::GetLevelDisplayNameColorAndOpacity() const
 	}
 
 	return FSlateColor::UseForeground();
+}
+
+const FSlateBrush* SWorldTreeItem::GetLevelIconBrush() const
+{
+	UClass* StreamingClass = LevelModel->GetStreamingClass();
+	if (StreamingClass == ULevelStreamingKismet::StaticClass())
+	{
+		return StreamingLevelKismetBrush;
+	}
+
+	if (StreamingClass == ULevelStreamingAlwaysLoaded::StaticClass())
+	{
+		return StreamingLevelAlwaysLoadedBrush;
+	}
+
+	return nullptr;
 }
 
 const FSlateBrush* SWorldTreeItem::GetLevelVisibilityBrush() const

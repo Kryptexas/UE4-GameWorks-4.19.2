@@ -142,7 +142,7 @@ void FOpenGLGPUProfiler::EndFrame()
 	{
 		uint64 GPUTiming = FrameTiming.GetTiming();
 		uint64 GPUFreq = FrameTiming.GetTimingFrequency();
-		GGPUFrameTime = FMath::Trunc( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
+		GGPUFrameTime = FMath::TruncToInt( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
 	}
 	else if (FOpenGLDisjointTimeStampQuery::IsSupported() && GNumActiveGPUsForRendering == 1)
 	{
@@ -152,7 +152,7 @@ void FOpenGLGPUProfiler::EndFrame()
 		int OldestQueryIndex = (CurrentGPUFrameQueryIndex + 1) % MAX_GPUFRAMEQUERIES;
 		if ( DisjointGPUFrameTimeQuery[OldestQueryIndex].IsResultValid() && DisjointGPUFrameTimeQuery[OldestQueryIndex].GetResult(&GPUTiming) )
 		{
-			GGPUFrameTime = FMath::Trunc( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
+			GGPUFrameTime = FMath::TruncToInt( double(GPUTiming) / double(GPUFreq) / FPlatformTime::GetSecondsPerCycle() );
 			GLastGPUFrameTime = GGPUFrameTime;
 		}
 		else
@@ -325,11 +325,18 @@ float FOpenGLEventNodeFrame::GetRootTimingResults()
 
 void FOpenGLEventNodeFrame::LogDisjointQuery()
 {
-	UE_LOG(LogRHI, Warning, TEXT("%s"),
-		DisjointQuery.IsResultValid() ?
-		TEXT("Profiled range was continuous.") :
-		TEXT("Profiled range was disjoint!  GPU switched to doing something else while profiling.")
-		);
+	if (DisjointQuery.IsSupported())
+	{
+		UE_LOG(LogRHI, Warning, TEXT("%s"),
+			DisjointQuery.IsResultValid() ?
+			TEXT("Profiled range was continuous.") :
+			TEXT("Profiled range was disjoint! GPU switched to doing something else while profiling.")
+			);
+	}
+	else
+	{
+		TEXT("Profiled range \"disjoinness\" could not be determined due to lack of disjoing timer query functionality on this platform.");
+	}
 }
 
 float FOpenGLEventNode::GetTiming()
@@ -401,7 +408,7 @@ void FOpenGLDynamicRHI::IssueLongGPUTask()
 		RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI(), 0);
 		RHISetRasterizerState(TStaticRasterizerState<FM_Solid,CM_None>::GetRHI());
 
-		TShaderMapRef<FOneColorVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<FOpenGLRHILongGPUTaskPS> PixelShader(GetGlobalShaderMap());
 
 		SetGlobalBoundShaderState(LongGPUTaskBoundShaderState, GOpenGLVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, 0);
@@ -442,15 +449,12 @@ bool  FOpenGLBase::bSupportsTextureFilterAnisotropic = false;
 
 void FOpenGLBase::ProcessQueryGLInt()
 {
-#ifndef __clang__
-#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) do { if (IntEnum) {glGetIntegerv(IntEnum, &Dest);} else {Dest = Default;} /*FPlatformMisc::LowLevelOutputDebugStringf(TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Dest);*/ } while(0)
-#else
-#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) do { if (IntEnum) {glGetIntegerv(IntEnum, &Dest);} else {Dest = Default;} /*FPlatformMisc::LowLevelOutputDebugStringf(TEXT("  " #IntEnum ": %d"), Dest);*/ } while(0)
-#endif
-	LOG_AND_GET_GL_INT(GL_MAX_TEXTURE_IMAGE_UNITS, 0, MaxTextureImageUnits);
-	LOG_AND_GET_GL_INT(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, 0, MaxVertexTextureImageUnits);
-	LOG_AND_GET_GL_INT(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0, MaxCombinedTextureImageUnits);
-#undef LOG_AND_GET_GL_INT
+	GET_GL_INT(GL_MAX_TEXTURE_IMAGE_UNITS, 0, MaxTextureImageUnits);
+	GET_GL_INT(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, 0, MaxVertexTextureImageUnits);
+	GET_GL_INT(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0, MaxCombinedTextureImageUnits);
+
+	GET_GL_INT(GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS, 0, MaxHullTextureImageUnits);
+	GET_GL_INT(GL_MAX_TESS_EVALUATION_TEXTURE_IMAGE_UNITS, 0, MaxDomainTextureImageUnits);
 }
 
 void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )

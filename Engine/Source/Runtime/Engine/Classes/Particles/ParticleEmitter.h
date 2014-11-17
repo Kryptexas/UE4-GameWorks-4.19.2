@@ -6,6 +6,8 @@
 //=============================================================================
 
 #pragma once
+#include "ParticleHelper.h"
+#include "ParticleEmitterInstances.h"
 #include "ParticleEmitter.generated.h"
 
 //=============================================================================
@@ -14,8 +16,8 @@
 UENUM()
 enum EParticleBurstMethod
 {
-	EPBM_Instant,
-	EPBM_Interpolated,
+	EPBM_Instant UMETA(DisplayName="Instant"),
+	EPBM_Interpolated UMETA(DisplayName="Interpolated"),
 	EPBM_MAX,
 };
 
@@ -25,11 +27,11 @@ enum EParticleBurstMethod
 UENUM()
 enum EParticleSubUVInterpMethod
 {
-	PSUVIM_None,
-	PSUVIM_Linear,
-	PSUVIM_Linear_Blend,
-	PSUVIM_Random,
-	PSUVIM_Random_Blend,
+	PSUVIM_None UMETA(DisplayName="None"),
+	PSUVIM_Linear UMETA(DisplayName="Linear"),
+	PSUVIM_Linear_Blend UMETA(DisplayName="Linear Blend"),
+	PSUVIM_Random UMETA(DisplayName="Random"),
+	PSUVIM_Random_Blend UMETA(DisplayName="Random Blend"),
 	PSUVIM_MAX,
 };
 
@@ -39,10 +41,10 @@ enum EParticleSubUVInterpMethod
 UENUM()
 enum EEmitterRenderMode
 {
-	ERM_Normal,
-	ERM_Point,
-	ERM_Cross,
-	ERM_None,
+	ERM_Normal UMETA(DisplayName="Normal"),
+	ERM_Point UMETA(DisplayName="Point"),
+	ERM_Cross UMETA(DisplayName="Cross"),
+	ERM_None UMETA(DisplayName="None"),
 	ERM_MAX,
 };
 
@@ -74,7 +76,7 @@ struct FParticleBurst
 	
 };
 
-UCLASS(HeaderGroup=Particle, dependson=UParticleLODLevel, hidecategories=Object, editinlinenew, abstract, MinimalAPI)
+UCLASS(dependson=UParticleLODLevel, hidecategories=Object, editinlinenew, abstract, MinimalAPI)
 class UParticleEmitter : public UObject
 {
 	GENERATED_UCLASS_BODY()

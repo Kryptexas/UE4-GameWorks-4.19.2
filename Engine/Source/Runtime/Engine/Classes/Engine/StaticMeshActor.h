@@ -7,7 +7,7 @@
  * An instance of a StaticMesh in a level
  * Note that PostInitializeComponents() is not called for StaticMeshActors
  */
-UCLASS(hidecategories=(Input), ConversionRoot, meta=(ChildCanTick))
+UCLASS(hidecategories=(Input), showcategories=("Input|MouseInput", "Input|TouchInput"), ConversionRoot, meta=(ChildCanTick))
 class ENGINE_API AStaticMeshActor : public AActor, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()

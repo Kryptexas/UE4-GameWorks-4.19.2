@@ -107,7 +107,7 @@ struct FDelegateArray
 
 };
 
-UCLASS(HeaderGroup=PlatformInterface, transient,MinimalAPI)
+UCLASS(transient,MinimalAPI)
 class UPlatformInterfaceBase : public UObject
 {
 	GENERATED_UCLASS_BODY()

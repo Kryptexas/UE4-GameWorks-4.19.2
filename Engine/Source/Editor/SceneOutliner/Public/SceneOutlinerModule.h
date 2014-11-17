@@ -1,4 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	SceneOutlinerModule.h: Declares the FSceneOutlinerModule class.
+=============================================================================*/
+
 #pragma once
 
 #include "ModuleInterface.h"
@@ -6,23 +11,14 @@
 #include "ISceneOutliner.h"
 #include "SceneOutlinerInitializationOptions.h"
 
+
 /**
- * Scene Outliner module
+ * Implements the Scene Outliner module.
  */
-class FSceneOutlinerModule : public IModuleInterface
+class FSceneOutlinerModule
+	: public IModuleInterface
 {
-
 public:
-
-	/**
-	 * Called right after the module DLL has been loaded and the module object has been created
-	 */
-	virtual void StartupModule();
-
-	/**
-	 * Called before the module is unloaded, right before the module object is destroyed.
-	 */
-	virtual void ShutdownModule();
 
 	/**
 	 * Creates a scene outliner widget
@@ -46,10 +42,16 @@ public:
 	 *
 	 * @return	New scene outliner widget
 	 */
-
 	virtual TSharedRef< class ISceneOutliner > CreateSceneOutliner(
 		const FSceneOutlinerInitializationOptions& InitOptions,
 		const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const;
+
+public:
+
+	// Begin IModuleInterface interface
+
+	virtual void StartupModule() { }
+	virtual void ShutdownModule() { }
+
+	// End IModuleInterface interface
 };
-
-

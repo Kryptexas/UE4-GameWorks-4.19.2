@@ -86,7 +86,7 @@ void UChannel::CleanUp()
 	// if this is the control channel, make sure we properly killed the connection
 	if (ChIndex == 0 && !Closing)
 	{
-		UE_LOG(LogNet, Log, TEXT("NetConnection::Close() [%s] [%s] [%s] from UChannel::Cleanup(). ChIndex == 0. Closing connection."), 
+		UE_LOG(LogNet, Log, TEXT("UChannel::CleanUp: [%s] [%s] [%s]. ChIndex == 0. Closing connection."), 
 			Connection->Driver ? *Connection->Driver->NetDriverName.ToString() : TEXT("NULL"),
 			Connection->PlayerController ? *Connection->PlayerController->GetName() : TEXT("NoPC"),
 			Connection->OwningActor ? *Connection->OwningActor->GetName() : TEXT("No Owner"));
@@ -202,19 +202,6 @@ void UChannel::ReceivedAcks()
 	}
 
 }
-
-
-int32 UChannel::MaxSendBytes()
-{
-	int32 ResultBits
-	=	Connection->MaxPacket*8
-	-	(Connection->Out.GetNumBits() ? 0 : MAX_PACKET_HEADER_BITS)
-	-	Connection->Out.GetNumBits()
-	-	MAX_PACKET_TRAILER_BITS
-	-	MAX_BUNCH_HEADER_BITS;
-	return FMath::Max( 0, ResultBits/8 );
-}
-
 
 void UChannel::Tick()
 {
@@ -544,13 +531,13 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	check(!OpenTemporary || !Bunch->bReliable);
 
 	// This is the max number of bits we can have in a single bunch
-	static const int64 MAX_SINGLE_BUNCH_SIZE_BITS  = Connection->MaxPacket*8-MAX_BUNCH_HEADER_BITS-MAX_PACKET_TRAILER_BITS-MAX_PACKET_HEADER_BITS;
+	const int64 MAX_SINGLE_BUNCH_SIZE_BITS  = Connection->MaxPacket*8-MAX_BUNCH_HEADER_BITS-MAX_PACKET_TRAILER_BITS-MAX_PACKET_HEADER_BITS;
 
 	// Max bytes we'll put in a partial bunch
-	static const int64 MAX_SINGLE_BUNCH_SIZE_BYTES = MAX_SINGLE_BUNCH_SIZE_BITS / 8;
+	const int64 MAX_SINGLE_BUNCH_SIZE_BYTES = MAX_SINGLE_BUNCH_SIZE_BITS / 8;
 
 	// Max bits will put in a partial bunch (byte aligned, we dont want to deal with partial bytes in the partial bunches)
-	static const int64 MAX_PARTIAL_BUNCH_SIZE_BITS = MAX_SINGLE_BUNCH_SIZE_BYTES * 8;
+	const int64 MAX_PARTIAL_BUNCH_SIZE_BITS = MAX_SINGLE_BUNCH_SIZE_BYTES * 8;
 
 	TArray<FOutBunch *> OutgoingBunches;
 
@@ -571,8 +558,8 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 	&&	Connection->LastOut.ChIndex == Bunch->ChIndex
 	&&	Connection->AllowMerge
 	&&	Connection->LastEnd.GetNumBits()
-	&&	Connection->LastEnd.GetNumBits()==Connection->Out.GetNumBits()
-	&&	Connection->Out.GetNumBytes()+Bunch->GetNumBytes()+(MAX_BUNCH_HEADER_BITS+MAX_PACKET_TRAILER_BITS+7)/8<=Connection->MaxPacket )
+	&&	Connection->LastEnd.GetNumBits()==Connection->SendBuffer.GetNumBits()
+	&&	Connection->LastOut.GetNumBits() + Bunch->GetNumBits() <= MAX_SINGLE_BUNCH_SIZE_BITS )
 	{
 		// Merge.
 		check(!Connection->LastOut.IsError());
@@ -584,7 +571,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 		OutBunch                       = Connection->LastOutBunch;
 		Bunch                          = &Connection->LastOut;
 		check(!Bunch->IsError());
-		Connection->LastStart.Pop( Connection->Out );
+		Connection->LastStart.Pop( Connection->SendBuffer );
 		Connection->Driver->OutBunches--;
 	}
 
@@ -664,13 +651,13 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 			NextBunch->bClose = (Bunch->bClose && (OutgoingBunches.Num()-1 == PartialNum)); // Only last bunch should have bClose bit set
 		}
 
-		FOutBunch *ThisOutBunch = PrepBunch(NextBunch, OutBunch, Merge); // This handles queueing reliable bunches into the ack list
+		FOutBunch *ThisOutBunch = PrepBunch(NextBunch, OutBunch, Merge); // This handles queuing reliable bunches into the ack list
 			
 		if (ThisOutBunch->bPartial && !ThisOutBunch->bReliable)
 		{
 			// If we are reliable, then partial bunches just use the reliable sequences
-			// if not reliable, we hijack ChSequence and use Connection->PartialPackedId to sequence these packets
-			ThisOutBunch->ChSequence = Connection->PartialPackedId++;
+			// if not reliable, we hijack ChSequence and use Connection->PartialPacketId to sequence these packets
+			ThisOutBunch->ChSequence = Connection->PartialPacketId++;
 		}
 
 		if (UE_LOG_ACTIVE(LogNetPartialBunch,Verbose) && (OutgoingBunches.Num() > 1)) // Don't want to call appMemcrc unless we need to
@@ -693,7 +680,7 @@ FPacketIdRange UChannel::SendBunch( FOutBunch* Bunch, bool Merge )
 
 		// Update channel sequence count.
 		Connection->LastOut = *ThisOutBunch;
-		Connection->LastEnd	= FBitWriterMark(Connection->Out);
+		Connection->LastEnd	= FBitWriterMark( Connection->SendBuffer );
 	}
 
 	// Update open range if necessary
@@ -1671,13 +1658,7 @@ bool UActorChannel::ReplicateActor()
 		if (!RepComp.Key().IsValid())
 		{
 			// Write a deletion content header:
-			//	-Deleted object's NetGUID
-			//	-Invalid NetGUID (interpretted as delete)
-			Bunch << RepComp.Value()->ObjectNetGUID;
-
-			FNetworkGUID InvalidNetGUID;
-			InvalidNetGUID.Reset();
-			Bunch << InvalidNetGUID;
+			BeginContentBlockForSubObjectDelete( Bunch, RepComp.Value()->ObjectNetGUID );
 
 			WroteSomethingImportant = true;
 			Bunch.bReliable = true;
@@ -1865,6 +1846,23 @@ void UActorChannel::BeginContentBlock( UObject * Obj, FOutBunch &Bunch )
 		Connection->PackageMap->ClearDebugContextString();
 	}
 #endif
+}
+
+void UActorChannel::BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete )
+{
+	// Send a 0 bit to signify we are dealing with sub-objects
+	Bunch.WriteBit( 0 );
+
+	check( GuidToDelete.IsValid() );
+
+	//	-Deleted object's NetGUID
+	Bunch << GuidToDelete;
+	NET_CHECKSUM(Bunch);
+
+	//	-Invalid NetGUID (interpreted as delete)
+	FNetworkGUID InvalidNetGUID;
+	InvalidNetGUID.Reset();
+	Bunch << InvalidNetGUID;
 }
 
 void UActorChannel::EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCache* ClassCache )

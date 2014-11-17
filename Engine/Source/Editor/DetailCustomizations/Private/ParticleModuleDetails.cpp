@@ -91,24 +91,6 @@ void FParticleModuleRequiredDetails::CustomizeDetails( IDetailLayoutBuilder& Det
 
 //////////////////////////////////////////////////////////////////////////
 
-TSharedRef<IDetailCustomization> FParticleModuleColorOverLifeDetails::MakeInstance()
-{
-	return MakeShareable( new FParticleModuleColorOverLifeDetails );
-}
-
-void FParticleModuleColorOverLifeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
-{
-	TArray<FString> DistributionsToRestrict;
-	DistributionsToRestrict.Add(TEXT("ColorOverLife.Distribution"));
-	DistributionsToRestrict.Add(TEXT("AlphaOverLife.Distribution"));
-
-	TRestrictionList RestrictionList;
-	RestrictionList.Add( GetDistributionsForGPURestriction() );
-	RestrictPropertiesOnGPUEmitter( DetailBuilder, DistributionsToRestrict, RestrictionList );
-}
-
-//////////////////////////////////////////////////////////////////////////
-
 TSharedRef<IDetailCustomization> FParticleModuleSubUVDetails::MakeInstance()
 {
 	return MakeShareable( new FParticleModuleSubUVDetails );

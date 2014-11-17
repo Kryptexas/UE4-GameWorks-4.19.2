@@ -50,8 +50,7 @@ static bool ValidNetChar( const TCHAR* c )
 
 	// / Is now allowed because absolute paths are required in various places
 
-	if( FCString::Strchr( c, ':' ) ||		// : is for protocol and user/password info
-		FCString::Strchr( c, '?' ) || FCString::Strchr( c, '#' ) )		// ? and # delimit fragments
+	if( FCString::Strchr( c, '?' ) || FCString::Strchr( c, '#' ) )		// ? and # delimit fragments
 	{		
 		return false;
 	}
@@ -236,10 +235,16 @@ FURL::FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type )
 		}
 		else
 		{
-			// Parse protocol.
+			// Determine location of the first opening square bracket.
+			// Square brackets enclose an IPv6 address.
+			const TCHAR* SquareBracket = FCString::Strchr(URL, '[');
+
+			// Parse protocol. Don't consider colons that occur after the opening square
+			// brace, because they are valid characters in an IPv6 address.
 			if
 			(	(FCString::Strchr(URL,':')!=NULL)
 			&&	(FCString::Strchr(URL,':')>URL+1)
+			&&  (!SquareBracket || (FCString::Strchr(URL,':')<SquareBracket))
 			&&	(FCString::Strchr(URL,'.')==NULL || FCString::Strchr(URL,':')<FCString::Strchr(URL,'.')) )
 			{
 				TCHAR* ss = URL;
@@ -291,6 +296,27 @@ FURL::FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type )
 				}
 				FarHost = 1;
 			}
+
+			// Parse IPv6 host.
+			if(URL && SquareBracket)
+			{
+				const TCHAR* ss = URL;
+				URL = FCString::Strchr(URL, ']');
+				if (URL)
+				{
+					*URL = 0;
+					Host = SquareBracket + 1;
+				}
+				if( FCString::Stricmp(*Protocol,*UrlConfig.DefaultProtocol)==0 )
+				{
+					Map = UGameMapsSettings::GetGameDefaultMap();
+				}
+				else
+				{
+					Map = TEXT("");
+				}
+				FarHost = 1;
+			}
 		}
 	}
 
@@ -307,7 +333,7 @@ FURL::FURL( FURL* Base, const TCHAR* TextURL, ETravelType Type )
 			{
 				Map = FPackageName::FilenameToLongPackageName(URL);
 			}
-			else if (!FPackageName::DoesPackageNameContainInvalidCharacters(URL, &MapNameError) && FPackageName::SearchForPackageOnDisk(URL, &MapFullName))
+			else if (!FPackageName::DoesPackageNameContainInvalidCharacters(URL, &MapNameError) && FPackageName::SearchForPackageOnDisk(FString(URL) + FPackageName::GetMapPackageExtension(), &MapFullName))
 			{
 				Map = MapFullName;
 			}

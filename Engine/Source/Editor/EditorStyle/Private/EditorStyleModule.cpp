@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EditorStylePrivatePCH.h"
-#include "EditorStyle.generated.inl"
+
 
 
 /**

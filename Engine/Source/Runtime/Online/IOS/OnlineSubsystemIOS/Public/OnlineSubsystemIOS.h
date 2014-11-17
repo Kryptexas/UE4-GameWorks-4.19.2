@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineSubsystem.h"
+#include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemIOSPackage.h"
 
 
@@ -10,7 +11,7 @@
  *	OnlineSubsystemIOS - Implementation of the online subsystem for IOS services
  */
 class ONLINESUBSYSTEMIOS_API FOnlineSubsystemIOS : 
-	public IOnlineSubsystem,
+	public FOnlineSubsystemImpl,
 	public FTickerObjectBase
 {
 
@@ -74,6 +75,9 @@ private:
 
 	/** Interface to the online achievements */
 	FOnlineAchievementsIOSPtr AchievementsInterface;
+
+	/** Interface to the external UI services */
+	FOnlineExternalUIIOSPtr ExternalUIInterface;
 };
 
 typedef TSharedPtr<FOnlineSubsystemIOS, ESPMode::ThreadSafe> FOnlineSubsystemIOSPtr;

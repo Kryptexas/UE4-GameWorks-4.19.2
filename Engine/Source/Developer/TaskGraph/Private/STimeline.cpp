@@ -51,10 +51,10 @@ int32 STimeline::OnPaint( const FGeometry& AllottedGeometry, const FSlateRect& M
 	//);	
 	
 	// Create line points
-	const float RoundedMax = FMath::Ceil( MaxValue );
-	const float RoundedMin = FMath::Floor( MinValue );
+	const float RoundedMax = FMath::CeilToInt( MaxValue );
+	const float RoundedMin = FMath::FloorToInt( MinValue );
 	const float TimeScale = MaxValue - MinValue;
-	const int32 NumValues = FMath::Floor( AllottedGeometry.Size.X * Zoom / FixedLabelSpacing );
+	const int32 NumValues = FMath::FloorToInt( AllottedGeometry.Size.X * Zoom / FixedLabelSpacing );
 
 	TArray< FVector2D > LinePoints;
 	LinePoints.AddUninitialized( 2 );

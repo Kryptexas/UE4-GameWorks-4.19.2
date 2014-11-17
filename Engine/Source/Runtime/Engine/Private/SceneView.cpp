@@ -28,6 +28,13 @@ static TAutoConsoleVariable<float> CVarSSRMaxRoughness(
 	ECVF_RenderThreadSafe);
 #endif
 
+static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
+	TEXT("r.AmbientOcclusion.FadeRadiusScale"),
+	1.0f,
+	TEXT("Allows to scale the ambient occlusion fade radius (SSAO).\n")
+	TEXT(" 0.01:smallest .. 1.0:normal (default), <1:smaller, >1:larger"),
+	ECVF_Cheat | ECVF_RenderThreadSafe);
+
 /** Global vertex color view mode setting when SHOW_VertexColors show flag is set */
 EVertexColorViewMode::Type GVertexColorViewMode = EVertexColorViewMode::Color;
 
@@ -114,6 +121,12 @@ FVector4 CreateInvDeviceZToWorldZTransform(FMatrix const & ProjMatrix)
 	float DepthMul = ProjMatrix.M[2][2];
 	float DepthAdd = ProjMatrix.M[3][2];
 
+	if (DepthAdd == 0.f)
+	{
+		// Avoid dividing by 0 in this case
+		DepthAdd = 0.00000001f;
+	}
+
 	float SubtractValue = DepthMul / DepthAdd;
 
 	// Subtract a tiny number to avoid divide by 0 errors in the shader when a very far distance is decided from the depth buffer.
@@ -151,6 +164,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, HiddenPrimitives(InitOptions.HiddenPrimitives)
 	, LODDistanceFactor(InitOptions.LODDistanceFactor)
 	, bCameraCut(InitOptions.bInCameraCut)
+	, CursorPos(InitOptions.CursorPos)
 	, bIsGameView(false)
 	, bForceShowMaterials(false)
 	, bIsViewInfo(false)
@@ -423,6 +437,12 @@ FVector4 FSceneView::PixelToWorld(float X,float Y,float Z) const
 FPlane FSceneView::Project(const FVector& WorldPoint) const
 {
 	FPlane Result = WorldToScreen(WorldPoint);
+
+	if (Result.W == 0)
+	{
+		Result.W = KINDA_SMALL_NUMBER;
+	}
+
 	const float RHW = 1.0f / Result.W;
 
 	return FPlane(Result.X * RHW,Result.Y * RHW,Result.Z * RHW,Result.W);
@@ -447,8 +467,8 @@ void FSceneView::DeprojectFVector2D(const FVector2D& ScreenPos, FVector& out_Wor
 
 void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRect& ViewRect, const FMatrix& InvViewMatrix, const FMatrix& InvProjectionMatrix, FVector& out_WorldOrigin, FVector& out_WorldDirection)
 {
-	int32 PixelX = FMath::Trunc(ScreenPos.X);
-	int32 PixelY = FMath::Trunc(ScreenPos.Y);
+	int32 PixelX = FMath::TruncToInt(ScreenPos.X);
+	int32 PixelY = FMath::TruncToInt(ScreenPos.Y);
 
 	// Get the eye position and direction of the mouse cursor in two stages (inverse transform projection, then inverse transform view).
 	// This avoids the numerical instability that occurs when a view matrix with large translation is composed with a projection matrix
@@ -706,6 +726,52 @@ UBlendableInterface::UBlendableInterface(const class FPostConstructInitializePro
 {
 }
 
+void DoPostProcessVolume(IInterface_PostProcessVolume* Volume, FVector ViewLocation, FSceneView* SceneView)
+{
+	const FPostProcessVolumeProperties VolumeProperties = Volume->GetProperties();
+	if (!VolumeProperties.bIsEnabled)
+	{
+		return;
+	}
+
+	float DistanceToPoint = 0.0f;
+	float LocalWeight = FMath::Clamp(VolumeProperties.BlendWeight, 0.0f, 1.0f);
+
+	if (!VolumeProperties.bIsUnbound)
+	{
+		float SquaredBlendRadius = VolumeProperties.BlendRadius * VolumeProperties.BlendRadius;
+		Volume->EncompassesPoint(ViewLocation, 0.0f, &DistanceToPoint);
+
+		if (DistanceToPoint >= 0)
+		{
+			if (DistanceToPoint > VolumeProperties.BlendRadius)
+			{
+				// outside
+				LocalWeight = 0.0f;
+			}
+			else
+			{
+				// to avoid div by 0
+				if (VolumeProperties.BlendRadius >= 1.0f)
+				{
+					LocalWeight *= 1.0f - DistanceToPoint / VolumeProperties.BlendRadius;
+
+					check(LocalWeight >= 0 && LocalWeight <= 1.0f);
+				}
+			}
+		}
+		else
+		{
+			LocalWeight = 0;
+		}
+	}
+
+	if (LocalWeight > 0)
+	{
+		SceneView->OverridePostProcessSettings(*VolumeProperties.Settings, LocalWeight);
+	}
+}
+
 void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 {
 	check(IsInGameThread());
@@ -724,46 +790,11 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 	UWorld* World = Family->Scene->GetWorld();
 
 	// Some views have no world (e.g. material preview)
-	if(World)
+	if (World)
 	{
-		APostProcessVolume* Volume = World->LowestPriorityPostProcessVolume;
-		while(Volume)
+		for (auto VolumeIt = World->PostProcessVolumes.CreateIterator(); VolumeIt; ++VolumeIt)
 		{
-			// Volume encompasses
-			if(Volume->bEnabled)
-			{
-				float DistanceToPoint = 0.0f;
-				float LocalWeight = FMath::Clamp(Volume->BlendWeight, 0.0f, 1.0f);
-
-				if(!Volume->bUnbound)
-				{
-					Volume->EncompassesPoint(InViewLocation, 0.0f, &DistanceToPoint);
-
-					if (DistanceToPoint >= 0)
-					{
-						if(DistanceToPoint > Volume->BlendRadius)
-						{
-							// outside
-							LocalWeight = 0.0f;
-						}
-						else
-						{
-							// to avoid div by 0
-							if(Volume->BlendRadius >= 1.0f)
-							{
-								LocalWeight *= 1.0f - DistanceToPoint / Volume->BlendRadius;
-
-								check(LocalWeight >=0 && LocalWeight <= 1.0f);
-							}
-						}
-					}
-				}
-
-				OverridePostProcessSettings(Volume->Settings, LocalWeight);
-			}
-
-			// further traverse linked list.
-			Volume = Volume->NextHigherPriorityVolume;
+			DoPostProcessVolume(*VolumeIt, InViewLocation, this);
 		}
 	}
 }
@@ -899,6 +930,12 @@ void FSceneView::EndFinalPostprocessSettings()
 		float Scale = FMath::Clamp(CVar->GetValueOnGameThread(), 0.1f, 5.0f);
 		
 		FinalPostProcessSettings.AmbientOcclusionRadius *= Scale;
+	}
+
+	{
+		float Scale = FMath::Clamp(CVarSSAOFadeRadiusScale.GetValueOnGameThread(), 0.01f, 50.0f);
+
+		FinalPostProcessSettings.AmbientOcclusionDistance *= Scale;
 	}
 
 	if(!Family->EngineShowFlags.Lighting || !Family->EngineShowFlags.GlobalIllumination)
@@ -1067,6 +1104,18 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 	}
 }
 
+ERHIFeatureLevel::Type FSceneView::GetFeatureLevel() const
+{ 
+	if (Family->Scene)
+	{
+		return Family->Scene->GetFeatureLevel();
+	}
+	else
+	{
+		return GRHIFeatureLevel;
+	}
+}
+
 FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	:
 	FamilySizeX(0),
@@ -1160,8 +1209,8 @@ void FSceneViewFamily::ComputeFamilySize()
 
 	// We render to the actual position of the viewports so with black borders we need the max.
 	// We could change it by rendering all to left top but that has implications for splitscreen. 
-	FamilySizeX = FMath::Trunc(MaxFamilyX);
-	FamilySizeY = FMath::Trunc(MaxFamilyY);	
+	FamilySizeX = FMath::TruncToInt(MaxFamilyX);
+	FamilySizeY = FMath::TruncToInt(MaxFamilyY);	
 
 	check(bInitializedExtents);
 }

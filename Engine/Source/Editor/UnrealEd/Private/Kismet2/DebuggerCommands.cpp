@@ -43,12 +43,11 @@ public:
 
 	static void PlayInViewport_Clicked();
 	static bool PlayInViewport_CanExecute();
-
 	static void PlayInEditorFloating_Clicked();
 	static bool PlayInEditorFloating_CanExecute();
-
 	static void PlayInNewProcess_Clicked( bool MobilePreview );
 	static bool PlayInNewProcess_CanExecute();
+	static bool PlayInModeIsChecked( EPlayModeType PlayMode );
 
 	static bool PlayInLocation_CanExecute( EPlayModeLocations Location );
 	static void PlayInLocation_Clicked( EPlayModeLocations Location );
@@ -119,6 +118,9 @@ protected:
 	 * @param PlatformName - The name of the platform to play the game on.
 	 */
 	static void LaunchOnDevice(const FString& DeviceId, const FString& DeviceName);
+
+	/** Get the player start location to use when starting PIE */
+	static EPlayModeLocations GetPlayModeLocation();
 };
 
 
@@ -190,10 +192,10 @@ void FPlayWorldCommands::RegisterCommands()
 
 	// PIE
 	UI_COMMAND( RepeatLastPlay, "Play", "Launches a game preview session in the same mode as the last game preview session launched from the Game Preview Modes dropdown next to the Play button on the level editor toolbar", EUserInterfaceActionType::Button, FInputGesture( EKeys::P, EModifierKey::Alt ) )
-	UI_COMMAND( PlayInViewport, "Selected Viewport", "Play this level in the active level editor viewport", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( PlayInEditorFloating, "New Editor Window", "Play this level in a new window", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( PlayInMobilePreview, "Mobile Preview", "Play this level as a mobile device preview (runs in its own process)", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( PlayInNewProcess, "Standalone Game", "Play this level in a new window that runs in its own process", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( PlayInViewport, "Selected Viewport", "Play this level in the active level editor viewport", EUserInterfaceActionType::Check, FInputGesture() );
+	UI_COMMAND( PlayInEditorFloating, "New Editor Window", "Play this level in a new window", EUserInterfaceActionType::Check, FInputGesture() );
+	UI_COMMAND( PlayInMobilePreview, "Mobile Preview", "Play this level as a mobile device preview (runs in its own process)", EUserInterfaceActionType::Check, FInputGesture() );
+	UI_COMMAND( PlayInNewProcess, "Standalone Game", "Play this level in a new window that runs in its own process", EUserInterfaceActionType::Check, FInputGesture() );
 	UI_COMMAND( PlayInCameraLocation, "Current Camera Location", "Spawn the player at the current camera location", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( PlayInDefaultPlayerStart, "Default Player Start", "Spawn the player at the map's default player start", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( PlayInNetworkSettings, "Network Settings...", "Open the settings for the 'Play In' feature", EUserInterfaceActionType::Button, FInputGesture() );
@@ -244,28 +246,28 @@ void FPlayWorldCommands::BindGlobalPlayWorldCommands()
 	ActionList.MapAction( Commands.PlayInViewport,
 		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInViewport_Clicked ),
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInViewport_CanExecute ),
-		FIsActionChecked(),
+		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InViewPort ),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions )
 		);
 
 	ActionList.MapAction( Commands.PlayInEditorFloating,
 		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_Clicked ),
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_CanExecute ),
-		FIsActionChecked(),
+		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InEditorFloating ),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions )
 		);
 
 	ActionList.MapAction( Commands.PlayInMobilePreview,
 		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, true ),
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_CanExecute ),
-		FIsActionChecked(),
+		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InMobilePreview ),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions )
 		);
 
 	ActionList.MapAction( Commands.PlayInNewProcess,
 		FExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked, false ),
 		FCanExecuteAction::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInNewProcess_CanExecute ),
-		FIsActionChecked(),
+		FIsActionChecked::CreateStatic( &FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked, PlayMode_InNewProcess ),
 		FIsActionButtonVisible::CreateStatic( &FInternalPlayWorldCommandCallbacks::CanShowNonPlayWorldOnlyActions )
 		);
 
@@ -477,17 +479,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GeneratePlayMenuContent( TSharedRef<FU
 
 			if (PlayModeCommand.IsValid())
 			{
-				if (PlayMode == GetDefault<ULevelEditorPlaySettings>()->LastExecutedPlayModeType)
-				{
-					FFormatNamedArguments Arguments;
-					Arguments.Add(TEXT("PlayMode"), PlayModeCommand->GetLabel());
-
-					MenuBuilder.AddMenuEntry(PlayModeCommand, NAME_None, FText::Format(LOCTEXT("ActivePlayModeLabel", "{PlayMode} (Active)"), Arguments));
-				}
-				else
-				{
-					MenuBuilder.AddMenuEntry(PlayModeCommand);
-				}
+				MenuBuilder.AddMenuEntry(PlayModeCommand);
 			}
 		}
 	};
@@ -627,16 +619,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 						LabelArguments.Add(TEXT("HostUser"), FText::GetEmpty());
 					}
 
-					if (DeviceProxy->GetDeviceId() == GetDefault<ULevelEditorPlaySettings>()->LastExecutedLaunchDevice)
-					{
-						LabelArguments.Add(TEXT("Active"), LOCTEXT("ActiveHint", " (Active)"));
-					}
-					else
-					{
-						LabelArguments.Add(TEXT("Active"), FText::GetEmpty());
-					}
-
-					FText Label = FText::Format(LOCTEXT("LaunchDeviceLabel", "{DeviceName}{HostUser}{Active}"), LabelArguments);
+					FText Label = FText::Format(LOCTEXT("LaunchDeviceLabel", "{DeviceName}{HostUser}"), LabelArguments);
 
 					// ... generate tooltip text
 					FFormatNamedArguments TooltipArguments;
@@ -651,7 +634,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 						FSlateIcon(FEditorStyle::GetStyleSetName(), *IconName),
 						LaunchDeviceAction,
 						NAME_None,
-						EUserInterfaceActionType::Button
+						EUserInterfaceActionType::Check
 					);
 				}
 			}
@@ -847,12 +830,7 @@ void FInternalPlayWorldCommandCallbacks::Simulate_Clicked()
 		// Start a new simulation session!
 		if( !HasPlayWorld() )
 		{
-			// Make sure the view port is in real-time mode
-			ActiveLevelViewport->GetLevelViewportClient().SetRealtime( true );
-
-			// Start simulating!
-			const bool bSimulateInEditor = true;
-			GUnrealEd->RequestPlaySession(false, ActiveLevelViewport, bSimulateInEditor, NULL, NULL, -1, false );
+			GUnrealEd->RequestPlaySession(false, ActiveLevelViewport, true/*bSimulateInEditor*/, NULL, NULL, -1, false );
 		}
 		else
 		{
@@ -877,7 +855,7 @@ bool FInternalPlayWorldCommandCallbacks::Simulate_IsChecked()
 
 const TSharedRef < FUICommandInfo > GetLastPlaySessionCommand()
 {
-	ULevelEditorPlaySettings* PlaySettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	const ULevelEditorPlaySettings* PlaySettings = GetDefault<ULevelEditorPlaySettings>();
 
 	const FPlayWorldCommands& Commands = FPlayWorldCommands::Get();
 	TSharedRef < FUICommandInfo > Command = Commands.PlayInViewport.ToSharedRef();
@@ -1011,7 +989,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInViewport_Clicked( )
 
 	TSharedPtr<ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
 
-	const bool bAtPlayerStart = (GetDefault<ULevelEditorPlaySettings>()->LastExecutedPlayModeLocation == PlayLocation_DefaultPlayerStart) && (GEditor->CheckForPlayerStart() != nullptr);
+	const bool bAtPlayerStart = (GetPlayModeLocation() == PlayLocation_DefaultPlayerStart);
 	const bool bSimulateInEditor = false;
 
 	// Make sure we can find a path to the view port.  This will fail in cases where the view port widget
@@ -1070,7 +1048,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInEditorFloating_Clicked( )
 	{
 		RecordLastExecutedPlayMode();
 
-		const bool bAtPlayerStart = (GetDefault<ULevelEditorPlaySettings>()->LastExecutedPlayModeLocation == PlayLocation_DefaultPlayerStart);
+		const bool bAtPlayerStart = (GetPlayModeLocation() == PlayLocation_DefaultPlayerStart);
 		const bool bSimulateInEditor = false;
 
 		const FVector* StartLoc = NULL;
@@ -1127,7 +1105,7 @@ void FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked( bool MobilePr
 		const FVector* StartLoc = NULL;
 		const FRotator* StartRot = NULL;
 
-		const bool bAtPlayerStart = (GetDefault<ULevelEditorPlaySettings>()->LastExecutedPlayModeLocation == PlayLocation_DefaultPlayerStart);
+		const bool bAtPlayerStart = (GetPlayModeLocation() == PlayLocation_DefaultPlayerStart);
 
 		if (!bAtPlayerStart)
 		{
@@ -1154,6 +1132,12 @@ void FInternalPlayWorldCommandCallbacks::PlayInNewProcess_Clicked( bool MobilePr
 bool FInternalPlayWorldCommandCallbacks::PlayInNewProcess_CanExecute()
 {
 	return true;
+}
+
+
+bool FInternalPlayWorldCommandCallbacks::PlayInModeIsChecked( EPlayModeType PlayMode )
+{
+	return (PlayMode == GetDefault<ULevelEditorPlaySettings>()->LastExecutedPlayModeType);
 }
 
 
@@ -1553,5 +1537,13 @@ void FInternalPlayWorldCommandCallbacks::LaunchOnDevice( const FString& DeviceId
 	GUnrealEd->RequestPlaySession(DeviceId, DeviceName);
 }
 
+
+EPlayModeLocations FInternalPlayWorldCommandCallbacks::GetPlayModeLocation()
+{
+	// We can't use PlayLocation_DefaultPlayerStart without a player start position
+	return GEditor->CheckForPlayerStart() 
+		? static_cast<EPlayModeLocations>(GetDefault<ULevelEditorPlaySettings>()->LastExecutedPlayModeLocation) 
+		: PlayLocation_CurrentCameraLocation;
+}
 
 #undef LOCTEXT_NAMESPACE

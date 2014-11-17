@@ -24,6 +24,7 @@ public class MainFrame : ModuleRules
 				"RHI",
 				"ShaderCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl",
 				"SourceControlWindows",
@@ -32,7 +33,6 @@ public class MainFrame : ModuleRules
 				"WorkspaceMenuStructure",
 				"MessageLog",
 //				"SearchUI",
-				"Settings",
 				"TranslationEditor"
 			}
 		);
@@ -44,13 +44,13 @@ public class MainFrame : ModuleRules
 				"GameProjectGeneration",
 				"LevelEditor",
 				"OutputLog",
-				"VSAccessor",
+				"Settings",
+				"SourceCodeAccess",
 			}
 		);
 
 		PrivateIncludePaths.AddRange(
-			new string[]
-            {
+			new string[] {
                 "Editor/MainFrame/Private",
 				"Editor/MainFrame/Private/Frame",
                 "Editor/MainFrame/Private/Menus",
@@ -58,8 +58,7 @@ public class MainFrame : ModuleRules
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"AssetTools",
 				"DesktopPlatform",
                 "Documentation",
@@ -67,13 +66,8 @@ public class MainFrame : ModuleRules
 				"LevelEditor",
 				"OutputLog",
                 "TranslationEditor",
+				"SourceCodeAccess",
 			}
 		);
-
-
-		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
-		{
-			DynamicallyLoadedModuleNames.Add("VSAccessor");
-		}
 	}
 }

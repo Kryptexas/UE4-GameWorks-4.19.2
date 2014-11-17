@@ -4,6 +4,7 @@
 
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
+#include "AnimGraphNode_Slot.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_Slot

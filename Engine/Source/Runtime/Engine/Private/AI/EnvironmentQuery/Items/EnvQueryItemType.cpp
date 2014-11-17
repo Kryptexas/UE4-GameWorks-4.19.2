@@ -27,3 +27,8 @@ bool UEnvQueryItemType::StoreInBlackboard(struct FBlackboardKeySelector& KeySele
 {
 	return false;
 }
+
+FString UEnvQueryItemType::GetDescription(const uint8* RawData) const
+{
+	return TEXT("item");
+}

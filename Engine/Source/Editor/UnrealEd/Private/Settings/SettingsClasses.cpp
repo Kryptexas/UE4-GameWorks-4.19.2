@@ -180,6 +180,8 @@ ULevelEditorViewportSettings::ULevelEditorViewportSettings( const class FPostCon
 	bLevelStreamingVolumePrevis = false;
 	BillboardScale = 1.0f;
 
+	TransformWidgetSizeAdjustment = 0.0f;
+
 	// Set a default preview mesh
 	PreviewMeshes.Add(FStringAssetReference("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));
 }
@@ -259,6 +261,8 @@ void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChang
 	{
 		SaveConfig();
 	}
+
+	GEditor->RedrawAllViewports();
 
 	SettingChangedEvent.Broadcast(Name);
 }

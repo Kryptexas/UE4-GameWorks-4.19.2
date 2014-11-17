@@ -35,7 +35,7 @@ void SSessionLauncherDeployRepositorySettings::Construct( const FArguments& InAr
 				.AutoHeight()
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("RepositoryPathLabel", "Repository Path:").ToString())
+					.Text(LOCTEXT("RepositoryPathLabel", "Repository Path:"))
 				]
 
 				+ SVerticalBox::Slot()
@@ -63,8 +63,8 @@ void SSessionLauncherDeployRepositorySettings::Construct( const FArguments& InAr
 								SNew(SButton)
 								.ContentPadding(FMargin(6.0, 2.0))
 								.IsEnabled(true)
-								.Text(LOCTEXT("BrowseButtonText", "Browse...").ToString())
-								.ToolTipText(LOCTEXT("BrowseButtonToolTip", "Browse for the repository").ToString())
+								.Text(LOCTEXT("BrowseButtonText", "Browse..."))
+								.ToolTipText(LOCTEXT("BrowseButtonToolTip", "Browse for the repository"))
 								.OnClicked(this, &SSessionLauncherDeployRepositorySettings::HandleBrowseButtonClicked)
 							]
 					]
@@ -98,10 +98,9 @@ FReply SSessionLauncherDeployRepositorySettings::HandleBrowseButtonClicked( )
 		void* ParentWindowHandle = (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid()) ? ParentWindow->GetNativeWindow()->GetOSWindowHandle() : nullptr;
 
 		FString FolderName;
-		const FString Title = LOCTEXT("RepositoryBrowseTitle", "Choose a repository location").ToString();
 		const bool bFolderSelected = DesktopPlatform->OpenDirectoryDialog(
 			ParentWindowHandle,
-			Title,
+			LOCTEXT("RepositoryBrowseTitle", "Choose a repository location").ToString(),
 			RepositoryPathTextBox->GetText().ToString(),
 			FolderName
 			);

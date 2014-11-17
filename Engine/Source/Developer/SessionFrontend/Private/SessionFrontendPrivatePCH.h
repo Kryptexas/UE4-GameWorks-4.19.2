@@ -6,18 +6,20 @@
 
 #pragma once
 
-
-#include "../Public/SessionFrontend.h"
+#include "SessionFrontend.h"
 
 
 /* Dependencies
  *****************************************************************************/
 
-#include "ModuleManager.h"
 #include "DesktopPlatformModule.h"
-#include "Json.h"
-#include "Slate.h"
 #include "EditorStyle.h"
+#include "Json.h"
+#include "Messaging.h"
+#include "ModuleManager.h"
+#include "Slate.h"
+#include "TargetDeviceServices.h"
+#include "TargetPlatform.h"
 
 // @todo gmp: remove these dependencies by making the session front-end extensible
 #include "AutomationWindow.h"
@@ -35,7 +37,6 @@
 #include "SSessionBrowserInstanceListRow.h"
 #include "SSessionBrowserInstanceList.h"
 #include "SSessionBrowserSessionListRow.h"
-#include "SSessionBrowserContextMenu.h"
 #include "SSessionBrowserCommandBar.h"
 #include "SSessionBrowser.h"
 

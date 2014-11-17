@@ -42,9 +42,12 @@ public:
 	FPhysxUserData(FConstraintInstance* InPayload)		:Type(EPhysxUserDataType::ConstraintInstance), Payload(InPayload) {}
 	FPhysxUserData(UPrimitiveComponent* InPayload)		:Type(EPhysxUserDataType::PrimitiveComponent), Payload(InPayload) {}
 	FPhysxUserData(FDestructibleChunkInfo* InPayload)	:Type(EPhysxUserDataType::DestructibleChunk), Payload(InPayload) {}
-
+	
 	template <class T> static T* Get(void* UserData);
 	template <class T> static void Set(void* UserData, T* Payload);
+
+	//helper function to determine if userData is garbage (maybe dangling pointer)
+	static bool IsGarbage(void * UserData){ return ((FPhysxUserData*)UserData)->Type < EPhysxUserDataType::Invalid || ((FPhysxUserData*)UserData)->Type > EPhysxUserDataType::DestructibleChunk; }
 };
 
 template <> FORCEINLINE FBodyInstance* FPhysxUserData::Get(void* UserData)			{ if (!UserData || ((FPhysxUserData*)UserData)->Type != EPhysxUserDataType::BodyInstance) { return NULL; } return (FBodyInstance*)((FPhysxUserData*)UserData)->Payload; }
@@ -60,5 +63,6 @@ template <> FORCEINLINE void FPhysxUserData::Set(void* UserData, FPhysScene* Pay
 template <> FORCEINLINE void FPhysxUserData::Set(void* UserData, FConstraintInstance* Payload)		{ check(UserData); ((FPhysxUserData*)UserData)->Type = EPhysxUserDataType::ConstraintInstance; ((FPhysxUserData*)UserData)->Payload = Payload; }
 template <> FORCEINLINE void FPhysxUserData::Set(void* UserData, UPrimitiveComponent* Payload)		{ check(UserData); ((FPhysxUserData*)UserData)->Type = EPhysxUserDataType::PrimitiveComponent; ((FPhysxUserData*)UserData)->Payload = Payload; }
 template <> FORCEINLINE void FPhysxUserData::Set(void* UserData, FDestructibleChunkInfo* Payload)	{ check(UserData); ((FPhysxUserData*)UserData)->Type = EPhysxUserDataType::DestructibleChunk; ((FPhysxUserData*)UserData)->Payload = Payload; }
+
 
 #endif // WITH_PHYSICS

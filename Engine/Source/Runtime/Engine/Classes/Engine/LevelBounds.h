@@ -8,7 +8,7 @@
  * Updates bounding box automatically based on actors transformation changes or holds fixed user defined bounding box
  * 
  */
-UCLASS(hidecategories=(Advanced, Collision, Display, Rendering, Physics, Input), MinimalAPI)
+UCLASS(hidecategories=(Advanced, Collision, Display, Rendering, Physics, Input), showcategories=("Input|MouseInput", "Input|TouchInput"), MinimalAPI)
 class ALevelBounds : public AActor
 {
 	GENERATED_UCLASS_BODY()

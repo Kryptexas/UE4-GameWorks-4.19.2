@@ -5,21 +5,16 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
-#include "EnginePlatformInterfaceClasses.h"
-#include "EngineDecalClasses.h"
 #include "Net/UnrealNetwork.h"
 #include "AllocatorFixedSizeFreeList.h"
 #include "Database.h"
 #include "MallocProfiler.h"
 #include "Net/NetworkProfiler.h"
 #include "ConfigCacheIni.h"
-#include "EngineLevelScriptClasses.h"
 
 #include "AVIWriter.h"
-#include "StreamingPauseRendering.h"
 
 #include "Slate.h"
 #include "Slate/SceneViewport.h"
@@ -82,26 +77,19 @@ int32 GetBoundFullScreenModeCVar()
 	return 0;
 }
 
-// depending on bFullscreen and the console variable r.FullScreenMode
-EWindowMode::Type GetWindowModeType(bool bFullscreen)
+// depending on WindowMode and the console variable r.FullScreenMode
+EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
-	int32 FullScreenMode = GetBoundFullScreenModeCVar();
+	EWindowMode::Type CurrentWindowMode = EWindowMode::ConvertIntToWindowMode(GetBoundFullScreenModeCVar());
 
 	if (FPlatformProperties::SupportsWindowedMode())
 	{
-		if(!bFullscreen)
-		{
-			return EWindowMode::Windowed;
-		}
-
-		if (GEngine && GEngine->HMDDevice.IsValid() )
+		if (WindowMode != EWindowMode::Windowed && GEngine && GEngine->HMDDevice.IsValid())
 		{
 			return EWindowMode::Fullscreen;
 		}
-		if(FullScreenMode == 1 || FullScreenMode == 2)
-		{
-			return EWindowMode::WindowedFullscreen;
-		}
+		
+		return CurrentWindowMode;
 	}
 
 	return EWindowMode::Fullscreen;
@@ -176,21 +164,21 @@ void UGameEngine::CreateGameViewport( UGameViewportClient* GameViewportClient )
 	GameViewport->SetViewportFrame(ViewportFrame);
 }
 
-void UGameEngine::ConditionallyOverrideSettings( int32& ResolutionX, int32& ResolutionY, bool& bIsFullscreen )
+void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode)
 {
 	if (FParse::Param(FCommandLine::Get(),TEXT("Windowed")) || FParse::Param(FCommandLine::Get(), TEXT("SimMobile")))
 	{
 		// -Windowed or -SimMobile
-		bIsFullscreen = false;
+		WindowMode = EWindowMode::Windowed;
 	}
 	else if (FParse::Param(FCommandLine::Get(),TEXT("FullScreen")))
 	{
 		// -FullScreen
-		bIsFullscreen = true;
+		WindowMode = EWindowMode::Fullscreen;
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
-	bIsFullscreen = bIsFullscreen ? bIsFullscreen : !FPlatformProperties::SupportsWindowedMode();
+	WindowMode = (!FPlatformProperties::SupportsWindowedMode() && (WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)) ? EWindowMode::Fullscreen : WindowMode;
 
 	FParse::Value(FCommandLine::Get(), TEXT("ResX="), ResolutionX);
 	FParse::Value(FCommandLine::Get(), TEXT("ResY="), ResolutionY);
@@ -205,7 +193,7 @@ void UGameEngine::ConditionallyOverrideSettings( int32& ResolutionX, int32& Reso
 		ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
 
 		// If we're in windowed mode, attempt to choose a suitable starting resolution that is smaller than the desktop, with a matching aspect ratio
-		if (!bIsFullscreen)
+		if (WindowMode == EWindowMode::Windowed)
 		{
 			TArray<FIntPoint> WindowedResolutions;
 			GenerateConvenientWindowedResolutions(DisplayMetrics, WindowedResolutions);
@@ -242,7 +230,7 @@ void UGameEngine::ConditionallyOverrideSettings( int32& ResolutionX, int32& Reso
 		// We need to pass the resolution back out to GameUserSettings, or it will just override it again
 		ResolutionX = DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
 		ResolutionY = DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
-		FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, true);
+		FSystemResolution::RequestResolutionChange(ResolutionX, ResolutionY, EWindowMode::Fullscreen);
 	}
 
 
@@ -256,16 +244,16 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 {
 	int32 ResX = GSystemResolution.ResX;
 	int32 ResY = GSystemResolution.ResY;
-	bool bIsFullScreen = GSystemResolution.bFullScreen;
-	ConditionallyOverrideSettings( ResX, ResY, bIsFullScreen );
+	EWindowMode::Type WindowMode = GSystemResolution.WindowMode;
+	ConditionallyOverrideSettings(ResX, ResY, WindowMode);
 
 	// If the current settings have been overridden, apply them back into the system
-	if (ResX != GSystemResolution.ResX || ResY != GSystemResolution.ResY || bIsFullScreen != GSystemResolution.bFullScreen)
+	if (ResX != GSystemResolution.ResX || ResY != GSystemResolution.ResY || WindowMode != GSystemResolution.WindowMode)
 	{
-		FSystemResolution::RequestResolutionChange(ResX, ResY, bIsFullScreen);
+		FSystemResolution::RequestResolutionChange(ResX, ResY, WindowMode);
 		GSystemResolution.ResX = ResX;
 		GSystemResolution.ResY = ResY;
-		GSystemResolution.bFullScreen = bIsFullScreen;
+		GSystemResolution.WindowMode = WindowMode;
 	}
 
 #if PLATFORM_64BITS
@@ -325,7 +313,7 @@ void UGameEngine::SwitchGameWindowToUseGameViewport()
 			CreateGameViewport( GameViewport );
 		}
 		GameViewportWindow.Pin()->SetContent( GameViewportWidget.ToSharedRef() );
-		SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.bFullScreen, 0, 0);
+		SceneViewport->ResizeFrame((uint32)GSystemResolution.ResX, (uint32)GSystemResolution.ResY, GSystemResolution.WindowMode, 0, 0);
 
 		// Move the registration of the game viewport to that messages are correctly received.
 		if (!FPlatformProperties::SupportsWindowedMode())
@@ -378,6 +366,9 @@ void UGameEngine::RedrawViewports( bool bShouldPresent /*= true*/ )
 UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	AsyncLoadingTimeLimit = 5.0f;
+	PriorityAsyncLoadingExtraTime = 20.0f;
+
 	C_WorldBox = FColor(0, 0, 40, 255);
 	C_BrushWire = FColor(192, 0, 0, 255);
 	C_AddWire = FColor(127, 127, 255, 255);
@@ -401,6 +392,9 @@ UEngine::UEngine(const class FPostConstructInitializeProperties& PCIP)
 	bUseSound = true;
 	bPendingHardwareSurveyResults = false;
 	bIsInitialized = false;
+
+	BeginStreamingPauseDelegate = NULL;
+	EndStreamingPauseDelegate = NULL;
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)
@@ -699,7 +693,7 @@ bool UGameEngine::HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 
 		if (GameMode)
 		{
-			GameMode->GameEnding();
+			GameMode->StartToLeaveMap();
 		}
 
 		// Cancel any pending connection to a server
@@ -750,7 +744,10 @@ float UGameEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmoothin
 		// Limit framerate on console if VSYNC is enabled to avoid jumps from 30 to 60 and back.
 		if( CVar->GetValueOnGameThread() != 0 )
 		{
-			MaxTickRate = MaxSmoothedFrameRate;
+			if (SmoothedFrameRateRange.HasUpperBound())
+			{
+				MaxTickRate = SmoothedFrameRateRange.GetUpperBoundValue();
+			}
 		}
 	}
 	else 
@@ -845,14 +842,14 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.
-		StaticTick( DeltaSeconds );
+		StaticTick(DeltaSeconds, AsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// -----------------------------------------------------
 	// Begin ticking worlds
 	// -----------------------------------------------------
 
-	int32 OriginalGWorldContext = INDEX_NONE;
+	FName OriginalGWorldContext = NAME_None;
 	for (int32 i=0; i < WorldList.Num(); ++i)
 	{
 		if (WorldList[i].World() == GWorld)
@@ -975,12 +972,18 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 					}
 				}
 
-				FStreamingPause::GameThreadWantsToSuspendRendering( GameViewport ? GameViewport->Viewport : NULL );
+				if( GameViewport && BeginStreamingPauseDelegate && BeginStreamingPauseDelegate->IsBound() )
+				{
+					BeginStreamingPauseDelegate->Execute( GameViewport->Viewport );
+				}	
 
 				// Flushes level streaming requests, blocking till completion.
 				Context.World()->FlushLevelStreaming();
 
-				FStreamingPause::GameThreadWantsToResumeRendering();
+				if( EndStreamingPauseDelegate && EndStreamingPauseDelegate->IsBound() )
+				{
+					EndStreamingPauseDelegate->Execute( );
+				}	
 			}
 			Context.World()->bRequestedBlockOnAsyncLoading = false;
 		}
@@ -1002,11 +1005,11 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 		if( GIsClient )
 		{
-			// GStreamingManager is updated outside of a world context. For now, assuming it needs to tick here, before possibly calling PostLoadMap. 
+			// IStreamingManager is updated outside of a world context. For now, assuming it needs to tick here, before possibly calling PostLoadMap. 
 			// Will need to take another look when trying to support multiple worlds.
 
 			// Update resource streaming after viewports have had a chance to update view information. Normal update.
-			GStreamingManager->Tick( DeltaSeconds );
+			IStreamingManager::Get().Tick( DeltaSeconds );
 
 			if ( Context.World()->bTriggerPostLoadMap )
 			{
@@ -1029,7 +1032,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// ----------------------------
 
 	// Restore original GWorld*. This will go away one day.
-	if (OriginalGWorldContext != INDEX_NONE)
+	if (OriginalGWorldContext != NAME_None)
 	{
 		GWorld = GetWorldContextFromHandleChecked(OriginalGWorldContext).World();
 	}
@@ -1170,4 +1173,20 @@ void UGameEngine::CloseSecondaryViewports()
 		SecondaryViewportClients[ClientIndex]->RemoveFromRoot();
 	}
 	SecondaryViewportClients.Empty();*/
+}
+
+UWorld* UGameEngine::GetGameWorld()
+{
+	for (auto It = WorldList.CreateConstIterator(); It; ++It)
+	{
+		const FWorldContext& Context = *It;
+        // Explicitly not checking for PIE worlds here, this should only 
+        // be called outside of editor (and thus is in UGameEngine
+		if (Context.WorldType == EWorldType::Game && Context.World())
+		{
+			return Context.World();
+		}
+	}
+
+	return NULL;
 }

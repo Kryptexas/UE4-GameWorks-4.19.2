@@ -245,6 +245,9 @@ public:
 	/** @return the Level's File Size as a FString */
 	FString GetFileSizeString() const;
 	
+	/** @return Class used for streaming this level */
+	virtual UClass* GetStreamingClass() const;
+	
 protected:
 	/** Level model display name */
 	FString								DisplayName;

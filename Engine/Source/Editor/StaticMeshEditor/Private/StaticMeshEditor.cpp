@@ -73,7 +73,7 @@ void FStaticMeshEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager
 
 FStaticMeshEditor::~FStaticMeshEditor()
 {
-	FAssetEditorToolkit::OnPostReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	GEditor->UnregisterForUndo( this );
 	GEditor->OnObjectReimported().RemoveAll(this);
@@ -81,7 +81,7 @@ FStaticMeshEditor::~FStaticMeshEditor()
 
 void FStaticMeshEditor::InitStaticMeshEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UStaticMesh* ObjectToEdit )
 {
-	FAssetEditorToolkit::OnPostReimport().AddRaw(this, &FStaticMeshEditor::OnPostReimport);
+	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FStaticMeshEditor::OnPostReimport);
 
 	// Support undo/redo
 	ObjectToEdit->SetFlags( RF_Transactional );

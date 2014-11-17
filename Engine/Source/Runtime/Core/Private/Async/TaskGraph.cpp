@@ -7,10 +7,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogTaskGraph, Log, All);
 
 DEFINE_STAT(STAT_FReturnGraphTask);
-DEFINE_STAT(STAT_FNullGraphTask);
 DEFINE_STAT(STAT_FTriggerEventGraphTask);
-DEFINE_STAT(STAT_FSimpleDelegateGraphTask);
-DEFINE_STAT(STAT_FDelegateGraphTask);
 
 namespace ENamedThreads
 {

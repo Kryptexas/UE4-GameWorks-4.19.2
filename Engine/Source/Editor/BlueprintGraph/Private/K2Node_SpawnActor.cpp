@@ -3,8 +3,6 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 
-#include "EngineKismetLibraryClasses.h"
-
 static FString WorldContextPinName(TEXT("WorldContextObject"));
 static FString BlueprintPinName(TEXT("Blueprint"));
 static FString SpawnTransformPinName(TEXT("SpawnTransform"));
@@ -65,9 +63,7 @@ void UK2Node_SpawnActor::CreatePinsForClass(UClass* InClass)
 		UClass* PropertyClass = CastChecked<UClass>(Property->GetOuter());
 		const bool bIsDelegate = Property->IsA(UMulticastDelegateProperty::StaticClass());
 		const bool bIsExposedToSpawn = UEdGraphSchema_K2::IsPropertyExposedOnSpawn(Property);
-
-		const bool bIsSettableExternally = !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance)
-			|| !Property->HasAnyPropertyFlags(CPF_BlueprintReadOnly);//@TODO: Remove this after old content is fixed up
+		const bool bIsSettableExternally = !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance);
 
 		if(	bIsExposedToSpawn &&
 			!Property->HasAnyPropertyFlags(CPF_Parm) && 
@@ -125,9 +121,9 @@ bool UK2Node_SpawnActor::IsSpawnVarPin(UEdGraphPin* Pin)
 }
 
 
-void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* Pin) 
+void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* ChangedPin) 
 {
-	if(Pin->PinName == BlueprintPinName)
+	if (ChangedPin->PinName == BlueprintPinName)
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -137,12 +133,12 @@ void UK2Node_SpawnActor::PinDefaultValueChanged(UEdGraphPin* Pin)
 
 		// Remove all pins related to archetype variables
 		TArray<UEdGraphPin*> OldPins = Pins;
-		for(int32 i=0; i<OldPins.Num(); i++)
+		for (int32 i = 0; i < OldPins.Num(); i++)
 		{
 			UEdGraphPin* OldPin = OldPins[i];
-			if(	IsSpawnVarPin(OldPin) )
+			if (IsSpawnVarPin(OldPin))
 			{
-				Pin->BreakAllPinLinks();
+				OldPin->BreakAllPinLinks();
 				Pins.Remove(OldPin);
 			}
 		}
@@ -361,12 +357,12 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 		UEdGraphPin* CallBeginResult = CallBeginSpawnNode->GetReturnValuePin();
 
 		// Move 'exec' connection from spawn node to 'begin spawn'
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeExec, *CallBeginExec), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeExec, *CallBeginExec);
 
 		if(SpawnBlueprintPin->LinkedTo.Num() > 0)
 		{
 			// Copy the 'blueprint' connection from the spawn node to 'begin spawn'
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnBlueprintPin, *CallBeginBlueprintPin), this);
+			CompilerContext.MovePinLinksToIntermediate(*SpawnBlueprintPin, *CallBeginBlueprintPin);
 		}
 		else
 		{
@@ -377,14 +373,14 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 		// Copy the world context connection from the spawn node to 'begin spawn' if necessary
 		if (SpawnWorldContextPin)
 		{
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnWorldContextPin, *CallBeginWorldContextPin), this);
+			CompilerContext.MovePinLinksToIntermediate(*SpawnWorldContextPin, *CallBeginWorldContextPin);
 		}
 
 		// Copy the 'transform' connection from the spawn node to 'begin spawn'
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeTransform, *CallBeginTransform), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeTransform, *CallBeginTransform);
 		
 		// Copy the 'bNoCollisionFail' connection from the spawn node to 'begin spawn'
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeNoCollisionFail, *CallBeginNoCollisionFail), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeNoCollisionFail, *CallBeginNoCollisionFail);
 
 		//////////////////////////////////////////////////////////////////////////
 		// create 'finish spawn' call node
@@ -399,17 +395,17 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 		UEdGraphPin* CallFinishResult = CallFinishSpawnNode->GetReturnValuePin();
 
 		// Move 'then' connection from spawn node to 'finish spawn'
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeThen, *CallFinishThen), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeThen, *CallFinishThen);
 			
 		// Copy transform connection
-		CompilerContext.CheckConnectionResponse(Schema->CopyPinLinks(*CallBeginTransform, *CallFinishTransform), this);
+		CompilerContext.CopyPinLinksToIntermediate(*CallBeginTransform, *CallFinishTransform);
 		
 		// Connect output actor from 'begin' to 'finish'
 		CallBeginResult->MakeLinkTo(CallFinishActor);
 
 		// Move result connection from spawn node to 'finish spawn'
 		CallFinishResult->PinType = SpawnNodeResult->PinType; // Copy type so it uses the right actor subclass
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnNodeResult, *CallFinishResult), this);
+		CompilerContext.MovePinLinksToIntermediate(*SpawnNodeResult, *CallFinishResult);
 
 		//////////////////////////////////////////////////////////////////////////
 		// create 'set var' nodes
@@ -454,7 +450,7 @@ void UK2Node_SpawnActor::ExpandNode(class FKismetCompilerContext& CompilerContex
 
 					// Move connection from the variable pin on the spawn node to the 'value' pin
 					UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-					CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*SpawnVarPin, *ValuePin), this);
+					CompilerContext.MovePinLinksToIntermediate(*SpawnVarPin, *ValuePin);
 					if(SpawnVarPin->PinType.bIsArray)
 					{
 						SetVarNode->PinConnectionListChanged(ValuePin);
@@ -484,7 +480,7 @@ bool UK2Node_SpawnActor::HasExternalBlueprintDependencies(TArray<class UStruct*>
 	{
 		OptionalOutput->Add(SourceClass);
 	}
-	return bResult;
+	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
 }
 
 bool UK2Node_SpawnActor::IsDeprecated() const

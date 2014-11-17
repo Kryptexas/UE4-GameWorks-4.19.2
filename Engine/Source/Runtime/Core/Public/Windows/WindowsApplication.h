@@ -191,12 +191,6 @@ public:
 
 	virtual void GetInitialDisplayMetrics( FDisplayMetrics& OutDisplayMetrics ) const OVERRIDE;
 
-#if WITH_EDITOR
-	virtual bool SupportsSourceAccess() const OVERRIDE;
-
-	virtual void GotoLineInSource(const FString& FileAndLineNumber) OVERRIDE;
-#endif
-
 	virtual IForceFeedbackSystem *GetForceFeedbackSystem() OVERRIDE 
 	{
 		return this; 

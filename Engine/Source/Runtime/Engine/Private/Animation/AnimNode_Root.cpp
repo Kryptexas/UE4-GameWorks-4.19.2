@@ -29,3 +29,10 @@ void FAnimNode_Root::Evaluate(FPoseContext& Output)
 {
 	Result.Evaluate(Output);
 }
+
+void FAnimNode_Root::GatherDebugData(FNodeDebugData& DebugData)
+{
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugData.AddDebugItem(DebugLine);
+	Result.GatherDebugData(DebugData);
+}

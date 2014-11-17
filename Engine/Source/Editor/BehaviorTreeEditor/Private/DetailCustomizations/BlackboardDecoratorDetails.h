@@ -18,7 +18,6 @@ public:
 private:
 
 	void CacheBlackboardData(IDetailLayoutBuilder& DetailLayout);
-	bool IsObserverNotifyEnabled() const;
 
 	EVisibility GetIntValueVisibility() const;
 	EVisibility GetFloatValueVisibility() const;
@@ -36,12 +35,13 @@ private:
 
 	TSharedPtr<IPropertyHandle> IntValueProperty;
 	TSharedPtr<IPropertyHandle> KeyIDProperty;
-	TSharedPtr<IPropertyHandle> NotifyObserverProperty;
 	
 	/** cached type of property selected by KeyName */
 	TSubclassOf<class UBlackboardKeyType> CachedKeyType;
 	/** cached custom object type of property selected by KeyName */
 	UEnum* CachedCustomObjectType;
+	/** cached operation for key type */
+	uint8 CachedOperationType;
 	
 	/** cached enum value if property selected by KeyName has enum type */	
 	TArray<FString> EnumPropValues;

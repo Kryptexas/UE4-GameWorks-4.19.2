@@ -18,6 +18,26 @@ namespace UnrealVS
 
 		private const int BatchBuilderToolWindowId = 0x1300;
 
+		/** properties */
+
+		public bool IsBusy
+		{
+			get
+			{
+				return ToolControl.IsBusy;
+			}
+		}
+
+		private static BatchBuilderToolControl _ToolControl;
+		public static BatchBuilderToolControl ToolControl
+		{
+			get 
+			{
+				if (_ToolControl == null) _ToolControl = new BatchBuilderToolControl();
+				return _ToolControl;
+			}
+		}
+
 		/** methods */
 
 		public BatchBuilder()
@@ -34,12 +54,7 @@ namespace UnrealVS
 		/// <param name="Stream">The stream to load the option data from.</param>
 		public void LoadOptions(Stream Stream)
 		{
-			BatchBuilderToolControl ToolControl = GetToolControl();
-
-			if (ToolControl != null)
-			{
-				ToolControl.LoadOptions(Stream);
-			}
+			ToolControl.LoadOptions(Stream);
 		}
 
 		/// <summary>
@@ -48,12 +63,7 @@ namespace UnrealVS
 		/// <param name="Stream">The stream to save the option data to.</param>
 		public void SaveOptions(Stream Stream)
 		{
-			BatchBuilderToolControl ToolControl = GetToolControl();
-
-			if (ToolControl != null)
-			{
-				ToolControl.SaveOptions(Stream);
-			}
+			ToolControl.SaveOptions(Stream);
 		}
 
 		/// <summary>
@@ -61,12 +71,7 @@ namespace UnrealVS
 		/// </summary>
 		public void Tick()
 		{
-			BatchBuilderToolControl ToolControl = GetToolControl();
-
-			if (ToolControl != null)
-			{
-				ToolControl.Tick();
-			}
+			ToolControl.Tick();
 		}
 
 		private void ShowToolWindow(object sender, EventArgs e)
@@ -81,22 +86,6 @@ namespace UnrealVS
 			}
 			IVsWindowFrame ToolWindowFrame = (IVsWindowFrame)ToolWindow.Frame;
 			Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(ToolWindowFrame.Show());
-		}
-
-		private BatchBuilderToolControl GetToolControl()
-		{
-			BatchBuilderToolWindow ToolWindow =
-				UnrealVSPackage.Instance.FindToolWindow(typeof(BatchBuilderToolWindow), 0, true) as BatchBuilderToolWindow;
-			if ((null == ToolWindow) || (null == ToolWindow.Frame))
-			{
-				throw new NotSupportedException(Resources.ToolWindowCreateError);
-			}
-
-			if (ToolWindow != null)
-			{
-				return ToolWindow.Content as BatchBuilderToolControl;
-			}
-			return null;
 		}
 	}
 }

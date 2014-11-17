@@ -10,7 +10,7 @@
 #pragma once
 #include "ParticleModuleBeamSource.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Source"))
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Source"))
 class UParticleModuleBeamSource : public UParticleModuleBeamBase
 {
 	GENERATED_UCLASS_BODY()

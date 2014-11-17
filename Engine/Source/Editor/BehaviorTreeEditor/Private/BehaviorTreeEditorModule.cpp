@@ -10,7 +10,7 @@
 #include "SGraphNode_BehaviorTree.h"
 #include "SGraphNode_Decorator.h"
 #include "EdGraphUtilities.h"
-#include "BehaviorTreeEditor.generated.inl"
+
 
 IMPLEMENT_MODULE( FBehaviorTreeEditorModule, BehaviorTreeEditor );
 DEFINE_LOG_CATEGORY(LogBehaviorTreeEditor);

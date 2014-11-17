@@ -5,12 +5,13 @@
 #include "IFilter.h"
 #include "FilterCollection.h"
 #include "SResetToDefaultMenu.h"
+#include "ActorPickerMode.h"
+
+namespace SceneOutliner { struct FOutlinerFilters; }
 
 DECLARE_DELEGATE_OneParam(FOnAssetSelected, const class FAssetData& /*AssetData*/);
-DECLARE_DELEGATE_OneParam( FOnGetAllowedClasses, TArray<const UClass*>& );
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnShouldFilterAsset, const class FAssetData& /*AssetData*/);
-DECLARE_DELEGATE_OneParam( FOnActorSelected, AActor* );
-DECLARE_DELEGATE_OneParam( FOnGetActorFilters, TSharedPtr<TFilterCollection<const AActor* const> >& );
+DECLARE_DELEGATE_OneParam( FOnGetActorFilters, TSharedPtr<SceneOutliner::FOutlinerFilters>& );
 
 namespace PropertyCustomizationHelpers
 {
@@ -25,8 +26,8 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerAnchorButton( FOnGetAllowedClasses OnGetAllowedClasses, FOnAssetSelected OnAssetSelectedFromPicker );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerWithMenu( UObject* const InitialObject, const bool AllowClear, const TArray<const UClass*>* const AllowedClasses, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerAnchorButton( FOnGetActorFilters OnGetActorFilters, FOnActorSelected OnActorSelectedFromPicker );
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerWithMenu( AActor* const InitialActor, const bool AllowClear, const TSharedPtr< TFilterCollection<const AActor* const> >& ActorFilters, FOnActorSelected OnSet, FSimpleDelegate OnClose, FSimpleDelegate OnUseSelected );
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker( FOnGetAllowedClasses OnClearClicked, FOnActorSelected OnActorSelectedFromPicker );
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerWithMenu( AActor* const InitialActor, const bool AllowClear, const TSharedPtr< SceneOutliner::FOutlinerFilters >& ActorFilters, FOnActorSelected OnSet, FSimpleDelegate OnClose, FSimpleDelegate OnUseSelected );
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker( FOnGetAllowedClasses OnGetAllowedClasses, FOnShouldFilterActor OnShouldFilterActor, FOnActorSelected OnActorSelectedFromPicker );
 }
 
 /** Delegate used to get a generic object */
@@ -182,9 +183,10 @@ class FDetailArrayBuilder : public IDetailCustomNodeBuilder
 {
 public:
 
-	FDetailArrayBuilder( TSharedRef<IPropertyHandle> InBaseProperty )
+	FDetailArrayBuilder( TSharedRef<IPropertyHandle> InBaseProperty, bool InGenerateHeader = true )
 		: ArrayProperty( InBaseProperty->AsArray() )
 		, BaseProperty( InBaseProperty )
+		, bGenerateHeader( InGenerateHeader)
 	{
 		check( ArrayProperty.IsValid() );
 
@@ -224,30 +226,33 @@ public:
 
 	virtual void GenerateHeaderRowContent( FDetailWidgetRow& NodeRow ) OVERRIDE
 	{
-		TSharedPtr<SResetToDefaultMenu> ResetToDefaultMenu;
-		bool bDisplayResetToDefault = false;
-		NodeRow
-		.FilterString( DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName() )
-		.NameContent()
-		[
-			BaseProperty->CreatePropertyNameWidget( DisplayName, bDisplayResetToDefault )
-		]
-		.ValueContent()
-		[
-			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
-			[
-				BaseProperty->CreatePropertyValueWidget()
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding( FMargin( 2.0f, 0.0f, 0.0f, 0.0f ) )
-			[
-				SAssignNew( ResetToDefaultMenu, SResetToDefaultMenu )
-			]
-		];
+		if (bGenerateHeader)
+		{
+			TSharedPtr<SResetToDefaultMenu> ResetToDefaultMenu;
+			bool bDisplayResetToDefault = false;
+			NodeRow
+				.FilterString(DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName())
+				.NameContent()
+				[
+					BaseProperty->CreatePropertyNameWidget(DisplayName, bDisplayResetToDefault)
+				]
+			.ValueContent()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						BaseProperty->CreatePropertyValueWidget()
+					]
+					+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
+						[
+							SAssignNew(ResetToDefaultMenu, SResetToDefaultMenu)
+						]
+				];
 
-		ResetToDefaultMenu->AddProperty( BaseProperty );
+			ResetToDefaultMenu->AddProperty(BaseProperty);
+		}
 	}
 
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) OVERRIDE
@@ -281,6 +286,7 @@ private:
 	TSharedPtr<IPropertyHandleArray> ArrayProperty;
 	TSharedRef<IPropertyHandle> BaseProperty;
 	FSimpleDelegate OnRebuildChildren;
+	bool bGenerateHeader;
 };
 
 /**

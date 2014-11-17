@@ -195,6 +195,9 @@ private:
 	/** Returns the text of the collection name */
 	FText GetNameText() const;
 
+	/** Returns the color of the collection name */
+	FSlateColor GetCollectionColor() const;
+
 	/** Returns the image for the border around this item. Used for drag/drop operations */
 	const FSlateBrush* GetBorderImage() const;
 

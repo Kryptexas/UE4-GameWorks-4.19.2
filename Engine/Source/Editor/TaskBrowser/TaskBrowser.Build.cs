@@ -15,10 +15,10 @@ public class TaskBrowser : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd"
 			}
-			);
-
+		);
 	}
 }

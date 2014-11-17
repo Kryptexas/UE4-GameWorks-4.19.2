@@ -1073,7 +1073,7 @@ const TArray<FName>& GetTargetShaderFormats()
 
 			for (int32 Index = 0; Index < Platforms.Num(); Index++)
 			{
-				Platforms[Index]->GetShaderFormats(Results);
+				Platforms[Index]->GetAllTargetedShaderFormats(Results);
 			}
 		}
 	}

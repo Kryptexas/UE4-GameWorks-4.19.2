@@ -415,7 +415,10 @@ protected:
 	/** The current mouse position. */
 	FVector2D MousePosition;
 
+	/** Mouse position during the call on mouse button up. */
 	FVector2D MousePositionOnButtonDown;
+
+	/** Mouse position during the call on mouse button down. */
 	FVector2D MousePositionOnButtonUp;
 
 	/** Accumulated mouse wheel value. */
@@ -485,7 +488,7 @@ protected:
 	/** Index of the frame currently being hovered by the mouse. */
 	int32 HoveredFrameIndex;
 
-	int FrameIndices[2];
+	int32 FrameIndices[2];
 
 	/*-----------------------------------------------------------------------------
 		Time based

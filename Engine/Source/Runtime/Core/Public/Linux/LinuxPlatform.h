@@ -22,12 +22,12 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 
 // Base defines, must define these for the platform, there are no defaults
 #define PLATFORM_DESKTOP						1
-#ifdef _LINUX64
+#if defined(_LINUX64) || defined(_LP64)
 	#define PLATFORM_64BITS						1
 #else
 	#define PLATFORM_64BITS						0
 #endif
-#define PLATFORM_CAN_SUPPORT_EDITORONLY_DATA	0
+#define PLATFORM_CAN_SUPPORT_EDITORONLY_DATA	1
 
 // Base defines, defaults are commented out
 
@@ -42,6 +42,7 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_MAX_FILEPATH_LENGTH				MAX_PATH /* @todo linux: avoid using PATH_MAX as it is known to be broken */
 #define PLATFORM_HAS_NO_EPROCLIM					1
 #define PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL		1
+#define PLATFORM_HAS_BSD_IPV6_SOCKETS				1
 #define PLATFORM_SUPPORTS_JEMALLOC					1
 #define PLATFORM_EXCEPTIONS_DISABLED				1
 

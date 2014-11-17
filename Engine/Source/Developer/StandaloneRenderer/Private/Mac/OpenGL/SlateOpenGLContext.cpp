@@ -90,12 +90,16 @@ char const* const CompositedBlitFragmentShader = "#version 120\n"
 			self = [super initWithFrame: FrameRect];
 		}
 	}
+	
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_surfaceNeedsUpdate:) name:NSViewGlobalFrameDidChangeNotification object:self];
 
 	return self;
 }
 
 - (void)dealloc
 {
+	[[NSNotificationCenter defaultCenter] removeObserver:self name:NSViewGlobalFrameDidChangeNotification object:self];
+	
 	if (Context)
 	{
 		[Context release];
@@ -200,6 +204,26 @@ char const* const CompositedBlitFragmentShader = "#version 120\n"
 	else
 	{
 		[super otherMouseUp:Event];
+	}
+}
+
+- (void)renewGState
+{
+	extern bool GMacEnableCocoaScreenUpdates;
+	if(GMacEnableCocoaScreenUpdates)
+	{
+		GMacEnableCocoaScreenUpdates = false;
+		NSDisableScreenUpdates();
+	}
+	
+	[super renewGState];
+}
+
+- (void) _surfaceNeedsUpdate:(NSNotification*)notification
+{
+	if(Context)
+	{
+		[Context update];
 	}
 }
 

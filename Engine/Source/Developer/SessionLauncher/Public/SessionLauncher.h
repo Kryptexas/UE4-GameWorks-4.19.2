@@ -15,7 +15,6 @@
 #include "LauncherServices.h"
 #include "Slate.h"
 #include "EditorStyle.h"
-#include "TargetDeviceServices.h"
 
 
 /* Interfaces

@@ -6,7 +6,6 @@
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
-#include "EngineKismetLibraryClasses.h"
 #include "SKismetInspector.h"
 #include "SKismetLinearExpression.h"
 #include "STutorialWrapper.h"
@@ -16,6 +15,7 @@
 #include "SMyBlueprint.h"
 #include "BlueprintDetailsCustomization.h"
 #include "UserDefinedEnumEditor.h"
+#include "UserDefinedStructureEditor.h"
 #include "FormatTextDetails.h"
 
 #define LOCTEXT_NAMESPACE "KismetInspector"
@@ -49,7 +49,7 @@ TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismet
 			.Padding( 2.0f, 14.0f, 2.0f, 2.0f )
 			[
 				SNew( STextBlock )
-				.Text( LOCTEXT("NoNodesSelected", "Select a node to edit details.").ToString() )
+				.Text( LOCTEXT("NoNodesSelected", "Select a node to edit details.") )
 			];
 		}
 		else
@@ -89,11 +89,11 @@ TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismet
 				.VAlign( VAlign_Top )
 				[
 					SNew(SCheckBox)
-					.ToolTipText(LOCTEXT("TogglePublicView", "Toggle Public View").ToString())
+					.ToolTipText(LOCTEXT("TogglePublicView", "Toggle Public View"))
 					.IsChecked(this, &SKismetInspector::GetPublicViewCheckboxState)
 					.OnCheckStateChanged( this, &SKismetInspector::SetPublicViewCheckboxState)
 					[
-						SNew(STextBlock) .Text(LOCTEXT("PublicViewCheckboxLabel", "Public View").ToString())
+						SNew(STextBlock) .Text(LOCTEXT("PublicViewCheckboxLabel", "Public View"))
 					]
 				];
 		}
@@ -226,20 +226,23 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_VariableGet::StaticClass(), LayoutVariableDetails);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_VariableSet::StaticClass(), LayoutVariableDetails);
 
-		FOnGetDetailCustomizationInstance LayoutLocalVariableDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintLocalVarActionDetails::MakeInstance, TWeakPtr<SMyBlueprint>(Kismet2->GetMyBlueprintWidget()));
-		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_LocalVariable::StaticClass(), LayoutLocalVariableDetails);
-
 		FOnGetDetailCustomizationInstance LayoutOptionDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGlobalOptionsDetails::MakeInstance, Kismet2Ptr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UBlueprint::StaticClass(), LayoutOptionDetails);
 
 		FOnGetDetailCustomizationInstance LayoutEnumDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FEnumDetails::MakeInstance);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UUserDefinedEnum::StaticClass(), LayoutEnumDetails);
 
+		FOnGetDetailCustomizationInstance LayoutStructDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FUserDefinedStructureDetails::MakeInstance);
+		PropertyView->RegisterInstancedCustomPropertyLayout(UUserDefinedStruct::StaticClass(), LayoutStructDetails);
+
 		FOnGetDetailCustomizationInstance LayoutFormatTextDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FFormatTextDetails::MakeInstance);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_FormatText::StaticClass(), LayoutFormatTextDetails);
 
 		FOnGetDetailCustomizationInstance GraphNodeDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGraphNodeDetails::MakeInstance, Kismet2Ptr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UEdGraphNode::StaticClass(), GraphNodeDetails);
+
+		PropertyView->RegisterInstancedCustomPropertyLayout(UChildActorComponent::StaticClass(),
+			FOnGetDetailCustomizationInstance::CreateStatic(&FChildActorComponentDetails::MakeInstance, Kismet2Ptr));
 	}
 
 	// Create the border that all of the content will get stuffed into

@@ -4,6 +4,9 @@
 #include "GameProjectGenerationPrivatePCH.h"
 #include "MainFrame.h"
 #include "DesktopPlatformModule.h"
+#include "SVerbChoiceDialog.h"
+#include "UProjectInfo.h"
+#include "SourceCodeNavigation.h"
 
 #define LOCTEXT_NAMESPACE "ProjectBrowser"
 
@@ -15,17 +18,44 @@ struct FProjectItem
 {
 	FText Name;
 	FText Description;
+	FString EngineIdentifier;
+	bool bUpToDate;
 	FString ProjectFile;
 	TSharedPtr<FSlateBrush> ProjectThumbnail;
 	bool bIsNewProjectItem;
 
-	FProjectItem(const FText& InName, const FText& InDescription, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem)
+	FProjectItem(const FText& InName, const FText& InDescription, const FString& InEngineIdentifier, bool InUpToDate, const TSharedPtr<FSlateBrush>& InProjectThumbnail, const FString& InProjectFile, bool InIsNewProjectItem)
 		: Name(InName)
 		, Description(InDescription)
+		, EngineIdentifier(InEngineIdentifier)
+		, bUpToDate(InUpToDate)
 		, ProjectFile(InProjectFile)
 		, ProjectThumbnail(InProjectThumbnail)
 		, bIsNewProjectItem(InIsNewProjectItem)
 	{ }
+
+	/** Check if this project is up to date */
+	bool IsUpToDate() const
+	{
+		return bUpToDate;
+	}
+
+	/** Gets the engine label for this project */
+	FString GetEngineLabel() const
+	{
+		if(bUpToDate)
+		{
+			return FString();
+		}
+		else if(FDesktopPlatformModule::Get()->IsStockEngineRelease(EngineIdentifier))
+		{
+			return EngineIdentifier;
+		}
+		else
+		{
+			return FString(TEXT("?"));
+		}
+	}
 };
 
 
@@ -65,18 +95,13 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 	bPreventSelectionChangeEvent = false;
 	ThumbnailBorderPadding = 5;
 	ThumbnailSize = 128.0f;
+	bAllowProjectCreate = InArgs._AllowProjectCreate;
 
 	// Prepare the categories box
 	CategoriesBox = SNew(SVerticalBox);
 
 	// Find all projects
-	FindProjects(InArgs._AllowProjectCreate);
-
-	for (auto CategoryIt = ProjectCategories.CreateConstIterator(); CategoryIt; ++CategoryIt)
-	{
-		const TSharedRef<FProjectCategory>& Category = *CategoryIt;
-		ConstructCategory( CategoriesBox.ToSharedRef(), Category );
-	}
+	FindProjects();
 
 	CategoriesBox->AddSlot()
 	.HAlign(HAlign_Center)
@@ -124,20 +149,36 @@ void SProjectBrowser::Construct( const FArguments& InArgs )
 				.VAlign(VAlign_Top)
 				.Padding(FMargin(5.f, 10.f))
 				[
-					SNew(SOverlay)
-
-					+SOverlay::Slot()
+					SNew(SHorizontalBox)
+					+SHorizontalBox::Slot()
 					[
-						SNew(SSearchBox)
-						.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
-						.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
+						SNew(SOverlay)
+
+						+SOverlay::Slot()
+						[
+							SNew(SSearchBox)
+							.HintText(LOCTEXT("FilterHint", "Filter Projects..."))
+							.OnTextChanged(this, &SProjectBrowser::OnFilterTextChanged)
+						]
+
+						+SOverlay::Slot()
+						[
+							SNew(SBorder)
+							.Visibility(this, &SProjectBrowser::GetFilterActiveOverlayVisibility)
+							.BorderImage(FEditorStyle::Get().GetBrush("SearchBox.ActiveBorder"))
+						]
 					]
 
-					+SOverlay::Slot()
+					+SHorizontalBox::Slot()
+					.AutoWidth()
 					[
-						SNew(SBorder)
-						.Visibility(this, &SProjectBrowser::GetFilterActiveOverlayVisibility)
-						.BorderImage(FEditorStyle::Get().GetBrush("SearchBox.ActiveBorder"))
+						SNew(SButton)
+						.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+						.OnClicked(this, &SProjectBrowser::FindProjects)
+						.ToolTipText(LOCTEXT("RefreshProjectList", "Refresh the project list"))
+						[
+							SNew(SImage).Image(FEditorStyle::Get().GetBrush("Icons.Refresh"))
+						]
 					]
 				]
 
@@ -254,6 +295,7 @@ void SProjectBrowser::ConstructCategory( const TSharedRef<SVerticalBox>& InCateg
 		.SelectionMode(ESelectionMode::Single)
 		.ClearSelectionOnClick(false)
 		.OnGenerateTile(this, &SProjectBrowser::MakeProjectViewWidget)
+		.OnContextMenuOpening(this, &SProjectBrowser::OnGetContextMenuContent)
 		.OnMouseButtonDoubleClick(this, &SProjectBrowser::HandleProjectItemDoubleClick)
 		.OnSelectionChanged(TSlateDelegates<TSharedPtr<FProjectItem>>::FOnSelectionChanged::CreateSP(this, &SProjectBrowser::HandleProjectViewSelectionChanged, Category->CategoryName))
 		.ItemHeight(ThumbnailSize + ThumbnailBorderPadding + 32)
@@ -300,46 +342,228 @@ TSharedRef<ITableRow> SProjectBrowser::MakeProjectViewWidget(TSharedPtr<FProject
 	}
 	else
 	{
+		const FLinearColor Tint = ProjectItem->IsUpToDate() ? FLinearColor::White : FLinearColor::White.CopyWithNewOpacity(0.5);
+
 		// Drop shadow border
 		Thumbnail =	SNew(SBorder)
 			.Padding(ThumbnailBorderPadding)
 			.BorderImage( FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow") )
+			.ColorAndOpacity(Tint)
+			.BorderBackgroundColor(Tint)
 			[
 				SNew(SImage).Image(this, &SProjectBrowser::GetProjectItemImage, TWeakPtr<FProjectItem>(ProjectItem))
 			];
 	}
 
-	return
-		SNew( STableRow<TSharedPtr<FProjectItem>>, OwnerTable )
-		.Style(FEditorStyle::Get(), "GameProjectDialog.TemplateListView.TableRow")
+	TSharedRef<ITableRow> TableRow = SNew( STableRow<TSharedPtr<FProjectItem>>, OwnerTable )
+	.Style(FEditorStyle::Get(), "GameProjectDialog.TemplateListView.TableRow")
+	[
+		SNew(SBox)
+		.HeightOverride(ThumbnailSize+ThumbnailBorderPadding+5)
 		[
-			SNew(SBox).HeightOverride(ThumbnailSize+ThumbnailBorderPadding+5)
-			[
-				SNew(SVerticalBox)
+			SNew(SVerticalBox)
 
-				// Thumbnail
-				+SVerticalBox::Slot()
-				.AutoHeight()
+			// Thumbnail
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SBox)
+				.WidthOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
+				.HeightOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
 				[
-					SNew(SBox)
-					.WidthOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
-					.HeightOverride(ThumbnailSize + ThumbnailBorderPadding * 2)
+					SNew(SOverlay)
+
+					+ SOverlay::Slot()
 					[
 						Thumbnail.ToSharedRef()
 					]
-				]
 
-				// Name
-				+SVerticalBox::Slot()
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Top)
-				[
-					SNew(STextBlock)
-					.HighlightText(this, &SProjectBrowser::GetItemHighlightText)
-					.Text(ProjectItem->Name)
+					// Show the out of date engine version for this project file
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Bottom)
+					.Padding(10)
+					[
+						SNew(STextBlock)
+						.Text(ProjectItem->GetEngineLabel())
+						.TextStyle(FEditorStyle::Get(), "ProjectBrowser.VersionOverlayText")
+						.ColorAndOpacity(FLinearColor::White.CopyWithNewOpacity(0.5f))
+						.Visibility(ProjectItem->IsUpToDate() ? EVisibility::Collapsed : EVisibility::Visible)
+					]
 				]
 			]
-		];
+
+			// Name
+			+SVerticalBox::Slot()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Top)
+			[
+				SNew(STextBlock)
+				.HighlightText(this, &SProjectBrowser::GetItemHighlightText)
+				.Text(ProjectItem->Name)
+			]
+		]
+	];
+
+	TableRow->AsWidget()->SetToolTip(MakeProjectToolTip(ProjectItem));
+
+	return TableRow;
+}
+
+
+TSharedRef<SToolTip> SProjectBrowser::MakeProjectToolTip( TSharedPtr<FProjectItem> ProjectItem ) const
+{
+	// Create a box to hold every line of info in the body of the tooltip
+	TSharedRef<SVerticalBox> InfoBox = SNew(SVerticalBox);
+
+	if(!ProjectItem->Description.IsEmpty())
+	{
+		AddToToolTipInfoBox( InfoBox, LOCTEXT("ProjectTileTooltipDescription", "Description"), ProjectItem->Description );
+	}
+
+	{
+		const FString ProjectPath = FPaths::GetPath(ProjectItem->ProjectFile);
+		AddToToolTipInfoBox( InfoBox, LOCTEXT("ProjectTileTooltipPath", "Path"), FText::FromString(ProjectPath) );
+	}
+
+	if (!ProjectItem->IsUpToDate())
+	{
+		FText Description;
+		if(FDesktopPlatformModule::Get()->IsStockEngineRelease(ProjectItem->EngineIdentifier))
+		{
+			Description = FText::FromString(ProjectItem->EngineIdentifier);
+		}
+		else
+		{
+			FString RootDir;
+			if(FDesktopPlatformModule::Get()->GetEngineRootDirFromIdentifier(ProjectItem->EngineIdentifier, RootDir))
+			{
+				FString PlatformRootDir = RootDir;
+				FPaths::MakePlatformFilename(PlatformRootDir);
+				Description = FText::FromString(PlatformRootDir);
+			}
+			else
+			{
+				Description = LOCTEXT("UnknownEngineVersion", "Unknown engine version");
+			}
+		}
+		AddToToolTipInfoBox(InfoBox, LOCTEXT("EngineVersion", "Engine"), Description);
+	}
+
+	TSharedRef<SToolTip> Tooltip = SNew(SToolTip)
+	.TextMargin(1)
+	.BorderImage( FEditorStyle::GetBrush("ProjectBrowser.TileViewTooltip.ToolTipBorder") )
+	[
+		SNew(SBorder)
+		.Padding(6)
+		.BorderImage( FEditorStyle::GetBrush("ProjectBrowser.TileViewTooltip.NonContentBorder") )
+		[
+			SNew(SVerticalBox)
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0, 0, 0, 4)
+			[
+				SNew(SBorder)
+				.Padding(6)
+				.BorderImage( FEditorStyle::GetBrush("ProjectBrowser.TileViewTooltip.ContentBorder") )
+				[
+					SNew(SVerticalBox)
+
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text( ProjectItem->Name )
+						.Font( FEditorStyle::GetFontStyle("ProjectBrowser.TileViewTooltip.NameFont") )
+					]
+				]
+			]
+
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SBorder)
+				.Padding(6)
+				.BorderImage( FEditorStyle::GetBrush("ProjectBrowser.TileViewTooltip.ContentBorder") )
+				[
+					InfoBox
+				]
+			]
+		]
+	];
+
+	return Tooltip;
+}
+
+
+void SProjectBrowser::AddToToolTipInfoBox(const TSharedRef<SVerticalBox>& InfoBox, const FText& Key, const FText& Value) const
+{
+	InfoBox->AddSlot()
+	.AutoHeight()
+	.Padding(0, 1)
+	[
+		SNew(SHorizontalBox)
+
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.Padding(0, 0, 4, 0)
+		[
+			SNew(STextBlock) .Text( FText::Format(LOCTEXT("ProjectBrowserTooltipFormat", "{0}:"), Key ) )
+			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+		]
+
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		[
+			SNew(STextBlock) .Text( Value )
+			.ColorAndOpacity(FSlateColor::UseForeground())
+		]
+	];
+}
+
+
+TSharedPtr<SWidget> SProjectBrowser::OnGetContextMenuContent() const
+{
+	FMenuBuilder MenuBuilder(/*bInShouldCloseWindowAfterMenuSelection=*/true, nullptr);
+
+	TSharedPtr<FProjectItem> SelectedProjectItem = GetSelectedProjectItem();
+	const FText ProjectContextActionsText = (SelectedProjectItem.IsValid()) ? SelectedProjectItem->Name : LOCTEXT("ProjectActionsMenuHeading", "Project Actions");
+	MenuBuilder.BeginSection("ProjectContextActions", ProjectContextActionsText);
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("FileManagerName"), FPlatformMisc::GetFileManagerName());
+	const FText ExploreToText = FText::Format(NSLOCTEXT("GenericPlatform", "ShowInFileManager", "Show In {FileManagerName}"), Args);
+
+	MenuBuilder.AddMenuEntry(
+		ExploreToText,
+		LOCTEXT("FindInExplorerTooltip", "Finds this project on disk"),
+		FSlateIcon(),
+		FUIAction(
+		FExecuteAction::CreateSP( this, &SProjectBrowser::ExecuteFindInExplorer ),
+		FCanExecuteAction::CreateSP( this, &SProjectBrowser::CanExecuteFindInExplorer )
+		)
+		);
+
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
+
+void SProjectBrowser::ExecuteFindInExplorer() const
+{
+	TSharedPtr<FProjectItem> SelectedProjectItem = GetSelectedProjectItem();
+	check(SelectedProjectItem.IsValid());
+	FPlatformProcess::ExploreFolder(*SelectedProjectItem->ProjectFile);
+}
+
+
+bool SProjectBrowser::CanExecuteFindInExplorer() const
+{
+	TSharedPtr<FProjectItem> SelectedProjectItem = GetSelectedProjectItem();
+	return SelectedProjectItem.IsValid();
 }
 
 
@@ -385,98 +609,110 @@ FText SProjectBrowser::GetSelectedProjectName() const
 	return FText::GetEmpty();
 }
 
-void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
+FReply SProjectBrowser::FindProjects()
 {
-	const FText CreateProjectCategoryName = LOCTEXT("NewProjectCategoryName", "Create Project");
+	ProjectCategories.Empty();
+	CategoriesBox->ClearChildren();
+
 	const FText MyProjectsCategoryName = LOCTEXT("MyProjectsCategoryName", "My Projects");
-	const FText ProjectsCategoryName = LOCTEXT("ProjectsCategoryName", "My Projects");
-	const FText SampleGamesCategoryName = LOCTEXT("SampleGamesCategoryName", "Sample Games");
-	const FText DemoletsCategoryName = LOCTEXT("DemoletsCategoryName", "Demolets");
-	const FText ShowcasesCategoryName = LOCTEXT("ShowcasesCategoryName", "Showcases");
+	const FText SamplesCategoryName = LOCTEXT("SamplesCategoryName", "Samples");
 
-	//// Add the option to create a new game to the "Create Project" category.
-	//if (bAllowProjectCreate)
-	//{
-	//	const bool bIsNewProjectItem = true;
-	//	TSharedRef<FProjectItem> NewProjectItem = MakeShareable(new FProjectItem(LOCTEXT("CreateNewProjectItem", "New Project"), FText(), NULL, TEXT(""), bIsNewProjectItem));
-	//	AddProjectToCategory(NewProjectItem, CreateProjectCategoryName);
-	//}
-
-	// Form a list of all known project files.
-	TMap<FString, FText> DiscoveredProjectFilesToCategory;
-
-	// Start with recents
-	for (auto RecentIt = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles.CreateConstIterator(); RecentIt; ++RecentIt)
-	{
-		const FString File = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(**RecentIt);
-		DiscoveredProjectFilesToCategory.Add(File, MyProjectsCategoryName);
-	}
-
-	// Form a list of folders that may contain project files and their category names.
-	struct FFolderToCategory
-	{
-		FString Folder;
-		FText Category;
-
-		FFolderToCategory(const FString& InFolder, const FText& InCategory)
-			: Folder(InFolder), Category(InCategory)
-		{}
-	};
-
-	TArray<FFolderToCategory> ProjectFileDiscoverFoldersToCategory;
+	// Create a map of parent project folders to their category
+	TMap<FString, FText> ParentProjectFoldersToCategory;
 
 	// Add the default creation path, in case you've never created a project before or want to include this path anyway
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(GameProjectUtils::GetDefaultProjectCreationPath(), MyProjectsCategoryName));
+	ParentProjectFoldersToCategory.Add(GameProjectUtils::GetDefaultProjectCreationPath(), MyProjectsCategoryName);
 
 	// Add in every path that the user has ever created a project file. This is to catch new projects showing up in the user's project folders
-	for (auto CreatedPathIt = GEditor->GetGameAgnosticSettings().CreatedProjectPaths.CreateConstIterator(); CreatedPathIt; ++CreatedPathIt)
+	const TArray<FString> &CreatedProjectPaths = GEditor->GetGameAgnosticSettings().CreatedProjectPaths;
+	for(int32 Idx = 0; Idx < CreatedProjectPaths.Num(); Idx++)
 	{
-		ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(*CreatedPathIt, MyProjectsCategoryName));
+		FString CreatedProjectPath = CreatedProjectPaths[Idx];
+		FPaths::NormalizeDirectoryName(CreatedProjectPath);
+		ParentProjectFoldersToCategory.Add(CreatedProjectPath, MyProjectsCategoryName);
 	}
 
-	// @todo discover projects in the "holding tank" perhaps
-	// Hard-coding a few paths for now
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::RootDir(), ProjectsCategoryName));
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::Combine(*FPaths::RootDir(), TEXT("Samples")), SampleGamesCategoryName));
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::Combine(*FPaths::RootDir(), TEXT("Samples"), TEXT("SampleGames")), SampleGamesCategoryName));
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::Combine(*FPaths::RootDir(), TEXT("Samples"), TEXT("Showcases")), ShowcasesCategoryName));
-	ProjectFileDiscoverFoldersToCategory.Add(FFolderToCategory(FPaths::Combine(*FPaths::RootDir(), TEXT("Samples"), TEXT("Demolets")), DemoletsCategoryName));
+	// Create a map of project folders to their category
+	TMap<FString, FText> ProjectFoldersToCategory;
 
-	// Discover all unique project files in all discover folders
-	for (auto RootFolderIt = ProjectFileDiscoverFoldersToCategory.CreateConstIterator(); RootFolderIt; ++RootFolderIt)
+	// Find all the subdirectories of all the parent folders
+	for(TMap<FString, FText>::TConstIterator Iter(ParentProjectFoldersToCategory); Iter; ++Iter)
 	{
-		const FString Root = (*RootFolderIt).Folder;
-		const FText Category = (*RootFolderIt).Category;
-		const FString RootSearchString = Root / TEXT("*");
-		TArray<FString> PotentialProjectFolders;
-		IFileManager::Get().FindFiles(PotentialProjectFolders, *RootSearchString, /*Files=*/false, /*Directories=*/true);
-		for (auto FolderIt = PotentialProjectFolders.CreateConstIterator(); FolderIt; ++FolderIt)
+		const FString &ParentProjectFolder = Iter.Key();
+
+		TArray<FString> ProjectFolders;
+		IFileManager::Get().FindFiles(ProjectFolders, *(ParentProjectFolder / TEXT("*")), false, true);
+
+		for(int32 Idx = 0; Idx < ProjectFolders.Num(); Idx++)
 		{
-			const FString FolderName = Root / (*FolderIt);
-			const FString ProjectSearchString = FolderName / TEXT("*.") + IProjectManager::GetProjectFileExtension();
-			TArray<FString> FoundProjectFiles;
-			IFileManager::Get().FindFiles(FoundProjectFiles, *ProjectSearchString, /*Files=*/true, /*Directories=*/false);
-			for (auto ProjectFilenameIt = FoundProjectFiles.CreateConstIterator(); ProjectFilenameIt; ++ProjectFilenameIt)
-			{
-				const FString PotentiallyRelativeFile = FolderName / (*ProjectFilenameIt);
-				const FString AbsoluteFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*PotentiallyRelativeFile);
-				DiscoveredProjectFilesToCategory.Add(AbsoluteFile, Category);
-			}
+			ProjectFoldersToCategory.Add(ParentProjectFolder / ProjectFolders[Idx], Iter.Value());
 		}
 	}
 
-	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
-
-	// Add all discovered projects to the list
-	for ( auto ProjectFilenameIt = DiscoveredProjectFilesToCategory.CreateConstIterator(); ProjectFilenameIt; ++ProjectFilenameIt )
+	// Add all the launcher installed sample folders
+	TArray<FString> LauncherSampleDirectories;
+	FDesktopPlatformModule::Get()->EnumerateLauncherSampleInstallations(LauncherSampleDirectories);
+	for(int32 Idx = 0; Idx < LauncherSampleDirectories.Num(); Idx++)
 	{
-		const FString& ProjectFilename = ProjectFilenameIt.Key();
-		const FText& DetectedCategory = ProjectFilenameIt.Value();
+		ProjectFoldersToCategory.Add(LauncherSampleDirectories[Idx], SamplesCategoryName);
+	}
+
+	// Create a map of all the project files to their category
+	TMap<FString, FText> ProjectFilesToCategory;
+
+	// Add all the folders that the user has opened recently
+	const TArray<FString> &RecentlyOpenedProjectFiles = GEditor->GetGameAgnosticSettings().RecentlyOpenedProjectFiles;
+	for (int32 Idx = 0; Idx < RecentlyOpenedProjectFiles.Num(); Idx++)
+	{
+		FString RecentlyOpenedProjectFile = RecentlyOpenedProjectFiles[Idx];
+		FPaths::NormalizeFilename(RecentlyOpenedProjectFile);
+		ProjectFilesToCategory.Add(RecentlyOpenedProjectFile, MyProjectsCategoryName);
+	}
+
+	// Scan the project folders for project files
+	FString ProjectWildcard = FString::Printf(TEXT("*.%s"), *IProjectManager::GetProjectFileExtension());
+	for(TMap<FString, FText>::TConstIterator Iter(ProjectFoldersToCategory); Iter; ++Iter)
+	{
+		const FString &ProjectFolder = Iter.Key();
+
+		TArray<FString> ProjectFiles;
+		IFileManager::Get().FindFiles(ProjectFiles, *(ProjectFolder / ProjectWildcard), true, false);
+
+		for(int32 Idx = 0; Idx < ProjectFiles.Num(); Idx++)
+		{
+			ProjectFilesToCategory.Add(ProjectFolder / ProjectFiles[Idx], Iter.Value());
+		}
+	}
+
+	// Add all the discovered non-foreign project files
+	const TArray<FString> &NonForeignProjectFiles = FUProjectDictionary::GetDefault().GetProjectPaths();
+	for(int32 Idx = 0; Idx < NonForeignProjectFiles.Num(); Idx++)
+	{
+		if(!NonForeignProjectFiles[Idx].Contains(TEXT("/Templates/")))
+		{
+			const FText &CategoryName = NonForeignProjectFiles[Idx].Contains(TEXT("/Samples/"))? SamplesCategoryName : MyProjectsCategoryName;
+			ProjectFilesToCategory.Add(NonForeignProjectFiles[Idx], CategoryName);
+		}
+	}
+
+	// Normalize all the filenames and make sure there are no duplicates
+	TMap<FString, FText> AbsoluteProjectFilesToCategory;
+	for(TMap<FString, FText>::TConstIterator Iter(ProjectFilesToCategory); Iter; ++Iter)
+	{
+		FString AbsoluteFile = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Iter.Key());
+		AbsoluteProjectFilesToCategory.Add(AbsoluteFile, Iter.Value());
+	}
+
+	// Add all the discovered projects to the list
+	const FString EngineIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+	for(TMap<FString, FText>::TConstIterator Iter(AbsoluteProjectFilesToCategory); Iter; ++Iter)
+	{
+		const FString& ProjectFilename = *Iter.Key();
+		const FText& DetectedCategory = Iter.Value();
 		if ( FPaths::FileExists(ProjectFilename) )
 		{
-			const bool bPromptIfSavedWithNewerVersionOfEngine = false;
 			FProjectStatus ProjectStatus;
-			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, EngineIdentifier, ProjectStatus))
+			if (IProjectManager::Get().QueryStatusForProject(ProjectFilename, ProjectStatus))
 			{
 				// @todo localized project name
 				const FText ProjectName = FText::FromString(ProjectStatus.Name);
@@ -504,75 +740,38 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 				FText ProjectCategory;
 				if ( ProjectStatus.bSignedSampleProject )
 				{
-					if(ProjectStatus.Category == "Sample Games")
-					{
-						ProjectCategory = SampleGamesCategoryName;
-					}
-					else if(ProjectStatus.Category == "Demolets")
-					{
-						ProjectCategory = DemoletsCategoryName;
-					}
-					else if(ProjectStatus.Category == "Showcases")
-					{
-						ProjectCategory = ShowcasesCategoryName;
-					}
+					ProjectCategory = SamplesCategoryName;
 				}
 				else
 				{
-					ProjectCategory = (ProjectStatus.Category.IsEmpty()) ? DetectedCategory : FText::FromString(ProjectStatus.Category);
+					ProjectCategory = DetectedCategory;
 				}
 
-				if ( ProjectCategory.IsEmpty() )
-				{
-					ProjectCategory = MyProjectsCategoryName;
-				}
+				FString ProjectEngineIdentifier;
+				bool bIsUpToDate = FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFilename, ProjectEngineIdentifier) && ProjectEngineIdentifier == EngineIdentifier;
 
 				const bool bIsNewProjectItem = false;
-				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, DynamicBrush, ProjectFilename, bIsNewProjectItem ) );
+				TSharedRef<FProjectItem> NewProjectItem = MakeShareable( new FProjectItem(ProjectName, ProjectDescription, ProjectEngineIdentifier, bIsUpToDate, DynamicBrush, ProjectFilename, bIsNewProjectItem ) );
 				AddProjectToCategory(NewProjectItem, ProjectCategory);
 			}
 		}
 	}
 
-	// Make sure the category order is "Create Project", "My Projects", "Projects", "Sample Games", "Demolets", "Showcases" then all remaining categories in alphabetical order
-	TSharedPtr<FProjectCategory> CreateProjectCategory;
+	// Make sure the category order is "My Projects", "Samples", then all remaining categories in alphabetical order
 	TSharedPtr<FProjectCategory> MyProjectsCategory;
-	TSharedPtr<FProjectCategory> ProjectsCategory;
 	TSharedPtr<FProjectCategory> SamplesCategory;
-	TSharedPtr<FProjectCategory> DemoletsCategory;
-	TSharedPtr<FProjectCategory> ShowcasesCategory;
 
 	for ( int32 CategoryIdx = ProjectCategories.Num() - 1; CategoryIdx >= 0; --CategoryIdx )
 	{
 		TSharedRef<FProjectCategory> Category = ProjectCategories[CategoryIdx];
-		if ( Category->CategoryName.EqualTo(CreateProjectCategoryName) )
-		{
-			CreateProjectCategory = Category;
-			ProjectCategories.RemoveAt(CategoryIdx);
-		}
-		else if ( Category->CategoryName.EqualTo(MyProjectsCategoryName) )
+		if ( Category->CategoryName.EqualTo(MyProjectsCategoryName) )
 		{
 			MyProjectsCategory = Category;
 			ProjectCategories.RemoveAt(CategoryIdx);
 		}
-		else if ( Category->CategoryName.EqualTo(ProjectsCategoryName) )
-		{
-			ProjectsCategory = Category;
-			ProjectCategories.RemoveAt(CategoryIdx);
-		}
-		else if ( Category->CategoryName.EqualTo(SampleGamesCategoryName) )
+		else if ( Category->CategoryName.EqualTo(SamplesCategoryName) )
 		{
 			SamplesCategory = Category;
-			ProjectCategories.RemoveAt(CategoryIdx);
-		}
-		else if ( Category->CategoryName.EqualTo(DemoletsCategoryName) )
-		{
-			DemoletsCategory = Category;
-			ProjectCategories.RemoveAt(CategoryIdx);
-		}
-		else if ( Category->CategoryName.EqualTo(ShowcasesCategoryName) )
-		{
-			ShowcasesCategory = Category;
 			ProjectCategories.RemoveAt(CategoryIdx);
 		}
 	}
@@ -587,30 +786,14 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 	};
 	ProjectCategories.Sort( FCompareCategories() );
 
-	// Now readd the built-in categories (last added is first in the list)
-	if ( DemoletsCategory.IsValid() )
-	{
-		ProjectCategories.Insert(DemoletsCategory.ToSharedRef(), 0);
-	}
-	if ( ShowcasesCategory.IsValid() )
-	{
-		ProjectCategories.Insert(ShowcasesCategory.ToSharedRef(), 0);
-	}
+	// Now read the built-in categories (last added is first in the list)
 	if ( SamplesCategory.IsValid() )
 	{
 		ProjectCategories.Insert(SamplesCategory.ToSharedRef(), 0);
 	}
-	if ( ProjectsCategory.IsValid() )
-	{
-		ProjectCategories.Insert(ProjectsCategory.ToSharedRef(), 0);
-	}
 	if ( MyProjectsCategory.IsValid() )
 	{
 		ProjectCategories.Insert(MyProjectsCategory.ToSharedRef(), 0);
-	}
-	if ( CreateProjectCategory.IsValid() )
-	{
-		ProjectCategories.Insert(CreateProjectCategory.ToSharedRef(), 0);
 	}
 
 	// Sort each individual category
@@ -628,6 +811,14 @@ void SProjectBrowser::FindProjects(bool bAllowProjectCreate)
 	}
 
 	PopulateFilteredProjectCategories();
+
+	for (auto CategoryIt = ProjectCategories.CreateConstIterator(); CategoryIt; ++CategoryIt)
+	{
+		const TSharedRef<FProjectCategory>& Category = *CategoryIt;
+		ConstructCategory(CategoriesBox.ToSharedRef(), Category);
+	}
+
+	return FReply::Handled();
 }
 
 
@@ -673,15 +864,146 @@ void SProjectBrowser::PopulateFilteredProjectCategories()
 	}
 }
 
+FReply SProjectBrowser::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
+{
+	if (InKeyboardEvent.GetKey() == EKeys::F5)
+	{
+		return FindProjects();
+	}
 
-bool SProjectBrowser::OpenProject( const FString& ProjectFile )
+	return FReply::Unhandled();
+}
+
+bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 {
 	FText FailReason;
+	FString ProjectFile = InProjectFile;
 
+	// Get the identifier for the project
+	FString ProjectIdentifier;
+	FDesktopPlatformModule::Get()->GetEngineIdentifierForProject(ProjectFile, ProjectIdentifier);
+	
+	// Get the identifier for the current engine
+	FString CurrentIdentifier = FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier();
+	if(ProjectIdentifier != CurrentIdentifier)
+	{
+		// Get the current project status
+		FProjectStatus ProjectStatus;
+		if(!IProjectManager::Get().QueryStatusForProject(ProjectFile, ProjectStatus))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("CouldNotReadProjectStatus", "Unable to read project status."));
+			return false;
+		}
+
+		// Button labels for the upgrade dialog
+		TArray<FText> Buttons;
+		int32 OpenCopyButton = Buttons.Add(LOCTEXT("ProjectConvert_OpenCopy", "Open a copy"));
+		int32 OpenExistingButton = Buttons.Add(LOCTEXT("ProjectConvert_ConvertInPlace", "Convert in-place"));
+		int32 SkipConversionButton = Buttons.Add(LOCTEXT("ProjectConvert_SkipConversion", "Skip conversion"));
+		int32 CancelButton = Buttons.Add(LOCTEXT("ProjectConvert_Cancel", "Cancel"));
+
+		// Prompt for upgrading. Different message for code and content projects, since the process is a bit trickier for code.
+		int32 Selection;
+		if(ProjectStatus.bCodeBasedProject)
+		{
+			Selection = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectConversionTitle", "Convert Project"), LOCTEXT("ConvertCodeProjectPrompt", "This project was made with a different version of the Unreal Engine. Converting to this version will rebuild your code projects.\n\nNew features and improvements sometimes cause API changes, which may require you to modify your code before it compiles. Content saved with newer versions of the editor will not open in older versions.\n\nWe recommend you open a copy of your project to avoid damaging the original."), Buttons);
+		}
+		else
+		{
+			Selection = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectConversionTitle", "Convert Project"), LOCTEXT("ConvertContentProjectPrompt", "This project was made with a different version of the Unreal Engine.\n\nOpening it with this version of the editor may prevent it opening with the original editor, and may lose data. We recommend you open a copy to avoid damaging the original."), Buttons);
+		}
+
+		// Handle the selection
+		if(Selection == CancelButton)
+		{
+			return false;
+		}
+		if(Selection == OpenCopyButton)
+		{
+			FString NewProjectFile;
+			if(!GameProjectUtils::DuplicateProjectForUpgrade(ProjectFile, NewProjectFile))
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ConvertProjectCopyFailed", "Couldn't copy project. Check you have sufficient hard drive space and write access to the project folder.") );
+				return false;
+			}
+			ProjectFile = NewProjectFile;
+		}
+		if(Selection == OpenExistingButton)
+		{
+			if(!FDesktopPlatformModule::Get()->CleanGameProject(FPaths::GetPath(ProjectFile), GWarn))
+			{
+				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("ConvertProjectCleanFailed", "Couldn't clean project build files. Delete the project intermediate folder and try again.") );
+				return false;
+			}
+		}
+		if(Selection != SkipConversionButton)
+		{
+			// If it's a code-based project, generate project files and open visual studio after an upgrade
+			if(ProjectStatus.bCodeBasedProject)
+			{
+				// Try to generate project files
+				FStringOutputDevice OutputLog;
+				OutputLog.SetAutoEmitLineTerminator(true);
+				GLog->AddOutputDevice(&OutputLog);
+				bool bHaveProjectFiles = FDesktopPlatformModule::Get()->GenerateProjectFiles(FPaths::RootDir(), ProjectFile, GWarn);
+				GLog->RemoveOutputDevice(&OutputLog);
+
+				// Display any errors
+				if(!bHaveProjectFiles)
+				{
+					FFormatNamedArguments Args;
+					Args.Add( TEXT("LogOutput"), FText::FromString(OutputLog) );
+					FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("CouldNotGenerateProjectFiles", "Project files could not be generated. Log output:\n\n{LogOutput}"), Args));
+					return false;
+				}
+
+				// Try to compile the project
+				OutputLog.Empty();
+				GLog->AddOutputDevice(&OutputLog);
+				bool bCompileSucceeded = FDesktopPlatformModule::Get()->CompileGameProject(FPaths::RootDir(), ProjectFile, GWarn);
+				GLog->RemoveOutputDevice(&OutputLog);
+
+				// Try to compile the modules
+				if(!bCompileSucceeded)
+				{
+					FText DevEnvName = FSourceCodeNavigation::GetSuggestedSourceCodeIDE( true );
+
+					TArray<FText> CompileFailedButtons;
+					int32 OpenIDEButton = CompileFailedButtons.Add(FText::Format(LOCTEXT("CompileFailedOpenIDE", "Open with {0}"), DevEnvName));
+					int32 ViewLogButton = CompileFailedButtons.Add(LOCTEXT("CompileFailedViewLog", "View build log"));
+					CompileFailedButtons.Add(LOCTEXT("CompileFailedCancel", "Cancel"));
+
+					int32 CompileFailedChoice = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Project Conversion Failed"), FText::Format(LOCTEXT("ProjectUpgradeCompileFailed", "The project failed to compile with this version of the engine. Would you like to open the project in {0}?"), DevEnvName), CompileFailedButtons);
+					if(CompileFailedChoice == ViewLogButton)
+					{
+						CompileFailedButtons.RemoveAt(ViewLogButton);
+						CompileFailedChoice = SVerbChoiceDialog::ShowModal(LOCTEXT("ProjectUpgradeTitle", "Project Conversion Failed"), FText::Format(LOCTEXT("ProjectUpgradeCompileFailed", "The project failed to compile with this version of the engine. Build output is as follows:\n\n{0}"), FText::FromString(OutputLog)), CompileFailedButtons);
+					}
+
+					if(CompileFailedChoice == OpenIDEButton && !GameProjectUtils::OpenCodeIDE(ProjectFile, FailReason))
+					{
+						FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+					}
+
+					return false;
+				}
+			}
+
+			// Update the game project to the latest version. This will prompt to check-out as necessary. We don't need to write the engine identifier directly, because it won't use the right .uprojectdirs logic.
+			if(!GameProjectUtils::UpdateGameProject(TEXT("")) || !FDesktopPlatformModule::Get()->SetEngineIdentifierForProject(ProjectFile, CurrentIdentifier))
+			{
+				if(FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("ProjectUpgradeFailure", "Project file could not be updated to latest version. Attempt to open anyway?")) != EAppReturnType::Yes)
+				{
+					return false;
+				}
+			}
+		}
+	}
+
+	// Open the project
 	if (!GameProjectUtils::OpenProject(ProjectFile, FailReason))
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, FailReason);
-
 		return false;
 	}
 

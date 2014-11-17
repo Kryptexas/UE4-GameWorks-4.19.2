@@ -61,7 +61,10 @@ void USkeleton::PostLoad()
 	check(Guid.IsValid());
 
 #if WITH_EDITOR
-	CollectAnimationNotifies();
+	if ( GIsEditor )
+	{
+		CollectAnimationNotifies();
+	}
 #endif
 }
 
@@ -133,6 +136,12 @@ void USkeleton::Serialize( FArchive& Ar )
 	{
 		Ar << Guid;
 	}
+#if WITH_EDITORONLY_DATA
+	if (Ar.UE4Ver() < VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE)
+	{
+		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
+	}
+#endif
 }
 
 /** Remove this function when VER_UE4_REFERENCE_SKELETON_REFACTOR is removed. */
@@ -506,6 +515,7 @@ bool USkeleton::MergeBonesToBoneTree(USkeletalMesh * InSkeletalMesh, const TArra
 
 					ReferenceSkeleton.Add(NewMeshBoneInfo, InSkeletalMesh->RefSkeleton.GetRefBonePose()[MeshBoneIndex]);
 					BoneTree.AddZeroed(1);
+					MarkPackageDirty();
 				}
 			}
 
@@ -737,19 +747,7 @@ void USkeleton::SetPreviewMesh(USkeletalMesh* PreviewMesh, bool bMarkAsDirty/*=t
 
 int32 USkeleton::ValidatePreviewAttachedObjects()
 {
-	int32 NumBrokenAssets = 0;
-
-	//Load up attached objects
-	for(int32 i = PreviewAttachedAssetContainer.Num()-1; i >= 0; --i)
-	{
-		FPreviewAttachedObjectPair& PreviewAttachedObject = PreviewAttachedAssetContainer[i];
-
-		if(!PreviewAttachedObject.Object)
-		{
-			PreviewAttachedAssetContainer.RemoveAtSwap(i);
-			++NumBrokenAssets;
-		}
-	}
+	int32 NumBrokenAssets = PreviewAttachedAssetContainer.ValidatePreviewAttachedObjects();
 
 	if(NumBrokenAssets > 0)
 	{

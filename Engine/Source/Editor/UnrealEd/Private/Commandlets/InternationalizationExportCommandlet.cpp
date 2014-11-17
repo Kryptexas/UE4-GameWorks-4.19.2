@@ -179,63 +179,34 @@ static const TMap< FString, FString > POCulturePluralForms = TMapBuilder< FStrin
 /**
 *	Helper Functions
 */
-FString CustomReplaceCharWithEscapedChar( const FString& InStr )
+FString ConditionArchiveStrForPo( const FString& InStr )
 {
-	FString Result;
-	for (const TCHAR* Char = *InStr; *Char != TCHAR('\0'); ++Char)
-	{
-		switch (*Char)
-		{
-		case TCHAR('\\'): Result += TEXT("\\\\"); break;
-		case TCHAR('\n'): Result += TEXT("\\n"); break;
-		case TCHAR('\t'): Result += TEXT("\\t"); break;
-		case TCHAR('\b'): Result += TEXT("\\b"); break;
-		case TCHAR('\f'): Result += TEXT("\\f"); break;
-		case TCHAR('\r'): Result += TEXT("\\r"); break;
-		case TCHAR('\"'): Result += TEXT("\\\""); break;
-		default: Result += *Char;
-		}
-	}
+	FString Result = InStr;
+	Result.ReplaceInline(TEXT("\\'"), TEXT("\\\\'"));
+	Result.ReplaceInline(TEXT("\\x"), TEXT("\\\\x"));
+	Result.ReplaceInline(TEXT("\\u"), TEXT("\\\\u"));
+	Result.ReplaceInline(TEXT("\r"), TEXT("\\r"));
+	Result.ReplaceInline(TEXT("\n"), TEXT("\\n"));
+
+
 	return Result;
 }
 
-FString CustomReplaceEscapedCharWithChar( const FString& InStr )
+FString ConditionPoStringForArchive( const FString& InStr )
 {
-	FString Result;
-	for (const TCHAR* Char = *InStr; *Char != TCHAR('\0'); ++Char)
-	{
-		if (*Char == TCHAR('\\'))
-		{
-			++Char;
-			if( *Char == TCHAR('\0') )
-			{
-				Result += TCHAR('\\');
-				break;
-			}
-			switch (*Char)
-			{
-			case TCHAR('\"'): case TCHAR('\\'): case TCHAR('/'): Result += *Char; break;
-			case TCHAR('f'): Result += TCHAR('\f'); break;
-			case TCHAR('r'): Result += TCHAR('\r'); break;
-			case TCHAR('n'): Result += TCHAR('\n'); break;
-			case TCHAR('b'): Result += TCHAR('\b'); break;
-			case TCHAR('t'): Result += TCHAR('\t'); break;
-			default: Result += *Char;
-			}
-		}
-		else
-		{
-			Result += *Char;
-		}
-
-	}
+	FString Result = InStr;
+	Result.ReplaceInline(TEXT("\\\\u"), TEXT("\\u"));
+	Result.ReplaceInline(TEXT("\\\\x"), TEXT("\\x"));
+	Result.ReplaceInline(TEXT("\\\\'"), TEXT("\\'"));
 	return Result;
 }
+
 
 FString ConvertSrcLocationToPORef( const FString& InSrcLocation )
 {
-	// Source locaiton format: /Path1/Path2/file.cpp - line 123
+	// Source location format: /Path1/Path2/file.cpp - line 123
 	// PO Reference format: /Path1/Path2/file.cpp:123
+	// @TODO: Note, we assume the source location format here but it could be arbitrary.
 	return InSrcLocation.Replace( TEXT(" - line "), TEXT(":") );
 }
 
@@ -400,7 +371,7 @@ FString FPortableObjectHeader::ToString() const
 	for( auto Entry : HeaderEntries )
 	{
 		const FString& Key = Entry.Key;
-		const FString& Value = CustomReplaceCharWithEscapedChar( Entry.Value );
+		const FString& Value = Entry.Value;
 		Result += FString::Printf( TEXT("\"%s: %s\\n\"%s"), *Key, *Value, NewLineDelimiter );
 	}
 
@@ -419,7 +390,7 @@ bool FPortableObjectHeader::FromLocPOEntry( const TSharedRef<const FPortableObje
 
 	// The POEntry would store header info inside the MsgStr[0]
 	TArray<FString> HeaderLinesToProcess;
-	LocEntry->MsgStr[0].ParseIntoArray( &HeaderLinesToProcess, NewLineDelimiter, true );
+	LocEntry->MsgStr[0].ReplaceEscapedCharWithChar().ParseIntoArray( &HeaderLinesToProcess, NewLineDelimiter, true );
 
 	for( const FString& PotentialHeaderEntry : HeaderLinesToProcess )
 	{
@@ -428,7 +399,7 @@ bool FPortableObjectHeader::FromLocPOEntry( const TSharedRef<const FPortableObje
 		{
 			// Looks like a header entry so we add it
 			const FString& Key = PotentialHeaderEntry.LeftChop( PotentialHeaderEntry.Len() - SplitIndex ).Trim().TrimTrailing();
-			FString Value = CustomReplaceEscapedCharWithChar( PotentialHeaderEntry.RightChop( SplitIndex+1 ).Trim().TrimTrailing() );
+			FString Value = PotentialHeaderEntry.RightChop( SplitIndex+1 ).Trim().TrimTrailing();
 
 			HeaderEntries.Add( TPairInitializer<FString, FString>( Key, Value ) );
 		}
@@ -515,9 +486,10 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 
 	bool bSuccess = true;
 
+	FString ParseString = InStr.Replace(TEXT("\r\n"), NewLineDelimiter);
 
 	TArray<FString> LinesToProcess;
-	InStr.ParseIntoArray( &LinesToProcess, NewLineDelimiter, false );
+	ParseString.ParseIntoArray( &LinesToProcess, NewLineDelimiter, false );
 
 	TSharedRef<FPortableObjectEntry> ProcessedEntry = MakeShareable( new FPortableObjectEntry );
 	bool bHasMsgId = false;
@@ -544,6 +516,7 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 					{
 						return false;
 					}
+					ProjectName = Header.GetEntryValue(TEXT("Project-Id-Version"));
 				}
 				else
 				{
@@ -628,7 +601,7 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 				NextLineIdx++;
 			}
 
-			ProcessedEntry->MsgCtxt = CustomReplaceEscapedCharWithChar( RawMsgCtxt );
+			ProcessedEntry->MsgCtxt = RawMsgCtxt;
 		}
 		else if( Line.StartsWith( TEXT("msgid") ) )
 		{
@@ -654,7 +627,7 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 				LineIdx = NextLineIdx;	
 				NextLineIdx++;
 			}
-			ProcessedEntry->MsgId = CustomReplaceEscapedCharWithChar( RawMsgId );
+			ProcessedEntry->MsgId = RawMsgId;
 			bHasMsgId = true;
 		}
 		else if( Line.StartsWith( TEXT("msgid_plural") ) )
@@ -681,7 +654,7 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 				LineIdx = NextLineIdx;	
 				NextLineIdx++;
 			}
-			ProcessedEntry->MsgIdPlural = CustomReplaceEscapedCharWithChar( RawMsgIdPlural );
+			ProcessedEntry->MsgIdPlural = RawMsgIdPlural;
 		}
 		else if( Line.StartsWith( TEXT("msgstr[") ) )
 		{
@@ -721,11 +694,11 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 
 			if( ProcessedEntry->MsgStr.Num() > Index )
 			{
-				ProcessedEntry->MsgStr[Index] = CustomReplaceEscapedCharWithChar( RawMsgStr );
+				ProcessedEntry->MsgStr[Index] = RawMsgStr;
 			}
 			else
 			{
-				ProcessedEntry->MsgStr.Insert( CustomReplaceEscapedCharWithChar( RawMsgStr ), Index );
+				ProcessedEntry->MsgStr.Insert( RawMsgStr, Index );
 			}
 		}
 		else if( Line.StartsWith( TEXT("msgstr") ) )
@@ -753,7 +726,7 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 				NextLineIdx++;
 			}
 
-			FString MsgStr = CustomReplaceEscapedCharWithChar( RawMsgStr );
+			FString MsgStr = RawMsgStr;
 			if( ProcessedEntry->MsgStr.Num() > 0 )
 			{
 				ProcessedEntry->MsgStr[0] = MsgStr;
@@ -877,13 +850,18 @@ TSharedPtr<FPortableObjectEntry> FPortableObjectFormatDOM::FindEntry( const FStr
 
 void FPortableObjectEntry::AddReference( const FString& InReference )
 {
-	// Reference comments can contain multiple references in a single line so we parse those out.
-	TArray<FString> ReferencesToProcess;
-	InReference.ParseIntoArray( &ReferencesToProcess, TEXT(" "), true );
-	for( const FString& Reference : ReferencesToProcess )
+	if(!InReference.IsEmpty())
 	{
-		ReferenceComments.AddUnique( Reference );
+		ReferenceComments.AddUnique(InReference);
 	}
+	
+	//// Reference comments can contain multiple references in a single line so we parse those out.
+	//TArray<FString> ReferencesToProcess;
+	//InReference.ParseIntoArray( &ReferencesToProcess, TEXT(" "), true );
+	//for( const FString& Reference : ReferencesToProcess )
+	//{
+	//	ReferenceComments.AddUnique( Reference );
+	//}
 }
 
 void FPortableObjectEntry::AddReferences( const TArray<FString>& InReferences )
@@ -924,10 +902,10 @@ FString FPortableObjectEntry::ToString() const
 
 	if( !MsgCtxt.IsEmpty() )
 	{
-		Result += FString::Printf(TEXT("msgctxt \"%s\"%s"), *CustomReplaceCharWithEscapedChar( MsgCtxt ), NewLineDelimiter);
+		Result += FString::Printf(TEXT("msgctxt \"%s\"%s"), *MsgCtxt, NewLineDelimiter);
 	}
 
-	Result += FString::Printf(TEXT("msgid \"%s\"%s"), *CustomReplaceCharWithEscapedChar( MsgId ), NewLineDelimiter);
+	Result += FString::Printf(TEXT("msgid \"%s\"%s"), *MsgId, NewLineDelimiter);
 
 	if( MsgStr.Num() == 0)
 	{
@@ -935,13 +913,13 @@ FString FPortableObjectEntry::ToString() const
 	}
 	else if( MsgStr.Num() == 1 )
 	{
-		Result += FString::Printf(TEXT("msgstr \"%s\"%s"), *CustomReplaceCharWithEscapedChar( MsgStr[0] ), NewLineDelimiter);
+		Result += FString::Printf(TEXT("msgstr \"%s\"%s"), *MsgStr[0], NewLineDelimiter);
 	}
 	else
 	{
 		for( int32 Idx = 0; Idx < MsgStr.Num(); ++Idx )
 		{
-			Result += FString::Printf(TEXT("msgstr[%d] \"%s\"%s"), Idx, *CustomReplaceCharWithEscapedChar( MsgStr[Idx] ), NewLineDelimiter);
+			Result += FString::Printf(TEXT("msgstr[%d] \"%s\"%s"), Idx, *MsgStr[Idx], NewLineDelimiter);
 		}
 	}
 	return Result;
@@ -958,13 +936,252 @@ UInternationalizationExportCommandlet::UInternationalizationExportCommandlet(con
 }
 
 
+bool UInternationalizationExportCommandlet::DoExport( const FString& SourcePath, const FString& DestinationPath, const FString& Filename )
+{
+	// Get manifest name.
+	FString ManifestName;
+	if( !GetConfigString( *SectionName, TEXT("ManifestName"), ManifestName, ConfigPath ) )
+	{
+		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No manifest name specified.") );
+		return false;
+	}
+
+	// Get archive name.
+	FString ArchiveName;
+	if( !( GetConfigString(* SectionName, TEXT("ArchiveName"), ArchiveName, ConfigPath ) ) )
+	{
+		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No archive name specified."));
+		return false;
+	}
+
+
+	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
+	// Load the manifest info
+	{
+		FString ManifestFilePath = SourcePath / ManifestName;
+		if( !FPaths::FileExists(ManifestFilePath) )
+		{
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not find manifest file %s."), *ManifestFilePath);
+			return false;
+		}
+
+		TSharedPtr<FJsonObject> ManifestJsonObject = ReadJSONTextFile( ManifestFilePath );
+
+		if( !ManifestJsonObject.IsValid() )
+		{
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not read manifest file %s."), *ManifestFilePath);
+			return false;
+		}
+
+		FInternationalizationManifestJsonSerializer ManifestSerializer;
+		ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
+	}
+
+
+	// Process the desired cultures
+	for(int32 Culture = 0; Culture < CulturesToGenerate.Num(); Culture++)
+	{
+		// Load the archive
+		const FString CultureName = CulturesToGenerate[Culture];
+		const FString CulturePath = SourcePath / CultureName;
+		FString ArchiveFileName = CulturePath / ArchiveName;
+		TSharedPtr< FJsonObject > ArchiveJsonObject = NULL;
+
+		if( FPaths::FileExists(ArchiveFileName) )
+		{
+			ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
+
+			FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+			TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
+			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
+
+
+			{
+				FPortableObjectFormatDOM PortableObj;
+
+				FString LocLang;
+				if( !PortableObj.SetLanguage( CultureName ) )
+				{
+					UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Skipping export of loc language %s because it is not recognized."), *LocLang );
+					continue;
+				}
+
+				PortableObj.SetProjectName( FPaths::GetBaseFilename( ManifestName ) );
+				PortableObj.CreateNewHeader();
+
+				{
+					for(TManifestEntryBySourceTextContainer::TConstIterator ManifestIter = InternationalizationManifest->GetEntriesBySourceTextIterator(); ManifestIter; ++ManifestIter)
+					{
+						// Gather relevant info from manifest entry.
+						const TSharedRef<FManifestEntry>& ManifestEntry = ManifestIter.Value();
+						const FString& Namespace = ManifestEntry->Namespace;
+						const FLocItem& Source = ManifestEntry->Source;
+
+						for( auto ContextIter = ManifestEntry->Contexts.CreateConstIterator(); ContextIter; ++ContextIter )
+						{
+							TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, Source, ContextIter->KeyMetadataObj );
+							if( ArchiveEntry.IsValid() )
+							{
+								const FString ConditionedArchiveSource = ConditionArchiveStrForPo(ArchiveEntry->Source.Text);
+								const FString ConditionedArchiveTranslation = ConditionArchiveStrForPo(ArchiveEntry->Translation.Text);
+
+								TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
+								//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
+								PoEntry->MsgId = ConditionedArchiveSource;
+								//@TODO: Take into account optional entries and entries that differ by keymetadata.  Ex. Each optional entry needs a unique msgCtxt
+								PoEntry->MsgCtxt = Namespace;
+								PoEntry->MsgStr.Add( ConditionedArchiveTranslation );
+
+								PoEntry->AddReference( ConvertSrcLocationToPORef( ContextIter->SourceLocation ) );
+								PortableObj.AddEntry( PoEntry );
+							}
+						}
+					}
+				}
+
+				// Write out the Portable Object to .po file.
+				{
+					FString OutputString = PortableObj.ToString();
+					FString OutputFileName = DestinationPath / Filename;
+
+					//@TODO We force UTF8 at the moment but we want this to be based on the format found in the header info.
+					if( !FFileHelper::SaveStringToFile(OutputString, *OutputFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
+					{
+						UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Could not write file %s"), *OutputFileName );
+						return false;
+					}
+				}
+			}
+		}
+	}
+	return true;
+}
+
+bool UInternationalizationExportCommandlet::DoImport(const FString& SourcePath, const FString& DestinationPath, const FString& Filename)
+{
+	// Get manifest name.
+	FString ManifestName;
+	if( !GetConfigString( *SectionName, TEXT("ManifestName"), ManifestName, ConfigPath ) )
+	{
+		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No manifest name specified.") );
+		return false;
+	}
+
+	// Get archive name.
+	FString ArchiveName;
+	if( !( GetConfigString(* SectionName, TEXT("ArchiveName"), ArchiveName, ConfigPath ) ) )
+	{
+		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No archive name specified."));
+		return false;
+	}
+
+	// Process the desired cultures
+	for(int32 Culture = 0; Culture < CulturesToGenerate.Num(); Culture++)
+	{
+		// Load the Portable Object file if found
+		const FString CultureName = CulturesToGenerate[Culture];
+		FString POFilePath = SourcePath / Filename;
+
+		if( !FPaths::FileExists(POFilePath) )
+		{
+			UE_LOG( LogInternationalizationExportCommandlet, Warning, TEXT("Could not find file %s"), *POFilePath );
+			continue;
+		}
+
+		FString POFileContents;
+		if ( !FFileHelper::LoadFileToString( POFileContents, *POFilePath ) )
+		{
+			UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Failed to load file %s."), *POFilePath);
+			continue;
+		}
+
+		FPortableObjectFormatDOM PortableObject;
+		if( !PortableObject.FromString( POFileContents ) )
+		{
+			UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Failed to parse Portable Object file %s."), *POFilePath);
+			continue;
+		}
+
+		if( PortableObject.GetProjectName() != ManifestName.Replace(TEXT(".manifest"), TEXT("")) )
+		{
+			UE_LOG( LogInternationalizationExportCommandlet, Warning, TEXT("The project name (%s) in the file (%s) did not match the target manifest project (%s)."), *POFilePath, *PortableObject.GetProjectName(), *ManifestName.Replace(TEXT(".manifest"), TEXT("")));
+		}
+
+
+		const FString DestinationCulturePath = DestinationPath / CultureName;
+		FString ArchiveFileName = DestinationCulturePath / ArchiveName;
+		
+		if( !FPaths::FileExists(ArchiveFileName) )
+		{
+			UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Failed to find destination archive %s."), *ArchiveFileName);
+			continue;
+		}
+
+		TSharedPtr< FJsonObject > ArchiveJsonObject = NULL;
+		ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
+
+		FInternationalizationArchiveJsonSerializer ArchiveSerializer;
+		TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
+		ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
+
+		bool bModifiedArchive = false;
+		{
+			for( auto EntryIter = PortableObject.GetEntriesIterator(); EntryIter; ++EntryIter )
+			{
+				auto POEntry = *EntryIter;
+				if( POEntry->MsgId.IsEmpty() || POEntry->MsgStr.Num() == 0 || POEntry->MsgStr[0].Trim().IsEmpty() )
+				{
+					// We ignore the header entry or entries with no translation.
+					continue;
+				}
+
+				// Some warning messages for data we don't process at the moment
+				if( !POEntry->MsgIdPlural.IsEmpty() || POEntry->MsgStr.Num() > 1 )
+				{
+					UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Portable Object entry has plural form we did not process.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
+				}
+				
+				const FString& Namespace = POEntry->MsgCtxt;
+				const FString& SourceText = ConditionPoStringForArchive(POEntry->MsgId);
+				const FString& Translation = ConditionPoStringForArchive(POEntry->MsgStr[0]);
+
+				//@TODO: Take into account optional entries and entries that differ by keymetadata.  Ex. Each optional entry needs a unique msgCtxt
+				TSharedPtr< FArchiveEntry > FoundEntry = InternationalizationArchive->FindEntryBySource( Namespace, SourceText, NULL );
+				if( !FoundEntry.IsValid() )
+				{
+					UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not find corresponding archive entry for PO entry.  File: %s  MsgCtxt: %s  MsgId: %s"), *POFilePath, *POEntry->MsgCtxt, *POEntry->MsgId );
+					continue;
+				}
+				
+				if( FoundEntry->Translation != Translation )
+				{
+					FoundEntry->Translation = Translation;
+					bModifiedArchive = true;
+				}
+			}
+		}
+
+		if( bModifiedArchive )
+		{
+			TSharedRef<FJsonObject> FinalArchiveJsonObj = MakeShareable( new FJsonObject );
+			ArchiveSerializer.SerializeArchive( InternationalizationArchive, FinalArchiveJsonObj );
+
+			if( !WriteJSONToTextFile(FinalArchiveJsonObj, ArchiveFileName, SourceControlInfo ) )
+			{
+				UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Failed to write archive to %s."), *ArchiveFileName );				
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 {
 	TArray<FString> Tokens;
 	TArray<FString> Switches;
 	TMap<FString, FString> ParamVals;
-	FString ConfigPath;
-	FString SectionName;
 
 
 	UCommandlet::ParseCommandLine(*Params, Tokens, Switches, ParamVals);
@@ -1010,123 +1227,48 @@ int32 UInternationalizationExportCommandlet::Main( const FString& Params )
 		return -1;
 	}
 
-	// Get manifest name.
-	FString ManifestName;
-	if( !GetConfigString( *SectionName, TEXT("ManifestName"), ManifestName, ConfigPath ) )
+	FString Filename; // Name of the file to read or write from
+	if (!GetConfigString(*SectionName, TEXT("PortableObjectName"), Filename, ConfigPath))
 	{
-		UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("No manifest name specified.") );
-		return -1;
-	}
-
-	// Get archive name.
-	FString ArchiveName;
-	if( !( GetConfigString(* SectionName, TEXT("ArchiveName"), ArchiveName, ConfigPath ) ) )
-	{
-		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No archive name specified."));
+		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No portable object name specified."));
 		return -1;
 	}
 
 	// Get cultures to generate.
-	TArray<FString> CulturesToGenerate;
 	if( GetConfigArray(*SectionName, TEXT("CulturesToGenerate"), CulturesToGenerate, ConfigPath) == 0 )
 	{
 		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("No cultures specified for generation."));
 		return -1;
 	}
+
+
+	bool bDoExport = false;
+	bool bDoImport = false;
+
+	GetConfigBool( *SectionName, TEXT("bExportLoc"), bDoExport, ConfigPath );
+	GetConfigBool( *SectionName, TEXT("bImportLoc"), bDoImport, ConfigPath );
 	
-	TSharedRef< FInternationalizationManifest > InternationalizationManifest = MakeShareable( new FInternationalizationManifest );
-	// Load the manifest info
+	if( !bDoImport && !bDoExport )
 	{
-		FString ManifestFilePath = SourcePath / ManifestName;
-		if( !FPaths::FileExists(ManifestFilePath) )
-		{
-			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not find manifest file %s."), *ManifestFilePath);
-			return -1;
-		}
-
-		TSharedPtr<FJsonObject> ManifestJsonObject = ReadJSONTextFile( ManifestFilePath );
-
-		if( !ManifestJsonObject.IsValid() )
-		{
-			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Could not read manifest file %s."), *ManifestFilePath);
-			return -1;
-		}
-
-		FInternationalizationManifestJsonSerializer ManifestSerializer;
-		ManifestSerializer.DeserializeManifest( ManifestJsonObject.ToSharedRef(), InternationalizationManifest );
+		UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Import/Export operation not detected.  Use bExportLoc or bImportLoc in config section."));
+		return -1;
 	}
-	
 
-	// Process the desired cultures
-	for(int32 Culture = 0; Culture < CulturesToGenerate.Num(); Culture++)
+	if( bDoExport )
 	{
-		// Load the archive
-		const FString CultureName = CulturesToGenerate[Culture];
-		const FString CulturePath = SourcePath / CultureName;
-		FString ArchiveFileName = CulturePath / ArchiveName;
-		TSharedPtr< FJsonObject > ArchiveJsonObject = NULL;
-		
-		if( FPaths::FileExists(ArchiveFileName) )
+		if (!DoExport(SourcePath, DestinationPath, Filename))
 		{
-			ArchiveJsonObject = ReadJSONTextFile( ArchiveFileName );
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to export localization files."));
+			return -1;
+		}
+	}
 
-			FInternationalizationArchiveJsonSerializer ArchiveSerializer;
-			TSharedRef< FInternationalizationArchive > InternationalizationArchive = MakeShareable( new FInternationalizationArchive );
-			ArchiveSerializer.DeserializeArchive( ArchiveJsonObject.ToSharedRef(), InternationalizationArchive );
-
-
-			{
-				FPortableObjectFormatDOM PortableObj;
-
-				FString LocLang;
-				if( !PortableObj.SetLanguage( CultureName ) )
-				{
-					UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Skipping export of loc language %s because it is not recognized."), *LocLang );
-					continue;
-				}
-
-				PortableObj.SetProjectName( FPaths::GetBaseFilename( ManifestName ) );
-				PortableObj.CreateNewHeader();
-
-				{
-					for(TManifestEntryBySourceTextContainer::TConstIterator ManifestIter = InternationalizationManifest->GetEntriesBySourceTextIterator(); ManifestIter; ++ManifestIter)
-					{
-						// Gather relevant info from manifest entry.
-						const TSharedRef<FManifestEntry>& ManifestEntry = ManifestIter.Value();
-						const FString& Namespace = ManifestEntry->Namespace;
-						const FLocItem& Source = ManifestEntry->Source;
-
-						for( auto ContextIter = ManifestEntry->Contexts.CreateConstIterator(); ContextIter; ++ContextIter )
-						{
-							TSharedPtr<FArchiveEntry> ArchiveEntry = InternationalizationArchive->FindEntryBySource( Namespace, Source, ContextIter->KeyMetadataObj );
-							if( ArchiveEntry.IsValid() )
-							{
-								TSharedRef<FPortableObjectEntry> PoEntry = MakeShareable( new FPortableObjectEntry );
-								//@TODO: We support additional metadata entries that can be translated.  How do those fit in the PO file format?  Ex: isMature
-								PoEntry->MsgId = ArchiveEntry->Source.Text;
-								//@TODO: Take into account optional entries and entries that differ by keymetadata.  Ex. Each optional entry needs a unique msgCtxt
-								PoEntry->MsgCtxt = Namespace;
-								PoEntry->MsgStr.Add( ArchiveEntry->Translation.Text );
-
-								PoEntry->AddReference( ConvertSrcLocationToPORef( ContextIter->SourceLocation ) );
-								PortableObj.AddEntry( PoEntry );
-							}
-						}
-					}
-				}
-
-				// Write out the Portable Object to .po file.
-				{
-					FString OutputString = PortableObj.ToString();
-					FString OutputFileName = SourcePath / CultureName + TEXT(".po");
-
-					//@TODO We force UTF8 at the moment but we want this to be based on the format found in the header info.
-					if( !FFileHelper::SaveStringToFile(OutputString, *OutputFileName, FFileHelper::EEncodingOptions::ForceUTF8) )
-					{
-						UE_LOG( LogInternationalizationExportCommandlet, Error, TEXT("Could not write file %s"), *OutputFileName );
-					}
-				}
-			}
+	if( bDoImport )
+	{
+		if (!DoImport(SourcePath, DestinationPath, Filename))
+		{
+			UE_LOG(LogInternationalizationExportCommandlet, Error, TEXT("Failed to import localization files."));
+			return -1;
 		}
 	}
 

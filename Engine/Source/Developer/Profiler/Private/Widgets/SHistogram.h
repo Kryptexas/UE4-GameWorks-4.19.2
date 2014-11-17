@@ -44,7 +44,7 @@ public:
 		, MaxValue(InMaxValue)
 		, Normalize(InBinNormalize)
 	{
-		BinCount = FPlatformMath::Ceil( (MaxValue - MinValue) / Interval )+1;	// +1 for data beyond the max
+		BinCount = FPlatformMath::CeilToInt( (MaxValue - MinValue) / Interval )+1;	// +1 for data beyond the max
 	}
 
 	/** Retrieves the bin count */

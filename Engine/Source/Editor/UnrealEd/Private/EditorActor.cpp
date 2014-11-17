@@ -4,7 +4,6 @@
 #include "UnrealEd.h"
 #include "ScopedTransaction.h"
 #include "Factories.h"
-#include "EngineFoliageClasses.h"
 #include "LevelUtils.h"
 #include "BusyCursor.h"
 #include "BSPOps.h"
@@ -14,7 +13,6 @@
 #include "Editor/GeometryMode/Public/GeometryEdMode.h"
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #include "ActorEditorUtils.h"
-#include "EngineLevelScriptClasses.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.EditorActor"
 
@@ -330,7 +328,7 @@ public:
 		for ( int32 ActorIndex = 0 ; ActorIndex < Actors.Num() ; ++ActorIndex )
 		{
 			AActor* Actor = Actors[ ActorIndex ];
-			GEditor->SelectActor( Actor, true, false );
+			GEditor->SelectActor( Actor, true, false, true );
 		}
 
 		FString ScratchData;
@@ -2057,9 +2055,9 @@ void UUnrealEdEngine::edactAlignOrigin()
 
 			//Snap the location of the brush to the grid
 			FVector BrushLocation = Brush->GetActorLocation();
-			BrushLocation.X = FMath::Round( BrushLocation.X  / GetGridSize() ) * GetGridSize();
-			BrushLocation.Y = FMath::Round( BrushLocation.Y  / GetGridSize() ) * GetGridSize();
-			BrushLocation.Z = FMath::Round( BrushLocation.Z  / GetGridSize() ) * GetGridSize();
+			BrushLocation.X = FMath::RoundToFloat( BrushLocation.X  / GetGridSize() ) * GetGridSize();
+			BrushLocation.Y = FMath::RoundToFloat( BrushLocation.Y  / GetGridSize() ) * GetGridSize();
+			BrushLocation.Z = FMath::RoundToFloat( BrushLocation.Z  / GetGridSize() ) * GetGridSize();
 			Brush->SetActorLocation(BrushLocation, false);
 
 			//Update EditorMode locations to match the new brush location
@@ -2103,9 +2101,9 @@ void UUnrealEdEngine::edactAlignVertices()
 				for( int32 VertIdx=0; VertIdx<Poly->Vertices.Num(); VertIdx++ )
 				{
 					// Snap each vertex to the nearest grid.
-					Poly->Vertices[VertIdx].X = FMath::Round( ( Poly->Vertices[VertIdx].X + BrushLocation.X )  / GetGridSize() ) * GetGridSize() - BrushLocation.X;
-					Poly->Vertices[VertIdx].Y = FMath::Round( ( Poly->Vertices[VertIdx].Y + BrushLocation.Y )  / GetGridSize() ) * GetGridSize() - BrushLocation.Y;
-					Poly->Vertices[VertIdx].Z = FMath::Round( ( Poly->Vertices[VertIdx].Z + BrushLocation.Z )  / GetGridSize() ) * GetGridSize() - BrushLocation.Z;
+					Poly->Vertices[VertIdx].X = FMath::RoundToFloat( ( Poly->Vertices[VertIdx].X + BrushLocation.X )  / GetGridSize() ) * GetGridSize() - BrushLocation.X;
+					Poly->Vertices[VertIdx].Y = FMath::RoundToFloat( ( Poly->Vertices[VertIdx].Y + BrushLocation.Y )  / GetGridSize() ) * GetGridSize() - BrushLocation.Y;
+					Poly->Vertices[VertIdx].Z = FMath::RoundToFloat( ( Poly->Vertices[VertIdx].Z + BrushLocation.Z )  / GetGridSize() ) * GetGridSize() - BrushLocation.Z;
 				}
 
 				// If the snapping resulted in an off plane polygon, triangulate it to compensate.

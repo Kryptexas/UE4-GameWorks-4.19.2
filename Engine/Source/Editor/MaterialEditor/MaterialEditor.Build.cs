@@ -14,7 +14,7 @@ public class MaterialEditor : ModuleRules
 				"Kismet",
 				"EditorWidgets"
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -23,6 +23,7 @@ public class MaterialEditor : ModuleRules
 				"InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"ShaderCore",
 				"RenderCore",
@@ -31,7 +32,7 @@ public class MaterialEditor : ModuleRules
 				"PropertyEditor",
 				"GraphEditor",
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
@@ -43,6 +44,6 @@ public class MaterialEditor : ModuleRules
 				"ContentBrowser",
 				"WorkspaceMenuStructure"
 			}
-			);
+		);
 	}
 }

@@ -45,7 +45,7 @@ public:
 	DECLARE_DELEGATE_TwoParams(FHotFixDelegate, void *, int32);
 
 	// Callback for object property modifications
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectPropertyChanged, UObject*);
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnObjectPropertyChanged, UObject*, struct FPropertyChangedEvent&);
 
 	// Callback for object property modifications
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnActorLabelChanged, AActor*);
@@ -54,6 +54,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreObjectPropertyChanged, UObject*);
 
 	#if WITH_EDITOR
+	// Callback for all object modifications
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnObjectModified, UObject*);
+
 	// Callback for when an asset is loaded (Editor)
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);
 	#endif	//WITH_EDITOR
@@ -115,6 +118,9 @@ public:
 	static FOnActorLabelChanged OnActorLabelChanged;
 
 #if WITH_EDITOR
+	// Called when any object is modified at all 
+	static FOnObjectModified OnObjectModified;
+
 	// Called when an asset is loaded
 	static FOnAssetLoaded OnAssetLoaded;
 
@@ -216,8 +222,21 @@ public:
 	// save state when ApplicationWillEnterBackgroundDelegate is called instead.
 	static FApplicationLifetimeDelegate ApplicationWillTerminateDelegate;
 
-	/** Sent after stats are enabled */
-	static FSimpleMulticastDelegate StatsEnabled;
+	/** Checks to see if the stat is already enabled */
+	DECLARE_MULTICAST_DELEGATE_ThreeParams(FStatCheckEnabled, const TCHAR*, bool&, bool&);
+	static FStatCheckEnabled StatCheckEnabled;
+
+	/** Sent after each stat is enabled */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FStatEnabled, const TCHAR*);
+	static FStatEnabled StatEnabled;
+
+	/** Sent after each stat is disabled */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FStatDisabled, const TCHAR*);
+	static FStatDisabled StatDisabled;
+
+	/** Sent when all stats need to be disabled */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FStatDisableAll, const bool);
+	static FStatDisableAll StatDisableAll;
 
 private:
 	// Callbacks for hotfixes

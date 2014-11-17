@@ -205,7 +205,7 @@ TSharedRef<SDockTab> FPropertyEditorToolkit::SpawnTab_PropertyTable( const FSpaw
 				[
 					SNew( STextBlock )
 					.Font( FEditorStyle::GetFontStyle( "PropertyEditor.AddColumnMessage.Font" ) )
-					.Text( LOCTEXT("GenericPropertiesTitle", "Pin Properties to Add Columns").ToString() )
+					.Text( LOCTEXT("GenericPropertiesTitle", "Pin Properties to Add Columns") )
 					.Visibility( this, &FPropertyEditorToolkit::GetAddColumnInstructionsOverlayVisibility )
 					.ColorAndOpacity( FEditorStyle::GetColor( "PropertyEditor.AddColumnMessage.ColorAndOpacity" ) )
 				]

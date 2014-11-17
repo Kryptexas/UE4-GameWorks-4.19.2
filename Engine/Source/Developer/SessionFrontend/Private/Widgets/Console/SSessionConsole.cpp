@@ -147,7 +147,7 @@ void SSessionConsole::Construct( const FArguments& InArgs, ISessionManagerRef In
 					.Visibility(this, &SSessionConsole::HandleSelectSessionOverlayVisibility)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a session from the Session Browser").ToString())
+							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a session from the Session Browser"))
 					]
 			]
 	];

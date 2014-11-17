@@ -5,29 +5,10 @@
  */
 
 #pragma once
+#include "GameplayDebuggingControllerComponent.h"
 #include "GameplayDebuggingComponent.generated.h"
 
-UENUM()
-namespace EAIDebugDrawDataView
-{
-	enum Type
-	{
-		Empty,
-		OverHead,
-		Basic,
-		BehaviorTree,
-		EQS,
-		Perception,
-		GameView1,
-		GameView2,
-		GameView3,
-		GameView4,
-		GameView5,
-		NavMesh,
-		EditorDebugAIFlag,
-		MAX UMETA(Hidden)
-	};
-}
+DECLARE_LOG_CATEGORY_EXTERN(LogGDT, Display, All);
 
 UENUM()
 namespace EDebugComponentMessage
@@ -36,10 +17,11 @@ namespace EDebugComponentMessage
 	{
 		EnableExtendedView,
 		DisableExtendedView, 
-		ActivateReplication, 
-		DeactivateReplilcation, 
-		CycleReplicationView,
-		ToggleReplicationView,
+		ActivateReplication,
+		DeactivateReplilcation,
+		ActivateDataView,
+		DeactivateDataView,
+		SetMultipleDataViews,
 	};
 }
 
@@ -52,9 +34,37 @@ struct ENGINE_API FDebugCategoryView
 	FDebugCategoryView(EAIDebugDrawDataView::Type InView, const FString& Description) : Desc(Description), View(InView) {}
 };
 
+namespace EQSDebug
+{
+	struct FItemData
+	{
+		FString Desc;
+		int32 ItemIdx;
+		float TotalScore;
+
+		TArray<float> TestValues;
+		TArray<float> TestScores;
+	};
+
+	struct FTestData
+	{
+		FString ShortName;
+		FString Detailed;
+	};
+
+	struct FQueryData
+	{
+		TArray<FItemData> Items;
+		TArray<FTestData> Tests;
+		TArray<FEQSSceneProxy::FSphere> SolidSpheres;
+		TArray<FEQSSceneProxy::FText3d> Texts;
+		int32 NumValidItems;
+	};
+}
+
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnDebuggingTargetChanged, class AActor* /*Owner of debugging component*/, bool /*is being debugged now*/);
 
-UCLASS(HeaderGroup=Component)
+UCLASS()
 class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -66,6 +76,9 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 
 	UPROPERTY(Replicated)
 	int32 ShowExtendedInformatiomCounter;
+
+	UPROPERTY(Replicated)
+	TArray<int32> ReplicateViewDataCounters;
 
 	UPROPERTY(Replicated)
 	FString ControllerName;
@@ -90,16 +103,35 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	FString PathErrorString;
 	/** End path replication data*/
 	
-	UPROPERTY(ReplicatedUsing=OnRep_UpdateNavmesh)
+	UPROPERTY(ReplicatedUsing = OnRep_UpdateNavmesh)
 	TArray<uint8> NavmeshRepData;
-
-	/** flags indicating debug channels to draw. Sums up with StaticActiveViews */
-	uint32 ActiveViews;
-
+	
+	/** Begin EQS replication data */
+	UPROPERTY(Replicated)
 	float EQSTimestamp;
-	TSharedPtr<FEnvQueryInstance> EQSQueryInstance;
+	
+	UPROPERTY(Replicated)
+	FString EQSName;
+	
+	UPROPERTY(Replicated)
+	int32 EQSId;
+
+	UPROPERTY(ReplicatedUsing = OnRep_UpdateEQS)
+	TArray<uint8> EQSRepData;
+	
+	/** local EQS debug data, decoded from EQSRepData blob */
+	EQSDebug::FQueryData EQSLocalData;	
+	/** End EQS replication data */
+
+
+	TSharedPtr<FEnvQueryInstance> CachedQueryInstance;
 	uint32 bDrawEQSLabels:1;
-	uint32 bDrawEQSFailedItems:1;
+	uint32 bDrawEQSFailedItems : 1;
+
+	virtual bool GetComponentClassCanReplicate() const OVERRIDE{ return true; }
+
+	UFUNCTION()
+	virtual void OnRep_UpdateEQS();
 
 	UFUNCTION()
 	virtual void OnRep_UpdateNavmesh();
@@ -122,39 +154,17 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 
 	virtual void EnableDebugDraw(bool bEnable, bool InFocusedComponent = false);
 
-	virtual void SetActiveViews( uint32 InActiveViews );
-	virtual uint32 GetActiveViews();
-	virtual void SetActiveView( EAIDebugDrawDataView::Type NewView );
-	virtual void ToggleActiveView( EAIDebugDrawDataView::Type NewView );
-	virtual void CycleActiveView();
-	virtual void EnableActiveView( EAIDebugDrawDataView::Type View, bool bEnable );
-
-	FORCEINLINE bool IsViewActive(EAIDebugDrawDataView::Type View) const { return (ActiveViews & (1 << View)) != 0 || (StaticActiveViews & (1 << View)) != 0; }
-
 	FORCEINLINE bool IsSelected() const { return bIsSelectedForDebugging; }
 	/** Will broadcast information that this component is (no longer) being "observed" */
 	void SelectForDebugging(bool bNewStatus);
 
-	static bool ToggleStaticView(EAIDebugDrawDataView::Type View);
-	FORCEINLINE static void SetEnableStaticView(EAIDebugDrawDataView::Type View, bool bEnable) 
-	{
-		if (bEnable)
-		{
-			StaticActiveViews|= (1 << View);
-		}
-		else
-		{
-			StaticActiveViews &= ~(1 << View);
-		}
-	}
-
+	bool ShouldReplicateData(EAIDebugDrawDataView::Type InView) const { return ReplicateViewDataCounters[InView] > 0; }
 	//=============================================================================
 	// client side debugging
 	//=============================================================================
 	void OnDebugAI(class UCanvas* Canvas, class APlayerController* PC);
 
 	virtual void CollectDataToReplicate();
-	virtual bool LogGameSpecificBugIt(FOutputDevice& OutputFile) {return true;}
 
 	//=============================================================================
 	// controller related stuff
@@ -168,6 +178,11 @@ class ENGINE_API UGameplayDebuggingComponent : public UPrimitiveComponent, publi
 	//=============================================================================
 	// EQS debugging
 	//=============================================================================
+	uint32 bEnableClientEQSSceneProxy : 1;
+
+	void EnableClientEQSSceneProxy(bool bEnable) { bEnableClientEQSSceneProxy = bEnable;  MarkRenderStateDirty(); }
+	bool IsClientEQSSceneProxyEnabled() { return bEnableClientEQSSceneProxy; }
+
 	// IEQSQueryResultSourceInterface start
 	virtual const struct FEnvQueryResult* GetQueryResult() const OVERRIDE;
 	virtual const struct FEnvQueryInstance* GetQueryInstance() const  OVERRIDE;
@@ -205,12 +220,9 @@ protected:
 	uint32 bWasSelectedInEditor : 1;
 #endif
 
+	float NextTargrtSelectionTime;
 	/** navmesh data passed to rendering component */
-	TSharedPtr<struct FNavMeshSceneProxyData, ESPMode::ThreadSafe> NavmeshRenderData;
-
-private:
-	/** flags indicating debug channels to draw, statically accessible. Sums up with ActiveViews */
-	static uint32 StaticActiveViews;
+	FBox NavMeshBounds;
 
 public:
 	static FName DefaultComponentName;

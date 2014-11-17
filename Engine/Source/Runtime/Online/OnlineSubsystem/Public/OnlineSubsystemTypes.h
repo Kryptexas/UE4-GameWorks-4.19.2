@@ -3,6 +3,9 @@
 #pragma once
 #include "OnlineSubsystemPackage.h"
 
+/** Name given to default OSS instances (disambiguates for PIE) */
+#define DEFAULT_INSTANCE FName(TEXT("DefaultInstance"))
+
 /** Maximum players supported on a given platform */
 #if PLATFORM_XBOXONE
 #define MAX_LOCAL_PLAYERS 4
@@ -718,7 +721,7 @@ public:
 	/**
 	 * @return hex encoded string representation of unique id
 	 */
-	FString GetHexEncodedString()
+	FString GetHexEncodedString() const
 	{
 		if (GetSize() > 0 && GetBytes() != NULL)
 		{
@@ -1152,7 +1155,7 @@ namespace EOnlineSharingPublishingCategory
 
 
 	/** @return the stringified version of the enum passed in */
-	inline const TCHAR* ToString(EOnlineSharingReadCategory::Type CategoryType)
+	inline const TCHAR* ToString(EOnlineSharingPublishingCategory::Type CategoryType)
 	{
 		switch (CategoryType)
 		{

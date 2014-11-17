@@ -31,6 +31,30 @@ void UEnvironmentQueryGraphNode_Option::PostPlacedNewNode()
 	}
 }
 
+void UEnvironmentQueryGraphNode_Option::ResetNodeOwner()
+{
+	Super::ResetNodeOwner();
+
+	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);
+	if (OptionInstance && OptionInstance->Generator)
+	{
+		UEnvQuery* Query = Cast<UEnvQuery>(GetEnvironmentQueryGraph()->GetOuter());
+		OptionInstance->Generator->Rename(NULL, Query, REN_DontCreateRedirectors | REN_DoNotDirty);
+	}
+}
+
+void UEnvironmentQueryGraphNode_Option::PrepareForCopying()
+{
+	Super::PrepareForCopying();
+
+	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);
+	if (OptionInstance && OptionInstance->Generator)
+	{
+		// Temporarily take ownership of the node instance, so that it is not deleted when cutting
+		OptionInstance->Generator->Rename(NULL, this, REN_DontCreateRedirectors | REN_DoNotDirty );
+	}
+}
+
 FText UEnvironmentQueryGraphNode_Option::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);

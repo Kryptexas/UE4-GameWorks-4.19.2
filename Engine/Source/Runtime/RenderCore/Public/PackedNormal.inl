@@ -5,18 +5,18 @@
 
 FORCEINLINE void FPackedNormal::operator=(const FVector& InVector)
 {
-	Vector.X = FMath::Clamp(FMath::Trunc(InVector.X * 127.5f + 127.5f),0,255);
-	Vector.Y = FMath::Clamp(FMath::Trunc(InVector.Y * 127.5f + 127.5f),0,255);
-	Vector.Z = FMath::Clamp(FMath::Trunc(InVector.Z * 127.5f + 127.5f),0,255);
+	Vector.X = FMath::Clamp(FMath::TruncToInt(InVector.X * 127.5f + 127.5f),0,255);
+	Vector.Y = FMath::Clamp(FMath::TruncToInt(InVector.Y * 127.5f + 127.5f),0,255);
+	Vector.Z = FMath::Clamp(FMath::TruncToInt(InVector.Z * 127.5f + 127.5f),0,255);
 	Vector.W = 128;
 }
 
 FORCEINLINE void FPackedNormal::operator=(const FVector4& InVector)
 {
-	Vector.X = FMath::Clamp(FMath::Trunc(InVector.X * 127.5f + 127.5f),0,255);
-	Vector.Y = FMath::Clamp(FMath::Trunc(InVector.Y * 127.5f + 127.5f),0,255);
-	Vector.Z = FMath::Clamp(FMath::Trunc(InVector.Z * 127.5f + 127.5f),0,255);
-	Vector.W = FMath::Clamp(FMath::Trunc(InVector.W * 127.5f + 127.5f),0,255);
+	Vector.X = FMath::Clamp(FMath::TruncToInt(InVector.X * 127.5f + 127.5f),0,255);
+	Vector.Y = FMath::Clamp(FMath::TruncToInt(InVector.Y * 127.5f + 127.5f),0,255);
+	Vector.Z = FMath::Clamp(FMath::TruncToInt(InVector.Z * 127.5f + 127.5f),0,255);
+	Vector.W = FMath::Clamp(FMath::TruncToInt(InVector.W * 127.5f + 127.5f),0,255);
 }
 
 FORCEINLINE bool FPackedNormal::operator==(const FPackedNormal& B) const

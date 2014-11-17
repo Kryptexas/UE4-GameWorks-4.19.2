@@ -140,12 +140,12 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 	// OpenGL state toggles
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_CULL_FACE);
-#if !PLATFORM_USES_ES2
+#if !PLATFORM_USES_ES2 && !PLATFORM_LINUX
 	glEnable(GL_TEXTURE_2D);
 #endif
 
 	// Set up alpha testing
-#if !PLATFORM_USES_ES2
+#if !PLATFORM_USES_ES2 && !PLATFORM_LINUX
 	glEnable(GL_ALPHA_TEST);
 	glAlphaFunc( GL_GREATER, 0.0f );
 #endif

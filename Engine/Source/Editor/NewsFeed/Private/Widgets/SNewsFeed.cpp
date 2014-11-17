@@ -28,6 +28,8 @@ SNewsFeed::~SNewsFeed( )
 void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& InNewsFeedCache )
 {
 	NewsFeedCache = InNewsFeedCache;
+	HiddenNewsItemCount = 0;
+	ShowingOlderNews = false;
 
 	ChildSlot
 	[
@@ -90,51 +92,22 @@ void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& In
 					.VAlign(VAlign_Center)
 					.Padding(4.0f, 0.0f)
 					[
-						// settings button
-						SNew(SButton)
-							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
-							.ContentPadding(0.0f)
-							.OnClicked(this, &SNewsFeed::HandleRefreshButtonClicked)
-							.ToolTipText(LOCTEXT("RefreshButtonToolTip", "Reload the latest news from the server."))
-							.Visibility(this, &SNewsFeed::HandleRefreshButtonVisibility)
-							[
-								SNew(SImage)
-									.Image(FEditorStyle::GetBrush("NewsFeed.ReloadButton"))
-							]
-					]
-
-				+ SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.HAlign(HAlign_Center)
-					[
-						// mark all as read
-						SNew(SHyperlink)
-							.IsEnabled(this, &SNewsFeed::HandleMarkAllAsReadIsEnabled)
-							.OnNavigate(this, &SNewsFeed::HandleMarkAllAsReadNavigate)
-							.Text(LOCTEXT("MarkAllAsReadHyperlink", "Mark all news as read"))
-					]
-
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.Padding(4.0f, 0.0f)
-					[
 						SNew(SOverlay)
 
 						+ SOverlay::Slot()
 							.HAlign(HAlign_Center)
 							.VAlign(VAlign_Center)
 							[
-								// reload button
+								// settings button
 								SNew(SButton)
 									.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 									.ContentPadding(0.0f)
-									.OnClicked(this, &SNewsFeed::HandleSettingsButtonClicked)
-									.ToolTipText(LOCTEXT("SettingsButtonToolTip", "News feed settings."))
+									.OnClicked(this, &SNewsFeed::HandleRefreshButtonClicked)
+									.ToolTipText(LOCTEXT("RefreshButtonToolTip", "Reload the latest news from the server."))
+									.Visibility(this, &SNewsFeed::HandleRefreshButtonVisibility)
 									[
 										SNew(SImage)
-											.Image(FEditorStyle::GetBrush("NewsFeed.SettingsButton"))
+											.Image(FEditorStyle::GetBrush("NewsFeed.ReloadButton"))
 									]
 							]
 
@@ -147,6 +120,57 @@ void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& In
 									.Radius(10.0f)
 									.ToolTipText(LOCTEXT("RefreshThrobberToolTip", "Loading latest news..."))
 									.Visibility(this, &SNewsFeed::HandleRefreshThrobberVisibility)
+							]
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.Padding(4.0f, 0.0f)
+					[
+						// mark as read button
+						SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ContentPadding(0.0f)
+							.IsEnabled(this, &SNewsFeed::HandleMarkAllAsReadIsEnabled)
+							.OnClicked(this, &SNewsFeed::HandleMarkAllAsReadClicked)
+							.ToolTipText(LOCTEXT("MarkAsReadButtonToolTip", "Mark all news as read."))	
+							[
+								SNew(SImage)
+									.Image(FEditorStyle::GetBrush("NewsFeed.MarkAsRead"))
+							]
+					]
+
+				+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(4.0f, 0.0f)
+					[
+						// show older news hyper-link
+						SNew(SHyperlink)
+							.OnNavigate(this, &SNewsFeed::HandleShowOlderNewsNavigate)
+							.Text(this, &SNewsFeed::HandleShowOlderNewsText)
+							.ToolTipText(LOCTEXT("ShowOlderNewsToolTip", "Toggle visibility of news items that are below your threshold for recent news."))
+							.Visibility(this, &SNewsFeed::HandleShowOlderNewsVisibility)
+					]
+
+				+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Center)
+					.Padding(4.0f, 0.0f)
+					[
+						// settings button
+						SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "NoBorder")
+							.ContentPadding(0.0f)
+							.OnClicked(this, &SNewsFeed::HandleSettingsButtonClicked)
+							.ToolTipText(LOCTEXT("SettingsButtonToolTip", "News feed settings."))	
+							[
+								SNew(SImage)
+									.Image(FEditorStyle::GetBrush("NewsFeed.SettingsButton"))
 							]
 					]
 			]
@@ -166,18 +190,22 @@ void SNewsFeed::Construct( const FArguments& InArgs, const FNewsFeedCacheRef& In
 void SNewsFeed::ReloadNewsFeedItems( )
 {
 	NewsFeedItemList.Empty();
+	HiddenNewsItemCount = 0;
 
 	const UNewsFeedSettings* NewsFeedSettings = GetDefault<UNewsFeedSettings>();
+	const TArray<FNewsFeedItemPtr>& NewsFeedItems = NewsFeedCache->GetItems();
 
-	for (auto NewsFeedItem : NewsFeedCache->GetItems())
+	for (auto NewsFeedItem : NewsFeedItems)
 	{
 		if (!GetDefault<UNewsFeedSettings>()->ShowOnlyUnreadItems || !NewsFeedItem->Read)
 		{
-			NewsFeedItemList.Add(NewsFeedItem);
-
-			if (NewsFeedItemList.Num() == NewsFeedSettings->MaxItemsToShow)
+			if (ShowingOlderNews || (NewsFeedItemList.Num() < NewsFeedSettings->MaxItemsToShow))
 			{
-				break;
+				NewsFeedItemList.Add(NewsFeedItem);
+			}
+			else
+			{
+				++HiddenNewsItemCount;
 			}
 		}
 	}
@@ -195,6 +223,27 @@ EVisibility SNewsFeed::HandleLoadFailedBoxVisibility( ) const
 }
 
 
+FReply SNewsFeed::HandleMarkAllAsReadClicked( )
+{
+	UNewsFeedSettings* NewsFeedSettings = GetMutableDefault<UNewsFeedSettings>();
+
+	for (auto NewsFeedItem : NewsFeedItemList)
+	{
+		NewsFeedSettings->ReadItems.AddUnique(NewsFeedItem->ItemId);
+		NewsFeedItem->Read = true;
+	}
+
+	NewsFeedSettings->SaveConfig();
+
+	if (NewsFeedSettings->ShowOnlyUnreadItems)
+	{
+		ReloadNewsFeedItems();
+	}
+
+	return FReply::Handled();
+}
+
+
 bool SNewsFeed::HandleMarkAllAsReadIsEnabled( ) const
 {
 	for (auto NewsFeedItem : NewsFeedItemList)
@@ -206,20 +255,6 @@ bool SNewsFeed::HandleMarkAllAsReadIsEnabled( ) const
 	}
 
 	return false;
-}
-
-
-void SNewsFeed::HandleMarkAllAsReadNavigate( )
-{
-	for (auto NewsFeedItem : NewsFeedItemList)
-	{
-		NewsFeedItem->Read = true;
-	}
-
-	if (GetDefault<UNewsFeedSettings>()->ShowOnlyUnreadItems)
-	{
-		ReloadNewsFeedItems();
-	}
 }
 
 
@@ -237,6 +272,7 @@ void SNewsFeed::HandleNewsFeedLoaderLoadFailed( )
 
 void SNewsFeed::HandleNewsFeedSettingsChanged( FName PropertyName )
 {
+	ShowingOlderNews = false;
 	ReloadNewsFeedItems();
 }
 
@@ -253,9 +289,9 @@ void SNewsFeed::HandleNewsListViewSelectionChanged( FNewsFeedItemPtr Selection, 
 	if (Selection.IsValid() && (SelectInfo == ESelectInfo::OnMouseClick))
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
-
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("ItemID"), Selection->ItemId.ToString()));
 
+		// execute item action
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 
 		if (DesktopPlatform != nullptr)
@@ -284,12 +320,16 @@ void SNewsFeed::HandleNewsListViewSelectionChanged( FNewsFeedItemPtr Selection, 
 			}
 		}
 
-		// hack: mark as read
+		// mark item as read
+		UNewsFeedSettings* NewsFeedSettings = GetMutableDefault<UNewsFeedSettings>();
+		NewsFeedSettings->ReadItems.AddUnique(Selection->ItemId);
+		NewsFeedSettings->SaveConfig();
 		Selection->Read = true;
-		
+
+		// refresh list view
 		NewsFeedItemListView->SetSelection(nullptr);
 
-		if (GetDefault<UNewsFeedSettings>()->ShowOnlyUnreadItems)
+		if (NewsFeedSettings->ShowOnlyUnreadItems)
 		{
 			ReloadNewsFeedItems();
 		}
@@ -345,6 +385,30 @@ FReply SNewsFeed::HandleSettingsButtonClicked( ) const
 	FModuleManager::LoadModuleChecked<ISettingsModule>("Settings").ShowViewer("Editor", "LevelEditor", "NewsFeed");
 
 	return FReply::Handled();
+}
+
+
+void SNewsFeed::HandleShowOlderNewsNavigate( )
+{
+	ShowingOlderNews = !ShowingOlderNews;
+	ReloadNewsFeedItems();
+}
+
+
+FText SNewsFeed::HandleShowOlderNewsText( ) const
+{
+	if (ShowingOlderNews)
+	{
+		return LOCTEXT("HideOlderNewsHyperlink", "Hide older news");
+	}
+
+	return FText::Format(LOCTEXT("ShowOlderNewsHyperlink", "Show older news ({0})"), FText::AsNumber(HiddenNewsItemCount));
+}
+
+
+EVisibility SNewsFeed::HandleShowOlderNewsVisibility( ) const
+{
+	return (ShowingOlderNews || (HiddenNewsItemCount > 0)) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
 

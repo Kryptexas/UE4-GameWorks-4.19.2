@@ -11,6 +11,15 @@ public:
 	// Variables.
 	float X, Y, Z, W;
 
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		checkf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
+
 	/**
 	 * Constructor.
 	 *
@@ -361,24 +370,32 @@ public:
 
 FORCEINLINE FVector4::FVector4(const FVector& InVector,float InW):
 X(InVector.X), Y(InVector.Y), Z(InVector.Z), W(InW)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector4::FVector4(const FLinearColor& InColor):
 X(InColor.R), Y(InColor.G), Z(InColor.B), W(InColor.A)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector4::FVector4(float InX,float InY,float InZ,float InW):
 X(InX), Y(InY), Z(InZ), W(InW)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector4::FVector4(EForceInit)
 	: X(0.f), Y(0.f), Z(0.f), W(0.f)
 {
+	DiagnosticCheckNaN();
 }
 
 FORCEINLINE FVector4::FVector4(FVector2D InXY, FVector2D InZW)
 	: X(InXY.X), Y(InXY.Y), Z(InZW.X), W(InZW.Y)
 {
+	DiagnosticCheckNaN();
 }
 
 FORCEINLINE float & FVector4::operator[]( int32 ComponentIndex )
@@ -397,6 +414,8 @@ FORCEINLINE void FVector4::Set( float InX, float InY, float InZ, float InW )
 	Y = InY;
 	Z = InZ;
 	W = InW;
+
+	DiagnosticCheckNaN();
 }
 
 
@@ -413,6 +432,7 @@ FORCEINLINE FVector4 FVector4::operator+( const FVector4& V ) const
 FORCEINLINE FVector4 FVector4::operator+=( const FVector4& V )
 {
 	X += V.X; Y += V.Y; Z += V.Z; W += V.W;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -557,18 +577,21 @@ FORCEINLINE void FVector4::FindBestAxisVectors3( FVector4& Axis1, FVector4& Axis
 FORCEINLINE FVector4 FVector4::operator*=( const FVector4& V )
 {
 	X *= V.X; Y *= V.Y; Z *= V.Z; W *= V.W;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector4 FVector4::operator/=( const FVector4& V )
 {
 	X /= V.X; Y /= V.Y; Z /= V.Z; W /= V.W;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector4 FVector4::operator*=( float S )
 {
 	X *= S; Y *= S; Z *= S; W *= S;
+	DiagnosticCheckNaN();
 	return *this;
 }
 

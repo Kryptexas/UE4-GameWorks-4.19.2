@@ -447,6 +447,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			 DISABLE_ENGINE_SHOWFLAG(SkeletalMeshes)
 			 DISABLE_ENGINE_SHOWFLAG(StaticMeshes)
 			 DISABLE_ENGINE_SHOWFLAG(BSP)
+			 DISABLE_ENGINE_SHOWFLAG(Paper2DSprites)
 #undef DISABLE_ENGINE_SHOWFLAG
 		}
 	}

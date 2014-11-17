@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineDecalClasses.h"
 #include "DerivedDataCacheInterface.h"
 #include "TargetPlatform.h"
 
@@ -58,6 +57,7 @@ AReflectionCapture::AReflectionCapture(const class FPostConstructInitializePrope
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.DecalTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bAbsoluteScale = true;
 		SpriteComponent->BodyInstance.bEnableCollision_DEPRECATED = false;	
@@ -288,10 +288,10 @@ FColor RGBMEncode( FLinearColor Color )
 		MaxValue = Tonemapped;
 	}
 
-	Encoded.A = FMath::Min( FMath::Ceil( MaxValue * 255.0f ), 255 );
-	Encoded.R = FMath::Round( ( Color.R * 255.0f / Encoded.A ) * 255.0f );
-	Encoded.G = FMath::Round( ( Color.G * 255.0f / Encoded.A ) * 255.0f );
-	Encoded.B = FMath::Round( ( Color.B * 255.0f / Encoded.A ) * 255.0f );
+	Encoded.A = FMath::Min( FMath::CeilToInt( MaxValue * 255.0f ), 255 );
+	Encoded.R = FMath::RoundToInt( ( Color.R * 255.0f / Encoded.A ) * 255.0f );
+	Encoded.G = FMath::RoundToInt( ( Color.G * 255.0f / Encoded.A ) * 255.0f );
+	Encoded.B = FMath::RoundToInt( ( Color.B * 255.0f / Encoded.A ) * 255.0f );
 
 	return Encoded;
 }
@@ -1282,7 +1282,7 @@ void UReflectionCaptureComponent::UpdateReflectionCaptureContents(UWorld* WorldT
 			}
 		}
 
-		if (GRHIFeatureLevel == ERHIFeatureLevel::SM4)
+		if (WorldToUpdate->Scene->GetFeatureLevel() == ERHIFeatureLevel::SM4)
 		{
 			for (int32 CaptureIndex = 0; CaptureIndex < WorldCombinedCaptures.Num(); CaptureIndex++)
 			{

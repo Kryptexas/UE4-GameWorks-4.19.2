@@ -49,6 +49,12 @@ DEFINE_STAT(STAT_VoicePacketsRecv);
 DEFINE_STAT(STAT_PercentInVoice);
 DEFINE_STAT(STAT_PercentOutVoice);
 
+#if UE_BUILD_SHIPPING
+#define DEBUG_REMOTEFUNCTION(Format, ...)
+#else
+#define DEBUG_REMOTEFUNCTION(Format, ...) UE_LOG(LogNet, VeryVerbose, Format, __VA_ARGS__);
+#endif
+
 /*-----------------------------------------------------------------------------
 	UNetDriver implementation.
 -----------------------------------------------------------------------------*/
@@ -136,23 +142,23 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		float RealTime = Time - StatUpdateTime;
 
 		// Use the elapsed time to keep things scaled to one measured unit
-		InBytes = FMath::Trunc(InBytes / RealTime);
-		OutBytes = FMath::Trunc(OutBytes / RealTime);
+		InBytes = FMath::TruncToInt(InBytes / RealTime);
+		OutBytes = FMath::TruncToInt(OutBytes / RealTime);
 
-		NetGUIDOutBytes = FMath::Trunc(NetGUIDOutBytes / RealTime);
-		NetGUIDInBytes = FMath::Trunc(NetGUIDInBytes / RealTime);
+		NetGUIDOutBytes = FMath::TruncToInt(NetGUIDOutBytes / RealTime);
+		NetGUIDInBytes = FMath::TruncToInt(NetGUIDInBytes / RealTime);
 
 		// Save off for stats later
 
 		InBytesPerSecond = InBytes;
 		OutBytesPerSecond = OutBytes;
 
-		InPackets = FMath::Trunc(InPackets / RealTime);
-		OutPackets = FMath::Trunc(OutPackets / RealTime);
-		InBunches = FMath::Trunc(InBunches / RealTime);
-		OutBunches = FMath::Trunc(OutBunches / RealTime);
-		OutPacketsLost = FMath::Trunc(100.f * OutPacketsLost / FMath::Max((float)OutPackets,1.f));
-		InPacketsLost = FMath::Trunc(100.f * InPacketsLost / FMath::Max((float)InPackets + InPacketsLost,1.f));
+		InPackets = FMath::TruncToInt(InPackets / RealTime);
+		OutPackets = FMath::TruncToInt(OutPackets / RealTime);
+		InBunches = FMath::TruncToInt(InBunches / RealTime);
+		OutBunches = FMath::TruncToInt(OutBunches / RealTime);
+		OutPacketsLost = FMath::TruncToInt(100.f * OutPacketsLost / FMath::Max((float)OutPackets,1.f));
+		InPacketsLost = FMath::TruncToInt(100.f * InPacketsLost / FMath::Max((float)InPackets + InPacketsLost,1.f));
 		
 #if STATS
 
@@ -161,7 +167,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			// Copy the net status values over
 			if (ServerConnection != NULL && ServerConnection->PlayerController != NULL && ServerConnection->PlayerController->PlayerState != NULL)
 			{
-				SET_DWORD_STAT(STAT_Ping, FMath::Trunc(1000.0f * ServerConnection->PlayerController->PlayerState->ExactPing));
+				SET_DWORD_STAT(STAT_Ping, FMath::TruncToInt(1000.0f * ServerConnection->PlayerController->PlayerState->ExactPing));
 			}
 			else
 			{
@@ -189,17 +195,17 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			SET_DWORD_STAT(STAT_NetGUIDOutRate,NetGUIDOutBytes);
 
 			// Use the elapsed time to keep things scaled to one measured unit
-			VoicePacketsSent = FMath::Trunc(VoicePacketsSent / RealTime);
+			VoicePacketsSent = FMath::TruncToInt(VoicePacketsSent / RealTime);
 			SET_DWORD_STAT(STAT_VoicePacketsSent,VoicePacketsSent);
-			VoicePacketsRecv = FMath::Trunc(VoicePacketsRecv / RealTime);
+			VoicePacketsRecv = FMath::TruncToInt(VoicePacketsRecv / RealTime);
 			SET_DWORD_STAT(STAT_VoicePacketsRecv,VoicePacketsRecv);
-			VoiceBytesSent = FMath::Trunc(VoiceBytesSent / RealTime);
+			VoiceBytesSent = FMath::TruncToInt(VoiceBytesSent / RealTime);
 			SET_DWORD_STAT(STAT_VoiceBytesSent,VoiceBytesSent);
-			VoiceBytesRecv = FMath::Trunc(VoiceBytesRecv / RealTime);
+			VoiceBytesRecv = FMath::TruncToInt(VoiceBytesRecv / RealTime);
 			SET_DWORD_STAT(STAT_VoiceBytesRecv,VoiceBytesRecv);
 			// Determine voice percentages
-			VoiceInPercent = (InBytes > 0) ? FMath::Trunc(100.f * (float)VoiceBytesRecv / (float)InBytes) : 0;
-			VoiceOutPercent = (OutBytes > 0) ? FMath::Trunc(100.f * (float)VoiceBytesSent / (float)OutBytes) : 0;
+			VoiceInPercent = (InBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesRecv / (float)InBytes) : 0;
+			VoiceOutPercent = (OutBytes > 0) ? FMath::TruncToInt(100.f * (float)VoiceBytesSent / (float)OutBytes) : 0;
 
 			SET_DWORD_STAT(STAT_PercentInVoice,VoiceInPercent);
 			SET_DWORD_STAT(STAT_PercentOutVoice,VoiceOutPercent);
@@ -592,6 +598,7 @@ void UNetDriver::InternalProcessRemoteFunction
 	// If saturated and function is unimportant, skip it.
 	if( !(Function->FunctionFlags & FUNC_NetReliable) && !Connection->IsNetReady(0) )
 	{
+		DEBUG_REMOTEFUNCTION(TEXT("Network saturated, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 		return;
 	}
 
@@ -606,12 +613,19 @@ void UNetDriver::InternalProcessRemoteFunction
 
 	// Make sure this function exists for both parties.
 	FClassNetCache* ClassCache = Connection->PackageMap->GetClassNetCache( TargetObj->GetClass() );
-	if( !ClassCache )
+	if (!ClassCache)
+	{
+		DEBUG_REMOTEFUNCTION(TEXT("ClassNetCache empty, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 		return;
+	}
+		
 	FFieldNetCache* FieldCache = ClassCache->GetFromField( Function );
-	if( !FieldCache )
+	if (!FieldCache)
+	{
+		DEBUG_REMOTEFUNCTION(TEXT("FieldCache empty, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 		return;
-
+	}
+		
 	// Get the actor channel.
 	UActorChannel* Ch = Connection->ActorChannels.FindRef(Actor);
 	if( !Ch )
@@ -637,17 +651,24 @@ void UNetDriver::InternalProcessRemoteFunction
 				}
 			}
 		}
-		if( !Ch )
+		if (!Ch)
+		{
 			return;
-		if( IsServer )
-			Ch->SetChannelActor( Actor );
+		}
+		if (IsServer)
+		{
+			Ch->SetChannelActor(Actor);
+		}	
 	}
 
 	// Make sure initial channel-opening replication has taken place.
 	if( Ch->OpenPacketId.First==INDEX_NONE )
 	{
-		if( !IsServer )
+		if (!IsServer)
+		{
+			DEBUG_REMOTEFUNCTION(TEXT("Initial channel replication has not occurred, not calling %s::%s"), *Actor->GetName(), *Function->GetName());
 			return;
+		}
 
 		// triggering replication of an Actor while already in the middle of replication can result in invalid data being sent and is therefore illegal
 		if (Ch->bIsReplicatingActor)
@@ -669,15 +690,19 @@ void UNetDriver::InternalProcessRemoteFunction
 
 	// Reliability.
 	//warning: RPC's might overflow, preventing reliable functions from getting thorough.
-	if( Function->FunctionFlags & FUNC_NetReliable )
+	if (Function->FunctionFlags & FUNC_NetReliable)
+	{
 		Bunch.bReliable = 1;
+	}
 
 	// Queue unreliable multicast 
 	bool QueueBunch = (!Bunch.bReliable && Function->FunctionFlags & FUNC_NetMulticast);
 
 	if (!QueueBunch)
-		Ch->BeginContentBlock( TargetObj, Bunch );
-
+	{
+		Ch->BeginContentBlock(TargetObj, Bunch);
+	}
+		
 	//UE_LOG(LogScript, Log, TEXT("   Call %s"),Function->GetFullName());
 	check( FieldCache->FieldNetIndex <= ClassCache->GetMaxIndex() );
 	Bunch.WriteIntWrapped(FieldCache->FieldNetIndex, ClassCache->GetMaxIndex()+1);
@@ -791,7 +816,6 @@ void UNetDriver::InternalProcessRemoteFunction
 	{
 		Ch->EndContentBlock( TargetObj, Bunch );
 	}
-
 
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("net.RPC.Debug"));
 	bool LogAsWarning = (CVar && CVar->GetValueOnGameThread() == 1);
@@ -915,7 +939,7 @@ void UNetDriver::UpdateStandbyCheatStatus(void)
 						NetworkManager->StandbyCheatDetected(STDBY_BadPing);
 					}
 					// Check for the host not sending to the clients, but only during a match
-					else if ( GameMode && !GameMode->bWaitingToStartMatch && !GameMode->bLevelChange &&
+					else if ( GameMode && GameMode->IsMatchInProgress() &&
 						float(CountBadTx) / float(ClientConnections.Num()) > PercentMissingForTxStandby)
 					{
 						bHasStandbyCheatTriggered = true;
@@ -1329,13 +1353,12 @@ void UNetDriver::NotifyActorDestroyed( AActor* ThisActor, bool IsSeamlessTravel 
 			}
 
 			// This should be rare, but remove from OwnedConsiderList
-			for (int32 ActorIdx=0; ActorIdx < Connection->OwnedConsiderListSize; ++ActorIdx)
+			for (int32 ActorIdx=0; ActorIdx < Connection->OwnedConsiderList.Num(); ++ActorIdx)
 			{
 				if (Connection->OwnedConsiderList[ActorIdx] == ThisActor)
 				{
 					// Swap with last element, shrink list size by 1
-					Connection->OwnedConsiderList[ActorIdx] = Connection->OwnedConsiderList[Connection->OwnedConsiderListSize - 1];
-					Connection->OwnedConsiderListSize--;
+					Connection->OwnedConsiderList.RemoveAtSwap(ActorIdx, 1, false);
 					break;
 				}
 			}
@@ -1639,7 +1662,7 @@ FActorPriority::FActorPriority(UNetConnection* InConnection, UActorChannel* InCh
 	Priority = 0;
 	for (int32 i = 0; i < Viewers.Num(); i++)
 	{
-		Priority = FMath::Max<int32>(Priority, FMath::Round(65536.0f * Actor->GetNetPriority(Viewers[i].ViewLocation, Viewers[i].ViewDir, Viewers[i].InViewer, InChannel, Time, bLowBandwidth)));
+		Priority = FMath::Max<int32>(Priority, FMath::RoundToInt(65536.0f * Actor->GetNetPriority(Viewers[i].ViewLocation, Viewers[i].ViewDir, Viewers[i].InViewer, InChannel, Time, bLowBandwidth)));
 	}
 }
 
@@ -1711,7 +1734,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			//@todo - ideally we wouldn't want to tick more clients with a higher deltatime as that's not going to be good for performance and probably saturate bandwidth in hitchy situations, maybe 
 			// come up with a solution that is greedier with higher framerates, but still won't risk saturating server upstream bandwidth
 			float ClientUpdatesThisFrame = GEngine->NetClientTicksPerSecond * (DeltaSeconds + DeltaTimeOverflow) * (LanPlay ? 2.f : 1.f);
-			NumClientsToTick = FMath::Min<int32>(NumClientsToTick,FMath::Trunc(ClientUpdatesThisFrame));
+			NumClientsToTick = FMath::Min<int32>(NumClientsToTick,FMath::TruncToInt(ClientUpdatesThisFrame));
 			//UE_LOG(LogNet, Log, TEXT("%2.3f: Ticking %d clients this frame, %2.3f/%2.4f"),GetWorld()->GetTimeSeconds(),NumClientsToTick,DeltaSeconds,ClientUpdatesThisFrame);
 			if (NumClientsToTick == 0)
 			{
@@ -1762,8 +1785,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			
 			Connection->Viewer = Connection->PlayerController ? Connection->PlayerController->GetViewTarget() : OwningActor->GetOwner();
 			//@todo - eliminate this mallocs if the connection isn't going to actually be updated this frame (currently needed to verify owner relevancy below)
-			Connection->OwnedConsiderList = new(FMemStack::Get(),NetRelevantActorCount)AActor*;
-			Connection->OwnedConsiderListSize = 0;
+			Connection->OwnedConsiderList.Empty(NetRelevantActorCount);
 
 			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
 			{
@@ -1772,8 +1794,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				if (ChildPlayerController != NULL)
 				{
 					Child->Viewer = ChildPlayerController->GetViewTarget();
-					Child->OwnedConsiderList = new(FMemStack::Get(), NetRelevantActorCount) AActor*;
-					Child->OwnedConsiderListSize = 0;
+					Child->OwnedConsiderList.Empty(NetRelevantActorCount);
 				}
 				else
 				{
@@ -1801,8 +1822,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 	check(World);
 
 	// make list of actors to consider to relevancy checking and replication
-	AActor **ConsiderList = new(FMemStack::Get(),NetRelevantActorCount)AActor*;
-	int32 ConsiderListSize = 0;
+	TArray<AActor*> ConsiderList;
+	ConsiderList.Reserve(NetRelevantActorCount);
+
 	int32 NumInitiallyDormant = 0;
 
 	// Add WorldSettings to consider list if we have one
@@ -1811,8 +1833,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 	{
 		if (WorldSettings->GetRemoteRole() != ROLE_None && WorldSettings->NetDriverName == NetDriverName)
 		{
-			ConsiderList[0] = WorldSettings;
-			ConsiderListSize++;
+			// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
+			ensure(ConsiderList.Num() < ConsiderList.Max());
+			ConsiderList.Add(WorldSettings);
 		}
 	}
 
@@ -1857,7 +1880,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			}
 
 			ULevel* Level = Actor->GetLevel();
-			if ( Level->HasVisibilityRequestPending() && !Level->bIsAssociatingLevel )
+			if ( Level->HasVisibilityRequestPending() || Level->bIsAssociatingLevel )
 			{
 				continue;
 			}
@@ -1903,8 +1926,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				if ( !Actor->bOnlyRelevantToOwner ) 
 				{
 					// add it to the list to consider below
-					ConsiderList[ConsiderListSize] = Actor;
-					ConsiderListSize++;
+					// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
+					ensure(ConsiderList.Num() < ConsiderList.Max());
+					ConsiderList.Add(Actor);
 
 					bWasConsidered = true;
 				}
@@ -1932,8 +1956,9 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 										(Connection->PlayerController && ActorOwner == Connection->PlayerController->GetPawn()) ||
 										Connection->Viewer->IsRelevancyOwnerFor(Actor, ActorOwner, Connection->OwningActor))
 									{
-										Connection->OwnedConsiderList[Connection->OwnedConsiderListSize] = Actor;
-										Connection->OwnedConsiderListSize++;
+										// For performance reasons, make sure we don't resize the array. It should already be appropriately sized above!
+										ensure(Connection->OwnedConsiderList.Num() < Connection->OwnedConsiderList.Max());
+										Connection->OwnedConsiderList.Add(Actor);
 										bCloseChannel = false;
 										
 										bWasConsidered = true;
@@ -1978,7 +2003,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 	}
 
 	SET_DWORD_STAT(STAT_NumInitiallyDormantActors,NumInitiallyDormant);
-	SET_DWORD_STAT(STAT_NumConsideredActors,ConsiderListSize);
+	SET_DWORD_STAT(STAT_NumConsideredActors,ConsiderList.Num());
 
 	for( int32 i=0; i < ClientConnections.Num(); i++ )
 	{
@@ -1992,7 +2017,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 		{
 			//UE_LOG(LogNet, Log, TEXT("skipping update to %s"),*Connection->GetName());
 			// then mark each considered actor as bPendingNetUpdate so that they will be considered again the next frame when the connection is actually ticked
-			for (int32 ConsiderIdx = 0; ConsiderIdx < ConsiderListSize; ConsiderIdx++)
+			for (int32 ConsiderIdx = 0; ConsiderIdx < ConsiderList.Num(); ConsiderIdx++)
 			{
 				AActor *Actor = ConsiderList[ConsiderIdx];
 				// if the actor hasn't already been flagged by another connection,
@@ -2012,14 +2037,12 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			// clear the time sensitive flag to avoid sending an extra packet to this connection
 			Connection->TimeSensitive = false;
 
-			Connection->OwnedConsiderList = NULL;
-			Connection->OwnedConsiderListSize = 0;
+			Connection->OwnedConsiderList.Empty();
 			for (int32 ChildIdx = 0; ChildIdx < Connection->Children.Num(); ChildIdx++)
 			{
 				if (Connection->Children[ChildIdx])
 				{
-					Connection->Children[ChildIdx]->OwnedConsiderList = NULL;
-					Connection->Children[ChildIdx]->OwnedConsiderListSize = 0;
+					Connection->Children[ChildIdx]->OwnedConsiderList.Empty();
 				}
 			}
 		}
@@ -2093,7 +2116,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				AGameMode const* const GameMode = World->GetAuthGameMode();
 				bool bLowNetBandwidth = !bCPUSaturated && (Connection->CurrentNetSpeed / float(GameMode->NumPlayers + GameMode->NumBots) < 500.f );
 
-				for( j=0; j<ConsiderListSize; j++ )
+				for( j=0; j<ConsiderList.Num(); j++ )
 				{
 					AActor* Actor = ConsiderList[j];
 					UActorChannel* Channel = Connection->ActorChannels.FindRef(Actor);
@@ -2202,7 +2225,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				int32 ChildIndex = 0;
 				while (NextConnection != NULL)
 				{
-					for (int32 j = 0; j < NextConnection->OwnedConsiderListSize; j++)
+					for (int32 j = 0; j < NextConnection->OwnedConsiderList.Num(); j++)
 					{
 						AActor* Actor = NextConnection->OwnedConsiderList[j];
 						UE_LOG(LogNetTraffic, Log, TEXT("Consider owned %s always relevant %d frequency %f  "),*Actor->GetName(), Actor->bAlwaysRelevant,Actor->NetUpdateFrequency);
@@ -2220,8 +2243,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 							}
 						}
 					}
-					NextConnection->OwnedConsiderList = NULL;
-					NextConnection->OwnedConsiderListSize = 0;
+					NextConnection->OwnedConsiderList.Empty();
 
 					NextConnection = (ChildIndex < Connection->Children.Num()) ? Connection->Children[ChildIndex++] : NULL;
 				}
@@ -2451,7 +2473,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 			}
 			RelevantActorMark.Pop();
 			UE_LOG(LogNetTraffic, Log, TEXT("Potential %04i ConsiderList %03i ConsiderCount %03i Prune=%01.4f "),NetRelevantCount, 
-						ConsiderListSize, ConsiderCount, FPlatformTime::ToMilliseconds(PruneActors) );
+						ConsiderList.Num(), ConsiderCount, FPlatformTime::ToMilliseconds(PruneActors) );
 
 			SET_DWORD_STAT(STAT_NumReplicatedActorAttempts,ActorUpdatesThisConnection);
 			SET_DWORD_STAT(STAT_NumReplicatedActors,ActorUpdatesThisConnectionSent);

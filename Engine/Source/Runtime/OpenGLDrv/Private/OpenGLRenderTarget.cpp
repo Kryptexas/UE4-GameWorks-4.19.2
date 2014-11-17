@@ -308,7 +308,7 @@ void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture
 	VERIFY_GL_SCOPE();
 
 	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ResolveParams.SourceArrayIndex == 0);
-	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ResolveParams.DestArrayIndex   == 0);
+	check(GRHIFeatureLevel >= ERHIFeatureLevel::SM5 || ResolveParams.DestArrayIndex == 0);
 
 	FOpenGLTextureBase* SourceTexture = GetOpenGLTextureFromRHITexture(SourceTextureRHI);
 	FOpenGLTextureBase* DestTexture = GetOpenGLTextureFromRHITexture(DestTextureRHI);
@@ -430,10 +430,6 @@ void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture
 	}
 	else
 	{
-		// D3D appears to skip all resolves when the source and dest base resource are identical
-		// Technically, this interface can blit between layers in an array, and this would fail
-		// Leaving it to match D3D for now
-		//check(0);
 	}
 }
 
@@ -614,8 +610,8 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 		else 
 			glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_FLOAT, FloatBGRAData );
 		// Determine minimal and maximal float values present in received data. Treat each component separately.
-		float MinValue[4] = { 0.0f };
-		float MaxValue[4] = { 1.0f };
+		float MinValue[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		float MaxValue[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		float* DataPtr = FloatBGRAData;
 		for( int32 PixelComponentIndex = 0; PixelComponentIndex < PixelComponentCount; ++PixelComponentIndex, ++DataPtr )
 		{
@@ -691,6 +687,7 @@ void FOpenGLDynamicRHI::RHIMapStagingSurface(FTextureRHIParamRef TextureRHI,void
 	
 	FOpenGLTexture2D* Texture2D = (FOpenGLTexture2D*)TextureRHI->GetTexture2D();
 	check(Texture2D);
+	check(Texture2D->IsStaging());
 
 	OutWidth = Texture2D->GetSizeX();
 	OutHeight = Texture2D->GetSizeY();

@@ -33,6 +33,18 @@ public:
 	/** Save the translations to file */
 	TSharedPtr<FUICommandInfo> SaveTranslations;
 
+	/** Save the translations to file */
+	TSharedPtr<FUICommandInfo> PreviewAllTranslationsInEditor;
+
+	/** Export to PortableObject format (.po) */
+	TSharedPtr<FUICommandInfo> ExportToPortableObjectFormat;
+
+	/** Import from PortableObject format (.po) */
+	TSharedPtr<FUICommandInfo> ImportFromPortableObjectFormat;
+
+	/** Open the tab for searching */
+	TSharedPtr<FUICommandInfo> OpenSearchTab;
+
 	/** Initialize commands */
 	virtual void RegisterCommands() OVERRIDE;
 };

@@ -74,14 +74,14 @@ public:
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) OVERRIDE;
 
-	virtual TSharedPtr<SToolTip> GetToolTip() OVERRIDE;
+	virtual TSharedPtr<IToolTip> GetToolTip() OVERRIDE;
 	virtual void OnToolTipClosing() OVERRIDE;
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) OVERRIDE;
 	// End of SWidget interface
 
 	// SNodePanel::SNode interface
-	virtual void MoveTo( const FVector2D& NewPosition ) OVERRIDE;
+	virtual void MoveTo( const FVector2D& NewPosition, FNodeSet& NodeFilter ) OVERRIDE;
 	virtual FVector2D GetPosition() const OVERRIDE;
 	virtual FString GetNodeComment() const OVERRIDE;
 	virtual UObject* GetObjectBeingDisplayed() const OVERRIDE;

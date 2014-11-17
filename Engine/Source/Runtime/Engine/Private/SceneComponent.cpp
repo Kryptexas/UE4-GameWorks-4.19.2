@@ -1245,6 +1245,22 @@ bool USceneComponent::ShouldRender() const
 	return ((bInGameWorld && bShowInGame) || (!bInGameWorld && bShowInEditor)) && bVisible == true;
 }
 
+bool USceneComponent::CanEverRender() const
+{
+	AActor* Owner = GetOwner();
+	const bool bShowInEditor =
+#if WITH_EDITOR
+		(!Owner || !Owner->IsHiddenEd());
+#else
+		false;
+#endif
+
+	const bool bInGameWorld = GetWorld() && GetWorld()->IsGameWorld();
+
+	const bool bShowInGame = (!Owner || !Owner->bHidden);
+	return ((bInGameWorld && bShowInGame) || (!bInGameWorld && bShowInEditor));
+}
+
 bool USceneComponent::ShouldComponentAddToScene() const
 {
 	// If the detail mode setting allows it, add it to the scene.

@@ -6,6 +6,9 @@
 
 #pragma once
 
+#include "Class.h"
+#include "Classes.h"
+
 //
 //	FNativeClassHeaderGenerator
 //
@@ -34,8 +37,7 @@ struct FNativeClassHeaderGenerator
 private:
 
 	UClass*				CurrentClass;
-	TArray<UClass*>		Classes;
-	FString				ClassHeaderFilename;
+	TArray<FClass*>		Classes;
 	FString				API;
 	FString			ClassesHeaderPath;
 	/** the name of the cpp file where the implementation functions are generated, without the .cpp extension */
@@ -47,7 +49,8 @@ private:
 	UPackage*			Package;
 	FStringOutputDevice	PreHeaderText;
 	FStringOutputDevice	EnumForeachText;
-	FStringOutputDevice ListOfPublicClassesUObjectHeaderIncludes;
+	FStringOutputDevice ListOfPublicClassesUObjectHeaderGroupIncludes;  // This is built up each time from scratch each time for each header groups
+	FStringOutputDevice ListOfPublicClassesUObjectHeaderModuleIncludes; // This is built up for the entire module, and for all processed headers
 	FStringOutputDevice ListOfAllUObjectHeaderIncludes;
 	FStringOutputDevice FriendText;
 	FStringOutputDevice	GeneratedPackageCPP;
@@ -72,16 +75,10 @@ private:
 	/** Names that have been exported so far **/
 	TSet<FName> ReferencedNames;
 
-	/** the class tree for this package */
-	const FClassTree&	ClassTree;
-
 	/** the existing disk version of the header for this package's names */
 	FString				OriginalNamesHeader;
 	/** the existing disk version of this header */
 	FString				OriginalHeader;
-
-	/** Used by certain traversal algorithms to flag if a class has been visited or not. */
-	TMap<const UClass*, bool>	VisitedMap;
 
 	/** Array of temp filenames that for files to overwrite headers */
 	TArray<FString>		TempHeaderPaths;
@@ -89,6 +86,9 @@ private:
 	/** Array of all header filenames from the current package. */
 	TArray<FString>		PackageHeaderPaths;
 
+	/** Array of all generated Classes headers for the current package */
+	TArray<FString>		ClassesHeaders;
+	
 	/** if we are exporting a struct for offset determination only, replace some types with simpler ones (delegates) */
 	bool bIsExportingForOffsetDeterminationOnly;
 
@@ -138,30 +138,6 @@ private:
 	 * @return true if an inter-dependency was found.
 	 */
 	bool FindInterDependencyRecursive( TMap<const FString*, HeaderDependents>& HeaderDependencyMap, const FString* HeaderIndex, TSet<const FString*>& VisitedHeaders, const FString*& OutHeader1, const FString*& OutHeader2 );
-
-	/**
-	 * Finds a dependency chain between two class header files.
-	 * Wrapper around FindDependencyChainRecursive().
-	 *
-	 * @param	Class				A class to scan for a dependency chain between the two headers.
-	 * @param	Header1				First class header filename.
-	 * @param	Header2				Second class header filename.
-	 * @param	DependencyChain		[out] Receives dependency chain, if found.
-	 * @return	true if a dependency chain was found and filled in.
-	 */
-	bool FindDependencyChain( const UClass* Class, const FString& Header1, const FString& Header2, TArray<const UClass*>& DependencyChain );
-
-	/**
-	 * Finds a dependency chain between two class header files.
-	 *
-	 * @param	Class				A class to scan for a dependency chain between the two headers.
-	 * @param	Header1				First class header filename.
-	 * @param	Header2				Second class header filename.
-	 * @param	bChainStarted		Whether Header1 has been found and we've started to fill in DependencyChain. Must be false to begin with.
-	 * @param	DependencyChain		[out] Receives dependency chain, if found. Must be empty before the call.
-	 * @return	true if a dependency chain was found and filled in.
-	 */
-	bool FindDependencyChainRecursive( const UClass* Class, const FString& Header1, const FString& Header2, bool bChainStarted, TArray<const UClass*>& DependencyChain );
 
 	/**
 	 * Determines whether the glue version of the specified native function
@@ -231,9 +207,10 @@ private:
 	 *
 	 * @param	Class					The class to be exported.
 	 * @param	DependencyChain			Used for finding errors. Must be empty before the first call.
+	 * @param	VisitedSet				The set of classes visited so far. Must be empty before the first call.
 	 * @param	bCheckDependenciesOnly	Whether we should just keep checking for dependency errors, without exporting anything.
 	 */
-	void ExportClassHeaderRecursive( UClass* Class, TArray<UClass*>& DependencyChain, bool bCheckDependenciesOnly );
+	void ExportClassHeaderRecursive( UClass* Class, TArray<UClass*>& DependencyChain, TSet<const UClass*>& VisitedSet, bool bCheckDependenciesOnly );
 
 	/**
 	 * Returns a string in the format CLASS_Something|CLASS_Something which represents all class flags that are set for the specified
@@ -489,5 +466,5 @@ private:
 public:
 
 	// Constructor
-	FNativeClassHeaderGenerator( UPackage* InPackage, FClassTree& inClassTree, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths );
+	FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders, bool bInUseRelativePaths );
 };

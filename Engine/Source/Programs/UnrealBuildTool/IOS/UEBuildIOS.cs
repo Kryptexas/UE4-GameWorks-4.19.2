@@ -11,12 +11,18 @@ namespace UnrealBuildTool
 {
 	class IOSPlatform : UEBuildPlatform
 	{
+		// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
+		public static string IOSArchitecture = "";
+
 		// The current architecture - affects everything about how UBT operates on IOS
-		private static string ActiveArchitecture = Utils.GetStringEnvironmentVariable("ue.IOSArchitecture", "");//"-simulator");
 		public override string GetActiveArchitecture()
 		{
-			// by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
-			return ActiveArchitecture;
+			return IOSArchitecture;
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDKStatus.Valid;
 		}
 
 		/**
@@ -24,12 +30,10 @@ namespace UnrealBuildTool
 		 */
 		public override void RegisterBuildPlatform()
 		{
-			//@todo.Rocket: Add platform support
-			if ((UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket()) && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
-			{
-				return;
-			}
-
+            if ((UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket()) && ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac)
+            {
+                return;
+            }
 			// Register this build platform for IOS
 			Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.IOS.ToString());
 			UEBuildPlatform.RegisterBuildPlatform(UnrealTargetPlatform.IOS, this);
@@ -116,8 +120,8 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SIMULATOR=1");
 			}
 
-            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add("GameKit");
-            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add("StoreKit");
+            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "GameKit" ) );
+            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalFrameworks.Add( new UEBuildFramework( "StoreKit" ) );
 		}
 
 		/**

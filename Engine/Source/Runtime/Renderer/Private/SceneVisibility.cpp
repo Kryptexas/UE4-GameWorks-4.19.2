@@ -90,42 +90,6 @@ static FAutoConsoleVariableRef CVarDistanceFadeMaxTravel( TEXT("r.DistanceFadeMa
 	Visibility determination.
 ------------------------------------------------------------------------------*/
 
-int8 ComputeLODForMeshes(
-	const TIndirectArray<FStaticMesh>& StaticMeshes,
-	float DistanceSquared,
-	float MaxDrawDistanceScaleSquared,
-	int32 ForcedLODLevel
-	)
-{
-	int8 LODToRender = INDEX_NONE;
-	int32 NumStaticMeshes = StaticMeshes.Num();
-
-	if (ForcedLODLevel >= 0)
-	{
-		int8 MaxLOD = 0;
-		for(int32 MeshIndex = 0;MeshIndex < NumStaticMeshes;MeshIndex++)
-		{
-			const FStaticMesh& StaticMesh = StaticMeshes[MeshIndex];
-			MaxLOD = FMath::Max(MaxLOD, StaticMesh.LODIndex);
-		}
-		LODToRender = FMath::Clamp<int8>((int8)ForcedLODLevel, 0, MaxLOD);
-	}
-	else
-	{
-		for(int32 MeshIndex = 0;MeshIndex < NumStaticMeshes;MeshIndex++)
-		{
-			const FStaticMesh& StaticMesh = StaticMeshes[MeshIndex];
-			if (DistanceSquared >= StaticMesh.MinDrawDistanceSquared 
-				&& DistanceSquared < StaticMesh.MaxDrawDistanceSquared * MaxDrawDistanceScaleSquared)
-			{
-				LODToRender = StaticMesh.LODIndex;
-				break;
-			}
-		}
-	}
-	return LODToRender;
-}
-
 /**
  * Update a primitive's fading state.
  * @param FadingState - State to update.
@@ -384,7 +348,7 @@ static int32 OcclusionCull(const FScene* Scene, FViewInfo& View)
 	float CurrentRealTime = View.Family->CurrentRealTime;
 	if (ViewState)
 	{
-		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM3)
+		if (Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM3)
 		{
 			bool bClearQueries = !View.Family->EngineShowFlags.HitProxies;
 			bool bSubmitQueries = !View.bDisableQuerySubmissions;
@@ -767,7 +731,7 @@ static void ComputeRelevanceForView(
 		if (PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate
 			// In ES2, the per-object reflection is used for everything
 			// Otherwise it is just used on translucency
-			&& (GRHIFeatureLevel == ERHIFeatureLevel::ES2 || bTranslucentRelevance))
+			&& (Scene->GetFeatureLevel() == ERHIFeatureLevel::ES2 || bTranslucentRelevance))
 		{
 			PrimitiveSceneInfo->CachedReflectionCaptureProxy = Scene->FindClosestReflectionCapture(Scene->PrimitiveBounds[BitIt.GetIndex()].Origin);
 			PrimitiveSceneInfo->bNeedsCachedReflectionCaptureUpdate = false;
@@ -830,18 +794,15 @@ static void MarkRelevantStaticMeshesForView(
 		const FPrimitiveSceneInfo * RESTRICT PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
 		const FPrimitiveBounds & Bounds = Scene->PrimitiveBounds[PrimitiveIndex];
 		const FPrimitiveViewRelevance & ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveIndex];
+		
+		static const auto* StaticMeshLODDistanceScale = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.StaticMeshLODDistanceScale"));
+		check(StaticMeshLODDistanceScale);
+		const float LODScale = StaticMeshLODDistanceScale->GetValueOnRenderThread();
+
+		int8 LODToRender = ComputeLODForMeshes( PrimitiveSceneInfo->StaticMeshes, View, Bounds.Origin, Bounds.SphereRadius, ForcedLODLevel, LODScale);
 
 		float DistanceSquared = (Bounds.Origin - ViewOrigin).SizeSquared();
-		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * InvLODScale);
-
-		// Go through the meshes and find the LOD to render
-		int8 LODToRender = ComputeLODForMeshes(
-			PrimitiveSceneInfo->StaticMeshes,
-			LODFactorDistanceSquared,
-			MaxDrawDistanceScaleSquared,
-			ForcedLODLevel
-			);
-
+		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View.LODDistanceFactor * (1.0f / LODScale));
 		const bool bDrawShadowDepth = FMath::Square(Bounds.SphereRadius) > MinScreenRadiusForCSMDepthSquared * LODFactorDistanceSquared;
 		const bool bDrawDepthOnly = bForceEarlyZPass || FMath::Square(Bounds.SphereRadius) > GMinScreenRadiusForDepthPrepass * GMinScreenRadiusForDepthPrepass * LODFactorDistanceSquared;
 		
@@ -1033,7 +994,7 @@ void FSceneRenderer::PreVisibilityFrameSetup()
 			{
 				float SampleX, SampleY;
 
-				if( GRHIFeatureLevel < ERHIFeatureLevel::SM4 )
+				if (Scene->GetFeatureLevel() < ERHIFeatureLevel::SM4)
 				{
 					// Only support 2 samples for mobile temporal AA.
 					TemporalAASamples = 2;
@@ -1448,7 +1409,7 @@ void FSceneRenderer::PostVisibilityFrameSetup()
 	}
 
 	bool bCheckLightShafts = false;
-	if(GRHIFeatureLevel <= ERHIFeatureLevel::ES2)
+	if (Scene->GetFeatureLevel() <= ERHIFeatureLevel::ES2)
 	{
 		// Clear the mobile light shaft data.
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)

@@ -17,6 +17,7 @@ public class Paper2DEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Slate",
+				"SlateCore",
 				"Engine",
                 "InputCore",
 				"AssetTools",
@@ -33,5 +34,11 @@ public class Paper2DEditor : ModuleRules
 				"EditorStyle"
 			}
 			);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
+			}
+		);
 	}
 }

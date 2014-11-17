@@ -386,8 +386,8 @@ class ULevel : public ULevelBase, public IInterface_AssetUserData
 	uint32										bAlreadyUpdatedComponents:1;
 	/** Whether we already associated streamable resources.									*/
 	uint32										bAlreadyAssociatedStreamableResources:1;
-	/** Whether we already initialized actors.												*/
-	uint32										bAlreadyInitializedActors:1;
+	/** Whether we already initialized network actors.											*/
+	uint32										bAlreadyInitializedNetworkActors:1;
 	/** Whether we already routed initialize on actors.										*/
 	uint32										bAlreadyRoutedActorInitialize:1;
 	/** Whether we already sorted the actor list.											*/
@@ -465,6 +465,7 @@ public:
 	virtual void BeginDestroy() OVERRIDE;
 	virtual bool IsReadyForFinishDestroy() OVERRIDE;
 	virtual void FinishDestroy() OVERRIDE;
+	virtual UWorld* GetWorld() const OVERRIDE;
 
 #if	WITH_EDITOR
 	virtual void PreEditUndo() OVERRIDE;
@@ -548,10 +549,8 @@ public:
 	 */
 	ENGINE_API void SortActorList();
 
-	/**
-	 * Initializes all actors after loading completed.
-	 */
-	void InitializeActors();
+	/** Handles network initialization for actors in this level */
+	void InitializeNetworkActors();
 
 	/** Initializes rendering resources for this level. */
 	void InitializeRenderingResources();

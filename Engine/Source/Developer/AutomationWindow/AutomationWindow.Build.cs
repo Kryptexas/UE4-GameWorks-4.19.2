@@ -7,25 +7,28 @@ namespace UnrealBuildTool.Rules
 		public AutomationWindow(TargetInfo Target)
 		{
 			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Core",
 					"AutomationController",
-					"SessionServices",
 				}
-				);
+			);
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"DesktopPlatform",
                     "InputCore",
-					"Messaging",
-					"Networking",
 					"Slate",
+					"SlateCore",
                     "EditorStyle",
 				}
-				);
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Messaging",
+					"SessionServices",
+				}
+			);
 		}
 	}
 }

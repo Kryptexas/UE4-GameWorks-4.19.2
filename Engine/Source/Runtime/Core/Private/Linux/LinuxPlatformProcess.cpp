@@ -126,6 +126,23 @@ const TCHAR* FLinuxPlatformProcess::ExecutableName(bool bRemoveExtension)
 	return CachedResult;
 }
 
+FString FLinuxPlatformProcess::GetApplicationName( uint32 ProcessId )
+{
+	FString Output = TEXT("");
+
+	const int32 ReadLinkSize = 1024;	
+	char ReadLinkCmd[ReadLinkSize] = {0};
+	FCStringAnsi::Sprintf(ReadLinkCmd, "/proc/%d/exe", ProcessId);
+	
+	char ProcessPath[ PlatformProcessLimits::MaxBaseDirLength ] = {0};
+	int32 Ret = readlink(ReadLinkCmd, ProcessPath, ARRAY_COUNT(ProcessPath) - 1);
+	if (Ret != -1)
+	{
+		Output = ANSI_TO_TCHAR(ProcessPath);
+	}
+	return Output;
+}
+
 FPipeHandle::~FPipeHandle()
 {
 	close(PipeDesc);
@@ -206,7 +223,13 @@ FRunnableThread* FLinuxPlatformProcess::CreateRunnableThread()
 	return new FRunnableThreadLinux();
 }
 
-FProcHandle FLinuxPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite )
+void FLinuxPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error)
+{
+	// stub implementation for now
+	// TODO: consider looking for gnome-open, xdg-open, sensible-browser or just hardcoded names...
+}
+
+FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite)
 {
 	FString AbsolutePath = FPaths::ConvertRelativePathToFull(URL);
 	FString Commandline = AbsolutePath;
@@ -414,4 +437,17 @@ bool FLinuxPlatformProcess::GetProcReturnCode( FProcHandle & ProcHandle, int32* 
 	}
 
 	return ProcHandle.GetReturnCode(ReturnCode);
+}
+
+bool FLinuxPlatformProcess::Daemonize()
+{
+	if (daemon(1, 1) == -1)
+	{
+		int ErrNo = errno;
+		UE_LOG(LogHAL, Warning, TEXT("daemon(1, 1) failed with errno = %d (%s)"), ErrNo,
+			StringCast< TCHAR >(strerror(ErrNo)).Get());
+		return false;
+	}
+
+	return true;
 }

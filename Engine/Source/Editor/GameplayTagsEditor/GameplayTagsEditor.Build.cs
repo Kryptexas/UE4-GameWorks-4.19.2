@@ -10,7 +10,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"Editor/GameplayTagsEditor/Private",
 				}
-				);
+			);
 
 
 			PrivateDependencyModuleNames.AddRange(
@@ -24,6 +24,7 @@ namespace UnrealBuildTool.Rules
 					"GameplayTags",
                     "InputCore",
 					"Slate",
+					"SlateCore",
                     "EditorStyle",
 					"BlueprintGraph",
 					"KismetCompiler",
@@ -31,8 +32,7 @@ namespace UnrealBuildTool.Rules
 					"MainFrame",
 					"UnrealEd",
 				}
-				);
-
+			);
 		}
 	}
 }

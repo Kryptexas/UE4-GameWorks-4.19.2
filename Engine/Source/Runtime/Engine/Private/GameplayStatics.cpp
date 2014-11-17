@@ -1,8 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineKismetLibraryClasses.h"
-#include "EngineDecalClasses.h"
 #include "ParticleDefinitions.h"
 #include "SoundDefinitions.h"
 #include "PlatformFeatures.h"
@@ -59,6 +57,21 @@ APlayerCameraManager* UGameplayStatics::GetPlayerCameraManager(UObject* WorldCon
 	return PC ? PC->PlayerCameraManager : NULL;
 }
 
+APlayerController* UGameplayStatics::CreatePlayer(UObject* WorldContextObject, int32 ControllerId, bool bSpawnPawn)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	FString Error;
+
+	ULocalPlayer* LocalPlayer = World->GetGameViewport()->CreatePlayer(ControllerId, Error, bSpawnPawn);
+
+	if (Error.Len() > 0)
+	{
+		UE_LOG(LogPlayerManagement, Error, TEXT("Failed to Create Player: %s"), *Error);
+	}
+
+	return (LocalPlayer ? LocalPlayer->PlayerController : NULL);
+}
+
 AGameMode* UGameplayStatics::GetGameMode(UObject* WorldContextObject)
 {
 	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
@@ -105,14 +118,14 @@ bool UGameplayStatics::SetGamePaused(UObject* WorldContextObject, bool bPaused)
 }
 
 /** @RETURN True if weapon trace from Origin hits component VictimComp.  OutHitResult will contain properties of the hit. */
-static bool ComponentIsVisibleFrom(UPrimitiveComponent const* VictimComp, FVector const& Origin, AActor const* IgnoredActor, const TArray<AActor*>& IgnoreActors, FHitResult& OutHitResult)
+static bool ComponentIsVisibleFrom(UPrimitiveComponent* VictimComp, FVector const& Origin, AActor const* IgnoredActor, const TArray<AActor*>& IgnoreActors, FHitResult& OutHitResult)
 {
 	static FName NAME_ComponentIsVisibleFrom = FName(TEXT("ComponentIsVisibleFrom"));
 	FCollisionQueryParams LineParams(NAME_ComponentIsVisibleFrom, true, IgnoredActor);
 	LineParams.AddIgnoredActors( IgnoreActors );
 
 	// Do a trace from origin to middle of box
-	UWorld* World = VictimComp->GetWorld();
+	UWorld* const World = VictimComp->GetWorld();
 	check(World);
 
 	FVector const TraceEnd = VictimComp->Bounds.Origin;
@@ -141,8 +154,12 @@ static bool ComponentIsVisibleFrom(UPrimitiveComponent const* VictimComp, FVecto
 		}
 	}
 		
-	// didn't hit anything, including the victim component.  assume not visible.
-	return false;
+	// didn't hit anything, assume nothing blocking the damage and victim is consequently visible
+	// but since we don't have a hit result to pass back, construct a simple one, modeling the damage as having hit a point at the component's center.
+	FVector const FakeHitLoc = VictimComp->GetComponentLocation();
+	FVector const FakeHitNorm = (Origin - FakeHitLoc).SafeNormal();		// normal points back toward the epicenter
+	OutHitResult = FHitResult(VictimComp->GetOwner(), VictimComp, FakeHitLoc, FakeHitNorm);
+	return true;
 }
 
 bool UGameplayStatics::ApplyRadialDamage(UObject* WorldContextObject, float BaseDamage, const FVector& Origin, float DamageRadius, TSubclassOf<UDamageType> DamageTypeClass, const TArray<AActor*>& IgnoreActors, AActor* DamageCauser, AController* InstigatedByController, bool bDoFullDamage )
@@ -1039,6 +1056,12 @@ void UGameplayStatics::EnableLiveStreaming(bool Enable)
 	{
 		StreamingSystem->EnableStreaming(Enable);
 	}
+}
+
+FString UGameplayStatics::GetPlatformName()
+{
+	// the string that BP users care about is actually the platform name that we'd name the .ini file directory (Windows, not WindowsEditor)
+	return FPlatformProperties::IniPlatformName();
 }
 
 bool UGameplayStatics::BlueprintSuggestProjectileVelocity(UObject* WorldContextObject, FVector& OutTossVelocity, FVector StartLocation, FVector EndLocation, float LaunchSpeed, float OverrideGravityZ, ESuggestProjVelocityTraceOption::Type TraceOption, float CollisionRadius, bool bFavorHighArc, bool bDrawDebug)

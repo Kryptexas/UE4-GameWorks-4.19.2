@@ -27,6 +27,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"HTTP",
 					"OnlineSubSystem",
+					"SlateCore",
 					"UnrealEd",
 				}
 			);

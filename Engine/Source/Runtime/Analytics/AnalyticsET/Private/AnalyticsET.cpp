@@ -153,9 +153,12 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 		: ConfigValues.APIServerET;
 
 	// default to GEngineVersion if one is not provided, append GEngineVersion otherwise.
-	AppVersion = ConfigValues.AppVersionET.IsEmpty()
-		? FString::Printf(TEXT("%s"), *GEngineVersion.ToString())
-		: FString::Printf(TEXT("%s"), *ConfigValues.AppVersionET);
+	FString ConfigAppVersion = ConfigValues.AppVersionET;
+	// Allow the cmdline to force a specific AppVersion so it can be set dynamically.
+	FParse::Value(FCommandLine::Get(), TEXT("ANALYTICSAPPVERSION="), ConfigAppVersion, false);
+	AppVersion = ConfigAppVersion.IsEmpty() 
+		? GEngineVersion.ToString() 
+		: ConfigAppVersion.Replace(TEXT("{VERSION}"), *GEngineVersion.ToString(), ESearchCase::CaseSensitive);
 
 	UE_LOG(LogAnalytics, Log, TEXT("ET APIKey = %s. APIServer = %s. AppVersion = %s"), *APIKey, *APIServer, *AppVersion);
 
@@ -258,6 +261,7 @@ void FAnalyticsProviderET::FlushEvents()
 		JsonWriter->WriteValue(TEXT("EventName"), Entry.EventName);
 		FString DateOffset = (CurrentTime - Entry.TimeStamp).ToString();
 		JsonWriter->WriteValue(TEXT("DateOffset"), DateOffset);
+		JsonWriter->WriteValue(TEXT("IsEditor"), FString::FromInt(GIsEditor));
 		if (Entry.Attributes.Num() > 0)
 		{
 			// optional attributes for this event
@@ -279,14 +283,15 @@ void FAnalyticsProviderET::FlushEvents()
  	TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
  	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
  	HttpRequest->SetURL(
-		FString::Printf(TEXT("%sCollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s"),
+		FString::Printf(TEXT("%sCollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&IsEditor=%s"),
 		*APIServer, 
 		*FGenericPlatformHttp::UrlEncode(SessionID),
 		*FGenericPlatformHttp::UrlEncode(APIKey), 
 		*FGenericPlatformHttp::UrlEncode(AppVersion),
-		*FGenericPlatformHttp::UrlEncode(UserID)
+		*FGenericPlatformHttp::UrlEncode(UserID),
+		*FGenericPlatformHttp::UrlEncode(FString::FromInt(GIsEditor))
 		));
- 	HttpRequest->SetVerb(TEXT("POST"));
+   	HttpRequest->SetVerb(TEXT("POST"));
  	HttpRequest->SetContentAsString(Payload);
  	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
  	HttpRequest->ProcessRequest();

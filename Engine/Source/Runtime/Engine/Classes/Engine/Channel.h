@@ -110,9 +110,6 @@ class UChannel : public UObject
 	/** Make sure the incoming buffer is in sequence and there are no duplicates. */
 	void AssertInSequenced();
 
-	/** Return the maximum amount of data that can be sent in this bunch without overflow. */
-	int32 MaxSendBytes();
-
 	/** cleans up channel if it hasn't already been */
 	void ConditionalCleanUp()
 	{

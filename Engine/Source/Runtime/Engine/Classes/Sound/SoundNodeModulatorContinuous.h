@@ -28,7 +28,7 @@ struct FModulatorContinuousParams
 	{
 	}
 
-	/** The name of the sound instance parameter that drives this */
+	/** The name of the sound instance parameter that specifies the current value. */
 	UPROPERTY(EditAnywhere, Category=ModulatorContinousParameters)
 	FName ParameterName;
 
@@ -36,23 +36,23 @@ struct FModulatorContinuousParams
 	UPROPERTY(EditAnywhere, Category=ModulatorContinousParameters)
 	float Default;
 
-	/** todo document */
+	/** The minimum input value. Values will be clamped to the [MinInput, MaxInput] range.*/
 	UPROPERTY(EditAnywhere, Category=ModulatorContinousParameters)
 	float MinInput;
 
-	/** todo document */
-	UPROPERTY(EditAnywhere, Category=ModulatorContinousParameters)
+	/** The maximum input value. Values will be clamped to the [MinInput, MaxInput] range.*/
+	UPROPERTY(EditAnywhere, Category = ModulatorContinousParameters)
 	float MaxInput;
 
-	/** todo document */
-	UPROPERTY(EditAnywhere, Category=ModulatorContinousParameters)
+	/** The minimum output value. The input value will be scaled from the range [MinInput, MaxInput] to [MinOut, MaxOutput] */
+	UPROPERTY(EditAnywhere, Category = ModulatorContinousParameters)
 	float MinOutput;
 
-	/** todo document */
-	UPROPERTY(EditAnywhere, Category=ModulatorContinousParameters)
+	/** The maximum output value. The input value will be scaled from the range [MinInput, MaxInput] to [MinOut, MaxOutput] */
+	UPROPERTY(EditAnywhere, Category = ModulatorContinousParameters)
 	float MaxOutput;
 
-	/** todo document */
+	/** The mode with which to treat the input value */
 	UPROPERTY(EditAnywhere, Category=ModulatorContinousParameters)
 	TEnumAsByte<enum ModulationParamMode> ParamMode;
 

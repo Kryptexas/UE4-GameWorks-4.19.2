@@ -33,7 +33,7 @@ namespace UnrealBuildTool
 
 		/// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
 		/// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
-		public static readonly bool SupportWindowsXP = false;
+		public static bool SupportWindowsXP = false;
 
 		/** True if VS EnvDTE is available (false when building using Visual Studio Express) */
 		public static bool bHasVisualStudioDTE
@@ -51,6 +51,71 @@ namespace UnrealBuildTool
 					return false;
 				}
 			}
+		}
+
+		public override SDKStatus HasRequiredSDKsInstalled()
+		{
+			return SDKStatus.Valid;
+		}
+
+		/**
+		 * Returns VisualStudio common tools path for current compiler.
+		 * 
+		 * @return Common tools path.
+		 */
+		public static string GetVSComnToolsPath()
+		{
+			return GetVSComnToolsPath(Compiler);
+		}
+
+		/**
+		 * Returns VisualStudio common tools path for given compiler.
+		 * 
+		 * @param Compiler Compiler for which to return tools path.
+		 * 
+		 * @return Common tools path.
+		 */
+		public static string GetVSComnToolsPath(WindowsCompiler Compiler)
+		{
+			int VSVersion;
+
+			switch(Compiler)
+			{
+				case WindowsCompiler.VisualStudio2012:
+					VSVersion = 11;
+					break;
+				case WindowsCompiler.VisualStudio2013:
+					VSVersion = 12;
+					break;
+				default:
+					throw new NotSupportedException("Not supported compiler.");
+			}
+
+			string[] PossibleRegPaths = new string[] {
+				@"Wow6432Node\Microsoft\VisualStudio",	// Non-express VS2013 on 64-bit machine.
+				@"Microsoft\VisualStudio",				// Non-express VS2013 on 32-bit machine.
+				@"Wow6432Node\Microsoft\WDExpress",		// Express VS2013 on 64-bit machine.
+				@"Microsoft\WDExpress"					// Express VS2013 on 32-bit machine.
+			};
+
+			string VSPath = null;
+
+			foreach(var PossibleRegPath in PossibleRegPaths)
+			{
+				VSPath = (string) Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
+
+				if(VSPath != null)
+				{
+					break;
+				}
+			}
+
+			if(VSPath == null)
+			{
+				return null;
+			}
+
+			return new DirectoryInfo(Path.Combine(VSPath, "..", "Tools")).FullName;
 		}
 
 
@@ -271,6 +336,11 @@ namespace UnrealBuildTool
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WIN32=1");
+
+			// Win32 XP is only supported at this time.
+			SupportWindowsXP = false;
+				//&& InBuildTarget.Platform == UnrealTargetPlatform.Win32;
+
 			if( SupportWindowsXP )
 			{
 				// Windows XP SP3 or higher required
@@ -284,6 +354,12 @@ namespace UnrealBuildTool
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WINVER=0x0600");
 			}
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_WINDOWS=1");
+
+			String MorpheusShaderPath = Path.Combine(BuildConfiguration.RelativeEnginePath, "Shaders/PS4/PostProcessHMDMorpheus.usf");
+			if (File.Exists(MorpheusShaderPath))
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_MORPHEUS=1");
+			}
 
 			if (InBuildTarget.Rules != null)
 			{

@@ -80,7 +80,7 @@ void SetColor( const TSharedRef< FLinearColor >& Source, const FLinearColor& Val
 	Source->A = Value.A;
 }
 
-void FSlateEditorStyle::FStyle::SettingsChanged( UObject* ChangedObject )
+void FSlateEditorStyle::FStyle::SettingsChanged( UObject* ChangedObject, FPropertyChangedEvent& PropertyChangedEvent )
 {
 	if ( ChangedObject == Settings.Get() )
 	{
@@ -126,6 +126,7 @@ void FSlateEditorStyle::FStyle::Initialize()
 	SetupContentBrowserStyle();
 	SetupLandscapeEditorStyle();
 	SetupToolkitStyles();
+	SetupTranslationEditorStyles();
 	SetupMatineeStyle();
 	SetupSourceControlStyles();
 	SetupAutomationStyles();
@@ -247,6 +248,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Icons.Info", new IMAGE_BRUSH( "Icons/icon_info_16x", Icon16x16) );
 		Set( "Icons.Warning", new IMAGE_BRUSH( "Icons/icon_warning_16x", Icon16x16) );
 		Set( "Icons.Download", new IMAGE_BRUSH( "Icons/icon_Downloads_16x", Icon16x16) );
+		Set( "Icons.Refresh", new IMAGE_BRUSH( "Icons/icon_Refresh_16x", Icon16x16 ) );
 	}
 
 	Set( "WarningStripe", new IMAGE_BRUSH( "Common/WarningStripe", FVector2D(20,6), FLinearColor::White, ESlateBrushTileType::Horizontal ) );
@@ -866,6 +868,13 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	// Session Browser tab
 	{
 		Set("SessionBrowser.Terminate", new IMAGE_BRUSH( "Icons/icon_DevicePowerOff_40x", Icon20x20 ) );
+
+		Set("SessionBrowser.Terminate.Font", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT( "Fonts/Roboto-Bold", 12))
+			.SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f))
+			.SetHighlightColor(FLinearColor(1.0f, 1.0f, 1.0f))
+			.SetShadowOffset(FVector2D(1.0f, 1.0f))
+			.SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.9f)));
 	}
 
 	// Session Console tab
@@ -1030,26 +1039,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// World Browser
 	{
-		Set( "WorldBrowser.Icon16x", new IMAGE_BRUSH( "Icons/levels_16x", Icon16x16 ) );
-		Set( "WorldBrowser.VisibleIcon16x", new IMAGE_BRUSH( "Icons/icon_layer_visible", Icon16x16 ) );
-		Set( "WorldBrowser.NotVisibleIcon16x", new IMAGE_BRUSH( "Icons/icon_layer_not_visible", Icon16x16 ) );
-		Set( "WorldBrowser.LockedIcon16x", new IMAGE_BRUSH( "Icons/padlock_locked_16x", Icon16x16 ) );
-		Set( "WorldBrowser.UnlockedIcon16x", new IMAGE_BRUSH( "Icons/padlock_unlocked_16x", Icon16x16 ) );
-		Set( "WorldBrowser.SaveIcon16x", new IMAGE_BRUSH( "Icons/Save_16x", Icon16x16 ) );
-		Set( "WorldBrowser.SaveModifiedIcon16x", new IMAGE_BRUSH( "Icons/SaveModified_16x", Icon16x16 ) );
-		Set( "WorldBrowser.SaveDisabledIcon16x", new IMAGE_BRUSH( "Icons/save_disabled_16x", Icon16x16 ) );
-		Set( "WorldBrowser.ScriptIcon16x", new IMAGE_BRUSH( "Icons/ActorIcons/PlayerStart_16x", Icon16x16 ) );
-		Set( "WorldBrowser.EmptyIcon16x", new IMAGE_BRUSH( "Icons/Empty_16x", Icon16x16 ) );
-		Set( "WorldBrowser.ColorIcon40x", new IMAGE_BRUSH( "Icons/icon_stop_40x", Icon16x16 ) );
-		Set( "WorldBrowser.LevelLoaded", new IMAGE_BRUSH( "Common/TaskGraph_Normal", Icon16x16 ) );
-		Set( "WorldBrowser.LevelUnloaded", new IMAGE_BRUSH( "Common/TaskGraph_Mono", Icon16x16 ) );
-		Set( "WorldBrowser.LevelPending", new IMAGE_BRUSH( "Common/TaskGraph_Selected", Icon16x16 ) );
 		Set( "WorldBrowser.AddLayer", new IMAGE_BRUSH( "Icons/icon_add_40x", Icon16x16 ) );
-		Set( "WorldBrowser.RegularTreeItemFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) );
-		Set( "WorldBrowser.BoldTreeItemFont", TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
-		Set( "WorldBrowser.StreamingAlwaysLoaded", new IMAGE_BRUSH( "Icons/icon_simulate_40x", Icon16x16 ) );
-		Set( "WorldBrowser.StreamingKismet", new IMAGE_BRUSH( "Icons/icon_kismet2_40x", Icon16x16 ) );
-		Set( "WorldBrowser.StreamingLevelBounds", new IMAGE_BRUSH( "Icons/icon_box_40x", Icon16x16 ) );
 		Set( "WorldBrowser.SimulationViewPositon", new IMAGE_BRUSH( "Icons/icon_variable_used_16x", Icon16x16 ) );
 		Set( "WorldBrowser.MouseLocation", new IMAGE_BRUSH( "Icons/cursor_cardinal_cross", Icon16x16 ) );
 		Set( "WorldBrowser.MarqueeRectSize", new IMAGE_BRUSH( "Icons/icon_ViewMode_VisualisationGBuffer_16px", Icon16x16 ) );
@@ -1060,6 +1050,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "WorldBrowser.DirectionXNegative", new IMAGE_BRUSH( "Icons/icon_PanLeft", Icon16x16 ) );
 		Set( "WorldBrowser.DirectionYPositive", new IMAGE_BRUSH( "Icons/icon_PanUp", Icon16x16 ) );
 		Set( "WorldBrowser.DirectionYNegative", new IMAGE_BRUSH( "Icons/icon_PanDown", Icon16x16 ) );
+		Set( "WorldBrowser.LevelStreamingAlwaysLoaded", new FSlateNoResource() );
+		Set( "WorldBrowser.LevelStreamingKismet", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityStationary_7x16px", Icon7x16 ) );
 
 		Set( "WorldBrowser.StatusBarText", FTextBlockStyle(NormalText)
 				.SetFont( TTF_FONT( "Fonts/Roboto-BoldCondensed", 12 ) )
@@ -1166,8 +1158,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 	}
 		
 	// Asset Thumbnail
-		{
-		Set( "AssetThumbnail.AssetBackground", new IMAGE_BRUSH( "Common/AssetBackground", FVector2D(64.f, 64.f), FLinearColor(0.75f, 0.75f, 0.75f, 1.0f) ) );
+	{
+		Set( "AssetThumbnail.AssetBackground", new IMAGE_BRUSH( "Common/AssetBackground", FVector2D(64.f, 64.f), FLinearColor(1.f, 1.f, 1.f, 1.0f) ) );
 		Set( "AssetThumbnail.ClassBackground", new IMAGE_BRUSH( "Common/ClassBackground_64x", FVector2D(64.f, 64.f), FLinearColor(0.75f, 0.75f, 0.75f, 1.0f) ) );
 		Set( "AssetThumbnail.DataOnlyBPAssetBackground", new IMAGE_BRUSH( "Common/DataOnlyBPAssetBackground_64x", FVector2D(64.f, 64.f), FLinearColor(1, 1, 1, 1) ) );
 		Set( "AssetThumbnail.Font", TTF_CORE_FONT( "Fonts/Roboto-Regular", 12 ) );
@@ -2428,6 +2420,7 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 		Set( "DetailsView.CategoryTop_Hovered", new BOX_BRUSH( "PropertyView/DetailCategoryTop", FMargin( 4/16.0f, 8.0f/16.0f, 4/16.0f, 4/16.0f ), FLinearColor(0.5f,0.5f,0.5f,1.0f) ) );
 		Set( "DetailsView.CategoryBottom", new BOX_BRUSH( "PropertyView/DetailCategoryBottom", FMargin(4.0f/16.0f) ) );
 		Set( "DetailsView.CategoryMiddle", new IMAGE_BRUSH( "PropertyView/DetailCategoryMiddle", FVector2D( 16, 16 ) ) );
+		Set( "DetailsView.CategoryMiddle_Hovered", new IMAGE_BRUSH( "PropertyView/DetailCategoryMiddle_Hovered", FVector2D( 16, 16 ) ) );
 
 		Set( "DetailsView.Splitter", FSplitterStyle()
 			.SetHandleNormalBrush( IMAGE_BRUSH( "Common/SplitterHandleHighlight", Icon8x8, FLinearColor::Black ) )
@@ -2586,6 +2579,9 @@ void FSlateEditorStyle::FStyle::SetupProfilerStyle()
 			.SetShadowOffset( FVector2D(0.0f, 0.0f) )
 			);
 
+		// Thread-view
+		Set( "Profiler.ThreadView.SampleBorder", new BOX_BRUSH( "Icons/Profiler/Profiler_ThreadView_SampleBorder_16x", FMargin( 2.0f / 16.0f ) ) );
+
 		// Event graph selected event border
 		Set( "Profiler.EventGraph.Border.TB", new BOX_BRUSH( "Icons/Profiler/Profiler_Border_TB_16x", FMargin(4.0f/16.0f) ) );
 		Set( "Profiler.EventGraph.Border.L", new BOX_BRUSH( "Icons/Profiler/Profiler_Border_L_16x",   FMargin(4.0f/16.0f) ) );
@@ -2639,6 +2635,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "Graph.ExecutionBubble", new IMAGE_BRUSH( "Old/Graph/ExecutionBubble", Icon16x16 ) );
 
 		Set( "Graph.PlayInEditor", new BOX_BRUSH( "/Graph/RegularNode_shadow_selected", FMargin(18.0f/64.0f) ) );
+		Set( "Graph.ReadOnlyBorder", new BOX_BRUSH( "/Graph/Graph_readonly_border", FMargin(18.0f / 64.0f) ) );
 
 		Set( "Graph.Panel.SolidBackground", new IMAGE_BRUSH( "/Graph/GraphPanel_SolidBackground", FVector2D(16, 16), FLinearColor::White, ESlateBrushTileType::Both) );
 		Set( "Graph.Panel.GridLineColor",   FLinearColor(0.035f, 0.035f, 0.035f) );
@@ -2759,12 +2756,18 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 
 			Set( "BTEditor.Graph.FlowControl.Icon", new IMAGE_BRUSH( "/Persona/StateMachineEditor/Conduit_Node_Icon_32x", Icon16x16 ) );
 
-			Set( "BTEditor.Debugger.ShowPrevStep", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon40x40 ) );
-			Set( "BTEditor.Debugger.ShowPrevStep.Small", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon20x20 ) );
-			Set( "BTEditor.Debugger.ShowNextStep", new IMAGE_BRUSH( "Icons/icon_step_40x", Icon40x40 ) );
-			Set( "BTEditor.Debugger.ShowNextStep.Small", new IMAGE_BRUSH( "Icons/icon_step_40x", Icon20x20 ) );
-			Set( "BTEditor.Debugger.Step", new IMAGE_BRUSH( "Icons/icon_findnode_40x", Icon40x40 ) );
-			Set( "BTEditor.Debugger.Step.Small", new IMAGE_BRUSH( "Icons/icon_findnode_40x", Icon20x20 ) );
+			Set( "BTEditor.Debugger.BackOver", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon40x40 ) );
+			Set( "BTEditor.Debugger.BackOver.Small", new IMAGE_BRUSH( "Icons/icon_step_back_40x", Icon20x20 ) );
+			Set( "BTEditor.Debugger.BackInto", new IMAGE_BRUSH("Icons/icon_step_back_40x", Icon40x40));
+			Set( "BTEditor.Debugger.BackInto.Small", new IMAGE_BRUSH("Icons/icon_step_back_40x", Icon20x20));
+			Set( "BTEditor.Debugger.ForwardInto", new IMAGE_BRUSH("Icons/icon_step_40x", Icon40x40));
+			Set( "BTEditor.Debugger.ForwardInto.Small", new IMAGE_BRUSH( "Icons/icon_step_40x", Icon20x20 ) );
+			Set( "BTEditor.Debugger.ForwardOver", new IMAGE_BRUSH("Icons/icon_step_40x", Icon40x40));
+			Set( "BTEditor.Debugger.ForwardOver.Small", new IMAGE_BRUSH("Icons/icon_step_40x", Icon20x20));
+			Set( "BTEditor.Debugger.StepOut", new IMAGE_BRUSH("Icons/icon_step_40x", Icon40x40));
+			Set( "BTEditor.Debugger.StepOut.Small", new IMAGE_BRUSH("Icons/icon_step_40x", Icon20x20));
+			Set( "BTEditor.Debugger.SingleStep", new IMAGE_BRUSH("Icons/icon_advance_40x", Icon40x40));
+			Set( "BTEditor.Debugger.SingleStep.Small", new IMAGE_BRUSH( "Icons/icon_advance_40x", Icon20x20 ) );
 
 			Set( "BTEditor.Debugger.PausePlaySession", new IMAGE_BRUSH( "Icons/icon_pause_40x", Icon40x40 ) );
 			Set( "BTEditor.Debugger.PausePlaySession.Small", new IMAGE_BRUSH( "Icons/icon_pause_40x", Icon20x20 ) );
@@ -3073,6 +3076,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "GraphEditor.EventGlyph", new IMAGE_BRUSH( "Graph/Icons/Event", Icon22x22, FLinearColor::White) );
 		Set( "GraphEditor.EventCustomGlyph", new IMAGE_BRUSH( "Graph/Icons/Event_Custom", Icon22x22, FLinearColor::White) );
 		Set( "GraphEditor.SCSGlyph", new IMAGE_BRUSH( "Graph/Icons/Hammer", Icon22x22, FLinearColor::White) );
+		Set( "GraphEditor.StructGlyph", new IMAGE_BRUSH( "Graph/Icons/Struct", Icon22x22, FLinearColor::White) );
 		// Find In Blueprints
 		Set( "GraphEditor.FIB_CallFunction", new IMAGE_BRUSH( "Graph/Icons/FIB_CallFunction", Icon22x22, FLinearColor::White) );
 		Set( "GraphEditor.FIB_MacroInstance", new IMAGE_BRUSH( "Graph/Icons/FIB_MacroInstance", Icon22x22, FLinearColor::White) );
@@ -3097,6 +3101,18 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 					.SetBackgroundImageHovered( BOX_BRUSH( "Graph/CommonWidgets/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
 					.SetBackgroundImageFocused( BOX_BRUSH( "Graph/CommonWidgets/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
 					.SetBackgroundImageReadOnly( BOX_BRUSH( "Graph/CommonWidgets/TextBox", FMargin(4.0f/16.0f) ) )
+					);
+			}
+
+			// VectorEditableTextBox
+			{
+				Set( "Graph.VectorEditableTextBox", FEditableTextBoxStyle()
+					.SetBackgroundImageNormal( BOX_BRUSH( "Graph/CommonWidgets/TextBox", FMargin(4.0f/16.0f) ) )
+					.SetBackgroundImageHovered( BOX_BRUSH( "Graph/CommonWidgets/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
+					.SetBackgroundImageFocused( BOX_BRUSH( "Graph/CommonWidgets/TextBox_Hovered", FMargin(4.0f/16.0f) ) )
+					.SetBackgroundImageReadOnly( BOX_BRUSH( "Graph/CommonWidgets/TextBox", FMargin(4.0f/16.0f) ) )
+					.SetForegroundColor( FLinearColor::White )
+					.SetBackgroundColor( FLinearColor::Blue )
 					);
 			}
 
@@ -3395,9 +3411,11 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 
 	// Level viewport layout command icons
 	{
-		const FVector2D IconLayoutSize(49.0f, 37.0f);
-		const FVector2D IconLayoutSizeSmall(49.0f, 37.0f);		// small version set to same size as these are in their own menu and don't clutter the UI
+		const FVector2D IconLayoutSize(47.0f, 37.0f);
+		const FVector2D IconLayoutSizeSmall(47.0f, 37.0f);		// small version set to same size as these are in their own menu and don't clutter the UI
 
+		Set( "LevelViewport.ViewportConfig_OnePane", new IMAGE_BRUSH("Icons/ViewportLayout_OnePane", IconLayoutSize) );
+		Set( "LevelViewport.ViewportConfig_OnePane.Small", new IMAGE_BRUSH("Icons/ViewportLayout_OnePane", IconLayoutSizeSmall) );
 		Set( "LevelViewport.ViewportConfig_TwoPanesH", new IMAGE_BRUSH( "Icons/ViewportLayout_TwoPanesHoriz", IconLayoutSize ) );
 		Set( "LevelViewport.ViewportConfig_TwoPanesH.Small", new IMAGE_BRUSH( "Icons/ViewportLayout_TwoPanesHoriz", IconLayoutSizeSmall ) );
 		Set( "LevelViewport.ViewportConfig_TwoPanesV", new IMAGE_BRUSH( "Icons/ViewportLayout_TwoPanesVert", IconLayoutSize ) );
@@ -3572,6 +3590,8 @@ void FSlateEditorStyle::FStyle::SetupLevelEditorStyle()
 	// News Feed
 	{
 		Set( "NewsFeed.ToolbarIcon.Small", new IMAGE_BRUSH( "NewsFeed/ToolbarIcon_16x", Icon16x16 ) );
+		Set( "NewsFeed.MarkAsRead", new IMAGE_BRUSH( "NewsFeed/MarkAsRead", Icon16x16 ) );
+		Set( "NewsFeed.PendingIcon", new IMAGE_BRUSH( "NewsFeed/PendingIcon", Icon16x16 ) );
 		Set( "NewsFeed.ReloadButton", new IMAGE_BRUSH( "NewsFeed/ReloadButton", Icon16x16 ) );
 		Set( "NewsFeed.SettingsButton", new IMAGE_BRUSH( "NewsFeed/SettingsButton", Icon16x16 ) );
 		Set( "NewsFeed.UnreadCountBackground", new IMAGE_BRUSH( "NewsFeed/UnreadCountBackground", Icon16x16 ) );
@@ -3936,77 +3956,58 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 #if WITH_EDITOR
 	// Actor Classes Outliner
 	{
-		Set( "ClassIcon.Default", new IMAGE_BRUSH( "Icons/ActorIcons/Default_16x", Icon16x16 ) );
 		Set( "ClassIcon.Emitter", new IMAGE_BRUSH( "Icons/ActorIcons/Emitter_16x", Icon16x16 ) );
 		Set( "ClassIcon.Light", new IMAGE_BRUSH( "Icons/ActorIcons/LightActor_16x", Icon16x16 ) );
-		Set( "ClassIcon.PointLight", new IMAGE_BRUSH( "Icons/ActorIcons/PointLight_16x", Icon16x16 ) );
-		Set( "ClassIcon.SpotLight", new IMAGE_BRUSH( "Icons/ActorIcons/SpotLight_16x", Icon16x16 ) );
-		Set( "ClassIcon.DirectionalLight", new IMAGE_BRUSH( "Icons/ActorIcons/DirectionalLight_16x", Icon16x16 ) );
 		Set( "ClassIcon.MatineeActor", new IMAGE_BRUSH( "Icons/ActorIcons/MatineeActor_16x", Icon16x16 ) );
-		Set( "ClassIcon.PlayerStart", new IMAGE_BRUSH( "Icons/ActorIcons/PlayerStart_16x", Icon16x16 ) );
-		Set( "ClassIcon.AmbientSound", new IMAGE_BRUSH( "Icons/ActorIcons/SoundActor_16x", Icon16x16 ) );
-		Set( "ClassIcon.TriggerBase", new IMAGE_BRUSH( "Icons/ActorIcons/TriggerActor_16x", Icon16x16 ) );
 		Set( "ClassIcon.Brush", new IMAGE_BRUSH( "Icons/ActorIcons/Brush_16x", Icon16x16 ) );
 		Set( "ClassIcon.BrushAdditive", new IMAGE_BRUSH( "Icons/ActorIcons/Brush_Add_16x", Icon16x16 ) );
 		Set( "ClassIcon.BrushSubtractive", new IMAGE_BRUSH( "Icons/ActorIcons/Brush_Subtract_16x", Icon16x16 ) );
 		Set( "ClassIcon.Volume", new IMAGE_BRUSH( "Icons/ActorIcons/Volume_16x", Icon16x16 ) );
-		Set( "ClassIcon.BlockingVolume", new IMAGE_BRUSH( "Icons/ActorIcons/BlockingVolume_16x", Icon16x16 ) );
-		Set( "ClassIcon.BlueprintActorBase", new IMAGE_BRUSH( "Icons/ActorIcons/Blueprint_16x", Icon16x16 ) );
-		Set( "ClassIcon.StaticMeshActor", new IMAGE_BRUSH( "Icons/ActorIcons/StaticMesh_16x", Icon16x16 ) );
-		Set( "ClassIcon.SkeletalMeshActor", new IMAGE_BRUSH( "Icons/ActorIcons/SkeletalMesh_16x", Icon16x16 ) );
-		Set( "ClassIcon.CameraActor", new IMAGE_BRUSH( "Icons/ActorIcons/Camera_16x", Icon16x16 ) );
-		Set( "ClassIcon.DecalActor", new IMAGE_BRUSH( "Icons/ActorIcons/Decal_16x", Icon16x16 ) );
 		Set( "ClassIcon.SkeletalPhysicsActor", new IMAGE_BRUSH( "Icons/ActorIcons/SkeletalPhysicsActor_16x", Icon16x16 ) );
-		Set( "ClassIcon.ExponentialHeightFog", new IMAGE_BRUSH( "Icons/ActorIcons/ExpoHeightFog_16x", Icon16x16 ) );
-		Set( "ClassIcon.GroupActor", new IMAGE_BRUSH( "Icons/ActorIcons/Group_16x", Icon16x16 ) );
-		Set( "ClassIcon.Landscape", new IMAGE_BRUSH( "Icons/ActorIcons/Landscape_16x", Icon16x16 ) );
-		Set( "ClassIcon.RadialForceActor", new IMAGE_BRUSH( "Icons/ActorIcons/RadialForce_16x", Icon16x16 ) );
-		Set( "ClassIcon.TargetPoint", new IMAGE_BRUSH( "Icons/ActorIcons/Target_16x", Icon16x16 ) );
+		Set( "ClassIcon.GroupActor", new IMAGE_BRUSH( "Icons/ActorIcons/GroupActor_16x", Icon16x16 ) );
 		Set( "ClassIcon.VectorFieldVolume", new IMAGE_BRUSH( "Icons/ActorIcons/VectorFieldVolume_16x", Icon16x16 ) );
 		Set( "ClassIcon.Deleted", new IMAGE_BRUSH( "Icons/ActorIcons/DeletedActor_16px", Icon16x16 ) );
 		Set( "ClassIcon.DestructibleActor", new IMAGE_BRUSH( "Icons/ActorIcons/Destructable_16px", Icon16x16 ) );
-		Set( "ClassIcon.SceneCapture", new IMAGE_BRUSH( "Icons/ActorIcons/SceneCapture_16px", Icon16x16 ) );
-		Set( "ClassIcon.SceneCapture2D", new IMAGE_BRUSH( "Icons/ActorIcons/SceneCapture2D_16px", Icon16x16 ) );
-		Set( "ClassIcon.TextRenderActor", new IMAGE_BRUSH( "Icons/ActorIcons/TextRenderer_16px", Icon16x16 ) );
-		Set( "ClassIcon.BoxReflectionCapture", new IMAGE_BRUSH( "Icons/ActorIcons/BoxReflectionCapture_16px", Icon16x16 ) );
-		Set( "ClassIcon.SphereReflectionCapture", new IMAGE_BRUSH( "Icons/ActorIcons/SphereReflectionCapture_16px", Icon16x16 ) );
 		Set( "ClassIcon.DefaultPawn", new IMAGE_BRUSH( "Icons/ActorIcons/DefaultPawn_16px", Icon16x16 ) );
 		Set( "ClassIcon.Pawn", new IMAGE_BRUSH( "Icons/ActorIcons/Pawn_16px", Icon16x16 ) );
 		Set( "ClassIcon.Note", new IMAGE_BRUSH( "Icons/ActorIcons/Note_16px", Icon16x16 ) );
 		Set( "ClassIcon.Character", new IMAGE_BRUSH( "Icons/ActorIcons/Character_16px", Icon16x16 ) );
 
+		Set("ClassIcon.BlueprintActorBase", new IMAGE_BRUSH("Icons/AssetIcons/Blueprint_16x", Icon16x16));
+		Set("ClassIcon.StaticMeshActor", new IMAGE_BRUSH("Icons/AssetIcons/StaticMesh_16x", Icon16x16));
+		Set("ClassIcon.SkeletalMeshActor", new IMAGE_BRUSH("Icons/AssetIcons/SkeletalMesh_16x", Icon16x16));
 
 		// Component classes
 		Set( "ClassIcon.AudioComponent", new IMAGE_BRUSH( "Icons/ActorIcons/SoundActor_16x", Icon16x16 ) );
-		Set( "ClassIcon.CameraComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Camera_16x", Icon16x16 ) );
-		Set( "ClassIcon.BlueprintCore", new IMAGE_BRUSH( "Icons/ActorIcons/Blueprint_16x", Icon16x16 ) );
+		Set( "ClassIcon.CameraComponent", new IMAGE_BRUSH( "Icons/AssetIcons/CameraActor_16x", Icon16x16 ) );
+		Set( "ClassIcon.BlueprintCore", new IMAGE_BRUSH( "Icons/AssetIcons/Blueprint_16x", Icon16x16 ) );
 		Set( "ClassIcon.BrushComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Brush_16x", Icon16x16 ) );
-		Set( "ClassIcon.DecalComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Decal_16x", Icon16x16 ) );
-		Set( "ClassIcon.DirectionalLightComponent", new IMAGE_BRUSH( "Icons/ActorIcons/DirectionalLight_16x", Icon16x16 ) );
-		Set( "ClassIcon.ExponentialHeightFogComponent", new IMAGE_BRUSH( "Icons/ActorIcons/ExpoHeightFog_16x", Icon16x16 ) );
-		Set( "ClassIcon.LandscapeComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Landscape_16x", Icon16x16 ) );
+		Set( "ClassIcon.DecalComponent", new IMAGE_BRUSH( "Icons/ActorIcons/DecalActor_16x", Icon16x16 ) );
+		Set( "ClassIcon.DirectionalLightComponent", new IMAGE_BRUSH( "Icons/AssetIcons/DirectionalLight_16x", Icon16x16 ) );
+		Set( "ClassIcon.ExponentialHeightFogComponent", new IMAGE_BRUSH( "Icons/AssetIcons/ExponentialHeightFog_16x", Icon16x16 ) );
+		Set( "ClassIcon.LandscapeComponent", new IMAGE_BRUSH( "Icons/AssetIcons/Landscape_16x", Icon16x16 ) );
 		Set( "ClassIcon.LightComponent", new IMAGE_BRUSH( "Icons/ActorIcons/LightActor_16x", Icon16x16 ) );
-		Set( "ClassIcon.ParticleSystemComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Emitter_16x", Icon16x16 ) );
-		Set( "ClassIcon.PointLightComponent", new IMAGE_BRUSH( "Icons/ActorIcons/PointLight_16x", Icon16x16 ) );
-		Set( "ClassIcon.RB_RadialForceComponent", new IMAGE_BRUSH( "Icons/ActorIcons/RadialForce_16x", Icon16x16 ) );
-		Set( "ClassIcon.SingleAnimSkeletalComponent", new IMAGE_BRUSH( "Icons/ActorIcons/SkeletalMesh_16x", Icon16x16 ) );		
-		Set( "ClassIcon.SkeletalMeshComponent", new IMAGE_BRUSH( "Icons/ActorIcons/SkeletalMesh_16x", Icon16x16 ) );		
-		Set( "ClassIcon.SpotLightComponent", new IMAGE_BRUSH( "Icons/ActorIcons/SpotLight_16x", Icon16x16 ) );
-		Set( "ClassIcon.StaticMeshComponent", new IMAGE_BRUSH( "Icons/ActorIcons/StaticMesh_16x", Icon16x16 ) );
+		Set( "ClassIcon.ParticleSystemComponent", new IMAGE_BRUSH( "Icons/AssetIcons/ParticleSystem_16x", Icon16x16 ) );
+		Set( "ClassIcon.PointLightComponent", new IMAGE_BRUSH( "Icons/AssetIcons/PointLight_16x", Icon16x16 ) );
+		Set( "ClassIcon.RB_RadialForceComponent", new IMAGE_BRUSH( "Icons/AssetIcons/RadialForceActor_16x", Icon16x16 ) );
+		Set( "ClassIcon.SingleAnimSkeletalComponent", new IMAGE_BRUSH( "Icons/AssetIcons/SkeletalMesh_16x", Icon16x16 ) );		
+		Set( "ClassIcon.SkeletalMeshComponent", new IMAGE_BRUSH( "Icons/AssetIcons/SkeletalMesh_16x", Icon16x16 ) );		
+		Set( "ClassIcon.SpotLightComponent", new IMAGE_BRUSH( "Icons/AssetIcons/SpotLight_16x", Icon16x16 ) );
+		Set( "ClassIcon.StaticMeshComponent", new IMAGE_BRUSH( "Icons/AssetIcons/StaticMesh_16x", Icon16x16 ) );
 		Set( "ClassIcon.VectorFieldComponent", new IMAGE_BRUSH( "Icons/ActorIcons/VectorFieldVolume_16x", Icon16x16 ) );
 		Set( "ClassIcon.ArrowComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Arrow_16px", Icon16x16 ) );
-		Set( "ClassIcon.AtmosphericFogComponent", new IMAGE_BRUSH( "Icons/ActorIcons/AtmosphericFog_16px", Icon16x16 ) );
-		Set( "ClassIcon.BoxComponent", new IMAGE_BRUSH( "Icons/ActorIcons/box_16px", Icon16x16 ) );
+		Set( "ClassIcon.AtmosphericFogComponent", new IMAGE_BRUSH( "Icons/AssetIcons/AtmosphericFog_16x", Icon16x16 ) );
+		Set( "ClassIcon.BoxComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Box_16px", Icon16x16 ) );
 		Set( "ClassIcon.CapsuleComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Capsule_16px", Icon16x16 ) );
 		Set( "ClassIcon.DestructibleComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Destructable_16px", Icon16x16 ) );
 		Set( "ClassIcon.InstancedStaticMeshComponent", new IMAGE_BRUSH( "Icons/ActorIcons/InstancedStaticMesh_16px", Icon16x16 ) );
 		Set( "ClassIcon.MaterialBillboardComponent", new IMAGE_BRUSH( "Icons/ActorIcons/MaterialSprite_16px", Icon16x16 ) );
-		Set( "ClassIcon.SceneCaptureComponent2D", new IMAGE_BRUSH( "Icons/ActorIcons/SceneCapture2D_16px", Icon16x16 ) );
+		Set( "ClassIcon.SceneCaptureComponent2D", new IMAGE_BRUSH( "Icons/AssetIcons/SceneCapture2D_16x", Icon16x16 ) );
 		Set( "ClassIcon.SceneCaptureComponent", new IMAGE_BRUSH( "Icons/ActorIcons/SceneCapture_16px", Icon16x16 ) );
 		Set( "ClassIcon.SceneComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Scene_16px", Icon16x16 ) );
 		Set( "ClassIcon.SphereComponent", new IMAGE_BRUSH( "Icons/ActorIcons/Sphere_16px", Icon16x16 ) );
 		Set( "ClassIcon.BillboardComponent", new IMAGE_BRUSH( "Icons/ActorIcons/SpriteComponent_16px", Icon16x16 ) );
-		Set( "ClassIcon.TextRenderComponent", new IMAGE_BRUSH( "Icons/ActorIcons/TextRenderer_16px", Icon16x16 ) );
+		Set( "ClassIcon.TextRenderComponent", new IMAGE_BRUSH( "Icons/AssetIcons/TextRenderActor_16x", Icon16x16 ) );
 		Set( "ClassIcon.TimelineComponent", new IMAGE_BRUSH("Icons/ActorIcons/TimelineComponent_16px", Icon16x16));
 		Set( "ClassIcon.ChildActorComponent", new IMAGE_BRUSH( "Icons/ActorIcons/ChildActorComponent_16px", Icon16x16 ) );
 		Set( "ClassIcon.ComponentMobilityStaticPip", new IMAGE_BRUSH( "Icons/ActorIcons/ComponentMobilityStationary_7x16px", Icon7x16, FLinearColor(0.f, 0.f, 0.f, 0.f) ) );
@@ -4023,139 +4024,113 @@ void FSlateEditorStyle::FStyle::SetupClassIconsAndThumbnails()
 		Set( "ClassIcon.ActorFactorySphereVolume", new IMAGE_BRUSH( "Icons/icon_volume_sphere_16x", Icon16x16 ) );
 
 		// Asset Type Classes
-		Set( "ClassIcon.AimOffsetBlendSpace", new IMAGE_BRUSH( "Icons/AssetIcons/AimOffsetBlendSpace_16x", Icon16x16 ) );
-		Set( "ClassIcon.AimOffsetBlendSpace1D", new IMAGE_BRUSH( "Icons/AssetIcons/AimOffsetBlendSpace1D_16x", Icon16x16 ) );
-		Set( "ClassIcon.AnimBlueprint", new IMAGE_BRUSH( "Icons/AssetIcons/AnimBlueprint_16x", Icon16x16 ) );
-		Set( "ClassIcon.AnimComposite", new IMAGE_BRUSH( "Icons/AssetIcons/AnimComposite_16x", Icon16x16 ) );
-		Set( "ClassIcon.AnimMontage", new IMAGE_BRUSH( "Icons/AssetIcons/AnimMontage_16x", Icon16x16 ) );
-		Set( "ClassIcon.BlendSpace", new IMAGE_BRUSH( "Icons/AssetIcons/BlendSpace_16x", Icon16x16 ) );
-		Set( "ClassIcon.BlendSpace1D", new IMAGE_BRUSH( "Icons/AssetIcons/BlendSpace1D_16x", Icon16x16 ) );
-		Set( "ClassIcon.Blueprint", new IMAGE_BRUSH( "Icons/AssetIcons/Blueprint_16x", Icon16x16 ) );
-		Set( "ClassIcon.BlueprintGeneratedClass", new IMAGE_BRUSH( "Icons/AssetIcons/Blueprint_16x", Icon16x16 ) );
-		Set( "ClassIcon.BlueprintInterface", new IMAGE_BRUSH( "Icons/AssetIcons/Blueprint_Interface_16x", Icon16x16 ) );
-		Set( "ClassIcon.BlueprintMacroLibrary", new IMAGE_BRUSH( "Icons/AssetIcons/Blueprint_MacroLibrary_16x", Icon16x16 ) );
-		Set( "ClassIcon.ButtonStyleAsset", new IMAGE_BRUSH( "Icons/AssetIcons/ButtonStyle_16x", Icon16x16 ) );
-		Set( "ClassIcon.CameraAnim", new IMAGE_BRUSH( "Icons/ActorIcons/Camera_16x", Icon16x16 ) );
-		Set( "ClassIcon.CurveBase", new IMAGE_BRUSH( "Icons/AssetIcons/Curve_16x", Icon16x16 ) );
-		Set( "ClassIcon.DataAsset", new IMAGE_BRUSH( "Icons/AssetIcons/DataAsset_16x", Icon16x16 ) );
-		Set( "ClassIcon.Font", new IMAGE_BRUSH( "Icons/AssetIcons/Font_16x", Icon16x16 ) );
-		Set( "ClassIcon.InterpData", new IMAGE_BRUSH( "Icons/AssetIcons/MatineeData_16x", Icon16x16 ) );
-		Set( "ClassIcon.Material", new IMAGE_BRUSH( "Icons/AssetIcons/Material_16x", Icon16x16 ) );
-		Set( "ClassIcon.MaterialFunction", new IMAGE_BRUSH( "Icons/AssetIcons/MaterialFunction_16x", Icon16x16 ) );
-		Set( "ClassIcon.MaterialInstanceConstant", new IMAGE_BRUSH( "Icons/AssetIcons/MaterialInstanceConstant_16x", Icon16x16 ) );
-		Set( "ClassIcon.MaterialParameterCollection", new IMAGE_BRUSH( "Icons/AssetIcons/MaterialParameterCollection_16x", Icon16x16 ) );
-		Set( "ClassIcon.MultiFont", new IMAGE_BRUSH( "Icons/AssetIcons/MultiFont_16x", Icon16x16 ) );
-		Set( "ClassIcon.ObjectLibrary", new IMAGE_BRUSH( "Icons/AssetIcons/ObjectLibrary_16x", Icon16x16 ) );
-		Set( "ClassIcon.PaperFlipbook", new IMAGE_BRUSH( "Icons/AssetIcons/PaperFlipbook_16x", Icon16x16 ) );
-		Set( "ClassIcon.ParticleSystem", new IMAGE_BRUSH( "Icons/AssetIcons/ParticleSystem_16x", Icon16x16 ) );
-		Set( "ClassIcon.PhysicalMaterial", new IMAGE_BRUSH( "Icons/AssetIcons/PhysicalMaterial_16x", Icon16x16 ) );
-		Set( "ClassIcon.ReverbEffect", new IMAGE_BRUSH( "Icons/AssetIcons/ReverbEffect_16x", Icon16x16 ) );
-		Set( "ClassIcon.SlateBrushAsset", new IMAGE_BRUSH( "Icons/AssetIcons/SlateBrush_16x", Icon16x16 ) );
-		Set( "ClassIcon.SoundAttenuation", new IMAGE_BRUSH( "Icons/AssetIcons/SoundAttenuation_16x", Icon16x16 ) );
-		Set( "ClassIcon.SoundClass", new IMAGE_BRUSH( "Icons/AssetIcons/SoundClass_16x", Icon16x16 ) );
-		Set( "ClassIcon.SoundCue", new IMAGE_BRUSH( "Icons/AssetIcons/SoundCue_16x", Icon16x16 ) );
-		Set( "ClassIcon.SoundMix", new IMAGE_BRUSH( "Icons/AssetIcons/SoundMix_16x", Icon16x16 ) );
-		Set( "ClassIcon.StaticMesh", new IMAGE_BRUSH( "Icons/AssetIcons/StaticMesh_16x", Icon16x16 ) );
-		Set( "ClassIcon.Texture", new IMAGE_BRUSH( "Icons/AssetIcons/Texture_16x", Icon16x16 ) );
-		Set( "ClassIcon.Texture2D", new IMAGE_BRUSH( "Icons/AssetIcons/Texture2D_16x", Icon16x16 ) );
-		Set( "ClassIcon.TextureRenderTarget2D", new IMAGE_BRUSH( "Icons/AssetIcons/TextureRenderTarget2D_16x", Icon16x16 ) );
-		Set( "ClassIcon.TextureRenderTargetCube", new IMAGE_BRUSH( "Icons/AssetIcons/TextureRenderTargetCube_16x", Icon16x16 ) );
-		Set( "ClassIcon.UserDefinedEnum", new IMAGE_BRUSH( "Icons/AssetIcons/Enumeration_16x", Icon16x16 ) );
-		Set( "ClassIcon.SlateWidgetStyleAsset", new IMAGE_BRUSH("Icons/AssetIcons/SlateStyle_16x", Icon16x16 ) );
+		const TCHAR* AssetTypes[] = {
 
-		// Builder brushes
-		Set( "ClassIcon.CubeBuilder", new IMAGE_BRUSH("Icons/icon_box_40x", Icon16x16 ) );
-		Set( "ClassIcon.ConeBuilder", new IMAGE_BRUSH("Icons/icon_cone_40x", Icon16x16 ) );
-		Set( "ClassIcon.CylinderBuilder", new IMAGE_BRUSH("Icons/icon_cylinder_40x", Icon16x16 ) );
-		Set( "ClassIcon.CurvedStairBuilder", new IMAGE_BRUSH("Icons/icon_curvedstair_40x", Icon16x16 ) );
-		Set( "ClassIcon.LinearStairBuilder", new IMAGE_BRUSH("Icons/icon_stair_40x", Icon16x16 ) );
-		Set( "ClassIcon.SpiralStairBuilder", new IMAGE_BRUSH("Icons/icon_spiralstair_40x", Icon16x16 ) );
-		Set( "ClassIcon.VolumetricBuilder", new IMAGE_BRUSH("Icons/icon_volumetric_40x", Icon16x16 ) );
-		Set( "ClassIcon.TetrahedronBuilder", new IMAGE_BRUSH("Icons/icon_sphere_40x", Icon16x16 ) );
-		Set( "ClassIcon.SheetBuilder", new IMAGE_BRUSH("Icons/icon_plane_40x", Icon16x16 ) );
-	}
+			TEXT("AimOffsetBlendSpace"),
+			TEXT("AimOffsetBlendSpace1D"),
+			TEXT("AmbientSound"),
+			TEXT("AnimBlueprint"),
+			TEXT("AnimComposite"),
+			TEXT("AnimMontage"),
+			TEXT("AnimSequence"),
+			TEXT("AtmosphericFog"),
+			TEXT("BehaviorTree"),
+			TEXT("BlendSpace"),
+			TEXT("BlendSpace1D"),
+			TEXT("BlockingVolume"),
+			TEXT("Blueprint"),
+			TEXT("BlueprintFunctionLibrary"),
+			TEXT("BlueprintInterface"),
+			TEXT("BlueprintMacroLibrary"),
+			TEXT("BoxReflectionCapture"),
+			TEXT("ButtonStyleAsset"),
+			TEXT("CableActor"),
+			TEXT("CameraActor"),
+			TEXT("CameraAnim"),
+			TEXT("CameraBlockingVolume"),
+			TEXT("Class"),
+			TEXT("CullDistanceVolume"),
+			TEXT("CurveBase"),
+			TEXT("DataAsset"),
+			TEXT("DecalActor"),
+			TEXT("Default"),
+			TEXT("DirectionalLight"),
+			TEXT("DirectionalLightMovable"),
+			TEXT("DirectionalLightStatic"),
+			TEXT("DirectionalLightStationary"),
+			TEXT("ExponentialHeightFog"),
+			TEXT("Font"),
+			TEXT("ForceFeedbackEffect"),
+			TEXT("InterpData"),
+			TEXT("KillZVolume"),
+			TEXT("LevelStreamingVolume"),
+			TEXT("LightmassCharacterIndirectDetailVolume"),
+			TEXT("LightmassImportanceVolume"),
+			TEXT("MassiveLODOverrideVolume"),
+			TEXT("Material"),
+			TEXT("MaterialFunction"),
+			TEXT("MaterialInstanceConstant"),
+			TEXT("MaterialParameterCollection"),
+			TEXT("MultiFont"),
+			TEXT("NavLinkProxy"),
+			TEXT("NavMeshBoundsVolume"),
+			TEXT("NavModifierVolume"),
+			TEXT("Note"),
+			TEXT("ObjectLibrary"),
+			TEXT("PainCausingVolume"),
+			TEXT("ParticleSystem"),
+			TEXT("PhysicalMaterial"),
+			TEXT("PhysicsVolume"),
+			TEXT("PlaneReflectionCapture"),
+			TEXT("PlayerStart"),
+			TEXT("PointLight"),
+			TEXT("PostProcessVolume"),
+			TEXT("PrecomputedVisibilityOverrideVolume"),
+			TEXT("PrecomputedVisibilityVolume"),
+			TEXT("RadialForceActor"),
+			TEXT("ReflectionCapture"),
+			TEXT("ReverbEffect"),
+			TEXT("ReverbVolume"),
+			TEXT("ReverbVolumeToggleable"),
+			TEXT("SceneCapture2D"),
+			TEXT("SceneCaptureCube"),
+			TEXT("SkyLight"),
+			TEXT("SkeletalMesh"),
+			TEXT("SlateBrushAsset"),
+			TEXT("SlateWidgetStyleAsset"),
+			TEXT("SoundAttenuation"),
+			TEXT("SoundClass"),
+			TEXT("SoundCue"),
+			TEXT("SoundMix"),
+			TEXT("SphereReflectionCapture"),
+			TEXT("SpotLight"),
+			TEXT("SpotLightMovable"),
+			TEXT("SpotLightStatic"),
+			TEXT("SpotLightStationary"),
+			TEXT("StaticMesh"),
+			TEXT("TargetPoint"),
+			TEXT("TextRenderActor"),
+			TEXT("Texture2D"),
+			TEXT("TextureRenderTarget2D"),
+			TEXT("TextureRenderTargetCube"),
+			TEXT("TriggerBase"),
+			TEXT("TriggerBox"),
+			TEXT("TriggerCapsule"),
+			TEXT("TriggerSphere"),
+			TEXT("TriggerVolume"),
+			TEXT("TouchInterface"),
+			TEXT("UserDefinedEnum"),
+			TEXT("UserDefinedStruct"),
+		};
 
-	{
-		Set( "ClassThumbnail.AmbientSound", new IMAGE_BRUSH( "Icons/icon_class_AmbientSound_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.BoxReflectionCapture", new IMAGE_BRUSH( "Icons/icon_class_BoxReflectionCapture_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.CameraActor", new IMAGE_BRUSH( "Icons/icon_class_CameraActor_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.DecalActor", new IMAGE_BRUSH( "Icons/icon_class_DecalActor_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.MatineeActor", new IMAGE_BRUSH( "Icons/icon_class_MatineeActor_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.PlaneReflectionCapture", new IMAGE_BRUSH( "Icons/icon_class_PlaneReflectionCapture_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.PlayerStart", new IMAGE_BRUSH( "Icons/icon_class_PlayerStart_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.SphereReflectionCapture", new IMAGE_BRUSH( "Icons/icon_class_SphereReflectionCapture_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.TextRenderActor", new IMAGE_BRUSH( "Icons/icon_class_TextRenderActor_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.TriggerBox", new IMAGE_BRUSH( "Icons/icon_class_TriggerBox_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.TriggerCapsule", new IMAGE_BRUSH( "Icons/icon_class_TriggerCapsule_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.TriggerSphere", new IMAGE_BRUSH( "Icons/icon_class_TriggerSphere_64px", Icon64x64 ) );
-
-		Set( "ClassThumbnail.NavLinkProxy", new IMAGE_BRUSH( "Icons/icon_class_NavLinkProxy_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.Note", new IMAGE_BRUSH( "Icons/icon_class_Notes_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.RadialForceActor", new IMAGE_BRUSH( "Icons/icon_class_RadialForceActor_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.TargetPoint", new IMAGE_BRUSH( "Icons/icon_class_TargetPoint_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.AtmosphericFog", new IMAGE_BRUSH( "Icons/icon_class_AtmosphericFog_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.ExponentialHeightFog", new IMAGE_BRUSH( "Icons/icon_class_ExpHeightFog_64x", Icon64x64 ) );
-
-		Set( "ClassThumbnail.TriggerBase", new IMAGE_BRUSH( "Icons/icon_class_TriggerBox_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.DirectionalLight", new IMAGE_BRUSH( "Icons/icon_class_DirectionalLight_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.PointLight", new IMAGE_BRUSH( "Icons/icon_class_PointLight_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.SpotLight", new IMAGE_BRUSH( "Icons/icon_class_SpotLight_64px", Icon64x64 ) );
-		Set( "ClassThumbnail.SkyLight", new IMAGE_BRUSH( "Icons/icon_class_Skylight_64px", Icon64x64 ) ); 
-		Set( "ClassThumbnail.ReflectionCapture", new IMAGE_BRUSH( "Icons/icon_class_SphereReflectionCapture_64px", Icon64x64 ) );
-
-		Set( "ClassThumbnail.BlockingVolume", new IMAGE_BRUSH( "Icons/icon_volume_Blocking_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.CullDistanceVolume", new IMAGE_BRUSH( "Icons/icon_volume_CullDistance_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.LevelStreamingVolume", new IMAGE_BRUSH( "Icons/icon_volume_LevelStreaming_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.LightmassCharacterIndirectDetailVolume", new IMAGE_BRUSH( "Icons/icon_volume_LightmassCharacterIndirectDetail_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.LightmassImportanceVolume", new IMAGE_BRUSH( "Icons/icon_volume_LightmassImportance_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.MassiveLODOverrideVolume", new IMAGE_BRUSH( "Icons/icon_volume_MassiveLODOverride_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.NavMeshBoundsVolume", new IMAGE_BRUSH( "Icons/icon_volume_NavMeshBounds_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.NavModifierVolume", new IMAGE_BRUSH( "Icons/icon_volume_NavMeshModifier_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.PainCausingVolume", new IMAGE_BRUSH( "Icons/icon_volume_PainCausing_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.PhysicsVolume", new IMAGE_BRUSH( "Icons/icon_volume_Physics_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.PostProcessVolume", new IMAGE_BRUSH( "Icons/icon_volume_PostProcess_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.PrecomputedVisibilityOverrideVolume", new IMAGE_BRUSH( "Icons/icon_volume_precomputedVisibilityOverride_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.PrecomputedVisibilityVolume", new IMAGE_BRUSH( "Icons/icon_volume_PrecomputedVisibility_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.ReverbVolume", new IMAGE_BRUSH( "Icons/icon_volume_Reverb_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.ReverbVolumeToggleable", new IMAGE_BRUSH( "Icons/icon_volume_ReverbToggleable_64x", Icon64x64 ) );
-		Set( "ClassThumbnail.TriggerVolume", new IMAGE_BRUSH( "Icons/icon_volume_Trigger_64x", Icon64x64 ) );
-
-		// Asset Types
-		Set( "ClassThumbnail.AimOffsetBlendSpace", new IMAGE_BRUSH( "Icons/icon_class_AimOffset_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.AimOffsetBlendSpace1D", new IMAGE_BRUSH( "Icons/icon_class_AimOffset1D_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.AnimBlueprint", new IMAGE_BRUSH( "Icons/icon_class_AnimBlueprint_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.AnimComposite", new IMAGE_BRUSH( "Icons/icon_class_AnimComposite_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.AnimMontage", new IMAGE_BRUSH( "Icons/icon_class_AnimMontage_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.BlendSpace", new IMAGE_BRUSH( "Icons/icon_class_BlendSpace_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.BlendSpace1D", new IMAGE_BRUSH( "Icons/icon_class_BlendSpace1D_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.Blueprint", new IMAGE_BRUSH( "Icons/icon_class_Blueprint_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.BlueprintGeneratedClass", new IMAGE_BRUSH( "Icons/icon_class_Blueprint_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.BlueprintInterface", new IMAGE_BRUSH( "Icons/icon_class_Blueprint_Interface_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.BlueprintMacroLibrary", new IMAGE_BRUSH( "Icons/icon_class_Blueprint_MacroLibrary_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.ButtonStyleAsset", new IMAGE_BRUSH( "Icons/icon_class_ButtonStyle_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.CameraAnim", new IMAGE_BRUSH( "Icons/icon_class_CameraAnim_64px", Icon32x32 ) );
-		Set( "ClassThumbnail.CurveBase", new IMAGE_BRUSH( "Icons/icon_class_Curve_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.DataAsset", new IMAGE_BRUSH( "Icons/icon_class_DataAsset_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.Font", new IMAGE_BRUSH( "Icons/icon_class_Font_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.InterpData", new IMAGE_BRUSH( "Icons/icon_class_MatineeData_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.Material", new IMAGE_BRUSH( "Icons/icon_class_Material_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.MaterialFunction", new IMAGE_BRUSH( "Icons/icon_class_MaterialFunction_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.MaterialInstanceConstant", new IMAGE_BRUSH( "Icons/icon_class_MaterialInstanceConstant_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.MaterialParameterCollection", new IMAGE_BRUSH( "Icons/icon_class_MaterialParameterCollection_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.MultiFont", new IMAGE_BRUSH( "Icons/icon_class_Multifont_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.ObjectLibrary", new IMAGE_BRUSH( "Icons/icon_class_ObjectLibrary_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.ParticleSystem", new IMAGE_BRUSH( "Icons/icon_class_ParticleSystem_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.PhysicalMaterial", new IMAGE_BRUSH( "Icons/icon_class_PhysicalMaterial_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.ReverbEffect", new IMAGE_BRUSH( "Icons/icon_class_ReverbEffect_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.SlateBrushAsset", new IMAGE_BRUSH( "Icons/icon_class_SlateBrush_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.SoundAttenuation", new IMAGE_BRUSH( "Icons/icon_class_SoundAttenuation_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.SoundClass", new IMAGE_BRUSH( "Icons/icon_class_SoundClass_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.SoundCue", new IMAGE_BRUSH( "Icons/icon_class_SoundCue_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.SoundMix", new IMAGE_BRUSH( "Icons/icon_class_SoundMix_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.TextureRenderTarget2D", new IMAGE_BRUSH( "Icons/icon_class_TextureRenderTarget2D_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.TextureRenderTargetCube", new IMAGE_BRUSH( "Icons/icon_class_TextureRenderTargetCube_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.UserDefinedEnum", new IMAGE_BRUSH( "Icons/icon_class_Enumeration_64x", Icon32x32 ) );
-		Set( "ClassThumbnail.SlateWidgetStyleAsset", new IMAGE_BRUSH("Icons/icon_class_SlateStyle_64x", Icon32x32 ) );
+		const TCHAR* Path = TEXT("Icons/AssetIcons/%s_%dx");
+		
+		for (int32 TypeIndex = 0; TypeIndex < ARRAY_COUNT(AssetTypes); ++TypeIndex)
+		{
+			const TCHAR* Type = AssetTypes[TypeIndex];
+			Set( *FString::Printf(TEXT("ClassIcon.%s"), Type),		new IMAGE_BRUSH(FString::Printf(Path, Type, 16), Icon16x16 ) );
+			Set( *FString::Printf(TEXT("ClassThumbnail.%s"), Type),	new IMAGE_BRUSH(FString::Printf(Path, Type, 64), Icon64x64 ) );
+		}
 	}
 #endif
 }
@@ -4439,7 +4414,12 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 	{
 		Set("ProjectBrowser.Tab.Text", FTextBlockStyle(NormalText)
 			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 24))
-			.SetShadowOffset(FVector2D(0,1)));
+			.SetShadowOffset(FVector2D(0, 1)));
+
+		Set("ProjectBrowser.VersionOverlayText", FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 14))
+			.SetShadowOffset(FVector2D(0, 1)));
+
 
 		Set("ProjectBrowser.Background", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xff404040))));
 		Set("ProjectBrowser.Tab.ActiveBackground", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), FLinearColor(FColor(0xff404040))));
@@ -4447,6 +4427,11 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set("ProjectBrowser.Tab.ActiveHighlight", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), SelectionColor) );
 		Set("ProjectBrowser.Tab.Highlight", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), SelectionColor_Inactive));
 		Set("ProjectBrowser.Tab.PressedHighlight", new BOX_BRUSH("Common/FlatColorSquare", FVector2D(1.0f, 1.0f), FMargin(0), SelectionColor_Pressed));
+
+		Set( "ProjectBrowser.TileViewTooltip.ToolTipBorder", new FSlateColorBrush( FLinearColor::Black ) );
+		Set( "ProjectBrowser.TileViewTooltip.NonContentBorder", new BOX_BRUSH( "/Docking/TabContentArea", FMargin(4/16.0f) ) );
+		Set( "ProjectBrowser.TileViewTooltip.ContentBorder", new BOX_BRUSH( "Common/GroupBorder", FMargin(4.0f/16.0f) ) );
+		Set( "ProjectBrowser.TileViewTooltip.NameFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 12 ) );
 	}
 
 	// Toolkit Display
@@ -4517,8 +4502,12 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "MaterialEditor.TogglePreviewGrid", new IMAGE_BRUSH( "Icons/icon_MatEd_Grid_40x", Icon40x40 ) );
 		Set( "MaterialEditor.TogglePreviewGrid.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Grid_40x", Icon20x20 ) );
 
-		Set( "MaterialEditor.ToggleStats", new IMAGE_BRUSH( "Icons/icon_MatEd_Stats_40x", Icon40x40 ) );
-		Set( "MaterialEditor.ToggleStats.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Stats_40x", Icon20x20 ) );
+		Set( "MaterialEditor.ToggleMaterialStats", new IMAGE_BRUSH( "Icons/icon_MatEd_Stats_40x", Icon40x40 ) );
+		Set( "MaterialEditor.ToggleMaterialStats.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Stats_40x", Icon20x20 ) );
+		Set( "MaterialEditor.ToggleReleaseStats", new IMAGE_BRUSH( "Icons/icon_MatEd_ReleaseStats_40x", Icon40x40 ) );
+		Set( "MaterialEditor.ToggleReleaseStats.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_ReleaseStats_40x", Icon20x20 ) );
+		Set( "MaterialEditor.ToggleBuiltinStats", new IMAGE_BRUSH( "Icons/icon_MatEd_BuiltInStats_40x", Icon40x40 ) );
+		Set( "MaterialEditor.ToggleBuiltinStats.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_BuiltInStats_40x", Icon20x20 ) );
 		Set( "MaterialEditor.ToggleMobileStats", new IMAGE_BRUSH( "Icons/icon_MobileStats_40x", Icon40x40 ) );
 		Set( "MaterialEditor.ToggleMobileStats.Small", new IMAGE_BRUSH( "Icons/icon_MobileStats_40x", Icon20x20 ) );
 		Set( "MaterialEditor.CleanUnusedExpressions", new IMAGE_BRUSH( "Icons/icon_MatEd_CleanUp_40x", Icon40x40 ) );
@@ -4531,6 +4520,8 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "MaterialEditor.ShowHideConnectors.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Connectors_40x", Icon20x20 ) );
 		Set( "MaterialEditor.CameraHome", new IMAGE_BRUSH( "Icons/icon_MatEd_Home_40x", Icon40x40 ) );
 		Set( "MaterialEditor.CameraHome.Small", new IMAGE_BRUSH( "Icons/icon_MatEd_Home_40x", Icon20x20 ) );
+		Set( "MaterialEditor.FindInMaterial", new IMAGE_BRUSH("Icons/icon_Blueprint_Find_40px", Icon40x40));
+		Set( "MaterialEditor.FindInMaterial.Small", new IMAGE_BRUSH("Icons/icon_Blueprint_Find_40px", Icon20x20));
 	}
 
 	// Material Instance Editor
@@ -4557,15 +4548,15 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 		Set( "FontEditor.Update.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Update_40x", Icon20x20 ) );
 		Set( "FontEditor.UpdateAll", new IMAGE_BRUSH( "Icons/icon_FontEd_UpdateAll_40x", Icon40x40 ) );
 		Set( "FontEditor.UpdateAll.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_UpdateAll_40x", Icon20x20 ) );
-		Set( "FontEditor.Export", new IMAGE_BRUSH( "Icons/icon_FontEd_Export_40x", Icon40x40 ) );
-		Set( "FontEditor.Export.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Export_40x", Icon20x20 ) );
-		Set( "FontEditor.ExportAll", new IMAGE_BRUSH( "Icons/icon_FontEd_ExportAll_40x", Icon40x40 ) );
-		Set( "FontEditor.ExportAll.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_ExportAll_40x", Icon20x20 ) );
+		Set( "FontEditor.ExportPage", new IMAGE_BRUSH( "Icons/icon_FontEd_Export_40x", Icon40x40 ) );
+		Set( "FontEditor.ExportPage.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Export_40x", Icon20x20 ) );
+		Set( "FontEditor.ExportAllPages", new IMAGE_BRUSH( "Icons/icon_FontEd_ExportAll_40x", Icon40x40 ) );
+		Set( "FontEditor.ExportAllPages.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_ExportAll_40x", Icon20x20 ) );
 
-		Set( "FontEditor.BackgroundColor", new IMAGE_BRUSH( "Icons/icon_FontEd_Background_40x", Icon40x40 ) );
-		Set( "FontEditor.BackgroundColor.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Background_40x", Icon20x20 ) );
-		Set( "FontEditor.ForegroundColor", new IMAGE_BRUSH( "Icons/icon_FontEd_Foreground_40x", Icon40x40 ) );
-		Set( "FontEditor.ForegroundColor.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Foreground_40x", Icon20x20 ) );
+		Set( "FontEditor.FontBackgroundColor", new IMAGE_BRUSH( "Icons/icon_FontEd_Background_40x", Icon40x40 ) );
+		Set( "FontEditor.FontBackgroundColor.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Background_40x", Icon20x20 ) );
+		Set( "FontEditor.FontForegroundColor", new IMAGE_BRUSH( "Icons/icon_FontEd_Foreground_40x", Icon40x40 ) );
+		Set( "FontEditor.FontForegroundColor.Small", new IMAGE_BRUSH( "Icons/icon_FontEd_Foreground_40x", Icon20x20 ) );
 	}
 
 	// SoundCueGraph Editor
@@ -4689,6 +4680,8 @@ void FSlateEditorStyle::FStyle::SetupToolkitStyles()
 
 	// Curve Editor
 	{
+		Set( "CurveAssetEditor.Tabs.Properties", new IMAGE_BRUSH( "Icons/AssetIcons/CurveBase_16x", Icon16x16 ) );
+
 		Set( "CurveEditor.FitHorizontally", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Horizontal_40x", Icon40x40 ) );
 		Set( "CurveEditor.FitVertically", new IMAGE_BRUSH( "Icons/icon_CurveEditor_Vertical_40x", Icon40x40 ) );
 		Set( "CurveEditor.FitToAll", new IMAGE_BRUSH( "Icons/icon_CurveEditor_All_40x", Icon40x40 ) );
@@ -4970,6 +4963,15 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 		Set( "AutomationWindow.SmokeTestFilter.Small", new IMAGE_BRUSH( "Automation/SmokeTestFilter", Icon20x20) );
 		Set( "AutomationWindow.DeveloperDirectoryContent.Small", new IMAGE_BRUSH( "Automation/DeveloperDirectoryContent", Icon20x20) );
 		Set( "AutomationWindow.VisualCommandlet.Small", new IMAGE_BRUSH( "Automation/VisualCommandlet", Icon20x20) );
+
+		//test preset icons
+		Set( "AutomationWindow.PresetNew", new IMAGE_BRUSH( "Icons/icon_add_40x", Icon16x16 ) );
+		Set( "AutomationWindow.PresetSave", new IMAGE_BRUSH( "Icons/icon_file_save_16px", Icon16x16 ) );
+		Set( "AutomationWindow.PresetRemove", new IMAGE_BRUSH( "Icons/icon_Cascade_DeleteLOD_40x", Icon16x16 ) );
+
+		//test backgrounds
+		Set( "AutomationWindow.GameGroupBorder", new BOX_BRUSH( "Automation/GameGroupBorder", FMargin(4.0f/16.0f) ) );
+		Set( "AutomationWindow.EditorGroupBorder", new BOX_BRUSH( "Automation/EditorGroupBorder", FMargin(4.0f/16.0f) ) );
 	}
 
 	// Launcher
@@ -5122,6 +5124,11 @@ void FSlateEditorStyle::FStyle::SetupAutomationStyles()
 
 		Set("FBXSmallFont", FBXSmallFont);
 	}
+}
+
+void FSlateEditorStyle::FStyle::SetupTranslationEditorStyles()
+{
+	Set("TranslationEditor.Import", new IMAGE_BRUSH("Icons/icon_Import_40x", Icon40x40));
 }
 
 #undef IMAGE_BRUSH

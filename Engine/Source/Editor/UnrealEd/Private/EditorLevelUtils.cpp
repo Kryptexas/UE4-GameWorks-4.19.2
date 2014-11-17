@@ -427,7 +427,7 @@ namespace EditorLevelUtils
 
 		InLevel->ReleaseRenderingResources();
 
-		GStreamingManager->RemoveLevel( InLevel );
+		IStreamingManager::Get().RemoveLevel( InLevel );
 		UWorld* World = InLevel->OwningWorld;
 		World->RemoveLevel(InLevel);
 		InLevel->ClearLevelComponents();

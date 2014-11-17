@@ -7,27 +7,38 @@ public class SessionFrontend : ModuleRules
 	public SessionFrontend(TargetInfo Target)
 	{
 		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
-				"SessionServices",
 				"Slate",
                 "EditorStyle",
 			}
-		); 
-		
+		);
+
+		PublicIncludePathModuleNames.AddRange(
+			new string[] {
+				"SessionServices",
+			}
+		);
+
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"DesktopPlatform",
                 "InputCore",
-				"TargetDeviceServices",
+				"SlateCore",
 
 				// @todo gmp: remove these dependencies by making the session front-end extensible
 				"AutomationWindow",
 				"ScreenShotComparison",
 				"ScreenShotComparisonTools",
-				"Profiler"
+				"Profiler",
+				"TargetPlatform",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Messaging",
+				"TargetDeviceServices",
 			}
 		);
 

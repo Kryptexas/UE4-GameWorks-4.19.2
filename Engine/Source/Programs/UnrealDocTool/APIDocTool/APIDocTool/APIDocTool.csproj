@@ -67,6 +67,7 @@
     </Compile>
     <Compile Include="APIConstant.cs" />
     <Compile Include="APIConstantIndex.cs" />
+    <Compile Include="APIEnumIndex.cs" />
     <Compile Include="APIFunctionIndex.cs" />
     <Compile Include="APIHierarchy.cs" />
     <Compile Include="APIIndex.cs" />
@@ -76,7 +77,7 @@
     <Compile Include="APIEventParameters.cs" />
     <Compile Include="APIGettingStarted.cs" />
     <Compile Include="APIRecord.cs" />
-    <Compile Include="APITypeIndex.cs" />
+    <Compile Include="APIRecordIndex.cs" />
     <Compile Include="BuildTarget.cs" />
     <Compile Include="Icons.cs" />
     <Compile Include="IniFile.cs" />

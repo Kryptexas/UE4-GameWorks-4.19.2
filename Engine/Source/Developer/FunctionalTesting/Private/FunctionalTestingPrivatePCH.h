@@ -4,7 +4,11 @@
 #define __FunctionalTestingPrivatePCH_h__
 
 #include "Engine.h"
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
 #include "FunctionalTest.h"
+#include "FunctionalAITest.h"
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "MessageLog.h"
 #include "IFuncTestManager.h"

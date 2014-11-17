@@ -2,7 +2,7 @@
 
 #include "PhyaPluginPrivatePCH.h"
 
-#include "Phya.generated.inl"
+
 
 
 class FPhyaPlugin : public IPhyaPlugin

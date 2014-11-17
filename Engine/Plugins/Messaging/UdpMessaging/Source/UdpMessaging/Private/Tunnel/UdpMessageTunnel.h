@@ -12,7 +12,7 @@
  */
 class FUdpMessageTunnel
 	: FRunnable
-	, public IMessageTunnel
+	, public IUdpMessageTunnel
 {
 	// Structure for transport node information
 	struct FNodeInfo
@@ -32,11 +32,11 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InLocalEndpoint - The local IP endpoint to receive messages on.
-	 * @param InMulticastEndpoint - The multicast group endpoint to transport messages to.
+	 * @param InLocalEndpoint The local IP endpoint to receive messages on.
+	 * @param InMulticastEndpoint The multicast group endpoint to transport messages to.
 	 */
 	FUdpMessageTunnel( const FIPv4Endpoint& InUnicastEndpoint, const FIPv4Endpoint& InMulticastEndpoint )
-		: Listener(NULL)
+		: Listener(nullptr)
 		, MulticastEndpoint(InMulticastEndpoint)
 		, Stopping(false)
 		, TotalInboundBytes(0)
@@ -68,23 +68,23 @@ public:
 	 */
 	~FUdpMessageTunnel( )
 	{
-		if (Thread != NULL)
+		if (Thread != nullptr)
 		{
 			Thread->Kill(true);
 			delete Thread;
 		}
 
 		// destroy sockets
-		if (MulticastSocket != NULL)
+		if (MulticastSocket != nullptr)
 		{
 			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(MulticastSocket);
-			MulticastSocket = NULL;
+			MulticastSocket = nullptr;
 		}
 	
-		if (UnicastSocket != NULL)
+		if (UnicastSocket != nullptr)
 		{
 			ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(UnicastSocket);
-			UnicastSocket = NULL;
+			UnicastSocket = nullptr;
 		}
 	}
 
@@ -128,13 +128,13 @@ public:
 
 public:
 
-	// Begin IMessageTunnel interface
+	// Begin IUdpMessageTunnel interface
 
 	virtual bool Connect( const FIPv4Endpoint& RemoteEndpoint ) OVERRIDE
 	{
 		FSocket* Socket = FTcpSocketBuilder(TEXT("FUdpMessageTunnel.RemoteConnection"));
 
-		if (Socket != NULL)
+		if (Socket != nullptr)
 		{
 			if (Socket->Connect(*RemoteEndpoint.ToInternetAddr()))
 			{
@@ -151,7 +151,7 @@ public:
 		return false;
 	}
 
-	virtual int32 GetConnections( TArray<IMessageTunnelConnectionPtr>& OutConnections ) OVERRIDE
+	virtual int32 GetConnections( TArray<IUdpMessageTunnelConnectionPtr>& OutConnections ) OVERRIDE
 	{
 		FScopeLock Lock(&CriticalSection);
 
@@ -175,7 +175,7 @@ public:
 
 	virtual bool IsServerRunning( ) const OVERRIDE
 	{
-		return (Listener != NULL);
+		return (Listener != nullptr);
 	}
 
 	virtual FSimpleDelegate& OnConnectionsChanged( ) OVERRIDE
@@ -194,17 +194,17 @@ public:
 	virtual void StopServer( ) OVERRIDE
 	{
 		delete Listener;
-		Listener = NULL;
+		Listener = nullptr;
 	}
 
-	// End IMessageTunnel interface
+	// End IUdpMessageTunnel interface
 
 protected:
 
 	/**
 	 * Removes expired nodes from the specified collection of node infos.
 	 *
-	 * @param Nodes - The collection of nodes to clean up.
+	 * @param Nodes The collection of nodes to clean up.
 	 */
 	void RemoveExpiredNodes( TMap<FGuid, FNodeInfo>& Nodes )
 	{
@@ -254,7 +254,7 @@ protected:
 				{
 					FNodeInfo* LocalNode = LocalNodes.Find(Header.RecipientNodeId);
 
-					if (LocalNode == NULL)
+					if (LocalNode == nullptr)
 					{
 						continue;
 					}
@@ -279,7 +279,7 @@ protected:
 	/**
 	 * Receives all buffered datagrams from the specified socket and forwards them to the tunnels.
 	 *
-	 * @param Socket - The socket to receive from.
+	 * @param Socket The socket to receive from.
 	 */
 	void UdpToTcp( FSocket* Socket )
 	{
@@ -289,57 +289,54 @@ protected:
 
 		while (Socket->HasPendingData(DatagramSize))
 		{
-			if (DatagramSize > 0)
+			FArrayReaderPtr Datagram = MakeShareable(new FArrayReader(true));
+			Datagram->Init(FMath::Min(DatagramSize, 65507u));
+
+			int32 BytesRead = 0;
+
+			if (Socket->RecvFrom(Datagram->GetData(), Datagram->Num(), BytesRead, *Sender))
 			{
-				FArrayReaderPtr Datagram = MakeShareable(new FArrayReader(true));
-				Datagram->Init(FMath::Min(DatagramSize, 65507u));
+				FUdpMessageSegment::FHeader Header;
+				*Datagram << Header;
 
-				int32 BytesRead = 0;
-
-				if (Socket->RecvFrom(Datagram->GetData(), Datagram->Num(), BytesRead, *Sender))
+				// check protocol version
+				if (Header.ProtocolVersion != UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION)
 				{
-					FUdpMessageSegment::FHeader Header;
-					*Datagram << Header;
-
-					// check protocol version
-					if (Header.ProtocolVersion != UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION)
-					{
-						return;
-					}
-
-					// ignore loopback datagrams
-					if (RemoteNodes.Contains(Header.SenderNodeId))
-					{
-						return;
-					}
-
-					Datagram->Seek(0);
-
-					// forward datagram to remote nodes
-					if (Header.RecipientNodeId.IsValid())
-					{
-						FNodeInfo* RemoteNode = RemoteNodes.Find(Header.RecipientNodeId);
-
-						if ((RemoteNode != NULL) && (RemoteNode->Connection.IsValid()))
-						{
-							RemoteNode->Connection->Send(Datagram);
-						}
-					}
-					else
-					{
-						for (int32 ConnectionIndex = 0; ConnectionIndex < Connections.Num(); ++ConnectionIndex)
-						{
-							Connections[ConnectionIndex]->Send(Datagram);
-						}
-					}
-
-					// update local node & statistics
-					FNodeInfo& LocalNode = LocalNodes.FindOrAdd(Header.SenderNodeId);
-					LocalNode.Endpoint = FIPv4Endpoint(Sender);
-					LocalNode.LastDatagramReceivedTime = CurrentTime;
-
-					TotalOutboundBytes += Datagram->Num();
+					return;
 				}
+
+				// ignore loopback datagrams
+				if (RemoteNodes.Contains(Header.SenderNodeId))
+				{
+					return;
+				}
+
+				Datagram->Seek(0);
+
+				// forward datagram to remote nodes
+				if (Header.RecipientNodeId.IsValid())
+				{
+					FNodeInfo* RemoteNode = RemoteNodes.Find(Header.RecipientNodeId);
+
+					if ((RemoteNode != nullptr) && (RemoteNode->Connection.IsValid()))
+					{
+						RemoteNode->Connection->Send(Datagram);
+					}
+				}
+				else
+				{
+					for (int32 ConnectionIndex = 0; ConnectionIndex < Connections.Num(); ++ConnectionIndex)
+					{
+						Connections[ConnectionIndex]->Send(Datagram);
+					}
+				}
+
+				// update local node & statistics
+				FNodeInfo& LocalNode = LocalNodes.FindOrAdd(Header.SenderNodeId);
+				LocalNode.Endpoint = FIPv4Endpoint(Sender);
+				LocalNode.LastDatagramReceivedTime = CurrentTime;
+
+				TotalOutboundBytes += Datagram->Num();
 			}
 		}
 	}

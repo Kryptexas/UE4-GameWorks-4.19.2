@@ -1923,13 +1923,6 @@ void CreateConsoleVariables()
 		TEXT("Prevents the engine from taking any CPU or GPU time while not the foreground app."),
 		ECVF_Cheat);
 	
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.CustomDepth"),
-		1,
-		TEXT("0: feature is disabled\n")
-		TEXT("1: feature is enabled, texture is created on demand\n")
-		TEXT("2: feature is enabled, texture is not released until required (should be the project setting if the feature should not stall)"),
-		ECVF_RenderThreadSafe);
-
 	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.TemporalAASamples"),
 		8,
 		TEXT("Number of jittered positions for temporal AA (4, 8=default, 16, 32, 64)."),
@@ -1941,7 +1934,7 @@ void CreateConsoleVariables()
 		TEXT("1: VSync is enabled."),
 		ECVF_Scalability | ECVF_RenderThreadSafe);
 
-	IConsoleManager::Get().RegisterConsoleVariable(TEXT("R.FinishCurrentFrame"),
+	IConsoleManager::Get().RegisterConsoleVariable(TEXT("r.FinishCurrentFrame"),
 		0,
 		TEXT("If on, the current frame will be forced to finish and render to the screen instead of being buffered.  This will improve latency, but slow down overall performance."),
 		ECVF_Scalability | ECVF_RenderThreadSafe);
@@ -2212,4 +2205,10 @@ static TAutoConsoleVariable<float> CVarDemosaicVposOffset(
 	TEXT("r.DemosaicVposOffset"),
 	0.0f,
 	TEXT("This offset is added to the rasterized position used for demosaic in the ES2 tonemapping shader. It exists to workaround driver bugs on some Android devices that have a half-pixel offset."),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarRenderLastFrameInStreamingPause(
+	TEXT("r.RenderLastFrameInStreamingPause"),
+	1,
+	TEXT("If 1 the previous frame is displayed during streaming pause. If zero the screen is left black."),
 	ECVF_RenderThreadSafe);

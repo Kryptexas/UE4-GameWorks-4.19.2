@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpGroupInst.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, MinimalAPI)
+UCLASS(MinimalAPI)
 class UInterpGroupInst : public UObject
 {
 	GENERATED_UCLASS_BODY()

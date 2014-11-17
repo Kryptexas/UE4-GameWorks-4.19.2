@@ -49,7 +49,6 @@ struct FViewportHoverTarget
 	{
 		return Key.HoveredActor ? GetTypeHash(Key.HoveredActor) : GetTypeHash(Key.HoveredModel)+Key.ModelSurfaceIndex;
 	}
-
 };
 
 struct FTrackingTransaction
@@ -98,6 +97,20 @@ private:
 
 	/** The description to use if a pending transaction turns into a real transaction */
 	FText PendingDescription;
+};
+
+
+struct FDropQuery
+{
+	FDropQuery()
+		: bCanDrop(false)
+	{}
+
+	/** True if it's valid to drop the object at the location queried */
+	bool bCanDrop;
+
+	/** Optional hint text that may be returned to the user. */
+	FText HintText;
 };
 
 
@@ -158,7 +171,10 @@ public:
 	virtual FSceneInterface* GetScene() const OVERRIDE;
 	virtual FLinearColor GetBackgroundColor() const OVERRIDE;
 	virtual bool IsAspectRatioConstrained() const OVERRIDE;
-	virtual float GetCameraSpeed(int32 SpeedSetting) const OVERRIDE;
+	virtual int32 GetCameraSpeedSetting() const OVERRIDE;
+	virtual void SetCameraSpeedSetting(int32 SpeedSetting) OVERRIDE;
+	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
+	virtual void LostFocus(FViewport* Viewport) OVERRIDE;
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) OVERRIDE;
 
@@ -194,7 +210,7 @@ public:
 	/**
 	 * Updates the audio listener for this viewport 
 	 *
- 	 * @param View	The scene view to use when calculate the listener position
+	 * @param View	The scene view to use when calculate the listener position
 	 */
 	void UpdateAudioListener( const FSceneView& View );
 
@@ -231,7 +247,7 @@ public:
 	}
 
 	/** Called every time the viewport is ticked to update the view based on an actor that is
-	    driving the location, FOV and other settings for this view.  This is used for live camera PIP
+		driving the location, FOV and other settings for this view.  This is used for live camera PIP
 		preview within editor viewports */
 	void PushControllingActorDataToViewportClient();
 
@@ -283,7 +299,7 @@ public:
 	/** Updates the rotate widget with the passed in delta rotation. */
 	void ApplyDeltaToRotateWidget( const FRotator& InRot );
 
-	void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport );
+	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) OVERRIDE;
 
 	/**
 	 * Draws a screen space bounding box around the specified actor
@@ -370,7 +386,7 @@ public:
 	/**
 	 * If dragging an actor for placement, this function updates its position.
 	 *
- 	 * @param MouseX						The position of the mouse's X coordinate
+	 * @param MouseX						The position of the mouse's X coordinate
 	 * @param MouseY						The position of the mouse's Y coordinate
 	 * @param DroppedObjects				The Objects that were used to create preview objects
 	 * @param out_bDroppedObjectsVisible	Output, returns if preview objects are visible or not
@@ -387,16 +403,16 @@ public:
 	/**
 	 * Checks the viewport to see if the given object can be dropped using the given mouse coordinates local to this viewport
 	 *
- 	 * @param MouseX			The position of the mouse's X coordinate
+	 * @param MouseX			The position of the mouse's X coordinate
 	 * @param MouseY			The position of the mouse's Y coordinate
 	 * @param AssetInfo			Asset in question to be dropped
 	 */
-	bool CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo);
+	FDropQuery CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetInfo);
 
 	/**
 	 * Attempts to intelligently drop the given objects in the viewport, using the given mouse coordinates local to this viewport
 	 *
- 	 * @param MouseX			 The position of the mouse's X coordinate
+	 * @param MouseX			 The position of the mouse's X coordinate
 	 * @param MouseY			 The position of the mouse's Y coordinate
 	 * @param DroppedObjects	 The Objects to be placed into the editor via this viewport
 	 * @param OutNewActors		 The new actor objects that were created
@@ -408,17 +424,17 @@ public:
 	bool DropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const TArray<UObject*>& DroppedObjects, TArray<AActor*>& OutNewActors, bool bOnlyDropOnTarget = false, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
 
 	/**
- 	 * Sets GWorld to the appropriate world for this client
+	 * Sets GWorld to the appropriate world for this client
 	 * 
 	 * @return the previous GWorld
- 	 */
+	 */
 	virtual UWorld* ConditionalSetWorld() OVERRIDE;
 
 	/**
- 	 * Restores GWorld to InWorld
+	 * Restores GWorld to InWorld
 	 *
 	 * @param InWorld	The world to restore
- 	 */
+	 */
 	virtual void ConditionalRestoreWorld( UWorld* InWorld  ) OVERRIDE;
 
 	/**
@@ -453,6 +469,12 @@ public:
 	void ModifyScale( USceneComponent* InComponent, FVector& ScaleDelta ) const;
 
 	void RenderDragTool( const FSceneView* View,FCanvas* Canvas );
+
+	/** Set the global ptr to the current viewport */
+	void SetCurrentViewport();
+
+	/** Set the global ptr to the last viewport to receive a key press */
+	void SetLastKeyViewport();
 
 	/** 
 	 * Gets the world space cursor info from the current mouse position
@@ -509,6 +531,87 @@ public:
 		return ActorLockedByMatinee.IsValid();
 	}
 
+	/**
+	 * Get a ptr to the stat unit data for this viewport
+	 */
+	virtual FStatUnitData* GetStatUnitData() const OVERRIDE
+	{
+		return StatUnitData;
+	}
+
+	/**
+	 * Get a ptr to the stat unit data for this viewport
+	 */
+	virtual FStatHitchesData* GetStatHitchesData() const OVERRIDE
+	{
+		return StatHitchesData;
+	}
+
+	/**
+	 * Get a ptr to the enabled stats list
+	 */
+	virtual const TArray<FString>* GetEnabledStats() const OVERRIDE
+	{
+		return &EnabledStats;
+	}
+
+	/**
+	 * Sets all the stats that should be enabled for the viewport
+	 */
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) OVERRIDE
+	{
+		EnabledStats = InEnabledStats;
+	}
+
+	/**
+	 * Check whether a specific stat is enabled for this viewport
+	 */
+	virtual bool IsStatEnabled(const TCHAR* InName) const OVERRIDE
+	{
+		return EnabledStats.Contains(InName);
+	}
+
+	/**
+	 * Get the sound stat flags enabled for this viewport
+	 */
+	virtual ESoundShowFlags::Type GetSoundShowFlags() const OVERRIDE
+	{ 
+		return SoundShowFlags;
+	}
+
+	/**
+	 * Set the sound stat flags enabled for this viewport
+	 */
+	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) OVERRIDE
+	{
+		SoundShowFlags = InSoundShowFlags;
+	}
+
+private:
+	/**
+	 * Set a specific stat to either enabled or disabled (returns true if there are any stats enabled)
+	 */
+	int32 SetStatEnabled(const TCHAR* InName, const bool bEnable, const bool bAll = false)
+	{
+		if (bEnable)
+		{
+			check(!bAll);	// Not possible to enable all
+			EnabledStats.AddUnique(InName);
+		}
+		else
+		{
+			if (bAll)
+			{
+				EnabledStats.Empty();
+			}
+			else
+			{
+				EnabledStats.Remove(InName);
+			}
+		}
+		return EnabledStats.Num();
+	}
+
 protected:
 	/** 
 	 * Checks the viewport to see if the given blueprint asset can be dropped on the viewport.
@@ -517,7 +620,6 @@ protected:
 	 * @return true if asset can be dropped, false otherwise
 	 */
 	bool CanDropBlueprintAsset ( const struct FSelectedAssetInfo& );
-
 
 	/** Called when editor cleanse event is triggered */
 	void OnEditorCleanse();
@@ -584,6 +686,7 @@ private:
 	* @param	Cursor				Mouse cursor location
 	* @param	DroppedObjects		Array of objects dropped into the viewport
 	* @param	DroppedUponActor	The actor that we are dropping upon
+	* @param    DroppedUponSlot     The material slot/submesh that was identified as the drop location.  If unknown use -1.
 	* @param	DroppedLocation		The location that we're dropping the objects
 	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	* @param	OutNewActors		The list of actors created while dropping
@@ -593,7 +696,25 @@ private:
 	*
 	* @return	true if the drop operation was successfully handled; false otherwise
 	*/
-	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
+	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
+
+	/**
+	* Called when an asset is dropped upon an existing actor.
+	*
+	* @param	Cursor				Mouse cursor location
+	* @param	DroppedObject		Object dropped into the viewport
+	* @param	DroppedUponActor	The actor that we are dropping upon
+	* @param    DroppedUponSlot		The material slot/submesh that was identified as the drop location.  If unknown use -1.
+	* @param	DroppedLocation		The location that we're dropping the objects
+	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
+	* @param	OutNewActors		The list of actors created while dropping
+	* @param	bUsedHitProxy		Whether or not a hit proxy was used for spawning
+	* @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
+	* @param	FactoryToUse		The preferred actor factory to use (optional)
+	*
+	* @return	true if the drop operation was successfully handled; false otherwise
+	*/
+	bool DropSingleObjectOnActor(struct FViewportCursorLocation& Cursor, UObject* DroppedObject, AActor* DroppedUponActor, int32 DroppedUponSlot, const FVector& DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy = true, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a BSP surface.
@@ -627,6 +748,18 @@ private:
 	/** Helper functions for ApplyDeltaTo* functions - modifies scale based on grid settings */
 	void ModifyScale( AActor* InActor, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
 	void ValidateScale( const FVector& CurrentScale, const FVector& BoxExtent, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
+
+	/** Delegate handler to see if a stat is enabled on this viewport */
+	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
+
+	/** Delegate handler for when stats are enabled in a viewport */
+	void HandleViewportStatEnabled(const TCHAR* InName);
+
+	/** Delegate handler for when stats are disabled in a viewport */
+	void HandleViewportStatDisabled(const TCHAR* InName);
+
+	/** Delegate handler for when all stats are disabled in a viewport */
+	void HandleViewportStatDisableAll(const bool bInAnyViewport);
 
 public:
 	/** Static: List of objects we're hovering over */
@@ -681,17 +814,17 @@ public:
 	*/
 	bool					bDuplicateActorsInProgress;
 
-
 	/**
 	 * true when a brush is being transformed by its Widget
 	 */
 	bool					bIsTrackingBrushModification;
+
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
 	static TArray< TWeakObjectPtr< AActor > > DropPreviewActors;
 
 	/** Optional actor that is 'controlling' this view.  That is, the view's location, rotation, FOV and other settings
-	    should be pushed to this caInera every frame.  This is used by the editor's live viewport camera PIP feature */
+		should be pushed to this caInera every frame.  This is used by the editor's live viewport camera PIP feature */
 	TWeakObjectPtr< AActor > ControllingActor;
 
 	/** Bit array representing the visibility of every sprite category in the current viewport */
@@ -720,4 +853,16 @@ private:
 
 	/** When the viewpoint is locked to an actor (by Matinee) this references the actor, invalid if not locked */
 	TWeakObjectPtr<AActor>	ActorLockedByMatinee;
+
+	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
+	FStatUnitData*			StatUnitData;
+
+	/** Data needed to display perframe stat tracking when STAT HITCHES is enabled */
+	FStatHitchesData*		StatHitchesData;
+
+	/** A list of all the stat names which are enabled for this viewport */
+	TArray<FString>			EnabledStats;
+
+	/** Those sound stat flags which are enabled on this viewport */
+	ESoundShowFlags::Type	SoundShowFlags;
 };

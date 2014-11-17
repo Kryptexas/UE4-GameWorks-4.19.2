@@ -8,40 +8,36 @@ public class LinuxTargetPlatform : ModuleRules
 	{
         BinariesSubFolder = "Linux";
 
-        PrivateDependencyModuleNames.AddRange(
-            new string[]
-            {
+		PublicIncludePaths.AddRange(
+			new string[] {
+				"Runtime/Core/Public/Linux"
+			}
+		);
+		
+		PrivateDependencyModuleNames.AddRange(
+            new string[] {
 				"Core",
 				"CoreUObject",
-				"Settings",
 				"TargetPlatform"
 			}
         );
 
-        PublicIncludePaths.AddRange(
-            new string[]
-			{
-				"Runtime/Core/Public/Linux"
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
 			}
-        );
-
-        if (UEBuildConfiguration.bCompileAgainstEngine)
-        {
-            PrivateDependencyModuleNames.AddRange(
-                new string[] 
-                {
-				    "Engine"
-				}
-            );
-
-            PrivateIncludePathModuleNames.Add("TextureCompressor");
-        }
+		);
 
         PrivateIncludePaths.AddRange(
-            new string[]
-			{
+            new string[] {
 				"Developer/LinuxTargetPlatform/Classes"
 			}
         );
+
+		if (UEBuildConfiguration.bCompileAgainstEngine)
+		{
+			PrivateDependencyModuleNames.Add("Engine");
+			PrivateIncludePathModuleNames.Add("TextureCompressor");
+		}
 	}
 }

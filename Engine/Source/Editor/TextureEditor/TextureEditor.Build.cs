@@ -23,7 +23,12 @@ public class TextureEditor : ModuleRules
 			}
 		);
 
-		PrivateIncludePathModuleNames.Add("UnrealEd");
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
+				"UnrealEd",
+			}
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -34,8 +39,8 @@ public class TextureEditor : ModuleRules
 				"RenderCore",
 				"ShaderCore",
 				"RHI",
-				"Settings",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd"
 			}

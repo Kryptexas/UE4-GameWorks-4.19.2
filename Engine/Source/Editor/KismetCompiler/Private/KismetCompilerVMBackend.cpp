@@ -452,13 +452,13 @@ public:
 					int32 StructSize = Struct->GetStructureSize() * StructProperty->ArrayDim;
 					uint8* StructData = (uint8*)FMemory_Alloca(StructSize);
 					StructProperty->InitializeValue(StructData);
-					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UBlueprintGeneratedStruct>(Struct), StructData))
+					if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<UUserDefinedStruct>(Struct), StructData))
 					{
 						UE_LOG(LogK2Compiler, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s, Struct: %s"), *StructProperty->GetName(), *Struct->GetName());
 					}
 
 					// Assume that any errors on the import of the name string have been caught in the function call generation
-					StructProperty->ImportText(*Term->Name, StructData, 0, NULL, GLog);
+					StructProperty->ImportText(Term->Name.IsEmpty() ? TEXT("()") : *Term->Name, StructData, 0, NULL, GLog);
 
  					Writer << EX_StructConst;
 					Writer << Struct;
@@ -476,6 +476,10 @@ public:
 						FBPTerminal NewTerm;
 						NewTerm.bIsLiteral = true;
 						Prop->ExportText_InContainer(0, NewTerm.Name, StructData, StructData, NULL, PPF_None);
+						if (Prop->IsA(UTextProperty::StaticClass()))
+						{
+							NewTerm.TextLiteral = FText::FromString(NewTerm.Name);
+						}
 
 						EmitTermExpr(&NewTerm, Prop);
 					}
@@ -1060,6 +1064,15 @@ public:
 			Writer << EX_Nothing;
 			break;
 		case KCST_WireTraceSite:
+			{
+				UEdGraphPin const* TrueSourcePin = Cast<UEdGraphPin const>(FunctionContext.MessageLog.FindSourceObject(Statement.ExecContext));
+				if (TrueSourcePin)
+				{
+					int32 Offset = Writer.ScriptBuffer.Num();
+					ClassBeingBuilt->GetDebugData().RegisterPinToCodeAssociation(TrueSourcePin, FunctionContext.Function, Offset);
+				}
+			}
+			// no break, continue down through KCST_DebugSite
 		case KCST_DebugSite:
 			if (SourceNode != NULL)
 			{

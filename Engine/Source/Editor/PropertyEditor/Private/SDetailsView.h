@@ -350,7 +350,7 @@ private:
 	 * @param The detail layout builder that will be used for customization of this property map
 	 * @param CurCategory The current category name
 	 */
-	void UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& DetailLayout, FName CurCategory, FObjectPropertyNode* CurObjectNode, const FCustomStructLayoutMap& StructLayoutMap );
+	void UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& DetailLayout, FName CurCategory, FObjectPropertyNode* CurObjectNode );
 
 	/** Called before during SetObjectArray before we change the objects being observed */
 	void PreSetObject();

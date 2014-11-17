@@ -430,7 +430,7 @@ bool UModelComponent::GenerateElements(bool bBuildRenderData)
 			}
 
 			// Find an element with the same material as this node.
-			uint32 ResValue = FMath::Trunc(Surf.LightMapScale);
+			uint32 ResValue = FMath::TruncToInt(Surf.LightMapScale);
 			TMap<UMaterialInterface*,FModelElement*>* MaterialElementMap = ResToMaterialElementMap->FindRef(ResValue);
 			if (!MaterialElementMap)
 			{

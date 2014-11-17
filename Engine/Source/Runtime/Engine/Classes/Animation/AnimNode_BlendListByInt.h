@@ -24,4 +24,5 @@ public:
 
 protected:
 	virtual int32 GetActiveChildIndex();
+	virtual FString GetNodeName(FNodeDebugData& DebugData) { return DebugData.GetNodeName(this); }
 };

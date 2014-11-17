@@ -188,6 +188,12 @@ bool FGenericPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 	return false;
 }
 
+FString FGenericPlatformProcess::GetApplicationName( uint32 ProcessId )
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::GetApplicationName not implemented on this platform"));
+	return FString(TEXT(""));
+}
+
 bool FGenericPlatformProcess::IsThisApplicationForeground()
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::IsThisApplicationForeground not implemented on this platform"));
@@ -224,7 +230,7 @@ void FGenericPlatformProcess::Sleep( float Seconds )
 {
 	SCOPE_CYCLE_COUNTER(STAT_Sleep);
 	FThreadIdleStats::FScopeIdle Scope;
-	const int32 usec = FPlatformMath::Trunc(Seconds * 1000000.0f);
+	const int32 usec = FPlatformMath::TruncToInt(Seconds * 1000000.0f);
 	if (usec > 0)
 	{
 		usleep(usec);
@@ -410,5 +416,11 @@ FGenericPlatformProcess::FSemaphore * FGenericPlatformProcess::NewInterprocessSy
 bool FGenericPlatformProcess::DeleteInterprocessSynchObject(FSemaphore * Object)
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::DeleteInterprocessSynchObject not implemented on this platform"));
+	return false;
+}
+
+bool FGenericPlatformProcess::Daemonize()
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::Daemonize not implemented on this platform"));
 	return false;
 }

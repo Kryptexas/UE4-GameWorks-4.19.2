@@ -10,6 +10,14 @@
 #include "PostProcessing.h"
 #include "PostProcessAmbientOcclusion.h"
 
+static TAutoConsoleVariable<int32> CVarAmbientOcclusionSampleSetQuality(
+	TEXT("r.AmbientOcclusionSampleSetQuality"),
+	-1,
+	TEXT("Defines how many samples we use for ScreenSpace Ambient Occlusion\n")
+	TEXT("-1: sample count depends on post process settings (default)\n")
+	TEXT("0: low sample count (defined in shader, 3 * 2)\n")
+	TEXT("1: high sample count (defined in shader, 6 * 2)"),
+	ECVF_RenderThreadSafe);
 
 
 /** Encapsulates the post processing ambient occlusion pixel shader. */
@@ -101,12 +109,91 @@ FArchive& operator<<(FArchive& Ar, FScreenSpaceAOandSSRShaderParameters& This)
 	return Ar;
 }
 
+// --------------------------------------------------------
+
+void FCameraMotionParameters::Bind(const FShaderParameterMap& ParameterMap)
+{
+	CameraMotion.Bind(ParameterMap, TEXT("CameraMotion"));
+}
+
+void FCameraMotionParameters::Set(const FSceneView& View, const FPixelShaderRHIParamRef ShaderRHI) const
+{
+	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+
+	FMatrix Proj = View.ViewMatrices.ProjMatrix;
+	FMatrix PrevProj = ViewState->PrevViewMatrices.ProjMatrix;
+
+	// Remove jitter
+	Proj.M[2][0] = 0.0f;
+	Proj.M[2][1] = 0.0f;
+	PrevProj.M[2][0] = 0.0f;
+	PrevProj.M[2][1] = 0.0f;
+
+	FMatrix ViewProj = ( View.ViewMatrices.ViewMatrix * Proj ).GetTransposed();
+	FMatrix PrevViewProj = ( ViewState->PrevViewMatrices.ViewMatrix * PrevProj ).GetTransposed();
+
+	double InvViewProj[16];
+	Inverse4x4( InvViewProj, (float*)ViewProj.M );
+
+	const float* p = (float*)PrevViewProj.M;
+
+	const double cxx = InvViewProj[ 0]; const double cxy = InvViewProj[ 1]; const double cxz = InvViewProj[ 2]; const double cxw = InvViewProj[ 3];
+	const double cyx = InvViewProj[ 4]; const double cyy = InvViewProj[ 5]; const double cyz = InvViewProj[ 6]; const double cyw = InvViewProj[ 7];
+	const double czx = InvViewProj[ 8]; const double czy = InvViewProj[ 9]; const double czz = InvViewProj[10]; const double czw = InvViewProj[11];
+	const double cwx = InvViewProj[12]; const double cwy = InvViewProj[13]; const double cwz = InvViewProj[14]; const double cww = InvViewProj[15];
+
+	const double pxx = (double)(p[ 0]); const double pxy = (double)(p[ 1]); const double pxz = (double)(p[ 2]); const double pxw = (double)(p[ 3]);
+	const double pyx = (double)(p[ 4]); const double pyy = (double)(p[ 5]); const double pyz = (double)(p[ 6]); const double pyw = (double)(p[ 7]);
+	const double pwx = (double)(p[12]); const double pwy = (double)(p[13]); const double pwz = (double)(p[14]); const double pww = (double)(p[15]);
+
+	FVector4 CameraMotionValue[5];
+
+	CameraMotionValue[0] = FVector4(
+		(float)(4.0*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
+		(float)((-4.0)*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
+		(float)(2.0*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
+		(float)(2.0*(cww*pww - cwx*pww + cwy*pww + (cxw - cxx + cxy)*pwx + (cyw - cyx + cyy)*pwy + (czw - czx + czy)*pwz)));
+
+	CameraMotionValue[1] = FVector4(
+		(float)(( 4.0)*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
+		(float)((-2.0)*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
+		(float)((-2.0)*(cww*pww + cwy*pww + cxw*pwx - 2.0*cxx*pwx + cxy*pwx + cyw*pwy - 2.0*cyx*pwy + cyy*pwy + czw*pwz - 2.0*czx*pwz + czy*pwz - cwx*(2.0*pww + pxw) - cxx*pxx - cyx*pxy - czx*pxz)),
+		(float)(-2.0*(cyy*pwy + czy*pwz + cwy*(pww + pxw) + cxy*(pwx + pxx) + cyy*pxy + czy*pxz)));
+
+	CameraMotionValue[2] = FVector4(
+		(float)((-4.0)*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
+		(float)(cyz*pwy + czz*pwz + cwz*(pww + pxw) + cxz*(pwx + pxx) + cyz*pxy + czz*pxz),
+		(float)(cwy*pww + cwy*pxw + cww*(pww + pxw) - cwx*(pww + pxw) + (cxw - cxx + cxy)*(pwx + pxx) + (cyw - cyx + cyy)*(pwy + pxy) + (czw - czx + czy)*(pwz + pxz)),
+		(float)(0));
+
+	CameraMotionValue[3] = FVector4(
+		(float)((-4.0)*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
+		(float)((-2.0)*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
+		(float)(2.0*((-cww)*pww + cwx*pww - 2.0*cwy*pww - cxw*pwx + cxx*pwx - 2.0*cxy*pwx - cyw*pwy + cyx*pwy - 2.0*cyy*pwy - czw*pwz + czx*pwz - 2.0*czy*pwz + cwy*pyw + cxy*pyx + cyy*pyy + czy*pyz)),
+		(float)(2.0*(cyx*pwy + czx*pwz + cwx*(pww - pyw) + cxx*(pwx - pyx) - cyx*pyy - czx*pyz)));
+
+	CameraMotionValue[4] = FVector4(
+		(float)(4.0*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
+		(float)(cyz*pwy + czz*pwz + cwz*(pww - pyw) + cxz*(pwx - pyx) - cyz*pyy - czz*pyz),
+		(float)(cwy*pww + cww*(pww - pyw) - cwy*pyw + cwx*((-pww) + pyw) + (cxw - cxx + cxy)*(pwx - pyx) + (cyw - cyx + cyy)*(pwy - pyy) + (czw - czx + czy)*(pwz - pyz)),
+		(float)(0));
+
+	SetShaderValueArray(ShaderRHI, CameraMotion, CameraMotionValue, 5);
+}
+
+FArchive& operator<<(FArchive& Ar, FCameraMotionParameters& This)
+{
+	Ar << This.CameraMotion;
+
+	return Ar;
+}
+
 /**
  * Encapsulates the post processing ambient occlusion pixel shader.
  * @param bAOSetupAsInput true:use AO setup instead of full resolution depth and normal
  * @param bDoUpsample true:we have lower resolution pass data we need to upsample, false otherwise
  */
-template<uint32 bTAOSetupAsInput, uint32 bDoUpsample>
+template<uint32 bTAOSetupAsInput, uint32 bDoUpsample, uint32 SampleSetQuality>
 class FPostProcessAmbientOcclusionPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(FPostProcessAmbientOcclusionPS, Global);
@@ -122,6 +209,7 @@ class FPostProcessAmbientOcclusionPS : public FGlobalShader
 
 		OutEnvironment.SetDefine(TEXT("USE_UPSAMPLE"), bDoUpsample);
 		OutEnvironment.SetDefine(TEXT("USE_AO_SETUP_AS_INPUT"), bTAOSetupAsInput);
+		OutEnvironment.SetDefine(TEXT("SAMPLESET_QUALITY"), SampleSetQuality);
 	}
 
 	/** Default constructor. */
@@ -184,11 +272,13 @@ public:
 
 
 // #define avoids a lot of code duplication
-#define VARIATION1(A)	VARIATION2(A, 0) VARIATION2(A, 1)
-#define VARIATION2(A, B) typedef FPostProcessAmbientOcclusionPS<A, B> FPostProcessAmbientOcclusionPS##A##B; \
-	IMPLEMENT_SHADER_TYPE2(FPostProcessAmbientOcclusionPS##A##B, SF_Pixel);
+#define VARIATION1(A, C)	VARIATION2(A, 0, C) VARIATION2(A, 1, C)
+#define VARIATION2(A, B, C) typedef FPostProcessAmbientOcclusionPS<A, B, C> FPostProcessAmbientOcclusionPS##A##B##C; \
+	IMPLEMENT_SHADER_TYPE2(FPostProcessAmbientOcclusionPS##A##B##C, SF_Pixel);
 
-	VARIATION1(0) VARIATION1(1)
+	VARIATION1(0,0) VARIATION1(1,0)
+	VARIATION1(0,1) VARIATION1(1,1)
+
 #undef VARIATION1
 #undef VARIATION2
 
@@ -297,6 +387,8 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 		SetShaderSetupTempl<0>(Context);
 	}
 
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
 		0, 0,
@@ -305,6 +397,7 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		GSceneRenderTargets.GetBufferSizeXY(),
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -354,11 +447,11 @@ bool FRCPassPostProcessAmbientOcclusionSetup::IsInitialPass() const
 
 
 // ---------------------------------
-template <uint32 bTAOSetupAsInput, uint32 bDoUpsample>
+template <uint32 bTAOSetupAsInput, uint32 bDoUpsample, uint32 SampleSetQuality>
 void FRCPassPostProcessAmbientOcclusion::SetShaderTempl(const FRenderingCompositePassContext& Context)
 {
 	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
-	TShaderMapRef<FPostProcessAmbientOcclusionPS<bTAOSetupAsInput, bDoUpsample> > PixelShader(GetGlobalShaderMap());
+	TShaderMapRef<FPostProcessAmbientOcclusionPS<bTAOSetupAsInput, bDoUpsample, SampleSetQuality> > PixelShader(GetGlobalShaderMap());
 
 	static FGlobalBoundShaderState BoundShaderState;
 
@@ -395,7 +488,7 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	FIntPoint TexSize = InputDesc0->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = GSceneRenderTargets.SceneColor->GetDesc().Extent.X / TexSize.X;
+	uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / TexSize.X;
 
 	FIntRect ViewRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes);
 
@@ -408,8 +501,18 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
-	// 0..1
-	uint32 Quality = (int32)Context.View.FinalPostProcessSettings.AmbientOcclusionQuality > 50;
+	int32 SampleSetQuality = CVarAmbientOcclusionSampleSetQuality.GetValueOnRenderThread();
+
+	if(SampleSetQuality < 0)
+	{
+		SampleSetQuality = 0;
+
+		// SampleSetQuality depends on post process settings
+		if(Context.View.FinalPostProcessSettings.AmbientOcclusionQuality > 60.0f)
+		{
+			SampleSetQuality = 1;
+		}
+	}
 
 	bool bDoUpsample = (InputDesc2 != 0);
 
@@ -417,25 +520,26 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	{
 		if(bDoUpsample)
 		{
-			SetShaderTempl<1, 1>(Context);
+			if(SampleSetQuality) SetShaderTempl<1, 1, 1>(Context); else SetShaderTempl<1, 1, 0>(Context);
 		}
 		else
 		{
-			SetShaderTempl<1, 0>(Context);
+			if(SampleSetQuality) SetShaderTempl<1, 0, 1>(Context); else SetShaderTempl<1, 0, 0>(Context);
 		}
 	}
 	else
 	{
 		if(bDoUpsample)
 		{
-			SetShaderTempl<0, 1>(Context);
+			if(SampleSetQuality) SetShaderTempl<0, 1, 1>(Context); else SetShaderTempl<0, 1, 0>(Context);
 		}
 		else
 		{
-			SetShaderTempl<0, 0>(Context);
+			if(SampleSetQuality) SetShaderTempl<0, 0, 1>(Context); else SetShaderTempl<0, 0, 0>(Context);
 		}
 	}
 
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
@@ -445,6 +549,7 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 		ViewRect.Width(), ViewRect.Height(),
 		ViewRect.Size(),
 		TexSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 
@@ -480,7 +585,7 @@ void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Conte
 
 	const FSceneView& View = Context.View;
 
-	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.SceneColor->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
@@ -509,6 +614,7 @@ void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Conte
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
 		GSceneRenderTargets.GetBufferSizeXY(),
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

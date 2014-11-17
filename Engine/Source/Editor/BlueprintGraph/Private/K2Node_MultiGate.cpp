@@ -649,7 +649,7 @@ void UK2Node_MultiGate::ExpandNode(class FKismetCompilerContext& CompilerContext
 			AssignmentNode->GetValuePin()->DefaultValue = TEXT("0");
 
 			// Move the "Reset" link to the Assignment node
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*ResetPin, *AssignmentNode->GetExecPin()), this);
+			CompilerContext.MovePinLinksToIntermediate(*ResetPin, *AssignmentNode->GetExecPin());
 		}
 	}
 }

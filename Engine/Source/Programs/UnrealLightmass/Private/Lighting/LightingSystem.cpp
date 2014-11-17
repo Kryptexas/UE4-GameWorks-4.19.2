@@ -25,8 +25,6 @@
 
 namespace Lightmass
 {
-
-
 	 
 FGatheredLightSample FGatheredLightSample::AmbientLight(const FLinearColor& Color)
 {
@@ -36,9 +34,10 @@ FGatheredLightSample FGatheredLightSample::AmbientLight(const FLinearColor& Colo
 	// Compute SHCorrection as if all the lighting was coming in along the normal
 	FVector4 TangentDirection(0, 0, 1);
 	FSHVector2 SH = FSHVector2::SHBasisFunction( TangentDirection );
-	Result.SHCorrection += Color.GetLuminance() * ( 0.282095f * SH.V[0] + 0.325735f * SH.V[2] );
-
+	Result.SHCorrection = Color.GetLuminance() * ( 0.282095f * SH.V[0] + 0.325735f * SH.V[2] );
 	Result.IncidentLighting = Color;
+
+	checkSlow(Result.SHCorrection >= 0 && Result.IncidentLighting.GetMin() >= 0);
 
 	return Result;
 }
@@ -56,8 +55,10 @@ FGatheredLightSample FGatheredLightSample::PointLightWorldSpace(const FLinearCol
 		// These scaling coefficients are SHBasisFunction and CalcDiffuseTransferSH baked down
 		// 0.325735f = 0.488603f from SHBasisFunction * 2/3 from CalcDiffuseTransferSH
 		// Only using V[2] which is the tangent space Z
-		Result.SHCorrection += Color.GetLuminance() * ( 0.282095f * SH.V[0] + 0.325735f * SH.V[2] );
+		Result.SHCorrection = Color.GetLuminance() * ( 0.282095f * SH.V[0] + 0.325735f * SH.V[2] );
 		Result.IncidentLighting = Color * FMath::Max(0.0f, TangentDirection.Z);
+
+		checkSlow(Result.SHCorrection >= 0 && Result.IncidentLighting.GetMin() >= 0);
 	}
 
 	return Result;
@@ -153,6 +154,7 @@ void FFinalGatherSample::AddWeighted(const FFinalGatherSample& OtherSample, floa
 {
 	FGatheredLightSample::AddWeighted(OtherSample, Weight);
 	Occlusion += OtherSample.Occlusion * Weight;
+	StationarySkyLighting = StationarySkyLighting + OtherSample.StationarySkyLighting * Weight;
 }
 
 bool FFinalGatherSample::AreFloatsValid() const
@@ -167,14 +169,21 @@ FStaticLightingMappingContext::FStaticLightingMappingContext(const FStaticLighti
 
 FStaticLightingMappingContext::~FStaticLightingMappingContext()
 {
-	// Update the main threads stats with the stats from this mapping
-	FScopeLock Lock(&System.Stats.StatsSync);
-	System.Stats.Cache[0] += FirstBounceCache.Stats;
-	System.Stats += Stats;
-	System.Stats.NumFirstHitRaysTraced += RayCache.NumFirstHitRaysTraced;
-	System.Stats.NumBooleanRaysTraced += RayCache.NumBooleanRaysTraced;
-	System.Stats.FirstHitRayTraceThreadTime += RayCache.FirstHitRayTraceTime;
-	System.Stats.BooleanRayTraceThreadTime += RayCache.BooleanRayTraceTime;
+	{
+		// Update the main threads stats with the stats from this mapping
+		FScopeLock Lock(&System.Stats.StatsSync);
+		System.Stats.Cache[0] += FirstBounceCache.Stats;
+		System.Stats += Stats;
+		System.Stats.NumFirstHitRaysTraced += RayCache.NumFirstHitRaysTraced;
+		System.Stats.NumBooleanRaysTraced += RayCache.NumBooleanRaysTraced;
+		System.Stats.FirstHitRayTraceThreadTime += RayCache.FirstHitRayTraceTime;
+		System.Stats.BooleanRayTraceThreadTime += RayCache.BooleanRayTraceTime;
+	}
+
+	for (int32 EntryIndex = 0; EntryIndex < RefinementTreeFreePool.Num(); EntryIndex++)
+	{
+		delete RefinementTreeFreePool[EntryIndex];
+	}
 }
 
 /**
@@ -758,7 +767,7 @@ int32 FStaticLightingSystem::GetNumUniformHemisphereSamples(int32 BounceNumber) 
 int32 FStaticLightingSystem::GetNumPhotonImportanceHemisphereSamples() const
 {
 	return PhotonMappingSettings.bUsePhotonMapping ? 
-		FMath::Trunc(ImportanceTracingSettings.NumHemisphereSamples * PhotonMappingSettings.FinalGatherImportanceSampleFraction) : 0;
+		FMath::TruncToInt(ImportanceTracingSettings.NumHemisphereSamples * PhotonMappingSettings.FinalGatherImportanceSampleFraction) : 0;
 }
 
 FBoxSphereBounds FStaticLightingSystem::GetImportanceBounds(bool bClampToScene) const
@@ -824,7 +833,7 @@ void FStaticLightingSystem::ValidateSettings(FScene& InScene)
 		InScene.PhotonMappingSettings.bCacheIrradiancePhotonsOnSurfaces = false;
 	}
 	InScene.PhotonMappingSettings.FinalGatherImportanceSampleFraction = FMath::Clamp(InScene.PhotonMappingSettings.FinalGatherImportanceSampleFraction, 0.0f, 1.0f);
-	if (FMath::Trunc(InScene.ImportanceTracingSettings.NumHemisphereSamples * (1.0f - InScene.PhotonMappingSettings.FinalGatherImportanceSampleFraction) < 1))
+	if (FMath::TruncToInt(InScene.ImportanceTracingSettings.NumHemisphereSamples * (1.0f - InScene.PhotonMappingSettings.FinalGatherImportanceSampleFraction) < 1))
 	{
 		// Irradiance caching needs some uniform samples
 		InScene.IrradianceCachingSettings.bAllowIrradianceCaching = false;
@@ -1235,7 +1244,7 @@ void FStaticLightingSystem::UpdateInternalStatus(int32 OldNumTexelsCompleted) co
 	const float PreviousCompletedFraction = OldNumTexelsCompleted * InvTotal;
 	const float CurrentCompletedFraction = NumTexelsCompleted * InvTotal;
 	// Only log NumProgressSteps times
-	if (FMath::Trunc(PreviousCompletedFraction * NumProgressSteps) < FMath::Trunc(CurrentCompletedFraction * NumProgressSteps))
+	if (FMath::TruncToInt(PreviousCompletedFraction * NumProgressSteps) < FMath::TruncToInt(CurrentCompletedFraction * NumProgressSteps))
 	{
 		LogSolverMessage(FString::Printf(TEXT("Lighting %.1f%%"), CurrentCompletedFraction * 100.0f));
 	}
@@ -1255,7 +1264,7 @@ void FStaticLightingSystem::CacheSamples()
 			* (ImportanceTracingSettings.bUseAdaptiveSolver ? 1 : (1.0f - PhotonMappingSettings.FinalGatherImportanceSampleFraction))
 			* GeneralSettings.IndirectLightingQuality;
 
-		NumUniformHemisphereSamples = FMath::Trunc(NumSamplesFloat);
+		NumUniformHemisphereSamples = FMath::TruncToInt(NumSamplesFloat);
 	}
 	else
 	{
@@ -1270,8 +1279,8 @@ void FStaticLightingSystem::CacheSamples()
 		// Split the sampling domain up into cells with equal area
 		// Using PI times more Phi steps as Theta steps, but the relationship between them could be anything
 		const float NumThetaStepsFloat = FMath::Sqrt(NumUniformHemisphereSamples / (float)PI);
-		const int32 NumThetaSteps = FMath::Trunc(NumThetaStepsFloat);
-		const int32 NumPhiSteps = FMath::Trunc(NumThetaStepsFloat * (float)PI);
+		const int32 NumThetaSteps = FMath::TruncToInt(NumThetaStepsFloat);
+		const int32 NumPhiSteps = FMath::TruncToInt(NumThetaStepsFloat * (float)PI);
 
 		if (ImportanceTracingSettings.bUseCosinePDF)
 		{
@@ -1893,7 +1902,7 @@ void FStaticLightingSystem::CalculateApproximateDirectLighting(
 				FLinearColor UnnormalizedTransmission = FLinearColor::Black;
 
 				const TArray<FLightSurfaceSample>& LightSurfaceSamples = Light->GetCachedSurfaceSamples(0, false);
-				const int32 NumSamplesToTrace = FMath::Max(FMath::Trunc(LightSurfaceSamples.Num() * LightSampleFraction), 1);
+				const int32 NumSamplesToTrace = FMath::Max(FMath::TruncToInt(LightSurfaceSamples.Num() * LightSampleFraction), 1);
 
 				for (int32 RayIndex = 0; RayIndex < NumSamplesToTrace; RayIndex++)
 				{
@@ -2015,17 +2024,17 @@ void FStaticLightingSystem::BeginCalculateDominantShadowInfo(FGuid LightGuid)
 		DominantLightShadowInfo.LightSpaceImportanceBoundMin = LightSpaceImportanceBounds.Min;
 		DominantLightShadowInfo.LightSpaceImportanceBoundMax = LightSpaceImportanceBounds.Max;
 
-		DominantLightShadowInfo.ShadowMapSizeX = FMath::Trunc(FMath::Max(LightSpaceImportanceBounds.GetExtent().X * 2.0f / ShadowSettings.DominantShadowTransitionSampleDistanceX, 4.0f));
+		DominantLightShadowInfo.ShadowMapSizeX = FMath::TruncToInt(FMath::Max(LightSpaceImportanceBounds.GetExtent().X * 2.0f / ShadowSettings.DominantShadowTransitionSampleDistanceX, 4.0f));
 		DominantLightShadowInfo.ShadowMapSizeX = DominantLightShadowInfo.ShadowMapSizeX == appTruncErrorCode ? INT_MAX : DominantLightShadowInfo.ShadowMapSizeX;
-		DominantLightShadowInfo.ShadowMapSizeY = FMath::Trunc(FMath::Max(LightSpaceImportanceBounds.GetExtent().Y * 2.0f / ShadowSettings.DominantShadowTransitionSampleDistanceY, 4.0f));
+		DominantLightShadowInfo.ShadowMapSizeY = FMath::TruncToInt(FMath::Max(LightSpaceImportanceBounds.GetExtent().Y * 2.0f / ShadowSettings.DominantShadowTransitionSampleDistanceY, 4.0f));
 		DominantLightShadowInfo.ShadowMapSizeY = DominantLightShadowInfo.ShadowMapSizeY == appTruncErrorCode ? INT_MAX : DominantLightShadowInfo.ShadowMapSizeY;
 
 		// Clamp the number of dominant shadow samples generated if necessary while maintaining aspect ratio
 		if ((uint64)DominantLightShadowInfo.ShadowMapSizeX * (uint64)DominantLightShadowInfo.ShadowMapSizeY > (uint64)ShadowSettings.DominantShadowMaxSamples)
 		{
 			const float AspectRatio = DominantLightShadowInfo.ShadowMapSizeX / (float)DominantLightShadowInfo.ShadowMapSizeY;
-			DominantLightShadowInfo.ShadowMapSizeY = FMath::Trunc(FMath::Sqrt(ShadowSettings.DominantShadowMaxSamples / AspectRatio));
-			DominantLightShadowInfo.ShadowMapSizeX = FMath::Trunc(ShadowSettings.DominantShadowMaxSamples / DominantLightShadowInfo.ShadowMapSizeY);
+			DominantLightShadowInfo.ShadowMapSizeY = FMath::TruncToInt(FMath::Sqrt(ShadowSettings.DominantShadowMaxSamples / AspectRatio));
+			DominantLightShadowInfo.ShadowMapSizeX = FMath::TruncToInt(ShadowSettings.DominantShadowMaxSamples / DominantLightShadowInfo.ShadowMapSizeY);
 		}
 
 		// Allocate the shadow map
@@ -2052,7 +2061,7 @@ void FStaticLightingSystem::BeginCalculateDominantShadowInfo(FGuid LightGuid)
 		DominantLightShadowInfo.LightSpaceImportanceBoundMin = FVector4(-HalfCrossSectionLength, -HalfCrossSectionLength, 0);
 		DominantLightShadowInfo.LightSpaceImportanceBoundMax = FVector4(HalfCrossSectionLength, HalfCrossSectionLength, DominantSpotLight->Radius);
 
-		DominantLightShadowInfo.ShadowMapSizeX = FMath::Trunc(FMath::Max(HalfCrossSectionLength / ShadowSettings.DominantShadowTransitionSampleDistanceX, 4.0f));
+		DominantLightShadowInfo.ShadowMapSizeX = FMath::TruncToInt(FMath::Max(HalfCrossSectionLength / ShadowSettings.DominantShadowTransitionSampleDistanceX, 4.0f));
 		DominantLightShadowInfo.ShadowMapSizeX = DominantLightShadowInfo.ShadowMapSizeX == appTruncErrorCode ? INT_MAX : DominantLightShadowInfo.ShadowMapSizeX;
 		DominantLightShadowInfo.ShadowMapSizeY = DominantLightShadowInfo.ShadowMapSizeX;
 
@@ -2112,7 +2121,7 @@ void FStaticLightingSystem::BeginCalculateDominantShadowInfo(FGuid LightGuid)
 				}
 
 				// Quantize the distance into a uint16 to reduce memory usage in Unreal
-				const uint16 QuantizedDistance = FMath::Trunc(65535 * FMath::Clamp(MaxSampleDistance / MaxPossibleDistance, 0.0f, 1.0f));
+				const uint16 QuantizedDistance = FMath::TruncToInt(65535 * FMath::Clamp(MaxSampleDistance / MaxPossibleDistance, 0.0f, 1.0f));
 				DominantLightShadowInfo.ShadowMap[Y * DominantLightShadowInfo.ShadowMapSizeX + X] = FDominantLightShadowSample(QuantizedDistance);
 			}
 		}
@@ -2177,7 +2186,7 @@ void FStaticLightingSystem::CalculateDominantShadowInfoWorkRange(int32 ShadowMap
 		}
 
 		// Quantize the distance into a uint16 to reduce memory usage in Unreal
-		const uint16 QuantizedDistance = FMath::Trunc(65535 * FMath::Clamp(MaxSampleDistance * InvDistanceRange, 0.0f, 1.0f));
+		const uint16 QuantizedDistance = FMath::TruncToInt(65535 * FMath::Clamp(MaxSampleDistance * InvDistanceRange, 0.0f, 1.0f));
 		DominantLightShadowInfo.ShadowMap[ShadowMapY * DominantLightShadowInfo.ShadowMapSizeX + X] = FDominantLightShadowSample(QuantizedDistance);
 	}
 	Context.Stats.DominantShadowThreadTime = FPlatformTime::Seconds() - CalculateWorkRangeStart;

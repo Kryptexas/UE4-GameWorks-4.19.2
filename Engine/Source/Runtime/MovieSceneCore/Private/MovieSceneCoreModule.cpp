@@ -6,7 +6,7 @@
 #include "MovieScene.h"
 #include "MovieSceneBindings.h"
 #include "RuntimeMovieScenePlayer.h"
-#include "MovieSceneCore.generated.inl"
+
 
 
 /**

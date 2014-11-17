@@ -3,14 +3,23 @@
 #include "StandaloneRendererPrivate.h"
 #include "OpenGL/SlateOpenGLRenderer.h"
 
+static SDL_Window* CreateDummyGLWindow()
+{
+	SDL_Init( SDL_INIT_VIDEO );
 
-static SDL_Window* CreateDummyGLWindow();
+	// Create a dummy window.
+	SDL_Window *h_wnd = SDL_CreateWindow(	NULL,
+		0, 0, 1, 1,
+		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN );
 
+	return h_wnd;
+}
 
 FSlateOpenGLContext::FSlateOpenGLContext()
+	: WindowHandle(NULL)
+	, Context(NULL)
+	, bReleaseWindowOnDestroy(false)
 {
-	WindowHandle	= NULL;
-	OpenGLContext	= NULL;
 }
 
 FSlateOpenGLContext::~FSlateOpenGLContext()
@@ -28,44 +37,39 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 		bReleaseWindowOnDestroy = true;
 	}
 
-#if 0
-	//	Create a pixel format descriptor for this window
-	SDL_PixelFormat PFD;
-	FMemory::Memzero( &PFD, sizeof(SDL_PixelFormat) );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 2 );
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY );
 
-	PFD.format	= SDL_PIXELFORMAT_ARGB8888;
-	PFD.palette = NULL;
-	PFD.BitsPerPixel = 32;
-	PFD.BytesPerPixel = 4;
-	PFD.Amask = 0xFF000000;
-	PFD.Rmask = 0x00FF0000;
-	PFD.Gmask = 0x0000FF00;
-	PFD.Bmask = 0x000099FF;
+	if( SharedContext )
+	{
+		SDL_GL_SetAttribute( SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1 );
+		SDL_GL_MakeCurrent( SharedContext->WindowHandle, SharedContext->Context );
+	}
+	else
+	{
+		SDL_GL_SetAttribute( SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 0 );
+	}
 
-	SDL_SetWindowPixelFormat;
-	SDL_SetPixelFormat
-#endif
-
-	OpenGLContext = SDL_GL_CreateContext( WindowHandle );
-	SDL_GL_MakeCurrent( WindowHandle, OpenGLContext );
+	Context = SDL_GL_CreateContext( WindowHandle );
+	SDL_GL_MakeCurrent( WindowHandle, Context );
 }
 
 void FSlateOpenGLContext::Destroy()
 {
-	if	( WindowHandle )
+	if	( WindowHandle != NULL )
 	{
-		SDL_GL_DeleteContext( OpenGLContext );
 		SDL_GL_MakeCurrent( NULL, NULL );
+		SDL_GL_DeleteContext( Context );
 
 		if	( bReleaseWindowOnDestroy )
 		{
 			SDL_DestroyWindow( WindowHandle );
+			SDL_Quit();
 		}
-
-		SDL_Quit();
-
 		WindowHandle = NULL;
-		OpenGLContext = NULL;
+
 	}
 }
 
@@ -73,23 +77,12 @@ void FSlateOpenGLContext::MakeCurrent()
 {
 	if	( WindowHandle )
 	{
-		SDL_GL_MakeCurrent( WindowHandle, OpenGLContext );
+		CHECK_GL_ERRORS;
+		if(SDL_GL_MakeCurrent( WindowHandle, Context ) == 0)
+		{
+			glGetError(); // SDL leaves glGetError in a dirty state even when successful?
+		}
 	}
 }
 
-static SDL_Window* CreateDummyGLWindow()
-{
-	SDL_Window	*h_wnd;
-
-	SDL_Init( SDL_INIT_VIDEO );
-
-	h_wnd = SDL_CreateWindow(	"SlateViewer",				// window title
-								SDL_WINDOWPOS_UNDEFINED,	// initial x position
-								SDL_WINDOWPOS_UNDEFINED,	// initial y position
-								1280,						// width, in pixels
-								 800,						// height, in pixels
-								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE );
-
-	return h_wnd;
-}
 

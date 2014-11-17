@@ -45,7 +45,7 @@ namespace AutomationTool
 		/// Creates a new process and adds it to the tracking list.
 		/// </summary>
 		/// <returns>New Process objects</returns>
-		public static ProcessResult CreateProcess(bool bAllowSpew, string LogName, Dictionary<string, string> Env = null, TraceEventType SpewVerbosity = TraceEventType.Information)
+		public static ProcessResult CreateProcess(string AppName, bool bAllowSpew, string LogName, Dictionary<string, string> Env = null, TraceEventType SpewVerbosity = TraceEventType.Information)
 		{
 			var NewProcess = HostPlatform.Current.CreateProcess(LogName);
 			if (Env != null)
@@ -62,13 +62,20 @@ namespace AutomationTool
 					}
 				}
 			}
-			var Result = new ProcessResult(NewProcess, bAllowSpew, LogName, SpewVerbosity:SpewVerbosity);
-			NewProcess.Exited += NewProcess_Exited;
+			var Result = new ProcessResult(AppName, NewProcess, bAllowSpew, LogName, SpewVerbosity: SpewVerbosity);
 			lock (SyncObject)
 			{
 				ActiveProcesses.Add(Result);
 			}
 			return Result;
+		}
+
+		public static void RemoveProcess(ProcessResult Proc)
+		{
+			lock (SyncObject)
+			{
+				ActiveProcesses.Remove(Proc);
+			}
 		}
 
 		public static bool CanBeKilled(string ProcessName)
@@ -81,28 +88,32 @@ namespace AutomationTool
 		/// </summary>
 		public static void KillAll()
 		{
-			List<ProcessResult> ProcessesToKill = null;
+			List<ProcessResult> ProcessesToKill = new List<ProcessResult>();
 			lock (SyncObject)
 			{
-				ProcessesToKill = new List<ProcessResult>(ActiveProcesses);
+				foreach (var ProcResult in ActiveProcesses)
+				{
+					if (!ProcResult.HasExited)
+					{
+						ProcessesToKill.Add(ProcResult);
+					}
+				}
 				ActiveProcesses.Clear();
 			}
 			// Remove processes that can't be killed
 			for (int ProcessIndex = ProcessesToKill.Count - 1; ProcessIndex >= 0; --ProcessIndex )
 			{
-				if (!CanBeKilled(ProcessesToKill[ProcessIndex].ProcessObject.ProcessName))
+				var ProcessName = ProcessesToKill[ProcessIndex].GetProcessName();
+				if (!String.IsNullOrEmpty(ProcessName) && !CanBeKilled(ProcessName))
 				{
-					CommandUtils.Log("Ignoring process \"{0}\" because it can't be killed.", ProcessesToKill[ProcessIndex].ProcessObject.ProcessName);
+					CommandUtils.Log("Ignoring process \"{0}\" because it can't be killed.", ProcessName);
 					ProcessesToKill.RemoveAt(ProcessIndex);
 				}
 			}
 			CommandUtils.Log("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
 			foreach (var Proc in ProcessesToKill)
 			{
-				if (!Proc.HasExited)
-				{
-					CommandUtils.Log("  {0}", Proc.ProcessObject.ProcessName);
-				}
+				CommandUtils.Log("  {0}", Proc.GetProcessName());
 			}
             if (CommandUtils.IsBuildMachine)
             {
@@ -116,7 +127,7 @@ namespace AutomationTool
                             if (!Proc.HasExited)
                             {
                                 AllDone = false;
-                                CommandUtils.Log(TraceEventType.Information, "Waiting for process: {0}", Proc.ProcessObject.ProcessName);
+                                CommandUtils.Log(TraceEventType.Information, "Waiting for process: {0}", Proc.GetProcessName());
                             }
                         }
                         catch (Exception)
@@ -148,17 +159,18 @@ namespace AutomationTool
             }
 			foreach (var Proc in ProcessesToKill)
 			{
+				var ProcName = Proc.GetProcessName();
 				try
 				{
 					if (!Proc.HasExited)
 					{
-						CommandUtils.Log(TraceEventType.Information, "Killing process: {0}", Proc.ProcessObject.ProcessName);
+						CommandUtils.Log(TraceEventType.Information, "Killing process: {0}", ProcName);
 						Proc.StopProcess(false);
 					}
 				}
 				catch (Exception Ex)
 				{
-					CommandUtils.Log(TraceEventType.Warning, "Exception while trying to kill process.");
+					CommandUtils.Log(TraceEventType.Warning, "Exception while trying to kill process {0}:", ProcName);
 					CommandUtils.Log(TraceEventType.Warning, Ex);
 				}
 			}
@@ -176,27 +188,6 @@ namespace AutomationTool
             }
 
 		}
-
-		/// <summary>
-		/// Removes a process from the list of tracked processes.
-		/// </summary>
-		/// <param name="sender"></param>
-		/// <param name="e"></param>
-		public static void NewProcess_Exited(object sender, EventArgs e)
-		{
-			var Proc = (Process)sender;
-			lock (SyncObject)
-			{
-				for (int Index = ActiveProcesses.Count - 1; Index >= 0; --Index)
-				{
-					if (ActiveProcesses[Index].ProcessObject == Proc)
-					{
-						ActiveProcesses.RemoveAt(Index);
-						break;
-					}
-				}
-			}
-		}
 	}
 
 	#region ProcessResult Helper Class
@@ -206,23 +197,34 @@ namespace AutomationTool
 	/// </summary>
 	public class ProcessResult
 	{
-		string Source = "";
-		int ProcessExitCode = -1;
-		StringBuilder ProcessOutput = new StringBuilder();
-		bool AllowSpew = true;
-		TraceEventType SpewVerbosity = TraceEventType.Information;
+		private string Source = "";
+		private int ProcessExitCode = -1;
+		private StringBuilder ProcessOutput = new StringBuilder();
+		private bool AllowSpew = true;
+		private TraceEventType SpewVerbosity = TraceEventType.Information;
+		private string AppName = String.Empty;
 		private Process Proc = null;
 		private AutoResetEvent OutputWaitHandle = new AutoResetEvent(false);
 		private AutoResetEvent ErrorWaitHandle = new AutoResetEvent(false);
 		private object ProcSyncObject;
 
-		public ProcessResult(Process InProc, bool bAllowSpew, string LogName, TraceEventType SpewVerbosity = TraceEventType.Information)
+		public ProcessResult(string InAppName, Process InProc, bool bAllowSpew, string LogName, TraceEventType SpewVerbosity = TraceEventType.Information)
 		{
+			AppName = InAppName;
 			ProcSyncObject = new object();
 			Proc = InProc;
 			Source = LogName;
 			AllowSpew = bAllowSpew;
 			this.SpewVerbosity = SpewVerbosity;
+			Proc.EnableRaisingEvents = false;
+		}
+
+		/// <summary>
+		/// Removes a process from the list of tracked processes.
+		/// </summary>
+		public void OnProcessExited()
+		{
+			ProcessManager.RemoveProcess(this);
 		}
 
 		private void LogOutput(TraceEventType Verbosity, string Message)
@@ -310,12 +312,51 @@ namespace AutomationTool
 
 		public bool HasExited
 		{
-			get { return Proc != null ? Proc.HasExited : true; }
+			get 
+			{
+				bool bHasExited = true;
+				lock (ProcSyncObject)
+				{
+					if (Proc != null)
+					{
+						bHasExited = Proc.HasExited;
+					}
+				}
+				return bHasExited; 
+			}
 		}
 
 		public Process ProcessObject
 		{
 			get { return Proc; }
+		}
+
+		/// <summary>
+		/// Thread-safe way of getting the process name
+		/// </summary>
+		/// <returns>Name of the process this object represents</returns>
+		public string GetProcessName()
+		{
+			string Name = null;
+			lock (ProcSyncObject)
+			{
+				try
+				{
+					if (Proc != null && !Proc.HasExited)
+					{
+						Name = Proc.ProcessName;
+					}
+				}
+				catch
+				{
+					// Ignore all exceptions
+				}
+			}
+			if (String.IsNullOrEmpty(Name))
+			{
+				Name = "[EXITED] " + AppName;
+			}
+			return Name;
 		}
 
 		/// <summary>
@@ -427,12 +468,18 @@ namespace AutomationTool
 			do
 			{
 				bKilledAChild = false;
-				Process[] AllProcs = Process.GetProcesses();
+				// For some reason Process.GetProcesses() sometimes returns the same process twice
+				// So keep track of all processes we already tried to kill
+				var KilledPids = new HashSet<int>();
+				var AllProcs = Process.GetProcesses();
 				foreach (Process KillCandidate in AllProcs)
 				{
-					HashSet<int> VisitedPids = new HashSet<int>();
-					if (ProcessManager.CanBeKilled(KillCandidate.ProcessName) && IsOurDescendant(ProcessToKill, KillCandidate.Id, VisitedPids))
+					var VisitedPids = new HashSet<int>();
+					if (ProcessManager.CanBeKilled(KillCandidate.ProcessName) && 
+						!KilledPids.Contains(KillCandidate.Id) && 
+						IsOurDescendant(ProcessToKill, KillCandidate.Id, VisitedPids))
 					{
+						KilledPids.Add(KillCandidate.Id);
 						CommandUtils.Log("Trying to kill descendant pid={0}, name={1}", KillCandidate.Id, KillCandidate.ProcessName);
 						try
 						{
@@ -477,6 +524,7 @@ namespace AutomationTool
 				Process ProcToKill = null;
 				// At this point any call to Proc memebers will result in an exception
 				// so null the object.
+				var ProcToKillName = GetProcessName();
 				lock (ProcSyncObject)
 				{
 					ProcToKill = Proc;
@@ -491,14 +539,22 @@ namespace AutomationTool
 				{
 					ProcToKill.Kill();
 					ProcToKill.WaitForExit(60000);
-					ProcToKill.Close();
+					if (!ProcToKill.HasExited)
+					{
+						CommandUtils.Log("Process {0} failed to exit.", ProcToKillName);
+					}
+					else
+					{
+						CommandUtils.Log("Process {0} successfully exited.", ProcToKillName);
+						OnProcessExited();
+					}
+					ProcToKill.Close();					
 				}
 				catch (Exception Ex)
 				{
-					CommandUtils.Log(TraceEventType.Warning, "Exception while trying to kill process.");
+					CommandUtils.Log(TraceEventType.Warning, "Exception while trying to kill process {0}:", ProcToKillName);
 					CommandUtils.Log(TraceEventType.Warning, Ex);
 				}
-
 			}
 		}
 	}
@@ -581,11 +637,10 @@ namespace AutomationTool
             {
                 Log(SpewVerbosity,"Run: " + App + " " + (String.IsNullOrEmpty(CommandLine) ? "" : CommandLine));
             }
-			ProcessResult Result = ProcessManager.CreateProcess(Options.HasFlag(ERunOptions.AllowSpew), Path.GetFileNameWithoutExtension(App), Env, SpewVerbosity:SpewVerbosity);
+			ProcessResult Result = ProcessManager.CreateProcess(App, Options.HasFlag(ERunOptions.AllowSpew), Path.GetFileNameWithoutExtension(App), Env, SpewVerbosity:SpewVerbosity);
 			Process Proc = Result.ProcessObject;
 
-			bool bRedirectStdOut = (Options & ERunOptions.NoStdOutRedirect) != ERunOptions.NoStdOutRedirect;
-			Proc.EnableRaisingEvents = false;
+			bool bRedirectStdOut = (Options & ERunOptions.NoStdOutRedirect) != ERunOptions.NoStdOutRedirect;			
 			Proc.StartInfo.FileName = App;
 			Proc.StartInfo.Arguments = String.IsNullOrEmpty(CommandLine) ? "" : CommandLine;
 			Proc.StartInfo.UseShellExecute = false;
@@ -627,11 +682,11 @@ namespace AutomationTool
 
                 }
 				Result.ExitCode = Proc.ExitCode;
+				Result.OnProcessExited();
 				if (UnrealBuildTool.Utils.IsRunningOnMono)
 				{
 					// Mono's detection of process exit status is broken. It doesn't clean up after the process and it doesn't call Exited callback.
-					Proc.Dispose();
-					ProcessManager.NewProcess_Exited(Proc, null);
+					Proc.Dispose();					
 				}
 			}
 			else
@@ -681,8 +736,6 @@ namespace AutomationTool
 		/// <param name="Options">Defines the options how to run. See ERunOptions.</param>
         public static void RunAndLog(string App, string CommandLine, string Logfile = null, int MaxSuccessCode = 0, string Input = null, ERunOptions Options = ERunOptions.Default)
         {
-            Log("Running {0} {1}", App, CommandLine);
-
             ProcessResult Result = Run(App, CommandLine, Input, Options);
             if (Result.Output.Length > 0 && Logfile != null)
             {
@@ -713,8 +766,6 @@ namespace AutomationTool
         /// <returns>Whether the program executed successfully or not.</returns>
         public static string RunAndLog(string App, string CommandLine, out int SuccessCode, string Logfile = null)
         {
-            Log("Running {0} {1}", App, CommandLine);
-
             ProcessResult Result = Run(App, CommandLine);
             SuccessCode = Result.ExitCode;
             if (Result.Output.Length > 0 && Logfile != null)

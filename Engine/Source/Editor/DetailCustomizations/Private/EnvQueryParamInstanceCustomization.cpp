@@ -102,7 +102,7 @@ void FEnvQueryParamInstanceCustomization::OnParamNumValueChanged(float FloatValu
 	}
 	else if (ParamType == EEnvQueryParam::Int)
 	{
-		const int32 IntValue = FMath::Trunc(FloatValue);
+		const int32 IntValue = FMath::TruncToInt(FloatValue);
 		const float StoreValue = *((float*)&IntValue);
 		ValueProp->SetValue(StoreValue);
 		CachedInt = IntValue;
@@ -174,7 +174,7 @@ void FEnvQueryParamInstanceCustomization::InitCachedTypes()
 		switch (ParamType)
 		{
 		case EEnvQueryParam::Float:	CachedFloat = GetParamNumValue().GetValue(); break;
-		case EEnvQueryParam::Int:	CachedInt = FMath::Trunc(GetParamNumValue().GetValue()); break;
+		case EEnvQueryParam::Int:	CachedInt = FMath::TruncToInt(GetParamNumValue().GetValue()); break;
 		case EEnvQueryParam::Bool:	CachedBool = (GetParamBoolValue() == ESlateCheckBoxState::Checked); break;
 		}
 	}

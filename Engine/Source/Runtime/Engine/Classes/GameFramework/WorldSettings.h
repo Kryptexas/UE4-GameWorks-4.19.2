@@ -173,7 +173,7 @@ struct ENGINE_API FNetViewer
 /**
  * Actor containing all script accessible world properties.
  */
-UCLASS(HeaderGroup=GameEngine, config=game, showcategories=(Rendering), hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers), notplaceable, dependson=(APostProcessVolume, UMusicTrackDataStructures))
+UCLASS(config=game, showcategories=(Rendering), hidecategories=(Actor, Advanced, Display, Events, Object, Attachment, Info, Input, Blueprint, Layers), showcategories=("Input|MouseInput", "Input|TouchInput"), notplaceable, dependson=(APostProcessVolume, UMusicTrackDataStructures))
 class ENGINE_API AWorldSettings : public AInfo
 {
 	GENERATED_UCLASS_BODY()
@@ -193,7 +193,7 @@ class ENGINE_API AWorldSettings : public AInfo
 	uint32 bWorldGravitySet:1;
 
 	/** If set to true we will use GlobalGravityZ instead of project setting DefaultGravityZ */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(FriendlyName = "Override World Gravity"), Category = Physics)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(DisplayName = "Override World Gravity"), Category = Physics)
 	uint32 bGlobalGravitySet:1;
 
 	// any actor falling below this level gets destroyed
@@ -423,9 +423,13 @@ public:
 		return TimeDilation * MatineeTimeDilation;
 	}
 
-	/** Called by GameMode.StartMatch, used to notify native classes of match startup (such as level scripting).
-	 * @todo UE4 Need to send K2 event about match starting here
-	 * Activates LevelStartup and/or LevelBeginning events in the sequences in the world
+	/** 
+	 * Called by GameMode.HandleMatchIsWaitingToStart, calls BeginPlay on all actors
+	 */
+	virtual void NotifyBeginPlay();
+
+	/** 
+	 * Called by GameMode.HandleMatchHasStarted, used to notify native classes of match startup (such as level scripting)
 	 */	
 	virtual void NotifyMatchStarted();
 

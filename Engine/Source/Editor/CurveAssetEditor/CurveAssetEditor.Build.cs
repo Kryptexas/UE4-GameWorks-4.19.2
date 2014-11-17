@@ -15,10 +15,11 @@ public class CurveAssetEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd"
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.Add("WorkspaceMenuStructure");
 	}

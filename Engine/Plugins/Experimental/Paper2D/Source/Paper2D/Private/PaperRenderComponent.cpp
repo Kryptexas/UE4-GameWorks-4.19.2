@@ -14,15 +14,11 @@ UPaperRenderComponent::UPaperRenderComponent(const FPostConstructInitializePrope
 
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 
-	static ConstructorHelpers::FObjectFinder<UMaterial> DefaultMaterial(TEXT("/Paper2D/DefaultSpriteMaterial.DefaultSpriteMaterial"));
-	TestMaterial = DefaultMaterial.Object;
+	MaterialOverride = nullptr;
 
 	SpriteColor = FLinearColor::White;
 
-	Mobility = EComponentMobility::Movable; //@TODO: Change the default!
-	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
-	bTickInEditor = true;
+	Mobility = EComponentMobility::Static;
 }
 
 FPrimitiveSceneProxy* UPaperRenderComponent::CreateSceneProxy()
@@ -51,10 +47,7 @@ FBoxSphereBounds UPaperRenderComponent::CalcBounds(const FTransform & LocalToWor
 			}
 		}
 
-		// Takes into account that the static mesh collision code nudges collisions out by up to 1 unit.
-		//@TODO: Needed?  (copied from StaticMeshComponent)
-		NewBounds.BoxExtent += FVector(1,1,1);
-		NewBounds.SphereRadius += 1.0f;
+		// Apply bounds scale
 		NewBounds.BoxExtent *= BoundsScale;
 		NewBounds.SphereRadius *= BoundsScale;
 
@@ -64,12 +57,6 @@ FBoxSphereBounds UPaperRenderComponent::CalcBounds(const FTransform & LocalToWor
 	{
 		return FBoxSphereBounds(LocalToWorld.GetLocation(), FVector::ZeroVector, 0.f);
 	}
-}
-
-void UPaperRenderComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	// Indicate we need to send new dynamic data.
-	MarkRenderDynamicDataDirty();
 }
 
 void UPaperRenderComponent::SendRenderDynamicData_Concurrent()
@@ -158,26 +145,24 @@ FTransform UPaperRenderComponent::GetSocketTransform(FName InSocketName, ERelati
 	{
 		if (FPaperSpriteSocket* Socket = SourceSprite->FindSocket(InSocketName))
 		{
-			return Socket->LocalTransform * ComponentToWorld;
-			switch(TransformSpace)
+			switch (TransformSpace)
 			{
 				case RTS_World:
-				{
 					return Socket->LocalTransform * ComponentToWorld;
-				}
+
 				case RTS_Actor:
-				{
-					if( const AActor* Actor = GetOwner() )
+					if (const AActor* Actor = GetOwner())
 					{
-						FTransform SocketTransform = Socket->LocalTransform * ComponentToWorld;
+						const FTransform SocketTransform = Socket->LocalTransform * ComponentToWorld;
 						return SocketTransform.GetRelativeTransform(Actor->GetTransform());
 					}
 					break;
-				}
+
 				case RTS_Component:
-				{
 					return Socket->LocalTransform;
-				}
+
+				default:
+					check(false);
 			}
 		}
 	}
@@ -245,4 +230,14 @@ void UPaperRenderComponent::SetSpriteColor(FLinearColor NewColor)
 		//@TODO: Should we send immediately?
 		MarkRenderDynamicDataDirty();
 	}
+}
+
+FLinearColor UPaperRenderComponent::GetWireframeColor() const
+{
+	return FLinearColor::Yellow;
+}
+
+const UObject* UPaperRenderComponent::AdditionalStatObject() const
+{
+	return SourceSprite;
 }

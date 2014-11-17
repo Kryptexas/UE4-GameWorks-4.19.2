@@ -260,7 +260,7 @@ bool FOnlineSessionNull::NeedsToAdvertise( FNamedOnlineSession& Session )
 	// b) Not started public LAN session (same as usually)
 	// d) Joinable presence-enabled session that would be advertised with in an online service
 	// (all of that only if we're server)
-	return Session.SessionSettings.bShouldAdvertise && IsServer() &&
+	return Session.SessionSettings.bShouldAdvertise && NullSubsystem->IsServer() &&
 		(
 			(
 			  Session.SessionSettings.bIsLANMatch && 			  
@@ -545,10 +545,17 @@ bool FOnlineSessionNull::JoinSession(int32 PlayerNum, FName SessionName, const F
 		// turn off advertising on Join, to avoid clients advertising it over LAN
 		Session->SessionSettings.bShouldAdvertise = false;
 
-		if (Return != ERROR_IO_PENDING && Return != ERROR_SUCCESS)
+		if (Return != ERROR_IO_PENDING)
 		{
-			// Clean up the session info so we don't get into a confused state
-			RemoveNamedSession(SessionName);
+			if (Return != ERROR_SUCCESS)
+			{
+				// Clean up the session info so we don't get into a confused state
+				RemoveNamedSession(SessionName);
+			}
+			else
+			{
+				RegisterLocalPlayers(Session);
+			}
 		}
 	}
 	else
@@ -568,6 +575,8 @@ bool FOnlineSessionNull::JoinSession(int32 PlayerNum, FName SessionName, const F
 bool FOnlineSessionNull::FindFriendSession(int32 LocalUserNum, const FUniqueNetId& Friend)
 {
 	// this function has to exist due to interface definition, but it does not have a meaningful implementation in Null subsystem
+	FOnlineSessionSearchResult EmptySearchResult;
+	TriggerOnFindFriendSessionCompleteDelegates(LocalUserNum, false, EmptySearchResult);
 	return false;
 };
 
@@ -698,7 +707,7 @@ FOnlineSessionSettings* FOnlineSessionNull::GetSessionSettings(FName SessionName
 
 void FOnlineSessionNull::RegisterLocalPlayers(FNamedOnlineSession* Session)
 {
-	if (!IsRunningDedicatedServer())
+	if (!NullSubsystem->IsDedicated())
 	{
 		IOnlineVoicePtr VoiceInt = NullSubsystem->GetVoiceInterface();
 		if (VoiceInt.IsValid())
@@ -707,6 +716,38 @@ void FOnlineSessionNull::RegisterLocalPlayers(FNamedOnlineSession* Session)
 			{
 				// Register the local player as a local talker
 				VoiceInt->RegisterLocalTalker(Index);
+			}
+		}
+	}
+}
+
+void FOnlineSessionNull::RegisterVoice(const FUniqueNetId& PlayerId)
+{
+	IOnlineVoicePtr VoiceInt = NullSubsystem->GetVoiceInterface();
+	if (VoiceInt.IsValid())
+	{
+		if (!NullSubsystem->IsLocalPlayer(PlayerId))
+		{
+			VoiceInt->RegisterRemoteTalker(PlayerId);
+		}
+		else
+		{
+			// This is a local player. In case their PlayerState came last during replication, reprocess muting
+			VoiceInt->ProcessMuteChangeNotification();
+		}
+	}
+}
+
+void FOnlineSessionNull::UnregisterVoice(const FUniqueNetId& PlayerId)
+{
+	IOnlineVoicePtr VoiceInt = NullSubsystem->GetVoiceInterface();
+	if (VoiceInt.IsValid())
+	{
+		if (!NullSubsystem->IsLocalPlayer(PlayerId))
+		{
+			if (VoiceInt.IsValid())
+			{
+				VoiceInt->UnregisterRemoteTalker(PlayerId);
 			}
 		}
 	}
@@ -735,6 +776,7 @@ bool FOnlineSessionNull::RegisterPlayers(FName SessionName, const TArray< TShare
 			if (Session->RegisteredPlayers.FindMatch(PlayerMatch) == INDEX_NONE)
 			{
 				Session->RegisteredPlayers.Add(PlayerId);
+				RegisterVoice(*PlayerId);
 
 				// update number of open connections
 				if (Session->NumOpenPublicConnections > 0)
@@ -748,6 +790,7 @@ bool FOnlineSessionNull::RegisterPlayers(FName SessionName, const TArray< TShare
 			}
 			else
 			{
+				RegisterVoice(*PlayerId);
 				UE_LOG_ONLINE(Log, TEXT("Player %s already registered in session %s"), *PlayerId->ToDebugString(), *SessionName.ToString());
 			}			
 		}
@@ -784,6 +827,7 @@ bool FOnlineSessionNull::UnregisterPlayers(FName SessionName, const TArray< TSha
 			if (RegistrantIndex != INDEX_NONE)
 			{
 				Session->RegisteredPlayers.RemoveAtSwap(RegistrantIndex);
+				UnregisterVoice(*PlayerId);
 
 				// update number of open connections
 				if (Session->NumOpenPublicConnections < Session->SessionSettings.NumPublicConnections)

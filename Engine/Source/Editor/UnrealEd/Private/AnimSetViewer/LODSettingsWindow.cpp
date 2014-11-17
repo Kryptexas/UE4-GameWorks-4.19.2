@@ -310,7 +310,7 @@ private:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("NumberOfLODs", "Number of LODs").ToString())
+					.Text(LOCTEXT("NumberOfLODs", "Number of LODs"))
 				]
 
 				+ SHorizontalBox::Slot()
@@ -339,8 +339,8 @@ private:
 												.DefaultQuality(DefaultQuality)
 												.Skeleton(UpdateContext.SkeletalMesh->Skeleton)
 												.DesiredLOD(LODLevel);
+			const FText AreaTitle = FText::Format(LOCTEXT("LODLevel", "LOD {0}"), FText::AsNumber(LODLevel));
 			
-			const FString AreaTitle = FText::Format( LOCTEXT("LODLevel", "LOD {0}"), FText::AsNumber( LODLevel ) ).ToString();
 			LODChainContent->AddSlot()
 				.AutoHeight()
 				.Padding(5.0)
@@ -376,7 +376,7 @@ private:
 			.AutoHeight()
 			[
 				SNew(SExpandableArea)
-				.AreaTitle(LOCTEXT("GenerateLODChain", "Generate LOD Chain").ToString())
+				.AreaTitle(LOCTEXT("GenerateLODChain", "Generate LOD Chain"))
 				.InitiallyCollapsed(false)
 				.BodyContent()
 				[
@@ -421,9 +421,9 @@ private:
 	}
 
 	/** Returns text for the 'Generate' Button. */
-	FString GetGenerateButtonText() const
+	FText GetGenerateButtonText() const
 	{
-		return (LODCount >= 2) ? LOCTEXT("GenerateLODChain", "Generate LOD Chain").ToString() : LOCTEXT("GenerateLOD", "Generate LOD").ToString();
+		return (LODCount >= 2) ? LOCTEXT("GenerateLODChain", "Generate LOD Chain") : LOCTEXT("GenerateLOD", "Generate LOD");
 	}
 
 	/** Callback function whenever the LOD count spinbox is changed. */
@@ -576,7 +576,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("DesiredQuality_MeshSimplification", "Desired Quality").ToString())	
+				.Text(LOCTEXT("DesiredQuality_MeshSimplification", "Desired Quality"))	
 			]
 
 			+SVerticalBox::Slot()
@@ -591,7 +591,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("QualityReductionMethod", "Simplification Type").ToString())
+					.Text(LOCTEXT("QualityReductionMethod", "Simplification Type"))
 				]
 
 				+SHorizontalBox::Slot()
@@ -654,7 +654,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("Silhouette_MeshSimplification", "Silhouette").ToString())
+					.Text(LOCTEXT("Silhouette_MeshSimplification", "Silhouette"))
 				]
 
 				+SHorizontalBox::Slot()
@@ -678,7 +678,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("Texture_MeshSimplification", "Texture").ToString())
+					.Text(LOCTEXT("Texture_MeshSimplification", "Texture"))
 				]
 
 				+SHorizontalBox::Slot()
@@ -702,7 +702,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("Shading_MeshSimplification", "Shading").ToString())
+					.Text(LOCTEXT("Shading_MeshSimplification", "Shading"))
 				]
 
 				+SHorizontalBox::Slot()
@@ -726,7 +726,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("Skinning_MeshSimplification", "Skinning").ToString())
+					.Text(LOCTEXT("Skinning_MeshSimplification", "Skinning"))
 				]
 
 				+SHorizontalBox::Slot()
@@ -744,7 +744,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("RepairOptions", "Repair Options").ToString())	
+				.Text(LOCTEXT("RepairOptions", "Repair Options"))	
 			]
 
 			+SVerticalBox::Slot()
@@ -759,7 +759,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("WeldingThreshold", "Welding Threshold").ToString())
+					.Text(LOCTEXT("WeldingThreshold", "Welding Threshold"))
 				]
 
 				+SHorizontalBox::Slot()
@@ -783,7 +783,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				SAssignNew(RecomputeNormalsCheckbox, SCheckBox)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("RecomputeNormals", "Recompute Normals").ToString())
+					.Text(LOCTEXT("RecomputeNormals", "Recompute Normals"))
 				]
 			]
 
@@ -799,7 +799,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("HardEdgeAngleThreshold", "Hard Edge Angle Threshold").ToString())
+					.Text(LOCTEXT("HardEdgeAngleThreshold", "Hard Edge Angle Threshold"))
 				]
 
 				+SHorizontalBox::Slot()
@@ -821,7 +821,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 			.Padding(0.0f, 8.0f, 0.0f, 0.0f)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("SkeletonSimplification", "Skeleton Simplification").ToString())	
+				.Text(LOCTEXT("SkeletonSimplification", "Skeleton Simplification"))	
 			]
 
 			+SVerticalBox::Slot()
@@ -835,8 +835,8 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("SkeletonSimplification_BoneReduction", "Bones to Remove").ToString())
-					.ToolTipText(LOCTEXT("SkeletonSimplification_BoneReductionToolTip", "You can choose these bones in skeletaon tree as well.").ToString())
+					.Text(LOCTEXT("SkeletonSimplification_BoneReduction", "Bones to Remove"))
+					.ToolTipText(LOCTEXT("SkeletonSimplification_BoneReductionToolTip", "You can choose these bones in skeletaon tree as well."))
 				]
 
 				+SHorizontalBox::Slot()
@@ -903,7 +903,7 @@ void SSkeletalSimplificationOptions::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("MaxBonesPerVertex", "Max Bones Per Vertex").ToString())
+					.Text(LOCTEXT("MaxBonesPerVertex", "Max Bones Per Vertex"))
 				]
 
 				+SHorizontalBox::Slot()

@@ -344,10 +344,7 @@ inline NSString* ScanForDLC()
 - (void)getUUID
 {
 	// get the UUID
-	NSData* Data = [[[UIDevice currentDevice] uniqueIdentifier] dataUsingEncoding:NSUTF8StringEncoding];
-	
-	// convert it to a string
-	UniqueId = DataToString(Data, YES);
+	UniqueId = [[NSUUID UUID] UUIDString];
 	[UniqueId retain];
 }
 

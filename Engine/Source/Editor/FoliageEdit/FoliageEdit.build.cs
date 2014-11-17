@@ -14,10 +14,11 @@ public class FoliageEdit : ModuleRules
 				"Engine",
 				"UnrealEd",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"RenderCore",
-				"LevelEditor"
+				"LevelEditor",
 			}
-			);
+		);
 	}
 }

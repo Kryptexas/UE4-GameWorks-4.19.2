@@ -247,8 +247,8 @@ FReply SPaperEditorViewport::OnMouseButtonUp(const FGeometry& MyGeometry, const 
 			const FVector2D ScreenSpaceCursorPos = MyGeometry.LocalToAbsolute( GraphCoordToPanelCoord( SoftwareCursorPosition ) );
 
 			FIntPoint BestPositionInViewport(
-				FMath::Round( FMath::Clamp( ScreenSpaceCursorPos.X, ThisPanelScreenSpaceRect.Left, ThisPanelScreenSpaceRect.Right ) ),
-				FMath::Round( FMath::Clamp( ScreenSpaceCursorPos.Y, ThisPanelScreenSpaceRect.Top, ThisPanelScreenSpaceRect.Bottom ) )
+				FMath::RoundToInt( FMath::Clamp( ScreenSpaceCursorPos.X, ThisPanelScreenSpaceRect.Left, ThisPanelScreenSpaceRect.Right ) ),
+				FMath::RoundToInt( FMath::Clamp( ScreenSpaceCursorPos.Y, ThisPanelScreenSpaceRect.Top, ThisPanelScreenSpaceRect.Bottom ) )
 				);
 
 			if (!bCursorInDeadZone)
@@ -368,8 +368,8 @@ FReply SPaperEditorViewport::OnMouseMove(const FGeometry& MyGeometry, const FPoi
 // 
 // 					// Snap to grid
 // 					const float SnapSize = GetSnapGridSize();
-// 					AnchorNodeNewPos.X = SnapSize * FMath::Round(AnchorNodeNewPos.X/SnapSize);
-// 					AnchorNodeNewPos.Y = SnapSize * FMath::Round(AnchorNodeNewPos.Y/SnapSize);
+// 					AnchorNodeNewPos.X = SnapSize * FMath::RoundToInt(AnchorNodeNewPos.X/SnapSize);
+// 					AnchorNodeNewPos.Y = SnapSize * FMath::RoundToInt(AnchorNodeNewPos.Y/SnapSize);
 // 
 // 					// Dragging an unselected node automatically selects it.
 // 					SelectionManager.StartDraggingNode(NodeBeingDragged->GetObjectBeingDisplayed(), MouseEvent);
@@ -416,7 +416,7 @@ FReply SPaperEditorViewport::OnMouseWheel(const FGeometry& MyGeometry, const FPo
 	FVector2D PointToMaintainGraphSpace = PanelCoordToGraphCoord( WidgetSpaceCursorPos );
 
 
-	const int32 ZoomLevelDelta = FMath::Floor(MouseEvent.GetWheelDelta());
+	const int32 ZoomLevelDelta = FMath::FloorToInt(MouseEvent.GetWheelDelta());
 
 	const bool bAllowFullZoomRange = true;
 /*

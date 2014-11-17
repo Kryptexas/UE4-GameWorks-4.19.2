@@ -22,16 +22,6 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
 };
 
-class FParticleModuleColorOverLifeDetails : public FParticleModuleDetailsBase
-{
-public:
-	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
-	static TSharedRef<IDetailCustomization> MakeInstance();
-
-	/** IDetailCustomization interface */
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) OVERRIDE;
-};
-
 class FParticleModuleSubUVDetails : public FParticleModuleDetailsBase
 {
 public:

@@ -4,8 +4,6 @@
 #include "ObjectTools.h"
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
-#include "EngineTerrainClasses.h"
-#include "EngineFoliageClasses.h"
 #include "Landscape/LandscapeEdit.h"
 #include "Landscape/LandscapeRender.h"
 #include "Landscape/LandscapeDataAccess.h"
@@ -204,7 +202,7 @@ public:
 				ALandscape::UnpackKey(It.Key(), X, Y);
 				float Weight = It.Value();
 
-				AveragePoint += FVector( (float)X * Weight, (float)Y * Weight, (float)DATA_AT(OriginalData,FMath::Floor(X),FMath::Floor(Y)) * Weight );
+				AveragePoint += FVector( (float)X * Weight, (float)Y * Weight, (float)DATA_AT(OriginalData,FMath::FloorToInt(X),FMath::FloorToInt(Y)) * Weight );
 
 				FVector SampleNormal = DATA_AT(Normals,X,Y);
 				AverageNormal += SampleNormal * Weight;
@@ -272,22 +270,22 @@ public:
 
 				if( bInvert )
 				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Min<int32>(FMath::Round(PaintValue), CurrentValue) );
+					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Min<int32>(FMath::RoundToInt(PaintValue), CurrentValue) );
 				}
 				else
 				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Max<int32>(FMath::Round(PaintValue), CurrentValue) );
+					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Max<int32>(FMath::RoundToInt(PaintValue), CurrentValue) );
 				}
 			}
 			else
 			{
 				if( bInvert )
 				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Min<int32>(SourceValue - FMath::Round(PaintAmount), CurrentValue) );
+					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Min<int32>(SourceValue - FMath::RoundToInt(PaintAmount), CurrentValue) );
 				}
 				else
 				{
-					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Max<int32>(SourceValue + FMath::Round(PaintAmount), CurrentValue) );
+					CurrentValue = ToolTarget::CacheClass::ClampValue( FMath::Max<int32>(SourceValue + FMath::RoundToInt(PaintAmount), CurrentValue) );
 				}
 			}
 		}
@@ -416,17 +414,20 @@ public:
 template<class ToolTarget>
 class FLandscapeToolStrokeFlatten : public FLandscapeToolStrokePaintBase<ToolTarget>
 {
-	bool bInitializedFlattenHeight;
+	typename ToolTarget::CacheClass::DataType FlattenHeight;
+
 	FVector FlattenNormal;
 	float FlattenPlaneDist;
-	typename ToolTarget::CacheClass::DataType FlattenHeight;
+	bool bInitializedFlattenHeight;
+	bool bTargetIsHeightmap;
 
 public:
 	FLandscapeToolStrokeFlatten(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
 	:	FLandscapeToolStrokePaintBase<ToolTarget>(InEdMode, InTarget)
 	,	bInitializedFlattenHeight(false)
+	,	bTargetIsHeightmap(InTarget.TargetType == ELandscapeToolTargetType::Heightmap)
 	{
-		if (InEdMode->UISettings->bUseFlattenTarget && InTarget.TargetType == ELandscapeToolTargetType::Heightmap)
+		if (InEdMode->UISettings->bUseFlattenTarget && bTargetIsHeightmap)
 		{
 			FTransform LocalToWorld = InTarget.LandscapeInfo->GetLandscapeProxy()->ActorToWorld();
 			float Height = InEdMode->UISettings->FlattenTarget / LocalToWorld.GetScale3D().Z - LocalToWorld.GetTranslation().Z;
@@ -439,19 +440,19 @@ public:
 	{
 		if (!this->LandscapeInfo) return;
 
-		if( !bInitializedFlattenHeight || UISettings->bPickValuePerApply)
+		if (!bInitializedFlattenHeight || (UISettings->bPickValuePerApply && bTargetIsHeightmap))
 		{
 			bInitializedFlattenHeight = false;
 			float FlattenX = MousePositions[0].PositionX;
 			float FlattenY = MousePositions[0].PositionY;
-			int32 FlattenHeightX = FMath::Floor(FlattenX);
-			int32 FlattenHeightY = FMath::Floor(FlattenY);
+			int32 FlattenHeightX = FMath::FloorToInt(FlattenX);
+			int32 FlattenHeightY = FMath::FloorToInt(FlattenY);
 
 			this->Cache.CacheData(FlattenHeightX,FlattenHeightY,FlattenHeightX+1,FlattenHeightY+1);
 			float HeightValue = this->Cache.GetValue(FlattenX, FlattenY);
 			FlattenHeight = HeightValue;
 
-			if (UISettings->bUseSlopeFlatten)
+			if (UISettings->bUseSlopeFlatten && bTargetIsHeightmap)
 			{
 				FlattenNormal = this->Cache.GetNormal(FlattenHeightX, FlattenHeightY);
 				FlattenPlaneDist = -(FlattenNormal | FVector(FlattenX, FlattenY, HeightValue) );
@@ -483,12 +484,6 @@ public:
 		TArray<typename ToolTarget::CacheClass::DataType> HeightData;
 		this->Cache.GetCachedData(X1,Y1,X2,Y2,HeightData);
 
-		// For Add or Sub Flatten Mode
-		// Apply Ratio...
-		TMap<int32, float> RatioInfo;
-		int32 MaxDelta = INT_MIN;
-		int32 MinDelta = INT_MAX;
-
 		// Apply the brush
 		for( auto It = BrushInfo.CreateIterator(); It; ++It )
 		{
@@ -499,8 +494,7 @@ public:
 			{
 				int32 HeightDataIndex = (X-X1) + (Y-Y1)*(1+X2-X1);
 
-				// Conserve stiff
-				if (!UISettings->bUseSlopeFlatten)
+				if (!(UISettings->bUseSlopeFlatten && bTargetIsHeightmap))
 				{
 					int32 Delta = HeightData[HeightDataIndex] - FlattenHeight;
 					switch(UISettings->FlattenMode)
@@ -508,15 +502,13 @@ public:
 					case ELandscapeToolNoiseMode::Add:
 						if (Delta < 0)
 						{
-							MinDelta = FMath::Min<int32>(Delta, MinDelta);
-							RatioInfo.Add(HeightDataIndex, It.Value() * UISettings->ToolStrength * Pressure * Delta);
+							HeightData[HeightDataIndex] = FMath::Lerp(HeightData[HeightDataIndex], FlattenHeight, It.Value() * UISettings->ToolStrength * Pressure);
 						}
 						break;
 					case ELandscapeToolNoiseMode::Sub:
 						if (Delta > 0)
 						{
-							MaxDelta = FMath::Max<int32>(Delta, MaxDelta);
-							RatioInfo.Add(HeightDataIndex, It.Value() * UISettings->ToolStrength * Pressure * Delta);
+							HeightData[HeightDataIndex] = FMath::Lerp(HeightData[HeightDataIndex], FlattenHeight, It.Value() * UISettings->ToolStrength * Pressure);
 						}
 						break;
 					default:
@@ -550,24 +542,6 @@ public:
 						HeightData[HeightDataIndex] = FMath::Lerp( HeightData[HeightDataIndex], DestValue, It.Value() * UISettings->ToolStrength * Pressure );
 						break;
 					}
-				}
-			}
-		}
-
-		if (!UISettings->bUseSlopeFlatten)
-		{
-			for( TMap<int32, float>::TIterator It(RatioInfo); It; ++It )
-			{
-				switch(UISettings->FlattenMode)
-				{
-				case ELandscapeToolNoiseMode::Add:
-					HeightData[It.Key()] = FMath::Lerp( HeightData[It.Key()], FlattenHeight, It.Value() / (float)MinDelta );
-					break;
-				case ELandscapeToolNoiseMode::Sub:
-					HeightData[It.Key()] = FMath::Lerp( HeightData[It.Key()], FlattenHeight, It.Value() / (float)MaxDelta );
-					break;
-				default:
-					break;
 				}
 			}
 		}
@@ -609,9 +583,9 @@ public:
 
 			const FTransform LocalToWorld = this->EdMode->CurrentToolTarget.LandscapeInfo->GetLandscapeProxy()->ActorToWorld();
 			FVector Origin;
-			Origin.X = FMath::Round(LastMousePosition.X);
-			Origin.Y = FMath::Round(LastMousePosition.Y);
-			Origin.Z = (FMath::Round((this->EdMode->UISettings->FlattenTarget / LocalToWorld.GetScale3D().Z - LocalToWorld.GetTranslation().Z) * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
+			Origin.X = FMath::RoundToFloat(LastMousePosition.X);
+			Origin.Y = FMath::RoundToFloat(LastMousePosition.Y);
+			Origin.Z = (FMath::RoundToFloat((this->EdMode->UISettings->FlattenTarget / LocalToWorld.GetScale3D().Z - LocalToWorld.GetTranslation().Z) * LANDSCAPE_INV_ZSCALE) - 0.1f) * LANDSCAPE_ZSCALE;
 			MeshComponent->SetRelativeLocation(Origin, false);
 		}
 
@@ -709,7 +683,7 @@ public:
 						}
 						break;
 					}
-					Data[(X-X1) + (Y-Y1)*(1+X2-X1)] = ToolTarget::CacheClass::ClampValue( FMath::Round(FMath::Lerp( OriginalValue, DestValue, It.Value() * UISettings->ToolStrength * Pressure)) );
+					Data[(X-X1) + (Y-Y1)*(1+X2-X1)] = ToolTarget::CacheClass::ClampValue( FMath::RoundToInt(FMath::Lerp( OriginalValue, DestValue, It.Value() * UISettings->ToolStrength * Pressure)) );
 				}
 				else
 				{

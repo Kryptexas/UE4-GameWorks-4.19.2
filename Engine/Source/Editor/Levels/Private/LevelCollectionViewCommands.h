@@ -28,8 +28,8 @@ PRAGMA_DISABLE_OPTIMIZATION
 		UI_COMMAND( MoveActorsToSelected, "Move Selected Actors to Level", "Moves the selected actors to this level", EUserInterfaceActionType::Button, FInputGesture() );
 
 		//invalid selected level
-		UI_COMMAND( FixUpInvalidReference, "Replace Selected Level","Removes the broken level and replaces it with the level browsed to", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( RemoveInvalidReference, "Remove Selected Level", "Removes the reference to the missing level from the map", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( FixUpInvalidReference, "Replace Missing Level","Removes the broken level and replaces it with the level browsed to", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( RemoveInvalidReference, "Remove Missing Level", "Removes the reference to the missing level from the map", EUserInterfaceActionType::Button, FInputGesture() );
 
 		//levels
 		UI_COMMAND( EditProperties, "Edit Properties", "Opens the edit properties window for the selected levels", EUserInterfaceActionType::Button, FInputGesture() );

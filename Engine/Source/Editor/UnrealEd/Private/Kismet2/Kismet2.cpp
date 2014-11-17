@@ -4,6 +4,8 @@
 #include "UnrealEd.h"
 #include "BlueprintUtilities.h"
 #include "AnimGraphDefinitions.h"
+#include "AnimationGraph.h"
+#include "AnimationGraphSchema.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetReinstanceUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -19,7 +21,6 @@
 #include "IContentBrowserSingleton.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
-#include "Kismet2NameValidators.h"
 #include "Layers/Layers.h"
 #include "ScopedTransaction.h"
 #include "AssetToolsModule.h"
@@ -174,7 +175,7 @@ void FKismetEditorUtilities::CreateDefaultEventGraphs(UBlueprint* Blueprint)
 }
 
 /** Create a new Blueprint and initialize it to a valid state. */
-UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, FName CallingContext)
+UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, TSubclassOf<UBlueprintGeneratedClass> BlueprintGeneratedClassType, FName CallingContext)
 {
 	check(FindObject<UBlueprint>(Outer, *NewBPName.ToString()) == NULL); 
 
@@ -201,7 +202,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 		FName NewSkelClassName, NewGenClassName;
 		NewBP->GetBlueprintClassNames(NewGenClassName, NewSkelClassName);
 		UBlueprintGeneratedClass* NewClass = ConstructObject<UBlueprintGeneratedClass>(
-			UBlueprintGeneratedClass::StaticClass(), NewBP->GetOutermost(), NewGenClassName, RF_Public|RF_Transactional);
+			*BlueprintGeneratedClassType, NewBP->GetOutermost(), NewGenClassName, RF_Public | RF_Transactional);
 		NewBP->GeneratedClass = NewClass;
 		NewClass->ClassGeneratedBy = NewBP;
 		NewClass->SetSuperStruct(ParentClass);
@@ -240,17 +241,22 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 		CreateDefaultEventGraphs(NewBP);
 	}
 
-	// if this is an anim blueprint, add the root animation graph
 	//@TODO: ANIMREFACTOR: This kind of code should be on a per-blueprint basis; not centralized here
 	if (UAnimBlueprint* AnimBP = Cast<UAnimBlueprint>(NewBP))
 	{
-		if (UAnimBlueprint::FindRootAnimBlueprint(AnimBP) == NULL)
+		UAnimBlueprint* RootAnimBP = UAnimBlueprint::FindRootAnimBlueprint(AnimBP);
+		if (RootAnimBP == NULL)
 		{
 			// Only allow an anim graph if there isn't one in a parent blueprint
 			UEdGraph* NewGraph = FBlueprintEditorUtils::CreateNewGraph(AnimBP, K2Schema->GN_AnimGraph, UAnimationGraph::StaticClass(), UAnimationGraphSchema::StaticClass());
 			FBlueprintEditorUtils::AddDomainSpecificGraph(NewBP, NewGraph);
 			NewBP->LastEditedDocuments.Add(NewGraph);
 			NewGraph->bAllowDeletion = false;
+		}
+		else
+		{
+			// Make sure the anim blueprint targets the same skeleton as the parent
+			AnimBP->TargetSkeleton = RootAnimBP->TargetSkeleton;
 		}
 	}
 
@@ -292,6 +298,9 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 
 void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIsRegeneratingOnLoad, bool bSkipGarbageCollection, bool bSaveIntermediateProducts, FCompilerResultsLog* pResults)
 {
+	// Reset the flag, so if the user tries to use PIE it will warn them if the BP did not compile
+	BlueprintObj->bDisplayCompilePIEWarning = true;
+
 	UPackage* const BlueprintPackage = Cast<UPackage>(BlueprintObj->GetOutermost());
 	// compiling the blueprint will inherently dirty the package, but if there 
 	// weren't any changes to save before, there shouldn't be after
@@ -309,14 +318,6 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	// Compile
 	FCompilerResultsLog LocalResults;
 	FCompilerResultsLog& Results = (pResults != NULL) ? *pResults : LocalResults;
-
-	// STRUCTURES RECOMPILE
-	if (FStructureEditorUtils::StructureEditingEnabled())
-	{
-		FKismetCompilerOptions StructCompileOptions;
-		StructCompileOptions.CompileType = EKismetCompileType::StructuresOnly;
-		Compiler.CompileBlueprint(BlueprintObj, StructCompileOptions, Results, NULL);
-	}
 
 	FBlueprintCompileReinstancer ReinstanceHelper(OldClass);
 
@@ -356,11 +357,11 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 		// Replace instances of this class
 		ReinstanceHelper.ReinstanceObjects();
 
- 		if (!bSkipGarbageCollection)
- 		{
- 			// Garbage collect to make sure the old class and actors are disposed of
- 			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
- 		}
+		if (!bSkipGarbageCollection)
+		{
+			// Garbage collect to make sure the old class and actors are disposed of
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+		}
 
 		// If you need to verify that all old instances are taken care of, uncomment this!
 		// ReinstanceHelper.VerifyReplacement();
@@ -481,10 +482,11 @@ bool FKismetEditorUtilities::CanCreateBlueprintOfClass(const UClass* Class)
 	const bool bCanCreateBlueprint =
 		!Class->HasAnyClassFlags(CLASS_Deprecated)
 		&& !Class->HasAnyClassFlags(CLASS_NewerVersionExists)
-		&& (!Class->ClassGeneratedBy || bAllowDerivedBlueprints);
+		&& (!Class->ClassGeneratedBy || (bAllowDerivedBlueprints && !IsClassABlueprintSkeleton(Class)));
 
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-	const bool bIsValidClass = Class->GetBoolMetaDataHierarchical(FBlueprintMetadata::MD_IsBlueprintBase) || (Class == UObject::StaticClass());
+	const bool bIsValidClass = Class->GetBoolMetaDataHierarchical(FBlueprintMetadata::MD_IsBlueprintBase)
+		|| (Class == UObject::StaticClass());
 
 	return bCanCreateBlueprint && bIsValidClass;
 }
@@ -520,15 +522,13 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromActor(const FString& Path
 			{
 				// Create the blueprint
 				UObject* Asset = FactoryToUse->GetAssetFromActorInstance(Actor);
-				if (Asset)
-				{
-					NewBlueprint = FactoryToUse->CreateBlueprint( Asset, Package, BlueprintName, FName("CreateFromActor") );
-				}
+				// For Actors that don't have an asset associated with them, Asset will be null
+				NewBlueprint = FactoryToUse->CreateBlueprint( Asset, Package, BlueprintName, FName("CreateFromActor") );
 			}
 			else 
 			{
 				// We don't have a factory, but we can still try to create a blueprint for this actor class
-				NewBlueprint = FKismetEditorUtilities::CreateBlueprint( Object->GetClass(), Package, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), FName("CreateFromActor") );
+				NewBlueprint = FKismetEditorUtilities::CreateBlueprint( Object->GetClass(), Package, BlueprintName, EBlueprintType::BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("CreateFromActor") );
 			}
 		}
 
@@ -591,22 +591,6 @@ public:
 	{
 	}
 
-	/** Util to get a unique name within the BP from the supplied Actor */
-	FName GetUniqueNameFromActor(FKismetNameValidator& InValidator, const AActor* InActor)
-	{
-		FName NewName;
-		NewName = FName(*InActor->GetActorLabel());
-
-		//find valid name--
-		for (int32 i = 1; EValidatorResult::Ok != InValidator.IsValid(NewName); ++i)
-		{
-			NewName = FName(*InActor->GetActorLabel(), i);
-			check(i < 10000);
-		}
-
-		return NewName;
-	}
-
 	UBlueprint* Execute(FString Path, TArray<AActor*> SelectedActors, bool bReplaceInWorld)
 	{
 		if (SelectedActors.Num() > 0)
@@ -657,18 +641,16 @@ public:
 			}
 
 			UPackage* Package = CreatePackage(NULL, *PackageName);
-			Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), Package, *AssetName, BPTYPE_Normal, UBlueprint::StaticClass(), FName("HarvestFromActors"));
+			Blueprint = FKismetEditorUtilities::CreateBlueprint(AActor::StaticClass(), Package, *AssetName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("HarvestFromActors"));
 
 			check(Blueprint->SimpleConstructionScript != NULL);
 			SCS = Blueprint->SimpleConstructionScript;
-
-			FKismetNameValidator Validator(Blueprint);
 
 			// If we have a single component selected, make a BP with a single component
 			if(SingleSceneComp != NULL)
 			{
 				USCS_Node* Node = CreateUSCSNode(SingleSceneComp);
-				Node->VariableName = GetUniqueNameFromActor(Validator, SingleSceneComp->GetOwner());
+				Node->VariableName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, SingleSceneComp->GetOwner()->GetActorLabel());
 				SCS->AddNode(Node);
 
 				NewActorTransform = SingleSceneComp->ComponentToWorld;
@@ -708,11 +690,17 @@ public:
 					if(ActorRootComponent != NULL && ActorRootComponent->GetClass()->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
 					{
 						USCS_Node* Node = CreateUSCSNode(ActorRootComponent);
-						Node->VariableName = GetUniqueNameFromActor(Validator, Actor);
+						Node->VariableName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, Actor->GetActorLabel());
+
+						// Add the node as a child to the root node, this will be rearranged later for correct parent-child relations but needs to be there now for name validation purposes
+						RootNode->AddChildNode(Node);
 
 						ActorToUSCSNodeMap.Add(Actor, Node);
 					}
 				}
+
+				// Clear the root node of all children we added, they will be re-added with correct parent-child relationships
+				RootNode->ChildNodes.Empty();
 
 				// Attach all immediate children to their parent, or the root if their parent is not being added
 				for (auto ActorIt = SelectedActors.CreateConstIterator(); ActorIt; ++ActorIt)
@@ -948,7 +936,7 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprintFromClass(FText InWindowTitle
 		check(Package);
 
 		// Create and init a new Blueprint
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(InParentClass, Package, BPName, BPTYPE_Normal, UBlueprint::StaticClass(), FName("LevelEditorActions"));
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprint(InParentClass, Package, BPName, BPTYPE_Normal, UBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), FName("LevelEditorActions"));
 		if (Blueprint)
 		{
 			// Notify the asset registry
@@ -1217,7 +1205,7 @@ const UK2Node_ActorBoundEvent* FKismetEditorUtilities::FindBoundEventForActor(AA
 	const UK2Node_ActorBoundEvent* Node = NULL;
 	if(Actor != NULL && EventName != NAME_None)
 	{
-		ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint();
+		ULevelScriptBlueprint* LSB = Actor->GetLevel()->GetLevelScriptBlueprint(true);
 		if(LSB != NULL)
 		{
 			TArray<UK2Node_ActorBoundEvent*> EventNodes;
@@ -1307,11 +1295,11 @@ bool FKismetEditorUtilities::IsClassABlueprintSkeleton(const UClass* Class)
 {
 	// Find generating blueprint for a class
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(Class->ClassGeneratedBy);
-	if( GeneratingBP )
+	if( GeneratingBP && GeneratingBP->SkeletonGeneratedClass )
 	{
 		return (Class == GeneratingBP->SkeletonGeneratedClass) && (GeneratingBP->SkeletonGeneratedClass != GeneratingBP->GeneratedClass);
 	}
-	return false;
+	return Class->HasAnyFlags(RF_Transient) && Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint);
 }
 
 /** Run over the components references, and then NULL any that fall outside this blueprint's scope (e.g. components brought over after reparenting from another class, which are now in the transient package) */

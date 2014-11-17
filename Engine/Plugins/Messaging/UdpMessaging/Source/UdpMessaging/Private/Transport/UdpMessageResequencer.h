@@ -61,7 +61,7 @@ public:
 	/**
 	 * Resequences the specified message.
 	 *
-	 * @param Message - The message to resequence.
+	 * @param Message The message to resequence.
 	 *
 	 * @return true if the message is in sequence, false otherwise.
 	 */

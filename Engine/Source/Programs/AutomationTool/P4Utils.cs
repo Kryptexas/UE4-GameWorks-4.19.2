@@ -14,6 +14,10 @@ namespace AutomationTool
 	{
 	}
 
+	public class DoesNotNeedP4CLAttribute : Attribute
+	{
+	}
+
 	public class P4Exception : AutomationException
 	{
 		public P4Exception() { }
@@ -246,7 +250,7 @@ namespace AutomationTool
 		#endregion
 
 		/// <summary>
-		/// Check is P4 is commands are supported.
+		/// Check if P4 is supported.
 		/// </summary>		
 		public static bool P4Enabled
 		{
@@ -264,6 +268,26 @@ namespace AutomationTool
 			}
 		}
 		private static bool? bP4Enabled;
+
+		/// <summary>
+		/// Check if P4CL is required.
+		/// </summary>		
+		public static bool P4CLRequired
+		{
+			get
+			{
+				if (!bP4CLRequired.HasValue)
+				{
+					throw new AutomationException("Trying to access P4CLRequired property before it was initialized.");
+				}
+				return (bool)bP4CLRequired;
+			}
+			private set
+			{
+				bP4CLRequired = value;
+			}
+		}
+		private static bool? bP4CLRequired;
 
 		/// <summary>
 		/// Throws an exception when P4 is disabled. This should be called in every P4 function.
@@ -323,17 +347,19 @@ namespace AutomationTool
 			if (Automation.IsBuildMachine)
 			{
 				P4Enabled = !GlobalCommandLine.NoP4;
+				P4CLRequired = P4Enabled;
 			}
 			else
 			{
-				P4Enabled = GlobalCommandLine.P4;
-				if (!P4Enabled && !GlobalCommandLine.NoP4)
-				{
-					// Check if any of the commands to execute require P4
-					P4Enabled = CheckIfCommandsRequireP4(CommandsToExecute, Commands);
-				}
+				bool bRequireP4;
+				bool bRequireCL;
+				CheckIfCommandsRequireP4(CommandsToExecute, Commands, out bRequireP4, out bRequireCL);
+
+				P4Enabled = GlobalCommandLine.P4 || bRequireP4;
+				P4CLRequired = GlobalCommandLine.P4 || bRequireCL;
 			}
 			Log("P4Enabled={0}", P4Enabled);
+			Log("P4CLRequired={0}", P4CLRequired);
 		}
 
 		/// <summary>
@@ -341,23 +367,30 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CommandsToExecute">List of commands to be executed.</param>
 		/// <param name="Commands">Commands.</param>
-		/// <returns>True if any of the commands to execute has [RequireP4] attribute.</returns>
-		private static bool CheckIfCommandsRequireP4(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
+		private static void CheckIfCommandsRequireP4(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands, out bool bRequireP4, out bool bRequireCL)
 		{
+			bRequireP4 = false;
+			bRequireCL = false;
+
 			foreach (var CommandInfo in CommandsToExecute)
 			{
 				Type Command;
 				if (Commands.TryGetValue(CommandInfo.CommandName, out Command))
 				{
-					var RequireP4Attributes = Command.GetCustomAttributes(typeof(RequireP4Attribute), true);
+					var RequireP4Attributes = Command.GetCustomAttributes(typeof(RequireP4Attribute), true);	
 					if (!CommandUtils.IsNullOrEmpty(RequireP4Attributes))
 					{
 						Log("Command {0} requires P4 functionality.", Command.Name);
-						return true;
+						bRequireP4 = true;
+
+						var DoesNotNeedP4CLAttributes = Command.GetCustomAttributes(typeof(DoesNotNeedP4CLAttribute), true);
+						if (CommandUtils.IsNullOrEmpty(DoesNotNeedP4CLAttributes))
+						{
+							bRequireCL = true;
+						}
 					}
 				}
 			}
-			return false;
 		}
 	}
 
@@ -564,6 +597,13 @@ namespace AutomationTool
         static Dictionary<string, List<ChangeRecord>> ChangesCache = new Dictionary<string, List<ChangeRecord>>();
         public bool Changes(out List<ChangeRecord> ChangeRecords, string CommandLine, bool AllowSpew = true, bool UseCaching = false, bool LongComment = false)
         {
+            // If the user specified '-l' or '-L', the summary will appear on subsequent lines (no quotes) instead of the same line (surrounded by single quotes)
+            bool bSummaryIsOnSameLine = CommandLine.IndexOf("-L", StringComparison.InvariantCultureIgnoreCase) == -1;
+            if (bSummaryIsOnSameLine && LongComment)
+            {
+                CommandLine = "-L " + CommandLine;
+                bSummaryIsOnSameLine = false;
+            } 
             if (UseCaching && ChangesCache.ContainsKey(CommandLine))
             {
                 ChangeRecords = ChangesCache[CommandLine];
@@ -575,18 +615,10 @@ namespace AutomationTool
             {
                 // Change 1999345 on 2014/02/16 by buildmachine@BuildFarm_BUILD-23_buildmachine_++depot+UE4 'GUBP Node Shadow_LabelPromotabl'
 
-				// If the user specified '-l' or '-L', the summary will appear on subsequent lines (no quotes) instead of the same line (surrounded by single quotes)
-				bool bSummaryIsOnSameLine = CommandLine.IndexOf( "-L", StringComparison.InvariantCultureIgnoreCase ) == -1;
-				if( bSummaryIsOnSameLine && LongComment )
-				{
-					CommandLine = "-L " + CommandLine;
-					bSummaryIsOnSameLine = false;
-				}
-
                 string Output;
                 if (!LogP4Output(out Output, "changes " + CommandLine, null, AllowSpew))
                 {
-                    return false;
+                    throw new AutomationException("P4 returned failure.");
                 }
 
                 var Lines = Output.Split(new string[] { Environment.NewLine }, StringSplitOptions.None);
@@ -608,7 +640,6 @@ namespace AutomationTool
                     int ChangeAt = Line.IndexOf(MatchChange);
                     int OnAt = Line.IndexOf(MatchOn);
                     int ByAt = Line.IndexOf(MatchBy);
-                    int AtAt = Line.IndexOf("@");
                     if (ChangeAt == 0 && OnAt > ChangeAt && ByAt > OnAt)
                     {
                         var ChangeString = Line.Substring(ChangeAt + MatchChange.Length, OnAt - ChangeAt - MatchChange.Length);
@@ -617,6 +648,7 @@ namespace AutomationTool
                         {
                             throw new AutomationException("weird CL {0} in {1}", Change.CL, Line);
                         }
+	                    int AtAt = Line.IndexOf("@");
                         Change.User = Line.Substring(ByAt + MatchBy.Length, AtAt - ByAt - MatchBy.Length);
 
 						if( bSummaryIsOnSameLine )
@@ -647,20 +679,29 @@ namespace AutomationTool
 							{
 								Line = Lines[ LineIndex ];
 
-								if( String.IsNullOrEmpty( Line ) )
+								int SummaryChangeAt = Line.IndexOf(MatchChange);
+								int SummaryOnAt = Line.IndexOf(MatchOn);
+								int SummaryByAt = Line.IndexOf(MatchBy);
+								int SummaryAtAt = Line.IndexOf("@");
+								if (SummaryChangeAt == 0 && SummaryOnAt > SummaryChangeAt && SummaryByAt > SummaryOnAt)
 								{
-									// Summaries end with a blank line (no tabs)
+									// OK, we found a new change. This isn't part of our summary.  We're done with the summary.  Back we go.
+									--LineIndex;
 									break;
 								}
 
 								// Summary lines are supposed to begin with a single tab character (even empty lines)
-								if( Line[0] != '\t' )
+								if( !String.IsNullOrEmpty( Line ) && Line[0] != '\t' )
 								{
-									throw new AutomationException("Was expecting every line of the P4 changes summary to start with a tab character");
+									throw new AutomationException("Was expecting every line of the P4 changes summary to start with a tab character or be totally empty");
 								}
 
 								// Remove the tab
-								var SummaryLine = Line.Substring( 1 );
+								var SummaryLine = Line;
+								if( Line.StartsWith( "\t" ) )
+								{ 
+									SummaryLine = Line.Substring( 1 );
+								}
 
 								// Add a CR if we already had some summary text
 								if( !String.IsNullOrEmpty( Change.Summary ) )
@@ -681,8 +722,10 @@ namespace AutomationTool
 					}
                 }
             }
-            catch (Exception)
+			catch (Exception Ex)
             {
+                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, "Unable to get P4 changes with {0}", CommandLine);
+                CommandUtils.Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
                 return false;
             }
             ChangeRecords.Sort((A, B) => ChangeRecord.Compare(A, B));
@@ -1104,7 +1147,7 @@ namespace AutomationTool
 			SubmittedCL = 0;
 			int Retry = 0;
 			string LastCmdOutput = "none?";
-			while (Retry++ < 24)
+			while (Retry++ < 48)
 			{
 				bool Pending;
 				if (!ChangeExists(CL, out Pending))
@@ -1243,7 +1286,7 @@ namespace AutomationTool
 				RevertAll(CL);
 				CommandUtils.Log(TraceEventType.Error, "Submit CL {0} failed, reverting files\n", CL);
 			}
-			throw new P4Exception("Change {0} failed to submit after 12 retries??.\n{1}", CL, LastCmdOutput);
+			throw new P4Exception("Change {0} failed to submit after 48 retries??.\n{1}", CL, LastCmdOutput);
 		}
 
 		/// <summary>
@@ -1594,6 +1637,138 @@ namespace AutomationTool
 			}
 			return false;
 		}
+
+		/* Pattern to parse P4 changes command output. */
+		private static readonly Regex ChangesListOutputPattern = new Regex(@"^Change\s+(?<number>\d+)\s+.+$", RegexOptions.Compiled | RegexOptions.Multiline);
+
+		/// <summary>
+		/// Gets the latest CL number submitted to the depot. It equals to the @head.
+		/// </summary>
+		/// <returns>The head CL number.</returns>
+		public int GetLatestCLNumber()
+		{
+			CheckP4Enabled();
+
+			string Output;
+			if (!LogP4Output(out Output, "changes -s submitted -m1") || string.IsNullOrWhiteSpace(Output))
+			{
+				throw new InvalidOperationException("The depot should have at least one submitted changelist. Brand new depot?");
+			}
+
+			var Match = ChangesListOutputPattern.Match(Output);
+
+			if (!Match.Success)
+			{
+				throw new InvalidOperationException("The Perforce output is not in the expected format provided by 2014.1 documentation.");
+			}
+
+			return Int32.Parse(Match.Groups["number"].Value);
+		}
+
+		/* Pattern to parse P4 labels command output. */
+		static readonly Regex LabelsListOutputPattern = new Regex(@"^Label\s+(?<name>[\w\/-]+)\s+(?<date>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})\s+'(?<description>.+)'\s*$", RegexOptions.Compiled | RegexOptions.Multiline);
+
+		/// <summary>
+		/// Gets promoted label list for given branch.
+		/// </summary>
+		/// <param name="BranchPath">A branch path.</param>
+		/// <param name="GameName">The game name for which provide the label. If null or empty then provides shared-promotable label.</param>
+		/// <returns>List of promoted labels for given branch path.</returns>
+		public string[] GetPromotedLabels(string BranchPath, string GameName)
+		{
+			var LabelNameList = new List<string>();
+
+			string Output;
+			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/Promoted" + (GameName != null ? ("-" + GameName) : "") + "-CL-*"))
+			{
+				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
+				{
+					LabelNameList.Add(LabelMatch.Groups["name"].Value);
+				}
+			}
+
+			return LabelNameList.ToArray();
+		}
+
+		/// <summary>
+		/// Get latest promoted label given branch and game name.
+		/// </summary>
+		/// <param name="BranchPath">The branch path of the label.</param>
+		/// <param name="GameName">The game name for which provide the label. If null or empty then provides shared-promotable label.</param>
+		/// <param name="bVerifyContent">Verify if label tags at least one file.</param>
+		/// <returns>Label name if it exists, null otherwise.</returns>
+		public string GetLatestPromotedLabel(string BranchPath, string GameName, bool bVerifyContent)
+		{
+			CheckP4Enabled();
+
+			if (string.IsNullOrWhiteSpace(GameName))
+			{
+				GameName = null;
+			}
+
+			string Output;
+			if (LogP4Output(out Output, "labels -t -e " + BranchPath + "/Promoted" + (GameName != null ? ("-" + GameName) : "") + "-CL-*"))
+			{
+				var Labels = new Dictionary<string, DateTime>();
+
+				foreach (Match LabelMatch in LabelsListOutputPattern.Matches(Output))
+				{
+					Labels.Add(LabelMatch.Groups["name"].Value,
+						DateTime.ParseExact(
+							LabelMatch.Groups["date"].Value, "yyyy/MM/dd HH:mm:ss",
+							System.Globalization.CultureInfo.InvariantCulture));
+				}
+
+				if (Labels.Count == 0)
+				{
+					return null;
+				}
+
+				var OrderedLabels = Labels.OrderByDescending((Label) => Label.Value);
+
+				if (bVerifyContent)
+				{
+					foreach (var Label in OrderedLabels)
+					{
+						if (ValidateLabelContent(Label.Key))
+						{
+							return Label.Key;
+						}
+					}
+
+					// Haven't found valid label.
+					return null;
+				}
+
+				return OrderedLabels.First().Key;
+			}
+
+			return null;
+		}
+
+		/// <summary>
+		/// Validate label for some content.
+		/// </summary>
+		/// <returns>True if label exists and has at least one file tagged. False otherwise.</returns>
+		public bool ValidateLabelContent(string LabelName)
+		{
+			string Output;
+			if (LogP4Output(out Output, "files -m 1 @" + LabelName))
+			{
+				if (Output.StartsWith("//depot"))
+				{
+					// If it starts with depot path then label has at least one file tagged in it.
+					return true;
+				}
+			}
+			else
+			{
+				throw new InvalidOperationException("For some reason P4 files failed.");
+			}
+
+			return false;
+		}
+
 		/// <summary>
         /// returns the full name of a label. //depot/UE4/TEST-GUBP-Promotable-GameName-CL-CLNUMBER
 		/// </summary>
@@ -1974,7 +2149,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="UserName"></param>
 		/// <returns>List of clients owned by the user.</returns>
-		public P4ClientInfo[] GetClientsForUser(string UserName)
+		public P4ClientInfo[] GetClientsForUser(string UserName, string PathUnderClientRoot = null)
 		{
 			CheckP4Enabled();
 
@@ -1995,11 +2170,11 @@ namespace AutomationTool
 				P4ClientInfo Info = null;
 
 				// Retrieve the client name and info.
-				for (int i = 0; i < Tokens.Length; ++i)
+				for (int TokenIndex = 0; TokenIndex < Tokens.Length; ++TokenIndex)
 				{
-					if (Tokens[i] == "Client")
+					if (Tokens[TokenIndex] == "Client")
 					{
-						var ClientName = Tokens[++i];
+						var ClientName = Tokens[++TokenIndex];
 						Info = GetClientInfoInternal(ClientName);
 						break;
 					}
@@ -2009,8 +2184,23 @@ namespace AutomationTool
 				{
 					throw new AutomationException("Failed to retrieve p4 client info for user {0}. Unable to set up local environment", UserName);
 				}
+				
+				bool bAddClient = true;
+				// Filter the client out if the specified path is not under the client root
+				if (!String.IsNullOrEmpty(PathUnderClientRoot) && !String.IsNullOrEmpty(Info.RootPath))
+				{
+					var ClientRootPathWithSlash = Info.RootPath;
+					if (!ClientRootPathWithSlash.EndsWith("\\") && !ClientRootPathWithSlash.EndsWith("/"))
+					{
+						ClientRootPathWithSlash = CommandUtils.ConvertSeparators(PathSeparator.Default, ClientRootPathWithSlash + "/");
+					}
+					bAddClient = PathUnderClientRoot.StartsWith(ClientRootPathWithSlash, StringComparison.CurrentCultureIgnoreCase);
+				}
 
-				ClientList.Add(Info);
+				if (bAddClient)
+				{
+					ClientList.Add(Info);
+				}
 			}
 			return ClientList.ToArray();
 		}

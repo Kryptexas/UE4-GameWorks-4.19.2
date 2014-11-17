@@ -28,8 +28,6 @@ public:
 	virtual bool IsBuildInProgress(bool bCheckDirtyToo = false) const OVERRIDE;
 
 	virtual void OnWorldInitDone(bool bAllowedToRebuild) OVERRIDE;
-
-	virtual void OnPostBeginPlay() OVERRIDE;
 		
 	//--- accessors --- //
 

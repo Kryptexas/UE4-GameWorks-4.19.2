@@ -2,8 +2,6 @@
 
 #pragma once
 
-#include "EngineDecalClasses.h"
-
 class FReflectionCaptureDetails : public IDetailCustomization
 {
 public:

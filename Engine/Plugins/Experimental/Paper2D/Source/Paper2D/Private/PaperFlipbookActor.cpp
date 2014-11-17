@@ -13,3 +13,14 @@ APaperFlipbookActor::APaperFlipbookActor(const FPostConstructInitializePropertie
 
 	RootComponent = RenderComponent;
 }
+
+#if WITH_EDITOR
+bool APaperFlipbookActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+	if (UPaperFlipbook* FlipbookAsset = RenderComponent->GetFlipbook())
+	{
+		Objects.Add(FlipbookAsset);
+	}
+	return true;
+}
+#endif

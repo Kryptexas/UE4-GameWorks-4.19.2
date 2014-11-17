@@ -274,10 +274,10 @@ public:
 		}
 		else
 		{
-			int16 iX(FMath::Round(X));
-			int16 iY(FMath::Round(Y));
-			int16 iZ(FMath::Round(Z));
-			int16 iW(FMath::Round(W));
+			int16 iX(FMath::RoundToInt(X));
+			int16 iY(FMath::RoundToInt(Y));
+			int16 iZ(FMath::RoundToInt(Z));
+			int16 iW(FMath::RoundToInt(W));
 			Ar << iX << iY << iZ << iW;
 		}
 		bOutSuccess = true;

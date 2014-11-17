@@ -5,15 +5,17 @@
 =============================================================================*/
 
 #include "Common.usf"
+#include "PostProcessCommon.usf"
 
 float3 ShaderComplexityColors[NUM_COMPLEXITY_COLORS];
 
 void Main(
-	in float2 ScreenPosition : TEXCOORD0,
+	in float2 UV : TEXCOORD0,
 	out float4 OutColor : SV_Target0
 	)
 {
-	float3 SceneColor = clamp(CalcSceneColor(ScreenPosition), 0.0f, .999f);
+	float3 SceneColor = clamp(Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, UV, 0), 0.0f, .999f);
+
 	//expand the stored complexity from [0, 1/3] into [0, NUM_COMPLEXITY_COLORS - 3] 
 	//the first third of the maximum complexity gets NUM_COMPLEXITY_COLORS - 3 unique colors to blend between,
 	//and ShaderComplexityColors[6] represents 1/3rd of the maximum complexity.

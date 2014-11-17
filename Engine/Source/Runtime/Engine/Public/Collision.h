@@ -53,9 +53,10 @@ struct FSeparatingAxisPointCheck
 				ProjectedV1 = Axis | V1,
 				ProjectedV2 = Axis | V2,
 				TriangleMin = FMath::Min3(ProjectedV0,ProjectedV1,ProjectedV2) - ProjectedExtent,
-				TriangleMax = FMath::Max3(ProjectedV0,ProjectedV1,ProjectedV2) + ProjectedExtent;
+				TriangleMax = FMath::Max3(ProjectedV0,ProjectedV1,ProjectedV2) + ProjectedExtent,
+				AxisMagnitude = Axis.Size();
 
-		if(ProjectedPoint >= TriangleMin && ProjectedPoint <= TriangleMax)
+		if(ProjectedPoint >= TriangleMin && ProjectedPoint <= TriangleMax && AxisMagnitude > SMALL_NUMBER )
 		{
 			// Use inverse sqrt because that is fast and we do more math with the inverse value anyway
 			float	InvAxisMagnitude = FMath::InvSqrt(Axis.X * Axis.X +	Axis.Y * Axis.Y + Axis.Z * Axis.Z),

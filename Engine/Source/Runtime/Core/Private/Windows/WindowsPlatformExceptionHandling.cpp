@@ -120,47 +120,76 @@ static void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxS
 static void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInfo )
 {
 	HRESULT Result;
-	TCHAR StringBuffer[1024] = { 0 };
-	TCHAR ModuleName[1024] = { 0 };
+	enum 
+	{
+		BUFFER_SIZE = 1024,
+	};
+	TCHAR StringBuffer[BUFFER_SIZE] = {0};
+	TCHAR LocalBuffer[BUFFER_SIZE] = {0};
 
 	// Set the parameters for the standard problem signature
 	HMODULE ModuleHandle = GetModuleHandle( NULL );
 
-	StringCchPrintf( StringBuffer, 1024, TEXT( "UE4-%s" ), FApp::GetGameName() );
+	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "UE4-%s" ), FApp::GetGameName() );
 	Result = WerReportSetParameter( ReportHandle, WER_P0, TEXT( "Application Name" ), StringBuffer );
 
-	GetModuleFileName( ModuleHandle, ModuleName, 1024 );
-	PathStripPath( ModuleName );
-	GetModuleVersion( ModuleName, StringBuffer, 1024 );
+	GetModuleFileName( ModuleHandle, LocalBuffer, BUFFER_SIZE );
+	PathStripPath( LocalBuffer );
+	GetModuleVersion( LocalBuffer, StringBuffer, BUFFER_SIZE );
 	Result = WerReportSetParameter( ReportHandle, WER_P1, TEXT( "Application Version" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, 1024, TEXT( "%08x" ), GetTimestampForLoadedLibrary( ModuleHandle ) );
+	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%08x" ), GetTimestampForLoadedLibrary( ModuleHandle ) );
 	Result = WerReportSetParameter( ReportHandle, WER_P2, TEXT( "Application Timestamp" ), StringBuffer );
 
 	HMODULE FaultModuleHandle = NULL;
 	GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, ( LPCTSTR )ExceptionInfo->ExceptionRecord->ExceptionAddress, &FaultModuleHandle );
 
-	GetModuleFileName( FaultModuleHandle, ModuleName, 1024 );
-	PathStripPath( ModuleName );
-	Result = WerReportSetParameter( ReportHandle, WER_P3, TEXT( "Fault Module Name" ), ModuleName );
+	GetModuleFileName( FaultModuleHandle, LocalBuffer, BUFFER_SIZE );
+	PathStripPath( LocalBuffer );
+	Result = WerReportSetParameter( ReportHandle, WER_P3, TEXT( "Fault Module Name" ), LocalBuffer );
 
-	GetModuleVersion( ModuleName, StringBuffer, 1024 );
+	GetModuleVersion( LocalBuffer, StringBuffer, BUFFER_SIZE );
 	Result = WerReportSetParameter( ReportHandle, WER_P4, TEXT( "Fault Module Version" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, 1024, TEXT( "%08x" ), GetTimestampForLoadedLibrary( FaultModuleHandle ) );
+	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%08x" ), GetTimestampForLoadedLibrary( FaultModuleHandle ) );
 	Result = WerReportSetParameter( ReportHandle, WER_P5, TEXT( "Fault Module Timestamp" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, 1024, TEXT( "%08x" ), ExceptionInfo->ExceptionRecord->ExceptionCode );
+	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%08x" ), ExceptionInfo->ExceptionRecord->ExceptionCode );
 	Result = WerReportSetParameter( ReportHandle, WER_P6, TEXT( "Exception Code" ), StringBuffer );
 
 	INT_PTR ExceptionOffset = ( char* )( ExceptionInfo->ExceptionRecord->ExceptionAddress ) - ( char* )FaultModuleHandle;
-	StringCchPrintf( StringBuffer, 1024, TEXT( "%p" ), ExceptionOffset );
+	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%p" ), ExceptionOffset );
 	Result = WerReportSetParameter( ReportHandle, WER_P7, TEXT( "Exception Offset" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, 1024, TEXT( "!%s!" ), FCommandLine::Get() );
+	// Look for the assertion fail.
+	const TCHAR* AssertPos = FCString::Stristr( GErrorHist, TEXT( "Assertion failed: " ) );
+	const TCHAR* StackPos = FCString::Stristr( GErrorHist, TEXT( "\nStack:" ) );
+	if( AssertPos != nullptr && StackPos != nullptr && StackPos > AssertPos )
+	{
+		// Use LocalBuffer to store the assertion fail.
+		FCString::Strncpy( LocalBuffer, AssertPos, FMath::Min<int32>( StackPos - AssertPos, BUFFER_SIZE ) );
+
+		const int32 BufferLen = FCString::Strlen( LocalBuffer );
+
+		// Replace " with ' and replace \n with #
+		for( int32 ChIndex = 0; ChIndex < BufferLen; ++ChIndex )
+		{
+			if( LocalBuffer[ChIndex] == TEXT( '\"' ) )
+			{
+				LocalBuffer[ChIndex] = TEXT( '\'' );
+			}
+
+			if( LocalBuffer[ChIndex] == TEXT( '\n' ) )
+			{
+				LocalBuffer[ChIndex] = TEXT( '#' );
+			}
+		}
+	}
+
+	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::Get(), LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P8, TEXT( "Commandline" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, 1024, TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), GetEngineMode(), BUILT_FROM_CHANGELIST );
+	StringCchPrintf( StringBuffer, BUFFER_SIZE, TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), GetEngineMode(), BUILT_FROM_CHANGELIST );
 	Result = WerReportSetParameter( ReportHandle, WER_P9, TEXT( "BranchBaseDir" ), StringBuffer );
 }
 
@@ -297,6 +326,13 @@ int32 NewReportCrash( EXCEPTION_POINTERS* ExceptionInfo, const TCHAR* ErrorMessa
 			CrashReportUploaderArguments += TEXT( " -Unattended" );
 		}
 
+		if ( FApp::IsInstalled() )
+		{
+			// Temporary workaround for CrashReportClient being built in Development, not Shipping (TTP328030). The
+			// following ensures that logs are saved to the user directory when UE4 is installed.
+			CrashReportUploaderArguments += TEXT( " -Installed" );
+		}
+
 		const TCHAR* CrashClientPath = GUseCrashReportClient ?
 			TEXT("CrashReportClient.exe") :
 			TEXT("..\\..\\..\\Engine\\Binaries\\DotNET\\CrashReportUploader.exe");
@@ -413,27 +449,25 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 		// Loop in the new system while keeping the old until it's fully implemented
 		NewReportCrash( ExceptionInfo, NULL, EErrorReportUI::ShowDialog );
-
-		if (GUseCrashReportClient)
-		{
-			return EXCEPTION_EXECUTE_HANDLER;
-		}
 #endif		// WINVER
 
-		// Try to create file for minidump.
-		HANDLE FileHandle	= CreateFileW( MiniDumpFilenameW, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
-			
-		// Write a minidump.
-		if( FileHandle != INVALID_HANDLE_VALUE )
+		if (!GUseCrashReportClient)
 		{
-			MINIDUMP_EXCEPTION_INFORMATION DumpExceptionInfo;
+			// Try to create file for minidump.
+			HANDLE FileHandle	= CreateFileW( MiniDumpFilenameW, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL );
+			
+			// Write a minidump.
+			if( FileHandle != INVALID_HANDLE_VALUE )
+			{
+				MINIDUMP_EXCEPTION_INFORMATION DumpExceptionInfo;
 
-			DumpExceptionInfo.ThreadId			= GetCurrentThreadId();
-			DumpExceptionInfo.ExceptionPointers	= ExceptionInfo;
-			DumpExceptionInfo.ClientPointers	= false;
+				DumpExceptionInfo.ThreadId			= GetCurrentThreadId();
+				DumpExceptionInfo.ExceptionPointers	= ExceptionInfo;
+				DumpExceptionInfo.ClientPointers	= false;
 
-			MiniDumpWriteDump( GetCurrentProcess(), GetCurrentProcessId(), FileHandle, MiniDumpNormal, &DumpExceptionInfo, NULL, NULL );
-			CloseHandle( FileHandle );
+				MiniDumpWriteDump( GetCurrentProcess(), GetCurrentProcessId(), FileHandle, MiniDumpNormal, &DumpExceptionInfo, NULL, NULL );
+				CloseHandle( FileHandle );
+			}
 		}
 
 		const SIZE_T StackTraceSize = 65535;
@@ -446,8 +480,11 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 		FMemory::SystemFree( StackTrace );
 
 #if UE_BUILD_SHIPPING && WITH_EDITOR
+		if (!GUseCrashReportClient)
+		{
 			uint32 dwOpt = 0;
 			EFaultRepRetVal repret = ReportFault( ExceptionInfo, dwOpt);
+		}
 #endif
 	}
 

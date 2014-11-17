@@ -122,8 +122,8 @@ public:
 	/** Sample rate of the ogg vorbis data - typically 44100 or 22050 */
 	int						SampleRate;
 
-	/** Wrapper to handle the decompression of vorbis code */
-	class FVorbisAudioInfo*		DecompressionState;
+	/** Wrapper to handle the decompression of audio codecs */
+	class ICompressedAudioInfo*		DecompressionState;
 
 	/** Format of data to be received by the source */
 	ESoundFormat Format;
@@ -240,6 +240,10 @@ public:
 		static FName NAME_OGG(TEXT("OGG"));
 		return NAME_OGG;
 	}
+
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) OVERRIDE;
+
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) OVERRIDE;
 
 	/** Starts up any platform specific hardware/APIs */
 	virtual bool InitializeHardware() OVERRIDE;

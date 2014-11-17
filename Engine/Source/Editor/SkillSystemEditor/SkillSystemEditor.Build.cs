@@ -10,8 +10,7 @@ namespace UnrealBuildTool.Rules
                 new string[] {
 					"Editor/SkillSystemTagsEditor/Private",
 				}
-                );
-
+			);
 
             PrivateDependencyModuleNames.AddRange(
                 new string[]
@@ -24,6 +23,7 @@ namespace UnrealBuildTool.Rules
 					"SkillSystem",
                     "InputCore",
 					"Slate",
+					"SlateCore",
                     "EditorStyle",
 					"BlueprintGraph",
 					"KismetCompiler",
@@ -31,7 +31,7 @@ namespace UnrealBuildTool.Rules
 					"MainFrame",
 					"UnrealEd",
 				}
-                );
+			);
 		}
 	}
 }

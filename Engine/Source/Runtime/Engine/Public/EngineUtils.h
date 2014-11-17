@@ -17,16 +17,32 @@ struct HActor : public HHitProxy
 	DECLARE_HIT_PROXY( ENGINE_API )
 	AActor* Actor;
 	const UPrimitiveComponent* PrimComponent;
+	int32 MaterialIndex;
 
-	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent ) 
+	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent )
 		: Actor( InActor ) 
 		, PrimComponent( InPrimComponent )
+		, MaterialIndex( -1 )
+		{}
+
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, int32 MaterialIndex)
+		: Actor( InActor )
+		, PrimComponent( InPrimComponent )
+		, MaterialIndex( MaterialIndex )
 		{}
 
 	HActor( AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority) 
-		: HHitProxy(InPriority)
-		, Actor(InActor) 
+		: HHitProxy( InPriority )
+		, Actor( InActor )
 		, PrimComponent( InPrimComponent )
+		, MaterialIndex( -1 )
+		{}
+
+	HActor(AActor* InActor, const UPrimitiveComponent* InPrimComponent, EHitProxyPriority InPriority, int32 MaterialIndex)
+		: HHitProxy(InPriority)
+		, Actor(InActor)
+		, PrimComponent(InPrimComponent)
+		, MaterialIndex(MaterialIndex)
 		{}
 
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) OVERRIDE
@@ -572,18 +588,6 @@ private:
  *	@param ViewRotation	Rotation of camera
  */
 ENGINE_API void DrawStatsHUD( UWorld* InWorld, FViewport* Viewport, FCanvas* Canvas, UCanvas* CanvasObject, TArray<FDebugDisplayProperty>& DebugProperties, const FVector& ViewLocation, const FRotator& ViewRotation );
-
-
-/**
- *	Renders the FPS counter
- *
- *	@param Viewport	The viewport to render to
- *	@param Canvas	Canvas object to use for rendering
- *	@param X		Suggested X coordinate for where to start drawing
- *	@param Y		Suggested Y coordinate for where to start drawing
- *	@return			Y coordinate of the next line after this output
- */
-ENGINE_API int32 DrawFPSCounter( FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y );
 
 /** This will set the StreamingLevels TMap with the current Streaming Level Status and also set which level the player is in **/
 void GetLevelStreamingStatus( UWorld* InWorld, TMap<FName,int32>& StreamingLevels, FString& LevelPlayerIsInName );

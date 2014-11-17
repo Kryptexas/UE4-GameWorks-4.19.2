@@ -19,10 +19,12 @@ AGameState::AGameState(const class FPostConstructInitializeProperties& PCIP)
 	bReplicateMovement = false;
 
 	// Note: this is very important to set to false. Though all replication infos are spawned at run time, during seamless travel
-	// they are held on to and brought over into the new world. In ULevel::InitializeActors, these PlayerStates may be treated as map/startup actors
+	// they are held on to and brought over into the new world. In ULevel::InitializeNetworkActors, these PlayerStates may be treated as map/startup actors
 	// and given static NetGUIDs. This also causes their deletions to be recorded and sent to new clients, which if unlucky due to name conflicts,
 	// may end up deleting the new PlayerStates they had just spaned.
 	bNetLoadOnClient = false;
+	MatchState = MatchState::EnteringMap;
+	PreviousMatchState = MatchState::EnteringMap;
 }
 
 /** Helper to return the default object of the GameMode class corresponding to this GameState. */
@@ -38,9 +40,7 @@ AGameMode* AGameState::GetDefaultGameMode() const
 
 void AGameState::DefaultTimer()
 {
-	AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
-
-	if ( (GameMode == NULL) || GameMode->bMatchIsInProgress )
+	if (IsMatchInProgress())
 	{
 		++ElapsedTime;
 	}
@@ -76,22 +76,6 @@ void AGameState::OnRep_GameModeClass()
 void AGameState::OnRep_SpectatorClass()
 {
 	ReceivedSpectatorClass();
-}
-
-void AGameState::OnRep_bMatchHasBegun()
-{
-	if (bMatchHasBegun)
-	{
-		GetWorldSettings()->NotifyMatchStarted();
-	}
-}
-
-void AGameState::OnRep_bMatchIsOver()
-{
-	if ( bMatchIsOver )
-	{
-		EndGame();
-	}
 }
 
 void AGameState::ReceivedGameModeClass()
@@ -166,16 +150,98 @@ void AGameState::RemovePlayerState(APlayerState* PlayerState)
 	}
 }
 
-void AGameState::StartMatch()
+void AGameState::HandleMatchIsWaitingToStart()
 {
-	bMatchHasBegun = true;
+	if (Role != ROLE_Authority)
+	{
+		// Server handles this in AGameMode::HandleMatchIsWaitingToStart
+		GetWorldSettings()->NotifyBeginPlay();
+	}
 }
 
-void AGameState::EndGame()
+void AGameState::HandleMatchHasStarted()
 {
-	bMatchIsOver = true;
+	if (Role != ROLE_Authority)
+	{
+		// Server handles this in AGameMode::HandleMatchHasStarted
+		GetWorldSettings()->NotifyMatchStarted();
+	}
 }
 
+void AGameState::HandleMatchHasEnded()
+{
+
+}
+
+void AGameState::HandleLeavingMap()
+{
+
+}
+
+bool AGameState::HasMatchStarted() const
+{
+	if (GetMatchState() == MatchState::EnteringMap || GetMatchState() == MatchState::WaitingToStart)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+bool AGameState::IsMatchInProgress() const
+{
+	if (GetMatchState() == MatchState::InProgress)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+bool AGameState::HasMatchEnded() const
+{
+	if (GetMatchState() == MatchState::WaitingPostMatch || GetMatchState() == MatchState::LeavingMap)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void AGameState::SetMatchState(FName NewState)
+{
+	if (Role == ROLE_Authority)
+	{
+		MatchState = NewState;
+
+		// Call the onrep to make sure the callbacks happen
+		OnRep_MatchState();
+	}
+}
+
+void AGameState::OnRep_MatchState()
+{
+	if (MatchState == MatchState::WaitingToStart || PreviousMatchState == MatchState::EnteringMap)
+	{
+		// Call MatchIsWaiting to start even if you join in progress at a later state
+		HandleMatchIsWaitingToStart();
+	}
+	
+	if (MatchState == MatchState::InProgress)
+	{
+		HandleMatchHasStarted();
+	}
+	else if (MatchState == MatchState::WaitingPostMatch)
+	{
+		HandleMatchHasEnded();
+	}
+	else if (MatchState == MatchState::LeavingMap)
+	{
+		HandleLeavingMap();
+	}
+
+	PreviousMatchState = MatchState;
+}
 
 bool AGameState::ShouldShowGore() const
 {
@@ -186,8 +252,7 @@ void AGameState::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 {
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
-	DOREPLIFETIME( AGameState, bMatchHasBegun );
-	DOREPLIFETIME( AGameState, bMatchIsOver );
+	DOREPLIFETIME( AGameState, MatchState );
 	DOREPLIFETIME( AGameState, SpectatorClass );
 
 	DOREPLIFETIME_CONDITION( AGameState, GameModeClass,	COND_InitialOnly );

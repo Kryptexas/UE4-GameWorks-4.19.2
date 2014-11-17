@@ -446,7 +446,7 @@ FProjectedShadowInfo::FProjectedShadowInfo(
 
 		MinPreSubjectZ = Initializer.MinLightW;
 
-		ResolutionY = FMath::Min<uint32>(FMath::Trunc(InResolutionX / AspectRatio), MaxShadowResolutionY);
+		ResolutionY = FMath::Min<uint32>(FMath::TruncToInt(InResolutionX / AspectRatio), MaxShadowResolutionY);
 
 		// Store the view matrix
 		// Reorder the vectors to match the main view, since ShadowViewMatrix will be used to override the main view's view matrix during shadow depth rendering
@@ -826,18 +826,10 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 						// The old LOD will continue to be drawn even though a different LOD would be chosen by distance.
 						else
 						{
-							float DistanceSquared = 0.0f;
-							if (CurrentView.IsPerspectiveProjection())
-							{	
-								// Calculate LOD in the same way it is done for other static mesh draw lists
-								DistanceSquared = PrimitiveSceneInfo->Proxy->GetBounds().GetBox().ComputeSquaredDistanceToPoint(CurrentView.ShadowViewMatrices.ViewOrigin);
-							}
-							DistanceSquared *= FMath::Square(CurrentView.LODDistanceFactor);
-
+							int8 LODToRender = 0;
 							int32 ForcedLODLevel = (CurrentView.Family->EngineShowFlags.LOD) ? GetCVarForceLOD() : 0;
 
 							// Add the primitive's static mesh elements to the draw lists.
-							int8 LODToRender;
 							if ( bReflectiveShadowmap) 
 							{
 								LODToRender = -CHAR_MAX;
@@ -849,13 +841,10 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 							}
 							else
 							{
-								// Add the primitive's static mesh elements to the draw lists.
-							    LODToRender = ComputeLODForMeshes(
-								PrimitiveSceneInfo->StaticMeshes,
-								DistanceSquared,
-								GetCachedScalabilityCVars().ViewDistanceScaleSquared,
-								ForcedLODLevel
-								);
+								FPrimitiveBounds PrimitiveBounds;
+								PrimitiveBounds.Origin = Bounds.Origin;
+								PrimitiveBounds.SphereRadius = Bounds.SphereRadius;
+								LODToRender = ComputeLODForMeshes(PrimitiveSceneInfo->StaticMeshes, CurrentView, PrimitiveBounds.Origin, PrimitiveBounds.SphereRadius, ForcedLODLevel);
 							}
 
 							for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
@@ -900,7 +889,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 							if(((!IsTranslucentBlendMode(BlendMode)) && LightingModel != MLM_Unlit) || (bReflectiveShadowmap && Material->ShouldInjectEmissiveIntoLPV())) 
 							{
 								const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
-								OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap);
+								OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, GRHIFeatureLevel);
 								SubjectMeshElements.Add(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh,bTwoSided));
 							}
 						}
@@ -1268,7 +1257,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 		MaxScreenPercent = FMath::Max(MaxScreenPercent, ScreenPercent);
 
 		// Determine the amount of shadow buffer resolution needed for this view.
-		const uint32 UnclampedResolution = FMath::Trunc(ScreenRadius * CVarShadowTexelsPerPixel.GetValueOnRenderThread());
+		const uint32 UnclampedResolution = FMath::TruncToInt(ScreenRadius * CVarShadowTexelsPerPixel.GetValueOnRenderThread());
 		MaxUnclampedResolution = FMath::Max( MaxUnclampedResolution, UnclampedResolution );
 		MaxDesiredResolution = FMath::Max(
 			MaxDesiredResolution,
@@ -1284,7 +1273,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 		MaxResolutionFadeAlpha = FMath::Max(MaxResolutionFadeAlpha, ViewSpecificAlpha);
 		ResolutionFadeAlphas.Add(ViewSpecificAlpha);
 
-		const float ViewSpecificPreShadowAlpha = CalculateShadowFadeAlpha( FMath::Trunc(UnclampedResolution * CVarPreShadowResolutionFactor.GetValueOnRenderThread()), CVarPreShadowFadeResolution.GetValueOnRenderThread(), CVarMinPreShadowResolution.GetValueOnRenderThread() );
+		const float ViewSpecificPreShadowAlpha = CalculateShadowFadeAlpha( FMath::TruncToInt(UnclampedResolution * CVarPreShadowResolutionFactor.GetValueOnRenderThread()), CVarPreShadowFadeResolution.GetValueOnRenderThread(), CVarMinPreShadowResolution.GetValueOnRenderThread() );
 		MaxResolutionPreShadowFadeAlpha = FMath::Max(MaxResolutionPreShadowFadeAlpha, ViewSpecificPreShadowAlpha);
 		ResolutionPreShadowFadeAlphas.Add(ViewSpecificPreShadowAlpha);
 	}
@@ -1360,7 +1349,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 			}
 
 			if (bTranslucentRelevance
-				&& GRHIFeatureLevel >= ERHIFeatureLevel::SM4
+				&& Scene->GetFeatureLevel() >= ERHIFeatureLevel::SM4
 				&& bCreateTranslucentObjectShadow 
 				&& (bTranslucentShadowIsVisibleThisFrame || bShadowIsPotentiallyVisibleNextFrame))
 			{
@@ -1406,7 +1395,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 			&& bOpaqueRelevance)
 		{
 			// Round down to the nearest power of two so that resolution changes are always doubling or halving the resolution, which increases filtering stability.
-			int32 PreshadowSizeX = 1 << (FMath::CeilLogTwo(FMath::Trunc(MaxDesiredResolution * CVarPreShadowResolutionFactor.GetValueOnRenderThread())) - 1);
+			int32 PreshadowSizeX = 1 << (FMath::CeilLogTwo(FMath::TruncToInt(MaxDesiredResolution * CVarPreShadowResolutionFactor.GetValueOnRenderThread())) - 1);
 
 			const FIntPoint PreshadowCacheResolution = GSceneRenderTargets.GetPreShadowCacheTextureResolution();
 			checkSlow(PreshadowSizeX <= PreshadowCacheResolution.X);
@@ -1451,7 +1440,7 @@ void FDeferredShadingSceneRenderer::CreatePerObjectProjectedShadow(
 						ShadowInitializer,
 						true,
 						PreshadowSizeX,
-						FMath::Trunc(MaxShadowResolutionY * CVarPreShadowResolutionFactor.GetValueOnRenderThread()),
+						FMath::TruncToInt(MaxShadowResolutionY * CVarPreShadowResolutionFactor.GetValueOnRenderThread()),
 						MaxScreenPercent,
 						ResolutionPreShadowFadeAlphas,
 						false
@@ -1526,7 +1515,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 				FMath::Max(ScreenPosition.W,1.0f);
 
 			// Determine the amount of shadow buffer resolution needed for this view.
-			const uint32 UnclampedResolution = FMath::Trunc(ScreenRadius * CVarShadowTexelsPerPixel.GetValueOnRenderThread());
+			const uint32 UnclampedResolution = FMath::TruncToInt(ScreenRadius * CVarShadowTexelsPerPixel.GetValueOnRenderThread());
 			MaxUnclampedResolution = FMath::Max( MaxUnclampedResolution, UnclampedResolution );
 			MaxDesiredResolution = FMath::Max(
 				MaxDesiredResolution,
@@ -1553,7 +1542,7 @@ void FDeferredShadingSceneRenderer::CreateWholeSceneProjectedShadow(FLightSceneI
 				// Round down to the nearest power of two so that resolution changes are always doubling or halving the resolution, which increases filtering stability
 				// Use the max resolution if the desired resolution is larger than that
 				int32 SizeX = MaxDesiredResolution >= MaxShadowResolution ? MaxShadowResolution : (1 << (FMath::CeilLogTwo(MaxDesiredResolution) - 1));
-				const uint32 DesiredSizeY = FMath::Trunc(MaxDesiredResolution);
+				const uint32 DesiredSizeY = FMath::TruncToInt(MaxDesiredResolution);
 				int32 SizeY = DesiredSizeY >= MaxShadowResolutionY ? MaxShadowResolutionY : (1 << (FMath::CeilLogTwo(DesiredSizeY) - 1));
 
 				if (ProjectedShadowInitializer.bOnePassPointLightShadow)

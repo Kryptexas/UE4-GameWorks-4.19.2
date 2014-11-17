@@ -17,6 +17,7 @@ SSettingsEditor::~SSettingsEditor( )
 {
 	Model->OnSelectionChanged().RemoveAll(this);
 	SettingsContainer->OnCategoryModified().RemoveAll(this);
+	FCoreDelegates::OnCultureChanged.RemoveAll(this);
 }
 
 
@@ -48,10 +49,9 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 	SettingsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SSettingsEditor::HandleSettingsViewVisibility)));
 	SettingsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SSettingsEditor::HandleSettingsViewEnabled));
 
-	TSharedRef<SWidget> ConfigNoticeWidget =
-		SNew(SSettingsEditorCheckoutNotice)
+	TSharedRef<SWidget> ConfigNoticeWidget = SNew(SSettingsEditorCheckoutNotice)
 		.Visibility(this, &SSettingsEditor::HandleDefaultConfigNoticeVisibility)
-		.Unlocked(this, &SSettingsEditor::IsDefaultConfigEditable)
+		.Unlocked(this, &SSettingsEditor::HandleConfigNoticeUnlocked)
 		.LockedContent()
 		[
 			SNew(SButton)
@@ -100,7 +100,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 					.Padding(FMargin(24.0f, 0.0f, 24.0f, 0.0f))
 					[
 						SNew(SSeparator)
-						.Orientation(Orient_Vertical)
+							.Orientation(Orient_Vertical)
 					]
 
 				+ SHorizontalBox::Slot()
@@ -147,10 +147,10 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 									.VAlign(VAlign_Bottom)
 									.Padding(16.0f, 0.0f, 0.0f, 0.0f)
 									[
-										// save as defaults button
+										// set as default button
 										SNew(SButton)
-											.IsEnabled(this, &SSettingsEditor::HandleSaveDefaultsButtonEnabled)
-											.OnClicked(this, &SSettingsEditor::HandleSaveDefaultsButtonClicked)
+											.IsEnabled(this, &SSettingsEditor::HandleSetAsDefaultButtonEnabled)
+											.OnClicked(this, &SSettingsEditor::HandleSetAsDefaultButtonClicked)
 											.Text(LOCTEXT("SaveDefaultsButtonText", "Set as Default"))
 											.ToolTipText(LOCTEXT("SaveDefaultsButtonTooltip", "Save the values below as the new default settings"))
 									]
@@ -223,6 +223,7 @@ void SSettingsEditor::Construct( const FArguments& InArgs, const ISettingsEditor
 			]
 	];
 
+	FCoreDelegates::OnCultureChanged.AddSP(this, &SSettingsEditor::HandleCultureChanged);
 	Model->OnSelectionChanged().AddSP(this, &SSettingsEditor::HandleModelSelectionChanged);
 	SettingsContainer->OnCategoryModified().AddSP(this, &SSettingsEditor::HandleSettingsContainerCategoryModified);
 
@@ -312,7 +313,7 @@ bool SSettingsEditor::CheckOutDefaultConfigFile( )
 			{
 				if (false)
 				{
-					if (SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut))
+					if (SourceControlProvider.Execute(ISourceControlOperation::Create<FSync>(), FilesToBeCheckedOut) == ECommandResult::Succeeded)
 					{
 						SettingsObject->ReloadConfig();
 					}
@@ -324,7 +325,7 @@ bool SSettingsEditor::CheckOutDefaultConfigFile( )
 			}
 			else if (SourceControlState->CanCheckout() || SourceControlState->IsCheckedOutOther())
 			{
-				if (!SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut))
+				if (SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), FilesToBeCheckedOut) == ECommandResult::Failed)
 				{
 					ErrorMessage = LOCTEXT("FailedToCheckOutConfigFileError", "Error: Failed to check out the configuration file.");
 				}
@@ -370,11 +371,30 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 		return SNullWidget::NullWidget;
 	}
 
-	// list the sections
-	for (TArray<ISettingsSectionPtr>::TConstIterator It(Sections); It; ++It)
+	// sort the sections alphabetically
+	struct FSectionSortPredicate
 	{
-		const ISettingsSectionPtr& Section = *It;
+		FORCEINLINE bool operator()( ISettingsSectionPtr A, ISettingsSectionPtr B ) const
+		{
+			if (!A.IsValid() && !B.IsValid())
+			{
+				return false;
+			}
 
+			if (A.IsValid() != B.IsValid())
+			{
+				return B.IsValid();
+			}
+
+			return (A->GetDisplayName().CompareTo(B->GetDisplayName()) < 0);
+		}
+	};
+
+	Sections.Sort(FSectionSortPredicate());
+
+	// list the sections
+	for (const ISettingsSectionPtr Section : Sections)
+	{
 		SectionsBox->AddSlot()
 			.HAlign(HAlign_Left)
 			.Padding(0.0f, VerticalSlotPadding, 0.0f, 0.0f)
@@ -401,6 +421,11 @@ TSharedRef<SWidget> SSettingsEditor::MakeCategoryWidget( const ISettingsCategory
 							.ToolTipText(Section->GetDescription())
 					]
 			];
+
+		if (!Model->GetSelectedSection().IsValid())
+		{
+			Model->SelectSection(Section);
+		}
 	}
 
 	const FSlateBrush* CategoryIcon = FEditorStyle::GetBrush(Category->GetIconName());
@@ -452,15 +477,25 @@ void SSettingsEditor::ReloadCategories(  )
 	TArray<ISettingsCategoryPtr> Categories;
 	SettingsContainer->GetCategories(Categories);
 
-	for (TArray<ISettingsCategoryPtr>::TConstIterator It(Categories); It; ++It)
+	for (const ISettingsCategoryPtr Category : Categories)
 	{
 		CategoriesBox->AddSlot()
 			.AutoHeight()
 			.Padding(0.0f, 0.0f, 0.0f, 8.0f)
 			[
-				MakeCategoryWidget(It->ToSharedRef())
+				MakeCategoryWidget(Category.ToSharedRef())
 			];
 	}
+}
+
+
+void SSettingsEditor::ShowNotification( const FText& Text, SNotificationItem::ECompletionState CompletionState ) const
+{
+	FNotificationInfo Notification(Text);
+	Notification.ExpireDuration = 3.f;
+	Notification.bUseSuccessFailIcons = false;
+
+	FSlateNotificationManager::Get().AddNotification(Notification)->SetCompletionState(CompletionState);
 }
 
 
@@ -472,6 +507,18 @@ FReply SSettingsEditor::HandleCheckOutButtonClicked( )
 	CheckOutDefaultConfigFile();
 
 	return FReply::Handled();
+}
+
+
+void SSettingsEditor::HandleCultureChanged( )
+{
+	ReloadCategories();
+}
+
+
+bool SSettingsEditor::HandleConfigNoticeUnlocked( ) const
+{
+	return !DefaultConfigCheckOutNeeded;
 }
 
 
@@ -509,8 +556,12 @@ FReply SSettingsEditor::HandleExportButtonClicked( )
 		{
 			if (SelectedSection->Export(OutFiles[0]))
 			{
-				LastExportDir = FPaths::GetPath(OutFiles[0]);
-			}			
+				ShowNotification(LOCTEXT("ExportSettingsSuccess", "Export settings succeeded"), SNotificationItem::CS_Success);
+			}
+			else
+			{
+				ShowNotification(LOCTEXT("ExportSettingsFailure", "Export settings failed"), SNotificationItem::CS_Fail);
+			}
 		}
 	}
 
@@ -544,11 +595,14 @@ FReply SSettingsEditor::HandleImportButtonClicked( )
 
 		if (FDesktopPlatformModule::Get()->OpenFileDialog(ParentWindowHandle, LOCTEXT("ImportSettingsDialogTitle", "Import settings...").ToString(), FPaths::GetPath(GEditorUserSettingsIni), TEXT(""), TEXT("Config files (*.ini)|*.ini"), EFileDialogFlags::None, OutFiles))
 		{
-			SelectedSection->Import(OutFiles[0]);
-
-			// Our section has changed but we will not receive a notify from notify hook 
-			// as it was done here and not through user action in the editor.
-			SelectedSection->Save();
+			if (SelectedSection->Import(OutFiles[0]) && SelectedSection->Save())
+			{
+				ShowNotification(LOCTEXT("ImportSettingsSuccess", "Import settings succeeded"), SNotificationItem::CS_Success);
+			}
+			else
+			{
+				ShowNotification(LOCTEXT("ImportSettingsFailure", "Import settings failed"), SNotificationItem::CS_Fail);
+			}
 		}
 	}
 
@@ -618,12 +672,6 @@ void SSettingsEditor::HandleModelSelectionChanged( )
 }
 
 
-bool SSettingsEditor::IsDefaultConfigEditable( ) const
-{
-	return !DefaultConfigCheckOutNeeded;
-}
-
-
 FReply SSettingsEditor::HandleResetDefaultsButtonClicked( )
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
@@ -650,7 +698,24 @@ bool SSettingsEditor::HandleResetToDefaultsButtonEnabled( ) const
 }
 
 
-FReply SSettingsEditor::HandleSaveDefaultsButtonClicked( )
+void SSettingsEditor::HandleSectionLinkNavigate( ISettingsSectionPtr Section )
+{
+	Model->SelectSection(Section);
+}
+
+
+EVisibility SSettingsEditor::HandleSectionLinkImageVisibility( ISettingsSectionPtr Section ) const
+{
+	if (Model->GetSelectedSection() == Section)
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Hidden;
+}
+
+
+FReply SSettingsEditor::HandleSetAsDefaultButtonClicked( )
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -682,7 +747,7 @@ FReply SSettingsEditor::HandleSaveDefaultsButtonClicked( )
 }
 
 
-bool SSettingsEditor::HandleSaveDefaultsButtonEnabled( ) const
+bool SSettingsEditor::HandleSetAsDefaultButtonEnabled( ) const
 {
 	ISettingsSectionPtr SelectedSection = Model->GetSelectedSection();
 
@@ -692,23 +757,6 @@ bool SSettingsEditor::HandleSaveDefaultsButtonEnabled( ) const
 	}
 
 	return false;
-}
-
-
-void SSettingsEditor::HandleSectionLinkNavigate( ISettingsSectionPtr Section )
-{
-	Model->SelectSection(Section);
-}
-
-
-EVisibility SSettingsEditor::HandleSectionLinkImageVisibility( ISettingsSectionPtr Section ) const
-{
-	if (Model->GetSelectedSection() == Section)
-	{
-		return EVisibility::Visible;
-	}
-
-	return EVisibility::Hidden;
 }
 
 

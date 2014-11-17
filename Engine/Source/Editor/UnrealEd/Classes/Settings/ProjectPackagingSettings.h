@@ -51,7 +51,7 @@ struct FDirectoryPath
 /**
  * Implements the Editor's user settings.
  */
-UCLASS(config=Game)
+UCLASS(config=Game, defaultconfig)
 class UNREALED_API UProjectPackagingSettings
 	: public UObject
 {

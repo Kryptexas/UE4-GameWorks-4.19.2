@@ -4,7 +4,6 @@
 #include "UnrealEd.h"
 #include "Factories.h"
 #include "BusyCursor.h"
-#include "EngineInterpolationClasses.h"
 #include "SoundDefinitions.h"
 #include "ParticleDefinitions.h"
 #include "AnimationUtils.h"
@@ -1596,7 +1595,7 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 		WorldPackage = NULL;
 	}
 
-	if (Context.World()->WorldType != EWorldType::Preview)
+	if (Context.World()->WorldType != EWorldType::Preview && Context.World()->WorldType != EWorldType::Inactive)
 	{
 		// Go away, come again never!
 		Context.World()->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
@@ -1628,7 +1627,8 @@ void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& Cl
 	for( TObjectIterator<UWorld> It; It; ++It )
 	{
 		UWorld* RemainingWorld = *It;
-		if( RemainingWorld->WorldType != EWorldType::Preview && !WorldHasValidContext(RemainingWorld))
+		const bool bIsPersistantWorldType = (RemainingWorld->WorldType == EWorldType::Inactive) || (RemainingWorld->WorldType == EWorldType::Preview);
+		if (!bIsPersistantWorldType && !WorldHasValidContext(RemainingWorld))
 		{
 			StaticExec(RemainingWorld, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *RemainingWorld->GetPathName()));
 
@@ -1747,11 +1747,16 @@ UWorld* UEditorEngine::NewMap()
 	const FText CleanseText = LOCTEXT("LoadingMap_Template", "New Map");
 	EditorDestroyWorld( Context, CleanseText );
 
-	// Create a new world.
-	Context.SetCurrentWorld(UWorld::CreateWorld(EWorldType::Editor, true ));
-	GWorld = Context.World();
-	GWorld->SetFlags(RF_Public|RF_Standalone);
-	
+	// Create a new world
+	UWorldFactory* Factory = ConstructObject<UWorldFactory>(UWorldFactory::StaticClass());
+	Factory->WorldType = EWorldType::Editor;
+	UPackage* Pkg = CreatePackage( NULL, NULL );
+	EObjectFlags Flags = RF_Public | RF_Standalone;
+	UWorld* NewWorld = CastChecked<UWorld>(Factory->FactoryCreateNew(UWorld::StaticClass(), Pkg, TEXT("NewWorld"), Flags, NULL, GWarn));
+	Context.SetCurrentWorld(NewWorld);
+	GWorld = NewWorld;
+	NewWorld->AddToRoot();
+
 	NoteSelectionChange();
 
 	// Starting a new map will wipe existing actors and add some defaults actors to the scene, so we need
@@ -1767,7 +1772,7 @@ UWorld* UEditorEngine::NewMap()
 		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 
 		// Notify slate level editors of the map change
-		LevelEditor.BroadcastMapChanged( GWorld, EMapChangeType::NewMap );
+		LevelEditor.BroadcastMapChanged( NewWorld, EMapChangeType::NewMap );
 	}
 
 	// Move the brush to the origin.
@@ -1785,7 +1790,10 @@ UWorld* UEditorEngine::NewMap()
 	// Clear the transaction buffer so the user can't remove the builder brush
 	GUnrealEd->ResetTransaction( CleanseText );
 
-	return Context.World();
+	// Invalidate all the level viewport hit proxies
+	InvalidateAllViewportClientHitProxies();
+
+	return NewWorld;
 }
 
 
@@ -2159,6 +2167,9 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					{
 						GEngine->WorldAdded( Context.World() );
 					}
+
+					// Invalidate all the level viewport hit proxies
+					InvalidateAllViewportClientHitProxies();
 				}
 			}
 			else
@@ -2470,6 +2481,15 @@ void UEditorEngine::MoveSelectedActorsToLevel( ULevel* InDestLevel )
 
 void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
 {
+	// Can't move into a locked level
+	if (FLevelUtils::IsLevelLocked(InDestLevel))
+	{
+		FNotificationInfo Info(NSLOCTEXT("UnrealEd", "CannotMoveIntoLockedLevel", "Cannot move the selected actors into a locked level"));
+		Info.bUseThrobber = false;
+		FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Fail);
+		return;
+	}
+
 	// Start the transaction
 	GEditor->Trans->Begin( NULL, NSLOCTEXT("UnrealEd", "MoveSelectedActorsToSelectedLevel", "Move Actors To Level"));
 	
@@ -2489,7 +2509,7 @@ void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
 		FirstSelectedActorLocation = FirstActor->GetActorLocation();
 	}
 
-	// Copt the actors we have selected to the clipboard
+	// Copy the actors we have selected to the clipboard
 	CopySelectedActorsToClipboard( World, true );
 
 	// Set the new level
@@ -6155,7 +6175,7 @@ void UEditorEngine::AutoMergeStaticMeshes()
 		NewStaticMesh->LightMapCoordinateIndex = LightmapUVChannel;
 
 		// figure out how much to grow the lightmap resolution by, since it needs to be square, start by sqrt'ing the number
-		int32 LightmapMultiplier = FMath::Trunc(FMath::Sqrt(MergeComponents.Num()));
+		int32 LightmapMultiplier = FMath::TruncToInt(FMath::Sqrt(MergeComponents.Num()));
 
 		// increase the sqrt by 1 unless it was a perfect square
 		if (LightmapMultiplier * LightmapMultiplier != MergeComponents.Num())

@@ -21,6 +21,7 @@ public:
 
 	/** IStructCustomizationUtils interface */
 	virtual TSharedPtr<class FAssetThumbnailPool> GetThumbnailPool() const OVERRIDE;
+	virtual TSharedPtr<class IPropertyUtilities> GetPropertyUtilities() const OVERRIDE;
 
 	/** @return true if this row has widgets with columns */
 	bool HasColumns() const;

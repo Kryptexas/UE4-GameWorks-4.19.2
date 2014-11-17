@@ -419,13 +419,13 @@ void UModelComponent::GetSurfaceLightMapResolution( int32 SurfaceIndex, int32 Qu
 	if (bFoundNode)
 	{
 		float Scale = Surf.LightMapScale * QualityScale;
-		MinUV.X = (float)FMath::Floor(MinUV.X / Scale) * Scale;
-		MinUV.Y = (float)FMath::Floor(MinUV.Y / Scale) * Scale;
-		MaxUV.X = (float)FMath::Ceil(MaxUV.X / Scale) * Scale;
-		MaxUV.Y = (float)FMath::Ceil(MaxUV.Y / Scale) * Scale;
+		MinUV.X = FMath::FloorToFloat(MinUV.X / Scale) * Scale;
+		MinUV.Y = FMath::FloorToFloat(MinUV.Y / Scale) * Scale;
+		MaxUV.X = FMath::CeilToFloat(MaxUV.X / Scale) * Scale;
+		MaxUV.Y = FMath::CeilToFloat(MaxUV.Y / Scale) * Scale;
 
-		Width = FMath::Clamp(FMath::Ceil((MaxUV.X - MinUV.X) / (Surf.LightMapScale * QualityScale)),4,SHADOWMAP_MAX_WIDTH);
-		Height = FMath::Clamp(FMath::Ceil((MaxUV.Y - MinUV.Y) / (Surf.LightMapScale * QualityScale)),4,SHADOWMAP_MAX_HEIGHT);
+		Width = FMath::Clamp(FMath::CeilToInt((MaxUV.X - MinUV.X) / (Surf.LightMapScale * QualityScale)),4,SHADOWMAP_MAX_WIDTH);
+		Height = FMath::Clamp(FMath::CeilToInt((MaxUV.Y - MinUV.Y) / (Surf.LightMapScale * QualityScale)),4,SHADOWMAP_MAX_HEIGHT);
 		WorldToMap = FMatrix(
 			FPlane(MapX.X / (MaxUV.X - MinUV.X),	MapY.X / (MaxUV.Y - MinUV.Y),	Surf.Plane.X,	0),
 			FPlane(MapX.Y / (MaxUV.X - MinUV.X),	MapY.Y / (MaxUV.Y - MinUV.Y),	Surf.Plane.Y,	0),
@@ -454,7 +454,7 @@ bool UModelComponent::GetLightMapResolution( int32& Width, int32& Height ) const
 		LightMapArea += SizeX * SizeY;
 	}
 
-	Width = FMath::Trunc( FMath::Sqrt( LightMapArea ) );
+	Width = FMath::TruncToInt( FMath::Sqrt( LightMapArea ) );
 	Height = Width;
 	return false;
 }
@@ -478,14 +478,14 @@ void UModelComponent::GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsag
 	
 	// Stored in texture.
 	const float MIP_FACTOR = 1.33f;
-	ShadowMapMemoryUsage	= FMath::Trunc( MIP_FACTOR * LightMapWidth * LightMapHeight ); // G8
+	ShadowMapMemoryUsage	= FMath::TruncToInt( MIP_FACTOR * LightMapWidth * LightMapHeight ); // G8
 	if( AllowHighQualityLightmaps() )
 	{ 
-		LightMapMemoryUsage = FMath::Trunc( NUM_HQ_LIGHTMAP_COEF * MIP_FACTOR * LightMapWidth * LightMapHeight ); // DXT5
+		LightMapMemoryUsage = FMath::TruncToInt( NUM_HQ_LIGHTMAP_COEF * MIP_FACTOR * LightMapWidth * LightMapHeight ); // DXT5
 	}
 	else
 	{
-		LightMapMemoryUsage = FMath::Trunc( NUM_LQ_LIGHTMAP_COEF * MIP_FACTOR * LightMapWidth * LightMapHeight / 2 ); // DXT1
+		LightMapMemoryUsage = FMath::TruncToInt( NUM_LQ_LIGHTMAP_COEF * MIP_FACTOR * LightMapWidth * LightMapHeight / 2 ); // DXT1
 	}
 	return;
 }
@@ -911,10 +911,10 @@ void UModel::ApplyStaticLighting()
 
 						// Encode LogL
 						LogL = ( LogL - GroupQuantizedData->Add[0][3] ) / GroupQuantizedData->Scale[0][3];
-						Residual = LogL * 255.0f - FMath::Round( LogL * 255.0f ) + 0.5f;
+						Residual = LogL * 255.0f - FMath::RoundToFloat( LogL * 255.0f ) + 0.5f;
 
-						DestSample.Coefficients[0][3] = (uint8)FMath::Clamp<int32>( FMath::Round( LogL * 255.0f ), 0, 255 );
-						DestSample.Coefficients[1][3] = (uint8)FMath::Clamp<int32>( FMath::Round( Residual * 255.0f ), 0, 255 );
+						DestSample.Coefficients[0][3] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( LogL * 255.0f ), 0, 255 );
+						DestSample.Coefficients[1][3] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( Residual * 255.0f ), 0, 255 );
 					}
 	
 					// go over each color coefficient and dequantize and requantize with new Scale/Add
@@ -932,7 +932,7 @@ void UModel::ApplyStaticLighting()
 							const float Repacked = ( Unpacked - GroupQuantizedData->Add[CoefficientIndex][ColorIndex] ) / GroupQuantizedData->Scale[CoefficientIndex][ColorIndex];
 
 							// requantize it
-							DestSample.Coefficients[CoefficientIndex][ColorIndex] = (uint8)FMath::Clamp<int32>( FMath::Round( FMath::Pow( Repacked, 1.0f / Exponent ) * 255.0f ), 0, 255 );
+							DestSample.Coefficients[CoefficientIndex][ColorIndex] = (uint8)FMath::Clamp<int32>( FMath::RoundToInt( FMath::Pow( Repacked, 1.0f / Exponent ) * 255.0f ), 0, 255 );
 						}
 					}
 

@@ -4,11 +4,15 @@
 
 #if WITH_SUBSTEPPING
 
+#if WITH_PHYSX
 #include "PhysXSupport.h"
+#include "../Vehicles/PhysXVehicleManager.h"
+#endif
+
 #include "PhysSubstepTasks.h"
 
 #if WITH_PHYSX
-FPhysSubstepTask::FPhysSubstepTask(PxScene * GivenPScene) :
+FPhysSubstepTask::FPhysSubstepTask(PxApexScene * GivenScene) :
 	NumSubsteps(0),
 	SubTime(0.f),
 	DeltaSeconds(0.f),
@@ -18,14 +22,11 @@ FPhysSubstepTask::FPhysSubstepTask(PxScene * GivenPScene) :
 	StepScale(0.f),
 	TotalSubTime(0.f),
 	CurrentSubStep(0),
-#if WITH_APEX
-	ApexScene(NULL),
-#endif
-	PScene(GivenPScene)
+	VehicleManager(NULL),
+	PAScene(GivenScene)
 {
-	check(PScene);
+	check(PAScene);
 }
-
 #endif
 
 void FPhysSubstepTask::SwapBuffers()
@@ -47,6 +48,7 @@ void FPhysSubstepTask::RemoveBodyInstance(FBodyInstance * BodyInstance)
 
 void FPhysSubstepTask::SetKinematicTarget(FBodyInstance * Body, const FTransform & TM)
 {
+#if WITH_PHYSX
 	check(Body);
 	TM.DiagnosticCheckNaN_All();
 
@@ -60,11 +62,12 @@ void FPhysSubstepTask::SetKinematicTarget(FBodyInstance * Body, const FTransform
 		TargetState.bKinematicTarget = true;
 		TargetState.KinematicTarget = KinmaticTarget;
 	}
-
+#endif
 }
 
 void FPhysSubstepTask::AddForce(FBodyInstance * Body, const FVector & Force)
 {
+#if WITH_PHYSX
 	check(Body);
 	PxRigidDynamic * PRigidDynamic = Body->GetPxRigidDynamic();
 	SCOPED_SCENE_READ_LOCK(PRigidDynamic->getScene());
@@ -79,10 +82,12 @@ void FPhysSubstepTask::AddForce(FBodyInstance * Body, const FVector & Force)
 		FPhysTarget & TargetState = PhysTargetBuffers[External].FindOrAdd(Body);
 		TargetState.Forces.Add(ForceTarget);
 	}
+#endif
 }
 
 void FPhysSubstepTask::AddForceAtPosition(FBodyInstance * Body, const FVector & Force, const FVector & Position)
 {
+#if WITH_PHYSX
 	check(Body);
 
 	PxRigidDynamic * PRigidDynamic = Body->GetPxRigidDynamic();
@@ -98,10 +103,11 @@ void FPhysSubstepTask::AddForceAtPosition(FBodyInstance * Body, const FVector & 
 		FPhysTarget & TargetState = PhysTargetBuffers[External].FindOrAdd(Body);
 		TargetState.Forces.Add(ForceTarget);
 	}
-
+#endif
 }
 void FPhysSubstepTask::AddTorque(FBodyInstance * Body, const FVector & Torque)
 {
+#if WITH_PHYSX
 	check(Body);
 
 	PxRigidDynamic * PRigidDynamic = Body->GetPxRigidDynamic();
@@ -115,6 +121,7 @@ void FPhysSubstepTask::AddTorque(FBodyInstance * Body, const FVector & Torque)
 		FPhysTarget & TargetState = PhysTargetBuffers[External].FindOrAdd(Body);
 		TargetState.Torques.Add(TorqueTarget);
 	}
+#endif
 }
 
 /** Applies forces - Assumes caller has obtained writer lock */
@@ -165,19 +172,21 @@ void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget,
 	/** Interpolate kinematic actors */
 	if (PhysTarget.bKinematicTarget)
 	{
-		//We should only be interpolating kinematic actors
-		check(!IsRigidDynamicNonKinematic(PRigidDynamic));
-		const FKinematicTarget & KinematicTarget = PhysTarget.KinematicTarget;
-		const FTransform & TargetTM = KinematicTarget.TargetTM;
-		const FTransform & StartTM = KinematicTarget.OriginalTM;
-		FTransform InterTM = FTransform::Identity;
+		//It's possible that the actor is no longer kinematic and is now simulating. In that case do nothing
+		if (!IsRigidDynamicNonKinematic(PRigidDynamic))
+		{
+			const FKinematicTarget & KinematicTarget = PhysTarget.KinematicTarget;
+			const FTransform & TargetTM = KinematicTarget.TargetTM;
+			const FTransform & StartTM = KinematicTarget.OriginalTM;
+			FTransform InterTM = FTransform::Identity;
 
-		InterTM.SetLocation(FMath::Lerp(StartTM.GetLocation(), TargetTM.GetLocation(), Alpha));
-		InterTM.SetRotation(FMath::Lerp(StartTM.GetRotation(), TargetTM.GetRotation(), Alpha));
+			InterTM.SetLocation(FMath::Lerp(StartTM.GetLocation(), TargetTM.GetLocation(), Alpha));
+			InterTM.SetRotation(FMath::Lerp(StartTM.GetRotation(), TargetTM.GetRotation(), Alpha));
 
-		const PxTransform PNewPose = U2PTransform(InterTM);
-		check(PNewPose.isValid());
-		PRigidDynamic->setKinematicTarget(PNewPose);
+			const PxTransform PNewPose = U2PTransform(InterTM);
+			check(PNewPose.isValid());
+			PRigidDynamic->setKinematicTarget(PNewPose);
+		}
 	}
 #endif
 }
@@ -185,6 +194,12 @@ void FPhysSubstepTask::InterpolateKinematicActor(const FPhysTarget & PhysTarget,
 void FPhysSubstepTask::SubstepInterpolation(float Alpha)
 {
 #if WITH_PHYSX
+#if WITH_APEX
+	PxScene * PScene = PAScene->getPhysXScene();
+#else
+	PxScene * PScene = PAScene;
+#endif
+
 	PhysTargetMap & Targets = PhysTargetBuffers[!External];
 
 	/** Note: We lock the entire scene before iterating. The assumption is that removing an FBodyInstance from the map will also be wrapped by this lock */
@@ -232,15 +247,15 @@ float FPhysSubstepTask::UpdateTime(float UseDelta)
 
 	//Figure out how big dt to make for desired framerate
 	DeltaSeconds = UseDelta;
-	NumSubsteps = FMath::Ceil(UseDelta * FrameRateInv);
+	NumSubsteps = FMath::CeilToInt(UseDelta * FrameRateInv);
 	NumSubsteps = FMath::Max(NumSubsteps > MaxSubSteps ? MaxSubSteps : NumSubsteps, (uint32) 1);
 	SubTime = UseDelta / NumSubsteps;
 
 	return SubTime;
 }
 
-#if WITH_APEX
-void FPhysSubstepTask::StepSimulation(NxApexScene * GivenApexScene, PhysXCompletionTask * Task)
+#if WITH_PHYSX
+void FPhysSubstepTask::StepSimulation(PhysXCompletionTask * Task)
 {
 	check(SubTime > 0.f);
 	check(DeltaSeconds > 0.f);
@@ -250,46 +265,69 @@ void FPhysSubstepTask::StepSimulation(NxApexScene * GivenApexScene, PhysXComplet
 	StepScale = SubTime / DeltaSeconds;
 	TotalSubTime = 0.f;
 	CurrentSubStep = 0;
-	ApexScene = GivenApexScene;
 
 	SubstepSimulationStart();
 }
+#endif
 
 void FPhysSubstepTask::SubstepSimulationStart()
 {
+#if WITH_PHYSX
 	check(SubTime > 0.f);
 	check(DeltaSeconds > 0.f);
 	
 	check(!CompletionEvent.GetReference());	//should be done
 	CompletionEvent = FGraphEvent::CreateGraphEvent();
-	PhysXCompletionTask* SubstepTask = new PhysXCompletionTask(CompletionEvent, ApexScene->getTaskManager());
-	FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysSubstepTask::SubstepSimulationEnd), TEXT("ProcessPhysSubstepSimulation"), CompletionEvent);
+	PhysXCompletionTask* SubstepTask = new PhysXCompletionTask(CompletionEvent, PAScene->getTaskManager());
+	ENamedThreads::Type NamedThread = PhysSingleThreadedMode() ? ENamedThreads::GameThread : ENamedThreads::AnyThread;
+	FDelegateGraphTask::CreateAndDispatchWhenReady(FDelegateGraphTask::FDelegate::CreateRaw(this, &FPhysSubstepTask::SubstepSimulationEnd), TEXT("ProcessPhysSubstepSimulation"), CompletionEvent, NamedThread, NamedThread);
 
-	++CurrentSubStep;
-	if (CurrentSubStep < NumSubsteps)
+	++CurrentSubStep;	
+
+	bool bLastSubstep = CurrentSubStep >= NumSubsteps;
+
+	if (!bLastSubstep)
 	{
-		
+
 		Alpha += StepScale;
 		TotalSubTime += SubTime;
-		SubstepInterpolation(Alpha);
-		ApexScene->simulate(SubTime, false, SubstepTask);	
-		SubstepTask->removeReference();
 	}
-	else
+
+	float DeltaTime = bLastSubstep ? (DeltaSeconds - TotalSubTime) : SubTime;
+	float Interpolation = bLastSubstep ? 1.f : Alpha;
+
+	if (VehicleManager)
 	{
-		SubstepInterpolation(1.f);
-		ApexScene->simulate(DeltaSeconds - TotalSubTime, true, SubstepTask);
-		SubstepTask->removeReference();
+		VehicleManager->Update(DeltaTime);
 	}
+
+	SubstepInterpolation(Interpolation);
+
+#if WITH_APEX
+	PAScene->simulate(DeltaTime, bLastSubstep, SubstepTask);
+#else
+	PAScene->lockWrite();
+	PAScene->simulate(DeltaTime, SubstepTask);
+	PAScene->unlockWrite();
+#endif
+	SubstepTask->removeReference();
+#endif
 }
 
 void FPhysSubstepTask::SubstepSimulationEnd(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
+#if WITH_PHYSX
 	CompletionEvent = NULL;
 	if (CurrentSubStep < NumSubsteps)
 	{
 		uint32 OutErrorCode = 0;
-		ApexScene->fetchResults(true, &OutErrorCode);
+#if WITH_APEX
+		PAScene->fetchResults(true, &OutErrorCode);
+#else
+		PAScene->lockWrite();
+		PAScene->fetchResults(true, &OutErrorCode);
+		PAScene->unlockWrite();
+#endif
 		if (OutErrorCode != 0)
 		{
 			UE_LOG(LogPhysics, Log, TEXT("PHYSX FETCHRESULTS ERROR: %d"), OutErrorCode);
@@ -302,8 +340,13 @@ void FPhysSubstepTask::SubstepSimulationEnd(ENamedThreads::Type CurrentThread, c
 		//final step we call fetch on in game thread
 		FullSimulationTask->removeReference();
 	}
-
-}
 #endif
+}
+
+
+void FPhysSubstepTask::SetVehicleManager(FPhysXVehicleManager * InVehicleManager)
+{
+	VehicleManager = InVehicleManager;
+}
 
 #endif //if WITH_SUBSTEPPING

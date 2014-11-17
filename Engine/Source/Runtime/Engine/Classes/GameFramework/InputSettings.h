@@ -1,11 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "PlayerInput.h"
 #include "InputSettings.generated.h"
 
-UCLASS(config=Input, HeaderGroup=UserInterface)
-class ENGINE_API UInputSettings : public UObject
+
+UCLASS(config=Input, defaultconfig)
+class ENGINE_API UInputSettings
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -19,9 +21,17 @@ class ENGINE_API UInputSettings : public UObject
 
 	// Mouse smoothing control
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
-	uint32 bEnableMouseSmoothing:1;    /** if true, mouse smoothing is enabled */
+	uint32 bEnableMouseSmoothing:1;
 
-	/** If a button is pressed twice in this amount of time, it's considered a "double click" */
+	// Scale the mouse based on the player camera manager's field of view
+	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
+	uint32 bEnableFOVScaling:1;
+
+	// The scaling value to multiply the field of view by
+	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay, meta=(editcondition="bEnableFOVScaling"))
+	float FOVScale;
+
+	/** If a key is pressed twice in this amount of time, it's considered a "double click" */
 	UPROPERTY(config, EditAnywhere, Category="MouseProperties", AdvancedDisplay)
 	float DoubleClickTime;
 
@@ -44,10 +54,6 @@ class ENGINE_API UInputSettings : public UObject
 	/** The key which opens the console. */
 	UPROPERTY(config, EditAnywhere, Category="Console")
 	FKey ConsoleKey;
-
-	/** Should the user be required to hold ctrl to use the up/down arrows when navigating auto-complete */
-	UPROPERTY(config, EditAnywhere, Category="Console", AdvancedDisplay)
-	uint32 bRequireCtrlToNavigateAutoComplete : 1;
 
 	// UObject interface
 #if WITH_EDITOR

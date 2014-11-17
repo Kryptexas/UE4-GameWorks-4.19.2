@@ -13,6 +13,13 @@ public class UE4Game : ModuleRules
 			PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "OnlineSubsystem", "OnlineSubsystemUtils" });
 			DynamicallyLoadedModuleNames.Add("OnlineSubsystemFacebook");
 			DynamicallyLoadedModuleNames.Add("OnlineSubsystemIOS");
+			DynamicallyLoadedModuleNames.Add("IOSAdvertising");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Android)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "OnlineSubsystem", "OnlineSubsystemUtils" });
+			DynamicallyLoadedModuleNames.Add("AndroidAdvertising");
+			DynamicallyLoadedModuleNames.Add("OnlineSubsystemGooglePlay");
 		}
 	}
 }

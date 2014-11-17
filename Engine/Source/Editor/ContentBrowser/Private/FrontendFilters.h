@@ -7,7 +7,7 @@
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
 /** A filter that displays only checked out assets */
-class FFrontendFilter_CheckedOut : public FFrontendFilter
+class FFrontendFilter_CheckedOut : public FFrontendFilter, public TSharedFromThis<FFrontendFilter_CheckedOut>
 {
 public:
 	FFrontendFilter_CheckedOut(TSharedPtr<FFrontendFilterCategory> InCategory);

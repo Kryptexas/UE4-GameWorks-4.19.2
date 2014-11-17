@@ -180,11 +180,11 @@ TSharedRef< SWidget > SSkeletonTreeRow::GenerateWidgetForColumn( const FName& Co
 
 void SSkeletonTreeRow::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	// Is someone dragging a socket onto a bone?
-	if ( DragDrop::IsTypeMatch<FSocketDragDropOp>( DragDropEvent.GetOperation() ) )
-	{
-		TSharedPtr<FSocketDragDropOp> DragConnectionOp = StaticCastSharedPtr<FSocketDragDropOp>( DragDropEvent.GetOperation() );
+	TSharedPtr<FSocketDragDropOp> DragConnectionOp = DragDropEvent.GetOperationAs<FSocketDragDropOp>();
 
+	// Is someone dragging a socket onto a bone?
+	if (DragConnectionOp.IsValid())
+	{
 		if ( Item->GetType() == ESkeletonTreeRowType::Bone &&
 			( *static_cast<FName*>( Item->GetData() ) != DragConnectionOp->GetSocketInfo().Socket->BoneName ) )
 		{
@@ -205,20 +205,19 @@ void SSkeletonTreeRow::OnDragEnter( const FGeometry& MyGeometry, const FDragDrop
 
 void SSkeletonTreeRow::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FSocketDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FSocketDragDropOp> DragConnectionOp = DragDropEvent.GetOperationAs<FSocketDragDropOp>();
+	if (DragConnectionOp.IsValid())
 	{
 		// Reset the drag/drop icon when leaving this row
-		TSharedPtr<FSocketDragDropOp> DragConnectionOp = StaticCastSharedPtr<FSocketDragDropOp>( DragDropEvent.GetOperation() );
 		DragConnectionOp->SetIcon( FEditorStyle::GetBrush( TEXT( "Graph.ConnectorFeedback.Error" ) ) );
 	}
 }
 
 FReply SSkeletonTreeRow::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FSocketDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FSocketDragDropOp> DragConnectionOp = DragDropEvent.GetOperationAs<FSocketDragDropOp>();
+	if (DragConnectionOp.IsValid())
 	{
-		TSharedPtr<FSocketDragDropOp> DragConnectionOp = StaticCastSharedPtr<FSocketDragDropOp>( DragDropEvent.GetOperation() );
-
 		FSelectedSocketInfo SocketInfo = DragConnectionOp->GetSocketInfo();
 
 		if ( DragConnectionOp->IsAltDrag() && Item->GetType() == ESkeletonTreeRowType::Bone )
@@ -248,9 +247,12 @@ FReply SSkeletonTreeRow::OnDrop( const FGeometry& MyGeometry, const FDragDropEve
 			return FReply::Handled();
 		}
 	}
-	else if( DragDrop::IsTypeMatch<FAssetDragDropOp>( DragDropEvent.GetOperation() ) )
+	else
 	{
-		SkeletonTree.Pin()->OnDropAssetToSkeletonTree( Item, DragDropEvent );
+		if (DragDropEvent.GetOperationAs<FAssetDragDropOp>().IsValid())
+		{
+			SkeletonTree.Pin()->OnDropAssetToSkeletonTree( Item, DragDropEvent );
+		}
 	}
 
 	return FReply::Unhandled();
@@ -299,7 +301,7 @@ void FDisplayedMeshBoneInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizonta
 		[
 			SNew( STextBlock )
 			.ColorAndOpacity(TextColor)
-			.Text( BoneName.ToString() )
+			.Text( FText::FromName(BoneName) )
 			.HighlightText( FilterText )
 			.Font(TextFont)
 			.ToolTipText( ToolTip )
@@ -505,6 +507,7 @@ void FDisplayedSocketInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalB
 
 	FString ToolTip = GetSocketToolTip();
 
+	TAttribute<FText> SocketNameAttr = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &FDisplayedSocketInfo::GetSocketNameAsText));
 	TSharedPtr< SInlineEditableTextBlock > InlineWidget;
 
 	Box->AddSlot()
@@ -512,7 +515,7 @@ void FDisplayedSocketInfo::GenerateWidgetForNameColumn( TSharedPtr< SHorizontalB
 	[
 		SAssignNew( InlineWidget, SInlineEditableTextBlock )
 			.ColorAndOpacity( TextColor )
-			.Text( FText::FromName(SocketData->SocketName) )
+			.Text( SocketNameAttr )
 			.HighlightText( FilterText )
 			.Font( TextFont )
 			.ToolTipText( ToolTip )
@@ -562,7 +565,9 @@ bool FDisplayedSocketInfo::OnVerifySocketNameChanged( const FText& InText, FText
 	// but you can have a socket with the same name on the mesh *and* the skeleton.
 	bool bVerifyName = true;
 
-	if( InText.IsEmpty() )
+	FText NewText = FText::TrimPrecedingAndTrailing(InText);
+
+	if (NewText.IsEmpty())
 	{
 		OutErrorMessage = LOCTEXT( "EmptySocketName_Error", "Sockets must have a name!");
 		bVerifyName = false;
@@ -576,13 +581,13 @@ bool FDisplayedSocketInfo::OnVerifySocketNameChanged( const FText& InText, FText
 
 			if ( Mesh )
 			{
-				bVerifyName = !PersonaPtr.Pin()->DoesSocketAlreadyExist( SocketData, InText, Mesh->GetMeshOnlySocketList() );
+				bVerifyName = !PersonaPtr.Pin()->DoesSocketAlreadyExist( SocketData, NewText, Mesh->GetMeshOnlySocketList() );
 			}
 		}
 		else
 		{
 			// ...and if we're on the skeleton, check the skeleton for dupes
-			bVerifyName = !PersonaPtr.Pin()->DoesSocketAlreadyExist( SocketData, InText, TargetSkeleton->Sockets );
+			bVerifyName = !PersonaPtr.Pin()->DoesSocketAlreadyExist( SocketData, NewText, TargetSkeleton->Sockets );
 		}
 
 		// Needs to be checked on verify.
@@ -599,12 +604,14 @@ bool FDisplayedSocketInfo::OnVerifySocketNameChanged( const FText& InText, FText
 
 void FDisplayedSocketInfo::OnCommitSocketName( const FText& InText, ETextCommit::Type CommitInfo )
 {
-	const FScopedTransaction Transaction( LOCTEXT( "RenameSocket", "Rename Socket" ) );
+	FText NewText = FText::TrimPrecedingAndTrailing(InText);
+
+	const FScopedTransaction Transaction(LOCTEXT("RenameSocket", "Rename Socket"));
 	SocketData->SetFlags( RF_Transactional );	// Undo doesn't work without this!
 	SocketData->Modify();
 
 	FName OldSocketName = SocketData->SocketName;
-	SocketData->SocketName = FName( *InText.ToString() );
+	SocketData->SocketName = FName( *NewText.ToString() );
 
 	if ( SkeletonTree.IsValid() )
 	{
@@ -695,9 +702,9 @@ void FDisplayedAttachedAssetInfo::GenerateWidgetForNameColumn( TSharedPtr< SHori
 		[
 			SNew( STextBlock )
 			.ColorAndOpacity( FLinearColor::Gray )
-			.Text(LOCTEXT( "AttachedAssetPreviewText", "[Preview Only]" ).ToString() )
+			.Text(LOCTEXT( "AttachedAssetPreviewText", "[Preview Only]" ) )
 			.Font(TextFont)
-			.ToolTipText( LOCTEXT( "AttachedAssetPreviewText_ToolTip", "Attached assets in Persona are preview only and do not carry through to the game." ).ToString() )
+			.ToolTipText( LOCTEXT( "AttachedAssetPreviewText_ToolTip", "Attached assets in Persona are preview only and do not carry through to the game." ) )
 		];
 }
 
@@ -709,7 +716,7 @@ TSharedRef< SWidget > FDisplayedAttachedAssetInfo::GenerateWidgetForDataColumn()
 		.HAlign( HAlign_Left )
 		[
 			SNew( SCheckBox )
-			.ToolTipText( LOCTEXT( "TranslationCheckBoxToolTip", "Click to toggle visibility of this asset" ).ToString() )
+			.ToolTipText( LOCTEXT( "TranslationCheckBoxToolTip", "Click to toggle visibility of this asset" ) )
 			.OnCheckStateChanged( this, &FDisplayedAttachedAssetInfo::OnToggleAssetDisplayed )
 			.IsChecked( this, &FDisplayedAttachedAssetInfo::IsAssetDisplayed )
 			.Style( FEditorStyle::Get(), "CheckboxLookToggleButtonCheckbox" )
@@ -818,7 +825,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 				SNew( SComboButton )
 				.ContentPadding(3)
 				.OnGetMenuContent( this, &SSkeletonTree::CreateBoneFilterMenu )
-				.ToolTipText( LOCTEXT( "BoneFilterToolTip", "Change which types of bones are shown" ).ToString() )
+				.ToolTipText( LOCTEXT( "BoneFilterToolTip", "Change which types of bones are shown" ) )
 				.ButtonContent()
 				[
 					SNew( STextBlock )
@@ -834,7 +841,7 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 				SNew( SComboButton )
 				.ContentPadding(3)
 				.OnGetMenuContent( this, &SSkeletonTree::CreateSocketFilterMenu )
-				.ToolTipText( LOCTEXT( "SocketFilterToolTip", "Change which types of sockets are shown" ).ToString() )
+				.ToolTipText( LOCTEXT( "SocketFilterToolTip", "Change which types of sockets are shown" ) )
 				.ButtonContent()
 				[
 					SNew( STextBlock )
@@ -860,11 +867,11 @@ void SSkeletonTree::Construct(const FArguments& InArgs)
 				SNew(SHeaderRow)
 
 				+ SHeaderRow::Column( ColumnID_BoneLabel )
-				.DefaultLabel( LOCTEXT( "SkeletonBoneNameLabel", "Name" ).ToString() )
+				.DefaultLabel( LOCTEXT( "SkeletonBoneNameLabel", "Name" ) )
 				.FillWidth( 0.75f )
 
 				+ SHeaderRow::Column( ColumnID_RetargetingLabel )
-				.DefaultLabel( LOCTEXT( "SkeletonBoneTranslationRetargetingLabel", "Translation Retargeting" ).ToString() )
+				.DefaultLabel( LOCTEXT( "SkeletonBoneTranslationRetargetingLabel", "Translation Retargeting" ) )
 				.FillWidth( 0.25f )
 			)
 		]
@@ -1889,7 +1896,7 @@ void SSkeletonTree::DeleteAttachedObjects( FPreviewAssetAttachContainer& Attache
 	for(auto Iter = AttachedAssets.CreateIterator(); Iter; ++Iter)
 	{
 		FPreviewAttachedObjectPair& Pair = (*Iter);
-		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.Object, Pair.AttachedTo);
+		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.GetAttachedObject(), Pair.AttachedTo);
 	}
 
 	AttachedAssets.ClearAllAttachedObjects();
@@ -1969,10 +1976,9 @@ void SSkeletonTree::OnSelectionChanged(TSharedPtr<FDisplayedTreeRowInfo> Selecti
 
 FReply SSkeletonTree::OnDropAssetToSkeletonTree(const FDisplayedTreeRowInfoPtr TargetItem, const FDragDropEvent& DragDropEvent)
 {
-	if( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+	if (DragDropOp.IsValid())
 	{
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
-		
 		//Do we have some assets to attach?
 		if(DragDropOp->AssetData.Num() > 0)
 		{
@@ -2304,8 +2310,8 @@ void SSkeletonTree::RenameSocketAttachments(FName& OldSocketName, FName& NewSock
 		{
 			Pair.AttachedTo = NewSocketName;
 		}
-		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.Object, OldSocketName);
-		PersonaPtr.Pin()->AttachObjectToPreviewComponent(Pair.Object, Pair.AttachedTo);
+		PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.GetAttachedObject(), OldSocketName);
+		PersonaPtr.Pin()->AttachObjectToPreviewComponent(Pair.GetAttachedObject(), Pair.AttachedTo);
 	}
 
 	if ( PersonaPtr.IsValid() )
@@ -2323,8 +2329,8 @@ void SSkeletonTree::RenameSocketAttachments(FName& OldSocketName, FName& NewSock
 				{
 					Pair.AttachedTo = NewSocketName;
 				}
-				PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.Object, OldSocketName);
-				PersonaPtr.Pin()->AttachObjectToPreviewComponent(Pair.Object, Pair.AttachedTo);
+				PersonaPtr.Pin()->RemoveAttachedObjectFromPreviewComponent(Pair.GetAttachedObject(), OldSocketName);
+				PersonaPtr.Pin()->AttachObjectToPreviewComponent(Pair.GetAttachedObject(), Pair.AttachedTo);
 			}
 		}
 	}
@@ -2451,12 +2457,12 @@ void SSkeletonTree::AddAttachedAssets( const FPreviewAssetAttachContainer& Attac
 	{
 		const FPreviewAttachedObjectPair& Pair = (*Iter);
 
-		if ( !FilterText.IsEmpty() && !Pair.Object->GetName().Contains( FilterText.ToString() ) )
+		if ( !FilterText.IsEmpty() && !Pair.GetAttachedObject()->GetName().Contains( FilterText.ToString() ) )
 		{
 			continue;
 		}
 
-		TSharedRef<FDisplayedAttachedAssetInfo> DisplayInfo = FDisplayedAttachedAssetInfo::Make(Pair.AttachedTo, Pair.Object, TargetSkeleton, PersonaPtr, SharedThis( this ) );
+		TSharedRef<FDisplayedAttachedAssetInfo> DisplayInfo = FDisplayedAttachedAssetInfo::Make(Pair.AttachedTo, Pair.GetAttachedObject(), TargetSkeleton, PersonaPtr, SharedThis( this ) );
 		DisplayMirror.Add(DisplayInfo);
 
 		// for now it is a failure to not find where the asset is attached. Its possible that this might have to be changed to unloading the asset

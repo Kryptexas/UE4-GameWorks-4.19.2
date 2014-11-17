@@ -512,14 +512,8 @@ void FAssetEditorToolkit::Reimport_Execute( UObject* EditingObject )
 	// Don't allow user to perform certain actions on objects that aren't actually assets (e.g. Level Script blueprint objects)
 	if( EditingObject != NULL && EditingObject->IsAsset() )
 	{
-		// Warn that were about to reimport, so prep for it
-		PreReimport.Broadcast( EditingObject );
-
 		// Reimport the asset
-		const bool bSuccess = FReimportManager::Instance()->Reimport(EditingObject, ShouldPromptForNewFilesOnReload(*EditingObject));
-
-		// Let listeners know whether the reimport was successful or not
-		PostReimport.Broadcast( EditingObject, bSuccess );
+		FReimportManager::Instance()->Reimport(EditingObject, ShouldPromptForNewFilesOnReload(*EditingObject));
 	}
 }
 

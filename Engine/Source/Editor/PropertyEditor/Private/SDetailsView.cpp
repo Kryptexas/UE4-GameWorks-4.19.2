@@ -396,7 +396,7 @@ static bool IsVisibleStandaloneProperty( const FPropertyNode& PropertyNode, cons
 	return bIsVisibleStandalone;
 }
 
-void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& InDetailLayout, FName CurCategory, FObjectPropertyNode* CurObjectNode, const FCustomStructLayoutMap& StructLayoutMap )
+void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLayoutBuilderImpl& InDetailLayout, FName CurCategory, FObjectPropertyNode* CurObjectNode )
 {
 	UProperty* ParentProperty = InNode.GetProperty();
 	UStructProperty* ParentStructProp = Cast<UStructProperty>(ParentProperty);
@@ -414,12 +414,12 @@ void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLay
 			{
 				// Currently object property nodes do not provide any useful information other than being a container for its children.  We do not draw anything for them.
 				// When we encounter object property nodes, add their children instead of adding them to the tree.
-				UpdatePropertyMapRecursive( ChildNode, InDetailLayout, CurCategory, ObjNode, StructLayoutMap );
+				UpdatePropertyMapRecursive( ChildNode, InDetailLayout, CurCategory, ObjNode );
 			}
 			else if( CategoryNode )
 			{
 				// For category nodes, we just set the current category and recurse through the children
-				UpdatePropertyMapRecursive( ChildNode, InDetailLayout, CategoryNode->GetCategoryName(), CurObjectNode, StructLayoutMap );
+				UpdatePropertyMapRecursive( ChildNode, InDetailLayout, CategoryNode->GetCategoryName(), CurObjectNode );
 			}
 			else
 			{
@@ -435,14 +435,21 @@ void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLay
 
 				bool bIsChildOfCustomizedStruct = false;
 				bool bIsCustomizedStruct = false;
-				if( StructProperty && StructProperty->Struct )
-				{
-					bIsCustomizedStruct = StructLayoutMap.Contains( StructProperty->Struct->GetFName() );
-				}
 
-				if( ParentStructProp && ParentStructProp->Struct )
+				const UStruct* Struct = StructProperty ? StructProperty->Struct : NULL;
+				const UStruct* ParentStruct = ParentStructProp ? ParentStructProp->Struct : NULL;
+				if (Struct || ParentStruct)
 				{
-					bIsChildOfCustomizedStruct = StructLayoutMap.Contains( ParentStructProp->Struct->GetFName() );
+					FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+					if (Struct)
+					{
+						bIsCustomizedStruct = ParentPlugin.IsCustomizedStruct(Struct);
+					}
+
+					if (ParentStruct)
+					{
+						bIsChildOfCustomizedStruct = ParentPlugin.IsCustomizedStruct(ParentStruct);
+					}
 				}
 
 				// Whether or not to push out struct properties to their own categories or show them inside an expandable struct 
@@ -454,11 +461,16 @@ void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLay
 				// Is this a property of an array
 				bool bIsChildOfArray = PropertyEditorHelpers::IsChildOfArray( ChildNode );
 
+				bool bIsChildOfAttribute = ParentProperty ? ParentProperty->IsA<UAttributeProperty>() : false;
+
 				// Edit inline new properties should be visible by default
 				bVisibleByDefault |= bIsEditInlineNew;
 
-				// Children of arrays are not visible directly,
+				// Children of arrays are not visible directly
 				bVisibleByDefault &= !bIsChildOfArray;
+
+				// Children of attributes are not visible directly
+				bVisibleByDefault &= !bIsChildOfAttribute;
 
 				// See if the user requested specific property visibility 
 				const bool bIsUserVisible = IsPropertyVisible.IsBound() ? IsPropertyVisible.Execute( Property ) : true;
@@ -482,7 +494,7 @@ void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLay
 				}
 
 				// Do not add children of customized in struct properties or arrays
-				if( !bIsChildOfCustomizedStruct && !bIsChildOfArray )
+				if( !bIsChildOfCustomizedStruct && !bIsChildOfArray && !bIsChildOfAttribute )
 				{
 					// Get the class property map
 					FClassInstanceToPropertyMap& ClassInstanceMap = ClassToPropertyMap.FindOrAdd( Property->GetOwnerStruct()->GetFName() );
@@ -531,7 +543,7 @@ void SDetailsView::UpdatePropertyMapRecursive( FPropertyNode& InNode, FDetailLay
 				if( bRecurseIntoChildren )
 				{
 					// Built in struct properties or children of arras 
-					UpdatePropertyMapRecursive( ChildNode, InDetailLayout, CurCategory, CurObjectNode, StructLayoutMap );
+					UpdatePropertyMapRecursive( ChildNode, InDetailLayout, CurCategory, CurObjectNode );
 				}
 			}		
 		}
@@ -552,15 +564,10 @@ void SDetailsView::UpdatePropertyMap()
 	RootTreeNodes.Empty();
 
 	DetailLayout = MakeShareable( new FDetailLayoutBuilderImpl( ClassToPropertyMap, PropertyUtilities.ToSharedRef(), SharedThis( this ) ) );
-	
-	FPropertyEditorModule& ParentPlugin = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-
-	// Get the registered classes that customize details
-	FCustomStructLayoutMap& GlobalStructLayoutMap = ParentPlugin.StructTypeToLayoutMap;
 
 	// Currently object property nodes do not provide any useful information other than being a container for its children.  We do not draw anything for them.
 	// When we encounter object property nodes, add their children instead of adding them to the tree.
-	UpdatePropertyMapRecursive( *RootPropertyNode, *DetailLayout, NAME_None, RootPropertyNode.Get(), GlobalStructLayoutMap );
+	UpdatePropertyMapRecursive( *RootPropertyNode, *DetailLayout, NAME_None, RootPropertyNode.Get() );
 
 	// Ask for custom detail layouts
 	QueryCustomDetailLayout( *DetailLayout );

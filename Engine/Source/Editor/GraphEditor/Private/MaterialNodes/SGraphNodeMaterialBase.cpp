@@ -87,16 +87,16 @@ void FPreviewViewport::OnDrawViewport( const FGeometry& AllottedGeometry, const 
 	FSlateRect ClippedCanvasRect = SlateCanvasRect.IntersectionWith(MyClippingRect);
 
 	FIntRect CanvasRect(
-		FMath::Trunc( FMath::Max(0.0f, SlateCanvasRect.Left) ),
-		FMath::Trunc( FMath::Max(0.0f, SlateCanvasRect.Top) ),
-		FMath::Trunc( FMath::Max(0.0f, SlateCanvasRect.Right) ), 
-		FMath::Trunc( FMath::Max(0.0f, SlateCanvasRect.Bottom) ) );
+		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Left) ),
+		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Top) ),
+		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Right) ), 
+		FMath::TruncToInt( FMath::Max(0.0f, SlateCanvasRect.Bottom) ) );
 
 	FIntRect ClippingRect(
-		FMath::Trunc( FMath::Max(0.0f, ClippedCanvasRect.Left) ),
-		FMath::Trunc( FMath::Max(0.0f, ClippedCanvasRect.Top) ),
-		FMath::Trunc( FMath::Max(0.0f, ClippedCanvasRect.Right) ), 
-		FMath::Trunc( FMath::Max(0.0f, ClippedCanvasRect.Bottom) ) );
+		FMath::TruncToInt( FMath::Max(0.0f, ClippedCanvasRect.Left) ),
+		FMath::TruncToInt( FMath::Max(0.0f, ClippedCanvasRect.Top) ),
+		FMath::TruncToInt( FMath::Max(0.0f, ClippedCanvasRect.Right) ), 
+		FMath::TruncToInt( FMath::Max(0.0f, ClippedCanvasRect.Bottom) ) );
 
 	bool bIsRealtime = MaterialNode->RealtimeDelegate.IsBound() ? MaterialNode->RealtimeDelegate.Execute() : false;
 
@@ -183,8 +183,8 @@ void FPreviewElement::DrawRenderThread( const void* InWindowBackBuffer )
 	RenderTarget->SetRenderTargetTexture( *(FTexture2DRHIRef*)InWindowBackBuffer );
 	{
 		// Check realtime mode for whether to pass current time to canvas
-		float CurrentTime = bIsRealtime ? (GCurrentTime - GStartTime) : 0.0f;
-		float DeltaTime = bIsRealtime ? GDeltaTime : 0.0f;
+		float CurrentTime = bIsRealtime ? (FApp::GetCurrentTime() - GStartTime) : 0.0f;
+		float DeltaTime = bIsRealtime ? FApp::GetDeltaTime() : 0.0f;
 
 		FCanvas Canvas(RenderTarget, NULL, CurrentTime, CurrentTime, DeltaTime);
 		{
@@ -243,9 +243,9 @@ void SGraphNodeMaterialBase::CreatePinWidgets()
 	}
 }
 
-void SGraphNodeMaterialBase::MoveTo(const FVector2D& NewPosition)
+void SGraphNodeMaterialBase::MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter)
 {
-	SGraphNode::MoveTo(NewPosition);
+	SGraphNode::MoveTo(NewPosition, NodeFilter);
 
 	MaterialNode->MaterialExpression->MaterialExpressionEditorX = MaterialNode->NodePosX;
 	MaterialNode->MaterialExpression->MaterialExpressionEditorY = MaterialNode->NodePosY;

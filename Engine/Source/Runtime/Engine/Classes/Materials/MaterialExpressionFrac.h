@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionFrac.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionFrac : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

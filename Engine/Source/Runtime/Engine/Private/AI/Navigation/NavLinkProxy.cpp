@@ -22,6 +22,7 @@ ANavLinkProxy::ANavLinkProxy(const class FPostConstructInitializeProperties& PCI
 		static ConstructorHelpers::FObjectFinderOptional<UTexture2D> SpriteTexture(TEXT("/Engine/EditorResources/AI/S_NavLink"));
 
 		SpriteComponent->Sprite = SpriteTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bVisible = true;
 

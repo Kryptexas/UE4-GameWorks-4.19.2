@@ -18,7 +18,7 @@ struct FPropertyTag
 	FName	Name;		// Name of property.
 	FName	StructName;	// Struct name if UStructProperty.
 	FName	EnumName;	// Enum name if UByteProperty
-	FName InnerType; // Inner type if UArrayProperty
+	FName InnerType; // Inner type if UArrayProperty or UAttributeProperty
 	int32		Size;       // Property size.
 	int32		ArrayIndex;	// Index if an array; else 0.
 	int32		SizeOffset;	// location in stream of tag size member
@@ -53,10 +53,15 @@ struct FPropertyTag
 					EnumName = ByteProp->Enum->GetFName();
 				}
 			}
-			else if (Property->IsA(UArrayProperty::StaticClass()))
+			else if (Property->IsA(UArrayProperty::StaticClass()) )
 			{
 				UArrayProperty* ArrayProp = CastChecked<UArrayProperty>(Property);
 				InnerType = ArrayProp->Inner->GetID();
+			}
+			else if( Property->IsA(UAttributeProperty::StaticClass() ) )
+			{
+				UAttributeProperty* AttributeProp = CastChecked<UAttributeProperty>(Property);
+				InnerType = AttributeProp->Inner->GetID();
 			}
 			else if (Property->IsA(UBoolProperty::StaticClass()))
 			{
@@ -101,7 +106,7 @@ struct FPropertyTag
 			Ar << Tag.EnumName;
 		}
 		// only need to serialize this for arrays
-		else if (Tag.Type == NAME_ArrayProperty)
+		else if (Tag.Type == NAME_ArrayProperty || Tag.Type == NAME_AttributeProperty)
 		{
 			if (Ar.UE4Ver() >= VAR_UE4_ARRAY_PROPERTY_INNER_TAGS)
 			{

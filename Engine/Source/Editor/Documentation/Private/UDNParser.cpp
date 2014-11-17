@@ -954,7 +954,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 
 	if ( bCriticalError )
 	{
-		return SNew( STextBlock ).Text( LOCTEXT("ExcerptContentLoadingError", "Excerpt {0} could not be loaded.  :(").ToString() );
+		return SNew( STextBlock ).Text( LOCTEXT("ExcerptContentLoadingError", "Excerpt {0} could not be loaded.  :(") );
 	}
 
 	return Box.ToSharedRef();

@@ -9,7 +9,7 @@
 
 #include "MaterialExpressionParticleSpeed.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionParticleSpeed : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

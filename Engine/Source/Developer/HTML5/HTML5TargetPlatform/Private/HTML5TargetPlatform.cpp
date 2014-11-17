@@ -44,95 +44,6 @@ ECompressionFlags FHTML5TargetPlatform::GetBaseCompressionMethod( ) const
 }
 
 
-bool FHTML5TargetPlatform::GetBuildArtifacts( const FString& ProjectPath, EBuildTargets::Type BuildTarget, EBuildConfigurations::Type BuildConfiguration, ETargetPlatformBuildArtifacts::Type Artifacts, TMap<FString, FString>& OutFiles, TArray<FString>& OutMissingFiles ) const
-{
-	if ((BuildTarget != EBuildTargets::Game) || (BuildConfiguration == EBuildConfigurations::Unknown))
-	{
-		return false;
-	}
-
-	const FString ProjectName = FPaths::GetBaseFilename(ProjectPath);
-	const FString ProjectRoot = FPaths::GetPath(ProjectPath);
-
-	if (!ProjectName.IsEmpty() || !ProjectRoot.IsEmpty())
-	{
-		return false;
-	}
-
-	// append binaries
-	if (Artifacts & ETargetPlatformBuildArtifacts::Engine)
-	{
-		const FString EngineBinariesDir = FPaths::EngineDir() / TEXT("Binaries") / PlatformName();
-		const FString DeployedBinariesDir = FString(TEXT("Engine/Binaries")) / PlatformName();
-
-		// executable
-		{
-			FString ExecutableName;
-			FString ProjectBinariesDir = ProjectRoot / TEXT("Binaries");
-
-			// content-only projects use game agnostic binaries
-			if (IFileManager::Get().DirectoryExists(*ProjectBinariesDir))
-			{
-				ExecutableName = ProjectName;
-			}
-			else
-			{
-				ExecutableName = TEXT("UE4");
-				ProjectBinariesDir = EngineBinariesDir;
-			}
-
-			if (BuildConfiguration != EBuildConfigurations::Development)
-			{
-				ExecutableName += FString::Printf(TEXT("-HTML5-%s"), EBuildConfigurations::ToString(BuildConfiguration));
-			}
-
-			ExecutableName += TEXT(".js");
-			ProjectBinariesDir /= PlatformName();
-
-			// add executable
-			{
-				const FString ExecutablePath = ProjectBinariesDir / ExecutableName;
-
-				if (FPaths::FileExists(*ExecutablePath))
-				{
-					OutFiles.Add(ExecutablePath, DeployedBinariesDir / ExecutableName);
-				}
-				else
-				{
-					OutMissingFiles.Add(ExecutablePath);
-				}
-
-				const FString MemFileName = ExecutableName + TEXT(".mem");
-				const FString MemFilePath = ProjectBinariesDir / MemFileName;
-
-				if (FPaths::FileExists(*MemFilePath))
-				{
-					OutFiles.Add(MemFilePath, DeployedBinariesDir / MemFileName);
-				}
-				else
-				{
-					OutMissingFiles.Add(MemFilePath);
-				}
-			}
-		}
-	}
-
-	// append engine content
-	if (Artifacts & ETargetPlatformBuildArtifacts::Content)
-	{
-		// @todo: handle Engine configuration files and content
-	}
-
-	// append game content
-	if (Artifacts & ETargetPlatformBuildArtifacts::Content)
-	{
-		// @todo: handle game configuration files and content
-	}
-
-	return (OutMissingFiles.Num() == 0);
-}
-
-
 ITargetDevicePtr FHTML5TargetPlatform::GetDefaultDevice( ) const
 {
 	return LocalDevice;
@@ -176,9 +87,15 @@ bool FHTML5TargetPlatform::IsRunningPlatform( ) const
 
 static FName NAME_OPENGL_ES2_WEBGL(TEXT("GLSL_ES2_WEBGL"));
 
-void FHTML5TargetPlatform::GetShaderFormats( TArray<FName>& OutFormats ) const
+void FHTML5TargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
 {
 	OutFormats.AddUnique(NAME_OPENGL_ES2_WEBGL);
+}
+
+
+void FHTML5TargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const
+{
+	GetAllPossibleShaderFormats(OutFormats);
 }
 
 
@@ -220,7 +137,22 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 	// Determine the pixel format of the (un/)compressed texture
 	if (bNoCompression)
 	{
-		TextureFormatName = NameBGRA8;
+			if (Texture->HasHDRSource())
+			{
+				TextureFormatName = NameBGRA8;
+			}
+			else if (SourceFormat == TSF_G8 || Texture->CompressionSettings == TC_Grayscale)
+			{
+				TextureFormatName = NameG8;
+			}
+			else if (Texture->LODGroup == TEXTUREGROUP_Shadowmap)
+			{
+				TextureFormatName = NameG8;
+			}
+			else
+			{
+				TextureFormatName = NameBGRA8;
+			}
 	}
 	else if (Texture->CompressionSettings == TC_HDR)
 	{

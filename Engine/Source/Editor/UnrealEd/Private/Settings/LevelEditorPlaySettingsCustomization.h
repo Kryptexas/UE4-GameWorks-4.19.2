@@ -195,14 +195,14 @@ public:
 						[
 							SNew(STextBlock)
 								.Font(LayoutBuilder->GetDetailFont())
-								.Text(LOCTEXT("CommonResolutionsButtonText", "Common Window Sizes").ToString())
+								.Text(LOCTEXT("CommonResolutionsButtonText", "Common Window Sizes"))
 						]
 						.ContentPadding(FMargin(6.0f, 1.0f))
 						.MenuContent()
 						[
 							MakeCommonResolutionsMenu()
 						]
-						.ToolTipText(LOCTEXT("CommonResolutionsButtonTooltip", "Pick from a list of common screen resolutions").ToString())
+						.ToolTipText(LOCTEXT("CommonResolutionsButtonTooltip", "Pick from a list of common screen resolutions"))
 				]		
 		];
 	}

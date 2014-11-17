@@ -4,7 +4,7 @@
 #include "ModuleManager.h"
 
 
-#include "MovieSceneCoreTypes.generated.inl"
+
 
 /**
  * FMovieSceneCoreTypesModule module implementation (private)

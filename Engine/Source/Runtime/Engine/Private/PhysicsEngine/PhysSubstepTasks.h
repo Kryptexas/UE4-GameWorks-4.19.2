@@ -88,13 +88,22 @@ struct FPhysTarget
 	
 };
 
+#if WITH_PHYSX
+#if WITH_APEX
+typedef NxApexScene PxApexScene;	//helper typedef so we don't have to use as many ifdefs
+#else
+typedef PxScene PxApexScene;
+#endif
+#endif
+
 /** Holds information used for substepping a scene */
 class FPhysSubstepTask
 {
 public:
 #if WITH_PHYSX
-	FPhysSubstepTask(PxScene * GivenPScene);
+	FPhysSubstepTask(PxApexScene * GivenScene);
 #endif
+
 	void SetKinematicTarget(FBodyInstance * Body, const FTransform & TM);
 	void AddForce(FBodyInstance * Body, const FVector & Force);
 	void AddForceAtPosition(FBodyInstance * Body, const FVector & Force, const FVector & Position);
@@ -107,10 +116,11 @@ public:
 	void SwapBuffers();
 	float UpdateTime(float UseDelta);
 
-#if WITH_APEX
-	void StepSimulation(NxApexScene * ApexScene, PhysXCompletionTask * Task);
+	void SetVehicleManager(class FPhysXVehicleManager *	InVehicleManager);
 	void SubstepSimulationStart();
 	void SubstepSimulationEnd(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent);
+#if WITH_PHYSX
+	void StepSimulation(PhysXCompletionTask * Task);
 #endif
 		
 private:
@@ -134,12 +144,11 @@ private:
 	uint32 CurrentSubStep;
 	FGraphEventRef CompletionEvent;
 
-#if WITH_APEX
-	class NxApexScene * ApexScene;
-#endif
+	/** Vehicle scene */
+	class FPhysXVehicleManager*			VehicleManager;
 
 #if WITH_PHYSX
-	PxScene * PScene;
+	PxApexScene * PAScene;
 #endif
 
 };

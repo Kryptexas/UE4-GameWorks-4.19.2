@@ -16,7 +16,7 @@
 #include "ImageWrapper.h"
 #include "RenderCore.h"
 #include "RenderResource.h"
-#include "Renderer.h"
+#include "Slate.h"
 
 
 /* Private includes

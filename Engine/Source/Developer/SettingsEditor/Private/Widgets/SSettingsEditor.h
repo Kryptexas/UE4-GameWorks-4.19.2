@@ -82,6 +82,14 @@ protected:
 	 */
 	void ReloadCategories( );
 
+	/**
+	 * Shows a notification pop-up.
+	 *
+	 * @param Text The notification text.
+	 * @param CompletionState The notification's completion state, i.e. success or failure.
+	 */
+	void ShowNotification( const FText& Text, SNotificationItem::ECompletionState CompletionState ) const;
+
 private:
 
 	// Callback for clicking the Back link.
@@ -90,6 +98,11 @@ private:
 	// Callback for clicking the 'Check Out' button.
 	FReply HandleCheckOutButtonClicked( );
 
+	// Callback for getting the widget index for the notice switcher.
+	bool HandleConfigNoticeUnlocked( ) const;
+
+	// Callback for when the user's culture has changed.
+	void HandleCultureChanged( );
 
 	// Callback for determining the visibility of the 'Locked' notice.
 	EVisibility HandleDefaultConfigNoticeVisibility( ) const;
@@ -109,26 +122,23 @@ private:
 	// Callback for changing the selected settings section.
 	void HandleModelSelectionChanged( );
 
-	// Callback for getting the widget index for the notice switcher.
-	bool IsDefaultConfigEditable() const;
-
 	// Callback for clicking the 'Reset to Defaults' button.
 	FReply HandleResetDefaultsButtonClicked( );
 
 	// Callback for getting the enabled state of the 'Reset to Defaults' button.
 	bool HandleResetToDefaultsButtonEnabled( ) const;
 
-	// Callback for clicking the 'Save as Defaults' button.
-	FReply HandleSaveDefaultsButtonClicked( );
-
-	// Callback for getting the enabled state of the 'Save as Defaults' button.
-	bool HandleSaveDefaultsButtonEnabled( ) const;
-
 	// Callback for navigating a settings section link.
 	void HandleSectionLinkNavigate( ISettingsSectionPtr Section );
 
 	// Callback for getting the visibility of a section link image.
 	EVisibility HandleSectionLinkImageVisibility( ISettingsSectionPtr Section ) const;
+
+	// Callback for clicking the 'Set as Defaults' button.
+	FReply HandleSetAsDefaultButtonClicked( );
+
+	// Callback for getting the enabled state of the 'Set as Defaults' button.
+	bool HandleSetAsDefaultButtonEnabled( ) const;
 
 	// Callback for getting the section description text.
 	FText HandleSettingsBoxDescriptionText( ) const;
@@ -153,11 +163,11 @@ private:
 	// Holds the vertical box for settings categories.
 	TSharedPtr<SVerticalBox> CategoriesBox;
 
-	// Holds a timer for checking whether the section's configuration file needs to be checked out.
-	float DefaultConfigCheckOutTimer;
-	
 	// Holds a flag indicating whether the section's configuration file needs to be checked out.
 	bool DefaultConfigCheckOutNeeded;
+
+	// Holds a timer for checking whether the section's configuration file needs to be checked out.
+	float DefaultConfigCheckOutTimer;
 
 	// Holds the overlay slot for custom widgets.
 	SOverlay::FOverlaySlot* CustomWidgetSlot;

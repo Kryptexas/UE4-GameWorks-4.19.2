@@ -16,19 +16,20 @@ public class PhAT : ModuleRules
                 "InputCore",
 				"RenderCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"LevelEditor",
 				"UnrealEd",
-                "Kismet"
+                "Kismet",
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"MainFrame",
 				"PropertyEditor",
-                "MeshUtilities"
+                "MeshUtilities",
 			}
-			);
+		);
 	}
 }

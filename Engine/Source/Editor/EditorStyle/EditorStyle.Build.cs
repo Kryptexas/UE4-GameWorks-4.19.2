@@ -10,17 +10,22 @@ public class EditorStyle : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"Slate"
+				"Slate",
 			}
 		);
 
-        PrivateDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
+			new string[] {
+				"SlateCore",
+				"TargetPlatform",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
 			}
 		);
-
-		PrivateDependencyModuleNames.Add("TargetPlatform");
 
 		OptimizeCode = CodeOptimization.Never;
 	}

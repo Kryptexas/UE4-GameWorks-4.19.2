@@ -69,10 +69,10 @@ FColor FLinearColor::ToRGBE() const
 		int32	Exponent;
 		const float Scale	= frexp(Primary, &Exponent) / Primary * 255.f;
 
-		Color.R		= FMath::Clamp(FMath::Trunc(R * Scale), 0, 255);
-		Color.G		= FMath::Clamp(FMath::Trunc(G * Scale), 0, 255);
-		Color.B		= FMath::Clamp(FMath::Trunc(B * Scale), 0, 255);
-		Color.A		= FMath::Clamp(FMath::Trunc(Exponent),-128,127) + 128;
+		Color.R		= FMath::Clamp(FMath::TruncToInt(R * Scale), 0, 255);
+		Color.G		= FMath::Clamp(FMath::TruncToInt(G * Scale), 0, 255);
+		Color.B		= FMath::Clamp(FMath::TruncToInt(B * Scale), 0, 255);
+		Color.A		= FMath::Clamp(FMath::TruncToInt(Exponent),-128,127) + 128;
 	}
 
 	return Color;
@@ -96,10 +96,10 @@ FColor FLinearColor::ToFColor(const bool bSRGB) const
 
 	FColor ret;
 
-	ret.A = FMath::Floor(FloatA * 255.999f);
-	ret.R = FMath::Floor(FloatR * 255.999f);
-	ret.G = FMath::Floor(FloatG * 255.999f);
-	ret.B = FMath::Floor(FloatB * 255.999f);
+	ret.A = FMath::FloorToInt(FloatA * 255.999f);
+	ret.R = FMath::FloorToInt(FloatR * 255.999f);
+	ret.G = FMath::FloorToInt(FloatG * 255.999f);
+	ret.B = FMath::FloorToInt(FloatB * 255.999f);
 
 	return ret;
 }
@@ -108,10 +108,10 @@ FColor FLinearColor::ToFColor(const bool bSRGB) const
 FColor FLinearColor::Quantize() const
 {
 	return FColor(
-		(uint8)FMath::Clamp<int32>(FMath::Trunc(R*255.f),0,255),
-		(uint8)FMath::Clamp<int32>(FMath::Trunc(G*255.f),0,255),
-		(uint8)FMath::Clamp<int32>(FMath::Trunc(B*255.f),0,255),
-		(uint8)FMath::Clamp<int32>(FMath::Trunc(A*255.f),0,255)
+		(uint8)FMath::Clamp<int32>(FMath::TruncToInt(R*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::TruncToInt(G*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::TruncToInt(B*255.f),0,255),
+		(uint8)FMath::Clamp<int32>(FMath::TruncToInt(A*255.f),0,255)
 		);
 }
 
@@ -272,8 +272,8 @@ FColor FColor::MakeRedToGreenColorFromScalar(float Scalar)
 
 	float RedSclr = FMath::Clamp<float>((1.0f - Scalar)/0.5f,0.f,1.f);
 	float GreenSclr = FMath::Clamp<float>((Scalar/0.5f),0.f,1.f);
-	R = FMath::Trunc(255 * RedSclr);
-	G = FMath::Trunc(255 * GreenSclr);
+	R = FMath::TruncToInt(255 * RedSclr);
+	G = FMath::TruncToInt(255 * GreenSclr);
 	return FColor(R,G,B);
 }
 

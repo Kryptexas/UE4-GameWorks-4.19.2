@@ -16,7 +16,8 @@ public:
 		: bServerAvailable(false)
 		, PersistentConnection(NULL)
 #if PLATFORM_WINDOWS
-		, P4apiHandle(NULL)
+		, Module_libeay32(NULL)
+		, Module_ssleay32(NULL)
 #endif
 	{
 	}
@@ -89,16 +90,6 @@ private:
 	void ParseCommandLineSettings(bool bForceConnection);
 
 	/**
-	 * Load the p4api dll's
-	 */
-	void LoadLibraries();
-
-	/**
-	 * Unload the perforce dll's
-	 */
-	void UnloadLibraries();
-
-	/**
 	 * Helper function for running command 'synchronously'.
 	 * This really doesn't execute synchronously; rather it adds the command to the queue & does not return until
 	 * the command is completed.
@@ -110,14 +101,28 @@ private:
 	 */
 	ECommandResult::Type IssueCommand(class FPerforceSourceControlCommand& InCommand, const bool bSynchronous);
 
+	/**
+	 * Load the OpenSSL libraries needed to support SSL (currently windows only)
+	 */
+	void LoadSSLLibraries();
+
+	/**
+	 * Unload the OpenSSL libraries needed to support SSL (currently windows only)
+	 */
+	void UnloadSSLLibraries();
+
 private:
 #if PLATFORM_WINDOWS
-	/** A handle for the p4api module */
-	HMODULE P4apiHandle;
+	/** Module handles for OpenSSL dlls */
+	HMODULE Module_libeay32;
+	HMODULE Module_ssleay32;
 #endif
 
 	/** The ticket we use for login. */
 	FString Ticket;
+
+	/** the root of the workspace we are currently using */
+	FString WorkspaceRoot;
 
 	/** Indicates if source control integration is available or not. */
 	bool bServerAvailable;

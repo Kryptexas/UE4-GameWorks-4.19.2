@@ -27,6 +27,7 @@ struct FAsyncPackage : public FGCObject
 	,	ExportIndex					( 0						)
 	,	TimeLimit					( FLT_MAX				)
 	,	bUseTimeLimit				( false					)
+	,	bUseFullTimeLimit			( false					)
 	,	bTimeLimitExceeded			( false					)
 	,	bLoadHasFailed				( false					)
 	, bLoadHasFinished			( false					)
@@ -65,11 +66,12 @@ struct FAsyncPackage : public FGCObject
 	 * Ticks the async loading code.
 	 *
 	 * @param	InbUseTimeLimit		Whether to use a time limit
+	 * @param	InbUseFullTimeLimit	If true use the entire time limit, even if you have to block on IO
 	 * @param	InTimeLimit			Soft limit to time this function may take
 	 *
 	 * @return	true if package has finished loading, false otherwise
 	 */
-	EAsyncPackageState::Type Tick( bool bUseTimeLimit, float& InOutTimeLimit );
+	EAsyncPackageState::Type Tick( bool bUseTimeLimit, bool bInbUseFullTimeLimit, float& InOutTimeLimit );
 
 	/**
 	 * @return Estimated load completion percentage.
@@ -176,6 +178,8 @@ private:
 	float						TimeLimit;
 	/** Whether we are using a time limit for this tick.												*/
 	bool						bUseTimeLimit;
+	/** Whether we should use the entire time limit, even if we're blocked on I/O						*/
+	bool						bUseFullTimeLimit;
 	/** Whether we already exceed the time limit this tick.												*/
 	bool						bTimeLimitExceeded;
 	/** True if our load has failed */

@@ -134,7 +134,7 @@ private:
 	/** set when we started a new travel in the middle of a previous one and still need to clean up that previous attempt */
 	bool bNeedCancelCleanUp;
 	/** The context we are running in. Can be used to get the FWorldContext from Engine*/
-	int32 WorldContextHandle;
+	FName WorldContextHandle;
 
 	/** copy data between the old world and the new world */
 	void CopyWorldData();
@@ -262,7 +262,7 @@ struct ENGINE_API FLevelViewportInfo
 	{
 		CamPosition = FVector::ZeroVector;
 		CamRotation = FRotator::ZeroRotator;
-		CamOrthoZoom = 0.0f;
+		CamOrthoZoom = DEFAULT_ORTHOZOOM;
 		CamUpdated = false;
 	}
 
@@ -280,7 +280,20 @@ struct ENGINE_API FLevelViewportInfo
 		{
 			I.CamUpdated = true;
 		}
-		return Ar << I.CamPosition << I.CamRotation << I.CamOrthoZoom;
+
+		Ar << I.CamPosition;
+		Ar << I.CamRotation;
+		Ar << I.CamOrthoZoom;
+
+		if ( Ar.IsLoading() )
+		{
+			if ( I.CamOrthoZoom == 0 )
+			{
+				I.CamOrthoZoom = DEFAULT_ORTHOZOOM;
+			}
+		}
+
+		return Ar;
 	}
 };
 
@@ -393,17 +406,37 @@ struct ENGINE_API FActorSpawnParameters
 	{
 	}
 
-
+	/* A name to assign as the Name of the Actor being spawned. If no value is specified, the name of the spawned Actor will be automatically generated using the form [Class]_[Number]. */
 	FName Name;
+
+	/* An Actor to use as a template when spawning the new Actor. The spawned Actor will be initialized using the property values of the template Actor. If left NULL the class default object (CDO) will be used to initialize the spawned Actor. */
 	AActor* Template;
-	AActor* Owner; 
+
+	/* The Actor that spawned this Actor. (Can be left as NULL). */
+	AActor* Owner;
+
+	/* The APawn that is responsible for damage done by the spawned Actor. (Can be left as NULL). */
 	APawn*	Instigator;
+
+	/* The ULevel to spawn the Actor in, i.e. the Outer of the Actor. If left as NULL the Outer of the Owner is used. If the Owner is NULL the persistent level is used. */
 	class	ULevel* OverrideLevel;
+
+	/* Determines whether a collision test will be performed when spawning the Actor. If true, no collision test will be performed when spawning the Actor regardless of the collision settings of the root component or template Actor. */
 	uint32	bNoCollisionFail:1;
+
+	/* Is the actor remotely owned. */
 	uint32	bRemoteOwned:1;
+
+	/* Determines whether spawning will not fail if certain conditions are not met. If true, spawning will not fail because the class being spawned is `bStatic=true` or because the class of the template Actor is not the same as the class of the Actor being spawned. */
 	uint32	bNoFail:1;
+
+	/* Determines whether the construction script will be run. If true, the construction script will not be run on the spawned Actor. Only applicable if the Actor is being spawned from a Blueprint. */
 	uint32	bDeferConstruction:1;
+	
+	/* Determines whether or not the actor may be spawned when running a construction script. If true spawning will fail if a construction script is being run. */
 	uint32	bAllowDuringConstructionScript:1;
+	
+	/* Flags used to describe the spawned actor/object instance. */
 	EObjectFlags ObjectFlags;		
 };
 
@@ -711,6 +744,9 @@ public:
 	/** Whether we are in the middle of ticking actors/components or not														*/
 	bool										bInTick;
 
+    /** Whether we have already built the collision tree or not                                                                 */
+    bool                                        bIsBuilt;
+    
 	/** We are in the middle of actor ticking, so add tasks for newly spawned actors											*/
 	bool										bTickNewlySpawned;
 
@@ -790,9 +826,9 @@ public:
 	/** Moved from WorldSettings properties - START 														**/
 	/*****************************************************************************************************/
 		
-	/** Linked list of post processing volumes, sorted in ascending order of priority.					*/
-	TAutoWeakObjectPtr<class APostProcessVolume> LowestPriorityPostProcessVolume;
-	
+	/** An array of post processing volumes, sorted in ascending order of priority.					*/
+	TArray< IInterface_PostProcessVolume * > PostProcessVolumes;
+
 	/** Linked list of reverb volumes, sorted in descending order of priority.							*/
 	TAutoWeakObjectPtr<class AReverbVolume> HighestPriorityReverbVolume;
 
@@ -840,7 +876,7 @@ public:
 	/** @todo document */
 	FString NextURL;
 
-	/** @todo document */
+	/** Amount of time to wait before traveling to next map, gives clients time to receive final RPCs @see ServerTravelPause */
 	float NextSwitchCountdown;
 
 	/** array of levels that were loaded into this map via PrepareMapChange() / CommitMapChange() (to inform newly joining clients) */
@@ -869,8 +905,11 @@ public:
 	/** Whether it was requested that the engine bring up a loading screen and block on async loading. */   
 	uint32 bRequestedBlockOnAsyncLoading:1;
 
-	/** Whether gameplay has begun. */
-	uint32 bBegunPlay:1;		
+	/** Whether actors have been initialized for play */
+	uint32 bActorsInitialized:1;
+
+	/** Whether BeginPlay has been called on actors */
+	uint32 bBegunPlay:1;
 
 	/** Whether the match has been started */
 	uint32 bMatchStarted:1;
@@ -1406,11 +1445,15 @@ public:
 	 */	
 	ULocalPlayer* GetFirstLocalPlayerFromController() const;
 	
+	UGameViewportClient* GetGameViewport() const;
 
 	/** Returns the default brush. */
 	ABrush* GetBrush() const;
 
-	/** Returns true if game has already started, false otherwise. */
+	/** Returns true if the actors have been initialized and are ready to start play */
+	bool AreActorsInitialized() const;
+
+	/** Returns true if gameplay has already started, false otherwise. */
 	bool HasBegunPlay() const;
 
 	/**
@@ -1779,7 +1822,7 @@ public:
 	/**
 	 * Static function that creates a new UWorld and returns a pointer to it
 	 */
-	static UWorld* CreateWorld( const EWorldType::Type InWorldType, bool bInformEngineOfWorld );
+	static UWorld* CreateWorld( const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName = NAME_None, UPackage* InWorldPackage = NULL, bool bAddToRoot = true );
 
 	/** 
 	 * Destroy this World instance 
@@ -2030,7 +2073,7 @@ public:
 	/**
 	* Spawns given class and returns class T pointer, forcibly sets world position. WILL NOT run Construction Script of Blueprints 
 	* to give caller an opportunity to set parameters beforehand.  Caller is responsible for invoking construction
-	* manually (see AActor::OnConstruction).
+	* manually by calling UGameplayStatics::FinishSpawningActor (see AActor::OnConstruction).
 	*/
 	template< class T >
 	T* SpawnActorDeferred(
@@ -2106,13 +2149,20 @@ public:
 	/** Spawns GameMode for the level. */
 	bool SetGameMode(const FURL& InURL);
 
-	/** BeginPlay - Begins gameplay in the level.
+	/** 
+	 * Initializes all actors and prepares them to start gameplay
 	 * @param InURL commandline URL
 	 * @param bResetTime (optional) whether the WorldSettings's TimeSeconds should be reset to zero
 	 */
-	void BeginPlay(const FURL& InURL, bool bResetTime = true);
+	void InitializeActorsForPlay(const FURL& InURL, bool bResetTime = true);
 
-	/** Looks for a PlayerController that was being swapped by the given NetConnection and, if found, destroys it
+	/**
+	 * Start gameplay. This will cause the game mode to transition to the correct state and call BeginPlay on all actors
+	 */
+	void BeginPlay();
+
+	/** 
+	 * Looks for a PlayerController that was being swapped by the given NetConnection and, if found, destroys it
 	 * (because the swap is complete or the connection was closed)
 	 * @param Connection - the connection that performed the swap
 	 * @return whether a PC waiting for a swap was found

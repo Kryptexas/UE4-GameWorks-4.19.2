@@ -7,6 +7,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "DisplayDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -48,6 +49,9 @@ ACharacter::ACharacter(const class FPostConstructInitializeProperties& PCIP)
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
 	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
 	RootComponent = CapsuleComponent;
+
+	JumpKeyHoldTime = 0.0f;
+	JumpMaxHoldTime = 0.0f;
 
 #if WITH_EDITORONLY_DATA
 	ArrowComponent = PCIP.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
@@ -169,15 +173,19 @@ float ACharacter::GetDefaultHalfHeight() const
 }
 
 
-UActorComponent* ACharacter::FindComponentByClass(const UClass* Class) const
+UActorComponent* ACharacter::FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const
 {
 	// If the character has a Mesh, treat it as the first 'hit' when finding components
-	if (Class && Mesh && Mesh->IsA(Class))
-		{
-			return Mesh;
-		}
+	if (Mesh && Mesh->IsA(ComponentClass))
+	{
+		return Mesh;
+	}
 
-	return Super::FindComponentByClass(Class);
+	return Super::FindComponentByClass(ComponentClass);
+}
+
+void ACharacter::OnWalkingOffLedge_Implementation()
+{
 }
 
 
@@ -188,7 +196,23 @@ void ACharacter::Landed(const FHitResult& Hit)
 
 bool ACharacter::CanJump() const
 {
-	return !bIsCrouched && CharacterMovement && CharacterMovement->IsMovingOnGround() && CharacterMovement->CanEverJump() && !CharacterMovement->bWantsToCrouch;
+	return CanJumpInternal();
+}
+
+bool ACharacter::CanJumpInternal_Implementation() const
+{
+	const bool bCanHoldToJumpHigher = (GetJumpMaxHoldTime() > 0.0f) && IsJumping();
+
+	return !bIsCrouched && CharacterMovement && (CharacterMovement->IsMovingOnGround() || bCanHoldToJumpHigher) && CharacterMovement->CanEverJump() && !CharacterMovement->bWantsToCrouch;
+}
+
+void ACharacter::OnJumped_Implementation()
+{
+}
+
+bool ACharacter::IsJumping() const
+{
+	return (bPressedJump && JumpKeyHoldTime > 0.0f && JumpKeyHoldTime < GetJumpMaxHoldTime());
 }
 
 bool ACharacter::DoJump( bool bReplayingMoves )
@@ -300,7 +324,7 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 	UDamageType const* const DmgTypeCDO = DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>();
 	float const ImpulseScale = DmgTypeCDO->DamageImpulse;
 
-	if ( (ImpulseScale > 3.f) && (CharacterMovement != NULL) )
+	if ( (ImpulseScale > 3.f) && (CharacterMovement.Get() != NULL) )
 	{
 		FHitResult HitInfo;
 		FVector ImpulseDir;
@@ -308,7 +332,22 @@ void ACharacter::ApplyDamageMomentum(float DamageTaken, FDamageEvent const& Dama
 
 		FVector Impulse = ImpulseDir * ImpulseScale;
 		bool const bMassIndependentImpulse = !DmgTypeCDO->bScaleMomentumByMass;
-		CharacterMovement->AddMomentum(Impulse, HitInfo.ImpactPoint, bMassIndependentImpulse);
+
+		// limit Z momentum added if already going up faster than jump (to avoid blowing character way up into the sky)
+		{
+			FVector MassScaledImpulse = Impulse;
+			if(!bMassIndependentImpulse && CharacterMovement->Mass > SMALL_NUMBER)
+			{
+				MassScaledImpulse = MassScaledImpulse / CharacterMovement->Mass;
+			}
+
+			if ( (CharacterMovement->Velocity.Z > GetDefault<UCharacterMovementComponent>(CharacterMovement->GetClass())->JumpZVelocity) && (MassScaledImpulse.Z > 0.f) )
+			{
+				Impulse.Z *= 0.5f;
+			}
+		}
+
+		CharacterMovement->AddMomentum(Impulse, bMassIndependentImpulse);
 	}
 }
 
@@ -361,6 +400,52 @@ namespace MovementBaseUtility
 				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
 			}
 		}
+	}
+
+	FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase)
+	{
+		FVector BaseVelocity = FVector::ZeroVector;
+		if (MovementBaseUtility::IsDynamicBase(MovementBase))
+		{
+			BaseVelocity = MovementBase->GetComponentVelocity();
+			if (BaseVelocity.IsZero())
+			{
+				// Fall back to actor's Root component
+				const AActor* Owner = MovementBase->GetOwner();
+				if (Owner)
+				{
+					// Component might be moved manually (not by simulated physics or a movement component), see if the root component of the actor has a velocity.
+					BaseVelocity = MovementBase->GetOwner()->GetVelocity();
+				}				
+			}
+
+			// Fall back to physics velocity.
+			if (BaseVelocity.IsZero() && MovementBase->GetBodyInstance())
+			{
+				BaseVelocity = MovementBase->GetBodyInstance()->GetUnrealWorldVelocity();
+			}
+		}
+		
+		return BaseVelocity;
+	}
+
+	FVector GetMovementBaseTangentialVelocity(const class UPrimitiveComponent* MovementBase, const FVector& WorldLocation)
+	{
+		if (MovementBaseUtility::IsDynamicBase(MovementBase))
+		{
+			if (MovementBase->GetBodyInstance())
+			{
+				const FVector BaseAngVel = MovementBase->GetBodyInstance()->GetUnrealWorldAngularVelocity();
+				if (!BaseAngVel.IsZero())
+				{
+					const FVector RadialDistanceToBase = WorldLocation - MovementBase->GetComponentLocation();
+					const FVector TangentialVel = FMath::DegreesToRadians(BaseAngVel) ^ RadialDistanceToBase;
+					return TangentialVel;
+				}
+			}			
+		}
+		
+		return FVector::ZeroVector;
 	}
 }
 
@@ -418,7 +503,7 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 			{
 				// Update OldBaseLocation/Rotation as those were referring to a different base
 				CharacterMovement->OldBaseLocation = MovementBase->GetComponentLocation();
-				CharacterMovement->OldBaseRotation = MovementBase->GetComponentRotation();
+				CharacterMovement->OldBaseQuat = MovementBase->GetComponentQuat();
 			}
 			else
 			{
@@ -431,13 +516,13 @@ void ACharacter::SetBase( UPrimitiveComponent* NewBaseComponent, bool bNotifyPaw
 
 void ACharacter::TurnOff()
 {
-	if (CharacterMovement != NULL)
+	if (CharacterMovement.Get() != NULL)
 	{
 		CharacterMovement->StopMovementImmediately();
 		CharacterMovement->DisableMovement();
 	}
 
-	if (GetNetMode() != NM_DedicatedServer && Mesh != NULL)
+	if (GetNetMode() != NM_DedicatedServer && Mesh.Get() != NULL)
 	{
 		Mesh->bPauseAnims = true;
 		if (Mesh->IsSimulatingPhysics())
@@ -458,7 +543,7 @@ void ACharacter::Restart()
 
 void ACharacter::PawnClientRestart()
 {
-	if (CharacterMovement != NULL)
+	if (CharacterMovement.Get() != NULL)
 	{
 		CharacterMovement->StopMovementImmediately();
 		CharacterMovement->ResetPredictionData_Client();
@@ -491,30 +576,21 @@ void ACharacter::BaseChange()
 	}
 }
 
-void ACharacter::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos)
+void ACharacter::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
 	float Indent = 0.f;
 
-	class Indenter
-	{
-		float& Indent;
-
-	public:
-		Indenter(float& InIndent) : Indent(InIndent) { Indent += 4.0f; }
-		~Indenter() { Indent -= 4.0f; }
-	};
-
 	UFont* RenderFont = GEngine->GetSmallFont();
 
 	static FName NAME_Physics = FName(TEXT("Physics"));
-	if (DebugDisplay.Contains(NAME_Physics) )
+	if (DebugDisplay.IsDisplayOn(NAME_Physics) )
 	{
-		Indenter PhysicsIndent(Indent);
+		FIndenter PhysicsIndent(Indent);
 
 		FString BaseString;
-		if ( CharacterMovement == NULL || MovementBase == NULL )
+		if ( CharacterMovement.Get() == NULL || MovementBase == NULL )
 		{
 			BaseString = "Not Based";
 		}
@@ -527,7 +603,7 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay
 		Canvas->DrawText(RenderFont, FString::Printf(TEXT("RelativeLoc: %s RelativeRot: %s %s"), *RelativeMovement.Location.ToString(), *RelativeMovement.Rotation.ToString(), *BaseString), Indent, YPos);
 		YPos += YL;
 
-		if ( CharacterMovement != NULL )
+		if ( CharacterMovement.Get() != NULL )
 		{
 			CharacterMovement->DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 		}
@@ -535,98 +611,6 @@ void ACharacter::DisplayDebug(UCanvas* Canvas, const TArray<FName>& DebugDisplay
 		FString T = FString::Printf(TEXT("Crouched %i"), Crouched);
 		Canvas->DrawText(RenderFont, T, Indent, YPos );
 		YPos += YL;
-	}
-
-	if(Mesh && Mesh->GetAnimInstance())
-	{
-		static FName NAME_Animation = FName(TEXT("Animation"));
-		if( DebugDisplay.Contains(NAME_Animation) )
-		{
-			YPos += YL;
-
-			Canvas->DrawText(RenderFont, TEXT("Animation"), Indent, YPos );
-			YPos += YL;
-			Indenter AnimIndent(Indent);
-
-			//Display Sync Groups
-			UAnimInstance* AnimInstance = Mesh->GetAnimInstance();
-			
-			FString Heading = FString::Printf(TEXT("SyncGroups: %i"), AnimInstance->SyncGroups.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos );
-			YPos += YL;
-
-			for (int32 GroupIndex = 0; GroupIndex < AnimInstance->SyncGroups.Num(); ++GroupIndex)
-			{
-				Indenter GroupIndent(Indent);
-				FAnimGroupInstance& SyncGroup = AnimInstance->SyncGroups[GroupIndex];
-
-				FString GroupLabel = FString::Printf(TEXT("Group %i - Players %i"), GroupIndex, SyncGroup.ActivePlayers.Num());
-				Canvas->DrawText(RenderFont, GroupLabel, Indent, YPos );
-				YPos += YL;
-
-				if (SyncGroup.ActivePlayers.Num() > 0)
-				{
-					const int32 GroupLeaderIndex = FMath::Max(SyncGroup.GroupLeaderIndex, 0);
-
-					for(int32 PlayerIndex = 0; PlayerIndex < SyncGroup.ActivePlayers.Num(); ++PlayerIndex)
-					{
-						Indenter PlayerIndent(Indent);
-						FAnimTickRecord& Player = SyncGroup.ActivePlayers[PlayerIndex];
-
-						Canvas->SetLinearDrawColor( (PlayerIndex == GroupLeaderIndex) ? FLinearColor::Green : FLinearColor::Yellow);
-
-						FString PlayerEntry = FString::Printf(TEXT("%i) %s W:%.3f"), PlayerIndex, *Player.SourceAsset->GetName(), Player.EffectiveBlendWeight);
-						Canvas->DrawText(RenderFont, PlayerEntry, Indent, YPos );
-						YPos += YL;
-					}
-				}
-			}
-
-			Heading = FString::Printf(TEXT("Ungrouped: %i"), AnimInstance->UngroupedActivePlayers.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos );
-			YPos += YL;
-
-			Canvas->SetLinearDrawColor( FLinearColor::Yellow );
-
-			for (int32 PlayerIndex = 0; PlayerIndex < AnimInstance->UngroupedActivePlayers.Num(); ++PlayerIndex)
-			{
-				Indenter PlayerIndent(Indent);
-				const FAnimTickRecord& Player = AnimInstance->UngroupedActivePlayers[PlayerIndex];
-				FString PlayerEntry = FString::Printf(TEXT("%i) %s W:%.3f"), PlayerIndex, *Player.SourceAsset->GetName(), Player.EffectiveBlendWeight);
-				Canvas->DrawText(RenderFont, PlayerEntry, Indent, YPos );
-				YPos += YL;
-			}
-
-			Heading = FString::Printf(TEXT("Montages: %i"), AnimInstance->MontageInstances.Num());
-			Canvas->DrawText(RenderFont, Heading, Indent, YPos );
-			YPos += YL;
-
-			for (int32 MontageIndex = 0; MontageIndex < AnimInstance->MontageInstances.Num(); ++MontageIndex)
-			{
-				Indenter PlayerIndent(Indent);
-
-				Canvas->SetLinearDrawColor( (MontageIndex == (AnimInstance->MontageInstances.Num()-1)) ? FLinearColor::Green : FLinearColor::Yellow );
-
-				FAnimMontageInstance* MontageInstance = AnimInstance->MontageInstances[MontageIndex];
-
-				FString MontageEntry = FString::Printf(TEXT("%i) %s Sec: %s W:%.3f DW:%.3f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), MontageInstance->Weight, MontageInstance->DesiredWeight);
-				Canvas->DrawText(RenderFont, MontageEntry, Indent, YPos );
-				YPos += YL;
-			}
-
-		}
-
-		static FName NAME_SimpleBones = FName(TEXT("SimpleBones"));
-		static FName NAME_Bones = FName(TEXT("Bones"));
-
-		if( DebugDisplay.Contains(NAME_SimpleBones) )
-		{
-			Mesh->DebugDrawBones(Canvas,true);
-		}
-		else if( DebugDisplay.Contains(NAME_Bones) )
-		{
-			Mesh->DebugDrawBones(Canvas,false);
-		}
 	}
 }
 
@@ -637,20 +621,16 @@ void ACharacter::LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool 
 	if (CharacterMovement)
 	{
 		FVector FinalVel = LaunchVelocity;
-		if (MovementBaseUtility::IsDynamicBase(MovementBase))
-		{
-			// Is this right? What if we are based on non root component and the root component has a velocity? Will it be lost?
-			FinalVel += MovementBase->GetComponentVelocity();
-		}
+		const FVector Velocity = GetVelocity();
 
 		if (!bXYOverride)
 		{
-			FinalVel.X += GetVelocity().X;
-			FinalVel.Y += GetVelocity().Y;
+			FinalVel.X += Velocity.X;
+			FinalVel.Y += Velocity.Y;
 		}
 		if (!bZOverride)
 		{
-			FinalVel.Z += GetVelocity().Z;
+			FinalVel.Z += Velocity.Z;
 		}
 
 		CharacterMovement->Launch(FinalVel);
@@ -681,19 +661,46 @@ bool ACharacter::NotifyLanded(const FHitResult& Hit)
 	return true;
 }
 
+void ACharacter::Jump()
+{
+	bPressedJump = true;
+	JumpKeyHoldTime = 0.0f;
+}
+
+void ACharacter::StopJumping()
+{
+	bPressedJump = false;
+	JumpKeyHoldTime = 0.0f;
+}
 
 void ACharacter::CheckJumpInput(float DeltaTime)
 {
+	const bool bWasJumping = bPressedJump && JumpKeyHoldTime > 0.0f;
 	if (bPressedJump)
 	{
-		DoJump(bClientUpdating);
+		// Incrememnt our timer first so calls to IsJumping() will return true
+		JumpKeyHoldTime += DeltaTime;
+		const bool bDidJump = DoJump(bClientUpdating);
+		if(!bWasJumping && bDidJump)
+		{
+			OnJumped();
+		}
 	}
 }
 
 
 void ACharacter::ClearJumpInput()
 {
-	bPressedJump = false;
+	// Don't disable bPressedJump right away if it's still held
+	if (bPressedJump && (JumpKeyHoldTime >= GetJumpMaxHoldTime()))
+	{
+		bPressedJump = false;
+	}
+}
+
+float ACharacter::GetJumpMaxHoldTime() const
+{
+	return JumpMaxHoldTime;
 }
 
 bool ACharacter::ServerMove_Validate(float TimeStamp, FVector_NetQuantize100 InAccel, FVector_NetQuantize100 ClientLoc, uint8 MoveFlags, uint8 ClientRoll, uint32 View, class UPrimitiveComponent* ClientMovementBase, uint8 ClientMovementMode)
@@ -1092,8 +1099,16 @@ void ACharacter::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLi
 
 void ACharacter::UpdateFromCompressedFlags(uint8 Flags)
 {
+	const bool bWasJumping = bPressedJump;
+
 	bPressedJump = ((Flags & FSavedMove_Character::FLAG_JumpPressed) != 0);	
 	CharacterMovement->bWantsToCrouch = ((Flags & FSavedMove_Character::FLAG_WantsToCrouch) != 0);
+
+	// Reset JumpKeyHoldTime when player presses Jump key on server as well.
+	if (!bWasJumping && bPressedJump)
+	{
+		JumpKeyHoldTime = 0.0f;
+	}
 }
 
 bool ACharacter::IsPlayingRootMotion() const

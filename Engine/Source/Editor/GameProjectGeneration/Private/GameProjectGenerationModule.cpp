@@ -3,7 +3,7 @@
 #include "GameProjectGenerationPrivatePCH.h"
 #include "ModuleManager.h"
 #include "GameProjectGenerationModule.h"
-#include "GameProjectGeneration.generated.inl"
+
 
 
 IMPLEMENT_MODULE( FGameProjectGenerationModule, GameProjectGeneration );
@@ -75,6 +75,11 @@ bool FGameProjectGenerationModule::UpdateCodeResourceFiles(TArray<FString>& OutC
 {
 	const FString GameModuleSourcePath = FPaths::GetPath(FPaths::GetProjectFilePath()) / TEXT("Source") / FApp::GetGameName();
 	return GameProjectUtils::GenerateGameResourceFiles(GameModuleSourcePath, FApp::GetGameName(), OutCreatedFiles, OutFailReason);
+}
+
+void FGameProjectGenerationModule::CheckAndWarnProjectFilenameValid()
+{
+	GameProjectUtils::CheckAndWarnProjectFilenameValid();
 }
 
 #undef LOCTEXT_NAMESPACE

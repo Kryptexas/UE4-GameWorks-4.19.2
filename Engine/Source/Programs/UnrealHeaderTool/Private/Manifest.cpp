@@ -62,9 +62,19 @@ FManifest FManifest::LoadFromFile(const FString& Filename)
 	TArray<TSharedPtr<FJsonValue>> ModulesArray;
 
 	GetJsonFieldValue(Result.UseRelativePaths, RootObject, TEXT("UseRelativePaths"), TEXT("{manifest root}"));
+	GetJsonFieldValue(Result.IsGameTarget,     RootObject, TEXT("IsGameTarget"),     TEXT("{manifest root}"));
 	GetJsonFieldValue(Result.RootLocalPath,    RootObject, TEXT("RootLocalPath"),    TEXT("{manifest root}"));
 	GetJsonFieldValue(Result.RootBuildPath,    RootObject, TEXT("RootBuildPath"),    TEXT("{manifest root}"));
+	GetJsonFieldValue(Result.TargetName,       RootObject, TEXT("TargetName"),       TEXT("{manifest root}"));
 	GetJsonFieldValue(ModulesArray,            RootObject, TEXT("Modules"),          TEXT("{manifest root}"));
+
+	UE_LOG(LogCompile, Log, TEXT("Loaded manifest: %s"),          *Filename);
+	UE_LOG(LogCompile, Log, TEXT("Manifest.UseRelativePaths=%s"), Result.UseRelativePaths ? TEXT("True") : TEXT("False"));
+	UE_LOG(LogCompile, Log, TEXT("Manifest.IsGameTarget=%s"),     Result.IsGameTarget ? TEXT("True") : TEXT("False"));
+	UE_LOG(LogCompile, Log, TEXT("Manifest.RootLocalPath=%s"),    *Result.RootLocalPath);
+	UE_LOG(LogCompile, Log, TEXT("Manifest.RootBuildPath=%s"),    *Result.RootBuildPath);
+	UE_LOG(LogCompile, Log, TEXT("Manifest.TargetName=%s"),       *Result.TargetName);
+	UE_LOG(LogCompile, Log, TEXT("Manifest.Modules=%d"),          ModulesArray.Num());
 
 	Result.RootLocalPath = FPaths::ConvertRelativePathToFull(FilenamePath, Result.RootLocalPath);
 	Result.RootBuildPath = FPaths::ConvertRelativePathToFull(FilenamePath, Result.RootBuildPath);
@@ -87,19 +97,22 @@ FManifest FManifest::LoadFromFile(const FString& Filename)
 
 		FString Outer = FString::Printf(TEXT("Modules[%d]"), ModuleIndex);
 
-		GetJsonFieldValue(KnownModule.Name,                      ModuleObj, TEXT("Name"),                *Outer);
-		GetJsonFieldValue(KnownModule.BaseDirectory,             ModuleObj, TEXT("BaseDirectory"),       *Outer);
-		GetJsonFieldValue(KnownModule.GeneratedIncludeDirectory, ModuleObj, TEXT("OutputDirectory"),     *Outer);
-		GetJsonFieldValue(KnownModule.SaveExportedHeaders,       ModuleObj, TEXT("SaveExportedHeaders"), *Outer);
-		GetJsonFieldValue(ClassesHeaders,                        ModuleObj, TEXT("ClassesHeaders"),      *Outer);
-		GetJsonFieldValue(PublicHeaders,                         ModuleObj, TEXT("PublicHeaders"),       *Outer);
-		GetJsonFieldValue(PrivateHeaders,                        ModuleObj, TEXT("PrivateHeaders"),      *Outer);
+		GetJsonFieldValue(KnownModule.Name,                      ModuleObj, TEXT("Name"),                     *Outer);
+		GetJsonFieldValue(KnownModule.BaseDirectory,             ModuleObj, TEXT("BaseDirectory"),            *Outer);
+		GetJsonFieldValue(KnownModule.GeneratedIncludeDirectory, ModuleObj, TEXT("OutputDirectory"),          *Outer);
+		GetJsonFieldValue(KnownModule.SaveExportedHeaders,       ModuleObj, TEXT("SaveExportedHeaders"),      *Outer);
+		GetJsonFieldValue(ClassesHeaders,                        ModuleObj, TEXT("ClassesHeaders"),           *Outer);
+		GetJsonFieldValue(PublicHeaders,                         ModuleObj, TEXT("PublicHeaders"),            *Outer);
+		GetJsonFieldValue(PrivateHeaders,                        ModuleObj, TEXT("PrivateHeaders"),           *Outer);
+		GetJsonFieldValue(KnownModule.PCH,                       ModuleObj, TEXT("PCH"),                      *Outer);
+		GetJsonFieldValue(KnownModule.GeneratedCPPFilenameBase,  ModuleObj, TEXT("GeneratedCPPFilenameBase"), *Outer);
 
 		KnownModule.LongPackageName = FPackageName::ConvertToLongScriptPackageName(*KnownModule.Name);
 
 		// Convert relative paths
 		KnownModule.BaseDirectory             = FPaths::ConvertRelativePathToFull(FilenamePath, KnownModule.BaseDirectory);
 		KnownModule.GeneratedIncludeDirectory = FPaths::ConvertRelativePathToFull(FilenamePath, KnownModule.GeneratedIncludeDirectory);
+		KnownModule.GeneratedCPPFilenameBase  = FPaths::ConvertRelativePathToFull(FilenamePath, KnownModule.GeneratedCPPFilenameBase);
 
 		// Ensure directories end with a slash, because this aids their use with FPaths::MakePathRelativeTo.
 		if (!KnownModule.BaseDirectory            .EndsWith(TEXT("/"))) { KnownModule.BaseDirectory            .AppendChar(TEXT('/')); }

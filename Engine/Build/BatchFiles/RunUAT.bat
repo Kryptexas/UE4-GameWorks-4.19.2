@@ -20,6 +20,7 @@ if not exist Build\BatchFiles\RunUAT.bat goto Error_BatchFileInWrongLocation
 rem ## Use the pre-compiled UAT scripts if -nocompile is specified in the command line
 for %%P in (%*) do if /I "%%P" == "-nocompile" goto RunPrecompiled
 
+rem ## check for force precompiled
 if not "%ForcePrecompiledUAT%"=="" goto RunPrecompiled
 
 if not exist Source\Programs\AutomationTool\AutomationTool.csproj goto RunPrecompiled
@@ -31,15 +32,25 @@ if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 echo path="%path%"
 
 rem ## Check for Visual Studio 2013
-if "%VS120COMNTOOLS%" == "" goto NoVisualStudio2013Environment
-call "%VS120COMNTOOLS%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+
+pushd %~dp0
+call GetVSComnToolsPath 12
+popd
+
+if "%VsComnToolsPath%" == "" goto NoVisualStudio2013Environment
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 
 rem ## Check for Visual Studio 2012
 :NoVisualStudio2013Environment
-if "%VS110COMNTOOLS%" == "" goto RunPrecompiled
-call "%VS110COMNTOOLS%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
+
+pushd %~dp0
+call GetVSComnToolsPath 11
+popd
+
+if "%VsComnToolsPath%" == "" goto RunPrecompiled
+call "%VsComnToolsPath%/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat" >NUL
 goto ReadyToCompile
 
 

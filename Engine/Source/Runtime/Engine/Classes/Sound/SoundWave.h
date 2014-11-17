@@ -25,21 +25,17 @@ enum EDecompressionType
 	DTYPE_MAX,
 };
 
-UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, BlueprintType, dependson=USoundGroups)
-class USoundWave : public USoundBase
+UCLASS(hidecategories=Object, editinlinenew, BlueprintType, dependson=USoundGroups)
+class ENGINE_API USoundWave : public USoundBase
 {
 	GENERATED_UCLASS_BODY()
 
 	/** Platform agnostic compression quality. 1..100 with 1 being best compression and 100 being best quality. */
-	UPROPERTY(EditAnywhere, Category=Compression, AssetRegistrySearchable)
+	UPROPERTY(EditAnywhere, Category=Compression, meta=(ClampMin = "1", ClampMax = "100"), AssetRegistrySearchable)
 	int32 CompressionQuality;
 
-	/** If set, the compressor does everything required to make this a seamlessly looping sound. */
-	UPROPERTY(EditAnywhere, Category=Compression )
-	uint32 bLoopableSound:1;
-
 	/** If set, when played directly (not through a sound cue) the wave will be played looping. */
-	UPROPERTY(EditAnywhere, Category=Compression )
+	UPROPERTY(EditAnywhere, Category=SoundWave )
 	uint32 bLooping:1;
 
 	/** Set to true for programmatically-generated, streamed audio. */
@@ -63,7 +59,7 @@ class USoundWave : public USoundBase
 	/** Whether this SoundWave was decompressed from OGG. */
 	uint32 bDecompressedFromOgg:1;
 
-	UPROPERTY(EditAnywhere, Category=SoundWave)
+	UPROPERTY(EditAnywhere, Category=Sound)
 	TEnumAsByte<ESoundGroup> SoundGroup;
 
 	/** A localized version of the text that is actually spoken phonetically in the audio. */
@@ -72,11 +68,11 @@ class USoundWave : public USoundBase
 
 
 	/** Playback volume of sound 0 to 1 - Default is 1.0. */
-	UPROPERTY(Category=SoundWave, meta=(ClampMin = "0.0"), EditAnywhere)
+	UPROPERTY(Category=Sound, meta=(ClampMin = "0.0"), EditAnywhere)
 	float Volume;
 
 	/** Playback pitch for sound - Minimum is 0.4, maximum is 2.0 - it is a simple linear multiplier to the SampleRate. */
-	UPROPERTY(Category=SoundWave, meta=(ClampMin = "0.4", ClampMax = "2.0"), EditAnywhere)
+	UPROPERTY(Category=Sound, meta=(ClampMin = "0.4", ClampMax = "2.0"), EditAnywhere)
 	float Pitch;
 
 	/** Number of channels of multichannel data; 1 or 2 for regular mono and stereo files */
@@ -134,9 +130,9 @@ class USoundWave : public USoundBase
 #endif // WITH_EDITORONLY_DATA
 
 public:	
-	/** Async worker that decompresses the vorbis data on a different thread */
-	typedef FAsyncTask< class FAsyncVorbisDecompressWorker > FAsyncVorbisDecompress;	// Forward declare typedef
-	FAsyncVorbisDecompress*		VorbisDecompressor;
+	/** Async worker that decompresses the audio data on a different thread */
+	typedef FAsyncTask< class FAsyncAudioDecompressWorker > FAsyncAudioDecompress;	// Forward declare typedef
+	FAsyncAudioDecompress*		AudioDecompressor;
 
 	/** Pointer to 16 bit PCM data - used to decompress data to and preview sounds */
 	uint8*						RawPCMData;
@@ -198,12 +194,12 @@ public:
 	/**
 	 * Frees up all the resources allocated in this class
 	 */
-	ENGINE_API void FreeResources();
+	void FreeResources();
 
 	/** 
 	 * Copy the compressed audio data from the bulk data
 	 */
-	virtual ENGINE_API void InitAudioResource( FByteBulkData& CompressedData );
+	virtual void InitAudioResource( FByteBulkData& CompressedData );
 
 	/** 
 	 * Copy the compressed audio data from derived data cache
@@ -211,12 +207,12 @@ public:
 	 * @param Format to get the compressed audio in
 	 * @return true if the resource has been successfully initialized or it was already initialized.
 	 */
-	virtual ENGINE_API bool InitAudioResource(FName Format);
+	virtual bool InitAudioResource(FName Format);
 
 	/** 
 	 * Remove the compressed audio data associated with the passed in wave
 	 */
-	ENGINE_API void RemoveAudioResource();
+	void RemoveAudioResource();
 
 	/** 
 	 * Prints the subtitle associated with the SoundWave to the console
@@ -258,12 +254,12 @@ public:
 	 * @param Format	format of compressed data
 	 * @return	compressed data, if it could be obtained
 	 */ 
-	virtual ENGINE_API FByteBulkData* GetCompressedData(FName Format);
+	virtual FByteBulkData* GetCompressedData(FName Format);
 
 	/** 
 	 * Change the guid and flush all compressed data
 	 */ 
-	ENGINE_API void InvalidateCompressedData();
+	void InvalidateCompressedData();
 
 
 };

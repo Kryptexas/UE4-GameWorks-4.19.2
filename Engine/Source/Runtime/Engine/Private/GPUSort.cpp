@@ -220,6 +220,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
+		//@todo-rco: Fix the shader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 	}
 
@@ -304,6 +305,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
+		//@todo-rco: Fix the shader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 	}
 
@@ -421,6 +423,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
+		//@todo-rco: Fix the shader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 	}
 
@@ -517,6 +520,7 @@ public:
 
 	static bool ShouldCache( EShaderPlatform Platform )
 	{
+		//@todo-rco: Fix the shader
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 	}
 
@@ -1026,7 +1030,7 @@ static bool TestGPUSort_RenderThread(EGPUSortTest TestToRun)
 	case GPU_SORT_TEST_RANDOM:
 		for ( int32 i = 0; i < 1000; ++i )
 		{
-			int32 TestSize = FMath::Trunc(FMath::SRand() * (float)(GPU_SORT_TEST_SIZE_MAX - GPU_SORT_TEST_SIZE_MIN)) + GPU_SORT_TEST_SIZE_MIN;
+			int32 TestSize = FMath::TruncToInt(FMath::SRand() * (float)(GPU_SORT_TEST_SIZE_MAX - GPU_SORT_TEST_SIZE_MIN)) + GPU_SORT_TEST_SIZE_MIN;
 			if (TestGPUSortForSize( (TestSize + 0xF) & 0xFFFFFFF0 ) == false)
 			{
 				return false;

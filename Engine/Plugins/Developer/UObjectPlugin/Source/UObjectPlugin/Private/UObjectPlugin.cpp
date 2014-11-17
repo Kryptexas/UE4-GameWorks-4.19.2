@@ -3,7 +3,7 @@
 #include "UObjectPluginPrivatePCH.h"
 
 #include "MyPluginObject.h"
-#include "UObjectPlugin.generated.inl"
+
 
 
 class FUObjectPlugin : public IUObjectPlugin

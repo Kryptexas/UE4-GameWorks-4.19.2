@@ -30,6 +30,8 @@ void FAttributePropertyDetails::CustomizeStructHeader( TSharedRef<IPropertyHandl
 	PropertyOptions.Empty();
 	PropertyOptions.Add(MakeShareable(new FString("None")));
 
+	FString FilterMetaStr = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("FilterMetaTag"));
+
 	// Gather all UAttraibute classes
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
@@ -39,6 +41,12 @@ void FAttributePropertyDetails::CustomizeStructHeader( TSharedRef<IPropertyHandl
 			for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 			{
 				UProperty *Property = *PropertyIt;
+
+				if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
+				{
+					continue;
+				}
+				
 				PropertyOptions.Add(MakeShareable(new FString(FString::Printf(TEXT("%s.%s"), *Class->GetName(), *Property->GetName()))));
 			}
 		}
@@ -50,11 +58,22 @@ void FAttributePropertyDetails::CustomizeStructHeader( TSharedRef<IPropertyHandl
 			StructPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
+		.MinDesiredWidth(500)
+		.MaxDesiredWidth(4096)
 		[
-			SNew(STextComboBox)
-			.OptionsSource( &PropertyOptions )
-			.InitiallySelectedItem(GetPropertyType())
-			.OnSelectionChanged( this, &FAttributePropertyDetails::OnChangeProperty )
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			//.FillWidth(1.0f)
+			.HAlign(HAlign_Fill)
+			.Padding(0.f, 0.f, 2.f, 0.f)
+			[
+
+				SNew(STextComboBox)
+				.ContentPadding(FMargin(2.0f, 2.0f))
+				.OptionsSource( &PropertyOptions )
+				.InitiallySelectedItem(GetPropertyType())
+				.OnSelectionChanged( this, &FAttributePropertyDetails::OnChangeProperty )
+			]
 		];
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

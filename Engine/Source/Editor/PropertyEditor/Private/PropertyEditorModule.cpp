@@ -19,7 +19,6 @@
 #include "PropertyTable.h"
 #include "SPropertyTable.h"
 #include "TextPropertyTableCellPresenter.h"
-#include "SPropertyEditorInteractiveActorPicker.h"
 
 #include "PropertyTableConstants.h"
 
@@ -27,7 +26,6 @@ IMPLEMENT_MODULE( FPropertyEditorModule, PropertyEditor );
 
 void FPropertyEditorModule::StartupModule()
 {
-	SPropertyEditorInteractiveActorPicker::RegisterEditMode();
 }
 
 void FPropertyEditorModule::ShutdownModule()
@@ -40,8 +38,6 @@ void FPropertyEditorModule::ShutdownModule()
 
 	AllDetailViews.Empty();
 	AllSinglePropertyViews.Empty();
-
-	SPropertyEditorInteractiveActorPicker::UnregisterEditMode();
 }
 
 void FPropertyEditorModule::NotifyCustomizationModuleChanged()
@@ -259,7 +255,7 @@ TSharedRef< IPropertyTableWidgetHandle > FPropertyEditorModule::CreatePropertyTa
 {
 	TSharedRef< FPropertyTableWidgetHandle > FWidgetHandle = MakeShareable( new FPropertyTableWidgetHandle( SNew( SPropertyTable, PropertyTable ) ) );
 
-	TSharedRef< IPropertyTableWidgetHandle > IWidgetHandle = DynamicCastSharedRef<IPropertyTableWidgetHandle>(FWidgetHandle);
+	TSharedRef< IPropertyTableWidgetHandle > IWidgetHandle = StaticCastSharedRef<IPropertyTableWidgetHandle>(FWidgetHandle);
 
 	 return IWidgetHandle;
 }
@@ -269,7 +265,7 @@ TSharedRef< IPropertyTableWidgetHandle > FPropertyEditorModule::CreatePropertyTa
 	TSharedRef< FPropertyTableWidgetHandle > FWidgetHandle = MakeShareable( new FPropertyTableWidgetHandle( SNew( SPropertyTable, PropertyTable )
 		.ColumnCustomizations( Customizations )));
 
-	TSharedRef< IPropertyTableWidgetHandle > IWidgetHandle = DynamicCastSharedRef<IPropertyTableWidgetHandle>(FWidgetHandle);
+	TSharedRef< IPropertyTableWidgetHandle > IWidgetHandle = StaticCastSharedRef<IPropertyTableWidgetHandle>(FWidgetHandle);
 
 	 return IWidgetHandle;
 }
@@ -473,4 +469,20 @@ void FPropertyEditorModule::RemoveDeletedObjects( TArray<UObject*>& DeletedObjec
 	}
 }
 
+bool FPropertyEditorModule::IsCustomizedStruct(const UStruct* Struct) const
+{
+	if (Struct && !Struct->IsA<UUserDefinedStruct>())
+	{
+		return StructTypeToLayoutMap.Contains(Struct->GetFName());
+	}
+	return false;
+}
 
+FOnGetStructCustomizationInstance FPropertyEditorModule::GetStructCustomizaton(const UStruct* Struct)
+{
+	if (Struct && !Struct->IsA<UUserDefinedStruct>())
+	{
+		return StructTypeToLayoutMap.FindRef(Struct->GetFName());
+	}
+	return FOnGetStructCustomizationInstance();
+}

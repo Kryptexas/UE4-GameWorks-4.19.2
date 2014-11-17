@@ -136,6 +136,9 @@ void FBlueprintCompileReinstancer::GenerateFieldMappings(TMap<UObject*, UObject*
 		UFunction* NewFunction = ClassToReinstance->FindFunctionByName(Func.Key, EIncludeSuperFlag::ExcludeSuper);
 		FieldMapping.Add(Func.Value, NewFunction);
 	}
+
+	UObject* NewCDO = ClassToReinstance->GetDefaultObject();
+	FieldMapping.Add(OriginalCDO, NewCDO);
 }
 
 FBlueprintCompileReinstancer::~FBlueprintCompileReinstancer()
@@ -277,13 +280,17 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 
 						AttachSocketName = OldRootComponent->AttachSocketName;
 
-						//detach it to remove any scaling 
+						//detach it to remove any scaling
 						OldRootComponent->DetachFromParent(true);
 					}
 
 					for (auto AttachIt = OldRootComponent->AttachChildren.CreateConstIterator(); AttachIt; ++AttachIt)
 					{
-						OldAttachChildren.Add((*AttachIt)->GetOwner());
+						USceneComponent* Child = *AttachIt;
+						if (ensure(Child != nullptr))
+						{
+							OldAttachChildren.Add(Child->GetOwner());
+						}
 					}
 
 					// Save off transform
@@ -318,6 +325,8 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 				NewObject = NewActor;
 
 				OldActor->DestroyConstructedComponents(); // don't want to serialize components from the old actor
+				// Unregister native components so we don't copy any sub-components they generate for themselves (like UCameraComponent does)
+				OldActor->UnregisterAllComponents(); 
 
 				NewActor->UnregisterAllComponents(); // Unregister any native components, might have cached state based on properties we are going to overwrite
 
@@ -385,7 +394,12 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 
 				if (UAnimInstance* AnimTree = Cast<UAnimInstance>(NewObject))
 				{
-					AnimTree->InitializeAnimation();
+					// Initialising the anim instance isn't enough to correctly set up the skeletal mesh again in a
+					// paused world, need to initialise the skeletal mesh component that contains the anim instance.
+					if(USkeletalMeshComponent* SkelComponent = Cast<USkeletalMeshComponent>(AnimTree->GetOuter()))
+					{
+						SkelComponent->InitAnim(true);
+					}
 				}
 
 				OldObject->RemoveFromRoot();

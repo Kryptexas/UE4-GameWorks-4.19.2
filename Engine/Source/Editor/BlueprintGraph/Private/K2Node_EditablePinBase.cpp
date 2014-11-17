@@ -197,3 +197,31 @@ bool UK2Node_EditablePinBase::ModifyUserDefinedPinDefaultValue(TSharedPtr<FUserP
 	PinInfo->PinDefaultValue = NewDefaultValue;
 	return true;
 }
+
+bool UK2Node_EditablePinBase::CreateUserDefinedPinsForFunctionEntryExit(const UFunction* Function, bool bForFunctionEntry)
+{
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+	// Create the inputs and outputs
+	bool bAllPinsGood = true;
+	for ( TFieldIterator<UProperty> PropIt(Function); PropIt && ( PropIt->PropertyFlags & CPF_Parm ); ++PropIt )
+	{
+		UProperty* Param = *PropIt;
+
+		const bool bIsFunctionInput = !Param->HasAnyPropertyFlags(CPF_OutParm) || Param->HasAnyPropertyFlags(CPF_ReferenceParm);
+
+		if ( bIsFunctionInput == bForFunctionEntry )
+		{
+			const EEdGraphPinDirection Direction = bForFunctionEntry ? EGPD_Output : EGPD_Input;
+
+			FEdGraphPinType PinType;
+			K2Schema->ConvertPropertyToPinType(Param, /*out*/ PinType);
+
+			const bool bPinGood = CreateUserDefinedPin(Param->GetName(), PinType) != NULL;
+
+			bAllPinsGood = bAllPinsGood && bPinGood;
+		}
+	}
+
+	return bAllPinsGood;
+}

@@ -205,7 +205,7 @@ void FPngImageWrapper::UncompressPNGData( const ERGBFormat::Type InFormat, const
 	// Reset to the beginning of file so we can use png_read_png(), which expects to start at the beginning.
 	ReadOffset = 0;
 		
-	png_structp png_ptr	= png_create_read_struct( PNG_LIBPNG_VER_STRING, this, FPngImageWrapper::user_error_fn, FPngImageWrapper::user_warning_fn );
+	png_structp png_ptr	= png_create_read_struct_2( PNG_LIBPNG_VER_STRING, this, FPngImageWrapper::user_error_fn, FPngImageWrapper::user_warning_fn, NULL, FPngImageWrapper::user_malloc, FPngImageWrapper::user_free);
 	check( png_ptr );
 
 	png_infop info_ptr	= png_create_info_struct( png_ptr );
@@ -354,7 +354,7 @@ bool FPngImageWrapper::LoadPNGHeader()
 		// thread safety
 		FScopeLock PNGLock(&GPNGSection);
 
-		png_structp png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, this, FPngImageWrapper::user_error_fn, FPngImageWrapper::user_warning_fn );
+		png_structp png_ptr = png_create_read_struct_2( PNG_LIBPNG_VER_STRING, this, FPngImageWrapper::user_error_fn, FPngImageWrapper::user_warning_fn, NULL, FPngImageWrapper::user_malloc, FPngImageWrapper::user_free );
 		check(png_ptr);
 
 		png_infop info_ptr = png_create_info_struct( png_ptr );
@@ -422,6 +422,18 @@ void FPngImageWrapper::user_error_fn( png_structp png_ptr, png_const_charp error
 void FPngImageWrapper::user_warning_fn( png_structp png_ptr, png_const_charp warning_msg )
 {
 	UE_LOG(LogImageWrapper, Warning, TEXT("PNG Warning: %s"), ANSI_TO_TCHAR(warning_msg));
+}
+
+void* FPngImageWrapper::user_malloc( png_structp /*png_ptr*/, png_size_t size)
+{
+	check(size > 0);
+	return FMemory::Malloc(size);
+}
+
+void FPngImageWrapper::user_free(png_structp /*png_ptr*/, png_voidp struct_ptr )
+{
+	check(struct_ptr);
+	FMemory::Free(struct_ptr);
 }
 
 

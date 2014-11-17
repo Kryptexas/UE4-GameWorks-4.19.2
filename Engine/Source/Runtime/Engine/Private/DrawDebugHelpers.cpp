@@ -864,14 +864,19 @@ void DrawDebugFloatHistory(UWorld const & WorldRef, FDebugFloatHistory const & F
 //////////////////////////////////////////////////////////////////
 // Debug draw canvas operations
 
-void DrawDebugCanvasLine(UCanvas* Canvas, const FVector& Start, const FVector& End, const FLinearColor& LineColor)
+void DrawDebugCanvas2DLine(UCanvas* Canvas, const FVector& Start, const FVector& End, const FLinearColor& LineColor)
 {
 	FCanvasLineItem LineItem;
-	LineItem.Origin = Canvas->Project(Start);
-	LineItem.EndPos = Canvas->Project(End);
+	LineItem.Origin = Start;
+	LineItem.EndPos = End;
 	LineItem.SetColor(LineColor);
 
 	LineItem.Draw(Canvas->Canvas);
+}
+
+void DrawDebugCanvasLine(UCanvas* Canvas, const FVector& Start, const FVector& End, const FLinearColor& LineColor)
+{
+	DrawDebugCanvas2DLine(Canvas, Canvas->Project(Start), Canvas->Project(End), LineColor);
 }
 
 void DrawDebugCanvasCircle(UCanvas* Canvas, const FVector& Base, const FVector& X, const FVector& Y, FColor Color, float Radius, int32 NumSides)

@@ -7,17 +7,22 @@ public class MeshUtilities : ModuleRules
 {
 	public MeshUtilities(TargetInfo Target)
 	{
-		PrivateDependencyModuleNames.Add("Core");
-		PrivateDependencyModuleNames.Add("CoreUObject");
-		PrivateDependencyModuleNames.Add("Engine");
-		PrivateDependencyModuleNames.Add("RenderCore"); // For FPackedNormal.
-        PrivateDependencyModuleNames.Add("Slate");      // For FSlateTextureAtlas
-        PrivateDependencyModuleNames.Add("UnrealEd");
+		PrivateDependencyModuleNames.AddRange(
+			new string [] {
+				"Core",
+				"CoreUObject",
+				"Engine",
+				"RawMesh",
+				"RenderCore", // For FPackedNormal
+				"Slate",      // For FSlateTextureAtlas
+				"SlateCore",
+				"UnrealEd",
+			}
+		);
+
 		AddThirdPartyPrivateStaticDependencies(Target, "nvTriStrip");
 		AddThirdPartyPrivateStaticDependencies(Target, "ForsythTriOptimizer");
-		AddThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");
-		PrivateDependencyModuleNames.Add("RawMesh");
-        
+		AddThirdPartyPrivateStaticDependencies(Target, "MeshSimplifier");      
 
 		if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
 		{

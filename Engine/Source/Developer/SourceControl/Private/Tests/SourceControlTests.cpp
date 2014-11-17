@@ -330,7 +330,7 @@ bool FCreatePackageLatentCommand::Update()
 	AssetToolsModule.Get().CreateUniqueAssetName(CommandChain.Parameter, TEXT("New"), PackageName, AssetName);
 	
 	FString OriginalPackageName = SourceControlHelpers::PackageFilename(CommandChain.Parameter);
-	FString NewPackageName = SourceControlHelpers::PackageFilename(PackageName);
+	FString NewPackageName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
 
 	if(FPlatformFileManager::Get().GetPlatformFile().CopyFile(*NewPackageName, *OriginalPackageName))
 	{

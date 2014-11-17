@@ -115,11 +115,13 @@ FSlateColor SGraphNode_BehaviorTree::GetBorderBackgroundColor() const
 	UBehaviorTreeGraphNode* BTGraphNode = Cast<UBehaviorTreeGraphNode>(GraphNode);
 	const bool bIsInDebuggerActiveState = BTGraphNode && BTGraphNode->bDebuggerMarkCurrentlyActive;
 	const bool bIsInDebuggerPrevState = BTGraphNode && BTGraphNode->bDebuggerMarkPreviouslyActive;
-	const bool bSelectedSubNode = BTGraphNode->ParentNode && GetOwnerPanel()->SelectionManager.SelectedNodes.Contains(GraphNode);
+	const bool bSelectedSubNode = BTGraphNode && BTGraphNode->ParentNode && GetOwnerPanel()->SelectionManager.SelectedNodes.Contains(GraphNode);
 	
 	UBTNode* NodeInstance = BTGraphNode ? Cast<UBTNode>(BTGraphNode->NodeInstance) : NULL;
 	const bool bIsDisconnected = NodeInstance && NodeInstance->GetExecutionIndex() == MAX_uint16;
-	const bool bIsService = BTGraphNode->IsA(UBehaviorTreeGraphNode_Service::StaticClass());
+	const bool bIsService = BTGraphNode && BTGraphNode->IsA(UBehaviorTreeGraphNode_Service::StaticClass());
+	const bool bIsRootDecorator = BTGraphNode && BTGraphNode->bRootLevel;
+	const bool bIsInjected = BTGraphNode && BTGraphNode->bInjectedNode;
 	const bool bIsBrokenWithParent = bIsService ? 
 		BTGraphNode->ParentNode != NULL && BTGraphNode->ParentNode->Services.Find(BTGraphNode) == INDEX_NONE ? true : false :
 		BTGraphNode->ParentNode != NULL && BTGraphNode->ParentNode->Decorators.Find(BTGraphNode) == INDEX_NONE ? true : 
@@ -142,8 +144,8 @@ FSlateColor SGraphNode_BehaviorTree::GetBorderBackgroundColor() const
 	}
 
 	return bSelectedSubNode ? BehaviorTreeColors::NodeBorder::Selected : 
-		bIsBrokenWithParent ? BehaviorTreeColors::NodeBorder::BrokenWithParent :
-		bIsDisconnected ? BehaviorTreeColors::NodeBorder::Disconnected :
+		!bIsRootDecorator && !bIsInjected && bIsBrokenWithParent ? BehaviorTreeColors::NodeBorder::BrokenWithParent :
+		!bIsRootDecorator && !bIsInjected && bIsDisconnected ? BehaviorTreeColors::NodeBorder::Disconnected :
 		bIsInDebuggerActiveState ? BehaviorTreeColors::NodeBorder::ActiveDebugging :
 		bIsInDebuggerPrevState ? BehaviorTreeColors::NodeBorder::InactiveDebugging :
 		BehaviorTreeColors::NodeBorder::Inactive;
@@ -158,9 +160,13 @@ FSlateColor SGraphNode_BehaviorTree::GetBackgroundColor() const
 		false;
 
 	FLinearColor NodeColor = BehaviorTreeColors::NodeBody::Default;
-	if (BTGraphNode && BTGraphNode->DeprecationMessage.Len() > 0)
+	if (BTGraphNode && (BTGraphNode->ErrorMessage.Len() > 0 || BTGraphNode->bHasObserverError))
 	{
-		NodeColor = BehaviorTreeColors::NodeBody::Deprecated;
+		NodeColor = BehaviorTreeColors::NodeBody::Error;
+	}
+	else if (BTGraphNode && BTGraphNode->bInjectedNode)
+	{
+		NodeColor = bIsActiveForDebugger ? BehaviorTreeColors::Debugger::ActiveDecorator : BehaviorTreeColors::NodeBody::InjectedSubNode;
 	}
 	else if (BTGraph_Decorator || Cast<UBehaviorTreeGraphNode_CompositeDecorator>(GraphNode))
 	{
@@ -471,7 +477,7 @@ void SGraphNode_BehaviorTree::Tick( const FGeometry& AllottedGeometry, const dou
 				{
 					NewFlashAlpha =
 						(DebuggerStateDuration > FlashStartTime + SearchPathBlink) ? 1.0f :
-						(FMath::Trunc(DebuggerStateDuration * SearchPathBlinkFreq) % 2) ? 1.0f : 0.0f;
+						(FMath::TruncToInt(DebuggerStateDuration * SearchPathBlinkFreq) % 2) ? 1.0f : 0.0f;
 				} 
 			}
 
@@ -606,10 +612,10 @@ EVisibility SGraphNode_BehaviorTree::GetDragOverMarkerVisibility() const
 void SGraphNode_BehaviorTree::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Is someone dragging a node?
-	if ( DragDrop::IsTypeMatch<FDragNode>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
+	if (DragConnectionOp.IsValid())
 	{
 		// Inform the Drag and Drop operation that we are hovering over this node.
-		TSharedPtr<FDragNode> DragConnectionOp = StaticCastSharedPtr<FDragNode>(DragDropEvent.GetOperation());
 		TSharedPtr<SGraphNode> SubNode = GetSubNodeUnderCursor(MyGeometry, DragDropEvent);
 		DragConnectionOp->SetHoveredNode( SubNode.IsValid() ? SubNode : SharedThis(this) );
 		if (DragConnectionOp->IsValidOperation() && Cast<UBehaviorTreeGraphNode>(GraphNode)->ParentNode)
@@ -624,10 +630,10 @@ void SGraphNode_BehaviorTree::OnDragEnter( const FGeometry& MyGeometry, const FD
 FReply SGraphNode_BehaviorTree::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	// Is someone dragging a node?
-	if ( DragDrop::IsTypeMatch<FDragNode>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
+	if (DragConnectionOp.IsValid())
 	{
 		// Inform the Drag and Drop operation that we are hovering over this node.
-		TSharedPtr<FDragNode> DragConnectionOp = StaticCastSharedPtr<FDragNode>(DragDropEvent.GetOperation());
 		TSharedPtr<SGraphNode> SubNode = GetSubNodeUnderCursor(MyGeometry, DragDropEvent);
 		DragConnectionOp->SetHoveredNode( SubNode.IsValid() ? SubNode : SharedThis(this) );
 	}
@@ -636,10 +642,10 @@ FReply SGraphNode_BehaviorTree::OnDragOver( const FGeometry& MyGeometry, const F
 
 void SGraphNode_BehaviorTree::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDragNode>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragNode> DragConnectionOp = DragDropEvent.GetOperationAs<FDragNode>();
+	if (DragConnectionOp.IsValid())
 	{
 		// Inform the Drag and Drop operation that we are not hovering any pins
-		TSharedPtr<FDragNode> DragConnectionOp = StaticCastSharedPtr<FDragNode>(DragDropEvent.GetOperation());
 		DragConnectionOp->SetHoveredNode( TSharedPtr<SGraphNode>(NULL) );
 	}
 	SetDragMarker(false);
@@ -649,9 +655,9 @@ void SGraphNode_BehaviorTree::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SGraphNode_BehaviorTree::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FDragNode>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FDragNode> DragNodeOp = DragDropEvent.GetOperationAs<FDragNode>();
+	if (DragNodeOp.IsValid())
 	{
-		TSharedPtr<FDragNode> DragNodeOp = StaticCastSharedPtr<FDragNode>(DragDropEvent.GetOperation());
 		if (!DragNodeOp->IsValidOperation())
 		{
 			return FReply::Handled();
@@ -692,7 +698,7 @@ FReply SGraphNode_BehaviorTree::OnDrop( const FGeometry& MyGeometry, const FDrag
 		}
 
 		UBehaviorTreeGraphNode* BTNode = Cast<UBehaviorTreeGraphNode>(GraphNode);
-
+		
 		int32 InsertIndex = -1;
 		TArray< TSharedPtr<SGraphNode> > SubNodesWidgets;
 		SubNodesWidgets.Append(ServicesWidgets);
@@ -719,7 +725,6 @@ FReply SGraphNode_BehaviorTree::OnDrop( const FGeometry& MyGeometry, const FDrag
 			BTNode->Modify();
 			InsertIndex > -1 ? SubNodes.Insert(DraggedNode, InsertIndex) : SubNodes.Add(DraggedNode);
 		}
-
 		
 		if (bReorderOperation) // if updating this node is enough, do it
 		{

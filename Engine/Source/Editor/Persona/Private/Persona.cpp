@@ -40,7 +40,13 @@
 #include "Editor/Persona/Private/AnimationEditorViewportClient.h"
 
 #include "ComponentAssetBroker.h"
-
+#include "AnimGraphNode_BlendListByInt.h"
+#include "AnimGraphNode_BlendSpaceEvaluator.h"
+#include "AnimGraphNode_BlendSpacePlayer.h"
+#include "AnimGraphNode_LayeredBoneBlend.h"
+#include "AnimGraphNode_SequencePlayer.h"
+#include "AnimGraphNode_SequenceEvaluator.h"
+#include "AnimPreviewInstance.h"
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////
@@ -434,7 +440,7 @@ FPersona::FPersona()
 
 FPersona::~FPersona()
 {
-	FAssetEditorToolkit::OnPostReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	FPersonaModule* PersonaModule = &FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
 	PersonaModule->GetMenuExtensibilityManager()->RemoveExtender(PersonaMenuExtender);
@@ -454,6 +460,9 @@ FPersona::~FPersona()
 	if(PreviewComponent)
 	{
 		PreviewComponent->RemoveFromRoot();
+#if WITH_APEX_CLOTHING
+		PreviewComponent->RestoreClothSectionsVisibility();
+#endif //#if WITH_APEX_CLOTHING
 	}
 	
 	// NOTE: Any tabs that we still have hanging out when destroyed will be cleaned up by FBaseToolkit's destructor
@@ -655,7 +664,7 @@ UObject* FPersona::GetAnimBlueprintAsObject() const
 
 void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, USkeleton* InitSkeleton, UAnimBlueprint* InitAnimBlueprint, UAnimationAsset* InitAnimationAsset, class USkeletalMesh * InitMesh)
 {
-	FAssetEditorToolkit::OnPostReimport().AddRaw(this, &FPersona::OnPostReimport);
+	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FPersona::OnPostReimport);
 
 	AssetDirtyBrush = FEditorStyle::GetBrush("ContentBrowser.ContentDirty");
 
@@ -739,24 +748,6 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	// We could modify the skeleton within Persona (add/remove sockets), so we need to enable undo/redo on it
 	TargetSkeleton->SetFlags( RF_Transactional );
 
-	// Validate the skeletons attached objects and display a notification to the user if any were broken
-	int32 NumBrokenAssets = TargetSkeleton->ValidatePreviewAttachedObjects();
-	if(NumBrokenAssets > 0)
-	{
-		// Tell the user that there were assets that could not be loaded
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("NumBrokenAssets"), NumBrokenAssets );
-		FNotificationInfo Info( FText::Format( LOCTEXT( "MissingPreviewAttachedAssets", "{NumBrokenAssets} attached assets could not be found on loading and were removed" ), Args ) );
-
-		Info.bUseLargeFont = false;
-		Info.ExpireDuration = 5.0f;
-
-		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification( Info );
-		if ( Notification.IsValid() )
-		{
-			Notification->SetCompletionState( SNotificationItem::CS_Fail );
-		}
-	}
 	// Initialize the asset editor and spawn tabs
 	const TSharedRef<FTabManager::FLayout> DummyLayout = FTabManager::NewLayout("NullLayout")->AddArea(FTabManager::NewPrimaryArea());
 	const bool bCreateDefaultStandaloneMenu = true;
@@ -1568,6 +1559,7 @@ void FPersona::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 	}
 	else
 	{
+		ValidatePreviewAttachedAssets(NewPreviewMesh);
 		if (NewPreviewMesh != PreviewComponent->SkeletalMesh)
 		{
 			if ( PreviewComponent->SkeletalMesh != NULL )
@@ -1616,7 +1608,7 @@ void FPersona::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 	}
 }
 
-void FPersona::OnPropertyChanged(UObject* ObjectBeingModified)
+void FPersona::OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Re-initialize the preview when a skeletal control is being edited
 	//@TODO: Should we still do this?
@@ -1696,6 +1688,18 @@ void FPersona::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints)
 		. HideNameArea(bHideNameArea)
 		. IsPropertyEditingEnabledDelegate( FIsPropertyEditingEnabled::CreateSP(this, &FPersona::IsPropertyEditingEnabled) )
 		. OnFinishedChangingProperties( FOnFinishedChangingProperties::FDelegate::CreateSP( this, &FPersona::OnFinishedChangingProperties ) );
+}
+
+FGraphAppearanceInfo FPersona::GetGraphAppearance() const
+{
+	FGraphAppearanceInfo AppearanceInfo = FBlueprintEditor::GetGraphAppearance();
+
+	if ( GetBlueprintObj()->IsA(UAnimBlueprint::StaticClass()) )
+	{
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Animation", "ANIMATION").ToString();
+	}
+
+	return AppearanceInfo;
 }
 
 void FPersona::FocusWindow(UObject* ObjectToFocusOn)
@@ -1891,7 +1895,7 @@ void FPersona::DuplicateAndSelectSocket( const FSelectedSocketInfo& SocketInfoTo
 			}
 			FPreviewAttachedObjectPair NewPair = Pair;
 			NewPair.AttachedTo = NewSocket->SocketName;
-			AttachObjectToPreviewComponent( NewPair.Object, NewPair.AttachedTo, &TargetSkeleton->PreviewAttachedAssetContainer );
+			AttachObjectToPreviewComponent( NewPair.GetAttachedObject(), NewPair.AttachedTo, &TargetSkeleton->PreviewAttachedAssetContainer );
 		}
 	}
 
@@ -1968,7 +1972,7 @@ void FPersona::AddPreviewAttachedObjects()
 		{
 			FPreviewAttachedObjectPair& PreviewAttachedObject = Mesh->PreviewAttachedAssetContainer[i];
 
-			AttachObjectToPreviewComponent(PreviewAttachedObject.Object, PreviewAttachedObject.AttachedTo);
+			AttachObjectToPreviewComponent(PreviewAttachedObject.GetAttachedObject(), PreviewAttachedObject.AttachedTo);
 		}
 	}
 
@@ -1977,7 +1981,7 @@ void FPersona::AddPreviewAttachedObjects()
 	{
 		FPreviewAttachedObjectPair& PreviewAttachedObject = TargetSkeleton->PreviewAttachedAssetContainer[i];
 
-		AttachObjectToPreviewComponent(PreviewAttachedObject.Object, PreviewAttachedObject.AttachedTo);
+		AttachObjectToPreviewComponent(PreviewAttachedObject.GetAttachedObject(), PreviewAttachedObject.AttachedTo);
 	}
 }
 
@@ -2081,14 +2085,14 @@ void FPersona::RemoveAttachedComponent( bool bRemovePreviewAttached /* = true */
 	{
 		for(auto Iter = TargetSkeleton->PreviewAttachedAssetContainer.CreateConstIterator(); Iter; ++Iter)
 		{
-			PreviewAttachedObjects.FindOrAdd(Iter->Object).Add(Iter->AttachedTo);
+			PreviewAttachedObjects.FindOrAdd(Iter->GetAttachedObject()).Add(Iter->AttachedTo);
 		}
 
 		if ( USkeletalMesh* PreviewMesh = GetMesh() )
 		{
 			for(auto Iter = PreviewMesh->PreviewAttachedAssetContainer.CreateConstIterator(); Iter; ++Iter)
 			{
-				PreviewAttachedObjects.FindOrAdd(Iter->Object).Add(Iter->AttachedTo);
+				PreviewAttachedObjects.FindOrAdd(Iter->GetAttachedObject()).Add(Iter->AttachedTo);
 			}
 		}
 	}
@@ -2484,6 +2488,50 @@ bool FPersona::CanRemoveBones() const
 bool FPersona::IsRecordAvailable() const
 {
 	return (GetCurrentMode() == FPersonaModes::AnimBlueprintEditMode);
+}
+
+bool FPersona::IsEditable(UEdGraph* InGraph) const
+{
+	bool bEditable = FBlueprintEditor::IsEditable(InGraph);
+	bEditable &= IsGraphInCurrentBlueprint(InGraph);
+
+	return bEditable;
+}
+
+FString FPersona::GetGraphDecorationString(UEdGraph* InGraph) const
+{
+	if (!IsGraphInCurrentBlueprint(InGraph))
+	{
+		return LOCTEXT("PersonaExternalGraphDecoration", " Parent Graph Preview").ToString();
+	}
+	return TEXT("");
+}
+
+void FPersona::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)
+{
+	// Validate the skeleton/meshes attached objects and display a notification to the user if any were broken
+	int32 NumBrokenAssets = TargetSkeleton->ValidatePreviewAttachedObjects();
+	if (PreviewSkeletalMesh)
+	{
+		NumBrokenAssets += PreviewSkeletalMesh->ValidatePreviewAttachedObjects();
+	}
+
+	if (NumBrokenAssets > 0)
+	{
+		// Tell the user that there were assets that could not be loaded
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NumBrokenAssets"), NumBrokenAssets);
+		FNotificationInfo Info(FText::Format(LOCTEXT("MissingPreviewAttachedAssets", "{NumBrokenAssets} attached assets could not be found on loading and were removed"), Args));
+
+		Info.bUseLargeFont = false;
+		Info.ExpireDuration = 5.0f;
+
+		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+		if (Notification.IsValid())
+		{
+			Notification->SetCompletionState(SNotificationItem::CS_Fail);
+		}
+	}
 }
 
 /////////////////////////////////////////////////////

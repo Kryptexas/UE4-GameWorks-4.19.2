@@ -60,6 +60,36 @@ public:
 };
 
 /**
+ * An async item that can execute any callable type with no parameters.
+ * For example, l lambda, or an object with an operator().
+ * Useful for calling simple functions that need to run on the game thread,
+ * but are invoked from an online service thread.
+ */
+template<class CallableType>
+class FOnlineAsyncItemGenericCallable : public FOnlineAsyncItem
+{
+public:
+	/**
+	 * Constructor.
+	 *
+	 * @param InCallable any object that can be called with no parameters, usually a lambda
+	 */
+	explicit FOnlineAsyncItemGenericCallable(const CallableType& InCallable)
+		: CallableObject(InCallable) {}
+
+	virtual void Finalize() OVERRIDE
+	{
+		CallableObject();
+	}
+
+	virtual FString ToString() const OVERRIDE { return FString("FOnlineAsyncItemGenericCallable"); }
+
+private:
+	/** Stored copy of the object to invoke on the game thread. */
+	CallableType CallableObject;
+};
+
+/**
  * An event triggered by the online subsystem to be routed to the game thread for processing
  * Originates on the online thread
  */
@@ -270,6 +300,19 @@ public:
 	 * @param CompletedItem - some finished request of the online services
 	 */
 	void AddToOutQueue(FOnlineAsyncItem* CompletedItem);
+
+	/**
+	 * Add a new item to the out queue that will call InCallable on the game thread.
+	 * Very useful when passing in lambdas as parameters, since this function will
+	 * automatically deduce the template parameter type for FOnlineAsyncItemGenericCallable.
+	 *
+	 * @param InCallable the callable object to execute on the game thread.
+	 */
+	template<class CallableType>
+	void AddGenericToOutQueue(const CallableType& InCallable)
+	{
+		AddToOutQueue(new FOnlineAsyncItemGenericCallable<CallableType>(InCallable));
+	}
 
 	/**
 	 * Add a new online async task that is safe to run in parallel

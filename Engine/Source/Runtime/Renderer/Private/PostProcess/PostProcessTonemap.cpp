@@ -747,7 +747,8 @@ class FPostProcessTonemapPS : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_QUANTIZATION"), TonemapperIsDefined(ConfigBitmask, TonemapperGrainQuantization));
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE"),           TonemapperIsDefined(ConfigBitmask, TonemapperVignette));
 		OutEnvironment.SetDefine(TEXT("USE_VIGNETTE_COLOR"),     TonemapperIsDefined(ConfigBitmask, TonemapperVignetteColor));
-		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 (GRHIFeatureLevel >= ERHIFeatureLevel::SM4 && GSupportsVolumeTextureRendering));
+		// @todo Mac OS X: in order to share precompiled shaders between GL 3.3 & GL 4.1 devices we mustn't use volume-texture rendering as it isn't universally supported.
+		OutEnvironment.SetDefine(TEXT("USE_VOLUME_LUT"),		 (IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM4) && GSupportsVolumeTextureRendering && !PLATFORM_MAC));
 
 		if( !IsFeatureLevelSupported(Platform,ERHIFeatureLevel::SM5) )
 		{
@@ -1037,16 +1038,27 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	}
 
 	// Draw a quad mapping scene color to the view's render target
+	TShaderMapRef<FPostProcessTonemapVS> VertexShader(GetGlobalShaderMap());
+
 	DrawRectangle(
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
-		GSceneRenderTargets.SceneColor->GetDesc().Extent,
+		GSceneRenderTargets.GetBufferSizeXY(),
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	// We only release the SceneColor after the last view was processed (SplitScreen)
+	if(Context.View.Family->Views[Context.View.Family->Views.Num() - 1] == &Context.View)
+	{
+		// The RT should be released as early as possible to allow sharing of that memory for other purposes.
+		// This becomes even more important with some limited VRam (XBoxOne).
+		GSceneRenderTargets.SetSceneColor(0);
+	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -1391,13 +1403,16 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	}
 
 	// Draw a quad mapping scene color to the view's render target
+	TShaderMapRef<FPostProcessTonemapVS_ES2> VertexShader(GetGlobalShaderMap());
+
 	DrawRectangle(
 		0, 0,
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
-		GSceneRenderTargets.SceneColor->GetDesc().Extent,
+		GSceneRenderTargets.GetBufferSizeXY(),
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

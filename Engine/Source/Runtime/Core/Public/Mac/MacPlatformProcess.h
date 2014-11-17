@@ -53,6 +53,7 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
 	static bool IsApplicationRunning( const TCHAR* ProcName );
 	static bool IsApplicationRunning( uint32 ProcessId );
+	static FString GetApplicationName( uint32 ProcessId );
 	static bool IsThisApplicationForeground();
 	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
 	static void ExploreFolder( const TCHAR* FilePath );

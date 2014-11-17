@@ -12,24 +12,30 @@ class UCubeBuilder : public UEditorBrushBuilder
 {
 	GENERATED_UCLASS_BODY()
 
+	/** The size of the cube in the X dimension */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float X;
 
+	/** The size of the cube in the Y dimension */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float Y;
 
+	/** The size of the cube in the Z dimension */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float Z;
 
-	UPROPERTY(EditAnywhere, Category=BrushSettings)
+	/** The thickness of the cube wall when hollow */
+	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(EditCondition="Hollow"))
 	float WallThickness;
 
 	UPROPERTY()
 	FName GroupName;
 
+	/** Whether this is a hollow or solid cube */
 	UPROPERTY(EditAnywhere, Category=BrushSettings)
 	uint32 Hollow:1;
 
+	/** Whether extra internal faces should be generated for each cube face */
 	UPROPERTY(EditAnywhere, Category=BrushSettings)
 	uint32 Tessellated:1;
 

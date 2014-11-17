@@ -106,7 +106,7 @@ FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const F
 				float KeyPosition = TimeToPixelConverter.TimeToPixel( KeyArea->GetKeyTime(KeyHandle) );
 
 				FGeometry KeyGeometry = KeyAreaGeometry.MakeChild( 
-					FVector2D( KeyPosition - FMath::Trunc(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ),
+					FVector2D( KeyPosition - FMath::TruncToFloat(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ),
 					SequencerSectionConstants::KeySize );
 
 				if( KeyGeometry.IsUnderLocation( MousePosition ) )
@@ -378,7 +378,7 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 					// always draw selected keys on top of other keys
 					bSelected ? KeyLayer+1 : KeyLayer,
 					// Center the key along Y.  Ensure the middle of the key is at the actual key time
-					KeyAreaGeometry.ToPaintGeometry( FVector2D( KeyPosition - FMath::Trunc(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ), SequencerSectionConstants::KeySize ),
+					KeyAreaGeometry.ToPaintGeometry( FVector2D( KeyPosition - FMath::TruncToFloat(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ), SequencerSectionConstants::KeySize ),
 					KeyBrush,
 					MyClippingRect,
 					ESlateDrawEffect::None,

@@ -79,26 +79,40 @@ FName FClassIconFinder::FindIconNameForActor( const TWeakObjectPtr<AActor>& InAc
 	return BrushName;
 }
 
-
-const FSlateBrush* FClassIconFinder::FindIconForClass(UClass* InClass, const FName& InDefaultName )
+const FSlateBrush* FClassIconFinder::FindIconForClass(const UClass* InClass, const FName& InDefaultName )
 {
-	return FEditorStyle::GetBrush( FindIconNameForClass( InClass, InDefaultName ) );
+	return FEditorStyle::GetBrush( FindIconNameImpl( InClass, InDefaultName ) );
 }
 
-FName FClassIconFinder::FindIconNameForClass(UClass* InClass, const FName& InDefaultName )
+FName FClassIconFinder::FindIconNameForClass(const UClass* InClass, const FName& InDefaultName )
 {
-	FName BrushName = InDefaultName;
+	return FindIconNameImpl( InClass, InDefaultName );
+}
+
+const FSlateBrush* FClassIconFinder::FindThumbnailForClass(const UClass* InClass, const FName& InDefaultName )
+{
+	return FEditorStyle::GetBrush( FindIconNameImpl( InClass, InDefaultName, TEXT("ClassThumbnail") ) );
+}
+
+FName FClassIconFinder::FindThumbnailNameForClass(const UClass* InClass, const FName& InDefaultName )
+{
+	return FindIconNameImpl( InClass, InDefaultName, TEXT("ClassThumbnail") );
+}
+
+FName FClassIconFinder::FindIconNameImpl(const UClass* InClass, const FName& InDefaultName, const TCHAR* StyleRoot )
+{
+	FName BrushName;
 	const FSlateBrush* Brush = NULL;
 
 	if ( InClass != NULL )
 	{
 		// walk up class hierarchy until we find an icon
-		UClass* ActorClass = InClass;
-		while( Brush == NULL && ActorClass && ActorClass != AActor::StaticClass() )
+		const UClass* CurrentClass = InClass;
+		while( Brush == NULL && CurrentClass && (CurrentClass != AActor::StaticClass()) )
 		{
-			BrushName = *FString::Printf( TEXT( "ClassIcon.%s" ), *ActorClass->GetName() );
+			BrushName = *FString::Printf( TEXT( "%s.%s" ), StyleRoot, *CurrentClass->GetName() );
 			Brush = FEditorStyle::GetOptionalBrush( BrushName, nullptr, nullptr );
-			ActorClass = ActorClass->GetSuperClass();
+			CurrentClass = CurrentClass->GetSuperClass();
 		}
 	}
 
@@ -107,7 +121,7 @@ FName FClassIconFinder::FindIconNameForClass(UClass* InClass, const FName& InDef
 		// If we didn't supply an override name for the default icon use default class icon.
 		if( InDefaultName == "" )
 		{
-			BrushName = TEXT( "ClassIcon.Default" );
+			BrushName = *FString::Printf( TEXT( "%s.Default" ), StyleRoot);
 		}
 		else
 		{

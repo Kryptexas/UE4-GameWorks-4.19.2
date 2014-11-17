@@ -134,10 +134,10 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 	if ( Object )
 	{
 		// The menu option should ONLY be available if there is only one blueprint selected, validated by the menu creation code
-		UBlueprint* TargetBP = Object;
-		UClass* TargetClass = TargetBP->GeneratedClass;
+		UBlueprint* TargetParentBP = Object;
+		UClass* TargetParentClass = TargetParentBP->GeneratedClass;
 
-		if(!FKismetEditorUtilities::CanCreateBlueprintOfClass(TargetClass))
+		if (!FKismetEditorUtilities::CanCreateBlueprintOfClass(TargetParentClass))
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("InvalidClassToMakeBlueprintFrom", "Invalid class with which to make a Blueprint."));
 			return;
@@ -148,11 +148,11 @@ void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlu
 		CreateUniqueAssetName(Object->GetOutermost()->GetName(), TEXT("_Child"), PackageName, Name);
 
 		UPackage* Package = CreatePackage(NULL, *PackageName);
-		if ( ensure(Package) )
+		if (ensure(Package))
 		{
 			// Create and init a new Blueprint
-			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetClass, Package, FName(*Name), BPTYPE_Normal, UBlueprint::StaticClass());
-			if(NewBP)
+			UBlueprint* NewBP = FKismetEditorUtilities::CreateBlueprint(TargetParentClass, Package, FName(*Name), BPTYPE_Normal, TargetParentBP->GetClass(), UBlueprintGeneratedClass::StaticClass());
+			if (NewBP)
 			{
 				FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
 
@@ -177,13 +177,8 @@ bool FAssetTypeActions_Blueprint::ShouldUseDataOnlyEditor( const UBlueprint* Blu
 
 void FAssetTypeActions_Blueprint::PerformAssetDiff(UObject* OldAsset, UObject* NewAsset, const FRevisionInfo& OldRevision, const FRevisionInfo& NewRevision) const
 {
-	UBlueprint* OldBlueprint = Cast<UBlueprint>(OldAsset);
-	check(OldBlueprint != NULL);
-	check(OldBlueprint->SkeletonGeneratedClass != NULL);
-
-	UBlueprint* NewBlueprint = Cast<UBlueprint>(NewAsset);
-	check(NewBlueprint != NULL);
-	check(NewBlueprint->SkeletonGeneratedClass != NULL);
+	UBlueprint* OldBlueprint = CastChecked<UBlueprint>(OldAsset);
+	UBlueprint* NewBlueprint = CastChecked<UBlueprint>(NewAsset);
 
 	// sometimes we're comparing different revisions of one single asset (other 
 	// times we're comparing two completely separate assets altogether)
@@ -237,14 +232,17 @@ UThumbnailInfo* FAssetTypeActions_Blueprint::GetThumbnailInfo(UObject* Asset) co
 
 void FAssetTypeActions_Blueprint::OpenInDefaults( class UBlueprint* OldBlueprint, class UBlueprint* NewBlueprint ) const
 {
-	FString OldTextFilename = DumpAssetToTempFile(OldBlueprint->GeneratedClass->GetDefaultObject());
-	FString NewTextFilename = DumpAssetToTempFile(NewBlueprint->GeneratedClass->GetDefaultObject());
-	FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
+	const bool bComparedBlueprintsHaveGeneratedClasses = *(OldBlueprint->GeneratedClass) && *(NewBlueprint->GeneratedClass);
+	ensure(bComparedBlueprintsHaveGeneratedClasses);
+	if (bComparedBlueprintsHaveGeneratedClasses)
+	{
+		const FString OldTextFilename = DumpAssetToTempFile(OldBlueprint->GeneratedClass->GetDefaultObject());
+		const FString NewTextFilename = DumpAssetToTempFile(NewBlueprint->GeneratedClass->GetDefaultObject());
+		const FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
 
-	// args are just 2 temp filenames
-	FString DiffArgs = FString::Printf(TEXT("%s %s"), *OldTextFilename, *NewTextFilename);
-
-	CreateDiffProcess(DiffCommand, DiffArgs);
+		FAssetToolsModule& AssetToolsModule = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools");
+     	AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
+	}
 }
 
 FText FAssetTypeActions_Blueprint::GetAssetDescription(const FAssetData& AssetData) const

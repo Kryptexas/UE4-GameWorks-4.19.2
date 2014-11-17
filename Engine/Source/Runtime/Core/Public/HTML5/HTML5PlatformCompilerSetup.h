@@ -89,12 +89,6 @@
 #pragma warning(disable : 4121) // 'symbol' : alignment of a member was sensitive to packing
 #pragma warning(disable : 4345) // behavior change: an object of POD type constructed with an initializer of the form () will be default-initialized
 
-#if !USE_SECURE_CRT
-#pragma warning(disable : 4996) // 'function' was was declared deprecated  (needed for the secure string functions)
-#else
-#pragma warning(default : 4996)	// enable deprecation warnings
-#endif
-
 #if UE_BUILD_DEBUG
 // xstring.h causes this warning in debug builds
 #pragma warning(disable : 4548) // expression before comma has no effect; expected expression with side-effect

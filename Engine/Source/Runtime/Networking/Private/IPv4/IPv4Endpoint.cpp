@@ -17,9 +17,9 @@ ISocketSubsystem* FIPv4Endpoint::CachedSocketSubsystem = NULL;
 /* FIPv4Endpoint interface
  *****************************************************************************/
 
-FText FIPv4Endpoint::ToText( ) const
+FString FIPv4Endpoint::ToString( ) const
 {
-	return FText::FromString( FString::Printf(TEXT("%s:%i"), *Address.ToText().ToString(), Port) );
+	return FString::Printf(TEXT("%s:%i"), *Address.ToText().ToString(), Port);
 }
 
 

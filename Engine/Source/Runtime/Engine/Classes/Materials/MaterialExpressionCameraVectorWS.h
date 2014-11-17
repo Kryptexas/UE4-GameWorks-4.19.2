@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionCameraVectorWS.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionCameraVectorWS : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

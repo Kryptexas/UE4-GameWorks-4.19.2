@@ -46,6 +46,10 @@ class ENGINE_API UEnvQueryTest : public UObject
 	UPROPERTY()
 	uint32 bWorkOnFloatValues : 1;
 
+	/** If set, items not passing filter condition will be removed from query, otherwise they will receive score 0 */
+	UPROPERTY(EditDefaultsOnly, Category=Filter)
+	uint32 bDiscardFailedItems : 1;
+
 	FExecuteTestSignature ExecuteDelegate;
 
 	/** check if test supports item type */

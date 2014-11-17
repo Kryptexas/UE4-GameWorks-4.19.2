@@ -241,12 +241,11 @@ void SPropertyEditorClass::SendToObjects(const FString& NewValue)
 
 FReply SPropertyEditorClass::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
 {
-	if(DragDrop::IsTypeMatch<FClassDragDropOp>(DragDropEvent.GetOperation()))
+	TSharedPtr<FClassDragDropOp> ClassOperation = DragDropEvent.GetOperationAs<FClassDragDropOp>();
+	if (ClassOperation.IsValid())
 	{
-		auto Operation = StaticCastSharedPtr<FClassDragDropOp>(DragDropEvent.GetOperation());
-
 		// We can only drop one item into the combo box, so drop the first one.
-		FString AssetName = Operation->ClassesToDrop[0]->GetName();
+		FString AssetName = ClassOperation->ClassesToDrop[0]->GetName();
 
 		// Set the property, it will be verified as valid.
 		SendToObjects(AssetName);
@@ -254,14 +253,13 @@ FReply SPropertyEditorClass::OnDrop(const FGeometry& MyGeometry, const FDragDrop
 		return FReply::Handled();
 	}
 	
-	if(DragDrop::IsTypeMatch<FUnloadedClassDragDropOp>(DragDropEvent.GetOperation()))
+	TSharedPtr<FUnloadedClassDragDropOp> UnloadedClassOp = DragDropEvent.GetOperationAs<FUnloadedClassDragDropOp>();
+	if (UnloadedClassOp.IsValid())
 	{
-		TSharedPtr<FUnloadedClassDragDropOp> DragDropOp = StaticCastSharedPtr<FUnloadedClassDragDropOp>(DragDropEvent.GetOperation());
-
 		// Check if the asset is loaded, used to see if the context menu should be available
 		bool bAllAssetWereLoaded = true;
 
-		TArray<FClassPackageData>& AssetArray = *(DragDropOp->AssetsToDrop.Get());
+		TArray<FClassPackageData>& AssetArray = *(UnloadedClassOp->AssetsToDrop.Get());
 
 		// We can only drop one item into the combo box, so drop the first one.
 		FString& AssetName = AssetArray[0].AssetName;

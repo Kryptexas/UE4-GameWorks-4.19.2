@@ -280,6 +280,20 @@ bool SLandscapeEditor::GetIsPropertyVisible(const UProperty* const Property) con
 				return false;
 			}
 		}
+		if (Property->HasMetaData("ShowForTargetTypes"))
+		{
+			static const TCHAR* TargetTypeNames[] = { TEXT("Heightmap"), TEXT("Weightmap"), TEXT("Visibility") };
+
+			TArray<FString> ShowForTargetTypes;
+			Property->GetMetaData("ShowForTargetTypes").ParseIntoArray(&ShowForTargetTypes, TEXT(","), true);
+
+			const ELandscapeToolTargetType::Type CurrentTargetType = LandscapeEdMode->CurrentToolTarget.TargetType;
+			if (CurrentTargetType == ELandscapeToolTargetType::Invalid ||
+				ShowForTargetTypes.FindByKey(TargetTypeNames[CurrentTargetType]) == nullptr)
+			{
+				return false;
+			}
+		}
 
 		return true;
 	}

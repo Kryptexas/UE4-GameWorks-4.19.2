@@ -718,25 +718,28 @@ namespace AutomationTool
         /// <summary>
         /// Ctor that takes a pre-determined Version. Gets the Changelist and BranchName from the current <see cref="CommandUtils.P4Env"/>.
         /// </summary>
-        /// <param name="version">Predetermined version.</param>
-        public FEngineVersionSupport(Version version)
+		/// <param name="InVersion">Predetermined version.</param>
+		/// <param name="InChangelist">Predetermined changelist (optional)</param>
+		/// <param name="InBranchName">Predetermined branch name (optional)</param>
+		public FEngineVersionSupport(Version InVersion, int InChangelist = -1, string InBranchName = null)
         {
-            Version = version;
-            Changelist = CommandUtils.P4Enabled ? CommandUtils.P4Env.Changelist : 0;
-            BranchName = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "UnknownBranch";
-        }
-
-        /// <summary>
-        /// Ctor that takes a pre-determined Version.
-        /// </summary>
-        /// <param name="version">Predetermined version.</param>
-        /// <param name="changelist">Predetermined changelist</param>
-        /// <param name="changelist">Predetermined branch name</param>
-        public FEngineVersionSupport(Version version, int changelist, string branchName)
-        {
-            Version = version;
-            Changelist = changelist;
-            BranchName = branchName;
+			Version = InVersion;
+			if (InChangelist <= 0)
+			{
+				Changelist = CommandUtils.P4Enabled ? CommandUtils.P4Env.Changelist : 0;
+			}
+			else
+			{
+				Changelist = InChangelist;
+			}
+			if (String.IsNullOrEmpty(InBranchName))
+			{
+				BranchName = CommandUtils.P4Enabled ? CommandUtils.P4Env.BuildRootEscaped : "UnknownBranch";
+			}
+			else
+			{
+				BranchName = InBranchName;
+			}
         }
 
         /// <summary>
@@ -760,9 +763,11 @@ namespace AutomationTool
         /// Ctor initializes with the values from the supplied Version file. The BranchName and CL are also taken from the current <see cref="CommandUtils.P4Env"/>.
         /// </summary>
         /// <param name="Filename">Full path to the file with the version info.</param>
-        public static FEngineVersionSupport FromVersionFile(string Filename)
+		/// <param name="InChangelist">Predetermined changelist (optional)</param>
+		/// <param name="InBranchName">Predetermined branch name (optional)</param>
+        public static FEngineVersionSupport FromVersionFile(string Filename, int InChangelist = -1, string InBranchName = null)
         {
-            return new FEngineVersionSupport(ReadVersionFromFile(Filename));
+			return new FEngineVersionSupport(ReadVersionFromFile(Filename), InChangelist, InBranchName);
         }
 
         /// <summary>
@@ -831,8 +836,8 @@ namespace AutomationTool
 		public VersionFileUpdater(string Filename)
 		{
 			MyFile = new FileInfo(Filename);
-			Lines = InternalUtils.SafeReadAllLines(Filename);
-            if (Lines == null || Lines.Length == 0)
+			Lines = new List<string>(InternalUtils.SafeReadAllLines(Filename));
+            if (CommandUtils.IsNullOrEmpty(Lines))
             {
                 throw new AutomationException("Version file {0} was empty or not found!", Filename);
             }
@@ -843,7 +848,7 @@ namespace AutomationTool
 		/// </summary>
 		public void ReplaceLine(string StartOfLine, string ReplacementRHS)
 		{
-			for (int Index = 0; Index < Lines.Length; ++Index)
+			for (int Index = 0; Index < Lines.Count; ++Index)
 			{
 				if (Lines[Index].StartsWith(StartOfLine))
 				{
@@ -857,12 +862,37 @@ namespace AutomationTool
 		/// <summary>
 		/// Doc
 		/// </summary>
+		public void ReplaceOrAddLine(string StartOfLine, string ReplacementRHS)
+		{
+			if (Contains(StartOfLine))
+			{
+				ReplaceLine(StartOfLine, ReplacementRHS);
+			}
+			else
+			{
+				AddLine("");
+				AddLine(StartOfLine + ReplacementRHS);
+			}
+		}
+
+		/// <summary>
+		/// Adds a new line to the version file
+		/// </summary>
+		/// <param name="Line"></param>
+		public void AddLine(string Line)
+		{
+			Lines.Add(Line);
+		}
+
+		/// <summary>
+		/// Doc
+		/// </summary>
         public void SetAssemblyInformationalVersion(string NewInformationalVersion)
 		{
             // This searches for the AssemblyInformationalVersion string. Most the mess is to allow whitespace in places that are possible.
             // Captures the string into a group called "Ver" for replacement.
             var regex = new Regex(@"\[assembly:\s+AssemblyInformationalVersion\s*\(\s*""(?<Ver>.*)""\s*\)\s*]", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture);
-            foreach (var Index in Enumerable.Range(0, Lines.Length))
+            foreach (var Index in Enumerable.Range(0, Lines.Count))
             {
                 var line = Lines[Index];
                 var match = regex.Match(line);
@@ -885,7 +915,7 @@ namespace AutomationTool
 		public void Commit()
 		{
 			MyFile.IsReadOnly = false;
-			if (!InternalUtils.SafeWriteAllLines(MyFile.FullName, Lines))
+			if (!InternalUtils.SafeWriteAllLines(MyFile.FullName, Lines.ToArray()))
 			{
 				throw new AutomationException("Unable to update version info in {0}", MyFile.FullName);
 			}
@@ -915,7 +945,7 @@ namespace AutomationTool
 		/// <summary>
 		/// Doc
 		/// </summary>
-		protected string[] Lines;
+		protected List<string> Lines;
 	}
 
 	#endregion

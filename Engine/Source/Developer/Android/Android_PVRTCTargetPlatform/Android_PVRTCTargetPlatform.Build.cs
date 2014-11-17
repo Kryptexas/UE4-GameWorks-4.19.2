@@ -12,10 +12,7 @@ public class Android_PVRTCTargetPlatform : ModuleRules
 			new string[]
 			{
 				"Core",
-				"Sockets",
 				"TargetPlatform",
-				"Messaging",
-				"TargetDeviceServices",
 				"AndroidDeviceDetection",
 			}
 		);

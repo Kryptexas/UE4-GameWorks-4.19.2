@@ -245,17 +245,11 @@ FParticleEmitterInstance* UParticleModuleTypeDataRibbon::CreateInstance(UParticl
 UParticleModuleTypeDataAnimTrail::UParticleModuleTypeDataAnimTrail(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	SheetsPerTrail = 1;
 	bDeadTrailsOnDeactivate = true;
-	bClipSourceSegement = true;
 	bEnablePreviousTangentRecalculation = true;
 	bTangentRecalculationEveryFrame = false;
-	bRenderGeometry = true;
-	bRenderSpawnPoints = false;
-	bRenderTangents = false;
-	bRenderTessellation = false;
 	DistanceTessellationStepSize = 10.0f;
-	TangentTessellationScalar = 0.0f;
+	TangentTessellationStepSize = 0.0f;
 }
 
 uint32 UParticleModuleTypeDataAnimTrail::RequiredBytes(FParticleEmitterInstance* Owner)

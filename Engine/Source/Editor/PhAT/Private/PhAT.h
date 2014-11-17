@@ -172,6 +172,8 @@ private:
 	void OnToggleSimulation();
 	void OnToggleSimulationNoGravity();
 	void OnToggleSelectedSimulation();
+	void OnSelectedSimulation();
+	bool IsSelectedSimulation();
 	bool IsToggleSimulation() const;
 	void OnMeshRenderingMode(FPhATSharedData::EPhATRenderMode Mode);
 	bool IsMeshRenderingMode(FPhATSharedData::EPhATRenderMode Mode) const;
@@ -274,6 +276,9 @@ private:
 
 	/** True if in OnTreeSelectionChanged()... protects against infinite recursion */
 	bool InsideSelChanged;
+
+	/** True if we want to only simulate from selected body/constraint down*/
+	bool SelectedSimulation;
 
 	/** Determines which simulation mode wer're currently in */
 	EPhATSimulationMode SimulationMode;

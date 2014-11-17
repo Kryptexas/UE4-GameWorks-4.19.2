@@ -232,7 +232,7 @@ FORCEINLINE void SetTextureParameter(
 	checkSlow(SamplerParameter.IsInitialized());
 	if(TextureParameter.IsBound())
 	{
-		Texture->LastRenderTime = GCurrentTime;
+		Texture->LastRenderTime = FApp::GetCurrentTime();
 
 		if (ElementIndex < TextureParameter.GetNumResources())
 		{

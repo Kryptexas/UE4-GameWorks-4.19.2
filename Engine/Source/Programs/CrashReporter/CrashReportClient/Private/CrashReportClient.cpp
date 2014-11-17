@@ -31,18 +31,14 @@ FCrashReportClient::FCrashReportClient(const FString& Directory)
 		// The Epic ID can be looked up from this ID
 		auto DeviceId = FPlatformMisc::GetUniqueDeviceId();
 		GCrashUserId = FString(TEXT("!Id:")) + DeviceId;
-
-		// Rocket builds will not try to analyze the report locally. Reports will be sent to the crash server and analyzed there.
-		DiagnosticText = FText::Format(
-			LOCTEXT("NoDiagnoseReportRocket", "We apologize for the inconvenience.\nPlease send this crash report to help improve our software.\n\n{0}"),
-			FText::FromString(DeviceId)
-		);
-		return;
+	}
+	else
+	{
+		// Remove periods from internal user names to match AutoReporter user names
+		// The name prefix is read by CrashRepository.AddNewCrash in the website code
+		GCrashUserId = FString(TEXT("!Name:")) + FString(FPlatformProcess::UserName()).Replace(TEXT("."), TEXT(""));
 	}
 
-	// Remove periods from internal user names to match AutoReporter user names
-	// The name prefix is read by CrashRepository.AddNewCrash in the website code
-	GCrashUserId = FString(TEXT("!Name:")) + FString(FPlatformProcess::UserName()).Replace(TEXT("."), TEXT(""));
 	if (!ErrorReportFiles.TryReadDiagnosticsFile(DiagnosticText) && !FParse::Param(FCommandLine::Get(), TEXT("no-local-diagnosis")))
 	{
 		auto& Worker = DiagnoseReportTask.GetTask();
@@ -202,7 +198,7 @@ bool FCrashReportClient::UIWillCloseTick(float UnusedDeltaTime)
 
 void FDiagnoseReportWorker::DoWork()
 {
-	*DiagnosticText = ErrorReportFiles->DiagnoseReport();
+	*DiagnosticText = FText::Format( LOCTEXT("CrashReportClientCallstackPattern", "{0}\n\n{1}"), FText::FromString(GCrashUserId), ErrorReportFiles->DiagnoseReport() );
 }
 
 const TCHAR* FDiagnoseReportWorker::Name()

@@ -22,6 +22,16 @@ ECollisionChannel UEngineTypes::ConvertToCollisionChannel(EObjectTypeQuery Objec
 	return UCollisionProfile::Get()->ConvertToCollisionChannel(false, (int32)ObjectType);
 }
 
+EObjectTypeQuery UEngineTypes::ConvertToObjectType(ECollisionChannel CollisionChannel)
+{
+	return UCollisionProfile::Get()->ConvertToObjectType(CollisionChannel);
+}
+
+ETraceTypeQuery UEngineTypes::ConvertToTraceType(ECollisionChannel CollisionChannel)
+{
+	return UCollisionProfile::Get()->ConvertToTraceType(CollisionChannel);
+}
+
 void FDamageEvent::GetBestHitInfo(AActor const* HitActor, AActor const* HitInstigator, FHitResult& OutHitInfo, FVector& OutImpulseDir) const
 {
 	ensure(HitActor);

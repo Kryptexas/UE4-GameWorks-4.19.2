@@ -17,11 +17,13 @@ public:
 	void Construct( const FArguments& InArgs, TSharedRef<SEditorViewport> InViewport, TSharedRef<class SViewportToolBar> InParentToolBar );
 
 private:
-
 	FText GetViewMenuLabel() const;
 	const FSlateBrush* GetViewMenuLabelIcon() const;
-	TSharedRef<SWidget> GenerateViewMenuContent() const;
-private:
+
+protected:
+	virtual TSharedRef<SWidget> GenerateViewMenuContent() const;
 	TWeakPtr<SEditorViewport> Viewport;
+
+private:
 	TSharedPtr<class FExtender> MenuExtenders;
 };

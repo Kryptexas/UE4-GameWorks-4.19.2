@@ -43,7 +43,7 @@ void SSessionLauncherBuildPage::Construct( const FArguments& InArgs, const FSess
 					.VAlign(VAlign_Center)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("BuildText", "Do you wish to build?").ToString())
+							.Text(LOCTEXT("BuildText", "Do you wish to build?"))
 					]
 
 				+ SHorizontalBox::Slot()
@@ -62,7 +62,7 @@ void SSessionLauncherBuildPage::Construct( const FArguments& InArgs, const FSess
             .Padding(0.0f, 8.0f, 0.0f, 0.0f)
             [
                 SNew(SExpandableArea)
-                .AreaTitle(LOCTEXT("AdvancedAreaTitle", "Advanced Settings").ToString())
+                .AreaTitle(LOCTEXT("AdvancedAreaTitle", "Advanced Settings"))
                 .InitiallyCollapsed(true)
                 .Padding(8.0)
                 .BodyContent()
@@ -73,7 +73,7 @@ void SSessionLauncherBuildPage::Construct( const FArguments& InArgs, const FSess
                     .AutoHeight()
                     [
                         SNew(SButton)
-                        .Text(LOCTEXT("GenDSYMText", "Generate DSYM").ToString())
+                        .Text(LOCTEXT("GenDSYMText", "Generate DSYM"))
                         .IsEnabled( this, &SSessionLauncherBuildPage::HandleGenDSYMButtonEnabled )
                         .OnClicked( this, &SSessionLauncherBuildPage::HandleGenDSYMClicked )
                     ]

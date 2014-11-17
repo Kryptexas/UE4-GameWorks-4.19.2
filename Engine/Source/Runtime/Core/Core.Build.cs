@@ -17,6 +17,7 @@ public class Core : ModuleRules
 				"Runtime/Core/Public/Async",
 				"Runtime/Core/Public/Concurrency",
 				"Runtime/Core/Public/Containers",
+				"Runtime/Core/Public/Delegates",
 				"Runtime/Core/Public/GenericPlatform",
 				"Runtime/Core/Public/HAL",
 				"Runtime/Core/Public/Math",
@@ -54,17 +55,17 @@ public class Core : ModuleRules
 			}
 			);
 
+		if (UEBuildConfiguration.bBuildEditor == true)
+		{
+			DynamicallyLoadedModuleNames.Add("SourceCodeAccess");
+		}
+
 		if ((Target.Platform == UnrealTargetPlatform.Win64) ||
 			(Target.Platform == UnrealTargetPlatform.Win32))
 		{
 			PublicIncludePaths.Add("Runtime/Core/Public/Windows");
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"zlib");
-
-			if (UEBuildConfiguration.bBuildEditor == true)
-			{
-				DynamicallyLoadedModuleNames.Add("VSAccessor");
-			}
 
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"IntelTBB",
@@ -86,12 +87,10 @@ public class Core : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"zlib"
 				);
-			PublicFrameworks.AddRange(new string[] { "UIKit", "Foundation", "AudioToolbox", "AVFoundation", "GameKit", "StoreKit", "CoreVideo", "CoreMedia"});
+			PublicFrameworks.AddRange(new string[] { "UIKit", "Foundation", "AudioToolbox", "AVFoundation", "GameKit", "StoreKit", "CoreVideo", "CoreMedia", "CoreMotion"});
 
 			bool bSupportAdvertising = true;
 
-			Definitions.Add("UE_WITH_IAD=" + (bSupportAdvertising ? "1" : "0"));
-			
 			if (bSupportAdvertising)
 			{
 				PublicFrameworks.AddRange(new string[] { "iAD", "CoreGraphics" });
@@ -140,7 +139,7 @@ public class Core : ModuleRules
 
         Definitions.Add("WITH_STEAMWORKS=" + (UEBuildConfiguration.bCompileSteamOSS ? "1" : "0"));
 
-		// If we're compiling with the engine, then add Core's engine dependencies
+        // If we're compiling with the engine, then add Core's engine dependencies
 		if (UEBuildConfiguration.bCompileAgainstEngine == true)
 		{
 			if (!UEBuildConfiguration.bBuildRequiresCookedData)

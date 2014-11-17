@@ -125,6 +125,8 @@ class UParticleModuleOrientationAxisLock;
 
 class UParticleLODLevel;
 
+class USkeletalMeshComponent;
+
 class FParticleSystemSceneProxy;
 class FParticleDynamicData;
 struct FDynamicBeam2EmitterData;
@@ -133,6 +135,8 @@ struct FDynamicTrail2EmitterData;
 struct FParticleSpriteEmitterInstance;
 struct FParticleMeshEmitterInstance;
 struct FParticleBeam2EmitterInstance;
+
+struct FStaticMeshLODResources;
 
 // Special module indices...
 #define INDEX_TYPEDATAMODULE	(INDEX_NONE - 1)
@@ -733,18 +737,14 @@ struct FRibbonTypeDataPayload : public FTrailsBaseTypeDataPayload
 /** AnimTrail payload */
 struct FAnimTrailTypeDataPayload : public FTrailsBaseTypeDataPayload
 {
-	/**	The first edge of the trail */
-	FVector FirstEdge;
-	/**	The first edge velocity of the trail */
-	FVector FirstVelocity;
-	/**	The second edge of the trail */
-	FVector SecondEdge;
-	/**	The second edge velocity of the trail */
-	FVector SecondVelocity;
-	/**	The control edge of the trail will be the particle position */
-	//FVector ControlEdge;
-	/**	The control edge velocity of the trail */
-	FVector ControlVelocity;
+	//Direction from the first socket sample to the second.
+	FVector Direction;
+	//Tangent of the curve.
+	FVector Tangent;
+	//Half length between the sockets. First vertex = Location - Dir * Length; Second vertex = Location + Dir * Lenght
+	float Length;
+	/** Parameter of this knot on the spline*/
+	float InterpolationParameter;
 };
 
 /** Mesh rotation data payload										*/
@@ -1078,16 +1078,9 @@ struct FAsyncParticleFill
 	/** Work function, just forwards the request to the parent  */
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent);
 
-	/** Give the name for external event viewers
-	* @return	the name to display in external event viewers
-	*/
-	static const TCHAR *GetTaskName()
+	FORCEINLINE TStatId GetStatId() const
 	{
-		return TEXT("FAsyncParticleFill");
-	}
-	FORCEINLINE static TStatId GetStatId()
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncParticleFill, STATGROUP_TaskGraphTasks);
+		return GET_STATID( STAT_ParticleAsyncTime );
 	}
 
 	static ENamedThreads::Type GetDesiredThread()
@@ -1374,7 +1367,7 @@ struct FDynamicEmitterDataBase
 	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) {}
 
 	/** Callback from the renderer to gather simple lights that this proxy wants renderered. */
-	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const {}
+	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const {}
 
 	/** Returns the source data for this particle system */
 	virtual const FDynamicEmitterReplayDataBase& GetSource() const = 0;
@@ -1766,7 +1759,7 @@ struct FDynamicSpriteEmitterData : public FDynamicSpriteEmitterDataBase
 	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) OVERRIDE;
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
 
 	/**
 	 *	Render thread only draw call
@@ -1955,7 +1948,7 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 	virtual void PreRenderView(FParticleSystemSceneProxy* Proxy, const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber); 
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
 
 	/**
 	 *	Get the vertex stride for the dynamic rendering data
@@ -1999,7 +1992,16 @@ struct FDynamicMeshEmitterData : public FDynamicSpriteEmitterDataBase
 
 	UStaticMesh*		StaticMesh;
 	TArray<UMaterialInterface*, TInlineAllocator<2> > MeshMaterials;
-		
+
+	/** Mesh batches used for rendering, built in PreRenderView. */
+	TArray<FMeshBatch*, TInlineAllocator<4> > MeshBatches;
+
+	/** Mesh batch parameters used when instancing is not allowed. */
+	TArray<FMeshParticleVertexFactory::FBatchParametersCPU, TInlineAllocator<4> > MeshBatchParameters;
+
+	/** The first mesh batches to render for a given view. */
+	TArray<int32, TInlineAllocator<4> > FirstBatchForView;
+
 	/** Particle instance data allocations (ES2). */
 	TArray<FMeshParticleInstanceVertex> InstanceDataAllocationsCPU;
 
@@ -2411,6 +2413,12 @@ struct FDynamicTrailsEmitterData : public FDynamicSpriteEmitterDataBase
 		return *SourcePointer;
 	}
 
+	virtual const FDynamicTrailsEmitterReplayData* GetSourceData() const
+	{
+		check(SourcePointer);
+		return SourcePointer;
+	}
+
 	virtual void DoBufferFill(FAsyncBufferFillData& Me)
 	{
 		if( Me.VertexCount <= 0 || Me.IndexCount <= 0 || Me.VertexData == NULL || Me.IndexData == NULL )
@@ -2525,8 +2533,6 @@ struct FDynamicAnimTrailEmitterData : public FDynamicTrailsEmitterData
 	 *	non-simulating 'replay' particle systems, this data may have come straight from disk!
 	 */
 	FDynamicTrailsEmitterReplayData Source;
-	/** The time step the animation data was sampled at. */
-	float AnimSampleTimeStep;
 };
 
 /*-----------------------------------------------------------------------------
@@ -2613,7 +2619,7 @@ public:
 	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber);
 
 	/** Gathers simple lights for this emitter. */
-	virtual void GatherSimpleLights(TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const OVERRIDE;
+	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const OVERRIDE;
 
 	/**
 	 *	Called when the rendering thread adds the proxy to the scene.
@@ -2667,8 +2673,7 @@ public:
 	// While this isn't good OO design, access to everything is made public.
 	// This is to allow custom emitter instances to easily be written when extending the engine.
 	FMatrix GetWorldToLocal() const		{	return GetLocalToWorld().Inverse();	}
-	float GetCullDistance()				{	return CullDistance;			}
-	bool GetCastShadow()				{	return bCastShadow;				}
+	bool GetCastShadow() const			{	return bCastShadow;				}
 	const FMaterialRelevance& GetMaterialRelevance() const
 	{
 		return MaterialRelevance;
@@ -2678,6 +2683,9 @@ public:
 
 	FColoredMaterialRenderProxy* GetSelectedWireframeMatInst()		{	return &SelectedWireframeMaterialInstance;		}
 	FColoredMaterialRenderProxy* GetDeselectedWireframeMatInst()	{	return &DeselectedWireframeMaterialInstance;	}
+
+	/** Gets a mesh batch from the pool. */
+	FMeshBatch* GetPooledMeshBatch();
 
 protected:
 
@@ -2693,7 +2701,6 @@ protected:
 
 	AActor* Owner;
 
-	float CullDistance;
 #if STATS
 	double LastStatCaptureTime;
 	bool bCountedThisFrame;
@@ -2716,6 +2723,10 @@ protected:
 
 	/** The primitive's uniform buffer. */
 	TUniformBuffer<FPrimitiveUniformShaderParameters> WorldSpacePrimitiveUniformBuffer;
+
+	/** Pool for holding FMeshBatches to reduce allocations. */
+	TIndirectArray<FMeshBatch, TInlineAllocator<4> > MeshBatchPool;
+	int32 FirstFreeMeshBatch;
 
 	friend struct FDynamicSpriteEmitterDataBase;
 };

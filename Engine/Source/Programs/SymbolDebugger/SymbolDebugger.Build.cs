@@ -9,10 +9,10 @@ public class SymbolDebugger : ModuleRules
 		PublicIncludePaths.Add("Runtime/Launch/Public");
 
 		PrivateDependencyModuleNames.AddRange(
-			new string[] 
-			{
+			new string[] {
 				"Core",
 				"Slate",
+				"SlateCore",
 				"EditorStyle",
 				"StandaloneRenderer",
 				"DesktopPlatform",
@@ -22,7 +22,7 @@ public class SymbolDebugger : ModuleRules
 				"MessageLog",
 				"Projects",
 			}
-			);
+		);
 
 		PrivateIncludePaths.Add("Runtime/Launch/Private");		// For LaunchEngineLoop.cpp include
 

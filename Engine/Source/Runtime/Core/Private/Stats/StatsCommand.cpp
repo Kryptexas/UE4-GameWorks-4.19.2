@@ -1,13 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivate.h"
+#include "TaskGraphInterfaces.h"
+#include "DefaultValueHelper.h"
 
 #if STATS
 
-#include "TaskGraphInterfaces.h"
 #include "StatsData.h"
 #include "StatsFile.h"
-#include "DefaultValueHelper.h"
 
 DECLARE_CYCLE_STAT(TEXT("Hitch Scan"),STAT_HitchScan,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("HUD Group"),STAT_HUDGroup,STATGROUP_StatSystem);
@@ -80,7 +80,17 @@ private:
 	T Value;
 };
 
-
+struct FGroupFilter : public IItemFiler
+{
+	TSet<FName> const& EnabledItems;
+	FGroupFilter( TSet<FName> const& InEnabledItems )
+		: EnabledItems( InEnabledItems )
+	{}
+	virtual bool Keep( FStatMessage const& Item )
+	{
+		return EnabledItems.Contains( Item.NameAndInfo.GetRawName() );
+	}
+};
 
 /** Holds parameters used by the 'stat hier' or 'stat group ##' command. */
 struct FStatGroupParams
@@ -233,9 +243,9 @@ void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 		FStatMessage const& Item = Data[Index];
 		FName LongName = Item.NameAndInfo.GetRawName();
 
-		FString Desc;
-		Item.NameAndInfo.GetDescription(Desc);
-		bool bIsThread = Desc.StartsWith("Thread_");
+		// The description of a thread group contains the thread name marker
+		const FString Desc = Item.NameAndInfo.GetDescription();
+		bool bIsThread = Desc.StartsWith( FStatConstants::ThreadNameMarker );
 		bool bIsStall = !bIsThread && Desc.StartsWith("CPU Stall");
 		
 		EStatOperation::Type Op = Item.NameAndInfo.GetField<EStatOperation>();
@@ -363,12 +373,24 @@ void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 
 static void DumpHitch(int64 Frame)
 {
+	// !!!CAUTION!!! 
+	// Due to chain reaction of hitch reports after detecting the first hitch, the hitch detector is disabled for the next 4 frames.
+	// There is no other safe method to detect if the next hitch is a real hitch or just waiting for flushing the threaded logs or waiting for the stats. 
+	// So, the best way is to just wait until stats gets synchronized with the game thread.
+
+	static int64 LastHitchFrame = -(MAX_STAT_LAG + STAT_FRAME_SLOP);
+	if( LastHitchFrame + (MAX_STAT_LAG + STAT_FRAME_SLOP) > Frame )
+	{
+		return;
+	}
+
 	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	SCOPE_CYCLE_COUNTER(STAT_HitchScan);
 
-	float GameThreadTime = FPlatformTime::ToSeconds(Stats.GetFastThreadFrameTime(Frame, EThreadType::Game));
-	float RenderThreadTime = FPlatformTime::ToSeconds(Stats.GetFastThreadFrameTime(Frame, EThreadType::Renderer));
-	if (GameThreadTime > GHitchThreshold || RenderThreadTime > GHitchThreshold)
+	const float GameThreadTime = FPlatformTime::ToSeconds(Stats.GetFastThreadFrameTime(Frame, EThreadType::Game));
+	const float RenderThreadTime = FPlatformTime::ToSeconds(Stats.GetFastThreadFrameTime(Frame, EThreadType::Renderer));
+
+	if( GameThreadTime > GHitchThreshold || RenderThreadTime > GHitchThreshold )
 	{
 		UE_LOG(LogStats, Log, TEXT("------------------Thread Hitch, Frame %lld  %6.1fms ---------------"), Frame, FMath::Max<float>(GameThreadTime, RenderThreadTime) * 1000.0f );
 		FRawStatStackNode Stack;
@@ -376,45 +398,81 @@ static void DumpHitch(int64 Frame)
 		Stack.AddNameHierarchy();
 		Stack.AddSelf();
 
-		int64 MinCycles = int64(FMath::Min<float>(FMath::Max<float>(GHitchThreshold - 33.3f/1000.0f, 1.0f/1000.0f), 1.0f/1000.0f) / FPlatformTime::GetSecondsPerCycle());
+		int64 MinCycles = int64( FMath::Min<float>( FMath::Max<float>( GHitchThreshold - 33.3f / 1000.0f, 1.0f / 1000.0f ), 1.0f / 1000.0f ) / FPlatformTime::GetSecondsPerCycle() );
 		FRawStatStackNode* GameThread = NULL;
 		FRawStatStackNode* RenderThread = NULL;
-		const FString GameThreadString = FName(NAME_GameThread).ToString();
-		const FString RenderThreadString = FName(NAME_RenderThread).ToString();
 
-		for (auto ChildIter = Stack.Children.CreateConstIterator(); ChildIter; ++ChildIter)
+		for( auto ChildIter = Stack.Children.CreateConstIterator(); ChildIter; ++ChildIter )
 		{
-			const FName ChildName = ChildIter.Key();
-			const FString ChildString = ChildName.ToString();
+			const FName ThreadName = ChildIter.Value()->Meta.NameAndInfo.GetShortName();
 
-			if (ChildString.StartsWith(GameThreadString))
+			if( ThreadName == FName( NAME_GameThread ) )
 			{
 				GameThread = ChildIter.Value();
-				UE_LOG(LogStats, Log, TEXT("------------------ Game Thread %.2fms"), GameThreadTime * 1000.0f);
-				GameThread->Cull(MinCycles);
+				UE_LOG( LogStats, Log, TEXT( "------------------ Game Thread %.2fms" ), GameThreadTime * 1000.0f );
+				GameThread->Cull( MinCycles );
 				GameThread->DebugPrint();
 			}
-			else if (ChildString.StartsWith(RenderThreadString))
+			else if( ThreadName == FName( NAME_RenderThread ) )
 			{
 				RenderThread = ChildIter.Value();
-				UE_LOG(LogStats, Log, TEXT("------------------ Render Thread (%s) %.2fms"), *RenderThread->Meta.NameAndInfo.GetRawName().ToString(), RenderThreadTime * 1000.0f);
-				RenderThread->Cull(MinCycles);
+				UE_LOG( LogStats, Log, TEXT( "------------------ Render Thread (%s) %.2fms" ), *RenderThread->Meta.NameAndInfo.GetRawName().ToString(), RenderThreadTime * 1000.0f );
+				RenderThread->Cull( MinCycles );
 				RenderThread->DebugPrint();
 			}
 		}
 
-		if (!GameThread)
+		if( !GameThread )
 		{
-			UE_LOG(LogStats, Warning, TEXT("No game thread?!"));
+			UE_LOG( LogStats, Warning, TEXT( "No game thread?!" ) );
 		}
 
-		if (!RenderThread)
+		if( !RenderThread )
 		{
-			UE_LOG(LogStats, Warning, TEXT("No render thread."));
+			UE_LOG( LogStats, Warning, TEXT( "No render thread." ) );
+		}
+
+		LastHitchFrame = Frame;
+	}
+}
+
+#endif
+
+static bool HandleCommandBroadcast(const FName& InStatName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled)
+{
+	bOutCurrentEnabled = true;
+	bOutOthersEnabled = false;
+
+	// Check to see if all stats have been disabled... 
+	static const FName NAME_NoGroup = FName(TEXT("STATGROUP_None"));
+	if (InStatName == NAME_NoGroup)
+	{
+		// Iterate through all enabled groups.
+		FCoreDelegates::StatDisableAll.Broadcast(true);
+
+		return false;
+	}
+
+	// Check to see if/how this is already enabled.. (default to these incase it's not bound)
+	FString StatString = InStatName.ToString();
+	StatString.RemoveFromStart("STATGROUP_");
+	if (FCoreDelegates::StatCheckEnabled.IsBound())
+	{
+		FCoreDelegates::StatCheckEnabled.Broadcast(*StatString, bOutCurrentEnabled, bOutOthersEnabled);
+		if (!bOutCurrentEnabled)
+		{
+			FCoreDelegates::StatEnabled.Broadcast(*StatString);
+		}
+		else
+		{
+			FCoreDelegates::StatDisabled.Broadcast(*StatString);
 		}
 	}
 
+	return true;
 }
+
+#if STATS
 
 FHUDGroupGameThreadRenderer& FHUDGroupGameThreadRenderer::Get()
 {
@@ -422,24 +480,18 @@ FHUDGroupGameThreadRenderer& FHUDGroupGameThreadRenderer::Get()
 	return Singleton;
 }
 
-struct FGroupFilter : public IItemFiler
+FStatGroupGameThreadNotifier& FStatGroupGameThreadNotifier::Get()
 {
-	TSet<FName> const& EnabledItems;
-	FGroupFilter(TSet<FName> const& InEnabledItems)
-		: EnabledItems(InEnabledItems)
-	{
-	}
-	virtual bool Keep(FStatMessage const& Item)
-	{
-		return EnabledItems.Contains(Item.NameAndInfo.GetRawName());
-	}
-};
+	static FStatGroupGameThreadNotifier Singleton;
+	return Singleton;
+}
 
 struct FInternalGroup
 {
 	/** Initialization constructor. */
-	FInternalGroup( const FName InGroupName, const EStatDisplayMode::Type InDisplayMode, TSet<FName>& InEnabledItems, FString& InGroupDescription )
+	FInternalGroup(const FName InGroupName, const FName InGroupCategory, const EStatDisplayMode::Type InDisplayMode, TSet<FName>& InEnabledItems, FString& InGroupDescription)
 		: GroupName( InGroupName )
+		, GroupCategory(InGroupCategory)
 		, DisplayMode( InDisplayMode )
 	{
 		// To avoid copy.
@@ -452,6 +504,9 @@ struct FInternalGroup
 
 	/** Name of this stat group. */
 	FName GroupName;
+
+	/** Category of this stat group. */
+	FName GroupCategory;
 
 	/** Description of this stat group. */
 	FString GroupDescription;
@@ -524,47 +579,55 @@ struct FHUDGroupManager
 
 		ResizeFramesHistory( Params.MaxHistoryFrames.Get() );
 
-		/** -group=[name] */
-		const FString MaybeGroup = FString(TEXT("STATGROUP_")) + Params.Group.Get().GetPlainNameString();
-		FName MaybeGroupFName(*MaybeGroup);
-		const bool bValidGroupName = Stats.Groups.Contains(MaybeGroupFName);
-		FInternalGroup* InternalGroup = EnabledGroups.Find(MaybeGroupFName);
-
-		static const FName FName_StatGroup_None = TEXT("STATGROUP_None");
-
-		if( bValidGroupName )
-		{
-			if( InternalGroup )
-			{
-				if( (InternalGroup->DisplayMode & EStatDisplayMode::Hierarchical) && !bHierarchy )
-				{
-					InternalGroup->DisplayMode = EStatDisplayMode::Flat;
-				}
-				else if( (InternalGroup->DisplayMode & EStatDisplayMode::Flat) && bHierarchy )
-				{
-					InternalGroup->DisplayMode = EStatDisplayMode::Hierarchical;
-				}
-				else
-				{
-					EnabledGroups.Remove( MaybeGroupFName );
-					NumTotalStackFrames = 0;
-				}
-			}
-			else
-			{
-				TSet<FName> EnabledItems;
-				GetStatsForGroup( EnabledItems, MaybeGroupFName );
-
-				FString GroupDescription;
-				Stats.ShortNameToLongName.FindChecked(MaybeGroupFName).NameAndInfo.GetDescription(GroupDescription);
-
-				EnabledGroups.Add( MaybeGroupFName, FInternalGroup( MaybeGroupFName, bHierarchy?EStatDisplayMode::Hierarchical:EStatDisplayMode::Flat, EnabledItems, GroupDescription ) );
-			}
-		}
-		else if( MaybeGroupFName == FName_StatGroup_None )
+		const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + Params.Group.Get().GetPlainNameString()));
+		bool bCurrentEnabled, bOthersEnabled;
+		if (!HandleCommandBroadcast(MaybeGroupFName, bCurrentEnabled, bOthersEnabled))
 		{
 			// Remove all groups.
 			EnabledGroups.Empty();
+		}
+		else
+		{
+			// Is this a group stat (as opposed to a simple stat?)
+			const bool bGroupStat = Stats.Groups.Contains(MaybeGroupFName);
+			if (bGroupStat)
+			{
+				// Is this group stat currently enabled?
+				if (FInternalGroup* InternalGroup = EnabledGroups.Find(MaybeGroupFName))
+				{
+					// If this was only being used by the current viewport, remove it
+					if (bCurrentEnabled && !bOthersEnabled)
+					{
+						if ((InternalGroup->DisplayMode & EStatDisplayMode::Hierarchical) && !bHierarchy)
+						{
+							InternalGroup->DisplayMode = EStatDisplayMode::Flat;
+						}
+						else if ((InternalGroup->DisplayMode & EStatDisplayMode::Flat) && bHierarchy)
+						{
+							InternalGroup->DisplayMode = EStatDisplayMode::Hierarchical;
+						}
+						else
+						{
+							EnabledGroups.Remove(MaybeGroupFName);
+							NumTotalStackFrames = 0;
+						}
+					}
+				}
+				else
+				{
+					// If InternalGroup is null, it shouldn't be being used by any viewports					
+					TSet<FName> EnabledItems;
+					GetStatsForGroup(EnabledItems, MaybeGroupFName);
+
+					const FStatMessage& Group = Stats.ShortNameToLongName.FindChecked(MaybeGroupFName);
+
+					const FName GroupCategory = Group.NameAndInfo.GetGroupCategory();
+
+					FString GroupDescription = Group.NameAndInfo.GetDescription();
+
+					EnabledGroups.Add(MaybeGroupFName, FInternalGroup(MaybeGroupFName, GroupCategory, bHierarchy ? EStatDisplayMode::Hierarchical : EStatDisplayMode::Flat, EnabledItems, GroupDescription));
+				}
+			}
 		}
 
 		if( EnabledGroups.Num() && !bEnabled )
@@ -572,7 +635,6 @@ struct FHUDGroupManager
 			bEnabled = true;
 			Stats.NewFrameDelegate.AddRaw( this, &FHUDGroupManager::NewFrame );
 			StatsMasterEnableAdd();
-			FCoreDelegates::StatsEnabled.Broadcast();
 		}
 		else if( !EnabledGroups.Num() && bEnabled )
 		{
@@ -768,7 +830,7 @@ struct FHUDGroupManager
 			// Iterate through all enabled groups.
 			for( auto It = EnabledGroups.CreateIterator(); It; ++It )
 			{
-				const FName GroupName = It.Key();
+				const FName& GroupName = It.Key();
 				FInternalGroup& InternalGroup = It.Value();
 
 				// Create a new hud group.
@@ -1080,11 +1142,13 @@ static void CommandTestFile()
 	}
 }
 
+#endif
+
 static void StatCmd(FString InCmd)
 {
-	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	const TCHAR* Cmd = *InCmd;
-
+#if STATS
+	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
 	DumpCull = 5.0f;
 	MaxDepth = MAX_int32;
 	NameFilter.Empty();
@@ -1203,8 +1267,8 @@ static void StatCmd(FString InCmd)
 		FHUDGroupManager::Get(Stats).HandleCommand(Params, true);
 	}
 	else
+#endif
 	{
-		FStatsThreadState& LocalStats = FStatsThreadState::GetLocalState();
 		FString MaybeGroup;
 		FParse::Token(Cmd, MaybeGroup, false);
 
@@ -1218,10 +1282,17 @@ static void StatCmd(FString InCmd)
 				MaybeGroup.RemoveAt(PlusPos,1,false);
 			}
 
+			const FName MaybeGroupFName = FName(*MaybeGroup);
+#if STATS
 			// Try to parse.
 			FStatGroupParams Params( Cmd );
-			Params.Group.Set( FName(*MaybeGroup) );
-			FHUDGroupManager::Get(LocalStats).HandleCommand(Params, bHierarchy);
+			Params.Group.Set( MaybeGroupFName );
+			FHUDGroupManager::Get(Stats).HandleCommand(Params, bHierarchy);
+#else
+			// If stats aren't enabled, broadcast so engine stats can still be triggered
+			bool bCurrentEnabled, bOthersEnabled;
+			HandleCommandBroadcast(MaybeGroupFName, bCurrentEnabled, bOthersEnabled);
+#endif
 		}
 		else
 		{
@@ -1236,7 +1307,8 @@ public:
 	/** Console commands, see embeded usage statement **/
 	virtual bool Exec( UWorld*, const TCHAR* Cmd, FOutputDevice& Ar ) OVERRIDE
 	{
-		return DirectStatsCommand(Cmd,false,&Ar);
+		// Block the thread as this affects external stat states now
+		return DirectStatsCommand(Cmd,true,&Ar);
 	}
 } StatCmdExec;
 
@@ -1251,6 +1323,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 
 		FString ArgNoWhitespaces = FDefaultValueHelper::RemoveWhitespaces(TempCmd);
 		const bool bIsEmpty = ArgNoWhitespaces.IsEmpty();
+#if STATS
 		if( bIsEmpty && Ar )
 		{
 			PrintStatsHelpToOutputDevice( *Ar );
@@ -1308,6 +1381,7 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		{
 		}
 		else
+#endif
 		{
 			bResult = false;
 		}
@@ -1315,12 +1389,22 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		check(IsInGameThread());
 		if( !bIsEmpty )
 		{
-			FHUDGroupGameThreadRenderer::Get();  // make sure this is initialized on the game thread
+			ENamedThreads::Type ThreadType = ENamedThreads::GameThread;
+#if STATS
+			if (FPlatformProcess::SupportsMultithreading())
+			{
+				ThreadType = ENamedThreads::StatsThread;
+			}
+
+			// make sure these are initialized on the game thread
+			FHUDGroupGameThreadRenderer::Get();
+			FStatGroupGameThreadNotifier::Get();
+#endif
 			FGraphEventRef CompleteHandle = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
 				FSimpleDelegateGraphTask::FDelegate::CreateStatic(&StatCmd, FString(Cmd) + AddArgs)
 				, TEXT("StatCmd")
 				, NULL
-				, FPlatformProcess::SupportsMultithreading() ? ENamedThreads::StatsThread : ENamedThreads::GameThread
+				, ThreadType
 				);
 			if (bBlockForCompletion)
 			{
@@ -1331,6 +1415,8 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 	}
 	return bResult;
 }
+
+#if STATS
 
 static void GetPermanentStats_StatsThread(TArray<FStatMessage>* OutStats)
 {

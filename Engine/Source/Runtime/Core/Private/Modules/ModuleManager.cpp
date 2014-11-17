@@ -123,6 +123,19 @@ bool FModuleManager::IsModuleLoaded( const FName InModuleName ) const
 	return false;
 }
 
+bool FModuleManager::IsModuleUpToDate( const FName InModuleName ) const
+{
+	TMap<FName, FString> ModulePathMap;
+	FindModulePaths(*InModuleName.ToString(), ModulePathMap);
+
+	if(ModulePathMap.Num() != 1)
+	{
+		return false;
+	}
+
+	return CheckModuleCompatibility(*TMap<FName, FString>::TConstIterator(ModulePathMap).Value());
+}
+
 void FModuleManager::AddModule( const FName InModuleName )
 {
 	// Do we already know about this module?  If not, we'll create information for this module now.
@@ -1139,7 +1152,7 @@ bool FModuleManager::GetModuleFileTimeStamp(TSharedRef<const FModuleInfo> Module
 	return false;
 }
 
-void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths)
+void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
 	// Search through the engine directory
 	FindModulePathsInDirectory(FPlatformProcess::GetModulesDirectory(), false, NamePattern, OutModulePaths);
@@ -1157,7 +1170,7 @@ void FModuleManager::FindModulePaths(const TCHAR* NamePattern, TMap<FName, FStri
 	}
 }
 
-void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths)
+void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, bool bIsGameDirectory, const TCHAR* NamePattern, TMap<FName, FString> &OutModulePaths) const
 {
 	// Get the module configuration for this directory type
 	#if UE_BUILD_DEBUG
@@ -1492,6 +1505,17 @@ void FModuleManager::MakeUniqueModuleFilename( const FName InModuleName, FString
 	while (IFileManager::Get().GetFileAgeSeconds(*UniqueModuleFileName) != -1.0);
 }
 
+const TCHAR *FModuleManager::GetUBTConfiguration()
+{
+#if UE_BUILD_DEBUG
+	return TEXT("Debug");
+#elif UE_BUILD_SHIPPING
+	return TEXT("Shipping");
+#else
+	static bool bIsDebugGame = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+	return bIsDebugGame? TEXT("DebugGame") : TEXT("Development");
+#endif
+}
 
 bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TArray< FModuleToRecompile >& ModuleNames, 
 	const FRecompileModulesCallback& InRecompileModulesCallback, FOutputDevice& Ar, bool bInFailIfGeneratedCodeChanges, 
@@ -1503,15 +1527,7 @@ bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TAr
 	ModulesThatWereBeingRecompiled = ModulesBeingCompiled;
 
 	const TCHAR* BuildPlatformName = FPlatformMisc::GetUBTPlatform();
-
-	FString BuildConfigurationName = 
-#if UE_BUILD_DEBUG
-		TEXT( "Debug");
-#elif UE_BUILD_SHIPPING
-		TEXT( "Shipping" );
-#else
-		FParse::Param(FCommandLine::Get(), TEXT("debug"))? TEXT( "DebugGame" ) : TEXT( "Development" );
-#endif
+	const TCHAR* BuildConfigurationName = GetUBTConfiguration();
 
 	RecompileModulesCallback = InRecompileModulesCallback;
 
@@ -1554,7 +1570,7 @@ bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TAr
 
 	FString CmdLineParams = FString::Printf( TEXT( "%s%s %s %s %s%s" ), 
 		*GameName, *ModuleArg, 
-		BuildPlatformName, *BuildConfigurationName, 
+		BuildPlatformName, BuildConfigurationName, 
 		*ExtraArg, *InAdditionalCmdLineArgs );
 
 	const bool bInvocationSuccessful = InvokeUnrealBuildTool(CmdLineParams, Ar);
@@ -1563,7 +1579,7 @@ bool FModuleManager::StartCompilingModuleDLLs(const FString& GameName, const TAr
 		// No longer compiling modules
 		ModulesBeingCompiled.Empty();
 
-		ModuleCompilerFinishedEvent.Broadcast(FString(), false, false);
+		ModuleCompilerFinishedEvent.Broadcast(FString(), ECompilationResult::OtherCompilationError, false);
 
 		// Fire task completion delegate 
 		
@@ -1610,19 +1626,14 @@ bool FModuleManager::BuildUnrealBuildTool(FOutputDevice &Ar)
 
 	// First determine the appropriate vcvars batch file to launch
 	FString VCVarsBat;
-	{
+
 #if _MSC_VER >= 1800
- 		TCHAR VS12Path[MAX_PATH];
- 		FPlatformMisc::GetEnvironmentVariable(TEXT("VS120COMNTOOLS"), VS12Path, ARRAY_COUNT(VS12Path));
- 		VCVarsBat = VS12Path;
- 		VCVarsBat += TEXT("/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
+	FPlatformMisc::GetVSComnTools(12, VCVarsBat);
 #else
-		TCHAR VS11Path[MAX_PATH];
-		FPlatformMisc::GetEnvironmentVariable(TEXT("VS110COMNTOOLS"), VS11Path, ARRAY_COUNT(VS11Path));
-		VCVarsBat = VS11Path;
-		VCVarsBat += TEXT("/../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
+	FPlatformMisc::GetVSComnTools(11, VCVarsBat);
 #endif
-	}
+
+	VCVarsBat = FPaths::Combine(*VCVarsBat, L"../../VC/bin/x86_amd64/vcvarsx86_amd64.bat");
 
 	// Check to make sure we found one.
 	if ( VCVarsBat.IsEmpty() || !FPaths::FileExists(VCVarsBat) )
@@ -1784,7 +1795,7 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 {
 #if PLATFORM_DESKTOP && !IS_MONOLITHIC
 	bCompileStillInProgress = false;
-	bCompileSucceeded = false;
+	ECompilationResult::Type CompilationResult = ECompilationResult::OtherCompilationError;
 
 	// Is there a compilation in progress?
 	if( IsCurrentlyCompiling() )
@@ -1820,7 +1831,7 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 		}
 
 		// Check to see if the compile has finished yet
-		int32 ReturnCode = 1;
+		int32 ReturnCode = -1;
 		while (bCompileStillInProgress)
 		{
 			if( FPlatformProcess::GetProcReturnCode( ModuleCompileProcessHandle, &ReturnCode ) )
@@ -1860,13 +1871,13 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 			// Compilation finished, now we need to grab all of the text from the output pipe
 			ModuleCompileReadPipeText += FPlatformProcess::ReadPipe(ModuleCompileReadPipe);
 
-			// Was the compile successful?
-			bCompileSucceeded = ( ReturnCode == 0 );
+			// The ReturnCode is -1 only if compilation was cancelled.
+			CompilationResult = ReturnCode != -1 ? (ECompilationResult::Type)ReturnCode : ECompilationResult::OtherCompilationError;
 
 			// If compilation succeeded for all modules, go back to the modules and update their module file names
 			// in case we recompiled the modules to a new unique file name.  This is needed so that when the module
 			// is reloaded after the recompile, we load the new DLL file name, not the old one
-			if( bCompileSucceeded )
+			if(CompilationResult == ECompilationResult::Succeeded)
 			{
 				for( int32 CurModuleIndex = 0; CurModuleIndex < ModulesThatWereBeingRecompiled.Num(); ++CurModuleIndex )
 				{
@@ -1910,10 +1921,12 @@ void FModuleManager::CheckForFinishedModuleDLLCompile( const bool bWaitForComple
 			// No longer compiling modules
 			ModulesBeingCompiled.Empty();
 
+			bCompileSucceeded = CompilationResult == ECompilationResult::Succeeded;
+
 			if ( bFireEvents )
 			{
 				const bool bShowLogOnSuccess = false;
-				ModuleCompilerFinishedEvent.Broadcast(FinalOutput, bCompileSucceeded, !bCompileSucceeded || bShowLogOnSuccess);
+				ModuleCompilerFinishedEvent.Broadcast(FinalOutput, CompilationResult, !bCompileSucceeded || bShowLogOnSuccess);
 
 				// Fire task completion delegate 
 				RecompileModulesCallback.ExecuteIfBound( true, bCompileSucceeded );

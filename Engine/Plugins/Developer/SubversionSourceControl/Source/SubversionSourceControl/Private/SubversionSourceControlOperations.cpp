@@ -17,9 +17,6 @@ FName FSubversionConnectWorker::GetName() const
 
 bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InCommand)
 {
-	TArray<FString> Parameters;
-	Parameters.Add(InCommand.RepositoryName);
-	
 	check(InCommand.Operation->GetName() == "Connect");
 	TSharedRef<FConnect, ESPMode::ThreadSafe> Operation = StaticCastSharedRef<FConnect>(InCommand.Operation);
 	FString Password = InCommand.Password;
@@ -29,12 +26,27 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 		Password = Operation->GetPassword();
 	}
 
-	InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("info"), TArray<FString>(), Parameters, InCommand.InfoMessages, InCommand.ErrorMessages, InCommand.UserName, Password);
+	{
+		TArray<FXmlFile> ResultsXml;
+		TArray<FString> Parameters;
+		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+		SubversionSourceControlUtils::QuoteFilename(GameRoot);
+		Parameters.Add(GameRoot);
+	
+		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("info"), TArray<FString>(), Parameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName, Password);	
+		if(InCommand.bCommandSuccessful)
+		{
+			SubversionSourceControlUtils::ParseInfoResults(ResultsXml, WorkingCopyRoot);
+		}
+	}
+
 	if(InCommand.bCommandSuccessful)
 	{
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Files;
-		Files.Add(FPaths::ConvertRelativePathToFull(FPaths::GameDir()));
+		FString GameRoot = FPaths::ConvertRelativePathToFull(FPaths::GameDir());
+		SubversionSourceControlUtils::QuoteFilename(GameRoot);
+		Files.Add(GameRoot);
 
 		TArray<FString> StatusParameters;
 		StatusParameters.Add(TEXT("--show-updates"));
@@ -46,7 +58,7 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 		{
 			// Check to see if this was a working copy - if not deny connection as we wont be able to work with it.
 			TArray<FSubversionSourceControlState> States;
-			SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, States);
+			SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, States);
 			if(InCommand.ErrorMessages.Num() > 0)
 			{
 				for (int32 MessageIndex = 0; MessageIndex < InCommand.ErrorMessages.Num(); ++MessageIndex)
@@ -72,7 +84,10 @@ bool FSubversionConnectWorker::Execute(FSubversionSourceControlCommand& InComman
 
 bool FSubversionConnectWorker::UpdateStates() const
 {
-	return false;
+	FSubversionSourceControlModule& SubversionSourceControl = FModuleManager::LoadModuleChecked<FSubversionSourceControlModule>( "SubversionSourceControl" );
+	FSubversionSourceControlProvider& Provider = SubversionSourceControl.GetProvider();
+	Provider.SetWorkingCopyRoot(WorkingCopyRoot);
+	return true;
 }
 
 FName FSubversionCheckOutWorker::GetName() const
@@ -103,7 +118,7 @@ bool FSubversionCheckOutWorker::Execute(FSubversionSourceControlCommand& InComma
 		StatusParameters.Add(TEXT("--verbose"));
 
 		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 	}
 
 	return InCommand.bCommandSuccessful;
@@ -137,7 +152,7 @@ static bool IsDirectoryAdded(const FSubversionSourceControlCommand& InCommand, c
 	if(SubversionSourceControlUtils::RunCommand(TEXT("status"), Files, StatusParameters, ResultsXml, ErrorMessages, InCommand.UserName))
 	{
 		TArray<FSubversionSourceControlState> OutStates;
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 		
 		for(auto It(OutStates.CreateConstIterator()); It; It++)
 		{
@@ -266,7 +281,7 @@ bool FSubversionCheckInWorker::Execute(FSubversionSourceControlCommand& InComman
 		StatusParameters.Add(TEXT("--show-updates"));
 
 		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 	}
 
 	return InCommand.bCommandSuccessful;
@@ -299,7 +314,7 @@ bool FSubversionMarkForAddWorker::Execute(FSubversionSourceControlCommand& InCom
 		StatusParameters.Add(TEXT("--verbose"));
 
 		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 	}
 
 	return InCommand.bCommandSuccessful;
@@ -328,7 +343,7 @@ bool FSubversionDeleteWorker::Execute(FSubversionSourceControlCommand& InCommand
 		StatusParameters.Add(TEXT("--verbose"));
 
 		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 	}
 
 	return InCommand.bCommandSuccessful;
@@ -366,7 +381,7 @@ bool FSubversionRevertWorker::Execute(FSubversionSourceControlCommand& InCommand
 		StatusParameters.Add(TEXT("--show-updates"));
 
 		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 	}
 
 	return InCommand.bCommandSuccessful;
@@ -394,7 +409,7 @@ bool FSubversionSyncWorker::Execute(FSubversionSourceControlCommand& InCommand)
 		StatusParameters.Add(TEXT("--show-updates"));
 
 		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, StatusParameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 	}
 
 	return InCommand.bCommandSuccessful;
@@ -420,7 +435,7 @@ bool FSubversionUpdateStatusWorker::Execute(FSubversionSourceControlCommand& InC
 		Parameters.Add(TEXT("--verbose"));
 
 		InCommand.bCommandSuccessful = SubversionSourceControlUtils::RunCommand(TEXT("status"), InCommand.Files, Parameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 		SubversionSourceControlUtils::RemoveRedundantErrors(InCommand, TEXT("' is not a working copy"));
 	}
 	else
@@ -458,17 +473,16 @@ bool FSubversionUpdateStatusWorker::Execute(FSubversionSourceControlCommand& InC
 
 	if(Operation->ShouldGetOpenedOnly())
 	{
-		// No server access if we use this option (note no "--show-updates" param)
-
 		TArray<FXmlFile> ResultsXml;
 		TArray<FString> Parameters;
+		Parameters.Add(TEXT("--show-updates"));
 		Parameters.Add(TEXT("--verbose"));
 
 		TArray<FString> Files;
 		Files.Add(FPaths::RootDir());
 
 		InCommand.bCommandSuccessful &= SubversionSourceControlUtils::RunCommand(TEXT("status"), Files, Parameters, ResultsXml, InCommand.ErrorMessages, InCommand.UserName);
-		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, OutStates);
+		SubversionSourceControlUtils::ParseStatusResults(ResultsXml, InCommand.ErrorMessages, InCommand.UserName, InCommand.WorkingCopyRoot, OutStates);
 	}
 
 	// NOTE: we dont use the ShouldUpdateModifiedState() hint here as a normal svn status will tell us this information

@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionObjectRadius.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionObjectRadius : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

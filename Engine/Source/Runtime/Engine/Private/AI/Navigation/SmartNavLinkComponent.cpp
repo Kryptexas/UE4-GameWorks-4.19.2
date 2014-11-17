@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineNavigationClasses.h"
 #include "VisualLog.h"
 
 USmartNavLinkComponent::USmartNavLinkComponent(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
@@ -166,9 +165,14 @@ void USmartNavLinkComponent::OnApplyModifiers(FCompositeNavModifier& Modifiers)
 	}
 }
 
+bool USmartNavLinkComponent::IsPathfindingAllowed(const UObject* Querier) const
+{
+	return true;
+}
+
 void USmartNavLinkComponent::NotifyLinkReached(class UPathFollowingComponent* PathComp, const FVector& DestPoint)
 {
-	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp;
+	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp = PathComp;
 	MovingAgents.Add(WeakPathComp);
 
 	if (OnMoveReachedLink.IsBound())

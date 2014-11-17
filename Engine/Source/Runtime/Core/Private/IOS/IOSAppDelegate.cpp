@@ -106,6 +106,7 @@ void InstallSignalHandlers()
 
 -(void)MainAppThread:(NSDictionary*)launchOptions
 {
+    self.bHasStarted = true;
 	GIsGuarded = false;
 	GStartTime = FPlatformTime::Seconds();
 
@@ -157,6 +158,8 @@ void InstallSignalHandlers()
 
 	[AutoreleasePool release];
 	FAppEntry::Shutdown();
+    
+    self.bHasStarted = false;
 }
 
 - (void)NoUrlCommandLine
@@ -198,9 +201,9 @@ void InstallSignalHandlers()
 			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient!"));
 		}
 		ActiveError = nil;
-	}
+ 	}
+    self.bAudioActive = true;
 
-	[[AVAudioSession sharedInstance] setDelegate:self];
 	/* TODO::JTM - Jan 16, 2013 06:22PM - Music player support */
 }
 
@@ -208,6 +211,8 @@ void InstallSignalHandlers()
 {
 	if (bActive)
 	{
+        if (!self.bAudioActive)
+        {
 		bool bWasUsingBackgroundMusic = self.bUsingBackgroundMusic;
 		self.bUsingBackgroundMusic = [self IsBackgroundAudioPlaying];
 
@@ -263,8 +268,9 @@ void InstallSignalHandlers()
 			}
 			ActiveError = nil;
 		}
+        }
 	}
-	else if (!self.bUsingBackgroundMusic)
+	else if (self.bAudioActive && !self.bUsingBackgroundMusic)
 	{
 		NSError* ActiveError = nil;
 		[[AVAudioSession sharedInstance] setActive:NO error:&ActiveError];
@@ -273,7 +279,7 @@ void InstallSignalHandlers()
 			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session as inactive!"));
 		}
 		ActiveError = nil;
-
+        
 		// Necessary to prevent audio from getting killing when setup for background iPod audio playback
 		[[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&ActiveError];
 		if (ActiveError)
@@ -281,7 +287,8 @@ void InstallSignalHandlers()
 			UE_LOG(LogIOSAudioSession, Error, TEXT("Failed to set audio session category to AVAudioSessionCategoryAmbient!"));
 		}
 		ActiveError = nil;
-	}
+ 	}
+    self.bAudioActive = bActive;
 }
 
 - (bool)IsBackgroundAudioPlaying
@@ -357,7 +364,9 @@ void InstallSignalHandlers()
 
 - (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url
 {
+#if !NO_LOGGING
 	NSLog(@"%s", "IOSAppDelegate handleOpenURL\n");
+#endif
 
 	NSString* EncdodedURLString = [url absoluteString];
 	NSString* URLString = [EncdodedURLString stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
@@ -383,12 +392,16 @@ void InstallSignalHandlers()
 
 - (void)beginInterruption
 {
+    FAppEntry::Suspend();
+
 	[self ToggleAudioSession:false];
-}
+ }
 
 - (void)endInterruption
 {
 	[self ToggleAudioSession:true];
+
+    FAppEntry::Resume();
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application
@@ -439,6 +452,15 @@ void InstallSignalHandlers()
 	 See also applicationDidEnterBackground:.
 	 */
 	FCoreDelegates::ApplicationWillTerminateDelegate.Broadcast();
+    
+    // note that we are shutting down
+    GIsRequestingExit = true;
+    
+    // wait for the game thread to shut down
+    while (self.bHasStarted == true)
+    {
+        usleep(3);
+    }
 }
 
 - (void)applicationDidReceiveMemoryWarning:(UIApplication *)application
@@ -448,181 +470,6 @@ void InstallSignalHandlers()
 	*/
 	FPlatformMisc::HandleLowMemoryWarning();
 }
-
-#if UE_WITH_IAD
-
-@synthesize BannerView;
-
-/** TRUE if the iAd banner should be on the bottom of the screen */
-BOOL bDrawOnBottom;
-
-/** TRUE when the banner is onscreen */
-BOOL bIsBannerVisible = NO;
-
-/**
-* Will show an iAd on the top or bottom of screen, on top of the GL view (doesn't resize
-* the view)
-*
-* @param bShowOnBottomOfScreen If true, the iAd will be shown at the bottom of the screen, top otherwise
-*/
--(void)ShowAdBanner:(NSNumber*)bShowOnBottomOfScreen
-{
-	bDrawOnBottom = [bShowOnBottomOfScreen boolValue];
-
-	bool bNeedsToAddSubview = false;
-	if (self.BannerView == nil)
-	{
-		self.BannerView = [[ADBannerView alloc] initWithAdType:ADAdTypeBanner];
-		self.BannerView.delegate = self;
-		bNeedsToAddSubview = true;
-	}
-
-	CGRect BannerFrame = CGRectZero;
-	BannerFrame.size = [self.BannerView sizeThatFits : self.RootView.bounds.size];
-
-	if (bDrawOnBottom)
-	{
-		// move to off the bottom
-		BannerFrame.origin.y = self.RootView.bounds.size.height - BannerFrame.size.height;
-	}
-
-	self.BannerView.frame = BannerFrame;
-
-	// start out hidden, will fade in when ad loads
-	self.BannerView.hidden = YES;
-	self.BannerView.alpha = 0.0f;
-
-	if (bNeedsToAddSubview)
-	{
-		[self.RootView addSubview : self.BannerView];
-	}
-	else// if (self.BannerView.bannerLoaded)
-	{
-		[self bannerViewDidLoadAd : self.BannerView];
-	}
-}
-
--(void)bannerViewDidLoadAd:(ADBannerView*)Banner
-{
-	NSLog(@"Ad loaded!");
-    
-	if (self.BannerView.hidden)
-    {
-		self.BannerView.hidden = NO;
-		[UIView animateWithDuration:0.4f
-			animations:^
-			{
-				self.BannerView.alpha = 1.0f;
-			}
-		];
-    }
-}
-
--(void)bannerView:(ADBannerView *)Banner didFailToReceiveAdWithError : (NSError *)Error
-{
-	NSLog(@"Ad failed to load: '%@'", Error);
-
-	// if we get an error, hide the banner 
-	[self HideAdBanner];
-}
-
-/**
-* Callback when the user clicks on an ad
-*/
--(BOOL)bannerViewActionShouldBegin:(ADBannerView*)Banner willLeaveApplication : (BOOL)bWillLeave
-{
-	// if we aren't about to swap out the app, tell the game to pause (or whatever)
-	if (!bWillLeave)
-	{
-		FIOSAsyncTask* AsyncTask = [[FIOSAsyncTask alloc] init];
-		AsyncTask.GameThreadCallback = ^ bool(void)
-		{
-			// tell the ad manager the user clicked on the banner
-//@TODO: IAD:			UPlatformInterfaceBase::GetInGameAdManagerSingleton()->OnUserClickedBanner();
-
-			return true;
-		};
-		[AsyncTask FinishedTask];
-	}
-
-	return YES;
-}
-
-/**
-* Callback when an ad is closed
-*/
--(void)bannerViewActionDidFinish:(ADBannerView*)Banner
-{
-	FIOSAsyncTask* AsyncTask = [[FIOSAsyncTask alloc] init];
-	AsyncTask.GameThreadCallback = ^ bool(void)
-	{
-		// tell ad singleton we closed the ad
-//@TODO: IAD:		UPlatformInterfaceBase::GetInGameAdManagerSingleton()->OnUserClosedAd();
-
-		return true;
-	};
-	[AsyncTask FinishedTask];
-}
-
-/**
-* Hides the iAd banner shows with ShowAdBanner. Will force close the ad if it's open
-*/
--(void)HideAdBanner
-{
-	// fade it out
-	if (!self.BannerView.hidden)
-    {
-		[UIView animateWithDuration:0.4f
-			animations:^
-			{
-				self.BannerView.alpha = 0.0f;
-			}
-			completion:^(BOOL finished) 
-			{
-				self.BannerView.hidden = YES;
-			}
-		];
-    }
-}
-
-/**
-* Forces closed any displayed ad. Can lead to loss of revenue
-*/
--(void)CloseAd
-{
-	// boot user out of the ad
-	[self.BannerView cancelBannerViewAction];
-}
-
-
-/**
-* Will show an iAd on the top or bottom of screen, on top of the GL view (doesn't resize
-* the view)
-*
-* @param bShowOnBottomOfScreen If true, the iAd will be shown at the bottom of the screen, top otherwise
-*/
-CORE_API void IOSShowAdBanner(bool bShowOnBottomOfScreen)
-{
-	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowAdBanner:) withObject:[NSNumber numberWithBool : bShowOnBottomOfScreen] waitUntilDone : NO];
-}
-
-/**
-* Hides the iAd banner shows with IPhoneShowAdBanner. Will force close the ad if it's open
-*/
-CORE_API void IOSHideAdBanner()
-{
-	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(HideAdBanner) withObject:nil waitUntilDone : NO];
-}
-
-/**
-* Forces closed any displayed ad. Can lead to loss of revenue
-*/
-CORE_API void IOSCloseAd()
-{
-	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(CloseAd) withObject:nil waitUntilDone : NO];
-}
-
-#endif
 
 /**
  * Shows the given Game Center supplied controller on the screen
@@ -665,10 +512,10 @@ CORE_API void IOSCloseAd()
 	[self HideController : Controller Animated : YES];
 }
 
--(void)leaderboardViewControllerDidFinish:(GKLeaderboardViewController*)LeaderboardDisplay
+-(void)gameCenterViewControllerDidFinish:(GKGameCenterViewController*)GameCenterDisplay
 {
 	// close the view 
-	[self HideController : LeaderboardDisplay];
+	[self HideController : GameCenterDisplay];
 }
 
 /**
@@ -677,14 +524,27 @@ CORE_API void IOSCloseAd()
 -(void)ShowLeaderboard:(NSString*)Category
 {
 	// create the leaderboard display object 
-	GKLeaderboardViewController* LeaderboardDisplay = [[[GKLeaderboardViewController alloc] init] autorelease];
-	LeaderboardDisplay.leaderboardDelegate = self;
-
-	// set which leaderboard to get 
-	LeaderboardDisplay.category = Category;
+	GKGameCenterViewController* GameCenterDisplay = [[[GKGameCenterViewController alloc] init] autorelease];
+	GameCenterDisplay.viewState = GKGameCenterViewControllerStateLeaderboards;
+	GameCenterDisplay.leaderboardCategory = Category;
+	GameCenterDisplay.gameCenterDelegate = self;
 
 	// show it 
-	[self ShowController : LeaderboardDisplay];
+	[self ShowController : GameCenterDisplay];
+}
+
+/**
+ * Show the achievements interface (call from iOS main thread)
+ */
+-(void)ShowAchievements
+{
+	// create the leaderboard display object 
+	GKGameCenterViewController* GameCenterDisplay = [[[GKGameCenterViewController alloc] init] autorelease];
+	GameCenterDisplay.viewState = GKGameCenterViewControllerStateAchievements;
+	GameCenterDisplay.gameCenterDelegate = self;
+
+	// show it 
+	[self ShowController : GameCenterDisplay];
 }
 
 /**
@@ -699,5 +559,15 @@ CORE_API bool IOSShowLeaderboardUI(const FString& CategoryName)
 	return true;
 }
 
+/**
+* Show the achievements interface (call from game thread)
+*/
+CORE_API bool IOSShowAchievementsUI()
+{
+	// route the function to iOS thread
+	[[IOSAppDelegate GetDelegate] performSelectorOnMainThread:@selector(ShowAchievements) withObject:nil waitUntilDone : NO];
+
+	return true;
+}
 
 @end

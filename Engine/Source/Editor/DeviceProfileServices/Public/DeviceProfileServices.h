@@ -10,10 +10,12 @@
  *****************************************************************************/
 
 #include "Core.h"
+#include "Engine.h"
 #include "ModuleInterface.h"
 
+
 /* Interfaces
-//  *****************************************************************************/
+ *****************************************************************************/
 
 #include "IDeviceProfileServicesUIManager.h"
 #include "IDeviceProfileServicesModule.h"

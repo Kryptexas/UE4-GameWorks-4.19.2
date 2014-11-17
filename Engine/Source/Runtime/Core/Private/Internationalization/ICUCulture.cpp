@@ -148,10 +148,16 @@ FString FCulture::FICUCultureImplementation::GetUnrealLegacyThreeLetterISOLangua
 {
 	FString Result( ICULocale.getISO3Language() );
 
-	// Legacy Overrides:
-	     if(Result == TEXT("eng")) { Result = TEXT("INT"); }
-	else if(Result == TEXT("jpn")) { Result = TEXT("JPN"); }
-	else if(Result == TEXT("kor")) { Result = TEXT("KOR"); }
+	// Legacy Overrides (INT, JPN, KOR), also for new web localization (CHN)
+	// and now for any other languages (FRA, DEU...) for correct redirection of documentation web links
+	if (Result == TEXT("eng"))
+	{
+		Result = TEXT("INT");
+	}
+	else
+	{
+		Result = Result.ToUpper();
+	}
 
 	return Result;
 }
@@ -288,7 +294,7 @@ TSharedRef<const icu::DateFormat> FCulture::FICUCultureImplementation::GetTimeFo
 	icu::UnicodeString InputTimeZoneID;
 	ICUUtilities::Convert(TimeZone, InputTimeZoneID, false);
 
-	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUDateTimeFormat );
+	const TSharedRef<const icu::DateFormat> DefaultFormatter( ICUTimeFormat );
 
 	bool bIsDefaultTimeZone = TimeZone.IsEmpty();
 	if( !bIsDefaultTimeZone )

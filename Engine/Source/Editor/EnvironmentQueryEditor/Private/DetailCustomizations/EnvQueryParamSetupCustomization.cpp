@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-#include "../EnvironmentQueryEditorPrivatePCH.h"
+#include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvQueryParamSetupCustomization.h"
 
 #define LOCTEXT_NAMESPACE "FEnvQueryCustomization"
@@ -140,7 +140,7 @@ void FEnvQueryParamSetupCustomization::OnParamNumValueChanged(float FloatValue) 
 	}
 	else if (ParamType == EEnvQueryParam::Int)
 	{
-		const int32 IntValue = FMath::Trunc(FloatValue);
+		const int32 IntValue = FMath::TruncToInt(FloatValue);
 		ValueProp->SetValue(IntValue);
 	}
 }

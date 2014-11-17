@@ -28,6 +28,7 @@ public class Engine : ModuleRules
 				"DerivedDataCache",
 				"ImageWrapper",
 				"HeadMountedDisplay",
+				"Advertising"
 			}
 		);
 
@@ -57,7 +58,8 @@ public class Engine : ModuleRules
 			new string[] {
 				"Networking",
 				"Sockets",
-				"Slate",
+				"SlateCore",
+				"SlateReflector",
 				"VectorVM",
 			}
 		);
@@ -68,6 +70,7 @@ public class Engine : ModuleRules
 				"MovieSceneCore",
 				"MovieSceneCoreTypes",
 				"HeadMountedDisplay",
+				"StreamingPauseRendering",
 			}
 		);
 
@@ -110,8 +113,10 @@ public class Engine : ModuleRules
 			{
 				DynamicallyLoadedModuleNames.AddRange(
 					new string[] {
-						"MacTargetPlatform",
-						"MacNoEditorTargetPlatform"
+					    "MacTargetPlatform",
+					    "MacNoEditorTargetPlatform",
+						"MacServerTargetPlatform",
+						"MacClientTargetPlatform"
 					}
 				);
 			}
@@ -122,7 +127,8 @@ public class Engine : ModuleRules
 				"Analytics",
 				"AnalyticsET",
 				"OnlineSubsystem", 
-				"OnlineSubsystemUtils"
+				"OnlineSubsystemUtils",
+				"Advertising"
 			}
 		);
 
@@ -171,7 +177,8 @@ public class Engine : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
-				"VorbisFile"
+				"VorbisFile",
+				"libOpus"
 				);
 
 			if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
@@ -197,7 +204,8 @@ public class Engine : ModuleRules
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"UEOgg",
-				"Vorbis"
+				"Vorbis",
+				"libOpus"
 				);
 		}
 
@@ -215,7 +223,8 @@ public class Engine : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target,
 				"UEOgg",
 				"Vorbis",
-				"VorbisFile"
+				"VorbisFile",
+				"libOpus"
 				);
 		}
 

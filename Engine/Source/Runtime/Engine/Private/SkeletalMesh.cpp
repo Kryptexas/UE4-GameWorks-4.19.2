@@ -7,7 +7,6 @@
 #include "EnginePrivate.h"
 #include "GPUSkinVertexFactory.h"
 #include "SkeletalMeshSorting.h"
-#include "EngineInterpolationClasses.h"
 #include "MeshBuild.h"
 #include "ParticleDefinitions.h"
 #include "TessellationRendering.h"
@@ -1159,7 +1158,7 @@ void FStaticLODModel::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 	}
 
 	Ar << Sections;
-	MultiSizeIndexContainer.Serialize(Ar,bKeepBuffersInCPUMemory);
+	MultiSizeIndexContainer.Serialize(Ar, bKeepBuffersInCPUMemory);
 	Ar << ActiveBoneIndices;
 	Ar << Chunks;
 	Ar << Size;
@@ -2022,7 +2021,7 @@ static void GetStreamingTextureFactorForLOD(FStaticLODModel& LODModel, TArray<fl
 					// Disregard upper 75% of texel ratios.
 					// This is to ignore backfacing surfaces or other non-visible surfaces that tend to map a small number of texels to a large surface.
 					TexelRatios[UVIndex].Sort( TGreater<float>() );
-					float TexelRatio = TexelRatios[UVIndex][ FMath::Trunc(TexelRatios[UVIndex].Num() * 0.75f) ];
+					float TexelRatio = TexelRatios[UVIndex][ FMath::TruncToInt(TexelRatios[UVIndex].Num() * 0.75f) ];
 					if ( UVIndex == 0 )
 					{
 						TexelRatio *= StreamingDistanceMultiplier;
@@ -2367,6 +2366,12 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		// now they're in the Materials array so we need to move them over
 		MoveDeprecatedShadowFlagToMaterials();
 	}
+#if WITH_EDITORONLY_DATA
+	if (Ar.UE4Ver() < VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE)
+	{
+		PreviewAttachedAssetContainer.SaveAttachedObjectsFromDeprecatedProperties();
+	}
+#endif
 }
 
 void USkeletalMesh::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -3099,6 +3104,17 @@ bool USkeletalMesh::IsSocketOnMesh( const FName& InSocketName ) const
 	}
 
 	return false;
+}
+
+int32 USkeletalMesh::ValidatePreviewAttachedObjects()
+{
+	int32 NumBrokenAssets = PreviewAttachedAssetContainer.ValidatePreviewAttachedObjects();
+
+	if (NumBrokenAssets > 0)
+	{
+		MarkPackageDirty();
+	}
+	return NumBrokenAssets;
 }
 
 #endif // #if WITH_EDITOR
@@ -3987,13 +4003,58 @@ private:
 #endif
 };
 
+#if WITH_EDITOR
+HHitProxy* FSkeletalMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies)
+{
+	if ( Component->GetOwner() )
+	{
+		if ( LODSections.Num() > 0 )
+		{
+			for ( int32 LODIndex = 0; LODIndex < SkelMeshResource->LODModels.Num(); LODIndex++ )
+			{
+				const FStaticLODModel& LODModel = SkelMeshResource->LODModels[LODIndex];
+
+				FLODSectionElements& LODSection = LODSections[LODIndex];
+
+				check(LODSection.SectionElements.Num() == LODModel.Sections.Num());
+
+				for ( int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++ )
+				{
+					HHitProxy* ActorHitProxy;
+
+					if ( Component->GetOwner()->IsA(ABrush::StaticClass()) && Component->IsA(UBrushComponent::StaticClass()) )
+					{
+						ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex);
+					}
+					else
+					{
+						ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex);
+					}
+
+					// Set the hitproxy.
+					check(LODSection.SectionElements[SectionIndex].HitProxy == NULL);
+					LODSection.SectionElements[SectionIndex].HitProxy = ActorHitProxy;
+					OutHitProxies.Add(ActorHitProxy);
+				}
+			}
+		}
+		else
+		{
+			return FPrimitiveSceneProxy::CreateHitProxies(Component, OutHitProxies);
+		}
+	}
+
+	return NULL;
+}
+#endif
+
 /** 
 * Draw the scene proxy as a dynamic element
 *
 * @param	PDI - draw interface to render to
 * @param	View - current view
 */
-void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
+void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View)
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_SkeletalMeshSceneProxy_DrawDynamicElements );
 
@@ -4010,9 +4071,9 @@ void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,c
 	{
 		const FLODSectionElements& LODSection = LODSections[LODIndex];
 
-		check(LODSection.SectionElements.Num()==LODModel.Sections.Num());
+		check(LODSection.SectionElements.Num() == LODModel.Sections.Num());
 
-		for (FSkeletalMeshSectionIter Iter(LODIndex,*MeshObject,LODModel,LODSection); Iter; ++Iter)
+		for (FSkeletalMeshSectionIter Iter(LODIndex, *MeshObject, LODModel, LODSection); Iter; ++Iter)
 		{
 			FSkelMeshSection Section = Iter.GetSection();
 			const FSkelMeshChunk& Chunk = Iter.GetChunk();
@@ -4024,7 +4085,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,c
 			Section.bSelected = (SkeletalMeshForDebug->SelectedEditorSection == SectionElementInfo.UseMaterialIndex);
 #endif
 			// If hidden skip the draw
-			if (MeshObject->IsMaterialHidden(LODIndex,SectionElementInfo.UseMaterialIndex))
+			if (MeshObject->IsMaterialHidden(LODIndex, SectionElementInfo.UseMaterialIndex))
 			{
 				continue;
 			}
@@ -4034,6 +4095,13 @@ void FSkeletalMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,c
 			{
 				continue;
 			}
+
+#if WITH_EDITOR
+			if ( GIsEditor && PDI->IsHitTesting() )
+			{
+				PDI->SetHitProxy(SectionElementInfo.HitProxy);
+			}
+#endif
 
 			DrawDynamicElementsSection(PDI, View, LODModel, LODIndex, Section, Chunk, SectionElementInfo, CustomLeftRightVectors );
 		}
@@ -4136,7 +4204,7 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	BatchElement.IndexBuffer = LODModel.MultiSizeIndexContainer.GetIndexBuffer();
 	BatchElement.MaxVertexIndex = LODModel.NumVertices - 1;
 
-	BatchElement.GPUSkinCacheKey = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
+	BatchElement.UserIndex = MeshObject->GPUSkinCacheKeys[Section.ChunkIndex];
 
 	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( SectionElementInfo.Material, Mesh.VertexFactory->GetType() );
 	if ( bRequiresAdjacencyInformation )
@@ -4194,9 +4262,9 @@ void FSkeletalMeshSceneProxy::DrawDynamicElementsSection(FPrimitiveDrawInterface
 	BatchElement.NumPrimitives = Section.NumTriangles;
 	if( GIsEditor && MeshObject->ProgressiveDrawingFraction != 1.f )
 	{
-		if( Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Translucent )
+		if (Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->GetBlendMode() == BLEND_Translucent)
 		{
-			BatchElement.NumPrimitives = FMath::Round(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
+			BatchElement.NumPrimitives = FMath::RoundToInt(((float)Section.NumTriangles)*FMath::Clamp<float>(MeshObject->ProgressiveDrawingFraction,0.f,1.f));
 			if( BatchElement.NumPrimitives == 0 )
 			{
 				return;

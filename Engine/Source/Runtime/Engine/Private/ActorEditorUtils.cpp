@@ -7,19 +7,19 @@ namespace FActorEditorUtils
 {
 	bool IsABuilderBrush( const AActor* InActor )
 	{
-		if ( !InActor || !InActor->GetWorld() || InActor->GetWorld()->IsGameWorld() || InActor->HasAnyFlags(RF_ClassDefaultObject))
-		{
-			return false;
-		}
-		else
+#if WITH_EDITOR
+		if ( InActor && InActor->GetWorld() && !InActor->HasAnyFlags(RF_ClassDefaultObject) )
 		{
 			return InActor->GetLevel()->GetBrush() == InActor;
 		}
+#endif
+		return false;
 	}
 
-	bool IsAPreviewActor( const AActor* InActor )
+	bool IsAPreviewOrInactiveActor( const AActor* InActor )
 	{
-		return InActor && InActor->GetWorld() && InActor->GetWorld()->WorldType == EWorldType::Preview;
+		UWorld* World = InActor ? InActor->GetWorld() : NULL;
+		return World && (World->WorldType == EWorldType::Preview || World->WorldType == EWorldType::Inactive);
 	}
 
 	void GetEditableComponents( const AActor* InActor, TArray<UActorComponent*>& OutEditableComponents )

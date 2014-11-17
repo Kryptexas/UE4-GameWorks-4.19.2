@@ -195,9 +195,9 @@ void FTestFriendsInterface::OnDeleteFriendComplete(int32 LocalPlayer, bool bWasS
 	UE_LOG(LogOnline, Log, TEXT("DeleteFriend() for player (%d) to friend (%s) was success=%d. %s"), 
 		LocalPlayer, *FriendId.ToDebugString(), bWasSuccessful, *ErrorStr);
 
-	// done with this part of the test if no more invites to send
+	// done with this part of the test if no more friends to delete
 	FriendsToDelete.RemoveAt(0);
-	if (FriendsToDelete.Num() == 0)
+	if (bWasSuccessful && FriendsToDelete.Num() == 0)
 	{
 		bDeleteFriends = false;
 		bReadFriendsList = true;

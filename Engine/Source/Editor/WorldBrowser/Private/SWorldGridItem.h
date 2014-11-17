@@ -88,7 +88,7 @@ public:
 
 private:
 	// SWidget interface start
-	virtual TSharedPtr<SToolTip> GetToolTip() OVERRIDE;
+	virtual TSharedPtr<IToolTip> GetToolTip() OVERRIDE;
 	virtual FVector2D ComputeDesiredSize() const OVERRIDE;
 	virtual bool OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsoluteCursorPosition) OVERRIDE;
 	virtual int32 OnPaint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, 
@@ -100,7 +100,6 @@ private:
 	TSharedRef<SToolTip> CreateToolTipWidget();
 	
 	//
-	const FSlateBrush* GetLevelStatusBrush() const;
 	FString GetLevelNameText() const;
 
 public:
@@ -119,10 +118,8 @@ private:
 	TSharedPtr<FGridItemThumbnail>	Thumbnail;
 	/** The actual widget for the thumbnail. */
 	TSharedPtr<SViewport>			ThumbnailViewport;
-
-	const FSlateBrush*				MapPackageUnloaded;
-	const FSlateBrush*				MapPackagePending;
-	const FSlateBrush*				MapPackageLoaded;
+	
+	/** */
 	const FSlateBrush*				ProgressBarImage;
 
 	/** Curve sequence to drive loading animation */

@@ -480,10 +480,10 @@ FReply SCurveEdTrack::OnContextMenu()
 			SNew(SCheckBox)
 			.IsChecked( this, &SCurveEdTrack::IsCurveOfMode, ACF_DrivesMorphTarget )
 			.OnCheckStateChanged( this, &SCurveEdTrack::ToggleCurveMode, ACF_DrivesMorphTarget )
-			.ToolTipText(LOCTEXT("MorphCurveModeTooltip", "This curve drives a morph target").ToString())
+			.ToolTipText(LOCTEXT("MorphCurveModeTooltip", "This curve drives a morph target"))
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("MorphCurveMode", "Morph Curve").ToString())
+				.Text(LOCTEXT("MorphCurveMode", "Morph Curve"))
 			],
 			FText()
 		);
@@ -492,10 +492,10 @@ FReply SCurveEdTrack::OnContextMenu()
 			SNew(SCheckBox)
 			.IsChecked( this, &SCurveEdTrack::IsCurveOfMode, ACF_DrivesMaterial )
 			.OnCheckStateChanged( this, &SCurveEdTrack::ToggleCurveMode, ACF_DrivesMaterial )
-			.ToolTipText(LOCTEXT("MaterialCurveModeTooltip", "This curve drives a material").ToString())
+			.ToolTipText(LOCTEXT("MaterialCurveModeTooltip", "This curve drives a material"))
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("MaterialCurveMode", "Material Curve").ToString())
+				.Text(LOCTEXT("MaterialCurveMode", "Material Curve"))
 			],
 			FText()
 		);
@@ -686,10 +686,10 @@ FReply SAnimCurvePanel::OnContextMenu()
 			SNew(SCheckBox)
 			.IsChecked( this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DrivesMorphTarget )
 			.OnCheckStateChanged( this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DrivesMorphTarget )
-			.ToolTipText(LOCTEXT("MorphCurveModeTooltip", "This curve drives a morph target").ToString())
+			.ToolTipText(LOCTEXT("MorphCurveModeTooltip", "This curve drives a morph target"))
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("MorphCurveMode", "Morph Curve").ToString())
+				.Text(LOCTEXT("MorphCurveMode", "Morph Curve"))
 			],
 			FText()
 		);
@@ -698,11 +698,11 @@ FReply SAnimCurvePanel::OnContextMenu()
 			SNew(SCheckBox)
 			.IsChecked( this, &SAnimCurvePanel::AreAllCurvesOfMode, ACF_DrivesMaterial )
 			.OnCheckStateChanged( this, &SAnimCurvePanel::ToggleAllCurveModes, ACF_DrivesMaterial )
-			.ToolTipText(LOCTEXT("MaterialCurveModeTooltip", "This curve drives a material").ToString())
+			.ToolTipText(LOCTEXT("MaterialCurveModeTooltip", "This curve drives a material"))
 			.HAlign(HAlign_Left)
 			[
 				SNew(STextBlock)
-				.Text(LOCTEXT("MaterialCurveMode", "Material Curve").ToString())
+				.Text(LOCTEXT("MaterialCurveMode", "Material Curve"))
 			],
 			FText()
 		);
@@ -873,7 +873,7 @@ TSharedRef<SWidget> SAnimCurvePanel::GenerateCurveList()
 					.IsEnabled( true )
 					[
 						SNew( STextBlock )
-						.Text(Curve.CurveName.ToString())
+						.Text(FText::FromName(Curve.CurveName))
 					]
 				];
 		}

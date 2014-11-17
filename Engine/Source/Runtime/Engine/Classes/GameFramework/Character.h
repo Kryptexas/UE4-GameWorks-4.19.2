@@ -4,6 +4,10 @@
 
 #include "Character.generated.h"
 
+//
+// Forward declarations
+//
+struct FAnimMontageInstance;
 /** Replicated data when playing a root motion montage. */
 USTRUCT()
 struct FRepRootMotionMontage
@@ -80,6 +84,12 @@ namespace MovementBaseUtility
 
 	/** Remove tick dependency of BasedObjectTick on OldBase */
 	void RemoveTickDependency(FTickFunction& BasedObjectTick, class UPrimitiveComponent* OldBase);
+
+	/** Get the velocity of the given component, first checking the ComponentVelocity and falling back to the physics velocity if necessary. */
+	FVector GetMovementBaseVelocity(const class UPrimitiveComponent* MovementBase);
+
+	/** Get the tangential velocity at WorldLocation for the given component. */
+	FVector GetMovementBaseTangentialVelocity(const class UPrimitiveComponent* MovementBase, const FVector& WorldLocation);
 }
 
 /** Struct to hold relative position information from the server. */
@@ -124,7 +134,7 @@ struct FRepRelativeMovement
 // to a CharacterMovementComponent that handles movement of the collision capsule, and they
 // also have implementations of basic networking and input models.
 //=============================================================================
-UCLASS(abstract, HeaderGroup=Pawn, config=Game, dependson=(AController, UCharacterMovementComponent), BlueprintType)
+UCLASS(abstract, config=Game, dependson=(AController, UCharacterMovementComponent), BlueprintType, hidecategories=("Pawn|Character|InternalEvents"))
 class ENGINE_API ACharacter : public APawn
 {
 	GENERATED_UCLASS_BODY()
@@ -224,6 +234,22 @@ public:
 	UPROPERTY()
 	uint32 bSimGravityDisabled:1;
 
+	/** 
+	 * Jump key Held Time.
+	 * This is the time that the player has held the jump key, in seconds.
+	 */
+	UPROPERTY(Transient, BlueprintReadOnly, VisibleInstanceOnly, Category=Character)
+	float JumpKeyHoldTime;
+
+	/** 
+	 * The max time the jump key can be held.
+	 * Note that if StopJumping() is not called before the max jump hold time is reached,
+	 * then the character will carry on receiving vertical velocity. Therefore it is usually 
+	 * best to call StopJumping() when jump input has ceased (such as a button up event).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category=Character)
+	float JumpMaxHoldTime;
+
 	// Begin AActor Interface.
 	virtual void TeleportSucceeded(bool bIsATest) OVERRIDE;
 	virtual void ClearCrossLevelReferences() OVERRIDE;
@@ -233,7 +259,7 @@ public:
 	virtual void PostNetReceiveLocation() OVERRIDE;
 	virtual void GetSimpleCollisionCylinder(float& CollisionRadius, float& CollisionHalfHeight) const OVERRIDE;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) OVERRIDE;
-	virtual UActorComponent* FindComponentByClass(const UClass* Class) const OVERRIDE;
+	virtual UActorComponent* FindComponentByClass(const TSubclassOf<UActorComponent> ComponentClass) const OVERRIDE;
 	// End AActor Interface
 
 	template<class T>
@@ -252,20 +278,64 @@ public:
 	virtual void PawnClientRestart() OVERRIDE;
 	virtual void UnPossessed() OVERRIDE;
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void RecalculateBaseEyeHeight() OVERRIDE;
 	// End APawn Interface
 
 	/** Apply momentum caused by damage. */
 	virtual void ApplyDamageMomentum(float DamageTaken, FDamageEvent const& DamageEvent, APawn* PawnInstigator, AActor* DamageCauser);
 
-	/**  Make the character jump on the next update.	 */
+	/** 
+	 * Make the character jump on the next update.	 
+	 * If you want your character to jump according to the time that the jump key is held,
+	 * then you can set JumpKeyHoldTime to some non-zero value. Make sure in this case to
+	 * call StopJumping() when you want the jump's z-velocity to stop being applied (such 
+	 * as on a button up event), otherwise the character will carry on receiving the 
+	 * velocity until JumpKeyHoldTime is reached.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
 	virtual void Jump();
 
-	/** @Return Whether the character can jump in the current state. */
+	/** 
+	 * Stop the character from jumping on the next update. 
+	 * Call this from an input event (such as a button 'up' event) to cease applying
+	 * jump Z-velocity. If this is not called, then jump z-velocity will be applied
+	 * until JumpMaxHoldTime is reached.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
-	virtual bool CanJump() const;
+	virtual void StopJumping();
+
+	/**
+	 * Check if the character can jump in the current state.
+	 *
+	 * The default implementation may be overridden or extended by implementing the custom CanJump event.
+	 * 
+	 * @Return Whether the character can jump in the current state. 
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	bool CanJump() const;
+
+protected:
+
+	/**
+	 * Customizable event to check if the character can jump in the current state.
+	 * Default implementation returns true if the character is on the ground and not crouching,
+	 * has a valid CharacterMovementComponent and CanEverJump() returns true.
+	 * Default implementation also allows for 'hold to jump higher' functionality: 
+	 * As well as returning true when on the ground, it also returns true when GetMaxJumpTime is more
+	 * than zero and IsJumping returns true.
+	 * 
+	 * @Return Whether the character can jump in the current state. 
+	 */
+
+	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character|InternalEvents", meta=(FriendlyName="CanJump"))
+	bool CanJumpInternal() const;
+
+public:
+
+	/** True if currently jumping; i.e. jump key is held and the time it has been held is less than JumpMaxHoldTime */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
+	virtual bool IsJumping() const;
 
 	/** Play Animation Montage on the character mesh **/
 	UFUNCTION(BlueprintCallable, Category=Animation)
@@ -290,10 +360,11 @@ protected:
 
 public:
 
-	/** Launch Character with LaunchVelocity, triggers the OnLaunched event.
-	  * @PARAM LaunchVelocity is the velocity to impart to the Pawn
-	  * @PARAM bXYOverride if true replace the XY part of the Pawn's velocity instead of adding to it.
-	  * @PARAM bZOverride if true replace the Z component of the Pawn's velocity instead of adding to it.
+	/** Set a pending launch velocity on the Character. This velocity will be processed on the next CharacterMovementComponent tick,
+	  * and will set it to the "falling" state. Triggers the OnLaunched event.
+	  * @PARAM LaunchVelocity is the velocity to impart to the Character
+	  * @PARAM bXYOverride if true replace the XY part of the Character's velocity instead of adding to it.
+	  * @PARAM bZOverride if true replace the Z component of the Character's velocity instead of adding to it.
 	  */
 	UFUNCTION(BlueprintCallable, Category="Pawn|Character")
 	virtual void LaunchCharacter(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
@@ -301,6 +372,10 @@ public:
 	/** Let blueprint know that we were launched */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void OnLaunched(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
+
+	/** Event fired when the character has just started jumping */
+	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
+	void OnJumped();
 
 	/** Called when the character's movement enters falling */
 	virtual void Falling() {}
@@ -314,6 +389,13 @@ public:
 	/** Called on landing after falling has completed, to perform actions based on the Hit result. */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void OnLanded(const FHitResult& Hit);
+
+	/**
+	 * Event fired when the Character is walking off a surface and is about to fall because CharacterMovement->CurrentFloor became unwalkable.
+	 * If CharacterMovement->MovementMode does not change (from Walking) during this event then the character will start falling.
+	 */
+	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
+	void OnWalkingOffLedge();
 
 	/** Called when pawn's movement is blocked
 		@PARAM Impact describes the blocking hit. */
@@ -392,6 +474,16 @@ public:
 
 	/** Reset jump input state after having checked input. */
 	virtual void ClearJumpInput();
+
+	/**
+	 * Get the maximum jump time for the character.
+	 * Note that if StopJumping() is not called before the max jump hold time is reached,
+	 * then the character will carry on receiving vertical velocity. Therefore it is usually 
+	 * best to call StopJumping() when jump input has ceased (such as a button up event).
+	 * 
+	 * @return Maximum jump time for the character
+	 */
+	virtual float GetJumpMaxHoldTime() const;
 
 	/** Unpack compressed flags from a saved move and set state accordingly. See FSavedMove_Character. */
 	virtual void UpdateFromCompressedFlags(uint8 Flags);
@@ -481,12 +573,3 @@ public:
 	/** Called on the actor right before replication occurs */
 	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) OVERRIDE;
 };
-
-
-//////////////////////////////////////////////////////////////////////////
-// Inlines
-
-inline void ACharacter::Jump()
-{
-	bPressedJump = true;
-}

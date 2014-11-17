@@ -40,8 +40,9 @@ public:
 
 private:
 
+	// @return VertexShader
 	template <bool bDrawTileTemplate>
-	void SetShaderTempl(const FRenderingCompositePassContext& Context);
+	FShader* SetShaderTempl(const FRenderingCompositePassContext& Context);
 
 	TArray<TileData> Tiles;
 };

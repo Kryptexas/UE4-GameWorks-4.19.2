@@ -370,7 +370,7 @@ struct FPostProcessSettings
 
 
 	/** Scene tint color */
-	UPROPERTY(interp, Category=SceneColor, AdvancedDisplay, meta=(editcondition = "bOverride_SceneColorTint"))
+	UPROPERTY(interp, Category=SceneColor, AdvancedDisplay, meta=(editcondition = "bOverride_SceneColorTint", HideAlphaChannel))
 	FLinearColor SceneColorTint;
 	
 	/** in percent, Scene chromatic aberration / color fringe (camera imperfection) to simulate an artifact that happens in real-world lens, mostly visible in the image corners. */
@@ -429,19 +429,19 @@ struct FPostProcessSettings
 	float Bloom5Size;
 
 	/** Bloom1 tint color */
-	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom1Tint", DisplayName = "#1 Tint"))
+	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom1Tint", DisplayName = "#1 Tint", HideAlphaChannel))
 	FLinearColor Bloom1Tint;
 	/** Bloom2 tint color */
-	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom2Tint", DisplayName = "#2 Tint"))
+	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom2Tint", DisplayName = "#2 Tint", HideAlphaChannel))
 	FLinearColor Bloom2Tint;
 	/** Bloom3 tint color */
-	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom3Tint", DisplayName = "#3 Tint"))
+	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom3Tint", DisplayName = "#3 Tint", HideAlphaChannel))
 	FLinearColor Bloom3Tint;
 	/** Bloom4 tint color */
-	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom4Tint", DisplayName = "#4 Tint"))
+	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom4Tint", DisplayName = "#4 Tint", HideAlphaChannel))
 	FLinearColor Bloom4Tint;
 	/** Bloom5 tint color */
-	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom5Tint", DisplayName = "#5 Tint"))
+	UPROPERTY(interp, Category=Bloom, AdvancedDisplay, meta=(editcondition = "bOverride_Bloom5Tint", DisplayName = "#5 Tint", HideAlphaChannel))
 	FLinearColor Bloom5Tint;
 
 	/** BloomDirtMask intensity */
@@ -839,7 +839,7 @@ struct FPostProcessSettings
 		AmbientOcclusionIntensity = .5f;
 		AmbientOcclusionStaticFraction = 1.0f;
 		AmbientOcclusionRadius = 40.0f;
-		AmbientOcclusionDistance = 800.0f;
+		AmbientOcclusionDistance = 80.0f;
 		AmbientOcclusionFadeDistance = 8000.0f;
 		AmbientOcclusionFadeRadius = 5000.0f;
 		AmbientOcclusionPower = 2.0f;
@@ -895,7 +895,7 @@ struct FPostProcessSettings
 	}
 };
 
-UCLASS(HeaderGroup=Scene)
+UCLASS()
 class UScene : public UObject
 {
 	GENERATED_UCLASS_BODY()

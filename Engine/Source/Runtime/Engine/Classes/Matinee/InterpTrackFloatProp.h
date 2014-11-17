@@ -3,7 +3,7 @@
 #pragma once
 #include "InterpTrackFloatProp.generated.h"
 
-UCLASS(HeaderGroup=Interpolation, MinimalAPI, meta=( DisplayName = "Float Property Track" ) )
+UCLASS(MinimalAPI, meta=( DisplayName = "Float Property Track" ) )
 class UInterpTrackFloatProp : public UInterpTrackFloatBase
 {
 	GENERATED_UCLASS_BODY()

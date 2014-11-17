@@ -8,6 +8,10 @@
 * Microsoft specific implementation 
 **/
 
+#if !USE_SECURE_CRT
+#pragma warning(disable : 4996) // 'function' was declared deprecated  (needed for the secure string functions)
+#endif
+
 struct FMicrosoftPlatformString : public FGenericPlatformString
 {
 	/** 
@@ -287,3 +291,7 @@ struct FMicrosoftPlatformString : public FGenericPlatformString
 		return _tcslen( (const WIDECHAR*)String );
 	}
 };
+
+#if !USE_SECURE_CRT
+#pragma warning(default : 4996) // 'function' was was declared deprecated  (needed for the secure string functions)
+#endif

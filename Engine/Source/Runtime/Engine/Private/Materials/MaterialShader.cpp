@@ -856,11 +856,13 @@ void FMaterialShaderMap::SaveForRemoteRecompile(FArchive& Ar, const TMap<FString
 				ShaderMap->GetShaderList(Shaders);
 
 				// get the resources from the shaders
-				for (TMap<FShaderId, FShader*>::TIterator ShaderIt(Shaders); It; ++It)
+				for (TMap<FShaderId, FShader*>::TIterator ShaderIt(Shaders); ShaderIt; ++ShaderIt)
 				{
-					FShaderResourceId ShaderId = ShaderIt.Value()->GetResourceId();
+					FShader *Shader = ShaderIt.Value();
+					FShaderResourceId ShaderId = Shader->GetResourceId();
+
 					// skip this shader if the Id was already on the client (ie, it didn't change)
-					if (ClientResourceIds.Contains(ShaderId) == false)
+					if (ClientResourceIds.Contains(ShaderId) == false )
 					{
 						// lookup the resource by ID
 						FShaderResource* Resource = FShaderResource::FindShaderResourceById(ShaderId);
@@ -925,6 +927,9 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 	int32 NumResources;
 	Ar << NumResources;
 
+	// KeepAliveReferences keeps resources alive until we are finished serializing in this function
+	TArray<TRefCountPtr<FShaderResource> > KeepAliveReferences;
+
 	// load and register the resources
 	for (int32 Index = 0; Index < NumResources; Index++)
 	{
@@ -941,6 +946,10 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 		else
 		{
 			Resource->Register();
+
+			// Keep this guy alive until we finish serializing all the FShaders in
+			// The FShaders which are discarded may cause these resources to be discarded 
+			KeepAliveReferences.Add( Resource );
 		}
 	}
 
@@ -998,7 +1007,7 @@ void FMaterialShaderMap::LoadForRemoteRecompile(FArchive& Ar, EShaderPlatform Sh
 							// Second pass: assign shader maps with a specified quality level to only the appropriate material resource
 							|| (PassIndex == 1 && QualityLevelIndex == LoadedQualityLevel))
 						{
-							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GRHIFeatureLevel,(EMaterialQualityLevel::Type)QualityLevelIndex);
+							FMaterialResource* MaterialResource = MatchingMaterial->GetMaterialResource(GRHIFeatureLevel, (EMaterialQualityLevel::Type)QualityLevelIndex);
 
 							MaterialResource->SetGameThreadShaderMap(LoadedShaderMap);
 

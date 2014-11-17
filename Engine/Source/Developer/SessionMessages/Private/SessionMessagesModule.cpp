@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "SessionMessagesPrivatePCH.h"
-#include "SessionMessages.generated.inl"
+
 
 
 /**

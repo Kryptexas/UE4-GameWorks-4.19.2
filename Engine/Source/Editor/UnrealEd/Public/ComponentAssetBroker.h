@@ -73,7 +73,7 @@ public:
 
 
 	/** Register a component class for a specified asset class */
-	static void RegisterBroker(TSharedPtr<IComponentAssetBroker> Broker, TSubclassOf<UActorComponent> InComponentClass, bool bSetAsPrimary);
+	static void RegisterBroker(TSharedPtr<IComponentAssetBroker> Broker, TSubclassOf<UActorComponent> InComponentClass, bool bSetAsPrimary, bool bMapCompnentForAssets);
 
 	/** Unregister a component type for a specified asset class */
 	static void UnregisterBroker(TSharedPtr<IComponentAssetBroker> Broker);

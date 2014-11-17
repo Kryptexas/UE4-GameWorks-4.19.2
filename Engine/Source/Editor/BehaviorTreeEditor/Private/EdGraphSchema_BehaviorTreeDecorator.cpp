@@ -149,6 +149,10 @@ void UEdGraphSchema_BehaviorTreeDecorator::GetGraphContextActions(FGraphContextM
 void UEdGraphSchema_BehaviorTreeDecorator::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const
 {
 	const UBehaviorTreeDecoratorGraphNode_Logic* LogicNode = Cast<const UBehaviorTreeDecoratorGraphNode_Logic>(InGraphNode);
+	if (CurrentGraph && !CurrentGraph->bEditable)
+	{
+		return;
+	}
 
 	if (InGraphPin)
 	{

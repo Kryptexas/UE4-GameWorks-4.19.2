@@ -25,6 +25,8 @@ namespace AutomationTool
 			LogUtils.InitLogging(CommandLine);
 			Log.WriteLine(TraceEventType.Information, "Running on {0}", HostPlatform.Current.GetType().Name);
 
+			XmlConfigLoader.Init();
+
 			// Log if we're running from the launcher
 			var ExecutingAssemblyLocation = CommandUtils.CombinePaths(Assembly.GetExecutingAssembly().Location);
 			if (String.Compare(ExecutingAssemblyLocation, CommandUtils.CombinePaths(InternalUtils.ExecutingAssemblyLocation), true) != 0)
@@ -58,6 +60,13 @@ namespace AutomationTool
 			CommandUtils.ClearDirStack();
 			Environment.ExitCode = Result;
 
+			// Try to kill process before app domain exits to leave the other KillAll call to extreme edge cases
+			if (ShouldKillProcesses)
+			{
+				ProcessManager.KillAll();
+			}
+
+			Log.WriteLine(TraceEventType.Information, "AutomationTool exiting with ExitCode={0}", Result);
 			return Result;
 		}
 
@@ -75,8 +84,9 @@ namespace AutomationTool
 		static void Domain_ProcessExit(object sender, EventArgs e)
 		{
 			// Kill all spawned processes.
+			Console.WriteLine("Domain_ProcessExit");
 			if (ShouldKillProcesses)
-			{
+			{			
 				ProcessManager.KillAll();
 			}
 			// Close logging

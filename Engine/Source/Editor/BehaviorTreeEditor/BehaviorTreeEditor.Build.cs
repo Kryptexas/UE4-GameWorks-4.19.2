@@ -9,9 +9,10 @@ public class BehaviorTreeEditor : ModuleRules
         PrivateIncludePaths.AddRange(
             new string[] {
 				"Editor/GraphEditor/Private",
-				"Editor/Kismet/Private"
+				"Editor/Kismet/Private",
+				"Editor/BehaviorTreeEditor/Private",
 			}
-            );
+		);
 
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
@@ -19,7 +20,7 @@ public class BehaviorTreeEditor : ModuleRules
 				"AssetTools",
                 "PropertyEditor"
 			}
-            );
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -28,7 +29,8 @@ public class BehaviorTreeEditor : ModuleRules
 				"Engine", 
                 "RenderCore",
                 "InputCore",
-				"Slate", 
+				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd", 
 				"MessageLog", 
@@ -38,7 +40,7 @@ public class BehaviorTreeEditor : ModuleRules
 				"AnimGraph",
 				"BlueprintGraph"
 			}
-			);
+		);
 
 		PublicIncludePathModuleNames.Add("LevelEditor");
 
@@ -47,6 +49,6 @@ public class BehaviorTreeEditor : ModuleRules
                 "WorkspaceMenuStructure",
                 "PropertyEditor"
             }
-            );
+		);
 	}
 }

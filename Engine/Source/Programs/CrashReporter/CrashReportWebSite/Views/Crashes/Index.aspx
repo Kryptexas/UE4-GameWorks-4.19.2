@@ -150,7 +150,8 @@ Crash Reports
 						CrashType = Model.CrashType
 					}, new { style = "color:black; text-decoration:none;" }
 				)%></span>
-				<span style="background-color: #C3CAD0; font-size: medium; margin-left: 1em; padding:0 1em;" title='A Bugg is a collection of Crashes that have the exact same callstack.'><%=Html.ActionLink( "CrashGroups", "Index", "Buggs", new { SearchQuery = Model.Query, SortTerm = Model.Term, SortOrder = Model.Order, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo }, new { style = "color:black; text-decoration:none;" } )%></span>
+				<span style="background-color: #C3CAD0; font-size: medium; margin-left: 1em; padding:0 1em;"
+				      title="<%= BuggsViewModel.Tooltip %>"><%=Html.ActionLink( "CrashGroups", "Index", "Buggs", new { SearchQuery = Model.Query, SortTerm = Model.Term, SortOrder = Model.Order, UserGroup = Model.UserGroup, DateFrom = Model.DateFrom, DateTo = Model.DateTo }, new { style = "color:black; text-decoration:none;" } )%></span>
 			</div>
 			<%Html.RenderPartial( "/Views/Crashes/ViewCrash.ascx" );%>
 		</form>

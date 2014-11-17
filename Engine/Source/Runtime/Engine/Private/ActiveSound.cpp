@@ -42,6 +42,7 @@ FActiveSound::FActiveSound()
 	, SubtitlePriority(0.f)
 	, OcclusionCheckInterval(0.f)
 	, LastOcclusionCheckTime(0.f)
+	, LastLocation(FVector::ZeroVector)
 	, LastReverbVolume(NULL)
 	, LastUpdateTime(0.f)
 	, SourceInteriorVolume(1.f)
@@ -73,9 +74,9 @@ void FActiveSound::AddReferencedObjects( FReferenceCollector& Collector)
 #if WITH_EDITOR
 	if( GIsEditor )
 	{
-		for( int32 Index = 0; Index < WaveInstances.Num(); ++Index )
+		for (auto WaveInstanceIt(WaveInstances.CreateConstIterator()); WaveInstanceIt; ++WaveInstanceIt)
 		{
-			FWaveInstance* WaveInstance = WaveInstances[ Index ];
+			FWaveInstance* WaveInstance = WaveInstanceIt.Value();
 			// Avoid recursing back to the wave instance that sourced this active sound
 			if( WaveInstance )
 			{
@@ -185,7 +186,7 @@ void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveI
 	}
 
 	// for velocity-based effects like doppler
-	ParseParams.Velocity = (ParseParams.Transform.GetTranslation() - LastLocation) / DeltaTime;
+	ParseParams.Velocity = (DeltaTime <= 0.0f) ? FVector::ZeroVector : ((ParseParams.Transform.GetTranslation() - LastLocation) / DeltaTime);
 	LastLocation = ParseParams.Transform.GetTranslation();
 
 	// if the closest listener is not the primary one, transform CurrentLocation
@@ -201,6 +202,7 @@ void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveI
 		if (bHasAttenuationSettings)
 		{
 			AttenuationSettings.ApplyAttenuation(ParseParams.Transform, Listener.Transform.GetTranslation(), ParseParams.Volume, ParseParams.HighFrequencyGain );
+			ParseParams.OmniRadius = AttenuationSettings.OmniRadius;
 			ParseParams.bUseSpatialization = AttenuationSettings.bSpatialize;
 		}
 
@@ -222,9 +224,9 @@ void FActiveSound::Stop(FAudioDevice* AudioDevice)
 		Sound->CurrentPlayCount = FMath::Max( Sound->CurrentPlayCount - 1, 0 );
 	}
 
-	for( int32 Index = 0; Index < WaveInstances.Num(); ++Index )
+	for (auto WaveInstanceIt(WaveInstances.CreateIterator()); WaveInstanceIt; ++WaveInstanceIt)
 	{
-		FWaveInstance* WaveInstance = WaveInstances[Index];
+		FWaveInstance*& WaveInstance = WaveInstanceIt.Value();
 
 		// Stop the owning sound source
 		FSoundSource* Source = AudioDevice->WaveInstanceSourceMap.FindRef( WaveInstance );
@@ -240,7 +242,7 @@ void FActiveSound::Stop(FAudioDevice* AudioDevice)
 		delete WaveInstance;
 
 		// Null the entry out temporarily as later Stop calls could try to access this structure
-		WaveInstances[Index] = NULL;
+		WaveInstance = NULL;
 	}
 	WaveInstances.Empty();
 
@@ -253,18 +255,10 @@ void FActiveSound::Stop(FAudioDevice* AudioDevice)
 	AudioDevice->RemoveActiveSound(this);
 }
 
-FWaveInstance* FActiveSound::FindWaveInstance( const USoundWave* SoundWave, const UPTRINT WaveInstanceHash )
+FWaveInstance* FActiveSound::FindWaveInstance( const UPTRINT WaveInstanceHash )
 {
-	for( int32 WaveIndex = 0; WaveIndex < WaveInstances.Num(); ++WaveIndex )
-	{
-		FWaveInstance* ExistingWaveInstance = WaveInstances[ WaveIndex ];
-		if( ExistingWaveInstance && ExistingWaveInstance->WaveData == SoundWave && ExistingWaveInstance->WaveInstanceHash == WaveInstanceHash )
-		{
-			return ExistingWaveInstance;
-		}
-	}
-
-	return NULL;
+	FWaveInstance** WaveInstance = WaveInstances.Find(WaveInstanceHash);
+	return (WaveInstance ? *WaveInstance : NULL);
 }
 
 void FActiveSound::UpdateAdjustVolumeMultiplier( const float DeltaTime )
@@ -296,6 +290,13 @@ void FActiveSound::CheckOcclusion( const FVector ListenerLocation, const FVector
 	}
 }
 
+const TCHAR* GetAWaveName(TMap<UPTRINT, struct FWaveInstance*> WaveInstances)
+{
+	TArray<FWaveInstance*> WaveInstanceArray;
+	WaveInstances.GenerateValueArray(WaveInstanceArray);
+	return *WaveInstanceArray[0]->WaveData->GetName();
+}
+
 void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParseParameters& ParseParams )
 {
 	// Get the settings of the ambient sound
@@ -320,7 +321,7 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 	{
 		SourceInteriorVolume = CurrentInteriorVolume;
 		SourceInteriorLPF = CurrentInteriorLPF;
-		LastUpdateTime = GCurrentTime;
+		LastUpdateTime = FApp::GetCurrentTime();
 	}
 
 	if( Listener.Volume == ReverbVolume || !bAllowSpatialization )
@@ -333,7 +334,7 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 		ParseParams.HighFrequencyGain *= CurrentInteriorLPF;
 
 		UE_LOG(LogAudio, Verbose, TEXT( "Ambient in same volume. Volume *= %g LPF *= %g (%s)" ),
-			CurrentInteriorVolume, CurrentInteriorLPF, ( WaveInstances.Num() > 0 ) ? *WaveInstances[ 0 ]->WaveData->GetName() : TEXT( "NULL" ) );
+			CurrentInteriorVolume, CurrentInteriorLPF, ( WaveInstances.Num() > 0 ) ? GetAWaveName(WaveInstances) : TEXT( "NULL" ) );
 	}
 	else
 	{
@@ -348,7 +349,7 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 			ParseParams.HighFrequencyGain *= CurrentInteriorLPF;
 
 			UE_LOG(LogAudio, Verbose, TEXT( "Ambient in diff volume, ambient outside. Volume *= %g LPF *= %g (%s)" ),
-				CurrentInteriorVolume, CurrentInteriorLPF, ( WaveInstances.Num() > 0 ) ? *WaveInstances[ 0 ]->WaveData->GetName() : TEXT( "NULL" ) );
+				CurrentInteriorVolume, CurrentInteriorLPF, ( WaveInstances.Num() > 0 ) ? GetAWaveName(WaveInstances) : TEXT( "NULL" ) );
 		}
 		else
 		{
@@ -362,7 +363,7 @@ void FActiveSound::HandleInteriorVolumes( const FListener& Listener, FSoundParse
 			ParseParams.HighFrequencyGain *= CurrentInteriorLPF*CurrentExteriorLPF;
 
 			UE_LOG(LogAudio, Verbose, TEXT( "Ambient in diff volume, ambient inside. Volume *= %g LPF *= %g (%s)" ),
-				CurrentInteriorVolume*CurrentExteriorVolume, CurrentInteriorLPF*CurrentExteriorLPF, ( WaveInstances.Num() > 0 ) ? *WaveInstances[ 0 ]->WaveData->GetName() : TEXT( "NULL" ) );
+				CurrentInteriorVolume*CurrentExteriorVolume, CurrentInteriorLPF*CurrentExteriorLPF, ( WaveInstances.Num() > 0 ) ? GetAWaveName(WaveInstances) : TEXT( "NULL" ) );
 		}
 	}
 }

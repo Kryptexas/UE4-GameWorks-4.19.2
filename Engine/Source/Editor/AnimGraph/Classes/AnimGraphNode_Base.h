@@ -1,10 +1,13 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "K2Node.h"
 #include "AnimGraphNode_Base.generated.h"
 
 //
+// Forward declarations.
+//
+struct FEdGraphSchemaAction_K2NewNode;
 
 struct FPoseLinkMappingRecord
 {
@@ -180,10 +183,10 @@ protected:
 	virtual ANIMGRAPH_API void CreatePinsForPoseLink(UProperty* PoseProperty, int32 ArrayIndex);
 
 	//
-	virtual ANIMGRAPH_API FPoseLinkMappingRecord GetLinkIDLocation(UScriptStruct* NodeType, UEdGraphPin* InputLinkPin);
+	virtual ANIMGRAPH_API FPoseLinkMappingRecord GetLinkIDLocation(const UScriptStruct* NodeType, UEdGraphPin* InputLinkPin);
 
 	//
-	virtual ANIMGRAPH_API void GetPinAssociatedProperty(UScriptStruct* NodeType, UEdGraphPin* InputPin, UProperty*& OutProperty, int32& OutIndex);
+	virtual ANIMGRAPH_API void GetPinAssociatedProperty(const UScriptStruct* NodeType, UEdGraphPin* InputPin, UProperty*& OutProperty, int32& OutIndex);
 
 	// Creates a default menu entry
 	ANIMGRAPH_API TSharedPtr<FEdGraphSchemaAction_K2NewNode> CreateDefaultMenuEntry(FGraphContextMenuBuilder& ContextMenuBuilder) const;

@@ -65,7 +65,7 @@ namespace APIDocTool
 				// If we didn't have one set explicitly, generate one from the subdirectory
 				if(FilterPath == null)
 				{
-					string EntityFile = Path.GetFullPath(Entity.File);
+					string EntityFile = String.IsNullOrEmpty(Entity.File)? "" : Path.GetFullPath(Entity.File);
 					if(EntityFile.ToLowerInvariant().StartsWith(NormalizedBaseSrcDir))
 					{
 						int MinIndex = EntityFile.IndexOf('\\', NormalizedBaseSrcDir.Length);

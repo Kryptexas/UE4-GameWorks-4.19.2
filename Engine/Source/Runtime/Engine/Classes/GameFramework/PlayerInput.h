@@ -7,13 +7,17 @@
 //=============================================================================
 
 #pragma once
-
-#include "KeyState.h"
+#include "Components/InputComponent.h"
 #include "GestureRecognizer.h"
+#include "KeyState.h"
 #include "PlayerInput.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogInput, Log, All);
 
+//
+// Forward declarations.
+//
+struct FDelegateDispatchDetails;
 
 USTRUCT()
 struct FKeyBind
@@ -223,7 +227,7 @@ struct FAxisKeyDetails
 	}
 };
 
-UCLASS(Within=PlayerController, config=Input, dependsOn=UEngineTypes, transient, HeaderGroup=UserInterface)
+UCLASS(Within=PlayerController, config=Input, dependsOn=UEngineTypes, transient)
 class ENGINE_API UPlayerInput : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -233,10 +237,6 @@ public:
 	// Touch locations, from 0..1 (0,0 is top left, 1,1 is bottom right), the Z component is > 0 if the touch is currently held down
 	// @todo: We have 10 touches to match the number of Touch* entries in EKeys (not easy to make this an enum or define or anything)
 	FVector Touches[EKeys::NUM_TOUCH_KEYS];
-
-	// Zoom Scaling
-	UPROPERTY()
-	uint32 bEnableFOVScaling:1;
 
 	// Mouse smoothing sample data
 	float ZeroTime[2];    /** How long received mouse movement has been zero. */
@@ -253,6 +253,9 @@ public:
 	UPROPERTY(config)
 	TArray<struct FKeyBind> DebugExecBindings;
 
+	/** This player's version of the Axis Properties */
+	TArray<struct FInputAxisConfigEntry> AxisConfig;
+
 	/** This player's version of the Action Mappings */
 	TArray<struct FInputActionKeyMapping> ActionMappings;
 
@@ -265,7 +268,7 @@ public:
 	//=============================================================================
 	// Input related functions.
 	UFUNCTION(exec)
-	void SetMouseSensitivity(float F);
+	void SetMouseSensitivity(const float Sensitivity);
 
 	UFUNCTION(exec)
 	void SetMouseSensitivityToDefault();
@@ -366,8 +369,8 @@ public:
 	virtual void PostInitProperties() OVERRIDE;
 
 	void FlushPressedKeys();
-	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false );
-	bool InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad = false);
+	bool InputKey(FKey Key, enum EInputEvent Event, float AmountDepressed, bool bGamepad);
+	bool InputAxis(FKey Key, float Delta, float DeltaTime, int32 NumSamples, bool bGamepad);
 	bool InputTouch(uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex);
 	bool InputMotion(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
 	bool InputGesture(const FKey Gesture, const EInputEvent Event, const float Value);
@@ -398,11 +401,11 @@ public:
 	 * Draw important PlayerInput variables on canvas.  HUD will call DisplayDebug() on the current ViewTarget when the ShowDebug exec is used
 	 *
 	 * @param Canvas - Canvas to draw on
-	 * @param DebugDisplay - List of names specifying what debug info to display
+	 * @param DebugDisplay - Contains information about what debug data to display
 	 * @param YL - Height of the current font
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
-	void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos);
+	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
 	bool IsPressed( FKey InKey ) const;
 	

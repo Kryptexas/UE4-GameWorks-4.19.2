@@ -180,7 +180,7 @@ public:
 	 */
 	virtual void InitRHI() OVERRIDE
 	{
-		if ( VolumeData && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (VolumeData && GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			const uint32 DataSize = SizeX * SizeY * SizeZ * sizeof(FFloat16Color);
 			FVectorFieldStaticResourceBulkDataInterface BulkDataInterface(VolumeData, DataSize);
@@ -710,7 +710,7 @@ public:
 	 */
 	virtual void InitRHI() OVERRIDE
 	{
-		if(GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		if (GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
 		{
 			check(SizeX > 0);
 			check(SizeY > 0);
@@ -762,7 +762,7 @@ public:
 			FrameTime += AnimatedVectorField->FramesPerSecond * DeltaSeconds;
 
 			// Compute the two frames to lerp.
-			const int32 FrameA_Unclamped = FMath::Trunc(FrameTime);
+			const int32 FrameA_Unclamped = FMath::TruncToInt(FrameTime);
 			const int32 FrameA = AnimatedVectorField->bLoop ?
 				(FrameA_Unclamped % AnimatedVectorField->FrameCount) :
 				FMath::Min<int32>(FrameA_Unclamped, AnimatedVectorField->FrameCount - 1);

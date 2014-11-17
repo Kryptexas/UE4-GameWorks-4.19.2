@@ -480,7 +480,7 @@ FVector SBlendSpace1DWidget::SnapEditorPosToGrid(const FVector& InPos) const
 
 	const float EditorStep = Param.GetRange() / (float)Param.GridNum;
 	const float DiffFromStart = InPos.X - Param.Min;
-	const float SnappedToStep = FMath::Round(DiffFromStart / EditorStep) * EditorStep;
+	const float SnappedToStep = FMath::RoundToFloat(DiffFromStart / EditorStep) * EditorStep;
 
 	SnappedVector.X = SnappedToStep + Param.Min;
 	return SnappedVector;
@@ -604,7 +604,7 @@ void SBlendSpaceEditor1D::OnBlendSpaceParamtersChanged()
 	UpdateBlendParameters();
 }
 
-void SBlendSpaceEditor1D::OnPropertyChanged(UObject* ObjectBeingModified)
+void SBlendSpaceEditor1D::OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if(UBlendSpace1D* BlendSpace1D = Cast<UBlendSpace1D>(ObjectBeingModified))
 	{

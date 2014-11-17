@@ -37,17 +37,17 @@ public:
 
 	virtual void SetMesh(FShader* Shader,const FVertexFactory* VertexFactory,const FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const OVERRIDE
 	{
+		const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
 		FMeshParticleVertexFactory* MeshParticleVF = (FMeshParticleVertexFactory*)VertexFactory;
 		FVertexShaderRHIParamRef VertexShaderRHI = Shader->GetVertexShader();
 		SetUniformBufferParameter( VertexShaderRHI, Shader->GetUniformBufferParameter<FMeshParticleUniformParameters>(), MeshParticleVF->GetUniformBuffer() );
 
-		FMeshParticleInstanceVertex* Vertex = MeshParticleVF->GetInstanceDataCPU(); 
-		FMeshParticleInstanceVertexDynamicParameter* DynamicVertex = MeshParticleVF->GetDynamicInstanceDataCPU();
-
-		const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
-
-		if(!bInstanced)
+		if (!bInstanced)
 		{
+			FMeshParticleVertexFactory::FBatchParametersCPU* BatchParameters = (FMeshParticleVertexFactory::FBatchParametersCPU*)BatchElement.UserData;
+			const FMeshParticleInstanceVertex* Vertex = BatchParameters->InstanceBuffer + BatchElement.UserIndex;
+			const FMeshParticleInstanceVertexDynamicParameter* DynamicVertex = BatchParameters->DynamicParameterBuffer + BatchElement.UserIndex;
+
 			SetShaderValue(VertexShaderRHI, Transform1, Vertex->Transform[0]);
 			SetShaderValue(VertexShaderRHI, Transform2, Vertex->Transform[1]);
 			SetShaderValue(VertexShaderRHI, Transform3, Vertex->Transform[2]);

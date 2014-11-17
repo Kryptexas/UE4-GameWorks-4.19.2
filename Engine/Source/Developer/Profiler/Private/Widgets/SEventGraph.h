@@ -164,6 +164,9 @@ public:
 	/** Default constructor. */
 	SEventGraph();
 
+	/** Destructor. */
+	~SEventGraph();
+
 	/**
 	 * Construct this widget.
 	 *
@@ -207,6 +210,9 @@ public:
 	{
 		return EventGraphRestoredFromHistoryEvent;
 	}
+
+protected:
+	void ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode );
 	
 protected:
 	/** The event to execute when the event graph has been restored from the history. */
@@ -545,6 +551,8 @@ protected:
 	/** External scrollbar used to synchronize tree view position. */
 	TSharedPtr<SScrollBar> ExternalScrollbar;
 
+	TSharedPtr<SBox> FunctionDetailsBox;
+
 	/** Holds the tree view header row widget which display all columns in the tree view. */
 	TSharedPtr< SHeaderRow > TreeViewHeaderRow;
 
@@ -747,15 +755,15 @@ protected:
 			return AverageEventGraph->GetNumFrames();
 		}
 
-		FString GetFullDescription() const;
+		FText GetFullDescription() const;
 
-		FString GetRootedDesc() const;
+		FText GetRootedDesc() const;
 
-		FString GetCullingDesc() const;
+		FText GetCullingDesc() const;
 
-		FString GetFilteringDesc() const;
+		FText GetFilteringDesc() const;
 
-		FString GetHistoryDesc() const;
+		FText GetHistoryDesc() const;
 
 		const FEventGraphDataRef& GetEventGraph() const
 		{

@@ -21,7 +21,7 @@ private:
 	void CreateCameraActorForCameraAnim(class UCameraAnim* InCameraAnim);
 
 	/** Delegate fired when the editor mode is changed */
-	void OnMatineeEditorClosed(class FEdMode* InEditorMode, bool bIsEnteringMode);
+	void OnMatineeEditorClosed(class FEdMode* InEditorMode);
 
 	/** Helper function to hookup preview pawn */
 	void CreatePreviewPawnForCameraAnim(class UCameraAnim* InCameraAnim);
@@ -37,7 +37,7 @@ private:
 	TWeakObjectPtr<class ACameraActor> PreviewCamera;
 
 	/** The matinee actor we will use for previewing the camera anim */
-	TWeakObjectPtr<class AMatineeActorCameraAnim> PreviewMatinee;
+	TWeakObjectPtr<class AMatineeActorCameraAnim> PreviewMatineeActor;
 
 	/** The pawn we we will use for previewing the camera anim */
 	TWeakObjectPtr<class APawn> PreviewPawn;

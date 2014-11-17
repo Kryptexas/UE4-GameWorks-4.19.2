@@ -397,17 +397,17 @@ float UTexture2D::GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale
 
 void UTexture2D::LinkStreaming()
 {
-	if (!IsTemplate())
+	if (!IsTemplate() && IStreamingManager::Get().IsTextureStreamingEnabled())
 	{
-		GStreamingManager->AddStreamingTexture(this);
+		IStreamingManager::Get().GetTextureStreamingManager().AddStreamingTexture(this);
 	}
 }
 
 void UTexture2D::UnlinkStreaming()
 {
-	if (!IsTemplate())
+	if (!IsTemplate() && IStreamingManager::Get().IsTextureStreamingEnabled())
 	{
-		GStreamingManager->RemoveStreamingTexture(this);
+		IStreamingManager::Get().GetTextureStreamingManager().RemoveStreamingTexture(this);
 	}
 }
 
@@ -490,16 +490,7 @@ void UTexture2D::CookerWillNeverCookAgain()
 {
 	Super::CookerWillNeverCookAgain();
 
-	TScopedPointer<FTexturePlatformData>* PlatformDataLinkPtr = GetPlatformDataLink();
-	if (!IsTemplate() && PlatformDataLinkPtr)
-	{
-		// Release the resource. This will block on the rendering thread if we actually created a resource which we shouldn't have.
-		// We could probably check(Resource == NULL) instead.
-		ReleaseResource();
-
-		// This will free any platform data currently allocated. It's actually a linked list of scoped pointers so the entire list will be destroyed.
-		*PlatformDataLinkPtr = NULL;
-	}
+	CleanupCachedCookedPlatformData();
 }
 void UTexture2D::PostLinkerChange()
 {
@@ -531,10 +522,11 @@ FString UTexture2D::GetDesc()
 	uint32 EffectiveSizeX;
 	uint32 EffectiveSizeY;
 
-	// platform dependent
-	CachedCombinedLODBias = uint32( GSystemSettings.TextureLODSettings.CalculateLODBias(this) );
+#if WITH_EDITORONLY_DATA
+	UpdateCachedLODBias();
+#endif //#if WITH_EDITORONLY_DATA
 
-	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(CachedCombinedLODBias, *this, EffectiveSizeX, EffectiveSizeY);
+	GSystemSettings.TextureLODSettings.ComputeInGameMaxResolution(GetCachedLODBias(), *this, EffectiveSizeX, EffectiveSizeY);
 
 	return FString::Printf( TEXT("%s %dx%d -> %dx%d[%s]"), 
 		NeverStream ? TEXT("NeverStreamed") : TEXT("Streamed"), 
@@ -557,7 +549,10 @@ bool UTexture2D::IsReadyForStreaming()
 
 void UTexture2D::WaitForStreaming()
 {
-	GStreamingManager->UpdateIndividualResource( this );
+	if (IStreamingManager::Get().IsTextureStreamingEnabled())
+	{
+		IStreamingManager::Get().GetTextureStreamingManager().UpdateIndividualTexture( this );
+	}
 
 	int32 RequestStatus = PendingMipChangeRequestStatus.GetValue();
 
@@ -699,12 +694,12 @@ int32 UTexture2D::CalcTextureMemorySize( int32 MipCount ) const
 		EPixelFormat Format = GetPixelFormat();
 
 		// Figure out what the first mip to use is.
-		int32 FirstMip	= FMath::Max( 0, NumMips - MipCount );
-		// Iterate over all relevant miplevels and sum up their size.
-		for( int32 MipIndex=FirstMip; MipIndex<NumMips; MipIndex++ )
-		{
-			Size += CalcTextureMipMapSize(SizeX, SizeY, Format, MipIndex);
-		}
+		int32 FirstMip	= FMath::Max( 0, NumMips - MipCount );		
+		FIntPoint MipExtents = CalcMipMapExtent(SizeX, SizeY, Format, FirstMip);
+
+		uint32 TextureAlign = 0;
+		uint64 TextureSize = RHICalcTexture2DPlatformSize(MipExtents.X, MipExtents.Y, Format, MipCount, 1, 0, TextureAlign);
+		Size = (int32)TextureSize;
 	}
 	return Size;
 }
@@ -839,7 +834,7 @@ FTextureResource* UTexture2D::CreateResource()
 	int32 NumMips = GetNumMips();
 
 	// Determine whether or not this texture can be streamed.
-	bIsStreamable = GStreamingManager->IsTextureStreamingEnabled() &&
+	bIsStreamable = IStreamingManager::Get().IsTextureStreamingEnabled() &&
 					!NeverStream && 
 					(NumMips > 1) && 
 					(LODGroup != TEXTUREGROUP_UI) && 
@@ -1133,6 +1128,11 @@ float UTexture2D::GetGlobalMipMapLODBias()
 
 void UTexture2D::RefreshSamplerStates()
 {
+	if (Resource == nullptr)
+	{
+		return;
+	}
+
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 		RefreshSamplerStatesCommand,
 		FTexture2DResource*, Texture2DResource, ((FTexture2DResource*)Resource),

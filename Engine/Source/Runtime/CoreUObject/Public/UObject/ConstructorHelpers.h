@@ -52,6 +52,27 @@ namespace ConstructorHelpersInternal
 		}
 		return PackagePtr;
 	}
+
+	inline UClass* FindOrLoadClass(FString& PathName, UClass* BaseClass)
+	{
+		// If there is no dot, add ".<object_name>_C"
+		int32 PackageDelimPos = INDEX_NONE;
+		PathName.FindChar(TCHAR('.'), PackageDelimPos);
+		if (PackageDelimPos == INDEX_NONE)
+		{
+			int32 ObjectNameStart = INDEX_NONE;
+			PathName.FindLastChar(TCHAR('/'), ObjectNameStart);
+			if (ObjectNameStart != INDEX_NONE)
+			{
+				const FString ObjectName = PathName.Mid(ObjectNameStart + 1);
+				PathName += TCHAR('.');
+				PathName += ObjectName;
+				PathName += TCHAR('_');
+				PathName += TCHAR('C');
+			}
+		}
+		return StaticLoadClass(BaseClass, NULL, *PathName);
+	}
 }
 
 struct COREUOBJECT_API ConstructorHelpers
@@ -115,11 +136,11 @@ public:
 		TSubclassOf<T> Class;
 		FClassFinder(const TCHAR* ClassToFind)
 		{
-			FString ClassName;
-			FString PathName;
-			FPackageName::ParseExportTextPath(ClassToFind, &ClassName, &PathName);
-			Class = FindObject<UClass>( ANY_PACKAGE, *PathName );
-			check(Class);
+			CheckIfIsInConstructor(ClassToFind);
+			FString PathName(ClassToFind);
+			StripObjectClass(PathName, true);
+			Class = ConstructorHelpersInternal::FindOrLoadClass(PathName, T::StaticClass());
+			ValidateObject(*Class, PathName, *PathName);
 		}
 		bool Succeeded()
 		{

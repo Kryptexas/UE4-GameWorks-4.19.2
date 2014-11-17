@@ -6,8 +6,8 @@
 
 #include "MatineeModule.h"
 #include "Matinee.h"
+#include "MatineeDelegates.h"
 
-#include "EngineInterpolationClasses.h"
 #include "CameraController.h"
 #include "DesktopPlatformModule.h"
 #include "PackageTools.h"
@@ -2530,14 +2530,17 @@ void FMatinee::OnContextRenameEventKeyTextCommitted(const FText& InText, ETextCo
 		FName NewEventName = FName( *TempString );
 
 		// If this Event name is already in use- disallow it
-		TArray<FName> CurrentEventNames;
-		IData->GetAllEventNames(CurrentEventNames);
-		if( CurrentEventNames.Contains(NewEventName) )
+		if( IData->IsEventName( NewEventName ) )
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_EventNameInUse", "Sorry - Event name already in use.") );
 			return;
 		}
 	
+		InterpEdTrans->BeginSpecial( LOCTEXT( "EventRename", "Event Rename" ) );
+
+		MatineeActor->Modify();
+		IData->Modify();
+
 		// Then go through all keys, changing those with this name to the new one.
 		for(int32 i=0; i<IData->InterpGroups.Num(); i++)
 		{
@@ -2547,18 +2550,30 @@ void FMatinee::OnContextRenameEventKeyTextCommitted(const FText& InText, ETextCo
 				UInterpTrackEvent* EventTrack = Cast<UInterpTrackEvent>( Group->InterpTracks[j] );
 				if(EventTrack)
 				{
+					bool bModified = false;
 					for(int32 k=0; k<EventTrack->EventTrack.Num(); k++)
 					{
-						if(EventTrack->EventTrack[k].EventName == EventNameToChange)
+						FEventTrackKey& Key = EventTrack->EventTrack[k];
+						if(Key.EventName == EventNameToChange)
 						{
-							EventTrack->EventTrack[k].EventName = NewEventName;
+							if ( !bModified )
+							{
+								EventTrack->Modify();
+								bModified = true;
+							}
+							Key.EventName = NewEventName;
 						}	
 					}
 				}			
 			}
 		}
 
+		// Fire a delegate so other places that use the name can also update
+		FMatineeDelegates::Get().OnEventKeyframeRenamed.Broadcast( MatineeActor, EventNameToChange, NewEventName );
+
 		IData->UpdateEventNames();
+
+		InterpEdTrans->EndSpecial();
 	}
 }
 
@@ -3695,13 +3710,13 @@ void FMatinee::OnMenuImport()
 			FEditorDirectories::Get().SetLastDirectory(ELastDirectory::GENERIC_IMPORT, FPaths::GetPath(FileName)); // Save path as default for next time.
 		
 			const FString FileExtension = FPaths::GetExtension(FileName);
-			const bool bIsFBX = FCString::Stricmp(*FileExtension, TEXT("FBX")) == 0;
+			const bool bIsFBX = FileExtension.Equals( TEXT("FBX"), ESearchCase::IgnoreCase );
 
 			if (bIsFBX)
 			{
 				// Import the Matinee information from the FBX document.
 				UnFbx::FFbxImporter* FFbxImporter = UnFbx::FFbxImporter::GetInstance();
-				if (FFbxImporter->ImportFromFile(*ImportFilename))
+				if (FFbxImporter->ImportFromFile(ImportFilename, FileExtension ))
 				{
 					FFbxImporter->SetProcessUnknownCameras(false);
 					
@@ -3888,7 +3903,7 @@ void FMatinee::OnExportSoundCueInfoCommand()
 
 
 										// Also store values as frame numbers instead of time values if a frame rate is selected
-										const int32 SoundFrameIndex = bSnapToFrames ? FMath::Trunc( CurSound.Time / SnapAmount ) : 0;
+										const int32 SoundFrameIndex = bSnapToFrames ? FMath::TruncToInt( CurSound.Time / SnapAmount ) : 0;
 
 										FString TextLine = FString::Printf(
 											TEXT( "%s,%s,%s,%0.2f,%i" ),
@@ -3902,7 +3917,7 @@ void FMatinee::OnExportSoundCueInfoCommand()
 										if( FoundAnimName.Len() > 0 )
 										{
 											// Also store values as frame numbers instead of time values if a frame rate is selected
-											const int32 AnimFrameIndex = bSnapToFrames ? FMath::Trunc( FoundAnimTime / SnapAmount ) : 0;
+											const int32 AnimFrameIndex = bSnapToFrames ? FMath::TruncToInt( FoundAnimTime / SnapAmount ) : 0;
 
 											TextLine += FString::Printf(
 												TEXT( ",%s,%.2f,%i" ),
@@ -4498,7 +4513,7 @@ void FMatinee::NormalizeVelocity()
 				ZAxisTrack->Modify();
 			
 				const float TotalTime = FullEndTime - FullStartTime;
-				const int32 NumSteps = FMath::Ceil(TotalTime/(1.0f/60.0f));
+				const int32 NumSteps = FMath::CeilToInt(TotalTime/(1.0f/60.0f));
 				const float Interval = (SegmentEndTime-SegmentStartTime)/NumSteps; 
 
 				// An array of points that were created in order to normalize velocity

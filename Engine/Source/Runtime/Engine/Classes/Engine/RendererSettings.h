@@ -4,6 +4,10 @@
 
 #include "RendererSettings.generated.h"
 
+
+/**
+ * Enumerates ways to clear a scene.
+ */
 UENUM()
 namespace EClearSceneOptions
 {
@@ -15,6 +19,10 @@ namespace EClearSceneOptions
 	};
 }
 
+
+/**
+ * Enumerates available compositing sample counts.
+ */
 UENUM()
 namespace ECompositingSampleCount
 {
@@ -27,6 +35,10 @@ namespace ECompositingSampleCount
 	};
 }
 
+
+/**
+ * Enumerates available options for custom depth.
+ */
 UENUM()
 namespace ECustomDepth
 {
@@ -38,6 +50,10 @@ namespace ECustomDepth
 	};
 }
 
+
+/**
+ * Enumerates available options for early Z-passes.
+ */
 UENUM()
 namespace EEarlyZPass
 {
@@ -50,8 +66,13 @@ namespace EEarlyZPass
 	};
 }
 
-UCLASS(config=Engine)
-class ENGINE_API URendererSettings : public UObject
+
+/**
+ * Implements project settings for the Rendering sub-system.
+ */
+UCLASS(config=Engine, defaultconfig)
+class ENGINE_API URendererSettings
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -145,10 +166,14 @@ class ENGINE_API URendererSettings : public UObject
 		ToolTip="Screen radius at which wireframe objects are culled. Larger values can improve performance when viewing a scene in wireframe."))
 	float WireframeCullThreshold;
 
-	// Begin UObject interface.
+public:
+
+	// Begin UObject interface
+
 	virtual void PostInitProperties() OVERRIDE;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif
-	// End UObject interface.
+
+	// End UObject interface
 };

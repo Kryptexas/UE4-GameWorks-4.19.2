@@ -119,7 +119,7 @@ bool UAvoidanceManager::RegisterMovementComponent(UCharacterMovementComponent* M
 			MovementComp->AvoidanceWeight = AvoidanceWeight;
 
 			RequestUpdateTimer();
-			UpdateRVO(NewAvoidanceUID, MovementComp->GetActorLocation(),
+			UpdateRVO(NewAvoidanceUID, MovementComp->GetActorFeetLocation(),
 				OurCapsule->GetScaledCapsuleRadius(), OurCapsule->GetScaledCapsuleHalfHeight(),
 				MovementComp->Velocity, AvoidanceWeight,
 				MovementComp->AvoidanceGroup.Packed, MovementComp->GroupsToAvoid.Packed, MovementComp->GroupsToIgnore.Packed);

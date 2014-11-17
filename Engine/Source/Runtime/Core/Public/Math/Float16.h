@@ -155,7 +155,7 @@ FORCEINLINE float FFloat16::GetFloat() const
 		else
 		{
 			// Denormal.
-			uint32 MantissaShift = 10 - (uint32)FMath::Trunc(FMath::Log2(Mantissa));
+			uint32 MantissaShift = 10 - (uint32)FMath::TruncToInt(FMath::Log2(Mantissa));
 			Result.Components.Exponent = 127 - (15 - 1) - MantissaShift;
 			Result.Components.Mantissa = Mantissa << (MantissaShift + 23 - 10);
 		}

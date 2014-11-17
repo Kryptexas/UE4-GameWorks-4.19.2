@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionParticleSubUV.generated.h"
 
-UCLASS(HeaderGroup=Material, MinimalAPI)
+UCLASS(MinimalAPI)
 class UMaterialExpressionParticleSubUV : public UMaterialExpressionTextureSample
 {
 	GENERATED_UCLASS_BODY()

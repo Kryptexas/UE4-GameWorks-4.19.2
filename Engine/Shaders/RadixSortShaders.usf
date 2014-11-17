@@ -34,7 +34,11 @@
 
 /** By default, enable the constant buffer workaround until the driver bug has been fixed. */
 #ifndef CONSTANT_BUFFER_WORKAROUND
+#if !GL4_PROFILE
 #define CONSTANT_BUFFER_WORKAROUND 1
+#else
+#define CONSTANT_BUFFER_WORKAROUND 0
+#endif
 #endif
 
 /** The number of digits per radix. */
@@ -593,7 +597,11 @@ void GetDigits(
 	[unroll]
 	for ( KeyIndex = 0; KeyIndex < KEYS_PER_LOOP; ++KeyIndex )
 	{
+#if CONSTANT_BUFFER_WORKAROUND
 		Digits[KeyIndex] = (Keys[KeyIndex] >> RadixSortStruct.RadixShift) & DIGIT_MASK;
+#else
+		Digits[KeyIndex] = (Keys[KeyIndex] >> RadixSort.RadixShift) & DIGIT_MASK;
+#endif
 	}
 }
 

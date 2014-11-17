@@ -15,6 +15,11 @@
 #include "GlobalShader.h"
 #include "OneColorShader.h"
 
+#if PLATFORM_DESKTOP
+// For Depth Bounds Test interface
+#include "nvapi.h"
+#endif
+
 FGlobalBoundShaderState GD3D11ClearMRTBoundShaderState[8];
 TGlobalResource<FVector4VertexDeclaration> GD3D11Vector4VertexDeclaration;
 
@@ -38,6 +43,32 @@ DECLARE_ISBOUNDSHADER(ComputeShader)
 #else
 #define VALIDATE_BOUND_SHADER(s)
 #endif
+
+#define WITH_GPA (0 && !PLATFORM_XBOXONE)
+#if WITH_GPA
+	#define GPA_WINDOWS 1
+	#include <GPUPerfAPI/Gpa.h>
+#endif
+
+void FD3D11DynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
+{
+	#if WITH_GPA
+		char Str[256];
+		if(GpaBegin(Str, Hash, bCompute, (void*)Direct3DDevice))
+		{
+			OutputDebugStringA(Str);
+		}
+	#endif
+}
+
+void FD3D11DynamicRHI::RHIGpuTimeEnd(uint32 Hash, bool bCompute)
+{
+	#if WITH_GPA
+		GpaEnd(Hash, bCompute);
+	#endif
+}
+
+
 
 // Vertex state.
 void FD3D11DynamicRHI::RHISetStreamSource(uint32 StreamIndex,FVertexBufferRHIParamRef VertexBufferRHI,uint32 Stride,uint32 Offset)
@@ -863,6 +894,15 @@ void FD3D11DynamicRHI::RHISetRenderTargets(
 		FRTVDesc RTTDesc = GetRenderTargetViewDesc(NewRenderTargetViews[0]);
 		RHISetViewport(0, 0, 0.0f, RTTDesc.Width, RTTDesc.Height, 1.0f);
 	}
+	else if( DepthStencilView )
+	{
+		TRefCountPtr<ID3D11Texture2D> DepthTargetTexture;
+		DepthStencilView->GetResource((ID3D11Resource**)DepthTargetTexture.GetInitReference());
+
+		D3D11_TEXTURE2D_DESC DTTDesc;
+		DepthTargetTexture->GetDesc(&DTTDesc);
+		RHISetViewport(0, 0, 0.0f, DTTDesc.Width, DTTDesc.Height, 1.0f);
+	}
 }
 
 void FD3D11DynamicRHI::RHIDiscardRenderTargets(bool Depth, bool Stencil, uint32 ColorBitMask)
@@ -1525,6 +1565,9 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		// So we can see when we are taking the slow path
 		SCOPED_DRAW_EVENT(DrawCallClear, DEC_SCENE_ITEMS);
 
+		// we don't support draw call clears before the RHI is initialized, reorder the code or make sure it's not a draw call clear
+		check(GIsRHIInitialized);
+
 		if (CurrentDepthTexture)
 		{
 			// Clear all texture references to this depth buffer
@@ -1601,7 +1644,7 @@ void FD3D11DynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		OriginalResourceState.ClearCurrentVertexResources(StateCache);		
 
 		// Set the new shaders
-		TShaderMapRef<FOneColorVS> VertexShader(GetGlobalShaderMap());
+		TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
 
 		FOneColorPS* PixelShader = NULL;
 
@@ -1775,4 +1818,36 @@ void FD3D11DynamicRHI::RHIBlockUntilGPUIdle()
 uint32 FD3D11DynamicRHI::RHIGetGPUFrameCycles()
 {
 	return GGPUFrameTime;
+}
+
+
+// NVIDIA Depth Bounds Test interface
+void FD3D11DynamicRHI::RHIEnableDepthBoundsTest(bool bEnable,float MinDepth,float MaxDepth)
+{
+#if PLATFORM_DESKTOP
+	if(!IsRHIDeviceNVIDIA()) return;
+
+	if(MinDepth > MaxDepth)
+	{
+		UE_LOG(LogD3D11RHI, Error,TEXT("RHIEnableDepthBoundsTest(%i,%f, %f) MinDepth > MaxDepth, cannot set DBT."),bEnable,MinDepth,MaxDepth);
+		return;
+	}
+
+	if( MinDepth < 0.f || MaxDepth > 1.f)
+	{
+		UE_LOG(LogD3D11RHI, Verbose,TEXT("RHIEnableDepthBoundsTest(%i,%f, %f) depths out of range, will clamp."),bEnable,MinDepth,MaxDepth);
+	}
+
+	if(MinDepth > 1) MinDepth = 1.f;
+	else if(MinDepth < 0) MinDepth = 0.f;
+
+	if(MaxDepth > 1) MaxDepth = 1.f;
+	else if(MaxDepth < 0) MaxDepth = 0.f;
+
+	auto result = NvAPI_D3D11_SetDepthBoundsTest( Direct3DDevice, bEnable, MinDepth, MaxDepth );
+	if(result != NVAPI_OK)
+	{
+		UE_LOG(LogD3D11RHI, Error,TEXT("NvAPI_D3D11_SetDepthBoundsTest(%i,%f, %f) returned error code %i"),bEnable,MinDepth,MaxDepth,(unsigned int)result);
+	}
+#endif
 }

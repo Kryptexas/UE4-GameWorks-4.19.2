@@ -103,7 +103,7 @@ public:
 
 	virtual bool CanSaveDefaults( ) const OVERRIDE
 	{
-		return (SaveDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config)));
+		return (SaveDefaultsDelegate.IsBound() || (SettingsObject.IsValid() && SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config) && !SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig)));
 	}
 
 	virtual bool Export( const FString& Filename ) OVERRIDE
@@ -204,9 +204,9 @@ public:
 			GConfig->EmptySection(*SettingsObject->GetClass()->GetPathName(), ConfigName);
 			GConfig->Flush(false);
 
-			FConfigCacheIni::LoadGlobalIniFile(ConfigName, *FPaths::GetBaseFilename(ConfigName), NULL, NULL, true);
+			FConfigCacheIni::LoadGlobalIniFile(ConfigName, *FPaths::GetBaseFilename(ConfigName), nullptr, nullptr, true);
 
-			SettingsObject->ReloadConfig(NULL, NULL, UE4::LCPF_PropagateToInstances|UE4::LCPF_PropagateToChildDefaultObjects);
+			SettingsObject->ReloadConfig(nullptr, nullptr, UE4::LCPF_PropagateToInstances|UE4::LCPF_PropagateToChildDefaultObjects);
 
 			return true;
 		}
@@ -228,7 +228,14 @@ public:
 
 		if (SettingsObject.IsValid())
 		{
-			SettingsObject->SaveConfig();
+			if (SettingsObject->GetClass()->HasAnyClassFlags(CLASS_DefaultConfig))
+			{
+				SettingsObject->UpdateDefaultConfigFile();
+			}
+			else
+			{
+				SettingsObject->SaveConfig();
+			}
 
 			return true;
 		}
@@ -246,7 +253,7 @@ public:
 		if (SettingsObject.IsValid())
 		{
 			SettingsObject->UpdateDefaultConfigFile();
-			SettingsObject->ReloadConfig(NULL, NULL, UE4::LCPF_PropagateToInstances);
+			SettingsObject->ReloadConfig(nullptr, nullptr, UE4::LCPF_PropagateToInstances);
 
 			return true;			
 		}

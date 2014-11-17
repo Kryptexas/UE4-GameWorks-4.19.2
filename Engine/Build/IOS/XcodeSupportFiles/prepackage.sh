@@ -11,7 +11,8 @@ else
 fi
 
 echo "Checking for inline breakpoint strategy"
-if [ -n "ls | grep 'strategy' ~/.lldbinit" ]
+lldbinitfile=~/.lldbinit
+if grep -q "strategy" $lldbinitfile
 then
   echo "Strategy found... inline breakpoints already enabled"
 else
@@ -47,4 +48,21 @@ then
   pushd ../../../../$1/Binaries/IOS > /dev/null
   cp -R $1$4.app.dSYM Payload/$1$4.app.dSYM
   popd > /dev/null
+fi
+
+if [ -e $1-Info.plist ]
+then
+  if [ -d ../../../../$1/Intermediate/IOS ]
+  then
+    cp -R $1-Info.plist ../../../../$1/Intermediate/IOS/$1-Info.plist
+  else
+	if [ "$1" == "UE4Game" ]
+	then
+      mkdir -p ../../../../Engine/Intermediate/IOS/
+      cp -R $1-Info.plist ../../../../Engine/Intermediate/IOS/$1-Info.plist
+	else 
+      mkdir -p ../../../../$1/Intermediate/IOS/
+      cp -R $1-Info.plist ../../../../$1/Intermediate/IOS/$1-Info.plist
+	fi
+  fi
 fi

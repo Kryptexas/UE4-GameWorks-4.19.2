@@ -88,7 +88,7 @@ int32 FMatineeViewportClient::DrawLabel( FCanvas* Canvas, float StartX, float St
 	int32 Result = 0;
 	if( LabelFont != NULL )
 	{
-		Result = Canvas->DrawShadowedString( FMath::TruncFloat(StartX), FMath::TruncFloat(StartY), Text, LabelFont, Color );
+		Result = Canvas->DrawShadowedString( FMath::TruncToFloat(StartX), FMath::TruncToFloat(StartY), Text, LabelFont, Color );
 	}
 	return Result;
 }
@@ -109,7 +109,7 @@ float FMatineeViewportClient::GetGridSpacing(int32 GridNum)
 /** Calculate the best frames' density. */
 uint32 FMatineeViewportClient::CalculateBestFrameStep(float SnapAmount, float PixelsPerSec, float MinPixelsPerGrid)
 {
-	uint32 FrameRate = FMath::Ceil(1.0f / SnapAmount);
+	uint32 FrameRate = FMath::CeilToInt(1.0f / SnapAmount);
 	uint32 FrameStep = 1;
 	
 	// Calculate minimal-symmetric integer divisor.
@@ -443,13 +443,13 @@ void FMatinee::InvalidateTrackWindowViewports()
 FString FMatinee::MakeTimecodeString( float InTime, bool bIncludeMinutes ) const
 {
 	// SMPTE-style timecode
-	const int32 MinutesVal = FMath::Trunc( InTime / 60.0f );
-	const int32 SecondsVal = FMath::Trunc( InTime );
+	const int32 MinutesVal = FMath::TruncToInt( InTime / 60.0f );
+	const int32 SecondsVal = FMath::TruncToInt( InTime );
 	const float Frames = InTime / SnapAmount;
-	const int32 FramesVal = FMath::Round( Frames );
+	const int32 FramesVal = FMath::RoundToInt( Frames );
 	const float Subseconds = FMath::Fractional( InTime );
 	const float SubsecondFrames = Subseconds / SnapAmount;
-	const int32 SubsecondFramesVal = FMath::Round( SubsecondFrames );
+	const int32 SubsecondFramesVal = FMath::RoundToInt( SubsecondFrames );
 	const float SubframeDiff = Frames - ( float )FramesVal;
 
 	// Are we currently between frames?
@@ -516,7 +516,7 @@ void FMatineeViewportClient::DrawGrid(FViewport* Viewport, FCanvas* Canvas, bool
 	FCanvasLineItem LineItem;									
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), GEditor->GetSmallFont(), FLinearColor::Gray );
 	
-	int32 LineNum = FMath::Floor(InterpEd->ViewStartTime/GridSpacing);
+	int32 LineNum = FMath::FloorToInt(InterpEd->ViewStartTime/GridSpacing);
 	while( LineNum*GridSpacing < InterpEd->ViewEndTime )
 	{
 		float LineTime = LineNum*GridSpacing;
@@ -795,7 +795,7 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 				FString StartString = FString::Printf( TEXT("%3.2fs"), KeyStartTime );
 				if ( InterpEd->bSnapToFrames )
 				{
-					StartString += FString::Printf( TEXT(" / %df"), FMath::Round(KeyStartTime / InterpEd->SnapAmount));
+					StartString += FString::Printf( TEXT(" / %df"), FMath::RoundToInt(KeyStartTime / InterpEd->SnapAmount));
 				}
 				StringSize( LabelFont, XL, YL, *StartString);
 				DrawLabel(Canvas, KeyStartX - XL, ViewY - TotalBarHeight - RangeTickHeight - YL - 2, *StartString, KeyRangeMarkerColor);
@@ -809,7 +809,7 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 				FString EndString = FString::Printf( TEXT("%3.2fs"), KeyEndTime );
 				if ( InterpEd->bSnapToFrames )
 				{
-					EndString += FString::Printf( TEXT(" / %df"), FMath::Round(KeyEndTime / InterpEd->SnapAmount));
+					EndString += FString::Printf( TEXT(" / %df"), FMath::RoundToInt(KeyEndTime / InterpEd->SnapAmount));
 				}
 
 				StringSize( LabelFont, XL, YL, *EndString);
@@ -825,7 +825,7 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 			FString RangeString = FString::Printf( TEXT("%3.2fs"), KeyRange );
 			if ( InterpEd->bSnapToFrames )
 			{
-				RangeString += FString::Printf( TEXT(" / %df"), FMath::Round(KeyRange / InterpEd->SnapAmount));
+				RangeString += FString::Printf( TEXT(" / %df"), FMath::RoundToInt(KeyRange / InterpEd->SnapAmount));
 			}
 
 			StringSize( LabelFont, XL, YL, *RangeString);
@@ -850,7 +850,7 @@ void FMatineeViewportClient::DrawTimeline(FViewport* Viewport, FCanvas* Canvas)
 				FString KeyString = FString::Printf( TEXT("%3.2fs"), KeyTime );				
 				if ( InterpEd->bSnapToFrames )
 				{
-					KeyString += FString::Printf( TEXT(" / %df"), FMath::Round(KeyTime / InterpEd->SnapAmount));
+					KeyString += FString::Printf( TEXT(" / %df"), FMath::RoundToInt(KeyTime / InterpEd->SnapAmount));
 				}
 
 				StringSize( LabelFont, XL, YL, *KeyString);
@@ -1147,7 +1147,7 @@ void FMatineeViewportClient::DrawSubTrackGroup( FCanvas* Canvas, UInterpTrack* T
 		TextColor = FLinearColor(0.5f,0.5f,0.5f);
 	}
 
-	DrawLabel(Canvas, -InterpEd->LabelWidth + TrackTitleIndentPixels, FMath::TruncFloat(0.5*TrackHeight - 0.5*YL), *Text, TextColor);
+	DrawLabel(Canvas, -InterpEd->LabelWidth + TrackTitleIndentPixels, FMath::TruncToFloat(0.5*TrackHeight - 0.5*YL), *Text, TextColor);
 	if( Canvas->IsHitTesting() )
 	{
 		Canvas->SetHitProxy( NULL );
@@ -2237,7 +2237,7 @@ void FMatineeViewportClient::DrawSubTrackGroupKeys( FCanvas* Canvas, UInterpTrac
 				// If the group is collapsed draw each keyframe as a triangle
 				const int32 KeyHalfTriSize = 6;
 				const int32 KeyVertOffset = 3;
-				int32 PixelPos = FMath::Trunc(DrawInfo.KeyTime * InterpEd->PixelsPerSec);
+				int32 PixelPos = FMath::TruncToInt(DrawInfo.KeyTime * InterpEd->PixelsPerSec);
 
 				FIntPoint A(PixelPos - KeyHalfTriSize,	TrackHeight - KeyVertOffset);
 				FIntPoint B(PixelPos + KeyHalfTriSize,	TrackHeight - KeyVertOffset);

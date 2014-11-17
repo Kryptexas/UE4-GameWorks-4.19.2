@@ -19,7 +19,7 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(GetVertexShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
@@ -39,7 +39,7 @@ public:
 		return IsPCPlatform(Platform) && 
 			IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) &&
 			// and only compile for the default material or materials that are masked.
-			(Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialModifiesMeshPosition() || Material->IsTwoSided());
+			(Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition() || Material->IsTwoSided());
 	}
 
 protected:
@@ -99,7 +99,7 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyHS,TEXT("HitProxyVertexShader"),TEXT("M
 IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyDS,TEXT("HitProxyVertexShader"),TEXT("MainDomain"),SF_Domain);
 
 /**
- * A pixel shader for rendering the depth of a mesh.
+ * A pixel shader for rendering the HitProxyId of an object as a unique color in the scene.
  */
 class FHitProxyPS : public FMeshMaterialShader
 {
@@ -112,7 +112,7 @@ public:
 		return IsPCPlatform(Platform) 
 			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM3) 
 			// and only compile for default materials or materials that are masked.
-			&& (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialModifiesMeshPosition() || Material->IsTwoSided());
+			&& (Material->IsSpecialEngineMaterial() || Material->IsMasked() || Material->MaterialMayModifyMeshPosition() || Material->IsTwoSided());
 	}
 
 	FHitProxyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
@@ -125,7 +125,7 @@ public:
 
 	void SetParameters(const FMaterialRenderProxy* MaterialRenderProxy,const FSceneView& View)
 	{
-		FMeshMaterialShader::SetParameters(GetPixelShader(),MaterialRenderProxy,*MaterialRenderProxy->GetMaterial(GRHIFeatureLevel),View,ESceneRenderTargetsMode::SetTextures);
+		FMeshMaterialShader::SetParameters(GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::SetTextures);
 	}
 
 	void SetMesh(const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
@@ -135,7 +135,7 @@ public:
 
 	void SetHitProxyId(FHitProxyId HitProxyIdValue)
 	{
-		SetShaderValue(GetPixelShader(),HitProxyId,HitProxyIdValue.GetColor().ReinterpretAsLinear());
+		SetShaderValue(GetPixelShader(), HitProxyId, HitProxyIdValue.GetColor().ReinterpretAsLinear());
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -153,9 +153,10 @@ IMPLEMENT_MATERIAL_SHADER_TYPE(,FHitProxyPS,TEXT("HitProxyPixelShader"),TEXT("Ma
 
 FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	const FVertexFactory* InVertexFactory,
-	const FMaterialRenderProxy* InMaterialRenderProxy
-	):
-	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,*InMaterialRenderProxy->GetMaterial(GRHIFeatureLevel))
+	const FMaterialRenderProxy* InMaterialRenderProxy,
+	ERHIFeatureLevel::Type InFeatureLevel
+	) :
+	FMeshDrawingPolicy(InVertexFactory, InMaterialRenderProxy, *InMaterialRenderProxy->GetMaterial(InFeatureLevel))
 {
 	HullShader = NULL;
 	DomainShader = NULL;
@@ -172,7 +173,7 @@ FHitProxyDrawingPolicy::FHitProxyDrawingPolicy(
 	PixelShader = MaterialResource->GetShader<FHitProxyPS>(InVertexFactory->GetType());
 }
 
-void FHitProxyDrawingPolicy::DrawShared(const FSceneView* View,FBoundShaderStateRHIParamRef BoundShaderState) const
+void FHitProxyDrawingPolicy::DrawShared(const FSceneView* View, FBoundShaderStateRHIParamRef BoundShaderState) const
 {
 	// Set the actual shader & vertex declaration state
 	RHISetBoundShaderState( BoundShaderState);
@@ -196,7 +197,7 @@ void FHitProxyDrawingPolicy::DrawShared(const FSceneView* View,FBoundShaderState
 * as well as the shaders needed to draw the mesh
 * @return new bound shader state object
 */
-FBoundShaderStateRHIRef FHitProxyDrawingPolicy::CreateBoundShaderState()
+FBoundShaderStateRHIRef FHitProxyDrawingPolicy::CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel)
 {
 	FBoundShaderStateRHIRef BoundShaderState;
 
@@ -224,15 +225,15 @@ void FHitProxyDrawingPolicy::SetMeshRenderState(
 
 	const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
 
-	VertexShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+	VertexShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement);
 
 	if(HullShader && DomainShader)
 	{
-		HullShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
-		DomainShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+		HullShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement);
+		DomainShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement);
 	}
 
-	PixelShader->SetMesh(VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+	PixelShader->SetMesh(VertexFactory, View, PrimitiveSceneProxy, BatchElement);
 	// Per-instance hitproxies are supplied by the vertex factory
 	if( PrimitiveSceneProxy && PrimitiveSceneProxy->HasPerInstanceHitProxies() )
 	{
@@ -256,8 +257,8 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 
 	// Add the static mesh to the DPG's hit proxy draw list.
 	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
-	const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
-	if ( !Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition() )
+	const FMaterial* Material = MaterialRenderProxy->GetMaterial(Scene->GetFeatureLevel());
+	if (!Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition())
 	{
 		// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
 		MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -266,7 +267,8 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 	Scene->HitProxyDrawList.AddMesh(
 		StaticMesh,
 		StaticMesh->HitProxyId,
-		FHitProxyDrawingPolicy(StaticMesh->VertexFactory,MaterialRenderProxy)
+		FHitProxyDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
+		Scene->GetFeatureLevel()
 		);
 
 #if WITH_EDITOR
@@ -278,7 +280,8 @@ void FHitProxyDrawingPolicyFactory::AddStaticMesh(FScene* Scene,FStaticMesh* Sta
 		Scene->HitProxyDrawList_OpaqueOnly.AddMesh(
 			StaticMesh,
 			StaticMesh->HitProxyId,
-			FHitProxyDrawingPolicy(StaticMesh->VertexFactory,MaterialRenderProxy)
+			FHitProxyDrawingPolicy(StaticMesh->VertexFactory, MaterialRenderProxy, Scene->GetFeatureLevel()),
+			Scene->GetFeatureLevel()
 			);
 	}
 #endif
@@ -298,23 +301,23 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 	if (!PrimitiveSceneProxy || PrimitiveSceneProxy->IsSelectable())
 	{
 		const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
-		const FMaterial* Material = MaterialRenderProxy->GetMaterial(GRHIFeatureLevel);
+		const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
 #if WITH_EDITOR
 		const HHitProxy* HitProxy = GetHitProxyById( HitProxyId );
 		// Only draw translucent primitives to the hit proxy if the user wants those objects to be selectable
 		if( View.bAllowTranslucentPrimitivesInHitProxy || !IsTranslucentBlendMode( Material->GetBlendMode() ) || ( HitProxy && HitProxy->AlwaysAllowsTranslucentPrimitives() ) )
 #endif
 		{
-			if ( !Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition() )
+			if (!Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition())
 			{
 				// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
 				MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
 			}
-			FHitProxyDrawingPolicy DrawingPolicy( Mesh.VertexFactory, MaterialRenderProxy );
-			DrawingPolicy.DrawShared(&View,DrawingPolicy.CreateBoundShaderState());
-			for( int32 BatchElementIndex=0;BatchElementIndex<Mesh.Elements.Num();BatchElementIndex++ )
+			FHitProxyDrawingPolicy DrawingPolicy( Mesh.VertexFactory, MaterialRenderProxy, View.GetFeatureLevel() );
+			DrawingPolicy.DrawShared(&View, DrawingPolicy.CreateBoundShaderState(View.GetFeatureLevel()));
+			for( int32 BatchElementIndex = 0; BatchElementIndex < Mesh.Elements.Num(); BatchElementIndex++ )
 			{
-				DrawingPolicy.SetMeshRenderState(View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,HitProxyId);
+				DrawingPolicy.SetMeshRenderState(View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, HitProxyId);
 				DrawingPolicy.DrawMesh(Mesh,BatchElementIndex);
 			}
 			return true;
@@ -326,14 +329,31 @@ bool FHitProxyDrawingPolicyFactory::DrawDynamicMesh(
 void FDeferredShadingSceneRenderer::RenderHitProxies()
 {
 #if WITH_EDITOR
+
+	auto FeatureLevel = ViewFamily.Scene->GetFeatureLevel();
+
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures();
 
 	// Allocate the maximum scene render target space for the current view family.
 	GSceneRenderTargets.Allocate(ViewFamily);
 
-	// Write to the hit proxy render target.
-	GSceneRenderTargets.BeginRenderingHitProxies();
+	TRefCountPtr<IPooledRenderTarget> HitProxyRT;
+
+	// Create a texture to store the resolved light attenuation values, and a render-targetable surface to hold the unresolved light attenuation values.
+	{
+		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(GSceneRenderTargets.GetBufferSizeXY(), PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable, false));
+		Desc.Flags |= TexCreate_FastVRAM;
+		GRenderTargetPool.FindFreeElement(Desc, HitProxyRT, TEXT("HitProxy"));
+	}
+
+	if(!HitProxyRT)
+	{
+		// HitProxyRT==0 should never happen but better we don't crash
+		return;
+	}
+
+	RHISetRenderTarget(HitProxyRT->GetRenderTargetItem().TargetableTexture, GSceneRenderTargets.GetSceneDepthSurface());
 
 	// Clear color for each view.
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
@@ -427,7 +447,9 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 	}
 
 	// Finish drawing to the hit proxy render target.
-	GSceneRenderTargets.FinishRenderingHitProxies();
+	RHICopyToResolveTarget(HitProxyRT->GetRenderTargetItem().TargetableTexture, HitProxyRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
+	// to be able to observe results with VisualizeTexture
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(HitProxyRT);
 
 	// After scene rendering, disable the depth buffer.
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
@@ -438,7 +460,7 @@ void FDeferredShadingSceneRenderer::RenderHitProxies()
 	
 	// Set up a FTexture that is used to draw the hit proxy buffer to the view family's render target.
 	FTexture HitProxyRenderTargetTexture;
-	HitProxyRenderTargetTexture.TextureRHI = GSceneRenderTargets.GetHitProxyTexture();
+	HitProxyRenderTargetTexture.TextureRHI = HitProxyRT->GetRenderTargetItem().ShaderResourceTexture;
 	HitProxyRenderTargetTexture.SamplerStateRHI = TStaticSamplerState<>::GetRHI();
 
 	// Generate the vertices and triangles mapping the hit proxy RT pixels into the view family's RT pixels.

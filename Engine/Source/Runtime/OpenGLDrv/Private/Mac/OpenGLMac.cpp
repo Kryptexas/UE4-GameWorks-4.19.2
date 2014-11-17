@@ -148,6 +148,9 @@ private:
 
 void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
 
+/** Used to temporarily disable Cocoa screen updates to make window updates happen only on the render thread. */
+bool GMacEnableCocoaScreenUpdates = true;
+
 @interface NSView(NSThemeFramePrivate)
 - (float)roundedCornerRadius;
 @end
@@ -184,25 +187,29 @@ void DeleteQueriesForCurrentContext( NSOpenGLContext* Context );
 
 - (void) _surfaceNeedsUpdate:(NSNotification*)notification
 {
-	self.bNeedsUpdate = true;;
+	self.bNeedsUpdate = true;
 }
 
 - (void)drawRect:(NSRect)DirtyRect
 {
 	SCOPED_AUTORELEASE_POOL;
 	
-	[super drawRect:DirtyRect];
-	
 	FSlateCocoaWindow* SlateCocoaWindow = [[self window] isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)[self window] : nil;
 	if (SlateCocoaWindow)
 	{
 		[SlateCocoaWindow redrawContents];
-		
-		if([SlateCocoaWindow inLiveResize])
-		{
-			FlushRenderingCommands();
-		}
 	}
+}
+
+- (void)renewGState
+{
+	if(GMacEnableCocoaScreenUpdates)
+	{
+		GMacEnableCocoaScreenUpdates = false;
+		NSDisableScreenUpdates();
+	}
+	
+	[super renewGState];
 }
 
 - (BOOL)acceptsFirstMouse:(NSEvent *)Event
@@ -368,6 +375,14 @@ struct OpenGLContextInfo
 };
 
 extern void OnQueryInvalidation( void );
+
+// @todo: remove once Apple fixes radr://16754329 AMD Cards don't always perform FRAMEBUFFER_SRGB if the draw FBO has mixed sRGB & non-SRGB colour attachments
+static TAutoConsoleVariable<int32> CVarMacUseFrameBufferSRGB(
+		TEXT("r.Mac.UseFrameBufferSRGB"),
+		0,
+		TEXT("Flag to toggle use of GL_FRAMEBUFFER_SRGB for better color accuracy.\n"),
+		ECVF_RenderThreadSafe
+		);
 
 bool GIsRunningOnIntelCard = false; // @todo: remove once Apple fixes radr://16223045 Changes to the GL separate blend state aren't always respected on Intel cards
 
@@ -607,6 +622,22 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 		GIsRunningOnIntelCard = true;
 	}
 	
+	// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
+	// which exhibit the same unfortunate driver bugs without having to parse their individual ID strings.
+	GLint RendererID = 0;
+	if(CGLGetParameter((CGLContextObj)[Context->OpenGLContext CGLContextObj], kCGLCPCurrentRendererID, &RendererID) == kCGLNoError)
+	{
+		switch((RendererID & kCGLRendererIDMatchingMask))
+		{
+			case kCGLRendererATIRadeonX4000ID:
+			{
+				// @todo: remove once AMD fix the AMDX4000 driver for GCN cards so that it is possible to sample the depth while also stencil testing to the same DEPTH_STENCIL texture - it works on all other cards we have.
+				GSupportsDepthFetchDuringDepthTest = false;
+				break;
+			}
+		}
+    }
+	
 #if UE_EMULATE_TIMESTAMP
 	// Bind the platform context into the CGL context
 	Context->TimeElapsed = 0;
@@ -689,13 +720,14 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 			glDrawBuffer(GL_BACK);
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer);
 			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glDisable(GL_FRAMEBUFFER_SRGB);
 
-			glBlitFramebuffer(
+            glBlitFramebuffer(
 				0, 0, BackbufferSizeX, BackbufferSizeY,
 				0, BackbufferSizeY, BackbufferSizeX, 0,
 				GL_COLOR_BUFFER_BIT,
 				GL_NEAREST
-				);
+            );
 			
 			if(Context->OpenGLView.bNeedsUpdate)
 			{
@@ -816,8 +848,6 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 					glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 				}
 
-				uint32 IdleStart = FPlatformTime::Cycles();
-
 				int32 RealSyncInterval = bLockToVsync ? SyncInterval : 0;
 
 				if (Context->SyncInterval != RealSyncInterval)
@@ -825,8 +855,18 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 					[Context->OpenGLContext setValues: &RealSyncInterval forParameter: NSOpenGLCPSwapInterval];
 					Context->SyncInterval = RealSyncInterval;
 				}
-
+				
+				if(!GMacEnableCocoaScreenUpdates)
+				{
+					GMacEnableCocoaScreenUpdates = true;
+					NSEnableScreenUpdates();
+				}
+				
 				[Context->OpenGLContext flushBuffer];
+
+				
+				glEnable(GL_FRAMEBUFFER_SRGB);
+				
 				REPORT_GL_END_BUFFER_EVENT_FOR_FRAME_DUMP();
 //				INITIATE_GL_FRAME_DUMP_EVERY_X_CALLS( 1000 );
 				
@@ -837,9 +877,6 @@ void PlatformBlitToViewport( FPlatformOpenGLDevice* Device, FPlatformOpenGLConte
 					// Just hope that this will work OK...
 					[SlateCocoaWindow performDeferredOrderFront];
 				}
-				
-				GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += FPlatformTime::Cycles() - IdleStart;
-				GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 			}
 		}
 	}
@@ -1335,14 +1372,8 @@ PFNGLPATCHPARAMETERIPROC FMacOpenGL::glPatchParameteri = NULL;
 
 void FMacOpenGL::ProcessQueryGLInt()
 {
-#ifndef __clang__
-#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) do { if (IntEnum) {glGetIntegerv(IntEnum, &Dest);} else {Dest = Default;} /*FPlatformMisc::LowLevelOutputDebugStringf(TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Dest);*/ } while(0)
-#else
-#define LOG_AND_GET_GL_INT(IntEnum, Default, Dest) do { if (IntEnum) {glGetIntegerv(IntEnum, &Dest);} else {Dest = Default;} /*FPlatformMisc::LowLevelOutputDebugStringf(TEXT("  " #IntEnum ": %d"), Dest);*/ } while(0)
-#endif
-	
-	LOG_AND_GET_GL_INT(GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS, 0, MaxHullUniformComponents);
-	LOG_AND_GET_GL_INT(GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS, 0, MaxDomainUniformComponents);
+	GET_GL_INT(GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS, 0, MaxHullUniformComponents);
+	GET_GL_INT(GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS, 0, MaxDomainUniformComponents);
 }
 
 void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
@@ -1384,6 +1415,9 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	{
 		glPushGroupMarkerEXT = (PFNGLPUSHGROUPMARKEREXTPROC)dlsym(RTLD_SELF, "glPushGroupMarkerEXT");
 		glPopGroupMarkerEXT = (PFNGLPOPGROUPMARKEREXTPROC)dlsym(RTLD_SELF, "glPopGroupMarkerEXT");
+#if !UE_BUILD_SHIPPING // For debuggable builds emit draw events when the extension is GL_EXT_debug_marker present.
+        GEmitDrawEvents = true;
+#endif
 	}
 	
 	if(ExtensionsString.Contains(TEXT("GL_ARB_tessellation_shader")))

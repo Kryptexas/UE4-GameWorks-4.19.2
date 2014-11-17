@@ -8,7 +8,7 @@
 #pragma once
 #include "MaterialExpressionTextureObjectParameter.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionTextureObjectParameter : public UMaterialExpressionTextureSampleParameter
 {
 	GENERATED_UCLASS_BODY()

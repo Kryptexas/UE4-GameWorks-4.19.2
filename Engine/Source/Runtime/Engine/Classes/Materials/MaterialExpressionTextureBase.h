@@ -8,7 +8,7 @@
 #pragma once
 #include "MaterialExpressionTextureBase.generated.h"
 
-UCLASS(HeaderGroup=Material, abstract, hidecategories=Object, MinimalAPI)
+UCLASS(abstract, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionTextureBase : public UMaterialExpression 
 {
 	GENERATED_UCLASS_BODY()
@@ -28,6 +28,12 @@ class UMaterialExpressionTextureBase : public UMaterialExpression
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
 #endif // WITH_EDITOR
 	// End UObject Interface
+
+	// Begin UMaterialExpression Interface
+#if WITH_EDITOR
+	virtual FString GetDescription() const OVERRIDE;
+#endif
+	// End UMaterialExpression Interface
 
 	/** 
 	 * Callback to get any texture reference this expression emits.

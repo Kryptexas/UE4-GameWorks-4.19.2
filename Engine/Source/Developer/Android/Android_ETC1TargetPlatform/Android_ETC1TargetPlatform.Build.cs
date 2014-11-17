@@ -8,18 +8,6 @@ public class Android_ETC1TargetPlatform : ModuleRules
 	{
 		BinariesSubFolder = "Android";
 
-        PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-				"Sockets",
-				"TargetPlatform",
-				"Messaging",
-				"TargetDeviceServices",
-				"AndroidDeviceDetection",
-			}
-		);
-
 		PublicIncludePaths.AddRange(
 			new string[]
 			{
@@ -27,11 +15,14 @@ public class Android_ETC1TargetPlatform : ModuleRules
 			}
 		);
 
-		if (UEBuildConfiguration.bCompileAgainstEngine)
-		{
-			PrivateDependencyModuleNames.Add("Engine");
-			PrivateIncludePathModuleNames.Add("TextureCompressor");		//@todo android: AndroidTargetPlatform.Build
-		}
+		PrivateDependencyModuleNames.AddRange(
+			new string[]
+			{
+				"Core",
+				"TargetPlatform",
+				"AndroidDeviceDetection",
+			}
+		);
 
 		PrivateIncludePaths.AddRange(
 			new string[]
@@ -39,5 +30,12 @@ public class Android_ETC1TargetPlatform : ModuleRules
 				"Developer/Android/AndroidTargetPlatform/Private",				
 			}
 		);
+
+		// compile with Engine
+		if (UEBuildConfiguration.bCompileAgainstEngine)
+		{
+			PrivateDependencyModuleNames.Add("Engine");
+			PrivateIncludePathModuleNames.Add("TextureCompressor");		//@todo android: AndroidTargetPlatform.Build
+		}
 	}
 }

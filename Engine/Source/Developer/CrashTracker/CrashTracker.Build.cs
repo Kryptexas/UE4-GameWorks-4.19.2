@@ -17,7 +17,8 @@ public class CrashTracker : ModuleRules
 				"RenderCore",
 				"RHI",
 				"ShaderCore",
-				"Slate"
+				"Slate",
+				"SlateCore",
 			}
 		);
 	}

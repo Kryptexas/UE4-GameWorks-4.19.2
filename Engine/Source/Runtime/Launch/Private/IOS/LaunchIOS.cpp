@@ -7,9 +7,20 @@
 #include "EAGLView.h"
 #include "IOSCommandLineHelper.h"
 #include "GameLaunchDaemonMessageHandler.h"
+#include "AudioDevice.h"
 
 FEngineLoop GEngineLoop;
 FGameLaunchDaemonMessageHandler GCommandSystem;
+
+void FAppEntry::Suspend()
+{
+    GEngine->AudioDevice->SuspendContext();
+}
+
+void FAppEntry::Resume()
+{
+    GEngine->AudioDevice->ResumeContext();
+}
 
 void FAppEntry::PreInit(IOSAppDelegate* AppDelegate, UIApplication* Application)
 {
@@ -114,6 +125,8 @@ void FAppEntry::PlatformInit()
 
 void FAppEntry::Init()
 {
+	FPlatformProcess::SetRealTimeMode();
+
 	//extern TCHAR GCmdLine[16384];
 	GEngineLoop.PreInit(FCommandLine::Get());
 
@@ -160,6 +173,9 @@ void FAppEntry::Shutdown()
 {
 	NSLog(@"%s", "Shutting down Game ULD Communications\n");
 	GCommandSystem.Shutdown();
+    
+    // kill the engine
+    GEngineLoop.Exit();
 }
 
 FString GSavedCommandLine;
@@ -174,7 +190,7 @@ int main(int argc, char *argv[])
 
 	FIOSCommandLineHelper::InitCommandArgs(FString());
 	
-#if UE_BUILD_DEBUG
+#if !UE_BUILD_SHIPPING
     if (FParse::Param(FCommandLine::Get(), TEXT("WaitForDebugger")))
     {
         while(!FPlatformMisc::IsDebuggerPresent())

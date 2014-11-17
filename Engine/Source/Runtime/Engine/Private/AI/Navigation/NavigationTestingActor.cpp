@@ -38,6 +38,7 @@ ANavigationTestingActor::ANavigationTestingActor(const class FPostConstructIniti
 	bShowBestPath = true;
 	bShowDiffWithPreviousStep = false;
 	bShouldBeVisibleInGame = false;
+	TextCanvasOffset = FVector2D::ZeroVector;
 	bGatherDetailedInfo = true;
 	OffsetFromCornersDistance = 0.f;
 
@@ -62,10 +63,41 @@ ANavigationTestingActor::~ANavigationTestingActor()
 #endif // WITH_RECAST && WITH_EDITORONLY_DATA
 }
 
+void ANavigationTestingActor::BeginDestroy()
+{
+	LastPath.Reset();
+	if (OtherActor && OtherActor->OtherActor == this)
+	{
+		OtherActor->OtherActor = NULL;
+		OtherActor->LastPath.Reset();
+	}
+	Super::BeginDestroy();
+}
+
 #if WITH_EDITOR
+void ANavigationTestingActor::PreEditChange(UProperty* PropertyThatWillChange)
+{
+	static const FName NAME_OtherActor = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, OtherActor);
+
+	if (PropertyThatWillChange && PropertyThatWillChange->GetFName() == NAME_OtherActor && OtherActor && OtherActor->OtherActor == this)
+	{
+		OtherActor->OtherActor = NULL;
+		OtherActor->LastPath.Reset();
+		LastPath.Reset();
+#if WITH_EDITORONLY_DATA
+		OtherActor->EdRenderComp->MarkRenderStateDirty();
+		EdRenderComp->MarkRenderStateDirty();
+#endif
+	}
+
+	Super::PreEditChange(PropertyThatWillChange);
+}
+
 void ANavigationTestingActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	static const FName NAME_ShouldBeVisibleInGame = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, bShouldBeVisibleInGame);
+	static const FName NAME_OtherActor = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, OtherActor);
+	static const FName NAME_IsSearchStart = GET_MEMBER_NAME_CHECKED(ANavigationTestingActor, bSearchStart);
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -102,6 +134,44 @@ void ANavigationTestingActor::PostEditChangeProperty(FPropertyChangedEvent& Prop
 		}
 		else if (ChangedCategory == TEXT("Pathfinding"))
 		{
+			if (ChangedPropName == NAME_OtherActor)
+			{
+				if (OtherActor != NULL)
+				{
+					ANavigationTestingActor* OtherActorsOldOtherActor = OtherActor->OtherActor;
+
+					OtherActor->OtherActor = this;
+					bSearchStart = !OtherActor->bSearchStart;
+
+#if WITH_EDITORONLY_DATA
+					if (bSearchStart)
+					{
+						OtherActor->EdRenderComp->MarkRenderStateDirty();
+					}
+					else
+					{
+						EdRenderComp->MarkRenderStateDirty();
+					}
+#endif
+
+					if (OtherActorsOldOtherActor)
+					{
+						OtherActorsOldOtherActor->OtherActor = NULL;
+						OtherActorsOldOtherActor->LastPath.Reset();
+#if WITH_EDITORONLY_DATA
+						OtherActorsOldOtherActor->EdRenderComp->MarkRenderStateDirty();
+#endif
+					}
+				}
+			}
+			else if (ChangedPropName == NAME_IsSearchStart)
+			{
+				if (OtherActor != NULL)
+				{
+					OtherActor->bSearchStart = !bSearchStart;
+				}
+			}
+
 			UpdatePathfinding();
 		}
 	}
@@ -116,7 +186,7 @@ void ANavigationTestingActor::PostEditMove(bool bFinished)
 	bProjectedLocationValid = GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(GetActorLocation(), NavLoc, QueryingExtent, MyNavData);
 	ProjectedLocation = NavLoc.Location;
 
-	if (bSearchStart || bSearchGoal)
+	if (bSearchStart || (OtherActor != NULL && OtherActor->bSearchStart))
 	{
 		UpdatePathfinding();
 	}
@@ -190,38 +260,44 @@ void ANavigationTestingActor::UpdatePathfinding()
 #endif
 	UpdateNavData();
 
-	if ((bSearchStart && bSearchGoal) ||
-		(!bSearchStart && !bSearchGoal) ||
-		(bSearchStart && OtherActor && !OtherActor->bSearchGoal) ||
-		(bSearchGoal && OtherActor && !OtherActor->bSearchStart))
+	if (bSearchStart == false && (OtherActor == NULL || OtherActor->bSearchStart == false))
 	{
+#if WITH_EDITORONLY_DATA
+		if (EdRenderComp)
+		{
+			EdRenderComp->MarkRenderStateDirty();
+		}
+#endif // WITH_EDITORONLY_DATA
 		return;
-	}
-
-	if (ForcedOtherActor != NULL)
-	{
-		OtherActor = ForcedOtherActor;
-		OtherActor->ForcedOtherActor = this;
 	}
 
 	if (OtherActor == NULL)
 	{
+		ANavigationTestingActor* AlternativeOtherActor = NULL;
+
 		for (TActorIterator<ANavigationTestingActor> It(GetWorld()); It; ++It)
 		{
 			ANavigationTestingActor* TestActor = *It;
 			if (TestActor && TestActor != this)
 			{
-				if (bSearchStart && TestActor->bSearchGoal && !TestActor->bSearchStart)
+				if( TestActor->OtherActor == this )
 				{
 					OtherActor = TestActor;
 					break;
 				}
-				else if (bSearchGoal && TestActor->bSearchStart && !TestActor->bSearchGoal)
+				// the other one doesn't have anything set - potential end for us
+				else if (bSearchStart && TestActor->OtherActor == NULL)
 				{
-					OtherActor = TestActor;
-					break;
+					AlternativeOtherActor = TestActor;
 				}
 			}
+		}
+
+		// if still empty maybe AlternativeOtherActor can fill in
+		if (OtherActor == NULL && AlternativeOtherActor != NULL)
+		{
+			OtherActor = AlternativeOtherActor;
+			AlternativeOtherActor->OtherActor = this;
 		}
 	}
 
@@ -231,7 +307,7 @@ void ANavigationTestingActor::UpdatePathfinding()
 		{
 			SearchPathTo(OtherActor);
 		}
-		else if (bSearchGoal)
+		else if (OtherActor)
 		{
 			OtherActor->SearchPathTo(this);
 		}
@@ -248,31 +324,32 @@ void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
 #endif // WITH_EDITORONLY_DATA
 
 	if (Goal == NULL) 
+	{
 		return;
+	}
 
 	UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
 	check(NavSys);
 
 	const double StartTime = FPlatformTime::Seconds();
 
-	FPathFindingResult Result;
-	FPathFindingQuery Query(MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(MyNavData, FilterClass));
+	FPathFindingQuery Query = BuildPathFindingQuery(Goal);
 	EPathFindingMode::Type Mode = bUseHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
-	Result = NavSys->FindPathSync(NavAgentProps, Query, Mode);
-	bPathExist = Result.IsSuccessful() || Result.IsPartial();
-
-	if (bPathExist && OffsetFromCornersDistance > 0.0f)
-	{
-		((FNavMeshPath*)Result.Path.Get())->OffsetFromCorners(OffsetFromCornersDistance);
-	}
+	FPathFindingResult Result = NavSys->FindPathSync(NavAgentProps, Query, Mode);
 
 	const double EndTime = FPlatformTime::Seconds();
 	const float Duration = (EndTime - StartTime);
 	PathfindingTime = Duration * 1000000.0f;			// in micro seconds [us]
 	bPathIsPartial = Result.IsPartial();
+	bPathExist = Result.IsSuccessful() || Result.IsPartial();
 	bPathSearchOutOfNodes = bPathExist ? Result.Path->DidSearchReachedLimit() : false;
 	LastPath = Result.Path;
 	PathCost = bPathExist ? Result.Path->GetCost() : 0.0f;
+
+	if (OffsetFromCornersDistance > 0.0f)
+	{
+		((FNavMeshPath*)LastPath.Get())->OffsetFromCorners(OffsetFromCornersDistance);
+	}
 
 #if WITH_RECAST && WITH_EDITORONLY_DATA
 	if (bGatherDetailedInfo && !bUseHierarchicalPathfinding)
@@ -285,3 +362,10 @@ void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
 	}
 #endif
 }
+
+FPathFindingQuery ANavigationTestingActor::BuildPathFindingQuery(const ANavigationTestingActor* Goal) const
+{
+	check(Goal);
+	return FPathFindingQuery(this, MyNavData, GetNavAgentLocation(), Goal->GetNavAgentLocation(), UNavigationQueryFilter::GetQueryFilter(MyNavData, FilterClass));
+}
+

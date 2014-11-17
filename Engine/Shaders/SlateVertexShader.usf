@@ -75,7 +75,8 @@ VertexOut Main(
 
 	// TextureCoordinates contains both the first and second texture coordinates in xy and zw respectively.
 	VOut.TextureCoordinates = InTextureCoordinates;
-	VOut.Color = InColor;
+
+	VOut.Color = InColor FCOLOR_COMPONENT_SWIZZLE;
 
 	return VOut;
 }

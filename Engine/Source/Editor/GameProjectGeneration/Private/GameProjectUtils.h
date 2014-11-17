@@ -23,6 +23,9 @@ public:
 	/** Prompts the user to update his project file, if necessary. */
 	static void CheckForOutOfDateGameProjectFile();
 
+	/** Warn the user if the project filename is invalid in case they renamed it outside the editor */
+	static void CheckAndWarnProjectFilenameValid();
+
 	/** Updates the currently loaded project. Returns true if the project was updated successfully or if no update was needed */
 	static bool UpdateGameProject(const FString &EngineIdentifier);
 
@@ -33,7 +36,7 @@ public:
 	static bool IsValidClassNameForCreation(const FString& NewClassName, FText& OutFailReason);
 
 	/** Adds new source code to the project. When returning true, OutSyncFileAndLineNumber will be the the preferred target file to sync in the users code editing IDE, formatted for use with GenericApplication::GotoLineInSource */
-	static bool AddCodeToProject(const FString& NewClassName, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+	static bool AddCodeToProject(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
 
 	/** Loads a template project definitions object from the TemplateDefs.ini file in the specified project */
 	static UTemplateProjectDefs* LoadTemplateDefs(const FString& ProjectDirectory);
@@ -56,6 +59,42 @@ public:
 	/** Returns true if there are starter content files available for instancing into new projects. */
 	static bool IsStarterContentAvailableForNewProjects();
 
+	/** 
+	 * Get the absolute root path under which all project source code must exist
+	 *
+	 * @param	bIncludeModuleName	Whether to include the module name in the root path?
+	 * 
+	 * @return	The root path. Will always be an absolute path ending with a /
+	 */
+	static FString GetSourceRootPath(const bool bIncludeModuleName);
+
+	/** 
+	 * Check to see if the given path is a valid place to put source code for this project (exists within the source root path) 
+	 *
+	 * @param	InPath				The path to check
+	 * @param	bIncludeModuleName	Whether to require the module name in the root path? (is really used as a prefix so will allow MyModule, MyModuleEditor, etc)
+	 * @param	OutFailReason		Optional parameter to fill with failure information
+	 * 
+	 * @return	true if the path is valid, false otherwise
+	 */
+	static bool IsValidSourcePath(const FString& InPath, const bool bIncludeModuleName, FText* const OutFailReason = nullptr);
+
+	/** 
+	 * Given the path provided, work out where generated .h and .cpp files would be placed
+	 *
+	 * @param	InPath				The path to use a base
+	 * @param	OutModuleName		The module name extracted from the path (the part after GetSourceRootPath(false))
+	 * @param	OutHeaderPath		The path where the .h file should be placed
+	 * @param	OutSourcePath		The path where the .cpp file should be placed
+	 * @param	OutFailReason		Optional parameter to fill with failure information
+	 * 
+	 * @return	false if the paths are invalid
+	 */
+	static bool CalculateSourcePaths(const FString& InPath, FString& OutModuleName, FString& OutHeaderPath, FString& OutSourcePath, FText* const OutFailReason = nullptr);
+
+	/** Creates a copy of a project directory in order to upgrade it. */
+	static bool DuplicateProjectForUpgrade( const FString& InProjectFile, FString &OutNewProjectFile );
+
 private:
 	/** Generates a new project without using a template project */
 	static bool GenerateProjectFromScratch(const FString& NewProjectFile, bool bShouldGenerateCode, bool bCopyStarterContent, FText& OutFailReason);
@@ -75,8 +114,8 @@ private:
 	/** Checks the name for illegal characters */
 	static bool NameContainsOnlyLegalCharacters(const FString& TestName, FString& OutIllegalCharacters);
 
-	/** Checks the project file path for illegal characters */
-	static bool ProjectPathContainsOnlyLegalCharacters(const FString& ProjectFilePath, FString& OutIllegalCharacters);
+	/** Checks the name for an underscore and the existence of XB1 XDK */
+	static bool NameContainsUnderscoreAndXB1Installed(const FString& TestName);
 
 	/** Returns true if the project file exists on disk */
 	static bool ProjectFileExists(const FString& ProjectFile);
@@ -186,8 +225,12 @@ private:
 	static bool ProjectHasCodeFiles();
 
 	/** Internal handler for AddCodeToProject*/
-	static bool AddCodeToProject_Internal(const FString& NewClassName, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+	static bool AddCodeToProject_Internal(const FString& NewClassName, const FString& NewClassPath, const UClass* ParentClass, FString& OutHeaderFilePath, FString& OutCppFilePath, FText& OutFailReason);
+
+	/** Handler for the user confirming they've read the name legnth warning */
+	static void OnWarningReasonOk();
 
 private:
 	static TWeakPtr<SNotificationItem> UpdateGameProjectNotification;
+	static TWeakPtr<SNotificationItem> WarningProjectNameNotification;
 };

@@ -6,6 +6,11 @@
 
 #include "LandscapeProxy.generated.h"
 
+//
+// Forward declarations.
+//
+class ULandscapeMaterialInstanceConstant;
+
 /** Structure storing channel usage for weightmap textures */
 USTRUCT()
 struct FLandscapeWeightmapUsage
@@ -124,6 +129,9 @@ struct FLandscapeImportLayerInfo
 
 	UPROPERTY(Category="Import", EditAnywhere)
 	FString SourceFilePath; // Optional
+	
+	// Raw weightmap data
+	TArray<uint8> LayerData;		
 #endif
 
 #if WITH_EDITOR
@@ -161,10 +169,25 @@ namespace ELandscapeLayerPaintingRestriction
 	};
 }
 
-UCLASS(HeaderGroup=Terrain, dependson=UEngineTypes, NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Orientation"), MinimalAPI)
-class ALandscapeProxy : public AInfo, public INavRelevantActorInterface
+UENUM()
+namespace ELandscapeLODFalloff
+{
+	enum Type
+	{
+		// Default mode
+		Linear			UMETA(DisplayName = "Linear"),
+		// Square Root give more natural transition, and also keep the same LOD 
+		SquareRoot		UMETA(DisplayName = "Square Root"),
+	};
+}
+
+UCLASS(dependson=UEngineTypes, NotPlaceable, hidecategories=(Display, Attachment, Physics, Debug, Lighting, LOD), showcategories=(Rendering, "Utilities|Transformation"), MinimalAPI)
+class ALandscapeProxy : public AActor, public INavRelevantActorInterface
 {
 	GENERATED_UCLASS_BODY()
+
+	UPROPERTY()
+	class ULandscapeSplinesComponent* SplineComponent;
 
 protected:
 	/** Guid for LandscapeEditorInfo **/
@@ -290,6 +313,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=Landscape)
 	uint32 bUsedForNavigation:1;
 
+	UPROPERTY(EditAnywhere, Category=LOD)
+	TEnumAsByte<enum ELandscapeLODFalloff::Type> LODFalloff;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, Category=Landscape)
 	int32 MaxPaintedLayersPerComponent; // 0 = disabled
@@ -387,7 +413,7 @@ public:
 	ENGINE_API void Import(FGuid Guid, int32 VertsX, int32 VertsY, 
 							int32 ComponentSizeQuads, int32 NumSubsections, int32 SubsectionSizeQuads, 
 							const uint16* HeightData, const TCHAR* HeightmapFileName, 
-							TArray<FLandscapeImportLayerInfo> ImportLayerInfos, uint8* AlphaDataPointers[] );
+							const TArray<FLandscapeImportLayerInfo>& ImportLayerInfos);
 
 	/**
 	 * Exports landscape into raw mesh
@@ -401,8 +427,6 @@ public:
 	/** @return Current size of bounding rectangle in quads space */
 	ENGINE_API FIntRect GetBoundingRect() const;
 #endif
-
-
 };
 
 

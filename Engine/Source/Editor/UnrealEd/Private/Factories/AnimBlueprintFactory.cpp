@@ -7,13 +7,9 @@
 #include "UnrealEd.h"
 #include "Factories.h"
 #include "SoundDefinitions.h"
-#include "EngineParticleClasses.h"
 #include "BlueprintUtilities.h"
 #include "Kismet2/KismetEditorUtilities.h"
-#include "EngineInterpolationClasses.h"
-#include "EngineFoliageClasses.h"
 #include "BusyCursor.h"
-#include "EngineMaterialClasses.h"
 #include "BSPOps.h"
 #include "LevelUtils.h"
 #include "ObjectTools.h"
@@ -27,7 +23,6 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "AssetRegistryModule.h"
-#include "EngineLevelScriptClasses.h"		// So we can filter out ALevelScriptActors
 
 #define LOCTEXT_NAMESPACE "AnimBlueprintFactory"
 
@@ -112,7 +107,7 @@ public:
 							.HAlign(HAlign_Center)
 							.ContentPadding( FEditorStyle::GetMargin("StandardDialog.ContentPadding") )
 							.OnClicked(this, &SAnimBlueprintCreateDialog::OkClicked)	
-							.Text(LOCTEXT("CreateAnimBlueprintOk", "OK").ToString())
+							.Text(LOCTEXT("CreateAnimBlueprintOk", "OK"))
 						]
 						+SUniformGridPanel::Slot(1,0)
 						[
@@ -120,7 +115,7 @@ public:
 							.HAlign(HAlign_Center)
 							.ContentPadding( FEditorStyle::GetMargin("StandardDialog.ContentPadding") )
 							.OnClicked(this, &SAnimBlueprintCreateDialog::CancelClicked)
-							.Text(LOCTEXT("CreateAnimBlueprintCancel", "Cancel").ToString())
+							.Text(LOCTEXT("CreateAnimBlueprintCancel", "Cancel"))
 						]
 					]
 				]
@@ -382,7 +377,15 @@ UObject* UAnimBlueprintFactory::FactoryCreateNew(UClass* Class, UObject* InParen
 	}
 	else
 	{
-		UAnimBlueprint* NewBP = CastChecked<UAnimBlueprint>(FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BlueprintType, UAnimBlueprint::StaticClass(), CallingContext));
+		UAnimBlueprint* NewBP = CastChecked<UAnimBlueprint>(FKismetEditorUtilities::CreateBlueprint(ParentClass, InParent, Name, BlueprintType, UAnimBlueprint::StaticClass(), UBlueprintGeneratedClass::StaticClass(), CallingContext));
+		
+		// Inherit any existing overrides in parent class
+		if (NewBP->ParentAssetOverrides.Num() > 0)
+		{
+			// We've inherited some overrides from the parent graph and need to recompile the blueprint.
+			FKismetEditorUtilities::CompileBlueprint(NewBP);
+		}
+		
 		NewBP->TargetSkeleton = TargetSkeleton;
 
 		// Because the BP itself didn't have the skeleton set when the initial compile occured, it's not set on the generated classes either

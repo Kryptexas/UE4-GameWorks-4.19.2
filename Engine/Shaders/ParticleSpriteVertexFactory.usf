@@ -234,9 +234,9 @@ FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input,
 	return Result;
 }
 
-half4 GetLightMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
 {
-	return Interpolants.TexCoord.xyxy;
+	LightmapUV0 = LightmapUV1 = 0;
 }
 
 half2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)

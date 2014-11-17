@@ -4,14 +4,13 @@
 	MessagingPrivatePCH.h: Pre-compiled header file for the Messaging module.
 =============================================================================*/
 
-#ifndef UNREAL_MESSAGING_PRIVATEPCH_H
-#define UNREAL_MESSAGING_PRIVATEPCH_H
+#pragma once
 
 
 #include "../Public/Messaging.h"
 
 
-/* Dependencies
+/* Private Dependencies
  *****************************************************************************/
 
 #include "Json.h"
@@ -39,6 +38,3 @@
 #include "MessageForwardTask.h"
 #include "MessageSerializeTask.h"
 #include "MessageBridge.h"
-
-
-#endif

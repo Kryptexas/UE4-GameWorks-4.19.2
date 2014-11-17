@@ -20,6 +20,9 @@ namespace UnrealBuildTool
 		public bool bComplete = false;
 		/** Cache the action that this thread is managing */
 		Action Action;
+        /** For reporting status to the user */
+        int JobNumber;
+        int TotalJobs;
 
 		/** Regex that matches environment variables in $(Variable) format. */
 		static Regex EnvironmentVariableRegex = new Regex("\\$\\(([\\d\\w]+)\\)");
@@ -38,9 +41,11 @@ namespace UnrealBuildTool
 		/**
 		 * Constructor, takes the action to process
 		 */
-		public ActionThread(Action InAction)
+        public ActionThread(Action InAction, int InJobNumber, int InTotalJobs)
 		{
 			Action = InAction;
+            JobNumber = InJobNumber;
+            TotalJobs = InTotalJobs;
 		}
 
 		/**
@@ -86,8 +91,8 @@ namespace UnrealBuildTool
 		}
 
 		/**
-			* The actual function to run in a thread. This is potentially long and blocking
-			*/
+		 * The actual function to run in a thread. This is potentially long and blocking
+		 */
 		private void ThreadFunc()
 		{
 			// thread start time
@@ -148,7 +153,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						Log.TraceInformation("{0} {1}", CommandDescription, Action.StatusDescription);
+                        Log.TraceInformation("[{0}/{1}] {2} {3}", JobNumber, TotalJobs, CommandDescription, Action.StatusDescription);
 					}
 				}
 
@@ -316,105 +321,121 @@ namespace UnrealBuildTool
 				MaxActionsToExecuteInParallel = NumCores;
 			}
 
-			if( Utils.IsRunningOnMono )
+            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Mac)
 			{
 				// @todo iosmerge: this should be looking at available memory as well since some of our
 				// Macs have a poor memory/CPU ratio
 				MaxActionsToExecuteInParallel /= 2;
 			}
 
+            Log.TraceInformation("Performing {0} actions (max {1} parallel jobs)", Actions.Count, MaxActionsToExecuteInParallel);
+
 			Dictionary<Action, ActionThread> ActionThreadDictionary = new Dictionary<Action, ActionThread>();
-			while(true)
+            int JobNumber = 1;
+			using(ProgressWriter ProgressWriter = new ProgressWriter("Compiling source code...", false))
 			{
-				// Count the number of pending and still executing actions.
-				int NumUnexecutedActions = 0;
-				int NumExecutingActions = 0;
-				foreach (Action Action in Actions)
+				int ProgressValue = 0;
+				while(true)
 				{
-					ActionThread ActionThread = null;
-					bool bFoundActionProcess = ActionThreadDictionary.TryGetValue(Action, out ActionThread);
-					if (bFoundActionProcess == false)
+					// Count the number of pending and still executing actions.
+					int NumUnexecutedActions = 0;
+					int NumExecutingActions = 0;
+					foreach (Action Action in Actions)
 					{
-						NumUnexecutedActions++;
-					}
-					else if (ActionThread != null)
-					{
-						if (ActionThread.bComplete == false)
+						ActionThread ActionThread = null;
+						bool bFoundActionProcess = ActionThreadDictionary.TryGetValue(Action, out ActionThread);
+						if (bFoundActionProcess == false)
 						{
 							NumUnexecutedActions++;
-							NumExecutingActions++;
+						}
+						else if (ActionThread != null)
+						{
+							if (ActionThread.bComplete == false)
+							{
+								NumUnexecutedActions++;
+								NumExecutingActions++;
+							}
 						}
 					}
-				}
 
-				// If there aren't any pending actions left, we're done executing.
-				if (NumUnexecutedActions == 0)
-				{
-					break;
-				}
-
-				// If there are fewer actions executing than the maximum, look for pending actions that don't have any outdated
-				// prerequisites.
-				foreach (Action Action in Actions)
-				{
-					ActionThread ActionProcess = null;
-					bool bFoundActionProcess = ActionThreadDictionary.TryGetValue(Action, out ActionProcess);
-					if (bFoundActionProcess == false)
+					// Update the current progress
+					int NewProgressValue = Actions.Count + 1 - NumUnexecutedActions;
+					if (ProgressValue != NewProgressValue)
 					{
-						if (NumExecutingActions < Math.Max(1,MaxActionsToExecuteInParallel))
+						ProgressWriter.Write(ProgressValue, Actions.Count + 1);
+						ProgressValue = NewProgressValue;
+					}
+
+					// If there aren't any pending actions left, we're done executing.
+					if (NumUnexecutedActions == 0)
+					{
+						break;
+					}
+
+					// If there are fewer actions executing than the maximum, look for pending actions that don't have any outdated
+					// prerequisites.
+					foreach (Action Action in Actions)
+					{
+						ActionThread ActionProcess = null;
+						bool bFoundActionProcess = ActionThreadDictionary.TryGetValue(Action, out ActionProcess);
+						if (bFoundActionProcess == false)
 						{
-							// Determine whether there are any prerequisites of the action that are outdated.
-							bool bHasOutdatedPrerequisites = false;
-							bool bHasFailedPrerequisites = false;
-							foreach (FileItem PrerequisiteItem in Action.PrerequisiteItems)
+							if (NumExecutingActions < Math.Max(1,MaxActionsToExecuteInParallel))
 							{
-								if (PrerequisiteItem.ProducingAction != null && Actions.Contains(PrerequisiteItem.ProducingAction))
+								// Determine whether there are any prerequisites of the action that are outdated.
+								bool bHasOutdatedPrerequisites = false;
+								bool bHasFailedPrerequisites = false;
+								foreach (FileItem PrerequisiteItem in Action.PrerequisiteItems)
 								{
-									ActionThread PrerequisiteProcess = null;
-									bool bFoundPrerequisiteProcess = ActionThreadDictionary.TryGetValue( PrerequisiteItem.ProducingAction, out PrerequisiteProcess );
-									if (bFoundPrerequisiteProcess == true)
+									if (PrerequisiteItem.ProducingAction != null && Actions.Contains(PrerequisiteItem.ProducingAction))
 									{
-										if (PrerequisiteProcess == null)
+										ActionThread PrerequisiteProcess = null;
+										bool bFoundPrerequisiteProcess = ActionThreadDictionary.TryGetValue( PrerequisiteItem.ProducingAction, out PrerequisiteProcess );
+										if (bFoundPrerequisiteProcess == true)
 										{
-											bHasFailedPrerequisites = true;
+											if (PrerequisiteProcess == null)
+											{
+												bHasFailedPrerequisites = true;
+											}
+											else if (PrerequisiteProcess.bComplete == false)
+											{
+												bHasOutdatedPrerequisites = true;
+											}
+											else if (PrerequisiteProcess.ExitCode != 0)
+											{
+												bHasFailedPrerequisites = true;
+											}
 										}
-										else if (PrerequisiteProcess.bComplete == false)
+										else
 										{
 											bHasOutdatedPrerequisites = true;
 										}
-										else if (PrerequisiteProcess.ExitCode != 0)
-										{
-											bHasFailedPrerequisites = true;
-										}
-									}
-									else
-									{
-										bHasOutdatedPrerequisites = true;
 									}
 								}
+
+								// If there are any failed prerequisites of this action, don't execute it.
+								if (bHasFailedPrerequisites)
+								{
+									// Add a null entry in the dictionary for this action.
+									ActionThreadDictionary.Add( Action, null );
+								}
+								// If there aren't any outdated prerequisites of this action, execute it.
+								else if (!bHasOutdatedPrerequisites)
+								{
+									ActionThread ActionThread = new ActionThread(Action, JobNumber, Actions.Count);
+									JobNumber++;
+									ActionThread.Run();
+
+									ActionThreadDictionary.Add(Action, ActionThread);
+
+									NumExecutingActions++;
+								}
 							}
-
-							// If there are any failed prerequisites of this action, don't execute it.
-							if (bHasFailedPrerequisites)
-							{
-								// Add a null entry in the dictionary for this action.
-								ActionThreadDictionary.Add( Action, null );
-							}
-							// If there aren't any outdated prerequisites of this action, execute it.
-                            else if (!bHasOutdatedPrerequisites)
-                            {
-								ActionThread ActionThread = new ActionThread(Action);
-								ActionThread.Run();
-
-								ActionThreadDictionary.Add(Action, ActionThread);
-
-								NumExecutingActions++;
-                            }
 						}
 					}
-				}
 
-				System.Threading.Thread.Sleep(TimeSpan.FromSeconds(LoopSleepTime));
+					System.Threading.Thread.Sleep(TimeSpan.FromSeconds(LoopSleepTime));
+				}
 			}
 
 			Log.WriteLineIf(BuildConfiguration.bLogDetailedActionStats, TraceEventType.Information, "-------- Begin Detailed Action Stats ----------------------------------------------------------");

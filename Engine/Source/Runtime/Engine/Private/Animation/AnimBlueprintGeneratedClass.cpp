@@ -232,3 +232,36 @@ void UAnimBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
 
 	BakedStateMachines.Empty();
 }
+
+#if WITH_EDITORONLY_DATA
+
+const int32* UAnimBlueprintGeneratedClass::GetNodePropertyIndexFromGuid(FGuid Guid, EPropertySearchMode::Type SearchMode /*= EPropertySearchMode::OnlyThis*/)
+{
+	if (SearchMode == EPropertySearchMode::OnlyThis)
+	{
+		return AnimBlueprintDebugData.NodeGuidToIndexMap.Find(Guid);
+	}
+	else
+	{
+		TArray<const UBlueprintGeneratedClass*> BlueprintHierarchy;
+		GetGeneratedClassesHierarchy(this, BlueprintHierarchy);
+
+		for (const UBlueprintGeneratedClass* Blueprint : BlueprintHierarchy)
+		{
+			if (const UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(Blueprint))
+			{
+				const int32* NodeIndex = AnimBlueprintClass->AnimBlueprintDebugData.NodeGuidToIndexMap.Find(Guid);
+
+				if (NodeIndex)
+				{
+					return NodeIndex;
+				}
+			}
+
+		}
+	}
+
+	return NULL;
+}
+
+#endif

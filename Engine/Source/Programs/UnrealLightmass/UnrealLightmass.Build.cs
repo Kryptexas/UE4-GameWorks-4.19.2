@@ -25,7 +25,14 @@ public class UnrealLightmass : ModuleRules
 				new string[] {
 					"Networking",
 					"Sockets",
+					"Messaging",
 					"UdpMessaging",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"Messaging",
 				}
 			);
 		}

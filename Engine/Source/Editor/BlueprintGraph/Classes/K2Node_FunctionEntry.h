@@ -21,6 +21,10 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	UPROPERTY()
 	struct FKismetUserDeclaredFunctionMetadata MetaData;
 
+	/** Array of local variables to be added to generated function */
+	UPROPERTY()
+	TArray<struct FBPVariableDescription> LocalVariables;
+
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() OVERRIDE;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const OVERRIDE;
@@ -45,5 +49,10 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 
 	// Removes an output pin from the node
 	BLUEPRINTGRAPH_API void RemoveOutputPin(UEdGraphPin* PinToRemove);
+
+	// Returns pin for the automatically added WorldContext parameter (used only by BlueprintFunctionLibrary).
+	BLUEPRINTGRAPH_API UEdGraphPin* GetAutoWorldContextPin() const;
+
+	BLUEPRINTGRAPH_API void RemoveUnnecessaryAutoWorldContext();
 };
 

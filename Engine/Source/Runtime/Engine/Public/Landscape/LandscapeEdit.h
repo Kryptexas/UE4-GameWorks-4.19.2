@@ -7,6 +7,8 @@ LandscapeEdit.h: Classes for the editor to access to Landscape data
 #ifndef _LANDSCAPEEDIT_H
 #define _LANDSCAPEEDIT_H
 
+#define MAX_LANDSCAPE_LOD_DISTANCE_FACTOR 10.f
+
 #if WITH_EDITOR
 
 struct FLandscapeTextureDataInfo

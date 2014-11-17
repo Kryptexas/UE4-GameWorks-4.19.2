@@ -56,6 +56,10 @@ public:
 	 * Update vehicle data before the scene simulates
 	 */
 	void Update( float DeltaTime );
+	
+	/**
+	 * Update vehicle tuning and other state such as input */
+	void PreTick( float DeltaTime );
 
 private:
 

@@ -338,12 +338,7 @@ namespace
 			DataCount   = InDataCount;
 		}
 
-		/** return the name of the task **/
-		static const TCHAR* GetTaskName()
-		{
-			return TEXT("FAsyncTraceTask");
-		}
-		FORCEINLINE static TStatId GetStatId()
+		FORCEINLINE TStatId GetStatId() const
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncTraceTask, STATGROUP_TaskGraphTasks);
 		}

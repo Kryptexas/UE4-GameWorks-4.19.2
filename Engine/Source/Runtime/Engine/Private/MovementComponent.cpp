@@ -367,6 +367,11 @@ FVector UMovementComponent::ComputeSlideVector(const FVector& Delta, const float
 
 float UMovementComponent::SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult& Hit, bool bHandleImpact)
 {
+	if (!Hit.bBlockingHit)
+	{
+		return 0.f;
+	}
+
 	float PercentTimeApplied = 0.f;
 	const FVector OldHitNormal = Normal;
 
@@ -390,15 +395,19 @@ float UMovementComponent::SlideAlongSurface(const FVector& Delta, float Time, co
 			// Compute new slide normal when hitting multiple surfaces.
 			TwoWallAdjust(SlideDelta, Hit, OldHitNormal);
 
-			// Perform second move
-			SafeMoveUpdatedComponent(SlideDelta, Rotation, true, Hit);
-			const float SecondHitPercent = Hit.Time * (1.f - FirstHitPercent);
-			PercentTimeApplied += SecondHitPercent;
-
-			// Notify second impact
-			if (bHandleImpact && Hit.bBlockingHit)
+			// Only proceed if the new direction is of significant length.
+			if (!SlideDelta.IsNearlyZero(1e-3f))
 			{
-				HandleImpact(Hit, SecondHitPercent * Time, SlideDelta);
+				// Perform second move
+				SafeMoveUpdatedComponent(SlideDelta, Rotation, true, Hit);
+				const float SecondHitPercent = Hit.Time * (1.f - FirstHitPercent);
+				PercentTimeApplied += SecondHitPercent;
+
+				// Notify second impact
+				if (bHandleImpact && Hit.bBlockingHit)
+				{
+					HandleImpact(Hit, SecondHitPercent * Time, SlideDelta);
+				}
 			}
 		}
 
@@ -444,5 +453,14 @@ void UMovementComponent::TwoWallAdjust(FVector& OutDelta, const FHitResult& Hit,
 	OutDelta = Delta;
 }
 
+void UMovementComponent::AddRadialForce(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff)
+{
+	// Default implementation does nothing
+}
+
+void UMovementComponent::AddRadialImpulse(const FVector& Origin, float Radius, float Strength, enum ERadialImpulseFalloff Falloff, bool bVelChange)
+{
+	// Default implementation does nothing
+}
 
 #undef LOCTEXT_NAMESPACE

@@ -547,11 +547,11 @@ void FMainFrameModule::StartupModule( )
 	FModuleManager::Get().OnModuleCompilerStarted().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileStarted );
 	FModuleManager::Get().OnModuleCompilerFinished().AddRaw( this, &FMainFrameModule::HandleLevelEditorModuleCompileFinished );
 
-#if WITH_EDITOR && !PLATFORM_MAC
-	FVSAccessorModule& VSAccessor = FModuleManager::LoadModuleChecked< FVSAccessorModule >( TEXT( "VSAccessor" ) );
-	VSAccessor.OnLaunchingVS().AddRaw( this, &FMainFrameModule::HandleVSAccessorLaunching );
-	VSAccessor.OnDoneLaunchingVS().AddRaw( this, &FMainFrameModule::HandleVSAccessorLaunched );
-	VSAccessor.OnOpenFileFailed().AddRaw( this, &FMainFrameModule::HandleVSAccessorOpenFileFailed );
+#if WITH_EDITOR
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	SourceCodeAccessModule.OnLaunchingCodeAccessor().AddRaw( this, &FMainFrameModule::HandleCodeAccessorLaunching );
+	SourceCodeAccessModule.OnDoneLaunchingCodeAccessor().AddRaw( this, &FMainFrameModule::HandleCodeAccessorLaunched );
+	SourceCodeAccessModule.OnOpenFileFailed().AddRaw( this, &FMainFrameModule::HandleCodeAccessorOpenFileFailed );
 #endif
 
 	// load sounds
@@ -582,10 +582,14 @@ void FMainFrameModule::ShutdownModule( )
 	FModuleManager::Get().OnModuleCompilerStarted().RemoveAll( this );
 	FModuleManager::Get().OnModuleCompilerFinished().RemoveAll( this );
 
-#if WITH_EDITOR && !PLATFORM_MAC
-	FVSAccessorModule& VSAccessor = FModuleManager::LoadModuleChecked< FVSAccessorModule >( TEXT( "VSAccessor" ) );
-	VSAccessor.OnLaunchingVS().RemoveAll( this );
-	VSAccessor.OnDoneLaunchingVS().RemoveAll( this );
+#if WITH_EDITOR
+	if(FModuleManager::Get().IsModuleLoaded("SourceCodeAccess"))
+	{
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::GetModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		SourceCodeAccessModule.OnLaunchingCodeAccessor().RemoveAll( this );
+		SourceCodeAccessModule.OnDoneLaunchingCodeAccessor().RemoveAll( this );
+		SourceCodeAccessModule.OnOpenFileFailed().RemoveAll( this );
+	}
 #endif
 
 	if(CompileStartSound != NULL)
@@ -659,7 +663,7 @@ void FMainFrameModule::OnCancelCodeCompilationClicked()
 	FModuleManager::Get().RequestStopCompilation();
 }
 
-void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& LogDump, bool bCompileSucceeded, bool bShowLog )
+void FMainFrameModule::HandleLevelEditorModuleCompileFinished(const FString& LogDump, ECompilationResult::Type CompilationResult, bool bShowLog)
 {
 	// Track stats
 	{
@@ -671,7 +675,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& Lo
 			FEngineAnalytics::GetProvider().RecordEvent( 
 				TEXT("Editor.Modules.Recompile"),
 				TEXT("Duration"), FString::Printf(TEXT("%.3f"), ModuleCompileDuration),
-				TEXT("Result"), bCompileSucceeded ? TEXT("Succeeded") : TEXT("Failed"));
+				TEXT("Result"), CompilationResult == ECompilationResult::Succeeded ? TEXT("Succeeded") : TEXT("Failed"));
 		}
 	}
 
@@ -679,7 +683,7 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& Lo
 
 	if (NotificationItem.IsValid())
 	{
-		if (bCompileSucceeded)
+		if (CompilationResult == ECompilationResult::Succeeded)
 		{
 			GEditor->PlayPreviewSound(CompileSuccessSound);
 			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileComplete", "Compile Complete!"));
@@ -697,7 +701,15 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& Lo
 			};
 
 			GEditor->PlayPreviewSound(CompileFailSound);
-			NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Failed!"));
+			if (CompilationResult == ECompilationResult::FailedDueToHeaderChange)
+			{
+				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailedDueToHeaderChange", "Compile failed due to the header changes. Close the editor and recompile project in IDE to apply changes."));
+			}
+			else
+			{
+				NotificationItem->SetText(NSLOCTEXT("MainFrame", "RecompileFailed", "Compile Failed!"));
+			}
+			
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 			NotificationItem->SetHyperlink(FSimpleDelegate::CreateStatic(&Local::ShowCompileLog));
 		}
@@ -709,44 +721,50 @@ void FMainFrameModule::HandleLevelEditorModuleCompileFinished( const FString& Lo
 }
 
 
-void FMainFrameModule::HandleVSAccessorLaunched( const bool WasSuccessful )
+void FMainFrameModule::HandleCodeAccessorLaunched( const bool WasSuccessful )
 {
-	TSharedPtr<SNotificationItem> NotificationItem = VSAccessorNotificationPtr.Pin();
+	TSharedPtr<SNotificationItem> NotificationItem = CodeAccessorNotificationPtr.Pin();
 	
 	if (NotificationItem.IsValid())
 	{
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		const FText AccessorNameText = SourceCodeAccessModule.GetAccessor().GetNameText();
+
 		if (WasSuccessful)
 		{
-			NotificationItem->SetText( NSLOCTEXT("VSAccessorModule", "VSLoadComplete", "Visual Studio Loaded!") );
+			NotificationItem->SetText( FText::Format(LOCTEXT("CodeAccessorLoadComplete", "{0} loaded!"), AccessorNameText) );
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Success);
 		}
 		else
 		{
-			NotificationItem->SetText( NSLOCTEXT("VSAccessorModule", "VSLoadFailed", "Visual Studio Failed!") );
+			NotificationItem->SetText( FText::Format(LOCTEXT("CodeAccessorLoadFailed", "{0} failed to launch!"), AccessorNameText) );
 			NotificationItem->SetCompletionState(SNotificationItem::CS_Fail);
 		}
 
 		NotificationItem->ExpireAndFadeout();
-		VSAccessorNotificationPtr.Reset();
+		CodeAccessorNotificationPtr.Reset();
 	}
 }
 
 
-void FMainFrameModule::HandleVSAccessorLaunching( )
+void FMainFrameModule::HandleCodeAccessorLaunching( )
 {
-	if (VSAccessorNotificationPtr.IsValid())
+	if (CodeAccessorNotificationPtr.IsValid())
 	{
-		VSAccessorNotificationPtr.Pin()->ExpireAndFadeout();
+		CodeAccessorNotificationPtr.Pin()->ExpireAndFadeout();
 	}
 
-	FNotificationInfo Info( NSLOCTEXT("VSAccessorModule", "VSLoadInProgress", "Loading Visual Studio") );
+	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+	const FText AccessorNameText = SourceCodeAccessModule.GetAccessor().GetNameText();
+
+	FNotificationInfo Info( FText::Format(LOCTEXT("CodeAccessorLoadInProgress", "Loading {0}"), AccessorNameText) );
 	Info.bFireAndForget = false;
 
-	VSAccessorNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
-	VSAccessorNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+	CodeAccessorNotificationPtr = FSlateNotificationManager::Get().AddNotification(Info);
+	CodeAccessorNotificationPtr.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
 }
 
-void FMainFrameModule::HandleVSAccessorOpenFileFailed(const FString& Filename)
+void FMainFrameModule::HandleCodeAccessorOpenFileFailed(const FString& Filename)
 {
 	auto* Info = new FNotificationInfo(FText::Format(LOCTEXT("FileNotFound", "Could not find code file ({Filename})"), FText::FromString(Filename)));
 	Info->ExpireDuration = 3.0f;

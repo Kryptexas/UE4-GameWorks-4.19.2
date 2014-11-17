@@ -156,6 +156,8 @@ public:
 	FTexture2DRHIRef VelocityTextureTargetRHI;
 	FTexture2DRHIRef VelocityTextureRHI;
 
+	bool bTexturesCleared;
+
 	/**
 	 * Initialize RHI resources used for particle simulation.
 	 */
@@ -180,6 +182,9 @@ public:
 			PositionTextureRHI
 			);
 
+		RHISetRenderTarget( PositionTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+
 		// 16-bit per channel RGBA texture for velocity.
 		check( !IsValidRef( VelocityTextureTargetRHI ) );
 		check( !IsValidRef( VelocityTextureRHI ) );
@@ -195,6 +200,11 @@ public:
 			VelocityTextureTargetRHI,
 			VelocityTextureRHI
 			);
+	
+		RHISetRenderTarget( VelocityTextureTargetRHI, FTextureRHIRef()); 
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+
+		bTexturesCleared = false;
 	}
 
 	/**
@@ -433,7 +443,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT( FGPUSpriteEmitterDynamicUniformParameters, )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector2D, LocalToWorldScale )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, AxisLockRight )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, AxisLockUp )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, ScaleColorOverLife )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( FVector4, DynamicColor)
 END_UNIFORM_BUFFER_STRUCT( FGPUSpriteEmitterDynamicUniformParameters )
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FGPUSpriteEmitterDynamicUniformParameters,TEXT("EmitterDynamicUniforms"));
@@ -1104,7 +1114,7 @@ static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const
 		const uint32 TileIndex = Tiles[Index];
 		TileOffset[Index] = FVector2D(
 			FMath::Fractional( (float)TileIndex / (float)GParticleSimulationTileCountX ),
-			FMath::Fractional( FMath::TruncFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
+			FMath::Fractional( FMath::TruncToFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
 									  );
 	}
 	for ( ; Index < AlignedTileCount; ++Index )
@@ -1777,7 +1787,7 @@ static void BuildParticleVertexBuffer( FVertexBufferRHIParamRef VertexBufferRHI,
 		const uint32 TileIndex = InTiles[Index];
 		const FVector2D TileOffset(
 			FMath::Fractional( (float)TileIndex / (float)GParticleSimulationTileCountX ),
-			FMath::Fractional( FMath::TruncFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
+			FMath::Fractional( FMath::TruncToFloat( (float)TileIndex / (float)GParticleSimulationTileCountX ) / (float)GParticleSimulationTileCountY )
 			);
 		for ( int32 ParticleY = 0; ParticleY < GParticleSimulationTileSize; ++ParticleY )
 		{
@@ -2889,15 +2899,28 @@ public:
 			DynamicData->EmitterDynamicParameters.AxisLockUp.W = 1.0f;
 		}
 
-		DynamicData->EmitterDynamicParameters.ScaleColorOverLife = FVector4(1.0f,1.0f,1.0f,1.0f);
+		
+		// Setup dynamic color parameter. Only set when using particle parameter distributions.
+		FVector4 ColorOverLife(1.0f, 1.0f, 1.0f, 1.0f);
+		FVector4 ColorScaleOverLife(1.0f, 1.0f, 1.0f, 1.0f);
 		if( EmitterInfo.DynamicColorScale.Distribution )
 		{
-			DynamicData->EmitterDynamicParameters.ScaleColorOverLife = EmitterInfo.DynamicColorScale.GetValue(0.0f,Component);
+			ColorScaleOverLife = EmitterInfo.DynamicColorScale.GetValue(0.0f,Component);
 		}
 		if( EmitterInfo.DynamicAlphaScale.Distribution )
 		{
-			DynamicData->EmitterDynamicParameters.ScaleColorOverLife.W = EmitterInfo.DynamicAlphaScale.GetValue(0.0f,Component);
+			ColorScaleOverLife.W = EmitterInfo.DynamicAlphaScale.GetValue(0.0f,Component);
 		}
+
+		if( EmitterInfo.DynamicColor.Distribution )
+		{
+			ColorOverLife = EmitterInfo.DynamicColor.GetValue(0.0f,Component);
+		}
+		if( EmitterInfo.DynamicAlpha.Distribution )
+		{
+			ColorOverLife.W = EmitterInfo.DynamicAlpha.GetValue(0.0f,Component);
+		}
+		DynamicData->EmitterDynamicParameters.DynamicColor = ColorOverLife * ColorScaleOverLife;
 
 		const bool bSimulateGPUParticles = 
 			FXConsoleVariables::bFreezeGPUSimulation == false &&
@@ -3281,7 +3304,7 @@ private:
 		if (AllowedLoopCount == 0)
 		{
 			const int32 EstMaxTiles = (EmitterInfo.MaxParticleCount + GParticlesPerTile - 1) / GParticlesPerTile;
-			const int32 SlackTiles = FMath::Ceil(FXConsoleVariables::ParticleSlackGPU * (float)EstMaxTiles);
+			const int32 SlackTiles = FMath::CeilToInt(FXConsoleVariables::ParticleSlackGPU * (float)EstMaxTiles);
 			return FMath::Min<int32>(EstMaxTiles + SlackTiles, FXConsoleVariables::MaxParticleTilePreAllocation);
 		}
 		return 0;
@@ -3388,7 +3411,7 @@ private:
 		uint32 TileIndex = (AllocatedTiles.IsValidIndex(TileToAllocateFrom)) ? AllocatedTiles[TileToAllocateFrom] : INDEX_NONE;
 		FVector2D TileOffset(
 			FMath::Fractional((float)TileIndex / (float)GParticleSimulationTileCountX),
-			FMath::Fractional(FMath::TruncFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY)
+			FMath::Fractional(FMath::TruncToFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY)
 			);
 
 		for (int32 ParticleIndex = 0; ParticleIndex < NumNewParticles; ++ParticleIndex)
@@ -3422,7 +3445,7 @@ private:
 				ActiveTileCount++;
 				TileIndex = AllocatedTiles[TileToAllocateFrom];
 				TileOffset.X = FMath::Fractional((float)TileIndex / (float)GParticleSimulationTileCountX);
-				TileOffset.Y = FMath::Fractional(FMath::TruncFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY);
+				TileOffset.Y = FMath::Fractional(FMath::TruncToFloat((float)TileIndex / (float)GParticleSimulationTileCountX) / (float)GParticleSimulationTileCountY);
 				FreeParticlesInTile = GParticlesPerTile;
 			}
 			FNewParticle& Particle = *new(InNewParticles) FNewParticle();
@@ -3470,7 +3493,7 @@ private:
 		// Determine how many to spawn.
 		FSpawnInfo Info;
 		float AccumSpawnCount = SpawnFraction + SpawnRate * DeltaSeconds;
-		Info.Count = FMath::Min(FMath::Trunc(AccumSpawnCount), FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame);
+		Info.Count = FMath::Min(FMath::TruncToInt(AccumSpawnCount), FXConsoleVariables::MaxGPUParticlesSpawnedPerFrame);
 		Info.Increment = (SpawnRate > 0.0f) ? (1.f / SpawnRate) : 0.0f;
 		Info.StartTime = DeltaSeconds + SpawnFraction * Info.Increment - Info.Increment;
 		SpawnFraction = AccumSpawnCount - Info.Count;
@@ -3553,7 +3576,7 @@ private:
 			float InterpFraction = (float)i / (float)SpawnInfo.Count;
 
 			NewParticle->Velocity = TempParticle->BaseVelocity;
-			NewParticle->Position = TempParticle->Location + InterpFraction * EmitterDelta + SpawnInfo.StartTime * NewParticle->Velocity + EmitterInfo.OrbitOffsetBase + EmitterInfo.OrbitOffsetRange * RandomOrbit - PositionOffsetThisTick;
+			NewParticle->Position = TempParticle->Location + InterpFraction * EmitterDelta + SpawnInfo.StartTime * NewParticle->Velocity + EmitterInfo.OrbitOffsetBase + EmitterInfo.OrbitOffsetRange * RandomOrbit;
 			NewParticle->RelativeTime = TempParticle->RelativeTime;
 			NewParticle->TimeScale = FMath::Max<float>(TempParticle->OneOverMaxLifetime, 0.001f);
 			NewParticle->Size.X = TempParticle->BaseSize.X * EmitterInfo.InvMaxSize.X;
@@ -3939,6 +3962,27 @@ void FFXSystem::SimulateGPUParticles(
 	// Grab resources.
 	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
 	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
+
+	// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
+	if ( !CurrentStateTextures.bTexturesCleared )
+	{
+		RHISetRenderTarget( CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+		RHISetRenderTarget( CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+
+		CurrentStateTextures.bTexturesCleared = true;
+	}
+
+	if ( !PrevStateTextures.bTexturesCleared )
+	{
+		RHISetRenderTarget( PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+		RHISetRenderTarget( PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef() );
+		RHIClear( true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect() );
+
+		PrevStateTextures.bTexturesCleared = true;
+	}
 
 	// Setup render states.
 	FTextureRHIParamRef RenderTargets[3] =

@@ -182,8 +182,9 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	// setup shader
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
+	
 	{
-		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<PostProcessVisualizeDOFPS> PixelShader(GetGlobalShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
@@ -202,6 +203,7 @@ void FRCPassPostProcessVisualizeDOF::Process(FRenderingCompositePassContext& Con
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -338,8 +340,8 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 	RHISetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
 	// setup shader
+	TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 	{
-		TShaderMapRef<FPostProcessVS> VertexShader(GetGlobalShaderMap());
 		TShaderMapRef<PostProcessBokehDOFSetupPS> PixelShader(GetGlobalShaderMap());
 
 		static FGlobalBoundShaderState BoundShaderState;
@@ -358,6 +360,7 @@ void FRCPassPostProcessBokehDOFSetup::Process(FRenderingCompositePassContext& Co
 		SrcRect.Width(), SrcRect.Height(),
 		DestSize,
 		SrcSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
@@ -605,7 +608,7 @@ void FRCPassPostProcessBokehDOF::Process(FRenderingCompositePassContext& Context
 	FIntPoint TexSize = InputDesc->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = GSceneRenderTargets.SceneColor->GetDesc().Extent.X / TexSize.X;
+	uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / TexSize.X;
 
 	// don't use DivideAndRoundUp as this could cause cause lookups into areas we don't have setup 
 	FIntRect LocalViewRect = View.ViewRect / ScaleToFullRes;

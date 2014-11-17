@@ -4,6 +4,7 @@
 #pragma once
 
 #include "SlateViewer.h"
+#include "SlateReflector.h"
 
 /**
  * Run the SlateViewer 

@@ -11,7 +11,9 @@ public:
 	static TSharedRef<IStructCustomization> MakeInstance();
 
 	FMathStructCustomization()
-		: bIsUsingSlider(false) {}
+		: bIsUsingSlider(false)
+		, bPreserveScaleRatio(false)
+	{ }
 
 	virtual ~FMathStructCustomization() {}
 
@@ -78,6 +80,26 @@ protected:
 	template<typename NumericType>
 	void OnValueChanged( NumericType NewValue, TWeakPtr<IPropertyHandle> WeakHandlePtr );
 
+	/**
+	 * Called to set the value of the property handle.
+	 *
+	 * @param NewValue		The new value of the property as a float
+	 * @param Flags         The flags to pass when setting the value on the property handle.
+	 * @param WeakHandlePtr	Handle to the property that the new value is for
+	 */
+	template<typename NumericType>
+	void SetValue(NumericType NewValue, EPropertyValueSetFlags::Type Flags, TWeakPtr<IPropertyHandle> WeakHandlePtr);
+
+private:
+	/** Gets the brush to use for the lock icon. */
+	const FSlateBrush* GetPreserveScaleRatioImage() const;
+
+	/** Gets the checked value of the preserve scale ratio option */
+	ESlateCheckBoxState::Type IsPreserveScaleRatioChecked() const;
+
+	/** Called when the user toggles preserve ratio. */
+	void OnPreserveScaleRatioToggled(ESlateCheckBoxState::Type NewState, TWeakPtr<IPropertyHandle> PropertyHandle);
+
 private:
 	/** Called when a value starts to be changed by a slider */
 	void OnBeginSliderMovement();
@@ -92,8 +114,12 @@ private:
 protected:
 	/** All the sorted children of the struct that should be displayed */
 	TArray< TSharedRef<IPropertyHandle> > SortedChildHandles;
+
 	/** True if a value is being changed by dragging a slider */
 	bool bIsUsingSlider;
+
+	/** True if the ratio is locked when scaling occurs (uniform scaling) */
+	bool bPreserveScaleRatio;
 };
 
 /**

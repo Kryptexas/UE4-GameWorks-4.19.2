@@ -34,7 +34,7 @@ void UEnvQueryGenerator_SimpleGrid::GenerateItems(struct FEnvQueryInstance& Quer
 	}
 #endif // WITH_RECAST
 
-	const int32 ItemCount = FPlatformMath::Trunc((RadiusValue * 2.0f / DensityValue) + 1);
+	const int32 ItemCount = FPlatformMath::TruncToInt((RadiusValue * 2.0f / DensityValue) + 1);
 	const int32 ItemCountHalf = ItemCount / 2;
 
 	TArray<FVector> ContextLocations;
@@ -101,7 +101,7 @@ FText UEnvQueryGenerator_SimpleGrid::GetDescriptionDetails() const
 		FFormatNamedArguments ProjArgs;
 		ProjArgs.Add(TEXT("Description"), Desc);
 		ProjArgs.Add(TEXT("ProjectionDescription"), ProjDesc);
-		Desc = FText::Format(LOCTEXT("DescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
+		Desc = FText::Format(LOCTEXT("SimpleGridDescriptionWithProjection", "{Description}, {ProjectionDescription}"), ProjArgs);
 	}
 
 	return Desc;

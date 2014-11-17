@@ -34,7 +34,7 @@ namespace UnrealBuildTool
 		public static string UserDevRootMac = "/UE4/Builds/";
 
 		/** The directory that this local branch is in, without drive information (strip off X:\ from X:\UE4\iOS) */
-		public static string BranchDirectory = Environment.MachineName + "\\" + Path.GetFullPath("..\\..\\").Substring(3);
+		public static string BranchDirectory = Environment.MachineName + "\\" + Path.GetFullPath(".\\").Substring(3);
 		public static string BranchDirectoryMac = BranchDirectory.Replace("\\", "/");
 
 
@@ -52,6 +52,10 @@ namespace UnrealBuildTool
             ErrorMessageTokens.Add("[BEROR]");
             ErrorMessageTokens.Add("IPP ERROR");
             ErrorMessageTokens.Add("System.Net.Sockets.SocketException");
+
+			BranchDirectory = BranchDirectory.Replace("Engine\\Binaries\\DotNET", "");
+			BranchDirectory = BranchDirectory.Replace("Engine\\Source\\", "");
+			BranchDirectoryMac = BranchDirectory.Replace("\\", "/");
         }
 
         // Do any one-time, global initialization for the tool chain
@@ -143,7 +147,7 @@ namespace UnrealBuildTool
 
 				try
 				{
-					MacPath = Path.GetFullPath(MacPath);
+					Utils.CollapseRelativeDirectories(ref MacPath);
 				}
 				catch (Exception Ex)
 				{

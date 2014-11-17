@@ -29,16 +29,16 @@ bool FOnlineAchievementsSteam::ReadAchievementsFromConfig()
 	return Config.ReadAchievements(Achievements);
 }
 
-bool FOnlineAchievementsSteam::WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject)
+void FOnlineAchievementsSteam::WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate)
 {
 	if (!bHaveConfiguredAchievements)
 	{
 		// we don't have achievements
 		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been configured in .ini"));
 
-		TriggerOnAchievementsWrittenDelegates(PlayerId, false);
 		WriteObject->WriteState = EOnlineAsyncTaskState::Failed;
-		return false;
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
 	}
 
 	FUniqueNetIdSteam SteamId(PlayerId);
@@ -48,9 +48,9 @@ bool FOnlineAchievementsSteam::WriteAchievements(const FUniqueNetId& PlayerId, F
 		// we don't have achievements
 		UE_LOG_ONLINE(Warning, TEXT("Cannot report Steam achievements for non-local player %s"), *PlayerId.ToString());
 
-		TriggerOnAchievementsWrittenDelegates(PlayerId, false);
 		WriteObject->WriteState = EOnlineAsyncTaskState::Failed;
-		return false;
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
 	}
 
 	const TArray<FOnlineAchievement> * PlayerAch = PlayerAchievements.Find(SteamId);
@@ -59,9 +59,9 @@ bool FOnlineAchievementsSteam::WriteAchievements(const FUniqueNetId& PlayerId, F
 		// achievements haven't been read for a player
 		UE_LOG_ONLINE(Warning, TEXT("Steam achievements have not been read for player %s"), *PlayerId.ToString());
 
-		TriggerOnAchievementsWrittenDelegates(PlayerId, false);
 		WriteObject->WriteState = EOnlineAsyncTaskState::Failed;
-		return false;
+		Delegate.ExecuteIfBound(PlayerId, false);
+		return;
 	}
 
 	const int32 AchNum = PlayerAch->Num();
@@ -98,11 +98,10 @@ bool FOnlineAchievementsSteam::WriteAchievements(const FUniqueNetId& PlayerId, F
 		}
 	}
 
-	StatsInt->WriteAchievements(SteamId, WriteObject);
-	return true;
+	StatsInt->WriteAchievementsInternal(SteamId, WriteObject, Delegate);
 };
 
-void FOnlineAchievementsSteam::OnWriteAchievementsComplete(const FUniqueNetIdSteam& PlayerId, bool bWasSuccessful, FOnlineAchievementsWritePtr & WriteObject)
+void FOnlineAchievementsSteam::OnWriteAchievementsComplete(const FUniqueNetIdSteam& PlayerId, bool bWasSuccessful, FOnlineAchievementsWritePtr& WriteObject, const FOnAchievementsWrittenDelegate& Delegate)
 {
 	// write object should be valid
 	check(WriteObject.IsValid());
@@ -133,7 +132,7 @@ void FOnlineAchievementsSteam::OnWriteAchievementsComplete(const FUniqueNetIdSte
 		}
 	}
 
-	TriggerOnAchievementsWrittenDelegates(PlayerId, bWasSuccessful);
+	Delegate.ExecuteIfBound(PlayerId, bWasSuccessful);
 }
 
 void FOnlineAchievementsSteam::QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate)
@@ -148,7 +147,7 @@ void FOnlineAchievementsSteam::QueryAchievements(const FUniqueNetId& PlayerId, c
 	}
 
 	// schedule a read (this will trigger the OnAchievementsRead delegates)
-	StatsInt->QueryAchievements( FUniqueNetIdSteam(PlayerId), Delegate );
+	StatsInt->QueryAchievementsInternal( FUniqueNetIdSteam(PlayerId), Delegate );
 }
 
 void FOnlineAchievementsSteam::QueryAchievementDescriptions( const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate & Delegate )
@@ -163,7 +162,7 @@ void FOnlineAchievementsSteam::QueryAchievementDescriptions( const FUniqueNetId&
 	}
 
 	// schedule a read (this will trigger the OnAchievementDescriptionsRead delegates)
-	StatsInt->QueryAchievements( FUniqueNetIdSteam(PlayerId), Delegate );
+	StatsInt->QueryAchievementsInternal( FUniqueNetIdSteam(PlayerId), Delegate );
 }
 
 

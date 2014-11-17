@@ -7,20 +7,20 @@
 UENUM()
 enum EDistributionVectorLockFlags
 {
-	EDVLF_None,
-	EDVLF_XY,
-	EDVLF_XZ,
-	EDVLF_YZ,
-	EDVLF_XYZ,
+	EDVLF_None UMETA(DisplayName="None"),
+	EDVLF_XY UMETA(DisplayName="XY"),
+	EDVLF_XZ UMETA(DisplayName="XZ"),
+	EDVLF_YZ UMETA(DisplayName="YZ"),
+	EDVLF_XYZ UMETA(DisplayName="XYZ"),
 	EDVLF_MAX,
 };
 
 UENUM()
 enum EDistributionVectorMirrorFlags
 {
-	EDVMF_Same,
-	EDVMF_Different,
-	EDVMF_Mirror,
+	EDVMF_Same UMETA(DisplayName="Same"),
+	EDVMF_Different UMETA(DisplayName="Different"),
+	EDVMF_Mirror UMETA(DisplayName="Mirror"),
 	EDVMF_MAX,
 };
 

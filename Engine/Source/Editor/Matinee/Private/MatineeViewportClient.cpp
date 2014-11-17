@@ -1026,7 +1026,7 @@ void FMatineeViewportClient::Tick(float DeltaSeconds)
 		}
 
 		// Apply integer part of ScrollAccum to the curve editor view position.
-		const int32 DeltaX = FMath::Floor(ScrollAccum.X);
+		const int32 DeltaX = FMath::FloorToInt(ScrollAccum.X);
 		ScrollAccum.X -= DeltaX;
 
 		if(bNavigating)

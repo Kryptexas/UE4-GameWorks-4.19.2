@@ -18,9 +18,15 @@ struct FGenericPlatformMath
 	 * @param F		Floating point value to convert
 	 * @return		Truncated integer.
 	 */
-	static CONSTEXPR FORCEINLINE int32 Trunc( float F )
+	static CONSTEXPR FORCEINLINE int32 TruncToInt(float F)
 	{
 		return (int32)F;
+	}
+
+	DEPRECATED(4.2, "FPlatformMath::Trunc is deprecated, use FPlatformMath::TruncToInt instead.")
+	static CONSTEXPR FORCEINLINE int32 Trunc(float F)
+	{
+		return TruncToInt(F);
 	}
 
 	/**
@@ -28,29 +34,67 @@ struct FGenericPlatformMath
 	 * @param F		Floating point value to convert
 	 * @return		Truncated integer value.
 	 */
-	static CONSTEXPR FORCEINLINE float TruncFloat( float F )
+	static CONSTEXPR FORCEINLINE float TruncToFloat(float F)
 	{
-		return (float)Trunc(F);
+		return (float)TruncToInt(F);
+	}
+
+	DEPRECATED(4.2, "FPlatformMath::TruncFloat is deprecated, use FPlatformMath::TruncToFloat instead.")
+	static CONSTEXPR FORCEINLINE float TruncFloat(float F)
+	{
+		return TruncToFloat(F);
 	}
 
 	/**
-	 * Converts a float to a less or equal integer.
+	 * Converts a float to a nearest less or equal integer.
 	 * @param F		Floating point value to convert
 	 * @return		An integer less or equal to 'F'.
 	 */
-	static FORCEINLINE int32 Floor( float F )
+	static FORCEINLINE int32 FloorToInt(float F)
 	{
-		return Trunc(floorf(F));
+		return TruncToInt(floorf(F));
 	}
 
 	/**
-	 * Converts a double to a less or equal integer.
+	* Converts a float to the nearest less or equal integer.
+	* @param F		Floating point value to convert
+	* @return		An integer less or equal to 'F'.
+	*/
+	static FORCEINLINE float FloorToFloat(float F)
+	{
+		return floorf(F);
+	}
+
+	/**
+	 * Converts a double to the nearest less or equal integer.
 	 * @param F		Floating point value to convert
-	 * @return		The nearest integer value to 'F'.
+	 * @return		An integer less or equal to 'F'.
 	 */
-	static FORCEINLINE double FloorDouble( double F )
+	DEPRECATED(4.2, "FPlatformMath::FloorDouble is deprecated, use FPlatformMath::FloorToDouble instead.")
+	static FORCEINLINE double FloorDouble(double F)
+	{
+		return FloorToDouble(F);
+	}
+
+	/**
+	* Converts a double to a less or equal integer.
+	* @param F		Floating point value to convert
+	* @return		The nearest integer value to 'F'.
+	*/
+	static FORCEINLINE double FloorToDouble(double F)
 	{
 		return floor(F);
+	}
+
+	/**
+	* Converts a float to a less or equal integer.
+	* @param F		Floating point value to convert
+	* @return		An integer less or equal to 'F'.
+	*/
+	DEPRECATED(4.2, "FPlatformMath::Floor is deprecated, use FPlatformMath::FloorToInt instead.")
+	static FORCEINLINE int32 Floor(float F)
+	{
+		return FloorToInt(F);
 	}
 
 	/**
@@ -58,28 +102,81 @@ struct FGenericPlatformMath
 	 * @param F		Floating point value to convert
 	 * @return		The nearest integer to 'F'.
 	 */
-	static FORCEINLINE int32 Round( float F )
+	static FORCEINLINE int32 RoundToInt(float F)
 	{
-		return Floor(F+0.5f);
+		return FloorToInt(F + 0.5f);
 	}
 
 	/**
-	 * Converts a float to a greater or equal integer.
-	 * @param F		Floating point value to convert
-	 * @return		An integer greater or equal to 'F'.
-	 */
-	static FORCEINLINE int32 Ceil( float F )
+	* Converts a float to the nearest integer. Rounds up when the fraction is .5
+	* @param F		Floating point value to convert
+	* @return		The nearest integer to 'F'.
+	*/
+	static FORCEINLINE float RoundToFloat(float F)
 	{
-		return Trunc(ceilf(F));
+		return FloorToFloat(F + 0.5f);
 	}
+
 	/**
-	 * Returns the fractional part of a float.
-	 * @param Value	Floating point value to convert
-	 * @return		A float between >=0 and < 1.
-	 */
-	static FORCEINLINE float Fractional( float Value ) 
-	{ 
-		return Value - TruncFloat( Value );
+	* Converts a float to the nearest integer. Rounds up when the fraction is .5
+	* @param F		Floating point value to convert
+	* @return		The nearest integer to 'F'.
+	*/
+	DEPRECATED(4.2, "FPlatformMath::Round is deprecated, use FPlatformMath::RoundToInt instead.")
+	static FORCEINLINE int32 Round(float F)
+	{
+		return RoundToInt(F);
+	}
+
+	/**
+	* Converts a float to the nearest greater or equal integer.
+	* @param F		Floating point value to convert
+	* @return		An integer greater or equal to 'F'.
+	*/
+	static FORCEINLINE int32 CeilToInt(float F)
+	{
+		return TruncToInt(ceilf(F));
+	}
+
+	/**
+	* Converts a float to the nearest greater or equal integer.
+	* @param F		Floating point value to convert
+	* @return		An integer greater or equal to 'F'.
+	*/
+	static FORCEINLINE float CeilToFloat(float F)
+	{
+		return ceilf(F);
+	}
+
+	/**
+	* Converts a float to a greater or equal integer.
+	* @param F		Floating point value to convert
+	* @return		An integer greater or equal to 'F'.
+	*/
+	DEPRECATED(4.2, "FPlatformMath::Ceil is deprecated, use FPlatformMath::CeilToInt instead.")
+	static FORCEINLINE int32 Ceil(float F)
+	{
+		return CeilToInt(F);
+	}
+
+	/**
+	* Returns signed fractional part of a float.
+	* @param Value	Floating point value to convert
+	* @return		A float between >=0 and < 1 for nonnegative input. A float between >= -1 and < 0 for negative input.
+	*/
+	static FORCEINLINE float Fractional(float Value)
+	{
+		return Value - TruncToFloat(Value);
+	}
+
+	/**
+	* Returns the fractional part of a float.
+	* @param Value	Floating point value to convert
+	* @return		A float between >=0 and < 1.
+	*/
+	static FORCEINLINE float Frac(float Value)
+	{
+		return Value - FloorToFloat(Value);
 	}
 
 	static FORCEINLINE float Exp( float Value ) { return expf(Value); }

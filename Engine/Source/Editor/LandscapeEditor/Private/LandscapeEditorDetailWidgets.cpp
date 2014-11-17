@@ -2,9 +2,7 @@
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEditorDetailWidgets.h"
-#include "../Private/MultiBox/MultiBox.h"
-#include "../Private/MultiBox/SToolBarButtonBlock.h"
-#include "../Private/MultiBox/SToolBarComboButtonBlock.h"
+
 
 // Based on a stripped-down FToolBarComboButtonBlock
 class FToolSelector : public FMultiBlock

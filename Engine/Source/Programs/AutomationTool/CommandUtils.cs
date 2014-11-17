@@ -464,8 +464,11 @@ namespace AutomationTool
                 }
                 catch (Exception Ex)
                 {
-                    Log(TraceEventType.Warning, "Failed to delete directory, exception '{0}'", NormalizedDirectory);
-                    Log(TraceEventType.Warning, Ex);
+					if (!bQuiet)
+					{
+						Log(TraceEventType.Warning, "Failed to delete directory, exception '{0}'", NormalizedDirectory);
+						Log(TraceEventType.Warning, Ex);
+					}
                     Result = false;
                 }
             }
@@ -482,6 +485,29 @@ namespace AutomationTool
 		public static bool DeleteDirectory_NoExceptions(params string[] Directories)
 		{
 			return DeleteDirectory_NoExceptions(false, Directories);
+		}
+
+
+		/// <summary>
+		/// Attempts to delete a directory, if that fails deletes all files and folder from the specified directory.
+		/// This works around the issue when the user has a file open in a notepad from that directory. Somehow deleting the file works but
+		/// deleting the directory with the file that's open, doesn't.
+		/// </summary>
+		/// <param name="DirectoryName"></param>
+		public static void DeleteDirectoryContents(string DirectoryName)
+		{
+			Log("DeleteDirectoryContents({0})", DirectoryName);
+			const bool bQuiet = true;
+			var Files = CommandUtils.FindFiles_NoExceptions(bQuiet, "*", false, DirectoryName);
+			foreach (var Filename in Files)
+			{
+				CommandUtils.DeleteFile_NoExceptions(Filename);
+			}
+			var Directories = CommandUtils.FindDirectories_NoExceptions(bQuiet, "*", false, DirectoryName);
+			foreach (var SubDirectoryName in Directories)
+			{
+				CommandUtils.DeleteDirectory_NoExceptions(bQuiet, SubDirectoryName);
+			}
 		}
 
 		/// <summary>
@@ -543,6 +569,23 @@ namespace AutomationTool
 			}
 		}
 
+        /// <summary>
+        /// Creates a directory(or directories).
+        /// If the creation of the directory fails, this function throws an Exception.
+        /// </summary>
+        /// <param name="Directory">Directory</param>
+        public static void CreateDirectory(bool bQuiet, params string[] Directories)
+        {
+            foreach (var DirectoryName in Directories)
+            {
+                var NormalizedDirectory = ConvertSeparators(PathSeparator.Default, DirectoryName);
+                if (!InternalUtils.SafeCreateDirectory(NormalizedDirectory, bQuiet))
+                {
+                    throw new AutomationException(String.Format("Failed to create directory '{0}'", NormalizedDirectory));
+                }
+            }
+        }
+
 		/// <summary>
 		/// Creates a directory (or directories).
 		/// If the creation of the directory fails, this function prints a warning.
@@ -569,11 +612,11 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="OldName">Old name</param>
 		/// <param name="NewName">new name</param>
-		public static void RenameFile(string OldName, string NewName)
+        public static void RenameFile(string OldName, string NewName, bool bQuiet = false)
 		{
 			var OldNormalized = ConvertSeparators(PathSeparator.Default, OldName);
 			var NewNormalized = ConvertSeparators(PathSeparator.Default, NewName);
-			if (!InternalUtils.SafeRenameFile(OldNormalized, NewNormalized))
+			if (!InternalUtils.SafeRenameFile(OldNormalized, NewNormalized, bQuiet))
 			{
 				throw new AutomationException(String.Format("Failed to rename/move file '{0}' to '{1}'", OldNormalized, NewNormalized));
 			}
@@ -1587,6 +1630,11 @@ namespace AutomationTool
 
 		#region Other
 
+		public static string EscapePath(string InPath)
+		{
+			return InPath.Replace(":", "").Replace("/", "+").Replace("\\", "+").Replace(" ", "+");
+		}
+
 		/// <summary>
 		/// Checks if collection is either null or empty.
 		/// </summary>
@@ -1765,6 +1813,130 @@ namespace AutomationTool
 		}
 
 		#endregion
+
+
+        public static string RootSharedTempStorageDirectory()
+        {
+            string StorageDirectory = "";
+            if (UnrealBuildTool.Utils.IsRunningOnMono)
+            {
+                StorageDirectory = "/Volumes/Builds";
+            }
+            else
+            {
+                StorageDirectory = CombinePaths("P:", "Builds");
+            }
+            return StorageDirectory;
+        }
+
+        static Dictionary<string, string> ResolveCache = new Dictionary<string, string>();
+        public static string ResolveSharedBuildDirectory(string GameFolder)
+        {
+            if (ResolveCache.ContainsKey(GameFolder))
+            {
+                return ResolveCache[GameFolder];
+            }
+            string Root = RootSharedTempStorageDirectory();
+            string Result = CombinePaths(Root, GameFolder);
+            if (String.IsNullOrEmpty(GameFolder) || !DirectoryExists_NoExceptions(Result))
+            {
+                string GameStr = "Game";
+                bool HadGame = false;
+                if (GameFolder.EndsWith(GameStr, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    string ShortFolder = GameFolder.Substring(0, GameFolder.Length - GameStr.Length);
+                    Result = CombinePaths(Root, ShortFolder);
+                    HadGame = true;
+                }
+                if (!HadGame || !DirectoryExists_NoExceptions(Result))
+                {
+                    Result = CombinePaths(Root, "UE4");
+                    if (!DirectoryExists_NoExceptions(Result))
+                    {
+                        throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
+                    }
+                }
+            }
+            ResolveCache.Add(GameFolder, Result);
+            return Result;
+        }
+
+        public static void CleanFormalBuilds(string DirectoryForThisBuild, string CLString = "")
+        {
+            if (CLString == "" && (!IsBuildMachine || !DirectoryForThisBuild.StartsWith(RootSharedTempStorageDirectory()) || !P4Enabled))
+            {
+                return;
+            }
+            try
+            {
+                if (P4Enabled && CLString == "")
+                {
+                    CLString = P4Env.ChangelistString;
+                }
+                const int MaximumDaysToKeepTempStorage = 4;
+                string ParentDir = Path.GetDirectoryName(CombinePaths(DirectoryForThisBuild));
+                if (!DirectoryExists_NoExceptions(ParentDir))
+                {
+                    throw new AutomationException("Not cleaning formal builds, because the parent directory {0} does not exist.", ParentDir);
+                }
+                string MyDir = Path.GetFileName(CombinePaths(DirectoryForThisBuild));
+                int CLStart = MyDir.IndexOf(CLString);
+                if (CLStart < 0)
+                {
+                    throw new AutomationException("Not cleaning formal builds, because the directory {0} does not contain the CL {1}.", DirectoryForThisBuild, CLString);
+                }
+                string StartString = MyDir.Substring(0, CLStart);
+                string EndString = MyDir.Substring(CLStart + CLString.Length);
+
+
+                DirectoryInfo DirInfo = new DirectoryInfo(ParentDir);
+                var TopLevelDirs = DirInfo.GetDirectories();
+                Log("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
+                foreach (var TopLevelDir in TopLevelDirs)
+                {
+                    if (DirectoryExists_NoExceptions(TopLevelDir.FullName))
+                    {
+                        var JustDir = Path.GetFileName(CombinePaths(TopLevelDir.FullName));
+                        if (JustDir.StartsWith(StartString, StringComparison.InvariantCultureIgnoreCase) && (String.IsNullOrEmpty(EndString) || JustDir.EndsWith(EndString, StringComparison.InvariantCultureIgnoreCase)))
+                        {
+                            string CLPart = JustDir.Substring(StartString.Length, JustDir.Length - StartString.Length - EndString.Length);
+                            if (!CLPart.Contains("-") && !CLPart.Contains("+"))
+                            {
+                                DirectoryInfo ThisDirInfo = new DirectoryInfo(TopLevelDir.FullName);
+                                bool bOld = false;
+
+                                if ((DateTime.UtcNow - ThisDirInfo.CreationTimeUtc).TotalDays > MaximumDaysToKeepTempStorage)
+                                {
+                                    bOld = true;
+                                }
+                                if (bOld)
+                                {
+                                    Log("Deleting temp storage directory {0}, because it is more than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                                    DeleteDirectory_NoExceptions(true, TopLevelDir.FullName);
+                                }
+                                else
+                                {
+                                    Log("Not Deleteing temp storage directory {0}, because it is less than {1} days old.", TopLevelDir.FullName, MaximumDaysToKeepTempStorage);
+                                }
+                            }
+                            else
+                            {
+                                Log("skipping {0}, because the CL part {1} had weird characters", JustDir, CLPart);
+                            }
+                        }
+                        else
+                        {
+                            Log("skipping {0}, because it didn't start with {1} or end with {2}", JustDir, StartString, EndString);
+                        }
+                    }
+                }
+            }
+            catch (Exception Ex)
+            {
+                Log(System.Diagnostics.TraceEventType.Warning, "Unable to Clean Directory with DirectoryForThisBuild {0}", DirectoryForThisBuild);
+                Log(System.Diagnostics.TraceEventType.Warning, " Exception was {0}", LogUtils.FormatException(Ex));
+            }
+        }
 	}
 
 

@@ -4,7 +4,7 @@
 #pragma once
 #include "RadialForceActor.generated.h"
 
-UCLASS(MinimalAPI, hidecategories=(Collision, Input))
+UCLASS(MinimalAPI, hidecategories=(Collision, Input), showcategories=("Input|MouseInput", "Input|TouchInput"))
 class ARadialForceActor : public ARigidBodyBase
 {
 	GENERATED_UCLASS_BODY()

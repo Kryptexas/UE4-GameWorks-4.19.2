@@ -225,6 +225,12 @@ public:
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) OVERRIDE;
 	virtual void OnKeyboardFocusChanging( const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath ) OVERRIDE;
 
+	/** Opens the selected assets or folders, depending on the selection */
+	void OnOpenAssetsOrFolders();
+
+	/** Loads the selected assets and previews them if possible */
+	void OnPreviewAssets();
+
 	/** Clears the selection of all the lists in the view */
 	void ClearSelection();
 
@@ -309,7 +315,7 @@ private:
 	void OnAssetLoaded(UObject* Asset);
 
 	/** Handler for when an asset's property has changed */
-	void OnObjectPropertyChanged(UObject* Asset);
+	void OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent);
 
 	/** Handler for when any dynamic filters have been changed */
 	void OnDynamicFiltersChanged();

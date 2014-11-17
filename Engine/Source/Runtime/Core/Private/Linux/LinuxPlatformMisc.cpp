@@ -72,29 +72,14 @@ bool FLinuxMisc::ControlScreensaver(EScreenSaverAction Action)
 	return true;
 }
 
-/** Global variable to resolve interdependency between RootDir(), which calls NormalizePath(), and NormalizePath(), which needs RootDir() once.*/
-bool volatile GHaveRootDir = false;
-
 const TCHAR* FLinuxMisc::RootDir()
 {
 	const TCHAR * TrueRootDir = FGenericPlatformMisc::RootDir();
-	GHaveRootDir = true;
 	return TrueRootDir;
 }
 
 void FLinuxMisc::NormalizePath(FString& InPath)
 {
-	// only lowercase part of the path that is under root (if we know it)
-	if (GHaveRootDir)
-	{
-		static FString Root = RootDir();
-		// if absolute path begins at root
-		if (InPath.Find(Root, ESearchCase::IgnoreCase) == 0)
-		{
-			InPath = FPaths::Combine(*Root, *InPath.RightChop(Root.Len()).ToLower());
-		}
-	}
-
 	if (InPath.Contains(TEXT("~"), ESearchCase::CaseSensitive))	// case sensitive is quicker, and our substring doesn't care
 	{
 		static bool bHaveHome = false;
@@ -103,7 +88,7 @@ void FLinuxMisc::NormalizePath(FString& InPath)
 		if (!bHaveHome)
 		{
 			//  get user $HOME var first
-			const char * VarValue = __secure_getenv("HOME");
+			const char * VarValue = secure_getenv("HOME");
 			if (NULL != VarValue)
 			{
 				FCString::Strcpy(CachedResult, ARRAY_COUNT(CachedResult) - 1, ANSI_TO_TCHAR(VarValue));

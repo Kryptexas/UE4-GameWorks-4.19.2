@@ -12,18 +12,20 @@ class FDisplayedMorphTargetInfo
 public:
 	FName Name;
 	float Weight;
+	int32 NumberOfVerts;
 
 	/** Static function for creating a new item, but ensures that you can only have a TSharedRef to one */
-	static TSharedRef<FDisplayedMorphTargetInfo> Make(const FName& Source)
+	static TSharedRef<FDisplayedMorphTargetInfo> Make(const FName& Source, int32 InNumberOfVerts)
 	{
-		return MakeShareable(new FDisplayedMorphTargetInfo(Source));
+		return MakeShareable(new FDisplayedMorphTargetInfo(Source, InNumberOfVerts));
 	}
 
 protected:
 	/** Hidden constructor, always use Make above */
-	FDisplayedMorphTargetInfo(const FName& InSource)
+	FDisplayedMorphTargetInfo(const FName& InSource, int32 InNumberOfVerts)
 		: Name( InSource )
 		, Weight( 0 )
+		, NumberOfVerts(InNumberOfVerts)
 	{}
 
 	/** Hidden constructor, always use Make above */

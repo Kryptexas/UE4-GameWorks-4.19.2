@@ -11,13 +11,13 @@ namespace SceneOutliner
 	typedef TArray< FOutlinerTreeItemPtr > FOutlinerData;
 
 	typedef TTextFilter< const TOutlinerTreeItem& > TreeItemTextFilter;
-	typedef TFilterCollection< const AActor* const > ActorFilterCollection;
 
 	typedef TMap< TWeakObjectPtr< AActor >, TSharedRef<TOutlinerActorTreeItem> > FActorToTreeItemMap;
 	typedef TMap< FName, TSharedRef<TOutlinerFolderTreeItem> > FFolderToTreeItemMap;
 	typedef TSet< const AActor* > FParentActorsSet;
 
 	FText GetLabelForItem( const TSharedRef<TOutlinerTreeItem> TreeItem );
+	FString GetLabelForItemAsString(const TSharedRef<TOutlinerTreeItem> TreeItem);
 
 	/** An array of actions to apply to newly added items in the scene outliner */
 	struct NewItemActuator
@@ -137,6 +137,9 @@ namespace SceneOutliner
 		/** Check whether we should be showing folders or not in this scene outliner */
 		bool ShouldShowFolders() const;
 
+		/** Synchronize (and scroll into view) the current selection to the specified actor item, if the corresponding actor is selected */
+		void SynchronizeSelectionTo(TSharedRef<TOutlinerActorTreeItem> ActorItem);
+
 		/** Is actor class name text visible? */
 		EVisibility IsActorClassNameVisible() const;
 
@@ -218,6 +221,14 @@ namespace SceneOutliner
 		/** Build a context menu for right-clicking an item in the tree */
 		TSharedPtr<SWidget> BuildDefaultContextMenu() const;
 		void FillFoldersSubMenu(FMenuBuilder& MenuBuilder) const;
+		void AddMoveToFolderOutliner(FMenuBuilder& MenuBuilder) const;
+		void FillSelectionSubMenu(FMenuBuilder& MenuBuilder) const;
+
+		/** Select the immediate children of the currently selected folders */
+		void SelectFoldersImmediateChildren() const;
+
+		/** Called to select all the descendants of the currently selected folders */
+		void SelectFoldersDescendants() const;
 
 		/** Move the selected items to the specified parent */
 		void MoveSelectionTo(TSharedRef<TOutlinerTreeItem> NewParent);
@@ -282,6 +293,9 @@ namespace SceneOutliner
 		/** Called by the editable text control when a user presses enter or commits their text change */
 		void OnFilterTextCommitted( const FText& InFilterText, ETextCommit::Type CommitInfo );
 
+		/** Invoked by the scene outliner gutter when we need to set the specified item's visibility */
+		void OnSetItemVisibility(FOutlinerTreeItemRef Item, bool bIsVisible);
+
 		/**
 		 * Called by the filter button to get the image to display in the button
 		 *
@@ -334,6 +348,8 @@ namespace SceneOutliner
 		/** @return the foreground color for the view button */
 		FSlateColor GetViewButtonForegroundColor() const;
 
+		/** Get an array of selected folders in this scene outliner */
+		TArray<TSharedRef<TOutlinerFolderTreeItem>> GetSelectedFolders() const;
 
 		/** FILTERS */
 		/** @return whether we are displaying only selected Actors */
@@ -349,6 +365,13 @@ namespace SceneOutliner
 		void ToggleHideTemporaryActors();
 		/** Enables/Disables whether the HideTemporaryActorsFilter is applied */
 		void ApplyHideTemporaryActorsFilter(bool bHideTemporaryActors);
+		
+		/** @return whether we are showing only Actors that are in the Current Level */
+		bool IsShowingOnlyCurrentLevel() const;
+		/** Toggles whether we are hiding Actors that aren't in the current level */
+		void ToggleShowOnlyCurrentLevel();
+		/** Enables/Disables whether the ShowOnlyActorsInCurrentLevelFilter is applied */
+		void ApplyShowOnlyCurrentLevelFilter(bool bShowOnlyActorsInCurrentLevel);
 
 	private:
 
@@ -406,6 +429,8 @@ namespace SceneOutliner
 		/** When applied, temporary and run-time actors are hidden */
 		TSharedPtr< TDelegateFilter< const AActor* const > > HideTemporaryActorsFilter;
 
+		/** When applied, only Actors that are in the current level are displayed */
+		TSharedPtr< TDelegateFilter< const AActor* const > > ShowOnlyActorsInCurrentLevelFilter;
 
 		/** The brush to use when in Editor mode */
 		const FSlateBrush* NoBorder;
@@ -454,12 +479,6 @@ namespace SceneOutliner
 		 */
 		void AddFilteredParentActorToTree(const AActor* InActor);
 
-		/** Returns whether any of the parent items lie within the subtree of the supplied parent actor, and are in an expanded state */
-		bool HasExpandedChildren(const AActor* ParentActor, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const;
-
-		/** Returns whether any of the parent items or folders lie within the subtree of the supplied folder, and are in an expanded state */
-		bool HasExpandedChildren(FName ParentFolder, const FParentActorsSet& ParentActors, const FParentsExpansionState& ExpansionStateInfo) const;
-
 		/** Gets the current expansion state of parent items */
 		void GetParentsExpansionState(FParentsExpansionState& ExpansionStateInfo) const;
 
@@ -497,9 +516,9 @@ namespace SceneOutliner
 		/* Widget containing the filtering text box */
 		TSharedPtr< SSearchBox > FilterTextBoxWidget;
 
-		/** A collection of filters used to filter the displayed actors in the scene outliner */
-		TSharedPtr< ActorFilterCollection > CustomFilters;
-
+		/** A collection of filters used to filter the displayed actors and folders in the scene outliner */
+		TSharedPtr< FOutlinerFilters > Filters;
+		
 		/** The TextFilter attached to the SearchBox widget of the Scene Outliner */
 		TSharedPtr< TreeItemTextFilter > SearchBoxFilter;
 

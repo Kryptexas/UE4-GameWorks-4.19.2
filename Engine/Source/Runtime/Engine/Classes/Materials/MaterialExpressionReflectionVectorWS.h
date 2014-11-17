@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionReflectionVectorWS.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionReflectionVectorWS : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

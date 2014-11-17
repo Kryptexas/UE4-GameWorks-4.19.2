@@ -20,10 +20,6 @@ struct PAPER2D_API FBodyInstance2D
 	UPROPERTY(EditAnywhere, Category=Physics)
 	float HackHeight;
 
-	//@TODO: SO MUCH EVIL: this controls whether or not this sprite has been nominated to draw the physics debug scene...
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Physics)
-	uint32 bDrawPhysicsSceneMaster:1;
-
 
 	FBodyInstance2D();
 

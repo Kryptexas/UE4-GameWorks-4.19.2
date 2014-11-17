@@ -89,9 +89,9 @@ void TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::RegisterDynamicResource(
 }
 
 template<typename DrawingPolicyFactoryType>
-bool TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy) const
+bool TDynamicPrimitiveDrawer<DrawingPolicyFactoryType>::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const
 {
-	return DrawingPolicyFactoryType::IsMaterialIgnored(MaterialRenderProxy);
+	return DrawingPolicyFactoryType::IsMaterialIgnored(MaterialRenderProxy, InFeatureLevel);
 }
 
 template<typename DrawingPolicyFactoryType>
@@ -223,9 +223,10 @@ bool DrawViewElements(
 	for(int32 MeshIndex = 0;MeshIndex < ViewMeshElementList.Num();MeshIndex++)
 	{
 		const FHitProxyMeshPair& Mesh = ViewMeshElementList[MeshIndex];
+		const auto FeatureLevel = View.GetFeatureLevel();
 		check(Mesh.MaterialRenderProxy);
-		check(Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel));
-		const bool bIsTwoSided = Mesh.MaterialRenderProxy->GetMaterial(GRHIFeatureLevel)->IsTwoSided();
+		check(Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel));
+		const bool bIsTwoSided = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->IsTwoSided();
 		int32 bBackFace = bIsTwoSided ? 1 : 0;
 		do
 		{
@@ -256,8 +257,8 @@ bool DrawDynamicPrimitiveSet(
 {
 	
 	// Draw the elements of each dynamic primitive.
-	TDynamicPrimitiveDrawer<DrawingPolicyFactoryType> Drawer(&View,DrawingContext,bPreFog,bIsHitTesting);
-	for(int32 PrimitiveIndex = 0;PrimitiveIndex <PrimitiveSet.Num();PrimitiveIndex++)
+	TDynamicPrimitiveDrawer<DrawingPolicyFactoryType> Drawer(&View, DrawingContext, bPreFog, bIsHitTesting);
+	for(int32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveSet.Num(); PrimitiveIndex++)
 	{
 		const FPrimitiveSceneInfo* PrimitiveSceneInfo = PrimitiveSet[PrimitiveIndex];
 		int32 PrimitiveId = PrimitiveSceneInfo->GetIndex();

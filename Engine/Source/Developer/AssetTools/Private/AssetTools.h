@@ -24,7 +24,7 @@ public:
 	virtual void DiffAgainstDepot(UObject* InObject, const FString& InPackagePath, const FString& InPackageName) const OVERRIDE;
 	virtual void DiffAssets(UObject* OldAsset1, UObject* NewAsset, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const OVERRIDE;
 	virtual FString DumpAssetToTempFile(UObject* Asset) const OVERRIDE;
-	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& DiffArgs) const OVERRIDE;
+	virtual bool CreateDiffProcess(const FString& DiffCommand, const FString& OldTextFilename, const FString& NewTextFilename, const FString& DiffArgs = FString("")) const OVERRIDE;
 	virtual void MigratePackages(const TArray<FName>& PackageNamesToMigrate) const OVERRIDE;
 	virtual void FixupReferencers(const TArray<UObjectRedirector*>& Objects) const OVERRIDE;
 

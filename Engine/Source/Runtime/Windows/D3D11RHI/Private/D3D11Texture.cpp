@@ -76,11 +76,11 @@ void UpdateD3D11TextureStats(uint32 BindFlags, uint32 MiscFlags, int64 TextureSi
 	
 	if(ShouldCountAsTextureMemory(BindFlags))
 	{
-		FPlatformAtomics::InterlockedAdd( &GCurrentTextureMemorySize, TextureSize );
+		FPlatformAtomics::InterlockedAdd(&GCurrentTextureMemorySize, Align(TextureSize, 1024) / 1024);
 	}
 	else
 	{
-		FPlatformAtomics::InterlockedAdd( &GCurrentRendertargetMemorySize, TextureSize );
+		FPlatformAtomics::InterlockedAdd(&GCurrentRendertargetMemorySize, Align(TextureSize, 1024) / 1024);
 	}
 
 	bool bCubeMap = (MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE) != 0;
@@ -208,6 +208,24 @@ FD3D11Texture3D::~FD3D11Texture3D()
 	D3D11TextureDeleted( *this );
 }
 
+uint64 FD3D11DynamicRHI::RHICalcTexture2DPlatformSize(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 NumSamples, uint32 Flags, uint32& OutAlign)
+{
+	OutAlign = 0;
+	return CalcTextureSize(SizeX, SizeY, (EPixelFormat)Format, NumMips);
+}
+
+uint64 FD3D11DynamicRHI::RHICalcTexture3DPlatformSize(uint32 SizeX, uint32 SizeY, uint32 SizeZ, uint8 Format, uint32 NumMips, uint32 Flags, uint32& OutAlign)
+{
+	OutAlign = 0;
+	return CalcTextureSize3D(SizeX, SizeY, SizeZ, (EPixelFormat)Format, NumMips);
+}
+
+uint64 FD3D11DynamicRHI::RHICalcTextureCubePlatformSize(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags,	uint32& OutAlign)
+{
+	OutAlign = 0;
+	return CalcTextureSize(Size, Size, (EPixelFormat)Format, NumMips) * 6;
+}
+
 /**
  * Retrieves texture memory stats. 
  */
@@ -218,7 +236,7 @@ void FD3D11DynamicRHI::RHIGetTextureMemoryStats(FTextureMemoryStats& OutStats)
     OutStats.SharedSystemMemory = GSharedSystemMemory;
 	OutStats.TotalGraphicsMemory = GTotalGraphicsMemory ? GTotalGraphicsMemory : -1;
 
-	OutStats.AllocatedMemorySize = GCurrentTextureMemorySize;
+	OutStats.AllocatedMemorySize = int64(GCurrentTextureMemorySize) * 1024;
 	OutStats.TexturePoolSize = GTexturePoolSize;
 	OutStats.PendingMemoryAdjustment = 0;
 }
@@ -435,7 +453,8 @@ void SafeCreateTexture2D(ID3D11Device* Direct3DDevice, const D3D11_TEXTURE2D_DES
 }
 
 template<typename BaseResourceType>
-TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool bCubeTexture,uint8 Format,uint32 NumMips,uint32 NumSamples,uint32 Flags,FResourceBulkDataInterface* BulkData)
+TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32 SizeX,uint32 SizeY,uint32 SizeZ,bool bTextureArray,bool bCubeTexture,uint8 Format,
+	uint32 NumMips,uint32 NumSamples,uint32 Flags, FResourceBulkDataInterface* BulkData)
 {
 	check(SizeX > 0 && SizeY > 0 && NumMips > 0);
 
@@ -522,6 +541,7 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 
 	// Describe the texture.
 	D3D11_TEXTURE2D_DESC TextureDesc;
+	ZeroMemory( &TextureDesc, sizeof( D3D11_TEXTURE2D_DESC ) );
 	TextureDesc.Width = SizeX;
 	TextureDesc.Height = SizeY;
 	TextureDesc.MipLevels = NumMips;
@@ -592,11 +612,13 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		bPooledTexture = false;
 	}
 
+	FVRamAllocation VRamAllocation;
+
 	if (FPlatformProperties::SupportsFastVRAMMemory())
 	{
 		if (Flags & TexCreate_FastVRAM)
 		{
-			FFastVRAMAllocator::GetFastVRAMAllocator()->AllocTexture2D(TextureDesc);
+			VRamAllocation = FFastVRAMAllocator::GetFastVRAMAllocator()->AllocTexture2D(TextureDesc);
 		}
 	}
 
@@ -632,17 +654,29 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 		if (BulkData)
 		{
 			uint8* Data = (uint8*)BulkData->GetResourceBulkData();
-			SubResourceData.AddZeroed(NumMips);
-			uint32 MipOffset = 0;
-			for(uint32 MipIndex = 0;MipIndex < NumMips;++MipIndex)
-			{
-				uint32 NumBlocksX = FMath::Max<uint32>(1,(SizeX >> MipIndex) / GPixelFormats[Format].BlockSizeX);
-				uint32 NumBlocksY = FMath::Max<uint32>(1,(SizeY >> MipIndex) / GPixelFormats[Format].BlockSizeY);
 
-				SubResourceData[MipIndex].pSysMem = &Data[MipOffset];
-				SubResourceData[MipIndex].SysMemPitch      =  NumBlocksX * GPixelFormats[Format].BlockBytes;
-				SubResourceData[MipIndex].SysMemSlicePitch =  NumBlocksX * NumBlocksY * SubResourceData[MipIndex].SysMemPitch;
-				MipOffset                                  += SubResourceData[MipIndex].SysMemSlicePitch;
+			// each mip of each array slice counts as a subresource
+			SubResourceData.AddZeroed(NumMips * SizeZ);
+
+			uint32 SliceOffset = 0;
+			for (uint32 ArraySliceIndex = 0; ArraySliceIndex < SizeZ; ++ArraySliceIndex)
+			{			
+				uint32 MipOffset = 0;
+				for(uint32 MipIndex = 0;MipIndex < NumMips;++MipIndex)
+				{
+					uint32 DataOffset = SliceOffset + MipOffset;
+					uint32 SubResourceIndex = ArraySliceIndex * NumMips + MipIndex;
+
+					uint32 NumBlocksX = FMath::Max<uint32>(1,(SizeX >> MipIndex) / GPixelFormats[Format].BlockSizeX);
+					uint32 NumBlocksY = FMath::Max<uint32>(1,(SizeY >> MipIndex) / GPixelFormats[Format].BlockSizeY);
+
+					SubResourceData[SubResourceIndex].pSysMem = &Data[DataOffset];
+					SubResourceData[SubResourceIndex].SysMemPitch      =  NumBlocksX * GPixelFormats[Format].BlockBytes;
+					SubResourceData[SubResourceIndex].SysMemSlicePitch =  NumBlocksX * NumBlocksY * SubResourceData[MipIndex].SysMemPitch;
+
+					MipOffset                                  += NumBlocksY * SubResourceData[MipIndex].SysMemPitch;
+				}
+				SliceOffset += MipOffset;
 			}
 		}
 
@@ -807,6 +841,8 @@ TD3D11Texture2D<BaseResourceType>* FD3D11DynamicRHI::CreateD3D11Texture2D(uint32
 #endif
 		);
 
+	Texture2D->ResourceInfo.VRamAllocation = VRamAllocation;
+
 	D3D11TextureAllocated(*Texture2D);
 
 	return Texture2D;
@@ -824,6 +860,7 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 
 	// Describe the texture.
 	D3D11_TEXTURE3D_DESC TextureDesc;
+	ZeroMemory( &TextureDesc, sizeof( D3D11_TEXTURE3D_DESC ) );
 	TextureDesc.Width = SizeX;
 	TextureDesc.Height = SizeY;
 	TextureDesc.Depth = SizeZ;
@@ -853,9 +890,6 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 		bCreateRTV = true;
 	}
 
-	// not yet supported, would require FFastVRAMAllocator::GetFastVRAMAllocator()->AllocTexture3D
-	check(!(Flags & TexCreate_FastVRAM));
-
 	// Set up the texture bind flags.
 	check(!(Flags & TexCreate_DepthStencilTargetable));
 	check(!(Flags & TexCreate_ResolveTargetable));
@@ -878,11 +912,13 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 		}
 	}
 
+	FVRamAllocation VRamAllocation;
+
 	if (FPlatformProperties::SupportsFastVRAMMemory())
 	{
 		if (Flags & TexCreate_FastVRAM)
 		{
-			FFastVRAMAllocator::GetFastVRAMAllocator()->AllocTexture3D(TextureDesc);
+			VRamAllocation = FFastVRAMAllocator::GetFastVRAMAllocator()->AllocTexture3D(TextureDesc);
 		}
 	}
 
@@ -926,6 +962,8 @@ FD3D11Texture3D* FD3D11DynamicRHI::CreateD3D11Texture3D(uint32 SizeX,uint32 Size
 	TArray<TRefCountPtr<ID3D11RenderTargetView> > RenderTargetViews;
 	RenderTargetViews.Add(RenderTargetView);
 	FD3D11Texture3D* Texture3D = new FD3D11Texture3D(this,TextureResource,ShaderResourceView,RenderTargetViews,SizeX,SizeY,SizeZ,NumMips,(EPixelFormat)Format,Flags);
+
+	Texture3D->ResourceInfo.VRamAllocation = VRamAllocation;
 
 	D3D11TextureAllocated(*Texture3D);
 
@@ -1080,6 +1118,14 @@ FTexture3DRHIRef FD3D11DynamicRHI::RHICreateTexture3D(uint32 SizeX,uint32 SizeY,
 {
 	check(SizeZ >= 1);
 	return CreateD3D11Texture3D(SizeX,SizeY,SizeZ,Format,NumMips,Flags,BulkData);
+}
+
+void FD3D11DynamicRHI::RHIGetResourceInfo(FTextureRHIParamRef Ref, FRHIResourceInfo& OutInfo)
+{
+	if(Ref)
+	{
+		OutInfo = Ref->ResourceInfo;
+	}
 }
 
 FShaderResourceViewRHIRef FD3D11DynamicRHI::RHICreateShaderResourceView(FTexture2DRHIParamRef Texture2DRHI, uint8 MipLevel)
@@ -1410,12 +1456,12 @@ void FD3D11DynamicRHI::RHIUpdateTexture3D(FTexture3DRHIParamRef TextureRHI,uint3
 -----------------------------------------------------------------------------*/
 FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCube(uint32 Size, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData)
 {
-	return CreateD3D11Texture2D<FD3D11BaseTextureCube>(Size,Size,6,false,true,Format,NumMips,1,Flags);
+	return CreateD3D11Texture2D<FD3D11BaseTextureCube>(Size,Size,6,false,true,Format,NumMips,1,Flags,BulkData);
 }
 
 FTextureCubeRHIRef FD3D11DynamicRHI::RHICreateTextureCubeArray(uint32 Size, uint32 ArraySize, uint8 Format, uint32 NumMips, uint32 Flags, FResourceBulkDataInterface* BulkData)
 {
-	return CreateD3D11Texture2D<FD3D11BaseTextureCube>(Size,Size,6 * ArraySize,true,true,Format,NumMips,1,Flags);
+	return CreateD3D11Texture2D<FD3D11BaseTextureCube>(Size,Size,6 * ArraySize,true,true,Format,NumMips,1,Flags,BulkData);
 }
 
 void* FD3D11DynamicRHI::RHILockTextureCubeFace(FTextureCubeRHIParamRef TextureCubeRHI,uint32 FaceIndex,uint32 ArrayIndex,uint32 MipIndex,EResourceLockMode LockMode,uint32& DestStride,bool bLockWithinMiptail)

@@ -3,8 +3,6 @@
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
 
-#include "EngineKismetLibraryClasses.h"
-
 #define LOCTEXT_NAMESPACE "K2Node_Message"
 
 UK2Node_Message::UK2Node_Message(const class FPostConstructInitializeProperties& PCIP)
@@ -133,10 +131,10 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 			CastToInterfaceResultPin->PinType.PinSubCategoryObject = *CastToInterfaceNode->TargetType;
 
 			// Wire up the connections
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*ExecPin, *CastToInterfaceNode->GetExecPin()), this);
+			CompilerContext.MovePinLinksToIntermediate(*ExecPin, *CastToInterfaceNode->GetExecPin());
 
 			UEdGraphPin* CastToInterfaceSourceObjectPin = CastToInterfaceNode->GetCastSourcePin();
-			CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*MessageSelfPin, *CastToInterfaceSourceObjectPin), this);
+			CompilerContext.MovePinLinksToIntermediate(*MessageSelfPin, *CastToInterfaceSourceObjectPin);
 
 			// Next, create the function call node
 			UK2Node_CallFunction* FunctionCallNode = CompilerContext.SpawnIntermediateNode<UK2Node_CallFunction>(this, SourceGraph);
@@ -168,7 +166,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 					if( FunctionCallPin )
 					{
 						// Move pin links if the pin is connected...
-						CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*CurrentPin, *FunctionCallPin), this);
+						CompilerContext.MovePinLinksToIntermediate(*CurrentPin, *FunctionCallPin);
 
 						// when cast fails all return values must be cleared.
 						if (EEdGraphPinDirection::EGPD_Output == CurrentPin->Direction)
@@ -218,24 +216,12 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 			if( bThenPinConnected )
 			{
 				// Failure case for the cast runs straight through to the exit
-				CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*ThenPin, *LastOutCastFaildPin), this);
+				CompilerContext.CopyPinLinksToIntermediate(*ThenPin, *LastOutCastFaildPin);
 
 				// Copy all links from the invalid cast case above to the call function node
 				if (UEdGraphPin* CallFunctionThenPin = Schema->FindExecutionPin(*FunctionCallNode, EGPD_Output))
 				{
-					for( int32 i = 0; i < LastOutCastFaildPin->LinkedTo.Num(); i++ )
-					{
-						UEdGraphPin* Pin = LastOutCastFaildPin->LinkedTo[i];
-						FPinConnectionResponse Response = Schema->CanCreateConnection(CallFunctionThenPin, Pin);
-						if(Response.CanSafeConnect())
-						{
-							CallFunctionThenPin->MakeLinkTo(Pin);
-						}
-						else
-						{
-							CompilerContext.CheckConnectionResponse(Response, this);
-						}
-					}
+					CompilerContext.MovePinLinksToIntermediate(*ThenPin, *CallFunctionThenPin);
 				}
 				else
 				{

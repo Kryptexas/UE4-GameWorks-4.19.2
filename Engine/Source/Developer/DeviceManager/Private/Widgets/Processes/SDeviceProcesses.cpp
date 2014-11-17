@@ -60,23 +60,23 @@ void SDeviceProcesses::Construct( const FArguments& InArgs, const FDeviceManager
 										SNew(SHeaderRow)
 
 										+ SHeaderRow::Column("Name")
-											.DefaultLabel(LOCTEXT("ProcessListNameColumnHeader", "Process Name").ToString())
+											.DefaultLabel(LOCTEXT("ProcessListNameColumnHeader", "Process Name"))
 											.FillWidth(0.275f)
 
 										+ SHeaderRow::Column("PID")
-											.DefaultLabel(LOCTEXT("ProcessListPidColumnHeader", "PID").ToString())
+											.DefaultLabel(LOCTEXT("ProcessListPidColumnHeader", "PID"))
 											.FillWidth(0.15f)
 
 										+ SHeaderRow::Column("User")
-											.DefaultLabel(LOCTEXT("ProcessListUserColumnHeader", "User").ToString())
+											.DefaultLabel(LOCTEXT("ProcessListUserColumnHeader", "User"))
 											.FillWidth(0.275f)
 
 										+ SHeaderRow::Column("Threads")
-											.DefaultLabel(LOCTEXT("ProcessListThreadsColumnHeader", "Threads").ToString())
+											.DefaultLabel(LOCTEXT("ProcessListThreadsColumnHeader", "Threads"))
 											.FillWidth(0.15f)
 
 										+ SHeaderRow::Column("Parent")
-											.DefaultLabel(LOCTEXT("ProcessListParentColumnHeader", "Parent PID").ToString())
+											.DefaultLabel(LOCTEXT("ProcessListParentColumnHeader", "Parent PID"))
 											.FillWidth(0.15f)
 									)
 							]
@@ -98,10 +98,10 @@ void SDeviceProcesses::Construct( const FArguments& InArgs, const FDeviceManager
 											.IsChecked(this, &SDeviceProcesses::HandleProcessTreeCheckBoxIsChecked)
 											.OnCheckStateChanged(this, &SDeviceProcesses::HandleProcessTreeCheckBoxCheckStateChanged)
 											.Padding(FMargin(4.0f, 0.0f))
-											.ToolTipText(LOCTEXT("ProcessTreeCheckBoxToolTip", "Check this box to display the list of processes as a tree instead of a flat list").ToString())
+											.ToolTipText(LOCTEXT("ProcessTreeCheckBoxToolTip", "Check this box to display the list of processes as a tree instead of a flat list"))
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("ProcessTreeCheckBoxText", "Show process tree").ToString())
+													.Text(LOCTEXT("ProcessTreeCheckBoxText", "Show process tree"))
 											]
 									]
 
@@ -111,7 +111,7 @@ void SDeviceProcesses::Construct( const FArguments& InArgs, const FDeviceManager
 										SNew(SButton)
 											.IsEnabled(this, &SDeviceProcesses::HandleTerminateProcessButtonIsEnabled)
 											.OnClicked(this, &SDeviceProcesses::HandleTerminateProcessButtonClicked)
-											.Text(LOCTEXT("TerminateProcessButtonText", "Terminate Process").ToString())
+											.Text(LOCTEXT("TerminateProcessButtonText", "Terminate Process"))
 									]
 							]
 					]

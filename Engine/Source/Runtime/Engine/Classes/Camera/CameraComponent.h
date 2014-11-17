@@ -7,7 +7,7 @@
   * Represents a camera viewpoint and settings, such as projection type, field of view, and post-process overrides.
   * The default behavior for an actor used as the camera view target is to look for an attached camera component and use its location, rotation, and settings.
   */
-UCLASS(HeaderGroup=Component, HideCategories=(Mobility, Rendering, LOD), ClassGroup=Camera, meta=(BlueprintSpawnableComponent), MinimalAPI)
+UCLASS(HideCategories=(Mobility, Rendering, LOD), ClassGroup=Camera, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class UCameraComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -37,7 +37,7 @@ class UCameraComponent : public USceneComponent
 	TEnumAsByte<ECameraProjectionMode::Type> ProjectionMode;
 
 	/** Indicates if PostProcessSettings should be used when using this Camera to view through. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings, meta=(UIMin = "0.0", UIMax = "1.0"))
 	float PostProcessBlendWeight;
 
 	/** Post process settings to use for this camera. Don't forget to check the properties you want to override */
@@ -46,6 +46,7 @@ class UCameraComponent : public USceneComponent
 
 	// UActorComponent interface
 	ENGINE_API virtual void OnRegister() OVERRIDE;
+	ENGINE_API virtual void OnUnregister() OVERRIDE;
 #if WITH_EDITOR
 	ENGINE_API virtual void CheckForErrors() OVERRIDE;
 	// End of UActorComponent interface

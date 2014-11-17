@@ -16,6 +16,15 @@ public:
 	float X,Y,Z,W;
 	// X,Y,Z, W also doubles as the Axis/Angle format.
 
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		checkf(!ContainsNaN(), TEXT("FQuat contains NaN: %s"), *ToString());
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
+
 	// Constructors.
 	FORCEINLINE FQuat();
 
@@ -450,6 +459,8 @@ inline FQuat::FQuat( const FMatrix& M )
 		this->Y = qt[1];
 		this->Z = qt[2];
 		this->W = qt[3];
+
+		DiagnosticCheckNaN();
 	}
 }
 
@@ -457,6 +468,7 @@ inline FQuat::FQuat( const FMatrix& M )
 FORCEINLINE FQuat::FQuat( const FRotator& R )
 {
 	*this = R.Quaternion();
+	DiagnosticCheckNaN();
 }
 
 
@@ -586,7 +598,9 @@ FORCEINLINE FQuat::FQuat(EForceInit ZeroOrNot)
 
 FORCEINLINE FQuat::FQuat( float InX, float InY, float InZ, float InA )
 :	X(InX), Y(InY), Z(InZ), W(InA)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 
 FORCEINLINE FQuat::FQuat( const FQuat& Q ) :
@@ -594,7 +608,8 @@ FORCEINLINE FQuat::FQuat( const FQuat& Q ) :
 	Y(Q.Y),
 	Z(Q.Z),
 	W(Q.W)
-{}
+{
+}
 
 
 FORCEINLINE FString FQuat::ToString() const
@@ -626,6 +641,8 @@ FORCEINLINE FQuat::FQuat( FVector Axis, float AngleRad )
 	Y = s * Axis.Y;
 	Z = s * Axis.Z;
 	W = c;
+
+	DiagnosticCheckNaN();
 }
 
 
@@ -641,6 +658,9 @@ FORCEINLINE FQuat FQuat::operator+=(const FQuat& Q)
 	this->Y += Q.Y;
 	this->Z += Q.Z;
 	this->W += Q.W;
+
+	DiagnosticCheckNaN();
+
 	return *this;
 }
 
@@ -664,6 +684,9 @@ FORCEINLINE FQuat FQuat::operator-=(const FQuat& Q)
 	this->Y -= Q.Y;
 	this->Z -= Q.Z;
 	this->W -= Q.W;
+
+	DiagnosticCheckNaN();
+
 	return *this;
 }
 
@@ -672,6 +695,9 @@ FORCEINLINE FQuat FQuat::operator*( const FQuat& Q ) const
 {
 	FQuat Result;
 	VectorQuaternionMultiply(&Result, this, &Q);
+	
+	Result.DiagnosticCheckNaN();
+	
 	return Result;
 }
 
@@ -679,13 +705,15 @@ FORCEINLINE FQuat FQuat::operator*( const FQuat& Q ) const
 FORCEINLINE FQuat FQuat::operator*=(const FQuat& Q)
 {
 	/**
-	 	* Now this uses VectorQuaternionMultiply that is optimized per platform.
-	 	*/
+	 * Now this uses VectorQuaternionMultiply that is optimized per platform.
+	 */
 	VectorRegister A = VectorLoadAligned(this);
 	VectorRegister B = VectorLoadAligned(&Q);
 	VectorRegister Result;
 	VectorQuaternionMultiply(&Result, &A, &B);
 	VectorStoreAligned(Result, this);
+
+	DiagnosticCheckNaN();
 
 	return *this; 
 }
@@ -697,6 +725,8 @@ FORCEINLINE FQuat FQuat::operator*=( const float Scale )
 	Y *= Scale;
 	Z *= Scale;
 	W *= Scale;
+
+	DiagnosticCheckNaN();
 
 	return *this;
 }

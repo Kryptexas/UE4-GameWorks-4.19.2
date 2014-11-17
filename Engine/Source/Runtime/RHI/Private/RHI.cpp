@@ -144,8 +144,8 @@ int32 GNumActiveGPUsForRendering = 1;
 
 FVertexElementTypeSupportInfo GVertexElementTypeSupport;
 
-RHI_API int64 volatile GCurrentTextureMemorySize = 0;
-RHI_API int64 volatile GCurrentRendertargetMemorySize = 0;
+RHI_API int32 volatile GCurrentTextureMemorySize = 0;
+RHI_API int32 volatile GCurrentRendertargetMemorySize = 0;
 RHI_API int64 GTexturePoolSize = 0 * 1024 * 1024;
 RHI_API bool GReadTexturePoolSizeFromIni = false;
 RHI_API int32 GPoolSizeVRAMPercentage = 0;
@@ -168,8 +168,13 @@ void RHIPrivateBeginFrame()
 
 RHI_API EShaderPlatform GRHIShaderPlatform = SP_PCD3D_SM5;
 
-/** The current feature level supported. */
-RHI_API ERHIFeatureLevel::Type GRHIFeatureLevel = ERHIFeatureLevel::SM5;
+/** The maximum feature level supported on this machine */
+ERHIFeatureLevel::Type GMaxRHIFeatureLevel = ERHIFeatureLevel::SM5;
+
+RHI_API void SetMaxRHIFeatureLevel(ERHIFeatureLevel::Type InType)
+{
+	GMaxRHIFeatureLevel = InType;
+}
 
 FName FeatureLevelNames[] = 
 {
@@ -271,8 +276,7 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_OPENGL_ES2)		return SP_OPENGL_ES2;
 	if (ShaderFormat == NAME_OPENGL_ES2_WEBGL)	return SP_OPENGL_ES2_WEBGL;
 	if (ShaderFormat == NAME_OPENGL_ES2_IOS)	return SP_OPENGL_ES2_IOS;
-	check(0);
-	return SP_PCD3D_SM5;
+	return SP_NumPlatforms;
 }
 
 

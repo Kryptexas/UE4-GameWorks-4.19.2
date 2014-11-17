@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionAppendVector.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionAppendVector : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -3,8 +3,7 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
-#include "EngineLevelScriptClasses.h"
-#include "DeferRegisterStaticComponents.h"
+#include "DeferRegisterComponents.h"
 
 #if WITH_EDITOR
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
@@ -272,7 +271,7 @@ void AActor::OnConstruction(const FTransform& Transform)
 					CurrentBPGClass->SimpleConstructionScript->ExecuteScriptOnActor(this, Transform);
 				}
 				// Now that the construction scripts have been run, we can create timelines and hook them up
-				CurrentBPGClass->CreateTimelinesForActor(this);
+				CurrentBPGClass->CreateComponentsForActor(this);
 			}
 
 #if WITH_EDITOR
@@ -310,7 +309,7 @@ void AActor::OnConstruction(const FTransform& Transform)
 }
 
 
-void FDeferRegisterStaticComponents::DeferStaticComponent(AActor* Actor, USceneComponent* Component, EComponentMobility::Type OriginalMobility)
+void FDeferRegisterComponents::DeferComponentRegistration(AActor* Actor, USceneComponent* Component, EComponentMobility::Type OriginalMobility)
 {
 	TArray<FDeferredComponentInfo>* ActorComponentsToRegister = ComponentsToRegister.Find(Actor);
 	if (!ActorComponentsToRegister)
@@ -318,11 +317,15 @@ void FDeferRegisterStaticComponents::DeferStaticComponent(AActor* Actor, USceneC
 		ActorComponentsToRegister = &ComponentsToRegister.Add(Actor, TArray<FDeferredComponentInfo>());
 	}
 	ActorComponentsToRegister->Add(FDeferredComponentInfo(Component, OriginalMobility));
-	// Make sure Mobility is temporarily set to EComponentMobility::Movable.
+	
+	// Components with Mobility set to EComponentMobility::Static or EComponentMobility::Stationary 
+	// can't be properly set up from a construction script (all changes will be rejected due to 
+	// EComponentMobility::Static flag) so we're going to temporarily change the flag and defer 
+	// the registration until the construction-script has finished.
 	Component->Mobility = EComponentMobility::Movable;
 }
 
-void FDeferRegisterStaticComponents::RegisterComponents(AActor* Actor)
+void FDeferRegisterComponents::RegisterComponents(AActor* Actor)
 {
 	TArray<FDeferredComponentInfo>* ActorComponentsToRegister = ComponentsToRegister.Find(Actor);
 	if (ActorComponentsToRegister)
@@ -340,7 +343,7 @@ void FDeferRegisterStaticComponents::RegisterComponents(AActor* Actor)
 }
 
 // FGCObject interface
-void FDeferRegisterStaticComponents::AddReferencedObjects(FReferenceCollector& Collector)
+void FDeferRegisterComponents::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	for (TMap<AActor*, TArray<FDeferredComponentInfo> >::TIterator It(ComponentsToRegister); It; ++It)
 	{
@@ -353,10 +356,10 @@ void FDeferRegisterStaticComponents::AddReferencedObjects(FReferenceCollector& C
 	}
 }
 
-/* Gets the FDeferRegisterStaticComponents singleton. */
-FDeferRegisterStaticComponents& FDeferRegisterStaticComponents::Get()
+/* Gets the FDeferRegisterComponents singleton. */
+FDeferRegisterComponents& FDeferRegisterComponents::Get()
 {
-	static FDeferRegisterStaticComponents Singleton;
+	static FDeferRegisterComponents Singleton;
 	return Singleton;
 }
 
@@ -368,7 +371,7 @@ void AActor::ProcessUserConstructionScript()
 	bRunningUserConstructionScript = false;
 
 	// Register all deferred components for this actor.
-	FDeferRegisterStaticComponents::Get().RegisterComponents(this);
+	FDeferRegisterComponents::Get().RegisterComponents(this);
 }
 
 void AActor::FinishAndRegisterComponent(UActorComponent* Component)
@@ -449,7 +452,7 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 		if (bDeferRegisterStaticComponent)
 		{
 			// Defer registration until after UCS has completed.
-			FDeferRegisterStaticComponents::Get().DeferStaticComponent(this, NewSceneComp, OriginalMobility);
+			FDeferRegisterComponents::Get().DeferComponentRegistration(this, NewSceneComp, OriginalMobility);
 		}
 		else
 		{

@@ -6,6 +6,8 @@
 
 #include "MacWindow.h"
 
+/** Used to temporarily disable Cocoa screen updates to make window updates happen only on the render thread. */
+bool GMacEnableCocoaScreenUpdates = true;
 
 FSlateOpenGLViewport::FSlateOpenGLViewport()
 {
@@ -16,8 +18,8 @@ void FSlateOpenGLViewport::Initialize( TSharedRef<SWindow> InWindow, const FSlat
 	TSharedRef<FGenericWindow> NativeWindow = InWindow->GetNativeWindow().ToSharedRef();
 	RenderingContext.Initialize( NativeWindow->GetOSWindowHandle(), &SharedContext );
 
-	const int32 Width = FMath::Trunc(InWindow->GetSizeInScreen().X);
-	const int32 Height = FMath::Trunc(InWindow->GetSizeInScreen().Y);
+	const int32 Width = FMath::TruncToInt(InWindow->GetSizeInScreen().X);
+	const int32 Height = FMath::TruncToInt(InWindow->GetSizeInScreen().Y);
 
 	ProjectionMatrix = CreateProjectionMatrix( Width, Height );
 
@@ -119,6 +121,12 @@ void FSlateOpenGLViewport::SwapBuffers()
 	}
 	
 	[RenderingContext.Context flushBuffer];
+	
+	if(!GMacEnableCocoaScreenUpdates)
+	{
+		GMacEnableCocoaScreenUpdates = true;
+		NSEnableScreenUpdates();
+	}
 	
 	NSWindow* Window = [[RenderingContext.Context view] window];
 	FSlateCocoaWindow* SlateCocoaWindow = [Window isKindOfClass:[FSlateCocoaWindow class]] ? (FSlateCocoaWindow*)Window : nil;

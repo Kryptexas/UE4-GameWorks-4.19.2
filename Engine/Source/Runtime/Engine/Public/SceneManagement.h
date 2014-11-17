@@ -9,7 +9,6 @@
 // Includes the draw mesh macros
 #include "SceneUtils.h"
 #include "UniformBuffer.h"
-#include "EngineSceneClasses.h"
 #include "BufferVisualizationData.h"
 #include "ConvexVolume.h"
 #include "SystemSettings.h"
@@ -721,6 +720,7 @@ public:
 	float SkyDistanceThreshold;
 	bool bCastShadows;
 	bool bPrecomputedLightingIsValid;
+	bool bHasStaticLighting;
 	FLinearColor LightColor;
 	FSHVectorRGB3 IrradianceEnvironmentMap;
 };
@@ -1005,7 +1005,7 @@ protected:
 	/** Whether the light affects translucency or not.  Disabling this can save GPU time when there are many small lights. */
 	const uint32 bAffectTranslucentLighting : 1;
 
-	/** Whether to consider light as a sunlight for atmospheric scattering. */
+	/** Whether to consider light as a sunlight for atmospheric scattering and exponential height fog. */
 	const uint32 bUsedAsAtmosphereSunLight : 1;
 
 	/** Does the light have dynamic GI? */
@@ -1274,7 +1274,7 @@ struct FMeshBatchElement
 	uint32 NumInstances;
 	uint32 MinVertexIndex;
 	uint32 MaxVertexIndex;
-	int32 GPUSkinCacheKey;	// -1 if not using GPU skin cache
+	int32 UserIndex;
 	void* UserData;
 
 	/** 
@@ -1288,7 +1288,7 @@ struct FMeshBatchElement
 	:	PrimitiveUniformBufferResource(NULL)
 	,	IndexBuffer(NULL)
 	,	NumInstances(1)
-	,	GPUSkinCacheKey(-1)
+	,	UserIndex(-1)
 	,	UserData(NULL)
 	,	DynamicIndexData(NULL)
 	{
@@ -1466,9 +1466,10 @@ public:
 	/**
 	 * Determines whether a particular material will be ignored in this context.
 	 * @param MaterialRenderProxy - The render proxy of the material to check.
+	 * @param InFeatureLevel - The feature level we are currently rendering at
 	 * @return true if meshes using the material will be ignored in this context.
 	 */
-	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy) const
+	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const
 	{
 		return false;
 	}
@@ -1512,8 +1513,7 @@ public:
 	virtual void SetHitProxy(HHitProxy* HitProxy) = 0;
 	virtual void DrawMesh(
 		const FMeshBatch& Mesh,
-		float MinDrawDistance,
-		float MaxDrawDistance,
+		float ScreenSize,
 		bool bShadowOnly = false
 		) = 0;
 };
@@ -1706,7 +1706,7 @@ public:
 	/**
 	 * Creates any needed motion blur infos if needed and saves the transforms of the frame we just completed
 	 */
-	void UpdateMotionBlurCache();
+	void UpdateMotionBlurCache(class FScene* InScene);
 
 	/**
 	 * Call if you want to keep the existing motionblur
@@ -1838,7 +1838,7 @@ public:
 	 * Updates the contents of the given sky capture by rendering the scene. 
 	 * This must be called on the game thread.
 	 */
-	virtual void UpdateSkyCaptureContents(USkyLightComponent* CaptureComponent) {}
+	virtual void UpdateSkyCaptureContents(const USkyLightComponent* CaptureComponent, bool bCaptureEmissiveOnly, FTexture* OutProcessedTexture, FSHVectorRGB3& OutIrradianceEnvironmentMap) {}
 
 	/** 
 	* Updates the contents of the given scene capture by rendering the scene. 
@@ -2035,6 +2035,8 @@ public:
 
 	virtual bool IsEditorScene() const { return false; }
 
+	virtual ERHIFeatureLevel::Type GetFeatureLevel() const { return GRHIFeatureLevel; }
+
 protected:
 	virtual ~FSceneInterface() {}
 };
@@ -2069,6 +2071,9 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ViewSizeAndSceneTexelSize)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ViewOrigin)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,TranslatedViewOrigin)
+	// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
+	// After 4.2 we can put the workaround in the cross compiler.
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,ExposureScale, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,DiffuseOverrideParameter, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,SpecularOverrideParameter, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,NormalOverrideParameter, EShaderPrecisionModifier::Half)
@@ -2083,6 +2088,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,RealTime)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,Random)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,FrameNumber)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,UseLightmaps, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,UnlitViewmodeMask, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,ReflectionLightmapMixingMask, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor,DirectionalLightColor, EShaderPrecisionModifier::Half)
@@ -2092,7 +2098,6 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,TranslucencyLightingVolumeMin,[TVC_MAX])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,TranslucencyLightingVolumeInvSize,[TVC_MAX])
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,TemporalAAParams)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,ExposureScale, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldFocalDistance)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldScale)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldFocalLength)
@@ -2123,6 +2128,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters,ENGINE_API)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogHeightScaleRayleigh, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogStartDistance, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogDistanceOffset, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogSunDiscScale, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,AtmosphericFogRenderMask)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,AtmosphericFogInscatterAltitudeSampleNum)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FLinearColor,AtmosphericFogSunColor)
@@ -2475,6 +2481,8 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 
 	TSet<FPrimitiveComponentId> HiddenPrimitives;
 
+	// -1,-1 if not setup
+	FIntPoint CursorPos;
 
 	float LODDistanceFactor;
 
@@ -2505,6 +2513,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, ColorScale(FLinearColor::White)
 		, StereoPass(eSSP_FULL)
 		, WorldToMetersScale(100.f)
+		, CursorPos(-1, -1)
 		, LODDistanceFactor(1.0f)
 		, OverrideFarClippingPlaneDistance(-1.0f)
 		, bInCameraCut(false)
@@ -2517,7 +2526,6 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	{
 	}
 };
-
 
 /**
  * A projection from scene space into a 2D screen region.
@@ -2628,6 +2636,9 @@ public:
 	/** Whether we did a camera cut for this view this frame. */
 	bool bCameraCut;
 
+	// -1,-1 if not setup
+	FIntPoint CursorPos;
+
 	/** True if this scene was created from a game world. */
 	bool bIsGameView;
 
@@ -2645,6 +2656,12 @@ public:
 
 	/** 0 if valid (we are rendering a screen postprocess pass )*/
 	struct FRenderingCompositePassContext* RenderingCompositePassContext; 
+
+	/** Aspect ratio constrained view rect. In the editor, when attached to a camera actor and the camera black bar showflag is enabled, the normal viewrect 
+	  * remains as the full viewport, and the black bars are just simulated by drawing black bars. This member stores the effective constrained area within the
+	  * bars.
+	 **/
+	FIntRect CameraConstrainedViewRect;
 
 #if WITH_EDITOR
 	/** The set of (the first 64) groups' visibility info for this view */
@@ -2753,6 +2770,9 @@ public:
 
 	/** Configure post process settings for the buffer visualization system */
 	void ConfigureBufferVisualizationSettings();
+
+	/** Get the feature level for this view **/
+	ERHIFeatureLevel::Type GetFeatureLevel() const;
 };
 
 
@@ -3065,3 +3085,29 @@ extern ENGINE_API void DrawUVs(FViewport* InViewport, FCanvas* InCanvas, int32 I
 
 /** Returns true if the Material and Vertex Factory combination require adjacency information. */
 bool RequiresAdjacencyInformation( class UMaterialInterface* Material, const class FVertexFactoryType* VertexFactoryType );
+/**
+ * Computes the screen size of a given sphere bounds in the given view
+ * @param Origin - Origin of the bounds in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ * @param View - The view to calculate the display factor for
+ * @return float - The screen size calculated
+ */
+float ENGINE_API ComputeBoundsScreenSize(const FVector4& Origin, const float SphereRadius, const FSceneView& View);
+
+/**
+ * Computes the LOD level for the given static meshes render data in the given view.
+ * @param RenderData - Render data for the mesh
+ * @param Origin - Origin of the bounds of the mesh in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ * @param View - The view to calculate the LOD level for
+ */
+int8 ENGINE_API ComputeStaticMeshLOD(const FStaticMeshRenderData* RenderData, const FVector4& Origin, const float SphereRadius, const FSceneView& View, float FactorScale = 1.0f);
+
+/**
+ * Computes the LOD to render for the list of static meshes in the given view.
+ * @param StaticMeshes - List of static meshes.
+ * @param View - The view to render the LOD level for 
+ * @param Origin - Origin of the bounds of the mesh in world space
+ * @param SphereRadius - Radius of the sphere to use to calculate screen coverage
+ */
+int8 ENGINE_API ComputeLODForMeshes(const TIndirectArray<class FStaticMesh>& StaticMeshes, FSceneView& View, const FVector4& Origin, float SphereRadius, int32 ForcedLODLevel, float ScreenSizeScale = 1.0f);

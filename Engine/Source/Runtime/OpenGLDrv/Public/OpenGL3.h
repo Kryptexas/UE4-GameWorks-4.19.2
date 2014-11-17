@@ -22,6 +22,7 @@ struct FOpenGL3 : public FOpenGLBase
 	static FORCEINLINE bool SupportsTimestampQueries()			{ return TimestampQueryBits > 0; }
 	static FORCEINLINE bool SupportsSeamlessCubeMap()			{ return bSupportsSeamlessCubemap; }
 	static FORCEINLINE bool SupportsVolumeTextureRendering()	{ return bSupportsVolumeTextureRendering; }
+	static FORCEINLINE bool SupportsGenerateMipmap()			{ return true; }
 
 	// Optional
 	static FORCEINLINE void QueryTimestampCounter(GLuint QueryID)
@@ -133,6 +134,9 @@ struct FOpenGL3 : public FOpenGLBase
 			case RLM_WriteOnlyUnsynchronized:
 				Access = (GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
 				break;
+			case RLM_WriteOnlyPersistent:
+				Access = (GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+				break;
 			case RLM_ReadWrite:
 			default:
 				Access = (GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
@@ -169,6 +173,11 @@ struct FOpenGL3 : public FOpenGLBase
 	static FORCEINLINE void BindBufferBase(GLenum Target, GLuint Index, GLuint Buffer)
 	{
 		glBindBufferBase(Target, Index, Buffer);
+	}
+
+	static FORCEINLINE void BindBufferRange(GLenum Target, GLuint Index, GLuint Buffer, GLintptr Offset, GLsizeiptr Size)
+	{
+		glBindBufferRange(Target, Index, Buffer, Offset, Size);
 	}
 
 	static FORCEINLINE GLuint GetUniformBlockIndex(GLuint Program, const GLchar* UniformBlockName)
@@ -472,6 +481,11 @@ struct FOpenGL3 : public FOpenGLBase
 	static FORCEINLINE void CompressedTexSubImage3D(GLenum Target, GLint Level, GLint XOffset, GLint YOffset, GLint ZOffset, GLsizei Width, GLsizei Height, GLsizei Depth, GLenum Format, GLsizei ImageSize, const GLvoid* PixelData)
 	{
 		glCompressedTexSubImage3D( Target, Level, XOffset, YOffset, ZOffset, Width, Height, Depth, Format, ImageSize, PixelData);
+	}
+
+	static FORCEINLINE void GenerateMipmap( GLenum Target )
+	{
+		glGenerateMipmap( Target);
 	}
 
 	static FORCEINLINE const ANSICHAR* GetStringIndexed(GLenum Name, GLuint Index)

@@ -11,6 +11,66 @@
 
 // FPrimitiveSceneProxy interface.
 
+FDebugRenderSceneProxy::FDebugRenderSceneProxy(const UPrimitiveComponent* InComponent) 
+	: FPrimitiveSceneProxy(InComponent)
+	, ViewFlagIndex(uint32(FEngineShowFlags::FindIndexByName(TEXT("Game"))))
+	, TextWithoutShadowDistance(1500)
+{
+
+}
+
+void FDebugRenderSceneProxy::RegisterDebugDrawDelgate()
+{
+	DebugTextDrawingDelegate = FDebugDrawDelegate::CreateRaw(this, &FDebugRenderSceneProxy::DrawDebugLabels);
+	UDebugDrawService::Register(*ViewFlagName, DebugTextDrawingDelegate);
+}
+
+void FDebugRenderSceneProxy::UnregisterDebugDrawDelgate()
+{
+	if (DebugTextDrawingDelegate.IsBound())
+	{
+		UDebugDrawService::Unregister(DebugTextDrawingDelegate);
+	}
+}
+
+uint32 FDebugRenderSceneProxy::GetAllocatedSize(void) const 
+{ 
+	return	FPrimitiveSceneProxy::GetAllocatedSize() + 
+		Cylinders.GetAllocatedSize() + 
+		ArrowLines.GetAllocatedSize() + 
+		Stars.GetAllocatedSize() + 
+		DashedLines.GetAllocatedSize() + 
+		Lines.GetAllocatedSize() + 
+		WireBoxes.GetAllocatedSize() + 
+		SolidSpheres.GetAllocatedSize() +
+		Texts.GetAllocatedSize();
+}
+
+
+void FDebugRenderSceneProxy::DrawDebugLabels(UCanvas* Canvas, APlayerController*)
+{
+	const FColor OldDrawColor = Canvas->DrawColor;
+	const FFontRenderInfo FontRenderInfo = Canvas->CreateFontRenderInfo(true, false);
+	const FFontRenderInfo FontRenderInfoWithShadow = Canvas->CreateFontRenderInfo(true, true);
+
+	Canvas->SetDrawColor(FColor::White);
+
+	UFont* RenderFont = GEngine->GetSmallFont();
+
+	const FSceneView* View = Canvas->SceneView;
+	for (auto It = Texts.CreateConstIterator(); It; ++It)
+	{
+		if (PointInView(It->Location, View))
+		{
+			const FVector ScreenLoc = Canvas->Project(It->Location);
+			const FFontRenderInfo& FontInfo = TextWithoutShadowDistance >= 0 ? (PointWithinCorrectDistance(It->Location, View, TextWithoutShadowDistance) ? FontRenderInfoWithShadow : FontRenderInfo) : FontRenderInfo;
+			Canvas->DrawText(RenderFont, It->Text, ScreenLoc.X, ScreenLoc.Y, 1, 1, FontInfo);
+		}
+	}
+
+	Canvas->SetDrawColor(OldDrawColor);
+}
+
 /** 
 * Draw the scene proxy as a dynamic element
 *
@@ -68,6 +128,40 @@ void FDebugRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,co
 		FDebugBox& Box = WireBoxes[BoxIdx];
 
 		DrawWireBox( PDI, Box.Box, Box.Color, SDPG_World);
+	}
+
+	// Draw solid spheres
+	struct FMaterialCache
+	{
+		FMaterialCache() {}
+
+		FMaterialRenderProxy* operator[](FLinearColor Color) const
+		{
+			FMaterialRenderProxy* MeshColor = NULL;
+			const uint32 HashKey = GetTypeHash(Color);
+			if (MeshColorInstances.Contains(HashKey))
+			{
+				MeshColor = *MeshColorInstances.Find(HashKey);
+			}
+			else
+			{
+				MeshColor = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), Color);
+				MeshColorInstances.Add(HashKey, MeshColor);
+			}
+
+			return MeshColor;
+		}
+
+		mutable TMap<uint32, FMaterialRenderProxy*> MeshColorInstances;
+	};
+	const FMaterialCache MaterialCache;
+
+	for (auto It = SolidSpheres.CreateConstIterator(); It; ++It)
+	{
+		if (PointInView(It->Location, View))
+		{
+			DrawSphere(PDI, It->Location, FVector(It->Radius), 10, 7, MaterialCache[It->Color], SDPG_World);
+		}
 	}
 
 }

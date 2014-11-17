@@ -200,8 +200,8 @@ public:
 		FXWMABufferInfo			XWMA;			// Xenon only
 	};
 
-	/** Wrapper to handle the decompression of vorbis code */
-	class FVorbisAudioInfo*		DecompressionState;
+	/** Wrapper to handle the decompression of audio codecs */
+	class ICompressedAudioInfo*		DecompressionState;
 	/** Set to true when the PCM data should be freed when the buffer is destroyed */
 	bool						bDynamicResource;
 };
@@ -452,7 +452,7 @@ public:
 	 * @param	OutVolumes				An array of floats with one volume for each output channel.
 	 * @param	OutReverbLevel			The reverb volume
 	 */
-	void CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float* OutVolumes );
+	void CalculateDolbySurroundRate( const FVector& OrientFront, const FVector& ListenerPosition, const FVector& EmitterPosition, float OmniRadius, float* OutVolumes );
 };
 
 /** Variables required for the early init */

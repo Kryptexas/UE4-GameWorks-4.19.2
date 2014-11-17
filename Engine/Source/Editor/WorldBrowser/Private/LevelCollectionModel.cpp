@@ -664,7 +664,7 @@ void FLevelCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) cons
 		InMenuBuilder.AddMenuEntry( Commands.AddsActors );
 		InMenuBuilder.AddMenuEntry( Commands.RemovesActors );
 
-		if (AreAnyLevelsSelected())
+		if (AreAnyLevelsSelected() && !(IsOneLevelSelected() && SelectedLevelsList[0]->IsPersistent()))
 		{
 			InMenuBuilder.AddMenuEntry( Commands.SelectStreamingVolumes );
 		}
@@ -733,8 +733,8 @@ void FLevelCollectionModel::UpdateAllLevels()
 	
 	// Update world size
 	FBox WorldBounds = GetLevelsBoundingBox(AllLevelsList, false);
-	WorldSize.X = FMath::Round(WorldBounds.GetSize().X);
-	WorldSize.Y = FMath::Round(WorldBounds.GetSize().Y);
+	WorldSize.X = FMath::RoundToInt(WorldBounds.GetSize().X);
+	WorldSize.Y = FMath::RoundToInt(WorldBounds.GetSize().Y);
 }
 
 void FLevelCollectionModel::RedrawAllLevels()
@@ -808,6 +808,19 @@ bool FLevelCollectionModel::AreAllSelectedLevelsEditable() const
 	for (auto It = SelectedLevelsList.CreateConstIterator(); It; ++It)
 	{
 		if ((*It)->IsEditable() == false)
+		{
+			return false;
+		}
+	}
+	
+	return AreAnyLevelsSelected();
+}
+
+bool FLevelCollectionModel::AreAllSelectedLevelsEditableAndNotPersistent() const
+{
+	for (auto It = SelectedLevelsList.CreateConstIterator(); It; ++It)
+	{
+		if ((*It)->IsEditable() == false || (*It)->IsPersistent())
 		{
 			return false;
 		}
@@ -1106,10 +1119,7 @@ void FLevelCollectionModel::SCCDiffAgainstDepot(const FLevelModelList& InList, U
 							FString NewTextFilename = AssetToolsModule.Get().DumpAssetToTempFile(OriginalPackage);
 							FString DiffCommand = GetDefault<UEditorLoadingSavingSettings>()->TextDiffToolPath.FilePath;
 
-							// args are just 2 temp filenames
-							FString DiffArgs = FString::Printf(TEXT("%s %s"), *OldTextFilename, *NewTextFilename);
-
-							AssetToolsModule.Get().CreateDiffProcess(DiffCommand, DiffArgs);
+							AssetToolsModule.Get().CreateDiffProcess(DiffCommand, OldTextFilename, NewTextFilename);
 							AssetToolsModule.Get().DiffAssets(OldPackage, OriginalPackage, OldRevision, NewRevision);
 						}
 					}

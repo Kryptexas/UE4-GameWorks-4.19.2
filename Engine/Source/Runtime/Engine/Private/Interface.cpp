@@ -12,3 +12,9 @@ URuntimeMovieScenePlayerInterface::URuntimeMovieScenePlayerInterface( const clas
 {
 
 }
+
+UInterface_PostProcessVolume::UInterface_PostProcessVolume( const class FPostConstructInitializeProperties& PCIP )
+	: Super(PCIP)
+{
+
+}

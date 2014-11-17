@@ -12,17 +12,20 @@ void UDelegateProperty::InstanceSubobjects(void* Data, void const* DefaultData, 
 	for( int32 i=0; i<ArrayDim; i++ )
 	{
 		FScriptDelegate& DestDelegate = ((FScriptDelegate*)Data)[i];
-		UObject* CurrentValue = DestDelegate.GetObject();
-		if ( CurrentValue )
+		UObject* CurrentUObject = DestDelegate.GetUObject();
+
+		if (CurrentUObject)
 		{
 			UObject *Template = NULL;
+
 			if (DefaultData)
 			{
 				FScriptDelegate& DefaultDelegate = ((FScriptDelegate*)DefaultData)[i];
-				Template = DefaultDelegate.GetObject();
+				Template = DefaultDelegate.GetUObject();
 			}
-			UObject* NewValue = InstanceGraph->InstancePropertyValue(Template, CurrentValue, Owner, HasAnyPropertyFlags(CPF_Transient), false, true);
-			DestDelegate.SetObject(NewValue);
+
+			UObject* NewUObject = InstanceGraph->InstancePropertyValue(Template, CurrentUObject, Owner, HasAnyPropertyFlags(CPF_Transient), false, true);
+			DestDelegate.BindUFunction(NewUObject, DestDelegate.GetFunctionName());
 		}
 	}
 }
@@ -40,11 +43,11 @@ bool UDelegateProperty::Identical( const void* A, const void* B, uint32 PortFlag
 	}
 	else if ( DA->GetFunctionName() == DB->GetFunctionName() )
 	{
-		if ( DA->GetObject() == DB->GetObject() )
+		if ( DA->GetUObject() == DB->GetUObject() )
 		{
 			bResult = true;
 		}
-		else if	((DA->GetObject() == NULL || DB->GetObject() == NULL)
+		else if	((DA->GetUObject() == NULL || DB->GetUObject() == NULL)
 			&&	(PortFlags&PPF_DeltaComparison) != 0)
 		{
 			bResult = true;
@@ -82,7 +85,7 @@ void UDelegateProperty::ExportTextItem( FString& ValueStr, const void* PropertyV
 	check(ScriptDelegate != NULL);
 	bool bDelegateHasValue = ScriptDelegate->GetFunctionName() != NAME_None;
 	ValueStr += FString::Printf( TEXT("%s.%s"),
-		ScriptDelegate->GetObject() != NULL ? *ScriptDelegate->GetObject()->GetName() : TEXT("(null)"),
+		ScriptDelegate->GetUObject() != NULL ? *ScriptDelegate->GetUObject()->GetName() : TEXT("(null)"),
 		*ScriptDelegate->GetFunctionName().ToString() );
 }
 

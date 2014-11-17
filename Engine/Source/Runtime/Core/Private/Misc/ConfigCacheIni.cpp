@@ -761,9 +761,9 @@ bool FConfigFile::Write( const FString& Filename, bool bDoRemoteWrite/* = true*/
 						&& !Filename.Contains( FPaths::EngineSavedDir() ) 
 						&& FPaths::GetBaseFilename(Filename).StartsWith( TEXT( "Default" ) );
 
-					if( bIsADefaultIniWrite && CompletePropertyToWrite.Num() > 1 )
+					if( bIsADefaultIniWrite )
 					{
-						ProcessArrayForSaveToDefaults(CompletePropertyToWrite, Text, SectionName, PropertyName.ToString());
+						ProcessPropertyAndWriteForDefaults(CompletePropertyToWrite, Text, SectionName, PropertyName.ToString());
 					}
 					else
 					{
@@ -1052,12 +1052,12 @@ void FConfigFile::ProcessSourceAndCheckAgainstBackup()
 }
 
 
-void FConfigFile::ProcessArrayForSaveToDefaults( const TArray< FString >& ArrayToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName )
+void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FString >& InCompletePropertyToProcess, FString& OutText, const FString& SectionName, const FString& PropertyName )
 {
 	// Get a list of the array elements we have processed, 
 	// we will remove any which are in the base hierarchy
 	// any which are left will be written to the default config
-	TArray<FString> UnprocessedPropertyValues = ArrayToProcess;
+	TArray<FString> UnprocessedPropertyValues = InCompletePropertyToProcess;
 
 	// Iterate over the base hierarchy of the config file and check that our element did not originate from a further up the tree file
 	// if it did we need to ensure it is not added again.
@@ -1071,7 +1071,7 @@ void FConfigFile::ProcessArrayForSaveToDefaults( const TArray< FString >& ArrayT
 		{
 			// As we are dealing with default configs, we must process array elements correct syntax syntax. I.e. + or -
 			TArray< FString > HierearchysArrayContribution;
-			FoundSection->MultiFind( *(FString(TEXT("+"))+PropertyName), HierearchysArrayContribution, true );
+			FoundSection->MultiFind( *PropertyName, HierearchysArrayContribution, true );
 
 			// Find array elements which should be removed.
 			for( TArray<FString>::TIterator PropertyIt(HierearchysArrayContribution); PropertyIt; ++PropertyIt )
@@ -1096,7 +1096,8 @@ void FConfigFile::ProcessArrayForSaveToDefaults( const TArray< FString >& ArrayT
 				//			+ArrEl=1.f
 				if( UnprocessedPropertyValues.Contains( PropertyValue ) == false )
 				{
-					OutText += FString::Printf( TEXT("-%s=%s") LINE_TERMINATOR, *PropertyName, *PropertyValue);
+					FString PropertyNameWithRemoveOp = PropertyName.Replace(TEXT("+"), TEXT("-"));
+					OutText += FString::Printf(TEXT("%s=%s") LINE_TERMINATOR, *PropertyNameWithRemoveOp, *PropertyValue);
 				}
 
 				// We need to remove this element from unprocessed if it exists on the list.
@@ -1106,16 +1107,16 @@ void FConfigFile::ProcessArrayForSaveToDefaults( const TArray< FString >& ArrayT
 	}
 
 	// Add all elements which were not in the hierarchy to the default with the correct '+' syntax
-	for( TArray<FString>::TIterator PropertyIt(UnprocessedPropertyValues); PropertyIt; ++PropertyIt )
+	for (TArray<FString>::TIterator PropertyIt(UnprocessedPropertyValues); PropertyIt; ++PropertyIt)
 	{
 		FString PropertyValue = *PropertyIt;
 
 		if (ShouldExportQuotedString(PropertyValue))
 		{
-			PropertyValue = FString::Printf( TEXT( "\"%s\"" ), *PropertyValue );
+			PropertyValue = FString::Printf(TEXT("\"%s\""), *PropertyValue);
 		}
 
-		OutText += FString::Printf( TEXT("+%s=%s") LINE_TERMINATOR, *PropertyName, *PropertyValue);
+		OutText += FString::Printf(TEXT("%s=%s") LINE_TERMINATOR, *PropertyName, *PropertyValue);
 	}
 }
 

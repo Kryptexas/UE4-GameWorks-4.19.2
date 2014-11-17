@@ -4,6 +4,7 @@
 
 
 #include "IPluginManagerShared.h"
+#include "EngineVersion.h"
 
 /**
  * Simple data structure that is filled when querying information about projects
@@ -24,12 +25,16 @@ public:
 	/** True if this project is a sample provided by epic */
 	bool bSignedSampleProject;
 
-	/** True if this project is up to date with the current engine version */
-	bool bUpToDate;
+	/** True if the project is code-based */
+	bool bCodeBasedProject;
+
+	/** True if this project needs to be updated */
+	bool bRequiresUpdate;
 
 	FProjectStatus()
 		: bSignedSampleProject(false)
-		, bUpToDate(false)
+		, bCodeBasedProject(false)
+		, bRequiresUpdate(false)
 	{}
 };
 
@@ -66,6 +71,13 @@ public:
 	 *							loaded at the specified loading phase will be loaded during this call.
 	 */
 	virtual bool LoadModulesForProject( const ELoadingPhase::Type LoadingPhase ) = 0;
+
+	/**
+	 * Checks if the modules for a project are up to date
+	 *
+	 * @return	true if the UBT needs to be run to recompile modules for a project.
+	 */
+	virtual bool AreProjectModulesUpToDate( ) = 0;
 
 	/**
 	 * Gets the name of the text file that contains the most recently loaded filename.
@@ -140,7 +152,7 @@ public:
 	 *
 	 * @return	 true if the file was successfully open and read
 	 */
-	virtual bool QueryStatusForProject(const FString& FilePath, const FString& EngineIdentifier, FProjectStatus& OutProjectStatus) const = 0;
+	virtual bool QueryStatusForProject(const FString& FilePath, FProjectStatus& OutProjectStatus) const = 0;
 
 	/** Helper functions to reduce the syntax complexity of commonly used functions */
 	static const FString& GetProjectFileExtension() { return Get().NonStaticGetProjectFileExtension(); }

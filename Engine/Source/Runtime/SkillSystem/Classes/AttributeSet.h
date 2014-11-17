@@ -203,6 +203,9 @@ public:
 
 	UPROPERTY()
 	FString		DerivedAttributeInfo;
+
+	UPROPERTY()
+	bool		bCanStack;
 };
 
 

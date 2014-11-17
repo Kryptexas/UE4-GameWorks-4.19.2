@@ -29,10 +29,6 @@ class ENGINE_API AGameSession : public AInfo
 	UPROPERTY(globalconfig)
 	bool bRequiresPushToTalk;
 
-	/** The options to apply for dedicated server when it starts to register */
-	UPROPERTY()
-	FString ServerOptions;
-
 	/** SessionName local copy from PlayerState class.  should really be define in this class, but need to address replication issues */
 	UPROPERTY()
 	FName SessionName;
@@ -61,9 +57,6 @@ class ENGINE_API AGameSession : public AInfo
 
     /** Delegate triggered on auto login completion */
 	virtual void OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& Error);
-
-    /** Delegate triggered on auto login success */ 
-	virtual void OnLoginChanged(int32 LocalUserNum);
 
 	/** 
 	 * Called from GameMode.PreLogin() and Login().
@@ -130,6 +123,16 @@ class ENGINE_API AGameSession : public AInfo
 	 */
 	virtual void UpdateSessionJoinability(FName SessionName, bool bPublicSearchable, bool bAllowInvites, bool bJoinViaPresence, bool bJoinViaPresenceFriendsOnly);
 
+	/**
+	 * Travel to a session URL (as client) for a given session
+	 *
+	 * @param ControllerId controller initiating the session travel
+	 * @param SessionName name of session to travel to
+	 *
+	 * @return true if successful, false otherwise
+	 */
+	virtual bool TravelToSession(int32 ControllerId, FName SessionName);
+
     /**
      * Does the session require push to talk
      * @return true if a push to talk keybinding is required or if voice is always enabled
@@ -142,20 +145,20 @@ class ENGINE_API AGameSession : public AInfo
 	//=================================================================================
 	// MATCH INTERFACE
 
-	/** Start a pending match */
-	virtual void StartPendingMatch();
+	/** @RETURNS true if GameSession handled the request, in case it wants to stall for some reason. Otherwise, game mode will start immediately */
+	virtual bool HandleStartMatchRequest();
 
-	/** End a pending match */
-	virtual void EndPendingMatch();
+	/** Handle when the match enters waiting to start */
+	virtual void HandleMatchIsWaitingToStart();
+
+	/** Handle when the match has started */
+	virtual void HandleMatchHasStarted();
+
+	/** Handle when the match has completed */
+	virtual void HandleMatchHasEnded();
 
 	/** Called from GameMode.RestartGame(). */
 	virtual bool CanRestartGame();
-
-	/** End a game */
-	virtual void EndGame();
-
-	/** @RETURNS true if GameSession handled starting the match */
-	virtual bool HandleStartMatch();
 
 private:
 	// Hidden functions that don't make sense to use on this class.

@@ -266,7 +266,7 @@ void UPrimitiveComponent::OnRegister()
 	Super::OnRegister();
 
 	// Notify the streaming system. Will only update the component data if it's already tracked.
-	GStreamingManager->NotifyPrimitiveUpdated(this);
+	IStreamingManager::Get().NotifyPrimitiveUpdated(this);
 
 	AActor* Owner = GetOwner();
 	if (bCanEverAffectNavigation && Owner != NULL)
@@ -1181,6 +1181,20 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
 }
 
+void UPrimitiveComponent::SetRelativeScale3D(FVector NewScale3D)
+{
+	const FVector OldScale3D = RelativeScale3D;
+	Super::SetRelativeScale3D(NewScale3D);
+
+	AActor* Actor = GetOwner();
+	if (Actor && OldScale3D != RelativeScale3D && IsRegistered() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+	{
+		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
+		{
+			NavSys->UpdateNavOctree(Actor);
+		}
+	}
+}
 
 bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
 {
@@ -1207,7 +1221,7 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	if (Mobility == EComponentMobility::Static && Actor && Actor->bActorInitialized)
 	{
 		// TODO: Static components without an owner can move, should they be able to?
-		UE_LOG(LogPrimitiveComponent, Warning, TEXT("Trying to move static component '%s' after begin play"), *GetFullName());
+		UE_LOG(LogPrimitiveComponent, Warning, TEXT("Trying to move static component '%s' after initialization"), *GetFullName());
 		return false;
 	}
 
@@ -1478,6 +1492,14 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 			// still need to do this even if bGenerateOverlapEvents is false for this component, since we could have child components where it is true
 			UpdateOverlaps(&PendingOverlaps, true, OverlapsAtEndLocationPtr);
 		}
+
+		if (Actor && IsRegistered() && IsNavigationRelevant() && World != NULL && World->IsGameWorld() && World->GetNetMode() < ENetMode::NM_Client)
+		{
+			if (UNavigationSystem* NavSys = World->GetNavigationSystem())
+			{
+				NavSys->UpdateNavOctree(Actor);
+			}
+		}
 	}
 
 #if defined(PERF_SHOW_MOVECOMPONENT_TAKING_LONG_TIME) || LOOKING_FOR_PERF_ISSUES
@@ -1561,7 +1583,7 @@ bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* P
 {
 	// if target is skeletalmeshcomponent and do not support singlebody physics
 	USkeletalMeshComponent * OtherComp = Cast<USkeletalMeshComponent>(PrimComp);
-	if (OtherComp && !OtherComp->bUseSingleBodyPhysics)
+	if (OtherComp)
 	{
 		UE_LOG(LogCollision, Log, TEXT("ComponentOverlapMulti : (%s) Does not support skeletalmesh with Physics Asset"), *PrimComp->GetPathName());
 		return false;
@@ -1967,19 +1989,19 @@ bool UPrimitiveComponent::AreAllCollideableDescendantsRelative(bool bAllowCached
 			USceneComponent* const CurrentComp = ComponentStack.Pop();
 			if (CurrentComp)
 			{
-				ComponentStack.Append(CurrentComp->AttachChildren);
-
-				// Can we possibly collide with the component?
-				UPrimitiveComponent* const PrimComp = Cast<UPrimitiveComponent>(CurrentComp);
-				if (PrimComp && PrimComp->IsCollisionEnabled() && PrimComp->GetCollisionResponseToChannel(GetCollisionObjectType()) != ECR_Ignore)
+				// Is the component not using relative position?
+				if (CurrentComp->bAbsoluteLocation || CurrentComp->bAbsoluteRotation)
 				{
-					if (PrimComp->bAbsoluteRotation || PrimComp->bAbsoluteLocation)
+					// Can we possibly collide with the component?
+					if (CurrentComp->IsCollisionEnabled() && CurrentComp->GetCollisionResponseToChannel(GetCollisionObjectType()) != ECR_Ignore)
 					{
 						MutableThis->bCachedAllCollideableDescendantsRelative = false;
 						MutableThis->LastCheckedAllCollideableDescendantsTime = MyWorld->GetTimeSeconds();
 						return false;
 					}
 				}
+
+				ComponentStack.Append(CurrentComp->AttachChildren);
 			}
 		}
 	}

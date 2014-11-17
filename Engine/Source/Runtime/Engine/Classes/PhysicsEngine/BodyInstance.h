@@ -159,7 +159,7 @@ protected:
 public:
 
 	/**	Allows you to override the PhysicalMaterial to use for simple collision on this body. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Collision)
 	class UPhysicalMaterial* PhysMaterialOverride;
 
 	/** User specified offset for the center of mass of this object, from the calculated location */
@@ -220,40 +220,7 @@ public:
 		TWeakObjectPtr<class UBodySetup>				BodySetup;
 
 		/** Constructor **/
-		FBodyInstance()
-		: InstanceBodyIndex(INDEX_NONE)
-		, Scale3D(1.0)
-		, SceneIndexSync(0)
-		, SceneIndexAsync(0)
-		, bEnableCollision_DEPRECATED(true)
-		, CollisionEnabled(ECollisionEnabled::QueryAndPhysics)
-		, ObjectType(ECC_WorldStatic)
-		, bUseCCD(false)
-		, bNotifyRigidBodyCollision(false)
-		, bSimulatePhysics(false)
-		, bStartAwake(true)
-		, bEnableGravity(true)
-		, bUseAsyncScene(false)
-		, bUpdateMassWhenScaleChanges(false)
-		, bOverrideWalkableSlopeOnInstance(false)
-		, PhysMaterialOverride(NULL)
-		, COMNudge(ForceInit)
-		, SleepFamily(SF_Normal)
-		, MassScale(1.f)
-		, AngularDamping(0.0)
-		, LinearDamping(0.01)
-		, MaxAngularVelocity(400.f)
-		, PhysicsBlendWeight(0.f)
-		, PositionSolverIterationCount(8)
-		, VelocitySolverIterationCount(1)
-#if WITH_PHYSX
-		, RigidActorSync(NULL)
-		, RigidActorAsync(NULL)
-		, BodyAggregate(NULL)
-		, PhysxUserData(this)
-#endif	//WITH_PHYSX
-		{
-		}
+		FBodyInstance();
 
 		// BodyInstance interface
 
@@ -332,13 +299,13 @@ public:
 
 
 		/** Set this body to be fixed (kinematic) or not. */
-		void SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending=false);
+		void SetInstanceSimulatePhysics(bool bSimulate, bool bMaintainPhysicsBlending=false, bool bIgnoreOwner=false);
 		/** Makes sure the current kinematic state matches the simulate flag */
-		void UpdateInstanceSimulatePhysics();
+		void UpdateInstanceSimulatePhysics(bool bIgnoreOwner = false);
 		/** Returns true if this body is simulating, false if it is fixed (kinematic) */
-		bool IsInstanceSimulatingPhysics();
+		bool IsInstanceSimulatingPhysics(bool bIgnoreOwner = false);
 		/** Should Simulate Physics **/
-		bool ShouldInstanceSimulatingPhysics();
+		bool ShouldInstanceSimulatingPhysics(bool bIgnoreOwner=false);
 		/** Returns whether this body is awake */
 		bool IsInstanceAwake();
 		/** Wake this body */
@@ -346,11 +313,11 @@ public:
 		/** Force this body to sleep */
 		void PutInstanceToSleep();
 		/** Add a force to this body */
-		void AddForce(const FVector& Force);
+		void AddForce(const FVector& Force, bool bAllowSubstepping = true);
 		/** Add a force at a particular world position to this body */
-		void AddForceAtPosition(const FVector& Force, const FVector& Position);
+		void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true);
 		/** Add a torque to this body */
-		void AddTorque(const FVector& Torque);
+		void AddTorque(const FVector& Torque, bool bAllowSubstepping = true);
 		/** Add an impulse to this body */
 		void AddImpulse(const FVector& Impulse, bool bVelChange);
 		/** Add an impulse to this body and a particular world position */
@@ -431,6 +398,9 @@ public:
 
 		/** Get the current collision profile assigned to this body */
 		FName GetCollisionProfileName() const;
+
+		/** return true if it uses Collision Profile System. False otherwise*/
+		bool DoesUseCollisionProfile() const;
 
 		/** Update instance's mass properties (mass, inertia and center-of-mass offset) based on MassScale, InstanceMassScale and COMNudge. */
 		void UpdateMassProperties();
@@ -546,6 +516,11 @@ private:
 		 * for example, they would like to re-define CollisionEnabled or ObjectType or ResponseChannels
 		 */
 		void InvalidateCollisionProfileName();
+		
+		/**
+		 * Return true if the collision profile name is valid
+		 */
+		static bool IsValidCollisionProfileName(FName InCollisionProfileName);
 
 		friend class UCollisionProfile;
 		friend class FBodyInstanceCustomization;

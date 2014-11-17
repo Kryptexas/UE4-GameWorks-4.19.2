@@ -257,8 +257,42 @@ void UParticleModuleColorOverLife::Serialize(FArchive& Ar)
 
 void UParticleModuleColorOverLife::CompileModule( FParticleEmitterBuildInfo& EmitterInfo )
 {
-	EmitterInfo.ColorScale.Initialize( ColorOverLife.Distribution );
-	EmitterInfo.AlphaScale.Initialize( AlphaOverLife.Distribution );
+	bool ScaleColor = true;
+	bool ScaleAlpha = true;
+	if(IsUsedInGPUEmitter())
+	{
+		if( ColorOverLife.Distribution->IsA( UDistributionVectorParticleParameter::StaticClass() ) )
+		{
+			EmitterInfo.DynamicColor = ColorOverLife;
+#if WITH_EDITOR
+			EmitterInfo.DynamicColor.Distribution->bIsDirty = true;
+			EmitterInfo.DynamicColor.Initialize();
+#endif
+			ScaleColor = false;
+			EmitterInfo.ColorScale.InitializeWithConstant( FVector(1.0f, 1.0f, 1.0f) );
+		}
+
+		if( AlphaOverLife.Distribution->IsA( UDistributionFloatParticleParameter::StaticClass() ) )
+		{
+			EmitterInfo.DynamicAlpha = AlphaOverLife;
+#if WITH_EDITOR
+			EmitterInfo.DynamicAlpha.Distribution->bIsDirty = true;
+			EmitterInfo.DynamicAlpha.Initialize();
+#endif
+			ScaleAlpha = false;
+			EmitterInfo.AlphaScale.InitializeWithConstant(1.0f);
+		}
+	}
+
+	if( ScaleColor )
+	{
+		EmitterInfo.ColorScale.Initialize( ColorOverLife.Distribution );
+	}
+
+	if( ScaleAlpha )
+	{
+		EmitterInfo.AlphaScale.Initialize( AlphaOverLife.Distribution );
+	}
 }
 
 #if WITH_EDITOR
@@ -431,28 +465,6 @@ void UParticleModuleColorOverLife::SetToSensibleDefaults(UParticleEmitter* Owner
 		AlphaOverLifeDist->bIsDirty = true;
 	}
 }
-
-#if WITH_EDITOR
-bool UParticleModuleColorOverLife::IsValidForLODLevel(UParticleLODLevel* LODLevel, FString& OutErrorString)
-{
-	if (LODLevel->TypeDataModule && LODLevel->TypeDataModule->IsA(UParticleModuleTypeDataGpu::StaticClass()))
-	{
-		if(!IsDistributionAllowedOnGPU(ColorOverLife.Distribution))
-		{
-			OutErrorString = GetDistributionNotAllowedOnGPUText(StaticClass()->GetName(), "ColorOverLife" ).ToString();
-			return false;
-		}
-
-		if(!IsDistributionAllowedOnGPU(AlphaOverLife.Distribution))
-		{
-			OutErrorString = GetDistributionNotAllowedOnGPUText(StaticClass()->GetName(), "AlphaOverLife" ).ToString();
-			return false;
-		}
-	}
-
-	return true;
-}
-#endif
 
 /*-----------------------------------------------------------------------------
 	UParticleModuleColorScaleOverLife implementation.

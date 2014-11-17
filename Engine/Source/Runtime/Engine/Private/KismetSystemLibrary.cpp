@@ -1,11 +1,11 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineKismetLibraryClasses.h"
-#include "EngineUserInterfaceClasses.h"
 #include "LatentActions.h"
 #include "DelayAction.h"
 #include "InterpolateComponentToAction.h"
+#include "Advertising.h"
+#include "Online.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -236,8 +236,7 @@ void UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, fl
 	}
 
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FunctionFName);
+	Delegate.BindUFunction(Object, FunctionFName);
 
 	if (Delegate.IsBound())
 	{
@@ -253,8 +252,7 @@ void UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, fl
 void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -274,8 +272,7 @@ void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
 void UKismetSystemLibrary::K2_PauseTimer(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -292,8 +289,7 @@ void UKismetSystemLibrary::K2_PauseTimer(UObject* Object, FString FunctionName)
 void UKismetSystemLibrary::K2_UnPauseTimer(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -310,8 +306,7 @@ void UKismetSystemLibrary::K2_UnPauseTimer(UObject* Object, FString FunctionName
 bool UKismetSystemLibrary::K2_IsTimerActive(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -326,11 +321,46 @@ bool UKismetSystemLibrary::K2_IsTimerActive(UObject* Object, FString FunctionNam
 	}
 }
 
+bool UKismetSystemLibrary::K2_IsTimerPaused(UObject* Object, FString FunctionName)
+{
+	FTimerDynamicDelegate Delegate;
+	Delegate.BindUFunction(Object, *FunctionName);
+
+	if (Delegate.IsBound())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		return World->GetTimerManager().IsTimerPaused(Delegate);
+	}
+	else
+	{
+		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
+		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("IsTimerPaused passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		return false;
+	}
+}
+
+bool UKismetSystemLibrary::K2_TimerExists(UObject* Object, FString FunctionName)
+{
+	FTimerDynamicDelegate Delegate;
+	Delegate.BindUFunction(Object, *FunctionName);
+
+	if (Delegate.IsBound())
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject(Object);
+		return World->GetTimerManager().TimerExists(Delegate);
+	}
+	else
+	{
+		const FString ObjectNameStr = Object != NULL ? Object->GetName() : TEXT("None");
+		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("TimerExists passed a bad function (%s) or object (%s)"), *FunctionName, *ObjectNameStr);
+		return false;
+	}
+}
+
 float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -348,8 +378,7 @@ float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString Func
 float UKismetSystemLibrary::K2_GetTimerRemainingTime(UObject* Object, FString FunctionName)
 {
 	FTimerDynamicDelegate Delegate;
-	Delegate.SetObject(Object);
-	Delegate.SetFunctionName(FName(*FunctionName));
+	Delegate.BindUFunction(Object, *FunctionName);
 
 	if (Delegate.IsBound())
 	{
@@ -2216,37 +2245,59 @@ void UKismetSystemLibrary::CollectGarbage()
 	GEngine->DeferredCommands.Add(TEXT("obj gc"));
 }
 
-#if PLATFORM_IOS
-extern CORE_API void IOSShowAdBanner(bool bShowOnBottomOfScreen);
-extern CORE_API void IOSHideAdBanner();
-extern CORE_API void IOSCloseAd();
-extern CORE_API void IOSShowLeaderboardUI(const FString& CategoryName);
-#endif
-
 void UKismetSystemLibrary::EXPERIMENTAL_ShowAdBanner(bool bShowOnBottomOfScreen)
 {
-#if PLATFORM_IOS
-	IOSShowAdBanner(bShowOnBottomOfScreen);
-#endif
+	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
+	{
+		Provider->ShowAdBanner(bShowOnBottomOfScreen);
+	}
 }
 
 void UKismetSystemLibrary::EXPERIMENTAL_HideAdBanner()
 {
-#if PLATFORM_IOS
-	IOSHideAdBanner();
-#endif
+	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
+	{
+		Provider->HideAdBanner();
+	}
 }
 
 void UKismetSystemLibrary::EXPERIMENTAL_CloseAdBanner()
 {
-#if PLATFORM_IOS
-	IOSCloseAd();
-#endif
+	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
+	{
+		Provider->CloseAdBanner();
+	}
 }
 
-void UKismetSystemLibrary::EXPERIMENTAL_ShowGameCenterLeaderboard(const FString& CategoryName)
+void UKismetSystemLibrary::ShowPlatformSpecificLeaderboardScreen(const FString& CategoryName)
 {
-#if PLATFORM_IOS
-	IOSShowLeaderboardUI(CategoryName);
-#endif
+	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
+	if(ExternalUI.IsValid())
+	{
+		ExternalUI->ShowLeaderboardUI(CategoryName);
+	}
+}
+
+void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerController* SpecificPlayer)
+{
+	IOnlineExternalUIPtr ExternalUI = Online::GetExternalUIInterface();
+	if(ExternalUI.IsValid())
+	{
+		// Get the controller id from the player
+		int LocalUserNum = 0;
+		if(SpecificPlayer)
+		{
+			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
+			if(LocalPlayer)
+			{
+				LocalUserNum = LocalPlayer->ControllerId;
+			}
+		}
+		ExternalUI->ShowAchievementsUI(LocalUserNum);
+	}
+}
+void UKismetSystemLibrary::SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value)
+{
+	// We should never hit these!  They're stubs to avoid NoExport on the class.
+	check(0);
 }

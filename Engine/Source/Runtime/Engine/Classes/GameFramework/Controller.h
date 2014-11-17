@@ -28,7 +28,7 @@ class UPathFollowingComponent;
 UDELEGATE(BlueprintAuthorityOnly)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FInstigatedAnyDamageSignature, float, Damage, const class UDamageType*, DamageType, class AActor*, DamagedActor, class AActor*, DamageCauser );
 
-UCLASS(abstract, notplaceable, NotBlueprintable, HideCategories=(Collision,Rendering,"Utilities|Orientation")) 
+UCLASS(abstract, notplaceable, NotBlueprintable, HideCategories=(Collision,Rendering,"Utilities|Transformation")) 
 class ENGINE_API AController : public AActor, public INavAgentInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -165,7 +165,7 @@ public:
 	// Begin AActor interface
 	virtual void TickActor( float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction ) OVERRIDE;
 	virtual void K2_DestroyActor() OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void GetActorEyesViewPoint( FVector& out_Location, FRotator& out_Rotation ) const OVERRIDE;
 	virtual FString GetHumanReadableName() const OVERRIDE;
 
@@ -266,13 +266,17 @@ public:
 	virtual FVector GetNavAgentLocation() const OVERRIDE;
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE;
 	// End INavAgentInterface Interface
-
+	
 	/** prepares path finding and path following components */
 	virtual void InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp);
 
 	/** If controller has any navigation-related components then this function 
 	 *	makes them update their cached data */
 	virtual void UpdateNavigationComponents();
+
+	/** Aborts the move the controller is currently performing */
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
+	virtual void StopMovement();
 
 protected:
 	/** State entered when inactive (no possessed pawn, not spectating, etc). */

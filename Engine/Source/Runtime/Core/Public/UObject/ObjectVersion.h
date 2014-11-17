@@ -516,7 +516,31 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_FOLIAGE_MOVABLE_MOBILITY,
 	// Undo BreakMaterialAttributes changes as it broke old content
 	VER_UE4_UNDO_BREAK_MATERIALATTRIBUTES_CHANGE,
-
+	// Now Default custom profile name isn't NONE anymore due to copy/paste not working properly with it
+	VER_UE4_ADD_CUSTOMPROFILENAME_CHANGE, 
+	// Permanently flip and scale material expression coordinates
+	VER_UE4_FLIP_MATERIAL_COORDS,
+	// PinSubCategoryMemberReference added to FEdGraphPinType
+	VER_UE4_MEMBERREFERENCE_IN_PINTYPE,
+	// Vehicles use Nm for Torque instead of cm and RPM instead of rad/s
+	VER_UE4_VEHICLES_UNIT_CHANGE,
+	// removes NANs from all animations when loaded
+	// now importing should detect NaNs, so we should not have NaNs in source data
+	VER_UE4_ANIMATION_REMOVE_NANS,
+	// Change skeleton preview attached assets property type
+	VER_UE4_SKELETON_ASSET_PROPERTY_TYPE_CHANGE,
+ 	// Fix some blueprint variables that have the CPF_DisableEditOnTemplate flag set
+	// when they shouldn't
+	VER_UE4_FIX_BLUEPRINT_VARIABLE_FLAGS,
+	// Vehicles use Nm for Torque instead of cm and RPM instead of rad/s part two (missed conversion for some variables
+	VER_UE4_VEHICLES_UNIT_CHANGE2,
+	// Changed order of interface class serialization
+	VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING,
+	// Change from LOD distances to display factors
+	VER_UE4_STATIC_MESH_SCREEN_SIZE_LODS,
+	// Requires test of material coords to ensure they're saved correctly
+	VER_UE4_FIX_MATERIAL_COORDS,
+ 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

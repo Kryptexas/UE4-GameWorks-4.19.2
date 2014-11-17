@@ -8,7 +8,7 @@
 #pragma once
 #include "ParticleModuleLocationPrimitiveSphere.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Sphere"))
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Sphere"))
 class UParticleModuleLocationPrimitiveSphere : public UParticleModuleLocationPrimitiveBase
 {
 	GENERATED_UCLASS_BODY()

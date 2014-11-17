@@ -87,8 +87,7 @@ namespace AutomationTool
 			{
 				LocalRootEscaped = LocalRootEscaped.Substring(0, LocalRootEscaped.Length - 1);
 			}
-			LocalRootEscaped = LocalRootEscaped.Replace("/", "+");
-			LocalRootEscaped = LocalRootEscaped.Replace(" ", "+");
+			LocalRootEscaped = CommandUtils.EscapePath(LocalRootEscaped);
 			return CommandUtils.CombinePaths(PathSeparator.Slash, HostPlatform.Current.LocalBuildsLogFolder, LocalRootEscaped);
 		}
 
@@ -102,7 +101,7 @@ namespace AutomationTool
 			{
 				string RootSavedPath;
 				if (!GlobalCommandLine.Installed)
-				{
+				{					
 					RootSavedPath = CommandUtils.CombinePaths(PathSeparator.Slash, CommandUtils.GetEnvVar(EnvVarNames.EngineSavedFolder), "Logs");
 				}
 				else
@@ -125,26 +124,6 @@ namespace AutomationTool
 			}
 		}
 
-		/// <summary>
-		/// Deletes all files and folder from the specified directory.
-		/// </summary>
-		/// <param name="DirectoryName"></param>
-		private static void DeleteDirectoryContents(string DirectoryName)
-		{
-			Log.TraceInformation("DeleteDirectoryContents({0})", DirectoryName);
-			const bool bQuiet = true;
-			var Files = CommandUtils.FindFiles_NoExceptions(bQuiet, "*", false, DirectoryName);
-			foreach (var Filename in Files)
-			{
-				CommandUtils.DeleteFile_NoExceptions(Filename);
-			}
-			var Directories = CommandUtils.FindDirectories_NoExceptions(bQuiet, "*", false, DirectoryName);
-			foreach (var SubDirectoryName in Directories)
-			{
-				CommandUtils.DeleteDirectory_NoExceptions(true, SubDirectoryName);
-			}
-		}
-
 		private bool TryCreateLogFolder(string PossibleLogFolder)
 		{
 			bool Result = true;
@@ -152,7 +131,8 @@ namespace AutomationTool
 			{
 				if (Directory.Exists(PossibleLogFolder))
 				{
-					DeleteDirectoryContents(PossibleLogFolder);
+					CommandUtils.DeleteDirectoryContents(PossibleLogFolder);
+
 					// Since the directory existed and might have been empty, we need to make sure
 					// we can actually write to it, so create and delete a temporary file.
 					var RandomFilename = Path.GetRandomFileName();

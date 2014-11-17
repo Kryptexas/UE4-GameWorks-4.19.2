@@ -76,16 +76,16 @@ void FStaticLightingSystem::InitializePhotonSettings()
 	// If the importance volume is valid, only gather enough indirect photon paths to meet IndirectPhotonPathDensity inside the importance volume
 	if (!PhotonMappingSettings.bEmitPhotonsOutsideImportanceVolume && ImportanceBounds.SphereRadius > DELTA)
 	{ 
-		NumIndirectPhotonPaths = FMath::Trunc(Scene.PhotonMappingSettings.IndirectPhotonPathDensity * ImportanceSurfaceAreaMillionUnits);
+		NumIndirectPhotonPaths = FMath::TruncToInt(Scene.PhotonMappingSettings.IndirectPhotonPathDensity * ImportanceSurfaceAreaMillionUnits);
 	}
 	else if (ImportanceBounds.SphereRadius > DELTA)
 	{
-		NumIndirectPhotonPaths = FMath::Trunc(Scene.PhotonMappingSettings.IndirectPhotonPathDensity * ImportanceSurfaceAreaMillionUnits
+		NumIndirectPhotonPaths = FMath::TruncToInt(Scene.PhotonMappingSettings.IndirectPhotonPathDensity * ImportanceSurfaceAreaMillionUnits
 			+ Scene.PhotonMappingSettings.OutsideImportanceVolumeDensityScale * Scene.PhotonMappingSettings.IndirectPhotonPathDensity * SceneSurfaceAreaMillionUnits);
 	}
 	else
 	{
-		NumIndirectPhotonPaths = FMath::Trunc(Scene.PhotonMappingSettings.IndirectPhotonPathDensity * SceneSurfaceAreaMillionUnits);
+		NumIndirectPhotonPaths = FMath::TruncToInt(Scene.PhotonMappingSettings.IndirectPhotonPathDensity * SceneSurfaceAreaMillionUnits);
 	}
 	NumIndirectPhotonPaths = NumIndirectPhotonPaths == appTruncErrorCode ? MaxNumIndirectPhotonPaths : NumIndirectPhotonPaths;
 	NumIndirectPhotonPaths = FMath::Min(NumIndirectPhotonPaths, MaxNumIndirectPhotonPaths);
@@ -474,7 +474,7 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 	{
 		// Attempt to preallocate irradiance photons based on the percentage of photons that go into the irradiance photon map.
 		// The actual number of irradiance photons is based on probability.
-		Output.IrradiancePhotons->Empty(FMath::Trunc(DirectIrradiancePhotonFraction * DirectPhotonEfficiency * WorkRange.NumDirectPhotonsToEmit));
+		Output.IrradiancePhotons->Empty(FMath::TruncToInt(DirectIrradiancePhotonFraction * DirectPhotonEfficiency * WorkRange.NumDirectPhotonsToEmit));
 	}
 
 	FCoherentRayCache CoherentRayCache;
@@ -485,7 +485,7 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 
 	// Array of rays from each light which resulted in an indirect path.
 	// These are used in the second emitting pass to guide light sampling for indirect photons.
-	Output.DirectPhotons.Empty(FMath::Trunc(WorkRange.NumDirectPhotonsToEmit * DirectPhotonEfficiency));
+	Output.DirectPhotons.Empty(FMath::TruncToInt(WorkRange.NumDirectPhotonsToEmit * DirectPhotonEfficiency));
 	
 	Output.NumPhotonsEmitted = 0;
 	int32 NumIndirectPathRaysGathered = 0;
@@ -512,7 +512,7 @@ void FStaticLightingSystem::EmitDirectPhotonsWorkRange(
 		float LightIndex;
 		// Pick a light with probability proportional to the light's fraction of the direct photons being gathered for the whole scene
 		Sample1dCDF(Input.LightDistribution.LightPDFs, Input.LightDistribution.LightCDFs, Input.LightDistribution.UnnormalizedIntegral, RandomStream, LightPDF, LightIndex);
-		const int32 QuantizedLightIndex = FMath::Trunc(LightIndex * Input.LightDistribution.LightPDFs.Num());
+		const int32 QuantizedLightIndex = FMath::TruncToInt(LightIndex * Input.LightDistribution.LightPDFs.Num());
 		check(QuantizedLightIndex >= 0 && QuantizedLightIndex < Lights.Num());
 		const FLight* Light = Lights[QuantizedLightIndex];
 
@@ -860,13 +860,13 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 	}
 
 	//@todo - re-evaluate these sizes
-	Output.FirstBouncePhotons.Empty(FMath::Trunc(WorkRange.NumIndirectPhotonsToEmit * .6f * IndirectPhotonEfficiency));
-	Output.SecondBouncePhotons.Empty(FMath::Trunc(WorkRange.NumIndirectPhotonsToEmit * .4f * IndirectPhotonEfficiency));
+	Output.FirstBouncePhotons.Empty(FMath::TruncToInt(WorkRange.NumIndirectPhotonsToEmit * .6f * IndirectPhotonEfficiency));
+	Output.SecondBouncePhotons.Empty(FMath::TruncToInt(WorkRange.NumIndirectPhotonsToEmit * .4f * IndirectPhotonEfficiency));
 	if (PhotonMappingSettings.bUseIrradiancePhotons)
 	{
 		// Attempt to preallocate irradiance photons based on the percentage of photons that go into the irradiance photon map.
 		// The actual number of irradiance photons is based on probability.
-		Output.IrradiancePhotons->Empty(FMath::Trunc(IndirectIrradiancePhotonFraction * IndirectPhotonEfficiency * WorkRange.NumIndirectPhotonsToEmit));
+		Output.IrradiancePhotons->Empty(FMath::TruncToInt(IndirectIrradiancePhotonFraction * IndirectPhotonEfficiency * WorkRange.NumIndirectPhotonsToEmit));
 	}
 
 	FCoherentRayCache CoherentRayCache;
@@ -893,7 +893,7 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 			float LightIndex;
 			// Pick a light with probability proportional to the light's fraction of the scene's light power
 			Sample1dCDF(Input.LightDistribution.LightPDFs, Input.LightDistribution.LightCDFs, Input.LightDistribution.UnnormalizedIntegral, RandomStream, LightPDF, LightIndex);
-			const int32 QuantizedLightIndex = FMath::Trunc(LightIndex * Input.LightDistribution.LightPDFs.Num());
+			const int32 QuantizedLightIndex = FMath::TruncToInt(LightIndex * Input.LightDistribution.LightPDFs.Num());
 			check(QuantizedLightIndex >= 0 && QuantizedLightIndex < Lights.Num());
 			Light = Lights[QuantizedLightIndex];
 
@@ -1007,7 +1007,7 @@ void FStaticLightingSystem::EmitIndirectPhotonsWorkRange(
 						FScopeLock DebugOutputLock(&DebugOutputSync);
 						if (DebugOutput.IndirectPhotons.Num() == 0)
 						{
-							DebugOutput.IndirectPhotons.Empty(FMath::Trunc(NumIndirectPhotonsToEmit * IndirectPhotonEfficiency));
+							DebugOutput.IndirectPhotons.Empty(FMath::TruncToInt(NumIndirectPhotonsToEmit * IndirectPhotonEfficiency));
 						}
 						DebugOutput.IndirectPhotons.Add(FDebugPhoton(NewPhoton.GetId(), NewPhoton.GetPosition(), SampleRay.Start - NewPhoton.GetPosition(), NewPhoton.GetSurfaceNormal()));
 					}

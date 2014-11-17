@@ -34,11 +34,15 @@ public class libOpus : ModuleRules
  			PublicAdditionalLibraries.Add("silk_float.lib");
  			PublicAdditionalLibraries.Add("celt.lib");
 			PublicAdditionalLibraries.Add("opus.lib");
+			PublicAdditionalLibraries.Add("speex_resampler.lib");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
-			LibraryPath += "/Mac/libopus.a";
-			PublicAdditionalLibraries.Add(LibraryPath);
+			string OpusPath = LibraryPath + "/Mac/libopus.a";
+			string SpeexPath = LibraryPath + "/Mac/libspeex_resampler.a";
+
+			PublicAdditionalLibraries.Add(OpusPath);
+			PublicAdditionalLibraries.Add(SpeexPath);
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Linux)
 		{

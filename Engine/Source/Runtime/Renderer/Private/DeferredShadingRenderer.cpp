@@ -127,7 +127,7 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ()
 
 	uint32 NumActiveRenderTargets = GSceneRenderTargets.GetNumGBufferTargets();
 	
-	TShaderMapRef<FOneColorVS> VertexShader(GetGlobalShaderMap());
+	TShaderMapRef<TOneColorVS<true> > VertexShader(GetGlobalShaderMap());
 	FOneColorPS* PixelShader = NULL; 
 
 	// Assume for now all code path supports SM4, otherwise render target numbers are changed
@@ -424,8 +424,13 @@ void FDeferredShadingSceneRenderer::RenderFinish()
 	//grab the new transform out of the proxies for next frame
 	if(ViewFamily.EngineShowFlags.MotionBlur || ViewFamily.EngineShowFlags.TemporalAA)
 	{
-		Scene->MotionBlurInfoData.UpdateMotionBlurCache();
+		Scene->MotionBlurInfoData.UpdateMotionBlurCache(Scene);
 	}
+
+	// Some RT should be released as early as possible to allow sharing of that memory for other purposes.
+	// SceneColor is be released in tone mapping, if not we want to get access to the HDR scene color after this pass so we keep it.
+	// This becomes even more important with some limited VRam (XBoxOne).
+	GSceneRenderTargets.SetLightAttenuation(0);
 }
 
 /** 
@@ -440,6 +445,8 @@ void FDeferredShadingSceneRenderer::Render()
 
 	SCOPED_DRAW_EVENT(Scene,DEC_SCENE_ITEMS);
 
+	const auto FeatureLevel = Scene->GetFeatureLevel();
+
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures();
 
@@ -450,7 +457,6 @@ void FDeferredShadingSceneRenderer::Render()
 	InitViews();
 
 	const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
-
 	static const auto ClearMethodCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ClearSceneMethod"));
 	bool bRequiresRHIClear = true;
 	bool bRequiresFarZQuadClear = false;
@@ -509,8 +515,12 @@ void FDeferredShadingSceneRenderer::Render()
 		Scene->FXSystem->PreRender();
 	}
 
+	GRenderTargetPool.AddPhaseEvent(TEXT("EarlyZPass"));
+
 	// Draw the scene pre-pass / early z pass, populating the scene depth buffer and HiZ
 	RenderPrePass();
+
+	GSceneRenderTargets.AllocGBufferTargets();
 	
 	// Clear scene color buffer if necessary.
 	if ( bRequiresRHIClear )
@@ -556,6 +566,8 @@ void FDeferredShadingSceneRenderer::Render()
 		// Begin rendering to scene color
 		GSceneRenderTargets.BeginRenderingSceneColor(true);
 	}
+
+	GRenderTargetPool.AddPhaseEvent(TEXT("BasePass"));
 
 	RenderBasePass();
 
@@ -613,10 +625,12 @@ void FDeferredShadingSceneRenderer::Render()
 	
 	// Render lighting.
 	if (ViewFamily.EngineShowFlags.Lighting
-		&& GRHIFeatureLevel >= ERHIFeatureLevel::SM4
+		&& FeatureLevel >= ERHIFeatureLevel::SM4
 		&& ViewFamily.EngineShowFlags.DeferredLighting
 		)
 	{
+		GRenderTargetPool.AddPhaseEvent(TEXT("Lighting"));
+
 		// Pre-lighting composition lighting stage
 		// e.g. deferred decals, blurred GBuffer
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
@@ -656,7 +670,7 @@ void FDeferredShadingSceneRenderer::Render()
 	}
 
 	if( ViewFamily.EngineShowFlags.StationaryLightOverlap &&
-		GRHIFeatureLevel >= ERHIFeatureLevel::SM4)
+		FeatureLevel >= ERHIFeatureLevel::SM4)
 	{
 		RenderStationaryLightOverlap();
 	}
@@ -694,6 +708,8 @@ void FDeferredShadingSceneRenderer::Render()
 		}
 	}
 
+	GRenderTargetPool.AddPhaseEvent(TEXT("Fog"));
+
 	// Draw fog.
 	if(ShouldRenderFog(ViewFamily))
 	{
@@ -702,6 +718,8 @@ void FDeferredShadingSceneRenderer::Render()
 
 	// No longer needed, release
 	LightShaftOutput.LightShaftOcclusion = NULL;
+
+	GRenderTargetPool.AddPhaseEvent(TEXT("Translucency"));
 
 	// Draw translucency.
 	if(ViewFamily.EngineShowFlags.Translucency)
@@ -972,7 +990,7 @@ public:
 		SetShaderValue(GetPixelShader(), SourceTexelOffsets01, Offsets01);
 		const FVector4 Offsets23(0.0f, 1.0f / DownsampledBufferSizeY, 1.0f / DownsampledBufferSizeX, 1.0f / DownsampledBufferSizeY);
 		SetShaderValue(GetPixelShader(), SourceTexelOffsets23, Offsets23);
-		SceneTextureParameters.Set(GetPixelShader());
+		SceneTextureParameters.Set(GetPixelShader(), View);
 	}
 
 	virtual bool Serialize(FArchive& Ar)
@@ -1021,10 +1039,10 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface()
 
 			PixelShader->SetParameters(View);
 
-			const uint32 DownsampledX = FMath::Trunc(View.ViewRect.Min.X / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledY = FMath::Trunc(View.ViewRect.Min.Y / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledSizeX = FMath::Trunc(View.ViewRect.Width() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
-			const uint32 DownsampledSizeY = FMath::Trunc(View.ViewRect.Height() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
+			const uint32 DownsampledX = FMath::TruncToInt(View.ViewRect.Min.X / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
+			const uint32 DownsampledY = FMath::TruncToInt(View.ViewRect.Min.Y / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
+			const uint32 DownsampledSizeX = FMath::TruncToInt(View.ViewRect.Width() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
+			const uint32 DownsampledSizeY = FMath::TruncToInt(View.ViewRect.Height() / GSceneRenderTargets.GetSmallColorDepthDownsampleFactor());
 
 			RHISetViewport(DownsampledX, DownsampledY, 0.0f, DownsampledX + DownsampledSizeX, DownsampledY + DownsampledSizeY, 1.0f);
 
@@ -1035,6 +1053,7 @@ void FDeferredShadingSceneRenderer::UpdateDownsampledDepthSurface()
 				View.ViewRect.Width(), View.ViewRect.Height(),
 				FIntPoint(DownsampledSizeX, DownsampledSizeY),
 				GSceneRenderTargets.GetBufferSizeXY(),
+				*ScreenVertexShader,
 				EDRF_UseTriangleOptimization);
 		}
 	}

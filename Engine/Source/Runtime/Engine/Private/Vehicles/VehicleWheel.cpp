@@ -14,21 +14,25 @@ UVehicleWheel::UVehicleWheel(const class FPostConstructInitializeProperties& PCI
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CollisionMeshObj(TEXT("/Engine/EngineMeshes/Cylinder"));
 	CollisionMesh = CollisionMeshObj.Object;
 
+	static ConstructorHelpers::FObjectFinder<UTireType> TireTypeObj(TEXT("/Engine/EngineTireTypes/DefaultTireType.DefaultTireType"));
+	TireType = TireTypeObj.Object;
+
 	ShapeRadius = 30.0f;
 	ShapeWidth = 10.0f;
 	bAutoAdjustCollisionSize = true;
-	//Mass = 10.0f;
-	Inertia = 1.0f;
+	Mass = 20.0f;
 	bAffectedByHandbrake = true;
-	//DampingRate = 100.0f;
+	SteerAngle = 70.0f;
+	MaxBrakeTorque = 1500.f;
+	MaxHandBrakeTorque = 3000.f;
+	DampingRate = 0.25f;
 	LatStiffMaxLoad = 2.0f;
 	LatStiffValue = 17.0f;
-	LatStiffFactor = 1.0f;
-	LongStiffValue = 10.0f;
+	LongStiffValue = 1000.0f;
 	SuspensionForceOffset = 0.0f;
-	SuspensionMaxRaise = 20.0f;
-	SuspensionMaxDrop = 20.0f;
-	SuspensionNaturalFrequency = 5.0f;
+	SuspensionMaxRaise = 10.0f;
+	SuspensionMaxDrop = 10.0f;
+	SuspensionNaturalFrequency = 7.0f;
 	SuspensionDampingRatio = 1.0f;
 }
 

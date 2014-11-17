@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstFade.generated.h"
 
-UCLASS(HeaderGroup=Interpolation)
+UCLASS()
 class UInterpTrackInstFade : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

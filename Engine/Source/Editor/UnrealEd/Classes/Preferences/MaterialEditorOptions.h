@@ -54,6 +54,14 @@ class UNREALED_API UMaterialEditorOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bShowMobileStats:1;
 
+	/** If true, stats use release shaders. */
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	uint32 bReleaseStats : 1;
+
+	/** If true, show stats for an blank copy (no graph) of the preview material. Helps identify cost of material graph. Incurs slight cost to build/iteration times. */
+	UPROPERTY(EditAnywhere, config, Category = Options)
+	uint32 bShowBuiltinStats : 1;
+
 	/** The users favorite material expressions. */
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	TArray<FString> FavoriteExpressions;

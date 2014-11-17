@@ -13,17 +13,18 @@ public class Layers : ModuleRules
 				"Engine",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
-				"SceneOutliner"
+				"SceneOutliner",
 			}
-			);
+		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
-				"SceneOutliner"
+				"SceneOutliner",
 			}
-			);
+		);
 	}
 }

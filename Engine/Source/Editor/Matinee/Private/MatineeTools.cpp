@@ -10,6 +10,7 @@
 
 #include "MatineeConstants.h"
 #include "MatineeViewSaveData.h"
+#include "MatineeDelegates.h"
 
 #include "SoundDefinitions.h"
 
@@ -265,7 +266,7 @@ void FMatinee::ConstrainFixedTimeStepFrameRate()
 	if( bSnapToFrames && bFixedTimeStepPlayback )
 	{
 		// NOTE: Its important that PlaybackStartRealTime and NumContinuousFixedTimeStepFrames are reset
-		//    when anything timing-related changes, like GFixedDeltaTime or playback direction.
+		//    when anything timing-related changes, like FApp::GetFixedDeltaTime() or playback direction.
 
 		double CurRealTime = FPlatformTime::Seconds();
 
@@ -283,7 +284,7 @@ void FMatinee::ConstrainFixedTimeStepFrameRate()
 
 		// How long should have it taken to get to the current frame?
 		const double ExpectedPlaybackTime =
-			NumContinuousFixedTimeStepFrames * GFixedDeltaTime * PlaybackSpeed;
+			NumContinuousFixedTimeStepFrames * FApp::GetFixedDeltaTime() * PlaybackSpeed;
 
 		// How long has it been (in real-time) since we started playback?
 		double RealTimeSincePlaybackStarted = CurRealTime - PlaybackStartRealTime;
@@ -1178,14 +1179,39 @@ void FMatinee::DeleteSelectedKeys(bool bDoTransaction)
 				ModifiedTracks.Add(Track);
 			}
 		}
-
-		// If this is an event key - we update the connectors later.
-		if(Track->IsA(UInterpTrackEvent::StaticClass()))
-		{
-			bRemovedEventKeys = true;
-		}
 			
+
+		FName OldKeyName = NAME_None;
+		if(const UInterpTrackEvent* TrackEvent = Cast< UInterpTrackEvent >( Track ))
+		{
+			// If this is an event key - we update the connectors later.
+			bRemovedEventKeys = true;
+
+
+			// Take a copy of the key name before it's removed
+			if( TrackEvent->EventTrack.IsValidIndex( SelKey.KeyIndex ))
+			{
+				OldKeyName = TrackEvent->EventTrack[SelKey.KeyIndex].EventName;
+			}
+		}
+
+		
 		Track->RemoveKeyframe(SelKey.KeyIndex);
+
+
+		// If we have a valid name, check to see if it's last event key to be removed with this name? 
+		if( !OldKeyName.IsNone() )
+		{
+			const bool bCommonName = IData->IsEventName( OldKeyName );
+			if( !bCommonName )
+			{
+				// Fire a delegate so other places that use the name can also update
+				TArray<FName> KeyNames;
+				KeyNames.Add( OldKeyName );
+				FMatineeDelegates::Get().OnEventKeyframeRemoved.Broadcast( MatineeActor, KeyNames );
+			}
+		}
+
 
 		// If any other keys in the selection are on the same track but after the one we just deleted, decrement the index to correct it.
 		for(int32 j=0; j<Opt->SelectedKeys.Num(); j++)
@@ -1584,10 +1610,11 @@ void FMatinee::SetFixedTimeStepPlayback( bool bInValue )
 void FMatinee::UpdateFixedTimeStepPlayback()
 {
 	// Turn on 'benchmarking' mode if we're using a fixed time step
-	GIsBenchmarking = MatineeActor->bIsPlaying && bSnapToFrames && bFixedTimeStepPlayback;
+	bool bIsBenchmarking = MatineeActor->bIsPlaying && bSnapToFrames && bFixedTimeStepPlayback;
+	FApp::SetBenchmarking(bIsBenchmarking);
 
 	// Set the time interval between fixed ticks
-	GFixedDeltaTime = SnapAmount;
+	FApp::SetFixedDeltaTime(SnapAmount);
 }
 
 
@@ -1618,7 +1645,7 @@ void FMatinee::SetShowTimeCursorPosForAllKeys( bool bInValue )
 float FMatinee::SnapTimeToNearestFrame( float InTime ) const
 {
 	// Compute the new time value by rounding
-	const int32 InterpPositionInFrames = FMath::Round( InTime / SnapAmount );
+	const int32 InterpPositionInFrames = FMath::RoundToInt( InTime / SnapAmount );
 	const float NewTime = InterpPositionInFrames * SnapAmount;
 
 	return NewTime;
@@ -1758,6 +1785,13 @@ void FMatinee::SetInterpEnd(float NewInterpLength)
 	IData->EdSectionStart = FMath::Clamp(IData->EdSectionStart, 0.f, IData->InterpLength);
 	IData->EdSectionEnd = FMath::Clamp(IData->EdSectionEnd, 0.f, IData->InterpLength);
 	CurveEd->SetRegionMarker(true, IData->EdSectionStart, IData->EdSectionEnd, RegionFillColor);
+
+	// Update the CameraAnim if necessary
+	AMatineeActorCameraAnim* const CamAnimMatineeActor = Cast<AMatineeActorCameraAnim>(MatineeActor);
+	if ( (CamAnimMatineeActor != nullptr) && (CamAnimMatineeActor->CameraAnim != nullptr) )
+	{
+		CamAnimMatineeActor->CameraAnim->AnimLength = IData->InterpLength;
+	}
 }
 
 void FMatinee::MoveLoopMarker(float NewMarkerPos, bool bIsStart)
@@ -2213,8 +2247,27 @@ void FMatinee::FinishAddKey(UInterpTrack* Track, bool bCommitKeys)
 			// Add key at current time, snapped to the grid if its on.
 			int32 NewKeyIndex = Track->AddKeyframe( fKeyTime, TrInst, InitialInterpMode );
 			check( NewKeyIndex != INDEX_NONE );
+
+
+			// Check to see if this is going to be the event first key to have this name
+			bool bCommonName = true;
+			FName NewKeyName = TrackHelper->GetKeyframeAddDataName();
+			if( !NewKeyName.IsNone() )
+			{
+				bCommonName = IData->IsEventName( NewKeyName );
+			}				
+
+
 			TrackHelper->PostCreateKeyframe( Track, NewKeyIndex );
 			TrackToNewKeyIndexMap.Add( Track, NewKeyIndex );
+
+
+			// Is this the first event key to be added with this name?
+			if( !bCommonName )
+			{
+				// Fire a delegate so other places that use the name can also update
+				FMatineeDelegates::Get().OnEventKeyframeAdded.Broadcast( MatineeActor, NewKeyName, NewKeyIndex );
+			}
 		}
 
 		InterpEdTrans->EndSpecial();
@@ -2860,6 +2913,10 @@ void FMatinee::DeleteSelectedTracks()
 	// Deselect everything.
 	ClearKeySelection();
 
+	// Take a copy of all the valid event names
+	TArray<FName> OldEventNames;
+	MatineeActor->MatineeData->GetAllEventNames(OldEventNames);
+
 	for( FSelectedTrackIterator TrackIt(GetSelectedTrackIterator()); TrackIt; ++TrackIt )
 	{
 		UInterpTrack* ActiveTrack = *TrackIt;
@@ -2909,6 +2966,28 @@ void FMatinee::DeleteSelectedTracks()
 		}
 	}
 
+	IData->UpdateEventNames();
+
+	// Take another copy of all the valid event names
+	TArray<FName> RemainingEventNames;
+	MatineeActor->MatineeData->GetAllEventNames(RemainingEventNames);
+
+	// Check to see which event name no longer exist
+	TArray<FName> RemovedEventNames;
+	for( int32 EventNameIndex = 0; EventNameIndex < OldEventNames.Num(); ++EventNameIndex )
+	{
+		const FName& OldEventName = OldEventNames[EventNameIndex];
+		if ( !RemainingEventNames.Contains(OldEventName) )
+		{
+			RemovedEventNames.Add(OldEventName);
+		}
+	}
+	if ( RemovedEventNames.Num() > 0 )
+	{
+		// Fire a delegate so other places that use the name can also update
+		FMatineeDelegates::Get().OnEventKeyframeRemoved.Broadcast( MatineeActor, RemovedEventNames );
+	}
+
 	InterpEdTrans->EndSpecial();
 
 	// Update the curve editor
@@ -2937,6 +3016,10 @@ void FMatinee::DeleteSelectedGroups()
 
 	// Deselect everything.
 	ClearKeySelection();
+
+	// Take a copy of all the valid event names
+	TArray<FName> OldEventNames;
+	MatineeActor->MatineeData->GetAllEventNames(OldEventNames);
 
 	for( FSelectedGroupIterator GroupIt(GetSelectedGroupIterator()); GroupIt; ++GroupIt )
 	{
@@ -3006,6 +3089,28 @@ void FMatinee::DeleteSelectedGroups()
 		// Prevent group from being selected as well as any tracks associated to the group.
 		// WARNING: Do not deference or use this iterator after the call to RemoveCurrent()!
 		GroupIt.RemoveCurrent();
+	}
+
+	IData->UpdateEventNames();
+
+	// Take another copy of all the valid event names
+	TArray<FName> RemainingEventNames;
+	MatineeActor->MatineeData->GetAllEventNames(RemainingEventNames);
+
+	// Check to see which event name no longer exist
+	TArray<FName> RemovedEventNames;
+	for( int32 EventNameIndex = 0; EventNameIndex < OldEventNames.Num(); ++EventNameIndex )
+	{
+		const FName& OldEventName = OldEventNames[EventNameIndex];
+		if ( !RemainingEventNames.Contains(OldEventName) )
+		{
+			RemovedEventNames.Add(OldEventName);
+		}
+	}
+	if ( RemovedEventNames.Num() > 0 )
+	{
+		// Fire a delegate so other places that use the name can also update
+		FMatineeDelegates::Get().OnEventKeyframeRemoved.Broadcast( MatineeActor, RemovedEventNames );
 	}
 
 	// Tell curve editor stuff might have changed.

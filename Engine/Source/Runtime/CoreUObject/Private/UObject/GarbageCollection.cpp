@@ -372,11 +372,7 @@ private:
 				NumObjects--;
 			}
 		}
-		static const TCHAR* GetTaskName()
-		{
-			return TEXT("FGCTask");
-		}
-		FORCEINLINE static TStatId GetStatId()
+		FORCEINLINE TStatId GetStatId() const
 		{
 			RETURN_QUICK_DECLARE_CYCLE_STAT(FGCTask, STATGROUP_TaskGraphTasks);
 		}
@@ -1200,7 +1196,9 @@ void UObject::AddReferencedObjects(UObject* This, FReferenceCollector& Collector
 	{
 		UObject* LoadOuter = This->GetOuter();
 		UClass *Class = This->GetClass();
+		Collector.AllowEliminatingReferences(false);
 		Collector.AddReferencedObject( LoadOuter, This );
+		Collector.AllowEliminatingReferences(true);
 		Collector.AddReferencedObject( Class, This );
 
 		// Serialize object properties which are defined in the class.

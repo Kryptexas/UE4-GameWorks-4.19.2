@@ -120,8 +120,7 @@ public:
 					IfFailTest_SucceedAtBeingEqualGoto.Type = KCST_GotoIfNot;
 					IfFailTest_SucceedAtBeingEqualGoto.LHS = BoolTerm;
 
-					UEdGraphNode* ConnectedCaseStatementNode = (Pin->LinkedTo.Num() > 0) ? Pin->LinkedTo[0]->GetOwningNode() : NULL;
-					Context.GotoFixupRequestMap.Add(&IfFailTest_SucceedAtBeingEqualGoto, ConnectedCaseStatementNode);
+					Context.GotoFixupRequestMap.Add(&IfFailTest_SucceedAtBeingEqualGoto, Pin);
 				}
 			}
 

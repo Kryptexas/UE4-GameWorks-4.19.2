@@ -9,6 +9,12 @@ public class OnlineSubsystemSteam : ModuleRules
 	{
 		Definitions.Add("ONLINESUBSYSTEMSTEAM_PACKAGE=1");
 
+		PublicDependencyModuleNames.AddRange(
+			new string[] { 
+				"OnlineSubsystemUtils",
+			}
+		);
+
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Core", 
@@ -17,17 +23,16 @@ public class OnlineSubsystemSteam : ModuleRules
 				"Sockets", 
 				"Voice",
 				"OnlineSubsystem", 
-				"OnlineSubsystemUtils", 
 			}
-			);
+		);
 
 		AddThirdPartyPrivateStaticDependencies(Target, "Steamworks");
 
 		Definitions.Add("WITH_STEAMGC=0");
 
 #if false
-		if (Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist") == true &&
-			Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/SteamGC") == true)
+		if (Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true &&
+			Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/SteamGC") == true)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"ProtoBuf",

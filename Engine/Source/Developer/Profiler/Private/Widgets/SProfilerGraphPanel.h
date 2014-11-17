@@ -35,30 +35,53 @@ protected:
 	/** Called when the status of specified tracked stat has changed. */
 	void ProfilerManager_OnTrackedStatChanged( const FTrackedStat& TrackedStat, bool bIsTracked );
 
-	/** Called when the list of session instances have changed. */
-	void ProfilerManager_OnSessionInstancesUpdated();
-
 	/**
 	 * Called when the user scrolls the scrollbar
 	 *
 	 * @param ScrollOffset - scroll offset as a fraction between 0 and 1.
 	 */
-	void ScrollBar_OnUserScrolled( float ScrollOffset );
+	void HorizontalScrollBar_OnUserScrolled( float ScrollOffset );
 
-	/** Called when the frame offset has been changed from the data graph widget. */
-	void DataGraph_OnGraphOffsetChanged( int InFrameOffset );
+	void VerticalScrollBar_OnUserScrolled( float ScrollOffset );
 
-	/** Called when the data graph view mode has changed from the data graph widget. */
-	void DataGraph_OnViewModeChanged( EDataGraphViewModes::Type ViewMode );
+	/** Called when the frame offset has been changed in the data graph widget. */
+	void OnDataGraphGraphOffsetChanged( int32 InFrameOffset );
+
+	void ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode );
+
+public:
+	/** Called when the selection box has been changed in the profiler mini-view widget. */
+	void MiniView_OnSelectionBoxChanged( int32 FrameStart, int32 FrameEnd );
+
+	void ThreadView_OnViewPositionXChanged( double FrameStartMS, double FrameEndMS, double MaxEndTimeMS, int32 FrameStart, int32 FrameEnd );
+	void ThreadView_OnViewPositionYChanged( double PosYStart, double PosYEnd, double MaxPosY );
+
+protected:
+	/** Sets state of the scroll bar. */
+	void SetScrollBarState();
+
 
 	void UpdateInternals();
 
-protected:
+//protected:
+public:
 	/** Holds the data graph widget. */
 	TSharedPtr<SDataGraph> DataGraph;
 
-	/** Widget used for scrolling graphs. */
-	TSharedPtr<SScrollBar> ScrollBar;
+	/** Holds the thread view widget. */
+	TSharedPtr<SProfilerThreadView> ThreadView;
+
+	/** Weak pointer to the profiler mini-view. */
+	TWeakPtr<SProfilerMiniView> ProfilerMiniView;
+	
+	/** Temporary solution to avoid feedback loop when changing the selection box. */
+	bool bLockMiniViewState;
+
+	/** Horizontal scroll bar, used for scrolling graphs. */
+	TSharedPtr<SScrollBar> HorizontalScrollBar;
+
+	/** Vertical scroll bar, used for scrolling graphs. */
+	TSharedPtr<SScrollBar> VerticalScrollBar;
 
 	/** Number of graph points. */
 	int32 NumDataPoints;
@@ -68,4 +91,6 @@ protected:
 
 	/** Current offset of the graph, index of the first visible graph point. */
 	int32 GraphOffset;
+
+	EProfilerViewMode::Type ViewMode;
 };

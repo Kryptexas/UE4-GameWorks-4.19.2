@@ -21,7 +21,7 @@ namespace FActorEditorUtils
 	*
 	* @return true if this actor is a preview actor, false otherwise
 	*/
-	ENGINE_API bool IsAPreviewActor( const AActor* InActor );
+	ENGINE_API bool IsAPreviewOrInactiveActor( const AActor* InActor );
 
 	/**
 	 * Gets a list of components, from an actor, which can be externally modified.  Editable components have properties visible when viewing their owner actor in a details view

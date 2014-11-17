@@ -77,6 +77,11 @@ struct FParticleEmitterBuildInfo
 	/** The alpha scale of a particle over time. */
 	FComposableFloatDistribution AlphaScale;
 
+	/** An additional color scale for allowing parameters to be used for ColorOverLife modules. */
+	FRawDistributionVector DynamicColor;
+	/** An additional alpha scale for allowing parameters to be used for ColorOverLife modules. */
+	FRawDistributionFloat DynamicAlpha;
+
 	/** An additional color scale for allowing parameters to be used for ColorScaleOverLife modules. */
 	FRawDistributionVector DynamicColorScale;
 	/** An additional alpha scale for allowing parameters to be used for ColorScaleOverLife modules. */
@@ -193,9 +198,9 @@ public:
 	int32 CurrentLODLevelIndex;
 	/** The currently set LOD level.									*/
 	UParticleLODLevel* CurrentLODLevel;
-	/** The offset to the TypeDate payload in the particle data.		*/
+	/** The offset to the TypeData payload in the particle data.		*/
 	int32 TypeDataOffset;
-	/** The offset to the TypeDate instance payload.					*/
+	/** The offset to the TypeData instance payload.					*/
 	int32 TypeDataInstanceOffset;
 	/** The offset to the SubUV payload in the particle data.			*/
 	int32 SubUVDataOffset;
@@ -469,6 +474,12 @@ public:
 		bHaltSpawning = bInHaltSpawning;
 	}
 
+	/** Get the offset of the orbit payload. */
+	int32 GetOrbitPayloadOffset();
+
+	/** Get the position of the particle taking orbit in to account. */
+	FVector GetParticleLocationWithOrbitOffset(FBaseParticle* Particle);
+
 	virtual FBaseParticle* GetParticle(int32 Index);
 	/**
 	 *	Get the physical index of the particle at the given index
@@ -632,7 +643,8 @@ public:
 
 	// Called on world origin changes
 	virtual void ApplyWorldOffset(FVector InOffset, bool bWorldShift);
-
+		
+	virtual bool IsTrailEmitter()const{ return false; }
 protected:
 
 	/**
@@ -1148,6 +1160,13 @@ protected:
 		EGetTrailParticleOption InGetOption,
 		FBaseParticle*& OutParticle,
 		FTrailsBaseTypeDataPayload*& OutTrailData);
+
+	/** Prints out info for a single particle. */
+	virtual void PrintParticleData(FBaseParticle* Particle, FTrailsBaseTypeDataPayload* TrailData, int32 CurrentIndex, int32 TrailIndex){}
+	/** Prints out info for all active particles. */
+	virtual void PrintAllActiveParticles(){}
+	/** Traverses all trails and prints out debugging info. */
+	virtual void PrintTrails(){}
 };
 
 struct FParticleRibbonEmitterInstance : public FParticleTrailsEmitterInstance_Base
@@ -1341,41 +1360,6 @@ protected:
 /*-----------------------------------------------------------------------------
 	FParticleAnimTrailEmitterInstance.
 -----------------------------------------------------------------------------*/
-struct FAnimTrailSocketSample
-{
-	/** Position of the socket relative to the root-bone at the sample point */
-	FVector Position;
-	/** Velocity of the socket at the sample point */
-	FVector Velocity;
-};
-
-struct FAnimTrailSamplePoint
-{
-	/** The time value at this sample point, relative to the starting time. */
-	float RelativeTime;
-	/** The time step taken for this sample point */
-	float TimeStep;
-	/** The current time of the animation for this sample point */
-	float AnimCurrentTime;
-	/** The time of the animation at this sample point */
-	float AnimSampleTime;
-	/** The sample for the first edge */
-	FAnimTrailSocketSample FirstEdgeSample;
-	/** The sample for the second edge */
-	FAnimTrailSocketSample SecondEdgeSample;
-	/** The sample for the control point */
-	FAnimTrailSocketSample ControlPointSample;
-
-};
-
-struct FAnimTrailOwnerData
-{
-	/** These values are for interpolating the intermediate points... */
-	/** The position of the source */
-	FVector	Position;
-	/** The rotation of the source */
-	FQuat Rotation;
-};
 
 struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance_Base
 {
@@ -1385,35 +1369,51 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	/** SpawnPerUnit module (hijacking it for trails here) */
 	UParticleModuleSpawnPerUnit*		SpawnPerUnitModule;
 
-	/** The current source data for each trail in this emitter */
-	FAnimTrailSamplePoint CurrentSourceData;
-	/** The previous source data for each trail in this emitter */
-	FAnimTrailSamplePoint LastSourceData;
-	/** The last animation time that was sampled */
-	float LastAnimSampleTime;
-	/** The last animation time that was PROCESS */
-	float LastAnimProcessedTime;
-
-	/** 
-	 *	The current animation data to process in the spawn 
-	 *	This is necessary as we will not have access to the AnimNotify when ticked...
+	/**
+	 *	The name of the socket that supplies the first edge for this emitter.
 	 */
-	TArray<FAnimTrailSamplePoint> AnimData;
-	int32 CurrentAnimDataCount;
-	int32 LastTrailIndex;
-	int32 LastSourceSampleTrailIndex;
+	FName FirstSocketName;
 
-	/** The time step used for sampling the animation data. */
-	float AnimSampleTimeStep;
+	/**
+	 *	The name of the socket that supplies the second edge for this emitter.
+	 */
+	FName SecondSocketName;
 
-	/** The previous position and rotation of the skel component */
-	FAnimTrailOwnerData LastOwnerData;
-	float LastSourceUpdateTime;
-	FAnimTrailOwnerData CurrentOwnerData;
-	float CurrentSourceUpdateTime;
+	/**
+	*	The width of the trail.
+	*/
+	float Width;
 
+	/**
+	*	How the width is applied to the trail.
+	*/
+	ETrailWidthMode WidthMode;
+
+	/**
+	 *	The anim notify state that spawned this emitter.
+	 */
+	class UAnimNotifyState* AnimNotifyState;
+
+	/**
+	*	When set, the current trail will be marked as dead in the next tick.
+	*/
 	bool bTagTrailAsDead;
-	bool bTagEmitterAsDead;
+
+	/**
+	*	Whether new particles should be spawned.
+	*/
+	bool bTrailEnabled;
+
+	/** Editor only variables controlling the debug rendering for trails.*/
+#if WITH_EDITORONLY_DATA
+	uint32 bRenderGeometry : 1;
+	uint32 bRenderSpawnPoints : 1;
+	uint32 bRenderTangents : 1;
+	uint32 bRenderTessellation : 1;
+#endif
+
+	/** The number of particles in the trail which are either marked */
+	int32 HeadOnlyParticles;
 
 	/** Constructor	*/
 	FParticleAnimTrailEmitterInstance();
@@ -1424,7 +1424,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	virtual void InitParameters(UParticleEmitter* InTemplate, UParticleSystemComponent* InComponent, bool bClearResources = true);
 
 	/**
-	 *	Helper function for recalculating tangents...
+	 *	Helper function for recalculating tangents and the spline interpolation parameter...
 	 *
 	 *	@param	PrevParticle		The previous particle in the trail
 	 *	@param	PrevTrailData		The payload of the previous particle in the trail
@@ -1433,7 +1433,7 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	 *	@param	NextParticle		The next particle in the trail
 	 *	@param	NextTrailData		The payload of the next particle in the trail
 	 */
-	virtual void RecalculateTangent(
+	virtual void RecalculateTangentAndInterpolationParam(
 		FBaseParticle* PrevParticle, FAnimTrailTypeDataPayload* PrevTrailData, 
 		FBaseParticle* CurrParticle, FAnimTrailTypeDataPayload* CurrTrailData, 
 		FBaseParticle* NextParticle, FAnimTrailTypeDataPayload* NextTrailData);
@@ -1454,10 +1454,13 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	 *	@return	float			The leftover fraction of spawning
 	 */
 	virtual float Spawn(float DeltaTime);
-	
+
 	virtual void SetupTrailModules();
 	void ResolveSource();
 	virtual void UpdateSourceData(float DeltaTime, bool bFirstTime);
+
+	void UpdateBoundingBox(float DeltaTime);
+	void ForceUpdateBoundingBox();
 
 	/** Determine the number of vertices and triangles in each trail */
 	void DetermineVertexAndTriangleCount();
@@ -1498,6 +1501,46 @@ struct FParticleAnimTrailEmitterInstance : public FParticleTrailsEmitterInstance
 	 */
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) OVERRIDE;
 
+	virtual bool IsTrailEmitter()const{ return true; }
+
+	/**
+	 * Begins the trail.
+	 *
+	 * @param	InAnimNotifyState	The AnimNotifyState that created (or is creating) this trail.
+	 */
+	void BeginTrail(UAnimNotifyState* InAnimNotifyState);	
+	
+	/**
+	 * Ends the trail.
+	 *
+	 * @return  True if this was a trail ended by this notify, false otherwise.
+	 */
+	void EndTrail();
+
+	/**
+	* Sets the date that defines this trail.
+	*
+	* @param	InFirstSocketName	The name of the first socket for the trail.
+	* @param	InSecondSocketName	The name of the second socket for the trail.
+	* @param	InWidthMode			How the width value is applied to the trail.
+	* @param	InWidth				The width of the trail.
+	*/
+	void SetTrailSourceData( FName InFirstSocketName, FName InSecondSocketName, ETrailWidthMode InWidthMode, float InWidth );
+
+	bool IsTrailActive()const;
+
+#if WITH_EDITORONLY_DATA
+	/**
+	* Sets various debug variables for trails.
+	*
+	* @param	bRenderGeometry		When true, the trails geometry is rendered.
+	* @param	bRenderSpawnPoints	When true, the trails spawn points are rendered.
+	* @param	bRenderTessellation	When true, the trails tessellated points are rendered.
+	* @param	bRenderTangents		When true, the trails tangents are rendered.
+	*/
+	void SetTrailDebugData(bool bInRenderGeometry, bool bInRenderSpawnPoints, bool bInRenderTessellation, bool bInRenderTangents);
+#endif
+
 protected:
 
 	/**
@@ -1508,4 +1551,18 @@ protected:
 	 * @return Returns true if successful
 	 */
 	virtual bool FillReplayData( FDynamicEmitterReplayDataBase& OutData );
+
+	/** 
+	*	Helper to spawn a trail particle during SpawnParticles(). 
+	*	@param	StartParticleIndex	Index of the particle at the start of the trail. Is altered in the function.
+	*	@param	Params			Various parameters for spawning.
+	*/
+	void SpawnParticle( int32& StartParticleIndex, const struct FAnimTrailParticleSpawnParams& Params );
+
+	/** Prints out info for a single particle. */
+	virtual void PrintParticleData(FBaseParticle* Particle, FTrailsBaseTypeDataPayload* TrailData, int32 CurrentIndex, int32 TrailIndex);
+	/** Prints out info for all active particles. */
+	virtual void PrintAllActiveParticles();
+	/** Traverses all trails and prints out debugging info. */
+	virtual void PrintTrails();
 };

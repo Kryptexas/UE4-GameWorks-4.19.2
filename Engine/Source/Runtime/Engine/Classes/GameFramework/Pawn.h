@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "PawnMovementComponent.h"
 #include "Pawn.generated.h"
 
 ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDamage, Warning, All);
@@ -11,7 +11,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogDamage, Warning, All);
  *	Pawns are the physical representations of players and creatures in a level.
  *	They are responsible for all physical interaction between the player or AI and the world.
  */
-UCLASS(abstract, HeaderGroup=Pawn, config=Game, dependson=AController, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))
+UCLASS(abstract, config=Game, dependson=AController, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))
 class ENGINE_API APawn : public AActor, public INavAgentInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -182,7 +182,7 @@ public:
 	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) OVERRIDE;
 	virtual void PostNetReceiveLocation() OVERRIDE;
 	virtual void PostNetReceiveVelocity(const FVector& NewVelocity) OVERRIDE;
-	virtual void DisplayDebug(class UCanvas* Canvas, const TArray<FName>& DebugDisplay, float& YL, float& YPos) OVERRIDE;
+	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) OVERRIDE;
 	virtual void GetActorEyesViewPoint( FVector& Location, FRotator& Rotation ) const OVERRIDE;
 	virtual void OutsideWorldBounds() OVERRIDE;
 	virtual void Destroyed() OVERRIDE;
@@ -207,7 +207,7 @@ public:
 	virtual const struct FNavAgentProperties* GetNavAgentProperties() const OVERRIDE { return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : NULL;}
 	/** Basically retrieved pawn's location on navmesh */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
-	virtual FVector GetNavAgentLocation() const OVERRIDE { return GetActorLocation(); }
+	virtual FVector GetNavAgentLocation() const OVERRIDE { return GetActorLocation() - FVector(0.f, 0.f, BaseEyeHeight); }
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const OVERRIDE;
 	// End INavAgentInterface Interface
 

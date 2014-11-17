@@ -108,7 +108,7 @@ public:
 	void SetParameters(const ShaderRHIParamRef Shader, const FLightSceneInfo* LightSceneInfo, const FSceneView& View, TRefCountPtr<IPooledRenderTarget>& PassSource)
 	{
 		const uint32 DownsampleFactor = GetLightShaftDownsampleFactor();
-		FIntPoint DownSampledViewSize(FMath::Floor(View.ViewRect.Width() / DownsampleFactor), FMath::Floor(View.ViewRect.Height() / DownsampleFactor));
+		FIntPoint DownSampledViewSize(FMath::FloorToInt(View.ViewRect.Width() / DownsampleFactor), FMath::FloorToInt(View.ViewRect.Height() / DownsampleFactor));
 		const FIntPoint FilterBufferSize = GSceneRenderTargets.GetBufferSizeXY() / DownsampleFactor;
 
 		const FVector2D ViewRatioOfBuffer((float)DownSampledViewSize.X / FilterBufferSize.X, (float)DownSampledViewSize.Y / FilterBufferSize.Y);
@@ -299,7 +299,7 @@ public:
 		const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
 		FVector2D SampleOffsets(1.0f / BufferSize.X, 1.0f / BufferSize.Y);
 		SetShaderValue(GetPixelShader(),SampleOffsetsParameter,SampleOffsets);
-		SceneTextureParams.Set(GetPixelShader());
+		SceneTextureParams.Set(GetPixelShader(), View);
 	}
 
 private:
@@ -506,6 +506,7 @@ void DownsamplePass(const FViewInfo& View, const FLightSceneInfo* LightSceneInfo
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		FIntPoint(DownsampledSizeX, DownsampledSizeY), 
 		BufferSize,
+		*DownsampleLightShaftsVertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(LightShaftsDest->GetRenderTargetItem().TargetableTexture, LightShaftsDest->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams() );
@@ -625,6 +626,7 @@ void ApplyRadialBlurPasses(
 				DownSampledXY.X, DownSampledXY.Y, 
 				DownsampledSizeX, DownsampledSizeY,
 				FilterBufferSize, FilterBufferSize,
+				*ScreenVertexShader,
 				EDRF_UseTriangleOptimization);
 		}
 
@@ -666,6 +668,7 @@ void FinishOcclusionTerm(const FViewInfo& View, const FLightSceneInfo* const Lig
 			DownSampledXY.X, DownSampledXY.Y, 
 			DownsampledSizeX, DownsampledSizeY,
 			FilterBufferSize, FilterBufferSize,
+			*ScreenVertexShader,
 			EDRF_UseTriangleOptimization);
 	}
 
@@ -852,6 +855,7 @@ void ApplyLightShaftBloom(const FViewInfo& View, const FLightSceneInfo* const Li
 		DownSampledXY.X, DownSampledXY.Y, 
 		DownsampledSizeX, DownsampledSizeY,
 		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()), FilterBufferSize,
+		*ScreenVertexShader,
 		EDRF_UseTriangleOptimization);
 
 	GSceneRenderTargets.FinishRenderingSceneColor(false);

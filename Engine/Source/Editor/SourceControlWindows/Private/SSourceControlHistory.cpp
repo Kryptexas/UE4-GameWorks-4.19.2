@@ -323,7 +323,7 @@ static bool DiffHistoryItems(TSharedPtr<FHistoryTreeItem> const FirstSelection, 
 /**
 * A FDragDropOperation that represents dragging a source-control history tree item around.
 */
-class FSourceControlHistoryRowDragDropOp : public FDragDropOperation, public TSharedFromThis<FSourceControlHistoryRowDragDropOp>
+class FSourceControlHistoryRowDragDropOp : public FDragDropOperation
 {
 private:
 	/**
@@ -1189,9 +1189,9 @@ private:
 	 */
 	void OnRowDragEnter(FDragDropEvent const& DragDropEvent, TSharedPtr<FHistoryTreeItem> const HoveredItem) const
 	{
-		if (DragDrop::IsTypeMatch<FSourceControlHistoryRowDragDropOp>(DragDropEvent.GetOperation()))
+		TSharedPtr<FSourceControlHistoryRowDragDropOp> DragRowOp = DragDropEvent.GetOperationAs<FSourceControlHistoryRowDragDropOp>();
+		if (DragRowOp.IsValid())
 		{
-			TSharedPtr<FSourceControlHistoryRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSourceControlHistoryRowDragDropOp>(DragDropEvent.GetOperation());
 			DragRowOp->PendingDropAction = FSourceControlHistoryRowDragDropOp::EDropAction::None;
 
 			TArray< TSharedPtr<FHistoryTreeItem> > DiffingItems = DragRowOp->SelectedItems;
@@ -1252,10 +1252,9 @@ private:
 	 */
 	void OnRowDragLeave(FDragDropEvent const& DragDropEvent) const
 	{
-		if (DragDrop::IsTypeMatch<FSourceControlHistoryRowDragDropOp>(DragDropEvent.GetOperation()))
+		TSharedPtr<FSourceControlHistoryRowDragDropOp> DragRowOp = DragDropEvent.GetOperationAs<FSourceControlHistoryRowDragDropOp>();
+		if (DragRowOp.IsValid())
 		{
-			TSharedPtr<FSourceControlHistoryRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSourceControlHistoryRowDragDropOp>(DragDropEvent.GetOperation());
-
 			DragRowOp->HoverText = FText::GetEmpty();
 			DragRowOp->PendingDropAction = FSourceControlHistoryRowDragDropOp::EDropAction::None;
 		}
@@ -1272,9 +1271,9 @@ private:
 	 */
 	FReply OnRowDrop(FDragDropEvent const& DragDropEvent, TSharedPtr<FHistoryTreeItem> const HoveredItem) const
 	{
-		if (DragDrop::IsTypeMatch<FSourceControlHistoryRowDragDropOp>(DragDropEvent.GetOperation()))
+		TSharedPtr<FSourceControlHistoryRowDragDropOp> DragRowOp = DragDropEvent.GetOperationAs<FSourceControlHistoryRowDragDropOp>();
+		if (DragRowOp.IsValid())
 		{
-			TSharedPtr<FSourceControlHistoryRowDragDropOp> DragRowOp = StaticCastSharedPtr<FSourceControlHistoryRowDragDropOp>(DragDropEvent.GetOperation());
 			if (DragRowOp->PendingDropAction == FSourceControlHistoryRowDragDropOp::EDropAction::Diff)
 			{
 				check(DragRowOp->SelectedItems.Num() > 0);

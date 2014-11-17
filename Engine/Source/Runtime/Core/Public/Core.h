@@ -73,6 +73,7 @@ class               UTextProperty;
 class               UArrayProperty;
 class				UDelegateProperty;
 class				UMulticastDelegateProperty;
+class				UAttributeProperty;
 class			UStruct;
 class				UFunction;
 class				UClass;
@@ -148,7 +149,7 @@ extern CORE_API void (*GFlushStreamingFunc)(void);
 
 extern CORE_API float GVolumeMultiplier;
 
-
+ 
 #if WITH_EDITORONLY_DATA
 
 	/** 
@@ -220,7 +221,6 @@ extern CORE_API bool GIsRequestingExit;
 
 /** Archive for serializing arbitrary data to and from memory						*/
 extern CORE_API class FReloadObjectArc* GMemoryArchive;
-extern CORE_API bool GIsBenchmarking;
 
 /**
  *	Global value indicating on-screen warnings/message should be displayed.
@@ -250,17 +250,6 @@ extern CORE_API FString GGameIni;
 extern CORE_API FString GGameUserSettingsIni;
 
 extern CORE_API float GNearClippingPlane;
-
-/** Timestep if a fixed delta time is wanted. */
-extern CORE_API double GFixedDeltaTime;
-
-/** Current delta time in seconds. */
-extern CORE_API double GDeltaTime;
-
-/** Unclamped delta time in seconds. */
-extern CORE_API double GUnclampedDeltaTime;
-extern CORE_API double GCurrentTime;
-extern CORE_API double GLastTime;
 
 extern CORE_API bool GExitPurge;
 extern CORE_API TCHAR GGameName[64];
@@ -343,9 +332,6 @@ extern CORE_API bool GEmitDrawEvents;
 /** Whether we want the rendering thread to be suspended, used e.g. for tracing. */
 extern CORE_API bool GShouldSuspendRenderingThread;
 
-/** Whether we want to use a fixed time step or not. */
-extern CORE_API bool GUseFixedTimeStep;
-
 /** Determines what kind of trace should occur, NAME_None for none. */
 extern CORE_API FName GCurrentTraceName;
 
@@ -366,14 +352,6 @@ extern CORE_API bool GIsDemoMode;
 extern CORE_API FName GLongCorePackageName;
 //@Package name transition, remove the double checks 
 extern CORE_API FName GLongCoreUObjectPackageName;
-
-/**
- * Whether to show slate batches.
- * @todo UE4: This does not belong here but is needed at the core level so slate will compile
- */
-#if STATS
-	extern CORE_API bool GShowSlateBatches;
-#endif
 
 /** Whether or not a unit test is currently being run. */
 extern CORE_API bool GIsAutomationTesting;
@@ -482,6 +460,8 @@ extern CORE_API double GBlueprintCompileTime;
 #include "App.h"
 #include "OutputDeviceConsole.h"
 #include "MonitoredProcess.h"
+#include "Attribute.h"
+#include "Optional.h"
 
 #ifdef TRUE
 	#undef TRUE

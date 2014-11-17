@@ -29,12 +29,30 @@ public:
 			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *PlatformName());
 			TextureLODSettings.Initialize(EngineSettings, TEXT("SystemSettings"));
 			StaticMeshLODSettings.Initialize(EngineSettings);
+
+			// Get the Target RHIs for this platform, we do not always want all those that are supported.
+			GConfig->GetArray(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+			
+			// Gather the list of Target RHIs and filter out any that may be invalid.
+			TArray<FName> PossibleShaderFormats;
+			GetAllPossibleShaderFormats(PossibleShaderFormats);
+
+			for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+			{
+				FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+				if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+				{
+					TargetedShaderFormats.Remove(ShaderFormat);
+				}
+			}
 		#endif
 	}
 
 public:
 
 	// Begin ITargetPlatform interface
+
+	virtual void EnableDeviceCheck(bool OnOff) OVERRIDE {}
 
 	virtual void GetAllDevices( TArray<ITargetDevicePtr>& OutDevices ) const OVERRIDE
 	{
@@ -45,161 +63,6 @@ public:
 	virtual ECompressionFlags GetBaseCompressionMethod( ) const OVERRIDE
 	{
 		return COMPRESS_ZLIB;
-	}
-
-	virtual bool GetBuildArtifacts( const FString& ProjectPath, EBuildTargets::Type BuildTarget, EBuildConfigurations::Type BuildConfiguration, ETargetPlatformBuildArtifacts::Type Artifacts, TMap<FString, FString>& OutFiles, TArray<FString>& OutMissingFiles ) const OVERRIDE
-	{
-		if ((BuildTarget == EBuildTargets::Unknown) || (BuildConfiguration == EBuildConfigurations::Unknown))
-		{
-			return false;
-		}
-
-		const FString ProjectName = FPaths::GetBaseFilename(ProjectPath);
-		const FString ProjectRoot = FPaths::GetPath(ProjectPath);
-
-		if (ProjectName.IsEmpty() || ProjectRoot.IsEmpty())
-		{
-			return false;
-		}
-
-		// append binaries
-		if (Artifacts & ETargetPlatformBuildArtifacts::Engine)
-		{
-			const FString EngineBinariesDir = FPaths::EngineDir() / TEXT("Binaries") / GetBinariesSubDir();
-			const FString DeployedBinariesDir = FString(TEXT("Engine")) / TEXT("Binaries") / GetBinariesSubDir();
-
-			// executable
-			{
-				FString ExecutableBaseName;
-				FString ProjectBinariesDir = ProjectRoot / TEXT("Binaries") / GetBinariesSubDir();
-
-				// content-only projects use game agnostic binaries
-				if (IFileManager::Get().DirectoryExists(*ProjectBinariesDir))
-				{
-					ExecutableBaseName = ProjectName;
-				}
-				else
-				{
-					if (BuildTarget == EBuildTargets::Game)
-					{
-						ExecutableBaseName = TEXT("UE4Game");
-					}
-					else if (BuildTarget == EBuildTargets::Server)
-					{
-						ExecutableBaseName = TEXT("UE4Game");
-					}
-					else if (BuildTarget == EBuildTargets::Editor)
-					{
-						ExecutableBaseName = TEXT("UE4Editor");
-					}
-					ProjectBinariesDir = EngineBinariesDir;
-				}
-		
-				if (BuildConfiguration != EBuildConfigurations::Development)
-				{
-					ExecutableBaseName += FString::Printf(TEXT("-%s-%s.exe"), *PlatformName(), EBuildConfigurations::ToString(BuildConfiguration));
-				}
-
-				// add executable
-				{
-					FString ExecutablePath = ProjectBinariesDir / ExecutableBaseName + TEXT(".exe");
-
-					if (FPaths::FileExists(*ExecutablePath))
-					{
-						OutFiles.Add(ExecutablePath, DeployedBinariesDir / ExecutableBaseName + TEXT(".exe"));
-					}
-					else
-					{
-						OutMissingFiles.Add(ExecutablePath);
-					}
-				}
-
-				// add debug symbols
-				if (Artifacts & ETargetPlatformBuildArtifacts::DebugSymbols)
-				{
-					FString DebugSymbolsPath = ProjectBinariesDir / ExecutableBaseName + TEXT(".pdb");
-
-					if (FPaths::FileExists(*DebugSymbolsPath))
-					{
-						OutFiles.Add(DebugSymbolsPath, DeployedBinariesDir / ExecutableBaseName + TEXT(".pdb"));
-					}
-					else
-					{
-						OutMissingFiles.Add(DebugSymbolsPath);
-					}
-				}
-			}
-
-			// dynamic link libraries
-			{
-				// @todo platforms: this needs some major improvement, so that only required files are included
-				TArray<FString> FileNames;
-
-				IFileManager::Get().FindFiles(FileNames, *(EngineBinariesDir / TEXT("*.dll")), true, false);
-
-				for (int32 FileIndex = 0; FileIndex < FileNames.Num(); ++FileIndex)
-				{
-					// add library
-					const FString& FileName = FileNames[FileIndex];
-					OutFiles.Add(EngineBinariesDir / FileName, DeployedBinariesDir / FileName);
-
-					// add debug symbols
-					if (Artifacts & ETargetPlatformBuildArtifacts::DebugSymbols)
-					{
-						FString DebugSymbolFile = FPaths::GetBaseFilename(FileName) + TEXT(".pdb");
-						FString DebugySymbolPath = EngineBinariesDir / DebugSymbolFile;
-
-						if (FPaths::FileExists(DebugySymbolPath))
-						{
-							OutFiles.Add(DebugySymbolPath, DeployedBinariesDir / DebugSymbolFile);
-						}
-						else
-						{
-							OutMissingFiles.Add(DebugySymbolPath);
-						}
-					}
-				}
-			}
-
-			// append third party binaries
-			{
-				FString ThirdPartyBinariesDir = FPaths::EngineDir() / TEXT("Binaries") / TEXT("ThirdParty");
-				TArray<FString> FileNames;
-
-				IFileManager::Get().FindFilesRecursive(FileNames, *ThirdPartyBinariesDir, TEXT("*.*"), true, false);
-
-				for (int32 FileIndex = 0; FileIndex < FileNames.Num(); ++FileIndex)
-				{
-					FString FileName = FileNames[FileIndex];
-
-					if (FileName.EndsWith(TEXT(".dll")) && !FileName.Contains(TEXT("Mcpp")) && !FileName.Contains(TEXT("NoRedist")) )
-					{
-						OutFiles.Add(FileName, FileName.RightChop(9));
-					}
-				}
-			}
-		}
-
-		// append engine content
-		if (Artifacts & ETargetPlatformBuildArtifacts::Content)
-		{
-			// @todo platforms: handle Engine configuration files and content
-		}
-
-		// append game content
-		if (Artifacts & ETargetPlatformBuildArtifacts::Content)
-		{
-			// @todo platforms: handle game configuration files and content
-		}
-
-		// append tools
-		if (Artifacts & ETargetPlatformBuildArtifacts::Tools)
-		{
-			// @todo platforms: add tools deployment support
-			return false;
-		}
-
-		return (OutMissingFiles.Num() == 0);
 	}
 
 	virtual bool GenerateStreamingInstallManifest(const TMultiMap<FString, int32>& ChunkMap, const TSet<int32>& ChunkIDsInUse) const OVERRIDE
@@ -282,7 +145,7 @@ public:
 	}
 
 #if WITH_ENGINE
-	virtual void GetShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
 	{
 		// no shaders needed for dedicated server target
 		if (!IS_DEDICATED_SERVER)
@@ -292,9 +155,21 @@ public:
 			//       may not wish to support SM4 or OpenGL.
 			static FName NAME_PCD3D_SM5(TEXT("PCD3D_SM5"));
 			static FName NAME_PCD3D_SM4(TEXT("PCD3D_SM4"));
+			static FName NAME_GLSL_150(TEXT("GLSL_150"));
+			static FName NAME_GLSL_430(TEXT("GLSL_430"));
 
 			OutFormats.AddUnique(NAME_PCD3D_SM5);
 			OutFormats.AddUnique(NAME_PCD3D_SM4);
+			OutFormats.AddUnique(NAME_GLSL_150);
+			OutFormats.AddUnique(NAME_GLSL_430);
+		}
+	}
+
+	virtual void GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const OVERRIDE
+	{
+		for(const FString& ShaderFormat : TargetedShaderFormats)
+		{
+			OutFormats.AddUnique(FName(*ShaderFormat));
 		}
 	}
 
@@ -368,6 +243,9 @@ private:
 
 	// Holds static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
+
+	// List of shader formats specified as targets
+	TArray<FString> TargetedShaderFormats;
 #endif // WITH_ENGINE
 
 private:

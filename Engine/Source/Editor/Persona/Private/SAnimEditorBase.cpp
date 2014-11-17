@@ -79,7 +79,7 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 					.Padding(FMargin(4,4,0,0))
 					[
 						SNew( STextBlock )
-						.Text(LOCTEXT("Animation", "Animation : ").ToString())
+						.Text(LOCTEXT("Animation", "Animation : "))
 					]
 
 					+SHorizontalBox::Slot()
@@ -100,7 +100,7 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 					.Padding(FMargin(4,4,0,0))
 					[
 						SNew( STextBlock )
-						.Text(LOCTEXT("Percentage", "Percentage: ").ToString())
+						.Text(LOCTEXT("Percentage", "Percentage: "))
 					]
 					+SHorizontalBox::Slot()
 					.FillWidth(1)
@@ -119,7 +119,7 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 					.Padding(FMargin(4,4,0,0))
 					[
 						SNew( STextBlock )
-						.Text(LOCTEXT("CurrentTime", "CurrentTime: ").ToString())
+						.Text(LOCTEXT("CurrentTime", "CurrentTime: "))
 					]
 					+SHorizontalBox::Slot()
 					.FillWidth(1)
@@ -139,7 +139,7 @@ void SAnimEditorBase::Construct(const FArguments& InArgs)
 					.Padding(FMargin(4,4,0,0))
 					[
 						SNew( STextBlock )
-						.Text(LOCTEXT("CurrentFrame", "Current Frame: ").ToString())
+						.Text(LOCTEXT("CurrentFrame", "Current Frame: "))
 					]
 					+SHorizontalBox::Slot()
 					.FillWidth(1)

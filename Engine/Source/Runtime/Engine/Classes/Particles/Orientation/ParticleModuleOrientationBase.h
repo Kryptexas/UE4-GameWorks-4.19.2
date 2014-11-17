@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleOrientationBase.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Orientation"))
+UCLASS(editinlinenew, hidecategories=Object, abstract, meta=(DisplayName = "Orientation"))
 class UParticleModuleOrientationBase : public UParticleModule
 {
 	GENERATED_UCLASS_BODY()

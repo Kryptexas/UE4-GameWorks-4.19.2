@@ -79,6 +79,60 @@ int32 FAutomationReport::GetTotalNumChildren() const
 	return Total;
 }
 
+void FAutomationReport::GetEnabledTestNames(TArray<FString>& OutEnabledTestNames, FString CurrentPath) const
+{
+	//if this is a leaf and this test is enabled
+	if ((ChildReports.Num() == 0) && IsEnabled())
+	{
+		const FString FullTestName = CurrentPath.Len() > 0 ? CurrentPath.AppendChar(TCHAR('.')) + TestInfo.GetDisplayName() : TestInfo.GetDisplayName();
+		OutEnabledTestNames.Add(FullTestName);
+	}
+	else
+	{
+		if( !CurrentPath.IsEmpty() )
+		{
+			CurrentPath += TEXT(".");
+		}
+		CurrentPath += TestInfo.GetDisplayName();
+		//recurse through the hierarchy
+		for (int32 ChildIndex = 0; ChildIndex < ChildReports.Num(); ++ChildIndex)
+		{
+			ChildReports[ChildIndex]->GetEnabledTestNames(OutEnabledTestNames,CurrentPath);
+		}
+	}
+	return;
+}
+
+void FAutomationReport::SetEnabledTests(const TArray<FString>& EnabledTests, FString CurrentPath)
+{
+	if (ChildReports.Num() == 0)
+	{
+		//Find of the full name of this test and see if it is in our list
+		const FString FullTestName = CurrentPath.Len() > 0 ? CurrentPath.AppendChar(TCHAR('.')) + TestInfo.GetDisplayName() : TestInfo.GetDisplayName();
+		const bool bNewEnabled = EnabledTests.Contains(FullTestName);
+		SetEnabled(bNewEnabled);
+	}
+	else
+	{
+		if( !CurrentPath.IsEmpty() )
+		{
+			CurrentPath += TEXT(".");
+		}
+		CurrentPath += TestInfo.GetDisplayName();
+
+		//recurse through the hierarchy
+		for (int32 ChildIndex = 0; ChildIndex < ChildReports.Num(); ++ChildIndex)
+		{
+			ChildReports[ChildIndex]->SetEnabledTests(EnabledTests,CurrentPath);
+		}
+
+		//Parent nodes should be checked if all of its children are
+		const int32 TotalNumChildern = GetTotalNumChildren();
+		const int32 EnabledChildren = GetEnabledTestsNum();
+		bEnabled = (TotalNumChildern == EnabledChildren);
+	}
+}
+
 /** Recursively gets the number of enabled tests */
 int32 FAutomationReport::GetEnabledTestsNum() const
 {
@@ -123,7 +177,10 @@ void FAutomationReport::SetSupport(const int32 ClusterIndex)
 	//ensure there is enough room in the array for status per platform
 	for (int32 i = 0; i <= ClusterIndex; ++i)
 	{
-		Results.Add( FAutomationTestResults() );
+		//Make sure we have enough results for a single pass
+		TArray<FAutomationTestResults> AutomationTestResult;
+		AutomationTestResult.Add( FAutomationTestResults() );
+		Results.Add( AutomationTestResult );
 	}
 }
 
@@ -211,54 +268,71 @@ TArray<TSharedPtr<IAutomationReport> >& FAutomationReport::GetChildReports()
 	return ChildReports;
 }
 
-void FAutomationReport::ResetForExecution()
+void FAutomationReport::ResetForExecution(const int32 NumTestPasses)
 {
 	TestInfo.ResetNumDevicesRunningTest();
 
 	//if this test is enabled
 	if (IsEnabled())
 	{
-		for (int32 i = 0; i < Results.Num(); ++i)
+		for (int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex)
 		{
-			//reset all stats
-			Results[i].State = EAutomationState::NotRun;
-			Results[i].Warnings.Empty();
-			Results[i].Errors.Empty();
+			//Make sure we have enough results
+			if( NumTestPasses > Results[ClusterIndex].Num() )
+			{
+				for(int32 PassCount = Results[ClusterIndex].Num(); PassCount < NumTestPasses; ++PassCount)
+				{
+					Results[ClusterIndex].Add( FAutomationTestResults() );
+				}
+			}
+			else if( NumTestPasses < Results[ClusterIndex].Num() )
+			{
+				Results[ClusterIndex].RemoveAt(NumTestPasses, Results[ClusterIndex].Num() - NumTestPasses);
+			}
+
+			for( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
+			{
+				//reset all stats
+				Results[ClusterIndex][PassIndex].State = EAutomationState::NotRun;
+				Results[ClusterIndex][PassIndex].Warnings.Empty();
+				Results[ClusterIndex][PassIndex].Errors.Empty();
+			}
 		}
 	}
 	//recurse to children
 	for (int32 ChildIndex = 0; ChildIndex < ChildReports.Num(); ++ChildIndex)
 	{
-		ChildReports[ChildIndex]->ResetForExecution();
+		ChildReports[ChildIndex]->ResetForExecution(NumTestPasses);
 	}
 }
 
 
-void FAutomationReport::SetResults( const int32 ClusterIndex, const FAutomationTestResults& InResults )
+void FAutomationReport::SetResults( const int32 ClusterIndex, const int32 PassIndex, const FAutomationTestResults& InResults )
 {
 	//verify this is a platform this test is aware of
 	check((ClusterIndex >= 0) && (ClusterIndex < Results.Num()));
+	check((PassIndex >= 0) && (PassIndex < Results[ClusterIndex].Num()));
 
 	if( InResults.State == EAutomationState::InProcess )
 	{
 		TestInfo.InformOfNewDeviceRunningTest();
 	}
 
-	Results[ ClusterIndex ] = InResults;
+	Results[ ClusterIndex ][ PassIndex ] = InResults;
 	// Add an error report if none was received
 	if ( InResults.State == EAutomationState::Fail && InResults.Errors.Num() == 0 && InResults.Warnings.Num() == 0 )
 	{
-		Results[ClusterIndex].Errors.Add( "No Report Generated" );
+		Results[ClusterIndex][PassIndex].Errors.Add( "No Report Generated" );
 	}
 }
 
 
-void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, FAutomationCompleteState& OutCompletionState)
+void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, const int32 PassIndex, FAutomationCompleteState& OutCompletionState)
 {
 	//if this test is enabled and a leaf test
 	if (IsSupported(ClusterIndex) && (ChildReports.Num()==0))
 	{
-		EAutomationState::Type CurrentState = Results[ClusterIndex].State;
+		EAutomationState::Type CurrentState = Results[ClusterIndex][PassIndex].State;
 		//Enabled and In-Process
 		if (IsEnabled())
 		{
@@ -270,7 +344,7 @@ void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, FAutomatio
 		}
 
 		//Warnings
-		if (Results[ClusterIndex].Warnings.Num() > 0)
+		if (Results[ClusterIndex][PassIndex].Warnings.Num() > 0)
 		{
 			IsEnabled() ? OutCompletionState.NumEnabledTestsWarnings++ : OutCompletionState.NumDisabledTestsWarnings++;
 		}
@@ -292,32 +366,49 @@ void FAutomationReport::GetCompletionStatus(const int32 ClusterIndex, FAutomatio
 	//recurse to children
 	for (int32 ChildIndex = 0; ChildIndex < ChildReports.Num(); ++ChildIndex)
 	{
-		ChildReports[ChildIndex]->GetCompletionStatus(ClusterIndex, OutCompletionState);
+		ChildReports[ChildIndex]->GetCompletionStatus(ClusterIndex,PassIndex, OutCompletionState);
 	}
 }
 
 
-EAutomationState::Type FAutomationReport::GetState(const int32 ClusterIndex) const
+EAutomationState::Type FAutomationReport::GetState(const int32 ClusterIndex, const int32 PassIndex) const
 {
-	if ((ClusterIndex >= 0) && (ClusterIndex < Results.Num()))
+	if ((ClusterIndex >= 0) && (ClusterIndex < Results.Num()) &&
+		(PassIndex >= 0) && (PassIndex < Results[ClusterIndex].Num()))
 	{
-		return Results[ClusterIndex].State;
+		return Results[ClusterIndex][PassIndex].State;
 	}
 	return EAutomationState::NotRun;
 }
 
 
-const FAutomationTestResults& FAutomationReport::GetResults( const int32 ClusterIndex ) 
+const FAutomationTestResults& FAutomationReport::GetResults( const int32 ClusterIndex, const int32 PassIndex ) 
 {
-	return Results[ClusterIndex];
+	return Results[ClusterIndex][PassIndex];
+}
+
+const int32 FAutomationReport::GetNumResults( const int32 ClusterIndex )
+{
+	return Results[ClusterIndex].Num();
+}
+
+const int32 FAutomationReport::GetCurrentPassIndex( const int32 ClusterIndex )
+{
+	int32 PassIndex = 1;
+	for(; PassIndex < Results[ClusterIndex].Num(); ++PassIndex )
+	{
+		if( Results[ClusterIndex][PassIndex].State == EAutomationState::NotRun )
+			break;
+	}
+	return PassIndex - 1;
 }
 
 FString FAutomationReport::GetGameInstanceName( const int32 ClusterIndex )
 {
-	return Results[ClusterIndex].GameInstance;
+	return Results[ClusterIndex][0].GameInstance;
 }
 
-TSharedPtr<IAutomationReport> FAutomationReport::EnsureReportExists(FAutomationTestInfo& InTestInfo, const int32 ClusterIndex)
+TSharedPtr<IAutomationReport> FAutomationReport::EnsureReportExists(FAutomationTestInfo& InTestInfo, const int32 ClusterIndex, const int32 NumPasses)
 {
 	//Split New Test Name by the first "." found
 	FString NameToMatch = InTestInfo.GetDisplayName();
@@ -378,14 +469,14 @@ TSharedPtr<IAutomationReport> FAutomationReport::EnsureReportExists(FAutomationT
 	else
 	{
 		//recurse to add to the proper layer
-		FoundTest = MatchTest->EnsureReportExists(InTestInfo, ClusterIndex);
+		FoundTest = MatchTest->EnsureReportExists(InTestInfo, ClusterIndex, NumPasses);
 	}
 
 	return FoundTest;
 }
 
 
-TSharedPtr<IAutomationReport> FAutomationReport::GetNextReportToExecute(bool& bOutAllTestsComplete, const int32 ClusterIndex, const int32 NumDevicesInCluster)
+TSharedPtr<IAutomationReport> FAutomationReport::GetNextReportToExecute(bool& bOutAllTestsComplete, const int32 ClusterIndex, const int32 PassIndex, const int32 NumDevicesInCluster)
 {
 	TSharedPtr<IAutomationReport> NextReport;
 	//if this is not a leaf node
@@ -393,7 +484,7 @@ TSharedPtr<IAutomationReport> FAutomationReport::GetNextReportToExecute(bool& bO
 	{
 		for (int32 ReportIndex = 0; ReportIndex < ChildReports.Num(); ++ReportIndex)
 		{
-			NextReport = ChildReports[ReportIndex]->GetNextReportToExecute(bOutAllTestsComplete, ClusterIndex, NumDevicesInCluster);
+			NextReport = ChildReports[ReportIndex]->GetNextReportToExecute(bOutAllTestsComplete, ClusterIndex, PassIndex, NumDevicesInCluster);
 			//if we found one, return it
 			if (NextReport.IsValid())
 			{
@@ -406,7 +497,7 @@ TSharedPtr<IAutomationReport> FAutomationReport::GetNextReportToExecute(bool& bO
 		//consider self
 		if (IsEnabled() && IsSupported(ClusterIndex))
 		{
-			EAutomationState::Type TestState = GetState(ClusterIndex);
+			EAutomationState::Type TestState = GetState(ClusterIndex,PassIndex);
 			//if any enabled test hasn't been run yet or is in process
 			if ((TestState != EAutomationState::Success) && (TestState != EAutomationState::Fail) && (TestState != EAutomationState::NotEnoughParticipants))
 			{
@@ -427,12 +518,15 @@ const bool FAutomationReport::HasErrors()
 	bool bHasErrors = false;
 	for (int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex )
 	{
-		//if we want tests with errors and this test had them OR we want tests warnings and this test had them
-		if( Results[ ClusterIndex ].Errors.Num() ) 
+		for( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
 		{
-			//mark this test as having passed the results filter
-			bHasErrors = true;
-			break;
+			//if we want tests with errors and this test had them OR we want tests warnings and this test had them
+			if( Results[ ClusterIndex ][ PassIndex ].Errors.Num() ) 
+			{
+				//mark this test as having passed the results filter
+				bHasErrors = true;
+				break;
+			}
 		}
 	}
 	return bHasErrors;
@@ -443,12 +537,15 @@ const bool FAutomationReport::HasWarnings()
 	bool bHasWarnings = false;
 	for (int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex )
 	{
-		//if we want tests with errors and this test had them OR we want tests warnings and this test had them
-		if( Results[ ClusterIndex ].Warnings.Num() ) 
+		for( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
 		{
-			//mark this test as having passed the results filter
-			bHasWarnings = true;
-			break;
+			//if we want tests with errors and this test had them OR we want tests warnings and this test had them
+			if( Results[ ClusterIndex ][ PassIndex ].Warnings.Num() ) 
+			{
+				//mark this test as having passed the results filter
+				bHasWarnings = true;
+				break;
+			}
 		}
 	}
 	return bHasWarnings;
@@ -486,12 +583,15 @@ const bool FAutomationReport::GetDurationRange(float& OutMinTime, float& OutMaxT
 
 	for (int32 ClusterIndex = 0; ClusterIndex < Results.Num(); ++ClusterIndex )
 	{
-		//if we want tests with errors and this test had them OR we want tests warnings and this test had them
-		if( Results[ClusterIndex].State == EAutomationState::Success)
+		for( int32 PassIndex = 0; PassIndex < Results[ClusterIndex].Num(); ++PassIndex)
 		{
-			OutMinTime = FMath::Min(OutMinTime, Results[ClusterIndex].Duration );
-			OutMaxTime = FMath::Max(OutMaxTime, Results[ClusterIndex].Duration );
-			bAnyResultsFound = true;
+			//if we want tests with errors and this test had them OR we want tests warnings and this test had them
+			if( Results[ClusterIndex][PassIndex].State == EAutomationState::Success)
+			{
+				OutMinTime = FMath::Min(OutMinTime, Results[ClusterIndex][PassIndex].Duration );
+				OutMaxTime = FMath::Max(OutMaxTime, Results[ClusterIndex][PassIndex].Duration );
+				bAnyResultsFound = true;
+			}
 		}
 	}
 	return bAnyResultsFound;
@@ -541,9 +641,12 @@ void FAutomationReport::StopRunningTest()
 	{
 		for( int32 ResultsIndex = 0; ResultsIndex < Results.Num(); ++ResultsIndex )
 		{
-			if( Results[ResultsIndex].State == EAutomationState::InProcess )
+			for( int32 PassIndex = 0; PassIndex < Results[ResultsIndex].Num(); ++PassIndex)
 			{
-				Results[ResultsIndex].State = EAutomationState::NotRun;
+				if( Results[ResultsIndex][PassIndex].State == EAutomationState::InProcess )
+				{
+					Results[ResultsIndex][PassIndex].State = EAutomationState::NotRun;
+				}
 			}
 		}
 	}

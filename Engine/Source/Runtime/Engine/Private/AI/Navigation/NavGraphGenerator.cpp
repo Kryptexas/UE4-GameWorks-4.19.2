@@ -34,11 +34,6 @@ void FNavGraphGenerator::OnWorldInitDone(bool bAllowedToRebuild)
 
 }
 
-void FNavGraphGenerator::OnPostBeginPlay()
-{
-
-}
-
 void FNavGraphGenerator::OnNavigationBuildingLocked() 
 {
 

@@ -17,6 +17,7 @@ class USoundSurroundExporterWAV : public UExporter
 	virtual int32 GetFileCount( void ) const OVERRIDE;
 	virtual FString GetUniqueFilename( const TCHAR* Filename, int32 FileIndex ) OVERRIDE;
 	virtual bool ExportBinary( UObject* Object, const TCHAR* Type, FArchive& Ar, FFeedbackContext* Warn, int32 FileIndex = 0, uint32 PortFlags=0 ) OVERRIDE;
+	virtual bool SupportsObject(UObject* Object) const OVERRIDE;
 	// End UExporter Interface
 };
 

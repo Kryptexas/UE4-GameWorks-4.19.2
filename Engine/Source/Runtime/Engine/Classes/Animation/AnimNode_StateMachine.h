@@ -1,10 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "AnimNodeBase.h"
 #include "AnimStateMachineTypes.h"
 #include "AnimNode_StateMachine.generated.h"
-
 
 struct FAnimNode_TransitionPoseEvaluator;
 struct FAnimNode_StateMachine;
@@ -163,6 +162,7 @@ public:
 	virtual void CacheBones(const FAnimationCacheBonesContext & Context) OVERRIDE;
 	virtual void Update(const FAnimationUpdateContext& Context) OVERRIDE;
 	virtual void Evaluate(FPoseContext& Output) OVERRIDE;
+	virtual void GatherDebugData(FNodeDebugData& DebugData) OVERRIDE;
 	// End of FAnimNode_Base interface
 
 	// Returns the blend weight of the specified state, as calculated by the last call to Update()

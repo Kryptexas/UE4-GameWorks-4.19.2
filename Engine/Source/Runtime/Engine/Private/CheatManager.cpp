@@ -1,8 +1,77 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineComponentClasses.h"
+
+#include "Components/ApplicationLifecycleComponent.h"
+#include "AI/BehaviorTree/BlackboardComponent.h"
+#include "AI/BrainComponent.h"
+#include "AI/BehaviorTree/BehaviorTreeComponent.h"
+#include "Debug/GameplayDebuggingControllerComponent.h"
+#include "Components/InputComponent.h"
+#include "GameFramework/MovementComponent.h"
+#include "Components/SceneComponent.h"
+#include "Components/LightComponentBase.h"
+#include "Components/LightComponent.h"
+#include "Components/PrimitiveComponent.h"
+#include "GameFramework/NavMovementComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/FloatingPawnMovement.h"
+#include "GameFramework/SpectatorPawnMovement.h"
+#include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "Vehicles/WheeledVehicleMovementComponent4W.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "GameFramework/RotatingMovementComponent.h"
+#include "AI/Navigation/NavigationComponent.h"
+#include "AI/Navigation/PathFollowingComponent.h"
+#include "Components/PawnNoiseEmitterComponent.h"
+#include "Components/PawnSensingComponent.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "Atmosphere/AtmosphericFogComponent.h"
+#include "Components/AudioComponent.h"
+#include "Camera/CameraComponent.h"
+#include "Components/ChildActorComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
+#include "Components/SkyLightComponent.h"
+#include "AI/Navigation/NavigationGraphNodeComponent.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "PhysicsEngine/PhysicsThrusterComponent.h"
+#include "Components/PostProcessComponent.h"
+#include "Components/ArrowComponent.h"
+#include "Components/BillboardComponent.h"
+#include "Components/BrushComponent.h"
+#include "Components/DrawFrustumComponent.h"
+#include "AI/EnvironmentQuery/EQSRenderingComponent.h"
+#include "Debug/GameplayDebuggingComponent.h"
+#include "Components/LineBatchComponent.h"
+#include "Components/MaterialBillboardComponent.h"
+#include "Components/MeshComponent.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Components/DestructibleComponent.h"
+#include "Components/PoseableMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/InteractiveFoliageComponent.h"
+#include "Components/SplineMeshComponent.h"
+#include "Components/ModelComponent.h"
+#include "AI/Navigation/NavLinkRenderingComponent.h"
+#include "AI/Navigation/NavMeshRenderingComponent.h"
+#include "AI/Navigation/NavTestRenderingComponent.h"
+#include "Components/NiagaraComponent.h"
+#include "Components/ShapeComponent.h"
+#include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/DrawSphereComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "Components/VectorFieldComponent.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Components/WindDirectionalSourceComponent.h"
+#include "Components/TimelineComponent.h"
 #include "Slate.h"
+#include "SlateReflector.h"
 #include "AI/NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 
@@ -125,8 +194,6 @@ void UCheatManager::Walk()
 				Character->ClientCheatWalk_Implementation();
 			}
 		}
-		
-		GetOuterAPlayerController()->Possess( Pawn );
 	}
 }
 
@@ -559,13 +626,55 @@ void UCheatManager::DisableDebugCamera()
 
 void UCheatManager::InitCheatManager() {}
 
+bool UCheatManager::ServerToggleAILogging_Validate()
+{
+	return true;
+}
+
+void UCheatManager::ServerToggleAILogging_Implementation()
+{
+#if ENABLE_VISUAL_LOG
+	FVisualLog* VisLog = FVisualLog::Get();
+	if (!VisLog)
+	{
+		return;
+	}
+
+	const bool bWasRecording = VisLog->IsRecording();
+	VisLog->SetIsRecording(!bWasRecording);
+	if (bWasRecording)
+	{
+		VisLog->DumpRecordedLogs();
+	}
+
+	GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecording() ? TEXT("Enabled") : TEXT("Disabled")));
+#endif
+}
+
 void UCheatManager::ToggleAILogging()
 {
-	GEngine->bDisableAILogging = !GEngine->bDisableAILogging;
-	if(GetOuterAPlayerController()->GetPawn() != NULL)
+#if ENABLE_VISUAL_LOG
+	APlayerController* PC = GetOuterAPlayerController();
+	if (!PC)
 	{
-		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! AI logging is now "), GEngine->bDisableAILogging));
+		return;
 	}
+
+	if (GetWorld()->GetNetMode() == NM_Client)
+	{
+		FVisualLog* VisLog = FVisualLog::Get();
+		if (VisLog)
+		{
+			VisLog->SetIsRecordingOnServer(!VisLog->IsRecordingOnServer());
+			GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("OK! VisLog recording is now %s"), VisLog->IsRecordingOnServer() ? TEXT("Enabled") : TEXT("Disabled")));
+		}
+		PC->ServerToggleAILogging();
+	}
+	else
+	{
+		ServerToggleAILogging();
+	}
+#endif
 }
 
 void UCheatManager::AILoggingVerbose()
@@ -573,7 +682,7 @@ void UCheatManager::AILoggingVerbose()
 	APlayerController* PC = GetOuterAPlayerController();
 	if (PC)
 	{
-		PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose"));
+		PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose | log LogPawnAction verbose|"));
 	}
 }
 
@@ -818,11 +927,11 @@ void UCheatManager::WidgetReflector()
 	if( !WidgetReflectorWindow.IsValid() )
 	{
 		const TSharedRef<SWindow> ReflectorWindow = SNew(SWindow)
-		.AutoCenter(EAutoCenter::PrimaryWorkArea)
-		.ClientSize(FVector2D(600,400))
-		[
-			FSlateApplication::Get().GetWidgetReflector()
-		];
+			.AutoCenter(EAutoCenter::PrimaryWorkArea)
+			.ClientSize(FVector2D(600,400))
+			[
+				FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").GetWidgetReflector()
+			];
 		
 		WidgetReflectorWindow = ReflectorWindow;
 		
@@ -970,6 +1079,12 @@ void UCheatManager::BugItStringCreator( FVector ViewLocation, FRotator ViewRotat
 	UE_LOG(LogCheatManager, Log, TEXT("%s"), *LocString);
 }
 
+void UCheatManager::FlushLog()
+{
+	GLog->FlushThreadedLogs();
+	GLog->Flush();
+}
+
 void UCheatManager::LogLoc()
 {
 	APlayerController* const MyPlayerController = GetOuterAPlayerController();
@@ -1020,7 +1135,7 @@ void UCheatManager::ToggleGameplayDebugView(const FString& InViewName)
 	int32 ViewIndex = ViewNames.Find(InViewName);
 	if (ViewIndex != INDEX_NONE)
 	{
-		const bool bIsEnabled = UGameplayDebuggingComponent::ToggleStaticView(EAIDebugDrawDataView::Type(ViewIndex));
+		const bool bIsEnabled = UGameplayDebuggingControllerComponent::ToggleStaticView(EAIDebugDrawDataView::Type(ViewIndex));
 		GetOuterAPlayerController()->ClientMessage(FString::Printf(TEXT("View %s %s")
 			, *InViewName
 			, bIsEnabled ? TEXT("enabled") : TEXT("disabled")));

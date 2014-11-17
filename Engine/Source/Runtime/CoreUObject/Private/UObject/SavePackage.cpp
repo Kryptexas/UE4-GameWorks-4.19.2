@@ -466,29 +466,30 @@ void FArchiveSaveTagExports::ProcessBaseObject(UObject* BaseObject )
  */
 void FArchiveSaveTagExports::ProcessTaggedObjects()
 {
+	const int32 ArrayPreSize = 1024; // Was originally total number of objects, but this was unreasonably large
 	TArray<UObject*> CurrentlyTaggedObjects;
-	CurrentlyTaggedObjects.Empty(GUObjectArray.GetObjectArrayNum());
-	while ( TaggedObjects.Num() )
+	CurrentlyTaggedObjects.Empty(ArrayPreSize);
+	while (TaggedObjects.Num())
 	{
 		CurrentlyTaggedObjects += TaggedObjects;
 		TaggedObjects.Empty();
 
-		for ( int32 ObjIndex = 0; ObjIndex < CurrentlyTaggedObjects.Num(); ObjIndex++ )
+		for (int32 ObjIndex = 0; ObjIndex < CurrentlyTaggedObjects.Num(); ObjIndex++)
 		{
 			UObject* Obj = CurrentlyTaggedObjects[ObjIndex];
 
 			// Recurse with this object's children.
-			if ( Obj->HasAnyFlags(RF_ClassDefaultObject) )
+			if (Obj->HasAnyFlags(RF_ClassDefaultObject))
 			{
 				Obj->GetClass()->SerializeDefaultObject(Obj, *this);
 			}
 			else
 			{
-				Obj->Serialize( *this );
+				Obj->Serialize(*this);
 			}
 		}
 
-		CurrentlyTaggedObjects.Empty(GUObjectArray.GetObjectArrayNum());
+		CurrentlyTaggedObjects.Empty(ArrayPreSize);
 	}
 }
 
@@ -1449,7 +1450,8 @@ class FExportReferenceSorter : public FArchiveUObject
 			UObjectPropertyBase::StaticClass(),
 			ULazyObjectProperty::StaticClass(),
 			UAssetObjectProperty::StaticClass(),
-			UAssetClassProperty::StaticClass()
+			UAssetClassProperty::StaticClass(),
+			UAttributeProperty::StaticClass()
 		};
 
 		for ( int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++ )
@@ -2497,31 +2499,6 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 			UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
-
-
-			// Kick off any Precaching required for the target platform to save these objects
-			// only need to do this if we are cooking a different platform then the one which is currently running
-			// TODO: if save package is cancelled then call ClearCache on each object
-			TArray<UObject*> CachedObjects;
-			if ( !!TargetPlatform )
-			{
-				TArray<UObject*> TagExpObjects;
-				GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
-				for ( int Index =0; Index < TagExpObjects.Num(); ++Index)
-				{
-					UObject *ExpObject = TagExpObjects[Index];
-					if ( ExpObject->HasAnyMarks( OBJECTMARK_TagExp ) )
-					{
-						ExpObject->BeginCacheForCookedPlatformData( TargetPlatform );
-						CachedObjects.Add( ExpObject );
-					}
-				}
-			}
-
-			
-
-
-			UE_LOG_COOK_TIME(TEXT("BeginCacheForCookedPlatformData"));
 		
 			{
 				// set GIsSavingPackage here as it is now illegal to create any new object references; they potentially wouldn't be saved correctly
@@ -2541,6 +2518,33 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 				UE_LOG_COOK_TIME(TEXT("TagPackageExports"));
+
+
+
+				// Kick off any Precaching required for the target platform to save these objects
+				// only need to do this if we are cooking a different platform then the one which is currently running
+				// TODO: if save package is cancelled then call ClearCache on each object
+				TArray<UObject*> CachedObjects;
+				if ( !!TargetPlatform )
+				{
+					TArray<UObject*> TagExpObjects;
+					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
+					for ( int Index =0; Index < TagExpObjects.Num(); ++Index)
+					{
+						UObject *ExpObject = TagExpObjects[Index];
+						if ( ExpObject->HasAnyMarks( OBJECTMARK_TagExp ) )
+						{
+							ExpObject->BeginCacheForCookedPlatformData( TargetPlatform );
+							CachedObjects.Add( ExpObject );
+						}
+					}
+				}
+
+
+
+
+				UE_LOG_COOK_TIME(TEXT("BeginCacheForCookedPlatformData"));
+
 
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 
@@ -2601,9 +2605,23 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 							Obj->UnMark(EObjectMark(OBJECTMARK_TagExp|OBJECTMARK_TagImp));
 						}
 					}
+
+					// Obj->UnMark will delete object if it stripped all its tags.
+					// If all exportable objects are deleted, an attempt to save
+					// package will cause a crash.
+					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
+					if (TagExpObjects.Num() == 0)
+					{
+						if (!(SaveFlags & SAVE_NoError))
+						{
+							UE_LOG(LogSavePackage, Warning, TEXT("No exportable objects found in package. Package not saved."));
+						}
+
+						return false;
+					}
 				}
 
-				// Import objects & names.				
+				// Import objects & names.
 				{
 					TArray<UObject*> TagExpObjects;
 					GetObjectsWithAnyMarks(TagExpObjects, OBJECTMARK_TagExp);
@@ -2898,7 +2916,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				for( int32 i=0; i<Linker->NameMap.Num(); i++ )
 				{
 					*Linker << *const_cast<FNameEntry*>(FName::GetEntry( Linker->NameMap[i].GetIndex() ));
-					Linker->NameIndices[Linker->NameMap[i].GetIndex()] = i;
+					Linker->NameIndices.Add(Linker->NameMap[i].GetIndex(), i);
 				}
 
 				
@@ -3559,12 +3577,13 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 				GWarn->UpdateProgress( ++CurSaveStep, TotalSaveSteps );
 			
+
+				for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
+				{
+					CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
+				}
 			}
 
-			for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
-			{
-				CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
-			}
 		}
 		if( Success == true )
 		{

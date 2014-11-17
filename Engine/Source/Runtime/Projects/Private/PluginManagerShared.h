@@ -33,6 +33,8 @@ public:
 			Developer,
 			Editor,
 			EditorNoCommandlet,
+			/** Program-only plugin type */
+			Program,
 			// NOTE: If you add a new value, make sure to update the ToString() method below!
 
 			Max
@@ -64,6 +66,9 @@ public:
 
 				case EditorNoCommandlet:
 					return TEXT( "EditorNoCommandlet" );
+
+				case Program:
+					return TEXT("Program");
 
 				default:
 					ensureMsgf( false, TEXT( "Unrecognized EModuleType value: %i" ), Value );
@@ -217,11 +222,18 @@ public:
 	FString SerializeToJSON( ) const;
 
 	/**
-	 * Checks whether this project file is up to date with the engine version.
+	 * Checks whether this project file needs updating to a newer project version.
 	 *
-	 * @return true if the project file is up to date, false otherwise.
+	 * @return true if the project needs updating, false otherwise.
 	 */
-	bool IsUpToDate( const FString &EngineIdentifier ) const;
+	bool RequiresUpdate( ) const;
+
+	/**
+	 * Checks whether the modules for a project or plugin need to be compiled
+	 *
+	 * @return true if the project or plugin needs to be compiled
+	 */
+	bool AreModulesUpToDate( ) const;
 
 	/**
 	 * Updates all version info to match the currently running executable.
@@ -236,6 +248,12 @@ public:
 	void ReplaceModulesInProject(const TArray<FString>* StartupModuleNames);
 
 protected:
+	/** Checks whether a given module should be built for this build configuration */
+	bool ShouldBuildModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const;
+
+	/** Checks whether a given module should be loaded for this build configuration */
+	bool ShouldLoadModule(const FProjectOrPluginInfo::FModuleInfo& ModuleInfo) const;
+
 	/** @return Exposes access to the project or plugin's descriptor */
 	virtual FProjectOrPluginInfo& GetProjectOrPluginInfo() = 0;
 	virtual const FProjectOrPluginInfo& GetProjectOrPluginInfo() const = 0;

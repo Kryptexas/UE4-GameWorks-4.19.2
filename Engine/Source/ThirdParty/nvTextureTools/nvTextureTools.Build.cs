@@ -8,7 +8,7 @@ public class nvTextureTools : ModuleRules
 	{
 		Type = ModuleType.External;
 
-		string nvttPath = UEBuildConfiguration.UEThirdPartyDirectory + "nvTextureTools/nvTextureTools-2.0.6/";
+		string nvttPath = UEBuildConfiguration.UEThirdPartyDirectory + "nvTextureTools/nvTextureTools-2.0.8/";
 
 		string nvttLibPath = nvttPath + "lib";
 

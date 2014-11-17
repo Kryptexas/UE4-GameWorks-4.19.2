@@ -32,3 +32,11 @@ FString FAIResourceLock::GetLockSourceName() const
 
 	return LockNames;
 }
+
+//----------------------------------------------------------------------//
+// FAIRequestID
+//----------------------------------------------------------------------//
+const FAIRequestID FAIRequestID::InvalidRequest(FAIRequestID::InvalidRequestID);
+const FAIRequestID FAIRequestID::AnyRequest(FAIRequestID::AnyRequestID);
+// same as AnyRequest on purpose. Just a readability thing
+const FAIRequestID FAIRequestID::CurrentRequest(FAIRequestID::AnyRequestID);

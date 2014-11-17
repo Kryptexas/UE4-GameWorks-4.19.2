@@ -7,7 +7,7 @@
 #pragma once
 #include "GameEngine.generated.h"
 
-UCLASS(HeaderGroup=GameEngine, config=Engine, transient)
+UCLASS(config=Engine, transient)
 class ENGINE_API UGameEngine : public UEngine
 {
 	GENERATED_UCLASS_BODY()
@@ -18,7 +18,7 @@ class ENGINE_API UGameEngine : public UEngine
 	UPROPERTY(transient)
 	uint32 bCheckForMovieCapture:1;
 
-	/** Maximium delta time the engine uses to populate GDeltaTime. If 0, unbound.									*/
+	/** Maximium delta time the engine uses to populate FApp::DeltaTime. If 0, unbound.									*/
 	UPROPERTY(config)
 	float MaxDeltaTime;
 
@@ -63,9 +63,9 @@ public:
 	 *
 	 * @param ResolutionX	[in/out] Width of the game window, in pixels
 	 * @param ResolutionY	[in/out] Height of the game window, in pixels
-	 * @param bIsFullscreen	[in/out] Whether the game should be fullscreen or not
+	 * @param WindowMode	[in/out] What window mode the game should be in
 	 */
-	static void ConditionallyOverrideSettings( int32& ResolutionX, int32& ResolutionY, bool& bIsFullscreen );
+	static void ConditionallyOverrideSettings( int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode );
 	
 	/**
 	 * Changes the game window to use the game viewport instead of any loading screen
@@ -146,5 +146,12 @@ public:
 	{
 		return GameViewportWidget;
 	}
+
+	/**
+	 * This is a global, parameterless function used by the online subsystem modules.
+	 * It should never be used in gamecode - instead use the appropriate world context function 
+	 * in order to properly support multiple concurrent UWorlds.
+	 */
+	UWorld* GetGameWorld();
 };
 

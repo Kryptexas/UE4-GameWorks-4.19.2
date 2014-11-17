@@ -2,9 +2,7 @@
 
 
 #include "UnrealEd.h"
-#include "EngineMaterialClasses.h"
 #include "SoundDefinitions.h"
-#include "EngineSplineClasses.h"
 #include "CameraController.h"
 #include "MouseDeltaTracker.h"
 #include "ScopedTransaction.h"
@@ -237,10 +235,14 @@ static TArray<AActor*> AttemptDropObjAsActors( ULevel* InLevel, UObject* ObjToUs
 		if (ObjectClass->IsChildOf(UBlueprint::StaticClass()))
 		{
 			UBlueprint* BlueprintObj = StaticCast<UBlueprint*>(ObjToUse);
-			check(BlueprintObj->ParentClass == BlueprintObj->GeneratedClass->GetSuperClass());
-			if (BlueprintObj->GeneratedClass->HasAnyClassFlags(CLASS_NotPlaceable | CLASS_Abstract))
+			bPlace = BlueprintObj->GeneratedClass != NULL;
+			if(bPlace)
 			{
-				bPlace = false;
+				check(BlueprintObj->ParentClass == BlueprintObj->GeneratedClass->GetSuperClass());
+				if (BlueprintObj->GeneratedClass->HasAnyClassFlags(CLASS_NotPlaceable | CLASS_Abstract))
+				{
+					bPlace = false;
+				}
 			}
 		}
 
@@ -258,12 +260,16 @@ static TArray<AActor*> AttemptDropObjAsActors( ULevel* InLevel, UObject* ObjToUs
 	{
 		if (bUsedHitProxy)
 		{
+			const bool bSnapNewObjectsToFloor = GetDefault<ULevelEditorViewportSettings>()->bSnapNewObjectsToFloor;
 			for (auto ActorIt = PlacedActors.CreateConstIterator(); ActorIt; ++ActorIt)
 			{
 				AActor* Actor = *ActorIt;
 
 				FVector Loc = Actor->GetActorLocation();
-				Loc.Z = PreSnapLocation.Z;
+				if( bSnapNewObjectsToFloor )
+				{
+					Loc.Z = PreSnapLocation.Z;
+				}
 
 				Actor->TeleportTo(Loc, Actor->GetActorRotation(), false, true);
 			}
@@ -527,10 +533,11 @@ static UObject* GetOrCreateMaterialFromTexture( UTexture* UnrealTexture )
  *
  * @param	ObjToUse				Object to attempt to apply as specific asset
  * @param	ActorToApplyTo			Actor to whom the asset should be applied
+ * @param   TargetMaterialSlot      When dealing with submeshes this will represent the target section/slot to apply materials to.
  *
  * @return	true if the provided object was successfully applied to the provided actor
  */
-static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, bool bTest = false )
+static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, int32 TargetMaterialSlot = -1, bool bTest = false )
 {
 	bool bResult = false;
 
@@ -561,7 +568,7 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 			{
 				// Apply the material to the actor
 				FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "DragDrop_Transaction_ApplyMaterialToActor", "Apply Material to Actor") );
-				bResult = FActorFactoryAssetProxy::ApplyMaterialToActor( ActorToApplyTo, DroppedObjAsMaterial );
+				bResult = FActorFactoryAssetProxy::ApplyMaterialToActor( ActorToApplyTo, DroppedObjAsMaterial, TargetMaterialSlot );
 			}
 		}
 
@@ -600,28 +607,39 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 		UAnimBlueprint* DroppedObjAsAnimBlueprint = Cast<UAnimBlueprint>( ObjToUse );
 		if ( DroppedObjAsAnimBlueprint )
 		{
-			if ( bTest )
+			USkeleton* NeedsSkeleton = DroppedObjAsAnimBlueprint->TargetSkeleton;
+			if ( NeedsSkeleton )
 			{
-				if ( ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()) )
+				if(bTest)
 				{
-					bResult = true;
-				}
-			}
-			else
-			{
-				if ( ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo) )
-				{
-					const FScopedTransaction Transaction( LOCTEXT( "DropAnimBlueprintOnObject", "Drop Anim Blueprint On Object" ) );
-					USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
-					USkeleton* NeedsSkeleton = DroppedObjAsAnimBlueprint->TargetSkeleton;
-					if ( NeedsSkeleton && ! SkelMeshComponent->SkeletalMesh->Skeleton->IsCompatible(NeedsSkeleton) )
+					if(ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()))
 					{
-						SkelMeshComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
-					}
-					if ( SkelMeshComponent && SkelMeshComponent->SkeletalMesh )
-					{
-						SkelMeshComponent->SetAnimClass(DroppedObjAsAnimBlueprint->GeneratedClass);
 						bResult = true;
+					}
+				}
+				else
+				{
+					if(ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo))
+					{
+						const FScopedTransaction Transaction(LOCTEXT("DropAnimBlueprintOnObject", "Drop Anim Blueprint On Object"));
+
+						USkeletalMeshComponent* SkelMeshComponent = SkelMeshActor->SkeletalMeshComponent;
+						// if anim blueprint skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
+						bool bShouldChangeMesh = (SkelMeshComponent->SkeletalMesh == NULL ||
+								!NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton));
+
+						if(bShouldChangeMesh)
+						{
+							SkelMeshComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
+						}
+
+						// make sure if it's compabile now, if not we're not going to change anim blueprint
+						if(SkelMeshComponent->SkeletalMesh &&
+							NeedsSkeleton->IsCompatible(SkelMeshComponent->SkeletalMesh->Skeleton))
+						{
+							SkelMeshComponent->SetAnimClass(DroppedObjAsAnimBlueprint->GeneratedClass);
+							bResult = true;
+						}
 					}
 				}
 			}
@@ -641,46 +659,55 @@ static bool AttemptApplyObjToActor( UObject* ObjToUse, AActor* ActorToApplyTo, b
 		if ( DroppedObjAsAnimationAsset ||
 			 DroppedObjAsVertexAnimation)
 		{
-			if ( bTest )
-			{
-				if ( ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()) )
-				{
-					bResult = true;
-				}
-			}
-			else
-			{
-				if ( ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo) )
-				{
-					const FScopedTransaction Transaction( LOCTEXT( "DropAnimationOnObject", "Drop Animation On Object" ) );	
-					USkeletalMeshComponent* SkelComponent = SkelMeshActor->SkeletalMeshComponent;
-					USkeleton* NeedsSkeleton = DroppedObjAsAnimationAsset? DroppedObjAsAnimationAsset->GetSkeleton() : 
-						(DroppedObjAsVertexAnimation && DroppedObjAsVertexAnimation->BaseSkelMesh? DroppedObjAsVertexAnimation->BaseSkelMesh->Skeleton : NULL);
-					SkelComponent->Modify();
-					if ( NeedsSkeleton && ! SkelComponent->SkeletalMesh->Skeleton->IsCompatible(NeedsSkeleton) )
-					{
-						SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
-					}
-					if ( DroppedObjAsAnimationAsset )
-					{
-						SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-						SkelComponent->AnimationData.AnimToPlay = DroppedObjAsAnimationAsset;
+			USkeleton* NeedsSkeleton = DroppedObjAsAnimationAsset? DroppedObjAsAnimationAsset->GetSkeleton() :
+				(DroppedObjAsVertexAnimation && DroppedObjAsVertexAnimation->BaseSkelMesh? DroppedObjAsVertexAnimation->BaseSkelMesh->Skeleton : NULL);
 
-						// set runtime data
-						SkelComponent->SetAnimation(DroppedObjAsAnimationAsset);
-					}
-					if ( DroppedObjAsVertexAnimation )
-					{
-						SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
-						SkelComponent->AnimationData.VertexAnimToPlay = DroppedObjAsVertexAnimation;
-
-						// set runtime data
-						SkelComponent->SetVertexAnimation(DroppedObjAsVertexAnimation);
-					}
-					if ( SkelComponent && SkelComponent->SkeletalMesh )
+			if (NeedsSkeleton)
+			{
+				if(bTest)
+				{
+					if(ActorToApplyTo->IsA(ASkeletalMeshActor::StaticClass()))
 					{
 						bResult = true;
-						SkelComponent->InitAnim(true);
+					}
+				}
+				else
+				{
+					if(ASkeletalMeshActor* SkelMeshActor = Cast<ASkeletalMeshActor>(ActorToApplyTo))
+					{
+						const FScopedTransaction Transaction(LOCTEXT("DropAnimationOnObject", "Drop Animation On Object"));
+						USkeletalMeshComponent* SkelComponent = SkelMeshActor->SkeletalMeshComponent;
+						SkelComponent->Modify();
+						// if asset skeleton and mesh skeleton does not match or component does not have any mesh, then change mesh
+						bool bShouldChangeMesh = SkelComponent->SkeletalMesh == NULL || 
+							!NeedsSkeleton->IsCompatible(SkelComponent->SkeletalMesh->Skeleton);
+
+						if(bShouldChangeMesh)
+						{
+							SkelComponent->SetSkeletalMesh(NeedsSkeleton->GetPreviewMesh(true));
+						}
+
+						if(DroppedObjAsAnimationAsset)
+						{
+							SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+							SkelComponent->AnimationData.AnimToPlay = DroppedObjAsAnimationAsset;
+
+							// set runtime data
+							SkelComponent->SetAnimation(DroppedObjAsAnimationAsset);
+						}
+						if(DroppedObjAsVertexAnimation)
+						{
+							SkelComponent->SetAnimationMode(EAnimationMode::Type::AnimationSingleNode);
+							SkelComponent->AnimationData.VertexAnimToPlay = DroppedObjAsVertexAnimation;
+
+							// set runtime data
+							SkelComponent->SetVertexAnimation(DroppedObjAsVertexAnimation);
+						}
+						if(SkelComponent && SkelComponent->SkeletalMesh)
+						{
+							bResult = true;
+							SkelComponent->InitAnim(true);
+						}
 					}
 				}
 			}
@@ -830,100 +857,115 @@ bool FLevelEditorViewportClient::DropObjectsOnBackground( FViewportCursorLocatio
 	return bResult;
 }
 
-bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy, bool bSelectActors, UActorFactory* FactoryToUse)
+bool FLevelEditorViewportClient::DropObjectsOnActor(FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, FVector* DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy, bool bSelectActors, UActorFactory* FactoryToUse)
 {
 	bool bResult = false;
 
 	if ( DroppedUponActor != NULL )
 	{
-		bResult = DroppedObjects.Num() > 0;
-
 		const FVector TargetLocation = DroppedLocation ? *DroppedLocation : DroppedUponActor->GetActorLocation();
-		for ( int32 DroppedObjectsIdx = 0; DroppedObjectsIdx < DroppedObjects.Num(); ++DroppedObjectsIdx )
+		if(DroppedObjects.Num() > 1)
 		{
-			UObject* AssetObj = DroppedObjects[DroppedObjectsIdx];
-			ensure( AssetObj );
+			bResult = true;
 
-			// Attempt to apply the dropped asset as a material to the actor
-			const bool bAppliedToActor = ( FactoryToUse == NULL ) ? AttemptApplyObjToActor( AssetObj, DroppedUponActor ) : false;
-			if ( !bAppliedToActor )
+			// Create a transaction if we have more than 1 item. This causes them all to get "un-created" together
+			FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "CreateActors", "Create Actors") );
+			for ( auto DroppedObject : DroppedObjects )
 			{
-				// Actor
-				GEditor->ClickLocation = TargetLocation;
-				GEditor->ClickPlane = FPlane(TargetLocation, FVector(0.0f, 0.0f, 1.0f));
-				TArray<FHitResult> Hits;
-				FCollisionQueryParams Param(TEXT("DragDropTrace"), true);
-				// grab the bounds of the actor we're being dropped upon
-				FVector DUAOrigin, DUAExtent;
-				DroppedUponActor->GetActorBounds(true, DUAOrigin, DUAExtent);
-				// now calculate how far back we need to be to collide a ray with it - extend it slightly
-				float WorldDistanceMultiplier = 0.0f;
-				switch( Cursor.GetViewportClient()->GetViewportType() )
-				{
-				case LVT_OrthoXY:	WorldDistanceMultiplier = DUAExtent.Z * 1.1; break; // Top
-				case LVT_OrthoXZ:	WorldDistanceMultiplier = DUAExtent.Y * 1.1; break; // Front
-				case LVT_OrthoYZ:	WorldDistanceMultiplier = DUAExtent.X * 1.1; break; // Side
-				}
-				
-				if ( GetWorld()->LineTraceMulti(Hits, Cursor.GetOrigin() - Cursor.GetDirection() * WorldDistanceMultiplier, Cursor.GetOrigin() + Cursor.GetDirection() * HALF_WORLD_MAX, ECC_Visibility, Param) )
-				{
-					bool FoundMatch = false;
-
-					// We only care about the collision with the hit proxy actor as line trace will report hits on hidden actors too.
-					for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
-					{
-						const FHitResult& Hit = Hits[HitIdx];
-						if ( Hit.GetActor() == DroppedUponActor )
-						{
-							GEditor->ClickLocation = Hit.Location;
-							GEditor->ClickPlane = FPlane( Hit.Location,Hit.Normal );
-							FoundMatch = true;
-							break;
-						}
-					}
-
-					// If unsuccessful, use the first visible actor/component* instead
-					// *Limit this just to models/brush for the time being as its only needed for TTP#307379
-					if ( !FoundMatch )
-					{
-						for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
-						{
-							const FHitResult& Hit = Hits[HitIdx];
-							if((Hit.GetActor() && !Hit.GetActor()->IsHiddenEd())
-							|| (Hit.Component.IsValid() && Hit.Component->IsVisibleInEditor() && Hit.Component->IsA(UModelComponent::StaticClass()) && DroppedUponActor->IsA(ABrush::StaticClass())))
-							{
-								GEditor->ClickLocation = Hit.Location;
-								GEditor->ClickPlane = FPlane( Hit.Location, Hit.Normal );
-								break;
-							}
-						}
-					}
-				}
-				else
-				{
-					// if the line check fails clear the hit proxy flag so that we place it on the background
-					if ( Cursor.GetViewportType() == LVT_Perspective )
-					{
-						bUsedHitProxy = false;
-					}
-				}
-
-				// Attempt to create actors from the dropped object
-				TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), AssetObj, Cursor, bUsedHitProxy, bSelectActors, ObjectFlags, FactoryToUse);
-
-				if ( NewActors.Num() > 0 )
-				{
-					OutNewActors.Append( NewActors );
-				}
-				else
+				if (!DropSingleObjectOnActor(Cursor, DroppedObject, DroppedUponActor, DroppedUponSlot, TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, bSelectActors, FactoryToUse))
 				{
 					bResult = false;
 				}
 			}
 		}
+		else if (DroppedObjects.Num() == 1)
+		{
+			bResult = DropSingleObjectOnActor(Cursor, DroppedObjects[0], DroppedUponActor, DroppedUponSlot, TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, bSelectActors, FactoryToUse);
+		}
 	}
 
 	return bResult;
+}
+
+bool FLevelEditorViewportClient::DropSingleObjectOnActor(FViewportCursorLocation& Cursor, UObject* DroppedObject, AActor* DroppedUponActor, int32 DroppedUponSlot, const FVector& DroppedLocation, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bUsedHitProxy /*= true*/, bool bSelectActors /*= true*/, class UActorFactory* FactoryToUse /*= NULL*/ )
+{
+	if (ensure( DroppedObject ))
+	{
+		// Attempt to apply the dropped asset as a material to the actor
+		const bool bAppliedToActor = ( FactoryToUse == NULL ) ? AttemptApplyObjToActor( DroppedObject, DroppedUponActor, DroppedUponSlot ) : false;
+		if ( !bAppliedToActor )
+		{
+			// Actor
+			GEditor->ClickLocation = DroppedLocation;
+			GEditor->ClickPlane = FPlane(DroppedLocation, FVector(0.0f, 0.0f, 1.0f));
+			TArray<FHitResult> Hits;
+			FCollisionQueryParams Param(TEXT("DragDropTrace"), true);
+			// grab the bounds of the actor we're being dropped upon
+			FVector DUAOrigin, DUAExtent;
+			DroppedUponActor->GetActorBounds(true, DUAOrigin, DUAExtent);
+			// now calculate how far back we need to be to collide a ray with it - extend it slightly
+			float WorldDistanceMultiplier = 0.0f;
+			switch( Cursor.GetViewportClient()->GetViewportType() )
+			{
+			case LVT_OrthoXY:	WorldDistanceMultiplier = DUAExtent.Z * 1.1; break; // Top
+			case LVT_OrthoXZ:	WorldDistanceMultiplier = DUAExtent.Y * 1.1; break; // Front
+			case LVT_OrthoYZ:	WorldDistanceMultiplier = DUAExtent.X * 1.1; break; // Side
+			}
+
+			if ( GetWorld()->LineTraceMulti(Hits, Cursor.GetOrigin() - Cursor.GetDirection() * WorldDistanceMultiplier, Cursor.GetOrigin() + Cursor.GetDirection() * HALF_WORLD_MAX, ECC_Visibility, Param) )
+			{
+				bool FoundMatch = false;
+
+				// We only care about the collision with the hit proxy actor as line trace will report hits on hidden actors too.
+				for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
+				{
+					const FHitResult& Hit = Hits[HitIdx];
+					if ( Hit.GetActor() == DroppedUponActor )
+					{
+						GEditor->ClickLocation = Hit.Location;
+						GEditor->ClickPlane = FPlane( Hit.Location,Hit.Normal );
+						FoundMatch = true;
+						break;
+					}
+				}
+
+				// If unsuccessful, use the first visible actor/component* instead
+				// *Limit this just to models/brush for the time being as its only needed for TTP#307379
+				if ( !FoundMatch )
+				{
+					for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
+					{
+						const FHitResult& Hit = Hits[HitIdx];
+						if((Hit.GetActor() && !Hit.GetActor()->IsHiddenEd())
+							|| (Hit.Component.IsValid() && Hit.Component->IsVisibleInEditor() && Hit.Component->IsA(UModelComponent::StaticClass()) && DroppedUponActor->IsA(ABrush::StaticClass())))
+						{
+							GEditor->ClickLocation = Hit.Location;
+							GEditor->ClickPlane = FPlane( Hit.Location, Hit.Normal );
+							break;
+						}
+					}
+				}
+			}
+			else
+			{
+				// if the line check fails clear the hit proxy flag so that we place it on the background
+				if ( Cursor.GetViewportType() == LVT_Perspective )
+				{
+					bUsedHitProxy = false;
+				}
+			}
+
+			// Attempt to create actors from the dropped object
+			TArray<AActor*> NewActors = AttemptDropObjAsActors(GetWorld()->GetCurrentLevel(), DroppedObject, Cursor, bUsedHitProxy, bSelectActors, ObjectFlags, FactoryToUse);
+
+			if ( NewActors.Num() > 0 )
+			{
+				OutNewActors.Append( NewActors );
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 bool FLevelEditorViewportClient::DropObjectsOnBSPSurface( FSceneView* View, FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors, UActorFactory* FactoryToUse )
@@ -1176,7 +1218,7 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 						ensure( AssetObj );
 
 						// Attempt to apply the dropped asset as a material to the actor, just test if it is possible
-						if ( !AttemptApplyObjToActor( AssetObj, TargetActor, true ) )
+						if ( !AttemptApplyObjToActor( AssetObj, TargetActor, -1, true ) )
 						{
 							// hide all objects as we are applying them, not creating new object
 							out_bDroppedObjectsVisible = true;
@@ -1327,13 +1369,15 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 		}
 		else
 		{
+			const bool bSnapNewObjectsToFloor = GetDefault<ULevelEditorViewportSettings>()->bSnapNewObjectsToFloor;
+
 			// Move the actor to the target location while preserving the relative offset to the other actors
 			FVector Collision = FirstDraggingActor->GetPlacementExtent();
 			FVector PreSnapLocation = MouseLocation + MousePlane * (FVector::BoxPushOut(MousePlane, Collision) + 0.1f);
 			FVector NewLocation = PreSnapLocation;
 			FSnappingUtils::SnapPointToGrid( NewLocation, FVector(0, 0, 0) );
 
-			if( HitProxy != NULL && Cursor.GetViewportType() == LVT_Perspective )
+			if( bSnapNewObjectsToFloor && HitProxy != NULL && Cursor.GetViewportType() == LVT_Perspective )
 			{
 				NewLocation.Z = PreSnapLocation.Z;
 			}
@@ -1379,14 +1423,13 @@ void FLevelEditorViewportClient::DestroyDropPreviewActors()
 * @param MouseY			The position of the mouse's Y coordinate
 * @param AssetData			Asset in question to be dropped
 */
-bool FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetData)
+FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX, int32 MouseY, const FAssetData& AssetData)
 {
-	// Initialize the result to wxDragNone in case we don't have any droppable assets
-	bool Result = false;
+	FDropQuery Result;
 
 	if ( !ObjectTools::IsAssetValidForPlacing( GetWorld(), AssetData.ObjectPath.ToString() ) )
 	{
-		return false;
+		return Result;
 	}
 
 	UObject* AssetObj = AssetData.GetAsset();
@@ -1404,12 +1447,12 @@ bool FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX, int32
 
 		if ( AssetObj->IsA( AActor::StaticClass() ) || bHasActorFactory )
 		{
-			Result = true;
+			Result.bCanDrop = true;
 			bPivotMovedIndependantly = false;
 		}
 		else if( AssetObj->IsA( UBrushBuilder::StaticClass()) )
 		{
-			Result = true;
+			Result.bCanDrop = true;
 			bPivotMovedIndependantly = false;
 		}
 		else
@@ -1420,8 +1463,13 @@ bool FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX, int32
 				if ( AssetObj->IsA( UMaterialInterface::StaticClass() ) || AssetObj->IsA( UTexture::StaticClass() ) )
 				{
 					// If our asset is a material and the target is a valid recipient
-					Result = true;
+					Result.bCanDrop = true;
 					bPivotMovedIndependantly = false;
+
+					//if ( HitProxy->IsA(HActor::StaticGetType()) )
+					//{
+					//	Result.HintText = LOCTEXT("Material_Shift_Hint", "Hold [Shift] to apply material to every slot");
+					//}
 				}
 			}
 		}
@@ -1474,17 +1522,28 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 			const bool bUsedHitProxy = true;
 			AActor* TargetActor = NULL;
 			FVector TargetLocation = FVector::ZeroVector;
+			int32 TargetMaterialSlot = -1;
+
 			if (HitProxy->IsA(HActor::StaticGetType()))
 			{
 				HActor* TargetProxy = static_cast<HActor*>(HitProxy);
 				TargetActor = TargetProxy->Actor;
 				TargetLocation = TargetActor ? TargetActor->GetActorLocation() : FVector::ZeroVector;
+				TargetMaterialSlot = TargetProxy->MaterialIndex;
 			}
 			else if (HitProxy->IsA(HBSPBrushVert::StaticGetType()))
 			{
 				HBSPBrushVert* TargetProxy = static_cast<HBSPBrushVert*>(HitProxy);
 				TargetActor = TargetProxy->Brush.Get();
 				TargetLocation = TargetActor ? (TargetProxy->Vertex ? TargetActor->ActorToWorld().TransformPosition(*TargetProxy->Vertex) : TargetActor->GetActorLocation()) : FVector::ZeroVector;
+			}
+
+			// If shift is pressed set the material slot to -1, so that it's applied to every slot.
+			// We have to request it from the platform application directly because IsShiftPressed gets 
+			// the cached state, when the viewport had focus
+			if ( FSlateApplication::Get().GetPlatformApplication()->GetModifierKeys().IsShiftDown() )
+			{
+				TargetMaterialSlot = -1;
 			}
 
 			if (TargetActor != NULL)
@@ -1496,9 +1555,9 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 				if( !bDropOntoSelected || 
 					bOnlyDropOnTarget || 
 					FactoryToUse != NULL ||
-					!AttemptApplyObjToActor( DroppedObjects[0], TargetActor, true ) )
+					!AttemptApplyObjToActor(DroppedObjects[0], TargetActor, TargetMaterialSlot, true) )
 				{
-					bResult = DropObjectsOnActor( Cursor, DroppedObjects, TargetActor, &TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, SelectActors, FactoryToUse );
+					bResult = DropObjectsOnActor( Cursor, DroppedObjects, TargetActor, TargetMaterialSlot, &TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, SelectActors, FactoryToUse );
 				}
 				else
 				{
@@ -1508,7 +1567,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 						if( TargetActor )
 						{
 							TargetLocation = TargetActor->GetActorLocation();
-							DropObjectsOnActor( Cursor, DroppedObjects, TargetActor, &TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, SelectActors, FactoryToUse );
+							DropObjectsOnActor( Cursor, DroppedObjects, TargetActor, TargetMaterialSlot, &TargetLocation, ObjectFlags, OutNewActors, bUsedHitProxy, SelectActors, FactoryToUse );
 							bResult = true;
 						}
 					}
@@ -1575,17 +1634,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 			// Give the viewport focus
 			//SetFocus( static_cast<HWND>( Viewport->GetWindow() ) );
 
-			// Set the current level editing viewport client to the dropped-in viewport client
-			if ( GCurrentLevelEditingViewportClient != this )
-			{
-				// Invalidate the old vp client to remove its special selection box
-				if ( GCurrentLevelEditingViewportClient )
-				{
-					GCurrentLevelEditingViewportClient->Invalidate();
-				}
-				GCurrentLevelEditingViewportClient = this;
-			}
-			Invalidate();
+			SetCurrentViewport();
 		}
 	}
 
@@ -1753,6 +1802,13 @@ FLevelEditorViewportClient::FLevelEditorViewportClient()
 
 	// Sign up for notifications about users changing settings.
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().AddRaw(this, &FLevelEditorViewportClient::HandleViewportSettingChanged);
+
+	StatUnitData = new FStatUnitData();
+	StatHitchesData = new FStatHitchesData();
+	FCoreDelegates::StatCheckEnabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatCheckEnabled);
+	FCoreDelegates::StatEnabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatEnabled);
+	FCoreDelegates::StatDisabled.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatDisabled);
+	FCoreDelegates::StatDisableAll.AddRaw(this, &FLevelEditorViewportClient::HandleViewportStatDisableAll);
 }
 
 //
@@ -1770,13 +1826,32 @@ FLevelEditorViewportClient::~FLevelEditorViewportClient()
 	// make sure all actors have this view removed from their visibility bits
 	GEditor->Layers->RemoveViewFromActorViewVisibility( this );
 
-	//make to clean up the global "current" client when we delete the active one.
+	//make to clean up the global "current" & "last" clients when we delete the active one.
 	if (GCurrentLevelEditingViewportClient == this)
 	{
 		GCurrentLevelEditingViewportClient = NULL;
 	}
+	if (GLastKeyLevelEditingViewportClient == this)
+	{
+		GLastKeyLevelEditingViewportClient = NULL;
+	}
 
 	GetMutableDefault<ULevelEditorViewportSettings>()->OnSettingChanged().RemoveAll(this);
+
+	FCoreDelegates::StatCheckEnabled.RemoveAll(this);
+	FCoreDelegates::StatEnabled.RemoveAll(this);
+	FCoreDelegates::StatDisabled.RemoveAll(this);
+	FCoreDelegates::StatDisableAll.RemoveAll(this);
+	if (StatHitchesData)
+	{
+		delete StatHitchesData;
+		StatHitchesData = NULL;
+	}
+	if (StatUnitData)
+	{
+		delete StatUnitData;
+		StatUnitData = NULL;
+	}
 
 	GEditor->LevelViewportClients.Remove(this);
 
@@ -2363,6 +2438,39 @@ static const FLevelViewportCommands& GetLevelViewportCommands()
 	return LevelEditor.GetLevelViewportCommands();
 }
 
+void FLevelEditorViewportClient::SetCurrentViewport()
+{
+	// Set the current level editing viewport client to the dropped-in viewport client
+	if (GCurrentLevelEditingViewportClient != this)
+	{
+		// Invalidate the old vp client to remove its special selection box
+		if (GCurrentLevelEditingViewportClient)
+		{
+			GCurrentLevelEditingViewportClient->Invalidate();
+		}
+		GCurrentLevelEditingViewportClient = this;
+	}
+	Invalidate();
+}
+
+void FLevelEditorViewportClient::SetLastKeyViewport()
+{
+	// Store a reference to the last viewport that received a keypress.
+	GLastKeyLevelEditingViewportClient = this;
+
+	if (GCurrentLevelEditingViewportClient != this)
+	{
+		if (GCurrentLevelEditingViewportClient)
+		{
+			//redraw without yellow selection box
+			GCurrentLevelEditingViewportClient->Invalidate();
+		}
+		//cause this viewport to redraw WITH yellow selection box
+		Invalidate();
+		GCurrentLevelEditingViewportClient = this;
+	}
+}
+
 bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	if (bDisableInput)
@@ -2376,20 +2484,7 @@ bool FLevelEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerI
 
 	FInputEventState InputState( Viewport, Key, Event );
 
-	// Store a reference to the last viewport that received a keypress.
-	GLastKeyLevelEditingViewportClient = this;
-
-	if( GCurrentLevelEditingViewportClient != this )
-	{
-		if (GCurrentLevelEditingViewportClient)
-		{
-			//redraw without yellow selection box
-			GCurrentLevelEditingViewportClient->Invalidate();
-		}
-		//cause this viewport to redraw WITH yellow selection box
-		Invalidate();
-		GCurrentLevelEditingViewportClient = this;
-	}
+	SetLastKeyViewport();
 
 	// Compute a view.
 	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
@@ -3620,6 +3715,8 @@ void FLevelEditorViewportClient::MouseEnter( FViewport* Viewport,int32 x, int32 
 void FLevelEditorViewportClient::MouseLeave( FViewport* Viewport ) 
 {
 	GEditorModeTools().MouseLeave(this, Viewport);
+
+	FEditorViewportClient::MouseLeave(Viewport);
 }
 
 void FLevelEditorViewportClient::MouseMove(FViewport* Viewport,int32 x, int32 y)
@@ -4111,7 +4208,7 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 	}
 
 	TSharedPtr<FDragDropOperation> DragOperation = FSlateApplication::Get().GetDragDroppingContent();
-	if( !(DragOperation.IsValid() && DragDrop::IsTypeMatch<FBrushBuilderDragDropOp>(DragOperation)) )
+	if (!(DragOperation.IsValid() && DragOperation->IsOfType<FBrushBuilderDragDropOp>()))
 	{
 		// Hide the builder brush when not in geometry mode
 		ViewFamily.EngineShowFlags.BuilderBrush = 0;
@@ -4359,27 +4456,32 @@ bool FLevelEditorViewportClient::IsAspectRatioConstrained() const
 	}
 }
 
-float FLevelEditorViewportClient::GetCameraSpeed(int32 SpeedSetting) const
+int32 FLevelEditorViewportClient::GetCameraSpeedSetting() const
 {
-	
-	//previous mouse speed values were as follows...
-	//(note: these were previously all divided by 4 when used be the viewport)
-	//#define MOVEMENTSPEED_SLOW			4	~ 1
-	//#define MOVEMENTSPEED_NORMAL			12	~ 3
-	//#define MOVEMENTSPEED_FAST			32	~ 8
-	//#define MOVEMENTSPEED_VERYFAST		64	~ 16
+	return GetDefault<ULevelEditorViewportSettings>()->CameraSpeed;
+}
 
+void FLevelEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
+{
+	GetMutableDefault<ULevelEditorViewportSettings>()->CameraSpeed = SpeedSetting;
+}
 
-	const int32 SpeedToUse = FMath::Clamp<int32>(SpeedSetting, 1, MaxCameraSpeeds);
-	const float Speed[] = {0.03125f, 0.09375f, 0.33f, 1.f, 3.f, 8.f, 16.f, 32.f};
+void FLevelEditorViewportClient::ReceivedFocus(FViewport* Viewport)
+{
+	FEditorViewportClient::ReceivedFocus(Viewport);
+	GEditorModeTools().ReceivedFocus(this, Viewport);
+}
 
-	return Speed[SpeedToUse - 1];
+void FLevelEditorViewportClient::LostFocus(FViewport* Viewport)
+{
+	FEditorViewportClient::LostFocus(Viewport);
+	GEditorModeTools().LostFocus(this, Viewport);
 }
 
 bool FLevelEditorViewportClient::OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion)
 {
 	FSlateRect Rect;
-	if (CalculateSafeFrameRect(Rect, Viewport))
+	if (CalculateEditorConstrainedViewRect(Rect, Viewport))
 	{
 		FSlateRect InnerRect = Rect.InsetBy(FMargin(0.5f * SafePadding * Rect.GetSize().Size()));
 		OutCaptureRegion = FIntRect((int32)InnerRect.Left, (int32)InnerRect.Top, (int32)(InnerRect.Left + InnerRect.GetSize().X), (int32)(InnerRect.Top + InnerRect.GetSize().Y));
@@ -4546,6 +4648,56 @@ void FLevelEditorViewportClient::SetIsSimulateInEditorViewport( bool bInIsSimula
 	else
 	{
 		GEditorModeTools().UnregisterMode(Mode.ToSharedRef());
+	}
+}
+
+void FLevelEditorViewportClient::HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled)
+{
+	// Check to see which viewports have this enabled (current, non-current)
+	const bool bEnabled = IsStatEnabled(InName);
+	if (GStatProcessingViewportClient == this)
+	{
+		// Only if realtime and stats are also enabled should we show the stat as visible
+		bOutCurrentEnabled = IsRealtime() && ShouldShowStats() && bEnabled;
+	}
+	else
+	{
+		bOutOthersEnabled |= bEnabled;
+	}
+}
+
+void FLevelEditorViewportClient::HandleViewportStatEnabled(const TCHAR* InName)
+{
+	// Just enable this on the active viewport
+	if (GStatProcessingViewportClient == this)
+	{
+		SetShowStats(true);
+		SetRealtime(true);
+		SetStatEnabled(InName, true);
+	}
+}
+
+void FLevelEditorViewportClient::HandleViewportStatDisabled(const TCHAR* InName)
+{
+	// Just disable this on the active viewport
+	if (GStatProcessingViewportClient == this)
+	{
+		if (SetStatEnabled(InName, false) == 0)
+		{
+			SetShowStats(false);
+			// Note: we can't disable realtime as we don't know the setting it was previously
+		}
+	}
+}
+
+void FLevelEditorViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport)
+{
+	// Disable all on either all or the current viewport (depending on the flag)
+	if (bInAnyViewport || GStatProcessingViewportClient == this)
+	{
+		SetShowStats(false);
+		// Note: we can't disable realtime as we don't know the setting it was previously
+		SetStatEnabled(NULL, false, true);
 	}
 }
 

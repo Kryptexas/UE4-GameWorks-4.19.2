@@ -256,6 +256,386 @@ FString FScreenshotRequest::NextScreenshotName;
 bool FScreenshotRequest::bShowUI = false;
 TArray<FColor> FScreenshotRequest::HighresScreenshotMaskColorArray;
 
+
+int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 InX, int32 InY)
+{
+	float DiffTime;
+	if (FApp::IsBenchmarking() || FApp::UseFixedTimeStep())
+	{
+		/** If we're in fixed time step mode, FApp::GetCurrentTime() will be incorrect for benchmarking */
+		const double CurrentTime = FPlatformTime::Seconds();
+		if (LastTime == 0)
+		{
+			LastTime = CurrentTime;
+		}
+		DiffTime = CurrentTime - LastTime;
+		LastTime = CurrentTime;
+	}
+	else
+	{
+		/** Use the DiffTime we computed last frame, because it correctly handles the end of frame idling and corresponds better to the other unit times. */
+		DiffTime = FApp::GetCurrentTime() - FApp::GetLastTime();
+	}
+
+	RawFrameTime = DiffTime * 1000.0f;
+	FrameTime = 0.9 * FrameTime + 0.1 * RawFrameTime;
+
+	/** Number of milliseconds the gamethread was used last frame. */
+	RawGameThreadTime = FPlatformTime::ToMilliseconds(GGameThreadTime);
+	GameThreadTime = 0.9 * GameThreadTime + 0.1 * RawGameThreadTime;
+	appSetCounterValue(TEXT("Game thread time"), FPlatformTime::ToMilliseconds(GGameThreadTime));
+
+	/** Number of milliseconds the renderthread was used last frame. */
+	RawRenderThreadTime = FPlatformTime::ToMilliseconds(GRenderThreadTime);
+	RenderThreadTime = 0.9 * RenderThreadTime + 0.1 * RawRenderThreadTime;
+	appSetCounterValue(TEXT("Render thread time"), FPlatformTime::ToMilliseconds(GRenderThreadTime));
+
+	/** Number of milliseconds the GPU was busy last frame. */
+	const uint32 GPUCycles = RHIGetGPUFrameCycles();
+	RawGPUFrameTime = FPlatformTime::ToMilliseconds(GPUCycles);
+	GPUFrameTime = 0.9 * GPUFrameTime + 0.1 * RawGPUFrameTime;
+	appSetCounterValue(TEXT("GPU time"), FPlatformTime::ToMilliseconds(GPUCycles));
+
+	SET_FLOAT_STAT(STAT_FPSChart_UnitFrame, FrameTime);
+	SET_FLOAT_STAT(STAT_FPSChart_UnitRender, RenderThreadTime);
+	SET_FLOAT_STAT(STAT_FPSChart_UnitGame, GameThreadTime);
+	SET_FLOAT_STAT(STAT_FPSChart_UnitGPU, GPUFrameTime);
+
+	GEngine->SetAverageUnitTimes(FrameTime, RenderThreadTime, GameThreadTime, GPUFrameTime);
+
+	float Max_RenderThreadTime = 0.0f;
+	float Max_GameThreadTime = 0.0f;
+	float Max_GPUFrameTime = 0.0f;
+	float Max_FrameTime = 0.0f;
+
+	const bool bShowUnitMaxTimes = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitMax")) : false;
+#if !UE_BUILD_SHIPPING
+	const bool bShowRawUnitTimes = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("Raw")) : false;
+	RenderThreadTimes[CurrentIndex] = bShowRawUnitTimes ? RawRenderThreadTime : RenderThreadTime;
+	GameThreadTimes[CurrentIndex] = bShowRawUnitTimes ? RawGameThreadTime : GameThreadTime;
+	GPUFrameTimes[CurrentIndex] = bShowRawUnitTimes ? RawGPUFrameTime : GPUFrameTime;
+	FrameTimes[CurrentIndex] = bShowRawUnitTimes ? RawFrameTime : FrameTime;
+	CurrentIndex++;
+	if (CurrentIndex == NumberOfSamples)
+	{
+		CurrentIndex = 0;
+	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (bShowUnitMaxTimes)
+	{
+		for (int32 MaxIndex = 0; MaxIndex < NumberOfSamples; MaxIndex++)
+		{
+			if (Max_RenderThreadTime < RenderThreadTimes[MaxIndex])
+			{
+				Max_RenderThreadTime = RenderThreadTimes[MaxIndex];
+			}
+			if (Max_GameThreadTime < GameThreadTimes[MaxIndex])
+			{
+				Max_GameThreadTime = GameThreadTimes[MaxIndex];
+			}
+			if (Max_GPUFrameTime < GPUFrameTimes[MaxIndex])
+			{
+				Max_GPUFrameTime = GPUFrameTimes[MaxIndex];
+			}
+			if (Max_FrameTime < FrameTimes[MaxIndex])
+			{
+				Max_FrameTime = FrameTimes[MaxIndex];
+			}
+		}
+	}
+#endif // #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // #if !UE_BUILD_SHIPPING
+
+	// Render CPU thread and GPU frame times.
+	UFont* Font = (!FPlatformProperties::SupportsWindowedMode() && GEngine->GetMediumFont()) ? GEngine->GetMediumFont() : GEngine->GetSmallFont();
+	const int32 SafeZone = FPlatformProperties::SupportsWindowedMode() ? 0 : FMath::TruncToInt(InViewport->GetSizeXY().X * 0.05f);
+
+	FColor Color;
+	int32 X3 = InViewport->GetSizeXY().X - SafeZone;
+	if (bShowUnitMaxTimes)
+	{
+		X3 -= Font->GetStringSize(TEXT(" 0000.00 ms "));
+	}
+	const int32 X2 = X3 - Font->GetStringSize(TEXT(" 000.00 ms "));
+	const int32 X1 = X2 - Font->GetStringSize(TEXT("Frame: "));
+	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
+	const bool bShowUnitTimeGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitGraph")) : false;
+
+	// 0-34 ms: Green, 34-50 ms: Yellow, 50+ ms: Red
+	Color = FrameTime < 34.0f ? FColor(0, 255, 0) : (FrameTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor(255, 255, 255));
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, Color);
+	if (bShowUnitMaxTimes)
+	{
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_FrameTime), Font, Color);
+	}
+	InY += RowHeight;
+
+	Color = GameThreadTime < 34.0f ? FColor(0, 255, 0) : (GameThreadTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor(255, 255, 255));
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, Color);
+	if (bShowUnitMaxTimes)
+	{
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GameThreadTime), Font, Color);
+	}
+	InY += RowHeight;
+
+	Color = RenderThreadTime < 34.0f ? FColor(0, 255, 0) : (RenderThreadTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor(255, 255, 255));
+	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, Color);
+	if (bShowUnitMaxTimes)
+	{
+		InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_RenderThreadTime), Font, Color);
+	}
+	InY += RowHeight;
+
+	const bool bHaveGPUData = GPUCycles > 0;
+	if (bHaveGPUData)
+	{
+		Color = GPUFrameTime < 34.0f ? FColor(0, 255, 0) : (GPUFrameTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
+		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor(255, 255, 255));
+		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, Color);
+		if (bShowUnitMaxTimes)
+		{
+			InCanvas->DrawShadowedString(X3, InY, *FString::Printf(TEXT("%4.2f ms"), Max_GPUFrameTime), Font, Color);
+		}
+		InY += RowHeight;
+	}
+
+#if !UE_BUILD_SHIPPING
+	// Draw simple unit time graph
+	if (bShowUnitTimeGraph)
+	{
+		UFont* Font = GEngine->GetSmallFont();
+		check(Font);
+		int32 AlertPrintWidth = Font->GetStringSize(TEXT("000.0"));
+		int32 AlertPrintHeight = Font->GetStringHeightSize(TEXT("000.0"));
+
+		// The vertical axis is time in milliseconds
+		// The horizontal axis is the frame number (NOT time!!!)
+
+		// Threshold where graph lines will pulsate for slow frames
+		const float AlertTimeMS = 33.33f;
+
+		// Graph layout
+		const float GraphLeftXPos = 80.0f;
+		const float GraphBottomYPos = InViewport->GetSizeXY().Y - 50.0f;
+		const float GraphHorizPixelsPerFrame = 2.0f;
+		const float GraphVerticalPixelsPerMS = 10.0f;
+		const float GraphHeightInMS = 40.0f;
+
+		const FLinearColor GraphBorderColor(0.1f, 0.1f, 0.1f);
+		const FLinearColor AlertLineColor(0.1f, 0.03f, 0.03f);
+
+		// Compute pulse effect for lines above alert threshold
+		const float AlertPulseFreq = 8.0f;
+		const float AlertPulse = 0.5f + 0.5f * (float)sin((0.25f * PI * 2.0) + (FApp::GetCurrentTime() * PI * 2.0) * AlertPulseFreq);
+
+
+		// For each type of statistic that we want to graph (0=Render, 1=Game, 2=GPU, 3=Frame)
+		enum EGraphStats
+		{
+			EGS_Render = 0,
+			EGS_Game,
+			EGS_GPU,
+			EGS_Frame,
+
+			EGS_Count
+		};
+
+
+		FBatchedElements* BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Line);
+		FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
+
+		// Reserve line vertices (4 border lines, then up to the maximum number of graph lines)
+		BatchedElements->AddReserveLines(4 + EGS_Count * NumberOfSamples);
+
+
+		// Left
+		BatchedElements->AddLine(
+			FVector(GraphLeftXPos - 1.0f, GraphBottomYPos - GraphVerticalPixelsPerMS * GraphHeightInMS, 0.0f),
+			FVector(GraphLeftXPos - 1.0f, GraphBottomYPos - 1.0f, 0.0f),
+			GraphBorderColor,
+			HitProxyId);
+
+		// Right
+		BatchedElements->AddLine(
+			FVector(GraphLeftXPos + GraphHorizPixelsPerFrame * NumberOfSamples + 1.0f, GraphBottomYPos - GraphVerticalPixelsPerMS * GraphHeightInMS, 0.0f),
+			FVector(GraphLeftXPos + GraphHorizPixelsPerFrame * NumberOfSamples + 1.0f, GraphBottomYPos - 1.0f, 0.0f),
+			GraphBorderColor,
+			HitProxyId);
+
+		// Bottom
+		BatchedElements->AddLine(
+			FVector(GraphLeftXPos - 1.0f, GraphBottomYPos - 1.0f, 0.0f),
+			FVector(GraphLeftXPos + GraphHorizPixelsPerFrame * NumberOfSamples + 1.0f, GraphBottomYPos - 1.0f, 0.0f),
+			GraphBorderColor,
+			HitProxyId);
+
+		// Alert line
+		BatchedElements->AddLine(
+			FVector(GraphLeftXPos - 8.0f, GraphBottomYPos - AlertTimeMS * GraphVerticalPixelsPerMS, 0.0f),
+			FVector(GraphLeftXPos + GraphHorizPixelsPerFrame * NumberOfSamples + 8.0f, GraphBottomYPos - AlertTimeMS * GraphVerticalPixelsPerMS, 0.0f),
+			AlertLineColor,
+			HitProxyId);
+
+		int32 PrintY = GraphBottomYPos - AlertTimeMS * GraphVerticalPixelsPerMS - 2 * AlertPrintHeight;
+
+		const bool bShowFrameTimeInUnitGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitTime")) : false;
+		for (int32 StatIndex = 0; StatIndex < EGS_Count; ++StatIndex)
+		{
+			int32 LastPrintX = 0xFFFFFFFF;
+			PrintY -= AlertPrintHeight;
+
+			// If we don't have GPU data to display, then skip this line
+			if ((StatIndex == EGS_GPU && !bHaveGPUData)
+				|| (StatIndex == EGS_Frame && bShowFrameTimeInUnitGraph == false && bHaveGPUData))
+			{
+				continue;
+			}
+
+			FLinearColor StatColor;
+			float* TimeValues = NULL;
+			switch (StatIndex)
+			{
+			case EGS_Render:
+				TimeValues = RenderThreadTimes.GetData();
+				StatColor = FLinearColor(0.1f, 0.1f, 1.0f);		// Blue
+				break;
+
+			case EGS_Game:
+				TimeValues = GameThreadTimes.GetData();
+				StatColor = FLinearColor(1.0f, 0.1f, 0.1f);		// Red
+				break;
+
+			case EGS_GPU:
+				TimeValues = GPUFrameTimes.GetData();
+				StatColor = FLinearColor(1.0f, 1.0f, 0.1f);		// Yellow
+				break;
+
+			case EGS_Frame:
+				TimeValues = FrameTimes.GetData();
+				StatColor = FLinearColor(0.1f, 1.0f, 0.1f);		// Green
+				break;
+			}
+
+			// For each sample in our data set
+			for (int32 CurFrameIndex = 0; CurFrameIndex < NumberOfSamples; ++CurFrameIndex)
+			{
+				const int32 PrevFrameIndex = FMath::Max(0, CurFrameIndex - 1);
+
+				int32 PrevUnitIndex = (CurrentIndex - NumberOfSamples) + PrevFrameIndex;
+				if (PrevUnitIndex < 0)
+				{
+					PrevUnitIndex += NumberOfSamples;
+				}
+				const FVector LineStart(
+					GraphLeftXPos + (float)PrevFrameIndex * GraphHorizPixelsPerFrame,
+					GraphBottomYPos - TimeValues[PrevUnitIndex] * GraphVerticalPixelsPerMS,
+					0.0f);
+
+				int32 CurUnitIndex = (CurrentIndex - NumberOfSamples) + CurFrameIndex;
+				if (CurUnitIndex < 0)
+				{
+					CurUnitIndex += NumberOfSamples;
+				}
+				const FVector LineEnd(
+					GraphLeftXPos + (float)CurFrameIndex * GraphHorizPixelsPerFrame,
+					GraphBottomYPos - TimeValues[CurUnitIndex] * GraphVerticalPixelsPerMS,
+					0.0f);
+
+				FLinearColor FinalLineColor = StatColor;
+				if (false && TimeValues[CurUnitIndex] > AlertTimeMS)
+				{
+					// Alert!
+					FinalLineColor.R *= AlertPulse;
+					FinalLineColor.G *= AlertPulse;
+					FinalLineColor.B *= AlertPulse;
+				}
+
+				BatchedElements->AddLine(LineStart, LineEnd, FinalLineColor, HitProxyId);
+
+				if (TimeValues[CurUnitIndex] > AlertTimeMS && (CurFrameIndex == 0 || TimeValues[PrevUnitIndex] <= AlertTimeMS))
+				{
+					const int32 AlertPadding = 1;
+					float MaxValue = TimeValues[CurUnitIndex];
+					int32 MinCheckFrames = FMath::Min<int32>(FPlatformMath::CeilToInt((float)AlertPrintWidth / GraphHorizPixelsPerFrame) + 10, NumberOfSamples);
+					int32 CheckIndex = CurUnitIndex + 1;
+					for (; CheckIndex < MinCheckFrames; ++CheckIndex)
+					{
+						MaxValue = FMath::Max<float>(MaxValue, TimeValues[CheckIndex]);
+					}
+					for (; CheckIndex < NumberOfSamples; ++CheckIndex)
+					{
+						if (TimeValues[CheckIndex] <= AlertTimeMS)
+						{
+							break;
+						}
+						MaxValue = FMath::Max<float>(MaxValue, TimeValues[CheckIndex]);
+					}
+
+					int32 StartX = GraphLeftXPos + (float)PrevFrameIndex * GraphHorizPixelsPerFrame - AlertPrintWidth;
+					if (StartX > LastPrintX)
+					{
+
+						InCanvas->DrawShadowedString(StartX, PrintY, *FString::Printf(TEXT("%3.1f"), TimeValues[CurUnitIndex]), Font, StatColor);
+						LastPrintX = StartX + AlertPrintWidth + AlertPadding;
+					}
+				}
+			}
+		}
+	}
+#endif	// !UE_BUILD_SHIPPING
+
+	return InY;
+}
+
+int32 FStatHitchesData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 InX, int32 InY)
+{
+	const double CurrentTime = FPlatformTime::Seconds();
+	if (LastTime > 0)
+	{
+		float DeltaSeconds = CurrentTime - LastTime;
+		if (DeltaSeconds > GHitchThreshold)
+		{
+			Hitches[OverwriteIndex] = DeltaSeconds;
+			When[OverwriteIndex] = CurrentTime;
+			OverwriteIndex = (OverwriteIndex + 1) % NumHitches;
+			if (GEngine->ActiveMatinee.IsValid())
+			{
+				float MatineeTime = GEngine->ActiveMatinee.Get()->InterpPosition;
+				float MatineeMM = FPlatformMath::TruncToFloat(MatineeTime / 60.0f);
+				float MatineeSS = FPlatformMath::TruncToFloat(MatineeTime - MatineeMM * 60.0f);
+				float MatineeMS = FPlatformMath::TruncToFloat((MatineeTime - MatineeMM * 60.0f - MatineeSS) * 1000.0f);
+				UE_LOG(LogClient, Warning, TEXT("HITCH @ %02dm:%02d.%03ds,%d,%d,%d"),
+					(int32)MatineeMM, (int32)MatineeSS, (int32)MatineeMS, int32(MatineeTime * 1000), int32(DeltaSeconds * 1000), Count++);
+			}
+			else
+			{
+				UE_LOG(LogClient, Warning, TEXT("HITCH %d              running cnt = %5d"), int32(DeltaSeconds * 1000), Count++);
+			}
+		}
+		int32	MaxY = InViewport->GetSizeXY().Y;
+		static const double TravelTime = 4.2;
+		for (int32 i = 0; i < NumHitches; i++)
+		{
+			if (When[i] > 0 && When[i] <= CurrentTime && When[i] >= CurrentTime - TravelTime)
+			{
+				FColor MyColor = FColor(0, 255, 0);
+				if (Hitches[i] > 0.2f) MyColor = FColor(255, 255, 0);
+				if (Hitches[i] > 0.3f) MyColor = FColor(255, 0, 0);
+				int32 MyY = InY + int32(float(MaxY - InY) * float((CurrentTime - When[i]) / TravelTime));
+				FString Hitch = FString::Printf(TEXT("%5d"), int32(Hitches[i] * 1000.0f));
+				InCanvas->DrawShadowedString(InX, MyY, *Hitch, GEngine->GetSmallFont(), MyColor);
+			}
+		}
+	}
+	LastTime = CurrentTime;
+	return InY;
+}
+
+
 /*=============================================================================
 //
 // FViewport implementation.
@@ -269,7 +649,7 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	ViewportClient(InViewportClient),
 	SizeX(0),
 	SizeY(0),
-	bIsFullscreen(false),
+	WindowMode(EWindowMode::Windowed),
 	bHitProxiesCached(false),
 	bHasRequestedToggleFreeze(false),
 	bIsSlateViewport(false),
@@ -505,95 +885,65 @@ void FViewport::EndRenderFrame( bool bPresent, bool bLockToVsync )
 {
 	check( IsInRenderingThread() );
 
-
+	uint32 StartTime = FPlatformTime::Cycles();
 	RHIEndDrawingViewport( GetViewportRHI(), bPresent, bLockToVsync );
+	uint32 EndTime = FPlatformTime::Cycles();
+
+	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += EndTime - StartTime;
+	GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 }
 
+void InsertVolume(IInterface_PostProcessVolume* Volume, TArray< IInterface_PostProcessVolume* >& VolumeArray)
+{
+	const int32 NumVolumes = VolumeArray.Num();
+	float TargetPriority = Volume->GetProperties().Priority;
+	int32 InsertIndex = 0;
+	// TODO: replace with binary search.
+	for (; InsertIndex < NumVolumes ; InsertIndex++)
+	{
+		IInterface_PostProcessVolume* CurrentVolume = VolumeArray[InsertIndex];
+		float CurrentPriority = CurrentVolume->GetProperties().Priority;
 
+		if (TargetPriority < CurrentPriority)
+		{
+			break;
+		}
+		if (CurrentVolume == Volume)
+		{
+			return;
+		}
+	}
+	VolumeArray.Insert(Volume, InsertIndex);
+}
 
 void APostProcessVolume::PostUnregisterAllComponents()
 {
 	// Route clear to super first.
 	Super::PostUnregisterAllComponents();
-
 	// World will be NULL during exit purge.
-	if( GetWorld() )
+	if (GetWorld())
 	{
-		APostProcessVolume* CurrentVolume  = GetWorld()->LowestPriorityPostProcessVolume;
-		APostProcessVolume*	PreviousVolume = NULL;
-
-		// Iterate over linked list, removing this volume if found.
-		while( CurrentVolume )
-		{
-			// Found.
-			if( CurrentVolume == this )
-			{
-				// Remove from linked list.
-				if( PreviousVolume )
-				{
-					PreviousVolume->NextHigherPriorityVolume = NextHigherPriorityVolume;
-				}
-				// Special case removal from first entry.
-				else
-				{
-					GetWorld()->LowestPriorityPostProcessVolume = NextHigherPriorityVolume;
-				}
-
-				// BREAK OUT OF LOOP
-				break;
-			}
-			// Further traverse linked list.
-			else
-			{
-				PreviousVolume	= CurrentVolume;
-				CurrentVolume	= CurrentVolume->NextHigherPriorityVolume;
-			}
-		}
-
-		// Reset next pointer to avoid dangling end bits and also for GC.
-		NextHigherPriorityVolume = NULL;
+		GetWorld()->PostProcessVolumes.RemoveSingle(this);
 	}
 }
-
 
 void APostProcessVolume::PostRegisterAllComponents()
 {
 	// Route update to super first.
 	Super::PostRegisterAllComponents();
+	InsertVolume(this, GetWorld()->PostProcessVolumes);
+}
 
-	APostProcessVolume* CurrentVolume  = GetWorld()->LowestPriorityPostProcessVolume;
-	TAutoWeakObjectPtr<APostProcessVolume>* PreviousVolumePtr = &GetWorld()->LowestPriorityPostProcessVolume;
+void UPostProcessComponent::OnRegister()
+{
+	Super::OnRegister();
+	InsertVolume(this, GetWorld()->PostProcessVolumes);
+}
 
-	// Find where to insert in sorted linked list.
-	while( CurrentVolume && CurrentVolume != this )
-	{
-		// We use < instead of <= to be sure that we are not inserting twice in the case of multiple volumes having
-		// the same priority and the current one already having being inserted after one with the same priority.
-		if( Priority < CurrentVolume->Priority )
-		{
-			// Insert before current node by fixing up previous to point to current.
-			*PreviousVolumePtr = this;
-
-			// Point to current volume, finalizing insertion.
-			NextHigherPriorityVolume = CurrentVolume;
-
-			// BREAK OUT OF LOOP.
-			return;
-		}
-		// Further traverse linked list.
-		else
-		{
-			PreviousVolumePtr = &CurrentVolume->NextHigherPriorityVolume;
-			CurrentVolume = CurrentVolume->NextHigherPriorityVolume;
-		}
-	}
-
-	// Avoid double insertion!
-	if(!CurrentVolume)
-	{
-		NextHigherPriorityVolume = *PreviousVolumePtr;
-		*PreviousVolumePtr = this;
-	}
+void UPostProcessComponent::OnUnregister()
+{
+	Super::OnUnregister();
+	GetWorld()->PostProcessVolumes.RemoveSingle(this);
 }
 
 /**
@@ -660,7 +1010,7 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 						if(View)
 						{
 							// Add view information for resource streaming.
-							GStreamingManager->AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
+							IStreamingManager::Get().AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
 							World->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
 						}
 					}
@@ -945,7 +1295,7 @@ HHitProxy* FViewport::GetHitProxy(int32 X,int32 Y)
 	return HitProxy;
 }
 
-void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,bool bNewIsFullscreen)
+void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSizeY,EWindowMode::Type NewWindowMode)
 {
 	// Make sure we're not in the middle of streaming textures.
 	(*GFlushStreamingFunc)();
@@ -958,7 +1308,7 @@ void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSize
 		// This is done AFTER the command flush done by UpdateViewportRHI, to avoid disrupting rendering thread accesses to the old viewport size.
 		SizeX = NewSizeX;
 		SizeY = NewSizeY;
-		bIsFullscreen = bNewIsFullscreen;
+		WindowMode = NewWindowMode;
 
 		// Release the viewport's resources.
 		BeginReleaseResource(this);
@@ -981,7 +1331,7 @@ void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSize
 					ViewportRHI,
 					SizeX,
 					SizeY,
-					bIsFullscreen
+					IsFullscreen()
 					);
 			}
 			else
@@ -991,7 +1341,7 @@ void FViewport::UpdateViewportRHI(bool bDestroyed,uint32 NewSizeX,uint32 NewSize
 					GetWindow(),
 					SizeX,
 					SizeY,
-					bIsFullscreen
+					IsFullscreen()
 					);
 			}
 		
@@ -1027,15 +1377,15 @@ FIntRect FViewport::CalculateViewExtents(float AspectRatio, const FIntRect& View
 		if( AspectRatioDifference > 0.0f )
 		{
 			// Calculate desired Y size.
-			const int32 NewSizeY = FMath::Max(1, FMath::Round( CurrentSizeX / AdjustedAspectRatio ) );
-			Result.Min.Y = FMath::Round( 0.5f * (CurrentSizeY - NewSizeY) );
+			const int32 NewSizeY = FMath::Max(1, FMath::RoundToInt( CurrentSizeX / AdjustedAspectRatio ) );
+			Result.Min.Y = FMath::RoundToInt( 0.5f * (CurrentSizeY - NewSizeY) );
 			Result.Max.Y = Result.Min.Y + NewSizeY;
 		}
 		// Otherwise - will place bars on the sides.
 		else
 		{
-			const int32 NewSizeX = FMath::Max(1, FMath::Round( CurrentSizeY * AdjustedAspectRatio ) );
-			Result.Min.X = FMath::Round( 0.5f * (CurrentSizeX - NewSizeX) );
+			const int32 NewSizeX = FMath::Max(1, FMath::RoundToInt( CurrentSizeY * AdjustedAspectRatio ) );
+			Result.Min.X = FMath::RoundToInt( 0.5f * (CurrentSizeX - NewSizeX) );
 			Result.Max.X = Result.Min.X + NewSizeX;
 		}
 	}
@@ -1086,7 +1436,7 @@ void FViewport::InitRHI()
 			GetWindow(),
 			SizeX,
 			SizeY,
-			bIsFullscreen
+			IsFullscreen()
 			);
 		
 		UpdateRenderTargetSurfaceRHIToCurrentBackBuffer();
@@ -1210,7 +1560,7 @@ void FViewport::SetInitialSize( FIntPoint InitialSizeXY )
 	// Initial size only works if the viewport has not yet been resized
 	if( GetSizeXY() == FIntPoint::ZeroValue )
 	{
-		UpdateViewportRHI( false, InitialSizeXY.X, InitialSizeXY.Y, false );
+		UpdateViewportRHI( false, InitialSizeXY.X, InitialSizeXY.Y, EWindowMode::Windowed );
 	}
 }
 
@@ -1289,6 +1639,9 @@ ENGINE_API bool GetHighResScreenShotInput(const TCHAR* Cmd, FOutputDevice& Ar, u
 
 	return false;
 }
+
+/** Tracks the viewport client that should process the stat command, can be NULL */
+FCommonViewportClient* GStatProcessingViewportClient = NULL;
 
 void FCommonViewportClient::DrawHighResScreenshotCaptureRegion(FCanvas& Canvas)
 {

@@ -12,12 +12,17 @@ public class PerforceSourceControl : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl",
 			}
-            );
+		);
 
-		// Link with managed Perforce wrapper assemblies
 		AddThirdPartyPrivateStaticDependencies(Target, "Perforce");
+
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			AddThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
+		}
 	}
 }

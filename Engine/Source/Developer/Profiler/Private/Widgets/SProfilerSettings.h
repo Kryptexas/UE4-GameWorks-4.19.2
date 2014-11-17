@@ -20,13 +20,13 @@ public:
 	void Construct( const FArguments& InArgs );
 
 private:
-	void AddTitle( const FString& TitleText, const TSharedRef<SGridPanel>& Grid, int32& RowPos );
+	void AddTitle( const FText& TitleText, const TSharedRef<SGridPanel>& Grid, int32& RowPos );
 
 	void AddSeparator( const TSharedRef<SGridPanel>& Grid, int32& RowPos );
 
-	void AddHeader( const FString& HeaderText, const TSharedRef<SGridPanel>& Grid, int32& RowPos);
+	void AddHeader( const FText& HeaderText, const TSharedRef<SGridPanel>& Grid, int32& RowPos);
 
-	void AddOption( const FString& OptionName, const FString& OptionDesc, bool& Value, const bool& Default, const TSharedRef<SGridPanel>& Grid, int32& RowPos );
+	void AddOption( const FText& OptionName, const FText& OptionDesc, bool& Value, const bool& Default, const TSharedRef<SGridPanel>& Grid, int32& RowPos );
 
 	void AddFooter( const TSharedRef<SGridPanel>& Grid, int32& RowPos );
 

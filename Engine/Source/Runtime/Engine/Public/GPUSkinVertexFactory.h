@@ -108,6 +108,15 @@ typedef FSkinMatrix3x4 FBoneSkinning;
 
 #define SET_BONE_DATA(B, X) B.SetMatrixTranspose(X)
 
+// For most platforms we want to use a uniform buffer + vertex buffer/SRV pair, but:
+// - OS X <= 10.8.5 on Intel HD4000 falls back to software rendering when using the large uniform buffer for SM4+.
+// - OS X <= 10.8.5 crashes when using the GL_TEXTURE_BUFFER binding for the vertex buffer/SRV pair.
+// - OS X == 10.9.3 will render poly-soup on AMD Dx00/7xx0 if the texture unit sRGB state changes when binding the GL_TEXTURE_BUFFER (already fixed by AMD, but missed 10.9.3).
+// When not using a VB/SRV pair we'll fallback to 2D textures for both.
+#define GPUSKIN_USE_DATA_BUFFERS !PLATFORM_MAC
+#define GPUSKIN_TEXTURE_STRIDE 1024u
+#define GPUSKIN_CLOTH_TEXTURE_STRIDE 16384u
+
 /** Shared data & implementation for the different types of pool */
 class FSharedPoolPolicyData
 {
@@ -139,6 +148,7 @@ private:
 	static uint32 BucketSizes[NumPoolBucketSizes];
 };
 
+#if GPUSKIN_USE_DATA_BUFFERS
 /** Struct to pool the vertex buffer & SRV together */
 struct FBoneBuffer
 {
@@ -202,6 +212,50 @@ public: // From FTickableObjectRenderThread
 /** The type for the buffer pool */
 typedef FBoneBufferPool FBoneBufferPool;
 
+#else
+
+/** The policy for pooling bone texture buffers */
+class FBoneTexturePoolPolicy : public FSharedPoolPolicyData
+{
+public:
+	enum
+	{
+		NumSafeFrames = FSharedPoolPolicyData::NumSafeFrames,
+		NumPoolBuckets = FSharedPoolPolicyData::NumPoolBucketSizes,
+		NumToDrainPerFrame = FSharedPoolPolicyData::NumToDrainPerFrame,
+		CullAfterFramesNum = FSharedPoolPolicyData::CullAfterFramesNum
+	};
+	/** Creates the resource
+	 * @param Args The buffer size in bytes.
+	 * @returns A suitably sized buffer or NULL on failure.
+	 */
+	FTexture2DRHIRef CreateResource(FSharedPoolPolicyData::CreationArguments Args);
+	
+	/** Gets the arguments used to create resource
+	 * @param Resource The buffer to get data for.
+	 * @returns The arguments used to create the buffer.
+	 */
+	FSharedPoolPolicyData::CreationArguments GetCreationArguments(FTexture2DRHIRef Resource);
+};
+
+
+/** A pool for bone textures with consistent usage, bucketed for efficiency. */
+class FBoneTexturePool : public TRenderResourcePool<FTexture2DRHIRef, FBoneTexturePoolPolicy, FSharedPoolPolicyData::CreationArguments>
+{
+public:
+	/** Destructor */
+	virtual ~FBoneTexturePool();
+	
+public: // From FTickableObjectRenderThread
+	virtual TStatId GetStatId() const OVERRIDE;
+};
+
+/** The type for bone buffers */
+typedef FTexture2DRHIRef FBoneBufferTypeRef;
+/** The type for the buffer pool */
+typedef FBoneTexturePool FBoneBufferPool;
+#endif
+
 /** for motion blur skinning */
 class FBoneDataVertexBuffer : public FRenderResource
 {
@@ -241,9 +295,21 @@ public:
 		if(SizeX)
 		{
 			INC_DWORD_STAT_BY( STAT_SkeletalMeshMotionBlurSkinningMemory, ComputeMemorySize());
-			const int32 TileBufferSize = ComputeMemorySize();
-			BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, NULL, BUF_Volatile | BUF_ShaderResource );
-			BoneBuffer.VertexBufferSRV = RHICreateShaderResourceView( BoneBuffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
+#if GPUSKIN_USE_DATA_BUFFERS
+			{
+				const int32 TileBufferSize = ComputeMemorySize();
+				BoneBuffer.VertexBufferRHI = RHICreateVertexBuffer( TileBufferSize, NULL, BUF_Volatile | BUF_ShaderResource );
+				BoneBuffer.VertexBufferSRV = RHICreateShaderResourceView( BoneBuffer.VertexBufferRHI, sizeof(FVector4), PF_A32B32G32R32F );
+			}
+#else
+			{
+				uint32 X = GPUSKIN_TEXTURE_STRIDE;
+				uint32 Y = (SizeX / GPUSKIN_TEXTURE_STRIDE)+1;
+				check((uint32)GMaxTextureDimensions >= X);
+				check((uint32)GMaxTextureDimensions >= Y);
+				BoneBuffer = RHICreateTexture2D(X, Y, PF_A32B32G32R32F, 1, 1, (TexCreate_ShaderResource|TexCreate_NoMipTail|TexCreate_Dynamic), NULL);
+			}
+#endif
 		}
 	}
 	

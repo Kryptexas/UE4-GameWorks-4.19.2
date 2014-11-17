@@ -9,7 +9,6 @@
 #include "BlueprintUtilities.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "SkeletalRenderGPUSkin.h"
-#include "EngineInterpolationClasses.h"
 #include "AnimEncoding.h"
 #include "AnimationUtils.h"
 #include "AnimationRuntime.h"
@@ -34,10 +33,12 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipSimulatingBones;
 	bGenerateOverlapEvents = false;
 	LineCheckBoundsScale = FVector(1.0f, 1.0f, 1.0f);
-#if WITH_APEX_CLOTHING
+
 	PreClothTickFunction.TickGroup = TG_PreCloth;
 	PreClothTickFunction.bCanEverTick = true;
 	PreClothTickFunction.bStartWithTickEnabled = true;
+
+#if WITH_APEX_CLOTHING
 	ClothMaxDistanceScale = 1.0f;
 	ClothTeleportMode = FClothingActor::Continuous;
 	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
@@ -63,14 +64,14 @@ USkeletalMeshComponent::USkeletalMeshComponent(const class FPostConstructInitial
 	PrimaryComponentTick.TickGroup = TG_ParallelAnimWork;
 	PrimaryComponentTick.bRunOnAnyThread = true;	
 #endif
+
+	bTickInEditor = true;
 }
 
 
 void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 {
 	Super::RegisterComponentTickFunctions(bRegister);
-
-#if WITH_APEX_CLOTHING
 
 	if (bRegister)
 	{
@@ -91,7 +92,6 @@ void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 			PreClothTickFunction.UnRegisterTickFunction();
 		}
 	}
-#endif
 
 }
 
@@ -130,7 +130,7 @@ void USkeletalMeshComponent::OnUnregister()
 {
 #if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
-	RemoveAllClothingActors();
+	ReleaseAllClothingResources();
 #endif// #if WITH_APEX_CLOTHING
 
 	Super::OnUnregister();
@@ -205,7 +205,7 @@ void USkeletalMeshComponent::CreateRenderState_Concurrent()
 
 #if WITH_APEX_CLOTHING
 	//clothing actors will be re-created in TickClothing
-	RemoveAllClothingActors();
+	ReleaseAllClothingResources();
 #endif// #if WITH_APEX_CLOTHING
 
 	Super::CreateRenderState_Concurrent();
@@ -446,6 +446,15 @@ bool USkeletalMeshComponent::UpdateLODStatus()
 
 bool USkeletalMeshComponent::ShouldUpdateTransform(bool bLODHasChanged) const
 {
+#if WITH_EDITOR
+	// If we're in an editor world (Non running, WorldType will be PIE when simulating or in PIE) then we only want transform updates on LOD changes as the
+	// animation isn't running so it would just waste CPU time
+	if(GetWorld()->WorldType == EWorldType::Editor && !bLODHasChanged)
+	{
+		return false;
+	}
+#endif
+
 	// If forcing RefPose we can skip updating the skeleton for perf, except if it's using MorphTargets.
 	const bool bSkipBecauseOfRefPose = bForceRefpose && bOldForceRefPose && (MorphTargetCurves.Num() == 0) && ((AnimScriptInstance)? AnimScriptInstance->MorphTargetCurves.Num() == 0 : true);
 
@@ -466,7 +475,7 @@ bool USkeletalMeshComponent::ShouldTickPose() const
 	// Remote Clients on the Server will always tick animations as updates from the client comes in. To use Client's delta time.
 	const bool bRemoteClientOnServer = CharacterOwner && (CharacterOwner->Role == ROLE_Authority) && CharacterOwner->Controller && !CharacterOwner->Controller->IsLocalController();
 
-	return (Super::ShouldTickPose() && IsRegistered() && AnimScriptInstance && !bPauseAnims && GetWorld()->HasBegunPlay() && !bNoSkeletonUpdate && !bSkipBecauseOfRootMotion && !bRemoteClientOnServer && !bAlreadyTickedThisFrame);
+	return (Super::ShouldTickPose() && IsRegistered() && AnimScriptInstance && !bPauseAnims && GetWorld()->AreActorsInitialized() && !bNoSkeletonUpdate && !bSkipBecauseOfRootMotion && !bRemoteClientOnServer && !bAlreadyTickedThisFrame);
 }
 
 void USkeletalMeshComponent::TickPose(float DeltaTime)
@@ -826,6 +835,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms()
 	
 	AActor * Owner = GetOwner();
 	const FAnimUpdateRateParameters  & UpdateRateParams = Owner ? Owner->AnimUpdateRateParams : FAnimUpdateRateParameters();
+	UE_LOG(LogAnimation, Verbose, TEXT("RefreshBoneTransforms(%s)"), *GetNameSafe(Owner));
 
 	{
 		FScopeLockPhysXWriter LockPhysXForWriting;
@@ -1189,11 +1199,6 @@ void USkeletalMeshComponent::UnHideBone( int32 BoneIndex )
 
 bool USkeletalMeshComponent::IsAnySimulatingPhysics() const
 {
-	if( bUseSingleBodyPhysics )
-	{
-		return IsSimulatingPhysics();
-	}
-
 	for ( int32 BodyIndex=0; BodyIndex<Bodies.Num(); ++BodyIndex )
 	{
 		if (Bodies[BodyIndex]->IsInstanceSimulatingPhysics())
@@ -1581,51 +1586,44 @@ FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransfor
 
 float USkeletalMeshComponent::CalculateMass(FName BoneName)
 {
-	if (bUseSingleBodyPhysics)
-	{
-		return UPrimitiveComponent::CalculateMass();
-	}
-	else
-	{
-		float Mass = 0.0f;
+	float Mass = 0.0f;
 
-		if (Bodies.Num())
+	if (Bodies.Num())
+	{
+		for (int32 i = 0; i < Bodies.Num(); ++i)
 		{
-			for (int32 i = 0; i < Bodies.Num(); ++i)
+			//if bone name is not provided calculate entire mass - otherwise get mass for just the bone
+			if (Bodies[i]->BodySetup.IsValid() && (BoneName == NAME_None || BoneName == Bodies[i]->BodySetup->BoneName))
 			{
-				//if bone name is not provided calculate entire mass - otherwise get mass for just the bone
-				if (Bodies[i]->BodySetup.IsValid() && (BoneName == NAME_None || BoneName == Bodies[i]->BodySetup->BoneName))
+				Mass += Bodies[i]->BodySetup->CalculateMass(this);
+			}
+		}
+	}
+	else	//We want to calculate mass before we've initialized body instances - in this case use physics asset setup
+	{
+		TArray<class UBodySetup*> * BodySetups = NULL;
+		if (PhysicsAssetOverride)
+		{
+			BodySetups = &PhysicsAssetOverride->BodySetup;
+		}
+		else if (UPhysicsAsset * PhysicsAsset = GetPhysicsAsset())
+		{
+			BodySetups = &PhysicsAsset->BodySetup;
+		}
+
+		if (BodySetups)
+		{
+			for (int32 i = 0; i < BodySetups->Num(); ++i)
+			{
+				if ((*BodySetups)[i] && (BoneName == NAME_None || BoneName == (*BodySetups)[i]->BoneName))
 				{
-					Mass += Bodies[i]->BodySetup->CalculateMass(this);
+					Mass += (*BodySetups)[i]->CalculateMass(this);
 				}
 			}
 		}
-		else	//We want to calculate mass before we've initialized body instances - in this case use physics asset setup
-		{
-			TArray<class UBodySetup*> * BodySetups = NULL;
-			if (PhysicsAssetOverride)
-			{
-				BodySetups = &PhysicsAssetOverride->BodySetup;
-			}
-			else if (UPhysicsAsset * PhysicsAsset = GetPhysicsAsset())
-			{
-				BodySetups = &PhysicsAsset->BodySetup;
-			}
-
-			if (BodySetups)
-			{
-				for (int32 i = 0; i < BodySetups->Num(); ++i)
-				{
-					if ((*BodySetups)[i] && (BoneName == NAME_None || BoneName == (*BodySetups)[i]->BoneName))
-					{
-						Mass += (*BodySetups)[i]->CalculateMass(this);
-					}
-				}
-			}
-		}
-
-		return Mass;
 	}
+
+	return Mass;
 }
 
 #if WITH_EDITOR

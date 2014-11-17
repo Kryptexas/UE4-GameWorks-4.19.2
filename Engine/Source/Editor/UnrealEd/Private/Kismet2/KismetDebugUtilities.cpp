@@ -56,7 +56,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 	checkSlow(ActiveObject != NULL);
 
 	// Ignore script exceptions for preview actors
-	if(FActorEditorUtils::IsAPreviewActor(Cast<const AActor>(ActiveObject)))
+	if(FActorEditorUtils::IsAPreviewOrInactiveActor(Cast<const AActor>(ActiveObject)))
 	{
 		return;
 	}

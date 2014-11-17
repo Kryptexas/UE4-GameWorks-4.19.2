@@ -15,9 +15,9 @@ UENUM()
 enum BeamModifierType
 {
 	/** Modify the source of the beam.				*/
-	PEB2MT_Source,
+	PEB2MT_Source UMETA(DisplayName="Source"),
 	/** Modify the target of the beam.				*/
-	PEB2MT_Target,
+	PEB2MT_Target UMETA(DisplayName="Target"),
 	PEB2MT_MAX,
 };
 
@@ -48,7 +48,7 @@ struct FBeamModifierOptions
 
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Beam Modifier"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Beam Modifier"))
 class UParticleModuleBeamModifier : public UParticleModuleBeamBase
 {
 	GENERATED_UCLASS_BODY()

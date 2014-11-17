@@ -5,12 +5,11 @@
 #include "SlateRHIRenderer.h"
 #include "SlateRHIFontTexture.h"
 #include "SlateRHIResourceManager.h"
-#include "Runtime/Slate/Public/ElementBatcher.h"
+#include "SlateCore.h"
 #include "SlateRHIRenderingPolicy.h"
 #include "Runtime/Engine/Public/ScreenRendering.h"
 #include "Runtime/Engine/Public/ShaderCompiler.h"
 #include "SlateShaders.h"
-#include "FontCache.h"
 
 DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_CrashTracker);
 DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);
@@ -24,11 +23,6 @@ namespace CrashTrackerConstants
 
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
-
-#if PLATFORM_WINDOWS || PLATFORM_MAC
-/** Virtual screen rectangle including all monitors. */
-extern CORE_API RECT GVirtualScreenRect;
-#endif
 
 static FMatrix CreateProjectionMatrix( uint32 Width, uint32 Height )
 {
@@ -147,7 +141,8 @@ FSlateRHIRenderer::FSlateRHIRenderer()
 							FPlane(0,	0,	1,  0),
 							FPlane(0,	0,	0,	1));
 
-
+	bTakingAScreenShot = false;
+	OutScreenshotData = NULL;
 }
 
 FSlateRHIRenderer::~FSlateRHIRenderer()
@@ -196,10 +191,12 @@ void FSlateRHIRenderer::Initialize()
 #if PLATFORM_WINDOWS || PLATFORM_MAC
 	if (GIsEditor)
 	{
-		const FIntPoint VirtualScreenOrigin = FIntPoint(GVirtualScreenRect.left, GVirtualScreenRect.top);
-		const FIntPoint VirtualScreenLowerRight = FIntPoint(GVirtualScreenRect.right, GVirtualScreenRect.bottom);
+		FDisplayMetrics DisplayMetrics;
+		FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+		const FIntPoint VirtualScreenOrigin = FIntPoint(DisplayMetrics.VirtualDisplayRect.Left, DisplayMetrics.VirtualDisplayRect.Top);
+		const FIntPoint VirtualScreenLowerRight = FIntPoint(DisplayMetrics.VirtualDisplayRect.Right, DisplayMetrics.VirtualDisplayRect.Bottom);
 		const FIntRect VirtualScreen = FIntRect(VirtualScreenOrigin, VirtualScreenLowerRight);
-	
+
 		CrashTrackerResource = new FSlateCrashReportResource(VirtualScreen);
 		BeginInitResource(CrashTrackerResource);
 	}
@@ -295,8 +292,8 @@ void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
 		const FVector2D WindowSize = Window->GetSizeInScreen();
 		// Clamp the window size to a reasonable default anything below 8 is a d3d warning and 8 is used anyway.
 		// @todo Slate: This is a hack to work around menus being summoned with 0,0 for window size until they are ticked.
-		const uint32 Width = FMath::Max(8,FMath::Trunc(WindowSize.X));
-		const uint32 Height = FMath::Max(8,FMath::Trunc(WindowSize.Y));
+		const uint32 Width = FMath::Max(8,FMath::TruncToInt(WindowSize.X));
+		const uint32 Height = FMath::Max(8,FMath::TruncToInt(WindowSize.Y));
 
 		FViewportInfo* NewInfo = new FViewportInfo();
 		// Create Viewport RHI if it doesn't exist (this must be done on the game thread)
@@ -486,6 +483,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread( const FViewportInfo& ViewportIn
 
 	FThreadIdleStats& RenderThread = FThreadIdleStats::Get();
 	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForAllOtherSleep] = RenderThread.Waits;
+	GRenderThreadIdle[ERenderThreadIdleTypes::WaitingForGPUPresent] += GSwapBufferTime;
+	GRenderThreadNumIdle[ERenderThreadIdleTypes::WaitingForGPUPresent]++;
 	RenderThread.Waits = 0;
 
 	SET_CYCLE_COUNTER(STAT_RenderingIdleTime_RenderThreadSleepTime, GRenderThreadIdle[0]);
@@ -535,6 +534,15 @@ static void EndDrawingWindows( FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingP
 	Policy.EndDrawingWindows();
 }
 
+
+void FSlateRHIRenderer::PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData)
+{
+	check(OutColorData);
+
+	bTakingAScreenShot = true;
+	ScreenshotRect = Rect;
+	OutScreenshotData = OutColorData;
+}
 
 /** 
  * Creates necessary resources to render a window and sends draw commands to the rendering thread
@@ -638,6 +646,23 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 						Params.Renderer->DrawWindow_RenderThread( *Params.ViewportInfo, *Params.WindowElementList, Params.bLockToVsync );
 						Params.MarkWindowAsDrawn.ExecuteIfBound();
 					});
+
+					if ( bTakingAScreenShot )
+					{
+						ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(SlateCaptureScreenshotCommand,
+							FSlateDrawWindowCommandParams, Params, Params,
+							FIntRect, ScreenshotRect, ScreenshotRect,
+							TArray<FColor>*, OutScreenshotData, OutScreenshotData,
+						{
+							FTexture2DRHIRef BackBuffer = RHIGetViewportBackBuffer(Params.ViewportInfo->ViewportRHI);
+							RHIReadSurfaceData(BackBuffer, ScreenshotRect, *OutScreenshotData, FReadSurfaceDataFlags());
+						});
+
+						FlushRenderingCommands();
+
+						bTakingAScreenShot = false;
+						OutScreenshotData = NULL;
+					}
 				}
 			}
 		}
@@ -797,7 +822,7 @@ void FSlateRHIRenderer::CopyWindowsToDrawBuffer(const TArray<FString>& KeypressB
 		FWriteMouseCursorAndKeyPressesContext, Context, WriteMouseCursorAndKeyPressesContext,
 	{
 		RHISetBlendState(TStaticBlendState<CW_RGBA,BO_Add,BF_SourceAlpha,BF_InverseSourceAlpha,BO_Add,BF_Zero,BF_One>::GetRHI());
-        
+		
 		Context.RenderPolicy->UpdateBuffers(*Context.SlateElementList);
 		if( Context.SlateElementList->GetRenderBatches().Num() > 0 )
 		{

@@ -9,7 +9,6 @@
 #include "BlueprintUtilities.h"
 #include "SkeletalRenderCPUSkin.h"
 #include "SkeletalRenderGPUSkin.h"
-#include "EngineInterpolationClasses.h"
 #include "AnimationUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);
@@ -749,7 +748,7 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 	
 	// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
 	// and the component may have to be added to the streaming system for the first time.
-	GStreamingManager->NotifyPrimitiveAttached( this, DPT_Spawned );
+	IStreamingManager::Get().NotifyPrimitiveAttached( this, DPT_Spawned );
 }
 
 FSkeletalMeshResource* USkinnedMeshComponent::GetSkeletalMeshResource() const
@@ -943,7 +942,7 @@ TArray<FName> USkinnedMeshComponent::GetAllSocketNames() const
 	{
 		for( auto It=SkeletalMesh->Skeleton->Sockets.CreateConstIterator(); It; ++It )
 		{
-			SocketNames.Add( FName( *((*It)->GetName()) ) );
+			SocketNames.Add( (*It)->SocketName ) ;
 		}
 	}
 	return SocketNames;

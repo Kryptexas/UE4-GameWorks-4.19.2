@@ -80,8 +80,10 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 	
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = View.UnscaledViewRect;
+
+	GSceneRenderTargets.BeginRenderingLightAttenuation();
 	
-	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.LightAttenuation->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.GetLightAttenuation()->GetRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	RHISetRenderTarget(DestRenderTarget.TargetableTexture, FTextureRHIRef());	
@@ -109,9 +111,12 @@ void FRCPassPostProcessBusyWait::Process(FRenderingCompositePassContext& Context
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		SrcRect.Size(),
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	GSceneRenderTargets.SetLightAttenuation(0);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessBusyWait::ComputeOutputDesc(EPassOutputId InPassOutputId) const

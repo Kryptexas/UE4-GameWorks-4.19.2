@@ -161,6 +161,11 @@ public:
 	virtual FString IniPlatformName( ) const = 0;
 
 	/**
+	 * Enables/Disable the device check
+	 */
+	virtual void EnableDeviceCheck(bool OnOff) = 0;
+
+	/**
 	 * Returns all discoverable physical devices.
 	 *
 	 * @param OutDevices - Will contain a list of discovered devices.
@@ -173,23 +178,6 @@ public:
 	 * @return Compression method.
 	 */
 	virtual ECompressionFlags GetBaseCompressionMethod( ) const = 0;
-
-	/**
-	 * Gets the paths of the binaries that need to be deployed for the specified game and build configuration.
-	 *
-	 * The returned collection maps the path of local build artifacts (including the artifact's file name)
-	 * to a deployment folder path on a target device. Both paths are relative to the Root.
-	 *
-	 * @param ProjectPath - The path to the Unreal project file.
-	 * @param BuildTarget - The build target to get the artifacts for, i.e Game or Server.
-	 * @param BuildConfiguration - The build configuration to get the artifacts for, i.e. Debug or Shipping.
-	 * @param Artifacts - The type of build artifacts to include.
-	 * @param OutFiles - Will hold the collection of artifacts.
-	 * @param OutMissingFiles - Will hold the paths to missing artifacts.
-	 *
-	 * @return true if all required artifacts were gathered, false otherwise.
-	 */
-	virtual bool GetBuildArtifacts( const FString& ProjectPath, EBuildTargets::Type BuildTarget, EBuildConfigurations::Type BuildConfiguration, ETargetPlatformBuildArtifacts::Type Artifacts, TMap<FString, FString>& OutFiles, TArray<FString>& OutMissingFiles ) const = 0;
 
 	/** 
 	 * Generates a platform specific asset manifest given an array of FAssetData.
@@ -342,11 +330,18 @@ public:
 	virtual void GetReflectionCaptureFormats( TArray<FName>& OutFormats ) const = 0;
 
 	/**
-	 * Gets the shader formats this platform uses.
+	 * Gets the shader formats this platform can use.
 	 *
 	 * @param OutFormats - Will contain the shader formats.
 	 */
-	virtual void GetShaderFormats( TArray<FName>& OutFormats ) const = 0;
+	virtual void GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const = 0;
+
+	/**
+	* Gets the shader formats that have been selected for this target platform
+	*
+	* @param OutFormats - Will contain the shader formats.
+	*/
+	virtual void GetAllTargetedShaderFormats(TArray<FName>& OutFormats) const = 0;
 
 	/**
 	 * Gets the format to use for a particular texture.

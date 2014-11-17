@@ -4,12 +4,99 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Linq;
 using System.Diagnostics;
 
 namespace UnrealBuildTool
 {
 	public class Unity
 	{
+		/// <summary>
+		/// A class which represents a list of files and the sum of their lengths.
+		/// </summary>
+		public class FileCollection
+		{
+			public List<FileItem> Files       { get; private set; }
+			public long           TotalLength { get; private set; }
+
+			public FileCollection()
+			{
+				Files       = new List<FileItem>();
+				TotalLength = 0;
+			}
+
+			public void AddFile(FileItem File)
+			{
+				Files.Add(File);
+				TotalLength += File.Info.Length;
+			}
+		}
+
+		/// <summary>
+		/// A class for building up a set of unity files.  You add files one-by-one using AddFile then call EndCurrentUnityFile to finish that one and
+		/// (perhaps) begin a new one.
+		/// </summary>
+		public class UnityFileBuilder
+		{
+			private List<FileCollection> UnityFiles;
+			private FileCollection       CurrentCollection;
+			private int                  SplitLength;
+
+			/// <summary>
+			/// Constructs a new UnityFileBuilder.
+			/// </summary>
+			/// <param name="InSplitLength">The accumulated length at which to automatically split a unity file, or -1 to disable automatic splitting.</param>
+			public UnityFileBuilder(int InSplitLength)
+			{
+				UnityFiles        = new List<FileCollection>();
+				CurrentCollection = new FileCollection();
+				SplitLength       = InSplitLength;
+			}
+
+			/// <summary>
+			/// Adds a file to the current unity file.  If splitting is required and the total size of the
+			/// unity file exceeds the split limit, then a new file is automatically started.
+			/// </summary>
+			/// <param name="File">The file to add.</param>
+			public void AddFile(FileItem File)
+			{
+				CurrentCollection.AddFile(File);
+				if (SplitLength != -1 && CurrentCollection.TotalLength > SplitLength)
+				{
+					EndCurrentUnityFile();
+				}
+			}
+
+			/// <summary>
+			/// Starts a new unity file.  If the current unity file contains no files, this function has no effect, i.e. you will not get an empty unity file.
+			/// </summary>
+			public void EndCurrentUnityFile()
+			{
+				if (CurrentCollection.Files.Count == 0)
+					return;
+
+				UnityFiles.Add(CurrentCollection);
+				CurrentCollection = new FileCollection();
+			}
+
+			/// <summary>
+			/// Returns the list of built unity files.  The UnityFileBuilder is unusable after this.
+			/// </summary>
+			/// <returns></returns>
+			public List<FileCollection> GetUnityFiles()
+			{
+				EndCurrentUnityFile();
+
+				var Result = UnityFiles;
+
+				// Null everything to ensure that failure will occur if you accidentally reuse this object.
+				CurrentCollection = null;
+				UnityFiles         = null;
+
+				return Result;
+			}
+		}
+
 		/// <summary>
 		/// Given a set of C++ files, generates another set of C++ files that #include all the original
 		/// files, the goal being to compile the same code in fewer translation units.
@@ -25,58 +112,39 @@ namespace UnrealBuildTool
 			string BaseName
 			)
 		{
+			var ToolChain = UEToolChain.GetPlatformToolChain(CompileEnvironment.Config.TargetPlatform);
+
 			UEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.TargetPlatform);
 
 			// Figure out size of all input files combined. We use this to determine whether to use larger unity threshold or not.
-			long TotalBytesInCPPFiles = 0;
-			foreach( FileItem CPPFile in CPPFiles )
-			{
-				TotalBytesInCPPFiles += CPPFile.Info.Length;
-			}
+			long TotalBytesInCPPFiles = CPPFiles.Sum(F => F.Info.Length);
 
 			// We have an increased threshold for unity file size if, and only if, all files fit into the same unity file. This
 			// is beneficial when dealing with PCH files. The default PCH creation limit is X unity files so if we generate < X 
 			// this could be fairly slow and we'd rather bump the limit a bit to group them all into the same unity file.
-			bool bForceIntoSingleUnityFile = BuildConfiguration.bStressTestUnity;			
-			if( (TotalBytesInCPPFiles < BuildConfiguration.NumIncludedBytesPerUnityCPP * 2)
+			//
 			// Optimization only makes sense if PCH files are enabled.
-			&&	CompileEnvironment.ShouldUsePCHs() )
-			{
-				bForceIntoSingleUnityFile = true;
-			}
+			bool bForceIntoSingleUnityFile = BuildConfiguration.bStressTestUnity || (TotalBytesInCPPFiles < BuildConfiguration.NumIncludedBytesPerUnityCPP * 2 && CompileEnvironment.ShouldUsePCHs());
 
-			// Figure out how many unity files there are going to be total.
-			int NumUnityFiles = 0;
-			int InputFileIndex = 0;
-			while (InputFileIndex < CPPFiles.Count)
+			// Build the list of unity files.
+			List<FileCollection> AllUnityFiles;
 			{
-				long NumIncludedBytesInThisOutputFile = 0;
-				//@warning: this condition is mirrored below
-				while(	InputFileIndex < CPPFiles.Count &&
-						(bForceIntoSingleUnityFile ||
-						NumIncludedBytesInThisOutputFile < BuildConfiguration.NumIncludedBytesPerUnityCPP))
+				var CPPUnityFileBuilder = new UnityFileBuilder(bForceIntoSingleUnityFile ? -1 : BuildConfiguration.NumIncludedBytesPerUnityCPP);
+				foreach( var CPPFile in CPPFiles )
 				{
-                    bool ForceAlone = CPPFiles[InputFileIndex].AbsolutePath.Contains(".GeneratedWrapper.");
-                    if (ForceAlone && !bForceIntoSingleUnityFile && NumIncludedBytesInThisOutputFile > 0)
-                    {
-                        break;
-                    }
-                    NumIncludedBytesInThisOutputFile += CPPFiles[InputFileIndex].Info.Length;
-                    InputFileIndex++;
-                    if (ForceAlone && !bForceIntoSingleUnityFile)
-                    {
-                        break;
-                    }
-                }
-				NumUnityFiles++;
+					if (!bForceIntoSingleUnityFile && CPPFile.AbsolutePath.Contains(".GeneratedWrapper."))
+					{
+						CPPUnityFileBuilder.EndCurrentUnityFile();
+						CPPUnityFileBuilder.AddFile(CPPFile);
+						CPPUnityFileBuilder.EndCurrentUnityFile();
+					}
+					else
+					{
+						CPPUnityFileBuilder.AddFile(CPPFile);
+					}
+				}
+				AllUnityFiles = CPPUnityFileBuilder.GetUnityFiles();
 			}
-
-			// Create a set of CPP files that combine smaller CPP files into larger compilation units, along with the corresponding 
-			// actions to compile them.
-			InputFileIndex = 0;
-			int CurrentUnityFileCount = 1;
-			List<FileItem> UnityCPPFiles = new List<FileItem>();
-			var ToolChain = UEToolChain.GetPlatformToolChain(CompileEnvironment.Config.TargetPlatform);
 
 			string PCHHeaderNameInCode = CPPFiles[0].PCHHeaderNameInCode;
 			if( CompileEnvironment.Config.PrecompiledHeaderIncludeFilename != null )
@@ -89,10 +157,17 @@ namespace UnrealBuildTool
 				CompileEnvironment.Config.PCHHeaderNameInCode = PCHHeaderNameInCode;
 			}
 
-			while (InputFileIndex < CPPFiles.Count)
+			// Create a set of CPP files that combine smaller CPP files into larger compilation units, along with the corresponding 
+			// actions to compile them.
+			int CurrentUnityFileCount = 0;
+			var UnityCPPFiles         = new List<FileItem>();
+			foreach( var UnityFile in AllUnityFiles )
 			{
-				StringWriter OutputUnityCPPWriter = new StringWriter();
+				++CurrentUnityFileCount;
+
+				StringWriter OutputUnityCPPWriter      = new StringWriter();
 				StringWriter OutputUnityCPPWriterExtra = null;
+
 				// add an extra file for UBT to get the #include dependencies from
 				if (BuildPlatform.RequiresExtraUnityCPPWriter() == true)
 				{
@@ -112,61 +187,39 @@ namespace UnrealBuildTool
 					}
 				}
 
-				// Add source files to the unity file until the number of included bytes crosses a threshold.
-				long NumIncludedBytesInThisOutputFile = 0;
-				var NumInputFilesInThisOutputFile = 0;
-                string FileDescription = "";
-				//@warning: this condition is mirrored above
-				while(	InputFileIndex < CPPFiles.Count &&
-						(bForceIntoSingleUnityFile ||
-						NumIncludedBytesInThisOutputFile < BuildConfiguration.NumIncludedBytesPerUnityCPP))
+				// Add source files to the unity file
+				foreach( var CPPFile in UnityFile.Files )
 				{
-                    bool ForceAlone = CPPFiles[InputFileIndex].AbsolutePath.Contains(".GeneratedWrapper.");
-                    if (ForceAlone && !bForceIntoSingleUnityFile && NumIncludedBytesInThisOutputFile > 0)
-                    {
-                        break;
-                    }
-                    FileItem CPPFile = CPPFiles[InputFileIndex];
 					OutputUnityCPPWriter.WriteLine("#include \"{0}\"", ToolChain.ConvertPath(CPPFile.AbsolutePath));
                     if (OutputUnityCPPWriterExtra != null)
                     {
                         OutputUnityCPPWriterExtra.WriteLine("#include \"{0}\"", CPPFile.AbsolutePath);
                     }
-
-					NumIncludedBytesInThisOutputFile += CPPFile.Info.Length;
-                    InputFileIndex++;
-					NumInputFilesInThisOutputFile++;
-                    FileDescription += Path.GetFileName(CPPFile.AbsolutePath) + " + ";
-                    if (ForceAlone && !bForceIntoSingleUnityFile)
-                    {
-                        break;
-                    }
                 }
-                // Remove trailing " + "
-                FileDescription = FileDescription.Remove( FileDescription.Length - 3);
+
+				// Determine unity file path name
+				string UnityCPPFilePath;
+				if (AllUnityFiles.Count > 1)
+				{
+					UnityCPPFilePath = string.Format("Module.{0}.{1}_of_{2}.cpp", BaseName, CurrentUnityFileCount, AllUnityFiles.Count);
+				}
+				else
+				{
+					UnityCPPFilePath = string.Format("Module.{0}.cpp", BaseName);
+				}
+				UnityCPPFilePath = Path.Combine(CompileEnvironment.Config.OutputDirectory, UnityCPPFilePath);
 
 				// Write the unity file to the intermediate folder.
-				string ProgressString = "." + CurrentUnityFileCount.ToString() + "_of_" + NumUnityFiles.ToString();
-				string UnityCPPFilePath = Path.Combine(
-					CompileEnvironment.Config.OutputDirectory,
-					string.Format("Module.{0}{1}.cpp",
-						BaseName,
-						NumUnityFiles > 1 ? ProgressString : ""
-						)
-					);
-				CurrentUnityFileCount++;
-
 				FileItem UnityCPPFile = FileItem.CreateIntermediateTextFile(UnityCPPFilePath, OutputUnityCPPWriter.ToString());
-				UnityCPPFile.RelativeCost = NumIncludedBytesInThisOutputFile;
-				UnityCPPFile.Description = FileDescription;
-				UnityCPPFile.PCHHeaderNameInCode = PCHHeaderNameInCode;
-                UnityCPPFiles.Add(UnityCPPFile);
-
-				// write out the extra file
 				if (OutputUnityCPPWriterExtra != null)
 				{
 					FileItem.CreateIntermediateTextFile(UnityCPPFilePath + ".ex", OutputUnityCPPWriterExtra.ToString());
 				}
+
+				UnityCPPFile.RelativeCost        = UnityFile.TotalLength;
+				UnityCPPFile.Description         = string.Join(" + ", UnityFile.Files.Select(F => Path.GetFileName(F.AbsolutePath)));
+				UnityCPPFile.PCHHeaderNameInCode = PCHHeaderNameInCode;
+                UnityCPPFiles.Add(UnityCPPFile);
 			}
 
 			return UnityCPPFiles;

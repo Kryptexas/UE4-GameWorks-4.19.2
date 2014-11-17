@@ -43,7 +43,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 		.NameContent()
 		[
 			SNew(STextBlock)
-				.Text(LOCTEXT("Position", "Position").ToString())
+				.Text(LOCTEXT("Position", "Position"))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -67,7 +67,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 		.NameContent()
 		[
 			SNew(STextBlock)
-				.Text(LOCTEXT("Rotation", "Rotation").ToString())
+				.Text(LOCTEXT("Rotation", "Rotation"))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -202,7 +202,7 @@ TOptional<int32> FStreamingLevelCustomization::GetLevelRotation() const
 	FQuat RotQ;
 	if (LevelRotationProperty->GetValue(RotQ) == FPropertyAccess::Success)
 	{
-		int32 YawValue = FMath::Round(RotQ.Rotator().Yaw);
+		int32 YawValue = FMath::RoundToInt(RotQ.Rotator().Yaw);
 		return YawValue < 0 ? (YawValue + 360) : YawValue;
 	}
 

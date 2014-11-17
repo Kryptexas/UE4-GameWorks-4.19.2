@@ -293,6 +293,74 @@ void FStaticMeshSceneProxy::SetIndexSource(int32 LODIndex, int32 SectionIndex, F
 }
 
 // FPrimitiveSceneProxy interface.
+#if WITH_EDITOR
+HHitProxy* FStaticMeshSceneProxy::CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies)
+{
+	// In order to be able to click on static meshes when they're batched up, we need to have catch all default
+	// hit proxy to return.
+	HHitProxy* DefaultHitProxy = FPrimitiveSceneProxy::CreateHitProxies(Component, OutHitProxies);
+
+	if ( Component->GetOwner() )
+	{
+		// Generate separate hit proxies for each sub mesh, so that we can perform hit tests against each section for applying materials
+		// to each one.
+		for ( int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); LODIndex++ )
+		{
+			const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
+
+			check(LODs[LODIndex].Sections.Num() == LODModel.Sections.Num());
+
+			for ( int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++ )
+			{
+				HHitProxy* ActorHitProxy;
+
+				if ( Component->GetOwner()->IsA(ABrush::StaticClass()) && Component->IsA(UBrushComponent::StaticClass()) )
+				{
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, HPP_Wireframe, SectionIndex);
+				}
+				else
+				{
+					ActorHitProxy = new HActor(Component->GetOwner(), Component, SectionIndex);
+				}
+
+				FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
+
+				// Set the hitproxy.
+				check(Section.HitProxy == NULL);
+				Section.HitProxy = ActorHitProxy;
+
+				OutHitProxies.Add(ActorHitProxy);
+			}
+		}
+	}
+	
+	return DefaultHitProxy;
+}
+#endif // WITH_EDITOR
+
+// use for render thread only
+bool UseLightPropagationVolumeRT2()
+{
+	if(!IsFeatureLevelSupported(GRHIShaderPlatform, ERHIFeatureLevel::SM5))
+	{
+		return false;
+	}
+
+	// todo: better we get the engine LPV state not the cvar (later we want to make it changeable at runtime)
+	static const auto* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.LightPropagationVolume"));
+	check(CVar);
+
+	int32 Value = CVar->GetValueOnRenderThread();
+
+	return Value != 0;
+}
+
+inline bool AllowShadowOnlyMesh()
+{
+	// todo: later we should refine that (only if occlusion feature in LPV is on, only if inside a cascade, if shadow casting is disabled it should look at bUseEmissiveForDynamicAreaLighting)
+	return !UseLightPropagationVolumeRT2();
+}
+
 void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
 {
 	checkSlow(IsInRenderingThread());
@@ -312,28 +380,31 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 			int32 LODIndex = FMath::Clamp(ForcedLodModel, 1, NumLODs) - 1;
 			const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
 			// Draw the static mesh elements.
-			for(int32 SectionIndex = 0;SectionIndex < LODModel.Sections.Num();SectionIndex++)
+			for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 			{
 #if WITH_EDITOR
 				if( GIsEditor )
 				{
-					bUseSelectedMaterial = LODs[LODIndex].Sections[SectionIndex].bSelected;
+					const FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
+
+					bUseSelectedMaterial = Section.bSelected;
+					PDI->SetHitProxy(Section.HitProxy);
 				}
 #endif // WITH_EDITOR
+
 				FMeshBatch MeshElement;
-				if(GetMeshElement(LODIndex,SectionIndex,PrimitiveDPG,MeshElement,bUseSelectedMaterial,bUseHoveredMaterial))
+				if(GetMeshElement(LODIndex, SectionIndex, PrimitiveDPG, MeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
 				{
-					PDI->DrawMesh(MeshElement, 0, FLT_MAX);
+					PDI->DrawMesh(MeshElement, FLT_MAX);
 				}
 			}
 		} 
 		else //no LOD is being forced, submit them all with appropriate cull distances
 		{
-			for(int32 LODIndex = 0;LODIndex < NumLODs;LODIndex++)
+			for(int32 LODIndex = 0; LODIndex < NumLODs; LODIndex++)
 			{
 				const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
-				float MinDist = GetMinLODDist(LODIndex);
-				float MaxDist = GetMaxLODDist(LODIndex);
+				float ScreenSize = GetScreenSize(LODIndex);
 
 				bool bHaveShadowOnlyMesh = false;
 				if (GUseShadowIndexBuffer
@@ -343,7 +414,9 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 					const FLODInfo& ProxyLODInfo = LODs[LODIndex];
 
 					// The shadow-only mesh can be used only if all elements cast shadows and use opaque materials with no vertex modification.
-					bool bSafeToUseShadowOnlyMesh = true;
+					// In some cases (e.g. LPV) we don't want the optimization
+					bool bSafeToUseShadowOnlyMesh = AllowShadowOnlyMesh();
+
 					bool bAnySectionCastsShadow = false;
 					for (int32 SectionIndex = 0; bSafeToUseShadowOnlyMesh && SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 					{
@@ -357,15 +430,13 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 						bAnySectionCastsShadow |= Section.bCastShadow;
 					}
 
-					bSafeToUseShadowOnlyMesh = false;
-
 					if (bAnySectionCastsShadow && bSafeToUseShadowOnlyMesh)
 					{
 						FMeshBatch MeshElement;
 						if (GetShadowMeshElement(LODIndex, PrimitiveDPG, MeshElement))
 						{
 							bHaveShadowOnlyMesh = true;
-							PDI->DrawMesh(MeshElement,MinDist,MaxDist,/*bShadowOnly=*/true);
+							PDI->DrawMesh(MeshElement, ScreenSize, /*bShadowOnly=*/true);
 						}
 					}
 				}
@@ -376,15 +447,19 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 #if WITH_EDITOR
 					if( GIsEditor )
 					{
-						bUseSelectedMaterial = LODs[LODIndex].Sections[SectionIndex].bSelected;
+						const FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
+
+						bUseSelectedMaterial = Section.bSelected;
+						PDI->SetHitProxy(Section.HitProxy);
 					}
 #endif // WITH_EDITOR
+
 					FMeshBatch MeshElement;
-					if(GetMeshElement(LODIndex,SectionIndex,PrimitiveDPG,MeshElement,bUseSelectedMaterial,bUseHoveredMaterial))
+					if(GetMeshElement(LODIndex, SectionIndex, PrimitiveDPG, MeshElement, bUseSelectedMaterial, bUseHoveredMaterial))
 					{
 						// If we have submitted an optimized shadow-only mesh, remaining mesh elements must not cast shadows.
 						MeshElement.CastShadow = MeshElement.CastShadow && !bHaveShadowOnlyMesh;
-						PDI->DrawMesh(MeshElement, MinDist, MaxDist);
+						PDI->DrawMesh(MeshElement, ScreenSize);
 					}
 				}
 			}
@@ -496,16 +571,20 @@ void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,con
 				const FLinearColor UtilColor( LevelColor );
 
 				// Draw the static mesh sections.
-				for(int32 SectionIndex = 0;SectionIndex < LODModel.Sections.Num();SectionIndex++)
+				for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
 				{
 					bool bSectionIsSelected = false;
 
 #if WITH_EDITOR
 					if( GIsEditor )
 					{
-						bSectionIsSelected = LODs[LODIndex].Sections[SectionIndex].bSelected;
+						const FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
+
+						bSectionIsSelected = Section.bSelected;
+						PDI->SetHitProxy(Section.HitProxy);
 					}
 #endif // WITH_EDITOR
+
 					FMeshBatch MeshElement;
 					if(GetMeshElement(LODIndex,SectionIndex,GetDepthPriorityGroup(View),MeshElement,bSectionIsSelected,IsHovered()))
 					{
@@ -942,14 +1021,9 @@ FLightInteraction FStaticMeshSceneProxy::FLODInfo::GetInteraction(const FLightSc
 	return FLightInteraction::Dynamic();
 }
 
-float FStaticMeshSceneProxy::GetMinLODDist(int32 LODIndex) const 
+float FStaticMeshSceneProxy::GetScreenSize( int32 LODIndex ) const
 {
-	return RenderData->LODDistance[LODIndex];
-}
-
-float FStaticMeshSceneProxy::GetMaxLODDist(int32 LODIndex) const 
-{
-	return RenderData->LODDistance[LODIndex+1];
+	return RenderData->ScreenSize[LODIndex];
 }
 
 /**
@@ -979,29 +1053,8 @@ int32 FStaticMeshSceneProxy::GetLOD(const FSceneView* View) const
 	}
 #endif
 
-	// Note: These distance calculations must match up with the main renderer!
-#if !WITH_EDITOR
-	const FVector ViewOriginForDistance = View->ViewMatrices.ViewOrigin;
-#else
-	const FVector ViewOriginForDistance = View->IsPerspectiveProjection() ? View->ViewMatrices.ViewOrigin : View->OverrideLODViewOrigin;
-#endif
-
-	float DistanceSquared = (GetBounds().Origin - ViewOriginForDistance).SizeSquared();
-
-	for(int32 LODIndex = LODs.Num() - 1; LODIndex >= 0; LODIndex--)
-	{
-		// Use the same distances as FStaticMeshSceneProxy::DrawStaticElements 
-		// To ensure that LODs change the same way when drawn in a static draw list or when rendered through DrawDynamicElements
-		const float MinDist = GetMinLODDist(LODIndex);
-		const float MaxDist = GetMaxLODDist(LODIndex);
-		
-		const float LODFactorDistanceSquared = DistanceSquared * FMath::Square(View->LODDistanceFactor);
-		if (LODFactorDistanceSquared >= FMath::Square(MinDist) && LODFactorDistanceSquared < FMath::Square(MaxDist))
-		{
-			return LODIndex;
-		}
-	}
-	return INDEX_NONE;
+	const FBoxSphereBounds& Bounds = GetBounds();
+	return ComputeStaticMeshLOD(RenderData, Bounds.Origin, Bounds.SphereRadius, *View);
 }
 
 FPrimitiveSceneProxy* UStaticMeshComponent::CreateSceneProxy()

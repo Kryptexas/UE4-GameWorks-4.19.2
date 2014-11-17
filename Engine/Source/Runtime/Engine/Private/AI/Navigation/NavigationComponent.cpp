@@ -20,6 +20,7 @@ UNavigationComponent::UNavigationComponent(const class FPostConstructInitializeP
 	bUpdateForSmartLinks = true;
 	bWantsInitializeComponent = true;
 	bAutoActivate = true;
+	TimeToUnlockRepathing = 0;
 }
 
 void UNavigationComponent::InitializeComponent()
@@ -54,35 +55,45 @@ void UNavigationComponent::TickComponent(float DeltaTime, enum ELevelTick TickTy
 
 	check( GetOuter() != NULL );
 
-	bool bSuccess = false;
-
-	if (GoalActor != NULL)
+	TimeToUnlockRepathing = FMath::Max(0.0f, TimeToUnlockRepathing - DeltaTime);
+	if (!IsRepathingSuspended())
 	{
-		const FVector GoalActorLocation = GetCurrentMoveGoal(GoalActor, GetOwner());
-		const float DistanceSq = FVector::DistSquared(GoalActorLocation, OriginalGoalActorLocation);
+		bool bSuccess = false;
 
-		if (DistanceSq > RepathDistanceSq)
+		if (GoalActor != NULL)
 		{
-			if (RePathTo(GoalActorLocation, StoredQueryFilter))
+			const FVector GoalActorLocation = GetCurrentMoveGoal(GoalActor, GetOwner());
+			const float DistanceSq = FVector::DistSquared(GoalActorLocation, OriginalGoalActorLocation);
+
+			if (DistanceSq > RepathDistanceSq)
 			{
-				bSuccess = true;
-				OriginalGoalActorLocation = GoalActorLocation;
+				if (RePathTo(GoalActorLocation, StoredQueryFilter))
+				{
+					bSuccess = true;
+					OriginalGoalActorLocation = GoalActorLocation;
+				}
+				else
+				{
+					FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+				}
 			}
 			else
 			{
-				FAIMessage::Send(Cast<AController>(GetOwner()), FAIMessage(UBrainComponent::AIMessage_RepathFailed, this));
+				bSuccess = true;
 			}
 		}
-		else
+
+		if (bSuccess == false)
 		{
-			bSuccess = true;
+			ResetTransientData();
 		}
 	}
-	
-	if (bSuccess == false)
-	{
-		ResetTransientData();
-	}
+}
+
+void UNavigationComponent::SuspendPathRepathingFor(float SuspentionInterval)
+{ 
+	TimeToUnlockRepathing = SuspentionInterval;
+	UE_VLOG(GetOwner(), LogNavigation, Log, TEXT("Path repathing suspended for %03.02f seconds"), SuspentionInterval);
 }
 
 void UNavigationComponent::OnPathInvalid(FNavigationPath* InvalidatedPath)
@@ -143,7 +154,7 @@ FNavLocation UNavigationComponent::ProjectPointToNavigation(const FVector& Locat
 	
 	if (GetNavData() != NULL)
 	{
-		if (!MyNavData->ProjectPoint(Location, OutLocation, MyNavData->GetDefaultQueryExtent()))
+		if (!MyNavData->ProjectPoint(Location, OutLocation, GetQueryExtent()))
 		{
 			OutLocation = FNavLocation();
 		}
@@ -154,7 +165,7 @@ FNavLocation UNavigationComponent::ProjectPointToNavigation(const FVector& Locat
 
 bool UNavigationComponent::ProjectPointToNavigation(const FVector& Location, FNavLocation& ProjectedLocation) const
 {
-	return GetNavData() != NULL && MyNavData->ProjectPoint(Location, ProjectedLocation, MyNavData->GetDefaultQueryExtent());
+	return GetNavData() != NULL && MyNavData->ProjectPoint(Location, ProjectedLocation, GetQueryExtent());
 }
 
 bool UNavigationComponent::ProjectPointToNavigation(const FVector& Location, FVector& ProjectedLocation) const
@@ -191,7 +202,7 @@ bool UNavigationComponent::AsyncGeneratePath(const FVector& FromLocation, const 
 		{
 			const EPathFindingMode::Type Mode = bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
 			AsynPathQueryID = GetWorld()->GetNavigationSystem()->FindPathAsync(*MyNavAgent->GetNavAgentProperties()
-				, FPathFindingQuery(MyNavData, FromLocation, NavMeshGoalLocation, QueryFilter)
+				, FPathFindingQuery(GetOwner(), MyNavData, FromLocation, NavMeshGoalLocation, QueryFilter)
 				, FNavPathQueryDelegate::CreateUObject(this, &UNavigationComponent::AsyncGeneratePath_OnCompleteCallback)
 				, Mode);
 		}
@@ -204,7 +215,7 @@ bool UNavigationComponent::AsyncGeneratePath(const FVector& FromLocation, const 
 			UE_VLOG_LOCATION(GetOwner(), GoalLocation, 30, FColor::Red, TEXT("Invalid pathing GoalLocation"));
 			if (MyNavData != NULL)
 			{
-				UE_VLOG_BOX(GetOwner(), FBox(GoalLocation-MyNavData->GetDefaultQueryExtent(),GoalLocation+MyNavData->GetDefaultQueryExtent()), FColor::Red, TEXT_EMPTY);
+				UE_VLOG_BOX(GetOwner(), FBox(GoalLocation - GetQueryExtent(), GoalLocation + GetQueryExtent()), FColor::Red, TEXT_EMPTY);
 			}
 		}
 	}
@@ -326,8 +337,7 @@ bool UNavigationComponent::GeneratePathTo(const FVector& GoalLocation, TSharedPt
 
 #if ENABLE_VISUAL_LOG
 		UE_VLOG_LOCATION(GetOwner(), GoalLocation, 34, FColor(0,127,14), TEXT("GoalLocation"));
-		const FVector ProjectionExtent = MyNavData ? MyNavData->GetDefaultQueryExtent() : FVector(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL);
-		UE_VLOG_BOX(GetOwner(), FBox(GoalLocation - ProjectionExtent, GoalLocation + ProjectionExtent), FColor::Green, TEXT_EMPTY);
+		UE_VLOG_BOX(GetOwner(), FBox(GoalLocation - GetQueryExtent(), GoalLocation + GetQueryExtent()), FColor::Green, TEXT_EMPTY);
 #endif
 
 		if (ProjectPointToNavigation(GoalLocation, NavMeshGoalLocation) == QuerySuccess)
@@ -336,7 +346,7 @@ bool UNavigationComponent::GeneratePathTo(const FVector& GoalLocation, TSharedPt
 			UE_VLOG_LOCATION(GetOwner(), NavMeshGoalLocation, 34, FColor::Blue, TEXT_EMPTY);
 			
 			UNavigationSystem* NavSys = GetWorld()->GetNavigationSystem();
-			FPathFindingQuery Query(MyNavData, MyNavAgent->GetNavAgentLocation(), NavMeshGoalLocation, QueryFilter);
+			FPathFindingQuery Query(GetOwner(), MyNavData, MyNavAgent->GetNavAgentLocation(), NavMeshGoalLocation, QueryFilter);
 
 			const EPathFindingMode::Type Mode = bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
 			FPathFindingResult Result = NavSys->FindPathSync(*MyNavAgent->GetNavAgentProperties(), Query, Mode);
@@ -363,7 +373,7 @@ bool UNavigationComponent::GeneratePathTo(const FVector& GoalLocation, TSharedPt
 					TSharedPtr<FNavigationQueryFilter> Filter = QueryFilter.IsValid() ? QueryFilter->GetCopy() : MyNavData->GetDefaultQueryFilter()->GetCopy();					
 					Filter->SetBacktrackingEnabled(true);
 
-					FPathFindingQuery ReversedQuery(MyNavData, Query.EndLocation, Query.StartLocation, Filter);
+					FPathFindingQuery ReversedQuery(GetOwner(), MyNavData, Query.EndLocation, Query.StartLocation, Filter);
 					Result = NavSys->FindPathSync(*MyNavAgent->GetNavAgentProperties(), Query, Mode);
 				}
 			}
@@ -410,7 +420,7 @@ bool UNavigationComponent::GeneratePath(const FVector& FromLocation, const FVect
 	const FNavLocation NavMeshGoalLocation = ProjectPointToNavigation(GoalLocation);
 	const EPathFindingMode::Type Mode = bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular;
 	FPathFindingResult Result = GetWorld()->GetNavigationSystem()->FindPathSync(*MyNavAgent->GetNavAgentProperties()
-		, FPathFindingQuery(GetNavData(), FromLocation, NavMeshGoalLocation.Location, QueryFilter)
+		, FPathFindingQuery(GetOwner(), GetNavData(), FromLocation, NavMeshGoalLocation.Location, QueryFilter)
 		, Mode);
 
 	if (Result.IsSuccessful() || Result.IsPartial())
@@ -531,6 +541,11 @@ bool UNavigationComponent::FindPathToActor(const AActor* NewGoalActor, TSharedPt
 	{
 		if (NewGoalActor != NULL)
 		{
+			if (QueryFilter.IsValid() == false)
+			{
+				QueryFilter = GetStoredQueryFilter();
+			}
+
 			const FVector NewGoalActorLocation = GetCurrentMoveGoal(NewGoalActor, GetOwner());
 			if (bDoAsyncPathfinding == true)
 			{
@@ -622,6 +637,11 @@ bool UNavigationComponent::FindPathToLocation(const FVector& DestLocation, TShar
 	{
 		ResetTransientData();
 
+		if (QueryFilter.IsValid() == false)
+		{
+			QueryFilter = GetStoredQueryFilter();
+		}
+
 		if (bDoAsyncPathfinding == true)
 		{
 			bPathGenerationSucceeded = AsyncGeneratePathTo(DestLocation, QueryFilter);
@@ -642,6 +662,11 @@ void UNavigationComponent::SetPath(const FNavPathSharedPtr& ResultPath)
 	Path = ResultPath;
 	Path->SetObserver(PathObserverDelegate);
 	bIsPathPartial = Path->IsPartial();
+	if (IsRepathingSuspended())
+	{
+		TimeToUnlockRepathing = 0;
+		UE_VLOG(GetOwner(), LogNavigation, Log, TEXT("Path repathing not longer suspended"));
+	}
 }
 
 void UNavigationComponent::ResetTransientData()
@@ -653,6 +678,7 @@ void UNavigationComponent::ResetTransientData()
 	bUseSimplePath = false;
 	Path = NULL;
 	StoredQueryFilter = NULL;
+	TimeToUnlockRepathing = 0;
 
 	// stop ticking - this component should tick only when following an actor
 	SetComponentTickEnabledAsync(false);
@@ -669,7 +695,7 @@ void UNavigationComponent::NotifyPathUpdate()
 		MyPathObserver->OnPathUpdated(this);
 	}
 
-	if (PathFollowComp && bNotifyPathFollowing)
+	if (PathFollowComp && bNotifyPathFollowing && PathFollowComp->GetMoveGoal() == GoalActor)
 	{
 		PathFollowComp->UpdateMove(Path);
 	}
@@ -763,7 +789,22 @@ ANavigationData* UNavigationComponent::PickNavData() const
 		}
 	}
 
+	CacheNavQueryExtent();
+
 	return MyNavData;
+}
+
+void UNavigationComponent::CacheNavQueryExtent() const
+{
+	NavigationQueryExtent = MyNavData ? MyNavData->GetDefaultQueryExtent() : FVector(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL);
+	if (MyNavAgent)
+	{
+		const FNavAgentProperties* AgentProperties = MyNavAgent->GetNavAgentProperties();
+		check(AgentProperties);
+		NavigationQueryExtent = FVector(FMath::Max(NavigationQueryExtent.X, AgentProperties->AgentRadius)
+			, FMath::Max(NavigationQueryExtent.Y, AgentProperties->AgentRadius)
+			, FMath::Max(NavigationQueryExtent.Z, AgentProperties->AgentHeight / 2));
+	}
 }
 
 void UNavigationComponent::OnNavDataRegistered(class ANavigationData* NavData)
@@ -824,7 +865,7 @@ void UNavigationComponent::OnSmartLinkBroadcast(class USmartNavLinkComponent* Ne
 	const FVector GoalLocation = Path->PathPoints.Last().Location;
 
 	FPathFindingResult Result = NavSys->FindPathSync(*MyNavAgent->GetNavAgentProperties(),
-		FPathFindingQuery(GetNavData(), MyNavAgent->GetNavAgentLocation(), GoalLocation, StoredQueryFilter),
+		FPathFindingQuery(GetOwner(), GetNavData(), MyNavAgent->GetNavAgentLocation(), GoalLocation, StoredQueryFilter),
 		bDoHierarchicalPathfinding ? EPathFindingMode::Hierarchical : EPathFindingMode::Regular);
 
 	if (Result.IsSuccessful() || Result.IsPartial())
@@ -837,6 +878,17 @@ void UNavigationComponent::OnSmartLinkBroadcast(class USmartNavLinkComponent* Ne
 			SetPath(Result.Path);
 			NotifyPathUpdate();
 		}
+	}
+}
+
+void UNavigationComponent::SwapCurrentMoveGoal(const AActor* NewGoalActor)
+{
+	if (NewGoalActor != NULL && GoalActor != NULL && GoalActor != NewGoalActor && Path.IsValid() && Path->IsValid() &&
+		PathFollowComp != NULL && PathFollowComp->GetStatus() != EPathFollowingStatus::Idle )
+	{
+		UE_VLOG(GetOwner(), LogNavigation, Log, TEXT("GoalActor is going to be swapped for '%s'"), *NewGoalActor->GetHumanReadableName() );
+		GoalActor = NewGoalActor;
+		PathFollowComp->SetDestinationActor( NewGoalActor );
 	}
 }
 

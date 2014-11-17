@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OnlineKeyValuePair.h"
+#include "OnlineSubsystemTypes.h"
 
 /** Representation of a single column and its data */ 
 typedef FOnlineKeyValuePairs<FName, FVariantData> FStatsColumnArray;

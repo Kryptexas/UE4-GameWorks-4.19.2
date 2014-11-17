@@ -329,7 +329,7 @@ void FStreamableManager::AsyncLoadCallback(FStringAssetReference Request)
 	{
 		// hmm, maybe it was redirected by a consolidate
 		TargetName = ResolveRedirects(TargetName);
-		FStreamable* Existing = StreamableItems.FindRef(TargetName);
+		Existing = StreamableItems.FindRef(TargetName);
 	}
 	if (Existing && Existing->bAsyncLoadRequestOutstanding)
 	{

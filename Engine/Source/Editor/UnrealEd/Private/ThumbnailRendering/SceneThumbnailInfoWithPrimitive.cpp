@@ -11,16 +11,3 @@ USceneThumbnailInfoWithPrimitive::USceneThumbnailInfoWithPrimitive(const class F
 	OrbitZoom = -400.f;
 }
 
-void USceneThumbnailInfoWithPrimitive::PostLoad()
-{
-	Super::PostLoad();
-
-	if ( GIsEditor )
-	{
-		// Load the PreviewMesh with the thumbnail info so it will be ready for visualization.
-		if ( PreviewMesh.IsValid() )
-		{
-			LoadObject<UObject>(nullptr, *PreviewMesh.ToString());
-		}
-	}
-}

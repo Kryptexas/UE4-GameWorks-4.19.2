@@ -339,7 +339,11 @@
 				NSString* EnginePath = Iter.Value().GetNSString();
 				if ([EnginePath isEqualToString:SelectedEnginePath])
 				{
-					FDesktopPlatformModule::Get()->SetEngineIdentifierForProject([FileURL path], Iter.Key());
+					if (!FDesktopPlatformModule::Get()->SetEngineIdentifierForProject([FileURL path], Iter.Key()))
+					{
+						FPlatformMisc::MessageBoxExt(EAppMsgType::Ok, TEXT("Couldn't set association for project. Check the file is writeable."), TEXT("Error"));
+						return;
+					}
 					break;
 				}
 			}

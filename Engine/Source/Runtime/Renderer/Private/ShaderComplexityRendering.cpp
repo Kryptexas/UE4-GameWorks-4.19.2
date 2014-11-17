@@ -12,17 +12,18 @@ ShaderComplexityRendering.cpp: Contains definitions for rendering the shader com
 /**
  * Gets the maximum shader complexity count from the ini settings.
  */
-float GetMaxShaderComplexityCount()
+float GetMaxShaderComplexityCount(ERHIFeatureLevel::Type InFeatureType)
 {
-	return GRHIFeatureLevel == ERHIFeatureLevel::ES2 ? GEngine->MaxES2PixelShaderAdditiveComplexityCount : GEngine->MaxPixelShaderAdditiveComplexityCount;
+	return InFeatureType == ERHIFeatureLevel::ES2 ? GEngine->MaxES2PixelShaderAdditiveComplexityCount : GEngine->MaxPixelShaderAdditiveComplexityCount;
 }
 
 void FShaderComplexityAccumulatePS::SetParameters(
 	uint32 NumVertexInstructions, 
-	uint32 NumPixelInstructions)
+	uint32 NumPixelInstructions,
+	ERHIFeatureLevel::Type InFeatureLevel)
 {
 	//normalize the complexity so we can fit it in a low precision scene color which is necessary on some platforms
-	const float NormalizedComplexityValue = float(NumPixelInstructions) / GetMaxShaderComplexityCount();
+	const float NormalizedComplexityValue = float(NumPixelInstructions) / GetMaxShaderComplexityCount(InFeatureLevel);
 
 	SetShaderValue( GetPixelShader(), NormalizedComplexity, NormalizedComplexityValue);
 }
@@ -77,7 +78,7 @@ public:
 	FShaderComplexityApplyPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
 		:	FGlobalShader(Initializer)
 	{
-		SceneTextureParams.Bind(Initializer.ParameterMap);
+		PostprocessParameter.Bind(Initializer.ParameterMap);
 		ShaderComplexityColors.Bind(Initializer.ParameterMap,TEXT("ShaderComplexityColors"));
 	}
 
@@ -85,19 +86,16 @@ public:
 	{
 	}
 
-	/**
-	* Sets the current pixel shader params
-	* @param View - current view
-	* @param ShadowInfo - projected shadow info for a single light
-	*/
 	virtual void SetParameters(
-		const FSceneView* View,
+		const FRenderingCompositePassContext& Context,
 		const TArray<FLinearColor>& Colors
 		)
 	{
-		FGlobalShader::SetParameters(GetPixelShader(),*View);
+		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 
-		SceneTextureParams.Set(GetPixelShader());
+		FGlobalShader::SetParameters(ShaderRHI, Context.View);
+
+		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		//Make sure there are at least NumShaderComplexityColors colors specified in the ini.
 		//If there are more than NumShaderComplexityColors they will be ignored.
@@ -106,14 +104,8 @@ public:
 		//pass the complexity -> color mapping into the pixel shader
 		for(int32 ColorIndex = 0; ColorIndex < NumShaderComplexityColors; ColorIndex ++)
 		{
-			SetShaderValue(
-				GetPixelShader(),
-				ShaderComplexityColors,
-				Colors[ColorIndex],
-				ColorIndex
-				);
+			SetShaderValue(ShaderRHI, ShaderComplexityColors, Colors[ColorIndex], ColorIndex);
 		}
-
 	}
 
 	/**
@@ -138,14 +130,14 @@ public:
 	bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << SceneTextureParams;
+		Ar << PostprocessParameter;
 		Ar << ShaderComplexityColors;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 
-	FSceneTextureShaderParameters SceneTextureParams;
+	FPostProcessPassParameters PostprocessParameter;
 	FShaderParameter ShaderComplexityColors;
 };
 
@@ -192,7 +184,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 	static FGlobalBoundShaderState ShaderComplexityBoundShaderState;
 	SetGlobalBoundShaderState(ShaderComplexityBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
-	PixelShader->SetParameters(&View, Colors);
+	PixelShader->SetParameters(Context, Colors);
 	
 	DrawRectangle(
 		0, 0,
@@ -201,6 +193,7 @@ void FRCPassPostProcessVisualizeComplexity::Process(FRenderingCompositePassConte
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		SrcSize,
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	RHICopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());

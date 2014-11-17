@@ -4,7 +4,7 @@
 
 #include "CableActor.generated.h"
 
-UCLASS(hidecategories=(Input,Collision,Replication))
+UCLASS(hidecategories=(Input,Collision,Replication), showcategories=("Input|MouseInput", "Input|TouchInput"))
 class ACableActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

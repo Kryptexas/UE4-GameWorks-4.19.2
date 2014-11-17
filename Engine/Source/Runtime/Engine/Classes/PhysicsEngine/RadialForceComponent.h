@@ -7,7 +7,7 @@
 /**
  *	Used to emit a radial force or impulse that can affect physics objects and or destructible objects.
  */
-UCLASS(hidecategories=(Object, Mobility), ClassGroup=Physics, showcategories=Trigger, HeaderGroup=Component, meta=(BlueprintSpawnableComponent), MinimalAPI)
+UCLASS(hidecategories=(Object, Mobility), ClassGroup=Physics, showcategories=Trigger, meta=(BlueprintSpawnableComponent), MinimalAPI)
 class URadialForceComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -44,6 +44,25 @@ class URadialForceComponent : public USceneComponent
 	UFUNCTION(BlueprintCallable, Category="Physics|Components|RadialForce")
 	virtual void FireImpulse();
 
+	/** Add an object type for this radial force to affect */
+	UFUNCTION(BlueprintCallable, Category="Physics|Components|RadialForce")
+	virtual void AddObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
+
+	/** Remove an object type that is affected by this radial force */
+	UFUNCTION(BlueprintCallable, Category="Physics|Components|RadialForce")
+	virtual void RemoveObjectTypeToAffect(TEnumAsByte<enum EObjectTypeQuery> ObjectType);
+
+	/** Add a collision channel for this radial force to affect */
+	void AddCollisionChannelToAffect(enum ECollisionChannel CollisionChannel);
+
+protected:
+	/** The object types that are affected by this radial force */
+	UPROPERTY(EditAnywhere, Category=RadialForceComponent)
+	TArray<TEnumAsByte<enum EObjectTypeQuery> > ObjectTypesToAffect;
+
+	/** Cached object query params derived from ObjectTypesToAffect */
+	FCollisionObjectQueryParams CollisionObjectQueryParams;
+
 protected:
 	// Begin UActorComponent interface.
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) OVERRIDE;
@@ -51,7 +70,13 @@ protected:
 
 	// Begin UObject interface.
 	virtual void PostLoad() OVERRIDE;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) OVERRIDE;
+#endif
 	// End UObject interface.
+
+	/** Update CollisionObjectQueryParams from ObjectTypesToAffect */
+	void UpdateCollisionObjectQueryParams();
 };
 
 

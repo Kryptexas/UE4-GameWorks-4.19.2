@@ -67,13 +67,23 @@ namespace PackageTools
 	UNREALED_API UPackage* LoadPackage( FString InFilename );
 
 	/**
-	 * Helper function that attempts to unlaod the specified top-level packages.
+	 * Helper function that attempts to unload the specified top-level packages.
 	 *
 	 * @param	PackagesToUnload	the list of packages that should be unloaded
 	 *
 	 * @return	true if the set of loaded packages was changed
 	 */
 	UNREALED_API bool UnloadPackages( const TArray<UPackage*>& PackagesToUnload );
+
+	/**
+	 * Helper function that attempts to unload the specified top-level packages.
+	 *
+	 * @param	PackagesToUnload	the list of packages that should be unloaded
+	 * @param	OutErrorMessage		An error message specifying any problems with unloading packages
+	 *
+	 * @return	true if the set of loaded packages was changed
+	 */
+	UNREALED_API bool UnloadPackages( const TArray<UPackage*>& PackagesToUnload, FText& OutErrorMessage );
 
 	/**
 	 *	Exports the given packages to files.

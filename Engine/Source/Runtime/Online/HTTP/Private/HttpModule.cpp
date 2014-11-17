@@ -16,6 +16,7 @@ FCriticalSection FHttpManager::RequestLock;
 void FHttpModule::StartupModule()
 {	
 	Singleton = this;
+	MaxReadBufferSize = 256 * 1024;
 
 	FPlatformHttp::Init();
 
@@ -198,6 +199,8 @@ bool FHttpManager::IsValidRequest(class IHttpRequest* RequestPtr)
 
 void FHttpManager::DumpRequests(FOutputDevice& Ar)
 {
+	FScopeLock ScopeLock(&RequestLock);
+	
 	Ar.Logf(TEXT("------- (%d) Http Requests"), Requests.Num());
 	for (TArray<TSharedRef<class IHttpRequest> >::TIterator It(Requests); It; ++It)
 	{

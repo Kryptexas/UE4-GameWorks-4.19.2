@@ -18,6 +18,11 @@ namespace UnrealBuildTool.Rules
 				new string[]
 				{
 					"CoreUObject",
+				}
+			);
+
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
 					"Messaging",
 				}
 			);

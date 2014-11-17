@@ -115,10 +115,18 @@ namespace iPhonePackager
 
 			if (!File.Exists(MobileProvisionFilename))
 			{
-				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory, "UE4Game.mobileprovision");
+				MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.BuildDirectory + "/NotForLicensees/", Program.GameName + ".mobileprovision");
 				if (!File.Exists(MobileProvisionFilename))
 				{
-					MobileProvisionFilename = FileOperations.FindAnyFileWithExtension(Config.BuildDirectory, ".mobileprovision");
+					MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory, "UE4Game.mobileprovision");
+					if (!File.Exists(MobileProvisionFilename))
+					{
+						MobileProvisionFilename = FileOperations.FindPrefixedFile(Config.EngineBuildDirectory + "/NotForLicensees/", "UE4Game.mobileprovision");
+						if (!File.Exists(MobileProvisionFilename))
+						{
+							MobileProvisionFilename = FileOperations.FindAnyFileWithExtension(Config.BuildDirectory, ".mobileprovision");
+						}
+					}
 				}
 			}
 
@@ -240,7 +248,7 @@ namespace iPhonePackager
 			// Create a rules dict that includes (by wildcard) everything but Info.plist and the rules file
 			Dictionary<string, object> Rules = new Dictionary<string, object>();
 			Rules.Add(".*", true);
-			Rules.Add("Info.plist", CreateOmittedResource(10));
+			Rules.Add("^Info.plist", CreateOmittedResource(10));
 			Rules.Add(CFBundleResourceSpecification, CreateOmittedResource(100));
 
 			// Write the rules file out 

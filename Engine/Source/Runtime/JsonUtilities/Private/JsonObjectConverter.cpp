@@ -5,11 +5,10 @@
 
 FString FJsonObjectConverter::StandardizeCase(const FString &StringIn)
 {
+	// this probably won't work for all cases, consider downcaseing the string fully
 	FString FixedString = StringIn;
-
-	FixedString[0] = FChar::ToLower(FixedString[0]); // json classes/variable start lower case
+	FixedString[0] = FChar::ToLower(FixedString[0]); // our json classes/variable start lower case
 	FixedString.ReplaceInline(TEXT("ID"), TEXT("Id"), ESearchCase::CaseSensitive); // Id is standard instead of ID, some of our fnames use ID
-
 	return FixedString;
 }
 
@@ -17,6 +16,15 @@ static TSharedPtr<FJsonValue> UPropertyToJsonValue(UProperty* Property, const vo
 {
 	if (UNumericProperty *NumericProperty = Cast<UNumericProperty>(Property))
 	{
+		// see if it's an enum
+		UEnum* EnumDef = NumericProperty->GetIntPropertyEnum();
+		if (EnumDef != NULL)
+		{
+			// export enums as strings
+			FString StringValue = EnumDef->GetEnumName(NumericProperty->GetSignedIntPropertyValue(Value));
+			return MakeShareable(new FJsonValueString(StringValue));
+		}
+
 		// We want to export numbers as numbers
 		if (NumericProperty->IsFloatingPoint())
 		{
@@ -66,7 +74,7 @@ static TSharedPtr<FJsonValue> UPropertyToJsonValue(UProperty* Property, const vo
 	{
 		// Default to export as string for everything else
 		FString StringValue;
-		Property->ExportTextItem(StringValue, Value, NULL, NULL, 0);
+		Property->ExportTextItem(StringValue, Value, NULL, NULL, PPF_None);
 		return MakeShareable(new FJsonValueString(StringValue));
 	}
 
@@ -290,22 +298,4 @@ bool FJsonObjectConverter::JsonAttributesToUStruct(const TMap< FString, TSharedP
 	}
 	
 	return true;
-}
-
-bool FJsonObjectConverter::JsonObjectStringToUStruct(const FString& JsonString, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags, int64 SkipFlags)
-{
-	TSharedPtr<FJsonObject> JsonObject;
-	TSharedRef<TJsonReader<> > JsonReader = TJsonReaderFactory<>::Create(JsonString);
-
-	if (!FJsonSerializer::Deserialize(JsonReader,JsonObject) ||
-		!JsonObject.IsValid())
-	{
-		UE_LOG(LogJson, Warning, TEXT("JsonObjectStringToUStruct - Unable to parse json=[%s]"),
-			*JsonString);
-		return false;
-	}
-	else
-	{
-		return FJsonObjectConverter::JsonObjectToUStruct(JsonObject.ToSharedRef(), StructDefinition, OutStruct, CheckFlags, SkipFlags);
-	}
 }

@@ -68,7 +68,7 @@ void SSessionLauncherSettings::Construct( const FArguments& InArgs, const FSessi
 						[
 							SNew(STextBlock)
 							.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-							.Text(LOCTEXT("ProjectSectionHeader", "Project").ToString())
+							.Text(LOCTEXT("ProjectSectionHeader", "Project"))
 						]
 
 						+ SGridPanel::Slot(1, 0)
@@ -92,7 +92,7 @@ void SSessionLauncherSettings::Construct( const FArguments& InArgs, const FSessi
 							[
 								SNew(STextBlock)
 								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-								.Text(LOCTEXT("BuildSectionHeader", "Build").ToString())
+								.Text(LOCTEXT("BuildSectionHeader", "Build"))
 							]
 
 						+ SGridPanel::Slot(1, 2)
@@ -116,7 +116,7 @@ void SSessionLauncherSettings::Construct( const FArguments& InArgs, const FSessi
 							[
 								SNew(STextBlock)
 								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-								.Text(LOCTEXT("CookSectionHeader", "Cook").ToString())
+								.Text(LOCTEXT("CookSectionHeader", "Cook"))
 							]
 
 						+ SGridPanel::Slot(1, 4)
@@ -139,7 +139,7 @@ void SSessionLauncherSettings::Construct( const FArguments& InArgs, const FSessi
 							[
 								SNew(STextBlock)
 								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-								.Text(LOCTEXT("PackageSectionHeader", "Package").ToString())
+								.Text(LOCTEXT("PackageSectionHeader", "Package"))
 							]
 
 						+ SGridPanel::Slot(1, 6)
@@ -163,7 +163,7 @@ void SSessionLauncherSettings::Construct( const FArguments& InArgs, const FSessi
 							[
 								SNew(STextBlock)
 								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-								.Text(LOCTEXT("DeploySectionHeader", "Deploy").ToString())
+								.Text(LOCTEXT("DeploySectionHeader", "Deploy"))
 							]
 
 						+ SGridPanel::Slot(1, 8)
@@ -187,7 +187,7 @@ void SSessionLauncherSettings::Construct( const FArguments& InArgs, const FSessi
 							[
 								SNew(STextBlock)
 								.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-								.Text(LOCTEXT("LaunchSectionHeader", "Launch").ToString())
+								.Text(LOCTEXT("LaunchSectionHeader", "Launch"))
 							]
 
 						+ SGridPanel::Slot(1, 10)
@@ -203,7 +203,7 @@ void SSessionLauncherSettings::Construct( const FArguments& InArgs, const FSessi
 					.HAlign(HAlign_Center)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("SelectProfileText", "Select or create a new profile to continue.").ToString())
+						.Text(LOCTEXT("SelectProfileText", "Select or create a new profile to continue."))
 						.Visibility(this, &SSessionLauncherSettings::HandleSelectProfileTextBlockVisibility)
 					]
 			]

@@ -238,7 +238,9 @@ void FPlacementMode::UpdatePreviewActors( FLevelEditorViewportClient* ViewportCl
 			for ( auto AssetIt = Assets.CreateConstIterator(); AssetIt; ++AssetIt )
 			{
 				UObject* Asset = *AssetIt;
-				if ( !ViewportClient->CanDropObjectsAtCoordinates( x, y, FAssetData( Asset ) ) )
+
+				FDropQuery DropResult = ViewportClient->CanDropObjectsAtCoordinates( x, y, FAssetData( Asset ) );
+				if ( !DropResult.bCanDrop )
 				{
 					// At least one of the assets can't be dropped.
 					ViewportClient->DestroyDropPreviewActors();
@@ -378,7 +380,8 @@ bool FPlacementMode::HandleClick(FLevelEditorViewportClient* InViewportClient, H
 			for ( auto AssetIt = Assets.CreateConstIterator(); AssetIt; ++AssetIt )
 			{
 				UObject* Asset = *AssetIt;
-				if ( !InViewportClient->CanDropObjectsAtCoordinates( Viewport->GetMouseX(), Viewport->GetMouseY(), FAssetData( Asset ) ) )
+				FDropQuery DropResult = InViewportClient->CanDropObjectsAtCoordinates( Viewport->GetMouseX(), Viewport->GetMouseY(), FAssetData( Asset ) );
+				if ( !DropResult.bCanDrop )
 				{
 					// At least one of the assets can't be dropped.
 					InViewportClient->DestroyDropPreviewActors();

@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
+#include "Kismet/GameplayStatics.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameSession, Log, All);
 
@@ -39,10 +40,11 @@ AGameSession::AGameSession(const class FPostConstructInitializeProperties& PCIP)
 {
 }
 
-void AGameSession::StartPendingMatch() {}
-void AGameSession::EndPendingMatch() {}
+void AGameSession::HandleMatchIsWaitingToStart() {}
+void AGameSession::HandleMatchHasStarted() {}
+void AGameSession::HandleMatchHasEnded() {}
 
-bool AGameSession::HandleStartMatch() 
+bool AGameSession::HandleStartMatchRequest()
 {
 	return false;
 }
@@ -64,7 +66,6 @@ bool AGameSession::ProcessAutoLogin()
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
-		IdentityInt->AddOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
 		IdentityInt->AddOnLoginCompleteDelegate(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
 		if (!IdentityInt->AutoLogin(0))
 		{
@@ -85,22 +86,14 @@ void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, cons
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
-		IdentityInt->ClearOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
-		IdentityInt->ClearOnLoginCompleteDelegate(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
-	}
-}
-
-void AGameSession::OnLoginChanged(int32 LocalUserNum)
-{
-	UWorld* World = GetWorld();
-	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
-	if (IdentityInt.IsValid())
-	{
-		IdentityInt->ClearOnLoginChangedDelegate(FOnLoginChangedDelegate::CreateUObject(this, &AGameSession::OnLoginChanged));
 		IdentityInt->ClearOnLoginCompleteDelegate(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
 		if (IdentityInt->GetLoginStatus(0) == ELoginStatus::LoggedIn)
 		{
 			RegisterServer();
+		}
+		else
+		{
+			UE_LOG(LogGameSession, Warning, TEXT("Autologin attempt failed, unable to register server!"));
 		}
 	}
 }
@@ -263,6 +256,32 @@ void AGameSession::ReturnToMainMenuHost()
 	}
 }
 
+bool AGameSession::TravelToSession(int32 ControllerId, FName SessionName)
+{
+	UWorld* World = GetWorld();
+	IOnlineSubsystem* OnlineSub = Online::GetSubsystem(World);
+	if (OnlineSub)
+	{
+		FString URL;
+		IOnlineSessionPtr SessionInt = OnlineSub->GetSessionInterface();
+		if (SessionInt.IsValid() && SessionInt->GetResolvedConnectString(SessionName, URL))
+		{
+			APlayerController* PC = UGameplayStatics::GetPlayerController(World, ControllerId);
+			if (PC)
+			{
+				PC->ClientTravel(URL, TRAVEL_Absolute);
+				return true;
+			}
+		}
+		else
+		{
+			UE_LOG(LogGameSession, Warning, TEXT("Failed to resolve session connect string for %s"), *SessionName.ToString());
+		}
+	}
+
+	return false;
+}
+
 void AGameSession::PostSeamlessTravel()
 {
 }
@@ -282,10 +301,6 @@ void AGameSession::DumpSessionState()
 bool AGameSession::CanRestartGame()
 {
 	return true;
-}
-
-void AGameSession::EndGame()
-{
 }
 
 void AGameSession::UpdateSessionJoinability(FName InSessionName, bool bPublicSearchable, bool bAllowInvites, bool bJoinViaPresence, bool bJoinViaPresenceFriendsOnly)

@@ -17,11 +17,15 @@ namespace GraphActionMenuHelpers
 
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId() &&
 			((FEdGraphSchemaAction_K2Var*)InGraphAction)->GetVariableName() == ItemName);
+		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId() &&
+			((FEdGraphSchemaAction_K2LocalVar*)InGraphAction)->GetVariableName() == ItemName);
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2Graph::StaticGetTypeId() &&
 			((FEdGraphSchemaAction_K2Graph*)InGraphAction)->EdGraph &&
 			((FEdGraphSchemaAction_K2Graph*)InGraphAction)->EdGraph->GetFName() == ItemName);
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2Enum::StaticGetTypeId() &&
 			((FEdGraphSchemaAction_K2Enum*)InGraphAction)->GetPathName() == ItemName);
+		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2Struct::StaticGetTypeId() &&
+			((FEdGraphSchemaAction_K2Struct*)InGraphAction)->GetPathName() == ItemName);
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2Delegate::StaticGetTypeId() &&
 			((FEdGraphSchemaAction_K2Delegate*)InGraphAction)->GetDelegateName() == ItemName);
 		bCheck |= (InGraphAction->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId() &&
@@ -108,9 +112,9 @@ public:
 	// SWidget interface
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+		if (GraphDropOp.IsValid())
 		{
-			TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 			GraphDropOp->DroppedOnCategory( ActionNode.Pin()->Category );
 			return FReply::Handled();
 		}
@@ -119,18 +123,18 @@ public:
 
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+		if (GraphDropOp.IsValid())
 		{
-			TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 			GraphDropOp->SetHoveredCategoryName( ActionNode.Pin()->Category );
 		}
 	}
 
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( DragDrop::IsTypeMatch<FGraphEditorDragDropAction>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = DragDropEvent.GetOperationAs<FGraphEditorDragDropAction>();
+		if (GraphDropOp.IsValid())
 		{
-			TSharedPtr<FGraphEditorDragDropAction> GraphDropOp = StaticCastSharedPtr<FGraphEditorDragDropAction>(DragDropEvent.GetOperation());
 			GraphDropOp->SetHoveredCategoryName( FString(TEXT("")) );
 		}
 	}

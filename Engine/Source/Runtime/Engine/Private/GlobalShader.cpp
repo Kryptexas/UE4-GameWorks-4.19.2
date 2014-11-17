@@ -511,7 +511,7 @@ void RecompileShadersForRemote(
 	}
 
 	TArray<FName> DesiredShaderFormats;
-	TargetPlatform->GetShaderFormats(DesiredShaderFormats);
+	TargetPlatform->GetAllTargetedShaderFormats(DesiredShaderFormats);
 
 	UE_LOG(LogShaders, Display, TEXT("Loading %d materials..."), MaterialsToLoad.Num());
 	// make sure all materials the client has loaded will be processed

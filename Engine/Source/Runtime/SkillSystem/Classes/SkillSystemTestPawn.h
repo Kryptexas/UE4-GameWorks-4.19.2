@@ -30,10 +30,8 @@ class SKILLSYSTEM_API ASkillSystemTestPawn : public ADefaultPawn, public IGamepl
 	UPROPERTY(EditDefaultsOnly, Category=GameplayEffects)
 	FGameplayCueHandler	GameplayCueHandler;
 
+	//UPROPERTY(EditDefaultsOnly, Category=GameplayEffects)
+	//UGameplayAbilitySet * DefaultAbilitySet;
+
 	static FName AttributeComponentName;
-
-
-	void OnDamageExecute(struct FGameplayModifierEvaluatedData & Data);
-
-	void OnDidDamage(const struct FGameplayEffectSpec & Spec, struct FGameplayModifierEvaluatedData & Data);
 };

@@ -13,6 +13,7 @@ FIndexBufferRHIRef FD3D11DynamicRHI::RHICreateIndexBuffer(uint32 Stride,uint32 S
 
 	// Describe the index buffer.
 	D3D11_BUFFER_DESC Desc;
+	ZeroMemory( &Desc, sizeof( D3D11_BUFFER_DESC ) );
 	Desc.ByteWidth = Size;
 	Desc.Usage = (InUsage & BUF_AnyDynamic) ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 	Desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -88,6 +89,7 @@ void* FD3D11DynamicRHI::RHILockIndexBuffer(FIndexBufferRHIParamRef IndexBufferRH
 		{
 			// If the static buffer is being locked for reading, create a staging buffer.
 			D3D11_BUFFER_DESC StagingBufferDesc;
+			ZeroMemory( &StagingBufferDesc, sizeof( D3D11_BUFFER_DESC ) );
 			StagingBufferDesc.ByteWidth = Size;
 			StagingBufferDesc.Usage = D3D11_USAGE_STAGING;
 			StagingBufferDesc.BindFlags = 0;

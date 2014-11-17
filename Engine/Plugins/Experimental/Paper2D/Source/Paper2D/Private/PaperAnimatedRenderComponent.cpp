@@ -168,3 +168,8 @@ void UPaperAnimatedRenderComponent::SetCurrentTime(float NewTime)
 		CalculateCurrentFrame();
 	}
 }
+
+const UObject* UPaperAnimatedRenderComponent::AdditionalStatObject() const
+{
+	return SourceFlipbook;
+}

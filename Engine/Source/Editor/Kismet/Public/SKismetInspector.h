@@ -60,6 +60,8 @@ public:
 	/** Turns on or off details customization for components */
 	void EnableComponentDetailsCustomization(bool bEnable);
 
+	TSharedPtr<class IDetailsView> GetPropertyView() const { return PropertyView; }
+
 protected:
 	/** Update the inspector window to show information on the supplied objects */
 	void UpdateFromObjects(const TArray<UObject*>& PropertyObjects, struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options);

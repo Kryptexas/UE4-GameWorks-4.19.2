@@ -208,7 +208,7 @@ namespace UnrealBuildTool
 			List<Action> ActionsToExecute = new List<Action>();
 			foreach (Action Action in AllActions)
 			{
-				if (ActionsNeededForThisTarget.ContainsKey(Action) && OutdatedActionDictionary[Action] && Action.CommandPath != null)
+				if (Action.CommandPath != null && ActionsNeededForThisTarget.ContainsKey(Action) && OutdatedActionDictionary[Action])
 				{
 					ActionsToExecute.Add(Action);
 				}
@@ -1030,7 +1030,7 @@ namespace UnrealBuildTool
 
 				if( ExpandCPPHeaderDependencies && bIsCPPFile )
 				{
-					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies( FileItem, CPPTargetPlatform.Win64, bHackHeaderGenerator:false );
+					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies( FileItem, CPPTargetPlatform.Win64 );
 
 					// Resolve the included file name to an actual file.
 					var DirectlyIncludedFiles =

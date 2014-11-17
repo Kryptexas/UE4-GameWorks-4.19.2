@@ -509,10 +509,11 @@ void FAssetContextMenu::ExecuteFindInExplorer()
 		{
 			FAssetData AssetData(Asset);
 
-			const FString FilePath = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString());
+			const bool bIsWorldAsset = (AssetData.AssetClass == UWorld::StaticClass()->GetFName());
+			const FString Extension = bIsWorldAsset ? FPackageName::GetMapPackageExtension() : FPackageName::GetAssetPackageExtension();
+			const FString FilePath = FPackageName::LongPackageNameToFilename(AssetData.PackageName.ToString(), Extension);
 			const FString FullFilePath = FPaths::ConvertRelativePathToFull(FilePath);
-			const FString Filename = FullFilePath + FPackageName::GetAssetPackageExtension();
-			FPlatformProcess::ExploreFolder(*Filename);
+			FPlatformProcess::ExploreFolder(*FullFilePath);
 		}
 	}
 }
@@ -563,14 +564,17 @@ struct WorldReferenceGenerator : public FFindReferencedAssets
 		const bool bIncludeDefaults = false;
 		const bool bReverseReferenceGraph = true;
 
-		// Generate the reference graph for GWorld
-		FReferencedAssets* WorldReferencer = new(Referencers) FReferencedAssets(GWorld);
-		FFindAssetsArchive(GWorld, WorldReferencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
+
+		UWorld* World = GWorld;
+
+		// Generate the reference graph for the world
+		FReferencedAssets* WorldReferencer = new(Referencers)FReferencedAssets(World);
+		FFindAssetsArchive(World, WorldReferencer->AssetList, &ReferenceGraph, MaxRecursionDepth, bIncludeClasses, bIncludeDefaults, bReverseReferenceGraph);
 
 		// Also include all the streaming levels in the results
-		for( int32 LevelIndex = 0 ; LevelIndex < GWorld->StreamingLevels.Num() ; ++LevelIndex )
+		for (int32 LevelIndex = 0; LevelIndex < World->StreamingLevels.Num(); ++LevelIndex)
 		{
-			ULevelStreaming* StreamingLevel = GWorld->StreamingLevels[LevelIndex];
+			ULevelStreaming* StreamingLevel = World->StreamingLevels[LevelIndex];
 			if( StreamingLevel != NULL )
 			{
 				ULevel* Level = StreamingLevel->GetLoadedLevel();
@@ -1123,17 +1127,20 @@ void FAssetContextMenu::ExecuteSCCSync()
 
 	TArray<UPackage*> Packages;
 	GetSelectedPackages(Packages);
-	if(PackageTools::UnloadPackages(Packages))
+
+	FText ErrorMessage;
+	PackageTools::UnloadPackages(Packages, ErrorMessage);
+	if(!ErrorMessage.IsEmpty())
+	{
+		FMessageDialog::Open( EAppMsgType::Ok, ErrorMessage );
+	}
+	else
 	{
 		ISourceControlModule::Get().GetProvider().Execute(ISourceControlOperation::Create<FSync>(), PackageFileNames);
 		for( TArray<FString>::TConstIterator PackageIter( PackageNames ); PackageIter; ++PackageIter )
 		{
 			PackageTools::LoadPackage(*PackageIter);
 		}
-	}
-	else
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("SCC_Sync_PackageUnloadFailed", "Could not unload assets when syncing from source control") );
 	}
 }
 
@@ -1364,11 +1371,11 @@ void FAssetContextMenu::CacheCanExecuteVars()
 					bCanExecuteSCCCheckOut = true;
 				}
 
-				if ( !SourceControlState->IsSourceControlled() )
+				if ( !SourceControlState->IsSourceControlled() && SourceControlState->CanAdd() )
 				{
 					bCanExecuteSCCOpenForAdd = true;
 				}
-				else if( !SourceControlState->IsAdded() )
+				else if( SourceControlState->IsSourceControlled() && !SourceControlState->IsAdded() )
 				{
 					bCanExecuteSCCHistory = true;
 				}

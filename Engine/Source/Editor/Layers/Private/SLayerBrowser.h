@@ -72,7 +72,7 @@ public:
 			.AutoHeight()
 			[
 				SNew( SSearchBox )
-				.ToolTipText( LOCTEXT("FilterSearchToolTip", "Type here to search layers").ToString() )
+				.ToolTipText( LOCTEXT("FilterSearchToolTip", "Type here to search layers") )
 				.HintText( LOCTEXT( "FilterSearchHint", "Search Layers" ) )
 				.OnTextChanged( SearchBoxLayerFilter.Get(), &LayerTextFilter::SetRawFilterText )
 			]
@@ -126,7 +126,7 @@ public:
 					.VAlign( VAlign_Center )
 					[
 						SNew( STextBlock )
-						.Text( LOCTEXT("ContentsLabel", "See Contents").ToString() )
+						.Text( LOCTEXT("ContentsLabel", "See Contents") )
 						.Visibility( this, &SLayerBrowser::IsVisibleIfModeIs, ELayerBrowserMode::Layers )
 						.ColorAndOpacity( this, &SLayerBrowser::GetInvertedForegroundIfHovered )
 					]
@@ -164,7 +164,7 @@ public:
 			InitOptions.CustomDelete = FCustomSceneOutlinerDeleteDelegate::CreateSP( this, &SLayerBrowser::RemoveActorsFromSelectedLayer );
 			InitOptions.CustomColumnFactory = FCreateSceneOutlinerColumnDelegate::CreateSP( this, &SLayerBrowser::CreateCustomLayerColumn );
 
-			InitOptions.ActorFilters->Add( SelectedLayersFilter );
+			InitOptions.Filters->Add( SelectedLayersFilter );
 		}
 
 		SAssignNew( LayerContentsSection, SBorder )
@@ -208,13 +208,11 @@ protected:
 	 */
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if( !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if(DragActorOp.IsValid())
 		{
-			return;
+			DragActorOp->ResetToDefaultToolTip();
 		}
-
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-		DragActorOp->ResetToDefaultToolTip();
 	}
 
 	/**
@@ -227,7 +225,8 @@ protected:
 	 */
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if( !SelectedLayerViewModel->GetDataSource().IsValid() || !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+		if (!SelectedLayerViewModel->GetDataSource().IsValid() || !DragActorOp.IsValid())
 		{
 			return FReply::Unhandled();
 		}
@@ -246,15 +245,13 @@ protected:
 			return FReply::Unhandled();
 		}
 
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );	
-
 		if ( !DragActorOp.IsValid() || DragActorOp->Actors.Num() == 0 )
 		{
 			return FReply::Unhandled();
 		}
 
 		bool bCanAssign = false;
-		FString Message;
+		FText Message;
 		if( DragActorOp->Actors.Num() > 1 )
 		{
 			bCanAssign = SelectedLayerViewModel->CanAssignActors( DragActorOp->Actors, OUT Message );
@@ -287,7 +284,9 @@ protected:
 	 */
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) OVERRIDE
 	{
-		if ( !SelectedLayerViewModel->GetDataSource().IsValid() || !DragDrop::IsTypeMatch<FActorDragDropGraphEdOp>( DragDropEvent.GetOperation() ) )	
+		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = DragDropEvent.GetOperationAs< FActorDragDropGraphEdOp >();
+
+		if (!SelectedLayerViewModel->GetDataSource().IsValid() || !DragActorOp.IsValid())
 		{
 			return FReply::Unhandled();
 		}
@@ -306,7 +305,6 @@ protected:
 			return FReply::Unhandled();
 		}
 
-		TSharedPtr< FActorDragDropGraphEdOp > DragActorOp = StaticCastSharedPtr< FActorDragDropGraphEdOp >( DragDropEvent.GetOperation() );		
 		SelectedLayerViewModel->AddActors( DragActorOp->Actors );
 
 		return FReply::Handled();
@@ -335,9 +333,9 @@ private:
 		return ( Mode == ELayerBrowserMode::Layers ) ? FEditorStyle::GetBrush( "LayerBrowser.ExploreLayerContents" ) : FEditorStyle::GetBrush( "LayerBrowser.ReturnToLayersList" );
 	}
 
-	FString GetLayerContentsHeaderText() const
+	FText GetLayerContentsHeaderText() const
 	{
-		return FString::Printf( *LOCTEXT("SelectedContentsLabel", "%s Contents").ToString(), *SelectedLayerViewModel->GetName() );
+		return FText::Format( LOCTEXT("SelectedContentsLabel", "{0} Contents"), FText::FromString(SelectedLayerViewModel->GetName()));
 	}
 
 	/**	Returns the visibility of the See Contents label */

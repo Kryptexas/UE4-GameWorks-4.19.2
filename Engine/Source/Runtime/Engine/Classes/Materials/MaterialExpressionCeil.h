@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionCeil.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionCeil : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

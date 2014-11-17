@@ -240,9 +240,8 @@ public:
 	{ 
 		if( bStoreCurrentValue )
 		{
-			//Cache the realtime, showFPS and ShowStats flags
+			//Cache the Realtime and ShowStats flags
 			bStoredRealtime = bIsRealtime;
-			bStoredShowFPS = bShowFPS;
 			bStoredShowStats = bShowStats;
 		}
 		
@@ -250,7 +249,6 @@ public:
 
 		if( !bIsRealtime )
 		{
-			SetShowFPS(false);
 			SetShowStats(false);
 		}
 	}
@@ -270,13 +268,11 @@ public:
 		if( bAllowDisable )
 		{
 			bIsRealtime = bStoredRealtime;
-			bShowFPS = bStoredShowFPS;
 			bShowStats = bStoredShowStats;
 		}
 		else
 		{
 			bIsRealtime |= bStoredRealtime;
-			bShowFPS |= bStoredShowFPS;
 			bShowStats |= bStoredShowStats;
 		}
 	}
@@ -351,6 +347,8 @@ public:
 	/** Sets ortho zoom amount */
 	void SetOrthoZoom( float InOrthoZoom ) 
 	{
+		// A zero ortho zoom is not supported and causes NaN/div0 errors
+		check(InOrthoZoom != 0);
 		ViewTransform.SetOrthoZoom( InOrthoZoom );
 	}
 
@@ -394,6 +392,9 @@ public:
 
 	void TakeHighResScreenShot();
 
+	/** Called when an editor mode has been (de)activated */
+	void OnEditorModeChanged(FEdMode* EditorMode, bool bIsEntering);
+
 	/** FViewElementDrawer interface */
 	virtual void Draw(const FSceneView* View,FPrimitiveDrawInterface* PDI) OVERRIDE;
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) OVERRIDE;
@@ -406,7 +407,9 @@ public:
 	virtual bool InputGesture(FViewport* Viewport, EGestureEvent::Type GestureType, const FVector2D& GestureDelta) OVERRIDE;
 	virtual void ReceivedFocus(FViewport* Viewport) OVERRIDE;
 	virtual void OnJoystickPlugged(const uint32 InControllerID, const uint32 InType, const uint32 bInConnected)  OVERRIDE;
+	virtual void MouseEnter(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
 	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) OVERRIDE;
+	virtual void MouseLeave( FViewport* Viewport ) OVERRIDE;
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) OVERRIDE;
 	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) OVERRIDE;
 	virtual bool IsOrtho() const OVERRIDE;
@@ -498,6 +501,11 @@ public:
 	 * Sets the current axis being manipulated by the transform widget
 	 */
 	virtual void SetCurrentWidgetAxis( EAxisList::Type InAxis );
+
+	/**
+	 * Adjusts the current transform widget size by the provided delta value
+	 */
+	void AdjustTransformWidgetSize(const int32 SizeDelta);
 
 	/**
 	 * Called to do any additional set up of the view for rendering
@@ -597,27 +605,9 @@ public:
 	/** True if the window is maximized or floating */
 	bool IsVisible() const;
 
-	bool IsSimulateInEditorViewport() const { return bIsSimulateInEditorViewport; }
-
-	/**
-	 * Returns true if FPS information should be displayed over the viewport
-	 *
-	 * @return	true if frame rate should be displayed
-	 */
-	bool ShouldShowFPS() const
-	{
-		return bShowFPS;
-	}
-
-
-	/**
-	 * Sets whether or not frame rate info is displayed over the viewport
-	 *
-	 * @param	bWantFPS	true if frame rate should be displayed
-	 */
-	void SetShowFPS( bool bWantFPS )
-	{
-		bShowFPS = bWantFPS;
+	bool IsSimulateInEditorViewport() const 
+	{ 
+		return bIsSimulateInEditorViewport;
 	}
 
 	/**
@@ -817,18 +807,33 @@ public:
 
 	void SetRequiredCursorOverride( bool WantOverride, EMouseCursor::Type RequiredCursor = EMouseCursor::Default ); 
 
-	/**
-	 * Utility to get the actually mouse/camera speed (multiplier) based on the passed in setting.
-	 *
-	 * @param SpeedSetting	The desired speed steeing
-	 */
-	virtual float GetCameraSpeed(int32 SpeedSetting) const;
+	/** Get the camera speed for this viewport */
+	float GetCameraSpeed() const;
+
+	/** Get the camera speed for this viewport based on the specified speed setting */
+	float GetCameraSpeed(int32 SpeedSetting) const;
+
+	/** Set the speed setting for the camera in this viewport */
+	virtual void SetCameraSpeedSetting(int32 SpeedSetting);
+
+	/** Get the camera speed setting for this viewport */
+	virtual int32 GetCameraSpeedSetting() const;
+
+protected:
+
+	/** Camera speed setting */
+	int32 CameraSpeedSetting;
+
+public:
 
 	void DrawBoundingBox(FBox &Box, FCanvas* InCanvas, const FSceneView* InView, const FViewport* InViewport, const FLinearColor& InColor, const bool bInDrawBracket, const FString &InLabelText) ;
 
 	void SetGameView(bool bGameViewEnable);
 
-	bool IsInGameView() const { return bInGameViewMode; }
+	/** 
+	 * Returns true if this viewport is excluding non-game elements from its display
+	 */
+	virtual bool IsInGameView() const OVERRIDE { return bInGameViewMode; }
 
 	/**
 	 * Aspect ratio bar display settings
@@ -1002,7 +1007,7 @@ protected:
 	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const { return false; }
 
 	/** Helper function to calculate the safe frame rectangle on the current viewport */
-	bool CalculateSafeFrameRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport);
+	bool CalculateEditorConstrainedViewRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport);
 
 private:
 	/** @return Whether or not the camera should be panned or dollied */
@@ -1156,12 +1161,16 @@ protected:
 	bool bUseControllingActorViewInfo;
 	FMinimalViewInfo ControllingActorViewInfo;
 
+	/* Updated on each mouse drag start */
 	uint32 LastMouseX;
 	uint32 LastMouseY;
 
-	/** Represents the last known mouse position. */
+	/** Represents the last known mouse position. If the mouse stops moving it's not the current but the last position before the current location. */
 	uint32 CachedMouseX;
 	uint32 CachedMouseY;
+
+	// -1, -1 if not set
+	FIntPoint CurrentMousePos;
 
 	/**
 	 * true when within a FMouseDeltaTracker::StartTracking/EndTracking block.
@@ -1186,14 +1195,8 @@ protected:
 	/** Cached realtime flag */
 	bool bStoredRealtime;
 	
-	/** Cached show FPS flag */	
-	bool bStoredShowFPS;
-
 	/** Cached show statistics flag */	
 	bool bStoredShowStats;
-
-	/** True if we should draw FPS info over the viewport */
-	bool bShowFPS;
 
 	/** True if we should draw stats over the viewport */
 	bool bShowStats;

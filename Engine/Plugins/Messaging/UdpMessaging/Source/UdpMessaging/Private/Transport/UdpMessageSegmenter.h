@@ -21,17 +21,17 @@ public:
 	 * Default constructor.
 	 */
 	FUdpMessageSegmenter( )
-		: MessageReader(NULL)
+		: MessageReader(nullptr)
 	{ }
 
 	/**
 	 * Creates and initializes a new message segmenter.
 	 *
-	 * @param InMessage - The message to segment.
+	 * @param InMessage The message to segment.
 	 */
 	FUdpMessageSegmenter(const IMessageDataRef& InMessage, uint16 InSegmentSize)
 		: Message(InMessage)
-		, MessageReader(NULL)
+		, MessageReader(nullptr)
 		, SegmentSize(InSegmentSize)
 	{ }
 
@@ -40,7 +40,7 @@ public:
 	 */
 	~FUdpMessageSegmenter( )
 	{
-		if (MessageReader != NULL)
+		if (MessageReader != nullptr)
 		{
 			delete MessageReader;
 		}
@@ -55,7 +55,7 @@ public:
 	 */
 	int64 GetMessageSize() const
 	{
-		if (MessageReader == NULL)
+		if (MessageReader == nullptr)
 		{
 			return 0;
 		}
@@ -66,14 +66,14 @@ public:
 	/**
 	 * Gets the next pending segment.
 	 *
-	 * @param OutData - Will hold the segment data.
-	 * @param OutSegment - Will hold the segment number.
+	 * @param OutData Will hold the segment data.
+	 * @param OutSegment Will hold the segment number.
 	 *
 	 * @return true if a segment was returned, false if there are no more pending segments.
 	 */
 	bool GetNextPendingSegment(TArray<uint8>& OutData, uint16& OutSegment) const
 	{
-		if (MessageReader == NULL)
+		if (MessageReader == nullptr)
 		{
 			return false;
 		}
@@ -129,7 +129,7 @@ public:
 	 */
 	void Initialize()
 	{
-		if (MessageReader != NULL)
+		if (MessageReader != nullptr)
 		{
 			return;
 		}
@@ -159,7 +159,7 @@ public:
 	 */
 	bool IsInitialized() const
 	{
-		return (MessageReader != NULL);
+		return (MessageReader != nullptr);
 	}
 
 	/**
@@ -175,7 +175,7 @@ public:
 	/**
 	 * Marks the specified segment as sent.
 	 *
-	 * @param Segment - The sent segment.
+	 * @param Segment The sent segment.
 	 */
 	void MarkAsSent(uint16 Segment)
 	{
@@ -197,7 +197,7 @@ public:
 	/**
 	 * Marks the specified segments for retransmission.
 	 *
-	 * @param Segments - The data segments to retransmit.
+	 * @param Segments The data segments to retransmit.
 	 */
 	void MarkForRetransmission(const TArray<uint16>& Segments)
 	{

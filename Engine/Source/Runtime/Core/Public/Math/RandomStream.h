@@ -149,7 +149,7 @@ public:
 	FORCEINLINE int32 RandHelper(int32 A) const
 	{
 		// Can't just multiply GetFraction by A, as GetFraction could be == 1.0f
-		return ((A > 0) ? FMath::Trunc(GetFraction() * ((float)A - DELTA)) : 0);
+		return ((A > 0) ? FMath::TruncToInt(GetFraction() * ((float)A - DELTA)) : 0);
 	}
 
 	/**

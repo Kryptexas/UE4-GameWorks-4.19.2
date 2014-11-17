@@ -11,13 +11,13 @@
 UENUM()
 enum CylinderHeightAxis
 {
-	PMLPC_HEIGHTAXIS_X,
-	PMLPC_HEIGHTAXIS_Y,
-	PMLPC_HEIGHTAXIS_Z,
+	PMLPC_HEIGHTAXIS_X UMETA(DisplayName="X"),
+	PMLPC_HEIGHTAXIS_Y UMETA(DisplayName="Y"),
+	PMLPC_HEIGHTAXIS_Z UMETA(DisplayName="Z"),
 	PMLPC_HEIGHTAXIS_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI)
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI)
 class UParticleModuleLocationPrimitiveCylinder : public UParticleModuleLocationPrimitiveBase
 {
 	GENERATED_UCLASS_BODY()

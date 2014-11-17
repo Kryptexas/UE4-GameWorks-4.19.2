@@ -300,6 +300,52 @@ private:
 };
 #endif // #if WITH_APEX_CLOTHING
 
+
+/** 
+ * constrain Coefficients - max distance, collisionSphere radius, collision sphere distance 
+ */
+struct FClothConstrainCoeff
+{
+	float ClothMaxDistance;
+	float ClothBackstopRadius;
+	float ClothBackstopDistance;
+};
+
+/** 
+ * bone weights & bone indices for visualization of cloth physical mesh 
+ */
+struct FClothBoneWeightsInfo
+{
+	// support up 4 bone influences but used MAX_TOTAL_INFLUENCES for the future
+	uint16 Indices[MAX_TOTAL_INFLUENCES];
+	float Weights[MAX_TOTAL_INFLUENCES];
+};
+/** 
+ * save temporary data only for debugging on Persona editor 
+ */
+struct FClothVisualizationInfo
+{
+	TArray<FVector> ClothPhysicalMeshVertices;
+	TArray<FVector> ClothPhysicalMeshNormals;
+	TArray<uint32> ClothPhysicalMeshIndices;
+	TArray<FClothConstrainCoeff> ClothConstrainCoeffs;
+	// bone weights & bone indices
+	TArray<FClothBoneWeightsInfo> ClothPhysicalMeshBoneWeightsInfo;
+	uint8	NumMaxBoneInfluences;
+
+	// Max value of max distances
+	float MaximumMaxDistance;
+};
+
+/** 
+ * data structure for loading bone planes of collision volumes data
+ */
+struct FClothBonePlane
+{
+	int32 BoneIndex;
+	FPlane PlaneData;
+};
+
 USTRUCT()
 struct FClothingAssetData
 {
@@ -318,9 +364,16 @@ struct FClothingAssetData
 	/* Collision volume data for showing to the users whether collision shape is correct or not */
 	TArray<FApexClothCollisionVolumeData> ClothCollisionVolumes;
 	TArray<uint32> ClothCollisionConvexPlaneIndices;
-	TArray<FPlane> ClothCollisionVolumePlanes;
+	TArray<FClothBonePlane> ClothCollisionVolumePlanes;
 	TArray<FApexClothBoneSphereData> ClothBoneSpheres;
 	TArray<uint16> BoneSphereConnections;
+
+	/**
+	 * saved temporarily just for debugging / visualization 
+	 * Num of this array means LOD number of clothing physical meshes 
+	 */
+	TArray<FClothVisualizationInfo> ClothVisualizationInfos;
+
 #endif// #if WITH_APEX_CLOTHING
 
 	// serialization
@@ -361,7 +414,7 @@ struct FSkeletalMaterial
 
 class FSkeletalMeshResource;
 
-UCLASS(HeaderGroup=SkeletalMesh, hidecategories=Object, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class USkeletalMesh : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -621,6 +674,13 @@ public:
 	 * Const ref return value as this cannot be modified externally
 	 */
 	ENGINE_API const TArray<USkeletalMeshSocket*>& GetActiveSocketList() const;
+
+	/**
+	* Makes sure all attached objects are valid and removes any that aren't.
+	*
+	* @return		NumberOfBrokenAssets
+	*/
+	ENGINE_API int32 ValidatePreviewAttachedObjects();
 
 #endif // #if WITH_EDITOR
 

@@ -27,7 +27,7 @@ struct FCustomInput
 
 };
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object, MinimalAPI)
+UCLASS(collapsecategories, hidecategories=Object, MinimalAPI)
 class UMaterialExpressionCustom : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

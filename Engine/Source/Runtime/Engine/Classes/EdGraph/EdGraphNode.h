@@ -135,7 +135,7 @@ public:
 	TWeakPtr<SGraphNode> NodeWidget;
 
 	/** Create a new pin on this node using the supplied info, and return the new pin */
-	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst = false);
+	UEdGraphPin* CreatePin(EEdGraphPinDirection Dir, const FString& PinCategory, const FString& PinSubCategory, UObject* PinSubCategoryObject, bool bIsArray, bool bIsReference, const FString& PinName, bool bIsConst = false, int32 Index = INDEX_NONE);
 
 	// Allocates a pin from the pool
 	static UEdGraphPin* AllocatePinFromPool(UEdGraphNode* OuterNode);
@@ -149,6 +149,9 @@ public:
 	/** Find a pin on this node with the supplied name and assert if it is not present */
 	UEdGraphPin* FindPinChecked(const FString& PinName) const;
 	
+	/** Find a pin on this node with the supplied name and remove it */
+	void DiscardPin(UEdGraphPin* Pin);
+
 	/** Whether or not this node should be given the chance to override pin names.  If this returns true, then GetPinNameOverride() will be called for each pin, each frame */
 	virtual bool ShouldOverridePinNames() const { return false; }
 
@@ -165,6 +168,9 @@ public:
 	 * @param   HoverTextOut	This will get filled out with the requested text
 	 */
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const;
+
+	/** Gets the index for a pin */
+	int32 GetPinIndex(UEdGraphPin* Pin) const;
 
 	/** Break all links on this node */
 	void BreakAllNodeLinks();

@@ -7,9 +7,10 @@
 class FUserDefinedStructureCompilerUtils
 {
 public:
-	// ASSUMPTION, no structure needs to be renamed or removed
-	static void CompileStructs(class UBlueprint* Blueprint, class FCompilerResultsLog& MessageLog, bool bForceRecompileAll);
+	// ASSUMPTION, structure doesn't need to be renamed or removed
+	static void CompileStruct(class UUserDefinedStruct* Struct, class FCompilerResultsLog& MessageLog, bool bForceRecompile);
 
+	// Fill all variables of given object, that are UserDefinedStructure type, with default values.
 	// Default values for member variables in User Defined Structure are stored in meta data "MakeStructureDefaultValue"
 	static void DefaultUserDefinedStructs(UObject* Object, FCompilerResultsLog& MessageLog);
 };

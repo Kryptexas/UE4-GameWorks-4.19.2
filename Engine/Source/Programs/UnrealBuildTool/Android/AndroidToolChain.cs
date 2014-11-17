@@ -16,7 +16,7 @@ namespace UnrealBuildTool
 		static public string GetNdkApiLevel()
 		{
 			// default to looking on disk for latest API level
-			string Target = Utils.GetStringEnvironmentVariable("ue.AndroidNdkApiTarget", "latest");
+			string Target = AndroidPlatform.AndroidNdkApiTarget;
 
 			if (Target == "latest")
 			{

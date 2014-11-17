@@ -2,18 +2,56 @@
 
 #include "DesktopPlatformPrivatePCH.h"
 #include "DesktopPlatformBase.h"
+#include "UProjectInfo.h"
+#include "EngineVersion.h"
+#include "ModuleManager.h"
+
+#define LOCTEXT_NAMESPACE "DesktopPlatform"
+
+FDesktopPlatformBase::FDesktopPlatformBase()
+{
+	LauncherInstallationTimestamp = FDateTime::MinValue();
+}
 
 FString FDesktopPlatformBase::GetCurrentEngineIdentifier()
 {
-	FString Identifier;
-	return GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), Identifier) ? Identifier : TEXT("");
+	if(CurrentEngineIdentifier.Len() == 0 && !GetEngineIdentifierFromRootDir(FPlatformMisc::RootDir(), CurrentEngineIdentifier))
+	{
+		CurrentEngineIdentifier.Empty();
+	}
+	return CurrentEngineIdentifier;
 }
 
 void FDesktopPlatformBase::EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations)
 {
-	// Just enumerate the known manifests for the time being 
-	CheckForLauncherEngineInstallation(TEXT("40003"), TEXT("4.0"), OutInstallations);
-	CheckForLauncherEngineInstallation(TEXT("1040003"), TEXT("4.1"), OutInstallations);
+	// Cache the launcher install list if necessary
+	ReadLauncherInstallationList();
+
+	// We've got a list of launcher installations. Filter it by the engine installations.
+	for(TMap<FString, FString>::TConstIterator Iter(LauncherInstallationList); Iter; ++Iter)
+	{
+		FString AppName = Iter.Key();
+		if(AppName.RemoveFromStart(TEXT("UE_"), ESearchCase::CaseSensitive))
+		{
+			OutInstallations.Add(AppName, Iter.Value());
+		}
+	}
+}
+
+void FDesktopPlatformBase::EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations)
+{
+	// Cache the launcher install list if necessary
+	ReadLauncherInstallationList();
+
+	// We've got a list of launcher installations. Filter it by the engine installations.
+	for(TMap<FString, FString>::TConstIterator Iter(LauncherInstallationList); Iter; ++Iter)
+	{
+		FString AppName = Iter.Key();
+		if(!AppName.StartsWith(TEXT("UE_"), ESearchCase::CaseSensitive))
+		{
+			OutInstallations.Add(Iter.Value());
+		}
+	}
 }
 
 bool FDesktopPlatformBase::GetEngineRootDirFromIdentifier(const FString &Identifier, FString &OutRootDir)
@@ -53,7 +91,9 @@ bool FDesktopPlatformBase::GetEngineIdentifierFromRootDir(const FString &RootDir
 			return true;
 		}
 	}
-	return false;
+
+	// Otherwise just try to add it
+	return RegisterEngineInstallation(RootDir, OutIdentifier);
 }
 
 bool FDesktopPlatformBase::GetDefaultEngineIdentifier(FString &OutId)
@@ -102,6 +142,11 @@ bool FDesktopPlatformBase::IsPreferredEngineIdentifier(const FString &Identifier
 	}
 }
 
+bool FDesktopPlatformBase::IsStockEngineRelease(const FString &Identifier)
+{
+	return Identifier.Len() > 0 && FChar::IsDigit(Identifier[0]);
+}
+
 bool FDesktopPlatformBase::IsSourceDistribution(const FString &EngineRootDir)
 {
 	// Check for the existence of a SourceBuild.txt file
@@ -123,28 +168,237 @@ bool FDesktopPlatformBase::IsValidRootDirectory(const FString &RootDir)
 	return IFileManager::Get().DirectoryExists(*EngineBinariesDirName);
 }
 
-bool FDesktopPlatformBase::SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &Identifier)
+bool FDesktopPlatformBase::SetEngineIdentifierForProject(const FString &ProjectFileName, const FString &InIdentifier)
 {
+	// Load the project file
 	TSharedPtr<FJsonObject> ProjectFile = LoadProjectFile(ProjectFileName);
 	if (!ProjectFile.IsValid())
 	{
 		return false;
 	}
 
+	// Check if the project is a non-foreign project of the given engine installation. If so, blank the identifier 
+	// string to allow portability between source control databases. GetEngineIdentifierForProject will translate
+	// the association back into a local identifier on other machines or syncs.
+	FString Identifier = InIdentifier;
+	if(Identifier.Len() > 0)
+	{
+		FString RootDir;
+		if(GetEngineRootDirFromIdentifier(Identifier, RootDir))
+		{
+			const FUProjectDictionary &Dictionary = GetCachedProjectDictionary(RootDir);
+			if(!Dictionary.IsForeignProject(ProjectFileName))
+			{
+				Identifier.Empty();
+			}
+		}
+	}
+
+	// Set the association on the project and save it
 	ProjectFile->SetStringField(TEXT("EngineAssociation"), Identifier);
 	return SaveProjectFile(ProjectFileName, ProjectFile);
 }
 
 bool FDesktopPlatformBase::GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier)
 {
+	// Load the project file
 	TSharedPtr<FJsonObject> ProjectFile = LoadProjectFile(ProjectFileName);
 	if(!ProjectFile.IsValid())
 	{
 		return false;
 	}
 
+	// Read the identifier from it
 	OutIdentifier = ProjectFile->GetStringField(TEXT("EngineAssociation"));
+	if(OutIdentifier.Len() > 0)
+	{
+		return true;
+	}
+
+	// Otherwise scan up through the directory hierarchy to find an installation
+	FString ParentDir = FPaths::GetPath(ProjectFileName);
+	FPaths::NormalizeDirectoryName(ParentDir);
+
+	// Keep going until we reach the root
+	int32 SeparatorIdx;
+	while(ParentDir.FindLastChar(TEXT('/'), SeparatorIdx))
+	{
+		ParentDir.RemoveAt(SeparatorIdx, ParentDir.Len() - SeparatorIdx);
+		if(IsValidRootDirectory(ParentDir) && GetEngineIdentifierFromRootDir(ParentDir, OutIdentifier))
+		{
+			return true;
+		}
+	}
+
+	// Otherwise check the engine version string for 4.0, in case this project existed before the engine association stuff went in
+	FString EngineVersionString = ProjectFile->GetStringField(TEXT("EngineVersion"));
+	if(EngineVersionString.Len() > 0)
+	{
+		FEngineVersion EngineVersion;
+		if(FEngineVersion::Parse(EngineVersionString, EngineVersion) && EngineVersion.IsPromotedBuild() && EngineVersion.ToString(EVersionComponent::Minor) == TEXT("4.0"))
+		{
+			OutIdentifier = TEXT("4.0");
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FDesktopPlatformBase::CleanGameProject(const FString &ProjectDir, FFeedbackContext* Warn)
+{
+	// Begin a task
+	Warn->BeginSlowTask(LOCTEXT("CleaningProject", "Removing stale build products..."), true);
+
+	// Enumerate all the files
+	TArray<FString> FileNames;
+	TArray<FString> DirectoryNames;
+	GetProjectBuildProducts(ProjectDir, FileNames, DirectoryNames);
+
+	// Remove all the files
+	for(int32 Idx = 0; Idx < FileNames.Num(); Idx++)
+	{
+		// Remove the file
+		if(!IFileManager::Get().Delete(*FileNames[Idx]))
+		{
+			Warn->Logf(ELogVerbosity::Error, TEXT("ERROR: Couldn't delete file '%s'"), *FileNames[Idx]);
+			return false;
+		}
+
+		// Update the progress
+		Warn->UpdateProgress(Idx, FileNames.Num() + DirectoryNames.Num());
+	}
+
+	// Remove all the directories
+	for(int32 Idx = 0; Idx < DirectoryNames.Num(); Idx++)
+	{
+		// Remove the directory
+		if(!IFileManager::Get().DeleteDirectory(*DirectoryNames[Idx], false, true))
+		{
+			Warn->Logf(ELogVerbosity::Error, TEXT("ERROR: Couldn't delete directory '%s'"), *DirectoryNames[Idx]);
+			return false;
+		}
+
+		// Update the progress
+		Warn->UpdateProgress(Idx + FileNames.Num(), FileNames.Num() + DirectoryNames.Num());
+	}
+
+	// End the task
+	Warn->EndSlowTask();
 	return true;
+}
+
+bool FDesktopPlatformBase::CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
+{
+	// Get the target name
+	FString Arguments = FString::Printf(TEXT("%sEditor %s %s"), *FPaths::GetBaseFilename(ProjectFileName), FModuleManager::Get().GetUBTConfiguration(), FPlatformMisc::GetUBTPlatform());
+
+	// Append the project name if it's a foreign project
+	if ( !ProjectFileName.IsEmpty() )
+	{
+		FUProjectDictionary ProjectDictionary(RootDir);
+		if(ProjectDictionary.IsForeignProject(ProjectFileName))
+		{
+			Arguments += FString::Printf(TEXT(" -project=\"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFileName));
+		}
+	}
+
+	// Append the Rocket flag
+	if(!IsSourceDistribution(RootDir))
+	{
+		Arguments += TEXT(" -rocket");
+	}
+
+	// Append any other options
+	Arguments += " -editorrecompile -progress";
+
+	// Run UBT
+	return RunUnrealBuildTool(LOCTEXT("CompilingProject", "Compiling project..."), RootDir, Arguments, Warn);
+}
+
+bool FDesktopPlatformBase::GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn)
+{
+#if PLATFORM_MAC
+	FString Arguments = TEXT("-xcodeprojectfile");
+#else
+	FString Arguments = TEXT("-projectfiles");
+#endif
+
+	// Build the arguments to pass to UBT
+	if ( !ProjectFileName.IsEmpty() )
+	{
+		// Figure out whether it's a foreign project
+		const FUProjectDictionary &ProjectDictionary = GetCachedProjectDictionary(RootDir);
+		if(ProjectDictionary.IsForeignProject(ProjectFileName))
+		{
+			Arguments += FString::Printf(TEXT(" -project=\"%s\""), *IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ProjectFileName));
+
+			// Always include game source
+			Arguments += " -game";
+
+			// Determine whether or not to include engine source
+			if(IsSourceDistribution(RootDir))
+			{
+				Arguments += " -engine";
+			}
+			else
+			{
+				Arguments += " -rocket";
+			}
+		}
+	}
+	Arguments += " -progress";
+
+	// Run UnrealBuildTool
+	Warn->BeginSlowTask(LOCTEXT("GeneratingProjectFiles", "Generating project files..."), true, true);
+	bool bRes = RunUnrealBuildTool(LOCTEXT("GeneratingProjectFiles", "Generating project files..."), RootDir, Arguments, Warn);
+	Warn->EndSlowTask();
+	return bRes;
+}
+
+void FDesktopPlatformBase::ReadLauncherInstallationList()
+{
+	FString InstalledListFile = FString(FPlatformProcess::ApplicationSettingsDir()) / TEXT("UnrealEngineLauncher/LauncherInstalled.dat");
+
+	// If the file does not exist, manually check for the 4.0 or 4.1 manifest
+	FDateTime NewListTimestamp = IFileManager::Get().GetTimeStamp(*InstalledListFile);
+	if(NewListTimestamp == FDateTime::MinValue())
+	{
+		if(LauncherInstallationList.Num() == 0)
+		{
+			CheckForLauncherEngineInstallation(TEXT("40003"), TEXT("UE_4.0"), LauncherInstallationList);
+			CheckForLauncherEngineInstallation(TEXT("1040003"), TEXT("UE_4.1"), LauncherInstallationList);
+		}
+	}
+	else if(NewListTimestamp != LauncherInstallationTimestamp)
+	{
+		// Read the installation manifest
+		FString InstalledText;
+		if (FFileHelper::LoadFileToString(InstalledText, *InstalledListFile))
+		{
+			// Deserialize the object
+			TSharedPtr< FJsonObject > RootObject;
+			TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(InstalledText);
+			if (FJsonSerializer::Deserialize(Reader, RootObject) && RootObject.IsValid())
+			{
+				// Parse the list of installations
+				TArray< TSharedPtr<FJsonValue> > InstallationList = RootObject->GetArrayField(TEXT("InstallationList"));
+				for(int32 Idx = 0; Idx < InstallationList.Num(); Idx++)
+				{
+					TSharedPtr<FJsonObject> InstallationItem = InstallationList[Idx]->AsObject();
+
+					FString AppName = InstallationItem->GetStringField(TEXT("AppName"));
+					FString InstallLocation = InstallationItem->GetStringField(TEXT("InstallLocation"));
+					if(AppName.Len() > 0 && InstallLocation.Len() > 0)
+					{
+						FPaths::NormalizeDirectoryName(InstallLocation);
+						LauncherInstallationList.Add(AppName, InstallLocation);
+					}
+				}
+			}
+			LauncherInstallationTimestamp = NewListTimestamp;
+		}
+	}
 }
 
 void FDesktopPlatformBase::CheckForLauncherEngineInstallation(const FString &AppId, const FString &Identifier, TMap<FString, FString> &OutInstallations)
@@ -225,3 +479,48 @@ bool FDesktopPlatformBase::SaveProjectFile(const FString &FileName, TSharedPtr<F
 
 	return true;
 }
+
+const FUProjectDictionary &FDesktopPlatformBase::GetCachedProjectDictionary(const FString& RootDir)
+{
+	FString NormalizedRootDir = RootDir;
+	FPaths::NormalizeDirectoryName(NormalizedRootDir);
+
+	FUProjectDictionary *Dictionary = CachedProjectDictionaries.Find(NormalizedRootDir);
+	if(Dictionary == NULL)
+	{
+		Dictionary = &CachedProjectDictionaries.Add(RootDir, FUProjectDictionary(RootDir));
+	}
+	return *Dictionary;
+}
+
+void FDesktopPlatformBase::GetProjectBuildProducts(const FString& ProjectDir, TArray<FString> &OutFileNames, TArray<FString> &OutDirectoryNames)
+{
+	FString NormalizedProjectDir = ProjectDir;
+	FPaths::NormalizeDirectoryName(NormalizedProjectDir);
+
+	// Find all the build roots
+	TArray<FString> BuildRootDirectories;
+	BuildRootDirectories.Add(NormalizedProjectDir);
+
+	// Add all the plugin directories
+	TArray<FString> PluginFileNames;
+	IFileManager::Get().FindFilesRecursive(PluginFileNames, *(NormalizedProjectDir / TEXT("Plugins")), TEXT("*.uplugin"), true, false);
+	for(int32 Idx = 0; Idx < PluginFileNames.Num(); Idx++)
+	{
+		BuildRootDirectories.Add(FPaths::GetPath(PluginFileNames[Idx]));
+	}
+
+	// Add all the intermediate directories
+	for(int32 Idx = 0; Idx < BuildRootDirectories.Num(); Idx++)
+	{
+		OutDirectoryNames.Add(BuildRootDirectories[Idx] / TEXT("Intermediate"));
+	}
+
+	// Add the files in the cleaned directories to the output list
+	for(int32 Idx = 0; Idx < OutDirectoryNames.Num(); Idx++)
+	{
+		IFileManager::Get().FindFilesRecursive(OutFileNames, *OutDirectoryNames[Idx], TEXT("*"), true, false, false);
+	}
+}
+
+#undef LOCTEXT_NAMESPACE

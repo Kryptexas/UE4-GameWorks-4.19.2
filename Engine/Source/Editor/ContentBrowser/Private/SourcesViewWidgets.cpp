@@ -8,6 +8,7 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "DragAndDrop/AssetPathDragDropOp.h"
 #include "ContentBrowserUtils.h"
+#include "CollectionViewUtils.h"
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
 
@@ -87,20 +88,26 @@ void SAssetTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 {
 	if ( IsValidAssetPath() )
 	{
-		if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (!Operation.IsValid())
 		{
-			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
+			return;
+		}
+
+		if (Operation->IsOfType<FAssetDragDropOp>())
+		{
+			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>(Operation);
 			bool bCanDrop = DragDropOp->AssetData.Num() > 0;
 
 			if (bCanDrop)
 			{
-				DragDropOp->SetToolTip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ).ToString(), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
+				DragDropOp->SetToolTip( LOCTEXT( "OnDragAssetsOverFolder", "Move or Copy Asset(s)" ), FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.OK")) );
 				bDraggedOver = true;
 			}
 		}
-		else if ( DragDrop::IsTypeMatch<FAssetPathDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetPathDragDropOp>())
 		{
-			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
+			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>(Operation);
 			bool bCanDrop = DragDropOp->PathNames.Num() > 0;
 
 			if ( DragDropOp->PathNames.Num() == 1 && DragDropOp->PathNames[0] == TreeItem.Pin()->FolderPath )
@@ -114,9 +121,9 @@ void SAssetTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 				bDraggedOver = true;
 			}
 		}
-		else if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FExternalDragOperation>())
 		{
-			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
+			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>(Operation);
 			bool bCanDrop = DragDropOp->HasFiles();
 
 			if (bCanDrop)
@@ -129,9 +136,9 @@ void SAssetTreeItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 
 void SAssetTreeItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+	if ( DragDropOp.IsValid() )
 	{
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
 		DragDropOp->ResetToDefaultToolTip();
 	}
 	bDraggedOver = false;
@@ -141,7 +148,13 @@ FReply SAssetTreeItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropE
 {
 	if ( IsValidAssetPath() )
 	{
-		if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (!Operation.IsValid())
+		{
+			return FReply::Unhandled();
+		}
+
+		if (Operation->IsOfType<FAssetDragDropOp>())
 		{
 			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
 			bool bCanDrop = DragDropOp->AssetData.Num() > 0;
@@ -151,7 +164,7 @@ FReply SAssetTreeItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropE
 				return FReply::Handled();
 			}
 		}
-		else if ( DragDrop::IsTypeMatch<FAssetPathDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetPathDragDropOp>())
 		{
 			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
 			bool bCanDrop = DragDropOp->PathNames.Num() > 0;
@@ -167,7 +180,7 @@ FReply SAssetTreeItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropE
 				return FReply::Handled();
 			}
 		}
-		else if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FExternalDragOperation>())
 		{
 			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
 			bool bCanDrop = DragDropOp->HasFiles();
@@ -188,7 +201,13 @@ FReply SAssetTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 	if ( IsValidAssetPath() )
 	{
-		if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+		TSharedPtr<FDragDropOperation> Operation = DragDropEvent.GetOperation();
+		if (!Operation.IsValid())
+		{
+			return FReply::Unhandled();
+		}
+
+		if (Operation->IsOfType<FAssetDragDropOp>())
 		{
 			TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
 
@@ -196,7 +215,7 @@ FReply SAssetTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 			return FReply::Handled();
 		}
-		else if ( DragDrop::IsTypeMatch<FAssetPathDragDropOp>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FAssetPathDragDropOp>())
 		{
 			TSharedPtr<FAssetPathDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetPathDragDropOp>( DragDropEvent.GetOperation() );
 
@@ -215,7 +234,7 @@ FReply SAssetTreeItem::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 			return FReply::Handled();
 		}
-		else if ( DragDrop::IsTypeMatch<FExternalDragOperation>(DragDropEvent.GetOperation()) )
+		else if (Operation->IsOfType<FExternalDragOperation>())
 		{
 			TSharedPtr<FExternalDragOperation> DragDropOp = StaticCastSharedPtr<FExternalDragOperation>( DragDropEvent.GetOperation() );
 
@@ -407,6 +426,7 @@ void SCollectionListItem::Construct( const FArguments& InArgs )
 				// Type Icon
 				SNew(SImage)
 				.Image( FEditorStyle::GetBrush(*CollectionTypeImage) )
+				.ColorAndOpacity( this, &SCollectionListItem::GetCollectionColor )
 			]
 
 			+SHorizontalBox::Slot()
@@ -450,9 +470,9 @@ void SCollectionListItem::Tick( const FGeometry& AllottedGeometry, const double 
 
 void SCollectionListItem::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+	if ( DragDropOp.IsValid() )
 	{
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
 		bool bCanDrop = DragDropOp->AssetData.Num() > 0;
 
 		if (bCanDrop)
@@ -469,9 +489,9 @@ void SCollectionListItem::OnDragLeave( const FDragDropEvent& DragDropEvent )
 
 FReply SCollectionListItem::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) )
+	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+	if (DragDropOp.IsValid())
 	{
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
 		bool bCanDrop = DragDropOp->AssetData.Num() > 0;
 
 		if (bCanDrop)
@@ -487,10 +507,9 @@ FReply SCollectionListItem::OnDrop( const FGeometry& MyGeometry, const FDragDrop
 {
 	bDraggedOver = false;
 
-	if ( DragDrop::IsTypeMatch<FAssetDragDropOp>(DragDropEvent.GetOperation()) && ensure(CollectionItem.IsValid()) )
+	TSharedPtr<FAssetDragDropOp> DragDropOp = DragDropEvent.GetOperationAs<FAssetDragDropOp>();
+	if (DragDropOp.IsValid() && ensure(CollectionItem.IsValid()))
 	{
-		TSharedPtr<FAssetDragDropOp> DragDropOp = StaticCastSharedPtr<FAssetDragDropOp>( DragDropEvent.GetOperation() );
-
 		FText Message;
 		OnAssetsDragDropped.ExecuteIfBound(DragDropOp->AssetData, CollectionItem.Pin(), Message);
 
@@ -565,6 +584,22 @@ FText SCollectionListItem::GetNameText() const
 	{
 		return FText();
 	}
+}
+
+FSlateColor SCollectionListItem::GetCollectionColor() const
+{
+	TSharedPtr<FCollectionItem> CollectionItemPtr = CollectionItem.Pin();
+
+	if ( CollectionItemPtr.IsValid() )
+	{
+		const TSharedPtr<FLinearColor> Color = CollectionViewUtils::LoadColor(CollectionItemPtr->CollectionName, CollectionItemPtr->CollectionType);
+		if( Color.IsValid() )
+		{
+			return *Color.Get();
+		}
+	}
+	
+	return CollectionViewUtils::GetDefaultColor();
 }
 
 const FSlateBrush* SCollectionListItem::GetBorderImage() const

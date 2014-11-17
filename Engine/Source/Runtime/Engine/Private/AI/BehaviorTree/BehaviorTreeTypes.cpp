@@ -39,17 +39,45 @@ void FBehaviorTreeInstance::Initialize(class UBehaviorTreeComponent* OwnerComp, 
 	}
 }
 
+void FBehaviorTreeInstance::InjectNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex)
+{
+	if (Node == NULL)
+	{
+		return;
+	}
+
+	for (int32 iChild = 0; iChild < Node->Children.Num(); iChild++)
+	{
+		FBTCompositeChild& ChildInfo = Node->Children[iChild];
+		if (ChildInfo.ChildComposite)
+		{
+			InjectNodes(OwnerComp, ChildInfo.ChildComposite, InstancedIndex);
+		}
+		else
+		{
+			UBTTask_RunBehavior* InjectingTask = Cast<UBTTask_RunBehavior>(ChildInfo.ChildTask);
+			if (InjectingTask)
+			{
+				uint8* NodeMemory = InjectingTask->GetNodeMemory<uint8>(*this);
+				InjectingTask->InjectNodes(OwnerComp, NodeMemory, InstancedIndex);
+			}
+		}
+	}
+}
+
 void FBehaviorTreeInstance::Cleanup(class UBehaviorTreeComponent* OwnerComp)
 {
 	const FBehaviorTreeInstanceId& Info = OwnerComp->KnownInstances[InstanceIdIndex];
-	const int32 FirstNodeIdx = Info.FirstNodeInstance;
-	const int32 LastNodeIdx = OwnerComp->KnownInstances.IsValidIndex(InstanceIdIndex + 1) ? 
-		OwnerComp->KnownInstances[InstanceIdIndex + 1].FirstNodeInstance : 
-		OwnerComp->NodeInstances.Num();
-
-	for (int32 i = FirstNodeIdx; i < LastNodeIdx; i++)
+	if (Info.FirstNodeInstance >= 0)
 	{
-		OwnerComp->NodeInstances[i]->OnInstanceDestroyed(OwnerComp);
+		const int32 LastNodeIdx = OwnerComp->KnownInstances.IsValidIndex(InstanceIdIndex + 1) ?
+			OwnerComp->KnownInstances[InstanceIdIndex + 1].FirstNodeInstance :
+			OwnerComp->NodeInstances.Num();
+
+		for (int32 Idx = Info.FirstNodeInstance; Idx < LastNodeIdx; Idx++)
+		{
+			OwnerComp->NodeInstances[Idx]->OnInstanceDestroyed(OwnerComp);
+		}
 	}
 }
 
@@ -74,23 +102,33 @@ bool FBTNodeIndex::TakesPriorityOver(const FBTNodeIndex& Other) const
 //----------------------------------------------------------------------//
 void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& UpdateInfo)
 {
-	static FString UpdateModeDesc[] = { TEXT("Add"), TEXT("Remove") };
 	UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[%s]: %s"),
-		*UpdateModeDesc[UpdateInfo.Mode],
-		UpdateInfo.AuxNode ? *UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode) : *UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.TaskNode));
+		*UBehaviorTreeTypes::DescribeNodeUpdateMode(UpdateInfo.Mode),
+		*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode ? (UBTNode*)UpdateInfo.AuxNode : (UBTNode*)UpdateInfo.TaskNode));
 
-	bool bHasAddRemovePair = false;
+	bool bSkipAdding = false;
 	for (int32 i = 0; i < PendingUpdates.Num(); i++)
 	{
 		const FBehaviorTreeSearchUpdate& Info = PendingUpdates[i];
 		if (Info.AuxNode == UpdateInfo.AuxNode && Info.TaskNode == UpdateInfo.TaskNode)
 		{
-			bHasAddRemovePair = (Info.Mode != UpdateInfo.Mode);
+			// duplicate, skip
+			// special case: AddForLowerPri replacing Add
+			if ((Info.Mode == UpdateInfo.Mode) ||
+				(Info.Mode == EBTNodeUpdateMode::Add && UpdateInfo.Mode == EBTNodeUpdateMode::AddForLowerPri))
+			{
+				bSkipAdding = true;
+				break;
+			}
+
+			// don't add pairs add-remove
+			bSkipAdding = (Info.Mode == EBTNodeUpdateMode::Remove) || (UpdateInfo.Mode == EBTNodeUpdateMode::Remove);
+
 			PendingUpdates.RemoveAt(i, 1, false);
 		}
 	}
 
-	if (!bHasAddRemovePair)
+	if (!bSkipAdding)
 	{
 		const int32 Idx = PendingUpdates.Add(UpdateInfo);
 		PendingUpdates[Idx].bPostUpdate = (UpdateInfo.Mode == EBTNodeUpdateMode::Add) && (Cast<UBTService>(UpdateInfo.AuxNode) != NULL);
@@ -239,7 +277,7 @@ FString UBehaviorTreeTypes::DescribeTaskStatus(EBTTaskStatus::Type TaskStatus)
 
 FString UBehaviorTreeTypes::DescribeNodeUpdateMode(EBTNodeUpdateMode::Type UpdateMode)
 {
-	static FString UpdateModeDesc[] = { TEXT("Add"), TEXT("Remove") };
+	static FString UpdateModeDesc[] = { TEXT("Add"), TEXT("AddForLowerPri"), TEXT("Remove") };
 	return (UpdateMode < ARRAY_COUNT(UpdateModeDesc)) ? UpdateModeDesc[UpdateMode] : FString();
 }
 

@@ -9,7 +9,6 @@
 #include "Factories.h"
 
 #include "BlueprintUtilities.h"
-#include "EngineLevelScriptClasses.h"
 #include "BlueprintGraphDefinitions.h"
 #include "EdGraphUtilities.h"
 #include "DebugToolExec.h"
@@ -104,6 +103,7 @@ int32 EditorInit( IEngineLoop& EngineLoop )
 	if ( FPaths::IsProjectFilePathSet() )
 	{
 		FGameProjectGenerationModule::Get().CheckForOutOfDateGameProjectFile();
+		FGameProjectGenerationModule::Get().CheckAndWarnProjectFilenameValid();
 	}
 
 	// =================== EDITOR STARTUP FINISHED ===================
@@ -170,5 +170,5 @@ void EditorExit()
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, UnrealEd );
 
-#include "UnrealEd.generated.inl"
+
 

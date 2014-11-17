@@ -308,7 +308,9 @@ enum EObjectTypeQuery
 	ObjectTypeQuery29 UMETA(Hidden), 
 	ObjectTypeQuery30 UMETA(Hidden), 
 	ObjectTypeQuery31 UMETA(Hidden), 
-	ObjectTypeQuery32 UMETA(Hidden)
+	ObjectTypeQuery32 UMETA(Hidden),
+
+	ObjectTypeQuery_MAX	UMETA(Hidden)
 };
 
 UENUM(BlueprintType)
@@ -345,7 +347,9 @@ enum ETraceTypeQuery
 	TraceTypeQuery29 UMETA(Hidden), 
 	TraceTypeQuery30 UMETA(Hidden), 
 	TraceTypeQuery31 UMETA(Hidden), 
-	TraceTypeQuery32 UMETA(Hidden)
+	TraceTypeQuery32 UMETA(Hidden),
+
+	TraceTypeQuery_MAX	UMETA(Hidden)
 };
 
 /** Enum indicating which physics scene to use. */
@@ -400,7 +404,8 @@ namespace EWorldType
 		Game,		// The game world
 		Editor,		// A world being edited in the editor
 		PIE,		// A Play In Editor world
-		Preview		// A preview world for an editor tool
+		Preview,	// A preview world for an editor tool
+		Inactive	// An editor world that was loaded but not currently being edited in the level editor
 	};
 }
 
@@ -1257,7 +1262,7 @@ struct FPrimitiveMaterialRef
 };
 
 /** Structure containing information about one hit of the trace */
-USTRUCT(BlueprintType)
+USTRUCT(BlueprintType, meta=(HasNativeMakeBreak="true"))
 struct ENGINE_API FHitResult
 {
 	GENERATED_USTRUCT_BODY()
@@ -2280,6 +2285,38 @@ enum EPhysicalSurface
 	SurfaceType28 UMETA(Hidden),
 	SurfaceType29 UMETA(Hidden),
 	SurfaceType30 UMETA(Hidden),
+	SurfaceType31 UMETA(Hidden),
+	SurfaceType32 UMETA(Hidden),
+	SurfaceType33 UMETA(Hidden),
+	SurfaceType34 UMETA(Hidden),
+	SurfaceType35 UMETA(Hidden),
+	SurfaceType36 UMETA(Hidden),
+	SurfaceType37 UMETA(Hidden),
+	SurfaceType38 UMETA(Hidden),
+	SurfaceType39 UMETA(Hidden),
+	SurfaceType40 UMETA(Hidden),
+	SurfaceType41 UMETA(Hidden),
+	SurfaceType42 UMETA(Hidden),
+	SurfaceType43 UMETA(Hidden),
+	SurfaceType44 UMETA(Hidden),
+	SurfaceType45 UMETA(Hidden),
+	SurfaceType46 UMETA(Hidden),
+	SurfaceType47 UMETA(Hidden),
+	SurfaceType48 UMETA(Hidden),
+	SurfaceType49 UMETA(Hidden),
+	SurfaceType50 UMETA(Hidden),
+	SurfaceType51 UMETA(Hidden),
+	SurfaceType52 UMETA(Hidden),
+	SurfaceType53 UMETA(Hidden),
+	SurfaceType54 UMETA(Hidden),
+	SurfaceType55 UMETA(Hidden),
+	SurfaceType56 UMETA(Hidden),
+	SurfaceType57 UMETA(Hidden),
+	SurfaceType58 UMETA(Hidden),
+	SurfaceType59 UMETA(Hidden),
+	SurfaceType60 UMETA(Hidden),
+	SurfaceType61 UMETA(Hidden),
+	SurfaceType62 UMETA(Hidden),
 	SurfaceType_Max UMETA(Hidden)
 };
 
@@ -2289,9 +2326,24 @@ namespace EComponentMobility
 {
 	enum Type
 	{
+		// A static object can't be changed in game.
+		// - Allows Baked Lighting
+		// - Fastest Rendering
 		Static,
+
+		// A stationary light will only have its shadowing and bounced lighting from static geometry baked by Lightmass, all other lighting will be dynamic.
+		// - Stationary only makes sense for light components
+		// - It can change color and intensity in game.
+		// - Can't Move
+		// - Allows Partial Baked Lighting
+		// - Dynamic Shadows
 		Stationary,
-		Movable		
+
+		// Movable objects can be moved and changed in game
+		// - Totally Dynamic
+		// - Allows Dynamic Shadows
+		// - Slowest Rendering
+		Movable
 	};
 }
 
@@ -2301,8 +2353,17 @@ class UEngineTypes : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** Convert a trace type to a collision channel */
 	static ECollisionChannel ConvertToCollisionChannel(ETraceTypeQuery TraceType);
+
+	/** Convert an object type to a collision channel */
 	static ECollisionChannel ConvertToCollisionChannel(EObjectTypeQuery ObjectType);
+
+	/** Convert a collision channel to an object type. Note: performs a search of object types */
+	static EObjectTypeQuery ConvertToObjectType(ECollisionChannel CollisionChannel);
+
+	/** Convert a collision channel to a trace type. Note: performs a search of trace types */
+	static ETraceTypeQuery ConvertToTraceType(ECollisionChannel CollisionChannel);
 };
 
 

@@ -1239,15 +1239,15 @@ void UObject::execLetWeakObjPtr( FFrame& Stack, RESULT_DECL )
 			ObjectProperty = Cast<UObjectPropertyBase>(ArrayProp->Inner);
 		}
 	}
-
-	TWeakObjectPtr<UObject> NewValue = NULL;
+	
+	UObject* NewValue = NULL;
 	// evaluate the r-value for this expression into Value
 	Stack.Step( Stack.Object, &NewValue );
 
 	if (ObjAddr)
 	{
 		checkSlow(ObjectProperty);
-		ObjectProperty->SetObjectPropertyValue(ObjAddr, NewValue.Get());
+		ObjectProperty->SetObjectPropertyValue(ObjAddr, NewValue);
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_LetWeakObjPtr, execLetWeakObjPtr );
@@ -1310,8 +1310,7 @@ void UObject::execLetDelegate( FFrame& Stack, RESULT_DECL )
 
 	if (DelegateAddr != NULL)
 	{
-		DelegateAddr->SetFunctionName( Delegate.GetFunctionName() );
-		DelegateAddr->SetObject( Delegate.GetObject() );
+		DelegateAddr->BindUFunction( Delegate.GetUObject(), Delegate.GetFunctionName() );
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_LetDelegate, execLetDelegate );
@@ -1462,7 +1461,6 @@ public:
 		Stack.MostRecentProperty = NULL;
 		Stack.Step( Stack.Object, NULL );
 		const FMulticastScriptDelegate* DelegateAddr = (FMulticastScriptDelegate*)Stack.MostRecentPropertyAddress;
-		check(NULL != DelegateAddr);
 
 		//Fill parameters
 		uint8* Parameters = (uint8*)FMemory_Alloca(SignatureFunction->ParmsSize);
@@ -1490,7 +1488,10 @@ public:
 		Stack.Code++;
 
 		//Process delegate
-		DelegateAddr->ProcessMulticastDelegate<UObject>(Parameters);
+		if (DelegateAddr)
+		{
+			DelegateAddr->ProcessMulticastDelegate<UObject>(Parameters);
+		}
 		
 		//Clean parameters
 		for (UProperty* Destruct = SignatureFunction->DestructorLink; Destruct; Destruct = Destruct->DestructorLinkNext)
@@ -1618,9 +1619,7 @@ IMPLEMENT_VM_FUNCTION( EX_ObjectConst, execObjectConst );
 void UObject::execInstanceDelegate( FFrame& Stack, RESULT_DECL )
 {
 	FName FunctionName = Stack.ReadName();
-
-	((FScriptDelegate*)Result)->SetFunctionName( FunctionName );
-	((FScriptDelegate*)Result)->SetObject( (FunctionName == NAME_None) ? NULL : this );
+	((FScriptDelegate*)Result)->BindUFunction( (FunctionName == NAME_None) ? NULL : this, FunctionName );
 }
 IMPLEMENT_VM_FUNCTION( EX_InstanceDelegate, execInstanceDelegate );
 
@@ -1640,8 +1639,7 @@ void UObject::execBindDelegate( FFrame& Stack, RESULT_DECL )
 
 	if (DelegateAddr)
 	{
-		DelegateAddr->SetFunctionName(FunctionName);
-		DelegateAddr->SetObject(ObjectForDelegate);
+		DelegateAddr->BindUFunction(ObjectForDelegate, FunctionName);
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_BindDelegate, execBindDelegate );

@@ -53,3 +53,15 @@ FAnimNode_ApplyAdditive::FAnimNode_ApplyAdditive()
 	: Alpha(1.0f)
 {
 }
+
+void FAnimNode_ApplyAdditive::GatherDebugData(FNodeDebugData& DebugData)
+{
+	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
+
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%%)"), ActualAlpha*100.f);
+
+	DebugData.AddDebugItem(DebugLine);
+	Base.GatherDebugData(DebugData.BranchFlow(1.f));
+	Additive.GatherDebugData(DebugData.BranchFlow(ActualAlpha));
+}

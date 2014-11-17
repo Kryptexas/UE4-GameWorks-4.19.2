@@ -201,7 +201,7 @@ struct FWorldContext
 	FSeamlessTravelHandler SeamlessTravelHandler;
 
 	UPROPERTY()
-	int32	ContextHandle;
+	FName ContextHandle;
 
 	/** URL to travel to for pending client connect */
 	UPROPERTY()
@@ -274,6 +274,10 @@ struct FWorldContext
 	UPROPERTY()
 	bool	RunAsDedicated;
 
+	/** Is this world context waiting for an online login to complete (for PIE) */
+	UPROPERTY()
+	bool	bWaitingOnOnlineSubsystem;
+
 	/**************************************************************/
 
 	/** Outside pointers to CurrentWorld that should be kept in sync if current world changes  */
@@ -314,7 +318,7 @@ struct FWorldContext
 
 	FWorldContext()
 		: WorldType(EWorldType::None)
-		, ContextHandle(INDEX_NONE)
+		, ContextHandle(NAME_None)
 		, TravelURL()
 		, TravelType(0)
 		, PendingNetGame(NULL)
@@ -322,6 +326,7 @@ struct FWorldContext
 		, GameViewport(NULL)
 		, PIEInstance(INDEX_NONE)
 		, RunAsDedicated(false)
+		, bWaitingOnOnlineSubsystem(false)
 		, ThisCurrentWorld(NULL)
 	{
 	}
@@ -455,10 +460,76 @@ namespace EMatineeCaptureType
 	};
 }
 
+USTRUCT()
+struct FGameNameRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString OldGameName;
+
+	UPROPERTY()
+	FString NewGameName;
+};
+
+
+USTRUCT()
+struct FClassRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString ObjectName;
+
+	UPROPERTY()
+	FString OldClassName;
+
+	UPROPERTY()
+	FString NewClassName;
+
+	UPROPERTY()
+	FString OldSubobjName;
+
+	UPROPERTY()
+	FString NewSubobjName;
+
+	UPROPERTY()
+	bool InstanceOnly;
+};
+
+USTRUCT()
+struct FStructRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString OldStructName;
+
+	UPROPERTY()
+	FString NewStructName;
+};
+
+USTRUCT()
+struct FPluginRedirect
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FString OldPluginName;
+
+	UPROPERTY()
+	FString NewPluginName;
+};
+
 class IAnalyticsProvider;
 
-UCLASS(HeaderGroup=GameEngine, abstract, config=Engine, transient)
-class ENGINE_API UEngine : public UObject, public FExec
+DECLARE_DELEGATE_OneParam(FBeginStreamingPauseDelegate, FViewport*);
+DECLARE_DELEGATE(FEndStreamingPauseDelegate);
+
+UCLASS(abstract, config=Engine, defaultconfig, transient)
+class ENGINE_API UEngine
+	: public UObject
+	, public FExec
 {
 	GENERATED_UCLASS_BODY()
 
@@ -933,6 +1004,18 @@ public:
 	UPROPERTY(globalconfig)
 	FStringAssetReference DefaultPhysMaterialName;
 
+	UPROPERTY(config)
+	TArray<FGameNameRedirect> ActiveGameNameRedirects;
+
+	UPROPERTY(config)
+	TArray<FClassRedirect> ActiveClassRedirects;
+
+	UPROPERTY(config)
+	TArray<FPluginRedirect> ActivePluginRedirects;
+
+	UPROPERTY(config)
+	TArray<FStructRedirect> ActiveStructRedirects;
+
 	/** Texture used for pre-integrated skin shading */
 	UPROPERTY()
 	class UTexture2D* PreIntegratedSkinBRDFTexture;
@@ -1010,7 +1093,15 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming)
 	uint32 bUseBackgroundLevelStreaming:1;
 
-	/** Maximum allowed time to spend for actor registration steps during level streaming (per frame)*/
+	/** Maximum amount of time to spend doing asynchronous loading (ms per frame) */
+	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
+	float AsyncLoadingTimeLimit;
+
+	/** Additional time to spend asynchronous loading during a "high priority" load */
+	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
+	float PriorityAsyncLoadingExtraTime;
+
+	/** Maximum allowed time to spend for actor registration steps during level streaming (ms per frame)*/
 	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
 	float LevelStreamingActorsUpdateTimeLimit;
 	
@@ -1026,13 +1117,9 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Framerate)
 	uint32 bSmoothFrameRate:1;
 
-	/** Maximum framerate to smooth. Code will try to not go over via waiting.										*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
-	float MaxSmoothedFrameRate;
-
-	/** Minimum framerate smoothing will kick in.																	*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, ClampMin=0))
-	float MinSmoothedFrameRate;
+	/** Range of framerates in which smoothing will kick in */
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, UIMax=200))
+	FFloatRange SmoothedFrameRateRange;
 
 	/** 
 	 * Whether we should check for more than N pawns spawning in a single frame.  
@@ -1332,6 +1419,14 @@ public:
 	UPROPERTY(transient)
 	float SelectionHighlightIntensityBillboards;
 
+	/** Delegate handling when streaming pause begins. Set initially in FStreamingPauseRenderingModule::StartupModule() but can then be overriden by games. */
+	void RegisterBeginStreamingPauseRenderingDelegate( FBeginStreamingPauseDelegate* InDelegate );
+	FBeginStreamingPauseDelegate* BeginStreamingPauseDelegate;
+
+	/** Delegate handling when streaming pause ends. Set initially in FStreamingPauseRenderingModule::StartupModule() but can then be overriden by games. */
+	void RegisterEndStreamingPauseRenderingDelegate( FEndStreamingPauseDelegate* InDelegate );
+	FEndStreamingPauseDelegate* EndStreamingPauseDelegate;
+
 	/* 
 	 * Error message event relating to server travel failures 
 	 * 
@@ -1518,7 +1613,7 @@ public:
 	bool HandleFlushLogCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleExitCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleStatCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleStatCommand( UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleStopMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleCrackURLCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1602,7 +1697,7 @@ public:
 	virtual void Tick( float DeltaSeconds, bool bIdleMode ) PURE_VIRTUAL(UEngine::Tick,);
 
 	/**
-	 * Update GCurrentTime/ GDeltaTime while taking into account max tick rate.
+	 * Update FApp::CurrentTime/ FApp::DeltaTime while taking into account max tick rate.
 	 */
 	void UpdateTimeAndHandleMaxTickRate();
 
@@ -1631,6 +1726,11 @@ public:
 	 * Returns the average game/render/gpu/total time since this function was last called
 	 */
 	void GetAverageUnitTimes( TArray<float>& AverageTimes );
+
+	/**
+	 * Updates the values used to calculate the average game/render/gpu/total time
+	 */
+	void SetAverageUnitTimes(float FrameTime, float RenderThreadTime, float GameThreadTime, float GPUFrameTime);
 
 protected:
 	/** 
@@ -2152,29 +2252,7 @@ public:
 	 * Note: if there is no valid net driver, returns NM_StandAlone
 	 */
 	//virtual ENetMode GetNetMode(FName NetDriverName = NAME_GameNetDriver) const;
-
 	ENetMode GetNetMode(const UWorld *World) const;
-
-	/**
-	 * This is a global, parameterless function used by the online subsystem modules.
-	 * It should never be used in gamecode - instead use GetNetMode(UWorld*) in order
-	 * to properly support multiple concurrent UWorlds.
-	 */
-	ENetMode GetNetModeForOnlineSubsystems() const;
-
-	/**
-	 * This is a global, parameterless function used by the online subsystem modules.
-	 * It should never be used in gamecode - instead use FindNamedNetDriver(UWorld*) in order
-	 * to properly support multiple concurrent UWorlds.
-	 */
-	UNetDriver* GetNetDriverForOnlineSubsystems(FName NetDriverName);
-
-	/**
-	 * This is a global, parameterless function used by the online subsystem modules.
-	 * It should never be used in gamecode - instead use FindNamedNetDriver(UWorld*) in order
-	 * to properly support multiple concurrent UWorlds.
-	 */
-	UWorld* GetWorldForOnlineSubsystem();
 
 	/**
 	 * Creates a UNetDriver and associates a name with it.
@@ -2296,17 +2374,17 @@ public:
 
 	virtual bool WorldIsPIEInNewViewport(UWorld *InWorld);
 
-	FWorldContext* GetWorldContextFromWorld(UWorld * InWorld);
+	FWorldContext* GetWorldContextFromWorld(const UWorld* InWorld);
 	FWorldContext* GetWorldContextFromGameViewport(const UGameViewportClient *InViewport);
 	FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame);	
-	FWorldContext* GetWorldContextFromHandle(const int32 WorldContextHandle);
+	FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle);
 
 	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
 	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);
 	FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
-	FWorldContext& GetWorldContextFromHandleChecked(const int32 WorldContextHandle);
+	FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle);
 
 	const TArray<FWorldContext>& GetWorldContexts() { return WorldList; }
 
@@ -2427,4 +2505,182 @@ public:
 
 private:
 	void CreateGameUserSettings();
+
+public:
+	/**
+	 * Delegate we fire every time a new stat has been registered
+	 *
+	 * @param FName	- The name of the new stat
+	 * @param FName - The category of the new stat
+	 * @param FText - The description of the new stat
+	 */
+	DECLARE_EVENT_ThreeParams(UEngine, FOnNewStatRegistered, const FName&, const FName&, const FText&);
+	static FOnNewStatRegistered NewStatDelegate;
+	
+	/**
+	 * Wrapper for firing a simple stat exec
+	 *
+	 * @param World	- The world to apply the exec to
+	 * @param ViewportClient - The viewport to apply the exec to
+	 * @param InName - The exec string
+	 */
+	void ExecEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* InName);
+
+	/**
+	 * Check to see if the specified stat name is a simple stat
+	 *
+	 * @param InName - The name of the stat we're checking
+	 * @returns true if the stat is a registered simple stat
+	 */
+	bool IsEngineStat(const FString& InName);
+
+	/**
+	 * Set the state of the specified stat
+	 *
+	 * @param World	- The world to apply the exec to
+	 * @param ViewportClient - The viewport to apply the exec to
+	 * @param InName - The stat name
+	 * @param bShow - The state we would like the stat to be in
+	 */
+	void SetEngineStat(UWorld* World, FCommonViewportClient* ViewportClient, const FString& InName, const bool bShow);
+
+	/**
+	 * Set the state of the specified stats (note: array processed in reverse order when !bShow)
+	 *
+	 * @param World	- The world to apply the exec to
+	 * @param ViewportClient - The viewport to apply the exec to
+	 * @param InNames - The stat names
+	 * @param bShow - The state we would like the stat to be in
+	 */
+	void SetEngineStats(UWorld* World, FCommonViewportClient* ViewportClient, const TArray<FString>& InNames, const bool bShow);
+
+	/**
+	 * Function to render all the simple stats
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Canvas - The canvas to use when drawing
+	 * @param LHSX - The left hand side X position to start drawing from
+	 * @param InOutLHSY - The left hand side Y position to start drawing from
+	 * @param RHSX - The right hand side X position to start drawing from
+	 * @param InOutRHSY - The right hand side Y position to start drawing from
+	 * @param ViewLocation - The world space view location
+	 * @param ViewRotation - The world space view rotation
+	 */
+	void RenderEngineStats(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 LHSX, int32& InOutLHSY, int32 RHSX, int32& InOutRHSY, const FVector* ViewLocation, const FRotator* ViewRotation);
+
+private:
+	/**
+	 * Function definition for those stats which have their own render funcsions (or affect another render functions)
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Canvas - The canvas to use when drawing
+	 * @param X - The X position to draw to
+	 * @param Y - The Y position to draw to
+	 * @param ViewLocation - The world space view location
+	 * @param ViewRotation - The world space view rotation
+	 */
+	typedef int32 (UEngine::*EngineStatRender)(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation);
+
+	/**
+	 * Function definition for those stats which have their own toggle funcsions (or toggle other stats)
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Stream - The remaining characters from the Exec call
+	 */
+	typedef bool (UEngine::*EngineStatToggle)(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream);
+
+	/** Struct for keeping track off all the info regarding a specific simple stat exec */
+	struct FEngineStatFuncs
+	{
+		/** The name of the command, e.g. STAT FPS would just have FPS as it's CommandName */
+		FName CommandName;
+
+		/** The category the command falls into (only used by UI) */
+		FName CategoryName;
+
+		/** The description of what this command does (only used by UI) */
+		FText DescriptionString;
+
+		/** The function needed to render the stat when it's enabled 
+		 *  Note: This is only called when it should be rendered */
+		EngineStatRender RenderFunc;
+
+		/** The function we call after the stat has been toggled 
+		 *  Note: This is only needed if you need to do something else depending on the state of the stat */
+		EngineStatToggle ToggleFunc;
+
+		/** If true, this stat should render on the right side of the viewport, otherwise left */
+		bool bIsRHS;
+
+		/** Constructor */
+		FEngineStatFuncs(const FName& InCommandName, const FName& InCategoryName, const FText& InDescriptionString, EngineStatRender InRenderFunc = NULL, EngineStatToggle InToggleFunc = NULL, const bool bInIsRHS = false)
+			: CommandName(InCommandName)
+			, CategoryName(InCategoryName)
+			, DescriptionString(InDescriptionString)
+			, RenderFunc(InRenderFunc)
+			, ToggleFunc(InToggleFunc)
+			, bIsRHS(bInIsRHS)
+		{
+		}
+	};
+
+	/** A list of all the simple stats functions that have been registered */
+	TArray<FEngineStatFuncs> EngineStats;
+
+private:
+	/**
+	 * Functions for performing other actions when the stat is toggled, should only be used when registering with EngineStats
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Stream - The remaining characters from the Exec call (optional)
+	 */
+	bool ToggleStatFPS(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatDetailed(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatHitches(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatNamedEvents(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatUnit(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+#if !UE_BUILD_SHIPPING
+	bool ToggleStatUnitMax(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatUnitGraph(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+	bool ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+#endif
+	bool ToggleStatSounds(UWorld* World, FCommonViewportClient* ViewportClient, const TCHAR* Stream = NULL);
+
+	/**
+	 * Functions for rendering the various simple stats, should only be used when registering with EngineStats
+	 *
+	 * @param World	- The world being drawn to
+	 * @param ViewportClient - The viewport being drawn to
+	 * @param Canvas - The canvas to use when drawing
+	 * @param X - The X position to draw to
+	 * @param Y - The Y position to draw to
+	 * @param ViewLocation - The world space view location
+	 * @param ViewRotation - The world space view rotation
+	 */
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	int32 RenderStatVersion(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#endif
+	int32 RenderStatFPS(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatHitches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSummary(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatNamedEvents(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatColorList(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatLevels(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatLevelMap(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatUnit(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	int32 RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#endif
+	int32 RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+	int32 RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#if STATS
+	int32 RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = NULL, const FRotator* ViewRotation = NULL);
+#endif
 };

@@ -20,6 +20,9 @@ class ENGINE_API UEnvQueryItemType : public UObject
 	/** unregister from known types in EnvQueryManager */
 	virtual void FinishDestroy() OVERRIDE;
 
+	/** describe item */
+	virtual FString GetDescription(const uint8* RawData) const;
+
 protected:
 
 	/** size of value for this type */

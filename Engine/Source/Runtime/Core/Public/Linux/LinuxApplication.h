@@ -68,6 +68,15 @@ private:
 
 	void ProcessDeferredMessage( SDL_Event Event );
 
+	/** 
+	 * Determines whether this particular SDL_KEYDOWN event should also be routed to OnKeyChar()
+	 *
+	 * @param KeyDownEvent event in question
+	 *
+	 * @return true if character needs to be passed to OnKeyChar
+	 */
+	static bool GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDownEvent);
+
 private:
 
 	struct SDLControllerState

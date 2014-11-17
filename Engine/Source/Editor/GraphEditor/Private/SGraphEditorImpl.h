@@ -72,6 +72,9 @@ private:
 	/** Function to check whether PIE is active to display "Simulating" text in graph panel*/
 	EVisibility PIENotification( ) const;
 
+	/** Function to check whether we should show read-only text in the panel */
+	EVisibility ReadOnlyVisibility() const;
+
 	/** Notification list to pass messages to editor users  */
 	TSharedPtr<SNotificationList> NotificationListPtr;
 

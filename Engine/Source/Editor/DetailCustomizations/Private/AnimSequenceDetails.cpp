@@ -3,6 +3,7 @@
 #include "DetailCustomizationsPrivatePCH.h"
 #include "AnimSequenceDetails.h"
 #include "AnimMontageSegmentDetails.h"
+#include "AnimPreviewInstance.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "Editor/KismetWidgets/Public/SScrubControlPanel.h"
 #include "Runtime/Engine/Public/FXSystem.h"
@@ -336,7 +337,7 @@ SAnimationRefPoseViewport::SAnimationRefPoseViewport()
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SAnimationRefPoseViewport::Construct(const FArguments& InArgs)
 {
-	FXSystem = FFXSystemInterface::Create();
+	FXSystem = FFXSystemInterface::Create(GRHIFeatureLevel);
 
 	TargetSkeleton = InArgs._Skeleton;
 	AnimRefPropertyHandle = InArgs._AnimRefPropertyHandle;

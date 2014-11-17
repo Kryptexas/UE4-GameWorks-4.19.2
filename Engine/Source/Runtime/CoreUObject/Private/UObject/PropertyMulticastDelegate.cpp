@@ -22,24 +22,26 @@ void UMulticastDelegateProperty::InstanceSubobjects(void* Data, void const* Defa
 			for(; CurInvocation && DefaultInvocation; ++CurInvocation, ++DefaultInvocation )
 			{
 				FScriptDelegate& DestDelegateInvocation = *CurInvocation;
-				UObject* CurrentValue = DestDelegateInvocation.GetObject();
-				if (CurrentValue)
+				UObject* CurrentUObject = DestDelegateInvocation.GetUObject();
+
+				if (CurrentUObject)
 				{
 					FScriptDelegate& DefaultDelegateInvocation = *DefaultInvocation;
-					UObject *Template = DefaultDelegateInvocation.GetObject();
-					UObject* NewValue = InstanceGraph->InstancePropertyValue(Template, CurrentValue, Owner, HasAnyPropertyFlags(CPF_Transient), false, true);
-					DestDelegateInvocation.SetObject(NewValue);
+					UObject *Template = DefaultDelegateInvocation.GetUObject();
+					UObject* NewUObject = InstanceGraph->InstancePropertyValue(Template, CurrentUObject, Owner, HasAnyPropertyFlags(CPF_Transient), false, true);
+					DestDelegateInvocation.BindUFunction(NewUObject, DestDelegateInvocation.GetFunctionName());
 				}
 			}
 			// now finish up the ones for which there is no default
 			for(; CurInvocation; ++CurInvocation )
 			{
 				FScriptDelegate& DestDelegateInvocation = *CurInvocation;
-				UObject* CurrentValue = DestDelegateInvocation.GetObject();
-				if (CurrentValue)
+				UObject* CurrentUObject = DestDelegateInvocation.GetUObject();
+
+				if (CurrentUObject)
 				{
-					UObject* NewValue = InstanceGraph->InstancePropertyValue(NULL, CurrentValue, Owner, HasAnyPropertyFlags(CPF_Transient), false, true);
-					DestDelegateInvocation.SetObject(NewValue);
+					UObject* NewUObject = InstanceGraph->InstancePropertyValue(NULL, CurrentUObject, Owner, HasAnyPropertyFlags(CPF_Transient), false, true);
+					DestDelegateInvocation.BindUFunction(NewUObject, DestDelegateInvocation.GetFunctionName());
 				}
 			}
 		}
@@ -53,11 +55,12 @@ void UMulticastDelegateProperty::InstanceSubobjects(void* Data, void const* Defa
 			for( FMulticastScriptDelegate::FInvocationList::TIterator CurInvocation( DestDelegate.InvocationList ); CurInvocation; ++CurInvocation )
 			{
 				FScriptDelegate& DestDelegateInvocation = *CurInvocation;
-				UObject* CurrentValue = DestDelegateInvocation.GetObject();
-				if (CurrentValue)
+				UObject* CurrentUObject = DestDelegateInvocation.GetUObject();
+
+				if (CurrentUObject)
 				{
-					UObject* NewValue = InstanceGraph->InstancePropertyValue(NULL, CurrentValue, Owner, HasAnyPropertyFlags(CPF_Transient), false, true);
-					DestDelegateInvocation.SetObject(NewValue);
+					UObject* NewUObject = InstanceGraph->InstancePropertyValue(NULL, CurrentUObject, Owner, HasAnyPropertyFlags(CPF_Transient), false, true);
+					DestDelegateInvocation.BindUFunction(NewUObject, DestDelegateInvocation.GetFunctionName());
 				}
 			}
 		}
@@ -83,8 +86,8 @@ bool UMulticastDelegateProperty::Identical( const void* A, const void* B, uint32
 			const FScriptDelegate& InvocationA = DA->InvocationList[ CurInvocationIndex ];
 			const FScriptDelegate& InvocationB = DB->InvocationList[ CurInvocationIndex ];
 			
-			if( InvocationA.GetObject() != InvocationB.GetObject() ||
-				!( (PortFlags&PPF_DeltaComparison) != 0 && ( InvocationA.GetObject() == NULL || InvocationB.GetObject() == NULL ) ) )
+			if( InvocationA.GetUObject() != InvocationB.GetUObject() ||
+				!( (PortFlags&PPF_DeltaComparison) != 0 && ( InvocationA.GetUObject() == NULL || InvocationB.GetUObject() == NULL ) ) )
 			{
 				bResult = false;
 				break;
@@ -136,7 +139,7 @@ void UMulticastDelegateProperty::ExportTextItem( FString& ValueStr, const void* 
 
 			bool bDelegateHasValue = CurInvocation->GetFunctionName() != NAME_None;
 			ValueStr += FString::Printf( TEXT("%s.%s"),
-				CurInvocation->GetObject() != NULL ? *CurInvocation->GetObject()->GetName() : TEXT("(null)"),
+				CurInvocation->GetUObject() != NULL ? *CurInvocation->GetUObject()->GetName() : TEXT("(null)"),
 				*CurInvocation->GetFunctionName().ToString() );
 		}
 	}

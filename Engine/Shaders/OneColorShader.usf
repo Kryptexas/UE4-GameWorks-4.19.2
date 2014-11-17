@@ -17,12 +17,21 @@ struct FOneColorVertexOutput
 	float4 Position : SV_POSITION;
 };
 
+
+#ifndef USING_NDC_POSITIONS
+	#define USING_NDC_POSITIONS 1
+#endif
+
 void MainVertexShader(
 	in float4 InPosition : ATTRIBUTE0,
 	out FOneColorVertexOutput Output
 	)
 {
 	Output.Position = InPosition;
+
+#if !USING_NDC_POSITIONS
+	DrawRectangle( InPosition, Output.Position);
+#endif
 }
 
 /*=============================================================================

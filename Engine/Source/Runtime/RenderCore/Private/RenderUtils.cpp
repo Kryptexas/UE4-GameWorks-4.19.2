@@ -537,9 +537,9 @@ void FPackedPosition::Set( const FVector& InVector )
 #else
 	// Too confusing to use .5f - wanted to use the last bit!
 	// Change to int for easier read
-	Vector.X = FMath::Clamp<int32>(FMath::Trunc(InVector.X * 1023.0f),-1023,1023);
-	Vector.Y = FMath::Clamp<int32>(FMath::Trunc(InVector.Y * 1023.0f),-1023,1023);
-	Vector.Z = FMath::Clamp<int32>(FMath::Trunc(InVector.Z * 511.0f),-511,511);
+	Vector.X = FMath::Clamp<int32>(FMath::TruncToInt(InVector.X * 1023.0f),-1023,1023);
+	Vector.Y = FMath::Clamp<int32>(FMath::TruncToInt(InVector.Y * 1023.0f),-1023,1023);
+	Vector.Z = FMath::Clamp<int32>(FMath::TruncToInt(InVector.Z * 511.0f),-511,511);
 #endif
 }
 

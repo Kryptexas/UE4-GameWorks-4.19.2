@@ -4,6 +4,7 @@
 
 #include "CompilerResultsLog.h"
 #include "GraphEditorActions.h"
+#include "AnimGraphNode_SequenceEvaluator.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_SequenceEvaluator

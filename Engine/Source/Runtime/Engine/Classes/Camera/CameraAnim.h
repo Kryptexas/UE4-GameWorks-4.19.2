@@ -1,13 +1,12 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-
-/**
- * CameraAnim: defines a pre-packaged animation to be played on a camera.
- */
-
 #pragma once
+
 #include "CameraAnim.generated.h"
 
+/**
+ * A predefined animation to be played on a camera
+ */
 UCLASS(notplaceable, MinimalAPI)
 class UCameraAnim : public UObject
 {
@@ -35,6 +34,13 @@ class UCameraAnim : public UObject
 	UPROPERTY()
 	float BaseFOV;
 
+	/** Default PP settings to put on the animated camera. For modifying PP without keyframes. */
+	UPROPERTY()
+	FPostProcessSettings BasePostProcessSettings;
+
+	/** Default PP blend weight to put on the animated camera. For modifying PP without keyframes. */
+	UPROPERTY()
+	float BasePostProcessBlendWeight;
 
 protected:
 	// @todo document

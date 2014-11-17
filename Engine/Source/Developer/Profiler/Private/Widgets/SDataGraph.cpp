@@ -263,7 +263,7 @@ void SDataGraph::UpdateState()
 			NumDataPoints = (int32)GraphDesc->CombinedGraphDataSource->GetNumFrames();
 		}
 
-		NumVisiblePoints = FMath::Max( 0, FMath::Trunc(ThisGeometry.Size.X) / DistanceBetweenPoints );
+		NumVisiblePoints = FMath::Max( 0, FMath::TruncToInt(ThisGeometry.Size.X) / DistanceBetweenPoints );
 		// GraphOffset - Updated by OnMouseMove or by ScrollTo
 		GraphOffset = FMath::Clamp( GraphOffset, 0, FMath::Max(NumDataPoints-NumVisiblePoints,0) );
 		
@@ -587,7 +587,7 @@ int32 SDataGraph::OnPaint
 			{
 				const float MarkerPosX = (FrameIndex - GraphOffset) * DistanceBetweenPoints;
 				const float ElapsedFrameTimeMS = FrameIndex * FTimeAccuracy::AsFrameTime( TimeBasedAccuracy );
-				const int32 ElapsedFrameTime = FMath::Max( FMath::Round( ElapsedFrameTimeMS * 0.001f ) - 1, 0 );
+				const int32 ElapsedFrameTime = FMath::Max( FMath::RoundToInt( ElapsedFrameTimeMS * 0.001f ) - 1, 0 );
 				const int32 AccumulatedFrameCounter = bCanBeDisplayedAsMulti ? FrameIndex : DataProvider->GetAccumulatedFrameCounter(ElapsedFrameTime);
 
 				LinePoints.Add( FVector2D(MarkerPosX, 0.0) );
@@ -926,7 +926,6 @@ int32 SDataGraph::OnPaint
 	// Draw all graphs descriptions.
 	float GraphDescPosY = 100.0f;
 
-
 #if DEBUG_PROFILER_PERFORMANCE
 	// Debug text.
 	FSlateDrawElement::MakeText
@@ -970,13 +969,6 @@ int32 SDataGraph::OnPaint
 	);
 	GraphDescPosY += MaxFontCharHeight + 1.0f;
 
-
-#endif // DEBUG_PROFILER_PERFORMANCE
-
-	LayerId++;
-
-
-#if	DEBUG_PROFILER_PERFORMANCE
 	const double CurrentTime = (FPlatformTime::Seconds() - StartTime) * 1000.0f;
 	if( CurrentTime > 1.0f )
 	{
@@ -1152,7 +1144,7 @@ FReply SDataGraph::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 			const float ScrollByAmount = -MouseEvent.GetCursorDelta().X * (1.0f/DistanceBetweenPoints);
 			RealGraphOffset += ScrollByAmount;
 
-			GraphOffset = FMath::Clamp( FMath::Trunc( RealGraphOffset ), 0, FMath::Max(NumDataPoints-NumVisiblePoints,0) );
+			GraphOffset = FMath::Clamp( FMath::TruncToInt( RealGraphOffset ), 0, FMath::Max(NumDataPoints-NumVisiblePoints,0) );
 			OnGraphOffsetChanged.ExecuteIfBound( GraphOffset );
 
 			Reply = FReply::Handled();
@@ -1165,7 +1157,7 @@ FReply SDataGraph::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent
 const int32 SDataGraph::CalculateFrameIndex( const FVector2D InMousePosition ) const
 {
 	const float ScaleX = 1.0f/DistanceBetweenPoints;
-	const int32 MousePositionOffset = FMath::Trunc( (InMousePosition.X+HalfGraphMarkerWidth) * ScaleX );
+	const int32 MousePositionOffset = FMath::TruncToInt( (InMousePosition.X+HalfGraphMarkerWidth) * ScaleX );
 	return FMath::Clamp( GraphOffset+MousePositionOffset, 0, NumDataPoints-1 );
 }
 
@@ -1238,10 +1230,9 @@ void SDataGraph::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent&
 {
 	SCompoundWidget::OnDragEnter(MyGeometry, DragDropEvent);
 
-	if( DragDrop::IsTypeMatch<FStatIDDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FStatIDDragDropOp> Operation = DragDropEvent.GetOperationAs<FStatIDDragDropOp>();
+	if (Operation.IsValid())
 	{
-		// D&D decorator icon
-		auto Operation = StaticCastSharedPtr<FStatIDDragDropOp>( DragDropEvent.GetOperation() );
 		Operation->ShowOK();
 	}
 }
@@ -1250,10 +1241,9 @@ void SDataGraph::OnDragLeave( const FDragDropEvent& DragDropEvent )
 {
 	SCompoundWidget::OnDragLeave(DragDropEvent);
 
-	if( DragDrop::IsTypeMatch<FStatIDDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FStatIDDragDropOp> Operation = DragDropEvent.GetOperationAs<FStatIDDragDropOp>();
+	if (Operation.IsValid())
 	{
-		// D&D decorator icon
-		auto Operation = StaticCastSharedPtr<FStatIDDragDropOp>( DragDropEvent.GetOperation() );
 		Operation->ShowError();
 	}
 }
@@ -1265,9 +1255,10 @@ FReply SDataGraph::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 
 FReply SDataGraph::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
-	if( DragDrop::IsTypeMatch<FStatIDDragDropOp>( DragDropEvent.GetOperation() ) )
+	TSharedPtr<FStatIDDragDropOp> Operation = DragDropEvent.GetOperationAs<FStatIDDragDropOp>();
+
+	if(Operation.IsValid())
 	{
-		TSharedPtr<FStatIDDragDropOp> Operation = StaticCastSharedPtr<FStatIDDragDropOp>( DragDropEvent.GetOperation() );
 		if( Operation->IsSingleStatID() )
 		{
 			FProfilerManager::Get()->TrackStat( Operation->GetSingleStatID() );

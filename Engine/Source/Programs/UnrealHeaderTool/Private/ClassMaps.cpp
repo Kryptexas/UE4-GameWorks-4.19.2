@@ -6,11 +6,12 @@
 
 TMap<UClass*, FString>                   GClassStrippedHeaderTextMap;
 TMap<UClass*, FString>                   GClassSourceFileMap;
+TMap<UClass*, FClassHeaderInfo>          GClassGeneratedFileMap;
 TMap<UClass*, TUniqueObj<TArray<FName>>> GClassDependentOnMap;
-TMap<UClass*, FString>                   GClassHeaderFilenameMap;
 TMap<UClass*, FString>                   GClassHeaderNameWithNoPathMap;
 TMap<UClass*, FString>                   GClassModuleRelativePathMap;
 TMap<UClass*, FString>                   GClassIncludePathMap;
 TSet<UClass*>                            GPublicClassSet;
 TSet<UClass*>                            GExportedClasses;
 TMap<UProperty*, FString>                GArrayDimensions;
+TMap<UPackage*,  const FManifestModule*> GPackageToManifestModuleMap;

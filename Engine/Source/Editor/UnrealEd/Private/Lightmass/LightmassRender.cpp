@@ -166,7 +166,7 @@ class FLightmassMaterialProxy : public FMaterial, public FMaterialRenderProxy
 public:
 	FLightmassMaterialProxy(): FMaterial()
 	{
-		SetQualityLevelProperties(EMaterialQualityLevel::High,false,GRHIFeatureLevel);
+		SetQualityLevelProperties(EMaterialQualityLevel::High, false, GRHIFeatureLevel);
 	}
 
 	/** Initializes the material proxy and kicks off async shader compiling. */
@@ -646,7 +646,7 @@ public:
 			OutSizeY = 0;
 			return false;
 		}
-		OutSizeX = OutSizeY = FMath::Trunc(GlobalSize * SizeScale);
+		OutSizeX = OutSizeY = FMath::TruncToInt(GlobalSize * SizeScale);
 		return true;
 	}
 

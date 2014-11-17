@@ -16,7 +16,8 @@ namespace NodeSectionID
 		VARIABLE,				// Variables
 		DELEGATE,				// Delegate/Event
 		USER_ENUM,				// User defined enums
-		LOCAL_VARIABLE			// Local variables
+		LOCAL_VARIABLE,			// Local variables
+		USER_STRUCT,			// User defined structs
 	};
 };
 
@@ -37,10 +38,7 @@ public:
 	TSharedPtr<FUICommandInfo> ImplementFunction;
 	TSharedPtr<FUICommandInfo> FindEntry;
 	TSharedPtr<FUICommandInfo> DeleteEntry;
-	TSharedPtr<FUICommandInfo> FindUserDefinedEnumInContentBrowser;
-	TSharedPtr<FUICommandInfo> AddNewUserDefinedEnum;
 	TSharedPtr<FUICommandInfo> GotoNativeVarDefinition;
-
 	// Add New Item
 	/** Initialize commands */
 	virtual void RegisterCommands() OVERRIDE;
@@ -68,6 +66,9 @@ public:
 	/** Accessor for getting the current selection as a K2 enum */
 	FEdGraphSchemaAction_K2Enum* SelectionAsEnum() const;
 
+	/** Accessor for getting the current selection as a K2 enum */
+	FEdGraphSchemaAction_K2Struct* SelectionAsStruct() const;
+
 	/** Accessor for getting the current selection as a K2 var */
 	FEdGraphSchemaAction_K2Var* SelectionAsVar() const;
 	
@@ -78,7 +79,7 @@ public:
 	FEdGraphSchemaAction_K2Event* SelectionAsEvent() const;
 
 	/** Accessor for getting the current selection as a K2 local var */
-	UK2Node_LocalVariable* SelectionAsLocalVar() const;
+	FEdGraphSchemaAction_K2LocalVar* SelectionAsLocalVar() const;
 
 	/** Accessor for determining if the current selection is a category*/
 	bool SelectionIsCategory() const;
@@ -168,8 +169,6 @@ private:
 	bool CanFindEntry() const;
 	void OnDeleteEntry();
 	bool CanDeleteEntry() const;
-	void OnFindUserDefinedEnumInContentBrowser() const;
-	void AddNewUserDefinedEnum();
 	FReply OnAddNewLocalVariable();
 	bool CanRequestRenameOnActionNode() const;
 	bool IsDuplicateActionVisible() const;
@@ -215,4 +214,7 @@ private:
 
 	/** Contains both the GraphActionMenu and LocalGraphActionMenu */
 	TSharedPtr< SSplitter > ActionMenuContainer;
+
+	/** Enums created from 'blueprint' level */
+	TArray<TWeakObjectPtr<UUserDefinedStruct>> StructsAddedToBlueprint;
 };

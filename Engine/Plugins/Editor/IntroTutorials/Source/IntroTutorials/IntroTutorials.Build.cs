@@ -7,8 +7,7 @@ namespace UnrealBuildTool.Rules
 		public IntroTutorials(TargetInfo Target)
 		{
 			PublicDependencyModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
 					"Core",
 					"CoreUObject", // @todo Mac: for some reason CoreUObject and Engine are needed to link in debug on Mac
 					"Engine", // @todo Mac: for some reason CoreUObject and Engine are needed to link in debug on Mac
@@ -29,11 +28,11 @@ namespace UnrealBuildTool.Rules
 			);
 
 			PrivateDependencyModuleNames.AddRange(
-				new string[]
-				{				
+				new string[] {				
                     "UnrealEd",
                     "Kismet",
-                    "PlacementMode"
+                    "PlacementMode",
+					"SlateCore",
 				}
 			);
 
@@ -47,8 +46,7 @@ namespace UnrealBuildTool.Rules
 			);
 
 			DynamicallyLoadedModuleNames.AddRange(
-				new string[]
-				{
+				new string[] {
                     "Documentation",
 					"MainFrame",
 					"LauncherServices",

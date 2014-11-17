@@ -8,12 +8,12 @@
 
 @interface FSlateTextView : NSView <NSTextInputClient>
 {
-	ITextInputMethodContext* IMMContext;
+	TSharedPtr<ITextInputMethodContext> IMMContext;
 	NSRange markedRange;
 	bool reallyHandledEvent;
 }
 
-- (void)activateInputMethod:(ITextInputMethodContext*)InContext;
+- (void)activateInputMethod:(const TSharedRef<ITextInputMethodContext>&)InContext;
 - (void)deactivateInputMethod;
 
 - (bool)imkKeyDown:(NSEvent*)Event;

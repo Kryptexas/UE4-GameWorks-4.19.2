@@ -8,7 +8,13 @@
  */
 
 #pragma once
+#include "SkeletalMeshTypes.h"
 #include "SkinnedMeshComponent.generated.h"
+
+//
+// Forward declarations
+//
+class FSkeletalMeshResource;
 
 //
 // Bone Visibility.
@@ -119,7 +125,7 @@ struct FSkelMeshComponentLODInfo
 	
 };
 
-UCLASS(HeaderGroup=Component, hidecategories=Object, config=Engine, editinlinenew, abstract)
+UCLASS(hidecategories=Object, config=Engine, editinlinenew, abstract)
 class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()

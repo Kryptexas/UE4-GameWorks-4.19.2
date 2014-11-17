@@ -313,9 +313,9 @@ static bool IsMobilitySettingProhibited(EComponentMobility::Type const MobilityV
 
 	case EComponentMobility::Stationary:
 		{
-			if (SceneComponent->IsA(UStaticMeshComponent::StaticClass()))
+			if (!SceneComponent->IsA(ULightComponentBase::StaticClass()))
 			{
-				ProhibitedReasonOut = LOCTEXT("MeshStationaryRestriction", "Mesh components cannot be stationary.");
+				ProhibitedReasonOut = LOCTEXT("OnlyLightsCanBeStationary", "Only light components can be stationary.");
 				bIsProhibited = true;
 			}
 			else if (GetInheritedMobility(SceneComponent) == EComponentMobility::Movable)
@@ -662,7 +662,7 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 
 		if( bShouldShowTransform )
 		{
-			TSharedRef<FComponentTransformDetails> TransformDetails = MakeShareable( new FComponentTransformDetails( bIsEditingBlueprintDefaults ? SceneComponentObjects : DetailBuilder.GetDetailsView().GetSelectedObjects(), SelectedActorInfo, DetailBuilder.GetPropertyUtilities()->GetNotifyHook() ) );
+			TSharedRef<FComponentTransformDetails> TransformDetails = MakeShareable( new FComponentTransformDetails( bIsEditingBlueprintDefaults ? SceneComponentObjects : DetailBuilder.GetDetailsView().GetSelectedObjects(), SelectedActorInfo, DetailBuilder ) );
 
 			IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
 

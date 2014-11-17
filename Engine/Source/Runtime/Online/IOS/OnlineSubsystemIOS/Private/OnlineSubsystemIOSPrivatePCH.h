@@ -16,6 +16,7 @@
 #include "OnlineLeaderboardsInterfaceIOS.h"
 #include "OnlineStoreInterfaceIOS.h"
 #include "OnlineAchievementsInterfaceIOS.h"
+#include "OnlineExternalUIInterfaceIOS.h"
 
 #include "OnlineSubsystemIOS.h"
 #include "OnlineSubsystemIOSModule.h"

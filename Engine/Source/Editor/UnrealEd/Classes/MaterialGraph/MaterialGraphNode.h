@@ -19,9 +19,6 @@ class UMaterialGraphNode : public UMaterialGraphNode_Base
 	/** Set to true if this expression causes an error in the material */
 	bool bIsErrorExpression;
 
-	/** Set to true if this expression is the current search result */
-	bool bIsCurrentSearchResult;
-
 	/** Set to true if this expression is currently being previewed */
 	bool bIsPreviewExpression;
 

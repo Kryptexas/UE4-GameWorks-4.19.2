@@ -404,37 +404,67 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
 	if (bRelinkExistingProperties)
 	{
-		PropertiesSize = 0;
-		MinAlignment = 1;
-
-		if (UStruct* InheritanceSuper = GetInheritanceSuper())
+		// Preload everything before we calculate size, as the preload may end up recursively linking things
+		UStruct* InheritanceSuper = GetInheritanceSuper();
+		if (InheritanceSuper)
 		{
-			Ar.Preload(InheritanceSuper);
-
-			PropertiesSize = InheritanceSuper->GetPropertiesSize();
-			MinAlignment = InheritanceSuper->GetMinAlignment();
+			Ar.Preload(InheritanceSuper);			
 		}
 
 		for (UField* Field = Children; Field; Field = Field->Next)
 		{
 			// calling Preload here is required in order to load the value of Field->Next
-			Ar.Preload( Field );
-			if (Field->GetOuter() != this)
+			Ar.Preload(Field);
+		}
+
+		int32 LoopNum = 1;
+		for (int32 LoopIter = 0; LoopIter < LoopNum; LoopIter++)
+		{
+			PropertiesSize = 0;
+			MinAlignment = 1;
+
+			if (InheritanceSuper)
 			{
-				break;
+				PropertiesSize = InheritanceSuper->GetPropertiesSize();
+				MinAlignment = InheritanceSuper->GetMinAlignment();
 			}
 
-			if (UProperty* Property = Cast<UProperty>(Field))
+			for (UField* Field = Children; Field; Field = Field->Next)
 			{
-#if !WITH_EDITORONLY_DATA
-				// If we don't have the editor, make sure we aren't trying to link properties that are editor only.
-				check( !Property->IsEditorOnlyProperty() );
-#endif // WITH_EDITORONLY_DATA
+				if (Field->GetOuter() != this)
+				{
+					break;
+				}
 
-				PropertiesSize = Property->Link(Ar);
-				MinAlignment = FMath::Max( MinAlignment, Property->GetMinAlignment() );
+				if (UProperty* Property = Cast<UProperty>(Field))
+				{
+#if !WITH_EDITORONLY_DATA
+					// If we don't have the editor, make sure we aren't trying to link properties that are editor only.
+					check(!Property->IsEditorOnlyProperty());
+#endif // WITH_EDITORONLY_DATA
+					ensureMsgf(Property->GetOuter() == this, TEXT("Linking '%s'. Property '%s' has outer '%s'"),
+						*GetFullName(), *Property->GetName(), *Property->GetOuter()->GetFullName());
+
+					// Linking a property can cause a recompilation of the struct. 
+					// When the property was changed, the struct should be relinked again, to be sure, the PropertiesSize is actual.
+					const bool bPropertyIsTransient = Property->HasAllFlags(RF_Transient);
+					const FName PropertyName = Property->GetFName();
+
+					PropertiesSize = Property->Link(Ar);
+
+					if ((bPropertyIsTransient != Property->HasAllFlags(RF_Transient)) || (PropertyName != Property->GetFName()))
+					{
+						LoopNum++;
+						const int32 MaxLoopLimit = 64;
+						ensure(LoopNum < MaxLoopLimit);
+						break;
+					}
+
+					MinAlignment = FMath::Max(MinAlignment, Property->GetMinAlignment());
+				}
 			}
 		}
+
 		bool bHandledWithCppStructOps = false;
 		if (GetClass()->IsChildOf(UScriptStruct::StaticClass()))
 		{
@@ -902,6 +932,19 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue;
 			}
+			else if ((Tag.Type == NAME_ObjectProperty) && (Property->GetID() == NAME_AssetObjectProperty))
+			{
+				// This property used to be a raw UObjectProperty Foo* but is now a TAssetPtr<Foo>
+				UObject* PreviousValue = NULL;
+				Ar << PreviousValue;
+
+				// now copy the value into the object's address space
+				FAssetPtr PreviousValueAssetPtr(PreviousValue);
+				CastChecked<UAssetObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueAssetPtr, Tag.ArrayIndex);
+
+				AdvanceProperty = true;
+				continue;
+			}
 			else if(Tag.Type == NAME_IntProperty && Property->GetID() == NAME_BoolProperty )
 			{
 				// Property was saved as an int32, but has been changed to a bool (bitfield)
@@ -948,6 +991,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			else if( Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != CastChecked<UArrayProperty>(Property)->Inner->GetID() )
 			{
 				UE_LOG(LogClass, Warning, TEXT("Array Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UArrayProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName() );
+			}
+			else if (Tag.Type == NAME_AttributeProperty && Tag.InnerType != NAME_None && Tag.InnerType != CastChecked<UAttributeProperty>(Property)->Inner->GetID())
+			{
+				UE_LOG(LogClass, Warning, TEXT("Attribute Inner Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.InnerType.ToString(), *CastChecked<UAttributeProperty>(Property)->Inner->GetID().ToString(), *Ar.GetArchiveName());
 			}
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
 				&& CastChecked<UStructProperty>(Property)->UseBinaryOrNativeSerialization(Ar) )
@@ -1276,21 +1323,22 @@ void UStruct::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 		{
 			Collector.AddReferencedObject( ScriptObjectReferences[ Index ], This );
 		}
-//@todo NickW, temp hack to make stale property chains less crashy
-		for ( UProperty* Property = This->PropertyLink; Property != NULL; Property = Property->PropertyLinkNext )
-		{
-			Collector.AddReferencedObject( Property, This );
-		}
-		for ( UProperty* Property = This->RefLink; Property != NULL; Property = Property->NextRef )
-		{
-			Collector.AddReferencedObject( Property, This );
-		}
-		for ( UProperty* Property = This->DestructorLink; Property != NULL; Property = Property->DestructorLinkNext )
-		{
-			Collector.AddReferencedObject( Property, This );
-		}
-//
 	}
+
+	//@todo NickW, temp hack to make stale property chains less crashy
+	for (UProperty* Property = This->PropertyLink; Property != NULL; Property = Property->PropertyLinkNext)
+	{
+		Collector.AddReferencedObject(Property, This);
+	}
+	for (UProperty* Property = This->RefLink; Property != NULL; Property = Property->NextRef)
+	{
+		Collector.AddReferencedObject(Property, This);
+	}
+	for (UProperty* Property = This->DestructorLink; Property != NULL; Property = Property->DestructorLinkNext)
+	{
+		Collector.AddReferencedObject(Property, This);
+	}
+	//
 #endif
 	Super::AddReferencedObjects( This, Collector );
 }
@@ -2122,6 +2170,8 @@ void UScriptStruct::DestroyScriptStruct(void* Dest, int32 ArrayDim)
 	}
 }
 
+void UScriptStruct::RecursivelyPreload() {}
+
 IMPLEMENT_CORE_INTRINSIC_CLASS(UScriptStruct, UStruct,
 	{
 	}
@@ -2733,7 +2783,33 @@ void UClass::Serialize( FArchive& Ar )
 		Ar << ComponentNameToDefaultObjectMapSerialized;
 	}
 
-	Ar << Interfaces;
+	int32 NumInterfaces = 0;
+	int64 InterfacesStart = 0L;
+	if(Ar.IsLoading())
+	{
+		// Always start with no interfaces
+		Interfaces.Empty();
+
+		// In older versions, interface classes were serialized before linking. In case of cyclic dependencies, we need to skip over the serialized array and defer the load until after Link() is called below.
+		if(Ar.UE4Ver() < VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING && !GIsDuplicatingClassForReinstancing)
+		{
+			// Get our current position
+			InterfacesStart = Ar.Tell();
+
+			// Load the length of the Interfaces array
+			Ar << NumInterfaces;
+
+			// Seek past the Interfaces array
+			struct FSerializedInterfaceReference
+			{
+				FPackageIndex Class;
+				int32 PointerOffset;
+				bool bImplementedByK2;
+			};
+			Ar.Seek(InterfacesStart + sizeof(NumInterfaces) + NumInterfaces * sizeof(FSerializedInterfaceReference));
+		}
+	}
+
 	Ar << ClassGeneratedBy;
 
 	if(Ar.IsLoading())
@@ -2742,6 +2818,38 @@ void UClass::Serialize( FArchive& Ar )
 		checkf(!HasAnyClassFlags(CLASS_Intrinsic), TEXT("Class %s loaded with CLASS_Intrinsic....we should not be loading any intrinsic classes."), *GetFullName());
 		ClassFlags &= ~ CLASS_ShouldNeverBeLoaded;
 		Link(Ar, true);
+	}
+
+	if(Ar.IsLoading())
+	{
+		// Save current position
+		int64 CurrentOffset = Ar.Tell();
+
+		// In older versions, we need to seek backwards to the start of the interfaces array
+		if(Ar.UE4Ver() < VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING && !GIsDuplicatingClassForReinstancing)
+		{
+			Ar.Seek(InterfacesStart);
+		}
+		
+		// Load serialized interface classes
+		TArray<FImplementedInterface> SerializedInterfaces;
+		Ar << SerializedInterfaces;
+
+		// Apply loaded interfaces only if we have not already set them (i.e. during compile-on-load)
+		if(Interfaces.Num() == 0 && SerializedInterfaces.Num() > 0)
+		{
+			Interfaces = SerializedInterfaces;
+		}
+
+		// In older versions, seek back to our current position after linking
+		if(Ar.UE4Ver() < VER_UE4_UCLASS_SERIALIZE_INTERFACES_AFTER_LINKING && !GIsDuplicatingClassForReinstancing)
+		{
+			Ar.Seek(CurrentOffset);
+		}
+	}
+	else
+	{
+		Ar << Interfaces;
 	}
 
 	if( Ar.UE4Ver() < VER_UE4_DONTSORTCATEGORIES_REMOVED )
@@ -2928,6 +3036,7 @@ void UClass::PurgeClass(bool bRecompilingOnLoad)
 	{
 		// this is not safe to do at COL time. The meta data is not loaded yet, so if we attempt to load it, we recursively load the package and that will fail
 		RemoveMetaData("HideCategories");
+		RemoveMetaData("ShowCategories");
 		RemoveMetaData("HideFunctions");
 		RemoveMetaData("AutoExpandCategories");
 		RemoveMetaData("AutoCollapseCategories");
@@ -3232,6 +3341,10 @@ const FString UClass::GetConfigName() const
 	{
 		return GGameIni;
 	}
+	else if ( ClassConfigName == NAME_EditorGameAgnostic )
+	{
+		return GEditorGameAgnosticIni;
+	}
 	else if( ClassConfigName == NAME_None )
 	{
 		UE_LOG(LogClass, Fatal,TEXT("UObject::GetConfigName() called on class with config name 'None'. Class flags = %d"), ClassFlags );
@@ -3257,26 +3370,62 @@ void UClass::GetHideCategories(TArray<FString>& OutHideCategories) const
 	}
 }
 
+void UClass::GetShowCategories(TArray<FString>& OutShowCategories) const
+{
+	static const FName NAME_ShowCategories(TEXT("ShowCategories"));
+	if (HasMetaData(NAME_ShowCategories))
+	{
+		const FString& ShowCategories = GetMetaData(NAME_ShowCategories);
+		ShowCategories.ParseIntoArray(&OutShowCategories, TEXT(" "), true);
+	}
+}
+
 bool UClass::IsCategoryHidden(const FString& InCategory) const
 {
 	bool bHidden = false;
-	static const FName NAME_HideCategories(TEXT("HideCategories"));
+	static FName const NAME_HideCategories(TEXT("HideCategories"));
+	static FName const NAME_ShowCategories(TEXT("ShowCategories"));
 	if (HasMetaData(NAME_HideCategories))
 	{
-		const FString& HideCategories = GetMetaData(NAME_HideCategories);
+		FString ShowCategories;
+		if (HasMetaData(NAME_ShowCategories))
+		{
+			ShowCategories = GetMetaData(NAME_ShowCategories);
+		}
+
+		FString const& HideCategories = GetMetaData(NAME_HideCategories);
 		bHidden = !!FCString::StrfindDelim(*HideCategories, *InCategory, TEXT(" "));
 		if (!bHidden)
 		{
 			TArray<FString> SubCategoryList;
 			InCategory.ParseIntoArray(&SubCategoryList, TEXT("|"), true);
-			for (const FString& SubCategory : SubCategoryList)
+
+			FString SubCategoryPath;
+			for (int32 SubCatIndex = 0; SubCatIndex < SubCategoryList.Num(); ++SubCatIndex)
 			{
+				FString SubCategory = SubCategoryList[SubCatIndex];
+				SubCategory = SubCategory.Replace(TEXT(" "), TEXT(""));
+				SubCategoryPath += SubCategory;
+
 				if (!!FCString::StrfindDelim(*HideCategories, *SubCategory, TEXT(" ")))
 				{
 					bHidden = true;
-					break;
 				}
-			}		
+				else if (!!FCString::StrfindDelim(*HideCategories, *SubCategoryPath, TEXT(" ")))
+				{
+					bHidden = true;
+				}
+
+				if (bHidden && !ShowCategories.IsEmpty() && !!FCString::StrfindDelim(*ShowCategories, *SubCategoryPath, TEXT(" ")))
+				{
+					bHidden = false;
+				}
+				SubCategoryPath += "|";
+			}	
+		}
+		else if (!ShowCategories.IsEmpty() && !!FCString::StrfindDelim(*ShowCategories, *InCategory, TEXT(" ")))
+		{
+			bHidden = false;
 		}
 	}
 	return bHidden;
@@ -3518,14 +3667,19 @@ void UFunction::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction) const
 {
+	// The script compiler pointlessly sets CPF_EditInline on components passed as arguments
+	const uint64 IgnoreFlags = UFunction::GetDefaultIgnoredSignatureCompatibilityFlags();
+
+	return IsSignatureCompatibleWith(OtherFunction, IgnoreFlags);
+}
+
+bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const
+{
 	// Early out if they're exactly the same function
 	if (this == OtherFunction)
 	{
 		return true;
 	}
-
-	// The script compiler pointlessly sets CPF_EditInline on components passed as arguments
-	const uint64 IgnoreFlags = CPF_EditInline | CPF_ExportObject | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm;//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
 
 	// Run thru the parameter property chains to compare each property
 	TFieldIterator<UProperty> IteratorA(this);

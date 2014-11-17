@@ -58,7 +58,7 @@ struct FParticleSystemReplayFrame
 	
 };
 
-UCLASS(HeaderGroup=Particle, hidecategories=Object, AutoExpandCategories=ParticleSystemReplay)
+UCLASS(hidecategories=Object, AutoExpandCategories=ParticleSystemReplay)
 class UParticleSystemReplay : public UObject
 {
 	GENERATED_UCLASS_BODY()

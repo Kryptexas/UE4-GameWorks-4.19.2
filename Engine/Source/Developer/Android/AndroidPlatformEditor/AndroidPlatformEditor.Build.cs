@@ -9,19 +9,24 @@ public class AndroidPlatformEditor : ModuleRules
 		BinariesSubFolder = "Android";
 
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
 				"CoreUObject",
 				"InputCore",
 				"Engine",
 				"Slate",
+				"SlateCore",
 				"EditorStyle",
 				"PropertyEditor",
 				"SharedSettingsWidgets",
-				"Settings",
 				"SourceControl",
 				"AndroidRuntimeSettings",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Settings",
 			}
 		);
 

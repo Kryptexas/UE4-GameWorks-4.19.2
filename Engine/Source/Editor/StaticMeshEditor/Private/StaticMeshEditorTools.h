@@ -145,9 +145,9 @@ private:
 	void OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState);
 	void OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState);
 	void OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState);
-	void OnBuildScaleXChanged( float NewScaleX );
-	void OnBuildScaleYChanged( float NewScaleY );
-	void OnBuildScaleZChanged( float NewScaleZ );
+	void OnBuildScaleXChanged( float NewScaleX, ETextCommit::Type TextCommitType );
+	void OnBuildScaleYChanged( float NewScaleY, ETextCommit::Type TextCommitType );
+	void OnBuildScaleZChanged( float NewScaleZ, ETextCommit::Type TextCommitType );
 
 private:
 	TWeakPtr<FLevelOfDetailSettingsLayout> ParentLODSettings;
@@ -258,11 +258,13 @@ private:
 	void OnLODCountChanged(int32 NewValue);
 	void OnLODCountCommitted(int32 InValue, ETextCommit::Type CommitInfo);
 	int32 GetLODCount() const;
-	float GetLODDistance(int32 LODIndex) const;
-	FText GetLODDistanceTitle(int32 LODIndex) const;
-	bool CanChangeLODDistance() const;
-	void OnLODDistanceChanged(float NewValue, int32 LODIndex);
-	void OnLODDistanceCommitted(float NewValue, ETextCommit::Type CommitType, int32 LODIndex);
+
+	float GetLODScreenSize(int32 LODIndex)const;
+	FText GetLODScreenSizeTitle(int32 LODIndex) const;
+	bool CanChangeLODScreenSize() const;
+	void OnLODScreenSizeChanged(float NewValue, int32 LODIndex);
+	void OnLODScreenSizeCommitted(float NewValue, ETextCommit::Type CommitType, int32 LODIndex);
+
 	void OnBuildSettingsExpanded(bool bIsExpanded, int32 LODIndex);
 	void OnReductionSettingsExpanded(bool bIsExpanded, int32 LODIndex);
 	void OnSectionSettingsExpanded(bool bIsExpanded, int32 LODIndex);
@@ -296,8 +298,8 @@ private:
 	TSharedPtr<FMeshBuildSettingsLayout> BuildSettingsWidgets[MAX_STATIC_MESH_LODS];
 	TSharedPtr<FMeshSectionSettingsLayout> SectionSettingsWidgets[MAX_STATIC_MESH_LODS];
 
-	/** The distances at which each LOD swaps in. */
-	float LODDistances[MAX_STATIC_MESH_LODS];
+	/** The display factors at which LODs swap */
+	float LODScreenSizes[MAX_STATIC_MESH_LODS];
 
 	/** Helper value that corresponds to the 'Number of LODs' spinbox.*/
 	int32 LODCount;

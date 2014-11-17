@@ -30,10 +30,10 @@ enum EPhysicsType
 {
 	// follow owner option
 	PhysType_Default UMETA(DisplayName="Default"),	
-	// Do not follow owner, but fix 
-	PhysType_Fixed	UMETA(DisplayName="Fixed"),		
-	// Do not follow owner, but unfix 
-	PhysType_Unfixed	UMETA(DisplayName="Unfixed")	
+	// Do not follow owner, but make kinematic
+	PhysType_Kinematic	UMETA(DisplayName="Kinematic"),		
+	// Do not follow owner, but simulate
+	PhysType_Simulated	UMETA(DisplayName="Simulated")	
 };
 
 UENUM()
@@ -78,7 +78,7 @@ struct FKConvexElem
 		, ConvexMeshNegX(NULL)
 		{}
 
-		ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FVector& Scale3D, const FColor Color);
+		ENGINE_API void	DrawElemWire(class FPrimitiveDrawInterface* PDI, const FTransform& ElemTM, const FColor Color);
 		void	AddCachedSolidConvexGeom(TArray<FDynamicMeshVertex>& VertexBuffer, TArray<int32>& IndexBuffer, const FColor VertexColor);
 
 		/** Reset the hull to empty all arrays */

@@ -21,10 +21,10 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InAddress - The address for this bridge.
-	 * @param InBus - The message bus that this node is connected to.
-	 * @param InSerializer - The message serializer to use.
-	 * @param InTransport - The transport mechanism to use.
+	 * @param InAddress The address for this bridge.
+	 * @param InBus The message bus that this node is connected to.
+	 * @param InSerializer The message serializer to use.
+	 * @param InTransport The transport mechanism to use.
 	 */
 	FMessageBridge( const FMessageAddress InAddress, const IMessageBusRef& InBus, const ISerializeMessagesRef& InSerializer, const ITransportMessagesRef& InTransport );
 

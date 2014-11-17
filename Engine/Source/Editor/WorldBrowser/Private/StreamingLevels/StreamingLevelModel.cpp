@@ -116,6 +116,16 @@ void FStreamingLevelModel::GetGridItemTooltipFields(TArray< TPair<TAttribute<FTe
 //	return false;
 //}
 
+UClass* FStreamingLevelModel::GetStreamingClass() const
+{
+	if (!IsPersistent() && LevelStreaming.IsValid())
+	{
+		return LevelStreaming.Get()->GetClass();
+	}
+	
+	return FLevelModel::GetStreamingClass();
+}
+
 void FStreamingLevelModel::SetStreamingClass( UClass *LevelStreamingClass )
 {
 	if (IsPersistent())

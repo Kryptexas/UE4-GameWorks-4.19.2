@@ -7,6 +7,8 @@
 #ifndef __UNOBJGLOBALS_H__
 #define __UNOBJGLOBALS_H__
 
+#include "Script.h"
+
 COREUOBJECT_API DECLARE_LOG_CATEGORY_EXTERN(LogUObjectGlobals, Log, All);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("ConstructObject"),STAT_ConstructObject,STATGROUP_Object, );
@@ -184,7 +186,7 @@ COREUOBJECT_API bool ParseObject( const TCHAR* Stream, const TCHAR* Match, UClas
  * @return The object that was loaded or found. NULL for a failure.
  */
 COREUOBJECT_API UObject* StaticLoadObject( UClass* Class, UObject* InOuter, const TCHAR* Name, const TCHAR* Filename = NULL, uint32 LoadFlags = LOAD_None, UPackageMap* Sandbox = NULL, bool bAllowObjectReconciliation = true );
-COREUOBJECT_API UClass* StaticLoadClass( UClass* BaseClass, UObject* InOuter, const TCHAR* Name, const TCHAR* Filename, uint32 LoadFlags, UPackageMap* Sandbox );
+COREUOBJECT_API UClass* StaticLoadClass(UClass* BaseClass, UObject* InOuter, const TCHAR* Name, const TCHAR* Filename = NULL, uint32 LoadFlags = LOAD_None, UPackageMap* Sandbox = NULL);
 /**
  * Create a new instance of an object.  The returned object will be fully initialized.  If InFlags contains RF_NeedsLoad (indicating that the object still needs to load its object data from disk), components
  * are not instanced (this will instead occur in PostLoad()).  The different between StaticConstructObject and StaticAllocateObject is that StaticConstructObject will also call the class constructor on the object
@@ -238,7 +240,7 @@ COREUOBJECT_API void PreInitUObject();
  */
 COREUOBJECT_API void MarkObjectsToDisregardForGC();
 COREUOBJECT_API bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog );
-COREUOBJECT_API void StaticTick( float DeltaTime );
+COREUOBJECT_API void StaticTick( float DeltaTime, float AsyncLoadingTime = 0.005f );
 
 /**
  * Loads a package and all contained objects that match context flags.
@@ -396,11 +398,12 @@ namespace EAsyncPackageState
  * to fully load a package in a single pass given sufficient time.
  *
  * @param	bUseTimeLimit	Whether to use a time limit
+ * @param	bUseFullTimeLimit	If true, use the entire time limit even if blocked on I/O
  * @param	TimeLimit		Soft limit of time this function is allowed to consume
  * @param	ExcludeType		Do not process packages associated with this specific type name
  * @return The minimum state of any of the queued packages.
  */
-COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, float TimeLimit, FName ExcludeType = NAME_None );
+COREUOBJECT_API EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FName ExcludeType = NAME_None );
 COREUOBJECT_API void BeginLoad();
 COREUOBJECT_API void EndLoad(const TCHAR* LoadContext = NULL);
 

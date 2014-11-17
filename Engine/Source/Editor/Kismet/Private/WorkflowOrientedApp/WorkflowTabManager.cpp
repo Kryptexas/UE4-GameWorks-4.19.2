@@ -326,6 +326,12 @@ void FWorkflowAllowedTabSet::RegisterFactory(TSharedPtr<class FWorkflowTabFactor
 	Factories.Add(NewIdentifier, Factory);
 }
 
+void FWorkflowAllowedTabSet::UnregisterFactory(FName FactoryID)
+{
+	int32 Removed = Factories.Remove(FactoryID);
+	check(Removed != 0);
+}
+
 // Merges in a set of factories into this set
 void FWorkflowAllowedTabSet::MergeInSet(const FWorkflowAllowedTabSet& OtherSet)
 {

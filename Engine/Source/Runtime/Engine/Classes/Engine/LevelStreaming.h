@@ -99,16 +99,12 @@ class ULevelStreaming : public UObject
 	uint32 bFailedToLoad:1;
 
 	/** Whether this level should be visible in the Editor																		*/
-	UPROPERTY(EditAnywhere, Category=LevelStreaming)
+	UPROPERTY()
 	uint32 bShouldBeVisibleInEditor:1;
 
 	/** Whether this level is locked; that is, its actors are read-only.														*/
-	UPROPERTY(EditAnywhere, Category=LevelStreaming)
+	UPROPERTY()
 	uint32 bLocked:1;
-
-	/** Whether this level is fully static - if it is, then assumptions can be made about it, ie it doesn't need to be reloaded since nothing could have changed */
-	UPROPERTY(EditAnywhere, Category=LevelStreaming)
-	uint32 bIsFullyStatic:1;
 
 	/** Whether the level should be loaded																						*/
 	UPROPERTY(Category=LevelStreaming, BlueprintReadWrite)
@@ -165,7 +161,7 @@ class ULevelStreaming : public UObject
 	}
 
 	/** Rename package name to PIE appropriate name */
-	void RenameForPIE(int PIEInstanceID);
+	ENGINE_API void RenameForPIE(int PIEInstanceID);
 
 	/**
 	 * Return whether this level should be present in memory which in turn tells the 
@@ -236,6 +232,10 @@ class ULevelStreaming : public UObject
 	/** Returns whether streaming level is loaded */
 	UFUNCTION(BlueprintCallable, Category="Game")
 	bool IsLevelLoaded() const;
+
+	/** Creates a new instance of this streaming level with a provided unique instance name */
+	UFUNCTION(BlueprintCallable, Category="Game")
+	ULevelStreaming* CreateInstance(FString UniqueInstanceName);
 
 	//==============================================================================================
 	// Delegates

@@ -53,7 +53,7 @@ public:
 	{
 		if (Singleton == NULL)
 		{
-			Singleton = new TGenericMacTargetPlatform<true, false>;
+			Singleton = new TGenericMacTargetPlatform<true, false, false>();
 		}
 
 		return Singleton;

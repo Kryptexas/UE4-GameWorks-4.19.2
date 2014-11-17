@@ -387,3 +387,8 @@ bool FIOSDeviceHelper::InstallIPAOnDevice(const FTargetDeviceId& DeviceId, const
     }
     return false;
 }
+
+void FIOSDeviceHelper::EnableDeviceCheck(bool OnOff)
+{
+
+}

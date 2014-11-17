@@ -4,7 +4,7 @@
 #pragma once
 #include "NiagaraComponent.generated.h"
 
-UCLASS(HeaderGroup=Component)
+UCLASS()
 class ENGINE_API UNiagaraComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()

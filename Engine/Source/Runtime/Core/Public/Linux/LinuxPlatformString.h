@@ -23,6 +23,11 @@ struct FLinuxPlatformString : public FStandardPlatformString
 		int ret = mbstowcs(Dest, Source, LengthM1);
 		if(ret == LengthM1) Dest[LengthM1] = '\0';
 	}
+
+	static const ANSICHAR* GetEncodingName()
+	{
+		return "UTF-32LE";
+	}
 };
 
 typedef FLinuxPlatformString FPlatformString;

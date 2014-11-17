@@ -158,6 +158,25 @@ void UK2Node_AddComponent::ValidateNodeDuringCompilation(FCompilerResultsLog& Me
 			Args.Add(TEXT("NodeTitle"), GetNodeTitle(ENodeTitleType::FullTitle));
 			MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "InvalidComponentTemplate_Error", "Invalid class '{TemplateClass}' used as template by '{NodeTitle}' for @@"), Args).ToString(), this);
 		}
+
+		if (UChildActorComponent const* ChildActorComponent = Cast<UChildActorComponent const>(Template))
+		{
+			UBlueprint const* Blueprint = GetBlueprint();
+
+			UClass const* ChildActorClass = ChildActorComponent->ChildActorClass;
+			if (ChildActorClass == Blueprint->GeneratedClass)
+			{
+				UEdGraph const* ParentGraph = GetGraph();
+				UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
+
+				if (K2Schema->IsConstructionScript(ParentGraph))
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("ChildActorClass"), FText::FromString(ChildActorClass->GetName()));
+					MessageLog.Error(*FText::Format(NSLOCTEXT("KismetCompiler", "AddSelfComponent_Error", "@@ cannot add a '{ChildActorClass}' component in the construction script (could cause infinite recursion)."), Args).ToString(), this);
+				}
+			}
+		}
 	}
 	else
 	{
@@ -282,6 +301,7 @@ FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(SourceTemplate);
 			USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(SourceTemplate);
 			UParticleSystemComponent* PSysComp = Cast<UParticleSystemComponent>(SourceTemplate);
+			UChildActorComponent* SubActorComp = Cast<UChildActorComponent>(SourceTemplate);
 
 			if(StaticMeshComp != NULL && StaticMeshComp->StaticMesh != NULL)
 			{
@@ -300,6 +320,12 @@ FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 				FFormatNamedArguments Args;
 				Args.Add(TEXT("ParticleSystemName"), FText::FromString(PSysComp->Template->GetName()));
 				return FText::Format(LOCTEXT("AddParticleSystem", "Add ParticleSystem {ParticleSystemName}"), Args);
+			}
+			else if (SubActorComp && SubActorComp->ChildActorClass)
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("ComponentClassName"), FText::FromString(SubActorComp->ChildActorClass->GetName()));
+				return FText::Format(LOCTEXT("AddChildActorComponent", "Add ChildActorComponent {ComponentClassName}"), Args);
 			}
 			else
 			{
@@ -359,17 +385,17 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 		NewNode->AllocateDefaultPinsWithoutExposedVariables();
 
 		// function parameters
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*GetTemplateNamePinChecked(), *NewNode->GetTemplateNamePinChecked()), this);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*GetRelativeTransformPin(), *NewNode->GetRelativeTransformPin()), this);
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*GetManualAttachmentPin(), *NewNode->GetManualAttachmentPin()), this);
+		CompilerContext.MovePinLinksToIntermediate(*GetTemplateNamePinChecked(), *NewNode->GetTemplateNamePinChecked());
+		CompilerContext.MovePinLinksToIntermediate(*GetRelativeTransformPin(), *NewNode->GetRelativeTransformPin());
+		CompilerContext.MovePinLinksToIntermediate(*GetManualAttachmentPin(), *NewNode->GetManualAttachmentPin());
 
 		UEdGraphPin* ReturnPin = NewNode->GetReturnValuePin();
 		UEdGraphPin* OriginalReturnPin = GetReturnValuePin();
 		check((NULL != ReturnPin) && (NULL != OriginalReturnPin));
 		ReturnPin->PinType = OriginalReturnPin->PinType;
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OriginalReturnPin, *ReturnPin), this);
+		CompilerContext.MovePinLinksToIntermediate(*OriginalReturnPin, *ReturnPin);
 		// exec in
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*GetExecPin(), *NewNode->GetExecPin()), this);
+		CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *NewNode->GetExecPin());
 
 		UEdGraphPin* LastThen = NewNode->GetThenPin();
 		for(int32 PinIndex = 0; PinIndex < Pins.Num(); PinIndex++)
@@ -404,14 +430,14 @@ void UK2Node_AddComponent::ExpandNode(class FKismetCompilerContext& CompilerCont
 
 				// Move connection from the variable pin on the spawn node to the 'value' pin
 				UEdGraphPin* ValuePin = SetVarNode->FindPinChecked(ValueParamName);
-				CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*OrgPin, *ValuePin), this);
+				CompilerContext.MovePinLinksToIntermediate(*OrgPin, *ValuePin);
 				if(OrgPin->PinType.bIsArray)
 				{
 					SetVarNode->PinConnectionListChanged(ValuePin);
 				}
 			}
 		}
-		CompilerContext.CheckConnectionResponse(Schema->MovePinLinks(*GetThenPin(), *LastThen), this);
+		CompilerContext.MovePinLinksToIntermediate(*GetThenPin(), *LastThen);
 		BreakAllNodeLinks();
 	}
 }

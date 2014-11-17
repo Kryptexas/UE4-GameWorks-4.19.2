@@ -6,7 +6,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineUserInterfaceClasses.h"
 
 /** The currently selected actor. */
 AActor* GDebugSelectedActor = NULL;

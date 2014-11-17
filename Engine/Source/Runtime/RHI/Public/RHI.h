@@ -193,10 +193,10 @@ extern RHI_API bool GTriggerGPUHitchProfile;
 
 /** True if the RHI supports texture streaming */
 extern RHI_API bool GRHISupportsTextureStreaming;
-/** Amount of memory allocated by textures. In bytes. */
-extern RHI_API volatile int64 GCurrentTextureMemorySize;
-/** Amount of memory allocated by rendertargets. In bytes. */
-extern RHI_API volatile int64 GCurrentRendertargetMemorySize;
+/** Amount of memory allocated by textures. In kilobytes. */
+extern RHI_API volatile int32 GCurrentTextureMemorySize;
+/** Amount of memory allocated by rendertargets. In kilobytes. */
+extern RHI_API volatile int32 GCurrentRendertargetMemorySize;
 /** Current texture streaming pool size, in bytes. 0 means unlimited. */
 extern RHI_API int64 GTexturePoolSize;
 /** Whether to read the texture pool size from engine.ini. Can be turned on with -UseTexturePool on the command line. */
@@ -313,8 +313,18 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 /** Creates an FName for the given feature level. */
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
+extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
+
 /** The current feature level supported by the RHI. */
-extern RHI_API ERHIFeatureLevel::Type GRHIFeatureLevel;
+inline ERHIFeatureLevel::Type GetRHIFeatureLevel()
+{
+	return GMaxRHIFeatureLevel;
+}
+
+#define GRHIFeatureLevel GetRHIFeatureLevel()
+
+/** Set the current feature level supported by the RHI. */
+extern RHI_API void SetMaxRHIFeatureLevel(ERHIFeatureLevel::Type InType);
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];
@@ -379,7 +389,7 @@ inline bool RHISupportsTessellation(const EShaderPlatform Platform)
 {
 	if (IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5))
 	{
-		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE));
+		return ((Platform == SP_PCD3D_SM5) || (Platform == SP_XBOXONE) || (Platform == SP_OPENGL_SM5));
 	}
 	return false;
 }
@@ -1206,6 +1216,27 @@ enum ETextureCreateFlags
 	TexCreate_TargetArraySlicesIndependently	= 1<<23,
 	// Texture that may be shared with DX9 or other devices
 	TexCreate_Shared = 1 << 24,
+};
+
+struct FVRamAllocation
+{
+	FVRamAllocation(uint32 InAllocationStart = 0, uint32 InAllocationSize = 0)
+		: AllocationStart(InAllocationStart)
+		, AllocationSize(InAllocationSize)
+	{
+	}
+
+	bool IsValid() { return AllocationSize > 0; }
+
+	// in bytes
+	uint32 AllocationStart;
+	// in bytes
+	uint32 AllocationSize;
+};
+
+struct FRHIResourceInfo
+{
+	FVRamAllocation VRamAllocation;
 };
 
 // Forward-declaration.

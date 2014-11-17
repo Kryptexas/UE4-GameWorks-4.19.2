@@ -12,6 +12,12 @@
 #include "ConnectionDrawingPolicy.h"
 #include "IDocumentation.h"
 
+#include "AnimationTransitionGraph.h"
+#include "AnimGraphNode_TransitionResult.h"
+#include "AnimGraphNode_StateMachineBase.h"
+#include "AnimStateTransitionNode.h"
+#include "AnimationStateMachineGraph.h"
+
 #define LOCTEXT_NAMESPACE "TransitionNodes"
 
 /////////////////////////////////////////////////////
@@ -27,7 +33,7 @@ void SGraphNodeAnimTransition::GetNodeInfoPopups(FNodeInfoContext* Context, TArr
 {
 }
 
-void SGraphNodeAnimTransition::MoveTo(const FVector2D& NewPosition)
+void SGraphNodeAnimTransition::MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter)
 {
 	// Ignored; position is set by the location of the attached state nodes
 }

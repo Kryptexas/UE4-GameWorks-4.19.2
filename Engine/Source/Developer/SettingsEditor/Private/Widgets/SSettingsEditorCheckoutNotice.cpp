@@ -122,3 +122,6 @@ FText SSettingsEditorCheckoutNotice::HandleSccUnavailableTextBlockText( ) const
 
 	return FText::GetEmpty();
 }
+
+
+#undef LOCTEXT_NAMESPACE

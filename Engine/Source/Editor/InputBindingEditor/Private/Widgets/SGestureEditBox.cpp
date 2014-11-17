@@ -59,7 +59,7 @@ void SGestureEditBox::Construct( const FArguments& InArgs, TSharedPtr<FGestureTr
 						.OnClicked( this, &SGestureEditBox::OnGestureRemoveButtonClicked )
 						.ForegroundColor( FSlateColor::UseForeground() )
 						.IsFocusable(false)
-						.ToolTipText(LOCTEXT("GestureEditButtonRemove_ToolTip", "Remove this binding").ToString() )
+						.ToolTipText(LOCTEXT("GestureEditButtonRemove_ToolTip", "Remove this binding") )
 						[
 							SNew( SBox )
 							[
@@ -215,7 +215,7 @@ TSharedRef<SWidget> SGestureEditBox::OnGetContentForConflictPopup()
 				[
 					SAssignNew( GestureAcceptButton, SButton )
 						.ContentPadding(1)
-						.ToolTipText( LOCTEXT("GestureAcceptButton_ToolTip", "Accept this new binding").ToString() )
+						.ToolTipText( LOCTEXT("GestureAcceptButton_ToolTip", "Accept this new binding") )
 						.OnClicked( this, &SGestureEditBox::OnAcceptNewGestureButtonClicked )
 						[
 							SNew( SHorizontalBox )
@@ -233,7 +233,7 @@ TSharedRef<SWidget> SGestureEditBox::OnGetContentForConflictPopup()
 								.Padding(2.0f,0.0f)
 								[
 									SNew( STextBlock )
-										.Text( LOCTEXT("GestureAcceptButtonText_Override", "Override").ToString() )
+										.Text( LOCTEXT("GestureAcceptButtonText_Override", "Override") )
 								]
 						]
 				]

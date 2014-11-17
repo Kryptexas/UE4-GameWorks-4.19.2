@@ -15,6 +15,9 @@ UBehaviorTreeGraphNode::UBehaviorTreeGraphNode(const class FPostConstructInitial
 	bHighlightInSearchRange0 = false;
 	bHighlightInSearchRange1 = false;
 	bHighlightInSearchTree = false;
+	bRootLevel = false;
+	bInjectedNode = false;
+	bHasObserverError = false;
 	bHasBreakpoint = false;
 	bIsBreakpointEnabled = false;
 	bDebuggerMarkCurrentlyActive = false;
@@ -49,6 +52,16 @@ void UBehaviorTreeGraphNode::PostPlacedNewNode()
 		BTNode->InitializeFromAsset(BT);
 		BTNode->InitializeNode(NULL, MAX_uint16, 0, 0);
 	}
+}
+
+bool UBehaviorTreeGraphNode::CanDuplicateNode() const
+{
+	return bInjectedNode ? false : Super::CanDuplicateNode();
+}
+
+bool UBehaviorTreeGraphNode::CanUserDeleteNode() const
+{
+	return bInjectedNode ? false : Super::CanUserDeleteNode();
 }
 
 void UBehaviorTreeGraphNode::PrepareForCopying()
@@ -99,7 +112,15 @@ FString	UBehaviorTreeGraphNode::GetDescription() const
 
 FString UBehaviorTreeGraphNode::GetTooltip() const
 {
-	return (DebuggerRuntimeDescription.Len() > 0) ? DebuggerRuntimeDescription : DeprecationMessage;
+	FString TooltipDesc = bHasObserverError ? LOCTEXT("ObserverError", "Observer has invalid abort setting!").ToString() :		
+		(DebuggerRuntimeDescription.Len() > 0) ? DebuggerRuntimeDescription : ErrorMessage;
+
+	if (bInjectedNode)
+	{
+		TooltipDesc = LOCTEXT("Injected", "Injected: ").ToString() + ((TooltipDesc.Len() > 0) ? TooltipDesc : GetDescription());
+	}
+
+	return TooltipDesc;
 }
 
 UEdGraphPin* UBehaviorTreeGraphNode::GetInputPin(int32 InputIndex) const
@@ -252,7 +273,21 @@ void UBehaviorTreeGraphNode::AddSubNode(UBehaviorTreeGraphNode* NodeTemplate, cl
 
 	if (Cast<UBehaviorTreeGraphNode_CompositeDecorator>(NodeTemplate) || Cast<UBehaviorTreeGraphNode_Decorator>(NodeTemplate))
 	{
-		Decorators.Add(NodeTemplate);
+		bool bAppend = true;
+		for (int32 Idx = 0; Idx < Decorators.Num(); Idx++)
+		{
+			if (Decorators[Idx]->bInjectedNode)
+			{
+				Decorators.Insert(NodeTemplate, Idx);
+				bAppend = false;
+				break;
+			}
+		}
+
+		if (bAppend)
+		{
+			Decorators.Add(NodeTemplate);
+		}
 	} 
 	else
 	{

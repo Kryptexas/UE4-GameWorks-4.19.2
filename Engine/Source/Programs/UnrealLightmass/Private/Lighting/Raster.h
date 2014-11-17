@@ -111,8 +111,8 @@ private:
 		bool BackFacing
 		)
 	{
-		int32	IntMinY = FMath::Clamp(FMath::Ceil(MinY),RasterPolicyType::GetMinY(),RasterPolicyType::GetMaxY() + 1),
-			IntMaxY = FMath::Clamp(FMath::Ceil(MaxY),RasterPolicyType::GetMinY(),RasterPolicyType::GetMaxY() + 1);
+		int32	IntMinY = FMath::Clamp(FMath::CeilToInt(MinY),RasterPolicyType::GetMinY(),RasterPolicyType::GetMaxY() + 1),
+			IntMaxY = FMath::Clamp(FMath::CeilToInt(MaxY),RasterPolicyType::GetMinY(),RasterPolicyType::GetMaxY() + 1);
 
 		for(int32 IntY = IntMinY;IntY < IntMaxY;IntY++)
 		{
@@ -130,8 +130,8 @@ private:
 
 			if(MaxX > MinX)
 			{
-				int32				IntMinX = FMath::Clamp(FMath::Ceil(MinX),RasterPolicyType::GetMinX(),RasterPolicyType::GetMaxX() + 1),
-								IntMaxX = FMath::Clamp(FMath::Ceil(MaxX),RasterPolicyType::GetMinX(),RasterPolicyType::GetMaxX() + 1);
+				int32				IntMinX = FMath::Clamp(FMath::CeilToInt(MinX),RasterPolicyType::GetMinX(),RasterPolicyType::GetMaxX() + 1),
+								IntMaxX = FMath::Clamp(FMath::CeilToInt(MaxX),RasterPolicyType::GetMinX(),RasterPolicyType::GetMaxX() + 1);
 				InterpolantType	DeltaInterpolant = (MaxInterpolant - MinInterpolant) / (MaxX - MinX);
 
 				for(int32 X = IntMinX;X < IntMaxX;X++)

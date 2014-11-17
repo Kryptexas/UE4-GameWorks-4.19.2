@@ -43,13 +43,13 @@ void UReferenceViewerSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraph
 	// Don't allow breaking any links
 }
 
-FPinConnectionResponse UReferenceViewerSchema::MovePinLinks(UEdGraphPin& MoveFromPin, UEdGraphPin& MoveToPin) const
+FPinConnectionResponse UReferenceViewerSchema::MovePinLinks(UEdGraphPin& MoveFromPin, UEdGraphPin& MoveToPin, bool bIsItermeadiateMove) const
 {
 	// Don't allow moving any links
 	return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, TEXT(""));
 }
 
-FPinConnectionResponse UReferenceViewerSchema::CopyPinLinks(UEdGraphPin& CopyFromPin, UEdGraphPin& CopyToPin) const
+FPinConnectionResponse UReferenceViewerSchema::CopyPinLinks(UEdGraphPin& CopyFromPin, UEdGraphPin& CopyToPin, bool bIsItermeadiateCopy) const
 {
 	// Don't allow copying any links
 	return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, TEXT(""));

@@ -38,11 +38,13 @@ public class UnrealEd : ModuleRules
 				"MainFrame",
 				"MaterialEditor",
 				"MeshUtilities",
+				"Messaging",
 				"NiagaraEditor",
 				"PlacementMode",
+				"Settings",
 				"SoundClassEditor",
 				"ViewportSnapping",
-				"VSAccessor",
+				"SourceCodeAccess",
 			}
 		);
 
@@ -54,13 +56,14 @@ public class UnrealEd : ModuleRules
 				"CoreUObject",
 				"Documentation",
 				"Engine",
-				"Messaging",
 				"Projects",
 				"SandboxFile",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"SourceControl",
 				"UnrealEdMessages",
+				"BlueprintGraph",
 			}
 		);
 
@@ -69,6 +72,7 @@ public class UnrealEd : ModuleRules
 			{ 
 				"AnimGraph",
 				"BlueprintGraph",
+				"OnlineSubsystem",
 				"OnlineBlueprintSupport",
 				"DirectoryWatcher",
 				"EditorSettingsViewer",
@@ -87,7 +91,6 @@ public class UnrealEd : ModuleRules
 				"RawMesh",
 				"RenderCore", 
 				"RHI", 
-				"Settings",
 				"ShaderCore", 
 				"Sockets",
 				"SoundClassEditor",
@@ -114,6 +117,7 @@ public class UnrealEd : ModuleRules
 				"StaticMeshEditor",
 				"TextureEditor",
 				"Cascade",
+                "UMGEditor",
 				"Matinee",
 				"AssetRegistry",
 				"AssetTools",
@@ -162,6 +166,7 @@ public class UnrealEd : ModuleRules
 				"UserFeedback",
 				"GameplayTagsEditor",
 				"UndoHistory",
+				"SourceCodeAccess"
 			}
 		);
 
@@ -181,6 +186,7 @@ public class UnrealEd : ModuleRules
 			new string[] {
 				"UserFeedback",
              	"CollectionManager",
+				"BlueprintGraph",
 			}
 			);
 
@@ -196,7 +202,7 @@ public class UnrealEd : ModuleRules
 				"DX11Audio"
 				);
 
-			DynamicallyLoadedModuleNames.Add("VSAccessor");
+			
 		}
 
         if (Target.Platform == UnrealTargetPlatform.HTML5)
@@ -213,8 +219,8 @@ public class UnrealEd : ModuleRules
 		SetupModulePhysXAPEXSupport(Target);
 
 		if ((UEBuildConfiguration.bCompileSimplygon == true) &&
-			(Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist") == true) &&
-			(Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NoRedist/Simplygon") == true))
+			(Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees") == true) &&
+			(Directory.Exists(UEBuildConfiguration.UEThirdPartyDirectory + "NotForLicensees/Simplygon") == true))
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "Simplygon");
 		}

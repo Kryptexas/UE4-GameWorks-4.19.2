@@ -227,31 +227,34 @@ public:
 					]
 				]
 				+SVerticalBox::Slot()
-				.FillHeight(1)
+				.AutoHeight()
+				.HAlign(HAlign_Right)
 				.VAlign(VAlign_Bottom)
-				.Padding(5,5,5,0)
+				.Padding(0.0f,0.0f,0.0f,5.0f)
 				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.HAlign(HAlign_Right)
-					.FillWidth(1)
+					SNew(SUniformGridPanel)
+					.SlotPadding(FEditorStyle::GetMargin("StandardDialog.SlotPadding"))
+					.MinDesiredSlotWidth(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotWidth"))
+					.MinDesiredSlotHeight(FEditorStyle::GetFloat("StandardDialog.MinDesiredSlotHeight"))
+					+SUniformGridPanel::Slot(0,0)
 					[
 						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 						.IsEnabled(this, &SSourceControlSubmitWidget::IsOKEnabled)
 						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "OKButton", "OK") )
 						.OnClicked(this, &SSourceControlSubmitWidget::OKClicked)
 					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.HAlign(HAlign_Right)
+					+SUniformGridPanel::Slot(1,0)
 					[
 						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "CancelButton", "Cancel") )
 						.OnClicked(this, &SSourceControlSubmitWidget::CancelClicked)
 					]
 				]
-			]					
-
+			]
 		]
 		;
 
@@ -551,7 +554,14 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 				if(bCheckInSuccess)
 				{
 					// report success with a notification
-					FMessageLog("SourceControl").Notify(CheckInOperation->GetSuccessMessage());
+					FNotificationInfo Info(CheckInOperation->GetSuccessMessage());
+					Info.ExpireDuration = 8.0f;
+					Info.HyperlinkText = LOCTEXT("SCC_Checkin_ShowLog", "Show Log");
+					Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ FMessageLog("SourceControl").Open(EMessageSeverity::Info, true); });
+					FSlateNotificationManager::Get().AddNotification(Info);
+
+					// also add to the log
+					FMessageLog("SourceControl").Info(CheckInOperation->GetSuccessMessage());
 				}
 			}
 

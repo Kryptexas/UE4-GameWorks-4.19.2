@@ -7,6 +7,10 @@
 
 #include "Console.generated.h"
 
+
+/**
+ * Structure for auto-complete commands and their descriptions.
+ */
 USTRUCT()
 struct FAutoCompleteCommand
 {
@@ -20,7 +24,10 @@ struct FAutoCompleteCommand
 
 };
 
-/** Node for storing an auto-complete tree based on each char in the command */
+
+/**
+ * Node for storing an auto-complete tree based on each char in the command.
+ */
 USTRUCT()
 struct FAutoCompleteNode
 {
@@ -30,37 +37,39 @@ struct FAutoCompleteNode
 	UPROPERTY()
 	int32 IndexChar;
 
-	/** Indicies into AutoCompleteList for commands that match to this level */
+	/** Indices into AutoCompleteList for commands that match to this level */
 	UPROPERTY()
 	TArray<int32> AutoCompleteListIndices;
 
+	/** Children for further matching */
+	TArray<FAutoCompleteNode*> ChildNodes;
 
+	FAutoCompleteNode()
+	{
+		IndexChar = INDEX_NONE;
+	}
 
-		/** Children for further matching */
-		TArray<FAutoCompleteNode*> ChildNodes;
+	FAutoCompleteNode(int32 NewChar)
+	{
+		IndexChar = NewChar;
+	}
 
-		FAutoCompleteNode()
+	~FAutoCompleteNode()
+	{
+		for (int32 Idx = 0; Idx < ChildNodes.Num(); Idx++)
 		{
-			IndexChar = INDEX_NONE;
+			FAutoCompleteNode *Node = ChildNodes[Idx];
+			delete Node;
 		}
-		FAutoCompleteNode(int32 NewChar)
-		{
-			IndexChar = NewChar;
-		}
-		~FAutoCompleteNode()
-		{
-			for (int32 Idx = 0; Idx < ChildNodes.Num(); Idx++)
-			{
-				FAutoCompleteNode *Node = ChildNodes[Idx];
-				delete Node;
-			}
-			ChildNodes.Empty();
-		}
-	
+		ChildNodes.Empty();
+	}	
 };
 
-UCLASS(Within=GameViewportClient, transient, config=Input, HeaderGroup=UserInterface)
-class ENGINE_API UConsole : public UObject, public FOutputDevice
+
+UCLASS(Within=GameViewportClient, config=Input, defaultconfig, transient)
+class ENGINE_API UConsole
+	: public UObject
+	, public FOutputDevice
 {
 	GENERATED_UCLASS_BODY()
 
@@ -136,6 +145,9 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 	/** Currently selected auto complete index */
 	int32 AutoCompleteIndex;
 
+	/** -1: auto complete cursor is not visible, >=0 */
+	int32 AutoCompleteCursor;
+
 	/** Do we need to rebuild auto complete? */
 	uint32 bIsRuntimeAutoCompleteUpToDate:1;
 
@@ -145,7 +157,6 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 
 	/** Current list of matching commands for auto-complete, @see UpdateCompleteIndices() */
 	TArray<int32> AutoCompleteIndices;
-
 
 	/** Max number of command history entries */
 	static const int32 MAX_HISTORY_ENTRIES = 16;
@@ -214,19 +225,8 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 	virtual bool InputChar_Typing( int32 ControllerId, const FString& Unicode );
 	
 	/**
-	 * Process an input key event routed through unrealscript from another object. This method is assigned as the value for the
-	 * OnRecievedNativeInputKey delegate so that native input events are routed to this unrealscript function.
-	 *
-	 * @param	ControllerId	the controller that generated this input key event
-	 * @param	Key				the key which for an event occurred for (EKeys::Up, EKeys::Down, etc.)
-	 * @param	EventType		the type of event which occurred (pressed, released, etc.)
-	 * @param	AmountDepressed	for analog keys, the depression percent.
-	 *
-	 * @return	true to consume the key event, false to pass it on.
+	 * perform rendering of the console on the canvas
 	 */
-	virtual bool InputKey_Typing( int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false );
-	
-	/** perform rendering of the console on the canvas */
 	virtual void PostRender_Console_Typing(class UCanvas* Canvas);
 	
 	/** Perform actions on transition to Typing state */
@@ -253,9 +253,10 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 	 */
 	virtual bool InputKey_Open( int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false );
 	
-	/** perform rendering of the console on the canvas */
+	/** 
+	 * perform rendering of the console on the canvas
+	 */
 	virtual void PostRender_Console_Open(class UCanvas* Canvas);
-
 
 	/** Perform actions on transition to the Open state */
 	virtual void BeginState_Open(FName PreviousStateName);
@@ -264,19 +265,6 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 	virtual bool InputKey(int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed=1.f, bool bGamepad=false);
 	virtual bool InputAxis(int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) { return false; };
 	virtual bool InputTouch(int32 ControllerId, uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex) { return false; }
-
-	/**
-	 * Process an input key event routed through unrealscript from another object. This method is assigned as the value for the
-	 * OnRecievedNativeInputKey delegate so that native input events are routed to this unrealscript function.
-	 *
-	 * @param	ControllerId	the controller that generated this input key event
-	 * @param	Key				the name of the key which an event occured for (KEY_Up, KEY_Down, etc.)
-	 * @param	EventType		the type of event which occured (pressed, released, etc.)
-	 * @param	AmountDepressed	for analog keys, the depression percent.
-	 *
-	 * @return	true to consume the key event, false to pass it on.
-	 */
-	virtual bool InputKey_Global( int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false );
 
 	/** render to the canvas based on the console state */
 	virtual void PostRender_Console(class UCanvas* Canvas);
@@ -287,6 +275,8 @@ class ENGINE_API UConsole : public UObject, public FOutputDevice
 	virtual bool ConsoleActive() const;
 
 private:
+
+	bool InputKey_InputLine( int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad = false );
 
 	// interface FOutputDevice
 	virtual void Serialize( const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category );
@@ -299,12 +289,11 @@ private:
 	 */
 	void OutputTextLine(const FString& Text);
 	
+	void PostRender_InputLine(class UCanvas* Canvas, FIntPoint UserInputLinePos);
+
 	/**
 	* Searches console command history and removes any entries matching the specified command.
 	* @param Command - The command to search for and purge from the history.
 	*/
 	virtual void PurgeCommandFromHistory(const FString& Command);
 };
-
-
-

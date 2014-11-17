@@ -9,8 +9,14 @@
 
 float UEditorEngine::GetGridSize()
 {
-	TArray<float> PosGridSizes = GetCurrentPositionGridArray();
-	return PosGridSizes[GetDefault<ULevelEditorViewportSettings>()->CurrentPosGridSize ];
+	const TArray<float> PosGridSizes = GetCurrentPositionGridArray();
+	const int32 CurrentPosGridSize = GetDefault<ULevelEditorViewportSettings>()->CurrentPosGridSize;
+	float PosVal = 0.0001f;
+	if ( PosGridSizes.IsValidIndex(CurrentPosGridSize) )
+	{
+		PosVal = PosGridSizes[CurrentPosGridSize];
+	}
+	return PosVal;
 }
 
 bool UEditorEngine::IsGridSizePowerOfTwo() const
@@ -57,8 +63,13 @@ const TArray<float>& UEditorEngine::GetCurrentPositionGridArray() const
 
 FRotator UEditorEngine::GetRotGridSize()
 {
-	TArray<float> RotGridSizes = GetCurrentRotationGridArray();
-	float RotVal = RotGridSizes[GetDefault<ULevelEditorViewportSettings>()->CurrentRotGridSize ];
+	const TArray<float> RotGridSizes = GetCurrentRotationGridArray();
+	const int32 CurrentRotGridSize = GetDefault<ULevelEditorViewportSettings>()->CurrentRotGridSize;
+	float RotVal = 0.0001f;
+	if ( RotGridSizes.IsValidIndex(CurrentRotGridSize) )
+	{
+		RotVal = RotGridSizes[CurrentRotGridSize];
+	}
 	return FRotator(RotVal, RotVal, RotVal);
 }
 
@@ -66,7 +77,7 @@ void UEditorEngine::SetRotGridSize( int32 InIndex, ERotationGridMode InGridMode 
 {
 	FinishAllSnaps();
 
-	TArray<float> RotGridSizes = GetCurrentRotationGridArray();
+	const TArray<float> RotGridSizes = GetCurrentRotationGridArray();
 
 	ULevelEditorViewportSettings* ViewportSettings = GetMutableDefault<ULevelEditorViewportSettings>();
 	ViewportSettings->CurrentRotGridMode = InGridMode;
@@ -101,8 +112,12 @@ const TArray<float>& UEditorEngine::GetCurrentRotationGridArray() const
 float UEditorEngine::GetScaleGridSize()
 {
 	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
-
-	return ViewportSettings->ScalingGridSizes[ViewportSettings->CurrentScalingGridSize];
+	float ScaleVal = 0.0001f;
+	if ( ViewportSettings->ScalingGridSizes.IsValidIndex(ViewportSettings->CurrentScalingGridSize) )
+	{
+		ScaleVal = ViewportSettings->ScalingGridSizes[ViewportSettings->CurrentScalingGridSize];
+	}
+	return ScaleVal;
 }
 
 void UEditorEngine::SetScaleGridSize( int32 InIndex )
@@ -120,7 +135,6 @@ void UEditorEngine::SetScaleGridSize( int32 InIndex )
 float UEditorEngine::GetGridInterval()
 {
 	const ULevelEditorViewportSettings* ViewportSettings = GetDefault<ULevelEditorViewportSettings>();
-
 	const TArray<float>& GridIntervals = ViewportSettings->bUsePowerOf2SnapSize ? ViewportSettings->Pow2GridIntervals : ViewportSettings->DecimalGridIntervals;
 
 	int32 CurrentIndex = (ViewportSettings->CurrentPosGridSize < GridIntervals.Num()) ? ViewportSettings->CurrentPosGridSize : GridIntervals.Num() - 1;

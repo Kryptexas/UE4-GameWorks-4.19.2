@@ -13,7 +13,7 @@ enum EClampMode
 	CMODE_ClampMax,
 };
 
-UCLASS(HeaderGroup=Material, MinimalAPI)
+UCLASS(MinimalAPI)
 class UMaterialExpressionClamp : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -4,7 +4,7 @@
 #include "EdGraphUtilities.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "LiveEditorConfigWindow.h"
-#include "LiveEditor.generated.inl"
+
 
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"

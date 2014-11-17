@@ -68,3 +68,16 @@ void FAnimationNode_TwoWayBlend::Evaluate(FPoseContext& Output)
 		A.Evaluate(Output);
 	}
 }
+
+
+void FAnimationNode_TwoWayBlend::GatherDebugData(FNodeDebugData& DebugData)
+{
+	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
+
+	FString DebugLine = DebugData.GetNodeName(this);
+	DebugLine += FString::Printf(TEXT("(Alpha: %.1f%%)"), ActualAlpha*100);
+	DebugData.AddDebugItem(DebugLine);
+
+	A.GatherDebugData(DebugData.BranchFlow(1.f - ActualAlpha));
+	B.GatherDebugData(DebugData.BranchFlow(ActualAlpha));
+}

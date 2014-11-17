@@ -6,7 +6,6 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "EngineMaterialClasses.h"
 #include "../DistributionHelpers.h"
 
 UParticleModuleParameterBase::UParticleModuleParameterBase(const class FPostConstructInitializeProperties& PCIP)

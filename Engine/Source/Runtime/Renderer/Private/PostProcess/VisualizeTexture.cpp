@@ -80,7 +80,7 @@ public:
 		{
 			// alternates between 0 and 1 with a short pause
 			const float FracTimeScale = 2.0f;
-			float FracTime = GCurrentTime * FracTimeScale - floor(GCurrentTime * FracTimeScale);
+			float FracTime = FApp::GetCurrentTime() * FracTimeScale - floor(FApp::GetCurrentTime() * FracTimeScale);
 			float BlinkState = (FracTime > 0.5f) ? 1.0f : 0.0f;
 
 			FVector4 VisualizeParamValue[3];
@@ -152,6 +152,7 @@ class FVisualizeTexturePresentPS : public FGlobalShader
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::ES2);
+
 	}
 
 	/** Default constructor. */
@@ -212,6 +213,7 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(const FVisualiz
 		GSceneRenderTargets.GetBufferSizeXY(),
 		// TextureSize
 		FIntPoint(1, 1),
+		*VertexShader,
 		EDRF_UseTriangleOptimization);
 }
 
@@ -265,6 +267,7 @@ FVisualizeTexture::FVisualizeTexture()
 	bOutputStencil = false;
 	bFullList = false;
 	SortOrder = -1;
+	bEnabled = true;
 }
 
 FIntRect FVisualizeTexture::ComputeVisualizeTextureRect(FIntPoint InputTextureSize) const
@@ -283,16 +286,23 @@ FIntRect FVisualizeTexture::ComputeVisualizeTextureRect(FIntPoint InputTextureSi
 			FIntPoint HalfMax = InputTextureSize - HalfMin;
 
 			ret = FIntRect(Center - HalfMin, Center + HalfMax);
+			break;
 		}
-		break;
 
 		// whole texture in PIP
 		case 3:
-			ret = FIntRect(80, ViewExtent.Y - ViewExtent.Y / 3 - 10, ViewExtent.X / 3 + 10, ViewExtent.Y - 10) + ViewRect.Min;
+		{
+			int32 LeftOffset = AspectRatioConstrainedViewRect.Min.X;
+			int32 BottomOffset = AspectRatioConstrainedViewRect.Max.Y - ViewRect.Max.Y;
+
+			ret = FIntRect(LeftOffset + 80, ViewExtent.Y - ViewExtent.Y / 3 - 10 + BottomOffset, ViewExtent.X / 3 + 10, ViewExtent.Y - 10 + BottomOffset) + ViewRect.Min;
 			break;
+		}
 
 		default:
+		{
 			break;
+		}
 	}
 
 	return ret;
@@ -473,7 +483,7 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 
 	if(!VisualizeTextureContent 
 		|| !IsValidRef(RenderTargetTexture)
-		|| GRHIFeatureLevel < ERHIFeatureLevel::SM3)
+		|| !bEnabled)
 	{
 		// visualize feature is deactivated
 		return;
@@ -481,8 +491,9 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 
 	FPooledRenderTargetDesc Desc = VisualizeTextureDesc;
 
-	RHISetRenderTarget(View.Family->RenderTarget->GetRenderTargetTexture(),FTextureRHIRef());
-	RHISetViewport(0, 0, 0.0f, GSceneRenderTargets.GetBufferSizeXY().X, GSceneRenderTargets.GetBufferSizeXY().Y, 1.0f );
+	auto& RenderTarget = View.Family->RenderTarget->GetRenderTargetTexture();
+	RHISetRenderTarget(RenderTarget, FTextureRHIRef());
+	RHISetViewport(0, 0, 0.0f, RenderTarget->GetSizeX(), RenderTarget->GetSizeY(), 1.0f);
 
 	RHISetBlendState(TStaticBlendState<>::GetRHI());
 	RHISetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -508,8 +519,9 @@ void FVisualizeTexture::PresentContent(const FSceneView& View)
 		VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
 		0, 0,
 		VisualizeTextureRect.Width(), VisualizeTextureRect.Height(),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		FIntPoint(RenderTarget->GetSizeX(), RenderTarget->GetSizeY()),
 		VisualizeTextureRect.Size(),
+		*VertexShader,
 		EDRF_Default);
 
 	// this is a helper class for FCanvas to be able to get screen size
@@ -606,7 +618,7 @@ void FVisualizeTexture::SetObserveTarget(const FString& InObservedDebugName, uin
 void FVisualizeTexture::SetCheckPoint(const IPooledRenderTarget* PooledRenderTarget)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!PooledRenderTarget || GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	if (!PooledRenderTarget || !bEnabled)
 	{
 		// Don't checkpoint on ES2 to avoid TMap alloc/reallocations
 		return;
@@ -667,13 +679,13 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 	{
 		TArray<FSortedLines> SortedLines;
 
-		for(uint32 i = 0;; ++i)
+		for(uint32 i = 0, Num = GRenderTargetPool.GetElementCount(); i < Num; ++i)
 		{
 			FPooledRenderTarget* RT = GRenderTargetPool.GetElementById(i);
 
 			if(!RT)
 			{
-				break;
+				continue;
 			}
 
 			FPooledRenderTargetDesc Desc = RT->GetDesc();
@@ -721,6 +733,35 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 				else
 				{
 					check(0);
+				}
+
+				if(Desc.Flags & TexCreate_FastVRAM)
+				{
+					FRHIResourceInfo Info;
+
+					FTextureRHIRef Texture = RT->GetRenderTargetItem().ShaderResourceTexture;
+
+					if(!IsValidRef(Texture))
+					{
+						Texture = RT->GetRenderTargetItem().TargetableTexture;
+					}
+
+					if(IsValidRef(Texture))
+					{
+						RHIGetResourceInfo(Texture, Info);
+					}
+
+					if(Info.VRamAllocation.AllocationSize)
+					{
+						// note we do KB for more readable numbers but this can cause quantization loss
+						Element.Line += FString::Printf(TEXT(" VRamInKB(Start/Size):%d/%d"), 
+							Info.VRamAllocation.AllocationStart / 1024, 
+							(Info.VRamAllocation.AllocationSize + 1023) / 1024);
+					}
+					else
+					{
+						Element.Line += TEXT(" VRamInKB(Start/Size):<NONE>");
+					}
 				}
 
 				SortedLines.Add(Element);
@@ -833,12 +874,15 @@ IPooledRenderTarget* FVisualizeTexture::GetObservedElement() const
 
 void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 {
-	ViewRect = View.ViewRect;
+	bEnabled = View.GetFeatureLevel() >= ERHIFeatureLevel::SM3;
+	ViewRect = View.UnscaledViewRect;
+	AspectRatioConstrainedViewRect = View.Family->EngineShowFlags.CameraAspectRatioBars ? View.CameraConstrainedViewRect : ViewRect;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// VisualizeTexture observed render target is set each frame
 	VisualizeTextureContent.SafeRelease();
 	VisualizeTextureDesc = FPooledRenderTargetDesc();
+	VisualizeTextureDesc.DebugName = TEXT("VisualizeTexture");
 
 	ObservedDebugNameReusedCurrent = 0;
 
@@ -857,12 +901,13 @@ void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 
 void FVisualizeTexture::QueryInfo( FQueryVisualizeTexureInfo& Out )
 {
-	for(uint32 i = 0; ; ++i)
+	for(uint32 i = 0, Num = GRenderTargetPool.GetElementCount(); i < Num; ++i)
 	{
 		FPooledRenderTarget* RT = GRenderTargetPool.GetElementById(i);
-		if (!RT)
+
+		if(!RT)
 		{
-			break;
+			continue;
 		}
 
 		FPooledRenderTargetDesc Desc = RT->GetDesc();

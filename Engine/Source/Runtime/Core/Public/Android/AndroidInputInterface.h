@@ -160,12 +160,22 @@ public:
 
 	static void DeferMessage(const FDeferredAndroidMessage& DeferredMessage);
 
+	static void QueueMotionData(const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration);
+
 private:
 
 	FAndroidInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler );
 
 
 private:
+
+	struct MotionData
+	{
+		FVector Tilt;
+		FVector RotationRate;
+		FVector Gravity;
+		FVector Acceleration;
+	};
 
 	// protects the input stack
 	static FCriticalSection TouchInputCriticalSection;
@@ -183,6 +193,8 @@ private:
 	static FDeferredAndroidMessage DeferredMessages[MAX_DEFERRED_MESSAGE_QUEUE_SIZE];
 	static int32 DeferredMessageQueueLastEntryIndex;
 	static int32 DeferredMessageQueueDroppedCount;
+
+	static TArray<MotionData> MotionDataStack;
 
 	TSharedRef< FGenericApplicationMessageHandler > MessageHandler;
 };

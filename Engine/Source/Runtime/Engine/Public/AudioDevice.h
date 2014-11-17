@@ -473,6 +473,12 @@ public:
 
 	virtual FName GetRuntimeFormat() PURE_VIRTUAL(FAudioDevice::GetRuntimeFormat,return NAME_None;);
 
+	/** Whether this SoundWave has an associated info class to decompress it */
+	virtual bool HasCompressedAudioInfoClass(USoundWave* SoundWave) { return false; }
+
+	/** Creates a Compressed audio info class suitable for decompressing this SoundWave */
+	virtual class ICompressedAudioInfo* CreateCompressedAudioInfo(USoundWave* SoundWave) { return NULL; }
+
 	/**
 	 * Check for errors and output a human readable string
 	 */
@@ -486,6 +492,12 @@ public:
 	/* When the set of Reverb volumes have changed invalidate the cached values of active sounds */
 	void InvalidateCachedInteriorVolumes() const;
 
+    /** Suspend any context related objects */
+    virtual void SuspendContext() {}
+    
+    /** Resume any context related objects */
+    virtual void ResumeContext() {}
+    
 protected:
 	friend class FSoundSource;
 

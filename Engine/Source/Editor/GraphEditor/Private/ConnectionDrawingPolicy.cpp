@@ -8,6 +8,12 @@
 #include "KismetNodes/KismetNodeInfoContext.h"
 #include "SoundDefinitions.h"
 #include "AnimationStateNodes/SGraphNodeAnimTransition.h"
+#include "AnimStateTransitionNode.h"
+#include "AnimStateEntryNode.h"
+#include "AnimationGraphSchema.h"
+#include "AnimGraphNode_Base.h"
+
+DEFINE_LOG_CATEGORY_STATIC(LogConnectionDrawingPolicy, Log, All);
 
 //////////////////////////////////////////////////////////////////////////
 // FGeometryHelper
@@ -348,7 +354,7 @@ void FConnectionDrawingPolicy::DrawConnection( int32 LayerId, const FVector2D& S
 
 			float Time = (FPlatformTime::Seconds() - GStartTime);
 			const float BubbleOffset = FMath::Fmod(Time * BubbleSpeed, BubbleSpacing);
-			const int32 NumBubbles = FMath::Ceil(SplineLength/BubbleSpacing);
+			const int32 NumBubbles = FMath::CeilToInt(SplineLength/BubbleSpacing);
 			for (int32 i = 0; i < NumBubbles; ++i)
 			{
 				const float Distance = ((float)i * BubbleSpacing) + BubbleOffset;
@@ -595,6 +601,7 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 
 	TArray<UEdGraphNode*> SequentialNodesInGraph;
 	TArray<double> SequentialNodeTimes;
+	TArray<UEdGraphPin*> SequentialExecPinsInGraph;
 
 	{
 		const TSimpleRingBuffer<FKismetTraceSample>& TraceStack = FKismetDebugUtilities::GetTraceStack();
@@ -610,12 +617,15 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 			{
 				if (TestObject == ActiveObject)
 				{
+					UEdGraphPin* AssociatedPin = DebugData.FindExecPinFromCodeLocation(Sample.Function.Get(), Sample.Offset);
+
 					if (UEdGraphNode* Node = DebugData.FindSourceNodeFromCodeLocation(Sample.Function.Get(), Sample.Offset, /*bAllowImpreciseHit=*/ false))
 					{
 						if (GraphObj == Node->GetGraph())
 						{
 							SequentialNodesInGraph.Add(Node);
 							SequentialNodeTimes.Add(Sample.ObservationTime);
+							SequentialExecPinsInGraph.Add(AssociatedPin);
 						}
 						else
 						{
@@ -633,6 +643,7 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 										// Add it to the sequential node list
 										SequentialNodesInGraph.Add(MacroSourceNode);
 										SequentialNodeTimes.Add(Sample.ObservationTime);
+										SequentialExecPinsInGraph.Add(AssociatedPin);
 									}
 									else
 									{
@@ -651,6 +662,7 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 												// Add it to the sequential node list
 												SequentialNodesInGraph.Add(MacroInstanceNode);
 												SequentialNodeTimes.Add(Sample.ObservationTime);
+												SequentialExecPinsInGraph.Add(AssociatedPin);
 
 												// Exit the loop; we're done
 												break;
@@ -679,28 +691,69 @@ void FKismetConnectionDrawingPolicy::BuildExecutionRoadmap()
 		LatestTimeDiscovered = FMath::Max<double>(LatestTimeDiscovered, ObservationTime);
 	}
 
-	// Record the unique node->node pairings, keeping only the most recent times for each pairing
+	UEdGraphPin* LastExecPin = NULL;
+	// Record the unique exec-pin to time pairings, keeping only the most recent 
+	// times for each pairing... reverse the "SequentialNodes" because right now
+	// it is in stack order (with the last executed node first)
 	for (int32 i = SequentialNodesInGraph.Num() - 1; i >= 1; --i)
 	{
-		UEdGraphNode* CurNode = SequentialNodesInGraph[i];
-		double CurNodeTime = SequentialNodeTimes[i];
+		UEdGraphNode* CurNode  = SequentialNodesInGraph[i];
 		UEdGraphNode* NextNode = SequentialNodesInGraph[i-1];
-		double NextNodeTime = SequentialNodeTimes[i-1];
 
-		FExecPairingMap& Predecessors = PredecessorNodes.FindOrAdd(NextNode);
-
-		// Update the timings if this is a more recent pairing
-		FTimePair& Timings = Predecessors.FindOrAdd(CurNode);
-		if (Timings.ThisExecTime < NextNodeTime)
+		// keep track of the last exec-pin executed by CurNode (these tracked 
+		// pins coincide with "WireTraceSite" op-codes that have been injected 
+		// prior to every "goto" statement... this way we have context for which
+		// pin executed the jump)
+		if (UEdGraphPin* AssociatedPin = SequentialExecPinsInGraph[i])
 		{
-			Timings.PredExecTime = CurNodeTime;
-			Timings.ThisExecTime = NextNodeTime;
+			LastExecPin = AssociatedPin;
 		}
+		
+		// if this statement is a jump (from one node to another)
+		if (CurNode != NextNode)
+		{
+			// if there was a wire-trace op-code inserted before this jump
+			if (LastExecPin != NULL)
+			{
+				//ensure(LastExecPin->GetOwningNode() == CurNode);
+				double NextNodeTime = SequentialNodeTimes[i-1];
+
+				FExecPairingMap& ExecPaths  = PredecessorPins.FindOrAdd(NextNode);
+				FTimePair&       ExecTiming = ExecPaths.FindOrAdd(LastExecPin);
+				// make sure that if we've already visited this exec-pin (like 
+				// in a for-loop or something), that we're replacing it with a 
+				// more recent execution time
+				//
+				// @TODO I don't see when this wouldn't be the case
+				if (ExecTiming.ThisExecTime < NextNodeTime)
+				{
+					double CurNodeTime = SequentialNodeTimes[i];
+					ExecTiming.ThisExecTime = NextNodeTime;
+					ExecTiming.PredExecTime = CurNodeTime;
+				}
+			}
+			// if the nodes aren't graphically connected how could they be 
+			// executed back-to-back? well, this could be a pop back to a 
+			// sequence node from the end of one thread of execution, etc.
+			else if (AreNodesGraphicallySequential(CurNode, NextNode))
+			{
+				// only warn when the nodes are directly connected (this is all
+				// for execution flow visualization after all)
+				UE_LOG(LogConnectionDrawingPolicy, Warning, TEXT("Looks like a wire-trace was not injected before the jump from '%s' to '%s'."), 
+					*CurNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString(), *NextNode->GetNodeTitle(ENodeTitleType::FullTitle).ToString());
+			}
+
+			// clear the exec-pin (we're moving to a new node and want to find 
+			// it's executed out pin)
+			LastExecPin = NULL;
+		}
+		// else, we're only collecting this data for tracing node-to-node
+		// executions (so we don't care about this sequence of statements)
 	}
 
-	// Fade only when free-running (since we're using GCurrentTime, instead of FPlatformTime::Seconds)
-	const double MaxTimeAhead = FMath::Min(GCurrentTime + 2*TracePositionBonusPeriod, LatestTimeDiscovered); //@TODO: Rough clamping; should be exposed as a parameter
-	CurrentTime = FMath::Max(GCurrentTime, MaxTimeAhead);
+	// Fade only when free-running (since we're using FApp::GetCurrentTime(), instead of FPlatformTime::Seconds)
+	const double MaxTimeAhead = FMath::Min(FApp::GetCurrentTime() + 2*TracePositionBonusPeriod, LatestTimeDiscovered); //@TODO: Rough clamping; should be exposed as a parameter
+	CurrentTime = FMath::Max(FApp::GetCurrentTime(), MaxTimeAhead);
 }
 
 void FKismetConnectionDrawingPolicy::CalculateEnvelopeAlphas(double ExecutionTime, /*out*/ float& AttackAlpha, /*out*/ float& SustainAlpha) const
@@ -727,6 +780,32 @@ bool FKismetConnectionDrawingPolicy::TreatWireAsExecutionPin(UEdGraphPin* InputP
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	return (InputPin != NULL) && (Schema->IsExecPin(*OutputPin));
+}
+
+bool FKismetConnectionDrawingPolicy::AreNodesGraphicallySequential(UEdGraphNode* InputNode, UEdGraphNode* OutputNode) const
+{
+	for (UEdGraphPin* Pin : InputNode->Pins)
+	{
+		if (Pin->Direction != EGPD_Output)
+		{
+			continue;
+		}
+
+		for (UEdGraphPin* Connection : Pin->LinkedTo)
+		{
+			if (!TreatWireAsExecutionPin(Pin, Connection))
+			{
+				continue;
+			}
+
+			if (Connection->GetOwningNode() == OutputNode)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void FKismetConnectionDrawingPolicy::DetermineStyleOfExecWire(float& Thickness, FLinearColor& WireColor, bool& bDrawBubbles, const FTimePair& Times)
@@ -770,19 +849,21 @@ void FKismetConnectionDrawingPolicy::DetermineWiringStyle(UEdGraphPin* OutputPin
 		{
 			if (CanBuildRoadmap())
 			{
+				// track if this node connection was ran or not
 				bool bExecuted = false;
 
-				// Run thru the predecessors, and on
-				if (FExecPairingMap* PredecessorMap = PredecessorNodes.Find(InputPin->GetOwningNode()))
+				UEdGraphNode* InputNode = InputPin->GetOwningNode();
+				// if the node belonging to InputPin was actually executed
+				if (FExecPairingMap* ExecPaths = PredecessorPins.Find(InputNode))
 				{
-					if (FTimePair* Times = PredecessorMap->Find(OutputPin->GetOwningNode()))
+					// if the output pin is one of the pins that lead to InputNode being ran
+					if (FTimePair* ExecTiming = ExecPaths->Find(OutputPin))
 					{
 						bExecuted = true;
-
-						DetermineStyleOfExecWire(/*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, *Times);
+						DetermineStyleOfExecWire(/*inout*/ Thickness, /*inout*/ WireColor, /*inout*/ bDrawBubbles, *ExecTiming);
 					}
 				}
-
+				
 				if (!bExecuted)
 				{
 					// It's not followed, fade it and keep it thin
@@ -1071,11 +1152,27 @@ void FAnimGraphConnectionDrawingPolicy::BuildExecutionRoadmap()
 			{
 				if (UAnimGraphNode_Base* TargetNode = Cast<UAnimGraphNode_Base>(PropertySourceMap.FindRef(AnimBlueprintClass->AnimNodeProperties[VisitRecord.TargetID])))
 				{
-					//@TODO: Extend the rendering code to allow using the recorded blend weight instead of faked exec times
-					FExecPairingMap& Predecessors = PredecessorNodes.FindOrAdd((UEdGraphNode*)SourceNode);
-					FTimePair& Timings = Predecessors.FindOrAdd((UEdGraphNode*)TargetNode);
-					Timings.PredExecTime = 0.0;
-					Timings.ThisExecTime = VisitRecord.Weight;
+					UEdGraphPin* PoseNet = NULL;
+
+					UAnimationGraphSchema const* AnimSchema = GetDefault<UAnimationGraphSchema>();
+					for (int32 PinIndex = 0; PinIndex < TargetNode->Pins.Num(); ++PinIndex)
+					{
+						UEdGraphPin* Pin = TargetNode->Pins[PinIndex];
+						if (AnimSchema->IsPosePin(Pin->PinType) && (Pin->Direction == EGPD_Output))
+						{
+							PoseNet = Pin;
+							break;
+						}
+					}
+
+					if (PoseNet != NULL)
+					{
+						//@TODO: Extend the rendering code to allow using the recorded blend weight instead of faked exec times
+						FExecPairingMap& Predecessors = PredecessorPins.FindOrAdd((UEdGraphNode*)SourceNode);
+						FTimePair& Timings = Predecessors.FindOrAdd(PoseNet);
+						Timings.PredExecTime = 0.0;
+						Timings.ThisExecTime = VisitRecord.Weight;
+					}
 				}
 			}
 		}
@@ -1167,11 +1264,11 @@ void FSoundCueGraphConnectionDrawingPolicy::BuildAudioFlowRoadmap()
 					GraphNodes.Add(RootNode[0]);
 
 					TArray<double> NodeTimes;
-					NodeTimes.Add(GCurrentTime); // Time for the root node
+					NodeTimes.Add(FApp::GetCurrentTime()); // Time for the root node
 
 					for (int32 i = 0; i < PathToWaveInstance.Num(); ++i)
 					{
-						const double ObservationTime = GCurrentTime + 1.f;
+						const double ObservationTime = FApp::GetCurrentTime() + 1.f;
 
 						NodeTimes.Add(ObservationTime);
 						GraphNodes.Add(PathToWaveInstance[i]->GraphNode);

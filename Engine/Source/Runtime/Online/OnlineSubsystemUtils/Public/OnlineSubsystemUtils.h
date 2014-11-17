@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Core.h"
+#include "Engine.h"
 #include "ModuleManager.h"
 #include "OnlineSubsystemUtilsModule.h"
 #include "Online.h"
@@ -10,8 +11,8 @@
 /** @return an initialized audio component specifically for use with VoIP */
 #ifdef ONLINESUBSYSTEMUTILS_API
 ONLINESUBSYSTEMUTILS_API class UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate);
+ONLINESUBSYSTEMUTILS_API UWorld* GetWorldForOnline(FName InstanceName);
 #endif
-
 
 /** Macro to handle the boilerplate of accessing the proper online subsystem and getting the requested interface (UWorld version) */
 #define IMPLEMENT_GET_INTERFACE(InterfaceType) \
@@ -31,9 +32,9 @@ namespace Online
 		if (GIsPlayInEditorWorld)
 		{
 			FWorldContext& CurrentContext = GEngine->GetWorldContextFromWorldChecked(World);
-			if (CurrentContext.PIEInstance != INDEX_NONE)
+			if (CurrentContext.WorldType == EWorldType::PIE)
 			{ 
-				Identifier = FName(*FString::Printf(TEXT("%s:%d"), *SubsystemName.ToString(), CurrentContext.PIEInstance)); 
+				Identifier = FName(*FString::Printf(TEXT("%s:%s"), SubsystemName != NAME_None ? *SubsystemName.ToString() : TEXT(""), *CurrentContext.ContextHandle.ToString()));
 			} 
 		}
 

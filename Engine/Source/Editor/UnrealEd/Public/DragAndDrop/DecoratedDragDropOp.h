@@ -4,19 +4,20 @@
 
 #define LOCTEXT_NAMESPACE "DecoratedDragDrop"
 
-class FDecoratedDragDropOp : public FDragDropOperation, public TSharedFromThis<FDecoratedDragDropOp>
+class FDecoratedDragDropOp : public FDragDropOperation
 {
 public:
 	DRAG_DROP_OPERATOR_TYPE(FDecoratedDragDropOp, FDragDropOperation)
 
 	/** String to show as hover text */
-	FString								CurrentHoverText;
+	FText								CurrentHoverText;
 
 	/** Icon to be displayed */
 	const FSlateBrush*					CurrentIconBrush;
 
 	FDecoratedDragDropOp()
 		: CurrentIconBrush(nullptr)
+		, DefaultHoverIcon(nullptr)
 	{ }
 
 	/** Overridden to provide public access */
@@ -41,24 +42,26 @@ public:
 			.Content()
 			[			
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
+				
+				+ SHorizontalBox::Slot()
 				.AutoWidth()
 				.Padding( 0.0f, 0.0f, 3.0f, 0.0f )
 				[
 					SNew( SImage )
 					.Image( this, &FDecoratedDragDropOp::GetIcon )
 				]
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign( VAlign_Center )
-					[
-						SNew(STextBlock) 
-						.Text( this, &FDecoratedDragDropOp::GetHoverText )
-					]
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign( VAlign_Center )
+				[
+					SNew(STextBlock) 
+					.Text( this, &FDecoratedDragDropOp::GetHoverText )
+				]
 			];
 	}
 
-	FString GetHoverText() const
+	FText GetHoverText() const
 	{
 		return CurrentHoverText;
 	}
@@ -69,7 +72,7 @@ public:
 	}
 
 	/** Set the text and icon for this tooltip */
-	void SetToolTip(const FString& Text, const FSlateBrush* Icon)
+	void SetToolTip(const FText& Text, const FSlateBrush* Icon)
 	{
 		CurrentHoverText = Text;
 		CurrentIconBrush = Icon;
@@ -85,7 +88,7 @@ public:
 protected:
 
 	/** Default string to show as hover text */
-	FString								DefaultHoverText;
+	FText								DefaultHoverText;
 
 	/** Default icon to be displayed */
 	const FSlateBrush*					DefaultHoverIcon;

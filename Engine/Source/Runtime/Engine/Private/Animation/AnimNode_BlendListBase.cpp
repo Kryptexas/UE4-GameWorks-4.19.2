@@ -148,3 +148,19 @@ void FAnimNode_BlendListBase::Evaluate(FPoseContext& Output)
 		Output.ResetToRefPose();
 	}
 }
+
+void FAnimNode_BlendListBase::GatherDebugData(FNodeDebugData& DebugData)
+{
+	const int NumPoses = BlendPose.Num();
+	const int32 ChildIndex = GetActiveChildIndex();
+
+	FString DebugLine = GetNodeName(DebugData);
+	DebugLine += FString::Printf(TEXT("(Active: (%i/%i) BlendWeight: %.1f%% BlendTime %.3f)"), ChildIndex+1, NumPoses, BlendWeights[ChildIndex]*100.f, BlendTime[ChildIndex]);
+
+	DebugData.AddDebugItem(DebugLine);
+	
+	for(int32 Pose = 0; Pose < NumPoses; ++Pose)
+	{
+		BlendPose[Pose].GatherDebugData(DebugData.BranchFlow(BlendWeights[Pose]));
+	}
+}

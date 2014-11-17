@@ -6,7 +6,7 @@ DECLARE_DELEGATE( FOnBeginExcerptDelegate );
 DECLARE_DELEGATE_RetVal(bool, FShouldSkipExcerptDelegate);
 
 DECLARE_DELEGATE_RetVal_OneParam(bool, FActorSelectionChangedTrigger, const TArray<UObject*>&);
-DECLARE_DELEGATE_RetVal_OneParam(bool, FObjectPropertyChangedTrigger, UObject*);
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FObjectPropertyChangedTrigger, UObject*, FPropertyChangedEvent&);
 DECLARE_DELEGATE_RetVal_OneParam(bool, FAssetEditorRequestedOpenTrigger, UObject*);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FEditorModeChangedTrigger, FEdMode*, bool);
 DECLARE_DELEGATE_RetVal_TwoParams(bool, FEditorModeChangedTrigger, FEdMode*, bool);

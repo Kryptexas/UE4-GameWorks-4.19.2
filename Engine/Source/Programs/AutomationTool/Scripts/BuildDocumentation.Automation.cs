@@ -12,12 +12,6 @@ using UnrealBuildTool;
 [Help("-env", "Builds the compile environment")]
 public class BuildDocumentation : BuildCommand
 {
-	const string EngineTarget = "DocumentationEditor";
-	const string EnginePlatform = "Win64";
-	const string EngineConfiguration = "Debug";
-
-	const string EngineUProject = "Engine\\Documentation\\Extras\\API\\Build\\Documentation.uproject";
-
 	public override void ExecuteBuild()
 	{
 		// Parse the command line
@@ -62,7 +56,6 @@ public class BuildDocumentation : BuildCommand
 
 		// Get all the file paths
 		string TargetInfoPath = Path.Combine(BuildDir, "targetinfo.xml");
-		string UnrealBuildToolPath = Path.Combine(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/UnrealBuildTool.exe");
 		string UnrealBuildToolProject = Path.Combine(CmdEnv.LocalRoot, "Engine/Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj");
 		string ApiDocToolSolution = Path.Combine(CmdEnv.LocalRoot, "Engine/Source/Programs/UnrealDocTool/APIDocTool/APIDocTool.sln");
 		string ApiDocToolPath = Path.Combine(CmdEnv.LocalRoot, "Engine/Source/Programs/UnrealDocTool/APIDocTool/APIDocTool/bin/x64/Release/APIDocTool.exe");
@@ -90,7 +83,7 @@ public class BuildDocumentation : BuildCommand
 		// Execute the clean
 		if(bCleanEnv)
 		{
-			File.Delete(TargetInfoPath);
+			RunAndLog(CmdEnv, ApiDocToolPath, "-cleantarget" + ApiToolCommandLine, "ApiDocTool-CleanTargetInfo");
 		}
 		if (bCleanMeta)
 		{
@@ -116,7 +109,7 @@ public class BuildDocumentation : BuildCommand
 		// Execute the build
 		if (bBuildEnv)
 		{
-			CommandUtils.RunUBT(CmdEnv, UnrealBuildToolPath, String.Format("{0} {1} {2} -project=\"{3}\" -writetargetinfo=\"{4}\"", EngineTarget, EnginePlatform, EngineConfiguration, Path.GetFullPath(Path.Combine(CmdEnv.LocalRoot, EngineUProject)), TargetInfoPath));
+			RunAndLog(CmdEnv, ApiDocToolPath, "-buildtarget" + ApiToolCommandLine, "ApiDocTool-BuildTargetInfo");
 		}
 		if (bBuildMeta)
 		{

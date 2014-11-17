@@ -53,6 +53,9 @@ typedef FOnRequestNewPublishPermissionsComplete::FDelegate FOnRequestNewPublishP
  */
 struct FOnlineStatusUpdate
 {
+	/** Which type of status update for this post. May be ignored for some platforms */
+	FString Type;
+
 	/** The text which forms this post */
 	FString Message;
 	
@@ -69,7 +72,8 @@ struct FOnlineStatusUpdate
 	 * Default Constructor
 	 */
 	FOnlineStatusUpdate() 
-		: Image(NULL)
+		: Type(TEXT("Default"))
+		, Image(NULL)
 		, PostPrivacy(EOnlineStatusUpdatePrivacy::OnlyMe)
 	{}
 };
@@ -146,6 +150,28 @@ public:
 	 */
 	virtual bool ReadNewsFeed(int32 LocalUserNum, int32 NumPostsToRead = 50) = 0;
 
+
+	/**
+	 * Get a news feed object which was previously synced from the server
+	 *
+	 * @param LocalUserId - The id of the user we are reading news feeds for
+	 * @param NewsFeedIdx - The index of the news feed we are looking up
+	 * @param OutNewsFeed - The news feed object we are searching for
+	 *
+	 * @return Whether the news feed was obtained
+	 */
+	virtual EOnlineCachedResult::Type GetCachedNewsFeed(int32 LocalUserNum, int32 NewsFeedIdx, FOnlineStatusUpdate& OutNewsFeed) = 0;
+
+
+	/**
+	 * Get all the status update objects for the specified local user
+	 *
+	 * @param LocalUserId - The local user Id of the user we are obtaining status updates for
+	 * @param OutNewsFeeds - The collection of news feeds obtained from the server for the given player
+	 *
+	 * @return Whether news feeds were obtained
+	 */
+	virtual EOnlineCachedResult::Type GetCachedNewsFeeds(int32 LocalUserNum, TArray<FOnlineStatusUpdate>& OutNewsFeeds) = 0;
 
 public:
 

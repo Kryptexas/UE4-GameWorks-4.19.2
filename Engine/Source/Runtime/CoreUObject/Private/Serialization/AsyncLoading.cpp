@@ -11,7 +11,7 @@
 
 DECLARE_MEMORY_STAT(TEXT("Streaming Memory Used"),STAT_StreamingAllocSize,STATGROUP_Memory);
 
-DECLARE_STATS_GROUP_VERBOSE(TEXT("Async Load"),STATGROUP_AsyncLoad);
+DECLARE_STATS_GROUP_VERBOSE(TEXT("Async Load"), STATGROUP_AsyncLoad, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT(TEXT("Tick AsyncPackage"),STAT_FAsyncPackage_Tick,STATGROUP_AsyncLoad);
 DECLARE_CYCLE_STAT(TEXT("CreateLinker AsyncPackage"),STAT_FAsyncPackage_CreateLinker,STATGROUP_AsyncLoad);
@@ -116,7 +116,10 @@ bool FAsyncPackage::IsTimeLimitExceeded()
  */
 bool FAsyncPackage::GiveUpTimeSlice()
 {
-	bTimeLimitExceeded = bUseTimeLimit;
+	if (bUseTimeLimit && !bUseFullTimeLimit)
+	{
+		bTimeLimitExceeded = true;
+	}
 	return bTimeLimitExceeded;
 }
 
@@ -159,12 +162,13 @@ void FAsyncPackage::EndAsyncLoad()
  * Ticks the async loading code.
  *
  * @param	InbUseTimeLimit		Whether to use a time limit
+ * @param	InbUseFullTimeLimit	If true use the entire time limit, even if you have to block on IO
  * @param	InOutTimeLimit			Soft limit to time this function may take
  *
  * @return	true if package has finished loading, false otherwise
  */
 
-EAsyncPackageState::Type FAsyncPackage::Tick( bool InbUseTimeLimit, float& InOutTimeLimit )
+EAsyncPackageState::Type FAsyncPackage::Tick( bool InbUseTimeLimit, bool InbUseFullTimeLimit, float& InOutTimeLimit )
 {
 	SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_Tick);
 
@@ -173,6 +177,7 @@ EAsyncPackageState::Type FAsyncPackage::Tick( bool InbUseTimeLimit, float& InOut
 
 	// Set up tick relevant variables.
 	bUseTimeLimit			= InbUseTimeLimit;
+	bUseFullTimeLimit		= InbUseFullTimeLimit;
 	bTimeLimitExceeded		= false;
 	TimeLimit				= InOutTimeLimit;
 	TickStartTime			= FPlatformTime::Seconds();
@@ -334,14 +339,14 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
  */
 EAsyncPackageState::Type FAsyncPackage::FinishLinker()
 {
-	if( !Linker->HasFinishedInitializtion() )
+	if( !Linker->HasFinishedInitialization() )
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_FinishLinker);
 		LastObjectWorkWasPerformedOn	= Linker->LinkerRoot;
 		LastTypeOfWorkPerformed			= TEXT("ticking linker");
 	
 		// Operation still pending if Tick returns false
-		if( Linker->Tick( TimeLimit, bUseTimeLimit ) != ULinkerLoad::LINKER_Loaded)
+		if( Linker->Tick( TimeLimit, bUseTimeLimit, bUseFullTimeLimit ) != ULinkerLoad::LINKER_Loaded)
 		{
 			// Give up remainder of timeslice if there is one to give up.
 			GiveUpTimeSlice();
@@ -431,7 +436,7 @@ bool FAsyncPackage::AddUniqueLinkerDependencyPackage(int32 CurrentPackageIndex, 
 {
 	if (ContainsDependencyPackage(PendingImportedPackages, PendingImport.GetPackageName()) == INDEX_NONE)
 	{
-		if (PendingImport.Linker == NULL || !PendingImport.Linker->HasFinishedInitializtion())
+		if (PendingImport.Linker == NULL || !PendingImport.Linker->HasFinishedInitialization())
 		{
 			AddImportDependency(CurrentPackageIndex, PendingImport.GetPackageName());
 			UE_LOG(LogStreaming, Verbose, TEXT("  Adding linker dependency %s"), *PendingImport.GetPackageName());
@@ -505,7 +510,7 @@ EAsyncPackageState::Type FAsyncPackage::LoadImports()
 			if (PendingAsyncPackageIndex != INDEX_NONE)
 			{
 				FAsyncPackage& PendingPackage = GObjAsyncPackages[PendingAsyncPackageIndex];
-				if (PendingPackage.Linker == NULL || !PendingPackage.Linker->HasFinishedInitializtion())
+				if (PendingPackage.Linker == NULL || !PendingPackage.Linker->HasFinishedInitialization())
 				{
 					// Add this import to the dependency list.
 					AddUniqueLinkerDependencyPackage(AsyncQueueIndex, PendingPackage);
@@ -585,7 +590,7 @@ EAsyncPackageState::Type FAsyncPackage::FinishTextureAllocations()
 	if ( !bHasCompleted )
 	{
 		SCOPE_CYCLE_COUNTER(STAT_FAsyncPackage_FinishTextureAllocations);
-		if ( bUseTimeLimit )
+		if ( bUseTimeLimit && !bUseFullTimeLimit)
 		{
 			// Try again next Tick instead.
 			GiveUpTimeSlice();
@@ -643,7 +648,7 @@ EAsyncPackageState::Type FAsyncPackage::CreateExports()
 		// Data isn't ready yet. Give up remainder of time slice if we're not using a time limit.
 		else if( GiveUpTimeSlice() )
 		{
-			INC_FLOAT_STAT_BY(STAT_AsyncIO_AsyncPackagePrecacheWaitTime,(float)GDeltaTime);
+			INC_FLOAT_STAT_BY(STAT_AsyncIO_AsyncPackagePrecacheWaitTime, (float)FApp::GetDeltaTime());
 			return EAsyncPackageState::TimeOut;
 		}
 	}
@@ -905,7 +910,7 @@ void FlushAsyncLoading(FName ExcludeType/*=NAME_None*/)
 
 		// Flush async loaders by not using a time limit. Needed for e.g. garbage collection.
 		UE_LOG(LogStreaming, Log,  TEXT("Flushing async loaders.") );
-		while (ProcessAsyncLoading( false, 0, ExcludeType ) == EAsyncPackageState::PendingImports) {}
+		while (ProcessAsyncLoading( false, false, 0, ExcludeType ) == EAsyncPackageState::PendingImports) {}
 		UE_LOG(LogStreaming, Log,  TEXT("Flushed async loaders.") );
 
 		if (ExcludeType == NAME_None)
@@ -942,10 +947,11 @@ int32 GetNumAsyncPackages()
  * to fully load a package in a single pass given sufficient time.
  *
  * @param	bUseTimeLimit	Whether to use a time limit
+ * @param	bUseFullTimeLimit	If true, use the entire time limit even if blocked on I/O
  * @param	TimeLimit		Soft limit of time this function is allowed to consume
  * @param	ExcludeType		Do not process packages associated with this specific type name
  */
-EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, float TimeLimit, FName ExcludeType )
+EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, bool bUseFullTimeLimit, float TimeLimit, FName ExcludeType )
 {
 	SCOPE_CYCLE_COUNTER(STAT_AsyncLoadingTime);
 	// Whether to continue execution.
@@ -970,7 +976,7 @@ EAsyncPackageState::Type ProcessAsyncLoading( bool bUseTimeLimit, float TimeLimi
 		{
 			// Package tick returns EAsyncPackageState::Complete on completion.
 			// We only tick packages that have not yet been loaded.
-			LoadingState = Package.Tick( bUseTimeLimit, TimeLimit );
+			LoadingState = Package.Tick( bUseTimeLimit, bUseFullTimeLimit, TimeLimit );
 		}
 		else
 		{

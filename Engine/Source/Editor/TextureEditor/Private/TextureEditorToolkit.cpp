@@ -28,8 +28,8 @@ const FName FTextureEditorToolkit::PropertiesTabId(TEXT("TextureEditor_Propertie
 
 FTextureEditorToolkit::~FTextureEditorToolkit( )
 {
-	FAssetEditorToolkit::OnPreReimport().RemoveAll(this);
-	FAssetEditorToolkit::OnPostReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPreReimport().RemoveAll(this);
+	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 
 	GEditor->UnregisterForUndo(this);
 }
@@ -65,8 +65,8 @@ void FTextureEditorToolkit::UnregisterTabSpawners( const TSharedRef<class FTabMa
 
 void FTextureEditorToolkit::InitTextureEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UObject* ObjectToEdit )
 {
-	FAssetEditorToolkit::OnPreReimport().AddRaw(this, &FTextureEditorToolkit::OnPreReimport);
-	FAssetEditorToolkit::OnPostReimport().AddRaw(this, &FTextureEditorToolkit::OnPostReimport);
+	FReimportManager::Instance()->OnPreReimport().AddRaw(this, &FTextureEditorToolkit::OnPreReimport);
+	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FTextureEditorToolkit::OnPostReimport);
 
 	Texture = CastChecked<UTexture>(ObjectToEdit);
 
@@ -84,6 +84,7 @@ void FTextureEditorToolkit::InitTextureEditor( const EToolkitMode::Type Mode, co
 	PreviewEffectiveTextureWidth = 0;
 	PreviewEffectiveTextureHeight = 0;
 	SpecifiedMipLevel = 0;
+	bUseSpecifiedMipLevel = false;
 
 	SavedCompressionSetting = false;
 
@@ -270,9 +271,6 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 
 	uint32 ImportedWidth = Texture->Source.GetSizeX();
 	uint32 ImportedHeight = Texture->Source.GetSizeY();
-	uint32 Width, Height;
-
-	Texture->CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture, !GetUseSpecifiedMip());
 
 	// If Original Width and Height are 0, use the saved current width and height
 	if (ImportedWidth == 0 && ImportedHeight == 0)
@@ -281,22 +279,28 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 		ImportedHeight = Texture->GetSurfaceHeight();
 	}
 
-	const int32 MipLevel = FMath::Max( GetMipLevel(), Texture->CachedCombinedLODBias );
+	// In game max bias and dimensions
+	uint32 MaxInGameWidth, MaxInGameHeight;
+	int32 MipLevel = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture);
+	CalculateEffectiveTextureDimensions(MipLevel, MaxInGameWidth, MaxInGameHeight);
+
+	// Editor bias and dimensions (takes user specified mip setting into account)
+	Texture->UpdateCachedLODBias(!GetUseSpecifiedMip());
+	MipLevel = FMath::Max(GetMipLevel(), Texture->GetCachedLODBias());
 	CalculateEffectiveTextureDimensions(MipLevel, PreviewEffectiveTextureWidth, PreviewEffectiveTextureHeight);
-	uint32 MaxInGameWidth = PreviewEffectiveTextureWidth;
-	uint32 MaxInGameHeight = PreviewEffectiveTextureHeight;
 
 	// Cubes are previewed as unwrapped 2D textures.
 	// These have 2x the width of a cube face.
 	PreviewEffectiveTextureWidth *= IsCubeTexture() ? 2 : 1;
 
-	CalculateTextureDimensions(Width, Height);
+	FNumberFormattingOptions Options;
+	Options.UseGrouping = false;
 
-	ImportedText->SetText( FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Imported", "Imported: {0}x{1}"), FText::AsNumber( ImportedWidth ), FText::AsNumber( ImportedHeight ) ) );
-	CurrentText->SetText(  FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Current", "Current: {0}x{1}"), FText::AsNumber( FMath::Max((uint32)1, ImportedWidth >> MipLevel) ), FText::AsNumber( FMath::Max((uint32)1, ImportedHeight >> MipLevel)) ) );
-	MaxInGameText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_MaxInGame", "Max In-Game: {0}x{1}"), FText::AsNumber( MaxInGameWidth ), FText::AsNumber( MaxInGameHeight )));
+	ImportedText->SetText( FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Imported", "Imported: {0}x{1}"), FText::AsNumber( ImportedWidth, &Options ), FText::AsNumber( ImportedHeight, &Options ) ) );
+	CurrentText->SetText(  FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Displayed", "Displayed: {0}x{1}"), FText::AsNumber( FMath::Max((uint32)1, ImportedWidth >> MipLevel), &Options ), FText::AsNumber( FMath::Max((uint32)1, ImportedHeight >> MipLevel), &Options) ) );
+	MaxInGameText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_MaxInGame", "Max In-Game: {0}x{1}"), FText::AsNumber( MaxInGameWidth, &Options ), FText::AsNumber( MaxInGameHeight, &Options )));
 	MethodText->SetText(   FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Method", "Method: {0}"), Texture->NeverStream ? NSLOCTEXT("TextureEditor", "QuickInfo_MethodNotStreamed", "Not Streamed") : NSLOCTEXT("TextureEditor", "QuickInfo_MethodStreamed", "Streamed")));
-	LODBiasText->SetText(  FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_LODBias", "Combined LOD Bias: {0}"), FText::AsNumber( Texture->CachedCombinedLODBias )));
+	LODBiasText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_LODBias", "Combined LOD Bias: {0}"), FText::AsNumber(Texture->GetCachedLODBias())));
 	
 	int32 TextureFormatIndex = PF_MAX;
 	
@@ -666,7 +670,8 @@ void FTextureEditorToolkit::BindCommands()
 
 	ToolkitCommands->MapAction(
 		Commands.Reimport,
-		FExecuteAction::CreateSP(this, &FTextureEditorToolkit::OnReimport));
+		FExecuteAction::CreateSP(this, &FTextureEditorToolkit::OnReimport),
+		FCanExecuteAction::CreateSP(this, &FTextureEditorToolkit::OnReimportEnabled));
 
 	ToolkitCommands->MapAction(
 		Commands.Settings,
@@ -823,6 +828,9 @@ void FTextureEditorToolkit::OnPreReimport(UObject* InObject)
 	}
 
 	Texture->SourceFileTimestamp = TimeStamp.ToString();
+
+	// Disable viewport rendering until the texture has finished re-importing
+	TextureViewport->DisableRendering();
 }
 
 
@@ -839,6 +847,9 @@ void FTextureEditorToolkit::OnPostReimport(UObject* InObject, bool bSuccess)
 		// Failed, restore the compression flag
 		Texture->DeferCompression = SavedCompressionSetting;
 	}
+
+	// Re-enable viewport rendering now that the texture should be in a known state again
+	TextureViewport->EnableRendering();
 }
 
 
@@ -870,6 +881,14 @@ void FTextureEditorToolkit::OnReimport()
 	FReimportManager::Instance()->Reimport(Texture, /*bAskForNewFileIfMissing=*/true);
 }
 
+bool FTextureEditorToolkit::OnReimportEnabled() const
+{
+	if ( Texture->IsA<ULightMapTexture2D>() || Texture->IsA<UShadowMapTexture2D>() )
+	{
+		return false;
+	}
+	return true;
+}
 
 void FTextureEditorToolkit::HandleSettingsActionExecute()
 {
@@ -944,7 +963,7 @@ TOptional<int32> FTextureEditorToolkit::GetMaxMipLevel()const
 
 bool FTextureEditorToolkit::GetUseSpecifiedMip() const
 {
-	if( GetMaxMipLevel().Get(MIPLEVEL_MAX) > 0.0f )
+	if( GetMaxMipLevel().Get(MIPLEVEL_MAX) > 0 )
 	{
 		if( OnGetUseSpecifiedMipEnabled() )
 		{
@@ -1010,7 +1029,7 @@ bool FTextureEditorToolkit::OnGetUseSpecifiedMipEnabled() const
 {
 	UTextureCube* TextureCube = Cast<UTextureCube>(Texture);
 
-	if( GetMaxMipLevel().Get(MIPLEVEL_MAX) <= 0.0f || TextureCube )
+	if( GetMaxMipLevel().Get(MIPLEVEL_MAX) <= 0 || TextureCube )
 	{
 		return false;
 	}

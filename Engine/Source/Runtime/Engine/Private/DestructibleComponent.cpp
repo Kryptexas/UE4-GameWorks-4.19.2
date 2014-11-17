@@ -8,7 +8,6 @@
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
-#include "EngineKismetLibraryClasses.h"
 #include "ParticleDefinitions.h"
 #include "ObjectEditorUtils.h"
 
@@ -306,10 +305,8 @@ void UDestructibleComponent::CreatePhysicsState()
 	PhysxUserData = FPhysxUserData(this);
 	ApexDestructibleActor->userData = &PhysxUserData;
 
-	// Setup chunk user data arrays. We have to make sure PhysxChunkUserData will not be reallocated when growing, so we 
-	// reserver ChunkCount here already
-	ChunkInfos.Empty(ChunkCount);
-	PhysxChunkUserData.Empty(ChunkCount);
+	ChunkInfos.Empty();
+	PhysxChunkUserData.Empty();
 
 	// Cache cooked collision data
 	// BRGTODO : cook in asset
@@ -347,7 +344,14 @@ void UDestructibleComponent::DestroyPhysicsState()
 #if WITH_APEX
 	if(ApexDestructibleActor != NULL)
 	{
-		GPhysCommandHandler->DeferredRelease(ApexDestructibleActor);
+		if(UWorld * World = GetWorld())
+		{
+			if(FPhysScene * PhysScene = World->GetPhysicsScene())
+			{
+				PhysScene->DeferredCommandHandler.DeferredRelease(ApexDestructibleActor);
+			}
+		}
+		
 		ApexDestructibleActor = NULL;
 	}
 #endif	// #if WITH_APEX
@@ -782,9 +786,8 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 			else if (PActor->userData == NULL)
 			{
 				// Setup the user data to have a proper chunk - actor mapping 
-				int32 InfoIndex = ChunkInfos.AddUninitialized();
-
-				FDestructibleChunkInfo* CI = &ChunkInfos[InfoIndex];
+				FDestructibleChunkInfo* CI = new FDestructibleChunkInfo();
+				int32 InfoIndex = ChunkInfos.Add(CI);
 				CI->Index = InfoIndex;
 				CI->ChunkIndex = ChunkIndex;
 				CI->OwningComponent = this;
@@ -792,10 +795,11 @@ void UDestructibleComponent::SetChunkVisible( int32 ChunkIndex, bool bVisible )
 
 				PActor->setActorFlag(PxActorFlag::eDISABLE_GRAVITY, !BodyInstance.bEnableGravity);
 
-				int32 UserDataIdx = PhysxChunkUserData.Add(FPhysxUserData(CI));
+				FPhysxUserData * UserData = new FPhysxUserData(CI);
+				int32 UserDataIdx = PhysxChunkUserData.Add(UserData);
 				check(InfoIndex == UserDataIdx);
 
-				PActor->userData = &PhysxChunkUserData[UserDataIdx];
+				PActor->userData = UserData;
 
 				// Set collision response to non-root chunks
 				if (GetDestructibleMesh()->ApexDestructibleAsset->getChunkParentIndex(ChunkIndex) >= 0)
@@ -1122,7 +1126,7 @@ FBodyInstance* UDestructibleComponent::GetBodyInstance( FName BoneName /*= NAME_
 
 bool UDestructibleComponent::IsAnySimulatingPhysics() const 
 {
-	return BodyInstance.bSimulatePhysics;
+	return !!BodyInstance.bSimulatePhysics;
 }
 
 #if WITH_PHYSX

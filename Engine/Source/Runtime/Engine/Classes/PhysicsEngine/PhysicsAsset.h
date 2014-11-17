@@ -165,5 +165,12 @@ public:
 
 	// @todo document
 	ENGINE_API int32 FindBodyIndex(FName BodyName);
+
+	/** Find all the constraints that are connected to a particular body.
+	 * 
+	 * @param	BodyIndex		The index of the body to find the constraints for
+	 * @param	Constraints		Returns the found constraints
+	 **/
+	ENGINE_API void BodyFindConstraints(int32 BodyIndex, TArray<int32>& Constraints);
 };
 

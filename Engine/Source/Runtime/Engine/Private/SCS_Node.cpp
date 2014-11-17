@@ -3,11 +3,10 @@
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
-#include "EngineLevelScriptClasses.h"
 #if WITH_EDITORONLY_DATA
 #include "Kismet2/BlueprintEditorUtils.h"
 #endif
-#include "DeferRegisterStaticComponents.h"
+#include "DeferRegisterComponents.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USCS_Node
@@ -72,8 +71,9 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 
 		if (bDeferRegisterStaticComponent)
 		{
-			// Defer registration until after SCS has completed.
-			FDeferRegisterStaticComponents::Get().DeferStaticComponent(Actor, NewSceneComp, OriginalMobility);
+			// need to defer component registration until after the construction script
+			// is ran, since the construction script can mutate the object (for collision, etc.)
+			FDeferRegisterComponents::Get().DeferComponentRegistration(Actor, NewSceneComp, OriginalMobility);
 		}
 		else
 		{

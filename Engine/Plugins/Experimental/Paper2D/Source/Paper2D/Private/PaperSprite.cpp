@@ -3,8 +3,11 @@
 #include "Paper2DPrivatePCH.h"
 #include "PaperSprite.h"
 #include "PhysicsEngine/BodySetup.h"
+#include "PaperCustomVersion.h"
 
 #if WITH_EDITORONLY_DATA
+
+#include "PaperSpriteAtlas.h"
 #include "GeomTools.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -348,12 +351,9 @@ void FSpriteDrawCallRecord::BuildFromSprite(class UPaperSprite* Sprite)
 {
 	if (Sprite != NULL)
 	{
-		//SourceDimension = Sprite->GetSourceSize();
 		Destination = FVector::ZeroVector;
-		//DestinationDimension = Sprite->GetSourceSize();
-		Texture = Sprite->GetPrimaryAtlasTexture();
+		Texture = Sprite->GetBakedTexture();
 		Color = FLinearColor::White;
-		BlendMode = Sprite->BlendMode;
 
 		RenderVerts = Sprite->BakedRenderData;
 	}
@@ -566,7 +566,7 @@ void UPaperSprite::BuildBoundingBoxCollisionData(bool bUseTightBounds)
 			// Create a new box primitive
 			const FVector BoxSize3D = (PaperAxisX * BoxSize2D.X) + (PaperAxisY * BoxSize2D.Y) + (PaperAxisZ * CollisionThickness);
 
-			FKBoxElem& Box = *new (BodySetup3D->AggGeom.BoxElems) FKBoxElem(BoxSize3D.X, BoxSize3D.Y, BoxSize3D.Z);
+			FKBoxElem& Box = *new (BodySetup3D->AggGeom.BoxElems) FKBoxElem(FMath::Abs(BoxSize3D.X), FMath::Abs(BoxSize3D.Y), FMath::Abs(BoxSize3D.Z));
 			Box.Center = (PaperAxisX * CenterInPivotSpace.X) + (PaperAxisY * CenterInPivotSpace.Y);
 
 			BodySetup3D->InvalidatePhysicsData();
@@ -610,14 +610,20 @@ void UPaperSprite::RebuildRenderData()
 	Triangulate(RenderGeometry, /*out*/ TriangluatedPoints);
 
 	// Adjust for the pivot and store in the baked geometry buffer
-	const float InverseWidth = (SourceTexture != NULL) ? (1.0f / SourceTexture->GetSizeX()) : 1.0f;
-	const float InverseHeight = (SourceTexture != NULL) ? (1.0f / SourceTexture->GetSizeY()) : 1.0f;
+	UTexture2D* EffectiveTexture = GetBakedTexture();
+
+	const float InverseWidth = (EffectiveTexture != nullptr) ? (1.0f / EffectiveTexture->GetSizeX()) : 1.0f;
+	const float InverseHeight = (EffectiveTexture != nullptr) ? (1.0f / EffectiveTexture->GetSizeY()) : 1.0f;
+
+	const FVector2D DeltaUV((BakedSourceTexture != nullptr) ? (BakedSourceUV - SourceUV) : FVector2D::ZeroVector);
+
 
 	BakedRenderData.Empty(TriangluatedPoints.Num());
 	for (int32 PointIndex = 0; PointIndex < TriangluatedPoints.Num(); ++PointIndex)
 	{
-		const FVector2D& UV = TriangluatedPoints[PointIndex];
-		const FVector2D PivotSpacePos = ConvertTextureSpaceToPivotSpace(UV);
+		const FVector2D& SourcePos = TriangluatedPoints[PointIndex];
+		const FVector2D PivotSpacePos = ConvertTextureSpaceToPivotSpace(SourcePos);
+		const FVector2D UV(SourcePos + DeltaUV);
 
 		new (BakedRenderData) FVector4(PivotSpacePos.X, PivotSpacePos.Y, UV.X * InverseWidth, UV.Y * InverseHeight);
 	}
@@ -1040,6 +1046,16 @@ FVector2D UPaperSprite::GetPivotPosition() const
 	};
 }
 
+void UPaperSprite::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	Super::GetAssetRegistryTags(OutTags);
+
+	if (AtlasGroup != nullptr)
+	{
+		OutTags.Add(FAssetRegistryTag(TEXT("AtlasGroupGUID"), AtlasGroup->AtlasGUID.ToString(EGuidFormats::Digits), FAssetRegistryTag::TT_Hidden));
+	}
+}
+
 #endif
 
 bool UPaperSprite::GetPhysicsTriMeshData(FTriMeshCollisionData* OutCollisionData, bool InUseAllTriData)
@@ -1094,4 +1110,30 @@ void UPaperSprite::QuerySupportedSockets(TArray<FComponentSocketDescription>& Ou
 		const FPaperSpriteSocket& Socket = Sockets[SocketIndex];
 		new (OutSockets) FComponentSocketDescription(Socket.SocketName, EComponentSocketType::Socket);
 	}
+}
+
+#if WITH_EDITORONLY_DATA
+void UPaperSprite::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	Ar.UsingCustomVersion(FPaperCustomVersion::GUID);
+}
+
+void UPaperSprite::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITORONLY_DATA
+	if (GetLinkerCustomVersion(FPaperCustomVersion::GUID) < FPaperCustomVersion::FixedNegativeVolume)
+	{
+		RebuildCollisionData();
+	}
+#endif
+}
+#endif
+
+UTexture2D* UPaperSprite::GetBakedTexture() const
+{
+	return (BakedSourceTexture != nullptr) ? BakedSourceTexture : SourceTexture;
 }

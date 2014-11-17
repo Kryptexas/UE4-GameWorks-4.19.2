@@ -6,6 +6,7 @@ UBlackboardKeyType_Class::UBlackboardKeyType_Class(const class FPostConstructIni
 {
 	ValueSize = sizeof(TWeakObjectPtr<UClass>);
 	BaseClass = UObject::StaticClass();
+	SupportedOp = EBlackboardKeyOperation::Basic;
 }
 
 UClass* UBlackboardKeyType_Class::GetValue(const uint8* RawData)
@@ -17,7 +18,7 @@ UClass* UBlackboardKeyType_Class::GetValue(const uint8* RawData)
 bool UBlackboardKeyType_Class::SetValue(uint8* RawData, UClass* Value)
 {
 	TWeakObjectPtr<UClass> WeakObjPtr(Value);
-	return SetValueInMemory< TWeakObjectPtr<UClass> >(RawData, WeakObjPtr);
+	return SetWeakObjectInMemory<UClass>(RawData, WeakObjPtr);
 }
 
 FString UBlackboardKeyType_Class::DescribeValue(const uint8* RawData) const
@@ -36,8 +37,13 @@ bool UBlackboardKeyType_Class::IsAllowedByFilter(UBlackboardKeyType* FilterOb) c
 	return (FilterClass && (FilterClass->BaseClass == BaseClass || BaseClass->IsChildOf(FilterClass->BaseClass)));
 }
 
-int32 UBlackboardKeyType_Class::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
+EBlackboardCompare::Type UBlackboardKeyType_Class::Compare(const uint8* MemoryBlockA, const uint8* MemoryBlockB) const
 {
-	return GetValueFromMemory<TWeakObjectPtr<UClass> >(MemoryBlockA) == GetValueFromMemory<TWeakObjectPtr<UClass> >(MemoryBlockB)
-		? UBlackboardKeyType::Equal : UBlackboardKeyType::NotEqual;
+	return (FMemory::Memcmp(MemoryBlockA, MemoryBlockB, ValueSize) == 0) ? EBlackboardCompare::Equal : EBlackboardCompare::NotEqual;
+}
+
+bool UBlackboardKeyType_Class::TestBasicOperation(const uint8* MemoryBlock, EBasicKeyOperation::Type Op) const
+{
+	TWeakObjectPtr<UClass> WeakObjPtr = GetValueFromMemory< TWeakObjectPtr<UClass> >(MemoryBlock);
+	return (Op == EBasicKeyOperation::Set) ? WeakObjPtr.IsValid() : !WeakObjPtr.IsValid();
 }

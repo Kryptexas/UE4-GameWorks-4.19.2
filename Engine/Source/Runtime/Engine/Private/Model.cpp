@@ -345,6 +345,19 @@ void UModel::ModifySelectedSurfs( bool UpdateMaster )
 			ModifySurf( i, UpdateMaster );
 
 }
+
+bool UModel::HasSelectedSurfaces() const
+{
+	for (const auto& Surface : Surfs)
+	{
+		if (Surface.PolyFlags & PF_Selected)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
 #endif // WITH_EDITOR
 
 bool UModel::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )

@@ -104,7 +104,7 @@ void AOnlineBeaconClient::NotifyControlMessage(UNetConnection* Connection, uint8
 
 		// We are the client
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
-		UE_LOG(LogNet, Log, TEXT("Beacon client received: %s"), FNetControlMessageInfo::GetName(MessageType));
+		UE_LOG(LogNet, Log, TEXT("Beacon: Client received: %s"), FNetControlMessageInfo::GetName(MessageType));
 #endif
 		switch (MessageType)
 		{

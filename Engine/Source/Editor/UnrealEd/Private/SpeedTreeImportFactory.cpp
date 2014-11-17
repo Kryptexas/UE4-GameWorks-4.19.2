@@ -13,9 +13,9 @@
 #include "RawMesh.h"
 
 #if WITH_SPEEDTREE
-
+#pragma warning(disable : 4996) // 'function' was was declared deprecated  (needed for the secure string functions)
 #include "Core/Core.h"
-
+#pragma warning(default : 4996)
 #endif
 
 #define LOCTEXT_NAMESPACE "SpeedTreeImportFactory"

@@ -18,6 +18,8 @@ namespace BlueprintNodeHelpers
 
 	bool FindNodeOwner(AActor* OwningActor, class UBTNode* Node, UBehaviorTreeComponent*& OwningComp, int32& OwningInstanceIdx);
 
+	void AbortLatentActions(AActor* OwningActor, const UObject* Ob);
+
 	FORCEINLINE bool HasBlueprintFunction(FName FuncName, const UObject* Ob, const UClass* StopAtClass)
 	{
 		return (Ob->GetClass()->FindFunctionByName(FuncName)->GetOuter() != StopAtClass);

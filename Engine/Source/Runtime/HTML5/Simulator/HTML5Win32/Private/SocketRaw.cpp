@@ -109,14 +109,14 @@ bool FSocketRaw::HasPendingConnection( bool& bHasPendingConnection )
 
 bool FSocketRaw::HasPendingData( unsigned int& PendingDataSize )
 {
-	PendingDataSize = 0; 
-	if ( SocketCurrentState( SocketRawData->socket, SocketRawEnum::CanRead ) == SocketRawEnum::Yes )
+	if (SocketCurrentState(SocketRawData->socket, SocketRawEnum::CanRead) == SocketRawEnum::Yes)
 	{
-		if(ioctlsocket(SocketRawData->socket, FIONREAD, (u_long*)(&PendingDataSize)) == 0)
+		if (ioctlsocket(SocketRawData->socket, FIONREAD, (u_long*)(&PendingDataSize)) == 0)
 		{
-			return true; 
+			return (PendingDataSize > 0);
 		}
 	}
+
 	return false; 
 }
 

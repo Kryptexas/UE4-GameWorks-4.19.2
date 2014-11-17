@@ -447,16 +447,16 @@ class FPlatformFileReadStatsHandle : public IFileHandle
 {
 	TAutoPtr<IFileHandle> FileHandle;
 	FString Filename;
-	volatile int64* BytesPerSecCounter;
-	volatile int64* BytesReadCounter;
-	volatile int64* ReadsCounter;
+	volatile int32* BytesPerSecCounter;
+	volatile int32* BytesReadCounter;
+	volatile int32* ReadsCounter;
 
 public:
 
-	FPlatformFileReadStatsHandle(IFileHandle* InFileHandle, const TCHAR* InFilename, volatile int64* InBytesPerSce, volatile int64* InByteRead, volatile int64* InReads)
+	FPlatformFileReadStatsHandle(IFileHandle* InFileHandle, const TCHAR* InFilename, volatile int32* InBytesPerSec, volatile int32* InByteRead, volatile int32* InReads)
 		: FileHandle(InFileHandle)
 		, Filename(InFilename)
-		, BytesPerSecCounter(InBytesPerSce)
+		, BytesPerSecCounter(InBytesPerSec)
 		, BytesReadCounter(InByteRead)
 		, ReadsCounter(InReads)
 	{
@@ -494,9 +494,9 @@ protected:
 	double			LifetimeReadSize;	// Total maintained over lifetime of runtime, in bytes
 	int64			LifetimeReadCalls;	// Total maintained over lifetime of runtime
 	double			Timer;
-	volatile int64	BytePerSecThisTick;
-	volatile int64	BytesReadThisTick;
-	volatile int64	ReadsThisTick;
+	volatile int32	BytePerSecThisTick;
+	volatile int32	BytesReadThisTick;
+	volatile int32	ReadsThisTick;
 
 public:
 

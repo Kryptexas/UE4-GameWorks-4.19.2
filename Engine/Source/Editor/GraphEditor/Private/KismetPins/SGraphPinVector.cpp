@@ -28,12 +28,14 @@ public:
 		VisibleText_0 = InArgs._VisibleText_0;
 		VisibleText_1 = InArgs._VisibleText_1;
 		VisibleText_2 = InArgs._VisibleText_2;
+		const FLinearColor LabelClr = FLinearColor( 1.f, 1.f, 1.f, 0.4f );
 
 		this->ChildSlot
 		[
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()
-			.AutoHeight() .Padding(5)
+			.AutoHeight() 
+			.Padding(0)
 			[
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
@@ -45,14 +47,18 @@ public:
 					.Label()
 					[
 						SNew( STextBlock )
-						.Font( FEditorStyle::GetFontStyle( "Graph.EditableTextBox" ) )
+						.Font( FEditorStyle::GetFontStyle( "Graph.VectorEditableTextBox" ) )
 						.Text( LOCTEXT("VectorNodeXAxisValueLabel", "X") )
+						.ColorAndOpacity( LabelClr )
 					]
 					.Value( this, &SVectorTextBox::GetTypeInValue_0 )
 					.OnValueCommitted( InArgs._OnFloatCommitted_Box_0 )
-					.Font( FEditorStyle::GetFontStyle( "Graph.EditableTextBox" ) )
+					.Font( FEditorStyle::GetFontStyle( "Graph.VectorEditableTextBox" ) )
 					.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values") )
 					.ToolTipText(LOCTEXT("VectorNodeXAxisValueLabel_ToolTip", "X value"))
+					.EditableTextBoxStyle( &FEditorStyle::GetWidgetStyle<FEditableTextBoxStyle>( "Graph.VectorEditableTextBox" ))
+					.BorderForegroundColor( FLinearColor::White )
+					.BorderBackgroundColor( FLinearColor::White )
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth().Padding(2) .HAlign(HAlign_Fill)
@@ -63,14 +69,18 @@ public:
 					.Label()
 					[
 						SNew( STextBlock )
-						.Font( FEditorStyle::GetFontStyle( "Graph.EditableTextBox" ) )
+						.Font( FEditorStyle::GetFontStyle( "Graph.VectorEditableTextBox" ) )
 						.Text( LOCTEXT("VectorNodeYAxisValueLabel", "Y") )
+						.ColorAndOpacity( LabelClr )
 					]
 					.Value( this, &SVectorTextBox::GetTypeInValue_1 )
 					.OnValueCommitted( InArgs._OnFloatCommitted_Box_1 )
-					.Font( FEditorStyle::GetFontStyle( "Graph.EditableTextBox" ) )
+					.Font( FEditorStyle::GetFontStyle( "Graph.VectorEditableTextBox" ) )
 					.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values") )
 					.ToolTipText(LOCTEXT("VectorNodeYAxisValueLabel_ToolTip", "Y value"))
+					.EditableTextBoxStyle( &FEditorStyle::GetWidgetStyle<FEditableTextBoxStyle>( "Graph.VectorEditableTextBox" ))
+					.BorderForegroundColor( FLinearColor::White )
+					.BorderBackgroundColor( FLinearColor::White )
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth().Padding(2) .HAlign(HAlign_Fill)
@@ -81,14 +91,18 @@ public:
 					.Label()
 					[
 						SNew( STextBlock )
-						.Font( FEditorStyle::GetFontStyle( "Graph.EditableTextBox" ) )
+						.Font( FEditorStyle::GetFontStyle( "Graph.VectorEditableTextBox" ) )
 						.Text( LOCTEXT("VectorNodeZAxisValueLabel", "Z") )
+						.ColorAndOpacity( LabelClr )
 					]
 					.Value( this, &SVectorTextBox::GetTypeInValue_2 )
 					.OnValueCommitted( InArgs._OnFloatCommitted_Box_2 )
-					.Font( FEditorStyle::GetFontStyle( "Graph.EditableTextBox" ) )
+					.Font( FEditorStyle::GetFontStyle( "Graph.VectorEditableTextBox" ) )
 					.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values") )
 					.ToolTipText(LOCTEXT("VectorNodeZAxisValueLabel_ToolTip", "Z value"))
+					.EditableTextBoxStyle( &FEditorStyle::GetWidgetStyle<FEditableTextBoxStyle>( "Graph.VectorEditableTextBox" ))
+					.BorderForegroundColor( FLinearColor::White )
+					.BorderBackgroundColor( FLinearColor::White )
 				]
 			]
 		];

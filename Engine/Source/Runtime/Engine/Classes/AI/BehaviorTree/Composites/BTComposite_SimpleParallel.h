@@ -50,6 +50,7 @@ class UBTComposite_SimpleParallel : public UBTCompositeNode
 
 	virtual void NotifyChildExecution(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const OVERRIDE;
 	virtual void NotifyNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const OVERRIDE;
+	virtual bool CanPushSubtree(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const OVERRIDE;
 	virtual uint16 GetInstanceMemorySize() const OVERRIDE;
 	virtual FString GetStaticDescription() const OVERRIDE;
 	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const OVERRIDE;

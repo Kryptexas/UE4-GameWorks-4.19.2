@@ -25,9 +25,11 @@ public class GameProjectGeneration : ModuleRules
 				"Projects",
                 "RenderCore",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
                 "SourceControl",
-                "UnrealEd",
+ 				"TargetPlatform",
+				"UnrealEd",
 				"DesktopPlatform"
 			}
 		);

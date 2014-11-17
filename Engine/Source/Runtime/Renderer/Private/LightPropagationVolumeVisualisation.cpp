@@ -247,7 +247,7 @@ IMPLEMENT_SHADER_TYPE(,FLpvVisualisePS,TEXT("LPVVisualise"),TEXT("PShader"),SF_P
 void FLightPropagationVolume::Visualise( const FSceneView& View ) const
 {
 	SCOPED_DRAW_EVENT(LpvVisualise, DEC_LIGHT);
-	check(GRHIFeatureLevel == ERHIFeatureLevel::SM5);
+	check(View.GetFeatureLevel() == ERHIFeatureLevel::SM5);
 
 	TShaderMapRef<FLpvVisualiseVS> VertexShader(GetGlobalShaderMap());
 	TShaderMapRef<FLpvVisualiseGS> GeometryShader(GetGlobalShaderMap());

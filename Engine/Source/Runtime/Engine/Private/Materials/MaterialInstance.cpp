@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineMaterialClasses.h"
 #include "MaterialInstance.h"
 #include "MaterialShader.h"
 #include "TargetPlatform.h"
@@ -695,7 +694,7 @@ void UMaterialInstance::GetUsedTextures(TArray<UTexture*>& OutTextures, EMateria
 
 			if (Material)
 			{
-				const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel,QualityLevel);
+				const FMaterialResource* MaterialResource = Material->GetMaterialResource(GRHIFeatureLevel, QualityLevel);
 				GetTextureExpressionValues(MaterialResource, OutTextures);
 			}
 			else
@@ -714,7 +713,7 @@ void UMaterialInstance::OverrideTexture( const UTexture* InTextureToOverride, UT
 #if WITH_EDITOR
 	bool bShouldRecacheMaterialExpressions = false;
 	const bool bES2Preview = false;
-	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = {GRHIFeatureLevel,ERHIFeatureLevel::ES2};
+	ERHIFeatureLevel::Type FeatureLevelsToUpdate[2] = { GRHIFeatureLevel, ERHIFeatureLevel::ES2 };
 	int32 NumFeatureLevelsToUpdate = bES2Preview ? 2 : 1;
 	
 	for (int32 i = 0; i < NumFeatureLevelsToUpdate; ++i)
@@ -1169,8 +1168,6 @@ void UMaterialInstance::InitStaticPermutation()
 	// Allocate material resources if needed even if we are cooking, so that StaticPermutationMaterialResources will always be valid
 	UpdatePermutationAllocations();
 
-	const TArray<FName>& DesiredShaderFormats = GetTargetShaderFormats();
-
 	if ( FApp::CanEverRender() ) 
 	{
 		// Cache shaders for the current platform to be used for rendering
@@ -1200,7 +1197,7 @@ void UMaterialInstance::GetMaterialResourceId(EShaderPlatform ShaderPlatform, EM
 
 	// TODO: Is this right?
 	// ERHIFeatureLevel::Type FeatureLevel = GetMaxSupportedFeatureLevel(ShaderPlatform);
-	const FMaterialResource* BaseResource = BaseMaterial->GetMaterialResource(GRHIFeatureLevel,QualityLevel);
+	const FMaterialResource* BaseResource = BaseMaterial->GetMaterialResource(GRHIFeatureLevel, QualityLevel);
 
 	GetMaterialResourceId(BaseResource, ShaderPlatform, CompositedStaticParameters, OutId);
 }
@@ -1483,7 +1480,7 @@ void TrimToOverriddenOnly(TArray<ParameterType>& Parameters)
 void UMaterialInstance::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
 {
 	TArray<FName> DesiredShaderFormats;
-	TargetPlatform->GetShaderFormats( DesiredShaderFormats );
+	TargetPlatform->GetAllTargetedShaderFormats(DesiredShaderFormats);
 
 	TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
 
@@ -1546,30 +1543,6 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 			StaticParameters.Serialize(Ar);
 
 			SerializeInlineShaderMaps( CachedMaterialResourcesForCooking, Ar, StaticPermutationMaterialResources );
-
-
-			/*if ( Ar.IsLoading() || (Ar.IsCooking() == false) )
-			{
-				// shouldn't ever load into this saved material resources array
-				// if we are not cooking then SerializeInlineShaderMaps will ignore the SavedMaterialResources array
-				TArray<FMaterialResource*> SavedMaterialResources;
-				SerializeInlineShaderMaps( SavedMaterialResources, Ar, StaticPermutationMaterialResources );
-				check( SavedMaterialResources.Num() == 0);
-			}
-			else if ( Ar.IsSaving() )
-			{
-				check( Ar.IsCooking() );
-				const TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find(Ar.CookingTarget());
-				// check( CachedMaterialResourcesForPlatform != NULL || (!HasAnyMarks( OBJECTMARK_TagExp ))  );
-				if ( CachedMaterialResourcesForPlatform != NULL )
-				{
-					SerializeInlineShaderMaps(*CachedMaterialResourcesForPlatform, Ar, StaticPermutationMaterialResources);
-				}
-				else
-				{
-					check( Ar.GetLinker() == NULL );
-				}
-			}*/
 		}
 		else
 		{
@@ -1656,6 +1629,19 @@ void UMaterialInstance::PostLoad()
 
 		// Make sure static parameters are up to date and shaders are cached for the current platform
 		InitStaticPermutation();
+
+		// enable caching in postload for derived data cache commandlet and cook by the book
+		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+		if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false)) 
+		{
+			ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
+			TArray<ITargetPlatform*> Platforms = TPM->GetActiveTargetPlatforms();
+			// Cache for all the shader formats that the cooking target requires
+			for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)
+			{
+				BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
+			}
+		}
 	}
 	INC_FLOAT_STAT_BY(STAT_ShaderCompiling_MaterialLoading,(float)MaterialLoadTime);
 
@@ -1685,27 +1671,6 @@ void UMaterialInstance::PostLoad()
 		}
 
 		LightingGuidFixupMap.Add(GetLightingGuid(), this);
-	}
-
-	TArray<ITargetPlatform*> Platforms;
-	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
-	if (!TPM || TPM->RestrictFormatsToRuntimeOnly())
-	{
-		// for now a runtime format and a cook format are very different, we don't put any formats here
-	}
-	else
-	{
-		Platforms = TPM->GetActiveTargetPlatforms();
-	}
-
-
-	if (Platforms.Num())
-	{
-		// Cache for all the shader formats that the cooking target requires
-		for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)
-		{
-			BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
-		}
 	}
 }
 
@@ -1959,7 +1924,7 @@ void UMaterialInstance::UpdateStaticPermutation(const FStaticParameterSet& NewPa
 		// This will flush the rendering thread which is necessary before changing bHasStaticPermutationResource, since the RT is reading from that directly
 		// The update context will also make sure any dependent MI's with static parameters get recompiled
 		FMaterialUpdateContext MaterialUpdateContext;
-		MaterialUpdateContext.AddMaterial(GetMaterial());
+		MaterialUpdateContext.AddMaterialInstance(this);
 		bHasStaticPermutationResource = bWantsStaticPermutationResource;
 		StaticParameters = CompareParameters;
 

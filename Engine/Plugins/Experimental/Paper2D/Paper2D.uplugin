@@ -14,7 +14,7 @@
 	[
 		{
 			"Name" : "Paper2D",
-			"Type" : "Editor",
+			"Type" : "Runtime",
 			"LoadingPhase" : "PreDefault"
 		},
 		{

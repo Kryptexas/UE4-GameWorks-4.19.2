@@ -125,9 +125,9 @@ FORCEINLINE void StatsMasterEnableSubtract(int32 Value = 1)
 #define DECLARE_MEMORY_STAT_EXTERN(CounterName,StatId,GroupId, API)
 #define DECLARE_MEMORY_STAT_POOL_EXTERN(CounterName,StatId,GroupId,Pool, API)
 
-#define DECLARE_STATS_GROUP(GroupDesc,GroupId)
-#define DECLARE_STATS_GROUP_VERBOSE(GroupDesc,GroupId)
-#define DECLARE_STATS_GROUP_COMPILED_OUT(GroupDesc,GroupId)
+#define DECLARE_STATS_GROUP(GroupDesc,GroupId,GroupCat)
+#define DECLARE_STATS_GROUP_VERBOSE(GroupDesc,GroupId,GroupCat)
+#define DECLARE_STATS_GROUP_COMPILED_OUT(GroupDesc,GroupId,GroupCat)
 
 #define SET_CYCLE_COUNTER(Stat,Cycles)
 #define INC_DWORD_STAT(StatId)

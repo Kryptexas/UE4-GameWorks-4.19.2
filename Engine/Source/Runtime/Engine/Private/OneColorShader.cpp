@@ -4,7 +4,8 @@
 #include "EnginePrivate.h"
 #include "OneColorShader.h"
 
-IMPLEMENT_SHADER_TYPE(,FOneColorVS,TEXT("OneColorShader"),TEXT("MainVertexShader"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>,TOneColorVS<true>,TEXT("OneColorShader"),TEXT("MainVertexShader"),SF_Vertex);
+IMPLEMENT_SHADER_TYPE(template<>,TOneColorVS<false>,TEXT("OneColorShader"),TEXT("MainVertexShader"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(,FOneColorPS,TEXT("OneColorShader"),TEXT("MainPixelShader"),SF_Pixel);
 // Compiling a version for every number of MRT's
 // On AMD PC hardware, outputting to a color index in the shader without a matching render target set has a significant performance hit

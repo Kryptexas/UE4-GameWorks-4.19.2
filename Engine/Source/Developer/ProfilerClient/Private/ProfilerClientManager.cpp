@@ -407,7 +407,7 @@ void FServiceConnection::Initialize( const FProfilerServiceAuthorize2& Message, 
 			// read the message
 			new (StatMessages) FStatMessage(Stream.ReadMessage(ArrayReader));
 		}
-		static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", TEXT(""), EStatDataType::ST_int64, true, false);
+		static FStatNameAndInfo Adv(NAME_AdvanceFrame, "", "", TEXT(""), EStatDataType::ST_int64, true, false);
 		new (StatMessages) FStatMessage(Adv.GetEncodedName(), EStatOperation::AdvanceFrameEventGameThread, 1LL, false);
 	}
 
@@ -424,6 +424,7 @@ void FServiceConnection::Initialize( const FProfilerServiceAuthorize2& Message, 
 void FProfilerClientManager::HandleServiceMetaDataMessage( const FProfilerServiceMetaData& Message, const IMessageContextRef& Context )
 {
 #if STATS
+	// @TODO yrx 2014-04-14 Not used.
 	if (ActiveSessionId.IsValid() && Connections.Find(Message.InstanceId) != nullptr)
 	{
 		FServiceConnection& Connection = *Connections.Find(Message.InstanceId);
@@ -750,6 +751,8 @@ void FProfilerClientManager::BroadcastMetadataUpdate()
 {
 	while( LoadConnection->DataFrames.Num() > 0 )
 	{
+		FScopeLock ScopeLock( &(LoadConnection->CriticalSection) );
+
 		// Fire a meta data update message
 		if( LoadConnection->DataFrames[0].MetaDataUpdated )
 		{
@@ -757,7 +760,6 @@ void FProfilerClientManager::BroadcastMetadataUpdate()
 			ProfilerLoadedMetaDataDelegate.Broadcast( LoadConnection->InstanceId );
 		}
 
-		FScopeLock ScopeLock( &(LoadConnection->CriticalSection) );
 		FProfilerDataFrame& DataFrame = LoadConnection->DataFrames[0];
 		ProfilerDataDelegate.Broadcast( LoadConnection->InstanceId, DataFrame, LoadConnection->DataLoadingProgress );
 		LoadConnection->DataFrames.RemoveAt( 0 );
@@ -797,6 +799,8 @@ void FServiceConnection::UpdateMetaData()
 	for (auto It = CurrentThreadState.ShortNameToLongName.CreateConstIterator(); It; ++It)
 	{
 		FStatMessage const& LongName = It.Value();
+		const FName GroupName = LongName.NameAndInfo.GetGroupName();
+
 		uint32 StatType = STATTYPE_Error;
 		if (LongName.NameAndInfo.GetField<EStatDataType>() == EStatDataType::ST_int64)
 		{
@@ -821,6 +825,13 @@ void FServiceConnection::UpdateMetaData()
 		{
 			FindOrAddStat(LongName.NameAndInfo, StatType);
 		}
+
+		// Threads metadata.
+		const bool bIsThread = FStatConstants::NAME_ThreadGroup == GroupName;
+		if( bIsThread )
+		{
+			FindOrAddThread( LongName.NameAndInfo );
+		}	
 	}
 }
 
@@ -838,8 +849,7 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 
 		const FName StatName = StatNameAndInfo.GetShortName();
 		FName GroupName = StatNameAndInfo.GetGroupName();
-		FString Description;
-		StatNameAndInfo.GetDescription( Description );
+		const FString Description = StatNameAndInfo.GetDescription();
 
 		// do some special stats first
 		if (StatName == TEXT("STAT_FrameTime"))
@@ -860,14 +870,14 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 		// add a new stat description to the meta data
 		FStatDescription StatDescription;
 		StatDescription.ID = StatID;
-		StatDescription.Name = Description.Len() > 0 ? Description : StatName.ToString();
+		StatDescription.Name = !Description.IsEmpty() ? Description : StatName.ToString();
 		if( StatDescription.Name.Contains( TEXT("STAT_") ) )
 		{
 			StatDescription.Name = StatDescription.Name.RightChop(FString(TEXT("STAT_")).Len());
 		}
 		StatDescription.StatType = StatType;
 
-		if( GroupName == NAME_None )
+		if( GroupName == NAME_None && Stream.Header.Version == EStatMagicNoHeader::NO_VERSION )
 		{	
 			// @todo Add more ways to group the stats.
 			const int32 Thread_Pos = StatDescription.Name.Find( TEXT("Thread_") );
@@ -896,10 +906,7 @@ int32 FServiceConnection::FindOrAddStat( const FStatNameAndInfo& StatNameAndInfo
 			FStatGroupDescription GroupDescription;
 			GroupDescription.ID = GroupID;
 			GroupDescription.Name = GroupName.ToString();
-			if( GroupDescription.Name.Contains( TEXT("STATGROUP_") ) )
-			{
-				GroupDescription.Name = GroupDescription.Name.RightChop(FString(TEXT("STATGROUP_")).Len());
-			}
+			GroupDescription.Name.RemoveFromStart(TEXT("STATGROUP_"));
 
 			// add to the meta data
 			FScopeLock ScopeLock(&CriticalSection);
@@ -919,24 +926,20 @@ int32 FServiceConnection::FindOrAddThread(const FStatNameAndInfo& Thread)
 {
 	SCOPE_CYCLE_COUNTER(STAT_PC_FindOrAddThread);
 
-	const FName LongName = Thread.GetRawName();
-	int32* const ThreadIDPtr = ThreadNameArray.Find( LongName );
-	int32 ThreadID = ThreadIDPtr != nullptr ? *ThreadIDPtr : -1;
-	if (!ThreadIDPtr)
-	{
-		// meta data has been updated
-		CurrentData.MetaDataUpdated = true;
+	// The description of a thread group contains the thread id
+	const FString Desc = Thread.GetDescription();
+	const uint32 ThreadID = FStatsUtils::ParseThreadID( Desc );
 
-		// get the thread description
-		FString Desc;
-		Thread.GetDescription(Desc);
-		ThreadID = FStatsUtils::ParseThreadID( FName( *Desc ) );
-		ThreadNameArray.Add(LongName, ThreadID);
+	const FName ShortName = Thread.GetShortName();
 
-		// add to the meta data
-		FScopeLock ScopeLock(&CriticalSection);
-		MetaData.ThreadDescriptions.Add(ThreadID, Thread.GetShortName().ToString());
-	}
+	// add to the meta data
+	FScopeLock ScopeLock( &CriticalSection );
+	const int32 OldNum = MetaData.ThreadDescriptions.Num();
+	MetaData.ThreadDescriptions.Add( ThreadID, ShortName.ToString() );
+	const int32 NewNum = MetaData.ThreadDescriptions.Num();
+
+	// meta data has been updated
+	CurrentData.MetaDataUpdated = CurrentData.MetaDataUpdated || OldNum != NewNum;
 
 	return ThreadID;
 }
@@ -966,6 +969,7 @@ void FServiceConnection::GenerateAccumulators(TArray<FStatMessage>& Stats, TArra
 			const FName StatName = Stat.NameAndInfo.GetShortName();
 			if (StatName == TEXT("STAT_SecondsPerCycle"))
 			{
+				FScopeLock ScopeLock( &CriticalSection );
 				MetaData.SecondsPerCycle = Stat.GetValue_double();
 			}
 		}
@@ -1122,13 +1126,13 @@ void FServiceConnection::GenerateProfilerDataFrame()
 	DataFrame.CountAccumulators.Reset();
 	DataFrame.CycleGraphs.Reset();
 	DataFrame.FloatAccumulators.Reset();
+	DataFrame.MetaDataUpdated = false;
 
 	// get the stat stack root and the non frame stats
 	FRawStatStackNode Stack;
 	TArray<FStatMessage> NonFrameStats;
 	CurrentThreadState.UncondenseStackStats( CurrentThreadState.CurrentGameFrame, Stack, nullptr, &NonFrameStats );
 
-	// @todo updating metadata here is not thread safe?
 	// cycle graphs
 	GenerateCycleGraphs( Stack, DataFrame.CycleGraphs );
 

@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "TextureEditorPrivatePCH.h"
-#include "TextureEditor.generated.inl"
+
 
 
 UTextureEditorSettings::UTextureEditorSettings( const class FPostConstructInitializeProperties& PCIP )

@@ -61,6 +61,12 @@ EBTDecoratorLogic::Type UBehaviorTreeDecoratorGraphNode::GetOperationType() cons
 	return EBTDecoratorLogic::Invalid;
 }
 
+bool UBehaviorTreeDecoratorGraphNode::CanUserDeleteNode() const
+{
+	const UBehaviorTreeDecoratorGraph* MyGraph = Cast<const UBehaviorTreeDecoratorGraph>(GetGraph());
+	return MyGraph == NULL || MyGraph->bEditable;
+}
+
 void UBehaviorTreeDecoratorGraphNode::AutowireNewNode(UEdGraphPin* FromPin)
 {
 	Super::AutowireNewNode(FromPin);

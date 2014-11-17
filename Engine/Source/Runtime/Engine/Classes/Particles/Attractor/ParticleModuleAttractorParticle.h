@@ -7,12 +7,12 @@
 UENUM()
 enum EAttractorParticleSelectionMethod
 {
-	EAPSM_Random,
-	EAPSM_Sequential,
+	EAPSM_Random UMETA(DisplayName="Random"),
+	EAPSM_Sequential UMETA(DisplayName="Sequential"),
 	EAPSM_MAX,
 };
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Particle Attractor"))
+UCLASS(editinlinenew, hidecategories=Object, MinimalAPI, meta=(DisplayName = "Particle Attractor"))
 class UParticleModuleAttractorParticle : public UParticleModuleAttractorBase
 {
 	GENERATED_UCLASS_BODY()

@@ -24,7 +24,6 @@ public:
 		: SettingsContainer(InSettingsContainer)
 	{
 		SettingsContainer->OnSectionRemoved().AddRaw(this, &FSettingsEditorModel::HandleSettingsContainerSectionRemoved);
-
 	}
 
 	/**

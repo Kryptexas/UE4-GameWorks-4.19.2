@@ -8,7 +8,7 @@
 /**
  * Implements the settings for the iOS target platform.
  */
-UCLASS(config = Engine)
+UCLASS(config=Engine, defaultconfig)
 class IOSRUNTIMESETTINGS_API UIOSRuntimeSettings : public UObject
 {
 public:

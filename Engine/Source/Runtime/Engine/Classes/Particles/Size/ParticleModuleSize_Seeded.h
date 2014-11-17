@@ -4,7 +4,7 @@
 #pragma once
 #include "ParticleModuleSize_Seeded.generated.h"
 
-UCLASS(HeaderGroup=Particle, editinlinenew, hidecategories=Object, meta=(DisplayName = "Initial Size (Seed)"))
+UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Initial Size (Seed)"))
 class UParticleModuleSize_Seeded : public UParticleModuleSize
 {
 	GENERATED_UCLASS_BODY()

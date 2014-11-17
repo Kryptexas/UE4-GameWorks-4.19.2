@@ -105,6 +105,7 @@ public:
 		UI_COMMAND( MoveLevelDown,	"Move Level Down",		"Moves level down by 1 unit", EUserInterfaceActionType::Button, FInputGesture(EKeys::Down) );
 		
 		// Landscape operations
+		UI_COMMAND( ImportTiledLandscape, "Import Tiled Landscape...", "Imports landscape from a tiled heightmap files (<name>X<n>_Y<n>.r16)", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( AddLandscapeLevelXNegative,	"-X",	"Add a new adjacent level with landscape proxy", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( AddLandscapeLevelXPositive,	"+X",	"Add a new adjacent level with landscape proxy", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( AddLandscapeLevelYNegative,	"-Y",	"Add a new adjacent level with landscape proxy", EUserInterfaceActionType::Button, FInputGesture() );
@@ -284,6 +285,8 @@ public:
 
 
 	// Landscape operations
+	TSharedPtr< FUICommandInfo > ImportTiledLandscape;
+	
 	TSharedPtr< FUICommandInfo > AddLandscapeLevelXNegative;
 	TSharedPtr< FUICommandInfo > AddLandscapeLevelXPositive;
 	TSharedPtr< FUICommandInfo > AddLandscapeLevelYNegative;

@@ -11,7 +11,8 @@ class UTextureCube : public UTexture
 
 public:
 	/** Platform data. */
-	TScopedPointer<FTexturePlatformData> PlatformData;
+	FTexturePlatformData *PlatformData;
+	TMap<FString, FTexturePlatformData*> CookedPlatformData;
 
 	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
@@ -61,7 +62,8 @@ public:
 	virtual FTextureResource* CreateResource() OVERRIDE;
 	virtual void UpdateResource() OVERRIDE;
 	virtual EMaterialValueType GetMaterialType() OVERRIDE { return MCT_TextureCube; }
-	virtual TScopedPointer<FTexturePlatformData>* GetPlatformDataLink() OVERRIDE { return &PlatformData; }
+	virtual FTexturePlatformData** GetRunningPlatformData() OVERRIDE { return &PlatformData; }
+	virtual TMap<FString, FTexturePlatformData*> *GetCookedPlatformData() OVERRIDE { return &CookedPlatformData; }
 	// End UTexture interface
 	
 	/**
@@ -78,7 +80,7 @@ public:
 	 * @param	Enum	Which mips to calculate size for.
 	 * @return	Total size of all specified mips, in bytes
 	 */
-	virtual uint32 CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const;
+	virtual uint32 CalcTextureMemorySizeEnum( ETextureMipCount Enum ) const OVERRIDE;
 };
 
 

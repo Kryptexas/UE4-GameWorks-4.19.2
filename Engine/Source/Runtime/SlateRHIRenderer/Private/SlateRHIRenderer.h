@@ -183,6 +183,8 @@ public:
 	 */
 	virtual void InvalidateAllViewports();
 
+	virtual void PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData) OVERRIDE;
+
 private:
 	/** Loads all known textures from Slate styles */
 	void LoadUsedTextures();
@@ -233,4 +235,8 @@ private:
 
 	/** The resource which allows us to capture the editor to a buffer */
 	FSlateCrashReportResource* CrashTrackerResource;
+
+	bool bTakingAScreenShot;
+	FIntRect ScreenshotRect;
+	TArray<FColor>* OutScreenshotData;
 };

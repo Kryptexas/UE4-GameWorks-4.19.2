@@ -30,7 +30,7 @@ public:
 			SettingsModule->RegisterSettings("Editor", "LevelEditor", "NewsFeed",
 				LOCTEXT("NewsFeedSettingsName", "News Feed"),
 				LOCTEXT("NewsFeedSettingsDescription", "Change how you receive and view news updates."),
-				TWeakObjectPtr<UObject>(UNewsFeedSettings::StaticClass()->GetDefaultObject())
+				GetMutableDefault<UNewsFeedSettings>()
 			);
 		}
 	}

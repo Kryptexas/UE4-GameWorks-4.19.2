@@ -14,5 +14,7 @@ public:
 
 public:
 
+	TSharedPtr< FUICommandInfo > OpenAssetsOrFolders;
+	TSharedPtr< FUICommandInfo > PreviewAssets;
 	TSharedPtr< FUICommandInfo > DirectoryUp;
 };

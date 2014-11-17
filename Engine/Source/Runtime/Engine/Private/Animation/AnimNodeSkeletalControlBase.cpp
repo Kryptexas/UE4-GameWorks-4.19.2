@@ -61,3 +61,8 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseCo
 	}
 }
 
+void FAnimNode_SkeletalControlBase::AddDebugNodeData(FString& OutDebugData)
+{
+	const float ActualAlpha = AlphaScaleBias.ApplyTo(Alpha);
+	OutDebugData += FString::Printf(TEXT("Alpha: %.1f%%"), ActualAlpha*100.f);
+}

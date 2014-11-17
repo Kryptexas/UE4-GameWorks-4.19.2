@@ -64,6 +64,13 @@ namespace EControllerButtons
 		BackLeft,
 		BackRight,
 
+		// global speech commands
+		GlobalMenu,
+		GlobalView,
+		GlobalPause,
+		GlobalPlay,
+		GlobalBack,
+
 		Invalid,
 	};
 }

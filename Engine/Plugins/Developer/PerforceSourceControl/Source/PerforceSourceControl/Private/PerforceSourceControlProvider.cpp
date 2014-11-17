@@ -19,7 +19,7 @@ static FName ProviderName("Perforce");
 /** Init of connection with source control server */
 void FPerforceSourceControlProvider::Init(bool bForceConnection)
 {
-	LoadLibraries();
+	LoadSSLLibraries();
 	ParseCommandLineSettings(bForceConnection);
 }
 
@@ -38,7 +38,7 @@ void FPerforceSourceControlProvider::Close()
 
 	bServerAvailable = false;
 
-	UnloadLibraries();
+	UnloadSSLLibraries();
 }
 
 TSharedRef<FPerforceSourceControlState, ESPMode::ThreadSafe> FPerforceSourceControlProvider::GetStateInternal(const FString& Filename)
@@ -431,26 +431,6 @@ void FPerforceSourceControlProvider::RegisterWorker( const FName& InName, const 
 	WorkersMap.Add( InName, InDelegate );
 }
 
-void FPerforceSourceControlProvider::LoadLibraries()
-{
-#if PLATFORM_WINDOWS
-	FString P4BinaryPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/Perforce/");
-
-	P4apiHandle = LoadLibraryW( *( P4BinaryPath + TEXT( "p4api.dll" ) ) );
-#endif
-}
-
-void FPerforceSourceControlProvider::UnloadLibraries()
-{
-#if PLATFORM_WINDOWS
-	if(P4apiHandle != NULL)
-	{
-		FreeLibrary( P4apiHandle );
-		P4apiHandle = NULL;
-	}
-#endif
-}
-
 ECommandResult::Type FPerforceSourceControlProvider::ExecuteSynchronousCommand(FPerforceSourceControlCommand& InCommand, const FText& Task, bool bSuppressResponseMsg)
 {
 	ECommandResult::Type Result = ECommandResult::Failed;
@@ -526,6 +506,47 @@ ECommandResult::Type FPerforceSourceControlProvider::IssueCommand(FPerforceSourc
 
 		return Result;
 	}
+}
+
+void FPerforceSourceControlProvider::LoadSSLLibraries()
+{
+#if PLATFORM_WINDOWS
+#if PLATFORM_64BITS
+
+#if _MSC_VER >= 1800
+	const FString VSVersion = TEXT("VS2013/");
+#else
+	const FString VSVersion = TEXT("VS2012/");
+#endif
+
+	const FString PlatformString = TEXT("Win64");
+	const FString RootOpenSSLPath = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/OpenSSL/") / PlatformString / VSVersion;
+
+	FString DLLToLoad = RootOpenSSLPath + TEXT("libeay32.dll");
+	Module_libeay32 = LoadLibraryW(*DLLToLoad);
+	verifyf(Module_libeay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
+	DLLToLoad = RootOpenSSLPath + TEXT("ssleay32.dll");
+	Module_ssleay32 = LoadLibraryW(*DLLToLoad);
+	verifyf(Module_ssleay32, TEXT("Failed to load DLL %s"), *DLLToLoad);
+#endif
+#endif
+}
+
+void FPerforceSourceControlProvider::UnloadSSLLibraries()
+{
+#if PLATFORM_WINDOWS
+	if(Module_libeay32)
+	{
+		FreeLibrary(Module_libeay32);
+		Module_libeay32 = NULL;
+	}
+
+	if(Module_ssleay32)
+	{
+		FreeLibrary(Module_ssleay32);
+		Module_ssleay32 = NULL;
+	}
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

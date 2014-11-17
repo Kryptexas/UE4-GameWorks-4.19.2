@@ -631,9 +631,17 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 	const bool bMtdResult = PxGeometryQuery::computePenetration(PxMtdNormal, PxMtdDepth, Geom, QueryTM, POtherGeom, PShapeWorldPose);
 	if (bMtdResult)
 	{
-		const FVector MtdNormal = P2UVector(PxMtdNormal);
-		OutResult.Normal = MtdNormal;
-		OutResult.PenetrationDepth = FMath::Abs(PxMtdDepth) + KINDA_SMALL_NUMBER;
+		if (PxMtdNormal.isFinite())
+		{
+			const FVector MtdNormal = P2UVector(PxMtdNormal);
+			OutResult.Normal = MtdNormal;
+			OutResult.PenetrationDepth = FMath::Abs(PxMtdDepth) + KINDA_SMALL_NUMBER;
+		}
+		else
+		{
+			OutResult.Normal = OutResult.ImpactNormal;
+			UE_LOG(LogPhysics, Warning, TEXT("ConvertOverlappedShapeToImpactHit, PxGeometryQuery::computePenetration returned NaN :( PxMtdNormal: (X:%f, Y:%f, Z:%f)"), PxMtdNormal.x, PxMtdNormal.y, PxMtdNormal.z);
+		}
 	}
 	else
 	{

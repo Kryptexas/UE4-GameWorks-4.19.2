@@ -14,6 +14,8 @@ public:
 	/** IDetailCustomization interface */
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) OVERRIDE;
 
+	bool IsEditingEnabled() const;
+
 private:
 
 	void UpdateAllowedAbortModes();
@@ -41,4 +43,6 @@ private:
 	uint32 bIsModeEnabled : 1;
 
 	class UObject* MyNode;
+	/** property utils */
+	class IPropertyUtilities* PropUtils;
 };

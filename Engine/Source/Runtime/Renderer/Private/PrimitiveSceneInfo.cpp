@@ -38,8 +38,7 @@ public:
 	}
 	virtual void DrawMesh(
 		const FMeshBatch& Mesh,
-		float MinDrawDistance,
-		float MaxDrawDistance,
+		float ScreenSize,
 		bool bShadowOnly
 		)
 	{
@@ -52,8 +51,7 @@ public:
 		FStaticMesh* StaticMesh = new(PrimitiveSceneInfo->StaticMeshes) FStaticMesh(
 			PrimitiveSceneInfo,
 			Mesh,
-			FMath::Square(FMath::Max(0.0f,MinDrawDistance)),
-			FMath::Square(FMath::Max(0.0f,MaxDrawDistance)),
+			ScreenSize,
 			bShadowOnly,
 			CurrentHitProxy ? CurrentHitProxy->Id : FHitProxyId()
 			);
@@ -159,7 +157,7 @@ void FPrimitiveSceneInfo::AddToScene(bool bUpdateStaticDrawLists)
 	// Allocate space in the indirect lighting cache so that it can be used for previewing indirect lighting
 	if (Proxy->HasStaticLighting() 
 		&& Proxy->NeedsUnbuiltPreviewLighting() 
-		&& IsIndirectLightingCacheAllowed())
+		&& IsIndirectLightingCacheAllowed(Scene->GetFeatureLevel()))
 	{
 		FIndirectLightingCacheAllocation* PrimitiveAllocation = Scene->IndirectLightingCache.FindPrimitiveAllocation(PrimitiveComponentId);
 

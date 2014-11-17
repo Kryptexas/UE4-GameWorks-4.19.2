@@ -135,10 +135,6 @@ void SWorldGridItem::Construct(const FArguments& InArgs)
 	WorldModel = InArgs._InWorldModel;
 	LevelModel = InArgs._InItemModel;
 
-	MapPackageLoaded = FEditorStyle::GetBrush("WorldBrowser.LevelLoaded");
-	MapPackageUnloaded = FEditorStyle::GetBrush("WorldBrowser.LevelUnloaded");
-	MapPackagePending = FEditorStyle::GetBrush("WorldBrowser.LevelPending");
-
 	ProgressBarImage = FEditorStyle::GetBrush(TEXT("ProgressBar.Marquee"));
 	
 	bNeedRefresh = true;
@@ -208,15 +204,6 @@ TSharedRef<SToolTip> SWorldGridItem::CreateToolTipWidget()
 					.AutoHeight()
 					[
 						SNew(SHorizontalBox)
-
-						// Level status
-						+SHorizontalBox::Slot()
-						.HAlign(HAlign_Left)
-						.AutoWidth()
-						[
-							SNew(SImage)
-							.Image(this, &SWorldGridItem::GetLevelStatusBrush)
-						]
 
 						// Level name
 						+SHorizontalBox::Slot()
@@ -310,7 +297,7 @@ FSlateRect SWorldGridItem::GetItemRect() const
 	return FSlateRect(LevelPos, LevelPos + LevelSize);
 }
 
-TSharedPtr<SToolTip> SWorldGridItem::GetToolTip()
+TSharedPtr<IToolTip> SWorldGridItem::GetToolTip()
 {
 	// Hide tooltip in case item is being dragged now
 	if (LevelModel->GetLevelTranslationDelta().Size() > KINDA_SMALL_NUMBER)
@@ -440,18 +427,6 @@ bool SWorldGridItem::OnHitTest(const FGeometry& MyGeometry, FVector2D InAbsolute
 FString SWorldGridItem::GetLevelNameText() const
 {
 	return LevelModel->GetDisplayName();
-}
-
-const FSlateBrush* SWorldGridItem::GetLevelStatusBrush() const
-{
-	if (LevelModel->IsLoaded())
-	{
-		return MapPackageLoaded;
-	}
-
-	return LevelModel->IsLoading() ? 
-		MapPackagePending : 
-		MapPackageUnloaded;
 }
 
 bool SWorldGridItem::IsItemEditable() const

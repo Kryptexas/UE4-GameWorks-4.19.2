@@ -23,6 +23,27 @@
 
 #define LOCTEXT_NAMESPACE "Internationalization"
 
+namespace
+{
+
+FString GetCanonicalName(const FString& Name)
+{
+#if UE_ENABLE_ICU
+	static const int32 MaximumNameLength = 64;
+	const int32 NameLength = Name.Len();
+	check(NameLength < MaximumNameLength);
+	char CanonicalName[MaximumNameLength];
+
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	uloc_canonicalize(TCHAR_TO_ANSI( *Name ), CanonicalName, MaximumNameLength, &ICUStatus);
+	return CanonicalName;
+#else
+	return Name;
+#endif
+}
+
+}
+
 FInternationalization* FInternationalization::Instance;
 
 FInternationalization& FInternationalization::Get()
@@ -38,7 +59,15 @@ FInternationalization& FInternationalization::Get()
 	return *Instance;
 }
 
-void FInternationalization::GetTimeZonesIDs(TArray<FString>& TimeZonesIDs)
+void FInternationalization::TearDown()
+{
+	if (Instance && Instance->IsInitialized())
+	{
+		Instance->Terminate();
+	}
+}
+
+void FInternationalization::GetTimeZonesIDs(TArray<FString>& TimeZonesIDs) const
 {
 	TimeZonesIDs.Empty();
 #if UE_ENABLE_ICU
@@ -78,38 +107,26 @@ void FInternationalization::SetCurrentCulture(const FString& Name)
 	}
 }
 
-TSharedRef< FCulture > FInternationalization::GetCurrentCulture()
+TSharedRef< FCulture > FInternationalization::GetCurrentCulture() const
 {
 	return AllCultures[CurrentCultureIndex];
 }
 
-TSharedPtr< FCulture > FInternationalization::GetCulture(const FString& Name)
+TSharedPtr< FCulture > FInternationalization::GetCulture(const FString& Name) const
 {
 	int32 CultureIndex = GetCultureIndex(Name);
 	return CultureIndex != -1 ? AllCultures[CultureIndex] : TSharedPtr<FCulture>();
 }
 
-int32 FInternationalization::GetCultureIndex(const FString& Name)
+int32 FInternationalization::GetCultureIndex(const FString& Name) const
 {
-#if UE_ENABLE_ICU
-	static const int32 MaximumNameLength = 64;
-	const int32 NameLength = Name.Len();
-	check(NameLength < MaximumNameLength);
-	char CanonicalName[MaximumNameLength];
-
-	UErrorCode ICUStatus = U_ZERO_ERROR;
-	uloc_canonicalize(TCHAR_TO_ANSI( *Name ), CanonicalName, MaximumNameLength, &ICUStatus);
-#endif	
+	const FString CanonicalName = GetCanonicalName(Name);
 
 	const int32 CultureCount = AllCultures.Num();
 	int32 i;
 	for (i = 0; i < CultureCount; ++i)
 	{
-#if UE_ENABLE_ICU
 		if( AllCultures[i]->GetName() == CanonicalName )
-#else
-		if( AllCultures[i]->GetName() == Name )
-#endif
 		{
 			break;
 		}
@@ -171,10 +188,17 @@ namespace
 
 void FInternationalization::Initialize()
 {
-	if(IsInitialized())
+	static bool IsInitializing = false;
+
+	if(IsInitialized() || IsInitializing)
 	{
 		return;
 	}
+	struct FInitializingGuard
+	{
+		FInitializingGuard()	{IsInitializing = true;}
+		~FInitializingGuard()	{IsInitializing = false;}
+	} InitializingGuard;
 
 #if UE_ENABLE_ICU
 	UErrorCode ICUStatus = U_ZERO_ERROR;
@@ -353,7 +377,7 @@ FString& FInternationalization::Leetify(FString& SourceString)
 		if( !Succeeded )
 		{
 			// Failed to LEETify, add something to beginning and end just to help mark the string.
-			SourceString = FString::FString(TEXT("\x2021")) + SourceString + FString::FString(TEXT("\x2021"));
+			SourceString = FString(TEXT("\x2021")) + SourceString + FString(TEXT("\x2021"));
 		}
 	}
 
@@ -361,25 +385,65 @@ FString& FInternationalization::Leetify(FString& SourceString)
 }
 #endif
 
-void FInternationalization::GetCultureNames(TArray<FString>& CultureNames)
+void FInternationalization::GetCultureNames(TArray<FString>& CultureNames) const
 {
-	CultureNames.Empty();
-#if UE_ENABLE_ICU
-	int32_t LocaleCount;
-	const icu::Locale* const AvailableLocales = icu::Locale::getAvailableLocales(LocaleCount);
-
-	for(int32_t i = 0; i < LocaleCount; ++i)
+	CultureNames.Reset();
+	for(const auto& Culture : AllCultures)
 	{
-		const char* const LocaleName = AvailableLocales[i].getName();
+		CultureNames.Add(Culture->GetName());
+	}
+}
 
-		CultureNames.Add(FString(LocaleName));
-	}
-#else
-	for(int32 i = 0; i < AllCultures.Num(); ++i)
+void FInternationalization::GetCulturesWithAvailableLocalization(const TArray<FString>& InLocalizationPaths, TArray< TSharedPtr<FCulture> >& OutAvailableCultures) const
+{
+	OutAvailableCultures.Reset();
+
+	TArray<FString> AllLocalizationFolders;
+	IPlatformFile& PlatformFile = IPlatformFile::GetPlatformPhysical();
+	for(const auto& LocalizationPath : InLocalizationPaths)
 	{
-		CultureNames.Add(AllCultures[i]->GetName());
+		/* Visitor class used to enumerate directories of culture */
+		class FCultureEnumeratorVistor : public IPlatformFile::FDirectoryVisitor
+		{
+		public:
+			FCultureEnumeratorVistor( TArray<FString>& OutLocalizationFolders )
+				: LocalizationFolders(OutLocalizationFolders)
+			{
+			}
+
+			virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory) OVERRIDE
+			{
+				if(bIsDirectory)
+				{
+					// UE localization resource folders use "en-US" style while ICU uses "en_US"
+					const FString LocalizationFolder = FPaths::GetCleanFilename(FilenameOrDirectory);
+					const FString CanonicalName = GetCanonicalName(LocalizationFolder);
+					LocalizationFolders.AddUnique(CanonicalName);
+				}
+
+				return true;
+			}
+
+			/** Array to fill with the names of the UE localization folders available at the given path */
+			TArray<FString>& LocalizationFolders;
+		};
+
+		FCultureEnumeratorVistor CultureEnumeratorVistor(AllLocalizationFolders);
+		PlatformFile.IterateDirectory(*LocalizationPath, CultureEnumeratorVistor);	
 	}
-#endif
+
+	// Find any cultures that are a complete or partial match for the languages we have translations for
+	for(const auto& Culture : AllCultures)
+	{
+		for(const FString& LocalizationFolder : AllLocalizationFolders)
+		{
+			// Check the full name, but if it doesn't match, see if the base language is present
+			if(LocalizationFolder == Culture->GetName() || LocalizationFolder == Culture->GetTwoLetterISOLanguageName())
+			{
+				OutAvailableCultures.AddUnique(Culture);
+			}
+		}
+	}
 }
 
 FInternationalization::FInternationalization()
@@ -396,7 +460,7 @@ void FInternationalization::PopulateAllCultures(void)
 	const icu::Locale* const AvailableLocales = icu::Locale::getAvailableLocales(LocaleCount);
 
 	// Get available locales and create cultures.
-	AllCultures.Reserve(LocaleCount);
+	AllCultures.Reset(LocaleCount);
 	for(int32_t i = 0; i < LocaleCount; ++i)
 	{
 		AllCultures.Add( MakeShareable( new FCulture( AvailableLocales[i].getName() ) ) );

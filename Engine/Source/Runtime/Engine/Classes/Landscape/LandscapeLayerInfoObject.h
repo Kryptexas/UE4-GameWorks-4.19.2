@@ -4,12 +4,12 @@
 
 #include "LandscapeLayerInfoObject.generated.h"
 
-UCLASS(HeaderGroup=Terrain, MinimalAPI)
+UCLASS(MinimalAPI)
 class ULandscapeLayerInfoObject : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(VisibleAnywhere, Category=LandscapeLayerInfoObject)
+	UPROPERTY(VisibleAnywhere, Category=LandscapeLayerInfoObject, AssetRegistrySearchable)
 	FName LayerName;
 
 	UPROPERTY(EditAnywhere, Category=LandscapeLayerInfoObject)

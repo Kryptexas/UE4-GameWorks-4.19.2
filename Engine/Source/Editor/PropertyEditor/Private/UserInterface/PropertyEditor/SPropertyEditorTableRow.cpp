@@ -34,7 +34,7 @@ void SPropertyEditorTableRow::Construct( const FArguments& InArgs, const TShared
 
 	PropertyPath = FPropertyNode::CreatePropertyPath( PropertyEditor->GetPropertyNode() );
 
-	this->SetToolTipText( PropertyEditor->GetToolTipText() );
+	this->SetToolTipText(TAttribute<FString>(PropertyEditor->GetToolTipText()));
 
 	SMultiColumnTableRow< TSharedPtr<FPropertyNode*> >::Construct( FSuperRowType::FArguments(), InOwnerTable );
 }
@@ -289,7 +289,7 @@ TSharedRef<SWidget> SPropertyEditorTableRow::ConstructPropertyEditorWidget()
 		PropertyWidget = SNew( SPropertyEditor, PropertyEditorRef );
 	}
 
-	PropertyWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
+	PropertyWidget->SetToolTipText( TAttribute<FString>(PropertyEditor->GetToolTipText()) );
 
 	return PropertyWidget.ToSharedRef();
 }

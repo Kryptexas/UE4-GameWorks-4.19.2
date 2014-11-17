@@ -8,7 +8,7 @@
 #pragma once
 #include "Note.generated.h"
 
-UCLASS(MinimalAPI, hidecategories = (Input))
+UCLASS(MinimalAPI, hidecategories = (Input), showcategories=("Input|MouseInput", "Input|TouchInput"))
 class ANote : public AActor
 {
 	GENERATED_UCLASS_BODY()

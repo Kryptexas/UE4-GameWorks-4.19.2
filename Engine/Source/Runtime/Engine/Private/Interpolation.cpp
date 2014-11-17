@@ -6,16 +6,11 @@
 
 #include "EnginePrivate.h"
 #include "EngineClasses.h"
-#include "EngineInterpolationClasses.h"
-#include "EngineKismetLibraryClasses.h"
 #include "ParticleDefinitions.h"
-#include "EngineMaterialClasses.h"
-#include "EngineLevelScriptClasses.h"
 #include "SoundDefinitions.h"
 #include "InterpolationHitProxy.h"
 #include "AVIWriter.h"
 #include "AnimationUtils.h"
-#include "EngineDecalClasses.h"
 #include "MatineeUtils.h"
 
 #if WITH_EDITOR
@@ -288,6 +283,7 @@ AMatineeActor::AMatineeActor(const class FPostConstructInitializeProperties& PCI
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.SceneManagerObject.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Matinee;
 		SpriteComponent->SpriteInfo.DisplayName = ConstructorStatics.NAME_Matinee;
 		SpriteComponent->AttachParent = RootComponent;
@@ -584,7 +580,7 @@ void AMatineeActor::UpdateStreamingForCameraCuts(float CurrentTime, bool bPrevie
 			float TimeDifference = CutInfo.TimeStamp - CurrentTime;
 			if ( TimeDifference > 0.0f && TimeDifference < GCameraCutLookAhead )
 			{
-				GStreamingManager->AddViewSlaveLocation( CutInfo.Location );
+				IStreamingManager::Get().AddViewSlaveLocation( CutInfo.Location );
 			}
 			else if ( TimeDifference >= GCameraCutLookAhead )
 			{
@@ -1850,7 +1846,12 @@ UInterpGroupDirector* UInterpData::FindDirectorGroup()
 	return DirGroup;
 }
 
-void UInterpData::GetAllEventNames(TArray<FName>& OutEventNames)
+bool UInterpData::IsEventName(const FName& InEventName) const
+{
+	return AllEventNames.Contains( InEventName );
+}
+
+void UInterpData::GetAllEventNames(TArray<FName>& OutEventNames) const
 {
 	OutEventNames = AllEventNames;
 }
@@ -3906,13 +3907,13 @@ void UInterpTrackMove::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, 
 	}
 
 	FVector NewLocation = Actor->GetRootComponent()->GetComponentLocation();
-	// if GDeltaTime == 0.f, I'd think that's paused, then we won't need to update Velocity
-	if ( GDeltaTime > 0.f ) 
+	// if FApp::GetDeltaTime() == 0.f, I'd think that's paused, then we won't need to update Velocity
+	if ( FApp::GetDeltaTime() > 0.f ) 
 	{
 		// we're not using PreviPosition to NewPosition because MatineeActor itself can have different playrate
 		// so we can't guarantee that's the time it took to get there. 
 		// this should approximately safe in replication as well
-		FVector ComponentVelocity = (NewLocation-PrevLocation)/GDeltaTime;
+		FVector ComponentVelocity = (NewLocation-PrevLocation)/FApp::GetDeltaTime();
 		Actor->GetRootComponent()->ComponentVelocity = ComponentVelocity;
 	}
 }
@@ -4657,7 +4658,7 @@ bool UInterpTrackMove::GetLocationAtTime(UInterpTrackInst* TrInst, float Time, F
 {
 	UInterpTrackInstMove* MoveTrackInst = CastChecked<UInterpTrackInstMove>(TrInst);
 
-	check( SubTracks.Num() > 0 || (EulerTrack.Points.Num() == PosTrack.Points.Num()) && (EulerTrack.Points.Num() == LookupTrack.Points.Num()));
+	check( (SubTracks.Num() > 0) || ((EulerTrack.Points.Num() == PosTrack.Points.Num()) && (EulerTrack.Points.Num() == LookupTrack.Points.Num())));
 
 	// Do nothing if no data on this track.
 	if( SubTracks.Num() == 0 && EulerTrack.Points.Num() == 0)
@@ -6297,6 +6298,7 @@ void UInterpTrackEvent::RemoveKeyframe(int32 KeyIndex)
 	if ( Group )
 	{
 		UInterpData* IData = CastChecked<UInterpData>( Group->GetOuter() );
+		IData->Modify();
 		IData->UpdateEventNames();
 	}
 }
@@ -7365,8 +7367,8 @@ void UInterpTrackAnimControl::UpdateTrack(float NewPosition, UInterpTrackInst* T
 						// @todo: This will need to be updated if we decide to support notifies in reverse.
 						if(AnimSeq.bReverse == false)
 						{
-							int32 FromLoopNum = FMath::Floor( (((FromTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset)/SeqLength );
-							int32 ToLoopNum = FMath::Floor( (((ToTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset)/SeqLength );
+							int32 FromLoopNum = FMath::FloorToInt( (((FromTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset)/SeqLength );
+							int32 ToLoopNum = FMath::FloorToInt( (((ToTime - CurrentSeqStart) * CurrentRate) + CurrentStartOffset)/SeqLength );
 							int32 NumLoopsToJump = ToLoopNum - FromLoopNum;
 
 							for(int32 i=0; i<NumLoopsToJump; i++)
@@ -9403,7 +9405,7 @@ void UInterpTrackParticleReplay::UpdateTrack( float NewPosition, UInterpTrackIns
 				if( bHaveReplayStartKey )
 				{
 					const float TimeWithinReplay = NewPosition - CurrentReplayStartKey.Time;
-					const int32 ReplayFrameIndex = FMath::Trunc( TimeWithinReplay / FMath::Max( ( float )KINDA_SMALL_NUMBER, FixedTimeStep ) );
+					const int32 ReplayFrameIndex = FMath::TruncToInt( TimeWithinReplay / FMath::Max( ( float )KINDA_SMALL_NUMBER, FixedTimeStep ) );
 
 
 					// Check to see if we have a clip

@@ -481,42 +481,15 @@ bool UUnrealEdEngine::HandleBuildPathsCommand( const TCHAR* Str, FOutputDevice& 
 	return FEditorBuildUtils::EditorBuild(InWorld, EBuildOptions::BuildAIPaths);
 }
 
-bool UUnrealEdEngine::HandleRestoreLandscapeLayerInfosCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
-{
-	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
-	{
-		// Search all layer info into LandscapeInfo
-		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
-		{
-			ULandscapeInfo* LandscapeInfo = It.Value();
-			if (LandscapeInfo)
-			{
-				LandscapeInfo->UpdateLayerInfoMap();
-
-				// PostEditUndo for Components
-				for ( auto LandscapeComponentIt = LandscapeInfo->XYtoComponentMap.CreateIterator(); LandscapeComponentIt; ++LandscapeComponentIt )
-				{
-					ULandscapeComponent* Comp = LandscapeComponentIt.Value();
-					if (Comp && Comp->bNeedPostUndo)
-					{
-						Comp->PostEditUndo();
-					}
-				}
-			}
-		}
-	}
-	return true;
-}
-
 bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
 	const bool bShowWarnings = (FString(Str) == TEXT("-warnings"));
 	
-	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
+	if (InWorld->GetWorldSettings())
 	{
 		ULandscapeInfo::RecreateLandscapeInfo(InWorld, bShowWarnings);
-				
-		// for removing 
+
+		// for removing
 		TMap<ULandscapeInfo*, ALandscapeGizmoActiveActor*> GizmoMap;
 		for (FActorIterator It(InWorld); It; ++It)
 		{
@@ -601,9 +574,11 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 
 bool UUnrealEdEngine::HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
-	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
+	UWorld* World = GetEditorWorldContext().World();
+
+	if (World && World->GetWorldSettings())
 	{
-		for (auto It = InWorld->LandscapeInfoMap.CreateIterator(); It; ++It)
+		for (auto It = World->LandscapeInfoMap.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* Info = It.Value();
 			for (auto LandscapeComponentIt = Info->XYtoComponentMap.CreateIterator(); LandscapeComponentIt; ++LandscapeComponentIt )
@@ -697,7 +672,15 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		Pkg = GeneratePackageThumbnailsIfRequired( Str, Ar, ThumbNamesToUnload );
 	}
 
+	// If we don't have a viewport specified to catch the stat commands (and there's no game viewport), use to the active viewport
+	if (GStatProcessingViewportClient == NULL && GameViewport == NULL)
+	{
+		GStatProcessingViewportClient = GLastKeyLevelEditingViewportClient ? GLastKeyLevelEditingViewportClient : GCurrentLevelEditingViewportClient;
+	}
+
 	bool bExecSucceeded = UEditorEngine::Exec( InWorld, Stream, Ar );
+
+	GStatProcessingViewportClient = NULL;
 
 	//if we loaded thumbs for saving, purge them back from the package
 	//append loaded thumbs onto the existing thumbs list
@@ -720,10 +703,10 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 	}
 
 	if( FParse::Command(&Str, TEXT("ModalTest") ) )
-		{
+	{
 		HandleModalTestCommand( Str, Ar );
-			return true;
-		}
+		return true;
+	}
 
 	if( FParse::Command(&Str, TEXT("DumpBPClasses")) )
 	{
@@ -803,17 +786,17 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		HandleBuildPathsCommand( Str, Ar, InWorld );
 	}
 #if WITH_EDITOR
-	else if (FParse::Command(&Str, TEXT("RestoreLandscapeLayerInfos")))
-	{
-		HandleRestoreLandscapeLayerInfosCommand( Str, Ar, InWorld );
-	}
 	else if (FParse::Command(&Str, TEXT("UpdateLandscapeEditorData")))
 	{
-		return HandleUpdateLandscapeEditorDataCommand( Str, Ar, InWorld );
+		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
+		UWorld* World = GetEditorWorldContext().World();
+		return HandleUpdateLandscapeEditorDataCommand(Str, Ar, World);
 	}
 	else if (FParse::Command(&Str, TEXT("UpdateLandscapeMIC")))
 	{
-		return HandleUpdateLandscapeMICCommand( Str, Ar, InWorld );
+		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
+		UWorld* World = GetEditorWorldContext().World();
+		return HandleUpdateLandscapeMICCommand(Str, Ar, World);
 	}
 #endif // WITH_EDITOR
 	else if( FParse::Command(&Str, TEXT("CONVERTMATINEES")) )
@@ -1185,13 +1168,18 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 				FString NewPathName = Asset.PackagePath.ToString();
 				if( NewAssetName.Contains( SearchTermStr ) )
 				{
-					NewAssetName = NewAssetName.Replace( *SearchTermStr, *ReplaceStr );
-					bRenamedAsset = true;
+					FString TempPathName = NewAssetName.Replace(*SearchTermStr, *ReplaceStr);
+					if (!TempPathName.IsEmpty())
+					{
+						NewAssetName = TempPathName;
+						bRenamedAsset = true;
+					}
 				}
 				
 				if( NewPathName.Contains( SearchTermStr ) )
 				{
 					FString TempPathName = NewPathName.Replace( *SearchTermStr, *ReplaceStr );
+					FPaths::RemoveDuplicateSlashes(TempPathName);
 
 					if( !TempPathName.IsEmpty() )
 					{

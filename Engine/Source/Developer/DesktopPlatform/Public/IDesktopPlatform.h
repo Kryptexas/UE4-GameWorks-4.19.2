@@ -125,9 +125,18 @@ public:
 	virtual FString GetCurrentEngineIdentifier() = 0;
 
 	/**
+	* Registers a directory as containing an engine installation
+	*
+	* @param	RootDir				Root directory for the engine installation
+	* @param	OutIdentifier		Identifier which is assigned to the engine
+	* @return true if the directory was added. OutIdentifier will be set to the assigned identifier.
+	*/
+	virtual bool RegisterEngineInstallation(const FString &RootDir, FString &OutIdentifier) = 0;
+
+	/**
 	* Enumerates all the registered engine installations.
 	*
-	* @param	OutInstallations	Array which is filled in with identifier/root-directory pairs for all known installations. Identifiers are typically
+	* @param	OutInstallations	Map of identifier/root-directory pairs for all known installations. Identifiers are typically
 	*								version strings for canonical UE4 releases or GUID strings for GitHub releases.
 	*/
 	virtual void EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
@@ -135,9 +144,16 @@ public:
 	/**
 	* Enumerates all the registered binary engine installations.
 	*
-	* @param	OutInstallations	Array which is filled in with identifier/root-directory pairs for all known binary installations.
+	* @param	OutInstallations	Map of identifier/root-directory pairs for all known binary installations.
 	*/
 	virtual void EnumerateLauncherEngineInstallations(TMap<FString, FString> &OutInstallations) = 0;
+
+	/**
+	* Enumerates all the samples installed by the launcher.
+	*
+	* @param	OutInstallations	Array of sample installation paths.
+	*/
+	virtual void EnumerateLauncherSampleInstallations(TArray<FString> &OutInstallations) = 0;
 
 	/**
 	* Returns the identifier for the engine with the given root directory.
@@ -179,6 +195,14 @@ public:
 	* @return	true if OutRootDir is valid
 	*/
 	virtual bool GetDefaultEngineRootDir(FString &OutRootDir) = 0;
+
+	/**
+	* Checks if the given engine identifier is for an stock engine release.
+	*
+	* @param	Identifier			Engine identifier to check
+	* @return	true if the identifier is for a binary engine release
+	*/
+	virtual bool IsStockEngineRelease(const FString &Identifier) = 0;
 
 	/**
 	* Tests whether an engine installation is a source distribution.
@@ -232,4 +256,50 @@ public:
 	* @return true if OutIdentifier is set to the project's engine association
 	*/
 	virtual bool GetEngineIdentifierForProject(const FString &ProjectFileName, FString &OutIdentifier) = 0;
+
+	/**
+	* Cleans a game project. Removes the intermediate folder and binary build products.
+	*
+	* @param ProjectDirName		Directory for the project
+	* @param OutFileNames		Output array of the project's build products
+	*/
+	virtual bool CleanGameProject(const FString& ProjectDir, FFeedbackContext* Warn) = 0;
+
+	/**
+	* Compiles a game project.
+	*
+	* @param RootDir			Engine root directory for the project to use.
+	* @param ProjectFileName	Filename of the project to update
+	* @param Warn				Feedback context to use for progress updates
+	* @return true if project files were generated successfully.
+	*/
+	virtual bool CompileGameProject(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
+
+	/**
+	* Generates project files for the given project.
+	*
+	* @param RootDir			Engine root directory for the project to use.
+	* @param ProjectFileName	Filename of the project to update
+	* @param Warn				Feedback context to use for progress updates
+	* @return true if project files were generated successfully.
+	*/
+	virtual bool GenerateProjectFiles(const FString& RootDir, const FString& ProjectFileName, FFeedbackContext* Warn) = 0;
+
+	/**
+	* Runs UnrealBuildTool with the given arguments.
+	*
+	* @param Description		Task description for FFeedbackContext
+	* @param RootDir			Engine root directory for the project to use.
+	* @param Arguments			Parameters for UnrealBuildTool
+	* @param Warn				Feedback context to use for progress updates
+	* @return true if the task completed successfully.
+	*/
+	virtual bool RunUnrealBuildTool(const FText& Description, const FString& RootDir, const FString& Arguments, FFeedbackContext* Warn) = 0;
+
+	/**
+	* Gets a feedback context which can display progress information using the native platform GUI.
+	*
+	* @return FFeedbackContext for the native GUI.
+	*/
+	virtual FFeedbackContext* GetNativeFeedbackContext() = 0;
 };

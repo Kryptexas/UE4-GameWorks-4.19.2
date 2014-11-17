@@ -82,7 +82,7 @@ namespace Lightmass
 
 		inline uint8* SampleRawPtr(const FVector2D& UV) const
 		{
-			// Wrapped addressing (uses FMath::Floor and not appFractional, as appFractional causes the
+			// Wrapped addressing (uses FMath::FloorToInt and not appFractional, as appFractional causes the
 			// following mapping:
 			// .4 -> .4
 			// -1.4 -> .4
@@ -94,8 +94,8 @@ namespace Lightmass
 			// (.4 - 1 = -.6) -> .4
 			//
 			// because when you subtract 1 from a UV it needs to have the exact same fractional part
- 			const int32 X = FMath::Clamp(FMath::Trunc((UV.X - FMath::Floor(UV.X)) * SizeX), 0, SizeX - 1);
- 			const int32 Y = FMath::Clamp(FMath::Trunc((UV.Y - FMath::Floor(UV.Y)) * SizeY), 0, SizeY - 1);
+ 			const int32 X = FMath::Clamp(FMath::TruncToInt((UV.X - FMath::FloorToInt(UV.X)) * SizeX), 0, SizeX - 1);
+ 			const int32 Y = FMath::Clamp(FMath::TruncToInt((UV.Y - FMath::FloorToInt(UV.Y)) * SizeY), 0, SizeY - 1);
 			// Byte index into Data
 			const int32 DataIndex = Y * SizeX * ElementSize + X * ElementSize;
 			return &Data[DataIndex];

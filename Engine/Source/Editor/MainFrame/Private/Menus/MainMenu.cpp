@@ -10,7 +10,6 @@
 #include "GlobalEditorCommonCommands.h"
 #include "Editor/UnrealEd/Public/Features/EditorFeatures.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
-#include "MultiBox/MultiBoxDefs.h"
 #include "SourceCodeNavigation.h"
 #include "Toolkits/AssetEditorToolkit.h"
 

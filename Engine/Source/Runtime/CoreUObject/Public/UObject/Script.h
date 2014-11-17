@@ -87,7 +87,7 @@ enum EFunctionFlags
 {
 	// Function flags.
 	FUNC_Final				= 0x00000001,	// Function is final (prebindable, non-overridable function).
-	// FUNC_				= 0x00000002,	// unused.
+	FUNC_RequiredAPI			= 0x00000002,	// Indicates this function is DLL exported/imported.
 	FUNC_BlueprintAuthorityOnly= 0x00000004,   // Function will only run if the object has network authority
 	FUNC_BlueprintCosmetic	= 0x00000008,   // Function is cosmetic in nature and should not be invoked on dedicated servers
 	// FUNC_				= 0x00000010,   // unused.

@@ -39,8 +39,6 @@
 
 #include "Engine.h"
 #include "TextureLayout.h"
-#include "EngineMaterialClasses.h"
-#include "EngineInterpolationClasses.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"
 #include "FbxImporter.h"
@@ -184,15 +182,15 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	//
 	int32 MaterialCount = 0;
 	TArray<UMaterialInterface*> Materials;
-	if ( ImportOptions->bImportMaterials )
+	if (ImportOptions->bImportMaterials)
 	{
-		CreateNodeMaterials(Node,Materials,UVSets);
+		CreateNodeMaterials(Node, Materials, UVSets);
 	}
-	else if ( ImportOptions->bImportTextures )
+	else if (ImportOptions->bImportTextures)
 	{
 		ImportTexturesFromNode(Node);
 	}
-	
+
 	MaterialCount = Node->GetMaterialCount();
 	check(!ImportOptions->bImportMaterials || Materials.Num() == MaterialCount);
 	
@@ -203,14 +201,15 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	{
 		FFbxMaterial* NewMaterial = new(MeshMaterials) FFbxMaterial;
 		FbxSurfaceMaterial *FbxMaterial = Node->GetMaterial(MaterialIndex);
-		NewMaterial->Name = ANSI_TO_TCHAR(MakeName(FbxMaterial->GetName()));
+		FString MaterialName = ANSI_TO_TCHAR(MakeName(FbxMaterial->GetName()));
+		NewMaterial->FbxMaterial = FbxMaterial;
 		if (ImportOptions->bImportMaterials)
 		{
 			NewMaterial->Material = Materials[MaterialIndex];
 		}
 		else
 		{
-			UMaterialInterface* UnrealMaterialInterface = FindObject<UMaterialInterface>(Parent,*NewMaterial->Name);
+			UMaterialInterface* UnrealMaterialInterface = FindObject<UMaterialInterface>(NULL,*MaterialName);
 			if (UnrealMaterialInterface == NULL)
 			{
 				UnrealMaterialInterface = UMaterial::GetDefaultMaterial(MD_Surface);
@@ -225,6 +224,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 		check(DefaultMaterial);
 		FFbxMaterial* NewMaterial = new(MeshMaterials) FFbxMaterial;
 		NewMaterial->Material = DefaultMaterial;
+		NewMaterial->FbxMaterial = NULL;
 		MaterialCount = 1;
 	}
 
@@ -239,19 +239,22 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 		GeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing (Mesh, i);
 	}
 
-	bool bDestroyMesh = false;
 	if (!Mesh->IsTriangleMesh())
 	{
 		UE_LOG(LogFbx, Warning, TEXT("Triangulating static mesh %s"), ANSI_TO_TCHAR(Node->GetName()));
-		bool bSuccess;
-		Mesh = GeometryConverter->TriangulateMeshAdvance(Mesh, bSuccess); // not in place ! the old mesh is still there
-		if (Mesh == NULL)
+
+		const bool bReplace = true;
+		FbxNodeAttribute* ConvertedNode = GeometryConverter->Triangulate(Mesh, bReplace);
+
+		if( ConvertedNode != NULL && ConvertedNode->GetAttributeType() == FbxNodeAttribute::eMesh )
+		{
+			Mesh = ConvertedNode->GetNode()->GetMesh();
+		}
+		else
 		{
 			AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FailedToTriangulate", "Unable to triangulate mesh '{0}'"), FText::FromString(Mesh->GetName()))));
 			return false; // not clean, missing some dealloc
 		}
-		// this gets deleted at the end of the import
-		bDestroyMesh = true;
 	}
 	
 	// renew the base layer
@@ -667,11 +670,6 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	UVReferenceMode.Empty();
 	UVMappingMode.Empty();
 
-
-	if (bDestroyMesh)
-	{
-		Mesh->Destroy(true);
-	}
 	return true;
 }
 
@@ -800,7 +798,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		return NULL;
 	}
 	
-	// Ensure that the vert indicies can fit into a 16-bit integer
+	// Count the number of verts
 	int32 NumVerts = 0;
 	int32 MeshIndex;
 	for (MeshIndex = 0; MeshIndex < MeshNodeArray.Num(); MeshIndex++ )
@@ -951,7 +949,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		UE_LOG(LogFbx,Log,TEXT("== Initial material list:"));
 		for (int32 MaterialIndex = 0; MaterialIndex < MeshMaterials.Num(); ++MaterialIndex)
 		{
-			UE_LOG(LogFbx,Log,TEXT("%d: %s"),MaterialIndex,*MeshMaterials[MaterialIndex].Name);
+			UE_LOG(LogFbx,Log,TEXT("%d: %s"),MaterialIndex,*MeshMaterials[MaterialIndex].GetName() );
 		}
 
 		// Compress the materials array by removing any duplicates.
@@ -963,7 +961,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			bool bUnique = true;
 			for (int32 OtherMaterialIndex = MaterialIndex - 1; OtherMaterialIndex >= 0; --OtherMaterialIndex)
 			{
-				if (MeshMaterials[MaterialIndex].Name == MeshMaterials[OtherMaterialIndex].Name)
+				if (MeshMaterials[MaterialIndex].FbxMaterial == MeshMaterials[OtherMaterialIndex].FbxMaterial)
 				{
 					int32 UniqueIndex = MaterialMap[OtherMaterialIndex];
 
@@ -1014,22 +1012,21 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 			int32 RemappedIndex = MaterialMap[MaterialIndex];
 			if (!SortedMaterialIndex.IsValidIndex(RemappedIndex))
 			{
-				int32 MatNameLen = FCString::Strlen(*MeshMaterials[RemappedIndex].Name) + 1;
-				char* MatName = new char[MatNameLen];
-				FCStringAnsi::Strcpy(MatName, MatNameLen, TCHAR_TO_ANSI(*MeshMaterials[RemappedIndex].Name));
-				if (strlen(MatName) > 6)
+				FString FbxMatName = MeshMaterials[RemappedIndex].GetName();
+
+				int32 Offset = FbxMatName.Find(TEXT("_SKIN"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+				if (Offset != INDEX_NONE)
 				{
-					const char* SkinXX = MatName + strlen(MatName) - 6;
-					if (toupper(*SkinXX) == 'S' && toupper(*(SkinXX+1)) == 'K' && toupper(*(SkinXX+2)) == 'I' && toupper(*(SkinXX+3)) == 'N')
+					// Chop off the material name so we are left with the number in _SKINXX
+					FString SkinXXNumber = FbxMatName.Right(FbxMatName.Len() - (Offset + 1)).RightChop(4);
+
+					if (SkinXXNumber.IsNumeric())
 					{
-						if (isdigit(*(SkinXX+4)) && isdigit(*(SkinXX+5)))
-						{
-							SkinIndex = (*(SkinXX+4) - 0x30) * 10 + (*(SkinXX+5) - 0x30);
-							bDoRemap = true;
-						}
+						SkinIndex = FPlatformString::Atoi( *SkinXXNumber );
+						bDoRemap = true;
 					}
 				}
-				delete [] MatName;
+
 				SortedMaterialIndex.Add(((uint32)SkinIndex << 16) | ((uint32)RemappedIndex & 0xffff));
 			}
 		}
@@ -1041,7 +1038,7 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		{
 			int32 RemappedIndex = SortedMaterialIndex[SortedIndex] & 0xffff;
 			SortedMaterials.Add(UniqueMaterials[RemappedIndex].Material);
-			UE_LOG(LogFbx,Log,TEXT("%d: %s"),SortedIndex,*UniqueMaterials[RemappedIndex].Name);
+			UE_LOG(LogFbx,Log,TEXT("%d: %s"),SortedIndex,*UniqueMaterials[RemappedIndex].GetName());
 		}
 		UE_LOG(LogFbx,Log,TEXT("== Mapping table:"));
 		for (int32 MaterialIndex = 0; MaterialIndex < MaterialMap.Num(); ++MaterialIndex)
@@ -1362,7 +1359,6 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 		FbxMesh* FbxMesh = Node->GetMesh();
 
 		FbxMesh->RemoveBadPolygons();
-		bool bDestroyMesh = false;
 
 		// Must do this before triangulating the mesh due to an FBX bug in TriangulateMeshAdvance
 		int32 LayerSmoothingCount = FbxMesh->GetLayerCount(FbxLayerElement::eSmoothing);
@@ -1375,15 +1371,19 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 		{
 			FString NodeName = ANSI_TO_TCHAR(MakeName(Node->GetName()));
 			UE_LOG(LogFbx, Warning, TEXT("Triangulating mesh %s for collision model"), *NodeName);
-			bool bSuccess;
-			FbxMesh = GeometryConverter->TriangulateMeshAdvance(FbxMesh, bSuccess); // not in place ! the old mesh is still there
-			if (FbxMesh == NULL)
+
+			const bool bReplace = true;
+			FbxNodeAttribute* ConvertedNode = GeometryConverter->Triangulate(FbxMesh, bReplace); // not in place ! the old mesh is still there
+
+			if( ConvertedNode != NULL && ConvertedNode->GetAttributeType() == FbxNodeAttribute::eMesh )
+			{
+				FbxMesh = ConvertedNode->GetNode()->GetMesh();
+			}
+			else
 			{
 				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FailedToTriangulate", "Unable to triangulate mesh '{0}'"), FText::FromString(NodeName))));
-				return false; // not clean, missing some dealloc
+				return false;
 			}
-			// this gets deleted at the end of the import
-			bDestroyMesh = true;
 		}
 
 		int32 ControlPointsIndex;
@@ -1521,11 +1521,6 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 
 		// Clear any cached rigid-body collision shapes for this body setup.
 		StaticMesh->BodySetup->ClearPhysicsMeshes();
-
-		if (bDestroyMesh)
-		{
-			FbxMesh->Destroy();
-		}
 
 		// Remove the empty key because we only use the model once for the first mesh
 		if (bRemoveEmptyKey)

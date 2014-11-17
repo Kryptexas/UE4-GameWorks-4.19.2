@@ -4,7 +4,6 @@
 
 #include "EdGraph/EdGraphPin.h"
 #include "BlueprintCore.h"
-#include "BlueprintGeneratedStruct.h"
 #include "Blueprint.generated.h"
 
 /** States a blueprint can be in */
@@ -56,7 +55,6 @@ namespace EKismetCompileType
 		Full,
 		StubAfterFailure, 
 		BytecodeOnly,
-		StructuresOnly,
 	};
 };
 
@@ -80,7 +78,7 @@ public:
 	/** Whether or not this compile type should operate on the generated class of the blueprint, as opposed to just the skeleton */
 	bool IsGeneratedClassCompileType() const
 	{
-		return (CompileType != EKismetCompileType::SkeletonOnly) && (CompileType != EKismetCompileType::StructuresOnly);
+		return (CompileType != EKismetCompileType::SkeletonOnly);
 	}
 
 	FKismetCompilerOptions()
@@ -157,10 +155,6 @@ struct FBPVariableDescription
 	UPROPERTY(EditAnywhere, Category=BPVariableDescription)
 	FString DefaultValue;
 
-	/** Used by blueprint generated struct to mark invalid fields */
-	UPROPERTY(Transient)
-	bool bInvalidMember;
-
 	FBPVariableDescription()
 		: PropertyFlags(CPF_Edit)
 	{
@@ -173,7 +167,9 @@ struct FBPVariableDescription
 	/** Clear metadata value on the variable */
 	ENGINE_API void RemoveMetaData(const FName& Key);
 	/** Find the index in the array of a metadata entry */
-	ENGINE_API int32 FindMetaDataEntryIndexForKey(const FName& Key);
+	ENGINE_API int32 FindMetaDataEntryIndexForKey(const FName& Key) const;
+	/** Checks if there is metadata for a key */
+	ENGINE_API bool HasMetaData(const FName& Key) const;
 	
 };
 
@@ -245,27 +241,6 @@ struct FEditedDocumentInfo
 	}
 };
 
-USTRUCT()
-struct FBPStructureDescription
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY(EditAnywhere, Category=BPStructureDescription)
-	FName Name;
-
-	UPROPERTY(EditAnywhere, Category=BPStructureDescription)
-	TArray<FBPVariableDescription> Fields;
-
-	UPROPERTY()
-	UBlueprintGeneratedStruct* CompiledStruct;
-
-	FBPStructureDescription() 
-		: CompiledStruct(NULL)
-	{
-
-	}
-};
-
 ///////////////
 
 /**
@@ -317,6 +292,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	UPROPERTY(EditAnywhere, Category=BlueprintOption)
 	FString BlueprintDescription;
 
+	/** TRUE to show a warning when attempting to start in PIE and there is a compiler error on this Blueprint */
+	UPROPERTY(transient)
+	bool bDisplayCompilePIEWarning;
+
 #endif //WITH_EDITORONLY_DATA
 
 	/** 'Simple' construction script - graph of components to instance */
@@ -367,15 +346,12 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	TEnumAsByte<enum EBlueprintStatus> Status;
 
 	/** Array of new variables to be added to generated class */
-	UPROPERTY(EditAnywhere, Category=Blueprint)
+	UPROPERTY()
 	TArray<struct FBPVariableDescription> NewVariables;
 
 	/** Array of info about the interfaces we implement in this blueprint */
-	UPROPERTY(EditAnywhere, Category=Blueprint, AssetRegistrySearchable)
+	UPROPERTY(AssetRegistrySearchable)
 	TArray<struct FBPInterfaceDescription> ImplementedInterfaces;
-
-	UPROPERTY(EditAnywhere, Category=Blueprint)
-	TArray<struct FBPStructureDescription> UserDefinedStructures;
 	
 #endif // WITH_EDITORONLY_DATA
 
@@ -516,6 +492,8 @@ public:
 	virtual void Serialize(FArchive& Ar) OVERRIDE;
 	virtual FString GetDesc(void) OVERRIDE;
 	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
+	virtual bool NeedsLoadForClient() const OVERRIDE;
+	virtual bool NeedsLoadForServer() const OVERRIDE;
 	// End of UObject interface
 
 	/** Get the Blueprint object that generated the supplied class */
@@ -579,6 +557,9 @@ public:
 
 		return false;
 	}
+
+	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
+	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);
 #endif
 
 	/** Find a function given its name and optionally an object property name within this Blueprint */
@@ -618,45 +599,12 @@ public:
 template<>
 inline FName UBlueprint::GetFieldNameFromClassByGuid<UFunction>(const UClass* InClass, const FGuid FunctionGuid)
 {
-	TArray<UBlueprint*> Blueprints;
-	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
-
-	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
-	{
-		UBlueprint* Blueprint = Blueprints[BPIndex];
-		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
-		{
-			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
-			if (FunctionGraph && FunctionGraph->GraphGuid == FunctionGuid)
-			{	
-				return FunctionGraph->GetFName();
-			}
-		}
-	}
-
-	return NAME_None;
+	return GetFunctionNameFromClassByGuid(InClass, FunctionGuid);
 }
 
 template<>
 inline bool UBlueprint::GetGuidFromClassByFieldName<UFunction>(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid)
 {
-	TArray<UBlueprint*> Blueprints;
-	UBlueprint::GetBlueprintHierarchyFromClass(InClass, Blueprints);
-
-	for (int32 BPIndex = 0; BPIndex < Blueprints.Num(); ++BPIndex)
-	{
-		UBlueprint* Blueprint = Blueprints[BPIndex];
-		for (int32 FunctionIndex = 0; FunctionIndex < Blueprint->FunctionGraphs.Num(); ++FunctionIndex)
-		{
-			UEdGraph* FunctionGraph = Blueprint->FunctionGraphs[FunctionIndex];
-			if (FunctionGraph && FunctionGraph->GetFName() == FunctionName)
-			{	
-				FunctionGuid = FunctionGraph->GraphGuid;
-				return true;
-			}
-		}
-	}
-
-	return false;
+	return GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
 }
 #endif // #if WITH_EDITORONLY_DATA

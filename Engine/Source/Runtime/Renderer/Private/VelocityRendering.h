@@ -37,7 +37,7 @@ public:
 		const ElementDataType& ElementData
 		) const;
 
-	FBoundShaderStateRHIRef CreateBoundShaderState();
+	FBoundShaderStateRHIRef CreateBoundShaderState(ERHIFeatureLevel::Type InFeatureLevel);
 
 	friend int32 Compare(const FVelocityDrawingPolicy& A, const FVelocityDrawingPolicy& B);
 

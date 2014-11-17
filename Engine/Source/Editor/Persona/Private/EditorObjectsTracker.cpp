@@ -20,7 +20,7 @@ UObject* FEditorObjectTracker::GetEditorObjectForClass( UClass* EdClass )
 	UObject *Obj = (EditorObjMap.Contains(EdClass) ? *EditorObjMap.Find(EdClass) : NULL);
 	if(Obj == NULL)
 	{
-		FString ObjName = EdClass->GetName();
+		FString ObjName = MakeUniqueObjectName(GetTransientPackage(), EdClass).ToString();
 		ObjName += "_EdObj";
 		Obj = StaticConstructObject(EdClass, GetTransientPackage(), FName(*ObjName), RF_Public|RF_Standalone|RF_Transient);
 		EditorObjMap.Add(EdClass,Obj);

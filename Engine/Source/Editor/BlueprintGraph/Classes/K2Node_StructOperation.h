@@ -21,6 +21,7 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	//virtual bool DrawNodeAsVariable() const OVERRIDE { return true; }
 	virtual bool ShouldShowNodeProperties() const OVERRIDE { return true; }
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const OVERRIDE {}
+	virtual bool HasExternalUserDefinedStructDependencies(TArray<class UStruct*>* OptionalOutput) const OVERRIDE;
 	// End of UK2Node interface
 
 protected:
@@ -33,7 +34,12 @@ protected:
 			Record.bCanToggleVisibility = true;
 			Record.bShowPin = true;
 		}
+
+		virtual void CustomizePinData(UEdGraphPin* Pin, FName SourcePropertyName, int32 ArrayIndex, UProperty* Property) const;
 		// End of FOptionalPinsUpdater interfac
 	};
+#if WITH_EDITOR
+	static bool DoRenamedPinsMatch(const UEdGraphPin* NewPin, const UEdGraphPin* OldPin, bool bStructInVaraiablesOut);
+#endif
 };
 

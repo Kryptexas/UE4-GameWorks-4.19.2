@@ -2,6 +2,11 @@
 
 #pragma once
 
+//
+// Forward declarations.
+//
+class UAnimStateEntryNode;
+
 class SGraphNodeAnimStateEntry : public SGraphNode
 {
 public:

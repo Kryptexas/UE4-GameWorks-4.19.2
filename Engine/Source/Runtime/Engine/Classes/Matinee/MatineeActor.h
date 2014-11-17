@@ -49,7 +49,7 @@ struct FInterpGroupActorInfo
 
 };
 
-UCLASS(dependson=UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input))
+UCLASS(dependson=UEngineBaseTypes, MinimalAPI, NotBlueprintable, hidecategories=(Collision, Game, Input), showcategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"))
 class AMatineeActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -450,7 +450,7 @@ public:
 	
 
 	/** Try to invoke the event with the given name in the level script */
-	void NotifyEventTriggered(FName EventName, float EventTime);
+	virtual void NotifyEventTriggered(FName EventName, float EventTime);
 
 	/** Util to get the name of the function to find for the given event name */
 	ENGINE_API FName GetFunctionNameForEvent(FName EventName);

@@ -62,6 +62,30 @@ void UCameraComponent::OnRegister()
 	Super::OnRegister();
 }
 
+void UCameraComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+#if WITH_EDITORONLY_DATA
+	// have to removed the sub-components that we added in OnRegister (for 
+	// reinstancing, where we CopyPropertiesForUnrelatedObjects()... don't want
+	// these copied since we'll generate them on the next OnRegister)
+	if (ProxyMeshComponent != NULL)
+	{
+		ProxyMeshComponent->DetachFromParent();
+		ProxyMeshComponent->DestroyComponent();
+		ProxyMeshComponent = NULL;
+	}
+
+	if (DrawFrustum != NULL)
+	{
+		DrawFrustum->DetachFromParent();
+		DrawFrustum->DestroyComponent();
+		DrawFrustum = NULL;
+	}
+#endif
+}
+
 #if WITH_EDITORONLY_DATA
 void UCameraComponent::RefreshVisualRepresentation()
 {

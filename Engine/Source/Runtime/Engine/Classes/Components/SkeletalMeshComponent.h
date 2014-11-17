@@ -95,13 +95,17 @@ public:
 /** to interact with environments */
 struct FApexClothCollisionInfo
 {
-	enum CollisionInfoState
+	enum OverlappedComponentType
 	{
-		CIS_INVALID,
-		CIS_ADDED,
-		CIS_RETAINED
+		// static objects
+		OCT_STATIC,
+		// clothing objects
+		OCT_CLOTH,
+		OCT_MAX
 	};
 
+	OverlappedComponentType OverlapCompType;
+	// to verify validation of collision info
 	uint32 Revision;
 	// ClothingCollisions will be all released when clothing doesn't intersect with this component anymore
 	TArray<physx::apex::NxClothingCollision*> ClothingCollisions;			
@@ -116,11 +120,9 @@ namespace EKinematicBonesUpdateToPhysics
 {
 	enum Type
 	{
-		/** This only updates anything non-simulating bones - i.e. (fixed) or (default if owner is not simulating)**/
+		/** Update any bones that are not simulating*/
 		SkipSimulatingBones,
-		/** This updates everything except (fixed) or (unfixed) or (default if owner is simulating)**/
-		SkipFixedAndSimulatingBones, 
-		/** Skip any physics update from kinematic changes **/
+		/** Skip physics update from kinematic changes **/
 		SkipAllBones
 	};
 }
@@ -152,19 +154,19 @@ struct FSingleAnimationPlayData
 	class UVertexAnimation* VertexAnimToPlay;
 
 	// Default setting for looping for SequenceToPlay. This is not current state of looping.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(FriendlyName="Looping"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Looping"))
 	uint32 bSavedLooping:1;
 
 	// Default setting for playing for SequenceToPlay. This is not current state of playing.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(FriendlyName="Playing"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Playing"))
 	uint32 bSavedPlaying:1;
 
 	// Default setting for position of SequenceToPlay to play. 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(FriendlyName="InitialPosition"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="InitialPosition"))
 	float SavedPosition;
 
 	// Default setting for playrate of SequenceToPlay to play. 
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation, meta=(FriendlyName="PlayRate"))
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation, meta=(DisplayName="PlayRate"))
 	float SavedPlayRate;
 
 	FSingleAnimationPlayData()
@@ -192,7 +194,6 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
-#if WITH_APEX_CLOTHING
 	/** World this tick function belongs to **/
 	class USkeletalMeshComponent*	Target;
 
@@ -206,15 +207,13 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) OVERRIDE;
 	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
 	virtual FString DiagnosticMessage();
-
-#endif
 };
 
 
 /**
  * SkeletalMeshComponent is a mesh that supports skeletal animation and physics.
  */
-UCLASS(HeaderGroup=Component, ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Rendering, Common), hidecategories=Object, config=Engine, editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -268,13 +267,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation)
 	float GlobalAnimRateScale;
 
-	/**
-	 * Only instance Root Bone rigid body for physics. Mostly used by Vehicles.
-	 * Other Rigid Bodies are ignored for physics, but still considered for traces.
-	 */
-	UPROPERTY()
-	uint32 bUseSingleBodyPhysics:1;
-
 	/** If true, there is at least one body in the current PhysicsAsset with a valid bone in the current SkeletalMesh */
 	UPROPERTY(transient)
 	uint32 bHasValidBodies:1;
@@ -326,7 +318,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Clothing)
 	float TeleportRotationThreshold;
-	
 
 	/** Draw the APEX Clothing Normals on clothing sections. */
 	uint32 bDisplayClothingNormals:1;
@@ -339,9 +330,20 @@ public:
 	 * Supports up to 16 capsules / 32 planes per convex and ignored collisions by a max number will be drawn in Dark Gray.
 	 */
 	uint32 bDisplayClothingCollisionVolumes:1;
+	
+	/** Draw clothing physical mesh wire frame */
+	uint32 	bDisplayClothPhysicalMeshWire:1;	
 
-	/** Draw only clothing sections, disables non-clothing sections */
-	uint32 bDisplayOnlyClothSections:1;
+	/** Draw max distances of clothing simulation vertices */
+	uint32 	bDisplayClothMaxDistances:1;
+
+	/** Draw back stops of clothing simulation vertices */
+	uint32 	bDisplayClothBackstops:1;
+
+	/** To save previous state */
+	uint32 bPrevDisableClothSimulation:1;
+
+	uint32 bDisplayClothFixedVertices:1;
 	/**
 	 * Vertex Animation
 	 */
@@ -507,6 +509,19 @@ public:
 	/** @return true if wind is enabled */
 	virtual bool IsWindEnabled() const;
 
+#if WITH_EDITOR
+	/**
+	* Subclasses such as DebugSkelMeshComponent keep track of errors in the anim notifies so they can be displayed to the user. This function adds an error.
+	* Errors are added uniquely and only removed when they're cleared by ClearAnimNotifyError.
+	*/
+	virtual void ReportAnimNotifyError(const FText& Error, UObject* InSourceNotify){}
+	
+	/**
+	* Clears currently stored errors. Call before triggering anim notifies for a particular mesh.
+	*/
+	virtual void ClearAnimNotifyErrors(UObject* InSourceNotify){}
+#endif
+
 public:
 	/** Temporary array of bone indices required this frame. Filled in by UpdateSkelPose. */
 	TArray<FBoneIndexType> RequiredBones;
@@ -529,9 +544,9 @@ public:
 
 #endif	//WITH_PHYSX
 
-#if WITH_APEX_CLOTHING
-
 	FSkeletalMeshComponentPreClothTickFunction PreClothTickFunction;
+
+#if WITH_APEX_CLOTHING
 	/** 
 	* clothing actors will be created from clothing assets for cloth simulation 
 	* 1 actor should correspond to 1 asset
@@ -587,14 +602,32 @@ public:
 	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData);
 	void ApplyWindForCloth(FClothingActor& ClothingActor);
 	void RemoveAllClothingActors();
+	void ReleaseAllClothingResources();
 
 	bool IsValidClothingActor(int32 ActorIndex) const;
 	/** Draws APEX Clothing simulated normals on cloth meshes **/
-	void DrawClothingNormals(FPrimitiveDrawInterface* PDI) const;
+	void DrawClothingNormals(FPrimitiveDrawInterface* PDI);
 	/** Draws APEX Clothing Graphical Tangents on cloth meshes **/
-	void DrawClothingTangents(FPrimitiveDrawInterface* PDI) const;
+	void DrawClothingTangents(FPrimitiveDrawInterface* PDI);
 	/** Draws internal collision volumes which the character has, colliding with cloth **/
 	void DrawClothingCollisionVolumes(FPrimitiveDrawInterface* PDI);
+	/** Draws max distances of clothing simulation vertices 
+	  * clothing simulation will be disabled and animation will be reset when drawing this option 
+	  * because max distances do have meaning only in initial pose
+	 **/
+	void DrawClothingMaxDistances(FPrimitiveDrawInterface* PDI);
+	/** Draws Clothing back stops **/
+	void DrawClothingBackstops(FPrimitiveDrawInterface* PDI);
+	/** Draws Clothing Physical mesh wire **/
+	void DrawClothingPhysicalMeshWire(FPrimitiveDrawInterface* PDI);
+
+	void DrawClothingFixedVertices(FPrimitiveDrawInterface* PDI);
+
+	/** Loads clothing extra infos dynamically just for Previewing in Editor 
+	 *  such as MaxDistances, Physical mesh wire
+	 **/
+	void LoadClothingVisualizationInfo(int32 AssetIndex);
+	void LoadAllClothingVisualizationInfos();
 
 	/** freezing clothing actor now */
 	void FreezeClothSection(bool bFreeze);
@@ -875,6 +908,9 @@ public:
 	 */
 	FVector GetClosestCollidingRigidBodyLocation(const FVector& TestLocation) const;
 
+	/** Calls needed cloth updates */
+	void PreClothTick(float DeltaTime);
+
 #if WITH_APEX_CLOTHING
 	/** 
 	* APEX clothing actor is created from APEX clothing asset for cloth simulation 
@@ -889,8 +925,6 @@ public:
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
 	void CheckClothTeleport(float DeltaTime);
-	/** Calls needed cloth updates */
-	void PreClothTick(float DeltaTime);
 	/** 
 	 * Updates all clothing animation states including ComponentToWorld-related states.
 	 */
@@ -914,23 +948,28 @@ public:
 	/** create new collisions when newly added  */
 	FApexClothCollisionInfo* CreateNewClothingCollsions(UPrimitiveComponent* PrimitiveComponent);
 
-
-	void RemoveAllOverappedComponentMap();
+	void RemoveAllOverlappedComponentMap();
+	/** for non-static collisions which need to be updated every tick */ 
+	void UpdateOverlappedComponent(UPrimitiveComponent* PrimComp, FApexClothCollisionInfo* Info);
 
 	void ReleaseAllParentCollisions();
 	void ReleaseAllChildrenCollisions();
 
 	void ProcessClothCollisionWithEnvironment();
-
-	void CopyCollisionsToChildren();
-	// copy children's collisions to parent, where parent means this component
-	void CopyChildrenCollisionsToParent();
+	/** copy parent's cloth collisions to attached children, where parent means this component */
+	void CopyClothCollisionsToChildren();
+	/** copy children's cloth collisions to parent, where parent means this component */
+	void CopyChildrenClothCollisionsToParent();
 
 	/**
-  	 * Get collision data only for collision with clothes.
+  	 * Get collision data from a static mesh only for collision with clothes.
 	 * Returns false when failed to get cloth collision data
 	*/
-	bool GetClothCollisionData(UPrimitiveComponent* PrimComp, TArray<FClothCollisionPrimitive>& ClothCollisionPrimitives);
+	bool GetClothCollisionDataFromStaticMesh(UPrimitiveComponent* PrimComp, TArray<FClothCollisionPrimitive>& ClothCollisionPrimitives);
+	/** find if this component has collisions for clothing and return the results calculated by bone transforms */
+	void FindClothCollisions(TArray<FApexClothCollisionVolumeData>& OutCollisions);
+	/** create Apex clothing collisions from input collision info and add them to clothing actors */
+	void CreateInternalClothCollisions(TArray<FApexClothCollisionVolumeData>& InCollisions, TArray<physx::apex::NxClothingCollision*>& OutCollisions);
 
 #endif // WITH_CLOTH_COLLISION_DETECTION
 

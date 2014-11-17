@@ -19,8 +19,8 @@ public:
 	 *
 	 * WARNING: This constructor must be called from the main thread.
 	 *
-	 * @param InName - The endpoint's name (for debugging purposes).
-	 * @param InBus - The message bus to attach the endpoint to.
+	 * @param InName The endpoint's name (for debugging purposes).
+	 * @param InBus The message bus to attach the endpoint to.
 	 */
 	FMessageEndpointBuilder( const FName& InName )
 		: BusPtr(IMessagingModule::Get().GetDefaultBus())
@@ -33,8 +33,8 @@ public:
 	/**
 	 * Creates and initializes a new builder using the specified message bus.
 	 *
-	 * @param InName - The endpoint's name (for debugging purposes).
-	 * @param InBus - The message bus to attach the endpoint to.
+	 * @param InName The endpoint's name (for debugging purposes).
+	 * @param InBus The message bus to attach the endpoint to.
 	 */
 	FMessageEndpointBuilder( const FName& InName, const IMessageBusRef& InBus )
 		: BusPtr(InBus)
@@ -49,11 +49,11 @@ public:
 	/**
 	 * Adds a message handler for the given type of messages.
 	 *
-	 * @param HandlerType - The type of the object handling the messages.
-	 * @param MessageType - The type of messages to handle.
-	 * @param Handler - The class handling the messages.
-	 * @param HandlerFunc - The class function handling the messages.
-	 * @param ReceivingThread - The thread on which to handle the message.
+	 * @param HandlerType The type of the object handling the messages.
+	 * @param MessageType The type of messages to handle.
+	 * @param Handler The class handling the messages.
+	 * @param HandlerFunc The class function handling the messages.
+	 * @param ReceivingThread The thread on which to handle the message.
 	 *
 	 * @return This instance (for method chaining).
 	 */
@@ -99,7 +99,7 @@ public:
 	 *
 	 * Also see the additional notes for ReceivingOnAnyThread().
 	 *
-	 * @param NamedThread - The name of the thread to receive messages on.
+	 * @param NamedThread The name of the thread to receive messages on.
 	 *
 	 * @return This instance (for method chaining).
 	 *
@@ -127,7 +127,7 @@ public:
 	/**
 	 * Registers a message handler with the endpoint.
 	 *
-	 * @param Handler - The handler to add.
+	 * @param Handler The handler to add.
 	 *
 	 * @return This instance (for method chaining).
 	 */

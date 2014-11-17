@@ -7,8 +7,6 @@
 
 void FAssetTypeActions_AnimSequence::GetActions( const TArray<UObject*>& InObjects, FMenuBuilder& MenuBuilder )
 {
-	FAssetTypeActions_AnimationAsset::GetActions(InObjects, MenuBuilder);
-
 	auto Sequences = GetTypedWeakObjectPtrs<UAnimSequence>(InObjects);
 
 	MenuBuilder.AddMenuEntry(
@@ -21,13 +19,31 @@ void FAssetTypeActions_AnimSequence::GetActions( const TArray<UObject*>& InObjec
 			)
 		);
 
+	// source menu
+	MenuBuilder.AddSubMenu(
+			LOCTEXT("SourceAnimSubmenu", "Source"),
+			LOCTEXT("SourceAnimSubmenu_ToolTip", "Source data related"),
+			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_AnimSequence::FillSourceMenu, Sequences));
+
+	// create menu
+	MenuBuilder.AddSubMenu(
+			LOCTEXT("CreateAnimSubmenu", "Create"),
+			LOCTEXT("CreateAnimSubmenu_ToolTip", "Create assets from this anim sequence"),
+			FNewMenuDelegate::CreateSP(this, &FAssetTypeActions_AnimSequence::FillCreateMenu, Sequences));
+
+	FAssetTypeActions_AnimationAsset::GetActions(InObjects, MenuBuilder);
+
+}
+
+void FAssetTypeActions_AnimSequence::FillSourceMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UAnimSequence>> Sequences) const
+{
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AnimSequence_FindInExplorer", "Find Source"),
 		LOCTEXT("AnimSequence_FindInExplorerTooltip", "Opens explorer at the location of this asset."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_AnimSequence::ExecuteFindInExplorer, Sequences ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_AnimSequence::CanExecuteSourceCommands, Sequences )
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::ExecuteFindInExplorer, Sequences),
+			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::CanExecuteSourceCommands, Sequences)
 			)
 		);
 
@@ -36,17 +52,29 @@ void FAssetTypeActions_AnimSequence::GetActions( const TArray<UObject*>& InObjec
 		LOCTEXT("AnimSequence_OpenInExternalEditorTooltip", "Opens the selected asset in an external editor."),
 		FSlateIcon(),
 		FUIAction(
-			FExecuteAction::CreateSP( this, &FAssetTypeActions_AnimSequence::ExecuteOpenInExternalEditor, Sequences ),
-			FCanExecuteAction::CreateSP( this, &FAssetTypeActions_AnimSequence::CanExecuteSourceCommands, Sequences )
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::ExecuteOpenInExternalEditor, Sequences),
+			FCanExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::CanExecuteSourceCommands, Sequences)
 			)
 		);
 
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AnimSequence_ReimportWithNewSource", "Reimport with New Source"),
+		LOCTEXT("AnimSequence_ReimportWithNewSourceTooltip", "Reimport with new source."),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::ExecuteReimportWithNewSource, Sequences)
+			)
+		);
+}
+
+void FAssetTypeActions_AnimSequence::FillCreateMenu(FMenuBuilder& MenuBuilder, const TArray<TWeakObjectPtr<UAnimSequence>> Sequences) const
+{
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AnimSequence_NewAnimComposite", "Create AnimComposite"),
 		LOCTEXT("AnimSequence_NewAnimCompositeTooltip", "Creates an AnimComposite using the selected anim sequence."),
 		FSlateIcon(),
 		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetTypeActions_AnimSequence::ExecuteNewAnimComposite, Sequences ),
+		FExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::ExecuteNewAnimComposite, Sequences),
 		FCanExecuteAction()
 		)
 		);
@@ -56,12 +84,11 @@ void FAssetTypeActions_AnimSequence::GetActions( const TArray<UObject*>& InObjec
 		LOCTEXT("AnimSequence_NewAnimMontageTooltip", "Creates an AnimMontage using the selected anim sequence."),
 		FSlateIcon(),
 		FUIAction(
-		FExecuteAction::CreateSP( this, &FAssetTypeActions_AnimSequence::ExecuteNewAnimMontage, Sequences ),
+		FExecuteAction::CreateSP(this, &FAssetTypeActions_AnimSequence::ExecuteNewAnimMontage, Sequences),
 		FCanExecuteAction()
 		)
 		);
 }
-
 void FAssetTypeActions_AnimSequence::ExecuteReimport(TArray<TWeakObjectPtr<UAnimSequence>> Objects)
 {
 	for (auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
@@ -88,6 +115,22 @@ void FAssetTypeActions_AnimSequence::ExecuteFindInExplorer(TArray<TWeakObjectPtr
 			}
 		}
 	}
+}
+
+void FAssetTypeActions_AnimSequence::ExecuteReimportWithNewSource(TArray<TWeakObjectPtr<UAnimSequence>> Objects)
+{
+	// clear the source, I'm not sure if I should just remove all AssetImportData, but this is only clearing the source
+	// so everything else stays except the path
+	for(auto ObjIt = Objects.CreateConstIterator(); ObjIt; ++ObjIt)
+	{
+		auto Object = (*ObjIt).Get();
+		if(Object && Object->AssetImportData)
+		{
+			Object->AssetImportData->SourceFilePath = TEXT("");
+		}
+	}
+
+	ExecuteReimport(Objects);
 }
 
 void FAssetTypeActions_AnimSequence::ExecuteOpenInExternalEditor(TArray<TWeakObjectPtr<UAnimSequence>> Objects)

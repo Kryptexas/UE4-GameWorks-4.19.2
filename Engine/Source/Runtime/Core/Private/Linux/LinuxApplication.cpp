@@ -5,19 +5,13 @@
 #include "LinuxCursor.h"
 #include "GenericApplicationMessageHandler.h"
 #if STEAM_CONTROLLER_SUPPORT
-#include "SteamControllerInterface.h"
+	#include "SteamControllerInterface.h"
 #endif // STEAM_CONTROLLER_SUPPORT
 
-//	todo:
-//	need to change to a linux one
-//	#include "HIDInputInterface.h"
+#include "ds_extensions.h"
 
 #if WITH_EDITOR
 #include "ModuleManager.h"
-
-//	whats dis???
-//	#include "Developer/Windows/VSAccessor/Public/VSAccessorModule.h"
-
 #endif
 
 //
@@ -162,6 +156,15 @@ void FLinuxApplication::AddPendingEvent( SDL_Event SDLEvent )
 	}
 }
 
+bool FLinuxApplication::GeneratesKeyCharMessage(const SDL_KeyboardEvent & KeyDownEvent)
+{
+	bool bCmdKeyPressed = (KeyDownEvent.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL)) != 0;
+	const SDL_Keycode Sym = KeyDownEvent.keysym.sym;
+
+	// filter out command keys, non-ASCI and arrow keycodes that don't generate WM_CHAR under Windows (TODO: find a table?)
+	return !bCmdKeyPressed && Sym < 128 &&
+		(Sym != SDLK_DOWN && Sym != SDLK_LEFT && Sym != SDLK_RIGHT && Sym != SDLK_UP);
+}
 
 void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 {
@@ -183,24 +186,21 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 	{
 		return;
 	}
-
 	switch( Event.type )
 	{
 	case SDL_KEYDOWN:
 		{
-			SDL_KeyboardEvent keyEvent = Event.key;
-			const SDL_Keycode KeyCode = keyEvent.keysym.scancode;
-			const TCHAR Character = ConvertChar( keyEvent.keysym );
-			const bool IsRepeat = keyEvent.repeat != 0;
+			SDL_KeyboardEvent KeyEvent = Event.key;
+			const SDL_Keycode KeyCode = KeyEvent.keysym.scancode;
+			const bool bIsRepeated = KeyEvent.repeat != 0;
 				
-			MessageHandler->OnKeyDown( KeyCode, keyEvent.keysym.sym, IsRepeat );
-
 			// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
+			MessageHandler->OnKeyDown(KeyCode, KeyEvent.keysym.sym, bIsRepeated);
 
-			bool bCmdKeyPressed = keyEvent.keysym.mod & (KMOD_LCTRL | KMOD_RCTRL);
-			if ( !bCmdKeyPressed && KeyCode < 128 )
+			if (GeneratesKeyCharMessage(KeyEvent))
 			{
-				MessageHandler->OnKeyChar( Character, IsRepeat );
+				const TCHAR Character = ConvertChar(KeyEvent.keysym);
+				MessageHandler->OnKeyChar(Character, bIsRepeated);
 			}
 		}
 		break;
@@ -218,7 +218,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 		{
 			SDL_MouseMotionEvent motionEvent = Event.motion;
 			FLinuxCursor *LinuxCursor = (FLinuxCursor*)Cursor.Get();
-			LinuxCursor->SetRelative( NativeWindow );
 
 			if(LinuxCursor->IsHidden())
 			{
@@ -241,6 +240,16 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				if( LinuxCursor->UpdateCursorClipping( CurrentPosition ) )
 				{
 					LinuxCursor->SetPosition( CurrentPosition.X, CurrentPosition.Y );
+				}
+				if( !CurrentEventWindow->GetDefinition().HasOSWindowBorder )
+				{
+					if ( CurrentEventWindow->IsRegularWindow() )
+					{
+						int xOffset, yOffset;
+						SDL_GetWindowPosition( NativeWindow, &xOffset, &yOffset );
+						MessageHandler->GetWindowZoneForPoint( CurrentEventWindow.ToSharedRef(), CurrentPosition.X - xOffset, CurrentPosition.Y - yOffset );
+						MessageHandler->OnCursorSet();
+					}
 				}
 			}
 
@@ -278,10 +287,13 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			case SDL_BUTTON_X2:
 				button = EMouseButtons::Thumb02;
 				break;
+			default:
+				button = EMouseButtons::Invalid;
+				break;
 			}
 			if(buttonEvent.type == SDL_MOUSEBUTTONUP)
 			{
-				MessageHandler->OnMouseUp( button );
+				MessageHandler->OnMouseUp(button);
 			}
 			// SDL 2.0.2+
 			//else if(buttonEvent.clicks > 1)
@@ -627,7 +639,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 				case SDL_WINDOWEVENT_ENTER:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_ENTER has been send.\n" );
 						if ( CurrentEventWindow.IsValid() )
 						{
 							MessageHandler->OnCursorSet();
@@ -638,13 +649,15 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 				case SDL_WINDOWEVENT_LEAVE:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_LEAVE has been send.\n" );
+						if( CurrentEventWindow.IsValid() && GetCapture() != NULL)
+						{
+							UpdateMouseCaptureWindow((SDL_HWindow)GetCapture());
+						}
 					}
 					break;
 
 				case SDL_WINDOWEVENT_FOCUS_GAINED:
 					{
-					//	printf( "Ariel - SDL_WINDOWEVENT_FOCUS_GAINED has been send.\n" );
 						if ( CurrentEventWindow.IsValid() )
 						{
 							MessageHandler->OnWindowActivationChanged( CurrentEventWindow.ToSharedRef(), EWindowActivation::Activate );
@@ -699,22 +712,102 @@ TCHAR FLinuxApplication::ConvertChar( SDL_Keysym Keysym )
 		return 0;
 	}
 
-	if( Keysym.sym >= 97 && Keysym.sym <= 122 && (Keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)) )
-	{
-		return Keysym.sym - 32; // Convert to uppercase
-	}
+    TCHAR Char = Keysym.sym;
 
-	if( Keysym.sym >= 91 && Keysym.sym <= 93 && (Keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)) )
-	{
-		return Keysym.sym + 32; // [ \ ] -> { | }
-	}
+    if (Keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))
+    {
+        // Convert to uppercase (FIXME: what about CAPS?)
+        if( Keysym.sym >= 97 && Keysym.sym <= 122)
+        {
+            return Keysym.sym - 32;
+        }
+        else if( Keysym.sym >= 91 && Keysym.sym <= 93)
+        {
+            return Keysym.sym + 32; // [ \ ] -> { | }
+        }
+        else
+        {
+            switch(Keysym.sym)
+            {
+                case '`': // ` -> ~
+                    Char = TEXT('`');
+                    break;
 
-	if( Keysym.sym == 96 && (Keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT)) )
-	{
-		return 126; // ` -> ~
-	}
+                case '-': // - -> _
+                    Char = TEXT('_');
+                    break;
 
-	return Keysym.sym;
+                case '=': // - -> _
+                    Char = TEXT('+');
+                    break;
+
+                case ',':
+                    Char = TEXT('<');
+                    break;
+
+                case '.':
+                    Char = TEXT('>');
+                    break;
+
+                case ';':
+                    Char = TEXT(':');
+                    break;
+
+                case '\'':
+                    Char = TEXT('\"');
+                    break;
+
+                case '/':
+                    Char = TEXT('?');
+                    break;
+
+                case '0':
+                    Char = TEXT(')');
+                    break;
+
+                case '9':
+                    Char = TEXT('(');
+                    break;
+
+                case '8':
+                    Char = TEXT('*');
+                    break;
+
+                case '7':
+                    Char = TEXT('&');
+                    break;
+
+                case '6':
+                    Char = TEXT('^');
+                    break;
+
+                case '5':
+                    Char = TEXT('%');
+                    break;
+
+                case '4':
+                    Char = TEXT('$');
+                    break;
+
+                case '3':
+                    Char = TEXT('#');
+                    break;
+
+                case '2':
+                    Char = TEXT('@');
+                    break;
+
+                case '1':
+                    Char = TEXT('!');
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
+
+    return Char;
 }
 
 TSharedPtr< FLinuxWindow > FLinuxApplication::FindEventWindow( SDL_Event* Event )
@@ -791,23 +884,36 @@ void* FLinuxApplication::GetCapture( void ) const
 void FLinuxApplication::UpdateMouseCaptureWindow( SDL_HWindow TargetWindow )
 {
 	const bool bEnable = bIsMouseCaptureEnabled || bIsMouseCursorLocked;
+	FLinuxCursor *LinuxCursor = static_cast< FLinuxCursor* >(Cursor.Get());
 
-	if( bEnable )
+	// this is a hacky heuristic which makes QA-ClickHUD work while not ruining SlateViewer...
+	bool bShouldGrab = (IS_PROGRAM != 0 || GIsEditor) && !LinuxCursor->IsHidden();
+
+	if (bEnable)
 	{
 		if( TargetWindow )
 		{
 			MouseCaptureWindow = TargetWindow;
 		}
-		if( MouseCaptureWindow )
+		if (bShouldGrab && MouseCaptureWindow)
 		{
-			// TODO: SDL doesn't allow seem to provide a way to keep mouse focus
+			if (EDSExtSuccess != DSEXT_SetMouseGrab(TargetWindow, SDL_TRUE))
+			{
+				UE_LOG(LogHAL, Log, TEXT("Could not grab cursor for SDL window %p"), TargetWindow);
+			}
 		}
 	}
 	else
 	{
 		if( MouseCaptureWindow )
 		{
-			// TODO: SDL doesn't allow seem to provide a way to keep mouse focus
+			if (bShouldGrab)
+			{
+				if (EDSExtSuccess != DSEXT_SetMouseGrab(TargetWindow, SDL_FALSE))
+				{
+					UE_LOG(LogHAL, Log, TEXT("Could not ungrab cursor for SDL window %p"), TargetWindow);
+				}
+			}
 			MouseCaptureWindow = NULL;
 		}
 	}

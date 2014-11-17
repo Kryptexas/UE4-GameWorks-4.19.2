@@ -10,6 +10,7 @@ public class FriendsAndChat : ModuleRules
 			new string[]
 			{
 				"Core",
+				"CoreUObject",
                 "InputCore",
 				"Slate",
 				"OnlineSubsystem"
@@ -19,6 +20,7 @@ public class FriendsAndChat : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 		new string[]
 			{
+				"SlateCore",
 				"Sockets",
 				"OnlineSubsystem"
 			}

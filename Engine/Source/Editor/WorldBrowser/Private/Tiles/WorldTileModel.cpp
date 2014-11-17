@@ -242,11 +242,9 @@ bool FWorldTileModel::ShouldBeVisible(FBox EditableArea) const
 	{
 		return true;
 	}
-	
-	// Visible if level bounds bigger than editable area and intersects that area
-	if ((LevelBBox.GetExtent().X >= EditableArea.GetExtent().X || 
-		 LevelBBox.GetExtent().Y >= EditableArea.GetExtent().Y) &&
-		LevelBBox.IntersectXY(EditableArea))
+
+	// Visible if level bounds intersects editable area
+	if (LevelBBox.IntersectXY(EditableArea))
 	{
 		return true;
 	}
@@ -504,7 +502,7 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 void FWorldTileModel::FixLandscapeSectionsOffset()
 {
 	check(IsLandscapeBased());
-	ULandscapeInfo::RecreateLandscapeInfo(LevelCollectionModel.GetWorld(), true);
+	Editor->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
 }
 
 void FWorldTileModel::Update()
@@ -580,13 +578,19 @@ void FWorldTileModel::LoadLevel()
 	// Create transient level streaming object and add to persistent level
 	ULevelStreaming* LevelStreaming = GetAssosiatedStreamingLevel();
 
+	// Whether this tile should be made visible at current world bounds
+	const bool bShouldBeVisible = ShouldBeVisible(LevelCollectionModel.EditableWorldArea());
+	
 	// Load level
 	bLoadingLevel = true;
 	LevelStreaming->bShouldBeLoaded = true;
-	LevelStreaming->bShouldBeVisible = false;
-	LevelStreaming->bShouldBeVisibleInEditor = ShouldBeVisible(LevelCollectionModel.EditableWorldArea());
+	LevelStreaming->bShouldBeVisible = false; // Should be always false in the Editor
+	LevelStreaming->bShouldBeVisibleInEditor = bShouldBeVisible;
 	LevelCollectionModel.GetWorld()->FlushLevelStreaming();
 	bLoadingLevel = false;
+	// Mark tile as shelved in case it is hidden(does not fit to world bounds)
+	bWasShelved = !bShouldBeVisible;
+	//
 	LoadedLevel = LevelStreaming->GetLoadedLevel();
 	// Enable tile properties
 	TileDetails->bTileEditable = (LoadedLevel != nullptr);
@@ -807,7 +811,7 @@ FText FWorldTileModel::GetPositionText() const
 FText FWorldTileModel::GetBoundsExtentText() const
 {
 	FVector2D Size = GetLevelSize2D();
-	return FText::FromString(FString::Printf(TEXT("%d, %d"), FMath::Round(Size.X*0.5f), FMath::Round(Size.Y*0.5f)));
+	return FText::FromString(FString::Printf(TEXT("%d, %d"), FMath::RoundToInt(Size.X*0.5f), FMath::RoundToInt(Size.Y*0.5f)));
 }
 
 FText FWorldTileModel::GetLevelLayerNameText() const
@@ -833,8 +837,8 @@ bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandsc
 	FIntRect SourceLandscapeRect = SourceLandscape->GetBoundingRect();
 	FIntPoint SourceLandscapeSize = SourceLandscapeRect.Size();
 
-	FLandscapeImportSettings ImportSettings;
-	ImportSettings.SourceLandscape = SourceLandscape;
+	FLandscapeImportSettings ImportSettings = {};
+	ImportSettings.LandscapeGuid = SourceLandscape->GetLandscapeGuid();
 	ImportSettings.ComponentSizeQuads = SourceLandscape->ComponentSizeQuads;
 	ImportSettings.SectionsPerComponent = SourceLandscape->NumSubsections;
 	ImportSettings.QuadsPerSection = SourceLandscape->SubsectionSizeQuads;
@@ -856,6 +860,9 @@ bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandsc
 	ALandscapeProxy* AdjacenLandscape = ImportLandscape(ImportSettings);
 	if (AdjacenLandscape)
 	{
+		// Copy source landscape properties 
+		AdjacenLandscape->GetSharedProperties(SourceLandscape);
+		
 		// Refresh level model bounding box
 		FBox AdjacentLandscapeBounds = AdjacenLandscape->GetComponentsBoundingBox(true);
 		TileDetails->Bounds = AdjacentLandscapeBounds;
@@ -881,7 +888,7 @@ bool FWorldTileModel::CreateAdjacentLandscapeProxy(ALandscapeProxy* SourceLandsc
 		}
 
 		// Add source level position
-		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + SourceTileOffset;
+		FIntPoint IntOffset = FIntPoint(ProxyOffset.X, ProxyOffset.Y) + LevelCollectionModel.GetWorld()->GlobalOriginOffset;
 
 		// Move level with landscape proxy to desired position
 		SetLevelPosition(IntOffset);
@@ -898,23 +905,12 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		return nullptr;
 	}
 	
-	// In case SourceLandscape os provided, create LnadscapeProxy and copy settings from it
-	// Otherwise create a new LandscapeActor
 	ALandscapeProxy*	Landscape;
-	FGuid				LandscapeGuid;
-	if (Settings.SourceLandscape)
+	FGuid				LandscapeGuid = Settings.LandscapeGuid;
+	
+	if (LandscapeGuid.IsValid())
 	{
-		// These settings have to match source landscape settings
-		if (Settings.ComponentSizeQuads != Settings.SourceLandscape->ComponentSizeQuads || 
-			Settings.SectionsPerComponent != Settings.SourceLandscape->NumSubsections ||
-			Settings.QuadsPerSection != Settings.SourceLandscape->SubsectionSizeQuads)
-		{
-			return nullptr;
-		}
-				
 		Landscape = Cast<UWorld>(LoadedLevel->GetOuter())->SpawnActor<ALandscapeProxy>();
-		Landscape->GetSharedProperties(Settings.SourceLandscape);
-		LandscapeGuid = Settings.SourceLandscape->GetLandscapeGuid();
 	}
 	else
 	{
@@ -923,6 +919,11 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 	}
 	
 	Landscape->SetActorTransform(Settings.LandscapeTransform);
+	
+	if (Settings.LandscapeMaterial)
+	{
+		Landscape->LandscapeMaterial = Settings.LandscapeMaterial;
+	}
 	
 	// Create landscape components	
 	Landscape->Import(
@@ -933,9 +934,8 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		Settings.SectionsPerComponent, 
 		Settings.QuadsPerSection, 
 		Settings.HeightData.GetData(), 
-		NULL, 
-		Settings.ImportLayers, 
-		NULL);
+		*Settings.HeightmapFilename, 
+		Settings.ImportLayers);
 
 	return Landscape;
 }

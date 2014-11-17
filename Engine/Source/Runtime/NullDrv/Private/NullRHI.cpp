@@ -40,6 +40,10 @@ void FNullDynamicRHI::Init()
 	GIsRHIInitialized = true;
 }
 
+void FNullDynamicRHI::Shutdown()
+{
+}
+
 /**
  * Return a shared large static buffer that can be used to return from any 
  * function that needs to return a valid pointer (but can be garbage data)

@@ -4,16 +4,7 @@
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVAudioSession.h>
-
-#if !defined(UE_WITH_IAD)
-#define UE_WITH_IAD 1
-#endif
-
-#if UE_WITH_IAD
-#import <iAd/ADBannerView.h>
-#endif
-
-#import <GameKit/GKLeaderboardViewController.h>
+#import <GameKit/GKGameCenterViewController.h>
 
 @class EAGLView;
 @class IOSViewController;
@@ -30,16 +21,15 @@ namespace FAppEntry
 	void Tick();
     void SuspendTick();
 	void Shutdown();
+    void Suspend();
+    void Resume();
 }
 
 @interface IOSAppDelegate : UIResponder <UIApplicationDelegate,
 #if !UE_BUILD_SHIPPING
 	UIGestureRecognizerDelegate,
 #endif
-#if UE_WITH_IAD
-	ADBannerViewDelegate,
-#endif
-	GKLeaderboardViewControllerDelegate,
+	GKGameCenterControllerDelegate,
 UITextFieldDelegate, AVAudioSessionDelegate>
 
 /** Window object */
@@ -72,29 +62,6 @@ UITextFieldDelegate, AVAudioSessionDelegate>
 	@property (nonatomic, assign) int				ConsoleHistoryValuesIndex;
 #endif
 
-#if UE_WITH_IAD
-	/** iAd banner view, if open */
-	@property(retain) ADBannerView* BannerView;
-
-	/**
-	* Will show an iAd on the top or bottom of screen, on top of the GL view (doesn't resize
-	* the view)
-	*
-	* @param bShowOnBottomOfScreen If true, the iAd will be shown at the bottom of the screen, top otherwise
-	*/
-	-(void)ShowAdBanner:(NSNumber*)bShowOnBottomOfScreen;
-
-	/**
-	* Hides the iAd banner shows with ShowAdBanner. Will force close the ad if it's open
-	*/
-	-(void)HideAdBanner;
-
-	/**
-	* Forces closed any displayed ad. Can lead to loss of revenue
-	*/
-	-(void)CloseAd;
-#endif
-
 /** True if the engine has been initialized */
 @property (readonly) bool bEngineInit;
 
@@ -119,8 +86,11 @@ UITextFieldDelegate, AVAudioSessionDelegate>
 - (void)ToggleAudioSession:(bool)bActive;
 - (bool)IsBackgroundAudioPlaying;
 
+@property (atomic) bool bAudioActive;
+
 @property (atomic) bool bIsSuspended;
 @property (atomic) bool bHasSuspended;
+@property (atomic) bool bHasStarted;
 - (void)ToggleSuspend:(bool)bSuspend;
 
 static void interruptionListener(void* ClientData, UInt32 Interruption);

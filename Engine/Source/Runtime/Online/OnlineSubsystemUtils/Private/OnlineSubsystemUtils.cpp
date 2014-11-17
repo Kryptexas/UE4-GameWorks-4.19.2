@@ -5,7 +5,7 @@
 #include "ModuleManager.h"
 
 #include "IPAddress.h"
-#include "OnlineSubsystemUtils.generated.inl"
+
 #include "NboSerializer.h"
 
 #include "Voice.h"
@@ -25,22 +25,15 @@
 #include "Tests/TestUserInterface.h"
 #include "Tests/TestMessageInterface.h"
 #include "Tests/TestVoice.h"
+#include "Tests/TestExternalUIInterface.h"
 
 IMPLEMENT_MODULE( FOnlineSubsystemUtilsModule, OnlineSubsystemUtils );
 
-/**
- * Called right after the module DLL has been loaded and the module object has been created
- * Overloaded to allow the default subsystem a chance to load
- */
 void FOnlineSubsystemUtilsModule::StartupModule()
 {
 	
 }
 
-/**
- * Called before the module is unloaded, right before the module object is destroyed.
- * Overloaded to shut down all loaded online subsystems
- */
 void FOnlineSubsystemUtilsModule::ShutdownModule()
 {
 	
@@ -75,6 +68,24 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 	}
 
 	return AudioComponent;
+}
+
+UWorld* GetWorldForOnline(FName InstanceName)
+{
+	UWorld* World = NULL;
+	if (InstanceName != DEFAULT_INSTANCE && InstanceName != NAME_None)
+	{
+		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(InstanceName);
+		check(WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE);
+		World = WorldContext.World();
+	}
+	else
+	{
+		UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+		World = GameEngine ? GameEngine->GetGameWorld() : NULL;
+	}
+
+	return World;
 }
 
 /**
@@ -252,6 +263,22 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 						(new FTestMessageInterface(SubName))->Test(InWorld, RecipientIds);
 						bWasHandled = true;
 					}
+					else if (FParse::Command(&Cmd, TEXT("EXTERNALUI")))
+					{
+						// Full command usage:    EXTERNALUI ACHIEVEMENTS FRIENDS INVITE LOGIN PROFILE WEBURL
+						// Example for one test:  EXTERNALUI WEBURL
+						// Note that tests are enabled in alphabetical order
+						bool bTestAchievementsUI = FParse::Command(&Cmd, TEXT("ACHIEVEMENTS")) ? true : false;
+						bool bTestFriendsUI = FParse::Command(&Cmd, TEXT("FRIENDS")) ? true : false;
+						bool bTestInviteUI = FParse::Command(&Cmd, TEXT("INVITE")) ? true : false;
+						bool bTestLoginUI = FParse::Command(&Cmd, TEXT("LOGIN")) ? true : false;
+						bool bTestProfileUI = FParse::Command(&Cmd, TEXT("PROFILE")) ? true : false;
+						bool bTestWebURL = FParse::Command(&Cmd, TEXT("WEBURL")) ? true : false;
+
+						// This class also deletes itself once done
+						(new FTestExternalUIInterface(SubName, bTestLoginUI, bTestFriendsUI, bTestInviteUI, bTestAchievementsUI, bTestWebURL, bTestProfileUI))->Test();
+						bWasHandled = true;
+					}
 				}
 			}
 		}
@@ -262,3 +289,33 @@ static bool OnlineExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 /** Our entry point for all online exec routing */
 FStaticSelfRegisteringExec OnlineExecRegistration(OnlineExec);
 
+//////////////////////////////////////////////////////////////////////////
+// FOnlineSubsystemBPCallHelper
+
+FOnlineSubsystemBPCallHelper::FOnlineSubsystemBPCallHelper(const TCHAR* CallFunctionContext, FName SystemName)
+	: OnlineSub(IOnlineSubsystem::Get(SystemName))
+	, FunctionContext(CallFunctionContext)
+{
+	if (OnlineSub == nullptr)
+	{
+		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("%s - Invalid or uninitialized OnlineSubsystem"), FunctionContext), ELogVerbosity::Warning);
+	}
+}
+
+void FOnlineSubsystemBPCallHelper::QueryIDFromPlayerController(APlayerController* PlayerController)
+{
+	UserID.Reset();
+
+	if (APlayerState* PlayerState = (PlayerController != NULL) ? PlayerController->PlayerState : NULL)
+	{
+		UserID = PlayerState->UniqueId.GetUniqueNetId();
+		if (!UserID.IsValid())
+		{
+			FFrame::KismetExecutionMessage(*FString::Printf(TEXT("%s - Cannot map local player to unique net ID"), FunctionContext), ELogVerbosity::Warning);
+		}
+	}
+	else
+	{
+		FFrame::KismetExecutionMessage(*FString::Printf(TEXT("%s - Invalid player state"), FunctionContext), ELogVerbosity::Warning);
+	}
+}

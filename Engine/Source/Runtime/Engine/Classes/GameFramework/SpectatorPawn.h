@@ -10,7 +10,7 @@
 #include "SpectatorPawn.generated.h"
 
 
-UCLASS(HeaderGroup=Pawn, config=Game, Blueprintable, BlueprintType)
+UCLASS(config=Game, Blueprintable, BlueprintType)
 class ENGINE_API ASpectatorPawn : public ADefaultPawn
 {
 	GENERATED_UCLASS_BODY()

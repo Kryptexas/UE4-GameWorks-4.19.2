@@ -3,8 +3,6 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
-#include "EngineLevelScriptClasses.h"
-#include "EngineKismetLibraryClasses.h"
 #include "Collision.h"
 
 #if WITH_PHYSX
@@ -392,7 +390,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	}
 
 	// In-game deletion rules.
-	if( HasBegunPlay() )
+	if( AreActorsInitialized() )
 	{
 		// Never destroy the world settings actor. This used to be enforced by bNoDelete and is actually needed for 
 		// seamless travel and network games.
@@ -436,7 +434,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	ThisActor->bPendingKillPending = true;
 
 	// Notify the texture streaming manager about the destruction of this actor.
-	GStreamingManager->NotifyActorDestroyed( ThisActor );
+	IStreamingManager::Get().NotifyActorDestroyed( ThisActor );
 
 	// Tell this actor it's about to be destroyed.
 	ThisActor->Destroyed();
@@ -565,7 +563,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	Player spawning.
 -----------------------------------------------------------------------------*/
 
-APlayerController* UWorld::SpawnPlayActor(UPlayer* Player, ENetRole RemoteRole, const FURL& InURL, const TSharedPtr<FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex)
+APlayerController* UWorld::SpawnPlayActor(UPlayer* NewPlayer, ENetRole RemoteRole, const FURL& InURL, const TSharedPtr<FUniqueNetId>& UniqueId, FString& Error, uint8 InNetPlayerIndex)
 {
 	Error = TEXT("");
 
@@ -580,26 +578,27 @@ APlayerController* UWorld::SpawnPlayActor(UPlayer* Player, ENetRole RemoteRole, 
 	AGameMode* GameMode = GetAuthGameMode();
 
 	// Give the GameMode a chance to accept the login
-	APlayerController* const Actor = GameMode->Login(*InURL.Portal, Options, UniqueId, Error);
-	if (Actor == NULL)
+	APlayerController* const NewPlayerController = GameMode->Login(NewPlayer, *InURL.Portal, Options, UniqueId, Error);
+	if (NewPlayerController == NULL)
 	{
 		UE_LOG(LogSpawn, Warning, TEXT("Login failed: %s"), *Error);
 		return NULL;
 	}
 
+	UE_LOG(LogSpawn, Log, TEXT("%s got player %s [%s]"), *NewPlayerController->GetName(), *NewPlayer->GetName(), *UniqueId->ToString());
+
 	// Possess the newly-spawned player.
-	Actor->NetPlayerIndex = InNetPlayerIndex;
-	//UE_LOG(LogSpawn, Log, TEXT("%s got player %s"), *Actor->GetName(), *Player->GetName());
-	Actor->Role = ROLE_Authority;
-	Actor->SetReplicates(RemoteRole != ROLE_None);
+	NewPlayerController->NetPlayerIndex = InNetPlayerIndex;
+	NewPlayerController->Role = ROLE_Authority;
+	NewPlayerController->SetReplicates(RemoteRole != ROLE_None);
 	if (RemoteRole == ROLE_AutonomousProxy)
 	{
-		Actor->SetAutonomousProxy(true);
+		NewPlayerController->SetAutonomousProxy(true);
 	}
-	Actor->SetPlayer(Player);
-	GameMode->PostLogin(Actor);
+	NewPlayerController->SetPlayer(NewPlayer);
+	GameMode->PostLogin(NewPlayerController);
 
-	return Actor;
+	return NewPlayerController;
 }
 
 /*-----------------------------------------------------------------------------
@@ -633,11 +632,18 @@ bool UWorld::FindTeleportSpot(AActor* TestActor, FVector& TestLocation, FRotator
 	// now try just XY
 	if ( (Adjust.X != 0.f) || (Adjust.Y != 0.f) )
 	{
-		TestLocation.X += Adjust.X;
-		TestLocation.Y += Adjust.Y;
-		if( !EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust) )
+		for (int i = 0; i < 8; ++i)
 		{
-			return true;
+			const FVector OriginalTestLocation = TestLocation;
+
+			TestLocation.X += (i < 4 ? Adjust.X : Adjust.Y) * (i % 2 == 0 ? 1 : -1);
+			TestLocation.Y += (i < 4 ? Adjust.Y : Adjust.X) * (i % 4 < 2 ? 1 : -1);
+			if (!EncroachingBlockingGeometry(TestActor, TestLocation, TestRotation, &Adjust))
+			{
+				return true;
+			}
+
+			TestLocation = OriginalTestLocation;
 		}
 	}
 
@@ -679,22 +685,33 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 		static FName NAME_EncroachingBlockingGeometry = FName(TEXT("EncroachingBlockingGeometry"));
 		ECollisionChannel BlockingChannel = PrimComp->GetCollisionObjectType();
 
-		// @TODO support more than just capsules for spawning, don't yet have - add primitive component function to calculate these, use boundingbox as fallback
-		UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(PrimComp);
-
-		if ( Capsule )//&& (Capsule->BodyInstance.GetPxRigidActor() == NULL) )
+		// @TODO support more than just capsules and spheres for spawning, don't yet have - add primitive component function to calculate these, use boundingbox as fallback
+		UCapsuleComponent* const Capsule = Cast<UCapsuleComponent>(PrimComp);
+		if (Capsule)
 		{
 			FCollisionQueryParams Params(NAME_EncroachingBlockingGeometry, false, TestActor);
 			bFoundBlockingHit = OverlapMulti(Overlaps, TestLocation, FQuat::Identity, BlockingChannel, FCollisionShape::MakeCapsule(FMath::Max(Capsule->GetScaledCapsuleRadius() - Epsilon, 0.1f), FMath::Max(Capsule->GetScaledCapsuleHalfHeight() - Epsilon, 0.1f)), Params);
 		}
 		else
 		{
-			if(ensureMsgf(PrimComp->IsRegistered(), TEXT("Components must be registered in order to be used in a ComponentOverlapMulti call. PriComp: %s TestActor: %s"), *PrimComp->GetName(), *TestActor->GetName()))
+			USphereComponent* const Sphere = Cast<USphereComponent>(PrimComp);
+			if (Sphere)
 			{
+				FCollisionQueryParams Params(NAME_EncroachingBlockingGeometry, false, TestActor);
+				bFoundBlockingHit = OverlapMulti(Overlaps, TestLocation, FQuat::Identity, BlockingChannel, FCollisionShape::MakeSphere(FMath::Max(Sphere->GetScaledSphereRadius() - Epsilon, 0.1f)), Params);
+			}
+			else if (PrimComp->IsRegistered())
+			{
+				// must be registered
 				FComponentQueryParams Params(NAME_EncroachingBlockingGeometry, TestActor);
 				bFoundBlockingHit = ComponentOverlapMulti(Overlaps, PrimComp, TestLocation, TestActor->GetActorRotation(), Params);
 			}
+			else
+			{
+				UE_LOG(LogPhysics, Log, TEXT("Components must be registered in order to be used in a ComponentOverlapMulti call. PriComp: %s TestActor: %s"), *PrimComp->GetName(), *TestActor->GetName());
+			}
 		}
+
 		for( int32 HitIdx = 0; HitIdx < Overlaps.Num(); HitIdx++ )
 		{
 			if ( Overlaps[HitIdx].Component.IsValid() && (Overlaps[HitIdx].Component.Get()->GetCollisionResponseToChannel(BlockingChannel) == ECR_Block) )
@@ -955,7 +972,7 @@ void UWorld::SetMapNeedsLightingFullyRebuilt(int32 InNumLightingUnbuiltObjects)
 		// Update last time unbuilt lighting was encountered.
 		if (NumLightingUnbuiltObjects > 0)
 		{
-			LastTimeUnbuiltLightingWasEncountered = GCurrentTime;
+			LastTimeUnbuiltLightingWasEncountered = FApp::GetCurrentTime();
 		}
 	}
 }

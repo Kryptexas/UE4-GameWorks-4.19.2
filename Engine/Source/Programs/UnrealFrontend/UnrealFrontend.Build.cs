@@ -20,13 +20,18 @@ public class UnrealFrontend : ModuleRules
 				"AutomationController",
 				"Core",
 				"DeviceManager",
+				"LauncherServices",
 				"Messaging",
 				"ProfilerClient",
 				"Projects",
 				"SessionFrontend",
 				"SessionLauncher",
+				"SessionServices",
 				"Slate",
+				"SlateCore",
+				"SlateReflector",
 				"StandaloneRenderer",
+				"TargetDeviceServices",
 				"TargetPlatform",
 			}
 		);
@@ -37,6 +42,12 @@ public class UnrealFrontend : ModuleRules
 				"Networking",
 				"Sockets",
 				"UdpMessaging",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"Messaging",
 			}
 		);
 	}

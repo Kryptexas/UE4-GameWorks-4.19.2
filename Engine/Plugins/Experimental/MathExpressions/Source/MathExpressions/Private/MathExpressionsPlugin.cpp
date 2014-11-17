@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "MathExpressionsPrivatePCH.h"
-#include "MathExpressions.generated.inl"
+
 
 
 class FMathExpressionsPlugin : public IMathExpressionsPlugin

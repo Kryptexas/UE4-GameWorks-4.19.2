@@ -61,7 +61,7 @@ FMetaDataUtilities::FMoveMetadataHelperContext::~FMoveMetadataHelperContext()
 	if (GIsEditor && (OldObject->GetOutermost() != OldPackage))
 	{
 		UMetaData *NewMetaData = OldObject->GetOutermost()->GetMetaData();
-		UMetaData *OldMetaData = OldPackage->GetMetaData(false);
+		UMetaData *OldMetaData = OldPackage->GetMetaData();
 		TMap< FName, FString> *OldObjectMetaData = OldMetaData->ObjectMetaDataMap.Find(OldObject);
 		if (OldObjectMetaData != NULL)
 		{

@@ -5,6 +5,7 @@
 
 #include "GraphEditorActions.h"
 #include "ScopedTransaction.h"
+#include "AnimGraphNode_BlendListByInt.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_BlendListByInt

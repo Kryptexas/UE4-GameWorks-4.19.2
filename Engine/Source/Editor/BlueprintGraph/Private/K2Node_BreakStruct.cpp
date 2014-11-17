@@ -151,7 +151,7 @@ void UK2Node_BreakStruct::AllocateDefaultPins()
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	if(Schema && StructType)
 	{
-		CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), StructType, false, false, StructType->GetName());
+		CreatePin(EGPD_Input, Schema->PC_Struct, TEXT(""), StructType, false, true, StructType->GetName(), true);
 		
 		UK2Node_StructMemberGet::AllocateDefaultPins();
 
@@ -218,13 +218,9 @@ FLinearColor UK2Node_BreakStruct::GetNodeTitleColor() const
 UK2Node::ERedirectType UK2Node_BreakStruct::DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const
 {
 	ERedirectType Result = UK2Node::DoPinsMatchForReconstruction(NewPin, NewPinIndex, OldPin, OldPinIndex);
-	if ((ERedirectType_None == Result) && NewPin && OldPin && (EGPD_Input == NewPin->Direction) && (EGPD_Input == OldPin->Direction))
+	if ((ERedirectType_None == Result) && DoRenamedPinsMatch(NewPin, OldPin, true))
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-		if (K2Schema->ArePinTypesCompatible( NewPin->PinType, OldPin->PinType))
-		{
-			Result = ERedirectType_Custom;
-		}
+		Result = ERedirectType_Custom;
 	}
 	return Result;
 }

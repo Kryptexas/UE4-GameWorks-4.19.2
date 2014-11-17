@@ -116,7 +116,31 @@ void UActorComponent::PostInitProperties()
 	Super::PostInitProperties();
 
 	AActor* Owner = GetOwner();
-	ensureMsgf(Owner == NULL || Owner == GetOuter(), TEXT("Component %s is owned by %s by has an Outer of %s."), *GetName(), *Owner->GetName(), *GetOuter()->GetName());
+	if (Owner)
+	{
+		Owner->AddOwnedComponent(this);
+	}
+}
+
+void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
+{
+	if (OldOuter != GetOuter())
+	{
+		AActor* Owner = GetOwner();
+		AActor* OldOwner = (OldOuter->IsA<AActor>() ? CastChecked<AActor>(OldOuter) : OldOuter->GetTypedOuter<AActor>());
+
+		if (Owner != OldOwner)
+		{
+			if (OldOwner)
+			{
+				OldOwner->RemoveOwnedComponent(this);
+			}
+			if (Owner)
+			{
+				Owner->AddOwnedComponent(this);
+			}
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -249,7 +273,7 @@ bool UActorComponent::ComponentIsInPersistentLevel(bool bIncludeLevelStreamingPe
 														MyWorld->StreamingLevels[0]->GetLoadedLevel() == MyLevel ) );
 }
 
-FString UActorComponent::GetReadableName()
+FString UActorComponent::GetReadableName() const
 {
 	FString Result = GetNameSafe(GetOwner()) + TEXT(".") + GetName();
 	UObject const *Add = AdditionalStatObject();
@@ -546,7 +570,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	// Follow outer chain to see if we can find an Actor
 	AActor* Owner = GetOwner();
 
-	ensureMsgf(Owner == NULL || Owner == GetOuter(), TEXT("Component %s is owned by %s by has an Outer of %s."), *GetName(), *Owner->GetName(), *GetOuter()->GetName());
+	checkSlow(Owner == NULL || Owner->OwnsComponent(this));
 
 	if ((Owner != NULL) && Owner->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists))
 	{
@@ -600,7 +624,7 @@ void UActorComponent::UnregisterComponent()
 	const UPrimitiveComponent* Primitive = Cast<const UPrimitiveComponent>(this);
 	if ( Primitive )
 	{
-		GStreamingManager->NotifyPrimitiveDetached( Primitive );
+		IStreamingManager::Get().NotifyPrimitiveDetached( Primitive );
 	}
 
 	AActor* Owner = GetOwner(); // Get Owner while we are still registered
@@ -624,6 +648,7 @@ void UActorComponent::DestroyComponent()
 	if(Owner != NULL)
 	{
 		Owner->SerializedComponents.Remove(this);
+		Owner->RemoveOwnedComponent(this);
 		if (Owner->GetRootComponent() == this)
 		{
 			Owner->SetRootComponent(NULL);
@@ -1045,6 +1070,11 @@ void UActorComponent::SetIsReplicated(bool ShouldReplicate)
 bool UActorComponent::GetIsReplicated() const
 {
 	return bReplicates;
+}
+
+bool UActorComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
+{
+	return false;
 }
 
 bool UActorComponent::GetComponentClassCanReplicate() const

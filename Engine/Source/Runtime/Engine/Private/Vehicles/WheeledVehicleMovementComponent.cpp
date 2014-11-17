@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "MessageLog.h"
 
 #if WITH_PHYSX
 #include "../PhysicsEngine/PhysXSupport.h"
@@ -9,16 +10,7 @@
 #include "PhysXVehicleManager.h"
 #endif //WITH_PHYSX
 
-// Temporary until curve editing in
-void ConvertCurve( const TArray<FFloatPair>& Pairs, FRichCurve& OutCurve )
-{
-	OutCurve.Reset();
-
-	for ( auto It = Pairs.CreateConstIterator(); It; ++It )
-	{
-		OutCurve.AddKey( It->InVal, It->OutVal );
-	}
-}
+#define LOCTEXT_NAMESPACE "UWheeledVehicleMovementComponent"
 
 #if WITH_PHYSX
 
@@ -58,9 +50,9 @@ void PTireShader(const void* shaderData, const PxF32 tireFriction,
 	Input.WheelOmega = wheelOmega;
 	Input.WheelRadius = wheelRadius;
 	Input.RecipWheelRadius = recipWheelRadius;
-	Input.NormalizedTireLoad = FMath::Clamp( normalisedTireLoad, Wheel->VehicleSim->MinNormalizedTireLoad, Wheel->VehicleSim->MaxNormalizedTireLoad );
+	Input.NormalizedTireLoad = normalisedTireLoad;
 	Input.RestTireLoad = restTireLoad;
-	Input.TireLoad = restTireLoad * Input.NormalizedTireLoad;
+	Input.TireLoad = tireLoad;
 	Input.Gravity = gravity;
 	Input.RecipGravity = recipGravity;
 
@@ -89,13 +81,17 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const class F
 	: Super(PCIP)
 {
 	Mass = 1500.0f;
-	InertiaTensorScale = FVector( 1.0f, 0.80f, 1.0f );
+	DragCoefficient = 0.3f;
+	ChassisWidth = 180.f;
+	ChassisHeight = 140.f;
+	InertiaTensorScale = FVector( 1.0f, 1.0f, 1.0f );
 	AngErrorAccumulator = 0.0f;
 	MinNormalizedTireLoad = 0.0f;
 	MaxNormalizedTireLoad = 10.0f;
 	
-	IdleBrakeInput = 0.05f;
+	IdleBrakeInput = 0.0f;
 	StopThreshold = 10.0f; 
+	WrongDirectionThreshold = 100.f;
 	ThrottleInputRate.RiseRate = 6.0f;
 	ThrottleInputRate.FallRate = 10.0f;
 	BrakeInputRate.RiseRate = 6.0f;
@@ -104,6 +100,16 @@ UWheeledVehicleMovementComponent::UWheeledVehicleMovementComponent(const class F
 	HandbrakeInputRate.FallRate = 12.0f;
 	SteeringInputRate.RiseRate = 2.5f;
 	SteeringInputRate.FallRate = 5.0f;
+
+
+#if WITH_PHYSX
+	// tire load filtering
+	PxVehicleTireLoadFilterData PTireLoadFilterDef;
+	MinNormalizedTireLoad = PTireLoadFilterDef.mMinNormalisedLoad;
+	MinNormalizedTireLoadFiltered = PTireLoadFilterDef.mMinFilteredNormalisedLoad;
+	MaxNormalizedTireLoad = PTireLoadFilterDef.mMaxNormalisedLoad;
+	MaxNormalizedTireLoadFiltered = PTireLoadFilterDef.mMaxFilteredNormalisedLoad;
+#endif
 }
 
 #if WITH_PHYSX
@@ -117,7 +123,7 @@ bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 		return false;
 	}
 
-	if ( UpdatedComponent->BodyInstance.GetPxRigidDynamic() == NULL )
+	if ( UpdatedComponent->GetBodyInstance() == NULL )
 	{
 		UE_LOG( LogVehicles, Warning, TEXT("Cannot create vehicle for %s. UpdatedComponent has not initialized its rigid body actor."),
 			*GetPathName() );
@@ -139,12 +145,14 @@ bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 
 void UWheeledVehicleMovementComponent::CreateVehicle()
 {
+	ComputeConstants();
+
 	if ( PVehicle == NULL )
 	{
 		if ( CanCreateVehicle() )
 		{
 			check(UpdatedComponent);
-			check(UpdatedComponent->BodyInstance.GetPxRigidDynamic());
+			check(UpdatedComponent->GetBodyInstance()->GetPxRigidDynamic());
 
 			SetupVehicle();
 
@@ -158,7 +166,7 @@ void UWheeledVehicleMovementComponent::CreateVehicle()
 
 void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 {
-	PxRigidDynamic* PVehicleActor = UpdatedComponent->BodyInstance.GetPxRigidDynamic();
+	PxRigidDynamic* PVehicleActor = UpdatedComponent->GetBodyInstance()->GetPxRigidDynamic();
 
 	static PxMaterial* WheelMaterial = GPhysXSDK->createMaterial(0.0f, 0.0f, 0.0f);
 
@@ -224,7 +232,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 
 void UWheeledVehicleMovementComponent::SetupVehicleMass()
 {
-	const FBodyInstance& BodyInst = UpdatedComponent->BodyInstance;
+	const FBodyInstance& BodyInst = *UpdatedComponent->GetBodyInstance();
 	PxRigidDynamic* PVehicleActor = BodyInst.GetPxRigidDynamic();
 
 	// Override mass
@@ -246,14 +254,14 @@ void UWheeledVehicleMovementComponent::SetupVehicleMass()
 
 void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWheelsSimData )
 {
-	const FBodyInstance& VehicleBodyInstance = UpdatedComponent->BodyInstance;
+	const FBodyInstance& VehicleBodyInstance = *UpdatedComponent->GetBodyInstance();
 	PxRigidDynamic* PVehicleActor = VehicleBodyInstance.GetPxRigidDynamic();
 
 	const PxReal LengthScale = 100.f; // Convert default from m to cm
 
 	// Control substepping
-	PWheelsSimData->setSubStepCount( 5.f * LengthScale, 5, 2 ); // forcing constant substeps until all the kinks are ironed out	
-	PWheelsSimData->setMinLongSlipDenominator(4.f * LengthScale * LengthScale); 
+	PWheelsSimData->setSubStepCount( 5.f * LengthScale, 3, 1 );
+	PWheelsSimData->setMinLongSlipDenominator(4.f * LengthScale); 
 
 	// Prealloc data for the sprung masses
 	PxVec3 WheelOffsets[32];
@@ -278,20 +286,18 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		PxVehicleWheelData PWheelData;
 		PWheelData.mRadius = Wheel->ShapeRadius;
 		PWheelData.mWidth = Wheel->ShapeWidth;	
-		PWheelData.mMaxSteer = FMath::DegreesToRadians(WheelSetups[WheelIdx].SteerAngle);
-		PWheelData.mMaxBrakeTorque = WheelSetups[WheelIdx].MaxBrakeTorque;
-		PWheelData.mMaxHandBrakeTorque = Wheel->bAffectedByHandbrake ? WheelSetups[WheelIdx].MaxHandBrakeTorque : 0.0f;
+		PWheelData.mMaxSteer = FMath::DegreesToRadians(Wheel->SteerAngle);
+		PWheelData.mMaxBrakeTorque = M2ToCm2(Wheel->MaxBrakeTorque);
+		PWheelData.mMaxHandBrakeTorque = Wheel->bAffectedByHandbrake ? M2ToCm2(Wheel->MaxHandBrakeTorque) : 0.0f;
 
-//		PWheelData.mMass = 1.0f;
-//		PWheelData.mMOI = Wheel->Inertia * Mass; // Multiply by vehicle mass so that as vehicle mass shrinks, the torque and inertia can shrink as well
-		PWheelData.mDampingRate = WheelSetups[WheelIdx].DampingRate;
-		PWheelData.mMass = WheelSetups[WheelIdx].Mass;
+		PWheelData.mDampingRate = M2ToCm2(Wheel->DampingRate);
+		PWheelData.mMass = Wheel->Mass;
 		PWheelData.mMOI = 0.5f * PWheelData.mMass * FMath::Square(PWheelData.mRadius);
 		
 		// init tire data
 		PxVehicleTireData PTireData; 
 		PTireData.mType = Wheel->TireType ? Wheel->TireType->GetTireTypeID() : GEngine->DefaultTireType->GetTireTypeID();
-		PTireData.mCamberStiffnessPerUnitGravity = 0.0f;
+		//PTireData.mCamberStiffnessPerUnitGravity = 0.0f;
 		PTireData.mLatStiffX = Wheel->LatStiffMaxLoad;
 		PTireData.mLatStiffY = Wheel->LatStiffValue;
 		PTireData.mLongitudinalStiffnessPerUnitGravity = Wheel->LongStiffValue;
@@ -338,6 +344,16 @@ void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWhe
 		PWheelsSimData->setWheelShapeMapping( WheelIdx, WheelShapeIndex );
 		PWheelsSimData->setSceneQueryFilterData( WheelIdx, Shapes[WheelShapeIndex]->getQueryFilterData());
 	}
+
+	// tire load filtering
+	PxVehicleTireLoadFilterData PTireLoadFilter;
+	PTireLoadFilter.mMinNormalisedLoad = MinNormalizedTireLoad;
+	PTireLoadFilter.mMinFilteredNormalisedLoad = MinNormalizedTireLoadFiltered;
+	PTireLoadFilter.mMaxNormalisedLoad = MaxNormalizedTireLoad;
+	PTireLoadFilter.mMaxFilteredNormalisedLoad = MaxNormalizedTireLoadFiltered;
+	PWheelsSimData->setTireLoadFilterData(PTireLoadFilter);
+
+	
 }
  ////////////////////////////////////////////////////////////////////////////
 //Default tire force shader function.
@@ -388,7 +404,7 @@ void PxVehicleComputeTireForceDefault
 	tireAlignMoment=0.0f;
 
 	//If long slip/lat slip/camber are all zero than there will be zero tire force.
-	if((0==latSlip)&&(0==longSlip)&&(0==camber))
+	if (FMath::IsNearlyZero(latSlip) && FMath::IsNearlyZero(longSlip) && FMath::IsNearlyZero(camber))
 	{
 		return;
 	}
@@ -452,9 +468,6 @@ void UWheeledVehicleMovementComponent::GenerateTireForces( UVehicleWheel* Wheel,
 	//UE_LOG( LogVehicles, Warning, TEXT("Friction = %f	LongSlip = %f	LatSlip = %f"), Input.TireFriction, Input.LongSlip, Input.LatSlip );	
 	//UE_LOG( LogVehicles, Warning, TEXT("WheelTorque= %f	LongForce = %f	LatForce = %f"), Output.WheelTorque, Output.LongForce, Output.LatForce );
 	//UE_LOG( LogVehicles, Warning, TEXT("RestLoad= %f	NormLoad = %f	TireLoad = %f"),Input.RestTireLoad, Input.NormalizedTireLoad, Input.TireLoad );
-	
-	//Output.LatForce *= FMath::Lerp( Wheel->WheelSetup->LatStiffFactor, Wheel->WheelSetup->HandbrakeLatStiffFactor, OutputHandbrake );
-	//Output.LatForce *= Wheel->LatStiffFactor;
 }
 
 void UWheeledVehicleMovementComponent::PostSetupVehicle()
@@ -468,11 +481,14 @@ FVector UWheeledVehicleMovementComponent::GetWheelRestingPosition( const FWheelS
 	if ( WheelSetup.BoneName != NAME_None )
 	{
 		USkinnedMeshComponent* Mesh = GetMesh();
-
 		if ( Mesh && Mesh->SkeletalMesh )
 		{
 			const FVector BonePosition = Mesh->SkeletalMesh->GetComposedRefPoseMatrix( WheelSetup.BoneName ).GetOrigin() * Mesh->RelativeScale3D;
-			Offset += BonePosition;
+			//BonePosition is local for the root BONE of the skeletal mesh - however, we are using the Root BODY which may have its own transform, so we need to return the position local to the root BODY
+			const FMatrix RootBodyMTX = Mesh->SkeletalMesh->GetComposedRefPoseMatrix(Mesh->GetBodyInstance()->BodySetup->BoneName);
+			const FVector LocalBonePosition = RootBodyMTX.InverseTransformPosition(BonePosition);
+			Offset += LocalBonePosition;
+
 		}
 	}
 
@@ -536,6 +552,7 @@ void UWheeledVehicleMovementComponent::CreatePhysicsState()
 
 		if ( PhysScene && PhysScene->GetVehicleManager() )
 		{
+			FixupSkeletalMesh();
 			CreateVehicle();
 
 			if ( PVehicle )
@@ -631,18 +648,12 @@ void UWheeledVehicleMovementComponent::DestroyWheels()
 
 void UWheeledVehicleMovementComponent::TickVehicle( float DeltaTime )
 {
-	if (VehicleSetupTag != FPhysXVehicleManager::VehicleSetupTag )
-	{
-		RecreatePhysicsState();
-	}
-
 	// movement updates and replication
 	if (PVehicle && UpdatedComponent)
 	{
 		APawn* MyOwner = Cast<APawn>(UpdatedComponent->GetOwner());
 		if (MyOwner)
 		{
-			UpdateState(DeltaTime);
 			UpdateSimulation(DeltaTime);
 		}
 	}
@@ -652,12 +663,49 @@ void UWheeledVehicleMovementComponent::TickVehicle( float DeltaTime )
 	{
 		Wheels[i]->Tick(DeltaTime);
 	}
+
+	UpdateDrag(DeltaTime);
+}
+
+void UWheeledVehicleMovementComponent::UpdateDrag(float DeltaTime)
+{
+	if (PVehicle && UpdatedComponent)
+	{
+		float ForwardSpeed = GetForwardSpeed();
+		FVector GlobalForwardVector = UpdatedComponent->GetForwardVector();
+		FVector DragVector = -GlobalForwardVector;
+		float SpeedSquared = ForwardSpeed * ForwardSpeed;
+		float DragArea = ChassisHeight * ChassisWidth;
+		float AirDensity = 1.25 / (100 * 100 * 100); //kg/cm^3
+		float DragMag = 0.5f * AirDensity * SpeedSquared * DragCoefficient * DragArea;
+		DebugDragMagnitude = DragMag;
+		DragVector *= DragMag;
+		FBodyInstance * BodyInstance = UpdatedComponent->GetBodyInstance();
+		BodyInstance->AddForce(DragVector, false);
+	}
+}
+
+void UWheeledVehicleMovementComponent::PreTick(float DeltaTime)
+{
+	// movement updates and replication
+	if (PVehicle && UpdatedComponent)
+	{
+		APawn* MyOwner = Cast<APawn>(UpdatedComponent->GetOwner());
+		if (MyOwner)
+		{
+			UpdateState(DeltaTime);
+		}
+	}
+
+	if (VehicleSetupTag != FPhysXVehicleManager::VehicleSetupTag)
+	{
+		RecreatePhysicsState();
+	}
 }
 
 void UWheeledVehicleMovementComponent::UpdateSimulation( float DeltaTime )
 {
 }
-
 #endif // WITH_PHYSX
 
 void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
@@ -666,10 +714,23 @@ void UWheeledVehicleMovementComponent::UpdateState( float DeltaTime )
 	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
 	if (MyOwner && MyOwner->IsLocallyControlled())
 	{
-		SteeringInput = SteeringInputRate.InterpInputValue( DeltaTime, SteeringInput, CalcSteeringInput() );
+		//Manual shifting between reverse and first gear
+		if (FMath::Abs(GetForwardSpeed()) < WrongDirectionThreshold)	//we only shift between reverse and first if the car is slow enough. This isn't 100% correct since we really only care about engine speed, but good enough
+		{
+			if (RawThrottleInput < 0.f && GetCurrentGear() >= 0 && GetTargetGear() >= 0)
+			{
+				SetTargetGear(-1, true);
+			}
+			else if (RawThrottleInput > 0.f && GetCurrentGear() <= 0 && GetTargetGear() <= 0)
+			{
+				SetTargetGear(1, true);
+			}
+		}
+		
+		SteeringInput = SteeringInputRate.InterpInputValue(DeltaTime, SteeringInput, CalcSteeringInput());
 		ThrottleInput = ThrottleInputRate.InterpInputValue( DeltaTime, ThrottleInput, CalcThrottleInput() );
-		BrakeInput = BrakeInputRate.InterpInputValue( DeltaTime, BrakeInput, CalcBrakeInput() );
-		HandbrakeInput = HandbrakeInputRate.InterpInputValue( DeltaTime, HandbrakeInput, CalcHandbrakeInput() );
+		BrakeInput = BrakeInputRate.InterpInputValue(DeltaTime, BrakeInput, CalcBrakeInput());
+		HandbrakeInput = HandbrakeInputRate.InterpInputValue(DeltaTime, HandbrakeInput, CalcHandbrakeInput());
 
 		// and send to server
 		ServerUpdateState(SteeringInput, ThrottleInput, BrakeInput, HandbrakeInput, GetCurrentGear());
@@ -722,38 +783,32 @@ float UWheeledVehicleMovementComponent::CalcBrakeInput()
 	float NewBrakeInput = 0.0f;
 
 	// if player wants to move forwards...
-	if ( RawThrottleInput > 0.1f )  // MSS expanded hardcoded dead zone from 0.01f to filter weird throttle noise.
+	if ( RawThrottleInput > 0.f )
 	{
 		// if vehicle is moving backwards, then press brake
-		if ( ForwardSpeed < -StopThreshold )
+		if ( ForwardSpeed < -WrongDirectionThreshold)
 		{
 			NewBrakeInput = 1.0f;			
-			SetTargetGear(1, true);
 		}
 
 	}
 
 	// if player wants to move backwards...
-	else if ( RawThrottleInput < -0.1f )
+	else if ( RawThrottleInput < 0.f )
 	{
 		// if vehicle is moving forwards, then press brake
-		if ( ForwardSpeed > StopThreshold )
+		if (ForwardSpeed > WrongDirectionThreshold)
 		{
 			NewBrakeInput = 1.0f;			// Seems a bit severe to have 0 or 1 braking. Better control can be had by allowing continuous brake input values
-			// set to reverse
-			SetTargetGear(-1, true);	
-		}
-
-		
+		}	
 	}
 
 	// if player isn't pressing forward or backwards...
 	else
 	{
-		// If almost stationary, stick brakes on
-		if ( FMath::Abs(ForwardSpeed) <  StopThreshold )
+		if (ForwardSpeed < StopThreshold && ForwardSpeed > -StopThreshold)	//auto break 
 		{
-			NewBrakeInput = 0.1f + 0.1f * FMath::Abs(ForwardSpeed);
+			NewBrakeInput = 1.f;
 		}
 		else
 		{
@@ -771,6 +826,12 @@ float UWheeledVehicleMovementComponent::CalcHandbrakeInput()
 
 float UWheeledVehicleMovementComponent::CalcThrottleInput()
 {
+	//If the user is changing direction we should really be braking first and not applying any gas, so wait until they've changed gears
+	if ( (RawThrottleInput > 0.f && GetTargetGear() < 0) || (RawThrottleInput < 0.f && GetTargetGear() > 0)) 
+	{
+		return 0.f;
+	}
+
 	return FMath::Abs(RawThrottleInput);
 }
 
@@ -873,6 +934,11 @@ float UWheeledVehicleMovementComponent::GetEngineRotationSpeed() const
 	return 0.0f;
 }
 
+float UWheeledVehicleMovementComponent::GetEngineMaxRotationSpeed() const
+{
+	return MaxEngineRPM;
+}
+
 #if WITH_PHYSX
 
 int32 UWheeledVehicleMovementComponent::GearToPhysXGear(const int32 Gear) const
@@ -946,7 +1012,7 @@ bool UWheeledVehicleMovementComponent::GetUseAutoGears() const
 
 #if WITH_PHYSX
 
-void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* Canvas, float GraphX, float GraphY, float GraphWidth, float GraphHeight )
+void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* Canvas, float GraphX, float GraphY, float GraphWidth, float GraphHeight, float & OutX )
 {
 	PxF32 PGraphXY[2*PxVehicleGraph::eMAX_NB_SAMPLES];
 	PxVec3 PGraphColor[PxVehicleGraph::eMAX_NB_SAMPLES];
@@ -955,7 +1021,7 @@ void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* 
 	PGraph.computeGraphChannel( Channel, PGraphXY, PGraphColor, PGraphTitle );
 
 	FString Label = ANSI_TO_TCHAR(PGraphTitle);
-	Canvas->SetDrawColor( FColor( 128, 255, 0 ) );
+	Canvas->SetDrawColor( FColor( 255, 255, 0 ) );
 	UFont* Font = GEngine->GetSmallFont();
 	Canvas->DrawText( Font, Label, GraphX, GraphY );
 
@@ -965,7 +1031,8 @@ void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* 
 	float LineGraphHeight = GraphHeight - YL - 4.0f;
 	float LineGraphY = GraphY + YL + 4.0f;
 
-	FCanvasTileItem TileItem( FVector2D(GraphX, LineGraphY), GWhiteTexture, FVector2D( GraphWidth, GraphWidth ), FLinearColor( 0.0f, 0.125f, 0.0f, 0.5f ) );
+	FCanvasTileItem TileItem( FVector2D(GraphX, LineGraphY), GWhiteTexture, FVector2D( GraphWidth, GraphWidth ), FLinearColor( 0.0f, 0.125f, 0.0f, 0.25f ) );
+	TileItem.BlendMode = SE_BLEND_Translucent;
 	Canvas->DrawItem( TileItem );
 	
 	Canvas->SetDrawColor( FColor( 0, 32, 0, 128 ) );	
@@ -985,6 +1052,65 @@ void DrawTelemetryGraph( uint32 Channel, const PxVehicleGraph& PGraph, UCanvas* 
 		LineItem.SetColor( FLinearColor( 1.0f, 0.5f, 0.0f, 1.0f ) );
 		LineItem.Draw( Canvas->Canvas );
 	}
+
+	OutX = FMath::Max(XL,GraphWidth);
+}
+
+bool UWheeledVehicleMovementComponent::CheckSlipThreshold(float AbsLongSlipThreshold, float AbsLatSlipThreshold) const
+{
+	if (PVehicle == NULL)
+	{
+		return false;
+	}
+
+	FPhysXVehicleManager* MyVehicleManager = World->GetPhysicsScene()->GetVehicleManager();
+	PxWheelQueryResult * WheelsStates = MyVehicleManager->GetWheelsStates(this);
+	check(WheelsStates);
+
+	PxReal MaxLongSlip = 0.f;
+	PxReal MaxLatSlip = 0.f;
+
+	// draw wheel data
+	for (uint32 w = 0; w < PVehicle->mWheelsSimData.getNbWheels(); ++w)
+	{
+		const PxReal AbsLongSlip = FMath::Abs(WheelsStates[w].longitudinalSlip);
+		const PxReal AbsLatSlip = FMath::Abs(WheelsStates[w].lateralSlip);
+
+		if (AbsLongSlip > AbsLongSlipThreshold)
+		{
+			return true;
+		}
+
+		if (AbsLatSlip > AbsLatSlipThreshold)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+float UWheeledVehicleMovementComponent::GetMaxSpringForce() const
+{
+	if (PVehicle == NULL)
+	{
+		return false;
+	}
+
+	FPhysXVehicleManager* MyVehicleManager = World->GetPhysicsScene()->GetVehicleManager();
+	PxWheelQueryResult * WheelsStates = MyVehicleManager->GetWheelsStates(this);
+	check(WheelsStates);
+
+	PxReal MaxSpringCompression = 0.f;
+
+	// draw wheel data
+	for (uint32 w = 0; w < PVehicle->mWheelsSimData.getNbWheels(); ++w)
+	{
+		MaxSpringCompression = WheelsStates[w].suspSpringForce > MaxSpringCompression ? WheelsStates[w].suspSpringForce : MaxSpringCompression;
+	}
+
+	return MaxSpringCompression;
+
 }
 
 void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, float& YPos )
@@ -1002,11 +1128,14 @@ void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, fl
 	// draw drive data
 	{
 		Canvas->SetDrawColor( FColor::White );
-
-		YPos += Canvas->DrawText( RenderFont, FString::Printf( TEXT("Speed: %d"), (int32)GetForwardSpeed() ), 4, YPos );
+		float forwardSpeedKmH = GetForwardSpeed() * 3600.f / 100000.f;	//convert from cm/s to km/h
+		YPos += Canvas->DrawText( RenderFont, FString::Printf( TEXT("Speed (km/h): %d"), (int32)forwardSpeedKmH  ), 4, YPos );
 		YPos += Canvas->DrawText( RenderFont, FString::Printf( TEXT("Steering: %f"), SteeringInput ), 4, YPos  );
 		YPos += Canvas->DrawText( RenderFont, FString::Printf( TEXT("Throttle: %f"), ThrottleInput ), 4, YPos );
 		YPos += Canvas->DrawText( RenderFont, FString::Printf( TEXT("Brake: %f"), BrakeInput ), 4, YPos  );
+		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("RPM: %f"), GetEngineRotationSpeed()), 4, YPos);
+		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Gear: %d"), GetCurrentGear()), 4, YPos);
+		YPos += Canvas->DrawText(RenderFont, FString::Printf(TEXT("Drag: %.3f"), DebugDragMagnitude), 4, YPos);
 
 	}
 
@@ -1032,19 +1161,19 @@ void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, fl
 		
 		Canvas->DrawText( RenderFont, FString::Printf( TEXT("LatSlip: %.3f"), LatSlip ), YL * 4 , YPos );
 		Canvas->DrawText( RenderFont, FString::Printf( TEXT("LongSlip: %.3f"), LongSlip ), YL * 12, YPos );
-		Canvas->DrawText( RenderFont, FString::Printf( TEXT("Speed: %d"), (int32)WheelSpeed ), YL * 20, YPos );
-		Canvas->DrawText( RenderFont, FString::Printf( TEXT("Contact Surface: %s"), *ContactSurfaceString ), YL * 60, YPos );
+		Canvas->DrawText( RenderFont, FString::Printf( TEXT("Speed: %d"), (int32)WheelSpeed ), YL * 22, YPos );
+		Canvas->DrawText( RenderFont, FString::Printf( TEXT("Contact Surface: %s"), *ContactSurfaceString ), YL * 74, YPos );
 		if( (int32)w < Wheels.Num() )
 		{
 			UVehicleWheel* Wheel = Wheels[w];
-			Canvas->DrawText( RenderFont, FString::Printf( TEXT("Load: %f"), (int32)Wheel->DebugNormalizedTireLoad ), YL * 28, YPos );
-			Canvas->DrawText( RenderFont, FString::Printf( TEXT("Torque: %d"), (int32)Wheel->DebugWheelTorque ), YL * 36, YPos );
-			Canvas->DrawText( RenderFont, FString::Printf( TEXT("Long Force: %d"), (int32)Wheel->DebugLongForce ),YL * 44, YPos );
-			Canvas->DrawText( RenderFont, FString::Printf( TEXT("Lat Force: %d"), (int32)Wheel->DebugLatForce ), YL * 52, YPos );
+			Canvas->DrawText( RenderFont, FString::Printf( TEXT("Load: %.3f"), Wheel->DebugNormalizedTireLoad ), YL * 30, YPos );
+			Canvas->DrawText( RenderFont, FString::Printf( TEXT("Torque: %d"), (int32)Wheel->DebugWheelTorque ), YL * 40, YPos );
+			Canvas->DrawText( RenderFont, FString::Printf( TEXT("Long Force: %d"), (int32)Wheel->DebugLongForce ),YL * 50, YPos );
+			Canvas->DrawText( RenderFont, FString::Printf( TEXT("Lat Force: %d"), (int32)Wheel->DebugLatForce ), YL * 62, YPos );
 		}
 		else
 		{
-			Canvas->DrawText( RenderFont, TEXT("Wheels array insufficiently sized!"), YL * 72, YPos );
+			Canvas->DrawText( RenderFont, TEXT("Wheels array insufficiently sized!"), YL * 50, YPos );
 		}
 
 		YPos += YL;
@@ -1058,12 +1187,14 @@ void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, fl
 		const float GraphWidth(100.0f), GraphHeight(100.0f);
 	
 			int GraphChannels[] = {
-			PxVehicleWheelGraphChannel::eNORMALIZED_TIRELOAD,
 			PxVehicleWheelGraphChannel::eWHEEL_OMEGA,
+			PxVehicleWheelGraphChannel::eSUSPFORCE,
 			PxVehicleWheelGraphChannel::eTIRE_LONG_SLIP,
 			PxVehicleWheelGraphChannel::eNORM_TIRE_LONG_FORCE,
 			PxVehicleWheelGraphChannel::eTIRE_LAT_SLIP,
-			PxVehicleWheelGraphChannel::eNORM_TIRE_LAT_FORCE
+			PxVehicleWheelGraphChannel::eNORM_TIRE_LAT_FORCE,
+			PxVehicleWheelGraphChannel::eNORMALIZED_TIRELOAD,
+			PxVehicleWheelGraphChannel::eTIRE_FRICTION			
 		};
 
 		for ( uint32 w = 0; w < PVehicle->mWheelsSimData.getNbWheels(); ++w )
@@ -1071,14 +1202,64 @@ void UWheeledVehicleMovementComponent::DrawDebug( UCanvas* Canvas, float& YL, fl
 			float CurX = 4;
 			for ( uint32 i = 0; i < ARRAY_COUNT(GraphChannels); ++i )
 			{
-				DrawTelemetryGraph( GraphChannels[i], TelemetryData->getWheelGraph(w), Canvas, CurX, YPos, GraphWidth, GraphHeight );
-				CurX += GraphWidth + 10.0f;
+				float OutX = GraphWidth;
+				DrawTelemetryGraph( GraphChannels[i], TelemetryData->getWheelGraph(w), Canvas, CurX, YPos, GraphWidth, GraphHeight, OutX );
+				CurX += OutX + 10.f;
 			}
 
-			YPos += GraphHeight;
+			YPos += GraphHeight + 10.f;
 			YPos += YL;
 		}
 	}
+
+	DrawDebugLines();
+}
+
+void UWheeledVehicleMovementComponent::FixupSkeletalMesh()
+{
+	if (USkeletalMeshComponent * Mesh = Cast<USkeletalMeshComponent>(GetMesh()))
+	{
+		if (UPhysicsAsset * PhysicsAsset = Mesh->GetPhysicsAsset())
+		{
+			for (int32 WheelIdx = 0; WheelIdx < WheelSetups.Num(); ++WheelIdx)
+			{
+				FWheelSetup& WheelSetup = WheelSetups[WheelIdx];
+				if (WheelSetup.BoneName != NAME_None)
+				{
+					int32 BodySetupIdx = PhysicsAsset->FindBodyIndex(WheelSetup.BoneName);
+					
+					if (BodySetupIdx >= 0)
+					{
+						FBodyInstance * BodyInstance = Mesh->Bodies[BodySetupIdx];
+						BodyInstance->SetResponseToAllChannels(ECR_Ignore);	//turn off collision for wheel automatically
+
+						if (UBodySetup * BodySetup = PhysicsAsset->BodySetup[BodySetupIdx])
+						{
+
+							if (BodySetup->PhysicsType == PhysType_Default) 	//if they set it to unfixed we don't fixup because they are explicitely saying Unfixed
+							{
+								BodyInstance->SetInstanceSimulatePhysics(false, false, true);
+							}
+
+							//and get rid of constraints on the wheels. TODO: right now we remove all wheel constraints, we probably only want to remove parent constraints
+							TArray<int32> WheelConstraints;
+							PhysicsAsset->BodyFindConstraints(BodySetupIdx, WheelConstraints);
+							for (int32 ConstraintIdx = 0; ConstraintIdx < WheelConstraints.Num(); ++ConstraintIdx)
+							{
+								FConstraintInstance * ConstraintInstance = Mesh->Constraints[WheelConstraints[ConstraintIdx]];
+								ConstraintInstance->TermConstraint();
+							}
+						}
+					}
+				}
+			}
+		}
+
+		Mesh->KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipSimulatingBones;
+		
+	}
+
+
 }
 
 void UWheeledVehicleMovementComponent::DrawDebugLines()
@@ -1180,3 +1361,11 @@ void UWheeledVehicleMovementComponent::GetLifetimeReplicatedProps( TArray< FLife
 
 	DOREPLIFETIME( UWheeledVehicleMovementComponent, ReplicatedState );
 }
+
+void UWheeledVehicleMovementComponent::ComputeConstants()
+{
+	DragArea = ChassisWidth * ChassisHeight;
+	MaxEngineRPM = 5000.f;
+}
+
+#undef LOCTEXT_NAMESPACE

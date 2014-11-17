@@ -161,16 +161,18 @@ void FSkeletalMeshSocketDetails::OnSocketNameCommitted(const FText& InSearchText
 		{
 			FPersona* PersonaInstance = static_cast<FPersona*> (EditorInstance);
 
+			FText NewText = FText::TrimPrecedingAndTrailing(InSearchText);
+
 			FText OutErrorMessage;
-			if( VerifySocketName(PersonaInstance, TargetSocket, InSearchText, OutErrorMessage) )
+			if (VerifySocketName(PersonaInstance, TargetSocket, NewText, OutErrorMessage))
 			{
 				// tell persona to rename the socket.
-				PersonaInstance->RenameSocket( TargetSocket, *InSearchText.ToString() );
+				PersonaInstance->RenameSocket(TargetSocket, *NewText.ToString());
 				PersonaInstance->SetSelectedSocket( FSelectedSocketInfo( TargetSocket, true ) );
 				
 				// update the pre-edit socket name and the property
-				PreEditSocketName = InSearchText;
-				SocketNameTextBox->SetText( InSearchText );
+				PreEditSocketName = NewText;
+				SocketNameTextBox->SetText(NewText);
 			}
 			else
 			{
@@ -192,19 +194,21 @@ bool FSkeletalMeshSocketDetails::VerifySocketName( FPersona* PersonaPtr, const U
 	// but you can have a socket with the same name on the mesh *and* the skeleton.
 	bool bVerifyName = true;
 
-	if( InText.IsEmpty() )
+	FText NewText = FText::TrimPrecedingAndTrailing(InText);
+
+	if (NewText.IsEmpty())
 	{
 		OutErrorMessage = NSLOCTEXT( "SkeletalMeshSocketDetails", "EmptySocketName_Error", "Sockets must have a name!");
 		bVerifyName = false;
 	}
 	else
 	{
-		if( PersonaPtr->DoesSocketAlreadyExist(Socket, InText, PersonaPtr->GetSkeleton()->Sockets) )
+		if (PersonaPtr->DoesSocketAlreadyExist(Socket, NewText, PersonaPtr->GetSkeleton()->Sockets))
 		{
 			bVerifyName = false;
 		}
 
-		if( bVerifyName && PersonaPtr->DoesSocketAlreadyExist(Socket, InText, PersonaPtr->GetMesh()->GetMeshOnlySocketList()) )
+		if (bVerifyName && PersonaPtr->DoesSocketAlreadyExist(Socket, NewText, PersonaPtr->GetMesh()->GetMeshOnlySocketList()))
 		{
 			bVerifyName = false;
 		}

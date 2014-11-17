@@ -139,7 +139,7 @@ class COREUOBJECT_API UField : public UObject
 	
 	/**
 	 * Find the metadata value associated with the key
- 	 * and return bool  
+	 * and return bool  
 	 * @param Key The key to lookup in the metadata
 	 * @return return true if the value was true (case insensitive)
 	 */
@@ -271,7 +271,7 @@ public:
 	 */
 	void SerializeBinEx( FArchive& Ar, void* Data, void const* DefaultData, UStruct* DefaultStruct ) const;
 
-	void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
+	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults ) const;
 
 	virtual EExprToken SerializeExpr(int32& iCode, FArchive& Ar);
 	virtual void TagSubobjects(EObjectFlags NewFlags) OVERRIDE;
@@ -301,6 +301,12 @@ public:
 	void SetPropertiesSize( int32 NewSize )
 	{
 		PropertiesSize = NewSize;
+	}
+
+	template<class T>
+	bool IsChildOf() const
+	{
+		return IsChildOf(T::StaticClass());
 	}
 
 	bool IsChildOf( const UStruct* SomeBase ) const
@@ -1008,7 +1014,7 @@ public:
 	 * @param	ArrayDim	Number of elements in the array
 	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
 	 */
-	void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1);
+	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1);
 	/**
 	 * Initialize a struct over uninitialized memory. This may be done by calling the native constructor or individually initializing properties
 	 *
@@ -1034,6 +1040,7 @@ public:
 	 */
 	COREUOBJECT_API void DestroyScriptStruct(void* Dest, int32 ArrayDim = 1);
 
+	virtual COREUOBJECT_API void RecursivelyPreload();
 };
 
 
@@ -1133,6 +1140,7 @@ public:
 	{
 		return (FunctionFlags&FlagsToCheck) != 0 || FlagsToCheck == FUNC_AllFlags;
 	}
+
 	/**
 	 * Used to safely check whether all of the passed in flags are set.
 	 *
@@ -1145,6 +1153,16 @@ public:
 	}
 
 	/**
+	 * Returns the flags that are ignored by default when comparing function signatures.
+	 */
+	FORCEINLINE static uint64 GetDefaultIgnoredSignatureCompatibilityFlags()
+	{
+		//@TODO: UCREMOVAL: CPF_ConstParm added as a hack to get blueprints compiling with a const DamageType parameter.
+		const uint64 IgnoreFlags = CPF_EditInline | CPF_ExportObject | CPF_InstancedReference | CPF_ContainsInstancedReference | CPF_ComputedFlags | CPF_ConstParm;
+		return IgnoreFlags;
+	}
+
+	/**
 	 * Determines if two functions have an identical signature (note: currently doesn't allow
 	 * matches with class parameters that differ only in how derived they are; there is no
 	 * directionality to the call)
@@ -1154,6 +1172,18 @@ public:
 	 * @return	true if function signatures are compatible.
 	 */
 	COREUOBJECT_API bool IsSignatureCompatibleWith(const UFunction* OtherFunction) const;
+
+	/**
+	 * Determines if two functions have an identical signature (note: currently doesn't allow
+	 * matches with class parameters that differ only in how derived they are; there is no
+	 * directionality to the call)
+	 *
+	 * @param	OtherFunction	Function to compare this function against.
+	 * @param   IgnoreFlags     Custom flags to ignore when comparing parameters between the functions.
+	 *
+	 * @return	true if function signatures are compatible.
+	 */
+	COREUOBJECT_API bool IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64 IgnoreFlags) const;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1621,6 +1651,7 @@ public:
 #if WITH_EDITOR || HACK_HEADER_GENERATOR 
 	// Editor only properties
 	void GetHideCategories(TArray<FString>& OutHideCategories) const;
+	void GetShowCategories(TArray<FString>& OutShowCategories) const;
 	bool IsCategoryHidden(const FString& InCategory) const;
 	void GetHideFunctions(TArray<FString>& OutHideFunctions) const;
 	bool IsFunctionHidden(const TCHAR* InFunction) const;
@@ -1700,6 +1731,7 @@ public:
 		);
 #endif
 
+#if WITH_EDITOR
 	/**
 	 * If there are potentially multiple versions of this class (e.g. blueprint generated classes), this function will return the authoritative version, which should be used for references
 	 *
@@ -1709,6 +1741,7 @@ public:
 	{
 		return this;
 	}
+#endif
 
 	/**
 	 * Add a native function to the internal native function table
@@ -1756,7 +1789,7 @@ public:
 	 * default if it doesn't exist yet.
 	 *
 	 * @return	name of the class specific ini file
- 	 */
+	 */
 	const FString GetConfigName() const;
 
 	UClass* GetSuperClass() const

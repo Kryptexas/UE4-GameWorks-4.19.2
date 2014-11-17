@@ -11,7 +11,6 @@
 #include "MessageLog.h"
 #include "Developer/MessageLog/Public/MessageLogModule.h"
 #include "Kismet2/KismetDebugUtilities.h"
-#include "VSAccessorModule.h"
 #include "SourceControlWindows.h"
 #include "FbxLibs.h"
 #include "CompilerResultsLog.h"
@@ -87,17 +86,11 @@ void FUnrealEdMisc::OnInit()
 #endif // USE_UNIT_TESTS
 
 	/** Delegate that gets called when a script exception occurs */
-	FBlueprintCoreDelegates::OnScriptException.Add(FBlueprintCoreDelegates::FOnScriptDebuggingEvent::FDelegate::CreateStatic(&FKismetDebugUtilities::OnScriptException));
+	FBlueprintCoreDelegates::OnScriptException.AddStatic(&FKismetDebugUtilities::OnScriptException);
 	
 	FEditorDelegates::ChangeEditorMode.AddRaw(this, &FUnrealEdMisc::OnEditorChangeMode);
 	FCoreDelegates::PreModal.AddRaw(this, &FUnrealEdMisc::OnEditorPreModal);
 	FCoreDelegates::PostModal.AddRaw(this, &FUnrealEdMisc::OnEditorPostModal);
-
-#if !PLATFORM_MAC
-	/** Delegate that gets called by modules that can't directly access Engine */
-	FVSAccessorModule& VSAccessor = FModuleManager::LoadModuleChecked< FVSAccessorModule >( TEXT( "VSAccessor" ) );
-	VSAccessor.OnLaunchVSDeferred().AddRaw(this, &FUnrealEdMisc::OnDeferCommand);
-#endif
 
 	FEditorDelegates::OnAssetPostImport.AddStatic(&NormalMapIdentification::HandleAssetPostImport);
 
@@ -336,7 +329,7 @@ void FUnrealEdMisc::InitEngineAnalytics()
 			const FString& LoadedProjectFilePath = FPaths::GetProjectFilePath();
 			FProjectStatus ProjectStatus;
 
-			if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, FDesktopPlatformModule::Get()->GetCurrentEngineIdentifier(), ProjectStatus))
+			if (IProjectManager::Get().QueryStatusForProject(LoadedProjectFilePath, ProjectStatus))
 			{
 				if ( ProjectStatus.bSignedSampleProject )
 				{
@@ -540,11 +533,6 @@ void FUnrealEdMisc::OnExit()
 	FEditorDelegates::ChangeEditorMode.RemoveAll(this);
 	FCoreDelegates::PreModal.RemoveAll(this);
 	FCoreDelegates::PostModal.RemoveAll(this);
-
-#if !PLATFORM_MAC
-	FVSAccessorModule& VSAccessor = FModuleManager::LoadModuleChecked< FVSAccessorModule >( TEXT( "VSAccessor" ) );
-	VSAccessor.OnLaunchVSDeferred().RemoveAll(this);
-#endif
 
 	FComponentAssetBrokerage::PRIVATE_ShutdownBrokerage();
 

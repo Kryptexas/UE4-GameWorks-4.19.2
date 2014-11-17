@@ -43,13 +43,13 @@ void SStaticMeshEditorViewport::Construct(const FArguments& InArgs)
 
 	SetPreviewMesh(StaticMesh);
 
-	FCoreDelegates::OnObjectPropertyChanged.Add( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged) );
+	FCoreDelegates::OnObjectPropertyChanged.AddRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged);
 
 }
 
 SStaticMeshEditorViewport::~SStaticMeshEditorViewport()
 {
-	FCoreDelegates::OnObjectPropertyChanged.Remove( FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SStaticMeshEditorViewport::OnObjectPropertyChanged) );
+	FCoreDelegates::OnObjectPropertyChanged.RemoveAll(this);
 	if (EditorViewportClient.IsValid())
 	{
 		EditorViewportClient->Viewport = NULL;
@@ -68,7 +68,7 @@ void SStaticMeshEditorViewport::RefreshViewport()
 	SceneViewport->Invalidate();
 }
 
-void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModified)
+void SStaticMeshEditorViewport::OnObjectPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
 {
 	if ( !ensure(ObjectBeingModified) )
 	{

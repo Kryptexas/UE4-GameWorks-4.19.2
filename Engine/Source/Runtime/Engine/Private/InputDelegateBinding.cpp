@@ -17,6 +17,7 @@ void UInputDelegateBinding::BindInputDelegates(UBlueprintGeneratedClass* BGClass
 												UInputKeyDelegateBinding::StaticClass(),
 												UInputTouchDelegateBinding::StaticClass(),
 												UInputAxisKeyDelegateBinding::StaticClass(),
+												UInputVectorAxisDelegateBinding::StaticClass(),
 										   };
 
 	if (BGClass)

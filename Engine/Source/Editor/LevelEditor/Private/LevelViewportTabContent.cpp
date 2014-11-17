@@ -3,6 +3,7 @@
 #include "LevelEditor.h"
 #include "LevelViewportTabContent.h"
 #include "LevelViewportLayout2x2.h"
+#include "LevelViewportLayoutOnePane.h"
 #include "LevelViewportLayoutTwoPanes.h"
 #include "LevelViewportLayoutThreePanes.h"
 #include "LevelViewportLayoutFourPanes.h"
@@ -27,6 +28,7 @@ TSharedPtr< class FLevelViewportLayout > FLevelViewportTabContent::ConstructView
 	else if (TypeName == LevelViewportConfigurationNames::FourPanesRight) ViewportLayout = MakeShareable(new FLevelViewportLayoutFourPanesRight);
 	else if (TypeName == LevelViewportConfigurationNames::FourPanesBottom) ViewportLayout = MakeShareable(new FLevelViewportLayoutFourPanesBottom);
 	else if (TypeName == LevelViewportConfigurationNames::FourPanesTop) ViewportLayout = MakeShareable(new FLevelViewportLayoutFourPanesTop);
+	else if (TypeName == LevelViewportConfigurationNames::OnePane) ViewportLayout = MakeShareable(new FLevelViewportLayoutOnePane);
 
 	check (ViewportLayout.IsValid());
 	ViewportLayout->SetIsReplacement(bSwitchingLayouts);

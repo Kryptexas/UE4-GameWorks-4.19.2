@@ -15,7 +15,7 @@
 /**
  * Implements Mac platform properties.
  */
-template<bool HAS_EDITOR_DATA, bool IS_DEDICATED_SERVER>
+template<bool HAS_EDITOR_DATA, bool IS_DEDICATED_SERVER, bool IS_CLIENT_ONLY>
 struct FMacPlatformProperties
 	: public FGenericPlatformProperties
 {
@@ -29,6 +29,11 @@ struct FMacPlatformProperties
 		if (HAS_EDITOR_DATA)
 		{
 			return "Mac (Editor)";
+		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return "Mac (Client-only)";
 		}
 
 		return "Mac";
@@ -54,6 +59,11 @@ struct FMacPlatformProperties
 		return IS_DEDICATED_SERVER;
 	}
 
+	static FORCEINLINE bool IsClientOnly()
+	{
+		return IS_CLIENT_ONLY;
+	}
+
 	static FORCEINLINE const char* PlatformName( )
 	{
 		if (IS_DEDICATED_SERVER)
@@ -64,6 +74,11 @@ struct FMacPlatformProperties
 		if (HAS_EDITOR_DATA)
 		{
 			return "Mac";
+		}
+
+		if (IS_CLIENT_ONLY)
+		{
+			return "MacClient";
 		}
 
 		return "MacNoEditor";

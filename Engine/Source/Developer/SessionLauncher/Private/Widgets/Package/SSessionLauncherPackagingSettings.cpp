@@ -47,7 +47,7 @@ void SSessionLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 							.AutoHeight()
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("RepositoryPathLabel", "Repository Path:").ToString())
+									.Text(LOCTEXT("RepositoryPathLabel", "Repository Path:"))
 							]
 
 						+ SVerticalBox::Slot()
@@ -73,8 +73,8 @@ void SSessionLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 										SNew(SButton)
 											.ContentPadding(FMargin(6.0, 2.0))
 											.IsEnabled(false)
-											.Text(LOCTEXT("BrowseButtonText", "Browse...").ToString())
-											.ToolTipText(LOCTEXT("BrowseButtonToolTip", "Browse for the repository").ToString())
+											.Text(LOCTEXT("BrowseButtonText", "Browse..."))
+											.ToolTipText(LOCTEXT("BrowseButtonToolTip", "Browse for the repository"))
 											//.OnClicked(this, &SSessionLauncherPackagePage::HandleBrowseButtonClicked)
 									]
 							]
@@ -84,7 +84,7 @@ void SSessionLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 							.Padding(0.0, 8.0, 0.0, 0.0)
 							[
 								SNew(STextBlock)
-									.Text(LOCTEXT("DescriptionTextBoxLabel", "Description:").ToString())
+									.Text(LOCTEXT("DescriptionTextBoxLabel", "Description:"))
 							]
 
 						+ SVerticalBox::Slot()
@@ -101,7 +101,7 @@ void SSessionLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 			.Padding(0.0, 8.0, 0.0, 0.0)
 			[
 				SNew(SExpandableArea)
-					.AreaTitle(LOCTEXT("IncrementalPackagingAreaTitle", "Incremental Packaging").ToString())
+					.AreaTitle(LOCTEXT("IncrementalPackagingAreaTitle", "Incremental Packaging"))
 					.InitiallyCollapsed(true)
 					.Padding(8.0)
 					.BodyContent()
@@ -118,7 +118,7 @@ void SSessionLauncherPackagingSettings::Construct( const FArguments& InArgs, con
 									.Content()
 									[
 										SNew(STextBlock)
-											.Text(LOCTEXT("IncrementalCheckBoxText", "This is an incremental build").ToString())
+											.Text(LOCTEXT("IncrementalCheckBoxText", "This is an incremental build"))
 									]
 							]
 

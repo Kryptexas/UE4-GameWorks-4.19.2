@@ -12,7 +12,8 @@
 */
 enum
 {
-	STAT_FRAME_SLOP = 3 
+	STAT_FRAME_SLOP = 3,
+	MAX_STAT_LAG = 4,
 };
 
 /** Holds stats related constants. */
@@ -25,11 +26,17 @@ struct CORE_API FStatConstants
 	static const char* ThreadGroupName;
 	static const FName NAME_ThreadGroup;
 
+	/** Special case category, when we want to Stat to appear at the root of the menu (leaving the category blank omits it from the menu entirely) */
+	static const FName NAME_NoCategory;
+
 	/** Extension used to save a stats file. */
 	static const FString StatsFileExtension;
 
 	/** Extension used to save a raw stats file, may be changed to the same as a regular stats file. */
 	static const FString StatsFileRawExtension;
+
+	/** Indicates that the item is a thread. */
+	static const FString ThreadNameMarker;
 };
 
 /** Enumerates stat compare types. */
@@ -160,7 +167,7 @@ struct CORE_API FRawStatStackNode
 
 	/** Constructor, this always and only builds the thread root node. The thread root is not a numeric stat! **/
 	FRawStatStackNode()
-		: Meta(FStatConstants::NAME_ThreadRoot, EStatDataType::ST_None, nullptr, nullptr, false, false)
+		: Meta(FStatConstants::NAME_ThreadRoot, EStatDataType::ST_None, nullptr, nullptr, nullptr, false, false)
 	{
 	}
 
@@ -597,22 +604,29 @@ struct CORE_API FStatsUtils
 	/** Internal use, converts arbitrary string to and from an escaped notation for storage in an FName. **/
 	static FString ToEscapedFString(const TCHAR* Source);
 	static FString FromEscapedFString(const TCHAR* Escaped);
-
-	static FString BuildUniqueThreadName( const FName InThreadName, uint32 InThreadID )
+	
+	static FString BuildUniqueThreadName( uint32 InThreadID )
 	{
 		// Make unique name.
-		return FString::Printf( TEXT( "%s_%x_0" ), *InThreadName.ToString(), InThreadID );
+		return FString::Printf( TEXT( "%s%x_0" ), *FStatConstants::ThreadNameMarker, InThreadID );
 	}
 
-	static int32 ParseThreadID( const FName ThreadFName )
+	static int32 ParseThreadID( const FString& InThreadName, FString* out_ThreadName = nullptr )
 	{
 		// Extract the thread id.
-		const FString ThreadName = ThreadFName.ToString().Replace(TEXT("_0"),TEXT(""));
+		const FString ThreadName = InThreadName.Replace( TEXT( "_0" ), TEXT( "" ) );
 		int32 Index = 0;
 		ThreadName.FindLastChar(TEXT('_'),Index);
 
+		// Parse the thread name if requested.
+		if( out_ThreadName )
+		{
+			*out_ThreadName = ThreadName.Left( Index );
+		}
+
 		const FString ThreadIDStr = ThreadName.RightChop(Index+1);
 		const uint32 ThreadID = FParse::HexNumber( *ThreadIDStr );
+
 		return ThreadID;
 	}
 };
@@ -739,6 +753,47 @@ struct CORE_API FHUDGroupGameThreadRenderer
 	}
 
 	static FHUDGroupGameThreadRenderer& Get();
+};
+
+/**
+ * Singleton that holds a list of newly registered group stats to inform the game thread of
+ */
+struct CORE_API FStatGroupGameThreadNotifier
+{
+public:
+	static FStatGroupGameThreadNotifier& Get();
+
+	void NewData(FStatNameAndInfo NameAndInfo)
+	{
+		NameAndInfos.Add(NameAndInfo);
+	}
+
+	void SendData()
+	{
+		if (NameAndInfos.Num() > 0)
+		{
+			// Should only do this if the delegate has been registered!
+			check(NewStatGroupDelegate.IsBound());
+			NewStatGroupDelegate.Execute(NameAndInfos);
+			ClearData();
+		}
+	}
+
+	void ClearData()
+	{
+		NameAndInfos.Empty();
+	}
+
+	/** Delegate we fire every time new stat groups have been registered */
+	DECLARE_DELEGATE_OneParam(FOnNewStatGroupRegistered, const TArray<FStatNameAndInfo>&);
+	FOnNewStatGroupRegistered NewStatGroupDelegate;
+
+private:
+	FStatGroupGameThreadNotifier(){}
+	~FStatGroupGameThreadNotifier(){}
+
+	/** A list of all the stat groups which need broadcasting */
+	TArray<FStatNameAndInfo> NameAndInfos;
 };
 
 #endif

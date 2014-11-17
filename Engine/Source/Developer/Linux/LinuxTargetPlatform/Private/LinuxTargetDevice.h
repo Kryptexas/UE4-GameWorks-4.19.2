@@ -31,8 +31,9 @@ public:
 	 *
 	 * @param InTargetPlatform - The target platform.
 	 */
-	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId & InDeviceId )
+	FLinuxTargetDevice( const ITargetPlatform& InTargetPlatform, const FTargetDeviceId & InDeviceId, const FString & InDeviceName )
 		: TargetPlatform(InTargetPlatform)
+		, DeviceName(InDeviceName)
 		, TargetDeviceId(InDeviceId)
 	{ }
 
@@ -61,12 +62,12 @@ public:
 
 	virtual FString GetName( ) const OVERRIDE
 	{
-		return FPlatformProcess::ComputerName();
+		return DeviceName;
 	}
 
 	virtual FString GetOperatingSystemName( ) OVERRIDE
 	{
-		return TEXT("Linux-GNU");
+		return TEXT("GNU/Linux");
 	}
 
 	virtual int32 GetProcessSnapshot( TArray<FTargetDeviceProcessInfo>& OutProcessInfos ) OVERRIDE;
@@ -117,6 +118,9 @@ private:
 
 	// Holds a reference to the device's target platform.
 	const ITargetPlatform& TargetPlatform;
+
+	/** Device display name */
+	FString DeviceName;
 
 	/** Device id */
 	FTargetDeviceId TargetDeviceId;

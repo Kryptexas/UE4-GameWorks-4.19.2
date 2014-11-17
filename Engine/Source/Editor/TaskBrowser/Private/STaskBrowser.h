@@ -196,13 +196,13 @@ private:
 	FReply OnConnectClicked();
 
 	/** Return the connect button text based on the state*/
-	FString GetConnectText() const;
+	FText GetConnectText() const;
 
 	/** Handle when the Refresh View button is pressed */
 	FReply OnSettingsClicked();
 
 	/** Return the status text based on the state*/
-	FString GetStatusText() const;
+	FText GetStatusText() const;
 
 	/** Spawn our task complete modal dialog */
 	void CompleteTaskDialog( TArray< uint32 >& TaskNumbersToFix );

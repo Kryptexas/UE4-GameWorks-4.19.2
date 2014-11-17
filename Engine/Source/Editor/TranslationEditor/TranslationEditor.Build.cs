@@ -24,6 +24,7 @@ public class TranslationEditor : ModuleRules
                 "InputCore",
                 "PropertyEditor",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd",
                 "GraphEditor",
@@ -39,7 +40,6 @@ public class TranslationEditor : ModuleRules
 				"Engine",
             }
         );
-
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {

@@ -35,7 +35,7 @@ public:
 	/**
 	 * Handles the specified message.
 	 *
-	 * @param Context - The context of the message to handle.
+	 * @param Context The context of the message to handle.
 	 */
 	virtual void HandleMessage( const IMessageContextRef& Context ) = 0;
 
@@ -51,8 +51,8 @@ public:
 /**
  * Template for message handler function pointer types.
  *
- * @param MessageType - The type of message to handle.
- * @param HandlerType - The type of the handler class.
+ * @param MessageType The type of message to handle.
+ * @param HandlerType The type of the handler class.
  */
 template<typename MessageType, typename HandlerType>
 struct TMessageHandlerFunc
@@ -64,8 +64,8 @@ struct TMessageHandlerFunc
 /**
  * Template for message handlers.
  *
- * @param MessageType - The type of message to handle.
- * @param HandlerType - The type of the handler class.
+ * @param MessageType The type of message to handle.
+ * @param HandlerType The type of the handler class.
  */
 template<typename MessageType, typename HandlerType>
 class TMessageHandler
@@ -76,8 +76,8 @@ public:
 	/**
 	 * Creates and initializes a new message handler.
 	 *
-	 * @param InHandler - The object that will handle the messages.
-	 * @param InHandlerFunc - The object's message handling function.
+	 * @param InHandler The object that will handle the messages.
+	 * @param InHandlerFunc The object's message handling function.
 	 */
 	TMessageHandler( HandlerType* InHandler, typename TMessageHandlerFunc<MessageType, HandlerType>::Type InHandlerFunc )
 		: Handler(InHandler)

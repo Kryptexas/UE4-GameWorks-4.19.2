@@ -241,7 +241,7 @@ struct FMipBiasFade
 	 *	Sets up a new interpolation target for the mip-bias.
 	 *	@param ActualMipCount	Number of mip-levels currently in memory
 	 *	@param TargetMipCount	Number of mip-levels we're changing to
-	 *	@param LastRenderTime	Timestamp when it was last rendered (GCurrentTime time space)
+	 *	@param LastRenderTime	Timestamp when it was last rendered (FApp::CurrentTime time space)
 	 *	@param FadeSetting		Which fade speed settings to use
 	 */
 	RENDERCORE_API void	SetNewMipCount( float ActualMipCount, float TargetMipCount, double LastRenderTime, EMipFadeSettings FadeSetting );

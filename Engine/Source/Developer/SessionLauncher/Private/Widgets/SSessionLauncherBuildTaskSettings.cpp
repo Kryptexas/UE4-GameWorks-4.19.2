@@ -49,7 +49,7 @@ void SSessionLauncherBuildTaskSettings::Construct( const FArguments& InArgs, con
 							[
 								SNew(STextBlock)
 									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-									.Text(LOCTEXT("ProjectSectionHeader", "Project").ToString())
+									.Text(LOCTEXT("ProjectSectionHeader", "Project"))
 							]
 
 						+ SGridPanel::Slot(1, 0)
@@ -73,7 +73,7 @@ void SSessionLauncherBuildTaskSettings::Construct( const FArguments& InArgs, con
 							[
 								SNew(STextBlock)
 									.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 13))
-									.Text(LOCTEXT("DeploySectionHeader", "Deploy").ToString())
+									.Text(LOCTEXT("DeploySectionHeader", "Deploy"))
 							]
 
 						+ SGridPanel::Slot(1, 8)

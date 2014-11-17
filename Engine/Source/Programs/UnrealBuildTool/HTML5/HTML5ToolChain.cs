@@ -13,50 +13,19 @@ namespace UnrealBuildTool
 	{
 		// cache the location of SDK tools
 		static string EMCCPath;
-        static string EMLinkPath;
 		static string PythonPath;
-
-		static private bool bEnableFastIteration = UnrealBuildTool.CommandLineContains("-fastiteration");
 
 		public override void RegisterToolChain()
 		{
 			// Make sure the SDK is installed
             // look up installed SDK. 
-            string BaseSDKPath = ""; 
-			if (!Utils.IsRunningOnMono)
-			{
-				Microsoft.Win32.RegistryKey LocalKey = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryView.Registry64); 
-				Microsoft.Win32.RegistryKey Key = LocalKey.OpenSubKey("Software\\Emscripten64"); 
-	            if (Key != null)
-	            {
-	                string SDKDir = Key.GetValue("Install_Dir") as string;
-					if (SDKDir != null)
-					{
-						SDKDir = Path.Combine(SDKDir, "emscripten");
-						if (Directory.Exists(SDKDir))
-						{
-							// emscripten path is the highest numbered directory 
-							DirectoryInfo DirInfo = new DirectoryInfo(SDKDir);
-							string Latest_Ver = (from S in DirInfo.GetDirectories() select S.Name).ToList().Last();
-							BaseSDKPath = Path.Combine(SDKDir, Latest_Ver);
-						}
-					}
-	            }
-			}
-
-			// if the above didn't set the SDK path, use the environment variable (for anyone who installed by unzipping or similar)
-			if (BaseSDKPath == "")
-			{
-                BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
-			}
-
+			string BaseSDKPath = Environment.GetEnvironmentVariable("EMSCRIPTEN");
 			if (!String.IsNullOrEmpty(BaseSDKPath))
 			{
 				BaseSDKPath = BaseSDKPath.Replace("\"", "");
 				if (!String.IsNullOrEmpty(BaseSDKPath))
                 {
 					EMCCPath = Path.Combine(BaseSDKPath, "emcc");
-                    EMLinkPath = Path.Combine(BaseSDKPath, "emlink.py");
 					// also figure out where python lives (if no envvar, assume it's in the path)
 					PythonPath = Environment.GetEnvironmentVariable("PYTHON");
 					if (PythonPath == null)
@@ -64,14 +33,11 @@ namespace UnrealBuildTool
 						PythonPath = Utils.IsRunningOnMono ? "python" : "python.exe";
 					}
                     EMCCPath = "\"" + EMCCPath + "\""; 
-
 					// set some environment variable we'll need
-
 					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
 					Environment.SetEnvironmentVariable("EMCC_CORES", "8");
 					Environment.SetEnvironmentVariable("EMCC_FORCE_STDLIBS", "1");
 					Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
-
 					// finally register the toolchain that is now ready to go
                     Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
 					UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
@@ -81,70 +47,70 @@ namespace UnrealBuildTool
 
 		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture)
 		{
-			string Result = " ";
+            string Result = " ";
 
-			if (Architecture == "-win32")
-			{
+            if (Architecture == "-win32")
+            {
                 return Result;
             }
 
-			// 			Result += " -funsigned-char";
-			// 			Result += " -fno-strict-aliasing";
-			Result += " -fno-exceptions";
-			// 			Result += " -fno-short-enums";
+            // 			Result += " -funsigned-char";
+            // 			Result += " -fno-strict-aliasing";
+            Result += " -fno-exceptions";
+            // 			Result += " -fno-short-enums";
 
-			Result += " -Wno-unused-value"; // appErrorf triggers this
-			Result += " -Wno-switch"; // many unhandled cases
-			Result += " -Wno-tautological-constant-out-of-range-compare"; // disables some warnings about comparisons from TCHAR being a char
-			// this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
-			Result += " -Wno-tautological-compare";
+            Result += " -Wno-unused-value"; // appErrorf triggers this
+            Result += " -Wno-switch"; // many unhandled cases
+            Result += " -Wno-tautological-constant-out-of-range-compare"; // disables some warnings about comparisons from TCHAR being a char
+            // this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
+            Result += " -Wno-tautological-compare";
 
-			// okay, in UE4, we'd fix the code for these, but in UE3, not worth it
-			Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this
-			Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
+            // okay, in UE4, we'd fix the code for these, but in UE3, not worth it
+            Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this
+            Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
             Result += " -Wno-invalid-offsetof"; // too many warnings kills windows clang. 
             
 
-			// JavsScript option overrides (see src/settings.js)
+            // JavsScript option overrides (see src/settings.js)
 
-			// we have to specify the full amount of memory with Asm.JS (1.5 G)
+            // we have to specify the full amount of memory with Asm.JS (1.5 G)
             // I wonder if there's a per game way to change this. 
             Result += " -s TOTAL_MEMORY=1610612736";
 
-			// no need for exceptions
-			Result += " -s DISABLE_EXCEPTION_CATCHING=1";
-			// enable checking for missing functions at link time as opposed to runtime
-			Result += " -s WARN_ON_UNDEFINED_SYMBOLS=1";
-			// we want full ES2
-			Result += " -s FULL_ES2=1 ";
-			// don't need UTF8 string support, and it slows string ops down
-			Result += " -s UTF_STRING_SUPPORT=0";
-            Result += "  ";
+            // no need for exceptions
+            Result += " -s DISABLE_EXCEPTION_CATCHING=1";
+            // enable checking for missing functions at link time as opposed to runtime
+            Result += " -s WARN_ON_UNDEFINED_SYMBOLS=1";
+            // we want full ES2
+            Result += " -s FULL_ES2=1 ";
+            // don't need UTF8 string support, and it slows string ops down
+            Result += " -s UTF_STRING_SUPPORT=0";
+            // export console command handler. Export main func too because default exports ( e.g Main ) are overridden if we use custom exported functions. 
+            Result += " -s EXPORTED_FUNCTIONS=\"['_main', '_execute_console_command']\" ";
 
-			if (TargetConfiguration == CPPTargetConfiguration.Debug)
-			{
-				Result += " -O0";
-			}
-			if (TargetConfiguration == CPPTargetConfiguration.Debug || TargetConfiguration == CPPTargetConfiguration.Development)
-			{
-				Result += " -s GL_ASSERTIONS=1 ";
-			}
-			if (TargetConfiguration == CPPTargetConfiguration.Development)
-			{
+            if (TargetConfiguration == CPPTargetConfiguration.Debug)
+            {
+	            Result += " -O0";
+            }
+            if (TargetConfiguration == CPPTargetConfiguration.Debug || TargetConfiguration == CPPTargetConfiguration.Development)
+            {
+	            Result += " -s GL_ASSERTIONS=1 ";
+            }
+            if (TargetConfiguration == CPPTargetConfiguration.Development)
+            {
                 Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-			}
-			if (TargetConfiguration == CPPTargetConfiguration.Shipping)
-			{
-				Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
-			}
+            }
+            if (TargetConfiguration == CPPTargetConfiguration.Shipping)
+            {
+	            Result += " -O2 -s ASM_JS=1 -s OUTLINING_LIMIT=110000";
+            }
 
-			// NOTE: This may slow down the compiler's startup time!
-            if ( !bEnableFastIteration )
-			{ 
+            // NOTE: This may slow down the compiler's startup time!
+            { 
                 Result += " --memory-init-file 1";
-			}
+            }
 
-			return Result;
+            return Result;
 		}
 		
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
@@ -350,14 +316,13 @@ namespace UnrealBuildTool
 				}
 
 				// Add the source file path to the command-line.
-                string bfastlinkstring = bEnableFastIteration ? "" : " -c ";
-                string FileArguments = string.Format(bfastlinkstring + " \"{0}\"", SourceFile.AbsolutePath);
+                string FileArguments = string.Format(" \"{0}\"", SourceFile.AbsolutePath);
 
             	// Add the object file to the produced item list.
 				FileItem ObjectFile = FileItem.GetItemByPath(
 					Path.Combine(
 						CompileEnvironment.Config.OutputDirectory,
-						Path.GetFileName(SourceFile.AbsolutePath) + (bEnableFastIteration ? ".js" : ".o")
+						Path.GetFileName(SourceFile.AbsolutePath) + (".o")
 						)
 					);
 				CompileAction.ProducedItems.Add(ObjectFile);
@@ -376,8 +341,7 @@ namespace UnrealBuildTool
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
 				CompileAction.CommandPath = PythonPath;
                 
-                string fastlinkString = SourceFile.Info.FullName.Contains("Launch") ?  " -s MAIN_MODULE=1 " : "-s SIDE_MODULE=1";
-                CompileAction.CommandArguments = EMCCPath + Arguments + (bEnableFastIteration ? fastlinkString : "" )+ FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				CompileAction.CommandArguments = EMCCPath + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
                
                 System.Console.WriteLine(CompileAction.CommandArguments); 
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
@@ -484,15 +448,14 @@ namespace UnrealBuildTool
 			LinkAction.bCanExecuteRemotely = false;
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
 			LinkAction.CommandPath = PythonPath;
-			LinkAction.CommandArguments = bEnableFastIteration ? EMLinkPath : EMCCPath;
+			LinkAction.CommandArguments = EMCCPath;
 		    LinkAction.CommandArguments += GetLinkArguments(LinkEnvironment);
 
 			// Add the input files to a response file, and pass the response file on the command-line.
 			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
                 System.Console.WriteLine("File  {0} ", InputFile.AbsolutePath);
-                string fastlinkString = InputFile.AbsolutePath.Contains("Launch.cpp") ?  " -m " : " -s ";
-                LinkAction.CommandArguments += string.Format((bEnableFastIteration ? fastlinkString : "") + " \"{0}\"", InputFile.AbsolutePath);
+                LinkAction.CommandArguments += string.Format(" \"{0}\"", InputFile.AbsolutePath);
 				LinkAction.PrerequisiteItems.Add(InputFile);
 			}
             foreach (string InputFile in LinkEnvironment.Config.AdditionalLibraries)
@@ -508,12 +471,10 @@ namespace UnrealBuildTool
 			OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
 			LinkAction.ProducedItems.Add(OutputFile);
 			LinkAction.CommandArguments += string.Format(" -o \"{0}\"", OutputFile.AbsolutePath);
-            if ( !bEnableFastIteration ) 
-            { 
- 			    FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.Replace(".js", ".bc").Replace(".html", ".bc"));
- 			    LinkAction.ProducedItems.Add(OutputBC);
- 			    LinkAction.CommandArguments += string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath);
-            } 
+
+		    FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.Replace(".js", ".bc").Replace(".html", ".bc"));
+		    LinkAction.ProducedItems.Add(OutputBC);
+		    LinkAction.CommandArguments += string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath);
 
      		LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);

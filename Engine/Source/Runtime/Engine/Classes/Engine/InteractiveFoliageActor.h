@@ -6,7 +6,7 @@
 #pragma once
 #include "InteractiveFoliageActor.generated.h"
 
-UCLASS(HeaderGroup=Foliage, MinimalAPI)
+UCLASS(MinimalAPI)
 class AInteractiveFoliageActor : public AStaticMeshActor
 {
 	GENERATED_UCLASS_BODY()

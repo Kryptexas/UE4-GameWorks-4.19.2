@@ -20,14 +20,17 @@ public:
 	 */
 	FDeviceProfileServicesUIManager( );
 
+public:
+
 	// Begin IDeviceProfileServicesUIManager Interface
+
 	virtual const FName GetDeviceIconName( const FString& DeviceName ) const OVERRIDE;
 	virtual const TArray<TSharedPtr<FString> > GetPlatformList( ) OVERRIDE;
 	virtual void GetProfilesByType( TArray<UDeviceProfile*>& OutDeviceProfiles, const FString& InType ) OVERRIDE;
 	virtual const FName GetPlatformIconName( const FString& DeviceName ) const OVERRIDE;
 	virtual void SetProfile( const FString& DeviceProfileName ) OVERRIDE;
-	// End IDeviceProfileServicesUIManager Interface
 
+	// End IDeviceProfileServicesUIManager Interface
 
 protected:
 
@@ -40,7 +43,6 @@ protected:
 	 * Refresh the UI list - rebuild lists.
 	 */
 	void HandleRefreshUIData();
-
 
 private:
 

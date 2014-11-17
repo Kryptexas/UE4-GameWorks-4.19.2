@@ -116,6 +116,17 @@ namespace UnrealBuildTool.IOS
 			{
 				ProvisionWithPrefix = BuildDirectory + "/" + InProjectName + ".mobileprovision";
 			}
+			else
+			{
+				if (File.Exists(BuildDirectory + "/NotForLicensees/" + InProjectName + ".mobileprovision"))
+				{
+					ProvisionWithPrefix = BuildDirectory + "/NotForLicensees/" + InProjectName + ".mobileprovision";
+				}
+				else if (!File.Exists(ProvisionWithPrefix))
+				{
+					ProvisionWithPrefix = InEngineDir + "/Build/IOS/NotForLicensees/UE4Game.mobileprovision";
+				}
+			}
 			if (File.Exists (ProvisionWithPrefix))
 			{
 				Directory.CreateDirectory (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/");
@@ -130,7 +141,18 @@ namespace UnrealBuildTool.IOS
 			{
 				ProvisionWithPrefix = BuildDirectory + "/" + InProjectName + "_Distro.mobileprovision";
 			}
-			if (File.Exists (ProvisionWithPrefix))
+			else
+			{
+				if (File.Exists(BuildDirectory + "/NotForLicensees/" + InProjectName + "_Distro.mobileprovision"))
+				{
+					ProvisionWithPrefix = BuildDirectory + "/NotForLicensees/" + InProjectName + "_Distro.mobileprovision";
+				}
+				else if (!File.Exists(ProvisionWithPrefix))
+				{
+					ProvisionWithPrefix = InEngineDir + "/Build/IOS/NotForLicensees/UE4Game_Distro.mobileprovision";
+				}
+			}
+			if (File.Exists(ProvisionWithPrefix))
 			{
 				File.Copy (ProvisionWithPrefix, Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + "_Distro.mobileprovision", true);
 				FileInfo DestFileInfo = new FileInfo (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + InProjectName + "_Distro.mobileprovision");
@@ -150,17 +172,6 @@ namespace UnrealBuildTool.IOS
 			CopyFileWithReplacements(PListFile, AppDirectory + "/Info.plist", Replacements);
 			CopyFileWithReplacements(PListFile, IntermediateDirectory + "/" + GameName + "-Info.plist", Replacements);
 
-			// copy engine assets in
-			CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "*.png", true);
-			// merge game assets on top
-			if (Directory.Exists(BuildDirectory + "/Resources/Graphics"))
-			{
-				CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "*.png", true);
-			}
-
-			//CopyFiles(BuildDirectory, PayloadDirectory, null, "iTunesArtwork", null);
-			CopyFolder(InEngineDir + "/Content/Stats", AppDirectory + "/cookeddata/engine/content/stats", true);
-
 			// ensure the destination is writable
 			if (File.Exists(AppDirectory + "/" + GameName))
 			{
@@ -170,6 +181,23 @@ namespace UnrealBuildTool.IOS
 
 			// copy the GameName binary
 			File.Copy(BinaryPath + "/" + GameExeName, AppDirectory + "/" + GameName, true);
+
+			// copy engine assets in
+			CopyFiles(InEngineDir + "/Build/IOS/Resources/Graphics", AppDirectory, "*.png", true);
+			// merge game assets on top
+			if (Directory.Exists(BuildDirectory + "/Resources/Graphics"))
+			{
+				CopyFiles(BuildDirectory + "/Resources/Graphics", AppDirectory, "*.png", true);
+			}
+			
+			// copy additional engine framework assets in
+			if ( Directory.Exists( InEngineDir + "/Build/IOS/Resources/FrameworkAssets" ) )
+			{
+				CopyFiles( InEngineDir + "/Build/IOS/Resources/FrameworkAssets", AppDirectory, "*.*", true );
+			}
+
+			//CopyFiles(BuildDirectory, PayloadDirectory, null, "iTunesArtwork", null);
+			CopyFolder(InEngineDir + "/Content/Stats", AppDirectory + "/cookeddata/engine/content/stats", true);
 
 			return true;
 		}
@@ -195,7 +223,46 @@ namespace UnrealBuildTool.IOS
 
 				return PrepForUATPackageOrDeploy(GameName, ProjectDirectory, BuildPath + "/" + DecoratedGameName, "../../Engine", false);
 			}
+			else
+			{
+				// If it is requested, send the app bundle back to the platform executing these commands.
+				if (BuildConfiguration.bCopyAppBundleBackToDevice)
+				{
+					Log.TraceInformation("Copying binaries back to this device...");
 
+					IOSToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS) as IOSToolChain;
+
+					try
+					{
+						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
+						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.Rules.Type != TargetRules.TargetType.Game)
+						{
+							BinaryDir = BinaryDir.Replace(InTarget.Rules.Type.ToString(), "Game");
+						}
+
+						// Get the app bundle's name
+						string AppFullName = InTarget.AppName;
+						if (InTarget.Configuration != UnrealTargetConfiguration.Development)
+						{
+							AppFullName += "-" + InTarget.Platform.ToString();
+							AppFullName += "-" + InTarget.Configuration.ToString();
+						}
+
+						foreach (string BinaryPath in Toolchain.BuiltBinaries)
+						{
+							if (!BinaryPath.Contains("Dummy"))
+							{
+								RPCUtilHelper.CopyFile(Toolchain.ConvertPath(BinaryPath), BinaryPath, false);
+							}
+						}
+						Log.TraceInformation("Copied binaries successfully.");
+					}
+					catch (Exception)
+					{
+						Log.TraceInformation("Copying binaries back to this device failed.");
+					}
+				}
+			}
 			return true;
 		}
 

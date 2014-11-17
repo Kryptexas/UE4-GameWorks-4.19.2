@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionDistanceCullFade.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionDistanceCullFade : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

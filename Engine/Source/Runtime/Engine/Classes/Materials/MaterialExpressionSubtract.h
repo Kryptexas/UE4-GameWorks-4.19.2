@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionSubtract.generated.h"
 
-UCLASS(HeaderGroup=Material)
+UCLASS()
 class UMaterialExpressionSubtract : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

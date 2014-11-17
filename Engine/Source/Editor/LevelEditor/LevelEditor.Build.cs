@@ -17,9 +17,10 @@ public class LevelEditor : ModuleRules
 
 		PublicIncludePathModuleNames.AddRange(
 			new string[] {
-				"UserFeedback"
+				"Settings",
+				"UserFeedback",
 			}
-			);
+		);
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
@@ -29,18 +30,21 @@ public class LevelEditor : ModuleRules
 				"DesktopPlatform",
                 "InputCore",
 				"Slate",
+				"SlateCore",
+				"SlateReflector",
                 "EditorStyle",
 				"Engine",
 				"MessageLog",
 				"NewsFeed",
-				"Settings",
                 "SourceControl",
                 "StatsViewer",
 				"UnrealEd", 
 				"RenderCore",
 				"DeviceProfileServices",
 				"ContentBrowser",
-                "SceneOutliner"
+                "SceneOutliner",
+                "ActorPickerMode",
+                "RHI"
 			}
 		);
 

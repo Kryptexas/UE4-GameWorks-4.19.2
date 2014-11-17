@@ -6,6 +6,9 @@
 
 #include "NetworkFileSystemPrivatePCH.h"
 
+#include "TargetDeviceId.h"
+#include "ITargetDevice.h"
+#include "ITargetPlatformManagerModule.h"
 #include "ModuleManager.h"
 
 DEFINE_LOG_CATEGORY(LogFileServer);
@@ -28,7 +31,18 @@ public:
 			Port = DEFAULT_FILE_SERVING_PORT;
 		}
 
-		return new FNetworkFileServer(Port, InFileRequestDelegate, InRecompileShadersDelegate);
+		TArray<ITargetPlatform*> ActiveTargetPlatforms;
+
+		// only bother getting the target platforms if there was "-targetplatform" on the commandline, otherwise UnrealFileServer will 
+		// log out some scary sounding, but innocuous logs
+		FString Platforms;
+		if (FParse::Value(FCommandLine::Get(), TEXT("TARGETPLATFORM="), Platforms))
+		{
+			ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+			ActiveTargetPlatforms =  TPM.GetActiveTargetPlatforms();
+		}
+
+		return new FNetworkFileServer(Port, InFileRequestDelegate, InRecompileShadersDelegate, ActiveTargetPlatforms);
 	}
 
 	// End INetworkFileSystemModule interface

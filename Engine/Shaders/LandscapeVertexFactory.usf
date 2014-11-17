@@ -177,7 +177,11 @@ float3x3 VertexFactoryGetPerPixelTangentBasis(FVertexFactoryInterpolantsVSToPS I
 #else
 	float4 SampleValue = Texture2DSample(NormalmapTexture, NormalmapTextureSampler, Interpolants.WeightMapTexCoord);
 #endif
-	float2 SampleNormal = float2(SampleValue.b, SampleValue.a) * float2(2.0,2.0) - float2(1.0,1.0);
+#if WEBGL
+	float2 SampleNormal = float2(SampleValue.r, SampleValue.a) * float2(2.0,2.0) - float2(1.0,1.0);
+#else
+    float2 SampleNormal = float2(SampleValue.b, SampleValue.a) * float2(2.0,2.0) - float2(1.0,1.0);
+#endif
 	float3 WorldNormal = float3( SampleNormal, sqrt(max(1.0-dot(SampleNormal,SampleNormal),0.0)) );
 
 	Result = CalcTangentBasisFromWorldNormal(WorldNormal);
@@ -326,7 +330,13 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 #endif
 
 #if ES2_PROFILE && PIXELSHADER
+
+#if WEBGL
+	Result.LayerWeights.xy = Texture2DSample(NormalmapTexture, NormalmapTextureSampler, Interpolants.WeightMapTexCoord).bg;
+#else
 	Result.LayerWeights.xy = Texture2DSample(NormalmapTexture, NormalmapTextureSampler, Interpolants.WeightMapTexCoord).rg;
+#endif 
+ 
 	Result.LayerWeights.z = saturate(1.f - Result.LayerWeights.x - Result.LayerWeights.y);
 	Result.LayerWeights.w = 0; // Total weight need to be 1
 #endif
@@ -386,12 +396,14 @@ FMaterialVertexParameters GetMaterialVertexParameters( FVertexFactoryInput Input
 }
 
 #if NEEDS_LIGHTMAP_COORDINATE
-float4 GetLightMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
+void GetLightMapCoordinates(FVertexFactoryInterpolantsVSToPS Interpolants, out float2 LightmapUV0, out float2 LightmapUV1)
 {
 #if ES2_PROFILE
-	return float4( Interpolants.LightMapCoordinate[0].xy, Interpolants.LightMapCoordinate[1].xy );
+	LightmapUV0 = Interpolants.LightMapCoordinate[0].xy;
+	LightmapUV1 = Interpolants.LightMapCoordinate[1].xy;
 #else
-	return Interpolants.LightMapCoordinate.xyxy * half4( 1, 0.5, 1, 0.5 ) + half4( 0, 0, 0, 0.5 );
+	LightmapUV0 = Interpolants.LightMapCoordinate.xy * float2( 1, 0.5 );
+	LightmapUV1 = LightmapUV0 + float2( 0, 0.5 );
 #endif
 }
 
@@ -432,12 +444,12 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 		if( Intermediates.InputPosition.z > 0.5f )
 		{
 			SectionLod = SectionLods.w;
-			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[3];
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[3];
 		}
 		else
 		{
 			SectionLod = SectionLods.z;
-			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[2];
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[2];
 		}
 	}
 	else
@@ -445,12 +457,12 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 		if( Intermediates.InputPosition.z > 0.5f )
 		{
 			SectionLod = SectionLods.y;
-			LODCalculated4 = L0 * SectionLods + (float4(1,1,1,1)-L0) * NeighborSectionLod[1];
+			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[1];
 		}
 		else
 		{
 			SectionLod = SectionLods.x;
-			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[0];
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[0];
 		}
 	}
 

@@ -41,18 +41,18 @@ struct EStatGroupingOrSortingMode
 	};
 
 	/**
-	 * @param StatGroupingOrSortingMode - The value to get the string for.
+	 * @param StatGroupingOrSortingMode - The value to get the text for.
 	 *
-	 * @return string representation of the specified EStatGroupingOrSortingMode value.
+	 * @return text representation of the specified EStatGroupingOrSortingMode value.
 	 */
-	static FString ToName( const Type StatGroupingOrSortingMode );
+	static FText ToName( const Type StatGroupingOrSortingMode );
 
 	/**
-	 * @param StatGroupingOrSortingMode - The value to get the string for.
+	 * @param StatGroupingOrSortingMode - The value to get the text for.
 	 *
-	 * @return string representation with more detailed explanation of the specified EStatGroupingOrSortingMode value.
+	 * @return text representation with more detailed explanation of the specified EStatGroupingOrSortingMode value.
 	 */
-	static FString ToDescription( const Type StatGroupingOrSortingMode );
+	static FText ToDescription( const Type StatGroupingOrSortingMode );
 
 	/**
 	 * @param StatGroupingOrSortingMode - The value to get the brush name for.
@@ -360,9 +360,9 @@ protected:
 
 	TSharedRef<SWidget> GroupBy_OnGenerateWidget( TSharedPtr<EStatGroupingOrSortingMode::Type> InGroupingMode ) const;
 
-	FString GroupBy_GetSelectedText() const;
+	FText GroupBy_GetSelectedText() const;
 
-	FString GroupBy_GetSelectedTooltipText() const;
+	FText GroupBy_GetSelectedTooltipText() const;
 
 	/*-----------------------------------------------------------------------------
 		SortBy
@@ -372,7 +372,7 @@ protected:
 
 	TSharedRef<SWidget> SortBy_OnGenerateWidget( TSharedPtr<EStatGroupingOrSortingMode::Type> InSortingMode ) const;
 
-	FString SortBy_GetSelectedText() const;
+	FText SortBy_GetSelectedText() const;
 
 protected:
 	/** An array of group and stat nodes generated from the metadata. */

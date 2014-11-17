@@ -1180,7 +1180,7 @@ bool FRepLayout::ReadProperty(
 		const int32 LocalAbsOffset = AbsOffset + SwappedCmd.Offset;
 		UnmappedGuids->Map.Add( LocalAbsOffset, FUnmappedGuidMgrElement( ReaderState.Bunch.PackageMap->GetLastUnmappedNetGUID(), Cmd.ParentIndex, CmdIndex ) );
 
-		UE_LOG( LogNet, Warning, TEXT( "ADDED unmapped property: Offset: %i, Guid: %s, Name: %s"), LocalAbsOffset, *ReaderState.Bunch.PackageMap->GetLastUnmappedNetGUID().ToString(), *Cmd.Property->GetName() );
+		UE_LOG( LogNet, Verbose, TEXT( "ADDED unmapped property: Offset: %i, Guid: %s, Name: %s"), LocalAbsOffset, *ReaderState.Bunch.PackageMap->GetLastUnmappedNetGUID().ToString(), *Cmd.Property->GetName() );
 		ReaderState.bHasUnmapped = true;
 	}
 #endif

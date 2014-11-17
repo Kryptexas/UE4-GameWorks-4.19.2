@@ -822,7 +822,7 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Cleans UnralHeaderTool
+		/// Cleans UnrealHeaderTool
 		/// </summary>
 		private void CleanUnrealHeaderTool()
 		{
@@ -1061,15 +1061,19 @@ namespace UnrealBuildTool
 					// Add all the resources and third party dylibs stored in app bundle
 					MacToolChain.AddAppBundleContentsToManifest(ref Manifest, Binary);
 				}
-                // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
-                else if (UnrealBuildTool.BuildingRocket() && 
-                    Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath).StartsWith("UE4Editor-", StringComparison.InvariantCultureIgnoreCase) &&
-                    Path.GetExtension(Binary.Config.OutputFilePath).EndsWith("dll", StringComparison.InvariantCultureIgnoreCase) && 
-                    Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
-                {
-                    // ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
-                    Manifest.AddBinaryNames(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
-                }
+				else if (TargetPlatform == UnrealTargetPlatform.IOS)
+				{
+					IOSToolChain.AddStubToManifest(ref Manifest, Binary);
+				}
+				// ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
+				else if (UnrealBuildTool.BuildingRocket() &&
+					Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath).StartsWith("UE4Editor-", StringComparison.InvariantCultureIgnoreCase) &&
+					Path.GetExtension(Binary.Config.OutputFilePath).EndsWith("dll", StringComparison.InvariantCultureIgnoreCase) &&
+					Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
+				{
+					// ok, this is pretty awful, we want the import libraries that go with the editor, only on the PC
+					Manifest.AddBinaryNames(Path.Combine(Binary.Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(Binary.Config.OutputFilePath) + ".lib"), "");
+				}
 			}
             {
                 string DebugInfoExtension = BuildPlatform.GetDebugInfoExtension(UEBuildBinaryType.StaticLibrary);
@@ -1090,8 +1094,8 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Builds the target, returning a list of output files. */
-		public List<FileItem> Build()
+		/** Builds the target, appending list of output files and returns building result. */
+		public ECompilationResult Build(List<FileItem> OutputItems)
 		{
 			// Set up the global compile and link environment in GlobalCompileEnvironment and GlobalLinkEnvironment.
 			SetupGlobalEnvironment();
@@ -1297,10 +1301,16 @@ namespace UnrealBuildTool
 
                 }
 
-                if (TargetRules.IsAGame(Rules.Type) && IsCurrentPlatform)
+				if ( (TargetRules.IsAGame(Rules.Type) || (Rules.Type == TargetRules.TargetType.Server)) 
+					&& IsCurrentPlatform)
 				{
 					// The hardcoded engine directory needs to be a relative path to match the normal EngineDir format. Not doing so breaks the network file system (TTP#315861).
-					string EnginePath = Utils.CleanDirectorySeparators(Utils.MakePathRelativeTo(ProjectFileGenerator.EngineRelativePath, Path.GetDirectoryName(ExecutableBinary.Config.OutputFilePath)), '/');
+					string OutputFilePath = ExecutableBinary.Config.OutputFilePath;
+					if (Platform == UnrealTargetPlatform.Mac && OutputFilePath.Contains(".app/Contents/MacOS"))
+					{
+						OutputFilePath = OutputFilePath.Substring(0, OutputFilePath.LastIndexOf(".app/Contents/MacOS") + 4);
+					}
+					string EnginePath = Utils.CleanDirectorySeparators(Utils.MakePathRelativeTo(ProjectFileGenerator.EngineRelativePath, Path.GetDirectoryName(OutputFilePath)), '/');
 					if (EnginePath.EndsWith("/") == false)
 					{
 						EnginePath += "/";
@@ -1348,7 +1358,7 @@ namespace UnrealBuildTool
                 GenerateManifest(AppBinaries, GlobalLinkEnvironment.Config.TargetPlatform, SpecialRocketLibFilesThatAreBuildProducts);
                 if (!BuildConfiguration.bXGEExport)
                 {
-                    return new List<FileItem>();
+                    return ECompilationResult.Succeeded;
                 }
 			}
 
@@ -1360,52 +1370,43 @@ namespace UnrealBuildTool
 				GlobalCompileEnvironment.SharedPCHHeaderFiles = SharedPCHHeaderFiles;
 			}
 
-			// Build the target's binaries.
-			var OutputItems = new List<FileItem>();
-			foreach (var Binary in AppBinaries)
-			{
-				OutputItems.AddRange(Binary.Build(GlobalCompileEnvironment, GlobalLinkEnvironment));
-			}
-
 			if( (BuildConfiguration.bXGEExport && UEBuildConfiguration.bGenerateManifest) || (!UEBuildConfiguration.bGenerateManifest && !UEBuildConfiguration.bCleanProject && !ProjectFileGenerator.bGenerateProjectFiles) )
 			{
 				var UObjectModules = new List<UHTModuleInfo>();
 
 				// Figure out which modules have UObjects that we may need to generate headers for
+				foreach( var Binary in AppBinaries )
 				{
-					foreach( var Binary in AppBinaries )
+					var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
+					foreach( var DependencyModuleCPP in DependencyModules.OfType<UEBuildModuleCPP>().Where( CPPModule => !UObjectModules.Any( Module => Module.ModuleName == CPPModule.Name ) ) )
 					{
-						var DependencyModules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
-						foreach( var DependencyModule in DependencyModules )
-						{
-							if( !DependencyModule.bIncludedInTarget )
-							{
-								throw new BuildException( "Expecting module {0} to have bIncludeInTarget set", DependencyModule.Name );
-							}
+						if( !DependencyModuleCPP.bIncludedInTarget )
+							throw new BuildException( "Expecting module {0} to have bIncludeInTarget set", DependencyModuleCPP.Name );
 
-							UEBuildModuleCPP DependencyModuleCPP = DependencyModule as UEBuildModuleCPP;
-							if( DependencyModuleCPP != null )
-							{
-								// Do we already have this module?
-								if( !UObjectModules.Any(Module => Module.ModuleName == DependencyModuleCPP.Name ) )
-								{
-									var UHTModuleInfo = DependencyModuleCPP.GetUHTModuleInfo();
-									if( UHTModuleInfo.PublicUObjectClassesHeaders.Count > 0 || UHTModuleInfo.PrivateUObjectHeaders.Count > 0 || UHTModuleInfo.PublicUObjectHeaders.Count > 0 )
-									{
-										UObjectModules.Add( UHTModuleInfo );
-										Log.TraceVerbose( "Detected UObject module: " + DependencyModuleCPP.Name );
-									}
-								}
-								else
-								{
-									// This module doesn't define any UObjects
-								}
-							}
-							else
-							{
-								// Non-C++ modules never have UObjects
-							}
+						var ModuleCompileEnvironment = DependencyModuleCPP.CreateModuleCompileEnvironment(GlobalCompileEnvironment);
+						DependencyModuleCPP.ProcessAllCppDependencies(ModuleCompileEnvironment);
+
+						var UHTModuleInfo = DependencyModuleCPP.GetUHTModuleInfo(ModuleCompileEnvironment);
+						if( UHTModuleInfo.PublicUObjectClassesHeaders.Count == 0 && UHTModuleInfo.PrivateUObjectHeaders.Count == 0 && UHTModuleInfo.PublicUObjectHeaders.Count == 0 )
+							continue;
+
+						UHTModuleInfo.PCH                      = "";
+						UHTModuleInfo.GeneratedCPPFilenameBase = Path.Combine( UEBuildModuleCPP.GetGeneratedCodeDirectoryForModule(this, UHTModuleInfo.ModuleDirectory, UHTModuleInfo.ModuleName), UHTModuleInfo.ModuleName ) + ".generated";
+
+						if (DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile != null)
+						{
+							UHTModuleInfo.PCH = DependencyModuleCPP.ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath;
 						}
+
+						// If we've got this far and there are no source files then it's likely we're running Rocket and ignoring
+						// engine files, so we don't need a .generated.cpp either
+						if (DependencyModuleCPP.SourceFilesToBuild.Count != 0)
+						{
+							DependencyModuleCPP.AutoGenerateCppInfo = new UEBuildModuleCPP.AutoGenerateCppInfoClass( UHTModuleInfo.GeneratedCPPFilenameBase + ".cpp" );
+						}
+
+						UObjectModules.Add( UHTModuleInfo );
+						Log.TraceVerbose( "Detected UObject module: " + DependencyModuleCPP.Name );
 					}
 				}
 
@@ -1414,12 +1415,20 @@ namespace UnrealBuildTool
 					// Execute the header tool
 					var TargetName = !String.IsNullOrEmpty( GameName ) ? GameName : AppName;
 					string ModuleInfoFileName = Path.GetFullPath( Path.Combine( ProjectIntermediateDirectory, "UnrealHeaderTool.manifest" ) );
-					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(this, UObjectModules, ModuleInfoFileName))
+
+					ECompilationResult UHTResult = ECompilationResult.OtherCompilationError;
+					if (!ExternalExecution.ExecuteHeaderToolIfNecessary(this, UObjectModules, ModuleInfoFileName, ref UHTResult))
 					{
-						throw new BuildException( "UnrealHeaderTool failed for target '" + TargetName + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ")." );
+						Log.TraceInformation("UnrealHeaderTool failed for target '" + TargetName + "' (platform: " + Platform.ToString() + ", module info: " + ModuleInfoFileName + ").");
+						return UHTResult;
 					}
 				}
+			}
 
+			// Build the target's binaries.
+			foreach (var Binary in AppBinaries)
+			{
+				OutputItems.AddRange(Binary.Build(GlobalCompileEnvironment, GlobalLinkEnvironment));
 			}
 
 			if (BuildConfiguration.WriteTargetInfoPath != null)
@@ -1439,10 +1448,11 @@ namespace UnrealBuildTool
 					}
 					Writer.WriteEndElement();
 				}
-				return new List<FileItem>();
+
+				OutputItems.Clear();
 			}
 
-			return OutputItems;
+			return ECompilationResult.Succeeded;
 		}
 
 		/// <summary>
@@ -1488,8 +1498,21 @@ namespace UnrealBuildTool
 				string LinkerFixupsName = "UELinkerFixups";
 
 				// Include an empty header so UEBuildModule.Compile does not complain about a lack of PCH
-				string HeaderFilename = LinkerFixupsName + "Name.h";
-				LinkerFixupsFileContents.Add("#include \"" + HeaderFilename + "\"");
+				string HeaderFilename                    = LinkerFixupsName + "Name.h";
+				string LinkerFixupHeaderFilenameWithPath = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, HeaderFilename);
+
+				UnrealTargetPlatform TargetPlatform = UEBuildTarget.CPPTargetPlatformToUnrealTargetPlatform( GlobalCompileEnvironment.Config.TargetPlatform );
+
+				// Quick fix. 
+				// For some reason, when compiled over RPCUtility, the path can't be found, and we don't need the long path on Mac anyhow
+				if ( ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Mac && TargetPlatform == UnrealTargetPlatform.IOS )
+				{
+					LinkerFixupsFileContents.Add("#include \"" + HeaderFilename + "\"");
+				}
+				else
+				{
+					LinkerFixupsFileContents.Add("#include \"" + LinkerFixupHeaderFilenameWithPath + "\"");
+				}
 
 				// Add a function that is not referenced by anything that invokes all the empty functions in the different static libraries
 				LinkerFixupsFileContents.Add("void " + LinkerFixupsName + "()");
@@ -1521,7 +1544,6 @@ namespace UnrealBuildTool
 				// If we determined that we should write the file, write it now.
 				if (bShouldWriteFile)
 				{
-					string LinkerFixupHeaderFilenameWithPath = Path.Combine(GlobalCompileEnvironment.Config.OutputDirectory, HeaderFilename);
 					ResponseFile.Create(LinkerFixupHeaderFilenameWithPath, new List<string>());
 					ResponseFile.Create(LinkerFixupCPPFilename, LinkerFixupsFileContents);
 				}
@@ -1548,7 +1570,8 @@ namespace UnrealBuildTool
 					InPublicDelayLoadDLLs: new List<string>(),
 					InPublicAdditionalLibraries: new List<string>(),
 					InPublicFrameworks: new List<string>(),
-					InPublicAdditionalFrameworks: new List<string>(),
+					InPublicAdditionalShadowFiles: new List<string>(),
+					InPublicAdditionalFrameworks: new List<UEBuildFramework>(),
 					InPrivateIncludePaths: new List<string>(),
 					InPrivateIncludePathModuleNames: new List<string>(),
 					InPrivateDependencyModuleNames: PrivateDependencyModuleNames,
@@ -1563,7 +1586,8 @@ namespace UnrealBuildTool
 					InFasterWithoutUnity: true,
 					InMinFilesUsingPrecompiledHeaderOverride: 0,
 					InEnableExceptions: false,
-					InEnableInlining: true
+					InEnableInlining: true,
+					bInBuildSourceFiles: true
 					);
 
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
@@ -1900,6 +1924,9 @@ namespace UnrealBuildTool
 					case PluginInfo.PluginModuleType.Editor:
 					case PluginInfo.PluginModuleType.EditorNoCommandlet:
 						return UEBuildConfiguration.bBuildEditor;
+
+					case PluginInfo.PluginModuleType.Program:
+						return Rules.Type == TargetRules.TargetType.Program;
 				}
 			}
 			return false;
@@ -1936,6 +1963,11 @@ namespace UnrealBuildTool
 					if (UEBuildConfiguration.bCompileAgainstEngine)
 					{
 						EngineConfiguration.ReadArray(ProjectDirectory, Platform, "Engine", "Plugins", "EnabledPlugins", FilterPluginNames);
+					}
+					else if (Rules.Type == TargetRules.TargetType.Program)
+					{
+						var ProgramDirectory = Path.Combine(ProjectDirectory, "Programs", GetTargetName());
+						EngineConfiguration.ReadArray(ProgramDirectory, Platform, "Engine", "Plugins", "ProgramEnabledPlugins", FilterPluginNames);
 					}
 					EnabledPlugins.AddRange(ValidPlugins.Where(x => FilterPluginNames.Contains(x.Name)));
 				}
@@ -2282,8 +2314,6 @@ namespace UnrealBuildTool
 				TargetInfo TargetInfo = GetTargetInfo();
 
 				// Create the module!  (It will be added to our hash table in its constructor)
-				// Figure out whether we need to build this module
-				bool bBuildFiles = OnlyModules.Count == 0 || OnlyModules.Any(x => x.OnlyModuleName == ModuleName);
 
 				// @todo projectfiles: Cross-platform modules can appear here during project generation, but they may have already
 				//   been filtered out by the project generator.  This causes the projects to not be added to directories properly.
@@ -2333,8 +2363,13 @@ namespace UnrealBuildTool
 					RulesCompiler.AddDefaultIncludePathsToModuleRules(this, ModuleName, ModuleFileName, ModuleFileRelativeToEngineDirectory, IsGameModule: IsGameModule, RulesObject: ref RulesObject);
 				}
 
+				// Figure out whether we need to build this module
+				// We don't care about actual source files when generating projects, as these are discovered separately
+				bool bDiscoverFiles = !ProjectFileGenerator.bGenerateProjectFiles;
+				bool bBuildFiles    = bDiscoverFiles && (OnlyModules.Count == 0 || OnlyModules.Any(x => x.OnlyModuleName == ModuleName));
+
 				IntelliSenseGatherer IntelliSenseGatherer = null;
-				List<FileItem> ModuleSourceFiles = new List<FileItem>();
+				List<FileItem> FoundSourceFiles = new List<FileItem>();
 				if (RulesObject.Type == ModuleRules.ModuleType.CPlusPlus || RulesObject.Type == ModuleRules.ModuleType.CPlusPlusCLR)
 				{
 					ProjectFile ProjectFile = null;
@@ -2343,30 +2378,27 @@ namespace UnrealBuildTool
 						IntelliSenseGatherer = ProjectFile;
 					}
 
-					if (!ProjectFileGenerator.bGenerateProjectFiles && bBuildFiles)	// We don't care about actual source files when generating projects, as these are discovered separately
+					// So all we care about are the game module and/or plugins.
+					//@todo Rocket: This assumes plugins that have source will be under the game folder...
+					if (bDiscoverFiles && (!UnrealBuildTool.RunningRocket() || Utils.IsFileUnderDirectory(ModuleFileName, UnrealBuildTool.GetUProjectPath())))
 					{
-						// So all we care about are the game module and/or plugins.
-						//@todo Rocket: This assumes plugins that have source will be under the game folder...
-						if (!UnrealBuildTool.RunningRocket() || Utils.IsFileUnderDirectory(ModuleFileName, UnrealBuildTool.GetUProjectPath()))
-						{
-							var SourceFilePaths = new List<string>();
+						var SourceFilePaths = new List<string>();
 
-							if (ProjectFile != null)
+						if (ProjectFile != null)
+						{
+							foreach (var SourceFile in ProjectFile.SourceFiles)
 							{
-								foreach (var SourceFile in ProjectFile.SourceFiles)
-								{
-									SourceFilePaths.Add(SourceFile.FilePath);
-								}
+								SourceFilePaths.Add(SourceFile.FilePath);
 							}
-							else
-							{
-								// Don't have a project file for this module with the source file names cached already, so find the source files ourselves
-								SourceFilePaths = SourceFileSearch.FindModuleSourceFiles(
-									ModuleRulesFile: ModuleFileName,
-									ExcludeNoRedistFiles: false);
-							}
-							ModuleSourceFiles = GetCPlusPlusFilesToBuild(SourceFilePaths, ModuleDirectory, Platform);
 						}
+						else
+						{
+							// Don't have a project file for this module with the source file names cached already, so find the source files ourselves
+							SourceFilePaths = SourceFileSearch.FindModuleSourceFiles(
+								ModuleRulesFile: ModuleFileName,
+								ExcludeNoRedistFiles: false);
+						}
+						FoundSourceFiles = GetCPlusPlusFilesToBuild(SourceFilePaths, ModuleDirectory, Platform);
 					}
 				}
 
@@ -2374,106 +2406,10 @@ namespace UnrealBuildTool
 				UEBuildModuleType ModuleType = IsGameModule ? UEBuildModuleType.GameModule : UEBuildModuleType.EngineModule;
 
 				// Now, go ahead and create the module builder instance
-				switch (RulesObject.Type)
+				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, ApplicationOutputPath, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles);
+				if(Module == null)
 				{
-					case ModuleRules.ModuleType.CPlusPlus:
-						{
-							Module = new UEBuildModuleCPP(
-								InTarget: this,
-								InName: ModuleName,
-								InType: ModuleType,
-								InModuleDirectory: ModuleDirectory,
-								InOutputDirectory: ApplicationOutputPath,
-								InIntelliSenseGatherer: IntelliSenseGatherer,
-								InSourceFiles: ModuleSourceFiles,
-								InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
-								InPublicIncludePaths: RulesObject.PublicIncludePaths,
-								InDefinitions: RulesObject.Definitions,
-								InPublicIncludePathModuleNames: RulesObject.PublicIncludePathModuleNames,
-								InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
-								InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
-								InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
-								InPublicFrameworks: RulesObject.PublicFrameworks,
-								InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
-								InPrivateIncludePaths: RulesObject.PrivateIncludePaths,
-								InPrivateIncludePathModuleNames: RulesObject.PrivateIncludePathModuleNames,
-								InPrivateDependencyModuleNames: RulesObject.PrivateDependencyModuleNames,
-								InCircularlyReferencedDependentModules: RulesObject.CircularlyReferencedDependentModules,
-								InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
-								InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
-								InOptimizeCode: RulesObject.OptimizeCode,
-								InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
-								InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
-								InUseRTTI: RulesObject.bUseRTTI,
-								InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
-								InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
-								InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
-								InEnableExceptions: RulesObject.bEnableExceptions,
-								InEnableInlining: RulesObject.bEnableInlining
-								);
-						}
-						break;
-
-					case ModuleRules.ModuleType.CPlusPlusCLR:
-						{
-							Module = new UEBuildModuleCPPCLR(
-								InTarget: this,
-								InName: ModuleName,
-								InType: ModuleType,
-								InModuleDirectory: ModuleDirectory,
-								InOutputDirectory: ApplicationOutputPath,
-								InIntelliSenseGatherer: IntelliSenseGatherer,
-								InSourceFiles: ModuleSourceFiles,
-								InDefinitions: RulesObject.Definitions,
-								InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
-								InPublicIncludePaths: RulesObject.PublicIncludePaths,
-								InPublicIncludePathModuleNames: RulesObject.PublicIncludePathModuleNames,
-								InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
-								InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
-								InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
-								InPublicFrameworks: RulesObject.PublicFrameworks,
-								InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
-								InPrivateIncludePaths: RulesObject.PrivateIncludePaths,
-								InPrivateIncludePathModuleNames: RulesObject.PrivateIncludePathModuleNames,
-								InPrivateDependencyModuleNames: RulesObject.PrivateDependencyModuleNames,
-								InPrivateAssemblyReferences: RulesObject.PrivateAssemblyReferences,
-								InCircularlyReferencedDependentModules: RulesObject.CircularlyReferencedDependentModules,
-								InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
-								InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
-								InOptimizeCode: RulesObject.OptimizeCode,
-								InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
-								InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
-								InUseRTTI: RulesObject.bUseRTTI,
-								InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
-								InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
-								InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
-								InEnableExceptions: RulesObject.bEnableExceptions,
-								InEnableInlining: RulesObject.bEnableInlining
-								);
-						}
-						break;
-
-					case ModuleRules.ModuleType.External:
-						Module = new UEBuildExternalModule(
-							InTarget: this,
-							InName: ModuleName,
-							InType: ModuleType,
-							InModuleDirectory: ModuleDirectory,
-							InOutputDirectory: ApplicationOutputPath,
-							InPublicDefinitions: RulesObject.Definitions,
-							InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
-							InPublicIncludePaths: RulesObject.PublicIncludePaths,
-							InPublicLibraryPaths: RulesObject.PublicLibraryPaths,
-							InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
-							InPublicFrameworks: RulesObject.PublicFrameworks,
-							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
-							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
-							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
-							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs);
-						break;
-
-					default:
-						throw new BuildException("Unrecognized module type specified by 'Rules' object {0}", RulesObject.ToString());
+					throw new BuildException("Unrecognized module type specified by 'Rules' object {0}", RulesObject.ToString());
 				}
 
 				UnrealTargetPlatform Only = UnrealBuildTool.GetOnlyPlatformSpecificFor();
@@ -2489,6 +2425,117 @@ namespace UnrealBuildTool
 				UEBuildPlatform.PlatformModifyNewlyLoadedModule(Module, TargetInfo, Only);
 			}
 			return Module;
+		}
+
+		protected virtual UEBuildModule InstantiateModule(
+			ModuleRules          RulesObject,
+			string               ModuleName,
+			UEBuildModuleType    ModuleType,
+			string               ModuleDirectory,
+			string               ApplicationOutputPath,
+			IntelliSenseGatherer IntelliSenseGatherer,
+			List<FileItem>       ModuleSourceFiles,
+			bool                 bBuildSourceFiles)
+		{
+			switch (RulesObject.Type)
+			{
+				case ModuleRules.ModuleType.CPlusPlus:
+					return new UEBuildModuleCPP(
+							InTarget: this,
+							InName: ModuleName,
+							InType: ModuleType,
+							InModuleDirectory: ModuleDirectory,
+							InOutputDirectory: ApplicationOutputPath,
+							InIntelliSenseGatherer: IntelliSenseGatherer,
+							InSourceFiles: ModuleSourceFiles,
+							InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
+							InPublicIncludePaths: RulesObject.PublicIncludePaths,
+							InDefinitions: RulesObject.Definitions,
+							InPublicIncludePathModuleNames: RulesObject.PublicIncludePathModuleNames,
+							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
+							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
+							InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
+							InPublicFrameworks: RulesObject.PublicFrameworks,
+							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
+							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
+							InPrivateIncludePaths: RulesObject.PrivateIncludePaths,
+							InPrivateIncludePathModuleNames: RulesObject.PrivateIncludePathModuleNames,
+							InPrivateDependencyModuleNames: RulesObject.PrivateDependencyModuleNames,
+							InCircularlyReferencedDependentModules: RulesObject.CircularlyReferencedDependentModules,
+							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
+							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
+							InOptimizeCode: RulesObject.OptimizeCode,
+							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
+							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
+							InUseRTTI: RulesObject.bUseRTTI,
+							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
+							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
+							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
+							InEnableExceptions: RulesObject.bEnableExceptions,
+							InEnableInlining: RulesObject.bEnableInlining,
+							bInBuildSourceFiles: bBuildSourceFiles
+						);
+
+				case ModuleRules.ModuleType.CPlusPlusCLR:
+					return new UEBuildModuleCPPCLR(
+							InTarget: this,
+							InName: ModuleName,
+							InType: ModuleType,
+							InModuleDirectory: ModuleDirectory,
+							InOutputDirectory: ApplicationOutputPath,
+							InIntelliSenseGatherer: IntelliSenseGatherer,
+							InSourceFiles: ModuleSourceFiles,
+							InDefinitions: RulesObject.Definitions,
+							InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
+							InPublicIncludePaths: RulesObject.PublicIncludePaths,
+							InPublicIncludePathModuleNames: RulesObject.PublicIncludePathModuleNames,
+							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
+							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
+							InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
+							InPublicFrameworks: RulesObject.PublicFrameworks,
+							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
+							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
+							InPrivateIncludePaths: RulesObject.PrivateIncludePaths,
+							InPrivateIncludePathModuleNames: RulesObject.PrivateIncludePathModuleNames,
+							InPrivateDependencyModuleNames: RulesObject.PrivateDependencyModuleNames,
+							InPrivateAssemblyReferences: RulesObject.PrivateAssemblyReferences,
+							InCircularlyReferencedDependentModules: RulesObject.CircularlyReferencedDependentModules,
+							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
+							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
+							InOptimizeCode: RulesObject.OptimizeCode,
+							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
+							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
+							InUseRTTI: RulesObject.bUseRTTI,
+							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
+							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
+							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
+							InEnableExceptions: RulesObject.bEnableExceptions,
+							InEnableInlining: RulesObject.bEnableInlining,
+							bInBuildSourceFiles : bBuildSourceFiles
+						);
+
+				case ModuleRules.ModuleType.External:
+					return new UEBuildExternalModule(
+							InTarget: this,
+							InName: ModuleName,
+							InType: ModuleType,
+							InModuleDirectory: ModuleDirectory,
+							InOutputDirectory: ApplicationOutputPath,
+							InPublicDefinitions: RulesObject.Definitions,
+							InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
+							InPublicIncludePaths: RulesObject.PublicIncludePaths,
+							InPublicLibraryPaths: RulesObject.PublicLibraryPaths,
+							InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
+							InPublicFrameworks: RulesObject.PublicFrameworks,
+							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
+							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
+							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
+							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs
+						);
+
+				default:
+					return null;
+			}
 		}
 
 		/** Finds a module given its name.  Throws an exception if the module couldn't be found. */

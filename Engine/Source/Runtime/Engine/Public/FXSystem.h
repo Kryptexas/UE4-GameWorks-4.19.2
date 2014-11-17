@@ -78,12 +78,17 @@ inline bool SupportsGPUParticles(EShaderPlatform Platform)
 	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 }
 
+inline bool RHISupportsGPUParticles(ERHIFeatureLevel::Type InFeatureLevel)
+{
+	return InFeatureLevel >= ERHIFeatureLevel::SM4;
+}
+
 /**
  * Returns true if the current RHI supports GPU particles.
  */
 inline bool CurrentRHISupportsGPUParticles()
 {
-	return GRHIFeatureLevel >= ERHIFeatureLevel::SM4;
+	return RHISupportsGPUParticles(GRHIFeatureLevel);
 }
 
 /*-----------------------------------------------------------------------------
@@ -100,7 +105,7 @@ public:
 	/**
 	 * Create an effects system instance.
 	 */
-	ENGINE_API static FFXSystemInterface* Create();
+	ENGINE_API static FFXSystemInterface* Create(ERHIFeatureLevel::Type InFeatureLevel);
 
 	/**
 	 * Destroy an effects system instance.

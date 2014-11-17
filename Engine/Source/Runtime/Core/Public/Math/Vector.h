@@ -11,6 +11,15 @@ public:
 	// Variables.
 	float X,Y,Z;
 
+#if ENABLE_NAN_DIAGNOSTIC
+	FORCEINLINE void DiagnosticCheckNaN() const
+	{
+		checkf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+	}
+#else
+	FORCEINLINE void DiagnosticCheckNaN() const {}
+#endif
+
 	/** Constructor */
 	FORCEINLINE FVector();
 
@@ -637,8 +646,18 @@ public:
 	 */
 	FString ToString() const;
 
+	/**
+	* Get a locale aware textual representation of this vector.
+	*
+	* @return A string describing the vector.
+	*/
+	FText ToText() const;
+
 	/** Get a short textural representation of this vector, for compact readable logging. */
 	FString ToCompactString() const;
+
+	/** Get a short locale aware textural representation of this vector, for compact readable logging. */
+	FText ToCompactText() const;
 
 	/**
 	 * Initialize this Vector based on an FString. The String is expected to contain X=, Y=, Z=.
@@ -841,8 +860,12 @@ public:
 
 	CORE_API bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
+	/** A zero vector (0,0,0) */
 	static CORE_API const FVector ZeroVector;
+	/** World up vector (0,0,1) */
 	static CORE_API const FVector UpVector;
+	/** Local Unreal forward vector (1,0,0) */
+	static CORE_API const FVector ForwardVector;
 };
 
 /**
@@ -947,6 +970,7 @@ FORCEINLINE float ComputeSquaredDistanceFromBoxToPoint( const FVector& Mins, con
 FORCEINLINE FVector::FVector( const FVector2D V, float InZ )
 	: X(V.X), Y(V.Y), Z(InZ)
 {
+	DiagnosticCheckNaN();
 }
 
 
@@ -1049,27 +1073,39 @@ FORCEINLINE FVector::FVector()
 
 FORCEINLINE FVector::FVector(float InF)
 	: X(InF), Y(InF), Z(InF)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector( float InX, float InY, float InZ )
 	: X(InX), Y(InY), Z(InZ)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector(const FLinearColor& InColor)
 	: X(InColor.R), Y(InColor.G), Z(InColor.B)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector(FIntVector InVector)
 	: X(InVector.X), Y(InVector.Y), Z(InVector.Z)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector( FIntPoint A )
 	: X(A.X), Y(A.Y), Z(0.f)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 FORCEINLINE FVector::FVector(EForceInit)
 	: X(0.0f), Y(0.0f), Z(0.0f)
-{}
+{
+	DiagnosticCheckNaN();
+}
 
 #ifdef IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 FORCEINLINE FVector& FVector::operator=(const FVector& Other)
@@ -1077,6 +1113,8 @@ FORCEINLINE FVector& FVector::operator=(const FVector& Other)
 	this->X = Other.X;
 	this->Y = Other.Y;
 	this->Z = Other.Z;
+
+	DiagnosticCheckNaN();
 
 	return *this;
 }
@@ -1178,18 +1216,21 @@ FORCEINLINE FVector FVector::operator-() const
 FORCEINLINE FVector FVector::operator+=( const FVector& V )
 {
 	X += V.X; Y += V.Y; Z += V.Z;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector FVector::operator-=( const FVector& V )
 {
 	X -= V.X; Y -= V.Y; Z -= V.Z;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector FVector::operator*=( float Scale )
 {
 	X *= Scale; Y *= Scale; Z *= Scale;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -1197,18 +1238,21 @@ FORCEINLINE FVector FVector::operator/=( float V )
 {
 	const float RV = 1.f/V;
 	X *= RV; Y *= RV; Z *= RV;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector FVector::operator*=( const FVector& V )
 {
 	X *= V.X; Y *= V.Y; Z *= V.Z;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
 FORCEINLINE FVector FVector::operator/=( const FVector& V )
 {
 	X /= V.X; Y /= V.Y; Z /= V.Z;
+	DiagnosticCheckNaN();
 	return *this;
 }
 
@@ -1251,6 +1295,7 @@ FORCEINLINE void FVector::Set( float InX, float InY, float InZ )
 	X = InX;
 	Y = InY;
 	Z = InZ;
+	DiagnosticCheckNaN();
 }
 
 FORCEINLINE float FVector::GetMax() const
@@ -1581,6 +1626,68 @@ FORCEINLINE FString FVector::ToString() const
 	return FString::Printf(TEXT("X=%3.3f Y=%3.3f Z=%3.3f"), X, Y, Z);
 }
 
+FORCEINLINE FText FVector::ToText() const
+{
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("X"), X);
+	Args.Add(TEXT("Y"), Y);
+	Args.Add(TEXT("Z"), Z);
+
+	return FText::Format(NSLOCTEXT("Core", "Vector3", "X={X} Y={Y} Z={Z}"), Args);
+}
+
+FORCEINLINE FText FVector::ToCompactText() const
+{
+	if (IsNearlyZero())
+	{
+		return NSLOCTEXT("Core", "Vector3_CompactZeroVector", "V(0)");
+	}
+
+	const bool XIsNotZero = !FMath::IsNearlyZero(X);
+	const bool YIsNotZero = !FMath::IsNearlyZero(Y);
+	const bool ZIsNotZero = !FMath::IsNearlyZero(Z);
+
+	FNumberFormattingOptions FormatRules;
+	FormatRules.MinimumFractionalDigits = 2;
+	FormatRules.MinimumIntegralDigits = 0;
+
+	FFormatNamedArguments Args;
+	Args.Add(TEXT("X"), FText::AsNumber(X, &FormatRules));
+	Args.Add(TEXT("Y"), FText::AsNumber(Y, &FormatRules));
+	Args.Add(TEXT("Z"), FText::AsNumber(Z, &FormatRules));
+
+	if (XIsNotZero && YIsNotZero && ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactXYZ", "V(X={X}, Y={Y}, Z={Z})"), Args);
+	}
+	else if (!XIsNotZero && YIsNotZero && ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactYZ", "V(Y={Y}, Z={Z})"), Args);
+	}
+	else if (XIsNotZero && !YIsNotZero && ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactXZ", "V(X={X}, Z={Z})"), Args);
+	}
+	else if (XIsNotZero && YIsNotZero && !ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactXY", "V(X={X}, Y={Y})"), Args);
+	}
+	else if (!XIsNotZero && !YIsNotZero && ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactZ", "V(Z={Z})"), Args);
+	}
+	else if (XIsNotZero && !YIsNotZero && !ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactX", "V(X={X})"), Args);
+	}
+	else if (!XIsNotZero && YIsNotZero && !ZIsNotZero)
+	{
+		return FText::Format(NSLOCTEXT("Core", "Vector3_CompactY", "V(Y={Y})"), Args);
+	}
+
+	return NSLOCTEXT("Core", "Vector3_CompactZeroVector", "V(0)");
+}
+
 FORCEINLINE FString FVector::ToCompactString() const
 {
 	if( IsNearlyZero() )
@@ -1667,6 +1774,16 @@ FORCEINLINE float FVector::DistSquared( const FVector &V1, const FVector &V2 )
 FORCEINLINE float FVector::BoxPushOut( const FVector & Normal, const FVector & Size )
 {
 	return FMath::Abs(Normal.X*Size.X) + FMath::Abs(Normal.Y*Size.Y) + FMath::Abs(Normal.Z*Size.Z);
+}
+
+/** Component-wise clamp for FVector */
+FORCEINLINE FVector ClampVector( const FVector& V, const FVector& Min, const FVector& Max )
+{
+	return FVector(
+		FMath::Clamp(V.X,Min.X,Max.X),
+		FMath::Clamp(V.Y,Min.Y,Max.Y),
+		FMath::Clamp(V.Z,Min.Z,Max.Z)
+		);
 }
 
 template <> struct TIsPODType<FVector> { enum { Value = true }; };

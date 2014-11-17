@@ -212,7 +212,7 @@ FD3D11UniformBuffer::~FD3D11UniformBuffer()
 			NewEntry.CreatedSize = Desc.ByteWidth;
 
 			// Add to this frame's array of free uniform buffers
-			const int32 SafeFrameIndex = GFrameNumberRenderThread % NumSafeFrames;
+			const int32 SafeFrameIndex = (GFrameNumberRenderThread - 1) % NumSafeFrames;
 			const uint32 BucketIndex = GetPoolBucketIndex(Desc.ByteWidth);
 			check(Desc.ByteWidth <= GetPoolBucketSize(Desc.ByteWidth));
 			SafeUniformBufferPools[SafeFrameIndex][BucketIndex].Add(NewEntry);

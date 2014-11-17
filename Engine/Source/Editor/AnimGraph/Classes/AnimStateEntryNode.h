@@ -1,9 +1,8 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "EdGraph/EdGraphNode.h"
 #include "AnimStateEntryNode.generated.h"
-
-
 
 UCLASS(MinimalAPI)
 class UAnimStateEntryNode : public UEdGraphNode

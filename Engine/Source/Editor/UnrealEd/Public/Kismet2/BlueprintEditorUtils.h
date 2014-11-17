@@ -4,6 +4,8 @@
 
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 
+#include "EdGraphSchema_K2.h"
+
 /** 
   * Flags describing how to handle graph removal
   */
@@ -66,11 +68,6 @@ public:
 	 * Regenerates the class at class load time, and refreshes the blueprint
 	 */
 	static UClass* RegenerateBlueprintClass(UBlueprint* Blueprint, UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded);
-
-	/**
-	 * Input delegate pin's PinSubCategoryObject may be obsolete. But MCDelegate node has reference to actual function's signature.
-	 */
-	static void RefreshInputDelegatePins(UBlueprint* Blueprint);
 
 	/**
 	 * Copies the default properties of all parent blueprint classes in the chain to the specified blueprint's skeleton CDO
@@ -154,8 +151,43 @@ public:
 	 */
 	static class UEdGraph* CreateNewGraph(UObject* ParentScope, const FName& GraphName, TSubclassOf<class UEdGraph> GraphClass, TSubclassOf<class UEdGraphSchema> SchemaClass);
 
-	/** Adds a function graph to this blueprint.  If bIsUserCreated is true, the entry/exit nodes will be editable. SignatureFromClass is used to find signature for entry/exit nodes if using an existing signature. */
-	static void AddFunctionGraph(UBlueprint* Blueprint, class UEdGraph* Graph,  bool bIsUserCreated, UClass* SignatureFromClass);
+	/** 
+	 * Adds a function graph to this blueprint.  If bIsUserCreated is true, the entry/exit nodes will be editable. SignatureFromObject is used to find signature for entry/exit nodes if using an existing signature.
+	 * The template argument SignatureType should be UClass or UFunction.
+	 */
+	template <typename SignatureType>
+	static void AddFunctionGraph(UBlueprint* Blueprint, class UEdGraph* Graph, bool bIsUserCreated, SignatureType* SignatureFromObject)
+	{
+		// Give the schema a chance to fill out any required nodes (like the entry node or results node)
+		const UEdGraphSchema* Schema = Graph->GetSchema();
+		const UEdGraphSchema_K2* K2Schema = Cast<const UEdGraphSchema_K2>(Graph->GetSchema());
+
+		Schema->CreateDefaultNodesForGraph(*Graph);
+
+		if ( K2Schema != NULL )
+		{
+			K2Schema->CreateFunctionGraphTerminators(*Graph, SignatureFromObject);
+
+			if ( bIsUserCreated )
+			{
+				// We need to flag the entry node to make sure that the compiled function is callable from Kismet2
+				int32 ExtraFunctionFlags = ( FUNC_BlueprintCallable | FUNC_BlueprintEvent | FUNC_Public );
+				if ( BPTYPE_FunctionLibrary == Blueprint->BlueprintType )
+				{
+					ExtraFunctionFlags |= FUNC_Static;
+				}
+				K2Schema->AddExtraFunctionFlags(Graph, ExtraFunctionFlags);
+				K2Schema->MarkFunctionEntryAsEditable(Graph, true);
+			}
+		}
+
+		Blueprint->FunctionGraphs.Add(Graph);
+
+		// Potentially adjust variable names for any child blueprints
+		ValidateBlueprintChildVariables(Blueprint, Graph->GetFName());
+
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+	}
 
 	/** Adds a macro graph to this blueprint.  If bIsUserCreated is true, the entry/exit nodes will be editable. SignatureFromClass is used to find signature for entry/exit nodes if using an existing signature. */
 	static void AddMacroGraph(UBlueprint* Blueprint, class UEdGraph* Graph,  bool bIsUserCreated, UClass* SignatureFromClass);
@@ -217,7 +249,7 @@ public:
 	 *
 	 * @return				The top level graph
 	 */
-	static UEdGraph* GetTopLevelGraph(UEdGraph* InGraph);
+	static UEdGraph* GetTopLevelGraph(const UEdGraph* InGraph);
 
 	/** Look to see if an event already exists to override a particular function */
 	static class UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
@@ -374,6 +406,15 @@ public:
 	// Variables
 
 	/**
+	 * Checks if pin type stores proper type for a variable or parameter. Especially if the UDStruct is valid.
+	 *
+	 * @param		Type	Checked pin type.
+	 *
+	 * @return				if type is valid
+	 */
+	static bool IsPinTypeValid(const FEdGraphPinType& Type);
+
+	/**
 	 * Gets the visible class variable list.  This includes both variables introduced here and in all superclasses.
 	 *
 	 * @param [in,out]	VisibleVariables	The visible variables will be appened to this array.
@@ -431,6 +472,59 @@ public:
 	
 	/** Changes the type of a member variable */
 	static void ChangeMemberVariableType(UBlueprint* Blueprint, const FName& VariableName, const FEdGraphPinType& NewPinType);
+
+	/**
+	 * Removes a member variable if it was declared in this blueprint and not in a base class.
+	 *
+	 * @param	InBlueprint			The Blueprint the local variable can be found in
+	 * @param	InVarName			Name of the variable to be removed.
+	 */
+	static void RemoveLocalVariable(UBlueprint* InBlueprint, const FName& InVarName);
+
+	/**
+	 * Returns a local variable
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableName	Name of the variable to search for
+	 * @return					The local variable description
+	 */
+	static FBPVariableDescription* FindLocalVariable(UBlueprint* InBlueprint, const FName& InVariableName);
+
+	/**
+	 * Finds a local variable name using the variable's Guid
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableGuid	Guid to identify the local variable with
+	 * @return					Local variable's name
+	 */
+	static FName FindLocalVariableNameByGuid(UBlueprint* InBlueprint, const FGuid& InVariableGuid);
+
+	/**
+	 * Finds a local variable Guid using the variable's name
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableGuid	Local variable's name to search for
+	 * @return					The Guid associated with the local variable
+	 */
+	static FGuid FindLocalVariableGuidByName(UBlueprint* InBlueprint, const FName InVariableName);
+
+	/**
+	 * Rename a local variable
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InOldName The name of the local variable to change
+	 * @param InNewName	The new name of the local variable
+	 */
+	static void RenameLocalVariable(UBlueprint* InBlueprint, const FName& InOldName, const FName& InNewName);
+
+	/**
+	 * Changes the type of a local variable
+	 *
+	 * @param InBlueprint		Blueprint to search for the local variable
+	 * @param InVariableName	Name of the local variable to change the type of
+	 * @param InNewPinType		The pin type to change the local variable type to
+	 */
+	static void ChangeLocalVariableType(UBlueprint* InBlueprint, const FName& InVariableName, const FEdGraphPinType& InNewPinType);
 
 	/** Replaces all variable references in the specified blueprint */
 	static void ReplaceVariableReferences(UBlueprint* Blueprint, const FName& OldName, const FName& NewName);
@@ -797,4 +891,7 @@ protected:
 	 */
 	static bool CheckIfNodeConnectsToSelection(UEdGraphNode* InNode, const TSet<UEdGraphNode*>& InSelectionSet);
 
+public:
+	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
+	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);
 };

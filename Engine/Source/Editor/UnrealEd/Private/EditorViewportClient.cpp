@@ -143,15 +143,34 @@ FMatrix FViewportCameraTransform::ComputeOrbitMatrix() const
 /**The Maximum Mouse/Camera Speeds Setting supported */
 const uint32 FEditorViewportClient::MaxCameraSpeeds = 8;
 
-/**
+float FEditorViewportClient::GetCameraSpeed() const
+{
+	return GetCameraSpeed(GetCameraSpeedSetting());
+}
 
- * Static: Utility to get the actual mouse/camera speed (multiplier) based on the passed in setting.
- *
- * @param SpeedSetting	The desired speed setting
- */
 float FEditorViewportClient::GetCameraSpeed(int32 SpeedSetting) const
 {
-	return 1.0f;
+	//previous mouse speed values were as follows...
+	//(note: these were previously all divided by 4 when used be the viewport)
+	//#define MOVEMENTSPEED_SLOW			4	~ 1
+	//#define MOVEMENTSPEED_NORMAL			12	~ 3
+	//#define MOVEMENTSPEED_FAST			32	~ 8
+	//#define MOVEMENTSPEED_VERYFAST		64	~ 16
+
+	const int32 SpeedToUse = FMath::Clamp<int32>(SpeedSetting, 1, MaxCameraSpeeds);
+	const float Speed[] = { 0.03125f, 0.09375f, 0.33f, 1.f, 3.f, 8.f, 16.f, 32.f };
+
+	return Speed[SpeedToUse - 1];
+}
+
+void FEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
+{
+	CameraSpeedSetting = SpeedSetting;
+}
+
+int32 FEditorViewportClient::GetCameraSpeedSetting() const
+{
+	return CameraSpeedSetting;
 }
 
 float const FEditorViewportClient::SafePadding = 0.075f;
@@ -209,14 +228,14 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	, LastMouseY(0)
 	, CachedMouseX(0)
 	, CachedMouseY(0)
+	, CurrentMousePos(-1, -1)
 	, bIsRealtime(false)
 	, bStoredRealtime(false)
-	, bStoredShowFPS(false)
 	, bStoredShowStats(false)
-	, bShowFPS(false)
 	, bShowStats(false)
 	, PreviewScene(InPreviewScene)
 	, bCameraLock(false)
+	, CameraSpeedSetting(4)
 {
 
 	ViewState.Allocate();
@@ -248,10 +267,14 @@ FEditorViewportClient::FEditorViewportClient(FPreviewScene* InPreviewScene)
 	EngineShowFlags.SetSnap(1);
 
 	SetViewMode(VMI_Lit);
+
+	GEditorModeTools().OnEditorModeChanged().AddRaw(this, &FEditorViewportClient::OnEditorModeChanged);
 }
 
 FEditorViewportClient::~FEditorViewportClient()
 {
+	GEditorModeTools().OnEditorModeChanged().RemoveAll(this);
+
 	delete Widget;
 	delete MouseDeltaTracker;
 
@@ -284,6 +307,14 @@ void FEditorViewportClient::RedrawRequested(FViewport* InViewport)
 void FEditorViewportClient::RequestInvalidateHitProxy(FViewport* InViewport)
 {
 	bNeedsInvalidateHitProxy = true;
+}
+
+void FEditorViewportClient::OnEditorModeChanged(FEdMode* EditorMode, bool bIsEntering)
+{
+	if (Viewport)
+	{
+		RequestInvalidateHitProxy(Viewport);
+	}
 }
 
 float FEditorViewportClient::GetOrthoUnitsPerPixel(const FViewport* InViewport) const
@@ -601,6 +632,7 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	ViewInitOptions.bUseFauxOrthoViewPos = true;
 
 	ViewInitOptions.OverrideFarClippingPlaneDistance = FarPlane;
+	ViewInitOptions.CursorPos = CurrentMousePos;
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
 
@@ -1156,7 +1188,7 @@ void FEditorViewportClient::UpdateCameraMovement( float DeltaTime )
 
 		// We'll combine the regular camera speed scale (controlled by viewport toolbar setting) with
 		// the flight camera speed scale (controlled by mouse wheel).
-		const float CameraSpeed = GetCameraSpeed(GetDefault<ULevelEditorViewportSettings>()->CameraSpeed);
+		const float CameraSpeed = GetCameraSpeed();
 		const float FinalCameraSpeedScale = FlightCameraSpeedScale * CameraSpeed;
 
 		// Only allow FOV recoil if flight camera mode is currently inactive.
@@ -1263,7 +1295,7 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 	}
 }
 
-bool FEditorViewportClient::CalculateSafeFrameRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport)
+bool FEditorViewportClient::CalculateEditorConstrainedViewRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport)
 {
 	const int32 SizeX = InViewport->GetSizeXY().X;
 	const int32 SizeY = InViewport->GetSizeXY().Y;
@@ -1310,7 +1342,7 @@ void FEditorViewportClient::DrawSafeFrames(FViewport& InViewport, FSceneView& Vi
 	if (EngineShowFlags.CameraAspectRatioBars || EngineShowFlags.CameraSafeFrames)
 	{
 		FSlateRect SafeRect;
-		if (CalculateSafeFrameRect(SafeRect, &InViewport))
+		if (CalculateEditorConstrainedViewRect(SafeRect, &InViewport))
 		{
 			if (EngineShowFlags.CameraSafeFrames)
 			{
@@ -1457,7 +1489,7 @@ void FEditorViewportClient::UpdateMouseDelta()
 							{
 								if( !IsOrtho())
 								{
-									const float CameraSpeed = GetCameraSpeed(GetDefault<ULevelEditorViewportSettings>()->CameraSpeed);
+									const float CameraSpeed = GetCameraSpeed();
 									Drag *= CameraSpeed;
 								}
 								MoveViewportCamera( Drag, Rot );
@@ -1920,8 +1952,6 @@ void FEditorViewportClient::ProcessClickInViewport( const FInputEventState& Inpu
 		const int32	HitX = InputStateViewport->GetMouseX();
 		const int32	HitY = InputStateViewport->GetMouseY();
 		
-		FIntPoint CurrentMousePos(HitX,HitY);
-
 		// Calc the raw delta from the mouse to detect if there was any movement
 		FVector RawMouseDelta = MouseDeltaTracker->GetScreenDelta();
 
@@ -2107,7 +2137,7 @@ FString UnrealUnitsToSiUnits(float UnrealUnits)
 	// Put it in mm to start off with
 	UnrealUnits *= 10.f;
 
-	const int32 OrderOfMagnitude = FMath::Trunc(FMath::LogX(10.0f, UnrealUnits));
+	const int32 OrderOfMagnitude = UnrealUnits > 0 ? FMath::TruncToInt(FMath::LogX(10.0f, UnrealUnits)) : 0;
 
 	// Get an exponent applied to anything >= 1,000,000,000mm (1000km)
 	const int32 Exponent = (OrderOfMagnitude - 6)  / 3;
@@ -2128,7 +2158,7 @@ FString UnrealUnitsToSiUnits(float UnrealUnits)
 	{
 		const int32 ScaledOrder = OrderOfMagnitude % (FMath::Max(OrderOfThousands, 1) * 3);
 		const float RoundingDivisor = FMath::Pow(10.f, ScaledOrder) / 10.f;
-		const int32 Rounded = FMath::Trunc(ScaledNumber / RoundingDivisor) * RoundingDivisor;
+		const int32 Rounded = FMath::TruncToInt(ScaledNumber / RoundingDivisor) * RoundingDivisor;
 		if (ScaledNumber - Rounded > KINDA_SMALL_NUMBER)
 		{
 			ScaledNumber = Rounded;
@@ -2149,7 +2179,7 @@ FString UnrealUnitsToSiUnits(float UnrealUnits)
 	}
 	else
 	{
-		return FString::Printf(TEXT("%s%d%s%s"), Approximation, FMath::Trunc(ScaledNumber), *ExponentString, UnitText[FMath::Min(OrderOfThousands, 2)]);
+		return FString::Printf(TEXT("%s%d%s%s"), Approximation, FMath::TruncToInt(ScaledNumber), *ExponentString, UnitText[FMath::Min(OrderOfThousands, 2)]);
 	}
 }
 
@@ -2159,7 +2189,7 @@ void FEditorViewportClient::DrawScaleUnits(FViewport* InViewport, FCanvas* Canva
 
 	// Find the closest power of ten to our target width
 	static const int32 ApproxTargetMarkerWidthPx = 100;
-	const float SegmentWidthUnits = FMath::Pow(10.f, FMath::Round(FMath::LogX(10.f, UnitsPerPixel * ApproxTargetMarkerWidthPx)));
+	const float SegmentWidthUnits = UnitsPerPixel > 0 ? FMath::Pow(10.f, FMath::RoundToFloat(FMath::LogX(10.f, UnitsPerPixel * ApproxTargetMarkerWidthPx))) : 0.f;
 
 	const FString DisplayText = UnrealUnitsToSiUnits(SegmentWidthUnits);
 	
@@ -2169,7 +2199,7 @@ void FEditorViewportClient::DrawScaleUnits(FViewport* InViewport, FCanvas* Canva
 
 	// Origin is the bottom left of the scale
 	const FIntPoint StartPoint(80, InViewport->GetSizeXY().Y - 30);
-	const FIntPoint EndPoint = StartPoint + FIntPoint(SegmentWidthUnits / UnitsPerPixel, 0);
+	const FIntPoint EndPoint = StartPoint + (UnitsPerPixel != 0 ? FIntPoint(SegmentWidthUnits / UnitsPerPixel, 0) : FIntPoint(0,0));
 
 	// Sort out the color for the text and widget
 	FLinearColor HSVBackground = InView.BackgroundColor.LinearRGBToHSV().CopyWithNewOpacity(1.f);
@@ -2431,9 +2461,9 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	if (( GetScene() != World->Scene) || (IsRealtime() == true))
 	{
 		// Use time relative to start time to avoid issues with float vs double
-		TimeSeconds = GCurrentTime - GStartTime;
-		RealTimeSeconds = GCurrentTime - GStartTime;
-		DeltaTimeSeconds = GDeltaTime;
+		TimeSeconds = FApp::GetCurrentTime() - GStartTime;
+		RealTimeSeconds = FApp::GetCurrentTime() - GStartTime;
+		DeltaTimeSeconds = FApp::GetDeltaTime();
 	}
 	else
 	{
@@ -2463,6 +2493,13 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	FSceneView* View = CalcSceneView( &ViewFamily );
 
 	SetupViewForRendering(ViewFamily,*View);
+
+	FSlateRect SafeFrame;
+	View->CameraConstrainedViewRect = View->UnscaledViewRect;
+	if (CalculateEditorConstrainedViewRect(SafeFrame, Viewport))
+	{
+		View->CameraConstrainedViewRect = FIntRect(SafeFrame.Left, SafeFrame.Top, SafeFrame.Right, SafeFrame.Bottom);
+	}
 
 	if (IsAspectRatioConstrained())
 	{
@@ -2532,13 +2569,6 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 	FCanvas* DebugCanvas = Viewport->GetDebugCanvas();
 
 	UDebugDrawService::Draw(ViewFamily.EngineShowFlags, Viewport, View, DebugCanvas);
-	// Frame rate display
-	int32 NextYPos = 75;
-	if( IsRealtime() && ShouldShowFPS() && DebugCanvas)
-	{
-		const int32 XPos = FMath::Max( 10, (int32)Viewport->GetSizeXY().X - 90 );
-		NextYPos = DrawFPSCounter( Viewport, DebugCanvas, XPos, NextYPos );
-	}
 
 	// Stats display
 	if( IsRealtime() && ShouldShowStats() && DebugCanvas)
@@ -3114,7 +3144,6 @@ bool FEditorViewportClient::IsVisible() const
 	return bIsVisible;
 }
 
-
 void FEditorViewportClient::GetViewportDimensions( FIntPoint& OutOrigin, FIntPoint& Outize )
 {
 	OutOrigin = FIntPoint(0,0);
@@ -3255,6 +3284,13 @@ EAxisList::Type FEditorViewportClient::GetCurrentWidgetAxis() const
 void FEditorViewportClient::SetCurrentWidgetAxis( EAxisList::Type InAxis )
 {
 	Widget->SetCurrentAxis( InAxis );
+}
+
+void FEditorViewportClient::AdjustTransformWidgetSize(const int32 SizeDelta)
+{
+	 ULevelEditorViewportSettings &ViewportSettings = *GetMutableDefault<ULevelEditorViewportSettings>();
+	 ViewportSettings.TransformWidgetSizeAdjustment = FMath::Clamp(ViewportSettings.TransformWidgetSizeAdjustment + SizeDelta, -10, 150);
+	 ViewportSettings.PostEditChange();
 }
 
 float FEditorViewportClient::GetNearClipPlane() const
@@ -3637,9 +3673,26 @@ void FEditorViewportClient::OnJoystickPlugged(const uint32 InControllerID, const
 	}
 }
 
+
+void FEditorViewportClient::MouseEnter(FViewport* Viewport,int32 x, int32 y)
+{
+	MouseMove(Viewport, x, y);
+}
+
 void FEditorViewportClient::MouseMove(FViewport* InViewport,int32 x, int32 y)
 {
 	check(IsInGameThread());
+
+	CurrentMousePos = FIntPoint(x, y);
+}
+
+void FEditorViewportClient::MouseLeave( FViewport* Viewport )
+{
+	check(IsInGameThread());
+
+	CurrentMousePos = FIntPoint(-1, -1);
+
+	FCommonViewportClient::MouseLeave(Viewport);
 }
 
 void FEditorViewportClient::CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY )

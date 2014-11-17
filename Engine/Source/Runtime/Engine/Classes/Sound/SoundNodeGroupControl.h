@@ -4,13 +4,15 @@
 #include "SoundNodeGroupControl.generated.h"
 
 /** 
- * Plays different sounds depending on the number and proximity of the sounds to the listener
+ * Plays different sounds depending on the number of active sounds
+ * Any time a new sound is played, the first group that has an available slot will be chosen
  */
 UCLASS(hidecategories=Object, editinlinenew, MinimalAPI, meta=( DisplayName="Group Control" ))
 class USoundNodeGroupControl : public USoundNode
 {
 	GENERATED_UCLASS_BODY()
 
+	/* How many active sounds are allowed for each group */
 	UPROPERTY(EditAnywhere, editfixedsize, Category=GroupControl)
 	TArray<int32> GroupSizes;
 

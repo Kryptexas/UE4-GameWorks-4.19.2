@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionSine.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSine : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

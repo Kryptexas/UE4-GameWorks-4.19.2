@@ -18,8 +18,22 @@
 #include "Editor/UnrealEd/Public/SEditorViewportToolBarMenu.h"
 #include "Editor/UnrealEd/Public/SEditorViewportToolBarButton.h"
 #include "Editor/UnrealEd/Public/SEditorViewportViewMenu.h"
+#include "StatsData.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportToolBar"
+
+/** Override the view menu, just so we can specify the level viewport as active when the button is clicked */
+class SLevelEditorViewportViewMenu : public SEditorViewportViewMenu
+{
+public:
+	virtual TSharedRef<SWidget> GenerateViewMenuContent() const OVERRIDE
+	{
+		SLevelViewport* LevelViewport = static_cast<SLevelViewport*>(Viewport.Pin().Get());
+		LevelViewport->OnFloatingButtonClicked();
+		
+		return SEditorViewportViewMenu::GenerateViewMenuContent();
+	}
+};
 
 
 void SLevelViewportToolBar::Construct( const FArguments& InArgs )
@@ -70,7 +84,7 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 				.AutoWidth()
 				.Padding( ToolbarSlotPadding )
 				[
-					SNew( SEditorViewportViewMenu, ViewportRef, SharedThis(this) )
+					SNew( SLevelEditorViewportViewMenu, ViewportRef, SharedThis(this) )
 					.Cursor( EMouseCursor::Default )
 					.MenuExtenders( GetViewMenuExtender() )
 				]
@@ -312,20 +326,17 @@ static void OnGenerateActorLockingMenuSection( TWeakPtr<SLevelViewport> Viewport
 	InitOptions.bShowHeaderRow = false;
 	InitOptions.CustomColumnFixedWidth = SLevelViewport::GetActorLockSceneOutlinerColumnWidth();
 	InitOptions.CustomColumnFactory = FCreateSceneOutlinerColumnDelegate::CreateSP( Viewport.Pin().ToSharedRef(), &SLevelViewport::CreateActorLockSceneOutlinerColumn );
-	InitOptions.ActorFilters = MakeShareable( new TFilterCollection< const AActor* const >() );
 
 	// Predicate for selecting actors by class
 	struct FActorClassPredicate
 	{
-		static bool IsLockableActor( const AActor* const InActor )
+		static bool IsLockableActor( const AActor* InActor )
 		{			
 			return InActor != NULL && InActor->IsA(ActorClass::StaticClass()) && !InActor->IsPendingKill();
 		}
 	};
 
-	InitOptions.ActorFilters->Add(
-		MakeShareable(new TDelegateFilter< const AActor* const >(
-			TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &FActorClassPredicate::IsLockableActor ) ) ) );
+	InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic(&FActorClassPredicate::IsLockableActor) );
 
 	// Create an outliner with the options from above. It sits in a box with a max height limit to stop it getting too tall when lots of actors are added.
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");
@@ -491,6 +502,8 @@ static void OnGenerateBookmarkMenu( FMenuBuilder& MenuBuilder , TWeakPtr<class S
 
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 {
+	Viewport.Pin()->OnFloatingButtonClicked();
+
 	const FLevelViewportCommands& LevelViewportActions = FLevelViewportCommands::Get();
 
 	// Get all menu extenders for this context menu from the level editor module
@@ -691,6 +704,8 @@ void SLevelViewportToolBar::SetLevelProfile( FString DeviceProfileName )
 
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateCameraMenu() const
 {
+	Viewport.Pin()->OnFloatingButtonClicked();
+
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder CameraMenuBuilder( bInShouldCloseWindowAfterMenuSelection, Viewport.Pin()->GetCommandList() );
 
@@ -711,9 +726,35 @@ void SLevelViewportToolBar::GenerateViewportConfigsMenu(FMenuBuilder& MenuBuilde
 	check (Viewport.IsValid());
 	TSharedPtr<FUICommandList> CommandList = Viewport.Pin()->GetCommandList();
 
+	MenuBuilder.BeginSection("LevelViewportOnePaneConfigs", LOCTEXT("OnePaneConfigHeader", "One Pane"));
+	{
+		FToolBarBuilder OnePaneButton(CommandList, FMultiBoxCustomization::None);
+		OnePaneButton.SetLabelVisibility(EVisibility::Collapsed);
+		OnePaneButton.SetStyle(&FEditorStyle::Get(), "ViewportLayoutToolbar");
+
+		OnePaneButton.AddToolBarButton(FLevelViewportCommands::Get().ViewportConfig_OnePane);
+
+		MenuBuilder.AddWidget(
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				OnePaneButton.MakeWidget()
+			]
+			+ SHorizontalBox::Slot()
+			.FillWidth(1)
+			[
+				SNullWidget::NullWidget
+			],
+			FText::GetEmpty(), true
+			);
+	}
+	MenuBuilder.EndSection();
+
 	MenuBuilder.BeginSection("LevelViewportTwoPaneConfigs", LOCTEXT("TwoPaneConfigHeader", "Two Panes") );
 	{
 		FToolBarBuilder TwoPaneButtons(CommandList, FMultiBoxCustomization::None);
+		TwoPaneButtons.SetLabelVisibility(EVisibility::Collapsed);
 		TwoPaneButtons.SetStyle(&FEditorStyle::Get(), "ViewportLayoutToolbar");
 
 		TwoPaneButtons.AddToolBarButton(FLevelViewportCommands::Get().ViewportConfig_TwoPanesH, NAME_None, FText());
@@ -739,6 +780,7 @@ void SLevelViewportToolBar::GenerateViewportConfigsMenu(FMenuBuilder& MenuBuilde
 	MenuBuilder.BeginSection("LevelViewportThreePaneConfigs", LOCTEXT("ThreePaneConfigHeader", "Three Panes") );
 	{
 		FToolBarBuilder ThreePaneButtons(CommandList, FMultiBoxCustomization::None);
+		ThreePaneButtons.SetLabelVisibility(EVisibility::Collapsed);
 		ThreePaneButtons.SetStyle(&FEditorStyle::Get(), "ViewportLayoutToolbar");
 
 		ThreePaneButtons.AddToolBarButton(FLevelViewportCommands::Get().ViewportConfig_ThreePanesLeft, NAME_None, FText());
@@ -766,6 +808,7 @@ void SLevelViewportToolBar::GenerateViewportConfigsMenu(FMenuBuilder& MenuBuilde
 	MenuBuilder.BeginSection("LevelViewportFourPaneConfigs", LOCTEXT("FourPaneConfigHeader", "Four Panes") );
 	{
 		FToolBarBuilder FourPaneButtons(CommandList, FMultiBoxCustomization::None);
+		FourPaneButtons.SetLabelVisibility(EVisibility::Collapsed);
 		FourPaneButtons.SetStyle(&FEditorStyle::Get(), "ViewportLayoutToolbar");
 
 		FourPaneButtons.AddToolBarButton(FLevelViewportCommands::Get().ViewportConfig_FourPanes2x2, NAME_None, FText());
@@ -796,6 +839,8 @@ void SLevelViewportToolBar::GenerateViewportConfigsMenu(FMenuBuilder& MenuBuilde
 
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 {
+	Viewport.Pin()->OnFloatingButtonClicked();
+
 	const FLevelViewportCommands& Actions = FLevelViewportCommands::Get();
 
 	const TArray<FShowFlagData>& ShowFlagData = GetShowFlagMenuItems();
@@ -830,26 +875,68 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 
 		struct FLocal
 		{
-			static void FillShowFlagMenu( class FMenuBuilder& MenuBuilder, TArray< FLevelViewportCommands::FShowMenuCommand > ShowFlagCommands )
+			static void FillShowMenu( class FMenuBuilder& MenuBuilder, TArray< FLevelViewportCommands::FShowMenuCommand > MenuCommands, int32 EntryOffset )
 			{
 				// Generate entries for the standard show flags
-				for( int32 EntryIndex = 0; EntryIndex < ShowFlagCommands.Num(); ++EntryIndex )
+				// Assumption: the first 'n' entries types like 'Show All' and 'Hide All' buttons, so insert a separator after them
+				for (int32 EntryIndex = 0; EntryIndex < MenuCommands.Num(); ++EntryIndex)
 				{
-					MenuBuilder.AddMenuEntry( ShowFlagCommands[EntryIndex].ShowMenuItem, NAME_None, ShowFlagCommands[EntryIndex].LabelOverride );
-				}
-			}
-
-			static void FillShowMenuWithSeparator( class FMenuBuilder& MenuBuilder, TArray< FLevelViewportCommands::FShowMenuCommand > ShowMenuCommands )
-			{
-				// Generate entries for the standard show flags
-				// Assumption: the first two entries are 'Show All' and 'Hide All' buttons, so insert a separator after them
-				for( int32 EntryIndex = 0; EntryIndex < ShowMenuCommands.Num(); ++EntryIndex )
-				{
-					MenuBuilder.AddMenuEntry( ShowMenuCommands[ EntryIndex ].ShowMenuItem, NAME_None, ShowMenuCommands[ EntryIndex ].LabelOverride );
-					if (EntryIndex == 1)
+					MenuBuilder.AddMenuEntry(MenuCommands[EntryIndex].ShowMenuItem, NAME_None, MenuCommands[EntryIndex].LabelOverride);
+					if (EntryIndex == EntryOffset-1)
 					{
 						MenuBuilder.AddMenuSeparator();
 					}
+				}
+			}
+
+			static void FillShowStatsSubMenus(class FMenuBuilder& MenuBuilder, TArray< FLevelViewportCommands::FShowMenuCommand > MenuCommands, TMap< FString, TArray< FLevelViewportCommands::FShowMenuCommand > > StatCatCommands)
+			{
+				FLocal::FillShowMenu(MenuBuilder, MenuCommands, 1);
+
+				// Separate out stats into two list, those with and without submenus
+				TArray< FLevelViewportCommands::FShowMenuCommand > SingleStatCommands;
+				TMap< FString, TArray< FLevelViewportCommands::FShowMenuCommand > > SubbedStatCommands;
+				for (auto StatCatIt = StatCatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
+				{
+					const TArray< FLevelViewportCommands::FShowMenuCommand >& ShowStatCommands = StatCatIt.Value();
+					const FString& CategoryName = StatCatIt.Key();
+
+					// If no category is specified, or there's only one category, don't use submenus
+					FString NoCategory = FStatConstants::NAME_NoCategory.ToString();
+					NoCategory.RemoveFromStart(TEXT("STATCAT_"));
+					if (CategoryName == NoCategory || StatCatCommands.Num() == 1)
+					{
+						for (int32 StatIndex = 0; StatIndex < ShowStatCommands.Num(); ++StatIndex)
+						{
+							const FLevelViewportCommands::FShowMenuCommand& StatCommand = ShowStatCommands[StatIndex];
+							SingleStatCommands.Add(StatCommand);
+						}
+					}
+					else
+					{
+						SubbedStatCommands.Add(CategoryName, ShowStatCommands);
+					}
+				}
+
+				// First add all the stats that don't have a sub menu
+				for (auto StatCatIt = SingleStatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
+				{
+					const FLevelViewportCommands::FShowMenuCommand& StatCommand = *StatCatIt;
+					MenuBuilder.AddMenuEntry(StatCommand.ShowMenuItem, NAME_None, StatCommand.LabelOverride);
+				}
+
+				// Now add all the stats that have sub menus
+				for (auto StatCatIt = SubbedStatCommands.CreateConstIterator(); StatCatIt; ++StatCatIt)
+				{
+					const TArray< FLevelViewportCommands::FShowMenuCommand >& StatCommands = StatCatIt.Value();
+					const FText CategoryName = FText::FromString(StatCatIt.Key());
+
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("StatCat"), CategoryName);
+					const FText CategoryDescription = FText::Format(NSLOCTEXT("UICommands", "StatShowCatName", "Show {StatCat} stats"), Args);
+
+					MenuBuilder.AddSubMenu(CategoryName, CategoryDescription,
+						FNewMenuDelegate::CreateStatic(&FLocal::FillShowMenu, StatCommands, 0));
 				}
 			}
 		};
@@ -858,29 +945,28 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 		ShowMenuBuilder.BeginSection("LevelViewportShowFlags");
 		{
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("PostProcessShowFlagsMenu", "Post Processing"), LOCTEXT("PostProcessShowFlagsMenu_ToolTip", "Post process show flags"),
-				FNewMenuDelegate::CreateStatic( &FLocal::FillShowFlagMenu, ShowMenu[SFG_PostProcess] ) );
+				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenu, ShowMenu[SFG_PostProcess], 0 ) );
 
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("LightingComponentsShowFlagsMenu", "Lighting Components"), LOCTEXT("LightingComponentsShowFlagsMenu_ToolTip", "Lighting Components show flags"),
-				FNewMenuDelegate::CreateStatic( &FLocal::FillShowFlagMenu, ShowMenu[SFG_LightingComponents] ) );
+				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenu, ShowMenu[SFG_LightingComponents], 0 ) );
 
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("LightingFeaturesShowFlagsMenu", "Lighting Features"), LOCTEXT("LightingFeaturesShowFlagsMenu_ToolTip", "Lighting Features show flags"),
-				FNewMenuDelegate::CreateStatic( &FLocal::FillShowFlagMenu, ShowMenu[SFG_LightingFeatures] ) );
+				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenu, ShowMenu[SFG_LightingFeatures], 0 ) );
 
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("DeveloperShowFlagsMenu", "Developer"), LOCTEXT("DeveloperShowFlagsMenu_ToolTip", "Developer show flags"),
-				FNewMenuDelegate::CreateStatic( &FLocal::FillShowFlagMenu, ShowMenu[SFG_Developer] ) );
+				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenu, ShowMenu[SFG_Developer], 0 ) );
 
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("VisualizeShowFlagsMenu", "Visualize"), LOCTEXT("VisualizeShowFlagsMenu_ToolTip", "Visualize show flags"),
-				FNewMenuDelegate::CreateStatic( &FLocal::FillShowFlagMenu, ShowMenu[SFG_Visualize] ) );
+				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenu, ShowMenu[SFG_Visualize], 0 ) );
 
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("AdvancedShowFlagsMenu", "Advanced"), LOCTEXT("AdvancedShowFlagsMenu_ToolTip", "Advanced show flags"),
-				FNewMenuDelegate::CreateStatic( &FLocal::FillShowFlagMenu, ShowMenu[SFG_Advanced] ) );
+				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenu, ShowMenu[SFG_Advanced], 0 ) );
 		}
 		ShowMenuBuilder.EndSection();
 
+
 		FText ShowAllLabel = LOCTEXT("ShowAllLabel", "Show All");
 		FText HideAllLabel = LOCTEXT("HideAllLabel", "Hide All");
-
-	
 
 		// Show Volumes sub-menu
 		{
@@ -894,7 +980,7 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 			ShowVolumesMenu += Actions.ShowVolumeCommands;
 
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("ShowVolumesMenu", "Volumes"), LOCTEXT("ShowVolumesMenu_ToolTip", "Show volumes flags"),
-				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenuWithSeparator, ShowVolumesMenu ) );
+				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenu, ShowVolumesMenu, 2 ) );
 		}
 
 		// Show Layers sub-menu is dynamically generated when the user enters 'show' menu
@@ -915,7 +1001,18 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 			ShowSpritesMenu += Actions.ShowSpriteCommands;
 
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("ShowSpritesMenu", "Sprites"), LOCTEXT("ShowSpritesMenu_ToolTip", "Show sprites flags"),
-				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenuWithSeparator, ShowSpritesMenu ) );
+				FNewMenuDelegate::CreateStatic( &FLocal::FillShowMenu, ShowSpritesMenu, 2 ) );
+		}
+
+		// Show Stats sub-menu
+		{
+			TArray< FLevelViewportCommands::FShowMenuCommand > HideStatsMenu;
+
+			// 'Hide All' button
+			HideStatsMenu.Add(FLevelViewportCommands::FShowMenuCommand(Actions.HideAllStats, HideAllLabel));
+
+			ShowMenuBuilder.AddSubMenu(LOCTEXT("ShowStatsMenu", "Stat"), LOCTEXT("ShowStatsMenu_ToolTip", "Show Stat commands"),
+				FNewMenuDelegate::CreateStatic(&FLocal::FillShowStatsSubMenus, HideStatsMenu, Actions.ShowStatCatCommands));
 		}
 	}
 

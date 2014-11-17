@@ -94,6 +94,9 @@ private:
 
 	/** Current status of request being processed */
 	EHttpRequestStatus::Type CompletionStatus;
+
+	/** Number of bytes sent to progress update */
+	int32 ProgressBytesSent;
 };
 
 
@@ -168,6 +171,11 @@ public:
 	 * Check whether a response had an error.
 	 */
 	bool HadError();
+
+	/**
+	 * Get the number of bytes received so far
+	 */
+	const int32 GetNumBytesReceived() const;
 
 	/**
 	 * Constructor

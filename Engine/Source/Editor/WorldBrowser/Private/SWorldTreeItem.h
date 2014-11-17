@@ -96,9 +96,9 @@ private:
 	FSlateColor GetLevelDisplayNameColorAndOpacity() const;
 
 	/**
-	 *	@return The brush used to draw the folder icon 
+	 *	@return	The SlateBrush representing level icon
 	 */
-	const FSlateBrush* GetLevelImage() const;
+	const FSlateBrush* GetLevelIconBrush() const;
 
 	/**
 	 *	Called to get the Slate Image Brush representing the visibility state of
@@ -154,11 +154,10 @@ private:
 	/** True when this item has children and is expanded */
 	TAttribute<bool>				IsItemExpanded;
 
-	/** Brushes for the different level states */
-	const FSlateBrush*				MapPackageUnloaded;
-	const FSlateBrush*				MapPackagePending;
-	const FSlateBrush*				MapPackageLoaded;
-	
+	/** Brushes for the different streaming level types */
+	const FSlateBrush*				StreamingLevelAlwaysLoadedBrush;
+	const FSlateBrush*				StreamingLevelKismetBrush;
+
 	/**	The visibility button for the Level */
 	TSharedPtr<SButton>				VisibilityButton;
 

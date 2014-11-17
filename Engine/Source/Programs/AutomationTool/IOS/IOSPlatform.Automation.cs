@@ -148,13 +148,17 @@ public class IOSPlatform : Platform
 			}
 
 			IPPArguments += (cookonthefly ? " -cookonthefly" : "");
-			IPPArguments += " -stagedir " + CombinePaths(Params.BaseStageDirectory, "IOS");
-			IPPArguments += " -projectdir " + Path.GetDirectoryName(Params.RawProjectPath);
+			IPPArguments += " -stagedir \"" + CombinePaths(Params.BaseStageDirectory, "IOS") + "\"";
+			IPPArguments += " -projectdir \"" + Path.GetDirectoryName(Params.RawProjectPath) + "\"";
 
 			// rename the .ipa if not code based
 			if (!Params.IsCodeBasedProject)
 			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries\\IOS", Params.ShortProjectName + ".ipa");
+				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + ".ipa");
+				if (TargetConfiguration != UnrealTargetConfiguration.Development)
+				{
+					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
+				}
 			}
 
             // delete the .ipa to make sure it was made
@@ -186,7 +190,7 @@ public class IOSPlatform : Platform
 		else
 		{
 			// code sign the app
-			CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], Params.Distribution);
+			CodeSign(Path.GetDirectoryName(Params.ProjectGameExeFilename), Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.RawProjectPath, SC.StageTargetConfigurations[0], SC.LocalRoot, Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.IsCodeBasedProject, Params.Distribution);
 
 			// now generate the ipa
 			PackageIPA(Path.GetDirectoryName(Params.ProjectGameExeFilename), Path.GetFileNameWithoutExtension(Params.ProjectGameExeFilename), Params.ShortProjectName, Path.GetDirectoryName(Params.RawProjectPath), SC.StageTargetConfigurations[0], Params.Distribution);
@@ -195,49 +199,113 @@ public class IOSPlatform : Platform
 		PrintRunTime();
 	}
 
-	private string EnsureXcodeProjectExists(string RawProjectPath, out bool bWasGenerated)
+	private string EnsureXcodeProjectExists(string RawProjectPath, string LocalRoot, string ShortProjectName, string ProjectRoot, bool IsCodeBasedProject, out bool bWasGenerated)
 	{
 		// first check for ue4.xcodeproj
 		bWasGenerated = false;
-		string XcodeProj = RawProjectPath.Replace(".uproject", ".xcodeproj");
+		string XcodeProj = RawProjectPath.Replace(".uproject", "_IOS.xcodeproj");
 		Console.WriteLine ("Project: " + XcodeProj);
 		if (!Directory.Exists (XcodeProj))
 		{
-			// project.xcodeproj doesn't exist, so check for ue4.xcodeproj
-			XcodeProj = CombinePaths(CmdEnv.LocalRoot, "UE4.xcodeproj");
+			// project.xcodeproj doesn't exist, so generate temp project
+			string Arguments = "-project=\"" + RawProjectPath + "\"";
+			Arguments += " -platforms=IOS -game -nointellisense -iosdeployonly -ignorejunk";
+			string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
+			if (GlobalCommandLine.Rocket)
+			{
+				Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/RocketGenerateProjectFiles.sh");
+			}
+			string CWD = Directory.GetCurrentDirectory ();
+			Directory.SetCurrentDirectory (Path.GetDirectoryName (Script));
+			Run (Script, Arguments, null, ERunOptions.Default);
+			bWasGenerated = true;
+			Directory.SetCurrentDirectory (CWD);
+
 			if (!Directory.Exists (XcodeProj))
 			{
-				// ue4.xcodeproj doesn't exist, so generate temp project
-				string Arguments = "-project=\"" + RawProjectPath + "\"";
-				Arguments += " -game -nointellisense";
-				string Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/GenerateProjectFiles.sh");
-				if (GlobalCommandLine.Rocket)
-				{
-					Script = CombinePaths(CmdEnv.LocalRoot, "Engine/Build/BatchFiles/Mac/RocketGenerateProjectFiles.sh");
-				}
-				string CWD = Directory.GetCurrentDirectory ();
-				Directory.SetCurrentDirectory (Path.GetDirectoryName (Script));
-				Run (Script, Arguments, null, ERunOptions.Default);
-				bWasGenerated = true;
-				Directory.SetCurrentDirectory (CWD);
-
-				XcodeProj = RawProjectPath.Replace(".uproject", ".xcodeproj"); 
-				if (!Directory.Exists(XcodeProj))
-				{
-					// something very bad happened
-					throw new AutomationException("iOS couldn't find the appropriate Xcode Project");
-				}
+				// something very bad happened
+				throw new AutomationException("iOS couldn't find the appropriate Xcode Project");
 			}
+		}
+
+		// copy the appropriate plist file over
+		string SourcePListFile = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "UE4Game-Info.plist");
+		if (File.Exists(ProjectRoot + "/Build/IOS/" + ShortProjectName + "-Info.plist"))
+		{
+			SourcePListFile = CombinePaths(ProjectRoot, "Build", "IOS", ShortProjectName + "-Info.plist");
+		}
+
+		//@TODO: This is writing to the engine directory!
+		string SourcePath = CombinePaths((IsCodeBasedProject ? ProjectRoot : LocalRoot + "\\Engine"), "Intermediate", "IOS");
+		string TargetPListFile = Path.Combine(SourcePath, (IsCodeBasedProject ? ShortProjectName : "UE4Game") + "-Info.plist");
+
+		Dictionary<string, string> Replacements = new Dictionary<string, string>();
+		Replacements.Add("${EXECUTABLE_NAME}", (IsCodeBasedProject ? ShortProjectName : "UE4Game"));
+		Replacements.Add("${BUNDLE_IDENTIFIER}", ShortProjectName.Replace("_", ""));
+		CopyFileWithReplacements(SourcePListFile, TargetPListFile, Replacements);
+
+		// Now do the .mobileprovision
+		//@TODO: Remove this mobileprovision copy, and move to a library approach like Xcode/codesign does
+		string SourceProvision = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "UE4Game.mobileprovision");
+		string GameSourceProvision = CombinePaths(ProjectRoot, "Build", "IOS", ShortProjectName + ".mobileprovision");
+		if (!File.Exists(GameSourceProvision))
+		{
+			GameSourceProvision = CombinePaths(ProjectRoot, "Build", "IOS", "NotForLicensees", ShortProjectName + ".mobileprovision");
+			if (File.Exists(GameSourceProvision))
+			{
+				SourceProvision = GameSourceProvision;
+			}
+			else if (!File.Exists(SourceProvision))
+			{
+				SourceProvision = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "NotForLicensees", "UE4Game.mobileprovision");
+			}
+		}
+		else
+		{
+			SourceProvision = GameSourceProvision;
+		}
+		if (File.Exists (SourceProvision))
+		{
+			Directory.CreateDirectory (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/");
+			File.Copy (SourceProvision, Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + ".mobileprovision", true);
+			FileInfo DestFileInfo = new FileInfo (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + ".mobileprovision");
+			DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+		}
+
+		// install the distribution provision
+		SourceProvision = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "UE4Game_Distro.mobileprovision");
+		GameSourceProvision = CombinePaths(ProjectRoot, "Build", "IOS", ShortProjectName + "_Distro.mobileprovision");
+		if (!File.Exists(GameSourceProvision))
+		{
+			GameSourceProvision = CombinePaths(ProjectRoot, "Build", "IOS", "NotForLicensees", ShortProjectName + "_Distro.mobileprovision");
+			if (File.Exists(GameSourceProvision))
+			{
+				SourceProvision = GameSourceProvision;
+			}
+			else if (!File.Exists(SourceProvision))
+			{
+				SourceProvision = CombinePaths(LocalRoot, "Engine", "Build", "IOS", "NotForLicensees", "UE4Game_Distro.mobileprovision");
+			}
+		}
+		else
+		{
+			SourceProvision = GameSourceProvision;
+		}
+		if (File.Exists(SourceProvision))
+		{
+			File.Copy (SourceProvision, Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + "_Distro.mobileprovision", true);
+			FileInfo DestFileInfo = new FileInfo (Environment.GetEnvironmentVariable ("HOME") + "/Library/MobileDevice/Provisioning Profiles/" + ShortProjectName + "_Distro.mobileprovision");
+			DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
 		}
 
 		return XcodeProj;
 	}
 
-	private void CodeSign(string BaseDirectory, string GameName, string RawProjectPath, UnrealTargetConfiguration TargetConfig, bool Distribution = false)
+	private void CodeSign(string BaseDirectory, string GameName, string RawProjectPath, UnrealTargetConfiguration TargetConfig, string LocalRoot, string ProjectName, string ProjectDirectory, bool IsCode, bool Distribution = false)
 	{
 		// check for the proper xcodeproject
 		bool bWasGenerated = false;
-		string XcodeProj = EnsureXcodeProjectExists (RawProjectPath, out bWasGenerated);
+		string XcodeProj = EnsureXcodeProjectExists (RawProjectPath, LocalRoot, ProjectName, ProjectDirectory, IsCode, out bWasGenerated);
 		string Arguments = "UBT_NO_POST_DEPLOY=true";
 		Arguments += " /usr/bin/xcrun xcodebuild build -project \"" + XcodeProj + "\"";
 		Arguments += " -scheme '";
@@ -431,6 +499,15 @@ public class IOSPlatform : Platform
 				SC.StageFiles(StagedFileType.NonUFS, SourcePath, "*.png", false, null, "", true, false);
 			}
 
+			// copy any additional framework assets that will be needed at runtime
+			{
+				string SourcePath = CombinePaths( ( SC.IsCodeBasedProject ? SC.ProjectRoot : SC.LocalRoot + "\\Engine" ), "Intermediate", "IOS", "FrameworkAssets" );
+				if ( Directory.Exists( SourcePath ) )
+				{
+					SC.StageFiles( StagedFileType.NonUFS, SourcePath, "*.*", true, null, "", true, false );
+				}
+			}
+
 			// copy the icons/launch screens from the game (may stomp the engine copies)
 			{
 				string SourcePath = CombinePaths(SC.ProjectRoot, "Build", "IOS", "Resources", "Graphics");
@@ -463,13 +540,25 @@ public class IOSPlatform : Platform
 			if (GetCodeSignDesirability(Params))
 			{
 				string SourceProvision = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "UE4Game.mobileprovision");
-				string GameSourceProvision = SC.ProjectRoot + "/Build/IOS/" + SC.ShortProjectName + ".mobileprovision";
-				if (File.Exists(GameSourceProvision))
+				string GameSourceProvision = CombinePaths(SC.ProjectRoot, "Build", "IOS", SC.ShortProjectName + ".mobileprovision");
+				if (!File.Exists(GameSourceProvision))
+				{
+					GameSourceProvision = CombinePaths(SC.ProjectRoot, "Build", "IOS", "NotForLicensees", SC.ShortProjectName + ".mobileprovision");
+					if (File.Exists(GameSourceProvision))
+					{
+						SourceProvision = GameSourceProvision;
+					}
+					else if (!File.Exists(SourceProvision))
+					{
+						SourceProvision = CombinePaths(SC.LocalRoot, "Engine", "Build", "IOS", "NotForLicensees", "UE4Game.mobileprovision");
+					}
+				}
+				else
 				{
 					SourceProvision = GameSourceProvision;
 				}
 
-				SC.StageFiles(StagedFileType.NonUFS, Path.GetDirectoryName(SourceProvision), Path.GetFileName(SourceProvision), false, null, "", false, false, "embedded.mobileprovision");
+				SC.StageFiles(StagedFileType.NonUFS, Path.GetDirectoryName(SourceProvision), Path.GetFileName(SourceProvision), false, null, "", GlobalCommandLine.Rocket, false, "embedded.mobileprovision");
 			}
 		}
 	}
@@ -488,9 +577,14 @@ public class IOSPlatform : Platform
 			ProjectGameExeFilename = CombinePaths (Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Path.GetFileName (Params.ProjectGameExeFilename));
 		}
 		var ProjectIPA = MakeIPAFileName( TargetConfiguration, ProjectGameExeFilename );
+		// rename the .ipa if not code based
 		if (!Params.IsCodeBasedProject)
 		{
-			ProjectIPA = ProjectIPA.Replace("UE4Game", Params.ShortProjectName);
+			ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + ".ipa");
+			if (TargetConfiguration != UnrealTargetConfiguration.Development)
+			{
+				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
+			}
 		}
 
 		// verify the .ipa exists
@@ -514,9 +608,14 @@ public class IOSPlatform : Platform
 
 //			var ProjectStub = Params.ProjectGameExeFilename;	
 			var ProjectIPA = MakeIPAFileName(TargetConfiguration, Params.ProjectGameExeFilename);
+			// rename the .ipa if not code based
 			if (!Params.IsCodeBasedProject)
 			{
-				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries\\IOS", Params.ShortProjectName + ".ipa");
+				ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + ".ipa");
+				if (TargetConfiguration != UnrealTargetConfiguration.Development)
+				{
+					ProjectIPA = Path.Combine(Path.GetDirectoryName(Params.RawProjectPath), "Binaries", "IOS", Params.ShortProjectName + "-" + PlatformType.ToString() + "-" + TargetConfiguration.ToString() + ".ipa");
+				}
 			}
 
 			var StagedIPA = SC.StageDirectory + "\\" + Path.GetFileName(ProjectIPA);
@@ -534,7 +633,7 @@ public class IOSPlatform : Platform
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
 
 			// check for it in the stage directory
-			RunAndLog(CmdEnv, IPPExe, "Deploy " + Path.GetFullPath(StagedIPA) + " -device " + Params.Device.Substring(4));
+			RunAndLog(CmdEnv, IPPExe, "Deploy \"" + Path.GetFullPath(StagedIPA) + "\" -device " + Params.Device.Substring(4));
 		}
         PrintRunTime();
     }
@@ -568,10 +667,6 @@ public class IOSPlatform : Platform
 	{
 		return "cookeddata/" + Dest;
 	}
-    public override string GUBP_GetPlatformFailureEMails(string Branch)
-    {
-        return "Peter.Sauerbrei[epic] Michael.Trepka[epic]";
-    }
     public override List<string> GetDebugFileExtentions()
     {
         return new List<string> { ".dsym" };
@@ -591,7 +686,7 @@ public class IOSPlatform : Platform
 			}
 			string GameApp = AppDirectory + "/" + GameName;
 			bool bWasGenerated = false;
-			string XcodeProj = EnsureXcodeProjectExists (Params.RawProjectPath, out bWasGenerated);
+			string XcodeProj = EnsureXcodeProjectExists (Params.RawProjectPath, CmdEnv.LocalRoot, Params.ShortProjectName, GetDirectoryName(Params.RawProjectPath), Params.IsCodeBasedProject, out bWasGenerated);
 			string Arguments = "UBT_NO_POST_DEPLOY=true /usr/bin/xcrun xcodebuild test -project \"" + XcodeProj + "\"";
 			Arguments += " -scheme '";
 			Arguments += GameName;
@@ -615,10 +710,10 @@ public class IOSPlatform : Platform
 
 	public override void PreBuildAgenda(UE4Build Build, UE4Build.BuildAgenda Agenda)
 	{
-/*		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
+		if (UnrealBuildTool.ExternalExecution.GetRuntimePlatform () != UnrealTargetPlatform.Mac)
 		{
 			Agenda.DotNetProjects.Add (@"Engine\Source\Programs\IOS\iPhonePackager\iPhonePackager.csproj");
-		}*/
+		}
 	}
 
 	#endregion

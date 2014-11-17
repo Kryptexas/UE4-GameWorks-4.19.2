@@ -751,6 +751,7 @@ FHttpResponseWinInet::FHttpResponseWinInet(const FHttpRequestWinInet& InRequest)
 ,	ContentLength(0)
 ,	bIsReady(0)
 ,	bResponseSucceeded(0)
+,	MaxReadBufferSize(FHttpModule::Get().GetMaxReadBufferSize())
 {
 
 }
@@ -845,8 +846,6 @@ void FHttpResponseWinInet::ProcessResponse()
 	// We might be calling back into this from another asynchronous read, so continue where we left off.
 	// if there is no content length, we're probably receiving chunked data.
 	ContentLength = QueryContentLength();
-	// Size of the buffer to read when calling InternetReadFile. Payload grows by this amount as necessary
-	const int32 MAX_READ_BUFFER_SIZE = 256 * 1024;
 	// Set buffer size based on content length or hard code if chunked response
 	int32 BufferSize = 0;
 	// For non-chunked responses, allocate one extra uint8 to check if we are sent extra content
@@ -862,7 +861,7 @@ void FHttpResponseWinInet::ProcessResponse()
 	else
 	{
 		// For chunked responses, add data using a fixed size buffer at a time.
-		BufferSize = TotalBytesRead + MAX_READ_BUFFER_SIZE;
+		BufferSize = TotalBytesRead + MaxReadBufferSize;
 		// Size read buffer
 		ResponsePayload.SetNum(BufferSize);
 	}
@@ -871,11 +870,12 @@ void FHttpResponseWinInet::ProcessResponse()
 	int32 LoopCount = 0;
 	do
 	{
+		const int32 NumBytesToRead = FMath::Min<int32>(ResponsePayload.Num() - TotalBytesRead, MaxReadBufferSize);
 		// Read directly into the response payload
 		const BOOL bReadFile = InternetReadFile(
 			Request.RequestHandle, 
 			&ResponsePayload[TotalBytesRead], 
-			ResponsePayload.Num() - TotalBytesRead, 
+			NumBytesToRead, 
 			(LPDWORD)&AsyncBytesRead);
 
 		UE_LOG(LogHttp, VeryVerbose, TEXT("InternetReadFile result=%d (%u bytes read) (%u bytes total read). LoopCount=%d %p"), 
@@ -914,7 +914,7 @@ void FHttpResponseWinInet::ProcessResponse()
 					UE_LOG(LogHttp, Log, TEXT("Response payload (%d bytes read so far) is larger than the content-length (%d). Resizing buffer to accommodate. %p"), 
 						TotalBytesRead, ContentLength, &Request);
 				}
-				ResponsePayload.AddZeroed(MAX_READ_BUFFER_SIZE);
+				ResponsePayload.AddZeroed(MaxReadBufferSize);
 			}
 		}
 		LoopCount++;

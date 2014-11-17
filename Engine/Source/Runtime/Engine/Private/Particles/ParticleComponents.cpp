@@ -6,7 +6,6 @@
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "EngineMaterialClasses.h"
 #include "LevelUtils.h"
 #include "ImageUtils.h"
 #include "FXSystem.h"
@@ -173,6 +172,7 @@ AEmitter::AEmitter(const class FPostConstructInitializeProperties& PCIP)
 		if (SpriteComponent)
 		{
 			SpriteComponent->Sprite = ConstructorStatics.SpriteTextureObject.Get();
+			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 			SpriteComponent->bHiddenInGame = true;
 			SpriteComponent->bIsScreenSizeScaled = true;
 			SpriteComponent->SpriteInfo.Category = ConstructorStatics.ID_Effects;
@@ -721,11 +721,11 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 			// Special case for one loop... 
 			if (ParticleLifetime < MaxDuration)
 			{
-				MaxAPC += FMath::Ceil(ParticleLifetime * MaxSpawnRate);
+				MaxAPC += FMath::CeilToInt(ParticleLifetime * MaxSpawnRate);
 			}
 			else
 			{
-				MaxAPC += FMath::Ceil(MaxDuration * MaxSpawnRate);
+				MaxAPC += FMath::CeilToInt(MaxDuration * MaxSpawnRate);
 			}
 			// Safety zone...
 			MaxAPC += 1;
@@ -736,11 +736,11 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 		{
 			if (ParticleLifetime < MaxDuration)
 			{
-				MaxAPC += FMath::Ceil(ParticleLifetime * MaxSpawnRate);
+				MaxAPC += FMath::CeilToInt(ParticleLifetime * MaxSpawnRate);
 			}
 			else
 			{
-				MaxAPC += (FMath::Ceil(FMath::Ceil(MaxDuration * MaxSpawnRate) * ParticleLifetime));
+				MaxAPC += (FMath::CeilToInt(FMath::CeilToInt(MaxDuration * MaxSpawnRate) * ParticleLifetime));
 			}
 			// Safety zone...
 			MaxAPC += 1;
@@ -748,7 +748,7 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 			MaxAPC += MaxBurstCount;
 			if (ParticleLifetime > MaxDuration)
 			{
-				MaxAPC += MaxBurstCount * FMath::Ceil(ParticleLifetime - MaxDuration);
+				MaxAPC += MaxBurstCount * FMath::CeilToInt(ParticleLifetime - MaxDuration);
 			}
 		}
 	}
@@ -758,7 +758,7 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 		// Single loop case is all we will worry about. Safer base estimate - but not ideal.
 		if (ParticleLifetime < MaxDuration)
 		{
-			MaxAPC += FMath::Ceil(ParticleLifetime * FMath::Ceil(MaxSpawnRate));
+			MaxAPC += FMath::CeilToInt(ParticleLifetime * FMath::CeilToInt(MaxSpawnRate));
 		}
 		else
 		{
@@ -766,21 +766,21 @@ int32	UParticleLODLevel::CalculateMaxActiveParticleCount()
 			{
 				if (ParticleLifetime <= MaxDuration)
 				{
-					MaxAPC += FMath::Ceil(MaxDuration * MaxSpawnRate);
+					MaxAPC += FMath::CeilToInt(MaxDuration * MaxSpawnRate);
 				}
 				else //if (ParticleLifetime > MaxDuration)
 				{
-					MaxAPC += FMath::Ceil(MaxDuration * MaxSpawnRate) * ParticleLifetime;
+					MaxAPC += FMath::CeilToInt(MaxDuration * MaxSpawnRate) * ParticleLifetime;
 				}
 			}
 			else
 			{
 				// No lifetime, no duration...
-				MaxAPC += FMath::Ceil(MaxSpawnRate);
+				MaxAPC += FMath::CeilToInt(MaxSpawnRate);
 			}
 		}
 		// Safety zone...
-		MaxAPC += FMath::Max<int32>(FMath::Ceil(MaxSpawnRate * 0.032f), 2);
+		MaxAPC += FMath::Max<int32>(FMath::CeilToInt(MaxSpawnRate * 0.032f), 2);
 		// Burst
 		MaxAPC += MaxBurstCount;
 	}
@@ -2843,6 +2843,24 @@ void UParticleSystem::ComputeCanTickInAnyThread()
 	}
 }
 
+bool UParticleSystem::ContainsEmitterType(UClass* TypeData)
+{
+	for ( int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
+	{
+		UParticleEmitter* Emitter = Emitters[EmitterIndex];
+		if (Emitter)
+		{
+			UParticleLODLevel* LODLevel = Emitter->LODLevels[0];
+			if (LODLevel && LODLevel->TypeDataModule && LODLevel->TypeDataModule->IsA(TypeData))
+			{
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
 bool UParticleSystem::HasGPUEmitter() const
 {
 	for (int32 EmitterIndex = 0; EmitterIndex < Emitters.Num(); ++EmitterIndex)
@@ -4107,7 +4125,7 @@ void UParticleSystemComponent::InitParticles()
 		if (EmitterInstances.Num() == 0)
 		{
 			const bool bDetailModeAllowsRendering	= DetailMode <= GlobalDetailMode;
-			if ( bDetailModeAllowsRendering && ( ShouldRender() ) )
+			if (bDetailModeAllowsRendering && (CanEverRender()))
 			{
 				EmitterInstances.Empty(Template->Emitters.Num());
 				for (int32 Idx = 0; Idx < Template->Emitters.Num(); Idx++)
@@ -4131,7 +4149,7 @@ void UParticleSystemComponent::InitParticles()
 		else
 		{
 			// create new instances as needed
-			for (int32 Idx = 0; Idx < Template->Emitters.Num(); Idx++)
+			for (int32 Idx = 0; Idx < EmitterInstances.Num(); Idx++)
 			{
 				FParticleEmitterInstance* Instance = EmitterInstances[Idx];
 				if (Instance)
@@ -4633,6 +4651,8 @@ void UParticleSystemComponent::Deactivate()
 void UParticleSystemComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 {
 	Super::ApplyWorldOffset(InOffset, bWorldShift);
+
+	OldPosition+= InOffset;
 	
 	for (auto It = EmitterInstances.CreateIterator(); It; ++It)
 	{
@@ -4706,6 +4726,23 @@ int32 UParticleSystemComponent::GetNumActiveParticles() const
 		}
 	}
 	return NumParticles;
+}
+
+void UParticleSystemComponent::GetTrailEmitters(UAnimNotifyState* InAnimNotifyState, TArray< FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, bool bIncludeUnassociated)
+{
+	int32 NumEmitters = EmitterInstances.Num();
+	for (int32 i = 0; i < NumEmitters; ++i)
+	{
+		FParticleEmitterInstance* Instance = EmitterInstances[i];
+		if (Instance && Instance->IsTrailEmitter())
+		{
+			FParticleAnimTrailEmitterInstance* TrailInstance = (FParticleAnimTrailEmitterInstance*)(Instance);
+			if ((bIncludeUnassociated && TrailInstance->AnimNotifyState == NULL) || TrailInstance->AnimNotifyState == InAnimNotifyState)
+			{
+				OutTrailEmitters.Add(TrailInstance);
+			}
+		}
+	}
 }
 
 bool UParticleSystemComponent::HasCompleted()

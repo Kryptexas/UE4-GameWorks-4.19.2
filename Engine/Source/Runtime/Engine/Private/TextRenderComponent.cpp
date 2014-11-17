@@ -26,6 +26,7 @@ ATextRenderActor::ATextRenderActor(const class FPostConstructInitializePropertie
 		static FConstructorStatics ConstructorStatics;
 
 		SpriteComponent->Sprite = ConstructorStatics.TextRenderTexture.Get();
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->AttachParent = TextRender;
 		SpriteComponent->bIsScreenSizeScaled = true;
 		SpriteComponent->bAbsoluteScale = true;
@@ -81,13 +82,13 @@ struct FTextIterator
 	bool Peek(int32& Ch)
 	{
 		check(CurrentPosition);
-		if ( CurrentPosition[0] =='\0' || CurrentPosition[1] == '\0' || (CurrentPosition[1] == '<' && CurrentPosition[2] == 'b' && CurrentPosition[3] == 'r' && CurrentPosition[4] == '>'))
+		if ( CurrentPosition[0] =='\0' || (CurrentPosition[0] == '<' && CurrentPosition[1] == 'b' && CurrentPosition[2] == 'r' && CurrentPosition[3] == '>'))
 		{
 			return false;
 		}
 		else
 		{
-			Ch = CurrentPosition[1];
+			Ch = CurrentPosition[0];
 			return true;
 		}
 	}
@@ -211,7 +212,8 @@ FVector2D ComputeTextSize(FTextIterator It, class UFont* Font,
 			float Right = X + SizeX;
 			float Bottom = Y + SizeY;
 
-			Ret = FMath::Max(Ret, FVector2D(Right, Bottom));
+			Ret.X = FMath::Max(Ret.X, Right);
+			Ret.Y = FMath::Max(Ret.Y, Bottom);
 
 			// if we have another non-whitespace character to render, add the font's kerning.
 			int32 NextCh;
@@ -502,7 +504,7 @@ void FTextRenderSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 		Mesh.bDisableBackfaceCulling = false;
 		Mesh.Type = PT_TriangleList;
 		Mesh.DepthPriorityGroup = SDPG_World;
-		PDI->DrawMesh(Mesh,0.0, FLT_MAX);
+		PDI->DrawMesh(Mesh, 1.0f);
 	}
 }
 
@@ -656,7 +658,9 @@ bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVer
 		// Move Y position down to next line. If the current line is empty, move by max char height in font
 		StartY += LineSize.Y > 0 ? LineSize.Y : Font->GetMaxCharHeight();
 	}
-	return true;
+
+	// Avoid initializing RHI resources when no vertices are generated.
+	return (OutVertices.Num() > 0);
 }
 
 // ------------------------------------------------------

@@ -14,7 +14,7 @@ ONLINESUBSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogOnline, Display, All);
 ONLINESUBSYSTEM_API DECLARE_LOG_CATEGORY_EXTERN(LogOnlineGame, Display, All);
 
 /** Online subsystem stats */
-DECLARE_STATS_GROUP(TEXT("Online"), STATGROUP_Online);
+DECLARE_STATS_GROUP(TEXT("Online"), STATGROUP_Online, STATCAT_Advanced);
 /** Total async thread time */
 DECLARE_CYCLE_STAT_EXTERN(TEXT("OnlineAsync"), STAT_Online_Async, STATGROUP_Online, ONLINESUBSYSTEM_API);
 /** Number of async tasks in queue */
@@ -82,6 +82,17 @@ public:
 		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName); 
 		return OSSModule.GetOnlineSubsystem(SubsystemName); 
   	}
+
+	/** 
+	 * Destroy a single online subsystem instance
+	 * @param SubsystemName - Name of the online service to destroy
+	 */
+	static void Destroy(FName SubsystemName)
+	{
+		static const FName OnlineSubsystemModuleName = TEXT("OnlineSubsystem");
+		FOnlineSubsystemModule& OSSModule = FModuleManager::GetModuleChecked<FOnlineSubsystemModule>(OnlineSubsystemModuleName);
+		return OSSModule.DestroyOnlineSubsystem(SubsystemName);
+	}
 
 	/** 
 	 * Determine if the subsystem for a given interface is already loaded
@@ -206,6 +217,54 @@ public:
 	 */
 	virtual IOnlinePresencePtr GetPresenceInterface() const = 0;
 
+	/**
+	 * Get custom UObject data preserved by the online subsystem
+	 *
+	 * @param InterfaceName key to the custom data
+	 */
+	virtual class UObject* GetNamedInterface(FName InterfaceName) = 0;
+
+	/**
+	 * Set a custom UObject to be preserved by the online subsystem
+	 *
+	 * @param InterfaceName key to the custom data
+	 * @param NewInterface object to preserve
+	 */
+	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) = 0;
+
+	/**
+	 * Is the online subsystem associated with the game/editor/engine running as dedicated.
+	 * May be forced into this mode by EditorPIE, but basically asks if the OSS is serving
+	 * in a dedicated capacity
+	 *
+	 * @return true if the online subsystem is in dedicated server mode, false otherwise
+	 */
+	virtual bool IsDedicated() const = 0;
+
+	/**
+	 * Is this instance of the game running as a server (dedicated OR listen)
+	 * checks the Engine if possible for netmode status
+	 *
+	 * @return true if this is the server, false otherwise
+	 */
+	virtual bool IsServer() const = 0;
+
+	/**
+	 * Force the online subsystem to behave as if it's associated with running a dedicated server
+	 *
+	 * @param bForce force dedicated mode if true
+	 */
+	virtual void SetForceDedicated(bool bForce) = 0;
+
+	/**
+	 * Is a player local to this machine by unique id
+	 *
+	 * @param UniqueId UniqueId of the player
+	 *
+	 * @return true if unique id is local to this machine, false otherwise
+	 */
+	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const = 0;
+
 	/** 
 	 * Initialize the underlying subsystem APIs
 	 * @return true if the subsystem was successfully initialized, false otherwise
@@ -275,11 +334,6 @@ public:
 ONLINESUBSYSTEM_API uint32 GetBuildUniqueId();
 
 /**
- * @return true if this is the server, false otherwise
- */
-inline bool IsServer() { return IsServerForOnlineSubsystems(); }
-
-/**
  * Common implementation for finding a player in a session
  *
  * @param SessionInt Session interface to use
@@ -288,5 +342,5 @@ inline bool IsServer() { return IsServerForOnlineSubsystems(); }
  *
  * @return true if unique id found in session, false otherwise
  */
-ONLINESUBSYSTEM_API bool IsPlayerInSessionImpl(IOnlineSession* SessionInt, FName SessionName, const FUniqueNetId& UniqueId);
+ONLINESUBSYSTEM_API bool IsPlayerInSessionImpl(class IOnlineSession* SessionInt, FName SessionName, const FUniqueNetId& UniqueId);
 

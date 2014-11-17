@@ -6,6 +6,7 @@
 #include "SGraphPreviewer.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "NodeFactory.h"
+#include "AnimStateEntryNode.h"
 
 /////////////////////////////////////////////////////
 // SGraphNodeAnimStateEntry

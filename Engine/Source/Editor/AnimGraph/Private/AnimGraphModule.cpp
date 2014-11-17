@@ -2,7 +2,7 @@
 
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphModule.h"
-#include "AnimGraph.generated.inl"
+
 
 IMPLEMENT_MODULE( FAnimGraphModule, AnimGraph );
 

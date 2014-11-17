@@ -2,7 +2,7 @@
 
 #include "CustomMeshComponentPluginPrivatePCH.h"
 
-#include "CustomMeshComponent.generated.inl"
+
 
 
 class FCustomMeshComponentPlugin : public ICustomMeshComponentPlugin

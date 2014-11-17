@@ -1,7 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
-#include "EngineKismetLibraryClasses.h"
 #include "CoreStats.h"
 
 UKismetMathLibrary::UKismetMathLibrary(const class FPostConstructInitializeProperties& PCIP)
@@ -422,17 +421,17 @@ float UKismetMathLibrary::Square(float A)
 
 int32 UKismetMathLibrary::Round(float A)
 {
-	return FMath::Round(A);
+	return FMath::RoundToInt(A);
 }	
 
 int32 UKismetMathLibrary::FFloor(float A)
 {
-	return FMath::Floor(A);
+	return FMath::FloorToInt(A);
 }	
 
 int32 UKismetMathLibrary::FCeil(float A)
 {
-	return FMath::Ceil(A);
+	return FMath::CeilToInt(A);
 }	
 
 int32 UKismetMathLibrary::FMod(float Dividend, float Divisor, float& Remainder)
@@ -441,7 +440,7 @@ int32 UKismetMathLibrary::FMod(float Dividend, float Divisor, float& Remainder)
 	if( Divisor != 0.f )
 	{
 		const float Quotient = Dividend / Divisor;
-		Result = (Quotient < 0.f ? -1 : 1) * FMath::Floor( FMath::Abs(Quotient) );
+		Result = (Quotient < 0.f ? -1 : 1) * FMath::FloorToInt( FMath::Abs(Quotient) );
 		Remainder = FMath::Fmod(Dividend, Divisor);
 	}
 	else
@@ -463,6 +462,11 @@ float UKismetMathLibrary::SignOfFloat(float A)
 
 float UKismetMathLibrary::NormalizeToRange(float Value, float RangeMin, float RangeMax)
 {
+	if (RangeMin == RangeMax)
+	{
+		return RangeMin;
+	}
+
 	if (RangeMin > RangeMax)
 	{
 		Swap(RangeMin, RangeMax);
@@ -472,12 +476,22 @@ float UKismetMathLibrary::NormalizeToRange(float Value, float RangeMin, float Ra
 
 float UKismetMathLibrary::MapRange(float Value, float InRangeA, float InRangeB, float OutRangeA, float OutRangeB)
 {
+	if (InRangeB == InRangeA)
+	{
+		return OutRangeA;
+	}
+
 	return (Value - InRangeA) * (OutRangeB - OutRangeA) / (InRangeB - InRangeA) + OutRangeA;
 }
 
 float UKismetMathLibrary::MultiplyByPi(float Value)
 {
 	return Value * PI;
+}
+
+float UKismetMathLibrary::FInterpEaseInOut(float A, float B, float Alpha, float Exponent)
+{
+	return FMath::InterpEaseInOut<float>(A, B, Alpha, Exponent);
 }
 
 float UKismetMathLibrary::RandomFloat()
@@ -638,6 +652,11 @@ FVector UKismetMathLibrary::VInterpTo(FVector Current, FVector Target, float Del
 FVector UKismetMathLibrary::RandomUnitVector()
 {
 	return FMath::VRand();
+}
+
+FVector UKismetMathLibrary::RandomUnitVectorInCone(FVector ConeDir, float ConeHalfAngle)
+{
+	return FMath::VRandCone(ConeDir, ConeHalfAngle);
 }
 
 FVector UKismetMathLibrary::MirrorVectorByNormal(FVector A, FVector B)

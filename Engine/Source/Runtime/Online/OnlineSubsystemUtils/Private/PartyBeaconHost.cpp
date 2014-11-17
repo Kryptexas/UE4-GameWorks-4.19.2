@@ -4,152 +4,14 @@
 
 APartyBeaconHost::APartyBeaconHost(const FPostConstructInitializeProperties& PCIP) :
 	Super(PCIP),
-	SessionName(NAME_None),
-	NumConsumedReservations(0),
-	MaxReservations(0)
+	State(NULL)
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void APartyBeaconHost::Tick(float DeltaTime)
-{
-	UWorld* World = GetWorld();
-	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
-	if (SessionInt.IsValid())
-	{
-		FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
-		if (Session)
-		{
-			TArray< TSharedPtr<FUniqueNetId> > PlayersToLogout;
-			for (int32 ResIdx=0; ResIdx < Reservations.Num(); ResIdx++)
-			{
-				FPartyReservation& PartyRes = Reservations[ResIdx];
-
-				// Determine if we have a client connection for the reservation 
-				bool bIsConnectedReservation = false;
-				for (int32 ClientIdx=0; ClientIdx < ClientActors.Num(); ClientIdx++)
-				{
-					APartyBeaconClient* Client = Cast<APartyBeaconClient>(ClientActors[ClientIdx]);
-					if (Client)
-					{
-						const FPartyReservation& ClientRes = Client->GetPendingReservation();
-						if (ClientRes.PartyLeader == PartyRes.PartyLeader)
-						{
-							bIsConnectedReservation = true;
-							break;
-						}
-					}
-					else
-					{
-						UE_LOG(LogBeacon, Error, TEXT("Missing PartyBeaconClient found in ClientActors array"));
-						ClientActors.RemoveAtSwap(ClientIdx);
-						ClientIdx--;
-					}
-				}
-
-				// Don't update clients that are still connected
-				if (bIsConnectedReservation)
-				{
-					for (int32 PlayerIdx=0; PlayerIdx < PartyRes.PartyMembers.Num(); PlayerIdx++)
-					{
-						FPlayerReservation& PlayerEntry = PartyRes.PartyMembers[PlayerIdx];
-						PlayerEntry.ElapsedTime = 0.0f;
-					}
-				}
-				// Once a client disconnects, update the elapsed time since they were found as a registrant in the game session
-				else
-				{
-					for (int32 PlayerIdx=0; PlayerIdx < PartyRes.PartyMembers.Num(); PlayerIdx++)
-					{
-						FPlayerReservation& PlayerEntry = PartyRes.PartyMembers[PlayerIdx];
-
-						// Determine if the player is the owner of the session	
-						const bool bIsSessionOwner = Session->OwningUserId.IsValid() && (*Session->OwningUserId == *PlayerEntry.UniqueId);
-
-						// Determine if the player member is registered in the game session
-						if (SessionInt->IsPlayerInSession(SessionName, *PlayerEntry.UniqueId) ||
-							// Never timeout the session owner
-							bIsSessionOwner)
-						{
-							FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
-							int32 FoundIdx = PlayersPendingJoin.FindMatch(PlayerMatch);
-							if (FoundIdx != INDEX_NONE)
-							{
-								UE_LOG(LogBeacon, Display, TEXT("Beacon (%s): pending player %s found in session (%s)."),
-									*GetName(),
-									*PlayerEntry.UniqueId->ToDebugString(),
-									*SessionName.ToString());
-
-								// reset elapsed time since found
-								PlayerEntry.ElapsedTime = 0.0f;
-								// also remove from pending join list
-								PlayersPendingJoin.RemoveAtSwap(FoundIdx);
-							}
-						}
-						else
-						{
-							// update elapsed time
-							PlayerEntry.ElapsedTime += DeltaTime;
-
-							// if the player is pending it's initial join then check against TravelSessionTimeoutSecs instead
-							FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
-							int32 FoundIdx = PlayersPendingJoin.FindMatch(PlayerMatch);
-							const bool bIsPlayerPendingJoin = FoundIdx != INDEX_NONE;
-							// if the timeout has been exceeded then add to list of players 
-							// that need to be logged out from the beacon
-							if ((bIsPlayerPendingJoin && PlayerEntry.ElapsedTime > TravelSessionTimeoutSecs) ||
-								(!bIsPlayerPendingJoin && PlayerEntry.ElapsedTime > SessionTimeoutSecs))
-							{
-								PlayersToLogout.AddUnique(PlayerEntry.UniqueId.GetUniqueNetId());
-							}
-						}
-					}
-				}
-			}
-
-			// Logout any players that timed out
-			for (int32 LogoutIdx=0; LogoutIdx < PlayersToLogout.Num(); LogoutIdx++)
-			{
-				bool bFound = false;
-				const TSharedPtr<FUniqueNetId>& UniqueId = PlayersToLogout[LogoutIdx];
-				float ElapsedSessionTime = 0.f;
-				for (int32 ResIdx=0; ResIdx < Reservations.Num(); ResIdx++)
-				{
-					FPartyReservation& PartyRes = Reservations[ResIdx];
-					for (int32 PlayerIdx=0; PlayerIdx < PartyRes.PartyMembers.Num(); PlayerIdx++)
-					{
-						FPlayerReservation& PlayerEntry = PartyRes.PartyMembers[PlayerIdx];
-						if (*PlayerEntry.UniqueId == *UniqueId)
-						{
-							ElapsedSessionTime = PlayerEntry.ElapsedTime;
-							bFound = true;
-							break;
-						}
-					}
-
-					if (bFound)
-					{
-						break;
-					}
-				}
-
-				UE_LOG(LogBeacon, Display, TEXT("Beacon (%s): player logout due to timeout for %s, elapsed time = %0.3f"),
-					*GetName(),
-					*UniqueId->ToDebugString(),
-					ElapsedSessionTime);
-				// Also remove from pending join list
-				PlayersPendingJoin.RemoveSingleSwap(UniqueId);
-				// let the beacon handle the logout and notifications/delegates
-				FUniqueNetIdRepl RemovedId(UniqueId);
-				HandlePlayerLogout(RemovedId);
-			}
-		}
-	}
-}
-
 bool APartyBeaconHost::InitHost()
 {
-	if(AOnlineBeaconHost::InitHost())
+	if (AOnlineBeaconHost::InitHost())
 	{
 		OnBeaconConnected(FName(TEXT("PartyBeacon"))).BindUObject(this, &APartyBeaconHost::ClientConnected);
 		return true;
@@ -160,111 +22,59 @@ bool APartyBeaconHost::InitHost()
 
 bool APartyBeaconHost::InitHostBeacon(int32 InTeamCount, int32 InTeamSize, int32 InMaxReservations, FName InSessionName, int32 InForceTeamNum)
 {
-	UE_LOG(LogBeacon, Verbose, TEXT("InitPartyHost TeamCount:%d TeamSize:%d MaxSize:%d"), InTeamCount, InTeamSize, InMaxReservations);
+	UE_LOG(LogBeacon, Verbose, TEXT("InitHostBeacon TeamCount:%d TeamSize:%d MaxSize:%d"), InTeamCount, InTeamSize, InMaxReservations);
 	if (InMaxReservations > 0)
 	{
 		if (InitHost())
 		{
-			SessionName = InSessionName;
-			NumTeams = InTeamCount;
-			NumPlayersPerTeam = InTeamSize;
-			MaxReservations = InMaxReservations;
-			ForceTeamNum = InForceTeamNum;
-			Reservations.Empty(MaxReservations);
-
-			InitTeamArray();
-			return true;
+			State = ConstructObject<UPartyBeaconState>(GetPartyBeaconHostClass());
+			if (State->InitState(InTeamCount, InTeamSize, InMaxReservations, InSessionName, InForceTeamNum))
+			{
+				return true;
+			}
+		}
+		else
+		{
+			UE_LOG(LogBeacon, Warning, TEXT("Failed to initialize beacon"));
 		}
 	}
 
 	return false;
 }
 
-void APartyBeaconHost::InitTeamArray()
+bool APartyBeaconHost::InitFromBeaconState(UPartyBeaconState* PrevState)
 {
-	if (NumTeams > 1)
+	if (!State && PrevState)
 	{
-		// Grab one for the host team
-		ReservedHostTeamNum = FMath::Rand() % NumTeams;
-	}
-	else
-	{
-		// Only one team, so choose 'forced team' for everything
-		ReservedHostTeamNum = ForceTeamNum;
+		UE_LOG(LogBeacon, Verbose, TEXT("InitFromBeaconState TeamCount:%d TeamSize:%d MaxSize:%d"), PrevState->NumTeams, PrevState->NumPlayersPerTeam, PrevState->MaxReservations);
+
+		if (InitHost())
+		{
+			State = PrevState;
+			return true;
+		}
+		else
+		{
+			UE_LOG(LogBeacon, Warning, TEXT("Failed to initialize beacon"));
+		}
 	}
 
-	UE_LOG(LogBeacon, Display,
-		TEXT("Beacon (%s) team count (%d), team size (%d), host team (%d)"),
-		*BeaconName,
-		NumTeams,
-		NumPlayersPerTeam,
-		ReservedHostTeamNum);
+	return false;
 }
 
 bool APartyBeaconHost::ReconfigureTeamAndPlayerCount(int32 InNumTeams, int32 InNumPlayersPerTeam, int32 InNumReservations)
 {
 	bool bSuccess = false;
-	if (NetDriver != NULL)
+	if (NetDriver != NULL && State != NULL)
 	{
-		//Check total existing reservations against new total maximum
-		if (NumConsumedReservations < InNumReservations)
-		{	 
-			bool bTeamError = false;
-			// Check teams with reservations against new team count
-			if (NumTeams > InNumTeams)
-			{
-				// Any team about to be removed can't have players already there
-				for (int32 TeamIdx = InNumTeams; TeamIdx < NumTeams; TeamIdx++)
-				{
-					if (GetNumPlayersOnTeam(TeamIdx) > 0)
-					{
-						bTeamError = true;
-						UE_LOG(LogBeacon, Warning, TEXT("Beacon (%s) has players on a team about to be removed."),
-							*BeaconName);
-					}
-				}
-			}
-
-			bool bTeamSizeError = false;
-			// Check num players per team against new team size
-			if (NumPlayersPerTeam > InNumPlayersPerTeam)
-			{
-				for (int32 TeamIdx=0; TeamIdx<NumTeams; TeamIdx++)
-				{
-					if (GetNumPlayersOnTeam(TeamIdx) > InNumPlayersPerTeam)
-					{
-						bTeamSizeError = true;
-						UE_LOG(LogBeacon, Warning, TEXT("Beacon (%s) has too many players on a team about to be resized."),
-							*BeaconName);
-					}
-				}
-			}
-
-			if (!bTeamError && !bTeamSizeError)
-			{
-				NumTeams = InNumTeams;
-				NumPlayersPerTeam = InNumPlayersPerTeam;
-				MaxReservations = InNumReservations;
-
-				InitTeamArray();
-				bSuccess = true;
-
-				UE_LOG(LogBeacon, Display,
-					TEXT("Reconfiguring beacon (%s) team count (%d), team size (%d)"),
-					*BeaconName,
-					NumTeams,
-					NumPlayersPerTeam);
-			}
-		}
-		else
-		{
-			UE_LOG(LogBeacon, Warning, TEXT("Beacon (%s) has too many consumed reservations for this reconfiguration, ignoring request."),
-				*BeaconName);
-		}
+		bSuccess = State->ReconfigureTeamAndPlayerCount(InNumTeams, InNumPlayersPerTeam, InNumReservations);
+		UE_LOG(LogBeacon, Log,
+			TEXT("Beacon (%s) reconfiguring team and player count."),
+			*BeaconName);
 	}
 	else
 	{
-		UE_LOG(LogBeacon, Warning, 
+		UE_LOG(LogBeacon, Warning,
 			TEXT("Beacon (%s) hasn't been initialized yet, can't change team and player count."),
 			*BeaconName);
 	}
@@ -272,51 +82,175 @@ bool APartyBeaconHost::ReconfigureTeamAndPlayerCount(int32 InNumTeams, int32 InN
 	return bSuccess;
 }
 
-int32 APartyBeaconHost::GetNumPlayersOnTeam(int32 TeamIdx) const
+void APartyBeaconHost::Tick(float DeltaTime)
 {
-	int32 Result = 0;
-	for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
+	if (State)
 	{
-		const FPartyReservation& Reservation = Reservations[ResIdx];
-		if (Reservation.TeamNum == TeamIdx)
+		UWorld* World = GetWorld();
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
+
+		if (SessionInt.IsValid())
 		{
-			for (int32 PlayerIdx = 0; PlayerIdx < Reservation.PartyMembers.Num(); PlayerIdx++)
+			FName SessionName = State->GetSessionName();
+			TArray<FPartyReservation>& Reservations = State->GetReservations();
+
+			FNamedOnlineSession* Session = SessionInt->GetNamedSession(SessionName);
+			if (Session)
 			{
-				const FPlayerReservation& PlayerEntry = Reservation.PartyMembers[PlayerIdx];
-				// only count valid player net ids
-				if (PlayerEntry.UniqueId.IsValid())
+				TArray< TSharedPtr<FUniqueNetId> > PlayersToLogout;
+				for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
 				{
-					// count party members in each team (includes party leader)
-					Result++;
+					FPartyReservation& PartyRes = Reservations[ResIdx];
+
+					// Determine if we have a client connection for the reservation 
+					bool bIsConnectedReservation = false;
+					for (int32 ClientIdx = 0; ClientIdx < ClientActors.Num(); ClientIdx++)
+					{
+						APartyBeaconClient* Client = Cast<APartyBeaconClient>(ClientActors[ClientIdx]);
+						if (Client)
+						{
+							const FPartyReservation& ClientRes = Client->GetPendingReservation();
+							if (ClientRes.PartyLeader == PartyRes.PartyLeader)
+							{
+								bIsConnectedReservation = true;
+								break;
+							}
+						}
+						else
+						{
+							UE_LOG(LogBeacon, Error, TEXT("Missing PartyBeaconClient found in ClientActors array"));
+							ClientActors.RemoveAtSwap(ClientIdx);
+							ClientIdx--;
+						}
+					}
+
+					// Don't update clients that are still connected
+					if (bIsConnectedReservation)
+					{
+						for (int32 PlayerIdx = 0; PlayerIdx < PartyRes.PartyMembers.Num(); PlayerIdx++)
+						{
+							FPlayerReservation& PlayerEntry = PartyRes.PartyMembers[PlayerIdx];
+							PlayerEntry.ElapsedTime = 0.0f;
+						}
+					}
+					// Once a client beacon disconnects, update the elapsed time since they were found as a registrant in the game session
+					else
+					{
+						for (int32 PlayerIdx = 0; PlayerIdx < PartyRes.PartyMembers.Num(); PlayerIdx++)
+						{
+							FPlayerReservation& PlayerEntry = PartyRes.PartyMembers[PlayerIdx];
+
+							// Determine if the player is the owner of the session	
+							const bool bIsSessionOwner = Session->OwningUserId.IsValid() && (*Session->OwningUserId == *PlayerEntry.UniqueId);
+
+							// Determine if the player member is registered in the game session
+							if (SessionInt->IsPlayerInSession(SessionName, *PlayerEntry.UniqueId) ||
+								// Never timeout the session owner
+								bIsSessionOwner)
+							{
+								FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
+								int32 FoundIdx = State->PlayersPendingJoin.FindMatch(PlayerMatch);
+								if (FoundIdx != INDEX_NONE)
+								{
+									UE_LOG(LogBeacon, Display, TEXT("Beacon (%s): pending player %s found in session (%s)."),
+										*GetName(),
+										*PlayerEntry.UniqueId->ToDebugString(),
+										*SessionName.ToString());
+
+									// reset elapsed time since found
+									PlayerEntry.ElapsedTime = 0.0f;
+									// also remove from pending join list
+									State->PlayersPendingJoin.RemoveAtSwap(FoundIdx);
+								}
+							}
+							else
+							{
+								// update elapsed time
+								PlayerEntry.ElapsedTime += DeltaTime;
+
+								// if the player is pending it's initial join then check against TravelSessionTimeoutSecs instead
+								FUniqueNetIdMatcher PlayerMatch(*PlayerEntry.UniqueId);
+								int32 FoundIdx = State->PlayersPendingJoin.FindMatch(PlayerMatch);
+								const bool bIsPlayerPendingJoin = FoundIdx != INDEX_NONE;
+								// if the timeout has been exceeded then add to list of players 
+								// that need to be logged out from the beacon
+								if ((bIsPlayerPendingJoin && PlayerEntry.ElapsedTime > TravelSessionTimeoutSecs) ||
+									(!bIsPlayerPendingJoin && PlayerEntry.ElapsedTime > SessionTimeoutSecs))
+								{
+									PlayersToLogout.AddUnique(PlayerEntry.UniqueId.GetUniqueNetId());
+								}
+							}
+						}
+					}
+				}
+
+				// Logout any players that timed out
+				for (int32 LogoutIdx = 0; LogoutIdx < PlayersToLogout.Num(); LogoutIdx++)
+				{
+					bool bFound = false;
+					const TSharedPtr<FUniqueNetId>& UniqueId = PlayersToLogout[LogoutIdx];
+					float ElapsedSessionTime = 0.f;
+					for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
+					{
+						const FPartyReservation& PartyRes = Reservations[ResIdx];
+						for (int32 PlayerIdx = 0; PlayerIdx < PartyRes.PartyMembers.Num(); PlayerIdx++)
+						{
+							const FPlayerReservation& PlayerEntry = PartyRes.PartyMembers[PlayerIdx];
+							if (*PlayerEntry.UniqueId == *UniqueId)
+							{
+								ElapsedSessionTime = PlayerEntry.ElapsedTime;
+								bFound = true;
+								break;
+							}
+						}
+
+						if (bFound)
+						{
+							break;
+						}
+					}
+
+					UE_LOG(LogBeacon, Display, TEXT("Beacon (%s): player logout due to timeout for %s, elapsed time = %0.3f"),
+						*GetName(),
+						*UniqueId->ToDebugString(),
+						ElapsedSessionTime);
+					// Also remove from pending join list
+					State->PlayersPendingJoin.RemoveSingleSwap(UniqueId);
+					// let the beacon handle the logout and notifications/delegates
+					FUniqueNetIdRepl RemovedId(UniqueId);
+					HandlePlayerLogout(RemovedId);
 				}
 			}
 		}
 	}
+}
+
+int32 APartyBeaconHost::GetNumPlayersOnTeam(int32 TeamIdx) const
+{
+	int32 Result = 0;
+	if (NetDriver != NULL && State != NULL)
+	{
+		Result = State->GetNumPlayersOnTeam(TeamIdx);
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning,
+			TEXT("Beacon (%s) hasn't been initialized yet, can't get team player count."),
+			*BeaconName);
+	}
+
 	return Result;
 }
 
-int32 APartyBeaconHost::GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId)
+int32 APartyBeaconHost::GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId) const
 {
 	int32 TeamNum = INDEX_NONE;
 	if (PlayerId.IsValid())
 	{
-		for (int32 ResIdx = 0; ResIdx < Reservations.Num(); ResIdx++)
+		if (State)
 		{
-			const FPartyReservation& Reservation = Reservations[ResIdx];
-			for (int32 PlayerIdx = 0; PlayerIdx < Reservation.PartyMembers.Num(); PlayerIdx++)
-			{
-				// find the player id in the existing list of reservations
-				if (*Reservation.PartyMembers[PlayerIdx].UniqueId == PlayerId)
-				{
-					TeamNum = Reservation.TeamNum;
-					break;
-				}
-			}
+			TeamNum = State->GetTeamForCurrentPlayer(PlayerId);
 		}
-
-		UE_LOG(LogBeacon, Display, TEXT("Assigning player %s to team %d"),
-			*PlayerId.ToString(),
-			TeamNum);
 	}
 	else
 	{
@@ -326,98 +260,13 @@ int32 APartyBeaconHost::GetTeamForCurrentPlayer(const FUniqueNetId& PlayerId)
 	return TeamNum;
 }
 
-bool APartyBeaconHost::AreTeamsAvailable(int32 PartySize) const
-{
-	for (int32 TeamIdx = 0; TeamIdx < NumTeams; TeamIdx++)
-	{
-		const int32 CurrentPlayersOnTeam = GetNumPlayersOnTeam(TeamIdx);
-		if ((CurrentPlayersOnTeam + PartySize) <= NumPlayersPerTeam)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-/**
- * Helper for sorting team sizes
- */
-struct FTeamBalanceInfo
-{
-	/** Index of team */
-	int32 TeamIdx;
-	/** Current size of team */
-	int32 TeamSize;
-
-	FTeamBalanceInfo(int32 InTeamIdx, int32 InTeamSize)
-		: TeamIdx(InTeamIdx),
-		  TeamSize(InTeamSize)
-	{}
-};
-
-/**
- * Sort teams by size (equal teams are randomly mixed)
- */
-struct FSortTeamSizeSmallestToLargest
-{
-	bool operator()(const FTeamBalanceInfo& A, const FTeamBalanceInfo& B) const
-	{
-		if (A.TeamSize == B.TeamSize)
-		{
-			return FMath::Rand() % 2 ? true : false;
-		}
-		else
-		{
-			return A.TeamSize < B.TeamSize;
-		}
-	}
-};
-
-int32 APartyBeaconHost::GetTeamAssignment(const FPartyReservation& Party)
-{
-	if (NumTeams > 1)
-	{
-		TArray<FTeamBalanceInfo> PotentialTeamChoices;
-		for (int32 TeamIdx = 0; TeamIdx < NumTeams; TeamIdx++)
-		{
-			const int32 CurrentPlayersOnTeam = GetNumPlayersOnTeam(TeamIdx);
-			if ((CurrentPlayersOnTeam + Party.PartyMembers.Num()) <= NumPlayersPerTeam)
-			{
-				new (PotentialTeamChoices) FTeamBalanceInfo(TeamIdx, CurrentPlayersOnTeam);
-			}
-		}
-
-		// Grab one from our list of choices
-		if (PotentialTeamChoices.Num() > 0)
-		{
-			if (1)
-			{
-				// Choose smallest team
-				PotentialTeamChoices.Sort(FSortTeamSizeSmallestToLargest());
-				return PotentialTeamChoices[0].TeamIdx;
-			}
-			else
-			{
-				// Random choice from set of choices
-				int32 TeamIndex = FMath::Rand() % PotentialTeamChoices.Num();
-				return PotentialTeamChoices[TeamIndex].TeamIdx;
-			}
-		}
-		else
-		{
-			UE_LOG(LogBeacon, Warning, TEXT("(UPartyBeaconHost.GetTeamAssignment): couldn't find an open team for party members."));
-			return INDEX_NONE;
-		}
-	}
-
-	return ForceTeamNum;
-}
-
 void APartyBeaconHost::NewPlayerAdded(const FPlayerReservation& NewPlayer)
 {
 	UE_LOG(LogBeacon, Verbose, TEXT("Beacon adding player %s"), *NewPlayer.UniqueId->ToDebugString());
-
-	PlayersPendingJoin.Add(NewPlayer.UniqueId.GetUniqueNetId());
+	if (State)
+	{
+		State->PlayersPendingJoin.Add(NewPlayer.UniqueId.GetUniqueNetId());
+	}
 }
 
 void APartyBeaconHost::HandlePlayerLogout(const FUniqueNetIdRepl& PlayerId)
@@ -426,36 +275,11 @@ void APartyBeaconHost::HandlePlayerLogout(const FUniqueNetIdRepl& PlayerId)
 	{
 		UE_LOG(LogBeacon, Verbose, TEXT("HandlePlayerLogout %s"), *PlayerId->ToDebugString());
 
-		bool bWasRemoved = false;
-		for (int32 ResIdx=0; ResIdx < Reservations.Num(); ResIdx++)
+		if (State)
 		{
-			FPartyReservation& Reservation = Reservations[ResIdx];
-
-			// find the player in an existing reservation slot
-			for (int32 PlayerIdx=0; PlayerIdx < Reservation.PartyMembers.Num(); PlayerIdx++)
-			{	
-				FPlayerReservation& PlayerEntry = Reservation.PartyMembers[PlayerIdx];
-				if (PlayerEntry.UniqueId == PlayerId)
-				{
-					// player removed
-					Reservation.PartyMembers.RemoveAtSwap(PlayerIdx--);
-					bWasRemoved = true;
-
-					// free up a consumed entry
-					NumConsumedReservations--;
-				}
-			}
-
-			// remove the entire party reservation slot if no more party members
-			if (Reservation.PartyMembers.Num() == 0)
-			{
-				Reservations.RemoveAtSwap(ResIdx--);
-			}
-
-			if (bWasRemoved)
+			if (State->RemovePlayer(PlayerId))
 			{
 				ReservationChanged.ExecuteIfBound();
-				break;
 			}
 		}
 	}
@@ -463,74 +287,50 @@ void APartyBeaconHost::HandlePlayerLogout(const FUniqueNetIdRepl& PlayerId)
 
 bool APartyBeaconHost::PlayerHasReservation(const FUniqueNetId& PlayerId) const
 {
-	bool bFound = false;
-
-	for (int32 ResIdx=0; ResIdx < Reservations.Num(); ResIdx++)
+	bool bHasReservation = false;
+	if (State)
 	{
-		const FPartyReservation& ReservationEntry = Reservations[ResIdx];
-		for (int32 PlayerIdx=0; PlayerIdx < ReservationEntry.PartyMembers.Num(); PlayerIdx++)
-		{
-			if (*ReservationEntry.PartyMembers[PlayerIdx].UniqueId == PlayerId)
-			{
-				bFound = true;
-				break;
-			}
-		}
+		bHasReservation = State->PlayerHasReservation(PlayerId);
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning,
+			TEXT("Beacon (%s) hasn't been initialized yet, no reservations."),
+			*BeaconName);
 	}
 
-	return bFound; 
+	return bHasReservation;
 }
 
 bool APartyBeaconHost::GetPlayerValidation(const FUniqueNetId& PlayerId, FString& OutValidation) const
 {
-	bool bFound = false;
 	OutValidation = FString();
 
-	for (int32 ResIdx=0; ResIdx < Reservations.Num(); ResIdx++)
+	bool bHasValidation = false;
+	if (State)
 	{
-		const FPartyReservation& ReservationEntry = Reservations[ResIdx];
-		for (int32 PlayerIdx=0; PlayerIdx < ReservationEntry.PartyMembers.Num(); PlayerIdx++)
-		{
-			if (*ReservationEntry.PartyMembers[PlayerIdx].UniqueId == PlayerId)
-			{
-				OutValidation = ReservationEntry.PartyMembers[PlayerIdx].ValidationStr;
-				bFound = true;
-				break;
-			}
-		}
+		bHasValidation = State->GetPlayerValidation(PlayerId, OutValidation);
+	}
+	else
+	{
+		UE_LOG(LogBeacon, Warning,
+			TEXT("Beacon (%s) hasn't been initialized yet, no validation."),
+			*BeaconName);
 	}
 
-	return bFound; 
-}
-
-int32 APartyBeaconHost::GetExistingReservation(const FUniqueNetIdRepl& PartyLeader)
-{
-	int32 Result = INDEX_NONE;
-	for (int32 ResIdx=0; ResIdx < Reservations.Num(); ResIdx++)
-	{
-		const FPartyReservation& ReservationEntry = Reservations[ResIdx];
-		if (ReservationEntry.PartyLeader == PartyLeader)
-		{
-			Result = ResIdx;
-			break;
-		}
-	}
-
-	return Result; 
+	return bHasValidation;
 }
 
 EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FPartyReservation& ReservationRequest)
 {
 	EPartyReservationResult::Type Result = EPartyReservationResult::GeneralError;
 
-	if (BeaconState == EBeaconState::DenyRequests)
+	if (!State || BeaconState == EBeaconState::DenyRequests)
 	{
 		return EPartyReservationResult::ReservationDenied;
 	}
 
-	int32 IncomingPartySize = ReservationRequest.PartyMembers.Num();
-	if (IncomingPartySize <= NumPlayersPerTeam &&
-		NumConsumedReservations + IncomingPartySize <= MaxReservations)
+	if (State->DoesReservationFit(ReservationRequest))
 	{
 		bool bContinue = true;
 		if (ValidatePlayers.IsBound())
@@ -540,9 +340,10 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 
 		if (bContinue)
 		{
-			const int32 ExistingReservationIdx = GetExistingReservation(ReservationRequest.PartyLeader);
+			const int32 ExistingReservationIdx = State->GetExistingReservation(ReservationRequest.PartyLeader);
 			if (ExistingReservationIdx != INDEX_NONE)
 			{
+				const TArray<FPartyReservation>& Reservations = State->GetReservations();
 				const FPartyReservation& ExistingReservation = Reservations[ExistingReservationIdx];
 				if (ReservationRequest.PartyMembers.Num() == ExistingReservation.PartyMembers.Num())
 				{
@@ -564,23 +365,18 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 			}
 			else
 			{
-				if (AreTeamsAvailable(IncomingPartySize))
+				if (State->AreTeamsAvailable(ReservationRequest))
 				{
-					int32 TeamAssignment = GetTeamAssignment(ReservationRequest);
-					if (TeamAssignment != INDEX_NONE)
+					if (State->AddReservation(ReservationRequest))
 					{
-						NumConsumedReservations += IncomingPartySize;
-						int32 ResIdx = Reservations.Add(ReservationRequest);
-						Reservations[ResIdx].TeamNum = TeamAssignment;
-
 						// Keep track of newly added players
-						for (int32 Count = 0; Count < ReservationRequest.PartyMembers.Num(); Count++)
+						for (const FPlayerReservation& PartyMember : ReservationRequest.PartyMembers)
 						{
-							NewPlayerAdded(ReservationRequest.PartyMembers[Count]);
+							NewPlayerAdded(PartyMember);
 						}
 
 						ReservationChanged.ExecuteIfBound();
-						if (NumConsumedReservations == MaxReservations)
+						if (State->IsBeaconFull())
 						{
 							ReservationsFull.ExecuteIfBound();
 						}
@@ -613,12 +409,8 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 
 void APartyBeaconHost::RemovePartyReservation(const FUniqueNetIdRepl& PartyLeader)
 {
-	const int32 ExistingReservationIdx = GetExistingReservation(PartyLeader);
-	if (ExistingReservationIdx != INDEX_NONE)
+	if (State && State->RemoveReservation(PartyLeader))
 	{
-		NumConsumedReservations -= Reservations[ExistingReservationIdx].PartyMembers.Num();
-		Reservations.RemoveAtSwap(ExistingReservationIdx);
-
 		CancelationReceived.ExecuteIfBound(*PartyLeader);
 		ReservationChanged.ExecuteIfBound();
 	}
@@ -630,15 +422,19 @@ void APartyBeaconHost::RemovePartyReservation(const FUniqueNetIdRepl& PartyLeade
 
 bool APartyBeaconHost::DoesSessionMatch(const FString& SessionId) const
 {
-	UWorld* World = GetWorld();
-
-	IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
-	FNamedOnlineSession* Session = SessionInt.IsValid() ? SessionInt->GetNamedSession(SessionName) : NULL;
-	if (Session && Session->SessionInfo.IsValid() && !SessionId.IsEmpty() && Session->SessionInfo->GetSessionId().ToString() == SessionId)
+	if (State)
 	{
-		return true;
+		UWorld* World = GetWorld();
+		FName SessionName = State->GetSessionName();
+
+		IOnlineSessionPtr SessionInt = Online::GetSessionInterface(World);
+		FNamedOnlineSession* Session = SessionInt.IsValid() ? SessionInt->GetNamedSession(SessionName) : NULL;
+		if (Session && Session->SessionInfo.IsValid() && !SessionId.IsEmpty() && Session->SessionInfo->GetSessionId().ToString() == SessionId)
+		{
+			return true;
+		}
 	}
-	
+
 	return false;
 }
 
@@ -697,30 +493,10 @@ AOnlineBeaconClient* APartyBeaconHost::SpawnBeaconActor()
 
 void APartyBeaconHost::DumpReservations() const
 {
-	FUniqueNetIdRepl NetId;
-	FPlayerReservation PlayerRes;
-
 	UE_LOG(LogBeacon, Display, TEXT("Debug info for Beacon: %s"), *BeaconName);
-	UE_LOG(LogBeacon, Display, TEXT("Session that reservations are for: %s"), *SessionName.ToString());
-	UE_LOG(LogBeacon, Display, TEXT("Number of teams: %d"), NumTeams);
-	UE_LOG(LogBeacon, Display, TEXT("Number players per team: %d"), NumPlayersPerTeam);
-	UE_LOG(LogBeacon, Display, TEXT("Number total reservations: %d"), MaxReservations);
-	UE_LOG(LogBeacon, Display, TEXT("Number consumed reservations: %d"), NumConsumedReservations);
-	UE_LOG(LogBeacon, Display, TEXT("Number of party reservations: %d"), Reservations.Num());
-
-	// Log each party that has a reservation
-	for (int32 PartyIndex = 0; PartyIndex < Reservations.Num(); PartyIndex++)
+	if (State)
 	{
-		NetId = Reservations[PartyIndex].PartyLeader;
-		UE_LOG(LogBeacon, Display, TEXT("\t Party leader: %s"), *NetId->ToString());
-		UE_LOG(LogBeacon, Display, TEXT("\t Party team: %d"), Reservations[PartyIndex].TeamNum);
-		UE_LOG(LogBeacon, Display, TEXT("\t Party size: %d"), Reservations[PartyIndex].PartyMembers.Num());
-		// Log each member of the party
-		for (int32 MemberIndex = 0; MemberIndex < Reservations[PartyIndex].PartyMembers.Num(); MemberIndex++)
-		{
-			PlayerRes = Reservations[PartyIndex].PartyMembers[MemberIndex];
-			UE_LOG(LogBeacon, Display, TEXT("\t  Party member: %s"), *PlayerRes.UniqueId->ToString());
-		}
+		State->DumpReservations();
 	}
 	UE_LOG(LogBeacon, Display, TEXT(""));
 }

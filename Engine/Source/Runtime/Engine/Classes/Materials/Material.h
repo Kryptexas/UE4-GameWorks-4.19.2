@@ -254,7 +254,7 @@ struct FMaterialParameterCollectionInfo
  * when light from the scene hits the surface, the lighting model of the material is used to calculate how
  * that light interacts with the surface. 
  */
-UCLASS(HeaderGroup=Material, hidecategories=Object, MinimalAPI, BlueprintType)
+UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class UMaterial : public UMaterialInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -460,7 +460,7 @@ public:
 	/**
 	 * If enabled, the material's emissive colour is injected into the LightPropagationVolume
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material, AdvancedDisplay)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material, meta=(DisplayName = "Emissive (Dynamic Area Light)"), AdvancedDisplay)
 	uint32 bUseEmissiveForDynamicAreaLighting : 1;
 
 	/** Whether material uses BaseColor, Metallic, Specular */
@@ -647,9 +647,9 @@ public:
 	UPROPERTY(transient, duplicatetransient)
 	uint32 bAllowDevelopmentShaderCompile:1;
 
-	/** true if this is one of the materials used in development overhead calculations in the material editor. */
+	/** true if this is a special material used for stats by the material editor. */
 	UPROPERTY(transient, duplicatetransient)
-	uint32 bIsMaterialDevelopmentOverheadStatsMaterial:1;
+	uint32 bIsMaterialEditorStatsMaterial:1;
 
 	/** true if we have printed a warning about material usage for a given usage flag. */
 	UPROPERTY(transient, duplicatetransient)
@@ -1144,6 +1144,23 @@ public:
 
 	// For all materials, UMaterial::CacheResourceShadersForRendering
 	static void AllMaterialsCacheResourceShadersForRendering();
+
+#if WITH_EDITORONLY_DATA
+	/**
+	 * Flip the X coordinates of a material's expressions and space them out more
+	 *
+	 * @param	Expressions		Array of material expressions
+	 * @param	Comments		Array of material expression comments
+	 * @param	bScaleCoords	Whether to scale the coordinates to space out nodes
+	 * @param	Material		The Material to flip its home coords (optional)
+	 */
+	static void FlipExpressionPositions(const TArray<UMaterialExpression*>& Expressions, const TArray<UMaterialExpressionComment*>& Comments, bool bScaleCoords, UMaterial* Material = NULL);
+
+	/**
+	 * Checks whether a Material is arranged in the old style, with inputs flowing from right to left
+	 */
+	bool HasFlippedCoordinates();
+#endif //WITH_EDITORONLY_DATA
 
 private:
 	static FMaterialCompilationFinished MaterialCompilationFinishedEvent;

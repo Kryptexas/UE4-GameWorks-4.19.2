@@ -6,6 +6,7 @@
 #include "ScopedTransaction.h"
 #include "Kismet2NameValidators.h"
 #include "K2ActionMenuBuilder.h" // for FK2ActionMenuBuilder::AddNewNodeAction()
+#include "AnimGraphNode_SaveCachedPose.h"
 
 /////////////////////////////////////////////////////
 // FCachedPoseNameValidator
@@ -19,9 +20,8 @@ public:
 		TArray<UAnimGraphNode_SaveCachedPose*> Nodes;
 		FBlueprintEditorUtils::GetAllNodesOfClass<UAnimGraphNode_SaveCachedPose>(InBlueprint, Nodes);
 
-		for (auto NodeIt = Nodes.CreateIterator(); NodeIt; ++NodeIt)
+		for (auto Node : Nodes)
 		{
-			auto Node = *NodeIt;
 			Names.Add(Node->CacheName);
 		}
 	}

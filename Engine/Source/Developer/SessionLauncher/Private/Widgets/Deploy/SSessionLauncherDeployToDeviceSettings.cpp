@@ -44,7 +44,7 @@ void SSessionLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 					.AutoHeight()
 					[
 						SNew(SExpandableArea)
-							.AreaTitle(LOCTEXT("AdvancedAreaTitle", "Advanced Settings").ToString())
+							.AreaTitle(LOCTEXT("AdvancedAreaTitle", "Advanced Settings"))
 							.InitiallyCollapsed(true)
 							.Padding(8.0f)
 							.BodyContent()
@@ -59,11 +59,11 @@ void SSessionLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 											.IsChecked(this, &SSessionLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxIsChecked)
 											.OnCheckStateChanged(this, &SSessionLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxCheckStateChanged)
 											.Padding(FMargin(4.0f, 0.0f))
-											.ToolTipText(LOCTEXT("UnrealPakCheckBoxTooltip", "If checked, the content will be deployed as a single UnrealPak file instead of many separate files.").ToString())
+											.ToolTipText(LOCTEXT("UnrealPakCheckBoxTooltip", "If checked, the content will be deployed as a single UnrealPak file instead of many separate files."))
 											.Content()
 											[
 												SNew(STextBlock)
-													.Text(LOCTEXT("UnrealPakCheckBoxText", "Store all content in a single file (UnrealPak)").ToString())
+													.Text(LOCTEXT("UnrealPakCheckBoxText", "Store all content in a single file (UnrealPak)"))
 											]
 									]
 							]

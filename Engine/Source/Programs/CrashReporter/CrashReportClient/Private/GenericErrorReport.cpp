@@ -165,7 +165,7 @@ bool FGenericErrorReport::TryReadDiagnosticsFile(FText& OutReportDescription)
 			break;
 		}
 	}
-	OutReportDescription = FormatReportDescription(Exception, Callstack);
+	OutReportDescription = FormatReportDescription(Exception, TEXT(""), Callstack);
 	return true;
 }
 

@@ -8,10 +8,9 @@
 
 #include "StaticMeshLight.h"
 #include "ModelLight.h"
-#include "EngineFoliageClasses.h"
 #include "Runtime/Engine/Public/Landscape/LandscapeLight.h"
 
-#include "../Lightmass/Lightmass.h"
+#include "Lightmass/Lightmass.h"
 
 // Doxygen cannot parse these definitions correctly since the declaration is in a header from a different module
 #if !UE_BUILD_DOCS

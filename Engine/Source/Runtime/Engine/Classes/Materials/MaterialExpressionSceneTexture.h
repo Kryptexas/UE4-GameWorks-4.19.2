@@ -58,7 +58,7 @@ enum ESceneTextureId
 	PPI_AmbientOcclusion UMETA(DisplayName="Ambient Occlusion"),
 };
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionSceneTexture : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

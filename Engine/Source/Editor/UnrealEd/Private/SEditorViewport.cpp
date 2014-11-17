@@ -39,15 +39,15 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 			.ShowEffectWhenDisabled( false )
 			.EnableGammaCorrection( false ) // Scene rendering handles this
 			[
-				SNew( SBorder )
-				.BorderImage( this, &SEditorViewport::OnGetViewportBorderBrush )
-				.BorderBackgroundColor( this, &SEditorViewport::OnGetViewportBorderColorAndOpacity )
-				.Visibility( this, &SEditorViewport::OnGetViewportContentVisibility )
-				.Padding(0.0f)
-				.ShowEffectWhenDisabled( false )
+				SAssignNew( ViewportOverlay, SOverlay )
+				+SOverlay::Slot()
 				[
-					SAssignNew( ViewportOverlay, SOverlay )
-			
+					SNew( SBorder )
+					.BorderImage( this, &SEditorViewport::OnGetViewportBorderBrush )
+					.BorderBackgroundColor( this, &SEditorViewport::OnGetViewportBorderColorAndOpacity )
+					.Visibility( this, &SEditorViewport::OnGetViewportContentVisibility )
+					.Padding(0.0f)
+					.ShowEffectWhenDisabled( false )
 				]
 			]
 		]
@@ -74,8 +74,6 @@ void SEditorViewport::Construct( const FArguments& InArgs )
 				ViewportToolbar.ToSharedRef()
 			];
 	}
-
-	FCoreDelegates::StatsEnabled.AddSP(this, &SEditorViewport::HandleViewportStatsEnabled);
 }
 
 FReply SEditorViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyboardEvent& InKeyboardEvent )
@@ -114,19 +112,19 @@ void SEditorViewport::BindCommands()
 		Commands.ToggleRealTime,
 		FExecuteAction::CreateSP( this, &SEditorViewport::OnToggleRealtime ),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( this, &SEditorViewport::IsRealtime ) );
+		FIsActionChecked::CreateSP(this, &SEditorViewport::IsRealtime));
 
 	CommandListRef.MapAction( 
 		Commands.ToggleStats,
 		FExecuteAction::CreateSP( this, &SEditorViewport::OnToggleStats ),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::ShouldShowStats ) );
+		FIsActionChecked::CreateSP(ClientRef, &FEditorViewportClient::ShouldShowStats));
 
 	CommandListRef.MapAction( 
 		Commands.ToggleFPS,
-		FExecuteAction::CreateSP( this, &SEditorViewport::OnToggleFPS ),
+		FExecuteAction::CreateSP(this, &SEditorViewport::ToggleStatCommand, FString("FPS")),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::ShouldShowFPS ) );
+		FIsActionChecked::CreateSP(this, &SEditorViewport::IsStatCommandVisible, FString("FPS")));
 
 	CommandListRef.MapAction(
 		Commands.IncrementPositionGridSize,
@@ -152,38 +150,38 @@ void SEditorViewport::BindCommands()
 		Commands.Perspective,
 		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::SetViewportType, LVT_Perspective ),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_Perspective ) );
+		FIsActionChecked::CreateSP(ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_Perspective));
 
 	CommandListRef.MapAction( 
 		Commands.Front,
 		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::SetViewportType, LVT_OrthoXZ ),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_OrthoXZ ) );
+		FIsActionChecked::CreateSP(ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_OrthoXZ));
 
 	CommandListRef.MapAction( 
 		Commands.Side,
 		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::SetViewportType, LVT_OrthoYZ ),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_OrthoYZ ) );
+		FIsActionChecked::CreateSP(ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_OrthoYZ));
 
 	CommandListRef.MapAction( 
 		Commands.Top,
 		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::SetViewportType, LVT_OrthoXY ),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_OrthoXY ) );
+		FIsActionChecked::CreateSP(ClientRef, &FEditorViewportClient::IsActiveViewportType, LVT_OrthoXY));
 
 	CommandListRef.MapAction(
 		Commands.ScreenCapture,
 		FExecuteAction::CreateSP( this, &SEditorViewport::OnScreenCapture ),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( this, &SEditorViewport::DoesAllowScreenCapture )
+		FIsActionChecked::CreateSP(this, &SEditorViewport::DoesAllowScreenCapture)
 		);
 
 	CommandListRef.MapAction(
 		Commands.ScreenCaptureForProjectThumbnail,
 		FExecuteAction::CreateSP( this, &SEditorViewport::OnScreenCaptureForProjectThumbnail ),
 		FCanExecuteAction(),
-		FCanExecuteAction::CreateSP( this, &SEditorViewport::DoesAllowScreenCapture )
+		FIsActionChecked::CreateSP(this, &SEditorViewport::DoesAllowScreenCapture)
 		);
 
 	
@@ -215,6 +213,16 @@ void SEditorViewport::BindCommands()
 		FCanExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::CanSetWidgetMode, FWidget::WM_TranslateRotateZ ),
 		FIsActionChecked::CreateSP( this, &SEditorViewport::IsWidgetModeActive, FWidget::WM_TranslateRotateZ ),
 		FIsActionButtonVisible::CreateSP( this, &SEditorViewport::IsTranslateRotateModeVisible )
+		);
+
+	CommandListRef.MapAction( 
+		Commands.ShrinkTransformWidget,
+		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::AdjustTransformWidgetSize, -1 )
+		);
+
+	CommandListRef.MapAction( 
+		Commands.ExpandTransformWidget,
+		FExecuteAction::CreateSP( ClientRef, &FEditorViewportClient::AdjustTransformWidgetSize, 1 )
 		);
 
 	CommandListRef.MapAction( 
@@ -318,22 +326,18 @@ void SEditorViewport::OnToggleStats()
 		 // let the user know how they can enable stats via the console
 		 FNotificationInfo Info(LOCTEXT("StatsEnableHint", "Stats display can be toggled via the STAT [type] console command"));
 		 Info.ExpireDuration = 3.0f;
+		 /* Temporarily remove the link until the page is updated
 		 Info.HyperlinkText = LOCTEXT("StatsEnableHyperlink", "Learn more");
 		 Info.Hyperlink = FSimpleDelegate::CreateStatic([](){ IDocumentation::Get()->Open(TEXT("Engine/Basics/ConsoleCommands#statisticscommands")); });
-
+		 */
 		 FSlateNotificationManager::Get().AddNotification(Info);
 	}
 }
 
-void SEditorViewport::OnToggleFPS()
+bool SEditorViewport::IsStatCommandVisible(FString CommandName) const
 {
-	bool bIsEnabled = Client->ShouldShowFPS();
-	Client->SetShowFPS( !bIsEnabled );
-	if( !bIsEnabled )
-	{
-		// We cannot show stats unless realtime rendering is enabled
-		 Client->SetRealtime( true );
-	}
+	// Only if realtime and stats are also enabled should we show the stat as visible
+	return Client->IsRealtime() && Client->ShouldShowStats() && Client->IsStatEnabled(*CommandName);
 }
 
 void SEditorViewport::ChangeExposureSetting( int32 ID )
@@ -426,15 +430,6 @@ void SEditorViewport::OnCycleCoordinateSystem()
 	}
 
 	Client->SetWidgetCoordSystemSpace( (ECoordSystem)CoordSystemAsInt );
-}
-
-void SEditorViewport::HandleViewportStatsEnabled()
-{
-	if(Client.Get() == GCurrentLevelEditingViewportClient)
-	{
-		Client->SetShowStats( true );
-		Client->SetRealtime( true );
-	}
 }
 
 #undef LOCTEXT_NAMESPACE

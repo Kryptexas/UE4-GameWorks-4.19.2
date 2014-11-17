@@ -225,8 +225,8 @@ Texture2D TranslucencyShadowTransmission1;
 SamplerState TranslucencyShadowTransmission1Sampler;
 
 /** These have been tweaked to minimize ringing while not losing too much high frequency in the captured opacity function. */
-static float RingingSuppressionFactor = 1;
-static float NumTermsForRingingSuppression = 8;
+static const float RingingSuppressionFactor = 1;
+static const float NumTermsForRingingSuppression = 8;
 
 // Creates a scale for a given frequency that minimizes ringing inherent with a Fourier basis
 // This is done by scaling down the contribution of the higher frequency components

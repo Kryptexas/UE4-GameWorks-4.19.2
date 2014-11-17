@@ -3,7 +3,7 @@
 #include "NetworkFilePrivatePCH.h"
 #include "NetworkPlatformFile.h"
 #include "Sockets.h"
-#include "MultichannelTcp.h"
+#include "MultichannelTCP.h"
 #include "DerivedDataCacheInterface.h"
 #include "PackageName.h"
 

@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "AnimationGraph.h"
 #include "AnimationTransitionGraph.generated.h"
 
 UCLASS(MinimalAPI)

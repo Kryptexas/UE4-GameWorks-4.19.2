@@ -162,7 +162,7 @@ public:
 				.AutoHeight()
 				[
 					SNew(STextBlock)
-					.Text( LOCTEXT("ChooseCurveType", "Choose Curve Interpolation Type:").ToString() )
+					.Text( LOCTEXT("ChooseCurveType", "Choose Curve Interpolation Type:") )
 					.Visibility( this, &SCSVImportOptions::GetCurveTypeVis )
 				]
 				+SVerticalBox::Slot()
@@ -186,14 +186,14 @@ public:
 					.AutoWidth()
 					[
 						SNew(SButton)
-						.Text(LOCTEXT("OK", "OK").ToString())
+						.Text(LOCTEXT("OK", "OK"))
 						.OnClicked( this, &SCSVImportOptions::OnImport )
 					]
 					+SHorizontalBox::Slot()
 					.AutoWidth()
 					[
 						SNew(SButton)
-						.Text(LOCTEXT("Cancel", "Cancel").ToString())
+						.Text(LOCTEXT("Cancel", "Cancel"))
 						.OnClicked( this, &SCSVImportOptions::OnCancel )
 					]
 				]

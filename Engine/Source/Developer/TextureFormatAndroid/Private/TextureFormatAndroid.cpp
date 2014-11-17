@@ -141,6 +141,11 @@ class FTextureFormatAndroid : public ITextureFormat
 		}
 	}
 
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const OVERRIDE
+	{
+		return FTextureFormatCompressorCaps(); // Default capabilities.
+	}
+
 	virtual bool CompressImage(
 		const FImage& InImage,
 		const struct FTextureBuildSettings& BuildSettings,

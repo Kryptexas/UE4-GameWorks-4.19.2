@@ -22,7 +22,8 @@ public:
 	 * @param InPort - The port number to bind to (0 = any available port).
 	 * @param InFileRequestDelegate -
 	 */
-	FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate, const FRecompileShadersDelegate* InRecompileShadersDelegate );
+	FNetworkFileServer( int32 InPort, const FFileRequestDelegate* InFileRequestDelegate, 
+		const FRecompileShadersDelegate* InRecompileShadersDelegate, const TArray<ITargetPlatform*>& InActiveTargetPlatforms );
 
 	/**
 	 * Destructor.
@@ -95,6 +96,9 @@ public:
 
 	// Holds a delegate to be invoked when a client requests a shader recompile.
 	FRecompileShadersDelegate RecompileShadersDelegate;
+
+	// cached copy of the active target platforms (if any)
+	const TArray<ITargetPlatform*> ActiveTargetPlatforms;
 
 	// Holds the address that the server is bound to.
 	TSharedPtr<FInternetAddr> ListenAddr;

@@ -141,6 +141,8 @@ void FViewInfo::SetupSkyIrradianceEnvironmentMapConstants(FVector4* OutSkyIrradi
 
 	if (Scene 
 		&& Scene->SkyLight 
+		// Skylights with static lighting already had their diffuse contribution baked into lightmaps
+		&& !Scene->SkyLight->bHasStaticLighting
 		&& Family->EngineShowFlags.SkyLighting)
 	{
 		const FSHVectorRGB3& SkyIrradiance = Scene->SkyLight->IrradianceEnvironmentMap;
@@ -304,6 +306,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 			ViewUniformShaderParameters.AtmosphericFogHeightScaleRayleigh =  Scene->AtmosphericFog->RHeight;
 			ViewUniformShaderParameters.AtmosphericFogStartDistance = Scene->AtmosphericFog->StartDistance;
 			ViewUniformShaderParameters.AtmosphericFogDistanceOffset = Scene->AtmosphericFog->DistanceOffset;
+			ViewUniformShaderParameters.AtmosphericFogSunDiscScale = Scene->AtmosphericFog->SunDiscScale;
 			ViewUniformShaderParameters.AtmosphericFogSunColor = Scene->SunLight ? Scene->SunLight->Proxy->GetColor() : Scene->AtmosphericFog->DefaultSunColor;
 			ViewUniformShaderParameters.AtmosphericFogSunDirection = Scene->SunLight ? -Scene->SunLight->Proxy->GetDirection() : -Scene->AtmosphericFog->DefaultSunDirection;
 			ViewUniformShaderParameters.AtmosphericFogRenderMask = Scene->AtmosphericFog->RenderFlag & (EAtmosphereRenderFlag::E_DisableGroundScattering | EAtmosphereRenderFlag::E_DisableSunDisk);
@@ -321,6 +324,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 			ViewUniformShaderParameters.AtmosphericFogHeightScaleRayleigh =  0.f;
 			ViewUniformShaderParameters.AtmosphericFogStartDistance = 0.f;
 			ViewUniformShaderParameters.AtmosphericFogDistanceOffset = 0.f;
+			ViewUniformShaderParameters.AtmosphericFogSunDiscScale = 1.f;
 			ViewUniformShaderParameters.AtmosphericFogSunColor = FLinearColor::Black;
 			ViewUniformShaderParameters.AtmosphericFogSunDirection = FVector::ZeroVector;
 			ViewUniformShaderParameters.AtmosphericFogRenderMask = EAtmosphereRenderFlag::E_EnableAll;
@@ -345,6 +349,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 		ViewUniformShaderParameters.AtmosphericFogHeightScaleRayleigh =  0.f;
 		ViewUniformShaderParameters.AtmosphericFogStartDistance = 0.f;
 		ViewUniformShaderParameters.AtmosphericFogDistanceOffset = 0.f;
+		ViewUniformShaderParameters.AtmosphericFogSunDiscScale = 1.f;
 		ViewUniformShaderParameters.AtmosphericFogSunColor = FLinearColor::Black;
 		ViewUniformShaderParameters.AtmosphericFogSunDirection = FVector::ZeroVector;
 		ViewUniformShaderParameters.AtmosphericFogRenderMask = EAtmosphereRenderFlag::E_EnableAll;
@@ -359,6 +364,11 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.RealTime = Family->CurrentRealTime;
 	ViewUniformShaderParameters.Random = FMath::Rand();
 	ViewUniformShaderParameters.FrameNumber = FrameNumber;
+
+	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
+	const bool bUseLightmaps = CVar->GetInt() == 0;
+
+	ViewUniformShaderParameters.UseLightmaps = bUseLightmaps ? 1 : 0;
 
 	if(State)
 	{
@@ -402,7 +412,10 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	}
 	
 	ViewUniformShaderParameters.RenderTargetSize = BufferSize;
-	ViewUniformShaderParameters.ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue( *this );
+	// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
+	// After 4.2 we can put the workaround in the cross compiler.
+	float ExposureScale = FRCPassPostProcessEyeAdaptation::ComputeExposureScaleValue( *this );
+	ViewUniformShaderParameters.ExposureScale = FVector4(ExposureScale,ExposureScale,ExposureScale,ExposureScale);
 	ViewUniformShaderParameters.DepthOfFieldFocalDistance = FinalPostProcessSettings.DepthOfFieldFocalDistance;
 	ViewUniformShaderParameters.DepthOfFieldFocalRegion = FinalPostProcessSettings.DepthOfFieldFocalRegion;
 	ViewUniformShaderParameters.DepthOfFieldNearTransitionRegion = FinalPostProcessSettings.DepthOfFieldNearTransitionRegion;
@@ -767,7 +780,7 @@ void FSceneRenderer::RenderFinish()
 				continue;
 			}
 
-			GRenderTargetPool.VisualizeTexture.PresentContent(View);
+			GRenderTargetPool.PresentContent(View);
 		}
 	}
 
@@ -776,7 +789,9 @@ void FSceneRenderer::RenderFinish()
 
 FSceneRenderer* FSceneRenderer::CreateSceneRenderer(const FSceneViewFamily* InViewFamily, FHitProxyConsumer* HitProxyConsumer)
 {
-	if (GRHIFeatureLevel == ERHIFeatureLevel::ES2)
+	ERHIFeatureLevel::Type FeatureLevel = InViewFamily->Scene->GetFeatureLevel();
+
+	if (FeatureLevel == ERHIFeatureLevel::ES2)
 	{
 		return new FForwardShadingSceneRenderer(InViewFamily, HitProxyConsumer);
 	}
@@ -797,7 +812,7 @@ void FSceneRenderer::RenderCustomDepthPass()
 	// do we have primitives in this pass?
 	bool bPrimitives = false;
 
-	if(!Scene->World || Scene->World->WorldType != EWorldType::Preview)
+	if(!Scene->World || (Scene->World->WorldType != EWorldType::Preview && Scene->World->WorldType != EWorldType::Inactive))
 	{
 		for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ++ViewIndex)
 		{
@@ -887,7 +902,7 @@ static void RenderViewFamily_RenderThread( FSceneRenderer* SceneRenderer )
 
     {
 		SCOPE_CYCLE_COUNTER(STAT_TotalSceneRenderingTime);
-
+		
 		if(SceneRenderer->ViewFamily.EngineShowFlags.HitProxies)
 		{
 			// Render the scene's hit proxies.

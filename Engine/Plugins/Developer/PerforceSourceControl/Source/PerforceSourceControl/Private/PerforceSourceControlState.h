@@ -35,6 +35,9 @@ namespace EPerforceState
 
 		/** File is marked for delete */
 		MarkedForDelete	= 8,
+
+		/** Not under client root */
+		NotUnderClientRoot	= 9,
 	};
 }
 
@@ -70,6 +73,7 @@ public:
 	virtual bool CanEdit() const OVERRIDE;
 	virtual bool IsUnknown() const OVERRIDE;
 	virtual bool IsModified() const OVERRIDE;
+	virtual bool CanAdd() const OVERRIDE;
 
 	/** Get the state of a file */
 	EPerforceState::Type GetState() const

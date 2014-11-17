@@ -16,14 +16,38 @@ namespace UnrealBuildTool.Linux
             return ExternalExecution.GetRuntimePlatform() != UnrealTargetPlatform.Linux;
         }
 
+        private string Which(string name)
+        {
+            Process proc = new Process();
+            proc.StartInfo.FileName = "/bin/sh";
+            proc.StartInfo.Arguments = String.Format("-c 'which {0}'", name);
+            proc.StartInfo.UseShellExecute = false;
+            proc.StartInfo.CreateNoWindow = true;
+            proc.StartInfo.RedirectStandardOutput = true;
+            proc.StartInfo.RedirectStandardError = true;
+
+            proc.Start();
+            proc.WaitForExit();
+
+            string path = proc.StandardOutput.ReadLine();
+            Console.WriteLine(String.Format("which {0} result: ({1}) {2}", name, proc.ExitCode, path));
+
+            if (proc.ExitCode == 0 && String.IsNullOrEmpty(proc.StandardError.ReadToEnd()))
+            {
+                return path;
+            }
+            return null;
+        }
+
         public override void RegisterToolChain()
         {
             if (!CrossCompiling())
             {
                 // use native linux toolchain
-                ClangPath = "clang++";
-                ArPath = "ar";
-                RanlibPath = "ranlib";
+                ClangPath = Which("clang++");
+                GCCPath = Which("g++");
+                ArPath = Which("ar");
+                RanlibPath = Which("ranlib");
             }
             else
             {
@@ -40,18 +64,6 @@ namespace UnrealBuildTool.Linux
                 ClangPath = Path.Combine(BaseLinuxPath, @"bin\Clang++.exe");
                 ArPath = Path.Combine(BaseLinuxPath, @"bin\x86_64-unknown-linux-gnu-ar.exe");
                 RanlibPath = Path.Combine(BaseLinuxPath, @"bin\x86_64-unknown-linux-gnu-ranlib.exe");
-                LdPath = Path.Combine(BaseLinuxPath, @"bin\x86_64-unknown-linux-gnu-ld.exe");
-
-                CRTPath = Path.Combine(BaseLinuxPath, @"lib\gcc\x86_64-unknown-linux-gnu\4.8.1\");
-                if (!Directory.Exists(CRTPath))
-                {
-                    CRTPath = Path.Combine(BaseLinuxPath, @"lib\gcc\x86_64-unknown-linux-gnu\4.5.2\");
-                    if (!Directory.Exists(CRTPath))
-                    {
-                        Console.WriteLine("        Could not find suitable Linux cross-toolchain! (LINUX_ROOT={0})", Environment.GetEnvironmentVariable("LINUX_ROOT"));
-                        return;
-                    }
-                }
             }
 
             // Register this tool chain for both Linux
@@ -83,21 +95,39 @@ namespace UnrealBuildTool.Linux
             //Result += " -Wshadow";                      // additional warning not normally included in Wall: warns if there variable/typedef shadows some other variable - not helpful because we have gobs of code that shadows variables
             Result += " -mmmx -msse -msse2";            // allows use of SIMD intrinsics
             Result += " -fno-math-errno";               // do not assume that math ops have side effects
-            Result += " -fdiagnostics-format=msvc";     // make diagnostics compatible with MSVC
+
+            if (String.IsNullOrEmpty(ClangPath))
+            {
+                // GCC only option
+                Result += " -fno-strict-aliasing";
+                Result += " -Wno-sign-compare"; // needed to suppress: comparison between signed and unsigned integer expressions
+                Result += " -Wno-enum-compare"; // Stats2.h triggers this (ALIGNOF(int64) <= DATA_ALIGN)
+                Result += " -Wno-return-type"; // Variant.h triggers this
+                Result += " -Wno-unused-local-typedefs";
+                Result += " -Wno-multichar";
+                Result += " -Wno-unused-but-set-variable";
+                Result += " -Wno-sequence-point"; // TaskGraph.cpp:755 FTaskThread* Target = Target = &Thread(ThreadToExecuteOn);
+                Result += " -Wno-strict-overflow"; // Array.h:518
+            }
+            else
+            {
+                // Clang only options
+                Result += " -fdiagnostics-format=msvc";     // make diagnostics compatible with MSVC
+                Result += " -Wno-unused-private-field";     // MultichannelTcpSocket.h triggers this, possibly more
+                // this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
+                Result += " -Wno-tautological-compare";
+                if (!CrossCompiling())
+                {
+                    Result += " -Wno-logical-op-parentheses";   // needed for external headers we can't change
+                }
+            }
 
             Result += " -Wno-unused-variable";
-            if (!CrossCompiling())
-            {
-                Result += " -Wno-logical-op-parentheses";   // needed for external headers we can't change
-            }
             // this will hide the warnings about static functions in headers that aren't used in every single .cpp file
             Result += " -Wno-unused-function";
             // this hides the "enumeration value 'XXXXX' not handled in switch [-Wswitch]" warnings - we should maybe remove this at some point and add UE_LOG(, Fatal, ) to default cases
             Result += " -Wno-switch";
-            // this hides the "warning : comparison of unsigned expression < 0 is always false" type warnings due to constant comparisons, which are possible with template arguments
-            Result += " -Wno-tautological-compare";
             Result += " -Wno-unknown-pragmas";			// Slate triggers this (with its optimize on/off pragmas)
-            Result += " -Wno-unused-private-field";     // MultichannelTcpSocket.h triggers this, possibly more
 			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
 
             //Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";
@@ -106,6 +136,15 @@ namespace UnrealBuildTool.Linux
             if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Shipping)
             {
                 Result += " -Wno-unused-value";
+
+                // in shipping, strip as much info as possible
+                Result += " -g0";
+                Result += " -fomit-frame-pointer";
+                Result += " -fvisibility=hidden";           // prevents from exporting all symbols (reduces the size of the binary)
+            }
+            else if (CompileEnvironment.Config.TargetConfiguration == CPPTargetConfiguration.Debug)
+            {
+		Result += " -fno-inline";                   // disable inlining for better debuggability (e.g. callstacks, "skip file" in gdb)
             }
 
             // debug info
@@ -120,13 +159,6 @@ namespace UnrealBuildTool.Linux
             else if (CompileEnvironment.Config.TargetConfiguration < CPPTargetConfiguration.Shipping)
             {
                 Result += " -gline-tables-only"; // include debug info for meaningful callstacks
-            }
-            else
-            {
-                // in shipping, strip as much info as possible
-                Result += " -g0";
-                Result += " -fomit-frame-pointer";
-                Result += " -fvisibility=hidden";           // prevents from exporting all symbols (reduces the size of the binary)
             }
 
             // optimization level
@@ -146,10 +178,12 @@ namespace UnrealBuildTool.Linux
 
             //Result += " -v";                            // for better error diagnosis
 
+            // assume we will not perform 32 bit builds on Linux, so define
+            // _LINUX64 in any case
+            Result += " -D _LINUX64";
             if (CrossCompiling())
             {
                 Result += " -target x86_64-unknown-linux-gnu";        // Set target triple
-                Result += " -D _LINUX64";
                 Result += String.Format(" --sysroot={0}", BaseLinuxPath);
             }
 
@@ -207,7 +241,7 @@ namespace UnrealBuildTool.Linux
             // debugging symbols
             if (LinkEnvironment.Config.TargetConfiguration < CPPTargetConfiguration.Shipping)
             {
-                Result += " -export-dynamic";   // needed for backtrace_symbols()...
+                Result += " -rdynamic";   // needed for backtrace_symbols()...
             }
             else
             {
@@ -218,12 +252,12 @@ namespace UnrealBuildTool.Linux
             {
                 Result += " -shared";
             }
-            Result += " -v";
+            //Result += " -v";
 
             if (CrossCompiling())
             {
                 // ignore unresolved symbols in shared libs
-                Result += " --unresolved-symbols=ignore-in-shared-libs";
+                Result += " -Wl,--unresolved-symbols=ignore-in-shared-libs";
             }
             else
             {
@@ -231,17 +265,14 @@ namespace UnrealBuildTool.Linux
             }
 
             // RPATH for third party libs
-            Result += " -rpath=${ORIGIN}/../../../engine/binaries/linux";
+            Result += " -Wl,-rpath=${ORIGIN}/../../../Engine/Binaries/Linux";
 
             if (CrossCompiling())
             {
+                Result += " -target x86_64-unknown-linux-gnu";        // Set target triple
                 string SysRootPath = BaseLinuxPath.TrimEnd(new char[] { '\\', '/' });
                 Result += String.Format(" \"--sysroot={0}\"", SysRootPath);
             }
-
-            Result += " --eh-frame-hdr";
-            Result += " -m elf_x86_64";
-            Result += " -dynamic-linker /lib64/ld-linux-x86-64.so.2";
 
             return Result;
         }
@@ -295,10 +326,9 @@ namespace UnrealBuildTool.Linux
         // cache the location of NDK tools
         static string BaseLinuxPath;
         static string ClangPath;
+        static string GCCPath;
         static string ArPath;
         static string RanlibPath;
-        static string LdPath;
-        static string CRTPath;
 
         public override CPPOutput CompileCPPFiles(CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
         {
@@ -417,9 +447,17 @@ namespace UnrealBuildTool.Linux
                 FileArguments += string.Format(" \"{0}\"", SourceFile.AbsolutePath);
 
                 CompileAction.WorkingDirectory = Path.GetFullPath(".");
-                CompileAction.CommandPath = ClangPath;
+                if (String.IsNullOrEmpty(ClangPath))
+                {
+                    CompileAction.CommandPath = GCCPath;
+                }
+                else
+                {
+                    CompileAction.CommandPath = ClangPath;
+                }
                 CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
-                CompileAction.StatusDescription = string.Format("{0}", Path.GetFileName(SourceFile.AbsolutePath));
+                CompileAction.CommandDescription = "Compile";
+                CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
                 CompileAction.StatusDetailedDescription = SourceFile.Description;
                 CompileAction.bIsGCCCompiler = true;
 
@@ -458,7 +496,8 @@ namespace UnrealBuildTool.Linux
             // Add the output file as a production of the link action.
             FileItem OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
             ArchiveAction.ProducedItems.Add(OutputFile);
-            ArchiveAction.StatusDescription = string.Format("{0}", Path.GetFileName(OutputFile.AbsolutePath));
+            ArchiveAction.CommandDescription = "Archive";
+            ArchiveAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
             ArchiveAction.CommandArguments += string.Format("{0} {1} \"{2}\"",  ArPath, GetArchiveArguments(LinkEnvironment), OutputFile.AbsolutePath);
 
             // Add the input files to a response file, and pass the response file on the command-line.
@@ -499,7 +538,14 @@ namespace UnrealBuildTool.Linux
             // Create an action that invokes the linker.
             Action LinkAction = new Action(ActionType.Link);
             LinkAction.WorkingDirectory = Path.GetFullPath(".");
-            LinkAction.CommandPath = LdPath;
+            if (String.IsNullOrEmpty(ClangPath))
+            {
+                LinkAction.CommandPath = GCCPath;
+            }
+            else
+            {
+                LinkAction.CommandPath = ClangPath;
+            }
 
             // Get link arguments.
             LinkAction.CommandArguments = GetLinkArguments(LinkEnvironment);
@@ -511,21 +557,11 @@ namespace UnrealBuildTool.Linux
             // Add the output file as a production of the link action.
             FileItem OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
             LinkAction.ProducedItems.Add(OutputFile);
-            LinkAction.StatusDescription = string.Format("{0}", Path.GetFileName(OutputFile.AbsolutePath));
+            LinkAction.CommandDescription = "Link";
+            LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 
             // Add the output file to the command-line.
             LinkAction.CommandArguments += string.Format(" -o \"{0}\"", OutputFile.AbsolutePath);
-
-            // CRT-Begin
-			if (CrossCompiling()) 
-			{
-				LinkAction.CommandArguments += string.Format (" \"{0}\"", Path.Combine (BaseLinuxPath, @"usr\lib64\Scrt1.o"));
-				LinkAction.CommandArguments += string.Format (" \"{0}\"", Path.Combine (BaseLinuxPath, @"usr\lib64\crti.o"));
-				LinkAction.CommandArguments += string.Format (" \"{0}\"", Path.Combine (CRTPath, @"crtbeginS.o"));
-				LinkAction.CommandArguments += string.Format (" \"-L{0}\"", Path.Combine (BaseLinuxPath, @"lib"));
-				LinkAction.CommandArguments += string.Format (" \"-L{0}\"", Path.Combine (BaseLinuxPath, @"lib64"));
-				LinkAction.CommandArguments += string.Format (" \"-L{0}\"", Path.Combine (BaseLinuxPath, @"usr\lib64"));
-			}
 
             // Add the input files to a response file, and pass the response file on the command-line.
             List<string> InputFileNames = new List<string>();
@@ -536,16 +572,16 @@ namespace UnrealBuildTool.Linux
             }
 
             string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
-            LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
+            LinkAction.CommandArguments += string.Format(" -Wl,@\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
 
 			// Add the library paths to the argument list.
 			foreach (string LibraryPath in LinkEnvironment.Config.LibraryPaths)
 			{
-				LinkAction.CommandArguments += string.Format(" -L\"{0}\"", LibraryPath);
+				LinkAction.CommandArguments += string.Format(" -Wl,-L\"{0}\"", LibraryPath);
 			}
 
 			// add libraries in a library group
-            LinkAction.CommandArguments += string.Format(" --start-group");
+            LinkAction.CommandArguments += string.Format(" -Wl,--start-group");
             foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
 			{
 				if (String.IsNullOrEmpty(Path.GetDirectoryName(AdditionalLibrary)))
@@ -561,16 +597,7 @@ namespace UnrealBuildTool.Linux
 			}
             LinkAction.CommandArguments += " -lrt"; // needed for clock_gettime()
             LinkAction.CommandArguments += " -lm"; // math
-            LinkAction.CommandArguments += string.Format(" --end-group");
-
-            // CRT-End
-            LinkAction.CommandArguments += " -lstdc++";
-            LinkAction.CommandArguments += " -lc";
-			if (CrossCompiling()) 
-			{
-				LinkAction.CommandArguments += string.Format (" \"{0}\"", Path.Combine (CRTPath, @"crtend.o"));
-				LinkAction.CommandArguments += string.Format (" \"{0}\"", Path.Combine (BaseLinuxPath, @"usr\lib64\crtn.o"));
-			}
+            LinkAction.CommandArguments += string.Format(" -Wl,--end-group");
 
             // Add the additional arguments specified by the environment.
             LinkAction.CommandArguments += LinkEnvironment.Config.AdditionalArguments;
@@ -579,14 +606,25 @@ namespace UnrealBuildTool.Linux
             // Only execute linking on the local PC.
             LinkAction.bCanExecuteRemotely = false;
 
-            Console.WriteLine(LinkAction.CommandPath + LinkAction.CommandArguments);
-
             return OutputFile;
         }
 
         public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
         {
             throw new BuildException("Linux cannot compile C# files");
+        }
+
+        /** Converts the passed in path from UBT host to compiler native format. */
+        public override String ConvertPath(String OriginalPath)
+        {
+            if (ExternalExecution.GetRuntimePlatform() == UnrealTargetPlatform.Linux)
+            {
+                return OriginalPath.Replace("\\", "/");
+            }
+            else
+            {
+                return OriginalPath;
+            }
         }
     }
 }

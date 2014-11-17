@@ -5,7 +5,6 @@
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "EngineMaterialClasses.h"
 #include "DiagnosticTable.h"
 #include "ParticleResources.h"
 
@@ -554,7 +553,6 @@ FORCEINLINE FVector GetCameraOffsetFromPayload(
 void FAsyncParticleFill::DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
 	// Test integrity of async particle fill: FPlatformProcess::Sleep(.01);
-	SCOPE_CYCLE_COUNTER(STAT_ParticleAsyncTime);
 	Parent->DoBufferFill();
 }
 
@@ -1197,7 +1195,7 @@ void FDynamicSpriteEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 	}
 }
 
-void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, const FMatrix& InLocalToWorld, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights)
+void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, const FMatrix& InLocalToWorld, const FSceneViewFamily& InViewFamily, FSimpleLightArray& OutParticleLights)
 {
 	if (Source.LightDataOffset != 0)
 	{
@@ -1210,8 +1208,18 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 			ParticleCount = Source.MaxDrawCount;
 		}
 
-		OutParticleLights.Reserve(OutParticleLights.Num() + ParticleCount);
-
+		OutParticleLights.InstanceData.Reserve(OutParticleLights.InstanceData.Num() + ParticleCount);
+		
+		// Reserve memory for per-view data. If camera offset is not used then all views can share per-view data in order to save memory.
+		if(Source.CameraPayloadOffset != 0)
+		{
+			OutParticleLights.PerViewData.Reserve(OutParticleLights.PerViewData.Num() + ParticleCount * InViewFamily.Views.Num());
+		}
+		else
+		{
+			OutParticleLights.PerViewData.Reserve(OutParticleLights.PerViewData.Num() + ParticleCount);
+		}
+		
 		const uint8* ParticleData = Source.ParticleData.GetData();
 		const uint16* ParticleIndices = Source.ParticleIndices.GetData();
 
@@ -1231,6 +1239,19 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 			if (LightPayload->bValid)
 			{
 				const FVector2D Size = GetParticleSize(Particle, Source);
+				
+				FSimpleLightEntry ParticleLight;
+				ParticleLight.Radius =  LightPayload->RadiusScale * (Size.X + Size.Y) / 2.0f;
+				ParticleLight.Color = FVector(Particle.Color) * Particle.Color.A * LightPayload->ColorScale;
+				ParticleLight.Exponent = LightPayload->LightExponent;
+				ParticleLight.bAffectTranslucency = LightPayload->bAffectsTranslucency;
+
+				// Early out if the light will have no visible contribution
+				if (ParticleLight.Radius <= KINDA_SMALL_NUMBER
+					&& ParticleLight.Color.GetMax() <= KINDA_SMALL_NUMBER)
+				{
+					continue;
+				}
 
 				FVector ParticlePosition = Particle.Location;
 				FOrbitChainModuleInstancePayload* LocalOrbitPayload = NULL;
@@ -1240,28 +1261,40 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 
 				ApplyOrbitToPosition(Particle, Source, InLocalToWorld, LocalOrbitPayload, Unused, Unused2, ParticlePosition, Unused3);
 
-				FSimpleLightEntry ParticleLight;
 
 				FVector LightPosition = Source.bUseLocalSpace ? FVector(InLocalToWorld.TransformPosition(ParticlePosition)) : ParticlePosition;
-				ParticleLight.PositionAndRadius = FVector4(LightPosition, LightPayload->RadiusScale * (Size.X + Size.Y) / 2.0f);
-				ParticleLight.Color = FVector(Particle.Color) * Particle.Color.A * LightPayload->ColorScale;
-				ParticleLight.Exponent = LightPayload->LightExponent;
-				ParticleLight.bAffectTranslucency = LightPayload->bAffectsTranslucency;
-
-				// Only create a light if it will have visible contribution
-				if (ParticleLight.PositionAndRadius.W > KINDA_SMALL_NUMBER
-					&& ParticleLight.Color.GetMax() > KINDA_SMALL_NUMBER)
+				
+				// Calculate light positions per-view if we are using a camera offset.
+				if (Source.CameraPayloadOffset != 0)
 				{
-					OutParticleLights.Add(ParticleLight);
+					for(int32 ViewIndex = 0; ViewIndex < InViewFamily.Views.Num(); ++ViewIndex)
+					{
+						FSimpleLightPerViewEntry PerViewData;
+						const FVector& ViewOrigin = InViewFamily.Views[ViewIndex]->ViewMatrices.ViewOrigin;
+						FVector CameraOffset = GetCameraOffsetFromPayload(Source.CameraPayloadOffset, Particle, ParticlePosition, ViewOrigin);
+						PerViewData.Position = LightPosition + CameraOffset;
+
+						OutParticleLights.PerViewData.Add(PerViewData);
+					}
 				}
+				else
+				{
+					// When not using camera-offset, output one position for all views to share. 
+					FSimpleLightPerViewEntry PerViewData;
+					PerViewData.Position = LightPosition;
+					OutParticleLights.PerViewData.Add(PerViewData);
+				}
+
+				// Add an entry for the light instance.
+				OutParticleLights.InstanceData.Add(ParticleLight);
 			}
 		}
 	}
 }
 
-void FDynamicSpriteEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const
+void FDynamicSpriteEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const
 {
-	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), OutParticleLights);
+	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), ViewFamily, OutParticleLights);
 }
 
 /**
@@ -1275,7 +1308,9 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 {
 	SCOPE_CYCLE_COUNTER(STAT_SpriteRenderingTime);
 
-	const bool bInstanced = GRHIFeatureLevel >= ERHIFeatureLevel::SM3;
+	const auto FeatureLevel = View->GetFeatureLevel();
+
+	const bool bInstanced = FeatureLevel >= ERHIFeatureLevel::SM3;
 
 	if (bValid == false)
 	{
@@ -1291,7 +1326,7 @@ int32 FDynamicSpriteEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 	{
 		// Don't render if the material will be ignored
 		const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-		if (PDI->IsMaterialIgnored(MaterialResource[bSelected]) && !bIsWireframe)
+		if (PDI->IsMaterialIgnored(MaterialResource[bSelected], FeatureLevel) && !bIsWireframe)
 		{
 			return 0;
 		}
@@ -1544,7 +1579,6 @@ void FDynamicMeshEmitterData::Init( bool bInSelected,
 	StaticMesh = InStaticMesh;
 	check(StaticMesh);
 
-	check(Source.ActiveParticleCount < 16 * 1024);	// TTP #33375
 	check(Source.ParticleStride < 2 * 1024);	// TTP #3375
 
 	InEmitterInstance->GetMeshMaterials(
@@ -1677,172 +1711,45 @@ int32 FDynamicMeshEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimiti
 	int32 NumDraws = 0;
 	if (Source.EmitterRenderMode == ERM_Normal)
 	{
-		const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
-		TArray<int32> ValidSectionIndices;
-
-		bool bNoValidElements = true;
-
-		for (int32 LODIndex = 0; LODIndex < 1; LODIndex++)
-		{
-			for (int32 ElementIndex = 0; ElementIndex < LODModel.Sections.Num(); ElementIndex++)
-			{
-				FMaterialRenderProxy* MaterialProxy = MeshMaterials[ElementIndex]->GetRenderProxy(bSelected);
-				check(MaterialProxy);
-
-				// If the material is ignored by the PDI (or not there at all...), 
-				// do not add it to the list of valid elements.
-				if ((MaterialProxy && !PDI->IsMaterialIgnored(MaterialProxy)) || View->Family->EngineShowFlags.Wireframe)
-				{
-					ValidSectionIndices.Add(ElementIndex);
-					bNoValidElements = false;
-				}
-				else
-				{
-					ValidSectionIndices.Add(-1);
-				}
-			}
-		}
-
-		if (bNoValidElements == true)
-		{
-			// No valid materials... quick out
-			return 0;
-		}
-
 		const bool bIsWireframe = AllowDebugViewmodes() && View->Family->EngineShowFlags.Wireframe;
 
 		// Find the vertex allocation for this view.
-		FGlobalDynamicVertexBuffer::FAllocation* Allocation = NULL;
 		const int32 ViewIndex = View->Family->Views.Find( View );
 		
 		// Only unsorted instance data will exist for unsorted emitters and must be used for all views being rendered. 
 		const int32 InstanceBufferIndex = ((Source.SortMode == PSORTMODE_None) ? 0 : ViewIndex);
+
+		FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)VertexFactory;
+
 		if(bInstanced)
 		{
 			check(InstanceDataAllocations.IsValidIndex( InstanceBufferIndex ) != false);
 			check(InstanceDataAllocations[InstanceBufferIndex].IsValid());
 			check(DynamicParameterDataAllocations.IsValidIndex( InstanceBufferIndex ) != false);
 			check(!bUsesDynamicParameter || DynamicParameterDataAllocations[InstanceBufferIndex].IsValid());
+
+			// Set the particle instance data. This buffer is generated in PreRenderView.
+			MeshVertexFactory->SetInstanceBuffer(InstanceDataAllocations[InstanceBufferIndex].VertexBuffer, InstanceDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicVertexStride());
+			MeshVertexFactory->SetDynamicParameterBuffer(DynamicParameterDataAllocations[InstanceBufferIndex].VertexBuffer, DynamicParameterDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicParameterVertexStride());
 		}
 
-		// Calculate the number of particles that must be drawn.
-		int32 ParticleCount = Source.ActiveParticleCount;
-		if ((Source.MaxDrawCount >= 0) && (ParticleCount > Source.MaxDrawCount))
+		check(InstanceBufferIndex < (FirstBatchForView.Num() - 1));
+			
+		int32 FirstBatch = FirstBatchForView[InstanceBufferIndex];
+		int32 LastBatchPlusOne = FirstBatchForView[InstanceBufferIndex + 1];
+		for (int32 BatchIndex = FirstBatch; BatchIndex < LastBatchPlusOne; ++BatchIndex)
 		{
-			ParticleCount = Source.MaxDrawCount;
-		}
-
-		FMeshBatch Mesh;
-		FMeshBatchElement& BatchElement = Mesh.Elements[0];
-		Mesh.VertexFactory = VertexFactory;
-		Mesh.DynamicVertexData = NULL;
-		Mesh.LCI = NULL;
-		Mesh.UseDynamicData = false;
-		Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
-		Mesh.CastShadow = Proxy->GetCastShadow();
-		Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
-
-		//@todo. Handle LODs.
-		for (int32 LODIndex = 0; LODIndex < 1; LODIndex++)
-		{
-			for (int32 ValidIndex = 0; ValidIndex < ValidSectionIndices.Num(); ValidIndex++)
-			{
-				int32 SectionIndex = ValidSectionIndices[ValidIndex];
-				if (SectionIndex == -1)
-				{
-					continue;
-				}
-
-				FMaterialRenderProxy* MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
-				const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
-				if ((Section.NumTriangles == 0) || (MaterialProxy == NULL))
-				{
-					//@todo. This should never occur, but it does occasionally.
-					continue;
-				}
-
-				// Draw the static mesh Sections.
-				FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)VertexFactory;
-				MeshVertexFactory->SetUniformBuffer( UniformBuffer );
-
-				if(bInstanced)
-				{
-					// Set the particle instance data. This buffer is generated in PreRenderView.
-					MeshVertexFactory->SetInstanceBuffer(InstanceDataAllocations[InstanceBufferIndex].VertexBuffer, InstanceDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicVertexStride());
-					MeshVertexFactory->SetDynamicParameterBuffer(DynamicParameterDataAllocations[InstanceBufferIndex].VertexBuffer, DynamicParameterDataAllocations[InstanceBufferIndex].VertexOffset , GetDynamicParameterVertexStride());
-				}
-
-				BatchElement.PrimitiveUniformBufferResource = &Proxy->GetWorldSpacePrimitiveUniformBuffer();
-				BatchElement.FirstIndex = Section.FirstIndex;
-				BatchElement.MinVertexIndex = Section.MinVertexIndex;
-				BatchElement.MaxVertexIndex = Section.MaxVertexIndex;
-
-				BatchElement.NumInstances = bInstanced ? ParticleCount : 1;
-
-				if (bIsWireframe)
-				{
-					if( LODModel.WireframeIndexBuffer.IsInitialized()
-						&& !(RHISupportsTessellation(GRHIShaderPlatform) && Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
-						)
-					{
-						Mesh.Type = PT_LineList;
-						Mesh.MaterialRenderProxy = Proxy->GetDeselectedWireframeMatInst();
-						BatchElement.FirstIndex = 0;
-						BatchElement.IndexBuffer = &LODModel.WireframeIndexBuffer;
-						BatchElement.NumPrimitives = LODModel.WireframeIndexBuffer.GetNumIndices() / 2;
-						
-					}
-					else
-					{
-						Mesh.Type = PT_TriangleList;
-						Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
-						Mesh.bWireframe = true;	
-						BatchElement.FirstIndex = 0;
-						BatchElement.IndexBuffer = &LODModel.IndexBuffer;
-						BatchElement.NumPrimitives = LODModel.IndexBuffer.GetNumIndices() / 3;
-					}
-				}
-				else
-				{
-					Mesh.Type = PT_TriangleList;
-					Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
-					BatchElement.IndexBuffer = &LODModel.IndexBuffer;
-					BatchElement.FirstIndex = Section.FirstIndex;
-					BatchElement.NumPrimitives = Section.NumTriangles;
-				}
-
-				if(bInstanced)
-				{
-					NumDraws += DrawRichMesh(
-						PDI, 
-						Mesh, 
-						FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
-						FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
-						FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
-						Proxy,
-						GIsEditor && (View->Family->EngineShowFlags.Selection) ? bSelected : false,
-						bIsWireframe
-						);
-				}
-				else
-				{
-					for(int32 Particle = 0; Particle < ParticleCount; ++Particle)
-					{
-						MeshVertexFactory->SetInstanceDataCPU(InstanceDataAllocationsCPU.GetTypedData()+Particle);
-						MeshVertexFactory->SetDynamicInstanceDataCPU(DynamicParameterDataAllocationsCPU.GetTypedData()+Particle);
-						NumDraws += DrawRichMesh(
-							PDI, 
-							Mesh, 
-							FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
-							FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
-							FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
-							Proxy,
-							GIsEditor && (View->Family->EngineShowFlags.Selection) ? bSelected : false,
-							bIsWireframe
-							);
-					}
-				}
-			}
+			FMeshBatch& Mesh = *MeshBatches[BatchIndex];
+			NumDraws += DrawRichMesh(
+				PDI, 
+				Mesh, 
+				FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
+				FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
+				FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
+				Proxy,
+				GIsEditor && (View->Family->EngineShowFlags.Selection) ? bSelected : false,
+				bIsWireframe
+				);
 		}
 	}
 	else if (Source.EmitterRenderMode == ERM_Point)
@@ -1918,8 +1825,10 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 		}
 		else
 		{
-			InstanceDataAllocationsCPU.Init( ParticleCount );
-			DynamicParameterDataAllocationsCPU.Init( ParticleCount );
+			InstanceDataAllocationsCPU.Reset(ParticleCount);
+			InstanceDataAllocationsCPU.AddUninitialized(ParticleCount);
+			DynamicParameterDataAllocationsCPU.Reset(ParticleCount);
+			DynamicParameterDataAllocationsCPU.AddUninitialized(ParticleCount);
 
 			// Fill instance buffer.
 			GetInstanceData((void*) InstanceDataAllocationsCPU.GetTypedData(), (void*) DynamicParameterDataAllocationsCPU.GetTypedData(), Proxy, ViewFamily->Views[ViewIndex]);
@@ -1932,17 +1841,122 @@ void FDynamicMeshEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, co
 		}
 	}
 
+	// Setup the vertex factory.
+	FMeshParticleVertexFactory* MeshVertexFactory = (FMeshParticleVertexFactory*)VertexFactory;
+	MeshVertexFactory->SetUniformBuffer( UniformBuffer );
+
 	// Update the primitive uniform buffer
 	if (LastFramePreRendered != FrameNumber)
 	{
 		Proxy->UpdateWorldSpacePrimitiveUniformBuffer();
 		LastFramePreRendered = FrameNumber;
 	}
+
+	// Setup the mesh elements we will render with later on.
+	MeshBatches.Reset();
+	FirstBatchForView.Reset();
+	if (Source.EmitterRenderMode == ERM_Normal)
+	{
+		const FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
+
+		check(MeshBatches.Num() == 0);
+		FirstBatchForView.Add(0);
+		for ( int32 ViewIndex = 0; ViewIndex < ViewCount; ++ViewIndex )
+		{
+			const FSceneView* View = ViewFamily->Views[ViewIndex];
+			const bool bIsWireframe = AllowDebugViewmodes() && View->Family->EngineShowFlags.Wireframe;
+
+			//@todo. Handle LODs.
+			for (int32 LODIndex = 0; LODIndex < 1; LODIndex++)
+			{
+				for (int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
+				{
+					FMeshBatch* MeshPtr = Proxy->GetPooledMeshBatch();
+					FMeshBatch& Mesh = *MeshPtr;
+					Mesh.Elements.Reset();
+					FMeshBatchElement& BatchElement = *new(Mesh.Elements) FMeshBatchElement();
+					Mesh.VertexFactory = VertexFactory;
+					Mesh.DynamicVertexData = NULL;
+					Mesh.LCI = NULL;
+					Mesh.UseDynamicData = false;
+					Mesh.ReverseCulling = Proxy->IsLocalToWorldDeterminantNegative();
+					Mesh.CastShadow = Proxy->GetCastShadow();
+					Mesh.DepthPriorityGroup = (ESceneDepthPriorityGroup)Proxy->GetDepthPriorityGroup(View);
+
+					FMaterialRenderProxy* MaterialProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+					const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];
+					if ((Section.NumTriangles == 0) || (MaterialProxy == NULL))
+					{
+						//@todo. This should never occur, but it does occasionally.
+						continue;
+					}
+
+					BatchElement.PrimitiveUniformBufferResource = &Proxy->GetWorldSpacePrimitiveUniformBuffer();
+					BatchElement.FirstIndex = Section.FirstIndex;
+					BatchElement.MinVertexIndex = Section.MinVertexIndex;
+					BatchElement.MaxVertexIndex = Section.MaxVertexIndex;
+					BatchElement.NumInstances = bInstanced ? ParticleCount : 1;
+
+					if (bIsWireframe)
+					{
+						if( LODModel.WireframeIndexBuffer.IsInitialized()
+							&& !(RHISupportsTessellation(GRHIShaderPlatform) && Mesh.VertexFactory->GetType()->SupportsTessellationShaders())
+							)
+						{
+							Mesh.Type = PT_LineList;
+							Mesh.MaterialRenderProxy = Proxy->GetDeselectedWireframeMatInst();
+							BatchElement.FirstIndex = 0;
+							BatchElement.IndexBuffer = &LODModel.WireframeIndexBuffer;
+							BatchElement.NumPrimitives = LODModel.WireframeIndexBuffer.GetNumIndices() / 2;
+						
+						}
+						else
+						{
+							Mesh.Type = PT_TriangleList;
+							Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+							Mesh.bWireframe = true;	
+							BatchElement.FirstIndex = 0;
+							BatchElement.IndexBuffer = &LODModel.IndexBuffer;
+							BatchElement.NumPrimitives = LODModel.IndexBuffer.GetNumIndices() / 3;
+						}
+					}
+					else
+					{
+						Mesh.Type = PT_TriangleList;
+						Mesh.MaterialRenderProxy = MeshMaterials[SectionIndex]->GetRenderProxy(bSelected);
+						BatchElement.IndexBuffer = &LODModel.IndexBuffer;
+						BatchElement.FirstIndex = Section.FirstIndex;
+						BatchElement.NumPrimitives = Section.NumTriangles;
+					}
+
+					if(!bInstanced)
+					{
+						FMeshParticleVertexFactory::FBatchParametersCPU* BatchParameters = new(MeshBatchParameters) FMeshParticleVertexFactory::FBatchParametersCPU();
+						BatchParameters->InstanceBuffer = InstanceDataAllocationsCPU.GetTypedData();
+						BatchParameters->DynamicParameterBuffer = DynamicParameterDataAllocationsCPU.GetTypedData();
+						BatchElement.UserData = BatchParameters;
+						BatchElement.UserIndex = 0;
+
+						Mesh.Elements.Reserve(ParticleCount);
+						for(int32 ParticleIndex = 1; ParticleIndex < ParticleCount; ++ParticleIndex)
+						{
+							FMeshBatchElement* NextElement = new(Mesh.Elements) FMeshBatchElement();
+							*NextElement = Mesh.Elements[0];
+							NextElement->UserIndex = ParticleIndex;
+						}
+					}
+
+					MeshBatches.Add(MeshPtr);
+				}
+			}
+			FirstBatchForView.Add(MeshBatches.Num());
+		}
+	}
 }
 
-void FDynamicMeshEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const
+void FDynamicMeshEmitterData::GatherSimpleLights(const FParticleSystemSceneProxy* Proxy, const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const
 {
-	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), OutParticleLights);
+	GatherParticleLightData(Source, Proxy->GetLocalToWorld(), ViewFamily, OutParticleLights);
 }
 
 void FDynamicMeshEmitterData::GetParticleTransform(FBaseParticle& InParticle, const FVector& CameraPosition, const FVector& CameraFacingOpVector, const FQuat& PointToLockedAxis, 
@@ -2296,7 +2310,8 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 	FVector CameraPosition = View->ViewMatrices.ViewOrigin;
 	if (Source.bUseLocalSpace)
 	{
-		CameraPosition = Proxy->GetLocalToWorld().InverseTransformPosition(CameraPosition);
+		const FMatrix InvLocalToWorld = Proxy->GetLocalToWorld().InverseSafe();
+		CameraPosition = InvLocalToWorld.TransformPosition(CameraPosition);
 	}
 
 	int32 SubImagesX = Source.SubImages_Horizontal;
@@ -2380,7 +2395,7 @@ void FDynamicMeshEmitterData::GetInstanceData(void* InstanceData, void* DynamicP
 
 			float SubImageIndex = SubUVPayload->ImageIndex;
 			float SubImageLerp = FMath::Fractional(SubImageIndex);
-			int32 SubImageA = FMath::Floor(SubImageIndex);
+			int32 SubImageA = FMath::FloorToInt(SubImageIndex);
 			int32 SubImageB = SubImageA + 1;
 			int32 SubImageAH = SubImageA % SubImagesX;
 			int32 SubImageBH = SubImageB % SubImagesX;
@@ -2626,7 +2641,7 @@ int32 FDynamicBeam2EmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimit
 	}
 
 	const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-	bool bMaterialIgnored = PDI->IsMaterialIgnored(MaterialResource[bSelected]);
+	bool bMaterialIgnored = PDI->IsMaterialIgnored(MaterialResource[bSelected], View->GetFeatureLevel());
 	if (bMaterialIgnored && !bIsWireframe)
 	{
 		return 0;
@@ -2751,7 +2766,7 @@ void FDynamicBeam2EmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, c
 	// Only need to do this once per-view
 	if (LastFramePreRendered < FrameNumber)
 	{
-		bool bOnlyOneView = !GIsEditor && ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None)) ? true : false);
+		bool bOnlyOneView = !GIsEditor && ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None) && !GEngine->IsStereoscopic3D()) ? true : false);
 
 		BuildViewFillDataAndSubmit(Proxy,ViewFamily,VisibilityMap,bOnlyOneView,Source.VertexCount,sizeof(FParticleBeamTrailVertex),0);
 
@@ -4853,7 +4868,7 @@ int32 FDynamicBeam2EmitterData::FillData_InterpolatedNoise(FAsyncBufferFillData&
 		float InterpFraction = FMath::Fractional(InterpStepSize);
 		//bool bInterpFractionIsZero = (FMath::Abs(InterpFraction) < KINDA_SMALL_NUMBER) ? true : false;
 		bool bInterpFractionIsZero = false;
-		int32 InterpIndex = FMath::Trunc(InterpStepSize);
+		int32 InterpIndex = FMath::TruncToInt(InterpStepSize);
 
 		FVector* NoisePoints	= TargetNoisePoints;
 		FVector* NextNoise		= NextNoisePoints;
@@ -5368,8 +5383,8 @@ void FDynamicTrailsEmitterData::Init(bool bInSelected)
 
 	MaterialResource[0] = SourcePointer->MaterialInterface->GetRenderProxy(false);
 	MaterialResource[1] = GIsEditor ? SourcePointer->MaterialInterface->GetRenderProxy(true) : MaterialResource[0];
-	bUsesDynamicParameter = false;
-	// TODO: Should use dynamic parameter if needed!
+
+	bUsesDynamicParameter = GetSourceData()->DynamicParameterDataOffset > 0;
 
 	// We won't need this on the render thread
 	SourcePointer->MaterialInterface = NULL;
@@ -5412,7 +5427,7 @@ int32 FDynamicTrailsEmitterData::Render(FParticleSystemSceneProxy* Proxy, FPrimi
 	bool const bIsWireframe = View->Family->EngineShowFlags.Wireframe;
 
 	// Don't render if the material will be ignored
-	if (PDI->IsMaterialIgnored(MaterialResource[bSelected]) && !bIsWireframe)
+	if (PDI->IsMaterialIgnored(MaterialResource[bSelected], View->GetFeatureLevel()) && !bIsWireframe)
 	{
 		return 0;
 	}
@@ -5557,6 +5572,12 @@ void FDynamicTrailsEmitterData::PreRenderView(FParticleSystemSceneProxy* Proxy, 
 		}
 
 		bool bOnlyOneView = ShouldUsePrerenderView() || ((GEngine && GEngine->GameViewport && (GEngine->GameViewport->GetCurrentSplitscreenConfiguration() == ESplitScreenType::None)) ? true : false);
+
+		// Render both views when in stereo
+		if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+		{
+			bOnlyOneView = false;
+		}
 
 		BuildViewFillDataAndSubmit(Proxy,ViewFamily,VisibilityMap,bOnlyOneView,SourcePointer->VertexCount,VertexStride, DynamicParameterVertexStride);
 
@@ -5777,12 +5798,12 @@ void FDynamicRibbonEmitterData::RenderDebug(FParticleSystemSceneProxy* Proxy, FP
 
 					DrawPosition = DebugParticle->Location;
 					DrawSize = DebugParticle->Size.X * Source.Scale.X;
-					int32 Red   = FMath::Trunc(255.0f * (1.0f - ColorScale));
-					int32 Green = FMath::Trunc(255.0f * ColorScale);
+					int32 Red   = FMath::TruncToInt(255.0f * (1.0f - ColorScale));
+					int32 Green = FMath::TruncToInt(255.0f * ColorScale);
 					ColorScale += Increment;
 					DrawColor = FColor(Red,Green,0);
-					Red   = FMath::Trunc(255.0f * (1.0f - ColorScale));
-					Green = FMath::Trunc(255.0f * ColorScale);
+					Red   = FMath::TruncToInt(255.0f * (1.0f - ColorScale));
+					Green = FMath::TruncToInt(255.0f * ColorScale);
 					PrevDrawColor = FColor(Red,Green,0);
 
 					if (bRenderParticles == true)
@@ -6182,6 +6203,241 @@ void FDynamicAnimTrailEmitterData::Init(bool bInSelected)
 	FDynamicTrailsEmitterData::Init(bInSelected);
 }
 
+
+float GCatmullRomEndParamOffset = 0.1f;
+static FAutoConsoleVariableRef CatmullRomEndParamOffset(
+	TEXT("r.CatmullRomEndParamOffset"),
+	GCatmullRomEndParamOffset,
+	TEXT("The parameter offset for catmul rom end points.")
+	);
+
+/**
+Helper class for keeping track of all the particles being used for vertex generation.
+*/
+struct FAnimTrailParticleRenderData
+{
+	FDynamicTrailsEmitterReplayData& Source;
+	uint8* ParticleDataAddress;
+
+	FBaseParticle* PrevPrevParticle;
+	FAnimTrailTypeDataPayload* PrevPrevPayload;
+	FBaseParticle* PrevParticle;
+	FAnimTrailTypeDataPayload* PrevPayload;
+	FBaseParticle* Particle;
+	FAnimTrailTypeDataPayload* Payload;
+	FBaseParticle* NextParticle;
+	FAnimTrailTypeDataPayload* NextPayload;
+	
+	FAnimTrailParticleRenderData( FDynamicTrailsEmitterReplayData& InSource, FBaseParticle* InParticle, FAnimTrailTypeDataPayload* InPayload )
+		:	Source(InSource),
+			ParticleDataAddress(Source.ParticleData.GetData()),
+			PrevPrevParticle(NULL),
+			PrevPrevPayload(NULL),
+			PrevParticle(NULL),
+			PrevPayload(NULL),
+			Particle(InParticle),
+			Payload(InPayload),
+			NextParticle(NULL),
+			NextPayload(NULL)
+	{
+	}
+
+	bool CanRender()
+	{
+		return Particle != NULL;
+	}
+
+	bool CanInterpolate()
+	{
+		return Particle && PrevParticle;
+	}
+
+	/**
+		Initializes the state for traversing the trail and generating vertex data.
+	*/
+	inline void Init( )
+	{
+		check(Particle);
+		GetNext();
+	}
+	
+	/**
+		Inits the next particle from the current Particle. 
+	*/
+	inline void GetNext()
+	{
+		check(Particle);
+		int32 ParticleIdx = TRAIL_EMITTER_GET_NEXT(Payload->Flags);
+		if (ParticleIdx != TRAIL_EMITTER_NULL_NEXT)
+		{
+			DECLARE_PARTICLE_PTR(TempParticle, ParticleDataAddress + Source.ParticleStride * ParticleIdx);
+			NextParticle = TempParticle;
+			NextPayload = (FAnimTrailTypeDataPayload*)((uint8*)TempParticle + Source.TrailDataOffset);
+		}
+		else
+		{
+			NextParticle = NULL;
+			NextPayload = NULL;
+		}
+	}
+
+	/**
+		Move the pointers along the trail.
+	*/
+	inline void Advance( )
+	{		
+		PrevPrevParticle = PrevParticle;
+		PrevPrevPayload = PrevPayload;
+		PrevParticle = Particle;
+		PrevPayload = Payload;
+		Particle = NextParticle;
+		Payload = NextPayload;
+
+		if( Particle )
+		{
+			//Get the new next or fake it if we've reached the end of the trail.
+			GetNext();
+		}
+	}
+	
+	/** 
+		Generate interpolated vertex locations for the current location in the trail.
+		Interpolates between PrevParticle and Particle.
+	*/
+	void CalcVertexData(float InterpFactor, FVector& OutLocation, FVector& OutFirst, FVector& OutSecond, float& OutTileU, float& OutSize, FLinearColor& OutColor, FVector4* OutDynamicParameters)
+	{
+		check(CanRender());
+		if( InterpFactor == 0.0f )
+		{
+			FVector Offset = (Payload->Direction * Payload->Length);
+			OutLocation = Particle->Location;
+			OutFirst = Particle->Location - Offset;
+			OutSecond = Particle->Location + Offset;
+			OutTileU = Payload->TiledU;
+			OutSize = Particle->Size.X * Source.Scale.X;
+			OutColor = Particle->Color;
+			if( OutDynamicParameters )
+			{
+				FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(Particle) + Source.DynamicParameterDataOffset));
+				*OutDynamicParameters = DynPayload->DynamicParameterValue;
+			}
+			return;
+		}
+		else if( PrevParticle && InterpFactor == 1.0f )
+		{
+			FVector Offset = (PrevPayload->Direction * PrevPayload->Length);
+			OutLocation = PrevParticle->Location;
+			OutFirst = PrevParticle->Location - Offset;
+			OutSecond = PrevParticle->Location + Offset;
+			OutTileU = PrevPayload->TiledU;
+			OutSize = PrevParticle->Size.X * Source.Scale.X;
+			OutColor = PrevParticle->Color;
+			if( OutDynamicParameters )
+			{
+				FEmitterDynamicParameterPayload* DynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevParticle) + Source.DynamicParameterDataOffset));
+				*OutDynamicParameters = DynPayload->DynamicParameterValue;
+			}
+			return;
+		}
+		else
+		{
+			check(CanInterpolate());
+			//We are interpolating between the previous and the current.
+			check( InterpFactor >= 0.0f && InterpFactor <= 1.0f );
+			check( Particle && PrevParticle && Payload && PrevPayload );
+				
+			FVector PrevPrevLocation;
+			FVector PrevPrevDirection;		
+			float PrevPrevLength;
+			float PrevPrevTiledU;
+			float PrevPrevSize;
+			FLinearColor PrevPrevColor;
+			FEmitterDynamicParameterPayload* PrevPrevDynPayload;
+			if( PrevPrevParticle )
+			{
+				PrevPrevLocation = PrevPrevParticle->Location;
+				PrevPrevDirection = PrevPrevPayload->Direction;
+				PrevPrevLength = PrevPrevPayload->Length;
+				PrevPrevTiledU = PrevPrevPayload->TiledU;
+				PrevPrevSize = PrevPrevParticle->Size.X * Source.Scale.X;
+				PrevPrevColor = PrevPrevParticle->Color;
+				PrevPrevDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevPrevParticle) + Source.DynamicParameterDataOffset));
+			}
+			else
+			{
+				PrevPrevLocation = PrevParticle->Location;
+				PrevPrevDirection = PrevPayload->Direction;
+				PrevPrevLength = PrevPayload->Length;
+				PrevPrevTiledU = PrevPayload->TiledU;
+				PrevPrevSize = PrevParticle->Size.X * Source.Scale.X;
+				PrevPrevColor = PrevParticle->Color;
+				PrevPrevDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevParticle) + Source.DynamicParameterDataOffset));
+			}
+
+			FVector NextLocation;
+			FVector NextDirection;
+			float NextLength;
+			float NextTiledU;
+			float NextSize;
+			FLinearColor NextColor;
+			FEmitterDynamicParameterPayload* NextDynPayload;
+			if( NextParticle )
+			{
+				NextLocation = NextParticle->Location;
+				NextDirection = NextPayload->Direction;
+				NextLength = NextPayload->Length;
+				NextTiledU = NextPayload->TiledU;
+				NextSize = NextParticle->Size.X * Source.Scale.X;
+				NextColor = NextParticle->Color;
+				NextDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(NextParticle) + Source.DynamicParameterDataOffset));
+			}
+			else
+			{
+				NextLocation = Particle->Location;
+				NextDirection = Payload->Direction;
+				NextLength = Payload->Length;
+				NextTiledU = Payload->TiledU;
+				NextSize = Particle->Size.X * Source.Scale.X;
+				NextColor = Particle->Color;
+				NextDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(Particle) + Source.DynamicParameterDataOffset));
+			}
+
+			const FEmitterDynamicParameterPayload* PrevDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevParticle) + Source.DynamicParameterDataOffset));
+			const FEmitterDynamicParameterPayload* CurrDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(Particle) + Source.DynamicParameterDataOffset));
+
+
+			float NextT = 0.0f;
+			float CurrT = NextParticle ? Payload->InterpolationParameter : GCatmullRomEndParamOffset;
+			float PrevT = CurrT + PrevPayload->InterpolationParameter;
+			float PrevPrevT = PrevT + (PrevPrevPayload ? PrevPrevPayload->InterpolationParameter : GCatmullRomEndParamOffset);
+			
+			float T = CurrT + ((PrevT - CurrT) * InterpFactor);
+				
+			//Interpolate locations
+			FVector Location = FMath::CubicCRSplineInterpSafe(PrevPrevLocation, PrevParticle->Location, Particle->Location, NextLocation, PrevPrevT, PrevT, CurrT, NextT, T);
+			FVector InterpDir = FMath::CubicCRSplineInterpSafe(PrevPrevDirection, PrevPayload->Direction, Payload->Direction, NextDirection, PrevPrevT, PrevT, CurrT, NextT, T);
+			InterpDir.Normalize();
+			float InterpLength = FMath::CubicCRSplineInterpSafe(PrevPrevLength, PrevPayload->Length, Payload->Length, NextLength, PrevPrevT, PrevT, CurrT, NextT, T);
+			OutTileU = FMath::CubicCRSplineInterpSafe(PrevPrevTiledU, PrevPayload->TiledU, Payload->TiledU, NextTiledU, PrevPrevT, PrevT, CurrT, NextT, T);
+			OutSize = FMath::CubicCRSplineInterpSafe(PrevPrevSize, PrevParticle->Size.X * Source.Scale.X, Particle->Size.X * Source.Scale.X, NextSize, PrevPrevT, PrevT, CurrT, NextT, T);
+			OutColor = FMath::CubicCRSplineInterpSafe(PrevPrevColor, PrevParticle->Color, Particle->Color, NextColor, PrevPrevT, PrevT, CurrT, NextT, T);
+
+			if( OutDynamicParameters )
+			{
+				*OutDynamicParameters = FMath::CubicCRSplineInterpSafe(PrevPrevDynPayload->DynamicParameterValue,
+					PrevDynPayload->DynamicParameterValue,
+					CurrDynPayload->DynamicParameterValue,
+					NextDynPayload->DynamicParameterValue, PrevPrevT, PrevT, CurrT, NextT, T);
+			}
+
+			FVector Offset = (InterpDir * InterpLength);
+			OutFirst = Location - Offset;
+			OutSecond = Location + Offset;
+			OutLocation = Location;
+		}
+	}
+};
+
 void FDynamicAnimTrailEmitterData::RenderDebug(FParticleSystemSceneProxy* Proxy, FPrimitiveDrawInterface* PDI, const FSceneView* View, bool bCrosses)
 {
 	if ((bRenderParticles == true) || (bRenderTangents == true))
@@ -6195,14 +6451,11 @@ void FDynamicAnimTrailEmitterData::RenderDebug(FParticleSystemSceneProxy* Proxy,
 		FColor DrawColor;
 		FColor PrevDrawColor;
 		FVector DrawTangentEnd;
+		float TiledU;
+		FLinearColor DummyColor;
 
 		uint8* Address = Source.ParticleData.GetData();
 		FAnimTrailTypeDataPayload* StartTrailPayload;
-		FAnimTrailTypeDataPayload* EndTrailPayload = NULL;
-		FBaseParticle* DebugParticle;
-		FAnimTrailTypeDataPayload* TrailPayload;
-		FBaseParticle* PrevParticle = NULL;
-		FAnimTrailTypeDataPayload* PrevTrailPayload;
 		for (int32 ParticleIdx = 0; ParticleIdx < Source.ActiveParticleCount; ParticleIdx++)
 		{
 			DECLARE_PARTICLE_PTR(Particle, Address + Source.ParticleStride * Source.ParticleIndices[ParticleIdx]);
@@ -6216,172 +6469,112 @@ void FDynamicAnimTrailEmitterData::RenderDebug(FParticleSystemSceneProxy* Proxy,
 			float Increment = 1.0f / (StartTrailPayload->TriangleCount / 2);
 			float ColorScale = 0.0f;
 
-			DebugParticle = Particle;
-			// Find the end particle in this chain...
-			TrailPayload = StartTrailPayload;
-			FBaseParticle* IteratorParticle = DebugParticle;
-			while (TrailPayload)
-			{
-				int32	Next = TRAIL_EMITTER_GET_NEXT(TrailPayload->Flags);
-				if (Next == TRAIL_EMITTER_NULL_NEXT)
-				{
-					DebugParticle = IteratorParticle;
-					EndTrailPayload = TrailPayload;
-					TrailPayload = NULL;
-				}
-				else
-				{
-					DECLARE_PARTICLE_PTR(TempParticle, Address + Source.ParticleStride * Next);
-					IteratorParticle = TempParticle;
-					TrailPayload = (FAnimTrailTypeDataPayload*)((uint8*)IteratorParticle + Source.TrailDataOffset);
-				}
-			}
-			if (EndTrailPayload != StartTrailPayload)
-			{
-				FBaseParticle* CurrSpawnedParticle = NULL;
-				FBaseParticle* NextSpawnedParticle = NULL;
-				// We have more than one particle in the trail...
-				TrailPayload = EndTrailPayload;
+			FAnimTrailParticleRenderData RenderData(Source, Particle, StartTrailPayload);
+			RenderData.Init();
 
-				if (TrailPayload->bInterpolatedSpawn == false)
+			while (RenderData.CanRender())
+			{
+				RenderData.CalcVertexData(0.0f, DrawPosition, DrawFirstEdgePosition, DrawSecondEdgePosition,TiledU, DrawSize, DummyColor, NULL);
+
+				int32 Red   = FMath::TruncToInt(255.0f * (1.0f - ColorScale));
+				int32 Green = FMath::TruncToInt(255.0f * ColorScale);
+				ColorScale += Increment;
+				DrawColor = FColor(Red,Green,0);
+				Red   = FMath::TruncToInt(255.0f * (1.0f - ColorScale));
+				Green = FMath::TruncToInt(255.0f * ColorScale);
+				PrevDrawColor = FColor(Red,Green,0);
+
+				if (bRenderParticles == true)
 				{
-					CurrSpawnedParticle = DebugParticle;
-				}
-				while (TrailPayload)
-				{
-					int32	Prev = TRAIL_EMITTER_GET_PREV(TrailPayload->Flags);
-					if (Prev == TRAIL_EMITTER_NULL_PREV)
+					if (TRAIL_EMITTER_IS_START(RenderData.Payload->Flags))
 					{
-						PrevParticle = NULL;
-						PrevTrailPayload = NULL;
+						DrawWireStar(PDI, DrawPosition, DrawSize, FColor(0, 255, 0), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor(0, 255, 0), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor(0, 255, 0), Proxy->GetDepthPriorityGroup(View));
+					}
+					else if (TRAIL_EMITTER_IS_DEADTRAIL(RenderData.Payload->Flags))
+					{
+						DrawWireStar(PDI, DrawPosition, DrawSize, FColor(255, 0, 0), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor(255, 0, 0), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor(255, 0, 0), Proxy->GetDepthPriorityGroup(View));
+					}
+					else if (TRAIL_EMITTER_IS_END(RenderData.Payload->Flags))
+					{
+						DrawWireStar(PDI, DrawPosition, DrawSize, FColor(255, 255, 255), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor(255, 255, 255), Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor(255, 255, 255), Proxy->GetDepthPriorityGroup(View));
 					}
 					else
 					{
-						DECLARE_PARTICLE_PTR(TempParticle, Address + Source.ParticleStride * Prev);
-						PrevParticle = TempParticle;
-						PrevTrailPayload = (FAnimTrailTypeDataPayload*)((uint8*)PrevParticle + Source.TrailDataOffset);
+						DrawWireStar(PDI, DrawPosition, DrawSize*0.5f, DrawColor, Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize*0.5f, DrawColor, Proxy->GetDepthPriorityGroup(View));
+						DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize*0.5f, DrawColor, Proxy->GetDepthPriorityGroup(View));
 					}
 
-					if (PrevTrailPayload && PrevTrailPayload->bInterpolatedSpawn == false)
+
+					if ( bRenderTessellation && RenderData.CanInterpolate() )
 					{
-						if (CurrSpawnedParticle == NULL)
-						{
-							CurrSpawnedParticle = PrevParticle;
-						}
-						else
-						{
-							NextSpawnedParticle = PrevParticle;
-						}
-					}
+						FVector PrevDrawPosition;
+						FVector PrevDrawFirstEdgePosition;
+						FVector PrevDrawSecondEdgePosition;
+						float PrevTiledU;
+						//Get the previous particles verts.
+						RenderData.CalcVertexData(1.0f, PrevDrawPosition, PrevDrawFirstEdgePosition, PrevDrawSecondEdgePosition,PrevTiledU, DrawSize, DummyColor, NULL);
 
-					DrawPosition = DebugParticle->Location;
-					DrawFirstEdgePosition = TrailPayload->FirstEdge;
-					DrawSecondEdgePosition = TrailPayload->SecondEdge;
-					DrawSize = DebugParticle->Size.X * Source.Scale.X;
-					int32 Red   = FMath::Trunc(255.0f * (1.0f - ColorScale));
-					int32 Green = FMath::Trunc(255.0f * ColorScale);
-					ColorScale += Increment;
-					DrawColor = FColor(Red,Green,0);
-					Red   = FMath::Trunc(255.0f * (1.0f - ColorScale));
-					Green = FMath::Trunc(255.0f * ColorScale);
-					PrevDrawColor = FColor(Red,Green,0);
+						// Draw a straight line between the particles
+						// This will allow us to visualize the tessellation difference
+						PDI->DrawLine(DrawPosition, PrevDrawPosition, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
+						PDI->DrawLine(DrawFirstEdgePosition, PrevDrawFirstEdgePosition, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
+						PDI->DrawLine(DrawSecondEdgePosition, PrevDrawSecondEdgePosition, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
 
-					if (bRenderParticles == true)
-					{
-						if (TrailPayload->bInterpolatedSpawn == false)
+						int32 InterpCount = RenderData.Payload->RenderingInterpCount;
+						// Interpolate between prev and current...
+						FVector LineStart = DrawPosition;
+						FVector FirstStart = DrawFirstEdgePosition;
+						FVector SecondStart = DrawSecondEdgePosition;
+						float InvCount = 1.0f / InterpCount;
+						FLinearColor StartColor = DrawColor;
+						FLinearColor EndColor = PrevDrawColor;
+						for (int32 SpawnIdx = 0; SpawnIdx < InterpCount; SpawnIdx++)
 						{
-							DrawWireStar(PDI, DrawPosition, DrawSize, FColor(255,0,0), Proxy->GetDepthPriorityGroup(View));
-							DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor(255,0,0), Proxy->GetDepthPriorityGroup(View));
-							DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor(255,0,0), Proxy->GetDepthPriorityGroup(View));
-						}
-						else
-						{
-							DrawWireStar(PDI, DrawPosition, DrawSize, FColor(0,255,0), Proxy->GetDepthPriorityGroup(View));
-							DrawWireStar(PDI, DrawFirstEdgePosition, DrawSize, FColor(0,255,0), Proxy->GetDepthPriorityGroup(View));
-							DrawWireStar(PDI, DrawSecondEdgePosition, DrawSize, FColor(0,255,0), Proxy->GetDepthPriorityGroup(View));
-						}
+							float TimeStep = InvCount * SpawnIdx;
+							FVector LineEnd;
+							FVector FirstEnd;
+							FVector SecondEnd;
+							float TiledUEnd;
+							FLinearColor InterpColor;
 
-						//
-						if (bRenderTessellation == true)
-						{
-							if (PrevParticle != NULL)
+							RenderData.CalcVertexData(TimeStep, LineEnd, FirstEnd, SecondEnd,TiledUEnd,DrawSize,InterpColor,NULL);
+
+							PDI->DrawLine(LineStart, LineEnd, InterpColor, Proxy->GetDepthPriorityGroup(View));
+							PDI->DrawLine(FirstStart, FirstEnd, InterpColor, Proxy->GetDepthPriorityGroup(View));
+							PDI->DrawLine(SecondStart, SecondEnd, InterpColor, Proxy->GetDepthPriorityGroup(View));
+							if (SpawnIdx > 0)
 							{
-								// Draw a straight line between the particles
-								// This will allow us to visualize the tessellation difference
-								PDI->DrawLine(DrawPosition, PrevParticle->Location, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
-								PDI->DrawLine(DrawFirstEdgePosition, PrevTrailPayload->FirstEdge, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
-								PDI->DrawLine(DrawSecondEdgePosition, PrevTrailPayload->SecondEdge, FColor(0,0,255), Proxy->GetDepthPriorityGroup(View));
-
-								int32 InterpCount = TrailPayload->RenderingInterpCount;
-								// Interpolate between current and next...
-								FVector LineStart = DrawPosition;
-								FVector FirstStart = DrawFirstEdgePosition;
-								FVector SecondStart = DrawSecondEdgePosition;
-								float Diff = AnimSampleTimeStep;
-								FVector CurrUp = FVector(0.0f, 0.0f, 1.0f);
-								float InvCount = 1.0f / InterpCount;
-								FLinearColor StartColor = DrawColor;
-								FLinearColor EndColor = PrevDrawColor;
-								for (int32 SpawnIdx = 0; SpawnIdx < InterpCount; SpawnIdx++)
-								{
-									float TimeStep = InvCount * SpawnIdx;
-									FVector LineEnd = FMath::CubicInterp<FVector>(
-										DebugParticle->Location, TrailPayload->ControlVelocity * AnimSampleTimeStep,
-										PrevParticle->Location, PrevTrailPayload->ControlVelocity * AnimSampleTimeStep,
-										TimeStep);
-									FVector FirstEnd = FMath::CubicInterp<FVector>(
-										TrailPayload->FirstEdge, TrailPayload->FirstVelocity * AnimSampleTimeStep,
-										PrevTrailPayload->FirstEdge, PrevTrailPayload->FirstVelocity * AnimSampleTimeStep,
-										TimeStep);
-									FVector SecondEnd = FMath::CubicInterp<FVector>(
-										TrailPayload->SecondEdge, TrailPayload->SecondVelocity * AnimSampleTimeStep,
-										PrevTrailPayload->SecondEdge, PrevTrailPayload->SecondVelocity * AnimSampleTimeStep,
-										TimeStep);
-									FLinearColor InterpColor = FMath::Lerp<FLinearColor>(StartColor, EndColor, TimeStep);
-									PDI->DrawLine(LineStart, LineEnd, InterpColor, Proxy->GetDepthPriorityGroup(View));
-									PDI->DrawLine(FirstStart, FirstEnd, InterpColor, Proxy->GetDepthPriorityGroup(View));
-									PDI->DrawLine(SecondStart, SecondEnd, InterpColor, Proxy->GetDepthPriorityGroup(View));
-									if (SpawnIdx > 0)
-									{
-										InterpColor.R = 1.0f - TimeStep;
-										InterpColor.G = 1.0f - TimeStep;
-										InterpColor.B = 1.0f - (1.0f - TimeStep);
-									}
-									DrawWireStar(PDI, LineEnd, DrawSize * 0.3f, InterpColor, Proxy->GetDepthPriorityGroup(View));
-									DrawWireStar(PDI, FirstEnd, DrawSize * 0.3f, InterpColor, Proxy->GetDepthPriorityGroup(View));
-									DrawWireStar(PDI, SecondEnd, DrawSize * 0.3f, InterpColor, Proxy->GetDepthPriorityGroup(View));
-									LineStart = LineEnd;
-									FirstStart = FirstEnd;
-									SecondStart = SecondEnd;
-								}
-								PDI->DrawLine(LineStart, PrevParticle->Location, EndColor, Proxy->GetDepthPriorityGroup(View));
-								PDI->DrawLine(FirstStart, PrevTrailPayload->FirstEdge, EndColor, Proxy->GetDepthPriorityGroup(View));
-								PDI->DrawLine(SecondStart, PrevTrailPayload->SecondEdge, EndColor, Proxy->GetDepthPriorityGroup(View));
+								InterpColor.R = 1.0f - TimeStep;
+								InterpColor.G = 1.0f - TimeStep;
+								InterpColor.B = 1.0f - (1.0f - TimeStep);
 							}
+							DrawWireStar(PDI, LineEnd, DrawSize * 0.3f, InterpColor, Proxy->GetDepthPriorityGroup(View));
+							DrawWireStar(PDI, FirstEnd, DrawSize * 0.3f, InterpColor, Proxy->GetDepthPriorityGroup(View));
+							DrawWireStar(PDI, SecondEnd, DrawSize * 0.3f, InterpColor, Proxy->GetDepthPriorityGroup(View));
+							LineStart = LineEnd;
+							FirstStart = FirstEnd;
+							SecondStart = SecondEnd;
 						}
-					}
-
-					if (bRenderTangents == true)
-					{
-						DrawTangentEnd = DrawPosition + TrailPayload->ControlVelocity * AnimSampleTimeStep;
-						PDI->DrawLine(DrawPosition, DrawTangentEnd, FLinearColor(1.0f, 1.0f, 0.0f), Proxy->GetDepthPriorityGroup(View));
-						DrawTangentEnd = DrawFirstEdgePosition + TrailPayload->FirstVelocity * AnimSampleTimeStep;
-						PDI->DrawLine(DrawFirstEdgePosition, DrawTangentEnd, FLinearColor(1.0f, 1.0f, 0.0f), Proxy->GetDepthPriorityGroup(View));
-						DrawTangentEnd = DrawSecondEdgePosition + TrailPayload->SecondVelocity * AnimSampleTimeStep;
-						PDI->DrawLine(DrawSecondEdgePosition, DrawTangentEnd, FLinearColor(1.0f, 1.0f, 0.0f), Proxy->GetDepthPriorityGroup(View));
-					}
-
-					// The end will have Next set to the NULL flag...
-					if (PrevParticle != NULL)
-					{
-						DebugParticle = PrevParticle;
-						TrailPayload = PrevTrailPayload;
-					}
-					else
-					{
-						TrailPayload = NULL;
+						PDI->DrawLine(LineStart, PrevDrawPosition, EndColor, Proxy->GetDepthPriorityGroup(View));
+						PDI->DrawLine(FirstStart, PrevDrawFirstEdgePosition, EndColor, Proxy->GetDepthPriorityGroup(View));
+						PDI->DrawLine(SecondStart, PrevDrawSecondEdgePosition, EndColor, Proxy->GetDepthPriorityGroup(View));
 					}
 				}
+
+				if (bRenderTangents == true)
+				{
+					DrawTangentEnd = DrawPosition + RenderData.Payload->Tangent * DrawSize * 3.0f;
+					PDI->DrawLine(DrawPosition, DrawTangentEnd, FLinearColor(1.0f, 1.0f, 0.0f), Proxy->GetDepthPriorityGroup(View));
+				}
+
+				RenderData.Advance();
 			}
 		}
 	}
@@ -6396,6 +6589,8 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 
 	uint8* TempVertexData = (uint8*)Data.VertexData;
 	FParticleBeamTrailVertex* Vertex;
+
+	uint8* TempDynamicParamData = (uint8*)Data.DynamicParameterData;
 	FParticleBeamTrailVertexDynamicParameter* DynParamVertex;
 
 	int32 Sheets = FMath::Max<int32>(Source.Sheets, 1);
@@ -6406,7 +6601,6 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 	// The distance tracking for tiling the 2nd UV set
 	float CurrDistance = 0.0f;
 
-	FBaseParticle* PackingParticle;
 	uint8* ParticleData = Source.ParticleData.GetData();
 	for (int32 ParticleIdx = 0; ParticleIdx < Source.ActiveParticleCount; ParticleIdx++)
 	{
@@ -6422,91 +6616,49 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 			continue;
 		}
 
-		PackingParticle = Particle;
-		// Pin the size to the X component
-		FLinearColor CurrLinearColor = PackingParticle->Color;
+		FAnimTrailParticleRenderData RenderData(Source, Particle, TrailPayload);
+		RenderData.Init();
+
+		// Pin the size to the X component=
 		float Tex_U = 0.0f;
-		FVector CurrTilePosition = PackingParticle->Location;
-		FVector PrevTilePosition = PackingParticle->Location;
 		int32 VertexStride = sizeof(FParticleBeamTrailVertex);
+		int32 DynamicParamStride = 0;
 		bool bFillDynamic = false;
-		if (bUsesDynamicParameter == true)
+		if (bUsesDynamicParameter == true && Data.DynamicParameterData != NULL)
 		{
-			VertexStride = sizeof(FParticleBeamTrailVertexDynamicParameter);
+			DynamicParamStride = sizeof(FParticleBeamTrailVertexDynamicParameter);
 			if (Source.DynamicParameterDataOffset > 0)
 			{
 				bFillDynamic = true;
 			}
 		}
 		float CurrTileU;
-		FEmitterDynamicParameterPayload* CurrDynPayload = NULL;
-		FEmitterDynamicParameterPayload* PrevDynPayload = NULL;
-		FBaseParticle* PrevParticle = NULL;
-		FAnimTrailTypeDataPayload* PrevTrailPayload = NULL;
 
-		while (TrailPayload)
+		FVector Location;
+		FVector FirstSocket;
+		FVector SecondSocket;
+		float TiledU;
+		float InterpSize;
+		FLinearColor InterpColor;
+
+		while (RenderData.CanRender())
 		{
-			float CurrSize = PackingParticle->Size.X * Source.Scale.X;
-
-			int32 InterpCount = TrailPayload->RenderingInterpCount;
-			if (InterpCount > 1)
+			int32 InterpCount = RenderData.Payload->RenderingInterpCount;
+			if (InterpCount > 1 && RenderData.CanInterpolate())
 			{
-				check(PrevParticle);
-				check(TRAIL_EMITTER_IS_HEAD(TrailPayload->Flags) == 0);
-
 				// Interpolate between current and next...
-				FVector CurrPosition = PackingParticle->Location;
-				FVector CurrTangent = TrailPayload->ControlVelocity;
-				FVector CurrFirstEdge = TrailPayload->FirstEdge;
-				FVector CurrFirstTangent = TrailPayload->FirstVelocity;
-				FVector CurrSecondEdge = TrailPayload->SecondEdge;
-				FVector CurrSecondTangent = TrailPayload->SecondVelocity;
-				FLinearColor CurrColor = PackingParticle->Color;
-
-				FVector PrevPosition = PrevParticle->Location;
-				FVector PrevTangent = PrevTrailPayload->ControlVelocity;
-				FVector PrevFirstEdge = PrevTrailPayload->FirstEdge;
-				FVector PrevFirstTangent = PrevTrailPayload->FirstVelocity;
-				FVector PrevSecondEdge = PrevTrailPayload->SecondEdge;
-				FVector PrevSecondTangent = PrevTrailPayload->SecondVelocity;
-				FLinearColor PrevColor = PrevParticle->Color;
-				float PrevSize = PrevParticle->Size.X * Source.Scale.X;
-
 				float InvCount = 1.0f / InterpCount;
-				float Diff = PrevTrailPayload->SpawnTime - TrailPayload->SpawnTime;
-
-				if (bFillDynamic == true)
-				{
-					CurrDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PackingParticle) + Source.DynamicParameterDataOffset));
-					PrevDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PrevParticle) + Source.DynamicParameterDataOffset));
-				}
 
 				FVector4 InterpDynamic(1.0f, 1.0f, 1.0f, 1.0f);
 				for (int32 SpawnIdx = InterpCount - 1; SpawnIdx >= 0; SpawnIdx--)
 				{
 					float TimeStep = InvCount * SpawnIdx;
-					FVector InterpPos = FMath::CubicInterp<FVector>(
-						CurrPosition, CurrTangent * AnimSampleTimeStep, 
-						PrevPosition, PrevTangent * AnimSampleTimeStep, 
-						TimeStep);
-					FVector InterpFirst = FMath::CubicInterp<FVector>(
-						CurrFirstEdge, CurrFirstTangent * AnimSampleTimeStep, 
-						PrevFirstEdge, PrevFirstTangent * AnimSampleTimeStep, 
-						TimeStep);
-					FVector InterpSecond = FMath::CubicInterp<FVector>(
-						CurrSecondEdge, CurrSecondTangent * AnimSampleTimeStep, 
-						PrevSecondEdge, PrevSecondTangent * AnimSampleTimeStep, 
-						TimeStep);
-					FLinearColor InterpColor = FMath::Lerp<FLinearColor>(CurrColor, PrevColor, TimeStep);
-					float InterpSize = FMath::Lerp<float>(CurrSize, PrevSize, TimeStep);
-					if (CurrDynPayload && PrevDynPayload)
-					{
-						InterpDynamic = FMath::Lerp<FVector4>(CurrDynPayload->DynamicParameterValue, PrevDynPayload->DynamicParameterValue, TimeStep);
-					}
+
+					RenderData.CalcVertexData(TimeStep, Location, FirstSocket, SecondSocket, TiledU, InterpSize, InterpColor, bFillDynamic ? &InterpDynamic : NULL);
 
 					if (bTextureTileDistance == true)	
 					{
-						CurrTileU = FMath::Lerp<float>(TrailPayload->TiledU, PrevTrailPayload->TiledU, TimeStep);
+						CurrTileU = TiledU;
 					}
 					else
 					{
@@ -6514,8 +6666,8 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 					}
 
 					Vertex = (FParticleBeamTrailVertex*)(TempVertexData);
-					Vertex->Position = InterpFirst;//InterpPos + InterpFirst * InterpSize;
-					Vertex->OldPosition = InterpFirst;
+					Vertex->Position = FirstSocket;
+					Vertex->OldPosition = FirstSocket;
 					Vertex->ParticleId	= 0;
 					Vertex->Size.X = InterpSize;
 					Vertex->Size.Y = InterpSize;
@@ -6523,22 +6675,22 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 					Vertex->Tex_V = 0.0f;
 					Vertex->Tex_U2 = CurrTileU;
 					Vertex->Tex_V2 = 0.0f;
-					Vertex->Rotation = PackingParticle->Rotation;
+					Vertex->Rotation = RenderData.Particle->Rotation;
 					Vertex->Color = InterpColor;
 					if (bUsesDynamicParameter == true)
 					{
-						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempVertexData);
+						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
 						DynParamVertex->DynamicValue[1] = InterpDynamic.Y;
 						DynParamVertex->DynamicValue[2] = InterpDynamic.Z;
 						DynParamVertex->DynamicValue[3] = InterpDynamic.W;
+						TempDynamicParamData += DynamicParamStride;
 					}
 					TempVertexData += VertexStride;
-					//PackedVertexCount++;
 
 					Vertex = (FParticleBeamTrailVertex*)(TempVertexData);
-					Vertex->Position = InterpSecond;//InterpPos - InterpSecond * InterpSize;
-					Vertex->OldPosition = InterpSecond;
+					Vertex->Position = SecondSocket;
+					Vertex->OldPosition = SecondSocket;
 					Vertex->ParticleId	= 0;
 					Vertex->Size.X = InterpSize;
 					Vertex->Size.Y = InterpSize;
@@ -6546,32 +6698,30 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 					Vertex->Tex_V = 1.0f;
 					Vertex->Tex_U2 = CurrTileU;
 					Vertex->Tex_V2 = 1.0f;
-					Vertex->Rotation = PackingParticle->Rotation;
+					Vertex->Rotation = RenderData.Particle->Rotation;
 					Vertex->Color = InterpColor;
 					if (bUsesDynamicParameter == true)
 					{
-						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempVertexData);
+						DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
 						DynParamVertex->DynamicValue[0] = InterpDynamic.X;
 						DynParamVertex->DynamicValue[1] = InterpDynamic.Y;
 						DynParamVertex->DynamicValue[2] = InterpDynamic.Z;
 						DynParamVertex->DynamicValue[3] = InterpDynamic.W;
+						TempDynamicParamData += DynamicParamStride;
 					}
 					TempVertexData += VertexStride;
-					//PackedVertexCount++;
 
 					Tex_U += TextureIncrement;
 				}
 			}
 			else
 			{
-				if (bFillDynamic == true)
-				{
-					CurrDynPayload = ((FEmitterDynamicParameterPayload*)((uint8*)(PackingParticle) + Source.DynamicParameterDataOffset));
-				}
+				FVector4 InterpDynamic(1.0f, 1.0f, 1.0f, 1.0f);
+				RenderData.CalcVertexData( 0.0f, Location, FirstSocket, SecondSocket, TiledU, InterpSize, InterpColor, bFillDynamic ? &InterpDynamic : NULL );
 
 				if (bTextureTileDistance == true)
 				{
-					CurrTileU = TrailPayload->TiledU;
+					CurrTileU = TiledU;
 				}
 				else
 				{
@@ -6579,89 +6729,56 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 				}
 
 				Vertex = (FParticleBeamTrailVertex*)(TempVertexData);
-				Vertex->Position = TrailPayload->FirstEdge;//PackingParticle->Location + TrailPayload->FirstEdge * CurrSize;
-				Vertex->OldPosition = PackingParticle->OldLocation;
+				Vertex->Position = FirstSocket;//PackingParticle->Location + TrailPayload->FirstEdge * CurrSize;
+				Vertex->OldPosition = RenderData.Particle->OldLocation;
 				Vertex->ParticleId	= 0;
-				Vertex->Size.X = CurrSize;
-				Vertex->Size.Y = CurrSize;
+				Vertex->Size.X = InterpSize;
+				Vertex->Size.Y = InterpSize;
 				Vertex->Tex_U = Tex_U;
 				Vertex->Tex_V = 0.0f;
 				Vertex->Tex_U2 = CurrTileU;
 				Vertex->Tex_V2 = 0.0f;
-				Vertex->Rotation = PackingParticle->Rotation;
-				Vertex->Color = PackingParticle->Color;
+				Vertex->Rotation = RenderData.Particle->Rotation;
+				Vertex->Color = InterpColor;
 				if (bUsesDynamicParameter == true)
 				{
-					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempVertexData);
-					if (CurrDynPayload != NULL)
-					{
-						DynParamVertex->DynamicValue[0] = CurrDynPayload->DynamicParameterValue.X;
-						DynParamVertex->DynamicValue[1] = CurrDynPayload->DynamicParameterValue.Y;
-						DynParamVertex->DynamicValue[2] = CurrDynPayload->DynamicParameterValue.Z;
-						DynParamVertex->DynamicValue[3] = CurrDynPayload->DynamicParameterValue.W;
-					}
-					else
-					{
-						DynParamVertex->DynamicValue[0] = 1.0f;
-						DynParamVertex->DynamicValue[1] = 1.0f;
-						DynParamVertex->DynamicValue[2] = 1.0f;
-						DynParamVertex->DynamicValue[3] = 1.0f;
-					}
+					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
+					DynParamVertex->DynamicValue[0] = InterpDynamic.X;
+					DynParamVertex->DynamicValue[1] = InterpDynamic.Y;
+					DynParamVertex->DynamicValue[2] = InterpDynamic.Z;
+					DynParamVertex->DynamicValue[3] = InterpDynamic.W;
+					TempDynamicParamData += DynamicParamStride;
 				}
 				TempVertexData += VertexStride;
 				//PackedVertexCount++;
 
 				Vertex = (FParticleBeamTrailVertex*)(TempVertexData);
-				Vertex->Position = TrailPayload->SecondEdge;//PackingParticle->Location - TrailPayload->SecondEdge * CurrSize;
-				Vertex->OldPosition = PackingParticle->OldLocation;
+				Vertex->Position = SecondSocket;//PackingParticle->Location - TrailPayload->SecondEdge * CurrSize;
+				Vertex->OldPosition = RenderData.Particle->OldLocation;
 				Vertex->ParticleId	= 0;
-				Vertex->Size.X = CurrSize;
-				Vertex->Size.Y = CurrSize;
+				Vertex->Size.X = InterpSize;
+				Vertex->Size.Y = InterpSize;
 				Vertex->Tex_U = Tex_U;
 				Vertex->Tex_V = 1.0f;
 				Vertex->Tex_U2 = CurrTileU;
 				Vertex->Tex_V2 = 1.0f;
-				Vertex->Rotation = PackingParticle->Rotation;
-				Vertex->Color = PackingParticle->Color;
+				Vertex->Rotation = RenderData.Particle->Rotation;
+				Vertex->Color = InterpColor;
 				if (bUsesDynamicParameter == true)
 				{
-					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempVertexData);
-					if (CurrDynPayload != NULL)
-					{
-						DynParamVertex->DynamicValue[0] = CurrDynPayload->DynamicParameterValue.X;
-						DynParamVertex->DynamicValue[1] = CurrDynPayload->DynamicParameterValue.Y;
-						DynParamVertex->DynamicValue[2] = CurrDynPayload->DynamicParameterValue.Z;
-						DynParamVertex->DynamicValue[3] = CurrDynPayload->DynamicParameterValue.W;
-					}
-					else
-					{
-						DynParamVertex->DynamicValue[0] = 1.0f;
-						DynParamVertex->DynamicValue[1] = 1.0f;
-						DynParamVertex->DynamicValue[2] = 1.0f;
-						DynParamVertex->DynamicValue[3] = 1.0f;
-					}
+					DynParamVertex = (FParticleBeamTrailVertexDynamicParameter*)(TempDynamicParamData);
+					DynParamVertex->DynamicValue[0] = InterpDynamic.X;
+					DynParamVertex->DynamicValue[1] = InterpDynamic.Y;
+					DynParamVertex->DynamicValue[2] = InterpDynamic.Z;
+					DynParamVertex->DynamicValue[3] = InterpDynamic.W;
+					TempDynamicParamData += DynamicParamStride;
 				}
 				TempVertexData += VertexStride;
-				//PackedVertexCount++;
 
 				Tex_U += TextureIncrement;
 			}
 
-			PrevParticle = PackingParticle;
-			PrevTrailPayload = TrailPayload;
-
-			int32	NextIdx = TRAIL_EMITTER_GET_NEXT(TrailPayload->Flags);
-			if (NextIdx == TRAIL_EMITTER_NULL_NEXT)
-			{
-				TrailPayload = NULL;
-				PackingParticle = NULL;
-			}
-			else
-			{
-				DECLARE_PARTICLE_PTR(TempParticle, ParticleData + Source.ParticleStride * NextIdx);
-				PackingParticle = TempParticle;
-				TrailPayload = (FAnimTrailTypeDataPayload*)((uint8*)TempParticle + Source.TrailDataOffset);
-			}
+			RenderData.Advance();
 		}
 	}
 
@@ -6675,7 +6792,6 @@ int32 FDynamicAnimTrailEmitterData::FillVertexData(struct FAsyncBufferFillData& 
 FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemComponent* Component, FParticleDynamicData* InDynamicData)
 	: FPrimitiveSceneProxy(Component, Component->Template ? Component->Template->GetFName() : NAME_None)
 	, Owner(Component->GetOwner())
-	, CullDistance(Component->CachedMaxDrawDistance > 0 ? Component->CachedMaxDrawDistance : WORLD_MAX)
 	, bCastShadow(Component->CastShadow)
 	, MaterialRelevance(
 		((Component->GetCurrentLODIndex() >= 0) && (Component->GetCurrentLODIndex() < Component->CachedViewRelevanceFlags.Num())) ?
@@ -6696,9 +6812,10 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 		)
 	, PendingLODDistance(0.0f)
 	, LastFramePreRendered(-1)
+	, FirstFreeMeshBatch(0)
 {
 #if STATS
-	LastStatCaptureTime = GCurrentTime;
+	LastStatCaptureTime = FApp::GetCurrentTime();
 	bCountedThisFrame = false;
 #endif
 	LODMethod = Component->LODMethod;
@@ -6709,6 +6826,21 @@ FParticleSystemSceneProxy::~FParticleSystemSceneProxy()
 	ReleaseRenderThreadResources();
 	delete DynamicData;
 	DynamicData = NULL;
+}
+
+FMeshBatch* FParticleSystemSceneProxy::GetPooledMeshBatch()
+{
+	FMeshBatch* Batch = NULL;
+	if (FirstFreeMeshBatch < MeshBatchPool.Num())
+	{
+		Batch = &MeshBatchPool[FirstFreeMeshBatch];
+	}
+	else
+	{
+		Batch = new(MeshBatchPool) FMeshBatch();
+	}
+	FirstFreeMeshBatch++;
+	return Batch;
 }
 
 // FPrimitiveSceneProxy interface.
@@ -6832,9 +6964,9 @@ void FParticleSystemSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI
 			// This is needed to prevent capturing particle rendering time during cinematics where the engine switches back to high detail mode
 			&& GetCachedScalabilityCVars().DetailMode != DM_High
 			&& NumDraws > 0
-			&& GCurrentTime - LastStatCaptureTime > GTimeBetweenParticleRenderStatCaptures)
+			&& FApp::GetCurrentTime() - LastStatCaptureTime > GTimeBetweenParticleRenderStatCaptures)
 		{
-			LastStatCaptureTime = GCurrentTime;
+			LastStatCaptureTime = FApp::GetCurrentTime();
 
 			const double EndTime = FPlatformTime::Seconds();
 
@@ -7109,6 +7241,7 @@ void FParticleSystemSceneProxy::ProcessPreRenderView(const FSceneView* View, int
  */
 void FParticleSystemSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
 {
+	FirstFreeMeshBatch = 0;
 	for (int32 ViewIndex = 0; ViewIndex < ViewFamily->Views.Num(); ViewIndex++)
 	{
 		ProcessPreRenderView(ViewFamily->Views[ViewIndex], FrameNumber);
@@ -7128,7 +7261,7 @@ void FParticleSystemSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily
 	}
 }
 
-void FParticleSystemSceneProxy::GatherSimpleLights(TArray<FSimpleLightEntry, SceneRenderingAllocator>& OutParticleLights) const
+void FParticleSystemSceneProxy::GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const
 {
 	if (DynamicData != NULL)
 	{
@@ -7137,7 +7270,7 @@ void FParticleSystemSceneProxy::GatherSimpleLights(TArray<FSimpleLightEntry, Sce
 			const FDynamicEmitterDataBase* DynamicEmitterData = DynamicData->DynamicEmitterDataArray[EmitterIndex];
 			if (DynamicEmitterData)
 			{
-				DynamicEmitterData->GatherSimpleLights(this, OutParticleLights);
+				DynamicEmitterData->GatherSimpleLights(this, ViewFamily, OutParticleLights);
 			}
 		}
 	}

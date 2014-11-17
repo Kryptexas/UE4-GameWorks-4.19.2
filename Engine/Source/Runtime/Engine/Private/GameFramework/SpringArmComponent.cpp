@@ -7,37 +7,79 @@
 
 const FName USpringArmComponent::SocketName(TEXT("SpringEndpoint"));
 
+extern float GAverageMS;
+
 USpringArmComponent::USpringArmComponent(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_PostPhysics;
 	
 	bAutoActivate = true;
 	bTickInEditor = true;
 	bUseControllerViewRotation = false;
 	bDoCollisionTest = true;
 
+	bInheritPitch = true;
+	bInheritYaw = true;
+	bInheritRoll = true;
+
 	TargetArmLength = 300.0f;
 	ProbeSize = 12.0f;
 	ProbeChannel = ECC_Camera;
 
 	CameraLagSpeed = 10.f;
+	CameraRotationLagSpeed = 10.f;
+
+	RelativeSocketRotation = FQuat::Identity;
 }
 
-void USpringArmComponent::UpdateDesiredArmLocation(const FVector& Origin, const FRotator& Direction, bool bDoTrace, bool bDoLag, float DeltaTime)
+void USpringArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocationLag, bool bDoRotationLag, float DeltaTime)
 {
-	FRotator DesiredRot = Direction;
+	FRotator DesiredRot = GetComponentRotation();
 
-	FVector DesiredLoc = Origin;
-	if (bDoLag)
+	// If inheriting rotation, check options for which components to inherit
+	if(!bAbsoluteRotation)
 	{
-		DesiredLoc = FMath::VInterpTo(PreviousDesiredLoc, DesiredLoc, DeltaTime, CameraLagSpeed);
+		if(!bInheritPitch)
+		{
+			DesiredRot.Pitch = RelativeRotation.Pitch;
+		}
+
+		if (!bInheritYaw)
+		{
+			DesiredRot.Yaw = RelativeRotation.Yaw;
+		}
+
+		if (!bInheritRoll)
+		{
+			DesiredRot.Roll = RelativeRotation.Roll;
+		}
+	}
+
+	// Apply 'lag' to rotation if desired
+	if(bDoRotationLag)
+	{
+		DesiredRot = FMath::RInterpTo(PreviousDesiredRot, DesiredRot, GAverageMS/1000.f, CameraRotationLagSpeed);
+	}
+	PreviousDesiredRot = DesiredRot;
+
+	// Get the spring arm 'origin', the target we want to look at
+	FVector ArmOrigin = GetComponentLocation() + TargetOffset;
+	// We lag the target, not the actuall camera position, so rotating the camera around does not hav lag
+	FVector DesiredLoc = ArmOrigin;
+	if (bDoLocationLag)
+	{
+		DesiredLoc = FMath::VInterpTo(PreviousDesiredLoc, DesiredLoc, GAverageMS/1000.f, CameraLagSpeed);
 	}
 	PreviousDesiredLoc = DesiredLoc;
 
+	// Now offset camera position back along our rotation
 	DesiredLoc -= DesiredRot.Vector() * TargetArmLength;
+	// Add socket offset in local space
 	DesiredLoc += FRotationMatrix(DesiredRot).TransformVector(SocketOffset);
 
+	// Do a sweep to ensure we are not penetrating the world
 	FVector ResultLoc;
 	if (bDoTrace && (TargetArmLength != 0.0f))
 	{
@@ -45,7 +87,7 @@ void USpringArmComponent::UpdateDesiredArmLocation(const FVector& Origin, const 
 		FCollisionQueryParams QueryParams(TraceTagName, false, GetOwner());
 
 		FHitResult Result;
-		GetWorld()->SweepSingle(Result, Origin, DesiredLoc, FQuat::Identity, ProbeChannel, FCollisionShape::MakeSphere(ProbeSize), QueryParams);
+		GetWorld()->SweepSingle(Result, ArmOrigin, DesiredLoc, FQuat::Identity, ProbeChannel, FCollisionShape::MakeSphere(ProbeSize), QueryParams);
 
 		ResultLoc = BlendLocations(DesiredLoc, Result.Location, Result.bBlockingHit, DeltaTime);
 	}
@@ -54,7 +96,15 @@ void USpringArmComponent::UpdateDesiredArmLocation(const FVector& Origin, const 
 		ResultLoc = DesiredLoc;
 	}
 
-	RelativeSocketLocation = ComponentToWorld.ToInverseMatrixWithScale().TransformPosition(ResultLoc);
+	// Form a transform for new world transform for camera
+	FTransform WorldCamTM(DesiredRot, ResultLoc);
+	// Convert to relative to component
+	FTransform RelCamTM = WorldCamTM.GetRelativeTransform(ComponentToWorld);
+
+	// Update socket location/rotation
+	RelativeSocketLocation = RelCamTM.GetLocation();
+	RelativeSocketRotation = RelCamTM.GetRotation();
+
 	UpdateChildTransforms();
 }
 
@@ -66,7 +116,7 @@ FVector USpringArmComponent::BlendLocations(const FVector& DesiredArmLocation, c
 void USpringArmComponent::OnRegister()
 {
 	Super::OnRegister();
-	UpdateDesiredArmLocation(GetComponentLocation(), GetComponentRotation(), false, false, 0.0f);
+	UpdateDesiredArmLocation(false, false, false, 0.f);
 }
 
 void USpringArmComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -85,12 +135,11 @@ void USpringArmComponent::TickComponent(float DeltaTime, enum ELevelTick TickTyp
 		}
 	}
 
-	UpdateDesiredArmLocation(GetComponentLocation(), GetComponentRotation(), bDoCollisionTest, bEnableCameraLag, DeltaTime);
+	UpdateDesiredArmLocation(bDoCollisionTest, bEnableCameraLag, bEnableCameraRotationLag, DeltaTime);
 }
 
 FTransform USpringArmComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
 {
-	const FQuat RelativeSocketRotation(FRotator(0.0f, 0.0f, 0.0f));
 	FTransform RelativeTransform(RelativeSocketRotation, RelativeSocketLocation);
 
 	switch(TransformSpace)

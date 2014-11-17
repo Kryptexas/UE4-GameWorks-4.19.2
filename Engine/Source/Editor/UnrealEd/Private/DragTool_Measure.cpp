@@ -58,7 +58,7 @@ void FDragTool_Measure::Render(const FSceneView* View, FCanvas* Canvas)
 		FCanvasLineItem LineItem( PixelStart, PixelEnd );
 		Canvas->DrawItem( LineItem );
 
-		const int32 Length = FMath::Ceil((End - Start).Size());
+		const int32 Length = FMath::CeilToInt((End - Start).Size());
 		if( Length == 0 )
 		{
 			return;
@@ -69,7 +69,7 @@ void FDragTool_Measure::Render(const FSceneView* View, FCanvas* Canvas)
 		if (View->WorldToPixel(WorldMid, PixelMid))
 		{
 			FString LengthStr = FString::Printf(TEXT("%d"), Length);
-			FCanvasTextItem TextItem( FVector2D( FMath::Floor(PixelMid.X), FMath::Floor(PixelMid.Y) ), FText::FromString( LengthStr ), GEngine->GetSmallFont(), FLinearColor::White );
+			FCanvasTextItem TextItem( FVector2D( FMath::FloorToFloat(PixelMid.X), FMath::FloorToFloat(PixelMid.Y) ), FText::FromString( LengthStr ), GEngine->GetSmallFont(), FLinearColor::White );
 			TextItem.bCentreX = true;
 			Canvas->DrawItem( TextItem );
 		}

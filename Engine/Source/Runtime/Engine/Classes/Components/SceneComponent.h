@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Components.h"
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -29,9 +30,9 @@ struct FOverlapInfo
 UENUM()
 enum EDetailMode
 {
-	DM_Low,
-	DM_Medium,
-	DM_High,
+	DM_Low UMETA(DisplayName="Low"),
+	DM_Medium UMETA(DisplayName="Medium"),
+	DM_High UMETA(DisplayName="High"),
 	DM_MAX,
 };
 
@@ -62,7 +63,7 @@ FORCEINLINE void operator|=(EMoveComponentFlags& Dest,EMoveComponentFlags Arg)		
 
 
 /** A SceneComponent has a transform and supports attachment, but has no rendering or collision capabilities. Useful as a 'dummy' component in the hierarchy to offset others. */
-UCLASS(HeaderGroup=Component, ClassGroup=Utility, BlueprintType, HideCategories=(Trigger), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USceneComponent : public UActorComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -201,90 +202,90 @@ protected:
 public:
 
 	/** Set the location of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetRelativeLocation(FVector NewLocation, bool bSweep=false);
 
 	/** Set the rotation of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetRelativeRotation(FRotator NewRotation, bool bSweep=false);
 
 	/** Set the transform of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetRelativeTransform(const FTransform& NewTransform, bool bSweep=false);
 
 	/** Returns the transform of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	FTransform GetRelativeTransform();
 
 	/** Set the transform of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void ResetRelativeTransform();
 
 	/** Set the non-uniform of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
-	void SetRelativeScale3D(FVector NewScale3D);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	virtual void SetRelativeScale3D(FVector NewScale3D);
 
 	/** Adds a delta to the translation of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddRelativeLocation(FVector DeltaLocation, bool bSweep=false);
 
 	/** Adds a delta the rotation of this component relative to its parent */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddRelativeRotation(FRotator DeltaRotation, bool bSweep=false);
 
 	/** Adds a delta to the location of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddLocalOffset(FVector DeltaLocation, bool bSweep=false);
 	
 	/** Adds a delta to the rotation of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddLocalRotation(FRotator DeltaRotation, bool bSweep=false);
 
 	/** Adds a delta to the rotation of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void AddLocalTransform(const FTransform& DeltaTransform, bool bSweep=false);
 
 	/** Set the relative location of this component to put it at the supplied location in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldLocation(FVector NewLocation, bool bSweep=false);
 
 	/** Set the relative rotation of this component to put it at the supplied orientation in world space. */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldRotation(FRotator NewRotation, bool bSweep=false);
 
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetWorldScale3D(FVector NewScale);
 
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	/** Set the transform of this component in world space. */
 	void SetWorldTransform(const FTransform& NewTransform, bool bSweep=false);
 
 	/** Return location of the component, in world space */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldLocation"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldLocation"), Category="Utilities|Transformation")
 	FVector K2_GetComponentLocation() const;
 
 	/** Returns rotation of the component, in world space. */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldRotation"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldRotation"), Category="Utilities|Transformation")
 	FRotator K2_GetComponentRotation() const;
 	
 	/** Returns scale of the component, in world space. */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldScale"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldScale"), Category="Utilities|Transformation")
 	FVector K2_GetComponentScale() const;
 
 	/** Get the current component-to-world transform for this component */
-	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldTransform"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "GetWorldTransform"), Category="Utilities|Transformation")
 	FTransform K2_GetComponentToWorld() const;
 
 	/** Get the forward (X) unit direction vector from this component, in world space.  */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	FVector GetForwardVector() const;
 
 	/** Get the up (Z) unit direction vector from this component, in world space.  */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	FVector GetUpVector() const;
 
 	/** Get the right (Y) unit direction vector from this component, in world space.  */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	FVector GetRightVector() const;
 
 	/** Returns whether the specified body is currently using physics simulation */
@@ -296,7 +297,7 @@ public:
 	virtual bool IsAnySimulatingPhysics() const;
 
 	/** Get a pointer to the USceneComponent we are attached to */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	class USceneComponent* GetAttachParent() const;
 
 	/** Gets all parent components up to and including the root component */
@@ -319,25 +320,25 @@ public:
 	 *   Attach this component to another scene component, optionally at a named socket. It is valid to call this on components whether or not they have been Registered.
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation", meta=(AttachType="KeepRelativeOffset"))
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(AttachType="KeepRelativeOffset"))
 	void AttachTo(class USceneComponent* InParent, FName InSocketName = NAME_None, EAttachLocation::Type AttachType = EAttachLocation::KeepRelativeOffset);
 
 	/** Zeroes out the relative transform of this component, and calls AttachTo(). Useful for attaching directly to a scene component or socket location  */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachTo with EAttachLocation::SnapToTarget option instead"), Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage = "Use AttachTo with EAttachLocation::SnapToTarget option instead"), Category="Utilities|Transformation")
 	void SnapTo(class USceneComponent* InParent, FName InSocketName = NAME_None);
 
 	/** 
 	 *	Detach this component from whatever it is attached to 
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same *	
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	virtual void DetachFromParent(bool bMaintainWorldPosition = false);
 
 	/** 
 	 * Gets the names of all the sockets on the component.
 	 * @return Get the names of all the sockets on the component.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(Keywords="Bone"))
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
 	virtual TArray<FName> GetAllSocketNames() const;
 
 	/** 
@@ -345,7 +346,7 @@ public:
 	 * @param InSocketName Name of the socket to get the transform 
 	 * @return Socket transform in world space if socket if found. Otherwise it will return component's transform in world space.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(Keywords="Bone"))
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const;
 
 	/** 
@@ -353,7 +354,7 @@ public:
 	 * @param InSocketName Name of the socket to get the transform 
 	 * @return Socket transform in world space if socket if found. Otherwise it will return component's transform in world space.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(Keywords="Bone"))
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
 	virtual FVector GetSocketLocation(FName InSocketName) const;
 
 	/** 
@@ -361,7 +362,7 @@ public:
 	 * @param InSocketName Name of the socket to get the transform 
 	 * @return Socket transform in world space if socket if found. Otherwise it will return component's transform in world space.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(Keywords="Bone"))
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
 	virtual FRotator GetSocketRotation(FName InSocketName) const;
 
 	/** 
@@ -369,7 +370,7 @@ public:
 	 * @param InSocketName Name of the socket to get the transform 
 	 * @return Socket transform in world space if socket if found. Otherwise it will return component's transform in world space.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(Keywords="Bone"))
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
 	virtual FQuat GetSocketQuaternion(FName InSocketName) const;
 
 	/** 
@@ -377,7 +378,7 @@ public:
 	 * @param InSocketName Name of the socket to get the transform 
 	 * @return true if the socket with the given name exists. Otherwise, return false
 	 */
-	UFUNCTION(BlueprintCallable, Category="Animation", meta=(Keywords="Bone"))
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
 	virtual bool DoesSocketExist(FName InSocketName) const;
 
 	/**
@@ -394,7 +395,7 @@ public:
 	 * Get Component Velocity vector
 	 * @return Socket transform in world space if socket is found. Otherwise it will return component's transform in world space.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	virtual FVector GetComponentVelocity() const;
 
 	/** 
@@ -539,11 +540,11 @@ public:
 	/** Get the current component-to-world transform for this component */
 	FORCEINLINE FTransform GetComponentToWorld() const 
 	{ 
-		return ComponentToWorld; // TODO: probably deprecate this in favor of GetComponenTransform
+		return ComponentToWorld; // TODO: probably deprecate this in favor of GetComponentTransform
 	}
 
 	/** Get the current component-to-world transform for this component */
-	FORCEINLINE FTransform GetComponenTransform() const
+	FORCEINLINE FTransform GetComponentTransform() const
 	{
 		return ComponentToWorld;
 	}
@@ -599,6 +600,9 @@ public:
 	/** return true if it should render **/
 	bool ShouldRender() const;
 
+	/** return true if it can ever render **/
+	bool CanEverRender() const;
+
 	/** 
 	 *  Looking at various values of the component, determines if this
 	 *  component should be added to the scene
@@ -625,7 +629,7 @@ public:
 	void SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false);
 
 	/** Set which parts of the relative transform should be relative to parent, and which should be relative to world */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Orientation")
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
 	void SetAbsolute(bool bNewAbsoluteLocation = false, bool bNewAbsoluteRotation = false, bool bNewAbsoluteScale = false);
 
 	/** Set the relative location & FRotator rotation of this component to put it at the supplied pose in world space. */

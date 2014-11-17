@@ -73,6 +73,11 @@ public:
 		return SessionsUpdatedDelegate;
 	}
 
+	virtual FSimpleMulticastDelegate& OnSessionInstanceUpdated( ) OVERRIDE
+	{
+		return SessionInstanceUpdatedDelegate;
+	}
+
 	virtual void RemoveOwner( const FString& InOwner ) OVERRIDE;
 
 	virtual bool SelectSession( const ISessionInfoPtr& Session ) OVERRIDE;
@@ -163,6 +168,9 @@ private:
 
 	// Holds a delegate to be invoked when the session list was updated.
 	FSimpleMulticastDelegate SessionsUpdatedDelegate;
+
+	// Holds a delegate to be invoked when a session instance is updated.
+	FSimpleMulticastDelegate SessionInstanceUpdatedDelegate;
 
 	// Holds a delegate to be invoked when the widget ticks.
 	FTickerDelegate TickDelegate;

@@ -112,8 +112,11 @@ class UInterpData : public UObject
 	/** Find a DirectorGroup in the data. Should only ever be 0 or 1 of these! */
 	ENGINE_API class UInterpGroupDirector* FindDirectorGroup();
 
+	/** Checks to see if the event name exists */
+	ENGINE_API bool IsEventName(const FName& InEventName) const;
+
 	/** Get the list of all unique event names */
-	ENGINE_API void GetAllEventNames(TArray<FName>& OutEventNames);
+	ENGINE_API void GetAllEventNames(TArray<FName>& OutEventNames) const;
 
 	/** Update the AllEventNames array */
 	ENGINE_API void UpdateEventNames();

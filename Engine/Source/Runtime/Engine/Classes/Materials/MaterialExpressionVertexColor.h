@@ -4,7 +4,7 @@
 #pragma once
 #include "MaterialExpressionVertexColor.generated.h"
 
-UCLASS(HeaderGroup=Material, collapsecategories, hidecategories=Object)
+UCLASS(collapsecategories, hidecategories=Object)
 class UMaterialExpressionVertexColor : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

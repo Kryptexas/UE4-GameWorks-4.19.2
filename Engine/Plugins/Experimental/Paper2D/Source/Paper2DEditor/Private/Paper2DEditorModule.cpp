@@ -2,9 +2,11 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "Paper2DEditorModule.h"
+
 #include "SpriteAssetTypeActions.h"
 #include "FlipbookAssetTypeActions.h"
 #include "TileSetAssetTypeActions.h"
+
 #include "AssetToolsModule.h"
 #include "PropertyEditorModule.h"
 #include "PaperStyle.h"
@@ -19,7 +21,17 @@
 
 #include "ContentBrowserExtensions/ContentBrowserExtensions.h"
 
-#include "Paper2DEditor.generated.inl"
+// Atlas support
+#include "Atlasing/AtlasAssetTypeActions.h"
+#include "Atlasing/PaperAtlasGenerator.h"
+
+// Settings
+#include "PaperRuntimeSettings.h"
+#include "Settings.h"
+
+DEFINE_LOG_CATEGORY(LogPaper2DEditor);
+
+#define LOCTEXT_NAMESPACE "Paper2DEditor"
 
 //////////////////////////////////////////////////////////////////////////
 // FPaper2DEditor
@@ -42,13 +54,16 @@ private:
 	TSharedPtr<FExtensibilityManager> FlipbookEditor_MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> FlipbookEditor_ToolBarExtensibilityManager;
 
-	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
+	/** All created asset type actions.  Cached here so that we can unregister them during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
 
 	TSharedPtr<FEdModeTileMap> TileMapEditorModePtr;
 
 	TSharedPtr<IComponentAssetBroker> PaperSpriteBroker;
 	TSharedPtr<IComponentAssetBroker> PaperFlipbookBroker;
+
+	FCoreDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+
 public:
 	virtual void StartupModule() OVERRIDE
 	{
@@ -69,12 +84,13 @@ public:
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FSpriteAssetTypeActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FFlipbookAssetTypeActions));
 		RegisterAssetTypeAction(AssetTools, MakeShareable(new FTileSetAssetTypeActions));
+		RegisterAssetTypeAction(AssetTools, MakeShareable(new FAtlasAssetTypeActions));
 
 		PaperSpriteBroker = MakeShareable(new FPaperSpriteAssetBroker);
-		FComponentAssetBrokerage::RegisterBroker(PaperSpriteBroker, UPaperRenderComponent::StaticClass(), true);
+		FComponentAssetBrokerage::RegisterBroker(PaperSpriteBroker, UPaperRenderComponent::StaticClass(), true, true);
 
 		PaperFlipbookBroker = MakeShareable(new FPaperFlipbookAssetBroker);
-		FComponentAssetBrokerage::RegisterBroker(PaperFlipbookBroker, UPaperAnimatedRenderComponent::StaticClass(), true);
+		FComponentAssetBrokerage::RegisterBroker(PaperFlipbookBroker, UPaperAnimatedRenderComponent::StaticClass(), true, true);
 
 		// Register the details customizations
 		{
@@ -88,6 +104,10 @@ public:
 			PropertyModule.NotifyCustomizationModuleChanged();
 		}
 
+		// Register to be notified when properties are edited
+		OnPropertyChangedHandle = FCoreDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPaper2DEditor::OnPropertyChanged);
+		FCoreDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+
 		// Register the thumbnail renderers
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperSprite::StaticClass(), UPaperSpriteThumbnailRenderer::StaticClass());
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperTileSet::StaticClass(), UPaperTileSetThumbnailRenderer::StaticClass());
@@ -99,6 +119,8 @@ public:
 
 		// Integrate Paper2D actions associated with existing engine types (e.g., Texture2D) into the content browser
 		FPaperContentBrowserExtensions::InstallHooks();
+
+		RegisterSettings();
 	}
 
 	virtual void ShutdownModule() OVERRIDE
@@ -111,6 +133,8 @@ public:
 
 		if (UObjectInitialized())
 		{
+			UnregisterSettings();
+
 			FPaperContentBrowserExtensions::RemoveHooks();
 
 			FComponentAssetBrokerage::UnregisterBroker(PaperFlipbookBroker);
@@ -123,6 +147,9 @@ public:
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperSprite::StaticClass());
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperTileSet::StaticClass());
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperFlipbook::StaticClass());
+
+			// Unregister the property modification handler
+			FCoreDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
 		}
 
 		// Unregister the details customization
@@ -148,8 +175,41 @@ private:
 		AssetTools.RegisterAssetTypeActions(Action);
 		CreatedAssetTypeActions.Add(Action);
 	}
+
+	// Called when a property on the specified object is modified
+	void OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedEvent& PropertyChangedEvent)
+	{
+		if (UPaperSpriteAtlas* Atlas = Cast<UPaperSpriteAtlas>(ObjectBeingModified))
+		{
+			FPaperAtlasGenerator::HandleAssetChangedEvent(Atlas);
+		}
+	}
+
+	void RegisterSettings()
+	{
+		if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+		{
+			SettingsModule->RegisterSettings("Project", "Plugins", "Paper2D",
+				LOCTEXT("RuntimeSettingsName", "Paper 2D"),
+				LOCTEXT("RuntimeSettingsDescription", "Configure the Paper 2D plugin"),
+				GetMutableDefault<UPaperRuntimeSettings>()
+				);
+		}
+	}
+
+	void UnregisterSettings()
+	{
+		if (ISettingsModule* SettingsModule = ISettingsModule::Get())
+		{
+			SettingsModule->UnregisterSettings("Project", "Plugins", "Paper2D");
+		}
+	}
 };
 
 //////////////////////////////////////////////////////////////////////////
 
 IMPLEMENT_MODULE(FPaper2DEditor, Paper2DEditor);
+
+//////////////////////////////////////////////////////////////////////////
+
+#undef LOCTEXT_NAMESPACE

@@ -4,7 +4,7 @@
 #pragma once
 #include "InterpTrackInstToggle.generated.h"
 
-UCLASS(HeaderGroup=Interpolation)
+UCLASS()
 class UInterpTrackInstToggle : public UInterpTrackInst
 {
 	GENERATED_UCLASS_BODY()

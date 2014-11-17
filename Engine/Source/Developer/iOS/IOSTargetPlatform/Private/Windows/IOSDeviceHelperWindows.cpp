@@ -43,6 +43,7 @@ class FDeviceQueryTask
 public:
 	FDeviceQueryTask()
 		: Stopping(false)
+		, bCheckDevices(true)
 	{}
 
 	virtual bool Init() OVERRIDE
@@ -54,7 +55,10 @@ public:
 	{
 		while (!Stopping)
 		{
-			QueryDevices();
+			if (bCheckDevices)
+			{
+				QueryDevices();
+			}
 
 			FPlatformProcess::Sleep(5.0f);
 		}
@@ -73,6 +77,11 @@ public:
 	FDeviceNotification& OnDeviceNotification()
 	{
 		return DeviceNotification;
+	}
+
+	void Enable(bool OnOff)
+	{
+		bCheckDevices = OnOff;
 	}
 
 private:
@@ -203,6 +212,7 @@ private:
 	}
 
 	bool Stopping;
+	bool bCheckDevices;
 	TArray<FString> ConnectedDeviceIds;
 	FDeviceNotification DeviceNotification;
 };
@@ -322,4 +332,11 @@ void FIOSDeviceHelper::DoDeviceDisconnect(void* CallbackInfo)
 bool FIOSDeviceHelper::InstallIPAOnDevice(const FTargetDeviceId& DeviceId, const FString& IPAPath)
 {
     return false;
+}
+
+void FIOSDeviceHelper::EnableDeviceCheck(bool OnOff)
+{
+#if ENABLE_IOS_DEVICE_DETECT
+		QueryTask->Enable(OnOff);
+#endif
 }

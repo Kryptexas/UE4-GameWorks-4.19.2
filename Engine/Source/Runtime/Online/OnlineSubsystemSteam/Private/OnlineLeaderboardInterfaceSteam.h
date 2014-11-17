@@ -130,22 +130,20 @@ PACKAGE_SCOPE:
 	void SetUserStatsStoreState(const FUniqueNetIdSteam& UserId, EOnlineAsyncTaskState::Type NewState);
 
 	/**
-	 * Commits any changes in the online stats cache to the permanent storage
+	 * Commits any changes in the online stats cache to the permanent storage (internal helper for FOnlineAchievementsSteam::WriteAchievements)
 	 *
 	 * @param UserId user to set state of stats stored
 	 * @param WriteObject object to track the state of stats
-	 * @return true if the call is successful, false otherwise
 	 */
-	bool WriteAchievements(const FUniqueNetIdSteam& UserId, FOnlineAchievementsWriteRef& WriteObject);
+	void WriteAchievementsInternal(const FUniqueNetIdSteam& UserId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& OnWriteFinishedDelegate);
 
 	/**
-	 * Reads achievements for user
+	 * Reads achievements for user (internal helper for FOnlineAchievementsSteam::QueryAchievements)
 	 *
 	 * @param UserId user to set state of stats stored
 	 * @param bTriggerDescriptionsDelegatesInstead - async task will normally trigger OnAchievementsRead delegates, this bool tells it to trigger OnAchievementDescriptionsRead instead
-	 * @return true if the call is successful, false otherwise
 	 */
-	void QueryAchievements(const FUniqueNetIdSteam& UserId, const FOnQueryAchievementsCompleteDelegate& AchievementDelegate);
+	void QueryAchievementsInternal(const FUniqueNetIdSteam& UserId, const FOnQueryAchievementsCompleteDelegate& AchievementDelegate);
 
 public:
 

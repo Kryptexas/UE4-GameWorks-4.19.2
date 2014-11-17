@@ -31,7 +31,7 @@ private:
 	 *
 	 * @param Object	The object that PostEditChange was called on
 	 */
-	void OnObjectPostEditChange( UObject* Object );
+	void OnObjectPostEditChange( UObject* Object, FPropertyChangedEvent& PropertyChangedEvent );
 
 	/**
 	 * Called after an actor is moved (PostEditMove)

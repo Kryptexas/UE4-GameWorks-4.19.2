@@ -5,7 +5,6 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "EngineSplineClasses.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSpline, Log, All);
 
@@ -76,7 +75,7 @@ public:
 				}
 				else
 				{
-					int32 NumSteps = FMath::Ceil( (NewKeyTime - OldKeyTime)/SplineDrawRes );
+					int32 NumSteps = FMath::CeilToInt( (NewKeyTime - OldKeyTime)/SplineDrawRes );
 					float DrawSubstep = (NewKeyTime - OldKeyTime)/NumSteps;
 
 					// Find position on first keyframe.

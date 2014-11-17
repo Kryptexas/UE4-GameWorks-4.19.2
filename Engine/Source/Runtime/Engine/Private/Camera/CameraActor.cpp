@@ -66,4 +66,18 @@ void ACameraActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph
 	}
 }
 
+#if WITH_EDITOR
+void ACameraActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PreviewedCameraAnim.IsValid() && CameraComponent)
+	{
+		PreviewedCameraAnim->BaseFOV = CameraComponent->FieldOfView;
+		PreviewedCameraAnim->BasePostProcessSettings = CameraComponent->PostProcessSettings;
+		PreviewedCameraAnim->BasePostProcessBlendWeight = CameraComponent->PostProcessBlendWeight;
+	}
+}
+#endif
+
 #undef LOCTEXT_NAMESPACE

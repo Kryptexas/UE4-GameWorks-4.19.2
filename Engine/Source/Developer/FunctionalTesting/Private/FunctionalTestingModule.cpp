@@ -3,7 +3,7 @@
 #include "FunctionalTestingPrivatePCH.h"
 #include "ModuleInterface.h"
 
-#include "FunctionalTesting.generated.inl"
+
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
 

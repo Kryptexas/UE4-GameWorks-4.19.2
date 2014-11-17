@@ -14,7 +14,7 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	UObject* NodeInstance;
 
 	/** parent node if node is not a standalone node*/
-	UPROPERTY()
+	UPROPERTY(transient)
 	UBehaviorTreeGraphNode* ParentNode;
 
 	/** only some of behavior tree nodes support decorators */
@@ -31,6 +31,8 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) OVERRIDE;
 	virtual void PostPlacedNewNode() OVERRIDE;
 	virtual void PrepareForCopying() OVERRIDE;
+	virtual bool CanDuplicateNode() const OVERRIDE;
+	virtual bool CanUserDeleteNode() const OVERRIDE;
 	virtual void DestroyNode() OVERRIDE;
 	virtual FString GetTooltip() const OVERRIDE;
 	virtual void NodeConnectionListChanged() OVERRIDE;
@@ -77,6 +79,16 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 
 	/** instance class */
 	struct FClassData ClassData;
+
+	/** if set, this node was injected from subtree and shouldn't be edited */
+	UPROPERTY()
+	uint32 bInjectedNode : 1;
+
+	/** if set, this node is root of tree or sub node of it */
+	uint32 bRootLevel : 1;
+
+	/** if set, observer setting is invalid (injected nodes only) */
+	uint32 bHasObserverError : 1;
 
 	/** highlighting nodes in abort range for more clarity when setting up decorators */
 	uint32 bHighlightInAbortRange0 : 1;
@@ -141,8 +153,8 @@ class UBehaviorTreeGraphNode : public UEdGraphNode
 	/** used to show node's runtime description rather than static one */
 	FString DebuggerRuntimeDescription;
 
-	/** message for deprecated classes */
-	FString DeprecationMessage;
+	/** error message for node */
+	FString ErrorMessage;
 
 	/** subnode index assigned during copy operation to connect nodes again on paste */
 	UPROPERTY()

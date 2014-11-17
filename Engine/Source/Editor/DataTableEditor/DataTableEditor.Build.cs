@@ -14,6 +14,7 @@ public class DataTableEditor : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 				"UnrealEd"
 			}

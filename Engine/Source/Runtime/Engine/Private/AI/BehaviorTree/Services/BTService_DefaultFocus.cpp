@@ -71,7 +71,7 @@ void UBTService_DefaultFocus::OnCeaseRelevant(class UBehaviorTreeComponent* Owne
 
 		if (bClearFocus)
 		{
-			OwnerController->ClearFocus();
+			OwnerController->ClearFocus(EAIFocusPriority::Default);
 		}
 	}
 }

@@ -39,6 +39,15 @@ public:
 	const dtQueryFilter* GetAsDetourQueryFilter() const { return this; }
 };
 
+struct FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
+{
+	FRecastSpeciaLinkFilter(UNavigationSystem* NavSystem, const UObject* Owner) : NavSys(NavSystem), SearchOwner(Owner) {}
+	virtual bool isLinkAllowed(const int32 UserId) const OVERRIDE;
+
+	UNavigationSystem* NavSys;
+	const UObject* SearchOwner;
+};
+
 namespace EClusterPath
 {
 	enum Type
@@ -92,48 +101,48 @@ public:
 
 	// @TODONAV
 	/** Generates path from the given query. Synchronous. */
-	ENavigationQueryResult::Type FindPath(const FVector& StartLoc, const FVector& EndLoc, FNavMeshPath& Path, const FNavigationQueryFilter& Filter) const;
+	ENavigationQueryResult::Type FindPath(const FVector& StartLoc, const FVector& EndLoc, FNavMeshPath& Path, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
 	/** Generates path from the given query using cluster graph (faster, but less optimal). */
 	ENavigationQueryResult::Type FindClusterPath(const FVector& StartLoc, const FVector& EndLoc, FNavMeshPath& Path) const;
 	
 	/** Check if path exists */
-	ENavigationQueryResult::Type TestPath(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter) const;
+	ENavigationQueryResult::Type TestPath(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
 	/** Check if path exists using cluster graph */
 	ENavigationQueryResult::Type TestClusterPath(const FVector& StartLoc, const FVector& EndLoc) const;
 
 	/** Checks if the whole segment is in navmesh */
-	void Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, ARecastNavMesh::FRaycastResult& RaycastResult) const;
+	void Raycast2D(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& InQueryFilter, const UObject* Owner, ARecastNavMesh::FRaycastResult& RaycastResult) const;
 
 	/** Generates path from given query and collect data for every step of A* algorithm */
-	int32 DebugPathfinding(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, TArray<FRecastDebugPathfindingStep>& Steps);
+	int32 DebugPathfinding(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<FRecastDebugPathfindingStep>& Steps);
 
 	//void FindPathCorridor(FNavMeshFindPathCorridorQueryDatum& Query) const;
 
 	/** Returns a random location on the navmesh. */
-	FNavLocation GetRandomPoint(const FNavigationQueryFilter& Filter) const;
+	FNavLocation GetRandomPoint(const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
 	/** Returns a random location on the navmesh within Radius from Origin. 
 	 *	@return false if no valid navigable location available in specified area */
-	bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutLocation, const FNavigationQueryFilter& Filter) const;
+	bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& OutLocation, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
 	/** Returns a random location on the navmesh within cluster */
 	bool GetRandomPointInCluster(NavNodeRef ClusterRef, FNavLocation& OutLocation) const;
 
-	bool ProjectPointToNavMesh(const FVector& Point, FNavLocation& Result, const FVector& Extent, const FNavigationQueryFilter& Filter) const;
+	bool ProjectPointToNavMesh(const FVector& Point, FNavLocation& Result, const FVector& Extent, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
 	bool ProjectPointMulti(const FVector& Point, TArray<FNavLocation>& OutLocations, const FVector& Extent,
-		float MinZ, float MaxZ, const FNavigationQueryFilter& Filter) const;
+		float MinZ, float MaxZ, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
 	/** Returns nearest navmesh polygon to Loc, or INVALID_NAVMESHREF if Loc is not on the navmesh. */
-	NavNodeRef FindNearestPoly(FVector const& Loc, FVector const& Extent, const FNavigationQueryFilter& Filter) const;
+	NavNodeRef FindNearestPoly(FVector const& Loc, FVector const& Extent, const FNavigationQueryFilter& Filter, const UObject* Owner) const;
 
 	/** Retrieves all polys within given pathing distance from StartLocation.
 	 *	@NOTE query is not using string-pulled path distance (for performance reasons),
 	 *		it measured distance between middles of portal edges, do you might want to 
 	 *		add an extra margin to PathingDistance */
-	bool GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, const FNavigationQueryFilter& Filter, TArray<NavNodeRef>& FoundPolys) const;
+	bool GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<NavNodeRef>& FoundPolys) const;
 
 	/** Retrieves all clusters within given pathing distance from StartLocation */
 	bool GetClustersWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, bool bBackTracking, TArray<NavNodeRef>& FoundClusters) const;
@@ -142,7 +151,7 @@ public:
 	void GetEdgesForPathCorridor(TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges) const;
 
 	/** Filters nav polys in PolyRefs with Filter */
-	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter) const;
+	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Owner) const;
 
 	/** Get all polys from tile */
 	bool GetPolysInTile(int32 TileIndex, TArray<FNavPoly>& Polys) const;

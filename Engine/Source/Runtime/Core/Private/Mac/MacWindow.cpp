@@ -27,11 +27,14 @@
 		bRoundedCorners = false;
 		bDisplayReconfiguring = false;
 		bDeferOrderFront = false;
-		bDeferOpacity = 0.0f;
+		DeferOpacity = 0.0f;
 		bRenderInitialised = false;
 		bZoomed = [super isZoomed];
 		self.bForwardEvents = true;
-		[super setAlphaValue:bDeferOpacity];
+		[super setAlphaValue:DeferOpacity];
+		DeferFrame = [super frame];
+		bDeferSetFrame = false;
+		bDeferSetOrigin = false;
 	}
 	return NewSelf;
 }
@@ -54,7 +57,14 @@
 	if([self styleMask] & (NSTexturedBackgroundWindowMask))
 	{
 		NSView* SuperView = [[self contentView] superview];
-		return [[SuperView subviews] lastObject];
+		for(NSView* View in [SuperView subviews])
+		{
+			if([View isKindOfClass:[FSlateTextView class]])
+			{
+				return View;
+			}
+		}
+		return nil;
 	}
 	else
 	{
@@ -67,14 +77,56 @@
 	if(!bRenderInitialised)
 	{
 		bRenderInitialised = true;
-		
-		if(bDeferOrderFront)
+	}
+	
+	if(bDeferOrderFront)
+	{
+		if(!(bDeferSetFrame || bDeferSetOrigin))
 		{
 			bDeferOrderFront = false;
-			
-			[self setAlphaValue:bDeferOpacity];
+			[super setAlphaValue:DeferOpacity];
+		}
+		else
+		{
+			[self performDeferredSetFrame];
 		}
 	}
+}
+
+- (void)performDeferredSetFrame
+{
+	if(bRenderInitialised && (bDeferSetFrame || bDeferSetOrigin))
+	{
+		dispatch_block_t Block = ^{
+			if(!bDeferSetFrame && bDeferSetOrigin)
+			{
+				DeferFrame.size = [self frame].size;
+			}
+			
+			[super setFrame:DeferFrame display:NO];
+		};
+		
+		if([NSThread isMainThread])
+		{
+			Block();
+		}
+		else
+		{
+			dispatch_async(dispatch_get_main_queue(), Block);
+		}
+		
+		bDeferSetFrame = false;
+		bDeferSetOrigin = false;
+	}
+}
+
+- (void)orderWindow:(NSWindowOrderingMode)OrderingMode relativeTo:(NSInteger)OtherWindowNumber
+{
+	if([self alphaValue] > 0.0f)
+	{
+		[self performDeferredSetFrame];
+	}
+	[super orderWindow:OrderingMode relativeTo:OtherWindowNumber];
 }
 
 - (bool)roundedCorners
@@ -94,7 +146,7 @@
 
 - (void)redrawContents
 {
-	if(self.bForwardEvents)
+	if(self.bForwardEvents && ([self isVisible] && [super alphaValue] > 0.0f))
 	{
 		MacApplication->OnWindowRedrawContents( self );
 	}
@@ -134,22 +186,28 @@
 
 - (void)orderFrontEvenIfChildAndMakeMain:(bool)bMain andKey:(bool)bKey
 {
-	NSWindow* ParentWindow = [self getParent];
-	if( ParentWindow && [ParentWindow shouldAddChildWindow:self] )
+	if ([NSApp isHidden] == NO)
 	{
-		[ParentWindow removeChildWindow: self];
-		[ParentWindow addChildWindow: self ordered: NSWindowAbove];
-	}
-	
-	[self orderFront:nil];
-	
-	if(bMain && [self canBecomeMainWindow])
-	{
-		[self makeMainWindow];
-	}
-	if(bKey && [self canBecomeKeyWindow])
-	{
-		[self makeKeyWindow];
+		NSWindow* ParentWindow = [self getParent];
+		if( ParentWindow && [ParentWindow shouldAddChildWindow:self] )
+		{
+			[ParentWindow removeChildWindow: self];
+			[ParentWindow addChildWindow: self ordered: NSWindowAbove];
+		}
+
+		if (![self isVisible])
+		{
+			[self orderFront:nil];
+		}
+		
+		if (bMain && [self canBecomeMainWindow] && self != [NSApp mainWindow])
+		{
+			[self makeMainWindow];
+		}
+		if (bKey && [self canBecomeKeyWindow] && self != [NSApp keyWindow])
+		{
+			[self makeKeyWindow];
+		}
 	}
 }
 
@@ -231,11 +289,15 @@
 {
 	if(!bRenderInitialised)
 	{
-		bDeferOpacity = WindowAlpha;
+		DeferOpacity = WindowAlpha;
 		bDeferOrderFront = true;
 	}
 	else
 	{
+		if([self isVisible] && WindowAlpha > 0.0f)
+		{
+			[self performDeferredSetFrame];
+		}
 		[super setAlphaValue:WindowAlpha];
 	}
 }
@@ -263,6 +325,32 @@
 {
 	bZoomed = !bZoomed;
 	[self zoom: self];
+}
+
+- (void)setFrame:(NSRect)FrameRect display:(BOOL)Flag
+{
+	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f))
+	{
+		[super setFrame:FrameRect display:Flag];
+	}
+	else
+	{
+		bDeferSetFrame = true;
+		DeferFrame = FrameRect;
+	}
+}
+
+- (void)setFrameOrigin:(NSPoint)Point
+{
+	if(!bRenderInitialised || ([self isVisible] && [super alphaValue] > 0.0f))
+	{
+		[super setFrameOrigin:Point];
+	}
+	else
+	{
+		bDeferSetOrigin = true;
+		DeferFrame.origin = Point;
+	}
 }
 
 // keyDown and keyUp are empty, but having them lets Cocoa know we handle the keys ourselves
@@ -646,24 +734,25 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	// Finally, let's initialize the new native window object.  Calling this function will often cause OS
 	// window messages to be sent! (such as activation messages)
 
-	const int32 X = FMath::Trunc( Definition->XDesiredPositionOnScreen );
+	const int32 X = FMath::TruncToInt( Definition->XDesiredPositionOnScreen );
 
 	NSScreen* TargetScreen = Application->FindScreenByPoint( X, Definition->YDesiredPositionOnScreen );
 
-	int32 Y = FMath::Trunc( Definition->YDesiredPositionOnScreen );
+	int32 Y = FMath::TruncToInt( Definition->YDesiredPositionOnScreen );
 
 	// Make sure it's not under the menu bar on whatever display being targeted
-	const int32 ScreenHeight = FMath::Trunc( [TargetScreen frame].size.height );
-	const int32 VisibleHeight = FMath::Trunc( [TargetScreen visibleFrame].origin.y + [TargetScreen visibleFrame].size.height );
+	const int32 ScreenHeight = FMath::TruncToInt( [TargetScreen frame].size.height );
+	const int32 VisibleHeight = FMath::TruncToInt( [TargetScreen visibleFrame].origin.y + [TargetScreen visibleFrame].size.height );
 	Y = FMath::Max( Y, ScreenHeight - VisibleHeight );
 
-	const int32 SizeX = FMath::Max(FMath::Trunc( Definition->WidthDesiredOnScreen ), 1);
-	const int32 SizeY = FMath::Max(FMath::Trunc( Definition->HeightDesiredOnScreen ), 1);
+	const int32 SizeX = FMath::Max(FMath::TruncToInt( Definition->WidthDesiredOnScreen ), 1);
+	const int32 SizeY = FMath::Max(FMath::TruncToInt( Definition->HeightDesiredOnScreen ), 1);
 
 	PositionX = X;
 	PositionY = Y;
 
-	const NSRect ViewRect = NSMakeRect(X, Y, SizeX, SizeY);
+	const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - SizeY + 1;
+	const NSRect ViewRect = NSMakeRect(X, InvertedY, SizeX, SizeY);
 
 	uint32 WindowStyle = 0;
 	if( Definition->IsRegularWindow )
@@ -739,11 +828,18 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		// Only makes sense for regular windows (windows that last a while.)
 		[WindowHandle registerForDraggedTypes: [NSArray arrayWithObject: NSFilenamesPboardType]];
 
-		[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+		if( Definition->HasOSWindowBorder )
+		{
+			[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+		}
+		else
+		{
+			[WindowHandle setCollectionBehavior: NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+		}
 	}
 	else if(Definition->AppearsInTaskbar)
 	{
-		[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
+		[WindowHandle setCollectionBehavior:NSWindowCollectionBehaviorFullScreenAuxiliary|NSWindowCollectionBehaviorDefault|NSWindowCollectionBehaviorManaged|NSWindowCollectionBehaviorParticipatesInCycle];
 	}
 	else
 	{
@@ -795,21 +891,23 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 	const TSharedRef<FGenericApplicationMessageHandler> MessageHandler = OwningApplication->MessageHandler;
 	MessageHandler->BeginReshapingWindow( SharedThis( this ) );
 
+	BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
+	
 	const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
 	if (Definition->HasOSWindowBorder)
 	{
-		[WindowHandle setFrame: [WindowHandle frameRectForContentRect: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1))] display:NO];
+		[WindowHandle setFrame: [WindowHandle frameRectForContentRect: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1))] display:DisplayIfNeeded];
 	}
 	else
 	{
-		[WindowHandle setFrame: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1)) display:NO];
+		[WindowHandle setFrame: NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1)) display:DisplayIfNeeded];
 	}
 	
 	// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
 	// have to subvert the OS X or UE fullscreen handling events elsewhere.
 	if(WindowMode != EWindowMode::Windowed)
 	{
-		[WindowHandle setFrame: [WindowHandle screen].frame display:NO];
+		[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
 	}
 	
 	WindowHandle->bZoomed = [WindowHandle isZoomed];
@@ -976,6 +1074,16 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 	if( bIsFullscreen != bMakeFullscreen )
 	{
 		bool WindowIsFullScreen = !bMakeFullscreen;
+		
+		NSWindowCollectionBehavior Behaviour = [WindowHandle collectionBehavior];
+		if(bMakeFullscreen)
+		{
+			Behaviour &= ~(NSWindowCollectionBehaviorFullScreenAuxiliary);
+			Behaviour |= NSWindowCollectionBehaviorFullScreenPrimary;
+		}
+		
+		[WindowHandle setCollectionBehavior: Behaviour];
+		
 		[WindowHandle toggleFullScreen:nil];
 		// Ensure that the window has transitioned BEFORE leaving this function
 		// this prevents problems with failure to correctly update mouse locks
@@ -986,6 +1094,13 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			OwningApplication->ProcessDeferredEvents(0.f);
 			WindowIsFullScreen = [WindowHandle windowMode] != EWindowMode::Windowed;
 		} while(WindowIsFullScreen != bMakeFullscreen);
+		
+		if(!bMakeFullscreen && !Definition->HasOSWindowBorder)
+		{
+			Behaviour &= ~(NSWindowCollectionBehaviorFullScreenPrimary);
+			Behaviour |= NSWindowCollectionBehaviorFullScreenAuxiliary;
+		}
+		
 		WindowMode = NewWindowMode;
 	}
 }

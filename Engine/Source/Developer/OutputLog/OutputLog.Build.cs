@@ -14,8 +14,9 @@ public class OutputLog : ModuleRules
                 "InputCore",
 				"UnrealEd",
 				"Slate",
+				"SlateCore",
                 "EditorStyle",
 			}
-			);
+		);
 	}
 }

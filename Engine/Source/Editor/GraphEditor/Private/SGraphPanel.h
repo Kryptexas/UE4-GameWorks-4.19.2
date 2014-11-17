@@ -4,7 +4,6 @@
 
 #include "GraphEditor.h"
 
-class SGraphPanel;
 class SGraphNode;
 class SGraphPin;
 class UEdGraphNode;
@@ -49,6 +48,22 @@ public:
 		SLATE_ARGUMENT( bool, ShowPIENotification )
 		//SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
 	SLATE_END_ARGS()
+
+	/** A handle to a pin, defined by its owning node's GUID, and the pin's name. Used to reference a pin without referring to its widget */
+	struct FGraphPinHandle
+	{
+		/** The GUID of the node to which this pin belongs */
+		FGuid NodeGuid;
+
+		/** The name of the pin we are referencing */
+		FString PinName;
+
+		/** Constructor */
+		FGraphPinHandle(UEdGraphPin* InPin);
+
+		/** Find a pin widget in the specified panel from this handle */
+		TSharedPtr<SGraphPin> FindInGraphPanel(const SGraphPanel& InPanel) const;
+	};
 
 	/**
 	 * Construct a widget
@@ -135,6 +150,14 @@ public:
 	/** Pin marked via shift-clicking */
 	TWeakPtr<SGraphPin> MarkedPin;
 
+	/** Get a graph node widget from the specified GUID, if it applies to any nodes in this graph */
+	TSharedPtr<SGraphNode> GetNodeWidgetFromGuid(FGuid Guid) const;
+
+private:
+
+	/** A map of guid -> graph nodes */
+	TMap<FGuid, TWeakPtr<SGraphNode>> NodeGuidMap;
+
 protected:
 	UEdGraph* GraphObj;
 	UEdGraph* GraphObjToDiff;//if it exists, this is 
@@ -156,7 +179,7 @@ protected:
 	double TimeSinceMouseLeftPin;
 
 	/** Sometimes the panel draws a preview connector; e.g. when the user is connecting pins */
-	TArray< TSharedPtr<SGraphPin> > PreviewConnectorFromPins;
+	TArray< FGraphPinHandle > PreviewConnectorFromPins;
 	FVector2D PreviewConnectorEndpoint;
 
 	/** Invoked when we need to summon a context menu */

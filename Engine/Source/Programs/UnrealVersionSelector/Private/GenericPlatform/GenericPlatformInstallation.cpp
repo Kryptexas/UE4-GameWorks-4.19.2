@@ -5,12 +5,6 @@
 #include "../PlatformInstallation.h"
 #include "Runtime/Launch/Resources/Version.h"
 
-bool FGenericPlatformInstallation::RegisterEngineInstallation(const FString &Id, const FString &RootDirName)
-{
-	// No default implementation
-	return true;
-}
-
 bool FGenericPlatformInstallation::NormalizeEngineRootDir(FString &RootDir)
 {
 	// Canonicalize the engine path and remove the last backslash.
@@ -49,14 +43,13 @@ bool FGenericPlatformInstallation::LaunchEditor(const FString &RootDirName, cons
 	return false;
 }
 
-bool FGenericPlatformInstallation::GenerateProjectFiles(const FString &RootDirName, const FString &Arguments)
+bool FGenericPlatformInstallation::SelectEngineInstallation(FString &Identifier)
 {
 	// No default implementation
 	return false;
 }
 
-bool FGenericPlatformInstallation::SelectEngineInstallation(FString &Identifier)
+void FGenericPlatformInstallation::ErrorDialog(const FString& Message, const FString& LogText)
 {
 	// No default implementation
-	return false;
 }

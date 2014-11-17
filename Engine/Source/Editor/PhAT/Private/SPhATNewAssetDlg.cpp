@@ -21,7 +21,8 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 	check(NewBodyData && NewBodyResponse);
 
 	// Initialize combobox options
-	CollisionGeometryOptions.Add(TSharedPtr<FString>(new FString(TEXT("Sphyl/Sphere"))));
+	CollisionGeometryOptions.Add(TSharedPtr<FString>(new FString(TEXT("Sphyl"))));
+	CollisionGeometryOptions.Add(TSharedPtr<FString>(new FString(TEXT("Sphere"))));
 	CollisionGeometryOptions.Add(TSharedPtr<FString>(new FString(TEXT("Box"))));
 
 	// Add in the ability to create a convex hull from the source geometry for skeletal meshes
@@ -262,6 +263,10 @@ void SPhATNewAssetDlg::OnCollisionGeometrySelectionChanged(TSharedPtr<FString> N
 	{
 		NewBodyData->GeomType = EFG_Box;
 	}
+	else if (*NewSelection == TEXT("Sphere"))
+	{
+		NewBodyData->GeomType = EFG_Sphere;
+	}
 	// Check to see if the user has picked that they want to create a convex hull
 	else if ( *NewSelection == TEXT("Single Convex Hull") )
 	{
@@ -273,7 +278,7 @@ void SPhATNewAssetDlg::OnCollisionGeometrySelectionChanged(TSharedPtr<FString> N
 	}
 	else
 	{
-		NewBodyData->GeomType = EFG_SphylSphere;
+		NewBodyData->GeomType = EFG_Sphyl;
 	}
 }
 

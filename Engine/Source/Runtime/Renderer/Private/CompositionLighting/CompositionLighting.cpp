@@ -70,7 +70,7 @@ static bool IsReflectionEnvironmentActive(FPostprocessContext& Context)
 	bool HasReflectionCaptures = (Scene->ReflectionSceneData.RegisteredReflectionCaptures.Num() > 0);
 	bool HasSSR = Context.View.Family->EngineShowFlags.ScreenSpaceReflections;
 
-	return (GRHIFeatureLevel == ERHIFeatureLevel::SM5 && IsReflectingEnvironment && (HasReflectionCaptures || HasSSR) && !IsSimpleDynamicLightingEnabled() );
+	return (Scene->GetFeatureLevel() == ERHIFeatureLevel::SM5 && IsReflectingEnvironment && (HasReflectionCaptures || HasSSR) && !IsSimpleDynamicLightingEnabled());
 }
 
 static bool IsBasePassAmbientOcclusionRequired(FPostprocessContext& Context)
@@ -229,8 +229,10 @@ void FCompositionLighting::ProcessBeforeBasePass(const FViewInfo& View)
 
 		SCOPED_DRAW_EVENT(CompositionBeforeBasePass, DEC_SCENE_ITEMS);
 
-		Context.FinalOutput.GetOutput()->RenderTargetDesc = GSceneRenderTargets.SceneColor->GetDesc();
-		Context.FinalOutput.GetOutput()->PooledRenderTarget = GSceneRenderTargets.SceneColor;
+		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
+
+		Context.FinalOutput.GetOutput()->RenderTargetDesc = GSceneRenderTargets.GetSceneColor()->GetDesc();
+		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
 
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);
@@ -244,10 +246,10 @@ void FCompositionLighting::ProcessAfterBasePass(const FViewInfo& View)
 	check(IsInRenderingThread());
 
 	// might get renamed to refracted or ...WithAO
-	GSceneRenderTargets.SceneColor->SetDebugName(TEXT("SceneColor"));
+	GSceneRenderTargets.GetSceneColor()->SetDebugName(TEXT("SceneColor"));
 	// to be able to observe results with VisualizeTexture
 
-	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.SceneColor);
+	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GetSceneColor());
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GBufferA);
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GBufferB);
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint(GSceneRenderTargets.GBufferC);
@@ -286,8 +288,11 @@ void FCompositionLighting::ProcessAfterBasePass(const FViewInfo& View)
 		// The graph setup should be finished before this line ----------------------------------------
     
 		SCOPED_DRAW_EVENT(LightCompositionTasks_PreLighting, DEC_SCENE_ITEMS);
-		Context.FinalOutput.GetOutput()->RenderTargetDesc = GSceneRenderTargets.SceneColor->GetDesc();
-		Context.FinalOutput.GetOutput()->PooledRenderTarget = GSceneRenderTargets.SceneColor;
+
+		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
+
+		Context.FinalOutput.GetOutput()->RenderTargetDesc = SceneColor->GetDesc();
+		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
     
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);
@@ -322,12 +327,22 @@ void FCompositionLighting::ProcessLighting(const FViewInfo& View)
 
 		SCOPED_DRAW_EVENT(CompositionLighting, DEC_SCENE_ITEMS);
 
-		Context.FinalOutput.GetOutput()->RenderTargetDesc = GSceneRenderTargets.SceneColor->GetDesc();
-		Context.FinalOutput.GetOutput()->PooledRenderTarget = GSceneRenderTargets.SceneColor;
+		TRefCountPtr<IPooledRenderTarget>& SceneColor = GSceneRenderTargets.GetSceneColor();
+
+		Context.FinalOutput.GetOutput()->RenderTargetDesc = SceneColor->GetDesc();
+		Context.FinalOutput.GetOutput()->PooledRenderTarget = SceneColor;
 
 		// you can add multiple dependencies
 		CompositeContext.Root->AddDependency(Context.FinalOutput);
 
 		CompositeContext.Process(TEXT("CompositionLighting_Lighting"));
+	}
+
+	// We only release the after the last view was processed (SplitScreen)
+	if(View.Family->Views[View.Family->Views.Num() - 1] == &View)
+	{
+		// The RT should be released as early as possible to allow sharing of that memory for other purposes.
+		// This becomes even more important with some limited VRam (XBoxOne).
+		GSceneRenderTargets.SetLightAttenuation(0);
 	}
 }

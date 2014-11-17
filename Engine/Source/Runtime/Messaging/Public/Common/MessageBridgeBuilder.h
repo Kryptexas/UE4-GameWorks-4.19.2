@@ -21,19 +21,19 @@ public:
 		: Address(FMessageAddress::NewGuid())
 		, BusPtr(IMessagingModule::Get().GetDefaultBus())
 		, Disabled(false)
-		, Transport(NULL)
+		, Transport(nullptr)
 	{ }
 
 	/*
 	 * Creates and initializes a new instance.
 	 *
-	 * @param InBus - The message bus to attach the bridge to.
+	 * @param InBus The message bus to attach the bridge to.
 	 */
 	FMessageBridgeBuilder( const IMessageBusRef& Bus )
 		: Address(FMessageAddress::NewGuid())
 		, BusPtr(Bus)
 		, Disabled(false)
-		, Transport(NULL)
+		, Transport(nullptr)
 	{ }
 
 public:
@@ -53,7 +53,7 @@ public:
 	/**
 	 * Configures the bridge to use a custom message serializer.\
 	 *
-	 * @param CustomSerializer - The custom serializer.
+	 * @param CustomSerializer The custom serializer.
 	 *
 	 * @return This instance (for method chaining).
 	 */
@@ -67,7 +67,7 @@ public:
 	/**
 	 * Configures the bridge to use a specific message transport technology.
 	 *
-	 * @param InTransport - The transport technology to use.
+	 * @param InTransport The transport technology to use.
 	 *
 	 * @return This instance (for method chaining).
 	 */
@@ -95,7 +95,7 @@ public:
 	 *
 	 * If no address is specified, one will be generated automatically.
 	 *
-	 * @param InAddress - The address to set.
+	 * @param InAddress The address to set.
 	 *
 	 * @return This instance (for method chaining).
 	 */
@@ -111,7 +111,7 @@ public:
 	/**
 	 * Builds the message bridge as configured.
 	 *
-	 * @return A new message bridge, or NULL if it couldn't be built.
+	 * @return A new message bridge, or nullptr if it couldn't be built.
 	 */
 	IMessageBridgePtr Build( )
 	{
@@ -144,7 +144,7 @@ public:
 	/**
 	 * Implicit conversion operator to build the message bridge as configured.
 	 *
-	 * @return A new message bridge, or NULL if it couldn't be built.
+	 * @return A new message bridge, or nullptr if it couldn't be built.
 	 */
 	operator IMessageBridgePtr( )
 	{
