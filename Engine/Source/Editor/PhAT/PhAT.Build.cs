@@ -21,6 +21,7 @@ public class PhAT : ModuleRules
 				"LevelEditor",
 				"UnrealEd",
                 "Kismet",
+                "Persona"
 			}
 		);
 

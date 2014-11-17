@@ -54,6 +54,7 @@ public class LevelEditor : ModuleRules
 				"EngineSettings",
 				"PropertyEditor",
 				"WebBrowser",
+                "Persona"
 			}
 		);
 

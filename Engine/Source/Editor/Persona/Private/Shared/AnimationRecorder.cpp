@@ -17,6 +17,7 @@ FAnimationRecorder::FAnimationRecorder()
 	: IntervalTime(1.0f/DEFAULT_SAMPLERATE)
 	, MaxFrame(DEFAULT_SAMPLERATE * 60 * 10) // for now, set the max limit to 10 mins. 
 	, AnimationObject(NULL)
+	, bRecordLocalToWorld(false)
 {
 
 }
@@ -121,7 +122,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSe
 	Record(Component, PreviousSpacesBases, 0);
 }
 
-void FAnimationRecorder::StopRecord(bool bShowMessage)
+UAnimSequence * FAnimationRecorder::StopRecord(bool bShowMessage)
 {
 	if (AnimationObject)
 	{
@@ -132,6 +133,8 @@ void FAnimationRecorder::StopRecord(bool bShowMessage)
 		AnimationObject->SequenceLength = (NumFrames>1)? (NumFrames-1) * IntervalTime : MINIMUM_ANIMATION_LENGTH;
 		AnimationObject->PostProcessSequence();
 		AnimationObject->MarkPackageDirty();
+
+		UAnimSequence * ReturnObject = AnimationObject;
 
 		// notify to user
 		if (bShowMessage)
@@ -154,12 +157,18 @@ void FAnimationRecorder::StopRecord(bool bShowMessage)
 				Notification->SetCompletionState( SNotificationItem::CS_Success );
 			}
 
+			FAssetRegistryModule::AssetCreated(AnimationObject);
+			
 			FMessageDialog::Open(EAppMsgType::Ok, NotificationText);
 		}
 
 		AnimationObject = NULL;
 		PreviousSpacesBases.Empty();
+
+		return ReturnObject;
 	}
+
+	return NULL;
 }
 
 // return false if nothing to update
@@ -252,6 +261,11 @@ void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTra
 				if ( ParentIndex != INDEX_NONE )
 				{
 					LocalTransform.SetToRelativeTransform(SpacesBases[ParentIndex]);
+				}
+				// if record local to world, we'd like to consider component to world to be in root
+				else if (bRecordLocalToWorld)
+				{
+					LocalTransform *= Component->ComponentToWorld;
 				}
 
 				FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[TrackIndex];

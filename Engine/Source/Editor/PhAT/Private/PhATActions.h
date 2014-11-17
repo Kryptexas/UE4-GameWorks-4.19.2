@@ -68,6 +68,7 @@ public:
 	TSharedPtr<FUICommandInfo> ConvertToSkeletal;
 	TSharedPtr<FUICommandInfo> DeleteConstraint;
 	TSharedPtr<FUICommandInfo> PlayAnimation;
+	TSharedPtr<FUICommandInfo> RecordAnimation;
 	TSharedPtr<FUICommandInfo> ShowSkeleton;
 	TSharedPtr<FUICommandInfo> MakeBodyKinematic;
 	TSharedPtr<FUICommandInfo> MakeBodySimulated;

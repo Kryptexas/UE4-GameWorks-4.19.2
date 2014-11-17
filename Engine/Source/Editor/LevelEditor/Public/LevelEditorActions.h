@@ -1163,5 +1163,13 @@ private:
 	 * @param InDestination		The destination actor we want to move this actor to, NULL assumes we just want to go towards the floor
 	 */
 	static void SnapActorTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, const AActor* InDestination = NULL );
+
+	/** 
+	 * Create and apply animation to the SkeletalMeshComponent if Simulating
+	 * 
+	 * @param EditorActor	Editor Counterpart Actor
+	 * @param SimActor		Simulating Actor in PIE or SIE
+	 */
+	static bool SaveAnimationFromSkeletalMeshComponent(AActor * EditorActor, AActor * SimActor, TArray<class USkeletalMeshComponent*> & OutEditorComponents);
 };
 

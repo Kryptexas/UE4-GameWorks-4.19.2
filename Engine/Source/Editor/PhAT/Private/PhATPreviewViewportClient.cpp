@@ -71,7 +71,7 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 	if (CollBoxExtent.X > CollBoxExtent.Y)
 	{
 		SetViewLocation( FVector(WorldSphere.Center.X, WorldSphere.Center.Y - 1.5*WorldSphere.W, WorldSphere.Center.Z) );
-		SetViewRotation( FRotator(0,90.f,0) );	
+		SetViewRotation( EditorViewportDefs::DefaultPerspectiveViewRotation );	
 	}
 	else
 	{
@@ -164,7 +164,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 	if ((SharedData->bShowHierarchy && SharedData->EditorSimOptions->bShowNamesInHierarchy))
 	{
 		// Iterate over each graphics bone.
-		for (int32 i = 0; i <SharedData->EditorSkelComp->GetNumSpaceBases(); ++i)
+		for(int32 i = 0; i <SharedData->EditorSkelComp->GetNumSpaceBases(); ++i)
 		{
 			FVector BonePos = SharedData->EditorSkelComp->ComponentToWorld.TransformPosition(SharedData->EditorSkelComp->GetSpaceBases()[i].GetLocation());
 
@@ -668,6 +668,12 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 		// We back up the transforms array now
 		SharedData->EditorSkelComp->AnimationSpaceBases = SharedData->EditorSkelComp->GetSpaceBases();
 		SharedData->EditorSkelComp->SetPhysicsBlendWeight(SharedData->EditorSimOptions->PhysicsBlend);
+
+		if(SharedData->Recorder.InRecording())
+		{
+			// make sure you don't allow switch SharedData->EditorSkelComp
+			SharedData->Recorder.UpdateRecord(SharedData->EditorSkelComp, DeltaSeconds);
+		}
 	}
 }
 

@@ -4,6 +4,7 @@
 
 #include "PreviewScene.h"
 #include "PhysicsPublic.h"
+#include "AnimationRecorder.h"
 
 class UPhATEdSkeletalMeshComponent;
 class UPhysicsHandleComponent;
@@ -214,6 +215,8 @@ public:
 
 	UBodySetup * CopiedBodySetup;
 	UPhysicsConstraintTemplate * CopiedConstraintTemplate;
+
+	struct FAnimationRecorder Recorder;
 
 	/** Constraint editing */
 	TArray<FSelection> SelectedConstraints;

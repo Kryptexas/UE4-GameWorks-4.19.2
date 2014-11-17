@@ -58,6 +58,8 @@
 #include "Components/LightComponent.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/Light.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Editor/Persona/Public/AnimationRecorder.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -1544,6 +1546,75 @@ bool FLevelEditorActionCallbacks::ScaleGridSnap_IsChecked()
 	return GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled;
 }
 
+bool FLevelEditorActionCallbacks::SaveAnimationFromSkeletalMeshComponent(AActor * EditorActor, AActor * SimActor, TArray<class USkeletalMeshComponent*> & OutEditorComponents)
+{
+	// currently blueprint actors don't work because their property can't get copied over. 
+	if (Cast<UBlueprintGeneratedClass>(EditorActor->GetClass()) != nullptr)
+	{
+		return false;
+	}
+
+	// find all skel components
+	TArray<class USkeletalMeshComponent *> SimSkelComponents;
+	SimActor->GetComponents<USkeletalMeshComponent>(SimSkelComponents);
+
+	if(SimSkelComponents.Num() > 0)
+	{
+		// see if simulating, 
+		bool bSimulating = false;
+		for (auto & Comp : SimSkelComponents)
+		{
+			bSimulating |= (Comp->SkeletalMesh && Comp->SkeletalMesh->Skeleton && Comp->IsSimulatingPhysics());
+		}
+
+		// if any of them are legitimately simulating
+		if (bSimulating)
+		{
+			// ask users if you'd like to make an animation
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ActorName"), FText::FromString(GetNameSafe(EditorActor)));
+			FText AskQuestion = FText::Format(LOCTEXT("KeepSimulationChanges_AskSaveAnimation", "Would you like to save animations from simulation for {ActorName} actor"), Args);
+			if(EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, AskQuestion))
+			{
+				for (auto & Comp : SimSkelComponents)
+				{
+					if (Comp->SkeletalMesh && Comp->SkeletalMesh->Skeleton && Comp->IsSimulatingPhysics())
+					{
+						// now record to animation
+						FAnimationRecorder Recorder;
+						if(Recorder.TriggerRecordAnimation(Comp))
+						{
+							class UAnimSequence * Sequence = Recorder.GetAnimationObject();
+							if(Sequence)
+							{
+								Recorder.StopRecord(false);
+								Comp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+								Comp->AnimationData.AnimToPlay = Sequence;
+								Comp->SetAnimation(Sequence);
+								Comp->SetSimulatePhysics(false);
+
+								// add the matching component to EditorCompoennts
+								class USkeletalMeshComponent * MatchingComponent = Cast<USkeletalMeshComponent>(EditorUtilities::FindMatchingComponentInstance(Comp, EditorActor));
+								if (MatchingComponent)
+								{
+									OutEditorComponents.Add(MatchingComponent);
+								}
+								else
+								{
+									UE_LOG( LevelEditorActions, Warning, TEXT("Matching component could not be found %s(%s)"), *GetNameSafe(Comp), *GetNameSafe(EditorActor) );
+								}
+							}
+						}
+					}
+				}
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 {
@@ -1560,6 +1631,8 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 		{
 			const FScopedTransaction Transaction( NSLOCTEXT( "LevelEditorCommands", "KeepSimulationChanges", "Keep Simulation Changes" ) );
 
+			TArray<class USkeletalMeshComponent*> ComponentsToReinitialize;
+
 			for( auto ActorIt( GEditor->GetSelectedActorIterator() ); ActorIt; ++ActorIt )
 			{
 				auto* SimWorldActor = CastChecked<AActor>( *ActorIt );
@@ -1568,6 +1641,8 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 				AActor* EditorWorldActor = EditorUtilities::GetEditorWorldCounterpartActor( SimWorldActor );
 				if( EditorWorldActor != NULL )
 				{
+					SaveAnimationFromSkeletalMeshComponent(EditorWorldActor, SimWorldActor, ComponentsToReinitialize);
+
 					// We only want to copy CPF_Edit properties back, or properties that are set through editor manipulation
 					// NOTE: This needs to match what we're doing in the BuildSelectedActorInfo() function
 					const auto CopyOptions = ( EditorUtilities::ECopyOptions::Type )(
@@ -1585,6 +1660,15 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 						{
 							FirstUpdatedActorLabel = EditorWorldActor->GetActorLabel();
 						}
+					}
+				}
+
+				// need to reinitialize animation
+				for (auto MeshComp : ComponentsToReinitialize)
+				{
+					if(MeshComp->SkeletalMesh)
+					{
+						MeshComp->InitAnim(true);
 					}
 				}
 			}

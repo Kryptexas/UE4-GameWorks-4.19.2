@@ -851,6 +851,17 @@ void FPhAT::ExtendToolbar()
 				ToolbarBuilder.AddWidget(PhATAnimation);
 			}
 			ToolbarBuilder.EndSection();
+
+			ToolbarBuilder.BeginSection("PhATRecord");
+			{
+				ToolbarBuilder.AddToolBarButton(Commands.RecordAnimation,
+											NAME_None,
+											 TAttribute<FText>(Phat, &FPhAT::GetRecordStatusLabel),
+											 TAttribute<FText>(Phat, &FPhAT::GetRecordStatusTooltip),
+											 TAttribute<FSlateIcon>(Phat, &FPhAT::GetRecordStatusImage),
+											 NAME_None);
+			}
+			ToolbarBuilder.EndSection();
 		}
 	};
 
@@ -1361,6 +1372,15 @@ void FPhAT::BindCommands()
 		Commands.Mirror,
 		FExecuteAction::CreateSP(this, &FPhAT::Mirror),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation)
+		);
+
+	// record animation
+	ToolkitCommands->MapAction(
+		Commands.RecordAnimation,
+		FExecuteAction::CreateSP(this, &FPhAT::RecordAnimation),
+		FCanExecuteAction::CreateSP(this, &FPhAT::IsRecordAvailable),
+		FIsActionChecked(),
+		FIsActionButtonVisible()
 		);
 }
 
@@ -3193,4 +3213,89 @@ void FPhAT::OnAddPhatRecord(const FString& Action, bool bRecordSimulate, bool bR
 		FEngineAnalytics::GetProvider().RecordEvent(EventString, Attribs);
 	}
 }
+
+// only during simulation
+bool FPhAT::IsRecordAvailable() const
+{
+	// make sure mesh exists
+	return (SharedData->EditorSkelComp && SharedData->EditorSkelComp->SkeletalMesh/* && SharedData->bRunningSimulation */);
+}
+
+FSlateIcon FPhAT::GetRecordStatusImage() const
+{
+	if(SharedData->Recorder.InRecording())
+	{
+		return FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.StopRecordAnimation");
+	}
+
+	return FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.StartRecordAnimation");
+}
+
+FText FPhAT::GetRecordMenuLabel() const
+{
+	if(SharedData->Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimationMenuLabel", "Stop Record Animation");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimationLabel", "Start Record Animation");
+}
+
+FText FPhAT::GetRecordStatusLabel() const
+{
+	if(SharedData->Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimationLabel", "Stop");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimationLabel", "Record");
+}
+
+FText FPhAT::GetRecordStatusTooltip() const
+{
+	if(SharedData->Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimation", "Stop Record Animation");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimation", "Start Record Animation");
+}
+
+void FPhAT::RecordAnimation()
+{
+	if(!SharedData->EditorSkelComp || !SharedData->EditorSkelComp->SkeletalMesh)
+	{
+		// error
+		return;
+	}
+
+	if(SharedData->Recorder.InRecording())
+	{
+		UAnimSequence * AnimSeq = SharedData->Recorder.StopRecord(true);
+
+		// open the asset?
+		if (AnimSeq)
+		{
+			TArray<UObject*> ObjectsToSync;
+			ObjectsToSync.Add(AnimSeq);
+
+			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+			ContentBrowserModule.Get().SyncBrowserToAssets(ObjectsToSync, true);
+		}
+	}
+	else
+	{
+		SharedData->Recorder.TriggerRecordAnimation(SharedData->EditorSkelComp);
+	}
+}
+
+void FPhAT::Tick(float DeltaTime)
+{
+}
+
+TStatId FPhAT::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FPhAT, STATGROUP_Tickables);
+}
+
 #undef LOCTEXT_NAMESPACE
