@@ -48,24 +48,30 @@ namespace iPhonePackager
 
 			#region remove after we provide an install mechanism
 			// copy all of the provisions from the game directory to the library
-			foreach (string Provision in Directory.EnumerateFiles(Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/", "*.mobileprovision", SearchOption.AllDirectories))
+			if (Directory.Exists(Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/"))
 			{
-				if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
+				foreach (string Provision in Directory.EnumerateFiles(Path.GetDirectoryName(Config.ProjectFile) + "/Build/IOS/", "*.mobileprovision", SearchOption.AllDirectories))
 				{
-					File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
-					FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
-					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+					if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
+					{
+						File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
+						FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
+						DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+					}
 				}
 			}
 
 			// copy all of the provisions from the egine directory to the library
-			foreach (string Provision in Directory.EnumerateFiles(Config.EngineBuildDirectory, "*.mobileprovision", SearchOption.AllDirectories))
+			if (Directory.Exists(Config.EngineBuildDirectory))
 			{
-				if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
+				foreach (string Provision in Directory.EnumerateFiles(Config.EngineBuildDirectory, "*.mobileprovision", SearchOption.AllDirectories))
 				{
-					File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
-					FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
-					DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+					if (!File.Exists(Config.ProvisionDirectory + Path.GetFileName(Provision)))
+					{
+						File.Copy(Provision, Config.ProvisionDirectory + Path.GetFileName(Provision), true);
+						FileInfo DestFileInfo = new FileInfo(Config.ProvisionDirectory + Path.GetFileName(Provision));
+						DestFileInfo.Attributes = DestFileInfo.Attributes & ~FileAttributes.ReadOnly;
+					}
 				}
 			}
 			#endregion
