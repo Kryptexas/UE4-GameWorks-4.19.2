@@ -74,8 +74,12 @@ public:
 	template<typename FEventClass>
 	void OnEvent(const FEventClass& Event)
 	{
-		check(Senses[UAISense::GetSenseID<typename FEventClass::FSenseClass>()]);
-		((typename FEventClass::FSenseClass*)Senses[UAISense::GetSenseID<typename FEventClass::FSenseClass>()])->RegisterEvent(Event);
+		const FAISenseID SenseID = UAISense::GetSenseID<typename FEventClass::FSenseClass>();
+		if (Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr)
+		{
+			((typename FEventClass::FSenseClass*)Senses[SenseID])->RegisterEvent(Event);
+		}
+		// otherwise there's no one interested in this event, skip it.
 	}
 
 	template<typename FEventClass>
