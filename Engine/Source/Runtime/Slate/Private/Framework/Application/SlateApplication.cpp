@@ -2990,11 +2990,11 @@ void FSlateApplication::SetDragTriggerDistnace( float ScreenPixels )
 	DragTriggerDistnace = ScreenPixels;
 }
 
-void FSlateApplication::SetAnalogCursorEnable(bool bEnable)
+void FSlateApplication::SetAnalogCursorEnable(bool bEnable, TSharedPtr<class FAnalogCursor> OptionalNewAnalogCursor)
 {
 	if (bEnable && !AnalogCursor.IsValid())
 	{
-		AnalogCursor = MakeShareable(new FAnalogCursor);
+		AnalogCursor = OptionalNewAnalogCursor.IsValid() ? OptionalNewAnalogCursor : MakeShareable(new FAnalogCursor);
 	}
 	else
 	{

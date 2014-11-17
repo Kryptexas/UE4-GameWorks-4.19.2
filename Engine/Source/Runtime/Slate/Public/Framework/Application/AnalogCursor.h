@@ -7,7 +7,7 @@ class FSlateApplication;
 /**
  * A class that simulates a cursor driven by an analog stick.
  */
-class FAnalogCursor
+class SLATE_API FAnalogCursor
 {
 public:
 	FAnalogCursor();

@@ -949,7 +949,7 @@ public:
 	void SetDragTriggerDistnace( float ScreenPixels );
 	
 	/** Set the analog cursor to be enabled or disabled. */
-	void SetAnalogCursorEnable(bool bEnable);
+	void SetAnalogCursorEnable(bool bEnable, TSharedPtr<class FAnalogCursor> OptionalNewAnalogCursor = nullptr);
 
 public:
 
