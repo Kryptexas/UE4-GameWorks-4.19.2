@@ -10,6 +10,7 @@ public class SoundCueEditor : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
+                "InputCore",
 				"Engine",
 				"Slate",
 				"SlateCore",
